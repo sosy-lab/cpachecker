@@ -13,12 +13,20 @@ import com.google.common.collect.Multiset;
 import java.util.Set;
 import org.sosy_lab.cpachecker.util.coverage.util.CoverageColorUtil;
 
+/**
+ * A coverage measure which is based on working with the CFA locations. Therefore, the coverage
+ * depends on the total relevant locations and all locations which are considered as covered
+ * depending on concrete coverage criteria. The coverage criteria is applied during the data
+ * gathering and not within this class. Data gathering is typically done after the analysis within
+ * the CoverageCollector or during the analysis within a CoverageCPA.
+ */
 public class LocationCoverageMeasure implements CoverageMeasure {
-
+  /* ##### Class Fields ##### */
   private final Multiset<Integer> coveredLocations;
   private final double maxCount;
   private String coverageColor;
 
+  /* ##### Constructors ##### */
   public LocationCoverageMeasure(
       Multiset<Integer> pCoveredLocations, double pMaxCount, String pCoverageColor) {
     this(pCoveredLocations, pMaxCount);
@@ -50,14 +58,14 @@ public class LocationCoverageMeasure implements CoverageMeasure {
     maxCount = 1;
   }
 
-  public Set<Integer> getCoveredSet() {
-    return coveredLocations.elementSet();
-  }
-
-  public Multiset<Integer> getCoveredLocations() {
-    return coveredLocations;
-  }
-
+  /* ##### Getter and Setter ##### */
+  /**
+   * Returns the color representing if a location is covered or not. This information is used for
+   * later visualization in the report.html CFA Tab.
+   *
+   * @param location location identification number within the CFA
+   * @return hex color code which represents the coverage status for the given location
+   */
   public String getColor(Integer location) {
     if (getCoveredSet().contains(location)) {
       return coverageColor;
@@ -66,6 +74,15 @@ public class LocationCoverageMeasure implements CoverageMeasure {
     }
   }
 
+  public Set<Integer> getCoveredSet() {
+    return coveredLocations.elementSet();
+  }
+
+  public Multiset<Integer> getCoveredLocations() {
+    return coveredLocations;
+  }
+
+  /* ##### Interface Implementations ##### */
   @Override
   public double getCoverage() {
     return coveredLocations.elementSet().size() / maxCount;

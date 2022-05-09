@@ -24,12 +24,21 @@ import org.sosy_lab.cpachecker.util.coverage.report.CoverageStatistics;
  * done. The corresponding data is delivered by CoverageData which holds all relevant coverage data.
  */
 public class CoverageMeasureHandler {
+  /* ##### Class Fields ##### */
   private Map<CoverageMeasureType, CoverageMeasure> coverageMeasureMap;
 
+  /* ##### Constructors ##### */
   public CoverageMeasureHandler() {
     coverageMeasureMap = new LinkedHashMap<>();
   }
 
+  /* ##### Public Methods ##### */
+  /**
+   * Method for initializing a generic type of coverage measure When adding new
+   * CoverageMeasureCategory fields, this method should include those cases.
+   *
+   * @param type type of the coverage measure
+   */
   public void initNewData(CoverageMeasureType type) {
     CoverageMeasure coverageMeasure = null;
     switch (type.getCategory()) {
@@ -46,6 +55,7 @@ public class CoverageMeasureHandler {
     coverageMeasureMap.put(type, coverageMeasure);
   }
 
+  /** Init all measures which are analysis independent */
   public void initAnalysisIndependentMeasures() {
     initNewData(CoverageMeasureType.None);
     initNewData(CoverageMeasureType.VisitedLocations);
@@ -54,63 +64,19 @@ public class CoverageMeasureHandler {
     initNewData(CoverageMeasureType.ConsideredLinesHeatMap);
   }
 
+  /** Init all measures which depend on predicate analysis */
   public void initPredicateAnalysisMeasures() {
     initNewData(CoverageMeasureType.PredicateConsidered);
     initNewData(CoverageMeasureType.PredicateRelevantVariables);
   }
 
-  public void addData(CoverageMeasureType type, CoverageMeasure data) {
-    coverageMeasureMap.put(type, data);
-  }
-
-  public CoverageMeasure getData(CoverageMeasureType type) {
-    return coverageMeasureMap.get(type);
-  }
-
-  public ImmutableList<CoverageMeasureType> getAllTypes() {
-    return ImmutableList.copyOf(coverageMeasureMap.keySet());
-  }
-
-  public ImmutableList<String> getAllTypesAsString() {
-    return transformedImmutableListCopy(coverageMeasureMap.keySet(), v -> v.getName());
-  }
-
-  public ImmutableList<String> getAllTypesForCategoriesAsString(
-      CoverageMeasureCategory... categories) {
-    return coverageMeasureMap.keySet().stream()
-        .filter(v -> isContainedIn(categories, v.getCategory()))
-        .map(v -> v.getName())
-        .collect(ImmutableList.toImmutableList());
-  }
-
-  public ImmutableList<CoverageMeasureType> getAllTypesForCategories(
-      CoverageMeasureCategory... categories) {
-    return coverageMeasureMap.keySet().stream()
-        .filter(v -> isContainedIn(categories, v.getCategory()))
-        .collect(ImmutableList.toImmutableList());
-  }
-
-  private boolean isContainedIn(
-      CoverageMeasureCategory[] categories, CoverageMeasureCategory pCategory) {
-    for (CoverageMeasureCategory category : categories) {
-      if (category == pCategory) {
-        return true;
-      }
-    }
-    return false;
-  }
-
-  public void mergeData(CoverageMeasureHandler secondHandler) {
-    for (var type : getAllTypes()) {
-      secondHandler.addData(type, getData(type));
-    }
-    coverageMeasureMap = secondHandler.getCoverageMeasureMap();
-  }
-
-  public Map<CoverageMeasureType, CoverageMeasure> getCoverageMeasureMap() {
-    return coverageMeasureMap;
-  }
-
+  /**
+   * This method is called in the end of the analysis. It is used to populate the coverage data for
+   * all initialized measures. When adding a new coverage measure this method should be expanded by
+   * its type.
+   *
+   * @param coverageData coverageData holds all relevant coverage data gathered during the analysis
+   */
   public void fillCoverageData(CoverageData coverageData) {
     CoverageStatistics covStatistics = new CoverageStatistics(coverageData);
     for (var type : getAllTypes()) {
@@ -158,5 +124,65 @@ public class CoverageMeasureHandler {
           break;
       }
     }
+  }
+
+  /**
+   * Merges data from another coverage handler with this coverage handler so that both coverage
+   * handlers have a unified set of measures.
+   *
+   * @param secondHandler Another coverage handler used to merge the different measures together
+   */
+  public void mergeData(CoverageMeasureHandler secondHandler) {
+    for (var type : getAllTypes()) {
+      secondHandler.addData(type, getData(type));
+    }
+    coverageMeasureMap = secondHandler.getCoverageMeasureMap();
+  }
+
+  /* ##### Getter and Setter ##### */
+  public void addData(CoverageMeasureType type, CoverageMeasure data) {
+    coverageMeasureMap.put(type, data);
+  }
+
+  public CoverageMeasure getData(CoverageMeasureType type) {
+    return coverageMeasureMap.get(type);
+  }
+
+  public ImmutableList<CoverageMeasureType> getAllTypes() {
+    return ImmutableList.copyOf(coverageMeasureMap.keySet());
+  }
+
+  public ImmutableList<String> getAllTypesAsString() {
+    return transformedImmutableListCopy(coverageMeasureMap.keySet(), v -> v.getName());
+  }
+
+  public ImmutableList<String> getAllTypesForCategoriesAsString(
+      CoverageMeasureCategory... categories) {
+    return coverageMeasureMap.keySet().stream()
+        .filter(v -> isContainedIn(categories, v.getCategory()))
+        .map(v -> v.getName())
+        .collect(ImmutableList.toImmutableList());
+  }
+
+  public ImmutableList<CoverageMeasureType> getAllTypesForCategories(
+      CoverageMeasureCategory... categories) {
+    return coverageMeasureMap.keySet().stream()
+        .filter(v -> isContainedIn(categories, v.getCategory()))
+        .collect(ImmutableList.toImmutableList());
+  }
+
+  public Map<CoverageMeasureType, CoverageMeasure> getCoverageMeasureMap() {
+    return coverageMeasureMap;
+  }
+
+  /* ##### Private Methods ##### */
+  private boolean isContainedIn(
+      CoverageMeasureCategory[] categories, CoverageMeasureCategory pCategory) {
+    for (CoverageMeasureCategory category : categories) {
+      if (category == pCategory) {
+        return true;
+      }
+    }
+    return false;
   }
 }

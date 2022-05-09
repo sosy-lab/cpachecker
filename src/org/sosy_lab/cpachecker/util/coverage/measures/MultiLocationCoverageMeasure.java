@@ -13,9 +13,17 @@ import java.util.HashSet;
 import java.util.Set;
 import org.sosy_lab.cpachecker.util.coverage.util.CoverageColorUtil;
 
+/**
+ * Behaves like LocationCoverageMeasure but with the difference that it considers a second coverage
+ * criteria. For example when looking at all reached locations and all visited locations, we can use
+ * this MultiLocationCoverageMeasure to consider both coverage criteria and i.e. calculate the
+ * intersection and use this as combined coverage criteria.
+ */
 public class MultiLocationCoverageMeasure extends LocationCoverageMeasure {
+  /* ##### Class fields ##### */
   private final Multiset<Integer> alternativeCoveredLocations;
 
+  /* ##### Constructors ##### */
   public MultiLocationCoverageMeasure(
       Multiset<Integer> pCoveredLocations,
       Multiset<Integer> pAlternativeCoveredLocations,
@@ -24,6 +32,7 @@ public class MultiLocationCoverageMeasure extends LocationCoverageMeasure {
     alternativeCoveredLocations = pAlternativeCoveredLocations;
   }
 
+  /* ##### Getter and Setter ##### */
   public Set<Integer> getIntersectionLocations() {
     Set<Integer> intersect = new HashSet<>(getCoveredLocations().elementSet());
     intersect.removeAll(alternativeCoveredLocations.elementSet());
