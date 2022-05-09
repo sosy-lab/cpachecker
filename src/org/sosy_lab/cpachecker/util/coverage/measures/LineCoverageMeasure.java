@@ -11,37 +11,41 @@ package org.sosy_lab.cpachecker.util.coverage.measures;
 import com.google.common.collect.Multiset;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.Set;
 import org.sosy_lab.cpachecker.util.coverage.report.FileCoverageStatistics;
 import org.sosy_lab.cpachecker.util.coverage.util.CoverageColorUtil;
 
 public class LineCoverageMeasure implements CoverageMeasure {
   private final Map<String, Multiset<Integer>> visitedLinesPerFile;
-  private final double maxCount;
+  private final Map<String, Set<Integer>> exisitingLinesPerFile;
 
-  public LineCoverageMeasure(Map<String, FileCoverageStatistics> infoPerFile, double pMaxCount) {
+  public LineCoverageMeasure(Map<String, FileCoverageStatistics> infoPerFile) {
     visitedLinesPerFile = new LinkedHashMap<>();
+    exisitingLinesPerFile = new LinkedHashMap<>();
     for (var info : infoPerFile.entrySet()) {
       visitedLinesPerFile.put(info.getKey(), info.getValue().visitedLines);
-    }
-    if (pMaxCount <= 0) {
-      maxCount = 1.0;
-    } else {
-      maxCount = pMaxCount;
+      exisitingLinesPerFile.put(info.getKey(), info.getValue().allLines);
     }
   }
 
   public LineCoverageMeasure() {
     visitedLinesPerFile = new LinkedHashMap<>();
-    maxCount = 1;
+    exisitingLinesPerFile = new LinkedHashMap<>();
   }
 
   public String getColor(String file, int line) {
-    return CoverageColorUtil.getFrequencyColorMap(visitedLinesPerFile.get(file)).get(line);
+    if (visitedLinesPerFile.get(file).contains(line)) {
+      return CoverageColorUtil.getFrequencyColorMap(visitedLinesPerFile.get(file)).get(line);
+    } else if (exisitingLinesPerFile.get(file).contains(line)) {
+      return CoverageColorUtil.DEFAULT_CONSIDERED_COLOR;
+    } else {
+      return CoverageColorUtil.DEFAULT_ELEMENT_COLOR;
+    }
   }
 
   @Override
   public double getCoverage() {
-    return getValue() / maxCount;
+    return getValue() / getMaxCount();
   }
 
   @Override
@@ -55,6 +59,10 @@ public class LineCoverageMeasure implements CoverageMeasure {
 
   @Override
   public double getMaxCount() {
-    return maxCount;
+    int existingLinesCount = 0;
+    for (var existingLines : exisitingLinesPerFile.values()) {
+      existingLinesCount += existingLines.size();
+    }
+    return existingLinesCount;
   }
 }

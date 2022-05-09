@@ -133,8 +133,7 @@ public class CoverageMeasureHandler {
           addData(type, locCov);
           break;
         case ConsideredLinesHeatMap:
-          lineCov =
-              new LineCoverageMeasure(coverageData.getInfosPerFile(), covStatistics.numTotalLines);
+          lineCov = new LineCoverageMeasure(coverageData.getInfosPerFile());
           addData(type, lineCov);
           break;
         case PredicateConsidered:
