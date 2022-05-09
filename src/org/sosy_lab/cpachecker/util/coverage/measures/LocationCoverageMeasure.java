@@ -72,7 +72,7 @@ public class LocationCoverageMeasure implements CoverageMeasure {
   }
 
   @Override
-  public double getValue() {
+  public double getCount() {
     return coveredLocations.elementSet().size();
   }
 

@@ -16,7 +16,7 @@ public class UndefinedCoverageMeasure implements CoverageMeasure {
   }
 
   @Override
-  public double getValue() {
+  public double getCount() {
     return 0;
   }
 

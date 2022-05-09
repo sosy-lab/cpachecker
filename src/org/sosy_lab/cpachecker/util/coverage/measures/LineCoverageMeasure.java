@@ -45,11 +45,11 @@ public class LineCoverageMeasure implements CoverageMeasure {
 
   @Override
   public double getCoverage() {
-    return getValue() / getMaxCount();
+    return getCount() / getMaxCount();
   }
 
   @Override
-  public double getValue() {
+  public double getCount() {
     int visitedLinesCount = 0;
     for (var visitedLines : visitedLinesPerFile.values()) {
       visitedLinesCount += visitedLines.entrySet().size();

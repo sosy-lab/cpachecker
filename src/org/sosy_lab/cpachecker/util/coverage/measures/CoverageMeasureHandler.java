@@ -16,6 +16,13 @@ import java.util.Map;
 import org.sosy_lab.cpachecker.util.coverage.CoverageData;
 import org.sosy_lab.cpachecker.util.coverage.report.CoverageStatistics;
 
+/**
+ * Handler for managing all coverage measures. This class (including its corresponding enums) needs
+ * to be expanded if new coverage measures should be tracked and visualized. They first need to be
+ * initialized with initNewData and second, a switch case within the fillCoverageData needs to be
+ * added. Last step is important to feed this measure with data at the point when the analysis is
+ * done. The corresponding data is delivered by CoverageData which holds all relevant coverage data.
+ */
 public class CoverageMeasureHandler {
   private Map<CoverageMeasureType, CoverageMeasure> coverageMeasureMap;
 
