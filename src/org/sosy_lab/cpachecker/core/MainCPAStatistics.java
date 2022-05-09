@@ -60,10 +60,10 @@ import org.sosy_lab.cpachecker.core.reachedset.LocationMappedReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.PartitionedReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.util.AbstractStates;
-import org.sosy_lab.cpachecker.util.coverage.CoverageCollector;
-import org.sosy_lab.cpachecker.util.coverage.CoverageData;
+import org.sosy_lab.cpachecker.util.coverage.collectors.CoverageCollectorHandler;
 import org.sosy_lab.cpachecker.util.coverage.report.CoverageReportGcov;
 import org.sosy_lab.cpachecker.util.coverage.report.CoverageReportStdoutSummary;
+import org.sosy_lab.cpachecker.util.coverage.util.CoverageUtility;
 import org.sosy_lab.cpachecker.util.cwriter.CExpressionInvariantExporter;
 import org.sosy_lab.cpachecker.util.resources.MemoryStatistics;
 import org.sosy_lab.cpachecker.util.resources.ProcessCpuTime;
@@ -314,16 +314,19 @@ class MainCPAStatistics implements Statistics {
 
   private void exportCoverage(PrintStream out, UnmodifiableReachedSet reached) {
     if (exportCoverage && cfa != null && reached.size() > 1) {
-      CoverageData infosPerFile = CoverageCollector.fromReachedSet(reached, cfa, cpa);
-
+      CoverageCollectorHandler coverageCollectorHandler =
+          CoverageUtility.getCoverageCollectorHandlerFromReachedSet(reached);
+      coverageCollectorHandler
+          .getReachedSetCoverageCollector()
+          .collectFromReachedSet(reached, cfa, cpa);
       out.println();
       out.println("Code Coverage");
       out.println("-----------------------------");
-      CoverageReportStdoutSummary.write(infosPerFile, out);
+      CoverageReportStdoutSummary.write(coverageCollectorHandler.getInfosPerFile(), out);
 
       if (outputCoverageFile != null) {
         try (Writer gcovOut = IO.openOutputFile(outputCoverageFile, Charset.defaultCharset())) {
-          CoverageReportGcov.write(infosPerFile, gcovOut);
+          CoverageReportGcov.write(coverageCollectorHandler.getInfosPerFile(), gcovOut);
         } catch (IOException e) {
           logger.logUserException(Level.WARNING, e, "Could not write coverage information to file");
         }

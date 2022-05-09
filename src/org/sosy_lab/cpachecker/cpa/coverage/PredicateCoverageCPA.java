@@ -17,7 +17,7 @@ import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
-import org.sosy_lab.cpachecker.util.coverage.CoverageData;
+import org.sosy_lab.cpachecker.util.coverage.collectors.CoverageCollectorHandler;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 
@@ -27,15 +27,15 @@ public class PredicateCoverageCPA extends AbstractSingleWrapperCPA {
     return AutomaticCPAFactory.forType(PredicateCoverageCPA.class);
   }
 
-  private final CoverageData coverageData = new CoverageData();
+  private final CoverageCollectorHandler coverageCollectorHandler;
   private final FormulaManagerView fmgr;
   private final CFA cfa;
 
-  private PredicateCoverageCPA(ConfigurableProgramAnalysis pCpa, CFA pCFA)
+  private PredicateCoverageCPA(
+      ConfigurableProgramAnalysis pCpa, CFA pCFA, CoverageCollectorHandler pCovCollectorHandler)
       throws InvalidConfigurationException {
     super(pCpa);
-    coverageData.initPredicateAnalysisStatisticsHandlers();
-    coverageData.putCFA(pCFA);
+    coverageCollectorHandler = pCovCollectorHandler;
     cfa = pCFA;
     fmgr = getFormulaManagerView();
   }
@@ -52,14 +52,14 @@ public class PredicateCoverageCPA extends AbstractSingleWrapperCPA {
             + getWrappedCpa().getClass().getSimpleName());
   }
 
-  public CoverageData getCoverageData() {
-    return coverageData;
+  public CoverageCollectorHandler getCoverageCollectorHandler() {
+    return coverageCollectorHandler;
   }
 
   @Override
   public TransferRelation getTransferRelation() {
     return new PredicateCoverageCPATransferRelation(
-        getWrappedCpa().getTransferRelation(), fmgr, cfa, coverageData);
+        getWrappedCpa().getTransferRelation(), fmgr, cfa, coverageCollectorHandler);
   }
 
   @Override

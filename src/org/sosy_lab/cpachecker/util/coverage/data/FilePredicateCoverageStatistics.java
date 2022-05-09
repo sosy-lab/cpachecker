@@ -6,7 +6,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.util.coverage.report;
+package org.sosy_lab.cpachecker.util.coverage.data;
 
 import java.util.LinkedHashSet;
 import java.util.Set;

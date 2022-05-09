@@ -13,8 +13,8 @@ import java.io.IOException;
 import java.io.Writer;
 import java.nio.file.Path;
 import java.util.Map;
-import org.sosy_lab.cpachecker.util.coverage.CoverageData;
-import org.sosy_lab.cpachecker.util.coverage.report.FileCoverageStatistics.FunctionInfo;
+import org.sosy_lab.cpachecker.util.coverage.data.FileCoverageStatistics;
+import org.sosy_lab.cpachecker.util.coverage.data.FileCoverageStatistics.FunctionInfo;
 
 /** Generate coverage information in Gcov format (http://gcc.gnu.org/onlinedocs/gcc/Gcov.html). */
 public class CoverageReportGcov {
@@ -26,9 +26,10 @@ public class CoverageReportGcov {
   private static final String FUNCTIONDATA = "FNDA:";
   private static final String LINEDATA = "DA:";
 
-  public static void write(CoverageData pCoverage, Writer w) throws IOException {
+  public static void write(Map<String, FileCoverageStatistics> infosPerFile, Writer w)
+      throws IOException {
 
-    for (Map.Entry<String, FileCoverageStatistics> entry : pCoverage.getInfosPerFile().entrySet()) {
+    for (Map.Entry<String, FileCoverageStatistics> entry : infosPerFile.entrySet()) {
       String sourcefile = entry.getKey();
       FileCoverageStatistics fileInfos = entry.getValue();
 

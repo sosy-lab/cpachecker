@@ -17,19 +17,23 @@ import org.sosy_lab.cpachecker.core.defaults.SingleEdgeTransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
-import org.sosy_lab.cpachecker.util.coverage.CoverageData;
+import org.sosy_lab.cpachecker.util.coverage.collectors.AnalysisIndependentCoverageCollector;
+import org.sosy_lab.cpachecker.util.coverage.collectors.CoverageCollectorHandler;
 import org.sosy_lab.cpachecker.util.coverage.tdcg.TimeDependentCoverageData;
 import org.sosy_lab.cpachecker.util.coverage.tdcg.TimeDependentCoverageType;
 import org.sosy_lab.cpachecker.util.coverage.util.CoverageUtility;
 
 public class AnalysisIndependentCoverageTransferRelation extends SingleEdgeTransferRelation {
 
-  private final CoverageData coverageData;
+  private final AnalysisIndependentCoverageCollector coverageCollector;
   private final TimeDependentCoverageData visitedTDCG;
 
-  public AnalysisIndependentCoverageTransferRelation(CoverageData pCoverageData) {
-    coverageData = Preconditions.checkNotNull(pCoverageData);
-    visitedTDCG = coverageData.getTDCGHandler().getData(TimeDependentCoverageType.VisitedLines);
+  public AnalysisIndependentCoverageTransferRelation(
+      CoverageCollectorHandler pCovCollectorHandler) {
+    coverageCollector =
+        Preconditions.checkNotNull(pCovCollectorHandler.getAnalysisIndependentCoverageCollector());
+    visitedTDCG =
+        pCovCollectorHandler.getTDCGHandler().getData(TimeDependentCoverageType.VisitedLines);
   }
 
   @Override
@@ -43,11 +47,11 @@ public class AnalysisIndependentCoverageTransferRelation extends SingleEdgeTrans
     if (!CoverageUtility.coversLine(pEdge)) {
       return;
     }
-    coverageData.addVisitedEdge(pEdge);
-    coverageData.addVisitedLocation(pEdge);
-    visitedTDCG.addTimeStamp(coverageData.getTempVisitedCoverage());
+    coverageCollector.addVisitedEdge(pEdge);
+    coverageCollector.addVisitedLocation(pEdge);
+    visitedTDCG.addTimeStamp(coverageCollector.getTempVisitedCoverage());
     if (pEdge.getPredecessor() instanceof FunctionEntryNode) {
-      coverageData.addVisitedFunction((FunctionEntryNode) pEdge.getPredecessor());
+      coverageCollector.addVisitedFunction((FunctionEntryNode) pEdge.getPredecessor());
     }
   }
 }

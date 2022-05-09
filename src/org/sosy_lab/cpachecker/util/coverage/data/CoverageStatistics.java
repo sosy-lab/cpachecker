@@ -6,13 +6,13 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.util.coverage.report;
+package org.sosy_lab.cpachecker.util.coverage.data;
 
 import com.google.common.collect.LinkedHashMultiset;
 import com.google.common.collect.Multiset;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
-import org.sosy_lab.cpachecker.util.coverage.CoverageData;
 
 public class CoverageStatistics {
   public long numTotalConditions = 0;
@@ -28,7 +28,6 @@ public class CoverageStatistics {
   public long numPredicateConsideredNodes = 0;
   public long numAbstractStateCoveredNodes = 0;
   public long numPredicateRelevantVariablesNodes = 0;
-  public double predicateCoverage;
 
   public Set<Integer> predicateConsideredNodes = new HashSet<>();
   public Set<Integer> predicateRelevantVariablesConsideredNodes = new HashSet<>();
@@ -36,9 +35,8 @@ public class CoverageStatistics {
   public Multiset<Integer> visitedLocations = LinkedHashMultiset.create();
   public Multiset<Integer> reachedLocations = LinkedHashMultiset.create();
 
-  public CoverageStatistics(CoverageData pCoverage) {
-    predicateCoverage = pCoverage.getPredicateCoverage();
-    for (FileCoverageStatistics info : pCoverage.getInfosPerFile().values()) {
+  public CoverageStatistics(Map<String, FileCoverageStatistics> infosPerFile) {
+    for (FileCoverageStatistics info : infosPerFile.values()) {
       predicateConsideredNodes.addAll(info.predicateStatistics.getAllPredicateConsideredNodes());
       predicateRelevantVariablesConsideredNodes.addAll(
           info.predicateStatistics.getAllPredicateRelevantVariablesNodes());

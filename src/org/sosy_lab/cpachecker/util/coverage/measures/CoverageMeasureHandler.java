@@ -13,8 +13,8 @@ import static org.sosy_lab.common.collect.Collections3.transformedImmutableListC
 import com.google.common.collect.ImmutableList;
 import java.util.LinkedHashMap;
 import java.util.Map;
-import org.sosy_lab.cpachecker.util.coverage.CoverageData;
-import org.sosy_lab.cpachecker.util.coverage.report.CoverageStatistics;
+import org.sosy_lab.cpachecker.util.coverage.data.CoverageStatistics;
+import org.sosy_lab.cpachecker.util.coverage.data.FileCoverageStatistics;
 
 /**
  * Handler for managing all coverage measures. This class (including its corresponding enums) needs
@@ -75,10 +75,10 @@ public class CoverageMeasureHandler {
    * all initialized measures. When adding a new coverage measure this method should be expanded by
    * its type.
    *
-   * @param coverageData coverageData holds all relevant coverage data gathered during the analysis
+   * @param infosPerFile infosPerFile holds all relevant coverage data gathered during the analysis
    */
-  public void fillCoverageData(CoverageData coverageData) {
-    CoverageStatistics covStatistics = new CoverageStatistics(coverageData);
+  public void fillCoverageData(Map<String, FileCoverageStatistics> infosPerFile) {
+    CoverageStatistics covStatistics = new CoverageStatistics(infosPerFile);
     for (var type : getAllTypes()) {
       LocationCoverageMeasure locCov;
       LineCoverageMeasure lineCov;
@@ -106,7 +106,7 @@ public class CoverageMeasureHandler {
           addData(type, locCov);
           break;
         case ConsideredLinesHeatMap:
-          lineCov = new LineCoverageMeasure(coverageData.getInfosPerFile());
+          lineCov = new LineCoverageMeasure(infosPerFile);
           addData(type, lineCov);
           break;
         case PredicateConsidered:

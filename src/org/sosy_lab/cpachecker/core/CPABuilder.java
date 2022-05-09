@@ -50,6 +50,7 @@ import org.sosy_lab.cpachecker.cpa.location.LocationCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.InvalidComponentException;
 import org.sosy_lab.cpachecker.util.CPAs;
+import org.sosy_lab.cpachecker.util.coverage.collectors.CoverageCollectorHandler;
 
 /** Constructs a tree of CPA instances according to configuration. */
 @Options
@@ -114,6 +115,7 @@ public class CPABuilder {
       throws InvalidConfigurationException, CPAException {
     final FluentIterable<Automaton> allAutomata =
         FluentIterable.concat(specification.getSpecificationAutomata(), additionalAutomata);
+    CoverageCollectorHandler coverageCollectorHandler = new CoverageCollectorHandler(cfa);
 
     // 1. Parse config
     final CPAConfig rootCpaConfig = collectCPAConfigs(CPA_OPTION_NAME, cpaName);
@@ -195,7 +197,13 @@ public class CPABuilder {
     // 4. Instantiate configured CPAs
 
     ConfigurableProgramAnalysis cpa =
-        instantiateCPAandChildren(rootCpaConfig, cpas, cfa, specification, pAggregatedReachedSets);
+        instantiateCPAandChildren(
+            rootCpaConfig,
+            cpas,
+            cfa,
+            specification,
+            pAggregatedReachedSets,
+            coverageCollectorHandler);
 
     // 5. Final assertions
 
@@ -311,7 +319,8 @@ public class CPABuilder {
       List<ConfigurableProgramAnalysis> cpas,
       final CFA cfa,
       final Specification specification,
-      AggregatedReachedSets pAggregatedReachedSets)
+      AggregatedReachedSets pAggregatedReachedSets,
+      CoverageCollectorHandler coverageCollectorHandler)
       throws InvalidConfigurationException, CPAException {
 
     if (cpaConfig.isPlaceholder) {
@@ -352,9 +361,17 @@ public class CPABuilder {
     }
     if (cfa != null) {
       factory.set(cfa, CFA.class);
+      factory.set(coverageCollectorHandler, CoverageCollectorHandler.class);
     }
 
-    createAndSetChildrenCPAs(cpaConfig, factory, cpas, cfa, specification, pAggregatedReachedSets);
+    createAndSetChildrenCPAs(
+        cpaConfig,
+        factory,
+        cpas,
+        cfa,
+        specification,
+        pAggregatedReachedSets,
+        coverageCollectorHandler);
 
     // finally call createInstance
     ConfigurableProgramAnalysis cpa;
@@ -466,7 +483,8 @@ public class CPABuilder {
       List<ConfigurableProgramAnalysis> cpas,
       final CFA cfa,
       final Specification specification,
-      AggregatedReachedSets pAggregatedReachedSets)
+      AggregatedReachedSets pAggregatedReachedSets,
+      CoverageCollectorHandler coverageCollectorHandler)
       throws InvalidConfigurationException, CPAException {
 
     ImmutableList<CPAConfig> children = cpaConfig.children;
@@ -475,7 +493,12 @@ public class CPABuilder {
       // only one child CPA
       ConfigurableProgramAnalysis child =
           instantiateCPAandChildren(
-              cpaConfig.child, cpas, cfa, specification, pAggregatedReachedSets);
+              cpaConfig.child,
+              cpas,
+              cfa,
+              specification,
+              pAggregatedReachedSets,
+              coverageCollectorHandler);
       try {
         factory.setChild(child);
       } catch (UnsupportedOperationException e) {
@@ -494,7 +517,12 @@ public class CPABuilder {
         } else {
           childrenCpas.add(
               instantiateCPAandChildren(
-                  currentChildCpaConfig, cpas, cfa, specification, pAggregatedReachedSets));
+                  currentChildCpaConfig,
+                  cpas,
+                  cfa,
+                  specification,
+                  pAggregatedReachedSets,
+                  coverageCollectorHandler));
         }
       }
 

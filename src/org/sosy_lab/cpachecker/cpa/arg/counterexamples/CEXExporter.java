@@ -53,7 +53,7 @@ import org.sosy_lab.cpachecker.cpa.arg.witnessexport.WitnessExporter;
 import org.sosy_lab.cpachecker.cpa.arg.witnessexport.WitnessToOutputFormatsUtils;
 import org.sosy_lab.cpachecker.util.BiPredicates;
 import org.sosy_lab.cpachecker.util.Pair;
-import org.sosy_lab.cpachecker.util.coverage.CoverageCollector;
+import org.sosy_lab.cpachecker.util.coverage.collectors.CounterexampleCoverageCollector;
 import org.sosy_lab.cpachecker.util.coverage.report.CoverageReportGcov;
 import org.sosy_lab.cpachecker.util.cwriter.PathToCTranslator;
 import org.sosy_lab.cpachecker.util.cwriter.PathToConcreteProgramTranslator;
@@ -171,7 +171,7 @@ public class CEXExporter {
     if (options.getCoveragePrefix() != null) {
       Path outputPath = options.getCoveragePrefix().getPath(counterexample.getUniqueId());
       try (Writer gcovFile = IO.openOutputFile(outputPath, Charset.defaultCharset())) {
-        CoverageReportGcov.write(CoverageCollector.fromCounterexample(targetPath), gcovFile);
+        CoverageReportGcov.write(CounterexampleCoverageCollector.from(targetPath), gcovFile);
       } catch (IOException e) {
         logger.logUserException(
             Level.WARNING, e, "Could not write coverage information for counterexample to file");
@@ -346,7 +346,7 @@ public class CEXExporter {
   }
 
   // Copied from
-  // org.sosy_lab.cpachecker.util.coverage.report.FileCoverageStatistics.addVisitedLine(int)
+  // org.sosy_lab.cpachecker.util.coverage.data.FileCoverageStatistics.addVisitedLine(int)
   public void addVisitedLine(Map<Integer, Integer> visitedLines, int pLine) {
     checkArgument(pLine > 0);
     if (visitedLines.containsKey(pLine)) {

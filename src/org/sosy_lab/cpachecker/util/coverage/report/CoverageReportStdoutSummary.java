@@ -9,13 +9,15 @@
 package org.sosy_lab.cpachecker.util.coverage.report;
 
 import java.io.PrintStream;
-import org.sosy_lab.cpachecker.util.coverage.CoverageData;
+import java.util.Map;
+import org.sosy_lab.cpachecker.util.coverage.data.CoverageStatistics;
+import org.sosy_lab.cpachecker.util.coverage.data.FileCoverageStatistics;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsUtils;
 
 public class CoverageReportStdoutSummary {
 
-  public static void write(CoverageData pCoverage, PrintStream pStdOut) {
-    CoverageStatistics covStatistics = new CoverageStatistics(pCoverage);
+  public static void write(Map<String, FileCoverageStatistics> infosPerFile, PrintStream pStdOut) {
+    CoverageStatistics covStatistics = new CoverageStatistics(infosPerFile);
 
     if (covStatistics.numTotalFunctions > 0) {
       final double functionCoverage =
@@ -84,15 +86,6 @@ public class CoverageReportStdoutSummary {
           25,
           "Predicate-covered-nodes coverage",
           String.format("%.3f", abstractStateCoveredNodesCoverage));
-    }
-
-    if (covStatistics.predicateCoverage > 0.0) {
-      StatisticsUtils.write(
-          pStdOut,
-          1,
-          25,
-          "Total amount of used predicates",
-          String.format("%.0f", covStatistics.predicateCoverage));
     }
   }
 }

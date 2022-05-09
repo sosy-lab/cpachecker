@@ -8,7 +8,6 @@
 
 package org.sosy_lab.cpachecker.cpa.coverage;
 
-import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.defaults.FlatLatticeDomain;
@@ -22,7 +21,7 @@ import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
-import org.sosy_lab.cpachecker.util.coverage.CoverageData;
+import org.sosy_lab.cpachecker.util.coverage.collectors.CoverageCollectorHandler;
 
 public class AnalysisIndependentCoverageCPA implements ConfigurableProgramAnalysis {
 
@@ -33,19 +32,17 @@ public class AnalysisIndependentCoverageCPA implements ConfigurableProgramAnalys
   private final TransferRelation transfer;
   private final AbstractDomain domain;
   private final StopOperator stop;
-  private final CoverageData coverageData = new CoverageData();
+  private final CoverageCollectorHandler coverageCollectorHandler;
 
-  public AnalysisIndependentCoverageCPA(CFA pCFA) {
-    coverageData.initAnalysisIndependentStatisticHandlers();
-    coverageData.putCFA(pCFA);
-    coverageData.addInitialNodesForMeasures(pCFA);
+  public AnalysisIndependentCoverageCPA(CoverageCollectorHandler pCovCollectorHandler) {
+    coverageCollectorHandler = pCovCollectorHandler;
     domain = new FlatLatticeDomain(AnalysisIndependentCoverageAbstractState.INSTANCE);
     stop = new StopSepOperator(domain);
-    transfer = new AnalysisIndependentCoverageTransferRelation(coverageData);
+    transfer = new AnalysisIndependentCoverageTransferRelation(pCovCollectorHandler);
   }
 
-  public CoverageData getCoverageData() {
-    return coverageData;
+  public CoverageCollectorHandler getCoverageCollectorHandler() {
+    return coverageCollectorHandler;
   }
 
   @Override

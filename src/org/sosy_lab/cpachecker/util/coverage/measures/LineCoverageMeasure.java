@@ -12,7 +12,7 @@ import com.google.common.collect.Multiset;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Set;
-import org.sosy_lab.cpachecker.util.coverage.report.FileCoverageStatistics;
+import org.sosy_lab.cpachecker.util.coverage.data.FileCoverageStatistics;
 import org.sosy_lab.cpachecker.util.coverage.util.CoverageColorUtil;
 
 /**

@@ -6,7 +6,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.util.coverage.report;
+package org.sosy_lab.cpachecker.util.coverage.data;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
@@ -32,10 +32,10 @@ public class FileCoverageStatistics {
   public FilePredicateCoverageStatistics predicateStatistics =
       new FilePredicateCoverageStatistics();
 
-  static class FunctionInfo {
-    final String name;
-    final int firstLine;
-    final int lastLine;
+  public static class FunctionInfo {
+    public final String name;
+    public final int firstLine;
+    public final int lastLine;
 
     FunctionInfo(String pName, int pFirstLine, int pLastLine) {
       name = pName;

@@ -82,7 +82,7 @@ import org.sosy_lab.cpachecker.cpa.arg.witnessexport.WitnessExporter;
 import org.sosy_lab.cpachecker.cpa.arg.witnessexport.WitnessToOutputFormatsUtils;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.BiPredicates;
-import org.sosy_lab.cpachecker.util.coverage.CoverageData;
+import org.sosy_lab.cpachecker.util.coverage.collectors.CoverageCollectorHandler;
 import org.sosy_lab.cpachecker.util.coverage.measures.CoverageMeasureCategory;
 import org.sosy_lab.cpachecker.util.coverage.measures.CoverageMeasureHandler;
 import org.sosy_lab.cpachecker.util.coverage.measures.CoverageMeasureType;
@@ -193,10 +193,11 @@ public class ReportGenerator {
 
     // extract further coverage data captured during the analysis if AnalysisIndependentCoverageCPA
     // is present
-    CoverageData coverageData = CoverageUtility.getCoverageDataFromReachedSet(pReached);
-    TimeDependentCoverageHandler tdcgHandler = coverageData.getTDCGHandler();
-    CoverageMeasureHandler covHandler = coverageData.getCoverageHandler();
-    covHandler.fillCoverageData(coverageData);
+    CoverageCollectorHandler coverageCollectorHandler =
+        CoverageUtility.getCoverageCollectorHandlerFromReachedSet(pReached);
+    TimeDependentCoverageHandler tdcgHandler = coverageCollectorHandler.getTDCGHandler();
+    CoverageMeasureHandler covHandler = coverageCollectorHandler.getCoverageHandler();
+    covHandler.fillCoverageData(coverageCollectorHandler.getInfosPerFile());
 
     ImmutableSet<Path> allInputFiles = getAllInputFiles(pCfa);
     extractWitness(pResult, pCfa, pReached);
