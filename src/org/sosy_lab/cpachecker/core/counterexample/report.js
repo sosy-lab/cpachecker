@@ -45,7 +45,7 @@ if (isDevEnv) {
   window.cfaJson = data.cfaJson;
 }
 
-const { argJson, sourceFiles, cfaJson, tdcgJson } = window;
+const { argJson, sourceFiles, cfaJson, tdcgJson, sourceCoverageJson } = window;
 
 // CFA graph variable declarations
 const functions = cfaJson.functionNames;
@@ -72,6 +72,19 @@ if (Object.prototype.hasOwnProperty.call(argJson, "reducededges")) {
 const graphSplitThreshold = 700;
 let cfaSplit = false;
 let argTabDisabled = false;
+
+function getStringId(str) {
+  return str.replace(/\s/g, "").replace(/-/g, "");
+}
+
+function extractColor(msg, id) {
+  return msg
+    .split("comment: ")
+    .slice(-1)[0]
+    .split(`${id}:`)
+    .slice(-1)[0]
+    .split(";")[0];
+}
 
 function renderTDCG(dataJSON, color, inPercentage) {
   if (dataJSON === undefined || Object.keys(dataJSON).length < 2) {
@@ -1164,15 +1177,8 @@ function renderTDCG(dataJSON, color, inPercentage) {
           }
         }
         $rootScope.displayedCoverages = $scope.coverageSelections[0];
-
-        $scope.extractColor = function extractColor(msg, id) {
-          return msg
-            .split("comment: ")
-            .slice(-1)[0]
-            .split(`${id}:`)
-            .slice(-1)[0]
-            .split(";")[0];
-        };
+        $scope.extractColor = extractColor;
+        $scope.getStringId = getStringId;
 
         $scope.colorNode = function colorNode() {
           const node = d3.select(this.firstChild);
@@ -1189,10 +1195,6 @@ function renderTDCG(dataJSON, color, inPercentage) {
         $scope.cfaColoringControl = function cfaColoringControl() {
           $scope.colorId = $scope.getStringId($rootScope.displayedCoverages);
           d3.selectAll(".cfa-node").each($scope.colorNode);
-        };
-
-        $scope.getStringId = function getStringId(str) {
-          return str.replace(/\s/g, "").replace(/-/g, "");
         };
       }
 
@@ -1330,36 +1332,28 @@ function renderTDCG(dataJSON, color, inPercentage) {
     "$rootScope",
     "$scope",
     function sourceToolbarController($rootScope, $scope) {
-      $scope.sourceCoverageSelections = ["None", "Visited Lines Heat Map"];
-      $rootScope.displayedSourceCoverages = $scope.sourceCoverageSelections[0];
-      $scope.sourceColoringControl = () => {
-        if ($rootScope.displayedSourceCoverages.indexOf("None") !== -1) {
-          $scope.changeLineColor();
-        } else if (
-          $rootScope.displayedSourceCoverages.indexOf(
-            "Visited Lines Heat Map"
-          ) !== -1
-        ) {
-          $scope.changeLineColor();
+      $scope.sourceCoverageSelections = ["None"];
+      if (sourceCoverageJson !== undefined && sourceCoverageJson.length > 0) {
+        $scope.sourceCoverageSelections = [];
+        for (let i = 0; i < sourceCoverageJson.length; i += 1) {
+          $scope.sourceCoverageSelections.push(sourceCoverageJson[i]);
         }
-      };
-      $scope.changeLineColor = () => {
+      }
+      $rootScope.displayedSourceCoverages = $scope.sourceCoverageSelections[0];
+      $scope.extractColor = extractColor;
+      $scope.getStringId = getStringId;
+
+      $scope.sourceColoringControl = () => {
+        $scope.colorId = $scope.getStringId(
+          $rootScope.displayedSourceCoverages
+        );
         const linesCount = d3.select("#source-file").selectAll("tr").size();
         for (let i = 1; i <= linesCount; i += 1) {
-          const color1 = d3
-            .select(`#right-source-${i}`)
-            .attr("style")
-            .split("background-color: ")
-            .slice(-1)[0]
-            .split(";")[0];
-          const color2 = d3
-            .select(`#right-source-${i}`)
-            .attr("style")
-            .split("comment: ")
-            .slice(-1)[0];
+          const lineStyle = d3.select(`#right-source-${i}`).attr("style");
+          const lineColor = $scope.extractColor(lineStyle, $scope.colorId);
           d3.select(`#right-source-${i}`).attr(
             "style",
-            `background-color: ${color2}; comment: ${color1}`
+            `background-color: ${lineColor}; comment: ${lineStyle}`
           );
         }
       };

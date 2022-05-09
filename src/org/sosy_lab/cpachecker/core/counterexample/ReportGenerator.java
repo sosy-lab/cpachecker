@@ -24,7 +24,6 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.SetMultimap;
 import com.google.common.io.Resources;
-import java.awt.Color;
 import java.io.BufferedReader;
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -84,12 +83,14 @@ import org.sosy_lab.cpachecker.cpa.arg.witnessexport.WitnessToOutputFormatsUtils
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.BiPredicates;
 import org.sosy_lab.cpachecker.util.coverage.CoverageData;
-import org.sosy_lab.cpachecker.util.coverage.CoverageUtility;
 import org.sosy_lab.cpachecker.util.coverage.measures.CoverageMeasureCategory;
 import org.sosy_lab.cpachecker.util.coverage.measures.CoverageMeasureHandler;
-import org.sosy_lab.cpachecker.util.coverage.report.FileCoverageStatistics;
+import org.sosy_lab.cpachecker.util.coverage.measures.CoverageMeasureType;
+import org.sosy_lab.cpachecker.util.coverage.measures.LineCoverageMeasure;
 import org.sosy_lab.cpachecker.util.coverage.tdcg.TimeDependentCoverageHandler;
 import org.sosy_lab.cpachecker.util.coverage.tdcg.TimeDependentCoverageType;
+import org.sosy_lab.cpachecker.util.coverage.util.CoverageColorUtil;
+import org.sosy_lab.cpachecker.util.coverage.util.CoverageUtility;
 import org.sosy_lab.cpachecker.util.faultlocalization.FaultLocalizationInfo;
 
 @Options
@@ -196,7 +197,6 @@ public class ReportGenerator {
     TimeDependentCoverageHandler tdcgHandler = coverageData.getTDCGHandler();
     CoverageMeasureHandler covHandler = coverageData.getCoverageHandler();
     covHandler.fillCoverageData(coverageData);
-    Map<String, FileCoverageStatistics> fileCoverageStatisticsMap = coverageData.getInfosPerFile();
 
     ImmutableSet<Path> allInputFiles = getAllInputFiles(pCfa);
     extractWitness(pResult, pCfa, pReached);
@@ -223,8 +223,7 @@ public class ReportGenerator {
             dotBuilder,
             pStatistics,
             covHandler,
-            tdcgHandler,
-            fileCoverageStatisticsMap);
+            tdcgHandler);
         console.println("Graphical representation included in the file \"" + reportFile + "\".");
       }
 
@@ -238,8 +237,7 @@ public class ReportGenerator {
             dotBuilder,
             pStatistics,
             covHandler,
-            tdcgHandler,
-            fileCoverageStatisticsMap);
+            tdcgHandler);
       }
 
       StringBuilder counterExFiles = new StringBuilder();
@@ -292,9 +290,7 @@ public class ReportGenerator {
       DOTBuilder2 dotBuilder,
       String statistics,
       CoverageMeasureHandler covHandler,
-      TimeDependentCoverageHandler tdcgHandler,
-      Map<String, FileCoverageStatistics> fileCoverageStatisticsMap) {
-
+      TimeDependentCoverageHandler tdcgHandler) {
     try (BufferedReader reader =
             Resources.asCharSource(
                     Resources.getResource(getClass(), HTML_TEMPLATE), StandardCharsets.UTF_8)
@@ -312,7 +308,7 @@ public class ReportGenerator {
         } else if (line.contains("STATISTICS")) {
           insertStatistics(writer, statistics);
         } else if (line.contains("SOURCE_CONTENT")) {
-          insertSources(writer, allInputFiles, fileCoverageStatisticsMap);
+          insertSources(writer, allInputFiles, covHandler);
         } else if (line.contains("LOG")) {
           insertLog(writer);
         } else if (line.contains("REPORT_NAME")) {
@@ -355,12 +351,30 @@ public class ReportGenerator {
       throws IOException {
     insertCfaJson(writer, cfa, dotBuilder, covHandler, counterExample);
     insertArgJson(writer);
+    insertSourceLineCoverageJson(writer, covHandler);
     insertTimeStampsPerCoverageJson(writer, tdcgHandler);
     insertSourceFileNames(writer, allInputFiles);
 
     insertJsFile(writer, WORKER_DATA_TEMPLATE);
     insertJsFile(writer, VENDOR_JS_TEMPLATE);
     insertJsFile(writer, JS_TEMPLATE);
+  }
+
+  private void insertSourceLineCoverageJson(Writer writer, CoverageMeasureHandler covHandler)
+      throws IOException {
+    int i = 0;
+    writer.write("var sourceCoverageJson = [");
+    ImmutableList<String> types =
+        covHandler.getAllTypesForCategoriesAsString(
+            CoverageMeasureCategory.None, CoverageMeasureCategory.LineBased);
+    for (String type : types) {
+      JSON.writeJSONString(type, writer);
+      if (i++ != types.size() - 1) {
+        writer.write(",");
+      }
+    }
+    writer.write("]\n");
+    writer.write("window.sourceCoverageJson = sourceCoverageJson;\n");
   }
 
   private void insertTimeStampsPerCoverageJson(
@@ -378,10 +392,9 @@ public class ReportGenerator {
       JSON.writeJSONString(type.isPercentage(), writer);
       writer.write(",\"data\":");
       JSON.writeJSONString(timeStampsPerCoverage, writer);
-      if (tdcgHandler.getAllTypes().size() - 1 == i++) {
-        writer.write("}");
-      } else {
-        writer.write("},");
+      writer.write("}");
+      if (i++ != tdcgHandler.getAllTypes().size() - 1) {
+        writer.write(",");
       }
     }
     writer.write("]\n");
@@ -568,9 +581,11 @@ public class ReportGenerator {
         writer.write(insertTableHead);
       } else {
         int count = line.indexOf(line.trim());
+        StringBuilder lineBuilder = new StringBuilder(line);
         for (int i = 0; i < count / 2; i++) {
-          line = "\t" + line;
+          lineBuilder.insert(0, "\t");
         }
+        line = lineBuilder.toString();
         List<String> splitLine = Splitter.on(":").limit(2).splitToList(line);
         if (splitLine.size() == 2) {
           if (!splitLine.get(1).contains(";") && splitLine.get(1).contains("(")) {
@@ -609,22 +624,18 @@ public class ReportGenerator {
   }
 
   private void insertSources(
-      Writer report,
-      Iterable<Path> allSources,
-      Map<String, FileCoverageStatistics> fileCoverageStatisticsMap)
+      Writer report, Iterable<Path> allSources, CoverageMeasureHandler covHandler)
       throws IOException {
     int index = 0;
     for (Path sourceFile : allSources) {
-      FileCoverageStatistics fileCoverage = fileCoverageStatisticsMap.get(sourceFile.toString());
-      insertSource(sourceFile, report, index, fileCoverage);
+      insertSource(sourceFile, report, index, covHandler);
       index++;
     }
   }
 
   private void insertSource(
-      Path sourcePath, Writer writer, int sourceFileNumber, FileCoverageStatistics fileCoverage)
+      Path sourcePath, Writer writer, int sourceFileNumber, CoverageMeasureHandler covHandler)
       throws IOException {
-    Map<Integer, String> coveragePerLine = calculateSourceLineColors(fileCoverage);
     if (Files.isReadable(sourcePath) && !Files.isDirectory(sourcePath)) {
       int lineNumber = 1;
       try (BufferedReader source =
@@ -637,15 +648,12 @@ public class ReportGenerator {
                 + ")\">\n<table>\n");
         String line;
         while (null != (line = source.readLine())) {
-          String lineColor = coveragePerLine.getOrDefault(lineNumber, "#fadce7");
-          String defaultLineColor = getDefaultLineColor(lineNumber);
           line =
               "<td><pre id=\"right-source-"
                   + lineNumber
                   + "\" style=\"background-color: "
-                  + defaultLineColor
-                  + "; comment: "
-                  + lineColor
+                  + CoverageColorUtil.getIteratingColor(lineNumber)
+                  + determineLineColors(covHandler, sourcePath, lineNumber)
                   + "\">"
                   + htmlEscaper().escape(line)
                   + "  </pre></td>";
@@ -666,62 +674,23 @@ public class ReportGenerator {
     }
   }
 
-  private String getDefaultLineColor(int lineNumber) {
-    if (lineNumber % 2 == 0) {
-      return "#b9e4fa";
-    } else {
-      return "#94dbff";
-    }
-  }
-
-  private Map<Integer, String> calculateSourceLineColors(FileCoverageStatistics fileCoverage) {
-    Map<Integer, Integer> coverageLineMap = new HashMap<>();
-    Map<Integer, String> coverageLineColorMap = new HashMap<>();
-    int max = 0;
-    if (fileCoverage == null) {
-      for (int lineNumber = 0; lineNumber < 10000; lineNumber++) {
-        coverageLineColorMap.put(lineNumber, getDefaultLineColor(lineNumber));
+  private String determineLineColors(
+      CoverageMeasureHandler covHandler, Path sourcePath, int lineNumber) {
+    StringBuilder lineColors = new StringBuilder("; comment: ");
+    ImmutableList<CoverageMeasureType> types =
+        covHandler.getAllTypesForCategories(
+            CoverageMeasureCategory.None, CoverageMeasureCategory.LineBased);
+    for (var type : types) {
+      lineColors.append(type.getId()).append(":");
+      if (type == CoverageMeasureType.None) {
+        lineColors.append(CoverageColorUtil.getIteratingColor(lineNumber));
+      } else if (type.getCategory() == CoverageMeasureCategory.LineBased) {
+        LineCoverageMeasure lineCov = (LineCoverageMeasure) covHandler.getData(type);
+        lineColors.append(lineCov.getColor(sourcePath.toString(), lineNumber));
       }
-      return coverageLineColorMap;
+      lineColors.append(";");
     }
-    for (var line : fileCoverage.getVisitedLines()) {
-      int countForLine = fileCoverage.getVisitedLines().count(line);
-      coverageLineMap.put(line, countForLine);
-      if (countForLine > max) {
-        max = countForLine;
-      }
-    }
-    for (var line : coverageLineMap.entrySet()) {
-      float gradient = line.getValue() / (float) max;
-      String color = chooseColorFromGradient(gradient);
-      coverageLineColorMap.put(line.getKey(), color);
-    }
-    return coverageLineColorMap;
-  }
-
-  private String chooseColorFromGradient(float gradient) {
-    Color color1 = new Color(26, 148, 49);
-    Color color2 = new Color(152, 251, 152);
-
-    Color rgbGradient = colorGradient(color1, color2, gradient);
-
-    return rgbToHex(rgbGradient);
-  }
-
-  private Color colorGradient(Color color1, Color color2, float weight) {
-    float inverseWeight = 1 - weight;
-    return new Color(
-        Math.round(color1.getRed() * weight + color2.getRed() * inverseWeight),
-        Math.round(color1.getGreen() * weight + color2.getGreen() * inverseWeight),
-        Math.round(color1.getBlue() * weight + color2.getBlue() * inverseWeight));
-  }
-
-  private String rgbToHex(Color color) {
-    String hex = Integer.toHexString(color.getRGB() & 0xffffff);
-    if (hex.length() < 6) {
-      hex = "0" + hex;
-    }
-    return "#" + hex;
+    return lineColors.toString();
   }
 
   private void insertConfiguration(Writer writer) throws IOException {

@@ -6,7 +6,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.util.coverage;
+package org.sosy_lab.cpachecker.util.coverage.util;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.LinkedHashMultiset;
@@ -30,9 +30,9 @@ import org.sosy_lab.cpachecker.cpa.coverage.AnalysisIndependentCoverageCPA;
 import org.sosy_lab.cpachecker.cpa.coverage.PredicateCoverageCPA;
 import org.sosy_lab.cpachecker.cpa.location.LocationState;
 import org.sosy_lab.cpachecker.util.AbstractStates;
+import org.sosy_lab.cpachecker.util.coverage.CoverageData;
 
 public class CoverageUtility {
-
   public static Multiset<CFANode> getReachedNodes(Iterable<AbstractState> reached) {
     Multiset<CFANode> locations = LinkedHashMultiset.create();
     for (AbstractState state : reached) {

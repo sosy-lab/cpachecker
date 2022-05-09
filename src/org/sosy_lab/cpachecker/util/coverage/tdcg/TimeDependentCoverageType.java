@@ -8,12 +8,14 @@
 
 package org.sosy_lab.cpachecker.util.coverage.tdcg;
 
+import org.sosy_lab.cpachecker.util.coverage.util.CoverageColorUtil;
+
 public enum TimeDependentCoverageType {
-  VisitedLines("Visited Lines", "#3cc220"),
-  PredicatesGenerated("Predicates Generated", "#1a81d5", false),
-  PredicateConsideredLocations("Predicate-Considered Locations", "#e33636"),
-  PredicateRelevantVariables("Predicate-Relevant-Variables", "#d9ae19"),
-  AbstractStateCoveredNodes("Abstract-State Covered Nodes", "#7c0eb4");
+  VisitedLines("Visited Lines", CoverageColorUtil.GREEN_TDCG_COLOR),
+  PredicatesGenerated("Predicates Generated", CoverageColorUtil.BLUE_TDCG_COLOR, false),
+  PredicateConsideredLocations("Predicate-Considered Locations", CoverageColorUtil.RED_TDCG_COLOR),
+  PredicateRelevantVariables("Predicate-Relevant-Variables", CoverageColorUtil.YELLOW_TDCG_COLOR),
+  AbstractStateCoveredNodes("Abstract-State Covered Nodes", CoverageColorUtil.PURPLE_TDCG_COLOR);
 
   private final String name;
   private final String color;

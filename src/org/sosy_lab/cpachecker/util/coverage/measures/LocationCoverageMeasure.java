@@ -11,15 +11,13 @@ package org.sosy_lab.cpachecker.util.coverage.measures;
 import com.google.common.collect.LinkedHashMultiset;
 import com.google.common.collect.Multiset;
 import java.util.Set;
+import org.sosy_lab.cpachecker.util.coverage.util.CoverageColorUtil;
 
 public class LocationCoverageMeasure implements CoverageMeasure {
 
   private final Multiset<Integer> coveredLocations;
   private final double maxCount;
   private String coverageColor;
-
-  static final String DEFAULT_COVERAGE_COLOR = "#3aec49";
-  static final String DEFAULT_LOCATION_COLOR = "#fff";
 
   public LocationCoverageMeasure(
       Multiset<Integer> pCoveredLocations, double pMaxCount, String pCoverageColor) {
@@ -35,7 +33,7 @@ public class LocationCoverageMeasure implements CoverageMeasure {
 
   public LocationCoverageMeasure(Multiset<Integer> pCoveredLocations, double pMaxCount) {
     coveredLocations = pCoveredLocations;
-    coverageColor = DEFAULT_COVERAGE_COLOR;
+    coverageColor = CoverageColorUtil.DEFAULT_COVERAGE_COLOR;
     if (pMaxCount <= 0) {
       maxCount = 1.0;
     } else {
@@ -64,7 +62,7 @@ public class LocationCoverageMeasure implements CoverageMeasure {
     if (getCoveredSet().contains(location)) {
       return coverageColor;
     } else {
-      return DEFAULT_LOCATION_COLOR;
+      return CoverageColorUtil.DEFAULT_ELEMENT_COLOR;
     }
   }
 

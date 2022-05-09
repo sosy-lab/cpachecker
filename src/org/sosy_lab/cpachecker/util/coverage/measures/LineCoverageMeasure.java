@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.util.coverage.measures;
 
 import com.google.common.collect.LinkedHashMultiset;
 import com.google.common.collect.Multiset;
+import org.sosy_lab.cpachecker.util.coverage.util.CoverageColorUtil;
 
 public class LineCoverageMeasure implements CoverageMeasure {
   private final Multiset<Integer> visitedLines;
@@ -31,6 +32,12 @@ public class LineCoverageMeasure implements CoverageMeasure {
 
   public Multiset<Integer> getVisitedMultiSet() {
     return visitedLines;
+  }
+
+  public String getColor(String file, int line) {
+    // TODO: separate for each file
+    if (file.equals("")) return CoverageColorUtil.DEFAULT_ELEMENT_COLOR;
+    return CoverageColorUtil.getFrequencyColorMap(visitedLines).get(line);
   }
 
   @Override

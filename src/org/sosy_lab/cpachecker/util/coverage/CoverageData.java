@@ -31,6 +31,7 @@ import org.sosy_lab.cpachecker.util.coverage.report.FilePredicateCoverageStatist
 import org.sosy_lab.cpachecker.util.coverage.tdcg.TimeDependentCoverageData;
 import org.sosy_lab.cpachecker.util.coverage.tdcg.TimeDependentCoverageHandler;
 import org.sosy_lab.cpachecker.util.coverage.tdcg.TimeDependentCoverageType;
+import org.sosy_lab.cpachecker.util.coverage.util.CoverageUtility;
 
 public final class CoverageData {
   private Map<String, FileCoverageStatistics> infosPerFile = new LinkedHashMap<>();
