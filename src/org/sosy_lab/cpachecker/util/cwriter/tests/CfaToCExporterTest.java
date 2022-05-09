@@ -91,6 +91,7 @@ public class CfaToCExporterTest extends ToCTranslationTest {
         directTranslationTest(EXPORTER_TEST_DIR_PATH + "global-var.c", true),
         directTranslationTest(EXPORTER_TEST_DIR_PATH + "global-var_multiple.c", true),
         directTranslationTest(EXPORTER_TEST_DIR_PATH + "goto_with-dead-code.c", true),
+        directTranslationTest(EXPORTER_TEST_DIR_PATH + "goto_with-double-label.c", true),
         directTranslationTest(
             EXPORTER_TEST_DIR_PATH + "goto_with-label-with-empty-statement.c", true));
   }
