@@ -206,7 +206,7 @@ abstract class ReachDefAnalysis<D, N, E> {
           pushEdge(optEdge.orElseThrow());
         }
 
-        stack.push(pDomTree.successors(currentNode).iterator());
+        stack.push(pDomTree.successors(nextNode).iterator());
         pushNode(nextNode);
 
         for (E edge : graph.getLeavingEdges(nextNode)) {
