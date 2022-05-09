@@ -10,21 +10,18 @@ package org.sosy_lab.cpachecker.cfa;
 
 /** Enumeration for Supported Languages. */
 public enum Language {
-  C,
-  JAVA,
-  LLVM;
+  C("C"),
+  JAVA("Java"),
+  LLVM("LLVM IR");
+
+  private final String name;
+
+  private Language(String pName) {
+    name = pName;
+  }
 
   @Override
   public String toString() {
-    switch (this) {
-      case C:
-        return "C";
-      case JAVA:
-        return "Java";
-      case LLVM:
-        return "LLVM IR";
-      default:
-        throw new AssertionError();
-    }
+    return name;
   }
 }
