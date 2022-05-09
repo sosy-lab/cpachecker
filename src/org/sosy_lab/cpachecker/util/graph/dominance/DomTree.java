@@ -92,7 +92,7 @@ public final class DomTree<T> implements Iterable<T> {
     // data format is described in `DomInput`
     ImmutableIntArray predecessorsData = pInput.getPredecessors();
 
-    int startNode = pInput.getNodeCount() - 1; // the start node has the greatest ID
+    int startNode = 0; // the start node has the reverse post-order ID == 0
     int[] doms = new int[pInput.getNodeCount()]; // doms[x] == immediate dominator of x
     boolean changed = true;
 
@@ -103,24 +103,26 @@ public final class DomTree<T> implements Iterable<T> {
       changed = false;
 
       int index = 0; // index for predecessors data
-      for (int id = 0; id < startNode; id++) { // all nodes in reverse post-order (except start)
-        int idom = UNDEFINED; // immediate dominator for node
+      for (int id = 0; id < pInput.getNodeCount(); id++) { // all nodes in reverse post-order
+        int idom = UNDEFINED; // immediate dominator for current node
 
-        int predecessor; // node predecessors
+        int predecessor; // predecessor of current node
         while ((predecessor = predecessorsData.get(index)) != DomInput.DELIMITER) {
 
-          if (doms[predecessor] != UNDEFINED) { // does predecessor have an immediate dominator?
-            if (idom != UNDEFINED) { // is idom already initialized?
-              idom = intersect(doms, predecessor, idom); // update idom using predecessor
+          // skip start node and compute new `idom` using predecessors' dominator information
+          if (id != startNode && doms[predecessor] != UNDEFINED) {
+            if (idom != UNDEFINED) { // is `idom` already initialized?
+              idom = intersect(doms, predecessor, idom);
             } else {
-              idom = predecessor; // initialize idom with predecessor
+              idom = predecessor; // initialize `idom` with predecessor
             }
           }
 
           index++; // next predecessor
         }
 
-        if (doms[id] != idom) { // update immediate dominator for node?
+        // skip start node and update immediate dominator for current node
+        if (id != startNode && doms[id] != idom) {
           doms[id] = idom;
           changed = true;
         }
@@ -144,12 +146,14 @@ public final class DomTree<T> implements Iterable<T> {
     int fst = pFst;
     int snd = pSnd;
 
+    // The comparisons look different from the paper, because we use reverse post-order IDs instead
+    // of post-order IDs.
     while (fst != snd) {
-      while (fst < snd) {
-        fst = pDoms[fst];
-      }
-      while (snd < fst) {
+      while (snd > fst) {
         snd = pDoms[snd];
+      }
+      while (fst > snd) {
+        fst = pDoms[fst];
       }
     }
 
@@ -237,10 +241,7 @@ public final class DomTree<T> implements Iterable<T> {
    *     node, {@link DomTree#UNDEFINED} is returned.
    */
   public int getRootId() {
-
-    int rootId = getNodeCount() - 1;
-
-    return rootId >= 0 ? rootId : DomTree.UNDEFINED;
+    return getNodeCount() > 0 ? 0 : DomTree.UNDEFINED;
   }
 
   /**
