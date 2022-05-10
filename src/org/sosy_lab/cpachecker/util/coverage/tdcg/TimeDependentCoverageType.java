@@ -10,6 +10,11 @@ package org.sosy_lab.cpachecker.util.coverage.tdcg;
 
 import org.sosy_lab.cpachecker.util.coverage.util.CoverageColorUtil;
 
+/**
+ * A Time-dependent Coverage Type is used to distinguish between different coverage measure
+ * calculation approaches. In addition, it is possible to specify a friendly name for each category
+ * which is displayed in the report.html
+ */
 public enum TimeDependentCoverageType {
   /* ##### Enum Fields ##### */
   VisitedLines("Visited Lines", CoverageColorUtil.GREEN_TDCG_COLOR),
@@ -33,7 +38,7 @@ public enum TimeDependentCoverageType {
     this(pName, pColor, true);
   }
 
-  /* ##### Getter and Setter ##### */
+  /* ##### Getter Methods ##### */
   public String getName() {
     return name;
   }

@@ -39,7 +39,7 @@ import org.sosy_lab.cpachecker.util.coverage.measures.CoverageMeasureHandler;
 import org.sosy_lab.cpachecker.util.coverage.tdcg.TimeDependentCoverageHandler;
 
 public class ReachedSetCoverageCollector extends CoverageCollector {
-
+  /* ##### Constructors ##### */
   ReachedSetCoverageCollector(
       Map<String, FileCoverageStatistics> pInfosPerFile,
       CoverageMeasureHandler pCoverageMeasureHandler,
@@ -48,6 +48,7 @@ public class ReachedSetCoverageCollector extends CoverageCollector {
     super(pInfosPerFile, pCoverageMeasureHandler, pTimeDependentCoverageHandler, cfa);
   }
 
+  /* ##### Public Methods ##### */
   public void collectFromReachedSet(
       UnmodifiableReachedSet reachedSet, CFA cfa, ConfigurableProgramAnalysis cpa) {
     FluentIterable<AbstractState> reached = FluentIterable.from(reachedSet);
@@ -78,6 +79,24 @@ public class ReachedSetCoverageCollector extends CoverageCollector {
     addReachedNodes(getReachedNodes(reached));
   }
 
+  /* ##### Getter Methods ##### */
+  public Multiset<CFANode> getReachedNodes(Iterable<AbstractState> reached) {
+    Multiset<CFANode> locations = LinkedHashMultiset.create();
+    for (AbstractState state : reached) {
+      ARGState argState = AbstractStates.extractStateByType(state, ARGState.class);
+      if (argState != null) {
+        LocationState locState =
+            AbstractStates.extractStateByType(argState.getWrappedState(), LocationState.class);
+        if (locState != null) {
+          CFANode locationNode = locState.getLocationNode();
+          locations.addAll(extractBlockNodes(locationNode));
+        }
+      }
+    }
+    return locations;
+  }
+
+  /* ##### Helper Methods ##### */
   private void collectVisitedEdges(Iterable<AbstractState> reached) {
     Set<CFANode> reachedNodes =
         FluentIterable.from(reached)
@@ -115,22 +134,6 @@ public class ReachedSetCoverageCollector extends CoverageCollector {
         }
       }
     }
-  }
-
-  public Multiset<CFANode> getReachedNodes(Iterable<AbstractState> reached) {
-    Multiset<CFANode> locations = LinkedHashMultiset.create();
-    for (AbstractState state : reached) {
-      ARGState argState = AbstractStates.extractStateByType(state, ARGState.class);
-      if (argState != null) {
-        LocationState locState =
-            AbstractStates.extractStateByType(argState.getWrappedState(), LocationState.class);
-        if (locState != null) {
-          CFANode locationNode = locState.getLocationNode();
-          locations.addAll(extractBlockNodes(locationNode));
-        }
-      }
-    }
-    return locations;
   }
 
   private List<CFANode> extractBlockNodes(CFANode locationNode) {

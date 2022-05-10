@@ -14,6 +14,10 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
+/**
+ * Class which holds all collected coverage data for all files. Therefore, this class is summary for
+ * all FileCoverageStatistics.
+ */
 public class CoverageStatistics {
   /* ##### Class Fields ##### */
   public long numTotalConditions = 0;

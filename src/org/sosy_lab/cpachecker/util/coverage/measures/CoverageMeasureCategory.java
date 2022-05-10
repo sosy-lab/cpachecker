@@ -9,7 +9,7 @@
 package org.sosy_lab.cpachecker.util.coverage.measures;
 
 /**
- * The categories of which every CoverageMeasureTypes belong to LocationBased looks on CFANodes.
+ * The categories of which every CoverageMeasureTypes belongs to. LocationBased looks on CFANodes.
  * LineBased looks on Source Code Lines.
  */
 public enum CoverageMeasureCategory {

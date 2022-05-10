@@ -33,8 +33,8 @@ public class CoverageMeasureHandler {
 
   /* ##### Public Methods ##### */
   /**
-   * Method for initializing a generic type of coverage measure When adding new
-   * CoverageMeasureCategory fields, this method should include those cases.
+   * Method for initializing a new type of coverage measure. When adding new CoverageMeasureCategory
+   * fields, this method should include those cases.
    *
    * @param type type of the coverage measure
    */
@@ -124,11 +124,7 @@ public class CoverageMeasureHandler {
     }
   }
 
-  /* ##### Getter and Setter ##### */
-  public void addData(CoverageMeasureType type, CoverageMeasure data) {
-    coverageMeasureMap.put(type, data);
-  }
-
+  /* ##### Getter Methods ##### */
   public CoverageMeasure getData(CoverageMeasureType type) {
     return coverageMeasureMap.get(type);
   }
@@ -161,5 +157,9 @@ public class CoverageMeasureHandler {
       }
     }
     return false;
+  }
+
+  private void addData(CoverageMeasureType type, CoverageMeasure data) {
+    coverageMeasureMap.put(type, data);
   }
 }

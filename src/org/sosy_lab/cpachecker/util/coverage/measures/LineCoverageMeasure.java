@@ -42,7 +42,7 @@ public class LineCoverageMeasure implements CoverageMeasure {
     exisitingLinesPerFile = new LinkedHashMap<>();
   }
 
-  /* ##### Getter and Setter ##### */
+  /* ##### Getter Methods ##### */
   /**
    * Returns the color representing if a line is covered or not. This information is used for later
    * visualization in the report.html Source Tab.

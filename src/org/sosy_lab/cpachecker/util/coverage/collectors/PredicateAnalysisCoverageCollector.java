@@ -8,15 +8,12 @@
 
 package org.sosy_lab.cpachecker.util.coverage.collectors;
 
-import java.util.LinkedHashMap;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.util.coverage.data.FileCoverageStatistics;
-import org.sosy_lab.cpachecker.util.coverage.data.FilePredicateCoverageStatistics;
 import org.sosy_lab.cpachecker.util.coverage.measures.CoverageMeasureHandler;
 import org.sosy_lab.cpachecker.util.coverage.tdcg.TimeDependentCoverageData;
 import org.sosy_lab.cpachecker.util.coverage.tdcg.TimeDependentCoverageHandler;
@@ -24,7 +21,7 @@ import org.sosy_lab.cpachecker.util.coverage.tdcg.TimeDependentCoverageType;
 import org.sosy_lab.cpachecker.util.coverage.util.CoverageUtility;
 
 public class PredicateAnalysisCoverageCollector extends CoverageCollector {
-
+  /* ##### Constructors ##### */
   PredicateAnalysisCoverageCollector(
       Map<String, FileCoverageStatistics> pInfosPerFile,
       CoverageMeasureHandler pCoverageMeasureHandler,
@@ -41,33 +38,7 @@ public class PredicateAnalysisCoverageCollector extends CoverageCollector {
     }
   }
 
-  public double getTempPredicateConsideredCoverage(CFA cfa) {
-    return getTempCoverage(cfa, TimeDependentCoverageType.PredicateConsideredLocations);
-  }
-
-  public double getTempAbstractStateCoveredNodesCoverage(CFA cfa) {
-    return getTempCoverage(cfa, TimeDependentCoverageType.AbstractStateCoveredNodes);
-  }
-
-  public double getTempPredicateRelevantVariablesCoverage(CFA cfa) {
-    return getTempCoverage(cfa, TimeDependentCoverageType.PredicateRelevantVariables);
-  }
-
-  public Map<String, FilePredicateCoverageStatistics> getPredicateStatistics() {
-    Map<String, FilePredicateCoverageStatistics> predicateInfosPerFile = new LinkedHashMap<>();
-    for (Entry<String, FileCoverageStatistics> fileInfo : infosPerFile.entrySet()) {
-      predicateInfosPerFile.put(fileInfo.getKey(), fileInfo.getValue().predicateStatistics);
-    }
-    return predicateInfosPerFile;
-  }
-
-  public void setPredicateStatistics(
-      Map<String, FilePredicateCoverageStatistics> predicateInfosPerFile) {
-    for (Entry<String, FileCoverageStatistics> fileInfo : infosPerFile.entrySet()) {
-      fileInfo.getValue().predicateStatistics = predicateInfosPerFile.get(fileInfo.getKey());
-    }
-  }
-
+  /* ##### Add Methods ##### */
   public void addPredicateConsideredNode(final CFAEdge pEdge) {
     if (!CoverageUtility.coversLine(pEdge)) {
       return;
@@ -119,6 +90,19 @@ public class PredicateAnalysisCoverageCollector extends CoverageCollector {
         break;
       }
     }
+  }
+
+  /* ##### Getter Methods ##### */
+  public double getTempPredicateConsideredCoverage(CFA cfa) {
+    return getTempCoverage(cfa, TimeDependentCoverageType.PredicateConsideredLocations);
+  }
+
+  public double getTempAbstractStateCoveredNodesCoverage(CFA cfa) {
+    return getTempCoverage(cfa, TimeDependentCoverageType.AbstractStateCoveredNodes);
+  }
+
+  public double getTempPredicateRelevantVariablesCoverage(CFA cfa) {
+    return getTempCoverage(cfa, TimeDependentCoverageType.PredicateRelevantVariables);
   }
 
   double getTempCoverage(CFA cfa, TimeDependentCoverageType type) {

@@ -12,6 +12,9 @@ import java.util.LinkedHashSet;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 
+/**
+ * Class which holds all collected predicate-analysis specific coverage data for a specific file.
+ */
 public class FilePredicateCoverageStatistics {
   /* ##### Class Fields ##### */
   public int previousPredicateRelevantVariablesNodesSize = 0;
@@ -32,7 +35,7 @@ public class FilePredicateCoverageStatistics {
     allPredicateRelevantVariablesNodes.clear();
   }
 
-  /* ##### Getter and Setter ##### */
+  /* ##### Getter Methods ##### */
   public Set<Integer> getAllPredicateConsideredNodes() {
     return allPredicateConsideredNodes;
   }

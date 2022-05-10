@@ -33,7 +33,7 @@ public enum CoverageMeasureType {
     category = pCategeory;
   }
 
-  /* ##### Getter and Setter ##### */
+  /* ##### Getter Methods ##### */
   public String getName() {
     return name;
   }

@@ -45,7 +45,7 @@ public class AnalysisIndependentCoverageCPA implements ConfigurableProgramAnalys
     return AutomaticCPAFactory.forType(AnalysisIndependentCoverageCPA.class);
   }
 
-  /* ##### Getter and Setter ##### */
+  /* ##### Getter Methods ##### */
   public CoverageCollectorHandler getCoverageCollectorHandler() {
     return coverageCollectorHandler;
   }

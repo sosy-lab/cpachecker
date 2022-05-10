@@ -16,15 +16,15 @@ import org.sosy_lab.cpachecker.util.coverage.measures.CoverageMeasureHandler;
 import org.sosy_lab.cpachecker.util.coverage.tdcg.TimeDependentCoverageHandler;
 
 public class CoverageCollectorHandler {
+  /* ##### Class Fields ##### */
   private final Map<String, FileCoverageStatistics> infosPerFile;
   private final CoverageMeasureHandler coverageMeasureHandler;
   private final TimeDependentCoverageHandler timeDependentCoverageHandler;
-
   private AnalysisIndependentCoverageCollector analysisIndependentCoverageCollector;
   private PredicateAnalysisCoverageCollector predicateAnalysisCoverageCollector;
-  private CounterexampleCoverageCollector counterexampleCoverageCollector;
   private ReachedSetCoverageCollector reachedSetCoverageCollector;
 
+  /* ##### Constructors ##### */
   public CoverageCollectorHandler(CFA cfa) {
     infosPerFile = new LinkedHashMap<>();
     timeDependentCoverageHandler = new TimeDependentCoverageHandler();
@@ -32,10 +32,8 @@ public class CoverageCollectorHandler {
     initAllBasicCollectors(cfa);
   }
 
+  /* ##### Init Methods ##### */
   void initAllBasicCollectors(CFA cfa) {
-    counterexampleCoverageCollector =
-        new CounterexampleCoverageCollector(
-            infosPerFile, coverageMeasureHandler, timeDependentCoverageHandler, cfa);
     reachedSetCoverageCollector =
         new ReachedSetCoverageCollector(
             infosPerFile, coverageMeasureHandler, timeDependentCoverageHandler, cfa);
@@ -53,6 +51,7 @@ public class CoverageCollectorHandler {
             infosPerFile, coverageMeasureHandler, timeDependentCoverageHandler, cfa);
   }
 
+  /* ##### Getter Methods ##### */
   public TimeDependentCoverageHandler getTDCGHandler() {
     return timeDependentCoverageHandler;
   }
@@ -71,10 +70,6 @@ public class CoverageCollectorHandler {
 
   public PredicateAnalysisCoverageCollector getPredicateAnalysisCoverageCollector() {
     return predicateAnalysisCoverageCollector;
-  }
-
-  public CounterexampleCoverageCollector getCounterexampleCoverageCollector() {
-    return counterexampleCoverageCollector;
   }
 
   public ReachedSetCoverageCollector getReachedSetCoverageCollector() {

@@ -43,7 +43,7 @@ public class PredicateCoverageCPA extends AbstractSingleWrapperCPA {
     return AutomaticCPAFactory.forType(PredicateCoverageCPA.class);
   }
 
-  /* ##### Getter and Setter ##### */
+  /* ##### Getter Methods ##### */
   public CoverageCollectorHandler getCoverageCollectorHandler() {
     return coverageCollectorHandler;
   }

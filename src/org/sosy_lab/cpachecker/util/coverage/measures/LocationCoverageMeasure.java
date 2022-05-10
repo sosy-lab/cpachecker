@@ -58,7 +58,7 @@ public class LocationCoverageMeasure implements CoverageMeasure {
     maxCount = 1;
   }
 
-  /* ##### Getter and Setter ##### */
+  /* ##### Getter Methods ##### */
   /**
    * Returns the color representing if a location is covered or not. This information is used for
    * later visualization in the report.html CFA Tab.

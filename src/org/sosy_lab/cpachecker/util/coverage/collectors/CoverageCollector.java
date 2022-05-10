@@ -31,10 +31,12 @@ import org.sosy_lab.cpachecker.util.coverage.util.CoverageUtility;
  * coverage measures and time-dependent coverage graphs.
  */
 public abstract class CoverageCollector {
+  /* ##### Class fields ##### */
   final Map<String, FileCoverageStatistics> infosPerFile;
   final CoverageMeasureHandler coverageMeasureHandler;
   final TimeDependentCoverageHandler timeDependentCoverageHandler;
 
+  /* ##### Constructors ##### */
   CoverageCollector(
       Map<String, FileCoverageStatistics> pInfosPerFile,
       CoverageMeasureHandler pCoverageMeasureHandler,
@@ -53,40 +55,6 @@ public abstract class CoverageCollector {
     infosPerFile = pInfosPerFile;
     coverageMeasureHandler = pCoverageMeasureHandler;
     timeDependentCoverageHandler = pTimeDependentCoverageHandler;
-  }
-
-  /* ##### Getter and Setters ##### */
-  public FileCoverageStatistics getCollector(CFAEdge pEdge) {
-    final FileLocation loc = pEdge.getFileLocation();
-    return getFileInfoTarget(loc, infosPerFile);
-  }
-
-  Optional<FileCoverageStatistics> getCollectorForInitNode(CFANode pNode) {
-    if (pNode.getNumLeavingEdges() > 0) {
-      CFANode realNode = pNode.getLeavingEdge(0).getSuccessor();
-      if (realNode.getNumLeavingEdges() > 0) {
-        FileLocation loc = realNode.getLeavingEdge(0).getFileLocation();
-        return Optional.of(getFileInfoTarget(loc, infosPerFile));
-      }
-    }
-    return Optional.empty();
-  }
-
-  FileCoverageStatistics getFileInfoTarget(
-      final FileLocation pLoc, final Map<String, FileCoverageStatistics> pTargets) {
-
-    // Cannot produce coverage info for dummy file location
-    assert pLoc.getStartingLineNumber() != 0;
-
-    String file = pLoc.getFileName().toString();
-    FileCoverageStatistics fileInfos = pTargets.get(file);
-
-    if (fileInfos == null) {
-      fileInfos = new FileCoverageStatistics();
-      pTargets.put(file, fileInfos);
-    }
-
-    return fileInfos;
   }
 
   /* ##### Put Methods ##### */
@@ -138,6 +106,7 @@ public abstract class CoverageCollector {
     }
   }
 
+  /* ##### Add Methods ##### */
   public void addVisitedEdge(final CFAEdge pEdge) {
     if (!CoverageUtility.coversLine(pEdge)) {
       return;
@@ -177,5 +146,39 @@ public abstract class CoverageCollector {
               .map(v -> v.getNodeNumber())
               .collect(ImmutableMultiset.toImmutableMultiset()));
     }
+  }
+
+  /* ##### Getter Methods ##### */
+  public FileCoverageStatistics getCollector(CFAEdge pEdge) {
+    final FileLocation loc = pEdge.getFileLocation();
+    return getFileInfoTarget(loc, infosPerFile);
+  }
+
+  Optional<FileCoverageStatistics> getCollectorForInitNode(CFANode pNode) {
+    if (pNode.getNumLeavingEdges() > 0) {
+      CFANode realNode = pNode.getLeavingEdge(0).getSuccessor();
+      if (realNode.getNumLeavingEdges() > 0) {
+        FileLocation loc = realNode.getLeavingEdge(0).getFileLocation();
+        return Optional.of(getFileInfoTarget(loc, infosPerFile));
+      }
+    }
+    return Optional.empty();
+  }
+
+  FileCoverageStatistics getFileInfoTarget(
+      final FileLocation pLoc, final Map<String, FileCoverageStatistics> pTargets) {
+
+    // Cannot produce coverage info for dummy file location
+    assert pLoc.getStartingLineNumber() != 0;
+
+    String file = pLoc.getFileName().toString();
+    FileCoverageStatistics fileInfos = pTargets.get(file);
+
+    if (fileInfos == null) {
+      fileInfos = new FileCoverageStatistics();
+      pTargets.put(file, fileInfos);
+    }
+
+    return fileInfos;
   }
 }

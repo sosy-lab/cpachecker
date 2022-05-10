@@ -24,13 +24,7 @@ import org.sosy_lab.cpachecker.util.coverage.measures.CoverageMeasureHandler;
 import org.sosy_lab.cpachecker.util.coverage.tdcg.TimeDependentCoverageHandler;
 
 public class CounterexampleCoverageCollector extends CoverageCollector {
-
-  public static Map<String, FileCoverageStatistics> from(ARGPath targetPath) {
-    CounterexampleCoverageCollector coverageCollector = new CounterexampleCoverageCollector();
-    coverageCollector.collectCoveredEdges(targetPath);
-    return coverageCollector.infosPerFile;
-  }
-
+  /* ##### Constructors ##### */
   CounterexampleCoverageCollector(
       Map<String, FileCoverageStatistics> pInfosPerFile,
       CoverageMeasureHandler pCoverageMeasureHandler,
@@ -43,6 +37,14 @@ public class CounterexampleCoverageCollector extends CoverageCollector {
     super(new LinkedHashMap<>(), new CoverageMeasureHandler(), new TimeDependentCoverageHandler());
   }
 
+  /* ##### Static Methods ##### */
+  public static Map<String, FileCoverageStatistics> from(ARGPath targetPath) {
+    CounterexampleCoverageCollector coverageCollector = new CounterexampleCoverageCollector();
+    coverageCollector.collectCoveredEdges(targetPath);
+    return coverageCollector.infosPerFile;
+  }
+
+  /* ##### Helper Methods ##### */
   private void collectCoveredEdges(ARGPath cexPath) {
     PathIterator pathIterator = cexPath.fullPathIterator();
     while (pathIterator.hasNext()) {

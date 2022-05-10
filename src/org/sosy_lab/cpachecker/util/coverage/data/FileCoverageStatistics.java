@@ -17,6 +17,7 @@ import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 
+/** Class which holds all collected analysis-independent coverage data for a specific file. */
 public class FileCoverageStatistics {
   /* ##### Class Fields ##### */
   public final Set<Integer> allNodes = new LinkedHashSet<>();

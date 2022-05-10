@@ -17,6 +17,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
+/**
+ * Time-dependent Coverage Data is a data structure used by Time-dependent coverage graphs (TDCGs).
+ * It holds a Map of (Long,Double) entries where Longs are interpreted as time and the Doubles as
+ * raw coverage value at that corresponding time. Coverage values are calculated within a
+ * CoverageCPA.
+ */
 public class TimeDependentCoverageData {
   /* ##### Class Fields ##### */
   private Map<Long, Double> timeStampsPerCoverage;
@@ -41,7 +47,7 @@ public class TimeDependentCoverageData {
     initTimeStampsPerCoverage();
   }
 
-  /* ##### Getter and Setter ##### */
+  /* ##### Getter Methods ##### */
   public Map<Long, Double> getReducedTimeStampsPerCoverage(int max) {
     return thinOutMap(getTimeStampsPerCoverage(), max);
   }

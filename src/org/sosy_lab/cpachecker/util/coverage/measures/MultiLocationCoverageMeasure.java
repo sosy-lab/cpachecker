@@ -32,7 +32,7 @@ public class MultiLocationCoverageMeasure extends LocationCoverageMeasure {
     alternativeCoveredLocations = pAlternativeCoveredLocations;
   }
 
-  /* ##### Getter and Setter ##### */
+  /* ##### Getter Methods ##### */
   public Set<Integer> getIntersectionLocations() {
     Set<Integer> intersect = new HashSet<>(getCoveredLocations().elementSet());
     intersect.removeAll(alternativeCoveredLocations.elementSet());
