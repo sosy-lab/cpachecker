@@ -161,10 +161,6 @@ public final class DomTree<T> implements Iterable<T> {
     return input;
   }
 
-  int[] getDoms() {
-    return doms;
-  }
-
   /**
    * Checks whether the specified ID is valid.
    *

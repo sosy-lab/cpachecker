@@ -54,8 +54,7 @@ public final class DomFrontiers<T> {
 
     checkNotNull(pDomTree);
 
-    ImmutableList<ImmutableSet<Integer>> frontiers =
-        computeFrontiers(pDomTree.getInput(), pDomTree.getDoms());
+    ImmutableList<ImmutableSet<Integer>> frontiers = computeFrontiers(pDomTree);
 
     return new DomFrontiers<>(pDomTree.getInput(), frontiers);
   }
@@ -64,14 +63,14 @@ public final class DomFrontiers<T> {
    * For more information on the algorithm, see "A Simple, Fast Dominance Algorithm" (Cooper et
    * al.).
    */
-  private static ImmutableList<ImmutableSet<Integer>> computeFrontiers(
-      DomInput<?> pInput, int[] pDoms) {
+  private static ImmutableList<ImmutableSet<Integer>> computeFrontiers(DomTree<?> pDomTree) {
 
-    DomInput.PredecessorDataIterator predecessorsDataIterator = pInput.iteratePredecessorData();
+    DomInput<?> domInput = pDomTree.getInput();
+    DomInput.PredecessorDataIterator predecessorsDataIterator = domInput.iteratePredecessorData();
 
-    List<Set<Integer>> frontiers = new ArrayList<>(pInput.getNodeCount());
+    List<Set<Integer>> frontiers = new ArrayList<>(domInput.getNodeCount());
 
-    for (int id = 0; id < pInput.getNodeCount(); id++) {
+    for (int id = 0; id < domInput.getNodeCount(); id++) {
       frontiers.add(new HashSet<>());
     }
 
@@ -91,9 +90,9 @@ public final class DomFrontiers<T> {
 
       do {
 
-        while (runner != DomTree.UNDEFINED && runner != pDoms[nodeId]) {
+        while (runner != DomTree.UNDEFINED && runner != pDomTree.getParent(nodeId)) {
           frontiers.get(runner).add(nodeId);
-          runner = pDoms[runner];
+          runner = pDomTree.getParent(runner);
         }
 
         if (predecessorsDataIterator.hasNextPredecessor()) {
