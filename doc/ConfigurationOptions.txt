@@ -556,6 +556,9 @@ assumptions.automatonFile = "AssumptionAutomaton.txt"
 # continue path with corresponding this edge.
 assumptions.automatonIgnoreAssumptions = false
 
+# If it is enabled, automaton adds transitions to later ARG states first
+assumptions.automatonOrderedTransitions = false
+
 # compress the produced assumption automaton using GZIP compression.
 assumptions.compressAutomaton = false
 

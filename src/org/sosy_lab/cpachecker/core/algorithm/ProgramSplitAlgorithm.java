@@ -194,7 +194,8 @@ public class ProgramSplitAlgorithm implements Algorithm, StatisticsProvider, Sta
                         splitConditionStates,
                         falseAssumptionStates,
                         0,
-                        true));
+                        true,
+                        false));
       }
     } catch (IOException e) {
       logger.log(
