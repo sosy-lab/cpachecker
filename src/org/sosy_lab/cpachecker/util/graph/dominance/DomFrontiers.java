@@ -25,13 +25,16 @@ import org.sosy_lab.common.collect.Collections3;
 /**
  * Represents dominance frontiers for nodes in a graph.
  *
+ * <p>The dominance frontier of a node {@code D} consists of all nodes {@code F_i}, such that {@code
+ * D} dominates a predecessor of {@code F_i}, but does not strictly dominate {@code F_i}.
+ *
  * @param <T> the graph's node type
  */
 public final class DomFrontiers<T> {
 
   private final DomInput<T> input;
 
-  // dominance frontier for node with ID == 0, dominance frontier for node with ID == 1, etc.
+  // frontiers.get(N) == dominance frontier of node N
   private final ImmutableList<ImmutableSet<Integer>> frontiers;
 
   private DomFrontiers(DomInput<T> pInput, List<? extends Set<Integer>> pFrontiers) {
@@ -42,12 +45,12 @@ public final class DomFrontiers<T> {
 
   /**
    * Creates a new {@link DomFrontiers} instance that contains a dominance frontier for every node
-   * in the specified dominance tree.
+   * in the specified dominator tree.
    *
    * @param <T> the graph's node type
-   * @param pDomTree the dominance tree of the graph
+   * @param pDomTree the dominator tree of the graph
    * @return a new {@link DomFrontiers} instance that contains a dominance frontier for every node
-   *     in the specified dominance tree
+   *     in the specified dominator tree
    * @throws NullPointerException if {@code pDomTree == null}
    */
   public static <T> DomFrontiers<T> forDomTree(DomTree<T> pDomTree) {
@@ -60,10 +63,13 @@ public final class DomFrontiers<T> {
   }
 
   /**
-   * For more information on the algorithm, see "A Simple, Fast Dominance Algorithm" (Cooper et
-   * al.).
+   * Returns a list containing the dominance frontier for each node. {@code frontiers.get(N) ==
+   * dominance frontier of node N}.
    */
   private static ImmutableList<ImmutableSet<Integer>> computeFrontiers(DomTree<?> pDomTree) {
+
+    // For more information on the algorithm, see "A Simple, Fast Dominance Algorithm"
+    // (Cooper et al.).
 
     DomInput<?> domInput = pDomTree.getInput();
     DomInput.PredecessorDataIterator predecessorsDataIterator = domInput.iteratePredecessorData();
@@ -114,13 +120,13 @@ public final class DomFrontiers<T> {
   }
 
   /**
-   * Returns the dominance frontier for the specified node.
+   * Returns the dominance frontier of the specified node.
    *
    * @param pNode the node to get the dominance frontier for
-   * @return an immutable set consisting of the dominance frontier for the specified node
+   * @return an immutable set representing the dominance frontier of the specified node
    * @throws NullPointerException if {@code pNode == null}
    * @throws IllegalArgumentException if {@code pNode} is unknown (i.e., was not visited during
-   *     graph traversal for dominance tree construction)
+   *     graph traversal for dominator tree construction)
    */
   public ImmutableSet<T> getFrontier(T pNode) {
 
@@ -137,10 +143,10 @@ public final class DomFrontiers<T> {
    * Returns the iterated dominance frontier for the specified set of nodes.
    *
    * @param pNodes the set of nodes to get the iterated dominance frontier for
-   * @return an unmodifiable set consisting of all nodes in the iterated dominance frontier
+   * @return an immutable set consisting of all nodes in the iterated dominance frontier
    * @throws NullPointerException if {@code pNodes == null} or if any element is {@code null}
    * @throws IllegalArgumentException if any node in {@code pNodes} is unknown (i.e., was not
-   *     visited during graph traversal for dominance tree construction)
+   *     visited during graph traversal for dominator tree construction)
    */
   public ImmutableSet<T> getIteratedFrontier(Set<T> pNodes) {
 
@@ -157,7 +163,7 @@ public final class DomFrontiers<T> {
 
       @Nullable Integer id = input.getReversePostOrderId(node);
 
-      checkArgument(id != null, "pNodes contains node that has no dominance frontier: %s", node);
+      checkArgument(id != null, "pNodes contains a node that has no dominance frontier: %s", node);
 
       waitlist.add(id);
       waitlisted.add(id);

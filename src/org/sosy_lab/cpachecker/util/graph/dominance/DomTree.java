@@ -24,13 +24,22 @@ import java.util.NoSuchElementException;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 /**
- * Represents a dominance tree.
+ * Represents a dominator tree (sometimes called dominance tree).
  *
- * <p>A node's parent in a dominance tree is its immediate dominator. All dominators of a node can
- * be obtained by creating a set out of the node and all its ancestors.
+ * <p>A node {@code D} dominates a node {@code N} if every path from the start node of a graph must
+ * go through {@code D}. By definition, every node dominates itself, but only if node {@code D}
+ * dominates a node {@code N} and {@code D != N}, it strictly dominates {@code N}.
  *
- * <p>This class implements {@link Iterable}, which enables iteration over all contained nodes in
- * ascending ID-order.
+ * <p>Every node, except the start node of a graph, has an immediate dominator that is the unique
+ * node that strictly dominates {@code N}, but doesn't strictly dominate any other node that
+ * strictly dominates {@code N}. Due to the uniqueness of the immediate dominator, a tree can be
+ * constructed, where the children of each node are the nodes it immediately dominates. This so
+ * called dominator tree has as its single root the start node of a graph. All other nodes are
+ * descendants of the start node. A node is strictly dominated by all its ancestors.
+ *
+ * <p>For performance reasons, every node has an ID that is unique in a dominator tree. For a
+ * dominator tree {@code domTree}, IDs from the interval {@code [0, domTree.getNodeCount() - 1]} are
+ * used.
  *
  * @param <T> the graph's node type
  */
@@ -41,7 +50,7 @@ public final class DomTree<T> implements Iterable<T> {
 
   private final DomInput<T> input;
 
-  // doms[x] == immediate dominator of x
+  // doms[N] == immediate dominator of N
   private final int[] doms;
 
   private DomTree(DomInput<T> pInput, int[] pDoms) {
@@ -51,17 +60,17 @@ public final class DomTree<T> implements Iterable<T> {
   }
 
   /**
-   * Creates a new dominance tree for the specified graph.
+   * Creates a new dominator tree for the specified graph.
    *
-   * <p>The graph must not be modified during dominance tree construction.
-   *
-   * <p>Only nodes reachable from the start node will be part of the resulting dominance tree.
+   * <p>Only nodes reachable from the start node will be part of the resulting dominator tree. The
+   * graph must not be modified during dominator tree construction.
    *
    * @param <T> the graph's node type
    * @param pPredecessorFunction the graph's predecessor function (node -> iterable predecessors)
    * @param pSuccessorFunction the graph's successor function (node -> iterable successors)
-   * @param pStartNode the start node for graph traversal
-   * @return a new dominance tree for the specified graph
+   * @param pStartNode the start node for graph traversal that becomes the root node of the
+   *     dominator tree
+   * @return a new dominator tree for the specified graph
    * @throws NullPointerException if any parameter is {@code null}.
    */
   public static <T> DomTree<T> forGraph(
@@ -81,18 +90,18 @@ public final class DomTree<T> implements Iterable<T> {
   }
 
   /**
-   * Creates a new dominance tree for the specified graph.
+   * Creates a new dominator tree for the specified graph.
    *
-   * <p>The graph must not be modified during dominance tree construction.
-   *
-   * <p>Only nodes reachable from the start node will be part of the resulting dominance tree.
+   * <p>Only nodes reachable from the start node will be part of the resulting dominator tree. The
+   * graph must not be modified during dominator tree construction.
    *
    * @param <T> the graph's node type
    * @param <G> the graph type
    * @param pGraph the graph that has a predecessor function (node -> iterable predecessors) and a
    *     successor function (node -> iterable successors)
-   * @param pStartNode the start node for graph traversal
-   * @return a new dominance tree for the specified graph
+   * @param pStartNode the start node for graph traversal that becomes the root node of the
+   *     dominator tree
+   * @return a new dominator tree for the specified graph
    * @throws NullPointerException if any parameter is {@code null}.
    */
   public static <T, G extends PredecessorsFunction<T> & SuccessorsFunction<T>> DomTree<T> forGraph(
@@ -101,21 +110,22 @@ public final class DomTree<T> implements Iterable<T> {
   }
 
   /**
-   * Iterative Algorithm for computing all immediate dominators. For more information on the
-   * algorithm, see "A Simple, Fast Dominance Algorithm" (Cooper et al.).
-   *
-   * @return doms[x] == immediate dominator of x
+   * Returns an array containing the immediate dominator of each node ({@code doms[N] == immediate
+   * dominator of N}).
    */
   private static int[] computeDoms(DomInput<?> pInput) {
+
+    // Iterative Algorithm for computing all immediate dominators. For more information on the
+    // algorithm, see "A Simple, Fast Dominance Algorithm" (Cooper et al.).
 
     DomInput.PredecessorDataIterator predecessorsDataIterator = pInput.iteratePredecessorData();
 
     int startNodeId = DomInput.START_NODE_ID;
-    int[] doms = new int[pInput.getNodeCount()]; // doms[x] == immediate dominator of x
+    int[] doms = new int[pInput.getNodeCount()]; // doms[N] == immediate dominator of N
     boolean changed = true;
 
     Arrays.fill(doms, UNDEFINED); // no immediate dominator is known
-    doms[startNodeId] = startNodeId; // needed to 'seed' the computation, reverted afterwards
+    doms[startNodeId] = startNodeId; // needed to "seed" the computation, reverted afterwards
 
     while (changed) {
 
@@ -127,7 +137,7 @@ public final class DomTree<T> implements Iterable<T> {
         int nodeId = predecessorsDataIterator.nextNode();
         int idom = UNDEFINED; // immediate dominator of the current node
 
-        // we cannot compute the immediate dominator of the start node
+        // the start node has no immediate dominator, so we cannot compute it
         if (nodeId == startNodeId) {
           continue;
         }
@@ -154,8 +164,8 @@ public final class DomTree<T> implements Iterable<T> {
   }
 
   /**
-   * Computes the intersection of doms(pFst) and doms(pSnd) (doms(x) == all nodes that dominate x).
-   * Cooper et al. describe it as "[walking] up the the dominance tree from two different nodes
+   * Computes the intersection of doms(pFst) and doms(pSnd) (doms(N) == all nodes that dominate N).
+   * Cooper et al. describe it as "[walking] up the the dominator tree from two different nodes
    * until a common parent is reached".
    */
   private static int intersect(final int[] pDoms, final int pFst, final int pSnd) {
@@ -163,7 +173,7 @@ public final class DomTree<T> implements Iterable<T> {
     int fst = pFst;
     int snd = pSnd;
 
-    // The comparisons look different from the paper, because we use reverse post-order IDs instead
+    // The comparisons differ from the paper, because we use reverse post-order IDs instead
     // of post-order IDs.
     while (fst != snd) {
       while (snd > fst) {
@@ -177,43 +187,46 @@ public final class DomTree<T> implements Iterable<T> {
     return fst;
   }
 
+  /**
+   * Returns the input from which this dominator tree was created.
+   *
+   * @return the input from which this dominator tree was created.
+   */
   DomInput<T> getInput() {
     return input;
   }
 
   /**
-   * Checks whether the specified ID is valid.
+   * Checks whether the specified ID is valid for this dominator tree.
    *
-   * @throws IllegalArgumentException if the specified ID is not valid (valid IDs must fulfill
-   *     {@code 0 <= ID < getNodeCount()})
+   * @throws IllegalArgumentException if the specified ID is not valid (i.e., if {@code ID < 0 || ID
+   *     >= getNodeCount()})
    */
   private void checkId(int pId) {
     checkArgument(
-        0 <= pId && pId < getNodeCount(),
-        "pId must fulfill 0 <= ID < getNodeCount(), but is: %s",
-        pId);
+        0 <= pId && pId < getNodeCount(), "pId must be 0 <= ID < getNodeCount(), but is: %s", pId);
   }
 
   /**
-   * Returns the number of nodes in this tree.
+   * Returns the number of nodes in this dominator tree.
    *
-   * @return the number of nodes in this tree.
+   * @return the number of nodes in this dominator tree.
    */
   public int getNodeCount() {
     return input.getNodeCount();
   }
 
   /**
-   * Returns the ID for the specified node.
+   * Returns the ID of the specified node.
    *
-   * <p>A valid ID for a node fulfills {@code 0 <= ID < getNodeCount()} and is unique for every node
-   * in this tree. All valid IDs are used (there is a node for every valid ID).
+   * <p>A valid ID for a node is {@code 0 <= ID < getNodeCount()} and is unique for every node in
+   * this dominator tree. All valid IDs are used (there is a node for every valid ID).
    *
    * @param pNode the node to get the ID for
-   * @return the ID for the specified node
+   * @return the ID of the specified node
    * @throws NullPointerException if {@code pNode == null}
    * @throws IllegalArgumentException if {@code pNode} is unknown (i.e., was not visited during
-   *     graph traversal for dominance tree construction)
+   *     graph traversal for dominator tree construction)
    */
   public int getId(T pNode) {
 
@@ -229,13 +242,13 @@ public final class DomTree<T> implements Iterable<T> {
   /**
    * Returns the node for the specified ID.
    *
-   * <p>A valid ID for a node fulfills {@code 0 <= ID < getNodeCount()} and is unique for every node
-   * in this tree. All valid IDs are used (there is a node for every valid ID).
+   * <p>A valid ID for a node is {@code 0 <= ID < getNodeCount()} and is unique for every node in
+   * this dominator tree. All valid IDs are used (there is a node for every valid ID).
    *
    * @param pId the ID to get the node for
    * @return the node with the specified ID
-   * @throws IllegalArgumentException if the specified ID is not valid (valid IDs must fulfill
-   *     {@code 0 <= ID < getNodeCount()})
+   * @throws IllegalArgumentException if the specified ID is not valid (i.e., if {@code ID < 0 || ID
+   *     >= getNodeCount()})
    */
   public T getNode(int pId) {
 
@@ -247,10 +260,10 @@ public final class DomTree<T> implements Iterable<T> {
   /**
    * Returns the ID of the root node, if a root exits.
    *
-   * <p>Use {@link #getNodeCount()} to find out, whether this dominance tree contains any nodes.
+   * <p>Use {@link #getNodeCount()} to find out, whether this dominator tree contains any nodes.
    *
-   * @return If this dominance tree contains a root (i.e., the dominance tree isn't empty), the ID
-   *     of the root node is returned. Otherwise, if this dominance tree does not contain a root
+   * @return If this dominator tree contains a root (i.e., the dominator tree isn't empty), the ID
+   *     of the root node is returned. Otherwise, if this dominator tree doesn't contain a root
    *     node, {@link DomTree#UNDEFINED} is returned.
    */
   public int getRootId() {
@@ -263,10 +276,11 @@ public final class DomTree<T> implements Iterable<T> {
    * <p>Use {@link #hasParent(int)} to find out, whether a node has a parent.
    *
    * @param pId the ID of the node to get the parent ID for
-   * @return If the node has a parent, the parent's ID is returned. Otherwise, if the node is the
-   *     root and doesn't have a parent, {@link DomTree#UNDEFINED} is returned.
-   * @throws IllegalArgumentException if the specified ID is not valid (valid IDs must fulfill
-   *     {@code 0 <= ID < getNodeCount()})
+   * @return If the node has a parent in this dominator tree, the parent's ID is returned.
+   *     Otherwise, if the node is the root and doesn't have a parent, {@link DomTree#UNDEFINED} is
+   *     returned.
+   * @throws IllegalArgumentException if the specified ID is not valid (i.e., if {@code ID < 0 || ID
+   *     >= getNodeCount()})
    */
   public int getParent(int pId) {
 
@@ -276,13 +290,13 @@ public final class DomTree<T> implements Iterable<T> {
   }
 
   /**
-   * Returns whether the specified node has a parent (immediate dominator) in the dominance tree.
+   * Returns whether the specified node has a parent (immediate dominator) in this dominator tree.
    *
-   * @param pId the ID of the node check whether it has a parent
-   * @return If the node has a parent in the dominance tree, {@code true} is returned. Otherwise, if
+   * @param pId the ID of the node to check whether it has a parent
+   * @return If the node has a parent in the dominator tree, {@code true} is returned. Otherwise, if
    *     the node is the root and doesn't have a parent, {@code false} is returned.
-   * @throws IllegalArgumentException if the specified ID is not valid (valid IDs must fulfill
-   *     {@code 0 <= ID < getNodeCount()})
+   * @throws IllegalArgumentException if the specified ID is not valid (i.e., if {@code ID < 0 || ID
+   *     >= getNodeCount()})
    */
   public boolean hasParent(int pId) {
 
@@ -295,16 +309,16 @@ public final class DomTree<T> implements Iterable<T> {
    * Returns whether the specified ancestor-node is the ancestor of a specified descendant-node.
    *
    * <p>Returns {@code true} if and only if the the node with ID {@code pAncestorId} is an ancestor
-   * of the node with ID {@code pDescendantId} in this dominance tree. A node is strictly dominated
-   * by all its ancestors in the dominance tree.
+   * of the node with ID {@code pDescendantId} in this dominator tree. A node is strictly dominated
+   * by all its ancestors in a dominator tree.
    *
    * @param pAncestorId the ancestor-node's ID
    * @param pDescendantId the descendant-node's ID
-   * @return If the ancestor-node is indeed an ancestor of the descendant-node, {@code true} is
-   *     returned. Otherwise, if the ancestor-node is not an ancestor of the descendant-node, {@code
-   *     false} is returned.
-   * @throws IllegalArgumentException if the specified ID is not valid (valid IDs must fulfill
-   *     {@code 0 <= ID < getNodeCount()})
+   * @return If the ancestor-node is indeed an ancestor of the descendant-node in this dominator
+   *     tree, {@code true} is returned. Otherwise, if the ancestor-node is not an ancestor of the
+   *     descendant-node, {@code false} is returned.
+   * @throws IllegalArgumentException if any specified ID is not valid (i.e., if {@code ID < 0 || ID
+   *     >= getNodeCount()})
    */
   public boolean isAncestorOf(int pAncestorId, int pDescendantId) {
 
@@ -326,25 +340,26 @@ public final class DomTree<T> implements Iterable<T> {
    * Returns whether the specified ancestor-node is the ancestor of a specified descendant-node.
    *
    * <p>Returns {@code true} if and only if {@code pAncestorNode} is an ancestor of {@code
-   * pDescendantNode} in this dominance tree. A node is strictly dominated by all its ancestors in
-   * the dominance tree.
+   * pDescendantNode} in this dominator tree. A node is strictly dominated by all its ancestors in a
+   * dominator tree.
    *
    * @param pAncestorNode the ancestor-node
    * @param pDescendantNode the descendant-node
-   * @return If the ancestor-node is indeed an ancestor of the descendant-node, {@code true} is
-   *     returned. Otherwise, if the ancestor-node is not an ancestor of the descendant-node, {@code
-   *     false} is returned.
+   * @return If the ancestor-node is indeed an ancestor of the descendant-node in this dominator
+   *     tree, {@code true} is returned. Otherwise, if the ancestor-node is not an ancestor of the
+   *     descendant-node, {@code false} is returned.
    * @throws IllegalArgumentException if {@code pAncestorNode} or {@code pDescendantNode} is unknown
-   *     (i.e., was not visited during graph traversal for dominance tree construction)
+   *     (i.e., was not visited during graph traversal for dominator tree construction)
    */
   public boolean isAncestorOf(T pAncestorNode, T pDescendantNode) {
     return isAncestorOf(getId(pAncestorNode), getId(pDescendantNode));
   }
 
   /**
-   * Returns an iterator over the nodes in this dominance tree in ascending ID-order.
+   * Returns an iterator that returns all nodes of a dominator tree in ascending ID-order (i.e.,
+   * from {@code 0} to {@code domTree.getNodeCount() - 1}).
    *
-   * @return an iterator over the nodes in this dominance tree in ascending ID-order.
+   * @return an iterator that returns all nodes of a dominator tree in ascending ID-order
    */
   @Override
   public Iterator<T> iterator() {
@@ -369,12 +384,11 @@ public final class DomTree<T> implements Iterable<T> {
   }
 
   /**
-   * Returns a {@link Graph} instance that represents this dominance tree.
+   * Returns an immutable {@link Graph} instance that represents this dominator tree.
    *
-   * <p>The {@link Graph} representation can be used as a convenient way for dominance tree
-   * traversal.
+   * <p>This representation can be used as a convenient way for dominator tree traversal.
    *
-   * @return a {@link Graph} instance that represents this dominance tree
+   * @return an immutable {@link Graph} instance that represents this dominator tree
    */
   public ImmutableGraph<T> asGraph() {
 

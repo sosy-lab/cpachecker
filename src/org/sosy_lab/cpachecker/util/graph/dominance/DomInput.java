@@ -22,11 +22,11 @@ import java.util.NoSuchElementException;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 /**
- * Represents the input for dominance tree and frontier computation.
+ * Represents the input for dominator tree and dominance frontier computation.
  *
  * <p>An instance of {@link DomInput} is created from a graph and stores a bidirectional mapping
  * between nodes and their reverse post-order IDs. Additionally, it contains the predecessors of
- * every node in the specific format used for dominance tree and frontier computation.
+ * every node.
  *
  * @param <T> the graph's node type
  */
@@ -34,6 +34,7 @@ final class DomInput<T> {
 
   private static final int DELIMITER = -2;
 
+  /** The ID of the start node (it's always {@code 0}, because we use reverse post-order IDs). */
   static final int START_NODE_ID = 0;
 
   private final ImmutableMap<T, Integer> ids;
@@ -91,12 +92,12 @@ final class DomInput<T> {
   /**
    * Creates a new {@link DomInput} instance for the specified graph.
    *
-   * <p>Only nodes reachable from the start node are considered for the {@link DomInput} creation.
+   * <p>Only nodes reachable from the start node are considered for {@link DomInput} creation.
    *
    * @param <T> the graph's node type
    * @param pPredecessorFunction the graph's predecessor function (node -> iterable predecessors)
    * @param pSuccessorFunction the graph's successor function (node -> iterable successors)
-   * @param pStartNode the start node graph traversal
+   * @param pStartNode the start node for graph traversal
    * @return a new {@link DomInput} instance for the specified graph.
    */
   static <T> DomInput<T> forGraph(
@@ -112,7 +113,7 @@ final class DomInput<T> {
 
     // predecessors of node with ID == 0, predecessors of node with ID == 1, etc.
     List<List<Integer>> allPredecessors = new ArrayList<>(Collections.nCopies(ids.size(), null));
-    int predecessorCounter = 0; // number of node-predecessor relationships in the graph
+    int predecessorCounter = 0; // number of edges between nodes and predecessors in the graph
 
     List<Integer> currentNodePredecessors = new ArrayList<>();
     for (Map.Entry<T, Integer> nodeToId : ids.entrySet()) {
@@ -122,7 +123,7 @@ final class DomInput<T> {
 
       for (T predecessor : pPredecessorFunction.predecessors(currentNode)) {
 
-        // if there is no path from `pStartNode` to `predecessor`, it doesn't have an ID
+        // if there is no path from the start node to `predecessor`, it doesn't have an ID
         @Nullable Integer predecessorId = ids.get(predecessor);
 
         if (predecessorId != null) {
@@ -170,6 +171,20 @@ final class DomInput<T> {
     return nodes.size();
   }
 
+  /**
+   * Iterator for predecessor data in the specific format that `DomInput#predecessorData` has.
+   *
+   * <p>Iteration works like this:
+   *
+   * <pre>
+   * while (predecessorDataIterator.hasNextNode()) {
+   *   int node = predecessorDataIterator.nextNode();
+   *   while (predecessorDataIterator.hasNextPredecessor()) {
+   *     int predecessorOfNode = predecessorDataIterator.nextPredecessor();
+   *   }
+   * }
+   * </pre>
+   */
   static final class PredecessorDataIterator {
 
     private final int[] data;
