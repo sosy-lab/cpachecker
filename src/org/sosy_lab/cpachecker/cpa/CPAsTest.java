@@ -72,6 +72,7 @@ import org.sosy_lab.cpachecker.cpa.termination.TerminationCPA;
 import org.sosy_lab.cpachecker.cpa.traceabstraction.TraceAbstractionCPA;
 import org.sosy_lab.cpachecker.cpa.usage.UsageCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.util.coverage.collectors.CoverageCollectorHandler;
 import org.sosy_lab.cpachecker.util.test.TestDataTools;
 
 @RunWith(Parameterized.class)
@@ -208,6 +209,7 @@ public class CPAsTest {
         .set(cfa, CFA.class)
         .set(Specification.alwaysSatisfied(), Specification.class)
         .set(aggregatedReachedSets, AggregatedReachedSets.class)
+        .set(new CoverageCollectorHandler(cfa), CoverageCollectorHandler.class)
         .createInstance();
   }
 
