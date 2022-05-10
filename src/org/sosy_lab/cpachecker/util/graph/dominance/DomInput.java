@@ -32,7 +32,9 @@ import org.checkerframework.checker.nullness.qual.Nullable;
  */
 final class DomInput<T> {
 
-  static final int DELIMITER = -2;
+  private static final int DELIMITER = -2;
+
+  static final int START_NODE_ID = 0;
 
   private final ImmutableMap<T, Integer> ids;
   private final ImmutableList<T> nodes;
@@ -103,6 +105,7 @@ final class DomInput<T> {
       T pStartNode) {
 
     ImmutableMap<T, Integer> ids = createReversePostOrder(pSuccessorFunction, pStartNode);
+    assert ids.get(pStartNode) == START_NODE_ID;
 
     @SuppressWarnings("unchecked") // it's impossible to create a new generic array T[]
     T[] nodes = (T[]) new Object[ids.size()];
@@ -132,6 +135,9 @@ final class DomInput<T> {
       nodes[currentNodeId] = currentNode;
       currentNodePredecessors.clear();
     }
+
+    assert ids.entrySet().stream()
+        .allMatch(entry -> entry.getKey().equals(nodes[entry.getValue()]));
 
     int[] predecessors = new int[predecessorCounter + allPredecessors.size()];
 

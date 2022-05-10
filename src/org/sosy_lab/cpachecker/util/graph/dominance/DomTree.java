@@ -110,12 +110,12 @@ public final class DomTree<T> implements Iterable<T> {
 
     DomInput.PredecessorDataIterator predecessorsDataIterator = pInput.iteratePredecessorData();
 
-    int startNode = 0; // the start node has the reverse post-order ID == 0
+    int startNodeId = DomInput.START_NODE_ID;
     int[] doms = new int[pInput.getNodeCount()]; // doms[x] == immediate dominator of x
     boolean changed = true;
 
     Arrays.fill(doms, UNDEFINED); // no immediate dominator is known
-    doms[startNode] = startNode; // needed to 'seed' the computation, reverted afterwards
+    doms[startNodeId] = startNodeId; // needed to 'seed' the computation, reverted afterwards
 
     while (changed) {
 
@@ -128,7 +128,7 @@ public final class DomTree<T> implements Iterable<T> {
         int idom = UNDEFINED; // immediate dominator of the current node
 
         // we cannot compute the immediate dominator of the start node
-        if (nodeId == startNode) {
+        if (nodeId == startNodeId) {
           continue;
         }
 
@@ -148,7 +148,7 @@ public final class DomTree<T> implements Iterable<T> {
       }
     }
 
-    doms[startNode] = UNDEFINED; // the start node cannot have an immediate dominator
+    doms[startNodeId] = UNDEFINED; // the start node doesn't have an immediate dominator
 
     return doms;
   }
