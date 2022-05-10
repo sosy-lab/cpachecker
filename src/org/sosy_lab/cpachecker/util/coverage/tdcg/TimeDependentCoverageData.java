@@ -18,21 +18,30 @@ import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 public class TimeDependentCoverageData {
-
+  /* ##### Class Fields ##### */
   private Map<Long, Double> timeStampsPerCoverage;
   private Map<Long, Double> previousTimeStampsPerCoverage;
   private Instant startTime = Instant.MIN;
 
+  /* ##### Constructors ##### */
   public TimeDependentCoverageData() {
     initTimeStampsPerCoverage();
     previousTimeStampsPerCoverage = new LinkedHashMap<>();
   }
 
-  private void initTimeStampsPerCoverage() {
-    timeStampsPerCoverage = new LinkedHashMap<>();
-    timeStampsPerCoverage.put(0L, 0.0);
+  /* ##### Public Methods ##### */
+  public void addTimeStamp(double coverage) {
+    initStartTime();
+    timeStampsPerCoverage.put(getDurationInMicros(), coverage);
   }
 
+  public void resetTimeStamps() {
+    startTime = Instant.now();
+    previousTimeStampsPerCoverage = timeStampsPerCoverage;
+    initTimeStampsPerCoverage();
+  }
+
+  /* ##### Getter and Setter ##### */
   public Map<Long, Double> getReducedTimeStampsPerCoverage(int max) {
     return thinOutMap(getTimeStampsPerCoverage(), max);
   }
@@ -50,21 +59,10 @@ public class TimeDependentCoverageData {
     return timeStampsPerCoverage;
   }
 
-  public ImmutableList<Double> getCoverageList() {
-    return getTimeStampsPerCoverage().values().stream()
-        .sorted()
-        .collect(ImmutableList.toImmutableList());
-  }
-
-  public void addTimeStamp(double coverage) {
-    initStartTime();
-    timeStampsPerCoverage.put(getDurationInMicros(), coverage);
-  }
-
-  public void resetTimeStamps() {
-    startTime = Instant.now();
-    previousTimeStampsPerCoverage = timeStampsPerCoverage;
-    initTimeStampsPerCoverage();
+  /* ##### Private Methods ##### */
+  private void initTimeStampsPerCoverage() {
+    timeStampsPerCoverage = new LinkedHashMap<>();
+    timeStampsPerCoverage.put(0L, 0.0);
   }
 
   private long getDurationInMicros() {

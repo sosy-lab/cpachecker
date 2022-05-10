@@ -13,13 +13,15 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 
 public class TimeDependentCoverageHandler {
+  /* ##### Class Fields ##### */
+  private final Map<TimeDependentCoverageType, TimeDependentCoverageData> timeDependentCoverageDataMap;
 
-  private Map<TimeDependentCoverageType, TimeDependentCoverageData> timeDependentCoverageDataMap;
-
+  /* ##### Constructors ##### */
   public TimeDependentCoverageHandler() {
     timeDependentCoverageDataMap = new LinkedHashMap<>();
   }
 
+  /* ##### Initializers ##### */
   public void initNewData(TimeDependentCoverageType type) {
     timeDependentCoverageDataMap.put(type, new TimeDependentCoverageData());
   }
@@ -35,27 +37,12 @@ public class TimeDependentCoverageHandler {
     initNewData(TimeDependentCoverageType.AbstractStateCoveredNodes);
   }
 
-  public ImmutableList<TimeDependentCoverageType> getAllTypes() {
-    return ImmutableList.copyOf(timeDependentCoverageDataMap.keySet());
-  }
-
-  public void addData(TimeDependentCoverageType type, TimeDependentCoverageData data) {
-    timeDependentCoverageDataMap.put(type, data);
-  }
-
+  /* ##### Getter and Setter ##### */
   public TimeDependentCoverageData getData(TimeDependentCoverageType type) {
     return timeDependentCoverageDataMap.get(type);
   }
 
-  public Map<TimeDependentCoverageType, TimeDependentCoverageData>
-      getTimeDependentCoverageDataMap() {
-    return timeDependentCoverageDataMap;
-  }
-
-  public void mergeData(TimeDependentCoverageHandler secondHandler) {
-    for (var type : getAllTypes()) {
-      secondHandler.addData(type, getData(type));
-    }
-    timeDependentCoverageDataMap = secondHandler.getTimeDependentCoverageDataMap();
+  public ImmutableList<TimeDependentCoverageType> getAllTypes() {
+    return ImmutableList.copyOf(timeDependentCoverageDataMap.keySet());
   }
 }

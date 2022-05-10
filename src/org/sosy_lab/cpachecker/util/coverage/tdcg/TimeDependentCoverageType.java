@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.util.coverage.tdcg;
 import org.sosy_lab.cpachecker.util.coverage.util.CoverageColorUtil;
 
 public enum TimeDependentCoverageType {
+  /* ##### Enum Fields ##### */
   VisitedLines("Visited Lines", CoverageColorUtil.GREEN_TDCG_COLOR),
   PredicatesGenerated("Predicates Generated", CoverageColorUtil.BLUE_TDCG_COLOR, false),
   PredicateConsideredLocations("Predicate-Considered Locations", CoverageColorUtil.RED_TDCG_COLOR),
@@ -21,6 +22,7 @@ public enum TimeDependentCoverageType {
   private final String color;
   private final boolean isPercentage;
 
+  /* ##### Constructors ##### */
   TimeDependentCoverageType(String pName, String pColor, boolean pIsPercentage) {
     name = pName;
     color = pColor;
@@ -31,6 +33,7 @@ public enum TimeDependentCoverageType {
     this(pName, pColor, true);
   }
 
+  /* ##### Getter and Setter ##### */
   public String getName() {
     return name;
   }
