@@ -38,6 +38,10 @@ public enum CoverageMeasureType {
     return name;
   }
 
+  public String getCoverageName() {
+    return name + " Coverage";
+  }
+
   public CoverageMeasureCategory getCategory() {
     return category;
   }

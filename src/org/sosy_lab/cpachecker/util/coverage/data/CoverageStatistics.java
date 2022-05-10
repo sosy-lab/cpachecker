@@ -25,9 +25,9 @@ public class CoverageStatistics {
 
   public long numTotalNodes = 0;
   public long numReachedNodes = 0;
-  public long numPredicateConsideredNodes = 0;
+  public long numPredicateConsideredLocations = 0;
   public long numAbstractStateCoveredNodes = 0;
-  public long numPredicateRelevantVariablesNodes = 0;
+  public long numPredicateRelevantVariablesLocations = 0;
 
   public Set<Integer> predicateConsideredNodes = new HashSet<>();
   public Set<Integer> predicateRelevantVariablesConsideredNodes = new HashSet<>();
@@ -55,9 +55,10 @@ public class CoverageStatistics {
 
       numTotalNodes += info.allNodes.size();
       numReachedNodes += info.allReachedNodes.elementSet().size();
-      numPredicateConsideredNodes += info.predicateStatistics.allPredicateConsideredNodes.size();
+      numPredicateConsideredLocations +=
+          info.predicateStatistics.allPredicateConsideredNodes.size();
       numAbstractStateCoveredNodes += info.allAbstractStateCoveredNodes.size();
-      numPredicateRelevantVariablesNodes +=
+      numPredicateRelevantVariablesLocations +=
           Math.max(
               info.predicateStatistics.allPredicateRelevantVariablesNodes.size(),
               info.predicateStatistics.previousPredicateRelevantVariablesNodesSize);
