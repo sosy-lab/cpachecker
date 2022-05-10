@@ -22,13 +22,14 @@ import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
+import org.sosy_lab.cpachecker.cpa.coverage.CoverageCPA;
 import org.sosy_lab.cpachecker.util.coverage.collectors.CoverageCollectorHandler;
 
 /**
  * Calculates TDCG and Coverage Measure data during the analysis. This CPA depends heavily on
  * util.coverage package.
  */
-public class AnalysisIndependentCoverageCPA implements ConfigurableProgramAnalysis {
+public class AnalysisIndependentCoverageCPA implements ConfigurableProgramAnalysis, CoverageCPA {
   /* ##### Class Constants ##### */
   private final TransferRelation transfer;
   private final AbstractDomain domain;
@@ -49,12 +50,12 @@ public class AnalysisIndependentCoverageCPA implements ConfigurableProgramAnalys
     return AutomaticCPAFactory.forType(AnalysisIndependentCoverageCPA.class);
   }
 
-  /* ##### Getter Methods ##### */
+  /* ##### Inherited Methods ##### */
+  @Override
   public CoverageCollectorHandler getCoverageCollectorHandler() {
     return coverageCollectorHandler;
   }
 
-  /* ##### Inherited Methods ##### */
   @Override
   public AbstractDomain getAbstractDomain() {
     return domain;

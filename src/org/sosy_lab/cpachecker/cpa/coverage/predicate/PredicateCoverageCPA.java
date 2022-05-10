@@ -16,6 +16,7 @@ import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
+import org.sosy_lab.cpachecker.cpa.coverage.CoverageCPA;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
 import org.sosy_lab.cpachecker.util.coverage.collectors.CoverageCollectorHandler;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
@@ -26,7 +27,7 @@ import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
  * predicate-analyis related coverage data and is therefore only applicable for predicate-analysis.
  * This CPA depends heavily on util.coverage package.
  */
-public class PredicateCoverageCPA extends AbstractSingleWrapperCPA {
+public class PredicateCoverageCPA extends AbstractSingleWrapperCPA implements CoverageCPA {
   /* ##### Class Constants ##### */
   private final CoverageCollectorHandler coverageCollectorHandler;
   private final FormulaManagerView fmgr;
@@ -48,12 +49,12 @@ public class PredicateCoverageCPA extends AbstractSingleWrapperCPA {
     return AutomaticCPAFactory.forType(PredicateCoverageCPA.class);
   }
 
-  /* ##### Getter Methods ##### */
+  /* ##### Inherited Methods ##### */
+  @Override
   public CoverageCollectorHandler getCoverageCollectorHandler() {
     return coverageCollectorHandler;
   }
 
-  /* ##### Inherited Methods ##### */
   @Override
   public TransferRelation getTransferRelation() {
     return new PredicateCoverageCPATransferRelation(

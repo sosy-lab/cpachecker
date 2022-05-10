@@ -19,8 +19,7 @@ import org.sosy_lab.cpachecker.core.reachedset.PartitionedReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeCPA;
-import org.sosy_lab.cpachecker.cpa.coverage.analysisindependent.AnalysisIndependentCoverageCPA;
-import org.sosy_lab.cpachecker.cpa.coverage.predicate.PredicateCoverageCPA;
+import org.sosy_lab.cpachecker.cpa.coverage.CoverageCPA;
 import org.sosy_lab.cpachecker.util.coverage.collectors.CoverageCollectorHandler;
 
 /**
@@ -81,10 +80,8 @@ public class CoverageUtility {
           ImmutableList<ConfigurableProgramAnalysis> wrappedCPAs =
               ((CompositeCPA) compositeCPA).getWrappedCPAs();
           for (var wrappedCPA : wrappedCPAs) {
-            if (wrappedCPA instanceof PredicateCoverageCPA) {
-              return ((PredicateCoverageCPA) wrappedCPA).getCoverageCollectorHandler();
-            } else if (wrappedCPA instanceof AnalysisIndependentCoverageCPA) {
-              return ((AnalysisIndependentCoverageCPA) wrappedCPA).getCoverageCollectorHandler();
+            if (wrappedCPA instanceof CoverageCPA) {
+              return ((CoverageCPA) wrappedCPA).getCoverageCollectorHandler();
             }
           }
         }
