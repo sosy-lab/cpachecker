@@ -674,9 +674,13 @@ public class CFASingleLoopTransformation {
           CFAEdge leavingEdge = edge;
           List<CFAEdge> edgesToRemove = new ArrayList<>();
           edgesToRemove.add(leavingEdge);
+          Set<CFANode> visitedNodes = new HashSet<>();
           while (!current.equals(assumePredecessor)
-             && (leavingEdges = CFAUtils.leavingEdges(current)).size() == 1
-             && (leavingEdge = Iterables.getOnlyElement(leavingEdges)).getEdgeType() == CFAEdgeType.BlankEdge) {
+              && !visitedNodes.contains(current)
+              && (leavingEdges = CFAUtils.leavingEdges(current)).size() == 1
+              && (leavingEdge = Iterables.getOnlyElement(leavingEdges)).getEdgeType()
+                  == CFAEdgeType.BlankEdge) {
+            visitedNodes.add(current);
             current = leavingEdge.getSuccessor();
             edgesToRemove.add(leavingEdge);
           }
