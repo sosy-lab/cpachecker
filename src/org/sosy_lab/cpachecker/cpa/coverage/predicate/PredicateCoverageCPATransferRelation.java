@@ -40,7 +40,7 @@ import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 
 public class PredicateCoverageCPATransferRelation extends AbstractSingleWrapperTransferRelation {
-
+  /* ##### Class Fields ##### */
   private final TransferRelation predicateTransferRelation;
   private final PredicateAnalysisCoverageCollector coverageCollector;
   private final TimeDependentCoverageData predicateTDCG;
@@ -49,10 +49,10 @@ public class PredicateCoverageCPATransferRelation extends AbstractSingleWrapperT
   private final TimeDependentCoverageData abstractStateCoveredNodesTDCG;
   private final FormulaManagerView fmgr;
   private final CFA cfa;
-
   static final double FREQUENCY_REMOVAL_QUOTIENT = 0.5;
   private int predicatesInUse = 0;
 
+  /* ##### Constructors ##### */
   PredicateCoverageCPATransferRelation(
       TransferRelation pDelegateTransferRelation,
       FormulaManagerView pFmgr,
@@ -80,6 +80,7 @@ public class PredicateCoverageCPATransferRelation extends AbstractSingleWrapperT
         cfa, abstractStateCoveredNodesTDCG, TimeDependentCoverageType.AbstractStateCoveredNodes);
   }
 
+  /* ##### Inherited Methods ##### */
   @Override
   public Collection<? extends AbstractState> getAbstractSuccessors(
       AbstractState state, Precision precision) throws CPATransferException, InterruptedException {
@@ -104,6 +105,7 @@ public class PredicateCoverageCPATransferRelation extends AbstractSingleWrapperT
     return predicateTransferRelation.getAbstractSuccessorsForEdge(state, precision, cfaEdge);
   }
 
+  /* ##### Helper Methods ##### */
   private void processAllCoverageMeasures(
       Precision precision, CFAEdge cfaEdge, AbstractState state) {
     if (precision instanceof PredicatePrecision) {

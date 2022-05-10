@@ -64,7 +64,11 @@ public class CoverageReportStdoutSummary {
           "Visited conditions",
           covStats.numVisitedConditions);
       StatisticsUtils.write(
-          pStdOut, INDENT_LEVEL, FIELD_COLUMN_WIDTH, "Total conditions", covStats.numTotalConditions);
+          pStdOut,
+          INDENT_LEVEL,
+          FIELD_COLUMN_WIDTH,
+          "Total conditions",
+          covStats.numTotalConditions);
       StatisticsUtils.write(
           pStdOut,
           INDENT_LEVEL,

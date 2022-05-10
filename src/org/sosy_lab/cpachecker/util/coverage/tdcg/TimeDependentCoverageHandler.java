@@ -14,7 +14,8 @@ import java.util.Map;
 
 public class TimeDependentCoverageHandler {
   /* ##### Class Fields ##### */
-  private final Map<TimeDependentCoverageType, TimeDependentCoverageData> timeDependentCoverageDataMap;
+  private final Map<TimeDependentCoverageType, TimeDependentCoverageData>
+      timeDependentCoverageDataMap;
 
   /* ##### Constructors ##### */
   public TimeDependentCoverageHandler() {

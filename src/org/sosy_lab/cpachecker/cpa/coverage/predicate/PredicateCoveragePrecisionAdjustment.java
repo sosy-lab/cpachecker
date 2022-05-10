@@ -18,13 +18,15 @@ import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 public class PredicateCoveragePrecisionAdjustment implements PrecisionAdjustment {
-
+  /* ##### Class Fields ##### */
   private final PrecisionAdjustment precisionAdjustment;
 
+  /* ##### Constructors ##### */
   public PredicateCoveragePrecisionAdjustment(PrecisionAdjustment pPrecisionAdjustment) {
     precisionAdjustment = pPrecisionAdjustment;
   }
 
+  /* ##### Inherited Methods ##### */
   @Override
   public Optional<PrecisionAdjustmentResult> prec(
       AbstractState state,

@@ -11,8 +11,10 @@ package org.sosy_lab.cpachecker.cpa.coverage.analysisindependent;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 
 public enum AnalysisIndependentCoverageAbstractState implements AbstractState {
+  /* ##### Enum Fields ##### */
   INSTANCE;
 
+  /* ##### Inherited Methods ##### */
   @Override
   public String toString() {
     return "coverage state";

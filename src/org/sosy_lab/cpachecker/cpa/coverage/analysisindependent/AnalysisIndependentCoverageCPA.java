@@ -25,16 +25,13 @@ import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.util.coverage.collectors.CoverageCollectorHandler;
 
 public class AnalysisIndependentCoverageCPA implements ConfigurableProgramAnalysis {
-
-  public static CPAFactory factory() {
-    return AutomaticCPAFactory.forType(AnalysisIndependentCoverageCPA.class);
-  }
-
+  /* ##### Class Constants ##### */
   private final TransferRelation transfer;
   private final AbstractDomain domain;
   private final StopOperator stop;
   private final CoverageCollectorHandler coverageCollectorHandler;
 
+  /* ##### Constructors ##### */
   public AnalysisIndependentCoverageCPA(CFA pCFA, CoverageCollectorHandler pCovCollectorHandler) {
     coverageCollectorHandler = pCovCollectorHandler;
     coverageCollectorHandler.initAnalysisIndependentCollectors(pCFA);
@@ -43,10 +40,17 @@ public class AnalysisIndependentCoverageCPA implements ConfigurableProgramAnalys
     transfer = new AnalysisIndependentCoverageTransferRelation(coverageCollectorHandler);
   }
 
+  /* ##### Static Methods ##### */
+  public static CPAFactory factory() {
+    return AutomaticCPAFactory.forType(AnalysisIndependentCoverageCPA.class);
+  }
+
+  /* ##### Getter and Setter ##### */
   public CoverageCollectorHandler getCoverageCollectorHandler() {
     return coverageCollectorHandler;
   }
 
+  /* ##### Inherited Methods ##### */
   @Override
   public AbstractDomain getAbstractDomain() {
     return domain;

@@ -22,15 +22,12 @@ import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 
 public class PredicateCoverageCPA extends AbstractSingleWrapperCPA {
-
-  public static CPAFactory factory() {
-    return AutomaticCPAFactory.forType(PredicateCoverageCPA.class);
-  }
-
+  /* ##### Class Constants ##### */
   private final CoverageCollectorHandler coverageCollectorHandler;
   private final FormulaManagerView fmgr;
   private final CFA cfa;
 
+  /* ##### Constructors ##### */
   private PredicateCoverageCPA(
       ConfigurableProgramAnalysis pCpa, CFA pCFA, CoverageCollectorHandler pCovCollectorHandler)
       throws InvalidConfigurationException {
@@ -41,6 +38,29 @@ public class PredicateCoverageCPA extends AbstractSingleWrapperCPA {
     fmgr = getFormulaManagerView();
   }
 
+  /* ##### Static Methods ##### */
+  public static CPAFactory factory() {
+    return AutomaticCPAFactory.forType(PredicateCoverageCPA.class);
+  }
+
+  /* ##### Getter and Setter ##### */
+  public CoverageCollectorHandler getCoverageCollectorHandler() {
+    return coverageCollectorHandler;
+  }
+
+  /* ##### Inherited Methods ##### */
+  @Override
+  public TransferRelation getTransferRelation() {
+    return new PredicateCoverageCPATransferRelation(
+        getWrappedCpa().getTransferRelation(), fmgr, cfa, coverageCollectorHandler);
+  }
+
+  @Override
+  public PrecisionAdjustment getPrecisionAdjustment() {
+    return new PredicateCoveragePrecisionAdjustment(getWrappedCpa().getPrecisionAdjustment());
+  }
+
+  /* ##### Helper Methods ##### */
   private FormulaManagerView getFormulaManagerView() throws InvalidConfigurationException {
     if (getWrappedCpa() instanceof PredicateCPA) {
       PredicateCPA predicateCPA = (PredicateCPA) getWrappedCpa();
@@ -51,20 +71,5 @@ public class PredicateCoverageCPA extends AbstractSingleWrapperCPA {
         "PredicateCoverageCPA is a wrapper CPA that requires the contained CPA to be an "
             + "instance of PredicateCPA, but configured was a "
             + getWrappedCpa().getClass().getSimpleName());
-  }
-
-  public CoverageCollectorHandler getCoverageCollectorHandler() {
-    return coverageCollectorHandler;
-  }
-
-  @Override
-  public TransferRelation getTransferRelation() {
-    return new PredicateCoverageCPATransferRelation(
-        getWrappedCpa().getTransferRelation(), fmgr, cfa, coverageCollectorHandler);
-  }
-
-  @Override
-  public PrecisionAdjustment getPrecisionAdjustment() {
-    return new PredicateCoveragePrecisionAdjustment(getWrappedCpa().getPrecisionAdjustment());
   }
 }
