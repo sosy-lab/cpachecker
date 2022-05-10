@@ -67,7 +67,7 @@ public class CoverageReportStdoutSummary {
       StatisticsUtils.write(pStdOut, 1, 25, "Total nodes", covStatistics.numTotalNodes);
 
       StatisticsUtils.write(
-          pStdOut, 1, 25, "Considered coverage", String.format("%.3f", reachedCoverage));
+          pStdOut, 1, 25, "Reached-Locations coverage", String.format("%.3f", reachedCoverage));
       StatisticsUtils.write(
           pStdOut,
           1,

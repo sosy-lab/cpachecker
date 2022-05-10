@@ -31,13 +31,6 @@ public class AnalysisIndependentCoverageCollector extends CoverageCollector {
     addInitialNodesForMeasures(cfa);
   }
 
-  AnalysisIndependentCoverageCollector(
-      Map<String, FileCoverageStatistics> pInfosPerFile,
-      CoverageMeasureHandler pCoverageMeasureHandler,
-      TimeDependentCoverageHandler pTimeDependentCoverageHandler) {
-    super(pInfosPerFile, pCoverageMeasureHandler, pTimeDependentCoverageHandler);
-  }
-
   public void addInitialNodesForMeasures(CFA cfa) {
     for (var node : cfa.getAllNodes()) {
       if (node.getNodeNumber() == 1) {

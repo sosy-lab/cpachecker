@@ -41,26 +41,26 @@ public class CoverageStatistics {
       predicateRelevantVariablesConsideredNodes.addAll(
           info.predicateStatistics.getAllPredicateRelevantVariablesNodes());
       visitedLines.addAll(info.visitedLines);
+      visitedLocations.addAll(info.visitedLocations);
+      reachedLocations.addAll(info.allReachedNodes);
 
       numTotalFunctions += info.allFunctions.size();
-      numVisitedFunctions += info.visitedFunctions.entrySet().size();
+      numVisitedFunctions += info.visitedFunctions.elementSet().size();
 
       numTotalConditions += info.allAssumes.size();
       numVisitedConditions += info.visitedAssumes.size();
 
       numTotalLines += info.allLines.size();
-      numVisitedLines += info.visitedLines.entrySet().size();
+      numVisitedLines += info.visitedLines.elementSet().size();
 
       numTotalNodes += info.allNodes.size();
-      numReachedNodes += info.allReachedNodes.size();
+      numReachedNodes += info.allReachedNodes.elementSet().size();
       numPredicateConsideredNodes += info.predicateStatistics.allPredicateConsideredNodes.size();
       numAbstractStateCoveredNodes += info.allAbstractStateCoveredNodes.size();
       numPredicateRelevantVariablesNodes +=
           Math.max(
               info.predicateStatistics.allPredicateRelevantVariablesNodes.size(),
               info.predicateStatistics.previousPredicateRelevantVariablesNodesSize);
-      visitedLocations.addAll(info.visitedLocations);
-      reachedLocations.addAll(info.allReachedNodes);
     }
   }
 }

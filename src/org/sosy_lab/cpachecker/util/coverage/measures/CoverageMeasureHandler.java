@@ -30,6 +30,7 @@ public class CoverageMeasureHandler {
   /* ##### Constructors ##### */
   public CoverageMeasureHandler() {
     coverageMeasureMap = new LinkedHashMap<>();
+    initNewData(CoverageMeasureType.None);
   }
 
   /* ##### Public Methods ##### */
@@ -57,7 +58,6 @@ public class CoverageMeasureHandler {
 
   /** Init all measures which are analysis independent */
   public void initAnalysisIndependentMeasures() {
-    initNewData(CoverageMeasureType.None);
     initNewData(CoverageMeasureType.VisitedLocations);
     initNewData(CoverageMeasureType.ReachedLocations);
     initNewData(CoverageMeasureType.ConsideredLocationsHeatMap);

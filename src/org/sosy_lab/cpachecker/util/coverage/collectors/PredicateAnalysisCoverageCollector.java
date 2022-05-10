@@ -35,13 +35,6 @@ public class PredicateAnalysisCoverageCollector extends CoverageCollector {
     coverageMeasureHandler.initPredicateAnalysisMeasures();
   }
 
-  PredicateAnalysisCoverageCollector(
-      Map<String, FileCoverageStatistics> pInfosPerFile,
-      CoverageMeasureHandler pCoverageMeasureHandler,
-      TimeDependentCoverageHandler pTimeDependentCoverageHandler) {
-    super(pInfosPerFile, pCoverageMeasureHandler, pTimeDependentCoverageHandler);
-  }
-
   public void resetPredicateRelevantVariablesNodes() {
     for (FileCoverageStatistics info : infosPerFile.values()) {
       info.predicateStatistics.resetPredicateRelevantVariablesNodes();

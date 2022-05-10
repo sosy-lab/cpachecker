@@ -39,13 +39,6 @@ public class CounterexampleCoverageCollector extends CoverageCollector {
     super(pInfosPerFile, pCoverageMeasureHandler, pTimeDependentCoverageHandler, cfa);
   }
 
-  CounterexampleCoverageCollector(
-      Map<String, FileCoverageStatistics> pInfosPerFile,
-      CoverageMeasureHandler pCoverageMeasureHandler,
-      TimeDependentCoverageHandler pTimeDependentCoverageHandler) {
-    super(pInfosPerFile, pCoverageMeasureHandler, pTimeDependentCoverageHandler);
-  }
-
   CounterexampleCoverageCollector() {
     super(new LinkedHashMap<>(), new CoverageMeasureHandler(), new TimeDependentCoverageHandler());
   }

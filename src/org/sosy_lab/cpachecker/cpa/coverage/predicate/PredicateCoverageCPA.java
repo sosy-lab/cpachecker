@@ -6,7 +6,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.cpa.coverage;
+package org.sosy_lab.cpachecker.cpa.coverage.predicate;
 
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.CFA;
@@ -36,6 +36,7 @@ public class PredicateCoverageCPA extends AbstractSingleWrapperCPA {
       throws InvalidConfigurationException {
     super(pCpa);
     coverageCollectorHandler = pCovCollectorHandler;
+    coverageCollectorHandler.initPredicateCollectors(pCFA);
     cfa = pCFA;
     fmgr = getFormulaManagerView();
   }

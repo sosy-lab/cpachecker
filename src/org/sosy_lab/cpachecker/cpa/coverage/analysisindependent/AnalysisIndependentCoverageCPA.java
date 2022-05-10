@@ -2,12 +2,13 @@
 // a tool for configurable software verification:
 // https://cpachecker.sosy-lab.org
 //
-// SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+// SPDX-FileCopyrightText: 2022 Dirk Beyer <https://www.sosy-lab.org>
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.cpa.coverage;
+package org.sosy_lab.cpachecker.cpa.coverage.analysisindependent;
 
+import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.defaults.FlatLatticeDomain;
@@ -34,11 +35,12 @@ public class AnalysisIndependentCoverageCPA implements ConfigurableProgramAnalys
   private final StopOperator stop;
   private final CoverageCollectorHandler coverageCollectorHandler;
 
-  public AnalysisIndependentCoverageCPA(CoverageCollectorHandler pCovCollectorHandler) {
+  public AnalysisIndependentCoverageCPA(CFA pCFA, CoverageCollectorHandler pCovCollectorHandler) {
     coverageCollectorHandler = pCovCollectorHandler;
+    coverageCollectorHandler.initAnalysisIndependentCollectors(pCFA);
     domain = new FlatLatticeDomain(AnalysisIndependentCoverageAbstractState.INSTANCE);
     stop = new StopSepOperator(domain);
-    transfer = new AnalysisIndependentCoverageTransferRelation(pCovCollectorHandler);
+    transfer = new AnalysisIndependentCoverageTransferRelation(coverageCollectorHandler);
   }
 
   public CoverageCollectorHandler getCoverageCollectorHandler() {

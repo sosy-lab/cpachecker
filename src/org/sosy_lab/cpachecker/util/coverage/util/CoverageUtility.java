@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.util.coverage.util;
 
 import com.google.common.collect.ImmutableList;
+import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.model.ADeclarationEdge;
@@ -18,14 +19,13 @@ import org.sosy_lab.cpachecker.core.reachedset.PartitionedReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeCPA;
-import org.sosy_lab.cpachecker.cpa.coverage.AnalysisIndependentCoverageCPA;
-import org.sosy_lab.cpachecker.cpa.coverage.PredicateCoverageCPA;
+import org.sosy_lab.cpachecker.cpa.coverage.analysisindependent.AnalysisIndependentCoverageCPA;
+import org.sosy_lab.cpachecker.cpa.coverage.predicate.PredicateCoverageCPA;
 import org.sosy_lab.cpachecker.util.coverage.collectors.CoverageCollectorHandler;
 
 public class CoverageUtility {
-  public static CoverageCollectorHandler extractTimeDependentCoverageData(
-      ConfigurableProgramAnalysis cpa) {
-    CoverageCollectorHandler covCollectorHandler = new CoverageCollectorHandler();
+  public static CoverageCollectorHandler extractCoverageCollector(
+      CoverageCollectorHandler covCollectorHandler, ConfigurableProgramAnalysis cpa) {
     if (cpa instanceof ARGCPA) {
       ImmutableList<ConfigurableProgramAnalysis> cpas = ((ARGCPA) cpa).getWrappedCPAs();
       for (var compositeCPA : cpas) {
@@ -46,13 +46,13 @@ public class CoverageUtility {
   }
 
   public static CoverageCollectorHandler getCoverageCollectorHandlerFromReachedSet(
-      UnmodifiableReachedSet pReached) {
-    CoverageCollectorHandler coverageCollectorHandler = new CoverageCollectorHandler();
+      UnmodifiableReachedSet pReached, CFA cfa) {
+    CoverageCollectorHandler covCollectorHandler = new CoverageCollectorHandler(cfa);
     if (pReached instanceof PartitionedReachedSet) {
       ConfigurableProgramAnalysis cpa = ((PartitionedReachedSet) pReached).getCPA();
-      coverageCollectorHandler = CoverageUtility.extractTimeDependentCoverageData(cpa);
+      covCollectorHandler = CoverageUtility.extractCoverageCollector(covCollectorHandler, cpa);
     }
-    return coverageCollectorHandler;
+    return covCollectorHandler;
   }
 
   public static boolean coversLine(CFAEdge pEdge) {

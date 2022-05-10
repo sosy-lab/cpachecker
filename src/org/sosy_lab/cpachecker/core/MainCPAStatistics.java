@@ -315,7 +315,7 @@ class MainCPAStatistics implements Statistics {
   private void exportCoverage(PrintStream out, UnmodifiableReachedSet reached) {
     if (exportCoverage && cfa != null && reached.size() > 1) {
       CoverageCollectorHandler coverageCollectorHandler =
-          CoverageUtility.getCoverageCollectorHandlerFromReachedSet(reached);
+          CoverageUtility.getCoverageCollectorHandlerFromReachedSet(reached, cfa);
       coverageCollectorHandler
           .getReachedSetCoverageCollector()
           .collectFromReachedSet(reached, cfa, cpa);

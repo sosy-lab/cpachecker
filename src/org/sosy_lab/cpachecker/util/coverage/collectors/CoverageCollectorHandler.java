@@ -26,40 +26,30 @@ public class CoverageCollectorHandler {
   private ReachedSetCoverageCollector reachedSetCoverageCollector;
 
   public CoverageCollectorHandler(CFA cfa) {
-    this();
-    initAllCollectors(cfa);
-  }
-
-  public CoverageCollectorHandler() {
     infosPerFile = new LinkedHashMap<>();
     timeDependentCoverageHandler = new TimeDependentCoverageHandler();
     coverageMeasureHandler = new CoverageMeasureHandler();
-    analysisIndependentCoverageCollector =
-        new AnalysisIndependentCoverageCollector(
-            infosPerFile, coverageMeasureHandler, timeDependentCoverageHandler);
-    predicateAnalysisCoverageCollector =
-        new PredicateAnalysisCoverageCollector(
-            infosPerFile, coverageMeasureHandler, timeDependentCoverageHandler);
-    counterexampleCoverageCollector =
-        new CounterexampleCoverageCollector(
-            infosPerFile, coverageMeasureHandler, timeDependentCoverageHandler);
-    reachedSetCoverageCollector =
-        new ReachedSetCoverageCollector(
-            infosPerFile, coverageMeasureHandler, timeDependentCoverageHandler);
+    initAllBasicCollectors(cfa);
   }
 
-  void initAllCollectors(CFA cfa) {
-    analysisIndependentCoverageCollector =
-        new AnalysisIndependentCoverageCollector(
-            infosPerFile, coverageMeasureHandler, timeDependentCoverageHandler, cfa);
-    predicateAnalysisCoverageCollector =
-        new PredicateAnalysisCoverageCollector(
-            infosPerFile, coverageMeasureHandler, timeDependentCoverageHandler, cfa);
+  void initAllBasicCollectors(CFA cfa) {
     counterexampleCoverageCollector =
         new CounterexampleCoverageCollector(
             infosPerFile, coverageMeasureHandler, timeDependentCoverageHandler, cfa);
     reachedSetCoverageCollector =
         new ReachedSetCoverageCollector(
+            infosPerFile, coverageMeasureHandler, timeDependentCoverageHandler, cfa);
+  }
+
+  public void initPredicateCollectors(CFA cfa) {
+    predicateAnalysisCoverageCollector =
+        new PredicateAnalysisCoverageCollector(
+            infosPerFile, coverageMeasureHandler, timeDependentCoverageHandler, cfa);
+  }
+
+  public void initAnalysisIndependentCollectors(CFA cfa) {
+    analysisIndependentCoverageCollector =
+        new AnalysisIndependentCoverageCollector(
             infosPerFile, coverageMeasureHandler, timeDependentCoverageHandler, cfa);
   }
 
