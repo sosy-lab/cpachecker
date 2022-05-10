@@ -55,12 +55,12 @@ public final class DomTree<T> implements Iterable<T> {
    *
    * <p>The graph must not be modified during dominance tree construction.
    *
-   * <p>Only nodes reachable from the start node are will be part of the resulting dominance tree.
+   * <p>Only nodes reachable from the start node will be part of the resulting dominance tree.
    *
    * @param <T> the graph's node type
    * @param pPredecessorFunction the graph's predecessor function (node -> iterable predecessors)
    * @param pSuccessorFunction the graph's successor function (node -> iterable successors)
-   * @param pStartNode the start node graph traversal
+   * @param pStartNode the start node for graph traversal
    * @return a new dominance tree for the specified graph
    * @throws NullPointerException if any parameter is {@code null}.
    */
@@ -78,6 +78,26 @@ public final class DomTree<T> implements Iterable<T> {
     int[] doms = computeDoms(input);
 
     return new DomTree<>(input, doms);
+  }
+
+  /**
+   * Creates a new dominance tree for the specified graph.
+   *
+   * <p>The graph must not be modified during dominance tree construction.
+   *
+   * <p>Only nodes reachable from the start node will be part of the resulting dominance tree.
+   *
+   * @param <T> the graph's node type
+   * @param <G> the graph type
+   * @param pGraph the graph that has a predecessor function (node -> iterable predecessors) and a
+   *     successor function (node -> iterable successors)
+   * @param pStartNode the start node for graph traversal
+   * @return a new dominance tree for the specified graph
+   * @throws NullPointerException if any parameter is {@code null}.
+   */
+  public static <T, G extends PredecessorsFunction<T> & SuccessorsFunction<T>> DomTree<T> forGraph(
+      G pGraph, T pStartNode) {
+    return forGraph(pGraph, pGraph, pStartNode);
   }
 
   /**
