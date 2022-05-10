@@ -90,6 +90,20 @@ final class DomInput<T> {
   }
 
   /**
+   * Creates a new {@link DomInput} instance that doesn't contain any data.
+   *
+   * @param <T> the graph's node type
+   * @return a new {@link DomInput} instance that doesn't contain any data.
+   */
+  static <T> DomInput<T> empty() {
+
+    @SuppressWarnings("unchecked") // it's impossible to create a new generic array T[]
+    T[] emptyNodesArray = (T[]) new Object[0];
+
+    return new DomInput<>(ImmutableMap.of(), emptyNodesArray, new int[0]);
+  }
+
+  /**
    * Creates a new {@link DomInput} instance for the specified graph.
    *
    * <p>Only nodes reachable from the start node are considered for {@link DomInput} creation.

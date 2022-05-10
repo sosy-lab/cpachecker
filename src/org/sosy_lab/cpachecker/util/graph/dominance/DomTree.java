@@ -60,6 +60,16 @@ public final class DomTree<T> implements Iterable<T> {
   }
 
   /**
+   * Creates a new dominator tree that doesn't contain any nodes.
+   *
+   * @param <T> the graph's node type
+   * @return a new dominator tree that doesn't contain any nodes
+   */
+  public static <T> DomTree<T> empty() {
+    return new DomTree<>(DomInput.empty(), new int[0]);
+  }
+
+  /**
    * Creates a new dominator tree for the specified graph.
    *
    * <p>Only nodes reachable from the start node will be part of the resulting dominator tree. The
