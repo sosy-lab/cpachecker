@@ -13,7 +13,6 @@ import static com.google.common.base.Preconditions.checkNotNull;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.primitives.ImmutableIntArray;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Deque;
@@ -68,8 +67,7 @@ public final class DomFrontiers<T> {
   private static ImmutableList<ImmutableSet<Integer>> computeFrontiers(
       DomInput<?> pInput, int[] pDoms) {
 
-    // data format is specified in `DomInput`
-    ImmutableIntArray predecessorsData = pInput.getPredecessors();
+    DomInput.PredecessorDataIterator predecessorsDataIterator = pInput.iteratePredecessorData();
 
     List<Set<Integer>> frontiers = new ArrayList<>(pInput.getNodeCount());
 
@@ -77,31 +75,34 @@ public final class DomFrontiers<T> {
       frontiers.add(new HashSet<>());
     }
 
-    int index = 0; // index for predecessor data
-    for (int id = 0; id < pInput.getNodeCount(); id++) { // all nodes
+    while (predecessorsDataIterator.hasNextNode()) {
 
-      if (predecessorsData.get(index) == DomInput.DELIMITER) { // has no predecessors?
-        index++; // skip delimiter
+      int nodeId = predecessorsDataIterator.nextNode();
+
+      if (!predecessorsDataIterator.hasNextPredecessor()) { // has no predecessors?
         continue;
       }
 
-      if (predecessorsData.get(index + 1) == DomInput.DELIMITER) { // has only one predecessor?
-        index += 2; // skip single predecessor + delimiter
+      int runner = predecessorsDataIterator.nextPredecessor();
+
+      if (!predecessorsDataIterator.hasNextPredecessor()) { // has only one predecessor?
         continue;
       }
 
-      int runner;
-      while ((runner = predecessorsData.get(index)) != DomInput.DELIMITER) { // node predecessors
+      do {
 
-        while (runner != DomTree.UNDEFINED && runner != pDoms[id]) {
-          frontiers.get(runner).add(id);
+        while (runner != DomTree.UNDEFINED && runner != pDoms[nodeId]) {
+          frontiers.get(runner).add(nodeId);
           runner = pDoms[runner];
         }
 
-        index++; // next predecessor
-      }
+        if (predecessorsDataIterator.hasNextPredecessor()) {
+          runner = predecessorsDataIterator.nextPredecessor();
+        } else {
+          runner = DomTree.UNDEFINED;
+        }
 
-      index++; // skip delimiter
+      } while (runner != DomTree.UNDEFINED);
     }
 
     return Collections3.transformedImmutableListCopy(frontiers, ImmutableSet::copyOf);

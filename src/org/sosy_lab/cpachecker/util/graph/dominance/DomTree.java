@@ -18,7 +18,6 @@ import com.google.common.graph.ImmutableGraph;
 import com.google.common.graph.MutableGraph;
 import com.google.common.graph.PredecessorsFunction;
 import com.google.common.graph.SuccessorsFunction;
-import com.google.common.primitives.ImmutableIntArray;
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.NoSuchElementException;
@@ -89,8 +88,7 @@ public final class DomTree<T> implements Iterable<T> {
    */
   private static int[] computeDoms(DomInput<?> pInput) {
 
-    // data format is described in `DomInput`
-    ImmutableIntArray predecessorsData = pInput.getPredecessors();
+    DomInput.PredecessorDataIterator predecessorsDataIterator = pInput.iteratePredecessorData();
 
     int startNode = 0; // the start node has the reverse post-order ID == 0
     int[] doms = new int[pInput.getNodeCount()]; // doms[x] == immediate dominator of x
@@ -100,34 +98,33 @@ public final class DomTree<T> implements Iterable<T> {
     doms[startNode] = startNode; // needed to 'seed' the computation, reverted afterwards
 
     while (changed) {
+
       changed = false;
+      predecessorsDataIterator.reset();
 
-      int index = 0; // index for predecessors data
-      for (int id = 0; id < pInput.getNodeCount(); id++) { // all nodes in reverse post-order
-        int idom = UNDEFINED; // immediate dominator for current node
+      while (predecessorsDataIterator.hasNextNode()) {
 
-        int predecessor; // predecessor of current node
-        while ((predecessor = predecessorsData.get(index)) != DomInput.DELIMITER) {
+        int nodeId = predecessorsDataIterator.nextNode();
+        int idom = UNDEFINED; // immediate dominator of the current node
 
-          // skip start node and compute new `idom` using predecessors' dominator information
-          if (id != startNode && doms[predecessor] != UNDEFINED) {
-            if (idom != UNDEFINED) { // is `idom` already initialized?
-              idom = intersect(doms, predecessor, idom);
-            } else {
-              idom = predecessor; // initialize `idom` with predecessor
-            }
-          }
-
-          index++; // next predecessor
+        // we cannot compute the immediate dominator of the start node
+        if (nodeId == startNode) {
+          continue;
         }
 
-        // skip start node and update immediate dominator for current node
-        if (id != startNode && doms[id] != idom) {
-          doms[id] = idom;
+        while (predecessorsDataIterator.hasNextPredecessor()) {
+
+          int predecessorId = predecessorsDataIterator.nextPredecessor();
+
+          if (doms[predecessorId] != UNDEFINED) {
+            idom = idom != UNDEFINED ? intersect(doms, predecessorId, idom) : predecessorId;
+          }
+        }
+
+        if (doms[nodeId] != idom) {
+          doms[nodeId] = idom;
           changed = true;
         }
-
-        index++; // skip delimiter
       }
     }
 

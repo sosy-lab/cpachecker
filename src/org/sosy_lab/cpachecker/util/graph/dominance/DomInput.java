@@ -13,12 +13,12 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.graph.PredecessorsFunction;
 import com.google.common.graph.SuccessorsFunction;
 import com.google.common.graph.Traverser;
-import com.google.common.primitives.ImmutableIntArray;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.NoSuchElementException;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 /**
@@ -52,13 +52,13 @@ final class DomInput<T> {
   //  - node 1 has 1 predecessor
   //  - node 2 has 0 predecessors
   //  - node 3 has (at least) 1 predecessor
-  private final ImmutableIntArray predecessors;
+  private final int[] predecessorData;
 
-  private DomInput(Map<T, Integer> pIds, T[] pNodes, int[] pPredecessors) {
+  private DomInput(Map<T, Integer> pIds, T[] pNodes, int[] pPredecessorData) {
 
     ids = ImmutableMap.copyOf(pIds);
     nodes = ImmutableList.copyOf(pNodes);
-    predecessors = ImmutableIntArray.copyOf(pPredecessors);
+    predecessorData = pPredecessorData;
   }
 
   /**
@@ -156,11 +156,72 @@ final class DomInput<T> {
     return nodes.get(pId);
   }
 
-  ImmutableIntArray getPredecessors() {
-    return predecessors;
+  PredecessorDataIterator iteratePredecessorData() {
+    return new PredecessorDataIterator(predecessorData, DELIMITER, nodes.size());
   }
 
   int getNodeCount() {
     return nodes.size();
+  }
+
+  static final class PredecessorDataIterator {
+
+    private final int[] data;
+    private final int delimiter;
+    private final int nodeCount;
+
+    private int index;
+    private int nodeId;
+
+    private PredecessorDataIterator(int[] pData, int pDelimiter, int pNodeCount) {
+
+      data = pData;
+      delimiter = pDelimiter;
+      nodeCount = pNodeCount;
+
+      reset();
+    }
+
+    boolean hasNextNode() {
+      return nodeId + 1 < nodeCount;
+    }
+
+    int nextNode() {
+
+      if (!hasNextNode()) {
+        throw new NoSuchElementException();
+      }
+
+      // skip remaining predecessors of current node
+      if (index >= 0) {
+        while (data[index] != delimiter) {
+          index++;
+        }
+      }
+
+      index++;
+      nodeId++;
+
+      return nodeId;
+    }
+
+    boolean hasNextPredecessor() {
+      return data[index] != delimiter;
+    }
+
+    int nextPredecessor() {
+
+      if (!hasNextPredecessor()) {
+        throw new NoSuchElementException();
+      }
+
+      return data[index++];
+    }
+
+    void reset() {
+
+      index = -1;
+      nodeId = -1;
+    }
   }
 }
