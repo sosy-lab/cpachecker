@@ -20,10 +20,11 @@ import org.sosy_lab.cpachecker.util.statistics.StatisticsUtils;
  * statistics are shown i.e. in the Statistic Tab within the report.html.
  */
 public class CoverageReportStdoutSummary {
+  /* ##### Private Constants ##### */
+  private static final int INDENT_LEVEL = 1;
+  private static final int FIELD_COLUMN_WIDTH = 25;
 
-  private static final int indentLevel = 1;
-  private static final int fieldColumnWidth = 25;
-
+  /* ##### Public Methods ##### */
   /**
    * Write for every verification coverage category a summary statistics.
    *
@@ -38,14 +39,15 @@ public class CoverageReportStdoutSummary {
     writeLocationRelatedCoverage(covStatistics, pStdOut);
   }
 
+  /* ##### Helper Methods ##### */
   private static void writeFunctionCoverage(CoverageStatistics covStats, PrintStream pStdOut) {
     if (covStats.numTotalFunctions > 0) {
       final double functionCoverage =
           covStats.numVisitedFunctions / (double) covStats.numTotalFunctions;
       StatisticsUtils.write(
           pStdOut,
-          indentLevel,
-          fieldColumnWidth,
+          INDENT_LEVEL,
+          FIELD_COLUMN_WIDTH,
           "Function coverage",
           String.format("%.3f", functionCoverage));
     }
@@ -57,16 +59,16 @@ public class CoverageReportStdoutSummary {
           covStats.numVisitedConditions / (double) covStats.numTotalConditions;
       StatisticsUtils.write(
           pStdOut,
-          indentLevel,
-          fieldColumnWidth,
+          INDENT_LEVEL,
+          FIELD_COLUMN_WIDTH,
           "Visited conditions",
           covStats.numVisitedConditions);
       StatisticsUtils.write(
-          pStdOut, indentLevel, fieldColumnWidth, "Total conditions", covStats.numTotalConditions);
+          pStdOut, INDENT_LEVEL, FIELD_COLUMN_WIDTH, "Total conditions", covStats.numTotalConditions);
       StatisticsUtils.write(
           pStdOut,
-          indentLevel,
-          fieldColumnWidth,
+          INDENT_LEVEL,
+          FIELD_COLUMN_WIDTH,
           "Condition coverage",
           String.format("%.3f", conditionCoverage));
     }
@@ -76,13 +78,13 @@ public class CoverageReportStdoutSummary {
     if (covStats.numTotalLines > 0) {
       final double lineCoverage = covStats.numVisitedLines / (double) covStats.numTotalLines;
       StatisticsUtils.write(
-          pStdOut, indentLevel, fieldColumnWidth, "Visited lines", covStats.numVisitedLines);
+          pStdOut, INDENT_LEVEL, FIELD_COLUMN_WIDTH, "Visited lines", covStats.numVisitedLines);
       StatisticsUtils.write(
-          pStdOut, indentLevel, fieldColumnWidth, "Total lines", covStats.numTotalLines);
+          pStdOut, INDENT_LEVEL, FIELD_COLUMN_WIDTH, "Total lines", covStats.numTotalLines);
       StatisticsUtils.write(
           pStdOut,
-          indentLevel,
-          fieldColumnWidth,
+          INDENT_LEVEL,
+          FIELD_COLUMN_WIDTH,
           "Line coverage",
           String.format("%.3f", lineCoverage));
     }
@@ -98,40 +100,40 @@ public class CoverageReportStdoutSummary {
           covStats.numPredicateRelevantVariablesLocations / (double) covStats.numTotalNodes;
       StatisticsUtils.write(
           pStdOut,
-          indentLevel,
-          fieldColumnWidth,
+          INDENT_LEVEL,
+          FIELD_COLUMN_WIDTH,
           CoverageMeasureType.ReachedLocations.getName(),
           covStats.numReachedNodes);
       StatisticsUtils.write(
           pStdOut,
-          indentLevel,
-          fieldColumnWidth,
+          INDENT_LEVEL,
+          FIELD_COLUMN_WIDTH,
           CoverageMeasureType.PredicateConsidered.getName(),
           covStats.numPredicateConsideredLocations);
       StatisticsUtils.write(
           pStdOut,
-          indentLevel,
-          fieldColumnWidth,
+          INDENT_LEVEL,
+          FIELD_COLUMN_WIDTH,
           CoverageMeasureType.PredicateRelevantVariables.getName(),
           covStats.numPredicateRelevantVariablesLocations);
       StatisticsUtils.write(
-          pStdOut, indentLevel, fieldColumnWidth, "Total nodes", covStats.numTotalNodes);
+          pStdOut, INDENT_LEVEL, FIELD_COLUMN_WIDTH, "Total nodes", covStats.numTotalNodes);
       StatisticsUtils.write(
           pStdOut,
-          indentLevel,
-          fieldColumnWidth,
+          INDENT_LEVEL,
+          FIELD_COLUMN_WIDTH,
           CoverageMeasureType.ReachedLocations.getCoverageName(),
           String.format("%.3f", reachedCoverage));
       StatisticsUtils.write(
           pStdOut,
-          indentLevel,
-          fieldColumnWidth,
+          INDENT_LEVEL,
+          FIELD_COLUMN_WIDTH,
           CoverageMeasureType.PredicateConsidered.getCoverageName(),
           String.format("%.3f", predicateConsideredCoverage));
       StatisticsUtils.write(
           pStdOut,
-          indentLevel,
-          fieldColumnWidth,
+          INDENT_LEVEL,
+          FIELD_COLUMN_WIDTH,
           CoverageMeasureType.PredicateRelevantVariables.getCoverageName(),
           String.format("%.3f", predicateRelevantVariablesCoverage));
     }

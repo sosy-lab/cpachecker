@@ -18,6 +18,7 @@ import java.util.Map;
  * typically used for the report.html - CFA, Source, TDCG Tab.
  */
 public class CoverageColorUtil {
+  /* ##### Public Constants ##### */
   public static final String DEFAULT_COVERAGE_COLOR = "#3aec49";
   public static final String DEFAULT_CONSIDERED_COLOR = "#ff6e6e";
   public static final String DEFAULT_ELEMENT_COLOR = "#ffffff";
@@ -34,6 +35,7 @@ public class CoverageColorUtil {
   public static final String MAX_GRADIENT_COLOR = "#1d5e07";
   public static final String MIN_GRADIENT_COLOR = "#beffb3";
 
+  /* ##### Public Methods ##### */
   /**
    * Returns for a given line a color representation, depending on if the line number is even or
    * odd.
@@ -66,6 +68,7 @@ public class CoverageColorUtil {
     return frequencyColorMap;
   }
 
+  /* ##### Helper Methods ##### */
   private static Map<Integer, Float> getFrequencyValueMap(Multiset<Integer> locations) {
     Map<Integer, Float> frequencyMap = new HashMap<>();
     for (Integer location : locations.elementSet()) {

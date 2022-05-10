@@ -18,6 +18,7 @@ import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 
 public class FileCoverageStatistics {
+  /* ##### Class Fields ##### */
   public final Set<Integer> allNodes = new LinkedHashSet<>();
   public final Multiset<Integer> allReachedNodes = LinkedHashMultiset.create();
   public final Set<Integer> allAbstractStateCoveredNodes = new LinkedHashSet<>();
@@ -28,10 +29,10 @@ public class FileCoverageStatistics {
   public final Set<AssumeEdge> allAssumes = new LinkedHashSet<>();
   public final Set<AssumeEdge> visitedAssumes = new LinkedHashSet<>();
   public final Multiset<Integer> visitedLocations = LinkedHashMultiset.create();
-
   public FilePredicateCoverageStatistics predicateStatistics =
       new FilePredicateCoverageStatistics();
 
+  /* ##### Static Classes ##### */
   public static class FunctionInfo {
     public final String name;
     public final int firstLine;
@@ -44,6 +45,7 @@ public class FileCoverageStatistics {
     }
   }
 
+  /* ##### Public Methods ##### */
   public void addVisitedAssume(AssumeEdge pEdge) {
     visitedAssumes.add(pEdge);
   }
@@ -74,14 +76,5 @@ public class FileCoverageStatistics {
     for (CFANode node : nodes) {
       allAbstractStateCoveredNodes.add(node.getNodeNumber());
     }
-  }
-
-  public Multiset<Integer> getVisitedLines() {
-    return visitedLines;
-  }
-
-  public int getVisitedLine(int pLine) {
-    checkArgument(pLine > 0);
-    return visitedLines.count(pLine);
   }
 }

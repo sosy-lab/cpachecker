@@ -59,7 +59,7 @@ public class TimeDependentCoverageData {
     return timeStampsPerCoverage;
   }
 
-  /* ##### Private Methods ##### */
+  /* ##### Helper Methods ##### */
   private void initTimeStampsPerCoverage() {
     timeStampsPerCoverage = new LinkedHashMap<>();
     timeStampsPerCoverage.put(0L, 0.0);

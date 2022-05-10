@@ -18,14 +18,14 @@ import org.sosy_lab.cpachecker.util.coverage.data.FileCoverageStatistics.Functio
 
 /** Generate coverage information in Gcov format (http://gcc.gnu.org/onlinedocs/gcc/Gcov.html). */
 public class CoverageReportGcov {
-
-  // String constants from gcov format
+  /* ##### Private GCOV Constants ##### */
   private static final String TEXTNAME = "TN:";
   private static final String SOURCEFILE = "SF:";
   private static final String FUNCTION = "FN:";
   private static final String FUNCTIONDATA = "FNDA:";
   private static final String LINEDATA = "DA:";
 
+  /* ##### Public Methods ##### */
   public static void write(Map<String, FileCoverageStatistics> infosPerFile, Writer w)
       throws IOException {
 
@@ -66,7 +66,7 @@ public class CoverageReportGcov {
         w.append(LINEDATA)
             .append(String.valueOf(line))
             .append(",")
-            .append(String.valueOf(fileInfos.getVisitedLine(line)))
+            .append(String.valueOf(fileInfos.visitedLines.count(line)))
             .append("\n");
       }
       w.append("end_of_record\n");

@@ -13,7 +13,6 @@ package org.sosy_lab.cpachecker.util.coverage.measures;
  * depending on specific criteria, e.g., Line-based or Location-based.
  */
 public interface CoverageMeasure {
-
   /**
    * Getter method for the coverage value of the analyzed program-
    *

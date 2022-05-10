@@ -43,6 +43,7 @@ public class MultiLocationCoverageMeasure extends LocationCoverageMeasure {
     return alternativeCoveredLocations.elementSet();
   }
 
+  /* ##### Inherited Methods ##### */
   @Override
   public String getColor(Integer location) {
     if (getIntersectionLocations().contains(location)) {

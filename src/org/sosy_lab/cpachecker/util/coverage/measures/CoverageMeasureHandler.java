@@ -8,8 +8,6 @@
 
 package org.sosy_lab.cpachecker.util.coverage.measures;
 
-import static org.sosy_lab.common.collect.Collections3.transformedImmutableListCopy;
-
 import com.google.common.collect.ImmutableList;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -25,7 +23,7 @@ import org.sosy_lab.cpachecker.util.coverage.data.FileCoverageStatistics;
  */
 public class CoverageMeasureHandler {
   /* ##### Class Fields ##### */
-  private Map<CoverageMeasureType, CoverageMeasure> coverageMeasureMap;
+  private final Map<CoverageMeasureType, CoverageMeasure> coverageMeasureMap;
 
   /* ##### Constructors ##### */
   public CoverageMeasureHandler() {
@@ -126,19 +124,6 @@ public class CoverageMeasureHandler {
     }
   }
 
-  /**
-   * Merges data from another coverage handler with this coverage handler so that both coverage
-   * handlers have a unified set of measures.
-   *
-   * @param secondHandler Another coverage handler used to merge the different measures together
-   */
-  public void mergeData(CoverageMeasureHandler secondHandler) {
-    for (var type : getAllTypes()) {
-      secondHandler.addData(type, getData(type));
-    }
-    coverageMeasureMap = secondHandler.getCoverageMeasureMap();
-  }
-
   /* ##### Getter and Setter ##### */
   public void addData(CoverageMeasureType type, CoverageMeasure data) {
     coverageMeasureMap.put(type, data);
@@ -150,10 +135,6 @@ public class CoverageMeasureHandler {
 
   public ImmutableList<CoverageMeasureType> getAllTypes() {
     return ImmutableList.copyOf(coverageMeasureMap.keySet());
-  }
-
-  public ImmutableList<String> getAllTypesAsString() {
-    return transformedImmutableListCopy(coverageMeasureMap.keySet(), v -> v.getName());
   }
 
   public ImmutableList<String> getAllTypesForCategoriesAsString(
@@ -171,11 +152,7 @@ public class CoverageMeasureHandler {
         .collect(ImmutableList.toImmutableList());
   }
 
-  public Map<CoverageMeasureType, CoverageMeasure> getCoverageMeasureMap() {
-    return coverageMeasureMap;
-  }
-
-  /* ##### Private Methods ##### */
+  /* ##### Helper Methods ##### */
   private boolean isContainedIn(
       CoverageMeasureCategory[] categories, CoverageMeasureCategory pCategory) {
     for (CoverageMeasureCategory category : categories) {

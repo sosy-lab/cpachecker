@@ -15,6 +15,7 @@ import java.util.Map;
 import java.util.Set;
 
 public class CoverageStatistics {
+  /* ##### Class Fields ##### */
   public long numTotalConditions = 0;
   public long numTotalFunctions = 0;
   public long numTotalLines = 0;
@@ -35,6 +36,7 @@ public class CoverageStatistics {
   public Multiset<Integer> visitedLocations = LinkedHashMultiset.create();
   public Multiset<Integer> reachedLocations = LinkedHashMultiset.create();
 
+  /* ##### Constructors ##### */
   public CoverageStatistics(Map<String, FileCoverageStatistics> infosPerFile) {
     for (FileCoverageStatistics info : infosPerFile.values()) {
       predicateConsideredNodes.addAll(info.predicateStatistics.getAllPredicateConsideredNodes());

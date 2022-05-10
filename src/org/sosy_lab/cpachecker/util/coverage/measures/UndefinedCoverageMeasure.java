@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.util.coverage.measures;
 
 /** Coverage Measure used for the case if none measure should be applied */
 public class UndefinedCoverageMeasure implements CoverageMeasure {
+  /* ##### Interface Implementations ##### */
   @Override
   public double getCoverage() {
     return 0;

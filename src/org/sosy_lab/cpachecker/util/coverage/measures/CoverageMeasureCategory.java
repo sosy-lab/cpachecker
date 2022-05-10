@@ -13,6 +13,7 @@ package org.sosy_lab.cpachecker.util.coverage.measures;
  * LineBased looks on Source Code Lines.
  */
 public enum CoverageMeasureCategory {
+  /* ##### Enum Fields ##### */
   None,
   LocationBased,
   LineBased,
