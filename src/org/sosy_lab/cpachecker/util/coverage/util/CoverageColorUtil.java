@@ -13,6 +13,10 @@ import java.awt.Color;
 import java.util.HashMap;
 import java.util.Map;
 
+/**
+ * Utility class used for all measures and TDCGs to specify the coverage color. The color is
+ * typically used for the report.html - CFA, Source, TDCG Tab.
+ */
 public class CoverageColorUtil {
   public static final String DEFAULT_COVERAGE_COLOR = "#3aec49";
   public static final String DEFAULT_CONSIDERED_COLOR = "#ff6e6e";
@@ -30,7 +34,14 @@ public class CoverageColorUtil {
   public static final String MAX_GRADIENT_COLOR = "#1d5e07";
   public static final String MIN_GRADIENT_COLOR = "#beffb3";
 
-  public static String getIteratingColor(int lineNumber) {
+  /**
+   * Returns for a given line a color representation, depending on if the line number is even or
+   * odd.
+   *
+   * @param lineNumber line number from source code.
+   * @return hex color code for the given line.
+   */
+  public static String getAlternatingLineColor(int lineNumber) {
     if (lineNumber % 2 == 0) {
       return LIGHT_BLUE_LINE_COLOR;
     } else {
@@ -38,6 +49,14 @@ public class CoverageColorUtil {
     }
   }
 
+  /**
+   * Returns a color heat map for every location, calculated from a location multiset. The color
+   * representation is a gradient between two given colors, depending on the frequency of the
+   * coverage status given in the location multiset.
+   *
+   * @param locations locations is a multiset of CFA locations which are marked as covered.
+   * @return color heat map for every location, where the color is defined as hex color code.
+   */
   public static Map<Integer, String> getFrequencyColorMap(Multiset<Integer> locations) {
     Map<Integer, String> frequencyColorMap = new HashMap<>();
     for (Integer location : locations.elementSet()) {

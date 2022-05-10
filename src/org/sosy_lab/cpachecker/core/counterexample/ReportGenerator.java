@@ -653,7 +653,7 @@ public class ReportGenerator {
               "<td><pre id=\"right-source-"
                   + lineNumber
                   + "\" style=\"background-color: "
-                  + CoverageColorUtil.getIteratingColor(lineNumber)
+                  + CoverageColorUtil.getAlternatingLineColor(lineNumber)
                   + determineLineColors(covHandler, sourcePath, lineNumber)
                   + "\">"
                   + htmlEscaper().escape(line)
@@ -684,7 +684,7 @@ public class ReportGenerator {
     for (var type : types) {
       lineColors.append(type.getId()).append(":");
       if (type == CoverageMeasureType.None) {
-        lineColors.append(CoverageColorUtil.getIteratingColor(lineNumber));
+        lineColors.append(CoverageColorUtil.getAlternatingLineColor(lineNumber));
       } else if (type.getCategory() == CoverageMeasureCategory.LineBased) {
         LineCoverageMeasure lineCov = (LineCoverageMeasure) covHandler.getData(type);
         lineColors.append(lineCov.getColor(sourcePath.toString(), lineNumber));
