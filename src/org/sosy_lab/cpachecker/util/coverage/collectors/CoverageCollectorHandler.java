@@ -15,6 +15,10 @@ import org.sosy_lab.cpachecker.util.coverage.data.FileCoverageStatistics;
 import org.sosy_lab.cpachecker.util.coverage.measures.CoverageMeasureHandler;
 import org.sosy_lab.cpachecker.util.coverage.tdcg.TimeDependentCoverageHandler;
 
+/**
+ * Coverage collector handler which holds all coverage collectors. It handles the initialization and
+ * access of collectors.
+ */
 public class CoverageCollectorHandler {
   /* ##### Class Fields ##### */
   private final Map<String, FileCoverageStatistics> infosPerFile;

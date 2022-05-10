@@ -38,6 +38,10 @@ import org.sosy_lab.cpachecker.util.coverage.data.FileCoverageStatistics;
 import org.sosy_lab.cpachecker.util.coverage.measures.CoverageMeasureHandler;
 import org.sosy_lab.cpachecker.util.coverage.tdcg.TimeDependentCoverageHandler;
 
+/**
+ * Coverage collector which is called at the end of an analysis. The calculated coverage measures
+ * here only depends on the reached set.
+ */
 public class ReachedSetCoverageCollector extends CoverageCollector {
   /* ##### Constructors ##### */
   ReachedSetCoverageCollector(

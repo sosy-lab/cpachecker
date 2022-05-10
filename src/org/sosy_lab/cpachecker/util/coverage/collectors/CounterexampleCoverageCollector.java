@@ -12,7 +12,6 @@ import static com.google.common.base.Preconditions.checkArgument;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
-import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
@@ -23,16 +22,12 @@ import org.sosy_lab.cpachecker.util.coverage.data.FileCoverageStatistics;
 import org.sosy_lab.cpachecker.util.coverage.measures.CoverageMeasureHandler;
 import org.sosy_lab.cpachecker.util.coverage.tdcg.TimeDependentCoverageHandler;
 
+/**
+ * Coverage collector which is used by the CEXExporter. The calculated coverage measures depends on
+ * a given counter example path. Therefore, it is only usable after the main analysis is done.
+ */
 public class CounterexampleCoverageCollector extends CoverageCollector {
   /* ##### Constructors ##### */
-  CounterexampleCoverageCollector(
-      Map<String, FileCoverageStatistics> pInfosPerFile,
-      CoverageMeasureHandler pCoverageMeasureHandler,
-      TimeDependentCoverageHandler pTimeDependentCoverageHandler,
-      CFA cfa) {
-    super(pInfosPerFile, pCoverageMeasureHandler, pTimeDependentCoverageHandler, cfa);
-  }
-
   CounterexampleCoverageCollector() {
     super(new LinkedHashMap<>(), new CoverageMeasureHandler(), new TimeDependentCoverageHandler());
   }
