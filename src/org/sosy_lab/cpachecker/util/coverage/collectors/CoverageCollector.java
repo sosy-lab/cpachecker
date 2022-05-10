@@ -25,6 +25,11 @@ import org.sosy_lab.cpachecker.util.coverage.measures.CoverageMeasureHandler;
 import org.sosy_lab.cpachecker.util.coverage.tdcg.TimeDependentCoverageHandler;
 import org.sosy_lab.cpachecker.util.coverage.util.CoverageUtility;
 
+/**
+ * Abstract Class Coverage Collector is used as basis functionality for every
+ * Coverage Collector Implementation. It provides methods to save coverage data per file.
+ * And has access to the coverage measures and time-dependent coverage graphs.
+ */
 public abstract class CoverageCollector {
   final Map<String, FileCoverageStatistics> infosPerFile;
   final CoverageMeasureHandler coverageMeasureHandler;
