@@ -21,6 +21,11 @@ import org.sosy_lab.cpachecker.util.coverage.collectors.CoverageCollectorHandler
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 
+/**
+ * Calculates TDCG and Coverage Measure data during the analysis. This CoverageCPA only considers
+ * predicate-analyis related coverage data and is therefore only applicable for predicate-analysis.
+ * This CPA depends heavily on util.coverage package.
+ */
 public class PredicateCoverageCPA extends AbstractSingleWrapperCPA {
   /* ##### Class Constants ##### */
   private final CoverageCollectorHandler coverageCollectorHandler;

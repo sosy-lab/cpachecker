@@ -24,6 +24,10 @@ import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.util.coverage.collectors.CoverageCollectorHandler;
 
+/**
+ * Calculates TDCG and Coverage Measure data during the analysis. This CPA depends heavily on
+ * util.coverage package.
+ */
 public class AnalysisIndependentCoverageCPA implements ConfigurableProgramAnalysis {
   /* ##### Class Constants ##### */
   private final TransferRelation transfer;
