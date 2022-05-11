@@ -3825,12 +3825,19 @@ overflow.trackPointers = false
 overflow.useLiveness = true
 
 # List of files with configurations to use. Files can be suffixed with
-# ::supply-reached this signalizes that the (finished) reached set of an
-# analysis can be used in other analyses (e.g. for invariants computation).
-# If you use the suffix ::supply-reached-refinable instead this means that
-# the reached set supplier is additionally continously refined (so one of the
-# analysis has to be instanceof ReachedSetAdjustingCPA) to make this work
-# properly.
+# '::<ANNOTATION>:<ANNOTATION>:...' (2 colons '::' before the first
+# annotation and 1 colon ':' separating each). An annotation can be either of
+# 'supply-reached', 'supply-reached-refinable', or 'ignore-result'.
+# Annotations are processed with the specified order, meaning that the latter
+# one might overwrite the settings of the former ones. 'supply-reached'
+# signalizes that the (finished) reached set of an analysis can be used in
+# other analyses (e.g. for invariants computation). If you use the suffix
+# 'supply-reached-refinable' instead this means that the reached set supplier
+# is additionally continously refined (so one of the analysis has to be
+# instanceof `ReachedSetAdjustingCPA`) to make this work properly. (Note that
+# 'supply-reached' and 'supply-reached-refinable' are mutually exclusive.) If
+# 'ignore-result' is specified, the returned result of the corresponding
+# configuration is ignored.
 parallelAlgorithm.configFiles = no default value
 
 # The command line for calling the clang preprocessor. May contain binary

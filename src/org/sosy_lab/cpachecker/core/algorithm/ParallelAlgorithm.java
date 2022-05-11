@@ -28,8 +28,10 @@ import java.io.PrintStream;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Objects;
+import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -83,15 +85,22 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
       required = true,
       description =
           "List of files with configurations to use. Files can be suffixed with"
-              + " ::supply-reached this signalizes that the (finished) reached set"
-              + " of an analysis can be used in other analyses (e.g. for invariants"
-              + " computation). If you use the suffix ::supply-reached-refinable instead"
-              + " this means that the reached set supplier is additionally continously"
-              + " refined (so one of the analysis has to be instanceof ReachedSetAdjustingCPA)"
-              + " to make this work properly.")
+              + " '::<ANNOTATION>:<ANNOTATION>:...' (2 colons '::' before the first annotation and"
+              + " 1 colon ':' separating each). An annotation can be either of 'supply-reached',"
+              + " 'supply-reached-refinable', or 'ignore-result'. Annotations are processed with"
+              + " the specified order, meaning that the latter one might overwrite the settings of"
+              + " the former ones. 'supply-reached' signalizes that the (finished) reached set of"
+              + " an analysis can be used in other analyses (e.g. for invariants computation). If"
+              + " you use the suffix 'supply-reached-refinable' instead this means that the reached"
+              + " set supplier is additionally continously refined (so one of the analysis has to"
+              + " be instanceof `ReachedSetAdjustingCPA`) to make this work properly. (Note that"
+              + " 'supply-reached' and 'supply-reached-refinable' are mutually exclusive.) If"
+              + " 'ignore-result' is specified, the returned result of the corresponding"
+              + " configuration is ignored.")
   @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
   private List<AnnotatedValue<Path>> configFiles;
 
+  private Set<String> ignoredConfigs = new LinkedHashSet<>();
   private static final String SUCCESS_MESSAGE =
       "One of the parallel analyses has finished successfully, cancelling all other runs.";
 
@@ -205,13 +214,14 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
       try {
         ParallelAnalysisResult result = f.get();
         if (result.hasValidReachedSet() && finalResult == null) {
-          finalResult = result;
-          stats.successfulAnalysisName = result.getAnalysisName();
-
-          // cancel other computations
-          futures.forEach(future -> future.cancel(true));
           logger.log(Level.INFO, result.getAnalysisName() + " finished successfully.");
-          shutdownManager.requestShutdown(SUCCESS_MESSAGE);
+          if (!ignoredConfigs.contains(result.getAnalysisName())) {
+            finalResult = result;
+            stats.successfulAnalysisName = result.getAnalysisName();
+            // cancel other computations
+            futures.forEach(future -> future.cancel(true));
+            shutdownManager.requestShutdown(SUCCESS_MESSAGE);
+          }
         } else if (!result.hasValidReachedSet()) {
           logger.log(Level.INFO, result.getAnalysisName() + " finished without usable result.");
         }
@@ -256,8 +266,8 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
       final AnnotatedValue<Path> pSingleConfigFileName, final int analysisNumber)
       throws InvalidConfigurationException, CPAException, InterruptedException {
     final Path singleConfigFileName = pSingleConfigFileName.value();
-    final boolean supplyReached;
-    final boolean supplyRefinableReached;
+    boolean supplyReached = false;
+    boolean supplyRefinableReached = false;
 
     final Configuration singleConfig = createSingleConfig(singleConfigFileName, logger);
     if (singleConfig == null) {
@@ -269,27 +279,39 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
     final LogManager singleLogger = logger.withComponentName("Parallel analysis " + analysisNumber);
 
     if (pSingleConfigFileName.annotation().isPresent()) {
-      switch (pSingleConfigFileName.annotation().orElseThrow()) {
-        case "supply-reached":
-          supplyReached = true;
-          supplyRefinableReached = false;
-          break;
-        case "supply-reached-refinable":
-          supplyReached = false;
-          supplyRefinableReached = true;
-          break;
-        default:
-          throw new InvalidConfigurationException(
-              String.format(
-                  "Annotation %s is not valid for config %s in option"
-                      + " parallelAlgorithm.configFiles",
-                  pSingleConfigFileName.annotation(), pSingleConfigFileName.value()));
+      // separate each annotation by the delimiter ':'
+      // a workaround to handle multiple annotations
+      List<String> annotations =
+          ImmutableList.copyOf(pSingleConfigFileName.annotation().orElseThrow().split(":"));
+      assert !annotations.contains("supply-reached")
+              || !annotations.contains("supply-reached-refinable")
+          : "Annotations 'supply-reached' and 'supply-reached-refinable' are mutually exclusive.";
+      for (String annotation : annotations) {
+        switch (annotation) {
+          case "supply-reached":
+            supplyReached = true;
+            supplyRefinableReached = false;
+            break;
+          case "supply-reached-refinable":
+            supplyReached = false;
+            supplyRefinableReached = true;
+            break;
+          case "ignore-result":
+            ignoredConfigs.add(singleConfigFileName.toString());
+            break;
+          default:
+            throw new InvalidConfigurationException(
+                String.format(
+                    "Annotation %s is not valid for config %s in option"
+                        + " parallelAlgorithm.configFiles",
+                    annotation, pSingleConfigFileName.value()));
+        }
       }
-    } else {
-      supplyReached = false;
-      supplyRefinableReached = false;
     }
 
+    assert !supplyReached || !supplyRefinableReached;
+    final boolean finalSupplyReached = supplyReached;
+    final boolean finalSupplyRefinableReached = supplyRefinableReached;
     final ResourceLimitChecker singleAnalysisOverallLimit =
         ResourceLimitChecker.fromConfiguration(singleConfig, singleLogger, singleShutdownManager);
 
@@ -349,8 +371,8 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
               reached,
               singleLogger,
               cpa,
-              supplyReached,
-              supplyRefinableReached,
+              finalSupplyReached,
+              finalSupplyRefinableReached,
               coreComponents,
               statisticsEntry);
       terminated.set(true);
