@@ -27,7 +27,6 @@ public class CoverageColorUtil {
   public static final String BLUE_TDCG_COLOR = "#1a81d5";
   public static final String RED_TDCG_COLOR = "#e33636";
   public static final String YELLOW_TDCG_COLOR = "#d9ae19";
-  public static final String PURPLE_TDCG_COLOR = "#7c0eb4";
 
   public static final String LIGHT_BLUE_LINE_COLOR = "#b9e4fa";
   public static final String DARK_BLUE_LINE_COLOR = "#94dbff";

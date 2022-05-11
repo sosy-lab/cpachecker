@@ -62,12 +62,12 @@ public class PredicateAnalysisCoverageCollector extends CoverageCollector {
     collector.predicateStatistics.addPredicateRelevantVariablesNodes(pEdge.getSuccessor());
   }
 
-  public void addAbstractStateCoveredNodes(final Set<CFANode> nodes, final CFAEdge pEdge) {
+  public void addRelevantAbstractionVariables(Set<String> variableNames, final CFAEdge pEdge) {
     if (!CoverageUtility.coversLine(pEdge)) {
       return;
     }
     FileCoverageStatistics collector = getCollector(pEdge);
-    collector.addAbstractStateCoveredNodes(nodes);
+    collector.predicateStatistics.variableOccurences.addAll(variableNames);
   }
 
   public void addInitialNodesForTDCG(
@@ -104,10 +104,6 @@ public class PredicateAnalysisCoverageCollector extends CoverageCollector {
     return getTempCoverage(cfa, TimeDependentCoverageType.PredicateConsideredLocations);
   }
 
-  public double getTempAbstractStateCoveredNodesCoverage(CFA cfa) {
-    return getTempCoverage(cfa, TimeDependentCoverageType.AbstractStateCoveredNodes);
-  }
-
   public double getTempPredicateRelevantVariablesCoverage(CFA cfa) {
     return getTempCoverage(cfa, TimeDependentCoverageType.PredicateRelevantVariables);
   }
@@ -122,9 +118,6 @@ public class PredicateAnalysisCoverageCollector extends CoverageCollector {
           break;
         case PredicateRelevantVariables:
           numRelevantNodes += info.predicateStatistics.allPredicateRelevantVariablesNodes.size();
-          break;
-        case AbstractStateCoveredNodes:
-          numRelevantNodes += info.allAbstractStateCoveredNodes.size();
           break;
         default:
           break;

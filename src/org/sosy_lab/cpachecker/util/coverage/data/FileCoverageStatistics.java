@@ -15,14 +15,12 @@ import com.google.common.collect.Multiset;
 import java.util.LinkedHashSet;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
-import org.sosy_lab.cpachecker.cfa.model.CFANode;
 
 /** Class which holds all collected analysis-independent coverage data for a specific file. */
 public class FileCoverageStatistics {
   /* ##### Class Fields ##### */
   public final Set<Integer> allNodes = new LinkedHashSet<>();
   public final Multiset<Integer> allReachedNodes = LinkedHashMultiset.create();
-  public final Set<Integer> allAbstractStateCoveredNodes = new LinkedHashSet<>();
   public final Multiset<Integer> visitedLines = LinkedHashMultiset.create();
   public final Set<Integer> allLines = new LinkedHashSet<>();
   public final Multiset<String> visitedFunctions = LinkedHashMultiset.create();
@@ -71,11 +69,5 @@ public class FileCoverageStatistics {
   public void addExistingLine(int pLine) {
     checkArgument(pLine > 0);
     allLines.add(pLine);
-  }
-
-  public void addAbstractStateCoveredNodes(Set<CFANode> nodes) {
-    for (CFANode node : nodes) {
-      allAbstractStateCoveredNodes.add(node.getNodeNumber());
-    }
   }
 }

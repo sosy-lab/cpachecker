@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.util.coverage.data;
 
+import com.google.common.collect.HashMultiset;
+import com.google.common.collect.Multiset;
 import java.util.LinkedHashSet;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -20,6 +22,7 @@ public class FilePredicateCoverageStatistics {
   public int previousPredicateRelevantVariablesNodesSize = 0;
   public final Set<Integer> allPredicateConsideredNodes = new LinkedHashSet<>();
   public final Set<Integer> allPredicateRelevantVariablesNodes = new LinkedHashSet<>();
+  public final Multiset<String> variableOccurences = HashMultiset.create();
 
   /* ##### Public Methods ##### */
   public void addPredicateConsideredNode(CFANode node) {
@@ -33,14 +36,5 @@ public class FilePredicateCoverageStatistics {
   public void resetPredicateRelevantVariablesNodes() {
     previousPredicateRelevantVariablesNodesSize = allPredicateRelevantVariablesNodes.size();
     allPredicateRelevantVariablesNodes.clear();
-  }
-
-  /* ##### Getter Methods ##### */
-  public Set<Integer> getAllPredicateConsideredNodes() {
-    return allPredicateConsideredNodes;
-  }
-
-  public Set<Integer> getAllPredicateRelevantVariablesNodes() {
-    return allPredicateRelevantVariablesNodes;
   }
 }

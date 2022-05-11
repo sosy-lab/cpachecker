@@ -111,7 +111,7 @@ onmessage = (msg) => {
           class: "cfa-node",
           id: `cfa-node${n.index}`,
           shape: nodeShapeDecider(n),
-          style: `fill: #fff; stroke: #999; comment: ${n.coverage}`,
+          style: `fill: #fff; stroke: #999; coverage-colors: ${n.coverage}`,
         });
       }
     });

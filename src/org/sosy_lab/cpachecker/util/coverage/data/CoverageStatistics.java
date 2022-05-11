@@ -31,7 +31,6 @@ public class CoverageStatistics {
   public long numTotalNodes = 0;
   public long numReachedNodes = 0;
   public long numPredicateConsideredLocations = 0;
-  public long numAbstractStateCoveredNodes = 0;
   public long numPredicateRelevantVariablesLocations = 0;
 
   public Set<Integer> predicateConsideredNodes = new HashSet<>();
@@ -43,9 +42,9 @@ public class CoverageStatistics {
   /* ##### Constructors ##### */
   public CoverageStatistics(Map<String, FileCoverageStatistics> infosPerFile) {
     for (FileCoverageStatistics info : infosPerFile.values()) {
-      predicateConsideredNodes.addAll(info.predicateStatistics.getAllPredicateConsideredNodes());
+      predicateConsideredNodes.addAll(info.predicateStatistics.allPredicateConsideredNodes);
       predicateRelevantVariablesConsideredNodes.addAll(
-          info.predicateStatistics.getAllPredicateRelevantVariablesNodes());
+          info.predicateStatistics.allPredicateRelevantVariablesNodes);
       visitedLines.addAll(info.visitedLines);
       visitedLocations.addAll(info.visitedLocations);
       reachedLocations.addAll(info.allReachedNodes);
@@ -63,7 +62,6 @@ public class CoverageStatistics {
       numReachedNodes += info.allReachedNodes.elementSet().size();
       numPredicateConsideredLocations +=
           info.predicateStatistics.allPredicateConsideredNodes.size();
-      numAbstractStateCoveredNodes += info.allAbstractStateCoveredNodes.size();
       numPredicateRelevantVariablesLocations +=
           Math.max(
               info.predicateStatistics.allPredicateRelevantVariablesNodes.size(),

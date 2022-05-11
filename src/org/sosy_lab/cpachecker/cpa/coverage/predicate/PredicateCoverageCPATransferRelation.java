@@ -46,7 +46,6 @@ public class PredicateCoverageCPATransferRelation extends AbstractSingleWrapperT
   private final TimeDependentCoverageData predicateTDCG;
   private final TimeDependentCoverageData predicateConsideredTDCG;
   private final TimeDependentCoverageData predicateRelevantVariablesTDCG;
-  private final TimeDependentCoverageData abstractStateCoveredNodesTDCG;
   private final FormulaManagerView fmgr;
   private final CFA cfa;
   static final double FREQUENCY_REMOVAL_QUOTIENT = 0.5;
@@ -70,14 +69,10 @@ public class PredicateCoverageCPATransferRelation extends AbstractSingleWrapperT
         coverageHandler.getData(TimeDependentCoverageType.PredicateConsideredLocations);
     predicateRelevantVariablesTDCG =
         coverageHandler.getData(TimeDependentCoverageType.PredicateRelevantVariables);
-    abstractStateCoveredNodesTDCG =
-        coverageHandler.getData(TimeDependentCoverageType.AbstractStateCoveredNodes);
     coverageCollector.addInitialNodesForTDCG(
         cfa, predicateConsideredTDCG, TimeDependentCoverageType.PredicateConsideredLocations);
     coverageCollector.addInitialNodesForTDCG(
         cfa, predicateRelevantVariablesTDCG, TimeDependentCoverageType.PredicateRelevantVariables);
-    coverageCollector.addInitialNodesForTDCG(
-        cfa, abstractStateCoveredNodesTDCG, TimeDependentCoverageType.AbstractStateCoveredNodes);
   }
 
   /* ##### Inherited Methods ##### */
@@ -113,23 +108,21 @@ public class PredicateCoverageCPATransferRelation extends AbstractSingleWrapperT
       processPredicates(predicatePrecision);
       processPredicatesConsideredCoverage(predicatePrecision, cfaEdge);
       processPredicateRelevantVariablesCoverage(predicatePrecision, cfaEdge);
-      processPredicatesAbstractStateCoverage(cfaEdge, state);
+      processRelevantAbstractionVariablesCoverage(cfaEdge, state);
     }
   }
 
-  private void processPredicatesAbstractStateCoverage(CFAEdge edge, AbstractState state) {
-    Set<CFANode> allAbstractStateCoveredNodes = getAllAbstractStatesCoveredNodes(state);
-    coverageCollector.addAbstractStateCoveredNodes(allAbstractStateCoveredNodes, edge);
-    abstractStateCoveredNodesTDCG.addTimeStamp(
-        coverageCollector.getTempAbstractStateCoveredNodesCoverage(cfa));
+  private void processRelevantAbstractionVariablesCoverage(CFAEdge edge, AbstractState state) {
+    Set<String> variableNames = getAllRelevantAbstractStateVariables(state);
+    coverageCollector.addRelevantAbstractionVariables(variableNames, edge);
   }
 
-  private Set<CFANode> getAllAbstractStatesCoveredNodes(AbstractState state) {
+  private Set<String> getAllRelevantAbstractStateVariables(AbstractState state) {
     if (state instanceof PredicateAbstractState) {
       PredicateAbstractState predicateAbstractState = (PredicateAbstractState) state;
-      if (predicateAbstractState.isAbstractionState()) {
-        return predicateAbstractState.getAbstractionLocationsOnPath().keySet();
-      }
+      BooleanFormula abstractionFormula =
+          predicateAbstractState.getAbstractionFormula().asFormula();
+      return fmgr.extractVariableNames(abstractionFormula);
     }
     return new HashSet<>();
   }

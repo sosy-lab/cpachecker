@@ -79,7 +79,7 @@ function getStringId(str) {
 
 function extractColor(msg, id) {
   return msg
-    .split("comment: ")
+    .split("coverage-colors: ")
     .slice(-1)[0]
     .split(`${id}:`)
     .slice(-1)[0]
@@ -1188,7 +1188,7 @@ function renderTDCG(dataJSON, color, inPercentage) {
             "style",
             `fill: ${nodeColor}; stroke: ${
               (nodeColor & 0xfefefe) >> 1 // eslint-disable-line no-bitwise
-            }; comment: ${nodeStyle}`
+            }; coverage-colors: ${nodeStyle.split("coverage-colors: ")[1]}`
           );
         };
 
@@ -1353,7 +1353,9 @@ function renderTDCG(dataJSON, color, inPercentage) {
           const lineColor = $scope.extractColor(lineStyle, $scope.colorId);
           d3.select(`#right-source-${i}`).attr(
             "style",
-            `background-color: ${lineColor}; comment: ${lineStyle}`
+            `background-color: ${lineColor}; coverage-colors: ${
+              lineStyle.split("coverage-colors: ")[1]
+            }`
           );
         }
       };

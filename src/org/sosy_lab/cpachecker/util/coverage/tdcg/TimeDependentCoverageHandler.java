@@ -49,7 +49,6 @@ public class TimeDependentCoverageHandler {
     initNewData(TimeDependentCoverageType.PredicatesGenerated);
     initNewData(TimeDependentCoverageType.PredicateConsideredLocations);
     initNewData(TimeDependentCoverageType.PredicateRelevantVariables);
-    initNewData(TimeDependentCoverageType.AbstractStateCoveredNodes);
   }
 
   /* ##### Getter Methods ##### */

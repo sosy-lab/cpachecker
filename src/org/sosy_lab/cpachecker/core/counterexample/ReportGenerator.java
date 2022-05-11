@@ -677,7 +677,7 @@ public class ReportGenerator {
 
   private String determineLineColors(
       CoverageMeasureHandler covHandler, Path sourcePath, int lineNumber) {
-    StringBuilder lineColors = new StringBuilder("; comment: ");
+    StringBuilder lineColors = new StringBuilder("; coverage-colors: ");
     ImmutableList<CoverageMeasureType> types =
         covHandler.getAllTypesForCategories(
             CoverageMeasureCategory.None, CoverageMeasureCategory.LineBased);
