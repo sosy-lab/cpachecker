@@ -14,6 +14,7 @@ import com.google.common.collect.ImmutableSet;
 import java.util.ArrayDeque;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Deque;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
@@ -66,35 +67,37 @@ public class ModificationsPropTransferRelation extends SingleEdgeTransferRelatio
    * @throws CPATransferException exceptions in transfer relation
    * @throws InterruptedException interruption for timeout
    */
-  public Collection<ModificationsPropState> getAbstractSuccessorsForEdge(
+  private Collection<ModificationsPropState> getAbstractSuccessorsForEdge(
       final AbstractState pState,
       final Precision pPrecision,
       final CFAEdge pCfaEdge,
       @Nullable final CFANode emergencyStop)
       throws CPATransferException, InterruptedException {
 
-    final ModificationsPropState locations = (ModificationsPropState) pState;
-    final CFANode nodeInGiven = locations.getLocationInGivenCfa();
-    final CFANode nodeInOriginal = locations.getLocationInOriginalCfa();
-    final ImmutableSet<String> changedVars = locations.getChangedVariables();
-    final ArrayDeque<CFANode> stack = locations.getOriginalStack();
+    final ModificationsPropState modPropState = (ModificationsPropState) pState;
+    final CFANode nodeInMod = modPropState.getLocationInModCfa();
+    final CFANode nodeInOriginal = modPropState.getLocationInOriginalCfa();
+    final ImmutableSet<String> changedVars = modPropState.getChangedVariables();
+    final Deque<CFANode> stack = modPropState.getOriginalStack();
 
-    if (!locations.isBad()) {
+    if (!modPropState.isBad()) {
 
       // rule out case 2
-      if (!helper.isErrorLocation(nodeInOriginal) && helper.goalReachable(nodeInGiven, false)) {
+      if (!helper.isErrorLocation(nodeInOriginal)
+          && helper.mayReachErrorLocation(nodeInMod, false)) {
 
-        if (!helper.goalReachable(nodeInOriginal, true)) {
+        if (!helper.mayReachErrorLocation(nodeInOriginal, true)) {
           helper.logCase(
               "Original program cannot reach an error location anymore. Making state bad.");
-          return ImmutableSet.of(helper.makeBad(locations));
+          return ImmutableSet.of(modPropState.makeBad());
         }
 
         // case 3 outsourced to abstract state creation
 
-        if (CFAUtils.leavingEdges(nodeInGiven).contains(pCfaEdge)) {
+        if (CFAUtils.leavingEdges(nodeInMod).contains(pCfaEdge)) {
           // helper.logCase(pCfaEdge.getCode());
           // prepare further cases by skipping ignored operations
+          // for original CFA skip untracked edges in ModificationPropState constructor
           if (helper.isUntracked(pCfaEdge)) {
             helper.logCase("Skipping ignored CFA edge for given program.");
             return ImmutableSet.of(
@@ -110,16 +113,16 @@ public class ModificationsPropTransferRelation extends SingleEdgeTransferRelatio
                 changedVarsInSuccessor = helper.modifySetForAssignment(edgeInOriginal, changedVars);
               } catch (PointerAccessException e) {
                 helper.logProblem("Caution: Pointer or similar detected.");
-                return ImmutableSet.of(helper.makeBad(locations));
+                return ImmutableSet.of(modPropState.makeBad());
               }
-              if (helper.variablesAreUsedInEdge(pCfaEdge, changedVars)) {
+              if (helper.areVariablesUsedInEdge(pCfaEdge, changedVars)) {
                 if (!(pCfaEdge instanceof CDeclarationEdge
                     || pCfaEdge instanceof CFunctionCallEdge
                     || pCfaEdge instanceof CReturnStatementEdge
                     || pCfaEdge instanceof CFunctionReturnEdge)) {
                   // otherwise we will handle it later
                   helper.logCase("Taking case 4a.");
-                  return ImmutableSet.of(helper.makeBad(locations));
+                  return ImmutableSet.of(modPropState.makeBad());
                 }
               } else {
                 // For function return edges we have to be careful, as modified return values modify
@@ -166,7 +169,8 @@ public class ModificationsPropTransferRelation extends SingleEdgeTransferRelatio
                     retMo = (CReturnStatementEdge) pCfaEdge;
                 if (helper.inSameFunction(retMo.getSuccessor(), retOr.getSuccessor())) {
                   helper.logCase(
-                      "Taking case 4 for function returns, potentially with modified variables or different statements.");
+                      "Taking case 4 for function returns, potentially with modified variables or"
+                          + " different statements.");
                   final ImmutableSet<String> returnChangedVars;
                   try {
                     if (retMo.getReturnStatement() == null
@@ -232,14 +236,14 @@ public class ModificationsPropTransferRelation extends SingleEdgeTransferRelatio
 
                   } catch (PointerAccessException e) {
                     helper.logProblem("Caution: Pointer or similar detected.");
-                    return ImmutableSet.of(helper.makeBad(locations));
+                    return ImmutableSet.of(modPropState.makeBad());
                   }
                 }
               }
             }
           }
           if (pCfaEdge instanceof CFunctionReturnEdge) {
-            final ArrayDeque<CFANode> stackminus = stack.clone();
+            final Deque<CFANode> stackminus = new ArrayDeque<>(stack);
             // Pop summary edge goal to compare to function return edge goal.
             final CFANode summaryGoal = stackminus.removeLast();
             if (summaryGoal != null) {
@@ -250,7 +254,8 @@ public class ModificationsPropTransferRelation extends SingleEdgeTransferRelatio
                       retMo = (CFunctionReturnEdge) pCfaEdge;
                   if (helper.inSameFunction(retMo.getSuccessor(), retOr.getSuccessor())) {
                     helper.logCase(
-                        "Taking case 4 for function return statement with modified variables or different statements.");
+                        "Taking case 4 for function return statement with modified variables or"
+                            + " different statements.");
 
                     final CFunctionCall summaryOr = retOr.getSummaryEdge().getExpression(),
                         summaryMo = retOr.getSummaryEdge().getExpression();
@@ -291,7 +296,7 @@ public class ModificationsPropTransferRelation extends SingleEdgeTransferRelatio
                         }
                       } catch (PointerAccessException e) {
                         helper.logProblem("Caution: Pointer or similar detected.");
-                        return ImmutableSet.of(helper.makeBad(locations));
+                        return ImmutableSet.of(modPropState.makeBad());
                       }
                     }
                     if (summaryOr instanceof CFunctionCallAssignmentStatement
@@ -299,8 +304,9 @@ public class ModificationsPropTransferRelation extends SingleEdgeTransferRelatio
                       // Exactly one is an assignment. This can happen, but we do not expect to find
                       // a similar structure anymore.
                       helper.logCase(
-                          "Assignment and non-assignment with call of same function. Stopping here.");
-                      return ImmutableSet.of(helper.makeBad(locations));
+                          "Assignment and non-assignment with call of same function. Stopping"
+                              + " here.");
+                      return ImmutableSet.of(modPropState.makeBad());
                     }
                     return ImmutableSet.of(
                         new ModificationsPropState(
@@ -354,10 +360,10 @@ public class ModificationsPropTransferRelation extends SingleEdgeTransferRelatio
                       }
                     } catch (PointerAccessException e) {
                       helper.logProblem("Caution: Pointer or similar detected.");
-                      return ImmutableSet.of(helper.makeBad(locations));
+                      return ImmutableSet.of(modPropState.makeBad());
                     }
                   }
-                  final ArrayDeque<CFANode> stackplus = stack.clone();
+                  final Deque<CFANode> stackplus = new ArrayDeque<>(stack);
                   final FunctionSummaryEdge summaryEdge = nodeInOriginal.getLeavingSummaryEdge();
                   if (summaryEdge != null) {
                     // Add summary edge goal to queue in order to take correct function return edge.
@@ -365,7 +371,8 @@ public class ModificationsPropTransferRelation extends SingleEdgeTransferRelatio
                     stackplus.addLast(nodeInOriginal.getLeavingSummaryEdge().getSuccessor());
                   } else {
                     helper.logProblem(
-                        "Function call without summary edge found. This is not critical yet, but might indicate a problem.");
+                        "Function call without summary edge found. This is not critical yet, but"
+                            + " might indicate a problem.");
                   }
                   // nodeInOriginal.getLeavingSummaryEdge().getSuccessor();
                   return ImmutableSet.of(
@@ -385,11 +392,11 @@ public class ModificationsPropTransferRelation extends SingleEdgeTransferRelatio
           // look for assignments to same variable (cases 5/6)
           // This could be left out, but we expect to find more related statements this way.
           Pair<CFANode, ImmutableSet<String>>
-              givenTup = helper.skipAssignment(nodeInGiven, changedVars),
+              givenTup = helper.skipAssignment(nodeInMod, changedVars),
               originalTup = helper.skipAssignment(nodeInOriginal, changedVars);
-          if (!(givenTup.getFirst().equals(nodeInGiven)
+          if (!(givenTup.getFirst().equals(nodeInMod)
               || originalTup.getFirst().equals(nodeInOriginal))) {
-            if (CFAEdgeUtils.getLeftHandVariable(nodeInGiven.getLeavingEdge(0))
+            if (CFAEdgeUtils.getLeftHandVariable(nodeInMod.getLeavingEdge(0))
                 .equals(CFAEdgeUtils.getLeftHandVariable(nodeInOriginal.getLeavingEdge(0)))) {
               helper.logCase("Combining cases 5 and 6 for same variable.");
               // modified variable sets do not differ
@@ -404,8 +411,8 @@ public class ModificationsPropTransferRelation extends SingleEdgeTransferRelatio
           }
 
           // case 5
-          Pair<CFANode, ImmutableSet<String>> tup = helper.skipAssignment(nodeInGiven, changedVars);
-          if (!tup.getFirst().equals(nodeInGiven)) {
+          Pair<CFANode, ImmutableSet<String>> tup = helper.skipAssignment(nodeInMod, changedVars);
+          if (!tup.getFirst().equals(nodeInMod)) {
             helper.logCase("Taking case 5.");
             return ImmutableSet.of(
                 new ModificationsPropState(
@@ -413,25 +420,25 @@ public class ModificationsPropTransferRelation extends SingleEdgeTransferRelatio
           }
 
           // case 6
-          // assuming there is no infinite sequence of assignments only in orginal program, else
+          // assuming there is no infinite sequence of assignments only in original program, else
           // performing emergency stop
           tup = helper.skipAssignment(nodeInOriginal, changedVars);
           if (!tup.getFirst().equals(nodeInOriginal)) {
             helper.logCase("Taking case 6.");
             if (emergencyStop != null && emergencyStop.equals(tup.getFirst())) {
               helper.logProblem("Found infinite sequence of assignments in original program.");
-              return ImmutableSet.of(helper.makeBad(locations));
+              return ImmutableSet.of(modPropState.makeBad());
             } else {
               return getAbstractSuccessorsForEdge(
                   new ModificationsPropState(
-                      nodeInGiven, tup.getFirst(), tup.getSecond(), stack, helper),
+                      nodeInMod, tup.getFirst(), tup.getSecond(), stack, helper),
                   pPrecision,
                   pCfaEdge);
             }
           }
 
           // case 7
-          if (helper.getImplicationCheck()) {
+          if (helper.useImplicationCheck()) {
             if (pCfaEdge instanceof CAssumeEdge) {
               CAssumeEdge assGiven = (CAssumeEdge) pCfaEdge;
               for (CFAEdge ce : CFAUtils.leavingEdges(nodeInOriginal)) {
@@ -445,7 +452,7 @@ public class ModificationsPropTransferRelation extends SingleEdgeTransferRelatio
                       varsInAssOrig = assOrig.getExpression().accept(helper.getVisitor());
                     } catch (PointerAccessException e) {
                       helper.logProblem("Caution: Pointer or similar detected.");
-                      return ImmutableSet.of(helper.makeBad(locations));
+                      return ImmutableSet.of(modPropState.makeBad());
                     }
 
                     ImmutableSet<String> varsUsedInBoth =
@@ -464,7 +471,7 @@ public class ModificationsPropTransferRelation extends SingleEdgeTransferRelatio
                               helper));
                     } else {
                       helper.logCase("Taking case 7b.");
-                      return ImmutableSet.of(helper.makeBad(locations));
+                      return ImmutableSet.of(modPropState.makeBad());
                     }
                   }
                   helper.logCase("No implication. Continuing.");
@@ -482,7 +489,7 @@ public class ModificationsPropTransferRelation extends SingleEdgeTransferRelatio
           } else {
             // case 9
             helper.logCase("Taking case 9.");
-            return ImmutableSet.of(helper.makeBad(locations));
+            return ImmutableSet.of(modPropState.makeBad());
           }
         }
       }

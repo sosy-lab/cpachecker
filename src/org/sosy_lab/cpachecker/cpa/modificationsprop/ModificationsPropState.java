@@ -12,6 +12,7 @@ import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableSet;
 import java.util.ArrayDeque;
 import java.util.Arrays;
+import java.util.Deque;
 import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -38,7 +39,7 @@ public final class ModificationsPropState
   private final boolean isBad;
 
   /** The location in the given, modified CFA. */
-  private final CFANode locationInGivenCfa;
+  private final CFANode locationInModCfa;
 
   /** The location in the original, unmodified CFA. */
   private final CFANode locationInOriginalCfa;
@@ -47,13 +48,13 @@ public final class ModificationsPropState
   private final ImmutableSet<String> changedVariables;
 
   /** Stack to track function return edges to take in original program. */
-  private final ArrayDeque<CFANode> originalStack;
+  private final Deque<CFANode> originalStack;
 
   public ModificationsPropState(
       final CFANode pLocationInGivenCfa,
       final CFANode pLocationInOriginalCfa,
       final ImmutableSet<String> pChangedVars,
-      final ArrayDeque<CFANode> pStack,
+      final Deque<CFANode> pStack,
       final ModificationsPropHelper pHelper) {
     CFANode nodeInOriginal = pHelper.skipUntrackedOperations(pLocationInOriginalCfa);
 
@@ -87,7 +88,7 @@ public final class ModificationsPropState
       changedVariables = changedVars;
       isBad = false;
     }
-    locationInGivenCfa = pLocationInGivenCfa;
+    locationInModCfa = pLocationInGivenCfa;
     originalStack = pStack;
   }
 
@@ -95,28 +96,42 @@ public final class ModificationsPropState
       final CFANode pLocationInGivenCfa,
       final CFANode pLocationInOriginalCfa,
       final ImmutableSet<String> pChangedVars,
-      final ArrayDeque<CFANode> pStack,
+      final Deque<CFANode> pStack,
       final boolean pIsBad) {
-    locationInGivenCfa = pLocationInGivenCfa;
+    locationInModCfa = pLocationInGivenCfa;
     locationInOriginalCfa = pLocationInOriginalCfa;
     changedVariables = pChangedVars;
     isBad = pIsBad;
     originalStack = pStack;
   }
 
+  /**
+   * Converts a given state to a (therefore more abstract) bad state at that location.
+   *
+   * @return the bad state
+   */
+  ModificationsPropState makeBad() {
+    return new ModificationsPropState(
+        getLocationInModCfa(),
+        getLocationInOriginalCfa(),
+        ImmutableSet.of(),
+        new ArrayDeque<CFANode>(),
+        true);
+  }
+
   public CFANode getLocationInOriginalCfa() {
     return locationInOriginalCfa;
   }
 
-  public CFANode getLocationInGivenCfa() {
-    return locationInGivenCfa;
+  public CFANode getLocationInModCfa() {
+    return locationInModCfa;
   }
 
   public ImmutableSet<String> getChangedVariables() {
     return changedVariables;
   }
 
-  public ArrayDeque<CFANode> getOriginalStack() {
+  public Deque<CFANode> getOriginalStack() {
     return originalStack;
   }
 
@@ -134,7 +149,7 @@ public final class ModificationsPropState
     }
     ModificationsPropState that = (ModificationsPropState) pO;
     return Objects.equals(locationInOriginalCfa, that.locationInOriginalCfa)
-        && Objects.equals(locationInGivenCfa, that.locationInGivenCfa)
+        && Objects.equals(locationInModCfa, that.locationInModCfa)
         && Objects.equals(changedVariables, that.changedVariables)
         && Arrays.equals(originalStack.toArray(), that.originalStack.toArray())
         && (isBad == that.isBad);
@@ -143,7 +158,7 @@ public final class ModificationsPropState
   @Override
   public int hashCode() {
 
-    return Objects.hash(locationInOriginalCfa, locationInGivenCfa, changedVariables, isBad);
+    return Objects.hash(locationInOriginalCfa, locationInModCfa, changedVariables, isBad);
   }
 
   @Override
@@ -190,7 +205,7 @@ public final class ModificationsPropState
         sb.append("}");
       }
       sb.append(":");
-      FluentIterable<CFAEdge> edgesInMod = CFAUtils.enteringEdges(locationInGivenCfa);
+      FluentIterable<CFAEdge> edgesInMod = CFAUtils.enteringEdges(locationInModCfa);
       for (CFAEdge e : edgesInMod) {
         sb.append(e);
         sb.append(", ");
@@ -222,7 +237,7 @@ public final class ModificationsPropState
       throws CPAException, InterruptedException {
 
     // If locations differ, we should never call join. The merge operator used guarantees that.
-    assert locationInGivenCfa.equals(pOther.locationInGivenCfa);
+    assert locationInModCfa.equals(pOther.locationInModCfa);
     assert locationInOriginalCfa.equals(pOther.locationInOriginalCfa);
     assert Arrays.equals(originalStack.toArray(), pOther.originalStack.toArray());
 
@@ -238,7 +253,7 @@ public final class ModificationsPropState
     } else {
       // only create new object if really necessary
       return new ModificationsPropState(
-          locationInGivenCfa,
+          locationInModCfa,
           locationInOriginalCfa,
           // join modified variables for more abstract states, could be omitted
           ImmutableSet.<String>builder()
@@ -255,7 +270,7 @@ public final class ModificationsPropState
       throws CPAException, InterruptedException {
     // location pair must be identical
     return Objects.equals(locationInOriginalCfa, pOther.locationInOriginalCfa)
-        && Objects.equals(locationInGivenCfa, pOther.locationInGivenCfa)
+        && Objects.equals(locationInModCfa, pOther.locationInModCfa)
         && Arrays.equals(originalStack.toArray(), pOther.originalStack.toArray())
         // if this state is bad, the other one must be bad as well
         && (pOther.isBad || !isBad)
@@ -266,6 +281,6 @@ public final class ModificationsPropState
 
   @Override
   public CFANode getLocationNode() {
-    return getLocationInGivenCfa();
+    return getLocationInModCfa();
   }
 }

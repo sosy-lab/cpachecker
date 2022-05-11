@@ -31,7 +31,7 @@ public class ModificationsPropMergeOperator implements MergeOperator {
     ModificationsPropState el1D = (ModificationsPropState) el1;
     @SuppressWarnings("unchecked")
     ModificationsPropState el2D = (ModificationsPropState) el2;
-    if (el1D.getLocationInGivenCfa().equals(el2D.getLocationInGivenCfa())
+    if (el1D.getLocationInModCfa().equals(el2D.getLocationInModCfa())
         && el1D.getLocationInOriginalCfa().equals(el2D.getLocationInOriginalCfa())
         && Arrays.equals(el1D.getOriginalStack().toArray(), el2D.getOriginalStack().toArray())) {
       return el1D.join(el2D);

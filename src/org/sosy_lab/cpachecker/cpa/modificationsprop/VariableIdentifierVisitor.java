@@ -24,6 +24,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSideVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.DefaultCExpressionVisitor;
+import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 
 /** Provides a set of variable names used. */
 public class VariableIdentifierVisitor
@@ -38,10 +39,9 @@ public class VariableIdentifierVisitor
   }
 
   @Override
-  public Set<String> visit(CFunctionCallExpression pIastFunctionCallExpression)
-      throws PointerAccessException {
-    Set<String> resultSet = new HashSet<>();
-    for (CExpression exp : pIastFunctionCallExpression.getParameterExpressions()) {
+  public Set<String> visit(CFunctionCallExpression pExp) throws PointerAccessException {
+    Set<String> resultSet = pExp.getFunctionNameExpression().accept(this); // TODO does this work?
+    for (CExpression exp : pExp.getParameterExpressions()) {
       resultSet.addAll(exp.accept(this));
     }
     return resultSet;
@@ -54,54 +54,57 @@ public class VariableIdentifierVisitor
 
   // We leave this exception-less for now, as we usually do not expect problems here.
   @Override
-  public Set<String> visit(final CArraySubscriptExpression pE) throws PointerAccessException {
-    Set<String> resultSet = pE.getArrayExpression().accept(this);
-    resultSet.addAll(pE.getSubscriptExpression().accept(this));
+  public Set<String> visit(final CArraySubscriptExpression pExp) throws PointerAccessException {
+    Set<String> resultSet = pExp.getArrayExpression().accept(this);
+    resultSet.addAll(pExp.getSubscriptExpression().accept(this));
     return resultSet;
   }
 
   @Override
-  public Set<String> visit(final CBinaryExpression pE) throws PointerAccessException {
-    Set<String> resultSet = pE.getOperand1().accept(this);
-    resultSet.addAll(pE.getOperand2().accept(this));
+  public Set<String> visit(final CBinaryExpression pExp) throws PointerAccessException {
+    Set<String> resultSet = pExp.getOperand1().accept(this);
+    resultSet.addAll(pExp.getOperand2().accept(this));
     return resultSet;
   }
 
   @Override
-  public Set<String> visit(final CCastExpression pE) throws PointerAccessException {
-    return pE.getOperand().accept(this);
+  public Set<String> visit(final CCastExpression pExp) throws PointerAccessException {
+    return pExp.getOperand().accept(this);
   }
 
   @Override
-  public Set<String> visit(final CComplexCastExpression pE) throws PointerAccessException {
-    return pE.getOperand().accept(this);
+  public Set<String> visit(final CComplexCastExpression pExp) throws PointerAccessException {
+    return pExp.getOperand().accept(this);
   }
 
   @Override
-  public Set<String> visit(final CFieldReference pE) throws PointerAccessException {
-    if (disallowPointers) { // TODO to strict for structs?
+  public Set<String> visit(final CFieldReference pExp) throws PointerAccessException {
+    if (disallowPointers
+        && (pExp.isPointerDereference()
+            || pExp.getFieldOwner().getExpressionType().getCanonicalType()
+                instanceof CPointerType)) {
       throw new PointerAccessException();
     } else {
-      return pE.getFieldOwner().accept(this);
+      return pExp.getFieldOwner().accept(this);
     }
   }
 
   @Override
-  public Set<String> visit(final CIdExpression pE) throws PointerAccessException {
-    return Sets.newHashSet(pE.getDeclaration().getQualifiedName());
+  public Set<String> visit(final CIdExpression pExp) throws PointerAccessException {
+    return Sets.newHashSet(pExp.getDeclaration().getQualifiedName());
   }
 
   @Override
-  public Set<String> visit(final CUnaryExpression pE) throws PointerAccessException {
-    return pE.getOperand().accept(this);
+  public Set<String> visit(final CUnaryExpression pExp) throws PointerAccessException {
+    return pExp.getOperand().accept(this);
   }
 
   @Override
-  public Set<String> visit(final CPointerExpression pE) throws PointerAccessException {
+  public Set<String> visit(final CPointerExpression pExp) throws PointerAccessException {
     if (disallowPointers) {
       throw new PointerAccessException();
     } else {
-      return pE.getOperand().accept(this);
+      return pExp.getOperand().accept(this);
     }
   }
 }

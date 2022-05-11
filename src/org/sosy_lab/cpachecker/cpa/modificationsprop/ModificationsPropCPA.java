@@ -105,7 +105,8 @@ public class ModificationsPropCPA implements ConfigurableProgramAnalysis, AutoCl
   @Option(
       secure = true,
       description =
-          "Switch on/off to form the union of variable sets at identical location pairs. Set cpa.automaton.deleteDoubleEdges as well!")
+          "Switch on/off to form the union of variable sets at identical location pairs. Set"
+              + " cpa.automaton.deleteDoubleEdges as well!")
   private boolean variableSetMerge = false;
 
   @Option(
@@ -159,11 +160,11 @@ public class ModificationsPropCPA implements ConfigurableProgramAnalysis, AutoCl
           errorLocsOrig_reachable =
               performPreprocessing
                   ? computeElementsWithPathTo(errorLocsOrig, CFAUtils::allPredecessorsOf)
-                  : ImmutableSet.of(),
+                  : ImmutableSet.copyOf(cfaOrig.getAllNodes()),
           errorLocsMod_new_reachable =
               performPreprocessing
                   ? computeElementsWithPathTo(errorLocsMod, CFAUtils::allPredecessorsOf)
-                  : ImmutableSet.of();
+                  : ImmutableSet.copyOf(pCfa.getAllNodes());
 
       helper =
           new ModificationsPropHelper(
@@ -174,7 +175,6 @@ public class ModificationsPropCPA implements ConfigurableProgramAnalysis, AutoCl
               ignoreDeclarations,
               implicationCheck,
               stopOnPointers,
-              performPreprocessing,
               errorLocsOrig_reachable,
               errorLocsMod_new_reachable,
               solver,

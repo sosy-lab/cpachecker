@@ -11,7 +11,6 @@ package org.sosy_lab.cpachecker.cpa.modificationsprop;
 import com.google.common.base.Predicates;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableSet;
-import java.util.ArrayDeque;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
@@ -60,12 +59,10 @@ public class ModificationsPropHelper {
   private final boolean ignoreDeclarations;
   /** Setting for switching on/off the SMT implication check. */
   private final boolean implicationCheck;
-  /** Safely stop analysis on pointer accesses and similar. */
-  private final boolean performPreprocessing;
   /** Set of nodes from which an error location is reachable in original program. */
-  private final Set<CFANode> reachElocOrig;
+  private final Set<CFANode> mayReachErrorLocOrig;
   /** Set of nodes from which an error location is reachable in modified program. */
-  private final Set<CFANode> reachElocMod;
+  private final Set<CFANode> mayReachErrorLocMod;
 
   private final Solver solver;
   private final CtoFormulaConverter converter;
@@ -82,7 +79,6 @@ public class ModificationsPropHelper {
    * @param pIgnoreDeclarations Setting for ignoring of declaration statements.
    * @param pImplicationCheck Setting for switching on/off the SMT implication check.
    * @param pStopOnPointers Safely stop analysis on pointer accesses and similar.
-   * @param pPerformPreprocessing Setting for switching reachability preprocessing on/off.
    * @param pReachElocOrig Set of nodes from which an error location is reachable in original
    *     program.
    * @param pReachElocMod Set of nodes from which an error location is reachable in modified
@@ -96,7 +92,6 @@ public class ModificationsPropHelper {
       final boolean pIgnoreDeclarations,
       final boolean pImplicationCheck,
       final boolean pStopOnPointers,
-      final boolean pPerformPreprocessing,
       final Set<CFANode> pReachElocOrig,
       final Set<CFANode> pReachElocMod,
       final Solver pSolver,
@@ -105,9 +100,8 @@ public class ModificationsPropHelper {
     errorLocationsInOrigOrMod = pErrorLocations;
     ignoreDeclarations = pIgnoreDeclarations;
     implicationCheck = pImplicationCheck;
-    performPreprocessing = pPerformPreprocessing;
-    reachElocOrig = pReachElocOrig;
-    reachElocMod = pReachElocMod;
+    mayReachErrorLocOrig = pReachElocOrig;
+    mayReachErrorLocMod = pReachElocMod;
     solver = pSolver;
     converter = pConverter;
     logger = pLogger;
@@ -115,18 +109,14 @@ public class ModificationsPropHelper {
   }
 
   /**
-   * Converts a given state to a (therefore more abstract) bad state at that location.
+   * Checks whether an CFA edge represents an untracked operation.
    *
-   * @param pState the former abstract state
-   * @return the bad state
+   * @param pEdge the edge to be checked
+   * @return the analysis result
    */
-  ModificationsPropState makeBad(final ModificationsPropState pState) {
-    return new ModificationsPropState(
-        pState.getLocationInGivenCfa(),
-        pState.getLocationInOriginalCfa(),
-        ImmutableSet.of(),
-        new ArrayDeque<CFANode>(),
-        true);
+  boolean isUntracked(final CFAEdge pEdge) {
+    return (pEdge instanceof BlankEdge)
+        || (ignoreDeclarations && (pEdge instanceof CDeclarationEdge));
   }
 
   /**
@@ -157,17 +147,6 @@ public class ModificationsPropHelper {
   }
 
   /**
-   * Checks whether an CFA edge represents an untracked operation.
-   *
-   * @param pEdge the edge to be checked
-   * @return the analysis result
-   */
-  boolean isUntracked(final CFAEdge pEdge) {
-    return (pEdge instanceof BlankEdge)
-        || (ignoreDeclarations && (pEdge instanceof CDeclarationEdge));
-  }
-
-  /**
    * Skips an assignment or declaration edge and gives information about the changes.
    *
    * @param pNode the node to start in
@@ -182,7 +161,7 @@ public class ModificationsPropHelper {
         && !isErrorLocation(pNode)) {
       CFAEdge edge = pNode.getLeavingEdge(0);
       String written = CFAEdgeUtils.getLeftHandVariable(pNode.getLeavingEdge(0));
-      if (written != null) {
+      if (written != null) { // TODO might be unsound for pointers?
         if (pVars.contains(written)) {
           return Pair.of(edge.getSuccessor(), pVars);
         } else {
@@ -209,6 +188,35 @@ public class ModificationsPropHelper {
     return firstAst.equals(sndAst)
         && pEdgeInGiven.getEdgeType() == pEdgeInOriginal.getEdgeType()
         && successorsMatch(pEdgeInGiven, pEdgeInOriginal);
+  }
+
+  /**
+   * Checks whether successors of two similar edges are similar as well.
+   *
+   * @param pEdgeInGiven the edge from the given CFA
+   * @param pEdgeInOriginal the edge form the original CFA
+   * @return whether the next node functions and summary edges match
+   */
+  private boolean successorsMatch(final CFAEdge pEdgeInGiven, final CFAEdge pEdgeInOriginal) {
+    final CFANode givenSuccessor = pEdgeInGiven.getSuccessor(),
+        originalSuccessor = pEdgeInOriginal.getSuccessor();
+    // TODO: check whether needed in our case -> sufficient because we use stack?
+    /*if (pEdgeInGiven.getEdgeType() == CFAEdgeType.FunctionReturnEdge) {
+      for (CFAEdge enterBeforeCall :
+          CFAUtils.enteringEdges(
+              ((FunctionReturnEdge) pEdgeInGiven).getSummaryEdge().getPredecessor())) {
+        for (CFAEdge enterOriginalBeforeCAll :
+            CFAUtils.enteringEdges(
+                ((FunctionReturnEdge) pEdgeInOriginal).getSummaryEdge().getPredecessor())) {
+          if (edgesMatch(enterBeforeCall, enterOriginalBeforeCAll)) {
+            break;
+          }
+        }
+        return false;
+      }
+    }*/
+
+    return inSameFunction(givenSuccessor, originalSuccessor);
   }
 
   /**
@@ -272,109 +280,106 @@ public class ModificationsPropHelper {
    * @param pVars the variables modified yet
    * @return the updated set of modified variables
    */
-  boolean variablesAreUsedInEdge(final CFAEdge pEdge, final ImmutableSet<String> pVars) {
+  boolean areVariablesUsedInEdge(final CFAEdge pEdge, final ImmutableSet<String> pVars) {
 
     Set<String> usedVars = new HashSet<>();
 
     // EdgeType is..
-    if (pEdge instanceof CDeclarationEdge) { // DeclarationEdge
-      final CDeclaration decl = ((CDeclarationEdge) pEdge).getDeclaration();
+    if (pEdge instanceof BlankEdge // BlankEdge, CallToReturnEdge, FunctionReturnEdge
+        || pEdge instanceof CFunctionReturnEdge
+        || pEdge instanceof CFunctionSummaryEdge) {
+      // no operation (BlankEdge, CFunctionReturnEdge),
+      // CallToReturnEdge handled by CFunctionCallEdge
+      return false;
+    } else if (pEdge instanceof CStatementEdge) { // StatementEdge
+      return false; // ignored as handled later
+    } else {
+      try {
+        if (pEdge instanceof CDeclarationEdge) { // DeclarationEdge
+          final CDeclaration decl = ((CDeclarationEdge) pEdge).getDeclaration();
 
-      if (decl instanceof CFunctionDeclaration || decl instanceof CTypeDeclaration) {
-        return false;
-      } else if (decl instanceof CVariableDeclaration) {
-        CInitializer initl = ((CVariableDeclaration) decl).getInitializer();
-        if (initl instanceof CInitializerExpression) {
-          try {
-            usedVars = ((CInitializerExpression) initl).getExpression().accept(visitor);
-          } catch (PointerAccessException e) {
-            return true;
+          if (decl instanceof CFunctionDeclaration || decl instanceof CTypeDeclaration) {
+            return false;
+          } else if (decl instanceof CVariableDeclaration) {
+            CInitializer initl = ((CVariableDeclaration) decl).getInitializer();
+            if (initl instanceof CInitializerExpression) {
+              usedVars = ((CInitializerExpression) initl).getExpression().accept(visitor);
+            } else {
+              return !pVars.isEmpty(); // not implemented for this initializer types, fallback
+            }
+          }
+        } else if (pEdge instanceof CReturnStatementEdge) { // ReturnStatementEdge
+          CExpression exp = ((CReturnStatementEdge) pEdge).getExpression().orElse(null);
+          if (exp != null) {
+            usedVars = exp.accept(visitor);
+          } else {
+            return !pVars.isEmpty(); // fallback, shouldn't happen
+          }
+        } else if (pEdge instanceof CAssumeEdge) { // AssumeEdge
+          usedVars = ((CAssumeEdge) pEdge).getExpression().accept(visitor);
+        } else if (pEdge instanceof CFunctionCallEdge) { // FunctionCallEdge
+          for (CExpression exp : ((CFunctionCallEdge) pEdge).getArguments()) {
+            usedVars.addAll(exp.accept(visitor));
           }
         } else {
-          return !pVars.isEmpty(); // not implemented for this initializer types, fallback
+          return !pVars.isEmpty();
         }
-      }
-
-    } else if (pEdge instanceof CReturnStatementEdge) { // ReturnStatementEdge
-      CExpression exp = ((CReturnStatementEdge) pEdge).getExpression().orElse(null);
-      if (exp != null) {
-        try {
-          usedVars = exp.accept(visitor);
-        } catch (PointerAccessException e) {
-          return true;
-        }
-      } else {
-        return !pVars.isEmpty(); // fallback, shouldn't happen
-      }
-    } else if (pEdge instanceof CAssumeEdge) { // AssumeEdge
-      try {
-        usedVars = ((CAssumeEdge) pEdge).getExpression().accept(visitor);
       } catch (PointerAccessException e) {
         return true;
       }
-    } else if (pEdge instanceof CStatementEdge) { // StatementEdge
-      return false; // ignored as handled later
-    } else if (pEdge instanceof BlankEdge) { // BlankEdge
-      return false;
-    } else if (pEdge instanceof CFunctionCallEdge) { // FunctionCallEdge
-      for (CExpression exp : ((CFunctionCallEdge) pEdge).getArguments()) {
-        try {
-          usedVars.addAll(exp.accept(visitor));
-        } catch (PointerAccessException e) {
-          return true;
-        }
-      }
-    } else if (pEdge instanceof CFunctionSummaryEdge
-        || pEdge instanceof CFunctionReturnEdge) { // CallToReturnEdge, FunctionReturnEdge
-      return false;
-    } else {
-      return !pVars.isEmpty();
     }
 
     return !Collections.disjoint(usedVars, pVars);
   }
 
   /**
+   * Getter for the property whether the implication check is activated
+   *
+   * @return implicationCheck property value
+   */
+  boolean useImplicationCheck() {
+    return implicationCheck;
+  }
+
+  /**
    * Checks whether the condition of one CAssumeEdge implies the one of another.
    *
-   * @param pA the implying assumption edge
-   * @param pB the implied assumption edge
+   * @param pAntecedent the implying assumption edge
+   * @param pConsequence the implied assumption edge
    * @return whether the implication holds
    */
-  boolean implies(final CAssumeEdge pA, final CAssumeEdge pB) {
-    final BooleanFormula a;
-    final BooleanFormula b;
-    // empty SSA overapproximates in worst case
+  boolean implies(final CAssumeEdge pAntecedent, final CAssumeEdge pConsequence) {
+    final BooleanFormula fAntecedent;
+    final BooleanFormula fConsequence;
     final SSAMapBuilder ssaMap = SSAMap.emptySSAMap().builder();
     logger.log(
         Level.FINEST,
         "Checking whether",
-        MoreStrings.lazyString(() -> pA.getCode()),
+        MoreStrings.lazyString(() -> pAntecedent.getCode()),
         "implies",
-        MoreStrings.lazyString(() -> pB.getCode()),
+        MoreStrings.lazyString(() -> pConsequence.getCode()),
         ".");
     try {
-      a =
+      fAntecedent =
           converter.makePredicate(
-              pA.getExpression(),
-              pA,
-              pA.getPredecessor().getFunctionName(),
+              pAntecedent.getExpression(),
+              pAntecedent,
+              pAntecedent.getPredecessor().getFunctionName(),
               ssaMap,
-              pA.getTruthAssumption());
-      b =
+              pAntecedent.getTruthAssumption());
+      fConsequence =
           converter.makePredicate(
-              pB.getExpression(),
-              pB,
-              pB.getPredecessor().getFunctionName(),
+              pConsequence.getExpression(),
+              pConsequence,
+              pConsequence.getPredecessor().getFunctionName(),
               ssaMap,
-              pB.getTruthAssumption());
+              pConsequence.getTruthAssumption());
     } catch (IllegalArgumentException | UnrecognizedCodeException | InterruptedException e) {
       logger.log(Level.WARNING, "Converting to predicate failed.");
       return false;
     }
     try {
-      final boolean result = solver.implies(a, b);
-      return result;
+      return solver.implies(fAntecedent, fConsequence);
     } catch (SolverException | InterruptedException e) {
       logger.log(Level.WARNING, "Implication check failed.");
       return false;
@@ -389,35 +394,6 @@ public class ModificationsPropHelper {
    */
   boolean isErrorLocation(final CFANode node) {
     return errorLocationsInOrigOrMod.contains(node);
-    /*return node instanceof CFALabelNode
-    && ((CFALabelNode) node).getLabel().equalsIgnoreCase("error");*/
-  }
-
-  /**
-   * Logs the case we took in finest log level.
-   *
-   * @param pNote the text to print
-   */
-  void logCase(final String pNote) {
-    logger.log(Level.FINEST, pNote);
-  }
-
-  /**
-   * Logs problems that occured.
-   *
-   * @param pNote the text to print
-   */
-  void logProblem(final String pNote) {
-    logger.log(Level.WARNING, pNote);
-  }
-
-  /**
-   * Getter for the property whether the implication check is activated
-   *
-   * @return implicationCheck property value
-   */
-  boolean getImplicationCheck() {
-    return implicationCheck;
   }
 
   /**
@@ -438,15 +414,11 @@ public class ModificationsPropHelper {
    * @param pOriginal consider original instead of modified program
    * @return the computation result, true if analysis switched off.
    */
-  boolean goalReachable(CFANode pNode, boolean pOriginal) {
-    if (performPreprocessing) {
-      if (pOriginal) {
-        return reachElocOrig.contains(pNode);
-      } else {
-        return reachElocMod.contains(pNode);
-      }
+  boolean mayReachErrorLocation(CFANode pNode, boolean pOriginal) {
+    if (pOriginal) {
+      return mayReachErrorLocOrig.contains(pNode);
     } else {
-      return true;
+      return mayReachErrorLocMod.contains(pNode);
     }
   }
 
@@ -460,31 +432,20 @@ public class ModificationsPropHelper {
   }
 
   /**
-   * Checks whether successors of two similar edges are similar as well.
+   * Logs the case we took in finest log level.
    *
-   * @param pEdgeInGiven the edge from the given CFA
-   * @param pEdgeInOriginal the edge form the original CFA
-   * @return whether the next node functions and summary edges match
+   * @param pMsg the text to print
    */
-  private boolean successorsMatch(final CFAEdge pEdgeInGiven, final CFAEdge pEdgeInOriginal) {
-    final CFANode givenSuccessor = pEdgeInGiven.getSuccessor(),
-        originalSuccessor = pEdgeInOriginal.getSuccessor();
-    // TODO: check whether needed in our case
-    /*if (pEdgeInGiven.getEdgeType() == CFAEdgeType.FunctionReturnEdge) {
-      for (CFAEdge enterBeforeCall :
-          CFAUtils.enteringEdges(
-              ((FunctionReturnEdge) pEdgeInGiven).getSummaryEdge().getPredecessor())) {
-        for (CFAEdge enterOriginalBeforeCAll :
-            CFAUtils.enteringEdges(
-                ((FunctionReturnEdge) pEdgeInOriginal).getSummaryEdge().getPredecessor())) {
-          if (edgesMatch(enterBeforeCall, enterOriginalBeforeCAll)) {
-            break;
-          }
-        }
-        return false;
-      }
-    }*/
+  void logCase(final String pMsg) {
+    logger.log(Level.FINEST, pMsg);
+  }
 
-    return inSameFunction(givenSuccessor, originalSuccessor);
+  /**
+   * Logs problems that occured.
+   *
+   * @param pMsg the text to print
+   */
+  void logProblem(final String pMsg) {
+    logger.log(Level.WARNING, pMsg);
   }
 }
