@@ -221,7 +221,9 @@ public class CExpressionInvariantExporter {
         if (!withoutPrefix) {
           fileName = sourceFile.getFileName().toString();
         }
-        try (Writer output = IO.openOutputFile(sourceFile.getFileName(), Charset.defaultCharset());
+        try (Writer output =
+                IO.openOutputFile(
+                    prefix.getPath(sourceFile.getFileName()), Charset.defaultCharset());
             BufferedReader reader = Files.newBufferedReader(sourceFile)) {
           counter = 1;
           while ((line = reader.readLine()) != null) {
