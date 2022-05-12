@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.util.cwriter;
 
+import com.google.common.base.Splitter;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
@@ -17,10 +18,15 @@ import java.io.Writer;
 import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Optional;
+import java.util.Set;
+import java.util.logging.Level;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
@@ -29,8 +35,13 @@ import org.sosy_lab.common.io.PathTemplate;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.model.ADeclarationEdge;
+import org.sosy_lab.cpachecker.cfa.model.AbstractCFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
+import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.util.AbstractStates;
@@ -51,12 +62,30 @@ public class CExpressionInvariantExporter {
           "Attempt to simplify the invariant before " + "exporting [may be very expensive].")
   private boolean simplify = false;
 
+  @Option(
+      secure = true,
+      name = "external.forLines",
+      description =
+          "Specify lines for which an invariant should be written to external file"
+              + " (specified with option cinvariants.external.file)."
+              + "Lines are specified as comma separated list of individual lines x and line ranges x-y. "
+              + "Use the empty list to export all available invariants.")
+  private String exportInvariantsForLines = "";
+
+  @Option(
+      secure = true,
+      name = "external.file",
+      description = "File name for exporting external invariants.")
+  @FileOption(FileOption.Type.OUTPUT_FILE)
+  private Path externalInvariantFile = null;
+
   private final PathTemplate prefix;
 
   private final FormulaManagerView fmgr;
   private final BooleanFormulaManager bfmgr;
   private final FormulaToCExpressionConverter formulaToCExpressionConverter;
   private final InductiveWeakeningManager inductiveWeakeningManager;
+  private final LogManager logger;
 
   public CExpressionInvariantExporter(
       Configuration pConfiguration,
@@ -65,6 +94,7 @@ public class CExpressionInvariantExporter {
       PathTemplate pPrefix)
       throws InvalidConfigurationException {
     pConfiguration.inject(this);
+    logger = pLogManager;
     prefix = pPrefix;
     @SuppressWarnings("resource")
     Solver solver = Solver.create(pConfiguration, pLogManager, pShutdownNotifier);
@@ -94,6 +124,8 @@ public class CExpressionInvariantExporter {
         }
       }
     }
+
+    exportInvariantsForRequestedLinesToFile(pReachedSet, pCfa.getFileNames().isEmpty());
   }
 
   private void writeProgramWithInvariants(
@@ -156,5 +188,98 @@ public class CExpressionInvariantExporter {
   private BooleanFormula simplifyInvariant(BooleanFormula pInvariant)
       throws InterruptedException, SolverException {
     return inductiveWeakeningManager.removeRedundancies(pInvariant);
+  }
+
+  private void exportInvariantsForRequestedLinesToFile(
+      final UnmodifiableReachedSet pReachedSet, final boolean withoutPrefix)
+      throws IOException, InterruptedException, SolverException {
+    if (externalInvariantFile != null && exportInvariantsForLines != null) {
+      try (Writer output = IO.openOutputFile(externalInvariantFile, Charset.defaultCharset())) {
+        Set<Integer> requestedLines = new HashSet<>();
+
+        // read line numbers from input
+        int posRangeSeparator, max;
+        for (String line :
+            Splitter.on(',').trimResults().omitEmptyStrings().split(exportInvariantsForLines)) {
+          try {
+            posRangeSeparator = line.indexOf('-');
+            if (0 < posRangeSeparator) {
+              max = Integer.parseInt(line.substring(posRangeSeparator + 1));
+              for (int i = Integer.parseInt(line); i <= max; i++) {
+                requestedLines.add(i);
+              }
+            } else {
+              requestedLines.add(Integer.parseInt(line));
+            }
+          } catch (NumberFormatException e) {
+            logger.log(Level.WARNING, "could not parse line number " + line + ", skipping!");
+          }
+        }
+
+        // export invariants
+        for (Entry<String, BooleanFormula> mapEntry :
+            extractInvariants(pReachedSet, requestedLines, withoutPrefix).entrySet()) {
+          output.append('[');
+          output.append(mapEntry.getKey());
+          output.append(',');
+          output.append(convertInvariantToSingleLineString(mapEntry.getValue()));
+          output.append("]\n");
+        }
+      }
+    }
+  }
+
+  private Map<String, BooleanFormula> extractInvariants(
+      final UnmodifiableReachedSet pReachedSet,
+      final Set<Integer> pRequestedLines,
+      final boolean withoutPrefix) {
+    final String BEFORE_TOKEN = "-";
+    // final String AFTER_TOKEN = "+";
+
+    // One formula per reported state.
+    Multimap<String, BooleanFormula> byState = HashMultimap.create();
+    int lineNumber;
+    String sourceFileName;
+    CFANode loc;
+    CFAEdge edge;
+
+    for (AbstractState state : pReachedSet) {
+      loc = AbstractStates.extractLocation(state);
+
+      if (loc != null && loc.getNumLeavingEdges() > 0) {
+        edge = loc.getLeavingEdge(0);
+
+        if (!(edge instanceof AbstractCFAEdge)
+            || edge instanceof BlankEdge
+            || edge instanceof FunctionReturnEdge
+            || edge instanceof FunctionSummaryEdge
+            || (edge instanceof ADeclarationEdge
+                && ((ADeclarationEdge) edge).getDeclaration().isGlobal())) {
+          continue;
+        }
+
+        lineNumber = edge.getFileLocation().getStartingLineInOrigin();
+        sourceFileName = edge.getFileLocation().getNiceFileName();
+        if (pRequestedLines.isEmpty() || pRequestedLines.contains(lineNumber)) {
+          BooleanFormula reported = AbstractStates.extractReportedFormulas(fmgr, state);
+          if (!bfmgr.isTrue(reported)) {
+            byState.put(
+                withoutPrefix
+                    ? lineNumber + BEFORE_TOKEN
+                    : sourceFileName + lineNumber + BEFORE_TOKEN,
+                reported);
+          }
+        }
+      }
+    }
+    return Maps.transformValues(byState.asMap(), invariants -> bfmgr.or(invariants));
+  }
+
+  private String convertInvariantToSingleLineString(BooleanFormula pInvariant)
+      throws InterruptedException, SolverException {
+    if (simplify) {
+      pInvariant = simplifyInvariant(pInvariant);
+    }
+    return formulaToCExpressionConverter.formulaToCExpression(pInvariant).replaceAll("\n", " ");
   }
 }
