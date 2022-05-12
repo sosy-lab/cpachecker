@@ -66,10 +66,10 @@ public class CExpressionInvariantExporter {
       secure = true,
       name = "external.forLines",
       description =
-          "Specify lines for which an invariant should be written to external file"
-              + " (specified with option cinvariants.external.file)."
-              + "Lines are specified as comma separated list of individual lines x and line ranges x-y. "
-              + "Use the empty list to export all available invariants.")
+          "Specify lines for which an invariant should be written to external file (specified with"
+              + " option cinvariants.external.file).Lines are specified as comma separated list of"
+              + " individual lines x and line ranges x-y. Use the empty list to export all"
+              + " available invariants.")
   private String exportInvariantsForLines = "";
 
   @Option(
@@ -259,7 +259,7 @@ public class CExpressionInvariantExporter {
         }
 
         lineNumber = edge.getFileLocation().getStartingLineInOrigin();
-        sourceFileName = edge.getFileLocation().getNiceFileName();
+        sourceFileName = edge.getFileLocation().getNiceFileName() + ":";
         if (pRequestedLines.isEmpty() || pRequestedLines.contains(lineNumber)) {
           BooleanFormula reported = AbstractStates.extractReportedFormulas(fmgr, state);
           if (!bfmgr.isTrue(reported)) {
