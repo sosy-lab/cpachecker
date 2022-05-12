@@ -272,7 +272,7 @@ public class CExpressionInvariantExporter {
         posRangeSeparator = line.indexOf('-');
         if (0 < posRangeSeparator) {
           max = Integer.parseInt(line.substring(posRangeSeparator + 1));
-          for (int i = Integer.parseInt(line); i <= max; i++) {
+          for (int i = Integer.parseInt(line.substring(0, posRangeSeparator)); i <= max; i++) {
             requestedLines.add(i);
           }
         } else {
