@@ -1351,13 +1351,98 @@ function renderTDCG(dataJSON, color, inPercentage) {
         for (let i = 1; i <= linesCount; i += 1) {
           const lineStyle = d3.select(`#right-source-${i}`).attr("style");
           const lineColor = $scope.extractColor(lineStyle, $scope.colorId);
-          d3.select(`#right-source-${i}`).attr(
-            "style",
-            `background-color: ${lineColor}; coverage-colors: ${
-              lineStyle.split("coverage-colors: ")[1]
-            }`
-          );
+          const currentFunction = $scope.extractCurrentFunction(lineStyle);
+          const lineStyleTypes = lineColor.split("!");
+          if (lineStyleTypes.length >= 2) {
+            const variables = lineStyleTypes[1].split(";")[0].split(",");
+            const defaultColor = $scope.extractColor(lineStyle, "None");
+            let codeLine = d3.select(`#right-source-${i}`).text();
+            $scope.colorLineBackground(
+              lineStyle,
+              i,
+              defaultColor,
+              currentFunction
+            );
+            for (let j = 0; j < variables.length; j += 1) {
+              codeLine = $scope.colorRelevantVariables(
+                codeLine,
+                variables[j],
+                currentFunction,
+                defaultColor
+              );
+            }
+            d3.select(`#right-source-${i}`).html(codeLine);
+          } else {
+            $scope.colorLineBackground(
+              lineStyle,
+              i,
+              lineColor,
+              currentFunction
+            );
+          }
         }
+      };
+
+      $scope.colorLineBackground = (
+        lineStyle,
+        lineNumber,
+        lineColor,
+        currentFunction
+      ) => {
+        $scope.cleanVariableColoring(lineNumber);
+        d3.select(`#right-source-${lineNumber}`).attr(
+          "style",
+          `background-color: ${lineColor}; current-function: ${currentFunction}; coverage-colors: ${
+            lineStyle.split("coverage-colors: ")[1]
+          }`
+        );
+      };
+
+      $scope.cleanVariableColoring = (lineNumber) => {
+        let lineHtml = d3.select(`#right-source-${lineNumber}`).html();
+        lineHtml = lineHtml.replace(/<\/?[^>]+(>|$)/g, "");
+        d3.select(`#right-source-${lineNumber}`).html(lineHtml);
+      };
+
+      $scope.extractCurrentFunction = (lineStyle) =>
+        lineStyle.split("current-function: ").slice(-1)[0].split(";")[0];
+
+      $scope.colorRelevantVariables = (
+        rawCodeLine,
+        variable,
+        currentFunction,
+        lineColor
+      ) => {
+        const functionName = variable.split("::")[0];
+        if (functionName === currentFunction) {
+          const variableName = variable.split("::")[1];
+          return $scope.colorLineText(rawCodeLine, variableName, lineColor);
+        }
+        return rawCodeLine;
+      };
+
+      $scope.colorLineText = (lineCode, variableName, lineColor) => {
+        let outputStr = "";
+        const textColor = "#ff2424";
+        const preStyle = `<mark style="background-color: ${lineColor}; color: ${textColor}; padding: 0;">`;
+        const postStyle = "</mark>";
+        const lineParts = lineCode.split(variableName);
+        const variableEnvironment = /^\s|\(|\)|\+|-|=|;|,|\.$/;
+        for (let i = 0; i < lineParts.length; i += 1) {
+          if (i !== lineParts.length - 1) {
+            if (
+              variableEnvironment.test(lineParts[i].slice(-1)) &&
+              variableEnvironment.test(lineParts[i + 1].slice(0, 1))
+            ) {
+              outputStr += lineParts[i] + preStyle + variableName + postStyle;
+            } else {
+              outputStr += lineParts[i] + variableName;
+            }
+          } else {
+            outputStr += lineParts[i];
+          }
+        }
+        return outputStr;
       };
     },
   ]);

@@ -17,4 +17,5 @@ public enum CoverageMeasureCategory {
   None,
   LocationBased,
   LineBased,
+  VariableBased,
 }

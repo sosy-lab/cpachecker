@@ -50,6 +50,9 @@ public class CoverageMeasureHandler {
       case LocationBased:
         coverageMeasure = new LocationCoverageMeasure();
         break;
+      case VariableBased:
+        coverageMeasure = new VariableCoverageMeasure();
+        break;
     }
     coverageMeasureMap.put(type, coverageMeasure);
   }
@@ -66,6 +69,7 @@ public class CoverageMeasureHandler {
   public void initPredicateAnalysisMeasures() {
     initNewData(CoverageMeasureType.PredicateConsidered);
     initNewData(CoverageMeasureType.PredicateRelevantVariables);
+    initNewData(CoverageMeasureType.PredicateAbstractionVariables);
   }
 
   /**
@@ -78,48 +82,47 @@ public class CoverageMeasureHandler {
   public void fillCoverageData(Map<String, FileCoverageStatistics> infosPerFile) {
     CoverageStatistics covStatistics = new CoverageStatistics(infosPerFile);
     for (var type : getAllTypes()) {
-      LocationCoverageMeasure locCov;
-      LineCoverageMeasure lineCov;
       switch (type) {
         case None:
           break;
         case VisitedLocations:
-          locCov =
+          addData(
+              type,
               new LocationCoverageMeasure(
-                  covStatistics.visitedLocations, covStatistics.numTotalNodes);
-          addData(type, locCov);
+                  covStatistics.visitedLocations, covStatistics.numTotalNodes));
           break;
         case ReachedLocations:
-          locCov =
+          addData(
+              type,
               new LocationCoverageMeasure(
-                  covStatistics.reachedLocations, covStatistics.numTotalNodes);
-          addData(type, locCov);
+                  covStatistics.reachedLocations, covStatistics.numTotalNodes));
           break;
         case ConsideredLocationsHeatMap:
-          locCov =
+          addData(
+              type,
               new MultiLocationCoverageMeasure(
                   covStatistics.visitedLocations,
                   covStatistics.reachedLocations,
-                  covStatistics.numTotalNodes);
-          addData(type, locCov);
+                  covStatistics.numTotalNodes));
           break;
         case ConsideredLinesHeatMap:
-          lineCov = new LineCoverageMeasure(infosPerFile);
-          addData(type, lineCov);
+          addData(type, new LineCoverageMeasure(infosPerFile));
           break;
         case PredicateConsidered:
-          locCov =
+          addData(
+              type,
               new LocationCoverageMeasure(
-                  covStatistics.predicateConsideredNodes, covStatistics.numTotalNodes);
-          addData(type, locCov);
+                  covStatistics.predicateConsideredNodes, covStatistics.numTotalNodes));
           break;
         case PredicateRelevantVariables:
-          locCov =
+          addData(
+              type,
               new LocationCoverageMeasure(
                   covStatistics.predicateRelevantVariablesConsideredNodes,
-                  covStatistics.numTotalNodes);
-          addData(type, locCov);
+                  covStatistics.numTotalNodes));
           break;
+        case PredicateAbstractionVariables:
+          addData(type, new VariableCoverageMeasure(covStatistics.variableNames));
       }
     }
   }

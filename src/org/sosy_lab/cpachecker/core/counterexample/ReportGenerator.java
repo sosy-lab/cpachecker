@@ -87,6 +87,7 @@ import org.sosy_lab.cpachecker.util.coverage.measures.CoverageMeasureCategory;
 import org.sosy_lab.cpachecker.util.coverage.measures.CoverageMeasureHandler;
 import org.sosy_lab.cpachecker.util.coverage.measures.CoverageMeasureType;
 import org.sosy_lab.cpachecker.util.coverage.measures.LineCoverageMeasure;
+import org.sosy_lab.cpachecker.util.coverage.measures.VariableCoverageMeasure;
 import org.sosy_lab.cpachecker.util.coverage.tdcg.TimeDependentCoverageHandler;
 import org.sosy_lab.cpachecker.util.coverage.tdcg.TimeDependentCoverageType;
 import org.sosy_lab.cpachecker.util.coverage.util.CoverageColorUtil;
@@ -309,7 +310,7 @@ public class ReportGenerator {
         } else if (line.contains("STATISTICS")) {
           insertStatistics(writer, statistics);
         } else if (line.contains("SOURCE_CONTENT")) {
-          insertSources(writer, allInputFiles, covHandler);
+          insertSources(writer, cfa, allInputFiles, covHandler);
         } else if (line.contains("LOG")) {
           insertLog(writer);
         } else if (line.contains("REPORT_NAME")) {
@@ -367,7 +368,9 @@ public class ReportGenerator {
     writer.write("var sourceCoverageJson = [");
     ImmutableList<String> types =
         covHandler.getAllTypesForCategoriesAsString(
-            CoverageMeasureCategory.None, CoverageMeasureCategory.LineBased);
+            CoverageMeasureCategory.None,
+            CoverageMeasureCategory.LineBased,
+            CoverageMeasureCategory.VariableBased);
     for (String type : types) {
       JSON.writeJSONString(type, writer);
       if (i++ != types.size() - 1) {
@@ -625,17 +628,21 @@ public class ReportGenerator {
   }
 
   private void insertSources(
-      Writer report, Iterable<Path> allSources, CoverageMeasureHandler covHandler)
+      Writer report, CFA cfa, Iterable<Path> allSources, CoverageMeasureHandler covHandler)
       throws IOException {
     int index = 0;
     for (Path sourceFile : allSources) {
-      insertSource(sourceFile, report, index, covHandler);
+      insertSource(sourceFile, cfa, report, index, covHandler);
       index++;
     }
   }
 
   private void insertSource(
-      Path sourcePath, Writer writer, int sourceFileNumber, CoverageMeasureHandler covHandler)
+      Path sourcePath,
+      CFA cfa,
+      Writer writer,
+      int sourceFileNumber,
+      CoverageMeasureHandler covHandler)
       throws IOException {
     if (Files.isReadable(sourcePath) && !Files.isDirectory(sourcePath)) {
       int lineNumber = 1;
@@ -654,7 +661,7 @@ public class ReportGenerator {
                   + lineNumber
                   + "\" style=\"background-color: "
                   + CoverageColorUtil.getAlternatingLineColor(lineNumber)
-                  + determineLineColors(covHandler, sourcePath, lineNumber)
+                  + determineLineColors(covHandler, cfa, sourcePath, lineNumber)
                   + "\">"
                   + htmlEscaper().escape(line)
                   + "  </pre></td>";
@@ -675,12 +682,28 @@ public class ReportGenerator {
     }
   }
 
+  private String determineCurrentFunction(CFA cfa, int lineNumber) {
+    for (var functionMap : cfa.getAllFunctions().entrySet()) {
+      FileLocation file = functionMap.getValue().getFileLocation();
+      if (lineNumber >= file.getStartingLineNumber() && lineNumber <= file.getEndingLineNumber()) {
+        return functionMap.getKey();
+      }
+    }
+    return "";
+  }
+
   private String determineLineColors(
-      CoverageMeasureHandler covHandler, Path sourcePath, int lineNumber) {
-    StringBuilder lineColors = new StringBuilder("; coverage-colors: ");
+      CoverageMeasureHandler covHandler, CFA cfa, Path sourcePath, int lineNumber) {
+    String currentFunction = determineCurrentFunction(cfa, lineNumber);
+    StringBuilder lineColors = new StringBuilder("; current-function: ");
+    lineColors.append(currentFunction);
+    lineColors.append("; coverage-colors: ");
     ImmutableList<CoverageMeasureType> types =
         covHandler.getAllTypesForCategories(
-            CoverageMeasureCategory.None, CoverageMeasureCategory.LineBased);
+            CoverageMeasureCategory.None,
+            CoverageMeasureCategory.LineBased,
+            CoverageMeasureCategory.VariableBased);
+    boolean variableFlag = true;
     for (var type : types) {
       lineColors.append(type.getId()).append(":");
       if (type == CoverageMeasureType.None) {
@@ -688,6 +711,13 @@ public class ReportGenerator {
       } else if (type.getCategory() == CoverageMeasureCategory.LineBased) {
         LineCoverageMeasure lineCov = (LineCoverageMeasure) covHandler.getData(type);
         lineColors.append(lineCov.getColor(sourcePath.toString(), lineNumber));
+      } else if (type.getCategory() == CoverageMeasureCategory.VariableBased) {
+        VariableCoverageMeasure varCov = (VariableCoverageMeasure) covHandler.getData(type);
+        if (variableFlag) {
+          lineColors.append("!");
+          variableFlag = false;
+        }
+        lineColors.append(varCov.getVariables());
       }
       lineColors.append(";");
     }

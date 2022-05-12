@@ -19,22 +19,22 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
  */
 public class FilePredicateCoverageStatistics {
   /* ##### Class Fields ##### */
-  public int previousPredicateRelevantVariablesNodesSize = 0;
-  public final Set<Integer> allPredicateConsideredNodes = new LinkedHashSet<>();
-  public final Set<Integer> allPredicateRelevantVariablesNodes = new LinkedHashSet<>();
-  public final Multiset<String> variableOccurences = HashMultiset.create();
+  public int previousPredicateRelevantVariablesLocationsSize = 0;
+  public final Set<Integer> allPredicateConsideredLocations = new LinkedHashSet<>();
+  public final Set<Integer> allPredicateRelevantVariablesLocations = new LinkedHashSet<>();
+  public final Multiset<String> variableNames = HashMultiset.create();
 
   /* ##### Public Methods ##### */
   public void addPredicateConsideredNode(CFANode node) {
-    allPredicateConsideredNodes.add(node.getNodeNumber());
+    allPredicateConsideredLocations.add(node.getNodeNumber());
   }
 
   public void addPredicateRelevantVariablesNodes(CFANode node) {
-    allPredicateRelevantVariablesNodes.add(node.getNodeNumber());
+    allPredicateRelevantVariablesLocations.add(node.getNodeNumber());
   }
 
   public void resetPredicateRelevantVariablesNodes() {
-    previousPredicateRelevantVariablesNodesSize = allPredicateRelevantVariablesNodes.size();
-    allPredicateRelevantVariablesNodes.clear();
+    previousPredicateRelevantVariablesLocationsSize = allPredicateRelevantVariablesLocations.size();
+    allPredicateRelevantVariablesLocations.clear();
   }
 }

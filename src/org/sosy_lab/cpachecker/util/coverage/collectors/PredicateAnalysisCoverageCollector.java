@@ -67,7 +67,7 @@ public class PredicateAnalysisCoverageCollector extends CoverageCollector {
       return;
     }
     FileCoverageStatistics collector = getCollector(pEdge);
-    collector.predicateStatistics.variableOccurences.addAll(variableNames);
+    collector.predicateStatistics.variableNames.addAll(variableNames);
   }
 
   public void addInitialNodesForTDCG(
@@ -114,10 +114,11 @@ public class PredicateAnalysisCoverageCollector extends CoverageCollector {
     for (FileCoverageStatistics info : infosPerFile.values()) {
       switch (type) {
         case PredicateConsideredLocations:
-          numRelevantNodes += info.predicateStatistics.allPredicateConsideredNodes.size();
+          numRelevantNodes += info.predicateStatistics.allPredicateConsideredLocations.size();
           break;
         case PredicateRelevantVariables:
-          numRelevantNodes += info.predicateStatistics.allPredicateRelevantVariablesNodes.size();
+          numRelevantNodes +=
+              info.predicateStatistics.allPredicateRelevantVariablesLocations.size();
           break;
         default:
           break;
