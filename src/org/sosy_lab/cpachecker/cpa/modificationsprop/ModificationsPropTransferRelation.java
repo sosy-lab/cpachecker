@@ -114,8 +114,8 @@ public class ModificationsPropTransferRelation extends SingleEdgeTransferRelatio
             // check function return location later,
             // needed if pCfaEdge instanceof CFunctionReturnEdge
             if (helper.edgesMatchIgnoringFunctionReturnLocation(pCfaEdge, edgeInOriginal)) {
-              if (pCfaEdge instanceof CAssumeEdge
-                      && helper.areVariablesUsedInEdge(pCfaEdge, changedVars)
+              if ((pCfaEdge instanceof CAssumeEdge
+                      && helper.areVariablesUsedInEdge(pCfaEdge, changedVars))
                   || !(pCfaEdge instanceof CCfaEdge)) {
                 helper.logCase("Taking case 4a.");
                 return ImmutableSet.of(modPropState.makeBad());
@@ -124,8 +124,8 @@ public class ModificationsPropTransferRelation extends SingleEdgeTransferRelatio
                     || pCfaEdge instanceof CAssumeEdge
                     || pCfaEdge instanceof CFunctionSummaryEdge
                     || (pCfaEdge instanceof CDeclarationEdge
-                            || pCfaEdge instanceof CReturnStatementEdge)
-                        && !helper.areVariablesUsedInEdge(pCfaEdge, changedVars)) {
+                        || (pCfaEdge instanceof CReturnStatementEdge
+                            && !helper.areVariablesUsedInEdge(pCfaEdge, changedVars)))) {
                   helper.logCase("Taking case 4b.");
                   return ImmutableSet.of(
                       new ModificationsPropState(
