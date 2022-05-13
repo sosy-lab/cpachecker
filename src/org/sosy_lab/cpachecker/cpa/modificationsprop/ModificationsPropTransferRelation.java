@@ -24,15 +24,19 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
+import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CCfaEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.core.defaults.SingleEdgeTransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -107,29 +111,39 @@ public class ModificationsPropTransferRelation extends SingleEdgeTransferRelatio
 
           // case 4
           for (CFAEdge edgeInOriginal : CFAUtils.leavingEdges(nodeInOriginal)) {
-            if (helper.edgesMatch(pCfaEdge, edgeInOriginal)) {
-              final ImmutableSet<String> changedVarsInSuccessor;
-              try {
-                changedVarsInSuccessor = helper.modifySetForAssignment(edgeInOriginal, changedVars);
-              } catch (PointerAccessException e) {
-                helper.logProblem("Caution: Pointer or similar detected.");
+            // check function return location later,
+            // needed if pCfaEdge instanceof CFunctionReturnEdge
+            if (helper.edgesMatchIgnoringFunctionReturnLocation(pCfaEdge, edgeInOriginal)) {
+              if (pCfaEdge instanceof CAssumeEdge
+                      && helper.areVariablesUsedInEdge(pCfaEdge, changedVars)
+                  || !(pCfaEdge instanceof CCfaEdge)) {
+                helper.logCase("Taking case 4a.");
                 return ImmutableSet.of(modPropState.makeBad());
-              }
-              if (helper.areVariablesUsedInEdge(pCfaEdge, changedVars)) {
-                if (!(pCfaEdge instanceof CDeclarationEdge
-                    || pCfaEdge instanceof CFunctionCallEdge
-                    || pCfaEdge instanceof CReturnStatementEdge
-                    || pCfaEdge instanceof CFunctionReturnEdge)) {
-                  // otherwise we will handle it later
-                  helper.logCase("Taking case 4a.");
-                  return ImmutableSet.of(modPropState.makeBad());
-                }
               } else {
-                // For function return edges we have to be careful, as modified return values modify
-                // variables above. For function calls, stack has to be updated.
-                if (!(pCfaEdge instanceof CFunctionReturnEdge
-                    || pCfaEdge instanceof CFunctionCallEdge)) {
+                if (pCfaEdge instanceof BlankEdge
+                    || pCfaEdge instanceof CAssumeEdge
+                    || pCfaEdge instanceof CFunctionSummaryEdge
+                    || (pCfaEdge instanceof CDeclarationEdge
+                            || pCfaEdge instanceof CReturnStatementEdge)
+                        && !helper.areVariablesUsedInEdge(pCfaEdge, changedVars)) {
                   helper.logCase("Taking case 4b.");
+                  return ImmutableSet.of(
+                      new ModificationsPropState(
+                          pCfaEdge.getSuccessor(),
+                          edgeInOriginal.getSuccessor(),
+                          changedVars,
+                          stack,
+                          helper));
+                } else if (pCfaEdge instanceof CStatementEdge) {
+                  helper.logCase("Taking case 4b.");
+                  final ImmutableSet<String> changedVarsInSuccessor;
+                  try {
+                    changedVarsInSuccessor =
+                        helper.modifySetForAssignment((CStatementEdge) pCfaEdge, changedVars);
+                  } catch (PointerAccessException e) {
+                    helper.logProblem("Caution: Pointer or similar detected.");
+                    return ImmutableSet.of(modPropState.makeBad());
+                  }
                   return ImmutableSet.of(
                       new ModificationsPropState(
                           pCfaEdge.getSuccessor(),
@@ -138,6 +152,9 @@ public class ModificationsPropTransferRelation extends SingleEdgeTransferRelatio
                           stack,
                           helper));
                 }
+                // CFunctionCallEdge, CFunctionReturnedge handled later
+                // CDeclarationEdge, CReturnStatementEdge that are affected by change will be
+                // handled later
               }
             }
           }
@@ -154,7 +171,7 @@ public class ModificationsPropTransferRelation extends SingleEdgeTransferRelatio
                           edgeInOriginal.getSuccessor(),
                           new ImmutableSet.Builder<String>()
                               .addAll(changedVars)
-                              .add(declOr.getOrigName())
+                              .add(declOr.getQualifiedName())
                               .build(),
                           stack,
                           helper));
@@ -433,7 +450,8 @@ public class ModificationsPropTransferRelation extends SingleEdgeTransferRelatio
                   new ModificationsPropState(
                       nodeInMod, tup.getFirst(), tup.getSecond(), stack, helper),
                   pPrecision,
-                  pCfaEdge);
+                  pCfaEdge,
+                  null);
             }
           }
 

@@ -22,11 +22,13 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
@@ -109,6 +111,23 @@ public class ModificationsPropHelper {
   }
 
   /**
+   * Check whether edges describe the same operation.
+   *
+   * @param pEdgeInGiven the edge in the given CFA
+   * @param pEdgeInOriginal the edge in the original CFA
+   * @return whether these are similar enough for us
+   */
+  boolean edgesMatchIgnoringFunctionReturnLocation(
+      final CFAEdge pEdgeInGiven, final CFAEdge pEdgeInOriginal) {
+    final String firstAst = pEdgeInGiven.getRawStatement();
+    final String sndAst = pEdgeInOriginal.getRawStatement();
+
+    return firstAst.equals(sndAst)
+        && pEdgeInGiven.getEdgeType() == pEdgeInOriginal.getEdgeType()
+        && inSameFunction(pEdgeInGiven.getSuccessor(), pEdgeInOriginal.getSuccessor());
+  }
+
+  /**
    * Checks whether an CFA edge represents an untracked operation.
    *
    * @param pEdge the edge to be checked
@@ -155,68 +174,81 @@ public class ModificationsPropHelper {
    */
   Pair<CFANode, ImmutableSet<String>> skipAssignment(
       final CFANode pNode, final ImmutableSet<String> pVars) {
-    if (pNode.getNumLeavingEdges() == 1
-        && (pNode.getLeavingEdge(0) instanceof CStatementEdge
-            || pNode.getLeavingEdge(0) instanceof CDeclarationEdge)
-        && !isErrorLocation(pNode)) {
+    if (pNode.getNumLeavingEdges() == 1 && !isErrorLocation(pNode)) {
       CFAEdge edge = pNode.getLeavingEdge(0);
-      String written = CFAEdgeUtils.getLeftHandVariable(pNode.getLeavingEdge(0));
-      if (written != null) { // TODO might be unsound for pointers?
-        if (pVars.contains(written)) {
+      if (edge instanceof CStatementEdge) {
+        CStatement stmt = ((CStatementEdge) edge).getStatement();
+        if (stmt instanceof CExpressionStatement) {
           return Pair.of(edge.getSuccessor(), pVars);
-        } else {
-          return Pair.of(
-              edge.getSuccessor(),
-              new ImmutableSet.Builder<String>().addAll(pVars).add(written).build());
+        } else if (stmt instanceof CExpressionAssignmentStatement) {
+          try {
+            // we are conservative and assume every variable occurring on left hand side is changed
+            Set<String> assigned =
+                ((CExpressionAssignmentStatement) stmt).getLeftHandSide().accept(visitor);
+            if (pVars.containsAll(assigned)) {
+              return Pair.of(edge.getSuccessor(), pVars);
+            } else {
+              return Pair.of(
+                  edge.getSuccessor(),
+                  new ImmutableSet.Builder<String>().addAll(pVars).addAll(assigned).build());
+            }
+          } catch (PointerAccessException e) {
+            // stop skipping
+          }
+        } else if (stmt instanceof CFunctionCallAssignmentStatement) {
+          try {
+            Set<String> assigned =
+                ((CFunctionCallAssignmentStatement) stmt).getLeftHandSide().accept(visitor);
+
+            CFunctionCallExpression funCall = ((CFunctionCall) stmt).getFunctionCallExpression();
+
+            assigned.addAll(funCall.getFunctionNameExpression().accept(visitor));
+            for (CExpression exp : funCall.getParameterExpressions()) {
+              assigned.addAll(exp.accept(visitor));
+            }
+            if (pVars.containsAll(assigned)) {
+              return Pair.of(edge.getSuccessor(), pVars);
+            } else {
+              return Pair.of(
+                  edge.getSuccessor(),
+                  new ImmutableSet.Builder<String>().addAll(pVars).addAll(assigned).build());
+            }
+          } catch (PointerAccessException e) {
+            // stop skipping
+          }
+        } else if (stmt instanceof CFunctionCallStatement) {
+          try {
+            CFunctionCallExpression funCall = ((CFunctionCall) stmt).getFunctionCallExpression();
+
+            Set<String> assigned = funCall.getFunctionNameExpression().accept(visitor);
+            for (CExpression exp : funCall.getParameterExpressions()) {
+              assigned.addAll(exp.accept(visitor));
+            }
+            if (pVars.containsAll(assigned)) {
+              return Pair.of(edge.getSuccessor(), pVars);
+            } else {
+              return Pair.of(
+                  edge.getSuccessor(),
+                  new ImmutableSet.Builder<String>().addAll(pVars).addAll(assigned).build());
+            }
+          } catch (PointerAccessException e) {
+            // stop skipping
+          }
+        }
+      } else if (edge instanceof CDeclarationEdge) {
+        String written = CFAEdgeUtils.getLeftHandVariable(edge);
+        if (written != null) {
+          if (pVars.contains(written)) {
+            return Pair.of(edge.getSuccessor(), pVars);
+          } else {
+            return Pair.of(
+                edge.getSuccessor(),
+                new ImmutableSet.Builder<String>().addAll(pVars).add(written).build());
+          }
         }
       }
     }
     return Pair.of(pNode, pVars);
-  }
-
-  /**
-   * Check whether edges describe the same operation.
-   *
-   * @param pEdgeInGiven the edge in the given CFA
-   * @param pEdgeInOriginal the edge in the original CFA
-   * @return whether these are similar enough for us
-   */
-  boolean edgesMatch(final CFAEdge pEdgeInGiven, final CFAEdge pEdgeInOriginal) {
-    final String firstAst = pEdgeInGiven.getRawStatement();
-    final String sndAst = pEdgeInOriginal.getRawStatement();
-
-    return firstAst.equals(sndAst)
-        && pEdgeInGiven.getEdgeType() == pEdgeInOriginal.getEdgeType()
-        && successorsMatch(pEdgeInGiven, pEdgeInOriginal);
-  }
-
-  /**
-   * Checks whether successors of two similar edges are similar as well.
-   *
-   * @param pEdgeInGiven the edge from the given CFA
-   * @param pEdgeInOriginal the edge form the original CFA
-   * @return whether the next node functions and summary edges match
-   */
-  private boolean successorsMatch(final CFAEdge pEdgeInGiven, final CFAEdge pEdgeInOriginal) {
-    final CFANode givenSuccessor = pEdgeInGiven.getSuccessor(),
-        originalSuccessor = pEdgeInOriginal.getSuccessor();
-    // TODO: check whether needed in our case -> sufficient because we use stack?
-    /*if (pEdgeInGiven.getEdgeType() == CFAEdgeType.FunctionReturnEdge) {
-      for (CFAEdge enterBeforeCall :
-          CFAUtils.enteringEdges(
-              ((FunctionReturnEdge) pEdgeInGiven).getSummaryEdge().getPredecessor())) {
-        for (CFAEdge enterOriginalBeforeCAll :
-            CFAUtils.enteringEdges(
-                ((FunctionReturnEdge) pEdgeInOriginal).getSummaryEdge().getPredecessor())) {
-          if (edgesMatch(enterBeforeCall, enterOriginalBeforeCAll)) {
-            break;
-          }
-        }
-        return false;
-      }
-    }*/
-
-    return inSameFunction(givenSuccessor, originalSuccessor);
   }
 
   /**
@@ -227,48 +259,59 @@ public class ModificationsPropHelper {
    * @return the updated set of modified variables
    * @throws PointerAccessException exception if pointer is contained in right hand side
    */
-  ImmutableSet<String> modifySetForAssignment(final CFAEdge pEdge, final ImmutableSet<String> pVars)
-      throws PointerAccessException {
+  ImmutableSet<String> modifySetForAssignment(
+      final CStatementEdge pEdge, final ImmutableSet<String> pVars) throws PointerAccessException {
 
     ImmutableSet<String> vars = pVars;
+    // be pessimistic, may not determine left hand side variable
+    String lhs = CFAEdgeUtils.getLeftHandVariable(pEdge);
+    if (lhs != null && vars.contains(lhs)) {
+      vars = FluentIterable.from(pVars).filter(Predicates.not(Predicates.equalTo(lhs))).toSet();
+    }
 
-    if (pEdge instanceof CStatementEdge) {
-      String lhs = CFAEdgeUtils.getLeftHandVariable(pEdge);
-      Set<String> rhs = new HashSet<>();
+    Set<String> maybeAssigned = null;
+    Set<String> rhs = new HashSet<>();
 
-      CStatement stmt = ((CStatementEdge) pEdge).getStatement();
-      if (stmt instanceof CExpressionStatement) {
-        rhs = ((CExpressionStatement) stmt).getExpression().accept(visitor);
-      } else {
-        if (stmt instanceof CAssignment) {
-          CLeftHandSide clhs = ((CAssignment) stmt).getLeftHandSide();
-          if (!(clhs instanceof CIdExpression)) {
-            rhs.addAll(clhs.accept(visitor));
-          }
-          if (stmt instanceof CExpressionAssignmentStatement) {
-            rhs.addAll(((CExpressionAssignmentStatement) stmt).getRightHandSide().accept(visitor));
-          }
-        }
-        /* Function Calls are handled differently now.
-         *
-         * if (stmt instanceof CFunctionCall) {
-         * CFunctionCallExpression funCall = ((CFunctionCall) stmt).getFunctionCallExpression();
-         * rhs.addAll(funCall.getFunctionNameExpression().accept(visitor));
-         * for (CExpression exp : funCall.getParameterExpressions()) {
-         *   rhs.addAll(exp.accept(visitor));
-         * }
-         * }
-         */
+    CStatement stmt = pEdge.getStatement();
+    if (stmt instanceof CExpressionStatement) {
+      rhs = ((CExpressionStatement) stmt).getExpression().accept(visitor);
+    } else if (stmt instanceof CFunctionCallStatement) { // external function call
+      CFunctionCallExpression funCall = ((CFunctionCall) stmt).getFunctionCallExpression();
+      rhs.addAll(funCall.getFunctionNameExpression().accept(visitor));
+      for (CExpression exp : funCall.getParameterExpressions()) {
+        rhs.addAll(exp.accept(visitor));
       }
+      // be optimistic and assume that it does not modify any other variable than its input
+      // parameters
+      maybeAssigned = rhs;
+    } else {
+      if (stmt instanceof CAssignment) {
+        // we are conservative and assume every variable occurring on left hand side is changed
+        maybeAssigned = ((CAssignment) stmt).getLeftHandSide().accept(visitor);
 
-      if (lhs != null && pVars.contains(lhs)) {
-        vars = FluentIterable.from(pVars).filter(Predicates.not(Predicates.equalTo(lhs))).toSet();
-        if (!Collections.disjoint(pVars, rhs)) {
-          // add lhs variable because written expression includes modified variable
-          return new ImmutableSet.Builder<String>().addAll(vars).add(lhs).build();
+        if (stmt instanceof CExpressionAssignmentStatement) {
+          rhs.addAll(((CExpressionAssignmentStatement) stmt).getRightHandSide().accept(visitor));
+        } else { // CFunctionCallAssignmentStatement
+          CFunctionCallExpression funCall = ((CFunctionCall) stmt).getFunctionCallExpression();
+
+          rhs.addAll(funCall.getFunctionNameExpression().accept(visitor));
+          for (CExpression exp : funCall.getParameterExpressions()) {
+            rhs.addAll(exp.accept(visitor));
+          }
+          // be optimistic and assume that it does not modify any other variable than its input
+          // parameters
+          maybeAssigned.addAll(rhs);
         }
       }
     }
+
+    if (maybeAssigned != null) {
+      if (!Collections.disjoint(vars, rhs)) {
+        // add maybeAssigned variables because written expression includes modified variable
+        return new ImmutableSet.Builder<String>().addAll(vars).addAll(maybeAssigned).build();
+      }
+    }
+
     return vars;
   }
 
