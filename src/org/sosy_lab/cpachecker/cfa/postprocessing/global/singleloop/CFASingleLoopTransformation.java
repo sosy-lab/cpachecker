@@ -666,7 +666,9 @@ public class CFASingleLoopTransformation {
           edge = dummyEdge;
         }
 
-        // Replace obvious endless loop "while (x) {}" by "if (x) { TERMINATION NODE }"
+        // Check if we have obvious empty self loops like "while (x) {}" or
+        // "if (x) { label: goto label; }" (i.e., an assume edge followed by a looping chain of
+        // blank edges) and replace them by "if (x) { TERMINATION NODE }".
         if (edge.getEdgeType() == CFAEdgeType.AssumeEdge) {
           CFANode assumePredecessor = edge.getPredecessor();
           CFANode current = edge.getSuccessor();
@@ -675,16 +677,19 @@ public class CFASingleLoopTransformation {
           List<CFAEdge> edgesToRemove = new ArrayList<>();
           edgesToRemove.add(leavingEdge);
           Set<CFANode> visitedNodes = new HashSet<>();
-          while (!current.equals(assumePredecessor)
-              && !visitedNodes.contains(current)
-              && (leavingEdges = CFAUtils.leavingEdges(current)).size() == 1
+          visitedNodes.add(assumePredecessor);
+          boolean blankLoopFound = false;
+          while ((leavingEdges = CFAUtils.leavingEdges(current)).size() == 1
               && (leavingEdge = Iterables.getOnlyElement(leavingEdges)).getEdgeType()
                   == CFAEdgeType.BlankEdge) {
-            visitedNodes.add(current);
-            current = leavingEdge.getSuccessor();
+            if (!visitedNodes.add(current)) {
+              blankLoopFound = true;
+              break;
+            }
             edgesToRemove.add(leavingEdge);
+            current = leavingEdge.getSuccessor();
           }
-          if (current.equals(assumePredecessor)) {
+          if (blankLoopFound) {
             for (CFAEdge toRemove : edgesToRemove) {
               removeFromNodes(toRemove);
             }
