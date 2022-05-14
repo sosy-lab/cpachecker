@@ -22,6 +22,7 @@ public class CoverageColorUtil {
   public static final String DEFAULT_COVERAGE_COLOR = "#3aec49";
   public static final String DEFAULT_CONSIDERED_COLOR = "#ff6e6e";
   public static final String DEFAULT_ELEMENT_COLOR = "#ffffff";
+  public static final String DEFAULT_RELEVANT_VARIABLE_COLOR = "#ff2424";
 
   public static final String GREEN_TDCG_COLOR = "#3cc220";
   public static final String BLUE_TDCG_COLOR = "#1a81d5";

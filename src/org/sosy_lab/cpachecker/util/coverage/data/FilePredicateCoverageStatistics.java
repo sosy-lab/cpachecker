@@ -22,7 +22,8 @@ public class FilePredicateCoverageStatistics {
   public int previousPredicateRelevantVariablesLocationsSize = 0;
   public final Set<Integer> allPredicateConsideredLocations = new LinkedHashSet<>();
   public final Set<Integer> allPredicateRelevantVariablesLocations = new LinkedHashSet<>();
-  public final Multiset<String> variableNames = HashMultiset.create();
+  public final Multiset<String> allVariableNames = HashMultiset.create();
+  public final Multiset<String> relevantVariableNames = HashMultiset.create();
 
   /* ##### Public Methods ##### */
   public void addPredicateConsideredNode(CFANode node) {

@@ -365,7 +365,7 @@ public class ReportGenerator {
   private void insertSourceLineCoverageJson(Writer writer, CoverageMeasureHandler covHandler)
       throws IOException {
     int i = 0;
-    writer.write("var sourceCoverageJson = [");
+    writer.write("var sourceCoverageJson = {\"types\" : [");
     ImmutableList<String> types =
         covHandler.getAllTypesForCategoriesAsString(
             CoverageMeasureCategory.None,
@@ -377,7 +377,10 @@ public class ReportGenerator {
         writer.write(",");
       }
     }
-    writer.write("]\n");
+    writer.write("],\n");
+    writer.write("\"color\":");
+    JSON.writeJSONString(CoverageColorUtil.DEFAULT_RELEVANT_VARIABLE_COLOR, writer);
+    writer.write("}\n");
     writer.write("window.sourceCoverageJson = sourceCoverageJson;\n");
   }
 
@@ -717,7 +720,7 @@ public class ReportGenerator {
           lineColors.append("!");
           variableFlag = false;
         }
-        lineColors.append(varCov.getVariables());
+        lineColors.append(varCov.getAllVariablesAsString());
       }
       lineColors.append(";");
     }

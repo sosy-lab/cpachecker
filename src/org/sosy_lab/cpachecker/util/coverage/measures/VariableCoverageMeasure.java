@@ -10,7 +10,6 @@ package org.sosy_lab.cpachecker.util.coverage.measures;
 
 import com.google.common.collect.HashMultiset;
 import com.google.common.collect.Multiset;
-import java.util.Set;
 
 /**
  * A coverage measure which is based on variables defined within the source code. The coverage
@@ -19,23 +18,26 @@ import java.util.Set;
  */
 public class VariableCoverageMeasure implements CoverageMeasure {
   /* ##### Class Fields ##### */
-  private final Multiset<String> variables;
+  private final Multiset<String> allVariables;
+  private final Multiset<String> relevantVariables;
 
   /* ##### Constructors ##### */
-  public VariableCoverageMeasure(Multiset<String> pVariables) {
-    variables = pVariables;
+  public VariableCoverageMeasure(
+      Multiset<String> pAllVariables, Multiset<String> pRelevantVariables) {
+    allVariables = pAllVariables;
+    relevantVariables = pRelevantVariables;
   }
 
   public VariableCoverageMeasure() {
-    variables = HashMultiset.create();
+    this(HashMultiset.create(), HashMultiset.create());
   }
 
   /* ##### Getter Methods ##### */
-  public String getVariables() {
+  public String getAllVariablesAsString() {
     StringBuilder variablesBuilder = new StringBuilder();
     int i = 0;
-    int max = getRelevantVariables().size() - 1;
-    for (String variableStr : getRelevantVariables()) {
+    int max = relevantVariables.elementSet().size() - 1;
+    for (String variableStr : relevantVariables.elementSet()) {
       variablesBuilder.append(variableStr);
       if (i++ != max) {
         variablesBuilder.append(",");
@@ -44,23 +46,19 @@ public class VariableCoverageMeasure implements CoverageMeasure {
     return variablesBuilder.toString();
   }
 
-  private Set<String> getRelevantVariables() {
-    return variables.elementSet();
-  }
-
   /* ##### Inherited Methods ##### */
   @Override
   public double getCoverage() {
-    return 0;
+    return getCount() / getMaxCount();
   }
 
   @Override
   public double getCount() {
-    return 0;
+    return relevantVariables.elementSet().size();
   }
 
   @Override
   public double getMaxCount() {
-    return 0;
+    return allVariables.elementSet().size();
   }
 }

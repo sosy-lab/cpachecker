@@ -1333,10 +1333,13 @@ function renderTDCG(dataJSON, color, inPercentage) {
     "$scope",
     function sourceToolbarController($rootScope, $scope) {
       $scope.sourceCoverageSelections = ["None"];
-      if (sourceCoverageJson !== undefined && sourceCoverageJson.length > 0) {
+      if (
+        sourceCoverageJson !== undefined &&
+        sourceCoverageJson.types.length > 0
+      ) {
         $scope.sourceCoverageSelections = [];
-        for (let i = 0; i < sourceCoverageJson.length; i += 1) {
-          $scope.sourceCoverageSelections.push(sourceCoverageJson[i]);
+        for (let i = 0; i < sourceCoverageJson.types.length; i += 1) {
+          $scope.sourceCoverageSelections.push(sourceCoverageJson.types[i]);
         }
       }
       $rootScope.displayedSourceCoverages = $scope.sourceCoverageSelections[0];
@@ -1348,18 +1351,20 @@ function renderTDCG(dataJSON, color, inPercentage) {
           $rootScope.displayedSourceCoverages
         );
         const linesCount = d3.select("#source-file").selectAll("tr").size();
-        for (let i = 1; i <= linesCount; i += 1) {
-          const lineStyle = d3.select(`#right-source-${i}`).attr("style");
+        for (let currentLine = 1; currentLine <= linesCount; currentLine += 1) {
+          const lineStyle = d3
+            .select(`#right-source-${currentLine}`)
+            .attr("style");
           const lineColor = $scope.extractColor(lineStyle, $scope.colorId);
           const currentFunction = $scope.extractCurrentFunction(lineStyle);
           const lineStyleTypes = lineColor.split("!");
           if (lineStyleTypes.length >= 2) {
             const variables = lineStyleTypes[1].split(";")[0].split(",");
             const defaultColor = $scope.extractColor(lineStyle, "None");
-            let codeLine = d3.select(`#right-source-${i}`).text();
+            let codeLine = d3.select(`#right-source-${currentLine}`).text();
             $scope.colorLineBackground(
               lineStyle,
-              i,
+              currentLine,
               defaultColor,
               currentFunction
             );
@@ -1371,11 +1376,11 @@ function renderTDCG(dataJSON, color, inPercentage) {
                 defaultColor
               );
             }
-            d3.select(`#right-source-${i}`).html(codeLine);
+            d3.select(`#right-source-${currentLine}`).html(codeLine);
           } else {
             $scope.colorLineBackground(
               lineStyle,
-              i,
+              currentLine,
               lineColor,
               currentFunction
             );
@@ -1423,7 +1428,7 @@ function renderTDCG(dataJSON, color, inPercentage) {
 
       $scope.colorLineText = (lineCode, variableName, lineColor) => {
         let outputStr = "";
-        const textColor = "#ff2424";
+        const textColor = sourceCoverageJson.color;
         const preStyle = `<mark style="background-color: ${lineColor}; color: ${textColor}; padding: 0;">`;
         const postStyle = "</mark>";
         const lineParts = lineCode.split(variableName);

@@ -113,11 +113,12 @@ public class PredicateCoverageCPATransferRelation extends AbstractSingleWrapperT
   }
 
   private void processRelevantAbstractionVariablesCoverage(CFAEdge edge, AbstractState state) {
-    Set<String> variableNames = getAllRelevantAbstractStateVariables(state);
+    Set<String> variableNames = getAllAbstractStateVariables(state);
+    coverageCollector.addAbstractionVariables(variableNames, edge);
     coverageCollector.addRelevantAbstractionVariables(variableNames, edge);
   }
 
-  private Set<String> getAllRelevantAbstractStateVariables(AbstractState state) {
+  private Set<String> getAllAbstractStateVariables(AbstractState state) {
     if (state instanceof PredicateAbstractState) {
       PredicateAbstractState predicateAbstractState = (PredicateAbstractState) state;
       BooleanFormula abstractionFormula =

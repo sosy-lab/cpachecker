@@ -62,12 +62,20 @@ public class PredicateAnalysisCoverageCollector extends CoverageCollector {
     collector.predicateStatistics.addPredicateRelevantVariablesNodes(pEdge.getSuccessor());
   }
 
+  public void addAbstractionVariables(Set<String> variableNames, final CFAEdge pEdge) {
+    if (!CoverageUtility.coversLine(pEdge)) {
+      return;
+    }
+    FileCoverageStatistics collector = getCollector(pEdge);
+    collector.predicateStatistics.allVariableNames.addAll(variableNames);
+  }
+
   public void addRelevantAbstractionVariables(Set<String> variableNames, final CFAEdge pEdge) {
     if (!CoverageUtility.coversLine(pEdge)) {
       return;
     }
     FileCoverageStatistics collector = getCollector(pEdge);
-    collector.predicateStatistics.variableNames.addAll(variableNames);
+    collector.predicateStatistics.relevantVariableNames.addAll(variableNames);
   }
 
   public void addInitialNodesForTDCG(

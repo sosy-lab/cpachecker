@@ -122,7 +122,10 @@ public class CoverageMeasureHandler {
                   covStatistics.numTotalNodes));
           break;
         case PredicateAbstractionVariables:
-          addData(type, new VariableCoverageMeasure(covStatistics.variableNames));
+          addData(
+              type,
+              new VariableCoverageMeasure(
+                  covStatistics.allVariableNames, covStatistics.relevantVariableNames));
       }
     }
   }

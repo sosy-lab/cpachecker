@@ -39,7 +39,8 @@ public class CoverageStatistics {
   public Multiset<Integer> visitedLines = LinkedHashMultiset.create();
   public Multiset<Integer> visitedLocations = LinkedHashMultiset.create();
   public Multiset<Integer> reachedLocations = LinkedHashMultiset.create();
-  public Multiset<String> variableNames = HashMultiset.create();
+  public Multiset<String> allVariableNames = HashMultiset.create();
+  public Multiset<String> relevantVariableNames = HashMultiset.create();
 
   /* ##### Constructors ##### */
   public CoverageStatistics(Map<String, FileCoverageStatistics> infosPerFile) {
@@ -50,7 +51,8 @@ public class CoverageStatistics {
       visitedLines.addAll(info.visitedLines);
       visitedLocations.addAll(info.visitedLocations);
       reachedLocations.addAll(info.allReachedNodes);
-      variableNames.addAll(info.predicateStatistics.variableNames);
+      allVariableNames.addAll(info.predicateStatistics.allVariableNames);
+      relevantVariableNames.addAll(info.predicateStatistics.relevantVariableNames);
 
       numTotalFunctions += info.allFunctions.size();
       numVisitedFunctions += info.visitedFunctions.elementSet().size();
