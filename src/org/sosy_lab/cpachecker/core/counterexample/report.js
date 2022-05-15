@@ -1432,7 +1432,7 @@ function renderTDCG(dataJSON, color, inPercentage) {
         const preStyle = `<mark style="background-color: ${lineColor}; color: ${textColor}; padding: 0;">`;
         const postStyle = "</mark>";
         const lineParts = lineCode.split(variableName);
-        const variableEnvironment = /^\s|\(|\)|\+|-|=|;|,|\.$/;
+        const variableEnvironment = /^\s|\(|\)|\+|-|=|;|,|\.|\[|\]$/;
         for (let i = 0; i < lineParts.length; i += 1) {
           if (i !== lineParts.length - 1) {
             if (
