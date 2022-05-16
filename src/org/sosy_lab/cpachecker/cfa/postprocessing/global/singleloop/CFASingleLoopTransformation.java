@@ -680,8 +680,9 @@ public class CFASingleLoopTransformation {
           visitedNodes.add(assumePredecessor);
           boolean blankLoopFound = false;
           while ((leavingEdges = CFAUtils.leavingEdges(current)).size() == 1
-              && (leavingEdge = Iterables.getOnlyElement(leavingEdges)).getEdgeType()
-                  == CFAEdgeType.BlankEdge) {
+              && ((leavingEdge = Iterables.getOnlyElement(leavingEdges)).getEdgeType()
+                      == CFAEdgeType.BlankEdge
+                  || leavingEdge.getEdgeType() == CFAEdgeType.FunctionCallEdge)) {
             if (!visitedNodes.add(current)) {
               blankLoopFound = true;
               break;
