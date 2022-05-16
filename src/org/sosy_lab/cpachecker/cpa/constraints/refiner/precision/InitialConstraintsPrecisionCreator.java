@@ -43,11 +43,11 @@ public class InitialConstraintsPrecisionCreator {
     LOCATION
   }
 
-  @Option(description = "Type of precision to use. Has to be LOCATION if"
+  @Option(secure = true, description = "Type of precision to use. Has to be LOCATION if"
       + " PredicateExtractionRefiner is used.", toUppercase = true)
   private PrecisionType precisionType = PrecisionType.CONSTRAINTS;
 
-  @Option(description = "Whether to get initial constraint precision from a "
+  @Option(secure = true, description = "Whether to get initial constraint precision from a "
       + "value precision or not.", toUppercase = true)
   private boolean initialValueConstraintsPrecision = false;
 
