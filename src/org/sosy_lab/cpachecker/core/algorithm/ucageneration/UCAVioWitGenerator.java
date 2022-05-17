@@ -130,26 +130,26 @@ public class UCAVioWitGenerator {
 
     // Now, a short cleaning is applied:
     // All states leading to the error state are replaced by the error state directly
-    Map<ARGState, Optional<ARGState>> statesToReplaceToReplacement = new HashMap<>();
-    Set<UCAARGStateEdge> toRemove = new HashSet<>();
-    relevantEdges.stream()
-        .filter(e -> e.getTarget().isPresent() && targetStates.contains(e.getTarget().orElseThrow()))
-        .forEach(
-            e -> {
-              statesToReplaceToReplacement.put(e.getSource(), e.getTarget());
-              toRemove.add(e);
-            });
-    HashSet<UCAARGStateEdge> toAdd = new HashSet<>();
-    for(UCAARGStateEdge edge : relevantEdges){
-      if (edge.getTarget().isPresent() && statesToReplaceToReplacement.containsKey(edge.getTarget().orElseThrow())){
-        toRemove.add(edge);
-        Optional<ARGState> replacement = statesToReplaceToReplacement.get(edge.getTarget().orElseThrow());
-        if (replacement.isPresent())
-        toAdd.add(new UCAARGStateEdge(edge.source,replacement.orElseThrow(), edge.getEdge()));
-      }
-    }
-    relevantEdges.removeAll(toRemove);
-    relevantEdges.addAll(toAdd);
+//    Map<ARGState, Optional<ARGState>> statesToReplaceToReplacement = new HashMap<>();
+//    Set<UCAARGStateEdge> toRemove = new HashSet<>();
+//    relevantEdges.stream()
+//        .filter(e -> e.getTarget().isPresent() && targetStates.contains(e.getTarget().orElseThrow()))
+//        .forEach(
+//            e -> {
+//              statesToReplaceToReplacement.put(e.getSource(), e.getTarget());
+//              toRemove.add(e);
+//            });
+//    HashSet<UCAARGStateEdge> toAdd = new HashSet<>();
+//    for(UCAARGStateEdge edge : relevantEdges){
+//      if (edge.getTarget().isPresent() && statesToReplaceToReplacement.containsKey(edge.getTarget().orElseThrow())){
+//        toRemove.add(edge);
+//        Optional<ARGState> replacement = statesToReplaceToReplacement.get(edge.getTarget().orElseThrow());
+//        if (replacement.isPresent())
+//        toAdd.add(new UCAARGStateEdge(edge.source,replacement.orElseThrow(), edge.getEdge()));
+//      }
+//    }
+//    relevantEdges.removeAll(toRemove);
+//    relevantEdges.addAll(toAdd);
     return writeUCAForViolationWitness(pOutput, pArgRoot, relevantEdges, false);
   }
 
@@ -263,7 +263,7 @@ public class UCAVioWitGenerator {
    * call edge <br>
    * 3. The child is a target state <br>
    * 4 Alternative: THe child is a {@link FunctionEntryNode}<br>
-   * 5. The child node has a grandchild node that is a target state <br>
+   * 5. The child node is a target state or  has a grandchild node that is a target state <br>
    *
    * @param pChild the child
    * @param pParent the parent
@@ -300,19 +300,19 @@ public class UCAVioWitGenerator {
 //        lastEdge instanceof BlankEdge
 //            && lastEdge.getDescription().contains(UCAGenerator.DESC_OF_DUMMY_FUNC_START_EDGE));
     // Case 5:
-    boolean case5 = pChild.getChildren().stream().anyMatch(gc -> pTargetStates.contains(gc));
+    boolean case5a = pTargetStates.contains(pChild);
+boolean case5b =        pChild.getChildren().stream().anyMatch(gc -> pTargetStates.contains(gc));
 
     // If the pChild cannot reach the error state, do not add it to the toProcessed
     // and let the edge goto the qTemp State (as not relevant for the path)
     // If it can reach the error state, add the edge and the child to the toProcess
-    if (case2 || case3 || case4) {
-      if (!canReachError(pChild, pTargetStates)) {
-
-        return Optional.of(Pair.of(lastEdge, Optional.empty()));
-      } else {
+    if (case2 || case3 || case4 || case5a) {
+      if (case5a || canReachError(pChild, pTargetStates)) {
         return Optional.of(Pair.of(lastEdge, Optional.of(pChild)));
+      } else {
+        return Optional.of(Pair.of(lastEdge, Optional.empty()));
       }
-    } else if (case5) {
+    } else if (case5b) {
       // If case 5 applies, we want to return the error state
       if (!canReachError(pChild, pTargetStates)) {
         return Optional.of(Pair.of(lastEdge, Optional.empty()));
