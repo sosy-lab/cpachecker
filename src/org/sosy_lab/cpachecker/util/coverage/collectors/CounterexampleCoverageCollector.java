@@ -27,19 +27,16 @@ import org.sosy_lab.cpachecker.util.coverage.tdcg.TimeDependentCoverageHandler;
  * a given counter example path. Therefore, it is only usable after the main analysis is done.
  */
 public class CounterexampleCoverageCollector extends CoverageCollector {
-  /* ##### Constructors ##### */
   CounterexampleCoverageCollector() {
     super(new LinkedHashMap<>(), new CoverageMeasureHandler(), new TimeDependentCoverageHandler());
   }
 
-  /* ##### Static Methods ##### */
   public static Map<String, FileCoverageStatistics> from(ARGPath targetPath) {
     CounterexampleCoverageCollector coverageCollector = new CounterexampleCoverageCollector();
     coverageCollector.collectCoveredEdges(targetPath);
     return coverageCollector.getInfosPerFile();
   }
 
-  /* ##### Helper Methods ##### */
   private void collectCoveredEdges(ARGPath cexPath) {
     PathIterator pathIterator = cexPath.fullPathIterator();
     while (pathIterator.hasNext()) {

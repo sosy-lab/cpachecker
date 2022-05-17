@@ -26,7 +26,6 @@ import org.sosy_lab.cpachecker.util.coverage.tdcg.TimeDependentCoverageHandler;
  * for a TDCG.
  */
 public class AnalysisIndependentCoverageCollector extends CoverageCollector {
-  /* ##### Constructors ##### */
   AnalysisIndependentCoverageCollector(
       Map<String, FileCoverageStatistics> pInfosPerFile,
       CoverageMeasureHandler pCoverageMeasureHandler,
@@ -38,7 +37,6 @@ public class AnalysisIndependentCoverageCollector extends CoverageCollector {
     addInitialNodesForMeasures(cfa);
   }
 
-  /* ##### Public Methods ##### */
   public void addInitialNodesForMeasures(CFA cfa) {
     for (CFANode node : cfa.getAllNodes()) {
       if (node.getNodeNumber() == 1) {
@@ -69,7 +67,6 @@ public class AnalysisIndependentCoverageCollector extends CoverageCollector {
     }
   }
 
-  /* ##### Getter Methods ##### */
   public double getTempVisitedCoverage() {
     int numTotalLines = 0;
     int numVisitedLines = 0;

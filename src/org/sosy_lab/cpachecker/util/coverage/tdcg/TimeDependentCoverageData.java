@@ -24,18 +24,15 @@ import java.util.concurrent.TimeUnit;
  * CoverageCPA.
  */
 public class TimeDependentCoverageData {
-  /* ##### Class Fields ##### */
   private Map<Long, Double> timeStampsPerCoverage;
   private Map<Long, Double> previousTimeStampsPerCoverage;
   private Instant startTime = Instant.MIN;
 
-  /* ##### Constructors ##### */
   public TimeDependentCoverageData() {
     initTimeStampsPerCoverage();
     previousTimeStampsPerCoverage = new LinkedHashMap<>();
   }
 
-  /* ##### Public Methods ##### */
   public void addTimeStamp(double coverage) {
     initStartTime();
     timeStampsPerCoverage.put(getDurationInMicros(), coverage);
@@ -47,7 +44,6 @@ public class TimeDependentCoverageData {
     initTimeStampsPerCoverage();
   }
 
-  /* ##### Getter Methods ##### */
   public Map<Long, Double> getReducedTimeStampsPerCoverage(int max) {
     return thinOutMap(getTimeStampsPerCoverage(), max);
   }
@@ -65,7 +61,6 @@ public class TimeDependentCoverageData {
     return timeStampsPerCoverage;
   }
 
-  /* ##### Helper Methods ##### */
   private void initTimeStampsPerCoverage() {
     timeStampsPerCoverage = new LinkedHashMap<>();
     timeStampsPerCoverage.put(0L, 0.0);

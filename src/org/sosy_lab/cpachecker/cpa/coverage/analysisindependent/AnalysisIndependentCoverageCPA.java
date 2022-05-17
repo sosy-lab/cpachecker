@@ -30,13 +30,11 @@ import org.sosy_lab.cpachecker.util.coverage.collectors.CoverageCollectorHandler
  * util.coverage package.
  */
 public class AnalysisIndependentCoverageCPA implements CoverageCPA {
-  /* ##### Class Constants ##### */
   private final TransferRelation transfer;
   private final AbstractDomain domain;
   private final StopOperator stop;
   private final CoverageCollectorHandler coverageCollectorHandler;
 
-  /* ##### Constructors ##### */
   public AnalysisIndependentCoverageCPA(CFA pCFA, CoverageCollectorHandler pCovCollectorHandler) {
     coverageCollectorHandler = pCovCollectorHandler;
     coverageCollectorHandler.initAnalysisIndependentCollectors(pCFA);
@@ -45,12 +43,10 @@ public class AnalysisIndependentCoverageCPA implements CoverageCPA {
     transfer = new AnalysisIndependentCoverageTransferRelation(coverageCollectorHandler);
   }
 
-  /* ##### Static Methods ##### */
   public static CPAFactory factory() {
     return AutomaticCPAFactory.forType(AnalysisIndependentCoverageCPA.class);
   }
 
-  /* ##### Inherited Methods ##### */
   @Override
   public CoverageCollectorHandler getCoverageCollectorHandler() {
     return coverageCollectorHandler;

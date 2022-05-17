@@ -28,12 +28,10 @@ import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
  * This CPA depends heavily on util.coverage package.
  */
 public class PredicateCoverageCPA extends AbstractSingleWrapperCPA implements CoverageCPA {
-  /* ##### Class Constants ##### */
   private final CoverageCollectorHandler coverageCollectorHandler;
   private final FormulaManagerView fmgr;
   private final CFA cfa;
 
-  /* ##### Constructors ##### */
   private PredicateCoverageCPA(
       ConfigurableProgramAnalysis pCpa, CFA pCFA, CoverageCollectorHandler pCovCollectorHandler)
       throws InvalidConfigurationException {
@@ -44,12 +42,10 @@ public class PredicateCoverageCPA extends AbstractSingleWrapperCPA implements Co
     fmgr = getFormulaManagerView();
   }
 
-  /* ##### Static Methods ##### */
   public static CPAFactory factory() {
     return AutomaticCPAFactory.forType(PredicateCoverageCPA.class);
   }
 
-  /* ##### Inherited Methods ##### */
   @Override
   public CoverageCollectorHandler getCoverageCollectorHandler() {
     return coverageCollectorHandler;
@@ -66,7 +62,6 @@ public class PredicateCoverageCPA extends AbstractSingleWrapperCPA implements Co
     return getWrappedCpa().getPrecisionAdjustment();
   }
 
-  /* ##### Helper Methods ##### */
   private FormulaManagerView getFormulaManagerView() throws InvalidConfigurationException {
     if (getWrappedCpa() instanceof PredicateCPA) {
       PredicateCPA predicateCPA = (PredicateCPA) getWrappedCpa();

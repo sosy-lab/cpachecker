@@ -20,11 +20,9 @@ import org.sosy_lab.cpachecker.util.statistics.StatisticsUtils;
  * statistics are shown i.e. in the Statistic Tab within the report.html.
  */
 public class CoverageReportStdoutSummary {
-  /* ##### Private Constants ##### */
   private static final int INDENT_LEVEL = 1;
   private static final int FIELD_COLUMN_WIDTH = 25;
 
-  /* ##### Public Methods ##### */
   /**
    * Write for every verification coverage category a summary statistics.
    *
@@ -39,7 +37,6 @@ public class CoverageReportStdoutSummary {
     writeLocationRelatedCoverage(covStatistics, pStdOut);
   }
 
-  /* ##### Helper Methods ##### */
   private static void writeFunctionCoverage(CoverageStatistics covStats, PrintStream pStdOut) {
     if (covStats.numTotalFunctions > 0) {
       final double functionCoverage =

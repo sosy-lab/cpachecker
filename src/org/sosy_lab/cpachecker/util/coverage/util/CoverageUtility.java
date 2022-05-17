@@ -23,7 +23,6 @@ import org.sosy_lab.cpachecker.util.coverage.collectors.CoverageCollectorHandler
  * package.
  */
 public class CoverageUtility {
-  /* ##### Public Methods ##### */
   /**
    * Checks if the given CFA edge can be considered for coverage or has code which represents a
    * dummy location or function declaration.

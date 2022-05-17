@@ -17,11 +17,9 @@ import com.google.common.collect.Multiset;
  * within the CoverageCollector or during the analysis within a CoverageCPA.
  */
 public class VariableCoverageMeasure implements CoverageMeasure {
-  /* ##### Class Fields ##### */
   private final Multiset<String> relevantVariables;
   private final Multiset<String> allVariables;
 
-  /* ##### Constructors ##### */
   public VariableCoverageMeasure(
       Multiset<String> pAllVariables, Multiset<String> pRelevantVariables) {
     relevantVariables = pRelevantVariables;
@@ -32,7 +30,6 @@ public class VariableCoverageMeasure implements CoverageMeasure {
     this(HashMultiset.create(), HashMultiset.create());
   }
 
-  /* ##### Getter Methods ##### */
   public String getAllVariablesAsString() {
     StringBuilder variablesBuilder = new StringBuilder();
     int i = 0;
@@ -46,7 +43,6 @@ public class VariableCoverageMeasure implements CoverageMeasure {
     return variablesBuilder.toString();
   }
 
-  /* ##### Inherited Methods ##### */
   @Override
   public double getCoverage() {
     return getCount() / getMaxCount();

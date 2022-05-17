@@ -20,16 +20,13 @@ import java.util.Map;
  * Tab in the report.html.
  */
 public class TimeDependentCoverageHandler {
-  /* ##### Class Fields ##### */
   private final Map<TimeDependentCoverageType, TimeDependentCoverageData>
       timeDependentCoverageDataMap;
 
-  /* ##### Constructors ##### */
   public TimeDependentCoverageHandler() {
     timeDependentCoverageDataMap = new LinkedHashMap<>();
   }
 
-  /* ##### Initializers ##### */
   /**
    * Method for initializing a new type of TDCG.
    *
@@ -51,7 +48,6 @@ public class TimeDependentCoverageHandler {
     initNewData(TimeDependentCoverageType.PredicateRelevantVariables);
   }
 
-  /* ##### Getter Methods ##### */
   public TimeDependentCoverageData getData(TimeDependentCoverageType type) {
     return timeDependentCoverageDataMap.get(type);
   }

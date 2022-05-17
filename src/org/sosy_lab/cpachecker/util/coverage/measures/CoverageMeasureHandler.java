@@ -22,16 +22,13 @@ import org.sosy_lab.cpachecker.util.coverage.data.FileCoverageStatistics;
  * done. The corresponding data is delivered by CoverageData which holds all relevant coverage data.
  */
 public class CoverageMeasureHandler {
-  /* ##### Class Fields ##### */
   private final Map<CoverageMeasureType, CoverageMeasure> coverageMeasureMap;
 
-  /* ##### Constructors ##### */
   public CoverageMeasureHandler() {
     coverageMeasureMap = new LinkedHashMap<>();
     initNewData(CoverageMeasureType.None);
   }
 
-  /* ##### Public Methods ##### */
   /**
    * Method for initializing a new type of coverage measure. When adding new CoverageMeasureCategory
    * fields, this method should include those cases.
@@ -130,7 +127,6 @@ public class CoverageMeasureHandler {
     }
   }
 
-  /* ##### Getter Methods ##### */
   public CoverageMeasure getData(CoverageMeasureType type) {
     return coverageMeasureMap.get(type);
   }
@@ -154,7 +150,6 @@ public class CoverageMeasureHandler {
         .collect(ImmutableList.toImmutableList());
   }
 
-  /* ##### Helper Methods ##### */
   private boolean isContainedIn(
       CoverageMeasureCategory[] categories, CoverageMeasureCategory pCategory) {
     for (CoverageMeasureCategory category : categories) {

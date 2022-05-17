@@ -19,7 +19,6 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 
 /** Class which holds all collected analysis-independent coverage data for a specific file. */
 public class FileCoverageStatistics {
-  /* ##### Class Fields ##### */
   public final Set<CFANode> allLocations = new LinkedHashSet<>();
   public final Multiset<CFANode> reachedLocations = LinkedHashMultiset.create();
   public final Multiset<Integer> visitedLines = LinkedHashMultiset.create();
@@ -32,7 +31,6 @@ public class FileCoverageStatistics {
   public FilePredicateCoverageStatistics predicateStatistics =
       new FilePredicateCoverageStatistics();
 
-  /* ##### Static Classes ##### */
   public static class FunctionInfo {
     public final String name;
     public final int firstLine;
@@ -45,7 +43,6 @@ public class FileCoverageStatistics {
     }
   }
 
-  /* ##### Public Methods ##### */
   public void addVisitedAssume(AssumeEdge pEdge) {
     visitedAssumes.add(pEdge);
   }

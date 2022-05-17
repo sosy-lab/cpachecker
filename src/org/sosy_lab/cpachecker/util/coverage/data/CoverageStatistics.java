@@ -21,7 +21,6 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
  * all FileCoverageStatistics.
  */
 public class CoverageStatistics {
-  /* ##### Class Fields ##### */
   public long numTotalConditions = 0;
   public long numTotalFunctions = 0;
   public long numTotalLines = 0;
@@ -43,7 +42,6 @@ public class CoverageStatistics {
   public Multiset<String> allVariableNames = HashMultiset.create();
   public Multiset<String> relevantVariableNames = HashMultiset.create();
 
-  /* ##### Constructors ##### */
   public CoverageStatistics(Map<String, FileCoverageStatistics> infosPerFile) {
     for (FileCoverageStatistics info : infosPerFile.values()) {
       predicateConsideredNodes.addAll(info.predicateStatistics.allPredicateConsideredLocations);

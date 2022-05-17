@@ -29,12 +29,10 @@ import org.sosy_lab.cpachecker.util.coverage.util.CoverageUtility;
  * coverage measures and time-dependent coverage graphs.
  */
 public abstract class CoverageCollector {
-  /* ##### Class fields ##### */
   private final Map<String, FileCoverageStatistics> infosPerFile;
   final CoverageMeasureHandler coverageMeasureHandler;
   final TimeDependentCoverageHandler timeDependentCoverageHandler;
 
-  /* ##### Constructors ##### */
   CoverageCollector(
       Map<String, FileCoverageStatistics> pInfosPerFile,
       CoverageMeasureHandler pCoverageMeasureHandler,
@@ -55,7 +53,6 @@ public abstract class CoverageCollector {
     timeDependentCoverageHandler = pTimeDependentCoverageHandler;
   }
 
-  /* ##### Put Methods ##### */
   public void putCFA(CFA pCFA) {
     for (CFANode node : pCFA.getAllNodes()) {
       // This part adds lines, which are only on edges, such as "return" or "goto"
@@ -104,7 +101,6 @@ public abstract class CoverageCollector {
     }
   }
 
-  /* ##### Add Methods ##### */
   public void addVisitedEdge(final CFAEdge pEdge) {
     if (!CoverageUtility.coversLine(pEdge)) {
       return;
@@ -143,7 +139,6 @@ public abstract class CoverageCollector {
     }
   }
 
-  /* ##### Getter Methods ##### */
   public FileCoverageStatistics getCollector(CFAEdge pEdge) {
     final FileLocation loc = pEdge.getFileLocation();
     return getFileInfoTarget(loc, infosPerFile);

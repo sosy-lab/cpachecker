@@ -23,11 +23,9 @@ import org.sosy_lab.cpachecker.util.coverage.util.CoverageColorUtil;
  * CoverageCollector or during the analysis within a CoverageCPA.
  */
 public class LineCoverageMeasure implements CoverageMeasure {
-  /* ##### Class Fields ##### */
   private final Map<String, Multiset<Integer>> visitedLinesPerFile;
   private final Map<String, Set<Integer>> exisitingLinesPerFile;
 
-  /* ##### Constructors ##### */
   public LineCoverageMeasure(Map<String, FileCoverageStatistics> infoPerFile) {
     visitedLinesPerFile = new LinkedHashMap<>();
     exisitingLinesPerFile = new LinkedHashMap<>();
@@ -42,7 +40,6 @@ public class LineCoverageMeasure implements CoverageMeasure {
     exisitingLinesPerFile = new LinkedHashMap<>();
   }
 
-  /* ##### Getter Methods ##### */
   /**
    * Returns the color representing if a line is covered or not. This information is used for later
    * visualization in the report.html Source Tab.
@@ -62,7 +59,6 @@ public class LineCoverageMeasure implements CoverageMeasure {
     }
   }
 
-  /* ##### Interface Implementations ##### */
   @Override
   public double getCoverage() {
     return getCount() / getMaxCount();

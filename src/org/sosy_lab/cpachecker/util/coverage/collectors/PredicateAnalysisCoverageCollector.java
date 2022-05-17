@@ -28,7 +28,6 @@ import org.sosy_lab.cpachecker.util.coverage.util.CoverageUtility;
  * for a TDCG.
  */
 public class PredicateAnalysisCoverageCollector extends CoverageCollector {
-  /* ##### Constructors ##### */
   PredicateAnalysisCoverageCollector(
       Map<String, FileCoverageStatistics> pInfosPerFile,
       CoverageMeasureHandler pCoverageMeasureHandler,
@@ -45,7 +44,6 @@ public class PredicateAnalysisCoverageCollector extends CoverageCollector {
     }
   }
 
-  /* ##### Add Methods ##### */
   public void addPredicateConsideredNode(final CFAEdge pEdge) {
     if (!CoverageUtility.coversLine(pEdge)) {
       return;
@@ -107,7 +105,6 @@ public class PredicateAnalysisCoverageCollector extends CoverageCollector {
     }
   }
 
-  /* ##### Getter Methods ##### */
   public double getTempPredicateConsideredCoverage(CFA cfa) {
     return getTempCoverage(cfa, TimeDependentCoverageType.PredicateConsideredLocations);
   }

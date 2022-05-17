@@ -14,7 +14,6 @@ package org.sosy_lab.cpachecker.util.coverage.measures;
  * possible to specify a friendly name for each category which is displayed in the report.html
  */
 public enum CoverageMeasureType {
-  /* ##### Enum Fields ##### */
   None("None", CoverageMeasureCategory.None),
   VisitedLocations("Visited Locations", CoverageMeasureCategory.LocationBased),
   ReachedLocations("Reached Locations", CoverageMeasureCategory.LocationBased),
@@ -29,13 +28,11 @@ public enum CoverageMeasureType {
   private final String name;
   private final CoverageMeasureCategory category;
 
-  /* ##### Constructors ##### */
   CoverageMeasureType(String pName, CoverageMeasureCategory pCategeory) {
     name = pName;
     category = pCategeory;
   }
 
-  /* ##### Getter Methods ##### */
   public String getName() {
     return name;
   }

@@ -18,14 +18,12 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
  * Class which holds all collected predicate-analysis specific coverage data for a specific file.
  */
 public class FilePredicateCoverageStatistics {
-  /* ##### Class Fields ##### */
   public int previousPredicateRelevantVariablesLocationsSize = 0;
   public final Set<CFANode> allPredicateConsideredLocations = new LinkedHashSet<>();
   public final Set<CFANode> allPredicateRelevantVariablesLocations = new LinkedHashSet<>();
   public final Multiset<String> allVariableNames = HashMultiset.create();
   public final Multiset<String> relevantVariableNames = HashMultiset.create();
 
-  /* ##### Public Methods ##### */
   public void addPredicateConsideredNode(CFANode node) {
     allPredicateConsideredLocations.add(node);
   }

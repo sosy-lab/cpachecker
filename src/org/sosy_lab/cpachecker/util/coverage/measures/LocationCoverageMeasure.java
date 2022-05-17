@@ -22,12 +22,10 @@ import org.sosy_lab.cpachecker.util.coverage.util.CoverageColorUtil;
  * the CoverageCollector or during the analysis within a CoverageCPA.
  */
 public class LocationCoverageMeasure implements CoverageMeasure {
-  /* ##### Class Fields ##### */
   private final Multiset<CFANode> coveredLocations;
   private final double maxCount;
   private String coverageColor;
 
-  /* ##### Constructors ##### */
   public LocationCoverageMeasure(
       Multiset<CFANode> pCoveredLocations, double pMaxCount, String pCoverageColor) {
     this(pCoveredLocations, pMaxCount);
@@ -59,7 +57,6 @@ public class LocationCoverageMeasure implements CoverageMeasure {
     maxCount = 1;
   }
 
-  /* ##### Getter Methods ##### */
   /**
    * Returns the color representing if a location is covered or not. This information is used for
    * later visualization in the report.html CFA Tab.
@@ -83,7 +80,6 @@ public class LocationCoverageMeasure implements CoverageMeasure {
     return coveredLocations;
   }
 
-  /* ##### Interface Implementations ##### */
   @Override
   public double getCoverage() {
     return getCount() / getMaxCount();

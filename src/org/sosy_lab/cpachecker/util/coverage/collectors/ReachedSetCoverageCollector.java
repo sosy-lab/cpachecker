@@ -43,7 +43,6 @@ import org.sosy_lab.cpachecker.util.coverage.tdcg.TimeDependentCoverageHandler;
  * here only depends on the reached set.
  */
 public class ReachedSetCoverageCollector extends CoverageCollector {
-  /* ##### Constructors ##### */
   ReachedSetCoverageCollector(
       Map<String, FileCoverageStatistics> pInfosPerFile,
       CoverageMeasureHandler pCoverageMeasureHandler,
@@ -52,7 +51,6 @@ public class ReachedSetCoverageCollector extends CoverageCollector {
     super(pInfosPerFile, pCoverageMeasureHandler, pTimeDependentCoverageHandler, cfa);
   }
 
-  /* ##### Public Methods ##### */
   public void collectFromReachedSet(
       UnmodifiableReachedSet reachedSet, CFA cfa, ConfigurableProgramAnalysis cpa) {
     FluentIterable<AbstractState> reached = FluentIterable.from(reachedSet);
@@ -83,7 +81,6 @@ public class ReachedSetCoverageCollector extends CoverageCollector {
     addReachedNodes(getReachedNodes(reached));
   }
 
-  /* ##### Getter Methods ##### */
   public Multiset<CFANode> getReachedNodes(Iterable<AbstractState> reached) {
     Multiset<CFANode> locations = LinkedHashMultiset.create();
     for (AbstractState state : reached) {
@@ -100,7 +97,6 @@ public class ReachedSetCoverageCollector extends CoverageCollector {
     return locations;
   }
 
-  /* ##### Helper Methods ##### */
   private void collectVisitedEdges(Iterable<AbstractState> reached) {
     Set<CFANode> reachedNodes =
         FluentIterable.from(reached)

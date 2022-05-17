@@ -20,7 +20,6 @@ import org.sosy_lab.cpachecker.util.coverage.tdcg.TimeDependentCoverageHandler;
  * access of collectors.
  */
 public class CoverageCollectorHandler {
-  /* ##### Class Fields ##### */
   private final Map<String, FileCoverageStatistics> infosPerFile;
   private final CoverageMeasureHandler coverageMeasureHandler;
   private final TimeDependentCoverageHandler timeDependentCoverageHandler;
@@ -28,7 +27,6 @@ public class CoverageCollectorHandler {
   private AnalysisIndependentCoverageCollector analysisIndependentCoverageCollector;
   private PredicateAnalysisCoverageCollector predicateAnalysisCoverageCollector;
 
-  /* ##### Constructors ##### */
   public CoverageCollectorHandler(CFA cfa) {
     infosPerFile = new LinkedHashMap<>();
     timeDependentCoverageHandler = new TimeDependentCoverageHandler();
@@ -38,7 +36,6 @@ public class CoverageCollectorHandler {
             infosPerFile, coverageMeasureHandler, timeDependentCoverageHandler, cfa);
   }
 
-  /* ##### Init Methods ##### */
   public void initPredicateCollectors(CFA cfa) {
     predicateAnalysisCoverageCollector =
         new PredicateAnalysisCoverageCollector(
@@ -51,7 +48,6 @@ public class CoverageCollectorHandler {
             infosPerFile, coverageMeasureHandler, timeDependentCoverageHandler, cfa);
   }
 
-  /* ##### Getter Methods ##### */
   public TimeDependentCoverageHandler getTDCGHandler() {
     return timeDependentCoverageHandler;
   }

@@ -20,10 +20,8 @@ import org.sosy_lab.cpachecker.util.coverage.util.CoverageColorUtil;
  * intersection and use this as combined coverage criteria.
  */
 public class MultiLocationCoverageMeasure extends LocationCoverageMeasure {
-  /* ##### Class fields ##### */
   private final Multiset<CFANode> alternativeCoveredLocations;
 
-  /* ##### Constructors ##### */
   public MultiLocationCoverageMeasure(
       Multiset<CFANode> pCoveredLocations,
       Multiset<CFANode> pAlternativeCoveredLocations,
@@ -32,12 +30,10 @@ public class MultiLocationCoverageMeasure extends LocationCoverageMeasure {
     alternativeCoveredLocations = pAlternativeCoveredLocations;
   }
 
-  /* ##### Getter Methods ##### */
   public Set<CFANode> getAlternativeCoveredSet() {
     return alternativeCoveredLocations.elementSet();
   }
 
-  /* ##### Inherited Methods ##### */
   @Override
   public String getColor(CFANode location) {
     if (getAlternativeCoveredSet().contains(location)) {
