@@ -20,7 +20,6 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.logging.Level;
 import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.core.algorithm.giageneration.GIAGenerator;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonVariable.AutomatonIntVariable;
 
 public class GIAAutomatonParser {
@@ -41,7 +40,7 @@ public class GIAAutomatonParser {
     automaton = computeDistanceToUnknown(automaton);
 
     if (automaton.getStates().stream()
-        .noneMatch(s -> s.getName().equals(GIAGenerator.NAME_OF_ERROR_STATE))) {
+        .noneMatch(s -> s.getStateType().equals(AutomatonStateTypes.TARGET))) {
       return Lists.newArrayList(automaton);
     } else {
 
@@ -51,7 +50,7 @@ public class GIAAutomatonParser {
       List<AutomatonInternalState> parentsToProcess = new ArrayList<>();
       List<AutomatonInternalState> processed = new ArrayList<>();
       automaton.getStates().stream()
-          .filter(s -> s.getName().equals(GIAGenerator.NAME_OF_ERROR_STATE))
+          .filter(s -> s.getStateType().equals(AutomatonStateTypes.TARGET))
           .forEach(
               s -> {
                 distanceToViolation.put(s, 0);
@@ -60,7 +59,7 @@ public class GIAAutomatonParser {
               });
 
       automaton.getStates().stream()
-          .filter(s -> !s.getName().equals(GIAGenerator.NAME_OF_ERROR_STATE))
+          .filter(s -> !s.getStateType().equals(AutomatonStateTypes.TARGET))
           .forEach(s -> distanceToViolation.put(s, Integer.MIN_VALUE));
       while (!parentsToProcess.isEmpty()) {
         AutomatonInternalState current = parentsToProcess.remove(0);
