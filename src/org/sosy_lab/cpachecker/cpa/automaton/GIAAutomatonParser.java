@@ -13,15 +13,20 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.logging.Level;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.algorithm.giageneration.GIAGenerator;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonVariable.AutomatonIntVariable;
 
 public class GIAAutomatonParser {
+
+  public static final String DISTANCE_TO_UNKNOWN = "__DISTANCE_TO_UNKNOWN";
+
   private final LogManager logger;
 
   public GIAAutomatonParser(LogManager pLogger) {
@@ -32,13 +37,16 @@ public class GIAAutomatonParser {
 
     if (pAutomata.size() != 1) return pAutomata;
     Automaton automaton = pAutomata.get(0);
+    // Firstly, set the DISTANCE_TO_UNKNOWN for all states
+    automaton = computeDistanceToUnknown(automaton);
+
     if (automaton.getStates().stream()
         .noneMatch(s -> s.getName().equals(GIAGenerator.NAME_OF_ERROR_STATE))) {
       return pAutomata;
     } else {
 
       // IMPORTANT: we assume at this point, that the GIA is a tree. If not, the heuristic might be
-      // imprecises, but as it is only used for guiding, this is ok
+      // imprecise, but as it is only used for guiding, this is ok
       Map<AutomatonInternalState, Integer> distanceToViolation = new HashMap<>();
       List<AutomatonInternalState> parentsToProcess = new ArrayList<>();
       List<AutomatonInternalState> processed = new ArrayList<>();
@@ -77,60 +85,118 @@ public class GIAAutomatonParser {
       logger.logf(
           Level.FINE, "Distances to Violation for GIA are %s", distanceToViolation.toString());
 
-      List<AutomatonInternalState> updatedStates = new ArrayList<>();
-      Map<String, AutomatonVariable> variables = new HashMap<>();
-      AutomatonIntVariable distanceVariable =
-          (AutomatonIntVariable)
-              AutomatonVariable.createAutomatonVariable(
-                  "int", AutomatonGraphmlParser.DISTANCE_TO_VIOLATION);
-      distanceVariable.setValue(
-          distanceToViolation.getOrDefault(automaton.getInitialState(), Integer.MIN_VALUE));
+      return buildAutomaton(
+          pAutomata, automaton, distanceToViolation, AutomatonGraphmlParser.DISTANCE_TO_VIOLATION);
+    }
+  }
+  /**
+   * Compute DISTANCE_TO_UNKNOWN for all nodes. If no node is marked as unkown, the distance is 0
+   * for all nodes. If there is a node in unknown, the distance for that node is 0. For all other
+   * nodes, the distance is the number of edges to reach the nearest node in PUnknown. If a node
+   * cannot reach a node in pUnknown, the distance is MAX_INT
+   *
+   * @param pAutomata the initial automaton
+   * @return the automaton with updated nodes
+   */
+  private Automaton computeDistanceToUnknown(Automaton pAutomata) {
+    // Initialize all nodes to 0
+    Map<AutomatonInternalState, Integer> distances = new HashMap<>();
+    ImmutableList<AutomatonInternalState> unknownStates =
+        pAutomata.getStates().stream()
+            .filter(s -> s.getStateType().equals(AutomatonStateTypes.UNKNOWN))
+            .collect(ImmutableList.toImmutableList());
+    if (unknownStates.isEmpty()) {
+      pAutomata.getStates().forEach(s -> distances.put(s, 0));
+      return buildAutomaton(
+              Lists.newArrayList(pAutomata), pAutomata, distances, DISTANCE_TO_UNKNOWN)
+          .get(0);
+    } else {
+      // Init all to intMax, the states in unknown to 0.
+      pAutomata.getStates().forEach(s -> distances.put(s, Integer.MAX_VALUE));
+      unknownStates.forEach(s -> distances.replace(s, 0));
 
-      variables.put(AutomatonGraphmlParser.DISTANCE_TO_VIOLATION, distanceVariable);
 
-      for (AutomatonInternalState state : automaton.getStates()) {
-        List<AutomatonTransition> updatedTransitions = new ArrayList<>();
 
-        for (AutomatonTransition transition : state.getTransitions()) {
-          ImmutableList.Builder<AutomatonAction> actionBuilder = ImmutableList.builder();
+      Map<AutomatonInternalState, Set<AutomatonInternalState>> predesessors = new HashMap<>();
+      pAutomata.getStates().forEach(s -> predesessors.put(s, new HashSet<>()));
+      pAutomata.getStates().forEach(s -> s.getSuccessorStates().forEach(succ -> predesessors.get(succ).add(s)));
 
-          actionBuilder.add(
-              new AutomatonAction.Assignment(
-                  AutomatonGraphmlParser.DISTANCE_TO_VIOLATION,
-                  new AutomatonIntExpr.Constant(
-                      distanceToViolation.getOrDefault(
-                          transition.getFollowState(), Integer.MIN_VALUE))));
-
-          AutomatonTransition.Builder builder =
-              new AutomatonTransition.Builder(transition, actionBuilder);
-          updatedTransitions.add(builder.build());
+      List<AutomatonInternalState> toProcess = new ArrayList<>(unknownStates);
+      while (!toProcess.isEmpty()) {
+        AutomatonInternalState s = toProcess.remove(0);
+        int current_distance = distances.get(s);
+        for (AutomatonInternalState succ : predesessors.get(s)) {
+          if (distances.get(succ) == Integer.MAX_VALUE) {
+            if (!toProcess.contains(succ)) {
+              toProcess.add(succ);
+            }
+            distances.replace(succ, current_distance - 1);
+          }
         }
-        updatedStates.add(
-            new AutomatonInternalState(
-                state.getName(),
-                updatedTransitions,
-                state.getStateType(),
-                state.isNonDetState(),
-                state.isNontrivialCycleStart(),
-                state.getStateInvariants()));
       }
+      logger.logf(Level.FINE, "The processed distances to unknown are %s", distances);
+      return buildAutomaton(
+          Lists.newArrayList(pAutomata), pAutomata, distances, DISTANCE_TO_UNKNOWN)
+          .get(0);
+    }
+  }
 
-      try {
-        return Lists.newArrayList(
-            new Automaton(
-                automaton.getName(),
-                variables,
-                updatedStates,
-                automaton.getInitialState().getName()));
-      } catch (InvalidAutomatonException pE) {
-        logger.logf(
-            Level.WARNING,
-            "Failed to add the variable %s to the automaton due to %s.\n"
-                + " Returning the original automaton",
-            AutomatonGraphmlParser.DISTANCE_TO_VIOLATION,
-            Throwables.getStackTraceAsString(pE));
-        return pAutomata;
+  private List<Automaton> buildAutomaton(
+      List<Automaton> pAutomata,
+      Automaton automaton,
+      Map<AutomatonInternalState, Integer> distanceToViolation,
+      String pVariableName) {
+    List<AutomatonInternalState> updatedStates = new ArrayList<>();
+    Map<String, AutomatonVariable> variables = new HashMap<>(automaton.getInitialVariables());
+    AutomatonIntVariable distanceVariable =
+        (AutomatonIntVariable) AutomatonVariable.createAutomatonVariable("int", pVariableName);
+    distanceVariable.setValue(
+        distanceToViolation.getOrDefault(automaton.getInitialState(), Integer.MIN_VALUE));
+
+    variables.put(pVariableName, distanceVariable);
+
+    for (AutomatonInternalState state : automaton.getStates()) {
+      List<AutomatonTransition> updatedTransitions = new ArrayList<>();
+
+      for (AutomatonTransition transition : state.getTransitions()) {
+        ImmutableList.Builder<AutomatonAction> actionBuilder = ImmutableList.builder();
+
+        actionBuilder.add(
+            new AutomatonAction.Assignment(
+                pVariableName,
+                new AutomatonIntExpr.Constant(
+                    distanceToViolation.getOrDefault(
+                        transition.getFollowState(), Integer.MIN_VALUE))));
+
+        AutomatonTransition.Builder builder =
+            new AutomatonTransition.Builder(transition, actionBuilder);
+        updatedTransitions.add(builder.build());
       }
+      updatedStates.add(
+          new AutomatonInternalState(
+              state.getName(),
+              updatedTransitions,
+              state.getStateType(),
+              state.isNonDetState(),
+              state.isNontrivialCycleStart(),
+              state.getStateInvariants()));
+    }
+
+    try {
+      return Lists.newArrayList(
+          new Automaton(
+              automaton.getName(),
+              variables,
+              updatedStates,
+              automaton.getInitialState().getName()));
+    } catch (InvalidAutomatonException pE) {
+      logger.logf(
+          Level.WARNING,
+          "Failed to add the variable %s to the automaton due to %s.\n"
+              + " Returning the original automaton",
+          AutomatonGraphmlParser.DISTANCE_TO_VIOLATION,
+          Throwables.getStackTraceAsString(pE));
+      return pAutomata;
     }
   }
 }

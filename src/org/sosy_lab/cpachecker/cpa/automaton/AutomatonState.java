@@ -278,7 +278,7 @@ public class AutomatonState
         prettyPrintAsmpts += "\n" + Joiner.on(' ').withKeyValueSeparator("=").join(vars);
       }
       return (automaton != null ? automaton.getName() + ": " : "")
-          + internalState.getName()
+          + internalState.getName()+ "("+internalState.toString()+")"
           + prettyPrintAsmpts;
     }
     return "";
@@ -359,23 +359,30 @@ public class AutomatonState
     if (pProperty.equalsIgnoreCase(INTERNAL_STATE_IS_TARGET_PROPERTY)) {
       return getInternalState().isTarget();
     }
-    List<String> parts = Splitter.on("==").trimResults().splitToList(pProperty);
-    if (parts.size() != 2) {
+    List<String> partsEqual = Splitter.on("==").trimResults().splitToList(pProperty);
+    List<String> partsGreater = Splitter.on(">").trimResults().splitToList(pProperty);
+    if (partsEqual.size() != 2 && partsGreater.size() != 2) {
       throw new InvalidQueryException(
           "The Query \""
               + pProperty
               + "\" is invalid. Could not split the property string correctly.");
     } else {
-      String left = parts.get(0);
-      String right = parts.get(1);
+      if (partsEqual.size() == 2){
+      String left = partsEqual.get(0);
+      String right = partsEqual.get(1);
       if (left.equalsIgnoreCase("state")) {
         return getInternalState().getName().equals(right);
-      } else {
+      } else if (left.equalsIgnoreCase("stateType")) {
+        return getInternalState().getStateType().name().equals(right);
+      }
+      else {
         AutomatonVariable var = vars.get(left);
         if (var != null) {
           // is a local variable
           try {
             int val = Integer.parseInt(right);
+
+
             return var.getValue() == val;
           } catch (NumberFormatException e) {
             throw new InvalidQueryException(
@@ -389,8 +396,34 @@ public class AutomatonState
           throw new InvalidQueryException(
               "The Query \""
                   + pProperty
-                  + "\" is invalid. Only accepting \"State == something\" and \"varname ="
-                  + " something\" queries so far.");
+                  + "\" is invalid. Only accepting \"State == something\", \"stateType == something\", \"varname =="
+                  + " something\"  \"varname > something\" queries so far.");
+        }
+      }
+      }
+      else{
+        String left = partsGreater.get(0);
+        String right = partsGreater.get(1);
+        AutomatonVariable var = vars.get(left);
+        if (var != null) {
+          // is a local variable
+          try {
+            int val = Integer.parseInt(right);
+            return var.getValue() > val;
+          } catch (NumberFormatException e) {
+            throw new InvalidQueryException(
+                "The Query \""
+                    + pProperty
+                    + "\" is invalid. Could not parse the int \""
+                    + right
+                    + "\".");
+          }
+        } else {
+          throw new InvalidQueryException(
+              "The Query \""
+                  + pProperty
+                  + "\" is invalid. Only accepting \"State == something\", \"stateType == something\", \"varname =="
+                  + " something\"  \"varname > something\" queries so far.");
         }
       }
     }

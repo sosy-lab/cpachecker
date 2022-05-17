@@ -1,0 +1,61 @@
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
+
+OBSERVER AUTOMATON AssumptionAutomaton
+
+INITIAL STATE A0;
+
+NON_TARGET STATE __TRUE :
+    MATCH OTHERWISE -> GOTO __TRUE;
+
+STATE __qTEMP :
+    MATCH OTHERWISE -> GOTO __qTEMP;
+
+NON_TARGET STATE USEFIRST __qNonTarget :
+    MATCH OTHERWISE -> GOTO __qNonTarget;
+
+STATE __qERROR :
+    MATCH OTHERWISE -> GOTO __qERROR;
+
+STATE USEFIRST A0 :
+    MATCH "int main()" -> GOTO A2_8_1;
+    MATCH OTHERWISE -> GOTO A0;
+
+STATE USEFIRST A10 :
+    MATCH "__VERIFIER_assert((i+j) == l);" -> GOTO A11;
+    MATCH OTHERWISE -> GOTO A10;
+
+STATE USEFIRST A11 :
+    MATCH "[!(cond)]" -> GOTO A13;
+    MATCH "[!(!(cond))]" -> GOTO __qTEMP;
+    MATCH OTHERWISE -> GOTO A11;
+
+STATE USEFIRST A13 :
+    MATCH "reach_error();" -> GOTO __qERROR;
+    MATCH OTHERWISE -> GOTO A13;
+
+STATE USEFIRST A2_8_1 :
+    MATCH "[n <= SIZE]" -> GOTO A3;
+    MATCH "[!(n <= SIZE)]" -> GOTO A7;
+    MATCH OTHERWISE -> GOTO A2_8_1;
+
+STATE USEFIRST A7:
+    MATCH "n=0;" -> GOTO __qNonTarget;
+    MATCH OTHERWISE -> GOTO A7;
+
+STATE USEFIRST A3 :
+    MATCH "l=0;" -> GOTO A6;
+    MATCH OTHERWISE -> GOTO A3;
+
+STATE USEFIRST A6 :
+    MATCH "[l < n]" -> GOTO __qTEMP;
+    MATCH "[!(l < n)]" -> GOTO A10;
+    MATCH OTHERWISE -> GOTO A6;
+
+END AUTOMATON
