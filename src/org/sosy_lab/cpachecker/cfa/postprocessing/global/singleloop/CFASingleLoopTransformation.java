@@ -214,6 +214,9 @@ public class CFASingleLoopTransformation {
     // Eliminate self loops
     eliminateSelfLoops(nodes);
 
+    // Eliminate blank non-terminating loops in functions
+    eliminateBlankLoopsInFunctions(pInputCFA.getAllFunctionHeads(), nodes);
+
     Multimap<Integer, CFANode> newPredecessorsToPC = LinkedHashMultimap.create();
     Map<Integer, CFANode> newSuccessorsToPC = new LinkedHashMap<>();
     globalNewToOld.put(oldMainFunctionEntryNode, start);
@@ -257,6 +260,48 @@ public class CFASingleLoopTransformation {
 
     // Build the CFA from the syntactically reachable nodes
     return buildCFA(start, loopHead, pInputCFA);
+  }
+
+  private void eliminateBlankLoopsInFunctions(
+      final Collection<FunctionEntryNode> pEntryNodes, Queue<CFANode> pNodes)
+      throws InterruptedException {
+    List<CFANode> toAdd = new ArrayList<>();
+    for (FunctionEntryNode node : pEntryNodes) {
+      shutdownNotifier.shutdownIfNecessary();
+      if (node.getNumLeavingEdges() != 1) {
+        throw new AssertionError("Function entry node does not have exactly one leaving edge!");
+      }
+      CFAEdge functionStartEdge = node.getLeavingEdge(0);
+      CFAEdge leavingEdge = functionStartEdge;
+      FluentIterable<CFAEdge> leavingEdges;
+      List<CFAEdge> edgesToRemove = new ArrayList<>();
+      edgesToRemove.add(leavingEdge);
+      CFANode current = leavingEdge.getSuccessor();
+      Set<CFANode> visitedNodes = new HashSet<>();
+      boolean blankLoopFound = false;
+      while ((leavingEdges = CFAUtils.leavingEdges(current)).size() == 1
+                && (leavingEdge = Iterables.getOnlyElement(leavingEdges)).getEdgeType()
+                    == CFAEdgeType.BlankEdge) {
+        if (!visitedNodes.add(current)) {
+          blankLoopFound = true;
+          break;
+        }
+        edgesToRemove.add(leavingEdge);
+        current = leavingEdge.getSuccessor();
+      }
+      if (blankLoopFound) {
+        for (CFAEdge toRemove : edgesToRemove) {
+          removeFromNodes(toRemove);
+        }
+        CFANode terminationNode = new CFATerminationNode(node.getFunctionName());
+        CFAEdge newEdge =
+            copyCFAEdgeWithNewNodes(
+                functionStartEdge, node, terminationNode, new LinkedHashMap<>());
+        addToNodes(newEdge);
+        toAdd.add(terminationNode);
+      }
+    }
+    pNodes.addAll(toAdd);
   }
 
   /**
