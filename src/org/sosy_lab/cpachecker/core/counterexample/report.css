@@ -656,7 +656,7 @@ input[type="text"] {
   top: 200px;
 }
 
-#tdcg-toolbar {
+#tdg-toolbar {
   width: auto;
   background-color: white;
   margin-top: 5px;
@@ -667,7 +667,7 @@ input[type="text"] {
   visibility: hidden;
 }
 
-#tdcg-toolbar label {
+#tdg-toolbar label {
   margin-left: 20px;
   margin-right: 5px;
 }
@@ -693,7 +693,7 @@ input[type="text"] {
   margin-right: 5px;
 }
 
-#tdcg-toolbar text {
+#tdg-toolbar text {
   font-family: "Helvetica Neue", Helvetica, Arial, sans-serf;
   font-size: 11px;
 }

@@ -387,11 +387,11 @@ with considerably less effort -->
             ng-class="{active: tabIsSet(8)}"
             data-toggle="tooltip"
             data-placement="top"
-            id="tdcg-toolbar-button"
-            title="Shows TDCG (Time-Dependent Coverage Graph)"
+            id="tdg-toolbar-button"
+            title="Shows TDG (Time-Dependent Graph)"
           >
             <a class="nav-link" data-toggle="pill" href ng-click="setTab(8)"
-              >TDCG</a
+              >TDG</a
             >
           </li>
           <li class="nav-item" ng-class="{active: tabIsSet(4)}">
@@ -560,17 +560,17 @@ with considerably less effort -->
           </nav>
         </div>
 
-        <div id="tdcg-toolbar" ng-controller="TDCGToolbarController">
+        <div id="tdg-toolbar" ng-controller="TDGToolbarController">
           <nav class="navbar navbar-light bg-light">
             <div class="nav-item">
               <label>
-                <strong>Displayed TDCG</strong>
+                <strong>Displayed TDG</strong>
               </label>
               <select
                 class="btn btn-outline-secondary selectpicker"
-                ng-options="s as s for s in tdcgSelections"
-                ng-model="$root.displayedTDCG"
-                ng-change="displayTDCG()"
+                ng-options="s as s for s in tdgSelections"
+                ng-model="$root.displayedTDG"
+                ng-change="displayTDG()"
               ></select>
             </div>
           </nav>

@@ -45,7 +45,7 @@ if (isDevEnv) {
   window.cfaJson = data.cfaJson;
 }
 
-const { argJson, sourceFiles, cfaJson, tdcgJson, sourceCoverageJson } = window;
+const { argJson, sourceFiles, cfaJson, tdgJson, sourceCoverageJson } = window;
 
 // CFA graph variable declarations
 const functions = cfaJson.functionNames;
@@ -86,7 +86,7 @@ function extractColor(msg, id) {
     .split(";")[0];
 }
 
-function renderTDCG(dataJSON, color, inPercentage) {
+function renderTDG(dataJSON, color, inPercentage) {
   if (dataJSON === undefined || Object.keys(dataJSON).length < 2) {
     return;
   }
@@ -329,8 +329,8 @@ function renderTDCG(dataJSON, color, inPercentage) {
 
     // Initialize Time Dependent Coverage Chart
     $(document).ready(() => {
-      if (tdcgJson === undefined || tdcgJson.length <= 0) {
-        d3.select("#tdcg-toolbar-button").style("display", "none");
+      if (tdgJson === undefined || tdgJson.length <= 0) {
+        d3.select("#tdg-toolbar-button").style("display", "none");
       }
     });
 
@@ -436,8 +436,8 @@ function renderTDCG(dataJSON, color, inPercentage) {
         "<p>- use the Displayed ARG select box to select between the complete ARG and ARG containing only the error path (only in case an error was found) </p>" +
         "<p>- use the Mouse Wheel Zoom checkbox to alter between scroll and zoom behaviour on mouse wheel</p>" +
         "<p>- use Split Threshold and 'Refresh button' to redraw the graph (values between 500 and 900)</p>" +
-        "<p><b>TDCG</b> (Time Dependent Coverage Graph) depicts different coverage measures depending on time on a 2D graph</p>" +
-        "<p>- use the Displayed TDCG select box to select between different coverage measures (which ones are available depends on the used CPA configuration)</p>" +
+        "<p><b>TDG</b> (Time Dependent Graph) depicts different coverage measures depending on time on a 2D graph, it can be also used for other data.</p>" +
+        "<p>- use the Displayed TDG select box to select between different coverage measures (which ones are available depends on the used CPA configuration)</p>" +
         "<p>- hover over data points within the graph to get a more detailed view</p>" +
         "<p><b>In case of split graph (applies to both CFA and ARG)</b><br> -- doubleclick on labelless node to jump to target node<br> -- doubleclick on 'split edge' to jump to initial edge </p></div>";
       $scope.help_fault_localization =
@@ -531,7 +531,7 @@ function renderTDCG(dataJSON, color, inPercentage) {
               d3.select("#arg-container").classed("arg-content", false);
             }
           }
-          d3.select("#tdcg-toolbar").style("visibility", "hidden");
+          d3.select("#tdg-toolbar").style("visibility", "hidden");
           d3.select("#source-toolbar").style("visibility", "hidden");
           d3.select("#cfa-toolbar").style("visibility", "visible");
           if (!d3.select("#cfa-container").classed("cfa-content")) {
@@ -547,7 +547,7 @@ function renderTDCG(dataJSON, color, inPercentage) {
               d3.select("#cfa-container").classed("cfa-content", false);
             }
           }
-          d3.select("#tdcg-toolbar").style("visibility", "hidden");
+          d3.select("#tdg-toolbar").style("visibility", "hidden");
           d3.select("#source-toolbar").style("visibility", "hidden");
           d3.select("#arg-toolbar").style("visibility", "visible");
           if (!d3.select("#arg-container").classed("arg-content")) {
@@ -584,7 +584,7 @@ function renderTDCG(dataJSON, color, inPercentage) {
               d3.select("#cfa-container").classed("cfa-content", false);
             }
           }
-          d3.select("#tdcg-toolbar").style("visibility", "hidden");
+          d3.select("#tdg-toolbar").style("visibility", "hidden");
           d3.select("#source-toolbar").style("visibility", "hidden");
           if (d3.select("#arg-toolbar").style("visibility") !== "hidden") {
             d3.select("#arg-toolbar").style("visibility", "hidden");
@@ -598,7 +598,7 @@ function renderTDCG(dataJSON, color, inPercentage) {
           }
         }
         if (tabIndex === 8) {
-          d3.select("#tdcg-toolbar").style("visibility", "visible");
+          d3.select("#tdg-toolbar").style("visibility", "visible");
         }
         if (tabIndex === 3) {
           d3.select("#source-toolbar").style("visibility", "visible");
@@ -1452,38 +1452,38 @@ function renderTDCG(dataJSON, color, inPercentage) {
     },
   ]);
 
-  app.controller("TDCGToolbarController", [
+  app.controller("TDGToolbarController", [
     "$rootScope",
     "$scope",
-    function tdcgToolbarController($rootScope, $scope) {
-      $scope.tdcgSelections = [];
-      if (tdcgJson !== undefined && tdcgJson.length > 0) {
-        for (let i = 0; i < tdcgJson.length; i += 1) {
-          $scope.tdcgSelections.push(tdcgJson[i].name);
+    function tdgToolbarController($rootScope, $scope) {
+      $scope.tdgSelections = [];
+      if (tdgJson !== undefined && tdgJson.length > 0) {
+        for (let i = 0; i < tdgJson.length; i += 1) {
+          $scope.tdgSelections.push(tdgJson[i].name);
         }
       }
-      $rootScope.displayedTDCG = $scope.tdcgSelections[0];
+      $rootScope.displayedTDG = $scope.tdgSelections[0];
 
-      $scope.displayTDCG = () => {
-        for (let i = 0; i < tdcgJson.length; i += 1) {
-          if (tdcgJson[i].name === $rootScope.displayedTDCG) {
-            $scope.removeTDCG();
-            $scope.renderTDCG(
-              tdcgJson[i].data,
-              tdcgJson[i].color,
-              tdcgJson[i].percentage
+      $scope.displayTDG = () => {
+        for (let i = 0; i < tdgJson.length; i += 1) {
+          if (tdgJson[i].name === $rootScope.displayedTDG) {
+            $scope.removeTDG();
+            $scope.renderTDG(
+              tdgJson[i].data,
+              tdgJson[i].color,
+              tdgJson[i].percentage
             );
             break;
           }
         }
       };
 
-      $scope.removeTDCG = function removeTDCG() {
+      $scope.removeTDG = function removeTDG() {
         d3.select("#time_dependent_coverage_graph").selectAll("*").remove();
       };
 
-      $scope.renderTDCG = renderTDCG;
-      $scope.displayTDCG();
+      $scope.renderTDG = renderTDG;
+      $scope.displayTDG();
     },
   ]);
 

@@ -111,7 +111,7 @@ public class ReportGenerator {
 
   // this number determines how many data points within the TDCG are shown (more means less
   // performance)
-  private static final int MAX_DATA_POINTS_TDCG = 10000;
+  private static final int MAX_DATA_POINTS_TDG = 10000;
 
   private final Configuration config;
   private final LogManager logger;
@@ -387,10 +387,10 @@ public class ReportGenerator {
   private void insertTimeStampsPerCoverageJson(
       Writer writer, TimeDependentCoverageHandler tdcgHandler) throws IOException {
     int i = 0;
-    writer.write("var tdcgJson = [");
+    writer.write("var tdgJson = [");
     for (TimeDependentCoverageType type : tdcgHandler.getAllTypes()) {
       Map<Long, Double> timeStampsPerCoverage =
-          tdcgHandler.getData(type).getReducedTimeStampsPerCoverage(MAX_DATA_POINTS_TDCG);
+          tdcgHandler.getData(type).getReducedTimeStampsPerCoverage(MAX_DATA_POINTS_TDG);
       writer.write("{\"name\":");
       JSON.writeJSONString(type.getName(), writer);
       writer.write(",\"color\":");
@@ -405,7 +405,7 @@ public class ReportGenerator {
       }
     }
     writer.write("]\n");
-    writer.write("window.tdcgJson = tdcgJson;\n");
+    writer.write("window.tdgJson = tdgJson;\n");
   }
 
   private void insertCfaJson(
