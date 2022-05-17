@@ -13,7 +13,7 @@ INITIAL STATE Init;
 STATE USEFIRST Init :
   CHECK(AutomatonAnalysis_AssumptionAutomaton, "state == __TRUE") -> STOP;
   CHECK(AutomatonAnalysis_AssumptionAutomaton, "state == __qFINAL") -> STOP;
-  CHECK(AutomatonAnalysis_AssumptionAutomaton, "state == __qERROR") -> ERROR;
+  // CHECK(AutomatonAnalysis_AssumptionAutomaton, "state == __qERROR") -> ERROR;
   TRUE -> GOTO Init;
 
 END AUTOMATON

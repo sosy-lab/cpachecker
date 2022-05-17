@@ -17,7 +17,7 @@ STATE __TRUE :
 STATE __qTEMP :
     TRUE -> ASSUME {false} GOTO __qTEMP;
 
-STATE __qERROR :
+TARGET STATE __qERROR :
     TRUE -> ASSUME {true} GOTO __qERROR;
 
 STATE USEALL A0 :
