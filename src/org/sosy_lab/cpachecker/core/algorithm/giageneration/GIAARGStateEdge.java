@@ -15,7 +15,8 @@ import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.algorithm.AssumptionCollectorAlgorithm;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
-import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
+import org.sosy_lab.cpachecker.cpa.arg.witnessexport.WitnessFactory;
+import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionFormula;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 
@@ -26,54 +27,54 @@ public class GIAARGStateEdge {
   private final Optional<AbstractionFormula> assumption;
   private final Optional<String> source_mulitEdgeIndex;
   private final Optional<String> target_mulitEdgeIndex;
-//  private final Optional<String> additionalAssumption;
+  //  private final Optional<String> additionalAssumption;
 
-//  public GIAARGStateEdge(
-//      ARGState pSource,
-//      Optional<String> pSource_mulitEdgeIndex,
-//      ARGState pTarget,
-//      Optional<String> pTarget_mulitEdgeIndex,
-//      CFAEdge pEdge,
-//      Optional<AbstractionFormula> pAssumption,
-//      Optional<String> pAdditionalAssumption) {
-//    this.source = pSource;
-//    this.target = Optional.of(pTarget);
-//    this.edge = pEdge;
-//    this.assumption = pAssumption;
-//    this.source_mulitEdgeIndex = pSource_mulitEdgeIndex;
-//    this.target_mulitEdgeIndex = pTarget_mulitEdgeIndex;
-//    this.additionalAssumption = pAdditionalAssumption;
-//  }
+  //  public GIAARGStateEdge(
+  //      ARGState pSource,
+  //      Optional<String> pSource_mulitEdgeIndex,
+  //      ARGState pTarget,
+  //      Optional<String> pTarget_mulitEdgeIndex,
+  //      CFAEdge pEdge,
+  //      Optional<AbstractionFormula> pAssumption,
+  //      Optional<String> pAdditionalAssumption) {
+  //    this.source = pSource;
+  //    this.target = Optional.of(pTarget);
+  //    this.edge = pEdge;
+  //    this.assumption = pAssumption;
+  //    this.source_mulitEdgeIndex = pSource_mulitEdgeIndex;
+  //    this.target_mulitEdgeIndex = pTarget_mulitEdgeIndex;
+  //    this.additionalAssumption = pAdditionalAssumption;
+  //  }
 
-//  public GIAARGStateEdge(
-//      ARGState pSource,
-//      Optional<String> pSource_mulitEdgeIndex,
-//      ARGState pTarget,
-//      Optional<String> pTarget_mulitEdgeIndex,
-//      CFAEdge pEdge,
-//      Optional<AbstractionFormula> pAssumption) {
-//    this.source = pSource;
-//    this.target = Optional.of(pTarget);
-//    this.edge = pEdge;
-//    this.assumption = pAssumption;
-//    this.source_mulitEdgeIndex = pSource_mulitEdgeIndex;
-//    this.target_mulitEdgeIndex = pTarget_mulitEdgeIndex;
-//    this.additionalAssumption = Optional.empty();
-//  }
+  //  public GIAARGStateEdge(
+  //      ARGState pSource,
+  //      Optional<String> pSource_mulitEdgeIndex,
+  //      ARGState pTarget,
+  //      Optional<String> pTarget_mulitEdgeIndex,
+  //      CFAEdge pEdge,
+  //      Optional<AbstractionFormula> pAssumption) {
+  //    this.source = pSource;
+  //    this.target = Optional.of(pTarget);
+  //    this.edge = pEdge;
+  //    this.assumption = pAssumption;
+  //    this.source_mulitEdgeIndex = pSource_mulitEdgeIndex;
+  //    this.target_mulitEdgeIndex = pTarget_mulitEdgeIndex;
+  //    this.additionalAssumption = Optional.empty();
+  //  }
 
-//  public GIAARGStateEdge(
-//      ARGState pSource,
-//      Optional<String> pSource_mulitEdgeIndex,
-//      CFAEdge pEdge,
-//      Optional<AbstractionFormula> pAssumption) {
-//    this.source = pSource;
-//    this.target = Optional.empty();
-//    this.edge = pEdge;
-//    this.assumption = pAssumption;
-//    this.source_mulitEdgeIndex = pSource_mulitEdgeIndex;
-//    this.target_mulitEdgeIndex = Optional.empty();
-//    this.additionalAssumption = Optional.empty();
-//  }
+  //  public GIAARGStateEdge(
+  //      ARGState pSource,
+  //      Optional<String> pSource_mulitEdgeIndex,
+  //      CFAEdge pEdge,
+  //      Optional<AbstractionFormula> pAssumption) {
+  //    this.source = pSource;
+  //    this.target = Optional.empty();
+  //    this.edge = pEdge;
+  //    this.assumption = pAssumption;
+  //    this.source_mulitEdgeIndex = pSource_mulitEdgeIndex;
+  //    this.target_mulitEdgeIndex = Optional.empty();
+  //    this.additionalAssumption = Optional.empty();
+  //  }
 
   public GIAARGStateEdge(
       ARGState pSource,
@@ -87,7 +88,7 @@ public class GIAARGStateEdge {
     this.assumption = pAssumption;
     this.source_mulitEdgeIndex = Optional.empty();
     this.target_mulitEdgeIndex = Optional.empty();
-//    this.additionalAssumption = pAdditionalAssumption;
+    //    this.additionalAssumption = pAdditionalAssumption;
   }
 
   public GIAARGStateEdge(
@@ -98,10 +99,8 @@ public class GIAARGStateEdge {
     this.assumption = pAssumption;
     this.source_mulitEdgeIndex = Optional.empty();
     this.target_mulitEdgeIndex = Optional.empty();
-//    this.additionalAssumption = Optional.empty();
+    //    this.additionalAssumption = Optional.empty();
   }
-
-
 
   public GIAARGStateEdge(ARGState pSource, CFAEdge pEdge) {
     this.source = pSource;
@@ -110,7 +109,7 @@ public class GIAARGStateEdge {
     this.assumption = Optional.empty();
     this.source_mulitEdgeIndex = Optional.empty();
     this.target_mulitEdgeIndex = Optional.empty();
-//    this.additionalAssumption = Optional.empty();
+    //    this.additionalAssumption = Optional.empty();
   }
 
   public GIAARGStateEdge(ARGState pSource, ARGState pTarget, CFAEdge pEdge) {
@@ -120,7 +119,7 @@ public class GIAARGStateEdge {
     this.assumption = Optional.empty();
     this.source_mulitEdgeIndex = Optional.empty();
     this.target_mulitEdgeIndex = Optional.empty();
-//    this.additionalAssumption = Optional.empty();
+    //    this.additionalAssumption = Optional.empty();
   }
 
   public String getSourceName() {
@@ -133,16 +132,18 @@ public class GIAARGStateEdge {
         : GIAGenerator.NAME_OF_TEMP_STATE;
   }
 
-  public String getTargetName(Set<ARGState> pTargetStates, Set<ARGState> pNonTargetStates, Set<ARGState> pUnknownStates) {
-    if (this.target.isPresent()){
+  public String getTargetName(
+      Set<ARGState> pTargetStates, Set<ARGState> pNonTargetStates, Set<ARGState> pUnknownStates) {
+    if (this.target.isPresent()) {
       final ARGState targetState = target.orElseThrow();
       if (pTargetStates.contains(targetState)) return GIAGenerator.NAME_OF_ERROR_STATE;
       if (pNonTargetStates.contains(targetState)) return GIAGenerator.NAME_OF_FINAL_STATE;
       if (pUnknownStates.contains(targetState)) return GIAGenerator.NAME_OF_UNKNOWN_STATE;
       return GIAGenerator.getName(targetState);
     }
-    return  GIAGenerator.NAME_OF_TEMP_STATE;
+    return GIAGenerator.NAME_OF_TEMP_STATE;
   }
+
   public ARGState getSource() {
     return source;
   }
@@ -151,17 +152,14 @@ public class GIAARGStateEdge {
     return target;
   }
 
-
-
-  public String getStringOfAssumption(FormulaManagerView pFMgr)
+  public String getStringOfAssumption(Optional<ARGState> pState)
       throws IOException, InterruptedException {
-    if (this.assumption.isPresent()) {
+    if (this.assumption.isPresent() && pState.isPresent()) {
       StringBuilder sb = new StringBuilder();
       sb.append("ASSUME {");
       AssumptionCollectorAlgorithm.escape(
-          ExpressionTrees.fromFormula(
-                  this.assumption.orElseThrow().asFormula(), pFMgr, this.edge.getSuccessor())
-              .toString(),
+          WitnessFactory.getAssumptionAsCode(
+              this.assumption.orElseThrow().asExpressionTree(AbstractStates.extractLocation(pState.orElseThrow())), Optional.empty()),
           sb);
       sb.append("} ");
       return sb.toString();
@@ -191,9 +189,9 @@ public class GIAARGStateEdge {
   @Override
   public String toString() {
     String sourceSuffix =
-        this.source_mulitEdgeIndex.isPresent() ? "_"+source_mulitEdgeIndex.orElseThrow() : "";
+        this.source_mulitEdgeIndex.isPresent() ? "_" + source_mulitEdgeIndex.orElseThrow() : "";
     String targetSuffix =
-        this.target_mulitEdgeIndex.isPresent() ? "_"+target_mulitEdgeIndex.orElseThrow() : "";
+        this.target_mulitEdgeIndex.isPresent() ? "_" + target_mulitEdgeIndex.orElseThrow() : "";
     return "GIAEdge{"
         + getSourceName()
         + sourceSuffix
@@ -208,6 +206,4 @@ public class GIAARGStateEdge {
   public CFAEdge getEdge() {
     return edge;
   }
-
-
 }

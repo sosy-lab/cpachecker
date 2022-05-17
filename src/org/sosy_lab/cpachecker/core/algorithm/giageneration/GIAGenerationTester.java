@@ -310,8 +310,8 @@ public class GIAGenerationTester {
     }
     if (witness.isPresent()) {
       spec = String.format("%s,%s", spec, witness.orElseThrow());
-    } else if ( //pGenerationConfig == GIAGenerationConfig.GIA2VIOWIT ||
-       pGenerationConfig == GIAGenerationConfig.GIA2CORWIT) {
+    } else if ( // pGenerationConfig == GIAGenerationConfig.GIA2VIOWIT ||
+    pGenerationConfig == GIAGenerationConfig.GIA2CORWIT) {
       spec = "";
     }
 
@@ -748,7 +748,8 @@ public class GIAGenerationTester {
         GIAGenerationTester.performTest(
             programFile,
             generationConfig,
-            overrideOptionsBuilder,giaInput,
+            overrideOptionsBuilder,
+            giaInput,
             testcase,
             witness,
             optionForOutput,

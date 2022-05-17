@@ -45,16 +45,20 @@ public class GIAGenerator {
 
   public static final String DESC_OF_DUMMY_FUNC_START_EDGE = "Function start dummy edge";
 
-  public static String getDefStringForState(ARGState pCurrentState, Set<ARGState> pTargetStates, Set<ARGState> pNonTargetStates, Set<ARGState> pUnknownStates) {
-    if (pTargetStates.contains(pCurrentState)){
+  public static String getDefStringForState(
+      ARGState pCurrentState,
+      Set<ARGState> pTargetStates,
+      Set<ARGState> pNonTargetStates,
+      Set<ARGState> pUnknownStates) {
+    if (pTargetStates.contains(pCurrentState)) {
       return String.format("TARGET STATE USEFIRST %s :\n", GIAGenerator.getName(pCurrentState));
-    }else  if (pNonTargetStates.contains(pCurrentState)){
-      return String.format("NON_TARGET STATE USEFIRST %s :\n", GIAGenerator.getName(pCurrentState));}
-    else  if (pUnknownStates.contains(pCurrentState)){
-      return String.format("UNKNOWN STATE USEFIRST %s :\n", GIAGenerator.getName(pCurrentState));}
+    } else if (pNonTargetStates.contains(pCurrentState)) {
+      return String.format("NON_TARGET STATE USEFIRST %s :\n", GIAGenerator.getName(pCurrentState));
+    } else if (pUnknownStates.contains(pCurrentState)) {
+      return String.format("UNKNOWN STATE USEFIRST %s :\n", GIAGenerator.getName(pCurrentState));
+    }
     return String.format("STATE USEFIRST %s :\n", GIAGenerator.getName(pCurrentState));
   }
-
 
   @Options
   public static class GIAGeneratorOptions {
@@ -70,33 +74,39 @@ public class GIAGenerator {
         secure = true,
         name = "assumptions.genGIA4Witness",
         description = "Generate GIA for violation or correctness witness")
-    private boolean genGIA4Witness = false;
+    private  boolean genGIA4Witness = false;
 
     @Option(
         secure = true,
         name = "assumptions.genGIA4Testcase",
         description = "Generate GIA for testcomp testcase")
-    private boolean genGIA4Testcase = false;
+    private  boolean genGIA4Testcase = false;
 
     @Option(
         secure = true,
         name = "assumptions.genGIA4Refinement",
         description = "Generate GIA for refinement (usable in C-CEGAR for craig interpolation)")
-    private boolean genGIA4Refinement = false;
+    private  boolean genGIA4Refinement = false;
 
     @Option(
         secure = true,
         name = "assumptions.isOverApproxAnalysis",
         description =
             "Indicates whether this analysis is over-approximate (and hence can extend F_NT)")
-    private boolean isOverApproxAnalysis = false;
+    private  boolean isOverApproxAnalysis = false;
 
     @Option(
         secure = true,
         name = "assumptions.genGIA4Refinement",
         description =
             "Indicates whether this analysis is under-approximate (and hence can extend F_T)")
-    private boolean isUnderApproxAnalysis = false;
+    private  boolean isUnderApproxAnalysis = false;
+
+    @Option(
+        secure = true,
+        name = "assumptions.storeInterpolantsInGIA",
+        description = "Store the discovered interpolants in the gia")
+    private  boolean storeInterpolantsInGIA = false;
 
     public GIAGeneratorOptions(Configuration pConfig) throws InvalidConfigurationException {
       pConfig.inject(this);
@@ -125,12 +135,16 @@ public class GIAGenerator {
     public boolean isUnderApproxAnalysis() {
       return isUnderApproxAnalysis;
     }
+
+    public boolean isStoreInterpolantsInGIA() {
+      return storeInterpolantsInGIA;
+    }
   }
 
   public static final String NAME_OF_WITNESS_AUTOMATON = "WitnessAutomaton";
   public static final String NAME_OF_TEMP_STATE = "__qTEMP";
   public static final String NAME_OF_ERROR_STATE = "__qERROR";
-  public static final String NAME_OF_UNKNOWN_STATE = "__qUNKNOWN" ;
+  public static final String NAME_OF_UNKNOWN_STATE = "__qUNKNOWN";
   public static final String NAME_OF_FINAL_STATE = "__qFINAL";
 
   public static final String NAME_OF_NEWTESTINPUT_STATE = "__qNEWTEST";
@@ -142,10 +156,13 @@ public class GIAGenerator {
 
   @SuppressWarnings("unused")
   private final GIATestcaseGenerator testcaseGenerator;
+
   @SuppressWarnings("unused")
   private final GIAInterpolantGenerator interpolantGenerator;
+
   @SuppressWarnings("unused")
   private final GIAWitnessGenerator witnessGenerator;
+
   private final GIAARGGenerator argGeneator;
   final LogManager logger;
 
@@ -192,20 +209,20 @@ public class GIAGenerator {
     this.witnessGenerator =
         new GIAWitnessGenerator(
             new GIACorWitGenerator(logger, optinons), new GIAVioWitGenerator(logger, optinons));
-    this.argGeneator = new GIAARGGenerator(logger, optinons, cfa.getMachineModel(),
-        cpa, config);
+    this.argGeneator =
+        new GIAARGGenerator(logger, optinons, cfa.getMachineModel(), cpa, config, formulaManager);
   }
 
   public int produceGeneralizedInformationExchangeAutomaton(
-      Appendable output, UnmodifiableReachedSet reached)
-      throws CPAException, IOException {
+      Appendable output, UnmodifiableReachedSet reached) throws CPAException, IOException {
 
     try {
       universalConditionAutomaton += argGeneator.produceGIA4ARG(output, reached, optinons);
     } catch (InterruptedException pE) {
       logger.log(
           Level.WARNING,
-          String.format("Generation of GIA failed due to %s", Throwables.getStackTraceAsString(pE)));
+          String.format(
+              "Generation of GIA failed due to %s", Throwables.getStackTraceAsString(pE)));
     }
 
     //     if (optinons.isGenGIA4Testcase()) {
@@ -284,8 +301,6 @@ public class GIAGenerator {
     return s.isTarget() ? NAME_OF_ERROR_STATE : s.getInternalStateName();
   }
 
-
-
   static String getName(ARGState pSource) {
     return String.format("ARG%d", +pSource.getStateId());
   }
@@ -293,8 +308,6 @@ public class GIAGenerator {
   static String getNameOrError(ARGState pSource) {
     return pSource.isTarget() ? NAME_OF_ERROR_STATE : getName(pSource);
   }
-
-
 
   static String getEdgeString(CFAEdge pEdge) {
     if (pEdge instanceof BlankEdge

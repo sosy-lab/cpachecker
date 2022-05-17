@@ -43,7 +43,6 @@ import org.sosy_lab.cpachecker.util.Pair;
 
 public class GIAVioWitGenerator {
 
-
   private final LogManager logger;
   private final GIAGeneratorOptions optinons;
 
@@ -53,43 +52,40 @@ public class GIAVioWitGenerator {
     this.optinons = pOptions;
   }
 
-  int produceGIA4ViolationWitness(
-      Appendable output,
-      UnmodifiableReachedSet reached)
+  int produceGIA4ViolationWitness(Appendable output, UnmodifiableReachedSet reached)
       throws IOException {
     final AbstractState firstState = reached.getFirstState();
     if (!(firstState instanceof ARGState)) {
       output.append("Cannot dump assumption as automaton if ARGCPA is not used.");
     }
 
-//    // check, if the gia that should be generated (e.g. for a violation witness)
-//    // matches the reached set (meaning that the reached set contians at least
-//    // location with a property violation according to the specification
-//
-//    boolean hasViolation =
-//        reached.stream().anyMatch(s -> s instanceof ARGState && ((ARGState) s).isTarget());
-//    if (!hasViolation) {
-//      throw new CPAException(
-//          "Cannot transform the GIA, as the reached set has no property violation");
-//    }
-//
-//    // Goal: generate a set of the form (AutomatonState --EDGE--> AutomatonState)
-//    // and the root node
-//
+    //    // check, if the gia that should be generated (e.g. for a violation witness)
+    //    // matches the reached set (meaning that the reached set contians at least
+    //    // location with a property violation according to the specification
+    //
+    //    boolean hasViolation =
+    //        reached.stream().anyMatch(s -> s instanceof ARGState && ((ARGState) s).isTarget());
+    //    if (!hasViolation) {
+    //      throw new CPAException(
+    //          "Cannot transform the GIA, as the reached set has no property violation");
+    //    }
+    //
+    //    // Goal: generate a set of the form (AutomatonState --EDGE--> AutomatonState)
+    //    // and the root node
+    //
     final ARGState argRoot = (ARGState) reached.getFirstState();
-//
-//    Optional<AutomatonState> automatonRootState = GIAGenerator.getWitnessAutomatonState(argRoot);
-//    if (automatonRootState.isEmpty()) {
-      return produceGIAForARG(argRoot, output, reached);
-//    } else {
-//      return produceGIA4WitnessTransformation(output, reached, automatonRootState);
-//    }
+    //
+    //    Optional<AutomatonState> automatonRootState =
+    // GIAGenerator.getWitnessAutomatonState(argRoot);
+    //    if (automatonRootState.isEmpty()) {
+    return produceGIAForARG(argRoot, output, reached);
+    //    } else {
+    //      return produceGIA4WitnessTransformation(output, reached, automatonRootState);
+    //    }
   }
 
   private int produceGIAForARG(
-      ARGState pArgRoot,
-      Appendable pOutput,
-      UnmodifiableReachedSet pReached) throws IOException {
+      ARGState pArgRoot, Appendable pOutput, UnmodifiableReachedSet pReached) throws IOException {
 
     // scan reached set for all relevant states
     // Relevant state: Function enter, branching, loopHead or error states
@@ -101,15 +97,14 @@ public class GIAVioWitGenerator {
 
     Set<ARGState> targetStates = getAllTargetStates(pReached);
 
-
     logger.log(
         Level.INFO,
         "Target states found are "
             + String.join(
-            ",",
-            targetStates.stream()
-                .map(a -> Integer.toString(a.getStateId()))
-                .collect(ImmutableList.toImmutableList())));
+                ",",
+                targetStates.stream()
+                    .map(a -> Integer.toString(a.getStateId()))
+                    .collect(ImmutableList.toImmutableList())));
 
     while (!toProcess.isEmpty()) {
       ARGState state = toProcess.remove(0);
@@ -131,26 +126,29 @@ public class GIAVioWitGenerator {
 
     // Now, a short cleaning is applied:
     // All states leading to the error state are replaced by the error state directly
-//    Map<ARGState, Optional<ARGState>> statesToReplaceToReplacement = new HashMap<>();
-//    Set<GIAARGStateEdge> toRemove = new HashSet<>();
-//    relevantEdges.stream()
-//        .filter(e -> e.getTarget().isPresent() && targetStates.contains(e.getTarget().orElseThrow()))
-//        .forEach(
-//            e -> {
-//              statesToReplaceToReplacement.put(e.getSource(), e.getTarget());
-//              toRemove.add(e);
-//            });
-//    HashSet<GIAARGStateEdge> toAdd = new HashSet<>();
-//    for(GIAARGStateEdge edge : relevantEdges){
-//      if (edge.getTarget().isPresent() && statesToReplaceToReplacement.containsKey(edge.getTarget().orElseThrow())){
-//        toRemove.add(edge);
-//        Optional<ARGState> replacement = statesToReplaceToReplacement.get(edge.getTarget().orElseThrow());
-//        if (replacement.isPresent())
-//        toAdd.add(new GIAARGStateEdge(edge.source,replacement.orElseThrow(), edge.getEdge()));
-//      }
-//    }
-//    relevantEdges.removeAll(toRemove);
-//    relevantEdges.addAll(toAdd);
+    //    Map<ARGState, Optional<ARGState>> statesToReplaceToReplacement = new HashMap<>();
+    //    Set<GIAARGStateEdge> toRemove = new HashSet<>();
+    //    relevantEdges.stream()
+    //        .filter(e -> e.getTarget().isPresent() &&
+    // targetStates.contains(e.getTarget().orElseThrow()))
+    //        .forEach(
+    //            e -> {
+    //              statesToReplaceToReplacement.put(e.getSource(), e.getTarget());
+    //              toRemove.add(e);
+    //            });
+    //    HashSet<GIAARGStateEdge> toAdd = new HashSet<>();
+    //    for(GIAARGStateEdge edge : relevantEdges){
+    //      if (edge.getTarget().isPresent() &&
+    // statesToReplaceToReplacement.containsKey(edge.getTarget().orElseThrow())){
+    //        toRemove.add(edge);
+    //        Optional<ARGState> replacement =
+    // statesToReplaceToReplacement.get(edge.getTarget().orElseThrow());
+    //        if (replacement.isPresent())
+    //        toAdd.add(new GIAARGStateEdge(edge.source,replacement.orElseThrow(), edge.getEdge()));
+    //      }
+    //    }
+    //    relevantEdges.removeAll(toRemove);
+    //    relevantEdges.addAll(toAdd);
     return writeGIAForViolationWitness(pOutput, pArgRoot, relevantEdges, false);
   }
 
@@ -264,7 +262,7 @@ public class GIAVioWitGenerator {
    * call edge <br>
    * 3. The child is a target state <br>
    * 4 Alternative: THe child is a {@link FunctionEntryNode}<br>
-   * 5. The child node is a target state or  has a grandchild node that is a target state <br>
+   * 5. The child node is a target state or has a grandchild node that is a target state <br>
    *
    * @param pChild the child
    * @param pParent the parent
@@ -297,12 +295,13 @@ public class GIAVioWitGenerator {
     boolean case3 = pTargetStates.contains(pChild);
     // Case 4:
     boolean case4 = AbstractStates.extractLocation(pChild) instanceof FunctionEntryNode;
-    //This is an old option!
-//        lastEdge instanceof BlankEdge
-//            && lastEdge.getDescription().contains(GIAGenerator.DESC_OF_DUMMY_FUNC_START_EDGE));
+    // This is an old option!
+    //        lastEdge instanceof BlankEdge
+    //            &&
+    // lastEdge.getDescription().contains(GIAGenerator.DESC_OF_DUMMY_FUNC_START_EDGE));
     // Case 5:
     boolean case5a = pTargetStates.contains(pChild);
-boolean case5b =        pChild.getChildren().stream().anyMatch(gc -> pTargetStates.contains(gc));
+    boolean case5b = pChild.getChildren().stream().anyMatch(gc -> pTargetStates.contains(gc));
 
     // If the pChild cannot reach the error state, do not add it to the toProcessed
     // and let the edge goto the qTemp State (as not relevant for the path)
@@ -607,8 +606,10 @@ boolean case5b =        pChild.getChildren().stream().anyMatch(gc -> pTargetStat
     targetStates.addAll(
         pReached.asCollection().stream()
             .filter(
-                state -> AbstractStates.extractStateByType(state, AssumptionStorageState.class) != null &&
-                    AbstractStates.extractStateByType(state, AssumptionStorageState.class).isStop())
+                state ->
+                    AbstractStates.extractStateByType(state, AssumptionStorageState.class) != null
+                        && AbstractStates.extractStateByType(state, AssumptionStorageState.class)
+                            .isStop())
             .map(s -> AbstractStates.extractStateByType(s, ARGState.class))
             .collect(ImmutableList.toImmutableList()));
 

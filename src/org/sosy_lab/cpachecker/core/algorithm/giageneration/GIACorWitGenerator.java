@@ -178,7 +178,8 @@ public class GIACorWitGenerator {
       GIAGenerator.storeInitialNode(
           sb, edgesToAdd.isEmpty(), GIAGenerator.getNameOrError(autoRootState.get()));
     } else {
-      GIAGenerator.storeInitialNode(sb, edgesToAdd.isEmpty(), GIAGenerator.getNameOrError(rootState));
+      GIAGenerator.storeInitialNode(
+          sb, edgesToAdd.isEmpty(), GIAGenerator.getNameOrError(rootState));
     }
     sb.append(String.format("STATE %s :\n", GIAGenerator.NAME_OF_FINAL_STATE));
     sb.append(String.format("    TRUE -> GOTO %s;\n\n", GIAGenerator.NAME_OF_FINAL_STATE));
@@ -204,7 +205,8 @@ public class GIACorWitGenerator {
       if (curAssumptionState.isPresent()) {
         sb.append(
             String.format(
-                "STATE USEALL %s :\n", GIAGenerator.getNameOrError(curAssumptionState.orElseThrow())));
+                "STATE USEALL %s :\n",
+                GIAGenerator.getNameOrError(curAssumptionState.orElseThrow())));
       } else {
         sb.append(String.format("STATE USEALL %s :\n", GIAGenerator.getNameOrError(currentState)));
       }

@@ -595,6 +595,9 @@ assumptions.isOverApproxAnalysis = false
 # has successors.
 assumptions.removeNonExploredWithoutSuccessors = false
 
+# Store the discovered interpolants in the gia
+assumptions.storeInterpolantsInGIA = false
+
 # Generate additionally a universal condition automaton
 assumptions.transformGIA = true
 

@@ -44,9 +44,10 @@ import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 public class GIAInterpolantGenerator {
   private final ConfigurableProgramAnalysis cpa;
 
-  private FormulaManagerView formulaManager;
+  private final FormulaManagerView formulaManager;
 
-  public GIAInterpolantGenerator(ConfigurableProgramAnalysis pCpa, FormulaManagerView pFormlaManger) {
+  public GIAInterpolantGenerator(
+      ConfigurableProgramAnalysis pCpa, FormulaManagerView pFormlaManger) {
     this.cpa = pCpa;
     this.formulaManager = pFormlaManger;
   }
@@ -122,7 +123,7 @@ public class GIAInterpolantGenerator {
             toAdd.addAll(current.getParents());
 
             // Create a new edge:
-            //Store the interpolant as assumption
+            // Store the interpolant as assumption
             Optional<AbstractionFormula> assumption =
                 statesWithInvariants.contains(current)
                     ? Optional.ofNullable(
@@ -214,7 +215,7 @@ public class GIAInterpolantGenerator {
         sb.append("    MATCH \"");
         AssumptionCollectorAlgorithm.escape(edge.getEdge().getRawStatement(), sb);
         sb.append("\" -> ");
-        sb.append(edge.getStringOfAssumption(pFmgr));
+        sb.append(edge.getStringOfAssumption(edge.getTarget()));
         sb.append(String.format("GOTO %s", edge.getTargetName()));
         sb.append(";\n");
       }
