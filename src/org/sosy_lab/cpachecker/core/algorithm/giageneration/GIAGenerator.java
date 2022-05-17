@@ -158,7 +158,7 @@ public class GIAGenerator {
             new GIACorWitGenerator(logger, optinons), new GIAVioWitGenerator(logger, optinons));
   }
 
-  public int produceUniversalConditionAutomaton(
+  public int produceGeneralizedInformationExchangeAutomaton(
       Appendable output, UnmodifiableReachedSet reached, Set<Integer> pExceptionStates)
       throws CPAException, IOException {
 
