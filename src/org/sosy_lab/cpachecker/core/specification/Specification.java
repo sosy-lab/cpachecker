@@ -38,14 +38,14 @@ import org.sosy_lab.cpachecker.cfa.CProgramScope;
 import org.sosy_lab.cpachecker.cfa.DummyScope;
 import org.sosy_lab.cpachecker.cfa.parser.Scope;
 import org.sosy_lab.cpachecker.core.CPABuilder;
-import org.sosy_lab.cpachecker.core.algorithm.ucageneration.UCAGenerator;
+import org.sosy_lab.cpachecker.core.algorithm.giageneration.GIAGenerator;
 import org.sosy_lab.cpachecker.core.specification.Property.CommonVerificationProperty;
 import org.sosy_lab.cpachecker.core.specification.PropertyFileParser.InvalidPropertyFileException;
 import org.sosy_lab.cpachecker.cpa.automaton.Automaton;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonACSLParser;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonGraphmlParser;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonParser;
-import org.sosy_lab.cpachecker.cpa.automaton.UCAAutomatonParser;
+import org.sosy_lab.cpachecker.cpa.automaton.GIAAutomatonParser;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
 import org.sosy_lab.cpachecker.util.ltl.Ltl2BuechiConverter;
 import org.sosy_lab.cpachecker.util.ltl.LtlParseException;
@@ -254,9 +254,9 @@ public final class Specification {
       if (automata.isEmpty()) {
         throw new InvalidConfigurationException(
             "Specification file contains no automata: " + specFile);
-      } else if (isUCA(automata)) {
-        UCAAutomatonParser ucaParsre = new UCAAutomatonParser(logger);
-        automata = ucaParsre.postProcessUCA(automata);
+      } else if (isGIA(automata)) {
+        GIAAutomatonParser giaParsre = new GIAAutomatonParser(logger);
+        automata = giaParsre.postProcessGIA(automata);
       }
     }
 
@@ -272,14 +272,14 @@ public final class Specification {
   }
 
   /**
-   * Checks if one automaton present and if the automaton is a UCA
+   * Checks if one automaton present and if the automaton is a GIA
    *
    * @param pAutomata the list of automaton to check
    * @return true if the above conditions are matched, false otherwise
    */
-  private static boolean isUCA(List<Automaton> pAutomata) {
+  private static boolean isGIA(List<Automaton> pAutomata) {
     return pAutomata.size() == 1
-        && pAutomata.get(0).getName().equals(UCAGenerator.ASSUMPTION_AUTOMATON_NAME);
+        && pAutomata.get(0).getName().equals(GIAGenerator.ASSUMPTION_AUTOMATON_NAME);
   }
 
   private static Automaton parseLtlFormula(

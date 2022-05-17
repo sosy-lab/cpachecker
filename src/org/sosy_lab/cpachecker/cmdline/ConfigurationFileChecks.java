@@ -452,7 +452,7 @@ public class ConfigurationFileChecks {
               Path.of("includes"),
               Path.of("pcc"),
               Path.of("witnessValidation.properties"),
-              Path.of("witness2UCA.properties"),
+              Path.of("witness2GIA.properties"),
               Path.of("craigInterpolation-violationWitness.properties"),
               Path.of("wacsl.properties"));
     }

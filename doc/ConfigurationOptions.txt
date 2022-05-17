@@ -573,24 +573,24 @@ assumptions.export.location = true
 # write collected assumptions to file
 assumptions.file = "assumptions.txt"
 
-# Generate uca for refinement (usable in C-CEGAR for craig interpolation)
-assumptions.genUCA4Refinement = false
+# Generate GIA for refinement (usable in C-CEGAR for craig interpolation)
+assumptions.genGIA4Refinement = false
 
-# Generate uca for testcomp testcase
-assumptions.genUCA4Testcase = false
+# Generate GIA for testcomp testcase
+assumptions.genGIA4Testcase = false
 
-# Generate uca for violation or correctness witness
-assumptions.genUCA4Witness = false
+# Generate GIA for violation or correctness witness
+assumptions.genGIA4Witness = false
+
+# write collected assumptions as automaton to file
+assumptions.giaFile = "UniversalConditionAutomaton.txt"
 
 # If it is enabled, check if a state that should lead to false state indeed
 # has successors.
 assumptions.removeNonExploredWithoutSuccessors = false
 
 # Generate additionally a universal condition automaton
-assumptions.transformUCA = true
-
-# write collected assumptions as automaton to file
-assumptions.ucaFile = "UniversalConditionAutomaton.txt"
+assumptions.transformGIA = true
 
 # comma-separated list of files with specifications that should be used 
 # in a backwards analysis; used if the analysis starts at the target states!
@@ -2037,8 +2037,8 @@ cpa.predicate.abstraction.initialPredicates.encodePredicates = DISABLE
 # initial predicates are added as atomic predicates
 cpa.predicate.abstraction.initialPredicates.splitIntoAtoms = false
 
-# add also assumptions from the uca as invariant candidates
-cpa.predicate.abstraction.initialPredicates.useAssumptionsFromUCAAsInvariants = false
+# add also assumptions from the GIA as invariant candidates
+cpa.predicate.abstraction.initialPredicates.useAssumptionsFromGIAAsInvariants = false
 
 # An initial set of comptued abstractions that might be reusable
 cpa.predicate.abstraction.reuseAbstractionsFrom = no default value
@@ -4630,7 +4630,7 @@ witness.debug.checkForMissedInvariants = false
 # Validate correctness witness by specifying an invariants specification
 # automaton
 witness.invariantsSpecificationAutomaton = NO_ISA
-  enum:     [NO_ISA, WITNESSBASED_ISA, TWOSTATES_ISA, CFABASED_ISA, WITNESSBASED_UCA]
+  enum:     [NO_ISA, WITNESSBASED_ISA, TWOSTATES_ISA, CFABASED_ISA, WITNESSBASED_GIA]
 
 # Match the branching information at a branching location.
 witness.matchAssumeCase = true
@@ -4701,4 +4701,4 @@ witness.validation.termination.terminatingStatements = "config/specification/Ter
 witness.validation.violation.config = no default value
 
 # Accept Universal condition automaton as violation witnesses.
-witness.validation.violation.uca = false
+witness.validation.violation.gia = false

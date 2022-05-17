@@ -46,7 +46,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.parser.Scope;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
-import org.sosy_lab.cpachecker.core.algorithm.ucageneration.UCAGenerator;
+import org.sosy_lab.cpachecker.core.algorithm.giageneration.GIAGenerator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
@@ -142,13 +142,13 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
 
   @Option(
       secure = true,
-      name = "transformUCA",
+      name = "transformGIA" ,
       description = "Generate additionally a universal condition automaton")
-  private boolean transformUCA = true;
+  private boolean transformGIA = true;
 
   @Option(secure = true, description = "write collected assumptions as automaton to file")
   @FileOption(FileOption.Type.OUTPUT_FILE)
-  private Path ucaFile = Path.of("UniversalConditionAutomaton.txt");
+  private Path giaFile = Path.of("UniversalConditionAutomaton.txt");
 
   private final LogManager logger;
   private final Algorithm innerAlgorithm;
@@ -157,7 +157,7 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
   private final BooleanFormulaManager bfmgr;
   private final CFA cfa;
   private final Configuration config;
-  private final UCAGenerator ucaCollector;
+  private final GIAGenerator giaCollector;
 
   // store only the ids, not the states in order to prevent memory leaks
   private final Set<Integer> exceptionStates = new HashSet<>();
@@ -195,7 +195,7 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
     cpa = pCpa;
     this.cfa = cfa;
     this.config = config;
-    ucaCollector = new UCAGenerator(algo, pCpa, config, logger, cfa, pShutdownNotifier);
+    giaCollector = new GIAGenerator(algo, pCpa, config, logger, cfa, pShutdownNotifier);
   }
 
   @Override
@@ -751,39 +751,39 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
             }
           }
         }
-        if (transformUCA && Objects.nonNull(ucaFile)) {
+        if (transformGIA && Objects.nonNull(giaFile)) {
           // Generate a universal condition automaton for the output
           if (!compressAutomaton) {
-            try (Writer w = IO.openOutputFile(ucaFile, Charset.defaultCharset())) {
-              ucaCollector.produceUniversalConditionAutomaton(w, pReached, exceptionStates);
+            try (Writer w = IO.openOutputFile(giaFile, Charset.defaultCharset())) {
+              giaCollector.produceUniversalConditionAutomaton(w, pReached, exceptionStates);
             } catch (IOException e) {
-              logger.logUserException(Level.WARNING, e, "Could not write uca to file");
+              logger.logUserException(Level.WARNING, e, "Could not write GIA to file");
             } catch (CPAException e) {
               logger.logUserException(
                   Level.WARNING,
                   e,
-                  "Could not write uca to file, as no error location is discovered");
+                  "Could not write GIA to file, as no error location is discovered");
             }
           } else {
-            ucaFile = ucaFile.resolveSibling(ucaFile.getFileName() + ".gz");
+            giaFile = giaFile.resolveSibling(giaFile.getFileName() + ".gz");
             try {
               IO.writeGZIPFile(
-                  ucaFile,
+                  giaFile,
                   Charset.defaultCharset(),
                   (Appender)
                       appendable -> {
                         try {
-                          ucaCollector.produceUniversalConditionAutomaton(
+                          giaCollector.produceUniversalConditionAutomaton(
                               appendable, pReached, exceptionStates);
                         } catch (CPAException e) {
                           logger.logUserException(
                               Level.WARNING,
                               e,
-                              "Could not write uca to file, as no error location is discovered");
+                              "Could not write GIA to file, as no error location is discovered");
                         }
                       });
             } catch (IOException e) {
-              logger.logUserException(Level.WARNING, e, "Could not write uca to file");
+              logger.logUserException(Level.WARNING, e, "Could not write GIA to file");
             }
           }
           put(out, "Number of states in UniversalConditionAutomaton", universalConditionAutomaton);

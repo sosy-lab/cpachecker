@@ -109,8 +109,8 @@ public class PredicatePrecisionBootstrapper implements StatisticsProvider {
 
     @Option(
         secure = true,
-        description = "add also assumptions from the uca as invariant candidates")
-    private boolean useAssumptionsFromUCAAsInvariants = false;
+        description = "add also assumptions from the GIA as invariant candidates")
+    private boolean useAssumptionsFromGIAAsInvariants = false;
 
     public boolean applyFunctionWide() {
       return applyFunctionWide;
@@ -196,8 +196,8 @@ public class PredicatePrecisionBootstrapper implements StatisticsProvider {
                 logger.log(Level.WARNING, "Invariants do not exist in a violaton witness");
                 break;
             }
-          } else if (isUCA(predicatesFile)) {
-            result = result.mergeWith(parseInvariantsFromUCAAsPredicates(predicatesFile));
+          } else if (isGIA(predicatesFile)) {
+            result = result.mergeWith(parseInvariantsFromGIAAsPredicates(predicatesFile));
           } else {
             result = result.mergeWith(parser.parsePredicates(predicatesFile));
           }
@@ -214,8 +214,8 @@ public class PredicatePrecisionBootstrapper implements StatisticsProvider {
     return result;
   }
 
-  private PredicatePrecision parseInvariantsFromUCAAsPredicates(Path pPredicatesFile) {
-    Optional<Automaton> optAutomaton = loadUCA(pPredicatesFile);
+  private PredicatePrecision parseInvariantsFromGIAAsPredicates(Path pPredicatesFile) {
+    Optional<Automaton> optAutomaton = loadGIA(pPredicatesFile);
     if (optAutomaton.isEmpty()) {
       logger.logf(Level.WARNING, "Could not load an automaton from file %s", pPredicatesFile);
       return PredicatePrecision.empty();
@@ -226,7 +226,7 @@ public class PredicatePrecisionBootstrapper implements StatisticsProvider {
           new WitnessInvariantsExtractor(config, automaton, logger, cfa, shutdownNotifier);
 
       Set<ExpressionTreeLocationInvariant> invariants = extractor.extractInvariantsFromReachedSet();
-      if (options.useAssumptionsFromUCAAsInvariants && options.applyGlobally) {
+      if (options.useAssumptionsFromGIAAsInvariants && options.applyGlobally) {
         invariants = extractor.extractAdditionalInvariantsFromAssumptions(invariants);
       }
       logger.log(Level.INFO, invariants);
@@ -237,15 +237,15 @@ public class PredicatePrecisionBootstrapper implements StatisticsProvider {
     return PredicatePrecision.empty();
   }
 
-  private boolean isUCA(Path pPredicatesFile) {
-    return loadUCA(pPredicatesFile).isPresent();
+  private boolean isGIA(Path pPredicatesFile) {
+    return loadGIA(pPredicatesFile).isPresent();
   }
 
-  private Optional<Automaton> loadUCA(Path pPredicatesFile) {
+  private Optional<Automaton> loadGIA(Path pPredicatesFile) {
     Scope scope =
         cfa.getLanguage() == Language.C ? new CProgramScope(cfa, logger) : DummyScope.getInstance();
     try {
-      // we do not want to log, as we first try to load the UCA:
+      // we do not want to log, as we first try to load the GIA:
       LogManager nullLogger = LogManager.createNullLogManager();
 
       List<Automaton> lst =
@@ -274,7 +274,7 @@ public class PredicatePrecisionBootstrapper implements StatisticsProvider {
       }
       return Optional.of(lst.get(0));
     } catch (InvalidConfigurationException pE) {
-      logger.logf(Level.WARNING, "Error while loading the UCA: %s", pE.getMessage());
+      logger.logf(Level.WARNING, "Error while loading the GIA: %s", pE.getMessage());
       return Optional.empty();
     }
   }

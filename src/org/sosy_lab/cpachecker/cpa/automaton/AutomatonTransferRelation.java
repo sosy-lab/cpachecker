@@ -362,7 +362,7 @@ public class AutomatonTransferRelation implements TransferRelation {
       }
     }
 
-    // Check for invariants from the UCA, that can be added to predicate analysis
+    // Check for invariants from the GIA, that can be added to predicate analysis
 
     return ImmutableSet.of(state);
   }

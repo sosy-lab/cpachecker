@@ -60,7 +60,7 @@ import org.sosy_lab.cpachecker.core.CPAchecker;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.algorithm.pcc.ProofGenerator;
-import org.sosy_lab.cpachecker.core.algorithm.ucageneration.UCAParser;
+import org.sosy_lab.cpachecker.core.algorithm.giageneration.GIAParser;
 import org.sosy_lab.cpachecker.core.counterexample.ReportGenerator;
 import org.sosy_lab.cpachecker.core.specification.Property;
 import org.sosy_lab.cpachecker.core.specification.Property.CommonCoverageProperty;
@@ -639,7 +639,7 @@ public class CPAMain {
 
     @Option(
         secure = true,
-        name = "witness.validation.violation.uca",
+        name = "witness.validation.violation.gia",
         description = "Accept Universal condition automaton as violation witnesses.")
     private boolean acceptUniversalConditionAutomaton = false;
 
@@ -666,7 +666,7 @@ public class CPAMain {
     } else {
       WitnessType witnessType;
       if (options.acceptUniversalConditionAutomaton) {
-        witnessType = UCAParser.getWitnessType(options.witness);
+        witnessType = GIAParser.getWitnessType(options.witness);
       } else {
         witnessType = AutomatonGraphmlParser.getWitnessType(options.witness);
       }

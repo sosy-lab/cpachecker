@@ -343,11 +343,11 @@ public enum InvariantsSpecificationAutomatonBuilder {
   },
 
   /**
-   * This class can be used to transform a given correctness witness into a UCA. It is similarly
+   * This class can be used to transform a given correctness witness into a GIA. It is similarly
    * defined to the {@link InvariantsSpecificationAutomatonBuilder#WITNESSBASED_ISA}, but stores the
    * invariant candidates at the nodes and not at the edges!
    */
-  WITNESSBASED_UCA {
+  WITNESSBASED_GIA {
     public static final String PREDEFINED_STATE_ERROR = "_predefinedState_ERROR";
     private static final String WITNESS_AUTOMATON_NAME = "WitnessAutomaton";
 
@@ -359,10 +359,10 @@ public enum InvariantsSpecificationAutomatonBuilder {
         ShutdownNotifier pShutdownNotifier,
         CFA pCfa) {
 
-      return buildUCAForWitnessAutomaton(WITNESS_AUTOMATON_NAME, pAutomaton, pLogger);
+      return buildGIAForWitnessAutomaton(WITNESS_AUTOMATON_NAME, pAutomaton, pLogger);
     }
 
-    private Automaton buildUCAForWitnessAutomaton(
+    private Automaton buildGIAForWitnessAutomaton(
         String pWitnessAutomatonName, Automaton pAutomaton, LogManager pLogger) {
 
       List<AutomatonInternalState> states = new ArrayList<>();
@@ -385,7 +385,7 @@ public enum InvariantsSpecificationAutomatonBuilder {
         List<AutomatonTransition> newTransitions = new ArrayList<>();
         for (AutomatonTransition transition : currentState.getTransitions()) {
           if (transition.getFollowStateName().equals(PREDEFINED_STATE_ERROR)) {
-            // we can ignore these edges, as they are not foreseen in the UCA
+            // we can ignore these edges, as they are not foreseen in the GIA
             continue;
           }
 
