@@ -34,7 +34,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CProblemType;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonVariable.AutomatonSetVariable;
 
-class AutomatonExpressionArguments {
+public class AutomatonExpressionArguments {
 
   private Map<String, AutomatonVariable> automatonVariables;
   // Variables that are only valid for one transition ($1,$2,...)
@@ -59,7 +59,7 @@ class AutomatonExpressionArguments {
   // If this pattern is changed the pattern in AutomatonASTcomparison should be changed too!
   static final Pattern TRANSITION_VARS_PATTERN = Pattern.compile("\\$\\d+");
 
-  AutomatonExpressionArguments(
+  public AutomatonExpressionArguments(
       AutomatonState pState,
       Map<String, AutomatonVariable> pAutomatonVariables,
       List<AbstractState> pAbstractStates,
@@ -80,7 +80,7 @@ class AutomatonExpressionArguments {
     state = pState;
   }
 
-  void setAutomatonVariables(Map<String, AutomatonVariable> pAutomatonVariables) {
+  public void setAutomatonVariables(Map<String, AutomatonVariable> pAutomatonVariables) {
     automatonVariables = pAutomatonVariables;
   }
 
@@ -116,7 +116,7 @@ class AutomatonExpressionArguments {
     transitionLogMessages = "";
   }
 
-  void clearTransitionVariables() {
+  public void clearTransitionVariables() {
     transitionVariables.clear();
   }
 

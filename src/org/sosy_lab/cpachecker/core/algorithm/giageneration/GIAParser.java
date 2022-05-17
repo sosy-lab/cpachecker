@@ -12,13 +12,12 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.stream.Stream;
-import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.WitnessType;
 
 public class GIAParser {
 
   public static WitnessType getWitnessType(Path pWitness)
-      throws InvalidConfigurationException, IOException {
+      throws  IOException {
 
     // TODO Think if there is an option to actually build the automaton instead of just searching
     // for the state

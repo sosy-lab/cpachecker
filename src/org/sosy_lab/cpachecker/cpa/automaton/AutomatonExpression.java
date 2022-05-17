@@ -15,7 +15,7 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
 
-interface AutomatonExpression<T> {
+public interface AutomatonExpression<T> {
 
   ResultValue<T> eval(AutomatonExpressionArguments pArgs) throws CPATransferException;
 
@@ -167,7 +167,7 @@ interface AutomatonExpression<T> {
       this.failureOrigin = pRes.failureOrigin;
     }
 
-    boolean canNotEvaluate() {
+   public boolean canNotEvaluate() {
       return this.canNotEvaluate;
     }
     /** Return failure message or {@code null} if {@code cannotEvaluate() == false} */
@@ -179,7 +179,7 @@ interface AutomatonExpression<T> {
       return failureOrigin;
     }
     /** Return value or {@code null} if {@code cannotEvaluate() == false} */
-    resultType getValue() {
+    public resultType getValue() {
       return value;
     }
 

@@ -64,7 +64,7 @@ import org.sosy_lab.cpachecker.util.coverage.CoverageData;
  * Implements a boolean expression that evaluates and returns a <code>MaybeBoolean</code> value when
  * <code>eval()</code> is called. The Expression can be evaluated multiple times.
  */
-interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
+public interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
   ResultValue<Boolean> CONST_TRUE = new ResultValue<>(Boolean.TRUE);
   ResultValue<Boolean> CONST_FALSE = new ResultValue<>(Boolean.FALSE);
 
@@ -158,7 +158,7 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
 
     @Override
     public String toString() {
-      return "OTHERWISE";
+      return "MATCH OTHERWISE";
     }
   }
 

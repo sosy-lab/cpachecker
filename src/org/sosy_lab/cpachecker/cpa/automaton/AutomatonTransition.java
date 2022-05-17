@@ -46,7 +46,7 @@ import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
  * A transition in the automaton implements one of the pattern matching methods. This determines if
  * the transition matches on a certain {@link CFAEdge}.
  */
-class AutomatonTransition {
+public class AutomatonTransition {
 
   // The order of triggers, assertions and (more importantly) actions is preserved by the parser.
 
@@ -90,7 +90,7 @@ class AutomatonTransition {
 
   private AutomatonInternalState followState = null;
 
-  static class Builder {
+  public static class Builder {
     private AutomatonBoolExpr trigger;
     private List<AutomatonBoolExpr> assertions;
     private List<AExpression> assumptions;
@@ -439,6 +439,10 @@ class AutomatonTransition {
 
   public ExpressionTree<AExpression> getCandidateInvariants() {
     return candidateInvariants;
+  }
+
+  public ImmutableList<AExpression> getAssumptions() {
+    return assumptions;
   }
 
   public boolean isTransitionWithAssumptions() {

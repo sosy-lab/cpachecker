@@ -78,7 +78,7 @@ public class Automaton {
     return name;
   }
 
-  AutomatonInternalState getInitialState() {
+  public AutomatonInternalState getInitialState() {
     return initState;
   }
 

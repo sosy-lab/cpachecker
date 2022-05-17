@@ -555,6 +555,9 @@ assumptions.automatonFile = "AssumptionAutomaton.txt"
 # continue path with corresponding this edge.
 assumptions.automatonIgnoreAssumptions = false
 
+# Merge two GIAs, ignore all other options
+assumptions.combineGIAs = false
+
 # compress the produced assumption automaton using GZIP compression.
 assumptions.compressAutomaton = false
 
@@ -574,8 +577,6 @@ assumptions.export.location = true
 assumptions.file = "assumptions.txt"
 
 # Generate GIA for refinement (usable in C-CEGAR for craig interpolation)
-# Indicates whether this analysis is under-approximate (and hence can extend
-# F_T)
 assumptions.genGIA4Refinement = false
 
 # Generate GIA for testcomp testcase
@@ -590,6 +591,10 @@ assumptions.giaFile = "UniversalConditionAutomaton.txt"
 # Indicates whether this analysis is over-approximate (and hence can extend
 # F_NT)
 assumptions.isOverApproxAnalysis = false
+
+# Indicates whether this analysis is under-approximate (and hence can extend
+# F_T)
+assumptions.isUnderApproxAnalysis = false
 
 # If it is enabled, check if a state that should lead to false state indeed
 # has successors.
@@ -1744,6 +1749,10 @@ cpa.functionpointer.ignoreUnknownFunctionPointerCalls = false
 # whether function pointers with invalid targets (e.g., 0) should be tracked
 # in order to find calls to such pointers
 cpa.functionpointer.trackInvalidFunctionPointers = false
+
+# Filename to the first GIA
+cpa.giacombiner.pathToGIA1 = no default value
+cpa.giacombiner.pathToGIA2 = no default value
 
 # which type of merge operator to use for IntervalAnalysisCPA
 cpa.interval.merge = "SEP"

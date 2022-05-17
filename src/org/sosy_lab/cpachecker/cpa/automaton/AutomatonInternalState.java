@@ -36,7 +36,7 @@ public class AutomatonInternalState {
       };
 
   /** Error State */
-  static final AutomatonInternalState ERROR =
+  public static final AutomatonInternalState ERROR =
       new AutomatonInternalState(
           "_predefinedState_ERROR",
           Collections.singletonList(
@@ -54,7 +54,7 @@ public class AutomatonInternalState {
       };
 
   /** Break state, used to halt the analysis without being a target state */
-  static final AutomatonInternalState BREAK =
+ public  static final AutomatonInternalState BREAK =
       new AutomatonInternalState(
           "_predefinedState_BREAK",
           Collections.singletonList(

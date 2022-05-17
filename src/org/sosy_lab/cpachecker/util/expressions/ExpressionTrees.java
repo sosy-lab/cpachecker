@@ -512,7 +512,7 @@ public final class ExpressionTrees {
   public static ExpressionTree<Object> fromFormula(
       BooleanFormula formula, FormulaManagerView fMgr, CFANode location)
       throws InterruptedException {
-    CachingExpressionTreeFactory<Object> factory = new CachingExpressionTreeFactory<Object>();
+    CachingExpressionTreeFactory<Object> factory = new CachingExpressionTreeFactory<>();
     BooleanFormula inv = formula;
     String prefix = location.getFunctionName() + FUNCTION_DELIMITER;
 
@@ -574,7 +574,6 @@ public final class ExpressionTrees {
                     @Override
                     public Optional<ExpressionTree<Object>> visitOr(
                         List<BooleanFormula> processedOperands) {
-                      List<ExpressionTree<Object>> trees = new ArrayList<>();
                       // TODO: Add handling
                       return Optional.empty();
                     }

@@ -758,11 +758,6 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
               giaCollector.produceGeneralizedInformationExchangeAutomaton(w, pReached);
             } catch (IOException e) {
               logger.logUserException(Level.WARNING, e, "Could not write GIA to file");
-            } catch (CPAException e) {
-              logger.logUserException(
-                  Level.WARNING,
-                  e,
-                  "Could not write GIA to file, as no error location is discovered");
             }
           } else {
             giaFile = giaFile.resolveSibling(giaFile.getFileName() + ".gz");
@@ -772,15 +767,8 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
                   Charset.defaultCharset(),
                   (Appender)
                       appendable -> {
-                        try {
-                          giaCollector.produceGeneralizedInformationExchangeAutomaton(
-                              appendable, pReached);
-                        } catch (CPAException e) {
-                          logger.logUserException(
-                              Level.WARNING,
-                              e,
-                              "Could not write GIA to file, as no error location is discovered");
-                        }
+                        giaCollector.produceGeneralizedInformationExchangeAutomaton(
+                            appendable, pReached);
                       });
             } catch (IOException e) {
               logger.logUserException(Level.WARNING, e, "Could not write GIA to file");

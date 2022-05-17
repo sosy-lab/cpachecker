@@ -277,7 +277,7 @@ public final class Specification {
    * @param pAutomata the list of automaton to check
    * @return true if the above conditions are matched, false otherwise
    */
-  private static boolean isGIA(List<Automaton> pAutomata) {
+  public static boolean isGIA(List<Automaton> pAutomata) {
     return pAutomata.size() == 1
         && pAutomata.get(0).getName().equals(GIAGenerator.ASSUMPTION_AUTOMATON_NAME);
   }

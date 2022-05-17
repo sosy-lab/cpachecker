@@ -78,7 +78,7 @@ public class AutomatonState
     }
   }
 
-  static class BOTTOM extends AutomatonState {
+ public static class BOTTOM extends AutomatonState {
     private static final long serialVersionUID = -401794748742705212L;
 
     public BOTTOM(Automaton pAutomaton, boolean pTreatErrorsAsTarget) {
@@ -115,7 +115,7 @@ public class AutomatonState
   private final transient AutomatonTargetInformation targetInformation;
   private final boolean treatErrorAsTarget;
 
-  static AutomatonState automatonStateFactory(
+  public static AutomatonState automatonStateFactory(
       Map<String, AutomatonVariable> pVars,
       AutomatonInternalState pInternalState,
       Automaton pAutomaton,
@@ -142,7 +142,7 @@ public class AutomatonState
     }
   }
 
-  static AutomatonState automatonStateFactory(
+  public static AutomatonState automatonStateFactory(
       Map<String, AutomatonVariable> pVars,
       AutomatonInternalState pInternalState,
       Automaton pAutomaton,
@@ -473,7 +473,7 @@ public class AutomatonState
     return AutomatonState.AutomatonAnalysisNamePrefix + automaton.getName();
   }
 
-  boolean isTreatingErrorsAsTarget() {
+  public boolean isTreatingErrorsAsTarget() {
     return treatErrorAsTarget;
   }
 
@@ -481,7 +481,7 @@ public class AutomatonState
     return candidateInvariants;
   }
 
-  AutomatonInternalState getInternalState() {
+  public AutomatonInternalState getInternalState() {
     return internalState;
   }
 
