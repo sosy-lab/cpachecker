@@ -93,11 +93,9 @@ public class TimeDependentCoverageData {
     Map<Long, Double> outputMap = new HashMap<>();
     List<Long> list = map.keySet().stream().sorted().collect(ImmutableList.toImmutableList());
     int ruleOutQuotient = (int) Math.ceil(mapSize / (double) max);
-    for (int i = 0; i < mapSize; i++) {
-      if (i % ruleOutQuotient == 0) {
-        long key = list.get(i);
-        outputMap.put(key, map.get(key));
-      }
+    for (int i = 0; i < mapSize; i += ruleOutQuotient) {
+      long key = list.get(i);
+      outputMap.put(key, map.get(key));
     }
     return outputMap;
   }

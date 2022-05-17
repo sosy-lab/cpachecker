@@ -155,7 +155,7 @@ public class PredicateCoverageCPATransferRelation extends AbstractSingleWrapperT
     Set<String> nonRelevantVariables = new HashSet<>();
     Set<String> allVariables = variables.elementSet();
     int variableCount = allVariables.size();
-    for (var variable : Multisets.copyHighestCountFirst(variables).elementSet()) {
+    for (String variable : Multisets.copyHighestCountFirst(variables).elementSet()) {
       int nonRelevantVariableCount = nonRelevantVariables.size();
       if (nonRelevantVariableCount / (double) variableCount > percentage) {
         break;

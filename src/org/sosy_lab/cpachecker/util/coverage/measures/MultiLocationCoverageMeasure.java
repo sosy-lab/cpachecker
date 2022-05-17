@@ -9,8 +9,8 @@
 package org.sosy_lab.cpachecker.util.coverage.measures;
 
 import com.google.common.collect.Multiset;
-import java.util.HashSet;
 import java.util.Set;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.util.coverage.util.CoverageColorUtil;
 
 /**
@@ -21,35 +21,30 @@ import org.sosy_lab.cpachecker.util.coverage.util.CoverageColorUtil;
  */
 public class MultiLocationCoverageMeasure extends LocationCoverageMeasure {
   /* ##### Class fields ##### */
-  private final Multiset<Integer> alternativeCoveredLocations;
+  private final Multiset<CFANode> alternativeCoveredLocations;
 
   /* ##### Constructors ##### */
   public MultiLocationCoverageMeasure(
-      Multiset<Integer> pCoveredLocations,
-      Multiset<Integer> pAlternativeCoveredLocations,
+      Multiset<CFANode> pCoveredLocations,
+      Multiset<CFANode> pAlternativeCoveredLocations,
       double pMaxCount) {
     super(pCoveredLocations, pMaxCount);
     alternativeCoveredLocations = pAlternativeCoveredLocations;
   }
 
   /* ##### Getter Methods ##### */
-  public Set<Integer> getIntersectionLocations() {
-    Set<Integer> intersect = new HashSet<>(getCoveredLocations().elementSet());
-    intersect.removeAll(alternativeCoveredLocations.elementSet());
-    return intersect;
-  }
-
-  public Set<Integer> getAlternativeCoveredSet() {
+  public Set<CFANode> getAlternativeCoveredSet() {
     return alternativeCoveredLocations.elementSet();
   }
 
   /* ##### Inherited Methods ##### */
   @Override
-  public String getColor(Integer location) {
-    if (getIntersectionLocations().contains(location)) {
+  public String getColor(CFANode location) {
+    if (getAlternativeCoveredSet().contains(location)) {
+      return CoverageColorUtil.getFrequencyColorMapForLocations(alternativeCoveredLocations)
+          .get(location);
+    } else if (getCoveredLocations().contains(location)) {
       return CoverageColorUtil.DEFAULT_CONSIDERED_COLOR;
-    } else if (getAlternativeCoveredSet().contains(location)) {
-      return CoverageColorUtil.getFrequencyColorMap(alternativeCoveredLocations).get(location);
     } else {
       return CoverageColorUtil.DEFAULT_ELEMENT_COLOR;
     }

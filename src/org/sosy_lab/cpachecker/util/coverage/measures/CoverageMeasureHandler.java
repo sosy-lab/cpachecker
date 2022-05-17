@@ -81,7 +81,7 @@ public class CoverageMeasureHandler {
    */
   public void fillCoverageData(Map<String, FileCoverageStatistics> infosPerFile) {
     CoverageStatistics covStatistics = new CoverageStatistics(infosPerFile);
-    for (var type : getAllTypes()) {
+    for (CoverageMeasureType type : getAllTypes()) {
       switch (type) {
         case None:
           break;

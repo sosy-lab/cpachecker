@@ -31,9 +31,9 @@ public class LineCoverageMeasure implements CoverageMeasure {
   public LineCoverageMeasure(Map<String, FileCoverageStatistics> infoPerFile) {
     visitedLinesPerFile = new LinkedHashMap<>();
     exisitingLinesPerFile = new LinkedHashMap<>();
-    for (var info : infoPerFile.entrySet()) {
-      visitedLinesPerFile.put(info.getKey(), info.getValue().visitedLines);
-      exisitingLinesPerFile.put(info.getKey(), info.getValue().allLines);
+    for (var entry : infoPerFile.entrySet()) {
+      visitedLinesPerFile.put(entry.getKey(), entry.getValue().visitedLines);
+      exisitingLinesPerFile.put(entry.getKey(), entry.getValue().allLines);
     }
   }
 
@@ -53,7 +53,8 @@ public class LineCoverageMeasure implements CoverageMeasure {
    */
   public String getColor(String file, int line) {
     if (visitedLinesPerFile.get(file).contains(line)) {
-      return CoverageColorUtil.getFrequencyColorMap(visitedLinesPerFile.get(file)).get(line);
+      return CoverageColorUtil.getFrequencyColorMapForLines(visitedLinesPerFile.get(file))
+          .get(line);
     } else if (exisitingLinesPerFile.get(file).contains(line)) {
       return CoverageColorUtil.DEFAULT_CONSIDERED_COLOR;
     } else {
@@ -69,19 +70,15 @@ public class LineCoverageMeasure implements CoverageMeasure {
 
   @Override
   public double getCount() {
-    int visitedLinesCount = 0;
-    for (var visitedLines : visitedLinesPerFile.values()) {
-      visitedLinesCount += visitedLines.entrySet().size();
-    }
-    return visitedLinesCount;
+    return visitedLinesPerFile.values().stream()
+        .mapToInt(visitedLines -> visitedLines.entrySet().size())
+        .sum();
   }
 
   @Override
   public double getMaxCount() {
-    int existingLinesCount = 0;
-    for (var existingLines : exisitingLinesPerFile.values()) {
-      existingLinesCount += existingLines.size();
-    }
-    return existingLinesCount;
+    return exisitingLinesPerFile.values().stream()
+        .mapToInt(existingLines -> existingLines.size())
+        .sum();
   }
 }

@@ -36,7 +36,7 @@ public class CounterexampleCoverageCollector extends CoverageCollector {
   public static Map<String, FileCoverageStatistics> from(ARGPath targetPath) {
     CounterexampleCoverageCollector coverageCollector = new CounterexampleCoverageCollector();
     coverageCollector.collectCoveredEdges(targetPath);
-    return coverageCollector.infosPerFile;
+    return coverageCollector.getInfosPerFile();
   }
 
   /* ##### Helper Methods ##### */

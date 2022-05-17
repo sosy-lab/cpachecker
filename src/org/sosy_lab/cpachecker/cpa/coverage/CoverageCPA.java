@@ -8,10 +8,11 @@
 
 package org.sosy_lab.cpachecker.cpa.coverage;
 
+import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.util.coverage.collectors.CoverageCollectorHandler;
 
 /** CPAs which calculates TDCG and Coverage Measure data during the analysis. */
-public interface CoverageCPA {
+public interface CoverageCPA extends ConfigurableProgramAnalysis {
   /**
    * Returns a CoverageCollectorHandler which is used to access all relevant coverage measures and
    * TDCGs.

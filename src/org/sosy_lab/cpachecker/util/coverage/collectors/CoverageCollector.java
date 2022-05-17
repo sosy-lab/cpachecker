@@ -8,9 +8,7 @@
 
 package org.sosy_lab.cpachecker.util.coverage.collectors;
 
-import com.google.common.collect.Collections2;
-import com.google.common.collect.ImmutableMultiset;
-import java.util.Collection;
+import com.google.common.collect.Multiset;
 import java.util.Map;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.CFA;
@@ -32,7 +30,7 @@ import org.sosy_lab.cpachecker.util.coverage.util.CoverageUtility;
  */
 public abstract class CoverageCollector {
   /* ##### Class fields ##### */
-  final Map<String, FileCoverageStatistics> infosPerFile;
+  private final Map<String, FileCoverageStatistics> infosPerFile;
   final CoverageMeasureHandler coverageMeasureHandler;
   final TimeDependentCoverageHandler timeDependentCoverageHandler;
 
@@ -130,7 +128,7 @@ public abstract class CoverageCollector {
 
   public void addExistingNodes(final CFA pCFA) {
     for (FileCoverageStatistics info : infosPerFile.values()) {
-      info.allNodes.addAll(Collections2.transform(pCFA.getAllNodes(), v -> v.getNodeNumber()));
+      info.allLocations.addAll(pCFA.getAllNodes());
     }
   }
 
@@ -139,12 +137,9 @@ public abstract class CoverageCollector {
     infos.addVisitedFunction(pEntryNode.getFunctionName());
   }
 
-  public void addReachedNodes(final Collection<CFANode> nodes) {
+  public void addReachedNodes(final Multiset<CFANode> nodes) {
     for (FileCoverageStatistics info : infosPerFile.values()) {
-      info.allReachedNodes.addAll(
-          nodes.stream()
-              .map(v -> v.getNodeNumber())
-              .collect(ImmutableMultiset.toImmutableMultiset()));
+      info.reachedLocations.addAll(nodes);
     }
   }
 
@@ -180,5 +175,9 @@ public abstract class CoverageCollector {
     }
 
     return fileInfos;
+  }
+
+  Map<String, FileCoverageStatistics> getInfosPerFile() {
+    return infosPerFile;
   }
 }

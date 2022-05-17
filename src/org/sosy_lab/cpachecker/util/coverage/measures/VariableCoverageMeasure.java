@@ -18,14 +18,14 @@ import com.google.common.collect.Multiset;
  */
 public class VariableCoverageMeasure implements CoverageMeasure {
   /* ##### Class Fields ##### */
-  private final Multiset<String> allVariables;
   private final Multiset<String> relevantVariables;
+  private final Multiset<String> allVariables;
 
   /* ##### Constructors ##### */
   public VariableCoverageMeasure(
       Multiset<String> pAllVariables, Multiset<String> pRelevantVariables) {
-    allVariables = pAllVariables;
     relevantVariables = pRelevantVariables;
+    allVariables = pAllVariables;
   }
 
   public VariableCoverageMeasure() {

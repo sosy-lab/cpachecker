@@ -24,25 +24,21 @@ public class CoverageCollectorHandler {
   private final Map<String, FileCoverageStatistics> infosPerFile;
   private final CoverageMeasureHandler coverageMeasureHandler;
   private final TimeDependentCoverageHandler timeDependentCoverageHandler;
+  private final ReachedSetCoverageCollector reachedSetCoverageCollector;
   private AnalysisIndependentCoverageCollector analysisIndependentCoverageCollector;
   private PredicateAnalysisCoverageCollector predicateAnalysisCoverageCollector;
-  private ReachedSetCoverageCollector reachedSetCoverageCollector;
 
   /* ##### Constructors ##### */
   public CoverageCollectorHandler(CFA cfa) {
     infosPerFile = new LinkedHashMap<>();
     timeDependentCoverageHandler = new TimeDependentCoverageHandler();
     coverageMeasureHandler = new CoverageMeasureHandler();
-    initAllBasicCollectors(cfa);
-  }
-
-  /* ##### Init Methods ##### */
-  void initAllBasicCollectors(CFA cfa) {
     reachedSetCoverageCollector =
         new ReachedSetCoverageCollector(
             infosPerFile, coverageMeasureHandler, timeDependentCoverageHandler, cfa);
   }
 
+  /* ##### Init Methods ##### */
   public void initPredicateCollectors(CFA cfa) {
     predicateAnalysisCoverageCollector =
         new PredicateAnalysisCoverageCollector(

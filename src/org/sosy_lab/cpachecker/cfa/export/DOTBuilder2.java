@@ -402,15 +402,15 @@ public final class DOTBuilder2 {
 
     private String determineNodeCoverageStyle(CFANode node) {
       StringBuilder coverageProperties = new StringBuilder();
-      for (var type : covHandler.getAllTypes()) {
+      for (CoverageMeasureType type : covHandler.getAllTypes()) {
         coverageProperties.append(type.getId()).append(":");
         if (type.getCategory() == CoverageMeasureCategory.LocationBased) {
           LocationCoverageMeasure locCov = (LocationCoverageMeasure) covHandler.getData(type);
           if (type == CoverageMeasureType.ConsideredLocationsHeatMap) {
             MultiLocationCoverageMeasure multiLocCov = (MultiLocationCoverageMeasure) locCov;
-            coverageProperties.append(multiLocCov.getColor(node.getNodeNumber())).append(";");
+            coverageProperties.append(multiLocCov.getColor(node)).append(";");
           } else {
-            coverageProperties.append(locCov.getColor(node.getNodeNumber())).append(";");
+            coverageProperties.append(locCov.getColor(node)).append(";");
           }
         } else {
           coverageProperties.append(DEFAULT_LOCATION_COLOR).append(";");

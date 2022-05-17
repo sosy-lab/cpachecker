@@ -14,6 +14,7 @@ import com.google.common.collect.Multiset;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
 
 /**
  * Class which holds all collected coverage data for all files. Therefore, this class is summary for
@@ -34,11 +35,11 @@ public class CoverageStatistics {
   public long numPredicateConsideredLocations = 0;
   public long numPredicateRelevantVariablesLocations = 0;
 
-  public Set<Integer> predicateConsideredNodes = new HashSet<>();
-  public Set<Integer> predicateRelevantVariablesConsideredNodes = new HashSet<>();
+  public Set<CFANode> predicateConsideredNodes = new HashSet<>();
+  public Set<CFANode> predicateRelevantVariablesConsideredNodes = new HashSet<>();
   public Multiset<Integer> visitedLines = LinkedHashMultiset.create();
-  public Multiset<Integer> visitedLocations = LinkedHashMultiset.create();
-  public Multiset<Integer> reachedLocations = LinkedHashMultiset.create();
+  public Multiset<CFANode> visitedLocations = LinkedHashMultiset.create();
+  public Multiset<CFANode> reachedLocations = LinkedHashMultiset.create();
   public Multiset<String> allVariableNames = HashMultiset.create();
   public Multiset<String> relevantVariableNames = HashMultiset.create();
 
@@ -50,7 +51,7 @@ public class CoverageStatistics {
           info.predicateStatistics.allPredicateRelevantVariablesLocations);
       visitedLines.addAll(info.visitedLines);
       visitedLocations.addAll(info.visitedLocations);
-      reachedLocations.addAll(info.allReachedNodes);
+      reachedLocations.addAll(info.reachedLocations);
       allVariableNames.addAll(info.predicateStatistics.allVariableNames);
       relevantVariableNames.addAll(info.predicateStatistics.relevantVariableNames);
 
@@ -63,8 +64,8 @@ public class CoverageStatistics {
       numTotalLines += info.allLines.size();
       numVisitedLines += info.visitedLines.elementSet().size();
 
-      numTotalNodes += info.allNodes.size();
-      numReachedNodes += info.allReachedNodes.elementSet().size();
+      numTotalNodes += info.allLocations.size();
+      numReachedNodes += info.reachedLocations.elementSet().size();
       numPredicateConsideredLocations +=
           info.predicateStatistics.allPredicateConsideredLocations.size();
       numPredicateRelevantVariablesLocations +=

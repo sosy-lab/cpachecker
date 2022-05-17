@@ -686,10 +686,10 @@ public class ReportGenerator {
   }
 
   private String determineCurrentFunction(CFA cfa, int lineNumber) {
-    for (var functionMap : cfa.getAllFunctions().entrySet()) {
-      FileLocation file = functionMap.getValue().getFileLocation();
+    for (var entry : cfa.getAllFunctions().entrySet()) {
+      FileLocation file = entry.getValue().getFileLocation();
       if (lineNumber >= file.getStartingLineNumber() && lineNumber <= file.getEndingLineNumber()) {
-        return functionMap.getKey();
+        return entry.getKey();
       }
     }
     return "";
@@ -707,7 +707,7 @@ public class ReportGenerator {
             CoverageMeasureCategory.LineBased,
             CoverageMeasureCategory.VariableBased);
     boolean variableFlag = true;
-    for (var type : types) {
+    for (CoverageMeasureType type : types) {
       lineColors.append(type.getId()).append(":");
       if (type == CoverageMeasureType.None) {
         lineColors.append(CoverageColorUtil.getAlternatingLineColor(lineNumber));

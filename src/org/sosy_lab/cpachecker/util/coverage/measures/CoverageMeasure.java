@@ -16,7 +16,7 @@ public interface CoverageMeasure {
   /**
    * Getter method for the coverage value of the analyzed program-
    *
-   * @return the normalized coverage value which can be a double between 0 and 1-
+   * @return the normalized coverage value which can be a double between 0 and 1.
    */
   double getCoverage();
 

@@ -24,7 +24,7 @@ import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 
 /**
  * Calculates TDCG and Coverage Measure data during the analysis. This CoverageCPA only considers
- * predicate-analyis related coverage data and is therefore only applicable for predicate-analysis.
+ * predicate-analysis related coverage data and is therefore only applicable for predicate-analysis.
  * This CPA depends heavily on util.coverage package.
  */
 public class PredicateCoverageCPA extends AbstractSingleWrapperCPA implements CoverageCPA {
@@ -63,7 +63,7 @@ public class PredicateCoverageCPA extends AbstractSingleWrapperCPA implements Co
 
   @Override
   public PrecisionAdjustment getPrecisionAdjustment() {
-    return new PredicateCoveragePrecisionAdjustment(getWrappedCpa().getPrecisionAdjustment());
+    return getWrappedCpa().getPrecisionAdjustment();
   }
 
   /* ##### Helper Methods ##### */

@@ -8,10 +8,13 @@
 
 package org.sosy_lab.cpachecker.util.coverage.util;
 
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableMultiset;
 import com.google.common.collect.Multiset;
 import java.awt.Color;
-import java.util.HashMap;
+import java.util.Comparator;
 import java.util.Map;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
 
 /**
  * Utility class used for all measures and TDCGs to specify the coverage color. The color is
@@ -59,40 +62,45 @@ public class CoverageColorUtil {
    * @param locations locations is a multiset of CFA locations which are marked as covered.
    * @return color heat map for every location, where the color is defined as hex color code.
    */
-  public static Map<Integer, String> getFrequencyColorMap(Multiset<Integer> locations) {
-    Map<Integer, String> frequencyColorMap = new HashMap<>();
-    for (Integer location : locations.elementSet()) {
-      String gradientColor = chooseColorFromGradient(getFrequencyValueMap(locations).get(location));
-      frequencyColorMap.put(location, gradientColor);
-    }
-    return frequencyColorMap;
+  public static Map<CFANode, String> getFrequencyColorMapForLocations(Multiset<CFANode> locations) {
+    Multiset<Integer> locationIds =
+        locations.stream()
+            .map(l -> l.getNodeNumber())
+            .collect(ImmutableMultiset.toImmutableMultiset());
+    Map<Integer, Float> frequencyValueMap = getFrequencyValueMap(locationIds);
+    return locations.elementSet().stream()
+        .collect(
+            ImmutableMap.toImmutableMap(
+                l -> l, l -> chooseColorFromGradient(frequencyValueMap.get(l.getNodeNumber()))));
+  }
+
+  public static Map<Integer, String> getFrequencyColorMapForLines(Multiset<Integer> lines) {
+    Map<Integer, Float> frequencyValueMap = getFrequencyValueMap(lines);
+    return lines.elementSet().stream()
+        .collect(
+            ImmutableMap.toImmutableMap(
+                l -> l, l -> chooseColorFromGradient(frequencyValueMap.get(l))));
   }
 
   /* ##### Helper Methods ##### */
   private static Map<Integer, Float> getFrequencyValueMap(Multiset<Integer> locations) {
-    Map<Integer, Float> frequencyMap = new HashMap<>();
-    for (Integer location : locations.elementSet()) {
-      frequencyMap.put(
-          location, locations.count(location) / (float) getMaxFrequencyCount(locations));
-    }
-    return frequencyMap;
+    int maxFrequencyCount = getMaxFrequencyCount(locations);
+    return locations.elementSet().stream()
+        .collect(
+            ImmutableMap.toImmutableMap(
+                l -> l, l -> locations.count(l) / (float) maxFrequencyCount));
   }
 
   private static int getMaxFrequencyCount(Multiset<Integer> locations) {
-    int max = 0;
-    for (var x : locations.elementSet()) {
-      int candidate = locations.count(x);
-      if (candidate > max) {
-        max = candidate;
-      }
-    }
-    return max;
+    return locations.elementSet().stream()
+        .map(l -> locations.count(l))
+        .max(Comparator.naturalOrder())
+        .orElse(0);
   }
 
   private static String chooseColorFromGradient(float gradient) {
     Color color1 = Color.decode(MAX_GRADIENT_COLOR);
     Color color2 = Color.decode(MIN_GRADIENT_COLOR);
-
     Color rgbGradient = colorGradient(color1, color2, gradient);
 
     return rgbToHex(rgbGradient);

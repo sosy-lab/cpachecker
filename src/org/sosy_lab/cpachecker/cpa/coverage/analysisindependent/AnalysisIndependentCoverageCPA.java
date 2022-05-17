@@ -13,11 +13,11 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.defaults.FlatLatticeDomain;
 import org.sosy_lab.cpachecker.core.defaults.MergeSepOperator;
+import org.sosy_lab.cpachecker.core.defaults.SingletonAbstractState;
 import org.sosy_lab.cpachecker.core.defaults.StopSepOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
-import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
@@ -29,7 +29,7 @@ import org.sosy_lab.cpachecker.util.coverage.collectors.CoverageCollectorHandler
  * Calculates TDCG and Coverage Measure data during the analysis. This CPA depends heavily on
  * util.coverage package.
  */
-public class AnalysisIndependentCoverageCPA implements ConfigurableProgramAnalysis, CoverageCPA {
+public class AnalysisIndependentCoverageCPA implements CoverageCPA {
   /* ##### Class Constants ##### */
   private final TransferRelation transfer;
   private final AbstractDomain domain;
@@ -40,7 +40,7 @@ public class AnalysisIndependentCoverageCPA implements ConfigurableProgramAnalys
   public AnalysisIndependentCoverageCPA(CFA pCFA, CoverageCollectorHandler pCovCollectorHandler) {
     coverageCollectorHandler = pCovCollectorHandler;
     coverageCollectorHandler.initAnalysisIndependentCollectors(pCFA);
-    domain = new FlatLatticeDomain(AnalysisIndependentCoverageAbstractState.INSTANCE);
+    domain = new FlatLatticeDomain(SingletonAbstractState.INSTANCE);
     stop = new StopSepOperator(domain);
     transfer = new AnalysisIndependentCoverageTransferRelation(coverageCollectorHandler);
   }
@@ -78,6 +78,6 @@ public class AnalysisIndependentCoverageCPA implements ConfigurableProgramAnalys
 
   @Override
   public AbstractState getInitialState(CFANode node, StateSpacePartition partition) {
-    return AnalysisIndependentCoverageAbstractState.INSTANCE;
+    return SingletonAbstractState.INSTANCE;
   }
 }

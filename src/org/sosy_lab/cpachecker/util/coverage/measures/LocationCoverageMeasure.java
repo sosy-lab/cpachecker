@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.util.coverage.measures;
 import com.google.common.collect.LinkedHashMultiset;
 import com.google.common.collect.Multiset;
 import java.util.Set;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.util.coverage.util.CoverageColorUtil;
 
 /**
@@ -22,24 +23,24 @@ import org.sosy_lab.cpachecker.util.coverage.util.CoverageColorUtil;
  */
 public class LocationCoverageMeasure implements CoverageMeasure {
   /* ##### Class Fields ##### */
-  private final Multiset<Integer> coveredLocations;
+  private final Multiset<CFANode> coveredLocations;
   private final double maxCount;
   private String coverageColor;
 
   /* ##### Constructors ##### */
   public LocationCoverageMeasure(
-      Multiset<Integer> pCoveredLocations, double pMaxCount, String pCoverageColor) {
+      Multiset<CFANode> pCoveredLocations, double pMaxCount, String pCoverageColor) {
     this(pCoveredLocations, pMaxCount);
     coverageColor = pCoverageColor;
   }
 
   public LocationCoverageMeasure(
-      Set<Integer> pCoveredLocations, double pMaxCount, String pCoverageColor) {
+      Set<CFANode> pCoveredLocations, double pMaxCount, String pCoverageColor) {
     this(pCoveredLocations, pMaxCount);
     coverageColor = pCoverageColor;
   }
 
-  public LocationCoverageMeasure(Multiset<Integer> pCoveredLocations, double pMaxCount) {
+  public LocationCoverageMeasure(Multiset<CFANode> pCoveredLocations, double pMaxCount) {
     coveredLocations = pCoveredLocations;
     coverageColor = CoverageColorUtil.DEFAULT_COVERAGE_COLOR;
     if (pMaxCount <= 0) {
@@ -49,7 +50,7 @@ public class LocationCoverageMeasure implements CoverageMeasure {
     }
   }
 
-  public LocationCoverageMeasure(Set<Integer> pCoveredLocations, double pMaxCount) {
+  public LocationCoverageMeasure(Set<CFANode> pCoveredLocations, double pMaxCount) {
     this(LinkedHashMultiset.create(pCoveredLocations), pMaxCount);
   }
 
@@ -66,7 +67,7 @@ public class LocationCoverageMeasure implements CoverageMeasure {
    * @param location location identification number within the CFA
    * @return hex color code which represents the coverage status for the given location
    */
-  public String getColor(Integer location) {
+  public String getColor(CFANode location) {
     if (getCoveredSet().contains(location)) {
       return coverageColor;
     } else {
@@ -74,18 +75,18 @@ public class LocationCoverageMeasure implements CoverageMeasure {
     }
   }
 
-  public Set<Integer> getCoveredSet() {
+  public Set<CFANode> getCoveredSet() {
     return coveredLocations.elementSet();
   }
 
-  public Multiset<Integer> getCoveredLocations() {
+  public Multiset<CFANode> getCoveredLocations() {
     return coveredLocations;
   }
 
   /* ##### Interface Implementations ##### */
   @Override
   public double getCoverage() {
-    return coveredLocations.elementSet().size() / maxCount;
+    return getCount() / getMaxCount();
   }
 
   @Override

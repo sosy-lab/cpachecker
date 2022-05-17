@@ -8,18 +8,14 @@
 
 package org.sosy_lab.cpachecker.util.coverage.util;
 
-import com.google.common.collect.ImmutableList;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.model.ADeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.reachedset.PartitionedReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
-import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
-import org.sosy_lab.cpachecker.cpa.composite.CompositeCPA;
 import org.sosy_lab.cpachecker.cpa.coverage.CoverageCPA;
+import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.coverage.collectors.CoverageCollectorHandler;
 
 /**
@@ -36,9 +32,7 @@ public class CoverageUtility {
    * @return true if the given edge is capable to be considered for coverage
    */
   public static boolean coversLine(CFAEdge pEdge) {
-    FileLocation loc = pEdge.getFileLocation();
-    if (loc.getStartingLineNumber() == 0) {
-      // dummy location
+    if (!pEdge.getFileLocation().isRealLocation()) {
       return false;
     }
     if (pEdge instanceof ADeclarationEdge
@@ -61,32 +55,15 @@ public class CoverageUtility {
    */
   public static CoverageCollectorHandler getCoverageCollectorHandlerFromReachedSet(
       UnmodifiableReachedSet pReached, CFA cfa) {
-    CoverageCollectorHandler covCollectorHandler = new CoverageCollectorHandler(cfa);
     if (pReached instanceof PartitionedReachedSet) {
-      ConfigurableProgramAnalysis cpa = ((PartitionedReachedSet) pReached).getCPA();
-      covCollectorHandler =
-          CoverageUtility.extractCoverageCollectorFromCPA(covCollectorHandler, cpa);
-    }
-    return covCollectorHandler;
-  }
-
-  /* ##### Helper Methods ##### */
-  private static CoverageCollectorHandler extractCoverageCollectorFromCPA(
-      CoverageCollectorHandler covCollectorHandler, ConfigurableProgramAnalysis cpa) {
-    if (cpa instanceof ARGCPA) {
-      ImmutableList<ConfigurableProgramAnalysis> cpas = ((ARGCPA) cpa).getWrappedCPAs();
-      for (var compositeCPA : cpas) {
-        if (compositeCPA instanceof CompositeCPA) {
-          ImmutableList<ConfigurableProgramAnalysis> wrappedCPAs =
-              ((CompositeCPA) compositeCPA).getWrappedCPAs();
-          for (var wrappedCPA : wrappedCPAs) {
-            if (wrappedCPA instanceof CoverageCPA) {
-              return ((CoverageCPA) wrappedCPA).getCoverageCollectorHandler();
-            }
-          }
-        }
+      CoverageCPA cpa =
+          CPAs.retrieveCPA(((PartitionedReachedSet) pReached).getCPA(), CoverageCPA.class);
+      if (cpa == null) {
+        return new CoverageCollectorHandler(cfa);
+      } else {
+        return cpa.getCoverageCollectorHandler();
       }
     }
-    return covCollectorHandler;
+    return new CoverageCollectorHandler(cfa);
   }
 }

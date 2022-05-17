@@ -40,7 +40,7 @@ public class AnalysisIndependentCoverageCollector extends CoverageCollector {
 
   /* ##### Public Methods ##### */
   public void addInitialNodesForMeasures(CFA cfa) {
-    for (var node : cfa.getAllNodes()) {
+    for (CFANode node : cfa.getAllNodes()) {
       if (node.getNodeNumber() == 1) {
         CFANode candidateNode = node;
         if (getCollectorForInitNode(candidateNode).isEmpty()) {
@@ -48,9 +48,9 @@ public class AnalysisIndependentCoverageCollector extends CoverageCollector {
         }
         FileCoverageStatistics collector = getCollectorForInitNode(candidateNode).orElseThrow();
         do {
-          for (var type : coverageMeasureHandler.getAllTypes()) {
+          for (CoverageMeasureType type : coverageMeasureHandler.getAllTypes()) {
             if (type == CoverageMeasureType.VisitedLocations) {
-              collector.visitedLocations.add(candidateNode.getNodeNumber());
+              collector.visitedLocations.add(candidateNode);
             }
           }
           candidateNode = candidateNode.getLeavingEdge(0).getSuccessor();
@@ -62,10 +62,10 @@ public class AnalysisIndependentCoverageCollector extends CoverageCollector {
 
   public void addVisitedLocation(CFAEdge pEdge) {
     final FileLocation loc = pEdge.getFileLocation();
-    final FileCoverageStatistics collector = getFileInfoTarget(loc, infosPerFile);
-    collector.visitedLocations.add(pEdge.getSuccessor().getNodeNumber());
-    if (!collector.visitedLocations.contains(pEdge.getPredecessor().getNodeNumber())) {
-      collector.visitedLocations.add(pEdge.getPredecessor().getNodeNumber());
+    final FileCoverageStatistics collector = getFileInfoTarget(loc, getInfosPerFile());
+    collector.visitedLocations.add(pEdge.getSuccessor());
+    if (!collector.visitedLocations.contains(pEdge.getPredecessor())) {
+      collector.visitedLocations.add(pEdge.getPredecessor());
     }
   }
 
@@ -73,7 +73,7 @@ public class AnalysisIndependentCoverageCollector extends CoverageCollector {
   public double getTempVisitedCoverage() {
     int numTotalLines = 0;
     int numVisitedLines = 0;
-    for (FileCoverageStatistics info : infosPerFile.values()) {
+    for (FileCoverageStatistics info : getInfosPerFile().values()) {
       numTotalLines += info.allLines.size();
       numVisitedLines += info.visitedLines.entrySet().size();
     }
