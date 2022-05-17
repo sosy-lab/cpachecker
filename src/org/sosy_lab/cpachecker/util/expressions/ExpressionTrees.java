@@ -31,12 +31,17 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.ListIterator;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.exceptions.NoException;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaToCVisitor;
 import org.sosy_lab.java_smt.api.BooleanFormula;
+import org.sosy_lab.java_smt.api.Formula;
+import org.sosy_lab.java_smt.api.FunctionDeclaration;
+import org.sosy_lab.java_smt.api.QuantifiedFormulaManager.Quantifier;
+import org.sosy_lab.java_smt.api.visitors.BooleanFormulaVisitor;
 
 /** This is a utility class for common operations on {@link ExpressionTree}s */
 public final class ExpressionTrees {
@@ -507,10 +512,11 @@ public final class ExpressionTrees {
   public static ExpressionTree<Object> fromFormula(
       BooleanFormula formula, FormulaManagerView fMgr, CFANode location)
       throws InterruptedException {
-
+    CachingExpressionTreeFactory<Object> factory = new CachingExpressionTreeFactory<Object>();
     BooleanFormula inv = formula;
     String prefix = location.getFunctionName() + FUNCTION_DELIMITER;
 
+    inv = fMgr.simplifyBooleanFormula(inv);
     inv =
         fMgr.filterLiterals(
             inv,
@@ -526,6 +532,104 @@ public final class ExpressionTrees {
     FormulaToCVisitor v = new FormulaToCVisitor(fMgr);
     boolean isValid = fMgr.visit(inv, v);
     if (isValid) {
+
+      Optional<ExpressionTree<Object>> parsedTree =
+          fMgr.getBooleanFormulaManager()
+              .visit(
+                  inv,
+                  new BooleanFormulaVisitor<Optional<ExpressionTree<Object>>>() {
+                    @Override
+                    public Optional<ExpressionTree<Object>> visitConstant(boolean value) {
+                      // TODO: Add handling
+                      return Optional.empty();
+                    }
+
+                    @Override
+                    public Optional<ExpressionTree<Object>> visitBoundVar(
+                        BooleanFormula var, int deBruijnIdx) {
+                      // TODO: Add handling
+                      return Optional.empty();
+                    }
+
+                    @Override
+                    public Optional<ExpressionTree<Object>> visitNot(BooleanFormula operand) {
+                      // TODO: Add handling
+                      return Optional.empty();
+                    }
+
+                    @Override
+                    public Optional<ExpressionTree<Object>> visitAnd(
+                        List<BooleanFormula> processedOperands) {
+                      List<ExpressionTree<Object>> trees = new ArrayList<>();
+                      for (BooleanFormula f : processedOperands) {
+                        try {
+                          trees.add(ExpressionTrees.fromFormula(f, fMgr, location));
+                        } catch (InterruptedException pE) {
+                          // TODO: Add handling
+                        }
+                      }
+                      return Optional.of(factory.and(trees));
+                    }
+
+                    @Override
+                    public Optional<ExpressionTree<Object>> visitOr(
+                        List<BooleanFormula> processedOperands) {
+                      List<ExpressionTree<Object>> trees = new ArrayList<>();
+                      // TODO: Add handling
+                      return Optional.empty();
+                    }
+
+                    @Override
+                    public Optional<ExpressionTree<Object>> visitXor(
+                        BooleanFormula operand1, BooleanFormula operand2) {
+                      // TODO: Add handling
+                      return Optional.empty();
+                    }
+
+                    @Override
+                    public Optional<ExpressionTree<Object>> visitEquivalence(
+                        BooleanFormula operand1, BooleanFormula operand2) {
+                      // TODO: Add handling
+                      return Optional.empty();
+                    }
+
+                    @Override
+                    public Optional<ExpressionTree<Object>> visitImplication(
+                        BooleanFormula operand1, BooleanFormula operand2) {
+                      // TODO: Add handling
+                      return Optional.empty();
+                    }
+
+                    @Override
+                    public Optional<ExpressionTree<Object>> visitIfThenElse(
+                        BooleanFormula condition,
+                        BooleanFormula thenFormula,
+                        BooleanFormula elseFormula) {
+                      // TODO: Add handling
+                      return Optional.empty();
+
+                    }
+
+                    @Override
+                    public Optional<ExpressionTree<Object>> visitQuantifier(
+                        Quantifier quantifier,
+                        BooleanFormula quantifiedAST,
+                        List<Formula> boundVars,
+                        BooleanFormula body) {
+                      // TODO: Add handling
+                      return Optional.empty();
+                    }
+
+                    @Override
+                    public Optional<ExpressionTree<Object>> visitAtom(
+                        BooleanFormula atom, FunctionDeclaration<BooleanFormula> funcDecl) {
+                      // TODO: Add handling
+                      return Optional.empty();
+                    }
+                  });
+
+
+      if(parsedTree.isPresent()) {return parsedTree.orElseThrow();}
       return LeafExpression.of(v.getString());
     }
     return ExpressionTrees.getTrue();
