@@ -274,6 +274,7 @@ public class PredicatePrecisionBootstrapper implements StatisticsProvider {
       }
       return Optional.of(lst.get(0));
     } catch (InvalidConfigurationException pE) {
+      logger.logf(Level.WARNING, "Error while loading the UCA: %s", pE.getMessage());
       return Optional.empty();
     }
   }
