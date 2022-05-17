@@ -67,7 +67,7 @@ _StateDefs_ ::= _StateDef_ _StateDefs_ |
 
 _StateDef_ ::= _StateTypeDef_ **STATE** _StateNonDetDef_ IDENTIFIER **:** _Transitions_ _StateInvariants_
 
-_StateTypeDef_ ::= **TARGET** |
+_StateTypeDef_ ::= **TARGET** | **NON_TARGET** | **UNKNOWN** |
 
 _StateNonDetDef_ ::= **USEFIRST** | **USEALL** |
 
@@ -218,11 +218,15 @@ There are 3 predefined automata states:
 * **ERROR** represents error (target) state;
 * **STOP** represents _BOTTOM_ state in CPA (transfer relation is not calculated from this state);
 * **BREAK** is used to halt the analysis without being a target state.
+* **NON_TARGET** is the inverse of error, meaning that this state will never reach an error state
+* **UNKNOWN** is rather used as marker, as this state is neither target nor non-target
+  (but a candidate for either target or non-target)
 
 One automaton state must be marked as initial in _InitDef_.
 
 Transition to the error (target) state means property violation.
-Any user-defined state can be marked as a target state (with keyword **TARGET**), which then will be treated similar to the **ERROR** state.
+Any user-defined state can be marked as a target state (with keyword **TARGET**), which then will be treated similar to the **ERROR** state,
+as a non-target state (with keyword **NON_TARGET**) or interesting (with keyword **UNKNOWN**).
 
 If automaton state is marked with the **USEFIRST** keyword, then its transitions are applied until the first successful match.
 Otherwise (i.e. if the **USEALL** keyword is specified) all matched for the current CFA edge automaton transitions are used.

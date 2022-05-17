@@ -194,7 +194,7 @@ terminal EXCLAMATION, AND, OR, ARROW, SEMICOLON, COMMA, COLON, OPEN_BRACKETS,
     ERROR, STOP, EXIT, ENTRY, FUNCTIONCALL, BREAK, ASSERT, ASSUME, INVARIANT, MATCH, OTHERWISE, LABEL, CHECK, EVAL,
     MODIFY, DO, PRINT, PRINTONCE, GOTO, IDENTIFIER, INTEGER_LITERAL, NEQ, EQ, EQEQ, PLUS,
     MINUS, TRUE, FALSE, STRING_LITERAL, CURLYEXPR, SQUAREEXPR, USEALL, USEFIRST,
-    TARGET, IS_TARGET_STATE, COVERS_LINES, OPEN_ANGLE_BRACKETS, CLOSE_ANGLE_BRACKETS ;
+    TARGET, NON_TARGET, UNKNOWN, IS_TARGET_STATE, COVERS_LINES, OPEN_ANGLE_BRACKETS, CLOSE_ANGLE_BRACKETS ;
 non terminal List<Automaton> initial ;  
 non terminal Automaton Specification ;
 non terminal Automaton Automaton ;
@@ -211,7 +211,7 @@ non terminal Set<Integer> Integers ;
 
 non terminal AutomatonVariable LocalDef ;
 non terminal AutomatonInternalState StateDef ;
-non terminal Boolean StateTypeDef ;
+non terminal AutomatonStateTypes StateTypeDef ;
 non terminal Boolean StateNonDetDef ;
 non terminal AutomatonTransition Transition ;
 non terminal AutomatonBoolExpr Assertion ;
@@ -279,8 +279,10 @@ StateDef  ::= StateTypeDef:type STATE StateNonDetDef:nd IDENTIFIER:id COLON  Tra
               {: RESULT = new AutomatonInternalState(id.toString(), ts, type, nd, si); :}
             ;
             
-StateTypeDef ::= TARGET {: RESULT = true; :}
-               | /* empty */ {: RESULT = false; :}
+StateTypeDef ::= TARGET {: RESULT = AutomatonStateTypes.TARGET; :}
+               | NON_TARGET {: RESULT = AutomatonStateTypes.NON_TARGET; :}
+               | UNKNOWN {: RESULT = AutomatonStateTypes.UNKNOWN; :}
+               | /* empty */ {: RESULT = AutomatonStateTypes.ANY; :}
                ;
 
 StateNonDetDef ::= USEFIRST {: RESULT = false; :}

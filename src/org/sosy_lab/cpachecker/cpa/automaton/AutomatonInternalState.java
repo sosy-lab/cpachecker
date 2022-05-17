@@ -43,7 +43,7 @@ public class AutomatonInternalState {
               new AutomatonTransition.Builder(AutomatonBoolExpr.TRUE, BOTTOM)
                   .withTargetInformation(new StringExpression(""))
                   .build()),
-          true,
+          AutomatonStateTypes.TARGET,
           false,
           false,
           ExpressionTrees.getTrue()) {
@@ -59,7 +59,7 @@ public class AutomatonInternalState {
           "_predefinedState_BREAK",
           Collections.singletonList(
               new AutomatonTransition.Builder(AutomatonBoolExpr.TRUE, BOTTOM).build()),
-          false,
+          AutomatonStateTypes.ANY,
           false,
           false,
           ExpressionTrees.getTrue());
@@ -79,17 +79,19 @@ public class AutomatonInternalState {
 
   /** The list of state invariants for the node */
   private final ExpressionTree<AExpression> stateInvariants;
+  private final AutomatonStateTypes stateType;
 
   public AutomatonInternalState(
       String pName,
       List<AutomatonTransition> pTransitions,
-      boolean pIsTarget,
+      AutomatonStateTypes pStateType,
       boolean pAllTransitions,
       boolean pIsCycleStart,
       ExpressionTree<AExpression> pStateInvariants) {
     this.name = pName;
     this.transitions = ImmutableList.copyOf(pTransitions);
-    this.mIsTarget = pIsTarget;
+    this.stateType = pStateType;
+    this.mIsTarget = pStateType == AutomatonStateTypes.TARGET;
     this.mAllTransitions = pAllTransitions;
     this.isCycleStart = pIsCycleStart;
     this.stateInvariants = pStateInvariants;
@@ -98,22 +100,34 @@ public class AutomatonInternalState {
   public AutomatonInternalState(
       String pName,
       List<AutomatonTransition> pTransitions,
-      boolean pIsTarget,
+      AutomatonStateTypes pStateTypes,
       boolean pAllTransitions) {
-    this(pName, pTransitions, pIsTarget, pAllTransitions, false, ExpressionTrees.getTrue());
+    this(pName, pTransitions, pStateTypes, pAllTransitions, false, ExpressionTrees.getTrue());
   }
 
   public AutomatonInternalState(
       String pName,
       List<AutomatonTransition> pTransitions,
-      boolean pIsTarget,
+      AutomatonStateTypes pStateTypes,
       boolean pAllTransitions,
       ExpressionTree<AExpression> pStateInvariants) {
-    this(pName, pTransitions, pIsTarget, pAllTransitions, false, pStateInvariants);
+    this(pName, pTransitions, pStateTypes, pAllTransitions, false, pStateInvariants);
   }
 
   public AutomatonInternalState(String pName, List<AutomatonTransition> pTransitions) {
-    this(pName, pTransitions, false, false, false, ExpressionTrees.getTrue());
+    this(pName, pTransitions, AutomatonStateTypes.ANY, false, false, ExpressionTrees.getTrue());
+  }
+
+  public AutomatonInternalState(String pName, List<AutomatonTransition> pNewTransitions, boolean pTarget, boolean pNonDetState, ExpressionTree<AExpression> pInvCnds) {
+    this(pName, pNewTransitions, pTarget? AutomatonStateTypes.TARGET:AutomatonStateTypes.ANY, pNonDetState, pInvCnds);
+  }
+
+  public AutomatonInternalState(String pStateName, List<AutomatonTransition> pTransitions, boolean pTarget, boolean pAllTransitions) {
+    this(pStateName, pTransitions, pTarget? AutomatonStateTypes.TARGET:AutomatonStateTypes.ANY, pAllTransitions );
+  }
+
+  public AutomatonInternalState(String pStateName, List<AutomatonTransition> pTransitionList, boolean pTarget, boolean pAllTransitions, boolean pIsCycleStart, ExpressionTree<AExpression> pInvCnds) {
+    this(pStateName, pTransitionList,  pTarget? AutomatonStateTypes.TARGET:AutomatonStateTypes.ANY, pAllTransitions, pIsCycleStart, pInvCnds);
   }
 
   public boolean isNonDetState() {
@@ -122,6 +136,10 @@ public class AutomatonInternalState {
 
   public boolean isNontrivialCycleStart() {
     return isCycleStart;
+  }
+
+  public AutomatonStateTypes getStateType() {
+    return stateType;
   }
 
   /**

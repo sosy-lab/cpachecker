@@ -109,7 +109,7 @@ public class UCAAutomatonParser {
             new AutomatonInternalState(
                 state.getName(),
                 updatedTransitions,
-                state.isTarget(),
+                state.getStateType(),
                 state.isNonDetState(),
                 state.isNontrivialCycleStart(),
                 state.getStateInvariants()));
