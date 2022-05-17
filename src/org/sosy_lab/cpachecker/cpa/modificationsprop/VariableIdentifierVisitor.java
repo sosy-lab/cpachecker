@@ -91,7 +91,10 @@ public class VariableIdentifierVisitor
 
   @Override
   public Set<String> visit(final CIdExpression pExp) throws PointerAccessException {
-    return Sets.newHashSet(pExp.getDeclaration().getQualifiedName());
+    if (pExp.getDeclaration() != null) {
+      return Sets.newHashSet(pExp.getDeclaration().getQualifiedName());
+    }
+    return Sets.newHashSet(pExp.getName());
   }
 
   @Override
