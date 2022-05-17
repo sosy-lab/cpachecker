@@ -42,7 +42,7 @@ public class GIAAutomatonParser {
 
     if (automaton.getStates().stream()
         .noneMatch(s -> s.getName().equals(GIAGenerator.NAME_OF_ERROR_STATE))) {
-      return pAutomata;
+      return Lists.newArrayList(automaton);
     } else {
 
       // IMPORTANT: we assume at this point, that the GIA is a tree. If not, the heuristic might be

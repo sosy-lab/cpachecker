@@ -252,7 +252,7 @@ public class GIAARGGenerator {
     //    }
     //    relevantEdges.removeAll(toRemove);
     //    relevantEdges.addAll(toAdd);
-    return writeGIAForViolationWitness(
+    return writeGIA(
         pOutput, pArgRoot, relevantEdges, false, targetStates, nonTargetStates, unknownStates);
   }
 
@@ -1199,7 +1199,7 @@ public class GIAARGGenerator {
    * @param pUnknownStates the unknwon states
    * @throws IOException if the file cannot be accessed or does not exist
    */
-  private int writeGIAForViolationWitness(
+  private int writeGIA(
       Appendable sb,
       ARGState rootState,
       Set<GIAARGStateEdge> edgesToAdd,
@@ -1222,6 +1222,7 @@ public class GIAARGGenerator {
           String.format("    TRUE -> ASSUME {true} GOTO %s;\n\n", GIAGenerator.NAME_OF_TEMP_STATE));
     }
 
+    if (setIsReached(pTargetStates, edgesToAdd)){
     sb.append(String.format("TARGET STATE %s :\n", GIAGenerator.NAME_OF_ERROR_STATE));
     if (ignoreAssumptions) {
       sb.append(String.format("    TRUE -> GOTO %s;\n\n", GIAGenerator.NAME_OF_ERROR_STATE));
@@ -1229,17 +1230,20 @@ public class GIAARGGenerator {
       sb.append(
           String.format(
               "    TRUE -> ASSUME {true} GOTO %s;\n\n", GIAGenerator.NAME_OF_ERROR_STATE));
-    }
+    }}
 
-    sb.append(String.format("NON_TARGET STATE %s :\n", GIAGenerator.NAME_OF_FINAL_STATE));
-    if (ignoreAssumptions) {
-      sb.append(String.format("    TRUE -> GOTO %s;\n\n", GIAGenerator.NAME_OF_FINAL_STATE));
-    } else {
-      sb.append(
-          String.format(
-              "    TRUE -> ASSUME {true} GOTO %s;\n\n", GIAGenerator.NAME_OF_FINAL_STATE));
-    }
+    if (setIsReached(pNonTargetStates, edgesToAdd)) {
+      sb.append(String.format("NON_TARGET STATE %s :\n", GIAGenerator.NAME_OF_FINAL_STATE));
+      if (ignoreAssumptions) {
+        sb.append(String.format("    TRUE -> GOTO %s;\n\n", GIAGenerator.NAME_OF_FINAL_STATE));
+      } else {
+        sb.append(
+            String.format(
+                "    TRUE -> ASSUME {true} GOTO %s;\n\n", GIAGenerator.NAME_OF_FINAL_STATE));
+      }
+}
 
+    if(setIsReached(pUnknownStates,edgesToAdd)){
     sb.append(String.format("UNKNOWN STATE %s :\n", GIAGenerator.NAME_OF_UNKNOWN_STATE));
     if (ignoreAssumptions) {
       sb.append(String.format("    TRUE -> GOTO %s;\n\n", GIAGenerator.NAME_OF_UNKNOWN_STATE));
@@ -1247,7 +1251,7 @@ public class GIAARGGenerator {
       sb.append(
           String.format(
               "    TRUE -> ASSUME {true} GOTO %s;\n\n", GIAGenerator.NAME_OF_UNKNOWN_STATE));
-    }
+    }}
 
     // Fill the map to be able to iterate over the nodes
     Map<ARGState, Set<GIAARGStateEdge>> nodesToEdges = new HashMap<>();
@@ -1322,4 +1326,9 @@ public class GIAARGGenerator {
 
     return targetStates;
   }
-}
+
+
+  private boolean setIsReached(Set<ARGState> pSet, Set<GIAARGStateEdge> pEdgesToAdd) {
+    return pEdgesToAdd.stream().anyMatch(e -> e.getTarget().isPresent() && pSet.contains(e.getTarget().orElseThrow()));
+  }
+  }

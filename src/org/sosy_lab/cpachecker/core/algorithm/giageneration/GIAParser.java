@@ -53,9 +53,12 @@ public class GIAParser {
     //
     //      }
 
+
+    //FIXME: IMplement something that actually looks at the graph
     boolean qErrorStatePresent;
     try (Stream<String> stream = Files.lines(pWitness)) {
-      qErrorStatePresent = stream.anyMatch(l -> l.contains("STATE") && l.contains("__qERROR :"));
+
+      qErrorStatePresent = stream.anyMatch(l -> l.contains("TARGET STATE") || l.contains("UNKNOWN STATE"));
       return qErrorStatePresent ? WitnessType.VIOLATION_WITNESS : WitnessType.CORRECTNESS_WITNESS;
     }
   }
