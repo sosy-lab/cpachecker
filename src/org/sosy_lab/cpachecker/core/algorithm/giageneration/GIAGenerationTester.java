@@ -249,7 +249,7 @@ public class GIAGenerationTester {
         TempFile.builder().prefix("outputFile").suffix(".txt").create().toAbsolutePath();
     pOverrideOptions.put(pOptionForOutput, outputFile.toString());
     logger.logf(
-        Level.INFO, "Storing putput file with option %s at %s", pOptionForOutput, outputFile);
+        Level.INFO, "Storing output file with option %s at %s", pOptionForOutput, outputFile);
     Result result =
         startTransformation(
             pGenerationConfig, fullPath, pgiaInput, pTestcase, pWitness, pOverrideOptions);
@@ -310,8 +310,8 @@ public class GIAGenerationTester {
     }
     if (witness.isPresent()) {
       spec = String.format("%s,%s", spec, witness.orElseThrow());
-    } else if (pGenerationConfig == GIAGenerationConfig.GIA2VIOWIT
-        || pGenerationConfig == GIAGenerationConfig.GIA2CORWIT) {
+    } else if ( //pGenerationConfig == GIAGenerationConfig.GIA2VIOWIT ||
+       pGenerationConfig == GIAGenerationConfig.GIA2CORWIT) {
       spec = "";
     }
 
