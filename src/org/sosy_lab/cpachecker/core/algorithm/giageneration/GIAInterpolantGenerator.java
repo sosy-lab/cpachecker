@@ -23,7 +23,6 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.TreeSet;
 import org.checkerframework.checker.nullness.qual.Nullable;
-import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.algorithm.AssumptionCollectorAlgorithm;
@@ -47,8 +46,7 @@ public class GIAInterpolantGenerator {
 
   private FormulaManagerView formulaManager;
 
-  public GIAInterpolantGenerator(ConfigurableProgramAnalysis pCpa, FormulaManagerView pFormlaManger)
-      throws InvalidConfigurationException {
+  public GIAInterpolantGenerator(ConfigurableProgramAnalysis pCpa, FormulaManagerView pFormlaManger) {
     this.cpa = pCpa;
     this.formulaManager = pFormlaManger;
   }
@@ -124,6 +122,7 @@ public class GIAInterpolantGenerator {
             toAdd.addAll(current.getParents());
 
             // Create a new edge:
+            //Store the interpolant as assumption
             Optional<AbstractionFormula> assumption =
                 statesWithInvariants.contains(current)
                     ? Optional.ofNullable(
@@ -188,7 +187,7 @@ public class GIAInterpolantGenerator {
     int numProducedStates = 0;
     sb.append(GIAGenerator.AUTOMATON_HEADER);
 
-    GIAGenerator.storeInitialNode(sb, edgesToAdd.isEmpty(), GIAGenerator.getName(rootState));
+    GIAGenerator.storeInitialNode(sb, edgesToAdd.isEmpty(), GIAGenerator.getNameOrError(rootState));
     sb.append(String.format("    TRUE -> GOTO %s;\n\n", GIAGenerator.NAME_OF_TEMP_STATE));
 
     // Fill the map to be able to iterate over the nodes
@@ -204,10 +203,10 @@ public class GIAInterpolantGenerator {
 
     for (final ARGState currentState :
         nodesToEdges.keySet().stream()
-            .sorted(Comparator.comparing(GIAGenerator::getName))
+            .sorted(Comparator.comparing(GIAGenerator::getNameOrError))
             .collect(ImmutableList.toImmutableList())) {
 
-      sb.append(String.format("STATE USEALL %s :\n", GIAGenerator.getName(currentState)));
+      sb.append(String.format("STATE USEALL %s :\n", GIAGenerator.getNameOrError(currentState)));
       numProducedStates++;
 
       for (GIAARGStateEdge edge : nodesToEdges.get(currentState)) {

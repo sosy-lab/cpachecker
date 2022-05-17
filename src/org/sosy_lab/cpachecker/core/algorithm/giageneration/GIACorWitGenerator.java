@@ -21,7 +21,6 @@ import java.util.Set;
 import java.util.logging.Level;
 import java.util.stream.Collectors;
 import org.checkerframework.checker.nullness.qual.Nullable;
-import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -46,8 +45,7 @@ public class GIACorWitGenerator {
   private final LogManager logger;
   private GIAGeneratorOptions optinons;
 
-  public GIACorWitGenerator(LogManager pLogger, GIAGeneratorOptions pOptions)
-      throws InvalidConfigurationException {
+  public GIACorWitGenerator(LogManager pLogger, GIAGeneratorOptions pOptions) {
     this.logger = pLogger;
     this.optinons = pOptions;
   }
@@ -58,6 +56,7 @@ public class GIACorWitGenerator {
     if (!(firstState instanceof ARGState)
         || GIAGenerator.getWitnessAutomatonState(firstState).isEmpty()) {
       output.append("Cannot dump assumption as automaton if ARGCPA is not used.");
+      return 0;
     }
 
     // check, if the GIA that should be generated (e.g. for a violation witness)
@@ -177,9 +176,9 @@ public class GIACorWitGenerator {
     Optional<AutomatonState> autoRootState = GIAGenerator.getWitnessAutomatonState(rootState);
     if (autoRootState.isPresent()) {
       GIAGenerator.storeInitialNode(
-          sb, edgesToAdd.isEmpty(), GIAGenerator.getName(autoRootState.get()));
+          sb, edgesToAdd.isEmpty(), GIAGenerator.getNameOrError(autoRootState.get()));
     } else {
-      GIAGenerator.storeInitialNode(sb, edgesToAdd.isEmpty(), GIAGenerator.getName(rootState));
+      GIAGenerator.storeInitialNode(sb, edgesToAdd.isEmpty(), GIAGenerator.getNameOrError(rootState));
     }
     sb.append(String.format("STATE %s :\n", GIAGenerator.NAME_OF_FINAL_STATE));
     sb.append(String.format("    TRUE -> GOTO %s;\n\n", GIAGenerator.NAME_OF_FINAL_STATE));
@@ -197,7 +196,7 @@ public class GIACorWitGenerator {
 
     for (final ARGState currentState :
         nodesToEdges.keySet().stream()
-            .sorted(Comparator.comparing(GIAGenerator::getName))
+            .sorted(Comparator.comparing(GIAGenerator::getNameOrError))
             .collect(ImmutableList.toImmutableList())) {
 
       Optional<AutomatonState> curAssumptionState =
@@ -205,9 +204,9 @@ public class GIACorWitGenerator {
       if (curAssumptionState.isPresent()) {
         sb.append(
             String.format(
-                "STATE USEALL %s :\n", GIAGenerator.getName(curAssumptionState.orElseThrow())));
+                "STATE USEALL %s :\n", GIAGenerator.getNameOrError(curAssumptionState.orElseThrow())));
       } else {
-        sb.append(String.format("STATE USEALL %s :\n", GIAGenerator.getName(currentState)));
+        sb.append(String.format("STATE USEALL %s :\n", GIAGenerator.getNameOrError(currentState)));
       }
       numProducedStates++;
 
@@ -225,12 +224,12 @@ public class GIACorWitGenerator {
           sb.append(
               String.format(
                   "    MATCH OTHERWISE -> " + actionOnFinalEdges + "GOTO %s;\n",
-                  GIAGenerator.getName(curAssumptionState.orElseThrow())));
+                  GIAGenerator.getNameOrError(curAssumptionState.orElseThrow())));
         } else {
           sb.append(
               String.format(
                   "    MATCH OTHERWISE -> " + actionOnFinalEdges + "GOTO %s;\n",
-                  GIAGenerator.getName(currentState)));
+                  GIAGenerator.getNameOrError(currentState)));
         }
       }
       // Add a edge to __TRUE, as all states are accepting

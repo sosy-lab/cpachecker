@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.core.algorithm.giageneration;
 
 import java.io.IOException;
+import org.sosy_lab.cpachecker.core.algorithm.giageneration.GIAGenerator.GIAGeneratorOptions;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
@@ -26,12 +27,16 @@ public class GIAWitnessGenerator {
     this.vioWitGenerator = pGIAVioWitGenerator;
   }
 
-  public int produceGIA4Witness(Appendable pOutput, UnmodifiableReachedSet pReached)
+  public int produceGIA4Witness(
+      Appendable pOutput,
+      UnmodifiableReachedSet pReached)
       throws CPAException, IOException {
     boolean error = false;
     for (AbstractState state : pReached.asCollection()) {
-      if (AbstractStates.extractStateByType(state, ARGState.class).isTarget()) {
+      final ARGState argState = AbstractStates.extractStateByType(state, ARGState.class);
+      if (argState != null && argState.isTarget()) {
         error = true;
+        break;
       }
     }
     if (error || pReached.wasTargetReached()) {

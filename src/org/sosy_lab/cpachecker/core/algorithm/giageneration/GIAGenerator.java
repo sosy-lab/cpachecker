@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.giageneration;
 
+import com.google.common.base.Throwables;
 import java.io.IOException;
 import java.util.Objects;
 import java.util.Optional;
@@ -44,6 +45,17 @@ public class GIAGenerator {
 
   public static final String DESC_OF_DUMMY_FUNC_START_EDGE = "Function start dummy edge";
 
+  public static String getDefStringForState(ARGState pCurrentState, Set<ARGState> pTargetStates, Set<ARGState> pNonTargetStates, Set<ARGState> pUnknownStates) {
+    if (pTargetStates.contains(pCurrentState)){
+      return String.format("TARGET STATE USEFIRST %s :\n", GIAGenerator.getName(pCurrentState));
+    }else  if (pNonTargetStates.contains(pCurrentState)){
+      return String.format("NON_TARGET STATE USEFIRST %s :\n", GIAGenerator.getName(pCurrentState));}
+    else  if (pUnknownStates.contains(pCurrentState)){
+      return String.format("UNKNOWN STATE USEFIRST %s :\n", GIAGenerator.getName(pCurrentState));}
+    return String.format("STATE USEFIRST %s :\n", GIAGenerator.getName(pCurrentState));
+  }
+
+
   @Options
   public static class GIAGeneratorOptions {
     @Option(
@@ -72,6 +84,20 @@ public class GIAGenerator {
         description = "Generate GIA for refinement (usable in C-CEGAR for craig interpolation)")
     private boolean genGIA4Refinement = false;
 
+    @Option(
+        secure = true,
+        name = "assumptions.isOverApproxAnalysis",
+        description =
+            "Indicates whether this analysis is over-approximate (and hence can extend F_NT)")
+    private boolean isOverApproxAnalysis = false;
+
+    @Option(
+        secure = true,
+        name = "assumptions.genGIA4Refinement",
+        description =
+            "Indicates whether this analysis is under-approximate (and hence can extend F_T)")
+    private boolean isUnderApproxAnalysis = false;
+
     public GIAGeneratorOptions(Configuration pConfig) throws InvalidConfigurationException {
       pConfig.inject(this);
     }
@@ -91,13 +117,20 @@ public class GIAGenerator {
     public boolean isGenGIA4Refinement() {
       return genGIA4Refinement;
     }
+
+    public boolean isOverApproxAnalysis() {
+      return isOverApproxAnalysis;
+    }
+
+    public boolean isUnderApproxAnalysis() {
+      return isUnderApproxAnalysis;
+    }
   }
 
   public static final String NAME_OF_WITNESS_AUTOMATON = "WitnessAutomaton";
   public static final String NAME_OF_TEMP_STATE = "__qTEMP";
   public static final String NAME_OF_ERROR_STATE = "__qERROR";
-
-  @SuppressWarnings("unused")
+  public static final String NAME_OF_UNKNOWN_STATE = "__qUNKNOWN" ;
   public static final String NAME_OF_FINAL_STATE = "__qFINAL";
 
   public static final String NAME_OF_NEWTESTINPUT_STATE = "__qNEWTEST";
@@ -107,10 +140,13 @@ public class GIAGenerator {
   @SuppressWarnings("unused")
   private final ShutdownNotifier shutdownNotifier;
 
+  @SuppressWarnings("unused")
   private final GIATestcaseGenerator testcaseGenerator;
+  @SuppressWarnings("unused")
   private final GIAInterpolantGenerator interpolantGenerator;
+  @SuppressWarnings("unused")
   private final GIAWitnessGenerator witnessGenerator;
-
+  private final GIAARGGenerator argGeneator;
   final LogManager logger;
 
   @SuppressWarnings("unused")
@@ -156,22 +192,33 @@ public class GIAGenerator {
     this.witnessGenerator =
         new GIAWitnessGenerator(
             new GIACorWitGenerator(logger, optinons), new GIAVioWitGenerator(logger, optinons));
+    this.argGeneator = new GIAARGGenerator(logger, optinons, cfa.getMachineModel(),
+        cpa, config);
   }
 
   public int produceGeneralizedInformationExchangeAutomaton(
-      Appendable output, UnmodifiableReachedSet reached, Set<Integer> pExceptionStates)
+      Appendable output, UnmodifiableReachedSet reached)
       throws CPAException, IOException {
 
-    if (optinons.isGenGIA4Witness()) {
-      universalConditionAutomaton += witnessGenerator.produceGIA4Witness(output, reached);
-    } else if (optinons.isGenGIA4Testcase()) {
-      universalConditionAutomaton +=
-          testcaseGenerator.produceGIA4Testcase(output, reached, pExceptionStates);
-    } else if (optinons.isGenGIA4Refinement()) {
-      universalConditionAutomaton += interpolantGenerator.produceGIA4Interpolant(output, reached);
-    } else {
-      logger.log(Level.INFO, "Do not generate any GIA!");
+    try {
+      universalConditionAutomaton += argGeneator.produceGIA4ARG(output, reached, optinons);
+    } catch (InterruptedException pE) {
+      logger.log(
+          Level.WARNING,
+          String.format("Generation of GIA failed due to %s", Throwables.getStackTraceAsString(pE)));
     }
+
+    //     if (optinons.isGenGIA4Testcase()) {
+    //      universalConditionAutomaton +=
+    //          testcaseGenerator.produceGIA4Testcase(output, reached, pExceptionStates);
+    //    } else if (optinons.isGenGIA4Refinement()) {
+    //       //FIXME: Unify with case below!
+    //      universalConditionAutomaton += interpolantGenerator.produceGIA4Interpolant(output,
+    // reached);
+    //    } else {
+    //      universalConditionAutomaton += witnessGenerator.produceGIA4Witness(output, reached,
+    // optinons);
+    //    }
     return this.universalConditionAutomaton;
   }
 
@@ -233,16 +280,25 @@ public class GIAGenerator {
     sb.append(String.format("STATE %s :\n", NAME_OF_TEMP_STATE));
   }
 
-  static String getName(AutomatonState s) {
+  static String getNameOrError(AutomatonState s) {
     return s.isTarget() ? NAME_OF_ERROR_STATE : s.getInternalStateName();
   }
 
+
+
   static String getName(ARGState pSource) {
-    return pSource.isTarget() ? NAME_OF_ERROR_STATE : String.format("ARG%d", +pSource.getStateId());
+    return String.format("ARG%d", +pSource.getStateId());
   }
 
+  static String getNameOrError(ARGState pSource) {
+    return pSource.isTarget() ? NAME_OF_ERROR_STATE : getName(pSource);
+  }
+
+
+
   static String getEdgeString(CFAEdge pEdge) {
-    if (pEdge instanceof BlankEdge && pEdge.getDescription().equals(DESC_OF_DUMMY_FUNC_START_EDGE)  ) {
+    if (pEdge instanceof BlankEdge
+        && pEdge.getDescription().equals(DESC_OF_DUMMY_FUNC_START_EDGE)) {
       final String funcName = pEdge.getSuccessor().getFunction().toString();
       int indexSemicolon = funcName.indexOf(";");
       if (indexSemicolon > 0) {

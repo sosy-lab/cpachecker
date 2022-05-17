@@ -32,9 +32,9 @@ public class GIAARGStateEdgeWithAssumptionNaming extends GIAARGStateEdge {
   public String getSourceName() {
     Optional<AutomatonState> automatonState = GIAGenerator.getWitnessAutomatonState(source);
     if (automatonState.isPresent()) {
-      return GIAGenerator.getName(automatonState.orElseThrow());
+      return GIAGenerator.getNameOrError(automatonState.orElseThrow());
     }
-    return GIAGenerator.getName(source);
+    return GIAGenerator.getNameOrError(source);
   }
 
   @Override
@@ -43,11 +43,11 @@ public class GIAARGStateEdgeWithAssumptionNaming extends GIAARGStateEdge {
       Optional<AutomatonState> automatonState =
           GIAGenerator.getWitnessAutomatonState(target.orElseThrow());
       if (automatonState.isPresent()) {
-        return GIAGenerator.getName(automatonState.orElseThrow());
+        return GIAGenerator.getNameOrError(automatonState.orElseThrow());
       }
     }
     return this.target.isPresent()
-        ? GIAGenerator.getName(target.orElseThrow())
+        ? GIAGenerator.getNameOrError(target.orElseThrow())
         : GIAGenerator.NAME_OF_TEMP_STATE;
   }
 }

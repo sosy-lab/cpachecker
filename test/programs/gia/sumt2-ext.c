@@ -40,6 +40,6 @@ int main() {
 		  j = j+1;
     l = l+1;
   }
-  __VERIFIER_assert((i+j) == l+1);
+  __VERIFIER_assert((i+j) == l+2);
   return 0;
 }

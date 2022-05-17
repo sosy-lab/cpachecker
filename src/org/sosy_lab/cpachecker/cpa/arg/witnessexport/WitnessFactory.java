@@ -122,7 +122,7 @@ import org.sosy_lab.cpachecker.util.expressions.Simplifier;
 import org.sosy_lab.cpachecker.util.faultlocalization.Fault;
 import org.sosy_lab.cpachecker.util.faultlocalization.FaultLocalizationInfo;
 
-class WitnessFactory implements EdgeAppender {
+public class WitnessFactory implements EdgeAppender {
 
   private static final EnumSet<KeyDef> INSUFFICIENT_KEYS =
       EnumSet.of(
@@ -701,7 +701,7 @@ class WitnessFactory implements EdgeAppender {
     return cfaEdgeWithAssignments;
   }
 
-  private String getAssumptionAsCode(
+  public static  String getAssumptionAsCode(
       ExpressionTree<Object> assumption, Optional<AIdExpression> resultVariable) {
     final CExpressionToOrinalCodeVisitor transformer =
         resultVariable.isPresent()
@@ -933,7 +933,7 @@ class WitnessFactory implements EdgeAppender {
       final Predicate<? super ARGState> pPathStates,
       final BiPredicate<ARGState, ARGState> pIsRelevantEdge) {
     return Iterables.transform(
-        collectReachableEdges(pInitialState, pSuccessorFunction, pPathStates, pIsRelevantEdge),
+        WitnessFactory.collectReachableEdges(pInitialState, pSuccessorFunction, pPathStates, pIsRelevantEdge),
         Pair::getFirst);
   }
 
@@ -948,7 +948,7 @@ class WitnessFactory implements EdgeAppender {
    * @param pIsRelevantEdge a filter on the successor function.
    * @return the parents with their children.
    */
-  private Iterable<Pair<ARGState, Iterable<ARGState>>> collectReachableEdges(
+  public static Iterable<Pair<ARGState, Iterable<ARGState>>> collectReachableEdges(
       final ARGState pInitialState,
       final Function<? super ARGState, ? extends Iterable<ARGState>> pSuccessorFunction,
       final Predicate<? super ARGState> pPathStates,

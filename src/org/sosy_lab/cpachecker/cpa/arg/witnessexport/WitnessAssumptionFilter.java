@@ -25,13 +25,13 @@ import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
 import org.sosy_lab.cpachecker.core.counterexample.CFAEdgeWithAssumptions;
 import org.sosy_lab.cpachecker.exceptions.NoException;
 
-class WitnessAssumptionFilter {
+public class WitnessAssumptionFilter {
 
   /**
    * Filter the assumptions of an edge for relevant assumptions, and then return a new edge based on
    * the filtered assumptions.
    */
-  static CFAEdgeWithAssumptions filterRelevantAssumptions(
+  public static CFAEdgeWithAssumptions filterRelevantAssumptions(
       CFAEdgeWithAssumptions pEdgeWithAssumptions) {
     int originalSize = pEdgeWithAssumptions.getExpStmts().size();
     ImmutableList.Builder<AExpressionStatement> expressionStatementsBuilder =

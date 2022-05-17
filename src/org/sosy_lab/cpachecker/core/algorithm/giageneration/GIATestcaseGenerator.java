@@ -34,8 +34,7 @@ public class GIATestcaseGenerator {
 
   private final ConfigurableProgramAnalysis cpa;
 
-  public GIATestcaseGenerator(ConfigurableProgramAnalysis pCpa)
-      throws InvalidConfigurationException {
+  public GIATestcaseGenerator(ConfigurableProgramAnalysis pCpa) {
     this.cpa = pCpa;
   }
 

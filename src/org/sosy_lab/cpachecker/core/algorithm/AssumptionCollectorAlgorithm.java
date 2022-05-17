@@ -755,7 +755,7 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
           // Generate a universal condition automaton for the output
           if (!compressAutomaton) {
             try (Writer w = IO.openOutputFile(giaFile, Charset.defaultCharset())) {
-              giaCollector.produceGeneralizedInformationExchangeAutomaton(w, pReached, exceptionStates);
+              giaCollector.produceGeneralizedInformationExchangeAutomaton(w, pReached);
             } catch (IOException e) {
               logger.logUserException(Level.WARNING, e, "Could not write GIA to file");
             } catch (CPAException e) {
@@ -774,7 +774,7 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
                       appendable -> {
                         try {
                           giaCollector.produceGeneralizedInformationExchangeAutomaton(
-                              appendable, pReached, exceptionStates);
+                              appendable, pReached);
                         } catch (CPAException e) {
                           logger.logUserException(
                               Level.WARNING,
