@@ -72,6 +72,14 @@ public class CoverageColorUtil {
                 l -> l, l -> chooseColorFromGradient(frequencyValueMap.get(l.getNodeNumber()))));
   }
 
+  /**
+   * Returns a color heat map for every source code line, calculated from a line multiset. The color
+   * representation is a gradient between two given colors, depending on the frequency of the
+   * coverage status given in the line multiset.
+   *
+   * @param lines lines is a multiset of source code lines which are marked as covered.
+   * @return color heat map for every line, where the color is defined as hex color code.
+   */
   public static Map<Integer, String> getFrequencyColorMapForLines(Multiset<Integer> lines) {
     Map<Integer, Float> frequencyValueMap = getFrequencyValueMap(lines);
     return lines.elementSet().stream()
