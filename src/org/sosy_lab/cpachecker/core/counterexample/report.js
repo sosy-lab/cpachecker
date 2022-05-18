@@ -1169,7 +1169,7 @@ function renderTDG(dataJSON, color, inPercentage) {
         $scope.zoomEnabled = false;
 
         $scope.colorId = "";
-        $scope.coverageSelections = ["None"];
+        $scope.coverageSelections = [];
         if (cfaCoverage !== undefined && cfaCoverage.length > 0) {
           $scope.coverageSelections = [];
           for (let i = 0; i < cfaCoverage.length; i += 1) {
@@ -1332,7 +1332,7 @@ function renderTDG(dataJSON, color, inPercentage) {
     "$rootScope",
     "$scope",
     function sourceToolbarController($rootScope, $scope) {
-      $scope.sourceCoverageSelections = ["None"];
+      $scope.sourceCoverageSelections = [];
       if (
         sourceCoverageJson !== undefined &&
         sourceCoverageJson.types.length > 0
