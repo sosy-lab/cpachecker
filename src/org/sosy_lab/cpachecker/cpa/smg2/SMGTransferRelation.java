@@ -74,6 +74,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.defaults.ForwardingTransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
+import org.sosy_lab.cpachecker.cpa.smg.TypeUtils;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMG2Exception;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGObjectAndOffset;
 import org.sosy_lab.cpachecker.cpa.smg2.util.value.SMGCPAValueExpressionEvaluator;
@@ -161,7 +162,6 @@ public class SMGTransferRelation
 
   /* (non-Javadoc)
    * Returns a collection of SMGStates that are the successors of the handled edge.
-   * This method will
    * If there is no returned data, the current state is the successor state.
    * If there is returned data we assign the returned statement to the field of the state,
    * returning the successor states.
@@ -177,20 +177,35 @@ public class SMGTransferRelation
   @Override
   protected Collection<SMGState> handleReturnStatementEdge(CReturnStatementEdge returnEdge)
       throws CPATransferException {
-    // First get the (SMG)Object that is returned if possible
-    Optional<SMGObject> returnObjectOptional =
-        state.getMemoryModel().getReturnObjectForCurrentStackFrame();
-    Collection<SMGState> successors = Collections.singleton(state);
-    // If there is an (SMG)Object returned, assign it to the successor state
-    if (returnObjectOptional.isPresent()) {
-      successors = assignStatementToField(state, returnObjectOptional.orElseThrow(), returnEdge);
+    ImmutableList.Builder<SMGState> successorsBuilder = ImmutableList.builder();
+    // Check that there is a return object and if there is one we can write the return to it
+    if (state.getMemoryModel().hasReturnObjectForCurrentStackFrame()) {
+      // value 0 is the default return value in C
+      CExpression returnExp = returnEdge.getExpression().orElse(CIntegerLiteralExpression.ZERO);
+      CType retType = TypeUtils.getRealExpressionType(returnExp);
+      Optional<CAssignment> returnAssignment = returnEdge.asAssignment();
+      if (returnAssignment.isPresent()) {
+        retType = returnAssignment.orElseThrow().getLeftHandSide().getExpressionType();
+      }
+      SMGCPAValueVisitor valueVisitor =
+          new SMGCPAValueVisitor(evaluator, state, returnEdge, logger);
+      for (ValueAndSMGState returnValueAndState : returnExp.accept(valueVisitor)) {
+        // We get the size per state as it could theoretically change per state (abstraction)
+        BigInteger sizeInBits = evaluator.getBitSizeof(state, retType);
+        successorsBuilder.add(
+            returnValueAndState
+                .getState()
+                .writeToReturn(sizeInBits, returnValueAndState.getValue()));
+      }
+    } else {
+      successorsBuilder.add(state);
     }
 
     // Handle entry function return (check for mem leaks)
     if (isEntryFunction(returnEdge)) {
-      return handleReturnEntryFunction(successors);
+      return handleReturnEntryFunction(successorsBuilder.build());
     }
-    return successors;
+    return successorsBuilder.build();
   }
 
   /**
