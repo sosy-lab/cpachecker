@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.cpa.smg2;
 
 import static com.google.common.truth.Truth.assertThat;
+import static org.sosy_lab.common.collect.Collections3.transformedImmutableListCopy;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
@@ -254,6 +255,249 @@ public class SMGCPATransferRelationTest {
       assertThat(readValueAndState.getValue().isNumericValue()).isTrue();
       assertThat(readValueAndState.getValue().asNumericValue().bigInteger().intValueExact())
           .isEqualTo(i + 1);
+    }
+  }
+
+  /*
+   * Test struct declaration without assignment but complex nested types i.e. structs, arrays, pointers.
+   * i.e. struct TestStruct { struct someStruct, int array[], ... };
+   * struct TestStruct structName;
+   */
+  @Test
+  public void localVariableDeclarationStructComplexTypesTest() throws CPATransferException {
+    String variableName = "variableName";
+    String structName = "TestStruct";
+    String nestedStructFieldName = "NESTED_STRUCT";
+    ImmutableList.Builder<String> overallFieldNames = ImmutableList.builder();
+    overallFieldNames.addAll(STRUCT_UNION_FIELD_NAMES);
+    overallFieldNames.add(nestedStructFieldName);
+    overallFieldNames.addAll(
+        transformedImmutableListCopy(STRUCT_UNION_FIELD_NAMES, name -> "ARRAY_" + name));
+    overallFieldNames.addAll(
+        transformedImmutableListCopy(STRUCT_UNION_FIELD_NAMES, name -> "POINTER_" + name));
+    CType type =
+        makeNestedStruct(
+            structName,
+            STRUCT_UNION_TEST_TYPES,
+            overallFieldNames.build(),
+            STRUCT_UNION_TEST_TYPES,
+            STRUCT_UNION_FIELD_NAMES,
+            structName + "Nested",
+            STRUCT_UNION_TEST_TYPES,
+            STRUCT_UNION_TEST_TYPES);
+    // Make a non global and not external variable with the current type
+    List<SMGState> statesAfterDecl =
+        transferRelation.handleDeclarationEdge(
+            null, declareVariableWithoutInitializer(variableName, type, false, false));
+    // Since we declare variables we know there will be only 1 state afterwards
+    assertThat(statesAfterDecl).hasSize(1);
+    // This state must have a local variable the size of the type used (on the current stack frame)
+    // The state should not have any errors
+    SMGState state = statesAfterDecl.get(0);
+    // TODO: error check
+    SymbolicProgramConfiguration memoryModel = state.getMemoryModel();
+    assertThat(memoryModel.getStackFrames().peek().containsVariable(variableName)).isTrue();
+    SMGObject memoryObject = memoryModel.getStackFrames().peek().getVariable(variableName);
+    // SMG sizes are in bits! Also since this is a struct, padding has to be taken into account.
+    BigInteger expectedSize = MACHINE_MODEL.getSizeofInBits(type);
+    assertThat(memoryObject.getSize().compareTo(expectedSize) == 0).isTrue();
+    // Reading is a little more tricky since this is a struct with nested structures
+    // We start with the simple types
+    for (int i = 0; i < STRUCT_UNION_TEST_TYPES.size(); i++) {
+      BigInteger offsetInBits =
+          MACHINE_MODEL.getFieldOffsetInBits(
+              (CCompositeType) ((CElaboratedType) type).getRealType(),
+              STRUCT_UNION_FIELD_NAMES.get(i));
+      BigInteger sizeInBits = MACHINE_MODEL.getSizeofInBits(STRUCT_UNION_TEST_TYPES.get(i));
+      // further, this memory is not written at all, meaning we can read it and it returns UNKNOWN
+      ValueAndSMGState readValueAndState = state.readValue(memoryObject, offsetInBits, sizeInBits);
+      // The read state should not have any errors
+      // TODO: error check
+      assertThat(readValueAndState.getValue().isUnknown()).isTrue();
+    }
+
+    // Read the nested struct. We can simply assume the offsets of the simple types from above + the
+    // offset of the struct
+    for (int i = 0; i < 1; i++) {
+      BigInteger baseOffsetNestedStruct =
+          MACHINE_MODEL.getFieldOffsetInBits(
+              (CCompositeType) ((CElaboratedType) type).getRealType(), nestedStructFieldName);
+      BigInteger offsetInBits =
+          MACHINE_MODEL
+              .getFieldOffsetInBits(
+                  (CCompositeType) ((CElaboratedType) type).getRealType(),
+                  STRUCT_UNION_FIELD_NAMES.get(i))
+              .add(baseOffsetNestedStruct);
+      BigInteger sizeInBits = MACHINE_MODEL.getSizeofInBits(STRUCT_UNION_TEST_TYPES.get(i));
+      // further, this memory is not written at all, meaning we can read it and it returns UNKNOWN
+      ValueAndSMGState readValueAndState = state.readValue(memoryObject, offsetInBits, sizeInBits);
+      // The read state should not have any errors
+      // TODO: error check
+      assertThat(readValueAndState.getValue().isUnknown()).isTrue();
+    }
+
+    // Now we repeat this for an array (they behave the same, so if one is empty, we can assume that
+    // all are)
+    BigInteger offsetOfArrayInBits =
+        MACHINE_MODEL.getFieldOffsetInBits(
+            (CCompositeType) ((CElaboratedType) type).getRealType(),
+            "ARRAY_" + STRUCT_UNION_FIELD_NAMES.get(0));
+    BigInteger sizeOfArrayInBits = MACHINE_MODEL.getSizeofInBits(STRUCT_UNION_TEST_TYPES.get(0));
+    for (int i = 0; i < TEST_ARRAY_LENGTH.intValue(); i++) {
+      ValueAndSMGState readValueAndState =
+          state.readValue(memoryObject, offsetOfArrayInBits, sizeOfArrayInBits);
+      // The read state should not have any errors
+      // TODO: error check
+      assertThat(readValueAndState.getValue().isUnknown()).isTrue();
+      // increment the size onto the offset for the next element
+      offsetOfArrayInBits = offsetOfArrayInBits.add(sizeOfArrayInBits);
+    }
+
+    // Check a pointer value also
+    BigInteger offsetOfPointerInBits =
+        MACHINE_MODEL.getFieldOffsetInBits(
+            (CCompositeType) ((CElaboratedType) type).getRealType(),
+            "POINTER_" + STRUCT_UNION_FIELD_NAMES.get(0));
+    BigInteger sizeOfPointerInBits = BigInteger.valueOf(POINTER_SIZE_IN_BITS);
+    // Check a pointer value
+    ValueAndSMGState readValueAndState =
+        state.readValue(memoryObject, offsetOfPointerInBits, sizeOfPointerInBits);
+    // The read state should not have any errors
+    // TODO: error check
+    assertThat(readValueAndState.getValue().isUnknown()).isTrue();
+  }
+
+  /*
+   * Test struct declaration with assignment.
+   * i.e. struct TestStruct { struct otherStruct, int array[], ... };
+   * struct TestStruct structName = {{1, 2, ...}, {-1, -2, ...}, ...};
+   */
+  @Test
+  public void localVariableDeclarationWithAssignmentStructComplexTypesTest()
+      throws CPATransferException {
+    CInitializer initList =
+        makeInitializerForNestedStruct(
+            BigInteger.ONE,
+            STRUCT_UNION_TEST_TYPES,
+            STRUCT_UNION_TEST_TYPES,
+            STRUCT_UNION_TEST_TYPES,
+            STRUCT_UNION_TEST_TYPES);
+    String variableName = "variableName";
+    String structName = "TestStruct";
+    String nestedStructFieldName = "NESTED_STRUCT";
+    ImmutableList.Builder<String> overallFieldNames = ImmutableList.builder();
+    overallFieldNames.addAll(STRUCT_UNION_FIELD_NAMES);
+    overallFieldNames.add(nestedStructFieldName);
+    overallFieldNames.addAll(
+        transformedImmutableListCopy(STRUCT_UNION_FIELD_NAMES, name -> "ARRAY_" + name));
+    overallFieldNames.addAll(
+        transformedImmutableListCopy(STRUCT_UNION_FIELD_NAMES, name -> "POINTER_" + name));
+    CType type =
+        makeNestedStruct(
+            structName,
+            STRUCT_UNION_TEST_TYPES,
+            overallFieldNames.build(),
+            STRUCT_UNION_TEST_TYPES,
+            STRUCT_UNION_FIELD_NAMES,
+            structName + "Nested",
+            STRUCT_UNION_TEST_TYPES,
+            STRUCT_UNION_TEST_TYPES);
+    // Make a non global and not external variable with the current type
+    List<SMGState> statesAfterDecl =
+        transferRelation.handleDeclarationEdge(
+            null, declareVariableWithInitializer(variableName, type, false, false, initList));
+    // Since we declare variables we know there will be only 1 state afterwards
+    assertThat(statesAfterDecl).hasSize(1);
+    // This state must have a local variable the size of the type used (on the current stack frame)
+    // The state should not have any errors
+    SMGState state = statesAfterDecl.get(0);
+    // TODO: error check
+    SymbolicProgramConfiguration memoryModel = state.getMemoryModel();
+    assertThat(memoryModel.getStackFrames().peek().containsVariable(variableName)).isTrue();
+    SMGObject memoryObject = memoryModel.getStackFrames().peek().getVariable(variableName);
+    // SMG sizes are in bits! Also since this is a struct, padding has to be taken into account.
+    BigInteger expectedSize = MACHINE_MODEL.getSizeofInBits(type);
+    assertThat(memoryObject.getSize().compareTo(expectedSize) == 0).isTrue();
+    // Reading is a little more tricky since this is a struct with nested structures
+    // We start with the simple types. We know that the values are 1++ after each read in order
+    // except pointers which will be 0.
+    BigInteger expectedValue = BigInteger.ONE;
+    for (int i = 0; i < STRUCT_UNION_TEST_TYPES.size(); i++) {
+      BigInteger offsetInBits =
+          MACHINE_MODEL.getFieldOffsetInBits(
+              (CCompositeType) ((CElaboratedType) type).getRealType(),
+              STRUCT_UNION_FIELD_NAMES.get(i));
+      BigInteger sizeInBits = MACHINE_MODEL.getSizeofInBits(STRUCT_UNION_TEST_TYPES.get(i));
+      // further, this memory is not written at all, meaning we can read it and it returns UNKNOWN
+      ValueAndSMGState readValueAndState = state.readValue(memoryObject, offsetInBits, sizeInBits);
+      // The read state should not have any errors
+      // TODO: error check
+      assertThat(readValueAndState.getValue().isNumericValue()).isTrue();
+      assertThat(readValueAndState.getValue().asNumericValue().bigInteger())
+          .isEquivalentAccordingToCompareTo(expectedValue);
+      expectedValue = expectedValue.add(BigInteger.ONE);
+    }
+
+    // Read the nested struct. We can simply assume the offsets of the simple types from above + the
+    // offset of the struct
+    for (int i = 0; i < STRUCT_UNION_TEST_TYPES.size(); i++) {
+      BigInteger baseOffsetNestedStruct =
+          MACHINE_MODEL.getFieldOffsetInBits(
+              (CCompositeType) ((CElaboratedType) type).getRealType(), nestedStructFieldName);
+      BigInteger offsetInBits =
+          MACHINE_MODEL
+              .getFieldOffsetInBits(
+                  (CCompositeType) ((CElaboratedType) type).getRealType(),
+                  STRUCT_UNION_FIELD_NAMES.get(i))
+              .add(baseOffsetNestedStruct);
+      BigInteger sizeInBits = MACHINE_MODEL.getSizeofInBits(STRUCT_UNION_TEST_TYPES.get(i));
+      // further, this memory is not written at all, meaning we can read it and it returns UNKNOWN
+      ValueAndSMGState readValueAndState = state.readValue(memoryObject, offsetInBits, sizeInBits);
+      // The read state should not have any errors
+      // TODO: error check
+      assertThat(readValueAndState.getValue().isNumericValue()).isTrue();
+      assertThat(readValueAndState.getValue().asNumericValue().bigInteger())
+          .isEquivalentAccordingToCompareTo(expectedValue);
+      expectedValue = expectedValue.add(BigInteger.ONE);
+    }
+
+    // Now we repeat this for an array (they behave the same, so if one is empty, we can assume that
+    // all are)
+    for (int i = 0; i < STRUCT_UNION_TEST_TYPES.size(); i++) {
+      BigInteger offsetOfArrayInBits =
+          MACHINE_MODEL.getFieldOffsetInBits(
+              (CCompositeType) ((CElaboratedType) type).getRealType(),
+              "ARRAY_" + STRUCT_UNION_FIELD_NAMES.get(i));
+      BigInteger sizeOfArrayInBits = MACHINE_MODEL.getSizeofInBits(STRUCT_UNION_TEST_TYPES.get(i));
+      for (int j = 0; j < TEST_ARRAY_LENGTH.intValue(); j++) {
+        ValueAndSMGState readValueAndState =
+            state.readValue(memoryObject, offsetOfArrayInBits, sizeOfArrayInBits);
+        // The read state should not have any errors
+        // TODO: error check
+        assertThat(readValueAndState.getValue().isNumericValue()).isTrue();
+        assertThat(readValueAndState.getValue().asNumericValue().bigInteger())
+            .isEquivalentAccordingToCompareTo(expectedValue);
+        expectedValue = expectedValue.add(BigInteger.ONE);
+        // increment the size onto the offset for the next element
+        offsetOfArrayInBits = offsetOfArrayInBits.add(sizeOfArrayInBits);
+      }
+    }
+
+    // Check a pointer values also
+    for (int i = 0; i < STRUCT_UNION_TEST_TYPES.size(); i++) {
+      BigInteger offsetOfPointerInBits =
+          MACHINE_MODEL.getFieldOffsetInBits(
+              (CCompositeType) ((CElaboratedType) type).getRealType(),
+              "POINTER_" + STRUCT_UNION_FIELD_NAMES.get(i));
+      BigInteger sizeOfPointerInBits = BigInteger.valueOf(POINTER_SIZE_IN_BITS);
+      // Check a pointer value
+      ValueAndSMGState readValueAndState =
+          state.readValue(memoryObject, offsetOfPointerInBits, sizeOfPointerInBits);
+      // The read state should not have any errors
+      // TODO: error check
+      assertThat(readValueAndState.getValue().isNumericValue()).isTrue();
+      assertThat(readValueAndState.getValue().asNumericValue().bigInteger())
+          .isEquivalentAccordingToCompareTo(BigInteger.ZERO);
     }
   }
 
