@@ -401,7 +401,9 @@ public class SymbolicProgramConfiguration {
     return stackVariableMapping.peek().getReturnObject();
   }
 
-  /** @return true if there is a return object for the current stack frame. */
+  /**
+   * @return true if there is a return object for the current stack frame.
+   */
   public boolean hasReturnObjectForCurrentStackFrame() {
     return stackVariableMapping.peek().getReturnObject().isPresent();
   }
