@@ -8,11 +8,14 @@
 
 package org.sosy_lab.cpachecker.cpa.smg2;
 
+import static com.google.common.truth.Truth.assertThat;
+
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import java.math.BigInteger;
 import java.util.List;
 import org.junit.Before;
+import org.junit.Test;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -39,6 +42,9 @@ import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.cpa.smg2.util.value.ValueAndSMGState;
+import org.sosy_lab.cpachecker.exceptions.CPATransferException;
+import org.sosy_lab.cpachecker.util.smg.graph.SMGObject;
 
 public class SMGCPATransferRelationTest {
 
@@ -148,6 +154,86 @@ public class SMGCPATransferRelationTest {
             "", FileLocation.DUMMY, CFANode.newDummyCFANode(), CFANode.newDummyCFANode(), null));
   }
 
+
+  /*
+   * Declaration without assignment of simple types i.e. int, char, unsigned short ...
+   * i.e. short bla;
+   */
+  @Test
+  public void localVariableDeclarationSimpleTypesTest() throws CPATransferException {
+    String variableName = "variableName";
+    for (CType type : TEST_TYPES) {
+      // Make a non global and not external variable with the current type
+      List<SMGState> statesAfterDecl =
+          transferRelation.handleDeclarationEdge(
+              null, declareVariableWithoutInitializer(variableName, type, false, false));
+      // Since we declare variables we know there will be only 1 state afterwards
+      assertThat(statesAfterDecl).hasSize(1);
+      // This state must have a local variable the size of the type used (on the current stackframe)
+      // The state should not have any errors
+      SMGState state = statesAfterDecl.get(0);
+      // TODO: error check
+      SymbolicProgramConfiguration memoryModel = state.getMemoryModel();
+      assertThat(memoryModel.getStackFrames().peek().containsVariable(variableName)).isTrue();
+      SMGObject memoryObject = memoryModel.getStackFrames().peek().getVariable(variableName);
+      // SMG sizes are in bits!
+      BigInteger expectedSize = MACHINE_MODEL.getSizeofInBits(type);
+      assertThat(memoryObject.getSize().compareTo(expectedSize) == 0).isTrue();
+      // further, this memory is not written at all, meaning we can read it and it returns UNKNOWN
+      ValueAndSMGState readValueAndState =
+          state.readValue(memoryObject, BigInteger.ZERO, expectedSize);
+      // The read state should not have any errors
+      // TODO: error check
+      assertThat(readValueAndState.getValue().isUnknown()).isTrue();
+    }
+  }
+
+  /*
+   * Declaration with assignment of simple types i.e. int, char, unsigned short ...
+   * i.e. short bla = 3;
+   */
+  @Test
+  public void localVariableDeclarationWithAssignmentSimpleTypesTest() throws CPATransferException {
+    String variableName = "variableName";
+    BigInteger value = BigInteger.ONE;
+    for (CType type : TEST_TYPES) {
+      CExpression exprToInit;
+      if (type == CNumericTypes.CHAR) {
+        exprToInit = makeCharExpressionFrom((char) value.intValue());
+      } else {
+        exprToInit = makeIntegerExpressionFrom(value, (CSimpleType) type);
+      }
+      CInitializer initializer = makeCInitializerExpressionFor(exprToInit);
+
+      // Make a non global and not external variable with the current type
+      List<SMGState> statesAfterDecl =
+          transferRelation.handleDeclarationEdge(
+              null, declareVariableWithInitializer(variableName, type, false, false, initializer));
+      // Since we declare variables we know there will be only 1 state afterwards
+      assertThat(statesAfterDecl).hasSize(1);
+      // This state must have a local variable the size of the type used (on the current stack
+      // frame)
+      // The state should not have any errors
+      SMGState state = statesAfterDecl.get(0);
+      // TODO: error check
+      SymbolicProgramConfiguration memoryModel = state.getMemoryModel();
+      assertThat(memoryModel.getStackFrames().peek().containsVariable(variableName)).isTrue();
+      SMGObject memoryObject = memoryModel.getStackFrames().peek().getVariable(variableName);
+      // SMG sizes are in bits!
+      BigInteger expectedSize = MACHINE_MODEL.getSizeofInBits(type);
+      assertThat(memoryObject.getSize().compareTo(expectedSize) == 0).isTrue();
+      // further, in the memory there must be a SMGValue that maps to the Value entered
+      ValueAndSMGState readValueAndState =
+          state.readValue(memoryObject, BigInteger.ZERO, expectedSize);
+      // The read state should not have any errors
+      // TODO: error check
+      assertThat(readValueAndState.getValue().isExplicitlyKnown()).isTrue();
+      assertThat(readValueAndState.getValue().asNumericValue().bigInteger().compareTo(value) == 0)
+          .isTrue();
+      // We increment the value to make them distinct
+      value = value.add(BigInteger.ONE);
+    }
+  }
 
   private CVariableDeclaration declareVariableWithoutInitializer(
       String variableName, CType type, boolean isGlobal, boolean isExtern) {
