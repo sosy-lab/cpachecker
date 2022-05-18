@@ -9,7 +9,6 @@
 package org.sosy_lab.cpachecker.util.coverage.measures;
 
 import com.google.common.collect.ImmutableMultiset;
-import com.google.common.collect.ImmutableSortedMultiset;
 import com.google.common.collect.LinkedHashMultiset;
 import com.google.common.collect.Multiset;
 import java.util.Set;
@@ -66,17 +65,17 @@ public class LocationBasedCoverageMeasure implements CoverageMeasure {
   }
 
   @Override
-  public double getCoverage() {
-    return getCount() / getMaxCount();
+  public double getNormalizedValue() {
+    return getValue() / getMaxValue();
   }
 
   @Override
-  public double getCount() {
+  public double getValue() {
     return coveredLocations.elementSet().size();
   }
 
   @Override
-  public double getMaxCount() {
+  public double getMaxValue() {
     return maxCount;
   }
 }

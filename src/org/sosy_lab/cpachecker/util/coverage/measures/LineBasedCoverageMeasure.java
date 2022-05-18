@@ -60,19 +60,19 @@ public class LineBasedCoverageMeasure implements CoverageMeasure {
   }
 
   @Override
-  public double getCoverage() {
-    return getCount() / getMaxCount();
+  public double getNormalizedValue() {
+    return getValue() / getMaxValue();
   }
 
   @Override
-  public double getCount() {
+  public double getValue() {
     return visitedLinesPerFile.values().stream()
         .mapToInt(visitedLines -> visitedLines.entrySet().size())
         .sum();
   }
 
   @Override
-  public double getMaxCount() {
+  public double getMaxValue() {
     return exisitingLinesPerFile.values().stream()
         .mapToInt(existingLines -> existingLines.size())
         .sum();

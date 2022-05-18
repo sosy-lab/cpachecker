@@ -14,11 +14,11 @@ package org.sosy_lab.cpachecker.util.coverage.measures;
  */
 public interface CoverageMeasure {
   /**
-   * Getter method for the coverage value of the analyzed program-
+   * Getter method for the normalized coverage value of the analyzed program.
    *
    * @return the normalized coverage value which can be a double between 0 and 1.
    */
-  double getCoverage();
+  double getNormalizedValue();
 
   /**
    * Getter method for the total count of some verification coverage data.
@@ -26,7 +26,7 @@ public interface CoverageMeasure {
    * @return the coverage value without normalization, which is therefore just the count of some
    *     specific verification coverage data analyzed.
    */
-  double getCount();
+  double getValue();
 
   /**
    * Getter method for the maximum possible count of some verification coverage data. Normally used
@@ -34,5 +34,5 @@ public interface CoverageMeasure {
    *
    * @return the highest possible count for this measure
    */
-  double getMaxCount();
+  double getMaxValue();
 }
