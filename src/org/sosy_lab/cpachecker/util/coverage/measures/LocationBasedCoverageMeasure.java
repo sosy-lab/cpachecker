@@ -26,19 +26,7 @@ import org.sosy_lab.cpachecker.util.coverage.util.CoverageColorUtil;
 public class LocationBasedCoverageMeasure implements CoverageMeasure {
   private final ImmutableMultiset<CFANode> coveredLocations;
   private final double maxCount;
-  private String coverageColor;
-
-  public LocationBasedCoverageMeasure(
-      Multiset<CFANode> pCoveredLocations, double pMaxCount, String pCoverageColor) {
-    this(pCoveredLocations, pMaxCount);
-    coverageColor = pCoverageColor;
-  }
-
-  public LocationBasedCoverageMeasure(
-      Set<CFANode> pCoveredLocations, double pMaxCount, String pCoverageColor) {
-    this(pCoveredLocations, pMaxCount);
-    coverageColor = pCoverageColor;
-  }
+  private final String coverageColor;
 
   public LocationBasedCoverageMeasure(Multiset<CFANode> pCoveredLocations, double pMaxCount) {
     coveredLocations = ImmutableMultiset.copyOf(pCoveredLocations);
@@ -50,13 +38,8 @@ public class LocationBasedCoverageMeasure implements CoverageMeasure {
     }
   }
 
-  public LocationBasedCoverageMeasure(Set<CFANode> pCoveredLocations, double pMaxCount) {
+  LocationBasedCoverageMeasure(Set<CFANode> pCoveredLocations, double pMaxCount) {
     this(LinkedHashMultiset.create(pCoveredLocations), pMaxCount);
-  }
-
-  public LocationBasedCoverageMeasure() {
-    coveredLocations = ImmutableSortedMultiset.of();
-    maxCount = 1;
   }
 
   /**
@@ -74,12 +57,12 @@ public class LocationBasedCoverageMeasure implements CoverageMeasure {
     }
   }
 
-  public Set<CFANode> getCoveredSet() {
-    return coveredLocations.elementSet();
+  Multiset<CFANode> getCoveredLocations() {
+    return coveredLocations;
   }
 
-  public Multiset<CFANode> getCoveredLocations() {
-    return coveredLocations;
+  private Set<CFANode> getCoveredSet() {
+    return coveredLocations.elementSet();
   }
 
   @Override

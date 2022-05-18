@@ -31,7 +31,7 @@ public class MultiLocationBasedCoverageMeasure extends LocationBasedCoverageMeas
     alternativeCoveredLocations = ImmutableMultiset.copyOf(pAlternativeCoveredLocations);
   }
 
-  public Set<CFANode> getAlternativeCoveredSet() {
+  private Set<CFANode> getAlternativeCoveredSet() {
     return alternativeCoveredLocations.elementSet();
   }
 
