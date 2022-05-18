@@ -155,6 +155,109 @@ public class SMGCPATransferRelationTest {
   }
 
   /*
+   * Test struct declaration without assignment.
+   * i.e. struct TestStruct { int intField, ... };
+   * struct TestStruct structName;
+   */
+  @Test
+  public void localVariableDeclarationStructSimpleTypesTest() throws CPATransferException {
+    String variableName = "variableName";
+    String structName = "TestStruct";
+    CType type =
+        makeElaboratedTypeFor(
+            structName, ComplexTypeKind.STRUCT, STRUCT_UNION_TEST_TYPES, STRUCT_UNION_FIELD_NAMES);
+    // Make a non global and not external variable with the current type
+    List<SMGState> statesAfterDecl =
+        transferRelation.handleDeclarationEdge(
+            null, declareVariableWithoutInitializer(variableName, type, false, false));
+    // Since we declare variables we know there will be only 1 state afterwards
+    assertThat(statesAfterDecl).hasSize(1);
+    // This state must have a local variable the size of the type used (on the current stack frame)
+    // The state should not have any errors
+    SMGState state = statesAfterDecl.get(0);
+    // TODO: error check
+    SymbolicProgramConfiguration memoryModel = state.getMemoryModel();
+    assertThat(memoryModel.getStackFrames().peek().containsVariable(variableName)).isTrue();
+    SMGObject memoryObject = memoryModel.getStackFrames().peek().getVariable(variableName);
+    // SMG sizes are in bits! Also since this is a struct, padding has to be taken into account.
+    BigInteger expectedSize = MACHINE_MODEL.getSizeofInBits(type);
+    assertThat(memoryObject.getSize().compareTo(expectedSize) == 0).isTrue();
+    for (int i = 0; i < STRUCT_UNION_TEST_TYPES.size(); i++) {
+      BigInteger offsetInBits =
+          MACHINE_MODEL.getFieldOffsetInBits(
+              (CCompositeType) ((CElaboratedType) type).getRealType(),
+              STRUCT_UNION_FIELD_NAMES.get(i));
+      BigInteger sizeInBits = MACHINE_MODEL.getSizeofInBits(STRUCT_UNION_TEST_TYPES.get(i));
+      // further, this memory is not written at all, meaning we can read it and it returns UNKNOWN
+      ValueAndSMGState readValueAndState = state.readValue(memoryObject, offsetInBits, sizeInBits);
+      // The read state should not have any errors
+      // TODO: error check
+      assertThat(readValueAndState.getValue().isUnknown()).isTrue();
+    }
+  }
+
+  /*
+   * Test struct declaration with assignment.
+   * i.e. struct TestStruct { int intField, ... };
+   * struct TestStruct structName = {1, ...};
+   */
+  @Test
+  public void localVariableDeclarationWithAssignmentStructSimpleTypesTest()
+      throws CPATransferException {
+    String variableName = "variableName";
+    String structName = "TestStruct";
+    CType type =
+        makeElaboratedTypeFor(
+            structName, ComplexTypeKind.STRUCT, STRUCT_UNION_TEST_TYPES, STRUCT_UNION_FIELD_NAMES);
+    // Build assignments starting from numeric value 1 and increment after each assignment. Chars
+    // are simply the int cast to a char.
+    ImmutableList.Builder<CInitializer> listOfInitsBuilder = ImmutableList.builder();
+    BigInteger value = BigInteger.ONE;
+    for (CType currType : STRUCT_UNION_TEST_TYPES) {
+      CExpression exprToInit;
+      if (currType == CNumericTypes.CHAR) {
+        exprToInit = makeCharExpressionFrom((char) value.intValue());
+      } else {
+        exprToInit = makeIntegerExpressionFrom(value, (CSimpleType) currType);
+      }
+      listOfInitsBuilder.add(makeCInitializerExpressionFor(exprToInit));
+      value = value.add(BigInteger.ONE);
+    }
+    CInitializer initList = makeCInitializerListFor(listOfInitsBuilder.build());
+    // Make a non global and not external variable with the current type
+    List<SMGState> statesAfterDecl =
+        transferRelation.handleDeclarationEdge(
+            null, declareVariableWithInitializer(variableName, type, false, false, initList));
+    // Since we declare variables we know there will be only 1 state afterwards
+    assertThat(statesAfterDecl).hasSize(1);
+    // This state must have a local variable the size of the type used (on the current stack frame)
+    // The state should not have any errors
+    SMGState state = statesAfterDecl.get(0);
+    // TODO: error check
+    SymbolicProgramConfiguration memoryModel = state.getMemoryModel();
+    assertThat(memoryModel.getStackFrames().peek().containsVariable(variableName)).isTrue();
+    SMGObject memoryObject = memoryModel.getStackFrames().peek().getVariable(variableName);
+    // SMG sizes are in bits! Also since this is a struct, padding has to be taken into account.
+    BigInteger expectedSize = MACHINE_MODEL.getSizeofInBits(type);
+    assertThat(memoryObject.getSize().compareTo(expectedSize) == 0).isTrue();
+    for (int i = 0; i < STRUCT_UNION_TEST_TYPES.size(); i++) {
+      BigInteger offsetInBits =
+          MACHINE_MODEL.getFieldOffsetInBits(
+              (CCompositeType) ((CElaboratedType) type).getRealType(),
+              STRUCT_UNION_FIELD_NAMES.get(i));
+      BigInteger sizeInBits = MACHINE_MODEL.getSizeofInBits(STRUCT_UNION_TEST_TYPES.get(i));
+      // further, this memory is not written at all, meaning we can read it and it returns the
+      // numeric values assigned, starting from 1 and incrementing after each field once
+      ValueAndSMGState readValueAndState = state.readValue(memoryObject, offsetInBits, sizeInBits);
+      // The read state should not have any errors
+      // TODO: error check
+      assertThat(readValueAndState.getValue().isNumericValue()).isTrue();
+      assertThat(readValueAndState.getValue().asNumericValue().bigInteger().intValueExact())
+          .isEqualTo(i + 1);
+    }
+  }
+
+  /*
    * Declaration of arrays using array notation and no assignment: type array[];
    */
   @Test
