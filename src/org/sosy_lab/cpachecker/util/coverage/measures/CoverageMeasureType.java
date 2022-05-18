@@ -37,31 +37,38 @@ public enum CoverageMeasureType {
     category = pCategeory;
   }
 
-  public Optional<CoverageMeasure> getCoverageMeasure(Map<String, FileCoverageStatistics> infosPerFile) {
+  public Optional<CoverageMeasure> getCoverageMeasure(
+      Map<String, FileCoverageStatistics> infosPerFile) {
     CoverageStatistics covStatistics = new CoverageStatistics(infosPerFile);
     switch (this) {
       case VisitedLocations:
-            return Optional.of(new LocationCoverageMeasure(
+        return Optional.of(
+            new LocationBasedCoverageMeasure(
                 covStatistics.visitedLocations, covStatistics.numTotalNodes));
       case ReachedLocations:
-        return Optional.of(new LocationCoverageMeasure(
+        return Optional.of(
+            new LocationBasedCoverageMeasure(
                 covStatistics.reachedLocations, covStatistics.numTotalNodes));
       case ConsideredLocationsHeatMap:
-        return Optional.of(new MultiLocationCoverageMeasure(
+        return Optional.of(
+            new MultiLocationBasedCoverageMeasure(
                 covStatistics.visitedLocations,
                 covStatistics.reachedLocations,
                 covStatistics.numTotalNodes));
       case ConsideredLinesHeatMap:
-        return Optional.of(new LineCoverageMeasure(infosPerFile));
+        return Optional.of(new LineBasedCoverageMeasure(infosPerFile));
       case PredicateConsidered:
-        return Optional.of(new LocationCoverageMeasure(
+        return Optional.of(
+            new LocationBasedCoverageMeasure(
                 covStatistics.predicateConsideredNodes, covStatistics.numTotalNodes));
       case PredicateRelevantVariables:
-        return Optional.of(new LocationCoverageMeasure(
+        return Optional.of(
+            new LocationBasedCoverageMeasure(
                 covStatistics.predicateRelevantVariablesConsideredNodes,
                 covStatistics.numTotalNodes));
       case PredicateAbstractionVariables:
-        return Optional.of(new VariableCoverageMeasure(
+        return Optional.of(
+            new VariableBasedCoverageMeasure(
                 covStatistics.allVariableNames, covStatistics.relevantVariableNames));
       default:
         return Optional.empty();

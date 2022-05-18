@@ -86,8 +86,8 @@ import org.sosy_lab.cpachecker.util.coverage.collectors.CoverageCollectorHandler
 import org.sosy_lab.cpachecker.util.coverage.measures.CoverageMeasureCategory;
 import org.sosy_lab.cpachecker.util.coverage.measures.CoverageMeasureHandler;
 import org.sosy_lab.cpachecker.util.coverage.measures.CoverageMeasureType;
-import org.sosy_lab.cpachecker.util.coverage.measures.LineCoverageMeasure;
-import org.sosy_lab.cpachecker.util.coverage.measures.VariableCoverageMeasure;
+import org.sosy_lab.cpachecker.util.coverage.measures.LineBasedCoverageMeasure;
+import org.sosy_lab.cpachecker.util.coverage.measures.VariableBasedCoverageMeasure;
 import org.sosy_lab.cpachecker.util.coverage.tdcg.TimeDependentCoverageHandler;
 import org.sosy_lab.cpachecker.util.coverage.tdcg.TimeDependentCoverageType;
 import org.sosy_lab.cpachecker.util.coverage.util.CoverageColorUtil;
@@ -706,10 +706,11 @@ public class ReportGenerator {
     for (CoverageMeasureType type : types) {
       lineColors.append(type.getId()).append(":");
       if (type.getCategory() == CoverageMeasureCategory.LineBased) {
-        LineCoverageMeasure lineCov = (LineCoverageMeasure) covHandler.getData(type);
+        LineBasedCoverageMeasure lineCov = (LineBasedCoverageMeasure) covHandler.getData(type);
         lineColors.append(lineCov.getColor(sourcePath.toString(), lineNumber));
       } else if (type.getCategory() == CoverageMeasureCategory.VariableBased) {
-        VariableCoverageMeasure varCov = (VariableCoverageMeasure) covHandler.getData(type);
+        VariableBasedCoverageMeasure varCov =
+            (VariableBasedCoverageMeasure) covHandler.getData(type);
         if (variableFlag) {
           lineColors.append("!");
           variableFlag = false;

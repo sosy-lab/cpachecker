@@ -8,26 +8,27 @@
 
 package org.sosy_lab.cpachecker.util.coverage.measures;
 
+import com.google.common.collect.ImmutableMultiset;
 import com.google.common.collect.Multiset;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.util.coverage.util.CoverageColorUtil;
 
 /**
- * Behaves like LocationCoverageMeasure but with the difference that it considers a second coverage
- * criteria. For example when looking at all reached locations and all visited locations, we can use
- * this MultiLocationCoverageMeasure to consider both coverage criteria and i.e. calculate the
- * intersection and use this as combined coverage criteria.
+ * Behaves like LocationBasedCoverageMeasure but with the difference that it considers a second
+ * coverage criteria. For example when looking at all reached locations and all visited locations,
+ * we can use this MultiLocationBasedCoverageMeasure to consider both coverage criteria and i.e.
+ * calculate the intersection and use this as combined coverage criteria.
  */
-public class MultiLocationCoverageMeasure extends LocationCoverageMeasure {
-  private final Multiset<CFANode> alternativeCoveredLocations;
+public class MultiLocationBasedCoverageMeasure extends LocationBasedCoverageMeasure {
+  private final ImmutableMultiset<CFANode> alternativeCoveredLocations;
 
-  public MultiLocationCoverageMeasure(
+  public MultiLocationBasedCoverageMeasure(
       Multiset<CFANode> pCoveredLocations,
       Multiset<CFANode> pAlternativeCoveredLocations,
       double pMaxCount) {
     super(pCoveredLocations, pMaxCount);
-    alternativeCoveredLocations = pAlternativeCoveredLocations;
+    alternativeCoveredLocations = ImmutableMultiset.copyOf(pAlternativeCoveredLocations);
   }
 
   public Set<CFANode> getAlternativeCoveredSet() {

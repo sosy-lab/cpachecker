@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.util.coverage.measures;
 
+import com.google.common.collect.ImmutableMultiset;
+import com.google.common.collect.ImmutableSortedMultiset;
 import com.google.common.collect.LinkedHashMultiset;
 import com.google.common.collect.Multiset;
 import java.util.Set;
@@ -21,25 +23,25 @@ import org.sosy_lab.cpachecker.util.coverage.util.CoverageColorUtil;
  * gathering and not within this class. Data gathering is typically done after the analysis within
  * the CoverageCollector or during the analysis within a CoverageCPA.
  */
-public class LocationCoverageMeasure implements CoverageMeasure {
-  private final Multiset<CFANode> coveredLocations;
+public class LocationBasedCoverageMeasure implements CoverageMeasure {
+  private final ImmutableMultiset<CFANode> coveredLocations;
   private final double maxCount;
   private String coverageColor;
 
-  public LocationCoverageMeasure(
+  public LocationBasedCoverageMeasure(
       Multiset<CFANode> pCoveredLocations, double pMaxCount, String pCoverageColor) {
     this(pCoveredLocations, pMaxCount);
     coverageColor = pCoverageColor;
   }
 
-  public LocationCoverageMeasure(
+  public LocationBasedCoverageMeasure(
       Set<CFANode> pCoveredLocations, double pMaxCount, String pCoverageColor) {
     this(pCoveredLocations, pMaxCount);
     coverageColor = pCoverageColor;
   }
 
-  public LocationCoverageMeasure(Multiset<CFANode> pCoveredLocations, double pMaxCount) {
-    coveredLocations = pCoveredLocations;
+  public LocationBasedCoverageMeasure(Multiset<CFANode> pCoveredLocations, double pMaxCount) {
+    coveredLocations = ImmutableMultiset.copyOf(pCoveredLocations);
     coverageColor = CoverageColorUtil.DEFAULT_COVERAGE_COLOR;
     if (pMaxCount <= 0) {
       maxCount = 1.0;
@@ -48,12 +50,12 @@ public class LocationCoverageMeasure implements CoverageMeasure {
     }
   }
 
-  public LocationCoverageMeasure(Set<CFANode> pCoveredLocations, double pMaxCount) {
+  public LocationBasedCoverageMeasure(Set<CFANode> pCoveredLocations, double pMaxCount) {
     this(LinkedHashMultiset.create(pCoveredLocations), pMaxCount);
   }
 
-  public LocationCoverageMeasure() {
-    coveredLocations = LinkedHashMultiset.create();
+  public LocationBasedCoverageMeasure() {
+    coveredLocations = ImmutableSortedMultiset.of();
     maxCount = 1;
   }
 

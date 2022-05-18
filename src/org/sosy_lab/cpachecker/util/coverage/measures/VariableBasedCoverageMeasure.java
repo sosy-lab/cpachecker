@@ -8,7 +8,7 @@
 
 package org.sosy_lab.cpachecker.util.coverage.measures;
 
-import com.google.common.collect.HashMultiset;
+import com.google.common.collect.ImmutableMultiset;
 import com.google.common.collect.Multiset;
 
 /**
@@ -16,18 +16,14 @@ import com.google.common.collect.Multiset;
  * criteria is applied on all given variables. Data gathering is typically done after the analysis
  * within the CoverageCollector or during the analysis within a CoverageCPA.
  */
-public class VariableCoverageMeasure implements CoverageMeasure {
-  private final Multiset<String> relevantVariables;
-  private final Multiset<String> allVariables;
+public class VariableBasedCoverageMeasure implements CoverageMeasure {
+  private final ImmutableMultiset<String> relevantVariables;
+  private final ImmutableMultiset<String> allVariables;
 
-  public VariableCoverageMeasure(
+  public VariableBasedCoverageMeasure(
       Multiset<String> pAllVariables, Multiset<String> pRelevantVariables) {
-    relevantVariables = pRelevantVariables;
-    allVariables = pAllVariables;
-  }
-
-  public VariableCoverageMeasure() {
-    this(HashMultiset.create(), HashMultiset.create());
+    relevantVariables = ImmutableMultiset.copyOf(pRelevantVariables);
+    allVariables = ImmutableMultiset.copyOf(pAllVariables);
   }
 
   public String getAllVariablesAsString() {

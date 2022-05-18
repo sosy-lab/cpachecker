@@ -50,8 +50,8 @@ import org.sosy_lab.cpachecker.util.CFATraversal.TraversalProcess;
 import org.sosy_lab.cpachecker.util.coverage.measures.CoverageMeasureCategory;
 import org.sosy_lab.cpachecker.util.coverage.measures.CoverageMeasureHandler;
 import org.sosy_lab.cpachecker.util.coverage.measures.CoverageMeasureType;
-import org.sosy_lab.cpachecker.util.coverage.measures.LocationCoverageMeasure;
-import org.sosy_lab.cpachecker.util.coverage.measures.MultiLocationCoverageMeasure;
+import org.sosy_lab.cpachecker.util.coverage.measures.LocationBasedCoverageMeasure;
+import org.sosy_lab.cpachecker.util.coverage.measures.MultiLocationBasedCoverageMeasure;
 
 /**
  * Generates one DOT file per function for the report. For large programs the traditional method
@@ -436,9 +436,11 @@ public final class DOTBuilder2 {
       for (CoverageMeasureType type : covHandler.getAllTypes()) {
         coverageProperties.append(type.getId()).append(":");
         if (type.getCategory() == CoverageMeasureCategory.LocationBased) {
-          LocationCoverageMeasure locCov = (LocationCoverageMeasure) covHandler.getData(type);
+          LocationBasedCoverageMeasure locCov =
+              (LocationBasedCoverageMeasure) covHandler.getData(type);
           if (type == CoverageMeasureType.ConsideredLocationsHeatMap) {
-            MultiLocationCoverageMeasure multiLocCov = (MultiLocationCoverageMeasure) locCov;
+            MultiLocationBasedCoverageMeasure multiLocCov =
+                (MultiLocationBasedCoverageMeasure) locCov;
             coverageProperties.append(multiLocCov.getColor(node)).append(";");
           } else {
             coverageProperties.append(locCov.getColor(node)).append(";");

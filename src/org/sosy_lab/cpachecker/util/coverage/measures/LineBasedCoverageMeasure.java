@@ -8,9 +8,12 @@
 
 package org.sosy_lab.cpachecker.util.coverage.measures;
 
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSortedMap;
 import com.google.common.collect.Multiset;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import org.sosy_lab.cpachecker.util.coverage.data.FileCoverageStatistics;
 import org.sosy_lab.cpachecker.util.coverage.util.CoverageColorUtil;
@@ -22,22 +25,19 @@ import org.sosy_lab.cpachecker.util.coverage.util.CoverageColorUtil;
  * within this class. Data gathering is typically done after the analysis within the
  * CoverageCollector or during the analysis within a CoverageCPA.
  */
-public class LineCoverageMeasure implements CoverageMeasure {
-  private final Map<String, Multiset<Integer>> visitedLinesPerFile;
-  private final Map<String, Set<Integer>> exisitingLinesPerFile;
+public class LineBasedCoverageMeasure implements CoverageMeasure {
+  private final ImmutableMap<String, Multiset<Integer>> visitedLinesPerFile;
+  private final ImmutableMap<String, Set<Integer>> exisitingLinesPerFile;
 
-  public LineCoverageMeasure(Map<String, FileCoverageStatistics> infoPerFile) {
-    visitedLinesPerFile = new LinkedHashMap<>();
-    exisitingLinesPerFile = new LinkedHashMap<>();
+  public LineBasedCoverageMeasure(Map<String, FileCoverageStatistics> infoPerFile) {
+    Map<String, Multiset<Integer>> lVisitedLinesPerFile = new LinkedHashMap<>();
+    Map<String, Set<Integer>> lExistingLinesPerFile = new LinkedHashMap<>();
     for (var entry : infoPerFile.entrySet()) {
-      visitedLinesPerFile.put(entry.getKey(), entry.getValue().visitedLines);
-      exisitingLinesPerFile.put(entry.getKey(), entry.getValue().allLines);
+      lVisitedLinesPerFile.put(entry.getKey(), entry.getValue().visitedLines);
+      lExistingLinesPerFile.put(entry.getKey(), entry.getValue().allLines);
     }
-  }
-
-  public LineCoverageMeasure() {
-    visitedLinesPerFile = new LinkedHashMap<>();
-    exisitingLinesPerFile = new LinkedHashMap<>();
+    visitedLinesPerFile = ImmutableSortedMap.copyOf(lVisitedLinesPerFile);
+    exisitingLinesPerFile = ImmutableSortedMap.copyOf(lExistingLinesPerFile);
   }
 
   /**
@@ -49,10 +49,10 @@ public class LineCoverageMeasure implements CoverageMeasure {
    * @return hex color code which represents the coverage status for the given line
    */
   public String getColor(String file, int line) {
-    if (visitedLinesPerFile.get(file).contains(line)) {
+    if (Objects.requireNonNull(visitedLinesPerFile.get(file)).contains(line)) {
       return CoverageColorUtil.getFrequencyColorMapForLines(visitedLinesPerFile.get(file))
           .get(line);
-    } else if (exisitingLinesPerFile.get(file).contains(line)) {
+    } else if (Objects.requireNonNull(exisitingLinesPerFile.get(file)).contains(line)) {
       return CoverageColorUtil.DEFAULT_CONSIDERED_COLOR;
     } else {
       return CoverageColorUtil.DEFAULT_ELEMENT_COLOR;
