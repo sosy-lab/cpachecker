@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.util.automaton;
 import static org.sosy_lab.common.collect.Collections3.transformedImmutableListCopy;
 
 import com.google.common.base.Preconditions;
+import com.google.common.base.Throwables;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
@@ -499,8 +500,8 @@ public class AutomatonGraphmlCommon {
 
         transformer.transform(new DOMSource(doc), new StreamResult(CharStreams.asWriter(pTarget)));
       } catch (TransformerException ex) {
-        if (ex.getException() instanceof IOException) {
-          throw (IOException) ex.getException();
+        for (Throwable cause : Throwables.getCausalChain(ex)) {
+          Throwables.throwIfInstanceOf(cause, IOException.class);
         }
         throw new RuntimeException("Error while writing witness.", ex);
       }
