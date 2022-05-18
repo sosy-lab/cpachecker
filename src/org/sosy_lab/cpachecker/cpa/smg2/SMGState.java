@@ -1084,6 +1084,27 @@ public class SMGState implements LatticeAbstractState<SMGState>, AbstractQueryab
   }
 
   /**
+   * Writes the Value given to the memory reserved for the return statement of an stack frame. Make
+   * sure that there is a return object before calling this. This will check sizes before writing
+   * and will map the Value to a SMGValue if there is no mapping. This always assumes offset = 0.
+   *
+   * @param sizeInBits the size of the Value to write in bits.
+   * @param valueToWrite the {@link Value} to write.
+   * @return a new {@link SMGState} with either an error info in case of an error or the value
+   *     written to the return memory.
+   */
+  public SMGState writeToReturn(BigInteger sizeInBits, Value valueToWrite) {
+    SMGObject returnObject = getMemoryModel().getReturnObjectForCurrentStackFrame().orElseThrow();
+    // Check that the target can hold the value
+    if (returnObject.getOffset().compareTo(BigInteger.ZERO) > 0
+        || returnObject.getSize().compareTo(sizeInBits) < 0) {
+      // Out of range write
+      return withOutOfRangeWrite(returnObject, BigInteger.ZERO, sizeInBits, valueToWrite);
+    }
+    return writeValue(returnObject, BigInteger.ZERO, sizeInBits, valueToWrite);
+  }
+
+  /**
    * Writes the entered {@link Value} to the {@link SMGObject} at the specified offset with the
    * specified size both in bits. It can be used for heap and stack, it jsut assumes that the {@link
    * SMGObject} exist in the SPC, so make sure beforehand! The Value will either add or find its
@@ -1105,7 +1126,7 @@ public class SMGState implements LatticeAbstractState<SMGState>, AbstractQueryab
       throws SMG2Exception {
     // Check that the target can hold the value
     if (object.getOffset().compareTo(writeOffsetInBits) > 0
-        || object.getSize().compareTo(sizeInBits) < 0) {
+        || object.getSize().compareTo(sizeInBits.add(writeOffsetInBits)) < 0) {
       // Out of range write
       throw new SMG2Exception(
           withOutOfRangeWrite(object, writeOffsetInBits, sizeInBits, valueToWrite));
