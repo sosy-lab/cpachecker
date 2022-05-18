@@ -591,7 +591,7 @@ public class SMGTransferRelation
     Map<CCompositeType.CCompositeTypeMemberDeclaration, BigInteger> offsetAndPosition =
         machineModel.getAllFieldOffsetsInBits(pLValueType);
 
-    ImmutableList.Builder<SMGState> finalStates = ImmutableList.builder();
+    // ImmutableList.Builder<SMGState> finalStates = ImmutableList.builder();
     SMGState currentState = pState;
     // Just to be sure, should never trigger
     Preconditions.checkArgument(pNewInitializer.getInitializers().size() == memberTypes.size());
@@ -609,12 +609,14 @@ public class SMGTransferRelation
           handleInitializer(
               currentState, pVarDecl, pEdge, variableName, offset, memberType, initializer);
 
-      currentState = newStates.get(newStates.size());
-      finalStates.addAll(newStates);
+      // If this ever fails: branch into the new states and perform the rest of the loop on both!
+      Preconditions.checkArgument(newStates.size() == 1);
+      currentState = newStates.get(0);
+      // finalStates.addAll(newStates);
       listCounter++;
     }
-
-    return finalStates.build();
+    return ImmutableList.of(currentState);
+    // return finalStates.build();
   }
 
   /*
@@ -633,7 +635,7 @@ public class SMGTransferRelation
     CType memberType = SMGCPAValueExpressionEvaluator.getCanonicalType(pLValueType.getType());
     BigInteger memberTypeSize = evaluator.getBitSizeof(pState, memberType);
 
-    ImmutableList.Builder<SMGState> finalStates = ImmutableList.builder();
+    // ImmutableList.Builder<SMGState> finalStates = ImmutableList.builder();
     SMGState currentState = pState;
 
     for (CInitializer initializer : pNewInitializer.getInitializers()) {
@@ -649,11 +651,15 @@ public class SMGTransferRelation
           handleInitializer(
               currentState, pVarDecl, pEdge, variableName, offset, memberType, initializer);
 
-      currentState = newStates.get(newStates.size());
-      finalStates.addAll(newStates);
+      // If this ever fails we have to split the rest of the initializer such that all states are
+      // treated the same from this point onwards
+      Preconditions.checkArgument(newStates.size() == 1);
+      currentState = newStates.get(0);
+      // finalStates.addAll(newStates);
     }
 
-    return finalStates.build();
+    return ImmutableList.of(currentState);
+    // return finalStates.build();
   }
 
   /*
