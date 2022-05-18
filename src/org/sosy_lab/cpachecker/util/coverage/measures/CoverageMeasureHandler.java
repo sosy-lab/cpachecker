@@ -13,15 +13,15 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import org.sosy_lab.cpachecker.util.coverage.data.CoverageStatistics;
+import java.util.Optional;
 import org.sosy_lab.cpachecker.util.coverage.data.FileCoverageStatistics;
 
 /**
  * Handler for managing all coverage measures. This class (including its corresponding enums) needs
- * to be expanded if new coverage measures should be tracked and visualized. They first need to be
- * initialized with initNewData and second, a switch case within the fillCoverageData needs to be
- * added. Last step is important to feed this measure with data at the point when the analysis is
- * done. The corresponding data is delivered by CoverageData which holds all relevant coverage data.
+ * to be expanded if new coverage measures should be tracked and visualized. First, one needs to add
+ * all types of CoverageMeasureType which should be tracked and Second, one needs to feed this
+ * measure with data at the point when the analysis is done. The corresponding data is delivered by
+ * CoverageStatistics which holds all relevant coverage data.
  */
 public class CoverageMeasureHandler {
   private final Map<CoverageMeasureType, CoverageMeasure> coverageMeasureMap;
@@ -55,50 +55,10 @@ public class CoverageMeasureHandler {
    * @param infosPerFile infosPerFile holds all relevant coverage data gathered during the analysis
    */
   public void fillCoverageData(Map<String, FileCoverageStatistics> infosPerFile) {
-    CoverageStatistics covStatistics = new CoverageStatistics(infosPerFile);
     for (CoverageMeasureType type : getAllTypes()) {
-      switch (type) {
-        case VisitedLocations:
-          addData(
-              type,
-              new LocationCoverageMeasure(
-                  covStatistics.visitedLocations, covStatistics.numTotalNodes));
-          break;
-        case ReachedLocations:
-          addData(
-              type,
-              new LocationCoverageMeasure(
-                  covStatistics.reachedLocations, covStatistics.numTotalNodes));
-          break;
-        case ConsideredLocationsHeatMap:
-          addData(
-              type,
-              new MultiLocationCoverageMeasure(
-                  covStatistics.visitedLocations,
-                  covStatistics.reachedLocations,
-                  covStatistics.numTotalNodes));
-          break;
-        case ConsideredLinesHeatMap:
-          addData(type, new LineCoverageMeasure(infosPerFile));
-          break;
-        case PredicateConsidered:
-          addData(
-              type,
-              new LocationCoverageMeasure(
-                  covStatistics.predicateConsideredNodes, covStatistics.numTotalNodes));
-          break;
-        case PredicateRelevantVariables:
-          addData(
-              type,
-              new LocationCoverageMeasure(
-                  covStatistics.predicateRelevantVariablesConsideredNodes,
-                  covStatistics.numTotalNodes));
-          break;
-        case PredicateAbstractionVariables:
-          addData(
-              type,
-              new VariableCoverageMeasure(
-                  covStatistics.allVariableNames, covStatistics.relevantVariableNames));
+      Optional<CoverageMeasure> coverageMeasure = type.getCoverageMeasure(infosPerFile);
+      if (coverageMeasure.isPresent()) {
+        addData(type, type.getCoverageMeasure(infosPerFile).orElseThrow());
       }
     }
   }

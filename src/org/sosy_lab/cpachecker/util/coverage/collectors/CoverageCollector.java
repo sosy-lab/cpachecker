@@ -8,7 +8,6 @@
 
 package org.sosy_lab.cpachecker.util.coverage.collectors;
 
-import com.google.common.collect.Multiset;
 import java.util.Map;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.CFA;

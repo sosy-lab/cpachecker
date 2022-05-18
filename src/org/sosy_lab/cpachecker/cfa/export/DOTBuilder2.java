@@ -368,8 +368,8 @@ public final class DOTBuilder2 {
           || (currentNode.getNumEnteringEdges() != 1)
           || (currentNode.getNumLeavingEdges() != 1)
           || (currentComboEdges != null
-          && !currentNode.equals(
-          currentComboEdges.get(currentComboEdges.size() - 1).getSuccessor()))
+              && !currentNode.equals(
+                  currentComboEdges.get(currentComboEdges.size() - 1).getSuccessor()))
           || (currentNode.getLeavingEdge(0).getEdgeType() == CFAEdgeType.CallToReturnEdge)
           || (currentNode.getLeavingEdge(0).getEdgeType() == CFAEdgeType.AssumeEdge)) {
         currentComboEdges = null;
