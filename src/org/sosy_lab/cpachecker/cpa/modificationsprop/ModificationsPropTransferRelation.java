@@ -413,8 +413,10 @@ public class ModificationsPropTransferRelation extends SingleEdgeTransferRelatio
               originalTup = helper.skipAssignment(nodeInOriginal, changedVars);
           if (!(givenTup.getFirst().equals(nodeInMod)
               || originalTup.getFirst().equals(nodeInOriginal))) {
-            if (CFAEdgeUtils.getLeftHandVariable(nodeInMod.getLeavingEdge(0))
-                .equals(CFAEdgeUtils.getLeftHandVariable(nodeInOriginal.getLeavingEdge(0)))) {
+            String lhsVar = CFAEdgeUtils.getLeftHandVariable(nodeInMod.getLeavingEdge(0));
+            if (lhsVar != null
+                && lhsVar.equals(
+                    CFAEdgeUtils.getLeftHandVariable(nodeInOriginal.getLeavingEdge(0)))) {
               helper.logCase("Combining cases 5 and 6 for same variable.");
               // modified variable sets do not differ
               return ImmutableSet.of(
