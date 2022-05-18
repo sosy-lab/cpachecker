@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.cpa.smg2;
 
+import com.google.common.collect.ImmutableList;
 import java.math.BigInteger;
 import java.util.Collection;
 import java.util.Collections;
@@ -430,6 +431,29 @@ public class SMGState implements LatticeAbstractState<SMGState>, AbstractQueryab
 
   public SMGState dropStackFrame() {
     return of(machineModel, memoryModel.copyAndDropStackFrame(), logger, options);
+  }
+
+  /**
+   * Checks all heap objects for memory leaks. Only useful for the end of the main function!
+   *
+   * @return either this state or a error state with the memory leaks.
+   */
+  public SMGState checkAllHeapObjectsForMemoryLeaks() {
+    Set<SMGObject> allObjects = getMemoryModel().getSmg().getObjects();
+    SMGState currentState = this;
+    ImmutableList.Builder<Object> nonFreedObjectsBuilder = ImmutableList.builder();
+    for (SMGObject object : allObjects) {
+      if (getMemoryModel().getSmg().isValid(object)) {
+        // Memory leak
+        nonFreedObjectsBuilder.add(object);
+      }
+    }
+    Collection<Object> nonFreedObjects = nonFreedObjectsBuilder.build();
+    if (!nonFreedObjects.isEmpty()) {
+      String errorMsg = "Memory leak(s) found when exiting the main function.";
+      currentState = currentState.withMemoryLeak(errorMsg, nonFreedObjects);
+    }
+    return currentState;
   }
 
   /*
