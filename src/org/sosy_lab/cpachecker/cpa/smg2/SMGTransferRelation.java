@@ -637,19 +637,18 @@ public class SMGTransferRelation
 
     // ImmutableList.Builder<SMGState> finalStates = ImmutableList.builder();
     SMGState currentState = pState;
-
+    BigInteger offset = pOffset;
     for (CInitializer initializer : pNewInitializer.getInitializers()) {
       // TODO: this has to be checked with a test!!!!
       if (initializer instanceof CDesignatedInitializer) {
         initializer = ((CDesignatedInitializer) initializer).getRightHandSide();
       }
 
-      // The offset is the base offset given + the current offset
-      BigInteger offset = pOffset.add(memberTypeSize);
-
       List<SMGState> newStates =
           handleInitializer(
               currentState, pVarDecl, pEdge, variableName, offset, memberType, initializer);
+
+      offset = offset.add(memberTypeSize);
 
       // If this ever fails we have to split the rest of the initializer such that all states are
       // treated the same from this point onwards
