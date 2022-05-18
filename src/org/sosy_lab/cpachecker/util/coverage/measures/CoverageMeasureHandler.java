@@ -30,7 +30,6 @@ public class CoverageMeasureHandler {
   public CoverageMeasureHandler() {
     coverageMeasureMap = new LinkedHashMap<>();
     coverageMeasureTypes = new ArrayList<>();
-    coverageMeasureTypes.add(CoverageMeasureType.None);
   }
 
   /** Init all measures which are analysis independent */
@@ -59,8 +58,6 @@ public class CoverageMeasureHandler {
     CoverageStatistics covStatistics = new CoverageStatistics(infosPerFile);
     for (CoverageMeasureType type : getAllTypes()) {
       switch (type) {
-        case None:
-          break;
         case VisitedLocations:
           addData(
               type,

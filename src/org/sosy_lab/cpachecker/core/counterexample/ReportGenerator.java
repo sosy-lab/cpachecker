@@ -368,9 +368,8 @@ public class ReportGenerator {
     writer.write("var sourceCoverageJson = {\"types\" : [");
     ImmutableList<String> types =
         covHandler.getAllTypesForCategoriesAsString(
-            CoverageMeasureCategory.None,
-            CoverageMeasureCategory.LineBased,
-            CoverageMeasureCategory.VariableBased);
+            CoverageMeasureCategory.LineBased, CoverageMeasureCategory.VariableBased);
+    writer.write("\"None\",");
     for (String type : types) {
       JSON.writeJSONString(type, writer);
       if (i++ != types.size() - 1) {
@@ -459,9 +458,7 @@ public class ReportGenerator {
 
     writer.write(",\n\"coverage\":");
     writeCoverageTypes(
-        covHandler.getAllTypesForCategoriesAsString(
-            CoverageMeasureCategory.None, CoverageMeasureCategory.LocationBased),
-        writer);
+        covHandler.getAllTypesForCategoriesAsString(CoverageMeasureCategory.LocationBased), writer);
 
     writer.write(",\n");
     dotBuilder.writeCfaInfo(writer);
@@ -472,12 +469,9 @@ public class ReportGenerator {
   private void writeCoverageTypes(List<String> coverageSelections, Writer writer)
       throws IOException {
     writer.write("[");
+    writer.write("\"None\",");
     for (int i = 0; i < coverageSelections.size(); i++) {
-      writer.write("{\"type\":");
       JSON.writeJSONString(coverageSelections.get(i), writer);
-      writer.write(",\"color\":");
-      JSON.writeJSONString("red", writer);
-      writer.write("}");
       if (i != coverageSelections.size() - 1) {
         writer.write(",");
       }
@@ -703,15 +697,15 @@ public class ReportGenerator {
     lineColors.append("; coverage-colors: ");
     ImmutableList<CoverageMeasureType> types =
         covHandler.getAllTypesForCategories(
-            CoverageMeasureCategory.None,
-            CoverageMeasureCategory.LineBased,
-            CoverageMeasureCategory.VariableBased);
+            CoverageMeasureCategory.LineBased, CoverageMeasureCategory.VariableBased);
     boolean variableFlag = true;
+
+    lineColors.append("None").append(":");
+    lineColors.append(CoverageColorUtil.getAlternatingLineColor(lineNumber));
+    lineColors.append(";");
     for (CoverageMeasureType type : types) {
       lineColors.append(type.getId()).append(":");
-      if (type == CoverageMeasureType.None) {
-        lineColors.append(CoverageColorUtil.getAlternatingLineColor(lineNumber));
-      } else if (type.getCategory() == CoverageMeasureCategory.LineBased) {
+      if (type.getCategory() == CoverageMeasureCategory.LineBased) {
         LineCoverageMeasure lineCov = (LineCoverageMeasure) covHandler.getData(type);
         lineColors.append(lineCov.getColor(sourcePath.toString(), lineNumber));
       } else if (type.getCategory() == CoverageMeasureCategory.VariableBased) {

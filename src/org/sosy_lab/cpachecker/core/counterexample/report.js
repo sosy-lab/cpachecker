@@ -1173,7 +1173,7 @@ function renderTDG(dataJSON, color, inPercentage) {
         if (cfaCoverage !== undefined && cfaCoverage.length > 0) {
           $scope.coverageSelections = [];
           for (let i = 0; i < cfaCoverage.length; i += 1) {
-            $scope.coverageSelections.push(cfaCoverage[i].type);
+            $scope.coverageSelections.push(cfaCoverage[i]);
           }
         }
         $rootScope.displayedCoverages = $scope.coverageSelections[0];
