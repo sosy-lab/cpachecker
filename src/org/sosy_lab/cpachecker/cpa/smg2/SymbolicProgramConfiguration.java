@@ -401,6 +401,11 @@ public class SymbolicProgramConfiguration {
     return stackVariableMapping.peek().getReturnObject();
   }
 
+  /** @return true if there is a return object for the current stack frame. */
+  public boolean hasReturnObjectForCurrentStackFrame() {
+    return stackVariableMapping.peek().getReturnObject().isPresent();
+  }
+
   /**
    * Copies the {@link SymbolicProgramConfiguration} and puts the mapping for the cValue to the
    * smgValue (and vice versa) into the returned copy. Note: the value is not yet added to the SMG!
