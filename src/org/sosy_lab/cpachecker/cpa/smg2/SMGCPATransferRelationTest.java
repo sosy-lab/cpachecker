@@ -154,6 +154,98 @@ public class SMGCPATransferRelationTest {
             "", FileLocation.DUMMY, CFANode.newDummyCFANode(), CFANode.newDummyCFANode(), null));
   }
 
+  /*
+   * Declaration of arrays using array notation and no assignment: type array[];
+   */
+  @Test
+  public void localVariableDeclarationArrayTypesTest() throws CPATransferException {
+    String variableName = "variableName";
+    for (CType type : ARRAY_TEST_TYPES) {
+      // Make a non global and not external variable with the current type
+      List<SMGState> statesAfterDecl =
+          transferRelation.handleDeclarationEdge(
+              null,
+              declareVariableWithoutInitializer(
+                  variableName, makeArrayTypeFor(type, TEST_ARRAY_LENGTH), false, false));
+      // Since we declare variables we know there will be only 1 state afterwards
+      assertThat(statesAfterDecl).hasSize(1);
+      // This state must have a local variable the size of the type used (on the current stack
+      // frame)
+      // The state should not have any errors
+      SMGState state = statesAfterDecl.get(0);
+      // TODO: error check
+      SymbolicProgramConfiguration memoryModel = state.getMemoryModel();
+      assertThat(memoryModel.getStackFrames().peek().containsVariable(variableName)).isTrue();
+      SMGObject memoryObject = memoryModel.getStackFrames().peek().getVariable(variableName);
+      // SMG sizes are in bits!
+      BigInteger typeSize = MACHINE_MODEL.getSizeofInBits(type);
+      BigInteger expectedSize = typeSize.multiply(TEST_ARRAY_LENGTH);
+      assertThat(memoryObject.getSize().compareTo(expectedSize) == 0).isTrue();
+      // further, this memory is not written at all, meaning we can read it and it returns UNKNOWN
+      // Since this is an array, we read only the type size, but length times
+      for (int i = 0; i < TEST_ARRAY_LENGTH.intValue(); i++) {
+        BigInteger offset = BigInteger.valueOf(i).multiply(typeSize);
+        ValueAndSMGState readValueAndState = state.readValue(memoryObject, offset, typeSize);
+        // The read state should not have any errors
+        // TODO: error check
+        assertThat(readValueAndState.getValue().isUnknown()).isTrue();
+      }
+    }
+  }
+
+  /*
+   * Array declaration using array notation with assignment.
+   * i.e. int array[] = {1, 2, 3, 4, ...};
+   */
+  @Test
+  public void localVariableDeclarationWithAssignmentArrayTypesTest() throws CPATransferException {
+    String variableName = "variableName";
+    for (CType type : ARRAY_TEST_TYPES) {
+      // Build assignments starting from numeric value 0 and increment after each assignment. Chars
+      // are simply the int cast to a char.
+      ImmutableList.Builder<CInitializer> listOfInitsBuilder = ImmutableList.builder();
+      for (int i = 0; i < TEST_ARRAY_LENGTH.intValue(); i++) {
+        CExpression exprToInit;
+        if (type == CNumericTypes.CHAR) {
+          exprToInit = makeCharExpressionFrom((char) i);
+        } else {
+          exprToInit = makeIntegerExpressionFrom(BigInteger.valueOf(i), (CSimpleType) type);
+        }
+        listOfInitsBuilder.add(makeCInitializerExpressionFor(exprToInit));
+      }
+      CInitializer initList = makeCInitializerListFor(listOfInitsBuilder.build());
+      // Make a non global and not external variable with the current type
+      List<SMGState> statesAfterDecl =
+          transferRelation.handleDeclarationEdge(
+              null,
+              declareVariableWithInitializer(
+                  variableName, makeArrayTypeFor(type, TEST_ARRAY_LENGTH), false, false, initList));
+      // Since we declare variables we know there will be only 1 state afterwards
+      assertThat(statesAfterDecl).hasSize(1);
+      // This state must have a local variable the size of the type used (on the current stack
+      // frame)
+      // The state should not have any errors
+      SMGState state = statesAfterDecl.get(0);
+      // TODO: error check
+      SymbolicProgramConfiguration memoryModel = state.getMemoryModel();
+      assertThat(memoryModel.getStackFrames().peek().containsVariable(variableName)).isTrue();
+      SMGObject memoryObject = memoryModel.getStackFrames().peek().getVariable(variableName);
+      // SMG sizes are in bits!
+      BigInteger typeSize = MACHINE_MODEL.getSizeofInBits(type);
+      BigInteger expectedSize = typeSize.multiply(TEST_ARRAY_LENGTH);
+      assertThat(memoryObject.getSize().compareTo(expectedSize) == 0).isTrue();
+      // Check that the values match the assignment
+      for (int i = 0; i < TEST_ARRAY_LENGTH.intValue(); i++) {
+        BigInteger offset = BigInteger.valueOf(i).multiply(typeSize);
+        ValueAndSMGState readValueAndState = state.readValue(memoryObject, offset, typeSize);
+        // The read state should not have any errors
+        // TODO: error check
+        assertThat(readValueAndState.getValue().isNumericValue()).isTrue();
+        assertThat(readValueAndState.getValue().asNumericValue().bigInteger().intValueExact())
+            .isEqualTo(i);
+      }
+    }
+  }
 
   /*
    * Declaration without assignment of simple types i.e. int, char, unsigned short ...
