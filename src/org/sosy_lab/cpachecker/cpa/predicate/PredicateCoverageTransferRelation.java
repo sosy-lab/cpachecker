@@ -6,7 +6,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.cpa.coverage.predicate;
+package org.sosy_lab.cpachecker.cpa.predicate;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.HashMultiset;
@@ -16,19 +16,16 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.Set;
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
-import org.sosy_lab.cpachecker.core.defaults.AbstractSingleWrapperTransferRelation;
+import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
-import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
-import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
-import org.sosy_lab.cpachecker.cpa.predicate.PredicatePrecision;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.coverage.collectors.CoverageCollectorHandler;
 import org.sosy_lab.cpachecker.util.coverage.collectors.PredicateAnalysisCoverageCollector;
@@ -36,11 +33,12 @@ import org.sosy_lab.cpachecker.util.coverage.tdcg.TimeDependentCoverageData;
 import org.sosy_lab.cpachecker.util.coverage.tdcg.TimeDependentCoverageHandler;
 import org.sosy_lab.cpachecker.util.coverage.tdcg.TimeDependentCoverageType;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
+import org.sosy_lab.cpachecker.util.predicates.BlockOperator;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 
-public class PredicateCoverageCPATransferRelation extends AbstractSingleWrapperTransferRelation {
-  private final TransferRelation predicateTransferRelation;
+public class PredicateCoverageTransferRelation extends PredicateTransferRelation {
   private final PredicateAnalysisCoverageCollector coverageCollector;
   private final TimeDependentCoverageData predicateTDCG;
   private final TimeDependentCoverageData predicateConsideredTDCG;
@@ -50,13 +48,18 @@ public class PredicateCoverageCPATransferRelation extends AbstractSingleWrapperT
   static final double FREQUENCY_REMOVAL_QUOTIENT = 0.5;
   private int predicatesInUse = 0;
 
-  PredicateCoverageCPATransferRelation(
-      TransferRelation pDelegateTransferRelation,
+  public PredicateCoverageTransferRelation(
+      LogManager pLogger,
+      AnalysisDirection pDirection,
       FormulaManagerView pFmgr,
+      PathFormulaManager pPfmgr,
+      BlockOperator pBlk,
+      PredicateAbstractionManager pPredAbsManager,
+      PredicateStatistics pStatistics,
+      PredicateCpaOptions pOptions,
       CFA pCfa,
       CoverageCollectorHandler pCovCollectorHandler) {
-    super(pDelegateTransferRelation);
-    predicateTransferRelation = pDelegateTransferRelation;
+    super(pLogger, pDirection, pFmgr, pPfmgr, pBlk, pPredAbsManager, pStatistics, pOptions);
     fmgr = Preconditions.checkNotNull(pFmgr);
     cfa = Preconditions.checkNotNull(pCfa);
     coverageCollector =
@@ -74,27 +77,11 @@ public class PredicateCoverageCPATransferRelation extends AbstractSingleWrapperT
   }
 
   @Override
-  public Collection<? extends AbstractState> getAbstractSuccessors(
-      AbstractState state, Precision precision) throws CPATransferException, InterruptedException {
-    return predicateTransferRelation.getAbstractSuccessors(state, precision);
-  }
-
-  @Override
-  public Collection<? extends AbstractState> strengthen(
-      AbstractState state,
-      Iterable<AbstractState> otherStates,
-      @Nullable CFAEdge cfaEdge,
-      Precision precision)
-      throws CPATransferException, InterruptedException {
-    return predicateTransferRelation.strengthen(state, otherStates, cfaEdge, precision);
-  }
-
-  @Override
   public Collection<? extends AbstractState> getAbstractSuccessorsForEdge(
       AbstractState state, Precision precision, CFAEdge cfaEdge)
       throws CPATransferException, InterruptedException {
     processAllCoverageMeasures(precision, cfaEdge, state);
-    return predicateTransferRelation.getAbstractSuccessorsForEdge(state, precision, cfaEdge);
+    return super.getAbstractSuccessorsForEdge(state, precision, cfaEdge);
   }
 
   private void processAllCoverageMeasures(

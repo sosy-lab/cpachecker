@@ -41,11 +41,13 @@ import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.pcc.ProofChecker;
 import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets;
 import org.sosy_lab.cpachecker.core.specification.Specification;
+import org.sosy_lab.cpachecker.cpa.coverage.CoverageCPA;
 import org.sosy_lab.cpachecker.cpa.predicate.persistence.PredicateAbstractionsStorage;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.blocking.BlockedCFAReducer;
 import org.sosy_lab.cpachecker.util.blocking.interfaces.BlockComputer;
+import org.sosy_lab.cpachecker.util.coverage.collectors.CoverageCollectorHandler;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionManager;
 import org.sosy_lab.cpachecker.util.predicates.BlockOperator;
 import org.sosy_lab.cpachecker.util.predicates.bdd.BDDManagerFactory;
@@ -63,7 +65,11 @@ import org.sosy_lab.java_smt.api.SolverException;
 /** CPA that defines symbolic predicate abstraction. */
 @Options(prefix = "cpa.predicate")
 public class PredicateCPA
-    implements ConfigurableProgramAnalysis, StatisticsProvider, ProofChecker, AutoCloseable {
+    implements ConfigurableProgramAnalysis,
+        StatisticsProvider,
+        ProofChecker,
+        AutoCloseable,
+        CoverageCPA {
 
   public static CPAFactory factory() {
     return AutomaticCPAFactory.forType(PredicateCPA.class).withOptions(BlockOperator.class);
@@ -145,6 +151,7 @@ public class PredicateCPA
   private final PredicateAbstractionsStorage abstractionStorage;
   private final PredicateAbstractionStatistics abstractionStats =
       new PredicateAbstractionStatistics();
+  private final CoverageCollectorHandler coverageCollectorHandler;
 
   // path formulas for PCC
   private final Map<PredicateAbstractState, PathFormula> computedPathFormulaePcc = new HashMap<>();
@@ -156,12 +163,14 @@ public class PredicateCPA
       CFA pCfa,
       ShutdownNotifier pShutdownNotifier,
       Specification specification,
-      AggregatedReachedSets pAggregatedReachedSets)
+      AggregatedReachedSets pAggregatedReachedSets,
+      CoverageCollectorHandler pCoverageCollectorHandler)
       throws InvalidConfigurationException, CPAException, InterruptedException {
     config.inject(this, PredicateCPA.class);
 
     this.config = config;
     this.logger = logger;
+    coverageCollectorHandler = pCoverageCollectorHandler;
     shutdownNotifier = pShutdownNotifier;
 
     cfa = pCfa;
@@ -250,6 +259,20 @@ public class PredicateCPA
 
   @Override
   public PredicateTransferRelation getTransferRelation() {
+    if (coverageCollectorHandler.shouldCollectPredicateCoverage()) {
+      coverageCollectorHandler.initPredicateCollectors(cfa);
+      return new PredicateCoverageTransferRelation(
+          logger,
+          direction,
+          formulaManager,
+          pathFormulaManager,
+          blk,
+          getPredicateManager(),
+          statistics,
+          options,
+          cfa,
+          coverageCollectorHandler);
+    }
     return new PredicateTransferRelation(
         logger,
         direction,
@@ -396,6 +419,11 @@ public class PredicateCPA
     } else {
       return false;
     }
+  }
+
+  @Override
+  public CoverageCollectorHandler getCoverageCollectorHandler() {
+    return coverageCollectorHandler;
   }
 
   public CFA getCfa() {

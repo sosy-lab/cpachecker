@@ -24,10 +24,12 @@ public class CoverageCollectorHandler {
   private final CoverageMeasureHandler coverageMeasureHandler;
   private final TimeDependentCoverageHandler timeDependentCoverageHandler;
   private final ReachedSetCoverageCollector reachedSetCoverageCollector;
+  private final boolean shouldCollectPredicateCoverage;
   private AnalysisIndependentCoverageCollector analysisIndependentCoverageCollector;
   private PredicateAnalysisCoverageCollector predicateAnalysisCoverageCollector;
 
-  public CoverageCollectorHandler(CFA cfa) {
+  public CoverageCollectorHandler(CFA cfa, boolean pShouldCollectPredicateCoverage) {
+    shouldCollectPredicateCoverage = pShouldCollectPredicateCoverage;
     infosPerFile = new LinkedHashMap<>();
     timeDependentCoverageHandler = new TimeDependentCoverageHandler();
     coverageMeasureHandler = new CoverageMeasureHandler();
@@ -70,5 +72,9 @@ public class CoverageCollectorHandler {
 
   public ReachedSetCoverageCollector getReachedSetCoverageCollector() {
     return reachedSetCoverageCollector;
+  }
+
+  public boolean shouldCollectPredicateCoverage() {
+    return shouldCollectPredicateCoverage;
   }
 }

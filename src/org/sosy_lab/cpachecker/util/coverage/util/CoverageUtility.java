@@ -58,11 +58,11 @@ public class CoverageUtility {
       CoverageCPA cpa =
           CPAs.retrieveCPA(((PartitionedReachedSet) pReached).getCPA(), CoverageCPA.class);
       if (cpa == null) {
-        return new CoverageCollectorHandler(cfa);
+        return new CoverageCollectorHandler(cfa, true);
       } else {
         return cpa.getCoverageCollectorHandler();
       }
     }
-    return new CoverageCollectorHandler(cfa);
+    return new CoverageCollectorHandler(cfa, true);
   }
 }

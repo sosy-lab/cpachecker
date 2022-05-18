@@ -21,6 +21,7 @@ import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysisWithBA
 import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets;
 import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.util.coverage.collectors.CoverageCollectorHandler;
 
 /** Implements an BAM-based predicate CPA. */
 @Options(prefix = "cpa.predicate.bam")
@@ -39,9 +40,18 @@ public class BAMPredicateCPA extends PredicateCPA implements ConfigurableProgram
       CFA pCfa,
       ShutdownNotifier pShutdownNotifier,
       Specification pSpecification,
-      AggregatedReachedSets pAggregatedReachedSets)
+      AggregatedReachedSets pAggregatedReachedSets,
+      CoverageCollectorHandler pCoverageCollectorHandler)
       throws InvalidConfigurationException, CPAException, InterruptedException {
-    super(config, logger, pBlk, pCfa, pShutdownNotifier, pSpecification, pAggregatedReachedSets);
+    super(
+        config,
+        logger,
+        pBlk,
+        pCfa,
+        pShutdownNotifier,
+        pSpecification,
+        pAggregatedReachedSets,
+        pCoverageCollectorHandler);
     config.inject(this, BAMPredicateCPA.class);
     blk = pBlk; // keep reference to later inject the BlockPartitioning
   }

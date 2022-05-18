@@ -209,7 +209,7 @@ public class CPAsTest {
         .set(cfa, CFA.class)
         .set(Specification.alwaysSatisfied(), Specification.class)
         .set(aggregatedReachedSets, AggregatedReachedSets.class)
-        .set(new CoverageCollectorHandler(cfa), CoverageCollectorHandler.class)
+        .set(new CoverageCollectorHandler(cfa, false), CoverageCollectorHandler.class)
         .createInstance();
   }
 
