@@ -358,6 +358,37 @@ public final class DOTBuilder2 {
     }
   }
 
+  public static List<CFANode> extractNodesFromCombinedEdges(CFANode locationNode) {
+    List<CFAEdge> currentComboEdges = null;
+    List<CFANode> cfaNodes = new ArrayList<>();
+    CFANode currentNode = locationNode;
+    cfaNodes.add(locationNode);
+    do {
+      if (currentNode.isLoopStart()
+          || (currentNode.getNumEnteringEdges() != 1)
+          || (currentNode.getNumLeavingEdges() != 1)
+          || (currentComboEdges != null
+          && !currentNode.equals(
+          currentComboEdges.get(currentComboEdges.size() - 1).getSuccessor()))
+          || (currentNode.getLeavingEdge(0).getEdgeType() == CFAEdgeType.CallToReturnEdge)
+          || (currentNode.getLeavingEdge(0).getEdgeType() == CFAEdgeType.AssumeEdge)) {
+        currentComboEdges = null;
+        if (cfaNodes.size() > 1) {
+          cfaNodes.remove(cfaNodes.size() - 1);
+        }
+      } else {
+        CFAEdge leavingEdge = currentNode.getLeavingEdge(0);
+        if (currentComboEdges == null) {
+          currentComboEdges = new ArrayList<>();
+        }
+        currentComboEdges.add(leavingEdge);
+        currentNode = leavingEdge.getSuccessor();
+        cfaNodes.add(currentNode);
+      }
+    } while (currentComboEdges != null);
+    return cfaNodes;
+  }
+
   /** output information about CFA nodes and edges as JSON */
   private static class CFAJSONBuilder extends DefaultCFAVisitor {
     private final Map<Integer, Object> nodes = new HashMap<>();

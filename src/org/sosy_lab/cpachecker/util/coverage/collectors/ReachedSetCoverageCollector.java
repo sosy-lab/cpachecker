@@ -21,6 +21,7 @@ import java.util.Map;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.export.DOTBuilder2;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -31,7 +32,6 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.bam.AbstractBAMCPA;
-import org.sosy_lab.cpachecker.cpa.location.LocationState;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.coverage.data.FileCoverageStatistics;
@@ -78,23 +78,19 @@ public class ReachedSetCoverageCollector extends CoverageCollector {
 
     collectVisitedEdges(reached);
     addExistingNodes(cfa);
-    addReachedNodes(getReachedNodes(reached));
+    addReachedNodes(reached);
   }
 
-  public Multiset<CFANode> getReachedNodes(Iterable<AbstractState> reached) {
+  public void addReachedNodes(Iterable<AbstractState> reached) {
     Multiset<CFANode> locations = LinkedHashMultiset.create();
     for (AbstractState state : reached) {
-      ARGState argState = AbstractStates.extractStateByType(state, ARGState.class);
-      if (argState != null) {
-        LocationState locState =
-            AbstractStates.extractStateByType(argState.getWrappedState(), LocationState.class);
-        if (locState != null) {
-          CFANode locationNode = locState.getLocationNode();
-          locations.addAll(extractBlockNodes(locationNode));
-        }
+      for (CFANode node : AbstractStates.extractLocations(state)) {
+        locations.addAll(DOTBuilder2.extractNodesFromCombinedEdges(node));
       }
     }
-    return locations;
+    for (FileCoverageStatistics info : getInfosPerFile().values()) {
+      info.reachedLocations.addAll(locations);
+    }
   }
 
   private void collectVisitedEdges(Iterable<AbstractState> reached) {
@@ -134,36 +130,5 @@ public class ReachedSetCoverageCollector extends CoverageCollector {
         }
       }
     }
-  }
-
-  private List<CFANode> extractBlockNodes(CFANode locationNode) {
-    List<CFAEdge> currentComboEdge = null;
-    List<CFANode> nodes = new ArrayList<>();
-    CFANode currentNode = locationNode;
-    nodes.add(locationNode);
-    do {
-      if (currentNode.isLoopStart()
-          || (currentNode.getNumEnteringEdges() != 1)
-          || (currentNode.getNumLeavingEdges() != 1)
-          || (currentComboEdge != null
-              && !currentNode.equals(
-                  currentComboEdge.get(currentComboEdge.size() - 1).getSuccessor()))
-          || (currentNode.getLeavingEdge(0).getEdgeType() == CFAEdgeType.CallToReturnEdge)
-          || (currentNode.getLeavingEdge(0).getEdgeType() == CFAEdgeType.AssumeEdge)) {
-        currentComboEdge = null;
-        if (nodes.size() > 1) {
-          nodes.remove(nodes.size() - 1);
-        }
-      } else {
-        CFAEdge leavingEdge = currentNode.getLeavingEdge(0);
-        if (currentComboEdge == null) {
-          currentComboEdge = new ArrayList<>();
-        }
-        currentComboEdge.add(leavingEdge);
-        currentNode = leavingEdge.getSuccessor();
-        nodes.add(currentNode);
-      }
-    } while (currentComboEdge != null);
-    return nodes;
   }
 }

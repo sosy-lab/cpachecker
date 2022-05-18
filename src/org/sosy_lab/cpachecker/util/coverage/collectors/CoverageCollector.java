@@ -133,12 +133,6 @@ public abstract class CoverageCollector {
     infos.addVisitedFunction(pEntryNode.getFunctionName());
   }
 
-  public void addReachedNodes(final Multiset<CFANode> nodes) {
-    for (FileCoverageStatistics info : infosPerFile.values()) {
-      info.reachedLocations.addAll(nodes);
-    }
-  }
-
   public FileCoverageStatistics getCollector(CFAEdge pEdge) {
     final FileLocation loc = pEdge.getFileLocation();
     return getFileInfoTarget(loc, infosPerFile);
