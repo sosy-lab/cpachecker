@@ -9,7 +9,9 @@
 package org.sosy_lab.cpachecker.util.coverage.measures;
 
 import com.google.common.collect.ImmutableList;
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import org.sosy_lab.cpachecker.util.coverage.data.CoverageStatistics;
 import org.sosy_lab.cpachecker.util.coverage.data.FileCoverageStatistics;
@@ -23,50 +25,27 @@ import org.sosy_lab.cpachecker.util.coverage.data.FileCoverageStatistics;
  */
 public class CoverageMeasureHandler {
   private final Map<CoverageMeasureType, CoverageMeasure> coverageMeasureMap;
+  private final List<CoverageMeasureType> coverageMeasureTypes;
 
   public CoverageMeasureHandler() {
     coverageMeasureMap = new LinkedHashMap<>();
-    initNewData(CoverageMeasureType.None);
-  }
-
-  /**
-   * Method for initializing a new type of coverage measure. When adding new CoverageMeasureCategory
-   * fields, this method should include those cases.
-   *
-   * @param type type of the coverage measure
-   */
-  public void initNewData(CoverageMeasureType type) {
-    CoverageMeasure coverageMeasure = null;
-    switch (type.getCategory()) {
-      case None:
-        coverageMeasure = new UndefinedCoverageMeasure();
-        break;
-      case LineBased:
-        coverageMeasure = new LineCoverageMeasure();
-        break;
-      case LocationBased:
-        coverageMeasure = new LocationCoverageMeasure();
-        break;
-      case VariableBased:
-        coverageMeasure = new VariableCoverageMeasure();
-        break;
-    }
-    coverageMeasureMap.put(type, coverageMeasure);
+    coverageMeasureTypes = new ArrayList<>();
+    coverageMeasureTypes.add(CoverageMeasureType.None);
   }
 
   /** Init all measures which are analysis independent */
-  public void initAnalysisIndependentMeasures() {
-    initNewData(CoverageMeasureType.VisitedLocations);
-    initNewData(CoverageMeasureType.ReachedLocations);
-    initNewData(CoverageMeasureType.ConsideredLocationsHeatMap);
-    initNewData(CoverageMeasureType.ConsideredLinesHeatMap);
+  public void addAllAnalysisIndependentMeasuresTypes() {
+    coverageMeasureTypes.add(CoverageMeasureType.VisitedLocations);
+    coverageMeasureTypes.add(CoverageMeasureType.ReachedLocations);
+    coverageMeasureTypes.add(CoverageMeasureType.ConsideredLocationsHeatMap);
+    coverageMeasureTypes.add(CoverageMeasureType.ConsideredLinesHeatMap);
   }
 
   /** Init all measures which depend on predicate analysis */
-  public void initPredicateAnalysisMeasures() {
-    initNewData(CoverageMeasureType.PredicateConsidered);
-    initNewData(CoverageMeasureType.PredicateRelevantVariables);
-    initNewData(CoverageMeasureType.PredicateAbstractionVariables);
+  public void addAllPredicateAnalysisMeasuresTypes() {
+    coverageMeasureTypes.add(CoverageMeasureType.PredicateConsidered);
+    coverageMeasureTypes.add(CoverageMeasureType.PredicateRelevantVariables);
+    coverageMeasureTypes.add(CoverageMeasureType.PredicateAbstractionVariables);
   }
 
   /**
@@ -132,12 +111,12 @@ public class CoverageMeasureHandler {
   }
 
   public ImmutableList<CoverageMeasureType> getAllTypes() {
-    return ImmutableList.copyOf(coverageMeasureMap.keySet());
+    return ImmutableList.copyOf(coverageMeasureTypes);
   }
 
   public ImmutableList<String> getAllTypesForCategoriesAsString(
       CoverageMeasureCategory... categories) {
-    return coverageMeasureMap.keySet().stream()
+    return coverageMeasureTypes.stream()
         .filter(v -> isContainedIn(categories, v.getCategory()))
         .map(v -> v.getName())
         .collect(ImmutableList.toImmutableList());
@@ -145,7 +124,7 @@ public class CoverageMeasureHandler {
 
   public ImmutableList<CoverageMeasureType> getAllTypesForCategories(
       CoverageMeasureCategory... categories) {
-    return coverageMeasureMap.keySet().stream()
+    return coverageMeasureTypes.stream()
         .filter(v -> isContainedIn(categories, v.getCategory()))
         .collect(ImmutableList.toImmutableList());
   }

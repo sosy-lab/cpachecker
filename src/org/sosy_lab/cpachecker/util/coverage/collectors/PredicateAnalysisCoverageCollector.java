@@ -35,7 +35,7 @@ public class PredicateAnalysisCoverageCollector extends CoverageCollector {
       CFA cfa) {
     super(pInfosPerFile, pCoverageMeasureHandler, pTimeDependentCoverageHandler, cfa);
     timeDependentCoverageHandler.initPredicateAnalysisTDCG();
-    coverageMeasureHandler.initPredicateAnalysisMeasures();
+    coverageMeasureHandler.addAllPredicateAnalysisMeasuresTypes();
   }
 
   public void resetPredicateRelevantVariablesNodes() {
