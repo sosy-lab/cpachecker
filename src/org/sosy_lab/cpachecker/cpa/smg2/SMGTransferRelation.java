@@ -137,6 +137,8 @@ public class SMGTransferRelation
   protected Set<SMGState> handleBlankEdge(BlankEdge cfaEdge) throws CPATransferException {
     if (cfaEdge.getSuccessor() instanceof FunctionExitNode) {
       if (isEntryFunction(cfaEdge)) {
+        // Entry functions need special handling as they don't have a return edge
+        // (i.e. check for memory leaks)
         return handleReturnEntryFunction(Collections.singleton(state));
       }
     }
@@ -144,12 +146,20 @@ public class SMGTransferRelation
     return Collections.singleton(state);
   }
 
+  /**
+   * If the option isHandleNonFreedMemoryInMainAsMemLeak() is true, the given states are first
+   * checked for memory leaks and then the stack frame is dropped before unreachables are pruned and
+   * finally the states are returned.
+   *
+   * @param pSuccessors {@link SMGState}s to process.
+   * @return a Collection of SMGStates that are processed. May include memory leak error states.
+   */
   private Set<SMGState> handleReturnEntryFunction(Collection<SMGState> pSuccessors) {
     return pSuccessors.stream()
         .map(
             pState -> {
               if (options.isHandleNonFreedMemoryInMainAsMemLeak()) {
-                pState = pState.dropStackFrame();
+                pState = pState.checkAllHeapObjectsForMemoryLeaks().dropStackFrame();
               }
               return pState.copyAndPruneUnreachable();
             })
