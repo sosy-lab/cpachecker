@@ -63,7 +63,7 @@ public class PredicateCoverageTransferRelation extends PredicateTransferRelation
     fmgr = Preconditions.checkNotNull(pFmgr);
     cfa = Preconditions.checkNotNull(pCfa);
     coverageCollector =
-        Preconditions.checkNotNull(pCovCollectorHandler.getPredicateAnalysisCoverageCollector());
+        Preconditions.checkNotNull(pCovCollectorHandler.getPredicateAnalysisCollector());
     TimeDependentCoverageHandler coverageHandler = pCovCollectorHandler.getTDCGHandler();
     predicateTDCG = coverageHandler.getData(TimeDependentCoverageType.PredicatesGenerated);
     predicateConsideredTDCG =

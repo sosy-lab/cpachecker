@@ -9,9 +9,11 @@
 package org.sosy_lab.cpachecker.util.coverage.report;
 
 import java.io.PrintStream;
-import java.util.Map;
-import org.sosy_lab.cpachecker.util.coverage.data.CoverageStatistics;
-import org.sosy_lab.cpachecker.util.coverage.data.FileCoverageStatistics;
+import org.sosy_lab.cpachecker.util.coverage.collectors.AnalysisIndependentCoverageCollector;
+import org.sosy_lab.cpachecker.util.coverage.collectors.CoverageCollector;
+import org.sosy_lab.cpachecker.util.coverage.collectors.CoverageCollectorHandler;
+import org.sosy_lab.cpachecker.util.coverage.collectors.PredicateAnalysisCoverageCollector;
+import org.sosy_lab.cpachecker.util.coverage.collectors.ReachedSetCoverageCollector;
 import org.sosy_lab.cpachecker.util.coverage.measures.CoverageMeasureType;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsUtils;
 
@@ -26,21 +28,21 @@ public class CoverageReportStdoutSummary {
   /**
    * Write for every verification coverage category a summary statistics.
    *
-   * @param infosPerFile coverage statistics per source file.
+   * @param collector coverage collector for all source files.
    * @param pStdOut output print stream.
    */
-  public static void write(Map<String, FileCoverageStatistics> infosPerFile, PrintStream pStdOut) {
-    CoverageStatistics covStatistics = new CoverageStatistics(infosPerFile);
-    writeFunctionCoverage(covStatistics, pStdOut);
-    writeConditionCoverage(covStatistics, pStdOut);
-    writeLineRelatedCoverage(covStatistics, pStdOut);
-    writeLocationRelatedCoverage(covStatistics, pStdOut);
+  public static void write(CoverageCollectorHandler collector, PrintStream pStdOut) {
+    ReachedSetCoverageCollector reachedCollector = collector.getReachedSetCoverageCollector();
+    writeFunctionCoverage(reachedCollector, pStdOut);
+    writeConditionCoverage(reachedCollector, pStdOut);
+    writeLineRelatedCoverage(reachedCollector, pStdOut);
+    writeLocationRelatedCoverage(collector, pStdOut);
   }
 
-  private static void writeFunctionCoverage(CoverageStatistics covStats, PrintStream pStdOut) {
-    if (covStats.numTotalFunctions > 0) {
-      final double functionCoverage =
-          covStats.numVisitedFunctions / (double) covStats.numTotalFunctions;
+  private static void writeFunctionCoverage(CoverageCollector collector, PrintStream pStdOut) {
+    int totalFunctionsCount = collector.getAllFunctions().size();
+    if (totalFunctionsCount > 0) {
+      double functionCoverage = collector.getVisitedFunctionsCount() / (double) totalFunctionsCount;
       StatisticsUtils.write(
           pStdOut,
           INDENT_LEVEL,
@@ -50,22 +52,15 @@ public class CoverageReportStdoutSummary {
     }
   }
 
-  private static void writeConditionCoverage(CoverageStatistics covStats, PrintStream pStdOut) {
-    if (covStats.numTotalConditions > 0) {
-      final double conditionCoverage =
-          covStats.numVisitedConditions / (double) covStats.numTotalConditions;
+  private static void writeConditionCoverage(CoverageCollector collector, PrintStream pStdOut) {
+    int totalConditionsCount = collector.getAllAssumes().size();
+    int visitedConditionsCount = collector.getVisitedAssumesCount();
+    if (totalConditionsCount > 0) {
+      double conditionCoverage = visitedConditionsCount / (double) totalConditionsCount;
       StatisticsUtils.write(
-          pStdOut,
-          INDENT_LEVEL,
-          FIELD_COLUMN_WIDTH,
-          "Visited conditions",
-          covStats.numVisitedConditions);
+          pStdOut, INDENT_LEVEL, FIELD_COLUMN_WIDTH, "Visited conditions", visitedConditionsCount);
       StatisticsUtils.write(
-          pStdOut,
-          INDENT_LEVEL,
-          FIELD_COLUMN_WIDTH,
-          "Total conditions",
-          covStats.numTotalConditions);
+          pStdOut, INDENT_LEVEL, FIELD_COLUMN_WIDTH, "Total conditions", totalConditionsCount);
       StatisticsUtils.write(
           pStdOut,
           INDENT_LEVEL,
@@ -75,13 +70,14 @@ public class CoverageReportStdoutSummary {
     }
   }
 
-  private static void writeLineRelatedCoverage(CoverageStatistics covStats, PrintStream pStdOut) {
-    if (covStats.numTotalLines > 0) {
-      final double lineCoverage = covStats.numVisitedLines / (double) covStats.numTotalLines;
+  private static void writeLineRelatedCoverage(CoverageCollector collector, PrintStream pStdOut) {
+    int totalLines = collector.getExistingLinesCount();
+    int visitedLines = collector.getVisitedLinesCount();
+    if (totalLines > 0) {
+      final double lineCoverage = visitedLines / (double) totalLines;
       StatisticsUtils.write(
-          pStdOut, INDENT_LEVEL, FIELD_COLUMN_WIDTH, "Visited lines", covStats.numVisitedLines);
-      StatisticsUtils.write(
-          pStdOut, INDENT_LEVEL, FIELD_COLUMN_WIDTH, "Total lines", covStats.numTotalLines);
+          pStdOut, INDENT_LEVEL, FIELD_COLUMN_WIDTH, "Visited lines", visitedLines);
+      StatisticsUtils.write(pStdOut, INDENT_LEVEL, FIELD_COLUMN_WIDTH, "Total lines", totalLines);
       StatisticsUtils.write(
           pStdOut,
           INDENT_LEVEL,
@@ -92,51 +88,62 @@ public class CoverageReportStdoutSummary {
   }
 
   private static void writeLocationRelatedCoverage(
-      CoverageStatistics covStats, PrintStream pStdOut) {
-    if (covStats.numTotalNodes > 0) {
-      final double reachedCoverage = covStats.numReachedNodes / (double) covStats.numTotalNodes;
-      final double predicateConsideredCoverage =
-          covStats.numPredicateConsideredLocations / (double) covStats.numTotalNodes;
-      final double predicateRelevantVariablesCoverage =
-          covStats.numPredicateRelevantVariablesLocations / (double) covStats.numTotalNodes;
-      StatisticsUtils.write(
-          pStdOut,
-          INDENT_LEVEL,
-          FIELD_COLUMN_WIDTH,
-          CoverageMeasureType.ReachedLocations.getName(),
-          covStats.numReachedNodes);
-      StatisticsUtils.write(
-          pStdOut,
-          INDENT_LEVEL,
-          FIELD_COLUMN_WIDTH,
-          CoverageMeasureType.PredicateConsidered.getName(),
-          covStats.numPredicateConsideredLocations);
-      StatisticsUtils.write(
-          pStdOut,
-          INDENT_LEVEL,
-          FIELD_COLUMN_WIDTH,
-          CoverageMeasureType.PredicateRelevantVariables.getName(),
-          covStats.numPredicateRelevantVariablesLocations);
-      StatisticsUtils.write(
-          pStdOut, INDENT_LEVEL, FIELD_COLUMN_WIDTH, "Total nodes", covStats.numTotalNodes);
-      StatisticsUtils.write(
-          pStdOut,
-          INDENT_LEVEL,
-          FIELD_COLUMN_WIDTH,
-          CoverageMeasureType.ReachedLocations.getCoverageName(),
-          String.format("%.3f", reachedCoverage));
-      StatisticsUtils.write(
-          pStdOut,
-          INDENT_LEVEL,
-          FIELD_COLUMN_WIDTH,
-          CoverageMeasureType.PredicateConsidered.getCoverageName(),
-          String.format("%.3f", predicateConsideredCoverage));
-      StatisticsUtils.write(
-          pStdOut,
-          INDENT_LEVEL,
-          FIELD_COLUMN_WIDTH,
-          CoverageMeasureType.PredicateRelevantVariables.getCoverageName(),
-          String.format("%.3f", predicateRelevantVariablesCoverage));
+      CoverageCollectorHandler collector, PrintStream pStdOut) {
+    AnalysisIndependentCoverageCollector analysisIndependentCollector =
+        collector.getAnalysisIndependentCollector();
+    ReachedSetCoverageCollector reachedCollector = collector.getReachedSetCoverageCollector();
+    if (analysisIndependentCollector == null
+        || analysisIndependentCollector.getTotalLocationCount() <= 0) {
+      return;
     }
+    int totalLocations = analysisIndependentCollector.getTotalLocationCount();
+    int reachedLocations = reachedCollector.getReachedLocationsCount();
+    StatisticsUtils.write(
+        pStdOut, INDENT_LEVEL, FIELD_COLUMN_WIDTH, "Total locations", totalLocations);
+    StatisticsUtils.write(
+        pStdOut,
+        INDENT_LEVEL,
+        FIELD_COLUMN_WIDTH,
+        CoverageMeasureType.ReachedLocations.getName(),
+        reachedLocations);
+    StatisticsUtils.write(
+        pStdOut,
+        INDENT_LEVEL,
+        FIELD_COLUMN_WIDTH,
+        CoverageMeasureType.ReachedLocations.getCoverageName(),
+        String.format("%.3f", reachedLocations / (double) totalLocations));
+
+    PredicateAnalysisCoverageCollector predicateCollector =
+        collector.getPredicateAnalysisCollector();
+    if (predicateCollector == null) {
+      return;
+    }
+    int predicateConsideredLocations = predicateCollector.getPredicateConsideredLocations().size();
+    int predicateRelevantVariablesLocations =
+        predicateCollector.getPredicateRelevantConsideredLocationsCount();
+    StatisticsUtils.write(
+        pStdOut,
+        INDENT_LEVEL,
+        FIELD_COLUMN_WIDTH,
+        CoverageMeasureType.PredicateConsidered.getName(),
+        predicateConsideredLocations);
+    StatisticsUtils.write(
+        pStdOut,
+        INDENT_LEVEL,
+        FIELD_COLUMN_WIDTH,
+        CoverageMeasureType.PredicateRelevantVariables.getName(),
+        predicateRelevantVariablesLocations);
+    StatisticsUtils.write(
+        pStdOut,
+        INDENT_LEVEL,
+        FIELD_COLUMN_WIDTH,
+        CoverageMeasureType.PredicateConsidered.getCoverageName(),
+        String.format("%.3f", predicateConsideredLocations / (double) totalLocations));
+    StatisticsUtils.write(
+        pStdOut,
+        INDENT_LEVEL,
+        FIELD_COLUMN_WIDTH,
+        CoverageMeasureType.PredicateRelevantVariables.getCoverageName(),
+        String.format("%.3f", predicateRelevantVariablesLocations / (double) totalLocations));
   }
 }

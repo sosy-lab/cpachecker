@@ -8,12 +8,13 @@
 
 package org.sosy_lab.cpachecker.util.coverage.collectors;
 
-import java.util.Map;
+import com.google.common.collect.HashMultiset;
+import com.google.common.collect.Multiset;
+import java.util.LinkedHashSet;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.util.coverage.data.FileCoverageStatistics;
 import org.sosy_lab.cpachecker.util.coverage.measures.CoverageMeasureHandler;
 import org.sosy_lab.cpachecker.util.coverage.tdcg.TimeDependentCoverageData;
 import org.sosy_lab.cpachecker.util.coverage.tdcg.TimeDependentCoverageHandler;
@@ -28,52 +29,47 @@ import org.sosy_lab.cpachecker.util.coverage.util.CoverageUtility;
  * for a TDCG.
  */
 public class PredicateAnalysisCoverageCollector extends CoverageCollector {
+  private final Set<CFANode> predicateConsideredLocations = new LinkedHashSet<>();
+  private final Set<CFANode> predicateRelevantVariablesLocations = new LinkedHashSet<>();
+  private final Multiset<String> variableNames = HashMultiset.create();
+  private final Multiset<String> relevantVariableNames = HashMultiset.create();
+  private int previousPredicateRelevantVariablesLocationsSize = 0;
+
   PredicateAnalysisCoverageCollector(
-      Map<String, FileCoverageStatistics> pInfosPerFile,
       CoverageMeasureHandler pCoverageMeasureHandler,
       TimeDependentCoverageHandler pTimeDependentCoverageHandler,
       CFA cfa) {
-    super(pInfosPerFile, pCoverageMeasureHandler, pTimeDependentCoverageHandler, cfa);
+    super(pCoverageMeasureHandler, pTimeDependentCoverageHandler, cfa);
     timeDependentCoverageHandler.initPredicateAnalysisTDCG();
     coverageMeasureHandler.addAllPredicateAnalysisMeasuresTypes();
-  }
-
-  public void resetPredicateRelevantVariablesNodes() {
-    for (FileCoverageStatistics info : getInfosPerFile().values()) {
-      info.predicateStatistics.resetPredicateRelevantVariablesNodes();
-    }
   }
 
   public void addPredicateConsideredNode(final CFAEdge pEdge) {
     if (!CoverageUtility.coversLine(pEdge)) {
       return;
     }
-    FileCoverageStatistics collector = getCollector(pEdge);
-    collector.predicateStatistics.addPredicateConsideredNode(pEdge.getSuccessor());
+    predicateConsideredLocations.add(pEdge.getSuccessor());
   }
 
   public void addPredicateRelevantVariablesNodes(final CFAEdge pEdge) {
     if (!CoverageUtility.coversLine(pEdge)) {
       return;
     }
-    FileCoverageStatistics collector = getCollector(pEdge);
-    collector.predicateStatistics.addPredicateRelevantVariablesNodes(pEdge.getSuccessor());
+    predicateRelevantVariablesLocations.add(pEdge.getSuccessor());
   }
 
-  public void addAbstractionVariables(Set<String> variableNames, final CFAEdge pEdge) {
+  public void addAbstractionVariables(Set<String> pVariableNames, final CFAEdge pEdge) {
     if (!CoverageUtility.coversLine(pEdge)) {
       return;
     }
-    FileCoverageStatistics collector = getCollector(pEdge);
-    collector.predicateStatistics.allVariableNames.addAll(variableNames);
+    variableNames.addAll(pVariableNames);
   }
 
-  public void addRelevantAbstractionVariables(Set<String> variableNames, final CFAEdge pEdge) {
+  public void addRelevantAbstractionVariables(Set<String> pVariableNames, final CFAEdge pEdge) {
     if (!CoverageUtility.coversLine(pEdge)) {
       return;
     }
-    FileCoverageStatistics collector = getCollector(pEdge);
-    collector.predicateStatistics.relevantVariableNames.addAll(variableNames);
+    relevantVariableNames.addAll(pVariableNames);
   }
 
   public void addInitialNodesForTDCG(
@@ -81,18 +77,14 @@ public class PredicateAnalysisCoverageCollector extends CoverageCollector {
     for (CFANode node : cfa.getAllNodes()) {
       if (node.getNodeNumber() == 1) {
         CFANode candidateNode = node;
-        if (getCollectorForInitNode(candidateNode).isEmpty()) {
-          return;
-        }
-        FileCoverageStatistics collector = getCollectorForInitNode(candidateNode).orElseThrow();
         do {
           switch (type) {
             case PredicateConsideredLocations:
-              collector.predicateStatistics.addPredicateConsideredNode(candidateNode);
+              predicateConsideredLocations.add(candidateNode);
               tdcgData.addTimeStamp(getTempPredicateConsideredCoverage(cfa));
               break;
             case PredicateRelevantVariables:
-              collector.predicateStatistics.addPredicateRelevantVariablesNodes(candidateNode);
+              predicateRelevantVariablesLocations.add(candidateNode);
               tdcgData.addTimeStamp(getTempPredicateRelevantVariablesCoverage(cfa));
               break;
             default:
@@ -105,6 +97,11 @@ public class PredicateAnalysisCoverageCollector extends CoverageCollector {
     }
   }
 
+  public void resetPredicateRelevantVariablesNodes() {
+    previousPredicateRelevantVariablesLocationsSize = predicateRelevantVariablesLocations.size();
+    predicateRelevantVariablesLocations.clear();
+  }
+
   public double getTempPredicateConsideredCoverage(CFA cfa) {
     return getTempCoverage(cfa, TimeDependentCoverageType.PredicateConsideredLocations);
   }
@@ -113,21 +110,40 @@ public class PredicateAnalysisCoverageCollector extends CoverageCollector {
     return getTempCoverage(cfa, TimeDependentCoverageType.PredicateRelevantVariables);
   }
 
-  double getTempCoverage(CFA cfa, TimeDependentCoverageType type) {
+  public Set<CFANode> getPredicateConsideredLocations() {
+    return predicateConsideredLocations;
+  }
+
+  public Set<CFANode> getPredicateRelevantConsideredLocations() {
+    return predicateRelevantVariablesLocations;
+  }
+
+  public int getPredicateRelevantConsideredLocationsCount() {
+    return Math.max(
+        predicateRelevantVariablesLocations.size(),
+        previousPredicateRelevantVariablesLocationsSize);
+  }
+
+  public Multiset<String> getVariableNames() {
+    return variableNames;
+  }
+
+  public Multiset<String> getRelevantVariableNames() {
+    return relevantVariableNames;
+  }
+
+  private double getTempCoverage(CFA cfa, TimeDependentCoverageType type) {
     int numTotalNodes = cfa.getAllNodes().size();
     int numRelevantNodes = 0;
-    for (FileCoverageStatistics info : getInfosPerFile().values()) {
-      switch (type) {
-        case PredicateConsideredLocations:
-          numRelevantNodes += info.predicateStatistics.allPredicateConsideredLocations.size();
-          break;
-        case PredicateRelevantVariables:
-          numRelevantNodes +=
-              info.predicateStatistics.allPredicateRelevantVariablesLocations.size();
-          break;
-        default:
-          break;
-      }
+    switch (type) {
+      case PredicateConsideredLocations:
+        numRelevantNodes = predicateConsideredLocations.size();
+        break;
+      case PredicateRelevantVariables:
+        numRelevantNodes = predicateRelevantVariablesLocations.size();
+        break;
+      default:
+        break;
     }
     return numRelevantNodes / (double) numTotalNodes;
   }

@@ -8,10 +8,7 @@
 
 package org.sosy_lab.cpachecker.util.coverage.collectors;
 
-import java.util.LinkedHashMap;
-import java.util.Map;
 import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.util.coverage.data.FileCoverageStatistics;
 import org.sosy_lab.cpachecker.util.coverage.measures.CoverageMeasureHandler;
 import org.sosy_lab.cpachecker.util.coverage.tdcg.TimeDependentCoverageHandler;
 
@@ -20,34 +17,31 @@ import org.sosy_lab.cpachecker.util.coverage.tdcg.TimeDependentCoverageHandler;
  * access of collectors.
  */
 public class CoverageCollectorHandler {
-  private final Map<String, FileCoverageStatistics> infosPerFile;
   private final CoverageMeasureHandler coverageMeasureHandler;
   private final TimeDependentCoverageHandler timeDependentCoverageHandler;
   private final ReachedSetCoverageCollector reachedSetCoverageCollector;
-  private final boolean shouldCollectPredicateCoverage;
   private AnalysisIndependentCoverageCollector analysisIndependentCoverageCollector;
   private PredicateAnalysisCoverageCollector predicateAnalysisCoverageCollector;
+  private final boolean shouldCollectPredicateCoverage;
 
   public CoverageCollectorHandler(CFA cfa, boolean pShouldCollectPredicateCoverage) {
     shouldCollectPredicateCoverage = pShouldCollectPredicateCoverage;
-    infosPerFile = new LinkedHashMap<>();
     timeDependentCoverageHandler = new TimeDependentCoverageHandler();
     coverageMeasureHandler = new CoverageMeasureHandler();
     reachedSetCoverageCollector =
-        new ReachedSetCoverageCollector(
-            infosPerFile, coverageMeasureHandler, timeDependentCoverageHandler, cfa);
+        new ReachedSetCoverageCollector(coverageMeasureHandler, timeDependentCoverageHandler, cfa);
   }
 
   public void initPredicateCollectors(CFA cfa) {
     predicateAnalysisCoverageCollector =
         new PredicateAnalysisCoverageCollector(
-            infosPerFile, coverageMeasureHandler, timeDependentCoverageHandler, cfa);
+            coverageMeasureHandler, timeDependentCoverageHandler, cfa);
   }
 
   public void initAnalysisIndependentCollectors(CFA cfa) {
     analysisIndependentCoverageCollector =
         new AnalysisIndependentCoverageCollector(
-            infosPerFile, coverageMeasureHandler, timeDependentCoverageHandler, cfa);
+            coverageMeasureHandler, timeDependentCoverageHandler, cfa);
   }
 
   public TimeDependentCoverageHandler getTDCGHandler() {
@@ -58,15 +52,11 @@ public class CoverageCollectorHandler {
     return coverageMeasureHandler;
   }
 
-  public Map<String, FileCoverageStatistics> getInfosPerFile() {
-    return infosPerFile;
-  }
-
-  public AnalysisIndependentCoverageCollector getAnalysisIndependentCoverageCollector() {
+  public AnalysisIndependentCoverageCollector getAnalysisIndependentCollector() {
     return analysisIndependentCoverageCollector;
   }
 
-  public PredicateAnalysisCoverageCollector getPredicateAnalysisCoverageCollector() {
+  public PredicateAnalysisCoverageCollector getPredicateAnalysisCollector() {
     return predicateAnalysisCoverageCollector;
   }
 

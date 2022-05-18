@@ -16,7 +16,6 @@ import com.google.common.collect.LinkedHashMultiset;
 import com.google.common.collect.Multiset;
 import java.util.Collection;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
@@ -32,7 +31,6 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.bam.AbstractBAMCPA;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CFAUtils;
-import org.sosy_lab.cpachecker.util.coverage.data.FileCoverageStatistics;
 import org.sosy_lab.cpachecker.util.coverage.measures.CoverageMeasureHandler;
 import org.sosy_lab.cpachecker.util.coverage.tdcg.TimeDependentCoverageHandler;
 
@@ -41,16 +39,17 @@ import org.sosy_lab.cpachecker.util.coverage.tdcg.TimeDependentCoverageHandler;
  * here only depends on the reached set.
  */
 public class ReachedSetCoverageCollector extends CoverageCollector {
+  private final Multiset<CFANode> reachedLocations = LinkedHashMultiset.create();
+
   ReachedSetCoverageCollector(
-      Map<String, FileCoverageStatistics> pInfosPerFile,
       CoverageMeasureHandler pCoverageMeasureHandler,
       TimeDependentCoverageHandler pTimeDependentCoverageHandler,
       CFA cfa) {
-    super(pInfosPerFile, pCoverageMeasureHandler, pTimeDependentCoverageHandler, cfa);
+    super(pCoverageMeasureHandler, pTimeDependentCoverageHandler, cfa);
   }
 
   public void collectFromReachedSet(
-      UnmodifiableReachedSet reachedSet, CFA cfa, ConfigurableProgramAnalysis cpa) {
+      UnmodifiableReachedSet reachedSet, ConfigurableProgramAnalysis cpa) {
     FluentIterable<AbstractState> reached = FluentIterable.from(reachedSet);
     // hack to get all reached states for BAM
     if (cpa instanceof AbstractBAMCPA) {
@@ -75,7 +74,6 @@ public class ReachedSetCoverageCollector extends CoverageCollector {
     }
 
     collectVisitedEdges(reached);
-    addExistingNodes(cfa);
     addReachedNodes(reached);
   }
 
@@ -86,9 +84,15 @@ public class ReachedSetCoverageCollector extends CoverageCollector {
         locations.addAll(DOTBuilder2.extractNodesFromCombinedEdges(node));
       }
     }
-    for (FileCoverageStatistics info : getInfosPerFile().values()) {
-      info.reachedLocations.addAll(locations);
-    }
+    reachedLocations.addAll(locations);
+  }
+
+  public Multiset<CFANode> getReachedLocations() {
+    return reachedLocations;
+  }
+
+  public int getReachedLocationsCount() {
+    return reachedLocations.elementSet().size();
   }
 
   private void collectVisitedEdges(Iterable<AbstractState> reached) {

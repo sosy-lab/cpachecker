@@ -198,7 +198,7 @@ public class ReportGenerator {
         CoverageUtility.getCoverageCollectorHandlerFromReachedSet(pReached, pCfa);
     TimeDependentCoverageHandler tdcgHandler = coverageCollectorHandler.getTDCGHandler();
     CoverageMeasureHandler covHandler = coverageCollectorHandler.getCoverageHandler();
-    covHandler.fillCoverageData(coverageCollectorHandler.getInfosPerFile());
+    covHandler.fillCoverageData(coverageCollectorHandler);
 
     ImmutableSet<Path> allInputFiles = getAllInputFiles(pCfa);
     extractWitness(pResult, pCfa, pReached);

@@ -12,46 +12,42 @@ import com.google.common.collect.Multiset;
 import java.io.IOException;
 import java.io.Writer;
 import java.nio.file.Path;
-import java.util.Map;
-import org.sosy_lab.cpachecker.util.coverage.data.FileCoverageStatistics;
-import org.sosy_lab.cpachecker.util.coverage.data.FileCoverageStatistics.FunctionInfo;
+import org.sosy_lab.cpachecker.util.coverage.collectors.CoverageCollector;
+import org.sosy_lab.cpachecker.util.coverage.collectors.CoverageCollector.FunctionInfo;
 
 /** Generate coverage information in Gcov format (http://gcc.gnu.org/onlinedocs/gcc/Gcov.html). */
 public class CoverageReportGcov {
-  private static final String TEXTNAME = "TN:";
-  private static final String SOURCEFILE = "SF:";
+  private static final String TEXT_NAME = "TN:";
+  private static final String SOURCE_FILE = "SF:";
   private static final String FUNCTION = "FN:";
-  private static final String FUNCTIONDATA = "FNDA:";
-  private static final String LINEDATA = "DA:";
+  private static final String FUNCTION_DATA = "FNDA:";
+  private static final String LINE_DATA = "DA:";
 
-  public static void write(Map<String, FileCoverageStatistics> infosPerFile, Writer w)
-      throws IOException {
+  public static void write(CoverageCollector collector, Writer w) throws IOException {
 
-    for (Map.Entry<String, FileCoverageStatistics> entry : infosPerFile.entrySet()) {
-      String sourcefile = entry.getKey();
-      FileCoverageStatistics fileInfos = entry.getValue();
-
+    for (String sourcefile : collector.getVisitedLinesPerFile().keySet()) {
       // Convert ./test.c -> /full/path/test.c
-      w.append(TEXTNAME + "\n");
-      w.append(SOURCEFILE)
+      w.append(TEXT_NAME + "\n");
+      w.append(SOURCE_FILE)
           .append(String.valueOf(Path.of(sourcefile).toAbsolutePath()))
           .append("\n");
 
-      for (FunctionInfo info : fileInfos.allFunctions) {
+      for (FunctionInfo info : collector.getAllFunctions()) {
         w.append(FUNCTION)
-            .append(String.valueOf(info.firstLine))
+            .append(String.valueOf(info.getFirstLine()))
             .append(",")
-            .append(info.name)
+            .append(info.getName())
             .append("\n");
         // Information about function end isn't used by lcov, but it is useful for some
         // postprocessing
         // But lcov ignores all unknown lines, so, this additional information can't affect on its
         // work
-        w.append("#" + FUNCTION).append(String.valueOf(info.lastLine)).append("\n");
+        w.append("#" + FUNCTION).append(String.valueOf(info.getLastLine())).append("\n");
       }
 
-      for (Multiset.Entry<String> functionEntry : fileInfos.visitedFunctions.entrySet()) {
-        w.append(FUNCTIONDATA)
+      for (Multiset.Entry<String> functionEntry :
+          collector.getVisitedFunctionsPerFile().get(sourcefile).entrySet()) {
+        w.append(FUNCTION_DATA)
             .append(String.valueOf(functionEntry.getCount()))
             .append(",")
             .append(functionEntry.getElement())
@@ -60,11 +56,11 @@ public class CoverageReportGcov {
 
       /* Now save information about lines
        */
-      for (Integer line : fileInfos.allLines) {
-        w.append(LINEDATA)
+      for (Integer line : collector.getExistingLinesPerFile().get(sourcefile)) {
+        w.append(LINE_DATA)
             .append(String.valueOf(line))
             .append(",")
-            .append(String.valueOf(fileInfos.visitedLines.count(line)))
+            .append(String.valueOf(collector.getVisitedLinesPerFile().get(sourcefile).count(line)))
             .append("\n");
       }
       w.append("end_of_record\n");

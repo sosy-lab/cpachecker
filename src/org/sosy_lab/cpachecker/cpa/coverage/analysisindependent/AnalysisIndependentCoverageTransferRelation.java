@@ -30,7 +30,7 @@ public class AnalysisIndependentCoverageTransferRelation extends SingleEdgeTrans
   public AnalysisIndependentCoverageTransferRelation(
       CoverageCollectorHandler pCovCollectorHandler) {
     coverageCollector =
-        Preconditions.checkNotNull(pCovCollectorHandler.getAnalysisIndependentCoverageCollector());
+        Preconditions.checkNotNull(pCovCollectorHandler.getAnalysisIndependentCollector());
     visitedTDCG =
         pCovCollectorHandler.getTDCGHandler().getData(TimeDependentCoverageType.VisitedLines);
   }

@@ -14,7 +14,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import org.sosy_lab.cpachecker.util.coverage.data.FileCoverageStatistics;
+import org.sosy_lab.cpachecker.util.coverage.collectors.CoverageCollectorHandler;
 
 /**
  * Handler for managing all coverage measures. This class (including its corresponding enums) needs
@@ -52,13 +52,13 @@ public class CoverageMeasureHandler {
    * all initialized measures. When adding a new coverage measure this method should be expanded by
    * its type.
    *
-   * @param infosPerFile infosPerFile holds all relevant coverage data gathered during the analysis
+   * @param coverageCollectorHandler holds all relevant coverage data gathered during the analysis
    */
-  public void fillCoverageData(Map<String, FileCoverageStatistics> infosPerFile) {
+  public void fillCoverageData(CoverageCollectorHandler coverageCollectorHandler) {
     for (CoverageMeasureType type : getAllTypes()) {
-      Optional<CoverageMeasure> coverageMeasure = type.getCoverageMeasure(infosPerFile);
+      Optional<CoverageMeasure> coverageMeasure = type.getCoverageMeasure(coverageCollectorHandler);
       if (coverageMeasure.isPresent()) {
-        addData(type, type.getCoverageMeasure(infosPerFile).orElseThrow());
+        addData(type, coverageMeasure.orElseThrow());
       }
     }
   }

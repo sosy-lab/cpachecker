@@ -11,11 +11,9 @@ package org.sosy_lab.cpachecker.util.coverage.measures;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSortedMap;
 import com.google.common.collect.Multiset;
-import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
-import org.sosy_lab.cpachecker.util.coverage.data.FileCoverageStatistics;
 import org.sosy_lab.cpachecker.util.coverage.util.CoverageColorUtil;
 
 /**
@@ -29,15 +27,11 @@ public class LineBasedCoverageMeasure implements CoverageMeasure {
   private final ImmutableMap<String, Multiset<Integer>> visitedLinesPerFile;
   private final ImmutableMap<String, Set<Integer>> exisitingLinesPerFile;
 
-  public LineBasedCoverageMeasure(Map<String, FileCoverageStatistics> infoPerFile) {
-    Map<String, Multiset<Integer>> lVisitedLinesPerFile = new LinkedHashMap<>();
-    Map<String, Set<Integer>> lExistingLinesPerFile = new LinkedHashMap<>();
-    for (var entry : infoPerFile.entrySet()) {
-      lVisitedLinesPerFile.put(entry.getKey(), entry.getValue().visitedLines);
-      lExistingLinesPerFile.put(entry.getKey(), entry.getValue().allLines);
-    }
-    visitedLinesPerFile = ImmutableSortedMap.copyOf(lVisitedLinesPerFile);
-    exisitingLinesPerFile = ImmutableSortedMap.copyOf(lExistingLinesPerFile);
+  public LineBasedCoverageMeasure(
+      Map<String, Multiset<Integer>> pVisitedLinesPerFile,
+      Map<String, Set<Integer>> pExistingLinesPerFile) {
+    visitedLinesPerFile = ImmutableSortedMap.copyOf(pVisitedLinesPerFile);
+    exisitingLinesPerFile = ImmutableSortedMap.copyOf(pExistingLinesPerFile);
   }
 
   /**

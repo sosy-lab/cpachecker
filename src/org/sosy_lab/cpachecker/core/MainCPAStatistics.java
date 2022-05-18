@@ -61,6 +61,7 @@ import org.sosy_lab.cpachecker.core.reachedset.PartitionedReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.coverage.collectors.CoverageCollectorHandler;
+import org.sosy_lab.cpachecker.util.coverage.collectors.ReachedSetCoverageCollector;
 import org.sosy_lab.cpachecker.util.coverage.report.CoverageReportGcov;
 import org.sosy_lab.cpachecker.util.coverage.report.CoverageReportStdoutSummary;
 import org.sosy_lab.cpachecker.util.coverage.util.CoverageUtility;
@@ -316,17 +317,17 @@ class MainCPAStatistics implements Statistics {
     if (exportCoverage && cfa != null && reached.size() > 1) {
       CoverageCollectorHandler coverageCollectorHandler =
           CoverageUtility.getCoverageCollectorHandlerFromReachedSet(reached, cfa);
-      coverageCollectorHandler
-          .getReachedSetCoverageCollector()
-          .collectFromReachedSet(reached, cfa, cpa);
+      ReachedSetCoverageCollector coverageCollector =
+          coverageCollectorHandler.getReachedSetCoverageCollector();
+      coverageCollector.collectFromReachedSet(reached, cpa);
       out.println();
       out.println("Code Coverage");
       out.println("-----------------------------");
-      CoverageReportStdoutSummary.write(coverageCollectorHandler.getInfosPerFile(), out);
+      CoverageReportStdoutSummary.write(coverageCollectorHandler, out);
 
       if (outputCoverageFile != null) {
         try (Writer gcovOut = IO.openOutputFile(outputCoverageFile, Charset.defaultCharset())) {
-          CoverageReportGcov.write(coverageCollectorHandler.getInfosPerFile(), gcovOut);
+          CoverageReportGcov.write(coverageCollector, gcovOut);
         } catch (IOException e) {
           logger.logUserException(Level.WARNING, e, "Could not write coverage information to file");
         }

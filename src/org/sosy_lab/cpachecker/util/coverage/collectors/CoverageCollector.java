@@ -8,8 +8,12 @@
 
 package org.sosy_lab.cpachecker.util.coverage.collectors;
 
+import com.google.common.collect.HashMultiset;
+import com.google.common.collect.Multiset;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
-import java.util.Optional;
+import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
@@ -17,7 +21,6 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.util.CFAUtils;
-import org.sosy_lab.cpachecker.util.coverage.data.FileCoverageStatistics;
 import org.sosy_lab.cpachecker.util.coverage.measures.CoverageMeasureHandler;
 import org.sosy_lab.cpachecker.util.coverage.tdcg.TimeDependentCoverageHandler;
 import org.sosy_lab.cpachecker.util.coverage.util.CoverageUtility;
@@ -28,31 +31,123 @@ import org.sosy_lab.cpachecker.util.coverage.util.CoverageUtility;
  * coverage measures and time-dependent coverage graphs.
  */
 public abstract class CoverageCollector {
-  private final Map<String, FileCoverageStatistics> infosPerFile;
+  private final Map<String, Multiset<Integer>> visitedLinesPerFile = new HashMap<>();
+  private final Map<String, Set<Integer>> existingLinesPerFile = new HashMap<>();
+  private final Map<String, Multiset<String>> visitedFunctionsPerFile = new HashMap<>();
+  private final Set<FunctionInfo> allFunctions = new HashSet<>();
+  private final Map<String, Set<AssumeEdge>> visitedAssumesPerFile = new HashMap<>();
+  private final Set<AssumeEdge> allAssumes = new HashSet<>();
+
   final CoverageMeasureHandler coverageMeasureHandler;
   final TimeDependentCoverageHandler timeDependentCoverageHandler;
 
   CoverageCollector(
-      Map<String, FileCoverageStatistics> pInfosPerFile,
       CoverageMeasureHandler pCoverageMeasureHandler,
       TimeDependentCoverageHandler pTimeDependentCoverageHandler,
       CFA cfa) {
-    infosPerFile = pInfosPerFile;
     coverageMeasureHandler = pCoverageMeasureHandler;
     timeDependentCoverageHandler = pTimeDependentCoverageHandler;
     putCFA(cfa);
   }
 
-  CoverageCollector(
-      Map<String, FileCoverageStatistics> pInfosPerFile,
-      CoverageMeasureHandler pCoverageMeasureHandler,
-      TimeDependentCoverageHandler pTimeDependentCoverageHandler) {
-    infosPerFile = pInfosPerFile;
-    coverageMeasureHandler = pCoverageMeasureHandler;
-    timeDependentCoverageHandler = pTimeDependentCoverageHandler;
+  CoverageCollector() {
+    coverageMeasureHandler = new CoverageMeasureHandler();
+    timeDependentCoverageHandler = new TimeDependentCoverageHandler();
   }
 
-  public void putCFA(CFA pCFA) {
+  public void addVisitedEdge(final CFAEdge pEdge) {
+    if (!CoverageUtility.coversLine(pEdge)) {
+      return;
+    }
+    putExistingEdge(pEdge);
+
+    final FileLocation loc = pEdge.getFileLocation();
+    final int startingLine = loc.getStartingLineInOrigin();
+    final int endingLine = loc.getEndingLineInOrigin();
+    String file = loc.getFileName().toString();
+
+    if (pEdge instanceof AssumeEdge) {
+      Set<AssumeEdge> visitedAssumes = visitedAssumesPerFile.get(file);
+      if (visitedAssumes != null) {
+        visitedAssumesPerFile.get(file).add((AssumeEdge) pEdge);
+      } else {
+        Set<AssumeEdge> newVisitedAssumes = new HashSet<>();
+        newVisitedAssumes.add((AssumeEdge) pEdge);
+        visitedAssumesPerFile.put(file, newVisitedAssumes);
+      }
+    }
+
+    for (int line = startingLine; line <= endingLine; line++) {
+      Multiset<Integer> visitedLines = visitedLinesPerFile.get(file);
+      if (visitedLines != null) {
+        visitedLinesPerFile.get(file).add(line);
+      } else {
+        Multiset<Integer> newVisitedLines = HashMultiset.create();
+        newVisitedLines.add(line);
+        visitedLinesPerFile.put(file, newVisitedLines);
+      }
+    }
+  }
+
+  public void addVisitedFunction(FunctionEntryNode pEntryNode) {
+    String file = pEntryNode.getFileLocation().getFileName().toString();
+    Multiset<String> visitedFunctions = visitedFunctionsPerFile.get(file);
+    if (visitedFunctions != null) {
+      visitedFunctionsPerFile.get(file).add(pEntryNode.getFunctionName());
+    } else {
+      Multiset<String> newVisitedFunctions = HashMultiset.create();
+      newVisitedFunctions.add(pEntryNode.getFunctionName());
+      visitedFunctionsPerFile.put(file, newVisitedFunctions);
+    }
+  }
+
+  public Set<FunctionInfo> getAllFunctions() {
+    return allFunctions;
+  }
+
+  public Map<String, Multiset<String>> getVisitedFunctionsPerFile() {
+    return visitedFunctionsPerFile;
+  }
+
+  public int getVisitedFunctionsCount() {
+    return visitedFunctionsPerFile.values().stream()
+        .map(x -> x.elementSet().size())
+        .mapToInt(i -> i)
+        .sum();
+  }
+
+  public Set<AssumeEdge> getAllAssumes() {
+    return allAssumes;
+  }
+
+  public Map<String, Set<AssumeEdge>> getVisitedAssumesPerFile() {
+    return visitedAssumesPerFile;
+  }
+
+  public int getVisitedAssumesCount() {
+    return visitedAssumesPerFile.values().stream().map(x -> x.size()).mapToInt(i -> i).sum();
+  }
+
+  public Map<String, Set<Integer>> getExistingLinesPerFile() {
+    return existingLinesPerFile;
+  }
+
+  public Map<String, Multiset<Integer>> getVisitedLinesPerFile() {
+    return visitedLinesPerFile;
+  }
+
+  public int getVisitedLinesCount() {
+    return visitedLinesPerFile.values().stream()
+        .map(x -> x.elementSet().size())
+        .mapToInt(i -> i)
+        .sum();
+  }
+
+  public int getExistingLinesCount() {
+    return existingLinesPerFile.values().stream().map(x -> x.size()).mapToInt(i -> i).sum();
+  }
+
+  private void putCFA(CFA pCFA) {
     for (CFANode node : pCFA.getAllNodes()) {
       // This part adds lines, which are only on edges, such as "return" or "goto"
       for (CFAEdge edge : CFAUtils.leavingEdges(node)) {
@@ -64,108 +159,65 @@ public abstract class CoverageCollector {
     }
   }
 
+  private void putExistingEdge(final CFAEdge pEdge) {
+    if (!CoverageUtility.coversLine(pEdge)) {
+      return;
+    }
+    final FileLocation loc = pEdge.getFileLocation();
+
+    final int startingLine = loc.getStartingLineInOrigin();
+    final int endingLine = loc.getEndingLineInOrigin();
+    String file = loc.getFileName().toString();
+
+    for (int line = startingLine; line <= endingLine; line++) {
+      Set<Integer> existingLines = existingLinesPerFile.get(file);
+      if (existingLines != null) {
+        existingLinesPerFile.get(file).add(line);
+      } else {
+        Set<Integer> newExistingLines = new HashSet<>();
+        newExistingLines.add(line);
+        existingLinesPerFile.put(file, newExistingLines);
+      }
+    }
+
+    if (pEdge instanceof AssumeEdge) {
+      allAssumes.add((AssumeEdge) pEdge);
+    }
+  }
+
   private void putExistingFunction(FunctionEntryNode pNode) {
     final String functionName = pNode.getFunctionName();
     final FileLocation loc = pNode.getFileLocation();
-
-    if (loc.getStartingLineNumber() == 0) {
-      // dummy location
+    if (!loc.isRealLocation()) {
       return;
     }
-
-    final FileCoverageStatistics infos = getFileInfoTarget(loc, infosPerFile);
-
     final int startingLine = loc.getStartingLineInOrigin();
     final int endingLine = loc.getEndingLineInOrigin();
 
-    infos.addExistingFunction(functionName, startingLine, endingLine);
+    allFunctions.add(new FunctionInfo(functionName, startingLine, endingLine));
   }
 
-  void putExistingEdge(final CFAEdge pEdge) {
-    if (!CoverageUtility.coversLine(pEdge)) {
-      return;
-    }
-    final FileLocation loc = pEdge.getFileLocation();
-    final FileCoverageStatistics collector = getFileInfoTarget(loc, infosPerFile);
+  public static class FunctionInfo {
+    private final String name;
+    private final int firstLine;
+    private final int lastLine;
 
-    final int startingLine = loc.getStartingLineInOrigin();
-    final int endingLine = loc.getEndingLineInOrigin();
-
-    for (int line = startingLine; line <= endingLine; line++) {
-      collector.addExistingLine(line);
+    FunctionInfo(String pName, int pFirstLine, int pLastLine) {
+      name = pName;
+      firstLine = pFirstLine;
+      lastLine = pLastLine;
     }
 
-    if (pEdge instanceof AssumeEdge) {
-      collector.addExistingAssume((AssumeEdge) pEdge);
-    }
-  }
-
-  public void addVisitedEdge(final CFAEdge pEdge) {
-    if (!CoverageUtility.coversLine(pEdge)) {
-      return;
-    }
-    putExistingEdge(pEdge);
-
-    final FileLocation loc = pEdge.getFileLocation();
-    final FileCoverageStatistics collector = getFileInfoTarget(loc, infosPerFile);
-
-    final int startingLine = loc.getStartingLineInOrigin();
-    final int endingLine = loc.getEndingLineInOrigin();
-
-    if (pEdge instanceof AssumeEdge) {
-      collector.addVisitedAssume((AssumeEdge) pEdge);
+    public String getName() {
+      return name;
     }
 
-    for (int line = startingLine; line <= endingLine; line++) {
-      collector.addVisitedLine(line);
-    }
-  }
-
-  public void addExistingNodes(final CFA pCFA) {
-    for (FileCoverageStatistics info : infosPerFile.values()) {
-      info.allLocations.addAll(pCFA.getAllNodes());
-    }
-  }
-
-  public void addVisitedFunction(FunctionEntryNode pEntryNode) {
-    FileCoverageStatistics infos = getFileInfoTarget(pEntryNode.getFileLocation(), infosPerFile);
-    infos.addVisitedFunction(pEntryNode.getFunctionName());
-  }
-
-  public FileCoverageStatistics getCollector(CFAEdge pEdge) {
-    final FileLocation loc = pEdge.getFileLocation();
-    return getFileInfoTarget(loc, infosPerFile);
-  }
-
-  Optional<FileCoverageStatistics> getCollectorForInitNode(CFANode pNode) {
-    if (pNode.getNumLeavingEdges() > 0) {
-      CFANode realNode = pNode.getLeavingEdge(0).getSuccessor();
-      if (realNode.getNumLeavingEdges() > 0) {
-        FileLocation loc = realNode.getLeavingEdge(0).getFileLocation();
-        return Optional.of(getFileInfoTarget(loc, infosPerFile));
-      }
-    }
-    return Optional.empty();
-  }
-
-  FileCoverageStatistics getFileInfoTarget(
-      final FileLocation pLoc, final Map<String, FileCoverageStatistics> pTargets) {
-
-    // Cannot produce coverage info for dummy file location
-    assert pLoc.getStartingLineNumber() != 0;
-
-    String file = pLoc.getFileName().toString();
-    FileCoverageStatistics fileInfos = pTargets.get(file);
-
-    if (fileInfos == null) {
-      fileInfos = new FileCoverageStatistics();
-      pTargets.put(file, fileInfos);
+    public int getFirstLine() {
+      return firstLine;
     }
 
-    return fileInfos;
-  }
-
-  Map<String, FileCoverageStatistics> getInfosPerFile() {
-    return infosPerFile;
+    public int getLastLine() {
+      return lastLine;
+    }
   }
 }
