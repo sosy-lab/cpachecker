@@ -8,10 +8,106 @@
 
 package org.sosy_lab.cpachecker.cpa.smg2;
 
-import org.junit.Test;
+import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableList;
+import java.math.BigInteger;
+import java.util.List;
+import org.junit.Before;
+import org.sosy_lab.common.ShutdownNotifier;
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.c.CCharLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
+import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerList;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
+import org.sosy_lab.cpachecker.cfa.types.MachineModel;
+import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
+import org.sosy_lab.cpachecker.cfa.types.c.CComplexType.ComplexTypeKind;
+import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
+import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
+import org.sosy_lab.cpachecker.cfa.types.c.CElaboratedType;
+import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
+import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
+import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
+import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
+import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
 public class SMGCPATransferRelationTest {
 
+  private static final CType CHAR_TYPE = CNumericTypes.CHAR;
+  private static final CType SHORT_TYPE = CNumericTypes.SHORT_INT;
+  private static final CType UNSIGNED_SHORT_TYPE = CNumericTypes.UNSIGNED_SHORT_INT;
+  private static final CType INT_TYPE = CNumericTypes.INT;
+  private static final CType UNSIGNED_INT_TYPE = CNumericTypes.UNSIGNED_INT;
+  private static final CType LONG_TYPE = CNumericTypes.LONG_INT;
+  private static final CType UNSIGNED_LONG_TYPE = CNumericTypes.UNSIGNED_LONG_INT;
+
+  // Float/Double is currently not supported by SMG2
+  @SuppressWarnings("unused")
+  private static final CType FLOAT_TYPE = CNumericTypes.FLOAT;
+
+  @SuppressWarnings("unused")
+  private static final CType DOUBLE_TYPE = CNumericTypes.DOUBLE;
+
+  private static final CType[] TEST_TYPES =
+      new CType[] {
+        CHAR_TYPE,
+        SHORT_TYPE,
+        UNSIGNED_SHORT_TYPE,
+        INT_TYPE,
+        UNSIGNED_INT_TYPE,
+        LONG_TYPE,
+        UNSIGNED_LONG_TYPE
+      };
+
+  private static final MachineModel MACHINE_MODEL = MachineModel.LINUX64;
+  // Pointer size for the machine model in bits
+  private static final int POINTER_SIZE_IN_BITS =
+      MACHINE_MODEL.getSizeof(MACHINE_MODEL.getPointerEquivalentSimpleType()) * 8;
+
+  // Note: padding is on per default, meaning that the types get padding to align to their
+  // "natural" memory offset. I.e. starting with a 2 byte type, then using a 4 byte type would
+  // result in a padding of 2 byte between them. This is meant for structs with padding.
+  private static final List<CType> STRUCT_UNION_TEST_TYPES =
+      ImmutableList.of(
+          SHORT_TYPE, // 2 byte padding after this!
+          INT_TYPE, // No padding after this
+          UNSIGNED_SHORT_TYPE, // 2 byte padding after this!
+          UNSIGNED_INT_TYPE, // No padding after this
+          LONG_TYPE, // No padding after this
+          UNSIGNED_LONG_TYPE, // No padding after this
+          CHAR_TYPE);
+
+  private static final List<String> STRUCT_UNION_FIELD_NAMES =
+      ImmutableList.of(
+          "SHORT_TYPE",
+          "INT_TYPE",
+          "UNSIGNED_SHORT_TYPE",
+          "UNSIGNED_INT_TYPE",
+          "LONG_TYPE",
+          "UNSIGNED_LONG_TYPE",
+          "CHAR_TYPE");
+
+  // TODO: add complex types, structs/arrays etc. as well.
+  private static final List<CType> ARRAY_TEST_TYPES =
+      ImmutableList.of(
+          SHORT_TYPE,
+          INT_TYPE,
+          UNSIGNED_SHORT_TYPE,
+          UNSIGNED_INT_TYPE,
+          LONG_TYPE,
+          UNSIGNED_LONG_TYPE,
+          CHAR_TYPE);
+
+  private static final BigInteger TEST_ARRAY_LENGTH = BigInteger.valueOf(50);
   /*
    * Declaration tests:
    *   declare variable without value and use afterwards
@@ -31,6 +127,214 @@ public class SMGCPATransferRelationTest {
    *   ...
    */
 
-  @Test
-  public void dummyTestBecauseTheCIComplains() {}
+  private SMGTransferRelation transferRelation;
+
+  @Before
+  public void init() throws InvalidConfigurationException {
+    LogManager logManager = LogManager.createTestLogManager();
+    SMGOptions smgOptions = new SMGOptions(Configuration.defaultConfiguration());
+    transferRelation =
+        new SMGTransferRelation(
+            logManager,
+            smgOptions,
+            SMGCPAExportOptions.getNoExportInstance(),
+            MACHINE_MODEL,
+            ShutdownNotifier.createDummy());
+    transferRelation.setInfo(
+        SMGState.of(MACHINE_MODEL, logManager, smgOptions)
+            .copyAndAddStackFrame(CFunctionDeclaration.DUMMY),
+        null,
+        new CDeclarationEdge(
+            "", FileLocation.DUMMY, CFANode.newDummyCFANode(), CFANode.newDummyCFANode(), null));
+  }
+
+
+  private CVariableDeclaration declareVariableWithoutInitializer(
+      String variableName, CType type, boolean isGlobal, boolean isExtern) {
+    return declareVariableWithInitializer(variableName, type, isGlobal, isExtern, null);
+  }
+
+  private CVariableDeclaration declareVariableWithInitializer(
+      String variableName,
+      CType type,
+      boolean isGlobal,
+      boolean isExtern,
+      CInitializer initializer) {
+    CStorageClass storage = CStorageClass.AUTO;
+    if (isExtern) {
+      storage = CStorageClass.EXTERN;
+    }
+    // name, origName and qualifiedName are chosen as the same for now as we don't test functions
+    // If we would want to test functions we would need to add the function name followed by ::
+    // before the varName; i.e. main::varName
+    return new CVariableDeclaration(
+        FileLocation.DUMMY,
+        isGlobal,
+        storage,
+        type,
+        variableName,
+        variableName,
+        variableName,
+        initializer);
+  }
+
+  /**
+   * Make a struct/union with the name structureName and the types (and names of fields) specified
+   * in the type/name lists in the order specified.
+   */
+  private CType makeElaboratedTypeFor(
+      String structureName,
+      ComplexTypeKind complexTypeKind,
+      List<CType> listOfTypes,
+      List<String> fieldNames) {
+    ImmutableList.Builder<CCompositeTypeMemberDeclaration> typeBuilder =
+        new ImmutableList.Builder<>();
+    for (int i = 0; i < listOfTypes.size(); i++) {
+      typeBuilder.add(new CCompositeTypeMemberDeclaration(listOfTypes.get(i), fieldNames.get(i)));
+    }
+    CCompositeType realType =
+        new CCompositeType(
+            false, false, complexTypeKind, typeBuilder.build(), structureName, structureName);
+    return new CElaboratedType(
+        false, false, complexTypeKind, structureName, structureName, realType);
+  }
+
+  @SuppressWarnings("unused")
+  private CType makeArrayTypeFor(CType elementType, CExpression length) {
+    return new CArrayType(false, false, elementType, length);
+  }
+
+  private CType makeArrayTypeFor(CType elementType, BigInteger length) {
+    return new CArrayType(
+        false,
+        false,
+        elementType,
+        new CIntegerLiteralExpression(FileLocation.DUMMY, CNumericTypes.INT, length));
+  }
+
+  private CType makePointerTypeFor(CType pointerType) {
+    return new CPointerType(false, false, pointerType);
+  }
+
+  private CInitializer makeCInitializerExpressionFor(CExpression expr) {
+    return new CInitializerExpression(FileLocation.DUMMY, expr);
+  }
+
+  private CInitializer makeCInitializerListFor(List<CInitializer> list) {
+    return new CInitializerList(FileLocation.DUMMY, list);
+  }
+
+  private CIntegerLiteralExpression makeIntegerExpressionFrom(BigInteger value, CSimpleType type) {
+    Preconditions.checkArgument(
+        value.compareTo(MACHINE_MODEL.getMinimalIntegerValue(type)) >= 0
+            && value.compareTo(MACHINE_MODEL.getMaximalIntegerValue(type)) <= 0);
+    return new CIntegerLiteralExpression(FileLocation.DUMMY, type, value);
+  }
+
+  private CExpression makeCharExpressionFrom(char value) {
+    return new CCharLiteralExpression(FileLocation.DUMMY, CNumericTypes.CHAR, value);
+  }
+
+  /*
+   * Builds a struct with structTypes + a nested struct according to the list of types in nestedStructTypesList after that + arrays out of each arrayTypesList with TEST_ARRAY_LENGTH + pointers out of pointerTypesList.
+   * The names of the fields (of the top struct) will be according to structFieldNames. The nested struct field names will be according to nestedStructFieldNames.
+   */
+  private CType makeNestedStruct(
+      String structName,
+      List<CType> structTypesList,
+      List<String> structFieldNames,
+      List<CType> nestedStructTypesList,
+      List<String> nestedStructFieldNames,
+      String nestedStructName,
+      List<CType> arrayTypesList,
+      List<CType> pointerTypesList) {
+    ImmutableList.Builder<CType> listTypesTop = ImmutableList.builder();
+    listTypesTop.addAll(structTypesList);
+
+    listTypesTop.add(
+        makeElaboratedTypeFor(
+            nestedStructName,
+            ComplexTypeKind.STRUCT,
+            nestedStructTypesList,
+            nestedStructFieldNames));
+
+    for (CType arrayType : arrayTypesList) {
+      listTypesTop.add(makeArrayTypeFor(arrayType, TEST_ARRAY_LENGTH));
+    }
+
+    for (CType pointerType : pointerTypesList) {
+      listTypesTop.add(makePointerTypeFor(pointerType));
+    }
+
+    return makeElaboratedTypeFor(
+        structName, ComplexTypeKind.STRUCT, listTypesTop.build(), structFieldNames);
+  }
+
+  /*
+   * This creates the initializer for the type created by makeNestedStruct(). It will use the beginninValue for the first value and then increment after each assignment except pointers, those will be 0.
+   */
+  private CInitializer makeInitializerForNestedStruct(
+      BigInteger beginningValue,
+      List<CType> structTypesList,
+      List<CType> nestedStructTypesList,
+      List<CType> arrayTypesList,
+      List<CType> pointerTypesList) {
+    BigInteger value = beginningValue;
+    ImmutableList.Builder<CInitializer> topStructInitList = ImmutableList.builder();
+    for (CType type : structTypesList) {
+      CExpression exprToInit;
+      if (type == CNumericTypes.CHAR) {
+        exprToInit = makeCharExpressionFrom((char) value.intValue());
+      } else {
+        exprToInit = makeIntegerExpressionFrom(value, (CSimpleType) type);
+      }
+      topStructInitList.add(makeCInitializerExpressionFor(exprToInit));
+      value = value.add(BigInteger.ONE);
+    }
+
+    // Now the nested struct
+    ImmutableList.Builder<CInitializer> nestedStructInitList = ImmutableList.builder();
+    for (CType type : nestedStructTypesList) {
+      CExpression exprToInit;
+      if (type == CNumericTypes.CHAR) {
+        exprToInit = makeCharExpressionFrom((char) value.intValue());
+      } else {
+        exprToInit = makeIntegerExpressionFrom(value, (CSimpleType) type);
+      }
+      nestedStructInitList.add(makeCInitializerExpressionFor(exprToInit));
+      value = value.add(BigInteger.ONE);
+    }
+    topStructInitList.add(makeCInitializerListFor(nestedStructInitList.build()));
+
+    // Now the arrays
+    for (CType type : arrayTypesList) {
+      topStructInitList.add(makeArrayInitializer(value, TEST_ARRAY_LENGTH.intValue(), type));
+      value = value.add(TEST_ARRAY_LENGTH);
+    }
+
+    // And the pointers
+    for (@SuppressWarnings("unused") CType type : pointerTypesList) {
+      topStructInitList.add(
+          makeCInitializerExpressionFor(
+              makeIntegerExpressionFrom(BigInteger.ZERO, (CSimpleType) INT_TYPE)));
+    }
+
+    return makeCInitializerListFor(topStructInitList.build());
+  }
+
+  private CInitializer makeArrayInitializer(BigInteger beginningValue, int length, CType type) {
+    ImmutableList.Builder<CInitializer> arrayInitList = ImmutableList.builder();
+    BigInteger value = beginningValue;
+    for (int i = 0; i < length; i++) {
+      CExpression exprToInit;
+      if (type == CNumericTypes.CHAR) {
+        exprToInit = makeCharExpressionFrom((char) value.intValue());
+      } else {
+        exprToInit = makeIntegerExpressionFrom(value, (CSimpleType) type);
+      }
+      arrayInitList.add(makeCInitializerExpressionFor(exprToInit));
+      value = value.add(BigInteger.ONE);
+    }
+    return makeCInitializerListFor(arrayInitList.build());
+  }
 }
