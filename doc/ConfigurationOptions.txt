@@ -886,6 +886,17 @@ cfa.variableClassification.typeMapFile = "VariableTypeMapping.txt"
 # Output an input file, with invariants embedded as assume constraints.
 cinvariants.export = false
 
+# File name for exporting invariants. Only supported if invariant export for
+# specified lines is enabled.
+cinvariants.external.file = no default value
+
+# Specify lines for which an invariant should be written. Lines are specified
+# as comma separated list of individual lines x and line ranges x-y.
+cinvariants.forLines = ""
+
+# If enabled only export invariants for specified lines.
+cinvariants.onlyForSpecifiedLines = false
+
 # Prefix to add to an output file, which would contain assumed invariants.
 cinvariants.prefix = no default value
 
