@@ -675,7 +675,7 @@ public class CFASingleLoopTransformation {
 
   /**
    * Eliminates all non-terminating loops consisting of blank edges by replacing them with
-   * termination nodes. For example, while (x) {}" or "if (x) { label: goto label; }" will be
+   * termination nodes. For example, "while (x) {}" or "if (x) { label: goto label; }" will be
    * replaced by "if (x) { TERMINATION NODE }".
    *
    * @param pNodes the nodes to check for non-terminating blank loops.
@@ -687,9 +687,10 @@ public class CFASingleLoopTransformation {
     for (CFANode node : pNodes) {
       shutdownNotifier.shutdownIfNecessary();
       for (CFAEdge edge : CFAUtils.leavingEdges(node)) {
-        if (edge.getEdgeType() == CFAEdgeType.FunctionCallEdge) {
-          // The process should not exceed the current function
-          // That is, it should not "inline" another function
+        if (!(edge.getEdgeType() == CFAEdgeType.BlankEdge
+            || edge.getEdgeType() == CFAEdgeType.AssumeEdge)) {
+          // Our goal is to eliminate empty loops (only blank edges), so ignore all others.
+          // But for "while (x) {}" we can already start with the assume edge that enters the loop.
           continue;
         }
         CFANode current = edge.getSuccessor();
