@@ -57,7 +57,6 @@ import org.sosy_lab.cpachecker.cpa.bam.BAMCPA;
 import org.sosy_lab.cpachecker.cpa.bam.BAMCPAWithBreakOnMissingBlock;
 import org.sosy_lab.cpachecker.cpa.cache.CacheCPA;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeCPA;
-import org.sosy_lab.cpachecker.cpa.coverage.predicate.PredicateCoverageCPA;
 import org.sosy_lab.cpachecker.cpa.dca.DCACPA;
 import org.sosy_lab.cpachecker.cpa.flowdep.FlowDependenceCPA;
 import org.sosy_lab.cpachecker.cpa.location.LocationCPA;
@@ -187,8 +186,7 @@ public class CPAsTest {
       return Optional.of(LocationCPA.factory());
 
     } else if (pCpaClass.equals(SLABPredicateWrappingCPA.class)
-        || pCpaClass.equals(TraceAbstractionCPA.class)
-        || pCpaClass.equals(PredicateCoverageCPA.class)) {
+        || pCpaClass.equals(TraceAbstractionCPA.class)) {
       return Optional.of(PredicateCPA.factory());
 
     } else {
