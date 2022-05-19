@@ -16,7 +16,6 @@ import static com.google.common.collect.FluentIterable.from;
 
 import com.google.common.base.Predicate;
 import com.google.common.collect.BiMap;
-import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableBiMap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
@@ -694,15 +693,13 @@ public class CFASingleLoopTransformation {
           continue;
         }
         CFANode current = edge.getSuccessor();
-        FluentIterable<CFAEdge> leavingEdges;
-        CFAEdge leavingEdge = edge;
+        CFAEdge leavingEdge;
         List<CFAEdge> edgesToRemove = new ArrayList<>();
-        edgesToRemove.add(leavingEdge);
+        edgesToRemove.add(edge);
         Set<CFANode> visitedNodes = new HashSet<>();
         boolean blankLoopFound = false;
-        while ((leavingEdges = CFAUtils.leavingEdges(current)).size() == 1
-            && (leavingEdge = Iterables.getOnlyElement(leavingEdges)).getEdgeType()
-                == CFAEdgeType.BlankEdge) {
+        while ((current.getNumLeavingEdges() == 1)
+            && (leavingEdge = current.getLeavingEdge(0)).getEdgeType() == CFAEdgeType.BlankEdge) {
           if (!visitedNodes.add(current)) {
             blankLoopFound = true;
             break;
