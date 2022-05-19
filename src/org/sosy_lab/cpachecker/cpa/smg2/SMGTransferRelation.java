@@ -74,7 +74,6 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.defaults.ForwardingTransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
-import org.sosy_lab.cpachecker.cpa.smg.TypeUtils;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMG2Exception;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGObjectAndOffset;
 import org.sosy_lab.cpachecker.cpa.smg2.util.value.SMGCPAValueExpressionEvaluator;
@@ -192,7 +191,7 @@ public class SMGTransferRelation
     if (state.getMemoryModel().hasReturnObjectForCurrentStackFrame()) {
       // value 0 is the default return value in C
       CExpression returnExp = returnEdge.getExpression().orElse(CIntegerLiteralExpression.ZERO);
-      CType retType = TypeUtils.getRealExpressionType(returnExp);
+      CType retType = SMGCPAValueExpressionEvaluator.getCanonicalType(returnExp);
       Optional<CAssignment> returnAssignment = returnEdge.asAssignment();
       if (returnAssignment.isPresent()) {
         retType = returnAssignment.orElseThrow().getLeftHandSide().getExpressionType();
@@ -258,7 +257,75 @@ public class SMGTransferRelation
       String calledFunctionName)
       throws CPATransferException {
 
-    return null;
+    if (!callEdge.getSuccessor().getFunctionDefinition().getType().takesVarArgs()) {
+      if (paramDecl.size() != arguments.size()) {
+        throw new SMG2Exception(
+            "The number of arguments expected and given do not match for function call "
+                + callEdge.getDescription()
+                + ".");
+      }
+    } else {
+      // TODO Parameter with varArgs
+      throw new SMG2Exception("TODO: handle this correctly with the example just run!");
+    }
+
+    return ImmutableList.of(
+        handleFunctionCall(state, callEdge, arguments, paramDecl, calledFunctionName));
+  }
+
+  /**
+   * Creates a new stack frame for the function call, then creates the local variables for the
+   * parameters and fills them using the value visitor with the values given. This should only be
+   * called if the number of arguments and paramDecls entered match.
+   *
+   * @param initialState the current state.
+   * @param callEdge the edge of the function call.
+   * @param arguments the function call arguments {@link CExpression}s.
+   * @param paramDecl the {@link CParameterDeclaration} for the arguments.
+   * @param calledFunctionName name of the called function.
+   * @return a state with a new stack frame and all parameters evaluated to values and assigned to
+   *     new local variables.
+   * @throws CPATransferException in case of a critical error.
+   */
+  private SMGState handleFunctionCall(
+      SMGState initialState,
+      CFunctionCallEdge callEdge,
+      List<CExpression> arguments,
+      List<CParameterDeclaration> paramDecl,
+      String calledFunctionName)
+      throws CPATransferException {
+    // Add the new stack frame based on the function def
+    SMGState currentState =
+        initialState.copyAndAddStackFrame(callEdge.getSuccessor().getFunctionDefinition());
+
+    // Create a variable for each parameter, then evaluate all given parameters and assign them to
+    // their variables
+    for (int i = 0; i < arguments.size(); i++) {
+      String varName = paramDecl.get(i).getName();
+      CExpression cParamExp = arguments.get(i);
+      CType cParamType = SMGCPAValueExpressionEvaluator.getCanonicalType(paramDecl.get(i));
+      BigInteger paramSizeInBits = evaluator.getBitSizeof(currentState, cParamType);
+
+      // Evaluator the CExpr into a Value
+      SMGCPAValueVisitor valueVisitor =
+          new SMGCPAValueVisitor(evaluator, currentState, callEdge, logger);
+      List<ValueAndSMGState> valuesAndStates = cParamExp.accept(valueVisitor);
+
+      // If this ever fails; we need to take all states/values into account, meaning we would neet
+      // to proceed from this point onwards with all of them with all following operations
+      Preconditions.checkArgument(valuesAndStates.size() == 1);
+      ValueAndSMGState valueAndState = valuesAndStates.get(0);
+      Value paramValue = valueAndState.getValue();
+
+      // Create the new local variable
+      currentState = valueAndState.getState().copyAndAddLocalVariable(paramSizeInBits, varName);
+      // Write the value into it
+      currentState =
+          currentState.writeToStackOrGlobalVariable(
+              varName, BigInteger.ZERO, paramSizeInBits, paramValue);
+    }
+
+    return currentState;
   }
 
   @Override
