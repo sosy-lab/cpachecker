@@ -18,7 +18,7 @@ describe("ARG testing", () => {
 
   describe("Display ARG dropdown test", () => {
     it("Display ARG dropdown test-1", () => {
-      browser.wait(EC.presenceOf(element(by.id("set-tab-2"))));
+      browser.wait(EC.elementToBeClickable(element(by.id("set-tab-2"))));
       element(by.id("set-tab-2")).click();
       browser.wait(
         element(by.xpath('//*[@id="arg-toolbar"]/nav/div[1]/select'))
@@ -36,6 +36,7 @@ describe("ARG testing", () => {
     });
 
     it("Display ARG dropdown test-2", () => {
+      browser.wait(EC.elementToBeClickable(element(by.id("set-tab-2"))));
       element(by.id("set-tab-2")).click();
       browser.wait(
         element(by.xpath('//*[@id="arg-toolbar"]/nav/div[1]/select'))
@@ -55,6 +56,8 @@ describe("ARG testing", () => {
 
   describe("Hover over node", () => {
     it("Display popover dialoag box", () => {
+      browser.wait(EC.elementToBeClickable(element(by.id("set-tab-2"))));
+      element(by.id("set-tab-2")).click();
       browser.wait(EC.presenceOf(element(by.xpath('//*[@id="arg-node0"]'))));
       browser
         .actions()
