@@ -81,11 +81,11 @@ public class PredicateAnalysisCoverageCollector extends CoverageCollector {
           switch (type) {
             case PredicateConsideredLocations:
               predicateConsideredLocations.add(candidateNode);
-              tdcgData.addTimeStamp(getTempPredicateConsideredCoverage(cfa));
+              tdcgData.addTimestamp(getTempPredicateConsideredCoverage(cfa));
               break;
             case PredicateRelevantVariables:
               predicateRelevantVariablesLocations.add(candidateNode);
-              tdcgData.addTimeStamp(getTempPredicateRelevantVariablesCoverage(cfa));
+              tdcgData.addTimestamp(getTempPredicateRelevantVariablesCoverage(cfa));
               break;
             default:
               break;

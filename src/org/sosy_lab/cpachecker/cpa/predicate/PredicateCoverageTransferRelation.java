@@ -117,7 +117,7 @@ public class PredicateCoverageTransferRelation extends PredicateTransferRelation
     Set<String> assumeVariables = convertAssumeToVariables(cfaEdge);
     if (shouldAddPredicateRelevantVariableNode(assumeVariables, predicateVariables)) {
       coverageCollector.addPredicateRelevantVariablesNodes(cfaEdge);
-      predicateRelevantVariablesTDCG.addTimeStamp(
+      predicateRelevantVariablesTDCG.addTimestamp(
           coverageCollector.getTempPredicateRelevantVariablesCoverage(cfa));
     }
   }
@@ -157,7 +157,7 @@ public class PredicateCoverageTransferRelation extends PredicateTransferRelation
   private void processPredicates(PredicatePrecision precision) {
     if (shouldAddPredicate(precision)) {
       predicatesInUse = getAllPredicates(precision).size();
-      predicateTDCG.addTimeStamp(predicatesInUse);
+      predicateTDCG.addTimestamp(predicatesInUse);
 
       predicateRelevantVariablesTDCG.resetTimeStamps();
       coverageCollector.resetPredicateRelevantVariablesNodes();
@@ -171,7 +171,7 @@ public class PredicateCoverageTransferRelation extends PredicateTransferRelation
   private void processPredicatesConsideredCoverage(PredicatePrecision precision, CFAEdge cfaEdge) {
     if (shouldAddPredicateConsideredNode(cfaEdge, precision)) {
       coverageCollector.addPredicateConsideredNode(cfaEdge);
-      predicateConsideredTDCG.addTimeStamp(
+      predicateConsideredTDCG.addTimestamp(
           coverageCollector.getTempPredicateConsideredCoverage(cfa));
     }
   }

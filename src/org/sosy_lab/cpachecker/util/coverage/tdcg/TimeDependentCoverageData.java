@@ -8,14 +8,11 @@
 
 package org.sosy_lab.cpachecker.util.coverage.tdcg;
 
-import com.google.common.collect.ImmutableList;
 import java.time.Duration;
 import java.time.Instant;
-import java.util.HashMap;
-import java.util.LinkedHashMap;
+import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
-import java.util.concurrent.TimeUnit;
+import org.sosy_lab.common.time.TimeSpan;
 
 /**
  * Time-dependent Coverage Data is a data structure used by Time-dependent coverage graphs (TDCGs).
@@ -24,51 +21,78 @@ import java.util.concurrent.TimeUnit;
  * CoverageCPA.
  */
 public class TimeDependentCoverageData {
-  private Map<Long, Double> timeStampsPerCoverage;
-  private Map<Long, Double> previousTimeStampsPerCoverage;
+  private List<TimeDependentCoverageDataElement> coveragePerTimestamps;
+  private List<TimeDependentCoverageDataElement> previousCoveragePerTimeStamps;
   private Instant startTime = Instant.MIN;
 
-  public TimeDependentCoverageData() {
-    initTimeStampsPerCoverage();
-    previousTimeStampsPerCoverage = new LinkedHashMap<>();
+  public static class TimeDependentCoverageDataElement {
+    private final TimeSpan time;
+    private final Double value;
+
+    private TimeDependentCoverageDataElement(TimeSpan pTime, Double pValue) {
+      time = pTime;
+      value = pValue;
+    }
+
+    private TimeDependentCoverageDataElement() {
+      time = TimeSpan.ofNanos(0);
+      value = 0.0;
+    }
+
+    public TimeSpan getTime() {
+      return time;
+    }
+
+    public Double getValue() {
+      return value;
+    }
   }
 
-  public void addTimeStamp(double coverage) {
+  public TimeDependentCoverageData() {
+    initCoveragePerTimestamps();
+    previousCoveragePerTimeStamps = new ArrayList<>();
+  }
+
+  public void addTimestamp(double coverage) {
     initStartTime();
-    timeStampsPerCoverage.put(getDurationInMicros(), coverage);
+    coveragePerTimestamps.add(
+        new TimeDependentCoverageDataElement(getDurationInMicros(), coverage));
   }
 
   public void resetTimeStamps() {
     startTime = Instant.now();
-    previousTimeStampsPerCoverage = timeStampsPerCoverage;
-    initTimeStampsPerCoverage();
+    previousCoveragePerTimeStamps = coveragePerTimestamps;
+    initCoveragePerTimestamps();
   }
 
-  public Map<Long, Double> getReducedTimeStampsPerCoverage(int max) {
-    return thinOutMap(getTimeStampsPerCoverage(), max);
+  public List<TimeDependentCoverageDataElement> getReducedCoveragePerTimestamps(int max) {
+    return thinOutMap(getCoveragePerTimestamps(), max);
   }
 
-  public Map<Long, Double> getTimeStampsPerCoverage() {
-    if (!previousTimeStampsPerCoverage.isEmpty()) {
+  public List<TimeDependentCoverageDataElement> getCoveragePerTimestamps() {
+    if (!previousCoveragePerTimeStamps.isEmpty()) {
       double maxPreviousCoverage =
-          previousTimeStampsPerCoverage.values().stream().reduce(Double::max).orElseThrow();
+          previousCoveragePerTimeStamps.stream()
+              .map(l -> l.getValue())
+              .reduce(Double::max)
+              .orElseThrow();
       double maxCoverage =
-          timeStampsPerCoverage.values().stream().reduce(Double::max).orElseThrow();
+          coveragePerTimestamps.stream().map(l -> l.getValue()).reduce(Double::max).orElseThrow();
       if (maxPreviousCoverage > maxCoverage) {
-        return previousTimeStampsPerCoverage;
+        return previousCoveragePerTimeStamps;
       }
     }
-    return timeStampsPerCoverage;
+    return coveragePerTimestamps;
   }
 
-  private void initTimeStampsPerCoverage() {
-    timeStampsPerCoverage = new LinkedHashMap<>();
-    timeStampsPerCoverage.put(0L, 0.0);
+  private void initCoveragePerTimestamps() {
+    coveragePerTimestamps = new ArrayList<>();
+    coveragePerTimestamps.add(new TimeDependentCoverageDataElement());
   }
 
-  private long getDurationInMicros() {
+  private TimeSpan getDurationInMicros() {
     long durationInNanos = Duration.between(startTime, Instant.now()).toNanos();
-    return TimeUnit.NANOSECONDS.toMicros(durationInNanos);
+    return TimeSpan.ofNanos(durationInNanos);
   }
 
   private void initStartTime() {
@@ -77,21 +101,20 @@ public class TimeDependentCoverageData {
     }
   }
 
-  private Map<Long, Double> thinOutMap(Map<Long, Double> map, int max) {
+  private List<TimeDependentCoverageDataElement> thinOutMap(
+      List<TimeDependentCoverageDataElement> list, int max) {
     if (max < 0) {
       max = 0;
     }
-    int mapSize = map.size();
-    if (mapSize < max) {
-      return map;
+    int listSize = list.size();
+    if (listSize < max) {
+      return list;
     }
-    Map<Long, Double> outputMap = new HashMap<>();
-    List<Long> list = map.keySet().stream().sorted().collect(ImmutableList.toImmutableList());
-    int ruleOutQuotient = (int) Math.ceil(mapSize / (double) max);
-    for (int i = 0; i < mapSize; i += ruleOutQuotient) {
-      long key = list.get(i);
-      outputMap.put(key, map.get(key));
+    List<TimeDependentCoverageDataElement> outputList = new ArrayList<>();
+    int ruleOutQuotient = (int) Math.ceil(listSize / (double) max);
+    for (int i = 0; i < listSize; i += ruleOutQuotient) {
+      outputList.add(list.get(i));
     }
-    return outputMap;
+    return outputList;
   }
 }

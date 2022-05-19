@@ -46,6 +46,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.regex.Pattern;
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -88,6 +89,7 @@ import org.sosy_lab.cpachecker.util.coverage.measures.CoverageMeasureHandler;
 import org.sosy_lab.cpachecker.util.coverage.measures.CoverageMeasureType;
 import org.sosy_lab.cpachecker.util.coverage.measures.LineBasedCoverageMeasure;
 import org.sosy_lab.cpachecker.util.coverage.measures.VariableBasedCoverageMeasure;
+import org.sosy_lab.cpachecker.util.coverage.tdcg.TimeDependentCoverageData.TimeDependentCoverageDataElement;
 import org.sosy_lab.cpachecker.util.coverage.tdcg.TimeDependentCoverageHandler;
 import org.sosy_lab.cpachecker.util.coverage.tdcg.TimeDependentCoverageType;
 import org.sosy_lab.cpachecker.util.coverage.util.CoverageColorUtil;
@@ -388,8 +390,8 @@ public class ReportGenerator {
     int i = 0;
     writer.write("var tdgJson = [");
     for (TimeDependentCoverageType type : tdcgHandler.getAllTypes()) {
-      Map<Long, Double> timeStampsPerCoverage =
-          tdcgHandler.getData(type).getReducedTimeStampsPerCoverage(MAX_DATA_POINTS_TDG);
+      List<TimeDependentCoverageDataElement> timeStampsPerCoverage =
+          tdcgHandler.getData(type).getReducedCoveragePerTimestamps(MAX_DATA_POINTS_TDG);
       writer.write("{\"name\":");
       JSON.writeJSONString(type.getName(), writer);
       writer.write(",\"color\":");
@@ -397,7 +399,7 @@ public class ReportGenerator {
       writer.write(",\"percentage\":");
       JSON.writeJSONString(type.isPercentage(), writer);
       writer.write(",\"data\":");
-      JSON.writeJSONString(timeStampsPerCoverage, writer);
+      tdcgToJson(timeStampsPerCoverage, writer);
       writer.write("}");
       if (i++ != tdcgHandler.getAllTypes().size() - 1) {
         writer.write(",");
@@ -405,6 +407,25 @@ public class ReportGenerator {
     }
     writer.write("]\n");
     writer.write("window.tdgJson = tdgJson;\n");
+  }
+
+  private void tdcgToJson(
+      List<TimeDependentCoverageDataElement> timeStampsPerCoverage, Writer writer)
+      throws IOException {
+    boolean first = true;
+    writer.append('{');
+    for (var tdcgDataElement : timeStampsPerCoverage) {
+      if (first) {
+        first = false;
+      } else {
+        writer.append(',');
+      }
+      long micros = TimeUnit.NANOSECONDS.toMicros(tdcgDataElement.getTime().asNanos());
+      JSON.writeJSONString(micros, writer);
+      writer.append(':');
+      JSON.writeJSONString(tdcgDataElement.getValue(), writer);
+    }
+    writer.append('}');
   }
 
   private void insertCfaJson(

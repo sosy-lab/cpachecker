@@ -48,7 +48,7 @@ public class AnalysisIndependentCoverageTransferRelation extends SingleEdgeTrans
     }
     coverageCollector.addVisitedEdge(pEdge);
     coverageCollector.addVisitedLocation(pEdge);
-    visitedTDCG.addTimeStamp(coverageCollector.getTempVisitedCoverage());
+    visitedTDCG.addTimestamp(coverageCollector.getTempVisitedCoverage());
     if (pEdge.getPredecessor() instanceof FunctionEntryNode) {
       coverageCollector.addVisitedFunction((FunctionEntryNode) pEdge.getPredecessor());
     }
