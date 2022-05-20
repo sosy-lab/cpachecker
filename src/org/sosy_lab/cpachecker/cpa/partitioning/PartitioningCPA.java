@@ -17,9 +17,8 @@ import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 
 /**
- * CPA for partitioning the state space of an analysis;
- * one set of reached states can be used to analyze
- * disjoint partitions of the state space.
+ * CPA for partitioning the state space of an analysis; one set of reached states can be used to
+ * analyze disjoint partitions of the state space.
  */
 public class PartitioningCPA extends AbstractCPA {
 
@@ -31,9 +30,7 @@ public class PartitioningCPA extends AbstractCPA {
     return AutomaticCPAFactory.forType(PartitioningCPA.class);
   }
 
-  /**
-   * The abstract state of the PartitioningCPA
-   */
+  /** The abstract state of the PartitioningCPA */
   public static class PartitionState implements AbstractState {
     private final StateSpacePartition partition;
 

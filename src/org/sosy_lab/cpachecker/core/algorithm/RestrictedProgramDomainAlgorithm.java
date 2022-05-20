@@ -32,5 +32,4 @@ public class RestrictedProgramDomainAlgorithm implements Algorithm {
 
     return innerAlgorithm.run(pReachedSet);
   }
-
 }

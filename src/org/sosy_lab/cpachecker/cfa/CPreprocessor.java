@@ -17,20 +17,21 @@ import org.sosy_lab.common.log.LogManager;
 @Options(prefix = "parser")
 public class CPreprocessor extends Preprocessor {
 
-  @Option(description="The command line for calling the preprocessor. " +
-                      "May contain binary name and arguments, but won't be expanded by a shell. " +
-                      "The source file name will be appended to this string. " +
-                      "The preprocessor needs to print the output to stdout.")
-
+  @Option(
+      description =
+          "The command line for calling the preprocessor. "
+              + "May contain binary name and arguments, but won't be expanded by a shell. "
+              + "The source file name will be appended to this string. "
+              + "The preprocessor needs to print the output to stdout.")
   private String preprocessor = "cpp";
 
   @Option(
-    name = "preprocessor.dumpResults",
-    description = "Whether to dump the results of the preprocessor to disk for debugging."
-  )
+      name = "preprocessor.dumpResults",
+      description = "Whether to dump the results of the preprocessor to disk for debugging.")
   private boolean dumpResults = false;
 
-  public CPreprocessor(Configuration config, LogManager pLogger) throws InvalidConfigurationException {
+  public CPreprocessor(Configuration config, LogManager pLogger)
+      throws InvalidConfigurationException {
     super(config, pLogger);
     config.inject(this);
   }

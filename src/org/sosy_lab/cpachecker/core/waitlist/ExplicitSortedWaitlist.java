@@ -13,11 +13,10 @@ import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 
 /**
- * Waitlist implementation that sorts the abstract states depending on the
- * content of the ExplicitState (if there is any).
- * Stas where less variables have a value assigned are considered first.
- * This states are expected to cover a bigger part of the state space,
- * so states with more variables will probably be covered later.
+ * Waitlist implementation that sorts the abstract states depending on the content of the
+ * ExplicitState (if there is any). Stas where less variables have a value assigned are considered
+ * first. This states are expected to cover a bigger part of the state space, so states with more
+ * variables will probably be covered later.
  */
 public class ExplicitSortedWaitlist extends AbstractSortedWaitlist<Integer> {
 
@@ -28,7 +27,7 @@ public class ExplicitSortedWaitlist extends AbstractSortedWaitlist<Integer> {
   @Override
   protected Integer getSortKey(AbstractState pState) {
     ValueAnalysisState explicitState =
-      AbstractStates.extractStateByType(pState, ValueAnalysisState.class);
+        AbstractStates.extractStateByType(pState, ValueAnalysisState.class);
 
     // negate size so that the highest key corresponds to the smallest map
     return (explicitState != null) ? -explicitState.getSize() : 0;

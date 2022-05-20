@@ -31,11 +31,10 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.TypeH
  * given counter-example path. It is used to calculate the concrete values of the left hand side
  * expressions in the assignments along the path.
  *
- * CPAs have to create an object of this class for every CFA Edge {@link CFAEdge} along an Error
+ * <p>CPAs have to create an object of this class for every CFA Edge {@link CFAEdge} along an Error
  * Path {@link ARGPath} to create an object of the concrete state path {@link ConcreteStatePath}.
  * The allocator class {@link AssumptionToEdgeAllocator} uses this object to create an error path
  * {@link CFAPathWithAssumptions} where every assignment, when possible, has a concrete value.
- *
  */
 public final class ConcreteState {
 
@@ -46,19 +45,17 @@ public final class ConcreteState {
   private final Map<LeftHandSide, Address> variableAddressMap;
   private final ConcreteExpressionEvaluator analysisConcreteExpressionEvaluation;
   private final MemoryName memoryNameAllocator;
-  @Nullable
-  private final MachineModel machineModel;
+  @Nullable private final MachineModel machineModel;
 
   /**
    * Creates an object of this class.
    *
-   *
    * @param pVariables a map that assigns variables a concrete value, without the need to assign a
-   *        concrete address to a variable.
+   *     concrete address to a variable.
    * @param pAllocatedMemory a map that assigns the allocated memory to its name.
    * @param pVariableAddressMap a map that assigns variables along the error path an unique address.
    * @param pMemoryName a class that, given a cfa expression {@link CRightHandSide}, calculate the
-   *        memory that contains the value.
+   *     memory that contains the value.
    */
   public ConcreteState(
       Map<LeftHandSide, Object> pVariables,
@@ -77,13 +74,12 @@ public final class ConcreteState {
   /**
    * Creates an object of this class.
    *
-   *
    * @param pVariables a map that assigns variables a concrete value, without the need to assign a
-   *        concrete address to a variable.
+   *     concrete address to a variable.
    * @param pAllocatedMemory a map that assigns the allocated memory to its name.
    * @param pVariableAddressMap a map that assigns variables along the error path an unique address.
    * @param pMemoryName a class that, given a cfa expression {@link CRightHandSide}, calculate the
-   *        memory that contains the value.
+   *     memory that contains the value.
    */
   public ConcreteState(
       Map<LeftHandSide, Object> pVariables,
@@ -107,19 +103,17 @@ public final class ConcreteState {
     memoryNameAllocator = (pExp) -> "";
     analysisConcreteExpressionEvaluation = new DefaultConcreteExpressionEvaluator();
     machineModel = null;
-
   }
 
   /**
    * Creates an object of this class.
    *
-   *
    * @param pVariables a map that assigns variables a concrete value, without the need to assign a
-   *        concrete address to a variable.
+   *     concrete address to a variable.
    * @param pAllocatedMemory a map that assigns the allocated memory to its name.
    * @param pVariableAddressMap a map that assigns variables along the error path an unique address.
    * @param pMemoryName a class that, given a cfa expression {@link CRightHandSide}, calculate the
-   *        memory that contains the value.
+   *     memory that contains the value.
    */
   public ConcreteState(
       Map<LeftHandSide, Object> pVariables,
@@ -286,7 +280,6 @@ public final class ConcreteState {
   }
 
   /**
-   *
    * Return an Empty Concrete State.
    *
    * @return an empty concrete State.

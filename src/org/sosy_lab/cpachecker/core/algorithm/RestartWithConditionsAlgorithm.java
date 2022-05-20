@@ -31,7 +31,7 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CPAs;
 
-@Options(prefix="adjustableconditions")
+@Options(prefix = "adjustableconditions")
 public class RestartWithConditionsAlgorithm implements Algorithm {
 
   private final Algorithm innerAlgorithm;
@@ -40,13 +40,16 @@ public class RestartWithConditionsAlgorithm implements Algorithm {
 
   private final List<? extends AdjustableConditionCPA> conditionCPAs;
 
-  @Option(secure=true, description="maximum number of condition adjustments (-1 for infinite)")
-  @IntegerOption(min=-1)
+  @Option(secure = true, description = "maximum number of condition adjustments (-1 for infinite)")
+  @IntegerOption(min = -1)
   private int adjustmentLimit = -1;
 
-  public RestartWithConditionsAlgorithm(Algorithm pAlgorithm,
-        ConfigurableProgramAnalysis pCpa, Configuration config, LogManager pLogger)
-        throws InvalidConfigurationException {
+  public RestartWithConditionsAlgorithm(
+      Algorithm pAlgorithm,
+      ConfigurableProgramAnalysis pCpa,
+      Configuration config,
+      LogManager pLogger)
+      throws InvalidConfigurationException {
     config.inject(this);
     logger = pLogger;
     innerAlgorithm = pAlgorithm;
@@ -54,9 +57,10 @@ public class RestartWithConditionsAlgorithm implements Algorithm {
     if (!(pCpa instanceof ARGCPA)) {
       throw new InvalidConfigurationException("ARGCPA needed for RestartWithConditionsAlgorithm");
     }
-    cpa = (ARGCPA)pCpa;
+    cpa = (ARGCPA) pCpa;
     if (cpa.retrieveWrappedCpa(AssumptionStorageCPA.class) == null) {
-      throw new InvalidConfigurationException("AssumptionStorageCPA needed for RestartWithConditionsAlgorithm");
+      throw new InvalidConfigurationException(
+          "AssumptionStorageCPA needed for RestartWithConditionsAlgorithm");
     }
 
     conditionCPAs = CPAs.asIterable(cpa).filter(AdjustableConditionCPA.class).toList();
@@ -112,20 +116,20 @@ public class RestartWithConditionsAlgorithm implements Algorithm {
     for (AbstractState state : reached) {
 
       // TODO do we need target states?
-//      if (AbstractStates.isTargetState(state)) {
-//        // create assumptions for target state
-//        retList.add(state);
-//
-//      } else {
+      //      if (AbstractStates.isTargetState(state)) {
+      //        // create assumptions for target state
+      //        retList.add(state);
+      //
+      //      } else {
 
-        // check if stored assumption is not "true"
-        AssumptionStorageState s = AbstractStates.extractStateByType(state, AssumptionStorageState.class);
+      // check if stored assumption is not "true"
+      AssumptionStorageState s =
+          AbstractStates.extractStateByType(state, AssumptionStorageState.class);
 
-        if (!s.isAssumptionTrue()
-            || !s.isStopFormulaTrue()) {
+      if (!s.isAssumptionTrue() || !s.isStopFormulaTrue()) {
 
-          retList.add(state);
-        }
+        retList.add(state);
+      }
     }
 
     return retList;
@@ -135,8 +139,8 @@ public class RestartWithConditionsAlgorithm implements Algorithm {
       throws InterruptedException {
 
     ARGReachedSet reached = new ARGReachedSet(pReached, cpa);
-    for (AbstractState s: pStatesWithAssumptions) {
-      ARGState argState = (ARGState)s;
+    for (AbstractState s : pStatesWithAssumptions) {
+      ARGState argState = (ARGState) s;
 
       for (ARGState parent : ImmutableSet.copyOf(argState.getParents())) {
         reached.removeSubtree(parent);

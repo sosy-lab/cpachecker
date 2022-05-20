@@ -75,8 +75,14 @@ public class PredicateAbstractionsStorage {
     // TODO: equals() and hashCode()?
   }
 
-  private static final Pattern NODE_DECLARATION_PATTERN = Pattern.compile("^[0-9]+[ ]*\\(([0-9]+[,]*)*\\)[ ]*(@[0-9]+)$");
-  private enum AbstractionsParserState {EXPECT_OF_COMMON_DEFINITIONS, EXPECT_NODE_DECLARATION, EXPECT_NODE_ABSTRACTION}
+  private static final Pattern NODE_DECLARATION_PATTERN =
+      Pattern.compile("^[0-9]+[ ]*\\(([0-9]+[,]*)*\\)[ ]*(@[0-9]+)$");
+
+  private enum AbstractionsParserState {
+    EXPECT_OF_COMMON_DEFINITIONS,
+    EXPECT_NODE_DECLARATION,
+    EXPECT_NODE_ABSTRACTION
+  }
 
   private final Path abstractionsFile;
   private final FormulaManagerView fmgr;
@@ -88,7 +94,9 @@ public class PredicateAbstractionsStorage {
   private ImmutableListMultimap<Integer, Integer> abstractionTree = ImmutableListMultimap.of();
   private Set<Integer> reusedAbstractions = new TreeSet<>();
 
-  public PredicateAbstractionsStorage(Path pFile, LogManager pLogger, FormulaManagerView pFmgr, @Nullable Converter pConverter) throws PredicateParsingFailedException {
+  public PredicateAbstractionsStorage(
+      Path pFile, LogManager pLogger, FormulaManagerView pFmgr, @Nullable Converter pConverter)
+      throws PredicateParsingFailedException {
     this.fmgr = pFmgr;
     this.logger = pLogger;
     this.abstractionsFile = pFile;
@@ -115,7 +123,8 @@ public class PredicateAbstractionsStorage {
         Files.newBufferedReader(abstractionsFile, StandardCharsets.US_ASCII)) {
 
       // first, read first section with initial set of function definitions
-      Pair<Integer, String> defParsingResult = PredicatePersistenceUtils.parseCommonDefinitions(reader, abstractionsFile.toString());
+      Pair<Integer, String> defParsingResult =
+          PredicatePersistenceUtils.parseCommonDefinitions(reader, abstractionsFile.toString());
       int lineNo = defParsingResult.getFirst();
       String commonDefinitions = convert(defParsingResult.getSecond());
 
@@ -142,16 +151,19 @@ public class PredicateAbstractionsStorage {
         if (parserState == AbstractionsParserState.EXPECT_NODE_DECLARATION) {
           // we expect a new section header
           if (!currentLine.endsWith(":")) {
-            throw new PredicateParsingFailedException(currentLine + " is not a valid abstraction header", source, lineNo);
+            throw new PredicateParsingFailedException(
+                currentLine + " is not a valid abstraction header", source, lineNo);
           }
 
-          currentLine = currentLine.substring(0, currentLine.length()-1).trim(); // strip off ":"
+          currentLine = currentLine.substring(0, currentLine.length() - 1).trim(); // strip off ":"
           if (currentLine.isEmpty()) {
-            throw new PredicateParsingFailedException("empty header is not allowed", source, lineNo);
+            throw new PredicateParsingFailedException(
+                "empty header is not allowed", source, lineNo);
           }
 
           if (!NODE_DECLARATION_PATTERN.matcher(currentLine).matches()) {
-            throw new PredicateParsingFailedException(currentLine + " is not a valid abstraction header", source, lineNo);
+            throw new PredicateParsingFailedException(
+                currentLine + " is not a valid abstraction header", source, lineNo);
           }
 
           currentLocationId = null;
@@ -173,7 +185,8 @@ public class PredicateAbstractionsStorage {
 
         } else if (parserState == AbstractionsParserState.EXPECT_NODE_ABSTRACTION) {
           if (!currentLine.startsWith("(assert ") && currentLine.endsWith(")")) {
-            throw new PredicateParsingFailedException("unexpected line " + currentLine, source, lineNo);
+            throw new PredicateParsingFailedException(
+                "unexpected line " + currentLine, source, lineNo);
           }
 
           currentLine = convert(currentLine);
@@ -185,7 +198,8 @@ public class PredicateAbstractionsStorage {
             throw new PredicateParsingFailedException(e, "Formula parsing", lineNo);
           }
 
-          AbstractionNode abstractionNode = new AbstractionNode(currentAbstractionId, f, currentLocationId);
+          AbstractionNode abstractionNode =
+              new AbstractionNode(currentAbstractionId, f, currentLocationId);
           resultAbstractions.put(currentAbstractionId, abstractionNode);
           resultTree.putAll(currentAbstractionId, currentSuccessors);
           abstractionsWithParents.addAll(currentSuccessors);
@@ -198,7 +212,8 @@ public class PredicateAbstractionsStorage {
     }
 
     // Determine root node
-    Set<Integer> nodesWithNoParents = Sets.difference(resultAbstractions.keySet(), abstractionsWithParents);
+    Set<Integer> nodesWithNoParents =
+        Sets.difference(resultAbstractions.keySet(), abstractionsWithParents);
     assert nodesWithNoParents.size() <= 1;
     if (!nodesWithNoParents.isEmpty()) {
       this.rootAbstractionId = nodesWithNoParents.iterator().next();
@@ -212,7 +227,7 @@ public class PredicateAbstractionsStorage {
   }
 
   private String convert(String str) {
-    if (converter == null){
+    if (converter == null) {
       return str;
     }
 
@@ -268,9 +283,7 @@ public class PredicateAbstractionsStorage {
     return reusedAbstractions.contains(abstractionId);
   }
 
-
   public ImmutableMap<Integer, AbstractionNode> getAbstractions() {
     return abstractions;
   }
-
 }

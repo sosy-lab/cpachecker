@@ -57,21 +57,22 @@ public class ExpandFunctionPointerArrayAssignments {
 
   public void replaceFunctionPointerArrayAssignments(final MutableCFA cfa) {
 
-    CBinaryExpressionBuilder binBuilder = new CBinaryExpressionBuilder(cfa.getMachineModel(), logger);
+    CBinaryExpressionBuilder binBuilder =
+        new CBinaryExpressionBuilder(cfa.getMachineModel(), logger);
 
     for (final String function : cfa.getAllFunctionNames()) {
 
       for (CFANode node : ImmutableList.copyOf(cfa.getFunctionNodes(function))) {
         switch (node.getNumLeavingEdges()) {
-        case 0:
-          break;
-        case 1:
-          handleEdge(node.getLeavingEdge(0), cfa, binBuilder);
-          break;
-        case 2:
-          break;
-        default:
-          throw new AssertionError("Too many leaving edges on CFANode");
+          case 0:
+            break;
+          case 1:
+            handleEdge(node.getLeavingEdge(0), cfa, binBuilder);
+            break;
+          case 2:
+            break;
+          default:
+            throw new AssertionError("Too many leaving edges on CFANode");
         }
       }
     }
@@ -82,13 +83,13 @@ public class ExpandFunctionPointerArrayAssignments {
       return;
     }
 
-    CStatement stmt = ((CStatementEdge)edge).getStatement();
+    CStatement stmt = ((CStatementEdge) edge).getStatement();
     if (!(stmt instanceof CExpressionAssignmentStatement)) {
       return;
     }
 
-    CLeftHandSide lhs = ((CExpressionAssignmentStatement)stmt).getLeftHandSide();
-    CExpression rhs = ((CExpressionAssignmentStatement)stmt).getRightHandSide();
+    CLeftHandSide lhs = ((CExpressionAssignmentStatement) stmt).getLeftHandSide();
+    CExpression rhs = ((CExpressionAssignmentStatement) stmt).getRightHandSide();
     if (!isFunctionPointerType(lhs.getExpressionType())) {
       return;
     }
@@ -96,7 +97,7 @@ public class ExpandFunctionPointerArrayAssignments {
     if (!(lhs instanceof CArraySubscriptExpression)) {
       return;
     }
-    CArraySubscriptExpression array = ((CArraySubscriptExpression)lhs);
+    CArraySubscriptExpression array = ((CArraySubscriptExpression) lhs);
     if (!(array.getSubscriptExpression() instanceof CIdExpression)) {
       return;
     }
@@ -104,10 +105,10 @@ public class ExpandFunctionPointerArrayAssignments {
 
     CType arrayType = array.getArrayExpression().getExpressionType().getCanonicalType();
     if (!(arrayType instanceof CArrayType)
-        || !(((CArrayType)arrayType).getLength() instanceof CIntegerLiteralExpression)) {
+        || !(((CArrayType) arrayType).getLength() instanceof CIntegerLiteralExpression)) {
       return;
     }
-    final long length = ((CIntegerLiteralExpression)((CArrayType)arrayType).getLength()).asLong();
+    final long length = ((CIntegerLiteralExpression) ((CArrayType) arrayType).getLength()).asLong();
 
     final CFANode startNode = edge.getPredecessor();
     final CFANode endNode = edge.getSuccessor();
@@ -122,35 +123,43 @@ public class ExpandFunctionPointerArrayAssignments {
       cfa.addNode(trueNode);
       cfa.addNode(falseNode);
 
-      CExpression index = new CIntegerLiteralExpression(subscript.getFileLocation(),
-                                                        CNumericTypes.INT,
-                                                        BigInteger.valueOf(i));
-      CExpression assumeExp = builder.buildBinaryExpressionUnchecked(
-          subscript, index, BinaryOperator.EQUALS);
-      CAssumeEdge trueEdge = new CAssumeEdge(edge.getRawStatement(),
-                                             edge.getFileLocation(),
-                                             predecessor,
-                                             trueNode, assumeExp, true);
+      CExpression index =
+          new CIntegerLiteralExpression(
+              subscript.getFileLocation(), CNumericTypes.INT, BigInteger.valueOf(i));
+      CExpression assumeExp =
+          builder.buildBinaryExpressionUnchecked(subscript, index, BinaryOperator.EQUALS);
+      CAssumeEdge trueEdge =
+          new CAssumeEdge(
+              edge.getRawStatement(),
+              edge.getFileLocation(),
+              predecessor,
+              trueNode,
+              assumeExp,
+              true);
 
-      CAssumeEdge falseEdge = new CAssumeEdge(edge.getRawStatement(),
-                                              edge.getFileLocation(),
-                                              predecessor,
-                                              falseNode, assumeExp, false);
+      CAssumeEdge falseEdge =
+          new CAssumeEdge(
+              edge.getRawStatement(),
+              edge.getFileLocation(),
+              predecessor,
+              falseNode,
+              assumeExp,
+              false);
 
       CFACreationUtils.addEdgeUnconditionallyToCFA(trueEdge);
       CFACreationUtils.addEdgeUnconditionallyToCFA(falseEdge);
 
-      CLeftHandSide arrayAccess = new CArraySubscriptExpression(array.getFileLocation(),
-                                                                array.getExpressionType(),
-                                                                array.getArrayExpression(),
-                                                                index);
-      CStatement assignment = new CExpressionAssignmentStatement(stmt.getFileLocation(),
-                                                                 arrayAccess,
-                                                                 rhs);
-      CStatementEdge assignmentEdge = new CStatementEdge(edge.getRawStatement(),
-                                                         assignment,
-                                                         edge.getFileLocation(),
-                                                         trueNode, endNode);
+      CLeftHandSide arrayAccess =
+          new CArraySubscriptExpression(
+              array.getFileLocation(),
+              array.getExpressionType(),
+              array.getArrayExpression(),
+              index);
+      CStatement assignment =
+          new CExpressionAssignmentStatement(stmt.getFileLocation(), arrayAccess, rhs);
+      CStatementEdge assignmentEdge =
+          new CStatementEdge(
+              edge.getRawStatement(), assignment, edge.getFileLocation(), trueNode, endNode);
       CFACreationUtils.addEdgeUnconditionallyToCFA(assignmentEdge);
       predecessor = falseNode;
     }
@@ -160,19 +169,19 @@ public class ExpandFunctionPointerArrayAssignments {
     // of invalid indices, but this makes FunctionPointerCPA too imprecise
     // (it merges the state from the else branch with the states from the other branches,
     // loosing all information it gained in the latter).
-/*
-    CStatementEdge elseEdge = new CStatementEdge(edge.getRawStatement(),
-                                                 stmt,
-                                                 edge.getLineNumber(),
-                                                 predecessor, endNode);
-    CFACreationUtils.addEdgeUnconditionallyToCFA(elseEdge);
-*/
+    /*
+        CStatementEdge elseEdge = new CStatementEdge(edge.getRawStatement(),
+                                                     stmt,
+                                                     edge.getLineNumber(),
+                                                     predecessor, endNode);
+        CFACreationUtils.addEdgeUnconditionallyToCFA(elseEdge);
+    */
   }
 
   private static boolean isFunctionPointerType(CType type) {
     type = type.getCanonicalType();
     if (type instanceof CPointerType) {
-      type = ((CPointerType)type).getType();
+      type = ((CPointerType) type).getType();
     }
     return type instanceof CFunctionType;
   }

@@ -39,7 +39,8 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGZeroValue;
 import org.sosy_lab.cpachecker.util.Pair;
 
 public class SMGJoinTest {
-  static private final CFunctionType functionType = CFunctionType.functionTypeWithReturnType(CNumericTypes.UNSIGNED_LONG_INT);
+  private static final CFunctionType functionType =
+      CFunctionType.functionTypeWithReturnType(CNumericTypes.UNSIGNED_LONG_INT);
   private static final CFunctionDeclaration functionDeclaration =
       new CFunctionDeclaration(FileLocation.DUMMY, functionType, "foo", ImmutableList.of());
   private static final CFunctionDeclaration functionDeclaration2 =
@@ -55,8 +56,11 @@ public class SMGJoinTest {
   @SuppressWarnings("unchecked")
   @Before
   public void setUp() throws InvalidConfigurationException {
-    dummyState = new SMGState(LogManager.createTestLogManager(), MachineModel.LINUX32,
-        new SMGOptions(Configuration.defaultConfiguration()));
+    dummyState =
+        new SMGState(
+            LogManager.createTestLogManager(),
+            MachineModel.LINUX32,
+            new SMGOptions(Configuration.defaultConfiguration()));
     smg1 = new CLangSMG(MachineModel.LINUX64);
     smg2 = new CLangSMG(MachineModel.LINUX64);
   }
@@ -303,7 +307,8 @@ public class SMGJoinTest {
     assertThat(join.getStatus()).isEqualTo(SMGJoinStatus.EQUAL);
   }
 
-  private void joinUpdateUnit(SMGJoinStatus firstOperand, SMGJoinStatus forLe, SMGJoinStatus forRe) {
+  private void joinUpdateUnit(
+      SMGJoinStatus firstOperand, SMGJoinStatus forLe, SMGJoinStatus forRe) {
     assertThat(firstOperand.updateWith(SMGJoinStatus.EQUAL)).isEqualTo(firstOperand);
     assertThat(firstOperand.updateWith(SMGJoinStatus.LEFT_ENTAIL)).isEqualTo(forLe);
     assertThat(firstOperand.updateWith(SMGJoinStatus.RIGHT_ENTAIL)).isEqualTo(forRe);
@@ -313,14 +318,13 @@ public class SMGJoinTest {
 
   @Test
   public void joinUpdateTest() {
-    joinUpdateUnit(SMGJoinStatus.EQUAL, SMGJoinStatus.LEFT_ENTAIL,
-        SMGJoinStatus.RIGHT_ENTAIL);
-    joinUpdateUnit(SMGJoinStatus.LEFT_ENTAIL, SMGJoinStatus.LEFT_ENTAIL,
-        SMGJoinStatus.INCOMPARABLE);
-    joinUpdateUnit(SMGJoinStatus.RIGHT_ENTAIL, SMGJoinStatus.INCOMPARABLE,
-        SMGJoinStatus.RIGHT_ENTAIL);
-    joinUpdateUnit(SMGJoinStatus.INCOMPARABLE, SMGJoinStatus.INCOMPARABLE,
-        SMGJoinStatus.INCOMPARABLE);
+    joinUpdateUnit(SMGJoinStatus.EQUAL, SMGJoinStatus.LEFT_ENTAIL, SMGJoinStatus.RIGHT_ENTAIL);
+    joinUpdateUnit(
+        SMGJoinStatus.LEFT_ENTAIL, SMGJoinStatus.LEFT_ENTAIL, SMGJoinStatus.INCOMPARABLE);
+    joinUpdateUnit(
+        SMGJoinStatus.RIGHT_ENTAIL, SMGJoinStatus.INCOMPARABLE, SMGJoinStatus.RIGHT_ENTAIL);
+    joinUpdateUnit(
+        SMGJoinStatus.INCOMPARABLE, SMGJoinStatus.INCOMPARABLE, SMGJoinStatus.INCOMPARABLE);
   }
 
   // tests, whether the SMGJoinFields has an appropriate effect on the join status

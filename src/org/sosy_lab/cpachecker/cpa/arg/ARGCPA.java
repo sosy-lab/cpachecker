@@ -72,10 +72,10 @@ public class ARGCPA extends AbstractSingleWrapperCPA
   private boolean deleteInCPAEnabledAnalysis = false;
 
   @Option(
-    secure = true,
-    description =
-        "whether to keep covered states in the reached set as addition to keeping them in the ARG"
-  )
+      secure = true,
+      description =
+          "whether to keep covered states in the reached set as addition to keeping them in the"
+              + " ARG")
   private boolean keepCoveredStatesInReached = false;
 
   @Option(
@@ -88,12 +88,16 @@ public class ARGCPA extends AbstractSingleWrapperCPA
   @Option(
       secure = true,
       description =
-    "prevent the stop-operator from aborting the stop-check early when it crosses a target state")
+          "prevent the stop-operator from aborting the stop-check early when it crosses a target"
+              + " state")
   private boolean coverTargetStates = false;
 
   @Option(
-    secure = true,
-    description = "Enable reduction for nested abstract states when entering or leaving a block abstraction for BAM. The reduction can lead to a higher cache-hit-rate for BAM and a faster sub-analysis for blocks.")
+      secure = true,
+      description =
+          "Enable reduction for nested abstract states when entering or leaving a block abstraction"
+              + " for BAM. The reduction can lead to a higher cache-hit-rate for BAM and a faster"
+              + " sub-analysis for blocks.")
   private boolean enableStateReduction = true;
 
   private final LogManager logger;
@@ -171,8 +175,10 @@ public class ARGCPA extends AbstractSingleWrapperCPA
   }
 
   @Override
-  public AbstractState getInitialState(CFANode pNode, StateSpacePartition pPartition) throws InterruptedException {
-    // TODO some code relies on the fact that this method is called only once and the result is the root of the ARG
+  public AbstractState getInitialState(CFANode pNode, StateSpacePartition pPartition)
+      throws InterruptedException {
+    // TODO some code relies on the fact that this method is called only once and the result is the
+    // root of the ARG
     return new ARGState(getWrappedCpa().getInitialState(pNode, pPartition), null);
   }
 
@@ -197,12 +203,13 @@ public class ARGCPA extends AbstractSingleWrapperCPA
   }
 
   @Override
-  public boolean areAbstractSuccessors(AbstractState pElement, CFAEdge pCfaEdge,
-      Collection<? extends AbstractState> pSuccessors) throws CPATransferException, InterruptedException {
+  public boolean areAbstractSuccessors(
+      AbstractState pElement, CFAEdge pCfaEdge, Collection<? extends AbstractState> pSuccessors)
+      throws CPATransferException, InterruptedException {
     Preconditions.checkState(
         getWrappedCpa() instanceof ProofChecker,
         "Wrapped CPA has to implement ProofChecker interface");
-    ProofChecker wrappedProofChecker = (ProofChecker)getWrappedCpa();
+    ProofChecker wrappedProofChecker = (ProofChecker) getWrappedCpa();
     ARGState element = (ARGState) pElement;
 
     assert Iterables.elementsEqual(element.getChildren(), pSuccessors);
@@ -229,11 +236,12 @@ public class ARGCPA extends AbstractSingleWrapperCPA
   }
 
   @Override
-  public boolean isCoveredBy(AbstractState pElement, AbstractState pOtherElement) throws CPAException, InterruptedException {
+  public boolean isCoveredBy(AbstractState pElement, AbstractState pOtherElement)
+      throws CPAException, InterruptedException {
     Preconditions.checkState(
         getWrappedCpa() instanceof ProofChecker,
         "Wrapped CPA has to implement ProofChecker interface");
-    ProofChecker wrappedProofChecker = (ProofChecker)getWrappedCpa();
+    ProofChecker wrappedProofChecker = (ProofChecker) getWrappedCpa();
     AbstractState wrappedState = ((ARGState) pElement).getWrappedState();
     AbstractState wrappedOtherElement = ((ARGState) pOtherElement).getWrappedState();
     return wrappedProofChecker.isCoveredBy(wrappedState, wrappedOtherElement);

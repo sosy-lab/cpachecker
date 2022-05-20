@@ -15,61 +15,58 @@ import org.sosy_lab.common.configuration.Options;
 public class WitnessOptions {
 
   @Option(
-    secure = true,
-    description = "Verification witness: Include function calls and function returns?"
-  )
+      secure = true,
+      description = "Verification witness: Include function calls and function returns?")
   private boolean exportFunctionCallsAndReturns = true;
 
   @Option(secure = true, description = "Verification witness: Include assumptions (C statements)?")
   private boolean exportAssumptions = true;
 
   @Option(
-    secure = true,
-    description = "Verification witness: Include the considered case of an assume?"
-  )
+      secure = true,
+      description = "Verification witness: Include the considered case of an assume?")
   private boolean exportAssumeCaseInfo = true;
 
   @Option(
-    secure = true,
-    description =
-        "Verification witness: Include the (starting) line numbers of the operations on the transitions?"
-  )
+      secure = true,
+      description =
+          "Verification witness: Include the (starting) line numbers of the operations on the"
+              + " transitions?")
   private boolean exportLineNumbers = true;
 
   @Option(
-    secure = true,
-    description = "Verification witness: Include the sourcecode of the operations?"
-  )
+      secure = true,
+      description = "Verification witness: Include the sourcecode of the operations?")
   private boolean exportSourcecode = false;
 
   @Option(
       secure = true,
-      description = "Verification witness: Include (not necessarily globally unique) thread names for concurrent tasks for debugging?")
+      description =
+          "Verification witness: Include (not necessarily globally unique) thread names for"
+              + " concurrent tasks for debugging?")
   private boolean exportThreadName = false;
 
   @Option(secure = true, description = "Verification witness: Include the offset within the file?")
   private boolean exportOffset = true;
 
   @Option(
-    secure = true,
-    description = "Verification witness: Include an thread-identifier within the file?"
-  )
+      secure = true,
+      description = "Verification witness: Include an thread-identifier within the file?")
   private boolean exportThreadId = false;
 
   @Option(secure = true, description = "Some redundant transitions will be removed")
   private boolean removeInsufficientEdges = true;
 
   @Option(
-    secure = true,
-    description = "Verification witness: Revert escaping/renaming of functions for threads?"
-  )
+      secure = true,
+      description = "Verification witness: Revert escaping/renaming of functions for threads?")
   private boolean revertThreadFunctionRenaming = false;
 
   @Option(
-    secure = true,
-    description =
-        "Verification witness: Export labels for nodes in GraphML for easier visual representation?"
-  )
+      secure = true,
+      description =
+          "Verification witness: Export labels for nodes in GraphML for easier visual"
+              + " representation?")
   private boolean exportNodeLabel = false;
 
   @Option(secure = true, description = "Always export source file name, even default")
@@ -78,10 +75,11 @@ public class WitnessOptions {
   @Option(
       secure = true,
       description =
-          "Produce an invariant witness instead of a correctness witness. Constructing an invariant witness "
-              + "makes use of a different merge for quasi-invariants: Instead of computing the disjunction of two "
-              + "invariants present when merging nodes, 'true' is ignored when constructing the disjunction. "
-              + "This may be unsound in some situations, so be careful when using this option.")
+          "Produce an invariant witness instead of a correctness witness. Constructing an invariant"
+              + " witness makes use of a different merge for quasi-invariants: Instead of computing"
+              + " the disjunction of two invariants present when merging nodes, 'true' is ignored"
+              + " when constructing the disjunction. This may be unsound in some situations, so be"
+              + " careful when using this option.")
   private boolean produceInvariantWitnesses = false;
 
   boolean exportFunctionCallsAndReturns() {

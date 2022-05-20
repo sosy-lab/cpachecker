@@ -45,13 +45,11 @@ class ContainsOnlyEnvInfoVisitor<T> extends DefaultNumeralFormulaVisitor<T, Bool
 
   @Override
   public Boolean visit(Union<T> pUnion) {
-    return pUnion.getOperand1().accept(this)
-        && pUnion.getOperand2().accept(this);
+    return pUnion.getOperand1().accept(this) && pUnion.getOperand2().accept(this);
   }
 
   @Override
   protected Boolean visitDefault(NumeralFormula<T> pFormula) {
     return false;
   }
-
 }

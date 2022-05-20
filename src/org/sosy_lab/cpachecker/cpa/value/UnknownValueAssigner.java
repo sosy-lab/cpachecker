@@ -14,8 +14,7 @@ import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 import org.sosy_lab.cpachecker.util.states.MemoryLocationValueHandler;
 
 /**
- * Memory location value handler that always removes the given memory location
- * from the given state.
+ * Memory location value handler that always removes the given memory location from the given state.
  */
 public final class UnknownValueAssigner implements MemoryLocationValueHandler {
 
@@ -24,8 +23,8 @@ public final class UnknownValueAssigner implements MemoryLocationValueHandler {
    *
    * @param pMemLocation the memory location to remove
    * @param pType the type of the memory location that should be removed
-   * @param pState the {@link org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState} to use.
-   *    Value assignments will happen in this state
+   * @param pState the {@link org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState} to use. Value
+   *     assignments will happen in this state
    * @param pValueVisitor unused, may be null
    */
   @Override

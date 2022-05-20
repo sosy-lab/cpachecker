@@ -8,9 +8,7 @@
 
 package org.sosy_lab.cpachecker.cpa.smg;
 
-
 public enum SMGTransferRelationKind {
-
   REFINEMENT,
   STATIC
 }

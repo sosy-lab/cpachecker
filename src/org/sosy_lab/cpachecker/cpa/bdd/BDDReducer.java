@@ -154,8 +154,9 @@ class BDDReducer extends GenericReducer<BDDState, Precision> {
 
     // remove variables that appear in the initial state and are out of scope in the exit location.
     BDDState cleanedInitState = initState;
-    for (String outOfScope : Iterables
-        .filter(pReducedContext.getOutOfScopeVariables(), v -> !blockVariables.contains(v))) {
+    for (String outOfScope :
+        Iterables.filter(
+            pReducedContext.getOutOfScopeVariables(), v -> !blockVariables.contains(v))) {
       // this case should only rarely appear, i.e.,
       // for function parameters that are unused within the block.
       shutdownNotifier.shutdownIfNecessary();

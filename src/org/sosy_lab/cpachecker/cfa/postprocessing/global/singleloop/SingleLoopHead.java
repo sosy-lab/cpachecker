@@ -27,21 +27,18 @@ import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 
 /**
- * Instances of this class are the heads of the loops produced by the single
- * loop transformation. They provide additional information relevant to the
- * transformation and to handling its consequences.
+ * Instances of this class are the heads of the loops produced by the single loop transformation.
+ * They provide additional information relevant to the transformation and to handling its
+ * consequences.
  */
 public class SingleLoopHead extends CFANode {
 
   private static final long serialVersionUID = 4424025633736206810L;
-  /**
-   * The program counter value assignment edges leading to the loop head.
-   */
-  private final Map<Integer, ProgramCounterValueAssignmentEdge> enteringPCValueAssignmentEdges = new HashMap<>();
+  /** The program counter value assignment edges leading to the loop head. */
+  private final Map<Integer, ProgramCounterValueAssignmentEdge> enteringPCValueAssignmentEdges =
+      new HashMap<>();
 
-  /**
-   * Creates a new loop head with line number 0 and an artificial function name.
-   */
+  /** Creates a new loop head with line number 0 and an artificial function name. */
   public SingleLoopHead() {
     super(
         new CFunctionDeclaration(
@@ -56,7 +53,9 @@ public class SingleLoopHead extends CFANode {
     if (pEnteringEdge instanceof ProgramCounterValueAssignmentEdge) {
       ProgramCounterValueAssignmentEdge edge = (ProgramCounterValueAssignmentEdge) pEnteringEdge;
       int pcValue = edge.getProgramCounterValue();
-      Preconditions.checkArgument(!enteringPCValueAssignmentEdges.containsKey(pcValue), "All entering program counter value assignment edges must be unique.");
+      Preconditions.checkArgument(
+          !enteringPCValueAssignmentEdges.containsKey(pcValue),
+          "All entering program counter value assignment edges must be unique.");
       enteringPCValueAssignmentEdges.put(pcValue, edge);
     } else {
       throw new AssertionError();
@@ -78,8 +77,8 @@ public class SingleLoopHead extends CFANode {
    * Gets the entering assignment edge with the given program counter value.
    *
    * @param pPCValue the value assigned to the program counter.
-   * @return the entering assignment edge with the given program counter
-   * value or {@code null} if no such edge exists.
+   * @return the entering assignment edge with the given program counter value or {@code null} if no
+   *     such edge exists.
    */
   public @Nullable ProgramCounterValueAssignmentEdge getEnteringAssignmentEdge(int pPCValue) {
     return enteringPCValueAssignmentEdges.get(pPCValue);
@@ -98,7 +97,9 @@ public class SingleLoopHead extends CFANode {
     while (!waitlist.isEmpty()) {
       CFANode current = waitlist.poll();
       if (visited.add(current)) {
-        if (current.getFunctionName().equals(CFASingleLoopTransformation.ARTIFICIAL_PROGRAM_COUNTER_FUNCTION_NAME)) {
+        if (current
+            .getFunctionName()
+            .equals(CFASingleLoopTransformation.ARTIFICIAL_PROGRAM_COUNTER_FUNCTION_NAME)) {
           CFAUtils.allPredecessorsOf(current).copyInto(waitlist);
         } else {
           results.add(current.getFunctionName());
@@ -116,5 +117,4 @@ public class SingleLoopHead extends CFANode {
   public Collection<Integer> getProgramCounterValues() {
     return Collections.unmodifiableSet(enteringPCValueAssignmentEdges.keySet());
   }
-
 }

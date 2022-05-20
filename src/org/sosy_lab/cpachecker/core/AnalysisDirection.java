@@ -9,10 +9,9 @@
 package org.sosy_lab.cpachecker.core;
 
 /**
- * Enum that defines the analysis direction.
- *  Using a boolean flag for this purpose is considered as a bad practice,
- *  since it reduces the readability of code, and increases the risk of bugs.
- *  (see http://blog.codinghorror.com/avoiding-booleans/)
+ * Enum that defines the analysis direction. Using a boolean flag for this purpose is considered as
+ * a bad practice, since it reduces the readability of code, and increases the risk of bugs. (see
+ * http://blog.codinghorror.com/avoiding-booleans/)
  */
 public enum AnalysisDirection {
   FORWARD,

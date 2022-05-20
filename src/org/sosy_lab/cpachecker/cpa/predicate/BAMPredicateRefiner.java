@@ -20,22 +20,19 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 
 /**
- * This is a small extension of {@link PredicateCPARefiner} that supplies it with a special
- * {@link BlockFormulaStrategy} and {@link RefinementStrategy} so that it respects BAM.
+ * This is a small extension of {@link PredicateCPARefiner} that supplies it with a special {@link
+ * BlockFormulaStrategy} and {@link RefinementStrategy} so that it respects BAM.
  *
- * So the hierarchy is as follows:
+ * <p>So the hierarchy is as follows:
  *
- *        Refiner                  ARGBasedRefiner                     RefinementStrategy
- *           ^                           ^                                     ^
- *           |                           |                                     |
- * AbstractARGBasedRefiner               |                     PredicateAbstractionRefinementStrategy
- *           ^                           |                                     ^
- *           |                           |                                     |
- *     BAMBasedRefiner    --->    PredicateCPARefiner  --->   BAMPredicateAbstractionRefinementStrategy
+ * <p>Refiner ARGBasedRefiner RefinementStrategy ^ ^ ^ | | | AbstractARGBasedRefiner |
+ * PredicateAbstractionRefinementStrategy ^ | ^ | | | BAMBasedRefiner ---> PredicateCPARefiner --->
+ * BAMPredicateAbstractionRefinementStrategy
  *
- * Here ^ means inheritance and -> means reference.
+ * <p>Here ^ means inheritance and -> means reference.
  *
- * BAMPredicateRefiner is only used for encapsulating this and providing the static factory method.
+ * <p>BAMPredicateRefiner is only used for encapsulating this and providing the static factory
+ * method.
  */
 public abstract class BAMPredicateRefiner implements Refiner {
 

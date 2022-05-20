@@ -12,10 +12,9 @@ import static com.google.common.base.Preconditions.checkNotNull;
 
 import org.sosy_lab.common.ShutdownManager;
 
-
 /**
- * This class is a thread which should be registered as a VM shutdown hook.
- * It will try to stop the analysis when the user presses Ctrl+C.
+ * This class is a thread which should be registered as a VM shutdown hook. It will try to stop the
+ * analysis when the user presses Ctrl+C.
  */
 class ShutdownHook extends Thread {
 
@@ -25,8 +24,8 @@ class ShutdownHook extends Thread {
   private volatile boolean enabled = true;
 
   /**
-   * Create a shutdown hook. This constructor needs to be called from the
-   * thread in which CPAchecker is run.
+   * Create a shutdown hook. This constructor needs to be called from the thread in which CPAchecker
+   * is run.
    */
   public ShutdownHook(ShutdownManager pShutdownManager) {
     super("Shutdown Hook");

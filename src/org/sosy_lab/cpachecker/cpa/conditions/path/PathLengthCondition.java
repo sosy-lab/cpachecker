@@ -27,22 +27,17 @@ import org.sosy_lab.cpachecker.util.assumptions.PreventingHeuristic;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 
-/**
- * A {@link PathCondition} where the condition is the length of the current path.
- */
-@Options(prefix="cpa.conditions.path.length")
+/** A {@link PathCondition} where the condition is the length of the current path. */
+@Options(prefix = "cpa.conditions.path.length")
 public class PathLengthCondition implements PathCondition, Statistics {
 
-  @Option(secure=true, description="maximum path length (-1 for infinite)",
-      name="limit")
-  @IntegerOption(min=-1)
+  @Option(secure = true, description = "maximum path length (-1 for infinite)", name = "limit")
+  @IntegerOption(min = -1)
   private int threshold = -1;
 
   private int increaseThresholdBy = 0;
 
   private int maxPathLength = 0;
-
-
 
   public PathLengthCondition(Configuration config) throws InvalidConfigurationException {
     config.inject(this);
@@ -56,7 +51,7 @@ public class PathLengthCondition implements PathCondition, Statistics {
   @Override
   public AvoidanceReportingState getAbstractSuccessor(AbstractState pState, CFAEdge pEdge) {
 
-    PathLengthConditionState current = (PathLengthConditionState)pState;
+    PathLengthConditionState current = (PathLengthConditionState) pState;
     if (current.thresholdReached) {
       return current;
     }
@@ -73,7 +68,8 @@ public class PathLengthCondition implements PathCondition, Statistics {
   public boolean adjustPrecision() {
     if (threshold == -1) {
       // set the initial threshold value
-      // TODO PW: Do this calculations make sense? I just copied them from PathLengthHeuristicsPrecision.
+      // TODO PW: Do this calculations make sense? I just copied them from
+      // PathLengthHeuristicsPrecision.
       threshold = maxPathLength / 5;
       increaseThresholdBy = threshold / 4;
 
@@ -93,7 +89,6 @@ public class PathLengthCondition implements PathCondition, Statistics {
     out.println("Maximum length of a path: " + maxPathLength);
     out.println("Threshold value:          " + threshold);
   }
-
 
   private static class PathLengthConditionState implements AbstractState, AvoidanceReportingState {
 
@@ -117,11 +112,9 @@ public class PathLengthCondition implements PathCondition, Statistics {
 
     @Override
     public String toString() {
-      return "path length: " + pathLength
-          + (thresholdReached ? " (threshold reached)" : "");
+      return "path length: " + pathLength + (thresholdReached ? " (threshold reached)" : "");
     }
   }
-
 
   @Override
   public Reducer getReducer() {

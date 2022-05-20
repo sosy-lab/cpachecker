@@ -91,5 +91,4 @@ public class AssignmentToPathAllocatorTest {
     assertThat(allocator.findFirstOccurrenceOf(varY, ssaMaps)).isEqualTo(2);
     assertThat(allocator.findFirstOccurrenceOf(varZ, ssaMaps)).isEqualTo(2);
   }
-
 }

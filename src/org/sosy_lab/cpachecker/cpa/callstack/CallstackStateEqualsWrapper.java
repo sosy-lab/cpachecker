@@ -8,16 +8,15 @@
 
 package org.sosy_lab.cpachecker.cpa.callstack;
 
+import com.google.common.base.Preconditions;
 import java.util.Objects;
 
-import com.google.common.base.Preconditions;
-
 /**
- * This is a wrapper for a {@link CallstackState},
- * which allows to check equality based on the actual content of the stack.
+ * This is a wrapper for a {@link CallstackState}, which allows to check equality based on the
+ * actual content of the stack.
  *
- * This class is necessary, because (or as long as) we do not have
- * a direct implementation of {@link CallstackState#equals(Object)}.
+ * <p>This class is necessary, because (or as long as) we do not have a direct implementation of
+ * {@link CallstackState#equals(Object)}.
  */
 public class CallstackStateEqualsWrapper {
 
@@ -33,17 +32,27 @@ public class CallstackStateEqualsWrapper {
 
   @Override
   public boolean equals(Object o) {
-    if (o == this) { return true; }
-    if (!(o instanceof CallstackStateEqualsWrapper)) { return false; }
+    if (o == this) {
+      return true;
+    }
+    if (!(o instanceof CallstackStateEqualsWrapper)) {
+      return false;
+    }
     CallstackState other = ((CallstackStateEqualsWrapper) o).getState();
     CallstackState tmp = state;
-    if (other.getDepth() != tmp.getDepth()) { return false; }
+    if (other.getDepth() != tmp.getDepth()) {
+      return false;
+    }
 
     // check the whole stack
     while (tmp != null) {
-      if (other == tmp) { return true; }
+      if (other == tmp) {
+        return true;
+      }
       if (!other.getCallNode().equals(tmp.getCallNode())
-          || !other.getCurrentFunction().equals(tmp.getCurrentFunction())) { return false; }
+          || !other.getCurrentFunction().equals(tmp.getCurrentFunction())) {
+        return false;
+      }
       other = other.getPreviousState();
       tmp = tmp.getPreviousState();
     }

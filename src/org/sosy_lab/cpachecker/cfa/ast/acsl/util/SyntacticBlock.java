@@ -29,8 +29,8 @@ public interface SyntacticBlock {
   Set<CFAEdge> getEnteringEdges();
 
   /**
-   * Returns the leaving edges of the block. An edge is a leaving edge if it is inside the
-   * block but the next concrete edge is not.
+   * Returns the leaving edges of the block. An edge is a leaving edge if it is inside the block but
+   * the next concrete edge is not.
    */
   Set<CFAEdge> getLeavingEdges();
 

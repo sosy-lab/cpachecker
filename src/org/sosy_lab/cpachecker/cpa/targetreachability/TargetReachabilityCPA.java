@@ -39,13 +39,14 @@ import org.sosy_lab.cpachecker.util.automaton.TargetLocationProvider;
 import org.sosy_lab.cpachecker.util.automaton.TargetLocationProviderImpl;
 
 /**
- * CPA which marks the nodes as skippable if they are not backwards reachable
- * from the target state.
+ * CPA which marks the nodes as skippable if they are not backwards reachable from the target state.
  */
 @Options(prefix = "cpa.property_reachability")
 public class TargetReachabilityCPA extends AbstractCPA implements StatisticsProvider, Statistics {
-  @Option(secure=true, description="Do not follow states which can not "
-      + "syntactically lead to a target location")
+  @Option(
+      secure = true,
+      description =
+          "Do not follow states which can not " + "syntactically lead to a target location")
   private boolean noFollowBackwardsUnreachable = true;
 
   private final Timer backwardsReachability = new Timer();
@@ -81,8 +82,7 @@ public class TargetReachabilityCPA extends AbstractCPA implements StatisticsProv
         Set<CFANode> targetNodes =
             targetProvider.tryGetAutomatonTargetLocations(pCfa.getMainFunction(), pSpecification);
         for (CFANode target : targetNodes) {
-          builder.addAll(CFATraversal.dfs().backwards()
-              .collectNodesReachableFrom(target));
+          builder.addAll(CFATraversal.dfs().backwards().collectNodesReachableFrom(target));
         }
       } finally {
         backwardsReachability.stop();
@@ -103,8 +103,7 @@ public class TargetReachabilityCPA extends AbstractCPA implements StatisticsProv
   }
 
   @Override
-  public AbstractState getInitialState(
-      CFANode node, StateSpacePartition partition) {
+  public AbstractState getInitialState(CFANode node, StateSpacePartition partition) {
     return ReachabilityState.RELEVANT_TO_TARGET;
   }
 

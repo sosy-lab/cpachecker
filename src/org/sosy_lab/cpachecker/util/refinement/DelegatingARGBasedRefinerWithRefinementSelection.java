@@ -29,55 +29,58 @@ import org.sosy_lab.cpachecker.util.statistics.StatCounter;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 
 /**
- * Refiner implementation that delegates to a primary refiner
- * and if this fails, optionally delegates also to a secondary refiner.
- * Also supports Refinement Selection and can delegate to the refiner
- * which has prefixes with the better score.
+ * Refiner implementation that delegates to a primary refiner and if this fails, optionally
+ * delegates also to a secondary refiner. Also supports Refinement Selection and can delegate to the
+ * refiner which has prefixes with the better score.
  */
-@Options(prefix="cegar")
+@Options(prefix = "cegar")
 public final class DelegatingARGBasedRefinerWithRefinementSelection
     implements ARGBasedRefiner, StatisticsProvider {
 
-  @Option(secure=true, description="whether or not to use refinement selection to decide which domain to refine")
+  @Option(
+      secure = true,
+      description = "whether or not to use refinement selection to decide which domain to refine")
   private boolean useRefinementSelection = false;
 
-  @Option(secure=true, description="if this score is exceeded by the first analysis, the auxilliary analysis will be refined")
+  @Option(
+      secure = true,
+      description =
+          "if this score is exceeded by the first analysis, the auxilliary analysis will be"
+              + " refined")
   private int domainScoreThreshold = 1024;
 
-  /**
-   * classifier used to score sliced prefixes
-   */
+  /** classifier used to score sliced prefixes */
   private final PrefixSelector classfier;
 
-  /**
-   * refiner used for primary refinement
-   */
+  /** refiner used for primary refinement */
   private final ARGBasedRefiner primaryRefiner;
 
-  /**
-   * prefix provider used for primary refinement
-   */
+  /** prefix provider used for primary refinement */
   private final PrefixProvider primaryPrefixProvider;
 
-  /**
-   * predicate-analysis refiner used for secondary refinement
-   */
+  /** predicate-analysis refiner used for secondary refinement */
   private final ARGBasedRefiner secondaryRefiner;
 
-  /**
-   * prefix provider used for secondary refinement
-   */
+  /** prefix provider used for secondary refinement */
   private final PrefixProvider secondaryPrefixProvider;
 
-  private final StatCounter totalPrimaryRefinementsSelected = new StatCounter("Times selected refinement");
-  private final StatCounter totalPrimaryRefinementsFinished = new StatCounter("Times finished refinement");
-  private final StatCounter totalPrimaryExtraRefinementsSelected = new StatCounter("Times selected refinement (secondary was SAT)");
-  private final StatCounter totalPrimaryExtraRefinementsFinished = new StatCounter("Times finished refinement (secondary was SAT)");
+  private final StatCounter totalPrimaryRefinementsSelected =
+      new StatCounter("Times selected refinement");
+  private final StatCounter totalPrimaryRefinementsFinished =
+      new StatCounter("Times finished refinement");
+  private final StatCounter totalPrimaryExtraRefinementsSelected =
+      new StatCounter("Times selected refinement (secondary was SAT)");
+  private final StatCounter totalPrimaryExtraRefinementsFinished =
+      new StatCounter("Times finished refinement (secondary was SAT)");
 
-  private final StatCounter totalSecondaryRefinementsSelected = new StatCounter("Times selected refinement");
-  private final StatCounter totalSecondaryRefinementsFinished = new StatCounter("Times finished refinement");
-  private final StatCounter totalSecondaryExtraRefinementsSelected = new StatCounter("Times selected refinement (primary was SAT)");
-  private final StatCounter totalSecondaryExtraRefinementsFinished = new StatCounter("Times finished refinement (primary was SAT)");
+  private final StatCounter totalSecondaryRefinementsSelected =
+      new StatCounter("Times selected refinement");
+  private final StatCounter totalSecondaryRefinementsFinished =
+      new StatCounter("Times finished refinement");
+  private final StatCounter totalSecondaryExtraRefinementsSelected =
+      new StatCounter("Times selected refinement (primary was SAT)");
+  private final StatCounter totalSecondaryExtraRefinementsFinished =
+      new StatCounter("Times finished refinement (primary was SAT)");
 
   public DelegatingARGBasedRefinerWithRefinementSelection(
       final Configuration pConfig,
@@ -85,21 +88,22 @@ public final class DelegatingARGBasedRefinerWithRefinementSelection
       final ARGBasedRefiner pPrimaryRefiner,
       final PrefixProvider pPrimaryPrefixProvider,
       final ARGBasedRefiner pSecondaryRefiner,
-      final PrefixProvider pSecondaryPrefixProvider) throws InvalidConfigurationException {
+      final PrefixProvider pSecondaryPrefixProvider)
+      throws InvalidConfigurationException {
     pConfig.inject(this);
 
     classfier = pClassifier;
 
-    primaryRefiner         = pPrimaryRefiner;
-    primaryPrefixProvider  = pPrimaryPrefixProvider;
+    primaryRefiner = pPrimaryRefiner;
+    primaryPrefixProvider = pPrimaryPrefixProvider;
 
-    secondaryRefiner         = pSecondaryRefiner;
-    secondaryPrefixProvider  = pSecondaryPrefixProvider;
+    secondaryRefiner = pSecondaryRefiner;
+    secondaryPrefixProvider = pSecondaryPrefixProvider;
   }
 
   @Override
-  public CounterexampleInfo performRefinementForPath(final ARGReachedSet reached, ARGPath pErrorPath)
-      throws CPAException, InterruptedException {
+  public CounterexampleInfo performRefinementForPath(
+      final ARGReachedSet reached, ARGPath pErrorPath) throws CPAException, InterruptedException {
 
     int primaryScore = 0;
     int secondaryScore = Integer.MAX_VALUE;
@@ -121,9 +125,7 @@ public final class DelegatingARGBasedRefinerWithRefinementSelection
       cex = primaryRefiner.performRefinementForPath(reached, pErrorPath);
       if (cex.isSpurious()) {
         totalPrimaryRefinementsFinished.inc();
-      }
-
-      else {
+      } else {
         totalSecondaryExtraRefinementsSelected.inc();
 
         cex = secondaryRefiner.performRefinementForPath(reached, pErrorPath);
@@ -131,17 +133,13 @@ public final class DelegatingARGBasedRefinerWithRefinementSelection
           totalSecondaryExtraRefinementsFinished.inc();
         }
       }
-    }
-
-    else {
+    } else {
       totalSecondaryRefinementsSelected.inc();
 
       cex = secondaryRefiner.performRefinementForPath(reached, pErrorPath);
       if (cex.isSpurious()) {
         totalSecondaryRefinementsFinished.inc();
-      }
-
-      else {
+      } else {
         totalPrimaryExtraRefinementsSelected.inc();
 
         cex = primaryRefiner.performRefinementForPath(reached, cex.getTargetPath());
@@ -154,8 +152,10 @@ public final class DelegatingARGBasedRefinerWithRefinementSelection
     return cex;
   }
 
-  private int obtainScoreForPrimaryDomain(final ARGPath pErrorPath) throws CPAException, InterruptedException {
-    List<InfeasiblePrefix> primaryPrefixes = primaryPrefixProvider.extractInfeasiblePrefixes(pErrorPath);
+  private int obtainScoreForPrimaryDomain(final ARGPath pErrorPath)
+      throws CPAException, InterruptedException {
+    List<InfeasiblePrefix> primaryPrefixes =
+        primaryPrefixProvider.extractInfeasiblePrefixes(pErrorPath);
 
     // if path is feasible hand out a real bad score
     if (primaryPrefixes.isEmpty()) {
@@ -165,46 +165,51 @@ public final class DelegatingARGBasedRefinerWithRefinementSelection
     return classfier.obtainScoreForPrefixes(primaryPrefixes, PrefixPreference.DOMAIN_MIN);
   }
 
-  private int obtainScoreForSecondaryDomain(final ARGPath pErrorPath) throws CPAException, InterruptedException {
-    List<InfeasiblePrefix> secondaryPrefixes = secondaryPrefixProvider.extractInfeasiblePrefixes(pErrorPath);
+  private int obtainScoreForSecondaryDomain(final ARGPath pErrorPath)
+      throws CPAException, InterruptedException {
+    List<InfeasiblePrefix> secondaryPrefixes =
+        secondaryPrefixProvider.extractInfeasiblePrefixes(pErrorPath);
 
     return classfier.obtainScoreForPrefixes(secondaryPrefixes, PrefixPreference.DOMAIN_MIN);
   }
 
   @Override
   public void collectStatistics(Collection<Statistics> pStatsCollection) {
-    pStatsCollection.add(new Statistics() {
+    pStatsCollection.add(
+        new Statistics() {
 
-      @Override
-      public String getName() {
-        return DelegatingARGBasedRefinerWithRefinementSelection.class.getSimpleName();
-      }
+          @Override
+          public String getName() {
+            return DelegatingARGBasedRefinerWithRefinementSelection.class.getSimpleName();
+          }
 
-      @Override
-      public void printStatistics(final PrintStream pOut, final Result pResult, final UnmodifiableReachedSet pReached) {
-        StatisticsWriter writer = StatisticsWriter.writingStatisticsTo(pOut).beginLevel();
+          @Override
+          public void printStatistics(
+              final PrintStream pOut, final Result pResult, final UnmodifiableReachedSet pReached) {
+            StatisticsWriter writer = StatisticsWriter.writingStatisticsTo(pOut).beginLevel();
 
-        pOut.println("Primary Analysis:");
-        writer.put(totalPrimaryRefinementsSelected)
-          .put(totalPrimaryRefinementsFinished)
-          .put(totalPrimaryExtraRefinementsSelected)
-          .put(totalPrimaryExtraRefinementsFinished)
-          .spacer();
+            pOut.println("Primary Analysis:");
+            writer
+                .put(totalPrimaryRefinementsSelected)
+                .put(totalPrimaryRefinementsFinished)
+                .put(totalPrimaryExtraRefinementsSelected)
+                .put(totalPrimaryExtraRefinementsFinished)
+                .spacer();
 
-        pOut.println("Secondary Analysis:");
-        writer.put(totalSecondaryRefinementsSelected)
-          .put(totalSecondaryRefinementsFinished)
-          .put(totalSecondaryExtraRefinementsSelected)
-          .put(totalSecondaryExtraRefinementsFinished);
-      }
-    });
+            pOut.println("Secondary Analysis:");
+            writer
+                .put(totalSecondaryRefinementsSelected)
+                .put(totalSecondaryRefinementsFinished)
+                .put(totalSecondaryExtraRefinementsSelected)
+                .put(totalSecondaryExtraRefinementsFinished);
+          }
+        });
 
     if (primaryRefiner instanceof StatisticsProvider) {
-      ((StatisticsProvider)primaryRefiner).collectStatistics(pStatsCollection);
+      ((StatisticsProvider) primaryRefiner).collectStatistics(pStatsCollection);
     }
     if (secondaryRefiner instanceof StatisticsProvider) {
-      ((StatisticsProvider)secondaryRefiner).collectStatistics(pStatsCollection);
+      ((StatisticsProvider) secondaryRefiner).collectStatistics(pStatsCollection);
     }
   }
 }
-

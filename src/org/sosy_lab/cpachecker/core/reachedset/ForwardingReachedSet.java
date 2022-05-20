@@ -27,8 +27,8 @@ import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.statistics.AbstractStatValue;
 
 /**
- * Implementation of ReachedSet that forwards all calls to another instance.
- * The target instance is changable.
+ * Implementation of ReachedSet that forwards all calls to another instance. The target instance is
+ * changable.
  */
 public class ForwardingReachedSet implements ReachedSet, StatisticsProvider {
 
@@ -98,8 +98,7 @@ public class ForwardingReachedSet implements ReachedSet, StatisticsProvider {
   }
 
   @Override
-  public Precision getPrecision(AbstractState pState)
-      throws UnsupportedOperationException {
+  public Precision getPrecision(AbstractState pState) throws UnsupportedOperationException {
     return delegate.getPrecision(pState);
   }
 
@@ -124,8 +123,7 @@ public class ForwardingReachedSet implements ReachedSet, StatisticsProvider {
   }
 
   @Override
-  public void add(AbstractState pState, Precision pPrecision)
-      throws IllegalArgumentException {
+  public void add(AbstractState pState, Precision pPrecision) throws IllegalArgumentException {
     delegate.add(pState, pPrecision);
   }
 

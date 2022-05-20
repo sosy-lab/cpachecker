@@ -16,16 +16,19 @@ import org.sosy_lab.cpachecker.cfa.ast.AFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 
-
 public class FunctionCallEdge extends AbstractCFAEdge {
 
   private static final long serialVersionUID = -7848426105619928428L;
   protected final AFunctionCall functionCall;
   protected final FunctionSummaryEdge summaryEdge;
 
-
-  protected FunctionCallEdge(String pRawStatement, FileLocation pFileLocation, CFANode pPredecessor, CFANode pSuccessor,
-      AFunctionCall pFunctionCall, FunctionSummaryEdge pSummaryEdge) {
+  protected FunctionCallEdge(
+      String pRawStatement,
+      FileLocation pFileLocation,
+      CFANode pPredecessor,
+      CFANode pSuccessor,
+      AFunctionCall pFunctionCall,
+      FunctionSummaryEdge pSummaryEdge) {
     super(pRawStatement, pFileLocation, pPredecessor, pSuccessor);
     functionCall = pFunctionCall;
     summaryEdge = pSummaryEdge;
@@ -37,7 +40,7 @@ public class FunctionCallEdge extends AbstractCFAEdge {
   }
 
   public FunctionSummaryEdge getSummaryEdge() {
-    return  summaryEdge;
+    return summaryEdge;
   }
 
   public AFunctionCall getFunctionCall() {
@@ -65,6 +68,6 @@ public class FunctionCallEdge extends AbstractCFAEdge {
   @Override
   public FunctionEntryNode getSuccessor() {
     // the constructor enforces that the successor is always a FunctionEntryNode
-    return (FunctionEntryNode)super.getSuccessor();
+    return (FunctionEntryNode) super.getSuccessor();
   }
 }

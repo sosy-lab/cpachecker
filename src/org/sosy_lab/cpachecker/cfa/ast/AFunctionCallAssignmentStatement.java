@@ -10,8 +10,8 @@ package org.sosy_lab.cpachecker.cfa.ast;
 
 import java.util.Objects;
 
-public abstract class AFunctionCallAssignmentStatement extends AbstractStatement implements AAssignment, AFunctionCall {
-
+public abstract class AFunctionCallAssignmentStatement extends AbstractStatement
+    implements AAssignment, AFunctionCall {
 
   private static final long serialVersionUID = 715848925972223832L;
   private final ALeftHandSide leftHandSide;
@@ -25,7 +25,6 @@ public abstract class AFunctionCallAssignmentStatement extends AbstractStatement
 
     leftHandSide = pLeftHandSide;
     rightHandSide = pRightHandSide;
-
   }
 
   @Override
@@ -33,12 +32,10 @@ public abstract class AFunctionCallAssignmentStatement extends AbstractStatement
     return leftHandSide;
   }
 
-
   @Override
   public AFunctionCallExpression getRightHandSide() {
     return rightHandSide;
   }
-
 
   @Override
   public AFunctionCallExpression getFunctionCallExpression() {
@@ -74,15 +71,13 @@ public abstract class AFunctionCallAssignmentStatement extends AbstractStatement
       return true;
     }
 
-    if (!(obj instanceof AFunctionCallAssignmentStatement)
-        || !super.equals(obj)) {
+    if (!(obj instanceof AFunctionCallAssignmentStatement) || !super.equals(obj)) {
       return false;
     }
 
     AFunctionCallAssignmentStatement other = (AFunctionCallAssignmentStatement) obj;
 
     return Objects.equals(other.leftHandSide, leftHandSide)
-            && Objects.equals(other.rightHandSide, rightHandSide);
+        && Objects.equals(other.rightHandSide, rightHandSide);
   }
-
 }

@@ -22,7 +22,8 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownSymValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGValue;
 import org.sosy_lab.cpachecker.cpa.smg.join.SMGJoinStatus;
 
-public abstract class SMGAbstractListCandidateSequence<C extends SMGListCandidate<?>> implements SMGAbstractionCandidate {
+public abstract class SMGAbstractListCandidateSequence<C extends SMGListCandidate<?>>
+    implements SMGAbstractionCandidate {
 
   protected final C candidate;
   protected final int length;
@@ -76,20 +77,22 @@ public abstract class SMGAbstractListCandidateSequence<C extends SMGListCandidat
     return false;
   }
 
-  protected void addPointsToEdges(CLangSMG pSMG, SMGObject targetObject, SMGObject newAbsObj, SMGTargetSpecifier direction) {
+  protected void addPointsToEdges(
+      CLangSMG pSMG, SMGObject targetObject, SMGObject newAbsObj, SMGTargetSpecifier direction) {
     Map<Long, SMGValue> reached = new HashMap<>();
     for (SMGEdgePointsTo pte : SMGUtils.getPointerToThisObject(targetObject, pSMG)) {
       pSMG.removePointsToEdge(pte.getValue());
 
       if (pte.getTargetSpecifier() == SMGTargetSpecifier.ALL) {
-        pSMG.addPointsToEdge(new SMGEdgePointsTo(pte.getValue(), newAbsObj, pte.getOffset(),
-            SMGTargetSpecifier.ALL));
+        pSMG.addPointsToEdge(
+            new SMGEdgePointsTo(
+                pte.getValue(), newAbsObj, pte.getOffset(), SMGTargetSpecifier.ALL));
       } else {
         if (reached.containsKey(pte.getOffset())) {
           pSMG.replaceValue(reached.get(pte.getOffset()), pte.getValue());
         } else {
-          SMGEdgePointsTo newPte = new SMGEdgePointsTo(pte.getValue(), newAbsObj, pte.getOffset(),
-              direction);
+          SMGEdgePointsTo newPte =
+              new SMGEdgePointsTo(pte.getValue(), newAbsObj, pte.getOffset(), direction);
           pSMG.addPointsToEdge(newPte);
           reached.put(newPte.getOffset(), newPte.getValue());
         }

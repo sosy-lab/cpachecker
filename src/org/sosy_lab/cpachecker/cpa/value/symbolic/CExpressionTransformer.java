@@ -42,8 +42,8 @@ import org.sosy_lab.cpachecker.util.states.MemoryLocation;
  * Class for transforming {@link CExpression} objects into their {@link SymbolicExpression}
  * representation.
  *
- * <p>Always use {@link #transform} to create correct representations.
- * Otherwise, correctness can't be assured.</p>
+ * <p>Always use {@link #transform} to create correct representations. Otherwise, correctness can't
+ * be assured.
  */
 public class CExpressionTransformer extends ExpressionTransformer
     implements CRightHandSideVisitor<SymbolicExpression, UnrecognizedCodeException> {
@@ -57,8 +57,7 @@ public class CExpressionTransformer extends ExpressionTransformer
       final String pFunctionName,
       final ValueAnalysisState pValueState,
       final MachineModel pMachineModel,
-      final LogManagerWithoutDuplicates pLogger
-  ) {
+      final LogManagerWithoutDuplicates pLogger) {
     super(pFunctionName, pValueState);
 
     machineModel = pMachineModel;
@@ -151,15 +150,16 @@ public class CExpressionTransformer extends ExpressionTransformer
 
     switch (operator) {
       case MINUS:
-      case TILDE: {
-        SymbolicExpression operand = pIastUnaryExpression.getOperand().accept(this);
+      case TILDE:
+        {
+          SymbolicExpression operand = pIastUnaryExpression.getOperand().accept(this);
 
-        if (operand == null) {
-          return null;
-        } else {
-          return transformUnaryArithmetic(operator, operand, expressionType);
+          if (operand == null) {
+            return null;
+          } else {
+            return transformUnaryArithmetic(operator, operand, expressionType);
+          }
         }
-      }
 
       default:
         return null; // TODO: amper, alignof, sizeof with own expressions
@@ -169,8 +169,7 @@ public class CExpressionTransformer extends ExpressionTransformer
   private SymbolicExpression transformUnaryArithmetic(
       final CUnaryExpression.UnaryOperator pOperator,
       final SymbolicExpression pOperand,
-      final Type pExpressionType
-  ) {
+      final Type pExpressionType) {
     switch (pOperator) {
       case MINUS:
         return factory.negate(pOperand, pExpressionType);
@@ -277,7 +276,6 @@ public class CExpressionTransformer extends ExpressionTransformer
   private ExpressionValueVisitor getValueVisitor(final ValueAnalysisState pState) {
     return new ExpressionValueVisitor(pState, functionName, machineModel, logger);
   }
-
 
   @Override
   public SymbolicExpression visit(final CFunctionCallExpression pIastFunctionCallExpression)

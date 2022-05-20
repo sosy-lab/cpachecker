@@ -12,51 +12,38 @@ import static com.google.common.base.Preconditions.checkNotNull;
 
 import com.google.common.base.Joiner;
 import com.google.common.collect.FluentIterable;
-
+import java.util.BitSet;
+import java.util.Objects;
 import org.sosy_lab.cpachecker.core.defaults.LatticeAbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Graphable;
 import org.sosy_lab.cpachecker.util.LiveVariables;
-
-import java.util.BitSet;
-import java.util.Objects;
-
 
 class LiveVariablesState implements LatticeAbstractState<LiveVariablesState>, Graphable {
 
   private final BitSet liveVars;
   private final LiveVariablesTransferRelation manager;
 
-  private LiveVariablesState(
-      BitSet pLiveVariables,
-      LiveVariablesTransferRelation pManager) {
+  private LiveVariablesState(BitSet pLiveVariables, LiveVariablesTransferRelation pManager) {
     manager = pManager;
     checkNotNull(pLiveVariables);
     liveVars = pLiveVariables;
   }
 
-  static LiveVariablesState empty(
-      int totalNoVars,
-      LiveVariablesTransferRelation pManager) {
+  static LiveVariablesState empty(int totalNoVars, LiveVariablesTransferRelation pManager) {
     return new LiveVariablesState(new BitSet(totalNoVars), pManager);
   }
 
-  static LiveVariablesState of(
-      BitSet pLiveVars,
-      LiveVariablesTransferRelation pManager
-  ) {
+  static LiveVariablesState of(BitSet pLiveVars, LiveVariablesTransferRelation pManager) {
     return new LiveVariablesState((BitSet) pLiveVars.clone(), pManager);
   }
 
   /**
-   * Create new LiveVariablesState, but do not defensively copy the data:
-   * the caller has to ensure that no other copies of {@code pLiveVars} exist.
+   * Create new LiveVariablesState, but do not defensively copy the data: the caller has to ensure
+   * that no other copies of {@code pLiveVars} exist.
    *
    * <p>Use at your own risk.
    */
-  static LiveVariablesState ofUnique(
-      BitSet pLiveVars,
-      LiveVariablesTransferRelation pManager
-  ) {
+  static LiveVariablesState ofUnique(BitSet pLiveVars, LiveVariablesTransferRelation pManager) {
     return new LiveVariablesState(pLiveVars, pManager);
   }
 
@@ -66,7 +53,7 @@ class LiveVariablesState implements LatticeAbstractState<LiveVariablesState>, Gr
   }
 
   boolean isSubsetOf(LiveVariablesState pState2) {
-    BitSet copy = (BitSet)liveVars.clone();
+    BitSet copy = (BitSet) liveVars.clone();
     copy.or(pState2.liveVars);
     return copy.equals(pState2.liveVars);
   }
@@ -76,17 +63,16 @@ class LiveVariablesState implements LatticeAbstractState<LiveVariablesState>, Gr
   }
 
   boolean containsAny(BitSet data) {
-    BitSet copy = (BitSet)liveVars.clone();
+    BitSet copy = (BitSet) liveVars.clone();
     copy.and(data);
     return !copy.isEmpty();
   }
 
   LiveVariablesState removeLiveVariable(int posToRemove) {
-    BitSet copy = (BitSet)liveVars.clone();
+    BitSet copy = (BitSet) liveVars.clone();
     copy.clear(posToRemove);
     return LiveVariablesState.ofUnique(copy, manager);
   }
-
 
   @Override
   public int hashCode() {
@@ -110,7 +96,7 @@ class LiveVariablesState implements LatticeAbstractState<LiveVariablesState>, Gr
 
   @Override
   public LiveVariablesState join(LiveVariablesState pOther) {
-    BitSet copy = (BitSet)liveVars.clone();
+    BitSet copy = (BitSet) liveVars.clone();
     copy.or(pOther.liveVars);
     if (copy.equals(pOther.liveVars)) {
       return pOther;
@@ -139,9 +125,8 @@ class LiveVariablesState implements LatticeAbstractState<LiveVariablesState>, Gr
   }
 
   private Iterable<String> toStringIterable() {
-    return FluentIterable.from(manager.dataToVars(liveVars)).transform(
-        LiveVariables.FROM_EQUIV_WRAPPER_TO_STRING
-    );
+    return FluentIterable.from(manager.dataToVars(liveVars))
+        .transform(LiveVariables.FROM_EQUIV_WRAPPER_TO_STRING);
   }
 
   BitSet getDataCopy() {
@@ -152,5 +137,4 @@ class LiveVariablesState implements LatticeAbstractState<LiveVariablesState>, Gr
   public boolean shouldBeHighlighted() {
     return false;
   }
-
 }

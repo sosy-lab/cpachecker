@@ -52,9 +52,9 @@ import org.sosy_lab.cpachecker.util.refinement.PathExtractor;
 import org.sosy_lab.cpachecker.util.refinement.PathInterpolator;
 
 /**
- * Refiner for {@link ValueAnalysisCPA} using symbolic values and
- * {@link org.sosy_lab.cpachecker.cpa.constraints.ConstraintsCPA ConstraintsCPA}
- * that tries to refine precision using only the {@link ValueAnalysisCPA}, first.
+ * Refiner for {@link ValueAnalysisCPA} using symbolic values and {@link
+ * org.sosy_lab.cpachecker.cpa.constraints.ConstraintsCPA ConstraintsCPA} that tries to refine
+ * precision using only the {@link ValueAnalysisCPA}, first.
  */
 public class SymbolicDelegatingRefiner implements ARGBasedRefiner, StatisticsProvider {
 
@@ -89,14 +89,11 @@ public class SymbolicDelegatingRefiner implements ARGBasedRefiner, StatisticsPro
     final ShutdownNotifier shutdownNotifier = valueAnalysisCpa.getShutdownNotifier();
 
     final SymbolicStrongestPostOperator symbolicStrongestPost =
-        new ValueTransferBasedStrongestPostOperator(constraintsCpa.getSolver(), logger, config,
-            cfa);
+        new ValueTransferBasedStrongestPostOperator(
+            constraintsCpa.getSolver(), logger, config, cfa);
 
     final SymbolicFeasibilityChecker feasibilityChecker =
-        new SymbolicValueAnalysisFeasibilityChecker(symbolicStrongestPost,
-            config,
-            logger,
-            cfa);
+        new SymbolicValueAnalysisFeasibilityChecker(symbolicStrongestPost, config, logger, cfa);
 
     final GenericPrefixProvider<ForgettingCompositeState> symbolicPrefixProvider =
         new GenericPrefixProvider<>(
@@ -109,7 +106,8 @@ public class SymbolicDelegatingRefiner implements ARGBasedRefiner, StatisticsPro
             shutdownNotifier);
 
     final ElementTestingSymbolicEdgeInterpolator symbolicEdgeInterpolator =
-        new ElementTestingSymbolicEdgeInterpolator(feasibilityChecker,
+        new ElementTestingSymbolicEdgeInterpolator(
+            feasibilityChecker,
             symbolicStrongestPost,
             SymbolicInterpolantManager.getInstance(),
             config,
@@ -165,7 +163,10 @@ public class SymbolicDelegatingRefiner implements ARGBasedRefiner, StatisticsPro
             explicitFeasibilityChecker,
             explicitPrefixProvider,
             SymbolicInterpolantManager.getInstance(),
-            config, logger, shutdownNotifier, cfa);
+            config,
+            logger,
+            shutdownNotifier,
+            cfa);
 
     return new SymbolicDelegatingRefiner(
         feasibilityChecker,
@@ -215,32 +216,34 @@ public class SymbolicDelegatingRefiner implements ARGBasedRefiner, StatisticsPro
 
   @Override
   public void collectStatistics(Collection<Statistics> statsCollection) {
-    statsCollection.add(new Statistics() {
-      @Override
-      public void printStatistics(PrintStream out, Result result, UnmodifiableReachedSet reached) {
-        out.println("Explicit refinements: " + explicitRefinements);
-        out.println("Successful explicit refinements: " + successfulExplicitRefinements);
-        out.println("Symbolic refinements: " + symbolicRefinements);
-        out.println("Successful symbolic refinements: " + successfulSymbolicRefinements);
-        out.println("Overall explicit refinement time: " + explicitRefinementTime.getSumTime());
-        out.println("Average explicit refinement time: " + explicitRefinementTime.getAvgTime());
-        out.println("Overall symbolic refinement time: " + symbolicRefinementTime.getSumTime());
-        out.println("Average symbolic refinement time: " + symbolicRefinementTime.getAvgTime());
-      }
+    statsCollection.add(
+        new Statistics() {
+          @Override
+          public void printStatistics(
+              PrintStream out, Result result, UnmodifiableReachedSet reached) {
+            out.println("Explicit refinements: " + explicitRefinements);
+            out.println("Successful explicit refinements: " + successfulExplicitRefinements);
+            out.println("Symbolic refinements: " + symbolicRefinements);
+            out.println("Successful symbolic refinements: " + successfulSymbolicRefinements);
+            out.println("Overall explicit refinement time: " + explicitRefinementTime.getSumTime());
+            out.println("Average explicit refinement time: " + explicitRefinementTime.getAvgTime());
+            out.println("Overall symbolic refinement time: " + symbolicRefinementTime.getSumTime());
+            out.println("Average symbolic refinement time: " + symbolicRefinementTime.getAvgTime());
+          }
 
-      @Nullable
-      @Override
-      public String getName() {
-        return SymbolicDelegatingRefiner.class.getSimpleName();
-      }
-    });
+          @Nullable
+          @Override
+          public String getName() {
+            return SymbolicDelegatingRefiner.class.getSimpleName();
+          }
+        });
 
     symbolicRefiner.collectStatistics(statsCollection);
   }
 
   @Override
-  public CounterexampleInfo performRefinementForPath(
-      ARGReachedSet pReached, ARGPath pPath) throws CPAException, InterruptedException {
+  public CounterexampleInfo performRefinementForPath(ARGReachedSet pReached, ARGPath pPath)
+      throws CPAException, InterruptedException {
     logger.log(Level.FINER, "Trying to refine using explicit refiner only");
     explicitRefinements++;
     explicitRefinementTime.start();
@@ -258,8 +261,10 @@ public class SymbolicDelegatingRefiner implements ARGBasedRefiner, StatisticsPro
       cex = symbolicRefiner.performRefinementForPath(pReached, pPath);
 
       symbolicRefinementTime.stop();
-      logger.logf(Level.FINER,
-          "Refinement using symbolic refiner finished with status %s", cex.isSpurious());
+      logger.logf(
+          Level.FINER,
+          "Refinement using symbolic refiner finished with status %s",
+          cex.isSpurious());
 
       if (cex.isSpurious()) {
         successfulSymbolicRefinements++;

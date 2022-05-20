@@ -130,9 +130,12 @@ abstract class AbstractBMCAlgorithm
         != ReachabilityState.IRRELEVANT_TO_TARGET;
   }
 
-  @Option(secure=true, description = "If BMC did not find a bug, check whether "
-      + "the bounding did actually remove parts of the state space "
-      + "(this is similar to CBMC's unwinding assertions).")
+  @Option(
+      secure = true,
+      description =
+          "If BMC did not find a bug, check whether "
+              + "the bounding did actually remove parts of the state space "
+              + "(this is similar to CBMC's unwinding assertions).")
   private boolean boundingAssertions = true;
 
   @Option(
@@ -142,11 +145,12 @@ abstract class AbstractBMCAlgorithm
               + "and prevent them from being unrolled any further.")
   private boolean boundingAssertionsSlicing = false;
 
-  @Option(secure=true, description="try using induction to verify programs with loops")
+  @Option(secure = true, description = "try using induction to verify programs with loops")
   private boolean induction = false;
 
-  @Option(secure=true, description="Strategy for generating auxiliary invariants")
-  private InvariantGeneratorFactory invariantGenerationStrategy = InvariantGeneratorFactory.REACHED_SET;
+  @Option(secure = true, description = "Strategy for generating auxiliary invariants")
+  private InvariantGeneratorFactory invariantGenerationStrategy =
+      InvariantGeneratorFactory.REACHED_SET;
 
   @Option(
       secure = true,
@@ -164,13 +168,12 @@ abstract class AbstractBMCAlgorithm
   @FileOption(value = Type.OPTIONAL_INPUT_FILE)
   private @Nullable Path invariantGeneratorConfig = null;
 
-  @Option(secure=true, description="Propagates the interrupts of the invariant generator.")
+  @Option(secure = true, description = "Propagates the interrupts of the invariant generator.")
   private boolean propagateInvGenInterrupts = false;
 
   @Option(
-    secure = true,
-    description = "Use generalized counterexamples to induction as candidate invariants."
-  )
+      secure = true,
+      description = "Use generalized counterexamples to induction as candidate invariants.")
   private boolean usePropertyDirection = false;
 
   @Option(
@@ -273,22 +276,25 @@ abstract class AbstractBMCAlgorithm
     }
 
     ShutdownManager invariantGeneratorShutdownManager = pShutdownManager;
-    boolean addInvariantsByInduction = invariantGenerationStrategy == InvariantGeneratorFactory.INDUCTION;
+    boolean addInvariantsByInduction =
+        invariantGenerationStrategy == InvariantGeneratorFactory.INDUCTION;
     if (addInvariantsByInduction) {
       if (propagateInvGenInterrupts) {
         invariantGeneratorShutdownManager = pShutdownManager;
       } else {
-        invariantGeneratorShutdownManager = ShutdownManager.createWithParent(pShutdownManager.getNotifier());
+        invariantGeneratorShutdownManager =
+            ShutdownManager.createWithParent(pShutdownManager.getNotifier());
       }
-      propagateSafetyInterrupt = new ShutdownRequestListener() {
+      propagateSafetyInterrupt =
+          new ShutdownRequestListener() {
 
-        @Override
-        public void shutdownRequested(String pReason) {
-          if (invariantGenerator != null && invariantGenerator.isProgramSafe()) {
-            pShutdownManager.requestShutdown(pReason);
-          }
-        }
-      };
+            @Override
+            public void shutdownRequested(String pReason) {
+              if (invariantGenerator != null && invariantGenerator.isProgramSafe()) {
+                pShutdownManager.requestShutdown(pReason);
+              }
+            }
+          };
       invariantGeneratorShutdownManager.getNotifier().register(propagateSafetyInterrupt);
     } else {
       propagateSafetyInterrupt = null;
@@ -307,9 +313,7 @@ abstract class AbstractBMCAlgorithm
                 .build();
       } catch (IOException e) {
         throw new InvalidConfigurationException(
-            String.format(
-                "Cannot load configuration from file %s", invariantGeneratorConfig),
-            e);
+            String.format("Cannot load configuration from file %s", invariantGeneratorConfig), e);
       }
     }
     invariantGenerator =
@@ -349,9 +353,8 @@ abstract class AbstractBMCAlgorithm
     return true;
   }
 
-  public AlgorithmStatus run(final ReachedSet reachedSet) throws CPAException,
-      SolverException,
-      InterruptedException {
+  public AlgorithmStatus run(final ReachedSet reachedSet)
+      throws CPAException, SolverException, InterruptedException {
     CFANode initialLocation = extractLocation(reachedSet.getFirstState());
     invariantGenerator.start(initialLocation);
 
@@ -423,7 +426,10 @@ abstract class AbstractBMCAlgorithm
         if (status.isSound()) {
 
           // check bounding assertions
-          sound = candidateGenerator.hasCandidatesAvailable() ? checkBoundingAssertions(reachedSet, prover) : true;
+          sound =
+              candidateGenerator.hasCandidatesAvailable()
+                  ? checkBoundingAssertions(reachedSet, prover)
+                  : true;
 
           if (invariantGenerator.isProgramSafe()) {
             return AlgorithmStatus.SOUND_AND_PRECISE;
@@ -440,8 +446,9 @@ abstract class AbstractBMCAlgorithm
             }
             try (@SuppressWarnings("resource")
                 KInductionProver kInductionProver = createInductionProver()) {
-            sound =
-                checkStepCase(reachedSet, candidateGenerator, kInductionProver, ctiBlockingClauses);
+              sound =
+                  checkStepCase(
+                      reachedSet, candidateGenerator, kInductionProver, ctiBlockingClauses);
             }
           }
           if (invariantGenerator.isProgramSafe()
@@ -454,8 +461,7 @@ abstract class AbstractBMCAlgorithm
           // no remaining invariants to be proven
           return status;
         }
-      }
-      while (status.isSound() && adjustConditions());
+      } while (status.isSound() && adjustConditions());
     }
 
     return AlgorithmStatus.UNSOUND_AND_PRECISE;
@@ -509,8 +515,7 @@ abstract class AbstractBMCAlgorithm
               lifting);
       if (inductionResult.isSuccessful()) {
         Iterables.addAll(
-            confirmedCandidates,
-            CandidateInvariantCombination.getConjunctiveParts(candidate));
+            confirmedCandidates, CandidateInvariantCombination.getConjunctiveParts(candidate));
         candidateGenerator.confirmCandidates(
             CandidateInvariantCombination.getConjunctiveParts(candidate));
         if (candidate == TargetLocationCandidateInvariant.INSTANCE) {
@@ -830,11 +835,11 @@ abstract class AbstractBMCAlgorithm
   @Override
   public void collectStatistics(Collection<Statistics> pStatsCollection) {
     if (algorithm instanceof StatisticsProvider) {
-      ((StatisticsProvider)algorithm).collectStatistics(pStatsCollection);
+      ((StatisticsProvider) algorithm).collectStatistics(pStatsCollection);
     }
     pStatsCollection.add(stats);
     if (invariantGenerator instanceof StatisticsProvider) {
-      ((StatisticsProvider)invariantGenerator).collectStatistics(pStatsCollection);
+      ((StatisticsProvider) invariantGenerator).collectStatistics(pStatsCollection);
     }
   }
 
@@ -886,16 +891,15 @@ abstract class AbstractBMCAlgorithm
           AggregatedReachedSets pAggregatedReachedSets,
           TargetLocationProvider pTargetLocationProvider)
           throws InvalidConfigurationException, CPAException, InterruptedException {
-        return
-            KInductionInvariantGenerator.create(
-                pConfig,
-                pLogger,
-                pShutdownManager,
-                pCFA,
-                pSpecification,
-                pReachedSetFactory,
-                pTargetLocationProvider,
-                pAggregatedReachedSets);
+        return KInductionInvariantGenerator.create(
+            pConfig,
+            pLogger,
+            pShutdownManager,
+            pCFA,
+            pSpecification,
+            pReachedSetFactory,
+            pTargetLocationProvider,
+            pAggregatedReachedSets);
       }
     },
 

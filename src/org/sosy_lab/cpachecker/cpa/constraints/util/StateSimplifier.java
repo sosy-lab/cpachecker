@@ -37,18 +37,16 @@ import org.sosy_lab.cpachecker.cpa.value.type.Value;
 public class StateSimplifier {
 
   @Option(
-    description =
-        "Whether to remove trivial constraints from constraints states during simplification",
-    secure = true
-  )
+      description =
+          "Whether to remove trivial constraints from constraints states during simplification",
+      secure = true)
   private boolean removeTrivial = false;
 
   @Option(
-    description =
-        "Whether to remove constraints that can't add any more information to"
-            + "analysis during simplification",
-    secure = true
-  )
+      description =
+          "Whether to remove constraints that can't add any more information to"
+              + "analysis during simplification",
+      secure = true)
   private boolean removeOutdated = true;
 
   private final ConstraintsStatistics stats;
@@ -133,7 +131,6 @@ public class StateSimplifier {
           break;
         case ACTIVE:
         case UNUSED:
-
           if (!symbolicValues.contains(currId)) {
             boolean canBeRemoved;
             if (s.getUsingConstraints().size() < 2) {
@@ -145,10 +142,8 @@ public class StateSimplifier {
               s.disable();
               Set<ActivityInfo> parent = new HashSet<>();
               parent.add(s);
-              canBeRemoved = removeOutdatedConstraints0(symIdActivity,
-                  symbolicValues,
-                  e.getValue(),
-                  parent);
+              canBeRemoved =
+                  removeOutdatedConstraints0(symIdActivity, symbolicValues, e.getValue(), parent);
             }
 
             if (canBeRemoved) {
@@ -169,8 +164,7 @@ public class StateSimplifier {
       final Map<ActivityInfo, Set<ActivityInfo>> pSymIdActivity,
       final Set<SymbolicIdentifier> pExistingValues,
       final Set<ActivityInfo> targets,
-      final Set<ActivityInfo> parents
-  ) {
+      final Set<ActivityInfo> parents) {
 
     for (ActivityInfo t : targets) {
       if (pExistingValues.contains(t.getIdentifier())) {
@@ -190,8 +184,8 @@ public class StateSimplifier {
           dependents.removeAll(parents);
 
           // remove all infos already known as deletable
-          Iterables.removeIf(dependents,
-              pActivityInfo -> pActivityInfo.getActivity() == Activity.DELETED);
+          Iterables.removeIf(
+              dependents, pActivityInfo -> pActivityInfo.getActivity() == Activity.DELETED);
 
           if (dependents.isEmpty()) {
             t.markDeleted();
@@ -199,10 +193,8 @@ public class StateSimplifier {
           }
 
           parents.add(t);
-          boolean success = removeOutdatedConstraints0(pSymIdActivity,
-              pExistingValues,
-              dependents,
-              parents);
+          boolean success =
+              removeOutdatedConstraints0(pSymIdActivity, pExistingValues, dependents, parents);
 
           if (!success) {
             return false;
@@ -242,8 +234,7 @@ public class StateSimplifier {
   }
 
   private Map<ActivityInfo, Set<ActivityInfo>> getInitialActivityMap(
-      final ConstraintsState pState
-  ) {
+      final ConstraintsState pState) {
 
     Map<ActivityInfo, Set<ActivityInfo>> activityMap = new HashMap<>();
 
@@ -273,9 +264,7 @@ public class StateSimplifier {
   }
 
   private Set<ActivityInfo> createActivitySet(
-      final Set<SymbolicIdentifier> pIdentifiers,
-      final Constraint pUsingConstraint
-  ) {
+      final Set<SymbolicIdentifier> pIdentifiers, final Constraint pUsingConstraint) {
     final Set<ActivityInfo> activitySet = new HashSet<>();
 
     for (SymbolicIdentifier i : pIdentifiers) {
@@ -285,19 +274,21 @@ public class StateSimplifier {
     return activitySet;
   }
 
-  private enum Activity { ACTIVE, UNUSED, DELETED }
+  private enum Activity {
+    ACTIVE,
+    UNUSED,
+    DELETED
+  }
 
   private static final class ActivityInfo {
-    private final static Map<SymbolicIdentifier, ActivityInfo> infos = new HashMap<>();
+    private static final Map<SymbolicIdentifier, ActivityInfo> infos = new HashMap<>();
 
     private final SymbolicIdentifier identifier;
     private Set<Constraint> usingConstraints;
     private Activity activity;
 
     static ActivityInfo getInfo(
-        final SymbolicIdentifier pIdentifier,
-        final Constraint pConstraint
-    ) {
+        final SymbolicIdentifier pIdentifier, final Constraint pConstraint) {
 
       if (infos.containsKey(pIdentifier)) {
         ActivityInfo info = infos.get(pIdentifier);
@@ -359,7 +350,7 @@ public class StateSimplifier {
         return false;
       }
 
-      ActivityInfo that = (ActivityInfo)o;
+      ActivityInfo that = (ActivityInfo) o;
 
       return SymbolicValues.representSameSymbolicMeaning(identifier, that.identifier);
     }

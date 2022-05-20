@@ -243,8 +243,13 @@ public class SMGInterpolant implements Interpolant<Collection<SMGState>, SMGInte
 
     @Override
     public String toString() {
-      return "SMGPrecisionIncrement [pathsToTrack=" + pathsToTrack + ", abstractionBlock="
-          + abstractionBlock + ", stackVariablesToTrack=" + stackVariablesToTrack + "]";
+      return "SMGPrecisionIncrement [pathsToTrack="
+          + pathsToTrack
+          + ", abstractionBlock="
+          + abstractionBlock
+          + ", stackVariablesToTrack="
+          + stackVariablesToTrack
+          + "]";
     }
 
     public SMGPrecisionIncrement join(SMGPrecisionIncrement pInc2) {

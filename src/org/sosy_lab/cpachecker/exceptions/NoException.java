@@ -16,8 +16,6 @@ public final class NoException extends RuntimeException {
 
   private static final long serialVersionUID = -249581932019736058L;
 
-  /**
-   * Nope.
-   */
+  /** Nope. */
   private NoException() {}
 }

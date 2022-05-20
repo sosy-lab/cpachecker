@@ -35,7 +35,6 @@ public class CHCState implements AbstractState {
    */
   CHCState caller = null;
 
-
   public CHCState() {
     nodeNumber = 0;
     constraint = new Constraint();
@@ -99,7 +98,7 @@ public class CHCState implements AbstractState {
   }
 
   public void join(CHCState state1) {
-    constraint = ConstraintManager.convexHull(this.constraint,state1.getConstraint());
+    constraint = ConstraintManager.convexHull(this.constraint, state1.getConstraint());
   }
 
   public boolean isBottom() {
@@ -110,7 +109,7 @@ public class CHCState implements AbstractState {
   }
 
   @Override
-  public String toString () {
+  public String toString() {
     return constraint.toString();
   }
 }

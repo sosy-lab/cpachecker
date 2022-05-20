@@ -27,56 +27,45 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 
-/**
- * Instances of this class are acyclic graphs.
- */
+/** Instances of this class are acyclic graphs. */
 class AcyclicGraph {
 
-  /**
-   * The set of nodes.
-   */
+  /** The set of nodes. */
   private final Set<CFANode> nodes = new HashSet<>();
 
-  /**
-   * The set of edges.
-   */
+  /** The set of edges. */
   private final Multimap<CFANode, CFAEdge> edges = LinkedHashMultimap.create();
 
-  /**
-   * The set of uncommitted nodes.
-   */
+  /** The set of uncommitted nodes. */
   private final Set<CFANode> uncommittedNodes = new HashSet<>();
 
-  /**
-   * The set of uncommitted edges.
-   */
+  /** The set of uncommitted edges. */
   private final Multimap<CFANode, CFAEdge> uncommittedEdges = LinkedHashMultimap.create();
 
-  /**
-   * A predicate that matches edges contained in the subgraph.
-   */
-
+  /** A predicate that matches edges contained in the subgraph. */
   private boolean checkNullContainsEdge(CFAEdge pArg0) {
     return pArg0 != null && containsEdge(pArg0);
   }
 
   /** A function producing those edges leaving a node that are contained in this subgraph. */
-
   private Iterable<CFAEdge> getContainedLeavingEdges(@Nullable CFANode pArg0) {
     if (pArg0 == null) {
       return ImmutableSet.of();
     }
-    return getLeavingEdges(pArg0).filter(edge -> checkNullContainsEdge(edge)).transform(edge -> {
-      if (edge instanceof FunctionCallEdge) {
-        CFAEdge summaryEdge = ((FunctionCallEdge) edge).getSummaryEdge();
-        return containsNode(summaryEdge.getSuccessor()) ? summaryEdge : null;
-      }
-      return edge;
-    }).filter(notNull());
+    return getLeavingEdges(pArg0)
+        .filter(edge -> checkNullContainsEdge(edge))
+        .transform(
+            edge -> {
+              if (edge instanceof FunctionCallEdge) {
+                CFAEdge summaryEdge = ((FunctionCallEdge) edge).getSummaryEdge();
+                return containsNode(summaryEdge.getSuccessor()) ? summaryEdge : null;
+              }
+              return edge;
+            })
+        .filter(notNull());
   }
   /**
-   * Creates a new acyclic graph with the given root node and default growth
-   * strategy.
+   * Creates a new acyclic graph with the given root node and default growth strategy.
    *
    * @param pRoot the root node.
    */
@@ -90,7 +79,9 @@ class AcyclicGraph {
    * @return the nodes of the graph as an unmodifiable set.
    */
   public Iterable<CFANode> getNodes() {
-    return Iterables.concat(Collections.unmodifiableSet(this.nodes), Collections.unmodifiableSet(this.uncommittedNodes));
+    return Iterables.concat(
+        Collections.unmodifiableSet(this.nodes),
+        Collections.unmodifiableSet(this.uncommittedNodes));
   }
 
   /**
@@ -99,7 +90,9 @@ class AcyclicGraph {
    * @return the edges of the graph as an unmodifiable set.
    */
   public Iterable<CFAEdge> getEdges() {
-    return Iterables.concat(Collections.unmodifiableCollection(this.edges.values()), Collections.unmodifiableCollection(this.uncommittedEdges.values()));
+    return Iterables.concat(
+        Collections.unmodifiableCollection(this.edges.values()),
+        Collections.unmodifiableCollection(this.uncommittedEdges.values()));
   }
 
   /**
@@ -127,29 +120,26 @@ class AcyclicGraph {
    *
    * @param pEdge the edge to be added.
    * @param pShutdownNotifier the shutdown notifier to be checked.
-   *
-   * @throws InterruptedException if a shutdown has been requested by the given
-   * shutdown notifier.
-   * @throws IllegalArgumentException if the edge cannot be added according
-   * to the employed growth strategy.
+   * @throws InterruptedException if a shutdown has been requested by the given shutdown notifier.
+   * @throws IllegalArgumentException if the edge cannot be added according to the employed growth
+   *     strategy.
    */
-  public void addEdge(CFAEdge pEdge, ShutdownNotifier pShutdownNotifier) throws InterruptedException {
+  public void addEdge(CFAEdge pEdge, ShutdownNotifier pShutdownNotifier)
+      throws InterruptedException {
     Preconditions.checkArgument(offerEdge(pEdge, pShutdownNotifier));
   }
 
   /**
-   * If the given edge may be added to the graph according to the growth
-   * strategy, it is added but not committed.
+   * If the given edge may be added to the graph according to the growth strategy, it is added but
+   * not committed.
    *
    * @param pEdge the candidate edge.
    * @param pShutdownNotifier the shutdown notifier to be checked.
-   *
    * @return {@code true} if the edge was added, {@code false} otherwise.
-   *
-   * @throws InterruptedException if a shutdown has been requested by the given
-   * shutdown notifier.
+   * @throws InterruptedException if a shutdown has been requested by the given shutdown notifier.
    */
-  public boolean offerEdge(CFAEdge pEdge, ShutdownNotifier pShutdownNotifier) throws InterruptedException {
+  public boolean offerEdge(CFAEdge pEdge, ShutdownNotifier pShutdownNotifier)
+      throws InterruptedException {
     if (containsEdge(pEdge)) {
       return true;
     }
@@ -161,18 +151,14 @@ class AcyclicGraph {
     return true;
   }
 
-  /**
-   * Commits all changes.
-   */
+  /** Commits all changes. */
   public void commit() {
     this.nodes.addAll(uncommittedNodes);
     this.edges.putAll(uncommittedEdges);
     abort();
   }
 
-  /**
-   * Aborts all changes.
-   */
+  /** Aborts all changes. */
   public void abort() {
     this.uncommittedNodes.clear();
     this.uncommittedEdges.clear();
@@ -184,19 +170,16 @@ class AcyclicGraph {
   }
 
   /**
-   * Checks if the given control flow edge would introduce a loop to the
-   * graph if it was added.
+   * Checks if the given control flow edge would introduce a loop to the graph if it was added.
    *
    * @param pEdge the edge to check.
    * @param pShutdownNotifier the shutdown notifier to be checked.
-   *
-   * @return {@code true} if adding the edge would introduce a loop to the
-   * graph, {@code false} otherwise.
-   *
-   * @throws InterruptedException if a shutdown has been requested by the given
-   * shutdown notifier.
+   * @return {@code true} if adding the edge would introduce a loop to the graph, {@code false}
+   *     otherwise.
+   * @throws InterruptedException if a shutdown has been requested by the given shutdown notifier.
    */
-  public boolean introducesLoop(CFAEdge pEdge, ShutdownNotifier pShutdownNotifier) throws InterruptedException {
+  public boolean introducesLoop(CFAEdge pEdge, ShutdownNotifier pShutdownNotifier)
+      throws InterruptedException {
     return CFAUtils.existsPath(
         pEdge.getSuccessor(),
         pEdge.getPredecessor(),
@@ -208,7 +191,6 @@ class AcyclicGraph {
    * Gets the edges leaving the given node.
    *
    * @param pNode the node.
-   *
    * @return the edges leaving the node.
    */
   private FluentIterable<CFAEdge> getLeavingEdges(CFANode pNode) {
@@ -219,7 +201,6 @@ class AcyclicGraph {
    * Resets the graph and aborts all changes.
    *
    * @param pNewRootNode the new root node.
-   *
    * @return this graph with all nodes and edges removed.
    */
   public AcyclicGraph reset(CFANode pNewRootNode) {

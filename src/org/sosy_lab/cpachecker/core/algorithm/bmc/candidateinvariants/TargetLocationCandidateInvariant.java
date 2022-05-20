@@ -23,7 +23,6 @@ import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 
 public enum TargetLocationCandidateInvariant implements CandidateInvariant {
-
   INSTANCE;
 
   @Override
@@ -37,8 +36,9 @@ public enum TargetLocationCandidateInvariant implements CandidateInvariant {
       Iterable<AbstractState> pReachedSet, FormulaManagerView pFMGR, PathFormulaManager pPFMGR)
       throws InterruptedException {
     Iterable<AbstractState> targetStates = filterApplicable(pReachedSet);
-    return pFMGR.getBooleanFormulaManager().not(
-        BMCHelper.createFormulaFor(targetStates, pFMGR.getBooleanFormulaManager()));
+    return pFMGR
+        .getBooleanFormulaManager()
+        .not(BMCHelper.createFormulaFor(targetStates, pFMGR.getBooleanFormulaManager()));
   }
 
   @Override

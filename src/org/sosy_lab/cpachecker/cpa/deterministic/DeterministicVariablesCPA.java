@@ -40,6 +40,6 @@ public class DeterministicVariablesCPA extends AbstractCPA implements Statistics
 
   @Override
   public void collectStatistics(Collection<Statistics> pStatsCollection) {
-    pStatsCollection.add((DeterministicVariablesTransferRelation)getTransferRelation());
+    pStatsCollection.add((DeterministicVariablesTransferRelation) getTransferRelation());
   }
 }

@@ -103,9 +103,8 @@ public final class BAMBlockFormulaStrategy extends BlockFormulaStrategy {
           final ARGState callState = callStacks.get(parentElement);
 
           assert Objects.equals(
-              extractLocation(callState).getLeavingSummaryEdge().getSuccessor(),
-              extractLocation(
-                  currentState))
+                  extractLocation(callState).getLeavingSummaryEdge().getSuccessor(),
+                  extractLocation(currentState))
               : "callstack does not match entry of current function-exit.";
           assert callState != null || currentState.getChildren().isEmpty()
               : "returning from empty callstack is only possible at program-exit";
@@ -190,8 +189,7 @@ public final class BAMBlockFormulaStrategy extends BlockFormulaStrategy {
   /** Add assumptions from OverflowCPA. */
   private PathFormula strengthen(final ARGState currentState, PathFormula currentFormula)
       throws CPATransferException, InterruptedException {
-    OverflowState other =
-        AbstractStates.extractStateByType(currentState, OverflowState.class);
+    OverflowState other = AbstractStates.extractStateByType(currentState, OverflowState.class);
     if (other != null) {
       for (CExpression assumption : Iterables.filter(other.getAssumptions(), CExpression.class)) {
         currentFormula = pfmgr.makeAnd(currentFormula, assumption);

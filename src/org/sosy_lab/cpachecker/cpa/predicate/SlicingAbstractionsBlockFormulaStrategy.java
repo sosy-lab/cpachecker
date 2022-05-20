@@ -21,8 +21,7 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 
 /**
- * BlockFormulaStrategy for graph-like ARGs where
- * the formulas have to be generated on the fly.
+ * BlockFormulaStrategy for graph-like ARGs where the formulas have to be generated on the fly.
  * Intended for use with {@link SlicingAbstractionsStrategy}
  */
 @Options(prefix = "cpa.predicate.refinement")
@@ -36,7 +35,8 @@ public class SlicingAbstractionsBlockFormulaStrategy extends BlockFormulaStrateg
   private PathFormulaManager pfmgr;
   private Solver solver;
 
-  public SlicingAbstractionsBlockFormulaStrategy(Solver solver, Configuration pConfig, PathFormulaManager pPfmgr)
+  public SlicingAbstractionsBlockFormulaStrategy(
+      Solver solver, Configuration pConfig, PathFormulaManager pPfmgr)
       throws InvalidConfigurationException {
     this.pfmgr = pPfmgr;
     this.solver = solver;
@@ -50,5 +50,4 @@ public class SlicingAbstractionsBlockFormulaStrategy extends BlockFormulaStrateg
         SlicingAbstractionsUtils.getFormulasForPath(
             pfmgr, solver, pRoot, pPath, includePartialInvariants));
   }
-
 }

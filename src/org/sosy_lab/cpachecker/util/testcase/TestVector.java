@@ -90,7 +90,6 @@ public class TestVector {
     return inputValues;
   }
 
-
   public TestVector addInputValue(AVariableDeclaration pVariable, AInitializer pValue) {
     return addInputValue(pVariable, InitializerTestValue.of(pValue));
   }

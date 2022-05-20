@@ -57,10 +57,10 @@ public class InductiveWeakeningManagerTest extends SolverViewBasedTest0 {
         new InductiveWeakeningManager(new WeakeningOptions(config), solver, logger, notifier);
     ifmgr = mgrv.getIntegerFormulaManager();
     bfmgr = mgrv.getBooleanFormulaManager();
-
   }
 
-  @Test public void testSlicingVerySimple() throws Exception {
+  @Test
+  public void testSlicingVerySimple() throws Exception {
     SSAMap startingSsa = SSAMap.emptySSAMap().withDefault(0);
     @SuppressWarnings("deprecation") // just for test
     PathFormula transition =
@@ -71,43 +71,31 @@ public class InductiveWeakeningManagerTest extends SolverViewBasedTest0 {
             startingSsa.builder().setIndex("x", CNumericTypes.INT, 1).build(),
             PointerTargetSet.emptyPointerTargetSet(),
             0);
-    Set<BooleanFormula> lemmas = ImmutableSet.of(
-        ifmgr.equal(
-            ifmgr.makeVariable("x"), ifmgr.makeNumber(1)
-        ),
-        ifmgr.equal(
-            ifmgr.makeVariable("y"), ifmgr.makeNumber(0)
-        )
-    );
-    Set<BooleanFormula> weakening = inductiveWeakeningManager
-        .findInductiveWeakeningForRCNF(startingSsa, transition, lemmas);
-    assertThat(weakening).containsExactly(
-        ifmgr.equal(
-            ifmgr.makeVariable("y"), ifmgr.makeNumber(0)
-        )
-    );
+    Set<BooleanFormula> lemmas =
+        ImmutableSet.of(
+            ifmgr.equal(ifmgr.makeVariable("x"), ifmgr.makeNumber(1)),
+            ifmgr.equal(ifmgr.makeVariable("y"), ifmgr.makeNumber(0)));
+    Set<BooleanFormula> weakening =
+        inductiveWeakeningManager.findInductiveWeakeningForRCNF(startingSsa, transition, lemmas);
+    assertThat(weakening)
+        .containsExactly(ifmgr.equal(ifmgr.makeVariable("y"), ifmgr.makeNumber(0)));
   }
 
-  @Test public void testRemovingRedundancies() throws Exception {
+  @Test
+  public void testRemovingRedundancies() throws Exception {
     IntegerFormula x, y;
     x = ifmgr.makeVariable("x");
     y = ifmgr.makeVariable("y");
     IntegerFormula zero = ifmgr.makeNumber(0);
 
-    BooleanFormula input = bfmgr.and(
-        ifmgr.greaterThan(x, zero),
-        ifmgr.greaterThan(y, zero),
-        ifmgr.greaterThan(ifmgr.add(x, y), zero)
-    );
-
-    BooleanFormula simplified = inductiveWeakeningManager.removeRedundancies(
-        input
-    );
-    assertThat(simplified).isEqualTo(
+    BooleanFormula input =
         bfmgr.and(
             ifmgr.greaterThan(x, zero),
-            ifmgr.greaterThan(y, zero)
-        )
-    );
+            ifmgr.greaterThan(y, zero),
+            ifmgr.greaterThan(ifmgr.add(x, y), zero));
+
+    BooleanFormula simplified = inductiveWeakeningManager.removeRedundancies(input);
+    assertThat(simplified)
+        .isEqualTo(bfmgr.and(ifmgr.greaterThan(x, zero), ifmgr.greaterThan(y, zero)));
   }
 }

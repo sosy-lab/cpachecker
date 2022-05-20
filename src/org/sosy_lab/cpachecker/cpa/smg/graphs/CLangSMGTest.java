@@ -37,13 +37,14 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGValue;
 import org.sosy_lab.cpachecker.cpa.smg.util.PersistentSet;
 
 public class CLangSMGTest {
-  static private final CFunctionType functionType = CFunctionType.functionTypeWithReturnType(CNumericTypes.UNSIGNED_LONG_INT);
+  private static final CFunctionType functionType =
+      CFunctionType.functionTypeWithReturnType(CNumericTypes.UNSIGNED_LONG_INT);
   public static final CFunctionDeclaration DUMMY_FUNCTION =
       new CFunctionDeclaration(FileLocation.DUMMY, functionType, "foo", ImmutableList.of());
   private CLangStackFrame sf;
 
-  static private final LogManager logger = LogManager.createTestLogManager();
-  static private final CIdExpression id_expression =
+  private static final LogManager logger = LogManager.createTestLogManager();
+  private static final CIdExpression id_expression =
       new CIdExpression(FileLocation.DUMMY, null, "label", null);
 
   private static CLangSMG getNewCLangSMG64() {
@@ -74,10 +75,7 @@ public class CLangSMGTest {
     SMGEdgePointsTo pt = new SMGEdgePointsTo(val1, obj1, 0);
     SMGEdgeHasValue hv =
         new SMGEdgeHasValue(
-            smg.getMachineModel().getSizeofInBits(CNumericTypes.UNSIGNED_LONG_INT),
-            0,
-            obj2,
-            val2);
+            smg.getMachineModel().getSizeofInBits(CNumericTypes.UNSIGNED_LONG_INT), 0, obj2, val2);
 
     smg.addValue(val1);
     smg.addValue(val2);
@@ -125,7 +123,7 @@ public class CLangSMGTest {
     assertThat(heap_objs).hasSize(3);
   }
 
-  @Test(expected=IllegalArgumentException.class)
+  @Test(expected = IllegalArgumentException.class)
   public void CLangSMGaddHeapObjectTwiceTest() {
     CLangSMG smg = getNewCLangSMG64();
     SMGRegion obj = new SMGRegion(64, "label");
@@ -167,7 +165,7 @@ public class CLangSMGTest {
     assertThat(global_objects.values()).contains(obj2);
   }
 
-  @Test(expected=IllegalArgumentException.class)
+  @Test(expected = IllegalArgumentException.class)
   public void CLangSMGaddGlobalObjectTwiceTest() {
     CLangSMG smg = getNewCLangSMG64();
     SMGRegion obj = new SMGRegion(64, "label");
@@ -176,7 +174,7 @@ public class CLangSMGTest {
     smg.addGlobalObject(obj);
   }
 
-  @Test(expected=IllegalArgumentException.class)
+  @Test(expected = IllegalArgumentException.class)
   public void CLangSMGaddGlobalObjectWithSameLabelTest() {
     CLangSMG smg = getNewCLangSMG64();
     SMGRegion obj1 = new SMGRegion(64, "label");
@@ -210,7 +208,7 @@ public class CLangSMGTest {
     assertThat(current_frame.getVariables()).hasSize(2);
   }
 
-  @Test(expected=IllegalArgumentException.class)
+  @Test(expected = IllegalArgumentException.class)
   public void CLangSMGaddStackObjectTwiceTest() {
     CLangSMG smg = getNewCLangSMG64();
     SMGRegion obj1 = new SMGRegion(64, "label");
@@ -363,9 +361,7 @@ public class CLangSMGTest {
     assertThat(CLangSMGConsistencyVerifier.verifyCLangSMG(logger, smg)).isFalse();
   }
 
-  /**
-   * Identical object in different frames is inconsistent
-   */
+  /** Identical object in different frames is inconsistent */
   @Test
   public void consistencyViolationStackNamespaceTest1() {
     CLangSMG smg = getNewCLangSMG64();
@@ -379,9 +375,7 @@ public class CLangSMGTest {
     assertThat(CLangSMGConsistencyVerifier.verifyCLangSMG(logger, smg)).isFalse();
   }
 
-  /**
-   * Two objects with same label (variable name) in different frames are not inconsistent
-   */
+  /** Two objects with same label (variable name) in different frames are not inconsistent */
   @Test
   public void consistencyViolationStackNamespaceTest2() {
     CLangSMG smg = getNewCLangSMG64();

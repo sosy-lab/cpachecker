@@ -34,7 +34,7 @@ public class Partition implements Comparable<Partition>, Serializable {
 
   private static final long serialVersionUID = 1L;
 
-  private transient static final UniqueIdGenerator idGenerator = new UniqueIdGenerator();
+  private static final transient UniqueIdGenerator idGenerator = new UniqueIdGenerator();
 
   /** we use an index to track the "age" of a partition. */
   private final int index;

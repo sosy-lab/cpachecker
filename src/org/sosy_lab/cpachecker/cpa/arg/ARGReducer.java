@@ -58,7 +58,8 @@ class ARGReducer extends GenericReducer<ARGState, Precision> {
   @Override
   protected Precision getVariableExpandedPrecision0(
       Precision rootPrecision, Block rootContext, Precision reducedPrecision) {
-    return wrappedReducer.getVariableExpandedPrecision(rootPrecision, rootContext, reducedPrecision);
+    return wrappedReducer.getVariableExpandedPrecision(
+        rootPrecision, rootContext, reducedPrecision);
   }
 
   @Override

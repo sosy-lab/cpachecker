@@ -239,7 +239,6 @@ public final class LockState extends AbstractLockState {
           mutableLocks.put(lockId, rootLocks.get(lockId));
         }
       }
-
     }
 
     @Override

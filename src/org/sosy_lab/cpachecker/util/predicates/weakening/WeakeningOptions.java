@@ -18,10 +18,10 @@ import org.sosy_lab.cpachecker.util.predicates.weakening.InductiveWeakeningManag
 @Options(prefix = "cpa.slicing")
 public class WeakeningOptions {
 
-  @Option(description="Inductive weakening strategy", secure=true)
+  @Option(description = "Inductive weakening strategy", secure = true)
   private WEAKENING_STRATEGY weakeningStrategy = WEAKENING_STRATEGY.CEX;
 
-  @Option(secure=true, description="Pre-run syntactic weakening")
+  @Option(secure = true, description = "Pre-run syntactic weakening")
   private boolean preRunSyntacticWeakening = true;
 
   @Option(description = "Strategy for abstracting children during CEX weakening", secure = true)
@@ -30,8 +30,7 @@ public class WeakeningOptions {
   @Option(description = "Depth limit for the 'LEAST_REMOVALS' strategy.")
   private int leastRemovalsDepthLimit = 2;
 
-  public WeakeningOptions(Configuration config)
-      throws InvalidConfigurationException {
+  public WeakeningOptions(Configuration config) throws InvalidConfigurationException {
     config.inject(this);
   }
 

@@ -28,7 +28,8 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
 
-@SuppressFBWarnings(value = "VA_FORMAT_STRING_USES_NEWLINE",
+@SuppressFBWarnings(
+    value = "VA_FORMAT_STRING_USES_NEWLINE",
     justification = "consistent Unix-style line endings")
 public class Automaton {
   private final String name;
@@ -39,8 +40,12 @@ public class Automaton {
   private final ImmutableList<AutomatonInternalState> states;
   private final AutomatonInternalState initState;
 
-  public Automaton(String pName, Map<String, AutomatonVariable> pVars, List<AutomatonInternalState> pStates,
-      String pInitialStateName) throws InvalidAutomatonException {
+  public Automaton(
+      String pName,
+      Map<String, AutomatonVariable> pVars,
+      List<AutomatonInternalState> pStates,
+      String pInitialStateName)
+      throws InvalidAutomatonException {
     this.name = pName;
     this.initVars = ImmutableMap.copyOf(pVars);
     this.states = ImmutableList.copyOf(pStates);
@@ -48,13 +53,15 @@ public class Automaton {
     Map<String, AutomatonInternalState> statesMap = Maps.newHashMapWithExpectedSize(pStates.size());
     for (AutomatonInternalState s : pStates) {
       if (statesMap.put(s.getName(), s) != null) {
-        throw new InvalidAutomatonException("State " + s.getName() + " exists twice in automaton " + pName);
+        throw new InvalidAutomatonException(
+            "State " + s.getName() + " exists twice in automaton " + pName);
       }
     }
 
     initState = statesMap.get(pInitialStateName);
     if (initState == null) {
-      throw new InvalidAutomatonException("Inital state " + pInitialStateName + " not found in automaton " + pName);
+      throw new InvalidAutomatonException(
+          "Inital state " + pInitialStateName + " not found in automaton " + pName);
     }
 
     // set the FollowStates of all Transitions
@@ -116,13 +123,18 @@ public class Automaton {
   private static String formatState(AutomatonInternalState s, String color) {
     String name = s.getName().replace("_predefinedState_", "");
     String shape = s.isTarget() ? "doublecircle" : "circle";
-    return String.format("%d [shape=\"" + shape + "\" color=\"%s\" label=\"%s\"]\n", s.getStateId(), color, name);
+    return String.format(
+        "%d [shape=\"" + shape + "\" color=\"%s\" label=\"%s\"]\n", s.getStateId(), color, name);
   }
 
-  private static String formatTransition(AutomatonInternalState sourceState, AutomatonTransition t) {
-    return String.format("%d -> %d [label=\"%s\"]\n", sourceState.getStateId(), t.getFollowState().getStateId(), t.toString().replace("\"", "\\\""));
+  private static String formatTransition(
+      AutomatonInternalState sourceState, AutomatonTransition t) {
+    return String.format(
+        "%d -> %d [label=\"%s\"]\n",
+        sourceState.getStateId(),
+        t.getFollowState().getStateId(),
+        t.toString().replace("\"", "\\\""));
   }
-
 
   public ImmutableMap<String, AutomatonVariable> getInitialVariables() {
     return initVars;
@@ -146,8 +158,10 @@ public class Automaton {
   }
 
   /**
-   * Assert this automaton fulfills the requirements of an ObserverAutomaton.
-   * This means the Automaton does not modify other CPAs (Keyword MODIFY) and does not use the BOTTOM element (Keyword STOP).
+   * Assert this automaton fulfills the requirements of an ObserverAutomaton. This means the
+   * Automaton does not modify other CPAs (Keyword MODIFY) and does not use the BOTTOM element
+   * (Keyword STOP).
+   *
    * @throws InvalidConfigurationException if the requirements are not fulfilled
    */
   public void assertObserverAutomaton() throws InvalidConfigurationException {
@@ -155,7 +169,10 @@ public class Automaton {
       for (AutomatonTransition t : s.getTransitions()) {
         if (!t.meetsObserverRequirements()) {
           throw new InvalidConfigurationException(
-              "The transition \"" + t + "\" in state \"" + s
+              "The transition \""
+                  + t
+                  + "\" in state \""
+                  + s
                   + "\" is not valid for an ObserverAutomaton.");
         }
       }

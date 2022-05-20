@@ -191,8 +191,7 @@ public class HarnessExporter {
 
       if (externalFunctions.stream().anyMatch(PredefinedTypes::isVerifierAssume)) {
         // implement __VERIFIER_assume with exit (EXIT_SUCCESS)
-        codeAppender.appendln(
-            "void __VERIFIER_assume(int cond) { if (!(cond)) { exit(0); }}");
+        codeAppender.appendln("void __VERIFIER_assume(int cond) { if (!(cond)) { exit(0); }}");
       }
 
       // implement actual harness
@@ -405,7 +404,11 @@ public class HarnessExporter {
                 Optional<ExpressionTestValue> defaultValue =
                     getDefaultValue(functionDeclaration.getType().getReturnType());
                 if (defaultValue.isPresent()) {
-                  return Optional.of(new State(pChild, pPrevious.testVector.addInputValue(functionDeclaration, defaultValue.orElseThrow())));
+                  return Optional.of(
+                      new State(
+                          pChild,
+                          pPrevious.testVector.addInputValue(
+                              functionDeclaration, defaultValue.orElseThrow())));
                 }
               }
               return Optional.empty();
@@ -560,9 +563,7 @@ public class HarnessExporter {
       Collection<ARGState> nextCandidates = argState.getChildren();
       if (nextCandidates.size() == 1) {
         ARGState candidate = nextCandidates.iterator().next();
-        if (argState
-            .getEdgesToChild(candidate)
-            .stream()
+        if (argState.getEdgesToChild(candidate).stream()
             .allMatch(
                 e -> e instanceof AssumeEdge || AutomatonGraphmlCommon.handleAsEpsilonEdge(e))) {
           argState = candidate;
@@ -583,7 +584,8 @@ public class HarnessExporter {
 
   private Optional<State> handlePointerCall(
       State pPrevious, ARGState pChild, AFunctionCallExpression pFunctionCallExpression) {
-    TestVector newTestVector = handlePointerCall(pPrevious.testVector, pFunctionCallExpression.getDeclaration());
+    TestVector newTestVector =
+        handlePointerCall(pPrevious.testVector, pFunctionCallExpression.getDeclaration());
     return Optional.of(State.of(pChild, newTestVector));
   }
 
@@ -661,8 +663,7 @@ public class HarnessExporter {
     CType expectedTargetType = (CType) pDeclaration.getType().getReturnType();
 
     return pTestVector.addInputValue(
-            pDeclaration,
-            handleComposite(expectedTargetType, getSizeOf(expectedTargetType), false));
+        pDeclaration, handleComposite(expectedTargetType, getSizeOf(expectedTargetType), false));
   }
 
   private TestVector handleCompositeDeclaration(
@@ -751,9 +752,7 @@ public class HarnessExporter {
   private static CFunctionCallExpression callMalloc(CExpression pSize) {
     CFunctionType type =
         new CFunctionType(
-            CPointerType.POINTER_TO_VOID,
-            Collections.singletonList(CNumericTypes.INT),
-            false);
+            CPointerType.POINTER_TO_VOID, Collections.singletonList(CNumericTypes.INT), false);
     CFunctionDeclaration functionDeclaration =
         new CFunctionDeclaration(
             FileLocation.DUMMY,
@@ -820,8 +819,8 @@ public class HarnessExporter {
       if (returnType instanceof CSimpleType
           && ((CSimpleType) returnType).getType() == CBasicType.CHAR) {
         return Optional.of(
-            ExpressionTestValue
-                .of(new CCharLiteralExpression(FileLocation.DUMMY, returnType, ' ')));
+            ExpressionTestValue.of(
+                new CCharLiteralExpression(FileLocation.DUMMY, returnType, ' ')));
       }
 
       if (!(returnType instanceof CCompositeType
@@ -859,26 +858,23 @@ public class HarnessExporter {
     return pTestVector.addInputValue(pFunctionDeclaration, value);
   }
 
-  private static AExpression castIfNecessary(
-      Type pExpectedReturnType, AExpression pValue) {
+  private static AExpression castIfNecessary(Type pExpectedReturnType, AExpression pValue) {
     AExpression value = pValue;
     Type expectedReturnType = getCanonicalType(pExpectedReturnType);
     Type actualType = getCanonicalType(value.getExpressionType());
     if (!areTypesCompatible(pValue, expectedReturnType)) {
       if (value instanceof CExpression && expectedReturnType instanceof CType) {
         if (expectedReturnType instanceof CPointerType
-                && !expectedReturnType.equals(CPointerType.POINTER_TO_VOID)
-                && actualType instanceof CPointerType
-                && !actualType.equals(CPointerType.POINTER_TO_VOID)) {
+            && !expectedReturnType.equals(CPointerType.POINTER_TO_VOID)
+            && actualType instanceof CPointerType
+            && !actualType.equals(CPointerType.POINTER_TO_VOID)) {
           value =
               new CCastExpression(
                   pValue.getFileLocation(), CPointerType.POINTER_TO_VOID, (CExpression) value);
         }
         value =
             new CCastExpression(
-                pValue.getFileLocation(),
-                (CType) pExpectedReturnType,
-                (CExpression) value);
+                pValue.getFileLocation(), (CType) pExpectedReturnType, (CExpression) value);
       } else if (value instanceof JExpression && expectedReturnType instanceof JType) {
         value =
             new JCastExpression(

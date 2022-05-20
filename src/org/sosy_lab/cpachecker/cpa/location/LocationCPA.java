@@ -58,7 +58,9 @@ public class LocationCPA extends AbstractCPA
   }
 
   @Override
-  public boolean areAbstractSuccessors(AbstractState pElement, CFAEdge pCfaEdge, Collection<? extends AbstractState> pSuccessors) throws CPATransferException, InterruptedException {
+  public boolean areAbstractSuccessors(
+      AbstractState pElement, CFAEdge pCfaEdge, Collection<? extends AbstractState> pSuccessors)
+      throws CPATransferException, InterruptedException {
     ImmutableSet<? extends AbstractState> successors = ImmutableSet.copyOf(pSuccessors);
     ImmutableSet<? extends AbstractState> actualSuccessors =
         ImmutableSet.copyOf(

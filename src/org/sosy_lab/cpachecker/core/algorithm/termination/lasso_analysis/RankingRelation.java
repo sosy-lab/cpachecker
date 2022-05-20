@@ -67,8 +67,7 @@ public class RankingRelation {
 
   public CExpression asCExpression() {
     assert !rankingRelationFormulas.isEmpty();
-    return rankingRelations
-        .stream()
+    return rankingRelations.stream()
         .reduce((a, b) -> binaryExpressionBuilder.buildBinaryExpressionUnchecked(a, b, BINARY_OR))
         .orElseGet(() -> binaryExpressionBuilder.buildBinaryExpressionUnchecked(ZERO, ONE, EQUALS));
   }
@@ -92,6 +91,7 @@ public class RankingRelation {
 
   /**
    * Create a new {@link RankingRelation} that is the disjunction of this and <code>other</code>
+   *
    * @param other the {@link RankingRelation} to merge with
    * @return a new {@link RankingRelation}
    */
@@ -119,6 +119,7 @@ public class RankingRelation {
 
   /**
    * Creates a new {@link RankingRelation} that contains the given supporting invariants.
+   *
    * @param pSupportingInvariants the invariants to add to the created {@link RankingRelation}
    * @return a new {@link RankingRelation}
    */

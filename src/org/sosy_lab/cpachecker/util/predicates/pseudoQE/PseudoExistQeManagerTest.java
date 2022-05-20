@@ -102,7 +102,7 @@ public class PseudoExistQeManagerTest extends SolverViewBasedTest0 {
     // future releases
   }
 
-  //Assert ex y. x=5 and y>4  after QE is x=5
+  // Assert ex y. x=5 and y>4  after QE is x=5
   @Test
   public void testUPDSimpleInteger() throws Exception {
     // Create the Formula: x=5 and y>4
@@ -127,6 +127,7 @@ public class PseudoExistQeManagerTest extends SolverViewBasedTest0 {
     assertThat(result.hasQuantifiers()).isFalse(); // no longer quantified
     assertThatFormula(result.getInnerFormula()).isEquivalentTo(expectedResult);
   }
+
   @Test
   public void testArrayDER() throws Exception {
     requireArrays();
@@ -180,7 +181,7 @@ public class PseudoExistQeManagerTest extends SolverViewBasedTest0 {
     assertThatFormula(result).isEquivalentTo(expectedResult);
   }
 
-  //Assert ex y,z. x=5 and y>z and y<5 and z<5  after QE is x=5
+  // Assert ex y,z. x=5 and y>z and y<5 and z<5  after QE is x=5
   @Test
   public void testUPDSeveralBoundVars() throws Exception {
     // Create the Formula: x=5 and y>x

@@ -41,8 +41,14 @@ public class SMGAbstractionManager {
     sllCandidateFinder = new SMGSingleLinkedListFinder();
   }
 
-  public SMGAbstractionManager(LogManager pLogger, CLangSMG pSMG, SMGState pSMGstate,
-      Set<SMGAbstractionBlock> pBlocks, int equalSeq, int entailSeq, int incSeq) {
+  public SMGAbstractionManager(
+      LogManager pLogger,
+      CLangSMG pSMG,
+      SMGState pSMGstate,
+      Set<SMGAbstractionBlock> pBlocks,
+      int equalSeq,
+      int entailSeq,
+      int incSeq) {
     smg = pSMG;
     smgState = pSMGstate;
     logger = pLogger;

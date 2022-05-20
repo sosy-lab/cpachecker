@@ -34,10 +34,10 @@ import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 
 /**
- * {@link org.sosy_lab.cpachecker.cpa.predicate.RefinementStrategy RefinementStrategy} that
- * does not refine the precision of PredicateCPA, but of
- * {@link org.sosy_lab.cpachecker.cpa.value.ValueAnalysisCPA ValueAnalysisCPA} and
- * {@link org.sosy_lab.cpachecker.cpa.constraints.ConstraintsCPA ConstraintsCPA}.
+ * {@link org.sosy_lab.cpachecker.cpa.predicate.RefinementStrategy RefinementStrategy} that does not
+ * refine the precision of PredicateCPA, but of {@link
+ * org.sosy_lab.cpachecker.cpa.value.ValueAnalysisCPA ValueAnalysisCPA} and {@link
+ * org.sosy_lab.cpachecker.cpa.constraints.ConstraintsCPA ConstraintsCPA}.
  */
 class SymbolicPrecisionRefinementStrategy extends PredicateAbstractionRefinementStrategy {
 
@@ -61,12 +61,13 @@ class SymbolicPrecisionRefinementStrategy extends PredicateAbstractionRefinement
       final boolean pRepeatedCounterexample)
       throws CPAException, InterruptedException {
     if (pRepeatedCounterexample) {
-      throw new CPAException("Refinement using predicate refinement failed."
-          + "Try using cpa.value.symbolic.refiner.SymbolicValueAnalysisRefiner");
+      throw new CPAException(
+          "Refinement using predicate refinement failed."
+              + "Try using cpa.value.symbolic.refiner.SymbolicValueAnalysisRefiner");
     }
 
-    return super.performRefinement(pReached, pAbstractionStatesTrace, pInterpolants,
-        pRepeatedCounterexample);
+    return super.performRefinement(
+        pReached, pAbstractionStatesTrace, pInterpolants, pRepeatedCounterexample);
   }
 
   @Override

@@ -65,7 +65,8 @@ public class AlternativePrecondition {
     private SSAMap preConditionMap;
     private final FormulaContext context;
 
-    private AlternativePreconditionHelper(FormulaContext pContext, List<String> pIgnore, List<String> pFilter) {
+    private AlternativePreconditionHelper(
+        FormulaContext pContext, List<String> pIgnore, List<String> pFilter) {
       context = pContext;
       variableToIndexMap = new HashMap<>();
       preCondition = new ArrayList<>();

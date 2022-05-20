@@ -329,7 +329,7 @@ public class SMGTransferRelation
       throws CPATransferException {
 
     if (!callEdge.getSuccessor().getFunctionDefinition().getType().takesVarArgs()) {
-      //TODO Parameter with varArgs
+      // TODO Parameter with varArgs
       assert (paramDecl.size() == arguments.size());
     }
 
@@ -361,7 +361,7 @@ public class SMGTransferRelation
       throws CPATransferException {
 
     List<SMGState> newStates = Collections.singletonList(initialNewState);
-   for (int i = 0; i < paramDecl.size(); i++) {
+    for (int i = 0; i < paramDecl.size(); i++) {
       CExpression exp = arguments.get(i);
       String varName = paramDecl.get(i).getName();
       CType cParamType = TypeUtils.getRealExpressionType(paramDecl.get(i));
@@ -373,15 +373,15 @@ public class SMGTransferRelation
       }
       // handle string argument
       if (exp instanceof CStringLiteralExpression) {
-       CStringLiteralExpression strExp = (CStringLiteralExpression) exp;
-       cParamType =  strExp.transformTypeToArrayType();
+        CStringLiteralExpression strExp = (CStringLiteralExpression) exp;
+        cParamType = strExp.transformTypeToArrayType();
 
         String name = strExp.getContentString() + " string literal";
 
         SMGRegion stringObj = initialNewState.getHeap().getObjectForVisibleVariable(name);
 
         if (stringObj != null) {
-          //FIXME: require correctly process with redefinition of string literal to provide
+          // FIXME: require correctly process with redefinition of string literal to provide
           // state corresponding to previous
           name = name + "ID" + SMGCPA.getNewValue();
         }
@@ -389,8 +389,7 @@ public class SMGTransferRelation
         stringObj =
             initialNewState.addGlobalVariable(
                 machineModel.getSizeofInBits(cParamType).longValue(), name);
-       CInitializerExpression initializer =
-           new CInitializerExpression(exp.getFileLocation(), exp);
+        CInitializerExpression initializer = new CInitializerExpression(exp.getFileLocation(), exp);
         CVariableDeclaration decl =
             new CVariableDeclaration(
                 exp.getFileLocation(),
@@ -401,27 +400,28 @@ public class SMGTransferRelation
                 name,
                 name,
                 initializer);
-       newStates = new ArrayList<>(
-           handleInitializer(initialNewState, decl, callEdge, stringObj, 0, cParamType,
-               initializer));
+        newStates =
+            new ArrayList<>(
+                handleInitializer(
+                    initialNewState, decl, callEdge, stringObj, 0, cParamType, initializer));
         // 2. create pointer on region created in 1.
         exp = new CIdExpression(exp.getFileLocation(), cParamType, name, decl);
-     }
+      }
 
-     // If parameter is a array, convert to pointer
-     final long size;
-     if (cParamType instanceof CArrayType) {
-       size = machineModel.getSizeofPtrInBits();
-     } else {
-       size = expressionEvaluator.getBitSizeof(callEdge, cParamType, initialNewState);
-     }
-     SMGRegion paramObj = new SMGRegion(size, varName);
-     // get value of actual parameter in caller function context
-     for (SMGState newState : newStates) {
-       result.addAll(evaluateArgumentValue(callEdge, valuesMap, i, exp, paramObj, newState));
-     }
-     newStates = result;
-   }
+      // If parameter is a array, convert to pointer
+      final long size;
+      if (cParamType instanceof CArrayType) {
+        size = machineModel.getSizeofPtrInBits();
+      } else {
+        size = expressionEvaluator.getBitSizeof(callEdge, cParamType, initialNewState);
+      }
+      SMGRegion paramObj = new SMGRegion(size, varName);
+      // get value of actual parameter in caller function context
+      for (SMGState newState : newStates) {
+        result.addAll(evaluateArgumentValue(callEdge, valuesMap, i, exp, paramObj, newState));
+      }
+      newStates = result;
+    }
 
     return newStates;
   }
@@ -537,7 +537,8 @@ public class SMGTransferRelation
   private List<SMGState> handleAssumption(
       CExpression expression, CFAEdge cfaEdge, boolean truthValue)
       throws CPATransferException, InterruptedException {
-    // FIXME Quickfix, simplify expressions for sv-comp, later assumption handling has to be refactored to be able to handle complex expressions
+    // FIXME Quickfix, simplify expressions for sv-comp, later assumption handling has to be
+    // refactored to be able to handle complex expressions
     expression = eliminateOuterEquals(expression);
 
     // get the value of the expression (either true[-1], false[0], or unknown[null])
@@ -583,7 +584,7 @@ public class SMGTransferRelation
     SMGValue val1ImpliesOn;
     SMGValue val2ImpliesOn;
 
-    if(impliesEqOn || impliesNeqOn ) {
+    if (impliesEqOn || impliesNeqOn) {
       val1ImpliesOn = visitor.impliesVal1(state);
       val2ImpliesOn = visitor.impliesVal2(state);
     } else {
@@ -636,7 +637,8 @@ public class SMGTransferRelation
           }
         }
 
-        newState = expressionEvaluator.deriveFurtherInformation(newState, truthValue, cfaEdge, expression);
+        newState =
+            expressionEvaluator.deriveFurtherInformation(newState, truthValue, cfaEdge, expression);
         BooleanFormula predicateFormula = smgPredicateManager.getPathPredicateFormula(newState);
         try {
           if (newState.hasMemoryErrors() || !smgPredicateManager.isUnsat(predicateFormula)) {
@@ -658,11 +660,8 @@ public class SMGTransferRelation
   }
 
   /**
-   * This method simplifies an expression, if possible, else returns it unchanged.
-   * (a==b)==0 --> a!=b.
-   * (a!=b)==0 --> a==b.
-   * (a==b)!=0 --> a==b.
-   * (a!=b)!=0 --> a!=b.
+   * This method simplifies an expression, if possible, else returns it unchanged. (a==b)==0 -->
+   * a!=b. (a!=b)==0 --> a==b. (a==b)!=0 --> a==b. (a!=b)!=0 --> a!=b.
    */
   // TODO implement as CFA-preprocessing?
   private static CExpression eliminateOuterEquals(CExpression pExpression) {
@@ -685,16 +684,24 @@ public class SMGTransferRelation
 
     CBinaryExpression binExpOp1 = (CBinaryExpression) op1;
     switch (binExpOp1.getOperator()) {
-    case EQUALS:
-      return new CBinaryExpression(binExpOp1.getFileLocation(), binExpOp1.getExpressionType(),
-          binExpOp1.getCalculationType(), binExpOp1.getOperand1(), binExpOp1.getOperand2(),
-          op == BinaryOperator.EQUALS ? BinaryOperator.NOT_EQUALS : BinaryOperator.EQUALS);
-    case NOT_EQUALS:
-      return new CBinaryExpression(binExpOp1.getFileLocation(), binExpOp1.getExpressionType(),
-          binExpOp1.getCalculationType(), binExpOp1.getOperand1(), binExpOp1.getOperand2(),
-          op == BinaryOperator.EQUALS ? BinaryOperator.EQUALS : BinaryOperator.NOT_EQUALS);
-    default:
-      return pExpression;
+      case EQUALS:
+        return new CBinaryExpression(
+            binExpOp1.getFileLocation(),
+            binExpOp1.getExpressionType(),
+            binExpOp1.getCalculationType(),
+            binExpOp1.getOperand1(),
+            binExpOp1.getOperand2(),
+            op == BinaryOperator.EQUALS ? BinaryOperator.NOT_EQUALS : BinaryOperator.EQUALS);
+      case NOT_EQUALS:
+        return new CBinaryExpression(
+            binExpOp1.getFileLocation(),
+            binExpOp1.getExpressionType(),
+            binExpOp1.getCalculationType(),
+            binExpOp1.getOperand1(),
+            binExpOp1.getOperand2(),
+            op == BinaryOperator.EQUALS ? BinaryOperator.EQUALS : BinaryOperator.NOT_EQUALS);
+      default:
+        return pExpression;
     }
   }
 
@@ -837,9 +844,14 @@ public class SMGTransferRelation
   }
 
   // assign value of given expression to State at given location
-  private List<SMGState> assignFieldToState(SMGState pNewState, CFAEdge cfaEdge,
-      SMGObject memoryOfField, long fieldOffset, CType pLFieldType, CRightHandSide rValue)
-          throws CPATransferException {
+  private List<SMGState> assignFieldToState(
+      SMGState pNewState,
+      CFAEdge cfaEdge,
+      SMGObject memoryOfField,
+      long fieldOffset,
+      CType pLFieldType,
+      CRightHandSide rValue)
+      throws CPATransferException {
 
     List<SMGState> result = new ArrayList<>(4);
     CType rValueType = TypeUtils.getRealExpressionType(rValue);
@@ -849,10 +861,11 @@ public class SMGTransferRelation
         expEvaluator.evaluateExplicitValue(pNewState, cfaEdge, rValue)) {
       SMGExplicitValue expValue = expValueAndState.getObject();
       SMGState newState = expValueAndState.getSmgState();
-      //TODO (  cast expression)
+      // TODO (  cast expression)
 
-      //6.5.16.1 right operand is converted to type of assignment expression
-      // 6.5.26 The type of an assignment expression is the type the left operand would have after lvalue conversion.
+      // 6.5.16.1 right operand is converted to type of assignment expression
+      // 6.5.26 The type of an assignment expression is the type the left operand would have after
+      // lvalue conversion.
       rValueType = pLFieldType;
 
       if (!expValue.isUnknown()) {
@@ -896,7 +909,6 @@ public class SMGTransferRelation
       }
     }
 
-
     return result;
   }
 
@@ -907,7 +919,6 @@ public class SMGTransferRelation
 
     List<Pair<SMGState, SMGKnownSymbolicValue>> result = new ArrayList<>();
     SMGExpressionEvaluator expEvaluator = new SMGExpressionEvaluator(logger, machineModel);
-
 
     for (SMGExplicitValueAndState expValueAndState :
         expEvaluator.evaluateExplicitValue(pNewState, pCfaEdge, pRValue)) {
@@ -926,7 +937,9 @@ public class SMGTransferRelation
     return result;
   }
 
-  private List<SMGState> handleVariableDeclaration(SMGState pState, CVariableDeclaration pVarDecl, CDeclarationEdge pEdge) throws CPATransferException {
+  private List<SMGState> handleVariableDeclaration(
+      SMGState pState, CVariableDeclaration pVarDecl, CDeclarationEdge pEdge)
+      throws CPATransferException {
     String varName = pVarDecl.getName();
     CType cType = TypeUtils.getRealExpressionType(pVarDecl);
 
@@ -976,10 +989,12 @@ public class SMGTransferRelation
     }
 
     SMGState newState = state.copyOf();
-    return handleVariableDeclaration(newState, (CVariableDeclaration)cDecl, edge);
+    return handleVariableDeclaration(newState, (CVariableDeclaration) cDecl, edge);
   }
 
-  private List<SMGState> handleInitializerForDeclaration(SMGState pState, SMGObject pObject, CVariableDeclaration pVarDecl, CDeclarationEdge pEdge) throws CPATransferException {
+  private List<SMGState> handleInitializerForDeclaration(
+      SMGState pState, SMGObject pObject, CVariableDeclaration pVarDecl, CDeclarationEdge pEdge)
+      throws CPATransferException {
     CInitializer newInitializer = pVarDecl.getInitializer();
     CType cType = TypeUtils.getRealExpressionType(pVarDecl);
 
@@ -1054,9 +1069,12 @@ public class SMGTransferRelation
       }
 
       // Type cannot be resolved
-      logger.log(Level.INFO,() ->
-                String.format("Type %s cannot be resolved sufficiently to handle initializer %s",
-                    realCType.toASTString(""), pNewInitializer));
+      logger.log(
+          Level.INFO,
+          () ->
+              String.format(
+                  "Type %s cannot be resolved sufficiently to handle initializer %s",
+                  realCType.toASTString(""), pNewInitializer));
       return ImmutableList.of(pNewState);
 
     } else if (pInitializer instanceof CDesignatedInitializer) {
@@ -1125,9 +1143,9 @@ public class SMGTransferRelation
       CStringLiteralExpression pExpression)
       throws CPATransferException {
     CType realCType = TypeUtils.getRealExpressionType(pVarDecl);
-    if(realCType instanceof CArrayType){
+    if (realCType instanceof CArrayType) {
       realCType = ((CArrayType) realCType).getType();
-    } else if(realCType instanceof CPointerType){
+    } else if (realCType instanceof CPointerType) {
       realCType = ((CPointerType) realCType).getType();
     }
 
@@ -1180,15 +1198,21 @@ public class SMGTransferRelation
 
       return smgStates;
     }
-    //create char array from string and call list init
+    // create char array from string and call list init
     List<CInitializer> charInitialziers = new ArrayList<>();
     CArrayType arrayType = pExpression.transformTypeToArrayType();
-    for(CCharLiteralExpression charLiteralExp : pExpression.expandStringLiteral(arrayType)){
+    for (CCharLiteralExpression charLiteralExp : pExpression.expandStringLiteral(arrayType)) {
       charInitialziers.add(new CInitializerExpression(pFileLocation, charLiteralExp));
     }
-    return handleInitializerList(pNewState, pVarDecl, pEdge, pNewObject, pOffset, arrayType, new CInitializerList(pFileLocation, charInitialziers));
+    return handleInitializerList(
+        pNewState,
+        pVarDecl,
+        pEdge,
+        pNewObject,
+        pOffset,
+        arrayType,
+        new CInitializerList(pFileLocation, charInitialziers));
   }
-
 
   @SuppressWarnings("deprecation") // replace with machineModel.getAllFieldOffsetsInBits
   private Pair<BigInteger, Integer> calculateOffsetAndPositionOfFieldFromDesignator(
@@ -1201,7 +1225,8 @@ public class SMGTransferRelation
     // TODO More Designators?
     assert pInitializer.getDesignators().size() == 1;
 
-    String fieldDesignator = ((CFieldDesignator) pInitializer.getDesignators().get(0)).getFieldName();
+    String fieldDesignator =
+        ((CFieldDesignator) pInitializer.getDesignators().get(0)).getFieldName();
 
     BigInteger offset = BigInteger.valueOf(offsetAtStartOfStruct);
     int sizeOfByte = machineModel.getSizeofCharInBits();
@@ -1230,7 +1255,8 @@ public class SMGTransferRelation
                             offset.divide(BigInteger.valueOf(sizeOfByte)), memberDcl.getType())
                         .multiply(BigInteger.valueOf(sizeOfByte)));
           } else {
-            // Cf. implementation of {@link MachineModel#getFieldOffsetOrSizeOrFieldOffsetsMappedInBits(...)}
+            // Cf. implementation of {@link
+            // MachineModel#getFieldOffsetOrSizeOrFieldOffsetsMappedInBits(...)}
             CType innerType = ((CBitFieldType) memberDcl.getType()).getType();
 
             if (memberSize.compareTo(BigInteger.ZERO) == 0) {
@@ -1267,7 +1293,8 @@ public class SMGTransferRelation
     List<Pair<SMGState, Long>> offsetAndStates = new ArrayList<>();
     offsetAndStates.add(startOffsetAndState);
 
-    // Move preinitialization of global variable because of unpredictable fields' order within CDesignatedInitializer
+    // Move preinitialization of global variable because of unpredictable fields' order within
+    // CDesignatedInitializer
     if (pVarDecl.isGlobal()) {
       List<Pair<SMGState, Long>> result = new ArrayList<>();
 
@@ -1318,7 +1345,8 @@ public class SMGTransferRelation
 
         SMGState newState = offsetAndState.getFirst();
         List<SMGState> pNewStates =
-            handleInitializer(newState, pVarDecl, pEdge, pNewObject, offset, memberType, initializer);
+            handleInitializer(
+                newState, pVarDecl, pEdge, pNewObject, offset, memberType, initializer);
 
         offset = offset + machineModel.getSizeofInBits(memberType).longValueExact();
 
@@ -1426,8 +1454,9 @@ public class SMGTransferRelation
       result = new ArrayList<>(newStates.size());
 
       for (SMGState newState : newStates) {
-        result.addAll(handleInitializer(newState, pVarDecl, pEdge,
-            pNewObject, offset, pLValueType.getType(), initializer));
+        result.addAll(
+            handleInitializer(
+                newState, pVarDecl, pEdge, pNewObject, offset, pLValueType.getType(), initializer));
       }
 
       newStates = result;
@@ -1477,7 +1506,7 @@ public class SMGTransferRelation
     FluentIterable<CExpression> assumptions =
         from(pAutomatonState.getAssumptions()).filter(CExpression.class);
 
-    if(assumptions.isEmpty()) {
+    if (assumptions.isEmpty()) {
       return Collections.singleton(pElement);
     }
 
@@ -1514,7 +1543,13 @@ public class SMGTransferRelation
     if (newElement == null) {
       return ImmutableList.of();
     } else {
-      SMGUtils.plotWhenConfigured(getDotExportFileName(newElement), newElement, assumeDesc.toString(), logger, SMGExportLevel.EVERY, exportSMGOptions);
+      SMGUtils.plotWhenConfigured(
+          getDotExportFileName(newElement),
+          newElement,
+          assumeDesc.toString(),
+          logger,
+          SMGExportLevel.EVERY,
+          exportSMGOptions);
       return Collections.singleton(newElement);
     }
   }

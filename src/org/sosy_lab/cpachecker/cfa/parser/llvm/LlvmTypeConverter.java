@@ -16,7 +16,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.logging.Level;
-
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
@@ -58,7 +57,7 @@ public class LlvmTypeConverter {
   }
 
   public CType getCType(final TypeRef pLlvmType) {
-      return getCType(pLlvmType, /* isUnsigned = */ false);
+    return getCType(pLlvmType, /* isUnsigned = */ false);
   }
 
   public CType getCType(final TypeRef pLlvmType, final boolean isUnsigned) {
@@ -100,7 +99,8 @@ public class LlvmTypeConverter {
         if (pLlvmType.getPointerAddressSpace() != 0) {
           logger.log(Level.WARNING, "Pointer address space not considered.");
         }
-        return new CPointerType(isConst, isVolatile, getCType(pLlvmType.getElementType(), isUnsigned));
+        return new CPointerType(
+            isConst, isVolatile, getCType(pLlvmType.getElementType(), isUnsigned));
 
       case Vector:
         CIntegerLiteralExpression vectorLength =
@@ -270,8 +270,8 @@ public class LlvmTypeConverter {
     return getSimplestCType(pBasicType, isUnsigned, /* pIsLong = */ false);
   }
 
-  private CType getSimplestCType(final CBasicType pBasicType, final boolean isUnsigned,
-                                 boolean pIsLong) {
+  private CType getSimplestCType(
+      final CBasicType pBasicType, final boolean isUnsigned, boolean pIsLong) {
     final boolean isConst = false;
     final boolean isVolatile = false;
     final boolean isShort = false;

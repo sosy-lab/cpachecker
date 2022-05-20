@@ -11,8 +11,8 @@ package org.sosy_lab.cpachecker.cfa.postprocessing.global.singleloop;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 
 /**
- * Instances of implementing classes are CFA edges representing the
- * assignment of values to the program counter variable.
+ * Instances of implementing classes are CFA edges representing the assignment of values to the
+ * program counter variable.
  */
 public interface ProgramCounterValueAssignmentEdge extends CFAEdge {
 

@@ -57,15 +57,15 @@ class CodeAppender implements Appendable {
     return appendable.toString();
   }
 
-  private CodeAppender appendVectorIndexDeclaration(String pInputFunctionVectorIndexName) throws IOException {
+  private CodeAppender appendVectorIndexDeclaration(String pInputFunctionVectorIndexName)
+      throws IOException {
     appendable.append("  static unsigned int ");
     appendable.append(pInputFunctionVectorIndexName);
     appendln(" = 0;");
     return this;
   }
 
-  public CodeAppender appendDeclaration(Type pType, String pName)
-      throws IOException {
+  public CodeAppender appendDeclaration(Type pType, String pName) throws IOException {
     appendable.append(pType.toASTString(pName));
     appendln(";");
     return this;
@@ -287,5 +287,4 @@ class CodeAppender implements Appendable {
     }
     return result;
   }
-
 }

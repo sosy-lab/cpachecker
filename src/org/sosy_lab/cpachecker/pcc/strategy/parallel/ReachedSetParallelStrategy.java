@@ -31,7 +31,7 @@ import org.sosy_lab.cpachecker.pcc.strategy.ReachedSetStrategy;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 
 @Options
-public class ReachedSetParallelStrategy extends ReachedSetStrategy{
+public class ReachedSetParallelStrategy extends ReachedSetStrategy {
 
   public ReachedSetParallelStrategy(
       Configuration pConfig,
@@ -44,7 +44,8 @@ public class ReachedSetParallelStrategy extends ReachedSetStrategy{
   }
 
   @Override
-  public boolean checkCertificate(final ReachedSet pReachedSet) throws CPAException, InterruptedException {
+  public boolean checkCertificate(final ReachedSet pReachedSet)
+      throws CPAException, InterruptedException {
     /*also restrict stop to elements of same location as analysis does*/
     StopOperator stop = cpa.getStopOperator();
     Precision initialPrec = pReachedSet.getPrecision(pReachedSet.getFirstState());
@@ -54,7 +55,10 @@ public class ReachedSetParallelStrategy extends ReachedSetStrategy{
     assert (initialState == pReachedSet.getFirstState() && pReachedSet.size() == 1);
 
     try {
-      if (!stop.stop(initialState, statesPerLocation.get(AbstractStates.extractLocation(initialState)), initialPrec)) {
+      if (!stop.stop(
+          initialState,
+          statesPerLocation.get(AbstractStates.extractLocation(initialState)),
+          initialPrec)) {
         logger.log(Level.FINE, "Cannot check that initial element is covered by result.");
         return false;
       }
@@ -64,10 +68,10 @@ public class ReachedSetParallelStrategy extends ReachedSetStrategy{
     }
 
     // instantiate parallel threads and check if elements form transitive closure
-    //TODO possibly instantiate (and start) threads earlier in constructor
-    CheckingHelper[] helper = new CheckingHelper[numThreads-1];
-    Thread[] helperThreads = new Thread[numThreads-1];
-    int length = reachedSet.length/numThreads;
+    // TODO possibly instantiate (and start) threads earlier in constructor
+    CheckingHelper[] helper = new CheckingHelper[numThreads - 1];
+    Thread[] helperThreads = new Thread[numThreads - 1];
+    int length = reachedSet.length / numThreads;
 
     ThreadFactory threadFactory =
         new ThreadFactoryBuilder()
@@ -90,11 +94,18 @@ public class ReachedSetParallelStrategy extends ReachedSetStrategy{
         successors = cpa.getTransferRelation().getAbstractSuccessors(reachedSet[i], initialPrec);
 
         for (AbstractState succ : successors) {
-            if (!stop.stop(succ, statesPerLocation.get(AbstractStates.extractLocation(succ)), initialPrec)) {
-              logger.log(Level.FINE, "Cannot check that result is transitive closure.", "Successor ", succ,
-                  "of element ", reachedSet[i], "not covered by result.");
-              return false;
-            }
+          if (!stop.stop(
+              succ, statesPerLocation.get(AbstractStates.extractLocation(succ)), initialPrec)) {
+            logger.log(
+                Level.FINE,
+                "Cannot check that result is transitive closure.",
+                "Successor ",
+                succ,
+                "of element ",
+                reachedSet[i],
+                "not covered by result.");
+            return false;
+          }
         }
       } catch (CPATransferException e) {
         logger.logException(Level.FINE, e, "Computation of successors failed.");
@@ -107,7 +118,9 @@ public class ReachedSetParallelStrategy extends ReachedSetStrategy{
 
     for (int i = 0; i < helper.length; i++) {
       helperThreads[i].join();
-      if (!helper[i].result) { return false; }
+      if (!helper[i].result) {
+        return false;
+      }
     }
 
     stats.getPropertyCheckingTimer().start();
@@ -125,7 +138,6 @@ public class ReachedSetParallelStrategy extends ReachedSetStrategy{
     private Precision initialPrec;
     private boolean result = true;
 
-
     protected CheckingHelper(int startIndex, int pNumElem, Precision pInitialPrec) {
       if (startIndex < 0 || pNumElem < 1) {
         throw new NumberFormatException(
@@ -137,24 +149,33 @@ public class ReachedSetParallelStrategy extends ReachedSetStrategy{
     }
 
     @Override
-    public void run() {// TODO how to integrate shutdown notifier in here, unprotected access to stats
+    public void
+        run() { // TODO how to integrate shutdown notifier in here, unprotected access to stats
       // ExecutorService one possibility
       StopOperator stop = cpa.getStopOperator();
       Collection<? extends AbstractState> successors;
-      for (int i=start;i<start+numElem;i++) {
+      for (int i = start; i < start + numElem; i++) {
 
         try {
           successors = cpa.getTransferRelation().getAbstractSuccessors(reachedSet[i], initialPrec);
 
           for (AbstractState succ : successors) {
 
-              if (!stop.stop(succ, statesPerLocation.get(AbstractStates.extractLocation(succ)), initialPrec)) {
-                logger.log(Level.FINE, "Cannot check that result is transitive closure.", "Successor ", succ,
-                    "of element ", reachedSet[i], "not covered by result.");
-                result = false;
-              }
+            if (!stop.stop(
+                succ, statesPerLocation.get(AbstractStates.extractLocation(succ)), initialPrec)) {
+              logger.log(
+                  Level.FINE,
+                  "Cannot check that result is transitive closure.",
+                  "Successor ",
+                  succ,
+                  "of element ",
+                  reachedSet[i],
+                  "not covered by result.");
+              result = false;
+            }
           }
-        } catch (CPATransferException | InterruptedException e) {// TODO how to deal with interrupted exception
+        } catch (CPATransferException
+            | InterruptedException e) { // TODO how to deal with interrupted exception
           logger.logException(Level.FINE, e, "Computation of successors failed.");
           result = false;
         } catch (CPAException e) {
@@ -164,5 +185,4 @@ public class ReachedSetParallelStrategy extends ReachedSetStrategy{
       }
     }
   }
-
 }

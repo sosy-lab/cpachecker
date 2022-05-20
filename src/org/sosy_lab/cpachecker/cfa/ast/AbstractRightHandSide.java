@@ -8,18 +8,15 @@
 
 package org.sosy_lab.cpachecker.cfa.ast;
 
-
 import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 
 /**
- *
- * Abstract Super class for all possible right-hand sides of an assignment.
- * This class is only SuperClass of all abstract Classes and their Subclasses.
- * The Interface {@link ARightHandSide} contains all language specific
- * AST Nodes as well.
+ * Abstract Super class for all possible right-hand sides of an assignment. This class is only
+ * SuperClass of all abstract Classes and their Subclasses. The Interface {@link ARightHandSide}
+ * contains all language specific AST Nodes as well.
  */
-public  abstract class AbstractRightHandSide extends AbstractAstNode implements ARightHandSide {
+public abstract class AbstractRightHandSide extends AbstractAstNode implements ARightHandSide {
 
   private static final long serialVersionUID = 8144915127675011353L;
   private final Type type;
@@ -49,8 +46,7 @@ public  abstract class AbstractRightHandSide extends AbstractAstNode implements 
       return true;
     }
 
-    if (!(obj instanceof AbstractRightHandSide)
-        || !super.equals(obj)) {
+    if (!(obj instanceof AbstractRightHandSide) || !super.equals(obj)) {
       return false;
     }
 
@@ -58,6 +54,4 @@ public  abstract class AbstractRightHandSide extends AbstractAstNode implements 
 
     return Objects.equals(other.type, type);
   }
-
-
 }

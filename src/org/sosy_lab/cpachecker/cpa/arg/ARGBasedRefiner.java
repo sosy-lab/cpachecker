@@ -14,16 +14,18 @@ import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 /**
- * Alternative to {@link Refiner} for refiners that are based on using an ARG.
- * The refiner is supplied with the error path through the ARG on refinement.
+ * Alternative to {@link Refiner} for refiners that are based on using an ARG. The refiner is
+ * supplied with the error path through the ARG on refinement.
  *
- * Use {@link AbstractARGBasedRefiner#forARGBasedRefiner(ARGBasedRefiner, org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis)}
- * to create a {@link Refiner} instance from an instance of this interface.
+ * <p>Use {@link AbstractARGBasedRefiner#forARGBasedRefiner(ARGBasedRefiner,
+ * org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis)} to create a {@link Refiner}
+ * instance from an instance of this interface.
  */
 public interface ARGBasedRefiner {
 
   /**
    * Perform refinement.
+   *
    * @param pReached the reached set
    * @param pPath the potential error path
    * @return Information about the counterexample.

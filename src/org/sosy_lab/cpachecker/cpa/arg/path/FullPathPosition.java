@@ -18,9 +18,8 @@ class FullPathPosition extends PathPosition {
   }
 
   /**
-   * {@inheritDoc}
-   * The position is exact, that means if the position is in the middle of an
-   * ARG hole the iterator will start there.
+   * {@inheritDoc} The position is exact, that means if the position is in the middle of an ARG hole
+   * the iterator will start there.
    */
   @Override
   public PathIterator fullPathIterator() {
@@ -28,9 +27,8 @@ class FullPathPosition extends PathPosition {
   }
 
   /**
-   * {@inheritDoc}
-   * The position is exact, that means if the position is in the middle of an
-   * ARG hole the iterator will start there.
+   * {@inheritDoc} The position is exact, that means if the position is in the middle of an ARG hole
+   * the iterator will start there.
    */
   @Override
   public PathIterator reverseFullPathIterator() {

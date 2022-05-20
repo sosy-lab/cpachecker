@@ -14,15 +14,12 @@ import java.io.Serializable;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.math.RoundingMode;
-
 import org.sosy_lab.common.rationals.Rational;
 import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
-/**
- * Stores a numeric value that can be tracked by the ValueAnalysisCPA.
- */
+/** Stores a numeric value that can be tracked by the ValueAnalysisCPA. */
 public class NumericValue implements Value, Serializable {
 
   private static final long serialVersionUID = -3829943575180448170L;
@@ -31,6 +28,7 @@ public class NumericValue implements Value, Serializable {
 
   /**
    * Creates a new <code>NumericValue</code>.
+   *
    * @param pNumber the value of the number
    */
   public NumericValue(Number pNumber) {
@@ -47,30 +45,24 @@ public class NumericValue implements Value, Serializable {
   }
 
   /**
-   * Returns the integer stored in the container as long. Before calling this function,
-   * it must be ensured using `getType()` that this container contains an integer.
+   * Returns the integer stored in the container as long. Before calling this function, it must be
+   * ensured using `getType()` that this container contains an integer.
    */
   public long longValue() {
     return number.longValue();
   }
 
-  /**
-   * Returns the floating point stored in the container as float.
-   */
+  /** Returns the floating point stored in the container as float. */
   public float floatValue() {
     return number.floatValue();
   }
 
-  /**
-   * Returns the floating point stored in the container as double.
-   */
+  /** Returns the floating point stored in the container as double. */
   public double doubleValue() {
     return number.doubleValue();
   }
 
-  /**
-   * Returns a BigDecimal value representing the stored number.
-   */
+  /** Returns a BigDecimal value representing the stored number. */
   public BigDecimal bigDecimalValue() {
     if (number instanceof Double || number instanceof Float) {
       // if we use number.toString() for float values, the toString() method
@@ -83,7 +75,8 @@ public class NumericValue implements Value, Serializable {
       return BigDecimal.valueOf(number.doubleValue());
     } else if (number instanceof Rational) {
       Rational rat = (Rational) number;
-      return new BigDecimal(rat.getNum()).divide(new BigDecimal(rat.getDen()), 100, RoundingMode.HALF_UP);
+      return new BigDecimal(rat.getNum())
+          .divide(new BigDecimal(rat.getDen()), 100, RoundingMode.HALF_UP);
     } else {
       return new BigDecimal(number.toString());
     }
@@ -95,11 +88,11 @@ public class NumericValue implements Value, Serializable {
       return (BigInteger) number;
     }
     if (number instanceof Double || number instanceof Float) {
-      long x = (long)number.doubleValue();
+      long x = (long) number.doubleValue();
       return BigInteger.valueOf(x);
     }
     if (number instanceof BigDecimal) {
-      return ((BigDecimal)number).toBigInteger();
+      return ((BigDecimal) number).toBigInteger();
     }
     if (number instanceof Rational) {
       return new NumericValue(number).bigDecimalValue().toBigInteger();
@@ -113,13 +106,11 @@ public class NumericValue implements Value, Serializable {
   }
 
   /**
-   * Returns whether this object and a given object are equal.
-   * Two <code>NumericValue</code> objects are equal if and only if their
-   * stored values are equal.
+   * Returns whether this object and a given object are equal. Two <code>NumericValue</code> objects
+   * are equal if and only if their stored values are equal.
    *
    * @param other the <code>Object</code> to compare to this object
-   * @return <code>true</code> if the given object equals this object,
-   *         <code>false</code> otherwise
+   * @return <code>true</code> if the given object equals this object, <code>false</code> otherwise
    */
   @Override
   public boolean equals(Object other) {
@@ -141,8 +132,7 @@ public class NumericValue implements Value, Serializable {
   }
 
   /**
-   * Returns a <code>NumericValue</code> object that holds the negation of
-   * this object's value.
+   * Returns a <code>NumericValue</code> object that holds the negation of this object's value.
    *
    * @return the negation of this objects value
    */
@@ -201,7 +191,7 @@ public class NumericValue implements Value, Serializable {
       return null;
     }
 
-    if (((CSimpleType)type).getType() == CBasicType.INT) {
+    if (((CSimpleType) type).getType() == CBasicType.INT) {
       return longValue();
     } else {
       return null;
@@ -214,8 +204,7 @@ public class NumericValue implements Value, Serializable {
   }
 
   /**
-   * Always returns <code>false</code> as each <code>NumericValue</code> holds
-   * one specific value.
+   * Always returns <code>false</code> as each <code>NumericValue</code> holds one specific value.
    *
    * @return always <code>false</code>
    */
@@ -225,8 +214,7 @@ public class NumericValue implements Value, Serializable {
   }
 
   /**
-   * Always returns <code>true</code> as each <code>NumericValue</code> holds
-   * one specific value.
+   * Always returns <code>true</code> as each <code>NumericValue</code> holds one specific value.
    *
    * @return always <code>true</code>
    */
@@ -248,8 +236,7 @@ public class NumericValue implements Value, Serializable {
 
     public static final Number VALUE = new NegativeNaN();
 
-    private NegativeNaN() {
-    }
+    private NegativeNaN() {}
 
     @Override
     public double doubleValue() {
@@ -285,7 +272,5 @@ public class NumericValue implements Value, Serializable {
     public int hashCode() {
       return -1;
     }
-
   }
-
 }

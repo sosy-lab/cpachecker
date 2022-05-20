@@ -10,9 +10,7 @@ package org.sosy_lab.cpachecker.core.algorithm.bmc.candidateinvariants;
 
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
 
-
 public interface ExpressionTreeCandidateInvariant extends CandidateInvariant {
 
   ExpressionTree<Object> asExpressionTree();
-
 }

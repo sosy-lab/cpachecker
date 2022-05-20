@@ -38,38 +38,31 @@ import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
-/**
- * Utility class for initializer-related tasks.
- */
+/** Utility class for initializer-related tasks. */
 public final class CInitializers {
 
   private CInitializers() {}
 
   /**
-   * Take a variable declaration and create a list of assignment statements
-   * that assign the value(s) of the initializer to the declared variable,
-   * including cases with complex initializers for structs and arrays.
+   * Take a variable declaration and create a list of assignment statements that assign the value(s)
+   * of the initializer to the declared variable, including cases with complex initializers for
+   * structs and arrays.
    *
-   * Note that there is currently one unhandled case:
-   * In C, for structs and arrays where a brace-delimited initializer list is present,
-   * all fields/elements that are not explicitly initialized
-   * are initialized with their default value.
-   * However, this method does not return any assignments for these default values.
+   * <p>Note that there is currently one unhandled case: In C, for structs and arrays where a
+   * brace-delimited initializer list is present, all fields/elements that are not explicitly
+   * initialized are initialized with their default value. However, this method does not return any
+   * assignments for these default values.
    *
-   * Example:
-   * <code>
+   * <p>Example: <code>
    * struct {
    *   int i;
    *   int a[3];
    * } s = { 1, 2, 3 };
-   * </code>
-   * will be converted into
-   * <code>
+   * </code> will be converted into <code>
    * s.i = 1;
    * s.a[0] = 2;
    * s.a[1] = 3;
-   * </code>
-   * (The assignment s.a[2] = 0 is missing as explained above.)
+   * </code> (The assignment s.a[2] = 0 is missing as explained above.)
    *
    * @param decl The variable declaration.
    * @param edge The current CFA edge.
@@ -86,7 +79,7 @@ public final class CInitializers {
     CLeftHandSide lhs = new CIdExpression(decl.getFileLocation(), decl);
 
     if (init instanceof CInitializerExpression) {
-      CExpression initExp = ((CInitializerExpression)init).getExpression();
+      CExpression initExp = ((CInitializerExpression) init).getExpression();
       // Create a regular assignment
       CExpressionAssignmentStatement assignment =
           new CExpressionAssignmentStatement(decl.getFileLocation(), lhs, initExp);
@@ -94,8 +87,7 @@ public final class CInitializers {
 
     } else if (init instanceof CInitializerList) {
 
-      return handleInitializerList(lhs, (CInitializerList)init,
-          decl.getFileLocation(), edge);
+      return handleInitializerList(lhs, (CInitializerList) init, decl.getFileLocation(), edge);
 
     } else {
       throw new UnrecognizedCodeException("Unknown initializer type", edge, init);
@@ -104,12 +96,16 @@ public final class CInitializers {
 
   /**
    * Handle a brace-delimited initializer list as defined in § 6.7.9 of the C standard.
+   *
    * @param currentObject The "current object".
    * @param initializerList The initializer list for the "current object".
    */
   private static List<CExpressionAssignmentStatement> handleInitializerList(
-      final CExpression currentObject, final CInitializerList initializerList,
-      final FileLocation loc, final CFAEdge edge) throws UnrecognizedCodeException {
+      final CExpression currentObject,
+      final CInitializerList initializerList,
+      final FileLocation loc,
+      final CFAEdge edge)
+      throws UnrecognizedCodeException {
 
     // The term "current object" is defined in the C standard, §6.7.9 (17)
     // The initializer list is the initializer for the "current object"
@@ -139,14 +135,30 @@ public final class CInitializers {
       CType currentType = currentObject.getExpressionType().getCanonicalType();
       boolean successful;
 
-      if (currentType instanceof CCompositeType && ((CCompositeType) currentType).getKind() != ComplexTypeKind.ENUM) {
-        successful = handleInitializerForCompositeType(currentObject, Optional.empty(),
-            (CCompositeType)currentType,
-            currentSubobjects, nextSubobjects, loc, edge, null);
+      if (currentType instanceof CCompositeType
+          && ((CCompositeType) currentType).getKind() != ComplexTypeKind.ENUM) {
+        successful =
+            handleInitializerForCompositeType(
+                currentObject,
+                Optional.empty(),
+                (CCompositeType) currentType,
+                currentSubobjects,
+                nextSubobjects,
+                loc,
+                edge,
+                null);
 
       } else if (currentType instanceof CArrayType) {
-        successful = handleInitializerForArray(currentObject, 0L, (CArrayType)currentType,
-            currentSubobjects, nextSubobjects, loc, edge, null);
+        successful =
+            handleInitializerForArray(
+                currentObject,
+                0L,
+                (CArrayType) currentType,
+                currentSubobjects,
+                nextSubobjects,
+                loc,
+                edge,
+                null);
       } else if (currentType instanceof CElaboratedType) {
         throw new UnrecognizedCodeException(
             "Unexpected initializer for " + currentType + " that is not fully defined",
@@ -175,11 +187,16 @@ public final class CInitializers {
 
       if (init instanceof CDesignatedInitializer) {
         // first, this resets everything except the "current object"
-        findDesignatedSubobject(((CDesignatedInitializer)init).getDesignators(),
-            currentObject, currentSubobjects, nextSubobjects, loc, edge);
+        findDesignatedSubobject(
+            ((CDesignatedInitializer) init).getDesignators(),
+            currentObject,
+            currentSubobjects,
+            nextSubobjects,
+            loc,
+            edge);
 
         // now analyze the real initializer part
-        init = ((CDesignatedInitializer)init).getRightHandSide();
+        init = ((CDesignatedInitializer) init).getRightHandSide();
         if (init instanceof CDesignatedInitializer) {
           throw new UnrecognizedCodeException(
               "Too complex struct initializer", edge, initializerList);
@@ -196,12 +213,11 @@ public final class CInitializers {
         // (the content of the brackets has the current subobject as the "current object"
 
         final CExpression currentSubobject = currentSubobjects.pop();
-        result.addAll(handleInitializerList(currentSubobject, (CInitializerList)init,
-                                  loc, edge));
+        result.addAll(handleInitializerList(currentSubobject, (CInitializerList) init, loc, edge));
 
       } else if (init instanceof CInitializerExpression) {
         // simple expression,
-        CExpression initExp = ((CInitializerExpression)init).getExpression();
+        CExpression initExp = ((CInitializerExpression) init).getExpression();
         CType initType = initExp.getExpressionType().getCanonicalType();
 
         // This applies to the first field/element of the current subobject,
@@ -209,7 +225,8 @@ public final class CInitializers {
         // so we build the stacks if necessary.
         findFirstSubobjectWithType(initType, currentSubobjects, nextSubobjects, loc, edge);
 
-        assert currentSubobjects.peek() instanceof CLeftHandSide : "Object hast to be a LeftHandSide";
+        assert currentSubobjects.peek() instanceof CLeftHandSide
+            : "Object hast to be a LeftHandSide";
         final CLeftHandSide currentSubobject = (CLeftHandSide) currentSubobjects.pop();
 
         // Do a regular assignment
@@ -238,21 +255,27 @@ public final class CInitializers {
     return result.build();
   }
 
-
   /**
-   * Given a designator list of an initializer for an aggregate type,
-   * this method builds the two stacks for the subobjects and the iterators
-   * such that the designated field/element is the next that will be accessed.
-   * Prior to that, both stacks are reset.
+   * Given a designator list of an initializer for an aggregate type, this method builds the two
+   * stacks for the subobjects and the iterators such that the designated field/element is the next
+   * that will be accessed. Prior to that, both stacks are reset.
+   *
    * @param designators A list of designators (e.g. ".f[2][1-4].t")
-   * @param currentObject the "current object" with which this whole chain of initializers is associated
-   * @param currentSubobjects as in {@link #handleInitializerList(CExpression, CInitializerList, FileLocation, CFAEdge)}
-   * @param nextSubobjects as in {@link #handleInitializerList(CExpression, CInitializerList, FileLocation, CFAEdge)}
+   * @param currentObject the "current object" with which this whole chain of initializers is
+   *     associated
+   * @param currentSubobjects as in {@link #handleInitializerList(CExpression, CInitializerList,
+   *     FileLocation, CFAEdge)}
+   * @param nextSubobjects as in {@link #handleInitializerList(CExpression, CInitializerList,
+   *     FileLocation, CFAEdge)}
    */
-  private static void findDesignatedSubobject(final List<CDesignator> designators,
+  private static void findDesignatedSubobject(
+      final List<CDesignator> designators,
       final CExpression currentObject,
-      final Deque<CExpression> currentSubobjects, final Deque<Iterator<CExpression>> nextSubobjects,
-      final FileLocation loc, final CFAEdge edge) throws UnrecognizedCodeException {
+      final Deque<CExpression> currentSubobjects,
+      final Deque<Iterator<CExpression>> nextSubobjects,
+      final FileLocation loc,
+      final CFAEdge edge)
+      throws UnrecognizedCodeException {
 
     currentSubobjects.clear();
     nextSubobjects.clear();
@@ -265,16 +288,23 @@ public final class CInitializers {
       boolean successful;
 
       if (designator instanceof CFieldDesignator) {
-        String fieldName = ((CFieldDesignator)designator).getFieldName();
+        String fieldName = ((CFieldDesignator) designator).getFieldName();
         if (!(currentType instanceof CCompositeType)
-            || ((CCompositeType)currentType).getKind() == ComplexTypeKind.ENUM) {
+            || ((CCompositeType) currentType).getKind() == ComplexTypeKind.ENUM) {
           throw new UnrecognizedCodeException(
               "Designated field initializer for non-struct type " + currentType, edge, designator);
         }
 
-        successful = handleInitializerForCompositeType(currentSubobject, Optional.of(fieldName),
-            (CCompositeType)currentType,
-            currentSubobjects, nextSubobjects, loc, edge, designator);
+        successful =
+            handleInitializerForCompositeType(
+                currentSubobject,
+                Optional.of(fieldName),
+                (CCompositeType) currentType,
+                currentSubobjects,
+                nextSubobjects,
+                loc,
+                edge,
+                designator);
 
       } else if (designator instanceof CArrayDesignator) {
         if (!(currentType instanceof CArrayType)) {
@@ -282,22 +312,30 @@ public final class CInitializers {
               "Designated array initializer for non-array type " + currentType, edge, designator);
         }
 
-        CArrayType arrayType = (CArrayType)currentType;
-        CExpression indexExp = ((CArrayDesignator)designator).getSubscriptExpression();
+        CArrayType arrayType = (CArrayType) currentType;
+        CExpression indexExp = ((CArrayDesignator) designator).getSubscriptExpression();
 
         if (!(indexExp instanceof CIntegerLiteralExpression)) {
           throw new UnrecognizedCodeException(
               "Cannot evaluate expression as array designator", edge, designator);
         }
 
-        BigInteger index = ((CIntegerLiteralExpression)indexExp).getValue();
+        BigInteger index = ((CIntegerLiteralExpression) indexExp).getValue();
         if (!BigInteger.valueOf(index.longValue()).equals(index)) {
           throw new UnrecognizedCodeException(
               "Array designator is too large to initialize explicitly", edge, designator);
         }
 
-        successful = handleInitializerForArray(currentSubobject, index.longValue(), arrayType,
-            currentSubobjects, nextSubobjects, loc, edge, designator);
+        successful =
+            handleInitializerForArray(
+                currentSubobject,
+                index.longValue(),
+                arrayType,
+                currentSubobjects,
+                nextSubobjects,
+                loc,
+                edge,
+                designator);
 
       } else if (designator instanceof CArrayRangeDesignator) {
         if (!(currentType instanceof CArrayType)) {
@@ -305,17 +343,18 @@ public final class CInitializers {
               "Designated array initializer for non-array type " + currentType, edge, designator);
         }
 
-        CArrayType arrayType = (CArrayType)currentType;
-        CExpression floorExp = ((CArrayRangeDesignator)designator).getFloorExpression();
-        CExpression ceilExp = ((CArrayRangeDesignator)designator).getCeilExpression();
+        CArrayType arrayType = (CArrayType) currentType;
+        CExpression floorExp = ((CArrayRangeDesignator) designator).getFloorExpression();
+        CExpression ceilExp = ((CArrayRangeDesignator) designator).getCeilExpression();
 
-        if (!(floorExp instanceof CIntegerLiteralExpression) || !(ceilExp instanceof CIntegerLiteralExpression)) {
+        if (!(floorExp instanceof CIntegerLiteralExpression)
+            || !(ceilExp instanceof CIntegerLiteralExpression)) {
           throw new UnrecognizedCodeException(
               "Cannot evaluate expression as array range designator", edge, designator);
         }
 
-        BigInteger indexBottom = ((CIntegerLiteralExpression)floorExp).getValue();
-        BigInteger indexTop = ((CIntegerLiteralExpression)ceilExp).getValue();
+        BigInteger indexBottom = ((CIntegerLiteralExpression) floorExp).getValue();
+        BigInteger indexTop = ((CIntegerLiteralExpression) ceilExp).getValue();
         if (!BigInteger.valueOf(indexBottom.longValue()).equals(indexBottom)
             || !BigInteger.valueOf(indexTop.longValue()).equals(indexTop)) {
           throw new UnrecognizedCodeException(
@@ -323,9 +362,19 @@ public final class CInitializers {
         }
 
         successful = true;
-        for (long index = indexBottom.longValue(); index < indexTop.longValue() && successful; index++) {
-          successful = handleInitializerForArray(currentSubobject, index, arrayType,
-              currentSubobjects, nextSubobjects, loc, edge, designator);
+        for (long index = indexBottom.longValue();
+            index < indexTop.longValue() && successful;
+            index++) {
+          successful =
+              handleInitializerForArray(
+                  currentSubobject,
+                  index,
+                  arrayType,
+                  currentSubobjects,
+                  nextSubobjects,
+                  loc,
+                  edge,
+                  designator);
         }
 
       } else {
@@ -343,29 +392,32 @@ public final class CInitializers {
   // safe because Iterator is covariant
   @SuppressWarnings("unchecked")
   private static <T> Iterator<T> safeCast(Iterator<? extends T> it) {
-    return (Iterator<T>)it;
+    return (Iterator<T>) it;
   }
 
   /**
-   * Find the first subobject inside the current subobject that may be
-   * initialized with a value of a given type.
-   * Usually this method just enters nested structs and arrays until
-   * it finds the first field/element that is not of an aggegrate type.
-   * However, if the given type is for example a struct,
-   * and it encounters a field/element of this type, it does not enter
-   * this subobject.
+   * Find the first subobject inside the current subobject that may be initialized with a value of a
+   * given type. Usually this method just enters nested structs and arrays until it finds the first
+   * field/element that is not of an aggegrate type. However, if the given type is for example a
+   * struct, and it encounters a field/element of this type, it does not enter this subobject.
    *
-   * This method only pushes objects on the two stacks until their position is correct.
+   * <p>This method only pushes objects on the two stacks until their position is correct.
    *
    * @param targetType The type to search.
-   * @param currentSubobjects as in {@link #handleInitializerList(CExpression, CInitializerList, FileLocation, CFAEdge)}
-   * @param nextSubobjects as in {@link #handleInitializerList(CExpression, CInitializerList, FileLocation, CFAEdge)}
+   * @param currentSubobjects as in {@link #handleInitializerList(CExpression, CInitializerList,
+   *     FileLocation, CFAEdge)}
+   * @param nextSubobjects as in {@link #handleInitializerList(CExpression, CInitializerList,
+   *     FileLocation, CFAEdge)}
    * @param loc the location of the currently handled object
    * @param edge the edge that is handled here
    */
-  private static void findFirstSubobjectWithType(final CType targetType,
-      final Deque<CExpression> currentSubobjects, final Deque<Iterator<CExpression>> nextSubobjects,
-      final FileLocation loc, CFAEdge edge) throws UnrecognizedCodeException {
+  private static void findFirstSubobjectWithType(
+      final CType targetType,
+      final Deque<CExpression> currentSubobjects,
+      final Deque<Iterator<CExpression>> nextSubobjects,
+      final FileLocation loc,
+      CFAEdge edge)
+      throws UnrecognizedCodeException {
 
     while (true) {
       final CExpression currentSubobject = currentSubobjects.peek();
@@ -382,7 +434,7 @@ public final class CInitializers {
       // They have a type of (const char)*.
       if (targetType.equals(CPointerType.POINTER_TO_CONST_CHAR)
           && currentType instanceof CArrayType) {
-        CType currentElementType = ((CArrayType)currentType).getType();
+        CType currentElementType = ((CArrayType) currentType).getType();
         if (currentElementType instanceof CSimpleType
             && ((CSimpleType) currentElementType).getType() == CBasicType.CHAR) {
           break;
@@ -390,14 +442,30 @@ public final class CInitializers {
       }
       boolean successful;
 
-      if (currentType instanceof CCompositeType && ((CCompositeType) currentType).getKind() != ComplexTypeKind.ENUM) {
-        successful = handleInitializerForCompositeType(currentSubobject, Optional.empty(),
-            (CCompositeType)currentType,
-            currentSubobjects, nextSubobjects, loc, edge, null);
+      if (currentType instanceof CCompositeType
+          && ((CCompositeType) currentType).getKind() != ComplexTypeKind.ENUM) {
+        successful =
+            handleInitializerForCompositeType(
+                currentSubobject,
+                Optional.empty(),
+                (CCompositeType) currentType,
+                currentSubobjects,
+                nextSubobjects,
+                loc,
+                edge,
+                null);
 
       } else if (currentType instanceof CArrayType) {
-        successful = handleInitializerForArray(currentSubobject, 0L, (CArrayType)currentType,
-            currentSubobjects, nextSubobjects, loc, edge, null);
+        successful =
+            handleInitializerForArray(
+                currentSubobject,
+                0L,
+                (CArrayType) currentType,
+                currentSubobjects,
+                nextSubobjects,
+                loc,
+                edge,
+                null);
 
       } else {
         // any other type is not an aggregate type
@@ -412,32 +480,43 @@ public final class CInitializers {
   }
 
   /**
-   * Handle the case when the current subobject that will be initialized next
-   * is a composite type (struct or union).
-   * This method only prepares the two stacks by pushing one object on both
-   * of them (for the next field to be initialized, and the iterator for the
-   * remainder of the fields).
-   * If a field name is given, this method ignores (i.e., jumps over)
-   * all fields that appear _before_ that given field.
+   * Handle the case when the current subobject that will be initialized next is a composite type
+   * (struct or union). This method only prepares the two stacks by pushing one object on both of
+   * them (for the next field to be initialized, and the iterator for the remainder of the fields).
+   * If a field name is given, this method ignores (i.e., jumps over) all fields that appear
+   * _before_ that given field.
+   *
    * @param currentSubobject The struct/union to be initialized
    * @param startingFieldName The optional field name to look for
    * @param structType The type of currentSubobject
-   * @param currentSubobjects as in {@link #handleInitializerList(CExpression, CInitializerList, FileLocation, CFAEdge)}
-   * @param nextSubobjects as in {@link #handleInitializerList(CExpression, CInitializerList, FileLocation, CFAEdge)}
+   * @param currentSubobjects as in {@link #handleInitializerList(CExpression, CInitializerList,
+   *     FileLocation, CFAEdge)}
+   * @param nextSubobjects as in {@link #handleInitializerList(CExpression, CInitializerList,
+   *     FileLocation, CFAEdge)}
    */
-  private static boolean handleInitializerForCompositeType(final CExpression currentSubobject,
-      final Optional<String> startingFieldName, final CCompositeType structType,
-      final Deque<CExpression> currentSubobjects, final Deque<Iterator<CExpression>> nextSubobjects,
-      final FileLocation loc, final CFAEdge edge, final CDesignator designator)
-          throws UnrecognizedCodeException {
+  private static boolean handleInitializerForCompositeType(
+      final CExpression currentSubobject,
+      final Optional<String> startingFieldName,
+      final CCompositeType structType,
+      final Deque<CExpression> currentSubobjects,
+      final Deque<Iterator<CExpression>> nextSubobjects,
+      final FileLocation loc,
+      final CFAEdge edge,
+      final CDesignator designator)
+      throws UnrecognizedCodeException {
 
     Iterator<CFieldReference> fields =
-        from(structType.getMembers()).filter(
-            field -> !(field.getName().contains("__anon_type_member") && (!isAggregateType(field.getType())
-                && (field.getType() instanceof CElaboratedType)
-                && !((CElaboratedType) field.getType()).getKind().equals(ComplexTypeKind.UNION))))
+        from(structType.getMembers())
+            .filter(
+                field ->
+                    !(field.getName().contains("__anon_type_member")
+                        && (!isAggregateType(field.getType())
+                            && (field.getType() instanceof CElaboratedType)
+                            && !((CElaboratedType) field.getType())
+                                .getKind()
+                                .equals(ComplexTypeKind.UNION))))
             .transform(
-                field  ->
+                field ->
                     new CFieldReference(
                         loc, field.getType(), field.getName(), currentSubobject, false))
             .iterator();
@@ -476,44 +555,53 @@ public final class CInitializers {
     currentSubobjects.push(designatedField);
 
     switch (structType.getKind()) {
-    case STRUCT:
+      case STRUCT:
         nextSubobjects.push(CInitializers.safeCast(fields));
-      break;
-    case UNION:
+        break;
+      case UNION:
         // unions only have their first field initialized, ignore the rest
         nextSubobjects.push(Collections.emptyIterator());
-      break;
-    default:
-      throw new AssertionError();
+        break;
+      default:
+        throw new AssertionError();
     }
 
     return true;
   }
 
   /**
-   * Handle the case when the current subobject that will be initialized next
-   * is an array.
-   * This method only prepares the two stacks by pushing one object on both
-   * of them (for the next element to be initialized, and the iterator for the
-   * remainder of the elements).
+   * Handle the case when the current subobject that will be initialized next is an array. This
+   * method only prepares the two stacks by pushing one object on both of them (for the next element
+   * to be initialized, and the iterator for the remainder of the elements).
+   *
    * @param currentSubobject The struct/union to be initialized
    * @param startIndex The index of the first element to be initialized
    * @param arrayType The type of currentSubobject
-   * @param currentSubobjects as in {@link #handleInitializerList(CExpression, CInitializerList, FileLocation, CFAEdge)}
-   * @param nextSubobjects as in {@link #handleInitializerList(CExpression, CInitializerList, FileLocation, CFAEdge)}
+   * @param currentSubobjects as in {@link #handleInitializerList(CExpression, CInitializerList,
+   *     FileLocation, CFAEdge)}
+   * @param nextSubobjects as in {@link #handleInitializerList(CExpression, CInitializerList,
+   *     FileLocation, CFAEdge)}
    */
-  private static boolean handleInitializerForArray(final CExpression currentSubobject,
-      final long startIndex, final CArrayType arrayType,
-      final Deque<CExpression> currentSubobjects, final Deque<Iterator<CExpression>> nextSubobjects,
-      final FileLocation loc, final CFAEdge edge, final CDesignator designator)
-          throws UnrecognizedCodeException {
+  private static boolean handleInitializerForArray(
+      final CExpression currentSubobject,
+      final long startIndex,
+      final CArrayType arrayType,
+      final Deque<CExpression> currentSubobjects,
+      final Deque<Iterator<CExpression>> nextSubobjects,
+      final FileLocation loc,
+      final CFAEdge edge,
+      final CDesignator designator)
+      throws UnrecognizedCodeException {
 
     Range<Long> arrayIndices;
     if (arrayType.getLength() instanceof CIntegerLiteralExpression) {
       // fixed-size array
-      BigInteger size = ((CIntegerLiteralExpression)arrayType.getLength()).getValue();
+      BigInteger size = ((CIntegerLiteralExpression) arrayType.getLength()).getValue();
       if (!BigInteger.valueOf(size.longValue()).equals(size)) {
-        throw new UnrecognizedCodeException("Size of type " + arrayType + " is too large to initialize explicitly", edge, designator);
+        throw new UnrecognizedCodeException(
+            "Size of type " + arrayType + " is too large to initialize explicitly",
+            edge,
+            designator);
       }
       // TODO use DiscreteDomain.bigintegers() when it's available.
 
@@ -525,7 +613,10 @@ public final class CInitializers {
       arrayIndices = Range.atLeast(startIndex);
 
     } else {
-      throw new UnrecognizedCodeException("Cannot initialize arrays with variable modified type like " + arrayType, edge, designator);
+      throw new UnrecognizedCodeException(
+          "Cannot initialize arrays with variable modified type like " + arrayType,
+          edge,
+          designator);
     }
 
     if (arrayIndices.isEmpty()) {

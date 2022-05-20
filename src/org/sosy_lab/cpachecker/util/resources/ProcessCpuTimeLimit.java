@@ -11,15 +11,10 @@ package org.sosy_lab.cpachecker.util.resources;
 import static com.google.common.base.Preconditions.checkArgument;
 
 import java.util.concurrent.TimeUnit;
-
 import javax.management.JMException;
-
 import org.sosy_lab.common.time.TimeSpan;
 
-/**
- * A limit that measures the CPU time used by the current process
- * (if available on this JVM).
- */
+/** A limit that measures the CPU time used by the current process (if available on this JVM). */
 public class ProcessCpuTimeLimit implements ResourceLimit {
 
   private final int processorCount = Runtime.getRuntime().availableProcessors();

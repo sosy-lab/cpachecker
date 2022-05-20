@@ -77,18 +77,18 @@ public class BuiltinOverflowFunctions {
 
       StringBuilder sb = new StringBuilder();
       sb.append("__builtin_")
-      .append(getDataTypePrefix(pType))
-      .append(getOperatorName(pOperator))
-      .append(getDataTypeSuffix(pType))
-      .append("_overflow")
-      .append(pHasNoSideEffect ? "_p" : "");
+          .append(getDataTypePrefix(pType))
+          .append(getOperatorName(pOperator))
+          .append(getDataTypeSuffix(pType))
+          .append("_overflow")
+          .append(pHasNoSideEffect ? "_p" : "");
       name = sb.toString();
     }
 
     private static String getOperatorName(BinaryOperator pOperator) {
-      if(pOperator == BinaryOperator.PLUS) {
+      if (pOperator == BinaryOperator.PLUS) {
         return "add";
-      } else if(pOperator == BinaryOperator.MINUS) {
+      } else if (pOperator == BinaryOperator.MINUS) {
         return "sub";
       } else {
         return "mul";
@@ -96,11 +96,11 @@ public class BuiltinOverflowFunctions {
     }
 
     private static String getDataTypePrefix(@Nullable CSimpleType pType) {
-      if(pType == null) {
+      if (pType == null) {
         return "";
       }
 
-      if(pType.isSigned()) {
+      if (pType.isSigned()) {
         return "s";
       }
 
@@ -112,7 +112,7 @@ public class BuiltinOverflowFunctions {
         return "";
       }
 
-      if(pType.isLong()) {
+      if (pType.isLong()) {
         return "l";
       } else if (pType.isLongLong()) {
         return "ll";
@@ -123,6 +123,7 @@ public class BuiltinOverflowFunctions {
   }
 
   private static final Map<String, BuiltinOverflowFunction> functions;
+
   static {
     functions = from(BuiltinOverflowFunction.values()).uniqueIndex(func -> func.name);
   }
@@ -257,9 +258,7 @@ public class BuiltinOverflowFunctions {
           Value firstParameterValue =
               evv.evaluate(parameters.get(0), parameters.get(0).getExpressionType());
           Value secondParameterValue =
-              evv.evaluate(
-                  parameters.get(1),
-                  parameters.get(1).getExpressionType());
+              evv.evaluate(parameters.get(1), parameters.get(1).getExpressionType());
           CSimpleType resultType = getTargetType(nameOfCalledFunc, parameters.get(2));
 
           if (resultType.getType().isIntegerType()

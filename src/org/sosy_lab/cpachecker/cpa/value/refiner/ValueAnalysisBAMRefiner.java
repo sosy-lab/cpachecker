@@ -19,5 +19,4 @@ public abstract class ValueAnalysisBAMRefiner implements Refiner {
       throws InvalidConfigurationException {
     return BAMBasedRefiner.forARGBasedRefiner(ValueAnalysisRefiner.create0(pCpa), pCpa);
   }
-
 }

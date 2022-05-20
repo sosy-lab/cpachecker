@@ -17,9 +17,7 @@ import org.sosy_lab.cpachecker.cfa.ast.ASimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 
-/**
- * Represents a block as described in the BAM paper.
- */
+/** Represents a block as described in the BAM paper. */
 public class Block {
 
   private final ImmutableSet<ReferencedVariable> referencedVariables;
@@ -51,8 +49,10 @@ public class Block {
     return callNodes.iterator().next();
   }
 
-  /** returns a collection of variables used in the block.
-   * For soundness this must be a superset of the actually used variables. */
+  /**
+   * returns a collection of variables used in the block. For soundness this must be a superset of
+   * the actually used variables.
+   */
   @Deprecated
   // TODO unused method, potentially dangerous,
   // because dependencies between variables are potentially incomplete.
@@ -60,8 +60,10 @@ public class Block {
     return referencedVariables;
   }
 
-  /** returns a collection of variables used in the block.
-   * For soundness this must be a superset of the actually used variables. */
+  /**
+   * returns a collection of variables used in the block. For soundness this must be a superset of
+   * the actually used variables.
+   */
   public Set<String> getVariables() {
     if (variables == null) {
       ImmutableSet.Builder<String> builder = ImmutableSet.builder();
@@ -88,8 +90,8 @@ public class Block {
         // TODO should we also handle a function return variable?
       }
       outOfScopeVariables =
-          ImmutableSet
-              .copyOf(Iterables.transform(declarations, ASimpleDeclaration::getQualifiedName));
+          ImmutableSet.copyOf(
+              Iterables.transform(declarations, ASimpleDeclaration::getQualifiedName));
     }
     return outOfScopeVariables;
   }
@@ -125,10 +127,16 @@ public class Block {
 
   @Override
   public String toString() {
-    return "Block " +
-            "(CallNodes: " + callNodes + ") " +
-            "(Nodes: " + (nodes.size() < 10 ? nodes : "[#=" + nodes.size() + "]") + ") " +
-            "(ReturnNodes: " + returnNodes + ")";
+    return "Block "
+        + "(CallNodes: "
+        + callNodes
+        + ") "
+        + "(Nodes: "
+        + (nodes.size() < 10 ? nodes : "[#=" + nodes.size() + "]")
+        + ") "
+        + "(ReturnNodes: "
+        + returnNodes
+        + ")";
   }
 
   @Override
