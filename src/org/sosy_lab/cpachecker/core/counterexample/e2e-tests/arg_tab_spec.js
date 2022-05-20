@@ -61,10 +61,10 @@ describe("ARG testing", () => {
       browser.wait(EC.elementToBeClickable(element(by.id("set-tab-2"))));
       browser.wait(EC.invisibilityOf(element(by.id("renderStateModal"))));
       element(by.id("set-tab-2")).click();
-      browser.wait(EC.presenceOf(element(by.xpath('//*[@id="arg-node0"]'))));
+      browser.wait(EC.presenceOf(element(by.xpath('//*[@id="arg-graph0"]//*[@id="arg-node0"]'))));
       browser
         .actions()
-        .mouseMove(element(by.xpath('//*[@id="arg-node0"]')))
+        .mouseMove(element(by.xpath('//*[@id="arg-graph0"]//*[@id="arg-node0"]')))
         .perform();
       browser.wait(EC.presenceOf(element(by.xpath('//*[@id="infoBox"]'))));
       expect(

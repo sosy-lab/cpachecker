@@ -153,7 +153,7 @@ describe("Error path section in Report.js", () => {
     it("Mark Error path element in ARG graph", () => {
       browser.wait(EC.presenceOf(element(by.css(".marked-arg-node"))));
       expect(
-        hasClass(element(by.xpath('//*[@id="arg-node0"]')), "marked-arg-node")
+        hasClass(element(by.xpath('//*[@id="arg-graph0"]//*[@id="arg-node0"]')), "marked-arg-node")
       ).toBe(true);
     });
     browser.driver.sleep(100);
@@ -199,7 +199,7 @@ describe("Error path section in Report.js", () => {
     it("Mark Error path element in ARG graph", () => {
       browser.wait(EC.presenceOf(element(by.css(".marked-arg-node"))));
       expect(
-        hasClass(element(by.xpath('//*[@id="arg-node0"]')), "marked-arg-node")
+        hasClass(element(by.xpath('//*[@id="arg-graph0"]//*[@id="arg-node0"]')), "marked-arg-node")
       ).toBe(true);
     });
     browser.driver.sleep(100);
