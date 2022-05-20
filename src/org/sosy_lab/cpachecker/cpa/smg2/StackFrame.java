@@ -79,6 +79,15 @@ public final class StackFrame {
         stackFunction, stackVariables.putAndCopy(pVariableName, pObject), returnValueObject);
   }
 
+  public StackFrame copyAndRemoveVariable(String pName) {
+    if (RETVAL_LABEL.equals(pName)) {
+      // Do nothing for the moment
+      return this;
+    } else {
+      return new StackFrame(stackFunction, stackVariables.removeAndCopy(pName), returnValueObject);
+    }
+  }
+
   /* ********************************************* */
   /* Non-modifying functions: getters and the like */
   /* ********************************************* */
@@ -93,13 +102,8 @@ public final class StackFrame {
     return String.format("%s=[%s]", stackFunction.getName(), Joiner.on(", ").join(values));
   }
 
-  public StackFrame copyAndRemoveVariable(String pName) {
-    if (RETVAL_LABEL.equals(pName)) {
-      // Do nothing for the moment
-      return this;
-    } else {
-      return new StackFrame(stackFunction, stackVariables.removeAndCopy(pName), returnValueObject);
-    }
+  public CFunctionDeclaration getFunctionDefinition() {
+    return stackFunction;
   }
 
   /**
