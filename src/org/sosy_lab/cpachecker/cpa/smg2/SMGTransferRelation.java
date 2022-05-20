@@ -155,8 +155,7 @@ public class SMGTransferRelation
    * @return a Collection of SMGStates that are processed. May include memory leak error states.
    */
   private Set<SMGState> handleReturnEntryFunction(Collection<SMGState> pSuccessors) {
-    return pSuccessors
-        .stream()
+    return pSuccessors.stream()
         .map(
             pState -> {
               if (options.isHandleNonFreedMemoryInMainAsMemLeak()) {
@@ -317,8 +316,7 @@ public class SMGTransferRelation
       throw new SMG2Exception("TODO: handle this correctly with the example just run!");
     }
 
-    return ImmutableList.of(
-        handleFunctionCall(state, callEdge, arguments, paramDecl, calledFunctionName));
+    return ImmutableList.of(handleFunctionCall(state, callEdge, arguments, paramDecl));
   }
 
   /**
@@ -330,7 +328,6 @@ public class SMGTransferRelation
    * @param callEdge the edge of the function call.
    * @param arguments the function call arguments {@link CExpression}s.
    * @param paramDecl the {@link CParameterDeclaration} for the arguments.
-   * @param calledFunctionName name of the called function.
    * @return a state with a new stack frame and all parameters evaluated to values and assigned to
    *     new local variables.
    * @throws CPATransferException in case of a critical error.
@@ -339,8 +336,7 @@ public class SMGTransferRelation
       SMGState initialState,
       CFunctionCallEdge callEdge,
       List<CExpression> arguments,
-      List<CParameterDeclaration> paramDecl,
-      String calledFunctionName)
+      List<CParameterDeclaration> paramDecl)
       throws CPATransferException {
     // Add the new stack frame based on the function def
     SMGState currentState =
