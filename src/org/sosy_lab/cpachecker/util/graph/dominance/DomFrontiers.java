@@ -26,7 +26,7 @@ import org.sosy_lab.common.collect.Collections3;
  * Represents dominance frontiers for nodes in a graph.
  *
  * <p>The dominance frontier of a node {@code D} consists of all nodes {@code F_i}, such that {@code
- * D} dominates a predecessor of {@code F_i}, but does not strictly dominate {@code F_i}.
+ * D} dominates a direct predecessor of {@code F_i}, but does not strictly dominate {@code F_i}.
  *
  * @param <T> the graph's node type
  */
