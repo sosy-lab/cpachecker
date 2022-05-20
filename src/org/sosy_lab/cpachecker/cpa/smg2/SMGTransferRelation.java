@@ -154,12 +154,14 @@ public class SMGTransferRelation
    * @return a Collection of SMGStates that are processed. May include memory leak error states.
    */
   private Set<SMGState> handleReturnEntryFunction(Collection<SMGState> pSuccessors) {
-    return pSuccessors.stream()
+    return pSuccessors
+        .stream()
         .map(
             pState -> {
               if (options.isHandleNonFreedMemoryInMainAsMemLeak()) {
-                pState = pState.checkAllHeapObjectsForMemoryLeaks().dropStackFrame();
+                pState = pState.dropStackFrame();
               }
+              // Pruning checks for memory leaks and updates the error state if one is found!
               return pState.copyAndPruneUnreachable();
             })
         .collect(ImmutableSet.toImmutableSet());
@@ -246,6 +248,8 @@ public class SMGTransferRelation
       CFunctionCall summaryExpr,
       String callerFunctionName)
       throws CPATransferException {
+    // Pruning checks for memory leaks and updates the error state if one is found!
+    state.copyAndPruneUnreachable();
     return null;
   }
 
