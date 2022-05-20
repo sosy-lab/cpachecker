@@ -80,9 +80,10 @@ public class WellScopedInterpolation extends AbstractTreeInterpolation {
     for (int end_of_A = 0; end_of_A < p.getFirst().size() - 1; end_of_A++) {
       // last iteration is left out because B would be empty
       final int start_of_A = p.getSecond().get(end_of_A);
-      itps.add(getInterpolantFromSublist(interpolator.itpProver, projectToThird(p.getFirst()), start_of_A, end_of_A));
+      itps.add(
+          getInterpolantFromSublist(
+              interpolator.itpProver, projectToThird(p.getFirst()), start_of_A, end_of_A));
     }
     return flattenTreeItps(formulasWithStatesAndGroupdIds, itps.build());
   }
-
 }

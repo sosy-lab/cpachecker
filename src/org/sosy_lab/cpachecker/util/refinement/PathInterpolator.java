@@ -21,8 +21,6 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
  */
 public interface PathInterpolator<I extends Interpolant<?, I>> extends Statistics {
 
-   Map<ARGState, I> performInterpolation(
-      ARGPath errorPath,
-      I interpolant
-  ) throws CPAException, InterruptedException;
+  Map<ARGState, I> performInterpolation(ARGPath errorPath, I interpolant)
+      throws CPAException, InterruptedException;
 }

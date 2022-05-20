@@ -56,8 +56,10 @@ public class TypeHandlerWithPointerAliasing extends CtoFormulaTypeHandler {
   private final Multiset<CCompositeType> sizes = HashMultiset.create();
   private final Map<CCompositeType, ImmutableMap<String, Long>> offsets = new HashMap<>();
 
-  public TypeHandlerWithPointerAliasing(LogManager pLogger, MachineModel pMachineModel,
-                                        FormulaEncodingWithPointerAliasingOptions pOptions) {
+  public TypeHandlerWithPointerAliasing(
+      LogManager pLogger,
+      MachineModel pMachineModel,
+      FormulaEncodingWithPointerAliasingOptions pOptions) {
     super(pLogger, pMachineModel);
 
     model = pMachineModel;
@@ -69,7 +71,9 @@ public class TypeHandlerWithPointerAliasing extends CtoFormulaTypeHandler {
   }
 
   /**
-   * The method is used to speed up {@code sizeof} computation by caching sizes of declared composite types.
+   * The method is used to speed up {@code sizeof} computation by caching sizes of declared
+   * composite types.
+   *
    * @param cType the type of which the size should be retrieved
    * @return The size of a given type.
    */
@@ -107,22 +111,21 @@ public class TypeHandlerWithPointerAliasing extends CtoFormulaTypeHandler {
   }
 
   /**
-   * The method should be used everywhere the type of any expression is determined.
-   * This is because the encoding uses types for naming of the UFs
-   * as well as for over-approximating points-to sets (may-aliases).
-   * To make the encoding precise enough the types should correspond to actually different types
-   * (requiring explicit casts to be converted to one another),
-   * so {@link CCompositeType}s, corresponding {@link CElaboratedType}s and {@link CTypedefType}s
-   * shouldn't be distinguished and are converted to the same canonical type by this method.
+   * The method should be used everywhere the type of any expression is determined. This is because
+   * the encoding uses types for naming of the UFs as well as for over-approximating points-to sets
+   * (may-aliases). To make the encoding precise enough the types should correspond to actually
+   * different types (requiring explicit casts to be converted to one another), so {@link
+   * CCompositeType}s, corresponding {@link CElaboratedType}s and {@link CTypedefType}s shouldn't be
+   * distinguished and are converted to the same canonical type by this method.
    *
-   * This method will also perform {@code const} and {@code volatile} modifiers elimination.
+   * <p>This method will also perform {@code const} and {@code volatile} modifiers elimination.
    *
-   * Note that all code in this package should only use simplified types,
-   * so calling this method should be only necessary when retrieving types from AST nodes.
-   * Use {@link CTypeUtils#checkIsSimplified(CType)} as a precondition in other places
-   * when you want to make sure a type is simplified.
+   * <p>Note that all code in this package should only use simplified types, so calling this method
+   * should be only necessary when retrieving types from AST nodes. Use {@link
+   * CTypeUtils#checkIsSimplified(CType)} as a precondition in other places when you want to make
+   * sure a type is simplified.
    *
-   * Also consider using one of the {@link #getSimplifiedType} overloads.
+   * <p>Also consider using one of the {@link #getSimplifiedType} overloads.
    *
    * @param type The type obtained from the CFA
    * @return The corresponding simplified canonical type
@@ -136,16 +139,12 @@ public class TypeHandlerWithPointerAliasing extends CtoFormulaTypeHandler {
     return simplifyType(exp.getExpressionType());
   }
 
-  /**
-   * Get a simplified type as defined by {@link #simplifyType(CType)} from a declaration.
-   */
+  /** Get a simplified type as defined by {@link #simplifyType(CType)} from a declaration. */
   CType getSimplifiedType(final CSimpleDeclaration decl) {
     return simplifyType(decl.getType());
   }
 
-  /**
-   * Get a simplified type as defined by {@link #simplifyType(CType)} from a field declaration.
-   */
+  /** Get a simplified type as defined by {@link #simplifyType(CType)} from a field declaration. */
   CType getSimplifiedType(final CCompositeTypeMemberDeclaration field) {
     return simplifyType(field.getType());
   }
@@ -206,13 +205,17 @@ public class TypeHandlerWithPointerAliasing extends CtoFormulaTypeHandler {
     }
   }
 
-  /** @see #getOffset(CCompositeType, String) */
+  /**
+   * @see #getOffset(CCompositeType, String)
+   */
   OptionalLong getOffset(
       CCompositeType compositeType, final CCompositeTypeMemberDeclaration member) {
     return getOffset(compositeType, member.getName());
   }
 
-  /** @see #getBitOffset(CCompositeType, String) */
+  /**
+   * @see #getBitOffset(CCompositeType, String)
+   */
   long getBitOffset(CCompositeType compositeType, final CCompositeTypeMemberDeclaration member) {
     return getBitOffset(compositeType, member.getName());
   }
@@ -226,7 +229,8 @@ public class TypeHandlerWithPointerAliasing extends CtoFormulaTypeHandler {
    */
   long getBitOffset(CCompositeType compositeType, final String memberName) {
     checkIsSimplified(compositeType);
-    assert compositeType.getKind() != ComplexTypeKind.ENUM : "Enums are not composite: " + compositeType;
+    assert compositeType.getKind() != ComplexTypeKind.ENUM
+        : "Enums are not composite: " + compositeType;
     ImmutableMap<String, Long> multiset = offsets.get(compositeType);
     if (multiset == null) {
       Map<CCompositeTypeMemberDeclaration, BigInteger> calculatedOffsets =
@@ -235,7 +239,7 @@ public class TypeHandlerWithPointerAliasing extends CtoFormulaTypeHandler {
           ImmutableMap.builderWithExpectedSize(calculatedOffsets.size());
       calculatedOffsets.forEach(
           (key, value) -> memberOffsets.put(key.getName(), value.longValueExact()));
-      multiset = memberOffsets.build();
+      multiset = memberOffsets.buildOrThrow();
       offsets.put(compositeType, multiset);
     }
     return multiset.get(memberName);

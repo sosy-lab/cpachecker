@@ -35,7 +35,10 @@ public class BitVectorInfo implements TypeInfo {
     size = pSize;
     signed = pSigned;
     minValue = !signed ? BigInteger.ZERO : BigInteger.valueOf(2).pow(size - 1).negate();
-    maxValue = !signed ? BigInteger.valueOf(2).pow(size).subtract(BigInteger.ONE) : BigInteger.valueOf(2).pow(size - 1).subtract(BigInteger.ONE);
+    maxValue =
+        !signed
+            ? BigInteger.valueOf(2).pow(size).subtract(BigInteger.ONE)
+            : BigInteger.valueOf(2).pow(size - 1).subtract(BigInteger.ONE);
   }
 
   public int getSize() {
@@ -131,38 +134,38 @@ public class BitVectorInfo implements TypeInfo {
       signed = (type instanceof CSimpleType) && pMachineModel.isSigned((CSimpleType) type);
     } else if (type instanceof JSimpleType) {
       switch (((JSimpleType) type).getType()) {
-      case BOOLEAN:
-        size = 32;
-        signed = false;
-        break;
-      case BYTE:
-        size = 8;
-        signed = true;
-        break;
-      case CHAR:
-        size = 16;
-        signed = false;
-        break;
-      case SHORT:
-        size = 16;
-        signed = true;
-        break;
-      case INT:
-        size = 32;
-        signed = true;
-        break;
-      case LONG:
-        size = 64;
-        signed = true;
-        break;
+        case BOOLEAN:
+          size = 32;
+          signed = false;
+          break;
+        case BYTE:
+          size = 8;
+          signed = true;
+          break;
+        case CHAR:
+          size = 16;
+          signed = false;
+          break;
+        case SHORT:
+          size = 16;
+          signed = true;
+          break;
+        case INT:
+          size = 32;
+          signed = true;
+          break;
+        case LONG:
+          size = 64;
+          signed = true;
+          break;
         case FLOAT:
           return FloatingPointTypeInfo.FLOAT;
         case DOUBLE:
           return FloatingPointTypeInfo.DOUBLE;
-      case UNSPECIFIED:
-      case VOID:
-      default:
-        throw new IllegalArgumentException("Unsupported type: " + type);
+        case UNSPECIFIED:
+        case VOID:
+        default:
+          throw new IllegalArgumentException("Unsupported type: " + type);
       }
     } else {
       throw new IllegalArgumentException("Unsupported type: " + type);
@@ -183,31 +186,31 @@ public class BitVectorInfo implements TypeInfo {
         return type instanceof CPointerType;
       }
       switch (((CSimpleType) type).getType()) {
-      case CHAR:
-      case INT:
-        return true;
-      case FLOAT:
-      case DOUBLE:
-      case UNSPECIFIED:
-      default:
-        return false;
+        case CHAR:
+        case INT:
+          return true;
+        case FLOAT:
+        case DOUBLE:
+        case UNSPECIFIED:
+        default:
+          return false;
       }
     }
     if (type instanceof JSimpleType) {
       switch (((JSimpleType) type).getType()) {
-      case BOOLEAN:
-      case BYTE:
-      case CHAR:
-      case SHORT:
-      case INT:
-      case LONG:
-        return true;
-      case FLOAT:
-      case DOUBLE:
-      case UNSPECIFIED:
-      case VOID:
-      default:
-        return false;
+        case BOOLEAN:
+        case BYTE:
+        case CHAR:
+        case SHORT:
+        case INT:
+        case LONG:
+          return true;
+        case FLOAT:
+        case DOUBLE:
+        case UNSPECIFIED:
+        case VOID:
+        default:
+          return false;
       }
     }
     return false;
@@ -216,5 +219,4 @@ public class BitVectorInfo implements TypeInfo {
   public BitVectorInfo extend(int pExtension) {
     return new BitVectorInfo(size + pExtension, signed);
   }
-
 }

@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.cfa.postprocessing.global.singleloop;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import java.util.ArrayDeque;
 import java.util.Collection;
 import java.util.Collections;
@@ -48,7 +49,8 @@ public class SingleLoopHead extends CFANode {
             FileLocation.DUMMY,
             CFunctionType.NO_ARGS_VOID_FUNCTION,
             CFASingleLoopTransformation.ARTIFICIAL_PROGRAM_COUNTER_FUNCTION_NAME,
-            ImmutableList.of()));
+            ImmutableList.of(),
+            ImmutableSet.of()));
   }
 
   @Override

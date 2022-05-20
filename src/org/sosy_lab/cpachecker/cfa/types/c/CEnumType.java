@@ -35,8 +35,12 @@ public final class CEnumType implements CComplexType {
   private final boolean isVolatile;
   private int hashCache = 0;
 
-  public CEnumType(final boolean pConst, final boolean pVolatile,
-      final List<CEnumerator> pEnumerators, final String pName, final String pOrigName) {
+  public CEnumType(
+      final boolean pConst,
+      final boolean pVolatile,
+      final List<CEnumerator> pEnumerators,
+      final String pName,
+      final String pOrigName) {
     isConst = pConst;
     isVolatile = pVolatile;
     enumerators = ImmutableList.copyOf(pEnumerators);
@@ -108,9 +112,7 @@ public final class CEnumType implements CComplexType {
 
   @Override
   public String toString() {
-    return (isConst() ? "const " : "") +
-           (isVolatile() ? "volatile " : "") +
-           "enum " + name;
+    return (isConst() ? "const " : "") + (isVolatile() ? "volatile " : "") + "enum " + name;
   }
 
   public static final class CEnumerator extends AbstractSimpleDeclaration
@@ -118,9 +120,9 @@ public final class CEnumType implements CComplexType {
 
     private static final long serialVersionUID = -2526725372840523651L;
 
-    private final @Nullable Long  value;
+    private final @Nullable Long value;
     private @Nullable CEnumType enumType;
-    private final String         qualifiedName;
+    private final String qualifiedName;
 
     public CEnumerator(
         final FileLocation pFileLocation,
@@ -135,9 +137,7 @@ public final class CEnumType implements CComplexType {
       qualifiedName = checkNotNull(pQualifiedName);
     }
 
-    /**
-     * Get the enum that declared this enumerator.
-     */
+    /** Get the enum that declared this enumerator. */
     public CEnumType getEnum() {
       return enumType;
     }
@@ -167,9 +167,7 @@ public final class CEnumType implements CComplexType {
       return Objects.hash(value, enumType, qualifiedName) * 31 + super.hashCode();
     }
 
-    /**
-     * This method should be called only during parsing.
-     */
+    /** This method should be called only during parsing. */
     public void setEnum(CEnumType pEnumType) {
       checkState(enumType == null);
       enumType = checkNotNull(pEnumType);
@@ -229,9 +227,9 @@ public final class CEnumType implements CComplexType {
   }
 
   /**
-   * Be careful, this method compares the CType as it is to the given object,
-   * typedefs won't be resolved. If you want to compare the type without having
-   * typedefs in it use #getCanonicalType().equals()
+   * Be careful, this method compares the CType as it is to the given object, typedefs won't be
+   * resolved. If you want to compare the type without having typedefs in it use
+   * #getCanonicalType().equals()
    */
   @Override
   public boolean equals(@Nullable Object obj) {
@@ -245,9 +243,10 @@ public final class CEnumType implements CComplexType {
 
     CEnumType other = (CEnumType) obj;
 
-    return isConst == other.isConst && isVolatile == other.isVolatile
-           && Objects.equals(name, other.name)
-           && Objects.equals(enumerators, other.enumerators);
+    return isConst == other.isConst
+        && isVolatile == other.isVolatile
+        && Objects.equals(name, other.name)
+        && Objects.equals(enumerators, other.enumerators);
   }
 
   @Override
@@ -263,9 +262,9 @@ public final class CEnumType implements CComplexType {
     CEnumType other = (CEnumType) obj;
 
     return isConst == other.isConst
-           && isVolatile == other.isVolatile
-           && (Objects.equals(name, other.name) || (origName.isEmpty() && other.origName.isEmpty()))
-           && Objects.equals(enumerators, other.enumerators);
+        && isVolatile == other.isVolatile
+        && (Objects.equals(name, other.name) || (origName.isEmpty() && other.origName.isEmpty()))
+        && Objects.equals(enumerators, other.enumerators);
   }
 
   @Override

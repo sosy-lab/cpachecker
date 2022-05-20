@@ -57,15 +57,21 @@ import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.statistics.KeyValueStatistics;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 
-@Options(prefix="cpa.predicate")
+@Options(prefix = "cpa.predicate")
 public class PredicatePrecisionBootstrapper implements StatisticsProvider {
 
-  @Option(secure=true, name="abstraction.initialPredicates",
-      description="get an initial map of predicates from a list of files (see source doc/examples/predmap.txt for an example)")
+  @Option(
+      secure = true,
+      name = "abstraction.initialPredicates",
+      description =
+          "get an initial map of predicates from a list of files (see source"
+              + " doc/examples/predmap.txt for an example)")
   @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
   private List<Path> predicatesFiles = ImmutableList.of();
 
-  @Option(secure=true, description="always check satisfiability at end of block, even if precision is empty")
+  @Option(
+      secure = true,
+      description = "always check satisfiability at end of block, even if precision is empty")
   private boolean checkBlockFeasibility = false;
 
   @Options(prefix = "cpa.predicate.abstraction.initialPredicates")
@@ -79,13 +85,15 @@ public class PredicatePrecisionBootstrapper implements StatisticsProvider {
     @Option(
         secure = true,
         description =
-            "Apply location- and function-specific predicates globally (to all locations in the program)")
+            "Apply location- and function-specific predicates globally (to all locations in the"
+                + " program)")
     private boolean applyGlobally = false;
 
     @Option(
         secure = true,
         description =
-            "when reading predicates from file, convert them from Integer- to BV-theory or reverse.")
+            "when reading predicates from file, convert them from Integer- to BV-theory or"
+                + " reverse.")
     private PrecisionConverter encodePredicates = PrecisionConverter.DISABLE;
 
     @Option(secure = true, description = "initial predicates are added as atomic predicates")
@@ -102,7 +110,6 @@ public class PredicatePrecisionBootstrapper implements StatisticsProvider {
     public PrecisionConverter getPrecisionConverter() {
       return encodePredicates;
     }
-
   }
 
   private final FormulaManagerView formulaManagerView;
@@ -143,8 +150,8 @@ public class PredicatePrecisionBootstrapper implements StatisticsProvider {
 
     config.inject(this);
 
-    this.options = new InitialPredicatesOptions();
-    config.inject(this.options);
+    options = new InitialPredicatesOptions();
+    config.inject(options);
   }
 
   private PredicatePrecision internalPrepareInitialPredicates()
@@ -153,8 +160,9 @@ public class PredicatePrecisionBootstrapper implements StatisticsProvider {
     PredicatePrecision result = PredicatePrecision.empty();
 
     if (checkBlockFeasibility) {
-      result = result
-          .addGlobalPredicates(Collections.singleton(abstractionManager.makeFalsePredicate()));
+      result =
+          result.addGlobalPredicates(
+              Collections.singleton(abstractionManager.makeFalsePredicate()));
     }
 
     if (!predicatesFiles.isEmpty()) {
@@ -292,31 +300,28 @@ public class PredicatePrecisionBootstrapper implements StatisticsProvider {
   // we keep this method locally and do not put it into utils, because it is dangerous to use
   // if the real type of pInvariant is not known.
   private <LeafType> ExpressionTree<LeafType> cast(ExpressionTree<Object> toCast) {
-    if (toCast instanceof And) {
-      Set<ExpressionTree<LeafType>> storedElemes = new HashSet<>();
-      ((And<LeafType>) toCast).forEach(obj -> storedElemes.add(obj));
-      return And.of(storedElemes);
-    } else if (toCast instanceof Or) {
-      Set<ExpressionTree<LeafType>> storedElemes = new HashSet<>();
-      ((Or<LeafType>) toCast).forEach(obj -> storedElemes.add(obj));
-      return Or.of(storedElemes);
-    } else {
-      return LeafExpression.of(((LeafExpression<LeafType>) toCast).getExpression());
-    }
+    return (ExpressionTree<LeafType>) toCast;
   }
 
   private Collection<ExpressionTree<AExpression>> split(ExpressionTree<AExpression> pExpr) {
-    Set<ExpressionTree<AExpression>> atoms = new HashSet<>();
+    ImmutableSet.Builder<ExpressionTree<AExpression>> builder = ImmutableSet.builder();
+    split0(pExpr, builder);
+    return builder.build();
+  }
+
+  /** Extracts the given {@link ExpressionTree}'s leaf nodes and adds them to the given builder. */
+  private void split0(
+      ExpressionTree<AExpression> pExpr,
+      ImmutableSet.Builder<ExpressionTree<AExpression>> pSetBuilder) {
     if (pExpr instanceof And) {
-      ((And<AExpression>) pExpr).forEach(conj -> atoms.addAll(split(conj)));
+      ((And<AExpression>) pExpr).forEach(conj -> split0(conj, pSetBuilder));
     } else if (pExpr instanceof Or) {
-      ((Or<AExpression>) pExpr).forEach(conj -> atoms.addAll(split(conj)));
+      ((Or<AExpression>) pExpr).forEach(conj -> split0(conj, pSetBuilder));
     } else if (pExpr instanceof LeafExpression) {
-      atoms.add(pExpr);
+      pSetBuilder.add(pExpr);
     } else {
       throw new AssertionError("Unhandled expression type: " + pExpr.getClass());
     }
-    return atoms;
   }
 
   /** Read the (initial) precision (predicates to track) from a file. */
@@ -325,8 +330,10 @@ public class PredicatePrecisionBootstrapper implements StatisticsProvider {
     PredicatePrecision result = internalPrepareInitialPredicates();
 
     statistics.addKeyValueStatistic("Init. global predicates", result.getGlobalPredicates().size());
-    statistics.addKeyValueStatistic("Init. location predicates", result.getLocalPredicates().size());
-    statistics.addKeyValueStatistic("Init. function predicates", result.getFunctionPredicates().size());
+    statistics.addKeyValueStatistic(
+        "Init. location predicates", result.getLocalPredicates().size());
+    statistics.addKeyValueStatistic(
+        "Init. function predicates", result.getFunctionPredicates().size());
 
     return result;
   }
@@ -335,5 +342,4 @@ public class PredicatePrecisionBootstrapper implements StatisticsProvider {
   public void collectStatistics(Collection<Statistics> pStatsCollection) {
     pStatsCollection.add(statistics);
   }
-
 }

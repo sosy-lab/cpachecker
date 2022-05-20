@@ -36,8 +36,8 @@ import org.sosy_lab.cpachecker.util.LoopStructure;
 import org.sosy_lab.cpachecker.util.variableclassification.VariableClassification;
 
 /**
- * This class represents a CFA after it has been fully created (parsing, linking
- * of functions, etc.).
+ * This class represents a CFA after it has been fully created (parsing, linking of functions,
+ * etc.).
  */
 class ImmutableCFA implements CFA, Serializable {
 
@@ -195,7 +195,7 @@ class ImmutableCFA implements CFA, Serializable {
     s.writeObject(ImmutableList.copyOf(Lists.transform(fileNames, Path::toString)));
   }
 
-  @SuppressWarnings({"unchecked", "UnusedVariable"}) // parameter is required by API
+  @SuppressWarnings("unchecked")
   private void readObject(java.io.ObjectInputStream s)
       throws java.io.IOException, ClassNotFoundException {
 

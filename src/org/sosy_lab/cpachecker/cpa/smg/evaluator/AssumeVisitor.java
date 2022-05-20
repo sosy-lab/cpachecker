@@ -40,7 +40,8 @@ public class AssumeVisitor extends ExpressionValueVisitor {
 
   private final Map<UnmodifiableSMGState, BinaryRelationResult> relations = new HashMap<>();
 
-  public AssumeVisitor(SMGExpressionEvaluator pSmgExpressionEvaluator, CFAEdge pEdge, SMGState pSmgState) {
+  public AssumeVisitor(
+      SMGExpressionEvaluator pSmgExpressionEvaluator, CFAEdge pEdge, SMGState pSmgState) {
     super(pSmgExpressionEvaluator, pEdge, pSmgState);
   }
 
@@ -50,18 +51,18 @@ public class AssumeVisitor extends ExpressionValueVisitor {
     BinaryOperator binaryOperator = pExp.getOperator();
 
     switch (binaryOperator) {
-    case EQUALS:
-    case NOT_EQUALS:
-    case LESS_EQUAL:
-    case LESS_THAN:
-    case GREATER_EQUAL:
-    case GREATER_THAN:
-      List<SMGValueAndState> result = new ArrayList<>(4);
+      case EQUALS:
+      case NOT_EQUALS:
+      case LESS_EQUAL:
+      case LESS_THAN:
+      case GREATER_EQUAL:
+      case GREATER_THAN:
+        List<SMGValueAndState> result = new ArrayList<>(4);
 
-      CExpression leftSideExpression = pExp.getOperand1();
-      CExpression rightSideExpression = pExp.getOperand2();
+        CExpression leftSideExpression = pExp.getOperand1();
+        CExpression rightSideExpression = pExp.getOperand2();
 
-      CFAEdge edge = getCfaEdge();
+        CFAEdge edge = getCfaEdge();
 
         for (SMGValueAndState leftSideValAndState :
             smgExpressionEvaluator.evaluateExpressionValue(
@@ -99,7 +100,7 @@ public class AssumeVisitor extends ExpressionValueVisitor {
               SMGType leftSideSMGType =
                   SMGType.constructSMGType(leftSideType, newState, edge, smgExpressionEvaluator);
               while (leftSideExpression instanceof CCastExpression) {
-                //TODO: rewrite as list of castings
+                // TODO: rewrite as list of castings
                 CCastExpression leftSideCastExpression = (CCastExpression) leftSideExpression;
                 leftSideExpression = leftSideCastExpression.getOperand();
                 CType leftSideOriginType = leftSideExpression.getExpressionType();
@@ -124,14 +125,16 @@ public class AssumeVisitor extends ExpressionValueVisitor {
 
               // TODO
               // The following predicate relation is a completely unsound assumption,
-              // because we know nothing about the calling context, not even, if we are in a negated (!) expression.
-              // This might clearly be a bug, but I could currently not find a better way to solve this.
+              // because we know nothing about the calling context, not even, if we are in a negated
+              // (!) expression.
+              // This might clearly be a bug, but I could currently not find a better way to solve
+              // this.
               // The code works well for expressions that are not nested, like "a==b" or "a!=b",
               // but is invalid for "(a==b)==c".
               // There exists code in SMGTransferRelation.strenghten
               // that even needs to negate an edge to get correct results.
 
-              //FIXME: require calculate cast on integer promotions
+              // FIXME: require calculate cast on integer promotions
               newState.addPredicateRelation(
                   // next line: use the symbolic value here and not the potential explicit one.
                   leftSideVal,
@@ -143,12 +146,12 @@ public class AssumeVisitor extends ExpressionValueVisitor {
                   edge);
               result.add(SMGValueAndState.of(newState, resultValue));
             }
+          }
         }
-      }
 
         return result;
-    default:
-      return super.visit(pExp);
+      default:
+        return super.visit(pExp);
     }
   }
 
@@ -177,20 +180,20 @@ public class AssumeVisitor extends ExpressionValueVisitor {
       long offset2 = pV2.getOffset().getAsLong();
 
       switch (pOp) {
-      case GREATER_EQUAL:
+        case GREATER_EQUAL:
           return offset1 >= offset2;
-      case GREATER_THAN:
+        case GREATER_THAN:
           return offset1 > offset2;
-      case LESS_EQUAL:
+        case LESS_EQUAL:
           return offset1 <= offset2;
-      case LESS_THAN:
+        case LESS_THAN:
           return offset1 < offset2;
         case EQUALS:
           return offset1 == offset2;
         case NOT_EQUALS:
           return offset1 != offset2;
-      default:
-        throw new AssertionError("Impossible case thrown");
+        default:
+          throw new AssertionError("Impossible case thrown");
       }
     } else if (pOp == BinaryOperator.NOT_EQUALS
         && (getInitialSmgState().getHeap().isObjectValid(object1)
@@ -220,46 +223,46 @@ public class AssumeVisitor extends ExpressionValueVisitor {
     boolean impliesNeqWhenFalse = false;
 
     switch (pOp) {
-    case NOT_EQUALS:
-      isTrue = areNonEqual;
-      isFalse = areEqual;
-      impliesEqWhenFalse = true;
-      impliesNeqWhenTrue = true;
-      break;
-    case EQUALS:
-      isTrue = areEqual;
-      isFalse = areNonEqual;
-      impliesEqWhenTrue = true;
-      impliesNeqWhenFalse = true;
-      break;
-    case GREATER_EQUAL:
-    case LESS_EQUAL:
-    case LESS_THAN:
-    case GREATER_THAN:
-      switch (pOp) {
-      case LESS_EQUAL:
-      case GREATER_EQUAL:
-        if (areEqual) {
-          isTrue = true;
-          impliesEqWhenTrue = true;
-          impliesNeqWhenFalse = true;
-        } else {
-          impliesNeqWhenFalse = true;
-        }
-        break;
-      case GREATER_THAN:
-      case LESS_THAN:
-        if(areEqual) {
-          isFalse = true;
-        }
-
+      case NOT_EQUALS:
+        isTrue = areNonEqual;
+        isFalse = areEqual;
+        impliesEqWhenFalse = true;
         impliesNeqWhenTrue = true;
         break;
+      case EQUALS:
+        isTrue = areEqual;
+        isFalse = areNonEqual;
+        impliesEqWhenTrue = true;
+        impliesNeqWhenFalse = true;
+        break;
+      case GREATER_EQUAL:
+      case LESS_EQUAL:
+      case LESS_THAN:
+      case GREATER_THAN:
+        switch (pOp) {
+          case LESS_EQUAL:
+          case GREATER_EQUAL:
+            if (areEqual) {
+              isTrue = true;
+              impliesEqWhenTrue = true;
+              impliesNeqWhenFalse = true;
+            } else {
+              impliesNeqWhenFalse = true;
+            }
+            break;
+          case GREATER_THAN:
+          case LESS_THAN:
+            if (areEqual) {
+              isFalse = true;
+            }
+
+            impliesNeqWhenTrue = true;
+            break;
+          default:
+            throw new AssertionError("Impossible case thrown");
+        }
+        break;
       default:
-        throw new AssertionError("Impossible case thrown");
-      }
-      break;
-    default:
         throw new AssertionError("Binary Relation with non-relational operator: " + pOp);
     }
 
@@ -304,12 +307,21 @@ public class AssumeVisitor extends ExpressionValueVisitor {
       }
     }
 
-    BinaryRelationResult relationResult = new BinaryRelationResult(isTrue, isFalse, impliesEqWhenFalse, impliesNeqWhenFalse, impliesEqWhenTrue, impliesNeqWhenTrue, pV1, pV2);
+    BinaryRelationResult relationResult =
+        new BinaryRelationResult(
+            isTrue,
+            isFalse,
+            impliesEqWhenFalse,
+            impliesNeqWhenFalse,
+            impliesEqWhenTrue,
+            impliesNeqWhenTrue,
+            pV1,
+            pV2);
     relations.put(pNewState, relationResult);
 
-    if(isTrue) {
+    if (isTrue) {
       return SMGValueAndState.of(pNewState, SMGKnownSymValue.TRUE);
-    } else if(isFalse) {
+    } else if (isFalse) {
       return SMGValueAndState.of(pNewState, SMGZeroValue.INSTANCE);
     } else {
       return SMGValueAndState.withUnknownValue(pNewState);
@@ -334,7 +346,8 @@ public class AssumeVisitor extends ExpressionValueVisitor {
         SMGValue operand2 = operand2AndState.getObject();
         SMGState newState = operand2AndState.getSmgState();
 
-        SMGValueAndState resultValueAndState = evaluateBinaryAssumptionOfConcreteSymbolicValues(newState, pOp, operand1, operand2);
+        SMGValueAndState resultValueAndState =
+            evaluateBinaryAssumptionOfConcreteSymbolicValues(newState, pOp, operand1, operand2);
         result.add(resultValueAndState);
       }
     }

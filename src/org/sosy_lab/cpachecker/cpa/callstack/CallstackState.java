@@ -28,12 +28,12 @@ import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
  * Abstract state that stores callstack information by maintaning a single-linked list of states
  * that represents the current callstack.
  *
- * Note that whenever a new state is created, this represents a new, unique, entry of a function.
- * Two separate entries of the same function are not considered equal,
- * even if the function names and call nodes of the two callstacks match.
- * Cf. {@link CallstackTest#testCallstackPreventsUndesiredCoverage()} for an example.
- * (Because of this this class must inherit the identity-based
- * {@link #equals(Object)} and {@link #hashCode()} from Object.)
+ * <p>Note that whenever a new state is created, this represents a new, unique, entry of a function.
+ * Two separate entries of the same function are not considered equal, even if the function names
+ * and call nodes of the two callstacks match. Cf. {@link
+ * CallstackTest#testCallstackPreventsUndesiredCoverage()} for an example. (Because of this this
+ * class must inherit the identity-based {@link #equals(Object)} and {@link #hashCode()} from
+ * Object.)
  */
 public class CallstackState
     implements AbstractState, Partitionable, AbstractQueryableState, Serializable {
@@ -95,11 +95,16 @@ public class CallstackState
 
   @Override
   public String toString() {
-    return "Function " + getCurrentFunction()
-        + " called from node " + getCallNode()
-        + ", stack depth " + getDepth()
-        + " [" + Integer.toHexString(super.hashCode())
-        + "], stack " + getStack();
+    return "Function "
+        + getCurrentFunction()
+        + " called from node "
+        + getCallNode()
+        + ", stack depth "
+        + getDepth()
+        + " ["
+        + Integer.toHexString(super.hashCode())
+        + "], stack "
+        + getStack();
   }
 
   public boolean sameStateInProofChecking(CallstackState pOther) {
@@ -124,14 +129,15 @@ public class CallstackState
   public Object evaluateProperty(String pProperty) throws InvalidQueryException {
     if (pProperty.compareToIgnoreCase("caller") == 0) {
       if (callerNode != null) {
-        return this.callerNode.getFunctionName();
+        return callerNode.getFunctionName();
       } else {
         return "";
       }
     }
 
-    throw new InvalidQueryException(String.format("Evaluating %s not supported by %s", pProperty, this.getClass()
-        .getCanonicalName()));
+    throw new InvalidQueryException(
+        String.format(
+            "Evaluating %s not supported by %s", pProperty, this.getClass().getCanonicalName()));
   }
 
   private void writeObject(java.io.ObjectOutputStream out) throws IOException {
@@ -139,7 +145,6 @@ public class CallstackState
     out.writeInt(callerNode.getNodeNumber());
   }
 
-  @SuppressWarnings("UnusedVariable") // parameter is required by API
   private void readObject(java.io.ObjectInputStream in) throws IOException, ClassNotFoundException {
     in.defaultReadObject();
     int nodeNumber = in.readInt();

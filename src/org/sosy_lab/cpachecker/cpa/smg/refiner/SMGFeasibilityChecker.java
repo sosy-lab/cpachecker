@@ -81,12 +81,14 @@ public class SMGFeasibilityChecker implements FeasibilityChecker<UnmodifiableSMG
       while (iterator.hasNext()) {
         edge = iterator.getOutgoingEdge();
 
-        Collection<SMGState> successors =
-            strongestPostOp.getStrongestPost(next, pPrecision, edge);
+        Collection<SMGState> successors = strongestPostOp.getStrongestPost(next, pPrecision, edge);
 
         // no successors => path is infeasible
         if (successors.isEmpty()) {
-          logger.log(Level.FINE, "found path to be infeasible: ", iterator.getOutgoingEdge(),
+          logger.log(
+              Level.FINE,
+              "found path to be infeasible: ",
+              iterator.getOutgoingEdge(),
               " did not yield a successor");
 
           return ReachabilityResult.isNotReachable(iterator.getPosition());
@@ -99,12 +101,14 @@ public class SMGFeasibilityChecker implements FeasibilityChecker<UnmodifiableSMG
 
       return ReachabilityResult.isReachable(next, edge, iterator.getPosition());
     } catch (CPATransferException e) {
-      throw new CPAException("Computation of successor failed for checking path: " + e.getMessage(), e);
+      throw new CPAException(
+          "Computation of successor failed for checking path: " + e.getMessage(), e);
     }
   }
 
-  private boolean isTarget(Collection<SMGState> pLastStates, CFAEdge pLastEdge, ARGState pLastState,
-      boolean allTargets) throws CPATransferException, InterruptedException {
+  private boolean isTarget(
+      Collection<SMGState> pLastStates, CFAEdge pLastEdge, ARGState pLastState, boolean allTargets)
+      throws CPATransferException, InterruptedException {
 
     Set<ControlAutomatonCPA> automatonCPAsToCheck = getAutomata(pLastState, allTargets);
 
@@ -153,12 +157,14 @@ public class SMGFeasibilityChecker implements FeasibilityChecker<UnmodifiableSMG
 
     StateSpacePartition defaultPartition = StateSpacePartition.getDefaultPartition();
 
-    AbstractState initialAutomatonState = pAutomaton.getInitialState(mainFunction, defaultPartition);
+    AbstractState initialAutomatonState =
+        pAutomaton.getInitialState(mainFunction, defaultPartition);
     TransferRelation transferRelation = pAutomaton.getTransferRelation();
     Precision automatonPrecision = pAutomaton.getInitialPrecision(mainFunction, defaultPartition);
 
     Collection<? extends AbstractState> successors =
-        transferRelation.getAbstractSuccessorsForEdge(initialAutomatonState, automatonPrecision, pLastEdge);
+        transferRelation.getAbstractSuccessorsForEdge(
+            initialAutomatonState, automatonPrecision, pLastEdge);
     Collection<AbstractState> strengthenResult = new HashSet<>();
     List<AbstractState> lastStateSingelton = Collections.singletonList(pLastState);
 
@@ -198,7 +204,8 @@ public class SMGFeasibilityChecker implements FeasibilityChecker<UnmodifiableSMG
     ReachabilityResult result = isReachable(pPath, pStartingPoint, pPrecision);
 
     if (result.isReachable()) {
-      return isTarget(result.getLastState(), result.getLastEdge(), pPath.getLastState(), pAllTargets);
+      return isTarget(
+          result.getLastState(), result.getLastEdge(), pPath.getLastState(), pAllTargets);
     } else {
       return false;
     }
@@ -211,8 +218,8 @@ public class SMGFeasibilityChecker implements FeasibilityChecker<UnmodifiableSMG
     private final CFAEdge lastEdge;
     private final PathPosition lastPosition;
 
-    private ReachabilityResult(Collection<SMGState> pLastStates,
-        CFAEdge pLastEdge, PathPosition pLastPosition) {
+    private ReachabilityResult(
+        Collection<SMGState> pLastStates, CFAEdge pLastEdge, PathPosition pLastPosition) {
 
       Preconditions.checkNotNull(pLastEdge);
       Preconditions.checkNotNull(pLastStates);
@@ -251,8 +258,8 @@ public class SMGFeasibilityChecker implements FeasibilityChecker<UnmodifiableSMG
       return lastPosition;
     }
 
-    public static ReachabilityResult isReachable(Collection<SMGState> lastStates, CFAEdge lastEdge,
-        PathPosition pLastPosition) {
+    public static ReachabilityResult isReachable(
+        Collection<SMGState> lastStates, CFAEdge lastEdge, PathPosition pLastPosition) {
       return new ReachabilityResult(lastStates, lastEdge, pLastPosition);
     }
 
@@ -275,8 +282,8 @@ public class SMGFeasibilityChecker implements FeasibilityChecker<UnmodifiableSMG
     /*Prevent causing side effects when pruning.*/
     SMGState state = pState.copyOf();
 
-    return isTarget(ImmutableSet.of(state), pCurrentEdge, pRemainingErrorPath.getLastState(),
-        pAllTargets);
+    return isTarget(
+        ImmutableSet.of(state), pCurrentEdge, pRemainingErrorPath.getLastState(), pAllTargets);
   }
 
   @Override

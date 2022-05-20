@@ -71,7 +71,6 @@ import org.sosy_lab.cpachecker.cpa.termination.TerminationCPA;
 import org.sosy_lab.cpachecker.cpa.traceabstraction.TraceAbstractionCPA;
 import org.sosy_lab.cpachecker.cpa.usage.UsageCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
-import org.sosy_lab.cpachecker.exceptions.ParserException;
 import org.sosy_lab.cpachecker.util.test.TestDataTools;
 
 @RunWith(Parameterized.class)
@@ -128,8 +127,7 @@ public class CPAsTest {
   private ConfigurableProgramAnalysis cpa;
 
   @BeforeClass
-  public static void setup()
-      throws ParserException, InvalidConfigurationException, IOException, InterruptedException {
+  public static void setup() throws Exception {
     FileTypeConverter fileTypeConverter =
         FileTypeConverter.create(
             Configuration.builder()
@@ -163,8 +161,7 @@ public class CPAsTest {
   }
 
   @Before
-  public void instantiate()
-      throws ReflectiveOperationException, InvalidConfigurationException, CPAException {
+  public void instantiate() throws Exception {
     Method factoryMethod = cpaClass.getMethod("factory");
     final CPAFactory factory = (CPAFactory) factoryMethod.invoke(null);
 
@@ -210,7 +207,7 @@ public class CPAsTest {
         .set(Specification.alwaysSatisfied(), Specification.class)
         .set(aggregatedReachedSets, AggregatedReachedSets.class)
         .createInstance();
-    }
+  }
 
   @Test
   public void getInitialState() throws InterruptedException {

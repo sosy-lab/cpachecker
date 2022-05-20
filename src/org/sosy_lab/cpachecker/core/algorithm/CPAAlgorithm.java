@@ -59,23 +59,23 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
 
   private static class CPAStatistics implements Statistics {
 
-    private Timer totalTimer         = new Timer();
-    private Timer chooseTimer        = new Timer();
-    private Timer precisionTimer     = new Timer();
-    private Timer transferTimer      = new Timer();
-    private Timer mergeTimer         = new Timer();
-    private Timer stopTimer          = new Timer();
-    private Timer addTimer           = new Timer();
+    private Timer totalTimer = new Timer();
+    private Timer chooseTimer = new Timer();
+    private Timer precisionTimer = new Timer();
+    private Timer transferTimer = new Timer();
+    private Timer mergeTimer = new Timer();
+    private Timer stopTimer = new Timer();
+    private Timer addTimer = new Timer();
     private Timer forcedCoveringTimer = new Timer();
 
-    private int   countIterations   = 0;
-    private int   maxWaitlistSize   = 0;
-    private long  countWaitlistSize = 0;
-    private int   countSuccessors   = 0;
-    private int   maxSuccessors     = 0;
-    private int   countMerge        = 0;
-    private int   countStop         = 0;
-    private int   countBreak        = 0;
+    private int countIterations = 0;
+    private int maxWaitlistSize = 0;
+    private long countWaitlistSize = 0;
+    private int countSuccessors = 0;
+    private int maxSuccessors = 0;
+    private int countMerge = 0;
+    private int countStop = 0;
+    private int countBreak = 0;
 
     private Map<String, AbstractStatValue> reachedSetStatistics = new HashMap<>();
 
@@ -131,8 +131,7 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
       }
 
       out.println("Max size of waitlist:            " + maxWaitlistSize);
-      out.println("Average size of waitlist:        " + countWaitlistSize
-          / countIterations);
+      out.println("Average size of waitlist:        " + countWaitlistSize / countIterations);
       StatisticsWriter w = StatisticsWriter.writingStatisticsTo(out);
       for (AbstractStatValue c : reachedSetStatistics.values()) {
         w.put(c);
@@ -143,7 +142,12 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
       out.println("Number of times stopped:         " + countStop);
       out.println("Number of times breaked:         " + countBreak);
       out.println();
-      out.println("Total time for CPA algorithm:     " + totalTimer + " (Max: " + totalTimer.getMaxTime().formatAs(TimeUnit.SECONDS) + ")");
+      out.println(
+          "Total time for CPA algorithm:     "
+              + totalTimer
+              + " (Max: "
+              + totalTimer.getMaxTime().formatAs(TimeUnit.SECONDS)
+              + ")");
       out.println("  Time for choose from waitlist:  " + chooseTimer);
       if (forcedCoveringTimer.getNumberOfIntervals() > 0) {
         out.println("  Time for forced covering:       " + forcedCoveringTimer);
@@ -155,7 +159,6 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
       }
       out.println("  Time for stop operator:         " + stopTimer);
       out.println("  Time for adding to reached set: " + addTimer);
-
     }
   }
 
@@ -169,8 +172,11 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
     @ClassOption(packagePrefix = "org.sosy_lab.cpachecker")
     private ForcedCovering.@Nullable Factory forcedCoveringClass = null;
 
-    @Option(secure=true, description="Do not report 'False' result, return UNKNOWN instead. "
-        + " Useful for incomplete analysis with no counterexample checking.")
+    @Option(
+        secure = true,
+        description =
+            "Do not report 'False' result, return UNKNOWN instead. "
+                + " Useful for incomplete analysis with no counterexample checking.")
     private boolean reportFalseAsUnknown = false;
 
     private final ForcedCovering forcedCovering;
@@ -179,20 +185,23 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
     private final LogManager logger;
     private final ShutdownNotifier shutdownNotifier;
 
-    public CPAAlgorithmFactory(ConfigurableProgramAnalysis cpa, LogManager logger,
-        Configuration config, ShutdownNotifier pShutdownNotifier) throws InvalidConfigurationException {
+    public CPAAlgorithmFactory(
+        ConfigurableProgramAnalysis cpa,
+        LogManager logger,
+        Configuration config,
+        ShutdownNotifier pShutdownNotifier)
+        throws InvalidConfigurationException {
 
       config.inject(this);
       this.cpa = cpa;
       this.logger = logger;
-      this.shutdownNotifier = pShutdownNotifier;
+      shutdownNotifier = pShutdownNotifier;
 
       if (forcedCoveringClass != null) {
         forcedCovering = forcedCoveringClass.create(config, logger, cpa);
       } else {
         forcedCovering = null;
       }
-
     }
 
     @Override
@@ -201,29 +210,34 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
     }
   }
 
-  public static CPAAlgorithm create(ConfigurableProgramAnalysis cpa, LogManager logger,
-      Configuration config, ShutdownNotifier pShutdownNotifier) throws InvalidConfigurationException {
+  public static CPAAlgorithm create(
+      ConfigurableProgramAnalysis cpa,
+      LogManager logger,
+      Configuration config,
+      ShutdownNotifier pShutdownNotifier)
+      throws InvalidConfigurationException {
 
     return new CPAAlgorithmFactory(cpa, logger, config, pShutdownNotifier).newInstance();
   }
 
-
   private final ForcedCovering forcedCovering;
 
-  private final CPAStatistics               stats = new CPAStatistics();
+  private final CPAStatistics stats = new CPAStatistics();
 
   private final TransferRelation transferRelation;
   private final MergeOperator mergeOperator;
   private final StopOperator stopOperator;
   private final PrecisionAdjustment precisionAdjustment;
 
-  private final LogManager                  logger;
+  private final LogManager logger;
 
-  private final ShutdownNotifier                   shutdownNotifier;
+  private final ShutdownNotifier shutdownNotifier;
 
   private final AlgorithmStatus status;
 
-  private CPAAlgorithm(ConfigurableProgramAnalysis cpa, LogManager logger,
+  private CPAAlgorithm(
+      ConfigurableProgramAnalysis cpa,
+      LogManager logger,
       ShutdownNotifier pShutdownNotifier,
       ForcedCovering pForcedCovering,
       boolean pIsImprecise) {
@@ -233,13 +247,14 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
     stopOperator = cpa.getStopOperator();
     precisionAdjustment = cpa.getPrecisionAdjustment();
     this.logger = logger;
-    this.shutdownNotifier = pShutdownNotifier;
-    this.forcedCovering = pForcedCovering;
+    shutdownNotifier = pShutdownNotifier;
+    forcedCovering = pForcedCovering;
     status = AlgorithmStatus.SOUND_AND_PRECISE.withPrecise(!pIsImprecise);
   }
 
   @Override
-  public AlgorithmStatus run(final ReachedSet reachedSet) throws CPAException, InterruptedException {
+  public AlgorithmStatus run(final ReachedSet reachedSet)
+      throws CPAException, InterruptedException {
     stats.totalTimer.start();
     try {
       return run0(reachedSet);
@@ -249,7 +264,8 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
     }
   }
 
-  private AlgorithmStatus run0(final ReachedSet reachedSet) throws CPAException, InterruptedException {
+  private AlgorithmStatus run0(final ReachedSet reachedSet)
+      throws CPAException, InterruptedException {
     while (reachedSet.hasWaitingState()) {
       shutdownNotifier.shutdownIfNecessary();
 
@@ -280,7 +296,6 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
         reachedSet.reAddToWaitlist(state);
         throw e;
       }
-
     }
 
     return status;
@@ -288,6 +303,7 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
 
   /**
    * Handle one state from the waitlist, i.e., produce successors etc.
+   *
    * @param state The abstract state that was taken out of the waitlist
    * @param precision The precision for this abstract state.
    * @param reachedSet The reached set.
@@ -327,7 +343,7 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
     stats.countSuccessors += numSuccessors;
     stats.maxSuccessors = Math.max(numSuccessors, stats.maxSuccessors);
 
-    for (Iterator<? extends AbstractState> it = successors.iterator(); it.hasNext();) {
+    for (Iterator<? extends AbstractState> it = successors.iterator(); it.hasNext(); ) {
       AbstractState successor = it.next();
       shutdownNotifier.shutdownIfNecessary();
       logger.log(Level.FINER, "Considering successor of current state");
@@ -456,7 +472,7 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
   @Override
   public void collectStatistics(Collection<Statistics> pStatsCollection) {
     if (forcedCovering instanceof StatisticsProvider) {
-      ((StatisticsProvider)forcedCovering).collectStatistics(pStatsCollection);
+      ((StatisticsProvider) forcedCovering).collectStatistics(pStatsCollection);
     }
     pStatsCollection.add(stats);
   }

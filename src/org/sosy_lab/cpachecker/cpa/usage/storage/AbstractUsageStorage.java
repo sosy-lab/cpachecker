@@ -26,19 +26,19 @@ public abstract class AbstractUsageStorage
     super(previous);
   }
 
-  protected AbstractUsageStorage(){}
+  protected AbstractUsageStorage() {}
 
   protected NavigableSet<UsageInfo> getStorageForId(SingleIdentifier id) {
     if (deeplyCloned.contains(id)) {
-      //List is already cloned
+      // List is already cloned
       assert containsKey(id);
       return get(id);
     } else {
       deeplyCloned.add(id);
       NavigableSet<UsageInfo> storage;
       if (containsKey(id)) {
-        //clone
-        storage = new TreeSet<>(this.get(id));
+        // clone
+        storage = new TreeSet<>(get(id));
       } else {
         storage = new TreeSet<>();
       }
@@ -72,7 +72,7 @@ public abstract class AbstractUsageStorage
   }
 
   public boolean isSubsetOf(AbstractUsageStorage pOther) {
-    for (Map.Entry<SingleIdentifier, NavigableSet<UsageInfo>> entry : this.entrySet()) {
+    for (Map.Entry<SingleIdentifier, NavigableSet<UsageInfo>> entry : entrySet()) {
       SingleIdentifier id = entry.getKey();
       if (pOther.containsKey(id)) {
         NavigableSet<UsageInfo> currentSet = entry.getValue();

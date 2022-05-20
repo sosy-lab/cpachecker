@@ -89,7 +89,9 @@ public class PartialARGsCombiner implements Algorithm, StatisticsProvider {
 
   @Override
   public AlgorithmStatus run(ReachedSet pReachedSet) throws CPAException, InterruptedException {
-    checkArgument(pReachedSet instanceof ForwardingReachedSet, "PartialARGsCombiner needs ForwardingReachedSet");
+    checkArgument(
+        pReachedSet instanceof ForwardingReachedSet,
+        "PartialARGsCombiner needs ForwardingReachedSet");
 
     HistoryForwardingReachedSet reached = new HistoryForwardingReachedSet(pReachedSet);
 
@@ -129,9 +131,11 @@ public class PartialARGsCombiner implements Algorithm, StatisticsProvider {
         logger.log(Level.FINE, "Extract root nodes of ARGs");
         List<ARGState> rootNodes = new ArrayList<>(usedReachedSets.size());
         for (ReachedSet usedReached : usedReachedSets) {
-          checkArgument(usedReached.getFirstState() instanceof ARGState,
+          checkArgument(
+              usedReached.getFirstState() instanceof ARGState,
               "Require that all restart configurations use ARGCPA as top level CPA.");
-          checkArgument(AbstractStates.extractLocation(usedReached.getFirstState()) != null,
+          checkArgument(
+              AbstractStates.extractLocation(usedReached.getFirstState()) != null,
               "Require that all restart configurations consider a location aware state");
 
           for (AbstractState errorState : from(usedReached).filter(AbstractStates::isTargetState)) {
@@ -157,7 +161,9 @@ public class PartialARGsCombiner implements Algorithm, StatisticsProvider {
       logger.log(Level.INFO, "Finished combination of ARGS");
 
     } else {
-      logger.log(Level.INFO, "Program analysis is already unsound.",
+      logger.log(
+          Level.INFO,
+          "Program analysis is already unsound.",
           "Do not continue with combination of unsound results");
       // set reached set to last used by restart algorithm
       if (reached.getDelegate() != pReachedSet) {
@@ -169,11 +175,13 @@ public class PartialARGsCombiner implements Algorithm, StatisticsProvider {
     return status.withSound(true);
   }
 
-  private boolean combineARGs(List<ARGState> roots, ForwardingReachedSet pReceivedReachedSet,
+  private boolean combineARGs(
+      List<ARGState> roots,
+      ForwardingReachedSet pReceivedReachedSet,
       HistoryForwardingReachedSet pForwaredReachedSet)
       throws InterruptedException, CPAException {
-  Pair<Map<String, Integer>, List<AbstractState>> initStates =
-      identifyCompositeStateTypesAndTheirInitialInstances(roots);
+    Pair<Map<String, Integer>, List<AbstractState>> initStates =
+        identifyCompositeStateTypesAndTheirInitialInstances(roots);
 
     Map<String, Integer> stateToPos = initStates.getFirst();
     List<AbstractState> initialStates = initStates.getSecond();
@@ -199,9 +207,9 @@ public class PartialARGsCombiner implements Algorithm, StatisticsProvider {
     Deque<Pair<List<ARGState>, ARGState>> toVisit = new ArrayDeque<>();
     toVisit.add(Pair.of(roots, combinedRoot));
 
-
     // traverse through ARGs and construct combined ARG
-    // assume that states in initial states are most general, represent top state (except for automaton CPAs)
+    // assume that states in initial states are most general, represent top state (except for
+    // automaton CPAs)
     while (!toVisit.isEmpty()) {
       shutdown.shutdownIfNecessary();
 
@@ -214,7 +222,8 @@ public class PartialARGsCombiner implements Algorithm, StatisticsProvider {
 
       // identify possible successor edges
       locPred = AbstractStates.extractLocation(composedState);
-      nextEdge: for (CFAEdge succEdge : CFAUtils.allLeavingEdges(locPred)) {
+      nextEdge:
+      for (CFAEdge succEdge : CFAUtils.allLeavingEdges(locPred)) {
         shutdown.shutdownIfNecessary();
 
         successorsForEdge.clear();
@@ -223,7 +232,9 @@ public class PartialARGsCombiner implements Algorithm, StatisticsProvider {
         for (ARGState component : components) {
           // get the successors of ARG state for this edge succEdge
           edgeSuccessorIdentifier.setPredecessor(component);
-          successorsForEdge.add(Lists.newArrayList(Iterables.filter(component.getChildren(), edgeSuccessorIdentifier)));
+          successorsForEdge.add(
+              Lists.newArrayList(
+                  Iterables.filter(component.getChildren(), edgeSuccessorIdentifier)));
           // check if stopped because no concrete successors exists, then do not
           if (successorsForEdge.get(successorsForEdge.size() - 1).isEmpty()
               && noConcreteSuccessorExist(component, succEdge, pForwaredReachedSet)) {
@@ -232,14 +243,15 @@ public class PartialARGsCombiner implements Algorithm, StatisticsProvider {
         }
 
         // construct successors for each identified combination
-        for (Pair<List<AbstractState>, List<ARGState>> combinedSuccessor
-                                            : computeCartesianProduct(successorsForEdge, stateToPos, initialStates)) {
+        for (Pair<List<AbstractState>, List<ARGState>> combinedSuccessor :
+            computeCartesianProduct(successorsForEdge, stateToPos, initialStates)) {
           if (constructedCombinedStates.containsKey(combinedSuccessor)) {
             // handle coverage
             constructedCombinedStates.get(combinedSuccessor).addParent(composedState);
           } else {
             // construct and register composed successor
-            composedSuccessor = new ARGState(new CompositeState(combinedSuccessor.getFirst()), composedState);
+            composedSuccessor =
+                new ARGState(new CompositeState(combinedSuccessor.getFirst()), composedState);
             constructedCombinedStates.put(combinedSuccessor, composedSuccessor);
 
             // add successor for further exploration
@@ -251,12 +263,14 @@ public class PartialARGsCombiner implements Algorithm, StatisticsProvider {
     return true;
   }
 
-  private boolean noConcreteSuccessorExist(final ARGState pPredecessor, final CFAEdge pSuccEdge,
+  private boolean noConcreteSuccessorExist(
+      final ARGState pPredecessor,
+      final CFAEdge pSuccEdge,
       HistoryForwardingReachedSet pForwaredReachedSet) {
     // check if analysis stopped exploration due e.g. time limit
     boolean inReached = false;
-    for(ReachedSet reached :pForwaredReachedSet.getAllReachedSetsUsedAsDelegates()) {
-      if(reached.getWaitlist().contains(pPredecessor)) {
+    for (ReachedSet reached : pForwaredReachedSet.getAllReachedSetsUsedAsDelegates()) {
+      if (reached.getWaitlist().contains(pPredecessor)) {
         return false;
       }
       if (reached.contains(pPredecessor)) {
@@ -266,7 +280,8 @@ public class PartialARGsCombiner implements Algorithm, StatisticsProvider {
     if (!inReached) {
       return false;
     }
-  // check if analysis stopped exploration due to true state in automaton --> concrete successors may exist
+    // check if analysis stopped exploration due to true state in automaton --> concrete successors
+    // may exist
     for (AbstractState state : AbstractStates.asIterable(pPredecessor)) {
       if (state instanceof AutomatonState
           && ((AutomatonState) state).getOwningAutomatonName().equals("AssumptionAutomaton")) {
@@ -281,8 +296,8 @@ public class PartialARGsCombiner implements Algorithm, StatisticsProvider {
 
   private Pair<Map<String, Integer>, List<AbstractState>>
       identifyCompositeStateTypesAndTheirInitialInstances(Collection<ARGState> rootNodes)
-  throws InterruptedException, CPAException {
-   logger.log(Level.FINE, "Derive composite state structure of combined ARG");
+          throws InterruptedException, CPAException {
+    logger.log(Level.FINE, "Derive composite state structure of combined ARG");
 
     List<AbstractState> initialState = new ArrayList<>();
     Map<String, Integer> stateToPos = new HashMap<>();
@@ -301,7 +316,7 @@ public class PartialARGsCombiner implements Algorithm, StatisticsProvider {
       for (AbstractState innerWrapped : wrapped) {
         shutdown.shutdownIfNecessary();
 
-        if(innerWrapped instanceof AssumptionStorageState) {
+        if (innerWrapped instanceof AssumptionStorageState) {
           continue;
         }
 
@@ -309,8 +324,12 @@ public class PartialARGsCombiner implements Algorithm, StatisticsProvider {
 
         if (stateToPos.containsKey(name)) {
           if (!initialState.get(stateToPos.get(name)).equals(innerWrapped)) {
-            logger.log(Level.WARNING, "Abstract state ", innerWrapped.getClass(),
-                    " is used by multiple configurations, but cannot check that always start in the same initial state as it is assumed");
+            logger.log(
+                Level.WARNING,
+                "Abstract state ",
+                innerWrapped.getClass(),
+                " is used by multiple configurations, but cannot check that always start in the"
+                    + " same initial state as it is assumed");
           }
         } else {
           assert (initialState.size() == nextId);
@@ -334,7 +353,7 @@ public class PartialARGsCombiner implements Algorithm, StatisticsProvider {
     for (int i = 1, j = 0; i < automataStateNames.size(); i++) {
       assert j < i && j >= 0;
       if (automataStateNames.get(j).equals(automataStateNames.get(i))) {
-        if (j + numRootStates - 1 == i ) {
+        if (j + numRootStates - 1 == i) {
           // automaton states commonly used
           commonAutomataStates.add(automataStateNames.get(j));
         }
@@ -361,11 +380,16 @@ public class PartialARGsCombiner implements Algorithm, StatisticsProvider {
 
         stateToPos.put(name, nextId);
         if (!automatonARGBuilderSupport.registerAutomaton((AutomatonState) innerWrapped)) {
-          logger.log(Level.SEVERE, "Property specification, given by automata specification, is ambigous.");
+          logger.log(
+              Level.SEVERE,
+              "Property specification, given by automata specification, is ambigous.");
           throw new CPAException(
-              "Ambigious property specification,  automata specification contains automata with same name or same state names");
+              "Ambigious property specification,  automata specification contains automata with"
+                  + " same name or same state names");
         }
-        initialState.add(automatonARGBuilderSupport.replaceStateByStateInAutomatonOfSameInstance((AutomatonState) innerWrapped));
+        initialState.add(
+            automatonARGBuilderSupport.replaceStateByStateInAutomatonOfSameInstance(
+                (AutomatonState) innerWrapped));
         nextId++;
       }
     }
@@ -382,15 +406,20 @@ public class PartialARGsCombiner implements Algorithm, StatisticsProvider {
   }
 
   private String getName(AbstractState pState) {
-    if (pState instanceof AutomatonState) { return ((AutomatonState) pState).getOwningAutomatonName(); }
-    if (pState instanceof PredicateAbstractState) { return PredicateAbstractState.class.getName(); }
+    if (pState instanceof AutomatonState) {
+      return ((AutomatonState) pState).getOwningAutomatonName();
+    }
+    if (pState instanceof PredicateAbstractState) {
+      return PredicateAbstractState.class.getName();
+    }
     return pState.getClass().getName();
   }
 
-
   private Collection<Pair<List<AbstractState>, List<ARGState>>> computeCartesianProduct(
-      final List<List<ARGState>> pSuccessorsForEdge, final Map<String, Integer> pStateToPos,
-      final List<AbstractState> pInitialStates) throws InterruptedException, CPAException {
+      final List<List<ARGState>> pSuccessorsForEdge,
+      final Map<String, Integer> pStateToPos,
+      final List<AbstractState> pInitialStates)
+      throws InterruptedException, CPAException {
     // compute number of successors
     int count = 0;
     for (List<ARGState> successor : pSuccessorsForEdge) {
@@ -409,15 +438,15 @@ public class PartialARGsCombiner implements Algorithm, StatisticsProvider {
 
     // compute cartesian product
     int[] indices = new int[pSuccessorsForEdge.size()];
-    int nextIndex=0;
+    int nextIndex = 0;
     boolean restart;
-    int lastSize = pSuccessorsForEdge.get(pSuccessorsForEdge.size()-1).size();
+    int lastSize = pSuccessorsForEdge.get(pSuccessorsForEdge.size() - 1).size();
 
     if (lastSize == 0) {
       lastSize = 1;
     }
 
-    while(indices[indices.length-1]<lastSize){
+    while (indices[indices.length - 1] < lastSize) {
       shutdown.shutdownIfNecessary();
 
       final List<ARGState> argSuccessors = new ArrayList<>(pSuccessorsForEdge.size());
@@ -425,24 +454,28 @@ public class PartialARGsCombiner implements Algorithm, StatisticsProvider {
       // collect ARG successors
       for (int index = 0; index < indices.length; index++) {
         if (!pSuccessorsForEdge.get(index).isEmpty()) {
-          argSuccessors.add(getUncoveredSuccessor(pSuccessorsForEdge.get(index).get(indices[index])));
+          argSuccessors.add(
+              getUncoveredSuccessor(pSuccessorsForEdge.get(index).get(indices[index])));
         }
       }
 
-      // combine ARG states to get one cartesian product element, assume top state if no explicit state information available
-      result.add(Pair.of(combineARGStates(argSuccessors, pStateToPos, pInitialStates), argSuccessors));
+      // combine ARG states to get one cartesian product element, assume top state if no explicit
+      // state information available
+      result.add(
+          Pair.of(combineARGStates(argSuccessors, pStateToPos, pInitialStates), argSuccessors));
 
       // compute indices for elements of next cartesian element
       indices[nextIndex]++;
       restart = false;
-      while (indices[nextIndex] >= pSuccessorsForEdge.get(nextIndex).size() && nextIndex < indices.length - 1) {
+      while (indices[nextIndex] >= pSuccessorsForEdge.get(nextIndex).size()
+          && nextIndex < indices.length - 1) {
         nextIndex++;
         indices[nextIndex]++;
         restart = true;
       }
 
-      while(restart && nextIndex>0){
-        indices[--nextIndex]=0;
+      while (restart && nextIndex > 0) {
+        indices[--nextIndex] = 0;
       }
     }
 
@@ -456,10 +489,13 @@ public class PartialARGsCombiner implements Algorithm, StatisticsProvider {
     return pMaybeCovered;
   }
 
-  private List<AbstractState> combineARGStates(final List<ARGState> combiningStates,
-      final Map<String, Integer> pStateToPos, final List<AbstractState> pInitialStates)
+  private List<AbstractState> combineARGStates(
+      final List<ARGState> combiningStates,
+      final Map<String, Integer> pStateToPos,
+      final List<AbstractState> pInitialStates)
       throws InterruptedException, CPAException {
-    // set every state to the top state (except for automaton states) in case we have no concrete information
+    // set every state to the top state (except for automaton states) in case we have no concrete
+    // information
     List<AbstractState> result = new ArrayList<>(pInitialStates);
 
     Iterable<AbstractState> wrapped;
@@ -474,25 +510,31 @@ public class PartialARGsCombiner implements Algorithm, StatisticsProvider {
         shutdown.shutdownIfNecessary();
 
         if (!pStateToPos.containsKey(getName(innerWrapped))) {
-          Preconditions.checkState(innerWrapped instanceof AutomatonState
-              || innerWrapped instanceof AssumptionStorageState,
-                  "Found state which is not considered in combined composite state and which is not due to the use of an assumption automaton");
+          Preconditions.checkState(
+              innerWrapped instanceof AutomatonState
+                  || innerWrapped instanceof AssumptionStorageState,
+              "Found state which is not considered in combined composite state and which is not due"
+                  + " to the use of an assumption automaton");
           continue;
         }
         index = pStateToPos.get(getName(innerWrapped));
-        if (pInitialStates.get(index)==result.get(index)) {
+        if (pInitialStates.get(index) == result.get(index)) {
           if (result.get(index) instanceof AutomatonState) {
-            result.set(index,
-                   automatonARGBuilderSupport.replaceStateByStateInAutomatonOfSameInstance((AutomatonState) innerWrapped));
+            result.set(
+                index,
+                automatonARGBuilderSupport.replaceStateByStateInAutomatonOfSameInstance(
+                    (AutomatonState) innerWrapped));
           } else {
             result.set(index, innerWrapped);
           }
         } else {
-            logger.logOnce(Level.WARNING,
-                    "Cannot identify the inner state which is more precise, use the earliest found. Combination may be unsound.");
-          }
+          logger.logOnce(
+              Level.WARNING,
+              "Cannot identify the inner state which is more precise, use the earliest found."
+                  + " Combination may be unsound.");
         }
       }
+    }
     return result;
   }
 
@@ -500,7 +542,6 @@ public class PartialARGsCombiner implements Algorithm, StatisticsProvider {
 
     private @Nullable CFAEdge edge;
     private @Nullable ARGState predecessor;
-
 
     @Override
     public boolean apply(ARGState pChild) {
@@ -521,28 +562,23 @@ public class PartialARGsCombiner implements Algorithm, StatisticsProvider {
     private final Timer argCombineTime = new Timer();
     private final Timer analysisTime = new Timer();
 
-
     @Override
     public void printStatistics(PrintStream out, Result pResult, UnmodifiableReachedSet pReached) {
       out.println("Time for program analyis: " + analysisTime);
       out.println("Time to combine ARGs:     " + argCombineTime);
-
     }
 
     @Override
-    public @Nullable
-    String getName() {
+    public @Nullable String getName() {
       return "ARG Combiner Statistics";
     }
-
   }
 
   @Override
   public void collectStatistics(Collection<Statistics> pStatsCollection) {
     if (restartAlgorithm instanceof StatisticsProvider) {
-      ((StatisticsProvider)restartAlgorithm).collectStatistics(pStatsCollection);
+      ((StatisticsProvider) restartAlgorithm).collectStatistics(pStatsCollection);
     }
     pStatsCollection.add(stats);
   }
-
 }

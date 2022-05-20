@@ -7,8 +7,8 @@
 // SPDX-License-Identifier: Apache-2.0
 
 /**
- * Utility package containing all the necessary (helper) classes to support the various PCC techniques which check proofs
- * from conditional model checking (CMC). The classes implement tasks common to all/many of these PCC-CMC techniques to
- * avoid code duplication.
+ * Utility package containing all the necessary (helper) classes to support the various PCC
+ * techniques which check proofs from conditional model checking (CMC). The classes implement tasks
+ * common to all/many of these PCC-CMC techniques to avoid code duplication.
  */
 package org.sosy_lab.cpachecker.pcc.strategy.util.cmc;

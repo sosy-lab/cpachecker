@@ -139,8 +139,7 @@ public class PredicateAbstractionStrategy implements AbstractionStrategy {
     }
     for (Partition partition :
         Iterables.concat(
-            varClassification.getIntEqualPartitions(),
-            varClassification.getIntBoolPartitions())) {
+            varClassification.getIntEqualPartitions(), varClassification.getIntBoolPartitions())) {
       Set<String> partitionVariables = partition.getVars();
       if (partitionVariables.contains(pVar1)) {
         return partitionVariables.contains(pVar2);

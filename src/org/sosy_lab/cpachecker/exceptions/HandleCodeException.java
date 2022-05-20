@@ -8,7 +8,6 @@
 
 package org.sosy_lab.cpachecker.exceptions;
 
-
 public class HandleCodeException extends CPATransferException {
 
   private static final long serialVersionUID = 7157121592860303914L;

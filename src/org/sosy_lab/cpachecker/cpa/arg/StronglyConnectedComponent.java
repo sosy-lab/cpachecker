@@ -46,8 +46,7 @@ public class StronglyConnectedComponent {
   public String toString() {
     return String.format(
         "[%s]",
-        nodes
-            .stream()
+        nodes.stream()
             .map(x -> (x.getStateId() + ":" + AbstractStates.extractLocation(x)))
             .collect(Collectors.joining(", ")));
   }

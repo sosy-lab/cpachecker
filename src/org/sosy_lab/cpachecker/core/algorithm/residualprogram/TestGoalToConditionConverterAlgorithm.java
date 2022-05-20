@@ -46,23 +46,19 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.CPAs;
 
-/**
- * Algorithm to convert a list of covered test goal labels to a condition.
- */
+/** Algorithm to convert a list of covered test goal labels to a condition. */
 @Options(prefix = "conditional_testing")
 public class TestGoalToConditionConverterAlgorithm extends NestingAlgorithm {
   private final Algorithm outerAlgorithm;
   private final ConfigurableProgramAnalysis outerCpa;
   private final IGoalFindingStrategy goalFindingStrategy;
-  @Option(
-      secure = true,
-      name = "strategy",
-      required = true,
-      description = "The strategy to use"
-  )
+
+  @Option(secure = true, name = "strategy", required = true, description = "The strategy to use")
   Strategy strategy;
+
   private Algorithm backwardsCpaAlgorithm;
   private ConfigurableProgramAnalysis backwardsCpa;
+
   @Option(
       secure = true,
       required = true,
@@ -79,7 +75,8 @@ public class TestGoalToConditionConverterAlgorithm extends NestingAlgorithm {
       ShutdownNotifier pShutdownNotifier,
       CFA pCfa,
       Algorithm pOuter,
-      ConfigurableProgramAnalysis pOuterCpa) throws InvalidConfigurationException, InterruptedException {
+      ConfigurableProgramAnalysis pOuterCpa)
+      throws InvalidConfigurationException, InterruptedException {
 
     super(pConfig, pLogger, pShutdownNotifier, Specification.alwaysSatisfied());
     pConfig.inject(this);
@@ -98,7 +95,7 @@ public class TestGoalToConditionConverterAlgorithm extends NestingAlgorithm {
     }
     try {
       var backwardsCpaTriple =
-          this.createAlgorithm(
+          createAlgorithm(
               Path.of("config/components/goalConverterBackwardsSearch.properties"),
               pCfa.getMainFunction(),
               pCfa,
@@ -119,7 +116,7 @@ public class TestGoalToConditionConverterAlgorithm extends NestingAlgorithm {
 
       backwardsCpaAlgorithm = backwardsCpaTriple.getFirst();
       backwardsCpa = backwardsCpaTriple.getSecond();
-    } catch(CPAException | IOException e) {
+    } catch (CPAException | IOException e) {
       throw new InvalidConfigurationException("Couldn't create backwards CPA algorithm!", e);
     }
 
@@ -132,15 +129,13 @@ public class TestGoalToConditionConverterAlgorithm extends NestingAlgorithm {
   }
 
   @Override
-  public AlgorithmStatus run(ReachedSet reachedSet)
-      throws CPAException, InterruptedException {
+  public AlgorithmStatus run(ReachedSet reachedSet) throws CPAException, InterruptedException {
     try {
       var leafGoals = getPartitionedLeafGoals();
 
       var stopAtLeavesCpa =
           CPAs.retrieveCPAOrFail(outerCpa, StopAtLeavesCPA.class, StopAtLeavesCPA.class);
       stopAtLeavesCpa.setLeaves(leafGoals.get(LeafStates.UNCOVERED));
-
 
       return outerAlgorithm.run(reachedSet);
     } catch (InvalidConfigurationException e) {
@@ -163,7 +158,8 @@ public class TestGoalToConditionConverterAlgorithm extends NestingAlgorithm {
   }
 
   /**
-   * Gets all leaf goals in the program. They are partitioned into LeafStates.COVERED and LeaftStates.UNCOVERED.
+   * Gets all leaf goals in the program. They are partitioned into LeafStates.COVERED and
+   * LeaftStates.UNCOVERED.
    *
    * @return A map with two keys (COVERED, UNCOVERED) of all leaf goals
    * @throws CPAException Thrown when there is an error in the cpa algorithm
@@ -177,15 +173,18 @@ public class TestGoalToConditionConverterAlgorithm extends NestingAlgorithm {
     backwardsCpaAlgorithm.run(reachedSet);
 
     Deque<ARGState> waitList = new ArrayDeque<>();
-    //We're doing a backwards analysis; hence the first state here is the end of the ARG
+    // We're doing a backwards analysis; hence the first state here is the end of the ARG
     waitList.add((ARGState) reachedSet.getFirstState());
 
     return goalFindingStrategy.findGoals(waitList, coveredGoals);
   }
 
   /**
-   * This function builds a reached set that has PROGRAM_SINKS as initial states.
-   * We need to build it by hand since the option <pre>analysis.initialStatesFor = PROGRAM_SINKS</pre>
+   * This function builds a reached set that has PROGRAM_SINKS as initial states. We need to build
+   * it by hand since the option
+   *
+   * <pre>analysis.initialStatesFor = PROGRAM_SINKS</pre>
+   *
    * is only read once when constructing @see{CPAchecker}.
    *
    * @return A reached set that has the PROGRAM_SINKS as initial states
@@ -210,13 +209,9 @@ public class TestGoalToConditionConverterAlgorithm extends NestingAlgorithm {
   }
 
   @Override
-  public void collectStatistics(Collection<Statistics> statsCollection) {
+  public void collectStatistics(Collection<Statistics> statsCollection) {}
 
-  }
-
-  /**
-   * States a goal can be in.
-   */
+  /** States a goal can be in. */
   enum LeafStates {
     COVERED(true),
     UNCOVERED(false);
@@ -233,9 +228,9 @@ public class TestGoalToConditionConverterAlgorithm extends NestingAlgorithm {
   }
 
   /**
-   * A list of the strategy to use. Is used by our configuration.
-   * Note: Actually this is bad style. We should rather use reflection. If someone were
-   * to implement a new strategy they also would have to modify this enum which shouldn't be necessary.
+   * A list of the strategy to use. Is used by our configuration. Note: Actually this is bad style.
+   * We should rather use reflection. If someone were to implement a new strategy they also would
+   * have to modify this enum which shouldn't be necessary.
    */
   public enum Strategy {
     NAIVE,

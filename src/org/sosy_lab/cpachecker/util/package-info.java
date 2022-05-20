@@ -6,7 +6,5 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-/**
- * Collection of utilities helping common tasks.
- */
+/** Collection of utilities helping common tasks. */
 package org.sosy_lab.cpachecker.util;

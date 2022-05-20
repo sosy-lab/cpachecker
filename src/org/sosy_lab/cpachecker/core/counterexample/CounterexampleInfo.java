@@ -195,10 +195,10 @@ public class CounterexampleInfo extends AbstractAppender {
   }
 
   /**
-   * Return a path that indicates which variables where assigned which values at
-   * what edge. Note that not every value for every variable is available.
+   * Return a path that indicates which variables where assigned which values at what edge. Note
+   * that not every value for every variable is available.
    *
-   * This is only available for precise counterexamples.
+   * <p>This is only available for precise counterexamples.
    */
   public CFAPathWithAssumptions getCFAPathWithAssignments() {
     checkState(!spurious);
@@ -220,19 +220,19 @@ public class CounterexampleInfo extends AbstractAppender {
 
   public Map<ARGState, CFAEdgeWithAdditionalInfo> getAdditionalInfoMapping() {
     return additionalInfo.isEmpty()
-           ? ImmutableMap.of()
-           : additionalInfo.getAdditionalInfoMapping(targetPath);
+        ? ImmutableMap.of()
+        : additionalInfo.getAdditionalInfoMapping(targetPath);
   }
 
   public Set<AdditionalInfoConverter> getAdditionalInfoConverters() {
     return additionalInfo.isEmpty()
-           ? ImmutableSet.of()
-           : additionalInfo.getAdditionalInfoConverters();
+        ? ImmutableSet.of()
+        : additionalInfo.getAdditionalInfoConverters();
   }
 
   /**
-   * Create a JSON representation of this counterexample,
-   * which is used for the HTML report.
+   * Create a JSON representation of this counterexample, which is used for the HTML report.
+   *
    * @param sb The output to write to.
    */
   public void toJSON(Appendable sb) throws IOException {
@@ -241,11 +241,13 @@ public class CounterexampleInfo extends AbstractAppender {
     List<Map<?, ?>> path = new ArrayList<>(pathLength);
 
     ErrorPathShrinker pathShrinker = new ErrorPathShrinker();
-    List<Pair<CFAEdgeWithAssumptions, Boolean>> shrinkedErrorPath = pathShrinker.shrinkErrorPath(targetPath, assignments);
-    //Create Iterator for ShrinkedErrorPath
+    List<Pair<CFAEdgeWithAssumptions, Boolean>> shrinkedErrorPath =
+        pathShrinker.shrinkErrorPath(targetPath, assignments);
+    // Create Iterator for ShrinkedErrorPath
     Iterator<Pair<CFAEdgeWithAssumptions, Boolean>> shrinkedErrorPathIterator = null;
     if (shrinkedErrorPath != null) {
-      //checkState(shrinkedErrorPath.size() == targetPath.size(), "Size of shrinkedErrorPath not identical to the length of the targetPath!");
+      // checkState(shrinkedErrorPath.size() == targetPath.size(), "Size of shrinkedErrorPath not
+      // identical to the length of the targetPath!");
       shrinkedErrorPathIterator = shrinkedErrorPath.iterator();
     }
 
@@ -260,7 +262,7 @@ public class CounterexampleInfo extends AbstractAppender {
 
       // compare path from counterexample with shrinkedErrorPath to identify the important edges
       elem.put("importance", 0);
-      if(shrinkedErrorPathIterator != null && shrinkedErrorPathIterator.hasNext()) {
+      if (shrinkedErrorPathIterator != null && shrinkedErrorPathIterator.hasNext()) {
         Pair<CFAEdgeWithAssumptions, Boolean> shrinkedEdge = shrinkedErrorPathIterator.next();
         if (edge.equals(shrinkedEdge.getFirst().getCFAEdge())) {
           if (shrinkedEdge.getSecond()) {
@@ -297,8 +299,8 @@ public class CounterexampleInfo extends AbstractAppender {
   }
 
   /**
-   * Method for classes that inherit from this class.
-   * Append additional information to JSON-Object
+   * Method for classes that inherit from this class. Append additional information to JSON-Object
+   *
    * @param element map that will be converted to JSON
    * @param edge the edge that is currently transformed into JSON format.
    */
@@ -351,14 +353,12 @@ public class CounterexampleInfo extends AbstractAppender {
   }
 
   /**
-   * Get all additional information stored in this object.
-   * A file where to dump it may be associated with each object, but this part
-   * of the pair may be null.
+   * Get all additional information stored in this object. A file where to dump it may be associated
+   * with each object, but this part of the pair may be null.
    */
   public Collection<Pair<Object, PathTemplate>> getAllFurtherInformation() {
     checkState(!spurious);
 
     return Collections.unmodifiableCollection(furtherInfo);
   }
-
 }

@@ -62,21 +62,18 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Point
 import org.sosy_lab.cpachecker.util.resources.ResourceLimitChecker;
 import org.sosy_lab.cpachecker.util.resources.WalltimeLimit;
 
-/**
- * Return a path-formula describing all possible transitions inside the loop.
- */
-@Options(prefix="cpa.slicing")
+/** Return a path-formula describing all possible transitions inside the loop. */
+@Options(prefix = "cpa.slicing")
 public class LoopTransitionFinder implements StatisticsProvider {
 
-  /**
-   * Statistics for formula slicing.
-   */
+  /** Statistics for formula slicing. */
   private static class Stats implements Statistics {
     final Timer LBEencodingTimer = new Timer();
 
     @Override
     public void printStatistics(PrintStream out, Result result, UnmodifiableReachedSet reached) {
-      out.printf("Time spent in LBE Encoding: %s (Max: %s), (Avg: %s)%n",
+      out.printf(
+          "Time spent in LBE Encoding: %s (Max: %s), (Avg: %s)%n",
           LBEencodingTimer,
           LBEencodingTimer.getMaxTime().formatAs(TimeUnit.SECONDS),
           LBEencodingTimer.getAvgTime().formatAs(TimeUnit.SECONDS));
@@ -88,18 +85,18 @@ public class LoopTransitionFinder implements StatisticsProvider {
     }
   }
 
-  @Option(secure=true, description="Apply AND- LBE transformation to loop "
-      + "transition relation.")
+  @Option(
+      secure = true,
+      description = "Apply AND- LBE transformation to loop " + "transition relation.")
   private boolean applyLBETransformation = true;
 
   @Option(
       secure = true,
       description =
           "Time for loop generation before aborting.\n"
-              + "(Use seconds or specify a unit; 0 for infinite)"
-  )
+              + "(Use seconds or specify a unit; 0 for infinite)")
   @TimeSpanOption(codeUnit = TimeUnit.NANOSECONDS, defaultUserUnit = TimeUnit.SECONDS, min = 0)
-   private TimeSpan timeForLoopGeneration = TimeSpan.ofSeconds(0);
+  private TimeSpan timeForLoopGeneration = TimeSpan.ofSeconds(0);
 
   private final PathFormulaManager pfmgr;
   private final LogManager logger;
@@ -126,22 +123,16 @@ public class LoopTransitionFinder implements StatisticsProvider {
     LBEcache = new HashMap<>();
   }
 
-  public PathFormula generateLoopTransition(
-      SSAMap start,
-      PointerTargetSet pts,
-      CFANode loopHead)
+  public PathFormula generateLoopTransition(SSAMap start, PointerTargetSet pts, CFANode loopHead)
       throws CPATransferException, InterruptedException {
 
-    Preconditions.checkState(loopStructure.getAllLoopHeads()
-        .contains(loopHead));
+    Preconditions.checkState(loopStructure.getAllLoopHeads().contains(loopHead));
 
     ShutdownManager loopGenerationShutdown = ShutdownManager.createWithParent(shutdownNotifier);
     ResourceLimitChecker limits = null;
     if (!timeForLoopGeneration.isEmpty()) {
       WalltimeLimit l = WalltimeLimit.fromNowOn(timeForLoopGeneration);
-      limits =
-          new ResourceLimitChecker(
-              loopGenerationShutdown, Collections.singletonList(l));
+      limits = new ResourceLimitChecker(loopGenerationShutdown, Collections.singletonList(l));
       limits.start();
     }
 
@@ -178,16 +169,16 @@ public class LoopTransitionFinder implements StatisticsProvider {
     return ImmutableList.copyOf(intersection);
   }
 
-
   /**
-   * Traverse the CFA, *including* function calls, yet on return edge, return only to functions
-   * we have already been to.
+   * Traverse the CFA, *including* function calls, yet on return edge, return only to functions we
+   * have already been to.
    *
-   * <p>Otherwise, inter-procedural traversal quickly traverses entire CFA, even unreachable
-   * parts (e.g. consider a {@code log()} function called from everywhere).
+   * <p>Otherwise, inter-procedural traversal quickly traverses entire CFA, even unreachable parts
+   * (e.g. consider a {@code log()} function called from everywhere).
    */
   private abstract static class SummarizingVisitor implements CFAVisitor {
     final Set<CFAEdge> visitedEdges = new HashSet<>();
+
     @Override
     public TraversalProcess visitEdge(CFAEdge edge) {
       if (visitedEdges.contains(edge)) {
@@ -220,9 +211,7 @@ public class LoopTransitionFinder implements StatisticsProvider {
     }
   }
 
-  /**
-   * Jump only to join points which are reachable.
-   */
+  /** Jump only to join points which are reachable. */
   private static class SummarizingVisitorForward extends SummarizingVisitor {
     private final Set<CFANode> expectedJoinNodes = new HashSet<>();
 
@@ -246,9 +235,7 @@ public class LoopTransitionFinder implements StatisticsProvider {
     }
   }
 
-  /**
-   * Jump only to callsites which are reachable.
-   */
+  /** Jump only to callsites which are reachable. */
   private static final class SummarizingVisitorBackwards extends SummarizingVisitor {
 
     private final Set<CFANode> expectedCallsites = new HashSet<>();
@@ -277,19 +264,15 @@ public class LoopTransitionFinder implements StatisticsProvider {
   /**
    * Apply large-block-encoding to a list of {@link PathFormula}s.
    *
-   * 1) A - s_1 -> B, B - s_2 ->C,
-   *    no other incoming edge to B, B is not a loop-head,
-   *    is converted to A - s_1 /\ s_2 -> C.
+   * <p>1) A - s_1 -> B, B - s_2 ->C, no other incoming edge to B, B is not a loop-head, is
+   * converted to A - s_1 /\ s_2 -> C.
    *
-   * 2) A - s_1 -> B, A - s_2 -> B is converted to A - s_1 \/ s_2 -> B.
+   * <p>2) A - s_1 -> B, A - s_2 -> B is converted to A - s_1 \/ s_2 -> B.
    *
-   * Runs in (at most) quadratic time.
-   *
+   * <p>Runs in (at most) quadratic time.
    */
   private PathFormula performLargeBlockEncoding(
-      CFANode loopHead,
-      SSAMap start,
-      PointerTargetSet pts)
+      CFANode loopHead, SSAMap start, PointerTargetSet pts)
       throws CPATransferException, InterruptedException {
 
     // successor -> predecessor -> EdgeWrapper
@@ -329,10 +312,7 @@ public class LoopTransitionFinder implements StatisticsProvider {
     return outEdge.toPathFormula(empty);
   }
 
-  /**
-   * Apply and- and or- LBE transformation,
-   * return whether the passed table was changed.
-   */
+  /** Apply and- and or- LBE transformation, return whether the passed table was changed. */
   private boolean applyLargeBlockEncodingTransformationPass(
       Table<CFANode, CFANode, EdgeWrapper> out) {
 
@@ -397,17 +377,13 @@ public class LoopTransitionFinder implements StatisticsProvider {
 
   private interface EdgeWrapper {
     CFANode getPredecessor();
+
     CFANode getSuccessor();
 
-    /**
-     * Convert to {@link PathFormula} with a given start.
-     */
-    PathFormula toPathFormula(PathFormula prev)
-        throws CPATransferException, InterruptedException;
+    /** Convert to {@link PathFormula} with a given start. */
+    PathFormula toPathFormula(PathFormula prev) throws CPATransferException, InterruptedException;
 
-    /**
-     * Pretty-print with a given prefix.
-     */
+    /** Pretty-print with a given prefix. */
     String prettyPrint(String prefix);
   }
 
@@ -442,12 +418,7 @@ public class LoopTransitionFinder implements StatisticsProvider {
     @Override
     public String prettyPrint(String prefix) {
       return String.format(
-          "%s%s->%s(%s)",
-          prefix,
-          getPredecessor(),
-          getSuccessor(),
-          edge.getCode()
-      );
+          "%s%s->%s(%s)", prefix, getPredecessor(), getSuccessor(), edge.getCode());
     }
   }
 
@@ -553,9 +524,7 @@ public class LoopTransitionFinder implements StatisticsProvider {
     }
   }
 
-  private String prettyPrintHelper(
-      Iterable<EdgeWrapper> edges,
-      String prefix, String funcName) {
+  private String prettyPrintHelper(Iterable<EdgeWrapper> edges, String prefix, String funcName) {
     StringBuilder sb = new StringBuilder();
     sb.append(prefix).append(funcName).append("(\n");
     for (EdgeWrapper w : edges) {

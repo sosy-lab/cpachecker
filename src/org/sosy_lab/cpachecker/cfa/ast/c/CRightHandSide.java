@@ -8,14 +8,10 @@
 
 package org.sosy_lab.cpachecker.cfa.ast.c;
 
-
-
 import org.sosy_lab.cpachecker.cfa.ast.ARightHandSide;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
-/**
- * Interface for all possible right-hand sides of an assignment.
- */
+/** Interface for all possible right-hand sides of an assignment. */
 public interface CRightHandSide extends CAstNode, ARightHandSide {
 
   <R, X extends Exception> R accept(CRightHandSideVisitor<R, X> pV) throws X;

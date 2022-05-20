@@ -30,16 +30,12 @@ import org.sosy_lab.cpachecker.util.smg.graph.SMGObject;
 public final class StackFrame {
   public static final String RETVAL_LABEL = "___cpa_temp_result_var_";
 
-
   /** A mapping from variable names to a set of SMG objects, representing local variables. */
   private final PersistentMap<String, SMGObject> stackVariables;
 
   /** Function to which this stack frame belongs */
   private final CFunctionDeclaration stackFunction;
-  /**
-   * An object to store function return value.
-   * The Object is Null if function has Void-type.
-   */
+  /** An object to store function return value. The Object is Null if function has Void-type. */
   private final Optional<SMGObject> returnValueObject;
 
   private StackFrame(
@@ -51,7 +47,6 @@ public final class StackFrame {
     stackFunction = pDeclaration;
   }
 
-
   public StackFrame(CFunctionDeclaration pDeclaration, MachineModel pMachineModel) {
     stackVariables = PathCopyingPersistentTreeMap.of();
     stackFunction = pDeclaration;
@@ -61,8 +56,7 @@ public final class StackFrame {
       returnValueObject = Optional.empty();
     } else {
       BigInteger returnValueSize = pMachineModel.getSizeofInBits(returnType);
-      returnValueObject =
-          Optional.of(SMGObject.of(0, returnValueSize, BigInteger.ZERO));
+      returnValueObject = Optional.of(SMGObject.of(0, returnValueSize, BigInteger.ZERO));
     }
   }
 
@@ -76,14 +70,13 @@ public final class StackFrame {
    * @param pObject An object to put into the stack frame
    */
   public StackFrame copyAndAddStackVariable(String pVariableName, SMGObject pObject) {
-    Preconditions.checkArgument(!stackVariables.containsKey(pVariableName),
+    Preconditions.checkArgument(
+        !stackVariables.containsKey(pVariableName),
         "Stack frame for function already contains a variable '%s'",
         pVariableName);
 
     return new StackFrame(
-        stackFunction,
-        stackVariables.putAndCopy(pVariableName, pObject),
-        returnValueObject);
+        stackFunction, stackVariables.putAndCopy(pVariableName, pObject), returnValueObject);
   }
 
   /* ********************************************* */
@@ -97,8 +90,7 @@ public final class StackFrame {
     if (returnValueObject.isPresent()) {
       values = Iterables.concat(values, ImmutableSet.of(returnValueObject.orElseThrow()));
     }
-    return String
-        .format("%s=[%s]", stackFunction.getName(), Joiner.on(", ").join(values));
+    return String.format("%s=[%s]", stackFunction.getName(), Joiner.on(", ").join(values));
   }
 
   public StackFrame copyAndRemoveVariable(String pName) {
@@ -106,17 +98,14 @@ public final class StackFrame {
       // Do nothing for the moment
       return this;
     } else {
-      return new StackFrame(
-          stackFunction,
-          stackVariables.removeAndCopy(pName),
-          returnValueObject);
+      return new StackFrame(stackFunction, stackVariables.removeAndCopy(pName), returnValueObject);
     }
   }
 
   /**
    * Getter for obtaining an object corresponding to a variable name
    *
-   * Throws {@link NoSuchElementException} when passed a name not present
+   * <p>Throws {@link NoSuchElementException} when passed a name not present
    *
    * @param pName Variable name
    * @return SMG object corresponding to pName in the frame
@@ -129,9 +118,8 @@ public final class StackFrame {
 
     Optional<SMGObject> to_return = Optional.ofNullable(stackVariables.get(pName));
     if (to_return.isEmpty()) {
-      throw new NoSuchElementException(String.format(
-          "No variable with name '%s' in stack frame for function",
-          pName));
+      throw new NoSuchElementException(
+          String.format("No variable with name '%s' in stack frame for function", pName));
     }
     return to_return.orElseThrow();
   }
@@ -157,7 +145,8 @@ public final class StackFrame {
   /** Returns a set of all objects: return value object, variables, parameters. */
   public FluentIterable<SMGObject> getAllObjects() {
     if (returnValueObject.isPresent()) {
-     return FluentIterable.concat(stackVariables.values(), ImmutableSet.of(returnValueObject.orElseThrow()));
+      return FluentIterable.concat(
+          stackVariables.values(), ImmutableSet.of(returnValueObject.orElseThrow()));
     }
     return FluentIterable.from(stackVariables.values());
   }
@@ -167,9 +156,7 @@ public final class StackFrame {
     return returnValueObject;
   }
 
-  /**
-   * returns true if stack contains the given variable, else false.
-   */
+  /** returns true if stack contains the given variable, else false. */
   public boolean hasVariable(String var) {
     return stackVariables.containsKey(var);
   }
@@ -182,7 +169,7 @@ public final class StackFrame {
     if (!(o instanceof StackFrame)) {
       return false;
     }
-    StackFrame other = (StackFrame)o;
+    StackFrame other = (StackFrame) o;
     return Objects.equals(stackVariables, other.stackVariables)
         && Objects.equals(stackFunction, other.stackFunction)
         && Objects.equals(returnValueObject, other.returnValueObject);
@@ -194,11 +181,8 @@ public final class StackFrame {
   }
 
   public StackFrame copyWith(
-      Optional<SMGObject> pReturnOptional,
-      Map<String, SMGObject> pFrameMapping) {
+      Optional<SMGObject> pReturnOptional, Map<String, SMGObject> pFrameMapping) {
     return new StackFrame(
-        stackFunction,
-        PathCopyingPersistentTreeMap.copyOf(pFrameMapping),
-        pReturnOptional);
+        stackFunction, PathCopyingPersistentTreeMap.copyOf(pFrameMapping), pReturnOptional);
   }
 }

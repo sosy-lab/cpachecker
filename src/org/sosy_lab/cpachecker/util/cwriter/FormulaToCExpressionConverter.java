@@ -33,9 +33,7 @@ public class FormulaToCExpressionConverter {
     fmgr = pFmgr;
   }
 
-  /**
-   * Convert the input formula to a C expression.
-   */
+  /** Convert the input formula to a C expression. */
   public String formulaToCExpression(BooleanFormula input) throws InterruptedException {
     BooleanFormula nnfied = fmgr.applyTactic(input, Tactic.NNF);
     BooleanFormula simplified = fmgr.simplify(nnfied);

@@ -100,7 +100,6 @@ public class SMGConcreteErrorPathAllocator extends ConcreteErrorPathAllocator<SM
       }
     }
 
-
     return new ConcreteStatePath(result);
   }
 
@@ -136,7 +135,8 @@ public class SMGConcreteErrorPathAllocator extends ConcreteErrorPathAllocator<SM
     return state;
   }
 
-  private boolean allValuesForLeftHandSideKnown(CFAEdge pCfaEdge, Set<CLeftHandSide> pAlreadyAssigned) {
+  private boolean allValuesForLeftHandSideKnown(
+      CFAEdge pCfaEdge, Set<CLeftHandSide> pAlreadyAssigned) {
 
     if (pCfaEdge.getEdgeType() == CFAEdgeType.DeclarationEdge) {
       return isDeclarationValueKnown((CDeclarationEdge) pCfaEdge, pAlreadyAssigned);
@@ -147,7 +147,8 @@ public class SMGConcreteErrorPathAllocator extends ConcreteErrorPathAllocator<SM
     return false;
   }
 
-  private boolean isStatementValueKnown(CStatementEdge pCfaEdge, Set<CLeftHandSide> pAlreadyAssigned) {
+  private boolean isStatementValueKnown(
+      CStatementEdge pCfaEdge, Set<CLeftHandSide> pAlreadyAssigned) {
 
     CStatement stmt = pCfaEdge.getStatement();
 
@@ -179,15 +180,19 @@ public class SMGConcreteErrorPathAllocator extends ConcreteErrorPathAllocator<SM
       } else if (pSMGState.getHeap().isPointer(symbolicValue)) {
         SMGEdgePointsTo pointer = pSMGState.getHeap().getPointer(symbolicValue);
 
-        //TODO ugly, use common representation
-        value = pAdresses.calculateAddress(pointer.getObject(), pointer.getOffset(), pSMGState).getAddressValue();
+        // TODO ugly, use common representation
+        value =
+            pAdresses
+                .calculateAddress(pointer.getObject(), pointer.getOffset(), pSMGState)
+                .getAddressValue();
       } else if (pSMGState.isExplicit(symbolicValue)) {
         value = BigInteger.valueOf(pSMGState.getExplicit(symbolicValue).getAsLong());
       } else {
         continue;
       }
 
-      Address address = pAdresses.calculateAddress(hvEdge.getObject(), hvEdge.getOffset(), pSMGState);
+      Address address =
+          pAdresses.calculateAddress(hvEdge.getObject(), hvEdge.getOffset(), pSMGState);
       result.put(address, value);
     }
 
@@ -200,8 +205,7 @@ public class SMGConcreteErrorPathAllocator extends ConcreteErrorPathAllocator<SM
     private Address nextAlloc = Address.valueOf(BigInteger.valueOf(100));
     private final Map<LeftHandSide, Address> variableAddressMap = new HashMap<>();
 
-    public Address calculateAddress(SMGObject pObject, long pOffset,
-        SMGState pSMGState) {
+    public Address calculateAddress(SMGObject pObject, long pOffset, SMGState pSMGState) {
 
       // Create a new base address for the object if necessary
       if (!objectAddressMap.containsKey(pObject)) {
@@ -212,7 +216,8 @@ public class SMGConcreteErrorPathAllocator extends ConcreteErrorPathAllocator<SM
         }
         BigInteger objectSize = BigInteger.valueOf(pObject.getSize());
 
-        BigInteger nextAllocOffset = nextAlloc.getAddressValue().add(objectSize).add(BigInteger.ONE);
+        BigInteger nextAllocOffset =
+            nextAlloc.getAddressValue().add(objectSize).add(BigInteger.ONE);
 
         nextAlloc = nextAlloc.addOffset(nextAllocOffset);
       }

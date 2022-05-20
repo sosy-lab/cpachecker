@@ -8,9 +8,5 @@
 
 package org.sosy_lab.cpachecker.cfa.ast;
 
-/**
- * Abstract interface for side-effect free expressions.
- */
-public interface ALeftHandSide extends AExpression {
-
-}
+/** Abstract interface for side-effect free expressions. */
+public interface ALeftHandSide extends AExpression {}

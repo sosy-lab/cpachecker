@@ -8,10 +8,9 @@
 
 package org.sosy_lab.cpachecker.cpa.andersen.util;
 
-
 /**
- * This class models a BaseConstraint in pointer analysis. This constraint has the
- * structure <code>{a} \subseteq b</code>.
+ * This class models a BaseConstraint in pointer analysis. This constraint has the structure <code>
+ * {a} \subseteq b</code>.
  */
 public class BaseConstraint extends Constraint {
 

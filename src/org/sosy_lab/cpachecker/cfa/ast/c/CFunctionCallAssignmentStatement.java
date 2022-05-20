@@ -11,26 +11,26 @@ package org.sosy_lab.cpachecker.cfa.ast.c;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 
-
 public final class CFunctionCallAssignmentStatement extends AFunctionCallAssignmentStatement
-                                                          implements CStatement, CAssignment, CFunctionCall {
+    implements CStatement, CAssignment, CFunctionCall {
 
   private static final long serialVersionUID = 8744203402170708743L;
 
-  public CFunctionCallAssignmentStatement(FileLocation pFileLocation,
-                                             CLeftHandSide pLeftHandSide,
-                                             CFunctionCallExpression pRightHandSide) {
+  public CFunctionCallAssignmentStatement(
+      FileLocation pFileLocation,
+      CLeftHandSide pLeftHandSide,
+      CFunctionCallExpression pRightHandSide) {
     super(pFileLocation, pLeftHandSide, pRightHandSide);
   }
 
   @Override
   public CLeftHandSide getLeftHandSide() {
-    return (CLeftHandSide)super.getLeftHandSide();
+    return (CLeftHandSide) super.getLeftHandSide();
   }
 
   @Override
   public CFunctionCallExpression getRightHandSide() {
-    return (CFunctionCallExpression)super.getRightHandSide();
+    return (CFunctionCallExpression) super.getRightHandSide();
   }
 
   @Override
@@ -75,5 +75,4 @@ public final class CFunctionCallAssignmentStatement extends AFunctionCallAssignm
 
     return super.equals(obj);
   }
-
 }

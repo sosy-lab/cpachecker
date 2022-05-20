@@ -18,6 +18,7 @@ import com.google.common.base.Predicate;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.ImmutableBiMap;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.LinkedHashMultimap;
 import com.google.common.collect.Multimap;
@@ -783,7 +784,8 @@ public class CFASingleLoopTransformation {
             FileLocation.DUMMY,
             CFunctionType.NO_ARGS_VOID_FUNCTION,
             ARTIFICIAL_PROGRAM_COUNTER_FUNCTION_NAME,
-            ImmutableList.of());
+            ImmutableList.of(),
+            ImmutableSet.of());
     FunctionEntryNode artificialFunctionEntryNode =
         new CFunctionEntryNode(
             FileLocation.DUMMY,

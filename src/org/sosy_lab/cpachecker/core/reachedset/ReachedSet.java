@@ -17,14 +17,13 @@ import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.statistics.AbstractStatValue;
 
 /**
- * Interface representing a set of reached states, including storing a
- * precision for each one.
+ * Interface representing a set of reached states, including storing a precision for each one.
  *
- * In all its operations it preserves the order in which the state were added.
- * All the collections returned from methods of this class ensure this ordering, too.
+ * <p>In all its operations it preserves the order in which the state were added. All the
+ * collections returned from methods of this class ensure this ordering, too.
  *
- * Classes implementing this interface may not allow null values for states and precisions.
- * All methods do not return null except when stated explicitly.
+ * <p>Classes implementing this interface may not allow null values for states and precisions. All
+ * methods do not return null except when stated explicitly.
  */
 public interface ReachedSet extends UnmodifiableReachedSet {
 
@@ -32,13 +31,13 @@ public interface ReachedSet extends UnmodifiableReachedSet {
   Set<AbstractState> asCollection();
 
   /**
-   * Add a state with a precision to the reached set and to the waitlist.
-   * If the state is already in the reached set and the precisions are equal,
-   * nothing is done.
+   * Add a state with a precision to the reached set and to the waitlist. If the state is already in
+   * the reached set and the precisions are equal, nothing is done.
    *
    * @param state An AbstractState.
    * @param precision The Precision for the AbstractState
-   * @throws IllegalArgumentException If the state is already in the reached set, but with a different precision.
+   * @throws IllegalArgumentException If the state is already in the reached set, but with a
+   *     different precision.
    */
   void add(AbstractState state, Precision precision) throws IllegalArgumentException;
 
@@ -50,14 +49,10 @@ public interface ReachedSet extends UnmodifiableReachedSet {
 
   void addAll(Iterable<Pair<AbstractState, Precision>> toAdd);
 
-  /**
-   * Re-add a state to the waitlist which is already contained in the reached set.
-   */
+  /** Re-add a state to the waitlist which is already contained in the reached set. */
   void reAddToWaitlist(AbstractState s);
 
-  /**
-   * Change the precision of a state that is already in the reached set.
-   */
+  /** Change the precision of a state that is already in the reached set. */
   void updatePrecision(AbstractState s, Precision newPrecision);
 
   void remove(AbstractState state);

@@ -253,7 +253,7 @@ public class ArrayAbstraction {
       pGraph.addEdge(pLoopBodyEntryNode, new CFATerminationNode(function), falseEdge);
     }
 
-    return arrayPreciseSubscriptExpressionBuilder.build();
+    return arrayPreciseSubscriptExpressionBuilder.buildOrThrow();
   }
 
   // Is this loop even transformable? Yes -> Status.PRECISE, No -> Status.UNCHANGED
@@ -267,7 +267,7 @@ public class ArrayAbstraction {
             .collect(ImmutableSet.toImmutableSet());
     MemoryLocation loopIndexMemLoc =
         MemoryLocation.forDeclaration(pLoop.getIndex().getVariableDeclaration());
-    
+
     EdgeDefUseData.Extractor defUseDataExtractor = EdgeDefUseData.createExtractor(true);
     for (CFAEdge edge : pLoop.getInnerLoopEdges()) {
 
@@ -483,7 +483,7 @@ public class ArrayAbstraction {
       builder.put(transformableArray.getArrayDeclaration(), transformableArray);
     }
 
-    return builder.build();
+    return builder.buildOrThrow();
   }
 
   private static ImmutableSet<CFAEdge> createInnerLoopEdgeSet(
@@ -586,7 +586,7 @@ public class ArrayAbstraction {
 
         TransformableLoop loop = pLoop.orElseThrow();
         CFAEdge updateIndexEdge = loop.getIndex().getUpdateEdge();
-        
+
         CFAEdge postDominatedEdge = pEdge;
         if (pEdge instanceof CFunctionCallEdge) {
           postDominatedEdge = ((CFunctionCallEdge) pEdge).getSummaryEdge();

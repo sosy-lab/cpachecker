@@ -29,8 +29,7 @@ import org.sosy_lab.java_smt.api.NumeralFormulaManager;
 import org.sosy_lab.java_smt.api.UFManager;
 
 class ReplaceFloatingPointWithNumeralAndFunctionTheory<T extends NumeralFormula>
-        extends BaseManagerView
-        implements FloatingPointFormulaManager {
+    extends BaseManagerView implements FloatingPointFormulaManager {
 
   private final BooleanFormulaManager booleanManager;
   private final UFManager functionManager;
@@ -69,7 +68,7 @@ class ReplaceFloatingPointWithNumeralAndFunctionTheory<T extends NumeralFormula>
 
   @SuppressWarnings("unchecked")
   private T unwrap(FloatingPointFormula pNumber) {
-    return (T)super.unwrap(pNumber);
+    return (T) super.unwrap(pNumber);
   }
 
   @Override
@@ -88,7 +87,8 @@ class ReplaceFloatingPointWithNumeralAndFunctionTheory<T extends NumeralFormula>
   }
 
   @Override
-  public FloatingPointFormula castFrom(Formula pNumber, boolean pSigned, FloatingPointType pTargetType) {
+  public FloatingPointFormula castFrom(
+      Formula pNumber, boolean pSigned, FloatingPointType pTargetType) {
     // This method needs to handle only wrapping of FloatingPointFormulas,
     // wrapping of other types is handled by FloatingPointFormulaManagerView.
     return wrap(pTargetType, genericCast(pNumber, unwrapType(pTargetType)));
@@ -111,7 +111,7 @@ class ReplaceFloatingPointWithNumeralAndFunctionTheory<T extends NumeralFormula>
     if (type.equals(pTargetType)) {
       // both theories are represented with same type, so we can use the exact same formula
       @SuppressWarnings("unchecked")
-      T2 result = (T2)pNumber;
+      T2 result = (T2) pNumber;
       return result;
     } else if (type.isIntegerType() && pTargetType.isRationalType()) {
       // integers can directly be used as rationals
@@ -119,9 +119,9 @@ class ReplaceFloatingPointWithNumeralAndFunctionTheory<T extends NumeralFormula>
       T2 result = (T2) pNumber;
       return result;
     } else {
-      FunctionDeclaration<T2> castFunction = functionManager.declareUF(
-          "__cast_" + type + "_to_" + pTargetType + "__",
-          pTargetType, type);
+      FunctionDeclaration<T2> castFunction =
+          functionManager.declareUF(
+              "__cast_" + type + "_to_" + pTargetType + "__", pTargetType, type);
       return functionManager.callUF(castFunction, ImmutableList.of(pNumber));
     }
   }
@@ -140,10 +140,7 @@ class ReplaceFloatingPointWithNumeralAndFunctionTheory<T extends NumeralFormula>
   }
 
   static <T extends Formula> T createConversionUF(
-      Formula pNumber,
-      FormulaType<T> pToType,
-      BaseManagerView mgr,
-      UFManager functionManager) {
+      Formula pNumber, FormulaType<T> pToType, BaseManagerView mgr, UFManager functionManager) {
     FormulaType<?> fromType = mgr.getFormulaType(pNumber);
 
     FunctionDeclaration<?> conversionFunction =
@@ -151,8 +148,7 @@ class ReplaceFloatingPointWithNumeralAndFunctionTheory<T extends NumeralFormula>
             "__interpret_" + fromType + "_as_" + pToType + "__",
             mgr.unwrapType(pToType),
             mgr.unwrapType(fromType));
-    return mgr.wrap(
-        pToType, functionManager.callUF(conversionFunction, mgr.unwrap(pNumber)));
+    return mgr.wrap(pToType, functionManager.callUF(conversionFunction, mgr.unwrap(pNumber)));
   }
 
   @Override
@@ -162,7 +158,8 @@ class ReplaceFloatingPointWithNumeralAndFunctionTheory<T extends NumeralFormula>
 
   @Override
   public FloatingPointFormula add(FloatingPointFormula pNumber1, FloatingPointFormula pNumber2) {
-    return wrap(getFormulaType(pNumber1), numericFormulaManager.add(unwrap(pNumber1), unwrap(pNumber2)));
+    return wrap(
+        getFormulaType(pNumber1), numericFormulaManager.add(unwrap(pNumber1), unwrap(pNumber2)));
   }
 
   @Override
@@ -170,13 +167,16 @@ class ReplaceFloatingPointWithNumeralAndFunctionTheory<T extends NumeralFormula>
       FloatingPointFormula number1,
       FloatingPointFormula number2,
       FloatingPointRoundingMode pFloatingPointRoundingMode) {
-    return wrap(getFormulaType(number1),
-        numericFormulaManager.add(unwrap(number1), unwrap (number2)));
+    return wrap(
+        getFormulaType(number1), numericFormulaManager.add(unwrap(number1), unwrap(number2)));
   }
 
   @Override
-  public FloatingPointFormula subtract(FloatingPointFormula pNumber1, FloatingPointFormula pNumber2) {
-    return wrap(getFormulaType(pNumber1), numericFormulaManager.subtract(unwrap(pNumber1), unwrap(pNumber2)));
+  public FloatingPointFormula subtract(
+      FloatingPointFormula pNumber1, FloatingPointFormula pNumber2) {
+    return wrap(
+        getFormulaType(pNumber1),
+        numericFormulaManager.subtract(unwrap(pNumber1), unwrap(pNumber2)));
   }
 
   @Override
@@ -184,7 +184,8 @@ class ReplaceFloatingPointWithNumeralAndFunctionTheory<T extends NumeralFormula>
       FloatingPointFormula number1,
       FloatingPointFormula number2,
       FloatingPointRoundingMode pFloatingPointRoundingMode) {
-    return wrap(getFormulaType(number1), numericFormulaManager.subtract(unwrap(number1), unwrap(number2)));
+    return wrap(
+        getFormulaType(number1), numericFormulaManager.subtract(unwrap(number1), unwrap(number2)));
   }
 
   @Override
@@ -194,15 +195,15 @@ class ReplaceFloatingPointWithNumeralAndFunctionTheory<T extends NumeralFormula>
     FormulaType<FloatingPointFormula> targetType = getFormulaType(pNumber1);
     if (number2.equals(zero)) {
       // literal 0 is a problem for some solvers as divisor
-      return wrap(targetType,
+      return wrap(
+          targetType,
           booleanManager.ifThenElse(
-            numericFormulaManager.equal(number1, zero),
-            nanVariable,
-            booleanManager.ifThenElse(
-                numericFormulaManager.lessThan(number1, zero),
-                minusInfinityVariable,
-                plusInfinityVariable)));
-
+              numericFormulaManager.equal(number1, zero),
+              nanVariable,
+              booleanManager.ifThenElse(
+                  numericFormulaManager.lessThan(number1, zero),
+                  minusInfinityVariable,
+                  plusInfinityVariable)));
     }
     return wrap(targetType, numericFormulaManager.divide(number1, number2));
   }
@@ -216,8 +217,11 @@ class ReplaceFloatingPointWithNumeralAndFunctionTheory<T extends NumeralFormula>
   }
 
   @Override
-  public FloatingPointFormula multiply(FloatingPointFormula pNumber1, FloatingPointFormula pNumber2) {
-    return wrap(getFormulaType(pNumber1), numericFormulaManager.multiply(unwrap(pNumber1), unwrap(pNumber2)));
+  public FloatingPointFormula multiply(
+      FloatingPointFormula pNumber1, FloatingPointFormula pNumber2) {
+    return wrap(
+        getFormulaType(pNumber1),
+        numericFormulaManager.multiply(unwrap(pNumber1), unwrap(pNumber2)));
   }
 
   @Override
@@ -225,30 +229,37 @@ class ReplaceFloatingPointWithNumeralAndFunctionTheory<T extends NumeralFormula>
       FloatingPointFormula number1,
       FloatingPointFormula number2,
       FloatingPointRoundingMode pFloatingPointRoundingMode) {
-    return wrap(getFormulaType(number1),
-        numericFormulaManager.multiply(unwrap(number1), unwrap(number2)));
+    return wrap(
+        getFormulaType(number1), numericFormulaManager.multiply(unwrap(number1), unwrap(number2)));
   }
 
   @Override
   public BooleanFormula assignment(FloatingPointFormula pNumber1, FloatingPointFormula pNumber2) {
     return numericFormulaManager.equal(unwrap(pNumber1), unwrap(pNumber2));
   }
+
   @Override
-  public BooleanFormula equalWithFPSemantics(FloatingPointFormula pNumber1, FloatingPointFormula pNumber2) {
+  public BooleanFormula equalWithFPSemantics(
+      FloatingPointFormula pNumber1, FloatingPointFormula pNumber2) {
     return numericFormulaManager.equal(unwrap(pNumber1), unwrap(pNumber2));
   }
+
   @Override
   public BooleanFormula greaterThan(FloatingPointFormula pNumber1, FloatingPointFormula pNumber2) {
     return numericFormulaManager.greaterThan(unwrap(pNumber1), unwrap(pNumber2));
   }
+
   @Override
-  public BooleanFormula greaterOrEquals(FloatingPointFormula pNumber1, FloatingPointFormula pNumber2) {
+  public BooleanFormula greaterOrEquals(
+      FloatingPointFormula pNumber1, FloatingPointFormula pNumber2) {
     return numericFormulaManager.greaterOrEquals(unwrap(pNumber1), unwrap(pNumber2));
   }
+
   @Override
   public BooleanFormula lessThan(FloatingPointFormula pNumber1, FloatingPointFormula pNumber2) {
     return numericFormulaManager.lessThan(unwrap(pNumber1), unwrap(pNumber2));
   }
+
   @Override
   public BooleanFormula lessOrEquals(FloatingPointFormula pNumber1, FloatingPointFormula pNumber2) {
     return numericFormulaManager.lessOrEquals(unwrap(pNumber1), unwrap(pNumber2));

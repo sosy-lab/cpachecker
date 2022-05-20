@@ -91,19 +91,27 @@ import org.sosy_lab.java_smt.api.SolverException;
 public class PredicateStaticRefiner extends StaticRefiner
     implements ARGBasedRefiner, StatisticsProvider {
 
-  @Option(secure=true, description="Apply mined predicates on the corresponding scope. false = add them to the global precision.")
+  @Option(
+      secure = true,
+      description =
+          "Apply mined predicates on the corresponding scope. false = add them to the global"
+              + " precision.")
   private boolean applyScoped = true;
 
-  @Option(secure=true, description="Add all assumptions along a error trace to the precision.")
+  @Option(secure = true, description = "Add all assumptions along a error trace to the precision.")
   private boolean addAllErrorTraceAssumes = false;
 
-  @Option(secure=true, description="Add all assumptions from the control flow automaton to the precision.")
+  @Option(
+      secure = true,
+      description = "Add all assumptions from the control flow automaton to the precision.")
   private boolean addAllControlFlowAssumes = false;
 
-  @Option(secure=true, description="Add all assumptions along the error trace to the precision.")
+  @Option(
+      secure = true,
+      description = "Add all assumptions along the error trace to the precision.")
   private boolean addAssumesByBoundedBackscan = true;
 
-  @Option(secure=true, description = "Dump CFA assume edges as SMTLIB2 formulas to a file.")
+  @Option(secure = true, description = "Dump CFA assume edges as SMTLIB2 formulas to a file.")
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private Path assumePredicatesFile = null;
 
@@ -112,9 +120,11 @@ public class PredicateStaticRefiner extends StaticRefiner
 
   private final StatTimer totalTime = new StatTimer("Total time for static refinement");
   private final StatTimer satCheckTime = new StatTimer("Time for path feasibility check");
-  private final StatTimer predicateExtractionTime = new StatTimer("Time for predicate extraction from CFA");
+  private final StatTimer predicateExtractionTime =
+      new StatTimer("Time for predicate extraction from CFA");
   private final StatTimer argUpdateTime = new StatTimer("Time for ARG update");
-  private final StatInt foundPredicates = new StatInt(StatKind.SUM, "Number of predicates found statically");
+  private final StatInt foundPredicates =
+      new StatInt(StatKind.SUM, "Number of predicates found statically");
 
   private final ShutdownNotifier shutdownNotifier;
 
@@ -148,17 +158,17 @@ public class PredicateStaticRefiner extends StaticRefiner
 
     pConfig.inject(this);
 
-    this.shutdownNotifier = pShutdownNotifier;
-    this.cfa = pCfa;
-    this.pathFormulaManager = pPathFormulaManager;
-    this.predAbsManager = pPredAbsManager;
-    this.blockFormulaStrategy = pBlockFormulaStrategy;
-    this.itpManager = pItpManager;
-    this.pathChecker = pPathChecker;
-    this.solver = pSolver;
-    this.formulaManagerView = pSolver.getFormulaManager();
-    this.booleanManager = formulaManagerView.getBooleanFormulaManager();
-    this.delegate = pDelegate;
+    shutdownNotifier = pShutdownNotifier;
+    cfa = pCfa;
+    pathFormulaManager = pPathFormulaManager;
+    predAbsManager = pPredAbsManager;
+    blockFormulaStrategy = pBlockFormulaStrategy;
+    itpManager = pItpManager;
+    pathChecker = pPathChecker;
+    solver = pSolver;
+    formulaManagerView = pSolver.getFormulaManager();
+    booleanManager = formulaManagerView.getBooleanFormulaManager();
+    delegate = pDelegate;
 
     if (assumePredicatesFile != null) {
       dumpAssumePredicate(assumePredicatesFile);
@@ -198,7 +208,8 @@ public class PredicateStaticRefiner extends StaticRefiner
 
     // create path with all abstraction location elements (excluding the initial element)
     // the last element is the element corresponding to the error location
-    final List<ARGState> abstractionStatesTrace = PredicateCPARefiner.filterAbstractionStates(allStatesTrace);
+    final List<ARGState> abstractionStatesTrace =
+        PredicateCPARefiner.filterAbstractionStates(allStatesTrace);
     BlockFormulas formulas =
         blockFormulaStrategy.getFormulasForPath(
             allStatesTrace.getFirstState(), abstractionStatesTrace);
@@ -210,8 +221,7 @@ public class PredicateStaticRefiner extends StaticRefiner
     CounterexampleTraceInfo counterexample;
     satCheckTime.start();
     try {
-      counterexample =
-          itpManager.buildCounterexampleTraceWithoutInterpolation(formulas);
+      counterexample = itpManager.buildCounterexampleTraceWithoutInterpolation(formulas);
     } finally {
       satCheckTime.stop();
     }
@@ -284,7 +294,8 @@ public class PredicateStaticRefiner extends StaticRefiner
             CAssignment assign = (CAssignment) stmtEdge.getStatement();
 
             if (assign.getLeftHandSide() instanceof CIdExpression) {
-              String variable = ((CIdExpression)assign.getLeftHandSide()).getDeclaration().getQualifiedName();
+              String variable =
+                  ((CIdExpression) assign.getLeftHandSide()).getDeclaration().getQualifiedName();
               directlyAffectingStatements.put(variable, stmtEdge);
             }
           }
@@ -298,13 +309,14 @@ public class PredicateStaticRefiner extends StaticRefiner
       throws SolverException, CPATransferException, InterruptedException {
     // Check stmt ==> assume?
 
-    BooleanFormula stmtFormula = pathFormulaManager.makeAnd(
-        pathFormulaManager.makeEmptyPathFormula(), stmt).getFormula();
+    BooleanFormula stmtFormula =
+        pathFormulaManager.makeAnd(pathFormulaManager.makeEmptyPathFormula(), stmt).getFormula();
 
-    BooleanFormula assumeFormula = pathFormulaManager.makeAnd(
-        pathFormulaManager.makeEmptyPathFormula(), assume).getFormula();
+    BooleanFormula assumeFormula =
+        pathFormulaManager.makeAnd(pathFormulaManager.makeEmptyPathFormula(), assume).getFormula();
 
-    BooleanFormula query = formulaManagerView.uninstantiate(booleanManager.and(stmtFormula, assumeFormula));
+    BooleanFormula query =
+        formulaManagerView.uninstantiate(booleanManager.and(stmtFormula, assumeFormula));
     boolean contra = solver.isUnsat(query);
 
     if (contra) {
@@ -312,7 +324,6 @@ public class PredicateStaticRefiner extends StaticRefiner
     }
 
     return contra;
-
 
     /* [a == 1]
      *  a = <literal>, where <literal> != 1
@@ -330,9 +341,9 @@ public class PredicateStaticRefiner extends StaticRefiner
       throws SolverException, CPATransferException, InterruptedException {
     Set<String> referenced =
         CFAUtils.getVariableNamesOfExpression((CExpression) e.getExpression()).toSet();
-    for (String varName: referenced) {
+    for (String varName : referenced) {
       Collection<AStatementEdge> affectedByStmts = directlyAffectingStatements.get(varName);
-      for (AStatementEdge stmtEdge: affectedByStmts) {
+      for (AStatementEdge stmtEdge : affectedByStmts) {
         if (isContradicting(e, stmtEdge)) {
           return true;
         }
@@ -370,7 +381,7 @@ public class PredicateStaticRefiner extends StaticRefiner
     Set<AssumeEdge> result = new HashSet<>();
 
     Set<ARGState> allStatesOnPath = ARGUtils.getAllStatesOnPathsTo(targetState);
-    for (ARGState s: allStatesOnPath) {
+    for (ARGState s : allStatesOnPath) {
       CFANode u = AbstractStates.extractLocation(s);
       for (CFAEdge e : CFAUtils.leavingEdges(u)) {
         CFANode v = e.getSuccessor();
@@ -487,8 +498,8 @@ public class PredicateStaticRefiner extends StaticRefiner
   private Collection<AbstractionPredicate> assumeEdgeToPredicates(
       boolean pAtomicPredicates, AssumeEdge assume)
       throws CPATransferException, InterruptedException {
-    BooleanFormula relevantAssumesFormula = pathFormulaManager.makeAnd(
-        pathFormulaManager.makeEmptyPathFormula(), assume).getFormula();
+    BooleanFormula relevantAssumesFormula =
+        pathFormulaManager.makeAnd(pathFormulaManager.makeEmptyPathFormula(), assume).getFormula();
 
     Collection<AbstractionPredicate> preds;
     if (pAtomicPredicates) {
@@ -503,10 +514,10 @@ public class PredicateStaticRefiner extends StaticRefiner
   private void dumpAssumePredicate(Path target) {
     try (Writer w = IO.openOutputFile(target, Charset.defaultCharset())) {
       for (CFANode u : cfa.getAllNodes()) {
-        for (CFAEdge e: CFAUtils.leavingEdges(u)) {
+        for (CFAEdge e : CFAUtils.leavingEdges(u)) {
           if (e instanceof AssumeEdge) {
             Collection<AbstractionPredicate> preds = assumeEdgeToPredicates(false, (AssumeEdge) e);
-            for (AbstractionPredicate p: preds) {
+            for (AbstractionPredicate p : preds) {
               w.append(p.getSymbolicAtom().toString());
               w.append("\n");
             }
@@ -514,12 +525,15 @@ public class PredicateStaticRefiner extends StaticRefiner
         }
       }
     } catch (InterruptedException e) {
-      logger.logUserException(Level.WARNING, e, "Interrupted, could not write assume predicates to file!");
+      logger.logUserException(
+          Level.WARNING, e, "Interrupted, could not write assume predicates to file!");
       Thread.currentThread().interrupt();
     } catch (IOException e) {
-      logger.logUserException(Level.WARNING, e, "IO exception! Could not write assume predicates to file!");
+      logger.logUserException(
+          Level.WARNING, e, "IO exception! Could not write assume predicates to file!");
     } catch (CPATransferException e) {
-      logger.logUserException(Level.WARNING, e, "Transfer exception! Could not write assume predicates to file!");
+      logger.logUserException(
+          Level.WARNING, e, "Transfer exception! Could not write assume predicates to file!");
     }
   }
 

@@ -92,5 +92,4 @@ public class And<LeafType> extends AbstractExpressionTree<LeafType>
     }
     return new And<>(operands);
   }
-
 }

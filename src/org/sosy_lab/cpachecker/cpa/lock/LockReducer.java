@@ -48,7 +48,6 @@ public class LockReducer implements Reducer, StatisticsProvider {
     private StatTimer expandUselessLocksTimer = new StatTimer("Time for expanding useless locks");
     private StatTimer expandLockCountersTimer = new StatTimer("Time for expanding lock counters");
 
-
     @Override
     public void printStatistics(PrintStream pOut, Result pResult, UnmodifiableReachedSet pReached) {
       StatisticsWriter.writingStatisticsTo(pOut)
@@ -62,14 +61,13 @@ public class LockReducer implements Reducer, StatisticsProvider {
           .put(expandUselessLocksTimer)
           .put(expandLockCountersTimer)
           .endLevel()
-          .put("Size of unreducable map", LockReducer.this.notReducedLocks.size());
+          .put("Size of unreducable map", notReducedLocks.size());
     }
 
     @Override
     public @Nullable String getName() {
       return "Lock Reducer";
     }
-
   }
 
   public enum ReduceStrategy {
@@ -102,8 +100,8 @@ public class LockReducer implements Reducer, StatisticsProvider {
   }
 
   @Override
-  public AbstractLockState
-      getVariableReducedState(AbstractState pExpandedElement, Block pContext, CFANode pCallNode) {
+  public AbstractLockState getVariableReducedState(
+      AbstractState pExpandedElement, Block pContext, CFANode pCallNode) {
     assert pContext.getCallNode().equals(pCallNode);
     AbstractLockState expandedElement = (AbstractLockState) pExpandedElement;
     stats.lockReducing.start();
@@ -123,9 +121,7 @@ public class LockReducer implements Reducer, StatisticsProvider {
 
   @Override
   public AbstractState getVariableExpandedState(
-      AbstractState pRootElement,
-      Block pReducedContext,
-      AbstractState pReducedElement) {
+      AbstractState pRootElement, Block pReducedContext, AbstractState pReducedElement) {
 
     stats.lockExpanding.start();
     AbstractLockState rootElement = (AbstractLockState) pRootElement;
@@ -144,24 +140,18 @@ public class LockReducer implements Reducer, StatisticsProvider {
   }
 
   @Override
-  public Precision getVariableReducedPrecision(
-      Precision pPrecision,
-      Block pContext) {
+  public Precision getVariableReducedPrecision(Precision pPrecision, Block pContext) {
     return pPrecision;
   }
 
   @Override
   public Precision getVariableExpandedPrecision(
-      Precision pRootPrecision,
-      Block pRootContext,
-      Precision pReducedPrecision) {
+      Precision pRootPrecision, Block pRootContext, Precision pReducedPrecision) {
     return pReducedPrecision;
   }
 
   @Override
-  public Object getHashCodeForState(
-      AbstractState pElementKey,
-      Precision pPrecisionKey) {
+  public Object getHashCodeForState(AbstractState pElementKey, Precision pPrecisionKey) {
     return ((AbstractLockState) pElementKey).getHashCodeForState();
   }
 
@@ -183,8 +173,8 @@ public class LockReducer implements Reducer, StatisticsProvider {
     pStatsCollection.add(stats);
   }
 
-  private Pair<Set<LockIdentifier>, Set<LockIdentifier>>
-      getLockSetsFor(AbstractLockState rootState, @SuppressWarnings("unused") Block pContext) {
+  private Pair<Set<LockIdentifier>, Set<LockIdentifier>> getLockSetsFor(
+      AbstractLockState rootState, @SuppressWarnings("unused") Block pContext) {
     Set<LockIdentifier> locksToProcess = ImmutableSet.of();
     Set<LockIdentifier> uselessLocks = ImmutableSet.of();
 

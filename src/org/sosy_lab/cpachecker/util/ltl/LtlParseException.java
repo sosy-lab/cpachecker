@@ -12,9 +12,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 
-/**
- * Super-class for all thrown exceptions that occur while parsing ltl-properties
- */
+/** Super-class for all thrown exceptions that occur while parsing ltl-properties */
 public class LtlParseException extends InvalidConfigurationException {
 
   private static final long serialVersionUID = -8907490649042996735L;

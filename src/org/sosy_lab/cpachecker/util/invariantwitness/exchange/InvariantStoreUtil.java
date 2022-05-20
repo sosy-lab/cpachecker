@@ -51,9 +51,9 @@ public class InvariantStoreUtil {
 
         int currentOffset = 0;
         List<String> sourceLines = Splitter.onPattern("\\n").splitToList(fileContent);
-        for (int lineNumber = 0; lineNumber < sourceLines.size(); lineNumber++) {
+        for (String sourceLine : sourceLines) {
           result.put(filePath.toString(), currentOffset);
-          currentOffset += sourceLines.get(lineNumber).length() + 1;
+          currentOffset += sourceLine.length() + 1;
         }
       }
     }

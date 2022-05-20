@@ -7,7 +7,5 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-/**
- * Synthesizing templates from polyhedra widenings.
- */
+/** Synthesizing templates from polyhedra widenings. */
 package org.sosy_lab.cpachecker.cpa.policyiteration.polyhedra;

@@ -91,8 +91,8 @@ public final class BinaryIdentifier implements AbstractIdentifier {
     if (pO instanceof SingleIdentifier) {
       return -1;
     } else if (pO instanceof BinaryIdentifier) {
-      int result = this.id1.compareTo(((BinaryIdentifier) pO).id1);
-      return (result != 0 ? result : this.id2.compareTo(((BinaryIdentifier) pO).id2));
+      int result = id1.compareTo(((BinaryIdentifier) pO).id1);
+      return (result != 0 ? result : id2.compareTo(((BinaryIdentifier) pO).id2));
     } else {
       return 1;
     }

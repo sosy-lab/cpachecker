@@ -43,8 +43,8 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 /**
- * This Visitor returns the value from an expression.
- * The result may be null, i.e., the value is unknown.
+ * This Visitor returns the value from an expression. The result may be null, i.e., the value is
+ * unknown.
  */
 public class ExpressionValueVisitor extends AbstractExpressionValueVisitor {
 
@@ -53,15 +53,19 @@ public class ExpressionValueVisitor extends AbstractExpressionValueVisitor {
   // This state is read-only! No writing or modification allowed!
   protected final ValueAnalysisState readableState;
 
-  /** This Visitor returns the numeral value for an expression.
+  /**
+   * This Visitor returns the numeral value for an expression.
    *
    * @param pState where to get the values for variables (identifiers)
    * @param pFunctionName current scope, used only for variable-names
    * @param pMachineModel where to get info about types, for casting and overflows
    * @param pLogger logging
    */
-  public ExpressionValueVisitor(ValueAnalysisState pState, String pFunctionName,
-      MachineModel pMachineModel, LogManagerWithoutDuplicates pLogger) {
+  public ExpressionValueVisitor(
+      ValueAnalysisState pState,
+      String pFunctionName,
+      MachineModel pMachineModel,
+      LogManagerWithoutDuplicates pLogger) {
     super(pFunctionName, pMachineModel, pLogger);
     readableState = pState;
   }
@@ -255,7 +259,8 @@ public class ExpressionValueVisitor extends AbstractExpressionValueVisitor {
       final CArrayType pArrayType) {
     MemoryLocationEvaluator locationEvaluator = new MemoryLocationEvaluator(this);
 
-    return locationEvaluator.getArraySlotLocationFromArrayStart(pArrayStartLocation, pSlotNumber, pArrayType);
+    return locationEvaluator.getArraySlotLocationFromArrayStart(
+        pArrayStartLocation, pSlotNumber, pArrayType);
   }
 
   @Override
@@ -332,8 +337,8 @@ public class ExpressionValueVisitor extends AbstractExpressionValueVisitor {
         return null;
       }
 
-      return getStructureFieldLocationFromRelativePoint(memLocOfFieldOwner, pIastFieldReference.getFieldName(),
-          fieldOwner.getExpressionType());
+      return getStructureFieldLocationFromRelativePoint(
+          memLocOfFieldOwner, pIastFieldReference.getFieldName(), fieldOwner.getExpressionType());
     }
 
     protected @Nullable MemoryLocation getStructureFieldLocationFromRelativePoint(
@@ -363,16 +368,16 @@ public class ExpressionValueVisitor extends AbstractExpressionValueVisitor {
         evv.missingPointer = true;
         return OptionalLong.empty();
       } else if (ownerType instanceof CProblemType) {
-         /*
-          * At this point CProblemType should not occur
-          * unless the parsing of the automaton for
-          * Counterexample-check failed to determine
-          * the type of an assumptions operand.
-          *
-          * This is unfortunate but not as critical as
-          * letting CPAchecker crash here.
-          */
-         return OptionalLong.empty();
+        /*
+         * At this point CProblemType should not occur
+         * unless the parsing of the automaton for
+         * Counterexample-check failed to determine
+         * the type of an assumptions operand.
+         *
+         * This is unfortunate but not as critical as
+         * letting CPAchecker crash here.
+         */
+        return OptionalLong.empty();
       }
 
       throw new AssertionError();

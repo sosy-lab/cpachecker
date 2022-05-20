@@ -84,7 +84,7 @@ public final class ConstantIdentifier implements AbstractIdentifier {
     if (pO instanceof ReturnIdentifier) {
       return 1;
     } else if (pO instanceof ConstantIdentifier) {
-      return this.name.compareTo(((ConstantIdentifier) pO).name);
+      return name.compareTo(((ConstantIdentifier) pO).name);
     } else {
       return -1;
     }

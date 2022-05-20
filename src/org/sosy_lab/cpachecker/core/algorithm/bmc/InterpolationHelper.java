@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.bmc;
 
+import static com.google.common.base.Predicates.not;
 import static com.google.common.collect.FluentIterable.from;
 
 import com.google.common.collect.FluentIterable;
@@ -23,13 +24,13 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
+import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractionManager;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.java_smt.api.BooleanFormula;
-import org.sosy_lab.java_smt.api.InterpolatingProverEnvironment;
 import org.sosy_lab.java_smt.api.SolverException;
 
 /**
@@ -41,8 +42,7 @@ import org.sosy_lab.java_smt.api.SolverException;
  * sequence of abstraction states whose locations are the unique loop head.
  *
  * <p>This class implements methods to check if an ARG has the required shape and collect formulas
- * from such ARGs. It also provides a method to derive interpolants from unsatisfiable path
- * formulas, considering different derivation directions.
+ * from such ARGs.
  */
 public final class InterpolationHelper {
   /**
@@ -194,66 +194,34 @@ public final class InterpolationHelper {
   }
 
   /**
-   * Represent the direction to derive interpolants.
+   * This method stores the final fixed point in the abstraction formula of every abstraction state
+   * at the loop head in order to generate correctness witnesses.
    *
-   * <ul>
-   *   <li>{@code FORWARD}: compute interpolants from the prefix <i>itp(A, B)</i>.
-   *   <li>{@code BACKWARD}: compute interpolants from the suffix <i>!itp(B, A)</i>.
-   *   <li>{@code BIDIRECTION_CONJUNCT}: compute interpolants from both the prefix and the suffix
-   *       and conjunct the two <i>itp(A, B) &and; !itp(B, A)</i>.
-   *   <li>{@code BIDIRECTION_DISJUNCT}: compute interpolants from both the prefix and the suffix
-   *       and disjunct the two <i>itp(A, B) &or; !itp(B, A)</i>.
-   * </ul>
-   */
-  public enum ItpDeriveDirection {
-    FORWARD,
-    BACKWARD,
-    BIDIRECTION_CONJUNCT,
-    BIDIRECTION_DISJUNCT
-  }
-
-  /**
-   * A helper method to derive an interpolant according to the given derivation direction.
+   * <p>In predicate analysis, the invariant at a program location is obtained by taking the
+   * disjunction of all abstraction formulas at this location. Therefore, it is necessary to set the
+   * abstraction formula of every loop-head abstraction state to the fixed point; otherwise, the
+   * invariant will be the tautology.
    *
-   * @param bfmgr Boolean formula manager
-   * @param itpProver SMT solver stack
-   * @param itpDeriveDirection the derivation direction for interpolants
-   * @param formulaA Formula A (prefix)
-   * @param formulaB Formula B (suffix)
-   * @return A {@code BooleanFormula} interpolant
-   * @throws InterruptedException on shutdown request
+   * @throws InterruptedException on shutdown request.
    */
-  static <T> BooleanFormula getInterpolantFrom(
-      BooleanFormulaManagerView bfmgr,
-      InterpolatingProverEnvironment<T> itpProver,
-      ItpDeriveDirection itpDeriveDirection,
-      final List<T> formulaA,
-      final List<T> formulaB)
-      throws SolverException, InterruptedException {
-    switch (itpDeriveDirection) {
-      case FORWARD:
-        {
-          return itpProver.getInterpolant(formulaA);
-        }
-      case BACKWARD:
-        {
-          return bfmgr.not(itpProver.getInterpolant(formulaB));
-        }
-      case BIDIRECTION_CONJUNCT:
-        {
-          return bfmgr.and(
-              itpProver.getInterpolant(formulaA), bfmgr.not(itpProver.getInterpolant(formulaB)));
-        }
-      case BIDIRECTION_DISJUNCT:
-        {
-          return bfmgr.or(
-              itpProver.getInterpolant(formulaA), bfmgr.not(itpProver.getInterpolant(formulaB)));
-        }
-      default:
-        {
-          throw new IllegalArgumentException(
-              "InterpolationHelper does not support ItpDeriveDirection=" + itpDeriveDirection);
-        }
+  @SuppressWarnings("resource")
+  static void storeFixedPointAsAbstractionAtLoopHeads(
+      ReachedSet pReachedSet,
+      final BooleanFormula pFixedPoint,
+      final PredicateAbstractionManager pPredAbsMgr,
+      final PathFormulaManager pPfmgr)
+      throws InterruptedException {
+    // Find all abstraction states: they are at same loop head due to single-loop assumption
+    List<AbstractState> abstractionStates =
+        from(pReachedSet)
+            .skip(1) // skip the root
+            .filter(not(AbstractStates::isTargetState)) // target states may be abstraction states
+            .filter(PredicateAbstractState::containsAbstractionState)
+            .toList();
+    for (AbstractState state : abstractionStates) {
+      PredicateAbstractState predState = PredicateAbstractState.getPredicateState(state);
+      predState.setAbstraction(
+          pPredAbsMgr.asAbstraction(pFixedPoint, pPfmgr.makeEmptyPathFormula()));
     }
   }
 }

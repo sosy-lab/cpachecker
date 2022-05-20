@@ -23,7 +23,6 @@ import org.junit.runners.Parameterized.Parameter;
 import org.junit.runners.Parameterized.Parameters;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
-import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CParser.FileContentToParse;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
@@ -64,7 +63,7 @@ public class CParserLocationTest {
   @Test
   public void singleFileTest() throws CParserException, InterruptedException {
     String code = "void main() { }";
-    ParseResult result = parser.parseString(fileName, code);
+    ParseResult result = parser.parseString(Path.of(fileName), code);
     FileLocation mainLoc = result.getFunctions().get("main").getFileLocation();
 
     assertThat(mainLoc.getFileName()).isEqualTo(Path.of(expectedFileName));
@@ -76,13 +75,12 @@ public class CParserLocationTest {
   }
 
   @Test
-  public void singleFileTest_lineDirectiveIgnored()
-      throws CParserException, InvalidConfigurationException, InterruptedException {
+  public void singleFileTest_lineDirectiveIgnored() throws Exception {
     parser =
         new CParserWithLocationMapper(
             Configuration.defaultConfiguration(), LogManager.createTestLogManager(), parser, false);
     String code = "#line 5 \"foo.c\"\nvoid main() { }";
-    ParseResult result = parser.parseString(fileName, code);
+    ParseResult result = parser.parseString(Path.of(fileName), code);
     FileLocation mainLoc = result.getFunctions().get("main").getFileLocation();
 
     assertThat(mainLoc.getFileName()).isEqualTo(Path.of(expectedFileName));
@@ -94,13 +92,12 @@ public class CParserLocationTest {
   }
 
   @Test
-  public void singleFileTest_lineDirective()
-      throws CParserException, InvalidConfigurationException, InterruptedException {
+  public void singleFileTest_lineDirective() throws Exception {
     parser =
         new CParserWithLocationMapper(
             Configuration.defaultConfiguration(), LogManager.createTestLogManager(), parser, true);
     String code = "#line 5\nvoid main() { }";
-    ParseResult result = parser.parseString(fileName, code);
+    ParseResult result = parser.parseString(Path.of(fileName), code);
     FileLocation mainLoc = result.getFunctions().get("main").getFileLocation();
 
     assertThat(mainLoc.getFileName()).isEqualTo(Path.of(expectedFileName));
@@ -112,13 +109,12 @@ public class CParserLocationTest {
   }
 
   @Test
-  public void singleFileTest_lineDirectiveWithFilename()
-      throws CParserException, InvalidConfigurationException, InterruptedException {
+  public void singleFileTest_lineDirectiveWithFilename() throws Exception {
     parser =
         new CParserWithLocationMapper(
             Configuration.defaultConfiguration(), LogManager.createTestLogManager(), parser, true);
     String code = "#line 5 \"foo.c\"\nvoid main() { }";
-    ParseResult result = parser.parseString(fileName, code);
+    ParseResult result = parser.parseString(Path.of(fileName), code);
     FileLocation mainLoc = result.getFunctions().get("main").getFileLocation();
 
     assertThat(mainLoc.getFileName()).isEqualTo(Path.of("foo.c"));

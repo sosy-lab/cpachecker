@@ -73,7 +73,7 @@ public abstract class AbstractLockState
   public boolean isLessOrEqual(AbstractLockState other) {
     // State is less, if it has the same locks as the other and may be some more
 
-    return from(other.getLocks()).allMatch(this.getLocks()::contains);
+    return from(other.getLocks()).allMatch(getLocks()::contains);
   }
 
   @Override

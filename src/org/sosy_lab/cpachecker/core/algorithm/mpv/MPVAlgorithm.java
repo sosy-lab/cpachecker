@@ -161,10 +161,11 @@ public class MPVAlgorithm implements Algorithm, StatisticsProvider {
       description =
           "Adjust resource limitations during the analysis.\n"
               + "- NONE: do not adjust resource limitations (default).\n"
-              + "- DISTRIBUTE_REMAINING: distribute resources, which were allocated for some already checked "
-              + "property, but were not fully spent, between other properties, which are still checking.\n"
-              + "- DISTRIBUTE_BY_PROPERTY: scale resources for each property in accordance with the given "
-              + "ratio in the property distribution file.")
+              + "- DISTRIBUTE_REMAINING: distribute resources, which were allocated for some"
+              + " already checked property, but were not fully spent, between other properties,"
+              + " which are still checking.\n"
+              + "- DISTRIBUTE_BY_PROPERTY: scale resources for each property in accordance with the"
+              + " given ratio in the property distribution file.")
   private LimitAdjustmentStrategy limitsAdjustmentStrategy = LimitAdjustmentStrategy.NONE;
 
   @Option(
@@ -179,9 +180,10 @@ public class MPVAlgorithm implements Algorithm, StatisticsProvider {
       secure = true,
       name = "limits.propertyDistributionFile",
       description =
-          "Get a resource limitation distribution per property from file. "
-              + "This option should be used only together with DISTRIBUTE_BY_PROPERTY limits adjustment strategy. "
-              + "The following format should be used in the file:\n'<property name>':<ratio>")
+          "Get a resource limitation distribution per property from file. This option should be"
+              + " used only together with DISTRIBUTE_BY_PROPERTY limits adjustment strategy. The"
+              + " following format should be used in the file:\n"
+              + "'<property name>':<ratio>")
   @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
   @Nullable
   private Path propertyDistributionFile = null;
@@ -193,7 +195,8 @@ public class MPVAlgorithm implements Algorithm, StatisticsProvider {
       name = "propertySeparator",
       description =
           "Specifies how to separate a single property.\n"
-              + "- FILE: each .spc file represent a single property (i.e., property is represented by several automata).\n"
+              + "- FILE: each .spc file represent a single property (i.e., property is represented"
+              + " by several automata).\n"
               + "- AUTOMATON: each automaton represent a single property.")
   private PropertySeparator propertySeparator = PropertySeparator.FILE;
 
@@ -216,7 +219,8 @@ public class MPVAlgorithm implements Algorithm, StatisticsProvider {
       secure = true,
       name = "ignoreInnerExceptions",
       description =
-          "Ignore exceptions, which may be caused by checking of some properties, to successfully check the others.")
+          "Ignore exceptions, which may be caused by checking of some properties, to successfully"
+              + " check the others.")
   private boolean ignoreInnerExceptions = false;
 
   private final MPVStatistics stats;
@@ -312,7 +316,7 @@ public class MPVAlgorithm implements Algorithm, StatisticsProvider {
               "' in property distribution file. Correct format is '<property name>':<ratio>");
         }
       }
-      return propertyDistributionBuilder.build();
+      return propertyDistributionBuilder.buildOrThrow();
     } catch (IOException e) {
       logger.log(
           Level.WARNING,

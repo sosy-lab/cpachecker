@@ -45,18 +45,24 @@ public class LoopInvariantsWriter {
   private final FormulaManagerView fmgr;
   private final RegionManager rmgr;
 
-  public LoopInvariantsWriter(CFA pCfa, LogManager pLogger, AbstractionManager pAbsMgr,
-      FormulaManagerView pFmMgr, RegionManager pRegMgr) {
-    this.cfa = pCfa;
-    this.logger = pLogger;
-    this.absmgr = pAbsMgr;
-    this.fmgr = pFmMgr;
-    this.rmgr = pRegMgr;
+  public LoopInvariantsWriter(
+      CFA pCfa,
+      LogManager pLogger,
+      AbstractionManager pAbsMgr,
+      FormulaManagerView pFmMgr,
+      RegionManager pRegMgr) {
+    cfa = pCfa;
+    logger = pLogger;
+    absmgr = pAbsMgr;
+    fmgr = pFmMgr;
+    rmgr = pRegMgr;
   }
 
   private Map<CFANode, Region> getLoopHeadInvariants(UnmodifiableReachedSet reached) {
     if (!cfa.getAllLoopHeads().isPresent()) {
-      logger.log(Level.WARNING, "Cannot dump loop invariants because loop-structure information is not available.");
+      logger.log(
+          Level.WARNING,
+          "Cannot dump loop invariants because loop-structure information is not available.");
       return null;
     }
 
@@ -67,7 +73,10 @@ public class LoopInvariantsWriter {
       if (cfa.getAllLoopHeads().orElseThrow().contains(loc)) {
         PredicateAbstractState predicateState = getPredicateState(state);
         if (!predicateState.isAbstractionState()) {
-          logger.log(Level.WARNING, "Cannot dump loop invariants because a non-abstraction state was found for a loop-head location.");
+          logger.log(
+              Level.WARNING,
+              "Cannot dump loop invariants because a non-abstraction state was found for a"
+                  + " loop-head location.");
           return null;
         }
 
@@ -97,7 +106,8 @@ public class LoopInvariantsWriter {
         writer.append("loop__");
         writer.append(loc.getFunctionName());
         writer.append("__");
-        writer.append(""+ ((loc.getNumLeavingEdges()==0) ? 0 : loc.getLeavingEdge(0).getLineNumber()));
+        writer.append(
+            "" + ((loc.getNumLeavingEdges() == 0) ? 0 : loc.getLeavingEdge(0).getLineNumber()));
         writer.append(":\n");
         fmgr.dumpFormula(formula).appendTo(writer);
         writer.append('\n');
@@ -107,7 +117,8 @@ public class LoopInvariantsWriter {
     }
   }
 
-  public void exportLoopInvariantsAsPrecision(Path invariantPrecisionsFile, UnmodifiableReachedSet reached) {
+  public void exportLoopInvariantsAsPrecision(
+      Path invariantPrecisionsFile, UnmodifiableReachedSet reached) {
     Map<CFANode, Region> regions = getLoopHeadInvariants(reached);
     if (regions == null) {
       return;
@@ -122,7 +133,8 @@ public class LoopInvariantsWriter {
               .toSortedSet(Comparator.comparingInt(CFANode::getNodeNumber))) {
         Region region = regions.getOrDefault(loc, rmgr.makeFalse());
         BooleanFormula formula = absmgr.convertRegionToFormula(region);
-        Pair<String, List<String>> locInvariant = PredicatePersistenceUtils.splitFormula(fmgr, formula);
+        Pair<String, List<String>> locInvariant =
+            PredicatePersistenceUtils.splitFormula(fmgr, formula);
 
         for (String def : locInvariant.getSecond()) {
           if (uniqueDefs.add(def)) {
@@ -146,6 +158,4 @@ public class LoopInvariantsWriter {
       logger.logUserException(Level.WARNING, e, "Could not write loop invariants to file");
     }
   }
-
-
 }

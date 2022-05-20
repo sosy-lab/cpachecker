@@ -13,13 +13,11 @@ import static com.google.common.collect.FluentIterable.from;
 
 import com.google.common.base.Predicate;
 import com.google.common.collect.ImmutableList;
-
+import java.util.List;
+import java.util.function.BiFunction;
 import org.sosy_lab.cpachecker.core.interfaces.AdjustablePrecision;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.WrapperPrecision;
-
-import java.util.List;
-import java.util.function.BiFunction;
 
 class CompositePrecision implements WrapperPrecision, AdjustablePrecision {
 
@@ -37,7 +35,7 @@ class CompositePrecision implements WrapperPrecision, AdjustablePrecision {
       return false;
     }
 
-    return precisions.equals(((CompositePrecision)other).precisions);
+    return precisions.equals(((CompositePrecision) other).precisions);
   }
 
   @Override
@@ -64,7 +62,7 @@ class CompositePrecision implements WrapperPrecision, AdjustablePrecision {
         return pType.cast(precision);
 
       } else if (precision instanceof WrapperPrecision) {
-        T result = ((WrapperPrecision)precision).retrieveWrappedPrecision(pType);
+        T result = ((WrapperPrecision) precision).retrieveWrappedPrecision(pType);
         if (result != null) {
           return result;
         }
@@ -74,7 +72,8 @@ class CompositePrecision implements WrapperPrecision, AdjustablePrecision {
   }
 
   @Override
-  public Precision replaceWrappedPrecision(Precision newPrecision, Predicate<? super Precision> replaceType) {
+  public Precision replaceWrappedPrecision(
+      Precision newPrecision, Predicate<? super Precision> replaceType) {
 
     if (replaceType.apply(this)) {
       return newPrecision;
@@ -88,7 +87,8 @@ class CompositePrecision implements WrapperPrecision, AdjustablePrecision {
         changed = true;
 
       } else if (precision instanceof WrapperPrecision) {
-        Precision newWrappedPrecision = ((WrapperPrecision)precision).replaceWrappedPrecision(newPrecision, replaceType);
+        Precision newWrappedPrecision =
+            ((WrapperPrecision) precision).replaceWrappedPrecision(newPrecision, replaceType);
         if (newWrappedPrecision != null) {
           newPrecisions.add(newWrappedPrecision);
           changed = true;
@@ -124,8 +124,8 @@ class CompositePrecision implements WrapperPrecision, AdjustablePrecision {
 
     ImmutableList.Builder<Precision> newPrecisions = ImmutableList.builder();
 
-    for (int i = 0; i < this.precisions.size(); i++) {
-      Precision currentPrecision = this.get(i);
+    for (int i = 0; i < precisions.size(); i++) {
+      Precision currentPrecision = get(i);
       Precision adjustedPrecision;
 
       if (pOtherPrecision instanceof CompositePrecision) {
@@ -148,8 +148,8 @@ class CompositePrecision implements WrapperPrecision, AdjustablePrecision {
           adjustedPrecision);
 
       Precision newPrecision =
-              adjustFunction.apply(
-                      (AdjustablePrecision) currentPrecision, (AdjustablePrecision) adjustedPrecision);
+          adjustFunction.apply(
+              (AdjustablePrecision) currentPrecision, (AdjustablePrecision) adjustedPrecision);
       newPrecisions.add(newPrecision);
     }
     return new CompositePrecision(newPrecisions.build());
@@ -157,7 +157,8 @@ class CompositePrecision implements WrapperPrecision, AdjustablePrecision {
 
   @Override
   public boolean isEmpty() {
-    return from(precisions).transform(p -> (AdjustablePrecision) p)
+    return from(precisions)
+        .transform(p -> (AdjustablePrecision) p)
         .allMatch(AdjustablePrecision::isEmpty);
   }
 }

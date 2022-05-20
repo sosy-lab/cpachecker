@@ -47,8 +47,8 @@ public class SlicingTransferRelation extends SingleEdgeTransferRelation {
 
   @Override
   public Collection<? extends AbstractState> getAbstractSuccessorsForEdge(
-      final AbstractState pState, final Precision pPrecision, final CFAEdge pCfaEdge
-  ) throws CPATransferException, InterruptedException {
+      final AbstractState pState, final Precision pPrecision, final CFAEdge pCfaEdge)
+      throws CPATransferException, InterruptedException {
     checkState(
         pPrecision instanceof SlicingPrecision,
         "Precision not of type %s, but %s",

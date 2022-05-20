@@ -19,9 +19,11 @@ public final class CTypeIdExpression extends AbstractExpression implements CExpr
   private final TypeIdOperator operator;
   private final CType type;
 
-  public CTypeIdExpression(final FileLocation pFileLocation,
-                              final CType pExpressionType, final TypeIdOperator pOperator,
-                              final CType pType) {
+  public CTypeIdExpression(
+      final FileLocation pFileLocation,
+      final CType pExpressionType,
+      final TypeIdOperator pOperator,
+      final CType pType) {
     super(pFileLocation, pExpressionType);
     operator = pOperator;
     type = pType;
@@ -67,9 +69,7 @@ public final class CTypeIdExpression extends AbstractExpression implements CExpr
       cRepresentation = pCRepresentation;
     }
 
-    /**
-     * Returns the string representation of this operator
-     */
+    /** Returns the string representation of this operator */
     public String getOperator() {
       return cRepresentation;
     }
@@ -96,15 +96,12 @@ public final class CTypeIdExpression extends AbstractExpression implements CExpr
       return true;
     }
 
-    if (!(obj instanceof CTypeIdExpression)
-        || !super.equals(obj)) {
+    if (!(obj instanceof CTypeIdExpression) || !super.equals(obj)) {
       return false;
     }
 
     CTypeIdExpression other = (CTypeIdExpression) obj;
 
-    return Objects.equals(other.operator, operator)
-            && Objects.equals(other.type, type);
+    return Objects.equals(other.operator, operator) && Objects.equals(other.type, type);
   }
-
 }

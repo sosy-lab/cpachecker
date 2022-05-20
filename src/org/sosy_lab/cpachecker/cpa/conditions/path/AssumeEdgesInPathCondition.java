@@ -26,15 +26,17 @@ import org.sosy_lab.cpachecker.core.interfaces.conditions.AvoidanceReportingStat
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 
 /**
- * A {@link PathCondition} where the condition is based on the number of assume
- * edges seen so far on the current path.
+ * A {@link PathCondition} where the condition is based on the number of assume edges seen so far on
+ * the current path.
  */
-@Options(prefix="cpa.conditions.path.assumeedges")
+@Options(prefix = "cpa.conditions.path.assumeedges")
 public class AssumeEdgesInPathCondition implements PathCondition, Statistics {
 
-  @Option(secure=true, description="maximum number of assume edges length (-1 for infinite)",
-      name="limit")
-  @IntegerOption(min=-1)
+  @Option(
+      secure = true,
+      description = "maximum number of assume edges length (-1 for infinite)",
+      name = "limit")
+  @IntegerOption(min = -1)
   private int threshold = -1;
 
   private int increaseThresholdBy = 0;
@@ -52,7 +54,7 @@ public class AssumeEdgesInPathCondition implements PathCondition, Statistics {
 
   @Override
   public AvoidanceReportingState getAbstractSuccessor(AbstractState pState, CFAEdge pEdge) {
-    AssumeEdgesInPathConditionState current = (AssumeEdgesInPathConditionState)pState;
+    AssumeEdgesInPathConditionState current = (AssumeEdgesInPathConditionState) pState;
 
     if (pEdge.getEdgeType() != CFAEdgeType.AssumeEdge) {
       return current;
@@ -74,7 +76,8 @@ public class AssumeEdgesInPathCondition implements PathCondition, Statistics {
   public boolean adjustPrecision() {
     if (threshold == -1) {
       // set the initial threshold value
-      // TODO PW: Do this calculations make sense? I just copied them from AssumeEdgesInPathHeuristicsPrecision.
+      // TODO PW: Do this calculations make sense? I just copied them from
+      // AssumeEdgesInPathHeuristicsPrecision.
       threshold = maxAssumeEdgesInPath / 5;
       increaseThresholdBy = threshold / 4;
 
@@ -94,7 +97,6 @@ public class AssumeEdgesInPathCondition implements PathCondition, Statistics {
     out.println("Maximum length of a path: " + maxAssumeEdgesInPath);
     out.println("Threshold value:          " + threshold);
   }
-
 
   @Override
   public Reducer getReducer() {

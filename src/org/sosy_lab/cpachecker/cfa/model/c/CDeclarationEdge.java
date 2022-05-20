@@ -17,11 +17,14 @@ public class CDeclarationEdge extends ADeclarationEdge implements CCfaEdge {
 
   private static final long serialVersionUID = 1085083084922071042L;
 
-  public CDeclarationEdge(final String pRawSignature, final FileLocation pFileLocation,
-      final CFANode pPredecessor, final CFANode pSuccessor, final CDeclaration pDeclaration) {
+  public CDeclarationEdge(
+      final String pRawSignature,
+      final FileLocation pFileLocation,
+      final CFANode pPredecessor,
+      final CFANode pSuccessor,
+      final CDeclaration pDeclaration) {
 
     super(pRawSignature, pFileLocation, pPredecessor, pSuccessor, pDeclaration);
-
   }
 
   @Override

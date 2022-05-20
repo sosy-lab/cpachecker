@@ -36,5 +36,4 @@ public class SLABMergeOperator implements MergeOperator {
     }
     return state2; // this is not a join!!
   }
-
 }

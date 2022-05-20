@@ -30,9 +30,7 @@ import org.sosy_lab.cpachecker.util.smg.graph.SMGHasValueEdge;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGObject;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGValue;
 
-/**
- * Class implementing join algorithm from FIT-TR-2013-4 (Appendix C)
- */
+/** Class implementing join algorithm from FIT-TR-2013-4 (Appendix C) */
 public class SMGJoinFields {
 
   private SMG smg1;
@@ -54,8 +52,7 @@ public class SMGJoinFields {
   public void joinFields(SMGObject obj1, SMGObject obj2) {
 
     Preconditions.checkArgument(
-        obj1.getSize().equals(obj2.getSize()),
-        "SMG fields with different sizes cannot be joined.");
+        obj1.getSize().equals(obj2.getSize()), "SMG fields with different sizes cannot be joined.");
     Preconditions.checkArgument(
         smg1.getObjects().contains(obj1) && smg2.getObjects().contains(obj2),
         "Only objects of givens SMGs can be joined.");
@@ -96,8 +93,8 @@ public class SMGJoinFields {
    * @return extension edge set for pSMG2
    */
   @VisibleForTesting
-  FluentIterable<SMGHasValueEdge>
-      mergeNonNullValues(SMG pSMG1, SMG pSMG2, SMGObject pObject1, SMGObject pObject2) {
+  FluentIterable<SMGHasValueEdge> mergeNonNullValues(
+      SMG pSMG1, SMG pSMG2, SMGObject pObject1, SMGObject pObject2) {
 
     PersistentSortedMap<BigInteger, SMGHasValueEdge> obj2OffsetToEdges =
         pSMG2.getEdges(pObject2).stream().collect(mapOffsetToEdgeCollector());
@@ -138,8 +135,7 @@ public class SMGJoinFields {
         getNullEdgesMapOffsetToSize(object, newSmg);
 
     boolean applyUpdate =
-        oldEdgesWithZeroOffsetToSize.entrySet()
-            .stream()
+        oldEdgesWithZeroOffsetToSize.entrySet().stream()
             .anyMatch(
                 entry -> {
                   // if newSize == null the offset was shortened
@@ -159,15 +155,13 @@ public class SMGJoinFields {
    * @param obj2 - SMGObject of smg2
    */
   @VisibleForTesting
-  PersistentSet<SMGHasValueEdge>
-      processHasValueEdgeSet(SMGObject obj1, SMGObject obj2, SMG pSmg1, SMG pSmg2) {
+  PersistentSet<SMGHasValueEdge> processHasValueEdgeSet(
+      SMGObject obj1, SMGObject obj2, SMG pSmg1, SMG pSmg2) {
     // H1 and H2
 
     // 2a)
     FluentIterable<SMGHasValueEdge> edgesObj1Without0Address =
-        pSmg1.getHasValueEdgesByPredicate(
-            obj1,
-            edge -> !edge.hasValue().isZero());
+        pSmg1.getHasValueEdgesByPredicate(obj1, edge -> !edge.hasValue().isZero());
 
     // 2b)
     PersistentSortedMap<BigInteger, BigInteger> obj1EdgesWithZeroOffsetToSize =
@@ -206,8 +200,7 @@ public class SMGJoinFields {
 
   @VisibleForTesting
   FluentIterable<SMGHasValueEdge> getNullEdgesIntersection(
-      Entry<BigInteger, BigInteger> pEntry,
-      PersistentSortedMap<BigInteger, BigInteger> pMap) {
+      Entry<BigInteger, BigInteger> pEntry, PersistentSortedMap<BigInteger, BigInteger> pMap) {
     return FluentIterable.from(
             pMap.subMap(pEntry.getKey(), true, pEntry.getKey().add(pEntry.getValue()), false)
                 .entrySet())
@@ -220,13 +213,11 @@ public class SMGJoinFields {
             });
   }
 
-  private PersistentSortedMap<BigInteger, BigInteger>
-      getNullEdgesMapOffsetToSize(SMGObject pObj, SMG pSMG) {
-    return pSMG.getEdges(pObj)
-        .stream()
+  private PersistentSortedMap<BigInteger, BigInteger> getNullEdgesMapOffsetToSize(
+      SMGObject pObj, SMG pSMG) {
+    return pSMG.getEdges(pObj).stream()
         .filter(createEqNullValuePredicate(true))
         .collect(mapOffsetToSizeCollector());
-
   }
 
   private Predicate<SMGHasValueEdge> createEqNullValuePredicate(boolean equals) {
@@ -235,14 +226,14 @@ public class SMGJoinFields {
 
   private Collector<SMGHasValueEdge, ?, PersistentSortedMap<BigInteger, BigInteger>>
       mapOffsetToSizeCollector() {
-    return PathCopyingPersistentTreeMap
-        .toPathCopyingPersistentTreeMap(SMGHasValueEdge::getOffset, SMGHasValueEdge::getSizeInBits);
+    return PathCopyingPersistentTreeMap.toPathCopyingPersistentTreeMap(
+        SMGHasValueEdge::getOffset, SMGHasValueEdge::getSizeInBits);
   }
 
   private Collector<SMGHasValueEdge, ?, PersistentSortedMap<BigInteger, SMGHasValueEdge>>
       mapOffsetToEdgeCollector() {
-    return PathCopyingPersistentTreeMap
-        .toPathCopyingPersistentTreeMap(SMGHasValueEdge::getOffset, e -> e);
+    return PathCopyingPersistentTreeMap.toPathCopyingPersistentTreeMap(
+        SMGHasValueEdge::getOffset, e -> e);
   }
 
   public SMG getSmg1() {
@@ -256,5 +247,4 @@ public class SMGJoinFields {
   public SMGJoinStatus getStatus() {
     return status;
   }
-
 }

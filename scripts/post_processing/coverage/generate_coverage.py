@@ -128,8 +128,8 @@ def move_execution_spec_and_cex_coverage_files(temp_dir, output_dir):
     all_cex_cov = counterexample_coverage_files(temp_dir)
 
     # sanity check, should have a coverage file for each .spc file:
-    no_extension_cov = list(map(lambda s: s.replace(cov_extension, ""), all_cex_cov))
-    no_extension_spc = list(map(lambda s: s.replace(spec_extension, ""), all_cex_specs))
+    no_extension_cov = [s.replace(cov_extension, "") for s in all_cex_cov]
+    no_extension_spc = [s.replace(spec_extension, "") for s in all_cex_specs]
     assert no_extension_cov == no_extension_spc
 
     def counterexample_filename(path, i, ext):

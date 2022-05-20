@@ -239,10 +239,10 @@ public class FormulaInvariantsSupplier implements InvariantSupplier {
         return false;
       }
       InvariantsCacheKey that = (InvariantsCacheKey) pO;
-      return Objects.equals(node, that.node) &&
-          Objects.equals(callstackInformation, that.callstackInformation) &&
-          Objects.equals(fmgr, that.fmgr) &&
-          Objects.equals(pfmgr, that.pfmgr);
+      return Objects.equals(node, that.node)
+          && Objects.equals(callstackInformation, that.callstackInformation)
+          && Objects.equals(fmgr, that.fmgr)
+          && Objects.equals(pfmgr, that.pfmgr);
     }
 
     @Override

@@ -7,7 +7,6 @@
 // SPDX-License-Identifier: Apache-2.0
 
 /**
- * Package for finding inductive weakenings of the formulas
- * with respect to the given transition.
+ * Package for finding inductive weakenings of the formulas with respect to the given transition.
  */
 package org.sosy_lab.cpachecker.util.predicates.weakening;

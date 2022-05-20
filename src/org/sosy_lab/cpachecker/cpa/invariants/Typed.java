@@ -8,9 +8,7 @@
 
 package org.sosy_lab.cpachecker.cpa.invariants;
 
-
 public interface Typed {
 
   TypeInfo getTypeInfo();
-
 }

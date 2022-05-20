@@ -7,12 +7,10 @@
 // SPDX-License-Identifier: Apache-2.0
 
 /**
- * <p>{@link org.sosy_lab.cpachecker.util.cwriter.PathToCTranslator}:
- * Converting [subset of] CFA back to the C code (with no loops).
- * Generates Counterexample.c.
+ * {@link org.sosy_lab.cpachecker.util.cwriter.PathToCTranslator}: Converting [subset of] CFA back
+ * to the C code (with no loops). Generates Counterexample.c.
  *
- * <p>{@link org.sosy_lab.cpachecker.util.cwriter.CExpressionInvariantExporter}
- * writes the input program back, with generated invariants inserted as
- * {@code __VERIFIER_assume} statements.
+ * <p>{@link org.sosy_lab.cpachecker.util.cwriter.CExpressionInvariantExporter} writes the input
+ * program back, with generated invariants inserted as {@code __VERIFIER_assume} statements.
  */
 package org.sosy_lab.cpachecker.util.cwriter;
