@@ -126,7 +126,7 @@ public final class DomTree<T> implements Iterable<T> {
   private static int[] computeDoms(DomInput<?> pInput) {
 
     // Iterative Algorithm for computing all immediate dominators. For more information on the
-    // algorithm, see "A Simple, Fast Dominance Algorithm" (Cooper et al.).
+    // algorithm, see "A Simple, Fast Dominance Algorithm" (Cooper et al.), Figure 3.
 
     DomInput.PredecessorDataIterator predecessorsDataIterator = pInput.iteratePredecessorData();
 

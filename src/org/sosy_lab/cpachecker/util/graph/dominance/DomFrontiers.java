@@ -69,7 +69,7 @@ public final class DomFrontiers<T> {
   private static ImmutableList<ImmutableSet<Integer>> computeFrontiers(DomTree<?> pDomTree) {
 
     // For more information on the algorithm, see "A Simple, Fast Dominance Algorithm"
-    // (Cooper et al.).
+    // (Cooper et al.), Figure 5.
 
     DomInput<?> domInput = pDomTree.getInput();
     DomInput.PredecessorDataIterator predecessorsDataIterator = domInput.iteratePredecessorData();
