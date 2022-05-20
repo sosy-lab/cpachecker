@@ -84,14 +84,15 @@ public class CallstackTransferRelationBackwards extends CallstackTransferRelatio
           break;
         }
 
-    case AssumeEdge: {
-      if (pEdge instanceof ProgramCounterValueAssumeEdge) {
+      case AssumeEdge:
+        {
+          if (pEdge instanceof ProgramCounterValueAssumeEdge) {
             throw new UnsupportedCodeException(
                 "ProgramCounterValueAssumeEdge not yet supported for the backwards analysis!",
                 pEdge);
-      }
-      break;
-    }
+          }
+          break;
+        }
 
       case FunctionReturnEdge:
         {
@@ -124,11 +125,11 @@ public class CallstackTransferRelationBackwards extends CallstackTransferRelatio
 
       case FunctionCallEdge:
         {
-        // FIXME: Actually, during backwards analysis you always have wildcard
-        // states, because you never know where you "came from",
-        // and obviously, there is some handling of that situation below,
-        // see "if (nextStackState == null) { ...".
-        if (isWildcardState(e, AnalysisDirection.BACKWARD)) {
+          // FIXME: Actually, during backwards analysis you always have wildcard
+          // states, because you never know where you "came from",
+          // and obviously, there is some handling of that situation below,
+          // see "if (nextStackState == null) { ...".
+          if (isWildcardState(e, AnalysisDirection.BACKWARD)) {
             throw new UnsupportedCodeException(
                 "ARTIFICIAL_PROGRAM_COUNTER not yet supported for the backwards analysis!", pEdge);
           }

@@ -15,8 +15,8 @@ import java.util.Set;
 import org.sosy_lab.cpachecker.core.defaults.LatticeAbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 
-
-public class ProgramCounterState implements AbstractState, LatticeAbstractState<ProgramCounterState> {
+public class ProgramCounterState
+    implements AbstractState, LatticeAbstractState<ProgramCounterState> {
 
   private static final ProgramCounterState TOP = new ProgramCounterState();
 
@@ -85,7 +85,8 @@ public class ProgramCounterState implements AbstractState, LatticeAbstractState<
     if (containsValue(pValue)) {
       return this;
     }
-    return new ProgramCounterState(ImmutableSet.<BigInteger>builder().addAll(values).add(pValue).build());
+    return new ProgramCounterState(
+        ImmutableSet.<BigInteger>builder().addAll(values).add(pValue).build());
   }
 
   @Override
@@ -135,5 +136,4 @@ public class ProgramCounterState implements AbstractState, LatticeAbstractState<
     builder.addAll(pValues);
     return new ProgramCounterState(builder.build());
   }
-
 }

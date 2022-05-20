@@ -424,11 +424,11 @@ public final class LoopStructure implements Serializable {
     return null;
   }
 
-
   /**
-   * Gets the loop structure of a control flow automaton with one single loop.
-   * Do not call this method outside of the frontend,
-   * use {@link org.sosy_lab.cpachecker.cfa.CFA#getLoopStructure()} instead.
+   * Gets the loop structure of a control flow automaton with one single loop. Do not call this
+   * method outside of the frontend, use {@link org.sosy_lab.cpachecker.cfa.CFA#getLoopStructure()}
+   * instead.
+   *
    * @param pSingleLoopHead the loop head of the single loop.
    * @return the loop structure of the control flow automaton.
    */
@@ -490,7 +490,6 @@ public final class LoopStructure implements Serializable {
     return new LoopStructure(
         ImmutableListMultimap.of(loopFunction, new Loop(pSingleLoopHead, loopNodes)));
   }
-
 
   // -------- Code related to retrieving LoopStructure information in gneral case --------
 

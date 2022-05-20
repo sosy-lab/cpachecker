@@ -46,7 +46,8 @@ public class CallstackCPA extends AbstractCPA
     return AutomaticCPAFactory.forType(CallstackCPA.class);
   }
 
-  public CallstackCPA(Configuration config, LogManager pLogger, CFA pCFA) throws InvalidConfigurationException {
+  public CallstackCPA(Configuration config, LogManager pLogger, CFA pCFA)
+      throws InvalidConfigurationException {
     super("sep", "sep", null);
     logger = pLogger;
     options = new CallstackOptions(config);
@@ -62,17 +63,15 @@ public class CallstackCPA extends AbstractCPA
   public AbstractState getInitialState(CFANode pNode, StateSpacePartition pPartition) {
     if (cfa.getLoopStructure().isPresent()) {
       LoopStructure loopStructure = cfa.getLoopStructure().orElseThrow();
-      Collection<Loop> artificialLoops = loopStructure.getLoopsForFunction(
-          CFASingleLoopTransformation.ARTIFICIAL_PROGRAM_COUNTER_FUNCTION_NAME);
+      Collection<Loop> artificialLoops =
+          loopStructure.getLoopsForFunction(
+              CFASingleLoopTransformation.ARTIFICIAL_PROGRAM_COUNTER_FUNCTION_NAME);
 
       if (!artificialLoops.isEmpty()) {
         Loop singleLoop = Iterables.getOnlyElement(artificialLoops);
         if (singleLoop.getLoopNodes().contains(pNode)) {
           return new CallstackState(
-              null,
-              CFASingleLoopTransformation.ARTIFICIAL_PROGRAM_COUNTER_FUNCTION_NAME,
-              pNode
-          );
+              null, CFASingleLoopTransformation.ARTIFICIAL_PROGRAM_COUNTER_FUNCTION_NAME, pNode);
         }
       }
     }

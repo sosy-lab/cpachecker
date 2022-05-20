@@ -271,8 +271,7 @@ public class CFAUtils {
   }
 
   /**
-   * Returns a predicate for CFA edges with the given edge type.
-   * The predicate is not null safe.
+   * Returns a predicate for CFA edges with the given edge type. The predicate is not null safe.
    *
    * @param pType the edge type matched on.
    */

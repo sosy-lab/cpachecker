@@ -94,28 +94,33 @@ public class CallstackTransferRelation extends SingleEdgeTransferRelation {
           break;
         }
 
-    case AssumeEdge: {
-      boolean successorIsInCallstackContext = succFunction.equals(e.getCurrentFunction());
-      boolean isArtificialPCVEdge = pEdge instanceof ProgramCounterValueAssumeEdge;
-      boolean isSuccessorAritificialPCNode = succFunction.equals(CFASingleLoopTransformation.ARTIFICIAL_PROGRAM_COUNTER_FUNCTION_NAME);
-      boolean isPredecessorAritificialPCNode = predFunction.equals(CFASingleLoopTransformation.ARTIFICIAL_PROGRAM_COUNTER_FUNCTION_NAME);
-      boolean isFunctionTransition = !succFunction.equals(predFunction);
-      if (!successorIsInCallstackContext
-          && !e.getCurrentFunction()
-              .equals(CFASingleLoopTransformation.ARTIFICIAL_PROGRAM_COUNTER_FUNCTION_NAME)
-          && ((!isSuccessorAritificialPCNode && isArtificialPCVEdge)
-              || (isPredecessorAritificialPCNode && isFunctionTransition))) {
-        /*
-         * This edge is syntactically reachable, but makes no sense from this
-         * state, as it would change function without passing a function entry
-         * or exit node.
-         *
-         * Edges like this are introduced by the single loop transformation.
-         */
-        return ImmutableSet.of();
-      }
-      break;
-    }
+      case AssumeEdge:
+        {
+          boolean successorIsInCallstackContext = succFunction.equals(e.getCurrentFunction());
+          boolean isArtificialPCVEdge = pEdge instanceof ProgramCounterValueAssumeEdge;
+          boolean isSuccessorAritificialPCNode =
+              succFunction.equals(
+                  CFASingleLoopTransformation.ARTIFICIAL_PROGRAM_COUNTER_FUNCTION_NAME);
+          boolean isPredecessorAritificialPCNode =
+              predFunction.equals(
+                  CFASingleLoopTransformation.ARTIFICIAL_PROGRAM_COUNTER_FUNCTION_NAME);
+          boolean isFunctionTransition = !succFunction.equals(predFunction);
+          if (!successorIsInCallstackContext
+              && !e.getCurrentFunction()
+                  .equals(CFASingleLoopTransformation.ARTIFICIAL_PROGRAM_COUNTER_FUNCTION_NAME)
+              && ((!isSuccessorAritificialPCNode && isArtificialPCVEdge)
+                  || (isPredecessorAritificialPCNode && isFunctionTransition))) {
+            /*
+             * This edge is syntactically reachable, but makes no sense from this
+             * state, as it would change function without passing a function entry
+             * or exit node.
+             *
+             * Edges like this are introduced by the single loop transformation.
+             */
+            return ImmutableSet.of();
+          }
+          break;
+        }
 
       case FunctionCallEdge:
         {

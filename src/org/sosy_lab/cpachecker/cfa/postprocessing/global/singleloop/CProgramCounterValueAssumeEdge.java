@@ -20,41 +20,38 @@ import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 
 /**
- * Instances of this class are CFA edges representing constant assumptions
- * based on program counter values. These edges are used in the program
- * counter value decision trees succeeding the artificial loops in the single
- * loop transformation and preceding the referenced subgraphs.
+ * Instances of this class are CFA edges representing constant assumptions based on program counter
+ * values. These edges are used in the program counter value decision trees succeeding the
+ * artificial loops in the single loop transformation and preceding the referenced subgraphs.
  */
 class CProgramCounterValueAssumeEdge extends CAssumeEdge implements ProgramCounterValueAssumeEdge {
 
   private static final long serialVersionUID = 914295017485509753L;
-  /**
-   * The program counter value assumed.
-   */
+  /** The program counter value assumed. */
   private final int pcValue;
 
   /**
-   * Creates a new C program counter value assume edge between the given
-   * predecessor and successor, using the given expression builder to build
-   * the binary assumption expression of the equation between the given
-   * program counter value and the given program counter value id expression.
+   * Creates a new C program counter value assume edge between the given predecessor and successor,
+   * using the given expression builder to build the binary assumption expression of the equation
+   * between the given program counter value and the given program counter value id expression.
    *
-   * @param pExpressionBuilder the expression builder used to create the
-   * assume expression.
+   * @param pExpressionBuilder the expression builder used to create the assume expression.
    * @param pPredecessor the predecessor node of the edge.
    * @param pSuccessor the successor node of the edge.
    * @param pPCIdExpression the program counter id expression.
    * @param pPCValue the assumed program counter value.
-   * @param pTruthAssumption if {@code true} the equation is assumed to be
-   * true, if {@code false}, the equation is assumed to be false.
+   * @param pTruthAssumption if {@code true} the equation is assumed to be true, if {@code false},
+   *     the equation is assumed to be false.
    */
-  public CProgramCounterValueAssumeEdge(CBinaryExpressionBuilder pExpressionBuilder,
+  public CProgramCounterValueAssumeEdge(
+      CBinaryExpressionBuilder pExpressionBuilder,
       CFANode pPredecessor,
       CFANode pSuccessor,
       CIdExpression pPCIdExpression,
       int pPCValue,
       boolean pTruthAssumption) {
-    super(buildRawStatement(pPCValue, pPCIdExpression, pTruthAssumption),
+    super(
+        buildRawStatement(pPCValue, pPCIdExpression, pTruthAssumption),
         FileLocation.DUMMY,
         pPredecessor,
         pSuccessor,
@@ -74,12 +71,12 @@ class CProgramCounterValueAssumeEdge extends CAssumeEdge implements ProgramCount
    * @param pPCValue the assumed program counter value.
    * @param pPCIdExpression the program counter id expression.
    * @param pTruthAssumption if {@code true} the equation is assumed to be
-   *
-   * true, if {@code false}, the equation is assumed to be false.
+   *     <p>true, if {@code false}, the equation is assumed to be false.
    * @return the raw statement of the assumption.
    */
-  private static String buildRawStatement(int pPCValue, CIdExpression pPCIdExpression, boolean pTruthAssumption) {
-    String rawStatement = String.format("%s == %d",  pPCIdExpression.getName(), pPCValue);
+  private static String buildRawStatement(
+      int pPCValue, CIdExpression pPCIdExpression, boolean pTruthAssumption) {
+    String rawStatement = String.format("%s == %d", pPCIdExpression.getName(), pPCValue);
     if (!pTruthAssumption) {
       rawStatement = String.format("!(%s)", rawStatement);
     }
@@ -91,18 +88,15 @@ class CProgramCounterValueAssumeEdge extends CAssumeEdge implements ProgramCount
    *
    * @param pPCValue the assumed program counter value.
    * @param pPCIdExpression the program counter id expression.
-   * @param pExpressionBuilder the expression builder used to create the
-   * assume expression.
-   *
+   * @param pExpressionBuilder the expression builder used to create the assume expression.
    * @return the assume expression.
    */
-  private static CExpression buildExpression(int pPCValue,
-      CIdExpression pPCIdExpression,
-      CBinaryExpressionBuilder pExpressionBuilder) {
+  private static CExpression buildExpression(
+      int pPCValue, CIdExpression pPCIdExpression, CBinaryExpressionBuilder pExpressionBuilder) {
     return pExpressionBuilder.buildBinaryExpressionUnchecked(
         pPCIdExpression,
-        new CIntegerLiteralExpression(FileLocation.DUMMY, CNumericTypes.INT, BigInteger.valueOf(pPCValue)),
+        new CIntegerLiteralExpression(
+            FileLocation.DUMMY, CNumericTypes.INT, BigInteger.valueOf(pPCValue)),
         BinaryOperator.EQUALS);
   }
-
 }

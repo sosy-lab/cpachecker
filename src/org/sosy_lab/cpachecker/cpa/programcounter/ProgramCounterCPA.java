@@ -24,15 +24,19 @@ import org.sosy_lab.cpachecker.util.LoopStructure;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 
 /**
- * This CPA tracks the value of the artificial program counter variable
- * introduced by single loop transformation.
+ * This CPA tracks the value of the artificial program counter variable introduced by single loop
+ * transformation.
  */
 public class ProgramCounterCPA extends AbstractCPA {
 
   private final CFA cfa;
 
   public ProgramCounterCPA(CFA pCFA) {
-    super("sep", "sep", DelegateAbstractDomain.<ProgramCounterState>getInstance(), ProgramCounterTransferRelation.INSTANCE);
+    super(
+        "sep",
+        "sep",
+        DelegateAbstractDomain.<ProgramCounterState>getInstance(),
+        ProgramCounterTransferRelation.INSTANCE);
     this.cfa = pCFA;
   }
 
@@ -65,8 +69,9 @@ public class ProgramCounterCPA extends AbstractCPA {
     }
 
     if (singleLoopHead != null) {
-      FluentIterable<BigInteger> potentialValues = FluentIterable.from(
-          singleLoopHead.getProgramCounterValues()).transform(BigInteger::valueOf);
+      FluentIterable<BigInteger> potentialValues =
+          FluentIterable.from(singleLoopHead.getProgramCounterValues())
+              .transform(BigInteger::valueOf);
 
       if (!potentialValues.isEmpty()) {
         return ProgramCounterState.getStateForValues(potentialValues);

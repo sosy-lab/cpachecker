@@ -258,10 +258,13 @@ public class CFACreator {
               + "create a series of if-else edges with explicit indizes instead.")
   private boolean expandFunctionPointerArrayAssignments = false;
 
-  @Option(secure=true, name="cfa.transformIntoSingleLoop",
-      description="This option causes the control flow automaton to be "
-        + "transformed into the automaton of an equivalent program with one "
-        + "single loop and an artificial program counter.")
+  @Option(
+      secure = true,
+      name = "cfa.transformIntoSingleLoop",
+      description =
+          "This option causes the control flow automaton to be "
+              + "transformed into the automaton of an equivalent program with one "
+              + "single loop and an artificial program counter.")
   private boolean transformIntoSingleLoop = false;
 
   @Option(
@@ -636,7 +639,9 @@ public class CFACreator {
 
     // optionally transform CFA so that there is only one single loop
     if (transformIntoSingleLoop) {
-      cfa = CFASingleLoopTransformation.getSingleLoopTransformation(logger, config, shutdownNotifier).apply(cfa);
+      cfa =
+          CFASingleLoopTransformation.getSingleLoopTransformation(logger, config, shutdownNotifier)
+              .apply(cfa);
       mainFunction = cfa.getMainFunction();
     }
 
