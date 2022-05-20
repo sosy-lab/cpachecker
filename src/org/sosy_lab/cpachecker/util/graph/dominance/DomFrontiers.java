@@ -142,6 +142,10 @@ public final class DomFrontiers<T> {
   /**
    * Returns the iterated dominance frontier for the specified set of nodes.
    *
+   * <p>The dominance frontier of a set of nodes {@code Ds} is the union of their dominance
+   * frontiers. The iterated dominance frontier of {@code Ds} is the transitive closure of the
+   * dominance frontier of {@code Ds}.
+   *
    * @param pNodes the set of nodes to get the iterated dominance frontier for
    * @return an immutable set consisting of all nodes in the iterated dominance frontier
    * @throws NullPointerException if {@code pNodes == null} or if any element is {@code null}
