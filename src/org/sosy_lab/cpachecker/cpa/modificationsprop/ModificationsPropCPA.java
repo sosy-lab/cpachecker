@@ -261,12 +261,11 @@ public class ModificationsPropCPA implements ConfigurableProgramAnalysis, AutoCl
             Configuration.builder()
                 .setOption("cpa", "cpa.arg.ARGCPA")
                 .setOption("ARGCPA.cpa", "cpa.composite.CompositeCPA")
-                .setOption(
-                    "CompositeCPA.cpas", "cpa.location.LocationCPA,cpa.callstack.CallstackCPA")
+                // .setOption(
+                //    "CompositeCPA.cpas", "cpa.location.LocationCPA,cpa.callstack.CallstackCPA")
+                .setOption("CompositeCPA.cpas", "cpa.location.LocationCPA")
                 .setOption("cpa.composite.aggregateBasicBlocks", "false")
-                .setOption("cpa.callstack.skipRecursion", "true")
-                .setOption("cpa.callstack.skipFunctionPointerRecursion", "true")
-                .setOption("cpa.callstack.skipVoidRecursion", "true")
+                // .setOption("cpa.callstack.skipRecursion", "true")
                 .setOption("cpa.automaton.breakOnTargetState", "-1")
                 .setOption("output.disable", "true")
                 .setOption("analysis.entryFunction", cfa.getMainFunction().getFunctionName())
