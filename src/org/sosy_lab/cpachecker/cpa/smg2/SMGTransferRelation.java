@@ -40,6 +40,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDesignatedInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
@@ -248,9 +249,52 @@ public class SMGTransferRelation
       CFunctionCall summaryExpr,
       String callerFunctionName)
       throws CPATransferException {
-    // Pruning checks for memory leaks and updates the error state if one is found!
-    state.copyAndPruneUnreachable();
-    return null;
+
+    Collection<SMGState> successors = handleFunctionReturn(functionReturnEdge);
+    if (options.isCheckForMemLeaksAtEveryFrameDrop()) {
+      ImmutableList.Builder<SMGState> prunedSuccessors = ImmutableList.builder();
+      for (SMGState successor : successors) {
+        // Pruning checks for memory leaks and updates the error state if one is found!
+        prunedSuccessors.add(successor.copyAndPruneUnreachable());
+      }
+      successors = prunedSuccessors.build();
+    }
+    return successors;
+  }
+
+  private List<SMGState> handleFunctionReturn(CFunctionReturnEdge functionReturnEdge)
+      throws CPATransferException {
+    CFunctionSummaryEdge summaryEdge = functionReturnEdge.getSummaryEdge();
+    CFunctionCall summaryExpr = summaryEdge.getExpression();
+
+    Preconditions.checkArgument(
+        state.getMemoryModel().getStackFrames().peek().getFunctionDefinition()
+            == summaryEdge.getFunctionEntry().getFunctionDefinition());
+
+    if (summaryExpr instanceof CFunctionCallAssignmentStatement) {
+      CFunctionCallAssignmentStatement funcCallExpr =
+          (CFunctionCallAssignmentStatement) summaryExpr;
+      CExpression leftValue = funcCallExpr.getLeftHandSide();
+      CType rightValueType =
+          SMGCPAValueExpressionEvaluator.getCanonicalType(funcCallExpr.getRightHandSide());
+      BigInteger sizeInBits = evaluator.getBitSizeof(state, rightValueType);
+      Optional<SMGObject> returnObject =
+          state.getMemoryModel().getReturnObjectForCurrentStackFrame();
+      // There should always be a return memory object in the case of a
+      // CFunctionCallAssignmentStatement!
+      Preconditions.checkArgument(returnObject.isPresent());
+      // Read the return object with its type
+      ValueAndSMGState readValueAndState =
+          state.readValue(returnObject.orElseThrow(), BigInteger.ZERO, sizeInBits);
+
+      // Now we can drop the stack frame as we left the function and have the return value
+      SMGState currentState = readValueAndState.getState().dropStackFrame();
+      // Get the memory for the left hand side variable
+      return evaluator.writeValueToExpression(
+          summaryEdge, leftValue, readValueAndState.getValue(), currentState);
+    } else {
+      return ImmutableList.of(state);
+    }
   }
 
   @Override
