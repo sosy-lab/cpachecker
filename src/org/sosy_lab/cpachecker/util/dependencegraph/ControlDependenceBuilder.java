@@ -112,15 +112,14 @@ final class ControlDependenceBuilder<N extends Node<AFunctionDeclaration, CFAEdg
 
     DomFrontiers<CFANode> frontiers = DomFrontiers.forDomTree(pPostDomTree);
     for (CFANode dependentNode : pPostDomTree) {
-      int nodeId = pPostDomTree.getId(dependentNode);
       for (CFANode branchNode : frontiers.getFrontier(dependentNode)) {
         for (CFAEdge assumeEdge : CFAUtils.leavingEdges(branchNode)) {
-          if (pPostDomTreeNodes.contains(assumeEdge.getSuccessor())) {
+          CFANode assumeSuccessor = assumeEdge.getSuccessor();
+          if (pPostDomTreeNodes.contains(assumeSuccessor)) {
 
-            int assumeSuccessorId = pPostDomTree.getId(assumeEdge.getSuccessor());
             if (pDependOnBothAssumptions
-                || nodeId == assumeSuccessorId
-                || pPostDomTree.isAncestorOf(nodeId, assumeSuccessorId)) {
+                || assumeSuccessor.equals(dependentNode)
+                || pPostDomTree.isAncestorOf(dependentNode, assumeSuccessor)) {
 
               for (CFAEdge dependentEdge : CFAUtils.allLeavingEdges(dependentNode)) {
                 if (!ignoreFunctionEdge(dependentEdge) && !assumeEdge.equals(dependentEdge)) {
@@ -159,8 +158,7 @@ final class ControlDependenceBuilder<N extends Node<AFunctionDeclaration, CFAEdg
     Set<CFAEdge> edgesWithoutDominator = new HashSet<>();
     for (CFANode node : pFunctionNodes) {
       if (!(node instanceof FunctionExitNode)) {
-        if (!pPostDomTreeNodes.contains(node)
-            || !pPostDomTree.hasParent(pPostDomTree.getId(node))) {
+        if (!pPostDomTreeNodes.contains(node) || pPostDomTree.getParent(node).isEmpty()) {
           Iterables.addAll(edgesWithoutDominator, CFAUtils.allEnteringEdges(node));
           Iterables.addAll(edgesWithoutDominator, CFAUtils.allLeavingEdges(node));
         }

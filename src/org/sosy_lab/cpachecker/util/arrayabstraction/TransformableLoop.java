@@ -94,10 +94,10 @@ final class TransformableLoop {
     CFANode startNode = pEdge.getSuccessor();
     DomTree<CFANode> domTree =
         DominanceUtils.createFunctionDomTree(startNode, ImmutableSet.of(pLoopStart));
-    int startId = domTree.getId(startNode);
-    for (int id = 0; id < domTree.getNodeCount(); id++) {
-      if (id == startId || domTree.isAncestorOf(startId, id)) {
-        builder.addAll(CFAUtils.allLeavingEdges(domTree.getNode(id)));
+
+    for (CFANode node : domTree) {
+      if (node.equals(startNode) || domTree.isAncestorOf(startNode, node)) {
+        builder.addAll(CFAUtils.allLeavingEdges(node));
       }
     }
 
@@ -115,10 +115,10 @@ final class TransformableLoop {
     CFANode startNode = pEdge.getPredecessor();
     DomTree<CFANode> postDomTree =
         DominanceUtils.createFunctionPostDomTree(startNode, ImmutableSet.of(pLoopStart));
-    int startId = postDomTree.getId(startNode);
-    for (int id = 0; id < postDomTree.getNodeCount(); id++) {
-      if (id == startId || postDomTree.isAncestorOf(startId, id)) {
-        builder.addAll(CFAUtils.allEnteringEdges(postDomTree.getNode(id)));
+
+    for (CFANode node : postDomTree) {
+      if (node.equals(startNode) || postDomTree.isAncestorOf(startNode, node)) {
+        builder.addAll(CFAUtils.allEnteringEdges(node));
       }
     }
 

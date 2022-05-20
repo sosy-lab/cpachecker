@@ -96,9 +96,9 @@ public final class DomFrontiers<T> {
 
       do {
 
-        while (runner != DomTree.UNDEFINED && runner != pDomTree.getParent(nodeId)) {
+        while (runner != DomTree.UNDEFINED && runner != pDomTree.getParentId(nodeId)) {
           frontiers.get(runner).add(nodeId);
-          runner = pDomTree.getParent(runner);
+          runner = pDomTree.getParentId(runner);
         }
 
         if (predecessorsDataIterator.hasNextPredecessor()) {

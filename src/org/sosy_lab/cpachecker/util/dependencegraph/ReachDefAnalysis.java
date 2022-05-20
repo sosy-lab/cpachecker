@@ -257,7 +257,7 @@ abstract class ReachDefAnalysis<D, N, E> {
 
     registerDefs();
     insertCombiners(domFrontiers);
-    traverseDomTree(domTree.asGraph(), domTree.getNode(domTree.getRootId()));
+    domTree.getRoot().ifPresent(rootNode -> traverseDomTree(domTree.asGraph(), rootNode));
   }
 
   // TODO: use Guava network instead
