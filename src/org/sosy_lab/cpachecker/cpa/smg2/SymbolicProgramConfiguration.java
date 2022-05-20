@@ -29,6 +29,7 @@ import org.sosy_lab.cpachecker.cpa.smg.util.PersistentStack;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGObjectAndOffset;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGObjectsAndValues;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGValueAndSPC;
+import org.sosy_lab.cpachecker.cpa.smg2.util.SPCAndSMGObjects;
 import org.sosy_lab.cpachecker.cpa.smg2.util.value.CValue;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
@@ -359,13 +360,11 @@ public class SymbolicProgramConfiguration {
 
   /**
    * Copies this {@link SymbolicProgramConfiguration} and returns a new SPC with all entered
-   * unreachable SMGObjects pruned.
+   * unreachable SMGObjects pruned + a collection of the unreachable {@link SMGObject}s.
    *
-   * @param pUnreachableObjects The SMGObjects to be pruned.
-   * @return The new SPC without the entered SMGObjects.
+   * @return The new SPC without the entered SMGObjects and the unreachable {@link SMGObject}s.
    */
-  public SymbolicProgramConfiguration copyAndPruneUnreachable(
-      Collection<SMGObject> pUnreachableObjects) {
+  public SPCAndSMGObjects copyAndPruneUnreachable() {
     Collection<SMGObject> visibleObjects =
         FluentIterable.concat(
                 globalVariableMapping.values(),
@@ -380,18 +379,19 @@ public class SymbolicProgramConfiguration {
     SMG newSmg =
         smg.copyAndRemoveObjects(unreachableObjects).copyAndRemoveValues(unreachableValues);
     // copy into return collection
-    pUnreachableObjects.addAll(unreachableObjects);
     PersistentSet<SMGObject> newHeapObjects = heapObjects;
     for (SMGObject smgObject : unreachableObjects) {
       newHeapObjects = newHeapObjects.removeAndCopy(smgObject);
     }
-    return of(
-        newSmg,
-        globalVariableMapping,
-        stackVariableMapping,
-        newHeapObjects,
-        externalObjectAllocation,
-        valueMapping);
+    return SPCAndSMGObjects.of(
+        of(
+            newSmg,
+            globalVariableMapping,
+            stackVariableMapping,
+            newHeapObjects,
+            externalObjectAllocation,
+            valueMapping),
+        unreachableObjects);
   }
 
   /**
