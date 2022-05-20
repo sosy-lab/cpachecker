@@ -31,7 +31,7 @@ public class SPCAndSMGObjects {
     return new SPCAndSMGObjects(pSpc, pObjects);
   }
 
-  public SymbolicProgramConfiguration gteSPC() {
+  public SymbolicProgramConfiguration getSPC() {
     return spc;
   }
 

@@ -12,7 +12,6 @@ import com.google.common.collect.ImmutableList;
 import java.math.BigInteger;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.Optional;
 import java.util.Set;
 import java.util.logging.Level;
@@ -35,6 +34,7 @@ import org.sosy_lab.cpachecker.cpa.smg2.util.SMGObjectAndOffset;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGObjectAndSMGState;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGValueAndSMGState;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGValueAndSPC;
+import org.sosy_lab.cpachecker.cpa.smg2.util.SPCAndSMGObjects;
 import org.sosy_lab.cpachecker.cpa.smg2.util.value.ValueAndSMGState;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.AddressExpression;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
@@ -460,8 +460,10 @@ public class SMGState implements LatticeAbstractState<SMGState>, AbstractQueryab
    * Copy the current state and prune all unreachable SMGObjects. Used for example after a function return with the stack. TODO: this might get complicated with merge later.
    */
   public SMGState copyAndPruneUnreachable() {
-    Collection<SMGObject> unreachableObjects = new HashSet<>();
-    SymbolicProgramConfiguration newHeap = memoryModel.copyAndPruneUnreachable(unreachableObjects);
+    SPCAndSMGObjects newHeapAndUnreachables = memoryModel.copyAndPruneUnreachable();
+    SymbolicProgramConfiguration newHeap = newHeapAndUnreachables.getSPC();
+    Collection<SMGObject> unreachableObjects = newHeapAndUnreachables.getSMGObjects();
+
     if (unreachableObjects.isEmpty()) {
       return this;
     }
