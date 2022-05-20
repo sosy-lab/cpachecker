@@ -11,7 +11,6 @@ const EC = protractor.ExpectedConditions;
 
 const hasClass = (element, cls) =>
   element.getAttribute("class").then((classes) => {
-    console.log("");
     return classes.split(" ").indexOf(cls) !== -1;
   });
 
