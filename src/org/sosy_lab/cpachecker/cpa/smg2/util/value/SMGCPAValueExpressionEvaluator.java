@@ -629,6 +629,42 @@ public class SMGCPAValueExpressionEvaluator {
     return currentState.readValue(object, offsetInBits, sizeInBits);
   }
 
+  /**
+   * Writes the {@link Value} entered into the left hand sides {@link CExpression} memory.
+   *
+   * @param edge the current {@link CFAEdge} from which this assignment originates.
+   * @param leftHandSideValue the {@link CExpression} of the left hand side memory.
+   * @param valueToWrite the {@link Value} to be written into the left hand side memory. (So this is
+   *     the evaluated right hand side!)
+   * @param currentState the current {@link SMGState}.
+   * @return a list of {@link SMGState}s with the {@link Value} written into the left hand side.
+   *     Might include error states.
+   * @throws CPATransferException in case of critical errors.
+   */
+  public List<SMGState> writeValueToExpression(
+      CFAEdge edge, CExpression leftHandSideValue, Value valueToWrite, SMGState currentState)
+      throws CPATransferException {
+    BigInteger sizeInBits = getBitSizeof(currentState, leftHandSideValue);
+    // Get the memory for the left hand side variable
+    List<Optional<SMGObjectAndOffset>> variableMemorysAndOffsets =
+        leftHandSideValue.accept(new SMGCPAAddressVisitor(this, currentState, edge, logger));
+    ImmutableList.Builder<SMGState> successorsBuilder = ImmutableList.builder();
+    // Write the return value into the left hand side variable
+    for (Optional<SMGObjectAndOffset> maybeVariableMemoryAndOffset : variableMemorysAndOffsets) {
+      if (maybeVariableMemoryAndOffset.isEmpty()) {
+        successorsBuilder.add(currentState);
+      }
+      SMGObject leftHandSideVariableMemory =
+          maybeVariableMemoryAndOffset.orElseThrow().getSMGObject();
+      BigInteger offsetInBits = maybeVariableMemoryAndOffset.orElseThrow().getOffsetForObject();
+      successorsBuilder.add(
+          currentState.writeValueTo(
+              leftHandSideVariableMemory, offsetInBits, sizeInBits, valueToWrite));
+    }
+
+    return successorsBuilder.build();
+  }
+
   /*
    * Get the address value of the entered field.
    */
