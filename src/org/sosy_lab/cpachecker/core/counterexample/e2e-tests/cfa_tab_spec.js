@@ -64,7 +64,7 @@ describe("CFA testing", () => {
   });
 
   describe("Hover over node", () => {
-    it("Display popover dialoag box", () => {
+    it("Display popover dialog box", () => {
       browser.wait(EC.elementToBeClickable(element(by.id("set-tab-1"))));
       browser.wait(EC.invisibilityOf(element(by.id("renderStateModal"))));
       element(by.id("set-tab-1")).click();

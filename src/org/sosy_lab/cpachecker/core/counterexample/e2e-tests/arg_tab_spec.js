@@ -57,7 +57,7 @@ describe("ARG testing", () => {
   });
 
   describe("Hover over node", () => {
-    it("Display popover dialoag box", () => {
+    it("Display popover dialog box", () => {
       browser.wait(EC.elementToBeClickable(element(by.id("set-tab-2"))));
       browser.wait(EC.invisibilityOf(element(by.id("renderStateModal"))));
       element(by.id("set-tab-2")).click();
