@@ -40,4 +40,5 @@ public class LockInfo {
     // The max level must be in map (do not use default)
     return maxLevel.get(lockName);
   }
+
 }

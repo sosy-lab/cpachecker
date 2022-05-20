@@ -64,9 +64,8 @@ public class ConfigReadingProofCheckAlgorithm implements Algorithm, StatisticsPr
 
     valConfig = readValidationConfiguration();
 
-    coreFact =
-        new CoreComponentsFactory(
-            valConfig, pLogger, pShutdownNotifier, AggregatedReachedSets.empty());
+    coreFact = new CoreComponentsFactory(valConfig, pLogger, pShutdownNotifier,
+        AggregatedReachedSets.empty());
 
     ConfigurationBuilder configBuilder = Configuration.builder();
     configBuilder.copyFrom(pConfig);
@@ -75,9 +74,8 @@ public class ConfigReadingProofCheckAlgorithm implements Algorithm, StatisticsPr
     valCPA = instantiateCPA(pCfa, pSpecification);
     GlobalInfo.getInstance().setUpInfoFromCPA(valCPA);
 
-    checkingAlgorithm =
-        new ProofCheckAlgorithm(
-            valCPA, configBuilder.build(), pLogger, pShutdownNotifier, pCfa, pSpecification);
+    checkingAlgorithm = new ProofCheckAlgorithm(valCPA, configBuilder.build(), pLogger,
+        pShutdownNotifier, pCfa, pSpecification);
   }
 
   private Configuration readValidationConfiguration() throws InvalidConfigurationException {
@@ -109,18 +107,19 @@ public class ConfigReadingProofCheckAlgorithm implements Algorithm, StatisticsPr
     ReachedSet internalReached = coreFact.createReachedSet(valCPA);
     internalReached.add(
         valCPA.getInitialState(cfa.getMainFunction(), StateSpacePartition.getDefaultPartition()),
-        valCPA.getInitialPrecision(
-            cfa.getMainFunction(), StateSpacePartition.getDefaultPartition()));
+        valCPA.getInitialPrecision(cfa.getMainFunction(),
+            StateSpacePartition.getDefaultPartition()));
 
     AlgorithmStatus status = checkingAlgorithm.run(internalReached);
 
     pReachedSet.popFromWaitlist();
 
     if (!status.isSound()) {
-      pReachedSet.add(
-          new DummyErrorState(pReachedSet.getFirstState()), SingletonPrecision.getInstance());
+      pReachedSet.add(new DummyErrorState(pReachedSet.getFirstState()),
+          SingletonPrecision.getInstance());
     }
 
     return status;
   }
+
 }

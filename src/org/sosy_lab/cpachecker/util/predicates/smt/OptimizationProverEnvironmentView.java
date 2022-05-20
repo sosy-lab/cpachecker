@@ -22,7 +22,9 @@ class OptimizationProverEnvironmentView extends BasicProverEnvironmentView<Void>
   private final FormulaWrappingHandler wrappingHandler;
 
   OptimizationProverEnvironmentView(
-      OptimizationProverEnvironment pDelegate, FormulaManagerView pFormulaManager) {
+      OptimizationProverEnvironment pDelegate,
+      FormulaManagerView pFormulaManager
+  ) {
     super(pDelegate, pFormulaManager.getFormulaWrappingHandler());
     delegate = pDelegate;
     wrappingHandler = pFormulaManager.getFormulaWrappingHandler();
@@ -39,7 +41,8 @@ class OptimizationProverEnvironmentView extends BasicProverEnvironmentView<Void>
   }
 
   @Override
-  public OptStatus check() throws InterruptedException, SolverException {
+  public OptStatus check()
+      throws InterruptedException, SolverException {
     return delegate.check();
   }
 

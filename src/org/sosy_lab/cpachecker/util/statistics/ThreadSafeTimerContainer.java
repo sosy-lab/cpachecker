@@ -271,4 +271,5 @@ public final class ThreadSafeTimerContainer extends AbstractStatValue {
       return timer.getLengthOfLastInterval();
     }
   }
+
 }

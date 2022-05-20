@@ -15,8 +15,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
-public final class CFloatLiteralExpression extends AFloatLiteralExpression
-    implements CLiteralExpression {
+public final class CFloatLiteralExpression extends AFloatLiteralExpression implements CLiteralExpression {
 
   private static final long serialVersionUID = 5021145411123854111L;
 
@@ -24,7 +23,9 @@ public final class CFloatLiteralExpression extends AFloatLiteralExpression
     super(pFileLocation, pType, pValue);
   }
 
-  /** Returns a <code>CFloatLiteralExpression</code> for positive infinity. */
+  /**
+   * Returns a <code>CFloatLiteralExpression</code> for positive infinity.
+   */
   public static CFloatLiteralExpression forPositiveInfinity(FileLocation pFileLocation, CType pType)
       throws NumberFormatException {
     // TODO: This method is a temporary hack until 'BigDecimal's are fully replaced by 'CFloat's in
@@ -33,7 +34,9 @@ public final class CFloatLiteralExpression extends AFloatLiteralExpression
     return new CFloatLiteralExpression(pFileLocation, pType, getInfinityApprox(false, pType));
   }
 
-  /** Returns a <code>CFloatLiteralExpression</code> for negative infinity. */
+  /**
+   * Returns a <code>CFloatLiteralExpression</code> for negative infinity.
+   */
   public static CFloatLiteralExpression forNegativeInfinity(FileLocation pFileLocation, CType pType)
       throws NumberFormatException {
     // TODO: This method is a temporary hack until 'BigDecimal's are fully replaced by 'CFloat's in

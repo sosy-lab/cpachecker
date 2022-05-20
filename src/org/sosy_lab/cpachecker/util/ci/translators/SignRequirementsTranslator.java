@@ -31,9 +31,7 @@ public class SignRequirementsTranslator extends CartesianRequirementsTranslator<
   }
 
   @Override
-  protected List<String> getListOfIndependentRequirements(
-      final SignState pRequirement,
-      final SSAMap pIndices,
+  protected List<String> getListOfIndependentRequirements(final SignState pRequirement, final SSAMap pIndices,
       final @Nullable Collection<String> pRequiredVars) {
     List<String> list = new ArrayList<>();
     for (Map.Entry<String, SIGN> entry : pRequirement.getSignMapView().entrySet()) {
@@ -51,42 +49,43 @@ public class SignRequirementsTranslator extends CartesianRequirementsTranslator<
     Preconditions.checkArgument(sign != SIGN.ALL);
 
     switch (sign) {
-      case PLUS:
-        sb.append("(> ");
-        sb.append(var);
-        sb.append(" 0)");
-        break;
-      case MINUS:
-        sb.append("(< ");
-        sb.append(var);
-        sb.append(" 0)");
-        break;
-      case ZERO:
-        sb.append("(= ");
-        sb.append(var);
-        sb.append(" 0)");
-        break;
-      case PLUSMINUS:
-        sb.append("(or (> ");
-        sb.append(var);
-        sb.append(" 0) (< ");
-        sb.append(var);
-        sb.append(" 0))");
-        break;
-      case PLUS0:
-        sb.append("(>= ");
-        sb.append(var);
-        sb.append(" 0)");
-        break;
-      case MINUS0:
-        sb.append("(<= ");
-        sb.append(var);
-        sb.append(" 0)");
-        break;
-      default:
+    case PLUS:
+      sb.append("(> ");
+      sb.append(var);
+      sb.append(" 0)");
+      break;
+    case MINUS:
+      sb.append("(< ");
+      sb.append(var);
+      sb.append(" 0)");
+      break;
+    case ZERO:
+      sb.append("(= ");
+      sb.append(var);
+      sb.append(" 0)");
+      break;
+    case PLUSMINUS:
+      sb.append("(or (> ");
+      sb.append(var);
+      sb.append(" 0) (< ");
+      sb.append(var);
+      sb.append(" 0))");
+      break;
+    case PLUS0:
+      sb.append("(>= ");
+      sb.append(var);
+      sb.append(" 0)");
+      break;
+    case MINUS0:
+      sb.append("(<= ");
+      sb.append(var);
+      sb.append(" 0)");
+      break;
+    default:
         throw new AssertionError("should never happen");
     }
 
     return sb.toString();
   }
+
 }

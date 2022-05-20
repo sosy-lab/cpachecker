@@ -12,6 +12,7 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 
 enum AlwaysTopDomain implements AbstractDomain {
+
   INSTANCE;
 
   @Override

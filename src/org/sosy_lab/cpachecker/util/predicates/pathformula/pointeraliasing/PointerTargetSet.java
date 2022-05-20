@@ -145,9 +145,8 @@ public final class PointerTargetSet implements Serializable {
     return targets;
   }
 
-  /**
-   * Get the highest allocated addresses, i.e., which guarantee that a fresh address that is larger
-   * than all addresses returned here was previously not yet allocated.
+  /** Get the highest allocated addresses, i.e., which guarantee that a fresh address that is
+   * larger than all addresses returned here was previously not yet allocated.
    */
   PersistentList<Formula> getHighestAllocatedAddresses() {
     return highestAllocatedAddresses;
@@ -234,6 +233,7 @@ public final class PointerTargetSet implements Serializable {
               Lists.transform(pts.highestAllocatedAddresses, mgr::dumpArbitraryFormula));
       allocationCount = pts.allocationCount;
     }
+
 
     private Object readResolve() {
       FormulaManagerView mgr = GlobalInfo.getInstance().getPredicateFormulaManagerView();

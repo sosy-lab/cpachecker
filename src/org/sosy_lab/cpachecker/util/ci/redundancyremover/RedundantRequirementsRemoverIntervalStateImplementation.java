@@ -14,8 +14,9 @@ import org.sosy_lab.cpachecker.cpa.interval.IntervalAnalysisState;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.ci.redundancyremover.RedundantRequirementsRemover.RedundantRequirementsRemoverImplementation;
 
-public class RedundantRequirementsRemoverIntervalStateImplementation
-    extends RedundantRequirementsRemoverImplementation<IntervalAnalysisState, Interval> {
+
+public class RedundantRequirementsRemoverIntervalStateImplementation extends
+    RedundantRequirementsRemoverImplementation<IntervalAnalysisState, Interval> {
 
   private static final long serialVersionUID = 1323131138350817689L;
 
@@ -26,13 +27,11 @@ public class RedundantRequirementsRemoverIntervalStateImplementation
     // -1 if both bounds of p01 contained in bounds of p02
     // 1 if both bounds p02 contained in bounds of p01
     // -1 if p01 lower bound smaller than p02 bound
-    // -1 if p01 lower bound equal to p02 lower bound and p01 higher bound smaller than p02 higher
-    // bound
+    // -1 if p01 lower bound equal to p02 lower bound and p01 higher bound smaller than p02 higher bound
     // otherwise 1
 
     if (pO1 == null || pO2 == null) {
-      throw new NullPointerException(
-          "At least one of the arguments " + pO1 + " or " + pO2 + " is null.");
+      throw new NullPointerException("At least one of the arguments " + pO1 + " or " + pO2 + " is null.");
     } else if (pO1.getLow().equals(pO2.getLow()) && pO1.getHigh().equals(pO2.getHigh())) {
       return 0;
     } else if (pO2.contains(pO1)) {
@@ -85,7 +84,7 @@ public class RedundantRequirementsRemoverIntervalStateImplementation
   @Override
   protected IntervalAnalysisState extractState(AbstractState pWrapperState) {
     // AbstractStates.extractState..
-    return AbstractStates.extractStateByType(
-        pWrapperState, IntervalAnalysisState.class); // TODO so?
+    return AbstractStates.extractStateByType(pWrapperState, IntervalAnalysisState.class); // TODO so?
   }
+
 }

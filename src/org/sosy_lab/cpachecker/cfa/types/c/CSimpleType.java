@@ -23,6 +23,7 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 @Immutable
 public final class CSimpleType implements CType, Serializable {
 
+
   private static final long serialVersionUID = -8279630814725098867L;
   private final CBasicType type;
   private final boolean isLong;
@@ -37,16 +38,10 @@ public final class CSimpleType implements CType, Serializable {
 
   @LazyInit private int hashCache = 0;
 
-  public CSimpleType(
-      final boolean pConst,
-      final boolean pVolatile,
-      final CBasicType pType,
-      final boolean pIsLong,
-      final boolean pIsShort,
-      final boolean pIsSigned,
-      final boolean pIsUnsigned,
-      final boolean pIsComplex,
-      final boolean pIsImaginary,
+  public CSimpleType(final boolean pConst, final boolean pVolatile,
+      final CBasicType pType, final boolean pIsLong, final boolean pIsShort,
+      final boolean pIsSigned, final boolean pIsUnsigned,
+      final boolean pIsComplex, final boolean pIsImaginary,
       final boolean pIsLongLong) {
     isConst = pConst;
     isVolatile = pVolatile;
@@ -109,7 +104,7 @@ public final class CSimpleType implements CType, Serializable {
 
   @Override
   public int hashCode() {
-    if (hashCache == 0) {
+      if (hashCache == 0) {
       hashCache =
           Objects.hash(
               isComplex,
@@ -122,14 +117,14 @@ public final class CSimpleType implements CType, Serializable {
               isSigned,
               isUnsigned,
               type);
-    }
-    return hashCache;
+      }
+      return hashCache;
   }
 
   /**
-   * Be careful, this method compares the CType as it is to the given object, typedefs won't be
-   * resolved. If you want to compare the type without having typedefs in it use
-   * #getCanonicalType().equals()
+   * Be careful, this method compares the CType as it is to the given object,
+   * typedefs won't be resolved. If you want to compare the type without having
+   * typedefs in it use #getCanonicalType().equals()
    */
   @Override
   public boolean equals(@Nullable Object obj) {
@@ -143,16 +138,11 @@ public final class CSimpleType implements CType, Serializable {
 
     CSimpleType other = (CSimpleType) obj;
 
-    return isComplex == other.isComplex
-        && isConst == other.isConst
-        && isVolatile == other.isVolatile
-        && isImaginary == other.isImaginary
-        && isLong == other.isLong
-        && isLongLong == other.isLongLong
-        && isShort == other.isShort
-        && isSigned == other.isSigned
-        && isUnsigned == other.isUnsigned
-        && type == other.type;
+    return isComplex == other.isComplex && isConst == other.isConst
+           && isVolatile == other.isVolatile && isImaginary == other.isImaginary
+           && isLong == other.isLong && isLongLong == other.isLongLong
+           && isShort == other.isShort && isSigned == other.isSigned
+           && isUnsigned == other.isUnsigned && type == other.type;
   }
 
   @Override

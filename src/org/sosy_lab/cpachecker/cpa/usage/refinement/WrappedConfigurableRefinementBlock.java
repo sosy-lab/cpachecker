@@ -14,8 +14,7 @@ import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
-public abstract class WrappedConfigurableRefinementBlock<I, O>
-    implements ConfigurableRefinementBlock<I>, StatisticsProvider {
+public abstract class WrappedConfigurableRefinementBlock<I, O> implements ConfigurableRefinementBlock<I>, StatisticsProvider {
   protected ConfigurableRefinementBlock<O> wrappedRefiner;
 
   @ForOverride
@@ -53,10 +52,7 @@ public abstract class WrappedConfigurableRefinementBlock<I, O>
   }
 
   @Override
-  public final void update(
-      Class<? extends RefinementInterface> callerClass,
-      Class<? extends RefinementInterface> dstClass,
-      Object data) {
+  public final void update(Class<? extends RefinementInterface> callerClass, Class<? extends RefinementInterface> dstClass, Object data) {
     if (getClass().equals(dstClass)) {
       handleUpdateSignal(callerClass, data);
     } else {
@@ -71,8 +67,7 @@ public abstract class WrappedConfigurableRefinementBlock<I, O>
   }
 
   @Override
-  public final void finish(Class<? extends RefinementInterface> callerClass)
-      throws CPAException, InterruptedException {
+  public final void finish(Class<? extends RefinementInterface> callerClass) throws CPAException, InterruptedException {
     handleFinishSignal(callerClass);
     wrappedRefiner.finish(callerClass);
   }
@@ -80,7 +75,7 @@ public abstract class WrappedConfigurableRefinementBlock<I, O>
   @Override
   public void collectStatistics(Collection<Statistics> statsCollection) {
     if (wrappedRefiner instanceof StatisticsProvider) {
-      ((StatisticsProvider) wrappedRefiner).collectStatistics(statsCollection);
+      ((StatisticsProvider)wrappedRefiner).collectStatistics(statsCollection);
     }
   }
 }

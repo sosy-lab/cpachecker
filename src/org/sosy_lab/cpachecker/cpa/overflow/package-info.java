@@ -6,5 +6,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-/** CPA for overflow tracking. */
+/**
+ * CPA for overflow tracking.
+ */
 package org.sosy_lab.cpachecker.cpa.overflow;

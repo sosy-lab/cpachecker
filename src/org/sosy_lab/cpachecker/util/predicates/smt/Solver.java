@@ -51,23 +51,23 @@ import org.sosy_lab.java_smt.delegate.statistics.SolverStatistics;
 import org.sosy_lab.java_smt.delegate.statistics.StatisticsSolverContext;
 
 /**
- * Encapsulation of an SMT solver. This class is the central entry point to everything related to an
- * SMT solver: formula creation and manipulation (via the {@link #getFormulaManager()} method), and
- * checking for satisfiability (via the remaining methods). In addition to the low-level methods
- * provided by {@link FormulaManager}, this class and {@link FormulaManagerView} provide additional
- * higher-level utility methods, and additional features such as replacing one SMT theory
- * transparently with another, or using different SMT solvers for different tasks such as solving
- * and interpolation.
+ * Encapsulation of an SMT solver.
+ * This class is the central entry point to everything related to an SMT solver:
+ * formula creation and manipulation (via the {@link #getFormulaManager()} method),
+ * and checking for satisfiability (via the remaining methods).
+ * In addition to the low-level methods provided by {@link FormulaManager},
+ * this class and {@link FormulaManagerView} provide additional higher-level utility methods,
+ * and additional features such as
+ * replacing one SMT theory transparently with another,
+ * or using different SMT solvers for different tasks such as solving and interpolation.
  */
-@Options(deprecatedPrefix = "cpa.predicate.solver", prefix = "solver")
+@Options(deprecatedPrefix="cpa.predicate.solver", prefix="solver")
 public final class Solver implements AutoCloseable {
 
   private static final String SOLVER_OPTION_NON_LINEAR_ARITHMETIC = "solver.nonLinearArithmetic";
 
-  @Option(
-      secure = true,
-      name = "checkUFs",
-      description = "improve sat-checks with additional constraints for UFs")
+  @Option(secure=true, name="checkUFs",
+      description="improve sat-checks with additional constraints for UFs")
   private boolean checkUFs = false;
 
   @Option(secure = true, description = "Which SMT solver to use.")
@@ -76,11 +76,13 @@ public final class Solver implements AutoCloseable {
   @Option(
       secure = true,
       description =
-          "Which solver to use specifically for interpolation (default is to use the main one).")
+          "Which solver to use specifically for interpolation (default is to use the main one)."
+  )
   @SuppressFBWarnings(value = "RCN_REDUNDANT_NULLCHECK_OF_NULL_VALUE")
   private @Nullable Solvers interpolationSolver = null;
 
-  @Option(secure = true, description = "Extract and cache unsat cores for satisfiability checking")
+  @Option(secure=true,
+  description="Extract and cache unsat cores for satisfiability checking")
   private boolean cacheUnsatCores = true;
 
   @Option(
@@ -103,12 +105,15 @@ public final class Solver implements AutoCloseable {
   /**
    * More complex unsat cache, grouped by an arbitrary key.
    *
-   * <p>For each node, map a set of constraints to whether it is unsatisfiable or satisfiable (maps
-   * to |true| <=> |UNSAT|). If a set of constraints is satisfiable, any subset of it is also
-   * satisfiable. If a set of constraints is unsatisfiable, any superset of it is also
+   * <p>For each node, map a set of constraints to whether it is unsatisfiable
+   * or satisfiable (maps to |true| <=> |UNSAT|).
+   * If a set of constraints is satisfiable, any subset of it is also
+   * satisfiable.
+   * If a set of constraints is unsatisfiable, any superset of it is also
    * unsatisfiable.
    */
-  private final Map<Object, Map<Set<BooleanFormula>, Boolean>> groupedUnsatCache = new HashMap<>();
+  private final Map<Object, Map<Set<BooleanFormula>, Boolean>>
+      groupedUnsatCache = new HashMap<>();
 
   private final LogManager logger;
 
@@ -118,7 +123,10 @@ public final class Solver implements AutoCloseable {
   public int trivialSatChecks = 0;
   public int cachedSatChecks = 0;
 
-  private Solver(Configuration config, LogManager pLogger, ShutdownNotifier shutdownNotifier)
+  private Solver(
+      Configuration config,
+      LogManager pLogger,
+      ShutdownNotifier shutdownNotifier)
       throws InvalidConfigurationException {
     config.inject(this);
 
@@ -146,7 +154,10 @@ public final class Solver implements AutoCloseable {
       interpolatingContext = solvingContext;
     }
 
-    fmgr = new FormulaManagerView(solvingContext.getFormulaManager(), config, pLogger);
+    fmgr = new FormulaManagerView(solvingContext.getFormulaManager(),
+        config,
+        pLogger
+    );
     bfmgr = fmgr.getBooleanFormulaManager();
 
     if (checkUFs) {
@@ -251,8 +262,8 @@ public final class Solver implements AutoCloseable {
   }
 
   /**
-   * Return the underlying {@link FormulaManagerView} that can be used for creating and manipulating
-   * formulas.
+   * Return the underlying {@link FormulaManagerView}
+   * that can be used for creating and manipulating formulas.
    */
   public FormulaManagerView getFormulaManager() {
     return fmgr;
@@ -267,8 +278,7 @@ public final class Solver implements AutoCloseable {
       final SolverStatistics stats =
           ((StatisticsSolverContext) solvingContext).getSolverStatistics();
       pOut.println();
-      writingStatisticsTo(pOut)
-          .put("Statistics about operations", "")
+      writingStatisticsTo(pOut).put("Statistics about operations", "")
           .beginLevel()
           .put("Number of boolean operations", stats.getNumberOfBooleanOperations())
           .put("Number of numeric operations", stats.getNumberOfNumericOperations())
@@ -283,42 +293,31 @@ public final class Solver implements AutoCloseable {
           .put("Number of pop queries", stats.getNumberOfPopQueries())
           .put("Number of model queries", stats.getNumberOfModelQueries())
           .put("Number of isUnsat queries", stats.getNumberOfIsUnsatQueries())
-          .put(
-              "Sum time for isUnsat queries",
-              stats.getSumTimeOfIsUnsatQueries().formatAs(TimeUnit.SECONDS))
-          .put(
-              "Max time for isUnsat queries",
-              stats.getMaxTimeOfIsUnsatQueries().formatAs(TimeUnit.SECONDS))
+          .put("Sum time for isUnsat queries", stats.getSumTimeOfIsUnsatQueries().formatAs(TimeUnit.SECONDS))
+          .put("Max time for isUnsat queries", stats.getMaxTimeOfIsUnsatQueries().formatAs(TimeUnit.SECONDS))
           .put("Number of interpolation queries", stats.getNumberOfInterpolationQueries())
-          .put(
-              "Sum time for itp queries",
-              stats.getSumTimeOfInterpolationQueries().formatAs(TimeUnit.SECONDS))
-          .put(
-              "Max time for itp queries",
-              stats.getMaxTimeOfInterpolationQueries().formatAs(TimeUnit.SECONDS))
+          .put("Sum time for itp queries", stats.getSumTimeOfInterpolationQueries().formatAs(TimeUnit.SECONDS))
+          .put("Max time for itp queries", stats.getMaxTimeOfInterpolationQueries().formatAs(TimeUnit.SECONDS))
           .put("Number of allSat queries", stats.getNumberOfAllSatQueries())
-          .put(
-              "Sum time for allSat queries",
-              stats.getSumTimeOfAllSatQueries().formatAs(TimeUnit.SECONDS))
-          .put(
-              "Max time for allSat queries",
-              stats.getMaxTimeOfAllSatQueries().formatAs(TimeUnit.SECONDS));
+          .put("Sum time for allSat queries", stats.getSumTimeOfAllSatQueries().formatAs(TimeUnit.SECONDS))
+          .put("Max time for allSat queries", stats.getMaxTimeOfAllSatQueries().formatAs(TimeUnit.SECONDS));
     }
   }
 
   /**
    * Direct reference to the underlying SMT solver for more complicated queries.
    *
-   * <p>This creates a fresh, new, environment in the solver. This environment needs to be closed
-   * after it is used by calling {@link ProverEnvironment#close()}. It is recommended to use the
-   * try-with-resources syntax.
+   * This creates a fresh, new, environment in the solver.
+   * This environment needs to be closed after it is used by calling {@link ProverEnvironment#close()}.
+   * It is recommended to use the try-with-resources syntax.
    */
   public ProverEnvironment newProverEnvironment(ProverOptions... options) {
     return newProverEnvironment0(options);
   }
 
   private ProverEnvironment newProverEnvironment0(ProverOptions... options) {
-    ProverEnvironment pe = solvingContext.newProverEnvironment(options);
+    ProverEnvironment pe = solvingContext
+        .newProverEnvironment(options);
 
     if (checkUFs) {
       pe = new UFCheckingProverEnvironment(logger, pe, fmgr, ufCheckingProverOptions);
@@ -330,10 +329,10 @@ public final class Solver implements AutoCloseable {
   }
 
   /**
-   * Direct reference to the underlying SMT solver for interpolation queries. This creates a fresh,
-   * new, environment in the solver. This environment needs to be closed after it is used by calling
-   * {@link InterpolatingProverEnvironment#close()}. It is recommended to use the try-with-resources
-   * syntax.
+   * Direct reference to the underlying SMT solver for interpolation queries.
+   * This creates a fresh, new, environment in the solver.
+   * This environment needs to be closed after it is used by calling {@link InterpolatingProverEnvironment#close()}.
+   * It is recommended to use the try-with-resources syntax.
    */
   public InterpolatingProverEnvironment<?> newProverEnvironmentWithInterpolation(
       ProverOptions... options) {
@@ -362,10 +361,10 @@ public final class Solver implements AutoCloseable {
   }
 
   /**
-   * Direct reference to the underlying SMT solver for optimization queries. This creates a fresh,
-   * new, environment in the solver. This environment needs to be closed after it is used by calling
-   * {@link OptimizationProverEnvironment#close()}. It is recommended to use the try-with-resources
-   * syntax.
+   * Direct reference to the underlying SMT solver for optimization queries.
+   * This creates a fresh, new, environment in the solver.
+   * This environment needs to be closed after it is used by calling {@link OptimizationProverEnvironment#close()}.
+   * It is recommended to use the try-with-resources syntax.
    */
   public OptimizationProverEnvironment newOptEnvironment() {
     OptimizationProverEnvironment environment =
@@ -374,7 +373,9 @@ public final class Solver implements AutoCloseable {
     return environment;
   }
 
-  /** Checks whether a formula is unsat. */
+  /**
+   * Checks whether a formula is unsat.
+   */
   public boolean isUnsat(BooleanFormula f) throws SolverException, InterruptedException {
     satChecks++;
 
@@ -405,10 +406,12 @@ public final class Solver implements AutoCloseable {
   }
 
   /**
-   * Unsatisfiability check with more complex cache look up, optionally based on unsat core.
+   * Unsatisfiability check with more complex cache look up,
+   * optionally based on unsat core.
    *
    * @param constraints Conjunction of formulas to test for satisfiability
-   * @param cacheKey Key to group cached results under, usually CFANode is a good candidate.
+   * @param cacheKey Key to group cached results under, usually CFANode
+   *                 is a good candidate.
    * @return Whether {@code f} is unsatisfiable.
    */
   public boolean isUnsat(Set<BooleanFormula> constraints, Object cacheKey)
@@ -427,7 +430,8 @@ public final class Solver implements AutoCloseable {
 
     Map<Set<BooleanFormula>, Boolean> stored = groupedUnsatCache.get(cacheKey);
     if (stored != null) {
-      for (Entry<Set<BooleanFormula>, Boolean> isUnsatResults : stored.entrySet()) {
+      for (Entry<Set<BooleanFormula>, Boolean> isUnsatResults : stored
+          .entrySet()) {
         Set<BooleanFormula> cachedConstraints = isUnsatResults.getKey();
         boolean cachedIsUnsat = isUnsatResults.getValue();
 
@@ -436,7 +440,8 @@ public final class Solver implements AutoCloseable {
           // Any superset of unreachable constraints is unreachable.
           cachedSatChecks++;
           return true;
-        } else if (!cachedIsUnsat && cachedConstraints.containsAll(lemmas)) {
+        } else if (!cachedIsUnsat &&
+            cachedConstraints.containsAll(lemmas)) {
 
           // Any subset of reachable constraints is reachable.
           cachedSatChecks++;
@@ -453,12 +458,12 @@ public final class Solver implements AutoCloseable {
 
     ProverOptions[] opts;
     if (cacheUnsatCores) {
-      opts = new ProverOptions[] {GENERATE_UNSAT_CORE};
+      opts = new ProverOptions[]{GENERATE_UNSAT_CORE};
     } else {
       opts = new ProverOptions[0];
     }
 
-    try (ProverEnvironment pe = newProverEnvironment(opts)) {
+    try (ProverEnvironment pe = newProverEnvironment(opts)){
       pe.push();
       for (BooleanFormula lemma : lemmas) {
         pe.addConstraint(lemma);
@@ -480,10 +485,12 @@ public final class Solver implements AutoCloseable {
   }
 
   /**
-   * Helper function for UNSAT core generation. Takes a single API call to perform.
+   * Helper function for UNSAT core generation.
+   * Takes a single API call to perform.
    *
-   * <p>Additionally, tries to give a "better" UNSAT core, by breaking up AND- nodes into multiple
-   * constraints (thus an UNSAT core can contain only a subset of some AND node).
+   * <p>Additionally, tries to give a "better" UNSAT core, by breaking up AND-
+   * nodes into multiple constraints (thus an UNSAT core can contain only a
+   * subset of some AND node).
    */
   public List<BooleanFormula> unsatCore(BooleanFormula constraints)
       throws SolverException, InterruptedException {
@@ -510,9 +517,11 @@ public final class Solver implements AutoCloseable {
     }
   }
 
-  /** Checks whether a => b. The result is cached. */
-  public boolean implies(BooleanFormula a, BooleanFormula b)
-      throws SolverException, InterruptedException {
+  /**
+   * Checks whether a => b.
+   * The result is cached.
+   */
+  public boolean implies(BooleanFormula a, BooleanFormula b) throws SolverException, InterruptedException {
     if (bfmgr.isFalse(a) || bfmgr.isTrue(b)) {
       satChecks++;
       trivialSatChecks++;
@@ -530,8 +539,9 @@ public final class Solver implements AutoCloseable {
   }
 
   /**
-   * Close this solver instance and all underlying formula managers. This instance and any instance
-   * retrieved from it (including all {@link Formula}s) may not be used anymore after closing.
+   * Close this solver instance and all underlying formula managers.
+   * This instance and any instance retrieved from it (including all {@link Formula}s)
+   * may not be used anymore after closing.
    */
   @Override
   public void close() {

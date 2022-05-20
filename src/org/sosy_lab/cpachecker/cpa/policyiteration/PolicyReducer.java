@@ -33,7 +33,9 @@ import org.sosy_lab.cpachecker.util.templates.Template.Kind;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.BooleanFormulaManager;
 
-/** BAM reduction for LPI. */
+/**
+ * BAM reduction for LPI.
+ */
 class PolicyReducer implements Reducer {
 
   private final PolicyIterationManager policyIterationManager;
@@ -57,7 +59,8 @@ class PolicyReducer implements Reducer {
   }
 
   /**
-   * Remove all information from the {@code expandedState} which is not relevant to {@code context}.
+   * Remove all information from the {@code expandedState} which is not
+   * relevant to {@code context}.
    */
   @Override
   public PolicyAbstractedState getVariableReducedState(
@@ -89,7 +92,8 @@ class PolicyReducer implements Reducer {
         // During the summary generation we should not use elements from the previous recursion
         // level.
         Optional.empty(),
-        Optional.empty());
+        Optional.empty()
+    );
   }
 
   /**
@@ -109,7 +113,9 @@ class PolicyReducer implements Reducer {
 
   @Override
   public PolicyState getVariableExpandedState(
-      AbstractState entryState, Block reducedContext, AbstractState summaryState) {
+      AbstractState entryState,
+      Block reducedContext,
+      AbstractState summaryState) {
     PolicyState pEntryState = (PolicyState) entryState;
     PolicyState pReturnState = (PolicyState) summaryState;
 
@@ -135,7 +141,11 @@ class PolicyReducer implements Reducer {
     // leave others the same.
     for (String var : builder.allVariables()) {
       if (aEntryState.getSSA().getIndex(var) > STARTING_SSA_IDX) {
-        builder = builder.setIndex(var, builder.getType(var), builder.getFreshIndex(var));
+        builder = builder.setIndex(
+            var,
+            builder.getType(var),
+            builder.getFreshIndex(var)
+        );
       }
     }
     SSAMap ssa = builder.build();
@@ -147,9 +157,8 @@ class PolicyReducer implements Reducer {
     // TODO: update pointer target set.
     PointerTargetSet pointerTargetSet = aEntryState.getPointerTargetSet();
 
-    BooleanFormula formula =
-        bfmgr.and(
-            stateFormulaConversionManager.abstractStateToConstraints(fmgr, aSummaryState, false));
+    BooleanFormula formula = bfmgr.and(stateFormulaConversionManager
+        .abstractStateToConstraints(fmgr, aSummaryState, false));
 
     @SuppressWarnings("deprecation")
     // TODO Can we refactor and move part of the code into an appropriate high-level method in
@@ -159,8 +168,9 @@ class PolicyReducer implements Reducer {
     // Fake that the control has come from the entry state.
     PolicyIntermediateState generator = PolicyIntermediateState.of(node, pf, aEntryState);
 
-    Map<Template, PolicyBound> newAbstraction =
-        updateAbstractionForExpanded(pf, aEntryState, summaryAbstraction, summarySSA);
+    Map<Template, PolicyBound> newAbstraction = updateAbstractionForExpanded(
+        pf, aEntryState, summaryAbstraction, summarySSA
+    );
 
     return PolicyAbstractedState.of(
         newAbstraction,
@@ -171,16 +181,17 @@ class PolicyReducer implements Reducer {
         pointerTargetSet,
         bfmgr.makeTrue(),
         Optional.of(generator),
-        sibling);
+        sibling
+    );
   }
 
   /**
    * Update the meta-information for policies coming from the summary edge.
    *
    * @param inputPath Path formula, which contains {@link SSAMap} equivalent to the summary
-   *     application, and the summary encoded as a formula.
-   * @param pParent Previous abstract state, associated with the function call before the function
-   *     application.
+   *                  application, and the summary encoded as a formula.
+   * @param pParent Previous abstract state, associated with the function call before the
+   *                function application.
    * @param summaryAbstraction Abstraction associated with the summary state.
    * @param summarySSA {@link SSAMap} associated with the summary.
    */
@@ -188,30 +199,33 @@ class PolicyReducer implements Reducer {
       PathFormula inputPath,
       PolicyAbstractedState pParent,
       Map<Template, PolicyBound> summaryAbstraction,
-      SSAMap summarySSA) {
+      SSAMap summarySSA
+  ) {
 
-    ImmutableMap.Builder<Template, PolicyBound> newAbstraction = ImmutableMap.builder();
-    Set<Template> allTemplates =
-        Sets.union(pParent.getAbstraction().keySet(), summaryAbstraction.keySet());
+    ImmutableMap.Builder<Template, PolicyBound> newAbstraction =
+        ImmutableMap.builder();
+    Set<Template> allTemplates = Sets.union(
+        pParent.getAbstraction().keySet(), summaryAbstraction.keySet());
     for (Template template : allTemplates) {
       PolicyBound pBound = summaryAbstraction.get(template);
       PolicyBound insertedBound = null;
       if (pBound != null) {
 
         // If bound for this template is present in the summary, add it after the abstraction.
-        BooleanFormula policyFormula =
-            stateFormulaConversionManager.templateToConstraint(
-                template, pBound, pfmgr, fmgr, inputPath);
+        BooleanFormula policyFormula = stateFormulaConversionManager
+            .templateToConstraint(template, pBound, pfmgr, fmgr, inputPath);
         PathFormula policy = inputPath.withFormula(policyFormula);
-        insertedBound =
-            PolicyBound.of(
-                policy,
-                pBound.getBound(),
-                pParent,
+        insertedBound = PolicyBound.of(
+            policy,
+            pBound.getBound(),
+            pParent,
 
-                // TODO: filter the set of dependent templates, at least
-                pParent.getAbstraction().keySet());
-      } else if (template.getUsedVars().stream()
+            // TODO: filter the set of dependent templates, at least
+            pParent.getAbstraction().keySet()
+        );
+      } else if (template
+          .getUsedVars()
+          .stream()
           .noneMatch(v -> summarySSA.getIndex(v) > STARTING_SSA_IDX)) {
 
         // Otherwise, use the bound from the parent state.
@@ -227,7 +241,8 @@ class PolicyReducer implements Reducer {
   }
 
   @Override
-  public Precision getVariableReducedPrecision(Precision precision, Block context) {
+  public Precision getVariableReducedPrecision(
+      Precision precision, Block context) {
     // Currently, precision is a singleton.
     return precision;
   }
@@ -240,7 +255,8 @@ class PolicyReducer implements Reducer {
   }
 
   @Override
-  public Object getHashCodeForState(AbstractState stateKey, Precision precisionKey) {
+  public Object getHashCodeForState(
+      AbstractState stateKey, Precision precisionKey) {
     PolicyState pState = (PolicyState) stateKey;
 
     // Discard all the meta-information attached to the bounds.
@@ -249,8 +265,10 @@ class PolicyReducer implements Reducer {
   }
 
   /**
-   * Take root state, remove all bounds associated with global variables, add all globals from the
-   * expandedState, add assignment to return function value from expandedState.
+   * Take root state,
+   * remove all bounds associated with global variables,
+   * add all globals from the expandedState,
+   * add assignment to return function value from expandedState.
    */
   @Override
   public PolicyAbstractedState rebuildStateAfterFunctionCall(

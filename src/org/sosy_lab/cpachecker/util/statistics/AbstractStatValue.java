@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.util.statistics;
 
+
 public abstract class AbstractStatValue {
 
   private final String title;
@@ -24,7 +25,6 @@ public abstract class AbstractStatValue {
 
   /**
    * How many times was this statistical value updated.
-   *
    * @return A nonnegative number.
    */
   public abstract int getUpdateCount();

@@ -29,8 +29,7 @@ interface AutomatonExpression<T> {
     @Override
     public ResultValue<String> eval(AutomatonExpressionArguments pArgs) {
       // replace $rawstatement
-      String str =
-          toPrint.replaceAll("\\$[rR]aw[Ss]tatement", pArgs.getCfaEdge().getRawStatement());
+      String str = toPrint.replaceAll("\\$[rR]aw[Ss]tatement", pArgs.getCfaEdge().getRawStatement());
       // replace $line
       str = str.replaceAll("\\$[Ll]ine", String.valueOf(pArgs.getCfaEdge().getLineNumber()));
       // replace $location
@@ -44,8 +43,7 @@ interface AutomatonExpression<T> {
       // replace Transition Variables and AutomatonVariables
       str = pArgs.replaceVariables(str);
       if (str == null) {
-        return new ResultValue<>(
-            "Failure in Variable Replacement in String \"" + toPrint + "\"", "ActionExpr.Print");
+        return new ResultValue<>("Failure in Variable Replacement in String \"" + toPrint + "\"","ActionExpr.Print");
       } else {
         return new ResultValue<>(str);
       }
@@ -84,8 +82,7 @@ interface AutomatonExpression<T> {
       // replace transition variables
       String modifiedQueryString = pArgs.replaceVariables(queryString);
       if (modifiedQueryString == null) {
-        return new ResultValue<>(
-            "Failed to modify queryString \"" + queryString + "\"", "AutomatonBoolExpr.CPAQuery");
+        return new ResultValue<>("Failed to modify queryString \"" + queryString + "\"", "AutomatonBoolExpr.CPAQuery");
       }
 
       for (AbstractState ae : pArgs.getAbstractStates()) {
@@ -96,27 +93,16 @@ interface AutomatonExpression<T> {
               Object result = aqe.evaluateProperty(modifiedQueryString);
               return new ResultValue<>(result.toString());
             } catch (InvalidQueryException e) {
-              pArgs
-                  .getLogger()
-                  .logException(
-                      Level.WARNING,
-                      e,
-                      "Automaton encountered an Exception during Query of the "
-                          + cpaName
-                          + " CPA on Edge "
-                          + pArgs.getCfaEdge().getDescription());
-              return new ResultValue<>(
+              pArgs.getLogger().logException(Level.WARNING, e,
                   "Automaton encountered an Exception during Query of the "
-                      + cpaName
-                      + " CPA on Edge "
-                      + pArgs.getCfaEdge().getDescription(),
-                  "AutomatonExpression.CPAQuery");
+                  + cpaName + " CPA on Edge " + pArgs.getCfaEdge().getDescription());
+              return new ResultValue<>("Automaton encountered an Exception during Query of the "
+                  + cpaName + " CPA on Edge " + pArgs.getCfaEdge().getDescription(), "AutomatonExpression.CPAQuery");
             }
           }
         }
       }
-      return new ResultValue<>(
-          "No State of CPA \"" + cpaName + "\" was found!", "AutomatonExpression.CPAQuery");
+      return new ResultValue<>("No State of CPA \"" + cpaName + "\" was found!", "AutomatonExpression.CPAQuery");
     }
 
     @Override
@@ -144,21 +130,19 @@ interface AutomatonExpression<T> {
   public static class ResultValue<resultType> {
     private boolean canNotEvaluate = false;
     private String failureMessage = null; // only set if cannotEvaluate == true
-    private String failureOrigin = null; // only set if cannotEvaluate == true
-    private resultType value = null; // only set if cannotEvaluate == false
-
+    private String failureOrigin = null;  // only set if cannotEvaluate == true
+    private resultType value = null;      // only set if cannotEvaluate == false
     public ResultValue(resultType value) {
       this.value = value;
     }
-
     public ResultValue(String failureMessage, String failureOrigin) {
       this.canNotEvaluate = true;
       this.failureMessage = failureMessage;
       this.failureOrigin = failureOrigin;
     }
     /**
-     * Copies the failure messages from the passed result. This Method assumes that the parameter
-     * fulfills canNotEvaluate() == true !
+     * Copies the failure messages from the passed result.
+     * This Method assumes that the parameter fulfills canNotEvaluate() == true !
      */
     public ResultValue(ResultValue<?> pRes) {
       assert pRes.canNotEvaluate;

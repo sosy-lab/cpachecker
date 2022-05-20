@@ -75,7 +75,7 @@ public class EdgeSet implements Serializable, Iterable<CFAEdge> {
       if (selected == null || !edges.contains(selected)) {
         return edges.iterator().next();
       } else {
-        return selected;
+          return selected;
       }
     }
     return null;

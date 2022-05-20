@@ -51,9 +51,10 @@ public abstract class ErrorTracePrinter {
   private Path outputFalseUnsafes = Path.of("FalseUnsafes");
 
   @Option(
-      name = "filterMissedFiles",
-      description = "if a file do not exist, do not include the corresponding edge",
-      secure = true)
+    name = "filterMissedFiles",
+    description = "if a file do not exist, do not include the corresponding edge",
+    secure = true
+  )
   private boolean filterMissedFiles = true;
 
   @Option(description = "print all unsafe cases in report", secure = true)

@@ -37,6 +37,7 @@ public class ARGToPixelsWriter extends GraphToPixelsWriter<ARGState> {
   private static final Color COLOR_NOTEXPANDED = Color.ORANGE;
   private static final Color COLOR_COVERED = Color.GREEN;
 
+
   public ARGToPixelsWriter(Configuration pConfig) throws InvalidConfigurationException {
     super(pConfig);
   }
@@ -126,6 +127,7 @@ public class ARGToPixelsWriter extends GraphToPixelsWriter<ARGState> {
             width, targets.build(), notExpanded.build(), highlights.build(), covered.build());
       }
 
+
       @Override
       public Builder addMarkings(ARGState pNode) {
 
@@ -154,4 +156,6 @@ public class ARGToPixelsWriter extends GraphToPixelsWriter<ARGState> {
       }
     }
   }
+
+
 }

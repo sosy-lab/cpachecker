@@ -51,4 +51,5 @@ public final class PropertyTargetInformation implements TargetInformation {
   public static ImmutableSet<TargetInformation> singleton(final Property pProperty) {
     return ImmutableSet.of(PropertyTargetInformation.create(pProperty));
   }
+
 }

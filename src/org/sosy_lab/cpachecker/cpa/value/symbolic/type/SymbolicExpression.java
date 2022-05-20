@@ -15,7 +15,9 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
-/** An expression containing {@link SymbolicValue}s. */
+/**
+ * An expression containing {@link SymbolicValue}s.
+ */
 public abstract class SymbolicExpression implements SymbolicValue {
 
   private static final long serialVersionUID = 2228733300503173691L;
@@ -61,7 +63,8 @@ public abstract class SymbolicExpression implements SymbolicValue {
    * explicit values.
    *
    * @return <code>true</code> if this <code>SymbolicExpression</code> is always true and does only
-   *     contain explicit values, <code>false</code> otherwise
+   * contain explicit
+   * values, <code>false</code> otherwise
    */
   public abstract boolean isTrivial();
 

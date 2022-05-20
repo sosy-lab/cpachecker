@@ -90,7 +90,8 @@ public class UninitializedVariablesState implements AbstractQueryableState, Seri
   }
 
   public boolean isUninitialized(String variable) {
-    return globalVars.contains(variable) || localVars.peekLast().getSecond().contains(variable);
+    return globalVars.contains(variable)
+        || localVars.peekLast().getSecond().contains(variable);
   }
 
   public void callFunction(String functionName) {
@@ -117,9 +118,10 @@ public class UninitializedVariablesState implements AbstractQueryableState, Seri
       return true;
     }
 
-    UninitializedVariablesState otherElement = (UninitializedVariablesState) o;
+    UninitializedVariablesState otherElement = (UninitializedVariablesState)o;
 
-    return globalVars.equals(otherElement.globalVars) && localVars.equals(otherElement.localVars);
+    return globalVars.equals(otherElement.globalVars)
+        && localVars.equals(otherElement.localVars);
   }
 
   @Override
@@ -136,8 +138,8 @@ public class UninitializedVariablesState implements AbstractQueryableState, Seri
           Pair.of(localContext.getFirst(), new ArrayList<>(localContext.getSecond())));
     }
 
-    return new UninitializedVariablesState(
-        new ArrayList<>(globalVars), newLocalVars, new ArrayList<>(warnings));
+    return new UninitializedVariablesState(new ArrayList<>(globalVars), newLocalVars,
+                                             new ArrayList<>(warnings));
   }
 
   @Override
@@ -159,17 +161,20 @@ public class UninitializedVariablesState implements AbstractQueryableState, Seri
 
   /**
    * Adds a property to this element
-   *
    * @param pProp the property to add
    */
   void addProperty(ElementProperty pProp) {
     this.properties.add(pProp);
   }
-  /** Returns all properties set for this element. */
+  /**
+   * Returns all properties set for this element.
+   */
   Set<ElementProperty> getProperties() {
     return this.properties;
   }
-  /** Removes all property of this element */
+  /**
+   * Removes all property of this element
+   */
   void clearProperties() {
     this.properties.clear();
   }
@@ -178,15 +183,10 @@ public class UninitializedVariablesState implements AbstractQueryableState, Seri
   public boolean checkProperty(String pProperty) throws InvalidQueryException {
     ElementProperty prop;
     try {
-      prop = ElementProperty.valueOf(pProperty);
+       prop = ElementProperty.valueOf(pProperty);
     } catch (IllegalArgumentException e) {
       // thrown if the Enum does not contain the property
-      throw new InvalidQueryException(
-          "The Query \""
-              + pProperty
-              + "\" is not defined for this CPA (\""
-              + this.getCPAName()
-              + "\"");
+      throw new InvalidQueryException("The Query \"" + pProperty + "\" is not defined for this CPA (\""+ this.getCPAName() + "\"");
     }
     return this.properties.contains(prop);
   }

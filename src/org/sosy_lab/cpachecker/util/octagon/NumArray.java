@@ -37,6 +37,6 @@ public class NumArray {
 
   @Override
   public int hashCode() {
-    return (int) array;
+    return (int)array;
   }
 }

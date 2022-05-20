@@ -22,4 +22,5 @@ abstract class AbstractFormula<ConstantType> implements NumeralFormula<ConstantT
   public TypeInfo getTypeInfo() {
     return this.info;
   }
+
 }

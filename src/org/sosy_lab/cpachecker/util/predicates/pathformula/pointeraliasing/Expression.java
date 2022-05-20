@@ -18,7 +18,7 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Expre
 import org.sosy_lab.java_smt.api.Formula;
 
 abstract class Expression {
-  abstract static class Location extends Expression {
+  static abstract class Location extends Expression {
     static final class AliasedLocation extends Location {
 
       static AliasedLocation ofAddress(final Formula address) {
@@ -75,14 +75,17 @@ abstract class Expression {
 
       @Override
       public String toString() {
-        return toStringHelper(this).add("address", address).toString();
+        return toStringHelper(this)
+                      .add("address", address)
+                      .toString();
       }
 
       private final Formula address;
 
       private final @Nullable MemoryRegion region;
 
-      @Nullable MemoryRegion getMemoryRegion() {
+      @Nullable
+      MemoryRegion getMemoryRegion() {
         return region;
       }
     }
@@ -134,7 +137,9 @@ abstract class Expression {
 
       @Override
       public String toString() {
-        return toStringHelper(this).add("variable", variableName).toString();
+        return toStringHelper(this)
+                      .add("variable", variableName)
+                      .toString();
       }
 
       private final String variableName;
@@ -192,7 +197,8 @@ abstract class Expression {
 
       @Override
       public String toString() {
-        return toStringHelper(this).toString();
+        return toStringHelper(this)
+                      .toString();
       }
     }
 
@@ -240,7 +246,9 @@ abstract class Expression {
 
     @Override
     public String toString() {
-      return toStringHelper(this).add("value", value).toString();
+      return toStringHelper(this)
+                    .add("value", value)
+                    .toString();
     }
 
     @Override

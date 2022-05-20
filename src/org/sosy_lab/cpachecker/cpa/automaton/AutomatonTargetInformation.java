@@ -61,4 +61,5 @@ public class AutomatonTargetInformation implements TargetInformation {
         && automaton.equals(other.automaton)
         && propertyInstanceDescription.equals(other.propertyInstanceDescription);
   }
+
 }

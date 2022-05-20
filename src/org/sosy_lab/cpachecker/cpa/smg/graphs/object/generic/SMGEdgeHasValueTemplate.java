@@ -16,7 +16,10 @@ public class SMGEdgeHasValueTemplate extends SMGEdgeTemplate
   private final long sizeInBits;
 
   public SMGEdgeHasValueTemplate(
-      SMGObjectTemplate pAbstractObject, SMGValue pAbstractValue, long pOffset, long pSizeInBits) {
+      SMGObjectTemplate pAbstractObject,
+      SMGValue pAbstractValue,
+      long pOffset,
+      long pSizeInBits) {
     super(pAbstractObject, pAbstractValue, pOffset);
     sizeInBits = pSizeInBits;
   }

@@ -83,8 +83,7 @@ public class DominatorCPA implements ConfigurableProgramAnalysis {
   }
 
   @Override
-  public AbstractState getInitialState(CFANode pNode, StateSpacePartition pPartition)
-      throws InterruptedException {
+  public AbstractState getInitialState(CFANode pNode, StateSpacePartition pPartition) throws InterruptedException {
     return new DominatorState(ImmutableSet.of(pNode));
   }
 }

@@ -41,7 +41,9 @@ import org.sosy_lab.cpachecker.cpa.value.symbolic.util.SymbolicValues;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
-/** Strengthener for ValueAnalysis with {@link ConstraintsCPA}. */
+/**
+ * Strengthener for ValueAnalysis with {@link ConstraintsCPA}.
+ */
 @Options(prefix = "cpa.value.symbolic")
 public class ConstraintsStrengthenOperator implements Statistics {
 
@@ -62,23 +64,24 @@ public class ConstraintsStrengthenOperator implements Statistics {
   }
 
   /**
-   * Strengthen the given {@link org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState} with the
-   * given {@link org.sosy_lab.cpachecker.cpa.constraints.domain.ConstraintsState}.
+   * Strengthen the given {@link org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState} with the given {@link org.sosy_lab.cpachecker.cpa.constraints.domain.ConstraintsState}.
    *
-   * <p>The returned <code>Collection</code> contains all reachable states after strengthening. A
-   * returned empty <code>Collection</code> represents 'bottom', a returned <code>null</code>
-   * represents that no changes were made to the given <code>ValueAnalysisState</code>.
+   * <p>The returned <code>Collection</code> contains all reachable states after strengthening.
+   * A returned empty <code>Collection</code> represents 'bottom', a returned <code>null</code>
+   * represents that no changes were made to the given <code>ValueAnalysisState</code>.</p>
+   *
    *
    * @param pStateToStrengthen the state to strengthen
    * @param pStrengtheningState the state to strengthen the first state with
    * @return <code>null</code> if no changes were made to the given <code>ValueAnalysisState</code>,
-   *     an empty <code>Collection</code>, if the resulting state is not reachable and a <code>
-   *     Collection</code> containing all reachable states, otherwise
+   *    an empty <code>Collection</code>, if the resulting state is not reachable and
+   *    a <code>Collection</code> containing all reachable states, otherwise
    */
   public Collection<ValueAnalysisState> strengthen(
       final ValueAnalysisState pStateToStrengthen,
       final ConstraintsState pStrengtheningState,
-      final CFAEdge pEdge) {
+      final CFAEdge pEdge
+  ) {
     totalTime.start();
     try {
       ValueAnalysisState newState = pStateToStrengthen;
@@ -96,6 +99,7 @@ public class ConstraintsStrengthenOperator implements Statistics {
     } finally {
       totalTime.stop();
     }
+
   }
 
   // replaces symbolic expressions that are not used anywhere yet with a new symbolic identifier.
@@ -103,7 +107,8 @@ public class ConstraintsStrengthenOperator implements Statistics {
   private ValueAnalysisState simplifySymbolicValues(
       final ValueAnalysisState pValueState,
       final ConstraintsState pConstraints,
-      final CFAEdge pEdge) {
+      final CFAEdge pEdge
+  ) {
 
     // If the current edge is an assume edge, simplification doesn't work reliable since
     // a constraint added at this edge is not yet in the strengthening ConstraintsState.
@@ -111,6 +116,7 @@ public class ConstraintsStrengthenOperator implements Statistics {
     if (pEdge.getEdgeType() != CFAEdgeType.AssumeEdge) {
       return pValueState;
     }
+
 
     final SymbolicValueFactory factory = SymbolicValueFactory.getInstance();
 
@@ -139,7 +145,9 @@ public class ConstraintsStrengthenOperator implements Statistics {
   }
 
   private boolean doesNotAppearInConstraints(
-      final SymbolicValue pValue, final ConstraintsState pConstraints) {
+      final SymbolicValue pValue,
+      final ConstraintsState pConstraints
+  ) {
     Collection<SymbolicIdentifier> identifiersInValue =
         SymbolicValues.getContainedSymbolicIdentifiers(pValue);
 
@@ -150,13 +158,15 @@ public class ConstraintsStrengthenOperator implements Statistics {
   }
 
   private boolean isSimpleSymbolicValue(final SymbolicValue pValue) {
-    return pValue instanceof SymbolicIdentifier
-        || pValue instanceof ConstantSymbolicExpression
+    return pValue instanceof SymbolicIdentifier || pValue instanceof ConstantSymbolicExpression
         || pValue instanceof Constraint;
   }
 
   private boolean isIndependentInValueState(
-      final SymbolicValue pValue, final MemoryLocation pMemLoc, final ValueAnalysisState pState) {
+      final SymbolicValue pValue,
+      final MemoryLocation pMemLoc,
+      final ValueAnalysisState pState
+  ) {
 
     ValueAnalysisState stateWithoutValue = ValueAnalysisState.copyOf(pState);
     stateWithoutValue.forget(pMemLoc);
@@ -171,7 +181,8 @@ public class ConstraintsStrengthenOperator implements Statistics {
 
   private boolean containsAnyOf(
       final Collection<SymbolicIdentifier> pContainer,
-      final Collection<SymbolicIdentifier> pSelection) {
+      final Collection<SymbolicIdentifier> pSelection
+  ) {
     Collection<SymbolicIdentifier> smallerCollection;
     Collection<SymbolicIdentifier> biggerCollection;
 

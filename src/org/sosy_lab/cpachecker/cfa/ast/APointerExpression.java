@@ -45,7 +45,8 @@ public abstract class APointerExpression extends AbstractLeftHandSide {
       return true;
     }
 
-    if (!(obj instanceof APointerExpression) || !super.equals(obj)) {
+    if (!(obj instanceof APointerExpression)
+        || !super.equals(obj)) {
       return false;
     }
 
@@ -53,4 +54,5 @@ public abstract class APointerExpression extends AbstractLeftHandSide {
 
     return Objects.equals(other.operand, operand);
   }
+
 }

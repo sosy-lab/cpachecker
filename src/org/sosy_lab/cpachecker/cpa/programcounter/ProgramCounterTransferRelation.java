@@ -27,6 +27,7 @@ import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
+
 public class ProgramCounterTransferRelation extends SingleEdgeTransferRelation {
 
   static final TransferRelation INSTANCE = new ProgramCounterTransferRelation();
@@ -34,7 +35,7 @@ public class ProgramCounterTransferRelation extends SingleEdgeTransferRelation {
   @Override
   public Collection<? extends AbstractState> getAbstractSuccessorsForEdge(
       AbstractState pState, Precision pPrecision, CFAEdge pCfaEdge)
-      throws CPATransferException, InterruptedException {
+          throws CPATransferException, InterruptedException {
 
     ProgramCounterState state = (ProgramCounterState) pState;
 
@@ -44,12 +45,9 @@ public class ProgramCounterTransferRelation extends SingleEdgeTransferRelation {
           ADeclarationEdge edge = (ADeclarationEdge) pCfaEdge;
           if (edge.getDeclaration() instanceof AVariableDeclaration) {
             AVariableDeclaration declaration = (AVariableDeclaration) edge.getDeclaration();
-            if (declaration
-                .getQualifiedName()
-                .equals(CFASingleLoopTransformation.PROGRAM_COUNTER_VAR_NAME)) {
+            if (declaration.getQualifiedName().equals(CFASingleLoopTransformation.PROGRAM_COUNTER_VAR_NAME)) {
               if (declaration.getInitializer() instanceof AInitializerExpression) {
-                AExpression expression =
-                    ((AInitializerExpression) declaration.getInitializer()).getExpression();
+                AExpression expression = ((AInitializerExpression) declaration.getInitializer()).getExpression();
                 if (expression instanceof AIntegerLiteralExpression) {
                   BigInteger pcValue = ((AIntegerLiteralExpression) expression).getValue();
                   state = ProgramCounterState.getStateForValue(pcValue);
@@ -80,9 +78,7 @@ public class ProgramCounterTransferRelation extends SingleEdgeTransferRelation {
       case StatementEdge:
         if (pCfaEdge instanceof ProgramCounterValueAssignmentEdge) {
           ProgramCounterValueAssignmentEdge edge = (ProgramCounterValueAssignmentEdge) pCfaEdge;
-          state =
-              ProgramCounterState.getStateForValue(
-                  BigInteger.valueOf(edge.getProgramCounterValue()));
+          state = ProgramCounterState.getStateForValue(BigInteger.valueOf(edge.getProgramCounterValue()));
         }
         break;
       default:

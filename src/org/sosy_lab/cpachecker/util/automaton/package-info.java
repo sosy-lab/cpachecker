@@ -6,5 +6,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-/** Automata-related utilities. */
+/**
+ * Automata-related utilities.
+ */
 package org.sosy_lab.cpachecker.util.automaton;

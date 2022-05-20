@@ -27,9 +27,10 @@ import org.sosy_lab.cpachecker.cpa.value.symbolic.refiner.SymbolicStrongestPostO
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 /**
- * Strongest-post operator with the semantics of {@link
- * org.sosy_lab.cpachecker.cpa.value.refiner.ValueAnalysisStrongestPostOperator
- * ValueAnalysisStrongestPostOperator}, but using {@link ForgettingCompositeState} as state type.
+ * Strongest-post operator with the semantics of
+ * {@link org.sosy_lab.cpachecker.cpa.value.refiner.ValueAnalysisStrongestPostOperator
+ * ValueAnalysisStrongestPostOperator},
+ * but using {@link ForgettingCompositeState} as state type.
  */
 public class DelegatingStrongestPost implements SymbolicStrongestPostOperator {
 
@@ -38,9 +39,12 @@ public class DelegatingStrongestPost implements SymbolicStrongestPostOperator {
   private final ValueAnalysisStrongestPostOperator explicitStrongestPost;
 
   public DelegatingStrongestPost(
-      final LogManager pLogger, final Configuration pConfig, final CFA pCfa)
-      throws InvalidConfigurationException {
-    explicitStrongestPost = new ValueAnalysisStrongestPostOperator(pLogger, pConfig, pCfa);
+      final LogManager pLogger,
+      final Configuration pConfig,
+      final CFA pCfa
+  ) throws InvalidConfigurationException {
+    explicitStrongestPost =
+        new ValueAnalysisStrongestPostOperator(pLogger, pConfig, pCfa);
   }
 
   @Override
@@ -62,7 +66,8 @@ public class DelegatingStrongestPost implements SymbolicStrongestPostOperator {
   public ForgettingCompositeState handleFunctionCall(
       final ForgettingCompositeState pState,
       final CFAEdge pEdge,
-      final Deque<ForgettingCompositeState> pCallstack) {
+      final Deque<ForgettingCompositeState> pCallstack
+  ) {
     Deque<ValueAnalysisState> valueCallstack = transformToValueStack(pCallstack);
     assert pCallstack.size() == valueCallstack.size();
 
@@ -75,7 +80,8 @@ public class DelegatingStrongestPost implements SymbolicStrongestPostOperator {
   }
 
   private Deque<ValueAnalysisState> transformToValueStack(
-      final Deque<ForgettingCompositeState> pCallstack) {
+      final Deque<ForgettingCompositeState> pCallstack
+  ) {
     Deque<ValueAnalysisState> valueCallstack = new ArrayDeque<>(pCallstack.size());
 
     for (ForgettingCompositeState s : pCallstack) {
@@ -89,7 +95,8 @@ public class DelegatingStrongestPost implements SymbolicStrongestPostOperator {
   public ForgettingCompositeState handleFunctionReturn(
       final ForgettingCompositeState pNext,
       final CFAEdge pEdge,
-      final Deque<ForgettingCompositeState> pCallstack) {
+      final Deque<ForgettingCompositeState> pCallstack
+  ) {
     Deque<ValueAnalysisState> valueCallstack = transformToValueStack(pCallstack);
     assert pCallstack.size() == valueCallstack.size();
 
@@ -106,10 +113,10 @@ public class DelegatingStrongestPost implements SymbolicStrongestPostOperator {
       final ForgettingCompositeState pNext,
       final CFANode pCurrNode,
       final ARGPath pErrorPath,
-      final Precision pPrecision) {
-    ValueAnalysisState result =
-        explicitStrongestPost.performAbstraction(
-            pNext.getValueState(), pCurrNode, pErrorPath, pPrecision);
+      final Precision pPrecision
+  ) {
+    ValueAnalysisState result = explicitStrongestPost.performAbstraction(
+        pNext.getValueState(), pCurrNode, pErrorPath, pPrecision);
 
     return new ForgettingCompositeState(result, INITIAL_CONSTRAINTS);
   }

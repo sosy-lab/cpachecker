@@ -20,8 +20,9 @@ import org.sosy_lab.java_smt.api.NumeralFormula.IntegerFormula;
 import org.sosy_lab.java_smt.api.QuantifiedFormulaManager;
 import org.sosy_lab.java_smt.api.SolverException;
 
-public class QuantifiedFormulaManagerView extends BaseManagerView
-    implements QuantifiedFormulaManager {
+public class QuantifiedFormulaManagerView
+  extends BaseManagerView
+  implements QuantifiedFormulaManager {
 
   private final QuantifiedFormulaManager manager;
   private final BooleanFormulaManagerView bfm;
@@ -54,8 +55,8 @@ public class QuantifiedFormulaManagerView extends BaseManagerView
   }
 
   @Override
-  public BooleanFormula mkQuantifier(
-      Quantifier q, List<? extends Formula> pVariables, BooleanFormula pBody) {
+  public BooleanFormula mkQuantifier(Quantifier q,
+      List<? extends Formula> pVariables, BooleanFormula pBody) {
     return manager.mkQuantifier(q, unwrap(pVariables), pBody);
   }
 
@@ -65,8 +66,7 @@ public class QuantifiedFormulaManagerView extends BaseManagerView
   }
 
   @Override
-  public BooleanFormula eliminateQuantifiers(BooleanFormula pF)
-      throws InterruptedException, SolverException {
+  public BooleanFormula eliminateQuantifiers(BooleanFormula pF) throws InterruptedException, SolverException {
     return manager.eliminateQuantifiers(pF);
   }
 
@@ -83,8 +83,11 @@ public class QuantifiedFormulaManagerView extends BaseManagerView
    * @param pUpperBound The upper bound of the range (included in the range).
    * @param pBody Formula for that the (restricted) quantification is applied.
    */
-  public <R extends IntegerFormula> BooleanFormula forall(
-      final R pVariable, final R pLowerBound, final R pUpperBound, final BooleanFormula pBody) {
+  public <R extends IntegerFormula> BooleanFormula forall (
+      final R pVariable,
+      final R pLowerBound,
+      final R pUpperBound,
+      final BooleanFormula pBody) {
 
     Preconditions.checkNotNull(pVariable);
     Preconditions.checkNotNull(pLowerBound);
@@ -94,7 +97,8 @@ public class QuantifiedFormulaManagerView extends BaseManagerView
     List<BooleanFormula> rangeConstraint = makeRangeConstraint(pVariable, pLowerBound, pUpperBound);
 
     return manager.forall(
-        Collections.singletonList(pVariable), bfm.implication(bfm.and(rangeConstraint), pBody));
+        Collections.singletonList(pVariable),
+        bfm.implication(bfm.and(rangeConstraint), pBody));
   }
 
   /**
@@ -116,13 +120,18 @@ public class QuantifiedFormulaManagerView extends BaseManagerView
     bodyPredicates.addAll(rangeConstraint);
     bodyPredicates.add(pBody);
 
-    return manager.exists(Collections.singletonList(pVariable), bfm.and(bodyPredicates));
+    return manager.exists(
+        Collections.singletonList(pVariable),
+        bfm.and(bodyPredicates));
   }
 
   private <R extends IntegerFormula> List<BooleanFormula> makeRangeConstraint(
-      final R pVariable, final R pLowerBound, final R pUpperBound) {
+      final R pVariable,
+      final R pLowerBound,
+      final R pUpperBound) {
 
     return ImmutableList.of(
-        ifm.greaterOrEquals(pVariable, pLowerBound), ifm.lessOrEquals(pVariable, pUpperBound));
+        ifm.greaterOrEquals(pVariable, pLowerBound),
+        ifm.lessOrEquals(pVariable, pUpperBound));
   }
 }

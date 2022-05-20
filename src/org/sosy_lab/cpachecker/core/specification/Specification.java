@@ -51,8 +51,9 @@ import org.sosy_lab.cpachecker.util.ltl.LtlParser;
 import org.sosy_lab.cpachecker.util.ltl.formulas.LabelledFormula;
 
 /**
- * Class that encapsulates the specification that should be used for an analysis. Most code of
- * CPAchecker should not need to access this file, because a separate CPA handles the specification,
+ * Class that encapsulates the specification that should be used for an analysis.
+ * Most code of CPAchecker should not need to access this file,
+ * because a separate CPA handles the specification,
  * though it can be necessary to pass around Specification objects for sub-analyses.
  */
 public final class Specification {
@@ -185,6 +186,7 @@ public final class Specification {
               specificationAutomata.putAll(specFile, automata);
             }
           }
+
         }
       } else {
         List<Automaton> automata =
@@ -375,7 +377,9 @@ public final class Specification {
   @Override
   public String toString() {
     return "Specification"
-        + pathToSpecificationAutomata.values().stream()
+        + pathToSpecificationAutomata
+            .values()
+            .stream()
             .map(Automaton::getName)
             .collect(joining(", ", "[", "]"));
   }

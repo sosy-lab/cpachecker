@@ -69,6 +69,7 @@ public class ARGToAutomatonConverterTest extends AbstractTranslationTest {
             .setOption("cpa.arg.export.code.header", "false");
     config = configBuilder.build();
 
+
     converter = new ARGToAutomatonConverter(config, MachineModel.LINUX32, logger);
   }
 
@@ -101,7 +102,7 @@ public class ARGToAutomatonConverterTest extends AbstractTranslationTest {
 
     // generate ARG:
     resetCFANodeCounter();
-    ARGState root = run(config, fullPath);
+    ARGState root = run(config,fullPath);
 
     // generate joint automaton
     Automaton aut = converter.getAutomaton(root, true);
@@ -120,7 +121,7 @@ public class ARGToAutomatonConverterTest extends AbstractTranslationTest {
               .build();
       TestResults results = null;
       try {
-        resetCFANodeCounter();
+      resetCFANodeCounter();
         results = CPATestRunner.run(reConfig, fullPath.toString());
       } catch (NoClassDefFoundError | UnsatisfiedLinkError e) {
         throw new AssertionError(e);
@@ -192,4 +193,5 @@ public class ARGToAutomatonConverterTest extends AbstractTranslationTest {
     nextId.setAccessible(false);
     idGenerator.setAccessible(false);
   }
+
 }

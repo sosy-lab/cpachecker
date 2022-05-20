@@ -10,7 +10,9 @@ package org.sosy_lab.cpachecker.core.defaults;
 
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 
+
 public enum SingletonAbstractState implements AbstractState {
+
   INSTANCE;
 
   @Override

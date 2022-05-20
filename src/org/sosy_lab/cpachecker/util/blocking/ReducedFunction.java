@@ -96,7 +96,7 @@ class ReducedFunction {
   public List<ReducedEdge> getLeavingEdges(ReducedNode pOfNode) {
     List<ReducedEdge> result = new ArrayList<>();
     Collection<Set<ReducedEdge>> edges = cfaEdges.row(pOfNode).values();
-    for (Set<ReducedEdge> edgesToNode : edges) {
+    for (Set<ReducedEdge> edgesToNode: edges) {
       result.addAll(edgesToNode);
     }
 
@@ -106,7 +106,7 @@ class ReducedFunction {
   public int getNumEnteringEdges(ReducedNode pOfNode) {
     int result = 0;
     Collection<Set<ReducedEdge>> edges = cfaEdges.column(pOfNode).values();
-    for (Set<ReducedEdge> edgesToNode : edges) {
+    for (Set<ReducedEdge> edgesToNode: edges) {
       result += edgesToNode.size();
     }
     return result;
@@ -115,7 +115,7 @@ class ReducedFunction {
   public int getNumLeavingEdges(ReducedNode pOfNode) {
     int result = 0;
     Collection<Set<ReducedEdge>> edges = cfaEdges.row(pOfNode).values();
-    for (Set<ReducedEdge> edgesToNode : edges) {
+    for (Set<ReducedEdge> edgesToNode: edges) {
       result += edgesToNode.size();
     }
     return result;

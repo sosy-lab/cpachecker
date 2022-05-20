@@ -19,8 +19,11 @@ import org.sosy_lab.cpachecker.util.smg.graph.SMGPointsToEdge;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGTargetSpecifier;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGValue;
 
-/** Class implementing join algorithm from FIT-TR-2013-4 (Appendix C.3) */
+/**
+ * Class implementing join algorithm from FIT-TR-2013-4 (Appendix C.3)
+ */
 public class SMGMapTargetAddress extends SMGAbstractJoin {
+
 
   public SMGMapTargetAddress(
       SMGJoinStatus pStatus,
@@ -75,5 +78,9 @@ public class SMGMapTargetAddress extends SMGAbstractJoin {
       mapping1.addMapping(v1, value);
       mapping2.addMapping(v2, value);
     }
+
   }
+
+
+
 }

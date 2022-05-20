@@ -36,9 +36,9 @@ import org.sosy_lab.cpachecker.util.ci.CustomInstructionApplications.CustomInstr
 import org.sosy_lab.cpachecker.util.ci.CustomInstructionApplications.CustomInstructionApplicationBuilder.CIDescriptionType;
 import org.sosy_lab.cpachecker.util.ci.CustomInstructionRequirementsExtractor;
 
-@Options(prefix = "custominstructions")
-public class CustomInstructionRequirementsExtractingAlgorithm
-    implements Algorithm, StatisticsProvider {
+
+@Options(prefix="custominstructions")
+public class CustomInstructionRequirementsExtractingAlgorithm implements Algorithm, StatisticsProvider {
 
   private final Algorithm analysis;
   private final LogManager logger;
@@ -48,15 +48,12 @@ public class CustomInstructionRequirementsExtractingAlgorithm
   private final CustomInstructionApplicationBuilder ciasBuilder;
   private final CustomInstructionRequirementsExtractor ciExtractor;
 
-  @Option(
-      secure = true,
-      description =
-          "Specifies the mode how custom instruction applications in program are identified.")
+  @Option(secure = true,
+      description = "Specifies the mode how custom instruction applications in program are identified.")
   private CIDescriptionType mode = CIDescriptionType.OPERATOR;
 
   /**
    * Constructor of CustomInstructionRequirementsExtractingAlgorithm
-   *
    * @param analysisAlgorithm Algorithm
    * @param cpa ConfigurableProgramAnalysis
    * @param config Configuration
@@ -64,14 +61,9 @@ public class CustomInstructionRequirementsExtractingAlgorithm
    * @param sdNotifier ShutdownNotifier
    * @throws InvalidConfigurationException if the given Path not exists
    */
-  public CustomInstructionRequirementsExtractingAlgorithm(
-      final Algorithm analysisAlgorithm,
-      final ConfigurableProgramAnalysis cpa,
-      final Configuration config,
-      final LogManager logger,
-      final ShutdownNotifier sdNotifier,
-      final CFA cfa)
-      throws InvalidConfigurationException {
+  public CustomInstructionRequirementsExtractingAlgorithm(final Algorithm analysisAlgorithm,
+      final ConfigurableProgramAnalysis cpa, final Configuration config, final LogManager logger,
+      final ShutdownNotifier sdNotifier, final CFA cfa) throws InvalidConfigurationException {
 
     config.inject(this);
 
@@ -81,26 +73,20 @@ public class CustomInstructionRequirementsExtractingAlgorithm
     this.cpa = cpa;
 
     if (!(cpa instanceof ARGCPA)) {
-      throw new InvalidConfigurationException(
-          "The given cpa " + cpa + "is not an instance of ARGCPA");
+      throw new InvalidConfigurationException("The given cpa " + cpa + "is not an instance of ARGCPA");
     }
 
-    ciasBuilder =
-        CustomInstructionApplicationBuilder.getBuilder(mode, config, logger, sdNotifier, cfa);
+    ciasBuilder = CustomInstructionApplicationBuilder.getBuilder(mode, config, logger, sdNotifier, cfa);
     ciExtractor = new CustomInstructionRequirementsExtractor(config, logger, sdNotifier, cpa);
 
     Class<? extends AbstractState> requirementsStateClass = ciExtractor.getRequirementsStateClass();
     try {
-      if (AbstractStates.extractStateByType(
-              cpa.getInitialState(cfa.getMainFunction(), StateSpacePartition.getDefaultPartition()),
-              requirementsStateClass)
-          == null) {
-        throw new InvalidConfigurationException(
-            requirementsStateClass + "is not an abstract state.");
+      if (AbstractStates.extractStateByType(cpa.getInitialState(cfa.getMainFunction(), StateSpacePartition.getDefaultPartition()),
+                                            requirementsStateClass) == null) {
+        throw new InvalidConfigurationException(requirementsStateClass + "is not an abstract state.");
       }
     } catch (InterruptedException e) {
-      throw new InvalidConfigurationException(
-          requirementsStateClass + "initial state computation did not finish in time");
+      throw new InvalidConfigurationException(requirementsStateClass + "initial state computation did not finish in time");
     }
   }
 
@@ -112,8 +98,7 @@ public class CustomInstructionRequirementsExtractingAlgorithm
     try {
       cia = ciasBuilder.identifyCIApplications();
     } catch (IOException e) {
-      logger.log(
-          Level.SEVERE, "Detecting the custom instruction applications in program failed.", e);
+      logger.log(Level.SEVERE, "Detecting the custom instruction applications in program failed.", e);
       return AlgorithmStatus.UNSOUND_AND_PRECISE;
     }
 
@@ -125,10 +110,8 @@ public class CustomInstructionRequirementsExtractingAlgorithm
       @SuppressWarnings("resource")
       PredicateCPA predCPA = CPAs.retrieveCPA(cpa, PredicateCPA.class);
       if (predCPA == null) {
-        logger.log(
-            Level.SEVERE,
-            "Cannot find PredicateCPA in CPA configuration but it is required to set abstraction"
-                + " nodes");
+        logger.log(Level.SEVERE,
+            "Cannot find PredicateCPA in CPA configuration but it is required to set abstraction nodes");
         return AlgorithmStatus.UNSOUND_AND_PRECISE;
       }
       predCPA.changeExplicitAbstractionNodes(cia.getStartAndEndLocationsOfCIApplications());
@@ -150,7 +133,7 @@ public class CustomInstructionRequirementsExtractingAlgorithm
     shutdownNotifier.shutdownIfNecessary();
     logger.log(Level.INFO, "Start extracting requirements for applied custom instructions");
 
-    ciExtractor.extractRequirements((ARGState) pReachedSet.getFirstState(), cia);
+    ciExtractor.extractRequirements((ARGState)pReachedSet.getFirstState(), cia);
     return status;
   }
 

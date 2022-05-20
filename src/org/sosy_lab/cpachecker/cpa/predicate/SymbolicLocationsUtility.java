@@ -41,9 +41,7 @@ public class SymbolicLocationsUtility {
     fmgr = solver.getFormulaManager();
     pamgr = pPredicateCpa.getPredicateManager();
     pfmgr = pPredicateCpa.getPathFormulaManager();
-    TargetLocationProvider tlp =
-        new TargetLocationProviderImpl(
-            pPredicateCpa.getShutdownNotifier(), pPredicateCpa.getLogger(), cfa);
+    TargetLocationProvider tlp = new TargetLocationProviderImpl(pPredicateCpa.getShutdownNotifier(), pPredicateCpa.getLogger(), cfa);
     targetNodes = tlp.tryGetAutomatonTargetLocations(cfa.getMainFunction(), pSpecification);
   }
 

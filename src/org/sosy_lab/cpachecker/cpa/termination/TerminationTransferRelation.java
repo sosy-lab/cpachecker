@@ -97,9 +97,9 @@ public class TerminationTransferRelation extends AbstractSingleWrapperTransferRe
    *
    */
 
-  private static final String TMP_VARIABLE_NAME = "__CPAchecker_termination_temp";
+  private final static String TMP_VARIABLE_NAME = "__CPAchecker_termination_temp";
 
-  private static final CFunctionDeclaration NONDET_INT =
+  private final static CFunctionDeclaration NONDET_INT =
       new CFunctionDeclaration(
           FileLocation.DUMMY,
           CFunctionType.functionTypeWithReturnType(CNumericTypes.INT),
@@ -164,7 +164,8 @@ public class TerminationTransferRelation extends AbstractSingleWrapperTransferRe
       Collection<? extends AbstractState> strengthenedStates =
           transferRelation.strengthen(
               targetState.getWrappedState(), singletonList(targetState), null, pPrecision);
-      strengthenedStates.stream()
+      strengthenedStates
+          .stream()
           .map(targetState::withWrappedState)
           .forEach(resultingSuccessors::add);
     }
@@ -283,7 +284,8 @@ public class TerminationTransferRelation extends AbstractSingleWrapperTransferRe
 
     // Enter loop only once.
     Collection<TerminationState> nonLoopStatesAtNode3 =
-        statesAtNode3.stream()
+        statesAtNode3
+            .stream()
             .filter(TerminationState::isPartOfStem)
             .collect(Collectors.toCollection(ArrayList::new));
     Collection<TerminationState> statesAtNode4 =
@@ -293,7 +295,8 @@ public class TerminationTransferRelation extends AbstractSingleWrapperTransferRe
 
     // node4 - x' = x; y' = y; ... -> node 5
     CFANode node5 = createCfaNode(functionName);
-    initializePrimedVariables(node4, node5, statesAtNode4, pPrecision).stream()
+    initializePrimedVariables(node4, node5, statesAtNode4, pPrecision)
+        .stream()
         .map((s) -> s.enterLoop(loopHead)) // pc' = loopHead
         .forEach(statesAtNode5::add);
 
@@ -340,7 +343,9 @@ public class TerminationTransferRelation extends AbstractSingleWrapperTransferRe
       if (state.isPartOfStem() || !terminationInformation.isloopLeavingEdge(pEdge)) {
 
         AbstractState wrappedState = state.getWrappedState();
-        transferRelation.getAbstractSuccessorsForEdge(wrappedState, pPrecision, pEdge).stream()
+        transferRelation
+            .getAbstractSuccessorsForEdge(wrappedState, pPrecision, pEdge)
+            .stream()
             .map(state::withWrappedState)
             .forEach(successors::add);
       }
@@ -355,7 +360,9 @@ public class TerminationTransferRelation extends AbstractSingleWrapperTransferRe
     Collection<TerminationState> resultingSuccessors = new ArrayList<>(pStates.size());
 
     for (TerminationState state : pStates) {
-      transferRelation.getAbstractSuccessors(state.getWrappedState(), pPrecision).stream()
+      transferRelation
+          .getAbstractSuccessors(state.getWrappedState(), pPrecision)
+          .stream()
           .map(state::withWrappedState)
           .filter(
               s ->
@@ -422,7 +429,9 @@ public class TerminationTransferRelation extends AbstractSingleWrapperTransferRe
     createdCfaEdges.add(edge);
   }
 
-  /** Removes all temporarily added {@link CFAEdge}s from the CFA. */
+  /**
+   * Removes all temporarily added {@link CFAEdge}s from the CFA.
+   */
   private void resetCfa() {
     createdCfaEdges.forEach(CFACreationUtils::removeEdgeFromNodes);
     createdCfaEdges.clear();

@@ -46,4 +46,5 @@ public final class SimpleTargetInformation implements TargetInformation {
   public static ImmutableSet<TargetInformation> singleton(final String pText) {
     return ImmutableSet.of(SimpleTargetInformation.create(pText));
   }
+
 }

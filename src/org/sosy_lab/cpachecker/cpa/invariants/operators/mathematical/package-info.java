@@ -6,5 +6,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-/** Operators for (mathematical) integer intervals and compound intervals. */
+/**
+ * Operators for (mathematical) integer intervals and compound intervals.
+ */
 package org.sosy_lab.cpachecker.cpa.invariants.operators.mathematical;

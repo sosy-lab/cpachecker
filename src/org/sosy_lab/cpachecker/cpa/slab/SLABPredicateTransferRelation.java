@@ -45,4 +45,5 @@ public class SLABPredicateTransferRelation implements TransferRelation {
       throws CPATransferException, InterruptedException {
     throw new UnsupportedOperationException("SLAB does not provide successors for a certain edge");
   }
+
 }

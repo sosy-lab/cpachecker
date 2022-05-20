@@ -45,8 +45,8 @@ public class InputTransferRelation extends SingleEdgeTransferRelation {
   }
 
   @Override
-  public Collection<? extends AbstractState> getAbstractSuccessorsForEdge(
-      AbstractState pState, Precision pPrecision, CFAEdge pEdge) {
+  public Collection<? extends AbstractState> getAbstractSuccessorsForEdge(AbstractState pState,
+      Precision pPrecision, CFAEdge pEdge) {
     return Collections.singleton(getAbstractSuccessorForEdge(pEdge));
   }
 
@@ -112,8 +112,7 @@ public class InputTransferRelation extends SingleEdgeTransferRelation {
     if (summaryEdge == null) {
       return InputState.empty();
     }
-    return handleFunctionCall(
-        summaryEdge.getFunctionEntry().getFunctionParameters(), pEdge.getArguments());
+    return handleFunctionCall(summaryEdge.getFunctionEntry().getFunctionParameters(), pEdge.getArguments());
   }
 
   private static InputState handleFunctionCall(
@@ -130,4 +129,5 @@ public class InputTransferRelation extends SingleEdgeTransferRelation {
     }
     return InputState.forInputs(inputs.build());
   }
+
 }

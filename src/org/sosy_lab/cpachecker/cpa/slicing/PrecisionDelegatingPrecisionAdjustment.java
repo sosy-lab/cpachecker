@@ -21,11 +21,14 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 /**
  * Precision adjustment operator of {@link SlicingCPA}.
- *
- * <p>Delegates precision adjustment to the CPA wrapped by the slicing CPA, using its original
- * precision that is wrapped by the {@link SlicingPrecision}.
+ * <p>
+ * Delegates precision adjustment to the CPA wrapped
+ * by the slicing CPA, using its original precision
+ * that is wrapped by the {@link SlicingPrecision}.
+ * </p>
  */
-public class PrecisionDelegatingPrecisionAdjustment implements PrecisionAdjustment {
+public class PrecisionDelegatingPrecisionAdjustment
+    implements PrecisionAdjustment {
 
   private final PrecisionAdjustment delegate;
 
@@ -39,8 +42,8 @@ public class PrecisionDelegatingPrecisionAdjustment implements PrecisionAdjustme
       final Precision pPrecision,
       final UnmodifiableReachedSet pStates,
       final Function<AbstractState, AbstractState> pStateProjection,
-      final AbstractState pFullState)
-      throws CPAException, InterruptedException {
+      final AbstractState pFullState
+  ) throws CPAException, InterruptedException {
     checkState(
         pPrecision instanceof SlicingPrecision,
         "Precision not of type %s, but %s",

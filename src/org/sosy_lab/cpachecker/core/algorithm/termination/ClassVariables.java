@@ -78,7 +78,8 @@ public class ClassVariables {
         String functionName = pNode.getFunctionName();
         List<CParameterDeclaration> parameters =
             ((CFunctionEntryNode) pNode).getFunctionParameters();
-        parameters.stream()
+        parameters
+            .stream()
             .map(CParameterDeclaration::asVariableDeclaration)
             .forEach(decl -> localDeclarations.put(functionName, decl));
       }

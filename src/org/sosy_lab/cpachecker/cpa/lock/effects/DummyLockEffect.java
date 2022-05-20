@@ -11,9 +11,10 @@ package org.sosy_lab.cpachecker.cpa.lock.effects;
 import com.google.common.base.Preconditions;
 import org.sosy_lab.cpachecker.cpa.lock.AbstractLockStateBuilder;
 
+
 public class DummyLockEffect implements AbstractLockEffect {
 
-  private static final DummyLockEffect instance = new DummyLockEffect();
+  private final static DummyLockEffect instance = new DummyLockEffect();
 
   private DummyLockEffect() {}
 
@@ -25,4 +26,5 @@ public class DummyLockEffect implements AbstractLockEffect {
   public static DummyLockEffect getInstance() {
     return instance;
   }
+
 }

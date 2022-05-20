@@ -36,15 +36,18 @@ import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.refinement.StrongestPostOperator;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
-/** Strongest post-operator using {@link ValueAnalysisTransferRelation}. */
-public class ValueAnalysisStrongestPostOperator
-    implements StrongestPostOperator<ValueAnalysisState> {
+/**
+ * Strongest post-operator using {@link ValueAnalysisTransferRelation}.
+ */
+public class ValueAnalysisStrongestPostOperator implements StrongestPostOperator<ValueAnalysisState> {
 
   private final ValueAnalysisTransferRelation transfer;
 
   public ValueAnalysisStrongestPostOperator(
-      final LogManager pLogger, final Configuration pConfig, final CFA pCfa)
-      throws InvalidConfigurationException {
+      final LogManager pLogger,
+      final Configuration pConfig,
+      final CFA pCfa
+  ) throws InvalidConfigurationException {
 
     transfer =
         new ValueAnalysisTransferRelation(
@@ -73,18 +76,18 @@ public class ValueAnalysisStrongestPostOperator
   }
 
   @Override
-  public ValueAnalysisState handleFunctionCall(
-      ValueAnalysisState state, CFAEdge edge, Deque<ValueAnalysisState> callstack) {
+  public ValueAnalysisState handleFunctionCall(ValueAnalysisState state, CFAEdge edge,
+      Deque<ValueAnalysisState> callstack) {
     callstack.push(state);
     return state;
   }
 
   @Override
-  public ValueAnalysisState handleFunctionReturn(
-      ValueAnalysisState next, CFAEdge edge, Deque<ValueAnalysisState> callstack) {
+  public ValueAnalysisState handleFunctionReturn(ValueAnalysisState next, CFAEdge edge,
+      Deque<ValueAnalysisState> callstack) {
 
     final ValueAnalysisState callState = callstack.pop();
-    return next.rebuildStateAfterFunctionCall(callState, (FunctionExitNode) edge.getPredecessor());
+    return next.rebuildStateAfterFunctionCall(callState, (FunctionExitNode)edge.getPredecessor());
   }
 
   @Override
@@ -92,11 +95,12 @@ public class ValueAnalysisStrongestPostOperator
       final ValueAnalysisState pNext,
       final CFANode pCurrNode,
       final ARGPath pErrorPath,
-      final Precision pPrecision) {
+      final Precision pPrecision
+  ) {
 
     assert pPrecision instanceof VariableTrackingPrecision;
 
-    VariableTrackingPrecision precision = (VariableTrackingPrecision) pPrecision;
+    VariableTrackingPrecision precision = (VariableTrackingPrecision)pPrecision;
 
     final boolean performAbstraction = precision.allowsAbstraction();
     final Collection<MemoryLocation> exceedingMemoryLocations =
@@ -120,8 +124,8 @@ public class ValueAnalysisStrongestPostOperator
 
   protected Set<MemoryLocation> obtainExceedingMemoryLocations(final ARGPath pPath) {
     UniqueAssignmentsInPathConditionState assignments =
-        AbstractStates.extractStateByType(
-            pPath.getLastState(), UniqueAssignmentsInPathConditionState.class);
+        AbstractStates.extractStateByType(pPath.getLastState(),
+            UniqueAssignmentsInPathConditionState.class);
 
     if (assignments == null) {
       return ImmutableSet.of();

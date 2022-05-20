@@ -15,7 +15,9 @@ import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 
-/** Simple Key-Value statistics implementation. */
+/**
+ * Simple Key-Value statistics implementation.
+ */
 public class KeyValueStatistics implements Statistics {
 
   private final Map<String, Object> keyValueStats = new TreeMap<>();
@@ -35,7 +37,7 @@ public class KeyValueStatistics implements Statistics {
   /**
    * {@inheritDoc}
    *
-   * <p>This implementation of getName() computes the name of the statistic from the class name.
+   * This implementation of getName() computes the name of the statistic from the class name.
    */
   @Override
   public String getName() {
@@ -47,4 +49,5 @@ public class KeyValueStatistics implements Statistics {
       return result.substring(0, relevantUntil);
     }
   }
+
 }

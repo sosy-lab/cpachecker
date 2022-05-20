@@ -14,8 +14,7 @@ import java.util.Set;
 public class Binder {
 
   public enum Quantifier {
-    FORALL,
-    EXISTS
+    FORALL, EXISTS
   }
 
   private final ACSLType type;

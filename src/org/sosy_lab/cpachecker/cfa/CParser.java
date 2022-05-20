@@ -26,9 +26,10 @@ import org.sosy_lab.cpachecker.exceptions.CParserException;
 /**
  * Abstraction of a C parser that creates CFAs from C code.
  *
- * <p>A C parser should be state-less and therefore thread-safe as well as reusable.
+ * A C parser should be state-less and therefore thread-safe as well as reusable.
  *
- * <p>It may offer timing of it's operations. If present, this is not expected to be thread-safe.
+ * It may offer timing of it's operations. If present, this is not expected to
+ * be thread-safe.
  */
 public interface CParser extends Parser {
 
@@ -150,7 +151,7 @@ public interface CParser extends Parser {
   @Options(prefix = "parser")
   abstract class ParserOptions {
 
-    @Option(secure = true, description = "C dialect for parser")
+    @Option(secure=true, description="C dialect for parser")
     private Dialect dialect = Dialect.GNUC;
 
     @Option(secure = true, description = "Whether to collect ACSL annotations if present")
@@ -170,8 +171,7 @@ public interface CParser extends Parser {
   /** Factory that tries to create a parser based on available libraries (e.g. Eclipse CDT). */
   class Factory {
 
-    public static ParserOptions getOptions(Configuration config)
-        throws InvalidConfigurationException {
+    public static ParserOptions getOptions(Configuration config) throws InvalidConfigurationException {
       ParserOptions result = new EclipseCParserOptions();
       config.recursiveInject(result);
       return result;

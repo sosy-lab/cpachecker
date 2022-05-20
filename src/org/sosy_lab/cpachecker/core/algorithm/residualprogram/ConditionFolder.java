@@ -157,10 +157,10 @@ public abstract class ConditionFolder {
   private static class FolderOptions {
 
     @Option(
-        secure = true,
-        description =
-            "Define kind of folder to use when combining condition with folding approach in"
-                + " residual program generation")
+      secure = true,
+      description =
+          "Define kind of folder to use when combining condition with folding approach in residual program generation"
+    )
     private FOLDER_TYPE folderType = FOLDER_TYPE.CFA;
   }
 
@@ -384,8 +384,7 @@ public abstract class ConditionFolder {
           foldIDChild = adaptID(edge, foldID, child);
 
           if (!oldARGToFoldedState.containsKey(child)) {
-            if (shouldFold(locChild)
-                && folderStatesFoldIDToFoldedARGState.containsKey(foldIDChild)) {
+            if (shouldFold(locChild) && folderStatesFoldIDToFoldedARGState.containsKey(foldIDChild)) {
               foldedNode = folderStatesFoldIDToFoldedARGState.get(foldIDChild);
               assert Objects.equals(locChild, AbstractStates.extractLocation(foldedNode));
             } else {
@@ -442,8 +441,7 @@ public abstract class ConditionFolder {
     }
   }
 
-  private static class LoopAlwaysFolder
-      extends StructureFolder<Pair<CFANode, CallstackStateEqualsWrapper>> {
+  private static class LoopAlwaysFolder extends StructureFolder<Pair<CFANode, CallstackStateEqualsWrapper>> {
 
     public LoopAlwaysFolder(final CFA pCfa) {
       super(pCfa, FOLDER_TYPE.LOOP_ALWAYS);
@@ -554,9 +552,10 @@ public abstract class ConditionFolder {
     private final LoopInfo loopInfo;
 
     @Option(
-        secure = true,
-        description = "How often may a loop be unrolled before it must be folded",
-        name = "unrollBound")
+      secure = true,
+      description = "How often may a loop be unrolled before it must be folded",
+      name = "unrollBound"
+    )
     @IntegerOption(min = 2)
     private int maxUnrolls = 2;
 
@@ -589,7 +588,9 @@ public abstract class ConditionFolder {
       // next loop iteration
       if (loopInfo.startNewLoopIteation(pEdge) && newLoopBoundID.contains("|")) {
         prevLoopIt =
-            Integer.parseInt(newLoopBoundID.substring(newLoopBoundID.lastIndexOf(":") + 1));
+            Integer.parseInt(
+                newLoopBoundID.substring(
+                    newLoopBoundID.lastIndexOf(":") + 1));
         newLoopBoundID = newLoopBoundID.substring(0, newLoopBoundID.lastIndexOf("|"));
       }
 
@@ -621,9 +622,10 @@ public abstract class ConditionFolder {
     private final LoopInfo loopInfo;
 
     @Option(
-        secure = true,
-        description = "How often may a loop be unrolled before it must be folded",
-        name = "unrollBound")
+      secure = true,
+      description = "How often may a loop be unrolled before it must be folded",
+      name = "unrollBound"
+    )
     @IntegerOption(min = 2)
     private int maxUnrolls = 2;
 
@@ -716,11 +718,11 @@ public abstract class ConditionFolder {
     protected Pair<String, CallstackStateEqualsWrapper> getRootFoldId(final ARGState pRoot) {
       CFANode rootLoc = AbstractStates.extractLocation(pRoot);
       String loopPart = ":";
-      if (!shouldFold(rootLoc)) {
+      if(!shouldFold(rootLoc)) {
         loopPart = ":|" + pRoot.getStateId();
       }
       return Pair.of(
-          rootLoc + loopPart,
+          rootLoc+loopPart,
           new CallstackStateEqualsWrapper(
               AbstractStates.extractStateByType(pRoot, CallstackState.class)));
     }

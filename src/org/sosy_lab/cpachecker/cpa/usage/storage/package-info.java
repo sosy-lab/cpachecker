@@ -6,5 +6,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-/** This package implements a intelligent tree storage of all accesses to variables */
+/**
+ * This package implements a intelligent tree storage of all accesses to variables
+ */
 package org.sosy_lab.cpachecker.cpa.usage.storage;

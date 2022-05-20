@@ -114,8 +114,8 @@ public class CFAUtils {
   public static final Pattern CFA_NODE_NAME_PATTERN = Pattern.compile("N([0-9][0-9]*)");
 
   /**
-   * Return an {@link Iterable} that contains all entering edges of a given CFANode, including the
-   * summary edge if the node has one.
+   * Return an {@link Iterable} that contains all entering edges of a given CFANode,
+   * including the summary edge if the node has one.
    */
   public static FluentIterable<CFAEdge> allEnteringEdges(final CFANode node) {
     checkNotNull(node);
@@ -147,8 +147,8 @@ public class CFAUtils {
   }
 
   /**
-   * Return an {@link Iterable} that contains the entering edges of a given CFANode, excluding the
-   * summary edge.
+   * Return an {@link Iterable} that contains the entering edges of a given CFANode,
+   * excluding the summary edge.
    */
   public static FluentIterable<CFAEdge> enteringEdges(final CFANode node) {
     checkNotNull(node);
@@ -168,7 +168,7 @@ public class CFAUtils {
 
           @Override
           public CFAEdge next() {
-            return node.getEnteringEdge(i++);
+             return node.getEnteringEdge(i++);
           }
         };
       }
@@ -176,8 +176,8 @@ public class CFAUtils {
   }
 
   /**
-   * Return an {@link Iterable} that contains all leaving edges of a given CFANode, including the
-   * summary edge if the node as one.
+   * Return an {@link Iterable} that contains all leaving edges of a given CFANode,
+   * including the summary edge if the node as one.
    */
   public static FluentIterable<CFAEdge> allLeavingEdges(final CFANode node) {
     checkNotNull(node);
@@ -209,8 +209,8 @@ public class CFAUtils {
   }
 
   /**
-   * Return an {@link Iterable} that contains the leaving edges of a given CFANode, excluding the
-   * summary edge.
+   * Return an {@link Iterable} that contains the leaving edges of a given CFANode,
+   * excluding the summary edge.
    */
   public static FluentIterable<CFAEdge> leavingEdges(final CFANode node) {
     checkNotNull(node);
@@ -230,7 +230,7 @@ public class CFAUtils {
 
           @Override
           public CFAEdge next() {
-            return node.getLeavingEdge(i++);
+             return node.getLeavingEdge(i++);
           }
         };
       }
@@ -238,8 +238,8 @@ public class CFAUtils {
   }
 
   /**
-   * Return an {@link Iterable} that contains the predecessor nodes of a given CFANode, excluding
-   * the one reachable via the summary edge (if there is one).
+   * Return an {@link Iterable} that contains the predecessor nodes of a given CFANode,
+   * excluding the one reachable via the summary edge (if there is one).
    */
   public static FluentIterable<CFANode> predecessorsOf(final CFANode node) {
     return enteringEdges(node).transform(CFAEdge::getPredecessor);
@@ -254,23 +254,24 @@ public class CFAUtils {
   }
 
   /**
-   * Return an {@link Iterable} that contains the successor nodes of a given CFANode, excluding the
-   * one reachable via the summary edge (if there is one).
+   * Return an {@link Iterable} that contains the successor nodes of a given CFANode,
+   * excluding the one reachable via the summary edge (if there is one).
    */
   public static FluentIterable<CFANode> successorsOf(final CFANode node) {
     return leavingEdges(node).transform(CFAEdge::getSuccessor);
   }
 
   /**
-   * Return an {@link Iterable} that contains all the successor nodes of a given CFANode, including
-   * the one reachable via the summary edge (if there is one).
+   * Return an {@link Iterable} that contains all the successor nodes of a given CFANode,
+   * including the one reachable via the summary edge (if there is one).
    */
   public static FluentIterable<CFANode> allSuccessorsOf(final CFANode node) {
     return allLeavingEdges(node).transform(CFAEdge::getSuccessor);
   }
 
   /**
-   * Returns a predicate for CFA edges with the given edge type. The predicate is not null safe.
+   * Returns a predicate for CFA edges with the given edge type.
+   * The predicate is not null safe.
    *
    * @param pType the edge type matched on.
    */
@@ -279,7 +280,10 @@ public class CFAUtils {
     return pInput -> pInput.getEdgeType() == pType;
   }
 
-  /** Returns the other AssumeEdge (with the negated condition) of a given AssumeEdge. */
+  /**
+   * Returns the other AssumeEdge (with the negated condition)
+   * of a given AssumeEdge.
+   */
   public static AssumeEdge getComplimentaryAssumeEdge(AssumeEdge edge) {
     checkArgument(edge.getPredecessor().getNumLeavingEdges() == 2);
     return (AssumeEdge)
@@ -288,23 +292,24 @@ public class CFAUtils {
   }
 
   /**
-   * Checks if a path from the source to the target exists, using the given function to obtain the
-   * edges leaving a node.
+   * Checks if a path from the source to the target exists, using the given
+   * function to obtain the edges leaving a node.
    *
    * @param pSource the search start node.
    * @param pTarget the target.
-   * @param pGetLeavingEdges the function used to obtain leaving edges and thus the successors of a
-   *     node.
+   * @param pGetLeavingEdges the function used to obtain leaving edges and thus
+   * the successors of a node.
    * @param pShutdownNotifier the shutdown notifier to be checked.
-   * @return {@code true} if a path from the source to the target exists, {@code false} otherwise.
-   * @throws InterruptedException if a shutdown has been requested by the given shutdown notifier.
+   *
+   * @return {@code true} if a path from the source to the target exists,
+   * {@code false} otherwise.
+   *
+   * @throws InterruptedException if a shutdown has been requested by the given
+   * shutdown notifier.
    */
-  public static boolean existsPath(
-      CFANode pSource,
-      CFANode pTarget,
-      Function<CFANode, Iterable<CFAEdge>> pGetLeavingEdges,
-      ShutdownNotifier pShutdownNotifier)
-      throws InterruptedException {
+  public static boolean existsPath(CFANode pSource,
+      CFANode pTarget, Function<CFANode, Iterable<CFAEdge>> pGetLeavingEdges,
+      ShutdownNotifier pShutdownNotifier) throws InterruptedException {
     Set<CFANode> visited = new HashSet<>();
     Queue<CFANode> waitlist = new ArrayDeque<>();
     waitlist.offer(pSource);
@@ -330,10 +335,11 @@ public class CFAUtils {
 
     for (Loop l : loops) {
       if (l.getOutgoingEdges().isEmpty()
-          || l.getOutgoingEdges().stream()
-              .allMatch(x -> x.getSuccessor() instanceof CFATerminationNode)) {
-        // one loopHead per loop should be enough for finding all locations
-        loopHeads.addAll(l.getLoopHeads());
+          || l.getOutgoingEdges()
+          .stream()
+          .allMatch(x -> x.getSuccessor() instanceof CFATerminationNode)) {
+      // one loopHead per loop should be enough for finding all locations
+      loopHeads.addAll(l.getLoopHeads());
       }
     }
     return loopHeads;
@@ -356,8 +362,8 @@ public class CFAUtils {
   }
 
   /**
-   * This Visitor searches for backwards edges in the CFA, if some backwards edges were found can be
-   * obtained by calling the method hasBackwardsEdges()
+   * This Visitor searches for backwards edges in the CFA, if some backwards edges
+   * were found can be obtained by calling the method hasBackwardsEdges()
    */
   private static class FindBackwardsEdgesVisitor extends DefaultCFAVisitor {
 
@@ -369,16 +375,13 @@ public class CFAUtils {
       if (pNode.getNumLeavingEdges() == 0) {
         return TraversalProcess.CONTINUE;
       } else if (pNode.getNumLeavingEdges() == 1
-          && pNode.getLeavingEdge(0).getSuccessor().getReversePostorderId()
-              >= pNode.getReversePostorderId()) {
+                 && pNode.getLeavingEdge(0).getSuccessor().getReversePostorderId() >= pNode.getReversePostorderId()) {
 
         hasBackwardsEdges = true;
         return TraversalProcess.ABORT;
       } else if (pNode.getNumLeavingEdges() == 2
-          && (pNode.getLeavingEdge(0).getSuccessor().getReversePostorderId()
-                  >= pNode.getReversePostorderId()
-              || pNode.getLeavingEdge(1).getSuccessor().getReversePostorderId()
-                  >= pNode.getReversePostorderId())) {
+                 && (pNode.getLeavingEdge(0).getSuccessor().getReversePostorderId() >= pNode.getReversePostorderId() ||
+                 pNode.getLeavingEdge(1).getSuccessor().getReversePostorderId() >= pNode.getReversePostorderId())) {
         hasBackwardsEdges = true;
         return TraversalProcess.ABORT;
       } else if (pNode.getNumLeavingEdges() > 2) {
@@ -395,7 +398,6 @@ public class CFAUtils {
 
   /**
    * Searches for backwards edges from a given starting node
-   *
    * @param rootNode The node where the search is started
    * @return indicates if a backwards edge was found
    */
@@ -423,8 +425,7 @@ public class CFAUtils {
     // The best would be to eliminate all uses of this method
     // (code should not use Strings, but for example AIdExpressions).
     // For now, we just assume all variables are named as
-    // {@link org.sosy_lab.cpachecker.cfa.parser.eclipse.c.FunctionScope#createQualifiedName(String,
-    // String)}
+    // {@link org.sosy_lab.cpachecker.cfa.parser.eclipse.c.FunctionScope#createQualifiedName(String, String)}
     // produces them.
     String prefix = checkNotNull(function) + "::";
     return Collections3.subSetWithPrefix(variables, prefix);
@@ -520,8 +521,8 @@ public class CFAUtils {
   }
 
   /**
-   * Return all variable names that are referenced in an expression, in pre-order and possibly with
-   * duplicates.
+   * Return all variable names that are referenced in an expression,
+   * in pre-order and possibly with duplicates.
    */
   public static FluentIterable<String> getVariableNamesOfExpression(CExpression expr) {
     return getIdExpressionsOfExpression(expr)
@@ -529,19 +530,25 @@ public class CFAUtils {
   }
 
   /**
-   * Return all {@link CIdExpression}s that appear in an expression, in pre-order and possibly with
-   * duplicates.
+   * Return all {@link CIdExpression}s that appear in an expression,
+   * in pre-order and possibly with duplicates.
    */
   public static FluentIterable<CIdExpression> getIdExpressionsOfExpression(CExpression expr) {
     return traverseRecursively(expr).filter(CIdExpression.class);
   }
 
-  /** Get an iterable that recursively lists all AST nodes that occur in an AST (in pre-order). */
+  /**
+   * Get an iterable that recursively lists all AST nodes that occur in an AST
+   * (in pre-order).
+   */
   public static FluentIterable<AAstNode> traverseRecursively(AAstNode root) {
     return FluentIterable.from(AST_TRAVERSER.depthFirstPreOrder(root));
   }
 
-  /** Get an iterable that recursively lists all AST nodes that occur in a C AST (in pre-order). */
+  /**
+   * Get an iterable that recursively lists all AST nodes that occur in a C AST
+   * (in pre-order).
+   */
   @SuppressWarnings(
       "unchecked") // by construction, we only get CAstNodes if we start with a CAstNode
   public static FluentIterable<CAstNode> traverseRecursively(CAstNode root) {
@@ -550,7 +557,8 @@ public class CFAUtils {
   }
 
   /**
-   * Get an iterable that recursively lists all AST nodes that occur in a Java AST (in pre-order).
+   * Get an iterable that recursively lists all AST nodes that occur in a Java AST
+   * (in pre-order).
    */
   @SuppressWarnings(
       "unchecked") // by construction, we only get JAstNodes if we start with a jAstNode
@@ -560,8 +568,8 @@ public class CFAUtils {
   }
 
   /**
-   * Get an iterable that recursively lists all AST nodes that occur in a CRightHandSide (in
-   * pre-order).
+   * Get an iterable that recursively lists all AST nodes that occur in a CRightHandSide
+   * (in pre-order).
    */
   @SuppressWarnings("unchecked") // by construction, we only get CRHS if we start with a CRHS
   public static FluentIterable<CRightHandSide> traverseRecursively(CRightHandSide root) {
@@ -570,8 +578,8 @@ public class CFAUtils {
   }
 
   /**
-   * Get an iterable that recursively lists all AST nodes that occur in a CExpression (in
-   * pre-order).
+   * Get an iterable that recursively lists all AST nodes that occur in a CExpression
+   * (in pre-order).
    */
   @SuppressWarnings("unchecked") // by construction, we only get CExps if we start with a CExp
   public static FluentIterable<CExpression> traverseRecursively(CExpression root) {
@@ -580,12 +588,12 @@ public class CFAUtils {
   }
 
   /**
-   * Get an iterable that recursively lists AST nodes that occur in a {@link ALeftHandSide} (in
-   * pre-order).
+   * Get an iterable that recursively lists AST nodes that occur in a {@link ALeftHandSide}
+   * (in pre-order).
    *
-   * <p>Note: contrary to {@link #traverseRecursively(AAstNode)}, this iterable does not contain the
-   * subscript expressions of arrays, which are often not interesting when looking at the left-hand
-   * side of an array assignment.
+   * Note: contrary to {@link #traverseRecursively(AAstNode)},
+   * this iterable does not contain the subscript expressions of arrays,
+   * which are often not interesting when looking at the left-hand side of an array assignment.
    */
   @SuppressWarnings("unchecked") // by construction, we only get AExps if we start with a ALHS
   public static FluentIterable<AExpression> traverseLeftHandSideRecursively(ALeftHandSide root) {

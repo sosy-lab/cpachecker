@@ -11,4 +11,7 @@ package org.sosy_lab.cpachecker.util.smg;
 /*
  * Sometimes we need to return a SMG and a SMGValue.
  */
-public interface SMGVariable extends Comparable<SMGVariable> {}
+public interface SMGVariable extends Comparable<SMGVariable> {
+
+
+}

@@ -67,6 +67,7 @@ public enum StandardLiftings implements Lifting {
           pAssertionIds,
           DoNothingUnsatCallback.INSTANCE);
     }
+
   };
 
   public static <T extends SymbolicCandiateInvariant> SymbolicCandiateInvariant unsatBasedLifting(

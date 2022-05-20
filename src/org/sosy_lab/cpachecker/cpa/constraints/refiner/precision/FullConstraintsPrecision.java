@@ -11,7 +11,9 @@ package org.sosy_lab.cpachecker.cpa.constraints.refiner.precision;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.Constraint;
 
-/** Full precision. Tracks all constraints at every location. */
+/**
+ * Full precision. Tracks all constraints at every location.
+ */
 public class FullConstraintsPrecision implements ConstraintsPrecision {
 
   public static FullConstraintsPrecision getInstance() {
@@ -36,6 +38,7 @@ public class FullConstraintsPrecision implements ConstraintsPrecision {
   @Override
   public ConstraintsPrecision withIncrement(Increment pIncrement) {
     throw new UnsupportedOperationException(
-        FullConstraintsPrecision.class.getSimpleName() + " can't be incremented");
+        FullConstraintsPrecision.class.getSimpleName() + " can't be incremented"
+    );
   }
 }

@@ -19,4 +19,5 @@ public abstract class ValueAnalysisSSCRefiner implements Refiner {
       throws InvalidConfigurationException {
     return SSCBasedRefiner.forARGBasedRefiner(ValueAnalysisRefiner.create0(pCpa), pCpa);
   }
+
 }

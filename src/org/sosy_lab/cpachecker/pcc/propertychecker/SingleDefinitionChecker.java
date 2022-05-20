@@ -27,7 +27,9 @@ import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.reachingdef.ReachingDefUtils.VariableExtractor;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
-/** Checks if a certain variable is defined at most once by the program. */
+/**
+ * Checks if a certain variable is defined at most once by the program.
+ */
 public class SingleDefinitionChecker implements PropertyChecker {
 
   private final MemoryLocation varDefName;
@@ -38,8 +40,7 @@ public class SingleDefinitionChecker implements PropertyChecker {
   }
 
   @Override
-  public boolean satisfiesProperty(AbstractState pElemToCheck)
-      throws UnsupportedOperationException {
+  public boolean satisfiesProperty(AbstractState pElemToCheck) throws UnsupportedOperationException {
     throw new UnsupportedOperationException();
   }
 
@@ -52,8 +53,8 @@ public class SingleDefinitionChecker implements PropertyChecker {
       // check if variable is at most defined once
       rdState = AbstractStates.extractStateByType(elem, ReachingDefState.class);
       if (rdState == ReachingDefState.topElement
-          || !(stillSingleDefinition(rdState.getGlobalReachingDefinitions().get(varDefName))
-              && stillSingleDefinition(rdState.getLocalReachingDefinitions().get(varDefName)))) {
+          || !(stillSingleDefinition(rdState.getGlobalReachingDefinitions().get(varDefName)) && stillSingleDefinition(rdState
+              .getLocalReachingDefinitions().get(varDefName)))) {
         return false;
       }
     }
@@ -73,9 +74,7 @@ public class SingleDefinitionChecker implements PropertyChecker {
           }
         } else if (!p.equals(point)) {
           // check if it is a real definition
-          if (isDefinitionInProgram((ProgramDefinitionPoint) p)) {
-            return false;
-          }
+          if (isDefinitionInProgram((ProgramDefinitionPoint) p)) { return false; }
         }
       }
     }
@@ -90,14 +89,10 @@ public class SingleDefinitionChecker implements PropertyChecker {
       if (edge instanceof CStatementEdge) {
         left = null;
         if (((CStatementEdge) edge).getStatement() instanceof CExpressionAssignmentStatement) {
-          left =
-              ((CExpressionAssignmentStatement) ((CStatementEdge) edge).getStatement())
-                  .getLeftHandSide();
+          left = ((CExpressionAssignmentStatement) ((CStatementEdge) edge).getStatement()).getLeftHandSide();
         }
         if (((CStatementEdge) edge).getStatement() instanceof CFunctionCallAssignmentStatement) {
-          left =
-              ((CFunctionCallAssignmentStatement) ((CStatementEdge) edge).getStatement())
-                  .getLeftHandSide();
+          left = ((CFunctionCallAssignmentStatement) ((CStatementEdge) edge).getStatement()).getLeftHandSide();
         }
         if (left != null) {
           VariableExtractor extractor = new VariableExtractor(edge);
@@ -124,4 +119,5 @@ public class SingleDefinitionChecker implements PropertyChecker {
     }
     return false;
   }
+
 }

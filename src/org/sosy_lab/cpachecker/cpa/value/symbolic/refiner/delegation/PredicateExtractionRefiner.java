@@ -48,7 +48,10 @@ public abstract class PredicateExtractionRefiner implements Refiner {
 
     RefinementStrategy strategy =
         new SymbolicPrecisionRefinementStrategy(
-            config, logger, predicateCPA.getPredicateManager(), predicateCPA.getSolver());
+            config,
+            logger,
+            predicateCPA.getPredicateManager(),
+            predicateCPA.getSolver());
 
     return AbstractARGBasedRefiner.forARGBasedRefiner(
         new PredicateCPARefinerFactory(pCpa).forbidStaticRefinements().create(strategy), pCpa);

@@ -78,12 +78,11 @@ public class ModifiedMaxSatAlgorithm implements FaultLocalizerWithTraceFormula, 
         .getLogger()
         .log(
             Level.FINEST,
-            "tfresult="
-                + FluentIterable.from(hard)
+            "tfresult=" +
+                FluentIterable.from(hard)
                     .transformAndConcat(ImmutableList::copyOf)
-                    .transform(
-                        fc -> fc.correspondingEdge().getFileLocation().getStartingLineInOrigin())
-                    .toSortedList(Integer::compareTo));
+                    .transform(fc -> fc.correspondingEdge().getFileLocation()
+                        .getStartingLineInOrigin()).toSortedList(Integer::compareTo));
     return hard;
   }
 

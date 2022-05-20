@@ -32,8 +32,7 @@ import org.sosy_lab.java_smt.api.FunctionDeclarationKind;
 import org.sosy_lab.java_smt.api.visitors.DefaultFormulaVisitor;
 import org.sosy_lab.java_smt.api.visitors.TraversalProcess;
 
-public class PredicateRequirementsTranslator
-    extends AbstractRequirementsTranslator<PredicateAbstractState> {
+public class PredicateRequirementsTranslator extends AbstractRequirementsTranslator<PredicateAbstractState>{
 
   private final FormulaManagerView fmgr;
   private int counter;
@@ -55,13 +54,13 @@ public class PredicateRequirementsTranslator
       throw new CPAException(
           "The PredicateAbstractState "
               + pRequirement
-              + " is not an abstractionState. Ensure that property"
-              + " cpa.predicate.blk.alwaysAtExplicitNodes is set to true");
+              + " is not an abstractionState. Ensure that property cpa.predicate.blk.alwaysAtExplicitNodes is set to true");
     }
 
     BooleanFormula formulaBool;
     if (pRequiredVars == null) {
-      formulaBool = fmgr.instantiate(pRequirement.getAbstractionFormula().asFormula(), pIndices);
+      formulaBool =
+          fmgr.instantiate(pRequirement.getAbstractionFormula().asFormula(), pIndices);
     } else {
       formulaBool =
           fmgr.instantiate(
@@ -71,23 +70,23 @@ public class PredicateRequirementsTranslator
                       pRequirement.getAbstractionFormula().asFormula(), pRequiredVars)),
               pIndices);
     }
-    Pair<String, List<String>> pair = PredicatePersistenceUtils.splitFormula(fmgr, formulaBool);
-    List<String> list = new ArrayList<>(pair.getSecond());
-    List<String> removeFromList = new ArrayList<>();
-    for (String stmt : list) {
-      if (!stmt.startsWith("(declare") && !stmt.startsWith("(define")) {
-        removeFromList.add(stmt);
+      Pair<String, List<String>> pair = PredicatePersistenceUtils.splitFormula(fmgr, formulaBool);
+      List<String> list = new ArrayList<>(pair.getSecond());
+      List<String> removeFromList = new ArrayList<>();
+      for (String stmt : list) {
+        if (!stmt.startsWith("(declare") && !stmt.startsWith("(define")) {
+          removeFromList.add(stmt);
+        }
       }
-    }
-    list.removeAll(removeFromList);
+      list.removeAll(removeFromList);
 
-    String secReturn;
-    String element = pair.getFirst();
-    // element =(assert ...)
-    element = element.substring(element.indexOf('t') + 1, element.length() - 1);
-    secReturn = "(define-fun .defci" + counter++ + " () Bool " + element + ")";
+      String secReturn;
+      String element = pair.getFirst();
+      // element =(assert ...)
+      element = element.substring(element.indexOf('t') + 1, element.length() - 1);
+      secReturn = "(define-fun .defci" + counter++ + " () Bool " + element + ")";
 
-    return Pair.of(list, secReturn);
+      return Pair.of(list, secReturn);
   }
 
   private Set<String> getRelevantVariables(
@@ -110,7 +109,7 @@ public class PredicateRequirementsTranslator
 
     while (changed) {
       changed = false;
-      for (Entry<String, Collection<String>> dep : varDependentOn.entrySet()) {
+      for (Entry<String, Collection<String>> dep :varDependentOn.entrySet()) {
         if (relevantVars.contains(dep.getKey()) && relevantVars.addAll(dep.getValue())) {
           changed = true;
         }
@@ -165,7 +164,7 @@ public class PredicateRequirementsTranslator
     @Override
     public TraversalProcess visitFunction(
         final Formula pFormula, final List<Formula> args, final FunctionDeclaration<?> decl) {
-      if (decl.getKind().equals(FunctionDeclarationKind.AND)) {
+      if(decl.getKind().equals(FunctionDeclarationKind.AND)) {
         return TraversalProcess.CONTINUE;
       }
 

@@ -10,15 +10,18 @@ package org.sosy_lab.cpachecker.core.interfaces;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
-/** Interface for classes that are wrapping CPAs (like composite CPAs) */
+/**
+ * Interface for classes that are wrapping CPAs
+ * (like composite CPAs)
+ */
 public interface WrapperCPA {
 
   /**
-   * Retrieve one of the wrapped CPAs by type. If the hierarchy of (wrapped) CPAs has several
-   * levels, this method searches through them recursively.
+   * Retrieve one of the wrapped CPAs by type. If the hierarchy of (wrapped)
+   * CPAs has several levels, this method searches through them recursively.
    *
-   * <p>The type does not need to match exactly, the returned element has just to be a sub-type of
-   * the type passed as argument.
+   * The type does not need to match exactly, the returned element has just to
+   * be a sub-type of the type passed as argument.
    *
    * @param <T> The type of the wrapped element.
    * @param type The class object of the type of the wrapped element.
@@ -28,7 +31,6 @@ public interface WrapperCPA {
 
   /**
    * Retrieve all wrapped CPAs contained directly in this object (not recursively).
-   *
    * @return A non-empty unmodifiable list of CPAs.
    */
   Iterable<ConfigurableProgramAnalysis> getWrappedCPAs();

@@ -32,61 +32,70 @@ import org.sosy_lab.cpachecker.util.variableclassification.VariableClassificatio
 public class ConfigurablePrecision extends VariableTrackingPrecision {
 
   @Option(
-      secure = true,
-      name = "variableBlacklist",
-      description =
-          "blacklist regex for variables that won't be tracked by the CPA using this precision")
+    secure = true,
+    name = "variableBlacklist",
+    description =
+        "blacklist regex for variables that won't be tracked by the CPA using this precision"
+  )
   private Pattern variableBlacklist = Pattern.compile("");
 
   @Option(
-      secure = true,
-      name = "variableWhitelist",
-      description =
-          "whitelist regex for variables that will always be tracked by the CPA using this"
-              + " precision")
+    secure = true,
+    name = "variableWhitelist",
+    description =
+        "whitelist regex for variables that will always be tracked by the CPA using this precision"
+  )
   private Pattern variableWhitelist = Pattern.compile("");
 
   @Option(secure = true, description = "If this option is used, booleans from the cfa are tracked.")
   private boolean trackBooleanVariables = true;
 
   @Option(
-      secure = true,
-      description =
-          "If this option is used, variables that are only compared" + " for equality are tracked.")
+    secure = true,
+    description =
+        "If this option is used, variables that are only compared" + " for equality are tracked."
+  )
   private boolean trackIntEqualVariables = true;
 
   @Option(
-      secure = true,
-      description =
-          "If this option is used, variables, that are only used in"
-              + " simple calculations (add, sub, lt, gt, eq) are tracked.")
+    secure = true,
+    description =
+        "If this option is used, variables, that are only used in"
+            + " simple calculations (add, sub, lt, gt, eq) are tracked."
+  )
   private boolean trackIntAddVariables = true;
 
   @Option(
-      secure = true,
-      description =
-          "If this option is used, variables that have type double" + " or float are tracked.")
+    secure = true,
+    description =
+        "If this option is used, variables that have type double" + " or float are tracked."
+  )
   private boolean trackFloatVariables = true;
 
   @Option(
-      secure = true,
-      description =
-          "If this option is used, variables that are addressed"
-              + " may get tracked depending on the rest of the precision. When this option"
-              + " is disabled, a variable that is addressed is definitely not tracked.")
+    secure = true,
+    description =
+        "If this option is used, variables that are addressed"
+            + " may get tracked depending on the rest of the precision. When this option"
+            + " is disabled, a variable that is addressed is definitely not tracked."
+  )
   private boolean trackAddressedVariables = true;
 
   @Option(
-      secure = true,
-      description =
-          "If this option is used, all variables that are"
-              + " of a different classification than IntAdd, IntEq and Boolean get tracked"
-              + " by the precision.")
+    secure = true,
+    description =
+        "If this option is used, all variables that are"
+            + " of a different classification than IntAdd, IntEq and Boolean get tracked"
+            + " by the precision."
+  )
   private boolean trackVariablesBesidesEqAddBool = true;
 
   @Option(
       secure = true,
-      description = "If this option is used, variables that are irrelevant" + "are also tracked.")
+      description =
+          "If this option is used, variables that are irrelevant"
+              + "are also tracked."
+  )
   private boolean trackIrrelevantVariables = true;
 
   private final Optional<VariableClassification> vc;
@@ -104,7 +113,8 @@ public class ConfigurablePrecision extends VariableTrackingPrecision {
 
   @Override
   public boolean allowsAbstraction() {
-    return !trackIrrelevantVariables
+    return
+        !trackIrrelevantVariables
         || !trackBooleanVariables
         || !trackIntEqualVariables
         || !trackIntAddVariables

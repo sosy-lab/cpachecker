@@ -8,9 +8,11 @@
 
 package org.sosy_lab.cpachecker.cpa.invariants.formula;
 
-/** Instances of extending classes traverse a structure of invariants formula in post order. */
-abstract class RecursiveBooleanFormulaVisitor<T>
-    implements BooleanFormulaVisitor<T, BooleanFormula<T>> {
+/**
+ * Instances of extending classes traverse a structure of invariants formula
+ * in post order.
+ */
+abstract class RecursiveBooleanFormulaVisitor<T> implements BooleanFormulaVisitor<T, BooleanFormula<T>> {
 
   private final RecursiveNumeralFormulaVisitor<T> recursiveNumeralFormulaVisitor;
 
@@ -24,7 +26,8 @@ abstract class RecursiveBooleanFormulaVisitor<T>
   }
 
   /**
-   * Visits the (possibly modified) formula after its child formulae were visited by this visitor.
+   * Visits the (possibly modified) formula after its child formulae were
+   * visited by this visitor.
    *
    * @param pFormula the formula to visit.
    * @return the (possible modified) visited formula.
@@ -32,9 +35,7 @@ abstract class RecursiveBooleanFormulaVisitor<T>
   protected abstract BooleanFormula<T> visitPost(BooleanFormula<T> pFormula);
 
   private NumeralFormula<T> visitNumeralChildIfVisitorExists(NumeralFormula<T> pChild) {
-    return recursiveNumeralFormulaVisitor == null
-        ? pChild
-        : pChild.accept(recursiveNumeralFormulaVisitor);
+    return recursiveNumeralFormulaVisitor == null ? pChild : pChild.accept(recursiveNumeralFormulaVisitor);
   }
 
   @Override
@@ -97,4 +98,5 @@ abstract class RecursiveBooleanFormulaVisitor<T>
   public BooleanFormula<T> visitTrue() {
     return visitPost(BooleanConstant.<T>getTrue());
   }
+
 }

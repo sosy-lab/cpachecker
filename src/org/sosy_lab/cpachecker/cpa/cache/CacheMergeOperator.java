@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.cpa.cache;
 
 import java.util.HashMap;
 import java.util.Map;
+
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -26,8 +27,8 @@ public class CacheMergeOperator implements MergeOperator {
   }
 
   @Override
-  public AbstractState merge(AbstractState pElement1, AbstractState pElement2, Precision pPrecision)
-      throws CPAException, InterruptedException {
+  public AbstractState merge(AbstractState pElement1,
+      AbstractState pElement2, Precision pPrecision) throws CPAException, InterruptedException {
 
     Map<AbstractState, Map<AbstractState, AbstractState>> lCache1 = mCache.get(pPrecision);
 
@@ -52,4 +53,5 @@ public class CacheMergeOperator implements MergeOperator {
 
     return lMergedElement;
   }
+
 }

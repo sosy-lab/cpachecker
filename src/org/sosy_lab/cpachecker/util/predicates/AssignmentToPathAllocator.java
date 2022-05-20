@@ -82,12 +82,7 @@ public class AssignmentToPathAllocator {
   private final MemoryName memoryName;
   private final MachineModel machineModel;
 
-  public AssignmentToPathAllocator(
-      Configuration pConfig,
-      ShutdownNotifier pShutdownNotifier,
-      LogManager pLogger,
-      MachineModel pMachineModel)
-      throws InvalidConfigurationException {
+  public AssignmentToPathAllocator(Configuration pConfig, ShutdownNotifier pShutdownNotifier, LogManager pLogger, MachineModel pMachineModel) throws InvalidConfigurationException {
     this.shutdownNotifier = pShutdownNotifier;
     this.assumptionToEdgeAllocator =
         AssumptionToEdgeAllocator.create(pConfig, pLogger, pMachineModel);
@@ -98,17 +93,19 @@ public class AssignmentToPathAllocator {
     memoryName = exp -> typeHandler.getPointerAccessNameForType(typeHandler.getSimplifiedType(exp));
   }
 
-  /** Provide a path with concrete values (like a test case). */
-  public CFAPathWithAssumptions allocateAssignmentsToPath(
-      ARGPath pPath, Iterable<ValueAssignment> pModel, List<SSAMap> pSSAMaps)
-      throws InterruptedException {
+  /**
+   * Provide a path with concrete values (like a test case).
+   */
+  public CFAPathWithAssumptions allocateAssignmentsToPath(ARGPath pPath,
+      Iterable<ValueAssignment> pModel, List<SSAMap> pSSAMaps) throws InterruptedException {
     ConcreteStatePath concreteStatePath = createConcreteStatePath(pPath, pModel, pSSAMaps);
     return CFAPathWithAssumptions.of(concreteStatePath, assumptionToEdgeAllocator);
   }
 
+
   private ConcreteStatePath createConcreteStatePath(
       ARGPath pPath, Iterable<ValueAssignment> pModel, List<SSAMap> pSSAMaps)
-      throws InterruptedException {
+          throws InterruptedException {
 
     ConcreteExpressionEvaluator evaluator = createPredicateAnalysisEvaluator(pModel);
     AssignableTermsInPath assignableTerms = assignTermsToPathPosition(pSSAMaps, pModel);
@@ -154,8 +151,7 @@ public class AssignmentToPathAllocator {
               Maps.transformEntries(memory, (name, heap) -> new Memory(name, heap)));
 
       ConcreteState concreteState =
-          new ConcreteState(
-              variables, allocatedMemory, addressOfVariables, memoryName, evaluator, machineModel);
+          new ConcreteState(variables, allocatedMemory, addressOfVariables, memoryName, evaluator, machineModel);
 
       final SingleConcreteState singleConcreteState;
       if (isInsideMultiEdge) {
@@ -174,8 +170,7 @@ public class AssignmentToPathAllocator {
     return new ConcreteStatePath(pathWithAssignments.build());
   }
 
-  private ConcreteExpressionEvaluator createPredicateAnalysisEvaluator(
-      Iterable<ValueAssignment> pModel) {
+  private ConcreteExpressionEvaluator createPredicateAnalysisEvaluator(Iterable<ValueAssignment> pModel) {
 
     Multimap<String, ValueAssignment> uninterpretedFunctions =
         FluentIterable.from(pModel)
@@ -185,8 +180,7 @@ public class AssignmentToPathAllocator {
     return new PredicateAnalysisConcreteExpressionEvaluator(uninterpretedFunctions);
   }
 
-  private static class PredicateAnalysisConcreteExpressionEvaluator
-      implements ConcreteExpressionEvaluator {
+  private static class PredicateAnalysisConcreteExpressionEvaluator implements ConcreteExpressionEvaluator {
 
     private final Multimap<String, ValueAssignment> uninterpretedFunctions;
 
@@ -249,7 +243,7 @@ public class AssignmentToPathAllocator {
 
     private String getTypeString(CType pExpressionType) {
 
-      if (pExpressionType instanceof CSimpleType) {
+      if(pExpressionType instanceof CSimpleType) {
 
         CSimpleType simpleType = (CSimpleType) pExpressionType;
 
@@ -270,9 +264,7 @@ public class AssignmentToPathAllocator {
     }
 
     private boolean hasUninterpretedFunctionName(CExpression pCExp) {
-      return pCExp instanceof CBinaryExpression
-          || pCExp instanceof CUnaryExpression
-          || pCExp instanceof CCastExpression;
+      return pCExp instanceof CBinaryExpression || pCExp instanceof CUnaryExpression || pCExp instanceof CCastExpression;
     }
 
     @Override
@@ -362,13 +354,12 @@ public class AssignmentToPathAllocator {
 
   private LeftHandSide createLeftHandSide(String pTermName) {
 
-    // TODO ugly, refactor (no splitting)
+    //TODO ugly, refactor (no splitting)
 
     List<String> references = ImmutableList.copyOf(Splitter.on('$').split(pTermName));
     String nameAndFunctionAsString = references.get(NAME_AND_FUNCTION);
 
-    List<String> nameAndFunction =
-        ImmutableList.copyOf(Splitter.on("::").split(nameAndFunctionAsString));
+    List<String> nameAndFunction = ImmutableList.copyOf(Splitter.on("::").split(nameAndFunctionAsString));
 
     String name;
     String function = null;
@@ -439,14 +430,14 @@ public class AssignmentToPathAllocator {
 
           if (oldIndex < newIndex) {
 
-            // update variableEnvironment for subsequent calculation
+            //update variableEnvironment for subsequent calculation
             variableEnvironment.put(canonicalName, term);
 
             LeftHandSide lhs = createLeftHandSide(canonicalName);
             pVariables.put(lhs, term.getValue());
           }
         } else {
-          // update variableEnvironment for subsequent calculation
+          //update variableEnvironment for subsequent calculation
           variableEnvironment.put(canonicalName, term);
 
           LeftHandSide lhs = createLeftHandSide(canonicalName);
@@ -465,11 +456,12 @@ public class AssignmentToPathAllocator {
 
             if (isSmallerSSA(oldAssignment, term)) {
 
-              // update functionEnvironment for subsequent calculation
+              //update functionEnvironment for subsequent calculation
               functionEnvironment.remove(name, oldAssignment);
               functionEnvironment.put(name, term);
               replaced = true;
               addHeapValue(memory, term);
+
             }
           }
 
@@ -484,9 +476,7 @@ public class AssignmentToPathAllocator {
       }
     }
   }
-
-  private void addHeapValue(
-      Map<String, Map<Address, Object>> memory, ValueAssignment pFunctionAssignment) {
+  private void addHeapValue(Map<String, Map<Address, Object>> memory, ValueAssignment pFunctionAssignment) {
     String heapName = getName(pFunctionAssignment);
 
     Map<Address, Object> heap = memory.get(heapName);
@@ -512,7 +502,7 @@ public class AssignmentToPathAllocator {
       if (PointerTargetSet.isBaseName(name)) {
         Address address = Address.valueOf(constant.getValue());
 
-        // TODO ugly, refactor?
+        //TODO ugly, refactor?
         String constantName =
             PointerTargetSet.getBase(FormulaManagerView.parseName(name).getFirst());
         LeftHandSide leftHandSide = createLeftHandSide(constantName);
@@ -548,10 +538,8 @@ public class AssignmentToPathAllocator {
     }
 
     for (int c = 0; c < arity; c++) {
-      if (!pOldFunction
-          .getArgumentsInterpretation()
-          .get(c)
-          .equals(pFunction.getArgumentsInterpretation().get(c))) {
+      if (!pOldFunction.getArgumentsInterpretation().get(c).equals(
+          pFunction.getArgumentsInterpretation().get(c))) {
         return false;
       }
     }
@@ -565,8 +553,8 @@ public class AssignmentToPathAllocator {
    * allocation is used to determine the model at each edge of the path.
    *
    */
-  private AssignableTermsInPath assignTermsToPathPosition(
-      List<SSAMap> pSsaMaps, Iterable<ValueAssignment> pModel) {
+  private AssignableTermsInPath assignTermsToPathPosition(List<SSAMap> pSsaMaps,
+      Iterable<ValueAssignment> pModel) {
 
     // Create a map that holds all AssignableTerms that occurred
     // in the given path. The referenced path is the precise path, with multi edges resolved.
@@ -593,7 +581,7 @@ public class AssignmentToPathAllocator {
         if (index >= 0) {
           assignedTermsPosition.put(index, term);
         }
-      } else {
+      }  else {
         constants.add(term);
       }
     }
@@ -667,14 +655,9 @@ public class AssignmentToPathAllocator {
     @Override
     public String toString() {
       return "AssignableTermsInPath\n"
-          + "assignableTermsAtPosition="
-          + assignableTermsAtPosition
-          + "\n "
-          + "constants="
-          + constants
-          + "\n"
-          + "ufFunctionsWithoutSSAIndex="
-          + ufFunctionsWithoutSSAIndex;
+          + "assignableTermsAtPosition=" + assignableTermsAtPosition + "\n "
+          + "constants=" + constants + "\n"
+          + "ufFunctionsWithoutSSAIndex=" + ufFunctionsWithoutSSAIndex;
     }
   }
 }

@@ -25,8 +25,7 @@ class GraphMLState {
 
   private final EnumSet<NodeFlag> flags;
 
-  public GraphMLState(
-      String pId,
+  public GraphMLState(String pId,
       Set<String> pInvariants,
       Optional<String> pExplicitInvariantScope,
       EnumSet<NodeFlag> pFlags) {
@@ -38,9 +37,7 @@ class GraphMLState {
 
   @Override
   public boolean equals(Object pOther) {
-    if (this == pOther) {
-      return true;
-    }
+    if (this == pOther) { return true; }
     if (pOther instanceof GraphMLState) {
       GraphMLState other = (GraphMLState) pOther;
       return getId().equals(other.getId())
@@ -88,4 +85,5 @@ class GraphMLState {
   public boolean isCycleHead() {
     return flags.contains(NodeFlag.ISCYCLEHEAD);
   }
+
 }

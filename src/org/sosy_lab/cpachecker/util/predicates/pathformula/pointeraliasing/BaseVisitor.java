@@ -96,7 +96,8 @@ class BaseVisitor extends DefaultCExpressionVisitor<Variable, UnrecognizedCodeEx
     return null;
   }
 
-  @Nullable Variable getLastBase() {
+  @Nullable
+  Variable getLastBase() {
     return lastBase;
   }
 

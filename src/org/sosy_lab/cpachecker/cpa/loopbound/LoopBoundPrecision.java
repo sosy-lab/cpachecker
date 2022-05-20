@@ -56,9 +56,7 @@ public class LoopBoundPrecision implements Precision {
 
   @Override
   public String toString() {
-    return "k = "
-        + maxLoopIterations
-        + ", "
+    return "k = " + maxLoopIterations + ", "
         + (shouldTrackStack() ? "track loop stack" : "do not track loop stack");
   }
 
@@ -69,7 +67,8 @@ public class LoopBoundPrecision implements Precision {
     }
     if (pOther instanceof LoopBoundPrecision) {
       LoopBoundPrecision other = (LoopBoundPrecision) pOther;
-      return trackStack == other.trackStack && maxLoopIterations == other.maxLoopIterations;
+      return trackStack == other.trackStack
+          && maxLoopIterations == other.maxLoopIterations;
     }
     return true;
   }
@@ -78,4 +77,5 @@ public class LoopBoundPrecision implements Precision {
   public int hashCode() {
     return Objects.hash(trackStack, maxLoopIterations);
   }
+
 }

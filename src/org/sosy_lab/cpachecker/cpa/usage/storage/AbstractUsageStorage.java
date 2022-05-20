@@ -26,18 +26,18 @@ public abstract class AbstractUsageStorage
     super(previous);
   }
 
-  protected AbstractUsageStorage() {}
+  protected AbstractUsageStorage(){}
 
   protected NavigableSet<UsageInfo> getStorageForId(SingleIdentifier id) {
     if (deeplyCloned.contains(id)) {
-      // List is already cloned
+      //List is already cloned
       assert containsKey(id);
       return get(id);
     } else {
       deeplyCloned.add(id);
       NavigableSet<UsageInfo> storage;
       if (containsKey(id)) {
-        // clone
+        //clone
         storage = new TreeSet<>(this.get(id));
       } else {
         storage = new TreeSet<>();

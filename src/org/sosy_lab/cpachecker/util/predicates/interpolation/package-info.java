@@ -6,5 +6,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-/** Utilities for interpolation queries that are not solver-dependent. */
+/**
+ * Utilities for interpolation queries that are not solver-dependent.
+ */
 package org.sosy_lab.cpachecker.util.predicates.interpolation;

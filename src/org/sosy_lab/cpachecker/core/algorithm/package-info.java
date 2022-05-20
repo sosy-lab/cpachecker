@@ -6,7 +6,9 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-/** The core algorithms of CPAchecker. */
+/**
+ * The core algorithms of CPAchecker.
+ */
 @javax.annotation.ParametersAreNonnullByDefault
 @org.sosy_lab.common.annotations.ReturnValuesAreNonnullByDefault
 package org.sosy_lab.cpachecker.core.algorithm;

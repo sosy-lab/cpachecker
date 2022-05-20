@@ -9,22 +9,24 @@
 package org.sosy_lab.cpachecker.cpa.invariants.operators.mathematical;
 
 import com.google.common.base.Preconditions;
-import java.math.BigInteger;
+
 import org.sosy_lab.cpachecker.cpa.invariants.CompoundMathematicalInterval;
 import org.sosy_lab.cpachecker.cpa.invariants.SimpleInterval;
 import org.sosy_lab.cpachecker.cpa.invariants.operators.Operator;
 
+import java.math.BigInteger;
+
 /**
- * Instances of implementations of this interface are operators that can be applied to two simple
- * interval operands, producing a compound state representing the result of the operation.
+ * Instances of implementations of this interface are operators that can
+ * be applied to two simple interval operands, producing a compound state
+ * representing the result of the operation.
  */
-public enum IICOperator
-    implements Operator<SimpleInterval, SimpleInterval, CompoundMathematicalInterval> {
+public enum IICOperator implements Operator<SimpleInterval, SimpleInterval, CompoundMathematicalInterval> {
+
   ADD {
 
     @Override
-    public CompoundMathematicalInterval apply(
-        SimpleInterval pFirstOperand, SimpleInterval pSecondOperand) {
+    public CompoundMathematicalInterval apply(SimpleInterval pFirstOperand, SimpleInterval pSecondOperand) {
       return CompoundMathematicalInterval.of(IIIOperator.ADD.apply(pFirstOperand, pSecondOperand));
     }
   },
@@ -32,18 +34,16 @@ public enum IICOperator
   DIVIDE {
 
     @Override
-    public CompoundMathematicalInterval apply(
-        SimpleInterval pFirstOperand, SimpleInterval pSecondOperand) {
-      return CompoundMathematicalInterval.of(
-          IIIOperator.DIVIDE.apply(pFirstOperand, pSecondOperand));
+    public CompoundMathematicalInterval apply(SimpleInterval pFirstOperand, SimpleInterval pSecondOperand) {
+      return CompoundMathematicalInterval.of(IIIOperator.DIVIDE.apply(pFirstOperand, pSecondOperand));
     }
+
   },
 
   MODULO {
 
     @Override
-    public CompoundMathematicalInterval apply(
-        SimpleInterval pFirstOperand, SimpleInterval pSecondOperand) {
+    public CompoundMathematicalInterval apply(SimpleInterval pFirstOperand, SimpleInterval pSecondOperand) {
       if (!pSecondOperand.hasLowerBound() || !pSecondOperand.hasUpperBound()) {
         return CompoundMathematicalInterval.of(pFirstOperand);
       }
@@ -137,23 +137,22 @@ public enum IICOperator
       }
       return CompoundMathematicalInterval.of(SimpleInterval.of(BigInteger.ZERO, resultUpperBound));
     }
+
   },
 
   MULTIPLY {
 
     @Override
-    public CompoundMathematicalInterval apply(
-        SimpleInterval pFirstOperand, SimpleInterval pSecondOperand) {
-      return CompoundMathematicalInterval.of(
-          IIIOperator.MULTIPLY.apply(pFirstOperand, pSecondOperand));
+    public CompoundMathematicalInterval apply(SimpleInterval pFirstOperand, SimpleInterval pSecondOperand) {
+      return CompoundMathematicalInterval.of(IIIOperator.MULTIPLY.apply(pFirstOperand, pSecondOperand));
     }
+
   },
 
   SHIFT_LEFT {
 
     @Override
-    public CompoundMathematicalInterval apply(
-        SimpleInterval pFirstOperand, SimpleInterval pSecondOperand) {
+    public CompoundMathematicalInterval apply(SimpleInterval pFirstOperand, SimpleInterval pSecondOperand) {
       /*
        * If this is top, it will stay top after any kind of shift, so the
        * identity is returned. The same applies for shifting [0] (a
@@ -178,9 +177,7 @@ public enum IICOperator
        * interval by that part and include the result in the overall result.
        */
       if (pSecondOperand.containsNegative()) {
-        SimpleInterval negPart =
-            pSecondOperand.intersectWith(
-                SimpleInterval.singleton(BigInteger.ONE.negate()).extendToNegativeInfinity());
+        SimpleInterval negPart = pSecondOperand.intersectWith(SimpleInterval.singleton(BigInteger.ONE.negate()).extendToNegativeInfinity());
         result = result.unionWith(SHIFT_RIGHT.apply(pFirstOperand, negPart.negate()));
       }
       /*
@@ -190,20 +187,14 @@ public enum IICOperator
        * in the overall result.
        */
       if (pSecondOperand.containsPositive()) {
-        SimpleInterval posPart =
-            pSecondOperand.intersectWith(
-                SimpleInterval.singleton(BigInteger.ONE).extendToPositiveInfinity());
+        SimpleInterval posPart = pSecondOperand.intersectWith(SimpleInterval.singleton(BigInteger.ONE).extendToPositiveInfinity());
         /*
          * Shift this interval by the lower bound, then by the upper bound of
          * the positive part and span over the results.
          */
-        CompoundMathematicalInterval posPartResult =
-            ISCOperator.SHIFT_LEFT.apply(pFirstOperand, posPart.getLowerBound());
+        CompoundMathematicalInterval posPartResult = ISCOperator.SHIFT_LEFT.apply(pFirstOperand, posPart.getLowerBound());
         if (posPart.hasUpperBound()) {
-          posPartResult =
-              CompoundMathematicalInterval.span(
-                  posPartResult,
-                  ISCOperator.SHIFT_LEFT.apply(pFirstOperand, posPart.getUpperBound()));
+          posPartResult = CompoundMathematicalInterval.span(posPartResult, ISCOperator.SHIFT_LEFT.apply(pFirstOperand, posPart.getUpperBound()));
         } else {
           // Left shifting by infinitely large values results in infinity.
           if (pFirstOperand.containsPositive()) {
@@ -217,13 +208,13 @@ public enum IICOperator
       }
       return result;
     }
+
   },
 
   SHIFT_RIGHT {
 
     @Override
-    public CompoundMathematicalInterval apply(
-        SimpleInterval pFirstOperand, SimpleInterval pSecondOperand) {
+    public CompoundMathematicalInterval apply(SimpleInterval pFirstOperand, SimpleInterval pSecondOperand) {
       /*
        * If this is top, it will stay top after any kind of shift, so the
        * identity is returned. The same applies for shifting [0] (a
@@ -248,9 +239,7 @@ public enum IICOperator
        * interval by that part and include the result in the overall result.
        */
       if (pSecondOperand.containsNegative()) {
-        SimpleInterval negPart =
-            pSecondOperand.intersectWith(
-                SimpleInterval.singleton(BigInteger.ONE.negate()).extendToNegativeInfinity());
+        SimpleInterval negPart = pSecondOperand.intersectWith(SimpleInterval.singleton(BigInteger.ONE.negate()).extendToNegativeInfinity());
         result = result.unionWith(SHIFT_LEFT.apply(pFirstOperand, negPart.negate()));
       }
       /*
@@ -260,30 +249,23 @@ public enum IICOperator
        * in the overall result.
        */
       if (pSecondOperand.containsPositive()) {
-        SimpleInterval posPart =
-            pSecondOperand.intersectWith(
-                SimpleInterval.singleton(BigInteger.ONE).extendToPositiveInfinity());
+        SimpleInterval posPart = pSecondOperand.intersectWith(SimpleInterval.singleton(BigInteger.ONE).extendToPositiveInfinity());
         /*
          * Shift this interval by the lower bound, then by the upper bound of
          * the positive part and span over the results.
          */
-        CompoundMathematicalInterval posPartResult =
-            ISCOperator.SHIFT_RIGHT.apply(pFirstOperand, posPart.getLowerBound());
+        CompoundMathematicalInterval posPartResult = ISCOperator.SHIFT_RIGHT.apply(pFirstOperand, posPart.getLowerBound());
         if (posPart.hasUpperBound()) {
-          posPartResult =
-              CompoundMathematicalInterval.span(
-                  posPartResult,
-                  ISCOperator.SHIFT_RIGHT.apply(pFirstOperand, posPart.getUpperBound()));
+          posPartResult = CompoundMathematicalInterval.span(posPartResult, ISCOperator.SHIFT_RIGHT.apply(pFirstOperand, posPart.getUpperBound()));
         } else {
           // Shifting by infinitely large values will result in zero.
-          posPartResult =
-              CompoundMathematicalInterval.span(
-                  posPartResult, CompoundMathematicalInterval.singleton(BigInteger.ZERO));
+          posPartResult = CompoundMathematicalInterval.span(posPartResult, CompoundMathematicalInterval.singleton(BigInteger.ZERO));
         }
         result = result.unionWith(posPartResult);
       }
       return result;
     }
+
   };
 
   /**
@@ -291,9 +273,11 @@ public enum IICOperator
    *
    * @param pFirstOperand the first simple interval operand to apply the operator to.
    * @param pSecondOperand the second simple interval operand to apply the operator to.
-   * @return the compound state resulting from applying the first operand to the second operand.
+   *
+   * @return the compound state resulting from applying the first operand to the
+   * second operand.
    */
   @Override
-  public abstract CompoundMathematicalInterval apply(
-      SimpleInterval pFirstOperand, SimpleInterval pSecondOperand);
+  public abstract CompoundMathematicalInterval apply(SimpleInterval pFirstOperand, SimpleInterval pSecondOperand);
+
 }

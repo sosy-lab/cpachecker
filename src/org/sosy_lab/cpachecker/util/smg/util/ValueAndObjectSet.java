@@ -25,6 +25,7 @@ public class ValueAndObjectSet {
     value = pValue;
   }
 
+
   public SMGValue getValue() {
     return value;
   }
@@ -45,6 +46,7 @@ public class ValueAndObjectSet {
   public int hashCode() {
     return super.hashCode();
   }
+
 
   public Set<SMGObject> getObjectSet() {
     return objectSet;

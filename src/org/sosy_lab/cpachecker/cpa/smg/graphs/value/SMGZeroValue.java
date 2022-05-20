@@ -47,3 +47,4 @@ public final class SMGZeroValue extends SMGKnownExpValue
     return BigInteger.ZERO;
   }
 }
+

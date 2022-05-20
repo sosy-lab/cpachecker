@@ -50,7 +50,9 @@ public class FormulaManagerViewTest extends SolverViewBasedTest0 {
     return solverToUse;
   }
 
-  /** strip the most outer NOT, if there is one, else return the formula unchanged. */
+  /**
+   * strip the most outer NOT, if there is one, else return the formula unchanged.
+   */
   private BooleanFormula stripNot(final BooleanFormula f) {
     return mgrv.stripNegation(f).orElse(f);
   }
@@ -66,25 +68,20 @@ public class FormulaManagerViewTest extends SolverViewBasedTest0 {
     BooleanFormula f = bmgrv.or(bmgrv.and(atom1, atom2), bmgrv.and(atom1, atom3), atom4, atom5);
 
     assertThat(mgrv.extractAtoms(f, false))
-        .containsExactly(
-            stripNot(atom1), stripNot(atom2), stripNot(atom3), stripNot(atom4), stripNot(atom5));
+        .containsExactly(stripNot(atom1), stripNot(atom2), stripNot(atom3), stripNot(atom4),
+            stripNot(atom5));
   }
 
   private void testExtractAtoms_SplitEqualities(
-      BooleanFormula atom1,
-      BooleanFormula atom1ineq,
-      BooleanFormula atom2,
-      BooleanFormula atom3,
-      BooleanFormula atom4,
-      BooleanFormula atom5)
-      throws SolverException, InterruptedException {
+      BooleanFormula atom1, BooleanFormula atom1ineq,
+      BooleanFormula atom2, BooleanFormula atom3,
+      BooleanFormula atom4, BooleanFormula atom5) throws SolverException, InterruptedException {
 
     BooleanFormula f = bmgrv.or(bmgrv.and(atom1, atom2), bmgrv.and(atom1, atom3), atom4, atom5);
 
     Set<BooleanFormula> atoms = mgrv.extractAtoms(f, true);
-    Set<BooleanFormula> expected =
-        ImmutableSet.of(
-            stripNot(atom1), stripNot(atom2), stripNot(atom3), stripNot(atom4), stripNot(atom5));
+    Set<BooleanFormula> expected = ImmutableSet
+        .of(stripNot(atom1), stripNot(atom2), stripNot(atom3), stripNot(atom4), stripNot(atom5));
 
     // Assert that atoms contains all of atom1-5
     // and another atom that is equivalent to atom1ineq
@@ -202,9 +199,8 @@ public class FormulaManagerViewTest extends SolverViewBasedTest0 {
 
   @Test
   public void testIsPurelyConjunctive_BooleanIfThenElse() {
-    assertIsNotConjunctive(
-        bmgrv.ifThenElse(
-            bmgrv.makeVariable("a"), bmgrv.makeVariable("b"), bmgrv.makeVariable("c")));
+    assertIsNotConjunctive(bmgrv
+        .ifThenElse(bmgrv.makeVariable("a"), bmgrv.makeVariable("b"), bmgrv.makeVariable("c")));
   }
 
   @Test

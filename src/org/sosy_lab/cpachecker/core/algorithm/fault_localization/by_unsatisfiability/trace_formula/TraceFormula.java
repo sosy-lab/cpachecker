@@ -57,11 +57,10 @@ public abstract class TraceFormula {
     @Option(
         secure = true,
         name = "filter",
-        description =
-            "The alternative precondition consists of all initial variable assignments  and a"
-                + " failing variable assignment for all nondet variables. By default only "
-                + " variables in the main function are part of the precondition. Overwrite the"
-                + " default by adding functions to this option, e.g., \"main,doStuff\"")
+        description = "The alternative precondition consists of all initial variable assignments "
+            + " and a failing variable assignment for all nondet variables. By default only "
+            + " variables in the main function are part of the precondition. "
+            + "Overwrite the default by adding functions to this option, e.g., \"main,doStuff\"")
     private List<String> filter = ImmutableList.of("main");
 
     // Usage: If a variable is contained in the post-condition it may be useful to ignore it in the
@@ -69,43 +68,37 @@ public abstract class TraceFormula {
     @Option(
         secure = true,
         name = "ignore",
-        description =
-            "The alternative precondition consists of all initial variable assignments. If a"
-                + " variable assignment seems suspicious, it might be useful to exclude it from the"
-                + " precondition. To do this, add these variables to this option, e.g.,"
-                + " main::x,doStuff::y. Make sure to add the function in which the variable is used"
-                + " as prefix, separated by two ':'")
+        description = "The alternative precondition consists of all initial variable assignments. "
+            + "If a variable assignment seems suspicious, it might be useful to exclude it from "
+            + "the precondition. To do this, add these variables to this option, e.g., main::x,doStuff::y. "
+            + "Make sure to add the function in which the variable is used as prefix, separated by two ':'")
     private List<String> ignore = ImmutableList.of();
 
     @Option(
         secure = true,
         name = "disable",
-        description =
-            "Usually every statement that is not part of the precondition gets a selector. If a"
-                + " certain variable is known to not cause the error, add it to this option, e.g., "
-                + "main::x,doStuff::y")
+        description = "Usually every statement that is not part of the precondition gets a selector. "
+            + "If a certain variable is known to not cause the error, add it to this option, e.g., "
+            + "main::x,doStuff::y")
     private List<String> disable = ImmutableList.of();
 
     @Option(
         secure = true,
         name = "altpre",
         description =
-            "By default, the precondition only contains the failing variable assignment of all"
-                + " nondet variables. Enable this option if initial variable assignments of the"
-                + " form '<datatype> <variable-name> = <value>' should also be added to the"
-                + " precondition. See the description for the option traceformula.ignore for"
-                + " further options.")
+            "By default, the precondition only contains the failing variable assignment of all nondet variables. "
+                + "Enable this option if initial variable assignments of the form '<datatype> <variable-name> = <value>' should also be added to the precondition. "
+                + "See the description for the option traceformula.ignore for further options.")
     private boolean forcePre = false;
 
     @Option(
         secure = true,
         name = "uniqueselectors",
-        description =
-            "By default, every executed statement gets its own selector. If a loop is part of the"
-                + " program to analyze, the number of selectors can increase which also increases"
-                + " the run time of max-sat drastically. To use the same selector for equal"
-                + " statements (on the same line), set this option to true. Note that enabling this"
-                + " option  also decreases the quality of results.")
+        description = "By default, every executed statement gets its own selector. "
+            + "If a loop is part of the program to analyze, the number of selectors can increase which"
+            + " also increases the run time of max-sat drastically. To use the same selector for equal"
+            + " statements (on the same line), set this option to true. Note that enabling this option "
+            + " also decreases the quality of results.")
     private boolean reduceSelectors = false;
 
     public TraceFormulaOptions(Configuration pConfiguration) throws InvalidConfigurationException {
@@ -253,8 +246,7 @@ public abstract class TraceFormula {
                 bmgr.and(
                     entries.removeExtract(
                         entry -> {
-                          if (entry instanceof FormulaEntryList.PreconditionEntry
-                              || entry.getSelector() == null) {
+                          if (entry instanceof FormulaEntryList.PreconditionEntry || entry.getSelector() == null) {
                             return false;
                           }
                           return entry.getSelector().correspondingEdge().equals(curr);

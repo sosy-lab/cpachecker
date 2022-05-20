@@ -164,14 +164,12 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
     pmgr = predCpa.getPathFormulaManager();
     MachineModel machineModel = pCFA.getMachineModel();
 
-    assignmentToPathAllocator =
-        new AssignmentToPathAllocator(config, shutdownNotifier, pLogger, machineModel);
+    assignmentToPathAllocator = new AssignmentToPathAllocator(config, shutdownNotifier, pLogger, machineModel);
     argWitnessExporter = new WitnessExporter(config, logger, specification, cfa);
   }
 
   @Override
-  public AlgorithmStatus run(final ReachedSet reachedSet)
-      throws CPAException, InterruptedException {
+  public AlgorithmStatus run(final ReachedSet reachedSet) throws CPAException, InterruptedException {
     try {
       return super.run(reachedSet);
     } catch (SolverException e) {
@@ -247,10 +245,9 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
       Set<ARGState> targetStates =
           from(pReachedSet).filter(AbstractStates::isTargetState).filter(ARGState.class).toSet();
       Set<ARGState> redundantStates = filterAncestors(targetStates, AbstractStates::isTargetState);
-      redundantStates.forEach(
-          state -> {
-            state.removeFromARG();
-          });
+      redundantStates.forEach(state -> {
+        state.removeFromARG();
+      });
       pReachedSet.removeAll(redundantStates);
       targetStates = Sets.difference(targetStates, redundantStates);
 
@@ -260,7 +257,8 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
         while (state.getParents().size() == 1 && state.getChildren().size() <= 1) {
           state = Iterables.getOnlyElement(state.getParents());
         }
-        shouldCheckBranching = (state.getParents().size() > 1) || (state.getChildren().size() > 1);
+        shouldCheckBranching = (state.getParents().size() > 1)
+            || (state.getChildren().size() > 1);
       } else {
         shouldCheckBranching = true;
       }
@@ -312,9 +310,10 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
         }
       }
 
+
       // get precise error path
       Map<Integer, Boolean> branchingInformation = pmgr.getBranchingPredicateValuesFromModel(model);
-      ARGState root = (ARGState) pReachedSet.getFirstState();
+      ARGState root = (ARGState)pReachedSet.getFirstState();
 
       ARGPath targetPath;
       try {
@@ -341,8 +340,7 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
               new PathFormulaManagerImpl(
                   formulaManager, config, logger, shutdownNotifier, cfa, AnalysisDirection.FORWARD);
           // cannot dump pCounterexampleFormula, PathChecker would use wrong FormulaManager for it
-          cexFormula =
-              solverForPathChecker.getFormulaManager().getBooleanFormulaManager().makeTrue();
+          cexFormula = solverForPathChecker.getFormulaManager().getBooleanFormulaManager().makeTrue();
         }
 
         pathChecker =

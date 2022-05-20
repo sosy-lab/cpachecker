@@ -127,11 +127,13 @@ public class Ltl2BuechiConverter {
       }
       storedAutomaton.getStoredHeader().setAPs(list);
 
-      if (!storedAutomaton.getStoredHeader().getAPs().stream()
+      if (!storedAutomaton
+          .getStoredHeader()
+          .getAPs()
+          .stream()
           .allMatch(x -> labelledFormula.getAPs().contains(Literal.of(x, false)))) {
         throw new RuntimeException(
-            "Output from external tool contains APs which are not consistent with the APs from the"
-                + " provided ltl formula");
+            "Output from external tool contains APs which are not consistent with the APs from the provided ltl formula");
       }
 
       return storedAutomaton;
@@ -165,7 +167,9 @@ public class Ltl2BuechiConverter {
         throw new LtlParseException(
             String.format(
                 "Tool '%s' exited with error code %d. Message from tool:%n%s",
-                EXECUTABLE.getToolName(), exitvalue, errMsg));
+                EXECUTABLE.getToolName(),
+                exitvalue,
+                errMsg));
       }
 
       return is;
@@ -212,5 +216,6 @@ public class Ltl2BuechiConverter {
     public ImmutableList<String> getArgs() {
       return commands;
     }
+
   }
 }

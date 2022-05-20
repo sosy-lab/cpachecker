@@ -80,7 +80,8 @@ public class ThreadState implements LatticeAbstractState<ThreadState>, Compatibl
     if (this == obj) {
       return true;
     }
-    if (obj == null || getClass() != obj.getClass()) {
+    if (obj == null ||
+        getClass() != obj.getClass()) {
       return false;
     }
     ThreadState other = (ThreadState) obj;
@@ -162,7 +163,7 @@ public class ThreadState implements LatticeAbstractState<ThreadState>, Compatibl
 
   @Override
   public boolean cover(CompatibleNode pNode) {
-    return ((ThreadState) pNode).isLessOrEqual(this);
+    return ((ThreadState)pNode).isLessOrEqual(this);
   }
 
   @Override
@@ -172,7 +173,8 @@ public class ThreadState implements LatticeAbstractState<ThreadState>, Compatibl
 
   @Override
   public boolean isLessOrEqual(ThreadState pOther) {
-    boolean b = Objects.equals(removedSet, pOther.removedSet);
+    boolean b =
+        Objects.equals(removedSet, pOther.removedSet);
     if (b && pOther.threadSet == threadSet) {
       return true;
     }

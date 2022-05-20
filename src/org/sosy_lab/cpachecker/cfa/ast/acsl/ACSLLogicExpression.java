@@ -17,4 +17,5 @@ public interface ACSLLogicExpression {
    * @return true if the logic expression may be used in a clause of the given type, false otherwise
    */
   boolean isAllowedIn(Class<?> clauseType);
+
 }

@@ -6,5 +6,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-/** Package with the classes representing a doubly linked list segment abstraction. */
+/**
+ * Package with the classes representing a doubly linked list segment abstraction.
+ */
 package org.sosy_lab.cpachecker.cpa.smg.graphs.object.dll;

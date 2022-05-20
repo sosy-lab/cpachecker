@@ -81,12 +81,11 @@ public class PredicatePrecisionAdjustment implements PrecisionAdjustment {
       Precision pPrecision,
       UnmodifiableReachedSet pElements,
       Function<AbstractState, AbstractState> projection,
-      AbstractState fullState)
-      throws CPAException, InterruptedException {
+      AbstractState fullState) throws CPAException, InterruptedException {
 
     totalPrecTime.start();
     try {
-      PredicateAbstractState element = (PredicateAbstractState) pElement;
+      PredicateAbstractState element = (PredicateAbstractState)pElement;
 
       // default number of locations is 1, for concurrent programs we can have multiple locations.
       // if any location wants to abstract, we compute the abstraction
@@ -99,9 +98,8 @@ public class PredicatePrecisionAdjustment implements PrecisionAdjustment {
         }
       }
 
-      return Optional.of(
-          PrecisionAdjustmentResult.create(
-              element, pPrecision, PrecisionAdjustmentResult.Action.CONTINUE));
+        return Optional.of(PrecisionAdjustmentResult.create(
+            element, pPrecision, PrecisionAdjustmentResult.Action.CONTINUE));
 
     } catch (SolverException e) {
       throw new CPAException("Solver Failure: " + e.getMessage(), e);
@@ -128,7 +126,9 @@ public class PredicatePrecisionAdjustment implements PrecisionAdjustment {
     return false;
   }
 
-  /** Compute an abstraction. */
+  /**
+   * Compute an abstraction.
+   */
   private Optional<PrecisionAdjustmentResult> computeAbstraction(
       PredicateAbstractState element,
       PredicatePrecision precision,
@@ -201,8 +201,7 @@ public class PredicatePrecisionAdjustment implements PrecisionAdjustment {
     }
 
     // create new empty path formula
-    PathFormula newPathFormula =
-        pathFormulaManager.makeEmptyPathFormulaWithContextFrom(pathFormula);
+    PathFormula newPathFormula = pathFormulaManager.makeEmptyPathFormulaWithContextFrom(pathFormula);
 
     // initialize path formula with current invariants
     // we don't want to add trivially true invariants
@@ -211,13 +210,11 @@ public class PredicatePrecisionAdjustment implements PrecisionAdjustment {
     }
 
     PredicateAbstractState state =
-        PredicateAbstractState.mkAbstractionState(
-            newPathFormula,
+        PredicateAbstractState.mkAbstractionState(newPathFormula,
             newAbstractionFormula,
             abstractionLocations,
             element.getPreviousAbstractionState());
-    return Optional.of(
-        PrecisionAdjustmentResult.create(
-            state, precision, PrecisionAdjustmentResult.Action.CONTINUE));
+    return Optional.of(PrecisionAdjustmentResult.create(
+        state, precision, PrecisionAdjustmentResult.Action.CONTINUE));
   }
 }

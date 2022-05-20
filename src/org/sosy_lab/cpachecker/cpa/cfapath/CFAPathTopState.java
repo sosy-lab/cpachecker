@@ -24,5 +24,8 @@ public class CFAPathTopState implements CFAPathState {
     return sSingleton;
   }
 
-  private CFAPathTopState() {}
+  private CFAPathTopState() {
+
+  }
+
 }

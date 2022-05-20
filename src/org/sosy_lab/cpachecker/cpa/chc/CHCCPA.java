@@ -35,7 +35,7 @@ import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 
-@Options(prefix = "cpa.chc")
+@Options(prefix="cpa.chc")
 public class CHCCPA implements ConfigurableProgramAnalysis, StatisticsProvider {
 
   public static CPAFactory factory() {
@@ -49,11 +49,8 @@ public class CHCCPA implements ConfigurableProgramAnalysis, StatisticsProvider {
    * Theory and Practice of Logic Programming, Vol. 13, Special Issue 02, 2013, pp. 175-199
    * DOI: http://dx.doi.org/10.1017/S1471068411000627
    */
-  @Option(
-      secure = true,
-      name = "firingRelation",
-      values = {"Always", "Maxcoeff", "Sumcoeff", "Homeocoeff"},
-      description = "firing relation to be used in the precision adjustment operator")
+  @Option(secure=true, name="firingRelation", values={"Always","Maxcoeff","Sumcoeff","Homeocoeff"},
+      description="firing relation to be used in the precision adjustment operator")
   private String firingRelation = "Always";
 
   /*
@@ -63,11 +60,8 @@ public class CHCCPA implements ConfigurableProgramAnalysis, StatisticsProvider {
    * Theory and Practice of Logic Programming, Vol. 13, Special Issue 02, 2013, pp. 175-199
    * DOI: http://dx.doi.org/10.1017/S1471068411000627
    */
-  @Option(
-      secure = true,
-      name = "generalizationOperator",
-      values = {"Top", "Widen", "WidenMax", "WidenSum"},
-      description = "generalization operator to be used in the precision adjustment operator")
+  @Option(secure=true, name="generalizationOperator", values={"Top","Widen","WidenMax","WidenSum"},
+      description="generalization operator to be used in the precision adjustment operator")
   private String generalizationOperator = "Widen";
 
   private final AbstractDomain abstractDomain;
@@ -77,7 +71,8 @@ public class CHCCPA implements ConfigurableProgramAnalysis, StatisticsProvider {
   private final StopOperator stopOperator;
   private final TransferRelation transferRelation;
 
-  private CHCCPA(Configuration config, LogManager logger) throws InvalidConfigurationException {
+  private CHCCPA(Configuration config, LogManager logger)
+    throws InvalidConfigurationException {
 
     config.inject(this);
 
@@ -136,20 +131,18 @@ public class CHCCPA implements ConfigurableProgramAnalysis, StatisticsProvider {
 
   @Override
   public void collectStatistics(Collection<Statistics> statsCollection) {
-    statsCollection.add(
-        new Statistics() {
+    statsCollection.add(new Statistics() {
 
-          @Override
-          public void printStatistics(
-              PrintStream out, Result result, UnmodifiableReachedSet reached) {
-            // TODO
-            // transferRelation.printStatistics(out);
-          }
+      @Override
+      public void printStatistics(PrintStream out, Result result, UnmodifiableReachedSet reached) {
+        //TODO
+        //transferRelation.printStatistics(out);
+      }
 
-          @Override
-          public String getName() {
-            return "CLPCPA";
-          }
-        });
+      @Override
+      public String getName() {
+        return "CLPCPA";
+      }
+    });
   }
 }

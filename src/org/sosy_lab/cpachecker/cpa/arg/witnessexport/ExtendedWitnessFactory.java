@@ -121,15 +121,8 @@ public class ExtendedWitnessFactory extends WitnessFactory {
         result = result.putAndCopy(KeyDef.DECL, "true");
       }
     }
-    return super.extractTransitionForStates(
-        pFrom,
-        pTo,
-        pEdge,
-        pFromStates,
-        pValueMap,
-        pAdditionalInfo,
-        result,
-        pGoesToSink,
-        pIsDefaultCase);
+    return super
+        .extractTransitionForStates(pFrom, pTo, pEdge, pFromStates, pValueMap, pAdditionalInfo,
+            result, pGoesToSink, pIsDefaultCase);
   }
 }

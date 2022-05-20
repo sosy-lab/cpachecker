@@ -22,6 +22,7 @@ class LabeledObject extends SMGObject {
   LabeledObject(int pNestingLevel, BigInteger pSize, BigInteger pOffset, String pLabel) {
     super(pNestingLevel, pSize, pOffset);
     label = pLabel;
+
   }
 
   @Override
@@ -38,4 +39,5 @@ class LabeledObject extends SMGObject {
   public int hashCode() {
     return super.hashCode();
   }
+
 }

@@ -126,4 +126,5 @@ public class StatInt extends AbstractStatValue implements IntConsumer {
     }
     throw new AssertionError();
   }
+
 }

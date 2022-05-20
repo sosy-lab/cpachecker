@@ -56,8 +56,7 @@ public class PartialCPABuilder {
     specification = pSpecification;
   }
 
-  public ConfigurableProgramAnalysis buildPartialCPA(
-      int iterationNumber, ReachedSetFactory pFactory)
+  public ConfigurableProgramAnalysis buildPartialCPA(int iterationNumber, ReachedSetFactory pFactory)
       throws InvalidConfigurationException, CPAException {
     // create configuration for current partial ARG checking
     logger.log(Level.FINEST, "Build CPA configuration");
@@ -66,12 +65,11 @@ public class PartialCPABuilder {
     try {
       if (configFiles == null) {
         throw new InvalidConfigurationException(
-            "Require that option pcc.arg.cmc.configFiles is set for proof checking");
+          "Require that option pcc.arg.cmc.configFiles is set for proof checking");
       }
       singleConfigBuilder.loadFromFile(configFiles.get(iterationNumber));
     } catch (IOException e) {
-      throw new InvalidConfigurationException(
-          "Cannot read configuration for current partial ARG checking.");
+      throw new InvalidConfigurationException("Cannot read configuration for current partial ARG checking.");
     }
     Configuration singleConfig = singleConfigBuilder.build();
 
@@ -80,5 +78,7 @@ public class PartialCPABuilder {
 
     return new CPABuilder(singleConfig, logger, shutdown, pFactory)
         .buildCPAs(cfa, specification, AggregatedReachedSets.empty());
-  }
+ }
+
+
 }

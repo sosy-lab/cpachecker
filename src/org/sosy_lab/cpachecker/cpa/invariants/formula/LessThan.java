@@ -11,16 +11,21 @@ package org.sosy_lab.cpachecker.cpa.invariants.formula;
 import com.google.common.base.Preconditions;
 
 /**
- * Instances of this class represent less-than inequations over invariants formulae.
+ * Instances of this class represent less-than inequations over invariants
+ * formulae.
  *
  * @param <ConstantType> the type of the constants used in the formula.
  */
 public class LessThan<ConstantType> implements BooleanFormula<ConstantType> {
 
-  /** The first operand. */
+  /**
+   * The first operand.
+   */
   private final NumeralFormula<ConstantType> operand1;
 
-  /** The second operand. */
+  /**
+   * The second operand.
+   */
   private final NumeralFormula<ConstantType> operand2;
 
   /**
@@ -29,7 +34,8 @@ public class LessThan<ConstantType> implements BooleanFormula<ConstantType> {
    * @param pOperand1 the left operand of the inequation.
    * @param pOperand2 the right operand of the inequation.
    */
-  private LessThan(NumeralFormula<ConstantType> pOperand1, NumeralFormula<ConstantType> pOperand2) {
+  private LessThan(NumeralFormula<ConstantType> pOperand1,
+      NumeralFormula<ConstantType> pOperand2) {
     Preconditions.checkArgument(pOperand1.getTypeInfo().equals(pOperand2.getTypeInfo()));
     this.operand1 = pOperand1;
     this.operand2 = pOperand2;
@@ -72,20 +78,22 @@ public class LessThan<ConstantType> implements BooleanFormula<ConstantType> {
 
   @Override
   public <ReturnType, ParamType> ReturnType accept(
-      ParameterizedBooleanFormulaVisitor<ConstantType, ParamType, ReturnType> pVisitor,
-      ParamType pParameter) {
+      ParameterizedBooleanFormulaVisitor<ConstantType, ParamType, ReturnType> pVisitor, ParamType pParameter) {
     return pVisitor.visit(this, pParameter);
   }
 
   /**
-   * Gets an invariants formula representing a less-than inequation over the given operands.
+   * Gets an invariants formula representing a less-than inequation over the
+   * given operands.
    *
    * @param pOperand1 the left operand of the inequation.
    * @param pOperand2 the right operand of the inequation.
-   * @return an invariants formula representing a less-than inequation over the given operands.
+   *
+   * @return an invariants formula representing a less-than inequation over the
+   * given operands.
    */
-  static <ConstantType> LessThan<ConstantType> of(
-      NumeralFormula<ConstantType> pOperand1, NumeralFormula<ConstantType> pOperand2) {
+  static <ConstantType> LessThan<ConstantType> of(NumeralFormula<ConstantType> pOperand1, NumeralFormula<ConstantType> pOperand2) {
     return new LessThan<>(pOperand1, pOperand2);
   }
+
 }

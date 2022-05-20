@@ -17,8 +17,9 @@ public class OctagonIntValue extends OctagonNumericValue<Long> {
   public static final OctagonIntValue ONE = new OctagonIntValue(1);
   public static final OctagonIntValue NEG_ONE = new OctagonIntValue(-1);
 
+
   private OctagonIntValue(long value) {
-    super(value);
+    super (value);
   }
 
   public static OctagonIntValue of(long value) {
@@ -82,10 +83,9 @@ public class OctagonIntValue extends OctagonNumericValue<Long> {
   @Override
   public OctagonNumericValue subtract(OctagonNumericValue pVal) {
     if (pVal instanceof OctagonIntValue) {
-      return OctagonIntValue.of(value.longValue() - ((OctagonIntValue) pVal).value.longValue());
+      return OctagonIntValue.of(value.longValue() - ((OctagonIntValue)pVal).value.longValue());
     } else if (pVal instanceof OctagonDoubleValue) {
-      return new OctagonDoubleValue(
-          value.longValue() - ((OctagonDoubleValue) pVal).value.doubleValue());
+      return new OctagonDoubleValue(value.longValue() - ((OctagonDoubleValue)pVal).value.doubleValue());
     }
     throw new AssertionError("unknown subtype of octnumericvalue");
   }
@@ -122,10 +122,9 @@ public class OctagonIntValue extends OctagonNumericValue<Long> {
   @Override
   public OctagonNumericValue div(OctagonNumericValue pDivisor) {
     if (pDivisor instanceof OctagonIntValue) {
-      return OctagonIntValue.of(value.longValue() / ((OctagonIntValue) pDivisor).value.longValue());
+      return OctagonIntValue.of(value.longValue() / ((OctagonIntValue)pDivisor).value.longValue());
     } else if (pDivisor instanceof OctagonDoubleValue) {
-      return new OctagonDoubleValue(
-          value.longValue() / ((OctagonDoubleValue) pDivisor).value.doubleValue());
+      return new OctagonDoubleValue(value.longValue() / ((OctagonDoubleValue)pDivisor).value.doubleValue());
     }
     throw new AssertionError("unknown subtype of octnumericvalue");
   }

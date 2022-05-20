@@ -29,24 +29,23 @@ public class CHCPrecisionAdjustment implements PrecisionAdjustment {
   }
 
   @Override
-  public Optional<PrecisionAdjustmentResult> prec(
-      AbstractState successor,
-      Precision precision,
+  public Optional<PrecisionAdjustmentResult> prec(AbstractState successor, Precision precision,
       UnmodifiableReachedSet states,
       Function<AbstractState, AbstractState> projection,
-      AbstractState fullState)
-      throws CPAException {
+      AbstractState fullState) throws CPAException {
 
-    CHCState candidateState = (CHCState) successor;
+    CHCState candidateState = (CHCState)successor;
 
     CHCState ancestor = findVariantAncestor(candidateState);
 
     if (ancestor != null) {
       AbstractState newState = generalize(candidateState, ancestor);
-      return Optional.of(PrecisionAdjustmentResult.create(newState, precision, Action.CONTINUE));
+      return Optional.of(PrecisionAdjustmentResult
+          .create(newState, precision, Action.CONTINUE));
     } else {
       return Optional.of(PrecisionAdjustmentResult.create(successor, precision, Action.CONTINUE));
     }
+
   }
 
   private CHCState findVariantAncestor(CHCState candidateState) {
@@ -60,9 +59,12 @@ public class CHCPrecisionAdjustment implements PrecisionAdjustment {
     }
 
     return null;
+
   }
 
-  /** Compute a generalization of reachedState w.r.t. one of its ancestors */
+  /**
+   * Compute a generalization of reachedState w.r.t. one of its ancestors
+   */
   private AbstractState generalize(CHCState reachedState, CHCState ancestor) {
     CHCState gState = new CHCState();
 
@@ -70,4 +72,5 @@ public class CHCPrecisionAdjustment implements PrecisionAdjustment {
         ConstraintManager.generalize(ancestor.getConstraint(), reachedState.getConstraint()));
     return gState;
   }
+
 }

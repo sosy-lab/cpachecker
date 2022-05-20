@@ -22,8 +22,7 @@ final class BinaryAnd<ConstantType> extends AbstractBinaryFormula<ConstantType>
    * @param pOperand1 the first operand.
    * @param pOperand2 the second operand.
    */
-  private BinaryAnd(
-      NumeralFormula<ConstantType> pOperand1, NumeralFormula<ConstantType> pOperand2) {
+  private BinaryAnd(NumeralFormula<ConstantType> pOperand1, NumeralFormula<ConstantType> pOperand2) {
     super("&", true, pOperand1, pOperand2);
   }
 
@@ -34,8 +33,7 @@ final class BinaryAnd<ConstantType> extends AbstractBinaryFormula<ConstantType>
 
   @Override
   public <ReturnType, ParamType> ReturnType accept(
-      ParameterizedNumeralFormulaVisitor<ConstantType, ParamType, ReturnType> pVisitor,
-      ParamType pParameter) {
+      ParameterizedNumeralFormulaVisitor<ConstantType, ParamType, ReturnType> pVisitor, ParamType pParameter) {
     return pVisitor.visit(this, pParameter);
   }
 
@@ -44,10 +42,11 @@ final class BinaryAnd<ConstantType> extends AbstractBinaryFormula<ConstantType>
    *
    * @param pOperand1 the first operand.
    * @param pOperand2 the second operand.
+   *
    * @return the binary and operation over the given operands.
    */
-  static <ConstantType> BinaryAnd<ConstantType> of(
-      NumeralFormula<ConstantType> pOperand1, NumeralFormula<ConstantType> pOperand2) {
+  static <ConstantType> BinaryAnd<ConstantType> of(NumeralFormula<ConstantType> pOperand1, NumeralFormula<ConstantType> pOperand2) {
     return new BinaryAnd<>(pOperand1, pOperand2);
   }
+
 }

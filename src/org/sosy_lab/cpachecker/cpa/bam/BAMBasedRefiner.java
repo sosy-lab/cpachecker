@@ -32,11 +32,12 @@ import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.statistics.ThreadSafeTimerContainer.TimerWrapper;
 
 /**
- * This is an extension of {@link AbstractARGBasedRefiner} that takes care of flattening the ARG
- * before calling {@link ARGBasedRefiner#performRefinementForPath(ARGReachedSet, ARGPath)}.
+ * This is an extension of {@link AbstractARGBasedRefiner} that takes care of
+ * flattening the ARG before calling
+ * {@link ARGBasedRefiner#performRefinementForPath(ARGReachedSet, ARGPath)}.
  *
- * <p>Warning: Although the ARG is flattened at this point, the elements in it have not been
- * expanded due to performance reasons.
+ * Warning: Although the ARG is flattened at this point, the elements in it have
+ * not been expanded due to performance reasons.
  */
 public final class BAMBasedRefiner extends AbstractARGBasedRefiner {
 
@@ -70,10 +71,9 @@ public final class BAMBasedRefiner extends AbstractARGBasedRefiner {
   }
 
   @Override
-  protected CounterexampleInfo performRefinementForPath(ARGReachedSet pReached, ARGPath pPath)
-      throws CPAException, InterruptedException {
-    checkArgument(
-        !(pReached instanceof BAMReachedSet),
+  protected CounterexampleInfo performRefinementForPath(
+      ARGReachedSet pReached, ARGPath pPath) throws CPAException, InterruptedException {
+    checkArgument(!(pReached instanceof BAMReachedSet),
         "Wrapping of BAM-based refiners inside BAM-based refiners is not allowed.");
     assert pPath == null || pPath.size() > 0;
 
@@ -81,8 +81,7 @@ public final class BAMBasedRefiner extends AbstractARGBasedRefiner {
 
       // The counter-example-path could not be constructed, because of missing blocks (aka "holes").
       // We directly return SPURIOUS and let the CPA-algorithm run again.
-      // During the counter-example-path-building we already re-added the start-states of all
-      // blocks,
+      // During the counter-example-path-building we already re-added the start-states of all blocks,
       // that lead to the missing block, to the waitlists of those blocks.
       // Thus missing blocks are analyzed and rebuild again in the next CPA-algorithm.
 
@@ -107,10 +106,9 @@ public final class BAMBasedRefiner extends AbstractARGBasedRefiner {
   }
 
   @Override
-  protected ARGPath computePath(ARGState pLastElement, ARGReachedSet pMainReachedSet)
-      throws InterruptedException, CPATransferException {
-    assert pMainReachedSet.asReachedSet().contains(pLastElement)
-        : "targetState must be in mainReachedSet.";
+  protected ARGPath computePath(
+      ARGState pLastElement, ARGReachedSet pMainReachedSet) throws InterruptedException, CPATransferException {
+    assert pMainReachedSet.asReachedSet().contains(pLastElement) : "targetState must be in mainReachedSet.";
     assert BAMReachedSetValidator.validateData(
         bamCpa.getData(), bamCpa.getBlockPartitioning(), pMainReachedSet);
 
@@ -125,9 +123,8 @@ public final class BAMBasedRefiner extends AbstractARGBasedRefiner {
       try {
         try {
           final BAMSubgraphComputer cexSubgraphComputer = new BAMSubgraphComputer(bamCpa, true);
-          rootAndTargetOfSubgraph =
-              Preconditions.checkNotNull(
-                  cexSubgraphComputer.computeCounterexampleSubgraph(pLastElement, pMainReachedSet));
+          rootAndTargetOfSubgraph = Preconditions.checkNotNull(
+              cexSubgraphComputer.computeCounterexampleSubgraph(pLastElement, pMainReachedSet));
         } catch (MissingBlockException e) {
           // We return NULL, such that the method performRefinementForPath can handle it.
           return null;

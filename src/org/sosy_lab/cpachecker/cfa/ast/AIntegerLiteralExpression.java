@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.cfa.ast;
 
+
 import java.math.BigInteger;
 import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.types.Type;
@@ -32,10 +33,11 @@ public abstract class AIntegerLiteralExpression extends ALiteralExpression {
     return value.longValue();
   }
 
-  @Override
-  public String toASTString() {
-    return value.toString();
-  }
+
+   @Override
+  public  String toASTString() {
+     return value.toString();
+   }
 
   @Override
   public int hashCode() {
@@ -52,7 +54,8 @@ public abstract class AIntegerLiteralExpression extends ALiteralExpression {
       return true;
     }
 
-    if (!(obj instanceof AIntegerLiteralExpression) || !super.equals(obj)) {
+    if (!(obj instanceof AIntegerLiteralExpression)
+        || !super.equals(obj)) {
       return false;
     }
 
@@ -60,4 +63,5 @@ public abstract class AIntegerLiteralExpression extends ALiteralExpression {
 
     return Objects.equals(other.value, value);
   }
+
 }

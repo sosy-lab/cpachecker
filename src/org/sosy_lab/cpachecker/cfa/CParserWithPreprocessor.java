@@ -17,8 +17,8 @@ import org.sosy_lab.cpachecker.cfa.parser.Scope;
 import org.sosy_lab.cpachecker.exceptions.CParserException;
 
 /**
- * Encapsulates a {@link CParser} instance and processes all files first with a {@link
- * CPreprocessor}.
+ * Encapsulates a {@link CParser} instance and processes all files first
+ * with a {@link CPreprocessor}.
  */
 class CParserWithPreprocessor implements CParser {
 

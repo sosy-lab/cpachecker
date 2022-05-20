@@ -50,6 +50,7 @@ public class RandomPathWaitlist extends AbstractWaitlist<LinkedList<AbstractStat
     }
   }
 
+
   @Override
   public AbstractState pop() {
     AbstractState state;
@@ -64,7 +65,7 @@ public class RandomPathWaitlist extends AbstractWaitlist<LinkedList<AbstractStat
       successorsOfParent--;
       parent = AbstractStates.extractLocation(state);
     } else {
-      parent = null; // TODO not sure if a reset to no parent is correct.
+      parent = null;//TODO not sure if a reset to no parent is correct.
     }
     return state;
   }

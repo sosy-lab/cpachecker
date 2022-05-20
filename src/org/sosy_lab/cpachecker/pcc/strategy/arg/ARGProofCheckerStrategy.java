@@ -36,6 +36,7 @@ public class ARGProofCheckerStrategy extends AbstractARGStrategy {
   private Set<ARGState> waitingForUnexploredParents;
   private Set<ARGState> inWaitlist;
 
+
   public ARGProofCheckerStrategy(
       final Configuration pConfig,
       final LogManager pLogger,
@@ -43,14 +44,8 @@ public class ARGProofCheckerStrategy extends AbstractARGStrategy {
       final Path pProofFile,
       final @Nullable ProofChecker pChecker)
       throws InvalidConfigurationException {
-    super(
-        pConfig,
-        pLogger,
-        pChecker instanceof PropertyCheckerCPA
-            ? ((PropertyCheckerCPA) pChecker).getPropChecker()
-            : new NoTargetStateChecker(),
-        pShutdownNotifier,
-        pProofFile);
+    super(pConfig, pLogger, pChecker instanceof PropertyCheckerCPA ? ((PropertyCheckerCPA) pChecker).getPropChecker()
+        : new NoTargetStateChecker(), pShutdownNotifier, pProofFile);
     checker = pChecker;
   }
 
@@ -69,9 +64,8 @@ public class ARGProofCheckerStrategy extends AbstractARGStrategy {
   }
 
   @Override
-  protected boolean checkCovering(
-      final ARGState pCovered, final ARGState pCovering, final Precision pPrecision)
-      throws CPAException, InterruptedException {
+  protected boolean checkCovering(final ARGState pCovered, final ARGState pCovering, final Precision pPrecision) throws CPAException,
+      InterruptedException {
     return checker.isCoveredBy(pCovered, pCovering);
   }
 
@@ -89,8 +83,7 @@ public class ARGProofCheckerStrategy extends AbstractARGStrategy {
   protected boolean prepareNextWaitlistIteration(final ReachedSet pReachedSet) {
     for (ARGState e : postponedStates) {
       if (!pReachedSet.contains(e.getCoveringState())) {
-        logger.log(
-            Level.WARNING, "Covering state", e.getCoveringState(), "was not found in reached set");
+        logger.log(Level.WARNING, "Covering state", e.getCoveringState(), "was not found in reached set");
         return false;
       }
       pReachedSet.reAddToWaitlist(e);
@@ -100,19 +93,13 @@ public class ARGProofCheckerStrategy extends AbstractARGStrategy {
   }
 
   @Override
-  protected boolean checkSuccessors(
-      final ARGState pPredecessor,
-      final Collection<ARGState> pSuccessors,
-      final Precision pPrecision)
-      throws CPATransferException, InterruptedException {
+  protected boolean checkSuccessors(final ARGState pPredecessor, final Collection<ARGState> pSuccessors,
+      final Precision pPrecision) throws CPATransferException, InterruptedException {
     return checker.areAbstractSuccessors(pPredecessor, null, pSuccessors);
   }
 
   @Override
-  protected boolean addSuccessors(
-      final Collection<ARGState> pSuccessors,
-      final ReachedSet pReachedSet,
-      final Precision pPrecision) {
+  protected boolean addSuccessors(final Collection<ARGState> pSuccessors, final ReachedSet pReachedSet, final Precision pPrecision) {
     boolean unexploredParent;
     for (ARGState e : pSuccessors) {
       unexploredParent = false;
@@ -140,8 +127,8 @@ public class ARGProofCheckerStrategy extends AbstractARGStrategy {
   }
 
   @Override
-  protected boolean treatStateIfCoveredByUnkownState(
-      ARGState pCovered, ARGState pCoveringState, ReachedSet pReachedSet, Precision pPrecision) {
+  protected boolean treatStateIfCoveredByUnkownState(ARGState pCovered, ARGState pCoveringState, ReachedSet pReachedSet,
+      Precision pPrecision) {
     postponedStates.add(pCovered);
     return true;
   }

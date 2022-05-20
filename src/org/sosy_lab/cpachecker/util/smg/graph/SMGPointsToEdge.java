@@ -90,4 +90,5 @@ public class SMGPointsToEdge implements SMGEdge, Comparable<SMGPointsToEdge> {
   public void setTargetSpecifier(SMGTargetSpecifier pTargetSpecifier) {
     targetSpecifier = pTargetSpecifier;
   }
+
 }

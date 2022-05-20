@@ -60,7 +60,6 @@ public class SLARGState extends ARGState
   /**
    * This copy constructor does not make a deep copy of the wrapped state! It will also have no
    * parents or children.
-   *
    * @param pState the state to be copied
    */
   public SLARGState(SLARGState pState) {
@@ -114,7 +113,7 @@ public class SLARGState extends ARGState
   @Override
   public List<CFAEdge> getEdgesToChild(ARGState argChild) {
     CFAEdge edge = getEdgeToChild(argChild);
-    if (edge != null) {
+    if (edge!=null) {
       return ImmutableList.of(edge);
     } else {
       return ImmutableList.of();

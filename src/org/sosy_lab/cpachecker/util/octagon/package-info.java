@@ -6,5 +6,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-/** Wrapper around libJoct, Antoine Mine pre-APRON octagon library. */
+/**
+ * Wrapper around libJoct, Antoine Mine pre-APRON octagon library.
+ */
 package org.sosy_lab.cpachecker.util.octagon;

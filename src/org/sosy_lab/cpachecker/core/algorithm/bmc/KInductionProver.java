@@ -93,8 +93,8 @@ import org.sosy_lab.java_smt.api.visitors.FormulaVisitor;
 import org.sosy_lab.java_smt.api.visitors.TraversalProcess;
 
 /**
- * Instances of this class are used to prove the safety of a program by applying an inductive
- * approach based on k-induction.
+ * Instances of this class are used to prove the safety of a program by
+ * applying an inductive approach based on k-induction.
  */
 class KInductionProver implements AutoCloseable {
 
@@ -153,7 +153,7 @@ class KInductionProver implements AutoCloseable {
     logger = checkNotNull(pLogger);
     algorithm = checkNotNull(pAlgorithm);
     cpa = checkNotNull(pCPA);
-    invariantGenerator = checkNotNull(pInvariantGenerator);
+    invariantGenerator  = checkNotNull(pInvariantGenerator);
     stats = checkNotNull(pStats);
     reachedSetFactory = checkNotNull(pReachedSetFactory);
     shutdownNotifier = checkNotNull(pShutdownNotifier);
@@ -202,8 +202,7 @@ class KInductionProver implements AutoCloseable {
     return InvariantSupplier.TrivialInvariantSupplier.INSTANCE;
   }
 
-  private ExpressionTreeSupplier getCurrentExpressionTreeInvariantSupplier()
-      throws InterruptedException {
+  private ExpressionTreeSupplier getCurrentExpressionTreeInvariantSupplier() throws InterruptedException {
     if (!invariantGenerationRunning) {
       return expressionTreeSupplier;
     }
@@ -337,8 +336,7 @@ class KInductionProver implements AutoCloseable {
     //    This is part of the classic bounded model checking done in BMCAlgorithm,
     //    so we don't care about this here.
     // 2) Assume that one loop iteration is safe and prove that the next one is safe, too.
-    // For k-induction, assume that k loop iterations are safe and prove that the next one is safe,
-    // too.
+    // For k-induction, assume that k loop iterations are safe and prove that the next one is safe, too.
 
     // Create initial reached set:
     // Run algorithm in order to create formula (A & B)
@@ -637,8 +635,7 @@ class KInductionProver implements AutoCloseable {
     return unroll(logger, pReached, pAlg, pCPA);
   }
 
-  private Multimap<String, Integer> extractInputs(
-      Iterable<AbstractState> pReached, Map<String, CType> types) {
+  private Multimap<String, Integer> extractInputs(Iterable<AbstractState> pReached, Map<String, CType> types) {
     Multimap<String, Integer> inputs = LinkedHashMultimap.create();
     Set<AbstractState> visited = new HashSet<>();
     Deque<AbstractState> waitlist = new ArrayDeque<>();

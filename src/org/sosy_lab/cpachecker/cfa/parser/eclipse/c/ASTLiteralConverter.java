@@ -52,16 +52,14 @@ class ASTLiteralConverter {
     parseContext = pParseContext;
   }
 
-  private void check(boolean assertion, String msg, IASTNode astNode)
-      throws CFAGenerationRuntimeException {
+  private void check(boolean assertion, String msg, IASTNode astNode) throws CFAGenerationRuntimeException {
     if (!assertion) {
       throw parseContext.parseError(msg, astNode);
     }
   }
 
   /** This function converts literals like chars or numbers. */
-  CLiteralExpression convert(
-      final IASTLiteralExpression e, final CType type, final FileLocation fileLoc) {
+  CLiteralExpression convert(final IASTLiteralExpression e, final CType type, final FileLocation fileLoc) {
     if (!(type instanceof CSimpleType)
         && (e.getKind() != IASTLiteralExpression.lk_string_literal)) {
       throw parseContext.parseError("Invalid type " + type + " for literal expression", e);
@@ -69,61 +67,50 @@ class ASTLiteralConverter {
 
     String valueStr = String.valueOf(e.getValue());
     if (valueStr.endsWith("i") || valueStr.endsWith("j")) {
-      return handleImaginaryNumber(fileLoc, (CSimpleType) type, e, valueStr);
+      return handleImaginaryNumber(fileLoc, (CSimpleType)type, e, valueStr);
     }
 
     switch (e.getKind()) {
-      case IASTLiteralExpression.lk_char_constant:
-        return new CCharLiteralExpression(fileLoc, type, parseCharacterLiteral(valueStr, e));
+    case IASTLiteralExpression.lk_char_constant:
+      return new CCharLiteralExpression(fileLoc, type, parseCharacterLiteral(valueStr, e));
 
-      case IASTLiteralExpression.lk_integer_constant:
+    case IASTLiteralExpression.lk_integer_constant:
         return parseIntegerLiteral(fileLoc, valueStr, e);
 
-      case IASTLiteralExpression.lk_float_constant:
+    case IASTLiteralExpression.lk_float_constant:
         return parseFloatLiteral(fileLoc, type, valueStr, e);
 
-      case IASTLiteralExpression.lk_string_literal:
-        return new CStringLiteralExpression(fileLoc, type, valueStr);
+    case IASTLiteralExpression.lk_string_literal:
+      return new CStringLiteralExpression(fileLoc, type, valueStr);
 
-      default:
-        throw parseContext.parseError("Unknown literal", e);
+    default:
+      throw parseContext.parseError("Unknown literal", e);
     }
   }
 
-  private CImaginaryLiteralExpression handleImaginaryNumber(
-      FileLocation fileLoc, CSimpleType type, IASTLiteralExpression exp, String valueStr) {
-    valueStr = valueStr.substring(0, valueStr.length() - 1);
-    type =
-        new CSimpleType(
-            type.isConst(),
-            type.isVolatile(),
-            type.getType(),
-            type.isLong(),
-            type.isShort(),
-            type.isSigned(),
-            type.isUnsigned(),
-            type.isComplex(),
-            true,
-            type.isLongLong());
+  private CImaginaryLiteralExpression handleImaginaryNumber(FileLocation fileLoc, CSimpleType type, IASTLiteralExpression exp, String valueStr) {
+    valueStr = valueStr.substring(0, valueStr.length()-1);
+    type = new CSimpleType(type.isConst(), type.isVolatile(), type.getType(), type.isLong(),
+        type.isShort(), type.isSigned(), type.isUnsigned(), type.isComplex(), true, type.isLongLong());
     switch (exp.getKind()) {
-      case IASTLiteralExpression.lk_char_constant:
-        return new CImaginaryLiteralExpression(
-            fileLoc,
-            type,
-            new CCharLiteralExpression(fileLoc, type, parseCharacterLiteral(valueStr, exp)));
+    case IASTLiteralExpression.lk_char_constant:
+      return new CImaginaryLiteralExpression(fileLoc,
+                                             type,
+                                             new CCharLiteralExpression(fileLoc, type, parseCharacterLiteral(valueStr, exp))) ;
 
-      case IASTLiteralExpression.lk_integer_constant:
+
+    case IASTLiteralExpression.lk_integer_constant:
         CLiteralExpression intLiteralExp = parseIntegerLiteral(fileLoc, valueStr, exp);
         return new CImaginaryLiteralExpression(
             fileLoc, intLiteralExp.getExpressionType(), intLiteralExp);
 
-      case IASTLiteralExpression.lk_float_constant:
+    case IASTLiteralExpression.lk_float_constant:
         CLiteralExpression floatLiteralExp = parseFloatLiteral(fileLoc, type, valueStr, exp);
         return new CImaginaryLiteralExpression(
             fileLoc, floatLiteralExp.getExpressionType(), floatLiteralExp);
 
-      default:
-        throw parseContext.parseError("Unknown imaginary literal", exp);
+    default:
+      throw parseContext.parseError("Unknown imaginary literal", exp);
     }
   }
 
@@ -195,10 +182,8 @@ class ASTLiteralConverter {
   @VisibleForTesting
   char parseCharacterLiteral(String s, final IASTNode e) {
     check(s.length() >= 3, "invalid character literal (too short)", e);
-    check(
-        s.charAt(0) == '\'' && s.charAt(s.length() - 1) == '\'',
-        "character literal without quotation marks",
-        e);
+    check(s.charAt(0) == '\'' && s.charAt(s.length() - 1) == '\'',
+        "character literal without quotation marks", e);
     s = s.substring(1, s.length() - 1); // remove the surrounding quotation marks ''
 
     final char result;
@@ -238,38 +223,38 @@ class ASTLiteralConverter {
         // something like '\n'
         check(s.length() == 1, "character literal too long", e);
         switch (c) {
-          case 'a':
-            result = 7;
-            break;
-          case 'b':
-            result = '\b';
-            break;
-          case 'f':
-            result = '\f';
-            break;
-          case 'n':
-            result = '\n';
-            break;
-          case 'r':
-            result = '\r';
-            break;
-          case 't':
-            result = '\t';
-            break;
-          case 'v':
-            result = 11;
-            break;
-          case '"':
-            result = '\"';
-            break;
-          case '\'':
-            result = '\'';
-            break;
-          case '\\':
-            result = '\\';
-            break;
-          default:
-            throw parseContext.parseError("unknown character literal", e);
+        case 'a':
+          result = 7;
+          break;
+        case 'b':
+          result = '\b';
+          break;
+        case 'f':
+          result = '\f';
+          break;
+        case 'n':
+          result = '\n';
+          break;
+        case 'r':
+          result = '\r';
+          break;
+        case 't':
+          result = '\t';
+          break;
+        case 'v':
+          result = 11;
+          break;
+        case '"':
+          result = '\"';
+          break;
+        case '\'':
+          result = '\'';
+          break;
+        case '\\':
+          result = '\\';
+          break;
+        default:
+          throw parseContext.parseError("unknown character literal", e);
         }
       }
     }
@@ -455,8 +440,7 @@ class ASTLiteralConverter {
     assert actualCandidateBitSize > 0 && numberOfBits > actualCandidateBitSize;
     throw new CFAGenerationRuntimeException(
         String.format(
-            "Integer value is too large to be represented by the highest possible type (unsigned"
-                + " long long int): %s.",
+            "Integer value is too large to be represented by the highest possible type (unsigned long long int): %s.",
             pExp));
   }
 
@@ -484,6 +468,7 @@ class ASTLiteralConverter {
       public int getLength() {
         return 0;
       }
+
     },
 
     U {
@@ -502,6 +487,7 @@ class ASTLiteralConverter {
       public int getLength() {
         return 1;
       }
+
     },
 
     L {
@@ -520,6 +506,7 @@ class ASTLiteralConverter {
       public int getLength() {
         return 1;
       }
+
     },
 
     UL {
@@ -538,6 +525,7 @@ class ASTLiteralConverter {
       public int getLength() {
         return 2;
       }
+
     },
 
     LL {
@@ -556,6 +544,7 @@ class ASTLiteralConverter {
       public int getLength() {
         return 2;
       }
+
     },
 
     ULL {
@@ -574,6 +563,7 @@ class ASTLiteralConverter {
       public int getLength() {
         return 3;
       }
+
     };
 
     public abstract boolean isSigned();
@@ -581,5 +571,6 @@ class ASTLiteralConverter {
     public abstract CSimpleType getType();
 
     public abstract int getLength();
+
   }
 }

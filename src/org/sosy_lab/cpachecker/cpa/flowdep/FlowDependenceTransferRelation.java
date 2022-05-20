@@ -94,8 +94,11 @@ import org.sosy_lab.cpachecker.util.reachingdef.ReachingDefUtils;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 import org.sosy_lab.cpachecker.util.variableclassification.VariableClassification;
 
-/** Transfer relation of {@link FlowDependenceCPA}. */
-class FlowDependenceTransferRelation extends SingleEdgeTransferRelation {
+/**
+ * Transfer relation of {@link FlowDependenceCPA}.
+ */
+class FlowDependenceTransferRelation
+    extends SingleEdgeTransferRelation {
 
   private final TransferRelation delegate;
   private final Optional<VariableClassification> varClassification;
@@ -399,8 +402,8 @@ class FlowDependenceTransferRelation extends SingleEdgeTransferRelation {
                 handleDeclarationEdge(
                     declEdge, declaration, nextState, oldReachDefState, oldPointerState);
           } // else {
-          // Function declarations don't introduce any flow dependencies
-          // }
+            // Function declarations don't introduce any flow dependencies
+            // }
           break;
 
         case StatementEdge:
@@ -622,10 +625,10 @@ class FlowDependenceTransferRelation extends SingleEdgeTransferRelation {
     @Override
     public Set<MemoryLocation> visit(CFunctionCallStatement pStmt) throws CPATransferException {
       Set<MemoryLocation> paramDecls = new HashSet<>();
-      for (CExpression p : pStmt.getFunctionCallExpression().getParameterExpressions()) {
-        paramDecls = combine(paramDecls, p.accept(this));
-      }
-      return paramDecls;
+     for (CExpression p : pStmt.getFunctionCallExpression().getParameterExpressions()) {
+       paramDecls = combine(paramDecls, p.accept(this));
+     }
+     return paramDecls;
     }
 
     @Override
@@ -664,8 +667,7 @@ class FlowDependenceTransferRelation extends SingleEdgeTransferRelation {
     @Override
     public Set<MemoryLocation> visit(CIdExpression pExp) throws CPATransferException {
       CSimpleDeclaration idDeclaration = pExp.getDeclaration();
-      if (idDeclaration instanceof CVariableDeclaration
-          || idDeclaration instanceof CParameterDeclaration) {
+      if (idDeclaration instanceof CVariableDeclaration || idDeclaration instanceof CParameterDeclaration) {
         return ImmutableSet.of(MemoryLocation.forDeclaration(idDeclaration));
       } else {
         return ImmutableSet.of();
@@ -720,7 +722,9 @@ class FlowDependenceTransferRelation extends SingleEdgeTransferRelation {
 
     @Override
     public Set<MemoryLocation> visit(CBinaryExpression pExp) throws CPATransferException {
-      return combine(pExp.getOperand1().accept(this), pExp.getOperand2().accept(this));
+      return combine(
+          pExp.getOperand1().accept(this),
+          pExp.getOperand2().accept(this));
     }
 
     @Override

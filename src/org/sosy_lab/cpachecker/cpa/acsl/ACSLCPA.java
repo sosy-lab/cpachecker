@@ -19,12 +19,12 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CFAWithACSLAnnotations;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.ACSLAnnotation;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.ACSLBuiltinCollectingVisitor;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.ACSLPredicateToExpressionTreeVisitor;
-import org.sosy_lab.cpachecker.cfa.ast.acsl.ACSLTermToCExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.ACSLAnnotation;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.ACSLPredicateToExpressionTreeVisitor;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.ACSLTermToCExpressionVisitor;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.ACSLBuiltinCollectingVisitor;
 import org.sosy_lab.cpachecker.core.defaults.AbstractCPA;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -34,7 +34,9 @@ import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.util.expressions.ToCExpressionVisitor;
 
-/** This CPA is for deriving invariants from ACSL annotations. */
+/**
+ * This CPA is for deriving invariants from ACSL annotations.
+ */
 @Options(prefix = "cpa.acsl")
 public class ACSLCPA extends AbstractCPA implements ConfigurableProgramAnalysis {
 

@@ -17,6 +17,7 @@ public class SMGDoublyLinkedListSegment extends SMGObject {
   private final BigInteger nextOffset;
   private final BigInteger prevOffset;
 
+
   public SMGDoublyLinkedListSegment(
       int pNestingLevel,
       BigInteger pSize,
@@ -61,12 +62,25 @@ public class SMGDoublyLinkedListSegment extends SMGObject {
   @Override
   public SMGObject copyWithNewLevel(int newLevel) {
     return new SMGDoublyLinkedListSegment(
-        newLevel, getSize(), getOffset(), prevOffset, nextOffset, minLength, headOffset);
+        newLevel,
+        getSize(),
+        getOffset(),
+        prevOffset,
+        nextOffset,
+        minLength,
+        headOffset);
   }
 
   @Override
   public SMGObject freshCopy() {
     return new SMGDoublyLinkedListSegment(
-        getNestingLevel(), getSize(), getOffset(), prevOffset, nextOffset, minLength, headOffset);
+        getNestingLevel(),
+        getSize(),
+        getOffset(),
+        prevOffset,
+        nextOffset,
+        minLength,
+        headOffset);
   }
+
 }

@@ -8,12 +8,13 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.termination.lasso_analysis.construction;
 
-import java.util.List;
-import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView.BooleanFormulaTransformationVisitor;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView.BooleanFormulaTransformationVisitor;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.FunctionDeclaration;
 import org.sosy_lab.java_smt.api.FunctionDeclarationKind;
+
+import java.util.List;
 
 class EqualElimination extends BooleanFormulaTransformationVisitor {
 

@@ -8,7 +8,9 @@
 
 package org.sosy_lab.cpachecker.util.expressions;
 
+
 public interface Simplifier<LeafType> {
 
   ExpressionTree<LeafType> simplify(ExpressionTree<LeafType> pExpressionTree);
+
 }

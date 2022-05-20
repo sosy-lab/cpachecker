@@ -6,5 +6,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-/** This package provides tools for lockCPA: effects for a LockState */
+/**
+ * This package provides tools for lockCPA: effects for a LockState
+ */
 package org.sosy_lab.cpachecker.cpa.lock.effects;

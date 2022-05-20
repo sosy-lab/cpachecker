@@ -6,5 +6,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-/** An implementation of simple formulas (only representation, no solvers). */
+/**
+ * An implementation of simple formulas (only representation, no solvers).
+ */
 package org.sosy_lab.cpachecker.util.predicates.simpleformulas;

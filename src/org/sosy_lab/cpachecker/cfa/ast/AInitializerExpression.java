@@ -44,7 +44,8 @@ public abstract class AInitializerExpression extends AbstractInitializer {
       return true;
     }
 
-    if (!(obj instanceof AInitializerExpression) || !super.equals(obj)) {
+    if (!(obj instanceof AInitializerExpression)
+        || !super.equals(obj)) {
       return false;
     }
 
@@ -52,4 +53,5 @@ public abstract class AInitializerExpression extends AbstractInitializer {
 
     return Objects.equals(other.expression, expression);
   }
+
 }

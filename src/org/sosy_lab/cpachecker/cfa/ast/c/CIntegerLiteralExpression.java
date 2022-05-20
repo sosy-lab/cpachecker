@@ -15,8 +15,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
-public class CIntegerLiteralExpression extends AIntegerLiteralExpression
-    implements CLiteralExpression {
+public class CIntegerLiteralExpression extends AIntegerLiteralExpression implements CLiteralExpression {
 
   private static final long serialVersionUID = 7691279268370356228L;
   public static final CIntegerLiteralExpression ONE = createDummyLiteral(1L, CNumericTypes.INT);
@@ -26,7 +25,9 @@ public class CIntegerLiteralExpression extends AIntegerLiteralExpression
     return new CIntegerLiteralExpression(FileLocation.DUMMY, type, BigInteger.valueOf(value));
   }
 
-  public CIntegerLiteralExpression(FileLocation pFileLocation, CType pType, BigInteger pValue) {
+  public CIntegerLiteralExpression(FileLocation pFileLocation,
+                                      CType pType,
+                                      BigInteger pValue) {
     super(pFileLocation, pType, pValue);
   }
 
@@ -34,6 +35,7 @@ public class CIntegerLiteralExpression extends AIntegerLiteralExpression
   public CType getExpressionType() {
     return (CType) super.getExpressionType();
   }
+
 
   @Override
   public <R, X extends Exception> R accept(CExpressionVisitor<R, X> v) throws X {

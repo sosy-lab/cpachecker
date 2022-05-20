@@ -25,11 +25,10 @@ import org.sosy_lab.cpachecker.cpa.invariants.formula.InvariantsFormulaManager;
 import org.sosy_lab.cpachecker.cpa.invariants.formula.NumeralFormula;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
-public class NonRecursiveEnvironment
-    implements Map<MemoryLocation, NumeralFormula<CompoundInterval>> {
 
-  private static final CollectVarsVisitor<CompoundInterval> COLLECT_VARS_VISITOR =
-      new CollectVarsVisitor<>();
+public class NonRecursiveEnvironment implements Map<MemoryLocation, NumeralFormula<CompoundInterval>> {
+
+  private static final CollectVarsVisitor<CompoundInterval> COLLECT_VARS_VISITOR = new CollectVarsVisitor<>();
 
   private final PersistentSortedMap<MemoryLocation, NumeralFormula<CompoundInterval>> inner;
 
@@ -48,8 +47,7 @@ public class NonRecursiveEnvironment
       PersistentSortedMap<MemoryLocation, NumeralFormula<CompoundInterval>> pInner) {
     this.inner = pInner;
     this.compoundIntervalManagerFactory = pCompoundIntervalManagerFactory;
-    this.formulaEvaluationVisitor =
-        new FormulaCompoundStateEvaluationVisitor(compoundIntervalManagerFactory);
+    this.formulaEvaluationVisitor = new FormulaCompoundStateEvaluationVisitor(compoundIntervalManagerFactory);
   }
 
   @Override
@@ -79,8 +77,7 @@ public class NonRecursiveEnvironment
 
   @Override
   @Deprecated
-  public NumeralFormula<CompoundInterval> put(
-      MemoryLocation pVarName, NumeralFormula<CompoundInterval> pValue) {
+  public NumeralFormula<CompoundInterval> put(MemoryLocation pVarName, NumeralFormula<CompoundInterval> pValue) {
     throw new UnsupportedOperationException();
   }
 
@@ -96,19 +93,16 @@ public class NonRecursiveEnvironment
     throw new UnsupportedOperationException();
   }
 
-  private boolean isConstantAndContainsAllPossibleValues(
-      NumeralFormula<CompoundInterval> pFormula) {
+  private boolean isConstantAndContainsAllPossibleValues(NumeralFormula<CompoundInterval> pFormula) {
     if (pFormula instanceof Constant) {
       return ((Constant<CompoundInterval>) pFormula).getValue().containsAllPossibleValues();
     }
     return false;
   }
 
-  private PersistentSortedMap<MemoryLocation, NumeralFormula<CompoundInterval>>
-      sanitizedInnerPutAndCopy(
-          PersistentSortedMap<MemoryLocation, NumeralFormula<CompoundInterval>> pTarget,
-          MemoryLocation pMemoryLocation,
-          NumeralFormula<CompoundInterval> pValue) {
+  private PersistentSortedMap<MemoryLocation, NumeralFormula<CompoundInterval>> sanitizedInnerPutAndCopy(PersistentSortedMap<MemoryLocation, NumeralFormula<CompoundInterval>> pTarget,
+      MemoryLocation pMemoryLocation,
+      NumeralFormula<CompoundInterval> pValue) {
     if (pValue == null || isConstantAndContainsAllPossibleValues(pValue)) {
       if (pTarget.containsKey(pMemoryLocation)) {
         return pTarget.removeAndCopy(pMemoryLocation);
@@ -143,16 +137,12 @@ public class NonRecursiveEnvironment
     return sanitizedInnerPutAndCopyInternal(pTarget, pMemoryLocation, pValue);
   }
 
-  private PersistentSortedMap<MemoryLocation, NumeralFormula<CompoundInterval>>
-      sanitizedInnerPutAndCopyInternal(
-          PersistentSortedMap<MemoryLocation, NumeralFormula<CompoundInterval>> pTarget,
-          MemoryLocation pMemoryLocation,
-          NumeralFormula<CompoundInterval> pValue) {
+  private PersistentSortedMap<MemoryLocation, NumeralFormula<CompoundInterval>> sanitizedInnerPutAndCopyInternal(PersistentSortedMap<MemoryLocation, NumeralFormula<CompoundInterval>> pTarget,
+      MemoryLocation pMemoryLocation, NumeralFormula<CompoundInterval> pValue) {
     if (isConstantAndContainsAllPossibleValues(pValue)) {
       return pTarget;
     }
-    Preconditions.checkArgument(
-        !pTarget.containsKey(pMemoryLocation), "Variable must be TOP in previous environment");
+    Preconditions.checkArgument(!pTarget.containsKey(pMemoryLocation), "Variable must be TOP in previous environment");
     NumeralFormula<CompoundInterval> previous = pTarget.get(pMemoryLocation);
     if (pValue.equals(previous)) {
       return pTarget;
@@ -160,8 +150,7 @@ public class NonRecursiveEnvironment
     return pTarget.putAndCopy(pMemoryLocation, pValue);
   }
 
-  public NonRecursiveEnvironment putAndCopy(
-      MemoryLocation pVarName, NumeralFormula<CompoundInterval> pValue) {
+  public NonRecursiveEnvironment putAndCopy(MemoryLocation pVarName, NumeralFormula<CompoundInterval> pValue) {
     NumeralFormula<CompoundInterval> previous = get(pVarName);
     if (previous == null && pValue == null) {
       return this;
@@ -175,19 +164,16 @@ public class NonRecursiveEnvironment
     if (previous.equals(pValue)) {
       return this;
     }
-    PersistentSortedMap<MemoryLocation, NumeralFormula<CompoundInterval>> resultInner =
-        sanitizedInnerPutAndCopy(this.inner, pVarName, pValue);
+    PersistentSortedMap<MemoryLocation, NumeralFormula<CompoundInterval>> resultInner = sanitizedInnerPutAndCopy(this.inner, pVarName, pValue);
     if (this.inner == resultInner) {
       return this;
     }
     return new NonRecursiveEnvironment(this.compoundIntervalManagerFactory, resultInner);
   }
 
-  public NonRecursiveEnvironment putAndCopyAll(
-      Map<? extends MemoryLocation, ? extends NumeralFormula<CompoundInterval>> pM) {
+  public NonRecursiveEnvironment putAndCopyAll(Map<? extends MemoryLocation, ? extends NumeralFormula<CompoundInterval>> pM) {
     PersistentSortedMap<MemoryLocation, NumeralFormula<CompoundInterval>> resultInner = this.inner;
-    for (java.util.Map.Entry<? extends MemoryLocation, ? extends NumeralFormula<CompoundInterval>>
-        entry : pM.entrySet()) {
+    for (java.util.Map.Entry<? extends MemoryLocation, ? extends NumeralFormula<CompoundInterval>> entry : pM.entrySet()) {
       resultInner = sanitizedInnerPutAndCopy(resultInner, entry.getKey(), entry.getValue());
     }
     return new NonRecursiveEnvironment(this.compoundIntervalManagerFactory, resultInner);
@@ -197,8 +183,7 @@ public class NonRecursiveEnvironment
     if (!containsKey(pKey)) {
       return this;
     }
-    return new NonRecursiveEnvironment(
-        this.compoundIntervalManagerFactory, this.inner.removeAndCopy(pKey));
+    return new NonRecursiveEnvironment(this.compoundIntervalManagerFactory, this.inner.removeAndCopy(pKey));
   }
 
   @Override
@@ -248,19 +233,15 @@ public class NonRecursiveEnvironment
             .allPossibleValues());
   }
 
-  public static NonRecursiveEnvironment of(
-      CompoundIntervalManagerFactory pCompoundIntervalManagerFactory) {
-    return new NonRecursiveEnvironment(
-        pCompoundIntervalManagerFactory,
-        PathCopyingPersistentTreeMap.<MemoryLocation, NumeralFormula<CompoundInterval>>of());
+  public static NonRecursiveEnvironment of(CompoundIntervalManagerFactory pCompoundIntervalManagerFactory) {
+    return new NonRecursiveEnvironment(pCompoundIntervalManagerFactory, PathCopyingPersistentTreeMap.<MemoryLocation, NumeralFormula<CompoundInterval>>of());
   }
 
   public static NonRecursiveEnvironment copyOf(
       CompoundIntervalManagerFactory pCompoundIntervalManagerFactory,
       Map<MemoryLocation, NumeralFormula<CompoundInterval>> pInner) {
     if (pInner instanceof NonRecursiveEnvironment
-        && ((NonRecursiveEnvironment) pInner)
-            .compoundIntervalManagerFactory.equals(pCompoundIntervalManagerFactory)) {
+        && ((NonRecursiveEnvironment) pInner).compoundIntervalManagerFactory.equals(pCompoundIntervalManagerFactory)) {
       return (NonRecursiveEnvironment) pInner;
     }
     return new NonRecursiveEnvironment(pCompoundIntervalManagerFactory, pInner);
@@ -320,16 +301,14 @@ public class NonRecursiveEnvironment
     }
 
     @Override
-    public NumeralFormula<CompoundInterval> put(
-        MemoryLocation pKey, NumeralFormula<CompoundInterval> pValue) {
+    public NumeralFormula<CompoundInterval> put(MemoryLocation pKey, NumeralFormula<CompoundInterval> pValue) {
       NumeralFormula<CompoundInterval> result = current.get(pKey);
       current = current.putAndCopy(pKey, pValue);
       return result;
     }
 
     @Override
-    public void putAll(
-        Map<? extends MemoryLocation, ? extends NumeralFormula<CompoundInterval>> pM) {
+    public void putAll(Map<? extends MemoryLocation, ? extends NumeralFormula<CompoundInterval>> pM) {
       current = current.putAndCopyAll(pM);
     }
 
@@ -379,11 +358,12 @@ public class NonRecursiveEnvironment
         CompoundIntervalManagerFactory pCompoundIntervalManagerFactory,
         Map<MemoryLocation, NumeralFormula<CompoundInterval>> pTmpEnvironment) {
       if (pTmpEnvironment instanceof Builder
-          && ((Builder) pTmpEnvironment)
-              .current.compoundIntervalManagerFactory.equals(pCompoundIntervalManagerFactory)) {
+          && ((Builder) pTmpEnvironment).current.compoundIntervalManagerFactory.equals(pCompoundIntervalManagerFactory)) {
         return (Builder) pTmpEnvironment;
       }
       return new Builder(pCompoundIntervalManagerFactory, pTmpEnvironment);
     }
+
   }
+
 }

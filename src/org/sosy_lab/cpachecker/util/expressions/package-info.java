@@ -6,5 +6,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-/** Code expression trees to allow modeling conjunctions and disjunctions of expressions. */
+/**
+ * Code expression trees to allow modeling conjunctions and disjunctions of expressions.
+ */
 package org.sosy_lab.cpachecker.util.expressions;

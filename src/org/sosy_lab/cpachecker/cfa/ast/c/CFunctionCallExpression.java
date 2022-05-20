@@ -15,16 +15,19 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
 public class CFunctionCallExpression extends AFunctionCallExpression implements CRightHandSide {
 
+
+
+
   private static final long serialVersionUID = -3958452761163446674L;
 
-  public CFunctionCallExpression(
-      final FileLocation pFileLocation,
-      final CType pType,
-      final CExpression pFunctionName,
-      final List<CExpression> pParameters,
-      final CFunctionDeclaration pDeclaration) {
+  public CFunctionCallExpression(final FileLocation pFileLocation,
+                                    final CType pType,
+                                    final CExpression pFunctionName,
+                                    final List<CExpression> pParameters,
+                                    final CFunctionDeclaration pDeclaration) {
 
-    super(pFileLocation, pType, pFunctionName, pParameters, pDeclaration);
+    super(pFileLocation, pType, pFunctionName,  pParameters, pDeclaration);
+
   }
 
   @Override
@@ -34,7 +37,7 @@ public class CFunctionCallExpression extends AFunctionCallExpression implements 
 
   @Override
   public CExpression getFunctionNameExpression() {
-    return (CExpression) super.getFunctionNameExpression();
+    return (CExpression)super.getFunctionNameExpression();
   }
 
   @SuppressWarnings("unchecked")
@@ -44,17 +47,19 @@ public class CFunctionCallExpression extends AFunctionCallExpression implements 
   }
 
   /**
-   * Get the declaration of the function. A function may have several declarations in a C file
-   * (several forward declarations without a body, and one with it). In this case, it is not defined
-   * which declaration is returned.
+   * Get the declaration of the function.
+   * A function may have several declarations in a C file (several forward
+   * declarations without a body, and one with it). In this case, it is not
+   * defined which declaration is returned.
    *
-   * <p>The result may be null if the function was not declared, or if a complex function name
-   * expression is used (i.e., a function pointer).
+   * The result may be null if the function was not declared, or if a complex
+   * function name expression is used (i.e., a function pointer).
    */
+
   @Override
   public CFunctionDeclaration getDeclaration() {
 
-    return (CFunctionDeclaration) super.getDeclaration();
+    return  (CFunctionDeclaration) super.getDeclaration();
   }
 
   @Override

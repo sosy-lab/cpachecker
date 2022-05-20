@@ -8,15 +8,19 @@
 
 package org.sosy_lab.cpachecker.util.ci;
 
-import com.google.common.collect.ImmutableSet;
 import java.util.Collection;
 import java.util.List;
+
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
+
+import com.google.common.collect.ImmutableSet;
+
+
 
 public class AppliedCustomInstruction {
 
@@ -29,20 +33,14 @@ public class AppliedCustomInstruction {
   private final SSAMap indicesForReturnVars;
 
   /**
-   * Constructor of AppliedCustomInstruction. Creates a AppliedCustomInstruction with a start node
-   * and a set of endNodes
-   *
+   * Constructor of AppliedCustomInstruction.
+   * Creates a AppliedCustomInstruction with a start node and a set of endNodes
    * @param pCiStartNode CFANode
    * @param pCiEndNodes ImmutableSet
    */
-  public AppliedCustomInstruction(
-      final CFANode pCiStartNode,
-      final Collection<CFANode> pCiEndNodes,
-      final List<String> pInputVariables,
-      final List<String> pOutputVariables,
-      final List<String> inputVarsAndConstants,
-      final Pair<List<String>, String> pFakeDescription,
-      final SSAMap pIndicesForReturnVars) {
+  public AppliedCustomInstruction (final CFANode pCiStartNode, final Collection<CFANode> pCiEndNodes,
+      final List<String> pInputVariables, final List<String> pOutputVariables, final List<String> inputVarsAndConstants,
+      final Pair<List<String>, String> pFakeDescription, final SSAMap pIndicesForReturnVars){
 
     ciStartNode = pCiStartNode;
     ciEndNodes = pCiEndNodes;
@@ -55,15 +53,14 @@ public class AppliedCustomInstruction {
 
   /**
    * Compares the given AbstractState pState to ciStartNode
-   *
    * @param pState AbstractState
    * @return true if pState equals ciStartNode, false if not.
    * @throws CPAException if the given AbstractState pState cant't be extracted to a CFANode
    */
-  public boolean isStartState(final AbstractState pState) throws CPAException {
+  public boolean isStartState (final AbstractState pState) throws CPAException {
     CFANode locState = AbstractStates.extractLocation(pState);
     if (locState == null) {
-      throw new CPAException("The State " + pState + " has to contain a location state!");
+      throw new CPAException("The State " + pState+ " has to contain a location state!");
     }
 
     return locState.equals(ciStartNode);
@@ -71,15 +68,14 @@ public class AppliedCustomInstruction {
 
   /**
    * Compares the given AbstractState pState to ciStartNode
-   *
    * @param pState AbstractState
    * @return true if pState equals ciEndNode, false if not.
    * @throws CPAException if the given AbstractState pState cant't be extracted to a CFANode
    */
-  public boolean isEndState(final AbstractState pState) throws CPAException {
+  public boolean isEndState (final AbstractState pState) throws CPAException {
     CFANode locState = AbstractStates.extractLocation(pState);
     if (locState == null) {
-      throw new CPAException("The State " + pState + " has to contain a location state!");
+      throw new CPAException("The State " + pState+ " has to contain a location state!");
     }
 
     return ciEndNodes.contains(locState);
@@ -94,7 +90,7 @@ public class AppliedCustomInstruction {
   }
 
   public Collection<CFANode> getStartAndEndNodes() {
-    return ImmutableSet.<CFANode>builder().add(ciStartNode).addAll(ciEndNodes).build();
+    return ImmutableSet.<CFANode> builder().add(ciStartNode).addAll(ciEndNodes).build();
   }
 
   public List<String> getInputVariables() {

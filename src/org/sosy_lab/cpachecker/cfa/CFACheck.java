@@ -60,7 +60,6 @@ public class CFACheck {
 
   /**
    * Traverse the CFA and run a series of checks at each node
-   *
    * @param cfa Node to start traversal from
    * @param nodes Optional set of all nodes in the CFA (may be null)
    * @param machineModel model to get the size of types
@@ -80,8 +79,7 @@ public class CFACheck {
 
       if (visitedNodes.add(node)) {
         Iterables.addAll(waitingNodeList, CFAUtils.successorsOf(node));
-        Iterables.addAll(
-            waitingNodeList, CFAUtils.predecessorsOf(node)); // just to be sure to get ALL nodes.
+        Iterables.addAll(waitingNodeList, CFAUtils.predecessorsOf(node)); // just to be sure to get ALL nodes.
 
         // The actual checks
         isConsistent(node, machineModel);
@@ -92,9 +90,7 @@ public class CFACheck {
     if (nodes != null) {
       verify(
           visitedNodes.equals(nodes),
-          "\n"
-              + "Nodes in CFA but not reachable through traversal: %s\n"
-              + "Nodes reached that are not in CFA: %s",
+          "\nNodes in CFA but not reachable through traversal: %s\nNodes reached that are not in CFA: %s",
           Iterables.transform(Sets.difference(nodes, visitedNodes), CFACheck::debugFormat),
           Iterables.transform(Sets.difference(visitedNodes, nodes), CFACheck::debugFormat));
     }
@@ -102,8 +98,8 @@ public class CFACheck {
   }
 
   /**
-   * This method returns a lazy object where {@link Object#toString} can be called. In most cases we
-   * do not need to build the String, thus we can avoid some overhead here.
+   * This method returns a lazy object where {@link Object#toString} can be called.
+   * In most cases we do not need to build the String, thus we can avoid some overhead here.
    */
   private static Object debugFormat(CFANode node) {
     return new Object() {
@@ -123,7 +119,6 @@ public class CFACheck {
 
   /**
    * Verify that the number of edges and their types match.
-   *
    * @param pNode Node to be checked
    */
   private static void checkEdgeCount(CFANode pNode) {
@@ -160,7 +155,7 @@ public class CFACheck {
         case 2:
           CFAEdge edge1 = pNode.getLeavingEdge(0);
           CFAEdge edge2 = pNode.getLeavingEdge(1);
-          // relax this assumption for summary edges
+          //relax this assumption for summary edges
           if (edge1 instanceof CFunctionSummaryStatementEdge) {
             verify(
                 edge2 instanceof CFunctionCallEdge,
@@ -177,8 +172,8 @@ public class CFACheck {
                 "Branching without conditions at node %s",
                 debugFormat(pNode));
 
-            AssumeEdge ae1 = (AssumeEdge) edge1;
-            AssumeEdge ae2 = (AssumeEdge) edge2;
+          AssumeEdge ae1 = (AssumeEdge)edge1;
+          AssumeEdge ae2 = (AssumeEdge)edge2;
             verify(
                 ae1.getTruthAssumption() != ae2.getTruthAssumption(),
                 "Inconsistent branching at node %s",
@@ -193,9 +188,8 @@ public class CFACheck {
   }
 
   /**
-   * Check all entering and leaving edges for corresponding leaving/entering edges at
-   * predecessor/successor nodes, and that there are no duplicates
-   *
+   * Check all entering and leaving edges for corresponding leaving/entering edges
+   * at predecessor/successor nodes, and that there are no duplicates
    * @param pNode Node to be checked
    */
   private static void isConsistent(CFANode pNode, MachineModel machineModel) {

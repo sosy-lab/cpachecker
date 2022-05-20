@@ -15,7 +15,10 @@ import org.sosy_lab.java_smt.api.Formula;
 import org.sosy_lab.java_smt.api.FormulaType;
 import org.sosy_lab.java_smt.api.FormulaType.ArrayFormulaType;
 
-/** Implements some methods for easier interaction with the formula manager for array formulas. */
+/**
+ * Implements some methods for easier interaction with the formula manager for
+ * array formulas.
+ */
 public class ArrayFormulaManagerView extends BaseManagerView implements ArrayFormulaManager {
 
   private ArrayFormulaManager manager;
@@ -32,7 +35,9 @@ public class ArrayFormulaManagerView extends BaseManagerView implements ArrayFor
     this.manager = pManager;
   }
 
-  /** {@inheritDoc} */
+  /**
+   * {@inheritDoc}
+   */
   @Override
   public <TI extends Formula, TE extends Formula> TE select(
       final ArrayFormula<TI, TE> pArray, final TI pIndex) {
@@ -49,10 +54,14 @@ public class ArrayFormulaManagerView extends BaseManagerView implements ArrayFor
     return wrap(resultType, selectResult);
   }
 
-  /** {@inheritDoc} */
+  /**
+   * {@inheritDoc}
+   */
   @Override
   public <TI extends Formula, TE extends Formula> ArrayFormula<TI, TE> store(
-      final ArrayFormula<TI, TE> pArray, final TI pIndex, final TE pValue) {
+      final ArrayFormula<TI, TE> pArray,
+      final TI pIndex,
+      final TE pValue) {
 
     @SuppressWarnings("unchecked")
     final ArrayFormula<TI, TE> declaredArray = (ArrayFormula<TI, TE>) unwrap(pArray);
@@ -69,7 +78,9 @@ public class ArrayFormulaManagerView extends BaseManagerView implements ArrayFor
     }
   }
 
-  /** {@inheritDoc} */
+  /**
+   * {@inheritDoc}
+   */
   @Override
   public <
           TI extends Formula,
@@ -103,7 +114,9 @@ public class ArrayFormulaManagerView extends BaseManagerView implements ArrayFor
     return makeArray(FormulaManagerView.makeName(pName, pSsaIndex), pIndexType, pElementType);
   }
 
-  /** {@inheritDoc} */
+  /**
+   * {@inheritDoc}
+   */
   @SuppressWarnings("unchecked")
   @Override
   public <TI extends Formula, TE extends Formula> ArrayFormula<TI, TE> makeArray(
@@ -117,10 +130,12 @@ public class ArrayFormulaManagerView extends BaseManagerView implements ArrayFor
     return makeArray(FormulaManagerView.makeName(pName, pSsaIndex), pType);
   }
 
-  /** {@inheritDoc} */
+  /**
+   * {@inheritDoc}
+   */
   @Override
   public <TI extends Formula> FormulaType<TI> getIndexType(final ArrayFormula<TI, ?> pArray) {
-    if (pArray instanceof WrappingFormula<?, ?>) {
+    if (pArray instanceof WrappingFormula<?,?>) {
       @SuppressWarnings("unchecked")
       ArrayFormulaType<TI, ?> t =
           (ArrayFormulaType<TI, ?>) ((WrappingFormula<?, ?>) pArray).getType();
@@ -129,10 +144,12 @@ public class ArrayFormulaManagerView extends BaseManagerView implements ArrayFor
     return manager.getIndexType(pArray);
   }
 
-  /** {@inheritDoc} */
+  /**
+   * {@inheritDoc}
+   */
   @Override
   public <TE extends Formula> FormulaType<TE> getElementType(final ArrayFormula<?, TE> pArray) {
-    if (pArray instanceof WrappingFormula<?, ?>) {
+    if (pArray instanceof WrappingFormula<?,?>) {
       @SuppressWarnings("unchecked")
       ArrayFormulaType<?, TE> t =
           (ArrayFormulaType<?, TE>) ((WrappingFormula<?, ?>) pArray).getType();
@@ -141,7 +158,9 @@ public class ArrayFormulaManagerView extends BaseManagerView implements ArrayFor
     return manager.getElementType(pArray);
   }
 
-  /** {@inheritDoc} */
+  /**
+   * {@inheritDoc}
+   */
   @Override
   public <TI extends Formula, TE extends Formula> BooleanFormula equivalence(
       final ArrayFormula<TI, TE> pArray1, final ArrayFormula<TI, TE> pArray2) {
@@ -154,4 +173,5 @@ public class ArrayFormulaManagerView extends BaseManagerView implements ArrayFor
     BooleanFormula result = manager.equivalence(declaredArray1, declaredArray2);
     return wrap(FormulaType.BooleanType, result);
   }
+
 }

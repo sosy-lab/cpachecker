@@ -50,8 +50,9 @@ import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.Pair;
 
 /**
- * Uses ProofChecker interface to check an ARG (certificate) in parallel. Methods used for checking
- * especially those implemented by ProofChecker used in checking must be 1) executable in parallel
+ * Uses ProofChecker interface to check an ARG (certificate) in parallel.
+ * Methods used for checking especially those implemented by ProofChecker used in checking must be
+ * 1) executable in parallel
  * 2) independent of the order when an ARG state is checked
  */
 @Options
@@ -82,10 +83,8 @@ public class ARGProofCheckerParallelStrategy extends SequentialReadStrategy {
   }
 
   @Override
-  public boolean checkCertificate(final ReachedSet pReachedSet)
-      throws CPAException, InterruptedException {
-    // TODO does not account for strengthen yet (proof check will fail if strengthen is needed to
-    // explain successor states)
+  public boolean checkCertificate(final ReachedSet pReachedSet) throws CPAException, InterruptedException {
+    //TODO does not account for strengthen yet (proof check will fail if strengthen is needed to explain successor states)
     // TODO if ARG too small avoid parallel checking, check with less threads
 
     logger.log(Level.INFO, "Proof check algorithm started");
@@ -106,7 +105,7 @@ public class ARGProofCheckerParallelStrategy extends SequentialReadStrategy {
         helperThreads[i].start();
       }
 
-      // check BAMARG blocks
+      //check BAMARG blocks
       Block block;
       BAMARGBlockStartState bamState;
       Collection<ARGState> returnNodes;
@@ -132,10 +131,7 @@ public class ARGProofCheckerParallelStrategy extends SequentialReadStrategy {
 
         // check
         for (int j = helper.length * numElems; j < argStates.size(); j++) {
-          if (!checkInnerElement(
-              propChecker, checker, argStates.get(j), block, partialReturnNodes)) {
-            return false;
-          }
+          if (!checkInnerElement(propChecker, checker, argStates.get(j), block, partialReturnNodes)) { return false; }
         }
 
         result.addReturnNodes(partialReturnNodes);
@@ -149,7 +145,8 @@ public class ARGProofCheckerParallelStrategy extends SequentialReadStrategy {
         }
 
         // add ARG as checked
-        ((BAMCPA) checker).getBamPccManager().setCorrectARG(Pair.of(args[i], block), returnNodes);
+        ((BAMCPA) checker).getBamPccManager().setCorrectARG(Pair.of(args[i], block),
+            returnNodes);
       }
 
       // check main block
@@ -161,9 +158,7 @@ public class ARGProofCheckerParallelStrategy extends SequentialReadStrategy {
 
       logger.log(Level.FINE, "Checking root state");
 
-      if (!(checker.isCoveredBy(initialState, root) && checker.isCoveredBy(root, initialState))) {
-        return false;
-      }
+      if (!(checker.isCoveredBy(initialState, root) && checker.isCoveredBy(root, initialState))) { return false; }
 
       // traverse
       argStates = getARGElements(root);
@@ -178,17 +173,13 @@ public class ARGProofCheckerParallelStrategy extends SequentialReadStrategy {
 
       // check
       for (int j = helper.length * numElems; j < argStates.size(); j++) {
-        if (!checkElement(propChecker, checker, argStates.get(j))) {
-          return false;
-        }
+        if (!checkElement(propChecker, checker, argStates.get(j))) { return false; }
       }
 
       // wait for every Thread to finish
       for (int j = 0; j < helper.length; j++) {
         helperThreads[j].join();
-        if (!result.isSuccess()) {
-          return false;
-        }
+        if (!result.isSuccess()) { return false; }
       }
       returnNodes = result.getResult();
       if (returnNodes == null) {
@@ -228,12 +219,8 @@ public class ARGProofCheckerParallelStrategy extends SequentialReadStrategy {
     return new ArrayList<>(seen);
   }
 
-  private static boolean checkInnerElement(
-      PropertyChecker propChecker,
-      ProofChecker checker,
-      ARGState toCheck,
-      Block block,
-      Collection<ARGState> returnNodes) {
+  private static boolean checkInnerElement(PropertyChecker propChecker, ProofChecker checker, ARGState toCheck,
+      Block block, Collection<ARGState> returnNodes) {
     if (checkElement(propChecker, checker, toCheck)) {
       if (!propChecker.satisfiesProperty(toCheck)) {
         returnNodes.add(toCheck);
@@ -248,25 +235,16 @@ public class ARGProofCheckerParallelStrategy extends SequentialReadStrategy {
     return false;
   }
 
-  private static boolean checkElement(
-      PropertyChecker propChecker, ProofChecker checker, ARGState toCheck) {
+  private static boolean checkElement(PropertyChecker propChecker, ProofChecker checker, ARGState toCheck) {
     try {
-      if (!propChecker.satisfiesProperty(toCheck)) {
-        return false;
-      }
+      if (!propChecker.satisfiesProperty(toCheck)) { return false; }
 
       if (toCheck.isCovered()) {
-        if (!isCoveringCycleFree(toCheck)) {
-          return false;
-        }
-        if (!checker.isCoveredBy(toCheck, toCheck.getCoveringState())) {
-          return false;
-        }
+        if (!isCoveringCycleFree(toCheck)) { return false; }
+        if (!checker.isCoveredBy(toCheck, toCheck.getCoveringState())) { return false; }
       } else {
         Collection<ARGState> successors = toCheck.getChildren();
-        if (!checker.areAbstractSuccessors(toCheck, null, successors)) {
-          return false;
-        }
+        if (!checker.areAbstractSuccessors(toCheck, null, successors)) { return false; }
       }
     } catch (InterruptedException | CPAException e) {
       return false;
@@ -280,9 +258,7 @@ public class ARGProofCheckerParallelStrategy extends SequentialReadStrategy {
     while (pState.isCovered()) {
       pState = pState.getCoveringState();
       boolean isNew = seen.add(pState);
-      if (!isNew) {
-        return false;
-      }
+      if (!isNew) { return false; }
     }
     return true;
   }
@@ -290,8 +266,7 @@ public class ARGProofCheckerParallelStrategy extends SequentialReadStrategy {
   private boolean correctReachedSetFormatForProof(UnmodifiableReachedSet pReached) {
     if (!(pReached.getFirstState() instanceof ARGState)
         || (extractLocation(pReached.getFirstState()) == null)) {
-      logger.log(
-          Level.SEVERE, "Proof cannot be generated because checked property not known to be true.");
+      logger.log(Level.SEVERE, "Proof cannot be generated because checked property not known to be true.");
       return false;
     }
     return true;
@@ -348,6 +323,7 @@ public class ARGProofCheckerParallelStrategy extends SequentialReadStrategy {
             toVisit.add(state);
           }
         }
+
       }
     }
 
@@ -392,6 +368,7 @@ public class ARGProofCheckerParallelStrategy extends SequentialReadStrategy {
             toVisit.add(state);
           }
         }
+
       }
     }
   }
@@ -443,16 +420,14 @@ public class ARGProofCheckerParallelStrategy extends SequentialReadStrategy {
     private ProofChecker proofC;
     private Block currentB;
 
-    public StateCheckingHelper(
-        CyclicBarrier pBarrier,
-        CommonResult pResult,
-        PropertyChecker pPropCheck,
+    public StateCheckingHelper(CyclicBarrier pBarrier, CommonResult pResult, PropertyChecker pPropCheck,
         ProofChecker pProofCheck) {
       this.barrier = pBarrier;
       result = pResult;
       propC = pPropCheck;
       proofC = pProofCheck;
     }
+
 
     public void setCheckingInfo(int pStartIndex, int pNumberElems, List<ARGState> argStates) {
       lastRound = true;
@@ -461,8 +436,7 @@ public class ARGProofCheckerParallelStrategy extends SequentialReadStrategy {
       states = argStates;
     }
 
-    public void setCheckingInfo(
-        int pStartIndex, int pNumberElems, List<ARGState> argStates, Block block) {
+    public void setCheckingInfo(int pStartIndex, int pNumberElems, List<ARGState> argStates, Block block) {
       lastRound = false;
       startCheck = pStartIndex;
       numElemsToCheck = pNumberElems;
@@ -508,6 +482,7 @@ public class ARGProofCheckerParallelStrategy extends SequentialReadStrategy {
         result.setFailure();
       }
     }
+
   }
 
   private static class CommonResult {
@@ -560,4 +535,5 @@ public class ARGProofCheckerParallelStrategy extends SequentialReadStrategy {
       }
     }
   }
+
 }

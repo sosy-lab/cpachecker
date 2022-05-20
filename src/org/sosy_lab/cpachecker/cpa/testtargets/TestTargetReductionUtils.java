@@ -32,7 +32,8 @@ import org.sosy_lab.cpachecker.util.Pair;
 
 public final class TestTargetReductionUtils {
 
-  private TestTargetReductionUtils() {}
+  private TestTargetReductionUtils() {
+  }
 
   public static Pair<CFANode, CFANode> buildTestGoalGraph(
       final Set<CFAEdge> pTestTargets,
@@ -70,9 +71,9 @@ public final class TestTargetReductionUtils {
 
     for (CFANode predecessor : toExplore) {
       if (!successorNodes.contains(predecessor)) {
-        // get next node in the queue
-        waitlist.add(predecessor);
-        visited.clear();
+      // get next node in the queue
+      waitlist.add(predecessor);
+      visited.clear();
       }
 
       while (!waitlist.isEmpty()) {
@@ -80,8 +81,7 @@ public final class TestTargetReductionUtils {
 
         for (CFAEdge leaving : CFAUtils.leavingEdges(currentNode)) {
           if (successorNodes.contains(leaving.getSuccessor())) {
-            if (!origCFANodeToCopyMap
-                .get(predecessor)
+            if (!origCFANodeToCopyMap.get(predecessor)
                 .hasEdgeTo(origCFANodeToCopyMap.get(leaving.getSuccessor()))) {
               copyAsDummyEdge(
                   origCFANodeToCopyMap.get(predecessor),

@@ -59,8 +59,7 @@ public class ExpressionTreeLocationInvariant extends SingleLocationFormulaInvari
   public BooleanFormula getFormula(
       FormulaManagerView pFMGR, PathFormulaManager pPFMGR, PathFormula pContext)
       throws CPATransferException, InterruptedException {
-    PathFormula clearContext =
-        pContext == null ? null : pPFMGR.makeEmptyPathFormulaWithContextFrom(pContext);
+    PathFormula clearContext = pContext == null ? null : pPFMGR.makeEmptyPathFormulaWithContextFrom(pContext);
     ManagerKey key = new ManagerKey(pFMGR, pPFMGR, clearContext);
     ToFormulaVisitor toFormulaVisitor =
         visitorCache.computeIfAbsent(
@@ -156,5 +155,7 @@ public class ExpressionTreeLocationInvariant extends SingleLocationFormulaInvari
       }
       return false;
     }
+
   }
+
 }

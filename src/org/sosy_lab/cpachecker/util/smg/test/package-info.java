@@ -6,7 +6,9 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-/** This package contains utility classes for unit test implementations. */
+/**
+ * This package contains utility classes for unit test implementations.
+ */
 @javax.annotation.ParametersAreNonnullByDefault
 @org.sosy_lab.common.annotations.FieldsAreNonnullByDefault
 @org.sosy_lab.common.annotations.ReturnValuesAreNonnullByDefault

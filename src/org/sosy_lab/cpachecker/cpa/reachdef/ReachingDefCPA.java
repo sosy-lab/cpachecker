@@ -49,28 +49,19 @@ public class ReachingDefCPA extends AbstractCPA implements ProofCheckerCPA {
 
   private LogManager logger;
 
-  @Option(
-      secure = true,
-      name = "merge",
-      toUppercase = true,
-      values = {"SEP", "JOIN", "IGNORECALLSTACK"},
-      description = "which merge operator to use for ReachingDefCPA")
+  @Option(secure=true, name="merge", toUppercase=true, values={"SEP", "JOIN", "IGNORECALLSTACK"},
+      description="which merge operator to use for ReachingDefCPA")
   private String mergeType = "JOIN";
 
-  @Option(
-      secure = true,
-      name = "stop",
-      toUppercase = true,
-      values = {"SEP", "JOIN", "IGNORECALLSTACK"},
-      description = "which stop operator to use for ReachingDefCPA")
+  @Option(secure=true, name="stop", toUppercase=true, values={"SEP", "JOIN", "IGNORECALLSTACK"},
+      description="which stop operator to use for ReachingDefCPA")
   private String stopType = "SEP";
 
   public static CPAFactory factory() {
     return AutomaticCPAFactory.forType(ReachingDefCPA.class);
   }
 
-  private ReachingDefCPA(LogManager logger, Configuration config, ShutdownNotifier shutdownNotifier)
-      throws InvalidConfigurationException {
+  private ReachingDefCPA(LogManager logger, Configuration config, ShutdownNotifier shutdownNotifier) throws InvalidConfigurationException {
     super(
         DelegateAbstractDomain.getInstance(),
         new ReachingDefTransferRelation(logger, shutdownNotifier, config));
@@ -108,9 +99,7 @@ public class ReachingDefCPA extends AbstractCPA implements ProofCheckerCPA {
 
   @Override
   public AbstractState getInitialState(CFANode pNode, StateSpacePartition pPartition) {
-    logger.log(
-        Level.FINE,
-        "Start extracting all declared variables in program.",
+    logger.log(Level.FINE, "Start extracting all declared variables in program.",
         "Distinguish between local and global variables.");
     Pair<Set<MemoryLocation>, Map<FunctionEntryNode, Set<MemoryLocation>>> result =
         ReachingDefUtils.getAllVariables(pNode);

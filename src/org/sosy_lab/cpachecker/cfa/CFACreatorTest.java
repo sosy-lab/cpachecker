@@ -36,11 +36,16 @@ import org.sosy_lab.cpachecker.cfa.types.java.JType;
 
 public class CFACreatorTest {
 
-  @Mock JMethodEntryNode N1;
-  @Mock JMethodEntryNode N2;
-  @Mock JMethodEntryNode N3;
-  @Mock JMethodEntryNode N4;
-  @Mock JMethodEntryNode N5;
+  @Mock
+  JMethodEntryNode N1;
+  @Mock
+  JMethodEntryNode N2;
+  @Mock
+  JMethodEntryNode N3;
+  @Mock
+  JMethodEntryNode N4;
+  @Mock
+  JMethodEntryNode N5;
 
   private Map<String, FunctionEntryNode> cfa;
 

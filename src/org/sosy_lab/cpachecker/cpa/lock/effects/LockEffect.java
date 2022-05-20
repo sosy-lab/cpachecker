@@ -43,10 +43,14 @@ public abstract class LockEffect implements AbstractLockEffect {
     if (this == obj) {
       return true;
     }
-    if (obj == null || getClass() != obj.getClass()) {
+    if (obj == null ||
+        getClass() != obj.getClass()) {
       return false;
     }
     LockEffect other = (LockEffect) obj;
-    return Objects.equals(target, other.target) && Objects.equals(getAction(), other.getAction());
+    return Objects.equals(target, other.target) &&
+           Objects.equals(getAction(), other.getAction());
   }
+
+
 }

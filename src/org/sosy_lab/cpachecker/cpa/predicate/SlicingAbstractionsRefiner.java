@@ -31,9 +31,12 @@ import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CPAs;
 
 /**
- * This is Refiner for Slicing Abstractions like in the papers: "Slicing Abstractions"
- * (doi:10.1007/978-3-540-75698-9_2) "Splitting via Interpolants" (doi:10.1007/978-3-642-27940-9_13)
+ * This is Refiner for Slicing Abstractions
+ * like in the papers:
+ * "Slicing Abstractions" (doi:10.1007/978-3-540-75698-9_2)
+ * "Splitting via Interpolants" (doi:10.1007/978-3-642-27940-9_13)
  */
+
 public class SlicingAbstractionsRefiner implements Refiner, StatisticsProvider {
 
   private final ARGBasedRefiner refiner;
@@ -44,20 +47,18 @@ public class SlicingAbstractionsRefiner implements Refiner, StatisticsProvider {
     this.argCpa = pCpa;
   }
 
-  public static Refiner create(ConfigurableProgramAnalysis pCpa)
-      throws InvalidConfigurationException {
+  public static Refiner create(ConfigurableProgramAnalysis pCpa) throws InvalidConfigurationException {
     PredicateCPA predicateCpa = CPAs.retrieveCPA(pCpa, PredicateCPA.class);
-    ARGCPA argCpa = CPAs.retrieveCPA(pCpa, ARGCPA.class);
+    ARGCPA argCpa = CPAs.retrieveCPA(pCpa,ARGCPA.class);
     if (predicateCpa == null) {
-      throw new InvalidConfigurationException(
-          SlicingAbstractionsRefiner.class.getSimpleName() + " needs a PredicateCPA");
+      throw new InvalidConfigurationException(SlicingAbstractionsRefiner.class.getSimpleName() + " needs a PredicateCPA");
     }
 
     RefinementStrategy strategy =
         new SlicingAbstractionsStrategy(predicateCpa, predicateCpa.getConfiguration());
 
     PredicateCPARefinerFactory factory = new PredicateCPARefinerFactory(pCpa);
-    ARGBasedRefiner refiner = factory.create(strategy);
+    ARGBasedRefiner refiner =  factory.create(strategy);
     return new SlicingAbstractionsRefiner(refiner, argCpa);
   }
 
@@ -74,7 +75,7 @@ public class SlicingAbstractionsRefiner implements Refiner, StatisticsProvider {
         ARGReachedSet reached = new ARGReachedSet(pReached, argCpa);
         counterexample = refiner.performRefinementForPath(reached, errorPath);
         if (!counterexample.isSpurious()) {
-          ((ARGState) targetState).addCounterexampleInformation(counterexample);
+          ((ARGState)targetState).addCounterexampleInformation(counterexample);
           return false;
         } else {
           if (!SlicingAbstractionsUtils.checkProgress(pReached, errorPath)) {
@@ -94,4 +95,5 @@ public class SlicingAbstractionsRefiner implements Refiner, StatisticsProvider {
       ((StatisticsProvider) refiner).collectStatistics(pStatsCollection);
     }
   }
+
 }

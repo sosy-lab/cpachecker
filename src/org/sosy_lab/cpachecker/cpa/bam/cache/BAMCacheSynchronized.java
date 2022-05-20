@@ -40,13 +40,7 @@ public class BAMCacheSynchronized implements BAMCache {
   public void printStatistics(PrintStream pOut, Result pResult, UnmodifiableReachedSet pReached) {
     synchronized (this) {
       cache.printStatistics(pOut, pResult, pReached);
-      pOut.println(
-          timer.getTitle()
-              + ":                           "
-              + timer
-              + " (count="
-              + timer.getUpdateCount()
-              + ")");
+      pOut.println(timer.getTitle() + ":                           " + timer + " (count=" + timer.getUpdateCount() + ")");
     }
   }
 
@@ -101,8 +95,8 @@ public class BAMCacheSynchronized implements BAMCache {
   }
 
   @Override
-  public boolean containsPreciseKey(
-      AbstractState pStateKey, Precision pPrecisionKey, Block pContext) {
+  public boolean containsPreciseKey(AbstractState pStateKey, Precision pPrecisionKey,
+      Block pContext) {
     synchronized (this) {
       try {
         timer.start();

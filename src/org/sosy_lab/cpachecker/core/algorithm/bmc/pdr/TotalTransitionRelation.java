@@ -200,7 +200,8 @@ public class TotalTransitionRelation {
 
   public Predicate<? super AbstractState> getCandidateInvariantStatePredicate() {
     return s ->
-        FluentIterable.from(AbstractStates.extractLocations(s)).stream()
+        FluentIterable.from(AbstractStates.extractLocations(s))
+            .stream()
             .anyMatch(predecessorLocations::contains);
   }
 

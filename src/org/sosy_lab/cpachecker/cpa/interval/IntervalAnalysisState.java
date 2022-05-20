@@ -45,15 +45,18 @@ public class IntervalAnalysisState
 
   private static final Splitter propertySplitter = Splitter.on("<=").trimResults();
 
-  /** the intervals of the element */
+  /**
+   * the intervals of the element
+   */
   private final PersistentMap<String, Interval> intervals;
 
-  /** the reference counts of the element */
+  /**
+   * the reference counts of the element
+   */
   private final PersistentMap<String, Integer> referenceCounts;
 
   /**
-   * This method acts as the default constructor, which initializes the intervals and reference
-   * counts to empty maps and the previous element to null.
+   *  This method acts as the default constructor, which initializes the intervals and reference counts to empty maps and the previous element to null.
    */
   public IntervalAnalysisState() {
     intervals = PathCopyingPersistentTreeMap.of();
@@ -61,16 +64,14 @@ public class IntervalAnalysisState
   }
 
   /**
-   * This method acts as constructor, which initializes the intervals, the reference counts and the
-   * previous element to the respective objects.
+   * This method acts as constructor, which initializes the intervals, the reference counts and the previous element to the respective objects.
    *
    * @param intervals the intervals
    * @param referencesMap the reference counts
    */
-  public IntervalAnalysisState(
-      PersistentMap<String, Interval> intervals, PersistentMap<String, Integer> referencesMap) {
-    this.intervals = intervals;
-    this.referenceCounts = referencesMap;
+  public IntervalAnalysisState(PersistentMap<String, Interval> intervals, PersistentMap<String, Integer> referencesMap) {
+    this.intervals        = intervals;
+    this.referenceCounts  = referencesMap;
   }
 
   /**
@@ -150,7 +151,7 @@ public class IntervalAnalysisState
   public IntervalAnalysisState dropFrame(String pCalledFunctionName) {
     IntervalAnalysisState tmp = this;
     for (String variableName : intervals.keySet()) {
-      if (variableName.startsWith(pCalledFunctionName + "::")) {
+      if (variableName.startsWith(pCalledFunctionName+"::")) {
         tmp = tmp.removeInterval(variableName);
       }
     }
@@ -206,30 +207,23 @@ public class IntervalAnalysisState
   }
 
   /**
-   * This method decides if this element is less or equal than the reached state, based on the order
-   * imposed by the lattice.
+   * This method decides if this element is less or equal than the reached state, based on the order imposed by the lattice.
    *
    * @param reachedState the reached state
-   * @return true, if this element is less or equal than the reached state, based on the order
-   *     imposed by the lattice
+   * @return true, if this element is less or equal than the reached state, based on the order imposed by the lattice
    */
   @Override
   public boolean isLessOrEqual(IntervalAnalysisState reachedState) {
-    if (intervals.equals(reachedState.intervals)) {
-      return true;
-    }
+    if (intervals.equals(reachedState.intervals)) { return true; }
     // this element is not less or equal than the reached state, if it contains less intervals
     if (intervals.size() < reachedState.intervals.size()) {
       return false;
     }
 
-    // also, this element is not less or equal than the reached state, if any one interval of the
-    // reached state is not contained in this element,
-    // or if the interval of the reached state is not wider than the respective interval of this
-    // element
+    // also, this element is not less or equal than the reached state, if any one interval of the reached state is not contained in this element,
+    // or if the interval of the reached state is not wider than the respective interval of this element
     for (String variableName : reachedState.intervals.keySet()) {
-      if (!intervals.containsKey(variableName)
-          || !reachedState.getInterval(variableName).contains(getInterval(variableName))) {
+      if (!intervals.containsKey(variableName) || !reachedState.getInterval(variableName).contains(getInterval(variableName))) {
         return false;
       }
     }
@@ -243,13 +237,10 @@ public class IntervalAnalysisState
     return intervals;
   }
 
-  /**
-   * If there was a recursive function, we have wrong intervals for scoped variables in the
-   * returnState. This function rebuilds a new state with the correct intervals from the previous
-   * callState. We delete the wrong intervals and insert new intervals, if necessary.
-   */
-  public IntervalAnalysisState rebuildStateAfterFunctionCall(
-      final IntervalAnalysisState callState, final FunctionExitNode functionExit) {
+  /** If there was a recursive function, we have wrong intervals for scoped variables in the returnState.
+   * This function rebuilds a new state with the correct intervals from the previous callState.
+   * We delete the wrong intervals and insert new intervals, if necessary. */
+  public IntervalAnalysisState rebuildStateAfterFunctionCall(final IntervalAnalysisState callState, final FunctionExitNode functionExit) {
 
     // we build a new state from:
     // - local variables from callState,
@@ -272,13 +263,8 @@ public class IntervalAnalysisState
       if (!trackedVar.contains("::")) { // global -> override deleted value
         rebuildState = rebuildState.addInterval(trackedVar, this.getInterval(trackedVar), -1);
 
-      } else if (functionExit.getEntryNode().getReturnVariable().isPresent()
-          && functionExit
-              .getEntryNode()
-              .getReturnVariable()
-              .get()
-              .getQualifiedName()
-              .equals(trackedVar)) {
+      } else if (functionExit.getEntryNode().getReturnVariable().isPresent() &&
+          functionExit.getEntryNode().getReturnVariable().get().getQualifiedName().equals(trackedVar)) {
         assert !rebuildState.contains(trackedVar)
             : "calling function should not contain return-variable of called function: "
                 + trackedVar;
@@ -314,11 +300,9 @@ public class IntervalAnalysisState
     StringBuilder sb = new StringBuilder();
     sb.append("[\n");
 
-    for (Map.Entry<String, Interval> entry : intervals.entrySet()) {
-      sb.append(
-          String.format(
-              "  < %s = %s :: %s >%n",
-              entry.getKey(), entry.getValue(), getReferenceCount(entry.getKey())));
+    for (Map.Entry<String, Interval> entry: intervals.entrySet()) {
+      sb.append(String.format("  < %s = %s :: %s >%n",
+          entry.getKey(), entry.getValue(), getReferenceCount(entry.getKey())));
     }
 
     return sb.append("] size -> ").append(intervals.size()).toString();
@@ -343,7 +327,7 @@ public class IntervalAnalysisState
       }
 
       // pProperty = varName <= value
-      else if (CheckTypesOfStringsUtil.isLong(parts.get(1))) {
+      else if (CheckTypesOfStringsUtil.isLong(parts.get(1))){
         long value = Long.parseLong(parts.get(1));
         Interval iv = getInterval(parts.get(0));
         return (iv.getHigh() <= value);
@@ -356,10 +340,9 @@ public class IntervalAnalysisState
         return iv1.contains(iv2);
       }
 
-      // pProperty = value1 <= varName <= value2
-    } else if (parts.size() == 3) {
-      if (CheckTypesOfStringsUtil.isLong(parts.get(0))
-          && CheckTypesOfStringsUtil.isLong(parts.get(2))) {
+    // pProperty = value1 <= varName <= value2
+    } else if (parts.size() == 3){
+      if ( CheckTypesOfStringsUtil.isLong(parts.get(0)) && CheckTypesOfStringsUtil.isLong(parts.get(2)) ) {
         long value1 = Long.parseLong(parts.get(0));
         long value2 = Long.parseLong(parts.get(2));
         Interval iv = getInterval(parts.get(1));
@@ -377,10 +360,8 @@ public class IntervalAnalysisState
     sb.append("{");
     // create a string like: x =  [low; high] (refCount)
     for (Entry<String, Interval> entry : intervals.entrySet()) {
-      sb.append(
-          String.format(
-              "%s = %s (%s), ",
-              entry.getKey(), entry.getValue(), getReferenceCount(entry.getKey())));
+      sb.append(String.format("%s = %s (%s), ",
+          entry.getKey(), entry.getValue(), getReferenceCount(entry.getKey())));
     }
     sb.append("}");
 
@@ -422,8 +403,7 @@ public class IntervalAnalysisState
   public Comparable<?> getPseudoPartitionKey() {
     // The size alone is not sufficient for pseudo-partitioning, if we want to use object-identity
     // as hashcode. Thus we need a second measurement: the absolute distance of all intervals.
-    // -> if the distance is "smaller" than the other state, we know nothing and have to compare the
-    // states.
+    // -> if the distance is "smaller" than the other state, we know nothing and have to compare the states.
     // -> if the distance is "equal", we can compare by "identity".
     // -> if the distance is "greater", we are "greater" than the other state.
     // We negate the absolute distance to match the "lessEquals"-specifiction.

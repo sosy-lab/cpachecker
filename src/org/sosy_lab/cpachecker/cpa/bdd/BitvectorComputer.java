@@ -87,7 +87,8 @@ class BitvectorComputer {
    * This function returns a bitvector, that represents the expression. The partition chooses the
    * compression of the bitvector.
    */
-  @Nullable Region[] evaluateVectorExpression(
+  @Nullable
+  Region[] evaluateVectorExpression(
       final Partition partition,
       final CExpression exp,
       CType targetType,
@@ -129,7 +130,8 @@ class BitvectorComputer {
    * This function returns a bitvector, that represents the expression. The partition chooses the
    * compression of the bitvector.
    */
-  @Nullable Region[] evaluateVectorExpressionWithPointerState(
+  @Nullable
+  Region[] evaluateVectorExpressionWithPointerState(
       final Partition partition,
       final CExpression exp,
       CType targetType,

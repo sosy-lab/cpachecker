@@ -36,9 +36,9 @@ public class ARGPathTest {
   // for the full path and path iterator tests
   private List<CFAEdge> edges;
   private List<CFAEdge> innerEdges;
-  private static final int STATE_POS_1 = 0; // position of first ARGState in ARGPath
-  private static final int STATE_POS_2 = 1; // position of second ARGState in ARGPath
-  private static final int STATE_POS_3 = 4; // position of third ARGState in ARGPath
+  private final static int STATE_POS_1 = 0; // position of first ARGState in ARGPath
+  private final static int STATE_POS_2 = 1; // position of second ARGState in ARGPath
+  private final static int STATE_POS_3 = 4; // position of third ARGState in ARGPath
   private ARGState firstARGState;
   private ARGState secondARGState;
   private ARGState thirdARGState;
@@ -64,7 +64,7 @@ public class ARGPathTest {
     edges = new ArrayList<>();
     CFANode firstNode = newDummyCFANode("test");
 
-    for (int i = 0; i < 10; i++) {
+    for (int i = 0; i < 10 ; i++) {
       CFANode secondNode = newDummyCFANode("test");
       CFAEdge dummyEdge = new BlankEdge("", FileLocation.DUMMY, firstNode, secondNode, "test");
       edges.add(dummyEdge);
@@ -76,23 +76,18 @@ public class ARGPathTest {
     // mock location states for ARGPath
     LocationState firstState = Mockito.mock(LocationState.class);
     Mockito.when(firstState.getLocationNode()).thenReturn(edges.get(STATE_POS_1).getPredecessor());
-    Mockito.when(firstState.getLocationNodes())
-        .thenReturn(Collections.singleton(edges.get(STATE_POS_1).getPredecessor()));
+    Mockito.when(firstState.getLocationNodes()).thenReturn(Collections.singleton(edges.get(STATE_POS_1).getPredecessor()));
     LocationState secondState = Mockito.mock(LocationState.class);
     Mockito.when(secondState.getLocationNode()).thenReturn(edges.get(STATE_POS_2).getPredecessor());
-    Mockito.when(secondState.getLocationNodes())
-        .thenReturn(Collections.singleton(edges.get(STATE_POS_2).getPredecessor()));
+    Mockito.when(secondState.getLocationNodes()).thenReturn(Collections.singleton(edges.get(STATE_POS_2).getPredecessor()));
     LocationState thirdState = Mockito.mock(LocationState.class);
     Mockito.when(thirdState.getLocationNode()).thenReturn(edges.get(STATE_POS_3).getPredecessor());
-    Mockito.when(thirdState.getLocationNodes())
-        .thenReturn(Collections.singleton(edges.get(STATE_POS_3).getPredecessor()));
+    Mockito.when(thirdState.getLocationNodes()).thenReturn(Collections.singleton(edges.get(STATE_POS_3).getPredecessor()));
 
     // last ARGState is the end of the CFA-path we created before
     LocationState lastState = Mockito.mock(LocationState.class);
-    Mockito.when(lastState.getLocationNode())
-        .thenReturn(edges.get(edges.size() - 1).getSuccessor());
-    Mockito.when(lastState.getLocationNodes())
-        .thenReturn(Collections.singleton(edges.get(edges.size() - 1).getSuccessor()));
+    Mockito.when(lastState.getLocationNode()).thenReturn(edges.get(edges.size()-1).getSuccessor());
+    Mockito.when(lastState.getLocationNodes()).thenReturn(Collections.singleton(edges.get(edges.size()-1).getSuccessor()));
 
     // build argPath
     ARGPathBuilder builder = ARGPath.builder();
@@ -189,18 +184,17 @@ public class ARGPathTest {
   @Test
   public void testGetInnerEdges() {
     assertThat(path.getInnerEdges()).isEqualTo(this.innerEdges);
+
   }
 
   @Test
   public void testGetPrefixInclusive() {
-    assertThat(path.pathIterator().getPrefixInclusive())
-        .isEqualTo(ARGPath.builder().build(firstARGState));
+    assertThat(path.pathIterator().getPrefixInclusive()).isEqualTo(ARGPath.builder().build(firstARGState));
     assertThat(path.reversePathIterator().getPrefixInclusive()).isEqualTo(path);
 
     PathIterator it = path.pathIterator();
     it.advance();
-    assertThat(it.getPrefixInclusive())
-        .isEqualTo(ARGPath.builder().add(firstARGState, edges.get(0)).build(secondARGState));
+    assertThat(it.getPrefixInclusive()).isEqualTo(ARGPath.builder().add(firstARGState, edges.get(0)).build(secondARGState));
   }
 
   @Test
@@ -210,21 +204,20 @@ public class ARGPathTest {
     assertThat(it.getPrefixExclusive()).isEqualTo(ARGPath.builder().build(firstARGState));
   }
 
-  @Test(expected = IllegalStateException.class)
+  @Test(expected=IllegalStateException.class)
   public void testGetPrefixExclusiveFails() {
     path.pathIterator().getPrefixExclusive();
   }
 
+
   @Test
   public void testGetSuffixInclusive() {
-    assertThat(path.reversePathIterator().getSuffixInclusive())
-        .isEqualTo(ARGPath.builder().build(lastARGState));
+    assertThat(path.reversePathIterator().getSuffixInclusive()).isEqualTo(ARGPath.builder().build(lastARGState));
     assertThat(path.pathIterator().getSuffixInclusive()).isEqualTo(path);
 
     PathIterator it = path.reversePathIterator();
     it.advance();
-    assertThat(it.getSuffixInclusive())
-        .isEqualTo(ARGPath.builder().add(thirdARGState, null).build(lastARGState));
+    assertThat(it.getSuffixInclusive()).isEqualTo(ARGPath.builder().add(thirdARGState, null).build(lastARGState));
   }
 
   @Test
@@ -234,16 +227,15 @@ public class ARGPathTest {
     assertThat(it.getSuffixExclusive()).isEqualTo(ARGPath.builder().build(lastARGState));
   }
 
-  @Test(expected = IllegalStateException.class)
+  @Test(expected=IllegalStateException.class)
   public void testGetSuffixExclusiveFails() {
     path.reversePathIterator().getSuffixExclusive();
   }
 
   @SuppressFBWarnings(
-      value = "DE_MIGHT_IGNORE",
-      justification =
-          "We want the the excpetions to be thrown in the unit test,"
-              + " and we are sure that we can continue afterwards.")
+      value="DE_MIGHT_IGNORE",
+      justification="We want the the excpetions to be thrown in the unit test,"
+          + " and we are sure that we can continue afterwards.")
   @Test
   public void testFullPathIterator() {
     // test fullPath iterator
@@ -279,10 +271,8 @@ public class ARGPathTest {
           assertThat(pathIt.getPreviousAbstractState()).isEqualTo(secondARGState);
           assertThat(pathIt.getAbstractState()).isEqualTo(thirdARGState);
           assertThat(pathIt.getNextAbstractState()).isEqualTo(lastARGState);
-          assertThat(pathIt.getPrefixInclusive().asStatesList())
-              .containsExactly(firstARGState, secondARGState, thirdARGState);
-          assertThat(pathIt.getPrefixExclusive().asStatesList())
-              .containsExactly(firstARGState, secondARGState);
+          assertThat(pathIt.getPrefixInclusive().asStatesList()).containsExactly(firstARGState, secondARGState, thirdARGState);
+          assertThat(pathIt.getPrefixExclusive().asStatesList()).containsExactly(firstARGState, secondARGState);
           break;
         default:
           assertThrows(
@@ -327,7 +317,7 @@ public class ARGPathTest {
 
     // pathIt is on the last state, we want the outgoing edge of it, so we adance it once
     pathIt.advance();
-    for (int i = edges.size() - 1; i >= 0; i--) {
+    for (int i = edges.size()-1; i >= 0; i--) {
       assertThat(pathIt.getOutgoingEdge()).isEqualTo(edges.get(i));
 
       switch (i) {
@@ -431,10 +421,11 @@ public class ARGPathTest {
   }
 
   @SuppressFBWarnings(
-      value = "DE_MIGHT_IGNORE",
-      justification =
-          "We want the the excpetions to be thrown in the unit test,"
-              + " and we are sure that we can continue afterwards.")
+    value = "DE_MIGHT_IGNORE",
+    justification =
+        "We want the the excpetions to be thrown in the unit test,"
+            + " and we are sure that we can continue afterwards."
+  )
   @Test
   public void testReverseFullPathIterator2() {
     // go to the end of the reverse full iterator and then test rewind functionality

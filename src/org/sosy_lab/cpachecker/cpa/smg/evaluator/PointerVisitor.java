@@ -55,8 +55,7 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
  */
 class PointerVisitor extends ExpressionValueVisitor {
 
-  public PointerVisitor(
-      SMGExpressionEvaluator pSmgExpressionEvaluator, CFAEdge pEdge, SMGState pSmgState) {
+  public PointerVisitor(SMGExpressionEvaluator pSmgExpressionEvaluator, CFAEdge pEdge, SMGState pSmgState) {
     super(pSmgExpressionEvaluator, pEdge, pSmgState);
   }
 
@@ -99,20 +98,18 @@ class PointerVisitor extends ExpressionValueVisitor {
     CExpression unaryOperand = unaryExpression.getOperand();
 
     switch (unaryOperator) {
-      case AMPER:
-        return handleAmper(unaryOperand);
 
-      case SIZEOF:
-        throw new UnrecognizedCodeException(
-            "Misinterpreted the expression type of "
-                + unaryOperand.toASTString()
-                + " as pointer type",
-            cfaEdge,
-            unaryExpression);
+    case AMPER:
+      return handleAmper(unaryOperand);
 
-      case MINUS:
-      case TILDE:
-      default:
+    case SIZEOF:
+      throw new UnrecognizedCodeException("Misinterpreted the expression type of "
+          + unaryOperand.toASTString()
+          + " as pointer type", cfaEdge, unaryExpression);
+
+    case MINUS:
+    case TILDE:
+    default:
         // Can't evaluate these Addresses
         return Collections.singletonList(SMGAddressValueAndState.of(getInitialSmgState()));
     }
@@ -239,7 +236,8 @@ class PointerVisitor extends ExpressionValueVisitor {
       return Collections.singletonList(SMGAddressValueAndState.of(state));
     } else {
       state.addElementToCurrentChain(variableObject);
-      return smgExpressionEvaluator.createAddress(state, variableObject, SMGZeroValue.INSTANCE);
+      return smgExpressionEvaluator.createAddress(
+          state, variableObject, SMGZeroValue.INSTANCE);
     }
   }
 
@@ -280,24 +278,16 @@ class PointerVisitor extends ExpressionValueVisitor {
       pointerOffset = lVarInBinaryExp;
       addressType = (CPointerType) rVarInBinaryExpType;
     } else {
-      throw new UnrecognizedCodeException(
-          "Expected either "
-              + lVarInBinaryExp.toASTString()
-              + " or "
-              + rVarInBinaryExp.toASTString()
-              + "to be a pointer.",
-          binaryExp);
+      throw new UnrecognizedCodeException("Expected either "
+    + lVarInBinaryExp.toASTString() + " or "
+    + rVarInBinaryExp.toASTString() +
+    "to be a pointer.", binaryExp);
     }
 
     CType typeOfPointer = TypeUtils.getRealExpressionType(addressType.getType());
 
-    return smgExpressionEvaluator.handlePointerArithmetic(
-        getInitialSmgState(),
-        getCfaEdge(),
-        address,
-        pointerOffset,
-        typeOfPointer,
-        lVarIsAddress,
+    return smgExpressionEvaluator.handlePointerArithmetic(getInitialSmgState(), getCfaEdge(),
+        address, pointerOffset, typeOfPointer, lVarIsAddress,
         binaryExp);
   }
 

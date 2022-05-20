@@ -50,7 +50,9 @@ public class BAMCounterexampleCheckAlgorithm extends CounterexampleCheckAlgorith
 
   @Override
   protected boolean checkErrorPaths(
-      CounterexampleChecker checker, ARGState errorState, ReachedSet reached)
+      CounterexampleChecker checker,
+      ARGState errorState,
+      ReachedSet reached)
       throws CPAException, InterruptedException {
 
     ARGReachedSet mainReachedSet =

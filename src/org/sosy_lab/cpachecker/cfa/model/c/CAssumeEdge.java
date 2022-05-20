@@ -18,13 +18,8 @@ public class CAssumeEdge extends AssumeEdge implements CCfaEdge {
 
   private static final long serialVersionUID = -3330760789129113642L;
 
-  public CAssumeEdge(
-      String pRawStatement,
-      FileLocation pFileLocation,
-      CFANode pPredecessor,
-      CFANode pSuccessor,
-      CExpression pExpression,
-      boolean pTruthAssumption) {
+  public CAssumeEdge(String pRawStatement, FileLocation pFileLocation, CFANode pPredecessor,
+      CFANode pSuccessor, CExpression pExpression, boolean pTruthAssumption) {
 
     this(
         pRawStatement,

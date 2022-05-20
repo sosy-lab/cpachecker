@@ -6,5 +6,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-/** All implemented configurable program analyses (CPAs). */
+/**
+ * All implemented configurable program analyses (CPAs).
+ */
 package org.sosy_lab.cpachecker.cpa;

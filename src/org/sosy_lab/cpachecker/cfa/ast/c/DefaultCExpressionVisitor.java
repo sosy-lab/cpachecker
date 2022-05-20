@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.cfa.ast.c;
 
+
 public abstract class DefaultCExpressionVisitor<R, X extends Exception>
     implements CExpressionVisitor<R, X> {
 

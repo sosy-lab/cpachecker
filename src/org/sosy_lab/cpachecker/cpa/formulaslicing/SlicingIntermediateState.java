@@ -13,7 +13,9 @@ import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 
-/** Intermediate state: a formula describing all possible executions at a point. */
+/**
+ * Intermediate state: a formula describing all possible executions at a point.
+ */
 final class SlicingIntermediateState extends SlicingState {
 
   private final CFANode node;
@@ -30,14 +32,18 @@ final class SlicingIntermediateState extends SlicingState {
   private transient int hashCache = 0;
 
   private SlicingIntermediateState(
-      CFANode pNode, PathFormula pPathFormula, SlicingAbstractedState pStart) {
+      CFANode pNode, PathFormula pPathFormula,
+      SlicingAbstractedState pStart) {
     node = pNode;
     pathFormula = pPathFormula;
     start = pStart;
   }
 
   public static SlicingIntermediateState of(
-      CFANode pNode, PathFormula pPathFormula, SlicingAbstractedState pStart) {
+      CFANode pNode,
+      PathFormula pPathFormula,
+      SlicingAbstractedState pStart
+      ) {
     return new SlicingIntermediateState(pNode, pPathFormula, pStart);
   }
 
@@ -76,9 +82,9 @@ final class SlicingIntermediateState extends SlicingState {
       return false;
     }
     SlicingIntermediateState that = (SlicingIntermediateState) pO;
-    return Objects.equals(node, that.node)
-        && Objects.equals(pathFormula, that.pathFormula)
-        && Objects.equals(start, that.start);
+    return Objects.equals(node, that.node) &&
+        Objects.equals(pathFormula, that.pathFormula) &&
+        Objects.equals(start, that.start);
   }
 
   @Override

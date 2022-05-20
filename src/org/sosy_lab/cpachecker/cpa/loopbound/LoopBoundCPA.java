@@ -47,15 +47,14 @@ import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 public class LoopBoundCPA extends AbstractCPA
     implements ReachedSetAdjustingCPA, StatisticsProvider, Statistics, LoopIterationBounding {
 
-  @Option(secure = true, description = "enable stack-based tracking of loops")
+  @Option(secure=true, description="enable stack-based tracking of loops")
   private boolean trackStack = false;
 
   @Option(
       secure = true,
       description =
-          "Use a stop operator that will identify loop states who's depth is congruent regarding"
-              + " the modulus of this number. Values smaller or equal to zero will deactivate this"
-              + " feature.")
+          "Use a stop operator that will identify loop states who's depth is congruent regarding the modulus of this number. "
+              + "Values smaller or equal to zero will deactivate this feature.")
   private int cyclicStopModulus = -1;
 
   public static CPAFactory factory() {
@@ -66,8 +65,7 @@ public class LoopBoundCPA extends AbstractCPA
 
   private final LoopBoundPrecisionAdjustment precisionAdjustment;
 
-  LoopBoundCPA(Configuration pConfig, CFA pCFA, LogManager pLogger)
-      throws InvalidConfigurationException, CPAException {
+  LoopBoundCPA(Configuration pConfig, CFA pCFA, LogManager pLogger) throws InvalidConfigurationException, CPAException {
     super("sep", "sep", new LoopBoundTransferRelation(pConfig, pCFA));
     pConfig.inject(this);
     loopStructure = pCFA.getLoopStructure().orElseThrow();
@@ -103,7 +101,7 @@ public class LoopBoundCPA extends AbstractCPA
 
   @Override
   public PrecisionAdjustment getPrecisionAdjustment() {
-    return precisionAdjustment;
+    return precisionAdjustment ;
   }
 
   @Override

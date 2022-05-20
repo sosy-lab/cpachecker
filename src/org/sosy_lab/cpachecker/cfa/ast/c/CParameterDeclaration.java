@@ -17,14 +17,17 @@ import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
-/** This is the declaration of a function parameter. It contains a type and a name. */
-public final class CParameterDeclaration extends AParameterDeclaration
-    implements CSimpleDeclaration {
+/**
+ * This is the declaration of a function parameter. It contains a type and a name.
+ */
+public final class CParameterDeclaration extends AParameterDeclaration implements CSimpleDeclaration {
 
   private static final long serialVersionUID = -6856088248264928629L;
   private String qualifiedName;
 
-  public CParameterDeclaration(FileLocation pFileLocation, CType pType, String pName) {
+  public CParameterDeclaration(FileLocation pFileLocation,
+                                  CType pType,
+                                  String pName) {
     super(pFileLocation, pType, checkNotNull(pName));
   }
 
@@ -40,19 +43,12 @@ public final class CParameterDeclaration extends AParameterDeclaration
 
   @Override
   public CType getType() {
-    return (CType) super.getType();
+    return (CType)super.getType();
   }
 
   public CVariableDeclaration asVariableDeclaration() {
-    return new CVariableDeclaration(
-        getFileLocation(),
-        false,
-        CStorageClass.AUTO,
-        getType(),
-        getName(),
-        getOrigName(),
-        getQualifiedName(),
-        null);
+    return new CVariableDeclaration(getFileLocation(), false, CStorageClass.AUTO,
+        getType(), getName(), getOrigName(), getQualifiedName(), null);
   }
 
   @Override
@@ -74,6 +70,7 @@ public final class CParameterDeclaration extends AParameterDeclaration
     return Objects.equals(qualifiedName, other.qualifiedName);
   }
 
+
   @Override
   public <R, X extends Exception> R accept(CSimpleDeclarationVisitor<R, X> pV) throws X {
     return pV.visit(this);
@@ -83,4 +80,5 @@ public final class CParameterDeclaration extends AParameterDeclaration
   public <R, X extends Exception> R accept(CAstNodeVisitor<R, X> pV) throws X {
     return pV.visit(this);
   }
+
 }

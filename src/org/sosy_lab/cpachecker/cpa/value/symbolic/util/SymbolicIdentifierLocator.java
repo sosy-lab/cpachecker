@@ -40,10 +40,13 @@ import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValueVisitor;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.UnarySymbolicExpression;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 
-/** Locates all {@link SymbolicIdentifier}s contained in a {@link SymbolicValue}. */
-public class SymbolicIdentifierLocator implements SymbolicValueVisitor<Set<SymbolicIdentifier>> {
+/**
+ * Locates all {@link SymbolicIdentifier}s contained in a {@link SymbolicValue}.
+ */
+public class SymbolicIdentifierLocator
+    implements SymbolicValueVisitor<Set<SymbolicIdentifier>> {
 
-  private static final SymbolicIdentifierLocator SINGLETON = new SymbolicIdentifierLocator();
+  private final static SymbolicIdentifierLocator SINGLETON = new SymbolicIdentifierLocator();
 
   private SymbolicIdentifierLocator() {
     // DO NOTHING
@@ -71,7 +74,8 @@ public class SymbolicIdentifierLocator implements SymbolicValueVisitor<Set<Symbo
   }
 
   private Set<SymbolicIdentifier> handleBinaryExpression(
-      final BinarySymbolicExpression pExpression) {
+      final BinarySymbolicExpression pExpression
+  ) {
     final Set<SymbolicIdentifier> identifiersOnLeft = pExpression.getOperand1().accept(this);
     final Set<SymbolicIdentifier> identifiersOnRight = pExpression.getOperand2().accept(this);
 

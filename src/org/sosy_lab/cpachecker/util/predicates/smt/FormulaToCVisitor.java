@@ -302,7 +302,8 @@ public class FormulaToCVisitor implements FormulaVisitor<Boolean> {
       throw new AssertionError(
           String.format(
               "Function call '%s' with unexpected number of arguments: %s",
-              pFunctionDeclaration.getName(), pArgs));
+              pFunctionDeclaration.getName(),
+              pArgs));
     }
     builder.append(" )");
 

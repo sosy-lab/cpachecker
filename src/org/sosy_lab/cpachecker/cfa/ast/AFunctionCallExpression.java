@@ -44,12 +44,13 @@ public abstract class AFunctionCallExpression extends AbstractRightHandSide {
   }
 
   /**
-   * Get the declaration of the function. A function may have several declarations in a C file
-   * (several forward declarations without a body, and one with it). In this case, it is not defined
-   * which declaration is returned.
+   * Get the declaration of the function.
+   * A function may have several declarations in a C file (several forward
+   * declarations without a body, and one with it). In this case, it is not
+   * defined which declaration is returned.
    *
-   * <p>The result may be null if the function was not declared, or if a complex function name
-   * expression is used (i.e., a function pointer).
+   * The result may be null if the function was not declared, or if a complex
+   * function name expression is used (i.e., a function pointer).
    */
   public AFunctionDeclaration getDeclaration() {
     return declaration;
@@ -85,14 +86,16 @@ public abstract class AFunctionCallExpression extends AbstractRightHandSide {
       return true;
     }
 
-    if (!(obj instanceof AFunctionCallExpression) || !super.equals(obj)) {
+    if (!(obj instanceof AFunctionCallExpression)
+        || !super.equals(obj)) {
       return false;
     }
 
     AFunctionCallExpression other = (AFunctionCallExpression) obj;
 
     return Objects.equals(other.declaration, declaration)
-        && Objects.equals(other.functionName, functionName)
-        && Objects.equals(other.parameters, parameters);
+            && Objects.equals(other.functionName, functionName)
+            && Objects.equals(other.parameters, parameters);
   }
+
 }

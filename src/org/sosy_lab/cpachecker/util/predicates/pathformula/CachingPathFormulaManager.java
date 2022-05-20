@@ -35,8 +35,8 @@ import org.sosy_lab.java_smt.api.Formula;
 import org.sosy_lab.java_smt.api.Model.ValueAssignment;
 
 /**
- * Implementation of {@link PathFormulaManager} that delegates to another instance but caches
- * results of some methods.
+ * Implementation of {@link PathFormulaManager} that delegates to another
+ * instance but caches results of some methods.
  */
 public class CachingPathFormulaManager implements PathFormulaManager {
 
@@ -54,9 +54,11 @@ public class CachingPathFormulaManager implements PathFormulaManager {
   private final Map<Pair<Equivalence.Wrapper<CFAEdge>, PathFormula>, PathFormula> andFormulaCache =
       new HashMap<>();
 
-  private final Map<Pair<PathFormula, PathFormula>, PathFormula> orFormulaCache = new HashMap<>();
+  private final Map<Pair<PathFormula, PathFormula>, PathFormula> orFormulaCache
+            = new HashMap<>();
 
-  private final Map<PathFormula, PathFormula> emptyFormulaCache = new HashMap<>();
+  private final Map<PathFormula, PathFormula> emptyFormulaCache
+            = new HashMap<>();
 
   private final PathFormula emptyFormula;
 
@@ -95,8 +97,7 @@ public class CachingPathFormulaManager implements PathFormulaManager {
   }
 
   @Override
-  public PathFormula makeAnd(PathFormula pOldFormula, CFAEdge pEdge)
-      throws CPATransferException, InterruptedException {
+  public PathFormula makeAnd(PathFormula pOldFormula, CFAEdge pEdge) throws CPATransferException, InterruptedException {
     final Pair<Equivalence.Wrapper<CFAEdge>, PathFormula> formulaCacheKey =
         createFormulaCacheKey(pOldFormula, pEdge);
     PathFormula result = andFormulaCache.get(formulaCacheKey);
@@ -104,8 +105,8 @@ public class CachingPathFormulaManager implements PathFormulaManager {
       TimerWrapper t = pathFormulaComputationTimer.getNewTimer();
       try {
         t.start(); // compute new pathFormula with the operation on the edge
-        result = delegate.makeAnd(pOldFormula, pEdge);
-        andFormulaCache.put(formulaCacheKey, result);
+      result = delegate.makeAnd(pOldFormula, pEdge);
+      andFormulaCache.put(formulaCacheKey, result);
       } finally {
         t.stop();
       }
@@ -189,8 +190,7 @@ public class CachingPathFormulaManager implements PathFormulaManager {
   }
 
   @Override
-  public PathFormula makeFormulaForPath(List<CFAEdge> pPath)
-      throws CPATransferException, InterruptedException {
+  public PathFormula makeFormulaForPath(List<CFAEdge> pPath) throws CPATransferException, InterruptedException {
     return delegate.makeFormulaForPath(pPath);
   }
 
@@ -201,16 +201,14 @@ public class CachingPathFormulaManager implements PathFormulaManager {
   }
 
   @Override
-  public BooleanFormula buildBranchingFormula(
-      Set<ARGState> pElementsOnPath,
+  public BooleanFormula buildBranchingFormula(Set<ARGState> pElementsOnPath,
       Map<Pair<ARGState, CFAEdge>, PathFormula> pParentFormulasOnPath)
       throws CPATransferException, InterruptedException {
     return delegate.buildBranchingFormula(pElementsOnPath, pParentFormulasOnPath);
   }
 
   @Override
-  public Map<Integer, Boolean> getBranchingPredicateValuesFromModel(
-      Iterable<ValueAssignment> pModel) {
+  public Map<Integer, Boolean> getBranchingPredicateValuesFromModel(Iterable<ValueAssignment> pModel) {
     return delegate.getBranchingPredicateValuesFromModel(pModel);
   }
 
@@ -230,8 +228,7 @@ public class CachingPathFormulaManager implements PathFormulaManager {
   }
 
   @Override
-  public BooleanFormula buildImplicationTestAsUnsat(PathFormula pF1, PathFormula pF2)
-      throws InterruptedException {
+  public BooleanFormula buildImplicationTestAsUnsat(PathFormula pF1, PathFormula pF2) throws InterruptedException {
     return delegate.buildImplicationTestAsUnsat(pF1, pF2);
   }
 
@@ -257,8 +254,7 @@ public class CachingPathFormulaManager implements PathFormulaManager {
   }
 
   @Override
-  public BooleanFormula addBitwiseAxiomsIfNeeded(
-      final BooleanFormula pMainFormula, final BooleanFormula pExtractionFormula) {
+  public BooleanFormula addBitwiseAxiomsIfNeeded(final BooleanFormula pMainFormula, final BooleanFormula pExtractionFormula) {
     return delegate.addBitwiseAxiomsIfNeeded(pMainFormula, pExtractionFormula);
   }
 

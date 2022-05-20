@@ -59,10 +59,9 @@ public class UCBRefinementManager {
    * @param abstractionStatesTrace the list of abstraction states along the path.
    * @return The Counterexample, containing UCB predicates if successful
    */
-  public CounterexampleTraceInfo buildCounterexampleTrace(
-      final ARGPath allStatesTrace,
-      final List<ARGState> abstractionStatesTrace,
-      final BlockFormulas pFormulas)
+  public CounterexampleTraceInfo buildCounterexampleTrace(final ARGPath allStatesTrace,
+                                                          final List<ARGState> abstractionStatesTrace,
+                                                          final BlockFormulas pFormulas)
       throws CPAException, InterruptedException {
 
     List<ARGState> trace = new ArrayList<>(abstractionStatesTrace);
@@ -76,6 +75,7 @@ public class UCBRefinementManager {
     // If the list is non-empty, then the first element is the first non false WP.
     List<BooleanFormula> preds = computeWeakestPreconditions(trace);
 
+
     if (preds == null) {
       return CounterexampleTraceInfo.feasible(
           pFormulas.getFormulas(), ImmutableList.of(), ImmutableMap.of());
@@ -88,6 +88,7 @@ public class UCBRefinementManager {
       return CounterexampleTraceInfo.infeasible(preds);
     }
   }
+
 
   private List<BooleanFormula> computeWeakestPreconditions(final List<ARGState> pTrace)
       throws CPAException, InterruptedException {
@@ -110,8 +111,7 @@ public class UCBRefinementManager {
         if (solver.isUnsat(bfmgr.and(stateFormula, wpre))) {
           logger.log(
               Level.FINEST,
-              "Abstract state is disjoint with the weakest precondition. Found spurious error trace"
-                  + " suffix.");
+              "Abstract state is disjoint with the weakest precondition. Found spurious error trace suffix.");
 
           return wpres;
         }
@@ -124,8 +124,9 @@ public class UCBRefinementManager {
     return null;
   }
 
-  private BooleanFormula computeWeakestPrecondition(
-      final ARGState src, final ARGState dst, final BooleanFormula postCondition)
+  private BooleanFormula computeWeakestPrecondition(final ARGState src,
+                                                    final ARGState dst,
+                                                    final BooleanFormula postCondition)
       throws CPAException, InterruptedException {
 
     CFAEdge singleEdge = src.getEdgeToChild(dst);
@@ -143,11 +144,11 @@ public class UCBRefinementManager {
     return bfmgr.makeFalse();
   }
 
-  private BooleanFormula computeWeakestPrecondition(
-      final CFANode src,
-      final CFANode dst,
-      final BooleanFormula postCondition,
-      final Set<CFANode> visitedNodes)
+
+  private BooleanFormula computeWeakestPrecondition(final CFANode src,
+                                                    final CFANode dst,
+                                                    final BooleanFormula postCondition,
+                                                    final Set<CFANode> visitedNodes)
       throws CPAException, InterruptedException {
 
     Set<CFANode> visited = new HashSet<>(visitedNodes);
@@ -155,24 +156,24 @@ public class UCBRefinementManager {
 
     BooleanFormula res = bfmgr.makeFalse();
 
-    for (int i = 0; i < src.getNumLeavingEdges(); i++) {
+    for(int i = 0; i < src.getNumLeavingEdges(); i++) {
       CFAEdge edge = src.getLeavingEdge(i);
       CFANode next = edge.getSuccessor();
 
       BooleanFormula wp = bfmgr.makeFalse();
       BooleanFormula post = bfmgr.makeFalse();
 
-      if (next.equals(dst)) {
+      if(next.equals(dst)) {
         post = postCondition;
       } else if (!visited.contains(next)) {
         post = computeWeakestPrecondition(next, dst, postCondition, visited);
       }
 
-      if (!bfmgr.isFalse(post)) {
+      if(!bfmgr.isFalse(post)) {
         wp = pfmgr.buildWeakestPrecondition(edge, post);
       }
 
-      if (bfmgr.isFalse(res)) {
+      if(bfmgr.isFalse(res)){
         res = wp;
       } else if (!bfmgr.isFalse(wp)) {
         res = bfmgr.or(res, wp);
@@ -182,11 +183,15 @@ public class UCBRefinementManager {
     return res;
   }
 
-  private List<BooleanFormula> computeUCB(
-      final List<ARGState> pTrace, final BlockFormulas pFormulas, final List<BooleanFormula> wpres)
+
+  private List<BooleanFormula> computeUCB(final List<ARGState> pTrace,
+                                          final BlockFormulas pFormulas,
+                                          final List<BooleanFormula> wpres)
       throws CPAException, InterruptedException {
 
+
     logger.log(Level.FINEST, "Calculate UCB predicates for the spurious trace suffix.");
+
 
     // We transform every wp into ucb in-place
     List<BooleanFormula> ucbs = new ArrayList<>(wpres);
@@ -199,12 +204,11 @@ public class UCBRefinementManager {
     BooleanFormula pred = null;
     PredicateAbstractState curState, nextState;
 
-    for (int i = startStateIdx; i < pTrace.size() - 2; i++) {
+    for(int i = startStateIdx; i < pTrace.size() - 2; i++) {
       curState = AbstractStates.extractStateByType(pTrace.get(i), PredicateAbstractState.class);
-      nextState =
-          AbstractStates.extractStateByType(pTrace.get(i + 1), PredicateAbstractState.class);
+      nextState = AbstractStates.extractStateByType(pTrace.get(i + 1), PredicateAbstractState.class);
 
-      if (pred == null) {
+      if(pred == null){
         pred = curState.getAbstractionFormula().asFormula();
       }
 
@@ -215,11 +219,11 @@ public class UCBRefinementManager {
       BooleanFormula pf = pFormulas.getFormulas().get(i);
 
       // Weakest precondition in the target location
-      BooleanFormula ucb =
-          fmgr.instantiate(ucbs.get(i - startStateIdx), nextState.getPathFormula().getSsa());
+      BooleanFormula ucb = fmgr.instantiate(ucbs.get(i - startStateIdx), nextState.getPathFormula().getSsa());
 
       // Clauses of the precondition to be refined
       Set<BooleanFormula> ucbConj = bfmgr.toConjunctionArgs(ucb, true);
+
 
       // All clauses of the formula: p__i && sp__i+1 && wp__i+1
       Set<BooleanFormula> conjs = new HashSet<>();

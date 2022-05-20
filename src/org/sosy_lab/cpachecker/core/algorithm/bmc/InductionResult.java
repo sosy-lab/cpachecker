@@ -35,7 +35,8 @@ public class InductionResult<T extends CandidateInvariant> extends ProofResult {
   }
 
   private InductionResult(
-      Iterable<? extends SymbolicCandiateInvariant> pBadStateBlockingClauses, int pK) {
+      Iterable<? extends SymbolicCandiateInvariant> pBadStateBlockingClauses,
+      int pK) {
     super(false);
     checkArgument(
         !Iterables.isEmpty(pBadStateBlockingClauses),
@@ -77,7 +78,8 @@ public class InductionResult<T extends CandidateInvariant> extends ProofResult {
   }
 
   public static <T extends CandidateInvariant> InductionResult<T> getFailed(
-      Iterable<? extends SymbolicCandiateInvariant> pBadStateBlockingClauses, int pK) {
+      Iterable<? extends SymbolicCandiateInvariant> pBadStateBlockingClauses,
+      int pK) {
     return new InductionResult<>(pBadStateBlockingClauses, pK);
   }
 }

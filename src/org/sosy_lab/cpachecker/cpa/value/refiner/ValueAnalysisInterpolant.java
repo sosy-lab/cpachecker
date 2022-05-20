@@ -35,13 +35,17 @@ public final class ValueAnalysisInterpolant
   /** the variable assignment of the interpolant */
   private final @Nullable PersistentMap<MemoryLocation, ValueAndType> assignment;
 
-  /** the interpolant representing "true" */
-  public static final ValueAnalysisInterpolant TRUE = new ValueAnalysisInterpolant();
+  /**
+   * the interpolant representing "true"
+   */
+  public static final ValueAnalysisInterpolant TRUE  = new ValueAnalysisInterpolant();
 
   /** the interpolant representing "false" */
   public static final ValueAnalysisInterpolant FALSE = new ValueAnalysisInterpolant(null);
 
-  /** Constructor for a new, empty interpolant, i.e. the interpolant representing "true" */
+  /**
+   * Constructor for a new, empty interpolant, i.e. the interpolant representing "true"
+   */
   private ValueAnalysisInterpolant() {
     assignment = PathCopyingPersistentTreeMap.of();
   }
@@ -186,8 +190,7 @@ public final class ValueAnalysisInterpolant
         verify(
             valueState.getValueFor(itp.getKey()).asNumericValue().longValue()
                 == itp.getValue().getValue().asNumericValue().longValue(),
-            "state and interpolant do not match in value for variable %s [state = %s != %s = itp]"
-                + " for state %s",
+            "state and interpolant do not match in value for variable %s [state = %s != %s = itp] for state %s",
             itp.getKey(),
             valueState.getValueFor(itp.getKey()),
             itp.getValue(),
@@ -201,9 +204,8 @@ public final class ValueAnalysisInterpolant
   /**
    * This method weakens the interpolant to the given set of memory location identifiers.
    *
-   * <p>As the information on what to retain is derived in a static syntactical analysis, the set to
-   * retain is a collection of memory location identifiers, instead of {@link MemoryLocation}s, as
-   * offsets cannot be provided.
+   * As the information on what to retain is derived in a static syntactical analysis, the set to retain is a
+   * collection of memory location identifiers, instead of {@link MemoryLocation}s, as offsets cannot be provided.
    *
    * @param toRetain the set of memory location identifiers to retain in the interpolant.
    * @return the weakened interpolant

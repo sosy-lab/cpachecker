@@ -23,4 +23,5 @@ public interface InterpolantManager<S, I extends Interpolant<S, I>> {
   I getTrueInterpolant();
 
   I getFalseInterpolant();
+
 }

@@ -34,10 +34,14 @@ import org.sosy_lab.cpachecker.util.Precisions;
 import org.sosy_lab.cpachecker.util.refinement.FeasibilityChecker;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
-/** Refiner implementation that delegates to {@link ValueAnalysisPathInterpolator}. */
+/**
+ * Refiner implementation that delegates to {@link ValueAnalysisPathInterpolator}.
+ */
 class BddArgBasedRefiner implements ARGBasedRefiner, Statistics, StatisticsProvider {
 
-  /** refiner used for value-analysis interpolation refinement */
+  /**
+   * refiner used for value-analysis interpolation refinement
+   */
   private final ValueAnalysisPathInterpolator interpolatingRefiner;
 
   private final FeasibilityChecker<ValueAnalysisState> checker;
@@ -45,7 +49,7 @@ class BddArgBasedRefiner implements ARGBasedRefiner, Statistics, StatisticsProvi
   private int previousErrorPathId = -1;
 
   // statistics
-  private int numberOfValueAnalysisRefinements = 0;
+  private int numberOfValueAnalysisRefinements           = 0;
   private int numberOfSuccessfulValueAnalysisRefinements = 0;
 
   BddArgBasedRefiner(
@@ -80,9 +84,7 @@ class BddArgBasedRefiner implements ARGBasedRefiner, Statistics, StatisticsProvi
    * @return true, if the value-analysis refinement was successful, else false
    * @throws CPAException when value-analysis interpolation fails
    */
-  private boolean performValueAnalysisRefinement(
-      final ARGReachedSet reached, final ARGPath errorPath)
-      throws CPAException, InterruptedException {
+  private boolean performValueAnalysisRefinement(final ARGReachedSet reached, final ARGPath errorPath) throws CPAException, InterruptedException {
     numberOfValueAnalysisRefinements++;
 
     int currentErrorPathId = errorPath.toString().hashCode();
@@ -95,15 +97,14 @@ class BddArgBasedRefiner implements ARGBasedRefiner, Statistics, StatisticsProvi
     previousErrorPathId = currentErrorPathId;
 
     UnmodifiableReachedSet reachedSet = reached.asReachedSet();
-    Precision precision = reachedSet.getPrecision(reachedSet.getLastState());
-    VariableTrackingPrecision bddPrecision =
-        (VariableTrackingPrecision)
-            Precisions.asIterable(precision)
-                .filter(VariableTrackingPrecision.isMatchingCPAClass(BDDCPA.class))
-                .get(0);
+    Precision precision               = reachedSet.getPrecision(reachedSet.getLastState());
+    VariableTrackingPrecision bddPrecision = (VariableTrackingPrecision) Precisions.asIterable(precision)
+                                                                                   .filter(VariableTrackingPrecision
+                                                                                           .isMatchingCPAClass(BDDCPA.class))
+                                                                                   .get(0);
 
-    Multimap<CFANode, MemoryLocation> increment =
-        interpolatingRefiner.determinePrecisionIncrement(errorPath);
+
+    Multimap<CFANode, MemoryLocation> increment = interpolatingRefiner.determinePrecisionIncrement(errorPath);
     Pair<ARGState, CFAEdge> refinementRoot =
         interpolatingRefiner.determineRefinementRoot(errorPath, increment);
 
@@ -115,10 +116,7 @@ class BddArgBasedRefiner implements ARGBasedRefiner, Statistics, StatisticsProvi
     VariableTrackingPrecision refinedBDDPrecision = bddPrecision.withIncrement(increment);
 
     numberOfSuccessfulValueAnalysisRefinements++;
-    reached.removeSubtree(
-        refinementRoot.getFirst(),
-        refinedBDDPrecision,
-        VariableTrackingPrecision.isMatchingCPAClass(BDDCPA.class));
+    reached.removeSubtree(refinementRoot.getFirst(), refinedBDDPrecision, VariableTrackingPrecision.isMatchingCPAClass(BDDCPA.class));
     return true;
   }
 
@@ -135,12 +133,8 @@ class BddArgBasedRefiner implements ARGBasedRefiner, Statistics, StatisticsProvi
 
   @Override
   public void printStatistics(PrintStream out, Result result, UnmodifiableReachedSet reached) {
-    out.println(
-        "  number of value analysis refinements:                "
-            + numberOfValueAnalysisRefinements);
-    out.println(
-        "  number of successful valueAnalysis refinements:      "
-            + numberOfSuccessfulValueAnalysisRefinements);
+    out.println("  number of value analysis refinements:                " + numberOfValueAnalysisRefinements);
+    out.println("  number of successful valueAnalysis refinements:      " + numberOfSuccessfulValueAnalysisRefinements);
   }
 
   /**
@@ -151,6 +145,6 @@ class BddArgBasedRefiner implements ARGBasedRefiner, Statistics, StatisticsProvi
    * @throws CPAException if the path check gets interrupted
    */
   boolean isPathFeasable(ARGPath path) throws CPAException, InterruptedException {
-    return checker.isFeasible(path);
+      return checker.isFeasible(path);
   }
 }

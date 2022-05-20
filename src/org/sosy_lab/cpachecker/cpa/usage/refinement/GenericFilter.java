@@ -23,30 +23,27 @@ import org.sosy_lab.cpachecker.util.statistics.StatCounter;
 import org.sosy_lab.cpachecker.util.statistics.StatTimer;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 
-public abstract class GenericFilter<P>
-    extends WrappedConfigurableRefinementBlock<
-        Pair<ExtendedARGPath, ExtendedARGPath>, Pair<ExtendedARGPath, ExtendedARGPath>> {
+public abstract class GenericFilter<P>  extends
+WrappedConfigurableRefinementBlock<Pair<ExtendedARGPath, ExtendedARGPath>, Pair<ExtendedARGPath, ExtendedARGPath>> {
 
   StatTimer totalTimer = new StatTimer("Time for generic filter");
   StatCounter filteredPairs = new StatCounter("Number of filtered pairs");
 
   private String mainFunction = "ldv_main";
 
-  Predicate<ARGState> isFirstCall =
-      s -> {
-        CFANode location = AbstractStates.extractLocation(s);
-        if (location instanceof CFunctionEntryNode) {
-          CallstackState callstack = AbstractStates.extractStateByType(s, CallstackState.class);
-          if (callstack.getPreviousState() != null
-              && callstack.getPreviousState().getCurrentFunction().equals(mainFunction)) {
-            return true;
-          }
+  Predicate<ARGState> isFirstCall = s -> {
+      CFANode location = AbstractStates.extractLocation(s);
+      if (location instanceof CFunctionEntryNode) {
+        CallstackState callstack = AbstractStates.extractStateByType(s, CallstackState.class);
+        if (callstack.getPreviousState() != null &&
+            callstack.getPreviousState().getCurrentFunction().equals(mainFunction)) {
+          return true;
         }
-        return false;
-      };
+      }
+      return false;
+    };
 
-  Function<ARGState, String> getFunctionName =
-      s -> AbstractStates.extractLocation(s).getFunctionName();
+  Function<ARGState, String> getFunctionName = s -> AbstractStates.extractLocation(s).getFunctionName();
 
   @SuppressWarnings("deprecation")
   protected GenericFilter(
@@ -57,8 +54,7 @@ public abstract class GenericFilter<P>
   }
 
   @Override
-  public RefinementResult performBlockRefinement(Pair<ExtendedARGPath, ExtendedARGPath> pInput)
-      throws CPAException, InterruptedException {
+  public RefinementResult performBlockRefinement(Pair<ExtendedARGPath, ExtendedARGPath> pInput) throws CPAException, InterruptedException {
     totalTimer.start();
 
     try {
@@ -79,6 +75,7 @@ public abstract class GenericFilter<P>
     }
   }
 
+
   protected abstract Boolean filter(P pFirstPathCore, P pSecondPathCore);
 
   protected abstract P getPathCore(ExtendedARGPath path);
@@ -88,7 +85,10 @@ public abstract class GenericFilter<P>
 
   @Override
   public final void printStatistics(StatisticsWriter pOut) {
-    StatisticsWriter newWriter = pOut.spacer().put(totalTimer).put(filteredPairs);
+    StatisticsWriter newWriter =
+        pOut.spacer()
+        .put(totalTimer)
+        .put(filteredPairs);
 
     printAdditionalStatistics(newWriter);
     wrappedRefiner.printStatistics(newWriter);

@@ -28,7 +28,8 @@ class IntegerNonLinearUFNumeralFormulaManager
   }
 
   @Override
-  public BooleanFormula modularCongruence(IntegerFormula number1, IntegerFormula number2, long n) {
+  public BooleanFormula modularCongruence(
+      IntegerFormula number1, IntegerFormula number2, long n) {
     return integerFormulaManager.modularCongruence(number1, number2, n);
   }
 

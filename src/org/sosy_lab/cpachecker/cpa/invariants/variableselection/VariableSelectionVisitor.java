@@ -13,4 +13,5 @@ interface VariableSelectionVisitor<ConstantType, T> {
   T visit(AcceptAllVariableSelection<ConstantType> pAcceptAllVariableSelection);
 
   T visit(AcceptSpecifiedVariableSelection<ConstantType> pAcceptSpecifiedVariableSelection);
+
 }

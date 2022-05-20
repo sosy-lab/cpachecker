@@ -27,7 +27,8 @@ public interface WrapperTransferRelation extends TransferRelation {
    * @param type The class object of the type of the wrapped element.
    * @return An instance of an element with type T or null if there is none.
    */
-  @Nullable <T extends TransferRelation> T retrieveWrappedTransferRelation(Class<T> type);
+  @Nullable
+  <T extends TransferRelation> T retrieveWrappedTransferRelation(Class<T> type);
 
   /**
    * Retrieve all wrapped transfers contained directly in this object (not recursively).

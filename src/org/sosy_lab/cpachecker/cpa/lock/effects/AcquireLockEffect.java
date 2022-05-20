@@ -39,9 +39,10 @@ public class AcquireLockEffect extends LockEffect {
     public AcquireLockEffect cloneWithTarget(LockIdentifier id) {
       return createEffectForId(id, this.maxRecursiveCounter, true);
     }
+
   }
 
-  private static final AcquireLockEffect instance = new AcquireLockEffect();
+  private final static AcquireLockEffect instance = new AcquireLockEffect();
 
   private static final NavigableMap<LockIdentifier, AcquireLockEffect> AcquireLockEffectMap =
       new TreeMap<>();
@@ -90,7 +91,7 @@ public class AcquireLockEffect extends LockEffect {
     if (AcquireLockEffectMap.containsKey(id)) {
       return AcquireLockEffectMap.get(id);
     } else {
-      // Means that the lock is set ('lock = 1'), not store it
+      //Means that the lock is set ('lock = 1'), not store it
       return new AcquireLockEffect(id, Integer.MAX_VALUE);
     }
   }

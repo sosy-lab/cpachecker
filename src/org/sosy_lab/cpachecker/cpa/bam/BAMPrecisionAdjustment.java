@@ -50,8 +50,7 @@ public class BAMPrecisionAdjustment implements PrecisionAdjustment {
       Precision pPrecision,
       UnmodifiableReachedSet pElements,
       Function<AbstractState, AbstractState> projection,
-      AbstractState fullState)
-      throws CPAException, InterruptedException {
+      AbstractState fullState) throws CPAException, InterruptedException {
 
     // precision might be outdated, if comes from a block-start and the inner part was refined.
     // so lets use the (expanded) inner precision.
@@ -64,19 +63,24 @@ public class BAMPrecisionAdjustment implements PrecisionAdjustment {
       }
     }
 
-    Optional<PrecisionAdjustmentResult> result =
-        wrappedPrecisionAdjustment.prec(pElement, validPrecision, pElements, projection, fullState);
+    Optional<PrecisionAdjustmentResult> result = wrappedPrecisionAdjustment.prec(
+        pElement,
+        validPrecision,
+        pElements,
+        projection,
+        fullState);
 
     if (!result.isPresent()) {
       return result;
     }
 
     if (bamPccManager != null && bamPccManager.isPCCEnabled()) {
-      result =
-          result.map(
-              t ->
-                  t.withAbstractState(
-                      bamPccManager.attachAdditionalInfoToCallNode(t.abstractState())));
+      result = result
+          .map(
+              t -> t.withAbstractState(
+                  bamPccManager.attachAdditionalInfoToCallNode(t.abstractState())
+              )
+          );
     }
 
     AbstractState newState = result.orElseThrow().abstractState();

@@ -76,11 +76,11 @@ public class WitnessInvariantsExtractor {
       secure = true,
       name = "debug.checkForMissedInvariants",
       description =
-          "Fail-fast if invariants in the witness exist that would not be accounted for. There are"
-              + " cases where unaccounted invariants are perfectly fine, e.g. if those states in"
-              + " the witness automaton are actually unreachable in the program. This is however"
-              + " rarely the intention of the original producer of the witness, so this options can"
-              + " be used to debug those cases.")
+          "Fail-fast if invariants in the witness exist that would not be accounted for. "
+              + "There are cases where unaccounted invariants are perfectly fine, "
+              + "e.g. if those states in the witness automaton are actually unreachable in the program. "
+              + "This is however rarely the intention of the original producer of the witness, "
+              + "so this options can be used to debug those cases.")
   private boolean checkForMissedInvariants = false;
 
   /**
@@ -161,7 +161,11 @@ public class WitnessInvariantsExtractor {
   private Specification buildSpecification(Path pathToWitnessFile)
       throws InvalidConfigurationException, InterruptedException {
     return Specification.fromFiles(
-        ImmutableList.of(pathToWitnessFile), cfa, config, logger, shutdownNotifier);
+        ImmutableList.of(pathToWitnessFile),
+        cfa,
+        config,
+        logger,
+        shutdownNotifier);
   }
 
   private void analyzeWitness() throws InvalidConfigurationException, CPAException {

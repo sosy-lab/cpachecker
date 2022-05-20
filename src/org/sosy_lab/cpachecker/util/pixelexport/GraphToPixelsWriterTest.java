@@ -28,6 +28,7 @@ class DummyNode {
   public Iterable<DummyNode> getChildren() {
     return children;
   }
+
 }
 
 public class GraphToPixelsWriterTest extends GraphToPixelsWriter<DummyNode> {
@@ -99,3 +100,5 @@ public class GraphToPixelsWriterTest extends GraphToPixelsWriter<DummyNode> {
     }
   }
 }
+
+

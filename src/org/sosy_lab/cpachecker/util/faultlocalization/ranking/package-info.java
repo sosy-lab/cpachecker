@@ -6,5 +6,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-/** Examples for rankings for sets of Faults */
+/**
+ * Examples for rankings for sets of Faults
+ */
 package org.sosy_lab.cpachecker.util.faultlocalization.ranking;

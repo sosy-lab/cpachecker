@@ -131,9 +131,8 @@ public class CParserUtils {
   }
 
   /**
-   * Surrounds the argument with a function declaration. This is necessary so the string can be
-   * parsed by the CDT parser.
-   *
+   * Surrounds the argument with a function declaration.
+   * This is necessary so the string can be parsed by the CDT parser.
    * @param pBody the body of the function
    * @return "void test() { " + body + ";}";
    */
@@ -307,8 +306,8 @@ public class CParserUtils {
             parseStatement(assumeCode, pResultFunction, pCParser, pScope, pParserTools);
         result = And.of(result, expressionTree);
       } catch (InvalidAutomatonException e) {
-        pParserTools.logger.log(
-            Level.WARNING, "Cannot interpret code as C statement(s): <" + assumeCode + ">");
+        pParserTools.logger.log(Level.WARNING,
+            "Cannot interpret code as C statement(s): <" + assumeCode + ">");
       }
     }
     return result;
@@ -347,35 +346,35 @@ public class CParserUtils {
           new CBinaryExpressionBuilder(pParserTools.machineModel, pParserTools.logger);
       Function<CStatement, ExpressionTree<AExpression>> fromStatement =
           pStatement -> LeafExpression.fromStatement(pStatement, binaryExpressionBuilder);
-      // Check that no expressions were split
-      if (!FluentIterable.from(statements)
-          .anyMatch(statement -> statement.toString().toUpperCase().contains("__CPACHECKER_TMP"))) {
-        return And.of(FluentIterable.from(statements).transform(fromStatement));
-      }
+    // Check that no expressions were split
+    if (!FluentIterable.from(statements)
+        .anyMatch(statement -> statement.toString().toUpperCase()
+            .contains("__CPACHECKER_TMP"))) { return And
+                .of(FluentIterable.from(statements).transform(fromStatement)); }
     }
 
     // For complex expressions, assume we are dealing with expression statements
     ExpressionTree<AExpression> result = ExpressionTrees.getTrue();
     try {
-      result = parseExpression(pAssumeCode, pResultFunction, pScope, pCParser, pParserTools);
+      result =
+          parseExpression(pAssumeCode, pResultFunction, pScope, pCParser, pParserTools);
     } catch (InvalidAutomatonException e) {
       // Try splitting on ';' to support legacy code:
       Splitter semicolonSplitter = Splitter.on(';').omitEmptyStrings().trimResults();
       List<String> clausesStrings = semicolonSplitter.splitToList(pAssumeCode);
-      if (clausesStrings.isEmpty()) {
-        throw e;
-      }
+      if (clausesStrings.isEmpty()) { throw e; }
       List<ExpressionTree<AExpression>> clauses = new ArrayList<>(clausesStrings.size());
       for (String statement : clausesStrings) {
-        clauses.add(parseExpression(statement, pResultFunction, pScope, pCParser, pParserTools));
+        clauses.add(
+            parseExpression(statement, pResultFunction, pScope, pCParser, pParserTools));
       }
       result = And.of(clauses);
     }
     return result;
   }
 
-  private static String tryFixACSL(
-      String pAssumeCode, Optional<String> pResultFunction, Scope pScope) {
+  private static String tryFixACSL(String pAssumeCode, Optional<String> pResultFunction,
+      Scope pScope) {
     String assumeCode = pAssumeCode.trim();
     if (assumeCode.endsWith(";")) {
       assumeCode = assumeCode.substring(0, assumeCode.length() - 1);
@@ -441,8 +440,8 @@ public class CParserUtils {
     return asExpressionTree(entryNode, pParserTools);
   }
 
-  private static ExpressionTree<AExpression> asExpressionTree(
-      FunctionEntryNode pEntry, ParserTools pParserTools) {
+  private static ExpressionTree<AExpression> asExpressionTree(FunctionEntryNode pEntry,
+      ParserTools pParserTools) {
     ExpressionTreeFactory<AExpression> factory = pParserTools.expressionTreeFactory;
     Map<CFANode, ExpressionTree<AExpression>> memo = new HashMap<>();
     memo.put(pEntry, ExpressionTrees.getTrue());
@@ -474,9 +473,7 @@ public class CParserUtils {
           AReturnStatementEdge returnStatementEdge = (AReturnStatementEdge) leavingEdge;
           Optional<? extends AExpression> optExpression = returnStatementEdge.getExpression();
           assert optExpression.isPresent();
-          if (!optExpression.isPresent()) {
-            return ExpressionTrees.getTrue();
-          }
+          if (!optExpression.isPresent()) { return ExpressionTrees.getTrue(); }
           AExpression expression = optExpression.get();
           if (!(expression instanceof AIntegerLiteralExpression)) {
             return ExpressionTrees.getTrue();
@@ -513,8 +510,9 @@ public class CParserUtils {
             }
           } else {
             final ExpressionTree<AExpression> newPath;
-            newPath =
-                factory.and(currentTree, factory.leaf(expression, assumeEdge.getTruthAssumption()));
+              newPath =
+                  factory.and(
+                      currentTree, factory.leaf(expression, assumeEdge.getTruthAssumption()));
             succTree = factory.or(succTree, newPath);
           }
           // All other edges do not change the path
@@ -539,13 +537,9 @@ public class CParserUtils {
   private static AExpression replaceCPAcheckerTMPVariables(
       AExpression pExpression, Map<AExpression, AExpression> pTmpValues) {
     // Short cut if there cannot be any matches
-    if (pTmpValues.isEmpty()) {
-      return pExpression;
-    }
+    if (pTmpValues.isEmpty()) { return pExpression; }
     AExpression directMatch = pTmpValues.get(pExpression);
-    if (directMatch != null) {
-      return directMatch;
-    }
+    if (directMatch != null) { return directMatch; }
     if (pExpression instanceof CBinaryExpression) {
       CBinaryExpression binaryExpression = (CBinaryExpression) pExpression;
       CExpression op1 =
@@ -591,13 +585,14 @@ public class CParserUtils {
   }
 
   /**
-   * Some tools put assumptions for multiple statements on the same edge, which may lead to
-   * contradictions between the assumptions.
+   * Some tools put assumptions for multiple statements on the same edge, which
+   * may lead to contradictions between the assumptions.
    *
-   * <p>This is clearly a tool error, but for the competition we want to help them out and only use
-   * the last assumption.
+   * This is clearly a tool error, but for the competition we want to help them
+   * out and only use the last assumption.
    *
    * @param pStatements the assumptions.
+   *
    * @return the duplicate-free assumptions.
    */
   private static Collection<CStatement> removeDuplicates(
@@ -616,55 +611,53 @@ public class CParserUtils {
   }
 
   /**
-   * Be nice to tools that assume that default char (when it is neither specified as signed nor as
-   * unsigned) may be unsigned.
+   * Be nice to tools that assume that default char (when it is neither
+   * specified as signed nor as unsigned) may be unsigned.
    *
    * @param pStatements the assignment statements.
+   *
    * @return the adjusted statements.
    */
   private static Collection<CStatement> adjustCharAssignmentSignedness(
       Iterable<? extends CStatement> pStatements) {
-    return FluentIterable.from(pStatements)
-        .transform(
-            new Function<CStatement, CStatement>() {
+    return FluentIterable.from(pStatements).transform(new Function<CStatement, CStatement>() {
 
-              @Override
-              public CStatement apply(CStatement pStatement) {
-                if (pStatement instanceof CExpressionAssignmentStatement) {
-                  CExpressionAssignmentStatement statement =
-                      (CExpressionAssignmentStatement) pStatement;
-                  CLeftHandSide leftHandSide = statement.getLeftHandSide();
-                  CType canonicalType = leftHandSide.getExpressionType().getCanonicalType();
-                  if (canonicalType instanceof CSimpleType) {
-                    CSimpleType simpleType = (CSimpleType) canonicalType;
-                    CBasicType basicType = simpleType.getType();
-                    if (basicType.equals(CBasicType.CHAR)
-                        && !simpleType.isSigned()
-                        && !simpleType.isUnsigned()) {
-                      CExpression rightHandSide = statement.getRightHandSide();
-                      CExpression castedRightHandSide =
-                          new CCastExpression(
-                              rightHandSide.getFileLocation(), canonicalType, rightHandSide);
-                      return new CExpressionAssignmentStatement(
-                          statement.getFileLocation(), leftHandSide, castedRightHandSide);
-                    }
-                  }
-                }
-                return pStatement;
-              }
-            })
-        .toList();
+      @Override
+      public CStatement apply(CStatement pStatement) {
+        if (pStatement instanceof CExpressionAssignmentStatement) {
+          CExpressionAssignmentStatement statement = (CExpressionAssignmentStatement) pStatement;
+          CLeftHandSide leftHandSide = statement.getLeftHandSide();
+          CType canonicalType = leftHandSide.getExpressionType().getCanonicalType();
+          if (canonicalType instanceof CSimpleType) {
+            CSimpleType simpleType = (CSimpleType) canonicalType;
+            CBasicType basicType = simpleType.getType();
+            if (basicType.equals(CBasicType.CHAR) && !simpleType.isSigned()
+                && !simpleType.isUnsigned()) {
+              CExpression rightHandSide = statement.getRightHandSide();
+              CExpression castedRightHandSide = new CCastExpression(rightHandSide.getFileLocation(),
+                  canonicalType, rightHandSide);
+              return new CExpressionAssignmentStatement(statement.getFileLocation(), leftHandSide,
+                  castedRightHandSide);
+            }
+          }
+        }
+        return pStatement;
+      }
+
+    }).toList();
   }
 
   /**
-   * Let's be nice to tools that ignore the restriction that array initializers are not allowed as
-   * right-hand sides of assignment statements and try to help them. This is a hack, no good
-   * solution. We would need a kind-of-but-not-really-C-parser to properly handle these
+   * Let's be nice to tools that ignore the restriction that array initializers
+   * are not allowed as right-hand sides of assignment statements and try to
+   * help them. This is a hack, no good solution.
+   * We would need a kind-of-but-not-really-C-parser to properly handle these
    * declarations-that-aren't-declarations.
    *
    * @param pAssumeCode the code from the witness assumption.
-   * @return the code from the witness assumption if no supported array initializer is contained;
-   *     otherwise the fixed code.
+   *
+   * @return the code from the witness assumption if no supported array
+   * initializer is contained; otherwise the fixed code.
    */
   private static String tryFixArrayInitializers(String pAssumeCode) {
     String C_INTEGER = "([\\+\\-])?(0[xX])?[0-9a-fA-F]+";
@@ -676,21 +669,15 @@ public class CParserUtils {
      * This only covers the special case of one assignment statement using one
      * array of integers.
      */
-    if (assumeCode.matches(
-        ".+=\\s*\\{\\s*(" + C_INTEGER + "\\s*(,\\s*" + C_INTEGER + "\\s*)*)?\\}\\s*")) {
+    if (assumeCode
+        .matches(".+=\\s*\\{\\s*(" + C_INTEGER + "\\s*(,\\s*" + C_INTEGER + "\\s*)*)?\\}\\s*")) {
       Iterable<String> assignmentParts = Splitter.on('=').trimResults().split(assumeCode);
       Iterator<String> assignmentPartIterator = assignmentParts.iterator();
-      if (!assignmentPartIterator.hasNext()) {
-        return pAssumeCode;
-      }
+      if (!assignmentPartIterator.hasNext()) { return pAssumeCode; }
       String leftHandSide = assignmentPartIterator.next();
-      if (!assignmentPartIterator.hasNext()) {
-        return pAssumeCode;
-      }
+      if (!assignmentPartIterator.hasNext()) { return pAssumeCode; }
       String rightHandSide = assignmentPartIterator.next().trim();
-      if (assignmentPartIterator.hasNext()) {
-        return pAssumeCode;
-      }
+      if (assignmentPartIterator.hasNext()) { return pAssumeCode; }
       assert rightHandSide.startsWith("{") && rightHandSide.endsWith("}");
       rightHandSide = rightHandSide.substring(1, rightHandSide.length() - 1).trim();
       Iterable<String> elements = Splitter.on(',').trimResults().split(rightHandSide);
@@ -719,10 +706,8 @@ public class CParserUtils {
 
     private final LogManager logger;
 
-    private ParserTools(
-        ExpressionTreeFactory<AExpression> pExpressionTreeFactory,
-        MachineModel pMachineModel,
-        LogManager pLogger) {
+    private ParserTools(ExpressionTreeFactory<AExpression> pExpressionTreeFactory,
+        MachineModel pMachineModel, LogManager pLogger) {
       expressionTreeFactory = Objects.requireNonNull(pExpressionTreeFactory);
       expressionTreeSimplifier =
           Objects.requireNonNull(ExpressionTrees.newSimplifier(pExpressionTreeFactory));
@@ -736,5 +721,6 @@ public class CParserUtils {
         LogManager pLogger) {
       return new ParserTools(pExpressionTreeFactory, pMachineModel, pLogger);
     }
+
   }
 }

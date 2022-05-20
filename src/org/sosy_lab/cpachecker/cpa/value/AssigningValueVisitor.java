@@ -40,7 +40,9 @@ import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
-/** Visitor that derives further information from an assume edge */
+/**
+ * Visitor that derives further information from an assume edge
+ */
 class AssigningValueVisitor extends ExpressionValueVisitor {
 
   private ExpressionValueVisitor nonAssigningValueVisitor;
@@ -132,8 +134,7 @@ class AssigningValueVisitor extends ExpressionValueVisitor {
           && (assumingUnknownToBeZero(rightValue, leftValue) && isAssignable(rVarInBinaryExp))) {
         MemoryLocation rightMemLoc = getMemoryLocation(rVarInBinaryExp);
 
-        if (booleans.contains(rightMemLoc.getExtendedQualifiedName())
-            || options.isInitAssumptionVars()) {
+        if (booleans.contains(rightMemLoc.getExtendedQualifiedName()) || options.isInitAssumptionVars()) {
           assignableState.assignConstant(
               rightMemLoc, new NumericValue(1L), pE.getOperand2().getExpressionType());
         }
@@ -153,8 +154,7 @@ class AssigningValueVisitor extends ExpressionValueVisitor {
       final Value pNewValue,
       final CType pValueType)
       throws UnrecognizedCodeException {
-    checkState(
-        !(pOldValue instanceof SymbolicValue),
+    checkState(!(pOldValue instanceof SymbolicValue),
         "Symbolic values should never be replaced by a concrete value");
 
     assignableState.assignConstant(getMemoryLocation(pVarInBinaryExp), pNewValue, pValueType);
@@ -244,8 +244,7 @@ class AssigningValueVisitor extends ExpressionValueVisitor {
     if (declaration != null) {
       assignableState.assignConstant(declaration.getQualifiedName(), pValue);
     } else {
-      MemoryLocation memLoc =
-          MemoryLocation.forLocalVariable(getFunctionName(), pIdExpression.getName());
+      MemoryLocation memLoc = MemoryLocation.forLocalVariable(getFunctionName(), pIdExpression.getName());
       assignableState.assignConstant(memLoc, pValue, pIdExpression.getExpressionType());
     }
   }
@@ -290,11 +289,9 @@ class AssigningValueVisitor extends ExpressionValueVisitor {
   /** returns an initialized, empty visitor */
   ExpressionValueVisitor getVisitor() {
     if (options.isIgnoreFunctionValue()) {
-      return new ExpressionValueVisitor(
-          getState(), getFunctionName(), getMachineModel(), getLogger());
+      return new ExpressionValueVisitor(getState(), getFunctionName(), getMachineModel(), getLogger());
     } else {
-      return new FunctionPointerExpressionValueVisitor(
-          getState(), getFunctionName(), getMachineModel(), getLogger());
+      return new FunctionPointerExpressionValueVisitor(getState(), getFunctionName(), getMachineModel(), getLogger());
     }
   }
 }

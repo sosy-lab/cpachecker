@@ -14,8 +14,9 @@ import org.sosy_lab.cpachecker.cpa.sign.SignState;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.ci.redundancyremover.RedundantRequirementsRemover.RedundantRequirementsRemoverImplementation;
 
-public class RedundantRequirementsRemoverSignStateImplementation
-    extends RedundantRequirementsRemoverImplementation<SignState, SIGN> {
+
+public class RedundantRequirementsRemoverSignStateImplementation extends
+RedundantRequirementsRemoverImplementation<SignState, SIGN>{
 
   private static final long serialVersionUID = 7689875020110766102L;
 
@@ -28,12 +29,11 @@ public class RedundantRequirementsRemoverSignStateImplementation
     // -1 if p01=MINUS p02=ZERO,PLUS,PLUS0
     // -1 if p01=ZERO p02=PLUS,PLUSMINUS
     // -1 if p01=PLUSMINUS p02=PLUS0
-    // -1 if p01=MINUS0 p02=PLUS,PLUS0,PLUSMINUS
+   // -1 if p01=MINUS0 p02=PLUS,PLUS0,PLUSMINUS
     // otherwise 1
 
     if (pO1 == null || pO2 == null) {
-      throw new NullPointerException(
-          "At least one of the arguments " + pO1 + " or " + pO2 + " is null.");
+      throw new NullPointerException("At least one of the arguments " + pO1 + " or " + pO2 + " is null.");
     } else if (pO1.equals(pO2)) {
       return 0;
     } else if (pO2.covers(pO1)) {
@@ -46,8 +46,7 @@ public class RedundantRequirementsRemoverSignStateImplementation
       return -1;
     } else if (pO1 == SIGN.PLUSMINUS && pO2 == SIGN.PLUS0) {
       return -1;
-    } else if (pO1 == SIGN.MINUS0
-        && (pO2 == SIGN.PLUS || pO2 == SIGN.PLUS0 || pO2 == SIGN.PLUSMINUS)) {
+    } else if (pO1 == SIGN.MINUS0 && (pO2 == SIGN.PLUS || pO2 == SIGN.PLUS0 || pO2 == SIGN.PLUSMINUS)) {
       return -1;
     }
     return 1;
@@ -98,4 +97,5 @@ public class RedundantRequirementsRemoverSignStateImplementation
     // AbstractStates.extractStateByType....
     return AbstractStates.extractStateByType(pWrapperState, SignState.class); // TODO
   }
+
 }

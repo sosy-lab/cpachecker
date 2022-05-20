@@ -9,17 +9,16 @@
 package org.sosy_lab.cpachecker.cpa.invariants.formula;
 
 import java.util.Map;
+
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 /**
- * Instances of this class are visitors used to check if the visited formulae contain a specified
- * variable.
+ * Instances of this class are visitors used to check if the visited formulae
+ * contain a specified variable.
  *
  * @param <T> the type of the constants used in the visited formulae.
  */
-public class ContainsVarVisitor<T>
-    implements ParameterizedNumeralFormulaVisitor<T, MemoryLocation, Boolean>,
-        ParameterizedBooleanFormulaVisitor<T, MemoryLocation, Boolean> {
+public class ContainsVarVisitor<T> implements ParameterizedNumeralFormulaVisitor<T, MemoryLocation, Boolean>, ParameterizedBooleanFormulaVisitor<T, MemoryLocation, Boolean> {
 
   private final Map<? extends MemoryLocation, ? extends NumeralFormula<T>> environment;
 
@@ -27,19 +26,20 @@ public class ContainsVarVisitor<T>
     this(null);
   }
 
-  public ContainsVarVisitor(
-      Map<? extends MemoryLocation, ? extends NumeralFormula<T>> pEnvironment) {
+  public ContainsVarVisitor(Map<? extends MemoryLocation, ? extends NumeralFormula<T>> pEnvironment) {
     this.environment = pEnvironment;
   }
 
   @Override
   public Boolean visit(Add<T> pAdd, MemoryLocation pVarName) {
-    return pAdd.getSummand1().accept(this, pVarName) || pAdd.getSummand2().accept(this, pVarName);
+    return pAdd.getSummand1().accept(this, pVarName)
+        || pAdd.getSummand2().accept(this, pVarName);
   }
 
   @Override
   public Boolean visit(BinaryAnd<T> pAnd, MemoryLocation pVarName) {
-    return pAnd.getOperand1().accept(this, pVarName) || pAnd.getOperand2().accept(this, pVarName);
+    return pAnd.getOperand1().accept(this, pVarName)
+        || pAnd.getOperand2().accept(this, pVarName);
   }
 
   @Override
@@ -49,12 +49,14 @@ public class ContainsVarVisitor<T>
 
   @Override
   public Boolean visit(BinaryOr<T> pOr, MemoryLocation pVarName) {
-    return pOr.getOperand1().accept(this, pVarName) || pOr.getOperand2().accept(this, pVarName);
+    return pOr.getOperand1().accept(this, pVarName)
+        || pOr.getOperand2().accept(this, pVarName);
   }
 
   @Override
   public Boolean visit(BinaryXor<T> pXor, MemoryLocation pVarName) {
-    return pXor.getOperand1().accept(this, pVarName) || pXor.getOperand2().accept(this, pVarName);
+    return pXor.getOperand1().accept(this, pVarName)
+        || pXor.getOperand2().accept(this, pVarName);
   }
 
   @Override
@@ -87,7 +89,8 @@ public class ContainsVarVisitor<T>
 
   @Override
   public Boolean visit(LogicalAnd<T> pAnd, MemoryLocation pVarName) {
-    return pAnd.getOperand1().accept(this, pVarName) || pAnd.getOperand2().accept(this, pVarName);
+    return pAnd.getOperand1().accept(this, pVarName)
+        || pAnd.getOperand2().accept(this, pVarName);
   }
 
   @Override
@@ -97,8 +100,7 @@ public class ContainsVarVisitor<T>
 
   @Override
   public Boolean visit(Modulo<T> pModulo, MemoryLocation pVarName) {
-    return pModulo.getNumerator().accept(this, pVarName)
-        || pModulo.getDenominator().accept(this, pVarName);
+    return pModulo.getNumerator().accept(this, pVarName) || pModulo.getDenominator().accept(this, pVarName);
   }
 
   @Override
@@ -162,4 +164,5 @@ public class ContainsVarVisitor<T>
     }
     return value.accept(this, pVarName);
   }
+
 }

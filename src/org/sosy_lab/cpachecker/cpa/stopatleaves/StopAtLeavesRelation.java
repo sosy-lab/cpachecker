@@ -18,7 +18,9 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
-/** @see org.sosy_lab.cpachecker.cpa.targetreachability.TargetReachabilityTransferRelation */
+/**
+ * @see org.sosy_lab.cpachecker.cpa.targetreachability.TargetReachabilityTransferRelation
+ */
 public class StopAtLeavesRelation extends SingleEdgeTransferRelation {
   private List<CFANode> leaves;
 

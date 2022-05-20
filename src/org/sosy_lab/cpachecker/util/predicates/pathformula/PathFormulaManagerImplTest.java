@@ -90,13 +90,10 @@ public class PathFormulaManagerImplTest extends SolverViewBasedTest0 {
 
   @Before
   public void setup() throws Exception {
-    Configuration configBackwards =
-        Configuration.builder()
-            .copyFrom(config)
-            .setOption(
-                "cpa.predicate.handlePointerAliasing",
-                "false") // not yet supported by the backwards analysis
-            .build();
+    Configuration configBackwards = Configuration.builder()
+        .copyFrom(config)
+        .setOption("cpa.predicate.handlePointerAliasing", "false") // not yet supported by the backwards analysis
+        .build();
 
     pfmgrFwd =
         new PathFormulaManagerImpl(
@@ -121,8 +118,9 @@ public class PathFormulaManagerImplTest extends SolverViewBasedTest0 {
 
   private Triple<CFAEdge, CFAEdge, MutableCFA> createCFA() throws UnrecognizedCodeException {
 
-    CBinaryExpressionBuilder expressionBuilder =
-        new CBinaryExpressionBuilder(MachineModel.LINUX32, LogManager.createTestLogManager());
+    CBinaryExpressionBuilder expressionBuilder = new CBinaryExpressionBuilder(
+        MachineModel.LINUX32, LogManager.createTestLogManager()
+    );
 
     String fName = "main";
     NavigableMap<String, FunctionEntryNode> functions = new TreeMap<>();
@@ -144,52 +142,79 @@ public class PathFormulaManagerImplTest extends SolverViewBasedTest0 {
 
     // Declaration of the variable "X".
     // Equivalent to "int x = 0".
-    CVariableDeclaration xDeclaration =
-        new CVariableDeclaration(
+    CVariableDeclaration xDeclaration = new CVariableDeclaration(
+        FileLocation.DUMMY,
+        false,
+        CStorageClass.AUTO,
+        CNumericTypes.INT,
+        "x",
+        "x",
+        "x",
+        new CInitializerExpression(
             FileLocation.DUMMY,
-            false,
-            CStorageClass.AUTO,
-            CNumericTypes.INT,
-            "x",
-            "x",
-            "x",
-            new CInitializerExpression(FileLocation.DUMMY, CIntegerLiteralExpression.ZERO));
+            CIntegerLiteralExpression.ZERO
+        )
+    );
 
-    x_decl = new CDeclarationEdge("int x = 0", FileLocation.DUMMY, a, b, xDeclaration);
+    x_decl = new CDeclarationEdge(
+        "int x = 0",
+        FileLocation.DUMMY,
+        a,
+        b,
+        xDeclaration
+        );
 
     // x + 1
-    CExpression rhs =
-        expressionBuilder.buildBinaryExpression(
-            new CIdExpression(FileLocation.DUMMY, CNumericTypes.INT, "x", xDeclaration),
-            CIntegerLiteralExpression.ONE, // expression B.
-            CBinaryExpression.BinaryOperator.PLUS);
-
-    CFAEdge a_to_b =
-        new CStatementEdge(
-            "x := x + 1",
-            new CExpressionAssignmentStatement(
-                FileLocation.DUMMY,
-                new CIdExpression(FileLocation.DUMMY, CNumericTypes.INT, "x", xDeclaration),
-                rhs),
+    CExpression rhs = expressionBuilder.buildBinaryExpression(
+        new CIdExpression(
             FileLocation.DUMMY,
-            a,
-            b);
+            CNumericTypes.INT,
+            "x",
+            xDeclaration
+        ),
+        CIntegerLiteralExpression.ONE, // expression B.
+        CBinaryExpression.BinaryOperator.PLUS
+    );
+
+    CFAEdge a_to_b = new CStatementEdge(
+        "x := x + 1",
+
+        new CExpressionAssignmentStatement(
+            FileLocation.DUMMY,
+            new CIdExpression(
+                FileLocation.DUMMY,
+                CNumericTypes.INT,
+                "x",
+                xDeclaration
+            ),
+            rhs
+        ),
+        FileLocation.DUMMY,
+        a,
+        b
+    );
 
     // x <= 10.
-    CExpression guard =
-        expressionBuilder.buildBinaryExpression(
-            new CIdExpression(FileLocation.DUMMY, CNumericTypes.INT, "x", xDeclaration),
-            intConstant(BigInteger.TEN),
-            CBinaryExpression.BinaryOperator.LESS_THAN);
+    CExpression guard = expressionBuilder.buildBinaryExpression(
+        new CIdExpression(
+            FileLocation.DUMMY,
+            CNumericTypes.INT,
+            "x",
+            xDeclaration
+        ),
+        intConstant(BigInteger.TEN),
+        CBinaryExpression.BinaryOperator.LESS_THAN
+    );
 
     // OK and here we want a guard edge, right?..
-    CFAEdge b_to_a =
-        new CStatementEdge(
-            "x <= 10",
-            new CExpressionStatement(FileLocation.DUMMY, guard),
-            FileLocation.DUMMY,
-            b,
-            a);
+    CFAEdge b_to_a = new CStatementEdge(
+        "x <= 10"  ,
+        new CExpressionStatement(
+            FileLocation.DUMMY, guard
+        ),
+        FileLocation.DUMMY,
+        b, a
+    );
 
     TreeMultimap<String, CFANode> nodes = TreeMultimap.create();
     nodes.put("main", a);
@@ -204,7 +229,9 @@ public class PathFormulaManagerImplTest extends SolverViewBasedTest0 {
   }
 
   private CExpression intConstant(BigInteger constant) {
-    return new CIntegerLiteralExpression(FileLocation.DUMMY, CNumericTypes.INT, constant);
+    return new CIntegerLiteralExpression(
+        FileLocation.DUMMY, CNumericTypes.INT, constant
+    );
   }
 
   @Test

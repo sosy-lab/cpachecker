@@ -23,7 +23,7 @@ public interface AdjustablePrecision extends Precision {
    * Returns true for precision p iff for any instance of the same class p':
    * p'.subtract(p).equals(p') and p'.add(p).equals(p').
    *
-   * <p>The value isEmpty() does not affect on analysis operators. The only purpose is to optimize
+   * The value isEmpty() does not affect on analysis operators. The only purpose is to optimize
    * application of add() and subtract() operations.
    */
   boolean isEmpty();

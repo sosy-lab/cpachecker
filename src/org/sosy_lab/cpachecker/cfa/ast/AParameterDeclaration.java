@@ -18,6 +18,7 @@ public abstract class AParameterDeclaration extends AbstractSimpleDeclaration {
 
   protected AParameterDeclaration(FileLocation pFileLocation, Type pType, String pName) {
     super(pFileLocation, pType, checkNotNull(pName));
+
   }
 
   @Override
@@ -48,4 +49,5 @@ public abstract class AParameterDeclaration extends AbstractSimpleDeclaration {
 
     return super.equals(obj);
   }
+
 }

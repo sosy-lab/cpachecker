@@ -11,5 +11,6 @@ package org.sosy_lab.cpachecker.cpa.alwaystop;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 
 enum AlwaysTopPrecision implements Precision {
+
   INSTANCE
 }

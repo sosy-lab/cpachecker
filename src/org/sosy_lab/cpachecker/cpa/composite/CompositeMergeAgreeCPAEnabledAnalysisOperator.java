@@ -13,8 +13,7 @@ import static com.google.common.collect.FluentIterable.from;
 
 import com.google.common.base.Predicate;
 import com.google.common.collect.ImmutableList;
-import java.util.Collections;
-import java.util.Iterator;
+
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.NonMergeableAbstractState;
@@ -26,10 +25,12 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.java_smt.api.SolverException;
 
+import java.util.Collections;
+import java.util.Iterator;
+
 public class CompositeMergeAgreeCPAEnabledAnalysisOperator implements MergeOperator {
 
-  private static final Predicate<Object> NON_MERGEABLE_STATE =
-      instanceOf(NonMergeableAbstractState.class);
+  private static final Predicate<Object> NON_MERGEABLE_STATE = instanceOf(NonMergeableAbstractState.class);
 
   private final ImmutableList<MergeOperator> mergeOperators;
   private final ImmutableList<StopOperator> stopOperators;
@@ -47,9 +48,9 @@ public class CompositeMergeAgreeCPAEnabledAnalysisOperator implements MergeOpera
   }
 
   @Override
-  public AbstractState merge(
-      AbstractState successorState, AbstractState reachedState, Precision precision)
-      throws CPAException, InterruptedException {
+  public AbstractState merge(AbstractState successorState, AbstractState reachedState, Precision precision)
+      throws CPAException,
+      InterruptedException {
     // Merge Sep Code
     CompositeState compSuccessorState = (CompositeState) successorState;
     CompositeState compReachedState = (CompositeState) reachedState;
@@ -70,11 +71,8 @@ public class CompositeMergeAgreeCPAEnabledAnalysisOperator implements MergeOpera
       PredicateAbstractState predReachedState =
           AbstractStates.extractStateByType(reachedState, PredicateAbstractState.class);
 
-      // check if have special case with same abstraction states then still merge in predicated
-      // analysis
-      if (predSuccessorState != null
-          && predReachedState != null
-          && predSuccessorState.isAbstractionState()
+      // check if have special case with same abstraction states then still merge in predicated analysis
+      if (predSuccessorState != null && predReachedState != null && predSuccessorState.isAbstractionState()
           && predReachedState.isAbstractionState()) {
         // check if same abstraction state, test formula for equivalence
         try {
@@ -86,8 +84,7 @@ public class CompositeMergeAgreeCPAEnabledAnalysisOperator implements MergeOpera
                   && abmgr.checkCoverage(
                       predReachedState.getAbstractionFormula(),
                       predSuccessorState
-                          .getAbstractionFormula()))) { // TODO do we need functional equivalence or
-                                                        // is something else faster and sufficient?
+                          .getAbstractionFormula()))) { // TODO do we need functional equivalence or is something else faster and sufficient?
             mergeIfPredicateEnabler = true;
           }
         } catch (SolverException e) {
@@ -96,9 +93,8 @@ public class CompositeMergeAgreeCPAEnabledAnalysisOperator implements MergeOpera
       }
     }
 
-    if (!mergeIfPredicateEnabler
-        && (from(compSuccessorState.getWrappedStates()).anyMatch(NON_MERGEABLE_STATE)
-            || from(compReachedState.getWrappedStates()).anyMatch(NON_MERGEABLE_STATE))) {
+    if (!mergeIfPredicateEnabler && (from(compSuccessorState.getWrappedStates()).anyMatch(NON_MERGEABLE_STATE)
+        || from(compReachedState.getWrappedStates()).anyMatch(NON_MERGEABLE_STATE))) {
       // one CPA asks us to not merge at all
       return reachedState;
     }
@@ -116,8 +112,7 @@ public class CompositeMergeAgreeCPAEnabledAnalysisOperator implements MergeOpera
 
       if (mergeIfPredicateEnabler && absReachedState instanceof PredicateAbstractState) {
         // TODO currently only save the first path to this state,
-        // CEGAR in predicated analysis may take several rounds in case of loops, or maybe it may
-        // even fail (I do not know yet)
+        // CEGAR in predicated analysis may take several rounds in case of loops, or maybe it may even fail (I do not know yet)
         // in future try to find a way to encode other paths also
         mergedStates.add(absReachedState);
         precIter.next();
@@ -131,8 +126,8 @@ public class CompositeMergeAgreeCPAEnabledAnalysisOperator implements MergeOpera
       if (!isEnablerPredicate && absReachedState == enablerReached) {
         // check that both states are equal
         if (!(absSuccessorState.equals(absReachedState)
-            || (stopOp.stop(absSuccessorState, Collections.singleton(absReachedState), prec)
-                && stopOp.stop(absReachedState, Collections.singleton(absSuccessorState), prec)))) {
+            || (stopOp.stop(absSuccessorState, Collections.singleton(absReachedState), prec) && stopOp.stop(
+                absReachedState, Collections.singleton(absSuccessorState), prec)))) {
           // enabler states do not equal -> do not merge
           return reachedState;
         }
@@ -142,8 +137,7 @@ public class CompositeMergeAgreeCPAEnabledAnalysisOperator implements MergeOpera
 
       AbstractState mergedState = mergeOp.merge(absSuccessorState, absReachedState, prec);
 
-      // Check if 'mergedState' also covers 'absSuccessorState', i.e., if 'mergeOp' performed a
-      // join.
+      // Check if 'mergedState' also covers 'absSuccessorState', i.e., if 'mergeOp' performed a join.
       // By definition of MergeOperator, we know it covers 'absReachedState'.
       if (!stopOp.stop(absSuccessorState, Collections.singleton(mergedState), prec)) {
         // the result of merge does not cover 'absSuccessorState'
@@ -172,4 +166,5 @@ public class CompositeMergeAgreeCPAEnabledAnalysisOperator implements MergeOpera
     isEnablerPredicate = pStateClass.equals(PredicateAbstractState.class);
     enablerClass = pStateClass;
   }
+
 }

@@ -60,6 +60,8 @@ public class SMGOptions {
     ASSUME_EXTERNAL_ALLOCATED
   }
 
+
+
   @Option(
       secure = true,
       name = "memoryAllocationFunctions",
@@ -67,10 +69,12 @@ public class SMGOptions {
   private ImmutableSet<String> memoryAllocationFunctions =
       ImmutableSet.of("malloc", "__kmalloc", "kmalloc", "realloc");
 
+
   @Option(
-      secure = true,
-      name = "memoryAllocationFunctionsSizeParameter",
-      description = "Size parameter of memory allocation functions")
+    secure = true,
+    name = "memoryAllocationFunctionsSizeParameter",
+    description = "Size parameter of memory allocation functions"
+  )
   private int memoryAllocationFunctionsSizeParameter = 0;
 
   @Option(
@@ -119,12 +123,14 @@ public class SMGOptions {
   private boolean trackPredicates = false;
 
   @Option(
-      secure = true,
-      name = "handleUnknownDereferenceAsSafe",
-      description =
-          "Handle unknown dereference as safe and check error based on error predicate, "
-              + "depends on trackPredicates")
+    secure = true,
+    name = "handleUnknownDereferenceAsSafe",
+    description =
+        "Handle unknown dereference as safe and check error based on error predicate, "
+            + "depends on trackPredicates"
+  )
   private boolean handleUnknownDereferenceAsSafe = false;
+
 
   @Option(
       secure = true,
@@ -204,6 +210,7 @@ public class SMGOptions {
     return safeUnknownFunctions;
   }
 
+
   public ImmutableSet<String> getMemoryAllocationFunctions() {
     return memoryAllocationFunctions;
   }
@@ -251,6 +258,7 @@ public class SMGOptions {
   public boolean unknownOnUndefined() {
     return unknownOnUndefined;
   }
+
 
   public PathTemplate getExportSMGFilePattern() {
     return exportSMGFilePattern;

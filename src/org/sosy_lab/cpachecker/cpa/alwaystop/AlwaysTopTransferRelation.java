@@ -17,6 +17,7 @@ import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
 enum AlwaysTopTransferRelation implements TransferRelation {
+
   INSTANCE;
 
   @Override
@@ -32,7 +33,7 @@ enum AlwaysTopTransferRelation implements TransferRelation {
   @Override
   public Collection<? extends AbstractState> getAbstractSuccessorsForEdge(
       AbstractState pState, Precision pPrecision, CFAEdge pCfaEdge)
-      throws CPATransferException, InterruptedException {
+          throws CPATransferException, InterruptedException {
     return getAbstractSuccessors(pState, pPrecision);
   }
 
@@ -48,4 +49,5 @@ enum AlwaysTopTransferRelation implements TransferRelation {
 
     return Collections.singleton(pElement);
   }
+
 }

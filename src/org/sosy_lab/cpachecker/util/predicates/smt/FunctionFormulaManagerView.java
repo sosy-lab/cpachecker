@@ -25,7 +25,8 @@ public class FunctionFormulaManagerView extends BaseManagerView implements UFMan
 
   private final UFManager manager;
 
-  FunctionFormulaManagerView(FormulaWrappingHandler pWrappingHandler, UFManager pManager) {
+  FunctionFormulaManagerView(FormulaWrappingHandler pWrappingHandler,
+      UFManager pManager) {
     super(pWrappingHandler);
     this.manager = checkNotNull(pManager);
   }
@@ -61,7 +62,7 @@ public class FunctionFormulaManagerView extends BaseManagerView implements UFMan
         return false;
       }
       ReplaceUninterpretedFunctionDeclaration<?> other =
-          (ReplaceUninterpretedFunctionDeclaration<?>) obj;
+          (ReplaceUninterpretedFunctionDeclaration<?>)obj;
 
       return wrapped.equals(other.wrapped);
     }
@@ -88,7 +89,8 @@ public class FunctionFormulaManagerView extends BaseManagerView implements UFMan
 
     @Override
     public String toString() {
-      return String.format("ReplacementUF(%s :: %s --> %s)", wrapped, argumentTypes, returnType);
+      return String.format("ReplacementUF(%s :: %s --> %s)",
+          wrapped, argumentTypes, returnType);
     }
   }
 
@@ -108,6 +110,7 @@ public class FunctionFormulaManagerView extends BaseManagerView implements UFMan
     return declareUF(pName, pReturnType, Arrays.asList(pArgs));
   }
 
+
   public <T extends Formula> T declareAndCallUninterpretedFunction(
       String pName, int idx, FormulaType<T> pReturnType, List<Formula> pArgs) {
     String name = FormulaManagerView.makeName(pName, idx);
@@ -118,6 +121,7 @@ public class FunctionFormulaManagerView extends BaseManagerView implements UFMan
       String pName, int pIdx, FormulaType<T> pReturnType, Formula... pArgs) {
     return declareAndCallUninterpretedFunction(pName, pIdx, pReturnType, Arrays.asList(pArgs));
   }
+
 
   @Override
   public <T extends Formula> T declareAndCallUF(
@@ -133,12 +137,12 @@ public class FunctionFormulaManagerView extends BaseManagerView implements UFMan
     return declareAndCallUF(pName, pReturnType, Arrays.asList(pArgs));
   }
 
+
   @Override
   public <T extends Formula> T callUF(
       FunctionDeclaration<T> pFuncType, List<? extends Formula> pArgs) {
 
-    ReplaceUninterpretedFunctionDeclaration<T> rep =
-        (ReplaceUninterpretedFunctionDeclaration<T>) pFuncType;
+    ReplaceUninterpretedFunctionDeclaration<T> rep = (ReplaceUninterpretedFunctionDeclaration<T>)pFuncType;
 
     Formula f = manager.callUF(rep.wrapped, unwrap(pArgs));
 
@@ -146,7 +150,8 @@ public class FunctionFormulaManagerView extends BaseManagerView implements UFMan
   }
 
   @Override
-  public <T extends Formula> T callUF(FunctionDeclaration<T> pFuncType, Formula... pArgs) {
+  public <T extends Formula> T callUF(
+      FunctionDeclaration<T> pFuncType, Formula... pArgs) {
     return callUF(pFuncType, Arrays.asList(pArgs));
   }
 }

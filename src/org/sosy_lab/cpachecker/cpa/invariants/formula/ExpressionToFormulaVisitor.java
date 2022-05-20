@@ -76,19 +76,18 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 /**
- * Instances of this class are c expression visitors used to convert c expressions to compound state
- * invariants formulae.
+ * Instances of this class are c expression visitors used to convert c
+ * expressions to compound state invariants formulae.
  */
-public class ExpressionToFormulaVisitor
-    extends DefaultCExpressionVisitor<NumeralFormula<CompoundInterval>, UnrecognizedCodeException>
-    implements CRightHandSideVisitor<NumeralFormula<CompoundInterval>, UnrecognizedCodeException>,
-        JRightHandSideVisitor<NumeralFormula<CompoundInterval>, UnrecognizedCodeException> {
+public class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<NumeralFormula<CompoundInterval>, UnrecognizedCodeException> implements CRightHandSideVisitor<NumeralFormula<CompoundInterval>, UnrecognizedCodeException>, JRightHandSideVisitor<NumeralFormula<CompoundInterval>, UnrecognizedCodeException> {
 
-  /** The variable name extractor used to extract variable names from c id expressions. */
+  /**
+   * The variable name extractor used to extract variable names from c id
+   * expressions.
+   */
   private final MemoryLocationExtractor variableNameExtractor;
 
-  private final Map<? extends MemoryLocation, ? extends NumeralFormula<CompoundInterval>>
-      environment;
+  private final Map<? extends MemoryLocation, ? extends NumeralFormula<CompoundInterval>> environment;
 
   private final MachineModel machineModel;
 
@@ -99,13 +98,13 @@ public class ExpressionToFormulaVisitor
   private final CompoundIntervalFormulaManager compoundIntervalFormulaManager;
 
   /**
-   * Creates a new visitor for converting c expressions to compound state invariants formulae with
-   * the given variable name extractor.
+   * Creates a new visitor for converting c expressions to compound state
+   * invariants formulae with the given variable name extractor.
    *
    * @param pCompoundIntervalManagerFactory the factory for compound interval managers.
    * @param pMachineModel the machine model.
-   * @param pVariableNameExtractor the variable name extractor used to obtain variable names for c
-   *     id expressions.
+   * @param pVariableNameExtractor the variable name extractor used to obtain
+   * variable names for c id expressions.
    */
   public ExpressionToFormulaVisitor(
       CompoundIntervalManagerFactory pCompoundIntervalManagerFactory,
@@ -115,13 +114,13 @@ public class ExpressionToFormulaVisitor
   }
 
   /**
-   * Creates a new visitor for converting c expressions to compound state invariants formulae with
-   * the given variable name extractor.
+   * Creates a new visitor for converting c expressions to compound state
+   * invariants formulae with the given variable name extractor.
    *
    * @param pCompoundIntervalManagerFactory the factory for compound interval managers.
    * @param pMachineModel the machine model.
-   * @param pVariableNameExtractor the variable name extractor used to obtain variable names for c
-   *     id expressions.
+   * @param pVariableNameExtractor the variable name extractor used to obtain
+   * variable names for c id expressions.
    * @param pEnvironment the current environment information.
    */
   public ExpressionToFormulaVisitor(
@@ -133,10 +132,8 @@ public class ExpressionToFormulaVisitor
     this.machineModel = pMachineModel;
     this.variableNameExtractor = pVariableNameExtractor;
     this.environment = pEnvironment;
-    this.evaluationVisitor =
-        new FormulaCompoundStateEvaluationVisitor(compoundIntervalManagerFactory);
-    this.compoundIntervalFormulaManager =
-        new CompoundIntervalFormulaManager(compoundIntervalManagerFactory);
+    this.evaluationVisitor = new FormulaCompoundStateEvaluationVisitor(compoundIntervalManagerFactory);
+    this.compoundIntervalFormulaManager = new CompoundIntervalFormulaManager(compoundIntervalManagerFactory);
   }
 
   private CompoundIntervalManager getIntervalManager(Type pType) {
@@ -165,42 +162,34 @@ public class ExpressionToFormulaVisitor
 
   private NumeralFormula<CompoundInterval> asConstant(Type pType, CompoundInterval pValue) {
     return InvariantsFormulaManager.INSTANCE.asConstant(
-        BitVectorInfo.from(machineModel, pType), pValue);
+        BitVectorInfo.from(machineModel, pType),
+        pValue);
   }
 
   private NumeralFormula<CompoundInterval> asVariable(Type pType, MemoryLocation pMemoryLocation) {
     return InvariantsFormulaManager.INSTANCE.asVariable(
-        BitVectorInfo.from(machineModel, pType), pMemoryLocation);
+        BitVectorInfo.from(machineModel, pType),
+        pMemoryLocation);
   }
 
   @Override
-  protected NumeralFormula<CompoundInterval> visitDefault(CExpression pCExpression)
-      throws UnrecognizedCodeException {
+  protected NumeralFormula<CompoundInterval> visitDefault(CExpression pCExpression) throws UnrecognizedCodeException {
     return allPossibleValues(pCExpression);
   }
 
   @Override
-  public NumeralFormula<CompoundInterval> visit(CIdExpression pCIdExpression)
-      throws UnrecognizedCodeException {
-    return asVariable(
-        pCIdExpression.getExpressionType(),
-        this.variableNameExtractor.getMemoryLocation(pCIdExpression));
+  public NumeralFormula<CompoundInterval> visit(CIdExpression pCIdExpression) throws UnrecognizedCodeException {
+    return asVariable(pCIdExpression.getExpressionType(), this.variableNameExtractor.getMemoryLocation(pCIdExpression));
   }
 
   @Override
-  public NumeralFormula<CompoundInterval> visit(CFieldReference pCFieldReference)
-      throws UnrecognizedCodeException {
-    return asVariable(
-        pCFieldReference.getExpressionType(),
-        this.variableNameExtractor.getMemoryLocation(pCFieldReference));
+  public NumeralFormula<CompoundInterval> visit(CFieldReference pCFieldReference) throws UnrecognizedCodeException {
+    return asVariable(pCFieldReference.getExpressionType(), this.variableNameExtractor.getMemoryLocation(pCFieldReference));
   }
 
   @Override
-  public NumeralFormula<CompoundInterval> visit(
-      CArraySubscriptExpression pCArraySubscriptExpression) throws UnrecognizedCodeException {
-    return asVariable(
-        pCArraySubscriptExpression.getExpressionType(),
-        this.variableNameExtractor.getMemoryLocation(pCArraySubscriptExpression));
+  public NumeralFormula<CompoundInterval> visit(CArraySubscriptExpression pCArraySubscriptExpression) throws UnrecognizedCodeException {
+    return asVariable(pCArraySubscriptExpression.getExpressionType(), this.variableNameExtractor.getMemoryLocation(pCArraySubscriptExpression));
   }
 
   @Override
@@ -214,14 +203,12 @@ public class ExpressionToFormulaVisitor
   }
 
   @Override
-  public NumeralFormula<CompoundInterval> visit(CImaginaryLiteralExpression pE)
-      throws UnrecognizedCodeException {
+  public NumeralFormula<CompoundInterval> visit(CImaginaryLiteralExpression pE) throws UnrecognizedCodeException {
     return pE.getValue().accept(this);
   }
 
   @Override
-  public NumeralFormula<CompoundInterval> visit(CUnaryExpression pCUnaryExpression)
-      throws UnrecognizedCodeException {
+  public NumeralFormula<CompoundInterval> visit(CUnaryExpression pCUnaryExpression) throws UnrecognizedCodeException {
     CExpression operandExpression = pCUnaryExpression.getOperand();
     if (pCUnaryExpression.getOperator() != UnaryOperator.AMPER) {
       operandExpression =
@@ -233,33 +220,29 @@ public class ExpressionToFormulaVisitor
     operand = compoundIntervalFormulaManager.cast(typeInfo, operand);
     final NumeralFormula<CompoundInterval> result;
     switch (pCUnaryExpression.getOperator()) {
-      case MINUS:
-        result = compoundIntervalFormulaManager.negate(operand);
-        break;
-      case TILDE:
-        result = compoundIntervalFormulaManager.binaryNot(operand);
-        break;
-      case AMPER:
-        result = allPossibleValues(pCUnaryExpression);
-        break;
-      default:
-        result = super.visit(pCUnaryExpression);
-        break;
+    case MINUS:
+      result = compoundIntervalFormulaManager.negate(operand);
+      break;
+    case TILDE:
+      result = compoundIntervalFormulaManager.binaryNot(operand);
+      break;
+    case AMPER:
+      result = allPossibleValues(pCUnaryExpression);
+      break;
+    default:
+      result = super.visit(pCUnaryExpression);
+      break;
     }
     return compoundIntervalFormulaManager.cast(typeInfo, result);
   }
 
   @Override
-  public NumeralFormula<CompoundInterval> visit(CPointerExpression pCPointerExpression)
-      throws UnrecognizedCodeException {
-    return asVariable(
-        pCPointerExpression.getExpressionType(),
-        variableNameExtractor.getMemoryLocation(pCPointerExpression));
+  public NumeralFormula<CompoundInterval> visit(CPointerExpression pCPointerExpression) throws UnrecognizedCodeException {
+    return asVariable(pCPointerExpression.getExpressionType(), variableNameExtractor.getMemoryLocation(pCPointerExpression));
   }
 
   @Override
-  public NumeralFormula<CompoundInterval> visit(CCastExpression pCCastExpression)
-      throws UnrecognizedCodeException {
+  public NumeralFormula<CompoundInterval> visit(CCastExpression pCCastExpression) throws UnrecognizedCodeException {
     CExpression expression =
         makeCastFromArrayToPointerIfNecessary(
             pCCastExpression.getOperand(), pCCastExpression.getCastType());
@@ -283,8 +266,7 @@ public class ExpressionToFormulaVisitor
   }
 
   @Override
-  public NumeralFormula<CompoundInterval> visit(CBinaryExpression pCBinaryExpression)
-      throws UnrecognizedCodeException {
+  public NumeralFormula<CompoundInterval> visit(CBinaryExpression pCBinaryExpression) throws UnrecognizedCodeException {
     final CType calculationType = pCBinaryExpression.getCalculationType();
     final CType t1 = pCBinaryExpression.getOperand1().getExpressionType();
     final CType t2 = pCBinaryExpression.getOperand2().getExpressionType();
@@ -305,18 +287,18 @@ public class ExpressionToFormulaVisitor
 
     final NumeralFormula<CompoundInterval> result;
     switch (pCBinaryExpression.getOperator()) {
-      case BINARY_AND:
-        result = allPossibleValues(pCBinaryExpression);
-        break;
-      case BINARY_OR:
-        result = allPossibleValues(pCBinaryExpression);
-        break;
-      case BINARY_XOR:
-        result = allPossibleValues(pCBinaryExpression);
-        break;
-      case DIVIDE:
-        result = compoundIntervalFormulaManager.divide(left, right);
-        break;
+    case BINARY_AND:
+      result = allPossibleValues(pCBinaryExpression);
+      break;
+    case BINARY_OR:
+      result = allPossibleValues(pCBinaryExpression);
+      break;
+    case BINARY_XOR:
+      result = allPossibleValues(pCBinaryExpression);
+      break;
+    case DIVIDE:
+      result = compoundIntervalFormulaManager.divide(left, right);
+      break;
       case EQUALS:
         result =
             compoundIntervalFormulaManager.fromBoolean(
@@ -347,8 +329,7 @@ public class ExpressionToFormulaVisitor
             && !(promRight instanceof CPointerType)) { // Just a subtraction e.g. 6 - 7
           result = compoundIntervalFormulaManager.subtract(left, right);
         } else if (!(promRight instanceof CPointerType)) {
-          // operand1 is a pointer => we should multiply the subtrahend by the size of the pointer
-          // target
+          // operand1 is a pointer => we should multiply the subtrahend by the size of the pointer target
           result =
               compoundIntervalFormulaManager.subtract(
                   left,
@@ -371,12 +352,12 @@ public class ExpressionToFormulaVisitor
               "Can't subtract a pointer from a non-pointer", pCBinaryExpression);
         }
         break;
-      case MODULO:
-        result = compoundIntervalFormulaManager.modulo(left, right);
-        break;
-      case MULTIPLY:
-        result = compoundIntervalFormulaManager.multiply(left, right);
-        break;
+    case MODULO:
+      result = compoundIntervalFormulaManager.modulo(left, right);
+      break;
+    case MULTIPLY:
+      result = compoundIntervalFormulaManager.multiply(left, right);
+      break;
       case NOT_EQUALS:
         result =
             compoundIntervalFormulaManager.fromBoolean(
@@ -389,8 +370,7 @@ public class ExpressionToFormulaVisitor
             && !(promRight instanceof CPointerType)) { // Just an addition e.g. 6 + 7
           result = compoundIntervalFormulaManager.add(left, right);
         } else if (!(promRight instanceof CPointerType)) {
-          // operand1 is a pointer => we should multiply the second summand by the size of the
-          // pointer target
+          // operand1 is a pointer => we should multiply the second summand by the size of the pointer target
           result =
               compoundIntervalFormulaManager.add(
                   left,
@@ -408,27 +388,25 @@ public class ExpressionToFormulaVisitor
           throw new UnrecognizedCodeException("Can't add pointers", pCBinaryExpression);
         }
         break;
-      case SHIFT_LEFT:
-        result = compoundIntervalFormulaManager.shiftLeft(left, right);
-        break;
-      case SHIFT_RIGHT:
-        result = compoundIntervalFormulaManager.shiftRight(left, right);
-        break;
-      default:
-        result = allPossibleValues(pCBinaryExpression);
-        break;
+    case SHIFT_LEFT:
+      result = compoundIntervalFormulaManager.shiftLeft(left, right);
+      break;
+    case SHIFT_RIGHT:
+      result = compoundIntervalFormulaManager.shiftRight(left, right);
+      break;
+    default:
+      result = allPossibleValues(pCBinaryExpression);
+      break;
     }
     return compoundIntervalFormulaManager.cast(typeInfo, result);
   }
 
   @Override
-  public NumeralFormula<CompoundInterval> visit(
-      CFunctionCallExpression pIastFunctionCallExpression) {
+  public NumeralFormula<CompoundInterval> visit(CFunctionCallExpression pIastFunctionCallExpression) {
     return allPossibleValues(pIastFunctionCallExpression.getExpressionType());
   }
 
-  private NumeralFormula<CompoundInterval> topIfProblematicType(
-      CType pType, NumeralFormula<CompoundInterval> pFormula) {
+  private NumeralFormula<CompoundInterval> topIfProblematicType(CType pType, NumeralFormula<CompoundInterval> pFormula) {
     if ((pType instanceof CSimpleType) && ((CSimpleType) pType).getCanonicalType().isUnsigned()) {
       CompoundInterval value = pFormula.accept(evaluationVisitor, environment);
       if (value.containsAllPossibleValues()) {
@@ -444,8 +422,7 @@ public class ExpressionToFormulaVisitor
   @Override
   public NumeralFormula<CompoundInterval> visit(JCharLiteralExpression pCharLiteralExpression)
       throws UnrecognizedCodeException {
-    return asConstant(
-        pCharLiteralExpression.getExpressionType(), pCharLiteralExpression.getCharacter());
+    return asConstant(pCharLiteralExpression.getExpressionType(), pCharLiteralExpression.getCharacter());
   }
 
   @Override
@@ -460,8 +437,7 @@ public class ExpressionToFormulaVisitor
     NumeralFormula<CompoundInterval> left = pBinaryExpression.getOperand1().accept(this);
     NumeralFormula<CompoundInterval> right = pBinaryExpression.getOperand2().accept(this);
     BooleanFormula<CompoundInterval> logicalLeft = compoundIntervalFormulaManager.fromNumeral(left);
-    BooleanFormula<CompoundInterval> logicalRight =
-        compoundIntervalFormulaManager.fromNumeral(right);
+    BooleanFormula<CompoundInterval> logicalRight = compoundIntervalFormulaManager.fromNumeral(right);
     TypeInfo typeInfo = BitVectorInfo.from(machineModel, pBinaryExpression.getExpressionType());
     switch (pBinaryExpression.getOperator()) {
       case BINARY_AND:
@@ -527,8 +503,7 @@ public class ExpressionToFormulaVisitor
       case SHIFT_RIGHT_UNSIGNED:
         right = truncateShiftOperand(pBinaryExpression.getExpressionType(), right);
         CompoundInterval leftEval = left.accept(evaluationVisitor, environment);
-        NumeralFormula<CompoundInterval> forPositiveLeft =
-            compoundIntervalFormulaManager.shiftRight(left, right);
+        NumeralFormula<CompoundInterval> forPositiveLeft = compoundIntervalFormulaManager.shiftRight(left, right);
         if (!leftEval.containsNegative()) {
           return forPositiveLeft;
         }
@@ -549,53 +524,47 @@ public class ExpressionToFormulaVisitor
       case STRING_CONCATENATION:
         return allPossibleValues(pBinaryExpression);
       default:
-        throw new AssertionError(
-            "Unhandled enum value in switch: " + pBinaryExpression.getOperator());
+        throw new AssertionError("Unhandled enum value in switch: " + pBinaryExpression.getOperator());
     }
   }
 
-  private NumeralFormula<CompoundInterval> truncateShiftOperand(
-      JType pExpressionType, NumeralFormula<CompoundInterval> pOperand) {
+  private NumeralFormula<CompoundInterval> truncateShiftOperand(JType pExpressionType, NumeralFormula<CompoundInterval> pOperand) {
     if (pExpressionType instanceof JSimpleType) {
       JSimpleType simpleType = (JSimpleType) pExpressionType;
       if (simpleType.getType() == JBasicType.INT) {
-        return compoundIntervalFormulaManager.binaryAnd(
-            pOperand, asConstant(pExpressionType, 0x1F));
+        return compoundIntervalFormulaManager.binaryAnd(pOperand, asConstant(pExpressionType, 0x1F));
       } else if (simpleType.getType() == JBasicType.LONG) {
-        return compoundIntervalFormulaManager.binaryAnd(
-            pOperand, asConstant(pExpressionType, 0x3F));
+        return compoundIntervalFormulaManager.binaryAnd(pOperand, asConstant(pExpressionType, 0x3F));
       }
     }
     return pOperand;
   }
 
   @Override
-  public NumeralFormula<CompoundInterval> visit(JUnaryExpression pUnaryExpression)
-      throws UnrecognizedCodeException {
+  public NumeralFormula<CompoundInterval> visit(JUnaryExpression pUnaryExpression) throws UnrecognizedCodeException {
     TypeInfo typeInfo = BitVectorInfo.from(machineModel, pUnaryExpression.getExpressionType());
     switch (pUnaryExpression.getOperator()) {
-      case MINUS:
-        return compoundIntervalFormulaManager.negate(pUnaryExpression.getOperand().accept(this));
-      case COMPLEMENT:
-        return allPossibleValues(pUnaryExpression);
+    case MINUS:
+      return compoundIntervalFormulaManager.negate(pUnaryExpression.getOperand().accept(this));
+    case COMPLEMENT:
+      return allPossibleValues(pUnaryExpression);
       case NOT:
         return compoundIntervalFormulaManager.fromBoolean(
             typeInfo,
             compoundIntervalFormulaManager.logicalNot(
                 compoundIntervalFormulaManager.fromNumeral(
                     pUnaryExpression.getOperand().accept(this))));
-      case PLUS:
-        return pUnaryExpression.getOperand().accept(this);
-      default:
-        return allPossibleValues(pUnaryExpression);
+    case PLUS:
+      return pUnaryExpression.getOperand().accept(this);
+    default:
+      return allPossibleValues(pUnaryExpression);
     }
   }
 
   @Override
   public NumeralFormula<CompoundInterval> visit(JIntegerLiteralExpression pIntegerLiteralExpression)
       throws UnrecognizedCodeException {
-    return asConstant(
-        pIntegerLiteralExpression.getExpressionType(), pIntegerLiteralExpression.getValue());
+    return asConstant(pIntegerLiteralExpression.getExpressionType(), pIntegerLiteralExpression.getValue());
   }
 
   @Override
@@ -653,15 +622,13 @@ public class ExpressionToFormulaVisitor
   }
 
   @Override
-  public NumeralFormula<CompoundInterval> visit(JCastExpression pCastExpression)
-      throws UnrecognizedCodeException {
+  public NumeralFormula<CompoundInterval> visit(JCastExpression pCastExpression) throws UnrecognizedCodeException {
     TypeInfo typeInfo = BitVectorInfo.from(machineModel, pCastExpression.getCastType());
     return compoundIntervalFormulaManager.cast(typeInfo, pCastExpression.getOperand().accept(this));
   }
 
   @Override
-  public NumeralFormula<CompoundInterval> visit(JThisExpression pThisExpression)
-      throws UnrecognizedCodeException {
+  public NumeralFormula<CompoundInterval> visit(JThisExpression pThisExpression) throws UnrecognizedCodeException {
     return allPossibleValues(pThisExpression);
   }
 
@@ -678,10 +645,8 @@ public class ExpressionToFormulaVisitor
   }
 
   @Override
-  public NumeralFormula<CompoundInterval> visit(JIdExpression pIdExpression)
-      throws UnrecognizedCodeException {
-    return asVariable(
-        pIdExpression.getExpressionType(), variableNameExtractor.getMemoryLocation(pIdExpression));
+  public NumeralFormula<CompoundInterval> visit(JIdExpression pIdExpression) throws UnrecognizedCodeException {
+    return asVariable(pIdExpression.getExpressionType(), variableNameExtractor.getMemoryLocation(pIdExpression));
   }
 
   @Override
@@ -705,8 +670,7 @@ public class ExpressionToFormulaVisitor
 
     TypeInfo typeInfo = BitVectorInfo.from(pMachineModel, pTargetType);
 
-    CompoundIntervalFormulaManager cifm =
-        new CompoundIntervalFormulaManager(pCompoundIntervalManagerFactory);
+    CompoundIntervalFormulaManager cifm = new CompoundIntervalFormulaManager(pCompoundIntervalManagerFactory);
 
     NumeralFormula<CompoundInterval> formula = cifm.cast(typeInfo, pFormula);
 
@@ -825,4 +789,5 @@ public class ExpressionToFormulaVisitor
     return new CUnaryExpression(
         pArrayExpression.getFileLocation(), pointerType, pArrayExpression, UnaryOperator.AMPER);
   }
+
 }

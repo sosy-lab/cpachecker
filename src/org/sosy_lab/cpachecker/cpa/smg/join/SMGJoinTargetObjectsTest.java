@@ -31,15 +31,15 @@ public class SMGJoinTargetObjectsTest {
   private SMGNodeMapping mapping1;
   private SMGNodeMapping mapping2;
 
-  private final SMGObject obj1 = new SMGRegion(64, "ze label");
+  final private SMGObject obj1 = new SMGRegion(64, "ze label");
   private final SMGSymbolicValue value1 = SMGKnownSymValue.of();
-  private final SMGEdgePointsTo pt1 = new SMGEdgePointsTo(value1, obj1, 0);
+  final private SMGEdgePointsTo pt1 = new SMGEdgePointsTo(value1, obj1, 0);
 
-  private final SMGObject obj2 = new SMGRegion(64, "ze label");
+  final private SMGObject obj2 = new SMGRegion(64, "ze label");
   private final SMGSymbolicValue value2 = SMGKnownSymValue.of();
-  private final SMGEdgePointsTo pt2 = new SMGEdgePointsTo(value2, obj2, 0);
+  final private SMGEdgePointsTo pt2 = new SMGEdgePointsTo(value2, obj2, 0);
 
-  private final SMGObject destObj = new SMGRegion(64, "destination");
+  final private SMGObject destObj = new SMGRegion(64, "destination");
 
   @Before
   public void setUp() {
@@ -61,23 +61,7 @@ public class SMGJoinTargetObjectsTest {
     smg2.addValue(value2);
     smg2.addPointsToEdge(pt2);
 
-    SMGJoinTargetObjects jto =
-        new SMGJoinTargetObjects(
-            SMGJoinStatus.EQUAL,
-            smg1,
-            smg2,
-            destSMG,
-            mapping1,
-            mapping2,
-            SMGLevelMapping.createDefaultLevelMap(),
-            value1,
-            value2,
-            0,
-            0,
-            0,
-            false,
-            null,
-            null);
+    SMGJoinTargetObjects jto = new SMGJoinTargetObjects(SMGJoinStatus.EQUAL, smg1, smg2, destSMG, mapping1, mapping2, SMGLevelMapping.createDefaultLevelMap(), value1, value2, 0,0, 0, false, null, null);
     assertThat(jto.mapping2.get(obj2)).isSameInstanceAs(jto.mapping1.get(obj1));
     // TODO investigate why they should not be the same, regions are immutable
     // Assert.assertNotSame(jto.mapping1.get(obj1), obj1);
@@ -91,9 +75,7 @@ public class SMGJoinTargetObjectsTest {
     smg1.addValue(value1);
     smg1.addPointsToEdge(pt1);
 
-    SMGJoinMatchObjects mo =
-        new SMGJoinMatchObjects(
-            SMGJoinStatus.EQUAL, smg1, smg2, mapping1, mapping2, obj1, SMGNullObject.INSTANCE);
+    SMGJoinMatchObjects mo = new SMGJoinMatchObjects(SMGJoinStatus.EQUAL, smg1, smg2, mapping1, mapping2, obj1, SMGNullObject.INSTANCE);
     assertThat(mo.isDefined()).isFalse();
     SMGJoinTargetObjects jto =
         new SMGJoinTargetObjects(
@@ -129,23 +111,8 @@ public class SMGJoinTargetObjectsTest {
     smg2.addValue(value2);
     smg2.addPointsToEdge(pt2null);
 
-    SMGJoinTargetObjects jto =
-        new SMGJoinTargetObjects(
-            SMGJoinStatus.EQUAL,
-            smg1,
-            smg2,
-            null,
-            null,
-            null,
-            SMGLevelMapping.createDefaultLevelMap(),
-            value1,
-            value2,
-            0,
-            0,
-            0,
-            false,
-            null,
-            null);
+    SMGJoinTargetObjects jto = new SMGJoinTargetObjects(SMGJoinStatus.EQUAL, smg1, smg2, null, null,
+        null, SMGLevelMapping.createDefaultLevelMap(), value1, value2, 0, 0, 0, false, null, null);
 
     assertThat(jto.isDefined()).isFalse();
     assertThat(jto.isRecoverable()).isTrue();
@@ -171,23 +138,7 @@ public class SMGJoinTargetObjectsTest {
             new SMGNodeMapping(mapping2),
             value1,
             value2);
-    SMGJoinTargetObjects jto =
-        new SMGJoinTargetObjects(
-            SMGJoinStatus.EQUAL,
-            smg1,
-            smg2,
-            destSMG,
-            mapping1,
-            mapping2,
-            SMGLevelMapping.createDefaultLevelMap(),
-            value1,
-            value2,
-            0,
-            0,
-            0,
-            false,
-            null,
-            null);
+    SMGJoinTargetObjects jto = new SMGJoinTargetObjects(SMGJoinStatus.EQUAL, smg1, smg2, destSMG, mapping1, mapping2, SMGLevelMapping.createDefaultLevelMap(), value1, value2, 0, 0, 0, false, null, null);
     assertThat(jto.isDefined()).isTrue();
     assertThat(jto.getStatus()).isEqualTo(SMGJoinStatus.EQUAL);
     assertThat(jto.getInputSMG1()).isSameInstanceAs(smg1);
@@ -214,28 +165,10 @@ public class SMGJoinTargetObjectsTest {
     mapping2.map(obj2, destObj);
 
     // See TODO below
-    // SMGMapTargetAddress mta = new SMGMapTargetAddress(new SMG(smg1), new SMG(smg2), new
-    // SMG(destSMG),
-    //                                                  new SMGNodeMapping(mapping1), new
-    // SMGNodeMapping(mapping2),
+    // SMGMapTargetAddress mta = new SMGMapTargetAddress(new SMG(smg1), new SMG(smg2), new SMG(destSMG),
+    //                                                  new SMGNodeMapping(mapping1), new SMGNodeMapping(mapping2),
     //                                                  value1, value2);
-    SMGJoinTargetObjects jto =
-        new SMGJoinTargetObjects(
-            SMGJoinStatus.EQUAL,
-            smg1,
-            smg2,
-            destSMG,
-            mapping1,
-            mapping2,
-            SMGLevelMapping.createDefaultLevelMap(),
-            value1,
-            value2,
-            0,
-            0,
-            0,
-            false,
-            null,
-            null);
+    SMGJoinTargetObjects jto = new SMGJoinTargetObjects(SMGJoinStatus.EQUAL, smg1, smg2, destSMG, mapping1, mapping2, SMGLevelMapping.createDefaultLevelMap(), value1, value2, 0, 0, 0, false, null, null);
     assertThat(jto.isDefined()).isTrue();
     assertThat(jto.getStatus()).isEqualTo(SMGJoinStatus.EQUAL);
     assertThat(jto.getInputSMG1()).isSameInstanceAs(smg1);

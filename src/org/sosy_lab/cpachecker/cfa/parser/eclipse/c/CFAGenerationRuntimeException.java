@@ -10,7 +10,9 @@ package org.sosy_lab.cpachecker.cfa.parser.eclipse.c;
 
 import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
 
-/** Handles problems during CFA generation */
+/**
+ * Handles problems during CFA generation
+ */
 class CFAGenerationRuntimeException extends RuntimeException {
 
   private static final long serialVersionUID = 6850681425709171716L;
@@ -24,9 +26,8 @@ class CFAGenerationRuntimeException extends RuntimeException {
   }
 
   public CFAGenerationRuntimeException(String msg, CAstNode astNode) {
-    this(
-        astNode == null
-            ? msg
-            : (astNode.getFileLocation() + ": " + msg + ": " + astNode.toASTString()));
+    this(astNode == null ? msg :
+      (astNode.getFileLocation() + ": " + msg + ": " + astNode.toASTString()));
   }
+
 }

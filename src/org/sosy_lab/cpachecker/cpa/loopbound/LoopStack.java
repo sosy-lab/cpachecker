@@ -125,4 +125,5 @@ final class LoopStack implements Iterable<LoopIterationState> {
       }
     };
   }
+
 }

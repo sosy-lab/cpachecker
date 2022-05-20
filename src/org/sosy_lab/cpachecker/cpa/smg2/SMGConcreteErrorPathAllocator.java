@@ -17,7 +17,8 @@ import org.sosy_lab.cpachecker.util.Pair;
 
 public class SMGConcreteErrorPathAllocator extends ConcreteErrorPathAllocator<SMGState> {
 
-  protected SMGConcreteErrorPathAllocator(AssumptionToEdgeAllocator pAssumptionToEdgeAllocator) {
+  protected SMGConcreteErrorPathAllocator(
+      AssumptionToEdgeAllocator pAssumptionToEdgeAllocator) {
     super(SMGState.class, pAssumptionToEdgeAllocator);
     // TODO Auto-generated constructor stub
   }
@@ -27,4 +28,5 @@ public class SMGConcreteErrorPathAllocator extends ConcreteErrorPathAllocator<SM
     // TODO Auto-generated method stub
     return null;
   }
+
 }

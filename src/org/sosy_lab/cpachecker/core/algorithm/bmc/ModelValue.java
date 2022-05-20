@@ -18,7 +18,6 @@ public class ModelValue {
 
   /** FormulaManager where the formula belongs to and was created with. */
   private final FormulaManagerView fmgr;
-
   private final BooleanFormula formula;
 
   public ModelValue(String pVariableName, BooleanFormula pFormula, FormulaManagerView pFmgr) {

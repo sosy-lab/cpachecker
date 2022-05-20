@@ -41,11 +41,9 @@ public class BMCAlgorithmForInvariantGeneration extends AbstractBMCAlgorithm {
 
   private final CandidateGenerator candidateGenerator;
 
-  private InvariantSupplier locationInvariantsProvider =
-      InvariantSupplier.TrivialInvariantSupplier.INSTANCE;
+  private InvariantSupplier locationInvariantsProvider = InvariantSupplier.TrivialInvariantSupplier.INSTANCE;
 
-  private ExpressionTreeSupplier locationInvariantExpressionTreeProvider =
-      ExpressionTreeSupplier.TrivialInvariantSupplier.INSTANCE;
+  private ExpressionTreeSupplier locationInvariantExpressionTreeProvider = ExpressionTreeSupplier.TrivialInvariantSupplier.INSTANCE;
 
   public BMCAlgorithmForInvariantGeneration(
       Algorithm pAlgorithm,

@@ -6,7 +6,9 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-/** Widely used exceptions. */
+/**
+ * Widely used exceptions.
+ */
 @javax.annotation.ParametersAreNonnullByDefault
 @org.sosy_lab.common.annotations.FieldsAreNonnullByDefault
 @org.sosy_lab.common.annotations.ReturnValuesAreNonnullByDefault

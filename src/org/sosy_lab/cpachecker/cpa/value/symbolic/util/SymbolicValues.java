@@ -42,13 +42,16 @@ public class SymbolicValues {
    * @return <code>true</code> if both symbolic values represent the same C code
    */
   public static boolean representSameCCodeExpression(
-      final SymbolicValue pValue1, final SymbolicValue pValue2) {
+      final SymbolicValue pValue1,
+      final SymbolicValue pValue2
+  ) {
 
     if (!pValue1.getClass().equals(pValue2.getClass())) {
       final Optional<MemoryLocation> val1RepLoc = pValue1.getRepresentedLocation();
       final Optional<MemoryLocation> val2RepLoc = pValue2.getRepresentedLocation();
 
-      return (val1RepLoc.isPresent() || val2RepLoc.isPresent()) && val1RepLoc.equals(val2RepLoc);
+      return (val1RepLoc.isPresent() || val2RepLoc.isPresent())
+          && val1RepLoc.equals(val2RepLoc);
     }
 
     final Optional<MemoryLocation> maybeRepLocVal1 = pValue1.getRepresentedLocation();
@@ -89,7 +92,9 @@ public class SymbolicValues {
   }
 
   public static boolean representSameSymbolicMeaning(
-      final SymbolicValue pValue1, final SymbolicValue pValue2) {
+      final SymbolicValue pValue1,
+      final SymbolicValue pValue2
+  ) {
 
     if (!pValue1.getClass().equals(pValue2.getClass())) {
       return false;
@@ -138,12 +143,14 @@ public class SymbolicValues {
   }
 
   public static Collection<SymbolicIdentifier> getContainedSymbolicIdentifiers(
-      final SymbolicValue pValue) {
+      final SymbolicValue pValue
+  ) {
     return pValue.accept(identifierLocator);
   }
 
   public static Collection<SymbolicIdentifier> getContainedSymbolicIdentifiers(
-      final Collection<? extends SymbolicValue> pValues) {
+      final Collection<? extends SymbolicValue> pValues
+  ) {
     Collection<SymbolicIdentifier> ret = new HashSet<>();
 
     for (SymbolicValue v : pValues) {
@@ -159,8 +166,8 @@ public class SymbolicValues {
   }
 
   /**
-   * Converts the given String encoding of a {@link SymbolicIdentifier} to the corresponding <code>
-   * SymbolicIdentifier</code>.
+   * Converts the given String encoding of a {@link SymbolicIdentifier} to the corresponding
+   * <code>SymbolicIdentifier</code>.
    *
    * @param pTerm a <code>String</code> encoding of a <code>SymbolicIdentifier</code>
    * @return the <code>SymbolicIdentifier</code> representing the given encoding

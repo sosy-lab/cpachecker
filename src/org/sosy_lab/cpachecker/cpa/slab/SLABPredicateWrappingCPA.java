@@ -44,8 +44,7 @@ public class SLABPredicateWrappingCPA extends AbstractSingleWrapperCPA {
   }
 
   public static CPAFactory factory() {
-    return AutomaticCPAFactory.forType(SLABPredicateWrappingCPA.class)
-        .withOptions(BlockOperator.class);
+    return AutomaticCPAFactory.forType(SLABPredicateWrappingCPA.class).withOptions(BlockOperator.class);
   }
 
   @Override

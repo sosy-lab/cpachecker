@@ -239,7 +239,9 @@ public class FileLocation implements Serializable, Comparable<FileLocation> {
 
   @Override
   public String toString() {
-    String prefix = niceFileName.isEmpty() ? "" : niceFileName + ", ";
+    String prefix = niceFileName.isEmpty()
+        ? ""
+        : niceFileName + ", ";
     if (startingLineInOrigin == endingLineInOrigin) {
       return prefix + "line " + startingLineInOrigin;
     } else {
@@ -282,17 +284,16 @@ public class FileLocation implements Serializable, Comparable<FileLocation> {
     }
 
     private Object readResolve() {
-      FileLocation result =
-          new FileLocation(
-              Path.of(fileName),
-              niceFileName,
-              offset,
-              length,
-              startingLine,
-              endingLine,
-              startingLineInOrigin,
-              endingLineInOrigin,
-              offsetRelatedToOrigin);
+      FileLocation result = new FileLocation(
+          Path.of(fileName),
+          niceFileName,
+          offset,
+          length,
+          startingLine,
+          endingLine,
+          startingLineInOrigin,
+          endingLineInOrigin,
+          offsetRelatedToOrigin);
 
       if (result.equals(DUMMY)) {
         return DUMMY;

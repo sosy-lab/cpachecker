@@ -19,24 +19,26 @@ import org.sosy_lab.cpachecker.cfa.types.java.JBasicType;
 import org.sosy_lab.cpachecker.cfa.types.java.JSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.java.JType;
 
-/** Class providing util methods for the family of {@link Type} classes. */
+/**
+ * Class providing util methods for the family of {@link Type} classes.
+ */
 public class Types {
 
   /**
-   * Returns whether the first given type can hold all values the second given typ can hold. The
-   * types have to belong to the same language, for example {@link CType}.
+   * Returns whether the first given type can hold all values the second given typ can hold.
+   * The types have to belong to the same language, for example {@link CType}.
    *
-   * <p>If only Java types have to be checked, no {@link MachineModel} is necessary. Use {@link
-   * #canHoldAllValues(JType, JType)} instead.
+   * <p>If only Java types have to be checked, no {@link MachineModel} is necessary.
+   * Use {@link #canHoldAllValues(JType, JType)} instead.</p>
    *
    * @param pHoldingType the first type
    * @param pInnerType the second type
    * @param pMachineModel the machine model types are based on
-   * @return <code>true</code> if the first given type can hold all values the second given type can
-   *     hold
+   *
+   * @return <code>true</code> if the first given type can hold all values the second given type
+   *    can hold
    */
-  public static boolean canHoldAllValues(
-      Type pHoldingType, Type pInnerType, MachineModel pMachineModel) {
+  public static boolean canHoldAllValues(Type pHoldingType, Type pInnerType, MachineModel pMachineModel) {
 
     if (pHoldingType instanceof CType) {
       checkArgument(pInnerType instanceof CType);
@@ -67,8 +69,7 @@ public class Types {
     }
   }
 
-  private static boolean canHoldAllValues(
-      CSimpleType pHoldingType, CSimpleType pInnerType, MachineModel pMachineModel) {
+  private static boolean canHoldAllValues(CSimpleType pHoldingType, CSimpleType pInnerType, MachineModel pMachineModel) {
     final boolean isHoldingTypeSigned = pMachineModel.isSigned(pHoldingType);
     final boolean isInnerTypeSigned = pMachineModel.isSigned(pInnerType);
     final boolean isHoldingTypeFloat = pHoldingType.getType().isFloatingPointType();
@@ -80,8 +81,7 @@ public class Types {
       return false;
     }
 
-    int holdingBitSize =
-        pMachineModel.getSizeof(pHoldingType) * pMachineModel.getSizeofCharInBits();
+    int holdingBitSize = pMachineModel.getSizeof(pHoldingType) * pMachineModel.getSizeofCharInBits();
     int innerBitSize = pMachineModel.getSizeof(pInnerType) * pMachineModel.getSizeofCharInBits();
 
     if (innerBitSize > holdingBitSize) {
@@ -107,8 +107,9 @@ public class Types {
    *
    * @param pHoldingType the first type
    * @param pInnerType the second type
-   * @return <code>true</code> if the first given type can hold all values the second given type can
-   *     hold
+   *
+   * @return <code>true</code> if the first given type can hold all values the second given type
+   *    can hold
    */
   public static boolean canHoldAllValues(JType pHoldingType, JType pInnerType) {
     if (pHoldingType instanceof JSimpleType) {
@@ -125,6 +126,7 @@ public class Types {
     JBasicType holdingType = pHoldingType.getType();
     JBasicType innerType = pInnerType.getType();
     boolean canHold = false;
+
 
     switch (innerType) {
       case BOOLEAN:
@@ -160,4 +162,6 @@ public class Types {
 
     return canHold;
   }
+
+
 }

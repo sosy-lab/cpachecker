@@ -172,7 +172,7 @@ public class StaticSlicer extends AbstractSlicer implements StatisticsProvider {
       programEdgesNumber.setNextValue(countProgramEdges(pCfa));
     }
 
-    return slice;
+      return slice;
   }
 
   private int countProgramEdges(CFA pCfa) {

@@ -50,8 +50,7 @@ public final class TestHelpers {
     return value;
   }
 
-  public static SMGEdgeHasValue createGlobalList(
-      CLangSMG pSmg, int pLength, int pSize, int pOffset, String pVariable) {
+  static public SMGEdgeHasValue createGlobalList(CLangSMG pSmg, int pLength, int pSize, int pOffset, String pVariable) {
     SMGValue value = TestHelpers.createList(pSmg, pLength, pSize, pOffset, pVariable);
     SMGRegion globalVar = new SMGRegion(64, pVariable);
     SMGEdgeHasValue hv =
@@ -66,5 +65,5 @@ public final class TestHelpers {
     return hv;
   }
 
-  private TestHelpers() {}
+  private TestHelpers(){}
 }

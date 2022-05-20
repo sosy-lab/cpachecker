@@ -22,8 +22,7 @@ public class StatTimerWithMoreOutput extends StatTimer {
 
   @Override
   public String toString() {
-    return String.format(
-        "%s (max: %s, count: %s)",
+    return String.format("%s (max: %s, count: %s)",
         super.toString(), getMaxTime().formatAs(TimeUnit.SECONDS), getUpdateCount());
   }
 }

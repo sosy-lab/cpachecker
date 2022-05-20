@@ -6,5 +6,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-/** Utility package for working with linear expressions over program variables. */
+/**
+ * Utility package for working with linear expressions over program variables.
+ */
 package org.sosy_lab.cpachecker.util.templates;

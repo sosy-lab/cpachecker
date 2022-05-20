@@ -90,8 +90,7 @@ public class LtlFormulaTreeVisitor extends LtlGrammarParserBaseVisitor<LtlFormul
     // Contains a disjunction of conjunctions
     if (ctx.getChildCount() == 0) {
       throw new RuntimeException(
-          "Invalid input provided. Expected at least 1 child-node in param 'ctx', however, nothing"
-              + " could be found");
+          "Invalid input provided. Expected at least 1 child-node in param 'ctx', however, nothing could be found");
     }
 
     ImmutableList.Builder<LtlFormula> builder = ImmutableList.builder();
@@ -102,8 +101,7 @@ public class LtlFormulaTreeVisitor extends LtlGrammarParserBaseVisitor<LtlFormul
         if (!(ctx.getChild(i) instanceof TerminalNode)) {
           throw new RuntimeException(
               String.format(
-                  "Invalid input provided. Expected child at pos %d to be an instance of"
-                      + " TerminalNode",
+                  "Invalid input provided. Expected child at pos %d to be an instance of TerminalNode",
                   i));
         }
       }
@@ -117,8 +115,7 @@ public class LtlFormulaTreeVisitor extends LtlGrammarParserBaseVisitor<LtlFormul
     // Contains a conjunction of binaryExpressions
     if (ctx.getChildCount() == 0) {
       throw new RuntimeException(
-          "Invalid input provided. Expected at least 1 child-node in param 'ctx', however, nothing"
-              + " could be found");
+          "Invalid input provided. Expected at least 1 child-node in param 'ctx', however, nothing could be found");
     }
 
     ImmutableList.Builder<LtlFormula> builder = ImmutableList.builder();
@@ -129,8 +126,7 @@ public class LtlFormulaTreeVisitor extends LtlGrammarParserBaseVisitor<LtlFormul
         if (!(ctx.getChild(i) instanceof TerminalNode)) {
           throw new RuntimeException(
               String.format(
-                  "Invalid input provided. Expected child at pos %d to be an instance of"
-                      + " TerminalNode",
+                  "Invalid input provided. Expected child at pos %d to be an instance of TerminalNode",
                   i));
         }
       }
@@ -229,9 +225,9 @@ public class LtlFormulaTreeVisitor extends LtlGrammarParserBaseVisitor<LtlFormul
     if (ctx.getChildCount() < 5) {
       throw new RuntimeException(
           String.format(
-              "Invalid input provided. Expected %d child-nodes in param 'ctx', however, %d were"
-                  + " found",
-              5, ctx.getChildCount()));
+              "Invalid input provided. Expected %d child-nodes in param 'ctx', however, %d were found",
+              5,
+              ctx.getChildCount()));
     }
 
     // Don't actually parse the quoted string -- only retrieve it and use CParserUtils-class
@@ -267,8 +263,8 @@ public class LtlFormulaTreeVisitor extends LtlGrammarParserBaseVisitor<LtlFormul
 
     throw new RuntimeException(
         String.format(
-            "Invalid input provided. Expected %d child-nodes in param 'ctx', however, %d were"
-                + " found",
-            pExpected, pActual));
+            "Invalid input provided. Expected %d child-nodes in param 'ctx', however, %d were found",
+            pExpected,
+            pActual));
   }
 }

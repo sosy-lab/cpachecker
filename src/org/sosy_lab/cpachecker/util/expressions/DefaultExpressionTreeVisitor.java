@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.util.expressions;
 
+
 public abstract class DefaultExpressionTreeVisitor<LeafType, T, E extends Throwable>
     implements ExpressionTreeVisitor<LeafType, T, E> {
 
@@ -37,4 +38,5 @@ public abstract class DefaultExpressionTreeVisitor<LeafType, T, E extends Throwa
   public T visitFalse() throws E {
     return visitDefault(ExpressionTrees.getFalse());
   }
+
 }

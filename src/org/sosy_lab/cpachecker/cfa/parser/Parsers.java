@@ -40,21 +40,24 @@ public class Parsers {
   public static class EclipseCParserOptions extends ParserOptions {
 
     @Option(
-        secure = true,
-        description =
-            "Also initialize local variables with default values, or leave them uninitialized.")
+      secure = true,
+      description =
+          "Also initialize local variables with default values, or leave them uninitialized."
+    )
     private boolean initializeAllVariables = false;
 
     @Option(
-        secure = true,
-        description = "Show messages when dead code is encountered during parsing.")
+      secure = true,
+      description = "Show messages when dead code is encountered during parsing."
+    )
     private boolean showDeadCode = true;
 
     @Option(
-        secure = true,
-        description =
-            "simplify pointer expressions like s->f to (*s).f with this option the cfa is"
-                + " simplified until at maximum one pointer is allowed for left- and rightHandSide")
+      secure = true,
+      description =
+          "simplify pointer expressions like s->f to (*s).f with this option "
+              + "the cfa is simplified until at maximum one pointer is allowed for left- and rightHandSide"
+    )
     private boolean simplifyPointerExpressions = false;
 
     @Option(secure = true, description = "simplify simple const expressions like 1+2")
@@ -77,27 +80,20 @@ public class Parsers {
     }
   }
 
-  private Parsers() {}
+  private Parsers() { }
 
   private static final Pattern OUR_CLASSES =
-      Pattern.compile(
-          "^(org\\.eclipse|org\\.sosy_lab\\.cpachecker\\.cfa\\.parser\\.(eclipse\\..*|llvm)\\.*)\\..*");
+      Pattern.compile("^(org\\.eclipse|org\\.sosy_lab\\.cpachecker\\.cfa\\.parser\\.(eclipse\\..*|llvm)\\.*)\\..*");
 
-  private static final String C_PARSER_CLASS =
-      "org.sosy_lab.cpachecker.cfa.parser.eclipse.c.EclipseCParser";
-  private static final String JAVA_PARSER_CLASS =
-      "org.sosy_lab.cpachecker.cfa.parser.eclipse.java.EclipseJavaParser";
-  private static final String LLVM_PARSER_CLASS =
-      "org.sosy_lab.cpachecker.cfa.parser.llvm.LlvmParser";
+  private static final String C_PARSER_CLASS    = "org.sosy_lab.cpachecker.cfa.parser.eclipse.c.EclipseCParser";
+  private static final String JAVA_PARSER_CLASS = "org.sosy_lab.cpachecker.cfa.parser.eclipse.java.EclipseJavaParser";
+  private static final String LLVM_PARSER_CLASS = "org.sosy_lab.cpachecker.cfa.parser.llvm.LlvmParser";
 
   private static WeakReference<ClassLoader> loadedClassLoader = new WeakReference<>(null);
 
-  private static WeakReference<Constructor<? extends CParser>> loadedCParser =
-      new WeakReference<>(null);
-  private static WeakReference<Constructor<? extends Parser>> loadedJavaParser =
-      new WeakReference<>(null);
-  private static WeakReference<Constructor<? extends Parser>> loadedLlvmParser =
-      new WeakReference<>(null);
+  private static WeakReference<Constructor<? extends CParser>> loadedCParser    = new WeakReference<>(null);
+  private static WeakReference<Constructor<? extends Parser>>  loadedJavaParser = new WeakReference<>(null);
+  private static WeakReference<Constructor<? extends Parser>> loadedLlvmParser = new WeakReference<>(null);
 
   private static final AtomicInteger loadingCount = new AtomicInteger(0);
 
@@ -138,8 +134,7 @@ public class Parsers {
         ClassLoader classLoader = getClassLoader(logger);
 
         @SuppressWarnings("unchecked")
-        Class<? extends CParser> parserClass =
-            (Class<? extends CParser>) classLoader.loadClass(C_PARSER_CLASS);
+        Class<? extends CParser> parserClass = (Class<? extends CParser>) classLoader.loadClass(C_PARSER_CLASS);
         parserConstructor =
             parserClass.getConstructor(
                 LogManager.class,
@@ -187,8 +182,10 @@ public class Parsers {
     }
   }
 
-  public static Parser getLlvmParser(final LogManager pLogger, final MachineModel pMachineModel)
-      throws InvalidConfigurationException {
+  public static Parser getLlvmParser(
+      final LogManager pLogger,
+      final MachineModel pMachineModel
+  ) throws InvalidConfigurationException {
     try {
       Constructor<? extends Parser> parserConstructor = loadedLlvmParser.get();
 
@@ -196,8 +193,8 @@ public class Parsers {
         ClassLoader classLoader = getClassLoader(pLogger);
 
         @SuppressWarnings("unchecked")
-        Class<? extends Parser> parserClass =
-            (Class<? extends Parser>) classLoader.loadClass(LLVM_PARSER_CLASS);
+        Class<? extends Parser> parserClass = (Class<? extends Parser>)
+            classLoader.loadClass(LLVM_PARSER_CLASS);
         parserConstructor = parserClass.getConstructor(LogManager.class, MachineModel.class);
         parserConstructor.setAccessible(true);
         loadedLlvmParser = new WeakReference<>(parserConstructor);
@@ -207,7 +204,7 @@ public class Parsers {
         return parserConstructor.newInstance(pLogger, pMachineModel);
       } catch (InvocationTargetException e) {
         if (e.getCause() instanceof InvalidConfigurationException) {
-          throw (InvalidConfigurationException) e.getCause();
+          throw (InvalidConfigurationException)e.getCause();
         }
         throw e;
       }

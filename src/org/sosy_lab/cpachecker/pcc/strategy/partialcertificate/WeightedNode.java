@@ -26,7 +26,9 @@ public class WeightedNode {
     weight = pWeight;
   }
 
-  /** Node represented by [node(W: weight)] */
+  /**
+   * Node represented by [node(W: weight)]
+   */
   @Override
   public String toString() {
     return nodeNumber + "(W:" + weight + ")";

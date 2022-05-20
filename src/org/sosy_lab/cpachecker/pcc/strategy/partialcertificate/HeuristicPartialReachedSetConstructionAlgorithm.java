@@ -18,8 +18,7 @@ import org.sosy_lab.cpachecker.core.interfaces.pcc.PartialReachedConstructionAlg
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 
-public class HeuristicPartialReachedSetConstructionAlgorithm
-    implements PartialReachedConstructionAlgorithm {
+public class HeuristicPartialReachedSetConstructionAlgorithm implements PartialReachedConstructionAlgorithm {
 
   @Override
   public AbstractState[] computePartialReachedSet(
@@ -28,10 +27,8 @@ public class HeuristicPartialReachedSetConstructionAlgorithm
     CFANode node;
     for (AbstractState state : pReached) {
       node = AbstractStates.extractLocation(state);
-      if (node == null
-          || node.getNumEnteringEdges() > 1
-          || (node.getNumLeavingEdges() > 0
-              && node.getLeavingEdge(0).getEdgeType() == CFAEdgeType.FunctionCallEdge)) {
+      if (node == null || node.getNumEnteringEdges() > 1
+          || (node.getNumLeavingEdges() > 0 && node.getLeavingEdge(0).getEdgeType() == CFAEdgeType.FunctionCallEdge)) {
         result.add(state);
       }
     }
@@ -42,4 +39,5 @@ public class HeuristicPartialReachedSetConstructionAlgorithm
     result.toArray(arrayRep);
     return arrayRep;
   }
+
 }

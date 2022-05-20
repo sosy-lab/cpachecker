@@ -15,8 +15,7 @@ enum CompoundMathematicalIntervalManagerFactory implements CompoundIntervalManag
   INSTANCE;
 
   @Override
-  public CompoundIntervalManager createCompoundIntervalManager(
-      MachineModel pMachineModel, Type pType) {
+  public CompoundIntervalManager createCompoundIntervalManager(MachineModel pMachineModel, Type pType) {
     return CompoundMathematicalIntervalManager.INSTANCE;
   }
 
@@ -24,4 +23,5 @@ enum CompoundMathematicalIntervalManagerFactory implements CompoundIntervalManag
   public CompoundIntervalManager createCompoundIntervalManager(TypeInfo pBitVectorInfo) {
     return CompoundMathematicalIntervalManager.INSTANCE;
   }
+
 }

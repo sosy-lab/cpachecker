@@ -119,8 +119,7 @@ public class ModificationsRcdTransferRelation extends SingleEdgeTransferRelation
         }
 
         assert !successors.isEmpty()
-            : "List of successors should never be empty if previous state represents no"
-                  + " modification";
+            : "List of successors should never be empty if previous state represents no modification";
         return successors;
       }
     }

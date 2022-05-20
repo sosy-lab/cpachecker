@@ -30,8 +30,7 @@ public class StatementBlock implements SyntacticBlock {
   private final Set<CFAEdge> enteringEdges = new HashSet<>();
   private final Set<CFAEdge> leavingEdges = new HashSet<>();
 
-  public StatementBlock(
-      int pStartOffset, int pEndOffset, boolean pIsLoop, CFANode first, CFANode next) {
+  public StatementBlock(int pStartOffset, int pEndOffset, boolean pIsLoop, CFANode first, CFANode next) {
     startOffset = pStartOffset;
     endOffset = pEndOffset;
     isLoop = pIsLoop;

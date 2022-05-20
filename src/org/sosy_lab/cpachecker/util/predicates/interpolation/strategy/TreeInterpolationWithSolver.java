@@ -44,4 +44,5 @@ public class TreeInterpolationWithSolver extends AbstractTreeInterpolation {
             projectToThird(p.getFirst()), p.getSecond().toArray());
     return flattenTreeItps(formulasWithStatesAndGroupdIds, itps);
   }
+
 }

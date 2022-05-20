@@ -6,5 +6,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-/** Assumptions for conditional model checking. */
+/**
+ * Assumptions for conditional model checking.
+ */
 package org.sosy_lab.cpachecker.util.assumptions;

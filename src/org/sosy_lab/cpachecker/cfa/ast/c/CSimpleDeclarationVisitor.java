@@ -23,4 +23,5 @@ public interface CSimpleDeclarationVisitor<R, X extends Exception> {
   R visit(CParameterDeclaration pDecl) throws X;
 
   R visit(CEnumerator pDecl) throws X;
+
 }

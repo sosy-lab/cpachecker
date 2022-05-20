@@ -28,15 +28,16 @@ public final class CCastExpression extends ACastExpression implements CExpressio
     super(pFileLocation, pExpressionType, pOperand);
   }
 
-  /** returns the target-type of the cast-expression. The operand is casted to this type. */
+  /** returns the target-type of the cast-expression.
+   * The operand is casted to this type. */
   @Override
   public CType getExpressionType() {
-    return (CType) super.getExpressionType();
+    return (CType)super.getExpressionType();
   }
 
   @Override
   public CExpression getOperand() {
-    return (CExpression) super.getOperand();
+    return (CExpression)super.getOperand();
   }
 
   @Override
@@ -76,4 +77,5 @@ public final class CCastExpression extends ACastExpression implements CExpressio
 
     return super.equals(obj);
   }
+
 }

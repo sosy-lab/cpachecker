@@ -80,4 +80,5 @@ class SplitDisjunctionsVisitor<T>
   public ImmutableList<BooleanFormula<T>> visitTrue() {
     return ImmutableList.of(BooleanConstant.getTrue());
   }
+
 }

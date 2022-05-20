@@ -80,7 +80,8 @@ public class ARGToCTranslator {
   private static final String DEFAULTRETURN = "default return";
   private static final String TMPVARPREFIX = "__tmp_";
 
-  private static final AbstractState BOTTOM = new AbstractState() {};
+  private final static AbstractState BOTTOM = new AbstractState() {
+  };
 
   private static class ARGEdge {
     private final ARGState parent;
@@ -88,8 +89,7 @@ public class ARGToCTranslator {
     private final CFAEdge cfaEdge;
     private final CompoundStatement currentBlock;
 
-    public ARGEdge(
-        ARGState pParent, ARGState pChild, CFAEdge pCfaEdge, CompoundStatement pCurrentBlock) {
+    public ARGEdge(ARGState pParent, ARGState pChild, CFAEdge pCfaEdge, CompoundStatement pCurrentBlock) {
       parent = pParent;
       child = pChild;
       cfaEdge = pCfaEdge;
@@ -180,6 +180,8 @@ public class ARGToCTranslator {
     return generateCCode();
   }
 
+
+
   private String generateCCode() throws IOException {
     StringBuilder buffer = new StringBuilder();
 
@@ -195,8 +197,7 @@ public class ARGToCTranslator {
 
   private void translate(ARGState rootElement) throws CPAException {
     // waitlist for the edges to be processed
-    Deque<ARGEdge> waitlist =
-        new ArrayDeque<>(); // TODO: used to be sorted list and I don't know why yet ;-)
+    Deque<ARGEdge> waitlist = new ArrayDeque<>(); //TODO: used to be sorted list and I don't know why yet ;-)
 
     startMainFunction(rootElement);
     getRelevantChildrenOfElement(rootElement, waitlist, mainFunction.getFunctionBody());
@@ -208,10 +209,7 @@ public class ARGToCTranslator {
   }
 
   private void startMainFunction(ARGState firstFunctionElement) {
-    CFunctionEntryNode functionStartNode =
-        (CFunctionEntryNode)
-            AbstractStates.extractStateByType(firstFunctionElement, LocationState.class)
-                .getLocationNode();
+    CFunctionEntryNode functionStartNode = (CFunctionEntryNode) AbstractStates.extractStateByType(firstFunctionElement, LocationState.class).getLocationNode();
     String lFunctionHeader =
         functionStartNode.getFunctionDefinition().toQualifiedASTString().replace(";", "");
     mainFunction = new FunctionDefinition(lFunctionHeader, new CompoundStatement());
@@ -228,8 +226,7 @@ public class ARGToCTranslator {
     }
   }
 
-  private void getRelevantChildrenOfElement(
-      ARGState currentElement, Deque<ARGEdge> waitlist, CompoundStatement currentBlock) {
+  private void getRelevantChildrenOfElement(ARGState currentElement, Deque<ARGEdge> waitlist, CompoundStatement currentBlock) {
     discoveredElements.add(currentElement);
     // generate label for element and add to current block if needed
     generateLabel(currentElement, currentBlock);
@@ -239,7 +236,7 @@ public class ARGToCTranslator {
 
     if (childrenOfElement.isEmpty()) {
       // if there is no child of the element, maybe it was covered by other?
-      if (currentElement.isCovered()) {
+      if(currentElement.isCovered()) {
         // it was indeed covered; jump to element it was covered by
         if (copyValuesForGoto.containsKey(currentElement.getCoveringState())) {
           addTmpAssignments(
@@ -252,8 +249,7 @@ public class ARGToCTranslator {
             new SimpleStatement(
                 "goto label_" + currentElement.getCoveringState().getStateId() + ";"));
       } else {
-        // check whether we have a return statement for the main method before (only when main is
-        // non-void)
+        // check whether we have a return statement for the main method before (only when main is non-void)
         CFANode loc = AbstractStates.extractLocation(currentElement);
         if (!isVoidMain
             && currentElement.getWrappedState() != BOTTOM
@@ -341,7 +337,8 @@ public class ARGToCTranslator {
         pushToWaitlist(waitlist, currentElement, child, edgeToChild, currentBlock);
       }
     } else if (childrenOfElement.size() == 2
-        && childrenOfElement.stream()
+        && childrenOfElement
+            .stream()
             .allMatch(x -> (currentElement.getEdgeToChild(x) instanceof CAssumeEdge))) {
 
       // collect edges of condition branch
@@ -353,7 +350,7 @@ public class ARGToCTranslator {
         CFAEdge edgeToChild = currentElement.getEdgeToChild(child);
         assert edgeToChild instanceof CAssumeEdge
             : "something wrong: branch in ARG without condition: " + edgeToChild;
-        CAssumeEdge assumeEdge = (CAssumeEdge) edgeToChild;
+        CAssumeEdge assumeEdge = (CAssumeEdge)edgeToChild;
         boolean truthAssumption = getRealTruthAssumption(assumeEdge);
 
         String cond = "";
@@ -399,15 +396,10 @@ public class ARGToCTranslator {
         previousTruthAssumption = truthAssumption;
       }
 
-      // add edges in reversed order to waitlist
-      for (int i = result.size() - 1; i >= 0; i--) {
+      //add edges in reversed order to waitlist
+      for(int i = result.size()-1; i >= 0; i--) {
         ARGEdge e = result.get(i);
-        pushToWaitlist(
-            waitlist,
-            e.getParentElement(),
-            e.getChildElement(),
-            e.getCfaEdge(),
-            e.getCurrentBlock());
+        pushToWaitlist(waitlist, e.getParentElement(), e.getChildElement(), e.getCfaEdge(), e.getCurrentBlock());
       }
     } else {
       handleMultiBranching(currentElement, waitlist, currentBlock, childrenOfElement);
@@ -454,7 +446,7 @@ public class ARGToCTranslator {
         newBlock.addStatement(new SimpleStatement(edgeToChild, joiner.toString()));
       }
       pushToWaitlist(waitlist, currentElement, child, edgeToChild, newBlock);
-      count++;
+        count++;
     }
   }
 
@@ -462,12 +454,7 @@ public class ARGToCTranslator {
     return assumption.isSwapped() != assumption.getTruthAssumption();
   }
 
-  private void pushToWaitlist(
-      Deque<ARGEdge> pWaitlist,
-      ARGState pCurrentElement,
-      ARGState pChild,
-      CFAEdge pEdgeToChild,
-      CompoundStatement pCurrentBlock) {
+  private void pushToWaitlist(Deque<ARGEdge> pWaitlist, ARGState pCurrentElement, ARGState pChild, CFAEdge pEdgeToChild, CompoundStatement pCurrentBlock) {
     assert !pChild.isDestroyed();
     pWaitlist.push(new ARGEdge(pCurrentElement, pChild, pEdgeToChild, pCurrentBlock));
   }
@@ -481,7 +468,7 @@ public class ARGToCTranslator {
   }
 
   private void generateLabel(ARGState currentElement, CompoundStatement block) {
-    if (!currentElement.getCoveredByThis().isEmpty() || mergeElements.contains(currentElement)) {
+    if(!currentElement.getCoveredByThis().isEmpty() || mergeElements.contains(currentElement)) {
       // this element covers others; they may want to jump to it
       if (copyValuesForGoto.containsKey(currentElement)) {
         addTmpAssignments(
@@ -546,7 +533,7 @@ public class ARGToCTranslator {
       mergeElements.add(childElement);
     }
 
-    if (!discoveredElements.contains(childElement)) {
+    if(!discoveredElements.contains(childElement)) {
       // this element was not already processed; find children of it
       getRelevantChildrenOfElement(childElement, waitlist, currentBlock);
     } else {
@@ -561,16 +548,17 @@ public class ARGToCTranslator {
     }
   }
 
-  private CompoundStatement processEdge(
-      ARGState currentElement, ARGState childElement, CFAEdge edge, CompoundStatement currentBlock)
-      throws CPAException {
+
+  private CompoundStatement processEdge(ARGState currentElement, ARGState childElement,
+      CFAEdge edge, CompoundStatement currentBlock) throws CPAException {
     if (edge instanceof CFunctionCallEdge) {
       // if this is a function call edge we need to inline it
       currentBlock = processFunctionCall(edge, currentBlock);
-    } else if (edge instanceof CReturnStatementEdge) {
-      CReturnStatementEdge returnEdge = (CReturnStatementEdge) edge;
+    }
+    else if (edge instanceof CReturnStatementEdge) {
+      CReturnStatementEdge returnEdge = (CReturnStatementEdge)edge;
 
-      if (returnEdge.getExpression() != null && returnEdge.getExpression().isPresent()) {
+      if(returnEdge.getExpression() != null && returnEdge.getExpression().isPresent()) {
 
         String retval = returnEdge.getExpression().orElseThrow().toQualifiedASTString();
         String returnVar;
@@ -583,12 +571,11 @@ public class ARGToCTranslator {
         }
         currentBlock.addStatement(new SimpleStatement(edge, returnVar + " = " + retval + ";"));
       }
-    } else if (edge instanceof CFunctionReturnEdge) {
+    }
+    else if (edge instanceof CFunctionReturnEdge) {
       // assumes that ReturnStateEdge is followed by FunctionReturnEdge
-      CFunctionReturnEdge returnEdge = (CFunctionReturnEdge) edge;
-      currentBlock =
-          processReturnStatementCall(
-              returnEdge.getSummaryEdge(), currentBlock, currentElement.getStateId());
+      CFunctionReturnEdge returnEdge = (CFunctionReturnEdge)edge;
+      currentBlock = processReturnStatementCall(returnEdge.getSummaryEdge(), currentBlock, currentElement.getStateId());
     } else if (edge == null) {
       // assume that this is the case due to dynamic multi edges
       List<CFAEdge> innerEdges = currentElement.getEdgesToChild(childElement);
@@ -596,8 +583,9 @@ public class ARGToCTranslator {
       for (CFAEdge innerEdge : innerEdges) {
         assert innerEdge.getEdgeType() != CFAEdgeType.AssumeEdge
             : "Unexpected assume edge in dynamic multi edge " + innerEdge;
-        assert !(innerEdge instanceof CFunctionCallEdge || innerEdge instanceof CFunctionReturnEdge)
-            : "Unexpected edge " + innerEdge + " in dynmaic multi edge";
+        assert !(innerEdge instanceof CFunctionCallEdge
+            || innerEdge instanceof CFunctionReturnEdge) : "Unexpected edge " + innerEdge
+                + " in dynmaic multi edge";
         if (innerEdge instanceof CReturnStatementEdge) {
           assert (innerEdges.get(innerEdges.size() - 1) == innerEdge);
           CReturnStatementEdge returnEdge = (CReturnStatementEdge) innerEdge;
@@ -619,10 +607,8 @@ public class ARGToCTranslator {
       }
       currentBlock.addStatement(new SimpleStatement(edge, edgeStatementCodes.toString()));
     } else if (mustHandleDefaultReturn(edge)) {
-      processDefaultReturn(
-          (CFunctionDeclaration)
-              ((FunctionExitNode) edge.getSuccessor()).getEntryNode().getFunctionDefinition(),
-          childElement.getStateId());
+      processDefaultReturn((CFunctionDeclaration) ((FunctionExitNode) edge.getSuccessor())
+          .getEntryNode().getFunctionDefinition(), childElement.getStateId());
     } else {
       String statement = processSimpleEdge(edge);
       if (!statement.isEmpty()) {
@@ -677,20 +663,19 @@ public class ARGToCTranslator {
   }
 
   private void addGlobalReturnValueDecl(CReturnStatementEdge pReturnEdge, int pElementId) {
-    // derive return type of function
+    //derive return type of function
     String returnType;
 
     String varName = "__return_" + pElementId;
-    if (pReturnEdge.getSuccessor().getNumLeavingEdges() == 0) {
-      // default to int
+    if(pReturnEdge.getSuccessor().getNumLeavingEdges() == 0) {
+      //default to int
       globalDefinitionsList.add("int " + varName + ";");
     } else {
-      CFunctionReturnEdge functionReturnEdge =
-          (CFunctionReturnEdge) pReturnEdge.getSuccessor().getLeavingEdge(0);
+      CFunctionReturnEdge functionReturnEdge = (CFunctionReturnEdge)pReturnEdge.getSuccessor().getLeavingEdge(0);
       CFANode functionDefNode = functionReturnEdge.getSummaryEdge().getPredecessor();
       assert functionDefNode.getNumLeavingEdges() == 1;
       assert functionDefNode.getLeavingEdge(0) instanceof CFunctionCallEdge;
-      CFunctionCallEdge callEdge = (CFunctionCallEdge) functionDefNode.getLeavingEdge(0);
+      CFunctionCallEdge callEdge = (CFunctionCallEdge)functionDefNode.getLeavingEdge(0);
       CFunctionEntryNode fn = callEdge.getSuccessor();
       CType retType = fn.getFunctionDefinition().getType().getReturnType();
       if (retType instanceof CArrayType) {
@@ -700,11 +685,13 @@ public class ARGToCTranslator {
       }
       globalDefinitionsList.add(returnType + ";");
     }
+
+
   }
 
   private void processDefaultReturn(final CFunctionDeclaration pFunDecl, int pElementId) {
     CType returnType = pFunDecl.getType().getReturnType();
-    if (!(returnType instanceof CVoidType)) {
+    if(!(returnType instanceof CVoidType)) {
       String varName = "__return_" + pElementId;
       if (returnType instanceof CArrayType) {
         globalDefinitionsList.add(((CArrayType) returnType).toQualifiedASTString(varName) + ";");
@@ -712,25 +699,22 @@ public class ARGToCTranslator {
         globalDefinitionsList.add(returnType.toASTString(varName) + ";");
       }
     }
+
   }
 
   private String processSimpleEdge(CFAEdge pCFAEdge) throws CPAException {
-    if (pCFAEdge == null) {
-      return "";
-    }
+    if (pCFAEdge == null) { return ""; }
 
     switch (pCFAEdge.getEdgeType()) {
-      case BlankEdge:
-        {
-          // nothing to do
-          break;
-        }
+      case BlankEdge: {
+        //nothing to do
+        break;
+      }
 
-      case AssumeEdge:
-        {
-          // nothing to do
-          break;
-        }
+      case AssumeEdge: {
+        //nothing to do
+        break;
+      }
 
       case StatementEdge:
         {
@@ -803,17 +787,15 @@ public class ARGToCTranslator {
           break;
         }
 
-      case CallToReturnEdge:
-        {
+      case CallToReturnEdge: {
           //          this should not have been taken
           throw new AssertionError("CallToReturnEdge in counterexample path: " + pCFAEdge);
-        }
+      }
 
-      default:
-        {
+      default: {
           throw new AssertionError(
               "Unexpected edge " + pCFAEdge + " of type " + pCFAEdge.getEdgeType());
-        }
+      }
     }
 
     return "";
@@ -823,7 +805,7 @@ public class ARGToCTranslator {
     CompoundStatement newBlock = new InlinedFunction(currentBlock);
     currentBlock.addStatement(newBlock);
 
-    CFunctionCallEdge lFunctionCallEdge = (CFunctionCallEdge) pCFAEdge;
+    CFunctionCallEdge lFunctionCallEdge = (CFunctionCallEdge)pCFAEdge;
 
     List<CExpression> actualParams = lFunctionCallEdge.getArguments();
     CFunctionEntryNode fn = lFunctionCallEdge.getSuccessor();
@@ -852,23 +834,23 @@ public class ARGToCTranslator {
               formalParam.getQualifiedName().replace("::", "__") + " = " + tempVariableName + ";"));
     }
 
-    for (Statement stmt : actualParamAssignStatements) {
+    for(Statement stmt : actualParamAssignStatements) {
       newBlock.addStatement(stmt);
     }
-    for (Statement stmt : formalParamAssignStatements) {
+    for(Statement stmt : formalParamAssignStatements) {
       newBlock.addStatement(stmt);
     }
 
     return newBlock;
   }
 
-  private CompoundStatement processReturnStatementCall(
-      CFunctionSummaryEdge pEdge, CompoundStatement pCurrentBlock, int id) {
+  private CompoundStatement processReturnStatementCall(CFunctionSummaryEdge pEdge,
+      CompoundStatement pCurrentBlock, int id) {
     // TODO getBlockAfterEndOfFunction problematic when using CLOSEFUNCTIONBLOCK and goto statement
     // caused due to multiple parents or covering of successor
     CFunctionCall retExp = pEdge.getExpression();
     if (retExp instanceof CFunctionCallStatement) {
-      // end of void function, just leave block (no assignment needed)
+      //end of void function, just leave block (no assignment needed)
       return getBlockAfterEndOfFunction(pCurrentBlock);
     } else if (retExp instanceof CFunctionCallAssignmentStatement) {
       CFunctionCallAssignmentStatement exp = (CFunctionCallAssignmentStatement) retExp;
@@ -886,7 +868,8 @@ public class ARGToCTranslator {
     }
   }
 
-  private CompoundStatement getBlockAfterEndOfFunction(CompoundStatement currentBlock) {
+  private CompoundStatement getBlockAfterEndOfFunction(
+      CompoundStatement currentBlock) {
     switch (config.doHandleCompoundStatementAtEndOfFunction()) {
       case CLOSEFUNCTIONBLOCK:
         while (!(currentBlock instanceof InlinedFunction)) {
@@ -900,10 +883,11 @@ public class ARGToCTranslator {
       default: // KEEPBLOCK
         return currentBlock;
     }
+
   }
 
-  private @Nullable Statement processTargetState(
-      final ARGState pTargetState, final CFAEdge pEdgeToTarget) {
+  private @Nullable Statement processTargetState(final ARGState pTargetState,
+      final CFAEdge pEdgeToTarget) {
     switch (config.getTargetStrategy()) {
       case RUNTIMEVERIFICATION:
         logger.log(Level.ALL, "HALT for line no ", pEdgeToTarget.getLineNumber());
@@ -930,10 +914,10 @@ public class ARGToCTranslator {
         // case NONE
         return null;
     }
+
   }
 
   private int freshIndex = 0;
-
   private int getFreshIndex() {
     return ++freshIndex;
   }

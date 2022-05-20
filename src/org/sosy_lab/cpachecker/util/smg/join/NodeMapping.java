@@ -78,4 +78,5 @@ public class NodeMapping {
     NodeMapping other = (NodeMapping) obj;
     return Objects.equals(objectMap, other.objectMap) && Objects.equals(valueMap, other.valueMap);
   }
+
 }

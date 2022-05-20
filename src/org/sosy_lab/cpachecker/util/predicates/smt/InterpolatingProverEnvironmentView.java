@@ -44,4 +44,5 @@ class InterpolatingProverEnvironmentView<E> extends BasicProverEnvironmentView<E
       throws SolverException, InterruptedException {
     return delegate.getTreeInterpolants(partitionedFormulas, startOfSubTree);
   }
+
 }

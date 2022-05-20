@@ -23,6 +23,7 @@ interface ParameterizedBooleanFormulaVisitor<ConstantType, ParameterType, Return
    *
    * @param pEqual the equation invariants formula to visit.
    * @param pParameter the additional parameter to take into consideration.
+   *
    * @return the result of the visit.
    */
   ReturnType visit(Equal<ConstantType> pEqual, ParameterType pParameter);
@@ -32,6 +33,7 @@ interface ParameterizedBooleanFormulaVisitor<ConstantType, ParameterType, Return
    *
    * @param pLessThan the less-than inequation invariants formula to visit.
    * @param pParameter the additional parameter to take into consideration.
+   *
    * @return the result of the visit.
    */
   ReturnType visit(LessThan<ConstantType> pLessThan, ParameterType pParameter);
@@ -41,6 +43,7 @@ interface ParameterizedBooleanFormulaVisitor<ConstantType, ParameterType, Return
    *
    * @param pAnd the logical conjunction invariants formula to visit.
    * @param pParameter the additional parameter to take into consideration.
+   *
    * @return the result of the visit.
    */
   ReturnType visit(LogicalAnd<ConstantType> pAnd, ParameterType pParameter);
@@ -50,6 +53,7 @@ interface ParameterizedBooleanFormulaVisitor<ConstantType, ParameterType, Return
    *
    * @param pNot the logical negation invariants formula to visit.
    * @param pParameter the additional parameter to take into consideration.
+   *
    * @return the result of the visit.
    */
   ReturnType visit(LogicalNot<ConstantType> pNot, ParameterType pParameter);
@@ -57,4 +61,5 @@ interface ParameterizedBooleanFormulaVisitor<ConstantType, ParameterType, Return
   ReturnType visitFalse(ParameterType pParameter);
 
   ReturnType visitTrue(ParameterType pParameter);
+
 }

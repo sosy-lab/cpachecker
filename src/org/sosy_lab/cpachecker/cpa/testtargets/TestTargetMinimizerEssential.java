@@ -29,8 +29,8 @@ import org.sosy_lab.cpachecker.util.dependencegraph.Dominance.DomTree;
 public class TestTargetMinimizerEssential {
 
   // only works correctly if DummyCFAEdge uses Object equals
-  public Set<CFAEdge> reduceTargets(
-      final Set<CFAEdge> testTargets, final CFA pCfa, final boolean fullCFACopy) {
+  public Set<CFAEdge>
+      reduceTargets(final Set<CFAEdge> testTargets, final CFA pCfa, final boolean fullCFACopy) {
     // maps a copied edge to the testTarget that can be removed if its dominated by another
     // testTarget
     Map<CFAEdge, CFAEdge> copiedEdgeToTestTargetsMap = new HashMap<>();
@@ -42,8 +42,8 @@ public class TestTargetMinimizerEssential {
           copyCFA(testTargets, copiedEdgeToTestTargetsMap, pCfa.getMainFunction());
     } else {
       copiedFunctionEntryExit =
-          TestTargetReductionUtils.buildTestGoalGraph(
-              testTargets, copiedEdgeToTestTargetsMap, pCfa.getMainFunction());
+          TestTargetReductionUtils
+              .buildTestGoalGraph(testTargets, copiedEdgeToTestTargetsMap, pCfa.getMainFunction());
     }
 
     // handle all cases of nodes with a single outgoing edge
@@ -106,7 +106,8 @@ public class TestTargetMinimizerEssential {
     }
     // complete dummy graph has been created
     return Pair.of(
-        origCFANodeToCopyMap.get(pEntryNode), origCFANodeToCopyMap.get(pEntryNode.getExitNode()));
+        origCFANodeToCopyMap.get(pEntryNode),
+        origCFANodeToCopyMap.get(pEntryNode.getExitNode()));
   }
 
   private boolean isSelfLoop(final CFAEdge pEdge) {
@@ -196,8 +197,7 @@ public class TestTargetMinimizerEssential {
           // the mapping and prevent
           // accidental removal of test targets based on an already removed dominator due to the
           // order of nodes
-          copiedEdgeToTestTargetsMap
-              .values()
+          copiedEdgeToTestTargetsMap.values()
               .removeAll(Collections.singleton(testTargetToBeDominated));
 
           break;
@@ -231,7 +231,10 @@ public class TestTargetMinimizerEssential {
     }
 
     updateTestGoalMappingAfterRemoval(
-        toRemove, CFAUtils.enteringEdges(pred), copiedEdgeToTestTargetsMap, pTestTargets);
+        toRemove,
+        CFAUtils.enteringEdges(pred),
+        copiedEdgeToTestTargetsMap,
+        pTestTargets);
   }
 
   private void removeEnteringEdge(
@@ -245,7 +248,9 @@ public class TestTargetMinimizerEssential {
 
     for (CFAEdge leavingEdge : CFAUtils.leavingEdges(succ)) {
       redirectEdgeToNewPredecessor(
-          leavingEdge, toRemove.getPredecessor(), copiedEdgeToTestTargetsMap);
+          leavingEdge,
+          toRemove.getPredecessor(),
+          copiedEdgeToTestTargetsMap);
     }
 
     if (mayBeLoopHead) {
@@ -254,12 +259,17 @@ public class TestTargetMinimizerEssential {
           continue;
         }
         redirectEdgeToNewSuccessor(
-            enteringEdge, toRemove.getPredecessor(), copiedEdgeToTestTargetsMap);
+            enteringEdge,
+            toRemove.getPredecessor(),
+            copiedEdgeToTestTargetsMap);
       }
     }
 
     updateTestGoalMappingAfterRemoval(
-        toRemove, CFAUtils.leavingEdges(succ), copiedEdgeToTestTargetsMap, pTestTargets);
+        toRemove,
+        CFAUtils.leavingEdges(succ),
+        copiedEdgeToTestTargetsMap,
+        pTestTargets);
   }
 
   private void applyRule1( // remove edges from copied graph according to first rule
@@ -322,15 +332,20 @@ public class TestTargetMinimizerEssential {
       // skipping it
       if (currentNode.getNumEnteringEdges() == 1
           && !entersProgramStart(
-              currentNode.getEnteringEdge(0), pCopiedFunctionEntryExit.getFirst())
+              currentNode.getEnteringEdge(0),
+              pCopiedFunctionEntryExit.getFirst())
           && !entersProgramEnd(currentNode.getEnteringEdge(0), pCopiedFunctionEntryExit.getSecond())
           && !isSelfLoop(currentNode.getEnteringEdge(0))) {
 
         // remove the current nodes entering edge from its predecessor and from the current node
         removeEnteringEdge(
-            currentNode.getEnteringEdge(0), copiedEdgeToTestTargetsMap, pTestTargets, false);
+            currentNode.getEnteringEdge(0),
+            copiedEdgeToTestTargetsMap,
+            pTestTargets,
+            false);
 
         waitlist.remove(currentNode);
+
       }
       // add nodes to the queue that havent been added yet
       for (CFAEdge leavingEdge : CFAUtils.leavingEdges(currentNode)) {
@@ -372,7 +387,8 @@ public class TestTargetMinimizerEssential {
       removedEdge = null;
       for (CFAEdge leavingEdge : CFAUtils.leavingEdges(currentNode)) {
         if (!inverseDomTree.isAncestorOf(
-            inverseDomTree.getId(leavingEdge.getSuccessor()), inverseDomTree.getId(currentNode))) {
+            inverseDomTree.getId(leavingEdge.getSuccessor()),
+            inverseDomTree.getId(currentNode))) {
           if (removedEdge == null) {
             removedEdge = leavingEdge;
             if (entersProgramStart(removedEdge, pCopiedFunctionEntryExit.getFirst())
@@ -421,7 +437,9 @@ public class TestTargetMinimizerEssential {
     // create domination relationship on the reduced graph
     DomTree<CFANode> domTree =
         Dominance.createDomTree(
-            copiedFunctionEntry, CFAUtils::allSuccessorsOf, CFAUtils::allPredecessorsOf);
+            copiedFunctionEntry,
+            CFAUtils::allSuccessorsOf,
+            CFAUtils::allPredecessorsOf);
     // start at entry node because why not?
     waitlist.add(copiedFunctionEntry);
     visitedNodes.add(copiedFunctionEntry);
@@ -431,7 +449,8 @@ public class TestTargetMinimizerEssential {
       removedEdge = null;
       for (CFAEdge enteringEdge : CFAUtils.enteringEdges(currentNode)) {
         if (!domTree.isAncestorOf(
-            domTree.getId(currentNode), domTree.getId(enteringEdge.getPredecessor()))) {
+            domTree.getId(currentNode),
+            domTree.getId(enteringEdge.getPredecessor()))) {
           if (removedEdge == null) {
             removedEdge = enteringEdge;
             if (entersProgramStart(removedEdge, copiedFunctionEntry) || isSelfLoop(removedEdge)) {
@@ -458,5 +477,6 @@ public class TestTargetMinimizerEssential {
         }
       }
     }
+
   }
 }

@@ -22,16 +22,15 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
 public final class CFieldReference extends AbstractExpression implements CLeftHandSide {
 
   private static final long serialVersionUID = 3207784831993480113L;
-  private final String name;
+  private final String         name;
   private final CExpression owner;
-  private final boolean isPointerDereference;
+  private final boolean        isPointerDereference;
 
-  public CFieldReference(
-      final FileLocation pFileLocation,
-      final CType pType,
-      final String pName,
-      final CExpression pOwner,
-      final boolean pIsPointerDereference) {
+  public CFieldReference(final FileLocation pFileLocation,
+                            final CType pType,
+                            final String pName,
+                            final CExpression pOwner,
+                            final boolean pIsPointerDereference) {
     super(pFileLocation, pType);
     name = pName;
     owner = pOwner;
@@ -92,8 +91,8 @@ public final class CFieldReference extends AbstractExpression implements CLeftHa
   }
 
   /**
-   * Convert an expression {@code s->m} to the equivalent {@code (*s).m}. Other expressions are
-   * returned unchanged.
+   * Convert an expression {@code s->m} to the equivalent {@code (*s).m}.
+   * Other expressions are returned unchanged.
    */
   public CFieldReference withExplicitPointerDereference() {
     if (!isPointerDereference) {
@@ -142,7 +141,7 @@ public final class CFieldReference extends AbstractExpression implements CLeftHa
             ? owner.toASTString(pQualified)
             : owner.toParenthesizedASTString(pQualified);
     String op = isPointerDereference ? "->" : ".";
-    return left + op + name;
+    return left + op  + name;
   }
 
   @Override
@@ -156,7 +155,8 @@ public final class CFieldReference extends AbstractExpression implements CLeftHa
       return true;
     }
 
-    if (!(obj instanceof CFieldReference) || !super.equals(obj)) {
+    if (!(obj instanceof CFieldReference)
+        || !super.equals(obj)) {
       return false;
     }
 
@@ -166,4 +166,5 @@ public final class CFieldReference extends AbstractExpression implements CLeftHa
         && Objects.equals(other.name, name)
         && Objects.equals(other.owner, owner);
   }
+
 }

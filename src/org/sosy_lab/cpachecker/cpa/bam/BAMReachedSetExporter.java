@@ -50,8 +50,9 @@ class BAMReachedSetExporter implements Statistics {
   private Path argFile = Path.of("BlockedARG.dot");
 
   @Option(
-      secure = true,
-      description = "export single blocked ARG as .dot files, should contain '%d'")
+    secure = true,
+    description = "export single blocked ARG as .dot files, should contain '%d'"
+  )
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private PathTemplate indexedArgFile = PathTemplate.ofFormatString("ARGs/ARG_%d.dot");
 
@@ -61,6 +62,7 @@ class BAMReachedSetExporter implements Statistics {
 
   private final LogManager logger;
   private final AbstractBAMCPA bamcpa;
+
 
   BAMReachedSetExporter(Configuration pConfig, LogManager pLogger, AbstractBAMCPA pCpa)
       throws InvalidConfigurationException {

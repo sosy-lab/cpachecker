@@ -8,11 +8,15 @@
 
 package org.sosy_lab.cpachecker.util.predicates.bdd;
 
-import com.google.common.primitives.Longs;
 import jsylvan.JSylvan;
+
 import org.sosy_lab.cpachecker.util.predicates.regions.Region;
 
-/** Regions represented using Sylvan BDDs. */
+import com.google.common.primitives.Longs;
+
+/**
+ * Regions represented using Sylvan BDDs.
+ */
 public class SylvanBDDRegion implements Region {
 
   private final long bddRepr;
@@ -38,7 +42,7 @@ public class SylvanBDDRegion implements Region {
   @Override
   public boolean equals(Object o) {
     if (o instanceof SylvanBDDRegion) {
-      return bddRepr == ((SylvanBDDRegion) o).bddRepr;
+      return bddRepr == ((SylvanBDDRegion)o).bddRepr;
     }
     return false;
   }

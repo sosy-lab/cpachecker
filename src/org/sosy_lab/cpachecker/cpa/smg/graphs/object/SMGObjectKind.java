@@ -8,7 +8,9 @@
 
 package org.sosy_lab.cpachecker.cpa.smg.graphs.object;
 
+
 public enum SMGObjectKind {
+
   REG("Region"),
   DLL("DoublyLinkedList"),
   SLL("SingleyLinkedList"),

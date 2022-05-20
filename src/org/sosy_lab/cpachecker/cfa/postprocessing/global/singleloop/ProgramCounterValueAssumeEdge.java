@@ -11,9 +11,10 @@ package org.sosy_lab.cpachecker.cfa.postprocessing.global.singleloop;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 
 /**
- * Edges of this interface are CFA assume edges used in the single loop transformation. They are
- * artificial edges used to encode the control flow through the single loop head into the correct
- * subgraph based on program counter values.
+ * Edges of this interface are CFA assume edges used in the single loop
+ * transformation. They are artificial edges used to encode the control flow
+ * through the single loop head into the correct subgraph based on program
+ * counter values.
  */
 public interface ProgramCounterValueAssumeEdge extends CFAEdge {
 
@@ -27,8 +28,9 @@ public interface ProgramCounterValueAssumeEdge extends CFAEdge {
   /**
    * Checks if the assumption is assumed to be true or false on this edge.
    *
-   * @return {@code true} is the assumption on this edge is assumed to be true, {@code false}
-   *     otherwise.
+   * @return {@code true} is the assumption on this edge is assumed to be
+   * true, {@code false} otherwise.
    */
   boolean getTruthAssumption();
+
 }

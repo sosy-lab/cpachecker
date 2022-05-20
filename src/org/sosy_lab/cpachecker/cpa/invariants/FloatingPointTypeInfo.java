@@ -8,7 +8,9 @@
 
 package org.sosy_lab.cpachecker.cpa.invariants;
 
+
 public enum FloatingPointTypeInfo implements TypeInfo {
+
   FLOAT {
 
     @Override
@@ -30,6 +32,7 @@ public enum FloatingPointTypeInfo implements TypeInfo {
     public String abbrev() {
       return "float";
     }
+
   },
 
   DOUBLE {
@@ -54,4 +57,5 @@ public enum FloatingPointTypeInfo implements TypeInfo {
       return "double";
     }
   }
+
 }

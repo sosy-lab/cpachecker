@@ -54,12 +54,8 @@ public class GenericAbstractionCandidate implements SMGGenericAbstractionCandida
       Map<SMGValue, SMGValue> pAbstractToConcretePointerMap,
       Map<SMGValue, List<MaterlisationStep>> pMaterlisationStep,
       int pScore) {
-    return new GenericAbstractionCandidate(
-        pMachineModel,
-        pObjectsToBeRemoved,
-        pAbstractToConcretePointerMap,
-        pMaterlisationStep,
-        pScore);
+    return new GenericAbstractionCandidate(pMachineModel, pObjectsToBeRemoved, pAbstractToConcretePointerMap,
+        pMaterlisationStep, pScore);
   }
 
   @Override
@@ -88,11 +84,11 @@ public class GenericAbstractionCandidate implements SMGGenericAbstractionCandida
        * pointer leads into abstraction, otherwise hve in abstraction
        * leads outside.*/
       if (objectsToBeRemoved.contains(pointerEdge.getObject())) {
-        SMGEdgePointsTo newPointer =
-            new SMGEdgePointsTo(pointer, genericAbstraction, pointerEdge.getOffset());
+        SMGEdgePointsTo newPointer = new SMGEdgePointsTo(pointer, genericAbstraction,
+            pointerEdge.getOffset());
         pointsToThisAbstraction.add(newPointer);
       } else {
-        // TODO Real offset might be nicer.
+        //TODO Real offset might be nicer.
         SMGEdgeHasValue dummyEdge = new SMGEdgeHasValue(1, c, genericAbstraction, pointer);
         pointsFromThisAbstraction.add(dummyEdge);
         c++;
@@ -111,11 +107,8 @@ public class GenericAbstractionCandidate implements SMGGenericAbstractionCandida
     return pSMG;
   }
 
-  private void connect(
-      SMG pSMG,
-      GenericAbstraction pGenericAbstraction,
-      Set<SMGEdgePointsTo> pAbstractAddresses,
-      Set<SMGEdgeHasValue> pAbstractFields) {
+  private void connect(SMG pSMG, GenericAbstraction pGenericAbstraction,
+      Set<SMGEdgePointsTo> pAbstractAddresses, Set<SMGEdgeHasValue> pAbstractFields) {
 
     pSMG.addObject(pGenericAbstraction);
 
@@ -123,7 +116,7 @@ public class GenericAbstractionCandidate implements SMGGenericAbstractionCandida
       pSMG.addPointsToEdge(pte);
     }
 
-    for (SMGEdgeHasValue hve : pAbstractFields) {
+    for(SMGEdgeHasValue hve : pAbstractFields) {
       pSMG.addHasValueEdge(hve);
     }
   }

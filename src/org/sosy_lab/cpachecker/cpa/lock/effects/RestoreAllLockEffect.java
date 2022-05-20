@@ -10,9 +10,10 @@ package org.sosy_lab.cpachecker.cpa.lock.effects;
 
 import org.sosy_lab.cpachecker.cpa.lock.AbstractLockStateBuilder;
 
+
 public class RestoreAllLockEffect implements AbstractLockEffect {
 
-  private static final RestoreAllLockEffect instance = new RestoreAllLockEffect();
+  private final static RestoreAllLockEffect instance = new RestoreAllLockEffect();
 
   private RestoreAllLockEffect() {}
 
@@ -24,4 +25,5 @@ public class RestoreAllLockEffect implements AbstractLockEffect {
   public static RestoreAllLockEffect getInstance() {
     return instance;
   }
+
 }

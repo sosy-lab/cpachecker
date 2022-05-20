@@ -17,6 +17,7 @@ import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
+
 public class SLABStopOperator implements StopOperator {
 
   private final AbstractDomain domain;
@@ -24,11 +25,9 @@ public class SLABStopOperator implements StopOperator {
   public SLABStopOperator(AbstractDomain pDomain) {
     this.domain = pDomain;
   }
-
   @Override
-  public boolean stop(
-      AbstractState pState, Collection<AbstractState> pReached, Precision pPrecision)
-      throws CPAException, InterruptedException {
+  public boolean stop(AbstractState pState, Collection<AbstractState> pReached,
+      Precision pPrecision) throws CPAException, InterruptedException {
     // Check if the argElement has only one parent and remember it for later:
     ARGState parent = null;
     if (((ARGState) pState).getParents().size() == 1) {
@@ -45,4 +44,5 @@ public class SLABStopOperator implements StopOperator {
     }
     return false;
   }
+
 }

@@ -8,13 +8,20 @@
 
 package org.sosy_lab.cpachecker.cpa.invariants.formula;
 
-/** Instances of this class represent logical conjunctions over invariants formulae. */
+/**
+ * Instances of this class represent logical conjunctions over invariants
+ * formulae.
+ */
 public class LogicalAnd<ConstantType> implements BooleanFormula<ConstantType> {
 
-  /** The first operand. */
+  /**
+   * The first operand.
+   */
   private final BooleanFormula<ConstantType> operand1;
 
-  /** The second operand. */
+  /**
+   * The second operand.
+   */
   private final BooleanFormula<ConstantType> operand2;
 
   /**
@@ -24,7 +31,8 @@ public class LogicalAnd<ConstantType> implements BooleanFormula<ConstantType> {
    * @param pOperand2 the second operand of the conjunction.
    */
   private LogicalAnd(
-      BooleanFormula<ConstantType> pOperand1, BooleanFormula<ConstantType> pOperand2) {
+      BooleanFormula<ConstantType> pOperand1,
+      BooleanFormula<ConstantType> pOperand2) {
     this.operand1 = pOperand1;
     this.operand2 = pOperand2;
   }
@@ -70,20 +78,22 @@ public class LogicalAnd<ConstantType> implements BooleanFormula<ConstantType> {
 
   @Override
   public <ReturnType, ParamType> ReturnType accept(
-      ParameterizedBooleanFormulaVisitor<ConstantType, ParamType, ReturnType> pVisitor,
-      ParamType pParameter) {
+      ParameterizedBooleanFormulaVisitor<ConstantType, ParamType, ReturnType> pVisitor, ParamType pParameter) {
     return pVisitor.visit(this, pParameter);
   }
 
   /**
-   * Gets an invariants formula representing the logical conjunction over the given operands.
+   * Gets an invariants formula representing the logical conjunction over the
+   * given operands.
    *
    * @param pOperand1 the first operand of the conjunction.
    * @param pOperand2 the second operand of the conjunction.
-   * @return an invariants formula representing the logical conjunction over the given operands.
+   *
+   * @return an invariants formula representing the logical conjunction over the
+   * given operands.
    */
-  static <ConstantType> LogicalAnd<ConstantType> of(
-      BooleanFormula<ConstantType> pOperand1, BooleanFormula<ConstantType> pOperand2) {
+  static <ConstantType> LogicalAnd<ConstantType> of(BooleanFormula<ConstantType> pOperand1, BooleanFormula<ConstantType> pOperand2) {
     return new LogicalAnd<>(pOperand1, pOperand2);
   }
+
 }

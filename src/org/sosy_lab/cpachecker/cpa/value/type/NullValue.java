@@ -10,7 +10,9 @@ package org.sosy_lab.cpachecker.cpa.value.type;
 
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
-/** Singleton class for the special value <code>null</code>. */
+/**
+ * Singleton class for the special value <code>null</code>.
+ */
 public class NullValue implements Value {
 
   private static final long serialVersionUID = 49593725475613735L;
@@ -50,7 +52,9 @@ public class NullValue implements Value {
     return false;
   }
 
-  /** Always returns <code>true</code> since <code>null</code> is a specific value. */
+  /**
+   * Always returns <code>true</code> since <code>null</code> is a specific value.
+   */
   @Override
   public boolean isExplicitlyKnown() {
     return true;
@@ -59,8 +63,9 @@ public class NullValue implements Value {
   /**
    * This method always returns <code>null</code>.
    *
-   * <p>This object always represents <code>null</code>, which can't be represented by a specific
-   * numeric value.
+   * <p>This object always represents <code>null</code>, which can't be
+   * represented by a specific numeric value.</p>
+   *
    */
   @Override
   public NumericValue asNumericValue() {
@@ -68,8 +73,8 @@ public class NullValue implements Value {
   }
 
   /**
-   * This method is not implemented and will lead to an <code>AssertionError</code>. <code>Null
-   * </code> can't be represented by a specific number.
+   * This method is not implemented and will lead to an <code>AssertionError</code>.
+   * <code>Null</code> can't be represented by a specific number.
    */
   @Override
   public Long asLong(CType pType) {

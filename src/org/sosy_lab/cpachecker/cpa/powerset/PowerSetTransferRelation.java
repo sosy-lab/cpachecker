@@ -30,16 +30,14 @@ public class PowerSetTransferRelation extends SingleEdgeTransferRelation {
   }
 
   @Override
-  public Collection<? extends AbstractState> getAbstractSuccessorsForEdge(
-      AbstractState pState, Precision pPrecision, CFAEdge pCfaEdge)
-      throws CPATransferException, InterruptedException {
+  public Collection<? extends AbstractState> getAbstractSuccessorsForEdge(AbstractState pState,
+      Precision pPrecision, CFAEdge pCfaEdge) throws CPATransferException, InterruptedException {
     PowerSetState state = (PowerSetState) pState;
     Set<AbstractState> successors =
         Sets.newHashSetWithExpectedSize(state.getWrappedStates().size());
 
     for (AbstractState wrappedState : state.getWrappedStates()) {
-      successors.addAll(
-          wrapperTransfer.getAbstractSuccessorsForEdge(wrappedState, pPrecision, pCfaEdge));
+      successors.addAll(wrapperTransfer.getAbstractSuccessorsForEdge(wrappedState, pPrecision, pCfaEdge));
     }
 
     return ImmutableSet.of(new PowerSetState(successors));
@@ -71,4 +69,5 @@ public class PowerSetTransferRelation extends SingleEdgeTransferRelation {
 
     return changed ? ImmutableSet.of(new PowerSetState(newStates)) : ImmutableSet.of();
   }
+
 }

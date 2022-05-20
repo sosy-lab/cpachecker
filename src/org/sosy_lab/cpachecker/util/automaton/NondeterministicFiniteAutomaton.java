@@ -24,6 +24,7 @@ public final class NondeterministicFiniteAutomaton<T> {
     private State(int pId) {
       ID = pId;
     }
+
   }
 
   private static class StatePool {
@@ -40,6 +41,7 @@ public final class NondeterministicFiniteAutomaton<T> {
       public Iterator<State> iterator() {
         return new StateSetIterator(mAutomaton.mStatesCounter);
       }
+
     }
 
     private static class StateSetIterator implements Iterator<State> {
@@ -69,6 +71,7 @@ public final class NondeterministicFiniteAutomaton<T> {
       public void remove() {
         throw new UnsupportedOperationException();
       }
+
     }
 
     private static final StatePool STATE_POOL = new StatePool();
@@ -247,8 +250,7 @@ public final class NondeterministicFiniteAutomaton<T> {
   }
 
   public NondeterministicFiniteAutomaton<T> getLambdaFreeAutomaton() {
-    NondeterministicFiniteAutomaton<T> lLambdaFreeAutomaton =
-        new NondeterministicFiniteAutomaton<>();
+    NondeterministicFiniteAutomaton<T> lLambdaFreeAutomaton = new NondeterministicFiniteAutomaton<>();
 
     // mStatesCounter - 1 because the initial state of lLambdaFreeAutomaton
     // exists already
@@ -278,12 +280,10 @@ public final class NondeterministicFiniteAutomaton<T> {
 
             for (State lTargetClosureElement : getLambdaClosure(lTarget)) {
               // again, we use the same states in lLambdaFreeAutomaton
-              if (lOutgoingEdge.getSource().equals(lState)
-                  && lOutgoingEdge.getTarget().equals(lTargetClosureElement)) {
+              if (lOutgoingEdge.getSource().equals(lState) && lOutgoingEdge.getTarget().equals(lTargetClosureElement)) {
                 lLambdaFreeAutomaton.addEdge(lState, lTargetClosureElement, lOutgoingEdge);
               } else {
-                lLambdaFreeAutomaton.createEdge(
-                    lState, lTargetClosureElement, lOutgoingEdge.getLabel());
+                lLambdaFreeAutomaton.createEdge(lState, lTargetClosureElement, lOutgoingEdge.getLabel());
               }
             }
           }
@@ -318,6 +318,7 @@ public final class NondeterministicFiniteAutomaton<T> {
           lWorkset.add(lTarget);
         }
       }
+
     }
 
     return lClosure;
@@ -362,4 +363,6 @@ public final class NondeterministicFiniteAutomaton<T> {
 
     return lBuffer.toString();
   }
+
 }
+

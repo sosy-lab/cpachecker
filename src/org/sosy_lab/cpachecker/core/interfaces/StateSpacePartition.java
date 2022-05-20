@@ -14,11 +14,11 @@ import org.checkerframework.checker.nullness.qual.NonNull;
 /**
  * Interface that describes a partition of the state space.
  *
- * <p>Two partitions are equivalent if their partition key is equivalent (see interface {@link
- * Partitionable}).
+ * Two partitions are equivalent if their partition key is equivalent (see interface {@link Partitionable}).
  *
- * <p>(A class is more flexible than an enum: own instances of StateSpacePartition can be created in
- * the project-specific code.)
+ * (A class is more flexible than an enum:
+ *    own instances of StateSpacePartition can be created in the project-specific code.)
+ *
  */
 public class StateSpacePartition implements Partitionable {
 
@@ -61,4 +61,5 @@ public class StateSpacePartition implements Partitionable {
   public int hashCode() {
     return partitionKey.hashCode();
   }
+
 }

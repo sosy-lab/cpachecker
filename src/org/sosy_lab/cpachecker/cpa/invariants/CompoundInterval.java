@@ -11,7 +11,9 @@ package org.sosy_lab.cpachecker.cpa.invariants;
 import java.math.BigInteger;
 import java.util.List;
 
-/** Instances of this class represent compound states of intervals. */
+/**
+ * Instances of this class represent compound states of intervals.
+ */
 public interface CompoundInterval {
 
   boolean isSingleton();
@@ -45,7 +47,8 @@ public interface CompoundInterval {
   /**
    * Checks if this compound state contains every possible value.
    *
-   * @return {@code true} if this state contains every possible value, {@code false} otherwise.
+   * @return {@code true} if this state contains every possible value,
+   * {@code false} otherwise.
    */
   boolean containsAllPossibleValues();
 
@@ -58,4 +61,5 @@ public interface CompoundInterval {
   List<? extends CompoundInterval> splitIntoIntervals();
 
   List<SimpleInterval> getIntervals();
+
 }

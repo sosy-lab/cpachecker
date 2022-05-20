@@ -8,8 +8,9 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.invariants;
 
-import java.util.concurrent.atomic.AtomicBoolean;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+
+import java.util.concurrent.atomic.AtomicBoolean;
 
 public abstract class AbstractInvariantGenerator implements InvariantGenerator {
 
@@ -33,4 +34,5 @@ public abstract class AbstractInvariantGenerator implements InvariantGenerator {
   public boolean isStarted() {
     return started.get();
   }
+
 }

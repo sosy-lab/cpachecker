@@ -71,19 +71,20 @@ import org.sosy_lab.cpachecker.util.statistics.StatTimer;
 public class CFunctionPointerResolver implements StatisticsProvider {
 
   @Option(
-      secure = true,
-      name = "analysis.matchAssignedFunctionPointers",
-      description =
-          "Use as targets for call edges only those shich are assigned to the particular expression"
-              + " (structure field).")
+    secure = true,
+    name = "analysis.matchAssignedFunctionPointers",
+    description =
+        "Use as targets for call edges only those shich are assigned to the particular expression (structure field)."
+  )
   private boolean matchAssignedFunctionPointers = false;
 
   @Option(
-      secure = true,
-      name = "analysis.matchAssignedFunctionPointers.ignoreUnknownAssignments",
-      description =
-          "If a no target function was assigned to a function pointer,"
-              + " use the origin heuristic instead of replacing with empty calls")
+    secure = true,
+    name = "analysis.matchAssignedFunctionPointers.ignoreUnknownAssignments",
+    description =
+        "If a no target function was assigned to a function pointer,"
+            + " use the origin heuristic instead of replacing with empty calls"
+  )
   private boolean ignoreUnknownAssignments = false;
 
   enum FunctionSet {
@@ -97,15 +98,17 @@ public class CFunctionPointerResolver implements StatisticsProvider {
   }
 
   @Option(
-      secure = true,
-      name = "analysis.replaceFunctionWithParameterPointer",
-      description = "Use if you are going to change function with function pionter parameter")
+    secure = true,
+    name = "analysis.replaceFunctionWithParameterPointer",
+    description = "Use if you are going to change function with function pionter parameter"
+  )
   private boolean replaceFunctionWithParameterPointer = false;
 
   @Option(
-      secure = true,
-      name = "analysis.functionPointerTargets",
-      description = "potential targets for call edges created for function pointer calls")
+    secure = true,
+    name = "analysis.functionPointerTargets",
+    description = "potential targets for call edges created for function pointer calls"
+  )
   private Set<FunctionSet> functionSets =
       ImmutableSet.of(
           FunctionSet.USED_IN_CODE,
@@ -115,9 +118,10 @@ public class CFunctionPointerResolver implements StatisticsProvider {
           FunctionSet.EQ_PARAM_COUNT);
 
   @Option(
-      secure = true,
-      name = "analysis.functionPointerParameterTargets",
-      description = "potential targets for call edges created for function pointer parameter calls")
+    secure = true,
+    name = "analysis.functionPointerParameterTargets",
+    description = "potential targets for call edges created for function pointer parameter calls"
+  )
   private Set<FunctionSet> functionParameterSets =
       ImmutableSet.of(
           FunctionSet.USED_IN_CODE, FunctionSet.RETURN_VALUE, FunctionSet.EQ_PARAM_TYPES);

@@ -20,8 +20,7 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGValue;
 /**
  * This class represents a simple Pair of an object and a state.
  *
- * <p>There are nested classes for special types of objects (value, address) and lists of such
- * pairs.
+ * There are nested classes for special types of objects (value, address) and lists of such pairs.
  */
 public abstract class SMGAbstractObjectAndState<T> {
   private final SMGState smgState;

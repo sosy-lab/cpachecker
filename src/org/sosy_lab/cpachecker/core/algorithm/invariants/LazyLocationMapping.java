@@ -25,15 +25,16 @@ import org.sosy_lab.cpachecker.util.AbstractStates;
 public class LazyLocationMapping {
   private final UnmodifiableReachedSet reachedSet;
 
-  private final AtomicReference<Multimap<CFANode, AbstractState>> statesByLocationRef =
-      new AtomicReference<>();
+  private final AtomicReference<Multimap<CFANode, AbstractState>> statesByLocationRef
+      = new AtomicReference<>();
 
   public LazyLocationMapping(UnmodifiableReachedSet pReachedSet) {
     this.reachedSet = Objects.requireNonNull(pReachedSet);
   }
 
   public Iterable<AbstractState> get(
-      CFANode pLocation, Optional<CallstackStateEqualsWrapper> callstackInformation) {
+      CFANode pLocation,
+      Optional<CallstackStateEqualsWrapper> callstackInformation) {
     Iterable<AbstractState> out = get0(pLocation);
     if (!callstackInformation.isPresent()) {
       return out;

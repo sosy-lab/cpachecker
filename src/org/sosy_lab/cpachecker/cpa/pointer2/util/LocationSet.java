@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.cpa.pointer2.util;
 
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
+
 public interface LocationSet {
 
   boolean mayPointTo(MemoryLocation pLocation);
@@ -27,4 +28,5 @@ public interface LocationSet {
   boolean isTop();
 
   boolean containsAll(LocationSet pLocations);
+
 }

@@ -13,9 +13,10 @@ import org.sosy_lab.cpachecker.cpa.callstack.CallstackState;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 
 /**
- * Waitlist implementation that sorts the abstract states by the depth of their call stack. States
- * with a bigger callstack are considered first. A secondary strategy needs to be given that decides
- * what to do with states of the same callstack depth.
+ * Waitlist implementation that sorts the abstract states by the depth of their
+ * call stack. States with a bigger callstack are considered first.
+ * A secondary strategy needs to be given that decides what to do with states
+ * of the same callstack depth.
  */
 public class CallstackSortedWaitlist extends AbstractSortedWaitlist<Integer> {
 
@@ -25,7 +26,8 @@ public class CallstackSortedWaitlist extends AbstractSortedWaitlist<Integer> {
 
   @Override
   protected Integer getSortKey(AbstractState pState) {
-    CallstackState callstackState = AbstractStates.extractStateByType(pState, CallstackState.class);
+    CallstackState callstackState =
+      AbstractStates.extractStateByType(pState, CallstackState.class);
 
     return (callstackState != null) ? callstackState.getDepth() : 0;
   }

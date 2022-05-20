@@ -91,7 +91,8 @@ public abstract class ITPStrategy {
       throw new SolverException(
           String.format(
               "First interpolant '%s' is not implied by first formula '%s'.",
-              interpolants.get(0), formulas.get(0)));
+              interpolants.get(0),
+              formulas.get(0)));
     }
 
     // Check (B).
@@ -101,7 +102,8 @@ public abstract class ITPStrategy {
         throw new SolverException(
             String.format(
                 "Interpolant '%s' at index %d is not implied by previous part of the path",
-                interpolants.get(i), i));
+                interpolants.get(i),
+                i));
       }
     }
 
@@ -111,7 +113,8 @@ public abstract class ITPStrategy {
       throw new SolverException(
           String.format(
               "Last interpolant '%s' fails to prove infeasibility of the remaining path '%s'.",
-              interpolants.get(n - 1), formulas.get(n)));
+              interpolants.get(n - 1),
+              formulas.get(n)));
     }
 
     // Furthermore, check if the interpolants contains only the allowed variables
@@ -138,11 +141,9 @@ public abstract class ITPStrategy {
       Set<String> variablesInInterpolant = fmgr.extractVariableNames(interpolants.get(i));
 
       if (!allowedVariables.containsAll(variablesInInterpolant)) {
-        throw new SolverException(
-            "Interpolant "
-                + interpolants.get(i)
-                + " contains forbidden variable(s) "
-                + Sets.difference(variablesInInterpolant, allowedVariables));
+        throw new SolverException("Interpolant " + interpolants.get(i) +
+            " contains forbidden variable(s) "
+            + Sets.difference(variablesInInterpolant, allowedVariables));
       }
     }
   }

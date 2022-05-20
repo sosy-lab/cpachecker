@@ -96,10 +96,11 @@ public class WitnessToOutputFormatsUtils {
         // targetNode = createNewNode(doc, edge.getTarget(), witness);
         sourceNode = new HashMap<>();
 
-        List<Integer> nodeIds =
-            witness.getARGStatesFor(source).stream()
-                .map(ARGState::getStateId)
-                .collect(ImmutableList.toImmutableList());
+        List<Integer> nodeIds = witness
+            .getARGStatesFor(source)
+            .stream()
+            .map(ARGState::getStateId)
+            .collect(ImmutableList.toImmutableList());
         String nodeString = SLARGToDotWriter.generateLocationString(nodeIds).toString();
         StringBuilder labelBuilder = new StringBuilder(source);
         if (!nodeString.isEmpty()) {
@@ -137,11 +138,13 @@ public class WitnessToOutputFormatsUtils {
         for (java.util.Map.Entry<KeyDef, String> e : edge.getLabel().getMapping().entrySet()) {
           edgeMap.put(e.getKey().toString(), e.getValue());
         }
-        edgesMap.put(edge.getSource() + "->" + edge.getTarget(), edgeMap);
+        edgesMap.put(
+            edge.getSource() + "->" + edge.getTarget(),
+            edgeMap);
 
         if (nodes.add(edge.getTarget())) {
           if (!ExpressionTrees.getFalse().equals(tree)) {
-            waitlist.push(edge.getTarget());
+          waitlist.push(edge.getTarget());
           }
         }
       }
@@ -155,7 +158,7 @@ public class WitnessToOutputFormatsUtils {
       return "target";
     } else if (!states.stream().allMatch(ARGState::wasExpanded)) {
       return "not-expanded";
-    } else if (states.stream().anyMatch(ARGState::shouldBeHighlighted)) {
+    } else if (states.stream().anyMatch(ARGState::shouldBeHighlighted)){
       return "highlighted";
     }
     return "";

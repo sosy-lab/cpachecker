@@ -46,8 +46,7 @@ public class CallstackCPA extends AbstractCPA
     return AutomaticCPAFactory.forType(CallstackCPA.class);
   }
 
-  public CallstackCPA(Configuration config, LogManager pLogger, CFA pCFA)
-      throws InvalidConfigurationException {
+  public CallstackCPA(Configuration config, LogManager pLogger, CFA pCFA) throws InvalidConfigurationException {
     super("sep", "sep", null);
     logger = pLogger;
     options = new CallstackOptions(config);
@@ -63,15 +62,17 @@ public class CallstackCPA extends AbstractCPA
   public AbstractState getInitialState(CFANode pNode, StateSpacePartition pPartition) {
     if (cfa.getLoopStructure().isPresent()) {
       LoopStructure loopStructure = cfa.getLoopStructure().orElseThrow();
-      Collection<Loop> artificialLoops =
-          loopStructure.getLoopsForFunction(
-              CFASingleLoopTransformation.ARTIFICIAL_PROGRAM_COUNTER_FUNCTION_NAME);
+      Collection<Loop> artificialLoops = loopStructure.getLoopsForFunction(
+          CFASingleLoopTransformation.ARTIFICIAL_PROGRAM_COUNTER_FUNCTION_NAME);
 
       if (!artificialLoops.isEmpty()) {
         Loop singleLoop = Iterables.getOnlyElement(artificialLoops);
         if (singleLoop.getLoopNodes().contains(pNode)) {
           return new CallstackState(
-              null, CFASingleLoopTransformation.ARTIFICIAL_PROGRAM_COUNTER_FUNCTION_NAME, pNode);
+              null,
+              CFASingleLoopTransformation.ARTIFICIAL_PROGRAM_COUNTER_FUNCTION_NAME,
+              pNode
+          );
         }
       }
     }
@@ -79,17 +80,13 @@ public class CallstackCPA extends AbstractCPA
   }
 
   @Override
-  public boolean areAbstractSuccessors(
-      AbstractState pElement, CFAEdge pCfaEdge, Collection<? extends AbstractState> pSuccessors)
-      throws CPATransferException, InterruptedException {
+  public boolean areAbstractSuccessors(AbstractState pElement, CFAEdge pCfaEdge,
+      Collection<? extends AbstractState> pSuccessors) throws CPATransferException, InterruptedException {
     Collection<? extends AbstractState> computedSuccessors =
-        getTransferRelation()
-            .getAbstractSuccessorsForEdge(pElement, SingletonPrecision.getInstance(), pCfaEdge);
-    if (!(pSuccessors instanceof Set)
-        || !(computedSuccessors instanceof Set)
-        || pSuccessors.size() != computedSuccessors.size()) {
-      return false;
-    }
+        getTransferRelation().getAbstractSuccessorsForEdge(
+            pElement, SingletonPrecision.getInstance(), pCfaEdge);
+    if (!(pSuccessors instanceof Set) || !(computedSuccessors instanceof Set)
+        || pSuccessors.size() != computedSuccessors.size()) { return false; }
     boolean found;
     for (AbstractState e1 : pSuccessors) {
       found = false;
@@ -99,16 +96,13 @@ public class CallstackCPA extends AbstractCPA
           break;
         }
       }
-      if (!found) {
-        return false;
-      }
+      if (!found) { return false; }
     }
     return true;
   }
 
   @Override
-  public boolean isCoveredBy(AbstractState pElement, AbstractState pOtherElement)
-      throws CPAException, InterruptedException {
+  public boolean isCoveredBy(AbstractState pElement, AbstractState pOtherElement) throws CPAException, InterruptedException {
     return getAbstractDomain().isLessOrEqual(pElement, pOtherElement)
         || ((CallstackState) pElement).sameStateInProofChecking((CallstackState) pOtherElement);
   }

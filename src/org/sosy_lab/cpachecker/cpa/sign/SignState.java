@@ -24,8 +24,7 @@ import org.sosy_lab.cpachecker.core.interfaces.Graphable;
 import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
 import org.sosy_lab.cpachecker.util.CheckTypesOfStringsUtil;
 
-public class SignState
-    implements Serializable, LatticeAbstractState<SignState>, AbstractQueryableState, Graphable {
+public class SignState implements Serializable, LatticeAbstractState<SignState>, AbstractQueryableState, Graphable {
 
   private static final long serialVersionUID = -2507059869178203119L;
 
@@ -35,8 +34,8 @@ public class SignState
 
   private PersistentMap<String, SIGN> signMap;
 
-  public static final SignState TOP = new SignState();
-  private static final SerialProxySign proxy = new SerialProxySign();
+  public final static SignState TOP = new SignState();
+  private final static SerialProxySign proxy = new SerialProxySign();
 
   private SignState(PersistentMap<String, SIGN> pSignMap) {
     signMap = pSignMap;
@@ -48,24 +47,17 @@ public class SignState
 
   @Override
   public SignState join(SignState pToJoin) {
-    if (pToJoin.equals(this)) {
-      return pToJoin;
-    }
-    if (this.equals(TOP) || pToJoin.equals(TOP)) {
-      return TOP;
-    }
+    if (pToJoin.equals(this)) { return pToJoin; }
+    if (this.equals(TOP) || pToJoin.equals(TOP)) { return TOP; }
 
     // assure termination of loops do not merge if  pToJoin covers this but return pToJoin
-    if (isLessOrEqual(pToJoin)) {
-      return pToJoin;
-    }
+    if (isLessOrEqual(pToJoin)) { return pToJoin; }
 
     SignState result = SignState.TOP;
     PersistentMap<String, SIGN> newMap = PathCopyingPersistentTreeMap.of();
     SIGN combined;
     for (String varIdent : pToJoin.signMap.keySet()) {
-      // only add those variables that are contained in both states (otherwise one has value ALL
-      // (not saved))
+      // only add those variables that are contained in both states (otherwise one has value ALL (not saved))
       if (signMap.containsKey(varIdent)) {
         combined = getSignForVariable(varIdent).combineWith(pToJoin.getSignForVariable(varIdent));
         if (!combined.isAll()) {
@@ -79,18 +71,12 @@ public class SignState
 
   @Override
   public boolean isLessOrEqual(SignState pSuperset) {
-    if (pSuperset.equals(this) || pSuperset.equals(TOP)) {
-      return true;
-    }
-    if (signMap.size() < pSuperset.signMap.size()) {
-      return false;
-    }
+    if (pSuperset.equals(this) || pSuperset.equals(TOP)) { return true; }
+    if (signMap.size() < pSuperset.signMap.size()) { return false; }
     // is subset if for every variable all sign assumptions are considered in pSuperset
     // check that all variables in superset with SIGN != ALL have no bigger assumptions in subset
     for (String varIdent : pSuperset.signMap.keySet()) {
-      if (!getSignForVariable(varIdent).isSubsetOf(pSuperset.getSignForVariable(varIdent))) {
-        return false;
-      }
+      if (!getSignForVariable(varIdent).isSubsetOf(pSuperset.getSignForVariable(varIdent))) { return false; }
     }
     return true;
   }
@@ -122,12 +108,9 @@ public class SignState
 
   public SignState assignSignToVariable(String pVarIdent, SIGN sign) {
     if (sign.isAll()) {
-      return signMap.containsKey(pVarIdent)
-          ? new SignState(signMap.removeAndCopy(pVarIdent))
-          : this;
+      return signMap.containsKey(pVarIdent) ? new SignState(signMap.removeAndCopy(pVarIdent)) : this;
     }
-    return signMap.containsKey(pVarIdent) && getSignForVariable(pVarIdent).equals(sign)
-        ? this
+    return signMap.containsKey(pVarIdent) && getSignForVariable(pVarIdent).equals(sign) ? this
         : new SignState(signMap.putAndCopy(pVarIdent, sign));
   }
 
@@ -146,9 +129,7 @@ public class SignState
     builder.append("[");
     String loopDelim = "";
     for (String key : signMap.keySet()) {
-      if (!DEBUG
-          && (key.matches("\\w*::__CPAchecker_TMP_\\w*")
-              || key.endsWith(SignTransferRelation.FUNC_RET_VAR))) {
+      if (!DEBUG && (key.matches("\\w*::__CPAchecker_TMP_\\w*") || key.endsWith(SignTransferRelation.FUNC_RET_VAR))) {
         continue;
       }
       builder.append(loopDelim);
@@ -161,9 +142,7 @@ public class SignState
 
   @Override
   public boolean equals(Object pObj) {
-    if (!(pObj instanceof SignState)) {
-      return false;
-    }
+    if (!(pObj instanceof SignState)) { return false; }
     return ((SignState) pObj).signMap.equals(this.signMap);
   }
 
@@ -219,7 +198,7 @@ public class SignState
       }
 
       // pProperty = varName <= value
-      else if (CheckTypesOfStringsUtil.isSIGN(parts.get(1))) {
+      else if (CheckTypesOfStringsUtil.isSIGN(parts.get(1))){
         SIGN varName = getSignForVariable(parts.get(0));
         SIGN value = SIGN.valueOf(parts.get(1));
         return value.covers(varName);
@@ -255,4 +234,5 @@ public class SignState
   public Map<String, SIGN> getSignMapView() {
     return Collections.unmodifiableMap(signMap);
   }
+
 }

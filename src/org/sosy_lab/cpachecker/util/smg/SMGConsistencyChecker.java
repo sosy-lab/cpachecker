@@ -14,7 +14,9 @@ import org.sosy_lab.cpachecker.util.smg.graph.SMGDoublyLinkedListSegment;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGHasValueEdge;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGObject;
 
-/** Utility class for SMG consistency checks. */
+/**
+ * Utility class for SMG consistency checks.
+ */
 public final class SMGConsistencyChecker {
 
   /**
@@ -34,6 +36,7 @@ public final class SMGConsistencyChecker {
 
     checkInvalidRegionConsistency(smg);
     checkValidDLLConsistency(smg);
+
   }
 
   /**
@@ -74,14 +77,20 @@ public final class SMGConsistencyChecker {
    * @param smg - the SMG to be checked
    * @throws SMGInconsistencyException - if the given SMG is inconsistent.
    */
-  public static void checkFieldConsistency(SMG smg) throws SMGInconsistencyException {
+  public static void checkFieldConsistency(SMG smg)
+      throws SMGInconsistencyException {
     smg.getHVEdges().forEach(e -> checkFieldConsistency(smg, e));
   }
 
-  private static void checkFieldConsistency(SMG smg, SMGHasValueEdge edge) {
+  private static void
+      checkFieldConsistency(SMG smg, SMGHasValueEdge edge) {
     if (edge.getSizeInBits().compareTo(edge.getOffset()) <= 0) {
       throw new SMGInconsistencyException(
-          "Inconsistent smg: " + smg + "\n Edge " + edge + " points outside of it's field.");
+          "Inconsistent smg: "
+              + smg
+              + "\n Edge "
+              + edge
+              + " points outside of it's field.");
     }
   }
 }

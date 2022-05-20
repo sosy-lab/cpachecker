@@ -15,12 +15,12 @@ import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.cpa.usage.UsageInfo;
 import org.sosy_lab.cpachecker.util.Pair;
 
+
 public class ExtendedARGPath extends ARGPath {
 
   private final UsageInfo usage;
-  // All blocks now check pairs
-  private final Set<ConfigurableRefinementBlock<Pair<ExtendedARGPath, ExtendedARGPath>>>
-      refinedAsTrueBy = new HashSet<>();
+  //All blocks now check pairs
+  private final Set<ConfigurableRefinementBlock<Pair<ExtendedARGPath, ExtendedARGPath>>> refinedAsTrueBy = new HashSet<>();
   private boolean isUnreachable = false;
 
   public ExtendedARGPath(ARGPath origin, UsageInfo target) {
@@ -32,8 +32,7 @@ public class ExtendedARGPath extends ARGPath {
     return usage;
   }
 
-  public void setAsTrueBy(
-      ConfigurableRefinementBlock<Pair<ExtendedARGPath, ExtendedARGPath>> refiner) {
+  public void setAsTrueBy(ConfigurableRefinementBlock<Pair<ExtendedARGPath, ExtendedARGPath>> refiner) {
     refinedAsTrueBy.add(refiner);
   }
 
@@ -41,8 +40,7 @@ public class ExtendedARGPath extends ARGPath {
     isUnreachable = true;
   }
 
-  public boolean isRefinedAsReachableBy(
-      ConfigurableRefinementBlock<Pair<ExtendedARGPath, ExtendedARGPath>> refiner) {
+  public boolean isRefinedAsReachableBy(ConfigurableRefinementBlock<Pair<ExtendedARGPath, ExtendedARGPath>> refiner) {
     return refinedAsTrueBy.contains(refiner);
   }
 

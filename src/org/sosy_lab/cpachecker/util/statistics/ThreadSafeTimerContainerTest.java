@@ -95,4 +95,5 @@ public class ThreadSafeTimerContainerTest {
         .that(container.getNumberOfIntervals())
         .isEqualTo(num);
   }
+
 }

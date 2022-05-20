@@ -28,6 +28,7 @@ public class LassoRankerProgressMonitorService implements IProgressMonitorServic
     return !shutdownManager.getNotifier().shouldShutdown();
   }
 
+
   @Override
   public IProgressAwareTimer getChildTimer(long pTimeout) {
     throw new UnsupportedOperationException(

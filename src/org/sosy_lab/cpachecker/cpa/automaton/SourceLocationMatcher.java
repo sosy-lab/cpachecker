@@ -18,7 +18,7 @@ import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 
 class SourceLocationMatcher {
 
-  private abstract static class BaseFileNameMatcher implements Predicate<FileLocation> {
+  private static abstract class BaseFileNameMatcher implements Predicate<FileLocation> {
 
     private final Optional<String> originFileName;
 
@@ -58,6 +58,7 @@ class SourceLocationMatcher {
     protected Optional<String> getOriginFileName() {
       return originFileName;
     }
+
   }
 
   static class LineMatcher extends BaseFileNameMatcher {
@@ -68,8 +69,7 @@ class SourceLocationMatcher {
 
     private final boolean origin;
 
-    public LineMatcher(
-        Optional<String> pFileName, int pStartLineNumber, int pEndLineNumber, boolean pOrigin) {
+    public LineMatcher(Optional<String> pFileName, int pStartLineNumber, int pEndLineNumber, boolean pOrigin) {
       super(pFileName);
       Preconditions.checkArgument(pStartLineNumber <= pEndLineNumber);
       this.startLineNumber = pStartLineNumber;
@@ -103,10 +103,12 @@ class SourceLocationMatcher {
 
     @Override
     public boolean apply(FileLocation pFileLocation) {
-      int compStartingLine =
-          origin ? pFileLocation.getStartingLineInOrigin() : pFileLocation.getStartingLineNumber();
-      int compEndingLine =
-          origin ? pFileLocation.getEndingLineInOrigin() : pFileLocation.getEndingLineNumber();
+      int compStartingLine = origin
+          ? pFileLocation.getStartingLineInOrigin()
+          : pFileLocation.getStartingLineNumber();
+      int compEndingLine = origin
+          ? pFileLocation.getEndingLineInOrigin()
+          : pFileLocation.getEndingLineNumber();
       return super.apply(pFileLocation)
           && startLineNumber <= compEndingLine
           && compStartingLine <= endLineNumber;

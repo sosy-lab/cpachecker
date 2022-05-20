@@ -50,25 +50,23 @@ import org.sosy_lab.cpachecker.util.smg.exception.SMGInconsistencyException;
 // TODO remove unmaintained annotation once all components are implemented
 @Unmaintained
 public class SMGCPA
-    implements ConfigurableProgramAnalysis,
-        ConfigurableProgramAnalysisWithConcreteCex,
-        ConfigurableProgramAnalysisWithAdditionalInfo,
-        StatisticsProvider {
+    implements ConfigurableProgramAnalysis, ConfigurableProgramAnalysisWithConcreteCex,
+    ConfigurableProgramAnalysisWithAdditionalInfo, StatisticsProvider {
 
   @Option(
-      secure = true,
-      name = "stop",
-      toUppercase = true,
-      values = {"SEP", "NEVER", "END_BLOCK"},
-      description = "which stop operator to use for the SMGCPA")
+    secure = true,
+    name = "stop",
+    toUppercase = true,
+    values = {"SEP", "NEVER", "END_BLOCK"},
+    description = "which stop operator to use for the SMGCPA")
   private String stopType = "SEP";
 
   @Option(
-      secure = true,
-      name = "merge",
-      toUppercase = true,
-      values = {"SEP", "JOIN"},
-      description = "which merge operator to use for the SMGCPA")
+    secure = true,
+    name = "merge",
+    toUppercase = true,
+    values = {"SEP", "JOIN"},
+    description = "which merge operator to use for the SMGCPA")
   private String mergeType = "SEP";
 
   private final MachineModel machineModel;
@@ -84,7 +82,10 @@ public class SMGCPA
   private final SMGStatistics stats = new SMGStatistics();
 
   private SMGCPA(
-      Configuration pConfig, LogManager pLogger, ShutdownNotifier pShutdownNotifier, CFA pCfa)
+      Configuration pConfig,
+      LogManager pLogger,
+      ShutdownNotifier pShutdownNotifier,
+      CFA pCfa)
       throws InvalidConfigurationException {
     pConfig.inject(this);
     options = new SMGOptions(pConfig);
@@ -151,7 +152,7 @@ public class SMGCPA
   @Override
   public StopOperator getStopOperator() {
     switch (stopType) {
-        // TODO END_BLOCK
+      // TODO END_BLOCK
       case "NEVER":
         return StopNeverOperator.getInstance();
       case "SEP":
@@ -184,4 +185,6 @@ public class SMGCPA
 
     return initState;
   }
+
+
 }

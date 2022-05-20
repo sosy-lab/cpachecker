@@ -57,6 +57,7 @@ public class InvariantWitness {
     return hashCode;
   }
 
+
   @Override
   public boolean equals(Object pObj) {
     if (pObj == this) {

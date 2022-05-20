@@ -64,6 +64,7 @@ public class PowerSetCPA extends AbstractSingleWrapperCPA {
     return new PowerSetPrecisionAdjustment(getWrappedCpa().getPrecisionAdjustment());
   }
 
+
   @Override
   public AbstractState getInitialState(CFANode node, StateSpacePartition partition)
       throws InterruptedException {

@@ -91,8 +91,7 @@ class ForceExplicitValueVisitor extends ExplicitValueVisitor {
 
       if (symbolicValueAndStates.size() != 1) {
         throw new SMGInconsistentException(
-            "Found abstraction where non should exist, due to the expression "
-                + exp.toASTString()
+            "Found abstraction where non should exist, due to the expression " + exp.toASTString()
                 + " already being evaluated once in this transfer-relation step.");
       }
 

@@ -223,4 +223,5 @@ public final class SubstitutingCAstNodeVisitor
   public CAstNode visit(CReturnStatement pNode) {
     return substitute(pNode, () -> super.visit(pNode));
   }
+
 }

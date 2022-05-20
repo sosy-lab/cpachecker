@@ -52,7 +52,8 @@ public interface UnmodifiableSMG {
 
   SMGPointsToEdges getPTEdges();
 
-  @Nullable SMGObject getObjectPointedBy(SMGValue pValue);
+  @Nullable
+  SMGObject getObjectPointedBy(SMGValue pValue);
 
   boolean isObjectValid(SMGObject pObject);
 

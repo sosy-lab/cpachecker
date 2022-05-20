@@ -17,9 +17,10 @@ import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 
 /**
- * This class represents forward declarations of functions. Example code:
+ * This class represents forward declarations of functions.
+ * Example code:
  *
- * <p>int foo(int x);
+ * int foo(int x);
  */
 public final class CFunctionDeclaration extends AFunctionDeclaration implements CDeclaration {
 
@@ -29,10 +30,8 @@ public final class CFunctionDeclaration extends AFunctionDeclaration implements 
 
   private static final long serialVersionUID = 5485363555708455537L;
 
-  public CFunctionDeclaration(
-      FileLocation pFileLocation,
-      CFunctionType pType,
-      String pName,
+  public CFunctionDeclaration(FileLocation pFileLocation,
+      CFunctionType pType, String pName,
       List<CParameterDeclaration> parameters) {
     super(pFileLocation, pType, checkNotNull(pName), pName, parameters);
   }
@@ -54,7 +53,7 @@ public final class CFunctionDeclaration extends AFunctionDeclaration implements 
   @SuppressWarnings("unchecked")
   @Override
   public List<CParameterDeclaration> getParameters() {
-    return (List<CParameterDeclaration>) super.getParameters();
+    return (List<CParameterDeclaration>)super.getParameters();
   }
 
   @Override
@@ -64,9 +63,7 @@ public final class CFunctionDeclaration extends AFunctionDeclaration implements 
 
   @Override
   public boolean equals(Object obj) {
-    if (this == obj) {
-      return true;
-    }
+    if (this == obj) { return true; }
 
     if (!(obj instanceof CFunctionDeclaration)) {
       return false;
@@ -84,4 +81,5 @@ public final class CFunctionDeclaration extends AFunctionDeclaration implements 
   public <R, X extends Exception> R accept(CAstNodeVisitor<R, X> pV) throws X {
     return pV.visit(this);
   }
+
 }

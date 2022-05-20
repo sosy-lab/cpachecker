@@ -58,7 +58,8 @@ public class DCACPA extends AbstractSingleWrapperCPA {
   public AbstractState getInitialState(CFANode pNode, StateSpacePartition pPartition)
       throws InterruptedException {
     ImmutableList<AutomatonState> initStates =
-        automatonList.stream()
+        automatonList
+            .stream()
             .map(automatonCPA::buildInitStateForAutomaton)
             .collect(ImmutableList.toImmutableList());
     AutomatonState buechiState = (AutomatonState) super.getInitialState(pNode, pPartition);

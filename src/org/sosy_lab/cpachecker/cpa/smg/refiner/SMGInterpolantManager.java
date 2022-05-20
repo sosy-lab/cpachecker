@@ -56,4 +56,5 @@ public class SMGInterpolantManager
       UnmodifiableSMGState pState, Set<SMGAbstractionBlock> pAbstractionBlocks) {
     return new SMGInterpolant(ImmutableSet.of(pState), pAbstractionBlocks);
   }
+
 }

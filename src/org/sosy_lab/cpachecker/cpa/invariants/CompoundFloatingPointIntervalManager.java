@@ -52,8 +52,7 @@ class CompoundFloatingPointIntervalManager implements CompoundIntervalManager {
   @Override
   public CompoundInterval intersect(CompoundInterval pOperand1, CompoundInterval pOperand2) {
     // TODO Auto-generated method stub
-    return new CompoundFloatingPointInterval(
-        ((CompoundFloatingPointInterval) pOperand1).getTypeInfo());
+    return new CompoundFloatingPointInterval(((CompoundFloatingPointInterval) pOperand1).getTypeInfo());
   }
 
   @Override
@@ -221,4 +220,5 @@ class CompoundFloatingPointIntervalManager implements CompoundIntervalManager {
     // TODO Auto-generated method stub
     return new CompoundFloatingPointInterval(typeInfo);
   }
+
 }

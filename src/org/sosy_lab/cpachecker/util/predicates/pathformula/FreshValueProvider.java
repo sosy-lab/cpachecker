@@ -22,7 +22,8 @@ public final class FreshValueProvider implements Serializable {
   private static final long serialVersionUID = 12359384095345L;
 
   // Default difference for two SSA-indexes of the same name.
-  @VisibleForTesting static final int DEFAULT_INCREMENT = 1;
+  @VisibleForTesting
+  static final int DEFAULT_INCREMENT = 1;
 
   private final PersistentSortedMap<String, Integer> vars;
 
@@ -34,7 +35,9 @@ public final class FreshValueProvider implements Serializable {
     this.vars = diffVars;
   }
 
-  /** Get a new unused value based on the given one. */
+  /**
+   * Get a new unused value based on the given one.
+   **/
   int getFreshValue(String variable, int value) {
     Integer currentValue = vars.get(variable);
     if (currentValue != null && value < currentValue) {
@@ -47,7 +50,7 @@ public final class FreshValueProvider implements Serializable {
    * Get a new provider, that is based on the current one and the given one.
    *
    * <p>Keeps the maximum to-be-generated index for each variable.
-   */
+   **/
   public FreshValueProvider merge(FreshValueProvider other) {
     if (vars.isEmpty() && other.vars.isEmpty()) {
       return this;

@@ -20,30 +20,32 @@ import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 
 /**
- * Instances of this class are CFA edges representing the assignment of values to the program
- * counter variable.
+ * Instances of this class are CFA edges representing the assignment of
+ * values to the program counter variable.
  */
-class CProgramCounterValueAssignmentEdge extends CStatementEdge
-    implements ProgramCounterValueAssignmentEdge {
+class CProgramCounterValueAssignmentEdge extends CStatementEdge implements ProgramCounterValueAssignmentEdge {
 
   private static final long serialVersionUID = 3343680508515226739L;
-  /** The program counter value. */
+  /**
+   * The program counter value.
+   */
   private int pcValue;
 
   /**
-   * Creates a new C program counter value assignment edge between the given predecessor and
-   * successor for the given program counter id expression and the program counter value to be
-   * assigned.
+   * Creates a new C program counter value assignment edge between the given
+   * predecessor and successor for the given program counter id expression
+   * and the program counter value to be assigned.
    *
    * @param pPredecessor the predecessor of the new edge.
    * @param pSuccessor the successor of the new edge.
    * @param pPCIdExpression the program counter id expression to be used.
    * @param pPCValue the program counter value to be assigned.
    */
-  public CProgramCounterValueAssignmentEdge(
-      CFANode pPredecessor, CFANode pSuccessor, CIdExpression pPCIdExpression, int pPCValue) {
-    super(
-        buildRawStatement(pPCValue, pPCIdExpression),
+  public CProgramCounterValueAssignmentEdge(CFANode pPredecessor,
+      CFANode pSuccessor,
+      CIdExpression pPCIdExpression,
+      int pPCValue) {
+    super(buildRawStatement(pPCValue, pPCIdExpression),
         buildStatement(pPCValue, pPCIdExpression),
         FileLocation.DUMMY,
         pPredecessor,
@@ -61,10 +63,11 @@ class CProgramCounterValueAssignmentEdge extends CStatementEdge
    *
    * @param pPCValue the value to assign.
    * @param pPCIdExpression the id to assign the value to.
+   *
    * @return the raw statement.
    */
   private static String buildRawStatement(int pPCValue, CIdExpression pPCIdExpression) {
-    return String.format("%s = %d", pPCIdExpression.getName(), pPCValue);
+    return String.format("%s = %d",  pPCIdExpression.getName(), pPCValue);
   }
 
   /**
@@ -72,13 +75,12 @@ class CProgramCounterValueAssignmentEdge extends CStatementEdge
    *
    * @param pPCValue the value to assign.
    * @param pPCIdExpression the id to assign the value to.
+   *
    * @return the actual statement.
    */
   private static CStatement buildStatement(int pPCValue, CIdExpression pPCIdExpression) {
-    CExpression assignmentExpression =
-        new CIntegerLiteralExpression(
-            FileLocation.DUMMY, CNumericTypes.INT, BigInteger.valueOf(pPCValue));
-    return new CExpressionAssignmentStatement(
-        FileLocation.DUMMY, pPCIdExpression, assignmentExpression);
+    CExpression assignmentExpression = new CIntegerLiteralExpression(FileLocation.DUMMY, CNumericTypes.INT, BigInteger.valueOf(pPCValue));
+    return new CExpressionAssignmentStatement(FileLocation.DUMMY, pPCIdExpression, assignmentExpression);
   }
+
 }

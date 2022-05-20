@@ -6,7 +6,9 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-/** Sensible default implementations for interfaces in the interfaces/ package. */
+/**
+ * Sensible default implementations for interfaces in the interfaces/ package.
+ */
 @javax.annotation.ParametersAreNonnullByDefault
 @org.sosy_lab.common.annotations.FieldsAreNonnullByDefault
 @org.sosy_lab.common.annotations.ReturnValuesAreNonnullByDefault

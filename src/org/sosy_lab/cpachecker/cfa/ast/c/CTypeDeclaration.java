@@ -13,9 +13,11 @@ import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
 /**
- * This class represents declarations that define new types, e.g.
+ * This class represents declarations that define new types,
+ * e.g.
  *
- * <p>struct s { int i; } typedef int my_int;
+ * struct s { int i; }
+ * typedef int my_int;
  */
 public abstract class CTypeDeclaration extends AbstractDeclaration implements CDeclaration {
 
@@ -39,7 +41,7 @@ public abstract class CTypeDeclaration extends AbstractDeclaration implements CD
 
   @Override
   public CType getType() {
-    return (CType) super.getType();
+    return (CType)super.getType();
   }
 
   @Override
@@ -61,4 +63,5 @@ public abstract class CTypeDeclaration extends AbstractDeclaration implements CD
 
     return super.equals(obj);
   }
+
 }

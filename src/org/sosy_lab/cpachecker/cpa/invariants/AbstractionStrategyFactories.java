@@ -57,6 +57,7 @@ import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 enum AbstractionStrategyFactories implements AbstractionStrategyFactory {
+
   ALWAYS {
 
     @Override
@@ -79,8 +80,10 @@ enum AbstractionStrategyFactories implements AbstractionStrategyFactory {
         public AbstractionState from(AbstractionState pOther) {
           return getAbstractionState();
         }
+
       };
     }
+
   },
 
   ENTERING_EDGES {
@@ -89,8 +92,9 @@ enum AbstractionStrategyFactories implements AbstractionStrategyFactory {
     public AbstractionStrategy createStrategy(
         final CompoundIntervalManagerFactory pCompoundIntervalManagerFactory,
         final MachineModel pMachineModel) {
-      final EdgeAnalyzer edgeAnalyzer =
-          new EdgeAnalyzer(pCompoundIntervalManagerFactory, pMachineModel);
+      final EdgeAnalyzer edgeAnalyzer = new EdgeAnalyzer(
+          pCompoundIntervalManagerFactory,
+          pMachineModel);
       final CompoundIntervalFormulaManager cifm =
           new CompoundIntervalFormulaManager(pCompoundIntervalManagerFactory);
       return new AbstractionStrategy() {
@@ -453,6 +457,7 @@ enum AbstractionStrategyFactories implements AbstractionStrategyFactory {
         }
       };
     }
+
   },
 
   NEVER {
@@ -479,17 +484,20 @@ enum AbstractionStrategyFactories implements AbstractionStrategyFactory {
         }
       };
     }
+
   };
 
   /**
    * Returns the union of the given sets.
    *
-   * <p>If both parameters are immutable sets, the returned set is guaranteed to be immutable.
+   * If both parameters are immutable sets, the returned set is guaranteed to
+   * be immutable.
    *
-   * <p>The result may or may not be backed by either of the sets.
+   * The result may or may not be backed by either of the sets.
    *
    * @param pSet1 the first set.
    * @param pSet2 the second set.
+   *
    * @return the union of the given sets.
    */
   private static <T> Set<T> union(Set<T> pSet1, Set<T> pSet2) {
@@ -505,19 +513,22 @@ enum AbstractionStrategyFactories implements AbstractionStrategyFactory {
   /**
    * Returns the union of the given set and the set with the given element.
    *
-   * <p>If the given set is immutable, the result is guaranteed to be immutable.
+   * If the given set is immutable, the result is guaranteed to be immutable.
    *
-   * <p>This set may or may not be backed by the given set.
+   * This set may or may not be backed by the given set.
    *
    * @param pSet the set.
    * @param pElement the element to add.
-   * @return a set containing only the elements contained in the given set and the given element.
+   *
+   * @return a set containing only the elements contained in the given set and
+   * the given element.
    */
   private static <T> Set<T> add(Set<T> pSet, T pElement) {
     return union(pSet, Collections.singleton(pElement));
   }
 
   private static enum BasicAbstractionStates implements AbstractionState {
+
     ALWAYS_STATE {
 
       @Override
@@ -544,6 +555,7 @@ enum AbstractionStrategyFactories implements AbstractionStrategyFactory {
       public Set<BooleanFormula<CompoundInterval>> getWideningHints() {
         return ImmutableSet.of();
       }
+
     },
 
     NEVER_STATE {
@@ -575,6 +587,9 @@ enum AbstractionStrategyFactories implements AbstractionStrategyFactory {
       public Set<BooleanFormula<CompoundInterval>> getWideningHints() {
         return ImmutableSet.of();
       }
+
     }
+
   }
+
 }

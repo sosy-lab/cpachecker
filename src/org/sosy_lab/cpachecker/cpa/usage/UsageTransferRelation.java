@@ -76,13 +76,14 @@ public class UsageTransferRelation extends AbstractSingleWrapperTransferRelation
   private Set<String> skippedfunctions = ImmutableSet.of();
 
   @Option(
-      description =
-          "functions, which are used to bind variables (like list elements are binded to list"
-              + " variable)",
-      secure = true)
+    description =
+        "functions, which are used to bind variables (like list elements are binded to list variable)",
+    secure = true
+  )
   private Set<String> binderFunctions = ImmutableSet.of();
 
-  @Option(description = "functions, which are marked as write access", secure = true)
+  @Option(description = "functions, which are marked as write access",
+      secure = true)
   private Set<String> writeAccessFunctions = ImmutableSet.of();
 
   @Option(name = "abortfunctions", description = "functions, which stops analysis", secure = true)
@@ -319,7 +320,11 @@ public class UsageTransferRelation extends AbstractSingleWrapperTransferRelation
       for (int i = 0; i < params.size(); i++) {
         id = currentInfo.createParamenterIdentifier(params.get(i), i, getCurrentFunction());
         id = newState.getLinksIfNecessary(id);
-        UsageInfo usage = UsageInfo.createUsageInfo(currentInfo.getBindedAccess(i), newState, id);
+        UsageInfo usage =
+            UsageInfo.createUsageInfo(
+                currentInfo.getBindedAccess(i),
+                newState,
+                id);
         addUsageIfNeccessary(usage);
       }
 
@@ -391,7 +396,11 @@ public class UsageTransferRelation extends AbstractSingleWrapperTransferRelation
     for (Pair<AbstractIdentifier, Access> pair : handler.getProcessedExpressions()) {
       AbstractIdentifier id = pair.getFirst();
       id = newState.getLinksIfNecessary(id);
-      UsageInfo usage = UsageInfo.createUsageInfo(pair.getSecond(), newState, id);
+      UsageInfo usage =
+          UsageInfo.createUsageInfo(
+              pair.getSecond(),
+              newState,
+              id);
       addUsageIfNeccessary(usage);
     }
   }

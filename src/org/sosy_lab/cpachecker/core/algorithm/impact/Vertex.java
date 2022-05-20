@@ -25,9 +25,10 @@ import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.BooleanFormulaManager;
 
 /**
- * This class represents the vertices/abstract states used by the {@link ImpactAlgorithm}. This
- * class is basically similar to {@link AbstractState}, but allows only one parent and additionally
- * stores a modifiable state formula.
+ * This class represents the vertices/abstract states used by the
+ * {@link ImpactAlgorithm}.
+ * This class is basically similar to {@link AbstractState},
+ * but allows only one parent and additionally stores a modifiable state formula.
  */
 class Vertex extends AbstractSingleWrapperState {
 
@@ -52,17 +53,14 @@ class Vertex extends AbstractSingleWrapperState {
     stateFormula = pStateFormula;
   }
 
-  public Vertex(
-      BooleanFormulaManager bfmgr,
-      Vertex pParent,
-      BooleanFormula pStateFormula,
-      @Nullable AbstractState pElement) {
+  public Vertex(BooleanFormulaManager bfmgr, Vertex pParent, BooleanFormula pStateFormula, @Nullable AbstractState pElement) {
     super(pElement);
     this.bfmgr = bfmgr;
     parent = checkNotNull(pParent);
     parent.children.add(this);
     stateFormula = checkNotNull(pStateFormula);
   }
+
 
   public BooleanFormula getStateFormula() {
     return stateFormula;
@@ -83,7 +81,6 @@ class Vertex extends AbstractSingleWrapperState {
 
   /**
    * Uncover all nodes covered by this node.
-   *
    * @return a list of all nodes that were previously covered by this node
    */
   public List<Vertex> cleanCoverage() {
@@ -153,8 +150,7 @@ class Vertex extends AbstractSingleWrapperState {
   }
 
   public boolean isLeaf() {
-    return children.isEmpty()
-        && AbstractStates.extractLocation(getWrappedState()).getNumLeavingEdges() > 0;
+    return children.isEmpty() && AbstractStates.extractLocation(getWrappedState()).getNumLeavingEdges() > 0;
   }
 
   @Override

@@ -13,7 +13,9 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.Formula;
 
-/** Class for creating {@link Formula}s out of {@link Constraint}s */
+/**
+ * Class for creating {@link Formula}s out of {@link Constraint}s
+ */
 public interface FormulaCreator {
 
   /**
@@ -22,6 +24,5 @@ public interface FormulaCreator {
    * @param pConstraint the constraint to create a formula of
    * @return a <code>Formula</code> representing the given constraint
    */
-  BooleanFormula createFormula(Constraint pConstraint)
-      throws UnrecognizedCodeException, InterruptedException;
+  BooleanFormula createFormula(Constraint pConstraint) throws UnrecognizedCodeException, InterruptedException;
 }

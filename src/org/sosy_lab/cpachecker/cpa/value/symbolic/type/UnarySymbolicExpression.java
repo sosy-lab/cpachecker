@@ -14,7 +14,8 @@ import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 /**
  * Represents a unary {@link SymbolicExpression}. Represents all <code>SymbolicExpression</code>s
- * that consist of only one operand.
+ * that consist of
+ * only one operand.
  */
 public abstract class UnarySymbolicExpression extends SymbolicExpression {
 
@@ -63,7 +64,8 @@ public abstract class UnarySymbolicExpression extends SymbolicExpression {
 
     UnarySymbolicExpression that = (UnarySymbolicExpression) o;
 
-    return super.equals(that) && operand.equals(that.operand) && type.equals(that.type);
+    return super.equals(that)
+        && operand.equals(that.operand) && type.equals(that.type);
   }
 
   @Override

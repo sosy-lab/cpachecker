@@ -34,7 +34,8 @@ final class CompositeField implements Comparable<CompositeField>, Serializable {
   private final CCompositeTypeMemberDeclaration field;
 
   private CompositeField(
-      final CCompositeType pCompositeType, final CCompositeTypeMemberDeclaration pField) {
+      final CCompositeType pCompositeType,
+      final CCompositeTypeMemberDeclaration pField) {
     compositeType = pCompositeType;
     compositeTypeStr = CTypeUtils.typeToString(pCompositeType);
     field = pField;

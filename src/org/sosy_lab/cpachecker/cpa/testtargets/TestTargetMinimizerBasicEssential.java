@@ -43,6 +43,7 @@ public class TestTargetMinimizerBasicEssential {
             break;
           }
         }
+
       }
     }
     Set<CFAEdge> finalTargets = new HashSet<>(targetsAfterRule1);
@@ -62,11 +63,14 @@ public class TestTargetMinimizerBasicEssential {
           if (testTargets.contains(leavingEdge)) {
             finalTargets.remove(currentEdge);
             break;
+
           }
         }
+
       }
     }
 
     return finalTargets;
   }
+
 }

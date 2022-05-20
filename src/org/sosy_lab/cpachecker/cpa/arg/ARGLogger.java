@@ -113,7 +113,8 @@ public class ARGLogger {
   }
 
   private String buildStatesList(Collection<AbstractState> states) {
-    return states.stream()
+    return states
+        .stream()
         .map(x -> Integer.toString(((ARGState) x).getStateId()))
         .collect(Collectors.joining(", "));
   }

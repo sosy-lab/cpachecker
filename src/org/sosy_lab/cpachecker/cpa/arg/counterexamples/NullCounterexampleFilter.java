@@ -11,7 +11,8 @@ package org.sosy_lab.cpachecker.cpa.arg.counterexamples;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 
 /**
- * Dummy implementation of {@link CounterexampleFilter} that does not filter any counterexamples.
+ * Dummy implementation of {@link CounterexampleFilter}
+ * that does not filter any counterexamples.
  */
 public class NullCounterexampleFilter implements CounterexampleFilter {
 

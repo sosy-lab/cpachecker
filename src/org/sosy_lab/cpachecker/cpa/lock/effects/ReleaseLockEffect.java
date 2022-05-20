@@ -14,7 +14,7 @@ import org.sosy_lab.cpachecker.cpa.lock.LockIdentifier;
 
 public final class ReleaseLockEffect extends LockEffect {
 
-  private static final ReleaseLockEffect instance = new ReleaseLockEffect();
+  private final static ReleaseLockEffect instance = new ReleaseLockEffect();
 
   private ReleaseLockEffect(LockIdentifier id) {
     super(id);

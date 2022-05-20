@@ -38,15 +38,12 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.Pair;
 
 @Options(prefix = "pcc.backwardtargets")
-public class BackwardTargetsReachedSetStrategy extends SequentialReadStrategy
-    implements StatisticsProvider {
+public class BackwardTargetsReachedSetStrategy extends SequentialReadStrategy implements StatisticsProvider {
 
   private final @Nullable AlgorithmWithPropertyCheck algorithm;
   private AbstractState[] backwardTargets;
 
-  @Option(
-      secure = true,
-      description = "Enable to store ARG states instead of abstract states wrapped by ARG state")
+  @Option(secure = true, description = "Enable to store ARG states instead of abstract states wrapped by ARG state")
   private boolean certificateStatesAsARGStates = false;
 
   public BackwardTargetsReachedSetStrategy(
@@ -93,8 +90,7 @@ public class BackwardTargetsReachedSetStrategy extends SequentialReadStrategy
       top = toVisit.peek();
 
       if (!top.getSecond().hasNext()) {
-        exploreTimes.put(
-            top.getFirst(), Pair.of(exploreTimes.get(top.getFirst()).getFirst(), time++));
+        exploreTimes.put(top.getFirst(), Pair.of(exploreTimes.get(top.getFirst()).getFirst(), time++));
         toVisit.pop();
         continue;
       }
@@ -127,8 +123,7 @@ public class BackwardTargetsReachedSetStrategy extends SequentialReadStrategy
   }
 
   @Override
-  public boolean checkCertificate(final ReachedSet pReachedSet)
-      throws CPAException, InterruptedException {
+  public boolean checkCertificate(final ReachedSet pReachedSet) throws CPAException, InterruptedException {
     // get initial precision
     Precision initPrec = pReachedSet.getPrecision(pReachedSet.getFirstState());
 
@@ -162,4 +157,5 @@ public class BackwardTargetsReachedSetStrategy extends SequentialReadStrategy
       algorithm.collectStatistics(statsCollection);
     }
   }
+
 }

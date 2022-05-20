@@ -21,4 +21,5 @@ public interface Splitable {
    *     the old state
    */
   AbstractState forkWithReplacements(Collection<AbstractState> pReplacementStates);
+
 }

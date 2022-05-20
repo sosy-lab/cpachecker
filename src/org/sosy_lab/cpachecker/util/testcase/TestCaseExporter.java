@@ -430,7 +430,9 @@ public class TestCaseExporter {
       final TestVector vector = maybeTestVector.orElseThrow().getVector();
 
       List<String> inputs =
-          vector.getTestInputsInOrder().stream()
+          vector
+              .getTestInputsInOrder()
+              .stream()
               .filter(v -> !excludeInitialization || (v instanceof ExpressionTestValue))
               .map(v -> unpack(v.getValue()))
               .collect(ImmutableList.toImmutableList());

@@ -34,7 +34,8 @@ public class BAMBlockOperator extends BlockOperator {
 
   @Override
   public boolean alwaysReturnsFalse() {
-    return super.alwaysReturnsFalse() && partitioning.getBlocks().isEmpty();
+    return super.alwaysReturnsFalse()
+        && partitioning.getBlocks().isEmpty();
   }
 
   public BlockPartitioning getPartitioning() {

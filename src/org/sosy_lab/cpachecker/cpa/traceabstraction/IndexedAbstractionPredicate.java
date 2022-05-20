@@ -50,8 +50,7 @@ class IndexedAbstractionPredicate implements Comparable<IndexedAbstractionPredic
     if (result == 0 && !predicate.equals(pOther.predicate)) {
       throw new AssertionError(
           String.format(
-              "IndexedAbstractionPredicates that have the same indices should be equal%nThis:"
-                  + " %s%nOther: %s",
+              "IndexedAbstractionPredicates that have the same indices should be equal%nThis: %s%nOther: %s",
               this, pOther));
     }
 

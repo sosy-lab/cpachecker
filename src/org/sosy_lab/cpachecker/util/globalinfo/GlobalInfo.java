@@ -22,6 +22,7 @@ import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 
+
 public class GlobalInfo {
   private static GlobalInfo instance;
   private CFAInfo cfaInfo;
@@ -32,7 +33,9 @@ public class GlobalInfo {
   private ApronManager apronManager;
   private LogManager apronLogger;
 
-  private GlobalInfo() {}
+  private GlobalInfo() {
+
+  }
 
   public static synchronized GlobalInfo getInstance() {
     if (instance == null) {
@@ -101,4 +104,5 @@ public class GlobalInfo {
     Preconditions.checkState(assumptionFormulaManagerView != null);
     return assumptionFormulaManagerView;
   }
+
 }

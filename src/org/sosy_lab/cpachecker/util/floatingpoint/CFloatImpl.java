@@ -278,7 +278,8 @@ public class CFloatImpl extends CFloat {
     long overflow = 0L;
 
     for (int i = 0; i < (bitArray.length / 2); i++) {
-      mantissa ^= ((long) bitArray[i]) << (bitArray.length / 2 - 1 - i);
+      mantissa ^=
+          ((long) bitArray[i]) << (bitArray.length / 2 - 1 - i);
       overflow ^= ((long) bitArray[i + bitArray.length / 2]) << (63 - i);
     }
 
@@ -504,6 +505,7 @@ public class CFloatImpl extends CFloat {
     }
 
     long rExp = 0;
+
 
     // extract bit representations for operation
     long tExp = tSummand.getExponent() & tSummand.getExponentMask();
@@ -733,6 +735,7 @@ public class CFloatImpl extends CFloat {
     } else {
       multiplyBits(oMan, tMan, mantissaLength, bitfield);
     }
+
 
     // correction summand for default normalization
     int cExp = (bitfield[mantissaLength * 2 - 1] == 1 ? 1 : 0);
@@ -1607,8 +1610,7 @@ public class CFloatImpl extends CFloat {
           fracArray[fracArray.length - 1] = 5;
         }
         assert integralArray.length == 1 && integralArray[0] <= 1
-            : "Exponent <= 0, but integral of mantissa larger than 1 - shouldn't be possible in"
-                  + " IEEE 754";
+            : "Exponent <= 0, but integral of mantissa larger than 1 - shouldn't be possible in IEEE 754";
         if (integralArray[0] == 1) {
           integralArray = copyAllButFirstCell(integralArray);
           int[] oneHalf = new int[fracArray.length];

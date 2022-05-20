@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.cpa.smg.refiner;
 
+
 public interface SMGUseVertice {
 
   int getPosition();

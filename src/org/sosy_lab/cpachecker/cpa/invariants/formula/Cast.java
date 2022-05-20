@@ -53,8 +53,7 @@ class Cast<ConstantType> extends AbstractFormula<ConstantType> {
 
   @Override
   public <ReturnType, ParamType> ReturnType accept(
-      ParameterizedNumeralFormulaVisitor<ConstantType, ParamType, ReturnType> pVisitor,
-      ParamType pParameter) {
+      ParameterizedNumeralFormulaVisitor<ConstantType, ParamType, ReturnType> pVisitor, ParamType pParameter) {
     return pVisitor.visit(this, pParameter);
   }
 
@@ -62,4 +61,5 @@ class Cast<ConstantType> extends AbstractFormula<ConstantType> {
       TypeInfo pTypeInfo, NumeralFormula<ConstantType> pCasted) {
     return new Cast<>(pTypeInfo, pCasted);
   }
+
 }

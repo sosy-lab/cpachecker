@@ -21,7 +21,8 @@ public class UsageInfoSet extends TreeSet<UsageInfo> {
 
   private static final long serialVersionUID = -5057827815596702715L;
 
-  public UsageInfoSet() {}
+  public UsageInfoSet() {
+  }
 
   private UsageInfoSet(NavigableSet<UsageInfo> pSet) {
     super(pSet);

@@ -14,7 +14,7 @@ import org.sosy_lab.cpachecker.cpa.lock.LockIdentifier;
 
 public final class RestoreLockEffect extends LockEffect {
 
-  private static final RestoreLockEffect instance = new RestoreLockEffect();
+  private final static RestoreLockEffect instance = new RestoreLockEffect();
 
   private RestoreLockEffect(LockIdentifier id) {
     super(id);

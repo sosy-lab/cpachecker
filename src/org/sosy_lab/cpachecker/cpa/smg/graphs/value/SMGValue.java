@@ -55,9 +55,7 @@ public interface SMGValue extends Comparable<SMGValue> {
       if (other.isUnknown() || other.isZero()) {
         return 1;
       } else if (other instanceof SMGExplicitValue) {
-        return ((SMGExplicitValue) this)
-            .getValue()
-            .compareTo(((SMGExplicitValue) other).getValue());
+        return ((SMGExplicitValue) this).getValue().compareTo(((SMGExplicitValue) other).getValue());
       } else {
         return -1;
       }

@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.exceptions;
 import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 
+
 public class CParserException extends ParserException {
 
   private static final long serialVersionUID = 2377475523222354924L;
@@ -23,6 +24,7 @@ public class CParserException extends ParserException {
     super(pCause, Language.C);
   }
 
+
   public CParserException(String pMsg, Throwable pCause) {
     super(pMsg, pCause, Language.C);
   }
@@ -30,4 +32,5 @@ public class CParserException extends ParserException {
   public CParserException(String pMsg, CFAEdge pEdge) {
     super(pMsg, pEdge, Language.C);
   }
+
 }

@@ -6,5 +6,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-/** Utilities for collecting and dumping statistics about an analysis. */
+/**
+ * Utilities for collecting and dumping statistics about an analysis.
+ */
 package org.sosy_lab.cpachecker.util.statistics;

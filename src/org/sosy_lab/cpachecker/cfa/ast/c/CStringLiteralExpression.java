@@ -21,13 +21,14 @@ import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
-public final class CStringLiteralExpression extends AStringLiteralExpression
-    implements CLiteralExpression {
+public final class CStringLiteralExpression extends AStringLiteralExpression implements CLiteralExpression {
 
   private static final long serialVersionUID = 2656216584704518185L;
 
-  public CStringLiteralExpression(FileLocation pFileLocation, CType pType, String pValue) {
-    super(pFileLocation, pType, pValue);
+  public CStringLiteralExpression(FileLocation pFileLocation,
+                                     CType pType,
+                                     String pValue) {
+    super(pFileLocation, pType,  pValue);
   }
 
   @Override
@@ -57,7 +58,7 @@ public final class CStringLiteralExpression extends AStringLiteralExpression
 
   public String getContentString() {
     String literal = getValue();
-    return literal.substring(1, literal.length() - 1);
+    return literal.substring(1, literal.length()-1);
   }
 
   @Override
@@ -78,12 +79,15 @@ public final class CStringLiteralExpression extends AStringLiteralExpression
     return super.equals(obj);
   }
 
+
   /**
    * Expand a string literal to an array of characters.
    *
-   * <p>http://stackoverflow.com/a/6915917 As the C99 Draft Specification's 32nd Example in §6.7.8
-   * (p. 130) states char s[] = "abc", t[3] = "abc"; is identical to: char s[] = { 'a', 'b', 'c',
-   * '\0' }, t[] = { 'a', 'b', 'c' };
+   * http://stackoverflow.com/a/6915917
+   * As the C99 Draft Specification's 32nd Example in §6.7.8 (p. 130) states
+   *    char s[] = "abc", t[3] = "abc";
+   *  is identical to:
+   *    char s[] = { 'a', 'b', 'c', '\0' }, t[] = { 'a', 'b', 'c' };
    *
    * @param type The type of the character array.
    * @return List of character-literal expressions
@@ -98,8 +102,7 @@ public final class CStringLiteralExpression extends AStringLiteralExpression
     // create one CharLiteralExpression for each character of the string
     final List<CCharLiteralExpression> result = new ArrayList<>();
     for (int i = 0; i < s.length(); i++) {
-      result.add(
-          new CCharLiteralExpression(getFileLocation(), CNumericTypes.SIGNED_CHAR, s.charAt(i)));
+      result.add(new CCharLiteralExpression(getFileLocation(), CNumericTypes.SIGNED_CHAR, s.charAt(i)));
     }
 
     // http://stackoverflow.com/questions/10828294/c-and-c-partial-initialization-of-automatic-structure
@@ -116,24 +119,24 @@ public final class CStringLiteralExpression extends AStringLiteralExpression
 
   public CArrayType transformTypeToArrayType() throws UnrecognizedCodeException {
 
-    CExpression length =
-        new CIntegerLiteralExpression(
-            getFileLocation(),
-            new CSimpleType(
-                false, false, CBasicType.INT, false, false, false, false, false, false, false),
-            BigInteger.valueOf(getValue().length() - 1));
+    CExpression length = new CIntegerLiteralExpression(getFileLocation(),
+        new CSimpleType(false, false, CBasicType.INT, false, false, false,false,
+            false, false, false), BigInteger
+        .valueOf(getValue().length() -1));
 
     if (getExpressionType() instanceof CArrayType) {
       CArrayType arrayType = (CArrayType) getExpressionType();
-      if (arrayType.getLengthAsInt().orElse(0) == 0) {
+      if(arrayType.getLengthAsInt().orElse(0) == 0){
         arrayType = new CArrayType(false, false, arrayType.getType(), length);
       }
       return arrayType;
     } else if (getExpressionType() instanceof CPointerType) {
-      return new CArrayType(false, false, ((CPointerType) getExpressionType()).getType(), length);
+      return new CArrayType(false, false, ((CPointerType) getExpressionType() ).getType(), length);
     } else {
       throw new UnrecognizedCodeException(
           "Assigning string literal to " + getExpressionType(), this);
     }
   }
+
+
 }

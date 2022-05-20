@@ -47,15 +47,9 @@ public class SMGExportDotOption {
 
   @Override
   public String toString() {
-    return "SMGExportDotOption [exportSMG="
-        + exportSMG
-        + ", exportSMGFilePattern="
-        + exportSMGFilePattern
-        + ", isRefinement="
-        + isRefinement
-        + ", refinement_counter="
-        + refinement_id
-        + "]";
+    return "SMGExportDotOption [exportSMG=" + exportSMG + ", exportSMGFilePattern="
+        + exportSMGFilePattern + ", isRefinement=" + isRefinement + ", refinement_counter="
+        + refinement_id + "]";
   }
 
   public Path getOutputFilePath(String pSMGName) {

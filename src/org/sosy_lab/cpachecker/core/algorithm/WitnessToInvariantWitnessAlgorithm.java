@@ -91,8 +91,9 @@ public class WitnessToInvariantWitnessAlgorithm implements Algorithm {
         invariantExporter.exportInvariantWitness(invariantWitness);
       } catch (IOException e) {
         logger.log(Level.WARNING, "Could not write witness to file");
-      }
+    }
     }
     return AlgorithmStatus.NO_PROPERTY_CHECKED;
   }
+
 }

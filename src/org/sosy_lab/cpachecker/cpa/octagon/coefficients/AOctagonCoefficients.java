@@ -21,7 +21,9 @@ public abstract class AOctagonCoefficients implements IOctagonCoefficients {
     this.oct = oct;
   }
 
-  /** {@inheritDoc} */
+  /**
+   * {@inheritDoc}
+   */
   @Override
   public int size() {
     return size;
@@ -34,28 +36,26 @@ public abstract class AOctagonCoefficients implements IOctagonCoefficients {
     return prime * result;
   }
 
-  protected abstract IOctagonCoefficients mulInner(IOctagonCoefficients pOct);
-
-  protected abstract IOctagonCoefficients divInner(IOctagonCoefficients pOct);
+  abstract protected IOctagonCoefficients mulInner(IOctagonCoefficients pOct);
+  abstract protected IOctagonCoefficients divInner(IOctagonCoefficients pOct);
 
   @Override
-  public final IOctagonCoefficients mul(IOctagonCoefficients other) {
+  final public IOctagonCoefficients mul(IOctagonCoefficients other) {
     if (other instanceof OctagonUniversalCoefficients) {
       return OctagonUniversalCoefficients.INSTANCE;
     } else if (other instanceof AOctagonCoefficients) {
       if (hasOnlyOneValue()) {
         return mulInner(other);
       } else if (other.hasOnlyOneValue()) {
-        return ((AOctagonCoefficients) other).mulInner(this);
+        return ((AOctagonCoefficients)other).mulInner(this);
       }
-      throw new IllegalArgumentException(
-          "At least one of the coefficients has to be a single variable or constant.");
+      throw new IllegalArgumentException("At least one of the coefficients has to be a single variable or constant.");
     }
     throw new IllegalArgumentException("Unkown subtype of OctCoefficients");
   }
 
   @Override
-  public final IOctagonCoefficients div(IOctagonCoefficients other) {
+  final public IOctagonCoefficients div(IOctagonCoefficients other) {
     if (other instanceof OctagonUniversalCoefficients) {
       return OctagonUniversalCoefficients.INSTANCE;
     } else if (other instanceof AOctagonCoefficients) {

@@ -12,14 +12,18 @@ import com.google.common.collect.ImmutableSet;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.Constraint;
 
-/** Information about {@link Constraint}s needed for symbolic interpolation. */
+/**
+ * Information about {@link Constraint}s needed for symbolic interpolation.
+ */
 public final class ConstraintsInformation {
 
   public static final ConstraintsInformation EMPTY = new ConstraintsInformation(ImmutableSet.of());
 
   private final Set<Constraint> constraints;
 
-  public ConstraintsInformation(final Set<Constraint> pConstraints) {
+  public ConstraintsInformation(
+      final Set<Constraint> pConstraints
+  ) {
     constraints = pConstraints;
   }
 
@@ -36,10 +40,11 @@ public final class ConstraintsInformation {
       return false;
     }
 
-    ConstraintsInformation that = (ConstraintsInformation) o;
+    ConstraintsInformation that = (ConstraintsInformation)o;
 
     return constraints.size() == that.constraints.size()
         && constraints.containsAll(that.constraints);
+
   }
 
   @Override
@@ -49,6 +54,8 @@ public final class ConstraintsInformation {
 
   @Override
   public String toString() {
-    return "ConstraintsInformation[" + "constraints=" + constraints + ']';
+    return "ConstraintsInformation[" +
+        "constraints=" + constraints +
+        ']';
   }
 }

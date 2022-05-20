@@ -119,11 +119,12 @@ public final class PathFormula implements Serializable {
       return false;
     }
 
-    PathFormula other = (PathFormula) obj;
+    PathFormula other = (PathFormula)obj;
     return (length == other.length)
         && formula.equals(other.formula)
         && ssa.equals(other.ssa)
-        && pts.equals(other.pts);
+        && pts.equals(other.pts)
+        ;
   }
 
   @Override

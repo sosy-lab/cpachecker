@@ -22,8 +22,10 @@ import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets;
 import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
-/** Implements an BAM-based predicate CPA. */
-@Options(prefix = "cpa.predicate.bam")
+/**
+ * Implements an BAM-based predicate CPA.
+ */
+@Options(prefix="cpa.predicate.bam")
 public class BAMPredicateCPA extends PredicateCPA implements ConfigurableProgramAnalysisWithBAM {
 
   public static CPAFactory factory() {

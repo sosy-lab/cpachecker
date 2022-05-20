@@ -24,8 +24,10 @@ import org.sosy_lab.java_smt.api.Model.ValueAssignment;
 import org.sosy_lab.java_smt.api.SolverException;
 
 /**
- * This is a class that allows to use a different SMT solver for interpolation than for the rest.
- * Whenever it is used, it copies the formulas to the interpolation SMT solver and back accordingly.
+ * This is a class that allows to use a different SMT solver for interpolation
+ * than for the rest.
+ * Whenever it is used, it copies the formulas to the interpolation SMT solver
+ * and back accordingly.
  */
 public class SeparateInterpolatingProverEnvironment<T>
     implements InterpolatingProverEnvironment<T> {

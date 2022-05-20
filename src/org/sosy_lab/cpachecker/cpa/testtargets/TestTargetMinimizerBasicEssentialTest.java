@@ -216,5 +216,6 @@ public class TestTargetMinimizerBasicEssentialTest {
     Set<CFAEdge> result = uut.reduceTargets(testTargets);
     assertThat(result.contains(c)).isFalse();
     assertThat(result.contains(d)).isTrue();
+
   }
 }

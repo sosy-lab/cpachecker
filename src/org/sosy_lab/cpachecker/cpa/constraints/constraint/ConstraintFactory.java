@@ -32,8 +32,7 @@ import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 /**
- * Factory for creating {@link org.sosy_lab.cpachecker.cpa.constraints.constraint.Constraint}
- * objects.
+ * Factory for creating {@link org.sosy_lab.cpachecker.cpa.constraints.constraint.Constraint} objects.
  */
 public class ConstraintFactory {
 
@@ -44,10 +43,8 @@ public class ConstraintFactory {
 
   private SymbolicValueFactory expressionFactory;
 
-  private ConstraintFactory(
-      String pFunctionName,
-      ValueAnalysisState pValueState,
-      MachineModel pMachineModel,
+
+  private ConstraintFactory(String pFunctionName, ValueAnalysisState pValueState, MachineModel pMachineModel,
       LogManagerWithoutDuplicates pLogger) {
 
     machineModel = pMachineModel;
@@ -57,16 +54,12 @@ public class ConstraintFactory {
     expressionFactory = SymbolicValueFactory.getInstance();
   }
 
-  public static ConstraintFactory getInstance(
-      String pFunctionName,
-      ValueAnalysisState pValueState,
-      MachineModel pMachineModel,
-      LogManagerWithoutDuplicates pLogger) {
+  public static ConstraintFactory getInstance(String pFunctionName, ValueAnalysisState pValueState,
+      MachineModel pMachineModel, LogManagerWithoutDuplicates pLogger) {
     return new ConstraintFactory(pFunctionName, pValueState, pMachineModel, pLogger);
   }
 
-  public Constraint createNegativeConstraint(CBinaryExpression pExpression)
-      throws UnrecognizedCodeException {
+  public Constraint createNegativeConstraint(CBinaryExpression pExpression) throws UnrecognizedCodeException {
     Constraint positiveConstraint = createPositiveConstraint(pExpression);
 
     if (positiveConstraint == null) {
@@ -76,8 +69,7 @@ public class ConstraintFactory {
     }
   }
 
-  public Constraint createNegativeConstraint(JUnaryExpression pExpression)
-      throws UnrecognizedCodeException {
+  public Constraint createNegativeConstraint(JUnaryExpression pExpression) throws UnrecognizedCodeException {
     Constraint positiveConstraint = createPositiveConstraint(pExpression);
 
     if (positiveConstraint == null) {
@@ -87,8 +79,7 @@ public class ConstraintFactory {
     }
   }
 
-  public Constraint createNegativeConstraint(JBinaryExpression pExpression)
-      throws UnrecognizedCodeException {
+  public Constraint createNegativeConstraint(JBinaryExpression pExpression) throws UnrecognizedCodeException {
     Constraint positiveConstraint = createPositiveConstraint(pExpression);
 
     if (positiveConstraint == null) {
@@ -99,7 +90,7 @@ public class ConstraintFactory {
   }
 
   public Constraint createNegativeConstraint(AIdExpression pExpression) {
-    Constraint positiveConstraint = createPositiveConstraint(pExpression);
+   Constraint positiveConstraint = createPositiveConstraint(pExpression);
 
     if (positiveConstraint == null) {
       return null;
@@ -108,8 +99,7 @@ public class ConstraintFactory {
     }
   }
 
-  public Constraint createPositiveConstraint(CBinaryExpression pExpression)
-      throws UnrecognizedCodeException {
+  public Constraint createPositiveConstraint(CBinaryExpression pExpression) throws UnrecognizedCodeException {
     final CExpressionTransformer transformer = getCTransformer();
 
     assert isConstraint(pExpression);
@@ -130,15 +120,13 @@ public class ConstraintFactory {
     }
   }
 
-  public Constraint createPositiveConstraint(JUnaryExpression pExpression)
-      throws UnrecognizedCodeException {
+  public Constraint createPositiveConstraint(JUnaryExpression pExpression) throws UnrecognizedCodeException {
     assert pExpression.getOperator() == JUnaryExpression.UnaryOperator.NOT;
 
     return (Constraint) getJavaTransformer().transform(pExpression);
   }
 
-  public Constraint createPositiveConstraint(JBinaryExpression pExpression)
-      throws UnrecognizedCodeException {
+  public Constraint createPositiveConstraint(JBinaryExpression pExpression) throws UnrecognizedCodeException {
     final JExpressionTransformer transformer = getJavaTransformer();
 
     assert isConstraint(pExpression);
@@ -174,24 +162,22 @@ public class ConstraintFactory {
     }
   }
 
-  private Constraint transformValueToConstraint(
-      SymbolicExpression pExpression, Type expressionType) {
+  private Constraint transformValueToConstraint(SymbolicExpression pExpression, Type expressionType) {
 
     if (isNumeric(expressionType)) {
       // 1 == pExpression
-      // We do not have to cast the values to a specific calculation type, as every type can
-      // represent 1 and 0.
-      return createEqual(
-          getOneConstant(expressionType), pExpression, expressionType, pExpression.getType());
+      // We do not have to cast the values to a specific calculation type, as every type can represent 1 and 0.
+      return createEqual(getOneConstant(expressionType), pExpression, expressionType,
+          pExpression.getType());
 
     } else if (isBoolean(expressionType)) {
       assert expressionType instanceof JType : "Expression is boolean but not a constraint in C!";
-      return createEqual(
-          pExpression, getTrueValueConstant(), expressionType, pExpression.getType());
+      return createEqual(pExpression, getTrueValueConstant(), expressionType, pExpression.getType());
 
     } else {
       throw new AssertionError("Unexpected type " + expressionType);
     }
+
   }
 
   private JExpressionTransformer getJavaTransformer() {
@@ -217,7 +203,7 @@ public class ConstraintFactory {
 
       return false;
     } else if (pType instanceof JSimpleType) {
-      switch (((JSimpleType) pType).getType()) {
+      switch (((JSimpleType)pType).getType()) {
         case BYTE:
         case CHAR:
         case SHORT:
@@ -244,8 +230,8 @@ public class ConstraintFactory {
           && ((CSimpleType) canonicalType).getType() == CBasicType.BOOL;
     }
 
-    if (pType instanceof JSimpleType) {
-      return ((JSimpleType) pType).getType() == JBasicType.BOOLEAN;
+    if(pType instanceof JSimpleType) {
+      return ((JSimpleType)pType).getType() == JBasicType.BOOLEAN;
     } else {
       throw new AssertionError("Unexpected type " + pType);
     }
@@ -269,11 +255,8 @@ public class ConstraintFactory {
         expressionFactory.logicalNot(pSymbolicExpression, pSymbolicExpression.getType());
   }
 
-  private Constraint createEqual(
-      SymbolicExpression pLeftOperand,
-      SymbolicExpression pRightOperand,
-      Type pExpressionType,
-      Type pCalculationType) {
+  private Constraint createEqual(SymbolicExpression pLeftOperand, SymbolicExpression pRightOperand,
+      Type pExpressionType, Type pCalculationType) {
 
     return expressionFactory.equal(pLeftOperand, pRightOperand, pExpressionType, pCalculationType);
   }

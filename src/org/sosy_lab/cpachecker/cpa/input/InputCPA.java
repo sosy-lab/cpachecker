@@ -31,4 +31,5 @@ public class InputCPA extends AbstractCPA {
       throws InterruptedException {
     return InputState.empty();
   }
+
 }

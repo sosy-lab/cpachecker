@@ -17,9 +17,8 @@ import org.sosy_lab.cpachecker.util.statistics.StatCounter;
 import org.sosy_lab.cpachecker.util.statistics.StatTimer;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 
-public abstract class GenericSinglePathRefiner
-    extends WrappedConfigurableRefinementBlock<
-        Pair<ExtendedARGPath, ExtendedARGPath>, Pair<ExtendedARGPath, ExtendedARGPath>> {
+public abstract class GenericSinglePathRefiner extends
+    WrappedConfigurableRefinementBlock<Pair<ExtendedARGPath, ExtendedARGPath>, Pair<ExtendedARGPath, ExtendedARGPath>>  {
 
   private StatTimer totalTimer = new StatTimer("Time for generic refiner");
   private StatCounter numberOfRefinements = new StatCounter("Number of refinements");
@@ -31,15 +30,14 @@ public abstract class GenericSinglePathRefiner
   }
 
   @Override
-  public final RefinementResult performBlockRefinement(
-      Pair<ExtendedARGPath, ExtendedARGPath> pInput) throws CPAException, InterruptedException {
+  public final RefinementResult performBlockRefinement(Pair<ExtendedARGPath, ExtendedARGPath> pInput) throws CPAException, InterruptedException {
     totalTimer.start();
 
     try {
       ExtendedARGPath firstPath = pInput.getFirst();
       ExtendedARGPath secondPath = pInput.getSecond();
 
-      // Refine paths separately
+      //Refine paths separately
       RefinementResult result = refinePath(firstPath);
       if (result.isFalse()) {
         return result;
@@ -57,13 +55,12 @@ public abstract class GenericSinglePathRefiner
     }
   }
 
-  private RefinementResult refinePath(ExtendedARGPath path)
-      throws CPAException, InterruptedException {
+  private RefinementResult refinePath(ExtendedARGPath path) throws CPAException, InterruptedException {
     Preconditions.checkArgument(!path.isUnreachable(), "Path could not be unreachable here");
 
     if (path.isRefinedAsReachableBy(this)) {
-      // Means that is is reachable, but other refiners declined it.
-      // Now the pair changes. Do not refine it again.
+      //Means that is is reachable, but other refiners declined it.
+      //Now the pair changes. Do not refine it again.
       numberOfRepeatedPath.inc();
       return RefinementResult.createTrue();
     }
@@ -81,8 +78,10 @@ public abstract class GenericSinglePathRefiner
 
   @Override
   public final void printStatistics(StatisticsWriter pOut) {
-    StatisticsWriter writer =
-        pOut.spacer().put(totalTimer).put(numberOfRefinements).put(numberOfRepeatedPath);
+    StatisticsWriter writer = pOut.spacer()
+        .put(totalTimer)
+        .put(numberOfRefinements)
+        .put(numberOfRepeatedPath);
 
     printAdditionalStatistics(writer);
     wrappedRefiner.printStatistics(writer);
@@ -91,6 +90,5 @@ public abstract class GenericSinglePathRefiner
   @ForOverride
   protected void printAdditionalStatistics(@SuppressWarnings("unused") StatisticsWriter pOut) {}
 
-  protected abstract RefinementResult call(ExtendedARGPath path)
-      throws CPAException, InterruptedException;
+  protected abstract RefinementResult call(ExtendedARGPath path) throws CPAException, InterruptedException;
 }

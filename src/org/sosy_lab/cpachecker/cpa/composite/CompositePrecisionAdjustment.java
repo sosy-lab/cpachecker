@@ -64,13 +64,11 @@ class CompositePrecisionAdjustment implements PrecisionAdjustment {
       PrecisionAdjustment precisionAdjustment = precisionAdjustments.get(i);
       AbstractState oldElement = comp.get(i);
       Precision oldPrecision = prec.get(i);
-      Optional<PrecisionAdjustmentResult> out =
-          precisionAdjustment.prec(
-              oldElement,
-              oldPrecision,
-              pElements,
-              Functions.compose(stateProjectionFunctions.get(i), projection),
-              fullState);
+      Optional<PrecisionAdjustmentResult> out = precisionAdjustment.prec(
+          oldElement, oldPrecision, pElements,
+          Functions.compose(stateProjectionFunctions.get(i), projection),
+          fullState
+      );
 
       if (!out.isPresent()) {
         return Optional.empty();

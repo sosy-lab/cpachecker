@@ -13,4 +13,5 @@ import java.math.BigInteger;
 public interface SMGEdge {
 
   BigInteger getOffset();
+
 }

@@ -45,6 +45,7 @@ public class PowerSetDomain implements AbstractDomain {
       if (!coverSet.contains(state) && !stop.stop(state, coverSet, prec)) {
         stateSet.add(state);
       }
+
     }
 
     if (stateSet.isEmpty()) {
@@ -68,9 +69,7 @@ public class PowerSetDomain implements AbstractDomain {
 
   private boolean isCoverage(final PowerSetState pCovered, final PowerSetState pCovering)
       throws CPAException, InterruptedException {
-    if (prec == null) {
-      return false;
-    }
+    if (prec == null) { return false; }
     Collection<AbstractState> coverSet = pCovering.getWrappedStates();
     for (AbstractState state : pCovered.getWrappedStates()) {
 
@@ -84,4 +83,5 @@ public class PowerSetDomain implements AbstractDomain {
   public void setPrecision(final Precision pPrec) {
     prec = pPrec;
   }
+
 }

@@ -10,7 +10,8 @@ package org.sosy_lab.cpachecker.util.ci;
 
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
-public class AppliedCustomInstructionParsingFailedException extends CPAException {
+
+public class AppliedCustomInstructionParsingFailedException extends CPAException{
 
   private static final long serialVersionUID = -1974068616247550237L;
 
@@ -21,4 +22,5 @@ public class AppliedCustomInstructionParsingFailedException extends CPAException
   public AppliedCustomInstructionParsingFailedException(final String msg, final Throwable cause) {
     super(msg, cause);
   }
+
 }

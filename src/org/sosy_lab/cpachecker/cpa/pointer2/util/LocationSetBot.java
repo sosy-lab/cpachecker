@@ -10,7 +10,10 @@ package org.sosy_lab.cpachecker.cpa.pointer2.util;
 
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
+
+
 public enum LocationSetBot implements LocationSet {
+
   INSTANCE;
 
   @Override
@@ -56,5 +59,7 @@ public enum LocationSetBot implements LocationSet {
   @Override
   public String toString() {
     return Character.toString('\u22A5');
+
   }
+
 }

@@ -140,4 +140,5 @@ public class StaticCandidateProvider implements CandidateGenerator {
   public Set<CandidateInvariant> getAllCandidates() {
     return allCandidates;
   }
+
 }
