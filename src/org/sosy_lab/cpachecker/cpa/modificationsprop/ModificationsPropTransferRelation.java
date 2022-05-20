@@ -163,7 +163,8 @@ public class ModificationsPropTransferRelation extends SingleEdgeTransferRelatio
               if (edgeInOriginal instanceof CDeclarationEdge) {
                 final CDeclaration declOr = ((CDeclarationEdge) edgeInOriginal).getDeclaration(),
                     declMo = ((CDeclarationEdge) pCfaEdge).getDeclaration();
-                if (declOr.getOrigName().equals(declMo.getOrigName())) {
+                if (declOr.getOrigName() != null
+                    && declOr.getOrigName().equals(declMo.getOrigName())) {
                   helper.logCase("Taking case 4 for different declarations or modified variables.");
                   return ImmutableSet.of(
                       new ModificationsPropState(
