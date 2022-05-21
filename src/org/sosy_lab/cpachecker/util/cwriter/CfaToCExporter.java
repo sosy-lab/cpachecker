@@ -59,14 +59,16 @@ public class CfaToCExporter {
           exportFunction(functionEntryNode, globalDeclarationBuilder));
     }
     final ImmutableSortedMap<FileLocation, String> functionCodeSortedByFileLocation =
-        functionCodeBuilder.build();
+        functionCodeBuilder.buildOrThrow();
 
     final StringBuilder programBuilder = new StringBuilder();
-    programBuilder.append(
-        exportGlobalDeclarations(
-            globalDeclarationBuilder.build(), functionCodeSortedByFileLocation.keySet()));
+    programBuilder
+        .append(
+            exportGlobalDeclarations(
+                globalDeclarationBuilder.buildOrThrow(), functionCodeSortedByFileLocation.keySet()))
+        .append("\n");
     for (final String functionCode : functionCodeSortedByFileLocation.values()) {
-      programBuilder.append(functionCode);
+      programBuilder.append(functionCode).append("\n");
     }
     return programBuilder.toString();
   }
@@ -121,17 +123,14 @@ public class CfaToCExporter {
             assert blockItem instanceof SimpleBlockItem
                 : "Only statements and declarations can be split into multiple edges";
             ((SimpleBlockItem) blockItem).addEdge(cfaEdge);
-            continue;
-          }
 
-          if (currentNode instanceof CFALabelNode) {
+          } else if (currentNode instanceof CFALabelNode) {
             blockItemsSortedByFileLocation.put(loc, new LabeledStatement(cfaEdge));
-            continue;
+
+          } else {
+            blockItemsSortedByFileLocation.put(loc, new SimpleBlockItem(cfaEdge));
           }
-
-          blockItemsSortedByFileLocation.put(loc, new SimpleBlockItem(cfaEdge));
         }
-
         waitList.offer(cfaEdge.getSuccessor());
       }
     }
