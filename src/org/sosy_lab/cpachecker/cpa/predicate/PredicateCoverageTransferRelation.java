@@ -12,7 +12,6 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.HashMultiset;
 import com.google.common.collect.Multiset;
 import com.google.common.collect.Multisets;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.Set;
@@ -37,6 +36,7 @@ import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 import org.sosy_lab.cpachecker.util.predicates.BlockOperator;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
+import org.sosy_lab.cpachecker.util.variableclassification.VariablesCollectingVisitor;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 
 /**
@@ -224,10 +224,10 @@ public class PredicateCoverageTransferRelation extends PredicateTransferRelation
    */
   private Set<String> convertAssumeToVariables(CFAEdge cfaEdge) {
     if (cfaEdge.getEdgeType() == CFAEdgeType.AssumeEdge) {
-      CAssumeEdge a = (CAssumeEdge) cfaEdge;
-      CExpression exp = a.getExpression();
-      String assumeExpression = exp.toQualifiedASTString();
-      return extractVariableNames(assumeExpression);
+      CAssumeEdge assumeEdge = (CAssumeEdge) cfaEdge;
+      CExpression exp = assumeEdge.getExpression();
+      VariablesCollectingVisitor visitor = new VariablesCollectingVisitor(cfaEdge.getPredecessor());
+      return exp.accept(visitor);
     }
     return new HashSet<>();
   }
@@ -264,13 +264,6 @@ public class PredicateCoverageTransferRelation extends PredicateTransferRelation
       return true;
     }
     return false;
-  }
-
-  private Set<String> extractVariableNames(String assumeExpression) {
-    String purifiedAssumeExpression = assumeExpression.replaceAll("[()]|[\\[\\]]|!|\\s+|\\d", "");
-    purifiedAssumeExpression = purifiedAssumeExpression.replaceAll("__", "::");
-    String[] assumeParts = purifiedAssumeExpression.split("=|==");
-    return new HashSet<>(Arrays.asList(assumeParts));
   }
 
   private Set<AbstractionPredicate> getAllPredicates(PredicatePrecision precision) {
