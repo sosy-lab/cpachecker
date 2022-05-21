@@ -8,7 +8,6 @@
 
 package org.sosy_lab.cpachecker.cpa.coverage.analysisindependent;
 
-import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.defaults.FlatLatticeDomain;
@@ -35,9 +34,8 @@ public class AnalysisIndependentCoverageCPA implements CoverageCPA {
   private final StopOperator stop;
   private final CoverageCollectorHandler coverageCollectorHandler;
 
-  public AnalysisIndependentCoverageCPA(CFA pCFA, CoverageCollectorHandler pCovCollectorHandler) {
+  public AnalysisIndependentCoverageCPA(CoverageCollectorHandler pCovCollectorHandler) {
     coverageCollectorHandler = pCovCollectorHandler;
-    coverageCollectorHandler.initAnalysisIndependentCollectors(pCFA);
     domain = new FlatLatticeDomain(SingletonAbstractState.INSTANCE);
     stop = new StopSepOperator(domain);
     transfer = new AnalysisIndependentCoverageTransferRelation(coverageCollectorHandler);

@@ -37,7 +37,7 @@ public class LocationBasedCoverageMeasure implements CoverageMeasure {
     }
   }
 
-  LocationBasedCoverageMeasure(Set<CFANode> pCoveredLocations, double pMaxCount) {
+  public LocationBasedCoverageMeasure(Set<CFANode> pCoveredLocations, double pMaxCount) {
     this(LinkedHashMultiset.create(pCoveredLocations), pMaxCount);
   }
 

@@ -14,13 +14,14 @@ import com.google.common.collect.FluentIterable;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.LinkedHashMultiset;
 import com.google.common.collect.Multiset;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
-import org.sosy_lab.cpachecker.cfa.export.DOTBuilder2;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -32,6 +33,7 @@ import org.sosy_lab.cpachecker.cpa.bam.AbstractBAMCPA;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.coverage.measures.CoverageMeasureHandler;
+import org.sosy_lab.cpachecker.util.coverage.measures.CoverageMeasureType;
 import org.sosy_lab.cpachecker.util.coverage.tdcg.TimeDependentCoverageHandler;
 
 /**
@@ -40,12 +42,17 @@ import org.sosy_lab.cpachecker.util.coverage.tdcg.TimeDependentCoverageHandler;
  */
 public class ReachedSetCoverageCollector extends CoverageCollector {
   private final Multiset<CFANode> reachedLocations = LinkedHashMultiset.create();
+  private static final CoverageMeasureType[] types = {CoverageMeasureType.ReachedLocations};
 
   ReachedSetCoverageCollector(
       CoverageMeasureHandler pCoverageMeasureHandler,
       TimeDependentCoverageHandler pTimeDependentCoverageHandler,
       CFA cfa) {
     super(pCoverageMeasureHandler, pTimeDependentCoverageHandler, cfa);
+  }
+
+  public void collect(CoverageCollectorHandler coverageCollectorHandler) {
+    collect(coverageCollectorHandler, types);
   }
 
   public void collectFromReachedSet(
@@ -81,7 +88,7 @@ public class ReachedSetCoverageCollector extends CoverageCollector {
     Multiset<CFANode> locations = LinkedHashMultiset.create();
     for (AbstractState state : reached) {
       for (CFANode node : AbstractStates.extractLocations(state)) {
-        locations.addAll(DOTBuilder2.extractNodesFromCombinedEdges(node));
+        locations.addAll(extractNodesFromAggregatedBasicBlock(node));
       }
     }
     reachedLocations.addAll(locations);
@@ -93,6 +100,43 @@ public class ReachedSetCoverageCollector extends CoverageCollector {
 
   public int getReachedLocationsCount() {
     return reachedLocations.elementSet().size();
+  }
+
+  /**
+   * Gets a CFA node and extracts all its predecessors belonging to its aggregated basic block.
+   *
+   * @param locationNode CFA Node starting node regarding the extraction of the other nodes
+   * @return a list of CFA nodes which builds together an aggregated basic block ending at the input
+   *     node.
+   */
+  private List<CFANode> extractNodesFromAggregatedBasicBlock(CFANode locationNode) {
+    List<CFAEdge> currentAggregationBlock = null;
+    List<CFANode> cfaNodes = new ArrayList<>();
+    CFANode currentNode = locationNode;
+    cfaNodes.add(locationNode);
+    do {
+      if (currentNode.isLoopStart()
+          || (currentNode.getNumEnteringEdges() != 1)
+          || (currentAggregationBlock != null
+              && !currentNode.equals(
+                  currentAggregationBlock.get(currentAggregationBlock.size() - 1).getPredecessor()))
+          || (currentNode.getEnteringEdge(0).getEdgeType() == CFAEdgeType.CallToReturnEdge)
+          || (currentNode.getEnteringEdge(0).getEdgeType() == CFAEdgeType.AssumeEdge)) {
+        currentAggregationBlock = null;
+        if (cfaNodes.size() > 1) {
+          cfaNodes.remove(cfaNodes.size() - 1);
+        }
+      } else {
+        CFAEdge enteringEdge = currentNode.getEnteringEdge(0);
+        if (currentAggregationBlock == null) {
+          currentAggregationBlock = new ArrayList<>();
+        }
+        currentAggregationBlock.add(enteringEdge);
+        currentNode = enteringEdge.getPredecessor();
+        cfaNodes.add(currentNode);
+      }
+    } while (currentAggregationBlock != null);
+    return cfaNodes;
   }
 
   private void collectVisitedEdges(Iterable<AbstractState> reached) {

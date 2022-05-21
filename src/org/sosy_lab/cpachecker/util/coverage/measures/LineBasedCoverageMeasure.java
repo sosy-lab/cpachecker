@@ -9,11 +9,11 @@
 package org.sosy_lab.cpachecker.util.coverage.measures;
 
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableMultiset;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSortedMap;
 import com.google.common.collect.Multiset;
 import java.util.Map;
-import java.util.Objects;
-import java.util.Set;
 import org.sosy_lab.cpachecker.util.coverage.util.CoverageColorUtil;
 
 /**
@@ -24,14 +24,14 @@ import org.sosy_lab.cpachecker.util.coverage.util.CoverageColorUtil;
  * CoverageCollector or during the analysis within a CoverageCPA.
  */
 public class LineBasedCoverageMeasure implements CoverageMeasure {
-  private final ImmutableMap<String, Multiset<Integer>> visitedLinesPerFile;
-  private final ImmutableMap<String, Set<Integer>> exisitingLinesPerFile;
+  private final ImmutableMap<String, ImmutableMultiset<Integer>> visitedLinesPerFile;
+  private final ImmutableMap<String, ImmutableSet<Integer>> existingLinesPerFile;
 
   public LineBasedCoverageMeasure(
-      Map<String, Multiset<Integer>> pVisitedLinesPerFile,
-      Map<String, Set<Integer>> pExistingLinesPerFile) {
+      Map<String, ImmutableMultiset<Integer>> pVisitedLinesPerFile,
+      Map<String, ImmutableSet<Integer>> pExistingLinesPerFile) {
     visitedLinesPerFile = ImmutableSortedMap.copyOf(pVisitedLinesPerFile);
-    exisitingLinesPerFile = ImmutableSortedMap.copyOf(pExistingLinesPerFile);
+    existingLinesPerFile = ImmutableSortedMap.copyOf(pExistingLinesPerFile);
   }
 
   /**
@@ -43,10 +43,12 @@ public class LineBasedCoverageMeasure implements CoverageMeasure {
    * @return hex color code which represents the coverage status for the given line
    */
   public String getColor(String file, int line) {
-    if (Objects.requireNonNull(visitedLinesPerFile.get(file)).contains(line)) {
+    Multiset<Integer> visitedLines = visitedLinesPerFile.get(file);
+    ImmutableSet<Integer> existingLines = existingLinesPerFile.get(file);
+    if (visitedLines != null && visitedLines.contains(line)) {
       return CoverageColorUtil.getFrequencyColorMapForLines(visitedLinesPerFile.get(file))
           .get(line);
-    } else if (Objects.requireNonNull(exisitingLinesPerFile.get(file)).contains(line)) {
+    } else if (existingLines != null && existingLines.contains(line)) {
       return CoverageColorUtil.DEFAULT_CONSIDERED_COLOR;
     } else {
       return CoverageColorUtil.DEFAULT_ELEMENT_COLOR;
@@ -67,7 +69,7 @@ public class LineBasedCoverageMeasure implements CoverageMeasure {
 
   @Override
   public double getMaxValue() {
-    return exisitingLinesPerFile.values().stream()
+    return existingLinesPerFile.values().stream()
         .mapToInt(existingLines -> existingLines.size())
         .sum();
   }

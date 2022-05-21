@@ -16,6 +16,7 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.util.coverage.measures.CoverageMeasureHandler;
+import org.sosy_lab.cpachecker.util.coverage.measures.CoverageMeasureType;
 import org.sosy_lab.cpachecker.util.coverage.tdcg.TimeDependentCoverageData;
 import org.sosy_lab.cpachecker.util.coverage.tdcg.TimeDependentCoverageHandler;
 import org.sosy_lab.cpachecker.util.coverage.tdcg.TimeDependentCoverageType;
@@ -34,14 +35,21 @@ public class PredicateAnalysisCoverageCollector extends CoverageCollector {
   private final Multiset<String> variableNames = HashMultiset.create();
   private final Multiset<String> relevantVariableNames = HashMultiset.create();
   private int previousPredicateRelevantVariablesLocationsSize = 0;
+  private static final CoverageMeasureType[] types = {
+    CoverageMeasureType.PredicateConsidered,
+    CoverageMeasureType.PredicateRelevantVariables,
+    CoverageMeasureType.PredicateAbstractionVariables
+  };
 
   PredicateAnalysisCoverageCollector(
       CoverageMeasureHandler pCoverageMeasureHandler,
       TimeDependentCoverageHandler pTimeDependentCoverageHandler,
       CFA cfa) {
     super(pCoverageMeasureHandler, pTimeDependentCoverageHandler, cfa);
-    timeDependentCoverageHandler.initPredicateAnalysisTDCG();
-    coverageMeasureHandler.addAllPredicateAnalysisMeasuresTypes();
+  }
+
+  public void collect(CoverageCollectorHandler coverageCollectorHandler) {
+    collect(coverageCollectorHandler, types);
   }
 
   public void addPredicateConsideredNode(final CFAEdge pEdge) {

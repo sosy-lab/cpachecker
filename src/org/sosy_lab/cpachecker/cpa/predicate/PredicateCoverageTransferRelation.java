@@ -16,6 +16,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.Set;
+import org.sosy_lab.common.collect.PersistentMap;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
@@ -38,6 +39,11 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 
+/**
+ * Transfer Relation which behaves like a PredicateTransferRelation but delegates in addition the
+ * calculation of predicate-analysis specific coverage measures and TDCG (Time-dependent Coverage
+ * Graph) data series.
+ */
 public class PredicateCoverageTransferRelation extends PredicateTransferRelation {
   private final PredicateAnalysisCoverageCollector coverageCollector;
   private final TimeDependentCoverageData predicateTDCG;
@@ -89,12 +95,20 @@ public class PredicateCoverageTransferRelation extends PredicateTransferRelation
     if (precision instanceof PredicatePrecision) {
       PredicatePrecision predicatePrecision = (PredicatePrecision) precision;
       processPredicates(predicatePrecision);
-      processPredicatesConsideredCoverage(predicatePrecision, cfaEdge);
-      processPredicateRelevantVariablesCoverage(predicatePrecision, cfaEdge);
+      processPredicatesConsideredCoverage(predicatePrecision, cfaEdge, state);
+      processPredicateRelevantVariablesCoverage(predicatePrecision, cfaEdge, state);
       processRelevantAbstractionVariablesCoverage(cfaEdge, state);
     }
   }
 
+  /**
+   * Collects all abstractions variables and relevant abstraction variables from an abstract state.
+   * It is important to note, that we just look at the variable names here not at their actual
+   * value.
+   *
+   * @param edge current CFA edge which is considered.
+   * @param state state which is considered for the variable extraction.
+   */
   private void processRelevantAbstractionVariablesCoverage(CFAEdge edge, AbstractState state) {
     Set<String> variableNames = getAllAbstractStateVariables(state);
     coverageCollector.addAbstractionVariables(variableNames, edge);
@@ -112,8 +126,8 @@ public class PredicateCoverageTransferRelation extends PredicateTransferRelation
   }
 
   private void processPredicateRelevantVariablesCoverage(
-      PredicatePrecision precision, CFAEdge cfaEdge) {
-    Set<String> predicateVariables = getRelevantVariables(cfaEdge, precision);
+      PredicatePrecision precision, CFAEdge cfaEdge, AbstractState state) {
+    Set<String> predicateVariables = getRelevantVariables(cfaEdge, precision, state);
     Set<String> assumeVariables = convertAssumeToVariables(cfaEdge);
     if (shouldAddPredicateRelevantVariableNode(assumeVariables, predicateVariables)) {
       coverageCollector.addPredicateRelevantVariablesNodes(cfaEdge);
@@ -122,10 +136,11 @@ public class PredicateCoverageTransferRelation extends PredicateTransferRelation
     }
   }
 
-  private Set<String> getRelevantVariables(CFAEdge cfaEdge, PredicatePrecision precision) {
+  private Set<String> getRelevantVariables(
+      CFAEdge cfaEdge, PredicatePrecision precision, AbstractState state) {
     Multiset<String> relevantVariableNames = HashMultiset.create();
     Set<AbstractionPredicate> allPredicates =
-        getAllPredicatesForNode(cfaEdge.getPredecessor(), precision);
+        getAllPredicatesForNode(precision, state, cfaEdge.getPredecessor());
     for (AbstractionPredicate predicate : allPredicates) {
       BooleanFormula formula = predicate.getSymbolicAtom();
       Set<String> predicateVariableNames = fmgr.extractVariableNames(formula);
@@ -154,6 +169,12 @@ public class PredicateCoverageTransferRelation extends PredicateTransferRelation
     return predicateVariables.containsAll(assumeVariables);
   }
 
+  /**
+   * Retrieves and processes all predicates. Processing in this context means that we add them to
+   * the TDCG and coverage collector.
+   *
+   * @param precision The precision where we get the predicates
+   */
   private void processPredicates(PredicatePrecision precision) {
     if (shouldAddPredicate(precision)) {
       predicatesInUse = getAllPredicates(precision).size();
@@ -168,8 +189,9 @@ public class PredicateCoverageTransferRelation extends PredicateTransferRelation
     }
   }
 
-  private void processPredicatesConsideredCoverage(PredicatePrecision precision, CFAEdge cfaEdge) {
-    if (shouldAddPredicateConsideredNode(cfaEdge, precision)) {
+  private void processPredicatesConsideredCoverage(
+      PredicatePrecision precision, CFAEdge cfaEdge, AbstractState state) {
+    if (shouldAddPredicateConsideredNode(cfaEdge, precision, state)) {
       coverageCollector.addPredicateConsideredNode(cfaEdge);
       predicateConsideredTDCG.addTimestamp(
           coverageCollector.getTempPredicateConsideredCoverage(cfa));
@@ -180,9 +202,10 @@ public class PredicateCoverageTransferRelation extends PredicateTransferRelation
     return getAllPredicates(precision).size() != predicatesInUse;
   }
 
-  private boolean shouldAddPredicateConsideredNode(CFAEdge cfaEdge, PredicatePrecision precision) {
+  private boolean shouldAddPredicateConsideredNode(
+      CFAEdge cfaEdge, PredicatePrecision precision, AbstractState state) {
     Set<AbstractionPredicate> allPredicates =
-        getAllPredicatesForNode(cfaEdge.getPredecessor(), precision);
+        getAllPredicatesForNode(precision, state, cfaEdge.getPredecessor());
     if (cfaEdge.getEdgeType() == CFAEdgeType.AssumeEdge) {
       if (coversPredicate(allPredicates, convertAssumeToVariables(cfaEdge))) {
         return true;
@@ -193,6 +216,12 @@ public class PredicateCoverageTransferRelation extends PredicateTransferRelation
     return false;
   }
 
+  /**
+   * Get all variable names from an assume-edge
+   *
+   * @param cfaEdge the CFA edge which we check if it is an assume-edge
+   * @return Set of String variable names contained within the assume statement
+   */
   private Set<String> convertAssumeToVariables(CFAEdge cfaEdge) {
     if (cfaEdge.getEdgeType() == CFAEdgeType.AssumeEdge) {
       CAssumeEdge a = (CAssumeEdge) cfaEdge;
@@ -245,8 +274,8 @@ public class PredicateCoverageTransferRelation extends PredicateTransferRelation
   }
 
   private Set<AbstractionPredicate> getAllPredicates(PredicatePrecision precision) {
-    Set<AbstractionPredicate> allPredicates =
-        new HashSet<>(precision.getLocationInstancePredicates().values());
+    Set<AbstractionPredicate> allPredicates = new HashSet<>();
+    allPredicates.addAll(precision.getLocationInstancePredicates().values());
     allPredicates.addAll(precision.getLocalPredicates().values());
     allPredicates.addAll(precision.getFunctionPredicates().values());
     allPredicates.addAll(precision.getGlobalPredicates());
@@ -254,11 +283,16 @@ public class PredicateCoverageTransferRelation extends PredicateTransferRelation
   }
 
   private Set<AbstractionPredicate> getAllPredicatesForNode(
-      CFANode node, PredicatePrecision precision) {
+      PredicatePrecision precision, AbstractState state, CFANode node) {
     Set<AbstractionPredicate> allPredicates =
-        new HashSet<>(precision.getLocalPredicates().get(node));
-    allPredicates.addAll(precision.getFunctionPredicates().values());
-    allPredicates.addAll(precision.getGlobalPredicates());
+        new HashSet<>(precision.getLocationInstancePredicates().values());
+    if (state instanceof PredicateAbstractState) {
+      PredicateAbstractState predicateState = (PredicateAbstractState) state;
+      PersistentMap<CFANode, Integer> abstractionLocations =
+          predicateState.getAbstractionLocationsOnPath();
+      int locInstance = abstractionLocations.getOrDefault(node, 0);
+      allPredicates.addAll(precision.getPredicates(node, locInstance));
+    }
     return allPredicates;
   }
 }

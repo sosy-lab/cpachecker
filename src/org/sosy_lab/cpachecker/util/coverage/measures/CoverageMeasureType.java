@@ -8,7 +8,6 @@
 
 package org.sosy_lab.cpachecker.util.coverage.measures;
 
-import java.util.Optional;
 import org.sosy_lab.cpachecker.util.coverage.collectors.CoverageCollectorHandler;
 
 /**
@@ -35,48 +34,39 @@ public enum CoverageMeasureType {
     category = pCategeory;
   }
 
-  public Optional<CoverageMeasure> getCoverageMeasure(CoverageCollectorHandler covHandler) {
+  public CoverageMeasure getCoverageMeasure(CoverageCollectorHandler covHandler) {
     switch (this) {
       case VisitedLocations:
-        return Optional.of(
-            new LocationBasedCoverageMeasure(
-                covHandler.getAnalysisIndependentCollector().getVisitedLocations(),
-                covHandler.getAnalysisIndependentCollector().getTotalLocationCount()));
+        return new LocationBasedCoverageMeasure(
+            covHandler.getAnalysisIndependentCollector().getVisitedLocations(),
+            covHandler.getAnalysisIndependentCollector().getTotalLocationCount());
       case ReachedLocations:
-        return Optional.of(
-            new LocationBasedCoverageMeasure(
-                covHandler.getReachedSetCoverageCollector().getReachedLocations(),
-                covHandler.getAnalysisIndependentCollector().getTotalLocationCount()));
+        return new LocationBasedCoverageMeasure(
+            covHandler.getReachedSetCoverageCollector().getReachedLocations(),
+            covHandler.getReachedSetCoverageCollector().getTotalLocationCount());
       case ConsideredLocationsHeatMap:
-        return Optional.of(
-            new MultiLocationBasedCoverageMeasure(
-                covHandler.getAnalysisIndependentCollector().getVisitedLocations(),
-                covHandler.getReachedSetCoverageCollector().getReachedLocations(),
-                covHandler.getAnalysisIndependentCollector().getTotalLocationCount()));
+        return new MultiLocationBasedCoverageMeasure(
+            covHandler.getAnalysisIndependentCollector().getVisitedLocations(),
+            covHandler.getReachedSetCoverageCollector().getReachedLocations(),
+            covHandler.getAnalysisIndependentCollector().getTotalLocationCount());
       case ConsideredLinesHeatMap:
-        return Optional.of(
-            new LineBasedCoverageMeasure(
-                covHandler.getAnalysisIndependentCollector().getVisitedLinesPerFile(),
-                covHandler.getAnalysisIndependentCollector().getExistingLinesPerFile()));
+        return new LineBasedCoverageMeasure(
+            covHandler.getAnalysisIndependentCollector().getVisitedLinesPerFile(),
+            covHandler.getAnalysisIndependentCollector().getExistingLinesPerFile());
       case PredicateConsidered:
-        return Optional.of(
-            new LocationBasedCoverageMeasure(
-                covHandler.getPredicateAnalysisCollector().getPredicateConsideredLocations(),
-                covHandler.getAnalysisIndependentCollector().getTotalLocationCount()));
+        return new LocationBasedCoverageMeasure(
+            covHandler.getPredicateAnalysisCollector().getPredicateConsideredLocations(),
+            covHandler.getPredicateAnalysisCollector().getTotalLocationCount());
       case PredicateRelevantVariables:
-        return Optional.of(
-            new LocationBasedCoverageMeasure(
-                covHandler
-                    .getPredicateAnalysisCollector()
-                    .getPredicateRelevantConsideredLocations(),
-                covHandler.getAnalysisIndependentCollector().getTotalLocationCount()));
+        return new LocationBasedCoverageMeasure(
+            covHandler.getPredicateAnalysisCollector().getPredicateRelevantConsideredLocations(),
+            covHandler.getPredicateAnalysisCollector().getTotalLocationCount());
       case PredicateAbstractionVariables:
-        return Optional.of(
-            new VariableBasedCoverageMeasure(
-                covHandler.getPredicateAnalysisCollector().getVariableNames(),
-                covHandler.getPredicateAnalysisCollector().getRelevantVariableNames()));
+        return new VariableBasedCoverageMeasure(
+            covHandler.getPredicateAnalysisCollector().getVariableNames(),
+            covHandler.getPredicateAnalysisCollector().getRelevantVariableNames());
       default:
-        return Optional.empty();
+        throw new AssertionError("Unknown CoverageMeasureType used: " + this.name);
     }
   }
 

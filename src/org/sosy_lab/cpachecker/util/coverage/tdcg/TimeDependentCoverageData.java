@@ -8,10 +8,9 @@
 
 package org.sosy_lab.cpachecker.util.coverage.tdcg;
 
-import java.time.Duration;
-import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
+import org.sosy_lab.common.time.Tickers;
 import org.sosy_lab.common.time.TimeSpan;
 
 /**
@@ -23,7 +22,7 @@ import org.sosy_lab.common.time.TimeSpan;
 public class TimeDependentCoverageData {
   private List<TimeDependentCoverageDataElement> coveragePerTimestamps;
   private List<TimeDependentCoverageDataElement> previousCoveragePerTimeStamps;
-  private Instant startTime = Instant.MIN;
+  private long startTimeInNanos = 0;
 
   public static class TimeDependentCoverageDataElement {
     private final TimeSpan time;
@@ -54,13 +53,12 @@ public class TimeDependentCoverageData {
   }
 
   public void addTimestamp(double coverage) {
-    initStartTime();
     coveragePerTimestamps.add(
         new TimeDependentCoverageDataElement(getDurationInMicros(), coverage));
   }
 
   public void resetTimeStamps() {
-    startTime = Instant.now();
+    startTimeInNanos = 0;
     previousCoveragePerTimeStamps = coveragePerTimestamps;
     initCoveragePerTimestamps();
   }
@@ -91,14 +89,13 @@ public class TimeDependentCoverageData {
   }
 
   private TimeSpan getDurationInMicros() {
-    long durationInNanos = Duration.between(startTime, Instant.now()).toNanos();
-    return TimeSpan.ofNanos(durationInNanos);
-  }
-
-  private void initStartTime() {
-    if (startTime.equals(Instant.MIN)) {
-      startTime = Instant.now();
+    long durationInNanos = 0;
+    if (startTimeInNanos == 0) {
+      startTimeInNanos = Tickers.getWalltimeNanos().read();
+    } else {
+      durationInNanos = Tickers.getWalltimeNanos().read() - startTimeInNanos;
     }
+    return TimeSpan.ofNanos(durationInNanos);
   }
 
   private List<TimeDependentCoverageDataElement> thinOutMap(

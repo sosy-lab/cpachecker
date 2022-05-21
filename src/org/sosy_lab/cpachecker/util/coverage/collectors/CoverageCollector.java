@@ -9,10 +9,15 @@
 package org.sosy_lab.cpachecker.util.coverage.collectors;
 
 import com.google.common.collect.HashMultiset;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableMultiset;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Multiset;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
@@ -21,7 +26,9 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.util.CFAUtils;
+import org.sosy_lab.cpachecker.util.coverage.measures.CoverageMeasure;
 import org.sosy_lab.cpachecker.util.coverage.measures.CoverageMeasureHandler;
+import org.sosy_lab.cpachecker.util.coverage.measures.CoverageMeasureType;
 import org.sosy_lab.cpachecker.util.coverage.tdcg.TimeDependentCoverageHandler;
 import org.sosy_lab.cpachecker.util.coverage.util.CoverageUtility;
 
@@ -31,6 +38,7 @@ import org.sosy_lab.cpachecker.util.coverage.util.CoverageUtility;
  * coverage measures and time-dependent coverage graphs.
  */
 public abstract class CoverageCollector {
+  private final Set<CFANode> allLocations = new LinkedHashSet<>();
   private final Map<String, Multiset<Integer>> visitedLinesPerFile = new HashMap<>();
   private final Map<String, Set<Integer>> existingLinesPerFile = new HashMap<>();
   private final Map<String, Multiset<String>> visitedFunctionsPerFile = new HashMap<>();
@@ -48,11 +56,19 @@ public abstract class CoverageCollector {
     coverageMeasureHandler = pCoverageMeasureHandler;
     timeDependentCoverageHandler = pTimeDependentCoverageHandler;
     putCFA(cfa);
+    allLocations.addAll(cfa.getAllNodes());
   }
 
   CoverageCollector() {
     coverageMeasureHandler = new CoverageMeasureHandler();
     timeDependentCoverageHandler = new TimeDependentCoverageHandler();
+  }
+
+  void collect(CoverageCollectorHandler coverageCollectorHandler, CoverageMeasureType[] types) {
+    for (CoverageMeasureType type : types) {
+      CoverageMeasure coverageMeasure = type.getCoverageMeasure(coverageCollectorHandler);
+      coverageMeasureHandler.addData(type, coverageMeasure);
+    }
   }
 
   public void addVisitedEdge(final CFAEdge pEdge) {
@@ -128,12 +144,20 @@ public abstract class CoverageCollector {
     return visitedAssumesPerFile.values().stream().map(x -> x.size()).mapToInt(i -> i).sum();
   }
 
-  public Map<String, Set<Integer>> getExistingLinesPerFile() {
-    return existingLinesPerFile;
+  public ImmutableMap<String, ImmutableSet<Integer>> getExistingLinesPerFile() {
+    Map<String, ImmutableSet<Integer>> lExistingLinesPerFile = new HashMap<>();
+    for (Entry<String, Set<Integer>> entry : existingLinesPerFile.entrySet()) {
+      lExistingLinesPerFile.put(entry.getKey(), ImmutableSet.copyOf(entry.getValue()));
+    }
+    return ImmutableMap.copyOf(lExistingLinesPerFile);
   }
 
-  public Map<String, Multiset<Integer>> getVisitedLinesPerFile() {
-    return visitedLinesPerFile;
+  public ImmutableMap<String, ImmutableMultiset<Integer>> getVisitedLinesPerFile() {
+    Map<String, ImmutableMultiset<Integer>> lVisitedLinesPerFile = new HashMap<>();
+    for (Entry<String, Multiset<Integer>> entry : visitedLinesPerFile.entrySet()) {
+      lVisitedLinesPerFile.put(entry.getKey(), ImmutableMultiset.copyOf(entry.getValue()));
+    }
+    return ImmutableMap.copyOf(lVisitedLinesPerFile);
   }
 
   public int getVisitedLinesCount() {
@@ -145,6 +169,14 @@ public abstract class CoverageCollector {
 
   public int getExistingLinesCount() {
     return existingLinesPerFile.values().stream().map(x -> x.size()).mapToInt(i -> i).sum();
+  }
+
+  public Set<CFANode> getAllLocations() {
+    return allLocations;
+  }
+
+  public int getTotalLocationCount() {
+    return allLocations.size();
   }
 
   private void putCFA(CFA pCFA) {

@@ -20,8 +20,8 @@ public class CoverageCollectorHandler {
   private final CoverageMeasureHandler coverageMeasureHandler;
   private final TimeDependentCoverageHandler timeDependentCoverageHandler;
   private final ReachedSetCoverageCollector reachedSetCoverageCollector;
-  private AnalysisIndependentCoverageCollector analysisIndependentCoverageCollector;
-  private PredicateAnalysisCoverageCollector predicateAnalysisCoverageCollector;
+  private final AnalysisIndependentCoverageCollector analysisIndependentCoverageCollector;
+  private final PredicateAnalysisCoverageCollector predicateAnalysisCoverageCollector;
   private final boolean shouldCollectPredicateCoverage;
 
   public CoverageCollectorHandler(CFA cfa, boolean pShouldCollectPredicateCoverage) {
@@ -30,18 +30,28 @@ public class CoverageCollectorHandler {
     coverageMeasureHandler = new CoverageMeasureHandler();
     reachedSetCoverageCollector =
         new ReachedSetCoverageCollector(coverageMeasureHandler, timeDependentCoverageHandler, cfa);
-  }
-
-  public void initPredicateCollectors(CFA cfa) {
     predicateAnalysisCoverageCollector =
         new PredicateAnalysisCoverageCollector(
             coverageMeasureHandler, timeDependentCoverageHandler, cfa);
-  }
-
-  public void initAnalysisIndependentCollectors(CFA cfa) {
     analysisIndependentCoverageCollector =
         new AnalysisIndependentCoverageCollector(
             coverageMeasureHandler, timeDependentCoverageHandler, cfa);
+    if (shouldCollectPredicateCoverage) {
+      timeDependentCoverageHandler.initPredicateAnalysisTDCG();
+    }
+  }
+
+  /**
+   * This method is called in the end of the analysis. It is used to populate the coverage data for
+   * all initialized measures. When adding a new coverage measure this method should be expanded by
+   * its type.
+   */
+  public void collectAllData() {
+    analysisIndependentCoverageCollector.collect(this);
+    reachedSetCoverageCollector.collect(this);
+    if (shouldCollectPredicateCoverage) {
+      predicateAnalysisCoverageCollector.collect(this);
+    }
   }
 
   public TimeDependentCoverageHandler getTDCGHandler() {

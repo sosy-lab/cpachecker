@@ -87,7 +87,7 @@ function extractColor(msg, id) {
 }
 
 function renderTDG(dataJSON, color, inPercentage) {
-  if (dataJSON === undefined || Object.keys(dataJSON).length < 2) {
+  if (dataJSON === undefined || Object.keys(dataJSON).length < 1) {
     return;
   }
   const windowWidth =

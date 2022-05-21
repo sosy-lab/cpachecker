@@ -9,12 +9,8 @@
 package org.sosy_lab.cpachecker.util.coverage.measures;
 
 import com.google.common.collect.ImmutableList;
-import java.util.ArrayList;
 import java.util.LinkedHashMap;
-import java.util.List;
 import java.util.Map;
-import java.util.Optional;
-import org.sosy_lab.cpachecker.util.coverage.collectors.CoverageCollectorHandler;
 
 /**
  * Handler for managing all coverage measures. This class (including its corresponding enums) needs
@@ -25,42 +21,9 @@ import org.sosy_lab.cpachecker.util.coverage.collectors.CoverageCollectorHandler
  */
 public class CoverageMeasureHandler {
   private final Map<CoverageMeasureType, CoverageMeasure> coverageMeasureMap;
-  private final List<CoverageMeasureType> coverageMeasureTypes;
 
   public CoverageMeasureHandler() {
     coverageMeasureMap = new LinkedHashMap<>();
-    coverageMeasureTypes = new ArrayList<>();
-  }
-
-  /** Init all measures which are analysis independent */
-  public void addAllAnalysisIndependentMeasuresTypes() {
-    coverageMeasureTypes.add(CoverageMeasureType.VisitedLocations);
-    coverageMeasureTypes.add(CoverageMeasureType.ReachedLocations);
-    coverageMeasureTypes.add(CoverageMeasureType.ConsideredLocationsHeatMap);
-    coverageMeasureTypes.add(CoverageMeasureType.ConsideredLinesHeatMap);
-  }
-
-  /** Init all measures which depend on predicate analysis */
-  public void addAllPredicateAnalysisMeasuresTypes() {
-    coverageMeasureTypes.add(CoverageMeasureType.PredicateConsidered);
-    coverageMeasureTypes.add(CoverageMeasureType.PredicateRelevantVariables);
-    coverageMeasureTypes.add(CoverageMeasureType.PredicateAbstractionVariables);
-  }
-
-  /**
-   * This method is called in the end of the analysis. It is used to populate the coverage data for
-   * all initialized measures. When adding a new coverage measure this method should be expanded by
-   * its type.
-   *
-   * @param coverageCollectorHandler holds all relevant coverage data gathered during the analysis
-   */
-  public void fillCoverageData(CoverageCollectorHandler coverageCollectorHandler) {
-    for (CoverageMeasureType type : getAllTypes()) {
-      Optional<CoverageMeasure> coverageMeasure = type.getCoverageMeasure(coverageCollectorHandler);
-      if (coverageMeasure.isPresent()) {
-        addData(type, coverageMeasure.orElseThrow());
-      }
-    }
   }
 
   public CoverageMeasure getData(CoverageMeasureType type) {
@@ -68,12 +31,12 @@ public class CoverageMeasureHandler {
   }
 
   public ImmutableList<CoverageMeasureType> getAllTypes() {
-    return ImmutableList.copyOf(coverageMeasureTypes);
+    return ImmutableList.copyOf(coverageMeasureMap.keySet());
   }
 
   public ImmutableList<String> getAllTypesForCategoriesAsString(
       CoverageMeasureCategory... categories) {
-    return coverageMeasureTypes.stream()
+    return coverageMeasureMap.keySet().stream()
         .filter(v -> isContainedIn(categories, v.getCategory()))
         .map(v -> v.getName())
         .collect(ImmutableList.toImmutableList());
@@ -81,9 +44,13 @@ public class CoverageMeasureHandler {
 
   public ImmutableList<CoverageMeasureType> getAllTypesForCategories(
       CoverageMeasureCategory... categories) {
-    return coverageMeasureTypes.stream()
+    return coverageMeasureMap.keySet().stream()
         .filter(v -> isContainedIn(categories, v.getCategory()))
         .collect(ImmutableList.toImmutableList());
+  }
+
+  public void addData(CoverageMeasureType type, CoverageMeasure data) {
+    coverageMeasureMap.put(type, data);
   }
 
   private boolean isContainedIn(
@@ -94,9 +61,5 @@ public class CoverageMeasureHandler {
       }
     }
     return false;
-  }
-
-  private void addData(CoverageMeasureType type, CoverageMeasure data) {
-    coverageMeasureMap.put(type, data);
   }
 }
