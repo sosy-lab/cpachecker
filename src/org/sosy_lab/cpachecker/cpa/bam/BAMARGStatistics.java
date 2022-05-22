@@ -38,6 +38,7 @@ import org.sosy_lab.cpachecker.cpa.bam.BAMSubgraphComputer.BackwardARGState;
 import org.sosy_lab.cpachecker.cpa.bam.BAMSubgraphComputer.MissingBlockException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.Pair;
+import org.sosy_lab.cpachecker.util.coverage.collectors.CoverageCollectorHandler;
 import org.sosy_lab.cpachecker.util.statistics.ThreadSafeTimerContainer;
 import org.sosy_lab.cpachecker.util.statistics.ThreadSafeTimerContainer.TimerWrapper;
 
@@ -54,9 +55,10 @@ public class BAMARGStatistics extends ARGStatistics {
       AbstractBAMCPA pBamCpa,
       ConfigurableProgramAnalysis pCpa,
       Specification pSpecification,
-      CFA pCfa)
+      CFA pCfa,
+      CoverageCollectorHandler pCovCollectorHandler)
       throws InvalidConfigurationException {
-    super(pConfig, pLogger, pCpa, pSpecification, pCfa);
+    super(pConfig, pLogger, pCpa, pSpecification, pCfa, pCovCollectorHandler);
     bamCpa = pBamCpa;
   }
 

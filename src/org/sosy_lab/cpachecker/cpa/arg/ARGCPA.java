@@ -48,6 +48,7 @@ import org.sosy_lab.cpachecker.core.interfaces.pcc.ProofChecker;
 import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
+import org.sosy_lab.cpachecker.util.coverage.collectors.CoverageCollectorHandler;
 
 @Options(prefix = "cpa.arg")
 public class ARGCPA extends AbstractSingleWrapperCPA
@@ -109,12 +110,13 @@ public class ARGCPA extends AbstractSingleWrapperCPA
       Configuration config,
       LogManager logger,
       Specification pSpecification,
-      CFA cfa)
+      CFA cfa,
+      CoverageCollectorHandler pCovCollectorHandler)
       throws InvalidConfigurationException {
     super(cpa);
     config.inject(this);
     this.logger = logger;
-    stats = new ARGStatistics(config, logger, this, pSpecification, cfa);
+    stats = new ARGStatistics(config, logger, this, pSpecification, cfa, pCovCollectorHandler);
   }
 
   @Override

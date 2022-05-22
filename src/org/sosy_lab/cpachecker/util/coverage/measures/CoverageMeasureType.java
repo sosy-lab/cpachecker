@@ -21,7 +21,7 @@ public enum CoverageMeasureType {
   ConsideredLocationsHeatMap(
       "Considered-Locations Heat Map", CoverageMeasureCategory.LocationBased),
   ConsideredLinesHeatMap("Considered-Lines Heat Map", CoverageMeasureCategory.LineBased),
-  PredicateConsidered("Predicate-Considered", CoverageMeasureCategory.LocationBased),
+  PredicateConsidered("Predicate-Considered-Locations", CoverageMeasureCategory.LocationBased),
   PredicateRelevantVariables("Predicate-Relevant-Variables", CoverageMeasureCategory.LocationBased),
   PredicateAbstractionVariables(
       "Predicate-Abstraction-Variables", CoverageMeasureCategory.VariableBased);

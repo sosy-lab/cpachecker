@@ -37,6 +37,7 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGStatistics;
 import org.sosy_lab.cpachecker.cpa.bam.TimedReducer.ReducerStatistics;
 import org.sosy_lab.cpachecker.cpa.bam.cache.BAMDataManager;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.util.coverage.collectors.CoverageCollectorHandler;
 
 @Options(prefix = "cpa.bam")
 public abstract class AbstractBAMCPA extends AbstractSingleWrapperCPA {
@@ -110,7 +111,8 @@ public abstract class AbstractBAMCPA extends AbstractSingleWrapperCPA {
       LogManager pLogger,
       ShutdownNotifier pShutdownNotifier,
       Specification pSpecification,
-      CFA pCfa)
+      CFA pCfa,
+      CoverageCollectorHandler pCovCollectorHandler)
       throws InvalidConfigurationException, CPAException {
     super(pCpa);
     pConfig.inject(this, AbstractBAMCPA.class);
@@ -126,7 +128,9 @@ public abstract class AbstractBAMCPA extends AbstractSingleWrapperCPA {
     blockPartitioning = buildBlockPartitioning(pCfa, pConfig);
     blockPartitioningTimer.stop();
 
-    argStats = new BAMARGStatistics(pConfig, pLogger, this, pCpa, pSpecification, pCfa);
+    argStats =
+        new BAMARGStatistics(
+            pConfig, pLogger, this, pCpa, pSpecification, pCfa, pCovCollectorHandler);
     exporter = new BAMReachedSetExporter(pConfig, pLogger, this);
     stats = new BAMCPAStatistics(pConfig, pLogger, this);
 
