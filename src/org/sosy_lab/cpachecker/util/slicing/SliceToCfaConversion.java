@@ -164,10 +164,19 @@ final class SliceToCfaConversion {
       Function<AFunctionDeclaration, @Nullable FunctionEntryNode> pFunctionToEntryNode) {
 
     return (edge, astNode) -> {
-      var transformingVisitor =
-          new RelevantCAstNodeTransformingVisitor(pSlice, pFunctionToEntryNode, edge);
 
-      return astNode.accept(transformingVisitor);
+      // The transforming visitor only works for relevant edges.
+      // Irrelevant edges are going to be removed in CFA post-processing (irrelevant assume edges
+      // are kept for CFA simplification), so we just keep their original AST nodes.
+      if (pSlice.getRelevantEdges().contains(edge)) {
+
+        var transformingVisitor =
+            new RelevantCAstNodeTransformingVisitor(pSlice, pFunctionToEntryNode, edge);
+
+        return astNode.accept(transformingVisitor);
+      }
+
+      return astNode;
     };
   }
 

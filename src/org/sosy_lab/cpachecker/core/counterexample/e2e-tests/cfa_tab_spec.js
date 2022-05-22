@@ -18,7 +18,8 @@ describe("CFA testing", () => {
 
   describe("Display CFA dropdown test", () => {
     it("Display CFA dropdown test-1", () => {
-      browser.wait(EC.presenceOf(element(by.id("set-tab-1"))));
+      browser.wait(EC.elementToBeClickable(element(by.id("set-tab-1"))));
+      browser.wait(EC.invisibilityOf(element(by.id("renderStateModal"))));
       element(by.id("set-tab-1")).click();
       browser.wait(
         element(by.xpath('//*[@id="cfa-toolbar"]/nav/div[1]/select'))
@@ -41,6 +42,8 @@ describe("CFA testing", () => {
     });
 
     it("Display CFA dropdown test-2", () => {
+      browser.wait(EC.elementToBeClickable(element(by.id("set-tab-1"))));
+      browser.wait(EC.invisibilityOf(element(by.id("renderStateModal"))));
       element(by.id("set-tab-1")).click();
       browser
         .actions()
@@ -61,7 +64,10 @@ describe("CFA testing", () => {
   });
 
   describe("Hover over node", () => {
-    it("Display popover dialoag box", () => {
+    it("Display popover dialog box", () => {
+      browser.wait(EC.elementToBeClickable(element(by.id("set-tab-1"))));
+      browser.wait(EC.invisibilityOf(element(by.id("renderStateModal"))));
+      element(by.id("set-tab-1")).click();
       browser.wait(EC.presenceOf(element(by.xpath('//*[@id="cfa-node23"]'))));
       browser
         .actions()
