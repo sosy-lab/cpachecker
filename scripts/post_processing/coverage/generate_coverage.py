@@ -302,6 +302,8 @@ class ComputeCoverage:
                 "-outputpath",
                 temp_dir,
                 "-setprop",
+                "CompositeCPA.cpas=cpa.location.LocationCPA,cpa.callstack.CallstackCPA,cpa.functionpointer.FunctionPointerCPA,cpa.coverage.analysisindependent.AnalysisIndependentCoverageCPA,cpa.value.ValueAnalysisCPA",
+                "-setprop",
                 "specification=" + ",".join(specs),
             ]
             + (["-heap", heap_size] if heap_size else [])
