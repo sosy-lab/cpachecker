@@ -52,7 +52,6 @@ public final class DomTree<T> implements Iterable<T> {
   private final int[] doms;
 
   private DomTree(DomInput<T> pInput, int[] pDoms) {
-
     input = pInput;
     doms = pDoms;
   }
@@ -91,7 +90,6 @@ public final class DomTree<T> implements Iterable<T> {
     checkNotNull(pPredecessorFunction);
 
     DomInput<T> input = DomInput.forGraph(pPredecessorFunction, pSuccessorFunction, pStartNode);
-
     int[] doms = computeDoms(input);
 
     return new DomTree<>(input, doms);
@@ -151,9 +149,7 @@ public final class DomTree<T> implements Iterable<T> {
         }
 
         while (predecessorsDataIterator.hasNextPredecessor()) {
-
           int predecessorId = predecessorsDataIterator.nextPredecessor();
-
           if (doms[predecessorId] != UNDEFINED) {
             idom = idom != UNDEFINED ? intersect(doms, predecessorId, idom) : predecessorId;
           }
@@ -227,7 +223,6 @@ public final class DomTree<T> implements Iterable<T> {
     checkNotNull(pNode);
 
     @Nullable Integer id = input.getReversePostOrderId(pNode);
-
     checkArgument(id != null, "unknown node: %s", pNode);
 
     return id;
@@ -263,7 +258,6 @@ public final class DomTree<T> implements Iterable<T> {
   public Optional<T> getParent(T pNode) {
 
     int parentId = doms[getId(pNode)];
-
     return parentId != UNDEFINED
         ? Optional.of(input.getNodeForReversePostOrderId(parentId))
         : Optional.empty();
@@ -407,7 +401,6 @@ public final class DomTree<T> implements Iterable<T> {
       }
 
       sb.append(node);
-
       getParent(node)
           .ifPresent(
               parent -> {

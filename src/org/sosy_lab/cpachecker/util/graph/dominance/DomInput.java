@@ -58,7 +58,6 @@ final class DomInput<T> {
   private final int[] predecessorData;
 
   private DomInput(Map<T, Integer> pIds, T[] pNodes, int[] pPredecessorData) {
-
     ids = ImmutableMap.copyOf(pIds);
     nodes = ImmutableList.copyOf(pNodes);
     predecessorData = pPredecessorData;
@@ -139,7 +138,6 @@ final class DomInput<T> {
 
         // if there is no path from the start node to `predecessor`, it doesn't have an ID
         @Nullable Integer predecessorId = ids.get(predecessor);
-
         if (predecessorId != null) {
           currentNodePredecessors.add(predecessorId);
           predecessorCounter++;
@@ -155,7 +153,6 @@ final class DomInput<T> {
         .allMatch(entry -> entry.getKey().equals(nodes[entry.getValue()]));
 
     int[] predecessors = new int[predecessorCounter + allPredecessors.size()];
-
     int index = 0;
     for (List<Integer> nodePredecessors : allPredecessors) {
 
@@ -209,7 +206,6 @@ final class DomInput<T> {
     private int nodeId;
 
     private PredecessorDataIterator(int[] pData, int pDelimiter, int pNodeCount) {
-
       data = pData;
       delimiter = pDelimiter;
       nodeCount = pNodeCount;
@@ -254,7 +250,6 @@ final class DomInput<T> {
     }
 
     void reset() {
-
       index = -1;
       nodeId = -1;
     }
