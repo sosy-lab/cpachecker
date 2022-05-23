@@ -1208,7 +1208,9 @@ public class PdrAlgorithm implements Algorithm {
       ARGPath targetPath;
       try {
         Set<AbstractState> arg = pReachedSet.asCollection();
-        targetPath = ARGUtils.getPathFromBranchingInformation(root, arg, branchingInformation);
+        targetPath =
+            ARGUtils.getPathFromBranchingInformation(
+                root, arg, (state, edge) -> branchingInformation.get(state.getStateId()));
       } catch (IllegalArgumentException e) {
         logger.logUserException(Level.WARNING, e, "Could not create error path");
         return;
