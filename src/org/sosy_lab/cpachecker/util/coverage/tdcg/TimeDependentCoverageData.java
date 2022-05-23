@@ -11,11 +11,12 @@ package org.sosy_lab.cpachecker.util.coverage.tdcg;
 import java.util.ArrayList;
 import java.util.List;
 import org.sosy_lab.common.time.Tickers;
+import org.sosy_lab.common.time.Tickers.TickerWithUnit;
 import org.sosy_lab.common.time.TimeSpan;
 
 /**
  * Time-dependent Coverage Data is a data structure used by Time-dependent coverage graphs (TDCGs).
- * It holds a Map of (Long,Double) entries where Longs are interpreted as time and the Doubles as
+ * It holds a Map of (Long, Double) entries where Longs are interpreted as time and the Doubles as
  * raw coverage value at that corresponding time. Coverage values are calculated within a
  * CoverageCPA.
  */
@@ -23,12 +24,13 @@ public class TimeDependentCoverageData {
   private List<TimeDependentCoverageDataElement> coveragePerTimestamps;
   private List<TimeDependentCoverageDataElement> previousCoveragePerTimeStamps;
   private long startTimeInNanos = 0;
+  private final TickerWithUnit TICKER = Tickers.getWalltimeNanos();
 
   public static class TimeDependentCoverageDataElement {
     private final TimeSpan time;
-    private final Double value;
+    private final double value;
 
-    private TimeDependentCoverageDataElement(TimeSpan pTime, Double pValue) {
+    private TimeDependentCoverageDataElement(TimeSpan pTime, double pValue) {
       time = pTime;
       value = pValue;
     }
@@ -42,7 +44,7 @@ public class TimeDependentCoverageData {
       return time;
     }
 
-    public Double getValue() {
+    public double getValue() {
       return value;
     }
   }
@@ -91,9 +93,9 @@ public class TimeDependentCoverageData {
   private TimeSpan getDurationInMicros() {
     long durationInNanos = 0;
     if (startTimeInNanos == 0) {
-      startTimeInNanos = Tickers.getWalltimeNanos().read();
+      startTimeInNanos = TICKER.read();
     } else {
-      durationInNanos = Tickers.getWalltimeNanos().read() - startTimeInNanos;
+      durationInNanos = TICKER.read() - startTimeInNanos;
     }
     return TimeSpan.ofNanos(durationInNanos);
   }

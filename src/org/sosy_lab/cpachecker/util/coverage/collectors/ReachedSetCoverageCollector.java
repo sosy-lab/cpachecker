@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.util.coverage.collectors;
 import static com.google.common.base.Predicates.notNull;
 
 import com.google.common.collect.FluentIterable;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.LinkedHashMultiset;
 import com.google.common.collect.Multiset;
@@ -42,7 +43,8 @@ import org.sosy_lab.cpachecker.util.coverage.tdcg.TimeDependentCoverageHandler;
  */
 public class ReachedSetCoverageCollector extends CoverageCollector {
   private final Multiset<CFANode> reachedLocations = LinkedHashMultiset.create();
-  private static final CoverageMeasureType[] types = {CoverageMeasureType.ReachedLocations};
+  private static final ImmutableList<CoverageMeasureType> TYPES =
+      ImmutableList.of(CoverageMeasureType.REACHED_LOCATIONS);
 
   ReachedSetCoverageCollector(
       CoverageMeasureHandler pCoverageMeasureHandler,
@@ -52,7 +54,7 @@ public class ReachedSetCoverageCollector extends CoverageCollector {
   }
 
   public void collect(CoverageCollectorHandler coverageCollectorHandler) {
-    collect(coverageCollectorHandler, types);
+    collect(coverageCollectorHandler, TYPES);
   }
 
   public void collectFromReachedSet(

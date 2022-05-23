@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.util.coverage.collectors;
 
 import com.google.common.collect.HashMultiset;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMultiset;
 import com.google.common.collect.ImmutableSet;
@@ -64,7 +65,8 @@ public abstract class CoverageCollector {
     timeDependentCoverageHandler = new TimeDependentCoverageHandler();
   }
 
-  void collect(CoverageCollectorHandler coverageCollectorHandler, CoverageMeasureType[] types) {
+  void collect(
+      CoverageCollectorHandler coverageCollectorHandler, ImmutableList<CoverageMeasureType> types) {
     for (CoverageMeasureType type : types) {
       CoverageMeasure coverageMeasure = type.getCoverageMeasure(coverageCollectorHandler);
       coverageMeasureHandler.addData(type, coverageMeasure);

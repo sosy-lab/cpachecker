@@ -277,15 +277,14 @@ public class PredicateCoverageTransferRelation extends PredicateTransferRelation
 
   private Set<AbstractionPredicate> getAllPredicatesForNode(
       PredicatePrecision precision, AbstractState state, CFANode node) {
-    Set<AbstractionPredicate> allPredicates =
-        new HashSet<>(precision.getLocationInstancePredicates().values());
+    Set<AbstractionPredicate> allPredicatesForNode = new HashSet<>();
     if (state instanceof PredicateAbstractState) {
       PredicateAbstractState predicateState = (PredicateAbstractState) state;
       PersistentMap<CFANode, Integer> abstractionLocations =
           predicateState.getAbstractionLocationsOnPath();
       int locInstance = abstractionLocations.getOrDefault(node, 0);
-      allPredicates.addAll(precision.getPredicates(node, locInstance));
+      allPredicatesForNode.addAll(precision.getPredicates(node, locInstance));
     }
-    return allPredicates;
+    return allPredicatesForNode;
   }
 }

@@ -370,7 +370,7 @@ public class ReportGenerator {
     writer.write("var sourceCoverageJson = {\"types\" : [");
     ImmutableList<String> types =
         covHandler.getAllTypesForCategoriesAsString(
-            CoverageMeasureCategory.LineBased, CoverageMeasureCategory.VariableBased);
+            CoverageMeasureCategory.LINE_BASED, CoverageMeasureCategory.VARIABLE_BASED);
     writer.write("\"None\",");
     for (String type : types) {
       JSON.writeJSONString(type, writer);
@@ -479,7 +479,8 @@ public class ReportGenerator {
 
     writer.write(",\n\"coverage\":");
     writeCoverageTypes(
-        covHandler.getAllTypesForCategoriesAsString(CoverageMeasureCategory.LocationBased), writer);
+        covHandler.getAllTypesForCategoriesAsString(CoverageMeasureCategory.LOCATION_BASED),
+        writer);
 
     writer.write(",\n");
     dotBuilder.writeCfaInfo(writer);
@@ -718,7 +719,7 @@ public class ReportGenerator {
     lineColors.append("; coverage-colors: ");
     ImmutableList<CoverageMeasureType> types =
         covHandler.getAllTypesForCategories(
-            CoverageMeasureCategory.LineBased, CoverageMeasureCategory.VariableBased);
+            CoverageMeasureCategory.LINE_BASED, CoverageMeasureCategory.VARIABLE_BASED);
     boolean variableFlag = true;
 
     lineColors.append("None").append(":");
@@ -726,10 +727,10 @@ public class ReportGenerator {
     lineColors.append(";");
     for (CoverageMeasureType type : types) {
       lineColors.append(type.getId()).append(":");
-      if (type.getCategory() == CoverageMeasureCategory.LineBased) {
+      if (type.getCategory() == CoverageMeasureCategory.LINE_BASED) {
         LineBasedCoverageMeasure lineCov = (LineBasedCoverageMeasure) covHandler.getData(type);
         lineColors.append(lineCov.getColor(sourcePath.toString(), lineNumber));
-      } else if (type.getCategory() == CoverageMeasureCategory.VariableBased) {
+      } else if (type.getCategory() == CoverageMeasureCategory.VARIABLE_BASED) {
         VariableBasedCoverageMeasure varCov =
             (VariableBasedCoverageMeasure) covHandler.getData(type);
         if (variableFlag) {

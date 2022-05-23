@@ -104,13 +104,13 @@ public class CoverageReportStdoutSummary {
         pStdOut,
         INDENT_LEVEL,
         FIELD_COLUMN_WIDTH,
-        CoverageMeasureType.ReachedLocations.getName(),
+        CoverageMeasureType.REACHED_LOCATIONS.getName(),
         reachedLocations);
     StatisticsUtils.write(
         pStdOut,
         INDENT_LEVEL,
         FIELD_COLUMN_WIDTH,
-        CoverageMeasureType.ReachedLocations.getCoverageName(),
+        CoverageMeasureType.REACHED_LOCATIONS.getCoverageName(),
         String.format("%.3f", reachedLocations / (double) totalLocations));
 
     PredicateAnalysisCoverageCollector predicateCollector =
@@ -125,25 +125,25 @@ public class CoverageReportStdoutSummary {
         pStdOut,
         INDENT_LEVEL,
         FIELD_COLUMN_WIDTH,
-        CoverageMeasureType.PredicateConsidered.getName(),
+        CoverageMeasureType.PREDICATE_CONSIDERED.getName(),
         predicateConsideredLocations);
     StatisticsUtils.write(
         pStdOut,
         INDENT_LEVEL,
         FIELD_COLUMN_WIDTH,
-        CoverageMeasureType.PredicateRelevantVariables.getName(),
+        CoverageMeasureType.PREDICATE_RELEVANT_VARIABLES.getName(),
         predicateRelevantVariablesLocations);
     StatisticsUtils.write(
         pStdOut,
         INDENT_LEVEL,
         FIELD_COLUMN_WIDTH,
-        CoverageMeasureType.PredicateConsidered.getCoverageName(),
+        CoverageMeasureType.PREDICATE_CONSIDERED.getCoverageName(),
         String.format("%.3f", predicateConsideredLocations / (double) totalLocations));
     StatisticsUtils.write(
         pStdOut,
         INDENT_LEVEL,
         FIELD_COLUMN_WIDTH,
-        CoverageMeasureType.PredicateRelevantVariables.getCoverageName(),
+        CoverageMeasureType.PREDICATE_RELEVANT_VARIABLES.getCoverageName(),
         String.format("%.3f", predicateRelevantVariablesLocations / (double) totalLocations));
   }
 }

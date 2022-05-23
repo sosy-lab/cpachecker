@@ -16,15 +16,16 @@ import org.sosy_lab.cpachecker.util.coverage.collectors.CoverageCollectorHandler
  * possible to specify a friendly name for each category which is displayed in the report.html
  */
 public enum CoverageMeasureType {
-  VisitedLocations("Visited Locations", CoverageMeasureCategory.LocationBased),
-  ReachedLocations("Reached Locations", CoverageMeasureCategory.LocationBased),
-  ConsideredLocationsHeatMap(
-      "Considered-Locations Heat Map", CoverageMeasureCategory.LocationBased),
-  ConsideredLinesHeatMap("Considered-Lines Heat Map", CoverageMeasureCategory.LineBased),
-  PredicateConsidered("Predicate-Considered-Locations", CoverageMeasureCategory.LocationBased),
-  PredicateRelevantVariables("Predicate-Relevant-Variables", CoverageMeasureCategory.LocationBased),
-  PredicateAbstractionVariables(
-      "Predicate-Abstraction-Variables", CoverageMeasureCategory.VariableBased);
+  VISITED_LOCATIONS("Visited Locations", CoverageMeasureCategory.LOCATION_BASED),
+  REACHED_LOCATIONS("Reached Locations", CoverageMeasureCategory.LOCATION_BASED),
+  CONSIDERED_LOCATIONS_HEAT_MAP(
+      "Considered-Locations Heat Map", CoverageMeasureCategory.LOCATION_BASED),
+  CONSIDERED_LINES_HEAT_MAP("Considered-Lines Heat Map", CoverageMeasureCategory.LINE_BASED),
+  PREDICATE_CONSIDERED("Predicate-Considered-Locations", CoverageMeasureCategory.LOCATION_BASED),
+  PREDICATE_RELEVANT_VARIABLES(
+      "Predicate-Relevant-Variables", CoverageMeasureCategory.LOCATION_BASED),
+  PREDICATE_ABSTRACTION_VARIABLES(
+      "Predicate-Abstraction-Variables", CoverageMeasureCategory.VARIABLE_BASED);
 
   private final String name;
   private final CoverageMeasureCategory category;
@@ -36,32 +37,32 @@ public enum CoverageMeasureType {
 
   public CoverageMeasure getCoverageMeasure(CoverageCollectorHandler covHandler) {
     switch (this) {
-      case VisitedLocations:
+      case VISITED_LOCATIONS:
         return new LocationBasedCoverageMeasure(
             covHandler.getAnalysisIndependentCollector().getVisitedLocations(),
             covHandler.getAnalysisIndependentCollector().getTotalLocationCount());
-      case ReachedLocations:
+      case REACHED_LOCATIONS:
         return new LocationBasedCoverageMeasure(
             covHandler.getReachedSetCoverageCollector().getReachedLocations(),
             covHandler.getReachedSetCoverageCollector().getTotalLocationCount());
-      case ConsideredLocationsHeatMap:
+      case CONSIDERED_LOCATIONS_HEAT_MAP:
         return new MultiLocationBasedCoverageMeasure(
             covHandler.getAnalysisIndependentCollector().getVisitedLocations(),
             covHandler.getReachedSetCoverageCollector().getReachedLocations(),
             covHandler.getAnalysisIndependentCollector().getTotalLocationCount());
-      case ConsideredLinesHeatMap:
+      case CONSIDERED_LINES_HEAT_MAP:
         return new LineBasedCoverageMeasure(
             covHandler.getAnalysisIndependentCollector().getVisitedLinesPerFile(),
             covHandler.getAnalysisIndependentCollector().getExistingLinesPerFile());
-      case PredicateConsidered:
+      case PREDICATE_CONSIDERED:
         return new LocationBasedCoverageMeasure(
             covHandler.getPredicateAnalysisCollector().getPredicateConsideredLocations(),
             covHandler.getPredicateAnalysisCollector().getTotalLocationCount());
-      case PredicateRelevantVariables:
+      case PREDICATE_RELEVANT_VARIABLES:
         return new LocationBasedCoverageMeasure(
             covHandler.getPredicateAnalysisCollector().getPredicateRelevantConsideredLocations(),
             covHandler.getPredicateAnalysisCollector().getTotalLocationCount());
-      case PredicateAbstractionVariables:
+      case PREDICATE_ABSTRACTION_VARIABLES:
         return new VariableBasedCoverageMeasure(
             covHandler.getPredicateAnalysisCollector().getVariableNames(),
             covHandler.getPredicateAnalysisCollector().getRelevantVariableNames());

@@ -404,10 +404,10 @@ public final class DOTBuilder2 {
       StringBuilder coverageProperties = new StringBuilder();
       for (CoverageMeasureType type : covHandler.getAllTypes()) {
         coverageProperties.append(type.getId()).append(":");
-        if (type.getCategory() == CoverageMeasureCategory.LocationBased) {
+        if (type.getCategory() == CoverageMeasureCategory.LOCATION_BASED) {
           LocationBasedCoverageMeasure locCov =
               (LocationBasedCoverageMeasure) covHandler.getData(type);
-          if (type == CoverageMeasureType.ConsideredLocationsHeatMap) {
+          if (type == CoverageMeasureType.CONSIDERED_LOCATIONS_HEAT_MAP) {
             MultiLocationBasedCoverageMeasure multiLocCov =
                 (MultiLocationBasedCoverageMeasure) locCov;
             coverageProperties.append(multiLocCov.getColor(node)).append(";");

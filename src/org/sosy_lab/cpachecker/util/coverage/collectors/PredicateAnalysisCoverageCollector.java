@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.util.coverage.collectors;
 
 import com.google.common.collect.HashMultiset;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Multiset;
 import java.util.LinkedHashSet;
 import java.util.Set;
@@ -35,11 +36,11 @@ public class PredicateAnalysisCoverageCollector extends CoverageCollector {
   private final Multiset<String> variableNames = HashMultiset.create();
   private final Multiset<String> relevantVariableNames = HashMultiset.create();
   private int previousPredicateRelevantVariablesLocationsSize = 0;
-  private static final CoverageMeasureType[] types = {
-    CoverageMeasureType.PredicateConsidered,
-    CoverageMeasureType.PredicateRelevantVariables,
-    CoverageMeasureType.PredicateAbstractionVariables
-  };
+  private static final ImmutableList<CoverageMeasureType> TYPES =
+      ImmutableList.of(
+          CoverageMeasureType.PREDICATE_CONSIDERED,
+          CoverageMeasureType.PREDICATE_RELEVANT_VARIABLES,
+          CoverageMeasureType.PREDICATE_ABSTRACTION_VARIABLES);
 
   PredicateAnalysisCoverageCollector(
       CoverageMeasureHandler pCoverageMeasureHandler,
@@ -49,7 +50,7 @@ public class PredicateAnalysisCoverageCollector extends CoverageCollector {
   }
 
   public void collect(CoverageCollectorHandler coverageCollectorHandler) {
-    collect(coverageCollectorHandler, types);
+    collect(coverageCollectorHandler, TYPES);
   }
 
   public void addPredicateConsideredNode(final CFAEdge pEdge) {
