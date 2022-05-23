@@ -47,13 +47,20 @@ public class AnalysisIndependentCoverageCollector extends CoverageCollector {
   }
 
   public void addInitialNodesForMeasures(CFA cfa) {
+    boolean isLoop = false;
     for (CFANode node : cfa.getAllNodes()) {
       if (node.getNodeNumber() == 1) {
         CFANode candidateNode = node;
         do {
-          visitedLocations.add(candidateNode);
+          if (!visitedLocations.contains(candidateNode)) {
+            visitedLocations.add(candidateNode);
+          }
+          CFANode currentNode = candidateNode;
           candidateNode = candidateNode.getLeavingEdge(0).getSuccessor();
-        } while (candidateNode.getNumLeavingEdges() == 1);
+          if (currentNode == candidateNode) {
+            isLoop = true;
+          }
+        } while (candidateNode.getNumLeavingEdges() == 1 && !isLoop);
         break;
       }
     }
