@@ -859,6 +859,8 @@ abstract class AbstractBMCAlgorithm
         // get the branchingFormula
         // this formula contains predicates for all branches we took
         // this way we can figure out which branches make a feasible path
+        @SuppressWarnings("deprecation")
+        // remove once no longer needed
         BooleanFormula branchingFormula = pmgr.buildBranchingFormula(arg);
 
         if (bfmgr.isTrue(branchingFormula)) {
@@ -901,6 +903,7 @@ abstract class AbstractBMCAlgorithm
       }
 
       // get precise error path
+      @SuppressWarnings("deprecation") // rewrite using pmgr.getARGPathFromModel()
       Map<Integer, Boolean> branchingInformation = pmgr.getBranchingPredicateValuesFromModel(model);
       ARGState root = (ARGState) pReachedSet.getFirstState();
 

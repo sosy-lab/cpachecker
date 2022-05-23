@@ -152,6 +152,7 @@ public class PathChecker {
 
     checkArgument(!counterexample.isSpurious());
     if (branchingOccurred) {
+      @SuppressWarnings("deprecation") // rewrite using pgmgr.getARGPathFromModel()
       Map<Integer, Boolean> preds = counterexample.getBranchingPredicates();
       if (preds.isEmpty()) {
         logger.log(Level.WARNING, "No information about ARG branches available!");
