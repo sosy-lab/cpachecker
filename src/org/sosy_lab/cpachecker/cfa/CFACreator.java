@@ -1242,7 +1242,7 @@ public class CFACreator {
       try {
         String code;
         if (exportCfaToCPrettyPrint) {
-          code = new CfaToCExporter().exportCfa(cfa);
+          code = CfaToCExporter.exportCfa(cfa);
         } else {
           code = new CFAToCTranslator(config).translateCfa(cfa);
         }

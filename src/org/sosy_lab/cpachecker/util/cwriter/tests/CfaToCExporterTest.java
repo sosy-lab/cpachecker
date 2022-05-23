@@ -53,10 +53,8 @@ public class CfaToCExporterTest extends ToCTranslationTest {
 
   @Override
   protected void createProgram(Path pTargetPath) throws Exception {
-    CfaToCExporter exporter = new CfaToCExporter();
-
     CFA cfaToExport = parseProgram(originalProgram);
-    String result = exporter.exportCfa(cfaToExport);
+    String result = CfaToCExporter.exportCfa(cfaToExport);
 
     IO.writeFile(pTargetPath, Charset.defaultCharset(), result);
   }
@@ -93,6 +91,11 @@ public class CfaToCExporterTest extends ToCTranslationTest {
         directTranslationTest(EXPORTER_TEST_DIR_PATH + "goto_with-dead-code.c", true),
         directTranslationTest(EXPORTER_TEST_DIR_PATH + "goto_with-double-label.c", true),
         directTranslationTest(
-            EXPORTER_TEST_DIR_PATH + "goto_with-label-with-empty-statement.c", true));
+            EXPORTER_TEST_DIR_PATH + "goto_with-label-with-empty-statement.c", true),
+        directTranslationTest(EXPORTER_TEST_DIR_PATH + "if-else.c", true),
+        directTranslationTest(EXPORTER_TEST_DIR_PATH + "if-else_multiple-returns.c", true),
+        directTranslationTest(EXPORTER_TEST_DIR_PATH + "if-else_negated.c", true),
+        directTranslationTest(EXPORTER_TEST_DIR_PATH + "if-else_negated_double.c", true),
+        directTranslationTest(EXPORTER_TEST_DIR_PATH + "if-else_with-empty-else-branch.c", true));
   }
 }

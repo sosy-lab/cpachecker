@@ -8,9 +8,11 @@
 
 package org.sosy_lab.cpachecker.util.cwriter;
 
+import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSortedMap;
+import com.google.common.collect.ImmutableSortedMap.Builder;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.MoreCollectors;
 import java.util.ArrayDeque;
@@ -27,8 +29,11 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFALabelNode;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
+import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.util.CFAUtils;
+import org.sosy_lab.cpachecker.util.dependencegraph.MergePoint;
 
 public class CfaToCExporter {
 
@@ -42,7 +47,7 @@ public class CfaToCExporter {
    * @return C representation of the given CFA
    * @throws InvalidConfigurationException if the given CFA is not the CFA of a C program
    */
-  public String exportCfa(final CFA pCfa) throws InvalidConfigurationException {
+  public static String exportCfa(final CFA pCfa) throws InvalidConfigurationException {
     if (pCfa.getLanguage() != Language.C) {
       throw new InvalidConfigurationException(
           "CFA can only be exported to C for C input programs, at the moment");
@@ -73,9 +78,9 @@ public class CfaToCExporter {
     return programBuilder.toString();
   }
 
-  private String exportFunction(
+  private static String exportFunction(
       final FunctionEntryNode pFunctionEntryNode,
-      final ImmutableSortedMap.Builder<FileLocation, GlobalDeclaration> globalDeclarationBuilder) {
+      final ImmutableSortedMap.Builder<FileLocation, GlobalDeclaration> pGlobalDeclarationBuilder) {
 
     final StringBuilder functionBuilder = new StringBuilder();
     functionBuilder.append(
@@ -84,63 +89,97 @@ public class CfaToCExporter {
             .toASTString(NAMES_QUALIFIED)
             .replace(";", " {\n"));
 
+    final FunctionExitNode functionExitNode = pFunctionEntryNode.getExitNode();
+    final MergePoint<CFANode> functionMergePoint =
+        new MergePoint<>(
+            functionExitNode, n -> CFAUtils.allSuccessorsOf(n), n -> CFAUtils.allPredecessorsOf(n));
     final ImmutableSortedMap<FileLocation, BlockItem> blockItemsWithinFunctionSortedByFileLocation =
-        collectCfaEdgesOfFunctionIntoBlockItems(pFunctionEntryNode, globalDeclarationBuilder);
+        collectCfaEdgesIntoBlockItems(
+            pFunctionEntryNode, functionExitNode, functionMergePoint, pGlobalDeclarationBuilder);
 
-    for (final Entry<FileLocation, BlockItem> entry :
-        blockItemsWithinFunctionSortedByFileLocation.entrySet()) {
-      if (entry.getKey().isRealLocation()) {
-        functionBuilder.append(entry.getValue().toCCode()).append("\n");
-      }
-    }
-    functionBuilder.append("}\n");
+    functionBuilder
+        .append(exportBlockItemsSortedByFileLocation(blockItemsWithinFunctionSortedByFileLocation))
+        .append("}\n");
     return functionBuilder.toString();
   }
 
-  private ImmutableSortedMap<FileLocation, BlockItem> collectCfaEdgesOfFunctionIntoBlockItems(
-      final FunctionEntryNode pFunctionEntryNode,
-      final ImmutableSortedMap.Builder<FileLocation, GlobalDeclaration> globalDeclarationBuilder) {
+  private static ImmutableSortedMap<FileLocation, BlockItem> collectCfaEdgesIntoBlockItems(
+      final CFANode pStartNode,
+      final CFANode pEndNode,
+      final MergePoint<CFANode> pFunctionMergePoint,
+      final Builder<FileLocation, GlobalDeclaration> pGlobalDeclarationBuilder) {
 
     final TreeMap<FileLocation, BlockItem> blockItemsSortedByFileLocation = new TreeMap<>();
     final Queue<CFANode> waitList = new ArrayDeque<>();
-    waitList.offer(pFunctionEntryNode);
+    waitList.offer(pStartNode);
 
     while (!waitList.isEmpty()) {
       final CFANode currentNode = waitList.poll();
+      if (currentNode.equals(pEndNode)) {
+        break;
+      }
+      final FluentIterable<CFAEdge> leavingEdges = CFAUtils.leavingEdges(currentNode);
+      final int numLeavingEdges = leavingEdges.size();
 
-      for (final CFAEdge cfaEdge : CFAUtils.leavingEdges(currentNode)) {
-        final FileLocation loc = cfaEdge.getFileLocation();
+      if (numLeavingEdges > 1) {
 
-        if (cfaEdge.getEdgeType() == CFAEdgeType.DeclarationEdge
-            && ((CDeclarationEdge) cfaEdge).getDeclaration().isGlobal()) {
+        final CFANode mergeNode = pFunctionMergePoint.findMergePoint(currentNode);
+        final IfElseStatement ifElse =
+            new IfElseStatement(
+                currentNode, mergeNode, pFunctionMergePoint, pGlobalDeclarationBuilder);
+        final FileLocation blockLoc = ifElse.getFileLocation();
+        blockItemsSortedByFileLocation.put(blockLoc, ifElse);
+        waitList.offer(mergeNode);
 
-          globalDeclarationBuilder.put(loc, new GlobalDeclaration(cfaEdge));
+      } else if (numLeavingEdges == 1) {
+
+        final CFAEdge edge = Iterables.getOnlyElement(leavingEdges);
+        waitList.offer(edge.getSuccessor());
+        final FileLocation loc = edge.getFileLocation();
+        if (!loc.isRealLocation()) {
+          continue;
+        }
+
+        if (edge.getEdgeType() == CFAEdgeType.DeclarationEdge
+            && ((CDeclarationEdge) edge).getDeclaration().isGlobal()) {
+
+          pGlobalDeclarationBuilder.put(loc, new GlobalDeclaration(edge));
+
+        } else if (blockItemsSortedByFileLocation.containsKey(loc)) {
+
+          final BlockItem blockItem = blockItemsSortedByFileLocation.get(loc);
+          assert blockItem instanceof SimpleBlockItem
+              : "Only statements and declarations can be split into multiple edges";
+          ((SimpleBlockItem) blockItem).addEdge(edge);
+
+        } else if (currentNode instanceof CFALabelNode) {
+
+          blockItemsSortedByFileLocation.put(loc, new LabeledStatement(edge));
 
         } else {
 
-          if (blockItemsSortedByFileLocation.containsKey(loc)) {
-            final BlockItem blockItem = blockItemsSortedByFileLocation.get(loc);
-            assert blockItem instanceof SimpleBlockItem
-                : "Only statements and declarations can be split into multiple edges";
-            ((SimpleBlockItem) blockItem).addEdge(cfaEdge);
-
-          } else if (currentNode instanceof CFALabelNode) {
-            blockItemsSortedByFileLocation.put(loc, new LabeledStatement(cfaEdge));
-
-          } else {
-            blockItemsSortedByFileLocation.put(loc, new SimpleBlockItem(cfaEdge));
-          }
+          blockItemsSortedByFileLocation.put(loc, new SimpleBlockItem(edge));
         }
-        waitList.offer(cfaEdge.getSuccessor());
       }
     }
     return ImmutableSortedMap.copyOfSorted(blockItemsSortedByFileLocation);
   }
 
-  private String exportGlobalDeclarations(
+  private static String exportBlockItemsSortedByFileLocation(
+      final ImmutableSortedMap<FileLocation, BlockItem> pBlockItemsSortedByFileLocation) {
+
+    final StringBuilder blockBuilder = new StringBuilder();
+    for (final BlockItem blockItem : pBlockItemsSortedByFileLocation.values()) {
+      blockBuilder.append(blockItem.exportToCCode()).append("\n");
+    }
+    return blockBuilder.toString();
+  }
+
+  private static String exportGlobalDeclarations(
       final ImmutableSortedMap<FileLocation, GlobalDeclaration>
           pGlobalDeclarationsSortedByFileLocation,
       final ImmutableSet<FileLocation> pFileLocationsOfFunctionDefinitions) {
+
     final StringBuilder globalDeclarationsBuilder = new StringBuilder();
 
     for (final Entry<FileLocation, GlobalDeclaration> entry :
@@ -150,7 +189,7 @@ public class CfaToCExporter {
       // only export original global declarations, ignore the generated ones
       if (!pFileLocationsOfFunctionDefinitions.contains(loc)) {
         assert loc.isRealLocation();
-        globalDeclarationsBuilder.append(entry.getValue().toCCode()).append("\n");
+        globalDeclarationsBuilder.append(entry.getValue().exportToCCode()).append("\n");
       }
     }
     return globalDeclarationsBuilder.toString();
@@ -160,7 +199,7 @@ public class CfaToCExporter {
 
     // TODO introduce flag to prohibit exporting multiple times?
 
-    protected abstract String toCCode();
+    protected abstract String exportToCCode();
   }
 
   private static class SimpleBlockItem extends BlockItem {
@@ -178,7 +217,7 @@ public class CfaToCExporter {
     }
 
     @Override
-    protected String toCCode() {
+    protected String exportToCCode() {
       // assert that all edges have the same raw statement
       return Iterables.getOnlyElement(
           edgeBuilder.build().stream()
@@ -194,7 +233,7 @@ public class CfaToCExporter {
     }
 
     @Override
-    protected String toCCode() {
+    protected String exportToCCode() {
       // assert that the global declaration consists of exactly one edge
       return edgeBuilder.build().stream()
           .map(CFAEdge::getRawStatement)
@@ -214,7 +253,7 @@ public class CfaToCExporter {
     }
 
     @Override
-    protected String toCCode() {
+    protected String exportToCCode() {
       // assert that the labeled statement consists of exactly one edge
       final CFAEdge labelEdge = Iterables.getOnlyElement(edgeBuilder.build());
       final FileLocation labelLoc = labelEdge.getFileLocation();
@@ -230,6 +269,70 @@ public class CfaToCExporter {
           nextFileLocation.getNodeOffset() - labelLoc.getNodeOffset();
       final int endOfUniquePart = Math.min(labelLoc.getNodeLength(), beginningOfDuplicatePart);
       return labelEdge.getRawStatement().substring(0, endOfUniquePart);
+    }
+  }
+
+  private static class IfElseStatement extends BlockItem {
+
+    private final String condition;
+    private final ImmutableSortedMap<FileLocation, BlockItem> thenBranch;
+    private final ImmutableSortedMap<FileLocation, BlockItem> elseBranch;
+
+    private IfElseStatement(
+        final CFANode pBranchingNode,
+        final CFANode pMergeNode,
+        final MergePoint<CFANode> pFunctionMergePoint,
+        final ImmutableSortedMap.Builder<FileLocation, GlobalDeclaration>
+            pGlobalDeclarationBuilder) {
+
+      final FluentIterable<CFAEdge> leavingEdges = CFAUtils.leavingEdges(pBranchingNode);
+      assert leavingEdges.size() == 2 : "Branchings with more than two branches are not supported";
+      for (final CFAEdge edge : leavingEdges) {
+        assert edge instanceof CAssumeEdge : "Branchings have to consist of two CAssumeEdges";
+      }
+      final CAssumeEdge firstAssumeEdge = (CAssumeEdge) leavingEdges.get(0);
+      final CAssumeEdge secondAssumeEdge = (CAssumeEdge) leavingEdges.get(1);
+
+      final CAssumeEdge thenEdge, elseEdge;
+      if (firstAssumeEdge.getTruthAssumption() && !firstAssumeEdge.isSwapped()) {
+        assert !secondAssumeEdge.getTruthAssumption() && !secondAssumeEdge.isSwapped();
+        thenEdge = firstAssumeEdge;
+        elseEdge = secondAssumeEdge;
+      } else {
+        assert (!firstAssumeEdge.getTruthAssumption() && secondAssumeEdge.getTruthAssumption())
+            || (firstAssumeEdge.isSwapped() && secondAssumeEdge.isSwapped());
+        thenEdge = secondAssumeEdge;
+        elseEdge = firstAssumeEdge;
+      }
+
+      final String rawCondition = thenEdge.getRawStatement();
+      // omit the square brackets
+      condition = rawCondition.substring(1, rawCondition.length() - 1);
+      thenBranch =
+          collectCfaEdgesIntoBlockItems(
+              thenEdge.getSuccessor(), pMergeNode, pFunctionMergePoint, pGlobalDeclarationBuilder);
+      elseBranch =
+          collectCfaEdgesIntoBlockItems(
+              elseEdge.getSuccessor(), pMergeNode, pFunctionMergePoint, pGlobalDeclarationBuilder);
+    }
+
+    private FileLocation getFileLocation() {
+      return FileLocation.merge(
+          ImmutableList.<FileLocation>builder()
+              .addAll(thenBranch.keySet())
+              .addAll(elseBranch.keySet())
+              .build());
+    }
+
+    @Override
+    protected String exportToCCode() {
+      return "if ("
+          + condition
+          + ") {\n"
+          + exportBlockItemsSortedByFileLocation(thenBranch)
+          + "} else {\n"
+          + exportBlockItemsSortedByFileLocation(elseBranch)
+          + "}";
     }
   }
 }
