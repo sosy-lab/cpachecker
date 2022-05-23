@@ -10,10 +10,9 @@
 const EC = protractor.ExpectedConditions;
 
 const hasClass = (element, cls) =>
-  element.getAttribute("class").then((classes) => {
-    console.log("");
-    return classes.split(" ").indexOf(cls) !== -1;
-  });
+  element
+    .getAttribute("class")
+    .then((classes) => classes.split(" ").indexOf(cls) !== -1);
 
 describe("Error path section in Report.js", () => {
   let dirname = `${__dirname}/Counterexample.1.html`;
@@ -154,7 +153,10 @@ describe("Error path section in Report.js", () => {
     it("Mark Error path element in ARG graph", () => {
       browser.wait(EC.presenceOf(element(by.css(".marked-arg-node"))));
       expect(
-        hasClass(element(by.xpath('//*[@id="arg-node0"]')), "marked-arg-node")
+        hasClass(
+          element(by.xpath('//*[@id="arg-graph0"]//*[@id="arg-node0"]')),
+          "marked-arg-node"
+        )
       ).toBe(true);
     });
     browser.driver.sleep(100);
@@ -200,7 +202,10 @@ describe("Error path section in Report.js", () => {
     it("Mark Error path element in ARG graph", () => {
       browser.wait(EC.presenceOf(element(by.css(".marked-arg-node"))));
       expect(
-        hasClass(element(by.xpath('//*[@id="arg-node0"]')), "marked-arg-node")
+        hasClass(
+          element(by.xpath('//*[@id="arg-graph0"]//*[@id="arg-node0"]')),
+          "marked-arg-node"
+        )
       ).toBe(true);
     });
     browser.driver.sleep(100);
