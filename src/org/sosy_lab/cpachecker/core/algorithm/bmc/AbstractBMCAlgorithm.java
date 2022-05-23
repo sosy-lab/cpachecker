@@ -23,7 +23,6 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
-import com.google.common.collect.Sets;
 import java.io.IOException;
 import java.math.BigInteger;
 import java.nio.file.Path;
@@ -839,7 +838,6 @@ abstract class AbstractBMCAlgorithm
             state.removeFromARG();
           });
       pReachedSet.removeAll(redundantStates);
-      targetStates = Sets.difference(targetStates, redundantStates);
 
       // get (precise) error path
       ARGPath targetPath;

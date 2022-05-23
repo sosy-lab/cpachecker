@@ -217,8 +217,7 @@ public class PredicateStaticRefiner extends StaticRefiner
       @SuppressWarnings("deprecation")
       // remove once PathChecker#handleFeasibleCounterexample does not need it anymore
       BooleanFormula branchingFormula = pathFormulaManager.buildBranchingFormula(elementsOnPath);
-      formulas =
-          formulas.withBranchingFormula(branchingFormula);
+      formulas = formulas.withBranchingFormula(branchingFormula);
     }
 
     CounterexampleTraceInfo counterexample;

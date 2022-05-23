@@ -444,6 +444,7 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
    * @return A formula containing a predicate for each branching.
    */
   @Override
+  @Deprecated
   public BooleanFormula buildBranchingFormula(Set<ARGState> elementsOnPath)
       throws CPATransferException, InterruptedException {
     return buildBranchingFormula(elementsOnPath, ImmutableMap.of());
@@ -462,6 +463,7 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
    * @return A formula containing a predicate for each branching.
    */
   @Override
+  @Deprecated
   public BooleanFormula buildBranchingFormula(
       Set<ARGState> elementsOnPath, Map<Pair<ARGState, CFAEdge>, PathFormula> parentFormulasOnPath)
       throws CPATransferException, InterruptedException {
@@ -562,6 +564,7 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
    * @return A map from ARG state id to a boolean value indicating direction.
    */
   @Override
+  @Deprecated
   public ImmutableMap<Integer, Boolean> getBranchingPredicateValuesFromModel(
       Iterable<ValueAssignment> model) {
     // Do not use fmgr here, this fails if a separate solver is used for interpolation.

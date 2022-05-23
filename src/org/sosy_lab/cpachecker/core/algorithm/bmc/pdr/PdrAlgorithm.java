@@ -1142,7 +1142,6 @@ public class PdrAlgorithm implements Algorithm {
             state.removeFromARG();
           });
       pReachedSet.removeAll(redundantStates);
-      targetStates = Sets.difference(targetStates, redundantStates);
 
       // get (precise) error path
       ARGPath targetPath;
@@ -1161,7 +1160,6 @@ public class PdrAlgorithm implements Algorithm {
         logger.log(Level.WARNING, "Solver could not produce model, cannot create error path.");
         logger.logDebugException(e);
         return;
-
       }
 
       BooleanFormula cexFormula = pCounterexampleFormula;
