@@ -35,12 +35,12 @@ public final class DomFrontiers<T> {
   private final DomInput<T> input;
 
   // frontiers.get(N) == dominance frontier of node N
-  private final ImmutableList<ImmutableSet<Integer>> frontiers;
+  private final ImmutableList<ImmutableSet<T>> frontiers;
 
-  private DomFrontiers(DomInput<T> pInput, List<? extends Set<Integer>> pFrontiers) {
+  private DomFrontiers(DomInput<T> pInput, ImmutableList<ImmutableSet<T>> pFrontiers) {
 
     input = pInput;
-    frontiers = Collections3.transformedImmutableListCopy(pFrontiers, ImmutableSet::copyOf);
+    frontiers = pFrontiers;
   }
 
   /**
@@ -57,7 +57,7 @@ public final class DomFrontiers<T> {
 
     checkNotNull(pDomTree);
 
-    ImmutableList<ImmutableSet<Integer>> frontiers = computeFrontiers(pDomTree);
+    ImmutableList<ImmutableSet<T>> frontiers = computeFrontiers(pDomTree);
 
     return new DomFrontiers<>(pDomTree.getInput(), frontiers);
   }
@@ -66,12 +66,12 @@ public final class DomFrontiers<T> {
    * Returns a list containing the dominance frontier for each node. {@code frontiers.get(N) ==
    * dominance frontier of node N}.
    */
-  private static ImmutableList<ImmutableSet<Integer>> computeFrontiers(DomTree<?> pDomTree) {
+  private static <T> ImmutableList<ImmutableSet<T>> computeFrontiers(DomTree<T> pDomTree) {
 
     // For more information on the algorithm, see "A Simple, Fast Dominance Algorithm"
     // (Cooper et al.), Figure 5.
 
-    DomInput<?> domInput = pDomTree.getInput();
+    DomInput<T> domInput = pDomTree.getInput();
     DomInput.PredecessorDataIterator predecessorsDataIterator = domInput.iteratePredecessorData();
 
     List<Set<Integer>> frontiers = new ArrayList<>(domInput.getNodeCount());
@@ -110,13 +110,11 @@ public final class DomFrontiers<T> {
       } while (runner != DomTree.UNDEFINED);
     }
 
-    return Collections3.transformedImmutableListCopy(frontiers, ImmutableSet::copyOf);
-  }
-
-  private ImmutableSet<T> getFrontier(int pId) {
-
-    return Collections3.transformedImmutableSetCopy(
-        frontiers.get(pId), input::getNodeForReversePostOrderId);
+    return Collections3.transformedImmutableListCopy(
+        frontiers,
+        frontier ->
+            Collections3.transformedImmutableSetCopy(
+                frontier, domInput::getNodeForReversePostOrderId));
   }
 
   /**
@@ -136,7 +134,7 @@ public final class DomFrontiers<T> {
 
     checkArgument(id != null, "unknown node: %s", pNode);
 
-    return getFrontier(id);
+    return frontiers.get(id);
   }
 
   /**
@@ -158,8 +156,8 @@ public final class DomFrontiers<T> {
 
     Set<T> iteratedFrontier = new HashSet<>();
 
-    Set<Integer> waitlisted = new HashSet<>();
-    Deque<Integer> waitlist = new ArrayDeque<>();
+    Set<T> waitlisted = new HashSet<>();
+    Deque<T> waitlist = new ArrayDeque<>();
 
     for (T node : pNodes) {
 
@@ -169,18 +167,18 @@ public final class DomFrontiers<T> {
 
       checkArgument(id != null, "pNodes contains a node that has no dominance frontier: %s", node);
 
-      waitlist.add(id);
-      waitlisted.add(id);
+      waitlist.add(node);
+      waitlisted.add(node);
     }
 
     while (!waitlist.isEmpty()) {
 
-      int removed = waitlist.remove();
+      T node = waitlist.remove();
 
-      for (int id : frontiers.get(removed)) {
-        if (iteratedFrontier.add(input.getNodeForReversePostOrderId(id))) {
-          if (waitlisted.add(id)) {
-            waitlist.add(id);
+      for (T frontierNode : getFrontier(node)) {
+        if (iteratedFrontier.add(frontierNode)) {
+          if (waitlisted.add(frontierNode)) {
+            waitlist.add(frontierNode);
           }
         }
       }
