@@ -42,6 +42,7 @@ import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
+import org.sosy_lab.cpachecker.cfa.types.c.CTypes;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.CFAEdgeUtils;
 import org.sosy_lab.cpachecker.util.Pair;
@@ -204,7 +205,11 @@ public class ModificationsPropHelper {
 
             assigned.addAll(funCall.getFunctionNameExpression().accept(visitor));
             for (CExpression exp : funCall.getParameterExpressions()) {
-              assigned.addAll(exp.accept(visitor));
+              if (CTypes.isArithmeticType(exp.getExpressionType())) {
+                exp.accept(visitor);
+              } else {
+                assigned.addAll(exp.accept(visitor));
+              }
             }
             if (pVars.containsAll(assigned)) {
               return Pair.of(edge.getSuccessor(), pVars);
@@ -222,7 +227,11 @@ public class ModificationsPropHelper {
 
             Set<String> assigned = funCall.getFunctionNameExpression().accept(visitor);
             for (CExpression exp : funCall.getParameterExpressions()) {
-              assigned.addAll(exp.accept(visitor));
+              if (CTypes.isArithmeticType(exp.getExpressionType())) {
+                exp.accept(visitor);
+              } else {
+                assigned.addAll(exp.accept(visitor));
+              }
             }
             if (pVars.containsAll(assigned)) {
               return Pair.of(edge.getSuccessor(), pVars);
@@ -279,7 +288,11 @@ public class ModificationsPropHelper {
       CFunctionCallExpression funCall = ((CFunctionCall) stmt).getFunctionCallExpression();
       rhs.addAll(funCall.getFunctionNameExpression().accept(visitor));
       for (CExpression exp : funCall.getParameterExpressions()) {
-        rhs.addAll(exp.accept(visitor));
+        if (CTypes.isArithmeticType(exp.getExpressionType())) {
+          exp.accept(visitor);
+        } else {
+          rhs.addAll(exp.accept(visitor));
+        }
       }
       // be optimistic and assume that it does not modify any other variable than its input
       // parameters
@@ -417,7 +430,10 @@ public class ModificationsPropHelper {
               pConsequence.getPredecessor().getFunctionName(),
               ssaMap,
               pConsequence.getTruthAssumption());
-    } catch (IllegalArgumentException | UnrecognizedCodeException | InterruptedException e) {
+    } catch (IllegalArgumentException
+        | UnrecognizedCodeException
+        | InterruptedException
+        | AssertionError e) {
       logger.log(Level.WARNING, "Converting to predicate failed.");
       return false;
     }
