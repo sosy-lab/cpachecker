@@ -27,6 +27,7 @@ import org.sosy_lab.cpachecker.cpa.bam.cache.BAMCacheSynchronized;
 import org.sosy_lab.cpachecker.cpa.bam.cache.BAMDataManager;
 import org.sosy_lab.cpachecker.cpa.bam.cache.BAMDataManagerSynchronized;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.util.coverage.collectors.CoverageCollectorHandler;
 
 @Options(prefix = "cpa.bam")
 public class BAMCPAWithBreakOnMissingBlock extends AbstractBAMCPA {
@@ -50,9 +51,10 @@ public class BAMCPAWithBreakOnMissingBlock extends AbstractBAMCPA {
       ReachedSetFactory reachedsetFactory,
       ShutdownNotifier pShutdownNotifier,
       Specification pSpecification,
-      CFA pCfa)
+      CFA pCfa,
+      CoverageCollectorHandler pCovCollectorHandler)
       throws InvalidConfigurationException, CPAException {
-    super(pCpa, pConfig, pLogger, pShutdownNotifier, pSpecification, pCfa);
+    super(pCpa, pConfig, pLogger, pShutdownNotifier, pSpecification, pCfa, pCovCollectorHandler);
     pConfig.inject(this);
 
     cache = new BAMCacheSynchronized(pConfig, getReducer(), pLogger);

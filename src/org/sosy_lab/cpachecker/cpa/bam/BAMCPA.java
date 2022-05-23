@@ -39,6 +39,7 @@ import org.sosy_lab.cpachecker.cpa.bam.cache.BAMDataManager;
 import org.sosy_lab.cpachecker.cpa.bam.cache.BAMDataManagerImpl;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
+import org.sosy_lab.cpachecker.util.coverage.collectors.CoverageCollectorHandler;
 
 @Options(prefix = "cpa.bam")
 public class BAMCPA extends AbstractBAMCPA implements StatisticsProvider, ProofChecker {
@@ -79,9 +80,10 @@ public class BAMCPA extends AbstractBAMCPA implements StatisticsProvider, ProofC
       ReachedSetFactory pReachedSetFactory,
       ShutdownNotifier pShutdownNotifier,
       Specification pSpecification,
-      CFA pCfa)
+      CFA pCfa,
+      CoverageCollectorHandler pCovCollectorHandler)
       throws InvalidConfigurationException, CPAException {
-    super(pCpa, config, pLogger, pShutdownNotifier, pSpecification, pCfa);
+    super(pCpa, config, pLogger, pShutdownNotifier, pSpecification, pCfa, pCovCollectorHandler);
     config.inject(this);
 
     if (pCpa instanceof ProofChecker) {
