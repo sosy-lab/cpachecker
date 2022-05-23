@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.util.coverage.measures;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMultiset;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.ImmutableSortedMap;
 import com.google.common.collect.Multiset;
 import java.util.Map;
@@ -25,13 +26,13 @@ import org.sosy_lab.cpachecker.util.coverage.util.CoverageColorUtil;
  */
 public class LineBasedCoverageMeasure implements CoverageMeasure {
   private final ImmutableMap<String, ImmutableMultiset<Integer>> visitedLinesPerFile;
-  private final ImmutableMap<String, ImmutableSet<Integer>> existingLinesPerFile;
+  private final ImmutableSetMultimap<String, Integer> existingLinesPerFile;
 
   public LineBasedCoverageMeasure(
       Map<String, ImmutableMultiset<Integer>> pVisitedLinesPerFile,
-      Map<String, ImmutableSet<Integer>> pExistingLinesPerFile) {
+      ImmutableSetMultimap<String, Integer> pExistingLinesPerFile) {
     visitedLinesPerFile = ImmutableSortedMap.copyOf(pVisitedLinesPerFile);
-    existingLinesPerFile = ImmutableSortedMap.copyOf(pExistingLinesPerFile);
+    existingLinesPerFile = ImmutableSetMultimap.copyOf(pExistingLinesPerFile);
   }
 
   /**
@@ -48,7 +49,7 @@ public class LineBasedCoverageMeasure implements CoverageMeasure {
     if (visitedLines != null && visitedLines.contains(line)) {
       return CoverageColorUtil.getFrequencyColorMapForLines(visitedLinesPerFile.get(file))
           .get(line);
-    } else if (existingLines != null && existingLines.contains(line)) {
+    } else if (existingLines.contains(line)) {
       return CoverageColorUtil.DEFAULT_CONSIDERED_COLOR;
     } else {
       return CoverageColorUtil.DEFAULT_ELEMENT_COLOR;
@@ -69,8 +70,6 @@ public class LineBasedCoverageMeasure implements CoverageMeasure {
 
   @Override
   public double getMaxValue() {
-    return existingLinesPerFile.values().stream()
-        .mapToInt(existingLines -> existingLines.size())
-        .sum();
+    return existingLinesPerFile.values().size();
   }
 }

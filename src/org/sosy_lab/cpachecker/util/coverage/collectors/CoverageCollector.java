@@ -8,12 +8,14 @@
 
 package org.sosy_lab.cpachecker.util.coverage.collectors;
 
+import com.google.common.collect.HashMultimap;
 import com.google.common.collect.HashMultiset;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMultiset;
-import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.Multiset;
+import com.google.common.collect.SetMultimap;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
@@ -41,10 +43,10 @@ import org.sosy_lab.cpachecker.util.coverage.util.CoverageUtility;
 public abstract class CoverageCollector {
   private final Set<CFANode> allLocations = new LinkedHashSet<>();
   private final Map<String, Multiset<Integer>> visitedLinesPerFile = new HashMap<>();
-  private final Map<String, Set<Integer>> existingLinesPerFile = new HashMap<>();
+  private final SetMultimap<String, Integer> existingLinesPerFile = HashMultimap.create();
   private final Map<String, Multiset<String>> visitedFunctionsPerFile = new HashMap<>();
   private final Set<FunctionInfo> allFunctions = new HashSet<>();
-  private final Map<String, Set<AssumeEdge>> visitedAssumesPerFile = new HashMap<>();
+  private final SetMultimap<String, AssumeEdge> visitedAssumesPerFile = HashMultimap.create();
   private final Set<AssumeEdge> allAssumes = new HashSet<>();
 
   final CoverageMeasureHandler coverageMeasureHandler;
@@ -85,14 +87,7 @@ public abstract class CoverageCollector {
     String file = loc.getFileName().toString();
 
     if (pEdge instanceof AssumeEdge) {
-      Set<AssumeEdge> visitedAssumes = visitedAssumesPerFile.get(file);
-      if (visitedAssumes != null) {
-        visitedAssumesPerFile.get(file).add((AssumeEdge) pEdge);
-      } else {
-        Set<AssumeEdge> newVisitedAssumes = new HashSet<>();
-        newVisitedAssumes.add((AssumeEdge) pEdge);
-        visitedAssumesPerFile.put(file, newVisitedAssumes);
-      }
+      visitedAssumesPerFile.put(file, (AssumeEdge) pEdge);
     }
 
     for (int line = startingLine; line <= endingLine; line++) {
@@ -138,20 +133,16 @@ public abstract class CoverageCollector {
     return allAssumes;
   }
 
-  public Map<String, Set<AssumeEdge>> getVisitedAssumesPerFile() {
-    return visitedAssumesPerFile;
+  public ImmutableSetMultimap<String, AssumeEdge> getVisitedAssumesPerFile() {
+    return ImmutableSetMultimap.copyOf(visitedAssumesPerFile);
   }
 
   public int getVisitedAssumesCount() {
-    return visitedAssumesPerFile.values().stream().map(x -> x.size()).mapToInt(i -> i).sum();
+    return visitedAssumesPerFile.values().size();
   }
 
-  public ImmutableMap<String, ImmutableSet<Integer>> getExistingLinesPerFile() {
-    Map<String, ImmutableSet<Integer>> lExistingLinesPerFile = new HashMap<>();
-    for (Entry<String, Set<Integer>> entry : existingLinesPerFile.entrySet()) {
-      lExistingLinesPerFile.put(entry.getKey(), ImmutableSet.copyOf(entry.getValue()));
-    }
-    return ImmutableMap.copyOf(lExistingLinesPerFile);
+  public ImmutableSetMultimap<String, Integer> getExistingLinesPerFile() {
+    return ImmutableSetMultimap.copyOf(existingLinesPerFile);
   }
 
   public ImmutableMap<String, ImmutableMultiset<Integer>> getVisitedLinesPerFile() {
@@ -170,7 +161,7 @@ public abstract class CoverageCollector {
   }
 
   public int getExistingLinesCount() {
-    return existingLinesPerFile.values().stream().map(x -> x.size()).mapToInt(i -> i).sum();
+    return existingLinesPerFile.values().size();
   }
 
   public Set<CFANode> getAllLocations() {
@@ -204,14 +195,7 @@ public abstract class CoverageCollector {
     String file = loc.getFileName().toString();
 
     for (int line = startingLine; line <= endingLine; line++) {
-      Set<Integer> existingLines = existingLinesPerFile.get(file);
-      if (existingLines != null) {
-        existingLinesPerFile.get(file).add(line);
-      } else {
-        Set<Integer> newExistingLines = new HashSet<>();
-        newExistingLines.add(line);
-        existingLinesPerFile.put(file, newExistingLines);
-      }
+      existingLinesPerFile.put(file, line);
     }
 
     if (pEdge instanceof AssumeEdge) {
