@@ -152,6 +152,7 @@ public class PathChecker {
 
     checkArgument(!counterexample.isSpurious());
     if (branchingOccurred) {
+      @SuppressWarnings("deprecation") // rewrite using pgmgr.getARGPathFromModel()
       Map<Integer, Boolean> preds = counterexample.getBranchingPredicates();
       if (preds.isEmpty()) {
         logger.log(Level.WARNING, "No information about ARG branches available!");
@@ -164,7 +165,9 @@ public class PathChecker {
         ARGState target = allStatesTrace.getLastState();
         Set<ARGState> pathElements = ARGUtils.getAllStatesOnPathsTo(target);
 
-        targetPath = ARGUtils.getPathFromBranchingInformation(root, target, pathElements, preds);
+        targetPath =
+            ARGUtils.getPathFromBranchingInformation(
+                root, target, pathElements, (state, edge) -> preds.get(state.getStateId()));
 
       } catch (IllegalArgumentException e) {
         logger.logUserException(Level.WARNING, e, null);

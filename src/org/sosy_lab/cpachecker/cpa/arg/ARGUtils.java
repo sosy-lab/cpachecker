@@ -48,6 +48,7 @@ import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.BiFunction;
 import java.util.function.Function;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.DummyCFAEdge;
@@ -435,14 +436,19 @@ public class ARGUtils {
    * @param root The root element of the ARG (where to start the path)
    * @param arg All elements in the ARG or a subset thereof (elements outside this set will be
    *     ignored).
-   * @param branchingInformation A map from ARG state ids to boolean values indicating the outgoing
-   *     direction.
+   * @param branchingInformation A function from ARG states to boolean values indicating the
+   *     outgoing direction. It is only called for an ARG state with exactly two outgoing
+   *     AssumeEdges, and the positive variant of the edge is passed as well. The function needs to
+   *     return TRUE if the positive variant should be taken and FALSE otherwise, null indicates an
+   *     error.
    * @return A path through the ARG from root to target.
    * @throws IllegalArgumentException If the direction information doesn't match the ARG or the ARG
    *     is inconsistent.
    */
   public static ARGPath getPathFromBranchingInformation(
-      ARGState root, Set<? extends AbstractState> arg, Map<Integer, Boolean> branchingInformation)
+      ARGState root,
+      Set<? extends AbstractState> arg,
+      BiFunction<ARGState, AssumeEdge, Boolean> branchingInformation)
       throws IllegalArgumentException {
     return getPathFromBranchingInformation(root, arg, branchingInformation, true);
   }
@@ -454,8 +460,11 @@ public class ARGUtils {
    * @param root The root element of the ARG (where to start the path)
    * @param arg All elements in the ARG or a subset thereof (elements outside this set will be
    *     ignored).
-   * @param branchingInformation A map from ARG state ids to boolean values indicating the outgoing
-   *     direction.
+   * @param branchingInformation A function from ARG states to boolean values indicating the
+   *     outgoing direction. It is only called for an ARG state with exactly two outgoing
+   *     AssumeEdges, and the positive variant of the edge is passed as well. The function needs to
+   *     return TRUE if the positive variant should be taken and FALSE otherwise, null indicates an
+   *     error.
    * @param mustEndInTarget If {@code true}, the path must end in a target state to be considered
    *     consistent.
    * @return A path through the ARG unambiguously described by the branching information.
@@ -465,7 +474,7 @@ public class ARGUtils {
   public static ARGPath getPathFromBranchingInformation(
       ARGState root,
       Set<? extends AbstractState> arg,
-      Map<Integer, Boolean> branchingInformation,
+      BiFunction<ARGState, AssumeEdge, Boolean> branchingInformation,
       boolean mustEndInTarget)
       throws IllegalArgumentException {
 
@@ -494,8 +503,8 @@ public class ARGUtils {
 
         case 2: // branch
           // first, find out the edges and the children
-          CFAEdge trueEdge = null;
-          CFAEdge falseEdge = null;
+          AssumeEdge trueEdge = null;
+          AssumeEdge falseEdge = null;
           ARGState trueChild = null;
           ARGState falseChild = null;
 
@@ -508,10 +517,10 @@ public class ARGUtils {
           for (ARGState currentChild : childrenInArg) {
             CFAEdge currentEdge = currentElement.getEdgeToChild(currentChild);
             if (((AssumeEdge) currentEdge).getTruthAssumption()) {
-              trueEdge = currentEdge;
+              trueEdge = (AssumeEdge) currentEdge;
               trueChild = currentChild;
             } else {
-              falseEdge = currentEdge;
+              falseEdge = (AssumeEdge) currentEdge;
               falseChild = currentChild;
             }
           }
@@ -522,7 +531,7 @@ public class ARGUtils {
           assert falseChild != null;
 
           // search first idx where we have a predicate for the current branching
-          Boolean predValue = branchingInformation.get(currentElement.getStateId());
+          Boolean predValue = branchingInformation.apply(currentElement, trueEdge);
           if (predValue == null) {
             throw new IllegalArgumentException("ARG branches without direction information!");
           }
@@ -559,8 +568,11 @@ public class ARGUtils {
    * @param target The target state (where to end the path, needs to be a target state)
    * @param arg All elements in the ARG or a subset thereof (elements outside this set will be
    *     ignored).
-   * @param branchingInformation A map from ARG state ids to boolean values indicating the outgoing
-   *     direction.
+   * @param branchingInformation A function from ARG states to boolean values indicating the
+   *     outgoing direction. It is only called for an ARG state with exactly two outgoing
+   *     AssumeEdges, and the positive variant of the edge is passed as well. The function needs to
+   *     return TRUE if the positive variant should be taken and FALSE otherwise, null indicates an
+   *     error.
    * @return A path through the ARG from root to target.
    * @throws IllegalArgumentException If the direction information doesn't match the ARG or the ARG
    *     is inconsistent.
@@ -569,7 +581,7 @@ public class ARGUtils {
       ARGState root,
       ARGState target,
       Set<? extends AbstractState> arg,
-      Map<Integer, Boolean> branchingInformation)
+      BiFunction<ARGState, AssumeEdge, Boolean> branchingInformation)
       throws IllegalArgumentException {
 
     checkArgument(arg.contains(target));

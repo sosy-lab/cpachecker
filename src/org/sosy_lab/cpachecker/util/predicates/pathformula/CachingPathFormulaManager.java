@@ -21,7 +21,9 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
+import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCFAEdgeException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
@@ -32,6 +34,7 @@ import org.sosy_lab.cpachecker.util.statistics.ThreadSafeTimerContainer;
 import org.sosy_lab.cpachecker.util.statistics.ThreadSafeTimerContainer.TimerWrapper;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.Formula;
+import org.sosy_lab.java_smt.api.Model;
 import org.sosy_lab.java_smt.api.Model.ValueAssignment;
 
 /**
@@ -195,12 +198,14 @@ public class CachingPathFormulaManager implements PathFormulaManager {
   }
 
   @Override
+  @Deprecated
   public BooleanFormula buildBranchingFormula(Set<ARGState> pElementsOnPath)
       throws CPATransferException, InterruptedException {
     return delegate.buildBranchingFormula(pElementsOnPath);
   }
 
   @Override
+  @Deprecated
   public BooleanFormula buildBranchingFormula(
       Set<ARGState> pElementsOnPath,
       Map<Pair<ARGState, CFAEdge>, PathFormula> pParentFormulasOnPath)
@@ -209,9 +214,27 @@ public class CachingPathFormulaManager implements PathFormulaManager {
   }
 
   @Override
+  @Deprecated
   public Map<Integer, Boolean> getBranchingPredicateValuesFromModel(
       Iterable<ValueAssignment> pModel) {
     return delegate.getBranchingPredicateValuesFromModel(pModel);
+  }
+
+  @Override
+  public ARGPath getARGPathFromModel(
+      Model pModel, ARGState pRoot, Set<? extends AbstractState> pElementsOnPath)
+      throws CPATransferException, InterruptedException {
+    return delegate.getARGPathFromModel(pModel, pRoot, pElementsOnPath);
+  }
+
+  @Override
+  public ARGPath getARGPathFromModel(
+      Model pModel,
+      ARGState pRoot,
+      Set<? extends AbstractState> pElementsOnPath,
+      Map<Pair<ARGState, CFAEdge>, PathFormula> pParentFormulasOnPath)
+      throws CPATransferException, InterruptedException {
+    return delegate.getARGPathFromModel(pModel, pRoot, pElementsOnPath, pParentFormulasOnPath);
   }
 
   @Override
