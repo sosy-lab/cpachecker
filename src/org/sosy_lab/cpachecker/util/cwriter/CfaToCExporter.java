@@ -12,7 +12,6 @@ import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSortedMap;
-import com.google.common.collect.ImmutableSortedMap.Builder;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.MoreCollectors;
 import java.util.ArrayDeque;
@@ -107,7 +106,7 @@ public class CfaToCExporter {
       final CFANode pStartNode,
       final CFANode pEndNode,
       final MergePoint<CFANode> pFunctionMergePoint,
-      final Builder<FileLocation, GlobalDeclaration> pGlobalDeclarationBuilder) {
+      final ImmutableSortedMap.Builder<FileLocation, GlobalDeclaration> pGlobalDeclarationBuilder) {
 
     final TreeMap<FileLocation, BlockItem> blockItemsSortedByFileLocation = new TreeMap<>();
     final Queue<CFANode> waitList = new ArrayDeque<>();
