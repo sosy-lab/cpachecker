@@ -267,8 +267,8 @@ public class PredicateCoverageTransferRelation extends PredicateTransferRelation
   }
 
   private Set<AbstractionPredicate> getAllPredicates(PredicatePrecision precision) {
-    Set<AbstractionPredicate> allPredicates = new HashSet<>();
-    allPredicates.addAll(precision.getLocationInstancePredicates().values());
+    Set<AbstractionPredicate> allPredicates =
+        new HashSet<>(precision.getLocationInstancePredicates().values());
     allPredicates.addAll(precision.getLocalPredicates().values());
     allPredicates.addAll(precision.getFunctionPredicates().values());
     allPredicates.addAll(precision.getGlobalPredicates());
