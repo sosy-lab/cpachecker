@@ -503,7 +503,8 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
       if (automatonOrderedTransitions && children.size() > 1) {
         children =
             FluentIterable.from(children)
-                .toSortedList(Comparator.<ARGState>comparingInt(child -> child.getStateId()));
+                .toSortedList(
+                    Comparator.<ARGState>comparingInt(child -> child.getStateId()).reversed());
       }
       for (final ARGState child : children) {
         assert !child.isCovered();
