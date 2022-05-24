@@ -24,9 +24,12 @@ public class CoverageCollectorHandler {
   private final AnalysisIndependentCoverageCollector analysisIndependentCoverageCollector;
   private final PredicateAnalysisCoverageCollector predicateAnalysisCoverageCollector;
   private final boolean shouldCollectPredicateCoverage;
+  private final boolean shouldCollectAnyCoverage;
 
-  public CoverageCollectorHandler(CFA cfa, boolean pShouldCollectPredicateCoverage) {
+  private CoverageCollectorHandler(
+      CFA cfa, boolean pShouldCollectPredicateCoverage, boolean pShouldCollectAnyCoverage) {
     shouldCollectPredicateCoverage = pShouldCollectPredicateCoverage;
+    shouldCollectAnyCoverage = pShouldCollectAnyCoverage;
     timeDependentCoverageHandler = new TimeDependentCoverageHandler();
     coverageMeasureHandler = new CoverageMeasureHandler();
     reachedSetCoverageCollector =
@@ -43,16 +46,26 @@ public class CoverageCollectorHandler {
     }
   }
 
+  public CoverageCollectorHandler(CFA cfa, boolean pShouldCollectPredicateCoverage) {
+    this(cfa, pShouldCollectPredicateCoverage, true);
+  }
+
+  public CoverageCollectorHandler(CFA cfa) {
+    this(cfa, false, false);
+  }
+
   /**
    * This method is called in the end of the analysis. It is used to populate the coverage data for
    * all initialized measures. When adding a new coverage measure this method should be expanded by
    * its type.
    */
   public void collectAllData() {
-    analysisIndependentCoverageCollector.collect(this);
-    reachedSetCoverageCollector.collect(this);
-    if (shouldCollectPredicateCoverage) {
-      predicateAnalysisCoverageCollector.collect(this);
+    if (shouldCollectAnyCoverage) {
+      analysisIndependentCoverageCollector.collect(this);
+      reachedSetCoverageCollector.collect(this);
+      if (shouldCollectPredicateCoverage) {
+        predicateAnalysisCoverageCollector.collect(this);
+      }
     }
   }
 
