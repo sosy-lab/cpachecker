@@ -25,7 +25,7 @@ public class CoverageReportGcov {
 
   public static void write(CoverageCollector collector, Writer w) throws IOException {
 
-    for (String sourcefile : collector.getVisitedLinesPerFile().keySet()) {
+    for (String sourcefile : collector.getExistingLinesPerFile().keySet()) {
       // Convert ./test.c -> /full/path/test.c
       w.append(TEXT_NAME + "\n");
       w.append(SOURCE_FILE)
@@ -45,23 +45,27 @@ public class CoverageReportGcov {
         w.append("#" + FUNCTION).append(String.valueOf(info.getLastLine())).append("\n");
       }
 
-      for (Multiset.Entry<String> functionEntry :
-          collector.getVisitedFunctionsPerFile().get(sourcefile).entrySet()) {
-        w.append(FUNCTION_DATA)
-            .append(String.valueOf(functionEntry.getCount()))
-            .append(",")
-            .append(functionEntry.getElement())
-            .append("\n");
+      Multiset<String> visitedFunctions = collector.getVisitedFunctionsPerFile().get(sourcefile);
+      if (visitedFunctions != null) {
+        for (Multiset.Entry<String> functionEntry : visitedFunctions.entrySet()) {
+          w.append(FUNCTION_DATA)
+              .append(String.valueOf(functionEntry.getCount()))
+              .append(",")
+              .append(functionEntry.getElement())
+              .append("\n");
+        }
       }
 
-      /* Now save information about lines
-       */
-      for (Integer line : collector.getExistingLinesPerFile().get(sourcefile)) {
-        w.append(LINE_DATA)
-            .append(String.valueOf(line))
-            .append(",")
-            .append(String.valueOf(collector.getVisitedLinesPerFile().get(sourcefile).count(line)))
-            .append("\n");
+      // Now save information about lines
+      Multiset<Integer> visitedLines = collector.getVisitedLinesPerFile().get(sourcefile);
+      if (visitedLines != null) {
+        for (Integer line : collector.getExistingLinesPerFile().get(sourcefile)) {
+          w.append(LINE_DATA)
+              .append(String.valueOf(line))
+              .append(",")
+              .append(String.valueOf(visitedLines.count(line)))
+              .append("\n");
+        }
       }
       w.append("end_of_record\n");
     }

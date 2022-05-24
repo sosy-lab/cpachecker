@@ -129,7 +129,7 @@ public class PredicateCoverageTransferRelation extends PredicateTransferRelation
       PredicatePrecision precision, CFAEdge cfaEdge, AbstractState state) {
     Set<String> predicateVariables = getRelevantVariables(cfaEdge, precision, state);
     Set<String> assumeVariables = convertAssumeToVariables(cfaEdge);
-    if (shouldAddPredicateRelevantVariableNode(assumeVariables, predicateVariables)) {
+    if (shouldAddPredicateRelevantVariableNode(cfaEdge, assumeVariables, predicateVariables)) {
       coverageCollector.addPredicateRelevantVariablesNodes(cfaEdge);
       predicateRelevantVariablesTDCG.addTimestamp(
           coverageCollector.getTempPredicateRelevantVariablesCoverage(cfa));
@@ -165,8 +165,16 @@ public class PredicateCoverageTransferRelation extends PredicateTransferRelation
   }
 
   private boolean shouldAddPredicateRelevantVariableNode(
-      Set<String> assumeVariables, Set<String> predicateVariables) {
-    return predicateVariables.containsAll(assumeVariables);
+      CFAEdge cfaEdge, Set<String> assumeVariables, Set<String> predicateVariables) {
+    if (!coverageCollector
+        .getPredicateRelevantConsideredLocations()
+        .contains(cfaEdge.getPredecessor())) {
+      return false;
+    }
+    if (cfaEdge.getEdgeType() != CFAEdgeType.AssumeEdge) {
+      return true;
+    }
+    return coversPredicateHelper(assumeVariables, predicateVariables);
   }
 
   /**
@@ -204,8 +212,11 @@ public class PredicateCoverageTransferRelation extends PredicateTransferRelation
 
   private boolean shouldAddPredicateConsideredNode(
       CFAEdge cfaEdge, PredicatePrecision precision, AbstractState state) {
-    Set<AbstractionPredicate> allPredicates =
-        getAllPredicatesForNode(precision, state, cfaEdge.getPredecessor());
+    CFANode location = cfaEdge.getPredecessor();
+    if (!coverageCollector.getPredicateConsideredLocations().contains(location)) {
+      return false;
+    }
+    Set<AbstractionPredicate> allPredicates = getAllPredicatesForNode(precision, state, location);
     if (cfaEdge.getEdgeType() == CFAEdgeType.AssumeEdge) {
       if (coversPredicate(allPredicates, convertAssumeToVariables(cfaEdge))) {
         return true;
