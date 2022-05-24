@@ -277,7 +277,9 @@ class ComputeCoverage:
         stop_after_error=False,
         cex_count=0,
     ):
-        conf = os.path.join(cpachecker_root, "config", "valueAnalysis-with-coverage.properties")
+        conf = os.path.join(
+            cpachecker_root, "config", "valueAnalysis-with-coverage.properties"
+        )
         coverage_options = [
             "-setprop",
             "counterexample.export.exportCounterexampleCoverage=true",
