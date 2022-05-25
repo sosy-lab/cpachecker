@@ -51,7 +51,7 @@ public class PredicateCoverageTransferRelation extends PredicateTransferRelation
   private final TimeDependentCoverageData predicateRelevantVariablesTDCG;
   private final FormulaManagerView fmgr;
   private final CFA cfa;
-  static final double FREQUENCY_REMOVAL_QUOTIENT = 0.5;
+  private static final double RELEVANT_VARIABLES_FREQUENCY_FACTOR = 0.5;
   private int predicatesInUse = 0;
 
   public PredicateCoverageTransferRelation(
@@ -146,22 +146,20 @@ public class PredicateCoverageTransferRelation extends PredicateTransferRelation
       Set<String> predicateVariableNames = fmgr.extractVariableNames(formula);
       relevantVariableNames.addAll(predicateVariableNames);
     }
-    return filterRelevantVariables(relevantVariableNames, FREQUENCY_REMOVAL_QUOTIENT);
+    return filterRelevantVariables(relevantVariableNames, RELEVANT_VARIABLES_FREQUENCY_FACTOR);
   }
 
   private Set<String> filterRelevantVariables(Multiset<String> variables, double percentage) {
-    Set<String> nonRelevantVariables = new HashSet<>();
-    Set<String> allVariables = variables.elementSet();
-    int variableCount = allVariables.size();
-    for (String variable : Multisets.copyHighestCountFirst(variables).elementSet()) {
-      int nonRelevantVariableCount = nonRelevantVariables.size();
-      if (nonRelevantVariableCount / (double) variableCount > percentage) {
-        break;
-      }
-      nonRelevantVariables.add(variable);
+    Set<String> relevantVariables = new HashSet<>();
+    if (percentage == 0.0) {
+      return relevantVariables;
     }
-    allVariables.removeAll(nonRelevantVariables);
-    return allVariables;
+    for (String variable : Multisets.copyHighestCountFirst(variables).elementSet()) {
+      if (relevantVariables.size() <= variables.elementSet().size() * percentage) {
+        relevantVariables.add(variable);
+      }
+    }
+    return relevantVariables;
   }
 
   private boolean shouldAddPredicateRelevantVariableNode(
@@ -257,7 +255,6 @@ public class PredicateCoverageTransferRelation extends PredicateTransferRelation
 
   private boolean coversPredicateHelper(
       Set<String> assumeVariables, Set<String> predicateVariables) {
-    boolean expressionConsidered = true;
     for (String assumeEdgeVariableName : assumeVariables) {
       boolean oneSideCovered = false;
       for (String predicateVariableName : predicateVariables) {
@@ -267,14 +264,10 @@ public class PredicateCoverageTransferRelation extends PredicateTransferRelation
         }
       }
       if (!oneSideCovered) {
-        expressionConsidered = false;
-        break;
+        return false;
       }
     }
-    if (expressionConsidered) {
-      return true;
-    }
-    return false;
+    return true;
   }
 
   private Set<AbstractionPredicate> getAllPredicates(PredicatePrecision precision) {
