@@ -101,6 +101,7 @@ public class CounterexampleTraceInfo {
     return mCounterexampleModel;
   }
 
+  @Deprecated // branching predicates are deprecated, cf. PathFormulaManager for replacement
   public Map<Integer, Boolean> getBranchingPredicates() {
     checkState(!spurious);
     return branchingPreds;

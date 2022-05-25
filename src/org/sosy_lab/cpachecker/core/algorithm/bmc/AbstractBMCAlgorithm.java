@@ -23,7 +23,6 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
-import com.google.common.collect.Sets;
 import java.io.IOException;
 import java.math.BigInteger;
 import java.nio.file.Path;
@@ -91,7 +90,6 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
-import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.cpa.assumptions.storage.AssumptionStorageState;
 import org.sosy_lab.cpachecker.cpa.invariants.InvariantsCPA;
@@ -123,7 +121,7 @@ import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.java_smt.api.BasicProverEnvironment;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.BooleanFormulaManager;
-import org.sosy_lab.java_smt.api.Model.ValueAssignment;
+import org.sosy_lab.java_smt.api.Model;
 import org.sosy_lab.java_smt.api.ProverEnvironment;
 import org.sosy_lab.java_smt.api.SolverContext.ProverOptions;
 import org.sosy_lab.java_smt.api.SolverException;
@@ -840,76 +838,23 @@ abstract class AbstractBMCAlgorithm
             state.removeFromARG();
           });
       pReachedSet.removeAll(redundantStates);
-      targetStates = Sets.difference(targetStates, redundantStates);
 
-      final boolean shouldCheckBranching;
-      if (targetStates.size() == 1) {
-        ARGState state = Iterables.getOnlyElement(targetStates);
-        while (state.getParents().size() == 1 && state.getChildren().size() <= 1) {
-          state = Iterables.getOnlyElement(state.getParents());
-        }
-        shouldCheckBranching = (state.getParents().size() > 1) || (state.getChildren().size() > 1);
-      } else {
-        shouldCheckBranching = true;
-      }
+      // get (precise) error path
+      ARGPath targetPath;
+      try (Model model = pProver.getModel()) {
+        ARGState root = (ARGState) pReachedSet.getFirstState();
+        Set<AbstractState> arg = pReachedSet.asCollection();
 
-      if (shouldCheckBranching) {
-        Set<ARGState> arg = from(pReachedSet).filter(ARGState.class).toSet();
-
-        // get the branchingFormula
-        // this formula contains predicates for all branches we took
-        // this way we can figure out which branches make a feasible path
-        BooleanFormula branchingFormula = pmgr.buildBranchingFormula(arg);
-
-        if (bfmgr.isTrue(branchingFormula)) {
-          logger.log(
-              Level.WARNING,
-              "Could not create error path because of missing branching information!");
+        try {
+          targetPath = pmgr.getARGPathFromModel(model, root, arg);
+        } catch (IllegalArgumentException e) {
+          logger.logUserException(Level.WARNING, e, "Could not create error path");
           return Optional.empty();
         }
-
-        // add formula to solver environment
-        pProver.push(branchingFormula);
-      }
-
-      List<ValueAssignment> model;
-      try {
-        // need to ask solver for satisfiability again,
-        // otherwise model doesn't contain new predicates
-        boolean stillSatisfiable = !pProver.isUnsat();
-
-        if (!stillSatisfiable) {
-          // should not occur
-          logger.log(
-              Level.WARNING,
-              "Could not create error path information because of inconsistent branching"
-                  + " information!");
-          return Optional.empty();
-        }
-
-        model = pProver.getModelAssignments();
 
       } catch (SolverException e) {
         logger.log(Level.WARNING, "Solver could not produce model, cannot create error path.");
         logger.logDebugException(e);
-        return Optional.empty();
-
-      } finally {
-        if (shouldCheckBranching) {
-          pProver.pop(); // remove branchingFormula
-        }
-      }
-
-      // get precise error path
-      Map<Integer, Boolean> branchingInformation = pmgr.getBranchingPredicateValuesFromModel(model);
-      ARGState root = (ARGState) pReachedSet.getFirstState();
-
-      ARGPath targetPath;
-      try {
-        Set<AbstractState> arg = pReachedSet.asCollection();
-        targetPath = ARGUtils.getPathFromBranchingInformation(root, arg, branchingInformation);
-      } catch (IllegalArgumentException e) {
-        logger.logUserException(Level.WARNING, e, "Could not create error path");
         return Optional.empty();
       }
 
@@ -951,7 +896,7 @@ abstract class AbstractBMCAlgorithm
 
       CounterexampleTraceInfo cexInfo =
           CounterexampleTraceInfo.feasible(
-              ImmutableList.of(cexFormula), model, branchingInformation);
+              ImmutableList.of(cexFormula), ImmutableList.of(), ImmutableMap.of());
       return Optional.of(pathChecker.createCounterexample(targetPath, cexInfo));
 
     } finally {

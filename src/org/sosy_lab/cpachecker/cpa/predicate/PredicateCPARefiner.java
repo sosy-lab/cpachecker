@@ -299,7 +299,10 @@ public class PredicateCPARefiner implements ARGBasedRefiner, StatisticsProvider 
 
       formulas = createFormulasOnPath(allStatesTrace, abstractionStatesTrace);
       if (!formulas.hasBranchingFormula()) {
-        formulas = formulas.withBranchingFormula(pfmgr.buildBranchingFormula(elementsOnPath));
+        @SuppressWarnings("deprecation")
+        // remove once PathChecker#handleFeasibleCounterexample does not need it anymore
+        BooleanFormula branchingFormula = pfmgr.buildBranchingFormula(elementsOnPath);
+        formulas = formulas.withBranchingFormula(branchingFormula);
       }
       // find new invariants (this is a noop if no invariants should be used/generated)
       invariantsManager.findInvariants(allStatesTrace, abstractionStatesTrace, pfmgr, solver);

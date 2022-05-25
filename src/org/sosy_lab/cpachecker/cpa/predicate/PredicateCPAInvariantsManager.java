@@ -854,6 +854,9 @@ class PredicateCPAInvariantsManager implements StatisticsProvider, InvariantSupp
       List<BooleanFormula> interpolants;
       try {
         List<BooleanFormula> pathFormula = pInput.getPathFormulae();
+        @SuppressWarnings("deprecation")
+        // remove branching formula once PathChecker#handleFeasibleCounterexample does not need it
+        // anymore
         BlockFormulas formulas =
             new BlockFormulas(pathFormula, pfmgr.buildBranchingFormula(elementsOnPath));
         // the prefix is not filled up with trues if it is shorter than

@@ -28,6 +28,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.ListIterator;
+import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
@@ -732,8 +733,11 @@ public final class InterpolationManager {
 
     if (stillSatisfiable) {
       List<ValueAssignment> model = pProver.getModelAssignments();
-      return CounterexampleTraceInfo.feasible(
-          f, model, pmgr.getBranchingPredicateValuesFromModel(model));
+      @SuppressWarnings("deprecation")
+      // remove this and branchingFormula above once PathChecker#handleFeasibleCounterexample does
+      // not need it anymore
+      Map<Integer, Boolean> branchingInfo = pmgr.getBranchingPredicateValuesFromModel(model);
+      return CounterexampleTraceInfo.feasible(f, model, branchingInfo);
 
     } else {
       // this should not happen
