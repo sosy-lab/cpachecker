@@ -172,7 +172,7 @@ public class PredicateCoverageTransferRelation extends PredicateTransferRelation
     if (cfaEdge.getEdgeType() != CFAEdgeType.AssumeEdge) {
       return true;
     }
-    return coversPredicateHelper(assumeVariables, predicateVariables);
+    return predicateVariables.containsAll(assumeVariables);
   }
 
   /**
@@ -243,31 +243,12 @@ public class PredicateCoverageTransferRelation extends PredicateTransferRelation
 
   private boolean coversPredicate(
       Set<AbstractionPredicate> allPredicates, Set<String> assumeVariables) {
+    Set<String> predicateVariableNames = new HashSet<>();
     for (AbstractionPredicate predicate : allPredicates) {
       BooleanFormula formula = predicate.getSymbolicAtom();
-      Set<String> predicateVariableNames = fmgr.extractVariableNames(formula);
-      if (coversPredicateHelper(assumeVariables, predicateVariableNames)) {
-        return true;
-      }
+      predicateVariableNames.addAll(fmgr.extractVariableNames(formula));
     }
-    return false;
-  }
-
-  private boolean coversPredicateHelper(
-      Set<String> assumeVariables, Set<String> predicateVariables) {
-    for (String assumeEdgeVariableName : assumeVariables) {
-      boolean oneSideCovered = false;
-      for (String predicateVariableName : predicateVariables) {
-        if (assumeEdgeVariableName.equals(predicateVariableName)) {
-          oneSideCovered = true;
-          break;
-        }
-      }
-      if (!oneSideCovered) {
-        return false;
-      }
-    }
-    return true;
+    return predicateVariableNames.containsAll(assumeVariables);
   }
 
   private Set<AbstractionPredicate> getAllPredicates(PredicatePrecision precision) {
