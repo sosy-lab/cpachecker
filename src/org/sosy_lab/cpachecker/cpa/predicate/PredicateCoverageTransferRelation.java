@@ -168,6 +168,9 @@ public class PredicateCoverageTransferRelation extends PredicateTransferRelation
     if (cfaEdge.getEdgeType() != CFAEdgeType.AssumeEdge) {
       return true;
     }
+    if (assumeVariables == null || assumeVariables.isEmpty()) {
+      return true;
+    }
     return predicateVariables.containsAll(assumeVariables);
   }
 
@@ -247,6 +250,9 @@ public class PredicateCoverageTransferRelation extends PredicateTransferRelation
     for (AbstractionPredicate predicate : allPredicates) {
       BooleanFormula formula = predicate.getSymbolicAtom();
       predicateVariableNames.addAll(fmgr.extractVariableNames(formula));
+    }
+    if (assumeVariables == null || assumeVariables.isEmpty()) {
+      return true;
     }
     return predicateVariableNames.containsAll(assumeVariables);
   }
