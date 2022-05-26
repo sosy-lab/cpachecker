@@ -320,6 +320,7 @@ class MainCPAStatistics implements Statistics {
       ReachedSetCoverageCollector coverageCollector =
           coverageCollectorHandler.getReachedSetCoverageCollector();
       coverageCollector.collectFromReachedSet(reached, cpa);
+      coverageCollectorHandler.collectAllData();
       out.println();
       out.println("Code Coverage");
       out.println("-----------------------------");

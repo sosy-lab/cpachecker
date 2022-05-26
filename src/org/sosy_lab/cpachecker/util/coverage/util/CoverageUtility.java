@@ -54,15 +54,14 @@ public class CoverageUtility {
    */
   public static CoverageCollectorHandler getCoverageCollectorHandlerFromReachedSet(
       UnmodifiableReachedSet pReached, CFA cfa) {
+    CoverageCollectorHandler collectorHandler = new CoverageCollectorHandler(cfa);
     if (pReached instanceof PartitionedReachedSet) {
       CoverageCPA cpa =
           CPAs.retrieveCPA(((PartitionedReachedSet) pReached).getCPA(), CoverageCPA.class);
-      if (cpa == null) {
-        return new CoverageCollectorHandler(cfa);
-      } else {
-        return cpa.getCoverageCollectorHandler();
+      if (cpa != null) {
+        collectorHandler = cpa.getCoverageCollectorHandler();
       }
     }
-    return new CoverageCollectorHandler(cfa);
+    return collectorHandler;
   }
 }

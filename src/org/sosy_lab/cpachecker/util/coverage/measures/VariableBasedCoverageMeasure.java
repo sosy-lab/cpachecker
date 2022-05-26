@@ -9,7 +9,9 @@
 package org.sosy_lab.cpachecker.util.coverage.measures;
 
 import com.google.common.collect.ImmutableMultiset;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Multiset;
+import java.util.Set;
 
 /**
  * A coverage measure which is based on variables defined within the source code. The coverage
@@ -18,19 +20,20 @@ import com.google.common.collect.Multiset;
  */
 public class VariableBasedCoverageMeasure implements CoverageMeasure {
   private final ImmutableMultiset<String> relevantVariables;
-  private final ImmutableMultiset<String> allVariables;
+  private final ImmutableSet<String> allVariables;
 
   public VariableBasedCoverageMeasure(
-      Multiset<String> pAllVariables, Multiset<String> pRelevantVariables) {
+      Set<String> pAllVariables, Multiset<String> pRelevantVariables) {
     relevantVariables = ImmutableMultiset.copyOf(pRelevantVariables);
-    allVariables = ImmutableMultiset.copyOf(pAllVariables);
+    allVariables = ImmutableSet.copyOf(pAllVariables);
   }
 
-  public String getAllVariablesAsString() {
+  public String getAllRelevantVariablesAsString() {
     StringBuilder variablesBuilder = new StringBuilder();
     int i = 0;
-    int max = relevantVariables.elementSet().size() - 1;
-    for (String variableStr : relevantVariables.elementSet()) {
+    Set<String> relevantVariableSet = relevantVariables.elementSet();
+    int max = relevantVariableSet.size() - 1;
+    for (String variableStr : relevantVariableSet) {
       variablesBuilder.append(variableStr);
       if (i++ != max) {
         variablesBuilder.append(",");
@@ -51,6 +54,6 @@ public class VariableBasedCoverageMeasure implements CoverageMeasure {
 
   @Override
   public double getMaxValue() {
-    return allVariables.elementSet().size();
+    return allVariables.size();
   }
 }

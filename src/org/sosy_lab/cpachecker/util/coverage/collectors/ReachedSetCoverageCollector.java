@@ -100,10 +100,6 @@ public class ReachedSetCoverageCollector extends CoverageCollector {
     return reachedLocations;
   }
 
-  public int getReachedLocationsCount() {
-    return reachedLocations.elementSet().size();
-  }
-
   /**
    * Gets a CFA node and extracts all its predecessors belonging to its aggregated basic block.
    *

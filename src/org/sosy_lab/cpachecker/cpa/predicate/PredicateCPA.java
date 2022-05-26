@@ -157,8 +157,8 @@ public class PredicateCPA
   private final Map<PredicateAbstractState, PathFormula> computedPathFormulaePcc = new HashMap<>();
 
   protected PredicateCPA(
-      Configuration config,
-      LogManager logger,
+      Configuration pConfig,
+      LogManager pLogger,
       BlockOperator pBlk,
       CFA pCfa,
       ShutdownNotifier pShutdownNotifier,
@@ -166,10 +166,10 @@ public class PredicateCPA
       AggregatedReachedSets pAggregatedReachedSets,
       CoverageCollectorHandler pCoverageCollectorHandler)
       throws InvalidConfigurationException, CPAException, InterruptedException {
-    config.inject(this, PredicateCPA.class);
+    pConfig.inject(this, PredicateCPA.class);
 
-    this.config = config;
-    this.logger = logger;
+    config = pConfig;
+    logger = pLogger;
     coverageCollectorHandler = pCoverageCollectorHandler;
     shutdownNotifier = pShutdownNotifier;
 
@@ -177,18 +177,18 @@ public class PredicateCPA
     blk = pBlk;
 
     if (enableBlockreducer) {
-      BlockComputer blockComputer = new BlockedCFAReducer(config, logger);
+      BlockComputer blockComputer = new BlockedCFAReducer(pConfig, pLogger);
       blk.setExplicitAbstractionNodes(blockComputer.computeAbstractionNodes(cfa));
     }
     blk.setCFA(cfa);
 
-    solver = Solver.create(config, logger, pShutdownNotifier);
+    solver = Solver.create(pConfig, pLogger, pShutdownNotifier);
     formulaManager = solver.getFormulaManager();
     String libraries = solver.getVersion();
 
     PathFormulaManager pfMgr =
         new PathFormulaManagerImpl(
-            formulaManager, config, logger, shutdownNotifier, cfa, direction);
+            formulaManager, pConfig, pLogger, shutdownNotifier, cfa, direction);
     if (useCache) {
       pfMgr = new CachingPathFormulaManager(pfMgr);
     }
@@ -200,32 +200,32 @@ public class PredicateCPA
       regionManager = new SymbolicRegionManager(solver);
     } else {
       assert abstractionType.equals("BDD");
-      regionManager = new BDDManagerFactory(config, logger).createRegionManager();
+      regionManager = new BDDManagerFactory(pConfig, pLogger).createRegionManager();
       libraries += " and " + regionManager.getVersion();
     }
-    logger.log(Level.INFO, "Using predicate analysis with", libraries + ".");
+    pLogger.log(Level.INFO, "Using predicate analysis with", libraries + ".");
 
-    abstractionManager = new AbstractionManager(regionManager, config, logger, solver);
+    abstractionManager = new AbstractionManager(regionManager, pConfig, pLogger, solver);
 
     invariantsManager =
         new PredicateCPAInvariantsManager(
-            config, logger, pShutdownNotifier, pCfa, specification, pAggregatedReachedSets);
+            pConfig, pLogger, pShutdownNotifier, pCfa, specification, pAggregatedReachedSets);
 
-    abstractionOptions = new PredicateAbstractionManagerOptions(config);
+    abstractionOptions = new PredicateAbstractionManagerOptions(pConfig);
     abstractionStorage =
         new PredicateAbstractionsStorage(
             abstractionOptions.getReuseAbstractionsFrom(),
-            logger,
+            pLogger,
             solver.getFormulaManager(),
             null);
-    weakeningOptions = new WeakeningOptions(config);
+    weakeningOptions = new WeakeningOptions(pConfig);
 
     statistics = new PredicateStatistics();
-    options = new PredicateCpaOptions(config);
+    options = new PredicateCpaOptions(pConfig);
     precisionBootstraper =
         new PredicatePrecisionBootstrapper(
-            config,
-            logger,
+            pConfig,
+            pLogger,
             cfa,
             abstractionManager,
             formulaManager,
@@ -233,15 +233,15 @@ public class PredicateCPA
             pathFormulaManager,
             getPredicateManager());
     initialPrecision = precisionBootstraper.prepareInitialPredicates();
-    logger.log(Level.FINEST, "Initial precision is", initialPrecision);
+    pLogger.log(Level.FINEST, "Initial precision is", initialPrecision);
 
     predicateProvider =
-        new PredicateProvider(config, pCfa, logger, formulaManager, getPredicateManager());
+        new PredicateProvider(pConfig, pCfa, pLogger, formulaManager, getPredicateManager());
 
     stats =
         new PredicateCPAStatistics(
-            config,
-            logger,
+            pConfig,
+            pLogger,
             pCfa,
             solver,
             pathFormulaManager,
@@ -269,7 +269,6 @@ public class PredicateCPA
           getPredicateManager(),
           statistics,
           options,
-          cfa,
           coverageCollectorHandler);
     }
     return new PredicateTransferRelation(

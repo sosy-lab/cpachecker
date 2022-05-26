@@ -164,10 +164,6 @@ public abstract class CoverageCollector {
     return existingLinesPerFile.values().size();
   }
 
-  public Set<CFANode> getAllLocations() {
-    return allLocations;
-  }
-
   public int getTotalLocationCount() {
     return allLocations.size();
   }

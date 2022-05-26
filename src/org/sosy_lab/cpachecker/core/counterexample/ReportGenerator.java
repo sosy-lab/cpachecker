@@ -200,7 +200,6 @@ public class ReportGenerator {
         CoverageUtility.getCoverageCollectorHandlerFromReachedSet(pReached, pCfa);
     TimeDependentCoverageHandler tdcgHandler = coverageCollectorHandler.getTDCGHandler();
     CoverageMeasureHandler covHandler = coverageCollectorHandler.getCoverageHandler();
-    coverageCollectorHandler.collectAllData();
 
     ImmutableSet<Path> allInputFiles = getAllInputFiles(pCfa);
     extractWitness(pResult, pCfa, pReached);
@@ -737,7 +736,7 @@ public class ReportGenerator {
           lineColors.append("!");
           variableFlag = false;
         }
-        lineColors.append(varCov.getAllVariablesAsString());
+        lineColors.append(varCov.getAllRelevantVariablesAsString());
       }
       lineColors.append(";");
     }

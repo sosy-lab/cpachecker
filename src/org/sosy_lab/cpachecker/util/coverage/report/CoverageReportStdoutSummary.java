@@ -9,11 +9,10 @@
 package org.sosy_lab.cpachecker.util.coverage.report;
 
 import java.io.PrintStream;
-import org.sosy_lab.cpachecker.util.coverage.collectors.AnalysisIndependentCoverageCollector;
 import org.sosy_lab.cpachecker.util.coverage.collectors.CoverageCollector;
 import org.sosy_lab.cpachecker.util.coverage.collectors.CoverageCollectorHandler;
-import org.sosy_lab.cpachecker.util.coverage.collectors.PredicateAnalysisCoverageCollector;
-import org.sosy_lab.cpachecker.util.coverage.collectors.ReachedSetCoverageCollector;
+import org.sosy_lab.cpachecker.util.coverage.measures.CoverageMeasure;
+import org.sosy_lab.cpachecker.util.coverage.measures.CoverageMeasureHandler;
 import org.sosy_lab.cpachecker.util.coverage.measures.CoverageMeasureType;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsUtils;
 
@@ -32,11 +31,12 @@ public class CoverageReportStdoutSummary {
    * @param pStdOut output print stream.
    */
   public static void write(CoverageCollectorHandler collector, PrintStream pStdOut) {
-    ReachedSetCoverageCollector reachedCollector = collector.getReachedSetCoverageCollector();
-    writeFunctionCoverage(reachedCollector, pStdOut);
-    writeConditionCoverage(reachedCollector, pStdOut);
-    writeLineRelatedCoverage(reachedCollector, pStdOut);
-    writeLocationRelatedCoverage(collector, pStdOut);
+    CoverageMeasureHandler handler = collector.getCoverageHandler();
+    writeFunctionCoverage(collector.getReachedSetCoverageCollector(), pStdOut);
+    writeConditionCoverage(collector.getReachedSetCoverageCollector(), pStdOut);
+    writeLineRelatedCoverage(handler, pStdOut);
+    writeLocationRelatedCoverage(handler, pStdOut);
+    writeVariableRelatedCoverage(handler, pStdOut);
   }
 
   private static void writeFunctionCoverage(CoverageCollector collector, PrintStream pStdOut) {
@@ -48,7 +48,7 @@ public class CoverageReportStdoutSummary {
           INDENT_LEVEL,
           FIELD_COLUMN_WIDTH,
           "Function coverage",
-          String.format("%.3f", functionCoverage));
+          String.format("%.2f", functionCoverage));
     }
   }
 
@@ -66,84 +66,119 @@ public class CoverageReportStdoutSummary {
           INDENT_LEVEL,
           FIELD_COLUMN_WIDTH,
           "Condition coverage",
-          String.format("%.3f", conditionCoverage));
+          String.format("%.2f", conditionCoverage));
     }
   }
 
-  private static void writeLineRelatedCoverage(CoverageCollector collector, PrintStream pStdOut) {
-    int totalLines = collector.getExistingLinesCount();
-    int visitedLines = collector.getVisitedLinesCount();
-    if (totalLines > 0) {
-      final double lineCoverage = visitedLines / (double) totalLines;
-      StatisticsUtils.write(
-          pStdOut, INDENT_LEVEL, FIELD_COLUMN_WIDTH, "Visited lines", visitedLines);
-      StatisticsUtils.write(pStdOut, INDENT_LEVEL, FIELD_COLUMN_WIDTH, "Total lines", totalLines);
-      StatisticsUtils.write(
-          pStdOut,
-          INDENT_LEVEL,
-          FIELD_COLUMN_WIDTH,
-          "Line coverage",
-          String.format("%.3f", lineCoverage));
-    }
-  }
-
-  private static void writeLocationRelatedCoverage(
-      CoverageCollectorHandler collector, PrintStream pStdOut) {
-    AnalysisIndependentCoverageCollector analysisIndependentCollector =
-        collector.getAnalysisIndependentCollector();
-    ReachedSetCoverageCollector reachedCollector = collector.getReachedSetCoverageCollector();
-    if (analysisIndependentCollector == null
-        || analysisIndependentCollector.getTotalLocationCount() <= 0) {
+  private static void writeLineRelatedCoverage(
+      CoverageMeasureHandler handler, PrintStream pStdOut) {
+    CoverageMeasure visited = handler.getData(CoverageMeasureType.CONSIDERED_LINES_HEAT_MAP);
+    if (visited == null || visited.getMaxValue() <= 0) {
       return;
     }
-    int totalLocations = analysisIndependentCollector.getTotalLocationCount();
-    int reachedLocations = reachedCollector.getReachedLocationsCount();
-    StatisticsUtils.write(
-        pStdOut, INDENT_LEVEL, FIELD_COLUMN_WIDTH, "Total locations", totalLocations);
     StatisticsUtils.write(
         pStdOut,
         INDENT_LEVEL,
         FIELD_COLUMN_WIDTH,
-        CoverageMeasureType.REACHED_LOCATIONS.getName(),
-        reachedLocations);
+        "Line coverage",
+        String.format("%.2f", visited.getNormalizedValue()));
+    StatisticsUtils.write(
+        pStdOut,
+        INDENT_LEVEL,
+        FIELD_COLUMN_WIDTH,
+        "Visited lines",
+        String.format("%.0f", visited.getValue()));
+    StatisticsUtils.write(
+        pStdOut,
+        INDENT_LEVEL,
+        FIELD_COLUMN_WIDTH,
+        "Total lines",
+        String.format("%.0f", visited.getMaxValue()));
+  }
+
+  private static void writeLocationRelatedCoverage(
+      CoverageMeasureHandler handler, PrintStream pStdOut) {
+    CoverageMeasure reached = handler.getData(CoverageMeasureType.REACHED_LOCATIONS);
+    if (reached == null || reached.getMaxValue() <= 0) {
+      return;
+    }
+    StatisticsUtils.write(
+        pStdOut,
+        INDENT_LEVEL,
+        FIELD_COLUMN_WIDTH,
+        "Total locations",
+        String.format("%.0f", reached.getMaxValue()));
     StatisticsUtils.write(
         pStdOut,
         INDENT_LEVEL,
         FIELD_COLUMN_WIDTH,
         CoverageMeasureType.REACHED_LOCATIONS.getCoverageName(),
-        String.format("%.3f", reachedLocations / (double) totalLocations));
+        String.format("%.2f", reached.getNormalizedValue()));
+    StatisticsUtils.write(
+        pStdOut,
+        INDENT_LEVEL,
+        FIELD_COLUMN_WIDTH,
+        CoverageMeasureType.REACHED_LOCATIONS.getName(),
+        String.format("%.0f", reached.getValue()));
 
-    PredicateAnalysisCoverageCollector predicateCollector =
-        collector.getPredicateAnalysisCollector();
-    if (predicateCollector == null) {
+    CoverageMeasure predicateConsidered = handler.getData(CoverageMeasureType.PREDICATE_CONSIDERED);
+    if (predicateConsidered == null || predicateConsidered.getMaxValue() <= 0) {
       return;
     }
-    int predicateConsideredLocations = predicateCollector.getPredicateConsideredLocations().size();
-    int predicateRelevantVariablesLocations =
-        predicateCollector.getPredicateRelevantConsideredLocationsCount();
-    StatisticsUtils.write(
-        pStdOut,
-        INDENT_LEVEL,
-        FIELD_COLUMN_WIDTH,
-        CoverageMeasureType.PREDICATE_CONSIDERED.getName(),
-        predicateConsideredLocations);
-    StatisticsUtils.write(
-        pStdOut,
-        INDENT_LEVEL,
-        FIELD_COLUMN_WIDTH,
-        CoverageMeasureType.PREDICATE_RELEVANT_VARIABLES.getName(),
-        predicateRelevantVariablesLocations);
     StatisticsUtils.write(
         pStdOut,
         INDENT_LEVEL,
         FIELD_COLUMN_WIDTH,
         CoverageMeasureType.PREDICATE_CONSIDERED.getCoverageName(),
-        String.format("%.3f", predicateConsideredLocations / (double) totalLocations));
+        String.format("%.2f", predicateConsidered.getNormalizedValue()));
+    StatisticsUtils.write(
+        pStdOut,
+        INDENT_LEVEL,
+        FIELD_COLUMN_WIDTH,
+        CoverageMeasureType.PREDICATE_CONSIDERED.getName(),
+        String.format("%.0f", predicateConsidered.getValue()));
+
+    CoverageMeasure relevantVar = handler.getData(CoverageMeasureType.PREDICATE_RELEVANT_VARIABLES);
+    if (relevantVar == null || relevantVar.getMaxValue() <= 0) {
+      return;
+    }
     StatisticsUtils.write(
         pStdOut,
         INDENT_LEVEL,
         FIELD_COLUMN_WIDTH,
         CoverageMeasureType.PREDICATE_RELEVANT_VARIABLES.getCoverageName(),
-        String.format("%.3f", predicateRelevantVariablesLocations / (double) totalLocations));
+        String.format("%.2f", relevantVar.getNormalizedValue()));
+    StatisticsUtils.write(
+        pStdOut,
+        INDENT_LEVEL,
+        FIELD_COLUMN_WIDTH,
+        CoverageMeasureType.PREDICATE_RELEVANT_VARIABLES.getName(),
+        String.format("%.0f", relevantVar.getValue()));
+  }
+
+  private static void writeVariableRelatedCoverage(
+      CoverageMeasureHandler handler, PrintStream pStdOut) {
+    CoverageMeasure variable = handler.getData(CoverageMeasureType.PREDICATE_ABSTRACTION_VARIABLES);
+    if (variable == null || variable.getMaxValue() <= 0) {
+      return;
+    }
+    StatisticsUtils.write(
+        pStdOut,
+        INDENT_LEVEL,
+        FIELD_COLUMN_WIDTH,
+        CoverageMeasureType.PREDICATE_ABSTRACTION_VARIABLES.getCoverageName(),
+        String.format("%.2f", variable.getNormalizedValue()));
+    StatisticsUtils.write(
+        pStdOut,
+        INDENT_LEVEL,
+        FIELD_COLUMN_WIDTH,
+        CoverageMeasureType.PREDICATE_ABSTRACTION_VARIABLES.getName(),
+        String.format("%.0f", variable.getValue()));
+    StatisticsUtils.write(
+        pStdOut,
+        INDENT_LEVEL,
+        FIELD_COLUMN_WIDTH,
+        "Total variables",
+        String.format("%.0f", variable.getMaxValue()));
   }
 }

@@ -11,11 +11,15 @@ package org.sosy_lab.cpachecker.util.coverage.collectors;
 import com.google.common.collect.HashMultiset;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Multiset;
+import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.util.coverage.measures.CoverageMeasureHandler;
 import org.sosy_lab.cpachecker.util.coverage.measures.CoverageMeasureType;
 import org.sosy_lab.cpachecker.util.coverage.tdcg.TimeDependentCoverageData;
@@ -33,8 +37,9 @@ import org.sosy_lab.cpachecker.util.coverage.util.CoverageUtility;
 public class PredicateAnalysisCoverageCollector extends CoverageCollector {
   private final Set<CFANode> predicateConsideredLocations = new LinkedHashSet<>();
   private final Set<CFANode> predicateRelevantVariablesLocations = new LinkedHashSet<>();
-  private final Multiset<String> variableNames = HashMultiset.create();
+  private final Set<String> variableNames = new HashSet<>();
   private final Multiset<String> relevantVariableNames = HashMultiset.create();
+  private final CFA cfa;
   private int previousPredicateRelevantVariablesLocationsSize = 0;
   private static final ImmutableList<CoverageMeasureType> TYPES =
       ImmutableList.of(
@@ -45,8 +50,9 @@ public class PredicateAnalysisCoverageCollector extends CoverageCollector {
   PredicateAnalysisCoverageCollector(
       CoverageMeasureHandler pCoverageMeasureHandler,
       TimeDependentCoverageHandler pTimeDependentCoverageHandler,
-      CFA cfa) {
-    super(pCoverageMeasureHandler, pTimeDependentCoverageHandler, cfa);
+      CFA pCfa) {
+    super(pCoverageMeasureHandler, pTimeDependentCoverageHandler, pCfa);
+    cfa = pCfa;
   }
 
   public void collect(CoverageCollectorHandler coverageCollectorHandler) {
@@ -67,11 +73,20 @@ public class PredicateAnalysisCoverageCollector extends CoverageCollector {
     predicateRelevantVariablesLocations.add(pEdge.getSuccessor());
   }
 
-  public void addAbstractionVariables(Set<String> pVariableNames, final CFAEdge pEdge) {
-    if (!CoverageUtility.coversLine(pEdge)) {
-      return;
+  public void addAllProgramVariables() {
+    for (CFANode node : cfa.getAllNodes()) {
+      for (int i = 0; i < node.getNumLeavingEdges(); i++) {
+        CFAEdge edge = node.getLeavingEdge(i);
+        if (edge.getEdgeType() == CFAEdgeType.DeclarationEdge) {
+          CDeclarationEdge declarationEdge = (CDeclarationEdge) edge;
+          CDeclaration dec = declarationEdge.getDeclaration();
+          String variableName = dec.getQualifiedName();
+          if (!variableName.contains("__CPAchecker_TMP_") && variableName.contains("::")) {
+            variableNames.add(dec.getQualifiedName());
+          }
+        }
+      }
     }
-    variableNames.addAll(pVariableNames);
   }
 
   public void addRelevantAbstractionVariables(Set<String> pVariableNames, final CFAEdge pEdge) {
@@ -82,7 +97,7 @@ public class PredicateAnalysisCoverageCollector extends CoverageCollector {
   }
 
   public void addInitialNodesForTDCG(
-      CFA cfa, TimeDependentCoverageData tdcgData, TimeDependentCoverageType type) {
+      TimeDependentCoverageData tdcgData, TimeDependentCoverageType type) {
     for (CFANode node : cfa.getAllNodes()) {
       if (node.getNodeNumber() == 1) {
         CFANode candidateNode = node;
@@ -90,11 +105,11 @@ public class PredicateAnalysisCoverageCollector extends CoverageCollector {
           switch (type) {
             case PredicateConsideredLocations:
               predicateConsideredLocations.add(candidateNode);
-              tdcgData.addTimestamp(getTempPredicateConsideredCoverage(cfa));
+              tdcgData.addTimestamp(getTempPredicateConsideredCoverage());
               break;
             case PredicateRelevantVariables:
               predicateRelevantVariablesLocations.add(candidateNode);
-              tdcgData.addTimestamp(getTempPredicateRelevantVariablesCoverage(cfa));
+              tdcgData.addTimestamp(getTempPredicateRelevantVariablesCoverage());
               break;
             default:
               break;
@@ -111,12 +126,12 @@ public class PredicateAnalysisCoverageCollector extends CoverageCollector {
     predicateRelevantVariablesLocations.clear();
   }
 
-  public double getTempPredicateConsideredCoverage(CFA cfa) {
-    return getTempCoverage(cfa, TimeDependentCoverageType.PredicateConsideredLocations);
+  public double getTempPredicateConsideredCoverage() {
+    return getTempCoverage(TimeDependentCoverageType.PredicateConsideredLocations);
   }
 
-  public double getTempPredicateRelevantVariablesCoverage(CFA cfa) {
-    return getTempCoverage(cfa, TimeDependentCoverageType.PredicateRelevantVariables);
+  public double getTempPredicateRelevantVariablesCoverage() {
+    return getTempCoverage(TimeDependentCoverageType.PredicateRelevantVariables);
   }
 
   public Set<CFANode> getPredicateConsideredLocations() {
@@ -133,7 +148,7 @@ public class PredicateAnalysisCoverageCollector extends CoverageCollector {
         previousPredicateRelevantVariablesLocationsSize);
   }
 
-  public Multiset<String> getVariableNames() {
+  public Set<String> getVariableNames() {
     return variableNames;
   }
 
@@ -141,7 +156,7 @@ public class PredicateAnalysisCoverageCollector extends CoverageCollector {
     return relevantVariableNames;
   }
 
-  private double getTempCoverage(CFA cfa, TimeDependentCoverageType type) {
+  private double getTempCoverage(TimeDependentCoverageType type) {
     int numTotalNodes = cfa.getAllNodes().size();
     int numRelevantNodes = 0;
     switch (type) {

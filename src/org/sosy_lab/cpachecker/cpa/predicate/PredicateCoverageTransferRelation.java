@@ -17,7 +17,6 @@ import java.util.HashSet;
 import java.util.Set;
 import org.sosy_lab.common.collect.PersistentMap;
 import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
@@ -50,7 +49,6 @@ public class PredicateCoverageTransferRelation extends PredicateTransferRelation
   private final TimeDependentCoverageData predicateConsideredTDCG;
   private final TimeDependentCoverageData predicateRelevantVariablesTDCG;
   private final FormulaManagerView fmgr;
-  private final CFA cfa;
   private static final double RELEVANT_VARIABLES_FREQUENCY_FACTOR = 0.5;
   private int predicatesInUse = 0;
 
@@ -63,11 +61,9 @@ public class PredicateCoverageTransferRelation extends PredicateTransferRelation
       PredicateAbstractionManager pPredAbsManager,
       PredicateStatistics pStatistics,
       PredicateCpaOptions pOptions,
-      CFA pCfa,
       CoverageCollectorHandler pCovCollectorHandler) {
     super(pLogger, pDirection, pFmgr, pPfmgr, pBlk, pPredAbsManager, pStatistics, pOptions);
     fmgr = Preconditions.checkNotNull(pFmgr);
-    cfa = Preconditions.checkNotNull(pCfa);
     coverageCollector =
         Preconditions.checkNotNull(pCovCollectorHandler.getPredicateAnalysisCollector());
     TimeDependentCoverageHandler coverageHandler = pCovCollectorHandler.getTDCGHandler();
@@ -77,9 +73,10 @@ public class PredicateCoverageTransferRelation extends PredicateTransferRelation
     predicateRelevantVariablesTDCG =
         coverageHandler.getData(TimeDependentCoverageType.PredicateRelevantVariables);
     coverageCollector.addInitialNodesForTDCG(
-        cfa, predicateConsideredTDCG, TimeDependentCoverageType.PredicateConsideredLocations);
+        predicateConsideredTDCG, TimeDependentCoverageType.PredicateConsideredLocations);
     coverageCollector.addInitialNodesForTDCG(
-        cfa, predicateRelevantVariablesTDCG, TimeDependentCoverageType.PredicateRelevantVariables);
+        predicateRelevantVariablesTDCG, TimeDependentCoverageType.PredicateRelevantVariables);
+    coverageCollector.addAllProgramVariables();
   }
 
   @Override
@@ -111,7 +108,6 @@ public class PredicateCoverageTransferRelation extends PredicateTransferRelation
    */
   private void processRelevantAbstractionVariablesCoverage(CFAEdge edge, AbstractState state) {
     Set<String> variableNames = getAllAbstractStateVariables(state);
-    coverageCollector.addAbstractionVariables(variableNames, edge);
     coverageCollector.addRelevantAbstractionVariables(variableNames, edge);
   }
 
@@ -132,7 +128,7 @@ public class PredicateCoverageTransferRelation extends PredicateTransferRelation
     if (shouldAddPredicateRelevantVariableNode(cfaEdge, assumeVariables, predicateVariables)) {
       coverageCollector.addPredicateRelevantVariablesNodes(cfaEdge);
       predicateRelevantVariablesTDCG.addTimestamp(
-          coverageCollector.getTempPredicateRelevantVariablesCoverage(cfa));
+          coverageCollector.getTempPredicateRelevantVariablesCoverage());
     }
   }
 
@@ -189,9 +185,7 @@ public class PredicateCoverageTransferRelation extends PredicateTransferRelation
       predicateRelevantVariablesTDCG.resetTimeStamps();
       coverageCollector.resetPredicateRelevantVariablesNodes();
       coverageCollector.addInitialNodesForTDCG(
-          cfa,
-          predicateRelevantVariablesTDCG,
-          TimeDependentCoverageType.PredicateRelevantVariables);
+          predicateRelevantVariablesTDCG, TimeDependentCoverageType.PredicateRelevantVariables);
     }
   }
 
@@ -199,8 +193,7 @@ public class PredicateCoverageTransferRelation extends PredicateTransferRelation
       PredicatePrecision precision, CFAEdge cfaEdge, AbstractState state) {
     if (shouldAddPredicateConsideredNode(cfaEdge, precision, state)) {
       coverageCollector.addPredicateConsideredNode(cfaEdge);
-      predicateConsideredTDCG.addTimestamp(
-          coverageCollector.getTempPredicateConsideredCoverage(cfa));
+      predicateConsideredTDCG.addTimestamp(coverageCollector.getTempPredicateConsideredCoverage());
     }
   }
 
