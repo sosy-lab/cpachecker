@@ -31,7 +31,7 @@ public class AnalysisIndependentCoverageCollector extends CoverageCollector {
       ImmutableList.of(
           CoverageMeasureType.VISITED_LOCATIONS,
           CoverageMeasureType.CONSIDERED_LOCATIONS_HEAT_MAP,
-          CoverageMeasureType.CONSIDERED_LINES_HEAT_MAP);
+          CoverageMeasureType.VISITED_LINES_HEAT_MAP);
 
   AnalysisIndependentCoverageCollector(
       CoverageMeasureHandler pCoverageMeasureHandler,

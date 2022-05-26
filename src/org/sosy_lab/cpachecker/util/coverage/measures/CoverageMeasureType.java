@@ -20,7 +20,7 @@ public enum CoverageMeasureType {
   REACHED_LOCATIONS("Reached Locations", CoverageMeasureCategory.LOCATION_BASED),
   CONSIDERED_LOCATIONS_HEAT_MAP(
       "Considered-Locations Heat Map", CoverageMeasureCategory.LOCATION_BASED),
-  CONSIDERED_LINES_HEAT_MAP("Considered-Lines Heat Map", CoverageMeasureCategory.LINE_BASED),
+  VISITED_LINES_HEAT_MAP("Visited-Lines Heat Map", CoverageMeasureCategory.LINE_BASED),
   PREDICATE_CONSIDERED("Predicate-Considered-Locations", CoverageMeasureCategory.LOCATION_BASED),
   PREDICATE_RELEVANT_VARIABLES(
       "Predicate-Relevant-Variables", CoverageMeasureCategory.LOCATION_BASED),
@@ -50,7 +50,7 @@ public enum CoverageMeasureType {
             covHandler.getAnalysisIndependentCollector().getVisitedLocations(),
             covHandler.getReachedSetCoverageCollector().getReachedLocations(),
             covHandler.getAnalysisIndependentCollector().getTotalLocationCount());
-      case CONSIDERED_LINES_HEAT_MAP:
+      case VISITED_LINES_HEAT_MAP:
         return new LineBasedCoverageMeasure(
             covHandler.getAnalysisIndependentCollector().getVisitedLinesPerFile(),
             covHandler.getAnalysisIndependentCollector().getExistingLinesPerFile());

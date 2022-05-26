@@ -197,6 +197,13 @@ public class PredicateCoverageTransferRelation extends PredicateTransferRelation
     }
   }
 
+  /**
+   * Indicates to add a predicate the collector set if there is a change regarding the predicate set
+   * size.
+   *
+   * @param precision The precision for this abstract state.
+   * @return true if a potential predicate candidate should be added to set of predicates.
+   */
   private boolean shouldAddPredicate(PredicatePrecision precision) {
     return getAllPredicates(precision).size() != predicatesInUse;
   }

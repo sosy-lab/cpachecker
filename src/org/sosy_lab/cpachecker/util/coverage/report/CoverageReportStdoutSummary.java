@@ -72,7 +72,7 @@ public class CoverageReportStdoutSummary {
 
   private static void writeLineRelatedCoverage(
       CoverageMeasureHandler handler, PrintStream pStdOut) {
-    CoverageMeasure visited = handler.getData(CoverageMeasureType.CONSIDERED_LINES_HEAT_MAP);
+    CoverageMeasure visited = handler.getData(CoverageMeasureType.VISITED_LINES_HEAT_MAP);
     if (visited == null || visited.getMaxValue() <= 0) {
       return;
     }
