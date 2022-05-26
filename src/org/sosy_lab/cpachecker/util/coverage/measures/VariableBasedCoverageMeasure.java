@@ -19,19 +19,19 @@ import java.util.Set;
  * within the CoverageCollector or during the analysis within a CoverageCPA.
  */
 public class VariableBasedCoverageMeasure implements CoverageMeasure {
-  private final ImmutableMultiset<String> relevantVariables;
+  private final ImmutableMultiset<String> visitedVariables;
   private final ImmutableSet<String> allVariables;
 
   public VariableBasedCoverageMeasure(
-      Set<String> pAllVariables, Multiset<String> pRelevantVariables) {
-    relevantVariables = ImmutableMultiset.copyOf(pRelevantVariables);
+      Set<String> pAllVariables, Multiset<String> pVisitedVariables) {
+    visitedVariables = ImmutableMultiset.copyOf(pVisitedVariables);
     allVariables = ImmutableSet.copyOf(pAllVariables);
   }
 
   public String getAllRelevantVariablesAsString() {
     StringBuilder variablesBuilder = new StringBuilder();
     int i = 0;
-    Set<String> relevantVariableSet = relevantVariables.elementSet();
+    Set<String> relevantVariableSet = visitedVariables.elementSet();
     int max = relevantVariableSet.size() - 1;
     for (String variableStr : relevantVariableSet) {
       variablesBuilder.append(variableStr);
@@ -49,7 +49,7 @@ public class VariableBasedCoverageMeasure implements CoverageMeasure {
 
   @Override
   public double getValue() {
-    return relevantVariables.elementSet().size();
+    return visitedVariables.elementSet().size();
   }
 
   @Override

@@ -37,8 +37,8 @@ import org.sosy_lab.cpachecker.util.coverage.util.CoverageUtility;
 public class PredicateAnalysisCoverageCollector extends CoverageCollector {
   private final Set<CFANode> predicateConsideredLocations = new LinkedHashSet<>();
   private final Set<CFANode> predicateRelevantVariablesLocations = new LinkedHashSet<>();
-  private final Set<String> variableNames = new HashSet<>();
-  private final Multiset<String> relevantVariableNames = HashMultiset.create();
+  private final Set<String> allVariables = new HashSet<>();
+  private final Multiset<String> visitedVariables = HashMultiset.create();
   private final CFA cfa;
   private int previousPredicateRelevantVariablesLocationsSize = 0;
   private static final ImmutableList<CoverageMeasureType> TYPES =
@@ -82,7 +82,7 @@ public class PredicateAnalysisCoverageCollector extends CoverageCollector {
           CDeclaration dec = declarationEdge.getDeclaration();
           String variableName = dec.getQualifiedName();
           if (!variableName.contains("__CPAchecker_TMP_") && variableName.contains("::")) {
-            variableNames.add(dec.getQualifiedName());
+            allVariables.add(dec.getQualifiedName());
           }
         }
       }
@@ -93,7 +93,7 @@ public class PredicateAnalysisCoverageCollector extends CoverageCollector {
     if (!CoverageUtility.coversLine(pEdge)) {
       return;
     }
-    relevantVariableNames.addAll(pVariableNames);
+    visitedVariables.addAll(pVariableNames);
   }
 
   public void addInitialNodesForTDCG(
@@ -148,12 +148,12 @@ public class PredicateAnalysisCoverageCollector extends CoverageCollector {
         previousPredicateRelevantVariablesLocationsSize);
   }
 
-  public Set<String> getVariableNames() {
-    return variableNames;
+  public Set<String> getAllVariables() {
+    return allVariables;
   }
 
-  public Multiset<String> getRelevantVariableNames() {
-    return relevantVariableNames;
+  public Multiset<String> getVisitedVariables() {
+    return visitedVariables;
   }
 
   private double getTempCoverage(TimeDependentCoverageType type) {

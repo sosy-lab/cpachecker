@@ -64,8 +64,8 @@ public enum CoverageMeasureType {
             covHandler.getPredicateAnalysisCollector().getTotalLocationCount());
       case PREDICATE_ABSTRACTION_VARIABLES:
         return new VariableBasedCoverageMeasure(
-            covHandler.getPredicateAnalysisCollector().getVariableNames(),
-            covHandler.getPredicateAnalysisCollector().getRelevantVariableNames());
+            covHandler.getPredicateAnalysisCollector().getAllVariables(),
+            covHandler.getPredicateAnalysisCollector().getVisitedVariables());
       default:
         throw new AssertionError("Unknown CoverageMeasureType used: " + this.name);
     }
