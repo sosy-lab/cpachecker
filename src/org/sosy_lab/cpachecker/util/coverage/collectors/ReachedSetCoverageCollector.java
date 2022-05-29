@@ -11,7 +11,6 @@ package org.sosy_lab.cpachecker.util.coverage.collectors;
 import static com.google.common.base.Predicates.notNull;
 
 import com.google.common.collect.FluentIterable;
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.LinkedHashMultiset;
 import com.google.common.collect.Multiset;
@@ -34,7 +33,6 @@ import org.sosy_lab.cpachecker.cpa.bam.AbstractBAMCPA;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.coverage.measures.CoverageMeasureHandler;
-import org.sosy_lab.cpachecker.util.coverage.measures.CoverageMeasureType;
 import org.sosy_lab.cpachecker.util.coverage.tdcg.TimeDependentCoverageHandler;
 
 /**
@@ -43,18 +41,12 @@ import org.sosy_lab.cpachecker.util.coverage.tdcg.TimeDependentCoverageHandler;
  */
 public class ReachedSetCoverageCollector extends CoverageCollector {
   private final Multiset<CFANode> reachedLocations = LinkedHashMultiset.create();
-  private static final ImmutableList<CoverageMeasureType> TYPES =
-      ImmutableList.of(CoverageMeasureType.REACHED_LOCATIONS);
 
   ReachedSetCoverageCollector(
       CoverageMeasureHandler pCoverageMeasureHandler,
       TimeDependentCoverageHandler pTimeDependentCoverageHandler,
       CFA cfa) {
     super(pCoverageMeasureHandler, pTimeDependentCoverageHandler, cfa);
-  }
-
-  public void collect(CoverageCollectorHandler coverageCollectorHandler) {
-    collect(coverageCollectorHandler, TYPES);
   }
 
   public void collectFromReachedSet(

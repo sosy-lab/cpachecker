@@ -9,7 +9,6 @@
 package org.sosy_lab.cpachecker.util.coverage.collectors;
 
 import com.google.common.collect.HashMultiset;
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Multiset;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
@@ -21,7 +20,6 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.util.coverage.measures.CoverageMeasureHandler;
-import org.sosy_lab.cpachecker.util.coverage.measures.CoverageMeasureType;
 import org.sosy_lab.cpachecker.util.coverage.tdcg.TimeDependentCoverageData;
 import org.sosy_lab.cpachecker.util.coverage.tdcg.TimeDependentCoverageHandler;
 import org.sosy_lab.cpachecker.util.coverage.tdcg.TimeDependentCoverageType;
@@ -41,11 +39,6 @@ public class PredicateAnalysisCoverageCollector extends CoverageCollector {
   private final Multiset<String> visitedVariables = HashMultiset.create();
   private final CFA cfa;
   private int previousPredicateRelevantVariablesLocationsSize = 0;
-  private static final ImmutableList<CoverageMeasureType> TYPES =
-      ImmutableList.of(
-          CoverageMeasureType.PREDICATE_CONSIDERED,
-          CoverageMeasureType.PREDICATE_RELEVANT_VARIABLES,
-          CoverageMeasureType.PREDICATE_ABSTRACTION_VARIABLES);
 
   PredicateAnalysisCoverageCollector(
       CoverageMeasureHandler pCoverageMeasureHandler,
@@ -53,10 +46,6 @@ public class PredicateAnalysisCoverageCollector extends CoverageCollector {
       CFA pCfa) {
     super(pCoverageMeasureHandler, pTimeDependentCoverageHandler, pCfa);
     cfa = pCfa;
-  }
-
-  public void collect(CoverageCollectorHandler coverageCollectorHandler) {
-    collect(coverageCollectorHandler, TYPES);
   }
 
   public void addPredicateConsideredNode(final CFAEdge pEdge) {

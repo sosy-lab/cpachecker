@@ -10,7 +10,6 @@ package org.sosy_lab.cpachecker.util.coverage.collectors;
 
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.HashMultiset;
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMultiset;
 import com.google.common.collect.ImmutableSetMultimap;
@@ -29,9 +28,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.util.CFAUtils;
-import org.sosy_lab.cpachecker.util.coverage.measures.CoverageMeasure;
 import org.sosy_lab.cpachecker.util.coverage.measures.CoverageMeasureHandler;
-import org.sosy_lab.cpachecker.util.coverage.measures.CoverageMeasureType;
 import org.sosy_lab.cpachecker.util.coverage.tdcg.TimeDependentCoverageHandler;
 import org.sosy_lab.cpachecker.util.coverage.util.CoverageUtility;
 
@@ -65,14 +62,6 @@ public abstract class CoverageCollector {
   CoverageCollector() {
     coverageMeasureHandler = new CoverageMeasureHandler();
     timeDependentCoverageHandler = new TimeDependentCoverageHandler();
-  }
-
-  void collect(
-      CoverageCollectorHandler coverageCollectorHandler, ImmutableList<CoverageMeasureType> types) {
-    for (CoverageMeasureType type : types) {
-      CoverageMeasure coverageMeasure = type.getCoverageMeasure(coverageCollectorHandler);
-      coverageMeasureHandler.addData(type, coverageMeasure);
-    }
   }
 
   public void addVisitedEdge(final CFAEdge pEdge) {

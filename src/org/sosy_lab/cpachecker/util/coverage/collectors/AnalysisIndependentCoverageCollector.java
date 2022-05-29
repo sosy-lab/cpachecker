@@ -8,14 +8,12 @@
 
 package org.sosy_lab.cpachecker.util.coverage.collectors;
 
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.LinkedHashMultiset;
 import com.google.common.collect.Multiset;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.util.coverage.measures.CoverageMeasureHandler;
-import org.sosy_lab.cpachecker.util.coverage.measures.CoverageMeasureType;
 import org.sosy_lab.cpachecker.util.coverage.tdcg.TimeDependentCoverageHandler;
 
 /**
@@ -26,11 +24,6 @@ import org.sosy_lab.cpachecker.util.coverage.tdcg.TimeDependentCoverageHandler;
  */
 public class AnalysisIndependentCoverageCollector extends CoverageCollector {
   private final Multiset<CFANode> visitedLocations = LinkedHashMultiset.create();
-  private static final ImmutableList<CoverageMeasureType> TYPES =
-      ImmutableList.of(
-          CoverageMeasureType.VISITED_LOCATIONS,
-          CoverageMeasureType.CONSIDERED_LOCATIONS_HEAT_MAP,
-          CoverageMeasureType.VISITED_LINES_HEAT_MAP);
 
   AnalysisIndependentCoverageCollector(
       CoverageMeasureHandler pCoverageMeasureHandler,
@@ -39,10 +32,6 @@ public class AnalysisIndependentCoverageCollector extends CoverageCollector {
     super(pCoverageMeasureHandler, pTimeDependentCoverageHandler, cfa);
     timeDependentCoverageHandler.initAnalysisIndependentTDCG();
     addInitialNodesForMeasures(cfa);
-  }
-
-  public void collect(CoverageCollectorHandler coverageCollectorHandler) {
-    collect(coverageCollectorHandler, TYPES);
   }
 
   public void addInitialNodesForMeasures(CFA cfa) {

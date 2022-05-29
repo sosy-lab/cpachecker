@@ -8,8 +8,13 @@
 
 package org.sosy_lab.cpachecker.util.coverage.collectors;
 
+import java.util.HashSet;
+import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.util.coverage.measures.CoverageMeasure;
+import org.sosy_lab.cpachecker.util.coverage.measures.CoverageMeasureAnalysisCategory;
 import org.sosy_lab.cpachecker.util.coverage.measures.CoverageMeasureHandler;
+import org.sosy_lab.cpachecker.util.coverage.measures.CoverageMeasureType;
 import org.sosy_lab.cpachecker.util.coverage.tdcg.TimeDependentCoverageHandler;
 
 /**
@@ -23,6 +28,7 @@ public class CoverageCollectorHandler {
   private final CounterexampleCoverageCollector counterexampleCoverageCollector;
   private final AnalysisIndependentCoverageCollector analysisIndependentCoverageCollector;
   private final PredicateAnalysisCoverageCollector predicateAnalysisCoverageCollector;
+  private final Set<CoverageMeasureAnalysisCategory> analysisCategories;
   private final boolean shouldCollectCoverage;
 
   public CoverageCollectorHandler(CFA cfa, boolean pShouldCollectCoverage) {
@@ -38,6 +44,8 @@ public class CoverageCollectorHandler {
     analysisIndependentCoverageCollector =
         new AnalysisIndependentCoverageCollector(
             coverageMeasureHandler, timeDependentCoverageHandler, cfa);
+    analysisCategories = new HashSet<>();
+    analysisCategories.add(CoverageMeasureAnalysisCategory.ANALYSIS_INDEPENDENT);
     timeDependentCoverageHandler.initPredicateAnalysisTDCG();
   }
 
@@ -51,11 +59,19 @@ public class CoverageCollectorHandler {
    * its type.
    */
   public void collectAllData() {
-    if (shouldCollectCoverage) {
-      analysisIndependentCoverageCollector.collect(this);
-      reachedSetCoverageCollector.collect(this);
-      predicateAnalysisCoverageCollector.collect(this);
+    if (!shouldCollectCoverage) {
+      return;
     }
+    for (CoverageMeasureType type : CoverageMeasureType.values()) {
+      if (analysisCategories.contains(type.getAnalysisCategory())) {
+        CoverageMeasure coverageMeasure = type.getCoverageMeasure(this);
+        coverageMeasureHandler.addData(type, coverageMeasure);
+      }
+    }
+  }
+
+  public void addAnalysisCategory(CoverageMeasureAnalysisCategory pAnalysisCategory) {
+    analysisCategories.add(pAnalysisCategory);
   }
 
   public TimeDependentCoverageHandler getTDCGHandler() {
