@@ -46,7 +46,6 @@ public class CoverageCollectorHandler {
             coverageMeasureHandler, timeDependentCoverageHandler, cfa);
     analysisCategories = new HashSet<>();
     analysisCategories.add(CoverageMeasureAnalysisCategory.ANALYSIS_INDEPENDENT);
-    timeDependentCoverageHandler.initPredicateAnalysisTDCG();
   }
 
   public CoverageCollectorHandler(CFA cfa) {

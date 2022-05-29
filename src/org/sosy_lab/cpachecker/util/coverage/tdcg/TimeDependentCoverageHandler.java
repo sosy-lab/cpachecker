@@ -36,20 +36,14 @@ public class TimeDependentCoverageHandler {
     timeDependentCoverageDataMap.put(type, new TimeDependentCoverageData());
   }
 
-  /** Init all TDCGs which are analysis independent */
-  public void initAnalysisIndependentTDCG() {
-    initNewData(TimeDependentCoverageType.VisitedLines);
-  }
-
-  /** Init all TDCGs which depend on predicate analysis */
-  public void initPredicateAnalysisTDCG() {
-    initNewData(TimeDependentCoverageType.PredicatesGenerated);
-    initNewData(TimeDependentCoverageType.PredicateConsideredLocations);
-    initNewData(TimeDependentCoverageType.PredicateRelevantVariables);
-  }
-
   public TimeDependentCoverageData getData(TimeDependentCoverageType type) {
-    return timeDependentCoverageDataMap.get(type);
+    TimeDependentCoverageData tdgData = timeDependentCoverageDataMap.get(type);
+    if (tdgData == null) {
+      TimeDependentCoverageData newTDGData = new TimeDependentCoverageData();
+      timeDependentCoverageDataMap.put(type, newTDGData);
+      return newTDGData;
+    }
+    return tdgData;
   }
 
   public ImmutableList<TimeDependentCoverageType> getAllTypes() {

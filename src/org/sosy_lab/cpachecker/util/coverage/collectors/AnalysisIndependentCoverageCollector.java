@@ -30,7 +30,6 @@ public class AnalysisIndependentCoverageCollector extends CoverageCollector {
       TimeDependentCoverageHandler pTimeDependentCoverageHandler,
       CFA cfa) {
     super(pCoverageMeasureHandler, pTimeDependentCoverageHandler, cfa);
-    timeDependentCoverageHandler.initAnalysisIndependentTDCG();
     addInitialNodesForMeasures(cfa);
   }
 
