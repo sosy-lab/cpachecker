@@ -6,5 +6,5 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-/** CPAs which tracks coverage data */
+/** CPA for any kind of analysis which tracks coverage data */
 package org.sosy_lab.cpachecker.cpa.coverage;

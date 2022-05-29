@@ -25,16 +25,26 @@ import org.sosy_lab.cpachecker.util.coverage.util.CoverageColorUtil;
 public class LocationBasedCoverageMeasure implements CoverageMeasure {
   private final ImmutableMultiset<CFANode> coveredLocations;
   private final double maxCount;
-  private final String coverageColor;
 
+  /**
+   * Creates a LocationsBasedCoverageMeasure instance.
+   *
+   * @param pCoveredLocations a multiset containing all covered locations.
+   * @param pMaxCount the highest theoretically possible location count. This number should be
+   *     always equal or greater than pCoveredLocations.elementSet().size() and greater than 0,
+   *     since it used as divisor and otherwise could lead to division by zero.
+   */
   public LocationBasedCoverageMeasure(Multiset<CFANode> pCoveredLocations, double pMaxCount) {
-    coveredLocations = ImmutableMultiset.copyOf(pCoveredLocations);
-    coverageColor = CoverageColorUtil.DEFAULT_COVERAGE_COLOR;
     if (pMaxCount <= 0) {
-      maxCount = 1.0;
+      throw new IllegalArgumentException("MaxCount for a CoverageMeasure should be greater than 0");
+    } else if (pMaxCount < pCoveredLocations.elementSet().size()) {
+      throw new IllegalArgumentException(
+          "MaxCount for a CoverageMeasure should be greater than the element size of the given"
+              + " cover locations multiset.");
     } else {
       maxCount = pMaxCount;
     }
+    coveredLocations = ImmutableMultiset.copyOf(pCoveredLocations);
   }
 
   public LocationBasedCoverageMeasure(Set<CFANode> pCoveredLocations, double pMaxCount) {
@@ -50,7 +60,7 @@ public class LocationBasedCoverageMeasure implements CoverageMeasure {
    */
   public String getColor(CFANode location) {
     if (getCoveredSet().contains(location)) {
-      return coverageColor;
+      return CoverageColorUtil.DEFAULT_COVERAGE_COLOR;
     } else {
       return CoverageColorUtil.DEFAULT_ELEMENT_COLOR;
     }

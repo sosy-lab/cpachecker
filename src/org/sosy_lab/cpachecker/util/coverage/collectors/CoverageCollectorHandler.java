@@ -25,8 +25,7 @@ public class CoverageCollectorHandler {
   private final PredicateAnalysisCoverageCollector predicateAnalysisCoverageCollector;
   private final boolean shouldCollectCoverage;
 
-  public CoverageCollectorHandler(
-      CFA cfa, boolean pShouldCollectCoverage) {
+  public CoverageCollectorHandler(CFA cfa, boolean pShouldCollectCoverage) {
     shouldCollectCoverage = pShouldCollectCoverage;
     timeDependentCoverageHandler = new TimeDependentCoverageHandler();
     coverageMeasureHandler = new CoverageMeasureHandler();

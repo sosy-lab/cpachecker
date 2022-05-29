@@ -50,6 +50,8 @@ const { argJson, sourceFiles, cfaJson, tdgJson, sourceCoverageJson } = window;
 // CFA graph variable declarations
 const functions = cfaJson.functionNames;
 let errorPath;
+// a flag which indicates if an error path exists and if it is shown in the report,
+// it is used for calculating the available width to show the TDG.
 let errorPathFlag = false;
 
 if (Object.prototype.hasOwnProperty.call(cfaJson, "errorPath")) {
@@ -73,12 +75,15 @@ const graphSplitThreshold = 700;
 let cfaSplit = false;
 let argTabDisabled = false;
 
-function getStringId(str) {
+// converts a coverage name string (e.g. string entry from a selector)
+// to an id which is used to identify the coverage (e.g. to identify it for color extraction).
+function getCoverageStringId(str) {
   return str.replace(/\s/g, "").replace(/-/g, "");
 }
 
-function extractColor(msg, id) {
-  return msg
+// extracts and return hex color information from a given html element for a given coverage id.
+function extractColor(element, id) {
+  return element
     .split("coverage-colors: ")
     .slice(-1)[0]
     .split(`${id}:`)
@@ -142,7 +147,7 @@ function renderTDG(dataJSON, color, inPercentage) {
 
   // create svg element, respecting margins
   const svg = d3
-    .select("#time_dependent_coverage_graph")
+    .select("#time_dependent_graph")
     .append("svg")
     .attr("width", width + margin.left + margin.right)
     .attr("height", height + margin.top + margin.bottom)
@@ -1178,7 +1183,7 @@ function renderTDG(dataJSON, color, inPercentage) {
         }
         $rootScope.displayedCoverages = $scope.coverageSelections[0];
         $scope.extractColor = extractColor;
-        $scope.getStringId = getStringId;
+        $scope.getStringId = getCoverageStringId;
 
         $scope.colorNode = function colorNode() {
           const node = d3.select(this.firstChild);
@@ -1344,7 +1349,7 @@ function renderTDG(dataJSON, color, inPercentage) {
       }
       $rootScope.displayedSourceCoverages = $scope.sourceCoverageSelections[0];
       $scope.extractColor = extractColor;
-      $scope.getStringId = getStringId;
+      $scope.getStringId = getCoverageStringId;
 
       $scope.sourceColoringControl = () => {
         $scope.colorId = $scope.getStringId(
@@ -1479,7 +1484,7 @@ function renderTDG(dataJSON, color, inPercentage) {
       };
 
       $scope.removeTDG = function removeTDG() {
-        d3.select("#time_dependent_coverage_graph").selectAll("*").remove();
+        d3.select("#time_dependent_graph").selectAll("*").remove();
       };
 
       $scope.renderTDG = renderTDG;

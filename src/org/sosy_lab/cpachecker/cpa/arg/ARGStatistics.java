@@ -68,7 +68,6 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.BiPredicates;
 import org.sosy_lab.cpachecker.util.Pair;
-import org.sosy_lab.cpachecker.util.coverage.collectors.CoverageCollectorHandler;
 import org.sosy_lab.cpachecker.util.cwriter.ARGToCTranslator;
 
 @Options(prefix = "cpa.arg")
@@ -200,8 +199,7 @@ public class ARGStatistics implements Statistics {
       LogManager pLogger,
       ConfigurableProgramAnalysis pCpa,
       Specification pSpecification,
-      CFA cfa,
-      CoverageCollectorHandler pCovCollectorHandler)
+      CFA cfa)
       throws InvalidConfigurationException {
     config.inject(this, ARGStatistics.class); // needed for sub-classes
 
@@ -237,8 +235,7 @@ public class ARGStatistics implements Statistics {
               cfa,
               cpa,
               argWitnessExporter,
-              extendedWitnessExporter,
-              pCovCollectorHandler);
+              extendedWitnessExporter);
     }
 
     argToCExporter = new ARGToCTranslator(logger, config, cfa.getMachineModel());

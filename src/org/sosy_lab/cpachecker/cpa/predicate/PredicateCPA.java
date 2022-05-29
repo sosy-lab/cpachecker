@@ -41,7 +41,6 @@ import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.pcc.ProofChecker;
 import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets;
 import org.sosy_lab.cpachecker.core.specification.Specification;
-import org.sosy_lab.cpachecker.cpa.coverage.CoverageCPA;
 import org.sosy_lab.cpachecker.cpa.predicate.persistence.PredicateAbstractionsStorage;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
@@ -65,11 +64,7 @@ import org.sosy_lab.java_smt.api.SolverException;
 /** CPA that defines symbolic predicate abstraction. */
 @Options(prefix = "cpa.predicate")
 public class PredicateCPA
-    implements ConfigurableProgramAnalysis,
-        StatisticsProvider,
-        ProofChecker,
-        AutoCloseable,
-        CoverageCPA {
+    implements ConfigurableProgramAnalysis, StatisticsProvider, ProofChecker, AutoCloseable {
 
   public static CPAFactory factory() {
     return AutomaticCPAFactory.forType(PredicateCPA.class).withOptions(BlockOperator.class);
@@ -417,11 +412,6 @@ public class PredicateCPA
     } else {
       return false;
     }
-  }
-
-  @Override
-  public CoverageCollectorHandler getCoverageCollectorHandler() {
-    return coverageCollectorHandler;
   }
 
   public CFA getCfa() {

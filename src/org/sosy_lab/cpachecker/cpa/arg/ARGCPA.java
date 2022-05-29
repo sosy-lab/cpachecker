@@ -46,14 +46,12 @@ import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.pcc.ProofChecker;
 import org.sosy_lab.cpachecker.core.specification.Specification;
-import org.sosy_lab.cpachecker.cpa.coverage.CoverageCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
-import org.sosy_lab.cpachecker.util.coverage.collectors.CoverageCollectorHandler;
 
 @Options(prefix = "cpa.arg")
 public class ARGCPA extends AbstractSingleWrapperCPA
-    implements ConfigurableProgramAnalysisWithBAM, ProofChecker, CoverageCPA {
+    implements ConfigurableProgramAnalysisWithBAM, ProofChecker {
 
   public static CPAFactory factory() {
     return AutomaticCPAFactory.forType(ARGCPA.class);
@@ -106,21 +104,17 @@ public class ARGCPA extends AbstractSingleWrapperCPA
 
   private final ARGStatistics stats;
 
-  private final CoverageCollectorHandler coverageCollectorHandler;
-
   private ARGCPA(
       ConfigurableProgramAnalysis cpa,
       Configuration config,
       LogManager pLogger,
       Specification pSpecification,
-      CFA cfa,
-      CoverageCollectorHandler pCovCollectorHandler)
+      CFA cfa)
       throws InvalidConfigurationException {
     super(cpa);
     config.inject(this);
     logger = pLogger;
-    coverageCollectorHandler = pCovCollectorHandler;
-    stats = new ARGStatistics(config, pLogger, this, pSpecification, cfa, pCovCollectorHandler);
+    stats = new ARGStatistics(config, pLogger, this, pSpecification, cfa);
   }
 
   @Override
@@ -266,10 +260,5 @@ public class ARGCPA extends AbstractSingleWrapperCPA
     return ((ConfigurableProgramAnalysisWithBAM) getWrappedCpa())
         .isCoveredByRecursiveState(
             ((ARGState) state1).getWrappedState(), ((ARGState) state2).getWrappedState());
-  }
-
-  @Override
-  public CoverageCollectorHandler getCoverageCollectorHandler() {
-    return coverageCollectorHandler;
   }
 }

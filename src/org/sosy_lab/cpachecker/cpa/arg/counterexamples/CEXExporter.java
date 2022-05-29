@@ -53,7 +53,7 @@ import org.sosy_lab.cpachecker.cpa.arg.witnessexport.WitnessExporter;
 import org.sosy_lab.cpachecker.cpa.arg.witnessexport.WitnessToOutputFormatsUtils;
 import org.sosy_lab.cpachecker.util.BiPredicates;
 import org.sosy_lab.cpachecker.util.Pair;
-import org.sosy_lab.cpachecker.util.coverage.collectors.CoverageCollectorHandler;
+import org.sosy_lab.cpachecker.util.coverage.collectors.CounterexampleCoverageCollector;
 import org.sosy_lab.cpachecker.util.coverage.report.CoverageReportGcov;
 import org.sosy_lab.cpachecker.util.cwriter.PathToCTranslator;
 import org.sosy_lab.cpachecker.util.cwriter.PathToConcreteProgramTranslator;
@@ -100,7 +100,6 @@ public class CEXExporter {
   private final ExtendedWitnessExporter extendedWitnessExporter;
   private final HarnessExporter harnessExporter;
   private final TestCaseExporter testExporter;
-  private final CoverageCollectorHandler coverageCollectorHandler;
 
   public CEXExporter(
       Configuration config,
@@ -109,13 +108,11 @@ public class CEXExporter {
       CFA cfa,
       ConfigurableProgramAnalysis cpa,
       WitnessExporter pWitnessExporter,
-      ExtendedWitnessExporter pExtendedWitnessExporter,
-      CoverageCollectorHandler pCovCollectorHandler)
+      ExtendedWitnessExporter pExtendedWitnessExporter)
       throws InvalidConfigurationException {
     config.inject(this);
     options = pOptions;
     logger = pLogger;
-    coverageCollectorHandler = pCovCollectorHandler;
     witnessExporter = checkNotNull(pWitnessExporter);
     extendedWitnessExporter = checkNotNull(pExtendedWitnessExporter);
 
@@ -174,9 +171,8 @@ public class CEXExporter {
     if (options.getCoveragePrefix() != null) {
       Path outputPath = options.getCoveragePrefix().getPath(counterexample.getUniqueId());
       try (Writer gcovFile = IO.openOutputFile(outputPath, Charset.defaultCharset())) {
-        var coverageCollector = coverageCollectorHandler.getCounterexampleCoverageCollector();
-        coverageCollector.collectCoveredEdges(targetPath);
-        CoverageReportGcov.write(coverageCollector, gcovFile);
+        CoverageReportGcov.write(
+            CounterexampleCoverageCollector.collectCoveredEdges(targetPath), gcovFile);
       } catch (IOException e) {
         logger.logUserException(
             Level.WARNING, e, "Could not write coverage information for counterexample to file");

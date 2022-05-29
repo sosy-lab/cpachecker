@@ -19,11 +19,10 @@ import org.sosy_lab.cpachecker.util.coverage.measures.CoverageMeasureType;
 import org.sosy_lab.cpachecker.util.coverage.tdcg.TimeDependentCoverageHandler;
 
 /**
- * Coverage collector which is called used by the AnalysisIndependentCoverageCPA. The calculated
- * coverage measures depends on data which is collected during an analysis. Since this class
- * collects data during the analysis it is possible to calculate a temporal coverage value based on
- * partially available data. Therefore, the data collected in this class is also suitable to be used
- * for a TDCG.
+ * Coverage collector which is called used by the CoverageCPA. The calculated coverage measures
+ * depends on data which is collected during an analysis. Since this class collects data during the
+ * analysis it is possible to calculate a temporal coverage value based on partially available data.
+ * Therefore, the data collected in this class is also suitable to be used for a TDCG.
  */
 public class AnalysisIndependentCoverageCollector extends CoverageCollector {
   private final Multiset<CFANode> visitedLocations = LinkedHashMultiset.create();

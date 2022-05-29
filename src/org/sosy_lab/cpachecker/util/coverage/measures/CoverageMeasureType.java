@@ -14,6 +14,8 @@ import org.sosy_lab.cpachecker.util.coverage.collectors.CoverageCollectorHandler
  * Coverage Measure Type is used to distinguish between different coverage measure calculation
  * approaches. Approaches are based typically on a CoverageMeasureCategory. In addition, it is
  * possible to specify a friendly name for each category which is displayed in the report.html
+ * CoverageMeasureType is about the type of coverage, whereas CoverageMeasure is about actually hold
+ * the coverage data and has methods accessing typical coverage values.
  */
 public enum CoverageMeasureType {
   VISITED_LOCATIONS("Visited Locations", CoverageMeasureCategory.LOCATION_BASED),

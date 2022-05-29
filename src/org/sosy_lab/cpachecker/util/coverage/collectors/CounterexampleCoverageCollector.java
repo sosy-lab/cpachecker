@@ -22,18 +22,20 @@ import org.sosy_lab.cpachecker.util.AbstractStates;
  * a given counter example path. Therefore, it is only usable after the main analysis is done.
  */
 public class CounterexampleCoverageCollector extends CoverageCollector {
-  public void collectCoveredEdges(ARGPath cexPath) {
+  public static CounterexampleCoverageCollector collectCoveredEdges(ARGPath cexPath) {
+    CounterexampleCoverageCollector coverageCollector = new CounterexampleCoverageCollector();
     PathIterator pathIterator = cexPath.fullPathIterator();
     while (pathIterator.hasNext()) {
       CFAEdge edge = pathIterator.getOutgoingEdge();
       // Considering covered up until (but not including) when the
       // AssumptionAutomaton state is __FALSE.
-      if (isOutsideAssumptionAutomaton(pathIterator.getNextAbstractState())) {
+      if (coverageCollector.isOutsideAssumptionAutomaton(pathIterator.getNextAbstractState())) {
         break;
       }
-      addVisitedEdge(edge);
+      coverageCollector.addVisitedEdge(edge);
       pathIterator.advance();
     }
+    return coverageCollector;
   }
 
   private boolean isOutsideAssumptionAutomaton(ARGState s) {

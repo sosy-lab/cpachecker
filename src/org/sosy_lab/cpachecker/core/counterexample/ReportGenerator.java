@@ -194,7 +194,7 @@ public class ReportGenerator {
       return;
     }
 
-    // extract further coverage data captured during the analysis if AnalysisIndependentCoverageCPA
+    // extract further coverage data captured during the analysis if CoverageCPA
     // is present
     CoverageCollectorHandler coverageCollectorHandler =
         CoverageUtility.getCoverageCollectorHandlerFromReachedSet(pReached, pCfa);

@@ -6,7 +6,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.cpa.coverage.analysisindependent;
+package org.sosy_lab.cpachecker.cpa.coverage;
 
 import com.google.common.base.Preconditions;
 import java.util.Collection;
@@ -23,12 +23,11 @@ import org.sosy_lab.cpachecker.util.coverage.tdcg.TimeDependentCoverageData;
 import org.sosy_lab.cpachecker.util.coverage.tdcg.TimeDependentCoverageType;
 import org.sosy_lab.cpachecker.util.coverage.util.CoverageUtility;
 
-public class AnalysisIndependentCoverageTransferRelation extends SingleEdgeTransferRelation {
+public class CoverageTransferRelation extends SingleEdgeTransferRelation {
   private final AnalysisIndependentCoverageCollector coverageCollector;
   private final TimeDependentCoverageData visitedTDCG;
 
-  public AnalysisIndependentCoverageTransferRelation(
-      CoverageCollectorHandler pCovCollectorHandler) {
+  public CoverageTransferRelation(CoverageCollectorHandler pCovCollectorHandler) {
     coverageCollector =
         Preconditions.checkNotNull(pCovCollectorHandler.getAnalysisIndependentCollector());
     visitedTDCG =
