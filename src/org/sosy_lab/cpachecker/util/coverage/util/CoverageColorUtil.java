@@ -21,7 +21,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
  * typically used for the report.html - CFA, Source, TDCG Tab.
  */
 public class CoverageColorUtil {
-  public static final String DEFAULT_COVERAGE_COLOR = "#3aec49";
+  public static final String DEFAULT_COVERAGE_COLOR = "#1eff00";
   public static final String DEFAULT_CONSIDERED_COLOR = "#ff6e6e";
   public static final String DEFAULT_ELEMENT_COLOR = "#ffffff";
   public static final String DEFAULT_RELEVANT_VARIABLE_COLOR = "#ff2424";
@@ -34,8 +34,8 @@ public class CoverageColorUtil {
   public static final String LIGHT_BLUE_LINE_COLOR = "#b9e4fa";
   public static final String DARK_BLUE_LINE_COLOR = "#94dbff";
 
-  public static final String MAX_GRADIENT_COLOR = "#1d5e07";
-  public static final String MIN_GRADIENT_COLOR = "#beffb3";
+  public static final String MAX_GRADIENT_COLOR = "#15a602";
+  public static final String MIN_GRADIENT_COLOR = "#beffb5";
 
   /**
    * Returns for a given line a color representation, depending on if the line number is even or

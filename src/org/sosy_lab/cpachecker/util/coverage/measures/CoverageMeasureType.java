@@ -37,15 +37,15 @@ public enum CoverageMeasureType {
       CoverageMeasureInputCategory.LINE_BASED,
       CoverageMeasureAnalysisCategory.ANALYSIS_INDEPENDENT),
   PREDICATE_CONSIDERED(
-      "Predicate-Considered-Locations",
+      "Predicate-Considered Locations",
       CoverageMeasureInputCategory.LOCATION_BASED,
       CoverageMeasureAnalysisCategory.PREDICATE_ANALYSIS),
   PREDICATE_RELEVANT_VARIABLES(
-      "Predicate-Relevant-Variables",
+      "Predicate-Relevant-Variables Locations",
       CoverageMeasureInputCategory.LOCATION_BASED,
       CoverageMeasureAnalysisCategory.PREDICATE_ANALYSIS),
   PREDICATE_ABSTRACTION_VARIABLES(
-      "Predicate-Abstraction-Variables",
+      "Predicate-Abstraction Variables",
       CoverageMeasureInputCategory.VARIABLE_BASED,
       CoverageMeasureAnalysisCategory.PREDICATE_ANALYSIS);
 
