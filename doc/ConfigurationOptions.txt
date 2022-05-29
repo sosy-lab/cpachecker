@@ -157,6 +157,7 @@ solver.z3.usePhantomReferences = false
 
 # SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
 # SPDX-FileCopyrightText: 2007-2021 Dirk Beyer <https://www.sosy-lab.org>
+# SPDX-FileCopyrightText: 2007-2022 Dirk Beyer <https://www.sosy-lab.org>
 # SPDX-FileCopyrightText: 2014-2017 Université Grenoble Alpes
 # SPDX-FileCopyrightText: 2020 Dirk Beyer <https://www.sosy-lab.org>
 # SPDX-FileCopyrightText: 2021 Dirk Beyer <https://www.sosy-lab.org>
@@ -554,6 +555,9 @@ assumptions.automatonFile = "AssumptionAutomaton.txt"
 # If it is enabled, automaton does not add assumption which is considered to
 # continue path with corresponding this edge.
 assumptions.automatonIgnoreAssumptions = false
+
+# If it is enabled, automaton adds transitions to later ARG states first
+assumptions.automatonOrderedTransitions = false
 
 # compress the produced assumption automaton using GZIP compression.
 assumptions.compressAutomaton = false
@@ -3517,12 +3521,31 @@ dependencegraph.pointerAnalysisTime = 0s
 # PointerStateComputationMethod.FLOW_INSENSITIVE
 dependencegraph.pointerStateComputationMethods = [PointerStateComputationMethod.FLOW_SENSITIVE]
 
+# comma-separated list of files with property specifications that should be
+# considered when determining the nodes that are in the reachability
+# property.
+differential.badstateProperties = []
+
 # ignore declarations when detecting modifications, be careful when variables
 # are renamed (could be unsound)
 differential.ignoreDeclarations = false
 
+# perform assumption implication check
+differential.implicationCheck = true
+
+# perform preprocessing to detect states from which error locations are
+# reachable
+differential.performPreprocessing = false
+
 # Program to check against
 differential.program = no default value
+
+# safely stop analysis on pointer accesses and similar
+differential.stopOnPointers = false
+
+# Switch on/off to form the union of variable sets at identical location
+# pairs. Set cpa.automaton.deleteDoubleEdges as well!
+differential.variableSetMerge = false
 
 # Enable to use lazy refinement in current analysis instead of restarting
 # from root after each refinement.

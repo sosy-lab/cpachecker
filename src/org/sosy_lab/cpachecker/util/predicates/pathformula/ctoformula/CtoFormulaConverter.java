@@ -1770,15 +1770,21 @@ public class CtoFormulaConverter {
   }
 
   public final BooleanFormula makePredicate(
-      CExpression exp, CFAEdge edge, String function, SSAMapBuilder ssa)
+      CExpression exp, CFAEdge edge, String function, SSAMapBuilder ssa, boolean truthAssumption)
       throws UnrecognizedCodeException, InterruptedException {
     PointerTargetSetBuilder pts =
         createPointerTargetSetBuilder(PointerTargetSet.emptyPointerTargetSet());
     Constraints constraints = new Constraints(bfmgr);
     ErrorConditions errorConditions = ErrorConditions.dummyInstance(bfmgr);
     BooleanFormula f =
-        makePredicate(exp, true, edge, function, ssa, pts, constraints, errorConditions);
+        makePredicate(exp, truthAssumption, edge, function, ssa, pts, constraints, errorConditions);
     return bfmgr.and(f, constraints.get());
+  }
+
+  public final BooleanFormula makePredicate(
+      CExpression exp, CFAEdge edge, String function, SSAMapBuilder ssa)
+      throws UnrecognizedCodeException, InterruptedException {
+    return makePredicate(exp, edge, function, ssa, true);
   }
 
   /**
