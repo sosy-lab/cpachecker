@@ -70,7 +70,9 @@ public class PredicateAnalysisCoverageCollector extends CoverageCollector {
           CDeclarationEdge declarationEdge = (CDeclarationEdge) edge;
           CDeclaration dec = declarationEdge.getDeclaration();
           String variableName = dec.getQualifiedName();
-          if (!variableName.contains("__CPAchecker_TMP_") && variableName.contains("::")) {
+          if (variableName != null
+              && !variableName.contains("__CPAchecker_TMP_")
+              && variableName.contains("::")) {
             allVariables.add(dec.getQualifiedName());
           }
         }
