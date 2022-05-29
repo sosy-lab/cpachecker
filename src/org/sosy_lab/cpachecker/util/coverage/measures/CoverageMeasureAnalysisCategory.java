@@ -8,6 +8,11 @@
 
 package org.sosy_lab.cpachecker.util.coverage.measures;
 
+/**
+ * The categories regarding the analysis type of which every CoverageMeasureTypes belongs to. The
+ * case ANALYSIS_INDEPENDENT means that it is suitable for any kind of analysis. The case
+ * PREDICATE_ANALYSIS means that it is suitable only for predicate analysis.
+ */
 public enum CoverageMeasureAnalysisCategory {
   ANALYSIS_INDEPENDENT,
   PREDICATE_ANALYSIS

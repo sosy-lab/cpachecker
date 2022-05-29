@@ -35,7 +35,7 @@ public class CoverageMeasureHandler {
   }
 
   public ImmutableList<String> getAllTypesForCategoriesAsString(
-      CoverageMeasureCategory... categories) {
+      CoverageMeasureInputCategory... categories) {
     return coverageMeasureMap.keySet().stream()
         .filter(v -> isContainedIn(categories, v.getCategory()))
         .map(v -> v.getName())
@@ -43,7 +43,7 @@ public class CoverageMeasureHandler {
   }
 
   public ImmutableList<CoverageMeasureType> getAllTypesForCategories(
-      CoverageMeasureCategory... categories) {
+      CoverageMeasureInputCategory... categories) {
     return coverageMeasureMap.keySet().stream()
         .filter(v -> isContainedIn(categories, v.getCategory()))
         .collect(ImmutableList.toImmutableList());
@@ -54,8 +54,8 @@ public class CoverageMeasureHandler {
   }
 
   private boolean isContainedIn(
-      CoverageMeasureCategory[] categories, CoverageMeasureCategory pCategory) {
-    for (CoverageMeasureCategory category : categories) {
+      CoverageMeasureInputCategory[] categories, CoverageMeasureInputCategory pCategory) {
+    for (CoverageMeasureInputCategory category : categories) {
       if (category == pCategory) {
         return true;
       }

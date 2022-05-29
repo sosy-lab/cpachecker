@@ -12,48 +12,50 @@ import org.sosy_lab.cpachecker.util.coverage.collectors.CoverageCollectorHandler
 
 /**
  * Coverage Measure Type is used to distinguish between different coverage measure calculation
- * approaches. Approaches are based typically on a CoverageMeasureCategory. In addition, it is
+ * approaches. Approaches are based typically on a CoverageMeasureInputCategory. In addition, it is
  * possible to specify a friendly name for each category which is displayed in the report.html
  * CoverageMeasureType is about the type of coverage, whereas CoverageMeasure is about actually
- * holding the coverage data and has methods accessing typical coverage values.
+ * holding the coverage data and has methods accessing typical coverage values. The
+ * CoverageMeasureHandler builds a connection between each CoverageMeasure and its corresponding
+ * type.
  */
 public enum CoverageMeasureType {
   VISITED_LOCATIONS(
       "Visited Locations",
-      CoverageMeasureCategory.LOCATION_BASED,
+      CoverageMeasureInputCategory.LOCATION_BASED,
       CoverageMeasureAnalysisCategory.ANALYSIS_INDEPENDENT),
   REACHED_LOCATIONS(
       "Reached Locations",
-      CoverageMeasureCategory.LOCATION_BASED,
+      CoverageMeasureInputCategory.LOCATION_BASED,
       CoverageMeasureAnalysisCategory.ANALYSIS_INDEPENDENT),
   CONSIDERED_LOCATIONS_HEAT_MAP(
       "Considered-Locations Heat Map",
-      CoverageMeasureCategory.LOCATION_BASED,
+      CoverageMeasureInputCategory.LOCATION_BASED,
       CoverageMeasureAnalysisCategory.ANALYSIS_INDEPENDENT),
   VISITED_LINES_HEAT_MAP(
       "Visited-Lines Heat Map",
-      CoverageMeasureCategory.LINE_BASED,
+      CoverageMeasureInputCategory.LINE_BASED,
       CoverageMeasureAnalysisCategory.ANALYSIS_INDEPENDENT),
   PREDICATE_CONSIDERED(
       "Predicate-Considered-Locations",
-      CoverageMeasureCategory.LOCATION_BASED,
+      CoverageMeasureInputCategory.LOCATION_BASED,
       CoverageMeasureAnalysisCategory.PREDICATE_ANALYSIS),
   PREDICATE_RELEVANT_VARIABLES(
       "Predicate-Relevant-Variables",
-      CoverageMeasureCategory.LOCATION_BASED,
+      CoverageMeasureInputCategory.LOCATION_BASED,
       CoverageMeasureAnalysisCategory.PREDICATE_ANALYSIS),
   PREDICATE_ABSTRACTION_VARIABLES(
       "Predicate-Abstraction-Variables",
-      CoverageMeasureCategory.VARIABLE_BASED,
+      CoverageMeasureInputCategory.VARIABLE_BASED,
       CoverageMeasureAnalysisCategory.PREDICATE_ANALYSIS);
 
   private final String name;
-  private final CoverageMeasureCategory category;
+  private final CoverageMeasureInputCategory category;
   private final CoverageMeasureAnalysisCategory analysisCategory;
 
   CoverageMeasureType(
       String pName,
-      CoverageMeasureCategory pCategeory,
+      CoverageMeasureInputCategory pCategeory,
       CoverageMeasureAnalysisCategory pAnalysisCategory) {
     name = pName;
     category = pCategeory;
@@ -104,7 +106,7 @@ public enum CoverageMeasureType {
     return name + " Coverage";
   }
 
-  public CoverageMeasureCategory getCategory() {
+  public CoverageMeasureInputCategory getCategory() {
     return category;
   }
 

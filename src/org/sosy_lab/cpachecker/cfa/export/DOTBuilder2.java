@@ -47,8 +47,8 @@ import org.sosy_lab.cpachecker.util.CFATraversal.CompositeCFAVisitor;
 import org.sosy_lab.cpachecker.util.CFATraversal.DefaultCFAVisitor;
 import org.sosy_lab.cpachecker.util.CFATraversal.NodeCollectingCFAVisitor;
 import org.sosy_lab.cpachecker.util.CFATraversal.TraversalProcess;
-import org.sosy_lab.cpachecker.util.coverage.measures.CoverageMeasureCategory;
 import org.sosy_lab.cpachecker.util.coverage.measures.CoverageMeasureHandler;
+import org.sosy_lab.cpachecker.util.coverage.measures.CoverageMeasureInputCategory;
 import org.sosy_lab.cpachecker.util.coverage.measures.CoverageMeasureType;
 import org.sosy_lab.cpachecker.util.coverage.measures.LocationBasedCoverageMeasure;
 import org.sosy_lab.cpachecker.util.coverage.measures.MultiLocationBasedCoverageMeasure;
@@ -404,7 +404,7 @@ public final class DOTBuilder2 {
       StringBuilder coverageProperties = new StringBuilder();
       for (CoverageMeasureType type : covHandler.getAllTypes()) {
         coverageProperties.append(type.getId()).append(":");
-        if (type.getCategory() == CoverageMeasureCategory.LOCATION_BASED) {
+        if (type.getCategory() == CoverageMeasureInputCategory.LOCATION_BASED) {
           LocationBasedCoverageMeasure locCov =
               (LocationBasedCoverageMeasure) covHandler.getData(type);
           if (type == CoverageMeasureType.CONSIDERED_LOCATIONS_HEAT_MAP) {

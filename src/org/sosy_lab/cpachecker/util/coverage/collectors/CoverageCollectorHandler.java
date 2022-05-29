@@ -25,7 +25,6 @@ public class CoverageCollectorHandler {
   private final CoverageMeasureHandler coverageMeasureHandler;
   private final TimeDependentCoverageHandler timeDependentCoverageHandler;
   private final ReachedSetCoverageCollector reachedSetCoverageCollector;
-  private final CounterexampleCoverageCollector counterexampleCoverageCollector;
   private final AnalysisIndependentCoverageCollector analysisIndependentCoverageCollector;
   private final PredicateAnalysisCoverageCollector predicateAnalysisCoverageCollector;
   private final Set<CoverageMeasureAnalysisCategory> analysisCategories;
@@ -37,7 +36,6 @@ public class CoverageCollectorHandler {
     coverageMeasureHandler = new CoverageMeasureHandler();
     reachedSetCoverageCollector =
         new ReachedSetCoverageCollector(coverageMeasureHandler, timeDependentCoverageHandler, cfa);
-    counterexampleCoverageCollector = new CounterexampleCoverageCollector();
     predicateAnalysisCoverageCollector =
         new PredicateAnalysisCoverageCollector(
             coverageMeasureHandler, timeDependentCoverageHandler, cfa);
@@ -91,10 +89,6 @@ public class CoverageCollectorHandler {
 
   public ReachedSetCoverageCollector getReachedSetCoverageCollector() {
     return reachedSetCoverageCollector;
-  }
-
-  public CounterexampleCoverageCollector getCounterexampleCoverageCollector() {
-    return counterexampleCoverageCollector;
   }
 
   public boolean shouldCollectCoverage() {
