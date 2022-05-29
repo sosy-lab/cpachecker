@@ -23,13 +23,11 @@ public class CoverageCollectorHandler {
   private final CounterexampleCoverageCollector counterexampleCoverageCollector;
   private final AnalysisIndependentCoverageCollector analysisIndependentCoverageCollector;
   private final PredicateAnalysisCoverageCollector predicateAnalysisCoverageCollector;
-  private final boolean shouldCollectPredicateCoverage;
-  private final boolean shouldCollectAnyCoverage;
+  private final boolean shouldCollectCoverage;
 
-  private CoverageCollectorHandler(
-      CFA cfa, boolean pShouldCollectPredicateCoverage, boolean pShouldCollectAnyCoverage) {
-    shouldCollectPredicateCoverage = pShouldCollectPredicateCoverage;
-    shouldCollectAnyCoverage = pShouldCollectAnyCoverage;
+  public CoverageCollectorHandler(
+      CFA cfa, boolean pShouldCollectCoverage) {
+    shouldCollectCoverage = pShouldCollectCoverage;
     timeDependentCoverageHandler = new TimeDependentCoverageHandler();
     coverageMeasureHandler = new CoverageMeasureHandler();
     reachedSetCoverageCollector =
@@ -41,17 +39,11 @@ public class CoverageCollectorHandler {
     analysisIndependentCoverageCollector =
         new AnalysisIndependentCoverageCollector(
             coverageMeasureHandler, timeDependentCoverageHandler, cfa);
-    if (shouldCollectPredicateCoverage) {
-      timeDependentCoverageHandler.initPredicateAnalysisTDCG();
-    }
-  }
-
-  public CoverageCollectorHandler(CFA cfa, boolean pShouldCollectPredicateCoverage) {
-    this(cfa, pShouldCollectPredicateCoverage, true);
+    timeDependentCoverageHandler.initPredicateAnalysisTDCG();
   }
 
   public CoverageCollectorHandler(CFA cfa) {
-    this(cfa, false, false);
+    this(cfa, false);
   }
 
   /**
@@ -60,12 +52,10 @@ public class CoverageCollectorHandler {
    * its type.
    */
   public void collectAllData() {
-    if (shouldCollectAnyCoverage) {
+    if (shouldCollectCoverage) {
       analysisIndependentCoverageCollector.collect(this);
       reachedSetCoverageCollector.collect(this);
-      if (shouldCollectPredicateCoverage) {
-        predicateAnalysisCoverageCollector.collect(this);
-      }
+      predicateAnalysisCoverageCollector.collect(this);
     }
   }
 
@@ -93,7 +83,7 @@ public class CoverageCollectorHandler {
     return counterexampleCoverageCollector;
   }
 
-  public boolean shouldCollectPredicateCoverage() {
-    return shouldCollectPredicateCoverage;
+  public boolean shouldCollectCoverage() {
+    return shouldCollectCoverage;
   }
 }

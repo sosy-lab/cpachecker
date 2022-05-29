@@ -12,7 +12,6 @@ import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Verify.verify;
 import static com.google.common.collect.FluentIterable.from;
-import static java.lang.Boolean.parseBoolean;
 
 import com.google.common.base.Joiner;
 import com.google.common.base.Splitter;
@@ -28,7 +27,6 @@ import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Objects;
 import java.util.logging.Level;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.Classes;
@@ -70,6 +68,10 @@ public class CPABuilder {
       name = CPA_OPTION_NAME,
       description = "CPA to use (see doc/Configuration.md for more documentation on this)")
   private String cpaName = CompositeCPA.class.getCanonicalName();
+
+  @Option(
+      description = "Flag which indicates if we should collect coverage data during the analysis")
+  private boolean shouldCollectCoverage = false;
 
   private final Configuration config;
   private final LogManager logger;
@@ -118,10 +120,8 @@ public class CPABuilder {
     final FluentIterable<Automaton> allAutomata =
         FluentIterable.concat(specification.getSpecificationAutomata(), additionalAutomata);
     @SuppressWarnings("deprecation")
-    String shouldCollectPredicateCoverage = config.getProperty("shouldCollectPredicateCoverage");
     CoverageCollectorHandler coverageCollectorHandler =
-        new CoverageCollectorHandler(
-            cfa, parseBoolean(Objects.requireNonNullElse(shouldCollectPredicateCoverage, "false")));
+        new CoverageCollectorHandler(cfa, shouldCollectCoverage);
 
     // 1. Parse config
     final CPAConfig rootCpaConfig = collectCPAConfigs(CPA_OPTION_NAME, cpaName);

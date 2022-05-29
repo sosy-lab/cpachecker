@@ -259,7 +259,7 @@ public class PredicateCPA
 
   @Override
   public PredicateTransferRelation getTransferRelation() {
-    if (coverageCollectorHandler.shouldCollectPredicateCoverage()) {
+    if (coverageCollectorHandler.shouldCollectCoverage()) {
       return new PredicateCoverageTransferRelation(
           logger,
           direction,
