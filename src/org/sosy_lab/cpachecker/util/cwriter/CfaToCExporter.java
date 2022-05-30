@@ -29,6 +29,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFALabelNode;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
+import org.sosy_lab.cpachecker.cfa.model.blankEdges.ForLoopIndicatingEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.util.CFAUtils;
@@ -91,7 +92,7 @@ public class CfaToCExporter {
     final FunctionExitNode functionExitNode = pFunctionEntryNode.getExitNode();
     final MergePoint<CFANode> functionMergePoint =
         new MergePoint<>(
-            functionExitNode, n -> CFAUtils.allSuccessorsOf(n), n -> CFAUtils.allPredecessorsOf(n));
+            functionExitNode, n -> CFAUtils.successorsOf(n), n -> CFAUtils.predecessorsOf(n));
     final ImmutableSortedMap<FileLocation, BlockItem> blockItemsWithinFunctionSortedByFileLocation =
         collectCfaEdgesIntoBlockItems(
             pFunctionEntryNode, functionExitNode, functionMergePoint, pGlobalDeclarationBuilder);
@@ -133,6 +134,14 @@ public class CfaToCExporter {
       } else if (numLeavingEdges == 1) {
 
         final CFAEdge edge = Iterables.getOnlyElement(leavingEdges);
+
+        if (edge instanceof ForLoopIndicatingEdge) {
+          final CFANode loopStart = findNextBranching(currentNode);
+          assert loopStart.isLoopStart();
+          // TODO handle for statement
+          continue;
+        }
+
         waitList.offer(edge.getSuccessor());
         final FileLocation loc = edge.getFileLocation();
         if (!loc.isRealLocation()) {
@@ -162,6 +171,19 @@ public class CfaToCExporter {
       }
     }
     return ImmutableSortedMap.copyOfSorted(blockItemsSortedByFileLocation);
+  }
+
+  private static CFANode findNextBranching(final CFANode pStartNode) {
+    // TODO better for finding loop start?
+    //    if (pStartNode.isLoopStart()) {
+    //      return pStartNode;
+    //    }
+    final FluentIterable<CFANode> successors = CFAUtils.successorsOf(pStartNode);
+    assert !successors.isEmpty() : "Expected a branching but did not find one";
+    if (successors.size() > 1) {
+      return pStartNode;
+    }
+    return findNextBranching(Iterables.getOnlyElement(successors));
   }
 
   private static String exportBlockItemsSortedByFileLocation(
