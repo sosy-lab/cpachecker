@@ -1581,51 +1581,51 @@ function renderTDG(dataJSON, color, inPercentage) {
         );
         const linesCount = d3.select("#source-file").selectAll("tr").size();
         for (let currentLine = 1; currentLine <= linesCount; currentLine += 1) {
-          const lineStyle = d3
-            .selectAll(".sourceContent")
-            .select(`#right-source-${currentLine}`)
-            .attr("style");
-          const lineColor = $scope.extractColor(lineStyle, $scope.colorId);
-          const currentFunction = $scope.extractCurrentFunction(lineStyle);
-          const lineStyleTypes = lineColor.split("!");
-          if (lineStyleTypes.length >= 2) {
-            const variables = lineStyleTypes[1].split(";")[0].split(",");
-            const defaultColor = $scope.extractColor(lineStyle, "None");
-            let codeLine = d3.select(`#right-source-${currentLine}`).text();
-            $scope.colorLineBackground(
-              lineStyle,
-              currentLine,
-              defaultColor,
-              currentFunction
-            );
-            for (let j = 0; j < variables.length; j += 1) {
-              codeLine = $scope.colorRelevantVariables(
-                codeLine,
-                variables[j],
-                currentFunction,
-                defaultColor
+          d3.selectAll(`#right-source-${currentLine}`).each(function () {
+            const line = d3.select(this);
+            const lineStyle = line.attr("style");
+            const lineColor = $scope.extractColor(lineStyle, $scope.colorId);
+            const currentFunction = $scope.extractCurrentFunction(lineStyle);
+            const lineStyleTypes = lineColor.split("!");
+            if (lineStyleTypes.length >= 2) {
+              const variables = lineStyleTypes[1].split(";")[0].split(",");
+              const defaultColor = $scope.extractColor(lineStyle, "None");
+              let codeLine = line.text();
+              $scope.colorLineBackground(
+                lineStyle,
+                line,
+                defaultColor,
+                currentFunction
+              );
+              for (let j = 0; j < variables.length; j += 1) {
+                codeLine = $scope.colorRelevantVariables(
+                  codeLine,
+                  variables[j],
+                  currentFunction,
+                  defaultColor
+                );
+              }
+              line.html(codeLine);
+            } else {
+              $scope.colorLineBackground(
+                lineStyle,
+                line,
+                lineColor,
+                currentFunction
               );
             }
-            d3.select(`#right-source-${currentLine}`).html(codeLine);
-          } else {
-            $scope.colorLineBackground(
-              lineStyle,
-              currentLine,
-              lineColor,
-              currentFunction
-            );
-          }
+          });
         }
       };
 
       $scope.colorLineBackground = (
         lineStyle,
-        lineNumber,
+        line,
         lineColor,
         currentFunction
       ) => {
-        $scope.cleanVariableColoring(lineNumber);
-        d3.select(`#right-source-${lineNumber}`).attr(
+        $scope.cleanVariableColoring(line);
+        line.attr(
           "style",
           `background-color: ${lineColor}; current-function: ${currentFunction}; coverage-colors: ${
             lineStyle.split("coverage-colors: ")[1]
@@ -1633,10 +1633,10 @@ function renderTDG(dataJSON, color, inPercentage) {
         );
       };
 
-      $scope.cleanVariableColoring = (lineNumber) => {
-        let lineHtml = d3.select(`#right-source-${lineNumber}`).html();
+      $scope.cleanVariableColoring = (line) => {
+        let lineHtml = line.html();
         lineHtml = lineHtml.replace(/<\/?[^>]+(>|$)/g, "");
-        d3.select(`#right-source-${lineNumber}`).html(lineHtml);
+        line.html(lineHtml);
       };
 
       $scope.extractCurrentFunction = (lineStyle) =>
