@@ -1581,40 +1581,42 @@ function renderTDG(dataJSON, color, inPercentage) {
         );
         const linesCount = d3.select("#source-file").selectAll("tr").size();
         for (let currentLine = 1; currentLine <= linesCount; currentLine += 1) {
-          d3.selectAll(`#right-source-${currentLine}`).each(function () {
-            const line = d3.select(this);
-            const lineStyle = line.attr("style");
-            const lineColor = $scope.extractColor(lineStyle, $scope.colorId);
-            const currentFunction = $scope.extractCurrentFunction(lineStyle);
-            const lineStyleTypes = lineColor.split("!");
-            if (lineStyleTypes.length >= 2) {
-              const variables = lineStyleTypes[1].split(";")[0].split(",");
-              const defaultColor = $scope.extractColor(lineStyle, "None");
-              let codeLine = line.text();
-              $scope.colorLineBackground(
-                lineStyle,
-                line,
-                defaultColor,
-                currentFunction
-              );
-              for (let j = 0; j < variables.length; j += 1) {
-                codeLine = $scope.colorRelevantVariables(
-                  codeLine,
-                  variables[j],
-                  currentFunction,
-                  defaultColor
+          d3.selectAll(`#right-source-${currentLine}`).each(
+            function colorLines() {
+              const line = d3.select(this);
+              const lineStyle = line.attr("style");
+              const lineColor = $scope.extractColor(lineStyle, $scope.colorId);
+              const currentFunction = $scope.extractCurrentFunction(lineStyle);
+              const lineStyleTypes = lineColor.split("!");
+              if (lineStyleTypes.length >= 2) {
+                const variables = lineStyleTypes[1].split(";")[0].split(",");
+                const defaultColor = $scope.extractColor(lineStyle, "None");
+                let codeLine = line.text();
+                $scope.colorLineBackground(
+                  lineStyle,
+                  line,
+                  defaultColor,
+                  currentFunction
+                );
+                for (let j = 0; j < variables.length; j += 1) {
+                  codeLine = $scope.colorRelevantVariables(
+                    codeLine,
+                    variables[j],
+                    currentFunction,
+                    defaultColor
+                  );
+                }
+                line.html(codeLine);
+              } else {
+                $scope.colorLineBackground(
+                  lineStyle,
+                  line,
+                  lineColor,
+                  currentFunction
                 );
               }
-              line.html(codeLine);
-            } else {
-              $scope.colorLineBackground(
-                lineStyle,
-                line,
-                lineColor,
-                currentFunction
-              );
             }
-          });
+          );
         }
       };
 
