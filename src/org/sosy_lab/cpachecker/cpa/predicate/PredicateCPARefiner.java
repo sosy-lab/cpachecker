@@ -656,7 +656,7 @@ public class PredicateCPARefiner implements ARGBasedRefiner, StatisticsProvider 
           prefixSelector.selectSlicedPrefix(prefixPreference, infeasiblePrefixes);
       prefixSelectionTime.stop();
 
-      List<BooleanFormula> formulas = selectedPrefix.getPathFormulae();
+      List<BooleanFormula> formulas = new ArrayList<>(selectedPrefix.getPathFormulae());
       while (formulas.size() < pAbstractionStatesTrace.size()) {
         formulas.add(fmgr.getBooleanFormulaManager().makeTrue());
       }

@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.cpa.predicate;
 import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.cpachecker.cpa.predicate.PredicateCPARefiner.filterAbstractionStates;
 
+import com.google.common.collect.ImmutableList;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Level;
@@ -165,8 +166,9 @@ public class PredicateBasedPrefixProvider implements PrefixProvider {
                 currentBlockIndex,
                 ", that resulted in an unsat-formula");
 
-            List<BooleanFormula> interpolantSequence = extractInterpolantSequence(terms, prover);
-            List<BooleanFormula> finalPathFormula = new ArrayList<>(pathFormula);
+            ImmutableList<BooleanFormula> interpolantSequence =
+                extractInterpolantSequence(terms, prover);
+            ImmutableList<BooleanFormula> finalPathFormula = ImmutableList.copyOf(pathFormula);
 
             // create and add infeasible prefix, mind that the ARGPath has not (!)
             // failing assume operations replaced with no-ops, as this is not needed here,
@@ -212,17 +214,17 @@ public class PredicateBasedPrefixProvider implements PrefixProvider {
     return rawPrefixes;
   }
 
-  private <T> List<BooleanFormula> extractInterpolantSequence(
+  private <T> ImmutableList<BooleanFormula> extractInterpolantSequence(
       final List<T> pTerms, final InterpolatingProverEnvironment<T> pProver)
       throws SolverException, InterruptedException {
 
-    List<BooleanFormula> interpolantSequence = new ArrayList<>();
+    ImmutableList.Builder<BooleanFormula> interpolantSequence = ImmutableList.builder();
 
     for (int i = 1; i < pTerms.size(); i++) {
       interpolantSequence.add(pProver.getInterpolant(pTerms.subList(0, i)));
     }
 
-    return interpolantSequence;
+    return interpolantSequence.build();
   }
 
   /**
