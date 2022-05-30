@@ -240,34 +240,50 @@ public class CfaToCExporter {
     }
   }
 
-  private static class LabeledStatement extends SimpleBlockItem {
+  private static class LabeledStatement extends BlockItem {
+
+    final CFAEdge labelEdge;
 
     private LabeledStatement(final CFAEdge pEdge) {
-      super(pEdge);
-    }
-
-    @Override
-    protected void addEdge(final CFAEdge pEdge) {
-      throw new AssertionError("Labeled statements consist of exactly one edge.");
+      // TODO only allow special label edges (subtype of BlankEdge)
+      labelEdge = pEdge;
     }
 
     @Override
     protected String exportToCCode() {
-      // assert that the labeled statement consists of exactly one edge
-      final CFAEdge labelEdge = Iterables.getOnlyElement(edgeBuilder.build());
       final FileLocation labelLoc = labelEdge.getFileLocation();
+      // TODO it is probably enough to look at the directly following CFAEdges
+      final FileLocation nextFileLocation = findNextRealFileLocation(labelEdge);
 
+      // the raw statement of the CFAEdge of a labeled statement can overlap with the following
+      // CFAEdge(s)
+      if (!nextFileLocation.isRealLocation()
+          || nextFileLocation.getNodeOffset()
+              < labelLoc.getNodeOffset() + labelLoc.getNodeLength()) {
+
+        final int endOfLabel = labelEdge.getRawStatement().indexOf(':');
+        assert endOfLabel != -1;
+        return labelEdge.getRawStatement().substring(0, endOfLabel + 1);
+      }
+      return labelEdge.getRawStatement();
+    }
+
+    private static FileLocation findNextRealFileLocation(final CFAEdge pEdge) {
+      FluentIterable<CFAEdge> nextEdges = CFAUtils.leavingEdges(pEdge.getSuccessor());
+      if (nextEdges.isEmpty()) {
+        return FileLocation.DUMMY;
+      }
       final List<FileLocation> fileLocationsOfFollowingCfaEdges =
-          CFAUtils.leavingEdges(labelEdge.getSuccessor()).stream()
-              .map(CFAEdge::getFileLocation)
-              .collect(ImmutableList.toImmutableList());
+          nextEdges.stream().map(CFAEdge::getFileLocation).collect(ImmutableList.toImmutableList());
       final FileLocation nextFileLocation = FileLocation.merge(fileLocationsOfFollowingCfaEdges);
 
-      // the raw statement of a CFAEdge after a LabelNode can overlap with the following CFAEdge(s)
-      final int beginningOfDuplicatePart =
-          nextFileLocation.getNodeOffset() - labelLoc.getNodeOffset();
-      final int endOfUniquePart = Math.min(labelLoc.getNodeLength(), beginningOfDuplicatePart);
-      return labelEdge.getRawStatement().substring(0, endOfUniquePart);
+      if (nextFileLocation.isRealLocation()) {
+        return nextFileLocation;
+      }
+      return FileLocation.merge(
+          nextEdges.stream()
+              .map(edge -> findNextRealFileLocation(edge))
+              .collect(ImmutableList.toImmutableList()));
     }
   }
 

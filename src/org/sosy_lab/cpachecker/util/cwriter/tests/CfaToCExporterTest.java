@@ -90,12 +90,15 @@ public class CfaToCExporterTest extends ToCTranslationTest {
         directTranslationTest(EXPORTER_TEST_DIR_PATH + "global-var_multiple.c", true),
         directTranslationTest(EXPORTER_TEST_DIR_PATH + "goto_with-dead-code.c", true),
         directTranslationTest(EXPORTER_TEST_DIR_PATH + "goto_with-double-label.c", true),
+        directTranslationTest(EXPORTER_TEST_DIR_PATH + "goto_with-label-followed-by-if.c", true),
         directTranslationTest(
             EXPORTER_TEST_DIR_PATH + "goto_with-label-with-empty-statement.c", true),
         directTranslationTest(EXPORTER_TEST_DIR_PATH + "if-else.c", true),
         directTranslationTest(EXPORTER_TEST_DIR_PATH + "if-else_multiple-returns.c", true),
         directTranslationTest(EXPORTER_TEST_DIR_PATH + "if-else_negated.c", true),
         directTranslationTest(EXPORTER_TEST_DIR_PATH + "if-else_negated_double.c", true),
-        directTranslationTest(EXPORTER_TEST_DIR_PATH + "if-else_with-empty-else-branch.c", true));
+        directTranslationTest(EXPORTER_TEST_DIR_PATH + "if-else_with-empty-else-branch.c", true),
+        directTranslationTest(
+            EXPORTER_TEST_DIR_PATH + "if-else_with-goto-out-and-back-in.c", true));
   }
 }
