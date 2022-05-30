@@ -13,15 +13,12 @@ import static com.google.common.base.Preconditions.checkArgument;
 import com.google.common.base.Joiner;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 import java.io.IOException;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Deque;
 import java.util.List;
-import java.util.Map;
-import java.util.Set;
 import java.util.logging.Level;
 import org.sosy_lab.common.Appenders.AbstractAppender;
 import org.sosy_lab.common.ShutdownNotifier;
@@ -42,7 +39,6 @@ import org.sosy_lab.cpachecker.core.counterexample.CFAPathWithAssumptions;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithAssumptions;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
-import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.path.PathIterator;
 import org.sosy_lab.cpachecker.cpa.overflow.OverflowState;
@@ -152,29 +148,12 @@ public class PathChecker {
 
     checkArgument(!counterexample.isSpurious());
     if (branchingOccurred) {
-      @SuppressWarnings("deprecation") // rewrite using pgmgr.getARGPathFromModel()
-      Map<Integer, Boolean> preds = counterexample.getBranchingPredicates();
-      if (preds.isEmpty()) {
+      if (counterexample.getPrecisePath() == null) {
+        // TODO can this happen?
         logger.log(Level.WARNING, "No information about ARG branches available!");
         return createImpreciseCounterexample(allStatesTrace, counterexample);
       }
-
-      // find correct path
-      try {
-        ARGState root = allStatesTrace.getFirstState();
-        ARGState target = allStatesTrace.getLastState();
-        Set<ARGState> pathElements = ARGUtils.getAllStatesOnPathsTo(target);
-
-        targetPath =
-            ARGUtils.getPathFromBranchingInformation(
-                root, target, pathElements, (state, edge) -> preds.get(state.getStateId()));
-
-      } catch (IllegalArgumentException e) {
-        logger.logUserException(Level.WARNING, e, null);
-        logger.log(Level.WARNING, "The error path and the satisfying assignment may be imprecise!");
-
-        return createImpreciseCounterexample(allStatesTrace, counterexample);
-      }
+      targetPath = counterexample.getPrecisePath();
 
     } else {
       targetPath = allStatesTrace;
@@ -299,7 +278,7 @@ public class PathChecker {
             assignmentToPathAllocator.allocateAssignmentsToPath(pPath, model, ssaMaps);
 
         return Pair.of(
-            CounterexampleTraceInfo.feasible(ImmutableList.of(f), model, ImmutableMap.of()),
+            CounterexampleTraceInfo.feasible(ImmutableList.of(f), model, pPath),
             pathWithAssignments);
       }
     }

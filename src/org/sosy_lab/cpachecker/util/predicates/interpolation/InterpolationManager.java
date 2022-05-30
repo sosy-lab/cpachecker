@@ -15,7 +15,6 @@ import static org.sosy_lab.cpachecker.util.statistics.StatisticsUtils.div;
 
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMultiset;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Lists;
@@ -28,8 +27,8 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.ListIterator;
-import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
@@ -51,8 +50,12 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.TimeSpan;
 import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.cpa.arg.ARGState;
+import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
+import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.cpa.predicate.BlockFormulaStrategy.BlockFormulas;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException.Reason;
 import org.sosy_lab.cpachecker.util.LoopStructure;
@@ -74,7 +77,7 @@ import org.sosy_lab.cpachecker.util.variableclassification.VariableClassificatio
 import org.sosy_lab.java_smt.api.BasicProverEnvironment;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.InterpolatingProverEnvironment;
-import org.sosy_lab.java_smt.api.Model.ValueAssignment;
+import org.sosy_lab.java_smt.api.Model;
 import org.sosy_lab.java_smt.api.ProverEnvironment;
 import org.sosy_lab.java_smt.api.SolverContext.ProverOptions;
 import org.sosy_lab.java_smt.api.SolverException;
@@ -308,11 +311,14 @@ public final class InterpolationManager {
    *     empty, if well-scoped interpolation is disabled or not required)
    */
   public CounterexampleTraceInfo buildCounterexampleTrace(
-      final BlockFormulas pFormulas, final List<AbstractState> pAbstractionStates)
+      final BlockFormulas pFormulas,
+      final List<AbstractState> pAbstractionStates,
+      final Optional<ARGPath> pImprecisePath)
       throws CPAException, InterruptedException {
     assert pAbstractionStates.isEmpty() || pFormulas.getSize() == pAbstractionStates.size();
 
-    return callWithTimelimit(() -> buildCounterexampleTrace0(pFormulas, pAbstractionStates));
+    return callWithTimelimit(
+        () -> buildCounterexampleTrace0(pFormulas, pAbstractionStates, pImprecisePath));
   }
 
   private CounterexampleTraceInfo callWithTimelimit(Callable<CounterexampleTraceInfo> callable)
@@ -351,11 +357,13 @@ public final class InterpolationManager {
 
   public CounterexampleTraceInfo buildCounterexampleTrace(final BlockFormulas pFormulas)
       throws CPAException, InterruptedException {
-    return buildCounterexampleTrace(pFormulas, ImmutableList.of());
+    return buildCounterexampleTrace(pFormulas, ImmutableList.of(), Optional.empty());
   }
 
   private CounterexampleTraceInfo buildCounterexampleTrace0(
-      final BlockFormulas pFormulas, final List<AbstractState> pAbstractionStates)
+      final BlockFormulas pFormulas,
+      final List<AbstractState> pAbstractionStates,
+      final Optional<ARGPath> imprecisePath)
       throws CPAException, InterruptedException {
 
     cexAnalysisTimer.start();
@@ -371,7 +379,7 @@ public final class InterpolationManager {
 
       try {
         try {
-          return currentInterpolator.buildCounterexampleTrace(f, pAbstractionStates);
+          return currentInterpolator.buildCounterexampleTrace(f, pAbstractionStates, imprecisePath);
         } finally {
           if (!reuseInterpolationEnvironment) {
             currentInterpolator.close();
@@ -382,7 +390,7 @@ public final class InterpolationManager {
             Level.FINEST,
             itpException,
             "Interpolation failed, attempting to solve without interpolation");
-        return fallbackWithoutInterpolation(f, itpException);
+        return fallbackWithoutInterpolation(f, imprecisePath, itpException);
       }
 
     } finally {
@@ -398,20 +406,23 @@ public final class InterpolationManager {
    * @param pFormulas the formulas for the path
    */
   public CounterexampleTraceInfo buildCounterexampleTraceWithoutInterpolation(
-      final BlockFormulas pFormulas) throws CPAException, InterruptedException {
+      final BlockFormulas pFormulas, Optional<ARGPath> imprecisePath)
+      throws CPAException, InterruptedException {
 
-    return callWithTimelimit(() -> buildCounterexampleTraceWithoutInterpolation0(pFormulas));
+    return callWithTimelimit(
+        () -> buildCounterexampleTraceWithoutInterpolation0(pFormulas, imprecisePath));
   }
 
   private CounterexampleTraceInfo buildCounterexampleTraceWithoutInterpolation0(
-      final BlockFormulas pFormulas) throws CPAException, InterruptedException {
+      final BlockFormulas pFormulas, Optional<ARGPath> imprecisePath)
+      throws CPAException, InterruptedException {
 
     cexAnalysisTimer.start();
     try {
       final BlockFormulas f = prepareCounterexampleFormulas(pFormulas);
 
       try {
-        return solveCounterexample(f);
+        return solveCounterexample(f, imprecisePath);
       } catch (SolverException e) {
         throw new RefinementFailedException(Reason.InterpolationFailed, null, e);
       }
@@ -453,14 +464,13 @@ public final class InterpolationManager {
   /**
    * Attempt to check feasibility of the current counterexample without interpolation in case of a
    * failure with interpolation. Maybe the solver can handle the formulas if we do not attempt to
-   * interpolate (this happens for example for MathSAT). If solving works but creating the model for
-   * the error path not, we at least return an empty model.
+   * interpolate (this happens for example for MathSAT).
    */
   private CounterexampleTraceInfo fallbackWithoutInterpolation(
-      BlockFormulas f, SolverException itpException)
+      BlockFormulas f, Optional<ARGPath> imprecisePath, SolverException itpException)
       throws InterruptedException, RefinementFailedException {
     try {
-      CounterexampleTraceInfo counterexample = solveCounterexample(f);
+      CounterexampleTraceInfo counterexample = solveCounterexample(f, imprecisePath);
       if (!counterexample.isSpurious()) {
         return counterexample;
       }
@@ -472,7 +482,8 @@ public final class InterpolationManager {
   }
 
   /** Analyze a counterexample for feasibility without computing interpolants. */
-  private CounterexampleTraceInfo solveCounterexample(BlockFormulas f)
+  private CounterexampleTraceInfo solveCounterexample(
+      BlockFormulas f, Optional<ARGPath> imprecisePath)
       throws SolverException, InterruptedException {
     try (ProverEnvironment prover = solver.newProverEnvironment(ProverOptions.GENERATE_MODELS)) {
       for (BooleanFormula block : f.getFormulas()) {
@@ -480,7 +491,7 @@ public final class InterpolationManager {
       }
       if (!prover.isUnsat()) {
         try {
-          return getErrorPath(f, prover);
+          return getErrorPath(f, prover, imprecisePath);
         } catch (SolverException modelException) {
           logger.log(
               Level.WARNING,
@@ -704,53 +715,29 @@ public final class InterpolationManager {
    *
    * @param formulas The list of formulas on the path.
    * @param pProver The solver.
+   * @param pImprecisePath A optional (potentially infeasible) path to the target state. If given,
+   *     the model of the prover environment is used to determine a feasible path through the ARG to
+   *     the same target state.
    * @return Information about the error path, including a satisfying assignment.
    */
   private CounterexampleTraceInfo getErrorPath(
-      BlockFormulas formulas, BasicProverEnvironment<?> pProver)
+      BlockFormulas formulas, BasicProverEnvironment<?> pProver, Optional<ARGPath> pImprecisePath)
       throws SolverException, InterruptedException {
 
-    if (discardErrorPath) {
+    if (discardErrorPath || pImprecisePath.isEmpty()) {
       return CounterexampleTraceInfo.feasibleNoModel(formulas.getFormulas());
     }
 
-    // get the branchingFormula
-    // this formula contains predicates for all branches we took
-    // this way we can figure out which branches make a feasible path
-    BooleanFormula branchingFormula = formulas.getBranchingFormula();
-
-    List<BooleanFormula> f = formulas.getFormulas();
-
-    if (!formulas.hasBranchingFormula() || bfmgr.isTrue(branchingFormula)) {
-      return CounterexampleTraceInfo.feasible(f, pProver.getModelAssignments(), ImmutableMap.of());
-    }
-
-    // add formula to solver environment
-    pProver.push(branchingFormula);
-
-    // need to ask solver for satisfiability again,
-    // otherwise model doesn't contain new predicates
-    boolean stillSatisfiable = !pProver.isUnsat();
-
-    if (stillSatisfiable) {
-      List<ValueAssignment> model = pProver.getModelAssignments();
-      @SuppressWarnings("deprecation")
-      // remove this and branchingFormula above once PathChecker#handleFeasibleCounterexample does
-      // not need it anymore
-      Map<Integer, Boolean> branchingInfo = pmgr.getBranchingPredicateValuesFromModel(model);
-      return CounterexampleTraceInfo.feasible(f, model, branchingInfo);
-
-    } else {
-      // this should not happen
-      logger.log(
-          Level.WARNING,
-          "Could not get precise error path information because of inconsistent"
-              + " reachingPathsFormula!");
-
-      dumpInterpolationProblem(f);
-      dumpFormulaToFile("formula", branchingFormula, f.size());
-
-      return CounterexampleTraceInfo.feasible(f, ImmutableList.of(), ImmutableMap.of());
+    ARGPath imprecisePath = pImprecisePath.orElseThrow();
+    Set<ARGState> pathElements = ARGUtils.getAllStatesOnPathsTo(imprecisePath.getLastState());
+    try (Model model = pProver.getModel()) {
+      return CounterexampleTraceInfo.feasible(
+          formulas.getFormulas(),
+          ImmutableList.of(),
+          pmgr.getARGPathFromModel(model, imprecisePath.getFirstState(), pathElements));
+    } catch (IllegalArgumentException | CPATransferException e) {
+      logger.logUserException(Level.WARNING, e, "Could not create error path");
+      return CounterexampleTraceInfo.feasibleNoModel(formulas.getFormulas());
     }
   }
 
@@ -807,7 +794,9 @@ public final class InterpolationManager {
      * @return counterexample info with predicated information
      */
     private CounterexampleTraceInfo buildCounterexampleTrace(
-        BlockFormulas formulas, List<AbstractState> pAbstractionStates)
+        BlockFormulas formulas,
+        List<AbstractState> pAbstractionStates,
+        Optional<ARGPath> imprecisePath)
         throws SolverException, InterruptedException {
 
       // Check feasibility of counterexample
@@ -928,7 +917,7 @@ public final class InterpolationManager {
 
       } else {
         // this is a real bug
-        info = getErrorPath(formulas, itpProver);
+        info = getErrorPath(formulas, itpProver, imprecisePath);
       }
 
       logger.log(Level.ALL, "Counterexample information:", info);

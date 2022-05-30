@@ -896,7 +896,7 @@ abstract class AbstractBMCAlgorithm
 
       CounterexampleTraceInfo cexInfo =
           CounterexampleTraceInfo.feasible(
-              ImmutableList.of(cexFormula), ImmutableList.of(), ImmutableMap.of());
+              ImmutableList.of(cexFormula), ImmutableList.of(), targetPath);
       return Optional.of(pathChecker.createCounterexample(targetPath, cexInfo));
 
     } finally {

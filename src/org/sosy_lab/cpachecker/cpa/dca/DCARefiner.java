@@ -31,6 +31,7 @@ import java.nio.charset.Charset;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.function.Supplier;
 import java.util.logging.Level;
@@ -517,7 +518,8 @@ public class DCARefiner implements Refiner, StatisticsProvider, AutoCloseable {
                 interpolationManager.buildCounterexampleTrace(
                     BlockFormulas.createFromPathFormulas(stemAndLoopPathFormulaList),
                     transformedImmutableListCopy(
-                        stemAndLoopStates, PredicateAbstractState::getPredicateState));
+                        stemAndLoopStates, PredicateAbstractState::getPredicateState),
+                    Optional.of(stemAndLoopPath));
             CounterexampleInfo cexInfo =
                 pathChecker.createCounterexample(stemAndLoopPath, cexTraceInfo);
 
@@ -612,7 +614,8 @@ public class DCARefiner implements Refiner, StatisticsProvider, AutoCloseable {
             interpolationManager.buildCounterexampleTrace(
                 BlockFormulas.createFromPathFormulas(pathFormulaList),
                 transformedImmutableListCopy(
-                    path.asStatesList(), PredicateAbstractState::getPredicateState));
+                    path.asStatesList(), PredicateAbstractState::getPredicateState),
+                Optional.of(path));
         CounterexampleInfo cexInfo = pathChecker.createCounterexample(path, cexTraceInfo);
 
         path.getLastState().addCounterexampleInformation(cexInfo);

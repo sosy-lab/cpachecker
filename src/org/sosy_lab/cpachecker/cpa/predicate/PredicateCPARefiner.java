@@ -422,7 +422,7 @@ public class PredicateCPARefiner implements ARGBasedRefiner, StatisticsProvider 
             logger.log(
                 Level.FINEST,
                 "Fallback from Newton-based refinement to interpolation-based refinement");
-            return performInterpolatingRefinement(abstractionStatesTrace, formulas);
+            return performInterpolatingRefinement(allStatesTrace, abstractionStatesTrace, formulas);
           } else {
             throw e;
           }
@@ -431,7 +431,7 @@ public class PredicateCPARefiner implements ARGBasedRefiner, StatisticsProvider 
         logger.log(
             Level.FINEST,
             "Fallback from Newton-based refinement to interpolation-based refinement");
-        return performInterpolatingRefinement(abstractionStatesTrace, formulas);
+        return performInterpolatingRefinement(allStatesTrace, abstractionStatesTrace, formulas);
       }
     } else if (useUCBRefinement) {
       logger.log(Level.FINEST, "Starting unsat-core-based refinement");
@@ -439,16 +439,18 @@ public class PredicateCPARefiner implements ARGBasedRefiner, StatisticsProvider 
 
     } else {
       logger.log(Level.FINEST, "Starting interpolation-based refinement.");
-      return performInterpolatingRefinement(abstractionStatesTrace, formulas);
+      return performInterpolatingRefinement(allStatesTrace, abstractionStatesTrace, formulas);
     }
   }
 
   private CounterexampleTraceInfo performInterpolatingRefinement(
-      final List<ARGState> abstractionStatesTrace, final BlockFormulas formulas)
+      final ARGPath allStatesTrace,
+      final List<ARGState> abstractionStatesTrace,
+      final BlockFormulas formulas)
       throws CPAException, InterruptedException {
 
     return interpolationManager.buildCounterexampleTrace(
-        formulas, ImmutableList.copyOf(abstractionStatesTrace));
+        formulas, ImmutableList.copyOf(abstractionStatesTrace), Optional.of(allStatesTrace));
   }
 
   private CounterexampleTraceInfo performInvariantsRefinement(
@@ -458,7 +460,8 @@ public class PredicateCPARefiner implements ARGBasedRefiner, StatisticsProvider 
       throws CPAException, InterruptedException {
 
     CounterexampleTraceInfo counterexample =
-        interpolationManager.buildCounterexampleTraceWithoutInterpolation(formulas);
+        interpolationManager.buildCounterexampleTraceWithoutInterpolation(
+            formulas, Optional.of(allStatesTrace));
 
     // if error is spurious refine
     if (counterexample.isSpurious()) {
@@ -481,7 +484,7 @@ public class PredicateCPARefiner implements ARGBasedRefiner, StatisticsProvider 
             Level.FINEST,
             "Starting interpolation-based refinement because invariant generation was not"
                 + " successful.");
-        return performInterpolatingRefinement(abstractionStatesTrace, formulas);
+        return performInterpolatingRefinement(allStatesTrace, abstractionStatesTrace, formulas);
 
       } else {
         wereInvariantsusedInCurrentRefinement = true;

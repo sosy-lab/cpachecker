@@ -858,7 +858,8 @@ class PredicateCPAInvariantsManager implements StatisticsProvider, InvariantSupp
         }
         BlockFormulas formulas = new BlockFormulas(pathFormula);
         interpolants =
-            imgr.buildCounterexampleTrace(formulas, ImmutableList.copyOf(abstractionStatesTrace))
+            imgr.buildCounterexampleTrace(
+                    formulas, ImmutableList.copyOf(abstractionStatesTrace), Optional.empty())
                 .getInterpolants();
 
       } catch (CPAException | InterruptedException e) {

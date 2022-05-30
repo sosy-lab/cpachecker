@@ -30,6 +30,7 @@ import java.util.Deque;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.logging.Level;
 import org.sosy_lab.common.ShutdownNotifier;
@@ -223,7 +224,9 @@ public class PredicateStaticRefiner extends StaticRefiner
     CounterexampleTraceInfo counterexample;
     satCheckTime.start();
     try {
-      counterexample = itpManager.buildCounterexampleTraceWithoutInterpolation(formulas);
+      counterexample =
+          itpManager.buildCounterexampleTraceWithoutInterpolation(
+              formulas, Optional.of(allStatesTrace));
     } finally {
       satCheckTime.stop();
     }

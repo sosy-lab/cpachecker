@@ -11,9 +11,8 @@ package org.sosy_lab.cpachecker.util.predicates.interpolation;
 import static com.google.common.base.Preconditions.checkState;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
 import java.util.List;
-import java.util.Map;
+import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.Model.ValueAssignment;
 
@@ -26,46 +25,45 @@ public class CounterexampleTraceInfo {
   private final ImmutableList<BooleanFormula> interpolants;
   private final ImmutableList<ValueAssignment> mCounterexampleModel;
   private final ImmutableList<BooleanFormula> mCounterexampleFormula;
-  private final ImmutableMap<Integer, Boolean> branchingPreds;
+  private final ARGPath precisePath;
 
   private CounterexampleTraceInfo(
       boolean pSpurious,
       ImmutableList<BooleanFormula> pInterpolants,
       ImmutableList<ValueAssignment> pCounterexampleModel,
       ImmutableList<BooleanFormula> pCounterexampleFormula,
-      ImmutableMap<Integer, Boolean> pBranchingPreds) {
+      ARGPath pPrecisePath) {
     spurious = pSpurious;
     interpolants = pInterpolants;
     mCounterexampleModel = pCounterexampleModel;
     mCounterexampleFormula = pCounterexampleFormula;
-    branchingPreds = pBranchingPreds;
+    precisePath = pPrecisePath;
   }
 
   public static CounterexampleTraceInfo infeasible(List<BooleanFormula> pInterpolants) {
     return new CounterexampleTraceInfo(
-        true, ImmutableList.copyOf(pInterpolants), null, ImmutableList.of(), ImmutableMap.of());
+        true, ImmutableList.copyOf(pInterpolants), null, ImmutableList.of(), null);
   }
 
   public static CounterexampleTraceInfo infeasibleNoItp() {
-    return new CounterexampleTraceInfo(true, null, null, ImmutableList.of(), ImmutableMap.of());
+    return new CounterexampleTraceInfo(true, null, null, ImmutableList.of(), null);
   }
 
   public static CounterexampleTraceInfo feasible(
       List<BooleanFormula> pCounterexampleFormula,
       Iterable<ValueAssignment> pModel,
-      Map<Integer, Boolean> preds) {
+      ARGPath pPrecisePath) {
     return new CounterexampleTraceInfo(
         false,
         ImmutableList.of(),
         ImmutableList.copyOf(pModel),
         ImmutableList.copyOf(pCounterexampleFormula),
-        ImmutableMap.copyOf(preds));
+        pPrecisePath);
   }
 
   public static CounterexampleTraceInfo feasibleNoModel(
       List<BooleanFormula> pCounterexampleFormula) {
-    return CounterexampleTraceInfo.feasible(
-        pCounterexampleFormula, ImmutableList.of(), ImmutableMap.of());
+    return CounterexampleTraceInfo.feasible(pCounterexampleFormula, ImmutableList.of(), null);
   }
 
   /**
@@ -102,9 +100,8 @@ public class CounterexampleTraceInfo {
     return mCounterexampleModel;
   }
 
-  @Deprecated // branching predicates are deprecated, cf. PathFormulaManager for replacement
-  public Map<Integer, Boolean> getBranchingPredicates() {
+  public ARGPath getPrecisePath() {
     checkState(!spurious);
-    return branchingPreds;
+    return precisePath;
   }
 }

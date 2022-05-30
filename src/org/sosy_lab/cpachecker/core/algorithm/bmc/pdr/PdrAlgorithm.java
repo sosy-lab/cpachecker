@@ -17,7 +17,6 @@ import static org.sosy_lab.cpachecker.core.algorithm.bmc.BMCHelper.isTrivialSelf
 import com.google.common.base.Predicates;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
@@ -1193,7 +1192,7 @@ public class PdrAlgorithm implements Algorithm {
 
       CounterexampleTraceInfo cexInfo =
           CounterexampleTraceInfo.feasible(
-              ImmutableList.of(cexFormula), ImmutableList.of(), ImmutableMap.of());
+              ImmutableList.of(cexFormula), ImmutableList.of(), targetPath);
       CounterexampleInfo counterexample = pathChecker.createCounterexample(targetPath, cexInfo);
       counterexample.getTargetState().addCounterexampleInformation(counterexample);
 
