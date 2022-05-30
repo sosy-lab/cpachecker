@@ -448,7 +448,7 @@ public class PredicateCPARefiner implements ARGBasedRefiner, StatisticsProvider 
       throws CPAException, InterruptedException {
 
     return interpolationManager.buildCounterexampleTrace(
-        formulas, new ArrayList<>(abstractionStatesTrace));
+        formulas, ImmutableList.copyOf(abstractionStatesTrace));
   }
 
   private CounterexampleTraceInfo performInvariantsRefinement(
