@@ -548,7 +548,6 @@ function renderTDG(dataJSON, color, inPercentage) {
             }
           }
           d3.select("#tdg-toolbar").style("visibility", "hidden");
-          d3.select("#source-toolbar").style("visibility", "hidden");
           d3.select("#cfa-toolbar").style("visibility", "visible");
           if (!d3.select("#cfa-container").classed("cfa-content")) {
             d3.select("#cfa-container").classed("cfa-content", true);
@@ -564,7 +563,6 @@ function renderTDG(dataJSON, color, inPercentage) {
             }
           }
           d3.select("#tdg-toolbar").style("visibility", "hidden");
-          d3.select("#source-toolbar").style("visibility", "hidden");
           d3.select("#arg-toolbar").style("visibility", "visible");
           if (!d3.select("#arg-container").classed("arg-content")) {
             d3.select("#arg-container").classed("arg-content", true);
@@ -601,7 +599,6 @@ function renderTDG(dataJSON, color, inPercentage) {
             }
           }
           d3.select("#tdg-toolbar").style("visibility", "hidden");
-          d3.select("#source-toolbar").style("visibility", "hidden");
           if (d3.select("#arg-toolbar").style("visibility") !== "hidden") {
             d3.select("#arg-toolbar").style("visibility", "hidden");
             d3.selectAll(".arg-graph").style("visibility", "hidden");
@@ -615,9 +612,6 @@ function renderTDG(dataJSON, color, inPercentage) {
         }
         if (tabIndex === 8) {
           d3.select("#tdg-toolbar").style("visibility", "visible");
-        }
-        if (tabIndex === 3) {
-          d3.select("#source-toolbar").style("visibility", "visible");
         }
         $scope.tab = tabIndex;
       };
@@ -1344,130 +1338,6 @@ function renderTDG(dataJSON, color, inPercentage) {
     },
   ]);
 
-  app.controller("SourceToolbarController", [
-    "$rootScope",
-    "$scope",
-    function sourceToolbarController($rootScope, $scope) {
-      $scope.sourceCoverageSelections = [];
-      if (
-        sourceCoverageJson !== undefined &&
-        sourceCoverageJson.types.length > 0
-      ) {
-        $scope.sourceCoverageSelections = [];
-        for (let i = 0; i < sourceCoverageJson.types.length; i += 1) {
-          $scope.sourceCoverageSelections.push(sourceCoverageJson.types[i]);
-        }
-      }
-      $rootScope.displayedSourceCoverages = $scope.sourceCoverageSelections[0];
-      $scope.extractColor = extractColor;
-      $scope.getStringId = getCoverageStringId;
-
-      $scope.sourceColoringControl = () => {
-        $scope.colorId = $scope.getStringId(
-          $rootScope.displayedSourceCoverages
-        );
-        const linesCount = d3.select("#source-file").selectAll("tr").size();
-        for (let currentLine = 1; currentLine <= linesCount; currentLine += 1) {
-          const lineStyle = d3
-            .select(`#right-source-${currentLine}`)
-            .attr("style");
-          const lineColor = $scope.extractColor(lineStyle, $scope.colorId);
-          const currentFunction = $scope.extractCurrentFunction(lineStyle);
-          const lineStyleTypes = lineColor.split("!");
-          if (lineStyleTypes.length >= 2) {
-            const variables = lineStyleTypes[1].split(";")[0].split(",");
-            const defaultColor = $scope.extractColor(lineStyle, "None");
-            let codeLine = d3.select(`#right-source-${currentLine}`).text();
-            $scope.colorLineBackground(
-              lineStyle,
-              currentLine,
-              defaultColor,
-              currentFunction
-            );
-            for (let j = 0; j < variables.length; j += 1) {
-              codeLine = $scope.colorRelevantVariables(
-                codeLine,
-                variables[j],
-                currentFunction,
-                defaultColor
-              );
-            }
-            d3.select(`#right-source-${currentLine}`).html(codeLine);
-          } else {
-            $scope.colorLineBackground(
-              lineStyle,
-              currentLine,
-              lineColor,
-              currentFunction
-            );
-          }
-        }
-      };
-
-      $scope.colorLineBackground = (
-        lineStyle,
-        lineNumber,
-        lineColor,
-        currentFunction
-      ) => {
-        $scope.cleanVariableColoring(lineNumber);
-        d3.select(`#right-source-${lineNumber}`).attr(
-          "style",
-          `background-color: ${lineColor}; current-function: ${currentFunction}; coverage-colors: ${
-            lineStyle.split("coverage-colors: ")[1]
-          }`
-        );
-      };
-
-      $scope.cleanVariableColoring = (lineNumber) => {
-        let lineHtml = d3.select(`#right-source-${lineNumber}`).html();
-        lineHtml = lineHtml.replace(/<\/?[^>]+(>|$)/g, "");
-        d3.select(`#right-source-${lineNumber}`).html(lineHtml);
-      };
-
-      $scope.extractCurrentFunction = (lineStyle) =>
-        lineStyle.split("current-function: ").slice(-1)[0].split(";")[0];
-
-      $scope.colorRelevantVariables = (
-        rawCodeLine,
-        variable,
-        currentFunction,
-        lineColor
-      ) => {
-        const functionName = variable.split("::")[0];
-        if (functionName === currentFunction) {
-          const variableName = variable.split("::")[1];
-          return $scope.colorLineText(rawCodeLine, variableName, lineColor);
-        }
-        return rawCodeLine;
-      };
-
-      $scope.colorLineText = (lineCode, variableName, lineColor) => {
-        let outputStr = "";
-        const textColor = sourceCoverageJson.color;
-        const preStyle = `<mark style="background-color: ${lineColor}; color: ${textColor}; padding: 0;">`;
-        const postStyle = "</mark>";
-        const lineParts = lineCode.split(variableName);
-        const variableEnvironment = /^\s|\(|\)|\+|-|=|;|,|\.|\[|\]$/;
-        for (let i = 0; i < lineParts.length; i += 1) {
-          if (i !== lineParts.length - 1) {
-            if (
-              variableEnvironment.test(lineParts[i].slice(-1)) &&
-              variableEnvironment.test(lineParts[i + 1].slice(0, 1))
-            ) {
-              outputStr += lineParts[i] + preStyle + variableName + postStyle;
-            } else {
-              outputStr += lineParts[i] + variableName;
-            }
-          } else {
-            outputStr += lineParts[i];
-          }
-        }
-        return outputStr;
-      };
-    },
-  ]);
-
   app.controller("TDGToolbarController", [
     "$rootScope",
     "$scope",
@@ -1667,8 +1537,7 @@ function renderTDG(dataJSON, color, inPercentage) {
 
       $scope.validateInput = (input) => {
         if (input % 1 !== 0) return false;
-        if (input < 500 || input > 900) return false;
-        return true;
+        return !(input < 500 || input > 900);
       };
     },
   ]);
@@ -1677,13 +1546,139 @@ function renderTDG(dataJSON, color, inPercentage) {
     "$rootScope",
     "$scope",
     function sourceController($rootScope, $scope) {
-      // available sourcefiles
-      $scope.sourceFiles = sourceFiles;
+      $scope.sourceFileSelections = sourceFiles;
+      $rootScope.displayedSourceFiles = $scope.sourceFileSelections[0];
       $scope.selectedSourceFile = 0;
-      $scope.setSourceFile = (value) => {
-        $scope.selectedSourceFile = value;
+      $scope.sourceFileControl = () => {
+        for (let i = 0; i < $scope.sourceFileSelections.length; i += 1) {
+          if (
+            $scope.sourceFileSelections[i] === $rootScope.displayedSourceFiles
+          ) {
+            $scope.selectedSourceFile = i;
+            break;
+          }
+        }
       };
       $scope.sourceFileIsSet = (value) => value === $scope.selectedSourceFile;
+
+      $scope.sourceCoverageSelections = [];
+      if (
+        sourceCoverageJson !== undefined &&
+        sourceCoverageJson.types.length > 0
+      ) {
+        $scope.sourceCoverageSelections = [];
+        for (let i = 0; i < sourceCoverageJson.types.length; i += 1) {
+          $scope.sourceCoverageSelections.push(sourceCoverageJson.types[i]);
+        }
+      }
+      $rootScope.displayedSourceCoverages = $scope.sourceCoverageSelections[0];
+      $scope.extractColor = extractColor;
+      $scope.getStringId = getCoverageStringId;
+
+      $scope.sourceColoringControl = () => {
+        $scope.colorId = $scope.getStringId(
+          $rootScope.displayedSourceCoverages
+        );
+        const linesCount = d3.select("#source-file").selectAll("tr").size();
+        for (let currentLine = 1; currentLine <= linesCount; currentLine += 1) {
+          const lineStyle = d3
+            .selectAll(".sourceContent")
+            .select(`#right-source-${currentLine}`)
+            .attr("style");
+          const lineColor = $scope.extractColor(lineStyle, $scope.colorId);
+          const currentFunction = $scope.extractCurrentFunction(lineStyle);
+          const lineStyleTypes = lineColor.split("!");
+          if (lineStyleTypes.length >= 2) {
+            const variables = lineStyleTypes[1].split(";")[0].split(",");
+            const defaultColor = $scope.extractColor(lineStyle, "None");
+            let codeLine = d3.select(`#right-source-${currentLine}`).text();
+            $scope.colorLineBackground(
+              lineStyle,
+              currentLine,
+              defaultColor,
+              currentFunction
+            );
+            for (let j = 0; j < variables.length; j += 1) {
+              codeLine = $scope.colorRelevantVariables(
+                codeLine,
+                variables[j],
+                currentFunction,
+                defaultColor
+              );
+            }
+            d3.select(`#right-source-${currentLine}`).html(codeLine);
+          } else {
+            $scope.colorLineBackground(
+              lineStyle,
+              currentLine,
+              lineColor,
+              currentFunction
+            );
+          }
+        }
+      };
+
+      $scope.colorLineBackground = (
+        lineStyle,
+        lineNumber,
+        lineColor,
+        currentFunction
+      ) => {
+        $scope.cleanVariableColoring(lineNumber);
+        d3.select(`#right-source-${lineNumber}`).attr(
+          "style",
+          `background-color: ${lineColor}; current-function: ${currentFunction}; coverage-colors: ${
+            lineStyle.split("coverage-colors: ")[1]
+          }`
+        );
+      };
+
+      $scope.cleanVariableColoring = (lineNumber) => {
+        let lineHtml = d3.select(`#right-source-${lineNumber}`).html();
+        lineHtml = lineHtml.replace(/<\/?[^>]+(>|$)/g, "");
+        d3.select(`#right-source-${lineNumber}`).html(lineHtml);
+      };
+
+      $scope.extractCurrentFunction = (lineStyle) =>
+        lineStyle.split("current-function: ").slice(-1)[0].split(";")[0];
+
+      $scope.colorRelevantVariables = (
+        rawCodeLine,
+        variable,
+        currentFunction,
+        lineColor
+      ) => {
+        const functionName = variable.split("::")[0];
+        if (functionName === currentFunction) {
+          const variableName = variable.split("::")[1];
+          return $scope.colorLineText(rawCodeLine, variableName, lineColor);
+        }
+        return rawCodeLine;
+      };
+
+      $scope.colorLineText = (lineCode, variableName, lineColor) => {
+        let outputStr = "";
+        const textColor = sourceCoverageJson.color;
+        const preStyle = `<mark style="background-color: ${lineColor}; color: ${textColor}; padding: 0;">`;
+        const postStyle = "</mark>";
+        const lineParts = lineCode.split(variableName);
+        const variableEnvironment = /^\s|\(|\)|\+|-|=|;|,|\.|\[|\]$/;
+        for (let i = 0; i < lineParts.length; i += 1) {
+          if (i !== lineParts.length - 1) {
+            if (
+              variableEnvironment.test(lineParts[i].slice(-1)) &&
+              variableEnvironment.test(lineParts[i + 1].slice(0, 1))
+            ) {
+              outputStr += lineParts[i] + preStyle + variableName + postStyle;
+            } else {
+              outputStr += lineParts[i] + variableName;
+            }
+          } else {
+            outputStr += lineParts[i];
+          }
+        }
+        return outputStr;
+      };
     },
   ]);
 

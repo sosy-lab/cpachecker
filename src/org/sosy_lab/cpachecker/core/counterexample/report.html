@@ -571,22 +571,6 @@ with considerably less effort -->
           </nav>
         </div>
 
-        <div id="source-toolbar" ng-controller="SourceToolbarController">
-          <nav class="navbar navbar-light bg-light">
-            <div class="nav-item">
-              <label>
-                <strong>Verification Coverage</strong>
-              </label>
-              <select
-                class="btn btn-outline-secondary selectpicker"
-                ng-options="s as s for s in sourceCoverageSelections"
-                ng-model="$root.displayedSourceCoverages"
-                ng-change="sourceColoringControl()"
-              ></select>
-            </div>
-          </nav>
-        </div>
-
         <div id="cfa-container" ng-class="{active: tabIsSet(1)}"></div>
 
         <div id="arg-container" ng-class="{active: tabIsSet(2)}"></div>
@@ -597,28 +581,19 @@ with considerably less effort -->
           ng-class="{active: tabIsSet(3)}"
           ng-controller="SourceController"
         >
-          <p></p>
           <div class="edit-line">
-            <div class="dropdown" id="dropdownMenu2">
-              <button
-                class="btn btn-outline-secondary dropdown-toggle"
-                type="button"
-                data-toggle="dropdown"
-                aria-haspopup="true"
-                aria-expanded="true"
-              >
-                Displayed Sourcefile
-                <span class="caret"></span>
-              </button>
-              <ul class="dropdown-menu pre-scrollable">
-                <li ng-repeat="file in sourceFiles">
-                  <a ng-click="setSourceFile($index)">{{file}}</a>
-                </li>
-              </ul>
-            </div>
-            <label>
-              <strong>{{sourceFiles[selectedSourceFile]}}</strong>
-            </label>
+            <select
+              class="btn btn-outline-secondary selectpicker"
+              ng-options="s as s for s in sourceFileSelections"
+              ng-model="$root.displayedSourceFiles"
+              ng-change="sourceFileControl()"
+            ></select>
+            <select
+              class="btn btn-outline-secondary selectpicker"
+              ng-options="s as s for s in sourceCoverageSelections"
+              ng-model="$root.displayedSourceCoverages"
+              ng-change="sourceColoringControl()"
+            ></select>
           </div>
           <!--SOURCE_CONTENT-->
         </div>
