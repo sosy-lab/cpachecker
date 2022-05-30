@@ -489,8 +489,7 @@ public final class InterpolationManager {
               "Solver could not produce model, variable assignment of error path can not be"
                   + " dumped.");
           logger.logDebugException(modelException);
-          return CounterexampleTraceInfo.feasible(
-              f.getFormulas(), ImmutableList.of(), ImmutableMap.of());
+          return CounterexampleTraceInfo.feasibleNoModel(f.getFormulas());
         }
       } else {
         return CounterexampleTraceInfo.infeasibleNoItp();
@@ -710,7 +709,7 @@ public final class InterpolationManager {
       throws SolverException, InterruptedException {
 
     if (discardErrorPath) {
-      return CounterexampleTraceInfo.feasibleNoModel();
+      return CounterexampleTraceInfo.feasibleNoModel(formulas.getFormulas());
     }
 
     // get the branchingFormula

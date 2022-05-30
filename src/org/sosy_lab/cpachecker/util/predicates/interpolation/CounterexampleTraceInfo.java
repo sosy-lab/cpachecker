@@ -62,9 +62,10 @@ public class CounterexampleTraceInfo {
         ImmutableMap.copyOf(preds));
   }
 
-  public static CounterexampleTraceInfo feasibleNoModel() {
+  public static CounterexampleTraceInfo feasibleNoModel(
+      List<BooleanFormula> pCounterexampleFormula) {
     return CounterexampleTraceInfo.feasible(
-        ImmutableList.of(), ImmutableList.of(), ImmutableMap.of());
+        pCounterexampleFormula, ImmutableList.of(), ImmutableMap.of());
   }
 
   /**
