@@ -35,6 +35,9 @@ public abstract class ACharLiteralExpression extends ALiteralExpression {
 
   @Override
   public String toASTString() {
+    if (character == '\'') {
+      return "'\\" + "''";
+    }
     if (character >= ' ' && character < 128) {
       return "'" + character + "'";
     } else {

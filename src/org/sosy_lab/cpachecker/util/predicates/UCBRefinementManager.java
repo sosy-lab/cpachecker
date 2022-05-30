@@ -8,8 +8,6 @@
 
 package org.sosy_lab.cpachecker.util.predicates;
 
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -78,8 +76,7 @@ public class UCBRefinementManager {
     List<BooleanFormula> preds = computeWeakestPreconditions(trace);
 
     if (preds == null) {
-      return CounterexampleTraceInfo.feasible(
-          pFormulas.getFormulas(), ImmutableList.of(), ImmutableMap.of());
+      return CounterexampleTraceInfo.feasibleNoModel(pFormulas.getFormulas());
     } else {
       preds = computeUCB(trace, pFormulas, preds);
       preds.addAll(

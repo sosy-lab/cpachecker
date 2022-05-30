@@ -8,9 +8,11 @@
 
 package org.sosy_lab.cpachecker.util.predicates.pathformula;
 
+import static com.google.common.base.Verify.verifyNotNull;
 import static com.google.common.collect.FluentIterable.from;
 
 import com.google.common.base.Predicates;
+import com.google.common.base.Throwables;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
@@ -44,7 +46,10 @@ import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
+import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
+import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCFAEdgeException;
@@ -67,6 +72,7 @@ import org.sosy_lab.cpachecker.util.variableclassification.VariableClassificatio
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.Formula;
 import org.sosy_lab.java_smt.api.FormulaType;
+import org.sosy_lab.java_smt.api.Model;
 import org.sosy_lab.java_smt.api.Model.ValueAssignment;
 
 /**
@@ -438,6 +444,7 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
    * @return A formula containing a predicate for each branching.
    */
   @Override
+  @Deprecated
   public BooleanFormula buildBranchingFormula(Set<ARGState> elementsOnPath)
       throws CPATransferException, InterruptedException {
     return buildBranchingFormula(elementsOnPath, ImmutableMap.of());
@@ -456,6 +463,7 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
    * @return A formula containing a predicate for each branching.
    */
   @Override
+  @Deprecated
   public BooleanFormula buildBranchingFormula(
       Set<ARGState> elementsOnPath, Map<Pair<ARGState, CFAEdge>, PathFormula> parentFormulasOnPath)
       throws CPATransferException, InterruptedException {
@@ -556,6 +564,7 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
    * @return A map from ARG state id to a boolean value indicating direction.
    */
   @Override
+  @Deprecated
   public ImmutableMap<Integer, Boolean> getBranchingPredicateValuesFromModel(
       Iterable<ValueAssignment> model) {
     // Do not use fmgr here, this fails if a separate solver is used for interpolation.
@@ -580,6 +589,87 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
       }
     }
     return preds.buildOrThrow();
+  }
+
+  /**
+   * Extract a single path from the ARG that is feasible for the values in a given {@link Model}.
+   * The model needs to correspond to something like a BMC query for (a subset of) the ARG. This
+   * method is basically like calling {@link ARGUtils#getPathFromBranchingInformation(ARGState, Set,
+   * java.util.function.BiFunction)} and takes the branching information from the model.
+   *
+   * @param model The model to use for determining branching information.
+   * @param root The root of the ARG, from which the path should start.
+   * @param elementsOnPath All elements in the ARG or a subset thereof (elements outside this set
+   *     will be ignored).
+   * @return A feasible path through the ARG from root, which conforms to the model.
+   */
+  @Override
+  public ARGPath getARGPathFromModel(
+      Model model, ARGState root, Set<? extends AbstractState> elementsOnPath)
+      throws CPATransferException, InterruptedException {
+    return getARGPathFromModel(model, root, elementsOnPath, ImmutableMap.of());
+  }
+
+  /**
+   * Extract a single path from the ARG that is feasible for the values in a given {@link Model}.
+   * The model needs to correspond to something like a BMC query for (a subset of) the ARG. This
+   * method is basically like calling {@link ARGUtils#getPathFromBranchingInformation(ARGState, Set,
+   * java.util.function.BiFunction)} and takes the branching information from the model.
+   *
+   * @param model The model to use for determining branching information.
+   * @param root The root of the ARG, from which the path should start.
+   * @param elementsOnPath All elements in the ARG or a subset thereof (elements outside this set
+   *     will be ignored).
+   * @return A feasible path through the ARG from root, which conforms to the model.
+   */
+  @Override
+  public ARGPath getARGPathFromModel(
+      Model model,
+      ARGState root,
+      Set<? extends AbstractState> elementsOnPath,
+      Map<Pair<ARGState, CFAEdge>, PathFormula> parentFormulasOnPath)
+      throws CPATransferException, InterruptedException {
+
+    final class WrappingException extends RuntimeException {
+      private static final long serialVersionUID = 7106377117314217226L;
+
+      WrappingException(Throwable cause) {
+        super(cause);
+      }
+    }
+
+    try {
+      return ARGUtils.getPathFromBranchingInformation(
+          root,
+          elementsOnPath,
+          (pathElement, positiveEdge) -> {
+            final Pair<ARGState, CFAEdge> key = Pair.of(pathElement, positiveEdge);
+            PathFormula pf = parentFormulasOnPath.get(key);
+
+            if (pf == null) {
+              // create formula by edge, be sure to use the correct SSA indices!
+              // TODO the class PathFormulaManagerImpl should not depend on PredicateAbstractState,
+              // it is used without PredicateCPA as well.
+              PredicateAbstractState pe =
+                  AbstractStates.extractStateByType(pathElement, PredicateAbstractState.class);
+              verifyNotNull(pe, "Cannot find precise error path information without PredicateCPA.");
+              try {
+                pf =
+                    this.makeAnd(
+                        makeEmptyPathFormulaWithContextFrom(pe.getPathFormula()), positiveEdge);
+              } catch (CPATransferException | InterruptedException e) {
+                throw new WrappingException(e);
+              }
+            }
+
+            return model.evaluate(pf.getFormula());
+          });
+    } catch (WrappingException e) {
+      Throwables.throwIfInstanceOf(e.getCause(), CPATransferException.class);
+      Throwables.throwIfInstanceOf(e.getCause(), InterruptedException.class);
+      Throwables.throwIfUnchecked(e.getCause());
+      throw e;
+    }
   }
 
   @Override

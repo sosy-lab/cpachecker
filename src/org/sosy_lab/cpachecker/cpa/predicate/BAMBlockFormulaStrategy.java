@@ -181,6 +181,8 @@ public final class BAMBlockFormulaStrategy extends BlockFormulaStrategy {
       finishedFormulas.put(currentState, currentFormula);
       waitlist.addAll(currentState.getChildren());
     }
+    @SuppressWarnings("deprecation")
+    // remove once PathChecker#handleFeasibleCounterexample does not need it anymore
     BooleanFormula branchingFormula =
         pfmgr.buildBranchingFormula(finishedFormulas.keySet(), branchingFormulas);
     return new BlockFormulas(abstractionFormulas, branchingFormula);

@@ -62,9 +62,10 @@ public class CounterexampleTraceInfo {
         ImmutableMap.copyOf(preds));
   }
 
-  public static CounterexampleTraceInfo feasibleNoModel() {
+  public static CounterexampleTraceInfo feasibleNoModel(
+      List<BooleanFormula> pCounterexampleFormula) {
     return CounterexampleTraceInfo.feasible(
-        ImmutableList.of(), ImmutableList.of(), ImmutableMap.of());
+        pCounterexampleFormula, ImmutableList.of(), ImmutableMap.of());
   }
 
   /**
@@ -101,6 +102,7 @@ public class CounterexampleTraceInfo {
     return mCounterexampleModel;
   }
 
+  @Deprecated // branching predicates are deprecated, cf. PathFormulaManager for replacement
   public Map<Integer, Boolean> getBranchingPredicates() {
     checkState(!spurious);
     return branchingPreds;

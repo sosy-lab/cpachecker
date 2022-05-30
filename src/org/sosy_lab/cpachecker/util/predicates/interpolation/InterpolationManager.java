@@ -28,6 +28,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.ListIterator;
+import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
@@ -426,14 +427,12 @@ public final class InterpolationManager {
     logger.log(Level.FINEST, "Building counterexample trace");
 
     // Final adjustments to the list of formulas
-    List<BooleanFormula> f =
-        new ArrayList<>(pFormulas.getFormulas()); // copy because we will change the list
+    ImmutableList<BooleanFormula> f = pFormulas.getFormulas();
 
     if (fmgr.useBitwiseAxioms()) {
-      addBitwiseAxioms(f);
+      f = addBitwiseAxioms(f);
     }
 
-    f = Collections.unmodifiableList(f);
     logger.log(Level.ALL, "Counterexample trace formulas:", f);
 
     // now f is the DAG formula which is satisfiable iff there is a
@@ -488,8 +487,7 @@ public final class InterpolationManager {
               "Solver could not produce model, variable assignment of error path can not be"
                   + " dumped.");
           logger.logDebugException(modelException);
-          return CounterexampleTraceInfo.feasible(
-              f.getFormulas(), ImmutableList.of(), ImmutableMap.of());
+          return CounterexampleTraceInfo.feasibleNoModel(f.getFormulas());
         }
       } else {
         return CounterexampleTraceInfo.infeasibleNoItp();
@@ -506,7 +504,7 @@ public final class InterpolationManager {
    *
    * @param f The list of formulas to scan for bitwise operations.
    */
-  private void addBitwiseAxioms(List<BooleanFormula> f) {
+  private ImmutableList<BooleanFormula> addBitwiseAxioms(ImmutableList<BooleanFormula> f) {
     BooleanFormula bitwiseAxioms = bfmgr.makeTrue();
 
     for (BooleanFormula fm : f) {
@@ -519,9 +517,13 @@ public final class InterpolationManager {
     if (!bfmgr.isTrue(bitwiseAxioms)) {
       logger.log(
           Level.ALL, "DEBUG_3", "ADDING BITWISE AXIOMS TO THE", "LAST GROUP: ", bitwiseAxioms);
-      int lastIndex = f.size() - 1;
-      f.set(lastIndex, bfmgr.and(f.get(lastIndex), bitwiseAxioms));
+      return ImmutableList.<BooleanFormula>builderWithExpectedSize(f.size())
+          .addAll(f.subList(0, f.size() - 1))
+          .add(bfmgr.and(f.get(f.size() - 1), bitwiseAxioms))
+          .build();
     }
+
+    return f;
   }
 
   /**
@@ -709,7 +711,7 @@ public final class InterpolationManager {
       throws SolverException, InterruptedException {
 
     if (discardErrorPath) {
-      return CounterexampleTraceInfo.feasibleNoModel();
+      return CounterexampleTraceInfo.feasibleNoModel(formulas.getFormulas());
     }
 
     // get the branchingFormula
@@ -732,8 +734,11 @@ public final class InterpolationManager {
 
     if (stillSatisfiable) {
       List<ValueAssignment> model = pProver.getModelAssignments();
-      return CounterexampleTraceInfo.feasible(
-          f, model, pmgr.getBranchingPredicateValuesFromModel(model));
+      @SuppressWarnings("deprecation")
+      // remove this and branchingFormula above once PathChecker#handleFeasibleCounterexample does
+      // not need it anymore
+      Map<Integer, Boolean> branchingInfo = pmgr.getBranchingPredicateValuesFromModel(model);
+      return CounterexampleTraceInfo.feasible(f, model, branchingInfo);
 
     } else {
       // this should not happen

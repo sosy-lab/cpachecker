@@ -12,6 +12,7 @@ import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.cpachecker.cpa.arg.ARGUtils.getUncoveredChildrenView;
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocation;
 
+import com.google.common.collect.FluentIterable;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
 import java.io.IOException;
@@ -21,6 +22,7 @@ import java.nio.charset.Charset;
 import java.nio.file.Path;
 import java.util.ArrayDeque;
 import java.util.Collection;
+import java.util.Comparator;
 import java.util.Deque;
 import java.util.HashSet;
 import java.util.List;
@@ -130,6 +132,11 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
           "If it is enabled, automaton does not add assumption which is considered to continue path"
               + " with corresponding this edge.")
   private boolean automatonIgnoreAssumptions = false;
+
+  @Option(
+      secure = true,
+      description = "If it is enabled, automaton adds transitions to later ARG states first")
+  private boolean automatonOrderedTransitions = false;
 
   @Option(
       secure = true,
@@ -343,7 +350,8 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
             relevantStates,
             falseAssumptionStates,
             automatonBranchingThreshold,
-            automatonIgnoreAssumptions);
+            automatonIgnoreAssumptions,
+            automatonOrderedTransitions);
   }
 
   private Automaton constructAutomatonFromFile() throws InvalidConfigurationException {
@@ -432,7 +440,8 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
       Set<ARGState> relevantStates,
       Set<AbstractState> falseAssumptionStates,
       int branchingThreshold,
-      boolean ignoreAssumptions)
+      boolean ignoreAssumptions,
+      boolean automatonOrderedTransitions)
       throws IOException {
     int numProducedStates = 0;
     sb.append("OBSERVER AUTOMATON AssumptionAutomaton\n\n");
@@ -467,6 +476,7 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
       }
     }
 
+    Collection<ARGState> children;
     for (final ARGState s : relevantStates) {
       assert !s.isCovered();
 
@@ -489,7 +499,14 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
       final StringBuilder descriptionForInnerMultiEdges = new StringBuilder();
       int multiEdgeID = 0;
 
-      for (final ARGState child : getUncoveredChildrenView(s)) {
+      children = getUncoveredChildrenView(s);
+      if (automatonOrderedTransitions && children.size() > 1) {
+        children =
+            FluentIterable.from(children)
+                .toSortedList(
+                    Comparator.<ARGState>comparingInt(child -> child.getStateId()).reversed());
+      }
+      for (final ARGState child : children) {
         assert !child.isCovered();
 
         List<CFAEdge> edges = s.getEdgesToChild(child);

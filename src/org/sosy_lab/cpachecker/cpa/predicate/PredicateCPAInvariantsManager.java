@@ -13,7 +13,6 @@ import static com.google.common.collect.FluentIterable.from;
 import static com.google.common.collect.Lists.newArrayList;
 import static org.sosy_lab.common.collect.Collections3.transformedImmutableListCopy;
 import static org.sosy_lab.cpachecker.core.algorithm.bmc.candidateinvariants.SingleLocationFormulaInvariant.makeLocationInvariant;
-import static org.sosy_lab.cpachecker.cpa.arg.ARGUtils.getAllStatesOnPathsTo;
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocation;
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractOptionalCallstackWraper;
 import static org.sosy_lab.cpachecker.util.statistics.StatisticsWriter.writingStatisticsTo;
@@ -803,7 +802,6 @@ class PredicateCPAInvariantsManager implements StatisticsProvider, InvariantSupp
 
     private final ARGPath argPath;
     private final List<CFANode> abstractionNodes;
-    private final Set<ARGState> elementsOnPath;
     private final List<ARGState> abstractionStatesTrace;
     private final List<InfeasiblePrefix> infeasiblePrefixes;
     private final List<CandidateInvariant> foundInvariants = new ArrayList<>();
@@ -814,7 +812,6 @@ class PredicateCPAInvariantsManager implements StatisticsProvider, InvariantSupp
       argPath = pPath;
       abstractionNodes =
           transformedImmutableListCopy(pAbstractionStatesTrace, AbstractStates::extractLocation);
-      elementsOnPath = getAllStatesOnPathsTo(argPath.getLastState());
       abstractionStatesTrace = pAbstractionStatesTrace;
       imgr =
           new InterpolationManager(
@@ -853,14 +850,13 @@ class PredicateCPAInvariantsManager implements StatisticsProvider, InvariantSupp
     private List<CandidateInvariant> getLocationCandidateInvariant(InfeasiblePrefix pInput) {
       List<BooleanFormula> interpolants;
       try {
-        List<BooleanFormula> pathFormula = pInput.getPathFormulae();
-        BlockFormulas formulas =
-            new BlockFormulas(pathFormula, pfmgr.buildBranchingFormula(elementsOnPath));
+        List<BooleanFormula> pathFormula = new ArrayList<>(pInput.getPathFormulae());
         // the prefix is not filled up with trues if it is shorter than
         // the path so we need to do it ourselves
         while (pathFormula.size() < abstractionStatesTrace.size()) {
           pathFormula.add(bfmgr.makeTrue());
         }
+        BlockFormulas formulas = new BlockFormulas(pathFormula);
         interpolants =
             imgr.buildCounterexampleTrace(formulas, ImmutableList.copyOf(abstractionStatesTrace))
                 .getInterpolants();
