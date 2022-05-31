@@ -36,18 +36,22 @@ public enum CoverageMeasureType {
       "Visited-Lines Heat Map",
       CoverageMeasureInputCategory.LINE_BASED,
       CoverageMeasureAnalysisCategory.ANALYSIS_INDEPENDENT),
-  PREDICATE_CONSIDERED(
+  PREDICATE_CONSIDERED_LOCATIONS(
       "Predicate-Considered Locations",
       CoverageMeasureInputCategory.LOCATION_BASED,
       CoverageMeasureAnalysisCategory.PREDICATE_ANALYSIS),
-  PREDICATE_RELEVANT_VARIABLES(
+  PREDICATE_RELEVANT_VARIABLES_LOCATIONS(
       "Predicate-Relevant-Variables Locations",
       CoverageMeasureInputCategory.LOCATION_BASED,
       CoverageMeasureAnalysisCategory.PREDICATE_ANALYSIS),
   PREDICATE_ABSTRACTION_VARIABLES(
       "Predicate-Abstraction Variables",
       CoverageMeasureInputCategory.VARIABLE_BASED,
-      CoverageMeasureAnalysisCategory.PREDICATE_ANALYSIS);
+      CoverageMeasureAnalysisCategory.PREDICATE_ANALYSIS),
+  VISITED_VARIABLES(
+      "Visited Variables",
+      CoverageMeasureInputCategory.VARIABLE_BASED,
+      CoverageMeasureAnalysisCategory.ANALYSIS_INDEPENDENT);
 
   private final String name;
   private final CoverageMeasureInputCategory category;
@@ -81,18 +85,22 @@ public enum CoverageMeasureType {
         return new LineBasedCoverageMeasure(
             covHandler.getAnalysisIndependentCollector().getVisitedLinesPerFile(),
             covHandler.getAnalysisIndependentCollector().getExistingLinesPerFile());
-      case PREDICATE_CONSIDERED:
+      case PREDICATE_CONSIDERED_LOCATIONS:
         return new LocationBasedCoverageMeasure(
             covHandler.getPredicateAnalysisCollector().getPredicateConsideredLocations(),
             covHandler.getPredicateAnalysisCollector().getTotalLocationCount());
-      case PREDICATE_RELEVANT_VARIABLES:
+      case PREDICATE_RELEVANT_VARIABLES_LOCATIONS:
         return new LocationBasedCoverageMeasure(
             covHandler.getPredicateAnalysisCollector().getPredicateRelevantConsideredLocations(),
             covHandler.getPredicateAnalysisCollector().getTotalLocationCount());
       case PREDICATE_ABSTRACTION_VARIABLES:
         return new VariableBasedCoverageMeasure(
-            covHandler.getPredicateAnalysisCollector().getAllVariables(),
-            covHandler.getPredicateAnalysisCollector().getVisitedVariables());
+            covHandler.getAnalysisIndependentCollector().getAllVariables(),
+            covHandler.getPredicateAnalysisCollector().getPredicateAbstractionVariables());
+      case VISITED_VARIABLES:
+        return new VariableBasedCoverageMeasure(
+            covHandler.getAnalysisIndependentCollector().getAllVariables(),
+            covHandler.getAnalysisIndependentCollector().getVisitedVariables());
       default:
         throw new AssertionError("Unknown CoverageMeasureType used: " + this.name);
     }

@@ -10,15 +10,11 @@ package org.sosy_lab.cpachecker.util.coverage.collectors;
 
 import com.google.common.collect.HashMultiset;
 import com.google.common.collect.Multiset;
-import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.util.coverage.measures.CoverageMeasureHandler;
 import org.sosy_lab.cpachecker.util.coverage.tdcg.TimeDependentCoverageData;
 import org.sosy_lab.cpachecker.util.coverage.tdcg.TimeDependentCoverageHandler;
@@ -35,8 +31,7 @@ import org.sosy_lab.cpachecker.util.coverage.util.CoverageUtility;
 public class PredicateAnalysisCoverageCollector extends CoverageCollector {
   private final Set<CFANode> predicateConsideredLocations = new LinkedHashSet<>();
   private final Set<CFANode> predicateRelevantVariablesLocations = new LinkedHashSet<>();
-  private final Set<String> allVariables = new HashSet<>();
-  private final Multiset<String> visitedVariables = HashMultiset.create();
+  private final Multiset<String> predicateAbstractionVariables = HashMultiset.create();
   private final CFA cfa;
   private int previousPredicateRelevantVariablesLocationsSize = 0;
 
@@ -62,29 +57,11 @@ public class PredicateAnalysisCoverageCollector extends CoverageCollector {
     predicateRelevantVariablesLocations.add(pEdge.getSuccessor());
   }
 
-  public void addAllProgramVariables() {
-    for (CFANode node : cfa.getAllNodes()) {
-      for (int i = 0; i < node.getNumLeavingEdges(); i++) {
-        CFAEdge edge = node.getLeavingEdge(i);
-        if (edge.getEdgeType() == CFAEdgeType.DeclarationEdge) {
-          CDeclarationEdge declarationEdge = (CDeclarationEdge) edge;
-          CDeclaration dec = declarationEdge.getDeclaration();
-          String variableName = dec.getQualifiedName();
-          if (variableName != null
-              && !variableName.contains("__CPAchecker_TMP_")
-              && variableName.contains("::")) {
-            allVariables.add(dec.getQualifiedName());
-          }
-        }
-      }
-    }
-  }
-
   public void addRelevantAbstractionVariables(Set<String> pVariableNames, final CFAEdge pEdge) {
     if (!CoverageUtility.coversLine(pEdge)) {
       return;
     }
-    visitedVariables.addAll(pVariableNames);
+    predicateAbstractionVariables.addAll(pVariableNames);
   }
 
   public void addInitialNodesForTDCG(
@@ -139,12 +116,8 @@ public class PredicateAnalysisCoverageCollector extends CoverageCollector {
         previousPredicateRelevantVariablesLocationsSize);
   }
 
-  public Set<String> getAllVariables() {
-    return allVariables;
-  }
-
-  public Multiset<String> getVisitedVariables() {
-    return visitedVariables;
+  public Multiset<String> getPredicateAbstractionVariables() {
+    return predicateAbstractionVariables;
   }
 
   private double getTempCoverage(TimeDependentCoverageType type) {

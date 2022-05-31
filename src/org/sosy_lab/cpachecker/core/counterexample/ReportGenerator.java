@@ -719,7 +719,6 @@ public class ReportGenerator {
     ImmutableList<CoverageMeasureType> types =
         covHandler.getAllTypesForCategories(
             CoverageMeasureInputCategory.LINE_BASED, CoverageMeasureInputCategory.VARIABLE_BASED);
-    boolean variableFlag = true;
 
     lineColors.append("None").append(":");
     lineColors.append(CoverageColorUtil.getAlternatingLineColor(lineNumber));
@@ -732,10 +731,7 @@ public class ReportGenerator {
       } else if (type.getCategory() == CoverageMeasureInputCategory.VARIABLE_BASED) {
         VariableBasedCoverageMeasure varCov =
             (VariableBasedCoverageMeasure) covHandler.getData(type);
-        if (variableFlag) {
-          lineColors.append("!");
-          variableFlag = false;
-        }
+        lineColors.append("!");
         lineColors.append(varCov.getAllRelevantVariablesAsString());
       }
       lineColors.append(";");

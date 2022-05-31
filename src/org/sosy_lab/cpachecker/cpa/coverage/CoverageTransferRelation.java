@@ -12,7 +12,6 @@ import com.google.common.base.Preconditions;
 import java.util.Collection;
 import java.util.Collections;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.core.defaults.SingleEdgeTransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -32,6 +31,7 @@ public class CoverageTransferRelation extends SingleEdgeTransferRelation {
         Preconditions.checkNotNull(pCovCollectorHandler.getAnalysisIndependentCollector());
     visitedTDCG =
         pCovCollectorHandler.getTDCGHandler().getData(TimeDependentCoverageType.VisitedLines);
+    coverageCollector.addAllProgramVariables();
   }
 
   @Override
@@ -47,9 +47,8 @@ public class CoverageTransferRelation extends SingleEdgeTransferRelation {
     }
     coverageCollector.addVisitedEdge(pEdge);
     coverageCollector.addVisitedLocation(pEdge);
+    coverageCollector.addVisitedFunction(pEdge);
+    coverageCollector.addVisitedVariables(pEdge);
     visitedTDCG.addTimestamp(coverageCollector.getTempVisitedCoverage());
-    if (pEdge.getPredecessor() instanceof FunctionEntryNode) {
-      coverageCollector.addVisitedFunction((FunctionEntryNode) pEdge.getPredecessor());
-    }
   }
 }

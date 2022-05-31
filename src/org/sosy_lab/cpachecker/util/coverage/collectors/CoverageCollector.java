@@ -91,6 +91,13 @@ public abstract class CoverageCollector {
     }
   }
 
+  public void addVisitedFunction(CFAEdge pEdge) {
+    if (pEdge.getPredecessor() instanceof FunctionEntryNode) {
+      FunctionEntryNode entryNode = (FunctionEntryNode) pEdge.getPredecessor();
+      addVisitedFunction(entryNode);
+    }
+  }
+
   public void addVisitedFunction(FunctionEntryNode pEntryNode) {
     String file = pEntryNode.getFileLocation().getFileName().toString();
     Multiset<String> visitedFunctions = visitedFunctionsPerFile.get(file);

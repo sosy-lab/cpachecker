@@ -121,7 +121,8 @@ public class CoverageReportStdoutSummary {
         CoverageMeasureType.REACHED_LOCATIONS.getName(),
         String.format("%.0f", reached.getValue()));
 
-    CoverageMeasure predicateConsidered = handler.getData(CoverageMeasureType.PREDICATE_CONSIDERED);
+    CoverageMeasure predicateConsidered =
+        handler.getData(CoverageMeasureType.PREDICATE_CONSIDERED_LOCATIONS);
     if (predicateConsidered == null || predicateConsidered.getMaxValue() <= 0) {
       return;
     }
@@ -129,16 +130,17 @@ public class CoverageReportStdoutSummary {
         pStdOut,
         INDENT_LEVEL,
         FIELD_COLUMN_WIDTH,
-        CoverageMeasureType.PREDICATE_CONSIDERED.getCoverageName(),
+        CoverageMeasureType.PREDICATE_CONSIDERED_LOCATIONS.getCoverageName(),
         String.format("%.2f", predicateConsidered.getNormalizedValue()));
     StatisticsUtils.write(
         pStdOut,
         INDENT_LEVEL,
         FIELD_COLUMN_WIDTH,
-        CoverageMeasureType.PREDICATE_CONSIDERED.getName(),
+        CoverageMeasureType.PREDICATE_CONSIDERED_LOCATIONS.getName(),
         String.format("%.0f", predicateConsidered.getValue()));
 
-    CoverageMeasure relevantVar = handler.getData(CoverageMeasureType.PREDICATE_RELEVANT_VARIABLES);
+    CoverageMeasure relevantVar =
+        handler.getData(CoverageMeasureType.PREDICATE_RELEVANT_VARIABLES_LOCATIONS);
     if (relevantVar == null || relevantVar.getMaxValue() <= 0) {
       return;
     }
@@ -146,20 +148,21 @@ public class CoverageReportStdoutSummary {
         pStdOut,
         INDENT_LEVEL,
         FIELD_COLUMN_WIDTH,
-        CoverageMeasureType.PREDICATE_RELEVANT_VARIABLES.getCoverageName(),
+        CoverageMeasureType.PREDICATE_RELEVANT_VARIABLES_LOCATIONS.getCoverageName(),
         String.format("%.2f", relevantVar.getNormalizedValue()));
     StatisticsUtils.write(
         pStdOut,
         INDENT_LEVEL,
         FIELD_COLUMN_WIDTH,
-        CoverageMeasureType.PREDICATE_RELEVANT_VARIABLES.getName(),
+        CoverageMeasureType.PREDICATE_RELEVANT_VARIABLES_LOCATIONS.getName(),
         String.format("%.0f", relevantVar.getValue()));
   }
 
   private static void writeVariableRelatedCoverage(
       CoverageMeasureHandler handler, PrintStream pStdOut) {
-    CoverageMeasure variable = handler.getData(CoverageMeasureType.PREDICATE_ABSTRACTION_VARIABLES);
-    if (variable == null || variable.getMaxValue() <= 0) {
+    CoverageMeasure abstractionVariables =
+        handler.getData(CoverageMeasureType.PREDICATE_ABSTRACTION_VARIABLES);
+    if (abstractionVariables == null || abstractionVariables.getMaxValue() <= 0) {
       return;
     }
     StatisticsUtils.write(
@@ -167,18 +170,41 @@ public class CoverageReportStdoutSummary {
         INDENT_LEVEL,
         FIELD_COLUMN_WIDTH,
         CoverageMeasureType.PREDICATE_ABSTRACTION_VARIABLES.getCoverageName(),
-        String.format("%.2f", variable.getNormalizedValue()));
+        String.format("%.2f", abstractionVariables.getNormalizedValue()));
     StatisticsUtils.write(
         pStdOut,
         INDENT_LEVEL,
         FIELD_COLUMN_WIDTH,
         CoverageMeasureType.PREDICATE_ABSTRACTION_VARIABLES.getName(),
-        String.format("%.0f", variable.getValue()));
+        String.format("%.0f", abstractionVariables.getValue()));
     StatisticsUtils.write(
         pStdOut,
         INDENT_LEVEL,
         FIELD_COLUMN_WIDTH,
         "Total variables",
-        String.format("%.0f", variable.getMaxValue()));
+        String.format("%.0f", abstractionVariables.getMaxValue()));
+
+    CoverageMeasure visitedVariables = handler.getData(CoverageMeasureType.VISITED_VARIABLES);
+    if (visitedVariables == null || visitedVariables.getMaxValue() <= 0) {
+      return;
+    }
+    StatisticsUtils.write(
+        pStdOut,
+        INDENT_LEVEL,
+        FIELD_COLUMN_WIDTH,
+        CoverageMeasureType.VISITED_VARIABLES.getCoverageName(),
+        String.format("%.2f", visitedVariables.getNormalizedValue()));
+    StatisticsUtils.write(
+        pStdOut,
+        INDENT_LEVEL,
+        FIELD_COLUMN_WIDTH,
+        CoverageMeasureType.VISITED_VARIABLES.getName(),
+        String.format("%.0f", visitedVariables.getValue()));
+    StatisticsUtils.write(
+        pStdOut,
+        INDENT_LEVEL,
+        FIELD_COLUMN_WIDTH,
+        "Total variables",
+        String.format("%.0f", visitedVariables.getMaxValue()));
   }
 }

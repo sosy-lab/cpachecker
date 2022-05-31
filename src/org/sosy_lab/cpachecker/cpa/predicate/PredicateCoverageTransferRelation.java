@@ -76,7 +76,6 @@ public class PredicateCoverageTransferRelation extends PredicateTransferRelation
         predicateConsideredTDCG, TimeDependentCoverageType.PredicateConsideredLocations);
     coverageCollector.addInitialNodesForTDCG(
         predicateRelevantVariablesTDCG, TimeDependentCoverageType.PredicateRelevantVariables);
-    coverageCollector.addAllProgramVariables();
   }
 
   @Override
