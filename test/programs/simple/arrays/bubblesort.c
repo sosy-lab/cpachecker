@@ -1,4 +1,4 @@
-// LICENSE: https://github.com/sosy-lab/sv-benchmarks/blob/master/LICENSES/Apache-2.0.txt
+// SPDX-License-Identifier: Apache-2.0
 int main() {
   int a[100000];
 
