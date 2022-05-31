@@ -11,17 +11,16 @@ package org.sosy_lab.cpachecker.util.predicates.pathformula;
 import static org.sosy_lab.cpachecker.util.statistics.StatisticsUtils.toPercent;
 
 import com.google.common.base.Equivalence;
+import com.google.common.base.Predicate;
 import java.io.PrintStream;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.concurrent.atomic.LongAdder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
@@ -198,19 +197,19 @@ public class CachingPathFormulaManager implements PathFormulaManager {
 
   @Override
   public ARGPath getARGPathFromModel(
-      Model pModel, ARGState pRoot, Set<? extends AbstractState> pElementsOnPath)
+      Model pModel, ARGState pRoot, Predicate<? super ARGState> pStateFilter)
       throws CPATransferException, InterruptedException {
-    return delegate.getARGPathFromModel(pModel, pRoot, pElementsOnPath);
+    return delegate.getARGPathFromModel(pModel, pRoot, pStateFilter);
   }
 
   @Override
   public ARGPath getARGPathFromModel(
       Model pModel,
       ARGState pRoot,
-      Set<? extends AbstractState> pElementsOnPath,
+      Predicate<? super ARGState> pStateFilter,
       Map<Pair<ARGState, CFAEdge>, PathFormula> pParentFormulasOnPath)
       throws CPATransferException, InterruptedException {
-    return delegate.getARGPathFromModel(pModel, pRoot, pElementsOnPath, pParentFormulasOnPath);
+    return delegate.getARGPathFromModel(pModel, pRoot, pStateFilter, pParentFormulasOnPath);
   }
 
   @Override

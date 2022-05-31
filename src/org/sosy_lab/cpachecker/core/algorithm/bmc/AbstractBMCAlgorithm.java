@@ -843,10 +843,9 @@ abstract class AbstractBMCAlgorithm
       ARGPath targetPath;
       try (Model model = pProver.getModel()) {
         ARGState root = (ARGState) pReachedSet.getFirstState();
-        Set<AbstractState> arg = pReachedSet.asCollection();
 
         try {
-          targetPath = pmgr.getARGPathFromModel(model, root, arg);
+          targetPath = pmgr.getARGPathFromModel(model, root, Predicates.alwaysTrue());
         } catch (IllegalArgumentException e) {
           logger.logUserException(Level.WARNING, e, "Could not create error path");
           return Optional.empty();

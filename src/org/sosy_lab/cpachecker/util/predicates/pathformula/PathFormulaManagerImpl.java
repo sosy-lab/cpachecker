@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.util.predicates.pathformula;
 
 import static com.google.common.base.Verify.verifyNotNull;
 
+import com.google.common.base.Predicate;
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
@@ -18,7 +19,6 @@ import java.io.PrintStream;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.Set;
 import java.util.logging.Level;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.ShutdownNotifier;
@@ -39,7 +39,6 @@ import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
@@ -423,39 +422,37 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
   /**
    * Extract a single path from the ARG that is feasible for the values in a given {@link Model}.
    * The model needs to correspond to something like a BMC query for (a subset of) the ARG. This
-   * method is basically like calling {@link ARGUtils#getPathFromBranchingInformation(ARGState, Set,
-   * java.util.function.BiFunction)} and takes the branching information from the model.
+   * method is basically like calling {@link ARGUtils#getPathFromBranchingInformation(ARGState,
+   * Predicate, java.util.function.BiFunction)} and takes the branching information from the model.
    *
    * @param model The model to use for determining branching information.
    * @param root The root of the ARG, from which the path should start.
-   * @param elementsOnPath All elements in the ARG or a subset thereof (elements outside this set
-   *     will be ignored).
+   * @param stateFilter Only consider the subset of ARG states that satisfy this filter.
    * @return A feasible path through the ARG from root, which conforms to the model.
    */
   @Override
   public ARGPath getARGPathFromModel(
-      Model model, ARGState root, Set<? extends AbstractState> elementsOnPath)
+      Model model, ARGState root, Predicate<? super ARGState> stateFilter)
       throws CPATransferException, InterruptedException {
-    return getARGPathFromModel(model, root, elementsOnPath, ImmutableMap.of());
+    return getARGPathFromModel(model, root, stateFilter, ImmutableMap.of());
   }
 
   /**
    * Extract a single path from the ARG that is feasible for the values in a given {@link Model}.
    * The model needs to correspond to something like a BMC query for (a subset of) the ARG. This
-   * method is basically like calling {@link ARGUtils#getPathFromBranchingInformation(ARGState, Set,
-   * java.util.function.BiFunction)} and takes the branching information from the model.
+   * method is basically like calling {@link ARGUtils#getPathFromBranchingInformation(ARGState,
+   * Predicate, java.util.function.BiFunction)} and takes the branching information from the model.
    *
    * @param model The model to use for determining branching information.
    * @param root The root of the ARG, from which the path should start.
-   * @param elementsOnPath All elements in the ARG or a subset thereof (elements outside this set
-   *     will be ignored).
+   * @param stateFilter Only consider the subset of ARG states that satisfy this filter.
    * @return A feasible path through the ARG from root, which conforms to the model.
    */
   @Override
   public ARGPath getARGPathFromModel(
       Model model,
       ARGState root,
-      Set<? extends AbstractState> elementsOnPath,
+      Predicate<? super ARGState> stateFilter,
       Map<Pair<ARGState, CFAEdge>, PathFormula> parentFormulasOnPath)
       throws CPATransferException, InterruptedException {
 
@@ -470,7 +467,7 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
     try {
       return ARGUtils.getPathFromBranchingInformation(
           root,
-          elementsOnPath,
+          stateFilter,
           (pathElement, positiveEdge) -> {
             final Pair<ARGState, CFAEdge> key = Pair.of(pathElement, positiveEdge);
             PathFormula pf = parentFormulasOnPath.get(key);

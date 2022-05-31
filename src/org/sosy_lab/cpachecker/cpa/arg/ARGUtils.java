@@ -434,8 +434,7 @@ public class ARGUtils {
    * branching situation that indicates which of the two AssumeEdges should be taken.
    *
    * @param root The root element of the ARG (where to start the path)
-   * @param arg All elements in the ARG or a subset thereof (elements outside this set will be
-   *     ignored).
+   * @param stateFilter Only consider the subset of ARG states that satisfy this filter.
    * @param branchingInformation A function from ARG states to boolean values indicating the
    *     outgoing direction. It is only called for an ARG state with exactly two outgoing
    *     AssumeEdges, and the positive variant of the edge is passed as well. The function needs to
@@ -447,17 +446,17 @@ public class ARGUtils {
    */
   public static ARGPath getPathFromBranchingInformation(
       ARGState root,
-      Set<? extends AbstractState> arg,
+      Predicate<? super ARGState> stateFilter,
       BiFunction<ARGState, AssumeEdge, Boolean> branchingInformation)
       throws IllegalArgumentException {
 
-    checkArgument(arg.contains(root));
+    checkArgument(stateFilter.test(root));
 
     ARGPathBuilder builder = ARGPath.builder();
     ARGState currentElement = root;
     while (!currentElement.isTarget()) {
       final ImmutableSet<ARGState> childrenInArg =
-          from(currentElement.getChildren()).filter(arg::contains).toSet();
+          from(currentElement.getChildren()).filter(stateFilter).toSet();
 
       ARGState child;
       CFAEdge edge;
@@ -519,7 +518,7 @@ public class ARGUtils {
           throw new IllegalArgumentException("ARG splits with more than two branches!");
       }
 
-      checkArgument(arg.contains(child), "ARG and direction information from solver disagree!");
+      checkArgument(stateFilter.test(child), "ARG and direction information from solver disagree!");
 
       builder.add(currentElement, edge);
       currentElement = child;

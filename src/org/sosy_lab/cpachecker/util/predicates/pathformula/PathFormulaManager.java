@@ -8,15 +8,14 @@
 
 package org.sosy_lab.cpachecker.util.predicates.pathformula;
 
+import com.google.common.base.Predicate;
 import java.io.PrintStream;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
@@ -130,35 +129,32 @@ public interface PathFormulaManager {
   /**
    * Extract a single path from the ARG that is feasible for the values in a given {@link Model}.
    * The model needs to correspond to something like a BMC query for (a subset of) the ARG. This
-   * method is basically like calling {@link ARGUtils#getPathFromBranchingInformation(ARGState, Set,
-   * java.util.function.BiFunction)} and takes the branching information from the model.
+   * method is basically like calling {@link ARGUtils#getPathFromBranchingInformation(ARGState,
+   * Predicate, java.util.function.BiFunction)} and takes the branching information from the model.
    *
    * @param model The model to use for determining branching information.
    * @param root The root of the ARG, from which the path should start.
-   * @param elementsOnPath All elements in the ARG or a subset thereof (elements outside this set
-   *     will be ignored).
+   * @param stateFilter Only consider the subset of ARG states that satisfy this filter.
    * @return A feasible path through the ARG from root, which conforms to the model.
    */
-  ARGPath getARGPathFromModel(
-      Model model, ARGState root, Set<? extends AbstractState> elementsOnPath)
+  ARGPath getARGPathFromModel(Model model, ARGState root, Predicate<? super ARGState> stateFilter)
       throws CPATransferException, InterruptedException;
 
   /**
    * Extract a single path from the ARG that is feasible for the values in a given {@link Model}.
    * The model needs to correspond to something like a BMC query for (a subset of) the ARG. This
-   * method is basically like calling {@link ARGUtils#getPathFromBranchingInformation(ARGState, Set,
-   * java.util.function.BiFunction)} and takes the branching information from the model.
+   * method is basically like calling {@link ARGUtils#getPathFromBranchingInformation(ARGState,
+   * Predicate, java.util.function.BiFunction)} and takes the branching information from the model.
    *
    * @param model The model to use for determining branching information.
    * @param root The root of the ARG, from which the path should start.
-   * @param elementsOnPath All elements in the ARG or a subset thereof (elements outside this set
-   *     will be ignored).
+   * @param stateFilter Only consider the subset of ARG states that satisfy this filter.
    * @return A feasible path through the ARG from root, which conforms to the model.
    */
   ARGPath getARGPathFromModel(
       Model model,
       ARGState root,
-      Set<? extends AbstractState> elementsOnPath,
+      Predicate<? super ARGState> stateFilter,
       Map<Pair<ARGState, CFAEdge>, PathFormula> parentFormulasOnPath)
       throws CPATransferException, InterruptedException;
 

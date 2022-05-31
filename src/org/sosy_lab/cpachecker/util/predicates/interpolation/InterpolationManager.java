@@ -733,7 +733,10 @@ public final class InterpolationManager {
     try (Model model = pProver.getModel()) {
       ARGPath precisePath =
           pmgr.getARGPathFromModel(
-              model, imprecisePath.getFirstState(), pathElements, formulas.getBranchingFormulas());
+              model,
+              imprecisePath.getFirstState(),
+              pathElements::contains,
+              formulas.getBranchingFormulas());
 
       if (!precisePath.getLastState().equals(imprecisePath.getLastState())) {
         logger.log(
