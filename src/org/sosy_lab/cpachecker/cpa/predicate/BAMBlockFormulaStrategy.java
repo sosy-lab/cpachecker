@@ -184,7 +184,7 @@ public final class BAMBlockFormulaStrategy extends BlockFormulaStrategy {
       finishedFormulas.put(currentState, currentFormula);
       waitlist.addAll(currentState.getChildren());
     }
-    return new BlockFormulas(abstractionFormulas.build(), branchingFormulas.build());
+    return new BlockFormulas(abstractionFormulas.build(), branchingFormulas.buildOrThrow());
   }
 
   /** Add assumptions from OverflowCPA. */
