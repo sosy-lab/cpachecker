@@ -83,7 +83,6 @@ import org.sosy_lab.cpachecker.cpa.automaton.Automaton;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonParser;
 import org.sosy_lab.cpachecker.cpa.callstack.CallstackStateEqualsWrapper;
 import org.sosy_lab.cpachecker.cpa.formulaslicing.LoopTransitionFinder;
-import org.sosy_lab.cpachecker.cpa.predicate.BlockFormulaStrategy.BlockFormulas;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
@@ -856,11 +855,9 @@ class PredicateCPAInvariantsManager implements StatisticsProvider, InvariantSupp
         while (pathFormula.size() < abstractionStatesTrace.size()) {
           pathFormula.add(bfmgr.makeTrue());
         }
-        BlockFormulas formulas = new BlockFormulas(pathFormula);
         interpolants =
-            imgr.buildCounterexampleTrace(
-                    formulas, ImmutableList.copyOf(abstractionStatesTrace), Optional.empty())
-                .getInterpolants();
+            imgr.interpolate(pathFormula, ImmutableList.copyOf(abstractionStatesTrace))
+                .orElseThrow();
 
       } catch (CPAException | InterruptedException e) {
         logger.logUserException(

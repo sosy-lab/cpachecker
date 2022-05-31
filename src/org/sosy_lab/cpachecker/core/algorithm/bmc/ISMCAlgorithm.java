@@ -27,13 +27,11 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.cpa.loopbound.LoopBoundCPA;
-import org.sosy_lab.cpachecker.cpa.predicate.BlockFormulaStrategy.BlockFormulas;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractionManager;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CPAs;
-import org.sosy_lab.cpachecker.util.predicates.interpolation.CounterexampleTraceInfo;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.InterpolationManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
@@ -261,10 +259,7 @@ public class ISMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
             .addAll(pFormulas.getLoopFormulas().subList(1, pFormulas.getNumLoops()))
             .add(pFormulas.getAssertionFormula())
             .build();
-    BlockFormulas blkFormula = new BlockFormulas(formulasToPush);
-    CounterexampleTraceInfo cex = itpMgr.buildCounterexampleTrace(blkFormula);
-    assert cex.isSpurious();
-    ImmutableList<BooleanFormula> itpSequence = ImmutableList.copyOf(cex.getInterpolants());
+    ImmutableList<BooleanFormula> itpSequence = itpMgr.interpolate(formulasToPush).orElseThrow();
     logger.log(Level.ALL, "Interpolation sequence:", itpSequence);
     return itpSequence;
   }

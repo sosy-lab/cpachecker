@@ -69,7 +69,7 @@ public class CounterexampleTraceInfo {
    *
    * @return a list of interpolants
    */
-  public List<BooleanFormula> getInterpolants() {
+  public ImmutableList<BooleanFormula> getInterpolants() {
     checkState(spurious);
     return interpolants;
   }

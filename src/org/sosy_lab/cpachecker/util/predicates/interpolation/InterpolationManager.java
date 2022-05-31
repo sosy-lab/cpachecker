@@ -350,9 +350,46 @@ public final class InterpolationManager {
     }
   }
 
-  public CounterexampleTraceInfo buildCounterexampleTrace(final BlockFormulas pFormulas)
+  /**
+   * Compute an inductive sequence of interpolants for a given list of formulas. The conjunction of
+   * the formulas is first checked for satisfiability, it is not necessary to due this before
+   * calling this method. Note that if the formulas represent a potential error path, calling {@link
+   * #buildCounterexampleTrace(BlockFormulas, List, Optional)} instead would give additional
+   * information in case the path is feasible. If abstraction states are available, please call
+   * {@link #interpolate(List, List)}.
+   *
+   * @return <code>Optional.empty()</code> if the conjunction of the given formulas is satisfiable,
+   *     interpolants otherwise.
+   */
+  public Optional<ImmutableList<BooleanFormula>> interpolate(final List<BooleanFormula> pFormulas)
       throws CPAException, InterruptedException {
-    return buildCounterexampleTrace(pFormulas, ImmutableList.of(), Optional.empty());
+    return interpolate(pFormulas, ImmutableList.of());
+  }
+
+  /**
+   * Compute an inductive sequence of interpolants for a given list of formulas. The conjunction of
+   * the formulas is first checked for satisfiability, it is not necessary to due this before
+   * calling this method. Note that if the formulas represent a potential error path, calling {@link
+   * #buildCounterexampleTrace(BlockFormulas, List, Optional)} instead would give additional
+   * information in case the path is feasible.
+   *
+   * @param pAbstractionStates the abstraction states between the formulas and the last state of the
+   *     path. The first state (root) of the path is missing, because it is always TRUE. This is
+   *     optionally used for heuristics for getting better interpolants by reordering formulas.
+   * @return <code>Optional.empty()</code> if the conjunction of the given formulas is satisfiable,
+   *     interpolants otherwise.
+   */
+  public Optional<ImmutableList<BooleanFormula>> interpolate(
+      final List<BooleanFormula> pFormulas, final List<AbstractState> pAbstractionStates)
+      throws CPAException, InterruptedException {
+    CounterexampleTraceInfo cexInfo =
+        buildCounterexampleTrace(
+            new BlockFormulas(pFormulas), pAbstractionStates, Optional.empty());
+    if (cexInfo.isSpurious()) {
+      return Optional.of(cexInfo.getInterpolants());
+    } else {
+      return Optional.empty();
+    }
   }
 
   private CounterexampleTraceInfo buildCounterexampleTrace0(

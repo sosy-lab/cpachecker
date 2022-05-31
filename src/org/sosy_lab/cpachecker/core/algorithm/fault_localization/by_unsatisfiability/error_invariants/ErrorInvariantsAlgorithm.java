@@ -41,11 +41,9 @@ import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiabi
 import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.trace_formula.trace.TraceInterpreter;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
-import org.sosy_lab.cpachecker.cpa.predicate.BlockFormulaStrategy.BlockFormulas;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.faultlocalization.Fault;
 import org.sosy_lab.cpachecker.util.faultlocalization.FaultContribution;
-import org.sosy_lab.cpachecker.util.predicates.interpolation.CounterexampleTraceInfo;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.InterpolationManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
@@ -124,10 +122,9 @@ public class ErrorInvariantsAlgorithm implements FaultLocalizerWithTraceFormula,
             .getFormulaManager()
             .getBooleanFormulaManager()
             .not(errorTrace.getPostCondition().getPostCondition()));
-    CounterexampleTraceInfo counterexampleTraceInfo =
-        interpolationManager.buildCounterexampleTrace(new BlockFormulas(allFormulas));
+    List<BooleanFormula> interpolants = interpolationManager.interpolate(allFormulas).orElseThrow();
     return transformedImmutableListCopy(
-        counterexampleTraceInfo.getInterpolants(),
+        interpolants,
         element -> formulaContext.getSolver().getFormulaManager().uninstantiate(element));
   }
 

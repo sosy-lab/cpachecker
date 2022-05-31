@@ -23,6 +23,7 @@ import java.util.Collections;
 import java.util.Deque;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.logging.Level;
 import org.sosy_lab.common.ShutdownNotifier;
@@ -46,11 +47,9 @@ import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
-import org.sosy_lab.cpachecker.cpa.predicate.BlockFormulaStrategy.BlockFormulas;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.Pair;
-import org.sosy_lab.cpachecker.util.predicates.interpolation.CounterexampleTraceInfo;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.InterpolationManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.CachingPathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
@@ -216,23 +215,22 @@ public class ImpactAlgorithm implements Algorithm, StatisticsProvider {
       // build list of formulas for edges
       List<BooleanFormula> pathFormulas = new ArrayList<>(path.size());
       addPathFormulasToList(path, pathFormulas);
-      BlockFormulas formulas = new BlockFormulas(pathFormulas);
 
-      CounterexampleTraceInfo cex = imgr.buildCounterexampleTrace(formulas);
+      Optional<ImmutableList<BooleanFormula>> interpolants = imgr.interpolate(pathFormulas);
 
-      if (!cex.isSpurious()) {
+      if (interpolants.isEmpty()) {
         return ImmutableList.of(); // real counterexample
       }
 
       logger.log(Level.FINER, "Refinement successful");
 
       path = path.subList(0, path.size() - 1); // skip last element, itp is always false there
-      assert cex.getInterpolants().size() == path.size();
+      assert interpolants.orElseThrow().size() == path.size();
 
       ImmutableList.Builder<Vertex> changedElements = ImmutableList.builder();
 
       for (Pair<BooleanFormula, Vertex> interpolationPoint :
-          Pair.zipList(cex.getInterpolants(), path)) {
+          Pair.zipList(interpolants.orElseThrow(), path)) {
         BooleanFormula itp = interpolationPoint.getFirst();
         Vertex w = interpolationPoint.getSecond();
 
@@ -339,10 +337,9 @@ public class ImpactAlgorithm implements Algorithm, StatisticsProvider {
     path.add(0, x); // now path is [x; v] (including x and v)
     assert formulas.size() == path.size() + 1;
 
-    CounterexampleTraceInfo interpolantInfo =
-        imgr.buildCounterexampleTrace(new BlockFormulas(formulas));
+    Optional<ImmutableList<BooleanFormula>> interpolantInfo = imgr.interpolate(formulas);
 
-    if (!interpolantInfo.isSpurious()) {
+    if (interpolantInfo.isEmpty()) {
       logger.log(Level.FINER, "Forced covering unsuccessful.");
       return false; // forced covering not possible
     }
@@ -350,7 +347,7 @@ public class ImpactAlgorithm implements Algorithm, StatisticsProvider {
     successfulForcedCovering++;
     logger.log(Level.FINER, "Forced covering successful.");
 
-    List<BooleanFormula> interpolants = interpolantInfo.getInterpolants();
+    List<BooleanFormula> interpolants = interpolantInfo.orElseThrow();
     assert interpolants.size() == formulas.size() - 1;
     assert interpolants.size() == path.size();
 
