@@ -49,6 +49,7 @@ import org.sosy_lab.cpachecker.cpa.predicate.BAMBlockFormulaStrategy;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.Pair;
+import org.sosy_lab.cpachecker.util.Triple;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.CounterexampleTraceInfo;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
@@ -197,10 +198,11 @@ public class PathChecker {
       final ARGPath precisePath, final CounterexampleTraceInfo pInfo) throws InterruptedException {
 
     CFAPathWithAssumptions pathWithAssignments;
+    ImmutableList<ValueAssignment> model = ImmutableList.of();
     CounterexampleTraceInfo preciseInfo;
     try {
-      Pair<CounterexampleTraceInfo, CFAPathWithAssumptions> replayedPathResult =
-          checkPath(precisePath);
+      Triple<CounterexampleTraceInfo, ImmutableList<ValueAssignment>, CFAPathWithAssumptions>
+          replayedPathResult = checkPath(precisePath);
 
       if (replayedPathResult.getFirst().isSpurious()) {
         logger.log(Level.WARNING, "Inconsistent replayed error path!");
@@ -209,7 +211,8 @@ public class PathChecker {
 
       } else {
         preciseInfo = replayedPathResult.getFirst();
-        pathWithAssignments = replayedPathResult.getSecond();
+        model = replayedPathResult.getSecond();
+        pathWithAssignments = replayedPathResult.getThird();
       }
     } catch (SolverException | CPATransferException e) {
       // path is now suddenly a problem
@@ -221,7 +224,7 @@ public class PathChecker {
 
     CounterexampleInfo cex = CounterexampleInfo.feasiblePrecise(precisePath, pathWithAssignments);
     addCounterexampleFormula(preciseInfo, cex);
-    addCounterexampleModel(preciseInfo, cex);
+    addCounterexampleModel(model, cex);
     return cex;
   }
 
@@ -246,15 +249,12 @@ public class PathChecker {
     CounterexampleInfo cex = CounterexampleInfo.feasibleImprecise(imprecisePath);
     if (!alwaysUseImpreciseCounterexamples) {
       addCounterexampleFormula(pInfo, cex);
-      addCounterexampleModel(pInfo, cex);
     }
     return cex;
   }
 
   private void addCounterexampleModel(
-      CounterexampleTraceInfo cexInfo, CounterexampleInfo counterexample) {
-    final ImmutableList<ValueAssignment> model = cexInfo.getModel();
-
+      ImmutableList<ValueAssignment> model, CounterexampleInfo counterexample) {
     counterexample.addFurtherInformation(
         new AbstractAppender() {
           @Override
@@ -278,8 +278,8 @@ public class PathChecker {
     }
   }
 
-  private Pair<CounterexampleTraceInfo, CFAPathWithAssumptions> checkPath(ARGPath pPath)
-      throws SolverException, CPATransferException, InterruptedException {
+  private Triple<CounterexampleTraceInfo, ImmutableList<ValueAssignment>, CFAPathWithAssumptions>
+      checkPath(ARGPath pPath) throws SolverException, CPATransferException, InterruptedException {
 
     Pair<PathFormula, List<SSAMap>> result = createPrecisePathFormula(pPath);
 
@@ -292,14 +292,15 @@ public class PathChecker {
     try (ProverEnvironment thmProver = solver.newProverEnvironment(ProverOptions.GENERATE_MODELS)) {
       thmProver.push(f);
       if (thmProver.isUnsat()) {
-        return Pair.of(CounterexampleTraceInfo.infeasibleNoItp(), null);
+        return Triple.of(CounterexampleTraceInfo.infeasibleNoItp(), null, null);
       } else {
-        List<ValueAssignment> model = getModel(thmProver);
+        ImmutableList<ValueAssignment> model = getModel(thmProver);
         CFAPathWithAssumptions pathWithAssignments =
             assignmentToPathAllocator.allocateAssignmentsToPath(pPath, model, ssaMaps);
 
-        return Pair.of(
-            CounterexampleTraceInfo.feasible(ImmutableList.of(f), model, pPath),
+        return Triple.of(
+            CounterexampleTraceInfo.feasible(ImmutableList.of(f), pPath),
+            model,
             pathWithAssignments);
       }
     }
@@ -377,7 +378,7 @@ public class PathChecker {
     return pathFormula;
   }
 
-  private List<ValueAssignment> getModel(ProverEnvironment thmProver) {
+  private ImmutableList<ValueAssignment> getModel(ProverEnvironment thmProver) {
     try {
       return thmProver.getModelAssignments();
     } catch (SolverException e) {

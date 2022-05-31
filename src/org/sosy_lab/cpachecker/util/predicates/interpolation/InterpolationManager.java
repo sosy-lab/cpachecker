@@ -733,7 +733,6 @@ public final class InterpolationManager {
     try (Model model = pProver.getModel()) {
       return CounterexampleTraceInfo.feasible(
           formulas.getFormulas(),
-          ImmutableList.of(),
           pmgr.getARGPathFromModel(
               model, imprecisePath.getFirstState(), pathElements, formulas.getBranchingFormulas()));
     } catch (IllegalArgumentException | CPATransferException e) {

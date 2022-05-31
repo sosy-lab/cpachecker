@@ -14,7 +14,6 @@ import com.google.common.collect.ImmutableList;
 import java.util.List;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.java_smt.api.BooleanFormula;
-import org.sosy_lab.java_smt.api.Model.ValueAssignment;
 
 /**
  * A class that stores information about a counterexample trace. For spurious counterexamples, this
@@ -23,47 +22,37 @@ import org.sosy_lab.java_smt.api.Model.ValueAssignment;
 public class CounterexampleTraceInfo {
   private final boolean spurious;
   private final ImmutableList<BooleanFormula> interpolants;
-  private final ImmutableList<ValueAssignment> mCounterexampleModel;
   private final ImmutableList<BooleanFormula> mCounterexampleFormula;
   private final ARGPath precisePath;
 
   private CounterexampleTraceInfo(
       boolean pSpurious,
       ImmutableList<BooleanFormula> pInterpolants,
-      ImmutableList<ValueAssignment> pCounterexampleModel,
       ImmutableList<BooleanFormula> pCounterexampleFormula,
       ARGPath pPrecisePath) {
     spurious = pSpurious;
     interpolants = pInterpolants;
-    mCounterexampleModel = pCounterexampleModel;
     mCounterexampleFormula = pCounterexampleFormula;
     precisePath = pPrecisePath;
   }
 
   public static CounterexampleTraceInfo infeasible(List<BooleanFormula> pInterpolants) {
-    return new CounterexampleTraceInfo(
-        true, ImmutableList.copyOf(pInterpolants), null, ImmutableList.of(), null);
+    return new CounterexampleTraceInfo(true, ImmutableList.copyOf(pInterpolants), null, null);
   }
 
   public static CounterexampleTraceInfo infeasibleNoItp() {
-    return new CounterexampleTraceInfo(true, null, null, ImmutableList.of(), null);
+    return new CounterexampleTraceInfo(true, null, null, null);
   }
 
   public static CounterexampleTraceInfo feasible(
-      List<BooleanFormula> pCounterexampleFormula,
-      Iterable<ValueAssignment> pModel,
-      ARGPath pPrecisePath) {
+      List<BooleanFormula> pCounterexampleFormula, ARGPath pPrecisePath) {
     return new CounterexampleTraceInfo(
-        false,
-        ImmutableList.of(),
-        ImmutableList.copyOf(pModel),
-        ImmutableList.copyOf(pCounterexampleFormula),
-        pPrecisePath);
+        false, ImmutableList.of(), ImmutableList.copyOf(pCounterexampleFormula), pPrecisePath);
   }
 
   public static CounterexampleTraceInfo feasibleNoModel(
       List<BooleanFormula> pCounterexampleFormula) {
-    return CounterexampleTraceInfo.feasible(pCounterexampleFormula, ImmutableList.of(), null);
+    return CounterexampleTraceInfo.feasible(pCounterexampleFormula, null);
   }
 
   /**
@@ -93,11 +82,6 @@ public class CounterexampleTraceInfo {
   public List<BooleanFormula> getCounterExampleFormulas() {
     checkState(!spurious);
     return mCounterexampleFormula;
-  }
-
-  public ImmutableList<ValueAssignment> getModel() {
-    checkState(!spurious);
-    return mCounterexampleModel;
   }
 
   public ARGPath getPrecisePath() {
