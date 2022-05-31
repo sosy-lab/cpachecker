@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.util.cwriter;
 
+import static com.google.common.base.Preconditions.checkArgument;
+
 import java.io.IOException;
 import org.eclipse.cdt.core.dom.ast.IASTTranslationUnit;
 import org.eclipse.core.runtime.CoreException;
@@ -46,10 +48,9 @@ public class CfaToCExporter {
       throw new InvalidConfigurationException(
           "CFA can only be exported to C for C input programs, at the moment.");
     }
-    if (pCfa.getFileNames().size() > 1) {
-      throw new IllegalArgumentException(
-          "CFA can only be exported for a single input program, at the moment.");
-    }
+    checkArgument(
+        pCfa.getFileNames().size() <= 1,
+        "CFA can only be exported for a single input program, at the moment.");
 
     try {
       final IASTTranslationUnit astUnit =
