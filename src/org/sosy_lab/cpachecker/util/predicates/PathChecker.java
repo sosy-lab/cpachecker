@@ -49,7 +49,6 @@ import org.sosy_lab.cpachecker.cpa.predicate.BAMBlockFormulaStrategy;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.Pair;
-import org.sosy_lab.cpachecker.util.Triple;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.CounterexampleTraceInfo;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
@@ -203,29 +202,35 @@ public class PathChecker {
    * fails, an imprecise result is returned.
    *
    * @param precisePath The precise ARGPath that represents the counterexample.
-   * @param pInfo More information about the counterexample
+   * @param pInfo More information about the counterexample (as fallback).
    * @return a {@link CounterexampleInfo} instance
    */
   private CounterexampleInfo createCounterexample(
       final ARGPath precisePath, final CounterexampleTraceInfo pInfo) throws InterruptedException {
 
-    CFAPathWithAssumptions pathWithAssignments;
-    ImmutableList<ValueAssignment> model = ImmutableList.of();
-    CounterexampleTraceInfo preciseInfo;
-    try {
-      Triple<CounterexampleTraceInfo, ImmutableList<ValueAssignment>, CFAPathWithAssumptions>
-          replayedPathResult = checkPath(precisePath);
+    try (ProverEnvironment prover = solver.newProverEnvironment(ProverOptions.GENERATE_MODELS)) {
 
-      if (replayedPathResult.getFirst().isSpurious()) {
+      Pair<PathFormula, List<SSAMap>> replayedPath = createPrecisePathFormula(precisePath);
+      List<SSAMap> ssaMaps = replayedPath.getSecond();
+      BooleanFormula pathFormula = replayedPath.getFirstNotNull().getFormula();
+
+      prover.push(pathFormula);
+
+      if (prover.isUnsat()) {
         logger.log(Level.WARNING, "Inconsistent replayed error path!");
         logger.log(Level.WARNING, "The satisfying assignment may be imprecise!");
         return createImpreciseCounterexample(precisePath, pInfo);
-
-      } else {
-        preciseInfo = replayedPathResult.getFirst();
-        model = replayedPathResult.getSecond();
-        pathWithAssignments = replayedPathResult.getThird();
       }
+
+      ImmutableList<ValueAssignment> model = getModel(prover);
+      CFAPathWithAssumptions pathWithAssignments =
+          assignmentToPathAllocator.allocateAssignmentsToPath(precisePath, model, ssaMaps);
+
+      CounterexampleInfo cex = CounterexampleInfo.feasiblePrecise(precisePath, pathWithAssignments);
+      addCounterexampleFormula(ImmutableList.of(pathFormula), cex);
+      addCounterexampleModel(model, cex);
+      return cex;
+
     } catch (SolverException | CPATransferException e) {
       // path is now suddenly a problem
       logger.logUserException(
@@ -233,11 +238,6 @@ public class PathChecker {
       logger.log(Level.WARNING, "The satisfying assignment may be imprecise!");
       return createImpreciseCounterexample(precisePath, pInfo);
     }
-
-    CounterexampleInfo cex = CounterexampleInfo.feasiblePrecise(precisePath, pathWithAssignments);
-    addCounterexampleFormula(preciseInfo, cex);
-    addCounterexampleModel(model, cex);
-    return cex;
   }
 
   /**
@@ -260,7 +260,7 @@ public class PathChecker {
     }
     CounterexampleInfo cex = CounterexampleInfo.feasibleImprecise(imprecisePath);
     if (!alwaysUseImpreciseCounterexamples) {
-      addCounterexampleFormula(pInfo, cex);
+      addCounterexampleFormula(pInfo.getCounterExampleFormulas(), cex);
     }
     return cex;
   }
@@ -280,41 +280,13 @@ public class PathChecker {
   }
 
   private void addCounterexampleFormula(
-      CounterexampleTraceInfo cexInfo, CounterexampleInfo counterexample) {
+      List<BooleanFormula> cexFormulas, CounterexampleInfo counterexample) {
     FormulaManagerView fmgr = solver.getFormulaManager();
     BooleanFormulaManagerView bfmgr = fmgr.getBooleanFormulaManager();
 
-    BooleanFormula f = bfmgr.and(cexInfo.getCounterExampleFormulas());
+    BooleanFormula f = bfmgr.and(cexFormulas);
     if (!bfmgr.isTrue(f)) {
       counterexample.addFurtherInformation(fmgr.dumpFormula(f), dumpCounterexampleFormula);
-    }
-  }
-
-  private Triple<CounterexampleTraceInfo, ImmutableList<ValueAssignment>, CFAPathWithAssumptions>
-      checkPath(ARGPath pPath) throws SolverException, CPATransferException, InterruptedException {
-
-    Pair<PathFormula, List<SSAMap>> result = createPrecisePathFormula(pPath);
-
-    List<SSAMap> ssaMaps = result.getSecond();
-
-    PathFormula pathFormula = result.getFirstNotNull();
-
-    BooleanFormula f = pathFormula.getFormula();
-
-    try (ProverEnvironment thmProver = solver.newProverEnvironment(ProverOptions.GENERATE_MODELS)) {
-      thmProver.push(f);
-      if (thmProver.isUnsat()) {
-        return Triple.of(CounterexampleTraceInfo.infeasibleNoItp(), null, null);
-      } else {
-        ImmutableList<ValueAssignment> model = getModel(thmProver);
-        CFAPathWithAssumptions pathWithAssignments =
-            assignmentToPathAllocator.allocateAssignmentsToPath(pPath, model, ssaMaps);
-
-        return Triple.of(
-            CounterexampleTraceInfo.feasible(ImmutableList.of(f), pPath),
-            model,
-            pathWithAssignments);
-      }
     }
   }
 
