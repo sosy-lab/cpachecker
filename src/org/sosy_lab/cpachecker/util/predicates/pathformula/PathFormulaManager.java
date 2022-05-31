@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.util.predicates.pathformula;
 
 import com.google.common.base.Predicate;
+import com.google.common.collect.ImmutableMap;
 import java.io.PrintStream;
 import java.util.List;
 import java.util.Map;
@@ -137,8 +138,11 @@ public interface PathFormulaManager {
    * @param stateFilter Only consider the subset of ARG states that satisfy this filter.
    * @return A feasible path through the ARG from root, which conforms to the model.
    */
-  ARGPath getARGPathFromModel(Model model, ARGState root, Predicate<? super ARGState> stateFilter)
-      throws CPATransferException, InterruptedException;
+  default ARGPath getARGPathFromModel(
+      Model model, ARGState root, Predicate<? super ARGState> stateFilter)
+      throws CPATransferException, InterruptedException {
+    return getARGPathFromModel(model, root, stateFilter, ImmutableMap.of());
+  }
 
   /**
    * Extract a single path from the ARG that is feasible for the values in a given {@link Model}.

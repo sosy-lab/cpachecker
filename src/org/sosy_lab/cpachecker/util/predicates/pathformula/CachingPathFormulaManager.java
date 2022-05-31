@@ -197,13 +197,6 @@ public class CachingPathFormulaManager implements PathFormulaManager {
 
   @Override
   public ARGPath getARGPathFromModel(
-      Model pModel, ARGState pRoot, Predicate<? super ARGState> pStateFilter)
-      throws CPATransferException, InterruptedException {
-    return delegate.getARGPathFromModel(pModel, pRoot, pStateFilter);
-  }
-
-  @Override
-  public ARGPath getARGPathFromModel(
       Model pModel,
       ARGState pRoot,
       Predicate<? super ARGState> pStateFilter,

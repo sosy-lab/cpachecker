@@ -12,7 +12,6 @@ import static com.google.common.base.Verify.verifyNotNull;
 
 import com.google.common.base.Predicate;
 import com.google.common.base.Throwables;
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import java.io.PrintStream;
@@ -417,24 +416,6 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
       String pVarName, CType pType, PointerTargetSet pContextPTS, boolean forcePointerDereference) {
     return converter.makeFormulaForUninstantiatedVariable(
         pVarName, pType, pContextPTS, forcePointerDereference);
-  }
-
-  /**
-   * Extract a single path from the ARG that is feasible for the values in a given {@link Model}.
-   * The model needs to correspond to something like a BMC query for (a subset of) the ARG. This
-   * method is basically like calling {@link ARGUtils#getPathFromBranchingInformation(ARGState,
-   * Predicate, java.util.function.BiFunction)} and takes the branching information from the model.
-   *
-   * @param model The model to use for determining branching information.
-   * @param root The root of the ARG, from which the path should start.
-   * @param stateFilter Only consider the subset of ARG states that satisfy this filter.
-   * @return A feasible path through the ARG from root, which conforms to the model.
-   */
-  @Override
-  public ARGPath getARGPathFromModel(
-      Model model, ARGState root, Predicate<? super ARGState> stateFilter)
-      throws CPATransferException, InterruptedException {
-    return getARGPathFromModel(model, root, stateFilter, ImmutableMap.of());
   }
 
   /**
