@@ -232,11 +232,6 @@ public final class InterpolationManager {
               + " options instead of giving up immediately.")
   private boolean tryAgainOnInterpolationError = true;
 
-  @Option(
-      secure = true,
-      description = "discard the information of the error path when a counterexample is found")
-  private boolean discardErrorPath = false;
-
   private final ITPStrategy itpStrategy;
 
   private final ExecutorService executor;
@@ -724,7 +719,7 @@ public final class InterpolationManager {
       BlockFormulas formulas, BasicProverEnvironment<?> pProver, Optional<ARGPath> pImprecisePath)
       throws SolverException, InterruptedException {
 
-    if (discardErrorPath || pImprecisePath.isEmpty()) {
+    if (pImprecisePath.isEmpty()) {
       return CounterexampleTraceInfo.feasibleNoModel(formulas.getFormulas());
     }
 
