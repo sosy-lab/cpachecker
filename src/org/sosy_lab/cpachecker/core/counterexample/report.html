@@ -584,9 +584,9 @@ with considerably less effort -->
           <div class="edit-line">
             <select
               class="btn btn-outline-secondary selectpicker"
-              ng-options="s as s for s in sourceFileSelections"
+              ng-options="s as s for s in sourceFiles"
               ng-model="$root.displayedSourceFiles"
-              ng-change="sourceFileControl()"
+              ng-change="setSourceFile()"
             ></select>
             <select
               class="btn btn-outline-secondary selectpicker"

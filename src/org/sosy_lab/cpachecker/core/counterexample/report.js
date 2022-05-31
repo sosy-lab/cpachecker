@@ -1546,14 +1546,12 @@ function renderTDG(dataJSON, color, inPercentage) {
     "$rootScope",
     "$scope",
     function sourceController($rootScope, $scope) {
-      $scope.sourceFileSelections = sourceFiles;
-      $rootScope.displayedSourceFiles = $scope.sourceFileSelections[0];
+      $scope.sourceFiles = sourceFiles;
+      $rootScope.displayedSourceFiles = $scope.sourceFiles[0];
       $scope.selectedSourceFile = 0;
-      $scope.sourceFileControl = () => {
-        for (let i = 0; i < $scope.sourceFileSelections.length; i += 1) {
-          if (
-            $scope.sourceFileSelections[i] === $rootScope.displayedSourceFiles
-          ) {
+      $scope.setSourceFile = () => {
+        for (let i = 0; i < $scope.sourceFiles.length; i += 1) {
+          if ($scope.sourceFiles[i] === $rootScope.displayedSourceFiles) {
             $scope.selectedSourceFile = i;
             break;
           }
