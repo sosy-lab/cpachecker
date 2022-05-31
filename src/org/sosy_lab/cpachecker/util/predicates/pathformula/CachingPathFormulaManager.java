@@ -207,9 +207,9 @@ public class CachingPathFormulaManager implements PathFormulaManager {
       Model pModel,
       ARGState pRoot,
       Predicate<? super ARGState> pStateFilter,
-      Map<Pair<ARGState, CFAEdge>, PathFormula> pParentFormulasOnPath)
+      Map<Pair<ARGState, CFAEdge>, PathFormula> pBranchingFormulasOverride)
       throws CPATransferException, InterruptedException {
-    return delegate.getARGPathFromModel(pModel, pRoot, pStateFilter, pParentFormulasOnPath);
+    return delegate.getARGPathFromModel(pModel, pRoot, pStateFilter, pBranchingFormulasOverride);
   }
 
   @Override

@@ -12,12 +12,13 @@ import static com.google.common.base.Preconditions.checkState;
 
 import com.google.common.collect.ImmutableList;
 import java.util.List;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 
 /**
  * A class that stores information about a counterexample trace. For spurious counterexamples, this
- * stores the interpolants.
+ * stores the interpolants, for real counterexamples information about the counterexample.
  */
 public class CounterexampleTraceInfo {
   private final boolean spurious;
@@ -50,22 +51,19 @@ public class CounterexampleTraceInfo {
         false, ImmutableList.of(), ImmutableList.copyOf(pCounterexampleFormula), pPrecisePath);
   }
 
-  public static CounterexampleTraceInfo feasibleNoModel(
+  public static CounterexampleTraceInfo feasibleImprecise(
       List<BooleanFormula> pCounterexampleFormula) {
     return CounterexampleTraceInfo.feasible(pCounterexampleFormula, null);
   }
 
-  /**
-   * checks whether this trace is a real bug or a spurious counterexample
-   *
-   * @return true if this trace is spurious, false otherwise
-   */
+  /** Return whether this trace is a feasible path or a spurious counterexample. */
   public boolean isSpurious() {
     return spurious;
   }
 
   /**
-   * Returns the list of interpolants that were discovered during counterexample analysis.
+   * Returns the list of interpolants that were discovered during counterexample analysis. Available
+   * if this counterexample is spurious.
    *
    * @return a list of interpolants
    */
@@ -79,12 +77,20 @@ public class CounterexampleTraceInfo {
     return "Spurious: " + isSpurious() + (isSpurious() ? ", interpolants: " + interpolants : "");
   }
 
-  public List<BooleanFormula> getCounterExampleFormulas() {
+  /**
+   * Return a satisfiable list of formulas representing this counterexample. Available if this
+   * counterexample is not spurious.
+   */
+  public ImmutableList<BooleanFormula> getCounterExampleFormulas() {
     checkState(!spurious);
     return mCounterexampleFormula;
   }
 
-  public ARGPath getPrecisePath() {
+  /**
+   * Return a precise representation of this counterexample in the ARG. Only available if this
+   * counterexample is not spurious, but could be <code>null</code> if it could not be computed.
+   */
+  public @Nullable ARGPath getPrecisePath() {
     checkState(!spurious);
     return precisePath;
   }

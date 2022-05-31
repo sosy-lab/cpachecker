@@ -147,7 +147,7 @@ public class NewtonRefinementManager implements StatisticsProvider {
       List<PathLocation> pathLocations = buildPathLocationList(pAllStatesTrace);
       if (isFeasible(pFormulas.getFormulas(), pAllStatesTrace)) {
         // Create feasible CounterexampleTrace
-        return CounterexampleTraceInfo.feasibleNoModel(pFormulas.getFormulas());
+        return CounterexampleTraceInfo.feasibleImprecise(pFormulas.getFormulas());
       } else {
         // Create infeasible Counterexample
         List<BooleanFormula> predicates;

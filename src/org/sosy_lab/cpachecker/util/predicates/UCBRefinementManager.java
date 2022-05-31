@@ -76,7 +76,7 @@ public class UCBRefinementManager {
     List<BooleanFormula> preds = computeWeakestPreconditions(trace);
 
     if (preds == null) {
-      return CounterexampleTraceInfo.feasibleNoModel(pFormulas.getFormulas());
+      return CounterexampleTraceInfo.feasibleImprecise(pFormulas.getFormulas());
     } else {
       preds = computeUCB(trace, pFormulas, preds);
       preds.addAll(

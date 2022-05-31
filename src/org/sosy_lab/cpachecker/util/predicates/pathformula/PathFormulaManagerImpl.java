@@ -446,6 +446,11 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
    * @param model The model to use for determining branching information.
    * @param root The root of the ARG, from which the path should start.
    * @param stateFilter Only consider the subset of ARG states that satisfy this filter.
+   * @param branchingFormulasOverride When a formula for the expression of a specific assume edge is
+   *     needed, it is first looked up in this map. If not present the formula is created on-the-fly
+   *     using the context (SSAMap etc.) from the predicate abstract state inside the {@link
+   *     ARGState} at the branching point. The caller needs to ensure that the resulting formulas
+   *     match the variables present in the model.
    * @return A feasible path through the ARG from root, which conforms to the model.
    */
   @Override
@@ -453,7 +458,7 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
       Model model,
       ARGState root,
       Predicate<? super ARGState> stateFilter,
-      Map<Pair<ARGState, CFAEdge>, PathFormula> parentFormulasOnPath)
+      Map<Pair<ARGState, CFAEdge>, PathFormula> branchingFormulasOverride)
       throws CPATransferException, InterruptedException {
 
     final class WrappingException extends RuntimeException {
@@ -470,7 +475,7 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
           stateFilter,
           (pathElement, positiveEdge) -> {
             final Pair<ARGState, CFAEdge> key = Pair.of(pathElement, positiveEdge);
-            PathFormula pf = parentFormulasOnPath.get(key);
+            PathFormula pf = branchingFormulasOverride.get(key);
 
             if (pf == null) {
               // create formula by edge, be sure to use the correct SSA indices!
