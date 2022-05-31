@@ -286,7 +286,6 @@ public class PredicateCPARefiner implements ARGBasedRefiner, StatisticsProvider 
       branchingOccurred = true;
       if (elementsOnPath.size() == allStatesTrace.size()
           && !containsBranchingInPath(elementsOnPath)) {
-        elementsOnPath = ImmutableSet.of();
         branchingOccurred = false;
       }
 
