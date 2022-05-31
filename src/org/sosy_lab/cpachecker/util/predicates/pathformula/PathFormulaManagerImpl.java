@@ -9,23 +9,17 @@
 package org.sosy_lab.cpachecker.util.predicates.pathformula;
 
 import static com.google.common.base.Verify.verifyNotNull;
-import static com.google.common.collect.FluentIterable.from;
 
-import com.google.common.base.Predicates;
 import com.google.common.base.Throwables;
-import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import java.io.PrintStream;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.logging.Level;
-import java.util.regex.Pattern;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
@@ -38,7 +32,6 @@ import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
-import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
@@ -73,7 +66,6 @@ import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.Formula;
 import org.sosy_lab.java_smt.api.FormulaType;
 import org.sosy_lab.java_smt.api.Model;
-import org.sosy_lab.java_smt.api.Model.ValueAssignment;
 
 /**
  * Class implementing the FormulaManager interface, providing some commonly used stuff which is
@@ -106,10 +98,6 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
     DEFAULT,
     SYMBOLICLOCATIONS
   }
-
-  private static final String BRANCHING_PREDICATE_NAME = "__ART__";
-  private static final Pattern BRANCHING_PREDICATE_NAME_PATTERN =
-      Pattern.compile("^.*" + BRANCHING_PREDICATE_NAME + "(?=\\d+$)");
 
   private static final String NONDET_VARIABLE = "__nondet__";
   static final String NONDET_FLAG_VARIABLE = NONDET_VARIABLE + "flag__";
@@ -430,165 +418,6 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
       String pVarName, CType pType, PointerTargetSet pContextPTS, boolean forcePointerDereference) {
     return converter.makeFormulaForUninstantiatedVariable(
         pVarName, pType, pContextPTS, forcePointerDereference);
-  }
-
-  /**
-   * Build a formula containing a predicate for all branching situations in the ARG. If a satisfying
-   * assignment is created for this formula, it can be used to find out which paths in the ARG are
-   * feasible.
-   *
-   * <p>This method may be called with an empty set, in which case it does nothing and returns the
-   * formula "true".
-   *
-   * @param elementsOnPath The ARG states that should be considered.
-   * @return A formula containing a predicate for each branching.
-   */
-  @Override
-  @Deprecated
-  public BooleanFormula buildBranchingFormula(Set<ARGState> elementsOnPath)
-      throws CPATransferException, InterruptedException {
-    return buildBranchingFormula(elementsOnPath, ImmutableMap.of());
-  }
-
-  /**
-   * Build a formula containing a predicate for all branching situations in the ARG. If a satisfying
-   * assignment is created for this formula, it can be used to find out which paths in the ARG are
-   * feasible.
-   *
-   * <p>This method may be called with an empty set, in which case it does nothing and returns the
-   * formula "true".
-   *
-   * @param elementsOnPath The ARG states that should be considered.
-   * @param parentFormulasOnPath TODO.
-   * @return A formula containing a predicate for each branching.
-   */
-  @Override
-  @Deprecated
-  public BooleanFormula buildBranchingFormula(
-      Set<ARGState> elementsOnPath, Map<Pair<ARGState, CFAEdge>, PathFormula> parentFormulasOnPath)
-      throws CPATransferException, InterruptedException {
-    // build the branching formula that will help us find the real error path
-    List<BooleanFormula> branchingFormula = new ArrayList<>();
-    for (final ARGState pathElement : elementsOnPath) {
-      final ImmutableSet<ARGState> childrenOnPath =
-          from(pathElement.getChildren()).filter(elementsOnPath::contains).toSet();
-
-      if (childrenOnPath.size() > 1) {
-        if (childrenOnPath.size() > 2) {
-          // can't create branching formula
-          if (from(childrenOnPath).anyMatch(AbstractStates::isTargetState)) {
-            // We expect this situation of one of the children is a target state created by
-            // PredicateCPA.
-            continue;
-          } else {
-            logger.log(
-                Level.WARNING,
-                "ARG branching with more than two outgoing edges at ARG node "
-                    + pathElement.getStateId()
-                    + ".");
-            return bfmgr.makeTrue();
-          }
-        }
-
-        FluentIterable<CFAEdge> outgoingEdges =
-            from(childrenOnPath).transform(pathElement::getEdgeToChild);
-        if (!outgoingEdges.allMatch(Predicates.instanceOf(AssumeEdge.class))) {
-          if (from(childrenOnPath).anyMatch(AbstractStates::isTargetState)) {
-            // We expect this situation of one of the children is a target state created by
-            // PredicateCPA.
-            continue;
-          } else {
-            logger.log(
-                Level.WARNING,
-                "ARG branching without AssumeEdge at ARG node " + pathElement.getStateId() + ".");
-            return bfmgr.makeTrue();
-          }
-        }
-
-        assert outgoingEdges.size() == 2;
-
-        // We expect there to be exactly one positive and one negative edge
-        AssumeEdge positiveEdge = null;
-        AssumeEdge negativeEdge = null;
-        for (AssumeEdge currentEdge : outgoingEdges.filter(AssumeEdge.class)) {
-          if (currentEdge.getTruthAssumption()) {
-            positiveEdge = currentEdge;
-          } else {
-            negativeEdge = currentEdge;
-          }
-        }
-        if (positiveEdge == null || negativeEdge == null) {
-          logger.log(
-              Level.WARNING,
-              "Ambiguous ARG branching at ARG node " + pathElement.getStateId() + ".");
-          return bfmgr.makeTrue();
-        }
-
-        BooleanFormula pred =
-            bfmgr.makeVariable(BRANCHING_PREDICATE_NAME + pathElement.getStateId());
-
-        Pair<ARGState, CFAEdge> key = Pair.of(pathElement, positiveEdge);
-        PathFormula pf = parentFormulasOnPath.get(key);
-
-        if (pf == null) {
-          // create formula by edge, be sure to use the correct SSA indices!
-          // TODO the class PathFormulaManagerImpl should not depend on PredicateAbstractState,
-          // it is used without PredicateCPA as well.
-          PredicateAbstractState pe =
-              AbstractStates.extractStateByType(pathElement, PredicateAbstractState.class);
-          if (pe == null) {
-            logger.log(
-                Level.WARNING, "Cannot find precise error path information without PredicateCPA");
-            return bfmgr.makeTrue();
-          } else {
-            pf = pe.getPathFormula();
-          }
-          pf = makeEmptyPathFormulaWithContextFrom(pf); // reset everything except SSAMap
-          pf = this.makeAnd(pf, positiveEdge); // conjunct with edge
-        }
-        BooleanFormula equiv = bfmgr.equivalence(pred, pf.getFormula());
-        branchingFormula.add(equiv);
-      }
-    }
-    return bfmgr.and(branchingFormula);
-  }
-
-  /**
-   * Extract the information about the branching predicates created by {@link
-   * #buildBranchingFormula(Set)} from a satisfying assignment.
-   *
-   * <p>A map is created that stores for each ARGState (using its element id as the map key) which
-   * edge was taken (the positive or the negated one).
-   *
-   * @param model A satisfying assignment that should contain values for branching predicates.
-   * @return A map from ARG state id to a boolean value indicating direction.
-   */
-  @Override
-  @Deprecated
-  public ImmutableMap<Integer, Boolean> getBranchingPredicateValuesFromModel(
-      Iterable<ValueAssignment> model) {
-    // Do not use fmgr here, this fails if a separate solver is used for interpolation.
-    if (!model.iterator().hasNext()) {
-      logger.log(Level.WARNING, "No satisfying assignment given by solver!");
-      return ImmutableMap.of();
-    }
-
-    ImmutableMap.Builder<Integer, Boolean> preds = ImmutableMap.builder();
-    for (ValueAssignment entry : model) {
-      String canonicalName = entry.getName();
-
-      if (entry.getKey() instanceof BooleanFormula) {
-        String name = BRANCHING_PREDICATE_NAME_PATTERN.matcher(canonicalName).replaceFirst("");
-        if (!name.equals(canonicalName)) {
-          // pattern matched, so it's a variable with __ART__ in it
-
-          // no NumberFormatException because of RegExp match earlier
-          Integer nodeId = Integer.parseInt(name);
-          preds.put(nodeId, (Boolean) entry.getValue()); // fails on duplicate key
-        }
-      }
-    }
-    return preds.buildOrThrow();
   }
 
   /**

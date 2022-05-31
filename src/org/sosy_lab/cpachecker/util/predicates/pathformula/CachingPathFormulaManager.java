@@ -35,7 +35,6 @@ import org.sosy_lab.cpachecker.util.statistics.ThreadSafeTimerContainer.TimerWra
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.Formula;
 import org.sosy_lab.java_smt.api.Model;
-import org.sosy_lab.java_smt.api.Model.ValueAssignment;
 
 /**
  * Implementation of {@link PathFormulaManager} that delegates to another instance but caches
@@ -195,29 +194,6 @@ public class CachingPathFormulaManager implements PathFormulaManager {
   public PathFormula makeFormulaForPath(List<CFAEdge> pPath)
       throws CPATransferException, InterruptedException {
     return delegate.makeFormulaForPath(pPath);
-  }
-
-  @Override
-  @Deprecated
-  public BooleanFormula buildBranchingFormula(Set<ARGState> pElementsOnPath)
-      throws CPATransferException, InterruptedException {
-    return delegate.buildBranchingFormula(pElementsOnPath);
-  }
-
-  @Override
-  @Deprecated
-  public BooleanFormula buildBranchingFormula(
-      Set<ARGState> pElementsOnPath,
-      Map<Pair<ARGState, CFAEdge>, PathFormula> pParentFormulasOnPath)
-      throws CPATransferException, InterruptedException {
-    return delegate.buildBranchingFormula(pElementsOnPath, pParentFormulasOnPath);
-  }
-
-  @Override
-  @Deprecated
-  public Map<Integer, Boolean> getBranchingPredicateValuesFromModel(
-      Iterable<ValueAssignment> pModel) {
-    return delegate.getBranchingPredicateValuesFromModel(pModel);
   }
 
   @Override

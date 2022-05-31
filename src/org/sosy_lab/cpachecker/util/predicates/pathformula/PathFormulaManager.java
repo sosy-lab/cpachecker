@@ -30,7 +30,6 @@ import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.BooleanFormulaManager;
 import org.sosy_lab.java_smt.api.Formula;
 import org.sosy_lab.java_smt.api.Model;
-import org.sosy_lab.java_smt.api.Model.ValueAssignment;
 
 public interface PathFormulaManager {
 
@@ -127,61 +126,6 @@ public interface PathFormulaManager {
    */
   Formula makeFormulaForUninstantiatedVariable(
       String pVarName, CType pType, PointerTargetSet pContextPTS, boolean forcePointerDereference);
-
-  /**
-   * Build a formula containing a predicate for all branching situations in the ARG. If a satisfying
-   * assignment is created for this formula, it can be used to find out which paths in the ARG are
-   * feasible.
-   *
-   * <p>This method may be called with an empty set, in which case it does nothing and returns the
-   * formula "true".
-   *
-   * @param pElementsOnPath The ARG states that should be considered.
-   * @return A formula containing a predicate for each branching.
-   * @deprecated Instead of eagerly creating a branching formula for all branchings in the ARG
-   *     (which can get large), use {@link #getARGPathFromModel(Model, ARGState, Set)} to compute
-   *     the desired path directly with more efficient on-the-fly queries to the solver model.
-   */
-  @Deprecated
-  BooleanFormula buildBranchingFormula(Set<ARGState> pElementsOnPath)
-      throws CPATransferException, InterruptedException;
-
-  /**
-   * Build a formula containing a predicate for all branching situations in the ARG. If a satisfying
-   * assignment is created for this formula, it can be used to find out which paths in the ARG are
-   * feasible.
-   *
-   * <p>This method may be called with an empty set, in which case it does nothing and returns the
-   * formula "true".
-   *
-   * @param elementsOnPath The ARG states that should be considered.
-   * @param parentFormulasOnPath TODO.
-   * @return A formula containing a predicate for each branching.
-   * @deprecated Instead of eagerly creating a branching formula for all branchings in the ARG
-   *     (which can get large), use {@link #getARGPathFromModel(Model, ARGState, Set, Map)} to
-   *     compute the desired path directly with more efficient on-the-fly queries to the solver
-   *     model.
-   */
-  @Deprecated
-  BooleanFormula buildBranchingFormula(
-      Set<ARGState> elementsOnPath, Map<Pair<ARGState, CFAEdge>, PathFormula> parentFormulasOnPath)
-      throws CPATransferException, InterruptedException;
-
-  /**
-   * Extract the information about the branching predicates created by {@link
-   * #buildBranchingFormula(Set)} from a satisfying assignment.
-   *
-   * <p>A map is created that stores for each ARGState (using its element id as the map key) which
-   * edge was taken (the positive or the negated one).
-   *
-   * @param pModel A satisfying assignment that should contain values for branching predicates.
-   * @return A map from ARG state id to a boolean value indicating direction.
-   * @deprecated Instead of eagerly creating branching information for all branchings in the ARG
-   *     (which can get large), use {@link #getARGPathFromModel(Model, ARGState, Set)} to compute
-   *     the desired path directly with more efficient on-the-fly queries to the solver model.
-   */
-  @Deprecated
-  Map<Integer, Boolean> getBranchingPredicateValuesFromModel(Iterable<ValueAssignment> pModel);
 
   /**
    * Extract a single path from the ARG that is feasible for the values in a given {@link Model}.
