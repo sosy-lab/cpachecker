@@ -731,10 +731,17 @@ public final class InterpolationManager {
     ARGPath imprecisePath = pImprecisePath.orElseThrow();
     Set<ARGState> pathElements = ARGUtils.getAllStatesOnPathsTo(imprecisePath.getLastState());
     try (Model model = pProver.getModel()) {
-      return CounterexampleTraceInfo.feasible(
-          formulas.getFormulas(),
+      ARGPath precisePath =
           pmgr.getARGPathFromModel(
-              model, imprecisePath.getFirstState(), pathElements, formulas.getBranchingFormulas()));
+              model, imprecisePath.getFirstState(), pathElements, formulas.getBranchingFormulas());
+
+      if (!precisePath.getLastState().equals(imprecisePath.getLastState())) {
+        logger.log(
+            Level.WARNING, "Could not create error path: ARG target path reached the wrong state!");
+        return CounterexampleTraceInfo.feasibleNoModel(formulas.getFormulas());
+      }
+
+      return CounterexampleTraceInfo.feasible(formulas.getFormulas(), precisePath);
     } catch (IllegalArgumentException | CPATransferException e) {
       logger.logUserException(Level.WARNING, e, "Could not create error path");
       return CounterexampleTraceInfo.feasibleNoModel(formulas.getFormulas());

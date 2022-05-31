@@ -1155,6 +1155,11 @@ public class PdrAlgorithm implements Algorithm {
           return;
         }
 
+        if (!targetPath.getLastState().isTarget()) {
+          logger.log(Level.WARNING, "Could not create error path: path ends without target state!");
+          return;
+        }
+
       } catch (SolverException e) {
         logger.log(Level.WARNING, "Solver could not produce model, cannot create error path.");
         logger.logDebugException(e);

@@ -441,32 +441,6 @@ public class ARGUtils {
    *     AssumeEdges, and the positive variant of the edge is passed as well. The function needs to
    *     return TRUE if the positive variant should be taken and FALSE otherwise, null indicates an
    *     error.
-   * @return A path through the ARG from root to target.
-   * @throws IllegalArgumentException If the direction information doesn't match the ARG or the ARG
-   *     is inconsistent.
-   */
-  public static ARGPath getPathFromBranchingInformation(
-      ARGState root,
-      Set<? extends AbstractState> arg,
-      BiFunction<ARGState, AssumeEdge, Boolean> branchingInformation)
-      throws IllegalArgumentException {
-    return getPathFromBranchingInformation(root, arg, branchingInformation, true);
-  }
-
-  /**
-   * Find a path in the ARG. The necessary information to find the path is a boolean value for each
-   * branching situation that indicates which of the two AssumeEdges should be taken.
-   *
-   * @param root The root element of the ARG (where to start the path)
-   * @param arg All elements in the ARG or a subset thereof (elements outside this set will be
-   *     ignored).
-   * @param branchingInformation A function from ARG states to boolean values indicating the
-   *     outgoing direction. It is only called for an ARG state with exactly two outgoing
-   *     AssumeEdges, and the positive variant of the edge is passed as well. The function needs to
-   *     return TRUE if the positive variant should be taken and FALSE otherwise, null indicates an
-   *     error.
-   * @param mustEndInTarget If {@code true}, the path must end in a target state to be considered
-   *     consistent.
    * @return A path through the ARG unambiguously described by the branching information.
    * @throws IllegalArgumentException If the direction information doesn't match the ARG or the ARG
    *     is inconsistent.
@@ -474,8 +448,7 @@ public class ARGUtils {
   public static ARGPath getPathFromBranchingInformation(
       ARGState root,
       Set<? extends AbstractState> arg,
-      BiFunction<ARGState, AssumeEdge, Boolean> branchingInformation,
-      boolean mustEndInTarget)
+      BiFunction<ARGState, AssumeEdge, Boolean> branchingInformation)
       throws IllegalArgumentException {
 
     checkArgument(arg.contains(root));
@@ -490,10 +463,6 @@ public class ARGUtils {
       CFAEdge edge;
       switch (childrenInArg.size()) {
         case 0:
-          if (mustEndInTarget) {
-            throw new IllegalArgumentException(
-                "ARG target path terminates without reaching target state!");
-          }
           return builder.build(currentElement);
 
         case 1: // only one successor, easy
@@ -557,42 +526,6 @@ public class ARGUtils {
     }
 
     return builder.build(currentElement);
-  }
-
-  /**
-   * Find a path in the ARG. The necessary information to find the path is a boolean value for each
-   * branching situation that indicates which of the two AssumeEdges should be taken. This method
-   * checks that the path ends in a certain element.
-   *
-   * @param root The root element of the ARG (where to start the path)
-   * @param target The target state (where to end the path, needs to be a target state)
-   * @param arg All elements in the ARG or a subset thereof (elements outside this set will be
-   *     ignored).
-   * @param branchingInformation A function from ARG states to boolean values indicating the
-   *     outgoing direction. It is only called for an ARG state with exactly two outgoing
-   *     AssumeEdges, and the positive variant of the edge is passed as well. The function needs to
-   *     return TRUE if the positive variant should be taken and FALSE otherwise, null indicates an
-   *     error.
-   * @return A path through the ARG from root to target.
-   * @throws IllegalArgumentException If the direction information doesn't match the ARG or the ARG
-   *     is inconsistent.
-   */
-  public static ARGPath getPathFromBranchingInformation(
-      ARGState root,
-      ARGState target,
-      Set<? extends AbstractState> arg,
-      BiFunction<ARGState, AssumeEdge, Boolean> branchingInformation)
-      throws IllegalArgumentException {
-
-    checkArgument(arg.contains(target));
-    checkArgument(target.isTarget());
-
-    ARGPath result = getPathFromBranchingInformation(root, arg, branchingInformation);
-
-    checkArgument(
-        result.getLastState().equals(target), "ARG target path reached the wrong target state!");
-
-    return result;
   }
 
   /**
