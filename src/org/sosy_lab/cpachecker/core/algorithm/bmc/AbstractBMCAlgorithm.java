@@ -845,7 +845,7 @@ abstract class AbstractBMCAlgorithm
         ARGState root = (ARGState) pReachedSet.getFirstState();
 
         try {
-          targetPath = pmgr.getARGPathFromModel(model, root, Predicates.alwaysTrue());
+          targetPath = pmgr.getARGPathFromModel(model, root);
         } catch (IllegalArgumentException e) {
           logger.logUserException(Level.WARNING, e, "Could not create error path");
           return Optional.empty();
