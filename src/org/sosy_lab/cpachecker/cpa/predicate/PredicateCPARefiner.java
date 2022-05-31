@@ -311,7 +311,7 @@ public class PredicateCPARefiner implements ARGBasedRefiner, StatisticsProvider 
         logger.log(Level.FINEST, "Error trace is not spurious");
         errorPathProcessing.start();
         try {
-          return pathChecker.handleFeasibleCounterexample(allStatesTrace, counterexample);
+          return pathChecker.handleFeasibleCounterexample(counterexample, allStatesTrace);
         } finally {
           errorPathProcessing.stop();
         }

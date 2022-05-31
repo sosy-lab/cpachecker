@@ -139,25 +139,37 @@ public class PathChecker {
     pConfig.inject(this);
   }
 
+  /**
+   * Create a {@link CounterexampleInfo} object for a given counterexample. The path will be checked
+   * again with an SMT solver to extract a model that is as precise and simple as possible. We
+   * assume that one additional SMT query will not cause too much overhead. If counterexample does
+   * not contain precise path information or the double-check fails, the method may crash or return
+   * an imprecise result is (depending on configuration).
+   *
+   * @param counterexample The representation of the counterexample (must not be spurious).
+   * @param fallbackPath A potentially imprecise/wrong path that should be used as fallback if the
+   *     precise path does not exist / is contradicting.
+   * @return a {@link CounterexampleInfo} instance
+   */
   public CounterexampleInfo handleFeasibleCounterexample(
-      final ARGPath allStatesTrace, CounterexampleTraceInfo counterexample)
+      final CounterexampleTraceInfo counterexample, final ARGPath fallbackPath)
       throws InterruptedException {
     ARGPath targetPath;
 
     if (alwaysUseImpreciseCounterexamples) {
-      return createImpreciseCounterexample(allStatesTrace, counterexample);
+      return createImpreciseCounterexample(fallbackPath, counterexample);
     }
 
     checkArgument(!counterexample.isSpurious());
     if (counterexample.getPrecisePath() == null) {
       // TODO can this happen?
 
-      if (hasBranching(allStatesTrace)) {
+      if (hasBranching(fallbackPath)) {
         // No branches/merges in path, it is precise anyway.
-        targetPath = allStatesTrace;
+        targetPath = fallbackPath;
       } else {
         logger.log(Level.WARNING, "No information about ARG branches available!");
-        return createImpreciseCounterexample(allStatesTrace, counterexample);
+        return createImpreciseCounterexample(fallbackPath, counterexample);
       }
 
     } else {
@@ -194,7 +206,7 @@ public class PathChecker {
    * @param pInfo More information about the counterexample
    * @return a {@link CounterexampleInfo} instance
    */
-  public CounterexampleInfo createCounterexample(
+  private CounterexampleInfo createCounterexample(
       final ARGPath precisePath, final CounterexampleTraceInfo pInfo) throws InterruptedException {
 
     CFAPathWithAssumptions pathWithAssignments;

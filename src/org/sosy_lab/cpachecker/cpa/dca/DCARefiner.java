@@ -522,7 +522,7 @@ public class DCARefiner implements Refiner, StatisticsProvider, AutoCloseable {
                         stemAndLoopStates, PredicateAbstractState::getPredicateState),
                     Optional.of(stemAndLoopPath));
             CounterexampleInfo cexInfo =
-                pathChecker.createCounterexample(stemAndLoopPath, cexTraceInfo);
+                pathChecker.handleFeasibleCounterexample(cexTraceInfo, stemAndLoopPath);
 
             stemAndLoopPath.getLastState().addCounterexampleInformation(cexInfo);
             // return false;
@@ -617,7 +617,7 @@ public class DCARefiner implements Refiner, StatisticsProvider, AutoCloseable {
                 transformedImmutableListCopy(
                     path.asStatesList(), PredicateAbstractState::getPredicateState),
                 Optional.of(path));
-        CounterexampleInfo cexInfo = pathChecker.createCounterexample(path, cexTraceInfo);
+        CounterexampleInfo cexInfo = pathChecker.handleFeasibleCounterexample(cexTraceInfo, path);
 
         path.getLastState().addCounterexampleInformation(cexInfo);
         return false;

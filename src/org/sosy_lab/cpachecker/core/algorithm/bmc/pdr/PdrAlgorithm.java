@@ -1196,7 +1196,8 @@ public class PdrAlgorithm implements Algorithm {
 
       CounterexampleTraceInfo cexInfo =
           CounterexampleTraceInfo.feasible(ImmutableList.of(cexFormula), targetPath);
-      CounterexampleInfo counterexample = pathChecker.createCounterexample(targetPath, cexInfo);
+      CounterexampleInfo counterexample =
+          pathChecker.handleFeasibleCounterexample(cexInfo, targetPath);
       counterexample.getTargetState().addCounterexampleInformation(counterexample);
 
     } finally {

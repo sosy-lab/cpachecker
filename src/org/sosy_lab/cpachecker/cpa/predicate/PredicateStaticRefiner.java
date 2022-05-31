@@ -251,7 +251,7 @@ public class PredicateStaticRefiner extends StaticRefiner
     } else {
       // we have a real error
       logger.log(Level.FINEST, "Error trace is not spurious");
-      return pathChecker.handleFeasibleCounterexample(allStatesTrace, counterexample);
+      return pathChecker.handleFeasibleCounterexample(counterexample, allStatesTrace);
     }
   }
 
