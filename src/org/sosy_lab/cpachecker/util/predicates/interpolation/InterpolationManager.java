@@ -458,7 +458,7 @@ public final class InterpolationManager {
         throw new RefinementFailedException(Reason.TooMuchUnrolling, null);
       }
     }
-    return new BlockFormulas(f, pFormulas.getBranchingFormula());
+    return new BlockFormulas(f, pFormulas.getBranchingFormulas());
   }
 
   /**
@@ -734,7 +734,8 @@ public final class InterpolationManager {
       return CounterexampleTraceInfo.feasible(
           formulas.getFormulas(),
           ImmutableList.of(),
-          pmgr.getARGPathFromModel(model, imprecisePath.getFirstState(), pathElements));
+          pmgr.getARGPathFromModel(
+              model, imprecisePath.getFirstState(), pathElements, formulas.getBranchingFormulas()));
     } catch (IllegalArgumentException | CPATransferException e) {
       logger.logUserException(Level.WARNING, e, "Could not create error path");
       return CounterexampleTraceInfo.feasibleNoModel(formulas.getFormulas());
@@ -808,10 +809,6 @@ public final class InterpolationManager {
 
       if (pAbstractionStates.isEmpty()) {
         pAbstractionStates = new ArrayList<>(Collections.nCopies(formulas.getSize(), null));
-      } else {
-        assert formulas.hasBranchingFormula();
-        // should be constructed in PredicateCPA refiner or in BAM predicate refiner strategy
-        // impact algorithm, predicate forced covering pass empty pAbstractionStates
       }
       assert pAbstractionStates.size() == formulas.getSize()
           : "each pathFormula must end with an abstract State";
@@ -829,7 +826,7 @@ public final class InterpolationManager {
         if (getUsefulBlocks) {
           formulas =
               new BlockFormulas(
-                  getUsefulBlocks(formulas.getFormulas()), formulas.getBranchingFormula());
+                  getUsefulBlocks(formulas.getFormulas()), formulas.getBranchingFormulas());
         }
 
         if (dumpInterpolationProblems) {

@@ -298,12 +298,7 @@ public class PredicateCPARefiner implements ARGBasedRefiner, StatisticsProvider 
       logger.log(Level.ALL, "Abstraction trace is", abstractionStatesTrace);
 
       formulas = createFormulasOnPath(allStatesTrace, abstractionStatesTrace);
-      if (!formulas.hasBranchingFormula()) {
-        @SuppressWarnings("deprecation")
-        // remove once PathChecker#handleFeasibleCounterexample does not need it anymore
-        BooleanFormula branchingFormula = pfmgr.buildBranchingFormula(elementsOnPath);
-        formulas = formulas.withBranchingFormula(branchingFormula);
-      }
+
       // find new invariants (this is a noop if no invariants should be used/generated)
       invariantsManager.findInvariants(allStatesTrace, abstractionStatesTrace, pfmgr, solver);
 

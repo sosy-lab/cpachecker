@@ -214,12 +214,6 @@ public class PredicateStaticRefiner extends StaticRefiner
     BlockFormulas formulas =
         blockFormulaStrategy.getFormulasForPath(
             allStatesTrace.getFirstState(), abstractionStatesTrace);
-    if (!formulas.hasBranchingFormula()) {
-      @SuppressWarnings("deprecation")
-      // remove once PathChecker#handleFeasibleCounterexample does not need it anymore
-      BooleanFormula branchingFormula = pathFormulaManager.buildBranchingFormula(elementsOnPath);
-      formulas = formulas.withBranchingFormula(branchingFormula);
-    }
 
     CounterexampleTraceInfo counterexample;
     satCheckTime.start();
