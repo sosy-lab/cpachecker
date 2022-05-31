@@ -19,6 +19,7 @@ public class BMCStatistics implements Statistics {
   final Timer bmcPreparation = new Timer();
   final Timer satCheck = new Timer();
   final Timer errorPathCreation = new Timer();
+  final Timer errorPathProcessing = new Timer();
   final Timer assertionsCheck = new Timer();
 
   final Timer inductionPreparation = new Timer();
@@ -33,7 +34,10 @@ public class BMCStatistics implements Statistics {
       out.println("Time for final sat check:            " + satCheck);
     }
     if (errorPathCreation.getNumberOfIntervals() > 0) {
-      out.println("Time for error path creation:        " + errorPathCreation);
+      out.println("Time for error-path creation:        " + errorPathCreation);
+    }
+    if (errorPathProcessing.getNumberOfIntervals() > 0) {
+      out.println("Time for error-path post-processing: " + errorPathProcessing);
     }
     if (assertionsCheck.getNumberOfIntervals() > 0) {
       out.println("Time for bounding assertions check:  " + assertionsCheck);

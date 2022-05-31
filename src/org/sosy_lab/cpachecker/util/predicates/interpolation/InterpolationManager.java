@@ -90,6 +90,7 @@ public final class InterpolationManager {
   private final Timer getInterpolantTimer = new Timer();
   private final Timer cexAnalysisGetUsefulBlocksTimer = new Timer();
   private final Timer interpolantVerificationTimer = new Timer();
+  private final Timer errorPathCreationTimer = new Timer();
   private int reusedFormulasOnSolverStack = 0;
 
   public void printStatistics(StatisticsWriter w0) {
@@ -122,6 +123,9 @@ public final class InterpolationManager {
     w1.put("Interpolant computation", getInterpolantTimer);
     if (interpolantVerificationTimer.getNumberOfIntervals() > 0) {
       w1.put("Interpolant verification", interpolantVerificationTimer);
+    }
+    if (errorPathCreationTimer.getNumberOfIntervals() > 0) {
+      w1.put("Error-path creation", errorPathCreationTimer);
     }
   }
 
@@ -544,11 +548,21 @@ public final class InterpolationManager {
   private CounterexampleTraceInfo solveCounterexample(
       BlockFormulas f, Optional<ARGPath> imprecisePath)
       throws SolverException, InterruptedException {
+
     try (ProverEnvironment prover = solver.newProverEnvironment(ProverOptions.GENERATE_MODELS)) {
-      for (BooleanFormula block : f.getFormulas()) {
-        prover.push(block);
+      final boolean isSat;
+
+      satCheckTimer.start();
+      try {
+        for (BooleanFormula block : f.getFormulas()) {
+          prover.push(block);
+        }
+        isSat = !prover.isUnsat();
+      } finally {
+        satCheckTimer.stop();
       }
-      if (!prover.isUnsat()) {
+
+      if (isSat) {
         try {
           return getErrorPath(f, prover, imprecisePath);
         } catch (SolverException modelException) {
@@ -785,29 +799,35 @@ public final class InterpolationManager {
       return CounterexampleTraceInfo.feasibleImprecise(formulas.getFormulas());
     }
 
-    ARGPath imprecisePath = pImprecisePath.orElseThrow();
-    Set<ARGState> pathElements = ARGUtils.getAllStatesOnPathsTo(imprecisePath.getLastState());
-    try (Model model = pProver.getModel()) {
-      ARGPath precisePath =
-          pmgr.getARGPathFromModel(
-              model,
-              imprecisePath.getFirstState(),
-              pathElements::contains,
-              formulas.getBranchingFormulas());
+    errorPathCreationTimer.start();
+    try {
+      ARGPath imprecisePath = pImprecisePath.orElseThrow();
+      Set<ARGState> pathElements = ARGUtils.getAllStatesOnPathsTo(imprecisePath.getLastState());
+      try (Model model = pProver.getModel()) {
+        ARGPath precisePath =
+            pmgr.getARGPathFromModel(
+                model,
+                imprecisePath.getFirstState(),
+                pathElements::contains,
+                formulas.getBranchingFormulas());
 
-      if (!precisePath.getLastState().equals(imprecisePath.getLastState())) {
-        logger.log(
-            Level.WARNING, "Could not create error path: ARG target path reached the wrong state!");
+        if (!precisePath.getLastState().equals(imprecisePath.getLastState())) {
+          logger.log(
+              Level.WARNING,
+              "Could not create error path: ARG target path reached the wrong state!");
+          return CounterexampleTraceInfo.feasibleImprecise(formulas.getFormulas());
+        }
+
+        return CounterexampleTraceInfo.feasible(formulas.getFormulas(), precisePath);
+      } catch (IllegalArgumentException | CPATransferException e) {
+        // Note that we do not catch SolverException here, although we could in principle also
+        // return an imprecise counterexample in this case. Instead we let the exception propagate
+        // because the caller might want to fall back to fallbackWithoutInterpolation().
+        logger.logUserException(Level.WARNING, e, "Could not create error path");
         return CounterexampleTraceInfo.feasibleImprecise(formulas.getFormulas());
       }
-
-      return CounterexampleTraceInfo.feasible(formulas.getFormulas(), precisePath);
-    } catch (IllegalArgumentException | CPATransferException e) {
-      // Note that we do not catch SolverException here, although we could in principle also return
-      // an imprecise counterexample in this case. Instead we let the exception propagate because
-      // the caller might want to fall back to fallbackWithoutInterpolation().
-      logger.logUserException(Level.WARNING, e, "Could not create error path");
-      return CounterexampleTraceInfo.feasibleImprecise(formulas.getFormulas());
+    } finally {
+      errorPathCreationTimer.stop();
     }
   }
 

@@ -133,7 +133,7 @@ public class PredicateCPARefiner implements ARGBasedRefiner, StatisticsProvider 
   private final StatTimer prefixExtractionTime =
       new StatTimer("Extracting infeasible sliced prefixes");
 
-  private final StatTimer errorPathProcessing = new StatTimer("Error path post-processing");
+  private final StatTimer errorPathProcessing = new StatTimer("Error-path post-processing");
   private final StatTimer getFormulasForPathTime = new StatTimer("Path-formulas extraction");
 
   private final StatInt totalPrefixes =
