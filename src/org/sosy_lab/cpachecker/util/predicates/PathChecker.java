@@ -9,6 +9,8 @@
 package org.sosy_lab.cpachecker.util.predicates;
 
 import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.collect.FluentIterable.from;
+import static org.sosy_lab.cpachecker.cpa.arg.ARGUtils.getAllStatesOnPathsTo;
 
 import com.google.common.base.Joiner;
 import com.google.common.collect.FluentIterable;
@@ -19,6 +21,7 @@ import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Deque;
 import java.util.List;
+import java.util.Set;
 import java.util.logging.Level;
 import org.sosy_lab.common.Appenders.AbstractAppender;
 import org.sosy_lab.common.ShutdownNotifier;
@@ -136,9 +139,7 @@ public class PathChecker {
   }
 
   public CounterexampleInfo handleFeasibleCounterexample(
-      final ARGPath allStatesTrace,
-      CounterexampleTraceInfo counterexample,
-      boolean branchingOccurred)
+      final ARGPath allStatesTrace, CounterexampleTraceInfo counterexample)
       throws InterruptedException {
     ARGPath targetPath;
 
@@ -147,19 +148,39 @@ public class PathChecker {
     }
 
     checkArgument(!counterexample.isSpurious());
-    if (branchingOccurred) {
-      if (counterexample.getPrecisePath() == null) {
-        // TODO can this happen?
+    if (counterexample.getPrecisePath() == null) {
+      // TODO can this happen?
+
+      if (hasBranching(allStatesTrace)) {
+        // No branches/merges in path, it is precise anyway.
+        targetPath = allStatesTrace;
+      } else {
         logger.log(Level.WARNING, "No information about ARG branches available!");
         return createImpreciseCounterexample(allStatesTrace, counterexample);
       }
-      targetPath = counterexample.getPrecisePath();
 
     } else {
-      targetPath = allStatesTrace;
+      targetPath = counterexample.getPrecisePath();
     }
 
     return createCounterexample(targetPath, counterexample);
+  }
+
+  /** Determine whether the given path is the only possible path to its last state in the ARG. */
+  private boolean hasBranching(ARGPath path) {
+    Set<ARGState> elementsOnPath = getAllStatesOnPathsTo(path.getLastState());
+    if (elementsOnPath.size() >= path.size()) {
+      return true;
+    }
+
+    // Check whether the path contains branching in the form A->B; B->C; A->C;
+    for (ARGState state : elementsOnPath) {
+      if (from(state.getChildren()).filter(elementsOnPath::contains).size() > 1) {
+        return true;
+      }
+    }
+
+    return false;
   }
 
   /**
