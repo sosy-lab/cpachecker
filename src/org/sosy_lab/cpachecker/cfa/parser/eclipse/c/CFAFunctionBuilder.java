@@ -106,7 +106,6 @@ import org.sosy_lab.cpachecker.cfa.model.CFALabelNode;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
-import org.sosy_lab.cpachecker.cfa.model.blankEdges.ForLoopIndicatingEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionEntryNode;
@@ -1629,7 +1628,7 @@ class CFAFunctionBuilder extends ASTVisitor {
 
     // loopInit is Node before "counter = 0;"
     final CFANode loopInit = newCFANode();
-    addToCFA(new ForLoopIndicatingEdge(onlyFirstLine(fileLocation), prevNode, loopInit));
+    addToCFA(new BlankEdge("", onlyFirstLine(fileLocation), prevNode, loopInit, "for"));
 
     // loopStart is the Node before the loop itself,
     // it is the the one after the init edge(s)
