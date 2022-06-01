@@ -123,7 +123,7 @@ public class UsageTransferRelation extends AbstractSingleWrapperTransferRelation
 
     BinderFunctionInfo dummy = new BinderFunctionInfo();
     from(writeAccessFunctions).forEach(name -> binderFunctionInfoBuilder.put(name, dummy));
-    binderFunctionInfo = binderFunctionInfoBuilder.build();
+    binderFunctionInfo = binderFunctionInfoBuilder.buildOrThrow();
 
     // BindedFunctions should not be analysed
     skippedfunctions = Sets.union(skippedfunctions, binderFunctions);

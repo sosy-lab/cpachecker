@@ -95,7 +95,7 @@ public class AppliedCustomInstructionParser {
     for (CFANode node : cfa.getAllNodes()) {
       nodeNumberToNode0.put(node.getNodeNumber(), node);
     }
-    numberToCFANode = nodeNumberToNode0.build();
+    numberToCFANode = nodeNumberToNode0.buildOrThrow();
   }
 
   /**
@@ -180,7 +180,7 @@ public class AppliedCustomInstructionParser {
       map.put(startNode, aci);
     }
 
-    return new CustomInstructionApplications(map.build(), ci);
+    return new CustomInstructionApplications(map.buildOrThrow(), ci);
   }
 
   /**

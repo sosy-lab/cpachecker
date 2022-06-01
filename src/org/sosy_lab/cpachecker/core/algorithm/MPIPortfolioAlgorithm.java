@@ -558,7 +558,7 @@ public class MPIPortfolioAlgorithm implements Algorithm, StatisticsProvider {
       builder.put(OUPUT_KEY, outputPath.toString());
       builder.put(LOGFILE_KEY, outputPath.resolve(logfileName).toString());
 
-      return ImmutableMap.of("Analysis_" + subanalysis_index, builder.build());
+      return ImmutableMap.of("Analysis_" + subanalysis_index, builder.buildOrThrow());
     }
 
     int getIndex() {

@@ -386,7 +386,7 @@ public class WitnessExporterTest {
           specificationFile,
           expected,
           generationConfig,
-          overrideOptionsBuilder.build());
+          overrideOptionsBuilder.buildOrThrow());
     }
   }
 }

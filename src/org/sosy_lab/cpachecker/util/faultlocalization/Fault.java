@@ -13,7 +13,7 @@ import com.google.common.collect.ImmutableList;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
@@ -27,8 +27,8 @@ import org.sosy_lab.cpachecker.util.faultlocalization.appendables.FaultInfo;
  */
 public class Fault extends ForwardingSet<FaultContribution> implements Comparable<Fault> {
 
-  private Set<FaultContribution> errorSet;
-  private List<FaultInfo> infos;
+  private final Set<FaultContribution> errorSet;
+  private final List<FaultInfo> infos;
   private int intendedIndex;
 
   /**
@@ -49,7 +49,7 @@ public class Fault extends ForwardingSet<FaultContribution> implements Comparabl
   }
 
   public Fault() {
-    this(new HashSet<>(), 0);
+    this(new LinkedHashSet<>(), 0);
   }
 
   /**
@@ -66,7 +66,7 @@ public class Fault extends ForwardingSet<FaultContribution> implements Comparabl
   }
 
   public Fault(Collection<FaultContribution> pContribs, double pScore) {
-    errorSet = new HashSet<>(pContribs);
+    errorSet = new LinkedHashSet<>(pContribs);
     infos = new ArrayList<>();
     score = pScore;
   }
@@ -184,6 +184,7 @@ public class Fault extends ForwardingSet<FaultContribution> implements Comparabl
   }
 
   public void replaceErrorSet(Set<FaultContribution> pContributions) {
-    errorSet = pContributions;
+    errorSet.clear();
+    errorSet.addAll(pContributions);
   }
 }

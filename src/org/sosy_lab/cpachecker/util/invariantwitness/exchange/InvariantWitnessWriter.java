@@ -131,7 +131,7 @@ public final class InvariantWitnessWriter {
 
     return new InvariantStoreEntryTask(
         inputFiles.stream().map(Path::toString).collect(ImmutableList.toImmutableList()),
-        inputFileHashes.build(),
+        inputFileHashes.buildOrThrow(),
         specification,
         getArchitecture(pCFA.getMachineModel()),
         pCFA.getLanguage().toString());

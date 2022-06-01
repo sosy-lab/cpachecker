@@ -107,6 +107,10 @@ public class CFAToCTranslator {
       throw new InvalidConfigurationException(
           "CFA can only be written to C for C programs, at the moment");
     }
+
+    // the final C program may contain `abort()` statements, so we need a suitable declaration
+    globalDefinitionsList.add("extern void abort();");
+
     for (FunctionEntryNode func : pCfa.getAllFunctionHeads()) {
       translate((CFunctionEntryNode) func);
     }

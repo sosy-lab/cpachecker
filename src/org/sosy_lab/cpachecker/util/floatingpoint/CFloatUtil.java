@@ -292,7 +292,7 @@ class CFloatUtil {
             8, 5, 5, 0, 4, 4, 3, 4, 0, 0, 7, 4, 5, 2, 8, 0, 0, 8, 6, 9, 9, 4, 1, 7, 1, 1, 4, 2, 5,
             7, 8, 1, 2, 5));
 
-    BIT_TO_DEC_MAP = builder.build();
+    BIT_TO_DEC_MAP = builder.buildOrThrow();
   }
 
   private CFloatUtil() {

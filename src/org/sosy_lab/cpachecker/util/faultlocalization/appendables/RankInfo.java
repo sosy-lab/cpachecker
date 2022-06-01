@@ -22,17 +22,13 @@ public class RankInfo extends FaultInfo {
    * @param pDescription A short description which will be shown to the user.
    * @param pLikelihood Score for the reason. A high score means that the reason is more important.
    */
-  protected RankInfo(InfoType pType, String pDescription, double pLikelihood) {
-    super(pType);
+  protected RankInfo(String pDescription, double pLikelihood) {
+    super(InfoType.RANK_INFO);
     description = pDescription;
     score = pLikelihood;
   }
 
   public void setScore(double pScore) {
     score = pScore;
-  }
-
-  public void setDescription(String pDescription) {
-    description = pDescription;
   }
 }

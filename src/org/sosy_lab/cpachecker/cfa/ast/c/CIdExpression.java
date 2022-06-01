@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.cfa.ast.c;
 
 import java.util.Objects;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
@@ -87,11 +88,12 @@ public final class CIdExpression extends AIdExpression implements CLeftHandSide 
 
     CIdExpression other = (CIdExpression) obj;
 
-    if (getDeclaration() == null) {
-      return other.getDeclaration() == null;
+    @Nullable CSimpleDeclaration decl = getDeclaration();
+    @Nullable CSimpleDeclaration otherDecl = other.getDeclaration();
+    if (decl == null || otherDecl == null) {
+      return decl == otherDecl;
     } else {
-      return Objects.equals(
-          getDeclaration().getQualifiedName(), other.getDeclaration().getQualifiedName());
+      return Objects.equals(decl.getQualifiedName(), otherDecl.getQualifiedName());
     }
   }
 }

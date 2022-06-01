@@ -289,7 +289,7 @@ public class ReachingDefState
     }
   }
 
-  @SuppressWarnings({"unchecked", "UnusedVariable"}) // parameter is required by API
+  @SuppressWarnings("unchecked")
   private void readObject(java.io.ObjectInputStream in) throws IOException, ClassNotFoundException {
     in.defaultReadObject();
 
@@ -411,7 +411,6 @@ public class ReachingDefState
       out.writeInt(exit.getNodeNumber());
     }
 
-    @SuppressWarnings("UnusedVariable") // parameter is required by API
     private void readObject(java.io.ObjectInputStream in) throws IOException {
       int nodeNumber = in.readInt();
       CFAInfo cfaInfo = GlobalInfo.getInstance().getCFAInfo().orElseThrow();

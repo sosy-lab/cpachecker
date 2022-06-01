@@ -33,7 +33,7 @@ public enum SIGN implements Serializable {
     for (SIGN s : SIGN.values()) {
       builder.put(s.numVal, s);
     }
-    VALUE_MAP = builder.build();
+    VALUE_MAP = builder.buildOrThrow();
   }
 
   SIGN(int numVal) {

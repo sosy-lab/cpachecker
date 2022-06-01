@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.cpa.arg.witnessexport;
 import static com.google.common.base.Strings.nullToEmpty;
 import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.common.collect.Collections3.transformedImmutableListCopy;
+import static org.sosy_lab.common.collect.Collections3.transformedImmutableSetCopy;
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractStateByType;
 import static org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.SINK_NODE_ID;
 
@@ -85,6 +86,7 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.postprocessing.global.CFACloner;
+import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.FaultLocalizationInfoWithTraceFormula;
 import org.sosy_lab.cpachecker.core.counterexample.CExpressionToOrinalCodeVisitor;
 import org.sosy_lab.cpachecker.core.counterexample.CFAEdgeWithAdditionalInfo;
 import org.sosy_lab.cpachecker.core.counterexample.CFAEdgeWithAssumptions;
@@ -116,6 +118,7 @@ import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
 import org.sosy_lab.cpachecker.util.expressions.LeafExpression;
 import org.sosy_lab.cpachecker.util.expressions.Or;
 import org.sosy_lab.cpachecker.util.expressions.Simplifier;
+import org.sosy_lab.cpachecker.util.faultlocalization.Fault;
 
 class WitnessFactory implements EdgeAppender {
 
@@ -185,6 +188,10 @@ class WitnessFactory implements EdgeAppender {
   private boolean isFunctionScope = false;
   private final Multimap<String, ASimpleDeclaration> seenDeclarations = HashMultimap.create();
   protected Set<AdditionalInfoConverter> additionalInfoConverters = ImmutableSet.of();
+
+  // used for witness reduction with fault localization
+  // ignored if empty
+  private final Set<CFAEdge> edgesInFault = new HashSet<>();
 
   WitnessFactory(
       WitnessOptions pOptions,
@@ -1020,6 +1027,7 @@ class WitnessFactory implements EdgeAppender {
     invariantExportStates.clear();
     stateToARGStates.clear();
     edgeToCFAEdges.clear();
+    edgesInFault.clear();
 
     BiPredicate<ARGState, ARGState> isRelevantEdge = pIsRelevantEdge;
     Multimap<ARGState, CFAEdgeWithAssumptions> valueMap = ImmutableListMultimap.of();
@@ -1027,11 +1035,28 @@ class WitnessFactory implements EdgeAppender {
     additionalInfoConverters = getAdditionalInfoConverters(pCounterExample);
 
     if (pCounterExample.isPresent()) {
-      if (pCounterExample.orElseThrow().isPreciseCounterExample()) {
+      CounterexampleInfo cex = pCounterExample.orElseThrow();
+      if (cex.isPreciseCounterExample()) {
         valueMap =
             Multimaps.transformValues(
                 pCounterExample.orElseThrow().getExactVariableValues(),
                 WitnessAssumptionFilter::filterRelevantAssumptions);
+        if (cex instanceof FaultLocalizationInfoWithTraceFormula) {
+          FaultLocalizationInfoWithTraceFormula fInfo = (FaultLocalizationInfoWithTraceFormula) cex;
+          List<Fault> faults = fInfo.getRankedList();
+          if (!faults.isEmpty()) {
+            Fault bestFault = faults.get(0);
+            FluentIterable.from(bestFault)
+                .transform(fc -> fc.correspondingEdge())
+                .copyInto(edgesInFault);
+            edgesInFault.addAll(
+                fInfo.getTraceFormula().getPrecondition().getEdgesForPrecondition());
+            edgesInFault.addAll(
+                fInfo.getTraceFormula().getPostCondition().getEdgesForPostCondition());
+            edgesInFault.addAll(fInfo.getTraceFormula().getPostCondition().getIrrelevantEdges());
+            valueMap = Multimaps.filterValues(valueMap, v -> edgesInFault.contains(v.getCFAEdge()));
+          }
+        }
       } else {
         isRelevantEdge = BiPredicates.bothSatisfy(pIsRelevantState);
       }
@@ -1079,7 +1104,8 @@ class WitnessFactory implements EdgeAppender {
 
     // Merge nodes with empty or repeated edges
     int sizeBeforeMerging = edgeToCFAEdges.size();
-    mergeRepeatedEdges(entryStateNodeId);
+    mergeEdges(entryStateNodeId, true, this::isEdgeIrrelevant);
+    mergeEdges(entryStateNodeId, false, this::isEdgeIrrelevantByFaultLocalization);
     int sizeAfterMerging = edgeToCFAEdges.size();
     logger.logf(
         Level.ALL,
@@ -1114,16 +1140,20 @@ class WitnessFactory implements EdgeAppender {
    * witness graph, i.e., we compute an abstraction of the ARG-based graph without redundant or
    * irrelevant information.
    */
-  private void mergeRepeatedEdges(final String entryStateNodeId) throws InterruptedException {
+  private void mergeEdges(
+      final String entryStateNodeId, boolean mergeMetaInformation, Predicate<Edge> isIrrelevant)
+      throws InterruptedException {
     NavigableSet<Edge> waitlist = new TreeSet<>(leavingEdges.values());
     while (!waitlist.isEmpty()) {
       Edge edge = waitlist.pollFirst();
       // If the edge still exists in the graph and is irrelevant, remove it
-      if (leavingEdges.get(edge.getSource()).contains(edge) && isEdgeIrrelevant(edge)) {
-        Iterables.addAll(waitlist, mergeNodes(edge));
+      if (leavingEdges.get(edge.getSource()).contains(edge) && isIrrelevant.test(edge)) {
+        Iterables.addAll(waitlist, mergeNodes(edge, mergeMetaInformation));
         assert leavingEdges.isEmpty() || leavingEdges.containsKey(entryStateNodeId);
       }
-      setLoopHeadInvariantIfApplicable(edge.getTarget());
+      if (mergeMetaInformation) {
+        setLoopHeadInvariantIfApplicable(edge.getTarget());
+      }
     }
   }
 
@@ -1346,6 +1376,33 @@ class WitnessFactory implements EdgeAppender {
     return true;
   }
 
+  private boolean isEdgeIrrelevantByFaultLocalization(Edge pEdge) {
+    // always relevant if FL is deactivated
+    if (edgesInFault.isEmpty()) {
+      return false;
+    }
+
+    Set<String> importantNodes =
+        transformedImmutableSetCopy(
+            Multimaps.filterValues(edgeToCFAEdges, cfaEdge -> edgesInFault.contains(cfaEdge))
+                .keySet(),
+            e -> e.getSource());
+
+    // not irrelevant if it is an edge to a sink node and the source node is part of the fault
+    if (pEdge.getTarget().equals(SINK_NODE_ID) && importantNodes.contains(pEdge.getSource())) {
+      return false;
+    }
+
+    // not irrelevant if pEdge maps to an edge containing an edge in fault
+    for (CFAEdge cfaEdge : edgeToCFAEdges.get(pEdge)) {
+      if (edgesInFault.contains(cfaEdge)) {
+        return false;
+      }
+    }
+
+    return true;
+  }
+
   /**
    * this predicate marks intermediate edges that do not contain relevant information and can
    * therefore be shortcut.
@@ -1423,8 +1480,9 @@ class WitnessFactory implements EdgeAppender {
    *
    * @return replacement edges that should be (re-)visited for potential further merges.
    */
-  private Iterable<Edge> mergeNodes(final Edge pEdge) {
-    Preconditions.checkArgument(isEdgeIrrelevant(pEdge));
+  private Iterable<Edge> mergeNodes(final Edge pEdge, boolean pMergeMetaInformation) {
+    Preconditions.checkArgument(
+        isEdgeIrrelevant(pEdge) || isEdgeIrrelevantByFaultLocalization(pEdge));
 
     // Always merge into the predecessor, unless the successor is the sink
     boolean intoPredecessor =
@@ -1478,7 +1536,9 @@ class WitnessFactory implements EdgeAppender {
         if (leavingEdge.getLabel().getMapping().containsKey(KeyDef.SOURCECODE)) {
           label = label.removeAndCopy(KeyDef.ORIGINFILE);
         }
-        label = label.putAllAndCopy(leavingEdge.getLabel());
+        if (pMergeMetaInformation) {
+          label = label.putAllAndCopy(leavingEdge.getLabel());
+        }
         Edge replacementEdge = new Edge(nodeToKeep, leavingEdge.getTarget(), label);
         putEdge(replacementEdge);
         edgeToCFAEdges.putAll(replacementEdge, edgeToCFAEdges.get(leavingEdge));
@@ -1505,7 +1565,10 @@ class WitnessFactory implements EdgeAppender {
     // Add add them as leaving edges to their source nodes
     for (Edge enteringEdge : enteringEdgesToMove) {
       if (!pEdge.equals(enteringEdge)) {
-        TransitionCondition label = pEdge.getLabel().putAllAndCopy(enteringEdge.getLabel());
+        TransitionCondition label =
+            pMergeMetaInformation
+                ? pEdge.getLabel().putAllAndCopy(enteringEdge.getLabel())
+                : pEdge.getLabel();
         Edge replacementEdge = new Edge(enteringEdge.getSource(), nodeToKeep, label);
         putEdge(replacementEdge);
         edgeToCFAEdges.putAll(replacementEdge, edgeToCFAEdges.get(pEdge));

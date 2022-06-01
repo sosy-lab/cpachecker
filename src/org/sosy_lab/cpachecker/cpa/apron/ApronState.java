@@ -598,7 +598,6 @@ public class ApronState implements AbstractState, Serializable, FormulaReporting
     out.write(serialized);
   }
 
-  @SuppressWarnings("UnusedVariable") // parameter is required by API
   private void readObject(java.io.ObjectInputStream in) throws IOException, ClassNotFoundException {
     in.defaultReadObject();
 

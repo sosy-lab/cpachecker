@@ -79,7 +79,7 @@ public class InterpolationAutomaton {
                     .collect(
                         ImmutableMap.toImmutableMap(
                             ItpAutomatonState::getInterpolant, Functions.identity())))
-            .build();
+            .buildOrThrow();
   }
 
   public Automaton createAutomaton() throws InvalidAutomatonException {

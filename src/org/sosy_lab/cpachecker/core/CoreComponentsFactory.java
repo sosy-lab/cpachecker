@@ -377,7 +377,7 @@ public class CoreComponentsFactory {
       secure = true,
       name = "algorithm.faultLocalization.by_traceformula",
       description = "for found property violation, perform fault localization with trace formulas")
-  boolean useFaultLocalizationWithTraceFormulas = false;
+  private boolean useFaultLocalizationWithTraceFormulas = false;
 
   @Option(
       secure = true,

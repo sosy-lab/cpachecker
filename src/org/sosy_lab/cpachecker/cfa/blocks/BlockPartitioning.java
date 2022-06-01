@@ -38,7 +38,7 @@ public class BlockPartitioning {
       }
     }
 
-    callNodeToBlock = callNodeToSubtree.build();
+    callNodeToBlock = callNodeToSubtree.buildOrThrow();
     returnNodeToBlock = returnNodeToSubtree.build();
     blocks = ImmutableSet.copyOf(subtrees);
     mainBlock = callNodeToBlock.get(mainFunction);

@@ -116,7 +116,7 @@ class EdgeAnalyzer {
                     initializerVariableTypes.size() + 1)
                 .put(declaredVariable, type)
                 .putAll(initializerVariableTypes)
-                .build();
+                .buildOrThrow();
 
           } else if (declaration instanceof AVariableDeclaration) {
             throw new UnsupportedOperationException("Only C expressions are supported");

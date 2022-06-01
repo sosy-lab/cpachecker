@@ -498,7 +498,7 @@ public class FormulaManagerView {
     } else if (formulaType.isFloatingPointType()) {
       t =
           getFloatingPointFormulaManager()
-              .makeNumber(value, (FormulaType.FloatingPointType) formulaType);
+              .makeNumber((double) value, (FormulaType.FloatingPointType) formulaType);
     } else {
       throw new IllegalArgumentException("Not supported interface");
     }

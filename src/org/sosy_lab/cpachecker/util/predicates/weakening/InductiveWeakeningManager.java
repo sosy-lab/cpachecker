@@ -320,7 +320,7 @@ public class InductiveWeakeningManager implements StatisticsProvider {
       result.put(selector, f);
     }
 
-    return result.build();
+    return result.buildOrThrow();
   }
 
   @Override

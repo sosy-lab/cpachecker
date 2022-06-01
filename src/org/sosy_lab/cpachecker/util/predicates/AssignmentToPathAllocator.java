@@ -519,7 +519,7 @@ public class AssignmentToPathAllocator {
       }
     }
 
-    return addressOfVariables.build();
+    return addressOfVariables.buildOrThrow();
   }
 
   private boolean isSmallerSSA(ValueAssignment pOldFunction, ValueAssignment pFunction) {

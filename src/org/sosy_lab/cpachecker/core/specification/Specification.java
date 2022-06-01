@@ -74,7 +74,7 @@ public final class Specification {
           .put(CommonVerificationProperty.DEADLOCK, "deadlock")
           .put(CommonVerificationProperty.ASSERT, "JavaAssertion")
           // .put(CommonPropertyType.TERMINATION, "none needed")
-          .build();
+          .buildOrThrow();
 
   private static Path getAutomatonForProperty(Property property) {
     String name = AUTOMATA_FOR_PROPERTIES.get(property);

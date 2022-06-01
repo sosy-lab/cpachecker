@@ -854,7 +854,7 @@ public enum MachineModel {
 
     getFieldOffsetOrSizeOrFieldOffsetsMappedInBits(pOwnerType, null, outParameterMap);
 
-    return outParameterMap.build();
+    return outParameterMap.buildOrThrow();
   }
 
   /**

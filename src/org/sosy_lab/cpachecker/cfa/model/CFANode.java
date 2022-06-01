@@ -286,7 +286,6 @@ public class CFANode implements Comparable<CFANode>, Serializable {
     return "";
   }
 
-  @SuppressWarnings("UnusedVariable") // parameter is required by API
   private void readObject(java.io.ObjectInputStream s)
       throws java.io.IOException, ClassNotFoundException {
     s.defaultReadObject();

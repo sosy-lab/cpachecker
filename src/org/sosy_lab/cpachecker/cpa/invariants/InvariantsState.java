@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.cpa.invariants;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.base.Verify.verifyNotNull;
 import static com.google.common.collect.FluentIterable.from;
 
 import com.google.common.base.Joiner;
@@ -1598,13 +1599,16 @@ public class InvariantsState
             .filter(pHint -> wideningTargets.containsAll(pHint.accept(COLLECT_VARS_VISITOR)))
             .filter(this::definitelyImplies)) {
       result = result.assume(hint);
+      verifyNotNull(
+          result,
+          "Widening with hint '%s' led abstract state '%s' to become bottom",
+          hint,
+          pOlderState);
       if (additionalHints.contains(hint)) {
         additionalAssumptions.add(hint);
       }
     }
-    if (result != null) {
-      result = result.addAssumptions(additionalAssumptions);
-    }
+    result = result.addAssumptions(additionalAssumptions);
 
     if (equals(result)) {
       return this;

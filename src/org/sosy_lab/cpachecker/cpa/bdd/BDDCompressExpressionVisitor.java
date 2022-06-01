@@ -91,7 +91,7 @@ public class BDDCompressExpressionVisitor extends DefaultCExpressionVisitor<Regi
         currentMapping.put(num, bvmgr.makeNumber(BigInteger.valueOf(i), size));
         i++;
       }
-      INT_REGIONS_MAP.put(partition, currentMapping.build());
+      INT_REGIONS_MAP.put(partition, currentMapping.buildOrThrow());
     }
     return INT_REGIONS_MAP.get(partition);
   }
