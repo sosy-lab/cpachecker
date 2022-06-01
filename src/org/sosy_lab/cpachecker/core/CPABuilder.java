@@ -119,7 +119,6 @@ public class CPABuilder {
       throws InvalidConfigurationException, CPAException {
     final FluentIterable<Automaton> allAutomata =
         FluentIterable.concat(specification.getSpecificationAutomata(), additionalAutomata);
-    @SuppressWarnings("deprecation")
     CoverageCollectorHandler coverageCollectorHandler =
         new CoverageCollectorHandler(cfa, shouldCollectCoverage);
 

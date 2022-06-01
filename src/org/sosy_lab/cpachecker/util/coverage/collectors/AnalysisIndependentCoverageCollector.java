@@ -15,6 +15,7 @@ import java.util.Optional;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -114,16 +115,18 @@ public class AnalysisIndependentCoverageCollector extends CoverageCollector {
   }
 
   private Optional<String> getNewVariableFromCFAEdge(CFAEdge edge) {
-    if (edge.getEdgeType() == CFAEdgeType.DeclarationEdge) {
-      CDeclarationEdge declarationEdge = (CDeclarationEdge) edge;
-      CDeclaration dec = declarationEdge.getDeclaration();
-      String variableName = dec.getQualifiedName();
-      if (variableName != null
-          && !variableName.contains("__CPAchecker_TMP_")
-          && variableName.contains("::")) {
-        return Optional.of(dec.getQualifiedName());
-      }
+    if (edge.getEdgeType() != CFAEdgeType.DeclarationEdge) {
+      return Optional.empty();
     }
-    return Optional.empty();
+    String CPACHECKER_TMP_PREFIX = "__CPACHECKER_TMP";
+    CDeclaration declaration = ((CDeclarationEdge) edge).getDeclaration();
+    String qualifiedVariableName = declaration.getQualifiedName();
+    String variableName = declaration.getName().toUpperCase();
+    if (declaration instanceof CFunctionDeclaration
+        || qualifiedVariableName == null
+        || variableName.startsWith(CPACHECKER_TMP_PREFIX)) {
+      return Optional.empty();
+    }
+    return Optional.of(qualifiedVariableName);
   }
 }

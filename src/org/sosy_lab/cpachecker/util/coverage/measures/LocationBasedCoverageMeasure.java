@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.util.coverage.measures;
 
+import static com.google.common.base.Preconditions.checkArgument;
+
 import com.google.common.collect.ImmutableMultiset;
 import com.google.common.collect.LinkedHashMultiset;
 import com.google.common.collect.Multiset;
@@ -35,15 +37,9 @@ public class LocationBasedCoverageMeasure implements CoverageMeasure {
    *     since it used as divisor and otherwise could lead to division by zero.
    */
   public LocationBasedCoverageMeasure(Multiset<CFANode> pCoveredLocations, double pMaxCount) {
-    if (pMaxCount <= 0) {
-      throw new IllegalArgumentException("MaxCount for a CoverageMeasure should be greater than 0");
-    } else if (pMaxCount < pCoveredLocations.elementSet().size()) {
-      throw new IllegalArgumentException(
-          "MaxCount for a CoverageMeasure should be greater than the element size of the given"
-              + " cover locations multiset.");
-    } else {
-      maxCount = pMaxCount;
-    }
+    checkArgument(pMaxCount > 0);
+    checkArgument(pMaxCount >= pCoveredLocations.elementSet().size());
+    maxCount = pMaxCount;
     coveredLocations = ImmutableMultiset.copyOf(pCoveredLocations);
   }
 
