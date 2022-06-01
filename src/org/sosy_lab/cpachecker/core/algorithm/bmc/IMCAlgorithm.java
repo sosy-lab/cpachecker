@@ -71,7 +71,8 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
   private enum FixedPointComputeStrategy {
     NONE,
     ITP,
-    ITP_SEQ
+    ITPSEQ,
+    ITP_AND_ITPSEQ
   };
 
   @Option(secure = true, description = "toggle checking forward conditions")
@@ -81,7 +82,8 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
       secure = true,
       description =
           "toggle which strategy for computing fixed point in oder to verify programs with loops."
-              + " ITP enables IMC algorithm, and ITP_SEQ enables ISMC algorithm.")
+              + " ITP enables IMC algorithm, and ITPSEQ enables ISMC algorithm. ITP_AND_ITPSEQ runs"
+              + " ISMC first then IMC in the interpolation phase.")
   private FixedPointComputeStrategy fixedPointComputeStrategy = FixedPointComputeStrategy.ITP;
 
   @Option(
@@ -295,16 +297,19 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
   private boolean reachFixedPoint(
       final PartitionedFormulas formulas, List<BooleanFormula> reachVector)
       throws CPAException, SolverException, InterruptedException {
-    if (fixedPointComputeStrategy == FixedPointComputeStrategy.ITP_SEQ) {
+    if (fixedPointComputeStrategy == FixedPointComputeStrategy.ITPSEQ
+        || fixedPointComputeStrategy == FixedPointComputeStrategy.ITP_AND_ITPSEQ) {
       if (reachFixedPointByInterpolationSequence(formulas, reachVector)) {
         return true;
       }
     }
-    if (fixedPointComputeStrategy == FixedPointComputeStrategy.ITP) {
+    if (fixedPointComputeStrategy == FixedPointComputeStrategy.ITP
+        || fixedPointComputeStrategy == FixedPointComputeStrategy.ITP_AND_ITPSEQ) {
       if (reachFixedPointByInterpolation(formulas)) {
         return true;
       }
     }
+    logger.log(Level.FINE, "The overapproximation is unsafe, going back to BMC phase");
     return false;
   }
 
@@ -344,7 +349,6 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
       currentImage = bfmgr.or(currentImage, interpolant);
       interpolants = itpMgr.interpolate(ImmutableList.of(interpolant, loops.get(0), suffixFormula));
     }
-    logger.log(Level.FINE, "The overapproximation is unsafe, going back to BMC phase");
     return false;
   }
 
@@ -437,8 +441,6 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
         currentImage = bfmgr.or(currentImage, imageAtI);
       }
     }
-
-    logger.log(Level.FINE, "The overapproximation is unsafe, going back to BMC phase");
     return false;
   }
 

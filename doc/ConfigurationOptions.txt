@@ -3634,9 +3634,10 @@ imc.checkForwardConditions = true
 imc.fallBack = true
 
 # toggle which strategy for computing fixed point in oder to verify programs
-# with loops. ITP enables IMC algorithm, and ITP_SEQ enables ISMC algorithm.
+# with loops. ITP enables IMC algorithm, and ITPSEQ enables ISMC algorithm.
+# ITP_AND_ITPSEQ runs ISMC first then IMC in the interpolation phase.
 imc.fixedPointComputeStrategy = ITP
-  enum:     [NONE, ITP, ITP_SEQ]
+  enum:     [NONE, ITP, ITPSEQ, ITP_AND_ITPSEQ]
 
 # toggle Impact-like covering for the ISMC fixed-point check
 imc.impactLikeCovering = false
