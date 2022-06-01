@@ -596,9 +596,10 @@ public final class CCfaTransformer {
 
       MutableCFA newMutableCfa = createUnconnectedFunctionCfa(pOriginalCfa);
 
-      for (FunctionEntryNode function : newMutableCfa.getAllFunctionHeads()) {
-        CFAReversePostorder sorter = new CFAReversePostorder();
-        sorter.assignSorting(function);
+      for (String functionName : newMutableCfa.getAllFunctionNames()) {
+        CFAReversePostorder.assignIds(
+            newMutableCfa.getFunctionHead(functionName),
+            newMutableCfa.getFunctionNodes(functionName));
       }
 
       if (pOriginalCfa.getLoopStructure().isPresent()) {
