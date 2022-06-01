@@ -32,32 +32,16 @@ import org.checkerframework.checker.nullness.qual.Nullable;
  */
 final class DomInput<T> {
 
-  private static final int DELIMITER = -2;
-
   /** The ID of the start node (it's always {@code 0}, because we use reverse post-order IDs). */
   static final int START_NODE_ID = 0;
 
   private final ImmutableMap<T, Integer> ids;
   private final ImmutableList<T> nodes;
 
-  // The format for predecessors has the following properties:
-  //  - all data ist stored in a single int array
-  //  - reverse post-order IDs are used instead of references to the actual nodes
-  //  - predecessors of a node are grouped together and separated by a DELIMITER from predecessors
-  //    of other nodes
-  //  - the first group of predecessors is for the node with ID == 0, the second group for the node
-  //    with ID == 1, etc.
-  //  - the array must contain exactly one DELIMITER per node and its last element must be DELIMITER
-  //
-  // Example (p_X_Y: predecessor Y of node X):
-  // [p_0_a, p_0_b, DELIMITER, p_1_c, DELIMITER, DELIMITER, p_3_d, ..., DELIMITER]
-  //  - node 0 has 2 predecessors
-  //  - node 1 has 1 predecessor
-  //  - node 2 has 0 predecessors
-  //  - node 3 has (at least) 1 predecessor
-  private final int[] predecessorData;
+  // predecessorData[N] == predecessors of N
+  private final int[][] predecessorData;
 
-  private DomInput(Map<T, Integer> pIds, T[] pNodes, int[] pPredecessorData) {
+  private DomInput(Map<T, Integer> pIds, T[] pNodes, int[][] pPredecessorData) {
     ids = ImmutableMap.copyOf(pIds);
     nodes = ImmutableList.copyOf(pNodes);
     predecessorData = pPredecessorData;
@@ -99,7 +83,7 @@ final class DomInput<T> {
     @SuppressWarnings("unchecked") // it's impossible to create a new generic array T[]
     T[] emptyNodesArray = (T[]) new Object[0];
 
-    return new DomInput<>(ImmutableMap.of(), emptyNodesArray, new int[0]);
+    return new DomInput<>(ImmutableMap.of(), emptyNodesArray, new int[0][]);
   }
 
   /**
@@ -126,8 +110,6 @@ final class DomInput<T> {
 
     // predecessors of node with ID == 0, predecessors of node with ID == 1, etc.
     List<List<Integer>> allPredecessors = new ArrayList<>(Collections.nCopies(ids.size(), null));
-    int predecessorCounter = 0; // number of edges between nodes and predecessors in the graph
-
     List<Integer> currentNodePredecessors = new ArrayList<>();
     for (Map.Entry<T, Integer> nodeToId : ids.entrySet()) {
 
@@ -140,7 +122,6 @@ final class DomInput<T> {
         @Nullable Integer predecessorId = ids.get(predecessor);
         if (predecessorId != null) {
           currentNodePredecessors.add(predecessorId);
-          predecessorCounter++;
         }
       }
 
@@ -152,18 +133,13 @@ final class DomInput<T> {
     assert ids.entrySet().stream()
         .allMatch(entry -> entry.getKey().equals(nodes[entry.getValue()]));
 
-    int[] predecessors = new int[predecessorCounter + allPredecessors.size()];
-    int index = 0;
-    for (List<Integer> nodePredecessors : allPredecessors) {
-
-      for (int predecessorId : nodePredecessors) {
-        predecessors[index++] = predecessorId;
-      }
-
-      predecessors[index++] = DELIMITER;
+    int[][] predecessorData = new int[allPredecessors.size()][];
+    for (int nodeId = 0; nodeId < allPredecessors.size(); nodeId++) {
+      List<Integer> nodePredecessors = allPredecessors.get(nodeId);
+      predecessorData[nodeId] = nodePredecessors.stream().mapToInt(Integer::intValue).toArray();
     }
 
-    return new DomInput<>(ids, nodes, predecessors);
+    return new DomInput<>(ids, nodes, predecessorData);
   }
 
   @Nullable Integer getReversePostOrderId(T pNode) {
@@ -175,7 +151,7 @@ final class DomInput<T> {
   }
 
   PredecessorDataIterator iteratePredecessorData() {
-    return new PredecessorDataIterator(predecessorData, DELIMITER, nodes.size());
+    return new PredecessorDataIterator(predecessorData);
   }
 
   int getNodeCount() {
@@ -183,7 +159,7 @@ final class DomInput<T> {
   }
 
   /**
-   * Iterator for predecessor data in the specific format that `DomInput#predecessorData` has.
+   * Iterator for predecessor data ({@code predecessorData[N] == predecessors of N}).
    *
    * <p>Iteration works like this:
    *
@@ -198,23 +174,18 @@ final class DomInput<T> {
    */
   static final class PredecessorDataIterator {
 
-    private final int[] data;
-    private final int delimiter;
-    private final int nodeCount;
+    private final int[][] predecessorData;
 
-    private int index;
     private int nodeId;
+    private int[] nodePredecessors;
+    private int predecessorIndex;
 
-    private PredecessorDataIterator(int[] pData, int pDelimiter, int pNodeCount) {
-      data = pData;
-      delimiter = pDelimiter;
-      nodeCount = pNodeCount;
-
-      reset();
+    private PredecessorDataIterator(int[][] pPredecessorData) {
+      predecessorData = pPredecessorData;
     }
 
     boolean hasNextNode() {
-      return nodeId + 1 < nodeCount;
+      return nodeId < predecessorData.length;
     }
 
     int nextNode() {
@@ -223,21 +194,14 @@ final class DomInput<T> {
         throw new NoSuchElementException();
       }
 
-      // skip remaining predecessors of current node
-      if (index >= 0) {
-        while (data[index] != delimiter) {
-          index++;
-        }
-      }
+      nodePredecessors = predecessorData[nodeId++];
+      predecessorIndex = 0;
 
-      index++;
-      nodeId++;
-
-      return nodeId;
+      return nodeId - 1;
     }
 
     boolean hasNextPredecessor() {
-      return data[index] != delimiter;
+      return nodePredecessors != null && predecessorIndex < nodePredecessors.length;
     }
 
     int nextPredecessor() {
@@ -246,12 +210,13 @@ final class DomInput<T> {
         throw new NoSuchElementException();
       }
 
-      return data[index++];
+      return nodePredecessors[predecessorIndex++];
     }
 
     void reset() {
-      index = -1;
-      nodeId = -1;
+      nodeId = 0;
+      nodePredecessors = null;
+      predecessorIndex = 0;
     }
   }
 }
