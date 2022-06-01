@@ -34,7 +34,6 @@ import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.CounterexampleTraceInfo;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.InterpolationManager;
-import org.sosy_lab.cpachecker.util.predicates.interpolation.InterpolationManager.ItpProverFactory;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
@@ -126,14 +125,7 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
     bfmgr = fmgr.getBooleanFormulaManager();
     itpMgr =
         new InterpolationManager(
-            pfmgr,
-            solver,
-            Optional.empty(),
-            Optional.empty(),
-            pConfig,
-            shutdownNotifier,
-            logger,
-            ItpProverFactory.WITHOUT_MODELS);
+            pfmgr, solver, Optional.empty(), Optional.empty(), pConfig, shutdownNotifier, logger);
 
     finalFixedPoint = bfmgr.makeFalse();
   }

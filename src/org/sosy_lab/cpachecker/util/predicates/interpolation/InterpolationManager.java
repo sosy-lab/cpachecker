@@ -228,6 +228,11 @@ public final class InterpolationManager {
               + " options instead of giving up immediately.")
   private boolean tryAgainOnInterpolationError = true;
 
+  @Option(
+      secure = true,
+      description = "discard the information of the error path when a counterexample is found")
+  private boolean discardErrorPath = false;
+
   private final ITPStrategy itpStrategy;
 
   private final ExecutorService executor;
@@ -726,7 +731,7 @@ public final class InterpolationManager {
       BlockFormulas formulas, BasicProverEnvironment<?> pProver)
       throws SolverException, InterruptedException {
 
-    if (itpProverFactory.discardErrorPath()) {
+    if (discardErrorPath) {
       return CounterexampleTraceInfo.feasibleNoModel();
     }
 
@@ -789,34 +794,22 @@ public final class InterpolationManager {
     WITH_MODELS {
       @Override
       @SuppressWarnings("unchecked")
-      <T> InterpolatingProverEnvironment<T> newEnvironment(Solver pSolver) {
+      <T> InterpolatingProverEnvironment<T> newEnvironment(Solver solver) {
         // This is safe because we don't actually care about the value of T,
         // only the InterpolatingProverEnvironment itself cares about it.
         return (InterpolatingProverEnvironment<T>)
-            pSolver.newProverEnvironmentWithInterpolation(ProverOptions.GENERATE_MODELS);
-      }
-
-      @Override
-      boolean discardErrorPath() {
-        return false;
+            solver.newProverEnvironmentWithInterpolation(ProverOptions.GENERATE_MODELS);
       }
     },
     WITHOUT_MODELS {
       @Override
       @SuppressWarnings("unchecked")
-      <T> InterpolatingProverEnvironment<T> newEnvironment(Solver pSolver) {
-        return (InterpolatingProverEnvironment<T>) pSolver.newProverEnvironmentWithInterpolation();
-      }
-
-      @Override
-      boolean discardErrorPath() {
-        return true;
+      <T> InterpolatingProverEnvironment<T> newEnvironment(Solver solver) {
+        return (InterpolatingProverEnvironment<T>) solver.newProverEnvironmentWithInterpolation();
       }
     };
 
-    abstract <T> InterpolatingProverEnvironment<T> newEnvironment(Solver pSolver);
-
-    abstract boolean discardErrorPath();
+    abstract <T> InterpolatingProverEnvironment<T> newEnvironment(Solver solver);
   }
 
   /**
