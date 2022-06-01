@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.core.algorithm.bmc;
 
 import com.google.common.collect.ImmutableList;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.logging.Level;
@@ -55,7 +56,8 @@ import org.sosy_lab.java_smt.api.SolverException;
 public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
   private enum FixedPointComputeStrategy {
     NONE,
-    ITP
+    ITP,
+    ITP_SEQ
   };
 
   @Option(secure = true, description = "toggle checking forward conditions")
@@ -75,8 +77,11 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
   @Option(secure = true, description = "toggle removing unreachable stop states in ARG")
   private boolean removeUnreachableStopStates = false;
 
-  @Option(secure = true, description = "toggle asserting targets at every iteration")
+  @Option(secure = true, description = "toggle asserting targets at every iteration for IMC")
   private boolean assertTargetsAtEveryIteration = false;
+
+  @Option(secure = true, description = "toggle Impact-like covering for the ISMC fixed-point check")
+  private boolean impactLikeCovering = false;
 
   private final ConfigurableProgramAnalysis cpa;
 
@@ -133,6 +138,14 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
             pfmgr, solver, Optional.empty(), Optional.empty(), pConfig, shutdownNotifier, logger);
 
     finalFixedPoint = bfmgr.makeFalse();
+
+    if (assertTargetsAtEveryIteration
+        && fixedPointComputeStrategy != FixedPointComputeStrategy.ITP) {
+      logger.log(
+          Level.WARNING,
+          "Cannot assert targets at every iteration with current strategy for computing fixed point.");
+      assertTargetsAtEveryIteration = false;
+    }
   }
 
   @Override
@@ -178,6 +191,7 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
     }
 
     logger.log(Level.FINE, "Performing interpolation-based model checking");
+    List<BooleanFormula> reachVector = new ArrayList<>();
     PartitionedFormulas partitionedFormulas =
         new PartitionedFormulas(bfmgr, logger, assertTargetsAtEveryIteration);
     do {
@@ -237,7 +251,7 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
         partitionedFormulas.collectFormulasFromARG(pReachedSet);
 
         logger.log(Level.FINE, "Computing fixed points by interpolation");
-        if (reachFixedPointByInterpolation(partitionedFormulas)) {
+        if (reachFixedPoint(partitionedFormulas, reachVector)) {
           InterpolationHelper.removeUnreachableTargetStates(pReachedSet);
           InterpolationHelper.storeFixedPointAsAbstractionAtLoopHeads(
               pReachedSet, finalFixedPoint, predAbsMgr, pfmgr);
@@ -261,6 +275,22 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
         "Forward-condition disabled because of " + pReason + ", falling back to plain BMC");
     fixedPointComputeStrategy = FixedPointComputeStrategy.NONE;
     checkForwardConditions = false;
+  }
+
+  private boolean reachFixedPoint(
+      final PartitionedFormulas formulas, List<BooleanFormula> reachVector)
+      throws CPAException, SolverException, InterruptedException {
+    if (fixedPointComputeStrategy == FixedPointComputeStrategy.ITP_SEQ) {
+      if (reachFixedPointByInterpolationSequence(formulas, reachVector)) {
+        return true;
+      }
+    }
+    if (fixedPointComputeStrategy == FixedPointComputeStrategy.ITP) {
+      if (reachFixedPointByInterpolation(formulas)) {
+        return true;
+      }
+    }
+    return false;
   }
 
   /**
@@ -298,6 +328,92 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
       currentImage = bfmgr.or(currentImage, interpolant);
       interpolants = itpMgr.interpolate(ImmutableList.of(interpolant, loops.get(0), suffixFormula));
     }
+    logger.log(Level.FINE, "The overapproximation is unsafe, going back to BMC phase");
+    return false;
+  }
+
+  private boolean reachFixedPointByInterpolationSequence(
+      PartitionedFormulas pFormulas, List<BooleanFormula> reachVector)
+      throws CPAException, InterruptedException, SolverException {
+    List<BooleanFormula> itpSequence = getInterpolationSequence(pFormulas);
+    updateReachabilityVector(reachVector, itpSequence);
+    return checkFixedPointOfReachabilityVector(reachVector);
+  }
+
+  /**
+   * A helper method to derive an s sequence.
+   *
+   * @throws InterruptedException On shutdown request.
+   */
+  private ImmutableList<BooleanFormula> getInterpolationSequence(PartitionedFormulas pFormulas)
+      throws InterruptedException, CPAException {
+    logger.log(Level.FINE, "Extracting interpolation-sequence");
+    ImmutableList<BooleanFormula> formulasToPush =
+        new ImmutableList.Builder<BooleanFormula>()
+            .add(bfmgr.and(pFormulas.getPrefixFormula(), pFormulas.getLoopFormulas().get(0)))
+            .addAll(pFormulas.getLoopFormulas().subList(1, pFormulas.getNumLoops()))
+            .add(pFormulas.getAssertionFormula())
+            .build();
+    ImmutableList<BooleanFormula> itpSequence = itpMgr.interpolate(formulasToPush).orElseThrow();
+    logger.log(Level.ALL, "Interpolation sequence:", itpSequence);
+    return itpSequence;
+  }
+
+  /**
+   * A method to collectFormulasFromARG the reachability vector with newly derived interpolants
+   *
+   * @param reachVector the reachability vector of the previous iteration
+   * @param itpSequence the interpolation sequence derived at the current iteration
+   */
+  private void updateReachabilityVector(
+      List<BooleanFormula> reachVector, List<BooleanFormula> itpSequence) {
+    logger.log(Level.FINE, "Updating reachability vector");
+
+    assert reachVector.size() + 1 == itpSequence.size();
+    reachVector.add(bfmgr.makeTrue());
+    for (int i = 0; i < reachVector.size(); ++i) {
+      BooleanFormula image = reachVector.get(i);
+      BooleanFormula itp = fmgr.uninstantiate(itpSequence.get(i));
+      reachVector.set(i, bfmgr.and(image, itp));
+    }
+    logger.log(Level.ALL, "Updated reachability vector:", reachVector);
+  }
+
+  /**
+   * A method to determine whether a fixed point has been reached.
+   *
+   * @param reachVector the reachability vector at current iteration
+   * @return {@code true} if a fixed point is reached, i.e., property is proved; {@code false} if
+   *     the current over-approximation is unsafe.
+   * @throws InterruptedException On shutdown request.
+   */
+  private boolean checkFixedPointOfReachabilityVector(List<BooleanFormula> reachVector)
+      throws InterruptedException, SolverException {
+    logger.log(Level.FINE, "Checking fixed point of the reachability vector");
+
+    if (impactLikeCovering) {
+      BooleanFormula lastImage = reachVector.get(reachVector.size() - 1);
+      for (int i = 0; i < reachVector.size() - 1; ++i) {
+        BooleanFormula imageAtI = reachVector.get(i);
+        if (solver.implies(lastImage, imageAtI)) {
+          logger.log(Level.INFO, "Fixed point reached");
+          finalFixedPoint = bfmgr.or(reachVector);
+          return true;
+        }
+      }
+    } else {
+      BooleanFormula currentImage = reachVector.get(0);
+      for (int i = 1; i < reachVector.size(); ++i) {
+        BooleanFormula imageAtI = reachVector.get(i);
+        if (solver.implies(imageAtI, currentImage)) {
+          logger.log(Level.INFO, "Fixed point reached");
+          finalFixedPoint = currentImage;
+          return true;
+        }
+        currentImage = bfmgr.or(currentImage, imageAtI);
+      }
+    }
+
     logger.log(Level.FINE, "The overapproximation is unsafe, going back to BMC phase");
     return false;
   }

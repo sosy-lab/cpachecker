@@ -191,10 +191,6 @@ analysis.algorithm.CEGAR = false
 # with PredicateCPA and large-block encoding
 analysis.algorithm.IMC = false
 
-# use interpolation-sequence based model checking algorithm, works only with
-# PredicateCPA and large-block encoding
-analysis.algorithm.ISMC = false
-
 # Use MPI for running analyses in new subprocesses. The resulting reachedset
 # is the one of the first analysis returning in time. All other mpi-processes
 # will get aborted.
@@ -3628,7 +3624,7 @@ heuristicSelection.recursionConfig = no default value
 # Configuration for programs with a single loop.
 heuristicSelection.singleLoopConfig = no default value
 
-# toggle asserting targets at every iteration
+# toggle asserting targets at every iteration for IMC
 imc.assertTargetsAtEveryIteration = false
 
 # toggle checking forward conditions
@@ -3640,7 +3636,10 @@ imc.fallBack = true
 # toggle which strategy for computing fixed point in oder to verify programs
 # with loops
 imc.fixedPointComputeStrategy = ITP
-  enum:     [NONE, ITP]
+  enum:     [NONE, ITP, ITP_SEQ]
+
+# toggle Impact-like covering for the ISMC fixed-point check
+imc.impactLikeCovering = false
 
 # toggle removing unreachable stop states in ARG
 imc.removeUnreachableStopStates = false
@@ -3680,21 +3679,6 @@ invariantStore.invariantGenerationStrategy = REACHED_SET
 
 # The witness from which invariants should be generated.
 invariantStore.witness = "invariantwitness.yaml"
-
-# toggle checking forward conditions
-ismc.checkForwardConditions = true
-
-# toggle falling back if interpolation or forward-condition is disabled
-ismc.fallBack = true
-
-# toggle Impact-like covering for the fixed-point check
-ismc.impactLikeCovering = false
-
-# toggle using interpolation to verify programs with loops
-ismc.interpolation = true
-
-# toggle removing unreachable stop states in ARG
-ismc.removeUnreachableStopStates = false
 
 # Specify the class code path to search for java class or interface
 # definitions
