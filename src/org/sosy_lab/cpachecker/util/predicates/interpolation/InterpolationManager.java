@@ -365,7 +365,7 @@ public final class InterpolationManager {
 
   /**
    * Compute an inductive sequence of interpolants for a given list of formulas. The conjunction of
-   * the formulas is first checked for satisfiability, it is not necessary to due this before
+   * the formulas is first checked for satisfiability, it is not necessary to do this before
    * calling this method. Note that if the formulas represent a potential error path, calling {@link
    * #buildCounterexampleTrace(BlockFormulas, List, Optional)} instead and passing an {@link
    * ARGPath} instance would give additional information in case the path is feasible. If
@@ -383,7 +383,7 @@ public final class InterpolationManager {
 
   /**
    * Compute an inductive sequence of interpolants for a given list of formulas. The conjunction of
-   * the formulas is first checked for satisfiability, it is not necessary to due this before
+   * the formulas is first checked for satisfiability, it is not necessary to do this before
    * calling this method. Note that if the formulas represent a potential error path, calling {@link
    * #buildCounterexampleTrace(BlockFormulas, List, Optional)} instead and passing an {@link
    * ARGPath} instance would give additional information in case the path is feasible.
