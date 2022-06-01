@@ -8,7 +8,6 @@
 
 package org.sosy_lab.cpachecker.util.coverage.collectors;
 
-import com.google.common.collect.HashMultiset;
 import com.google.common.collect.LinkedHashMultiset;
 import com.google.common.collect.Multiset;
 import java.util.HashSet;
@@ -32,7 +31,7 @@ import org.sosy_lab.cpachecker.util.coverage.util.CoverageUtility;
  */
 public class AnalysisIndependentCoverageCollector extends CoverageCollector {
   private final Multiset<CFANode> visitedLocations = LinkedHashMultiset.create();
-  private final Multiset<String> visitedVariables = HashMultiset.create();
+  private final Set<String> visitedVariables = new HashSet<>();
   private final Set<String> allVariables = new HashSet<>();
   private final CFA cfa;
 
@@ -110,7 +109,7 @@ public class AnalysisIndependentCoverageCollector extends CoverageCollector {
     return allVariables;
   }
 
-  public Multiset<String> getVisitedVariables() {
+  public Set<String> getVisitedVariables() {
     return visitedVariables;
   }
 

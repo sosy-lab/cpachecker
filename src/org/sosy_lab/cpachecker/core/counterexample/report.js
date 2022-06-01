@@ -1659,7 +1659,7 @@ function renderTDG(dataJSON, color, inPercentage) {
       $scope.colorLineText = (lineCode, variableName, lineColor) => {
         let outputStr = "";
         const textColor = sourceCoverageJson.color;
-        const preStyle = `<mark style="background-color: ${lineColor}; color: ${textColor}; padding: 0;">`;
+        const preStyle = `<mark style="background-color: ${lineColor}; color: ${textColor}; font-weight: bold; padding: 0;">`;
         const postStyle = "</mark>";
         const lineParts = lineCode.split(variableName);
         const variableEnvironment = /^\s|\(|\)|\+|-|=|;|,|\.|\[|\]$/;

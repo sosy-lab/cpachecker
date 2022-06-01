@@ -8,8 +8,7 @@
 
 package org.sosy_lab.cpachecker.util.coverage.collectors;
 
-import com.google.common.collect.HashMultiset;
-import com.google.common.collect.Multiset;
+import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.CFA;
@@ -31,7 +30,7 @@ import org.sosy_lab.cpachecker.util.coverage.util.CoverageUtility;
 public class PredicateAnalysisCoverageCollector extends CoverageCollector {
   private final Set<CFANode> predicateConsideredLocations = new LinkedHashSet<>();
   private final Set<CFANode> predicateRelevantVariablesLocations = new LinkedHashSet<>();
-  private final Multiset<String> predicateAbstractionVariables = HashMultiset.create();
+  private final Set<String> predicateAbstractionVariables = new HashSet<>();
   private final CFA cfa;
   private int previousPredicateRelevantVariablesLocationsSize = 0;
 
@@ -116,7 +115,7 @@ public class PredicateAnalysisCoverageCollector extends CoverageCollector {
         previousPredicateRelevantVariablesLocationsSize);
   }
 
-  public Multiset<String> getPredicateAbstractionVariables() {
+  public Set<String> getPredicateAbstractionVariables() {
     return predicateAbstractionVariables;
   }
 
