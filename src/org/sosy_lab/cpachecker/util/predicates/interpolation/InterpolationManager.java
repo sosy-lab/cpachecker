@@ -241,7 +241,6 @@ public final class InterpolationManager {
   private final ExecutorService executor;
   private final LoopStructure loopStructure;
   private final VariableClassification variableClassification;
-  private final ItpProverFactory itpProverFactory;
 
   public InterpolationManager(
       PathFormulaManager pPmgr,
@@ -251,27 +250,6 @@ public final class InterpolationManager {
       Configuration config,
       ShutdownNotifier pShutdownNotifier,
       LogManager pLogger)
-      throws InvalidConfigurationException {
-    this(
-        pPmgr,
-        pSolver,
-        pLoopStructure,
-        pVarClassification,
-        config,
-        pShutdownNotifier,
-        pLogger,
-        ItpProverFactory.WITH_MODELS);
-  }
-
-  public InterpolationManager(
-      PathFormulaManager pPmgr,
-      Solver pSolver,
-      Optional<LoopStructure> pLoopStructure,
-      Optional<VariableClassification> pVarClassification,
-      Configuration config,
-      ShutdownNotifier pShutdownNotifier,
-      LogManager pLogger,
-      ItpProverFactory pItpProverFactory)
       throws InvalidConfigurationException {
     config.inject(this, InterpolationManager.class);
 
@@ -283,7 +261,6 @@ public final class InterpolationManager {
     solver = pSolver;
     loopStructure = pLoopStructure.orElse(null);
     variableClassification = pVarClassification.orElse(null);
-    itpProverFactory = pItpProverFactory;
 
     if (itpTimeLimit.isEmpty()) {
       executor = null;
@@ -872,28 +849,6 @@ public final class InterpolationManager {
         "interpolation", cexAnalysisTimer.getNumberOfIntervals(), formula, index);
   }
 
-  public enum ItpProverFactory {
-    WITH_MODELS {
-      @Override
-      @SuppressWarnings("unchecked")
-      <T> InterpolatingProverEnvironment<T> newEnvironment(Solver solver) {
-        // This is safe because we don't actually care about the value of T,
-        // only the InterpolatingProverEnvironment itself cares about it.
-        return (InterpolatingProverEnvironment<T>)
-            solver.newProverEnvironmentWithInterpolation(ProverOptions.GENERATE_MODELS);
-      }
-    },
-    WITHOUT_MODELS {
-      @Override
-      @SuppressWarnings("unchecked")
-      <T> InterpolatingProverEnvironment<T> newEnvironment(Solver solver) {
-        return (InterpolatingProverEnvironment<T>) solver.newProverEnvironmentWithInterpolation();
-      }
-    };
-
-    abstract <T> InterpolatingProverEnvironment<T> newEnvironment(Solver solver);
-  }
-
   /**
    * This class encapsulates the used SMT solver for interpolation, and keeps track of the formulas
    * that are currently on the solver stack.
@@ -911,7 +866,7 @@ public final class InterpolationManager {
     private final List<Pair<BooleanFormula, T>> currentlyAssertedFormulas = new ArrayList<>();
 
     Interpolator() {
-      itpProver = itpProverFactory.newEnvironment(solver);
+      itpProver = newEnvironment();
     }
 
     @SuppressWarnings("unchecked")
