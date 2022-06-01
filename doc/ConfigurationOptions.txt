@@ -3634,7 +3634,7 @@ imc.checkForwardConditions = true
 imc.fallBack = true
 
 # toggle which strategy for computing fixed point in oder to verify programs
-# with loops
+# with loops. ITP enables IMC algorithm, and ITP_SEQ enables ISMC algorithm.
 imc.fixedPointComputeStrategy = ITP
   enum:     [NONE, ITP, ITP_SEQ]
 

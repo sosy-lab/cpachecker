@@ -43,14 +43,28 @@ import org.sosy_lab.java_smt.api.SolverContext.ProverOptions;
 import org.sosy_lab.java_smt.api.SolverException;
 
 /**
- * This class provides an implementation of interpolation-based model checking algorithm, adapted
- * for program verification. The original algorithm was proposed in the paper "Interpolation and
- * SAT-based Model Checking" from K. L. McMillan. The algorithm consists of two phases: BMC phase
- * and interpolation phase. In the BMC phase, it unrolls the CFA and collects the path formula to
- * target states. If the path formula is UNSAT, it enters the interpolation phase, and computes
- * interpolants which are overapproximations of k-step reachable states. If the union of
- * interpolants grows to an inductive set of states, the property is proved. Otherwise, it returns
- * back to the BMC phase and keeps unrolling the CFA.
+ * This class provides implementations of interpolation-based model checking algorithm (IMC) and
+ * interpolation-sequence based model checking algorithm (ISMC), adapted for program verification.
+ *
+ * <ul>
+ *   <li>The original IMC algorithm was proposed in the paper "Interpolation and SAT-based Model
+ *       Checking" from K. L. McMillan. The algorithm consists of two phases: BMC phase and
+ *       interpolation phase. In the BMC phase, it unrolls the CFA and collects the path formula to
+ *       target states. If the path formula is UNSAT, it enters the interpolation phase, and
+ *       computes interpolants which are overapproximations of k-step reachable states. If the union
+ *       of interpolants grows to an inductive set of states, the property is proved. Otherwise, it
+ *       returns back to the BMC phase and keeps unrolling the CFA.
+ *   <li>The original ISMC algorithm was proposed in the paper "Interpolation-sequence based model
+ *       checking" by Yakir Vizel and Orna Grumberg. The algorithm consists of two phases: BMC phase
+ *       and interpolation phase. The BMC phase of ISMC is identical to that of IMC. If the
+ *       collected path formula is UNSAT, it enters the interpolation phase, and computes the
+ *       overapproximation of reachable states at each unrolling step in the form of an
+ *       interpolation sequence. The overapproximation is then conjoined with the * ones obtained in
+ *       the previous interpolation phases and forms a reachability vector. If the reachability
+ *       vector reaches a fixed point, i.e. the overapproximated state set becomes inductive, the
+ *       property is proved. Otherwise, it returns back to the BMC phase and keeps unrolling the
+ *       CFA.
+ * </ul>
  */
 @Options(prefix = "imc")
 public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
@@ -66,7 +80,8 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
   @Option(
       secure = true,
       description =
-          "toggle which strategy for computing fixed point in oder to verify programs with loops")
+          "toggle which strategy for computing fixed point in oder to verify programs with loops."
+              + " ITP enables IMC algorithm, and ITP_SEQ enables ISMC algorithm.")
   private FixedPointComputeStrategy fixedPointComputeStrategy = FixedPointComputeStrategy.ITP;
 
   @Option(
@@ -143,7 +158,8 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
         && fixedPointComputeStrategy != FixedPointComputeStrategy.ITP) {
       logger.log(
           Level.WARNING,
-          "Cannot assert targets at every iteration with current strategy for computing fixed point.");
+          "Cannot assert targets at every iteration with current strategy for computing fixed"
+              + " point.");
       assertTargetsAtEveryIteration = false;
     }
   }
@@ -250,7 +266,6 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
           && !AbstractStates.getTargetStates(pReachedSet).isEmpty()) {
         partitionedFormulas.collectFormulasFromARG(pReachedSet);
 
-        logger.log(Level.FINE, "Computing fixed points by interpolation");
         if (reachFixedPoint(partitionedFormulas, reachVector)) {
           InterpolationHelper.removeUnreachableTargetStates(pReachedSet);
           InterpolationHelper.storeFixedPointAsAbstractionAtLoopHeads(
@@ -302,6 +317,7 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
    */
   private boolean reachFixedPointByInterpolation(final PartitionedFormulas formulas)
       throws InterruptedException, CPAException, SolverException {
+    logger.log(Level.FINE, "Computing fixed points by interpolation (IMC)");
     logger.log(Level.ALL, "The SSA map is", formulas.getPrefixSsaMap());
     BooleanFormula currentImage = formulas.getPrefixFormula();
 
@@ -332,9 +348,17 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
     return false;
   }
 
+  /**
+   * The method to compute fixed points by interpolation-sequence.
+   *
+   * @return {@code true} if a fixed point is reached, i.e., property is proved; {@code false} if
+   *     the current over-approximation is unsafe.
+   * @throws InterruptedException On shutdown request.
+   */
   private boolean reachFixedPointByInterpolationSequence(
       PartitionedFormulas pFormulas, List<BooleanFormula> reachVector)
       throws CPAException, InterruptedException, SolverException {
+    logger.log(Level.FINE, "Computing fixed points by interpolation-sequence (ISMC)");
     List<BooleanFormula> itpSequence = getInterpolationSequence(pFormulas);
     updateReachabilityVector(reachVector, itpSequence);
     return checkFixedPointOfReachabilityVector(reachVector);
