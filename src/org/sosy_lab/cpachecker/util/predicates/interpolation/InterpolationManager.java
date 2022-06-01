@@ -365,8 +365,8 @@ public final class InterpolationManager {
 
   /**
    * Compute an inductive sequence of interpolants for a given list of formulas. The conjunction of
-   * the formulas is first checked for satisfiability, it is not necessary to do this before
-   * calling this method. Note that if the formulas represent a potential error path, calling {@link
+   * the formulas is first checked for satisfiability, it is not necessary to do this before calling
+   * this method. Note that if the formulas represent a potential error path, calling {@link
    * #buildCounterexampleTrace(BlockFormulas, List, Optional)} instead and passing an {@link
    * ARGPath} instance would give additional information in case the path is feasible. If
    * abstraction states are available, please call {@link #interpolate(List, List)} to enable more
@@ -383,8 +383,8 @@ public final class InterpolationManager {
 
   /**
    * Compute an inductive sequence of interpolants for a given list of formulas. The conjunction of
-   * the formulas is first checked for satisfiability, it is not necessary to do this before
-   * calling this method. Note that if the formulas represent a potential error path, calling {@link
+   * the formulas is first checked for satisfiability, it is not necessary to do this before calling
+   * this method. Note that if the formulas represent a potential error path, calling {@link
    * #buildCounterexampleTrace(BlockFormulas, List, Optional)} instead and passing an {@link
    * ARGPath} instance would give additional information in case the path is feasible.
    *
