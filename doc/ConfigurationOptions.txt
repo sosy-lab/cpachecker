@@ -3637,8 +3637,10 @@ imc.checkForwardConditions = true
 # toggle falling back if interpolation or forward-condition is disabled
 imc.fallBack = true
 
-# toggle using interpolation to verify programs with loops
-imc.interpolation = true
+# toggle which strategy for computing fixed point in oder to verify programs
+# with loops
+imc.fixedPointComputeStrategy = ITP
+  enum:     [NONE, ITP]
 
 # toggle removing unreachable stop states in ARG
 imc.removeUnreachableStopStates = false

@@ -53,12 +53,19 @@ import org.sosy_lab.java_smt.api.SolverException;
  */
 @Options(prefix = "imc")
 public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
+  private enum FixedPointComputeStrategy {
+    NONE,
+    ITP
+  };
 
   @Option(secure = true, description = "toggle checking forward conditions")
   private boolean checkForwardConditions = true;
 
-  @Option(secure = true, description = "toggle using interpolation to verify programs with loops")
-  private boolean interpolation = true;
+  @Option(
+      secure = true,
+      description =
+          "toggle which strategy for computing fixed point in oder to verify programs with loops")
+  private FixedPointComputeStrategy fixedPointComputeStrategy = FixedPointComputeStrategy.ITP;
 
   @Option(
       secure = true,
@@ -140,6 +147,10 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
     }
   }
 
+  private boolean isInterpolationEnabled() {
+    return fixedPointComputeStrategy != FixedPointComputeStrategy.NONE;
+  }
+
   /**
    * The main method for interpolation-based model checking.
    *
@@ -154,11 +165,11 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
       return AlgorithmStatus.SOUND_AND_PRECISE;
     }
 
-    if (interpolation && !cfa.getAllLoopHeads().isPresent()) {
+    if (isInterpolationEnabled() && !cfa.getAllLoopHeads().isPresent()) {
       logger.log(Level.WARNING, "Disable interpolation as loop structure could not be determined");
-      interpolation = false;
+      fixedPointComputeStrategy = FixedPointComputeStrategy.NONE;
     }
-    if (interpolation && cfa.getAllLoopHeads().orElseThrow().size() > 1) {
+    if (isInterpolationEnabled() && cfa.getAllLoopHeads().orElseThrow().size() > 1) {
       if (fallBack) {
         fallBackToBMC("Interpolation is not supported for multi-loop programs yet");
       } else {
@@ -190,7 +201,7 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
         }
       }
       // Check if interpolation or forward-condition check is applicable
-      if (interpolation
+      if (isInterpolationEnabled()
           && !InterpolationHelper.checkAndAdjustARG(
               logger, cpa, bfmgr, solver, pReachedSet, removeUnreachableStopStates)) {
         if (fallBack) {
@@ -220,7 +231,7 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
       // Interpolation
       final int maxLoopIterations =
           CPAs.retrieveCPA(cpa, LoopBoundCPA.class).getMaxLoopIterations();
-      if (interpolation
+      if (isInterpolationEnabled()
           && maxLoopIterations > 1
           && !AbstractStates.getTargetStates(pReachedSet).isEmpty()) {
         partitionedFormulas.collectFormulasFromARG(pReachedSet);
@@ -241,14 +252,14 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
   private void fallBackToBMC(final String pReason) {
     logger.log(
         Level.WARNING, "Interpolation disabled because of " + pReason + ", falling back to BMC");
-    interpolation = false;
+    fixedPointComputeStrategy = FixedPointComputeStrategy.NONE;
   }
 
   private void fallBackToBMCWithoutForwardCondition(final String pReason) {
     logger.log(
         Level.WARNING,
         "Forward-condition disabled because of " + pReason + ", falling back to plain BMC");
-    interpolation = false;
+    fixedPointComputeStrategy = FixedPointComputeStrategy.NONE;
     checkForwardConditions = false;
   }
 
