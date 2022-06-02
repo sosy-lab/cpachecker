@@ -26,13 +26,11 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.cpa.loopbound.LoopBoundCPA;
-import org.sosy_lab.cpachecker.cpa.predicate.BlockFormulaStrategy.BlockFormulas;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractionManager;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CPAs;
-import org.sosy_lab.cpachecker.util.predicates.interpolation.CounterexampleTraceInfo;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.InterpolationManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
@@ -272,13 +270,12 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
         bfmgr.and(
             bfmgr.and(loops.subList(1, formulas.getNumLoops())), formulas.getAssertionFormula());
 
-    BlockFormulas blkFormula =
-        new BlockFormulas(ImmutableList.of(currentImage, loops.get(0), suffixFormula));
-    CounterexampleTraceInfo cex = itpMgr.buildCounterexampleTrace(blkFormula);
-    while (cex.isSpurious()) {
+    Optional<ImmutableList<BooleanFormula>> interpolants =
+        itpMgr.interpolate(ImmutableList.of(currentImage, loops.get(0), suffixFormula));
+    while (interpolants.isPresent()) {
       logger.log(Level.ALL, "The current image is", currentImage);
-      assert cex.getInterpolants().size() == 2;
-      BooleanFormula interpolant = cex.getInterpolants().get(1);
+      assert interpolants.orElseThrow().size() == 2;
+      BooleanFormula interpolant = interpolants.orElseThrow().get(1);
       logger.log(Level.ALL, "The interpolant is", interpolant);
       interpolant = fmgr.instantiate(fmgr.uninstantiate(interpolant), formulas.getPrefixSsaMap());
       logger.log(Level.ALL, "After changing SSA", interpolant);
@@ -288,8 +285,7 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
         return true;
       }
       currentImage = bfmgr.or(currentImage, interpolant);
-      blkFormula = new BlockFormulas(ImmutableList.of(interpolant, loops.get(0), suffixFormula));
-      cex = itpMgr.buildCounterexampleTrace(blkFormula);
+      interpolants = itpMgr.interpolate(ImmutableList.of(interpolant, loops.get(0), suffixFormula));
     }
     logger.log(Level.FINE, "The overapproximation is unsafe, going back to BMC phase");
     return false;

@@ -143,6 +143,7 @@ public class ResidualProgramConstructionAfterAnalysisAlgorithm
               computeRelevantStates(pReachedSet),
               ImmutableSet.copyOf(pReachedSet.getWaitlist()),
               0,
+              true,
               true);
         }
       } catch (IOException e1) {
