@@ -72,7 +72,7 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
     NONE,
     ITP,
     ITPSEQ,
-    ITP_AND_ITPSEQ
+    ITPSEQ_AND_ITP
   }
 
   @Option(secure = true, description = "toggle checking forward conditions")
@@ -81,9 +81,9 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
   @Option(
       secure = true,
       description =
-          "toggle which strategy for computing fixed point in oder to verify programs with loops."
-              + " ITP enables IMC algorithm, and ITPSEQ enables ISMC algorithm. ITP_AND_ITPSEQ runs"
-              + " ISMC first then IMC in the interpolation phase.")
+          "toggle which strategy is used for computing fixed points in order to verify programs with loops."
+              + " ITP enables IMC algorithm, and ITPSEQ enables ISMC algorithm. ITPSEQ_AND_ITP runs"
+              + " ISMC first, and if a fixed point is not reached by ISMC, IMC is invoked.")
   private FixedPointComputeStrategy fixedPointComputeStrategy = FixedPointComputeStrategy.ITP;
 
   @Option(
@@ -305,7 +305,7 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
       case ITPSEQ:
         reachFixedPoint = reachFixedPointByInterpolationSequence(formulas, reachVector);
         break;
-      case ITP_AND_ITPSEQ:
+      case ITPSEQ_AND_ITP:
         reachFixedPoint = reachFixedPointByInterpolationSequence(formulas, reachVector);
         if (!reachFixedPoint) {
           reachFixedPoint = reachFixedPointByInterpolation(formulas);
