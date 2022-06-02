@@ -121,6 +121,7 @@ public class PredicateStaticRefiner extends StaticRefiner
   private final StatTimer predicateExtractionTime =
       new StatTimer("Time for predicate extraction from CFA");
   private final StatTimer argUpdateTime = new StatTimer("Time for ARG update");
+  private final StatTimer errorPathProcessing = new StatTimer("Error-path post-processing");
   private final StatInt foundPredicates =
       new StatInt(StatKind.SUM, "Number of predicates found statically");
 
@@ -251,7 +252,12 @@ public class PredicateStaticRefiner extends StaticRefiner
     } else {
       // we have a real error
       logger.log(Level.FINEST, "Error trace is not spurious");
-      return pathChecker.handleFeasibleCounterexample(counterexample, allStatesTrace);
+      errorPathProcessing.start();
+      try {
+        return pathChecker.handleFeasibleCounterexample(counterexample, allStatesTrace);
+      } finally {
+        errorPathProcessing.stop();
+      }
     }
   }
 
@@ -542,7 +548,8 @@ public class PredicateStaticRefiner extends StaticRefiner
           .beginLevel()
           .put(satCheckTime)
           .putIfUpdatedAtLeastOnce(predicateExtractionTime)
-          .putIfUpdatedAtLeastOnce(argUpdateTime);
+          .putIfUpdatedAtLeastOnce(argUpdateTime)
+          .putIfUpdatedAtLeastOnce(errorPathProcessing);
     }
 
     @Override
