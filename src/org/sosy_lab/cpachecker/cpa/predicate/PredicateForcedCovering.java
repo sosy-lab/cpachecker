@@ -20,6 +20,7 @@ import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.logging.Level;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -39,12 +40,10 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
-import org.sosy_lab.cpachecker.cpa.predicate.BlockFormulaStrategy.BlockFormulas;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionFormula;
-import org.sosy_lab.cpachecker.util.predicates.interpolation.CounterexampleTraceInfo;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.InterpolationManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
@@ -209,10 +208,9 @@ public class PredicateForcedCovering implements ForcedCovering, StatisticsProvid
         assert formulas.size() == path.size() + 2;
 
         // C) Compute interpolants
-        CounterexampleTraceInfo interpolantInfo =
-            imgr.buildCounterexampleTrace(new BlockFormulas(formulas));
+        Optional<ImmutableList<BooleanFormula>> interpolantInfo = imgr.interpolate(formulas);
 
-        if (!interpolantInfo.isSpurious()) {
+        if (interpolantInfo.isEmpty()) {
           logger.log(Level.FINER, "Forced covering unsuccessful.");
           continue; // forced covering not possible
         }
@@ -220,7 +218,7 @@ public class PredicateForcedCovering implements ForcedCovering, StatisticsProvid
         stats.successfulForcedCoverings++;
         logger.log(Level.FINER, "Forced covering successful.");
 
-        List<BooleanFormula> interpolants = interpolantInfo.getInterpolants();
+        List<BooleanFormula> interpolants = interpolantInfo.orElseThrow();
         assert interpolants.size() == formulas.size() - 1 : "Number of interpolants is wrong";
 
         // As the first interpolant is implied by the first formula,

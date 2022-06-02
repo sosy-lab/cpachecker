@@ -30,8 +30,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.Pair;
-import org.sosy_lab.cpachecker.util.dependencegraph.Dominance;
-import org.sosy_lab.cpachecker.util.dependencegraph.Dominance.DomTree;
+import org.sosy_lab.cpachecker.util.graph.dominance.DomTree;
 
 public class TestTargetReductionSpanningSet {
 
@@ -71,12 +70,12 @@ public class TestTargetReductionSpanningSet {
 
     DomTree<CFANode>
         domTree =
-            Dominance.createDomTree(
-                entryExit.getFirst(), CFAUtils::allSuccessorsOf, CFAUtils::allPredecessorsOf),
+            DomTree.forGraph(
+                CFAUtils::allPredecessorsOf, CFAUtils::allSuccessorsOf, entryExit.getFirst()),
         inverseDomTree =
             entryExit.getSecond() != null
-                ? Dominance.createDomTree(
-                    entryExit.getSecond(), CFAUtils::allPredecessorsOf, CFAUtils::allSuccessorsOf)
+                ? DomTree.forGraph(
+                    CFAUtils::allSuccessorsOf, CFAUtils::allPredecessorsOf, entryExit.getSecond())
                 : null;
 
     for (CFAEdge targetPred : pTargets) {
@@ -88,12 +87,12 @@ public class TestTargetReductionSpanningSet {
         if (targetPred.getSuccessor().getNumEnteringEdges() == 1
             && targetSucc.getSuccessor().getNumEnteringEdges() == 1
             && (domTree.isAncestorOf( // pred is ancestor/dominator of succ
-                    domTree.getId(targetToCopy.get(targetPred).getSuccessor()),
-                    domTree.getId(targetToCopy.get(targetSucc).getSuccessor()))
+                    targetToCopy.get(targetPred).getSuccessor(),
+                    targetToCopy.get(targetSucc).getSuccessor())
                 || (inverseDomTree != null
                     && inverseDomTree.isAncestorOf(
-                        inverseDomTree.getId(targetToCopy.get(targetPred).getSuccessor()),
-                        inverseDomTree.getId(targetToCopy.get(targetSucc).getSuccessor()))))) {
+                        targetToCopy.get(targetPred).getSuccessor(),
+                        targetToCopy.get(targetSucc).getSuccessor())))) {
           /*
            * Implementation of Arcs subsumes?. An arc e subsumes an arc e’ if every path from the
            * entry arc to e contains e’ or else if every path from e to the exit arc contains e’

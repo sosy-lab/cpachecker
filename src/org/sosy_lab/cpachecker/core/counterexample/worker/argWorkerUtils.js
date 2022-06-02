@@ -271,8 +271,7 @@ const argWorkerCallback = (data) => {
     });
     if (data.errorGraph !== undefined) {
       addEventsToArg();
-      $("#renderStateModal").hide();
-      $(".modal-backdrop").hide();
+      $("#renderStateModal").modal("hide");
       enqueue("argWorker", {
         errorGraph: true,
       }).then(
@@ -307,8 +306,7 @@ const argWorkerCallback = (data) => {
         PR.prettyPrint();
       }
     }
-    $("#renderStateModal").hide();
-    $(".modal-backdrop").hide();
+    $("#renderStateModal").modal("hide");
   }
 };
 
