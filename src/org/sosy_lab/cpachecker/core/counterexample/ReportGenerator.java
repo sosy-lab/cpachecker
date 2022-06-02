@@ -196,8 +196,12 @@ public class ReportGenerator {
 
     // extract further coverage data captured during the analysis if CoverageCPA
     // is present
-    CoverageCollectorHandler coverageCollectorHandler =
-        CoverageUtility.getCoverageCollectorHandlerFromReachedSet(pReached, pCfa);
+    Optional<CoverageCollectorHandler> optionalCoverageCollectorHandler =
+        CoverageUtility.getCoverageCollectorHandlerFromReachedSet(pReached);
+    CoverageCollectorHandler coverageCollectorHandler = new CoverageCollectorHandler(pCfa);
+    if (optionalCoverageCollectorHandler.isPresent()) {
+      coverageCollectorHandler = optionalCoverageCollectorHandler.orElseThrow();
+    }
     TimeDependentCoverageHandler tdcgHandler = coverageCollectorHandler.getTDCGHandler();
     CoverageMeasureHandler covHandler = coverageCollectorHandler.getCoverageHandler();
 

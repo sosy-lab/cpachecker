@@ -8,7 +8,7 @@
 
 package org.sosy_lab.cpachecker.util.coverage.util;
 
-import org.sosy_lab.cpachecker.cfa.CFA;
+import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.ADeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -49,19 +49,17 @@ public class CoverageUtility {
    * returned.
    *
    * @param pReached the reached set.
-   * @param cfa CFA of the program which is used for building a backup CoverageCollectorHandler.
    * @return either a backup handler or a unique specified CoverageCollectorHandler instance.
    */
-  public static CoverageCollectorHandler getCoverageCollectorHandlerFromReachedSet(
-      UnmodifiableReachedSet pReached, CFA cfa) {
-    CoverageCollectorHandler collectorHandler = new CoverageCollectorHandler(cfa);
+  public static Optional<CoverageCollectorHandler> getCoverageCollectorHandlerFromReachedSet(
+      UnmodifiableReachedSet pReached) {
     if (pReached instanceof PartitionedReachedSet) {
       CoverageCPA cpa =
           CPAs.retrieveCPA(((PartitionedReachedSet) pReached).getCPA(), CoverageCPA.class);
       if (cpa != null) {
-        collectorHandler = cpa.getCoverageCollectorHandler();
+        return Optional.of(cpa.getCoverageCollectorHandler());
       }
     }
-    return collectorHandler;
+    return Optional.empty();
   }
 }

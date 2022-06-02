@@ -121,10 +121,11 @@ public class AnalysisIndependentCoverageCollector extends CoverageCollector {
     String CPACHECKER_TMP_PREFIX = "__CPACHECKER_TMP";
     CDeclaration declaration = ((CDeclarationEdge) edge).getDeclaration();
     String qualifiedVariableName = declaration.getQualifiedName();
-    String variableName = declaration.getName().toUpperCase();
+    String variableName = declaration.getName();
     if (declaration instanceof CFunctionDeclaration
+        || variableName == null
         || qualifiedVariableName == null
-        || variableName.startsWith(CPACHECKER_TMP_PREFIX)) {
+        || variableName.toUpperCase().startsWith(CPACHECKER_TMP_PREFIX)) {
       return Optional.empty();
     }
     return Optional.of(qualifiedVariableName);

@@ -28,6 +28,7 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
@@ -315,8 +316,12 @@ class MainCPAStatistics implements Statistics {
 
   private void exportCoverage(PrintStream out, UnmodifiableReachedSet reached) {
     if (exportCoverage && cfa != null && reached.size() > 1) {
-      CoverageCollectorHandler coverageCollectorHandler =
-          CoverageUtility.getCoverageCollectorHandlerFromReachedSet(reached, cfa);
+      Optional<CoverageCollectorHandler> optionalCoverageCollectorHandler =
+          CoverageUtility.getCoverageCollectorHandlerFromReachedSet(reached);
+      CoverageCollectorHandler coverageCollectorHandler = new CoverageCollectorHandler(cfa);
+      if (optionalCoverageCollectorHandler.isPresent()) {
+        coverageCollectorHandler = optionalCoverageCollectorHandler.orElseThrow();
+      }
       ReachedSetCoverageCollector coverageCollector =
           coverageCollectorHandler.getReachedSetCoverageCollector();
       coverageCollector.collectFromReachedSet(reached, cpa);
