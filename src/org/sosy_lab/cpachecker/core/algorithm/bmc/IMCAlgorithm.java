@@ -225,8 +225,10 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
           solver.newProverEnvironment(ProverOptions.GENERATE_MODELS)) {
         BooleanFormula targetFormula =
             InterpolationHelper.buildReachTargetStateFormula(bfmgr, pReachedSet);
+        stats.satCheck.start();
         bmcProver.push(targetFormula);
         boolean isTargetStateReachable = !bmcProver.isUnsat();
+        stats.satCheck.stop();
         if (isTargetStateReachable) {
           logger.log(Level.FINE, "A target state is reached by BMC");
           analyzeCounterexample(targetFormula, pReachedSet, bmcProver);
@@ -253,8 +255,10 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
       }
       // Forward-condition check
       if (checkForwardConditions) {
+        stats.assertionsCheck.start();
         boolean isStopStateUnreachable =
             solver.isUnsat(InterpolationHelper.buildBoundingAssertionFormula(bfmgr, pReachedSet));
+        stats.assertionsCheck.stop();
         if (isStopStateUnreachable) {
           logger.log(Level.FINE, "The program cannot be further unrolled");
           InterpolationHelper.removeUnreachableTargetStates(pReachedSet);
@@ -267,8 +271,9 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
       if (isInterpolationEnabled()
           && maxLoopIterations > 1
           && !AbstractStates.getTargetStates(pReachedSet).isEmpty()) {
+        stats.interpolationPreparation.start();
         partitionedFormulas.collectFormulasFromARG(pReachedSet);
-
+        stats.interpolationPreparation.stop();
         if (reachFixedPoint(partitionedFormulas, reachVector)) {
           InterpolationHelper.removeUnreachableTargetStates(pReachedSet);
           InterpolationHelper.storeFixedPointAsAbstractionAtLoopHeads(
@@ -298,6 +303,7 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
   private boolean reachFixedPoint(
       final PartitionedFormulas formulas, List<BooleanFormula> reachVector)
       throws CPAException, SolverException, InterruptedException {
+    stats.fixedPointComputation.start();
     boolean reachFixedPoint = false;
     switch (fixedPointComputeStrategy) {
       case ITP:
@@ -317,6 +323,7 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
       default:
         throw new CPAException("Unknown fixed-point strategy" + fixedPointComputeStrategy);
     }
+    stats.fixedPointComputation.stop();
     if (reachFixedPoint) {
       return true;
     }
