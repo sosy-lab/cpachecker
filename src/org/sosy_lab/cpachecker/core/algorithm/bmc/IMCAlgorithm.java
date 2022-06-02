@@ -333,7 +333,7 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
         case NONE:
           break;
         default:
-          throw new CPAException("Unknown fixed-point strategy" + fixedPointComputeStrategy);
+          throw new AssertionError("Unknown fixed-point strategy " + fixedPointComputeStrategy);
       }
 
       if (reachFixedPoint) {
