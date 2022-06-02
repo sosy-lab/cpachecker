@@ -439,16 +439,16 @@ function renderTDG(dataJSON, color, inPercentage) {
         "<p>- use the Mouse Wheel Zoom checkbox to alter between scroll and zoom behaviour on mouse wheel</p>" +
         "<p>- use Split Threshold and 'Refresh button' to redraw the graph (values between 500 and 900)</p>" +
         "<p><b>Verification Coverage</b> Select from the selector box the coverage criteria which should be applied for coloring the CFA locations or source code lines.</p>" +
-        "<p>- Location-based: Following verificaion coverage measures are only applied for CFA locations:</p>" +
+        "<p>- Following verification coverage measures are only applied for CFA locations:</p>" +
         "<p>-- Visited Locations: Marks all locations green which were visited during the analysis and white if not</p>" +
         "<p>-- Reached Locations: Marks all locations green which were reached during the analysis and white if not</p>" +
         "<p>-- Considered-Locations Heat Map:</p>" +
-        '<p><span style="background-color:#3aec49;">&#9675;</span> visited state: state was visited during the analysis and was reached, darker green colors means relatively more often visited</p>' +
+        '<p><span style="background-color:#3aec49;">&#9675;</span> reached state: state was visited (by the transfer relation) during the analysis and was reached (reached means that the lcoations is contained within a state of the ARG), darker green colors means relatively more often visited</p>' +
         '<p><span style="background-color:#ff6e6e;">&#9675;</span> unreachable state: state was visited during analysis, but is not considered reached</p>' +
         '<p><span style="background-color:white;">&#9675;</span> dead state: state was not visited during the analysis</p>' +
         "<p>-- Predicate-Considered Locations: Marks all locations green which were visited and in case of assume-edges, where a predicate existed containing all variables of the assume-edge formula</p>" +
         "<p>-- Predicate-Relevant-Variables Locations: Similar to Predicate-Considered Locations except a filter is applied so that only relevant variables are checked within the assume-edge formulas</p>" +
-        "<p>- Line-based: Following verificaion coverage measures are only applied for source code lines:</p>" +
+        "<p>- Following verification coverage measures are only applied for source code lines:</p>" +
         "<p>-- Visited-Lines Heat Map: Marks all lines green which were visited during the analysis and red if not, lines which are white were never considered during the analysis</p>" +
         "<p>- Variable-based: Following verification coverage measures are only applied for source code variables:</p>" +
         "<p>-- Predicate-Abstraction Variables: Marks all variables red which were considered by abstraction formulas</p>" +

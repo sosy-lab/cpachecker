@@ -70,19 +70,11 @@ import org.sosy_lab.cpachecker.util.coverage.measures.MultiLocationBasedCoverage
  */
 public final class DOTBuilder2 {
 
-  private CFA cfa;
-  private CFAJSONBuilder jsoner;
-  private DOTViewBuilder dotter;
+  private final CFA cfa;
+  private final CFAJSONBuilder jsoner;
+  private final DOTViewBuilder dotter;
 
   public DOTBuilder2(CFA pCfa, CoverageMeasureHandler covHandler) {
-    init(pCfa, covHandler);
-  }
-
-  public DOTBuilder2(CFA pCfa) {
-    init(pCfa, new CoverageMeasureHandler());
-  }
-
-  private void init(CFA pCfa, CoverageMeasureHandler covHandler) {
     cfa = checkNotNull(pCfa);
     jsoner = new CFAJSONBuilder(covHandler);
     dotter = new DOTViewBuilder(cfa);
@@ -91,6 +83,10 @@ public final class DOTBuilder2 {
       CFATraversal.dfs().ignoreFunctionCalls().traverse(entryNode, vis);
     }
     dotter.postProcessing();
+  }
+
+  public DOTBuilder2(CFA pCfa) {
+    this(pCfa, new CoverageMeasureHandler());
   }
 
   /** output the CFA as DOT files */

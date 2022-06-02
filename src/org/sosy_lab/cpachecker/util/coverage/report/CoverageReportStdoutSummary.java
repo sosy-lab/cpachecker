@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.util.coverage.report;
 import java.io.PrintStream;
 import org.sosy_lab.cpachecker.util.coverage.collectors.CoverageCollector;
 import org.sosy_lab.cpachecker.util.coverage.collectors.CoverageCollectorHandler;
+import org.sosy_lab.cpachecker.util.coverage.collectors.ReachedSetCoverageCollector;
 import org.sosy_lab.cpachecker.util.coverage.measures.CoverageMeasure;
 import org.sosy_lab.cpachecker.util.coverage.measures.CoverageMeasureHandler;
 import org.sosy_lab.cpachecker.util.coverage.measures.CoverageMeasureType;
@@ -31,12 +32,13 @@ public class CoverageReportStdoutSummary {
    * @param pStdOut output print stream.
    */
   public static void write(CoverageCollectorHandler collector, PrintStream pStdOut) {
-    CoverageMeasureHandler handler = collector.getCoverageHandler();
-    writeFunctionCoverage(collector.getReachedSetCoverageCollector(), pStdOut);
-    writeConditionCoverage(collector.getReachedSetCoverageCollector(), pStdOut);
-    writeLineRelatedCoverage(handler, pStdOut);
-    writeLocationRelatedCoverage(handler, pStdOut);
-    writeVariableRelatedCoverage(handler, pStdOut);
+    CoverageMeasureHandler coverageHandler = collector.getCoverageHandler();
+    ReachedSetCoverageCollector reachedSetCollector = collector.getReachedSetCoverageCollector();
+    writeFunctionCoverage(reachedSetCollector, pStdOut);
+    writeConditionCoverage(reachedSetCollector, pStdOut);
+    writeLineRelatedCoverage(reachedSetCollector, pStdOut);
+    writeLocationRelatedCoverage(coverageHandler, pStdOut);
+    writeVariableRelatedCoverage(coverageHandler, pStdOut);
   }
 
   private static void writeFunctionCoverage(CoverageCollector collector, PrintStream pStdOut) {
@@ -70,30 +72,19 @@ public class CoverageReportStdoutSummary {
     }
   }
 
-  private static void writeLineRelatedCoverage(
-      CoverageMeasureHandler handler, PrintStream pStdOut) {
-    CoverageMeasure visited = handler.getData(CoverageMeasureType.VISITED_LINES_HEAT_MAP);
-    if (visited == null || visited.getMaxValue() <= 0) {
-      return;
-    }
+  private static void writeLineRelatedCoverage(CoverageCollector collector, PrintStream pStdOut) {
+    int totalLinesCount = collector.getExistingLinesCount();
+    int visitedLinesCount = collector.getVisitedLinesCount();
     StatisticsUtils.write(
         pStdOut,
         INDENT_LEVEL,
         FIELD_COLUMN_WIDTH,
         "Line coverage",
-        String.format("%.2f", visited.getNormalizedValue()));
+        String.format("%.2f", visitedLinesCount / (double) totalLinesCount));
     StatisticsUtils.write(
-        pStdOut,
-        INDENT_LEVEL,
-        FIELD_COLUMN_WIDTH,
-        "Visited lines",
-        String.format("%.0f", visited.getValue()));
+        pStdOut, INDENT_LEVEL, FIELD_COLUMN_WIDTH, "Visited lines", visitedLinesCount);
     StatisticsUtils.write(
-        pStdOut,
-        INDENT_LEVEL,
-        FIELD_COLUMN_WIDTH,
-        "Total lines",
-        String.format("%.0f", visited.getMaxValue()));
+        pStdOut, INDENT_LEVEL, FIELD_COLUMN_WIDTH, "Total lines", totalLinesCount);
   }
 
   private static void writeLocationRelatedCoverage(
