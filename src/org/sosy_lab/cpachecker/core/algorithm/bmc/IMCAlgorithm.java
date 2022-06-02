@@ -81,9 +81,10 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
   @Option(
       secure = true,
       description =
-          "toggle which strategy is used for computing fixed points in order to verify programs with loops."
-              + " ITP enables IMC algorithm, and ITPSEQ enables ISMC algorithm. ITPSEQ_AND_ITP runs"
-              + " ISMC first, and if a fixed point is not reached by ISMC, IMC is invoked.")
+          "toggle which strategy is used for computing fixed points in order to verify programs"
+              + " with loops. ITP enables IMC algorithm, and ITPSEQ enables ISMC algorithm."
+              + " ITPSEQ_AND_ITP runs ISMC first, and if a fixed point is not reached by ISMC, IMC"
+              + " is invoked.")
   private FixedPointComputeStrategy fixedPointComputeStrategy = FixedPointComputeStrategy.ITP;
 
   @Option(
