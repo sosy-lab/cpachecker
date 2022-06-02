@@ -73,7 +73,7 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
     ITP,
     ITPSEQ,
     ITP_AND_ITPSEQ
-  };
+  }
 
   @Option(secure = true, description = "toggle checking forward conditions")
   private boolean checkForwardConditions = true;
@@ -297,17 +297,27 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
   private boolean reachFixedPoint(
       final PartitionedFormulas formulas, List<BooleanFormula> reachVector)
       throws CPAException, SolverException, InterruptedException {
-    if (fixedPointComputeStrategy == FixedPointComputeStrategy.ITPSEQ
-        || fixedPointComputeStrategy == FixedPointComputeStrategy.ITP_AND_ITPSEQ) {
-      if (reachFixedPointByInterpolationSequence(formulas, reachVector)) {
-        return true;
-      }
+    boolean reachFixedPoint = false;
+    switch (fixedPointComputeStrategy) {
+      case ITP:
+        reachFixedPoint = reachFixedPointByInterpolation(formulas);
+        break;
+      case ITPSEQ:
+        reachFixedPoint = reachFixedPointByInterpolationSequence(formulas, reachVector);
+        break;
+      case ITP_AND_ITPSEQ:
+        reachFixedPoint = reachFixedPointByInterpolationSequence(formulas, reachVector);
+        if (!reachFixedPoint) {
+          reachFixedPoint = reachFixedPointByInterpolation(formulas);
+        }
+        break;
+      case NONE:
+        break;
+      default:
+        throw new CPAException("Unknown fixed-point strategy" + fixedPointComputeStrategy);
     }
-    if (fixedPointComputeStrategy == FixedPointComputeStrategy.ITP
-        || fixedPointComputeStrategy == FixedPointComputeStrategy.ITP_AND_ITPSEQ) {
-      if (reachFixedPointByInterpolation(formulas)) {
-        return true;
-      }
+    if (reachFixedPoint) {
+      return true;
     }
     logger.log(Level.FINE, "The overapproximation is unsafe, going back to BMC phase");
     return false;
