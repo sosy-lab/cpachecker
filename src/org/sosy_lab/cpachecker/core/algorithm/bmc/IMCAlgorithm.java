@@ -217,8 +217,11 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
       // Unroll
       shutdownNotifier.shutdownIfNecessary();
       stats.bmcPreparation.start();
-      BMCHelper.unroll(logger, pReachedSet, algorithm, cpa);
-      stats.bmcPreparation.stop();
+      try {
+        BMCHelper.unroll(logger, pReachedSet, algorithm, cpa);
+      } finally {
+        stats.bmcPreparation.stop();
+      }
       shutdownNotifier.shutdownIfNecessary();
       // BMC
       try (ProverEnvironment bmcProver =
@@ -226,9 +229,13 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
         BooleanFormula targetFormula =
             InterpolationHelper.buildReachTargetStateFormula(bfmgr, pReachedSet);
         stats.satCheck.start();
-        bmcProver.push(targetFormula);
-        boolean isTargetStateReachable = !bmcProver.isUnsat();
-        stats.satCheck.stop();
+        final boolean isTargetStateReachable;
+        try {
+          bmcProver.push(targetFormula);
+          isTargetStateReachable = !bmcProver.isUnsat();
+        } finally {
+          stats.satCheck.stop();
+        }
         if (isTargetStateReachable) {
           logger.log(Level.FINE, "A target state is reached by BMC");
           analyzeCounterexample(targetFormula, pReachedSet, bmcProver);
@@ -256,9 +263,13 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
       // Forward-condition check
       if (checkForwardConditions) {
         stats.assertionsCheck.start();
-        boolean isStopStateUnreachable =
-            solver.isUnsat(InterpolationHelper.buildBoundingAssertionFormula(bfmgr, pReachedSet));
-        stats.assertionsCheck.stop();
+        final boolean isStopStateUnreachable;
+        try {
+          isStopStateUnreachable =
+              solver.isUnsat(InterpolationHelper.buildBoundingAssertionFormula(bfmgr, pReachedSet));
+        } finally {
+          stats.assertionsCheck.stop();
+        }
         if (isStopStateUnreachable) {
           logger.log(Level.FINE, "The program cannot be further unrolled");
           InterpolationHelper.removeUnreachableTargetStates(pReachedSet);
@@ -304,31 +315,35 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
       final PartitionedFormulas formulas, List<BooleanFormula> reachVector)
       throws CPAException, SolverException, InterruptedException {
     stats.fixedPointComputation.start();
-    boolean reachFixedPoint = false;
-    switch (fixedPointComputeStrategy) {
-      case ITP:
-        reachFixedPoint = reachFixedPointByInterpolation(formulas);
-        break;
-      case ITPSEQ:
-        reachFixedPoint = reachFixedPointByInterpolationSequence(formulas, reachVector);
-        break;
-      case ITPSEQ_AND_ITP:
-        reachFixedPoint = reachFixedPointByInterpolationSequence(formulas, reachVector);
-        if (!reachFixedPoint) {
+    try {
+      boolean reachFixedPoint = false;
+      switch (fixedPointComputeStrategy) {
+        case ITP:
           reachFixedPoint = reachFixedPointByInterpolation(formulas);
-        }
-        break;
-      case NONE:
-        break;
-      default:
-        throw new CPAException("Unknown fixed-point strategy" + fixedPointComputeStrategy);
+          break;
+        case ITPSEQ:
+          reachFixedPoint = reachFixedPointByInterpolationSequence(formulas, reachVector);
+          break;
+        case ITPSEQ_AND_ITP:
+          reachFixedPoint = reachFixedPointByInterpolationSequence(formulas, reachVector);
+          if (!reachFixedPoint) {
+            reachFixedPoint = reachFixedPointByInterpolation(formulas);
+          }
+          break;
+        case NONE:
+          break;
+        default:
+          throw new CPAException("Unknown fixed-point strategy" + fixedPointComputeStrategy);
+      }
+
+      if (reachFixedPoint) {
+        return true;
+      }
+      logger.log(Level.FINE, "The overapproximation is unsafe, going back to BMC phase");
+      return false;
+    } finally {
+      stats.fixedPointComputation.stop();
     }
-    stats.fixedPointComputation.stop();
-    if (reachFixedPoint) {
-      return true;
-    }
-    logger.log(Level.FINE, "The overapproximation is unsafe, going back to BMC phase");
-    return false;
   }
 
   /**

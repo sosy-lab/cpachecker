@@ -396,8 +396,11 @@ abstract class AbstractBMCAlgorithm
 
         logger.log(Level.INFO, "Creating formula for program");
         stats.bmcPreparation.start();
-        status = BMCHelper.unroll(logger, reachedSet, algorithm, cpa);
-        stats.bmcPreparation.stop();
+        try {
+          status = BMCHelper.unroll(logger, reachedSet, algorithm, cpa);
+        } finally {
+          stats.bmcPreparation.stop();
+        }
         if (from(reachedSet)
             .skip(1) // first state of reached is always an abstraction state, so skip it
             .filter(not(AbstractStates::isTargetState)) // target states may be abstraction states
@@ -677,9 +680,13 @@ abstract class AbstractBMCAlgorithm
     }
     logger.log(Level.INFO, "Starting satisfiability check...");
     stats.satCheck.start();
-    pProver.push(program);
-    boolean safe = pProver.isUnsat();
-    stats.satCheck.stop();
+    final boolean safe;
+    try {
+      pProver.push(program);
+      safe = pProver.isUnsat();
+    } finally {
+      stats.satCheck.stop();
+    }
     // Leave program formula on solver stack until error path is created
 
     if (pReachedSet instanceof ReachedSet) {
@@ -942,20 +949,27 @@ abstract class AbstractBMCAlgorithm
         // create one formula for unwinding assertions
         BooleanFormula assertions = BMCHelper.createFormulaFor(stopStates, bfmgr);
         stats.assertionsCheck.start();
-        prover.push(assertions);
-        sound = prover.isUnsat();
-        prover.pop();
-        stats.assertionsCheck.stop();
+        try {
+          prover.push(assertions);
+          sound = prover.isUnsat();
+          prover.pop();
+        } finally {
+          stats.assertionsCheck.stop();
+        }
       } else {
         List<AbstractState> toRemove = new ArrayList<>();
         for (AbstractState s : stopStates) {
           // create individual formula for unwinding assertions
           BooleanFormula assertions = BMCHelper.createFormulaFor(ImmutableList.of(s), bfmgr);
           stats.assertionsCheck.start();
-          prover.push(assertions);
-          boolean result = prover.isUnsat();
-          prover.pop();
-          stats.assertionsCheck.stop();
+          final boolean result;
+          try {
+            prover.push(assertions);
+            result = prover.isUnsat();
+            prover.pop();
+          } finally {
+            stats.assertionsCheck.stop();
+          }
           sound &= result;
           if (result) {
             toRemove.add(s);
