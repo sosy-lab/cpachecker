@@ -28,6 +28,14 @@ import java.util.Set;
 import org.sosy_lab.cpachecker.util.graph.dominance.DomFrontiers;
 import org.sosy_lab.cpachecker.util.graph.dominance.DomTree;
 
+/**
+ * Abstract reaching definition analysis implementation based on dominator tree traversal.
+ *
+ * @param <D> the type of defined values (we are interested in definitions and uses of values that
+ *     have this type)
+ * @param <N> the input graph's node type
+ * @param <E> the input graph's edge type
+ */
 abstract class ReachDefAnalysis<D, N, E> {
 
   private final InputGraph<N, E> graph;
