@@ -369,19 +369,12 @@ public class ReportGenerator {
 
   private void insertSourceLineCoverageJson(Writer writer, CoverageMeasureHandler covHandler)
       throws IOException {
-    int i = 0;
-    writer.write("var sourceCoverageJson = {\"types\" : [");
+    writer.write("var sourceCoverageJson = {\"types\" :");
     ImmutableList<String> types =
         covHandler.getAllTypesForCategoriesAsString(
             CoverageMeasureInputCategory.LINE_BASED, CoverageMeasureInputCategory.VARIABLE_BASED);
-    writer.write("\"No Verification Coverage\",");
-    for (String type : types) {
-      JSON.writeJSONString(type, writer);
-      if (i++ != types.size() - 1) {
-        writer.write(",");
-      }
-    }
-    writer.write("],\n");
+    JSON.writeJSONString(FluentIterable.of("No Verification Coverage").append(types), writer);
+    writer.write(",\n");
     writer.write("\"color\":");
     JSON.writeJSONString(CoverageColorUtil.DEFAULT_RELEVANT_VARIABLE_COLOR, writer);
     writer.write("}\n");
