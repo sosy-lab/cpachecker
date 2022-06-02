@@ -374,7 +374,7 @@ public class ReportGenerator {
     ImmutableList<String> types =
         covHandler.getAllTypesForCategoriesAsString(
             CoverageMeasureInputCategory.LINE_BASED, CoverageMeasureInputCategory.VARIABLE_BASED);
-    writer.write("\"None\",");
+    writer.write("\"No Verification Coverage\",");
     for (String type : types) {
       JSON.writeJSONString(type, writer);
       if (i++ != types.size() - 1) {
@@ -724,7 +724,7 @@ public class ReportGenerator {
         covHandler.getAllTypesForCategories(
             CoverageMeasureInputCategory.LINE_BASED, CoverageMeasureInputCategory.VARIABLE_BASED);
 
-    lineColors.append("None").append(":");
+    lineColors.append("NoVerificationCoverage").append(":");
     lineColors.append(CoverageColorUtil.getAlternatingLineColor(lineNumber));
     lineColors.append(";");
     for (CoverageMeasureType type : types) {

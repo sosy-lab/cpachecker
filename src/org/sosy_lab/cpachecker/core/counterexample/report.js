@@ -1588,7 +1588,10 @@ function renderTDG(dataJSON, color, inPercentage) {
               const lineStyleTypes = lineColor.split("!");
               if (lineStyleTypes.length >= 2) {
                 const variables = lineStyleTypes[1].split(";")[0].split(",");
-                const defaultColor = $scope.extractColor(lineStyle, "None");
+                const defaultColor = $scope.extractColor(
+                  lineStyle,
+                  "NoVerificationCoverage"
+                );
                 let codeLine = line.text();
                 $scope.colorLineBackground(
                   lineStyle,
