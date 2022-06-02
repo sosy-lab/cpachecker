@@ -9,7 +9,6 @@
 package org.sosy_lab.cpachecker.cfa;
 
 import com.google.common.graph.Traverser;
-import java.util.Collection;
 import java.util.HashSet;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -49,15 +48,14 @@ public class CFAReversePostorder {
     return true;
   }
 
-  public static void assignIds(CFANode pStartNode, Collection<CFANode> pNodes) {
+  public static void assignIds(CFANode pStartNode) {
 
-    int reversePostOrderId = pNodes.size() - 1; // highest reverse post-order ID
+    int reversePostOrderId = 0;
     Iterable<CFANode> nodesInPostOrder =
         Traverser.forGraph(CFAUtils::successorsOf).depthFirstPostOrder(pStartNode);
 
-    // note that we iterate the nodes in post-order but assign _reverse_ post-order IDs
     for (CFANode node : nodesInPostOrder) {
-      node.setReversePostorderId(reversePostOrderId--);
+      node.setReversePostorderId(reversePostOrderId++);
     }
 
     // disabled because the recursive algorithm causes stack overflows for large files
