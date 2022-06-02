@@ -10,18 +10,10 @@ int __VERIFIER_nondet_int();
 
 int main() {
   int x = __VERIFIER_nondet_int();
-  int y = 0;
-  if (x) {
-    x = x * x;
-  } else {
-    return;
+  int y = -x;
+  if (x >= 0) {
+    y = x;
   }
-  int i = 0;
-  while (i < x) {
-    y = y + i++;
-  }
-  if (y >= 42) {
-    y = 42;
-  }
-  return y;
+  int z = y;
+  return z;
 }

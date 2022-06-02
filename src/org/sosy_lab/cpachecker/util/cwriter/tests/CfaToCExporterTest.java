@@ -48,7 +48,7 @@ public class CfaToCExporterTest extends ToCTranslationTest {
             .loadFromResource(CFAToCTranslatorTest.class, "predicateAnalysis.properties")
             .build());
 
-    originalProgram = Path.of(pProgram);
+    originalProgram = Path.of(EXPORTER_TEST_DIR_PATH + pProgram);
   }
 
   @Override
@@ -81,29 +81,36 @@ public class CfaToCExporterTest extends ToCTranslationTest {
   @Parameters(name = "{0}")
   public static Collection<Object[]> data() {
     return ImmutableList.of(
-        directTranslationTest(EXPORTER_TEST_DIR_PATH + "declaration.c", true),
-        directTranslationTest(EXPORTER_TEST_DIR_PATH + "declaration_multiple-on-one-line.c", true),
-        directTranslationTest(EXPORTER_TEST_DIR_PATH + "declaration_split.c", true),
-        directTranslationTest(EXPORTER_TEST_DIR_PATH + "declaration_with-side-effect.c", true),
-        directTranslationTest(
-            EXPORTER_TEST_DIR_PATH + "declaration_with-side-effect_multiple-on-one-line.c", true),
-        directTranslationTest(EXPORTER_TEST_DIR_PATH + "functions_multiple.c", true),
-        directTranslationTest(EXPORTER_TEST_DIR_PATH + "global-var.c", true),
-        directTranslationTest(EXPORTER_TEST_DIR_PATH + "global-var_multiple.c", true),
-        directTranslationTest(EXPORTER_TEST_DIR_PATH + "goto_with-dead-code.c", true),
-        directTranslationTest(EXPORTER_TEST_DIR_PATH + "goto_with-double-label.c", true),
-        directTranslationTest(EXPORTER_TEST_DIR_PATH + "goto_with-label-followed-by-if.c", true),
-        directTranslationTest(
-            EXPORTER_TEST_DIR_PATH + "goto_with-label-with-empty-statement.c", true),
-        directTranslationTest(EXPORTER_TEST_DIR_PATH + "if-else.c", true),
-        directTranslationTest(EXPORTER_TEST_DIR_PATH + "if-else_multiple-returns.c", true),
-        directTranslationTest(EXPORTER_TEST_DIR_PATH + "if-else_negated.c", true),
-        directTranslationTest(EXPORTER_TEST_DIR_PATH + "if-else_negated_double.c", true),
-        directTranslationTest(EXPORTER_TEST_DIR_PATH + "if-else_with-empty-else-branch.c", true),
-        directTranslationTest(EXPORTER_TEST_DIR_PATH + "if-else_with-goto-out-and-back-in.c", true),
-        directTranslationTest(
-            EXPORTER_TEST_DIR_PATH + "if-else_with-goto-out-of-both-branches.c", true),
-        directTranslationTest(
-            EXPORTER_TEST_DIR_PATH + "if-else_with-labeled-return-within.c", true));
+        directTranslationTest("declaration.c", true),
+        directTranslationTest("declaration_multiple-on-one-line.c", true),
+        directTranslationTest("declaration_split.c", true),
+        directTranslationTest("declaration_with-side-effect.c", true),
+        directTranslationTest("declaration_with-side-effect_multiple-on-one-line.c", true),
+        directTranslationTest("for.c", true),
+        directTranslationTest("for_condition-negated.c", true),
+        directTranslationTest("function-call.c", true),
+        directTranslationTest("functions_multiple.c", true),
+        directTranslationTest("global-var.c", true),
+        directTranslationTest("global-var_multiple.c", true),
+        directTranslationTest("goto_label_multiple-per-statement.c", true),
+        directTranslationTest("goto_label_on-empty-statement.c", true),
+        directTranslationTest("goto_label_on-if.c", true),
+        directTranslationTest("goto_with-dead-code.c", true),
+        directTranslationTest("if-else.c", true),
+        directTranslationTest("if-else_condition-abbreviated.c", true),
+        directTranslationTest("if-else_condition-negated.c", true),
+        directTranslationTest("if-else_condition-negated_double.c", true),
+        directTranslationTest("if-else_condition-true.c", true),
+        directTranslationTest("if-else_else-branch-empty.c", true),
+        directTranslationTest("if-else_else-branch-missing.c", true),
+        directTranslationTest("if-else_multiple-returns.c", true),
+        directTranslationTest("if-else_with-goto.c", true),
+        directTranslationTest("if-else_with-goto-out-and-back-in.c", true),
+        directTranslationTest("if-else_with-goto-out-of-both-branches.c", true),
+        directTranslationTest("if-else_with-goto_labeled-return-within.c", true),
+        directTranslationTest("if-else_with-goto_labeled-return-within-both-branches.c", true),
+        directTranslationTest("mixed.c", true),
+        directTranslationTest("switch-case.c", true),
+        directTranslationTest("while.c", true));
   }
 }

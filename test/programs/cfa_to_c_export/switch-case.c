@@ -6,22 +6,18 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-int __VERIFIER_nondet_int();
-
 int main() {
-  int x = __VERIFIER_nondet_int();
-  int y = 0;
-  if (x) {
-    x = x * x;
-  } else {
-    return;
-  }
-  int i = 0;
-  while (i < x) {
-    y = y + i++;
-  }
-  if (y >= 42) {
-    y = 42;
-  }
-  return y;
+    int x = 1;
+    int y;
+    switch(x) {
+     case 0:
+        y = 1;
+        break;
+     case 1:
+        y = 0;
+        break;
+     default:
+        y = -1;
+    }
+    return y;
 }
