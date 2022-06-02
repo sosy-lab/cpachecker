@@ -612,6 +612,7 @@ function renderTDG(dataJSON, color, inPercentage) {
         }
         if (tabIndex === 8) {
           d3.select("#tdg-toolbar").style("visibility", "visible");
+          d3.select("#tdg-toolbar").style("z-index", "1");
         }
         $scope.tab = tabIndex;
       };

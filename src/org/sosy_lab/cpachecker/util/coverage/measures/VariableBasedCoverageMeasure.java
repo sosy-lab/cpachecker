@@ -20,9 +20,10 @@ public class VariableBasedCoverageMeasure implements CoverageMeasure {
   private final ImmutableSet<String> visitedVariables;
   private final ImmutableSet<String> allVariables;
 
-  public VariableBasedCoverageMeasure(Set<String> pAllVariables, Set<String> pVisitedVariables) {
+  public VariableBasedCoverageMeasure(
+      ImmutableSet<String> pAllVariables, Set<String> pVisitedVariables) {
     visitedVariables = ImmutableSet.copyOf(pVisitedVariables);
-    allVariables = ImmutableSet.copyOf(pAllVariables);
+    allVariables = pAllVariables;
   }
 
   public String getAllRelevantVariablesAsString() {
