@@ -16,7 +16,7 @@ import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 
 public class BMCStatistics implements Statistics {
 
-  // Gereral BMC opertaions
+  // General BMC operations
   final Timer bmcPreparation = new Timer();
   final Timer satCheck = new Timer();
   final Timer errorPathCreation = new Timer();
