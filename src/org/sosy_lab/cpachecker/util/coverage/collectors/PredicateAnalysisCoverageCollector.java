@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.util.coverage.collectors;
 
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.Set;
@@ -102,11 +103,11 @@ public class PredicateAnalysisCoverageCollector extends CoverageCollector {
   }
 
   public Set<CFANode> getPredicateConsideredLocations() {
-    return predicateConsideredLocations;
+    return Collections.unmodifiableSet(predicateConsideredLocations);
   }
 
   public Set<CFANode> getPredicateRelevantConsideredLocations() {
-    return predicateRelevantVariablesLocations;
+    return Collections.unmodifiableSet(predicateRelevantVariablesLocations);
   }
 
   public int getPredicateRelevantConsideredLocationsCount() {
@@ -116,7 +117,7 @@ public class PredicateAnalysisCoverageCollector extends CoverageCollector {
   }
 
   public Set<String> getPredicateAbstractionVariables() {
-    return predicateAbstractionVariables;
+    return Collections.unmodifiableSet(predicateAbstractionVariables);
   }
 
   private double getTempCoverage(TimeDependentCoverageType type) {

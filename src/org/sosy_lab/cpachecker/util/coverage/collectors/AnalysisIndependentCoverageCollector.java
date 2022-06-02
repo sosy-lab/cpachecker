@@ -8,9 +8,9 @@
 
 package org.sosy_lab.cpachecker.util.coverage.collectors;
 
-import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.LinkedHashMultiset;
 import com.google.common.collect.Multiset;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.Optional;
 import java.util.Set;
@@ -107,12 +107,12 @@ public class AnalysisIndependentCoverageCollector extends CoverageCollector {
     }
   }
 
-  public ImmutableSet<String> getAllVariables() {
-    return ImmutableSet.copyOf(allVariables);
+  public Set<String> getAllVariables() {
+    return Collections.unmodifiableSet(allVariables);
   }
 
   public Set<String> getVisitedVariables() {
-    return visitedVariables;
+    return Collections.unmodifiableSet(visitedVariables);
   }
 
   private Optional<String> getNewVariableFromCFAEdge(CFAEdge edge) {
