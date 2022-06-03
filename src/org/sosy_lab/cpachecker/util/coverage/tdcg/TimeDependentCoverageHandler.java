@@ -27,15 +27,6 @@ public class TimeDependentCoverageHandler {
     timeDependentCoverageDataMap = new LinkedHashMap<>();
   }
 
-  /**
-   * Method for initializing a new type of TDCG.
-   *
-   * @param type type of the TDCG
-   */
-  public void initNewData(TimeDependentCoverageType type) {
-    timeDependentCoverageDataMap.put(type, new TimeDependentCoverageData());
-  }
-
   public TimeDependentCoverageData getData(TimeDependentCoverageType type) {
     TimeDependentCoverageData tdgData = timeDependentCoverageDataMap.get(type);
     if (tdgData == null) {
