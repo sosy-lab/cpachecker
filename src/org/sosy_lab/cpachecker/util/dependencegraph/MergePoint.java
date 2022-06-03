@@ -8,18 +8,20 @@
 
 package org.sosy_lab.cpachecker.util.dependencegraph;
 
+import com.google.common.graph.PredecessorsFunction;
+import com.google.common.graph.SuccessorsFunction;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
-import java.util.function.Function;
-import org.sosy_lab.cpachecker.util.dependencegraph.Dominance.DomTree;
+import org.checkerframework.checker.nullness.qual.Nullable;
+import org.sosy_lab.cpachecker.util.graph.dominance.DomTree;
 
 public class MergePoint<T> {
 
   private DomTree<T> tree;
-  private Function<T, Iterable<T>> actualSuccessors;
+  private SuccessorsFunction<T> actualSuccessors;
 
   /**
    * Find the first merge point of a node with two successors. E.g. find the node that represents an
@@ -30,8 +32,9 @@ public class MergePoint<T> {
    * @param pPredecessors a function that calculates all predecessors of a given node.
    */
   public MergePoint(
-      T pExitNode, Function<T, Iterable<T>> pSuccessors, Function<T, Iterable<T>> pPredecessors) {
-    tree = Dominance.createDomTree(pExitNode, pPredecessors, pSuccessors);
+      T pExitNode, SuccessorsFunction<T> pSuccessors, PredecessorsFunction<T> pPredecessors) {
+    // FIXME: make it more obvious that successor and predecessor functions are switched
+    tree = DomTree.forGraph(pSuccessors::successors, pPredecessors::predecessors, pExitNode);
     actualSuccessors = pSuccessors;
   }
 
@@ -44,13 +47,12 @@ public class MergePoint<T> {
    * @return the merge point of a given assume node
    */
   public T findMergePoint(T assume) {
-    Set<Integer> potentialMergeNodes = new HashSet<>();
-    List<List<Integer>> waitlist = new ArrayList<>();
-    int assumeId = tree.getId(assume);
+    Set<T> potentialMergeNodes = new HashSet<>();
+    List<List<T>> waitlist = new ArrayList<>();
 
-    for (T succ : actualSuccessors.apply(assume)) {
-      List<Integer> waitlistElem = new ArrayList<>();
-      waitlistElem.add(tree.getId(succ));
+    for (T succ : actualSuccessors.successors(assume)) {
+      List<T> waitlistElem = new ArrayList<>();
+      waitlistElem.add(succ);
       waitlist.add(waitlistElem);
     }
 
@@ -59,60 +61,42 @@ public class MergePoint<T> {
     }
 
     // breadth first search for merge points
-    int lastElement = -1;
-    List<Integer> currentPath;
+    @Nullable T lastElement = null;
+    List<T> currentPath;
     while (!waitlist.isEmpty()) {
 
       currentPath = waitlist.remove(0);
 
       lastElement = currentPath.remove(currentPath.size() - 1);
 
-      if (isPotentialMergeNode(assumeId, lastElement, currentPath)) {
+      if (isPotentialMergeNode(assume, lastElement, currentPath)) {
         int prevSize = potentialMergeNodes.size();
         potentialMergeNodes.add(lastElement);
         // if current element is already member of merge points we found a merge point.
         if (prevSize == potentialMergeNodes.size()) {
-          return tree.getNode(lastElement);
+          return lastElement;
         }
       }
       currentPath.add(lastElement);
-      for (T succ : Objects.requireNonNull(actualSuccessors.apply(tree.getNode(lastElement)))) {
-        int succId = tree.getId(succ);
-        List<Integer> newPath = new ArrayList<>(currentPath);
-        newPath.add(succId);
+      for (T succ : Objects.requireNonNull(actualSuccessors.successors(lastElement))) {
+        List<T> newPath = new ArrayList<>(currentPath);
+        newPath.add(succ);
         waitlist.add(newPath);
       }
     }
-    return tree.getNode(lastElement);
+    return lastElement;
   }
 
-  private boolean isPotentialMergeNode(int assume, int test, List<Integer> path) {
-    Set<Integer> postDominators = getPostDominators(assume);
+  private boolean isPotentialMergeNode(T assume, T test, List<T> path) {
+    Set<T> postDominators = tree.getAncestors(assume);
     if (postDominators.contains(test)) {
-      for (int i : path) {
-        if (postDominators.contains(i)) {
+      for (T n : path) {
+        if (postDominators.contains(n)) {
           return false;
         }
       }
       return true;
     }
     return false;
-  }
-
-  /**
-   * Calculate dominators of a certain node
-   *
-   * @param id the id of a node
-   * @return the post-dominators of the node with a certain <code>id</code>
-   */
-  private Set<Integer> getPostDominators(int id) {
-    Set<Integer> dominators = new HashSet<>();
-
-    while (tree.hasParent(id)) {
-      id = tree.getParent(id);
-      dominators.add(id);
-    }
-
-    return dominators;
   }
 }

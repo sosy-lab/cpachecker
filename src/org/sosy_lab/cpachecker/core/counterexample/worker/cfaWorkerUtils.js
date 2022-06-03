@@ -240,8 +240,7 @@ const cfaWorkerCallback = (data) => {
     });
     d3.selectAll(".cfa-graph").style("visibility", "visible");
     if (data.cfaSplit) {
-      $("#renderStateModal").hide();
-      $(".modal-backdrop").hide();
+      $("#renderStateModal").modal("hide");
     } else if (!data.argTabDisabled) {
       enqueue("argWorker", {
         renderer: "ready",
@@ -250,8 +249,7 @@ const cfaWorkerCallback = (data) => {
         (error) => argWorkerErrorCallback(error)
       );
     } else {
-      $("#renderStateModal").hide();
-      $(".modal-backdrop").hide();
+      $("#renderStateModal").modal("hide");
     }
   }
 };

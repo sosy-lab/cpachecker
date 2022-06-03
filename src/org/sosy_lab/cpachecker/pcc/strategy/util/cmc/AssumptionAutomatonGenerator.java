@@ -82,7 +82,8 @@ public class AssumptionAutomatonGenerator {
           getAllAncestorsFor(incompleteNodes),
           new HashSet<AbstractState>(incompleteNodes),
           0,
-          true);
+          true,
+          false);
     } catch (IOException e) {
       logger.log(
           Level.SEVERE, "Could not write assumption automaton for next partial ARG checking");
