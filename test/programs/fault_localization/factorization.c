@@ -7,6 +7,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 extern int __VERIFIER_nondet_int();
+void reach_error() { __assert_fail("0", "ss2f.c", 10, "reach_error"); }
 
 int isPrime(int n){
 	for(int i = 2; i <= n/2 + 1; i++){ // FIX: i < n/2 + 1 or i <= n/2
@@ -19,22 +20,19 @@ int main(){
 
 	//Calculate prime factors of number;
 	int number = __VERIFIER_nondet_int();
-	if (number < 0) {
-		//Tell user that a positive number is required
-		goto EXIT;
-	}
+	if (number <= 4)
+		return 0;
 
-	for(int i = 2; i < number; i++){
+	for(int i = 2; i <= number; i++){
 		if (number % i == 0 && isPrime(i)) {
 			number = number / i;
 			i--;
 		}
 	}
 
-	if(number == 1) {
-		goto ERROR;	
+	if(number != 1) {
+		reach_error();
+		return 1;
 	}
-
-EXIT: return 0;
-ERROR: return 1;
+	return 0;
 }

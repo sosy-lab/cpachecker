@@ -159,7 +159,7 @@ public class SMGFeasibilityChecker implements FeasibilityChecker<UnmodifiableSMG
 
     AbstractState initialAutomatonState =
         pAutomaton.getInitialState(mainFunction, defaultPartition);
-    TransferRelation transferRelation = pAutomaton.getTransferRelation();
+    TransferRelation transferRelation = pAutomaton.getTransferRelationInitial();
     Precision automatonPrecision = pAutomaton.getInitialPrecision(mainFunction, defaultPartition);
 
     Collection<? extends AbstractState> successors =

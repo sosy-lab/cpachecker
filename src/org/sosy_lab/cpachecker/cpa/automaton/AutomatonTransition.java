@@ -46,7 +46,7 @@ import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
  * A transition in the automaton implements one of the pattern matching methods. This determines if
  * the transition matches on a certain {@link CFAEdge}.
  */
-class AutomatonTransition {
+public class AutomatonTransition {
 
   // The order of triggers, assertions and (more importantly) actions is preserved by the parser.
 

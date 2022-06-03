@@ -35,6 +35,11 @@ public class ModifiedMaxSatAlgorithm implements FaultLocalizerWithTraceFormula, 
 
   // Statistics
   private final MaxSatStatistics stats = new MaxSatStatistics();
+  private final boolean stopAfterFirstFault;
+
+  public ModifiedMaxSatAlgorithm(boolean pStopAfterFirstFault) {
+    stopAfterFirstFault = pStopAfterFirstFault;
+  }
 
   @Override
   public Set<Fault> run(FormulaContext pContext, TraceFormula tf)
@@ -64,6 +69,9 @@ public class ModifiedMaxSatAlgorithm implements FaultLocalizerWithTraceFormula, 
       // has bugs
       if (minUnsatCore.size() != initSize) {
         hard.add(minUnsatCore);
+        if (stopAfterFirstFault) {
+          break;
+        }
       }
     }
     stats.totalTime.stop();

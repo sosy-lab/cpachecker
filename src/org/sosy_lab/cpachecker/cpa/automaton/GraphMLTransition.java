@@ -15,8 +15,9 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.function.Predicate;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.w3c.dom.Node;
 
-class GraphMLTransition {
+public class GraphMLTransition {
 
   private final GraphMLState source;
 
@@ -44,7 +45,10 @@ class GraphMLTransition {
 
   private final boolean entersLoopHead;
 
+  private final Node transition;
+
   public GraphMLTransition(
+      Node pTransition,
       GraphMLState pSource,
       GraphMLState pTarget,
       Optional<String> pFunctionEntry,
@@ -58,6 +62,7 @@ class GraphMLTransition {
       Optional<String> pExplicitAssumptionScope,
       Optional<String> pAssumptionResultFunction,
       boolean pEntersLoopHead) {
+    transition = pTransition;
     source = Objects.requireNonNull(pSource);
     target = Objects.requireNonNull(pTarget);
     functionEntry = Objects.requireNonNull(pFunctionEntry);
@@ -71,6 +76,10 @@ class GraphMLTransition {
     explicitAssumptionScope = Objects.requireNonNull(pExplicitAssumptionScope);
     explicitAssumptionResultFunction = Objects.requireNonNull(pAssumptionResultFunction);
     entersLoopHead = pEntersLoopHead;
+  }
+
+  public Node getTransition() {
+    return transition;
   }
 
   @Override

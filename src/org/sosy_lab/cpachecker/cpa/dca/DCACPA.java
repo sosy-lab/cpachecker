@@ -82,7 +82,7 @@ public class DCACPA extends AbstractSingleWrapperCPA {
 
   @Override
   public TransferRelation getTransferRelation() {
-    return new DCATransferRelation(automatonCPA.getTransferRelation());
+    return new DCATransferRelation(automatonCPA.getTransferRelationInitial());
   }
 
   @Override

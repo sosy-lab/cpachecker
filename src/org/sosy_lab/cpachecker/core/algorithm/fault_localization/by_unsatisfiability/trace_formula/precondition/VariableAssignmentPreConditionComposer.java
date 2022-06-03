@@ -8,7 +8,7 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.trace_formula.precondition;
 
-import com.google.common.base.Preconditions;
+import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -28,6 +28,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.trace_formula.FormulaContext;
+import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.trace_formula.InvalidCounterexampleException;
 import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.trace_formula.TraceFormula.TraceFormulaOptions;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
@@ -52,7 +53,8 @@ public class VariableAssignmentPreConditionComposer implements PreConditionCompo
 
   @Override
   public PreCondition extractPreCondition(List<CFAEdge> pCounterexample)
-      throws SolverException, InterruptedException, CPATransferException {
+      throws SolverException, InterruptedException, CPATransferException,
+          InvalidCounterexampleException {
     PreCondition nondets = createNondetPrecondition(pCounterexample);
     if (!includeInitialAssignment) {
       return nondets;
@@ -121,27 +123,38 @@ public class VariableAssignmentPreConditionComposer implements PreConditionCompo
             fmgr.getBooleanFormulaManager()
                 .and(
                     nondets.getPrecondition(),
-                    context.getManager().makeFormulaForPath(preconditionEdges).getFormula())));
+                    context.getManager().makeFormulaForPath(preconditionEdges).getFormula())),
+        nondets.getNondetVariables());
   }
 
   private PreCondition createNondetPrecondition(List<CFAEdge> pCounterexample)
-      throws SolverException, InterruptedException, CPATransferException {
+      throws SolverException, InterruptedException, CPATransferException,
+          InvalidCounterexampleException {
     BooleanFormulaManager bmgr = context.getSolver().getFormulaManager().getBooleanFormulaManager();
     BooleanFormula precond = bmgr.makeTrue();
+    Set<String> nondetVariables = new HashSet<>();
     try (ProverEnvironment prover = context.getProver()) {
       prover.push(context.getManager().makeFormulaForPath(pCounterexample).getFormula());
-      Preconditions.checkArgument(!prover.isUnsat(), "a model has to be existent");
+      if (prover.isUnsat()) {
+        throw new InvalidCounterexampleException(
+            "Precondition cannot be computed since counterexample is not feasible.");
+      }
       for (ValueAssignment modelAssignment : prover.getModelAssignments()) {
         context.getLogger().log(Level.FINEST, "tfprecondition=" + modelAssignment);
         BooleanFormula formula = modelAssignment.getAssignmentAsFormula();
         if (!Pattern.matches(".+::.+@[0-9]+", modelAssignment.getKey().toString())) {
           precond = bmgr.and(precond, formula);
+          FluentIterable.from(
+                  context.getSolver().getFormulaManager().extractVariables(formula).keySet())
+              .filter(name -> name.contains("__VERIFIER_nondet_"))
+              .copyInto(nondetVariables);
         }
       }
       return new PreCondition(
           ImmutableList.of(),
           pCounterexample,
-          context.getSolver().getFormulaManager().uninstantiate(precond));
+          context.getSolver().getFormulaManager().uninstantiate(precond),
+          nondetVariables);
     }
   }
 

@@ -40,6 +40,7 @@ import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiabi
 import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.rankings.CallHierarchyScoring;
 import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.rankings.EdgeTypeScoring;
 import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.trace_formula.FormulaContext;
+import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.trace_formula.InvalidCounterexampleException;
 import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.trace_formula.TraceFormula;
 import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.trace_formula.TraceFormula.TraceFormulaOptions;
 import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.trace_formula.postcondition.FinalAssumeClusterPostConditionComposer;
@@ -72,6 +73,7 @@ import org.sosy_lab.cpachecker.util.faultlocalization.ranking.OverallOccurrenceS
 import org.sosy_lab.cpachecker.util.faultlocalization.ranking.SetSizeScoring;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManagerImpl;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
+import org.sosy_lab.cpachecker.util.statistics.StatCounter;
 import org.sosy_lab.cpachecker.util.statistics.StatTimer;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 import org.sosy_lab.java_smt.api.SolverException;
@@ -108,7 +110,11 @@ public class FaultLocalizationWithTraceFormula
     INITIAL_ASSIGNMENT,
     /** Precondition that represent {@code true}. */
     ALWAYS_TRUE
+    /* Select an invariant instead of a single value for the precondition
+    INVARIANT*/
   }
+
+  private static FaultLocalizationInfo mergedInfo;
 
   private final Algorithm algorithm;
   private final LogManager logger;
@@ -117,6 +123,7 @@ public class FaultLocalizationWithTraceFormula
 
   private final FaultLocalizerWithTraceFormula faultAlgorithm;
   private final StatTimer totalTime = new StatTimer("Total time for fault localization");
+  private final StatCounter removedEdges = new StatCounter("Removed edges");
 
   @Option(secure = true, name = "type", description = "which algorithm to use")
   private AlgorithmType algorithmType = AlgorithmType.UNSAT;
@@ -137,10 +144,15 @@ public class FaultLocalizationWithTraceFormula
           "By default, the precondition only contains the failing variable assignment of all nondet"
               + " variables. Choose INITIAL_ASSIGNMENT to assignments like '<datatype>"
               + " <variable-name> = <value>' to the precondition.")
-  private PreConditionType preconditionType = PreConditionType.NONDETERMINISTIC_VARIABLES_ONLY;
+  private PreConditionType preconditionType = PreConditionType.INITIAL_ASSIGNMENT;
 
   @Option(description = "which post-condition type to use")
   private PostConditionType postConditionType = PostConditionType.LAST_ASSUME_EDGES_ON_SAME_LINE;
+
+  @Option(
+      description =
+          "whether maxsat algorithms should stop after they found the first minimal unsat core")
+  private boolean stopAfterFirstFault = false;
 
   public FaultLocalizationWithTraceFormula(
       final Algorithm pStoreAlgorithm,
@@ -149,10 +161,6 @@ public class FaultLocalizationWithTraceFormula
       final CFA pCfa,
       final ShutdownNotifier pShutdownNotifier)
       throws InvalidConfigurationException {
-
-    if (!(pStoreAlgorithm instanceof CounterexampleStoreAlgorithm)) {
-      throw new InvalidConfigurationException("option CounterexampleStoreAlgorithm required");
-    }
 
     logger = pLogger;
 
@@ -178,10 +186,10 @@ public class FaultLocalizationWithTraceFormula
 
     switch (algorithmType) {
       case MAXORG:
-        faultAlgorithm = new OriginalMaxSatAlgorithm();
+        faultAlgorithm = new OriginalMaxSatAlgorithm(stopAfterFirstFault);
         break;
       case MAXSAT:
-        faultAlgorithm = new ModifiedMaxSatAlgorithm();
+        faultAlgorithm = new ModifiedMaxSatAlgorithm(stopAfterFirstFault);
         break;
       case ERRINV:
         faultAlgorithm = new ErrorInvariantsAlgorithm(pShutdownNotifier, pConfig, logger);
@@ -237,6 +245,14 @@ public class FaultLocalizationWithTraceFormula
                 + " function::variable.");
       }
     }
+    if (stopAfterFirstFault
+        && (algorithmType == AlgorithmType.MAXORG || algorithmType == AlgorithmType.MAXSAT)) {
+      logger.log(
+          Level.WARNING,
+          "Option stopAfterFirstFault will be ignored since "
+              + algorithmType
+              + " does not search for faults eagerly.");
+    }
   }
 
   @Override
@@ -255,8 +271,27 @@ public class FaultLocalizationWithTraceFormula
       // run algorithm for every error
       logger.log(Level.INFO, "Starting fault localization...");
       for (CounterexampleInfo info : counterExamples) {
-        logger.log(Level.INFO, "Find explanations for fault #" + info.getUniqueId());
-        runAlgorithm(info, faultAlgorithm);
+        logger.log(Level.INFO, "Find explanations for counterexample #" + info.getUniqueId());
+        CounterexampleInfo newInfo = runAlgorithm(info, faultAlgorithm);
+        if (newInfo instanceof FaultLocalizationInfo) {
+          if (mergedInfo == null) {
+            mergedInfo = (FaultLocalizationInfo) newInfo;
+          } else {
+            List<Fault> ranked =
+                ((FaultLocalizationInfo) newInfo)
+                    .getRankedList().stream()
+                        .filter(f -> !f.isEmpty())
+                        .collect(ImmutableList.toImmutableList());
+            if (!ranked.isEmpty()) {
+              mergedInfo =
+                  new FaultLocalizationInfo(
+                      ((FaultLocalizationInfo) newInfo).getRankedList(), mergedInfo);
+            }
+          }
+        }
+      }
+      if (mergedInfo != null) {
+        apply(mergedInfo);
       }
       logger.log(Level.INFO, "Stopping fault localization...");
     } finally {
@@ -283,41 +318,49 @@ public class FaultLocalizationWithTraceFormula
         return FaultRankingUtils.concatHeuristics(
             new EdgeTypeScoring(), new CallHierarchyScoring(pTraceFormula.getTrace().toEdgeList()));
       default:
-        throw new AssertionError("The specified algorithm type does not exist");
+        throw new AssertionError("The specified algorithm type does not exist: " + algorithmType);
     }
   }
 
   private List<CFAEdge> getCounterexampleAsListOfEdges(CounterexampleInfo pInfo) {
     if (pInfo.isPreciseCounterExample()) {
-      return transformedImmutableListCopy(pInfo.getCFAPathWithAssignments(), assumption -> assumption.getCFAEdge());
+      return transformedImmutableListCopy(
+          pInfo.getCFAPathWithAssignments(), assumption -> assumption.getCFAEdge());
     }
     return pInfo.getTargetPath().getInnerEdges();
   }
 
-  private void runAlgorithm(CounterexampleInfo pInfo, FaultLocalizerWithTraceFormula pAlgorithm)
+  private CounterexampleInfo runAlgorithm(
+      CounterexampleInfo pInfo, FaultLocalizerWithTraceFormula pAlgorithm)
       throws CPAException, InterruptedException {
 
-    try {
-      List<CFAEdge> edgeList = getCounterexampleAsListOfEdges(pInfo);
-      if (edgeList.isEmpty()) {
-        logger.log(Level.INFO, "Can't find relevant edges in the error trace.");
-        return;
-      }
+    List<CFAEdge> edgeList = getCounterexampleAsListOfEdges(pInfo);
+    if (edgeList.isEmpty()) {
+      logger.log(Level.INFO, "Can't find relevant edges in the error trace.");
+      return pInfo;
+    }
 
+    try {
       // Find correct scoring and correct trace formula for the specified algorithm
       final TraceFormula tf =
           TraceFormula.fromCounterexample(
               getPreConditionExtractor(), getPostConditionExtractor(), edgeList, context, options);
 
       if (!tf.isCalculationPossible()) {
-        logger.log(
-            Level.INFO,
+        throw new CPAException(
             "Pre- and post-condition are unsatisfiable. No further analysis required. Most likely"
                 + " the variables in your post-condition never change their value.");
-        return;
       }
 
       Set<Fault> faults = pAlgorithm.run(context, tf);
+
+      faults = FluentIterable.from(faults).filter(f -> !f.isEmpty()).toSet();
+
+      if (faults.isEmpty()) {
+        throw new CPAException(
+            "FaultLocalization failed to find a fault containing edges."
+                + "Please consider strengthening your post-condition.");
+      }
 
       // ban specified variables from result set
       ImmutableSet.Builder<Fault> remainingFaults = ImmutableSet.builder();
@@ -341,14 +384,15 @@ public class FaultLocalizationWithTraceFormula
           new FaultLocalizationInfoWithTraceFormula(
               faults, getScoring(tf), tf, pInfo, algorithmType == AlgorithmType.ERRINV);
 
-      if (algorithmType == AlgorithmType.ERRINV) {
-        info.replaceHtmlWriter(new IntervalReportWriter(context.getSolver().getFormulaManager()));
+      if (!faults.isEmpty()) {
+        for (int i = 0; i < edgeList.size() - info.getRankedList().get(0).size(); i++) {
+          removedEdges.inc();
+        }
       }
 
-      info.getHtmlWriter().hideTypes(InfoType.RANK_INFO);
-      info.apply();
+      apply(info);
       logger.log(Level.INFO, "Running " + pAlgorithm.getClass().getSimpleName() + ":\n" + info);
-
+      return info;
     } catch (SolverException sE) {
       throw new CPAException(
           "The solver was not able to find the UNSAT-core of the path formula.", sE);
@@ -360,8 +404,23 @@ public class FaultLocalizationWithTraceFormula
     } catch (InvalidConfigurationException iE) {
       throw new CPAException("Incomplete analysis because of invalid configuration.", iE);
     } catch (IllegalStateException iE) {
+      throw new AssertionError(iE);
+      // throw new CPAException("The counterexample is spurious. Calculating interpolants is not
+      // possible.", iE);
+    } catch (InvalidCounterexampleException pE) {
+      logger.log(
+          Level.WARNING,
+          "Fault localization was executed on an infeasible counterexample. Results may not be"
+              + " valid.");
+
       throw new CPAException(
-          "The counterexample is spurious. Calculating interpolants is not possible.", iE);
+          "Found an infeasible counterexample. Fault localization not possible.", pE);
+      /*Fault relevant = FaultUtil.fromEdges(edgeList);
+      relevant.addInfo(
+          FaultInfo.justify(
+              "Fault localization was executed on an infeasible counterexample. "
+                  + "This fault marks all edges along the wrong error path."));
+      apply(new FaultLocalizationInfo(ImmutableList.of(relevant), pInfo));*/
     }
   }
 
@@ -410,11 +469,20 @@ public class FaultLocalizationWithTraceFormula
 
   @Override
   public void printStatistics(PrintStream out, Result result, UnmodifiableReachedSet reached) {
-    StatisticsWriter.writingStatisticsTo(out).put(totalTime);
+    StatisticsWriter.writingStatisticsTo(out).put(totalTime).put(removedEdges);
   }
 
   @Override
   public @Nullable String getName() {
     return getClass().getSimpleName();
+  }
+
+  private void apply(FaultLocalizationInfo pInfo) {
+    if (algorithmType == AlgorithmType.ERRINV) {
+      pInfo.replaceHtmlWriter(new IntervalReportWriter(context.getSolver().getFormulaManager()));
+    }
+
+    pInfo.getHtmlWriter().hideTypes(InfoType.RANK_INFO);
+    pInfo.apply();
   }
 }

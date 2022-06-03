@@ -15,7 +15,7 @@ import java.util.Optional;
 import java.util.Set;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.NodeFlag;
 
-class GraphMLState {
+public class GraphMLState {
 
   private final String id;
 

@@ -111,17 +111,32 @@ public class WitnessExporter {
       throws InterruptedException {
 
     String defaultFileName = getInitialFileName(pRootState);
-    WitnessFactory writer =
-        new WitnessFactory(
-            options,
-            cfa,
-            logger,
-            verificationTaskMetaData,
-            factory,
-            simplifier,
-            defaultFileName,
-            WitnessType.VIOLATION_WITNESS,
-            InvariantProvider.TrueInvariantProvider.INSTANCE);
+    WitnessFactory writer;
+    if (options.usedFaultLocalization()) {
+      writer =
+          new FaultLocalizationWitnessFactory(
+              options,
+              cfa,
+              logger,
+              verificationTaskMetaData,
+              factory,
+              simplifier,
+              defaultFileName,
+              WitnessType.VIOLATION_WITNESS,
+              InvariantProvider.TrueInvariantProvider.INSTANCE);
+    } else {
+      writer =
+          new WitnessFactory(
+              options,
+              cfa,
+              logger,
+              verificationTaskMetaData,
+              factory,
+              simplifier,
+              defaultFileName,
+              WitnessType.VIOLATION_WITNESS,
+              InvariantProvider.TrueInvariantProvider.INSTANCE);
+    }
     return writer.produceWitness(
         pRootState,
         pIsRelevantState,

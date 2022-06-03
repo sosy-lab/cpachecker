@@ -19,6 +19,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.base.Throwables;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
@@ -493,7 +494,8 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
       singleConfigBuilder.loadFromFile(singleConfigFileName);
 
       Configuration singleConfig = singleConfigBuilder.build();
-      NestingAlgorithm.checkConfigs(globalConfig, singleConfig, singleConfigFileName, logger);
+      NestingAlgorithm.checkConfigs(
+          globalConfig, singleConfig, singleConfigFileName, ImmutableSet.of(), logger);
       return singleConfig;
 
     } catch (IOException | InvalidConfigurationException e) {

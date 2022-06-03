@@ -9,8 +9,11 @@
 package org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.trace_formula;
 
 import com.google.common.base.MoreObjects;
+import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -22,6 +25,7 @@ import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiabi
 import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.trace_formula.precondition.PreConditionComposer;
 import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.trace_formula.trace.Trace;
 import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.trace_formula.trace.TraceInterpreter;
+import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
@@ -189,13 +193,33 @@ public class TraceFormula {
       List<CFAEdge> pCounterexample,
       FormulaContext pContext,
       TraceFormulaOptions pOptions)
-      throws CPATransferException, SolverException, InterruptedException {
+      throws CPAException, SolverException, InterruptedException, InvalidCounterexampleException,
+          InvalidConfigurationException {
     List<CFAEdge> remainingCounterexample = pCounterexample;
     PreCondition precondition = pPreConditionType.extractPreCondition(remainingCounterexample);
     remainingCounterexample = precondition.getRemainingCounterexample();
     PostCondition postCondition = pPostConditionType.extractPostCondition(remainingCounterexample);
     remainingCounterexample = postCondition.getRemainingCounterexample();
     Trace trace = Trace.fromCounterexample(remainingCounterexample, pContext, pOptions);
+    Set<String> nondets = precondition.getNondetVariables();
+    List<CFAEdge> preconditionEdges = new ArrayList<>(precondition.getEdgesForPrecondition());
+    FluentIterable.from(trace)
+        .filter(
+            atom -> nondets.stream().anyMatch(name -> atom.getFormula().toString().contains(name)))
+        .transform(atom -> atom.correspondingEdge())
+        .copyInto(preconditionEdges);
+    precondition = precondition.replaceRelatedEdges(preconditionEdges);
     return instantiate(pContext, precondition, trace, postCondition);
+  }
+
+  public static TraceFormula emptyTraceFormula(FormulaContext pContext)
+      throws CPATransferException, InterruptedException {
+    BooleanFormula trueFormula =
+        pContext.getSolver().getFormulaManager().getBooleanFormulaManager().makeTrue();
+    return new TraceFormula(
+        pContext,
+        PreCondition.of(trueFormula),
+        Trace.emptyTrace(pContext),
+        PostCondition.of(trueFormula));
   }
 }

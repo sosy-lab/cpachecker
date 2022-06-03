@@ -47,6 +47,7 @@ import org.sosy_lab.cpachecker.core.algorithm.TestCaseGeneratorAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.UndefinedFunctionCollectorAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.WitnessToACSLAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.WitnessToInvariantWitnessAlgorithm;
+import org.sosy_lab.cpachecker.core.algorithm.WitnessTransitionExtractorAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.BMCAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.IMCAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.ISMCAlgorithm;
@@ -384,6 +385,14 @@ public class CoreComponentsFactory {
       name = "algorithm.faultLocalization.by_distance",
       description = "Use fault localization with distance metrics")
   private boolean useFaultLocalizationWithDistanceMetrics = false;
+
+  @Option(
+      secure = true,
+      name = "algorithm.faultLocalization.witness",
+      description =
+          "Use witnesses to narrow down the number of edges in final fault localization result. "
+              + "Has no effect if no fault localization technique is activated.")
+  private boolean findWitnessEdges = false;
 
   @Option(secure = true, description = "Enable converting test goals to conditions.")
   private boolean testGoalConverter;
@@ -723,12 +732,21 @@ public class CoreComponentsFactory {
         algorithm = new MPVAlgorithm(cpa, config, logger, shutdownNotifier, specification, cfa);
       }
 
+      if (useFaultLocalizationWithTraceFormulas) {
+        if (!forceCexStore) {
+          throw new InvalidConfigurationException(
+              "The option analysis.alwaysStoreCounterexamples needs to be enabled to run MaxSat,"
+                  + " ErrInv or SingleUnsat");
+        }
+        algorithm =
+            new FaultLocalizationWithTraceFormula(algorithm, config, logger, cfa, shutdownNotifier);
+      }
       if (useFaultLocalizationWithCoverage) {
         algorithm = new FaultLocalizationWithCoverage(algorithm, shutdownNotifier, logger, config);
       }
-      if (useFaultLocalizationWithTraceFormulas) {
-        algorithm =
-            new FaultLocalizationWithTraceFormula(algorithm, config, logger, cfa, shutdownNotifier);
+      if (findWitnessEdges) {
+        // mark edges that are part of the witness as especially error-prone
+        algorithm = new WitnessTransitionExtractorAlgorithm(algorithm);
       }
     }
 

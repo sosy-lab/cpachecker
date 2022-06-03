@@ -37,6 +37,20 @@ public class FaultLocalizationInfoWithTraceFormula extends FaultLocalizationInfo
       boolean pSortIntended) {
     super(correctlySortFaults(pFaults, pScoring, pSortIntended), pParent);
     traceFormula = pTraceFormula;
+    init();
+  }
+
+  public FaultLocalizationInfoWithTraceFormula(
+      List<Fault> pFaults, CounterexampleInfo pParent, TraceFormula pTraceFormula) {
+    super(pFaults, pParent);
+    traceFormula = pTraceFormula;
+    init();
+  }
+
+  private void init() {
+    necessaryWitnessEdges.addAll(traceFormula.getPrecondition().getEdgesForPrecondition());
+    necessaryWitnessEdges.addAll(traceFormula.getPostCondition().getEdgesForPostCondition());
+    necessaryWitnessEdges.addAll(traceFormula.getPostCondition().getIrrelevantEdges());
   }
 
   private static List<Fault> correctlySortFaults(
@@ -45,6 +59,11 @@ public class FaultLocalizationInfoWithTraceFormula extends FaultLocalizationInfo
       return ImmutableList.sortedCopyOf(Comparator.comparingInt(Fault::getIntendedIndex), pFaults);
     }
     return FaultRankingUtils.rank(pScoring, pFaults);
+  }
+
+  @Override
+  protected FaultLocalizationInfo exchangeList(List<Fault> pFaults) {
+    return new FaultLocalizationInfoWithTraceFormula(pFaults, this, traceFormula);
   }
 
   public TraceFormula getTraceFormula() {

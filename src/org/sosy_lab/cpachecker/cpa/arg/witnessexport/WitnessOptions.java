@@ -82,6 +82,9 @@ public class WitnessOptions {
               + " careful when using this option.")
   private boolean produceInvariantWitnesses = false;
 
+  @Option(secure = true, description = "whether to use fault localization to export witnesses")
+  private boolean useFaultLocalization = false;
+
   boolean exportFunctionCallsAndReturns() {
     return exportFunctionCallsAndReturns;
   }
@@ -132,5 +135,9 @@ public class WitnessOptions {
 
   public boolean produceInvariantWitnesses() {
     return produceInvariantWitnesses;
+  }
+
+  boolean usedFaultLocalization() {
+    return useFaultLocalization;
   }
 }

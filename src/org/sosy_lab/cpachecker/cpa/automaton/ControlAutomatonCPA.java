@@ -55,6 +55,7 @@ import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
+import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.pcc.ProofChecker.ProofCheckerCPA;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.globalinfo.AutomatonInfo;
@@ -129,6 +130,9 @@ public class ControlAutomatonCPA
               + " TOP.")
   private boolean topOnFinalSelfLoopingState = false;
 
+  @Option(secure = true, description = "whether to track original metadata")
+  private boolean trackOriginalMetaData = false;
+
   private final Automaton automaton;
   private final AutomatonState topState;
   private final AutomatonState bottomState;
@@ -138,6 +142,8 @@ public class ControlAutomatonCPA
   private final CFA cfa;
   private final LogManager logger;
   private final ShutdownNotifier shutdownNotifier;
+
+  private final AutomatonTransferRelation relation;
 
   protected ControlAutomatonCPA(
       @OptionalAnnotation Automaton pAutomaton,
@@ -152,6 +158,7 @@ public class ControlAutomatonCPA
     cfa = pCFA;
     logger = pLogger;
     shutdownNotifier = pShutdownNotifier;
+
     if (pAutomaton != null) {
       automaton = pAutomaton;
 
@@ -190,6 +197,7 @@ public class ControlAutomatonCPA
         }
       }
     }
+    relation = getTransferRelationInitial();
   }
 
   private Automaton constructAutomataFromFile(Configuration pConfig, Path pFile)
@@ -299,9 +307,16 @@ public class ControlAutomatonCPA
     return new StopSepOperator(getAbstractDomain());
   }
 
-  @Override
-  public AutomatonTransferRelation getTransferRelation() {
+  public AutomatonTransferRelation getTransferRelationInitial() {
+    if (trackOriginalMetaData) {
+      return new AutomatonTransferRelationWithTracker(this, logger, cfa.getMachineModel(), stats);
+    }
     return new AutomatonTransferRelation(this, logger, cfa.getMachineModel(), stats);
+  }
+
+  @Override
+  public TransferRelation getTransferRelation() {
+    return relation;
   }
 
   public AutomatonState getBottomState() {
@@ -324,7 +339,7 @@ public class ControlAutomatonCPA
     ImmutableSet<? extends AbstractState> successors = ImmutableSet.copyOf(pSuccessors);
     ImmutableSet<? extends AbstractState> actualSuccessors =
         ImmutableSet.copyOf(
-            getTransferRelation()
+            getTransferRelationInitial()
                 .getAbstractSuccessorsForEdge(
                     pElement, SingletonPrecision.getInstance(), pCfaEdge));
     return successors.equals(actualSuccessors);

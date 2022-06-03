@@ -171,6 +171,10 @@ SlicingDelegatingRefiner.refiner = no default value
 # maximum number of condition adjustments (-1 for infinite)
 adjustableconditions.adjustmentLimit = -1
 
+# Specify global configurations that will not be overwritten when loading a
+# configuration file
+algorithm.nesting.keepGlobalConfig = {}
+
 # number of threads, positive values match exactly, with -1 we use the number
 # of available cores or the machine automatically.
 algorithm.parallelBam.numberOfThreads = -1
@@ -219,6 +223,11 @@ analysis.algorithm.faultLocalization.by_distance = false
 # for found property violation, perform fault localization with trace
 # formulas
 analysis.algorithm.faultLocalization.by_traceformula = false
+
+# Use witnesses to narrow down the number of edges in final fault
+# localization result. Has no effect if no fault localization technique is
+# activated.
+analysis.algorithm.faultLocalization.witness = false
 
 # Use McMillan's Impact algorithm for lazy interpolation
 analysis.algorithm.impact = false
@@ -1370,6 +1379,9 @@ cpa.arg.witness.removeInsufficientEdges = true
 # Verification witness: Revert escaping/renaming of functions for threads?
 cpa.arg.witness.revertThreadFunctionRenaming = false
 
+# whether to use fault localization to export witnesses
+cpa.arg.witness.useFaultLocalization = false
+
 # signal the analysis to break in case the given number of error state is
 # reached. Use -1 to disable this limit.
 cpa.automaton.breakOnTargetState = 1
@@ -1400,6 +1412,9 @@ cpa.automaton.prec.topOnFinalSelfLoopingState = false
 # file for saving the automaton in spc format (%s will be replaced with
 # automaton name)
 cpa.automaton.spcExportFile = "%s.spc"
+
+# whether to track original metadata
+cpa.automaton.trackOriginalMetaData = false
 
 # Whether to treat automaton states with an internal error state as targets.
 # This should be the standard use case.
@@ -3588,6 +3603,10 @@ faultLocalization.by_traceformula.postConditionType = LAST_ASSUME_EDGES_ON_SAME_
 # '<datatype> <variable-name> = <value>' to the precondition.
 faultLocalization.by_traceformula.preconditionType = NONDETERMINISTIC_VARIABLES_ONLY
   enum:     [NONDETERMINISTIC_VARIABLES_ONLY, INITIAL_ASSIGNMENT, ALWAYS_TRUE]
+
+# whether maxsat algorithms should stop after they found the first minimal
+# unsat core
+faultLocalization.by_traceformula.stopAfterFirstFault = false
 
 # which algorithm to use
 faultLocalization.by_traceformula.type = UNSAT

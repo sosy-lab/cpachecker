@@ -233,6 +233,7 @@ public class AutomatonGraphmlParser {
   private final ParserTools parserTools;
 
   private final Map<GraphMLState, ExpressionTree<AExpression>> stateInvariantsMap;
+  private final Map<AutomatonTransition, GraphMLTransition> originalData;
 
   public AutomatonGraphmlParser(
       Configuration pConfig,
@@ -250,6 +251,7 @@ public class AutomatonGraphmlParser {
     config = pConfig;
     parserTools = ParserTools.create(ExpressionTrees.newFactory(), cfa.getMachineModel(), logger);
     stateInvariantsMap = new HashMap<>();
+    originalData = new HashMap<>();
   }
 
   /**
@@ -312,11 +314,12 @@ public class AutomatonGraphmlParser {
     Automaton automaton;
     try {
       automaton =
-          new Automaton(
+          new AutomatonWithMetaData(
               graphMLParserState.getAutomatonName(),
               graphMLParserState.getAutomatonVariables(),
               automatonStates,
-              graphMLParserState.getEntryState().getId());
+              graphMLParserState.getEntryState().getId(),
+              originalData);
     } catch (InvalidAutomatonException e) {
       throw new WitnessParseException(INVALID_AUTOMATON_ERROR_MESSAGE, e);
     }
@@ -356,7 +359,6 @@ public class AutomatonGraphmlParser {
       AutomatonGraphmlParserState pGraphMLParserState, GraphMLState pState)
       throws WitnessParseException {
     List<AutomatonTransition> transitions = pGraphMLParserState.getStateTransitions(pState);
-
     // If the transition conditions do not apply, none of the above transitions is taken,
     // and instead, the stutter condition applies.
     AutomatonBoolExpr stutterCondition = pGraphMLParserState.getStutterConditions().get(pState);
@@ -392,7 +394,7 @@ public class AutomatonGraphmlParser {
     if (pState.isViolationState()) {
       AutomatonBoolExpr otherAutomataSafe = createViolationAssertion();
       List<AutomatonBoolExpr> assertions = Collections.singletonList(otherAutomataSafe);
-      transitions.add(
+      AutomatonTransition automatonTransition =
           createAutomatonTransition(
               AutomatonBoolExpr.TRUE,
               assertions,
@@ -401,7 +403,25 @@ public class AutomatonGraphmlParser {
               ImmutableList.of(),
               pState,
               true,
-              stopNotBreakAtSinkStates));
+              stopNotBreakAtSinkStates);
+      originalData.put(
+          automatonTransition,
+          new GraphMLTransition(
+              null,
+              pState,
+              pState,
+              Optional.empty(),
+              Optional.empty(),
+              Optional.empty(),
+              Optional.empty(),
+              AutomatonBoolExpr.TRUE,
+              DEFAULT_THREAD,
+              Optional.empty(),
+              ImmutableSet.of(),
+              Optional.empty(),
+              Optional.empty(),
+              false));
+      transitions.add(automatonTransition);
     }
 
     // Initialize distance variable at the entry state
@@ -616,9 +636,11 @@ public class AutomatonGraphmlParser {
                   getFunction(pGraphMLParserState, thread, pTransition.getFunctionEntry())
                       .orElseThrow(),
                   pTransition.getTarget().isSinkState()));
-      transitions.add(
+      AutomatonTransition automatonTransition =
           createAutomatonSinkTransition(
-              fpElseTrigger, ImmutableList.of(), actions, false, stopNotBreakAtSinkStates));
+              fpElseTrigger, ImmutableList.of(), actions, false, stopNotBreakAtSinkStates);
+      originalData.put(automatonTransition, pTransition);
+      transitions.add(automatonTransition);
     }
 
     // If the triggers do not apply, none of the above transitions is taken,
@@ -676,7 +698,7 @@ public class AutomatonGraphmlParser {
 
     // If the triggers match, there must be one successor state that moves the automaton
     // forwards
-    transitions.add(
+    AutomatonTransition automatonTransition =
         createAutomatonTransition(
             transitionCondition,
             ImmutableList.of(),
@@ -685,7 +707,9 @@ public class AutomatonGraphmlParser {
             actions,
             pTransition.getTarget(),
             pTransition.getTarget().isViolationState(),
-            stopNotBreakAtSinkStates));
+            stopNotBreakAtSinkStates);
+    originalData.put(automatonTransition, pTransition);
+    transitions.add(automatonTransition);
 
     // Multiple CFA edges in a sequence might match the triggers,
     // so in that case we ALSO need a transition back to the source state
@@ -1444,6 +1468,7 @@ public class AutomatonGraphmlParser {
 
     GraphMLTransition transition =
         new GraphMLTransition(
+            pTransition,
             source,
             target,
             functionEntry,
@@ -1989,7 +2014,7 @@ public class AutomatonGraphmlParser {
     }
   }
 
-  private static class GraphMLDocumentData {
+  public static class GraphMLDocumentData {
 
     private final Node graph;
 
@@ -2057,7 +2082,7 @@ public class AutomatonGraphmlParser {
       return result;
     }
 
-    private static Set<String> getDataOnNode(Node node, final KeyDef dataKey) {
+    public static Set<String> getDataOnNode(Node node, final KeyDef dataKey) {
       Preconditions.checkNotNull(node);
       Preconditions.checkArgument(node.getNodeType() == Node.ELEMENT_NODE);
 

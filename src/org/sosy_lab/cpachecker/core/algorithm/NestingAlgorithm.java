@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.core.algorithm;
 import static com.google.common.base.Preconditions.checkArgument;
 
 import com.google.common.base.Splitter;
+import com.google.common.collect.ImmutableSet;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.Collection;
@@ -19,12 +20,15 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
+import java.util.Set;
 import java.util.logging.Level;
 import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.ConfigurationBuilder;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Option;
+import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -44,6 +48,7 @@ import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
 import org.sosy_lab.cpachecker.util.resources.ResourceLimitChecker;
 
 /** abstract algorithm for executing other nested algorithms. */
+@Options(prefix = "algorithm.nesting")
 public abstract class NestingAlgorithm implements Algorithm, StatisticsProvider {
 
   protected final LogManager logger;
@@ -51,11 +56,19 @@ public abstract class NestingAlgorithm implements Algorithm, StatisticsProvider 
   protected final Configuration globalConfig;
   protected final Specification specification;
 
+  @Option(
+      description =
+          "Specify global configurations that will not be overwritten when loading a configuration"
+              + " file")
+  private Set<String> keepGlobalConfig = ImmutableSet.of();
+
   protected NestingAlgorithm(
       Configuration pConfig,
       LogManager pLogger,
       ShutdownNotifier pShutdownNotifier,
-      Specification pSpecification) {
+      Specification pSpecification)
+      throws InvalidConfigurationException {
+    pConfig.recursiveInject(this);
     shutdownNotifier = Objects.requireNonNull(pShutdownNotifier);
     globalConfig = Objects.requireNonNull(pConfig);
     specification = Objects.requireNonNull(pSpecification);
@@ -111,8 +124,16 @@ public abstract class NestingAlgorithm implements Algorithm, StatisticsProvider 
     singleConfigBuilder.loadFromFile(singleConfigFileName);
 
     Configuration singleConfig = singleConfigBuilder.build();
-    checkConfigs(globalConfig, singleConfig, singleConfigFileName, logger);
-    return singleConfig;
+    checkConfigs(globalConfig, singleConfig, singleConfigFileName, keepGlobalConfig, logger);
+    Map<String, String> global = configToMap(globalConfig);
+    Map<String, String> single = configToMap(singleConfig);
+    singleConfigBuilder = Configuration.builder().copyFrom(singleConfig);
+    for (String s : keepGlobalConfig) {
+      if (global.containsKey(s) && single.containsKey(s)) {
+        singleConfigBuilder.setOption(s, global.get(s));
+      }
+    }
+    return singleConfigBuilder.build();
   }
 
   private static ReachedSet createInitialReachedSet(
@@ -137,6 +158,7 @@ public abstract class NestingAlgorithm implements Algorithm, StatisticsProvider 
       Configuration pGlobalConfig,
       Configuration pSingleConfig,
       Path pSingleConfigFileName,
+      Set<String> ignore,
       LogManager pLogger)
       throws InvalidConfigurationException {
     Map<String, String> global = configToMap(pGlobalConfig);
@@ -144,7 +166,7 @@ public abstract class NestingAlgorithm implements Algorithm, StatisticsProvider 
     for (Entry<String, String> entry : global.entrySet()) {
       String key = entry.getKey();
       String value = entry.getValue();
-      if (single.containsKey(key) && !value.equals(single.get(key))) {
+      if (single.containsKey(key) && !value.equals(single.get(key)) && !ignore.contains(key)) {
         pLogger.logf(
             Level.INFO,
             "Mismatch of configuration options when loading from '%s': '%s' has two values '%s' and"

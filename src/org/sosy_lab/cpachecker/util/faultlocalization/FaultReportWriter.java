@@ -81,11 +81,11 @@ public class FaultReportWriter {
   }
 
   /**
-   * Convert this object to a HTML string for the report.
+   * Convert this object to an HTML string for the report.
    *
    * @param correspondingEdges the corresponding edges to the fault
    * @param infos the FaultInfos appended to a Fault(Contribution)
-   * @return hmtl code of this instance
+   * @return html code of this instance
    */
   protected String toHtml(List<FaultInfo> infos, List<CFAEdge> correspondingEdges) {
     List<FaultReason> faultReasons = new ArrayList<>();

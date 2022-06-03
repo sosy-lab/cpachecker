@@ -141,7 +141,7 @@ public class ErrorInvariantsAlgorithm implements FaultLocalizerWithTraceFormula,
     totalTime.start();
 
     List<BooleanFormula> interpolants = getInterpolants(context);
-    List<Interval> sortedIntervals = new ArrayList<>();
+    List<Interval> sortedIntervals = new ArrayList<>(interpolants.size());
 
     // calculate interval boundaries for each interpolant
     for (int i = 0; i < interpolants.size(); i++) {

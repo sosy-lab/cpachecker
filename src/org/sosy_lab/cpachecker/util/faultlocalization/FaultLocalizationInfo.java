@@ -9,11 +9,13 @@
 package org.sosy_lab.cpachecker.util.faultlocalization;
 
 import com.google.common.collect.ArrayListMultimap;
+import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Multimap;
 import java.io.IOException;
 import java.io.Writer;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -44,7 +46,102 @@ import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
  */
 public class FaultLocalizationInfo extends CounterexampleInfo {
 
+  enum FaultLocalizationInfoMergeStrategy {
+    /** Always use the most recent FaultLocalizationInfo instance */
+    REPLACE {
+      @Override
+      public Fault merge(Fault pOldFault, Fault pNewFault) {
+        return pNewFault;
+      }
+    },
+    /** Take the intersection of error-prone CFAEdges */
+    INTERSECTION {
+      @Override
+      public Fault merge(Fault pOldFault, Fault pNewFault) {
+        return FaultUtil.intersection(pOldFault, pNewFault);
+      }
+    },
+    /** Take the union of error-prone CFAEdges */
+    UNION {
+      @Override
+      public Fault merge(Fault pOldFault, Fault pNewFault) {
+        return FaultUtil.union(pOldFault, pNewFault);
+      }
+    },
+    /** Take the intersection of error-prone CFAEdges but if one set is empty, take the other set */
+    RELAXED_INTERSECTION {
+      @Override
+      public Fault merge(Fault pOldFault, Fault pNewFault) {
+        if (pOldFault.isEmpty()) {
+          return pNewFault;
+        }
+        if (pNewFault.isEmpty()) {
+          return pOldFault;
+        }
+        return INTERSECTION.merge(pOldFault, pNewFault);
+      }
+    },
+    /** Use previous list */
+    PREVIOUS {
+      @Override
+      public Fault merge(Fault pOldFault, Fault pNewFault) {
+        return pOldFault;
+      }
+    };
+
+    public abstract Fault merge(Fault pOldFault, Fault pNewFault);
+  }
+
+  enum FaultSelectionStrategy {
+    MIN {
+      @Override
+      public List<Fault> select(List<Fault> pRanked) {
+        if (!pRanked.isEmpty()) {
+          return ImmutableList.of(
+              pRanked.stream().min(Comparator.comparingInt(f -> f.size())).orElseThrow());
+        }
+        return pRanked;
+      }
+    },
+    MAX {
+      @Override
+      public List<Fault> select(List<Fault> pRanked) {
+        if (!pRanked.isEmpty()) {
+          return ImmutableList.of(
+              pRanked.stream().max(Comparator.comparingInt(f -> f.size())).orElseThrow());
+        }
+        return pRanked;
+      }
+    },
+    FIRST {
+      @Override
+      public List<Fault> select(List<Fault> pRanked) {
+        if (!pRanked.isEmpty()) {
+          return ImmutableList.of(pRanked.get(0));
+        }
+        return pRanked;
+      }
+    },
+    CROSSPRODUCT {
+      @Override
+      public List<Fault> select(List<Fault> pRanked) {
+        return pRanked;
+      }
+    };
+
+    public abstract List<Fault> select(List<Fault> pRanked);
+  }
+
   private final ImmutableList<Fault> rankedList;
+
+  // @Option(secure = true, description = "how to merge faults")
+  private final FaultLocalizationInfoMergeStrategy strategy =
+      FaultLocalizationInfoMergeStrategy.RELAXED_INTERSECTION;
+
+  // @Option(secure = true, description = "which faults to sleect")
+  private final FaultSelectionStrategy selectionStrategy = FaultSelectionStrategy.MIN;
+
+  private final CounterexampleInfo parentInfo;
 
   private FaultReportWriter htmlWriter;
 
@@ -52,6 +149,8 @@ public class FaultLocalizationInfo extends CounterexampleInfo {
   private Multimap<CFAEdge, Integer> mapEdgeToRankedFaultIndex;
 
   private Map<CFAEdge, FaultContribution> mapEdgeToFaultContribution;
+
+  protected final Set<CFAEdge> necessaryWitnessEdges;
 
   /**
    * Track information on why the given program violates the specification.
@@ -67,8 +166,10 @@ public class FaultLocalizationInfo extends CounterexampleInfo {
         findCFAPath(pParent),
         pParent.isPreciseCounterExample(),
         CFAPathWithAdditionalInfo.empty());
+    parentInfo = pParent;
     rankedList = ImmutableList.copyOf(pFaults);
     htmlWriter = new FaultReportWriter();
+    necessaryWitnessEdges = new HashSet<>();
   }
 
   /**
@@ -98,8 +199,10 @@ public class FaultLocalizationInfo extends CounterexampleInfo {
         findCFAPath(pParent),
         pParent.isPreciseCounterExample(),
         CFAPathWithAdditionalInfo.empty());
+    parentInfo = pParent;
     rankedList = FaultRankingUtils.rank(pRanking, pFaults);
     htmlWriter = new FaultReportWriter();
+    necessaryWitnessEdges = new HashSet<>();
   }
 
   private static CFAPathWithAssumptions findCFAPath(CounterexampleInfo pParent) {
@@ -211,11 +314,47 @@ public class FaultLocalizationInfo extends CounterexampleInfo {
     htmlWriter = pFaultToHtml;
   }
 
+  protected FaultLocalizationInfo exchangeList(List<Fault> pFaults) {
+    FaultLocalizationInfo fInfo = new FaultLocalizationInfo(pFaults, this);
+    fInfo.necessaryWitnessEdges.addAll(necessaryWitnessEdges);
+    return fInfo;
+  }
+
+  public Fault getRelevantEdgesForWitness(boolean pUseMinimal) {
+    Fault toReturn = FaultUtil.fromEdges(necessaryWitnessEdges);
+    if (getRankedList().isEmpty()) {
+      return toReturn;
+    }
+    if (pUseMinimal) {
+      return FaultUtil.union(
+          toReturn, rankedList.stream().min(Comparator.comparingInt(f -> f.size())).orElseThrow());
+    }
+    return FaultUtil.union(toReturn, rankedList.get(0));
+  }
+
   /**
    * Replace default CounterexampleInfo with this extended version. Activates the visual
    * representation of fault localization.
    */
   public void apply() {
-    super.getTargetPath().getLastState().replaceCounterexampleInformation(this);
+    List<Fault> currentList = getRankedList();
+    if (parentInfo instanceof FaultLocalizationInfo) {
+      necessaryWitnessEdges.addAll(((FaultLocalizationInfo) parentInfo).necessaryWitnessEdges);
+      ((FaultLocalizationInfo) parentInfo).necessaryWitnessEdges.addAll(necessaryWitnessEdges);
+      List<Fault> previousList = ((FaultLocalizationInfo) parentInfo).getRankedList();
+      currentList = selectionStrategy.select(currentList);
+      previousList = selectionStrategy.select(previousList);
+      Set<Fault> newFaults = new HashSet<>(currentList.size() * previousList.size());
+      for (Fault faultContributions : currentList) {
+        for (Fault contributions : previousList) {
+          newFaults.add(strategy.merge(contributions, faultContributions));
+        }
+      }
+      currentList = newFaults.stream().sorted().collect(ImmutableList.toImmutableList());
+    }
+    currentList = FluentIterable.from(currentList).filter(f -> !f.isEmpty()).toList();
+    super.getTargetPath()
+        .getLastState()
+        .replaceCounterexampleInformation(exchangeList(currentList));
   }
 }

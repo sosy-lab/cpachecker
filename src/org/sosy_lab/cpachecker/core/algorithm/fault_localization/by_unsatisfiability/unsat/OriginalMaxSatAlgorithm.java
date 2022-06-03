@@ -32,6 +32,11 @@ public class OriginalMaxSatAlgorithm implements FaultLocalizerWithTraceFormula, 
 
   // Statistics
   private final MaxSatStatistics stats = new MaxSatStatistics();
+  private final boolean stopAfterFirstFault;
+
+  public OriginalMaxSatAlgorithm(boolean pStopAfterFirstFault) {
+    stopAfterFirstFault = pStopAfterFirstFault;
+  }
 
   @Override
   public Set<Fault> run(FormulaContext pContext, TraceFormula tf)
@@ -48,6 +53,7 @@ public class OriginalMaxSatAlgorithm implements FaultLocalizerWithTraceFormula, 
     // if a selector is true (i. e. enabled) it cannot be part of the result set. This usually
     // happens if the selector is a part of the pre-condition
     soft.removeIf(fc -> bmgr.isTrue(fc.getFormula()) || bmgr.isFalse(fc.getFormula()));
+    final int initSize = soft.size();
 
     Set<TraceAtom> complement;
     stats.totalTime.start();
@@ -62,6 +68,9 @@ public class OriginalMaxSatAlgorithm implements FaultLocalizerWithTraceFormula, 
               .transform(atom -> (FaultContribution) atom)
               .copyInto(new Fault()));
       soft.removeAll(complement);
+      if (stopAfterFirstFault && complement.size() != initSize) {
+        break;
+      }
     }
     stats.totalTime.stop();
     return hard;

@@ -53,16 +53,16 @@ import org.sosy_lab.cpachecker.util.statistics.ThreadSafeTimerContainer.TimerWra
  */
 public class AutomatonTransferRelation implements TransferRelation {
 
-  private final ControlAutomatonCPA cpa;
-  private final LogManager logger;
-  private final MachineModel machineModel;
+  protected final ControlAutomatonCPA cpa;
+  protected final LogManager logger;
+  protected final MachineModel machineModel;
 
-  private final TimerWrapper totalPostTime;
-  private final TimerWrapper matchTime;
-  private final TimerWrapper assertionsTime;
-  private final TimerWrapper actionTime;
-  private final TimerWrapper totalStrengthenTime;
-  private final StatIntHist automatonSuccessors;
+  protected final TimerWrapper totalPostTime;
+  protected final TimerWrapper matchTime;
+  protected final TimerWrapper assertionsTime;
+  protected final TimerWrapper actionTime;
+  protected final TimerWrapper totalStrengthenTime;
+  protected final StatIntHist automatonSuccessors;
 
   public AutomatonTransferRelation(
       ControlAutomatonCPA pCpa,
@@ -134,7 +134,7 @@ public class AutomatonTransferRelation implements TransferRelation {
    * <p>If the state is a NonDet-State multiple following states may be returned. If the only
    * following state is BOTTOM an empty set is returned.
    */
-  private ImmutableSet<AutomatonState> getFollowStates(
+  protected ImmutableSet<AutomatonState> getFollowStates(
       AutomatonState state,
       List<AbstractState> otherElements,
       CFAEdge edge,
@@ -312,7 +312,8 @@ public class AutomatonTransferRelation implements TransferRelation {
     }
   }
 
-  private static Map<String, AutomatonVariable> deepCloneVars(Map<String, AutomatonVariable> pOld) {
+  protected static Map<String, AutomatonVariable> deepCloneVars(
+      Map<String, AutomatonVariable> pOld) {
     Map<String, AutomatonVariable> result = Maps.newHashMapWithExpectedSize(pOld.size());
     for (Entry<String, AutomatonVariable> e : pOld.entrySet()) {
       result.put(e.getKey(), e.getValue().clone());
