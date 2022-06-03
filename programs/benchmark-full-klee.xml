@@ -1,21 +1,12 @@
 <?xml version="1.0"?>
 <!DOCTYPE benchmark PUBLIC "+//IDN sosy-lab.org//DTD BenchExec benchmark 1.9//EN" "https://www.sosy-lab.org/benchexec/benchmark-2.3.dtd">
-<benchmark tool="cpachecker" timelimit="600s" hardtimelimit="660s" memlimit="1000 MB" cpuCores="1">
+<benchmark tool="klee" timelimit="300s" hardtimelimit="360s" memlimit="1000 MB" cpuCores="1">
 
     <require cpuModel="Intel Xeon E3-1230 v5 @ 3.40 GHz"/>
 
 <!--    <resultfiles>**/*.graphml</resultfiles>-->
 
-    <rundefinition name="PredicateAnalysis">
-        <option name="-predicateAnalysis"/>
-    </rundefinition>
-
-    <rundefinition name="SymbolicExecution">
-        <option name="-symbolicExecution"/>
-    </rundefinition>
-
-    <rundefinition name="PredicateSymEx">
-        <option name="-predicateSymEx"/>
+    <rundefinition>
     </rundefinition>
 
     <tasks name="ReachSafety-Arrays">
