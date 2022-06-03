@@ -8,15 +8,16 @@
 
 package org.sosy_lab.cpachecker.util.predicates.pathformula;
 
+import com.google.common.base.Predicate;
+import com.google.common.base.Predicates;
+import com.google.common.collect.ImmutableMap;
 import java.io.PrintStream;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
@@ -30,7 +31,6 @@ import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.BooleanFormulaManager;
 import org.sosy_lab.java_smt.api.Formula;
 import org.sosy_lab.java_smt.api.Model;
-import org.sosy_lab.java_smt.api.Model.ValueAssignment;
 
 public interface PathFormulaManager {
 
@@ -129,93 +129,41 @@ public interface PathFormulaManager {
       String pVarName, CType pType, PointerTargetSet pContextPTS, boolean forcePointerDereference);
 
   /**
-   * Build a formula containing a predicate for all branching situations in the ARG. If a satisfying
-   * assignment is created for this formula, it can be used to find out which paths in the ARG are
-   * feasible.
-   *
-   * <p>This method may be called with an empty set, in which case it does nothing and returns the
-   * formula "true".
-   *
-   * @param pElementsOnPath The ARG states that should be considered.
-   * @return A formula containing a predicate for each branching.
-   * @deprecated Instead of eagerly creating a branching formula for all branchings in the ARG
-   *     (which can get large), use {@link #getARGPathFromModel(Model, ARGState, Set)} to compute
-   *     the desired path directly with more efficient on-the-fly queries to the solver model.
-   */
-  @Deprecated
-  BooleanFormula buildBranchingFormula(Set<ARGState> pElementsOnPath)
-      throws CPATransferException, InterruptedException;
-
-  /**
-   * Build a formula containing a predicate for all branching situations in the ARG. If a satisfying
-   * assignment is created for this formula, it can be used to find out which paths in the ARG are
-   * feasible.
-   *
-   * <p>This method may be called with an empty set, in which case it does nothing and returns the
-   * formula "true".
-   *
-   * @param elementsOnPath The ARG states that should be considered.
-   * @param parentFormulasOnPath TODO.
-   * @return A formula containing a predicate for each branching.
-   * @deprecated Instead of eagerly creating a branching formula for all branchings in the ARG
-   *     (which can get large), use {@link #getARGPathFromModel(Model, ARGState, Set, Map)} to
-   *     compute the desired path directly with more efficient on-the-fly queries to the solver
-   *     model.
-   */
-  @Deprecated
-  BooleanFormula buildBranchingFormula(
-      Set<ARGState> elementsOnPath, Map<Pair<ARGState, CFAEdge>, PathFormula> parentFormulasOnPath)
-      throws CPATransferException, InterruptedException;
-
-  /**
-   * Extract the information about the branching predicates created by {@link
-   * #buildBranchingFormula(Set)} from a satisfying assignment.
-   *
-   * <p>A map is created that stores for each ARGState (using its element id as the map key) which
-   * edge was taken (the positive or the negated one).
-   *
-   * @param pModel A satisfying assignment that should contain values for branching predicates.
-   * @return A map from ARG state id to a boolean value indicating direction.
-   * @deprecated Instead of eagerly creating branching information for all branchings in the ARG
-   *     (which can get large), use {@link #getARGPathFromModel(Model, ARGState, Set)} to compute
-   *     the desired path directly with more efficient on-the-fly queries to the solver model.
-   */
-  @Deprecated
-  Map<Integer, Boolean> getBranchingPredicateValuesFromModel(Iterable<ValueAssignment> pModel);
-
-  /**
    * Extract a single path from the ARG that is feasible for the values in a given {@link Model}.
    * The model needs to correspond to something like a BMC query for (a subset of) the ARG. This
-   * method is basically like calling {@link ARGUtils#getPathFromBranchingInformation(ARGState, Set,
-   * java.util.function.BiFunction)} and takes the branching information from the model.
+   * method is basically like calling {@link ARGUtils#getPathFromBranchingInformation(ARGState,
+   * Predicate, java.util.function.BiFunction)} and takes the branching information from the model.
    *
    * @param model The model to use for determining branching information.
    * @param root The root of the ARG, from which the path should start.
-   * @param elementsOnPath All elements in the ARG or a subset thereof (elements outside this set
-   *     will be ignored).
    * @return A feasible path through the ARG from root, which conforms to the model.
    */
-  ARGPath getARGPathFromModel(
-      Model model, ARGState root, Set<? extends AbstractState> elementsOnPath)
-      throws CPATransferException, InterruptedException;
+  default ARGPath getARGPathFromModel(Model model, ARGState root)
+      throws CPATransferException, InterruptedException {
+    return getARGPathFromModel(model, root, Predicates.alwaysTrue(), ImmutableMap.of());
+  }
 
   /**
    * Extract a single path from the ARG that is feasible for the values in a given {@link Model}.
    * The model needs to correspond to something like a BMC query for (a subset of) the ARG. This
-   * method is basically like calling {@link ARGUtils#getPathFromBranchingInformation(ARGState, Set,
-   * java.util.function.BiFunction)} and takes the branching information from the model.
+   * method is basically like calling {@link ARGUtils#getPathFromBranchingInformation(ARGState,
+   * Predicate, java.util.function.BiFunction)} and takes the branching information from the model.
    *
    * @param model The model to use for determining branching information.
    * @param root The root of the ARG, from which the path should start.
-   * @param elementsOnPath All elements in the ARG or a subset thereof (elements outside this set
-   *     will be ignored).
+   * @param stateFilter Only consider the subset of ARG states that satisfy this filter.
+   * @param branchingFormulasOverride When a formula for the expression of a specific assume edge is
+   *     needed, it is first looked up in this map. If not present the formula is created on-the-fly
+   *     using the context (SSAMap etc.) from the predicate abstract state inside the {@link
+   *     ARGState} at the branching point. The caller needs to ensure that the resulting formulas
+   *     match the variables present in the model.
    * @return A feasible path through the ARG from root, which conforms to the model.
    */
   ARGPath getARGPathFromModel(
       Model model,
       ARGState root,
-      Set<? extends AbstractState> elementsOnPath,
-      Map<Pair<ARGState, CFAEdge>, PathFormula> parentFormulasOnPath)
+      Predicate<? super ARGState> stateFilter,
+      Map<Pair<ARGState, CFAEdge>, PathFormula> branchingFormulasOverride)
       throws CPATransferException, InterruptedException;
 
   /**

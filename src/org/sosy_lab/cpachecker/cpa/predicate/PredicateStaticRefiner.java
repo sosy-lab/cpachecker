@@ -8,12 +8,9 @@
 
 package org.sosy_lab.cpachecker.cpa.predicate;
 
-import static org.sosy_lab.cpachecker.cpa.arg.ARGUtils.getAllStatesOnPathsTo;
-
 import com.google.common.base.Predicates;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.LinkedHashMultimap;
 import com.google.common.collect.Multimap;
@@ -30,6 +27,7 @@ import java.util.Deque;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.logging.Level;
 import org.sosy_lab.common.ShutdownNotifier;
@@ -123,6 +121,7 @@ public class PredicateStaticRefiner extends StaticRefiner
   private final StatTimer predicateExtractionTime =
       new StatTimer("Time for predicate extraction from CFA");
   private final StatTimer argUpdateTime = new StatTimer("Time for ARG update");
+  private final StatTimer errorPathProcessing = new StatTimer("Error-path post-processing");
   private final StatInt foundPredicates =
       new StatInt(StatKind.SUM, "Number of predicates found statically");
 
@@ -197,15 +196,6 @@ public class PredicateStaticRefiner extends StaticRefiner
       throws CPAException, InterruptedException {
     logger.log(Level.FINEST, "Starting heuristics-based refinement.");
 
-    Set<ARGState> elementsOnPath = getAllStatesOnPathsTo(allStatesTrace.getLastState());
-    // No branches/merges in path, it is precise.
-    // We don't need to care about creating extra predicates for branching etc.
-    boolean branchingOccurred = true;
-    if (elementsOnPath.size() == allStatesTrace.size()) {
-      elementsOnPath = ImmutableSet.of();
-      branchingOccurred = false;
-    }
-
     // create path with all abstraction location elements (excluding the initial element)
     // the last element is the element corresponding to the error location
     final List<ARGState> abstractionStatesTrace =
@@ -213,17 +203,13 @@ public class PredicateStaticRefiner extends StaticRefiner
     BlockFormulas formulas =
         blockFormulaStrategy.getFormulasForPath(
             allStatesTrace.getFirstState(), abstractionStatesTrace);
-    if (!formulas.hasBranchingFormula()) {
-      @SuppressWarnings("deprecation")
-      // remove once PathChecker#handleFeasibleCounterexample does not need it anymore
-      BooleanFormula branchingFormula = pathFormulaManager.buildBranchingFormula(elementsOnPath);
-      formulas = formulas.withBranchingFormula(branchingFormula);
-    }
 
     CounterexampleTraceInfo counterexample;
     satCheckTime.start();
     try {
-      counterexample = itpManager.buildCounterexampleTraceWithoutInterpolation(formulas);
+      counterexample =
+          itpManager.buildCounterexampleTraceWithoutInterpolation(
+              formulas, Optional.of(allStatesTrace));
     } finally {
       satCheckTime.stop();
     }
@@ -266,8 +252,12 @@ public class PredicateStaticRefiner extends StaticRefiner
     } else {
       // we have a real error
       logger.log(Level.FINEST, "Error trace is not spurious");
-      return pathChecker.handleFeasibleCounterexample(
-          allStatesTrace, counterexample, branchingOccurred);
+      errorPathProcessing.start();
+      try {
+        return pathChecker.handleFeasibleCounterexample(counterexample, allStatesTrace);
+      } finally {
+        errorPathProcessing.stop();
+      }
     }
   }
 
@@ -558,7 +548,8 @@ public class PredicateStaticRefiner extends StaticRefiner
           .beginLevel()
           .put(satCheckTime)
           .putIfUpdatedAtLeastOnce(predicateExtractionTime)
-          .putIfUpdatedAtLeastOnce(argUpdateTime);
+          .putIfUpdatedAtLeastOnce(argUpdateTime)
+          .putIfUpdatedAtLeastOnce(errorPathProcessing);
     }
 
     @Override

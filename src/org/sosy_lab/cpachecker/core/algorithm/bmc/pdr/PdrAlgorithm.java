@@ -17,7 +17,6 @@ import static org.sosy_lab.cpachecker.core.algorithm.bmc.BMCHelper.isTrivialSelf
 import com.google.common.base.Predicates;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
@@ -1147,12 +1146,16 @@ public class PdrAlgorithm implements Algorithm {
       ARGPath targetPath;
       try (Model model = pProver.getModel()) {
         ARGState root = (ARGState) pReachedSet.getFirstState();
-        Set<AbstractState> arg = pReachedSet.asCollection();
 
         try {
-          targetPath = pmgr.getARGPathFromModel(model, root, arg);
+          targetPath = pmgr.getARGPathFromModel(model, root);
         } catch (IllegalArgumentException e) {
           logger.logUserException(Level.WARNING, e, "Could not create error path");
+          return;
+        }
+
+        if (!targetPath.getLastState().isTarget()) {
+          logger.log(Level.WARNING, "Could not create error path: path ends without target state!");
           return;
         }
 
@@ -1192,9 +1195,9 @@ public class PdrAlgorithm implements Algorithm {
       }
 
       CounterexampleTraceInfo cexInfo =
-          CounterexampleTraceInfo.feasible(
-              ImmutableList.of(cexFormula), ImmutableList.of(), ImmutableMap.of());
-      CounterexampleInfo counterexample = pathChecker.createCounterexample(targetPath, cexInfo);
+          CounterexampleTraceInfo.feasible(ImmutableList.of(cexFormula), targetPath);
+      CounterexampleInfo counterexample =
+          pathChecker.handleFeasibleCounterexample(cexInfo, targetPath);
       counterexample.getTargetState().addCounterexampleInformation(counterexample);
 
     } finally {

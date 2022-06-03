@@ -826,10 +826,12 @@ abstract class AbstractBMCAlgorithm
       return Optional.empty();
     }
 
+    // get (precise) error path
+    logger.log(Level.INFO, "Error found, creating error path");
+    ARGPath targetPath;
+
     stats.errorPathCreation.start();
     try {
-      logger.log(Level.INFO, "Error found, creating error path");
-
       Set<ARGState> targetStates =
           from(pReachedSet).filter(AbstractStates::isTargetState).filter(ARGState.class).toSet();
       Set<ARGState> redundantStates = filterAncestors(targetStates, AbstractStates::isTargetState);
@@ -839,16 +841,18 @@ abstract class AbstractBMCAlgorithm
           });
       pReachedSet.removeAll(redundantStates);
 
-      // get (precise) error path
-      ARGPath targetPath;
       try (Model model = pProver.getModel()) {
         ARGState root = (ARGState) pReachedSet.getFirstState();
-        Set<AbstractState> arg = pReachedSet.asCollection();
 
         try {
-          targetPath = pmgr.getARGPathFromModel(model, root, arg);
+          targetPath = pmgr.getARGPathFromModel(model, root);
         } catch (IllegalArgumentException e) {
           logger.logUserException(Level.WARNING, e, "Could not create error path");
+          return Optional.empty();
+        }
+
+        if (!targetPath.getLastState().isTarget()) {
+          logger.log(Level.WARNING, "Could not create error path: path ends without target state!");
           return Optional.empty();
         }
 
@@ -857,7 +861,12 @@ abstract class AbstractBMCAlgorithm
         logger.logDebugException(e);
         return Optional.empty();
       }
+    } finally {
+      stats.errorPathCreation.stop();
+    }
 
+    stats.errorPathProcessing.start();
+    try {
       BooleanFormula cexFormula = pCounterexampleFormula;
 
       // replay error path for a more precise satisfying assignment
@@ -895,12 +904,11 @@ abstract class AbstractBMCAlgorithm
       }
 
       CounterexampleTraceInfo cexInfo =
-          CounterexampleTraceInfo.feasible(
-              ImmutableList.of(cexFormula), ImmutableList.of(), ImmutableMap.of());
-      return Optional.of(pathChecker.createCounterexample(targetPath, cexInfo));
+          CounterexampleTraceInfo.feasible(ImmutableList.of(cexFormula), targetPath);
+      return Optional.of(pathChecker.handleFeasibleCounterexample(cexInfo, targetPath));
 
     } finally {
-      stats.errorPathCreation.stop();
+      stats.errorPathProcessing.stop();
     }
   }
 

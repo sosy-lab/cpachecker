@@ -11,77 +11,63 @@ package org.sosy_lab.cpachecker.util.predicates.interpolation;
 import static com.google.common.base.Preconditions.checkState;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
 import java.util.List;
-import java.util.Map;
+import org.checkerframework.checker.nullness.qual.Nullable;
+import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.java_smt.api.BooleanFormula;
-import org.sosy_lab.java_smt.api.Model.ValueAssignment;
 
 /**
  * A class that stores information about a counterexample trace. For spurious counterexamples, this
- * stores the interpolants.
+ * stores the interpolants, for real counterexamples information about the counterexample.
  */
 public class CounterexampleTraceInfo {
   private final boolean spurious;
   private final ImmutableList<BooleanFormula> interpolants;
-  private final ImmutableList<ValueAssignment> mCounterexampleModel;
   private final ImmutableList<BooleanFormula> mCounterexampleFormula;
-  private final ImmutableMap<Integer, Boolean> branchingPreds;
+  private final ARGPath precisePath;
 
   private CounterexampleTraceInfo(
       boolean pSpurious,
       ImmutableList<BooleanFormula> pInterpolants,
-      ImmutableList<ValueAssignment> pCounterexampleModel,
       ImmutableList<BooleanFormula> pCounterexampleFormula,
-      ImmutableMap<Integer, Boolean> pBranchingPreds) {
+      ARGPath pPrecisePath) {
     spurious = pSpurious;
     interpolants = pInterpolants;
-    mCounterexampleModel = pCounterexampleModel;
     mCounterexampleFormula = pCounterexampleFormula;
-    branchingPreds = pBranchingPreds;
+    precisePath = pPrecisePath;
   }
 
   public static CounterexampleTraceInfo infeasible(List<BooleanFormula> pInterpolants) {
-    return new CounterexampleTraceInfo(
-        true, ImmutableList.copyOf(pInterpolants), null, ImmutableList.of(), ImmutableMap.of());
+    return new CounterexampleTraceInfo(true, ImmutableList.copyOf(pInterpolants), null, null);
   }
 
   public static CounterexampleTraceInfo infeasibleNoItp() {
-    return new CounterexampleTraceInfo(true, null, null, ImmutableList.of(), ImmutableMap.of());
+    return new CounterexampleTraceInfo(true, null, null, null);
   }
 
   public static CounterexampleTraceInfo feasible(
-      List<BooleanFormula> pCounterexampleFormula,
-      Iterable<ValueAssignment> pModel,
-      Map<Integer, Boolean> preds) {
+      List<BooleanFormula> pCounterexampleFormula, ARGPath pPrecisePath) {
     return new CounterexampleTraceInfo(
-        false,
-        ImmutableList.of(),
-        ImmutableList.copyOf(pModel),
-        ImmutableList.copyOf(pCounterexampleFormula),
-        ImmutableMap.copyOf(preds));
+        false, ImmutableList.of(), ImmutableList.copyOf(pCounterexampleFormula), pPrecisePath);
   }
 
-  public static CounterexampleTraceInfo feasibleNoModel() {
-    return CounterexampleTraceInfo.feasible(
-        ImmutableList.of(), ImmutableList.of(), ImmutableMap.of());
+  public static CounterexampleTraceInfo feasibleImprecise(
+      List<BooleanFormula> pCounterexampleFormula) {
+    return CounterexampleTraceInfo.feasible(pCounterexampleFormula, null);
   }
 
-  /**
-   * checks whether this trace is a real bug or a spurious counterexample
-   *
-   * @return true if this trace is spurious, false otherwise
-   */
+  /** Return whether this trace is a feasible path or a spurious counterexample. */
   public boolean isSpurious() {
     return spurious;
   }
 
   /**
-   * Returns the list of interpolants that were discovered during counterexample analysis.
+   * Returns the list of interpolants that were discovered during counterexample analysis. Available
+   * if this counterexample is spurious.
    *
    * @return a list of interpolants
    */
-  public List<BooleanFormula> getInterpolants() {
+  public ImmutableList<BooleanFormula> getInterpolants() {
     checkState(spurious);
     return interpolants;
   }
@@ -91,19 +77,21 @@ public class CounterexampleTraceInfo {
     return "Spurious: " + isSpurious() + (isSpurious() ? ", interpolants: " + interpolants : "");
   }
 
-  public List<BooleanFormula> getCounterExampleFormulas() {
+  /**
+   * Return a satisfiable list of formulas representing this counterexample. Available if this
+   * counterexample is not spurious.
+   */
+  public ImmutableList<BooleanFormula> getCounterExampleFormulas() {
     checkState(!spurious);
     return mCounterexampleFormula;
   }
 
-  public ImmutableList<ValueAssignment> getModel() {
+  /**
+   * Return a precise representation of this counterexample in the ARG. Only available if this
+   * counterexample is not spurious, but could be <code>null</code> if it could not be computed.
+   */
+  public @Nullable ARGPath getPrecisePath() {
     checkState(!spurious);
-    return mCounterexampleModel;
-  }
-
-  @Deprecated // branching predicates are deprecated, cf. PathFormulaManager for replacement
-  public Map<Integer, Boolean> getBranchingPredicates() {
-    checkState(!spurious);
-    return branchingPreds;
+    return precisePath;
   }
 }
