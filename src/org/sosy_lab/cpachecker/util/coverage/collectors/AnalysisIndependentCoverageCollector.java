@@ -16,12 +16,8 @@ import java.util.HashSet;
 import java.util.Optional;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.util.coverage.measures.CoverageMeasureHandler;
 import org.sosy_lab.cpachecker.util.coverage.tdcg.TimeDependentCoverageHandler;
 import org.sosy_lab.cpachecker.util.coverage.util.CoverageUtility;
@@ -35,21 +31,18 @@ import org.sosy_lab.cpachecker.util.coverage.util.CoverageUtility;
 public class AnalysisIndependentCoverageCollector extends CoverageCollector {
   private final Multiset<CFANode> visitedLocations = LinkedHashMultiset.create();
   private final Set<String> visitedVariables = new HashSet<>();
-  private final Set<String> allVariables = new HashSet<>();
-  private final CFA cfa;
 
   AnalysisIndependentCoverageCollector(
       CoverageMeasureHandler pCoverageMeasureHandler,
       TimeDependentCoverageHandler pTimeDependentCoverageHandler,
       CFA pCfa) {
     super(pCoverageMeasureHandler, pTimeDependentCoverageHandler, pCfa);
-    cfa = pCfa;
-    addInitialNodesForMeasures();
+    addInitialNodesForMeasures(pCfa);
   }
 
-  public void addInitialNodesForMeasures() {
+  public void addInitialNodesForMeasures(CFA pCFA) {
     boolean isLoop = false;
-    for (CFANode node : cfa.getAllNodes()) {
+    for (CFANode node : pCFA.getAllNodes()) {
       if (node.getNodeNumber() == 1) {
         CFANode candidateNode = node;
         do {
@@ -86,16 +79,8 @@ public class AnalysisIndependentCoverageCollector extends CoverageCollector {
     return 0.0;
   }
 
-  public void addAllProgramVariables() {
-    for (CFANode node : cfa.getAllNodes()) {
-      for (int i = 0; i < node.getNumLeavingEdges(); i++) {
-        CFAEdge edge = node.getLeavingEdge(i);
-        Optional<String> variable = getNewVariableFromCFAEdge(edge);
-        if (variable.isPresent()) {
-          allVariables.add(variable.orElseThrow());
-        }
-      }
-    }
+  public Set<String> getVisitedVariables() {
+    return Collections.unmodifiableSet(visitedVariables);
   }
 
   public void addVisitedVariables(final CFAEdge pEdge) {
@@ -106,30 +91,5 @@ public class AnalysisIndependentCoverageCollector extends CoverageCollector {
     if (variable.isPresent()) {
       visitedVariables.add(variable.orElseThrow());
     }
-  }
-
-  public Set<String> getAllVariables() {
-    return Collections.unmodifiableSet(allVariables);
-  }
-
-  public Set<String> getVisitedVariables() {
-    return Collections.unmodifiableSet(visitedVariables);
-  }
-
-  private Optional<String> getNewVariableFromCFAEdge(CFAEdge edge) {
-    if (edge.getEdgeType() != CFAEdgeType.DeclarationEdge) {
-      return Optional.empty();
-    }
-    String CPACHECKER_TMP_PREFIX = "__CPACHECKER_TMP";
-    CDeclaration declaration = ((CDeclarationEdge) edge).getDeclaration();
-    String qualifiedVariableName = declaration.getQualifiedName();
-    String variableName = declaration.getName();
-    if (declaration instanceof CFunctionDeclaration
-        || variableName == null
-        || qualifiedVariableName == null
-        || variableName.toUpperCase().startsWith(CPACHECKER_TMP_PREFIX)) {
-      return Optional.empty();
-    }
-    return Optional.of(qualifiedVariableName);
   }
 }

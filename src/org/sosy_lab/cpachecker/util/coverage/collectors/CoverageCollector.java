@@ -21,13 +21,18 @@ import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Optional;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
+import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.coverage.measures.CoverageMeasureHandler;
 import org.sosy_lab.cpachecker.util.coverage.tdcg.TimeDependentCoverageHandler;
@@ -46,6 +51,7 @@ public abstract class CoverageCollector {
   private final Set<FunctionInfo> allFunctions = new HashSet<>();
   private final SetMultimap<String, AssumeEdge> visitedAssumesPerFile = HashMultimap.create();
   private final Set<AssumeEdge> allAssumes = new HashSet<>();
+  private final Set<String> allVariables = new HashSet<>();
 
   final CoverageMeasureHandler coverageMeasureHandler;
   final TimeDependentCoverageHandler timeDependentCoverageHandler;
@@ -53,11 +59,11 @@ public abstract class CoverageCollector {
   CoverageCollector(
       CoverageMeasureHandler pCoverageMeasureHandler,
       TimeDependentCoverageHandler pTimeDependentCoverageHandler,
-      CFA cfa) {
+      CFA pCFA) {
     coverageMeasureHandler = pCoverageMeasureHandler;
     timeDependentCoverageHandler = pTimeDependentCoverageHandler;
-    putCFA(cfa);
-    allLocations.addAll(cfa.getAllNodes());
+    putCFA(pCFA);
+    allLocations.addAll(pCFA.getAllNodes());
   }
 
   CoverageCollector() {
@@ -92,7 +98,7 @@ public abstract class CoverageCollector {
     }
   }
 
-  public void addVisitedFunction(FunctionEntryNode pEntryNode) {
+  void addVisitedFunction(FunctionEntryNode pEntryNode) {
     String file = pEntryNode.getFileLocation().getFileName().toString();
     Multiset<String> visitedFunctions = visitedFunctionsPerFile.get(file);
     if (visitedFunctions != null) {
@@ -102,6 +108,22 @@ public abstract class CoverageCollector {
       newVisitedFunctions.add(pEntryNode.getFunctionName());
       visitedFunctionsPerFile.put(file, newVisitedFunctions);
     }
+  }
+
+  public void addAllProgramVariables() {
+    for (CFANode node : allLocations) {
+      for (int i = 0; i < node.getNumLeavingEdges(); i++) {
+        CFAEdge edge = node.getLeavingEdge(i);
+        Optional<String> variable = getNewVariableFromCFAEdge(edge);
+        if (variable.isPresent()) {
+          allVariables.add(variable.orElseThrow());
+        }
+      }
+    }
+  }
+
+  public Set<String> getAllVariables() {
+    return Collections.unmodifiableSet(allVariables);
   }
 
   public Set<FunctionInfo> getAllFunctions() {
@@ -121,10 +143,6 @@ public abstract class CoverageCollector {
 
   public Set<AssumeEdge> getAllAssumes() {
     return Collections.unmodifiableSet(allAssumes);
-  }
-
-  public ImmutableSetMultimap<String, AssumeEdge> getVisitedAssumesPerFile() {
-    return ImmutableSetMultimap.copyOf(visitedAssumesPerFile);
   }
 
   public int getVisitedAssumesCount() {
@@ -156,6 +174,23 @@ public abstract class CoverageCollector {
 
   public int getTotalLocationCount() {
     return allLocations.size();
+  }
+
+  Optional<String> getNewVariableFromCFAEdge(CFAEdge edge) {
+    if (edge.getEdgeType() != CFAEdgeType.DeclarationEdge) {
+      return Optional.empty();
+    }
+    String CPACHECKER_TMP_PREFIX = "__CPACHECKER_TMP";
+    CDeclaration declaration = ((CDeclarationEdge) edge).getDeclaration();
+    String qualifiedVariableName = declaration.getQualifiedName();
+    String variableName = declaration.getName();
+    if (declaration instanceof CFunctionDeclaration
+        || variableName == null
+        || qualifiedVariableName == null
+        || variableName.toUpperCase().startsWith(CPACHECKER_TMP_PREFIX)) {
+      return Optional.empty();
+    }
+    return Optional.of(qualifiedVariableName);
   }
 
   private void putCFA(CFA pCFA) {
