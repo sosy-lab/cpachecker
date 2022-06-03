@@ -53,7 +53,6 @@ import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiabi
 import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.unsat.ModifiedMaxSatAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.unsat.OriginalMaxSatAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.unsat.SingleUnsatCoreAlgorithm;
-import org.sosy_lab.cpachecker.core.counterexample.CFAPathWithAssumptions;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
@@ -288,22 +287,18 @@ public class FaultLocalizationWithTraceFormula
     }
   }
 
+  private List<CFAEdge> getCounterexampleAsListOfEdges(CounterexampleInfo pInfo) {
+    if (pInfo.isPreciseCounterExample()) {
+      return transformedImmutableListCopy(pInfo.getCFAPathWithAssignments(), assumption -> assumption.getCFAEdge());
+    }
+    return pInfo.getTargetPath().getInnerEdges();
+  }
+
   private void runAlgorithm(CounterexampleInfo pInfo, FaultLocalizerWithTraceFormula pAlgorithm)
       throws CPAException, InterruptedException {
 
-    // Run the algorithm and create a CFAPathWithAssumptions to the last reached state.
-    CFAPathWithAssumptions assumptions = pInfo.getCFAPathWithAssignments();
-    if (assumptions.isEmpty()) {
-      logger.log(
-          Level.INFO, "The analysis returned no assumptions. Fault localization not possible.");
-      return;
-    }
-
     try {
-      // Collect all edges that do not evaluate to true
-      final List<CFAEdge> edgeList =
-          transformedImmutableListCopy(assumptions, assumption -> assumption.getCFAEdge());
-
+      List<CFAEdge> edgeList = getCounterexampleAsListOfEdges(pInfo);
       if (edgeList.isEmpty()) {
         logger.log(Level.INFO, "Can't find relevant edges in the error trace.");
         return;

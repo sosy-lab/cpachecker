@@ -24,6 +24,7 @@ import org.sosy_lab.common.JSON;
 import org.sosy_lab.common.collect.Collections3;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.counterexample.CFAPathWithAdditionalInfo;
+import org.sosy_lab.cpachecker.core.counterexample.CFAPathWithAssumptions;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 
 /**
@@ -63,7 +64,7 @@ public class FaultLocalizationInfo extends CounterexampleInfo {
     super(
         pParent.isSpurious(),
         pParent.getTargetPath(),
-        pParent.getCFAPathWithAssignments(),
+        findCFAPath(pParent),
         pParent.isPreciseCounterExample(),
         CFAPathWithAdditionalInfo.empty());
     rankedList = ImmutableList.copyOf(pFaults);
@@ -94,11 +95,18 @@ public class FaultLocalizationInfo extends CounterexampleInfo {
     super(
         pParent.isSpurious(),
         pParent.getTargetPath(),
-        pParent.getCFAPathWithAssignments(),
+        findCFAPath(pParent),
         pParent.isPreciseCounterExample(),
         CFAPathWithAdditionalInfo.empty());
     rankedList = FaultRankingUtils.rank(pRanking, pFaults);
     htmlWriter = new FaultReportWriter();
+  }
+
+  private static CFAPathWithAssumptions findCFAPath(CounterexampleInfo pParent) {
+    if (pParent.isPreciseCounterExample()) {
+      return pParent.getCFAPathWithAssignments();
+    }
+    return null;
   }
 
   /**
