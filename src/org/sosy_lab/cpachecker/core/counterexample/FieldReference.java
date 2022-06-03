@@ -10,12 +10,12 @@ package org.sosy_lab.cpachecker.core.counterexample;
 
 import com.google.common.collect.ImmutableList;
 import java.util.List;
+import java.util.Objects;
 
 /**
  * Is used to represent a field reference without pointer dereferences.
  *
- * E.g a.b.h.
- * (is typically used with structs)
+ * <p>E.g a.b.h. (is typically used with structs)
  */
 public final class FieldReference extends LeftHandSide {
 
@@ -57,23 +57,7 @@ public final class FieldReference extends LeftHandSide {
       return false;
     }
 
-    if (getName() == null) {
-      if (other.getName() != null) {
-        return false;
-      }
-    } else if (!getName().equals(other.getName())) {
-      return false;
-    }
-
-    if (fieldNames == null) {
-      if (other.fieldNames != null) {
-        return false;
-      }
-    } else if (!fieldNames.equals(other.fieldNames)) {
-      return false;
-    }
-
-    return true;
+    return Objects.equals(getName(), other.getName()) && fieldNames.equals(other.fieldNames);
   }
 
   @Override

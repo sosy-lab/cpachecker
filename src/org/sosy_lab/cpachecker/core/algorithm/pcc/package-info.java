@@ -7,8 +7,8 @@
 // SPDX-License-Identifier: Apache-2.0
 
 /**
- * The algorithms dealing with (preparation for) proof generation and
- * proof checking in Proof-Carrying Code like scenarios
+ * The algorithms dealing with (preparation for) proof generation and proof checking in
+ * Proof-Carrying Code like scenarios
  */
 @javax.annotation.ParametersAreNonnullByDefault
 @org.sosy_lab.common.annotations.FieldsAreNonnullByDefault

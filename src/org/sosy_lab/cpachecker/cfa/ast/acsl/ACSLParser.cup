@@ -1,0 +1,691 @@
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
+package org.sosy_lab.cpachecker.cfa.ast.acsl;
+
+import com.google.common.collect.FluentIterable;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Iterables;
+import com.google.common.collect.Multimap;
+import java.io.FileReader;
+import java.io.IOException;
+import java.math.BigInteger;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Set;
+import java.util.logging.Level;
+import java_cup.runtime.ComplexSymbolFactory;
+import java_cup.runtime.Symbol;
+import java_cup.runtime.SymbolFactory;
+import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.CFAWithACSLAnnotations;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.util.SyntacticBlock;
+import org.sosy_lab.cpachecker.cfa.ast.acsl.util.SyntacticBlockStructure;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
+import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
+import org.sosy_lab.cpachecker.exceptions.CParserException;
+import org.sosy_lab.cpachecker.util.CFATraversal;
+import org.sosy_lab.cpachecker.util.CFATraversal.EdgeCollectingCFAVisitor;
+import org.sosy_lab.cpachecker.util.CFAUtils;
+
+parser code {:
+
+    private ACSLScanner scanner;
+    private IdentifierCheckingVisitor identifierCheckingVisitor;
+    private final Set<Behavior> behaviors = new HashSet<>();
+    private List<FileLocation> orderedLocs;
+    private List<CFAEdge> orderedCFALocs;
+
+    private ACSLParser(
+        ACSLScanner pScanner,
+        SymbolFactory sf,
+        CFAWithACSLAnnotations pCfa,
+        List<FileLocation> pOrderedLocs,
+        List<CFAEdge> pOrderedCFALocs,
+        LogManager pLogger) {
+      super(pScanner, sf);
+      scanner = pScanner;
+      identifierCheckingVisitor = new IdentifierCheckingVisitor(pCfa, pLogger);
+      orderedLocs = pOrderedLocs;
+      orderedCFALocs = pOrderedCFALocs;
+    }
+
+    public static CFA parseACSLAnnotations(
+        List<String> files,
+        CFA pCfa,
+        LogManager logger,
+        List<FileLocation> commentPositions,
+        SyntacticBlockStructure blockStructure)
+        throws CParserException, IOException {
+      ComplexSymbolFactory sf = new ComplexSymbolFactory();
+      EdgeCollectingCFAVisitor edgeVisitor = new CFATraversal.EdgeCollectingCFAVisitor();
+      CFATraversal.dfs().traverseOnce(pCfa.getMainFunction(), edgeVisitor);
+      ImmutableList<CFAEdge> orderedCFALocs =
+          ImmutableList.sortedCopyOf(
+              Comparator.comparingInt(pEdge -> pEdge.getFileLocation().getNodeOffset()),
+              edgeVisitor.getVisitedEdges());
+      CFAWithACSLAnnotations newCFA = new CFAWithACSLAnnotations(pCfa);
+
+      for (String filename : files) {
+      ACSLScanner scanner =
+          new ACSLScanner(new FileReader(filename, StandardCharsets.UTF_8), logger);
+      ImmutableList<FileLocation> orderedLocs =
+          ImmutableList.sortedCopyOf(
+              Comparator.comparingInt(FileLocation::getNodeOffset),
+              FluentIterable.from(commentPositions)
+                  .filter(x -> x.getFileName().toString().equals(filename)));
+        ACSLParser parser =
+            new ACSLParser(
+                scanner, sf, newCFA, orderedLocs, orderedCFALocs, logger);
+        List<ACSLAnnotation> annotations = parser.parseACSLAnnotations();
+        int skipped = 0;
+        Map<ACSLAnnotation, CFAEdge> initialEdges = new HashMap<>();
+        Map<ACSLAnnotation, FileLocation> annotationLocations = new HashMap<>();
+        for (int i = 0; i < orderedLocs.size(); i++) {
+          ACSLAnnotation currentAnnotation = annotations.get(i);
+          if (currentAnnotation instanceof InvalidAnnotation) {
+            skipped++;
+            continue;
+          }
+          if (currentAnnotation.getCompletenessPredicate().equals(ACSLPredicate.getFalse())) {
+            logger.log(Level.INFO, "Encountered annotation with unsatisfied completeness predicate");
+          }
+          FileLocation currentAnnotationLocation = orderedLocs.get(i);
+          annotationLocations.put(currentAnnotation, currentAnnotationLocation);
+          if (parser.shouldSkip(currentAnnotation, currentAnnotationLocation)) {
+            skipped++;
+            continue;
+          } else if (currentAnnotation instanceof ACSLAssertion) {
+            handleAssertion(
+                newCFA,
+                currentAnnotationLocation,
+                (ACSLAssertion) currentAnnotation,
+                blockStructure);
+          } else {
+            for (CFAEdge edge : orderedCFALocs) {
+              if (edge.getFileLocation().getNodeOffset() > currentAnnotationLocation.getNodeOffset()) {
+                initialEdges.put(currentAnnotation, edge);
+                break;
+              }
+            }
+          }
+        }
+        logger.logf(Level.INFO, "Skipped %d of %d annotations", skipped, annotations.size());
+        adjustAnnotationLocations(
+            initialEdges, newCFA, filename, blockStructure, annotationLocations);
+        checkBehaviors(newCFA, blockStructure);
+      }
+
+      return newCFA;
+    }
+
+    /**
+     * Add ACSL annotations to CFAEdges based on the initial mapping.
+     *
+     * @param initialEdges The initial assignment of ACSL annotations to CFA edges.
+     * @param cfaWithLocs A CFA holding the location information about the annotations.
+     * @param currentFile Name of the file the annotations of which should be handled.
+     * @param blockStructure The {@link SyntacticBlockStructure} of the current file.
+     */
+  private static void adjustAnnotationLocations(
+      Map<ACSLAnnotation, CFAEdge> initialEdges,
+      CFAWithACSLAnnotations cfaWithLocs,
+      String currentFile,
+      SyntacticBlockStructure blockStructure,
+      Map<ACSLAnnotation, FileLocation> annotationLocations) {
+    for (Entry<ACSLAnnotation, CFAEdge> entry : initialEdges.entrySet()) {
+      ACSLAnnotation annotation = entry.getKey();
+      CFAEdge edge = entry.getValue();
+      if (edge.getFileLocation().getFileName().toString().equals(currentFile)) {
+        if (annotation instanceof FunctionContract) {
+          FileLocation annotationLocation = annotationLocations.get(annotation);
+          if (blockStructure.getInnermostBlockOf(annotationLocation) == null) {
+            handleFunctionContract(
+                cfaWithLocs, (CDeclarationEdge) edge, (FunctionContract) annotation);
+          } else {
+            handleStatementContract(
+                cfaWithLocs,
+                edge,
+                StatementContract.fromFunctionContract(
+                    ImmutableList.of(), (FunctionContract) annotation),
+                blockStructure,
+                annotationLocation);
+          }
+        } else if (annotation instanceof StatementContract) {
+          handleStatementContract(
+              cfaWithLocs,
+              edge,
+              (StatementContract) annotation,
+              blockStructure,
+              annotationLocations.get(annotation));
+        } else if (annotation instanceof ACSLLoopAnnotation) {
+          handleLoopAnnotation(cfaWithLocs, edge, (ACSLLoopAnnotation) annotation);
+        } else if (annotation instanceof ACSLAssertion) {
+          // already handled
+        } else {
+          throw new AssertionError("Unknown annotation type for annotation\n" + annotation);
+        }
+      }
+    }
+  }
+
+    private static void handleFunctionContract(
+        CFAWithACSLAnnotations cfaWithLocs, CDeclarationEdge edge, FunctionContract annotation) {
+      // Annotation is currently placed on declaration edge for the function
+      // -> move it to the function entry
+      String functionName = edge.getDeclaration().getName();
+      FunctionEntryNode entry = cfaWithLocs.getAllFunctions().get(functionName);
+      assert entry.getNumLeavingEdges() == 1;
+      cfaWithLocs
+          .getEdgesToAnnotations()
+          .put(entry.getLeavingEdge(0), annotation.getCopyForPreState());
+      // Add function contracts to function exits as well because some clauses have to be
+      // evaluated in the post-state
+      FunctionExitNode exit = entry.getExitNode();
+      for (CFAEdge currentEdge : CFAUtils.enteringEdges(exit)) {
+        cfaWithLocs.getEdgesToAnnotations().put(currentEdge, annotation.getCopyForPostState());
+      }
+    }
+
+  private static void handleStatementContract(
+      CFAWithACSLAnnotations cfaWithLocs,
+      CFAEdge edge,
+      StatementContract annotation,
+      SyntacticBlockStructure blockStructure,
+      FileLocation annotationLocation) {
+    SyntacticBlock innermostBlock = blockStructure.getInnermostBlockOf(edge.getFileLocation());
+    assert innermostBlock != null : "Not inside a block";
+    if (annotationLocation.getNodeOffset() < innermostBlock.getStartOffset()) {
+      // this is a statement contract for a block statement, e.g. a while-loop
+      for (CFAEdge enteringEdge : innermostBlock.getEnteringEdges()) {
+        cfaWithLocs.getEdgesToAnnotations().put(enteringEdge, annotation.getCopyForPreState());
+      }
+      for (CFAEdge leavingEdge : innermostBlock.getLeavingEdges()) {
+        cfaWithLocs.getEdgesToAnnotations().put(leavingEdge, annotation.getCopyForPostState());
+      }
+    } else {
+      // this is a statement contract for a simple statement, e.g. x = 10;
+      for (CFAEdge previousEdge : CFAUtils.enteringEdges(edge.getPredecessor())) {
+        cfaWithLocs
+            .getEdgesToAnnotations()
+            .put(previousEdge, annotation.getCopyForPreState());
+      }
+      cfaWithLocs.getEdgesToAnnotations().put(edge, annotation.getCopyForPostState());
+    }
+  }
+
+    /**
+     * Adds the given loop annotation to the correct edges in the CFA.
+     *
+     * @param cfaWithLocs A CFA holding location information about the annotation.
+     * @param edge The edge on which the annotation was originally placed.
+     * @param annotation The loop annotation to be handled.
+     */
+    private static void handleLoopAnnotation(
+        CFAWithACSLAnnotations cfaWithLocs, CFAEdge edge, ACSLLoopAnnotation annotation) {
+      CFANode successor = edge.getSuccessor();
+      if (edge.getDescription().equals("for")) {
+        CFANode node = successor;
+        if (successor.getNumLeavingEdges() == 1) {
+          node = successor.getLeavingEdge(0).getSuccessor();
+        }
+        for (CFAEdge enteringEdge : CFAUtils.enteringEdges(node)) {
+          cfaWithLocs.getEdgesToAnnotations().put(edge, annotation);
+        }
+      } else {
+        assert edge.getDescription().equals("while") || edge.getDescription().equals("do");
+        for (CFAEdge currentEdge : CFAUtils.enteringEdges(successor)) {
+          cfaWithLocs.getEdgesToAnnotations().put(currentEdge, annotation);
+        }
+      }
+    }
+
+    /**
+     * Adds the given assertion to the correct edges in the CFA.
+     *
+     * @param cfaWithLocs A CFA holding location information about the annotation.
+     * @param loc The location at which the annotation was originally placed.
+     * @param annotation The annotation to be handled.
+     * @param blockStructure The {@link SyntacticBlockStructure} of the program.
+     */
+    private static void handleAssertion(
+        CFAWithACSLAnnotations cfaWithLocs,
+        FileLocation loc,
+        ACSLAssertion annotation,
+        SyntacticBlockStructure blockStructure) {
+      SyntacticBlock block = blockStructure.getInnermostBlockOf(loc);
+      CFAEdge next = blockStructure.getNextEdge(block, loc);
+      if (next == null) {
+        // assertion is at very end of block (after every leaving edge)
+        Iterable<CFAEdge> edges = blockStructure.getPrevEdges(block, loc);
+        if (Iterables.isEmpty(edges)) {
+          // assertion is at beginning of block -> block is empty apart from annotation
+          edges = block.getEnteringEdges();
+        }
+        for (CFAEdge edge : edges) {
+          cfaWithLocs.getEdgesToAnnotations().put(edge, annotation);
+        }
+      } else {
+        CFANode node = next.getPredecessor();
+        for (CFAEdge currentEdge : CFAUtils.enteringEdges(node)) {
+          cfaWithLocs.getEdgesToAnnotations().put(currentEdge, annotation);
+        }
+      }
+    }
+
+    /** Make sure that all behaviors are actually in scope when they are referenced. */
+    private static void checkBehaviors(CFAWithACSLAnnotations cfa, SyntacticBlockStructure blockStructure) {
+      Multimap<CFAEdge, ACSLAnnotation> edgesToAnnotations = cfa.getEdgesToAnnotations();
+      Map<String, CFAEdge> behaviorDeclarations = new HashMap<>();
+      // First, collect all behaviors where they are introduced
+      for (Entry<CFAEdge, ACSLAnnotation> entry : edgesToAnnotations.entries()) {
+        ACSLAnnotation annotation = entry.getValue();
+        if (annotation instanceof FunctionContract) {
+          FunctionContract fcontract = (FunctionContract) annotation;
+          if (!fcontract.isPreStateRepresentation()) {
+            // Behaviors are stored in post-state representation as well, but no need to add twice
+            continue;
+          }
+          for (Behavior behavior : fcontract.getDeclaredBehaviors()) {
+            behaviorDeclarations.put(
+                behavior.getName(),
+                cfa.getFunctionHead(entry.getKey().getPredecessor().getFunctionName())
+                    .getLeavingEdge(0));
+          }
+        } else if (annotation instanceof StatementContract) {
+          StatementContract scontract = (StatementContract) annotation;
+          if (!scontract.isPreStateRepresentation()) {
+            // Behaviors are stored in post-state representation as well, but are declared
+            // where pre-state representation is placed
+            continue;
+          }
+          for (Behavior behavior : scontract.getDeclaredBehaviors()) {
+            behaviorDeclarations.put(behavior.getName(), entry.getKey());
+          }
+        }
+      }
+      // Now check whether all referenced behaviors are still in scope
+      for (Entry<CFAEdge, ACSLAnnotation> entry : edgesToAnnotations.entries()) {
+        CFAEdge edge = entry.getKey();
+        ACSLAnnotation annotation = entry.getValue();
+        for (Behavior behavior : annotation.getReferencedBehaviors()) {
+          if (!behaviorDeclarations.containsKey(behavior.getName())
+              || !inSameScope(behaviorDeclarations.get(behavior.getName()), edge, blockStructure)) {
+            edgesToAnnotations.remove(edge, annotation);
+          }
+        }
+      }
+    }
+
+    private List<ACSLAnnotation> parseACSLAnnotations() throws CParserException {
+      try {
+        Symbol symbol = this.parse();
+        if (symbol != null) {
+          return (List<ACSLAnnotation>) symbol.value;
+        } else {
+          return ImmutableList.of();
+        }
+      } catch (Exception e) {
+        throw new CParserException(e);
+      }
+    }
+
+    private String getCurrentFunctionName() {
+      int currentOffset = orderedLocs.get(scanner.getCurrentAnnotation()).getNodeOffset();
+      for (CFAEdge edge : orderedCFALocs) {
+        if (edge.getFileLocation().getNodeOffset() > currentOffset) {
+          return edge.getSuccessor().getFunctionName();
+        }
+      }
+      return orderedCFALocs.get(orderedCFALocs.size() - 1).getSuccessor().getFunctionName();
+    }
+
+    private void putBehavior(Behavior behavior) {
+      behaviors.add(behavior);
+    }
+
+    private Behavior getBehavior(String behaviorName) {
+      for (Behavior behavior : behaviors) {
+        if (behavior.getName().equals(behaviorName)) {
+          return behavior;
+        }
+      }
+      return new Behavior(behaviorName);
+    }
+
+    private static boolean inSameScope(
+        CFAEdge declarationEdge, CFAEdge referenceEdge, SyntacticBlockStructure blockStructure) {
+      return blockStructure
+          .getInnermostBlockOf(declarationEdge.getFileLocation())
+          .contains(blockStructure.getInnermostBlockOf(referenceEdge.getFileLocation()));
+    }
+
+    @Override
+    public ACSLScanner getScanner() {
+      return scanner;
+    }
+
+  private boolean shouldSkip(ACSLAnnotation annotation, FileLocation annotationLocation) {
+    boolean allIdentifiersInScope =
+        annotation.getPredicateRepresentation().accept(identifierCheckingVisitor);
+    if (allIdentifiersInScope) {
+      if (!(annotation instanceof ACSLAssertion)) {
+        // Only assertions may be placed at the end of a file,
+        // so there should be another edge after the annotation for it to be valid
+        CFAEdge lastEdge = orderedCFALocs.get(orderedCFALocs.size() - 1);
+        return lastEdge.getFileLocation().getNodeOffset() < annotationLocation.getNodeOffset();
+      }
+      return false;
+    }
+    return true;
+  }
+:}
+
+scan with {: return scanner.getNext(); :}
+
+terminal TRUE, FALSE;
+terminal LBRACKET, RBRACKET;
+terminal AND, OR, IMP, EQV, XOR;
+terminal NEG;
+terminal EQ, NEQ, LEQ, GEQ, GT, LT;
+terminal BAND, BOR, BIMP, BEQV, BXOR;
+terminal BNEG, UPLUS, UMINUS, STAR, AMPERSAND;
+terminal SIZEOF;
+terminal PLUS, MINUS, TIMES, DIVIDE, MOD, LSHIFT, RSHIFT;
+terminal LPAREN, RPAREN;
+terminal SEMI;
+terminal REQ, ENS, ASS;
+terminal BigInteger LITERAL;
+terminal String STRING_LITERAL;
+terminal String IDENTIFIER;
+terminal ACSLType TYPE;
+terminal NEXTCONTRACT;
+terminal LINVARIANT;
+terminal ASSERT, CHECK;
+terminal BEHAVIOR;
+terminal COLON;
+terminal QUESTION;
+terminal PRED_START;
+terminal FOR;
+terminal COMMA;
+terminal COMPLETE_BEHAVIORS, DISJOINT_BEHAVIORS;
+terminal OLD;
+terminal RETVAL;
+terminal FORALL, EXISTS;
+terminal ANNOTATION_END;
+terminal SYNTAXERROR;
+
+non terminal List<ACSLAnnotation> annotations;
+non terminal ACSLAnnotation annotation;
+non terminal FunctionContract fcontract;
+non terminal StatementContract scontract;
+non terminal ACSLLoopAnnotation loopannotation;
+non terminal ACSLAssertion assertion;
+non terminal ContractBuilder clauses;
+non terminal BehaviorBuilder behavior_body;
+non terminal Collection<RequiresClause> req_clauses;
+non terminal Collection<EnsuresClause> ens_clauses;
+non terminal Collection<AssumesClause> ass_clauses;
+non terminal Collection<Behavior> behaviors;
+non terminal Collection<CompletenessClause> completeness_clauses;
+non terminal RequiresClause req_clause;
+non terminal EnsuresClause ens_clause;
+non terminal AssumesClause ass_clause;
+non terminal ACSLLoopInvariant loop_clauses;
+non terminal CompletenessClause completeness_clause;
+non terminal Map<List<Behavior>, ACSLLoopInvariant> loop_behaviors;
+non terminal List<String> behavior_identifiers, identifiers;
+non terminal Behavior behavior;
+non terminal ACSLPredicate predicate;
+non terminal ACSLPredicate asc_comp_predicate, desc_comp_predicate, eq_chain, asc_base, desc_base;
+non terminal ACSLTerm term;
+non terminal ACSLBinaryOperator asc_rel_op, desc_rel_op, log_op, arith_op, bit_op;
+non terminal ACSLUnaryOperator unary_op;
+non terminal Set<Binder> binders;
+
+precedence left FORALL, EXISTS;
+precedence right QUESTION;
+precedence left EQV;
+precedence right IMP;
+precedence left OR;
+precedence left XOR;
+precedence left AND;
+precedence left BEQV;
+precedence right BIMP;
+precedence left BOR;
+precedence left BXOR;
+precedence left BAND;
+precedence nonassoc EQ, NEQ;
+precedence nonassoc LEQ, GEQ, GT, LT;
+precedence left LSHIFT, RSHIFT;
+precedence left PLUS, MINUS;
+precedence left TIMES, DIVIDE, MOD;
+precedence right NEG, BNEG, UPLUS, UMINUS, STAR, AMPERSAND, RPAREN;
+precedence right LBRACKET;
+
+annotations ::= annotations:as annotation:a {: as.add(a); RESULT = as; :}
+            | /* nothing */                 {: RESULT = new ArrayList<>(); :};
+annotation ::= fcontract:f ANNOTATION_END     {: RESULT = f; :}
+            | scontract:s ANNOTATION_END      {: RESULT = s; :}
+            | loopannotation:l ANNOTATION_END {: RESULT = l; :}
+            | assertion:a ANNOTATION_END      {: RESULT = a; :}
+            | SYNTAXERROR {: RESULT = new InvalidAnnotation(); :};
+assertion ::= NEXTCONTRACT ASSERT predicate:p SEMI PRED_START                        {: RESULT = new ACSLAssertion(ACSLAssertion.AssertionKind.ASSERT, p); :}
+            | NEXTCONTRACT behavior_identifiers:i ASSERT predicate:p SEMI PRED_START {: List<Behavior> enclosingBehaviors = new ArrayList<>();
+                                                                                        for(String id : i) { enclosingBehaviors.add(parser.getBehavior(id)); }
+                                                                                        RESULT = new ACSLAssertion(ACSLAssertion.AssertionKind.ASSERT, enclosingBehaviors, p); :}
+            | NEXTCONTRACT CHECK predicate:p SEMI PRED_START                         {: RESULT = new ACSLAssertion(ACSLAssertion.AssertionKind.CHECK, p); :}
+            | NEXTCONTRACT behavior_identifiers:i CHECK predicate:p SEMI PRED_START {: List<Behavior> enclosingBehaviors = new ArrayList<>();
+                                                                             for(String id : i) { enclosingBehaviors.add(parser.getBehavior(id)); }
+                                                                             RESULT = new ACSLAssertion(ACSLAssertion.AssertionKind.CHECK, enclosingBehaviors, p); :};
+loopannotation ::= NEXTCONTRACT loop_clauses:c loop_behaviors:b {: RESULT = new ACSLLoopAnnotation(c, b); :}
+                | NEXTCONTRACT loop_behaviors:b                 {: RESULT = new ACSLLoopAnnotation(b); :}
+                | NEXTCONTRACT loop_clauses:c                   {: RESULT = new ACSLLoopAnnotation(c); :};
+fcontract ::= NEXTCONTRACT clauses:c                {: RESULT = c.build(); :};
+scontract ::= NEXTCONTRACT behavior_identifiers:i clauses:c
+                                                    {: List<Behavior> enclosingBehaviors = new ArrayList<>();
+                                                       for(String id : i) { enclosingBehaviors.add(parser.getBehavior(id)); }
+                                                       RESULT = StatementContract.fromFunctionContract(enclosingBehaviors, c.build()); :};
+behavior_identifiers ::= FOR identifiers:i COLON PRED_START {: RESULT = i; :};
+identifiers ::= identifiers:is COMMA IDENTIFIER:i    {: is.add(i); RESULT = is; :}
+            | IDENTIFIER:i      {: List<String> identifiers = new ArrayList<>();
+                                   identifiers.add(i); RESULT = identifiers; :};
+loop_behaviors ::= loop_behaviors:b behavior_identifiers:i loop_clauses:c   {: List<Behavior> holdsFor = new ArrayList<>(i.size());
+                                                                               for(String id : i) {
+                                                                               holdsFor.add(parser.getBehavior(id)); }
+                                                                               b.put(holdsFor, c); RESULT = b; :}
+                | behavior_identifiers:i loop_clauses:c                     {: Map<List<Behavior>, ACSLLoopInvariant> loopBehaviors = new HashMap<>();
+                                                                               List<Behavior> holdsFor = new ArrayList<>(i.size());
+                                                                               for(String id : i) {
+                                                                               holdsFor.add(parser.getBehavior(id)); }
+                                                                               loopBehaviors.put(holdsFor, c); RESULT = loopBehaviors; :};
+loop_clauses ::= loop_clauses:c LINVARIANT predicate:p SEMI PRED_START {: RESULT = c.and(p); :}
+            | LINVARIANT predicate:p SEMI PRED_START                   {: assert p.isAllowedIn(ACSLLoopInvariant.class); RESULT = new ACSLLoopInvariant(p); :};
+clauses ::= req_clauses:r ens_clauses:e behaviors:b completeness_clauses:c {: RESULT = new ContractBuilder().addAll(r).addAll(e).addAll(b).addAll(c); :};
+req_clauses ::=
+            req_clauses:c req_clause:r              {: c.add(r); RESULT = c; :}
+            | /* nothing */                         {: RESULT = new HashSet<>(); :};
+ens_clauses ::=
+            ens_clauses:c ens_clause:e              {: c.add(e); RESULT = c; :}
+            | /* nothing */                         {: RESULT = new HashSet<>(); :};
+behaviors ::=
+            behaviors:c behavior:b                  {: c.add(b); RESULT = c; :}
+            | /* nothing */                         {: RESULT = new HashSet<>(); :};
+behavior ::= BEHAVIOR IDENTIFIER:i COLON PRED_START behavior_body:bb   {: bb.setBehaviorName(i);
+                                                                          Behavior b = bb.build();
+                                                                          parser.putBehavior(b); RESULT = b; :};
+completeness_clauses ::= completeness_clauses:cs completeness_clause:c  {: cs.add(c); RESULT = cs; :}
+                        | /* nothing */                                 {: RESULT = new HashSet<>(); :};
+completeness_clause ::= COMPLETE_BEHAVIORS identifiers:i SEMI PRED_START {: List<Behavior> behaviors = new ArrayList<>(i.size());
+                                                               for (String id : i) { behaviors.add(parser.getBehavior(id)); }
+                                                               RESULT = new CompletenessClause(behaviors, CompletenessClause.RelationKind.COMPLETE); :}
+                        | COMPLETE_BEHAVIORS SEMI PRED_START {: RESULT = new CompletenessClause(ImmutableList.of(), CompletenessClause.RelationKind.COMPLETE); :}
+                        | DISJOINT_BEHAVIORS identifiers:i SEMI PRED_START {: List<Behavior> behaviors = new ArrayList<>(i.size());
+                                                               for (String id : i) { behaviors.add(parser.getBehavior(id)); }
+                                                               RESULT = new CompletenessClause(behaviors, CompletenessClause.RelationKind.DISJOINT); :}
+                        | DISJOINT_BEHAVIORS SEMI PRED_START {: RESULT = new CompletenessClause(ImmutableList.of(), CompletenessClause.RelationKind.DISJOINT); :};
+behavior_body ::= ass_clauses:a req_clauses:r ens_clauses:e
+                                                    {: RESULT = new BehaviorBuilder().addAll(a).addAll(r).addAll(e); :};
+ass_clauses ::=
+            ass_clauses:c ass_clause:a              {: c.add(a); RESULT = c; :}
+            | /* nothing */                         {: RESULT = new HashSet<>(); :};
+req_clause ::= REQ predicate:p SEMI PRED_START {: assert p.isAllowedIn(RequiresClause.class); RESULT = new RequiresClause(p); :};
+ens_clause ::= ENS predicate:p SEMI PRED_START {: assert p.isAllowedIn(EnsuresClause.class); RESULT = new EnsuresClause(p); :};
+ass_clause ::= ASS predicate:p SEMI PRED_START {: assert p.isAllowedIn(AssumesClause.class); RESULT = new AssumesClause(p); :};
+predicate ::= PRED_START TRUE                                       {: RESULT = ACSLPredicate.getTrue(); :}
+        | PRED_START FALSE                                          {: RESULT = ACSLPredicate.getFalse(); :}
+	| predicate:p1 log_op:op predicate:p2                       {: RESULT = new ACSLLogicalPredicate(p1, p2, op); :}
+	| PRED_START term:t1 NEQ term:t2                            {: RESULT = new ACSLSimplePredicate(new ACSLBinaryTerm(t1, t2, ACSLBinaryOperator.NEQ)); :}
+	| PRED_START eq_chain:ec                                    {: RESULT = ec; :}
+	| PRED_START asc_comp_predicate:p                           {: RESULT = p; :}
+	| PRED_START desc_comp_predicate:p                          {: RESULT = p; :}
+	| PRED_START NEG predicate:p                                {: RESULT = p.negate(); :} %prec NEG
+	| PRED_START LPAREN predicate:p RPAREN                      {: RESULT = p; :}
+	| predicate:p1 QUESTION predicate:p2 COLON predicate:p3     {: RESULT = new ACSLTernaryCondition(p1, p2, p3); :}
+	| PRED_START FORALL binders:b SEMI predicate:p              {: BinderApplicationVisitor visitor = new BinderApplicationVisitor(b, Binder.Quantifier.FORALL);
+	                                                               RESULT = p.accept(visitor); :}
+	| PRED_START EXISTS binders:b SEMI predicate:p              {: BinderApplicationVisitor visitor = new BinderApplicationVisitor(b, Binder.Quantifier.EXISTS);
+	                                                               RESULT = p.accept(visitor); :}
+	| PRED_START OLD LPAREN predicate:p RPAREN                  {: RESULT = new PredicateAt(p, ACSLDefaultLabel.OLD); :};
+asc_comp_predicate ::= asc_comp_predicate:p asc_rel_op:op term:t    {: ACSLTerm innerLeft;
+                                                                       if (p instanceof ACSLSimplePredicate) {
+                                                                        innerLeft = ((ACSLBinaryTerm) ((ACSLSimplePredicate) p).getTerm()).getRight();
+                                                                       } else {
+                                                                        innerLeft = ((ACSLBinaryTerm) ((ACSLSimplePredicate) ((ACSLLogicalPredicate) p).
+                                                                           getRight()).getTerm()).getRight();
+                                                                       }
+                                                                       ACSLPredicate right = new ACSLSimplePredicate(new ACSLBinaryTerm(innerLeft, t, op));
+                                                                       RESULT = new ACSLLogicalPredicate(p, right, ACSLBinaryOperator.AND);  :}
+        | asc_comp_predicate:p EQ term:t                            {: ACSLTerm innerLeft;
+                                                                      if (p instanceof ACSLSimplePredicate) {
+                                                                       innerLeft = ((ACSLBinaryTerm) ((ACSLSimplePredicate) p).getTerm()).getRight();
+                                                                      } else {
+                                                                       innerLeft = ((ACSLBinaryTerm) ((ACSLSimplePredicate) ((ACSLLogicalPredicate) p).
+                                                                          getRight()).getTerm()).getRight();
+                                                                      }
+                                                                      ACSLPredicate right = new ACSLSimplePredicate(new ACSLBinaryTerm(innerLeft, t, ACSLBinaryOperator.EQ));
+                                                                      RESULT = new ACSLLogicalPredicate(p, right, ACSLBinaryOperator.AND); :}
+        | asc_base:ab                      {: RESULT = ab; :}
+        | eq_chain:ec asc_rel_op:op term:t {: ACSLTerm innerLeft;
+                                              if (ec instanceof ACSLSimplePredicate) {
+                                                innerLeft = ((ACSLBinaryTerm)((ACSLSimplePredicate) ec).getTerm()).getRight();
+                                              } else {
+                                                innerLeft = ((ACSLBinaryTerm) ((ACSLSimplePredicate) ((ACSLLogicalPredicate) ec).getRight()).getTerm()).
+                                                   getRight();
+                                              }
+                                              ACSLPredicate right = new ACSLSimplePredicate(new ACSLBinaryTerm(innerLeft, t, op));
+                                              RESULT = new ACSLLogicalPredicate(ec, right, ACSLBinaryOperator.AND); :};
+desc_comp_predicate ::= desc_comp_predicate:p desc_rel_op:op term:t {: ACSLTerm innerLeft;
+                                                                       if (p instanceof ACSLSimplePredicate) {
+                                                                        innerLeft = ((ACSLBinaryTerm) ((ACSLSimplePredicate) p).getTerm()).getRight();
+                                                                       } else {
+                                                                        innerLeft = ((ACSLBinaryTerm) ((ACSLSimplePredicate) ((ACSLLogicalPredicate) p).
+                                                                           getRight()).getTerm()).getRight();
+                                                                       }
+                                                                       ACSLPredicate right = new ACSLSimplePredicate(new ACSLBinaryTerm(innerLeft, t, op));
+                                                                       RESULT = new ACSLLogicalPredicate(p, right, ACSLBinaryOperator.AND); :}
+        | desc_comp_predicate:p EQ term:t                             {: ACSLTerm innerLeft;
+                                                                       if (p instanceof ACSLSimplePredicate) {
+                                                                        innerLeft = ((ACSLBinaryTerm) ((ACSLSimplePredicate) p).getTerm()).getRight();
+                                                                       } else {
+                                                                        innerLeft = ((ACSLBinaryTerm) ((ACSLSimplePredicate) ((ACSLLogicalPredicate) p).
+                                                                           getRight()).getTerm()).getRight();
+                                                                       }
+                                                                       ACSLPredicate right = new ACSLSimplePredicate(new ACSLBinaryTerm(innerLeft, t, ACSLBinaryOperator.EQ));
+                                                                       RESULT = new ACSLLogicalPredicate(p, right, ACSLBinaryOperator.AND); :}
+        | desc_base:db                      {: RESULT = db; :}
+        | eq_chain:ec desc_rel_op:op term:t {: ACSLTerm innerLeft;
+                                               if (ec instanceof ACSLSimplePredicate) {
+                                                innerLeft = ((ACSLBinaryTerm) ((ACSLSimplePredicate) ec).getTerm()).getRight();
+                                               } else {
+                                                innerLeft = ((ACSLBinaryTerm) ((ACSLSimplePredicate) ((ACSLLogicalPredicate) ec).getRight()).getTerm()).
+                                                   getRight();
+                                               }
+                                               ACSLPredicate right = new ACSLSimplePredicate(new ACSLBinaryTerm(innerLeft, t, op));
+                                               RESULT = new ACSLLogicalPredicate(ec, right, ACSLBinaryOperator.AND); :};
+eq_chain ::= eq_chain:ec EQ term:t  {: ACSLTerm innerLeft;
+                                       if (ec instanceof ACSLSimplePredicate) {
+                                        innerLeft = ((ACSLBinaryTerm) ((ACSLSimplePredicate) ec).getTerm()).getRight();
+                                       } else {
+                                        innerLeft = ((ACSLBinaryTerm) ((ACSLSimplePredicate) ((ACSLLogicalPredicate) ec).getRight()).getTerm()).getRight();
+                                       }
+                                       ACSLPredicate right = new ACSLSimplePredicate(new ACSLBinaryTerm(innerLeft, t, ACSLBinaryOperator.EQ));
+                                       RESULT = new ACSLLogicalPredicate(ec, right, ACSLBinaryOperator.AND); :}
+           | term:t1 EQ term:t2     {: RESULT = new ACSLSimplePredicate(new ACSLBinaryTerm(t1, t2, ACSLBinaryOperator.EQ)); :};
+asc_base ::= term:t1 asc_rel_op:op term:t2    {: RESULT = new ACSLSimplePredicate(new ACSLBinaryTerm(t1, t2, op)); :};
+desc_base ::= term:t1 desc_rel_op:op term:t2  {: RESULT = new ACSLSimplePredicate(new ACSLBinaryTerm(t1, t2, op)); :};
+binders ::= TYPE:t IDENTIFIER:i COMMA identifiers:is COMMA binders:b {: Set<String> variables = new HashSet();
+                                                                        variables.add(i); variables.addAll(is);
+                                                                        Binder binder = new Binder(t, variables);
+                                                                        b.add(binder); RESULT = b; :}
+         | TYPE:t IDENTIFIER:i COMMA binders:b                       {: Set<String> variables = new HashSet();
+                                                                        variables.add(i);
+                                                                        Binder binder = new Binder(t, variables);
+                                                                        b.add(binder); RESULT = b; :}
+         | TYPE:t IDENTIFIER:i COMMA identifiers:is                  {: Set<Binder> binders = new HashSet();
+                                                                        Set<String> variables = new HashSet();
+                                                                        variables.add(i); variables.addAll(is);
+                                                                        Binder binder = new Binder(t, variables);
+                                                                        binders.add(binder); RESULT = binders; :}
+         | TYPE:t IDENTIFIER:i                                       {: Set<Binder> binders = new HashSet();
+                                                                        Set<String> variables = new HashSet();
+                                                                        variables.add(i);
+                                                                        Binder binder = new Binder(t, variables);
+                                                                        binders.add(binder); RESULT = binders; :};
+term ::= PRED_START term:t                              {: RESULT = t; :}
+        | LITERAL:l                                     {: RESULT = new ACSLIntegerLiteral(l); :}
+        | STRING_LITERAL:l                              {: RESULT = new ACSLStringLiteral(l); :}
+        | IDENTIFIER:i                                  {: ACSLIdentifier identifier = new ACSLIdentifier(i, parser.getCurrentFunctionName());
+                                                           RESULT = identifier; :}
+        | term:t1 LBRACKET term:t2 RBRACKET             {: RESULT = new ACSLArrayAccess(t1, t2); :}
+        | unary_op:op term:t                            {: RESULT = new ACSLUnaryTerm(t, op); :}
+        | SIZEOF LPAREN term:t RPAREN                   {: RESULT = new ACSLUnaryTerm(t, ACSLUnaryOperator.SIZEOF); :}
+        | LPAREN PRED_START TYPE:tp RPAREN term:t       {: RESULT = new ACSLCast(tp, t); :}
+        | term:t1 arith_op:op term:t2                   {: RESULT = new ACSLBinaryTerm(t1, t2, op); :}
+        | term:t1 bit_op:op term:t2                     {: RESULT = new ACSLBinaryTerm(t1, t2, op); :}
+        | LPAREN term:t RPAREN                          {: RESULT = t; :}
+        | OLD LPAREN term:t RPAREN                      {: RESULT = new TermAt(t, ACSLDefaultLabel.OLD); :}
+        | RETVAL                                        {: RESULT = new ACSLResult(parser.getCurrentFunctionName()); :};
+log_op ::= AND  {: RESULT = ACSLBinaryOperator.AND; :}
+        | OR    {: RESULT = ACSLBinaryOperator.OR; :}
+        | IMP   {: RESULT = ACSLBinaryOperator.IMP; :}
+        | EQV   {: RESULT = ACSLBinaryOperator.EQV; :}
+        | XOR   {: RESULT = ACSLBinaryOperator.XOR; :};
+asc_rel_op ::= LEQ      {: RESULT = ACSLBinaryOperator.LEQ; :}
+        | LT            {: RESULT = ACSLBinaryOperator.LT; :};
+desc_rel_op ::= GT      {: RESULT = ACSLBinaryOperator.GT; :}
+        | GEQ           {: RESULT = ACSLBinaryOperator.GEQ; :};
+arith_op ::= PLUS       {: RESULT = ACSLBinaryOperator.PLUS; :}
+        | MINUS         {: RESULT = ACSLBinaryOperator.MINUS; :}
+        | STAR          {: RESULT = ACSLBinaryOperator.TIMES; :}    %prec TIMES
+        | DIVIDE        {: RESULT = ACSLBinaryOperator.DIVIDE; :}
+        | MOD           {: RESULT = ACSLBinaryOperator.MOD; :}
+        | LSHIFT        {: RESULT = ACSLBinaryOperator.LSHIFT; :}
+        | RSHIFT        {: RESULT = ACSLBinaryOperator.RSHIFT; :};
+bit_op ::= AMPERSAND    {: RESULT = ACSLBinaryOperator.BAND; :}     %prec BAND
+        | BOR           {: RESULT = ACSLBinaryOperator.BOR; :}
+        | BIMP          {: RESULT = ACSLBinaryOperator.BIMP; :}
+        | BEQV          {: RESULT = ACSLBinaryOperator.BEQV; :}
+        | BXOR          {: RESULT = ACSLBinaryOperator.BXOR; :};
+unary_op ::= BNEG       {: RESULT = ACSLUnaryOperator.BNEG; :}
+        | PLUS          {: RESULT = ACSLUnaryOperator.PLUS; :}      %prec UPLUS
+        | MINUS         {: RESULT = ACSLUnaryOperator.MINUS; :}     %prec UMINUS
+        | STAR          {: RESULT = ACSLUnaryOperator.POINTER_DEREF; :}
+        | AMPERSAND     {: RESULT = ACSLUnaryOperator.ADDRESS_OF; :};

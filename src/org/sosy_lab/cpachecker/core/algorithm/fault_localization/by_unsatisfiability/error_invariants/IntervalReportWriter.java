@@ -8,11 +8,11 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.error_invariants;
 
-import com.google.common.base.Splitter;
+import com.google.common.collect.ImmutableList;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
-import java.util.stream.Collectors;
+import java.util.Map;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.error_invariants.ErrorInvariantsAlgorithm.Interval;
 import org.sosy_lab.cpachecker.util.faultlocalization.Fault;
@@ -23,10 +23,18 @@ import org.sosy_lab.cpachecker.util.faultlocalization.appendables.FaultInfo.Info
 import org.sosy_lab.cpachecker.util.faultlocalization.appendables.FaultReason;
 import org.sosy_lab.cpachecker.util.faultlocalization.appendables.PotentialFix;
 import org.sosy_lab.cpachecker.util.faultlocalization.appendables.RankInfo;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.pretty_print.BooleanFormulaParser;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.pretty_print.FormulaNode;
+import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.smt.FormulaToCVisitor;
 
 public class IntervalReportWriter extends FaultReportWriter {
+
+  private final FormulaManagerView formulaManager;
+  private final FormulaToCVisitor visitor;
+
+  public IntervalReportWriter(FormulaManagerView pFormulaManager) {
+    formulaManager = pFormulaManager;
+    visitor = new FormulaToCVisitor(formulaManager);
+  }
 
   @Override
   public String toHtml(Fault pFault) {
@@ -35,7 +43,7 @@ public class IntervalReportWriter extends FaultReportWriter {
           pFault.stream()
               .map(FaultContribution::correspondingEdge)
               .sorted(Comparator.comparingInt(l -> l.getFileLocation().getStartingLineInOrigin()))
-              .collect(Collectors.toList());
+              .collect(ImmutableList.toImmutableList());
       return intervalToHtml((Interval) pFault, pFault.getInfos(), edges);
     } else {
       return super.toHtml(pFault);
@@ -68,23 +76,29 @@ public class IntervalReportWriter extends FaultReportWriter {
     // intervals)
     int index = interval.getIntendedIndex() / 2;
 
-    String header = "Interpolant <strong>" + index + "</strong>:<br>"
-        + " <textarea readonly class=\"interval-scrollbox\">"
-        + extractRelevantInformation(interval)
-        + "</textarea><br>";
+    formulaManager.visit(interval.getInvariant(), visitor);
+
+    Map<Integer, String> distinctRelevantStatements = getDistinctStatements(correspondingEdges);
+    String header =
+        "Interpolant <strong>"
+            + index
+            + "</strong>:<br>"
+            + " <textarea readonly class=\"interval-scrollbox\">"
+            + visitor.getString()
+            + "</textarea><br>";
     StringBuilder html = new StringBuilder();
 
-    if (!correspondingEdges.isEmpty()) {
+    if (!distinctRelevantStatements.isEmpty()) {
       html.append(" Relevant lines:\n<ul class=\"fault-lines\">\n");
-      correspondingEdges.stream()
-          .sorted(Comparator.comparingInt(e -> e.getFileLocation().getStartingLineInOrigin()))
+      distinctRelevantStatements.entrySet().stream()
+          .sorted(Comparator.comparingInt(e -> e.getKey()))
           .forEach(
               e ->
                   html.append("<li>" + "<span class=\"line-number\">")
-                      .append(e.getFileLocation().getStartingLineInOrigin())
+                      .append(e.getKey())
                       .append("</span>")
                       .append("<span class=\"line-content\">")
-                      .append(e.getDescription())
+                      .append(e.getValue())
                       .append("</span>")
                       .append("</li>"));
       html.append("</ul>\n");
@@ -123,40 +137,5 @@ public class IntervalReportWriter extends FaultReportWriter {
     }
 
     return header + "<br>" + html;
-  }
-
-  /**
-   * Extracts the fault-relevant information from the given formula. Since the original trace
-   * formulas are often too detailed for a concise description of the fault, this method reduces the
-   * displayed information to the relevant one.
-   *
-   * @param interval interval to extract information from
-   * @return relevant information
-   */
-  private String extractRelevantInformation(Interval interval) {
-
-    FormulaNode root = BooleanFormulaParser.parse(interval.getInvariant());
-    List<FormulaNode> conjunctions = BooleanFormulaParser.toConjunctionArgs(root);
-    List<String> helpfulFormulas = new ArrayList<>();
-
-    for (FormulaNode f : conjunctions) {
-      if (f.toString().contains("_ADDRESS_OF")) {
-        List<String> findName = Splitter.on("__ADDRESS_OF_").splitToList(f.toString());
-        if (findName.size() > 1) {
-          List<String> extractName = Splitter.on("@").splitToList(findName.get(1));
-          if (!extractName.isEmpty()) {
-            helpfulFormulas.add("(values of " + extractName.get(0) + ")");
-            continue;
-          }
-        }
-      }
-      helpfulFormulas.add(f.toString());
-    }
-    // return "<ul><li>"  + helpfulFormulas.stream().distinct().map(s -> s.replaceAll("@",
-    // "")).collect(Collectors.joining(" </li><li> ")) + "</li></ul>";
-    return helpfulFormulas.stream()
-        .distinct()
-        .map(s -> s.replaceAll("@", ""))
-        .collect(Collectors.joining(" ∧ "));
   }
 }

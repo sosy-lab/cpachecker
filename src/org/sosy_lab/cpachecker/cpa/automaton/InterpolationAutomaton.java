@@ -30,7 +30,6 @@ import org.sosy_lab.common.collect.Collections3;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
-import org.sosy_lab.cpachecker.cpa.automaton.AutomatonBoolExpr.And;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonExpression.StringExpression;
 import org.sosy_lab.cpachecker.cpa.dca.DCAState;
 import org.sosy_lab.cpachecker.util.AbstractStates;
@@ -39,13 +38,12 @@ import org.sosy_lab.java_smt.api.BooleanFormula;
 
 public class InterpolationAutomaton {
 
-  private static final boolean IS_TARGET = true;
+  private static final boolean TARGET = true;
 
   private final String automatonName;
   private final FormulaManagerView fMgrView;
 
   private final ItpAutomatonState initState;
-  private final ItpAutomatonState sinkState;
   private final ItpAutomatonState finalState;
   private final List<ItpAutomatonState> itpStates;
 
@@ -60,7 +58,6 @@ public class InterpolationAutomaton {
 
     initState = new InitState(this);
     finalState = new FinalState(this);
-    sinkState = new SinkState(this);
     itpStates = new ArrayList<>();
 
     if (pDistinctInterpolants.size() > 1) {
@@ -69,8 +66,7 @@ public class InterpolationAutomaton {
     }
 
     for (BooleanFormula interpolant : pDistinctInterpolants) {
-      itpStates.add(
-          new ItpAutomatonState(this, "itp_state: " + interpolant, interpolant, IS_TARGET));
+      itpStates.add(new ItpAutomatonState(this, "itp_state: " + interpolant, interpolant, TARGET));
     }
 
     bfToStateMap =
@@ -79,12 +75,11 @@ public class InterpolationAutomaton {
             .put(initState.getInterpolant(), initState)
             .put(finalState.getInterpolant(), finalState)
             .putAll(
-                itpStates
-                    .stream()
+                itpStates.stream()
                     .collect(
                         ImmutableMap.toImmutableMap(
                             ItpAutomatonState::getInterpolant, Functions.identity())))
-            .build();
+            .buildOrThrow();
   }
 
   public Automaton createAutomaton() throws InvalidAutomatonException {
@@ -94,7 +89,6 @@ public class InterpolationAutomaton {
             .addAll(
                 Collections3.transformedImmutableListCopy(
                     itpStates, ItpAutomatonState::buildInternalState))
-            .add(sinkState.buildInternalState())
             .add(finalState.buildInternalState())
             .build();
     return new Automaton(
@@ -114,22 +108,37 @@ public class InterpolationAutomaton {
       BooleanFormula pCurInterpolant,
       ARGState pChildState,
       BooleanFormula pChildInterpolant) {
+    checkArgument(bfToStateMap.containsKey(pCurInterpolant));
+    checkArgument(bfToStateMap.containsKey(pChildInterpolant));
+
     ItpAutomatonState srcState = bfToStateMap.get(pCurInterpolant);
     ItpAutomatonState destState = bfToStateMap.get(pChildInterpolant);
 
     srcState.createTransitionToState(pCurrentState, pChildState, destState.getStateName());
   }
 
-  void addTransitionToSinkState(
+  void addTransitionToInitState(
       ARGState pCurrentState, BooleanFormula pCurrentInterpolant, ARGState pChildState) {
     ItpAutomatonState srcState = bfToStateMap.get(pCurrentInterpolant);
-    srcState.createTransitionToState(pCurrentState, pChildState, sinkState.getStateName());
+    srcState.createTransitionToState(pCurrentState, pChildState, initState.getStateName());
   }
 
   void addTransitionToFinalState(
       ARGState pCurrentState, BooleanFormula pCurrentInterpolant, ARGState pChildState) {
     ItpAutomatonState srcState = bfToStateMap.get(pCurrentInterpolant);
     srcState.createTransitionToState(pCurrentState, pChildState, finalState.getStateName());
+  }
+
+  boolean isStateCovered(ARGState pState, ARGState pChildState, BooleanFormula pInterpolant) {
+    checkArgument(bfToStateMap.containsKey(pInterpolant));
+
+    return bfToStateMap.get(pInterpolant).isStateCovered(pState, pChildState);
+  }
+
+  void addQueryToCache(ARGState pState, ARGState pChildState, BooleanFormula pInterpolant) {
+    checkArgument(bfToStateMap.containsKey(pInterpolant));
+
+    bfToStateMap.get(pInterpolant).addExpressionToCache(pState, pChildState);
   }
 
   @Override
@@ -153,18 +162,25 @@ public class InterpolationAutomaton {
     return str.toString();
   }
 
-  private class ItpAutomatonState {
+  private static class ItpAutomatonState {
 
     private final InterpolationAutomaton itpAutomaton;
+
+    Set<AutomatonTransition> transitions;
 
     private final String stateName;
     private final BooleanFormula interpolant;
     private final boolean isTarget;
 
-    private final @Nullable StringExpression violatedPropertyDescription;
+    private final @Nullable StringExpression targetInformation;
 
     private Set<AutomatonBoolExpr> boolExpressions;
-    Set<AutomatonTransition> transitions;
+
+    /**
+     * Cache for expressions that were already queried before but are superfluous and would
+     * unnecessarily bloat the automaton. They are hence intentionally not added to this state
+     */
+    private Set<AutomatonBoolExpr> coveredExpressionsCache;
 
     private ItpAutomatonState(
         InterpolationAutomaton pItpAutomaton,
@@ -176,23 +192,42 @@ public class InterpolationAutomaton {
       stateName = pStateName;
       interpolant = checkNotNull(pInterpolant);
       isTarget = pIsTarget;
-      violatedPropertyDescription =
-          isTarget ? new StringExpression(itpAutomaton.getAutomatonName()) : null;
+      targetInformation = isTarget ? new StringExpression(itpAutomaton.getAutomatonName()) : null;
 
       boolExpressions = new HashSet<>();
+      coveredExpressionsCache = new HashSet<>();
       transitions = new LinkedHashSet<>();
     }
 
-    String getStateName() {
+    private String getStateName() {
       return stateName;
     }
 
-    AutomatonInternalState buildInternalState() {
+    private AutomatonInternalState buildInternalState() {
       return new AutomatonInternalState(stateName, buildInternalTransitions(), isTarget, true);
     }
 
-    BooleanFormula getInterpolant() {
+    private BooleanFormula getInterpolant() {
       return interpolant;
+    }
+
+    boolean isStateCovered(ARGState pState, ARGState pChildState) {
+      Optional<AutomatonBoolExpr> boolExprOpt = buildAutomatonBoolExpr(pState, pChildState);
+      if (boolExprOpt.isEmpty()) {
+        return false;
+      }
+      AutomatonBoolExpr boolExpr = boolExprOpt.orElseThrow();
+      return boolExpressions.contains(boolExpr) || coveredExpressionsCache.contains(boolExpr);
+    }
+
+    void addExpressionToCache(ARGState pState, ARGState pChildState) {
+      Optional<AutomatonBoolExpr> boolExprOpt = buildAutomatonBoolExpr(pState, pChildState);
+
+      if (boolExprOpt.isPresent()) {
+        AutomatonBoolExpr boolExpr = boolExprOpt.orElseThrow();
+        checkArgument(!boolExpressions.contains(boolExpr));
+        coveredExpressionsCache.add(boolExpr);
+      }
     }
 
     @Override
@@ -218,38 +253,55 @@ public class InterpolationAutomaton {
 
     private Optional<CFAEdge> handleSingleEdge(
         ARGState pCurrentState, ARGState pChildState, String pNextItpState) {
-      Optional<CFAEdge> singleEdgeOpt =
-          Optional.ofNullable(pCurrentState.getEdgeToChild(pChildState));
-      if (singleEdgeOpt.isPresent()) {
-        DCAState dcaState = AbstractStates.extractStateByType(pChildState, DCAState.class);
-        String buechiExpression =
-            Joiner.on("; ")
-                .join(Collections2.transform(dcaState.getAssumptions(), AExpression::toASTString));
-        addEdgeToTransition(singleEdgeOpt.orElseThrow(), pNextItpState, buechiExpression);
+      CFAEdge cfaEdge = pCurrentState.getEdgeToChild(pChildState);
+      if (cfaEdge == null) {
+        return Optional.empty();
       }
-      return singleEdgeOpt;
+
+      AutomatonBoolExpr boolExpr = buildAutomatonBoolExpr(cfaEdge, pChildState);
+      addExpressionToState(boolExpr);
+      addEdgeToTransition(boolExpr, pNextItpState);
+
+      return Optional.of(cfaEdge);
     }
 
-    private void addEdgeToTransition(
-        CFAEdge pEdge, String pNextItpState, String pBuechiExpression) {
-      AutomatonTransition transition =
-          matchStateTransition(pEdge, pNextItpState, pBuechiExpression);
+    private void addExpressionToState(AutomatonBoolExpr pBoolExpr) {
+      coveredExpressionsCache.remove(pBoolExpr);
+      boolExpressions.add(pBoolExpr);
+    }
+
+    private void addEdgeToTransition(AutomatonBoolExpr pBoolExpr, String pNextItpState) {
+      AutomatonTransition.Builder builder =
+          new AutomatonTransition.Builder(pBoolExpr, pNextItpState);
+      if (targetInformation != null) {
+        builder.withTargetInformation(targetInformation);
+      }
+      AutomatonTransition transition = builder.build();
       transitions.add(transition);
     }
 
-    private AutomatonTransition matchStateTransition(
-        CFAEdge pCFAEdge, String pNextItpState, String pBuechiExpression) {
-      AutomatonBoolExpr.MatchCFAEdgeNodes trigger =
-          new AutomatonBoolExpr.MatchCFAEdgeNodes(pCFAEdge);
-      AutomatonBoolExpr.CPAQuery matchCFAEdgeNodes =
-          new AutomatonBoolExpr.CPAQuery("DCAState", pBuechiExpression);
-      And and = new AutomatonBoolExpr.And(trigger, matchCFAEdgeNodes);
-      boolExpressions.add(and);
-      AutomatonTransition.Builder builder = new AutomatonTransition.Builder(and, pNextItpState);
-      if (violatedPropertyDescription != null) {
-        builder.withViolatedPropertyDescription(violatedPropertyDescription);
+    private Optional<AutomatonBoolExpr> buildAutomatonBoolExpr(
+        ARGState pCurrentState, ARGState pChildState) {
+      CFAEdge cfaEdge = pCurrentState.getEdgeToChild(pChildState);
+      if (cfaEdge == null) {
+        return Optional.empty();
       }
-      return builder.build();
+
+      return Optional.of(buildAutomatonBoolExpr(cfaEdge, pChildState));
+    }
+
+    private AutomatonBoolExpr buildAutomatonBoolExpr(CFAEdge pCfaEdge, ARGState pChildState) {
+      AutomatonBoolExpr.MatchCFAEdgeNodes cfaEdgeBoolExpr =
+          new AutomatonBoolExpr.MatchCFAEdgeNodes(pCfaEdge);
+
+      DCAState dcaState = AbstractStates.extractStateByType(pChildState, DCAState.class);
+      String buechiExpression =
+          Joiner.on("; ")
+              .join(Collections2.transform(dcaState.getAssumptions(), AExpression::toASTString));
+      AutomatonBoolExpr.CPAQuery dcaStateQuery =
+          new AutomatonBoolExpr.CPAQuery("DCAState", buechiExpression);
+
+      return new AutomatonBoolExpr.And(cfaEdgeBoolExpr, dcaStateQuery);
     }
 
     List<AutomatonTransition> buildInternalTransitions() {
@@ -259,8 +311,7 @@ public class InterpolationAutomaton {
           stream.reduce((x, y) -> new AutomatonBoolExpr.And(x, y));
       verify(boolExprOpt.isPresent());
       AutomatonTransition transition =
-          new AutomatonTransition.Builder(boolExprOpt.orElseThrow(), sinkState.getStateName())
-              .build();
+          new AutomatonTransition.Builder(boolExprOpt.orElseThrow(), stateName).build();
 
       transitions.add(transition);
       return ImmutableList.copyOf(transitions);
@@ -270,18 +321,14 @@ public class InterpolationAutomaton {
   private class InitState extends ItpAutomatonState {
 
     private InitState(InterpolationAutomaton pItpAutomaton) {
-      super(pItpAutomaton, "init_state", makeFormulaTrue(), IS_TARGET);
+      super(pItpAutomaton, "init_state", fMgrView.getBooleanFormulaManager().makeTrue(), TARGET);
     }
   }
 
   private class FinalState extends ItpAutomatonState {
 
     private FinalState(InterpolationAutomaton pItpAutomaton) {
-      super(
-          pItpAutomaton,
-          "final_state",
-          fMgrView.getBooleanFormulaManager().makeFalse(),
-          !IS_TARGET);
+      super(pItpAutomaton, "final_state", fMgrView.getBooleanFormulaManager().makeFalse(), !TARGET);
     }
 
     @Override
@@ -291,24 +338,5 @@ public class InterpolationAutomaton {
               .build());
       return ImmutableList.copyOf(transitions);
     }
-  }
-
-  private class SinkState extends ItpAutomatonState {
-
-    private SinkState(InterpolationAutomaton pItpAutomaton) {
-      super(pItpAutomaton, "sink_state", makeFormulaTrue(), IS_TARGET);
-    }
-
-    @Override
-    List<AutomatonTransition> buildInternalTransitions() {
-      transitions.add(
-          new AutomatonTransition.Builder(AutomatonBoolExpr.TRUE, sinkState.getStateName())
-              .build());
-      return ImmutableList.copyOf(transitions);
-    }
-  }
-
-  private BooleanFormula makeFormulaTrue() {
-    return fMgrView.getBooleanFormulaManager().makeTrue();
   }
 }

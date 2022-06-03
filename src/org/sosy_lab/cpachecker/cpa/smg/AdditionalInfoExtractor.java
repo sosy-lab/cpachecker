@@ -21,7 +21,7 @@ import org.sosy_lab.cpachecker.core.counterexample.CFAPathWithAdditionalInfo;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.path.PathIterator;
-import org.sosy_lab.cpachecker.cpa.smg.graphs.SMGHasValueEdges;
+import org.sosy_lab.cpachecker.cpa.smg.SMGAdditionalInfo.Level;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.UnmodifiableCLangSMG;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdge;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValue;
@@ -59,7 +59,8 @@ public class AdditionalInfoExtractor {
           CFAEdgeWithAdditionalInfo.of(rIterator.getOutgoingEdge());
       // Move memory leak on return edge
       if (!isMemoryLeakError && description != null && !description.isEmpty()) {
-        edgeWithAdditionalInfo.addInfo(SMGConvertingTags.WARNING, description);
+        edgeWithAdditionalInfo.addInfo(
+            SMGConvertingTags.NOTE, SMGAdditionalInfo.of(description, Level.ERROR));
         description = null;
       }
 
@@ -96,7 +97,9 @@ public class AdditionalInfoExtractor {
             }
           }
           edgeWithAdditionalInfo.addInfo(
-              SMGConvertingTags.NOTE, getNoteMessageOnElement(prevSMGState.getHeap(), elem));
+              SMGConvertingTags.NOTE,
+              SMGAdditionalInfo.of(
+                  getNoteMessageOnElement(prevSMGState.getHeap(), elem), Level.NOTE));
 
         } else {
           toCheck.add(elem);
@@ -119,8 +122,8 @@ public class AdditionalInfoExtractor {
               .filterAtOffset(edgeHasValue.getOffset())
               .filterHavingValue(edgeHasValue.getValue())
               .filterBySize(edgeHasValue.getSizeInBits());
-      SMGHasValueEdges edges = smg.getHVEdges(filter);
-      return edges.size() != 0;
+      Iterable<SMGEdgeHasValue> edges = smg.getHVEdges(filter);
+      return edges.iterator().hasNext();
     } else if (elem instanceof SMGEdgePointsTo) {
       SMGEdgePointsTo edgePointsTo = (SMGEdgePointsTo) elem;
       SMGEdgePointsToFilter filter =

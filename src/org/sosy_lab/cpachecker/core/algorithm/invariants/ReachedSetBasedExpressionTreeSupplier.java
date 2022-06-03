@@ -37,13 +37,11 @@ public class ReachedSetBasedExpressionTreeSupplier implements ExpressionTreeSupp
   }
 
   @Override
-  public ExpressionTree<Object> getInvariantFor(CFANode pLocation) {
+  public ExpressionTree<Object> getInvariantFor(CFANode pLocation) throws InterruptedException {
 
     Set<InvariantsState> invStates = new HashSet<>();
     boolean otherReportingStates = false;
-    Iterable<AbstractState> locationStates = lazyLocationMapping.get(
-        pLocation,
-        Optional.empty());
+    Iterable<AbstractState> locationStates = lazyLocationMapping.get(pLocation, Optional.empty());
     if (Iterables.isEmpty(locationStates)) {
       // Location is not necessarily unreachable, but might have been skipped,
       // e.g. by the multi-edge/basic-block optimization of the CompositeCPA.

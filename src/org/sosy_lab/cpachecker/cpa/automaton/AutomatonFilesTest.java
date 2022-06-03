@@ -13,7 +13,6 @@ import static com.google.common.truth.Truth.assertWithMessage;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.List;
 import java.util.stream.Stream;
 import org.junit.Test;
@@ -29,15 +28,13 @@ import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.util.test.TestDataTools;
 
-/**
- * Test that the bundled specification files are all valid.
- */
+/** Test that the bundled specification files are all valid. */
 @RunWith(Parameterized.class)
 public class AutomatonFilesTest {
 
   @Parameters(name = "{0}")
   public static Object[] getAutomata() throws IOException {
-    try (Stream<Path> configFiles = Files.walk(Paths.get("config/specification"))) {
+    try (Stream<Path> configFiles = Files.walk(Path.of("config/specification"))) {
       return configFiles
           .filter(path -> path.getFileName().toString().endsWith(".spc"))
           .sorted()

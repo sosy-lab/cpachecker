@@ -20,15 +20,12 @@ public class StructureIdentifier extends SingleIdentifier {
 
   public StructureIdentifier(String pNm, CType pTp, int dereference, AbstractIdentifier own) {
     super(pNm, pTp, dereference);
-    this.owner = own;
+    owner = own;
   }
 
   @Override
   public String toString() {
-    String info = Identifiers.getCharsOf(dereference);
-    info += "((" + owner + ").";
-    info += name + ")";
-    return info;
+    return Identifiers.getCharsOf(dereference) + "((" + owner + ")." + name + ")";
   }
 
   @Override

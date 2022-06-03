@@ -8,7 +8,6 @@
 
 package org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing;
 
-import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Predicates.in;
 import static com.google.common.base.Predicates.not;
 import static com.google.common.collect.FluentIterable.from;
@@ -52,18 +51,13 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMapMerger.MergeResult;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.Constraints;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSetBuilder.RealPointerTargetSetBuilder;
-import org.sosy_lab.cpachecker.util.predicates.smt.ArrayFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
-import org.sosy_lab.cpachecker.util.predicates.smt.FunctionFormulaManagerView;
-import org.sosy_lab.java_smt.api.ArrayFormula;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.Formula;
 import org.sosy_lab.java_smt.api.FormulaType;
 
-/**
- * A manager for pointer target sets.
- */
+/** A manager for pointer target sets. */
 class PointerTargetSetManager {
 
   private static final String UNITED_BASE_UNION_TAG_PREFIX = "__VERIFIER_base_union_of_";
@@ -87,8 +81,8 @@ class PointerTargetSetManager {
 
   /**
    * Returns whether a {@code CType} is a fake base type or not.
-   * <p/>
-   * A fake base type is an array of void.
+   *
+   * <p>A fake base type is an array of void.
    *
    * @param type The type to be checked.
    * @return Whether the type is a fake base type or not.
@@ -114,11 +108,9 @@ class PointerTargetSetManager {
   private final FormulaEncodingWithPointerAliasingOptions options;
   private final FormulaManagerView formulaManager;
   private final BooleanFormulaManagerView bfmgr;
-  private final @Nullable ArrayFormulaManagerView afmgr;
-  private final FunctionFormulaManagerView ffmgr;
   private final TypeHandlerWithPointerAliasing typeHandler;
   private final MemoryRegionManager regionMgr;
-
+  private final SMTHeap heap;
   /**
    * Creates a new PointerTargetSetManager.
    *
@@ -138,16 +130,26 @@ class PointerTargetSetManager {
     options = pOptions;
     formulaManager = pFormulaManager;
     bfmgr = formulaManager.getBooleanFormulaManager();
-    afmgr = options.useArraysForHeap() ? formulaManager.getArrayFormulaManager() : null;
-    ffmgr = formulaManager.getFunctionFormulaManager();
     typeHandler = pTypeHandler;
     shutdownNotifier = pShutdownNotifier;
     regionMgr = pRegionMgr;
+
+    if (pOptions.useByteArrayForHeap()) {
+      heap =
+          new SMTHeapWithByteArray(
+              pFormulaManager, pTypeHandler.getPointerType(), pConv.machineModel);
+    } else if (pOptions.useArraysForHeap()) {
+      heap = new SMTHeapWithArrays(pFormulaManager, pTypeHandler.getPointerType());
+    } else {
+      heap = new SMTHeapWithUninterpretedFunctionCalls(pFormulaManager);
+    }
   }
 
   /**
    * Make a formula that represents a pointer access.
-   * @param targetName The name of the pointer access symbol as returned by {@link MemoryRegionManager#getPointerAccessName(MemoryRegion)}
+   *
+   * @param targetName The name of the pointer access symbol as returned by {@link
+   *     MemoryRegionManager#getPointerAccessName(MemoryRegion)}
    * @param targetType The formula type of the value
    * @param ssaIndex The SSA index for targetName
    * @param address The address to access
@@ -158,47 +160,35 @@ class PointerTargetSetManager {
       final FormulaType<V> targetType,
       final int ssaIndex,
       final I address) {
-    final FormulaType<I> addressType = formulaManager.getFormulaType(address);
-    checkArgument(typeHandler.getPointerType().equals(addressType));
-    if (options.useArraysForHeap()) {
-      final ArrayFormula<I, V> arrayFormula =
-          afmgr.makeArray(targetName, ssaIndex, addressType, targetType);
-      return afmgr.select(arrayFormula, address);
-    } else {
-      return ffmgr.declareAndCallUninterpretedFunction(targetName, ssaIndex, targetType, address);
-    }
+    return heap.makePointerDereference(targetName, targetType, ssaIndex, address);
   }
 
   /**
    * Make a formula that represents a pointer access.
-   * @param targetName The name of the pointer access symbol as returned by {@link MemoryRegionManager#getPointerAccessName(MemoryRegion)}
+   *
+   * @param targetName The name of the pointer access symbol as returned by {@link
+   *     MemoryRegionManager#getPointerAccessName(MemoryRegion)}
    * @param targetType The formula type of the value
    * @param address The address to access
    * @return A formula representing {@code targetName[address]}
    */
   <I extends Formula, E extends Formula> E makePointerDereference(
-      final String targetName,
-      final FormulaType<E> targetType,
-      final I address) {
-    final FormulaType<I> addressType = formulaManager.getFormulaType(address);
-    checkArgument(typeHandler.getPointerType().equals(addressType));
-    if (options.useArraysForHeap()) {
-      final ArrayFormula<I, E> arrayFormula = afmgr.makeArray(targetName, addressType, targetType);
-      return afmgr.select(arrayFormula, address);
-    } else {
-      return ffmgr.declareAndCallUF(targetName, targetType, address);
-    }
+      final String targetName, final FormulaType<E> targetType, final I address) {
+    return heap.makePointerDereference(targetName, targetType, address);
   }
 
   /**
    * Create a formula that represents an assignment to a value via a pointer.
-   * @param targetName The name of the pointer access symbol as returned by {@link MemoryRegionManager#getPointerAccessName(MemoryRegion)}
+   *
+   * @param targetName The name of the pointer access symbol as returned by {@link
+   *     MemoryRegionManager#getPointerAccessName(MemoryRegion)}
    * @param pTargetType The formula type of the value
    * @param oldIndex The old SSA index for targetName
    * @param newIndex The new SSA index for targetName
    * @param address The address where the value should be written
    * @param value The value to write
-   * @return A formula representing an assignment of the form {@code targetName@newIndex[address] = value}
+   * @return A formula representing an assignment of the form {@code targetName@newIndex[address] =
+   *     value}
    */
   <I extends Formula, E extends Formula> BooleanFormula makePointerAssignment(
       final String targetName,
@@ -207,29 +197,7 @@ class PointerTargetSetManager {
       final int newIndex,
       final I address,
       final E value) {
-    FormulaType<E> targetType = formulaManager.getFormulaType(value);
-    checkArgument(pTargetType.equals(targetType));
-    FormulaType<I> addressType = formulaManager.getFormulaType(address);
-    checkArgument(typeHandler.getPointerType().equals(addressType));
-    if (options.useArraysForHeap()) {
-      final ArrayFormula<I, E> oldFormula =
-          afmgr.makeArray(
-              targetName,
-              oldIndex,
-              addressType,
-              targetType);
-      final ArrayFormula<I, E> arrayFormula =
-          afmgr.makeArray(
-              targetName,
-              newIndex,
-              addressType,
-              targetType);
-      return formulaManager.makeEqual(arrayFormula, afmgr.store(oldFormula, address, value));
-    } else {
-      final Formula lhs =
-          ffmgr.declareAndCallUninterpretedFunction(targetName, newIndex, targetType, address);
-      return formulaManager.assignment(lhs, value);
-    }
+    return heap.makePointerAssignment(targetName, pTargetType, oldIndex, newIndex, address, value);
   }
 
   /**
@@ -279,13 +247,13 @@ class PointerTargetSetManager {
               public void differingValues(String pKey, CType pLeftValue, CType pRightValue) {
                 if (isFakeBaseType(pLeftValue) && !(pRightValue instanceof CElaboratedType)) {
                   basesOnlyPts2.put(pKey, pRightValue);
-                } else if (isFakeBaseType(pRightValue) && !(pLeftValue instanceof CElaboratedType)) {
+                } else if (isFakeBaseType(pRightValue)
+                    && !(pLeftValue instanceof CElaboratedType)) {
                   basesOnlyPts1.put(pKey, pLeftValue);
                 }
               }
             });
     shutdownNotifier.shutdownIfNecessary();
-
 
     final CopyOnWriteSortedMap<CompositeField, Boolean> fieldsOnlyPts1 =
         CopyOnWriteSortedMap.copyOf(PathCopyingPersistentTreeMap.<CompositeField, Boolean>of());
@@ -355,7 +323,8 @@ class PointerTargetSetManager {
 
     if (!sharedFields.isEmpty()) {
       final PointerTargetSetBuilder resultPTSBuilder =
-          new RealPointerTargetSetBuilder(resultPTS, formulaManager, typeHandler, this, options, regionMgr);
+          new RealPointerTargetSetBuilder(
+              resultPTS, formulaManager, typeHandler, this, options, regionMgr);
       for (final CompositeField sharedField : sharedFields) {
         resultPTSBuilder.addField(sharedField);
       }
@@ -365,9 +334,7 @@ class PointerTargetSetManager {
     return new MergeResult<>(resultPTS, mergeFormula1, mergeFormula2, bfmgr.makeTrue());
   }
 
-  /**
-   * A handler for merge conflicts that appear when merging bases.
-   */
+  /** A handler for merge conflicts that appear when merging bases. */
   private enum BaseUnitingConflictHandler implements MergeConflictHandler<String, CType> {
     INSTANCE;
 
@@ -376,7 +343,7 @@ class PointerTargetSetManager {
      *
      * <p>We build up a new union-type containing all given types, except for fake-types.
      *
-     * @param key   Not used in the algorithm.
+     * @param key Not used in the algorithm.
      * @param type1 The first type to merge.
      * @param type2 The second type to merge.
      * @return A conflict resolving C type.
@@ -503,15 +470,19 @@ class PointerTargetSetManager {
   }
 
   /**
-   * Recursively adds pointer targets for every used (tracked) (sub)field of the newly allocated base.
+   * Recursively adds pointer targets for every used (tracked) (sub)field of the newly allocated
+   * base.
    *
-   * Note: the recursion doesn't proceed on unused (untracked) (sub)fields.
+   * <p>Note: the recursion doesn't proceed on unused (untracked) (sub)fields.
    *
    * @param base the name of the newly allocated base variable
    * @param cType type of the allocated base or the next added pointer target
-   * @param containerType either {@code null} or the type of the innermost container of the next added pointer target
-   * @param properOffset either {@code 0} or the offset of the next added pointer target in its innermost container
-   * @param containerOffset either {@code 0} or the offset of the innermost container (relative to the base adddress)
+   * @param containerType either {@code null} or the type of the innermost container of the next
+   *     added pointer target
+   * @param properOffset either {@code 0} or the offset of the next added pointer target in its
+   *     innermost container
+   * @param containerOffset either {@code 0} or the offset of the innermost container (relative to
+   *     the base adddress)
    * @param targets The list of targets where the new targets should be added to.
    * @param fields The set of "shared" fields that are accessed directly via pointers.
    * @return The targets map together with all the added targets.
@@ -533,19 +504,30 @@ class PointerTargetSetManager {
      * struct A *var;
      * var = kmalloc(16);
      */
-    //assert !(cType instanceof CElaboratedType) : "Unresolved elaborated type " + cType  + " for base " + base;
+    // assert !(cType instanceof CElaboratedType) : "Unresolved elaborated type " + cType  + " for
+    // base " + base;
     if (cType instanceof CArrayType) {
       final CArrayType arrayType = (CArrayType) cType;
       final int length = CTypeUtils.getArrayLength(arrayType, options);
       int offset = 0;
       for (int i = 0; i < length; ++i) {
-        //TODO: create region with arrayType.getType()
-        targets = addToTargets(base, null, arrayType.getType(), arrayType, offset, containerOffset + properOffset, targets, fields);
+        // TODO: create region with arrayType.getType()
+        targets =
+            addToTargets(
+                base,
+                null,
+                arrayType.getType(),
+                arrayType,
+                offset,
+                containerOffset + properOffset,
+                targets,
+                fields);
         offset += typeHandler.getSizeof(arrayType.getType());
       }
     } else if (cType instanceof CCompositeType) {
       final CCompositeType compositeType = (CCompositeType) cType;
-      assert compositeType.getKind() != ComplexTypeKind.ENUM : "Enums are not composite: " + compositeType;
+      assert compositeType.getKind() != ComplexTypeKind.ENUM
+          : "Enums are not composite: " + compositeType;
       for (final CCompositeTypeMemberDeclaration memberDeclaration : compositeType.getMembers()) {
         final OptionalLong offset = typeHandler.getOffset(compositeType, memberDeclaration);
         if (!offset.isPresent()) {
@@ -567,7 +549,7 @@ class PointerTargetSetManager {
       }
     } else {
       MemoryRegion newRegion = region;
-      if(newRegion == null) {
+      if (newRegion == null) {
         newRegion = regionMgr.makeMemoryRegion(cType);
       }
       String regionName = regionMgr.getPointerAccessName(newRegion);
@@ -584,8 +566,7 @@ class PointerTargetSetManager {
   }
 
   /**
-   * Compute all targets for a given set of bases and fields,
-   * and add them to a map.
+   * Compute all targets for a given set of bases and fields, and add them to a map.
    *
    * @param targets A map of existing targets
    * @param bases A set of bases

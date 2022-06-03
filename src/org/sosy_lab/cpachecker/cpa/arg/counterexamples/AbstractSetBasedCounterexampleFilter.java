@@ -20,20 +20,17 @@ import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 
 /**
- * Abstract base implementation of {@link CounterexampleFilter}.
- * This implementation stores a representation of each previously found counterexample
- * in a set, and reports counterexamples as relevant if their representation
- * was not already contained in that set.
+ * Abstract base implementation of {@link CounterexampleFilter}. This implementation stores a
+ * representation of each previously found counterexample in a set, and reports counterexamples as
+ * relevant if their representation was not already contained in that set.
  *
- * The representation of each counterexample is left to be determined
- * by the sub-classes. The general guidelines of {@link CounterexampleFilter}
- * apply: the representation should be immutable, should not retain too much memory,
- * and thus should not contain ARGStates.
+ * <p>The representation of each counterexample is left to be determined by the sub-classes. The
+ * general guidelines of {@link CounterexampleFilter} apply: the representation should be immutable,
+ * should not retain too much memory, and thus should not contain ARGStates.
  *
- * Formally speaking, this class defines counterexamples as irrelevant
- * if their representation (as given by {@link #getCounterexampleRepresentation(CounterexampleInfo)}
- * is equal (as defined by {@link Object#equals(Object)}) to a previously
- * found counterexamples.
+ * <p>Formally speaking, this class defines counterexamples as irrelevant if their representation
+ * (as given by {@link #getCounterexampleRepresentation(CounterexampleInfo)} is equal (as defined by
+ * {@link Object#equals(Object)}) to a previously found counterexamples.
  *
  * @param <T> The type of the representation of counterexamples.
  */
@@ -64,18 +61,17 @@ public abstract class AbstractSetBasedCounterexampleFilter<T> implements Counter
   }
 
   /**
-   * This method needs to produce an immutable representation of each counterexample.
-   * The more abstract it is, the more "similar" counterexamples are reported
-   * as irrelevant.
-   * If this filter does not manage to produce a meaningful representation of the current path,
-   * it may return {@link Optional#empty()}. In this case, the counterexample
-   * is considered relevant.
+   * This method needs to produce an immutable representation of each counterexample. The more
+   * abstract it is, the more "similar" counterexamples are reported as irrelevant. If this filter
+   * does not manage to produce a meaningful representation of the current path, it may return
+   * {@link Optional#empty()}. In this case, the counterexample is considered relevant.
    *
    * @param counterexample A counterexample, guaranteed to be not null.
-   * @return An immutable representation of the counterexample, needs to
-   * have proper implementations of {@link Object#equals(Object)}
-   * and {@link Object#hashCode()}, or {@link Optional#empty()}.
+   * @return An immutable representation of the counterexample, needs to have proper implementations
+   *     of {@link Object#equals(Object)} and {@link Object#hashCode()}, or {@link
+   *     Optional#empty()}.
    */
   @ForOverride
-  protected abstract Optional<T> getCounterexampleRepresentation(CounterexampleInfo counterexample) throws InterruptedException;
+  protected abstract Optional<T> getCounterexampleRepresentation(CounterexampleInfo counterexample)
+      throws InterruptedException;
 }

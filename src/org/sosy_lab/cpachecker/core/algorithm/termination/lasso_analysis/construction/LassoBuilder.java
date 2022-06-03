@@ -72,18 +72,16 @@ import org.sosy_lab.java_smt.utils.SolverUtils;
 import org.sosy_lab.java_smt.utils.UfElimination;
 import org.sosy_lab.java_smt.utils.UfElimination.Result;
 
-/**
- * Creates {@link Lasso}s from {@link CounterexampleInfo}.
- */
+/** Creates {@link Lasso}s from {@link CounterexampleInfo}. */
 @Options(prefix = "termination.lassoBuilder")
 public class LassoBuilder {
 
   protected static final ImmutableSet<String> META_VARIABLES_PREFIX =
       ImmutableSet.of("__VERIFIER_nondet_", "__ADDRESS_OF_");
 
-  final static String TERMINATION_AUX_VARS_PREFIX = "__TERMINATION-";
+  static final String TERMINATION_AUX_VARS_PREFIX = "__TERMINATION-";
 
-  final static String TERMINATION_REPLACE_VARS_PREFIX = "__TERMINATION_REPLACE-";
+  static final String TERMINATION_REPLACE_VARS_PREFIX = "__TERMINATION_REPLACE-";
 
   @Option(secure = true, description = "Simplifies loop and stem formulas.")
   private boolean simplify = false;
@@ -167,7 +165,7 @@ public class LassoBuilder {
         Maps.uniqueIndex(pRelevantVariables, AVariableDeclaration::getQualifiedName);
     try {
       stats.lassosCreationStarted();
-    return createLassos(stemAndLoop, relevantVariables);
+      return createLassos(stemAndLoop, relevantVariables);
     } finally {
       stats.lassosCreationFinished();
     }
@@ -219,16 +217,15 @@ public class LassoBuilder {
   public StemAndLoop createStemAndLoop(List<CFAEdge> stemEdges, List<CFAEdge> loopEdges)
       throws CPATransferException, InterruptedException {
     PathFormula stemPathFormula = pathFormulaManager.makeFormulaForPath(stemEdges);
-    PathFormula loopPathFormula = pathFormulaManager.makeEmptyPathFormula(stemPathFormula);
+    PathFormula loopPathFormula =
+        pathFormulaManager.makeEmptyPathFormulaWithContextFrom(stemPathFormula);
     SSAMapBuilder loopInVars = stemPathFormula.getSsa().builder();
     for (CFAEdge edge : loopEdges) {
       loopPathFormula = pathFormulaManager.makeAnd(loopPathFormula, edge);
 
       // update SSA index of input variables
       SSAMap currentSsa = loopPathFormula.getSsa();
-      currentSsa
-          .allVariables()
-          .stream()
+      currentSsa.allVariables().stream()
           .filter(v -> !loopInVars.allVariables().contains(v))
           .forEach(v -> loopInVars.setIndex(v, currentSsa.getType(v), currentSsa.getIndex(v)));
     }
@@ -393,14 +390,14 @@ public class LassoBuilder {
           term instanceof ApplicationTerm,
           "Variable 'term' is expected to be an instance of ApplicationTerm");
 
+      TermVariable termVar =
+          env.variable(((ApplicationTerm) term).getFunction().getName(), term.getSort());
+
       Formula uninstantiatedVariable = fmgrView.uninstantiate(variable);
       Set<String> variableNames = fmgrView.extractVariableNames(uninstantiatedVariable);
       String variableName = Iterables.getOnlyElement(variableNames);
 
       if (pRelevantVariables.get(variableName) != null) {
-
-        TermVariable termVar =
-            env.variable(((ApplicationTerm) term).getFunction().getName(), term.getSort());
 
         rankVars.put(
             new RankVar(
@@ -420,10 +417,6 @@ public class LassoBuilder {
         Formula uninstantiatedOriginalFormula = fmgrView.uninstantiate(originalFormula);
         Term originalTerm = fmgr.extractInfo(uninstantiatedOriginalFormula);
 
-        TermVariable termVar =
-            env.variable(
-                ((ApplicationTerm) originalTerm).getFunction().getName(), originalTerm.getSort());
-
         rankVars.put(new RankVar(originalTerm.toString(), true, originalTerm), termVar);
 
       } else if (!isMetaVariable(variableName)
@@ -431,7 +424,7 @@ public class LassoBuilder {
         logger.logf(FINE, "Ignoring variable %s during construction of lasso.", variableName);
       }
     }
-    return rankVars.build();
+    return rankVars.buildOrThrow();
   }
 
   private static class InOutVariables {

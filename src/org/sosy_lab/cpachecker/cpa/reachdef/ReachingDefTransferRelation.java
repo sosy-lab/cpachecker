@@ -21,11 +21,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.logging.Level;
-import java.util.stream.Collectors;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.ShutdownNotifier;
+import org.sosy_lab.common.collect.Collections3;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -113,7 +114,8 @@ public class ReachingDefTransferRelation implements TransferRelation {
   }
 
   @Override
-  public Collection<? extends AbstractState> getAbstractSuccessors(AbstractState pState, Precision pPrecision)
+  public Collection<? extends AbstractState> getAbstractSuccessors(
+      AbstractState pState, Precision pPrecision)
       throws CPATransferException, InterruptedException {
     List<CFANode> nodes = ReachingDefUtils.getAllNodesFromCFA();
     if (nodes == null) {
@@ -126,7 +128,8 @@ public class ReachingDefTransferRelation implements TransferRelation {
         shutdownNotifier.shutdownIfNecessary();
 
         if (!(cfaedge.getEdgeType() == CFAEdgeType.FunctionReturnEdge)) {
-          if (cfaedge.getEdgeType() == CFAEdgeType.StatementEdge || cfaedge.getEdgeType() == CFAEdgeType.DeclarationEdge) {
+          if (cfaedge.getEdgeType() == CFAEdgeType.StatementEdge
+              || cfaedge.getEdgeType() == CFAEdgeType.DeclarationEdge) {
             definitions.add(cfaedge);
           } else {
             successors.addAll(getAbstractSuccessors0(pState, cfaedge));
@@ -134,7 +137,7 @@ public class ReachingDefTransferRelation implements TransferRelation {
         }
       }
     }
-    for (CFAEdge edge: definitions) {
+    for (CFAEdge edge : definitions) {
       successors.addAll(getAbstractSuccessors0(pState, edge));
     }
     return successors;
@@ -148,18 +151,25 @@ public class ReachingDefTransferRelation implements TransferRelation {
     return getAbstractSuccessors0(pState, pCfaEdge);
   }
 
-  private Collection<? extends AbstractState> getAbstractSuccessors0(AbstractState pState, CFAEdge pCfaEdge) throws CPATransferException {
+  private Collection<? extends AbstractState> getAbstractSuccessors0(
+      AbstractState pState, CFAEdge pCfaEdge) throws CPATransferException {
 
     logger.log(Level.FINE, "Compute successor for ", pState, "along edge", pCfaEdge);
 
-    if (localVariablesPerFunction == null) { throw new CPATransferException(
-        "Incorrect initialization of reaching definition transfer relation."); }
+    if (localVariablesPerFunction == null) {
+      throw new CPATransferException(
+          "Incorrect initialization of reaching definition transfer relation.");
+    }
 
-    if (!(pState instanceof ReachingDefState)) { throw new CPATransferException(
-        "Unexpected type of abstract state. The transfer relation is not defined for this type"); }
+    if (!(pState instanceof ReachingDefState)) {
+      throw new CPATransferException(
+          "Unexpected type of abstract state. The transfer relation is not defined for this type");
+    }
 
-    if (pCfaEdge == null) { throw new CPATransferException(
-        "Expected an edge along which the successors should be computed"); }
+    if (pCfaEdge == null) {
+      throw new CPATransferException(
+          "Expected an edge along which the successors should be computed");
+    }
 
     if (pState == ReachingDefState.topElement) {
       return Collections.singleton(pState);
@@ -295,19 +305,16 @@ public class ReachingDefTransferRelation implements TransferRelation {
     return newState;
   }
 
-  private Set<MemoryLocation> getParameters(CFunctionEntryNode pNode) {
-    return pNode
-        .getFunctionParameters()
-        .stream()
-        .map(x -> MemoryLocation.valueOf(x.getQualifiedName()))
-        .collect(Collectors.toSet());
+  private ImmutableSet<MemoryLocation> getParameters(CFunctionEntryNode pNode) {
+    return Collections3.transformedImmutableSetCopy(
+        pNode.getFunctionParameters(), x -> MemoryLocation.forDeclaration(x));
   }
 
   private ReachingDefState handleReturnStatement(
       CReturnStatementEdge pCfaEdge, ReachingDefState pState) {
-    com.google.common.base.Optional<CAssignment> asAssignment = pCfaEdge.asAssignment();
+    Optional<CAssignment> asAssignment = pCfaEdge.asAssignment();
     if (asAssignment.isPresent()) {
-      CAssignment assignment = asAssignment.get();
+      CAssignment assignment = asAssignment.orElseThrow();
       return handleStatement(pState, pCfaEdge, assignment);
     } else {
       return pState;
@@ -322,7 +329,8 @@ public class ReachingDefTransferRelation implements TransferRelation {
     } else if (pStatement instanceof CFunctionCallAssignmentStatement) {
       // handle function call on right hand side to external method
       left = ((CFunctionCallAssignmentStatement) pStatement).getLeftHandSide();
-      logger.logOnce(Level.WARNING,
+      logger.logOnce(
+          Level.WARNING,
           "Analysis may be unsound if external method redefines global variables",
           "or considers extra global variables.");
     } else {
@@ -372,7 +380,7 @@ public class ReachingDefTransferRelation implements TransferRelation {
     if (pOld.getGlobalReachingDefinitions().containsKey(pVarName)) {
       return pOld.addGlobalReachDef(pVarName, pDefStart, pDefEnd);
     } else {
-      assert (pOld.getLocalReachingDefinitions().containsKey(pVarName));
+      assert pOld.getLocalReachingDefinitions().containsKey(pVarName);
       return pOld.addLocalReachDef(pVarName, pDefStart, pDefEnd);
     }
   }
@@ -401,7 +409,7 @@ public class ReachingDefTransferRelation implements TransferRelation {
       CVariableDeclaration dec = (CVariableDeclaration) edge.getDeclaration();
       // If there is no initialization at the declaration,
       // we still keep the declaration as a non-deterministic, first definition.
-      MemoryLocation var = MemoryLocation.valueOf(dec.getQualifiedName());
+      MemoryLocation var = MemoryLocation.forDeclaration(dec);
       if (dec.isGlobal()) {
         return pState.addGlobalReachDef(var, edge.getPredecessor(), edge.getSuccessor());
       } else {
@@ -426,7 +434,9 @@ public class ReachingDefTransferRelation implements TransferRelation {
 
   private ReachingDefState handleReturnEdge(
       ReachingDefState pState, CFunctionReturnEdge pReturnEdge) {
-    logger.log(Level.FINE, "Return from internal function call. ",
+    logger.log(
+        Level.FINE,
+        "Return from internal function call. ",
         "Remove local variables and parameters of function from reaching definition.");
     ReachingDefState newState = pState.pop(pReturnEdge.getPredecessor().getFunctionName());
 

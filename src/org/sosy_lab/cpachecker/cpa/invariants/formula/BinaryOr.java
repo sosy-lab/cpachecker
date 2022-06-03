@@ -33,22 +33,20 @@ final class BinaryOr<ConstantType> extends AbstractBinaryFormula<ConstantType>
 
   @Override
   public <ReturnType, ParamType> ReturnType accept(
-      ParameterizedNumeralFormulaVisitor<ConstantType, ParamType, ReturnType> pVisitor, ParamType pParameter) {
+      ParameterizedNumeralFormulaVisitor<ConstantType, ParamType, ReturnType> pVisitor,
+      ParamType pParameter) {
     return pVisitor.visit(this, pParameter);
   }
 
   /**
-   * Gets an invariants formula representing the binary or operation over the
-   * given operands.
+   * Gets an invariants formula representing the binary or operation over the given operands.
    *
    * @param pOperand1 the first operand.
    * @param pOperand2 the second operand.
-   *
-   * @return an invariants formula representing the binary or operation over the
-   * given operands.
+   * @return an invariants formula representing the binary or operation over the given operands.
    */
-  static <ConstantType> BinaryOr<ConstantType> of(NumeralFormula<ConstantType> pOperand1, NumeralFormula<ConstantType> pOperand2) {
+  static <ConstantType> BinaryOr<ConstantType> of(
+      NumeralFormula<ConstantType> pOperand1, NumeralFormula<ConstantType> pOperand2) {
     return new BinaryOr<>(pOperand1, pOperand2);
   }
-
 }

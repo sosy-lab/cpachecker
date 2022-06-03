@@ -13,7 +13,7 @@ import java.util.HashMap;
 import java.util.Map;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.core.interfaces.Property;
+import org.sosy_lab.cpachecker.core.interfaces.Targetable.TargetInformation;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonExpression.ResultValue;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
@@ -47,16 +47,18 @@ public class AutomatonStateARGCombiningHelper {
     return true;
   }
 
-  public AutomatonState replaceStateByStateInAutomatonOfSameInstance(final AutomatonState toReplace) throws CPAException {
-    String qualifiedName = toReplace.getOwningAutomatonName()+"::" +toReplace.getInternalStateName();
+  public AutomatonState replaceStateByStateInAutomatonOfSameInstance(final AutomatonState toReplace)
+      throws CPAException {
+    String qualifiedName =
+        toReplace.getOwningAutomatonName() + "::" + toReplace.getInternalStateName();
 
     if (qualifiedAutomatonStateNameToInternalState.containsKey(qualifiedName)) {
-      AutomatonSafetyProperty violatedProp = null;
+      AutomatonTargetInformation targetInformation = null;
 
-      if (toReplace.isTarget() && !toReplace.getViolatedProperties().isEmpty()) {
-        Property prop = toReplace.getViolatedProperties().iterator().next();
-        assert prop instanceof AutomatonSafetyProperty;
-        violatedProp = (AutomatonSafetyProperty) prop;
+      if (toReplace.isTarget() && !toReplace.getTargetInformation().isEmpty()) {
+        TargetInformation info = toReplace.getTargetInformation().iterator().next();
+        assert info instanceof AutomatonTargetInformation;
+        targetInformation = (AutomatonTargetInformation) info;
       }
 
       return AutomatonState.automatonStateFactory(
@@ -67,7 +69,7 @@ public class AutomatonStateARGCombiningHelper {
           toReplace.getCandidateInvariants(),
           toReplace.getMatches(),
           toReplace.getFailedMatches(),
-          violatedProp,
+          targetInformation,
           toReplace.isTreatingErrorsAsTarget());
     }
 

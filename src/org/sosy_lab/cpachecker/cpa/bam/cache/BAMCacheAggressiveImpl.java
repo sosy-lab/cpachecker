@@ -69,12 +69,12 @@ public class BAMCacheAggressiveImpl extends BAMCacheImpl {
     BAMCacheEntry result = null;
 
     for (AbstractStateHash cacheKey : preciseReachedCache.keySet()) {
-      //searchKey != cacheKey, check whether it is the same if we ignore the precision
+      // searchKey != cacheKey, check whether it is the same if we ignore the precision
       AbstractStateHash ignorePrecisionSearchKey =
           getHashCode(pStateKey, cacheKey.precisionKey, pContext);
       if (ignorePrecisionSearchKey.equals(cacheKey)) {
         int distance = reducer.measurePrecisionDifference(pPrecisionKey, cacheKey.precisionKey);
-        if (distance < min) { //prefer similar precisions
+        if (distance < min) { // prefer similar precisions
           min = distance;
           result = preciseReachedCache.get(ignorePrecisionSearchKey);
         }

@@ -105,13 +105,16 @@ SPDX-License-Identifier: Apache-2.0
     <option name="-predicateAnalysis-bam"/>
     <includesfile>../programs/simple/simple.set</includesfile>
     <propertyfile>../config/properties/unreach-label.prp</propertyfile>
-    <exclude>../programs/benchmarks/forester-heap/*</exclude>
   </tasks>
   <tasks>
     <option name="-predicateAnalysis-bam"/>
     <includesfile>../programs/simple/simple.set</includesfile>
     <propertyfile>../config/properties/unreach-call.prp</propertyfile>
-    <exclude>../programs/benchmarks/forester-heap/*</exclude>
+  </tasks>
+  <tasks>
+    <option name="-predicateAnalysis-bam"/>
+    <includesfile>../programs/simple/simple.set</includesfile>
+    <propertyfile>../config/Assertion.spc</propertyfile>
   </tasks>
   <tasks>
     <option name="-predicateAnalysis-bam"/>
@@ -124,12 +127,14 @@ SPDX-License-Identifier: Apache-2.0
     <exclude reason="partial set only">../programs/benchmarks/ntdrivers-simplified/*</exclude>
     <exclude reason="partial set only">../programs/benchmarks/openssl-simplified/*</exclude>
     <exclude reason="partial set only">../programs/benchmarks/locks/*</exclude>
+    <propertyfile>../config/properties/unreach-call.prp</propertyfile>
   </tasks>
   <tasks>
     <option name="-predicateAnalysis-bam"/>
     <includesfile>../programs/benchmarks/ReachSafety-Heap.set</includesfile>
     <!-- exclude tasks from Forester set -->
     <exclude>../programs/benchmarks/forester-heap/*</exclude>
+    <propertyfile>../config/properties/unreach-call.prp</propertyfile>
   </tasks>
   <tasks>
     <option name="-predicateAnalysis-bam"/>
@@ -140,6 +145,9 @@ SPDX-License-Identifier: Apache-2.0
     <exclude>../programs/benchmarks/loop-lit/*</exclude> <!-- mostly timeout -->
     <exclude>../programs/benchmarks/loop-new/*</exclude> <!-- mostly timeout -->
     <exclude>../programs/benchmarks/loop-acceleration/*</exclude> <!-- mostly timeout -->
+    <exclude>../programs/benchmarks/nla-digbench-scaling/divbin2_valuebound10*</exclude> <!-- flapping timeout -->
+    <exclude>../programs/benchmarks/nla-digbench-scaling/knuth_valuebound100*</exclude> <!-- flapping timeout -->
+    <propertyfile>../config/properties/unreach-call.prp</propertyfile>
   </tasks>
   <tasks>
     <option name="-predicateAnalysis-bam"/>
@@ -148,12 +156,16 @@ SPDX-License-Identifier: Apache-2.0
     <exclude>../programs/benchmarks/seq-mthreaded-reduced/*lcr-var*</exclude> <!-- mostly timeout -->
     <exclude>../programs/benchmarks/seq-mthreaded-reduced//pals_floodmax.4.4.ufo.UNBOUNDED.pals.c.v+cfa-reducer.yml</exclude> <!-- flapping timeout -->
     <exclude>../programs/benchmarks/seq-mthreaded-reduced/pals_floodmax.5.2.ufo.UNBOUNDED.pals.c.v+nlh-reducer.yml</exclude> <!-- flapping timeout -->
+    <exclude>../programs/benchmarks/seq-mthreaded-reduced/pals_floodmax.5.2.ufo.UNBOUNDED.pals.c.v+cfa-reducer.yml</exclude> <!-- flapping timeout -->
     <exclude>../programs/benchmarks/seq-mthreaded-reduced/pals_opt-floodmax.3.4.ufo.BOUNDED-6.pals.c.v+cfa-reducer.yml</exclude> <!-- flapping timeout -->
     <exclude>../programs/benchmarks/seq-mthreaded-reduced/pals_opt-floodmax.4.1.ufo.UNBOUNDED.pals.c.v+lhb-reducer.yml</exclude> <!-- flapping timeout -->
     <exclude>../programs/benchmarks/seq-mthreaded-reduced/pals_opt-floodmax.4.3.ufo.BOUNDED-8.pals.c.v+cfa-reducer.yml</exclude> <!-- flapping timeout -->
+    <exclude>../programs/benchmarks/seq-mthreaded-reduced/pals_lcr.3.1.ufo.BOUNDED-6.pals.c.v+cfa-reducer.yml</exclude> <!-- flapping timeout -->
+    <exclude>../programs/benchmarks/seq-mthreaded-reduced/pals_lcr.3.1.ufo.UNBOUNDED.pals.c.v+sep-reducer.yml</exclude> <!-- flapping timeout -->
     <exclude>../programs/benchmarks/seq-pthread/*</exclude>
     <exclude>../programs/benchmarks/systemc/token_ring.*</exclude>
     <exclude>../programs/benchmarks/systemc/transmitter.1*</exclude>
+    <propertyfile>../config/properties/unreach-call.prp</propertyfile>
   </tasks>
   <tasks>
     <option name="-predicateAnalysis-bam"/>
@@ -170,6 +182,7 @@ SPDX-License-Identifier: Apache-2.0
     <exclude>../programs/benchmarks/ldv-linux-3.4-simple/43_1a_cilled_ok_nondet_linux-43_1a-drivers--usb--*</exclude>
     <exclude>../programs/benchmarks/ldv-linux-3.4-simple/43_1a_cilled_ok_nondet_linux-43_1a-drivers--net--wireless--mwifiex--mwifiex_pcie.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.yml</exclude> <!-- flapping timeout -->
     <exclude>../programs/benchmarks/ldv-linux-3.4-simple/43_1a_cilled_ok_nondet_linux-43_1a-drivers--power--max8903_charger.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.yml</exclude> <!-- flapping timeout/OOM -->
+    <exclude>../programs/benchmarks/ldv-linux-3.4-simple/43_1a_cilled_ok_linux-43_1a-drivers--usb--gadget--mv_udc.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.yml</exclude> <!-- flapping timeout/OOM -->
   </tasks>
 
 </benchmark>

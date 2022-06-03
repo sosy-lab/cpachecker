@@ -9,20 +9,18 @@
 package org.sosy_lab.cpachecker.core.algorithm.termination.lasso_analysis;
 
 import static com.google.common.base.Preconditions.checkNotNull;
-import static org.sosy_lab.common.collect.Collections3.transformedImmutableListCopy;
 import static org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator.BINARY_OR;
 import static org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator.EQUALS;
 import static org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression.ONE;
 import static org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression.ZERO;
 
 import com.google.common.collect.ImmutableSet;
+import com.google.errorprone.annotations.CheckReturnValue;
 import java.util.Collection;
 import java.util.Optional;
 import java.util.Set;
-import com.google.errorprone.annotations.CheckReturnValue;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
-import org.sosy_lab.cpachecker.core.interfaces.FormulaReportingState;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 
@@ -69,8 +67,7 @@ public class RankingRelation {
 
   public CExpression asCExpression() {
     assert !rankingRelationFormulas.isEmpty();
-    return rankingRelations
-        .stream()
+    return rankingRelations.stream()
         .reduce((a, b) -> binaryExpressionBuilder.buildBinaryExpressionUnchecked(a, b, BINARY_OR))
         .orElseGet(() -> binaryExpressionBuilder.buildBinaryExpressionUnchecked(ZERO, ONE, EQUALS));
   }
@@ -84,13 +81,17 @@ public class RankingRelation {
     return pFormulaManagerView.translateFrom(asFormula(), formulaManagerView);
   }
 
-  public Collection<FormulaReportingState> getSupportingInvariants() {
-    return transformedImmutableListCopy(
-        supportingInvariants, i -> new TerminationInvariantSupplierState(formulaManagerView, i));
+  public ImmutableSet<BooleanFormula> getSupportingInvariants() {
+    return supportingInvariants;
+  }
+
+  public FormulaManagerView getFormulaManager() {
+    return formulaManagerView;
   }
 
   /**
    * Create a new {@link RankingRelation} that is the disjunction of this and <code>other</code>
+   *
    * @param other the {@link RankingRelation} to merge with
    * @return a new {@link RankingRelation}
    */
@@ -118,6 +119,7 @@ public class RankingRelation {
 
   /**
    * Creates a new {@link RankingRelation} that contains the given supporting invariants.
+   *
    * @param pSupportingInvariants the invariants to add to the created {@link RankingRelation}
    * @return a new {@link RankingRelation}
    */
@@ -147,37 +149,16 @@ public class RankingRelation {
     }
 
     RankingRelation that = (RankingRelation) pObj;
-    return this.rankingRelationFormulas.equals(that.rankingRelationFormulas);
+    return rankingRelationFormulas.equals(that.rankingRelationFormulas);
   }
 
   @Override
   public int hashCode() {
-    return this.rankingRelationFormulas.hashCode();
+    return rankingRelationFormulas.hashCode();
   }
 
   @Override
   public String toString() {
     return asFormula().toString();
-  }
-
-  private static class TerminationInvariantSupplierState implements FormulaReportingState {
-
-    private final FormulaManagerView fmgr;
-    private final BooleanFormula invariant;
-
-    public TerminationInvariantSupplierState(FormulaManagerView pFmgr, BooleanFormula pInvariant) {
-      fmgr = checkNotNull(pFmgr);
-      invariant = checkNotNull(pInvariant);
-    }
-
-    @Override
-    public BooleanFormula getFormulaApproximation(FormulaManagerView pManager) {
-      return pManager.translateFrom(invariant, fmgr);
-    }
-
-    @Override
-    public String toString() {
-      return TerminationInvariantSupplierState.class.getSimpleName() + "[" + invariant + "]";
-    }
   }
 }

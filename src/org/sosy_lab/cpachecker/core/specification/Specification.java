@@ -8,109 +8,125 @@
 
 package org.sosy_lab.cpachecker.core.specification;
 
+import static com.google.common.base.Preconditions.checkNotNull;
 import static java.util.stream.Collectors.joining;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
+import com.google.common.io.MoreFiles;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.logging.Level;
+import org.sosy_lab.common.Classes;
+import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.CFACreator;
+import org.sosy_lab.cpachecker.cfa.CFAWithACSLAnnotations;
 import org.sosy_lab.cpachecker.cfa.CProgramScope;
 import org.sosy_lab.cpachecker.cfa.DummyScope;
 import org.sosy_lab.cpachecker.cfa.parser.Scope;
 import org.sosy_lab.cpachecker.core.CPABuilder;
+import org.sosy_lab.cpachecker.core.specification.Property.CommonVerificationProperty;
+import org.sosy_lab.cpachecker.core.specification.PropertyFileParser.InvalidPropertyFileException;
 import org.sosy_lab.cpachecker.cpa.automaton.Automaton;
+import org.sosy_lab.cpachecker.cpa.automaton.AutomatonACSLParser;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonGraphmlParser;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonParser;
+import org.sosy_lab.cpachecker.exceptions.ParserException;
 import org.sosy_lab.cpachecker.util.ltl.Ltl2BuechiConverter;
+import org.sosy_lab.cpachecker.util.ltl.LtlParseException;
+import org.sosy_lab.cpachecker.util.ltl.LtlParser;
 import org.sosy_lab.cpachecker.util.ltl.formulas.LabelledFormula;
 
 /**
- * Class that encapsulates the specification that should be used for an analysis.
- * Most code of CPAchecker should not need to access this file,
- * because a separate CPA handles the specification,
+ * Class that encapsulates the specification that should be used for an analysis. Most code of
+ * CPAchecker should not need to access this file, because a separate CPA handles the specification,
  * though it can be necessary to pass around Specification objects for sub-analyses.
  */
 public final class Specification {
 
-  private final Set<SpecificationProperty> properties;
+  /**
+   * Maps well-known properties to automaton from <code>config/specification/*.spc</code>. Use
+   * {@link #getAutomatonForProperty(Property)} for lookups.
+   */
+  private static final ImmutableMap<Property, String> AUTOMATA_FOR_PROPERTIES =
+      ImmutableMap.<Property, String>builder()
+          .put(CommonVerificationProperty.REACHABILITY_LABEL, "sv-comp-errorlabel")
+          .put(CommonVerificationProperty.REACHABILITY, "sv-comp-reachability")
+          .put(CommonVerificationProperty.REACHABILITY_ERROR, "sv-comp-reachability")
+          .put(CommonVerificationProperty.VALID_FREE, "sv-comp-memorysafety")
+          .put(CommonVerificationProperty.VALID_DEREF, "sv-comp-memorysafety")
+          .put(CommonVerificationProperty.VALID_MEMTRACK, "sv-comp-memorysafety")
+          .put(CommonVerificationProperty.VALID_MEMCLEANUP, "sv-comp-memorycleanup")
+          .put(CommonVerificationProperty.OVERFLOW, "sv-comp-overflow")
+          .put(CommonVerificationProperty.DEADLOCK, "deadlock")
+          .put(CommonVerificationProperty.ASSERT, "JavaAssertion")
+          // .put(CommonPropertyType.TERMINATION, "none needed")
+          .buildOrThrow();
+
+  private static Path getAutomatonForProperty(Property property) {
+    String name = AUTOMATA_FOR_PROPERTIES.get(property);
+    if (name == null) {
+      return null;
+    }
+
+    return Classes.getCodeLocation(Specification.class)
+        .resolveSibling("config")
+        .resolve("specification")
+        .resolve(name + ".spc");
+  }
+
+  private final ImmutableSet<Path> specificationFiles;
+  private final ImmutableSet<Property> properties;
   private final ImmutableListMultimap<Path, Automaton> pathToSpecificationAutomata;
 
   public static Specification alwaysSatisfied() {
-    return new Specification(ImmutableList.of());
+    return new Specification(ImmutableSet.of(), ImmutableSet.of(), ImmutableListMultimap.of());
   }
 
-  public static Specification fromAutomata(Iterable<Automaton> automata) {
-    return new Specification(automata);
+  /** Create an instance that just encapsulates the given automata. */
+  public static Specification fromAutomata(List<Automaton> automata) {
+    ImmutableListMultimap<Path, Automaton> pathToSpecificationAutomata =
+        ImmutableListMultimap.<Path, Automaton>builder().putAll(Path.of(""), automata).build();
+    return new Specification(ImmutableSet.of(), ImmutableSet.of(), pathToSpecificationAutomata);
   }
 
+  /**
+   * Create an instance from a set of files. All kinds of files are supported: property files,
+   * regular specification files with automata, and witnesses.
+   */
   public static Specification fromFiles(
-      Set<SpecificationProperty> pProperties,
-      Iterable<Path> specFiles,
+      Iterable<Path> pSpecFiles,
       CFA cfa,
       Configuration config,
       LogManager logger,
       ShutdownNotifier pShutdownNotifier)
       throws InvalidConfigurationException, InterruptedException {
-    if (Iterables.isEmpty(specFiles)) {
-      if (pProperties.size() == 1) {
-        SpecificationProperty specProp = Iterables.getOnlyElement(pProperties);
-        if (specProp.getProperty() instanceof LabelledFormula) {
-          try {
-            LabelledFormula formula = ((LabelledFormula) specProp.getProperty()).not();
-            Automaton automaton =
-                Ltl2BuechiConverter.convertFormula(
-                    formula,
-                    specProp.getEntryFunction(),
-                    config,
-                    logger,
-                    cfa.getMachineModel(),
-                    new CProgramScope(cfa, logger),
-                    pShutdownNotifier);
-            return new Specification(
-                pProperties,
-                ImmutableListMultimap.of(Paths.get(""), automaton));
-          } catch (InterruptedException e) {
-            throw new InvalidConfigurationException(
-                String.format(
-                    "Error when executing the external tool '%s': %s",
-                    Ltl2BuechiConverter.getNameOfExecutable(),
-                    e.getMessage()),
-                e);
-          }
-        }
-      }
-      return new Specification(pProperties, ImmutableListMultimap.of());
+    checkNotNull(cfa);
+    checkNotNull(config);
+    checkNotNull(logger);
+    checkNotNull(pShutdownNotifier);
+
+    ImmutableSet<Path> specFiles = ImmutableSet.copyOf(pSpecFiles);
+    if (specFiles.isEmpty()) {
+      return alwaysSatisfied();
     }
 
-    ImmutableListMultimap<Path, Automaton> specificationAutomata =
-        parseSpecificationFiles(specFiles, cfa, config, logger, pShutdownNotifier);
-
-    return new Specification(pProperties, specificationAutomata);
-  }
-
-  private static ImmutableListMultimap<Path, Automaton> parseSpecificationFiles(
-      Iterable<Path> specFiles,
-      CFA cfa,
-      Configuration config,
-      LogManager logger,
-      ShutdownNotifier pShutdownNotifier)
-      throws InvalidConfigurationException, InterruptedException {
-    if (Iterables.isEmpty(specFiles)) {
-      return ImmutableListMultimap.of();
-    }
+    ImmutableSet.Builder<Property> properties = ImmutableSet.builder();
+    ImmutableListMultimap.Builder<Path, Automaton> specificationAutomata =
+        ImmutableListMultimap.builder();
 
     Scope scope;
     switch (cfa.getLanguage()) {
@@ -122,15 +138,62 @@ public final class Specification {
         break;
     }
 
-    ImmutableListMultimap.Builder<Path, Automaton> multiplePropertiesBuilder =
-        ImmutableListMultimap.builder();
+    // for deduplicating values returned by getAutomatonForProperty()
+    Set<Path> handledAutomataForProperties = new HashSet<>();
 
     for (Path specFile : specFiles) {
-      List<Automaton> automata =
-          parseSpecificationFile(specFile, cfa, config, logger, pShutdownNotifier, scope);
-      multiplePropertiesBuilder.putAll(specFile, automata);
+      if (MoreFiles.getFileExtension(specFile).equals("prp")) {
+        PropertyFileParser parser = new PropertyFileParser(specFile);
+        try {
+          parser.parse();
+        } catch (InvalidPropertyFileException | IOException e) {
+          throw new InvalidConfigurationException(
+              String.format("Cannot parse property file %s: %s", specFile, e.getMessage()), e);
+        }
+        @SuppressWarnings("deprecation") // just a sanity check, not real option usage
+        String configuredEntryFunction = config.getProperty("analysis.entryFunction");
+        if (!parser.getEntryFunction().equals(configuredEntryFunction)) {
+          // Will happen only if "specification=foo.prp" is used in config file or if CPAchecker
+          // is used as library instead of from CPAMain.
+          throw new InvalidConfigurationException(
+              String.format(
+                  "Entry function %s specified in %s is not consistent with configured entry"
+                      + " function %s. Please set 'analysis.entryFunction=%s' or pass property file"
+                      + " on command line with '-spec %s'.",
+                  parser.getEntryFunction(),
+                  specFile,
+                  configuredEntryFunction,
+                  parser.getEntryFunction(),
+                  specFile));
+        }
+
+        for (Property prop : parser.getProperties()) {
+          properties.add(prop);
+
+          if (prop instanceof Property.OtherLtlProperty) {
+            Automaton automaton =
+                parseLtlFormula(prop.toString(), cfa, config, logger, pShutdownNotifier, scope);
+            specificationAutomata.put(specFile, automaton);
+
+          } else {
+            Path automatonFile = getAutomatonForProperty(prop);
+
+            if (automatonFile != null && handledAutomataForProperties.add(automatonFile)) {
+              List<Automaton> automata =
+                  parseSpecificationFile(
+                      automatonFile, cfa, config, logger, pShutdownNotifier, scope);
+              specificationAutomata.putAll(specFile, automata);
+            }
+          }
+        }
+      } else {
+        List<Automaton> automata =
+            parseSpecificationFile(specFile, cfa, config, logger, pShutdownNotifier, scope);
+        specificationAutomata.putAll(specFile, automata);
+      }
     }
-    return multiplePropertiesBuilder.build();
+
+    return new Specification(specFiles, properties.build(), specificationAutomata.build());
   }
 
   private static List<Automaton> parseSpecificationFile(
@@ -157,6 +220,24 @@ public final class Specification {
           new AutomatonGraphmlParser(config, logger, pShutdownNotifier, cfa, scope);
       automata = ImmutableList.of(graphmlParser.parseAutomatonFile(specFile));
 
+    } else if (AutomatonACSLParser.isACSLAnnotatedFile(specFile)) {
+      logger.logf(Level.INFO, "Parsing CFA with ACSL annotations from file \"%s\"", specFile);
+      CFACreator cfaCreator =
+          new CFACreator(config, logger, ShutdownManager.create().getNotifier());
+      CFAWithACSLAnnotations annotatedCFA;
+      try {
+        annotatedCFA =
+            (CFAWithACSLAnnotations)
+                cfaCreator.parseFileAndCreateCFA(ImmutableList.of(specFile.toString()));
+      } catch (ParserException | IOException e) {
+        throw new InvalidConfigurationException(
+            "Could not load automaton from file: " + e.getMessage(), e);
+      }
+      AutomatonACSLParser acslParser = new AutomatonACSLParser(annotatedCFA, logger);
+      assert acslParser.areIsomorphicCFAs(cfa)
+          : "CFAs of task program and annotated program differ, "
+              + "annotated program is probably unrelated to this task";
+      automata = ImmutableList.of(acslParser.parseAsAutomaton());
     } else {
       automata =
           AutomatonParser.parseAutomatonFile(
@@ -185,9 +266,41 @@ public final class Specification {
     return automata;
   }
 
+  private static Automaton parseLtlFormula(
+      String ltl,
+      CFA cfa,
+      Configuration config,
+      LogManager logger,
+      ShutdownNotifier pShutdownNotifier,
+      Scope scope)
+      throws InvalidConfigurationException, InterruptedException {
+    LabelledFormula formula;
+    try {
+      formula = LtlParser.parseProperty(ltl);
+      return Ltl2BuechiConverter.convertFormula(
+          formula.not(),
+          cfa.getMainFunction().getFunctionName(),
+          config,
+          logger,
+          cfa.getMachineModel(),
+          scope,
+          pShutdownNotifier);
+    } catch (LtlParseException e) {
+      throw new InvalidConfigurationException(
+          String.format("Could not parse property '%s' (%s)", ltl, e.getMessage()), e);
+    } catch (IOException e) {
+      throw new InvalidConfigurationException(
+          String.format(
+              "An exception occured during the execution of the external ltl converter tool:%n%s",
+              e.getMessage()),
+          e);
+    }
+  }
+
   /**
    * Return a new specification instance that has everything that the current instance has, and
-   * additionally some new specification files.
+   * additionally some new specification files as interpreted by {@link #fromFiles(Iterable, CFA,
+   * Configuration, LogManager, ShutdownNotifier)}.
    */
   public Specification withAdditionalSpecificationFile(
       Set<Path> pSpecificationFiles,
@@ -196,54 +309,56 @@ public final class Specification {
       LogManager logger,
       ShutdownNotifier pShutdownNotifier)
       throws InvalidConfigurationException, InterruptedException {
+    checkNotNull(cfa);
+    checkNotNull(config);
+    checkNotNull(logger);
+    checkNotNull(pShutdownNotifier);
+
     Set<Path> newSpecFiles =
         Sets.difference(pSpecificationFiles, pathToSpecificationAutomata.keySet()).immutableCopy();
     if (newSpecFiles.isEmpty()) {
       return this;
     }
 
-    ImmutableListMultimap<Path, Automaton> newSpecificationAutomata =
-        parseSpecificationFiles(newSpecFiles, cfa, config, logger, pShutdownNotifier);
+    Specification newSpec =
+        Specification.fromFiles(newSpecFiles, cfa, config, logger, pShutdownNotifier);
 
     return new Specification(
-        properties,
+        Sets.union(specificationFiles, newSpecFiles),
+        Sets.union(properties, newSpec.properties),
         ImmutableListMultimap.<Path, Automaton>builder()
             .putAll(pathToSpecificationAutomata)
-            .putAll(newSpecificationAutomata)
+            .putAll(newSpec.pathToSpecificationAutomata)
             .build());
   }
 
   /**
    * Return a new specification instance that has everything that the current instance has, and
-   * additionally some new properties.
+   * additionally some new properties. Note that this only affects {@link #getProperties()} and not
+   * the actual list of automata.
    */
-  public Specification withAdditionalProperties(Set<SpecificationProperty> pProperties) {
-    Set<SpecificationProperty> newProperties = Sets.union(properties, pProperties).immutableCopy();
+  public Specification withAdditionalProperties(Set<Property> pProperties) {
+    Set<Property> newProperties = Sets.union(properties, pProperties).immutableCopy();
     if (newProperties.size() == properties.size()) {
       return this;
     }
 
-    return new Specification(newProperties, pathToSpecificationAutomata);
+    return new Specification(specificationFiles, newProperties, pathToSpecificationAutomata);
   }
 
-  private Specification(Iterable<Automaton> pSpecificationAutomata) {
-    properties = ImmutableSet.of();
-    ImmutableListMultimap.Builder<Path, Automaton> multiplePropertiesBuilder =
-        ImmutableListMultimap.builder();
-    multiplePropertiesBuilder.putAll(Paths.get(""), ImmutableList.copyOf(pSpecificationAutomata));
-    pathToSpecificationAutomata = multiplePropertiesBuilder.build();
-  }
-
-  private Specification(
-      Set<SpecificationProperty> pProperties,
+  @VisibleForTesting
+  Specification(
+      Set<Path> pSpecificationFiles,
+      Set<Property> pProperties,
       ImmutableListMultimap<Path, Automaton> pSpecification) {
+    specificationFiles = ImmutableSet.copyOf(pSpecificationFiles);
     properties = ImmutableSet.copyOf(pProperties);
-    pathToSpecificationAutomata = pSpecification;
+    pathToSpecificationAutomata = checkNotNull(pSpecification);
   }
 
   /** This method should only be used by {@link CPABuilder} when creating the set of CPAs. */
   public ImmutableList<Automaton> getSpecificationAutomata() {
-    return ImmutableList.copyOf(pathToSpecificationAutomata.values());
+    return pathToSpecificationAutomata.values().asList();
   }
 
   @Override
@@ -266,32 +381,26 @@ public final class Specification {
   @Override
   public String toString() {
     return "Specification"
-        + pathToSpecificationAutomata
-            .values()
-            .stream()
+        + pathToSpecificationAutomata.values().stream()
             .map(Automaton::getName)
             .collect(joining(", ", "[", "]"));
   }
 
   /**
-   * Gets the set of specification properties, which represents a subset of the specification
-   * automata.
-   *
-   * @return the set of specification properties, which represents a subset of the specification
-   *     automata.
+   * Gets the set of properties that were read from the property files that were used to create this
+   * instance. Note that there can be additional automata read from specification files and
+   * witnesses.
    */
-  public Set<SpecificationProperty> getProperties() {
+  public Set<Property> getProperties() {
     return properties;
   }
 
   /**
-   * Gets the set of specification files, which represents a subset of the specification automata.
-   *
-   * @return the set of specification files, which represents a subset of the specification
-   *     automata.
+   * Get the set of files from which this instance was constructed. This can be property files,
+   * regular specification files, or witnesses.
    */
-  public Set<Path> getSpecFiles() {
-    return pathToSpecificationAutomata.keySet();
+  public ImmutableSet<Path> getFiles() {
+    return specificationFiles;
   }
 
   public ImmutableListMultimap<Path, Automaton> getPathToSpecificationAutomata() {

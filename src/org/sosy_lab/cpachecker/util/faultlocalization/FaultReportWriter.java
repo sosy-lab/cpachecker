@@ -8,8 +8,7 @@
 
 package org.sosy_lab.cpachecker.util.faultlocalization;
 
-import static com.google.common.base.Preconditions.checkState;
-
+import com.google.common.collect.ImmutableList;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -20,7 +19,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.stream.Collectors;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.util.faultlocalization.appendables.FaultInfo;
 import org.sosy_lab.cpachecker.util.faultlocalization.appendables.FaultInfo.InfoType;
@@ -29,9 +27,10 @@ import org.sosy_lab.cpachecker.util.faultlocalization.appendables.PotentialFix;
 import org.sosy_lab.cpachecker.util.faultlocalization.appendables.RankInfo;
 
 /**
- * Provides useful methods for converting objects in this package to a HTML format.
- * Extend this class and override the methods to create a different HTML-representation.
- * Change the FaultReportWriter in FaultLocalizationInfo by calling the method <code>replaceHtmlWriter</code>
+ * Provides useful methods for converting objects in this package to a HTML format. Extend this
+ * class and override the methods to create a different HTML-representation. Change the
+ * FaultReportWriter in FaultLocalizationInfo by calling the method <code>replaceHtmlWriter</code>
+ *
  * @see FaultLocalizationInfo#replaceHtmlWriter(FaultReportWriter)
  */
 public class FaultReportWriter {
@@ -47,14 +46,14 @@ public class FaultReportWriter {
     hideTypes(pHideTypes);
   }
 
-  public void hideTypes(InfoType... types){
+  public void hideTypes(InfoType... types) {
     hideTypes.clear();
     hideTypes.addAll(Arrays.asList(types));
   }
 
   public String toHtml(FaultInfo info) {
     String description = info.getDescription();
-    if(info.getType().equals(InfoType.RANK_INFO)){
+    if (info.getType().equals(InfoType.RANK_INFO)) {
       double likelihood = info.getScore();
       String percent = "<strong>" + ((int) (likelihood * 10000)) / 100d + "%</strong>";
       return description + " (" + percent + ")";
@@ -73,28 +72,29 @@ public class FaultReportWriter {
 
   public String toHtml(Fault fault) {
     // list of all edges in fault sorted by line number
-    List<CFAEdge> edges = fault
-        .stream()
-        .map(FaultContribution::correspondingEdge)
-        .sorted(Comparator.comparingInt(l -> l.getFileLocation().getStartingLineInOrigin()))
-        .collect(Collectors.toList());
+    List<CFAEdge> edges =
+        fault.stream()
+            .map(FaultContribution::correspondingEdge)
+            .sorted(Comparator.comparingInt(l -> l.getFileLocation().getStartingLineInOrigin()))
+            .collect(ImmutableList.toImmutableList());
     return toHtml(fault.getInfos(), edges);
   }
 
   /**
    * Convert this object to a HTML string for the report.
+   *
    * @param correspondingEdges the corresponding edges to the fault
    * @param infos the FaultInfos appended to a Fault(Contribution)
    * @return hmtl code of this instance
    */
-  protected String toHtml(List<FaultInfo> infos, List<CFAEdge> correspondingEdges){
+  protected String toHtml(List<FaultInfo> infos, List<CFAEdge> correspondingEdges) {
     List<FaultReason> faultReasons = new ArrayList<>();
     List<RankInfo> faultInfo = new ArrayList<>();
     List<PotentialFix> faultFix = new ArrayList<>();
 
-    //Sorted insert
+    // Sorted insert
     for (FaultInfo info : infos) {
-      switch(info.getType()){
+      switch (info.getType()) {
         case FIX:
           faultFix.add((PotentialFix) info);
           break;
@@ -160,27 +160,22 @@ public class FaultReportWriter {
           .append("<br>");
     }
 
-    if (!faultInfo.isEmpty()  && !hideTypes.contains(InfoType.RANK_INFO)) {
-      html.append(printList("The score is obtained by:", "", faultInfo, true))
-          .append("<br>");
+    if (!faultInfo.isEmpty() && !hideTypes.contains(InfoType.RANK_INFO)) {
+      html.append(printList("The score is obtained by:", "", faultInfo, true)).append("<br>");
     }
 
     return header + "<br>" + html;
   }
 
   protected String printList(
-      String headline,
-      String htmlId,
-      List<? extends FaultInfo> infos,
-      boolean useOrderedList){
-    List<? extends FaultInfo> copy = new ArrayList<>(infos);
-    Collections.sort(copy);
-    String listType = useOrderedList? "ol":"ul";
+      String headline, String htmlId, List<? extends FaultInfo> infos, boolean useOrderedList) {
+    List<? extends FaultInfo> copy = ImmutableList.sortedCopyOf(infos);
+    String listType = useOrderedList ? "ol" : "ul";
     String id = "";
-    if(!htmlId.isEmpty()){
+    if (!htmlId.isEmpty()) {
       id = " id=\"" + htmlId + "\"";
     }
-    StringBuilder out = new StringBuilder(headline + "<br><"  + listType + id + ">");
+    StringBuilder out = new StringBuilder(headline + "<br><" + listType + id + ">");
     for (FaultInfo info : copy) {
       out.append("<li>").append(toHtml(info)).append("</li>");
     }
@@ -188,37 +183,29 @@ public class FaultReportWriter {
     return out.toString();
   }
 
-  private Map<Integer, String> getDistinctStatements(List<CFAEdge> pEdges) {
+  protected Map<Integer, String> getDistinctStatements(List<CFAEdge> pEdges) {
     Map<Integer, String> statements = new HashMap<>();
     for (CFAEdge e : pEdges) {
       int codeLineNumber = e.getFileLocation().getStartingLineInOrigin();
       String description = e.getDescription();
-      checkState(
-          !statements.containsKey(codeLineNumber)
-              || statements.get(codeLineNumber).equals(description));
-      statements.put(codeLineNumber, description);
+      /*checkState(
+      !statements.containsKey(codeLineNumber)
+          || statements.get(codeLineNumber).equals(description));*/
+      statements.merge(codeLineNumber, description, (s1, s2) -> s1 + ", " + s2);
     }
     return statements;
   }
 
   private String listLineNumbersAndJoin(Collection<Integer> lineNumbers) {
-    return lineNumbers.stream()
-        .sorted()
-        .map(i -> String.valueOf(i))
-        .collect(
-            Collectors.collectingAndThen(
-                Collectors.toList(),
-                list -> {
-                  int lastIndex = list.size() - 1;
-                  if (lastIndex < 1) {
-                    return String.join("", list);
-                  }
-                  if (lastIndex == 1) {
-                    return String.join(" and ", list);
-                  }
-                  return String.join(
-                      " and ", String.join(", ", list.subList(0, lastIndex)), list.get(lastIndex));
-                }));
-  }
+    List<String> sortedNumbers =
+        lineNumbers.stream().sorted().map(String::valueOf).collect(ImmutableList.toImmutableList());
 
+    if (sortedNumbers.size() <= 2) {
+      return String.join(" and ", sortedNumbers);
+    }
+    int lastIndex = sortedNumbers.size() - 1;
+    return String.join(", ", sortedNumbers.subList(0, lastIndex))
+        + " and "
+        + sortedNumbers.get(lastIndex);
+  }
 }

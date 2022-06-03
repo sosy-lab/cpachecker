@@ -17,19 +17,20 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 /** Class for representation of casting values to different types for SMG predicate relations */
 public class SMGType {
-  private final int castedSize;
+  private final long castedSize;
   private final boolean castedSigned;
-  private final int originSize;
+  private final long originSize;
   private final boolean originSigned;
 
-  private SMGType(int pCastedSize, boolean pCastedSigned, int pOriginSize, boolean pOriginSigned) {
+  private SMGType(
+      long pCastedSize, boolean pCastedSigned, long pOriginSize, boolean pOriginSigned) {
     castedSize = pCastedSize;
     castedSigned = pCastedSigned;
     originSize = pOriginSize;
     originSigned = pOriginSigned;
   }
 
-  public SMGType(int pCastedSize, boolean pSigned) {
+  public SMGType(long pCastedSize, boolean pSigned) {
     this(pCastedSize, pSigned, pCastedSize, pSigned);
   }
 
@@ -48,11 +49,11 @@ public class SMGType {
     if (pType instanceof CSimpleType) {
       isSigned = pState.getHeap().getMachineModel().isSigned((CSimpleType) pType);
     }
-    int size = smgExpressionEvaluator.getBitSizeof(pEdge, pType, pState);
+    long size = smgExpressionEvaluator.getBitSizeof(pEdge, pType, pState);
     return new SMGType(size, isSigned);
   }
 
-  public int getCastedSize() {
+  public long getCastedSize() {
     return castedSize;
   }
 
@@ -60,11 +61,18 @@ public class SMGType {
     return castedSigned;
   }
 
-  public int getOriginSize() {
+  public long getOriginSize() {
     return originSize;
   }
 
   public boolean isOriginSigned() {
     return originSigned;
+  }
+
+  @Override
+  public String toString() {
+    return String.format(
+        "CAST from '%ssigned %d bit' to '%ssigned %d bit'",
+        originSigned ? "" : "un", originSize, castedSigned ? "" : "un", castedSize);
   }
 }

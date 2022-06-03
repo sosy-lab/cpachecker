@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.cpa.bdd;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Iterables;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
@@ -153,8 +154,9 @@ class BDDReducer extends GenericReducer<BDDState, Precision> {
 
     // remove variables that appear in the initial state and are out of scope in the exit location.
     BDDState cleanedInitState = initState;
-    for (String outOfScope : Iterables
-        .filter(pReducedContext.getOutOfScopeVariables(), v -> !blockVariables.contains(v))) {
+    for (String outOfScope :
+        Iterables.filter(
+            pReducedContext.getOutOfScopeVariables(), v -> !blockVariables.contains(v))) {
       // this case should only rarely appear, i.e.,
       // for function parameters that are unused within the block.
       shutdownNotifier.shutdownIfNecessary();
@@ -212,7 +214,9 @@ class BDDReducer extends GenericReducer<BDDState, Precision> {
     Region[] oldVariable = predmgr.createPredicateWithoutPrecisionCheck(oldName, bitsize);
     Region[] newVariable = predmgr.createPredicateWithoutPrecisionCheck(newName, bitsize);
     return new BDDState(
-        manager, bvmgr, manager.replace(state.getRegion(), oldVariable, newVariable));
+        manager,
+        bvmgr,
+        manager.replace(state.getRegion(), Arrays.asList(oldVariable), Arrays.asList(newVariable)));
   }
 
   @Override

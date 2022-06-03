@@ -27,17 +27,16 @@ import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 
 @RunWith(Parameterized.class)
 @SuppressFBWarnings(
-  value = "NP_NONNULL_FIELD_NOT_INITIALIZED_IN_CONSTRUCTOR",
-  justification = "Fields are filled by parameterization of JUnit"
-)
+    value = "NP_NONNULL_FIELD_NOT_INITIALIZED_IN_CONSTRUCTOR",
+    justification = "Fields are filled by parameterization of JUnit")
 public class MachineModelGetOffsetTest {
 
-  private final static String TEST_STRUCT = "testStruct";
+  private static final String TEST_STRUCT = "testStruct";
 
-  private final static String FIRST_BITFIELD_12 = "firstBitfield";
-  private final static String SECOND_BITFIELD_10 = "secondBitfield";
-  private final static String THIRD_INT = "thirdInt";
-  private final static String LAST_INCOMPLETEARRAY = "lastIncomplete";
+  private static final String FIRST_BITFIELD_12 = "firstBitfield";
+  private static final String SECOND_BITFIELD_10 = "secondBitfield";
+  private static final String THIRD_INT = "thirdInt";
+  private static final String LAST_INCOMPLETEARRAY = "lastIncomplete";
   private static final String LONG_BITFIELD_15 = "long_bitfield_15";
   private static final String LONG_BITFIELD_18 = "long_bitfield_18";
   private static final String CHAR = "char";
@@ -47,24 +46,21 @@ public class MachineModelGetOffsetTest {
 
   @Parameters(name = "{2}: {0}")
   public static Object[][] machineModels() {
-    Object[][] types =
-        new Object[][] {
-          // fieldname          // expected offset in bits
-          {STRUCT, FIRST_BITFIELD_12, BigInteger.ZERO, MODEL32},
-          {STRUCT, FIRST_BITFIELD_12, BigInteger.ZERO, MODEL64},
-          {STRUCT, SECOND_BITFIELD_10, BigInteger.valueOf(12), MODEL32},
-          {STRUCT, SECOND_BITFIELD_10, BigInteger.valueOf(12), MODEL64},
-          {STRUCT, THIRD_INT, BigInteger.valueOf(32), MODEL32},
-          {STRUCT, THIRD_INT, BigInteger.valueOf(32), MODEL64},
-          {STRUCT, LAST_INCOMPLETEARRAY, BigInteger.valueOf(64), MODEL32},
-          {STRUCT, LAST_INCOMPLETEARRAY, BigInteger.valueOf(64), MODEL64},
-          {STRUCT_2, CHAR, BigInteger.valueOf(88), MODEL32},
-          {STRUCT_2, CHAR, BigInteger.valueOf(88), MODEL64},
-          {STRUCT_3, CHAR, BigInteger.valueOf(80), MODEL32},
-          {STRUCT_3, CHAR, BigInteger.valueOf(80), MODEL64}
-        };
-
-    return types;
+    return new Object[][] {
+      // struct, fieldname, expected offset in bits, machine model
+      {STRUCT, FIRST_BITFIELD_12, BigInteger.ZERO, MODEL32},
+      {STRUCT, FIRST_BITFIELD_12, BigInteger.ZERO, MODEL64},
+      {STRUCT, SECOND_BITFIELD_10, BigInteger.valueOf(12), MODEL32},
+      {STRUCT, SECOND_BITFIELD_10, BigInteger.valueOf(12), MODEL64},
+      {STRUCT, THIRD_INT, BigInteger.valueOf(32), MODEL32},
+      {STRUCT, THIRD_INT, BigInteger.valueOf(32), MODEL64},
+      {STRUCT, LAST_INCOMPLETEARRAY, BigInteger.valueOf(64), MODEL32},
+      {STRUCT, LAST_INCOMPLETEARRAY, BigInteger.valueOf(64), MODEL64},
+      {STRUCT_2, CHAR, BigInteger.valueOf(88), MODEL32},
+      {STRUCT_2, CHAR, BigInteger.valueOf(88), MODEL64},
+      {STRUCT_3, CHAR, BigInteger.valueOf(80), MODEL32},
+      {STRUCT_3, CHAR, BigInteger.valueOf(80), MODEL64}
+    };
   }
 
   // If you plan on expanding this memberlist for more
@@ -75,10 +71,10 @@ public class MachineModelGetOffsetTest {
   //    b) (DO NOT) insert a new Member before THIRD_INT
   private static final ImmutableList<CCompositeTypeMemberDeclaration> FIELDS =
       ImmutableList.of(
-          new CCompositeTypeMemberDeclaration(new CBitFieldType(CNumericTypes.UNSIGNED_INT, 12),
-              FIRST_BITFIELD_12),
-          new CCompositeTypeMemberDeclaration(new CBitFieldType(CNumericTypes.UNSIGNED_INT, 10),
-              SECOND_BITFIELD_10),
+          new CCompositeTypeMemberDeclaration(
+              new CBitFieldType(CNumericTypes.UNSIGNED_INT, 12), FIRST_BITFIELD_12),
+          new CCompositeTypeMemberDeclaration(
+              new CBitFieldType(CNumericTypes.UNSIGNED_INT, 10), SECOND_BITFIELD_10),
           new CCompositeTypeMemberDeclaration(CNumericTypes.INT, THIRD_INT),
           new CCompositeTypeMemberDeclaration(
               new CArrayType(false, false, CNumericTypes.LONG_LONG_INT, null),

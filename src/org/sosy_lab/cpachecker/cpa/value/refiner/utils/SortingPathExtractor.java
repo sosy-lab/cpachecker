@@ -9,9 +9,9 @@
 package org.sosy_lab.cpachecker.cpa.value.refiner.utils;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Maps;
 import java.util.Collection;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import org.sosy_lab.common.configuration.Configuration;
@@ -32,16 +32,17 @@ import org.sosy_lab.cpachecker.util.refinement.PrefixSelector;
 import org.sosy_lab.cpachecker.util.refinement.PrefixSelector.PrefixPreference;
 
 /**
- * {@link PathExtractor} that sorts paths by their length or interpolant quality.
- * To sort paths by their interpolant quality, set {@link #itpSortedTargets} by specifying
- * configuration property <code>cpa.value.refinement.itpSortedTargets</code>.
+ * {@link PathExtractor} that sorts paths by their length or interpolant quality. To sort paths by
+ * their interpolant quality, set {@link #itpSortedTargets} by specifying configuration property
+ * <code>cpa.value.refinement.itpSortedTargets</code>.
  */
 @Options(prefix = "cpa.value.refinement")
 public class SortingPathExtractor extends PathExtractor {
 
   @Option(
       secure = true,
-      description = "heuristic to sort targets based on the quality of interpolants derivable from them")
+      description =
+          "heuristic to sort targets based on the quality of interpolants derivable from them")
   private boolean itpSortedTargets = false;
 
   private final PrefixSelector prefixSelector;
@@ -51,8 +52,8 @@ public class SortingPathExtractor extends PathExtractor {
       final PrefixProvider pPrefixProvider,
       final PrefixSelector pPrefixSelector,
       final LogManager pLogger,
-      final Configuration pConfig
-  ) throws InvalidConfigurationException {
+      final Configuration pConfig)
+      throws InvalidConfigurationException {
 
     super(pLogger, pConfig);
     pConfig.inject(this, SortingPathExtractor.class);
@@ -62,27 +63,31 @@ public class SortingPathExtractor extends PathExtractor {
   }
 
   /**
-   * This method returns an unsorted, non-empty collection of target states
-   * found during the analysis.
+   * This method returns an unsorted, non-empty collection of target states found during the
+   * analysis.
    *
    * @param pReached the set of reached states
    * @return the target states
    */
   @Override
-  public Collection<ARGState> getTargetStates(final ARGReachedSet pReached) throws RefinementFailedException {
+  public Collection<ARGState> getTargetStates(final ARGReachedSet pReached)
+      throws RefinementFailedException, InterruptedException {
     final Collection<ARGState> targetStates = super.getTargetStates(pReached);
-    final Map<ARGState, Integer> targetsWithScores = Maps.toMap(targetStates, this::getScore);
+    final Map<ARGState, Integer> targetsWithScores = new HashMap<>();
+    for (ARGState targetState : targetStates) {
+      targetsWithScores.put(targetState, getScore(targetState));
+    }
     // sort keys by their values
     return ImmutableList.sortedCopyOf(Comparator.comparing(targetsWithScores::get), targetStates);
   }
 
-  private int getScore(ARGState target) {
+  private int getScore(ARGState target) throws InterruptedException {
     ARGPath path = ARGUtils.getOnePathTo(target);
     if (itpSortedTargets) {
       List<InfeasiblePrefix> prefixes;
       try {
         prefixes = prefixProvider.extractInfeasiblePrefixes(path);
-      } catch (CPAException | InterruptedException e) {
+      } catch (CPAException e) {
         throw new AssertionError(e);
       }
       return prefixSelector.obtainScoreForPrefixes(prefixes, PrefixPreference.DOMAIN_MIN);

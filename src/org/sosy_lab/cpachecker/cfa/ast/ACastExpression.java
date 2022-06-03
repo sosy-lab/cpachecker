@@ -11,15 +11,12 @@ package org.sosy_lab.cpachecker.cfa.ast;
 import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 
-/**
- * This is the abstract Class for  Casted Expressions.
- *
- */
+/** This is the abstract Class for Casted Expressions. */
 public abstract class ACastExpression extends AbstractLeftHandSide {
 
   private static final long serialVersionUID = 7047818239785351507L;
   private final AExpression operand;
-  private final Type     castType;
+  private final Type castType;
 
   protected ACastExpression(
       FileLocation pFileLocation, Type castExpressionType, AExpression pOperand) {
@@ -61,15 +58,12 @@ public abstract class ACastExpression extends AbstractLeftHandSide {
       return true;
     }
 
-    if (!(obj instanceof ACastExpression)
-        || !super.equals(obj)) {
+    if (!(obj instanceof ACastExpression) || !super.equals(obj)) {
       return false;
     }
 
     ACastExpression other = (ACastExpression) obj;
 
-    return Objects.equals(other.operand, operand)
-            && Objects.equals(other.castType, castType);
+    return Objects.equals(other.operand, operand) && Objects.equals(other.castType, castType);
   }
-
 }

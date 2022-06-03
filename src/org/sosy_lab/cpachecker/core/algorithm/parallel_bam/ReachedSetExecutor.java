@@ -51,7 +51,6 @@ import org.sosy_lab.cpachecker.cpa.bam.BAMTransferRelation;
 import org.sosy_lab.cpachecker.cpa.bam.MissingBlockAbstractionState;
 import org.sosy_lab.cpachecker.cpa.bam.cache.BAMCache.BAMCacheEntry;
 import org.sosy_lab.cpachecker.cpa.bam.cache.BAMDataManager;
-import org.sosy_lab.cpachecker.exceptions.CPAEnabledAnalysisPropertyViolationException;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
@@ -113,8 +112,8 @@ class ReachedSetExecutor {
    * state from the waitlist temporary until the sub-RSE is finished, and re-add it afterwards to be
    * analyzed again, such the the computed block abstraction can be applied.
    *
-   * Synchronized access guaranteed by only instance-local access in the current
-   * {@link ReachedSetExecutor}!
+   * <p>Synchronized access guaranteed by only instance-local access in the current {@link
+   * ReachedSetExecutor}!
    */
   private final Set<AbstractState> dependsOn = new LinkedHashSet<>();
 
@@ -230,7 +229,7 @@ class ReachedSetExecutor {
    * ReachedSet to ReachedSetExecutor that guarantees single-threaded access to each ReachedSet.
    */
   private void apply(Collection<AbstractState> pStatesToBeAdded)
-      throws InterruptedException, CPAEnabledAnalysisPropertyViolationException, CPAException {
+      throws InterruptedException, CPAException {
     logger.logf(
         level,
         "%s :: starting, target=%s, statesToBeAdded=%s",

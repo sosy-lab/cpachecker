@@ -19,7 +19,6 @@ import java.io.FileNotFoundException;
 import java.io.PrintStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -45,9 +44,7 @@ class CmdLineArguments {
 
   private static final Splitter SETPROP_OPTION_SPLITTER = Splitter.on('=').trimResults().limit(2);
 
-  /**
-   * Exception thrown when something invalid is specified on the command line.
-   */
+  /** Exception thrown when something invalid is specified on the command line. */
   public static class InvalidCmdlineArgumentException extends Exception {
 
     private static final long serialVersionUID = -6526968677815416436L;
@@ -61,7 +58,7 @@ class CmdLineArguments {
     }
   }
 
-  private CmdLineArguments() { } // prevent instantiation, this is a static helper class
+  private CmdLineArguments() {} // prevent instantiation, this is a static helper class
 
   private static final Pattern DEFAULT_CONFIG_FILES_PATTERN = Pattern.compile("^[a-zA-Z0-9-+]+$");
 
@@ -107,6 +104,9 @@ class CmdLineArguments {
           new PropertyAddingCmdLineArgument("-preprocess")
               .settingProperty("parser.usePreprocessor", "true")
               .withDescription("execute a preprocessor before starting the analysis"),
+          new PropertyAddingCmdLineArgument("-clang")
+              .settingProperty("parser.useClang", "true")
+              .withDescription("use clang together with llvm frontend"),
           new PropertyAddingCmdLineArgument("-secureMode")
               .settingProperty(SECURE_MODE_OPTION, "true")
               .withDescription("allow to use only secure options"),
@@ -167,7 +167,8 @@ class CmdLineArguments {
               .settingProperty("coverage.enabled", "false")
               .settingProperty("statistics.memory", "false")
               .withDescription(
-                  "disable assertions and optional features such as output files for improved performance"),
+                  "disable assertions and optional features such as output files for improved"
+                      + " performance"),
           new CmdLineArgument1("-setprop") {
 
             @Override
@@ -253,7 +254,7 @@ class CmdLineArguments {
       }
       if (foundMatchingArg) {
         // nothing left to do
-      } else if (arg.startsWith("-") && Files.notExists(Paths.get(arg))) {
+      } else if (arg.startsWith("-") && Files.notExists(Path.of(arg))) {
         String argName = arg.substring(1); // remove "-"
         if (DEFAULT_CONFIG_FILES_PATTERN.matcher(argName).matches()) {
           @Nullable Path configFile = resolveConfigFile(argName);
@@ -297,7 +298,7 @@ class CmdLineArguments {
 
       // replace "predicateAnalysis" with config/predicateAnalysis.properties etc.
       if (DEFAULT_CONFIG_FILES_PATTERN.matcher(newValue).matches()
-          && Files.notExists(Paths.get(newValue))) {
+          && Files.notExists(Path.of(newValue))) {
         @Nullable Path configFile = resolveConfigFile(newValue);
 
         if (configFile != null) {
@@ -335,7 +336,8 @@ class CmdLineArguments {
     out.println("You can also specify any of the configuration files in the directory config/");
     out.println("with -CONFIG_FILE, e.g., -default for config/default.properties.");
     out.println();
-    out.println("More information on how to configure CPAchecker can be found in 'doc/Configuration.md'.");
+    out.println(
+        "More information on how to configure CPAchecker can be found in 'doc/Configuration.md'.");
   }
 
   static void putIfNotExistent(
@@ -389,14 +391,13 @@ class CmdLineArguments {
   }
 
   /**
-   * Try to locate a file whose (partial) name is given by the user,
-   * using a file name template which is filled with the user given name.
+   * Try to locate a file whose (partial) name is given by the user, using a file name template
+   * which is filled with the user given name.
    *
-   * If the path is relative, it is first looked up in the current directory,
-   * and (if the file does not exist there), it is looked up in the parent directory
-   * of the code base.
+   * <p>If the path is relative, it is first looked up in the current directory, and (if the file
+   * does not exist there), it is looked up in the parent directory of the code base.
    *
-   * If the file cannot be found, null is returned.
+   * <p>If the file cannot be found, null is returned.
    *
    * @param template The string template for the path.
    * @param name The value for filling in the template.
@@ -405,7 +406,7 @@ class CmdLineArguments {
   private static @Nullable Path findFile(final String template, final String name) {
     final String fileName = String.format(template, name);
 
-    Path file = Paths.get(fileName);
+    Path file = Path.of(fileName);
 
     // look in current directory first
     if (Files.exists(file)) {

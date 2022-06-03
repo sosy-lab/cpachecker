@@ -15,6 +15,7 @@ import static com.google.common.base.Verify.verify;
 import static com.google.common.base.Verify.verifyNotNull;
 import static java.util.function.Predicate.not;
 
+import com.google.common.base.CharMatcher;
 import com.google.common.base.Joiner;
 import com.google.common.base.Splitter;
 import com.google.common.collect.FluentIterable;
@@ -29,7 +30,6 @@ import java.io.StringWriter;
 import java.net.InetAddress;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -62,7 +62,6 @@ import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.core.specification.Specification;
-import org.sosy_lab.cpachecker.exceptions.CPAEnabledAnalysisPropertyViolationException;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 @Options(prefix = "mpiAlgorithm")
@@ -76,9 +75,9 @@ public class MPIPortfolioAlgorithm implements Algorithm, StatisticsProvider {
           .resolveSibling(Path.of("scripts", "mpi_portfolio.py"));
 
   @Option(
-    secure = true,
-    required = true,
-    description = "List of property-files to be run by the subprocesses.")
+      secure = true,
+      required = true,
+      description = "List of property-files to be run by the subprocesses.")
   @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
   private List<Path> configFiles;
 
@@ -90,10 +89,11 @@ public class MPIPortfolioAlgorithm implements Algorithm, StatisticsProvider {
   private Path hostfile;
 
   @Option(
-    secure = true,
-    description = "The MCA parameter ('Modular Component Architecture') "
-        + "is available only on Open MPI frameworks. It might thus need to be "
-        + "disabled if unavailable on the working machine.")
+      secure = true,
+      description =
+          "The MCA parameter ('Modular Component Architecture') "
+              + "is available only on Open MPI frameworks. It might thus need to be "
+              + "disabled if unavailable on the working machine.")
   private boolean disableMCAOptions;
 
   private final Configuration globalConfig;
@@ -151,14 +151,14 @@ public class MPIPortfolioAlgorithm implements Algorithm, StatisticsProvider {
       if (!isNullOrEmpty(numNodesEnv)) {
         logger.logf(
             Level.INFO,
-            "Env variable 'AWS_BATCH_JOB_NUM_NODES' found with value '%s'. Continuing using this value.",
+            "Env variable 'AWS_BATCH_JOB_NUM_NODES' found with value '%s'. Continuing using this"
+                + " value.",
             numNodesEnv);
         try {
           numberProcesses *= Integer.parseInt(numNodesEnv);
         } catch (NumberFormatException e) {
           throw new InvalidConfigurationException(
-              "Env variable 'AWS_BATCH_JOB_NUM_NODES' does not contain a valid integer value",
-              e);
+              "Env variable 'AWS_BATCH_JOB_NUM_NODES' does not contain a valid integer value", e);
         }
       }
     } else {
@@ -226,8 +226,7 @@ public class MPIPortfolioAlgorithm implements Algorithm, StatisticsProvider {
               Level.WARNING,
               "Could not retrieve the ip address from the main node. Proceeding without it.");
           logger.logDebugException(
-              e,
-              "Failed to retrieve the ip address of the main node from PATH.");
+              e, "Failed to retrieve the ip address of the main node from PATH.");
         }
 
         if (mainNodeIPAddress != null) {
@@ -244,8 +243,7 @@ public class MPIPortfolioAlgorithm implements Algorithm, StatisticsProvider {
 
     } catch (IOException e) {
       throw new InvalidConfigurationException(
-          "Failed to create a valid CPAchecker-cmdline from the config",
-          e);
+          "Failed to create a valid CPAchecker-cmdline from the config", e);
     }
   }
 
@@ -256,8 +254,7 @@ public class MPIPortfolioAlgorithm implements Algorithm, StatisticsProvider {
       return SubanalysisConfig.SUBPROCESS_DEFAULT_TIMELIMIT;
     }
 
-    @Nullable
-    String property = pConfig.getProperty("limits.time.cpu");
+    @Nullable String property = pConfig.getProperty("limits.time.cpu");
     verify(!isNullOrEmpty(property));
 
     String rawValue = Iterables.get(Splitter.on('s').split(property), 0).strip();
@@ -266,8 +263,7 @@ public class MPIPortfolioAlgorithm implements Algorithm, StatisticsProvider {
       limitMain = Integer.parseInt(rawValue);
     } catch (NumberFormatException e) {
       throw new InvalidConfigurationException(
-          String.format("Unable to turn the value '%s' into an int value", rawValue),
-          e);
+          String.format("Unable to turn the value '%s' into an int value", rawValue), e);
     }
 
     int limitSubanalyses;
@@ -290,13 +286,14 @@ public class MPIPortfolioAlgorithm implements Algorithm, StatisticsProvider {
       throws InvalidConfigurationException {
     Optional<Path> pathOpt =
         Stream.of(System.getenv("PATH").split(Pattern.quote(File.pathSeparator)))
-            .map(Paths::get)
+            .map(Path::of)
             .filter(path -> Files.exists(path.resolve(pRequiredBin)))
             .findFirst();
     if (pathOpt.isEmpty()) {
       throw new InvalidConfigurationException(
           pRequiredBin
-              + " is required for performing the portfolio-analysis, but could not find it in PATH");
+              + " is required for performing the portfolio-analysis, but could not find it in"
+              + " PATH");
     }
 
     return pathOpt.orElseThrow().resolve(pRequiredBin);
@@ -308,8 +305,7 @@ public class MPIPortfolioAlgorithm implements Algorithm, StatisticsProvider {
   }
 
   @Override
-  public AlgorithmStatus run(ReachedSet pReachedSet)
-      throws CPAException, InterruptedException, CPAEnabledAnalysisPropertyViolationException {
+  public AlgorithmStatus run(ReachedSet pReachedSet) throws CPAException, InterruptedException {
 
     List<String> cmdList = new ArrayList<>();
     cmdList.add(binaries.get(MPI_BIN).toString());
@@ -368,18 +364,13 @@ public class MPIPortfolioAlgorithm implements Algorithm, StatisticsProvider {
       try {
         executor =
             new ProcessExecutor<>(
-                logger,
-                IOException.class,
-                Iterables.toArray(cmdList, String.class)) {
+                logger, IOException.class, Iterables.toArray(cmdList, String.class)) {
 
               @Override
               protected void handleOutput(String line) {
                 checkNotNull(line);
                 logger.logf(
-                    Level.INFO,
-                    "%s - %s",
-                    "scripts/" + MPI_PYTHON_MAIN_PATH.getFileName(),
-                    line);
+                    Level.INFO, "%s - %s", "scripts/" + MPI_PYTHON_MAIN_PATH.getFileName(), line);
               }
             };
 
@@ -387,8 +378,7 @@ public class MPIPortfolioAlgorithm implements Algorithm, StatisticsProvider {
         logger.log(Level.INFO, "MPI has finished its job. Continuing in main node.");
 
         if (exitCode != 0) {
-          if (executor.getErrorOutput()
-              .stream()
+          if (executor.getErrorOutput().stream()
               .anyMatch(x -> x.contains("unrecognized argument mca"))) {
             logger.log(
                 Level.SEVERE,
@@ -462,14 +452,14 @@ public class MPIPortfolioAlgorithm implements Algorithm, StatisticsProvider {
           // targetstate is returned to reflect that in the main analysis
           pReachedSet.clear();
           pReachedSet.add(
-              DummyTargetState.withSingleProperty(result.getViolatedPropertyDescription()),
+              DummyTargetState.withSimpleTargetInformation(result.getTargetDescription()),
               SingletonPrecision.getInstance());
         }
 
         logger.log(Level.INFO, "Executed the following command for the successful subanalysis:");
         String formattedCmdline =
             FluentIterable.from(successfulAnalysis.getCmdLine())
-                .transform(x -> x.replaceAll("\\s", ""))
+                .transform(CharMatcher.whitespace()::removeFrom)
                 .join(Joiner.on(" "));
         logger.log(Level.INFO, formattedCmdline);
 
@@ -492,7 +482,6 @@ public class MPIPortfolioAlgorithm implements Algorithm, StatisticsProvider {
     // we didn't receive any results from the subanalyses, thus we can't tell anything about
     // them
     return AlgorithmStatus.UNSOUND_AND_IMPRECISE;
-
   }
 
   private class SubanalysisConfig {
@@ -513,7 +502,6 @@ public class MPIPortfolioAlgorithm implements Algorithm, StatisticsProvider {
     private final Path configPath;
     private final Path outputPath;
     private final Path logfileName;
-    private final Path specPath;
 
     private final Configuration config;
     private final ImmutableList<String> cmdLine;
@@ -529,7 +517,7 @@ public class MPIPortfolioAlgorithm implements Algorithm, StatisticsProvider {
       configPath = configFiles.get(subanalysis_index);
       outputPath = Path.of(OUTPUT_DIR, SUBANALYSIS_DIR + subanalysis_index);
       logfileName = Path.of(SUBANALYSIS_DIR + subanalysis_index + ".log");
-      specPath = Iterables.getOnlyElement(specification.getSpecFiles());
+      String specPath = Joiner.on(", ").join(specification.getFiles());
 
       /*
        * Hack to setup the desired config options for the child CPAchecker processes. The idea is to
@@ -551,7 +539,7 @@ public class MPIPortfolioAlgorithm implements Algorithm, StatisticsProvider {
               .clearOption("mpiAlgorithm.disableMCAOptions")
               .setOption("limits.time.cpu", pSubanalysesTimelimit)
               .setOption("output.path", checkNotNull(outputPath.toString()))
-              .setOption("specification", checkNotNull(specPath.toString()))
+              .setOption("specification", specPath)
               .build();
 
       // Bring the command-line into a format which is executable by a python-script
@@ -570,7 +558,7 @@ public class MPIPortfolioAlgorithm implements Algorithm, StatisticsProvider {
       builder.put(OUPUT_KEY, outputPath.toString());
       builder.put(LOGFILE_KEY, outputPath.resolve(logfileName).toString());
 
-      return ImmutableMap.of("Analysis_" + subanalysis_index, builder.build());
+      return ImmutableMap.of("Analysis_" + subanalysis_index, builder.buildOrThrow());
     }
 
     int getIndex() {
@@ -593,8 +581,7 @@ public class MPIPortfolioAlgorithm implements Algorithm, StatisticsProvider {
       return cmdLine;
     }
 
-    @Nullable
-    ImmutableList<String> getResultLog() {
+    @Nullable ImmutableList<String> getResultLog() {
       return resultLog;
     }
 
@@ -605,8 +592,7 @@ public class MPIPortfolioAlgorithm implements Algorithm, StatisticsProvider {
       resultLog = pResultLog;
     }
 
-    @Nullable
-    CPAcheckerResult getResult() {
+    @Nullable CPAcheckerResult getResult() {
       return result;
     }
 
@@ -621,7 +607,6 @@ public class MPIPortfolioAlgorithm implements Algorithm, StatisticsProvider {
     public String toString() {
       return String.format("Subanalysis_%d-%s", subanalysis_index, getConfigName());
     }
-
   }
 
   private static class MPIPortfolioAlgorithmStatistics implements Statistics {
@@ -647,7 +632,5 @@ public class MPIPortfolioAlgorithm implements Algorithm, StatisticsProvider {
     public @Nullable String getName() {
       return "MPI Portfolio Algorithm";
     }
-
   }
-
 }

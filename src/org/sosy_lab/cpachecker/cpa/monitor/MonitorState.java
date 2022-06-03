@@ -9,8 +9,6 @@
 package org.sosy_lab.cpachecker.cpa.monitor;
 
 import com.google.common.base.Preconditions;
-import java.io.IOException;
-import java.io.NotSerializableException;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.core.defaults.AbstractSingleWrapperState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -21,24 +19,10 @@ import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.BooleanFormulaManager;
 
-/**
- * Keeps track of the resources spent on a path.
- */
+/** Keeps track of the resources spent on a path. */
 public class MonitorState extends AbstractSingleWrapperState implements AvoidanceReportingState {
 
-  private static final long serialVersionUID = 0xDEADBEEF;
-
-  /**
-   * javadoc to remove unused parameter warning
-   *
-   * @param out the output stream
-   */
-  @SuppressWarnings("UnusedVariable") // parameter required by API
-  private void writeObject(java.io.ObjectOutputStream out) throws IOException {
-    throw new NotSerializableException();
-  }
-
-  static enum TimeoutState implements AbstractState {
+  enum TimeoutState implements AbstractState {
     INSTANCE;
 
     @Override
@@ -51,21 +35,24 @@ public class MonitorState extends AbstractSingleWrapperState implements Avoidanc
   private final long totalTimeOnPath;
 
   /// The cause why the analysis did not proceed after this state (may be null)
-  @Nullable
-  private final Pair<PreventingHeuristic, Long> preventingCondition;
+  @Nullable private final Pair<PreventingHeuristic, Long> preventingCondition;
 
   protected MonitorState(AbstractState pWrappedState, long totalTimeOnPath) {
     this(pWrappedState, totalTimeOnPath, null);
   }
 
-  protected MonitorState(AbstractState pWrappedState, long totalTimeOnPath,
+  protected MonitorState(
+      AbstractState pWrappedState,
+      long totalTimeOnPath,
       Pair<PreventingHeuristic, Long> preventingCondition) {
 
     super(pWrappedState);
 
-    Preconditions.checkArgument(!(pWrappedState instanceof MonitorState),
+    Preconditions.checkArgument(
+        !(pWrappedState instanceof MonitorState),
         "Don't wrap a MonitorCPA in a MonitorCPA, this makes no sense!");
-    Preconditions.checkArgument(!(pWrappedState == TimeoutState.INSTANCE && preventingCondition == null),
+    Preconditions.checkArgument(
+        !(pWrappedState == TimeoutState.INSTANCE && preventingCondition == null),
         "Need a preventingCondition in case of TimeoutState");
 
     this.totalTimeOnPath = totalTimeOnPath;
@@ -81,8 +68,8 @@ public class MonitorState extends AbstractSingleWrapperState implements Avoidanc
     if (this == pObj) {
       return true;
     } else if (pObj instanceof MonitorState) {
-      MonitorState otherElem = (MonitorState)pObj;
-      return this.getWrappedState().equals(otherElem.getWrappedState());
+      MonitorState otherElem = (MonitorState) pObj;
+      return getWrappedState().equals(otherElem.getWrappedState());
     } else {
       return false;
     }
@@ -108,8 +95,7 @@ public class MonitorState extends AbstractSingleWrapperState implements Avoidanc
 
   @Override
   public String toString() {
-    return String.format("Total time: %s Wrapped elem: %s",
-        this.totalTimeOnPath, getWrappedStates());
+    return String.format("Total time: %s Wrapped elem: %s", totalTimeOnPath, getWrappedStates());
   }
 
   @Override
@@ -124,5 +110,4 @@ public class MonitorState extends AbstractSingleWrapperState implements Avoidanc
       return bfmgr.makeTrue();
     }
   }
-
 }

@@ -12,6 +12,7 @@ import static com.google.common.base.Preconditions.checkArgument;
 
 import org.eclipse.jdt.core.dom.ASTNode;
 import org.eclipse.jdt.core.dom.ArrayType;
+import org.eclipse.jdt.core.dom.Expression;
 import org.eclipse.jdt.core.dom.ITypeBinding;
 import org.eclipse.jdt.core.dom.ParameterizedType;
 import org.eclipse.jdt.core.dom.PrimitiveType;
@@ -74,7 +75,7 @@ abstract class TypeConverter {
   }
 
   public final JType convert(ITypeBinding t) {
-    //TODO Needs to be completed (Wildcard, Parameterized type etc)
+    // TODO Needs to be completed (Wildcard, Parameterized type etc)
 
     if (t == null) {
       return JSimpleType.getUnspecified();
@@ -89,6 +90,11 @@ abstract class TypeConverter {
     } else {
       return JSimpleType.getUnspecified();
     }
+  }
+
+  public final JType convert(Expression pExpression) {
+    ITypeBinding binding = pExpression.resolveTypeBinding();
+    return convert(binding);
   }
 
   public abstract JClassType convertClassType(ITypeBinding t);
@@ -153,5 +159,4 @@ abstract class TypeConverter {
   private JArrayType convert(final ArrayType t) {
     return new JArrayType(convert(t.getElementType()), t.getDimensions());
   }
-
 }

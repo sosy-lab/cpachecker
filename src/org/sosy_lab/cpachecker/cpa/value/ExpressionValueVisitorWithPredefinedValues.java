@@ -8,13 +8,10 @@
 
 package org.sosy_lab.cpachecker.cpa.value;
 
-import java.io.IOException;
-import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
-import javax.xml.parsers.ParserConfigurationException;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
@@ -25,12 +22,10 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
-import org.xml.sax.SAXException;
 
 public class ExpressionValueVisitorWithPredefinedValues extends ExpressionValueVisitor {
 
-  private Path functionValuesForRandom;
-  public String PATERN_FOR_RANDOM = "__VERIFIER_nondet_";
+  public static final String PATERN_FOR_RANDOM = "__VERIFIER_nondet_";
   private AtomicInteger numReturnedValues;
   private LogManagerWithoutDuplicates logger;
   private Map<Integer, String> valuesFromFile = new HashMap<>();
@@ -42,52 +37,35 @@ public class ExpressionValueVisitorWithPredefinedValues extends ExpressionValueV
       MachineModel pMachineModel,
       LogManagerWithoutDuplicates pLogger) {
     super(pState, pFunctionName, pMachineModel, pLogger);
-    this.logger = pLogger;
-
-
-
+    logger = pLogger;
   }
 
   /**
-   *
-   * @param pState see
-   *        {@link ExpressionValueVisitor#ExpressionValueVisitor(ValueAnalysisState, String, MachineModel, LogManagerWithoutDuplicates)
-   *        pState}
-   * @param pFunctionName see
-   *        {@link ExpressionValueVisitor#ExpressionValueVisitor(ValueAnalysisState, String, MachineModel, LogManagerWithoutDuplicates)
-   *        pFunctionName}
+   * @param pState see {@link ExpressionValueVisitor#ExpressionValueVisitor(ValueAnalysisState,
+   *     String, MachineModel, LogManagerWithoutDuplicates) pState}
+   * @param pFunctionName see {@link
+   *     ExpressionValueVisitor#ExpressionValueVisitor(ValueAnalysisState, String, MachineModel,
+   *     LogManagerWithoutDuplicates) pFunctionName}
    * @param pAtomicInteger the index of the element that should be returned from the file.
-   * @param pMachineModel see
-   *        {@link ExpressionValueVisitor#ExpressionValueVisitor(ValueAnalysisState, String, MachineModel, LogManagerWithoutDuplicates)
-   *        pMachineModel}
-   * @param pLogger see
-   *        {@link ExpressionValueVisitor#ExpressionValueVisitor(ValueAnalysisState, String, MachineModel, LogManagerWithoutDuplicates)
-   *        pLogger}
-   *
+   * @param pMachineModel see {@link
+   *     ExpressionValueVisitor#ExpressionValueVisitor(ValueAnalysisState, String, MachineModel,
+   *     LogManagerWithoutDuplicates) pMachineModel}
+   * @param pLogger see {@link ExpressionValueVisitor#ExpressionValueVisitor(ValueAnalysisState,
+   *     String, MachineModel, LogManagerWithoutDuplicates) pLogger}
+   * @param pValuesFromFile The Map containing the values for the random function.
    */
   public ExpressionValueVisitorWithPredefinedValues(
       ValueAnalysisState pState,
       String pFunctionName,
-      Path pFunctionValuesForRandom,
       AtomicInteger pAtomicInteger,
       MachineModel pMachineModel,
-      LogManagerWithoutDuplicates pLogger) {
+      LogManagerWithoutDuplicates pLogger,
+      Map<Integer, String> pValuesFromFile) {
     super(pState, pFunctionName, pMachineModel, pLogger);
-    functionValuesForRandom = pFunctionValuesForRandom;
-    this.logger = pLogger;
-    this.numReturnedValues = pAtomicInteger;
-    try {
-      valuesFromFile =
-          TestCompTestcaseLoader.loadTestcase(functionValuesForRandom);
-    } catch (ParserConfigurationException | SAXException | IOException e) {
-      // Nothing to do here, as we are not able to lead the additional information, hence inoring
-      // the file
-      pLogger.log(
-          Level.WARNING,
-          "Ignoring the additionally given file 'functionValuesForRandom' ",
-          functionValuesForRandom.toString(),
-          " due to an error");
-    }
+    logger = pLogger;
+    numReturnedValues = pAtomicInteger;
+
+    valuesFromFile = pValuesFromFile;
   }
 
   @Override
@@ -95,27 +73,27 @@ public class ExpressionValueVisitorWithPredefinedValues extends ExpressionValueV
     if (lastRequestSuccessful && pExp instanceof CFunctionCallExpression) {
       CFunctionCallExpression call = (CFunctionCallExpression) pExp;
       if (call.getFunctionNameExpression() instanceof CIdExpression
-          && ((CIdExpression) call.getFunctionNameExpression()).getName()
+          && ((CIdExpression) call.getFunctionNameExpression())
+              .getName()
               .startsWith(PATERN_FOR_RANDOM)) {
 
         // We found a call to random. If available, return a new value from the predefined inputs.
         // Otherwise, delegate to super
         int counter = numReturnedValues.getAndIncrement();
-        if (this.valuesFromFile.containsKey(counter)) {
-        Value value = computeNumericalValue(call, valuesFromFile.get(counter));
+        if (valuesFromFile.containsKey(counter)) {
+          Value value = computeNumericalValue(call, valuesFromFile.get(counter));
 
-        this.logger.log(
-            Level.FINER,
-            "Returning value at position %d, for statement " + pExp.toASTString() + " that is: ",
-            value);
-        return value;
-      } else {
-        lastRequestSuccessful = false;
-      }
+          logger.log(
+              Level.FINER,
+              "Returning value at position %d, for statement " + pExp.toASTString() + " that is: ",
+              value);
+          return value;
+        } else {
+          lastRequestSuccessful = false;
+        }
       }
     }
     return super.evaluate(pExp, pTargetType);
-
   }
 
   private Value computeNumericalValue(CFunctionCallExpression call, String pStringValueForNumber) {
@@ -145,9 +123,8 @@ public class ExpressionValueVisitorWithPredefinedValues extends ExpressionValueV
       // }
 
     } else {
-      this.logger.log(Level.WARNING, "Cannot parse complex types, hence returning unknown");
+      logger.log(Level.WARNING, "Cannot parse complex types, hence returning unknown");
     }
     return new Value.UnknownValue();
   }
-
 }

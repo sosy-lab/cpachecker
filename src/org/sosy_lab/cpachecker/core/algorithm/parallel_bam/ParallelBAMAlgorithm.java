@@ -17,7 +17,6 @@ import java.io.IOException;
 import java.io.PrintStream;
 import java.nio.charset.Charset;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -70,20 +69,19 @@ import org.sosy_lab.cpachecker.util.statistics.StatisticsSeries.StatisticsSeries
 import org.sosy_lab.cpachecker.util.statistics.StatisticsUtils;
 import org.sosy_lab.cpachecker.util.statistics.ThreadSafeTimerContainer;
 
-@Options(prefix="algorithm.parallelBam")
+@Options(prefix = "algorithm.parallelBam")
 public class ParallelBAMAlgorithm implements Algorithm, StatisticsProvider {
 
   @Option(
-    description =
-        "number of threads, positive values match exactly, "
-            + "with -1 we use the number of available cores or the machine automatically.",
-    secure = true
-  )
+      description =
+          "number of threads, positive values match exactly, "
+              + "with -1 we use the number of available cores or the machine automatically.",
+      secure = true)
   private int numberOfThreads = -1;
 
   @Option(description = "export number of running RSE instances as CSV", secure = true)
   @FileOption(FileOption.Type.OUTPUT_FILE)
-  private Path runningRSESeriesFile = Paths.get("RSESeries.csv");
+  private Path runningRSESeriesFile = Path.of("RSESeries.csv");
 
   private final ParallelBAMStatistics stats = new ParallelBAMStatistics();
   private final LogManager logger;
@@ -238,9 +236,7 @@ public class ParallelBAMAlgorithm implements Algorithm, StatisticsProvider {
     final AtomicBoolean mainRScontainsTarget = new AtomicBoolean(false);
     final AtomicBoolean otherRScontainsTarget = new AtomicBoolean(false);
 
-    pReachedSetMapping
-        .entrySet()
-        .parallelStream()
+    pReachedSetMapping.entrySet().parallelStream()
         .forEach(
             entry -> {
               ReachedSetExecutor rse = entry.getValue();
@@ -258,9 +254,10 @@ public class ParallelBAMAlgorithm implements Algorithm, StatisticsProvider {
                   }
                 }
 
-              } catch (RejectedExecutionException | ExecutionException e) {
-                errors.add(e);
-              } catch (InterruptedException | TimeoutException e) {
+              } catch (RejectedExecutionException
+                  | ExecutionException
+                  | InterruptedException
+                  | TimeoutException e) {
                 errors.add(e);
               }
               logger.log(Level.ALL, "finishing", rse, job.isCompletedExceptionally());
@@ -316,6 +313,7 @@ public class ParallelBAMAlgorithm implements Algorithm, StatisticsProvider {
     pStatsCollection.add(stats);
   }
 
+  @SuppressWarnings("deprecation")
   class ParallelBAMStatistics implements Statistics {
     final StatTimer wallTime = new StatTimer("Time for execution of algorithm");
     final ThreadSafeTimerContainer threadTime =
@@ -369,6 +367,5 @@ public class ParallelBAMAlgorithm implements Algorithm, StatisticsProvider {
     public @Nullable String getName() {
       return "BAM-parallel";
     }
-
   }
 }

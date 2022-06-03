@@ -32,6 +32,7 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
@@ -42,8 +43,7 @@ import org.sosy_lab.cpachecker.pcc.strategy.AbstractStrategy;
 import org.sosy_lab.cpachecker.pcc.strategy.partitioning.PartitioningIOHelper;
 import org.sosy_lab.cpachecker.pcc.strategy.partitioning.PartitioningUtils;
 
-
-public class PartialReachedSetPartitioningParallelStrategy extends AbstractStrategy{
+public class PartialReachedSetPartitioningParallelStrategy extends AbstractStrategy {
 
   private final PartitioningIOHelper ioHelper;
   private final PropertyCheckerCPA cpa;
@@ -64,48 +64,74 @@ public class PartialReachedSetPartitioningParallelStrategy extends AbstractStrat
   }
 
   @Override
-  public void constructInternalProofRepresentation(UnmodifiableReachedSet pReached)
+  public void constructInternalProofRepresentation(
+      UnmodifiableReachedSet pReached, ConfigurableProgramAnalysis pCpa)
       throws InvalidConfigurationException, InterruptedException {
-    ioHelper.constructInternalProofRepresentation(pReached);
+    ioHelper.constructInternalProofRepresentation(pReached, pCpa);
   }
 
   @Override
-  public boolean checkCertificate(ReachedSet pReachedSet) throws CPAException, InterruptedException {
+  public boolean checkCertificate(ReachedSet pReachedSet)
+      throws CPAException, InterruptedException {
     AtomicBoolean checkResult = new AtomicBoolean(true);
     AtomicInteger availablePartitions = new AtomicInteger(0);
     AtomicInteger nextId = new AtomicInteger(0);
     Semaphore partitionChecked = new Semaphore(0);
-    Semaphore readButUnprocessed =new Semaphore(ioHelper.getNumPartitions());
+    Semaphore readButUnprocessed = new Semaphore(ioHelper.getNumPartitions());
     Lock lock = new ReentrantLock();
 
-    Collection<AbstractState> certificate = Sets.newHashSetWithExpectedSize(ioHelper.getNumPartitions());
+    Collection<AbstractState> certificate =
+        Sets.newHashSetWithExpectedSize(ioHelper.getNumPartitions());
     Multimap<CFANode, AbstractState> partitionNodes = HashMultimap.create();
     Collection<AbstractState> inOtherPartition = new ArrayList<>();
     AbstractState initialState = pReachedSet.popFromWaitlist();
     Precision initPrec = pReachedSet.getPrecision(initialState);
 
     logger.log(Level.INFO, "Create and start threads");
-    ExecutorService executor = Executors.newFixedThreadPool(numThreads );
+    ExecutorService executor = Executors.newFixedThreadPool(numThreads);
     try {
       for (int i = 0; i < numThreads; i++) {
-        executor.execute(new ParallelPartitionChecker(availablePartitions, nextId, checkResult, readButUnprocessed,
-            partitionChecked, lock, ioHelper, partitionNodes, certificate, inOtherPartition, initPrec,
-            cpa.getStopOperator(), cpa.getTransferRelation(), shutdownNotifier, logger));
+        executor.execute(
+            new ParallelPartitionChecker(
+                availablePartitions,
+                nextId,
+                checkResult,
+                readButUnprocessed,
+                partitionChecked,
+                lock,
+                ioHelper,
+                partitionNodes,
+                certificate,
+                inOtherPartition,
+                initPrec,
+                cpa.getStopOperator(),
+                cpa.getTransferRelation(),
+                shutdownNotifier,
+                logger));
       }
 
       partitionChecked.acquire(ioHelper.getNumPartitions());
 
-      if (!checkResult.get()) { return false; }
+      if (!checkResult.get()) {
+        return false;
+      }
 
-      logger.log(Level.INFO, "Add initial state to elements for which it will be checked if they are covered by partition nodes of certificate.");
+      logger.log(
+          Level.INFO,
+          "Add initial state to elements for which it will be checked if they are covered by"
+              + " partition nodes of certificate.");
       inOtherPartition.add(initialState);
 
-      logger.log(Level.INFO,
-              "Check if initial state and all nodes which should be contained in different partition are covered by certificate (partition node).");
-      if (!PartitioningUtils.areElementsCoveredByPartitionElement(inOtherPartition, partitionNodes, cpa.getStopOperator(),
-          initPrec)) {
-        logger.log(Level.SEVERE,
-            "Initial state or a state which should be in other partition is not covered by certificate.");
+      logger.log(
+          Level.INFO,
+          "Check if initial state and all nodes which should be contained in different partition"
+              + " are covered by certificate (partition node).");
+      if (!PartitioningUtils.areElementsCoveredByPartitionElement(
+          inOtherPartition, partitionNodes, cpa.getStopOperator(), initPrec)) {
+        logger.log(
+            Level.SEVERE,
+            "Initial state or a state which should be in other partition is not covered by"
+                + " certificate.");
         return false;
       }
 
@@ -127,14 +153,15 @@ public class PartialReachedSetPartitioningParallelStrategy extends AbstractStrat
   }
 
   @Override
-  protected void writeProofToStream(ObjectOutputStream pOut, UnmodifiableReachedSet pReached) throws IOException,
-      InvalidConfigurationException, InterruptedException {
-    ioHelper.writeProof(pOut,pReached);
+  protected void writeProofToStream(
+      ObjectOutputStream pOut, UnmodifiableReachedSet pReached, ConfigurableProgramAnalysis pCpa)
+      throws IOException, InvalidConfigurationException, InterruptedException {
+    ioHelper.writeProof(pOut, pReached, pCpa);
   }
 
   @Override
-  protected void readProofFromStream(ObjectInputStream pIn) throws ClassNotFoundException,
-      InvalidConfigurationException, IOException {
+  protected void readProofFromStream(ObjectInputStream pIn)
+      throws ClassNotFoundException, InvalidConfigurationException, IOException {
     ioHelper.readProof(pIn, stats);
   }
 
@@ -144,5 +171,4 @@ public class PartialReachedSetPartitioningParallelStrategy extends AbstractStrat
     result.add(ioHelper.getGraphStatistic());
     return result;
   }
-
 }

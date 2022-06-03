@@ -8,12 +8,12 @@
 
 package org.sosy_lab.cpachecker.cpa.nondeterminism;
 
-import com.google.common.base.Optional;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.AAssignment;
@@ -55,8 +55,8 @@ public class NondeterminismTransferRelation extends SingleEdgeTransferRelation {
   private final boolean acceptConstrained;
 
   public NondeterminismTransferRelation(CFA pCFA, boolean pAcceptConstrained) {
-    this.cfa = pCFA;
-    this.acceptConstrained = pAcceptConstrained;
+    cfa = pCFA;
+    acceptConstrained = pAcceptConstrained;
   }
 
   @Override

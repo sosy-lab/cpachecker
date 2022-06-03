@@ -22,24 +22,23 @@ import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValueFactory;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
-/**
- * Unit tests for {@link ConstraintsState}
- */
+/** Unit tests for {@link ConstraintsState} */
 public class ConstraintsStateTest {
 
   private final SymbolicValueFactory factory = SymbolicValueFactory.getInstance();
 
   private final Type defType = CNumericTypes.INT;
 
-  private final MemoryLocation memLoc1 = MemoryLocation.valueOf("id1");
+  private final MemoryLocation memLoc1 = MemoryLocation.forIdentifier("id1");
   private final SymbolicIdentifier id1 = factory.newIdentifier(memLoc1);
   private final SymbolicExpression idExp1 = factory.asConstant(id1, defType);
   private final SymbolicExpression numExp = factory.asConstant(new NumericValue(5), defType);
 
   private final Constraint constr1 = factory.equal(idExp1, numExp, defType, defType);
-  private final Constraint constr2 = (Constraint) factory.lessThan(idExp1, numExp, defType, defType);
-  private final Constraint constr3 = (Constraint) factory.lessThanOrEqual(idExp1, numExp, defType,
-      defType);
+  private final Constraint constr2 =
+      (Constraint) factory.lessThan(idExp1, numExp, defType, defType);
+  private final Constraint constr3 =
+      (Constraint) factory.lessThanOrEqual(idExp1, numExp, defType, defType);
 
   private ConstraintsState state;
 

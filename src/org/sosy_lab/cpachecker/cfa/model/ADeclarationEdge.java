@@ -8,18 +8,22 @@
 
 package org.sosy_lab.cpachecker.cfa.model;
 
-import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
-import com.google.common.base.Optional;
+import java.util.Optional;
+import org.sosy_lab.cpachecker.cfa.ast.AAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.ADeclaration;
-
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 
 public class ADeclarationEdge extends AbstractCFAEdge {
 
   private static final long serialVersionUID = 3691647301334179318L;
   protected final ADeclaration declaration;
 
-  protected ADeclarationEdge(final String pRawSignature, final FileLocation pFileLocation,
-      final CFANode pPredecessor, final CFANode pSuccessor, final ADeclaration pDeclaration) {
+  protected ADeclarationEdge(
+      final String pRawSignature,
+      final FileLocation pFileLocation,
+      final CFANode pPredecessor,
+      final CFANode pSuccessor,
+      final ADeclaration pDeclaration) {
 
     super(pRawSignature, pFileLocation, pPredecessor, pSuccessor);
     declaration = pDeclaration;
@@ -35,7 +39,7 @@ public class ADeclarationEdge extends AbstractCFAEdge {
   }
 
   @Override
-  public Optional<? extends ADeclaration> getRawAST() {
+  public Optional<AAstNode> getRawAST() {
     return Optional.of(declaration);
   }
 
@@ -43,5 +47,4 @@ public class ADeclarationEdge extends AbstractCFAEdge {
   public String getCode() {
     return declaration.toASTString();
   }
-
 }

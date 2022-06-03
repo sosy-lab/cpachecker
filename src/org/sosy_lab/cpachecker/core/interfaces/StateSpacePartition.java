@@ -8,22 +8,21 @@
 
 package org.sosy_lab.cpachecker.core.interfaces;
 
-import org.checkerframework.checker.nullness.qual.NonNull;
-
 import com.google.common.base.Preconditions;
+import org.checkerframework.checker.nullness.qual.NonNull;
 
 /**
  * Interface that describes a partition of the state space.
  *
- * Two partitions are equivalent if their partition key is equivalent (see interface {@link Partitionable}).
+ * <p>Two partitions are equivalent if their partition key is equivalent (see interface {@link
+ * Partitionable}).
  *
- * (A class is more flexible than an enum:
- *    own instances of StateSpacePartition can be created in the project-specific code.)
- *
+ * <p>(A class is more flexible than an enum: own instances of StateSpacePartition can be created in
+ * the project-specific code.)
  */
 public class StateSpacePartition implements Partitionable {
 
-  private static final StateSpacePartition defaultPartition = getPartitionWithKey(Integer.valueOf(0));
+  private static final StateSpacePartition defaultPartition = getPartitionWithKey(0);
 
   public static StateSpacePartition getDefaultPartition() {
     return defaultPartition;
@@ -37,7 +36,7 @@ public class StateSpacePartition implements Partitionable {
 
   private StateSpacePartition(Object pPartitionKey) {
     Preconditions.checkNotNull(pPartitionKey);
-    this.partitionKey = pPartitionKey;
+    partitionKey = pPartitionKey;
   }
 
   @Override
@@ -62,5 +61,4 @@ public class StateSpacePartition implements Partitionable {
   public int hashCode() {
     return partitionKey.hashCode();
   }
-
 }

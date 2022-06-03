@@ -28,7 +28,7 @@ import org.sosy_lab.java_smt.api.SolverException;
 
 class DnfTransformation extends BooleanFormulaTransformationVisitor {
 
-  private final static int MAX_CLAUSES = 1_000_000;
+  private static final int MAX_CLAUSES = 1_000_000;
 
   private final ShutdownNotifier shutdownNotifier;
 
@@ -69,8 +69,7 @@ class DnfTransformation extends BooleanFormulaTransformationVisitor {
     ImmutableList<BooleanFormula> clauses = ImmutableList.of(fmgr.makeTrue());
 
     ImmutableList<Set<BooleanFormula>> operands =
-        pProcessedOperands
-            .stream()
+        pProcessedOperands.stream()
             .map(f -> fmgr.toDisjunctionArgs(f, false))
             .sorted(Comparator.comparingInt(Set::size))
             .collect(ImmutableList.toImmutableList());
@@ -83,8 +82,7 @@ class DnfTransformation extends BooleanFormulaTransformationVisitor {
         List<BooleanFormula> tempList = new ArrayList<>();
         for (BooleanFormula clause : clauses) {
           List<BooleanFormula> list =
-              childOperands
-                  .stream()
+              childOperands.stream()
                   .map(co -> fmgr.and(clause, co))
                   .collect(Collectors.toCollection(ArrayList::new));
           for (BooleanFormula bf : list) {
@@ -101,12 +99,9 @@ class DnfTransformation extends BooleanFormulaTransformationVisitor {
           return fmgr.and(pProcessedOperands);
         }
       }
-    } catch (InterruptedException e) {
+    } catch (InterruptedException | SolverException e) {
       // The exception can't be propagated here, because we're overwriting a method in which the
       // method signature cannot be changed. Thus, we have to throw an unchecked exceptions here.
-      throw new DnfTransformationException(e.getMessage(), e);
-    } catch (SolverException e) {
-      // see above, a checked exception cannot be propagated here
       throw new DnfTransformationException(e.getMessage(), e);
     }
 

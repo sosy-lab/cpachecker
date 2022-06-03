@@ -23,21 +23,20 @@ import org.sosy_lab.cpachecker.util.faultlocalization.appendables.RankInfo;
  */
 public class CallHierarchyScoring implements FaultScoring {
 
-  private Map<CFAEdge, Integer> mapEdgeToPosition;
-  private int firstErrorEdge;
+  private final Map<CFAEdge, Integer> mapEdgeToPosition;
+  private final int firstErrorEdge;
 
   /**
    * Reward fault contributions that are closer to the error in the counterexample
    *
    * @param pEdgeList counterexample
-   * @param pNumberErrorEdges number of post-condition edges
    */
-  public CallHierarchyScoring(List<CFAEdge> pEdgeList, int pNumberErrorEdges) {
+  public CallHierarchyScoring(List<CFAEdge> pEdgeList) {
     mapEdgeToPosition = new HashMap<>();
     for (int i = 0; i < pEdgeList.size(); i++) {
       mapEdgeToPosition.put(pEdgeList.get(i), i + 1);
     }
-    firstErrorEdge = pEdgeList.size() - pNumberErrorEdges + 1;
+    firstErrorEdge = pEdgeList.size() + 1;
   }
 
   @Override

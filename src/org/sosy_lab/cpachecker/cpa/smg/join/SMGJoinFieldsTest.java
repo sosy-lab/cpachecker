@@ -24,6 +24,7 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.SMGHasValueEdges;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.UnmodifiableSMG;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValueFilter;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValueFilter.SMGEdgeHasValueFilterByObject;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgePointsTo;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGRegion;
@@ -121,10 +122,10 @@ public class SMGJoinFieldsTest {
   private void checkFields(
       UnmodifiableSMG pSmg, Map<Long, Pair<SMGValue, Integer>> pFieldMap, SMGObject pObj) {
 
-    SMGEdgeHasValueFilter filterOnSMG = SMGEdgeHasValueFilter.objectFilter(pObj);
+    SMGEdgeHasValueFilterByObject filterOnSMG = SMGEdgeHasValueFilter.objectFilter(pObj);
     SMGHasValueEdges edges = pSmg.getHVEdges(filterOnSMG);
 
-    assertThat(edges).hasSize(pFieldMap.keySet().size());
+    assertThat(edges).hasSize(pFieldMap.size());
 
     for (SMGEdgeHasValue edge : edges) {
 
@@ -295,7 +296,7 @@ public class SMGJoinFieldsTest {
     boolean seenZero = false;
     boolean seenTwo = false;
 
-    SMGEdgeHasValueFilter filter = SMGEdgeHasValueFilter.objectFilter(object);
+    SMGEdgeHasValueFilterByObject filter = SMGEdgeHasValueFilter.objectFilter(object);
     for (SMGEdgeHasValue edge : filter.filter(hvSet)) {
       if (edge.getOffset() == 0) {
         seenZero = true;
@@ -376,15 +377,15 @@ public class SMGJoinFieldsTest {
     checkStatusAfterRelax(SMGJoinStatus.INCOMPARABLE, smg0_2B_6B, smg0_0B_8B, object); // invalid use
     */
 
-    checkStatusAfterRelax(SMGJoinStatus.EQUAL       , smg0_0B_8B, smg0_0B_8B, object); // OK
+    checkStatusAfterRelax(SMGJoinStatus.EQUAL, smg0_0B_8B, smg0_0B_8B, object); // OK
     checkStatusAfterRelax(SMGJoinStatus.INCOMPARABLE, smg0_0B_8B, smg0_0B_4B, object); // OK
     checkStatusAfterRelax(SMGJoinStatus.INCOMPARABLE, smg0_0B_8B, smg0_4B_8B, object); // OK
     checkStatusAfterRelax(SMGJoinStatus.INCOMPARABLE, smg0_0B_8B, smg0_2B_6B, object); // OK
 
-    checkStatusAfterJoinFields(SMGJoinStatus.EQUAL       , smg0_0B_8B, smg0_0B_8B, object);
-    checkStatusAfterJoinFields(SMGJoinStatus.LEFT_ENTAIL , smg0_0B_8B, smg0_0B_4B, object);
-    checkStatusAfterJoinFields(SMGJoinStatus.LEFT_ENTAIL , smg0_0B_8B, smg0_2B_6B, object);
-    checkStatusAfterJoinFields(SMGJoinStatus.LEFT_ENTAIL , smg0_0B_8B, smg0_4B_8B, object);
+    checkStatusAfterJoinFields(SMGJoinStatus.EQUAL, smg0_0B_8B, smg0_0B_8B, object);
+    checkStatusAfterJoinFields(SMGJoinStatus.LEFT_ENTAIL, smg0_0B_8B, smg0_0B_4B, object);
+    checkStatusAfterJoinFields(SMGJoinStatus.LEFT_ENTAIL, smg0_0B_8B, smg0_2B_6B, object);
+    checkStatusAfterJoinFields(SMGJoinStatus.LEFT_ENTAIL, smg0_0B_8B, smg0_4B_8B, object);
     checkStatusAfterJoinFields(SMGJoinStatus.RIGHT_ENTAIL, smg0_0B_4B, smg0_0B_8B, object);
     checkStatusAfterJoinFields(SMGJoinStatus.RIGHT_ENTAIL, smg0_2B_6B, smg0_0B_8B, object);
     checkStatusAfterJoinFields(SMGJoinStatus.RIGHT_ENTAIL, smg0_4B_8B, smg0_0B_8B, object);
@@ -451,7 +452,7 @@ public class SMGJoinFieldsTest {
     SMGJoinFields.checkResultConsistency(smg3, smg4, obj1, obj2);
   }
 
-  @Test(expected=SMGInconsistentException.class)
+  @Test(expected = SMGInconsistentException.class)
   public void consistencyCheckNegativeTest1() throws SMGInconsistentException {
     SMG smg3 = new SMG(MachineModel.LINUX64);
     UnmodifiableSMG smg4 = new SMG(MachineModel.LINUX32);
@@ -465,7 +466,7 @@ public class SMGJoinFieldsTest {
     SMGJoinFields.checkResultConsistency(smg3, smg4, obj1, obj2);
   }
 
-  @Test(expected=SMGInconsistentException.class)
+  @Test(expected = SMGInconsistentException.class)
   public void consistencyCheckNegativeTest2() throws SMGInconsistentException {
     SMG smg3 = new SMG(MachineModel.LINUX64);
     SMG smg4 = new SMG(MachineModel.LINUX32);
@@ -478,7 +479,7 @@ public class SMGJoinFieldsTest {
     SMGJoinFields.checkResultConsistency(smg3, smg4, obj1, obj2);
   }
 
-  @Test(expected=SMGInconsistentException.class)
+  @Test(expected = SMGInconsistentException.class)
   public void consistencyCheckNegativeTest3() throws SMGInconsistentException {
     SMG smg3 = new SMG(MachineModel.LINUX64);
     SMG smg4 = new SMG(MachineModel.LINUX32);
@@ -492,7 +493,7 @@ public class SMGJoinFieldsTest {
     SMGJoinFields.checkResultConsistency(smg3, smg4, obj1, obj2);
   }
 
-  @Test(expected=SMGInconsistentException.class)
+  @Test(expected = SMGInconsistentException.class)
   public void consistencyCheckNegativeTest4() throws SMGInconsistentException {
     SMG smg3 = new SMG(MachineModel.LINUX64);
     SMG smg4 = new SMG(MachineModel.LINUX32);
@@ -513,7 +514,7 @@ public class SMGJoinFieldsTest {
     SMGJoinFields.checkResultConsistency(smg3, smg4, obj1, obj2);
   }
 
-  @Test(expected=SMGInconsistentException.class)
+  @Test(expected = SMGInconsistentException.class)
   public void consistencyCheckNegativeTest5() throws SMGInconsistentException {
     SMG smg3 = new SMG(MachineModel.LINUX64);
     SMG smg4 = new SMG(MachineModel.LINUX32);

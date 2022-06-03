@@ -15,8 +15,8 @@ import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 public interface ResultProviderReachedSet {
 
   /** Determine verification result for the given reached set. */
-  public Result getOverallResult();
+  Result getOverallResult();
 
   /** Print additional information on verification result. */
-  public void printResults(PrintStream out);
+  void printResults(PrintStream out);
 }

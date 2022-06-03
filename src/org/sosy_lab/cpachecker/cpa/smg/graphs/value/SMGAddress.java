@@ -33,7 +33,7 @@ public final class SMGAddress {
     offset = pOffset;
   }
 
-  public final boolean isUnknown() {
+  public boolean isUnknown() {
     return object == null || offset.isUnknown();
   }
 
@@ -42,7 +42,7 @@ public final class SMGAddress {
    *
    * @param pAddedOffset The offset added to this address.
    */
-  public final SMGAddress add(SMGExplicitValue pAddedOffset) {
+  public SMGAddress add(SMGExplicitValue pAddedOffset) {
 
     if (object == null || offset.isUnknown() || pAddedOffset.isUnknown()) {
       return SMGAddress.UNKNOWN;
@@ -64,7 +64,7 @@ public final class SMGAddress {
   }
 
   @Override
-  public final String toString() {
+  public String toString() {
     if (isUnknown()) {
       return "Unkown";
     }
@@ -89,4 +89,3 @@ public final class SMGAddress {
     return new SMGAddress(pObj, SMGKnownExpValue.valueOf(pOffset));
   }
 }
-

@@ -10,5 +10,5 @@ package org.sosy_lab.cpachecker.core.algorithm;
 
 public interface ProgressReportingAlgorithm extends Algorithm {
 
-  public double getProgress();
+  double getProgress();
 }

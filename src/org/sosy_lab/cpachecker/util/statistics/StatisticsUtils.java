@@ -22,10 +22,15 @@ public class StatisticsUtils {
 
   private static final TimeSpan STATISTICS_WARNING_TIME = TimeSpan.ofSeconds(10);
 
-  private StatisticsUtils() { }
+  private StatisticsUtils() {}
 
   public static String toPercent(double val, double full) {
     return String.format("%1.0f%%", val / full * 100);
+  }
+
+  public static String toPercent(long val, long full) {
+    // cast from long to double looses precision, but is ok for statistics
+    return toPercent((double) val, (double) full);
   }
 
   public static String valueWithPercentage(Number value, Number totalCount) {
@@ -36,15 +41,20 @@ public class StatisticsUtils {
     return String.format("%.2f", val / full);
   }
 
-  public static void write(PrintStream target, int indentLevel, int outputNameColWidth,
-      String name, Object value) {
-    String indentation = Strings.repeat("  ", indentLevel);
-    target.println(String.format("%-" + outputNameColWidth + "s %s",
-                                 indentation + name + ":", value));
+  public static String div(long val, long full) {
+    // cast from long to double looses precision, but is ok for statistics
+    return div((double) val, (double) full);
   }
 
-  public static void write(PrintStream target, int indentLevel, int outputNameColWidth,
-      AbstractStatValue stat) {
+  public static void write(
+      PrintStream target, int indentLevel, int outputNameColWidth, String name, Object value) {
+    String indentation = "  ".repeat(indentLevel);
+    target.println(
+        String.format("%-" + outputNameColWidth + "s %s", indentation + name + ":", value));
+  }
+
+  public static void write(
+      PrintStream target, int indentLevel, int outputNameColWidth, AbstractStatValue stat) {
     write(target, indentLevel, outputNameColWidth, stat.getTitle(), stat.toString());
   }
 
@@ -63,7 +73,7 @@ public class StatisticsUtils {
     if (!Strings.isNullOrEmpty(pStatistics.getName())) {
       pOut.println();
       pOut.println(name);
-      pOut.println(Strings.repeat("-", name.length()));
+      pOut.println("-".repeat(name.length()));
     }
 
     final Timer timer = new Timer();

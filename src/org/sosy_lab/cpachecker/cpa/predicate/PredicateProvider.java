@@ -14,7 +14,6 @@ import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
 import java.io.IOException;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.OptionalInt;
@@ -46,18 +45,20 @@ import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 
 /**
- * This class provides additional predicates for a given source of information.
- * The predicates can be used in the precision adjustment.
+ * This class provides additional predicates for a given source of information. The predicates can
+ * be used in the precision adjustment.
  */
 @Options(prefix = "cpa.predicate")
 public class PredicateProvider {
 
-  @Option(secure = true, description = "try to reuse old abstractions from file during strengthening")
+  @Option(
+      secure = true,
+      description = "try to reuse old abstractions from file during strengthening")
   private boolean strengthenWithReusedAbstractions = false;
 
   @Option(description = "file that consists of old abstractions, to be used during strengthening")
   @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
-  private Path strengthenWithReusedAbstractionsFile = Paths.get("abstractions.txt");
+  private Path strengthenWithReusedAbstractionsFile = Path.of("abstractions.txt");
 
   private final CFA cfa;
   private final LogManager logger;
@@ -66,9 +67,13 @@ public class PredicateProvider {
 
   private Multimap<Integer, BooleanFormula> abstractions = null; // lazy initialization
 
-  PredicateProvider(Configuration config, CFA pCfa, LogManager pLogger,
-      FormulaManagerView pFmgr, PredicateAbstractionManager pPredMgr)
-          throws InvalidConfigurationException {
+  PredicateProvider(
+      Configuration config,
+      CFA pCfa,
+      LogManager pLogger,
+      FormulaManagerView pFmgr,
+      PredicateAbstractionManager pPredMgr)
+      throws InvalidConfigurationException {
     config.inject(this);
     cfa = pCfa;
     logger = pLogger;
@@ -77,11 +82,11 @@ public class PredicateProvider {
   }
 
   /**
-   * Get predicates either extracted from the given state or
-   * received from other source (i.e. file) related to the state.
-   * The relation might just be the same location.
+   * Get predicates either extracted from the given state or received from other source (i.e. file)
+   * related to the state. The relation might just be the same location.
    */
-  public Set<AbstractionPredicate> getPredicates(AbstractState pFullState) throws CPATransferException {
+  public Set<AbstractionPredicate> getPredicates(AbstractState pFullState)
+      throws CPATransferException {
     Set<AbstractionPredicate> result = new HashSet<>();
 
     if (strengthenWithReusedAbstractions) {
@@ -89,7 +94,8 @@ public class PredicateProvider {
       result.addAll(getPredicatesFromAbstractionFromFile(location));
     }
 
-    for (ARGReplayState state : AbstractStates.asIterable(pFullState).filter(ARGReplayState.class)) {
+    for (ARGReplayState state :
+        AbstractStates.asIterable(pFullState).filter(ARGReplayState.class)) {
       result.addAll(getPredicatesFromState(state));
     }
 
@@ -103,8 +109,9 @@ public class PredicateProvider {
       PredicateAbstractionsStorage abstractionStorage;
       Converter converter = Converter.getConverter(PrecisionConverter.INT2BV, cfa, logger);
       try {
-        abstractionStorage = new PredicateAbstractionsStorage(strengthenWithReusedAbstractionsFile,
-            logger, fmgr, converter);
+        abstractionStorage =
+            new PredicateAbstractionsStorage(
+                strengthenWithReusedAbstractionsFile, logger, fmgr, converter);
       } catch (PredicateParsingFailedException e) {
         throw new CPATransferException("cannot read abstractions from file, parsing fail", e);
       }
@@ -167,7 +174,7 @@ public class PredicateProvider {
       }
     }
 
-    BooleanFormula constraint = this.fmgr.parse(out.toString());
+    BooleanFormula constraint = fmgr.parse(out.toString());
     return predFmgr.getPredicatesForAtomsOf(constraint);
   }
 }

@@ -27,7 +27,7 @@ import org.sosy_lab.cpachecker.core.algorithm.mpv.property.MultipleProperties;
 public interface PartitioningOperator {
 
   /** Creates list of partitions for multi-property verification algorithm. */
-  public ImmutableList<Partition> createPartitions();
+  ImmutableList<Partition> createPartitions();
 
   interface Factory {
     PartitioningOperator create(

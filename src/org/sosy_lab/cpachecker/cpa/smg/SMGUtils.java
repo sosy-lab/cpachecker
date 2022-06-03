@@ -35,23 +35,23 @@ import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
 import org.sosy_lab.cpachecker.cpa.smg.SMGOptions.SMGExportLevel;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.SMGHasValueEdges;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.UnmodifiableSMG;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValueFilter;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValueFilter.SMGEdgeHasValueFilterByObject;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgePointsTo;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgePointsToFilter;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGValue;
 import org.sosy_lab.cpachecker.exceptions.NoException;
 
-/**
- * This class contains smg utilities, for example filters.
- */
+/** This class contains smg utilities, for example filters. */
 public final class SMGUtils {
 
   private SMGUtils() {}
 
   public static SMGHasValueEdges getFieldsOfObject(
       SMGObject pSmgObject, UnmodifiableSMG pInputSMG) {
-    SMGEdgeHasValueFilter edgeFilter = SMGEdgeHasValueFilter.objectFilter(pSmgObject);
+    SMGEdgeHasValueFilterByObject edgeFilter = SMGEdgeHasValueFilter.objectFilter(pSmgObject);
     return pInputSMG.getHVEdges(edgeFilter);
   }
 
@@ -61,7 +61,8 @@ public final class SMGUtils {
     return pInputSMG.getPtEdges(objectFilter);
   }
 
-  public static SMGHasValueEdges getFieldsofThisValue(SMGValue value, UnmodifiableSMG pInputSMG) {
+  public static Iterable<SMGEdgeHasValue> getFieldsofThisValue(
+      SMGValue value, UnmodifiableSMG pInputSMG) {
     SMGEdgeHasValueFilter valueFilter = SMGEdgeHasValueFilter.valueFilter(value);
     return pInputSMG.getHVEdges(valueFilter);
   }
@@ -84,8 +85,9 @@ public final class SMGUtils {
 
     private final long fieldOffset;
     private final MachineModel model;
-    private static final CType UNKNOWN = new CSimpleType(false, false, CBasicType.UNSPECIFIED,
-        false, false, false, false, false, false, false);
+    private static final CType UNKNOWN =
+        new CSimpleType(
+            false, false, CBasicType.UNSPECIFIED, false, false, false, false, false, false, false);
 
     public CFieldTypeVisitor(long pFieldOffset, MachineModel pModel) {
       fieldOffset = pFieldOffset;

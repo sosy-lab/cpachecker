@@ -9,7 +9,6 @@
 package org.sosy_lab.cpachecker.cpa.smg;
 
 import java.util.Collection;
-import java.util.logging.Level;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.UniqueIdGenerator;
 import org.sosy_lab.common.configuration.Configuration;
@@ -60,12 +59,20 @@ public class SMGCPA
     return AutomaticCPAFactory.forType(SMGCPA.class);
   }
 
-  @Option(secure=true, name="stop", toUppercase=true, values={"SEP", "NEVER", "END_BLOCK"},
-      description="which stop operator to use for the SMGCPA")
+  @Option(
+      secure = true,
+      name = "stop",
+      toUppercase = true,
+      values = {"SEP", "NEVER", "END_BLOCK"},
+      description = "which stop operator to use for the SMGCPA")
   private String stopType = "SEP";
 
-  @Option(secure=true, name="merge", toUppercase=true, values={"SEP", "JOIN"},
-      description="which merge operator to use for the SMGCPA")
+  @Option(
+      secure = true,
+      name = "merge",
+      toUppercase = true,
+      values = {"SEP", "JOIN"},
+      description = "which merge operator to use for the SMGCPA")
   private String mergeType = "SEP";
 
   private final SMGPredicateManager smgPredicateManager;
@@ -87,9 +94,9 @@ public class SMGCPA
 
   private SMGPrecision precision;
 
-
-  private SMGCPA(Configuration pConfig, LogManager pLogger, ShutdownNotifier pShutdownNotifier,
-      CFA pCfa) throws InvalidConfigurationException {
+  private SMGCPA(
+      Configuration pConfig, LogManager pLogger, ShutdownNotifier pShutdownNotifier, CFA pCfa)
+      throws InvalidConfigurationException {
     pConfig.inject(this);
 
     config = pConfig;
@@ -99,7 +106,8 @@ public class SMGCPA
     shutdownNotifier = pShutdownNotifier;
 
     options = new SMGOptions(config);
-    exportOptions = new SMGExportDotOption(options.getExportSMGFilePattern(), options.getExportSMGLevel());
+    exportOptions =
+        new SMGExportDotOption(options.getExportSMGFilePattern(), options.getExportSMGLevel());
 
     assumptionToEdgeAllocator = AssumptionToEdgeAllocator.create(config, logger, machineModel);
 
@@ -177,7 +185,7 @@ public class SMGCPA
     try {
       initState.performConsistencyCheck(SMGRuntimeCheck.FULL);
     } catch (SMGInconsistentException exc) {
-      logger.log(Level.SEVERE, exc.getMessage());
+      throw new AssertionError(exc);
     }
 
     if (pNode instanceof CFunctionEntryNode) {
@@ -186,7 +194,7 @@ public class SMGCPA
         initState.addStackFrame(functionNode.getFunctionDefinition());
         initState.performConsistencyCheck(SMGRuntimeCheck.FULL);
       } catch (SMGInconsistentException exc) {
-        logger.log(Level.SEVERE, exc.getMessage());
+        throw new AssertionError(exc);
       }
     }
 
@@ -200,7 +208,8 @@ public class SMGCPA
 
   @Override
   public ConcreteStatePath createConcreteStatePath(ARGPath pPath) {
-    return new SMGConcreteErrorPathAllocator(assumptionToEdgeAllocator).allocateAssignmentsToPath(pPath);
+    return new SMGConcreteErrorPathAllocator(assumptionToEdgeAllocator)
+        .allocateAssignmentsToPath(pPath);
   }
 
   public LogManager getLogger() {

@@ -8,24 +8,24 @@
 
 package org.sosy_lab.cpachecker.cfa.model.c;
 
-import com.google.common.base.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.cfa.model.AStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 
-public class CStatementEdge extends AStatementEdge {
-
+public class CStatementEdge extends AStatementEdge implements CCfaEdge {
 
   private static final long serialVersionUID = -2606975234598958304L;
 
-  public CStatementEdge(String pRawStatement, CStatement pStatement,
-      FileLocation pFileLocation, CFANode pPredecessor, CFANode pSuccessor) {
+  public CStatementEdge(
+      String pRawStatement,
+      CStatement pStatement,
+      FileLocation pFileLocation,
+      CFANode pPredecessor,
+      CFANode pSuccessor) {
 
     super(pRawStatement, pStatement, pFileLocation, pPredecessor, pSuccessor);
   }
-
-
 
   @Override
   public CStatement getStatement() {
@@ -33,7 +33,7 @@ public class CStatementEdge extends AStatementEdge {
   }
 
   @Override
-  public Optional<CStatement> getRawAST() {
-    return Optional.of((CStatement)statement);
+  public <R, X extends Exception> R accept(CCfaEdgeVisitor<R, X> pVisitor) throws X {
+    return pVisitor.visit(this);
   }
 }

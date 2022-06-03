@@ -9,112 +9,137 @@
 package org.sosy_lab.cpachecker.util;
 
 import static com.google.common.base.Preconditions.checkState;
+import static com.google.common.collect.FluentIterable.from;
 
 import com.google.common.collect.ImmutableList;
+import java.math.BigInteger;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import org.checkerframework.checker.nullness.qual.Nullable;
+import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
+import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
+import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
+import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
+import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.cpa.value.AbstractExpressionValueVisitor;
+import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
+import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 public class BuiltinOverflowFunctions {
-  // https://gcc.gnu.org/onlinedocs/gcc/Integer-Overflow-Builtins.html
-  private static final String ADD = of("addl");
-  private static final String ADDL = of("addl");
-  private static final String SADDL = of("saddl");
-  private static final String SADDLL = of("saddll");
-  private static final String UADD = of("uadd");
-  private static final String UADDL = of("uaddl");
-  private static final String UADDLL = of("uaddll");
+  private enum BuiltinOverflowFunction {
+    ADD(BinaryOperator.PLUS, null, false),
+    ADD_P(BinaryOperator.PLUS, null, true),
+    SADD(BinaryOperator.PLUS, CNumericTypes.SIGNED_INT, false),
+    SADDL(BinaryOperator.PLUS, CNumericTypes.SIGNED_LONG_INT, false),
+    SADDLL(BinaryOperator.PLUS, CNumericTypes.SIGNED_LONG_LONG_INT, false),
+    UADD(BinaryOperator.PLUS, CNumericTypes.UNSIGNED_INT, false),
+    UADDL(BinaryOperator.PLUS, CNumericTypes.UNSIGNED_LONG_INT, false),
+    UADDLL(BinaryOperator.PLUS, CNumericTypes.UNSIGNED_LONG_LONG_INT, false),
 
-  private static final String SUB = of("sub");
-  private static final String SUBL = of("subl");
-  private static final String SSUBL = of("ssubl");
-  private static final String SSUBLL = of("ssubll");
-  private static final String USUB = of("usub");
-  private static final String USUBL = of("usubl");
-  private static final String USUBLL = of("usubll");
+    SUB(BinaryOperator.MINUS, null, false),
+    SUB_P(BinaryOperator.MINUS, null, true),
+    SSUB(BinaryOperator.MINUS, CNumericTypes.SIGNED_INT, false),
+    SSUBL(BinaryOperator.MINUS, CNumericTypes.SIGNED_LONG_INT, false),
+    SSUBLL(BinaryOperator.MINUS, CNumericTypes.SIGNED_LONG_LONG_INT, false),
+    USUB(BinaryOperator.MINUS, CNumericTypes.UNSIGNED_INT, false),
+    USUBL(BinaryOperator.MINUS, CNumericTypes.UNSIGNED_LONG_INT, false),
+    USUBLL(BinaryOperator.MINUS, CNumericTypes.UNSIGNED_LONG_LONG_INT, false),
 
-  // TODO: add missing overflow functions like multiplication; also add more tests to
-  // test/programs/simple/builtin_overflow_functions/
+    MUL(BinaryOperator.MULTIPLY, null, false),
+    MUL_P(BinaryOperator.MULTIPLY, null, true),
+    SMUL(BinaryOperator.MULTIPLY, CNumericTypes.SIGNED_INT, false),
+    SMULL(BinaryOperator.MULTIPLY, CNumericTypes.SIGNED_LONG_INT, false),
+    SMULLL(BinaryOperator.MULTIPLY, CNumericTypes.SIGNED_LONG_LONG_INT, false),
+    UMUL(BinaryOperator.MULTIPLY, CNumericTypes.UNSIGNED_INT, false),
+    UMULL(BinaryOperator.MULTIPLY, CNumericTypes.UNSIGNED_LONG_INT, false),
+    UMULLL(BinaryOperator.MULTIPLY, CNumericTypes.UNSIGNED_LONG_LONG_INT, false);
 
-  private static final String PREFIX = "__builtin_";
-  private static final String SUFFIX = "_overflow";
+    public final BinaryOperator operator;
+    public final Optional<CSimpleType> type;
+    public final Boolean hasNoSideEffects;
+    public final String name;
 
-  private static final ImmutableList<String> possibleIdentifiers =
-      ImmutableList.<String>builder()
-          .add(ADD)
-          .add(ADDL)
-          .add(SADDL)
-          .add(SADDLL)
-          .add(UADD)
-          .add(UADDL)
-          .add(UADDLL)
-          .add(SUB)
-          .add(SUBL)
-          .add(SSUBL)
-          .add(SSUBLL)
-          .add(USUB)
-          .add(USUBL)
-          .add(USUBLL)
-          .build();
+    BuiltinOverflowFunction(
+        BinaryOperator pOperator, @Nullable CSimpleType pType, Boolean pHasNoSideEffect) {
+      operator = pOperator;
+      type = Optional.ofNullable(pType);
+      hasNoSideEffects = pHasNoSideEffect;
 
-  private static String of(String identifier) {
-    return PREFIX + identifier + SUFFIX;
+      StringBuilder sb = new StringBuilder();
+      sb.append("__builtin_")
+          .append(getDataTypePrefix(pType))
+          .append(getOperatorName(pOperator))
+          .append(getDataTypeSuffix(pType))
+          .append("_overflow")
+          .append(pHasNoSideEffect ? "_p" : "");
+      name = sb.toString();
+    }
+
+    private static String getOperatorName(BinaryOperator pOperator) {
+      if (pOperator == BinaryOperator.PLUS) {
+        return "add";
+      } else if (pOperator == BinaryOperator.MINUS) {
+        return "sub";
+      } else {
+        return "mul";
+      }
+    }
+
+    private static String getDataTypePrefix(@Nullable CSimpleType pType) {
+      if (pType == null) {
+        return "";
+      }
+
+      if (pType.isSigned()) {
+        return "s";
+      }
+
+      return "u";
+    }
+
+    private static String getDataTypeSuffix(@Nullable CSimpleType pType) {
+      if (pType == null) {
+        return "";
+      }
+
+      if (pType.isLong()) {
+        return "l";
+      } else if (pType.isLongLong()) {
+        return "ll";
+      }
+
+      return "";
+    }
   }
 
-  private static String getShortIdentifiers(String identifier) {
-    // TODO: replace this by a compiled regex
-    return identifier.replaceFirst(PREFIX, "").replaceFirst(SUFFIX, "");
+  private static final Map<String, BuiltinOverflowFunction> functions;
+
+  static {
+    functions = from(BuiltinOverflowFunction.values()).uniqueIndex(func -> func.name);
   }
 
   /**
    * resolve the type of the built-yin overflow function. This is important since the input
-   * parameters have to be casted in case their type differs TODO: solve this with an enum of the
-   * different function names instead.
+   * parameters have to be casted in case their type differs
    */
-  public static CSimpleType getType(String functionName) {
-    String shortIdentifier = getShortIdentifiers(functionName);
-    boolean unsigned = (shortIdentifier.startsWith("u"));
-    int size;
-    if (shortIdentifier.endsWith("ll")) {
-      size = 2;
-    } else if (shortIdentifier.endsWith("l")) {
-      size = 1;
-    } else {
-      size = 0;
-    }
-    if (unsigned) {
-      switch (size) {
-        case 0:
-          return CNumericTypes.UNSIGNED_INT;
-        case 1:
-          return CNumericTypes.UNSIGNED_LONG_INT;
-        case 2:
-          return CNumericTypes.UNSIGNED_LONG_LONG_INT;
-      }
-    } else {
-      switch (size) {
-        case 0:
-          return CNumericTypes.SIGNED_INT;
-        case 1:
-          return CNumericTypes.SIGNED_LONG_INT;
-        case 2:
-          return CNumericTypes.SIGNED_LONG_LONG_INT;
-      }
-    }
-    return null;
+  public static Optional<CSimpleType> getType(String pFunctionName) {
+    checkState(functions.containsKey(pFunctionName));
+    return functions.get(pFunctionName).type;
   }
 
-  private static BinaryOperator getOperator(String functionName) {
-    String shortIdentifier = getShortIdentifiers(functionName);
-    if (shortIdentifier.contains("add")) {
-      return BinaryOperator.PLUS;
-    } else {
-      return BinaryOperator.MINUS;
-    }
+  public static BinaryOperator getOperator(String pFunctionName) {
+    checkState(functions.containsKey(pFunctionName));
+    return functions.get(pFunctionName).operator;
   }
 
   /**
@@ -122,17 +147,32 @@ public class BuiltinOverflowFunctions {
    * analyzed with this class.
    */
   public static boolean isBuiltinOverflowFunction(String pFunctionName) {
-    return possibleIdentifiers.contains(pFunctionName);
+    return functions.containsKey(pFunctionName);
   }
 
-  /**
-   * Check whether a given function is a known builtin function specific to overflows, but which is
-   * not yet supported by this class.
-   */
-  public static boolean isUnsupportedBuiltinOverflowFunction(String pFunctionName) {
-    return pFunctionName.startsWith(PREFIX)
-        && pFunctionName.endsWith(SUFFIX)
-        && !possibleIdentifiers.contains(pFunctionName);
+  /* Functions without prefix and suffix have arbitrary argument types */
+  public static boolean isFunctionWithArbitraryArgumentTypes(String pFunctionName) {
+    checkState(functions.containsKey(pFunctionName));
+    return !functions.get(pFunctionName).type.isPresent();
+  }
+
+  public static boolean isFunctionWithoutSideEffect(String pFunctionName) {
+    checkState(functions.containsKey(pFunctionName));
+    return functions.get(pFunctionName).hasNoSideEffects;
+  }
+
+  public static List<CType> getParameterTypes(String pFunctionName) {
+    checkState(functions.containsKey(pFunctionName));
+    Optional<CSimpleType> type = functions.get(pFunctionName).type;
+
+    if (type.isPresent()) {
+      return ImmutableList.of(
+          type.orElseThrow(),
+          type.orElseThrow(),
+          new CPointerType(false, false, type.orElseThrow()));
+    } else {
+      return ImmutableList.of();
+    }
   }
 
   /**
@@ -142,29 +182,148 @@ public class BuiltinOverflowFunctions {
    * @throws UnrecognizedCodeException when building the result fails due to unrecognized code
    */
   public static CExpression handleOverflow(
-      OverflowAssumptionManager ofmgr, CExpression var1, CExpression var2, String pFunctionName)
+      OverflowAssumptionManager ofmgr,
+      CExpression var1,
+      CExpression var2,
+      CExpression var3,
+      String pFunctionName)
       throws UnrecognizedCodeException {
-    // TODO: make this more efficient (but probably not worth the effort):
-    checkState(possibleIdentifiers.contains(pFunctionName));
-    CSimpleType type = getType(pFunctionName);
+    checkState(functions.containsKey(pFunctionName));
+    CSimpleType targetType = getTargetType(pFunctionName, var3);
     BinaryOperator operator = getOperator(pFunctionName);
-    CExpression castedVar1 = new CCastExpression(FileLocation.DUMMY, type, var1);
-    CExpression castedVar2 = new CCastExpression(FileLocation.DUMMY, type, var2);
-    return ofmgr.getConjunctionOfAdditiveAssumptions(
-        castedVar1, castedVar2, operator, type, true);
+    CExpression castedVar1 = var1;
+    CExpression castedVar2 = var2;
+    if (!isFunctionWithArbitraryArgumentTypes(pFunctionName)) {
+      castedVar1 = new CCastExpression(FileLocation.DUMMY, targetType, var1);
+      castedVar2 = new CCastExpression(FileLocation.DUMMY, targetType, var2);
+    }
+
+    CExpression result;
+    if (operator == BinaryOperator.MULTIPLY) {
+      result =
+          ofmgr.getConjunctionOfMultiplicationAssumptions(castedVar1, castedVar2, targetType, true);
+    } else {
+      result =
+          ofmgr.getConjunctionOfAdditiveAssumptions(
+              castedVar1, castedVar2, operator, targetType, true);
+    }
+
+    return new CCastExpression(FileLocation.DUMMY, CNumericTypes.BOOL, result);
   }
 
   public static CExpression handleOverflowSideeffects(
-      OverflowAssumptionManager ofmgr, CExpression var1, CExpression var2, String pFunctionName)
+      OverflowAssumptionManager ofmgr,
+      CExpression var1,
+      CExpression var2,
+      CExpression var3,
+      String pFunctionName)
       throws UnrecognizedCodeException {
-    // TODO: make this more efficient (but probably not worth the effort):
-    checkState(possibleIdentifiers.contains(pFunctionName));
-    // TODO: remove code duplication between handleOverflowSideeffects and handleOverflow
-    String shortIdentifier = getShortIdentifiers(pFunctionName);
-    CSimpleType type = getType(shortIdentifier);
-    BinaryOperator operator = getOperator(shortIdentifier);
-    CExpression castedVar1 = new CCastExpression(FileLocation.DUMMY, type, var1);
-    CExpression castedVar2 = new CCastExpression(FileLocation.DUMMY, type, var2);
-    return ofmgr.getResultOfAdditiveOperation(castedVar1, castedVar2, operator);
+    checkState(functions.containsKey(pFunctionName));
+    CSimpleType targetType = getTargetType(pFunctionName, var3);
+    BinaryOperator operator = getOperator(pFunctionName);
+    CExpression castedVar1 = new CCastExpression(FileLocation.DUMMY, targetType, var1);
+    CExpression castedVar2 = new CCastExpression(FileLocation.DUMMY, targetType, var2);
+    return ofmgr.getResultOfOperation(castedVar1, castedVar2, operator);
+  }
+
+  private static CSimpleType getTargetType(String pFunctionName, CExpression thirdArgument) {
+    if (!isFunctionWithArbitraryArgumentTypes(pFunctionName)) {
+      return getType(pFunctionName).orElseThrow();
+    }
+
+    CType targetType = thirdArgument.getExpressionType().getCanonicalType();
+    if (targetType instanceof CPointerType) {
+      targetType = ((CPointerType) targetType).getType();
+    }
+    return (CSimpleType) targetType;
+  }
+
+  /*
+   * Calcualtes the result of a builtin overflow function (e.g. for value analysis). The arguments are converted to respective
+   * types (if necessary), the result of the operation is computed with infinite precision, and the
+   * overflow is determined by casting to the type of the third parameter.
+   */
+  public static Value evaluateFunctionCall(
+      CFunctionCallExpression functionCallExpression,
+      AbstractExpressionValueVisitor evv,
+      MachineModel machineModel,
+      LogManagerWithoutDuplicates logger)
+      throws UnrecognizedCodeException {
+    CExpression nameExpressionOfCalledFunc = functionCallExpression.getFunctionNameExpression();
+    if (nameExpressionOfCalledFunc instanceof AIdExpression) {
+      String nameOfCalledFunc = ((CIdExpression) nameExpressionOfCalledFunc).getName();
+      if (isBuiltinOverflowFunction(nameOfCalledFunc)) {
+        List<CExpression> parameters = functionCallExpression.getParameterExpressions();
+        if (parameters.size() == 3) {
+          Value firstParameterValue =
+              evv.evaluate(parameters.get(0), parameters.get(0).getExpressionType());
+          Value secondParameterValue =
+              evv.evaluate(parameters.get(1), parameters.get(1).getExpressionType());
+          CSimpleType resultType = getTargetType(nameOfCalledFunc, parameters.get(2));
+
+          if (resultType.getType().isIntegerType()
+              && firstParameterValue.isExplicitlyKnown()
+              && secondParameterValue.isExplicitlyKnown()) {
+            // cast arguments to matching values
+            if (!isFunctionWithArbitraryArgumentTypes(nameOfCalledFunc)) {
+              firstParameterValue =
+                  AbstractExpressionValueVisitor.castCValue(
+                      firstParameterValue,
+                      resultType,
+                      machineModel,
+                      logger,
+                      functionCallExpression.getFileLocation());
+              secondParameterValue =
+                  AbstractExpressionValueVisitor.castCValue(
+                      secondParameterValue,
+                      resultType,
+                      machineModel,
+                      logger,
+                      functionCallExpression.getFileLocation());
+            }
+
+            // perform operation with infinite precision
+            BigInteger p1 = firstParameterValue.asNumericValue().bigInteger();
+            BigInteger p2 = secondParameterValue.asNumericValue().bigInteger();
+
+            BigInteger resultOfComputation;
+            BinaryOperator operator = getOperator(nameOfCalledFunc);
+            switch (operator) {
+              case PLUS:
+                resultOfComputation = p1.add(p2);
+                break;
+
+              case MINUS:
+                resultOfComputation = p1.subtract(p2);
+                break;
+              case MULTIPLY:
+                resultOfComputation = p1.multiply(p2);
+                break;
+              default:
+                throw new UnrecognizedCodeException(
+                    "Can not determine operator of function " + nameOfCalledFunc, null, null);
+            }
+
+            // cast result type of third parameter
+            Value resultValue = new NumericValue(resultOfComputation);
+            resultValue =
+                AbstractExpressionValueVisitor.castCValue(
+                    resultValue,
+                    resultType,
+                    machineModel,
+                    logger,
+                    functionCallExpression.getFileLocation());
+
+            if (resultValue.asNumericValue().bigInteger().equals(resultOfComputation)) {
+              return new NumericValue(0);
+            } else {
+              return new NumericValue(1);
+            }
+          }
+        }
+      }
+    }
+
+    return Value.UnknownValue.getInstance();
   }
 }

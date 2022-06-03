@@ -8,13 +8,11 @@
 
 package org.sosy_lab.cpachecker.util.slicing;
 
-
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Multimap;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
@@ -49,7 +47,7 @@ public class SyntaxExtractor implements SlicingCriteriaExtractor {
 
   @Option(secure = true, name = "conditionFile", description = "path to condition file")
   @FileOption(FileOption.Type.REQUIRED_INPUT_FILE)
-  private Path conditionFile = Paths.get("output/AssumptionAutomaton.txt");
+  private Path conditionFile = Path.of("output/AssumptionAutomaton.txt");
 
   private final Automaton condition;
 

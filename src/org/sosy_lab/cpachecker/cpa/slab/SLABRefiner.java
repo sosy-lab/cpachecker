@@ -15,6 +15,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Optional;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -64,21 +65,22 @@ public class SLABRefiner implements Refiner, StatisticsProvider {
     slabCpa = pSlabCpa;
     argLogger = new ARGLogger(config, slabCpa.getLogger());
     solver = slabCpa.getPredicateCpa().getSolver();
-
   }
 
-  public static Refiner create(ConfigurableProgramAnalysis pCpa) throws InvalidConfigurationException {
+  public static Refiner create(ConfigurableProgramAnalysis pCpa)
+      throws InvalidConfigurationException {
     PredicateCPA predicateCpa = CPAs.retrieveCPA(pCpa, PredicateCPA.class);
     SLABCPA argCpa = CPAs.retrieveCPA(pCpa, SLABCPA.class);
     if (predicateCpa == null) {
-      throw new InvalidConfigurationException(SlicingAbstractionsRefiner.class.getSimpleName() + " needs a PredicateCPA");
+      throw new InvalidConfigurationException(
+          SlicingAbstractionsRefiner.class.getSimpleName() + " needs a PredicateCPA");
     }
 
     RefinementStrategy strategy =
         new SlicingAbstractionsStrategy(predicateCpa, predicateCpa.getConfiguration());
 
     PredicateCPARefinerFactory factory = new PredicateCPARefinerFactory(pCpa);
-    ARGBasedRefiner refiner =  factory.create(strategy);
+    ARGBasedRefiner refiner = factory.create(strategy);
     return new SLABRefiner(refiner, argCpa, predicateCpa.getConfiguration());
   }
 
@@ -98,13 +100,11 @@ public class SLABRefiner implements Refiner, StatisticsProvider {
       initialSliceDone = true;
     }
 
-    // TODO: Refactor CPAchecker to only use one kind of "Optional"!
-    com.google.common.base.Optional<AbstractState> optionalTargetState;
     while (true) {
-
-      optionalTargetState = from(pReached).firstMatch(x -> ((SLARGState) x).isTarget());
+      Optional<AbstractState> optionalTargetState =
+          pReached.stream().filter(x -> ((SLARGState) x).isTarget()).findFirst();
       if (optionalTargetState.isPresent()) {
-        AbstractState targetState = optionalTargetState.get();
+        AbstractState targetState = optionalTargetState.orElseThrow();
         ARGPath errorPath = ARGUtils.getShortestPathTo((ARGState) targetState);
         ARGReachedSet reached = new ARGReachedSet(pReached, slabCpa);
         assert errorPath != null;
@@ -192,8 +192,8 @@ public class SLABRefiner implements Refiner, StatisticsProvider {
       } else {
         infeasible = false;
       }
-    } catch (SolverException  e){
-         throw new CPAException("Solver Failure", e);
+    } catch (SolverException e) {
+      throw new CPAException("Solver Failure", e);
     }
     return infeasible;
   }

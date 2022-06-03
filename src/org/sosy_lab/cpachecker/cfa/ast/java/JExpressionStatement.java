@@ -14,18 +14,18 @@ import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 /**
  * This class represents the expression statement AST node type.
  *
- * This kind of node is used to convert an expression
- * (Expression) into a statement (Statement) by wrapping it.
+ * <p>This kind of node is used to convert an expression (Expression) into a statement (Statement)
+ * by wrapping it.
  *
+ * <pre>
  * ExpressionStatement:
  *   StatementExpression ;
+ * </pre>
  *
- * Note that this class is only used for side effect free expressions.
- * For assignments with side effect free right hand sides,
- * we use {@link JExpressionAssignmentStatement}.
- * For method invocations we use {@link JMethodInvocationStatement}
- * And for method assignments, we use {@link JMethodInvocationAssignmentStatement}.
- *
+ * Note that this class is only used for side effect free expressions. For assignments with side
+ * effect free right hand sides, we use {@link JExpressionAssignmentStatement}. For method
+ * invocations we use {@link JMethodInvocationStatement} And for method assignments, we use {@link
+ * JMethodInvocationAssignmentStatement}.
  */
 public final class JExpressionStatement extends AExpressionStatement implements JStatement {
 

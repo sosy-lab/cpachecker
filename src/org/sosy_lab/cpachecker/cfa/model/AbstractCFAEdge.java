@@ -8,11 +8,10 @@
 
 package org.sosy_lab.cpachecker.cfa.model;
 
-
 import static com.google.common.base.Preconditions.checkNotNull;
 
-import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
+import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.AAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 
@@ -53,8 +52,8 @@ public abstract class AbstractCFAEdge implements CFAEdge {
   }
 
   @Override
-  public Optional<? extends AAstNode> getRawAST() {
-    return Optional.absent();
+  public Optional<AAstNode> getRawAST() {
+    return Optional.empty();
   }
 
   @Override
@@ -89,8 +88,12 @@ public abstract class AbstractCFAEdge implements CFAEdge {
 
   @Override
   public String toString() {
-    return getFileLocation() + ":\t" + getPredecessor() + " -{" +
-        getDescription().replaceAll("\n", " ") +
-        "}-> " + getSuccessor();
+    return getFileLocation()
+        + ":\t"
+        + getPredecessor()
+        + " -{"
+        + getDescription().replace('\n', ' ')
+        + "}-> "
+        + getSuccessor();
   }
 }

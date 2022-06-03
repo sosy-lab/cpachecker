@@ -8,15 +8,15 @@
 
 package org.sosy_lab.cpachecker.cpa.invariants.formula;
 
-
-
-public class IsLinearVisitor<T> implements ParameterizedNumeralFormulaVisitor<T, Variable<T>, Boolean> {
+public class IsLinearVisitor<T>
+    implements ParameterizedNumeralFormulaVisitor<T, Variable<T>, Boolean> {
 
   private final ContainsVarVisitor<T> containsVarVisitor = new ContainsVarVisitor<>();
 
   @Override
   public Boolean visit(Add<T> pAdd, Variable<T> pParameter) {
-    return pAdd.getSummand1().accept(this, pParameter) && pAdd.getSummand2().accept(this, pParameter);
+    return pAdd.getSummand1().accept(this, pParameter)
+        && pAdd.getSummand2().accept(this, pParameter);
   }
 
   @Override
@@ -62,7 +62,8 @@ public class IsLinearVisitor<T> implements ParameterizedNumeralFormulaVisitor<T,
   @Override
   public Boolean visit(Multiply<T> pMultiply, Variable<T> pParameter) {
     return !pMultiply.accept(containsVarVisitor, pParameter.getMemoryLocation())
-        && (pMultiply.getOperand1() instanceof Constant || pMultiply.getOperand2() instanceof Constant);
+        && (pMultiply.getOperand1() instanceof Constant
+            || pMultiply.getOperand2() instanceof Constant);
   }
 
   @Override
@@ -94,5 +95,4 @@ public class IsLinearVisitor<T> implements ParameterizedNumeralFormulaVisitor<T,
   public Boolean visit(Cast<T> pCast, Variable<T> pParameter) {
     return false;
   }
-
 }

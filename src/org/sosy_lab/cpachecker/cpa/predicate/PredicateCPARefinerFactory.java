@@ -42,17 +42,17 @@ public class PredicateCPARefinerFactory {
   @Option(secure = true, description = "slice block formulas, experimental feature!")
   private boolean sliceBlockFormulas = false;
 
-  @Option(secure = true, name="graphblockformulastrategy", description = "BlockFormulaStrategy for graph-like ARGs (e.g. Slicing Abstractions)")
+  @Option(
+      secure = true,
+      name = "graphblockformulastrategy",
+      description = "BlockFormulaStrategy for graph-like ARGs (e.g. Slicing Abstractions)")
   private boolean graphBlockFormulaStrategy = false;
 
   @Option(
-    secure = true,
-    description = "use heuristic to extract predicates from the CFA statically on first refinement"
-  )
+      secure = true,
+      description =
+          "use heuristic to extract predicates from the CFA statically on first refinement")
   private boolean performInitialStaticRefinement = false;
-
-  @Option(secure = true, description = "recompute block formula from ARG path edges")
-  private boolean recomputeBlockFormulas = false;
 
   private final PredicateCPA predicateCpa;
 
@@ -60,22 +60,24 @@ public class PredicateCPARefinerFactory {
 
   /**
    * Create a factory instance.
+   *
    * @param pCpa The CPA used for this whole analysis.
-   * @throws InvalidConfigurationException
-   *    If there is no PredicateCPA configured or if configuration is invalid.
+   * @throws InvalidConfigurationException If there is no PredicateCPA configured or if
+   *     configuration is invalid.
    */
   @SuppressWarnings("options")
   public PredicateCPARefinerFactory(ConfigurableProgramAnalysis pCpa)
       throws InvalidConfigurationException {
-    predicateCpa = CPAs.retrieveCPAOrFail(checkNotNull(pCpa), PredicateCPA.class, PredicateCPARefiner.class);
+    predicateCpa =
+        CPAs.retrieveCPAOrFail(checkNotNull(pCpa), PredicateCPA.class, PredicateCPARefiner.class);
     predicateCpa.getConfiguration().inject(this);
   }
 
   /**
-   * Ensure that {@link PredicateStaticRefiner} is not used.
-   * This is mostly useful for configurations where static refinements do not make sense,
-   * or a the predicate refiner is used as a helper for other refinements and should always
-   * generate interpolants.
+   * Ensure that {@link PredicateStaticRefiner} is not used. This is mostly useful for
+   * configurations where static refinements do not make sense, or a the predicate refiner is used
+   * as a helper for other refinements and should always generate interpolants.
+   *
    * @return this
    * @throws InvalidConfigurationException If static refinements are enabled by the configuration.
    */
@@ -90,8 +92,9 @@ public class PredicateCPARefinerFactory {
 
   /**
    * Let the refiners created by this factory instance use the given {@link BlockFormulaStrategy}.
-   * May be called only once, but does not need to be called
-   * (in this case the configuration will determine the used BlockFormulaStrategy).
+   * May be called only once, but does not need to be called (in this case the configuration will
+   * determine the used BlockFormulaStrategy).
+   *
    * @return this
    */
   public PredicateCPARefinerFactory setBlockFormulaStrategy(
@@ -102,8 +105,8 @@ public class PredicateCPARefinerFactory {
   }
 
   /**
-   * Create a {@link PredicateCPARefiner}.
-   * This factory can be reused afterwards.
+   * Create a {@link PredicateCPARefiner}. This factory can be reused afterwards.
+   *
    * @param pRefinementStrategy The refinement strategy to use.
    * @return A fresh instance.
    */
@@ -126,9 +129,9 @@ public class PredicateCPARefinerFactory {
     PredicateCPAInvariantsManager invariantsManager = predicateCpa.getInvariantsManager();
 
     PrefixProvider prefixProvider =
-        new PredicateBasedPrefixProvider(
-            config, logger, solver, predicateCpa.getPathFormulaManager(), shutdownNotifier);
-    PrefixSelector prefixSelector = new PrefixSelector(variableClassification, loopStructure);
+        new PredicateBasedPrefixProvider(config, logger, solver, shutdownNotifier);
+    PrefixSelector prefixSelector =
+        new PrefixSelector(variableClassification, loopStructure, logger);
 
     InterpolationManager interpolationManager =
         new InterpolationManager(
@@ -150,8 +153,6 @@ public class PredicateCPARefinerFactory {
         bfs = new BlockFormulaSlicer(pfmgr);
       } else if (graphBlockFormulaStrategy) {
         bfs = new SlicingAbstractionsBlockFormulaStrategy(solver, config, pfmgr);
-      } else if (recomputeBlockFormulas) {
-        bfs = new RecomputeBlockFormulaStrategy(pfmgr);
       } else {
         bfs = new BlockFormulaStrategy();
       }

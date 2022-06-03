@@ -9,11 +9,10 @@
 package org.sosy_lab.cpachecker.cfa.types.c;
 
 /**
- * Enum for the possible storage classes of C declarations.
- * REGISTER is missing because it is semantically equal to AUTO.
+ * Enum for the possible storage classes of C declarations. REGISTER is missing because it is
+ * semantically equal to AUTO.
  */
 public enum CStorageClass {
-
   AUTO,
   STATIC,
   EXTERN,

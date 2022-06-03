@@ -25,6 +25,7 @@ import java.util.Set;
 import java.util.logging.Level;
 import org.sosy_lab.common.io.IO;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.cfa.export.DOTBuilder;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -77,11 +78,12 @@ public class BlockToDotWriter {
     app.append("}");
   }
 
-  /** This function returns a structure which contains hierarchical dependencies between blocks.
-   * The returned Multimap contains the outer block (father) as key
-   * and the inner blocks (children) as values for the key.
-   * We assume, that for each pair of blocks the following conditions hold:
-   * a block is either completely part of the other block or there is nothing common in both blocks. */
+  /**
+   * This function returns a structure which contains hierarchical dependencies between blocks. The
+   * returned Multimap contains the outer block (father) as key and the inner blocks (children) as
+   * values for the key. We assume, that for each pair of blocks the following conditions hold: a
+   * block is either completely part of the other block or there is nothing common in both blocks.
+   */
   private Multimap<Block, Block> getHierarchy() {
 
     // sort blocks, largest blocks first
@@ -90,13 +92,16 @@ public class BlockToDotWriter {
         sortedBlocks,
         Comparator.<Block>comparingInt((block) -> block.getNodes().size()).reversed());
 
-    // build hierarchy, worst case runtime O(n^2), iff mainBlock contains all other blocks 'directly'.
+    // build hierarchy, worst case runtime O(n^2), iff mainBlock contains all other blocks
+    // 'directly'.
     final Multimap<Block, Block> hierarchy = LinkedHashMultimap.create();
     while (!sortedBlocks.isEmpty()) {
       // get smallest block and then the smallest outer block, that contains it
       Block currentBlock = sortedBlocks.remove(sortedBlocks.size() - 1); // get smallest block,
-      for (Block possibleOuterBlock : Lists.reverse(sortedBlocks)) { // order is important, smallest first
-        // trick: we know, iff one node is contained in outer block, all nodes must be contained. So we check only one.
+      for (Block possibleOuterBlock :
+          Lists.reverse(sortedBlocks)) { // order is important, smallest first
+        // trick: we know, iff one node is contained in outer block, all nodes must be contained. So
+        // we check only one.
         if (possibleOuterBlock.getNodes().contains(currentBlock.getNodes().iterator().next())) {
           hierarchy.put(possibleOuterBlock, currentBlock);
           break;
@@ -104,28 +109,33 @@ public class BlockToDotWriter {
       }
     }
 
-    assert hierarchy.values().size() <= blockPartitioning.getBlocks().size() - 1 :
-            "all blocks except mainBlock might appear at most once as child.";
-            // there might also be blocks, that are not part of the hierarchy, for example unused functions.
+    assert hierarchy.values().size() <= blockPartitioning.getBlocks().size() - 1
+        : "all blocks except mainBlock might appear at most once as child.";
+    // there might also be blocks, that are not part of the hierarchy, for example unused functions.
 
     return hierarchy;
   }
 
   /** Dump the current block and all innerblocks of it. */
-  private void dumpBlock(final Appendable app, final Set<CFANode> finished,
-                         final Block block, final Multimap<Block, Block> hierarchy,
-                         final List<CFAEdge> edges, final int depth) throws IOException {
+  private void dumpBlock(
+      final Appendable app,
+      final Set<CFANode> finished,
+      final Block block,
+      final Multimap<Block, Block> hierarchy,
+      final List<CFAEdge> edges,
+      final int depth)
+      throws IOException {
     // todo use some block-identifier instead of index as blockname?
     final String blockname =
         block.equals(blockPartitioning.getMainBlock()) ? "main_block" : "block_" + blockIndex++;
     app.append("subgraph cluster_" + blockname + " {\n");
     app.append("style=filled\n");
-    app.append("fillcolor=" + (depth%2 == 0 ? "white" : "lightgrey") + "\n");
+    app.append("fillcolor=" + (depth % 2 == 0 ? "white" : "lightgrey") + "\n");
     app.append("label=\"" + blockname + "\"\n");
 
     // dump inner blocks
     for (Block innerBlock : hierarchy.get(block)) {
-      dumpBlock(app, finished, innerBlock, hierarchy, edges, depth+1);
+      dumpBlock(app, finished, innerBlock, hierarchy, edges, depth + 1);
     }
 
     // - dump nodes, that are in current block and not in inner blocks
@@ -160,7 +170,8 @@ public class BlockToDotWriter {
     String shape = "";
     if (node.isLoopStart()) {
       shape = "shape=doubleoctagon ";
-    } else if (node.getNumLeavingEdges() > 0 && node.getLeavingEdge(0).getEdgeType() == CFAEdgeType.AssumeEdge) {
+    } else if (node.getNumLeavingEdges() > 0
+        && node.getLeavingEdge(0).getEdgeType() == CFAEdgeType.AssumeEdge) {
       shape = "shape=diamond ";
     }
 
@@ -168,21 +179,17 @@ public class BlockToDotWriter {
     return node.getNodeNumber() + " [" + shape + label + color + "]\n";
   }
 
-  /** method copied from <ode>org.sosy_lab.cpachecker.cfa.export.DOTBuilder.DotGenerator#formatEdge</code> */
+  /**
+   * method copied from <ode>org.sosy_lab.cpachecker.cfa.export.DOTBuilder.DotGenerator#formatEdge
+   * </code>
+   */
   private static String formatEdge(CFAEdge edge) {
     StringBuilder sb = new StringBuilder();
     sb.append(edge.getPredecessor().getNodeNumber());
     sb.append(" -> ");
     sb.append(edge.getSuccessor().getNodeNumber());
     sb.append(" [label=\"");
-
-    //the first call to replaceAll replaces \" with \ " to prevent a bug in dotty.
-    //future updates of dotty may make this obsolete.
-    sb.append(edge.getDescription()
-            .replaceAll("\\Q\\\"\\E", "\\ \"")
-            .replaceAll("\\\"", "\\\\\\\"")
-            .replaceAll("\n", " "));
-
+    sb.append(DOTBuilder.escapeGraphvizLabel(edge.getDescription(), " "));
     sb.append("\"");
     if (edge instanceof FunctionSummaryEdge) {
       sb.append(" style=\"dotted\" arrowhead=\"empty\"");

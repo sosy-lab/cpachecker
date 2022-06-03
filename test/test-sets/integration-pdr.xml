@@ -26,10 +26,16 @@ SPDX-License-Identifier: Apache-2.0
   <tasks>
     <includesfile>../programs/simple/simple.set</includesfile>
     <propertyfile>../config/properties/unreach-label.prp</propertyfile>
+    <exclude>../programs/simple/integer_vs_reals.yml</exclude> <!-- flapping timeout -->
   </tasks>
   <tasks>
     <includesfile>../programs/simple/simple.set</includesfile>
     <propertyfile>../config/properties/unreach-call.prp</propertyfile>
+  </tasks>
+  <tasks>
+    <includesfile>../programs/simple/simple.set</includesfile>
+    <propertyfile>../config/Assertion.spc</propertyfile>
+    <exclude>../programs/simple/pointer_aliasing/deferred_allocation_*</exclude>
   </tasks>
 
   <tasks>
@@ -64,12 +70,15 @@ SPDX-License-Identifier: Apache-2.0
 
     <!-- Instable: sometimes timeout, sometimes not -->
     <exclude>../programs/benchmarks/loops/sum0*</exclude>
+    <exclude>../programs/benchmarks/loops/veris.c_NetBSD-libc_loop.yml</exclude> <!-- flapping timeout -->
     <exclude>../programs/benchmarks/loop-acceleration/diamond_*</exclude>
-    <exclude>../programs/benchmarks/loop-lit/cggmp2005_*</exclude>
+    <exclude>../programs/benchmarks/loop-lit/*</exclude> <!-- mostly timeouts -->
+    <exclude>../programs/benchmarks/loop-invgen/apache-get-tag.i.p+sep-reducer.yml</exclude> <!-- flapping timeout -->
     <exclude>../programs/benchmarks/loop-invgen/id_build.yml</exclude> <!-- flapping timeout -->
     <exclude>../programs/benchmarks/loop-invariants/linear-inequality-inv-b.yml</exclude> <!-- flapping timeout -->
     <exclude>../programs/benchmarks/loops-crafted-1/*</exclude> <!-- only timeouts -->
     <exclude>../programs/benchmarks/nla-digbench/*</exclude> <!-- only timeouts -->
+    <exclude>../programs/benchmarks/nla-digbench-scaling/*</exclude> <!-- mostly timeouts -->
 
     <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
     <!-- SV-Comp files assume that malloc always succeeds -->

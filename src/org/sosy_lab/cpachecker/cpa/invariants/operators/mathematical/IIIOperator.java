@@ -22,13 +22,13 @@ enum IIIOperator implements Operator<SimpleInterval, SimpleInterval, SimpleInter
   ADD {
 
     /**
-     * Computes the interval of possible results from adding any value of
-     * the first operand interval to any value of the second operand interval <code>pInterval</code>.
+     * Computes the interval of possible results from adding any value of the first operand interval
+     * to any value of the second operand interval <code>pInterval</code>.
      *
      * @param pOperand1 the values of the first operand.
      * @param pOperand2 the values to add to any of the values of the first operand interval.
-     * @return the interval of possible results from adding any value of
-     * the first operand interval to any value of the second operand interval <code>pInterval</code>.
+     * @return the interval of possible results from adding any value of the first operand interval
+     *     to any value of the second operand interval <code>pInterval</code>.
      */
     @Override
     public SimpleInterval apply(SimpleInterval pOperand1, SimpleInterval pOperand2) {
@@ -70,30 +70,26 @@ enum IIIOperator implements Operator<SimpleInterval, SimpleInterval, SimpleInter
       }
       return IntervalHelper.ofNullableBounds(lowerBound, upperBound);
     }
-
   },
 
   DIVIDE {
 
     /**
-     * Calculates a superset of the possible results from dividing any value
-     * of the first operand interval by any of values in the second operand
-     * interval.
+     * Calculates a superset of the possible results from dividing any value of the first operand
+     * interval by any of values in the second operand interval.
      *
-     * This will return <code>null</code> if any only if the second operand
-     * interval is [0,0] (a singleton interval of the value 0).
+     * <p>This will return <code>null</code> if any only if the second operand interval is [0,0] (a
+     * singleton interval of the value 0).
      *
-     * @param pFirstOperand the interval to divide by the second operand
-     * interval.
-     * @param pSecondOperand the values to divide the values of the first
-     * operand interval by.
-     * @return a superset of the possible results from dividing any value of
-     * the first operand interval by the values of the second operand
-     * interval or <code>null</code> if <code>pSecondOperand</code> is a
-     * singleton interval of the value 0.
+     * @param pFirstOperand the interval to divide by the second operand interval.
+     * @param pSecondOperand the values to divide the values of the first operand interval by.
+     * @return a superset of the possible results from dividing any value of the first operand
+     *     interval by the values of the second operand interval or <code>null</code> if <code>
+     *     pSecondOperand</code> is a singleton interval of the value 0.
      */
     @Override
-    public @Nullable SimpleInterval apply(SimpleInterval pFirstOperand, SimpleInterval pSecondOperand) {
+    public @Nullable SimpleInterval apply(
+        SimpleInterval pFirstOperand, SimpleInterval pSecondOperand) {
       if (pSecondOperand.isSingleton()) {
         return ISIOperator.DIVIDE.apply(pFirstOperand, pSecondOperand.getLowerBound());
       }
@@ -117,7 +113,8 @@ enum IIIOperator implements Operator<SimpleInterval, SimpleInterval, SimpleInter
         if (pFirstOperand.containsPositive()) {
           if (pSecondOperand.containsPositive()) {
             // e.g. in [2,4] / [0,2] we want 4/1 as the upper bound
-            upperBound = pFirstOperand.getUpperBound().divide(pSecondOperand.closestPositiveToZero());
+            upperBound =
+                pFirstOperand.getUpperBound().divide(pSecondOperand.closestPositiveToZero());
           } else {
             // e.g. in [2,4] / [-2,-1] we want 2/(-2) as the upper bound
             if (!pSecondOperand.hasLowerBound()) {
@@ -136,7 +133,8 @@ enum IIIOperator implements Operator<SimpleInterval, SimpleInterval, SimpleInter
             }
           } else {
             // e.g. in [-4,-2] / [-2,-1] we want -4/(-1) as the upper bound
-            upperBound = pFirstOperand.getLowerBound().divide(pSecondOperand.closestNegativeToZero());
+            upperBound =
+                pFirstOperand.getLowerBound().divide(pSecondOperand.closestNegativeToZero());
           }
         }
       }
@@ -145,7 +143,8 @@ enum IIIOperator implements Operator<SimpleInterval, SimpleInterval, SimpleInter
         if (pFirstOperand.containsNegative()) {
           if (pSecondOperand.containsPositive()) {
             // e.g. in [-4,-2] / [1,2] we want -4/1 as the lower bound
-            lowerBound = pFirstOperand.getLowerBound().divide(pSecondOperand.closestPositiveToZero());
+            lowerBound =
+                pFirstOperand.getLowerBound().divide(pSecondOperand.closestPositiveToZero());
           } else {
             // e.g. in [-4,-2] / [1,2] we want -4/1 as the lower bound
             if (!pSecondOperand.hasLowerBound()) {
@@ -164,31 +163,29 @@ enum IIIOperator implements Operator<SimpleInterval, SimpleInterval, SimpleInter
             }
           } else {
             // e.g. in [2,4] / [-2,-1] we want 4/(-1) as the lower bound
-            lowerBound = pFirstOperand.getUpperBound().divide(pSecondOperand.closestNegativeToZero());
+            lowerBound =
+                pFirstOperand.getUpperBound().divide(pSecondOperand.closestNegativeToZero());
           }
         }
       }
       return IntervalHelper.ofNullableBounds(lowerBound, upperBound);
     }
-
   },
 
   MODULO {
 
     /**
-     * Computes a superset of the possible values resulting from calculating
-     * for any value <code>a</code> of the first operand interval and any
-     * value <code>b</code> of the second operand interval the operation
-     * <code>a%b</code>.
+     * Computes a superset of the possible values resulting from calculating for any value <code>a
+     * </code> of the first operand interval and any value <code>b</code> of the second operand
+     * interval the operation <code>a%b</code>.
      *
-     * @param pFirstOperand the first operand, which is an interval that
-     * contains the values to be divided by the second operand interval
-     * values.
-     * @param pSecondOperand the second operand interval which represents the
-     * range of modulo divisors.
-     * @return a superset of the possible results from calculating the modulo
-     * operation between any value of the first operand interval as numerators
-     * and any value of the second operand interval as divisors.
+     * @param pFirstOperand the first operand, which is an interval that contains the values to be
+     *     divided by the second operand interval values.
+     * @param pSecondOperand the second operand interval which represents the range of modulo
+     *     divisors.
+     * @return a superset of the possible results from calculating the modulo operation between any
+     *     value of the first operand interval as numerators and any value of the second operand
+     *     interval as divisors.
      */
     @Override
     public SimpleInterval apply(SimpleInterval pFirstOperand, SimpleInterval pSecondOperand) {
@@ -287,19 +284,18 @@ enum IIIOperator implements Operator<SimpleInterval, SimpleInterval, SimpleInter
       }
       return SimpleInterval.of(BigInteger.ZERO, resultUpperBound);
     }
-
   },
 
   MULTIPLY {
 
     /**
-     * Calculates a superset of the possible results obtained by multiplying
-     * any value of the first operand interval with any value of the second operand interval.
+     * Calculates a superset of the possible results obtained by multiplying any value of the first
+     * operand interval with any value of the second operand interval.
      *
      * @param pFirstOperand the values to multiply the values of the second operand interval with.
      * @param pSecondOperand the values to multiply the values of the first operand interval with.
-     * @return a superset of the possible results obtained by multiplying
-     * any value of the first operand interval with any value of the second operand interval.
+     * @return a superset of the possible results obtained by multiplying any value of the first
+     *     operand interval with any value of the second operand interval.
      */
     @Override
     public SimpleInterval apply(SimpleInterval pFirstOperand, SimpleInterval pSecondOperand) {
@@ -433,7 +429,9 @@ enum IIIOperator implements Operator<SimpleInterval, SimpleInterval, SimpleInter
           ubUb = pFirstOperand.getUpperBound().multiply(pUpperBound);
         }
       }
-      if (negInf && posInf) { return SimpleInterval.infinite(); }
+      if (negInf && posInf) {
+        return SimpleInterval.infinite();
+      }
       // Find the lowest and highest extremes
       BigInteger lowerBound = min(min(lbLb, lbUb), min(ubLb, ubUb));
       BigInteger upperBound = max(max(lbLb, lbUb), max(ubLb, ubUb));
@@ -446,23 +444,21 @@ enum IIIOperator implements Operator<SimpleInterval, SimpleInterval, SimpleInter
       }
       return result;
     }
-
   },
 
   SHIFT_LEFT {
 
     /**
-     * Computes an interval representing a superset of the possible values
-     * of left-shifting any value contained in the first operand interval by
-     * any value of the second operand interval.
+     * Computes an interval representing a superset of the possible values of left-shifting any
+     * value contained in the first operand interval by any value of the second operand interval.
      *
-     * @param pFirstOperand the first operand simple interval containing the
-     * values to be shifted by the second operand simple interval.
-     * @param pSecondOperand the range of values to shift the values of the
-     * first operand simple interval by.
-     * @return an interval representing a superset of the possible values
-     * of left-shifting any value contained in the first operand simple
-     * interval by any value of the second operand simple interval.
+     * @param pFirstOperand the first operand simple interval containing the values to be shifted by
+     *     the second operand simple interval.
+     * @param pSecondOperand the range of values to shift the values of the first operand simple
+     *     interval by.
+     * @return an interval representing a superset of the possible values of left-shifting any value
+     *     contained in the first operand simple interval by any value of the second operand simple
+     *     interval.
      */
     @Override
     public SimpleInterval apply(SimpleInterval pFirstOperand, SimpleInterval pSecondOperand) {
@@ -490,8 +486,11 @@ enum IIIOperator implements Operator<SimpleInterval, SimpleInterval, SimpleInter
        * interval by that part and include the result in the overall result.
        */
       if (pSecondOperand.containsNegative()) {
-        SimpleInterval negPart = pSecondOperand.intersectWith(SimpleInterval.singleton(BigInteger.ONE.negate()).extendToNegativeInfinity());
-        SimpleInterval negPartResult = IIIOperator.SHIFT_RIGHT.apply(pFirstOperand, negPart.negate());
+        SimpleInterval negPart =
+            pSecondOperand.intersectWith(
+                SimpleInterval.singleton(BigInteger.ONE.negate()).extendToNegativeInfinity());
+        SimpleInterval negPartResult =
+            IIIOperator.SHIFT_RIGHT.apply(pFirstOperand, negPart.negate());
         result = result == null ? negPartResult : SimpleInterval.span(result, negPartResult);
       }
       /*
@@ -501,10 +500,16 @@ enum IIIOperator implements Operator<SimpleInterval, SimpleInterval, SimpleInter
        * in the overall result.
        */
       if (pSecondOperand.containsPositive()) {
-        SimpleInterval posPart = pSecondOperand.intersectWith(SimpleInterval.singleton(BigInteger.ONE).extendToPositiveInfinity());
-        SimpleInterval posPartResult = ISIOperator.SHIFT_LEFT.apply(pFirstOperand, posPart.getLowerBound());
+        SimpleInterval posPart =
+            pSecondOperand.intersectWith(
+                SimpleInterval.singleton(BigInteger.ONE).extendToPositiveInfinity());
+        SimpleInterval posPartResult =
+            ISIOperator.SHIFT_LEFT.apply(pFirstOperand, posPart.getLowerBound());
         if (posPart.hasUpperBound()) {
-          posPartResult = SimpleInterval.span(posPartResult, ISIOperator.SHIFT_LEFT.apply(pFirstOperand, posPart.getUpperBound()));
+          posPartResult =
+              SimpleInterval.span(
+                  posPartResult,
+                  ISIOperator.SHIFT_LEFT.apply(pFirstOperand, posPart.getUpperBound()));
         } else {
           // Left shifting by infinitely large values results in infinity.
           if (pFirstOperand.containsPositive()) {
@@ -518,23 +523,21 @@ enum IIIOperator implements Operator<SimpleInterval, SimpleInterval, SimpleInter
       }
       return result;
     }
-
   },
 
   SHIFT_RIGHT {
 
     /**
-     * Computes an interval representing a superset of the possible values
-     * of right-shifting any value contained in the first operand simple
-     * interval by any value of the second operand simple interval.
+     * Computes an interval representing a superset of the possible values of right-shifting any
+     * value contained in the first operand simple interval by any value of the second operand
+     * simple interval.
      *
-     * @param pFirstOperand the simple interval containing the values to be
-     * right shifted.
-     * @param pSecondOperand the range of values to shift the values of the first
-     * operator interval by.
-     * @return an interval representing a superset of the possible values
-     * of right-shifting any value contained in the first operand simple
-     * interval by any value of the second operand simple interval.
+     * @param pFirstOperand the simple interval containing the values to be right shifted.
+     * @param pSecondOperand the range of values to shift the values of the first operator interval
+     *     by.
+     * @return an interval representing a superset of the possible values of right-shifting any
+     *     value contained in the first operand simple interval by any value of the second operand
+     *     simple interval.
      */
     @Override
     public SimpleInterval apply(SimpleInterval pFirstOperand, SimpleInterval pSecondOperand) {
@@ -562,8 +565,11 @@ enum IIIOperator implements Operator<SimpleInterval, SimpleInterval, SimpleInter
        * interval by that part and include the result in the overall result.
        */
       if (pSecondOperand.containsNegative()) {
-        SimpleInterval negPart = pSecondOperand.intersectWith(SimpleInterval.singleton(BigInteger.ONE.negate()).extendToNegativeInfinity());
-        SimpleInterval negPartResult = IIIOperator.SHIFT_LEFT.apply(pFirstOperand, negPart.negate());
+        SimpleInterval negPart =
+            pSecondOperand.intersectWith(
+                SimpleInterval.singleton(BigInteger.ONE.negate()).extendToNegativeInfinity());
+        SimpleInterval negPartResult =
+            IIIOperator.SHIFT_LEFT.apply(pFirstOperand, negPart.negate());
         result = result == null ? negPartResult : SimpleInterval.span(result, negPartResult);
       }
       /*
@@ -573,23 +579,29 @@ enum IIIOperator implements Operator<SimpleInterval, SimpleInterval, SimpleInter
        * in the overall result.
        */
       if (pSecondOperand.containsPositive()) {
-        SimpleInterval posPart = pSecondOperand.intersectWith(SimpleInterval.singleton(BigInteger.ONE).extendToPositiveInfinity());
+        SimpleInterval posPart =
+            pSecondOperand.intersectWith(
+                SimpleInterval.singleton(BigInteger.ONE).extendToPositiveInfinity());
         /*
          * Shift this interval by the lower bound, then by the upper bound of
          * the positive part and combine the results.
          */
-        SimpleInterval posPartResult = ISIOperator.SHIFT_RIGHT.apply(pFirstOperand, posPart.getLowerBound());
+        SimpleInterval posPartResult =
+            ISIOperator.SHIFT_RIGHT.apply(pFirstOperand, posPart.getLowerBound());
         if (posPart.hasUpperBound()) {
-          posPartResult = SimpleInterval.span(posPartResult, ISIOperator.SHIFT_RIGHT.apply(pFirstOperand, posPart.getUpperBound()));
+          posPartResult =
+              SimpleInterval.span(
+                  posPartResult,
+                  ISIOperator.SHIFT_RIGHT.apply(pFirstOperand, posPart.getUpperBound()));
         } else {
           // Shifting by infinitely large values will result in zero.
-          posPartResult = SimpleInterval.span(posPartResult, SimpleInterval.singleton(BigInteger.ZERO));
+          posPartResult =
+              SimpleInterval.span(posPartResult, SimpleInterval.singleton(BigInteger.ZERO));
         }
         result = result == null ? posPartResult : SimpleInterval.span(result, posPartResult);
       }
       return result;
     }
-
   };
 
   /**
@@ -597,22 +609,20 @@ enum IIIOperator implements Operator<SimpleInterval, SimpleInterval, SimpleInter
    *
    * @param pFirstOperand the first simple interval operand to apply the operator to.
    * @param pSecondOperand the second simple interval operand to apply the operator to.
-   * @return the simple interval resulting from applying the first operand to the
-   * second operand.
+   * @return the simple interval resulting from applying the first operand to the second operand.
    */
   @Override
   public abstract SimpleInterval apply(SimpleInterval pFirstOperand, SimpleInterval pSecondOperand);
 
   /**
-   * If any of the given values is <code>null</code>,
-   * the other value is returned, otherwise the maximum is determined.
+   * If any of the given values is <code>null</code>, the other value is returned, otherwise the
+   * maximum is determined.
    *
    * @param first the first of the values to determine the maximum for. May be <code>null</code>.
    * @param second the second of the values to determine the maximum for. May be <code>null</code>.
-   * @return <code>null</code> if both given values are <code>null</code>,
-   * the first value if the second value is <code>null</code>,
-   * the second value if the first value is <code>null</code>,
-   * otherwise the maximum of the given values.
+   * @return <code>null</code> if both given values are <code>null</code>, the first value if the
+   *     second value is <code>null</code>, the second value if the first value is <code>null</code>
+   *     , otherwise the maximum of the given values.
    */
   private static @Nullable BigInteger max(@Nullable BigInteger first, @Nullable BigInteger second) {
     if (first == null) {
@@ -624,15 +634,14 @@ enum IIIOperator implements Operator<SimpleInterval, SimpleInterval, SimpleInter
   }
 
   /**
-   * If any of the given values is <code>null</code>,
-   * the other value is returned, otherwise the minimum is determined.
+   * If any of the given values is <code>null</code>, the other value is returned, otherwise the
+   * minimum is determined.
    *
    * @param first the first of the values to determine the minimum for. May be <code>null</code>.
    * @param second the second of the values to determine the minimum for. May be <code>null</code>.
-   * @return <code>null</code> if both given values are <code>null</code>,
-   * the first value if the second value is <code>null</code>,
-   * the second value if the first value is <code>null</code>,
-   * otherwise the minimum of the given values.
+   * @return <code>null</code> if both given values are <code>null</code>, the first value if the
+   *     second value is <code>null</code>, the second value if the first value is <code>null</code>
+   *     , otherwise the minimum of the given values.
    */
   private static @Nullable BigInteger min(@Nullable BigInteger first, @Nullable BigInteger second) {
     if (first == null) {
@@ -642,5 +651,4 @@ enum IIIOperator implements Operator<SimpleInterval, SimpleInterval, SimpleInter
     }
     return first.min(second);
   }
-
 }

@@ -38,7 +38,8 @@ public class DominatorTransferRelation extends SingleEdgeTransferRelation {
 
   @Override
   public Collection<DominatorState> getAbstractSuccessorsForEdge(
-    AbstractState element, Precision prec, CFAEdge cfaEdge) throws CPATransferException, InterruptedException {
+      AbstractState element, Precision prec, CFAEdge cfaEdge)
+      throws CPATransferException, InterruptedException {
 
     assert element instanceof DominatorState;
 

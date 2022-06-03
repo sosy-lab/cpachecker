@@ -12,7 +12,6 @@ import com.google.common.base.Preconditions;
 import com.google.common.base.Predicates;
 import com.google.common.collect.Iterables;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.Collection;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.ClassOption;
@@ -43,45 +42,46 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 public abstract class AbstractBAMCPA extends AbstractSingleWrapperCPA {
 
   @Option(
-    secure = true,
-    description =
-        "Type of partitioning (FunctionAndLoopPartitioning or DelayedFunctionAndLoopPartitioning)\n"
-            + "or any class that implements a PartitioningHeuristic"
-  )
+      secure = true,
+      description =
+          "Type of partitioning (FunctionAndLoopPartitioning or"
+              + " DelayedFunctionAndLoopPartitioning)\n"
+              + "or any class that implements a PartitioningHeuristic")
   @ClassOption(packagePrefix = "org.sosy_lab.cpachecker.cfa.blocks.builder")
   private PartitioningHeuristic.Factory blockHeuristic = FunctionAndLoopPartitioning::new;
 
   @Option(secure = true, description = "export blocks")
   @FileOption(FileOption.Type.OUTPUT_FILE)
-  private Path exportBlocksPath = Paths.get("block_cfa.dot");
+  private Path exportBlocksPath = Path.of("block_cfa.dot");
 
-  @Option(secure = true,
-      description = "This flag determines which precisions should be updated during refinement. "
-      + "We can choose between the minimum number of states and all states that are necessary "
-      + "to re-explore the program along the error-path.")
+  @Option(
+      secure = true,
+      description =
+          "This flag determines which precisions should be updated during refinement. We can choose"
+              + " between the minimum number of states and all states that are necessary to"
+              + " re-explore the program along the error-path.")
   private boolean doPrecisionRefinementForAllStates = false;
 
   @Option(
-    secure = true,
-    description =
-        "Heuristic: This flag determines which precisions should be updated during "
-            + "refinement. This flag also updates the precision of the most inner block."
-  )
+      secure = true,
+      description =
+          "Heuristic: This flag determines which precisions should be updated during "
+              + "refinement. This flag also updates the precision of the most inner block.")
   private boolean doPrecisionRefinementForMostInnerBlock = true;
 
   @Option(
       secure = true,
-      description = "In some cases BAM cache can not be easily applied. "
-          + "If the option is enabled CPAs can inform BAM that the result states should not be used"
-          + " even if there will a cache hit.")
+      description =
+          "In some cases BAM cache can not be easily applied. If the option is enabled CPAs can"
+              + " inform BAM that the result states should not be used even if there will a cache"
+              + " hit.")
   private boolean useDynamicAdjustment = false;
 
   @Option(
-    secure = true,
-    description =
-        "This flag determines which refinement procedure we should use. "
-            + "We can choose between an in-place refinement and a copy-on-write refinement."
-  )
+      secure = true,
+      description =
+          "This flag determines which refinement procedure we should use. "
+              + "We can choose between an in-place refinement and a copy-on-write refinement.")
   private boolean useCopyOnWriteRefinement = false;
 
   @Option(

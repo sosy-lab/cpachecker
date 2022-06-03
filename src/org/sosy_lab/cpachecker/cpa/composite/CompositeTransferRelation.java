@@ -73,12 +73,13 @@ final class CompositeTransferRelation implements WrapperTransferRelation {
   @Override
   public Collection<CompositeState> getAbstractSuccessors(
       AbstractState element, Precision precision)
-        throws CPATransferException, InterruptedException {
+      throws CPATransferException, InterruptedException {
     CompositeState compositeState = (CompositeState) element;
-    CompositePrecision compositePrecision = (CompositePrecision)precision;
+    CompositePrecision compositePrecision = (CompositePrecision) precision;
     Collection<CompositeState> results;
 
-    AbstractStateWithLocations locState = extractStateByType(compositeState, AbstractStateWithLocations.class);
+    AbstractStateWithLocations locState =
+        extractStateByType(compositeState, AbstractStateWithLocations.class);
     results = new ArrayList<>(2);
     if (locState == null) {
       getAbstractSuccessors(compositeState, compositePrecision, results);
@@ -98,7 +99,8 @@ final class CompositeTransferRelation implements WrapperTransferRelation {
       throws CPATransferException, InterruptedException {
     int resultCount = 1;
     List<AbstractState> componentElements = pCompositeState.getWrappedStates();
-    checkArgument(componentElements.size() == size, "State with wrong number of component states given");
+    checkArgument(
+        componentElements.size() == size, "State with wrong number of component states given");
     List<Collection<? extends AbstractState>> allComponentsSuccessors = new ArrayList<>(size);
 
     // first, call all the post operators
@@ -129,9 +131,9 @@ final class CompositeTransferRelation implements WrapperTransferRelation {
   @Override
   public Collection<CompositeState> getAbstractSuccessorsForEdge(
       AbstractState element, Precision precision, CFAEdge cfaEdge)
-        throws CPATransferException, InterruptedException {
+      throws CPATransferException, InterruptedException {
     CompositeState compositeState = (CompositeState) element;
-    CompositePrecision compositePrecision = (CompositePrecision)precision;
+    CompositePrecision compositePrecision = (CompositePrecision) precision;
 
     Collection<CompositeState> results = new ArrayList<>(1);
     getAbstractSuccessorForSimpleEdge(compositeState, compositePrecision, cfaEdge, results);
@@ -139,16 +141,18 @@ final class CompositeTransferRelation implements WrapperTransferRelation {
     return results;
   }
 
-
-  private void getAbstractSuccessorForEdge(CompositeState compositeState, CompositePrecision compositePrecision, CFAEdge cfaEdge,
-      Collection<CompositeState> compositeSuccessors) throws CPATransferException, InterruptedException {
+  private void getAbstractSuccessorForEdge(
+      CompositeState compositeState,
+      CompositePrecision compositePrecision,
+      CFAEdge cfaEdge,
+      Collection<CompositeState> compositeSuccessors)
+      throws CPATransferException, InterruptedException {
 
     if (aggregateBasicBlocks) {
       final CFANode startNode = cfaEdge.getPredecessor();
 
       // dynamic multiEdges may be used if the following conditions apply
-      if (isValidMultiEdgeStart(startNode)
-          && isValidMultiEdgeComponent(cfaEdge)) {
+      if (isValidMultiEdgeStart(startNode) && isValidMultiEdgeComponent(cfaEdge)) {
 
         Collection<CompositeState> currentStates = new ArrayList<>(1);
         currentStates.add(compositeState);
@@ -157,7 +161,8 @@ final class CompositeTransferRelation implements WrapperTransferRelation {
           Collection<CompositeState> successorStates = new ArrayList<>(currentStates.size());
 
           for (CompositeState currentState : currentStates) {
-            getAbstractSuccessorForSimpleEdge(currentState, compositePrecision, cfaEdge, successorStates);
+            getAbstractSuccessorForSimpleEdge(
+                currentState, compositePrecision, cfaEdge, successorStates);
           }
 
           // if we found a target state in the current successors immediately return
@@ -183,29 +188,32 @@ final class CompositeTransferRelation implements WrapperTransferRelation {
         // no use for dynamic multi edges right now, just compute the successor
         // for the given edge
       } else {
-        getAbstractSuccessorForSimpleEdge(compositeState, compositePrecision, cfaEdge, compositeSuccessors);
+        getAbstractSuccessorForSimpleEdge(
+            compositeState, compositePrecision, cfaEdge, compositeSuccessors);
       }
 
     } else {
-      getAbstractSuccessorForSimpleEdge(compositeState, compositePrecision, cfaEdge, compositeSuccessors);
+      getAbstractSuccessorForSimpleEdge(
+          compositeState, compositePrecision, cfaEdge, compositeSuccessors);
     }
   }
 
   private boolean isValidMultiEdgeStart(CFANode node) {
-    return node.getNumLeavingEdges() == 1         // linear chain of edges
-        && node.getLeavingSummaryEdge() == null   // without a functioncall
-        && node.getNumEnteringEdges() > 0;        // without a functionstart
+    return node.getNumLeavingEdges() == 1 // linear chain of edges
+        && node.getLeavingSummaryEdge() == null // without a functioncall
+        && node.getNumEnteringEdges() > 0; // without a functionstart
   }
 
   /**
-   * This method checks if the given edge and its successor node are a valid
-   * component for a continuing dynamic MultiEdge.
+   * This method checks if the given edge and its successor node are a valid component for a
+   * continuing dynamic MultiEdge.
    */
   private boolean isValidMultiEdgeComponent(CFAEdge edge) {
-    boolean result = edge.getEdgeType() == CFAEdgeType.BlankEdge
-        || edge.getEdgeType() == CFAEdgeType.DeclarationEdge
-        || edge.getEdgeType() == CFAEdgeType.StatementEdge
-        || edge.getEdgeType() == CFAEdgeType.ReturnStatementEdge;
+    boolean result =
+        edge.getEdgeType() == CFAEdgeType.BlankEdge
+            || edge.getEdgeType() == CFAEdgeType.DeclarationEdge
+            || edge.getEdgeType() == CFAEdgeType.StatementEdge
+            || edge.getEdgeType() == CFAEdgeType.ReturnStatementEdge;
 
     CFANode nodeAfterEdge = edge.getSuccessor();
 
@@ -218,15 +226,15 @@ final class CompositeTransferRelation implements WrapperTransferRelation {
   }
 
   /**
-   * This method checks, if the given (statement) edge contains a function call
-   * directly or via a function pointer.
+   * This method checks, if the given (statement) edge contains a function call directly or via a
+   * function pointer.
    *
    * @param edge the edge to inspect
    * @return whether or not this edge contains a function call or not.
    */
   private boolean containsFunctionCall(CFAEdge edge) {
     if (edge.getEdgeType() == CFAEdgeType.StatementEdge) {
-      CStatementEdge statementEdge = (CStatementEdge)edge;
+      CStatementEdge statementEdge = (CStatementEdge) edge;
 
       if ((statementEdge.getStatement() instanceof CFunctionCall)) {
         CFunctionCall call = ((CFunctionCall) statementEdge.getStatement());
@@ -243,8 +251,12 @@ final class CompositeTransferRelation implements WrapperTransferRelation {
     return false;
   }
 
-  private void getAbstractSuccessorForSimpleEdge(CompositeState compositeState, CompositePrecision compositePrecision, CFAEdge cfaEdge,
-      Collection<CompositeState> compositeSuccessors) throws CPATransferException, InterruptedException {
+  private void getAbstractSuccessorForSimpleEdge(
+      CompositeState compositeState,
+      CompositePrecision compositePrecision,
+      CFAEdge cfaEdge,
+      Collection<CompositeState> compositeSuccessors)
+      throws CPATransferException, InterruptedException {
     assert cfaEdge != null;
 
     // first, call all the post operators
@@ -266,11 +278,13 @@ final class CompositeTransferRelation implements WrapperTransferRelation {
 
   private Collection<List<AbstractState>> callTransferRelation(
       final CompositeState compositeState,
-      final CompositePrecision compositePrecision, final CFAEdge cfaEdge)
-          throws CPATransferException, InterruptedException {
+      final CompositePrecision compositePrecision,
+      final CFAEdge cfaEdge)
+      throws CPATransferException, InterruptedException {
     int resultCount = 1;
     List<AbstractState> componentElements = compositeState.getWrappedStates();
-    checkArgument(componentElements.size() == size, "State with wrong number of component states given");
+    checkArgument(
+        componentElements.size() == size, "State with wrong number of component states given");
     List<Collection<? extends AbstractState>> allComponentsSuccessors = new ArrayList<>(size);
 
     for (int i = 0; i < size; i++) {
@@ -279,8 +293,9 @@ final class CompositeTransferRelation implements WrapperTransferRelation {
       Precision lCurrentPrecision = compositePrecision.get(i);
 
       Collection<? extends AbstractState> componentSuccessors;
-      componentSuccessors = lCurrentTransfer.getAbstractSuccessorsForEdge(
-          lCurrentElement, lCurrentPrecision, cfaEdge);
+      componentSuccessors =
+          lCurrentTransfer.getAbstractSuccessorsForEdge(
+              lCurrentElement, lCurrentPrecision, cfaEdge);
       resultCount *= componentSuccessors.size();
 
       if (resultCount == 0) {
@@ -297,8 +312,9 @@ final class CompositeTransferRelation implements WrapperTransferRelation {
 
   private Collection<List<AbstractState>> callStrengthen(
       final List<AbstractState> reachedState,
-      final CompositePrecision compositePrecision, final CFAEdge cfaEdge)
-          throws CPATransferException, InterruptedException {
+      final CompositePrecision compositePrecision,
+      final CFAEdge cfaEdge)
+      throws CPATransferException, InterruptedException {
     List<Collection<? extends AbstractState>> lStrengthenResults = new ArrayList<>(size);
     int resultCount = 1;
 
@@ -308,7 +324,8 @@ final class CompositeTransferRelation implements WrapperTransferRelation {
       AbstractState lCurrentElement = reachedState.get(i);
       Precision lCurrentPrecision = compositePrecision.get(i);
 
-      Collection<? extends AbstractState> lResultsList = lCurrentTransfer.strengthen(lCurrentElement, reachedState, cfaEdge, lCurrentPrecision);
+      Collection<? extends AbstractState> lResultsList =
+          lCurrentTransfer.strengthen(lCurrentElement, reachedState, cfaEdge, lCurrentPrecision);
 
       resultCount *= lResultsList.size();
       if (resultCount == 0) {
@@ -364,7 +381,8 @@ final class CompositeTransferRelation implements WrapperTransferRelation {
 
       for (List<AbstractState> strengthenedState : strengthenedStates) {
         if (any(strengthenedState, AbstractStates::isTargetState)) {
-          newStrengthenedStates.addAll(callStrengthen(strengthenedState, compositePrecision, cfaEdge));
+          newStrengthenedStates.addAll(
+              callStrengthen(strengthenedState, compositePrecision, cfaEdge));
         } else {
           newStrengthenedStates.add(strengthenedState);
         }
@@ -386,40 +404,43 @@ final class CompositeTransferRelation implements WrapperTransferRelation {
       List<Collection<? extends AbstractState>> allComponentsSuccessors, int resultCount) {
     Collection<List<AbstractState>> allResultingElements;
     switch (resultCount) {
-    case 0:
+      case 0:
         // at least one CPA decided that there is no successor
         allResultingElements = ImmutableSet.of();
-      break;
+        break;
 
-    case 1:
-      List<AbstractState> resultingElements = new ArrayList<>(allComponentsSuccessors.size());
-      for (Collection<? extends AbstractState> componentSuccessors : allComponentsSuccessors) {
-        resultingElements.add(Iterables.getOnlyElement(componentSuccessors));
-      }
+      case 1:
+        List<AbstractState> resultingElements = new ArrayList<>(allComponentsSuccessors.size());
+        for (Collection<? extends AbstractState> componentSuccessors : allComponentsSuccessors) {
+          resultingElements.add(Iterables.getOnlyElement(componentSuccessors));
+        }
         allResultingElements = Collections.singleton(resultingElements);
-      break;
+        break;
 
-    default:
+      default:
         // create cartesian product of all componentSuccessors and store the result in
         // allResultingElements
         List<AbstractState> initialPrefix = ImmutableList.of();
-      allResultingElements = new ArrayList<>(resultCount);
-      createCartesianProduct0(allComponentsSuccessors, initialPrefix, allResultingElements);
+        allResultingElements = new ArrayList<>(resultCount);
+        createCartesianProduct0(allComponentsSuccessors, initialPrefix, allResultingElements);
     }
 
     assert resultCount == allResultingElements.size();
     return allResultingElements;
   }
 
-  private static void createCartesianProduct0(List<Collection<? extends AbstractState>> allComponentsSuccessors,
-      List<AbstractState> prefix, Collection<List<AbstractState>> allResultingElements) {
+  private static void createCartesianProduct0(
+      List<Collection<? extends AbstractState>> allComponentsSuccessors,
+      List<AbstractState> prefix,
+      Collection<List<AbstractState>> allResultingElements) {
 
     if (prefix.size() == allComponentsSuccessors.size()) {
       allResultingElements.add(prefix);
 
     } else {
       int depth = prefix.size();
-      Collection<? extends AbstractState> myComponentsSuccessors = allComponentsSuccessors.get(depth);
+      Collection<? extends AbstractState> myComponentsSuccessors =
+          allComponentsSuccessors.get(depth);
 
       for (AbstractState currentComponent : myComponentsSuccessors) {
         List<AbstractState> newPrefix = new ArrayList<>(prefix);
@@ -461,47 +482,61 @@ final class CompositeTransferRelation implements WrapperTransferRelation {
       lStrengthenResults.add(lResultsList);
     }
 
-
-    Collection<List<AbstractState>> lResultingElements = createCartesianProduct(lStrengthenResults, resultCount);
+    Collection<List<AbstractState>> lResultingElements =
+        createCartesianProduct(lStrengthenResults, resultCount);
     return transformedImmutableListCopy(lResultingElements, CompositeState::new);
   }
 
-  boolean areAbstractSuccessors(AbstractState pElement, CFAEdge pCfaEdge, Collection<? extends AbstractState> pSuccessors, List<ConfigurableProgramAnalysis> cpas) throws CPATransferException, InterruptedException {
+  boolean areAbstractSuccessors(
+      AbstractState pElement,
+      CFAEdge pCfaEdge,
+      Collection<? extends AbstractState> pSuccessors,
+      List<ConfigurableProgramAnalysis> cpas)
+      throws CPATransferException, InterruptedException {
     Preconditions.checkNotNull(pCfaEdge);
     Preconditions.checkState(!aggregateBasicBlocks);
 
-    CompositeState compositeState = (CompositeState)pElement;
+    CompositeState compositeState = (CompositeState) pElement;
 
     int resultCount = 1;
     boolean result = true;
     for (int i = 0; i < size; ++i) {
       Set<AbstractState> componentSuccessors = new HashSet<>();
       for (AbstractState successor : pSuccessors) {
-        CompositeState compositeSuccessor = (CompositeState)successor;
+        CompositeState compositeSuccessor = (CompositeState) successor;
         if (compositeSuccessor.getNumberOfStates() != size) {
           return false;
         }
         componentSuccessors.add(compositeSuccessor.get(i));
       }
       resultCount *= componentSuccessors.size();
-      ProofChecker componentProofChecker = (ProofChecker)cpas.get(i);
-      if (!componentProofChecker.areAbstractSuccessors(compositeState.get(i), pCfaEdge, componentSuccessors)) {
-        result = false; //if there are no successors it might be still ok if one of the other components is fine with the empty set
+      ProofChecker componentProofChecker = (ProofChecker) cpas.get(i);
+      if (!componentProofChecker.areAbstractSuccessors(
+          compositeState.get(i), pCfaEdge, componentSuccessors)) {
+        // if there are no successors it might be still ok if one of the other components is fine
+        // with the empty set
+        result = false;
       } else {
         if (componentSuccessors.isEmpty()) {
           assert pSuccessors.isEmpty();
-          return true; //another component is indeed fine with the empty set as set of successors; transition is ok
+          // another component is indeed fine with the empty set as set of successors; transition is
+          // ok
+          return true;
         }
       }
     }
 
-    if (resultCount > pSuccessors.size()) { return false; }
+    if (resultCount > pSuccessors.size()) {
+      return false;
+    }
 
     Set<List<AbstractState>> states = new HashSet<>();
     for (AbstractState successor : pSuccessors) {
       states.add(((CompositeState) successor).getWrappedStates());
     }
-    if (resultCount != states.size()) { return false; }
+    if (resultCount != states.size()) {
+      return false;
+    }
 
     return result;
   }

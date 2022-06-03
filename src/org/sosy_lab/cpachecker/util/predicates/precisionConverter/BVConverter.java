@@ -32,12 +32,11 @@ import org.sosy_lab.cpachecker.util.predicates.precisionConverter.SymbolEncoding
 import org.sosy_lab.java_smt.api.FormulaType;
 import org.sosy_lab.java_smt.api.FormulaType.BitvectorType;
 
-
 public class BVConverter extends Converter {
 
-  private final Map<String,String> unaryOps; // input-type == output-type
-  private final Map<String,Pair<String,String>> binOps; // type is Bool
-  private final Map<String,Pair<String,String>> arithmeticOps; // type is BV
+  private final Map<String, String> unaryOps; // input-type == output-type
+  private final Map<String, Pair<String, String>> binOps; // type is Bool
+  private final Map<String, Pair<String, String>> arithmeticOps; // type is BV
   private final Set<String> ignorableFunctions = Sets.newHashSet("to_int", "to_real");
 
   public BVConverter(CFA pCfa, LogManager pLogger) {
@@ -47,7 +46,7 @@ public class BVConverter extends Converter {
     unaryOps.put("-", "bvneg");
     unaryOps.put("not", "not");
     unaryOps.put("_~_", "bvnot");
-    //unaryOps.put("__isSubnormal__", "bvneg");// TODO ?? Boolean [Rational]
+    // unaryOps.put("__isSubnormal__", "bvneg");// TODO ?? Boolean [Rational]
 
     // add Pair<signed operator, unsigned operator>
     binOps = new HashMap<>();
@@ -84,9 +83,10 @@ public class BVConverter extends Converter {
     return symbol;
   }
 
-  /** returns the type of a variable as (N,{}),
-   * and the type of a uninterpreted function as (N,{N1,N2,...}),
-   * where N is the return-type and {N1,N2,...} are the parameter-types. */
+  /**
+   * returns the type of a variable as (N,{}), and the type of a uninterpreted function as
+   * (N,{N1,N2,...}), where N is the return-type and {N1,N2,...} are the parameter-types.
+   */
   private Type<FormulaType<?>> getType(String symbol) throws UnknownFormulaSymbolException {
     symbol = unescapeSymbol(symbol);
     return symbolEncoding.getType(symbol);
@@ -94,18 +94,20 @@ public class BVConverter extends Converter {
 
   private Integer getBVsize(FormulaType<?> t) {
     if (t.isBitvectorType()) {
-      return ((BitvectorType)t).getSize();
+      return ((BitvectorType) t).getSize();
     } else {
       throw new AssertionError("unhandled type: " + t);
     }
   }
 
-  /** This is a small heuristic to get signess of the result-type.
-   * It is sound, because we only convert precision-predicates and not program-specific SMT-formulas.
+  /**
+   * This is a small heuristic to get signess of the result-type. It is sound, because we only
+   * convert precision-predicates and not program-specific SMT-formulas.
    *
-   * A fully precise method would have to deal with CalculationTypes and ResultTypes
-   * (see {@link org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder} for detail).
-   * As this would create many casts and extractions, we ignore it in favor of this heuristic. */
+   * <p>A fully precise method would have to deal with CalculationTypes and ResultTypes (see {@link
+   * org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder} for detail). As this would create
+   * many casts and extractions, we ignore it in favor of this heuristic.
+   */
   private boolean isOperationSigned(Type<FormulaType<?>> t1, Type<FormulaType<?>> t2) {
     if (t1.getReturnType().isBitvectorType() && t2.getReturnType().isBitvectorType()) {
       int s1 = getBVsize(t1.getReturnType());
@@ -129,7 +131,7 @@ public class BVConverter extends Converter {
     } else if (t == FormulaType.IntegerType) {
       return "Int";
     } else if (t.isBitvectorType()) {
-      return format("(_ BitVec %d)", ((BitvectorType)t).getSize());
+      return format("(_ BitVec %d)", ((BitvectorType) t).getSize());
     } else {
       throw new AssertionError("unhandled type: " + t);
     }
@@ -163,20 +165,24 @@ public class BVConverter extends Converter {
       retType = t.getReturnType();
     }
 
-    return format("%s (%s) %s",
-        symbol, Joiner.on(" ").join(lst), getSMTType(retType));
+    return format("%s (%s) %s", symbol, Joiner.on(" ").join(lst), getSMTType(retType));
   }
 
   @Override
-  public String convertFunctionDefinition(String symbol,
-      Type<String> type, @Nullable Pair<String, Type<FormulaType<?>>> initializerTerm)
-          throws UnknownFormulaSymbolException{
+  public String convertFunctionDefinition(
+      String symbol,
+      Type<String> type,
+      @Nullable Pair<String, Type<FormulaType<?>>> initializerTerm)
+      throws UnknownFormulaSymbolException {
     assert !symbolEncoding.containsSymbol(symbol) : "function re-defined";
     assert type.getParameterTypes().isEmpty() : "tmp-function with complex type";
     symbolEncoding.put(symbol, checkNotNull(initializerTerm.getSecond()));
-    return format("%s (%s) %s %s",
-        symbol, Joiner.on(' ').join(type.getParameterTypes()),
-        getSMTType(getType(symbol).getReturnType()), initializerTerm.getFirst());
+    return format(
+        "%s (%s) %s %s",
+        symbol,
+        Joiner.on(' ').join(type.getParameterTypes()),
+        getSMTType(getType(symbol).getReturnType()),
+        initializerTerm.getFirst());
   }
 
   private String cast(String term, @Nullable Integer availableBitsize, int neededBitsize) {
@@ -185,8 +191,8 @@ public class BVConverter extends Converter {
     if (term.matches("(\\(_\\sbv\\d+\\s\\d+\\))")) {
       List<String> splitted = Splitter.on(' ').splitToList(term);
       BigInteger num = new BigInteger(splitted.get(1).substring(2));
-      assert num.bitLength() <= neededBitsize:
-        format("numeral %s does not fit into bitvector of length %d", num, neededBitsize);
+      assert num.bitLength() <= neededBitsize
+          : format("numeral %s does not fit into bitvector of length %d", num, neededBitsize);
       return getNumber(num, neededBitsize);
     }
 
@@ -243,7 +249,8 @@ public class BVConverter extends Converter {
       int N = Integer.parseInt(Splitter.on(' ').splitToList(op.getFirst()).get(3).substring(2));
       int bitsize = getBVsize(Iterables.getOnlyElement(terms).getSecond().getReturnType());
       return Pair.of(
-          format("(= (_ bv0 %d) (bvsrem %s (_ bv%d %d)))",
+          format(
+              "(= (_ bv0 %d) (bvsrem %s (_ bv%d %d)))",
               bitsize, Iterables.getOnlyElement(terms).getFirst(), N, bitsize),
           new Type<FormulaType<?>>(FormulaType.getBitvectorTypeWithSize(bitsize)));
 
@@ -254,8 +261,7 @@ public class BVConverter extends Converter {
           Integer.parseInt(
               Splitter.on(' ').splitToList(terms.get(0).getFirst()).get(1).substring(2));
       return Pair.of(
-          format("(__string__ %d)", n),
-          new Type<FormulaType<?>>(op.getSecond().getReturnType()));
+          format("(__string__ %d)", n), new Type<FormulaType<?>>(op.getSecond().getReturnType()));
 
     } else if (terms.size() == 1 && unaryOps.containsKey(op.getFirst())) {
       return Pair.of(
@@ -266,7 +272,8 @@ public class BVConverter extends Converter {
           Iterables.getOnlyElement(terms).getSecond());
 
     } else if (terms.size() == 1 && ignorableFunctions.contains(op.getFirst())) {
-      // ignore and remove ignorable functions, e.g. casts from INT to REAL, we do not need them in BV-theory
+      // ignore and remove ignorable functions, e.g. casts from INT to REAL, we do not need them in
+      // BV-theory
       return Iterables.getOnlyElement(terms);
 
     } else if (terms.size() == 2
@@ -278,9 +285,9 @@ public class BVConverter extends Converter {
       int s1 = getBVsize(t1.getReturnType());
       int s2 = getBVsize(t2.getReturnType());
       int commonBitsize = Math.max(s1, s2); // maximum should be sound
-      boolean isOpSigned = isOperationSigned(t1,t2);
+      boolean isOpSigned = isOperationSigned(t1, t2);
       Type<FormulaType<?>> type;
-      Pair<String,String> operator;
+      Pair<String, String> operator;
       if (binOps.containsKey(op.getFirst())) {
         operator = binOps.get(op.getFirst());
         type = new Type<>(FormulaType.BooleanType);
@@ -289,10 +296,12 @@ public class BVConverter extends Converter {
         type = new Type<>(FormulaType.getBitvectorTypeWithSize(commonBitsize));
         type.setSigness(isOpSigned);
       }
-      return Pair.of(format("(%s %s %s)",
-          isOpSigned ? operator.getFirst() : operator.getSecond(),
-          cast(e1.getFirst(), s1, commonBitsize),
-          cast(e2.getFirst(), s2, commonBitsize)),
+      return Pair.of(
+          format(
+              "(%s %s %s)",
+              isOpSigned ? operator.getFirst() : operator.getSecond(),
+              cast(e1.getFirst(), s1, commonBitsize),
+              cast(e2.getFirst(), s2, commonBitsize)),
           type);
 
     } else if (terms.size() == 3 && "ite".equals(op.getFirst())) {
@@ -300,10 +309,8 @@ public class BVConverter extends Converter {
       Pair<String, Type<FormulaType<?>>> eIf = terms.get(1);
       Pair<String, Type<FormulaType<?>>> eElse = terms.get(2);
       if (FormulaType.BooleanType.equals(eIf.getSecond().getReturnType())) {
-        return Pair.of(format("(ite %s %s %s)",
-            cond.getFirst(),
-            eIf.getFirst(),
-            eElse.getFirst()),
+        return Pair.of(
+            format("(ite %s %s %s)", cond.getFirst(), eIf.getFirst(), eElse.getFirst()),
             new Type<FormulaType<?>>(FormulaType.BooleanType));
       } else {
         int sIf = getBVsize(eIf.getSecond().getReturnType());
@@ -312,10 +319,12 @@ public class BVConverter extends Converter {
         boolean isOpSigned = isOperationSigned(eIf.getSecond(), eElse.getSecond());
         Type<FormulaType<?>> type = new Type<>(FormulaType.getBitvectorTypeWithSize(commonBitsize));
         type.setSigness(isOpSigned);
-        return Pair.of(format("(ite %s %s %s)",
-            cond.getFirst(),
-            cast(eIf.getFirst(), sIf, commonBitsize),
-            cast(eElse.getFirst(), sElse, commonBitsize)),
+        return Pair.of(
+            format(
+                "(ite %s %s %s)",
+                cond.getFirst(),
+                cast(eIf.getFirst(), sIf, commonBitsize),
+                cast(eElse.getFirst(), sElse, commonBitsize)),
             type);
       }
 
@@ -323,23 +332,21 @@ public class BVConverter extends Converter {
       return Pair.of(
           format(
               "(%s %s)",
-              op.getFirst(),
-              Joiner.on(' ').join(Lists.transform(terms, Pair::getFirst))),
+              op.getFirst(), Joiner.on(' ').join(Lists.transform(terms, Pair::getFirst))),
           new Type<FormulaType<?>>(FormulaType.BooleanType));
 
     } else if (symbolEncoding.containsSymbol(op.getFirst())) {
       // UF --> cast every parameter to correct bitsize
       assert op.getSecond().getParameterTypes().size() == terms.size();
       List<String> params = new ArrayList<>();
-      for (int i=0; i<terms.size(); i++) {
-        params.add(cast(terms.get(i).getFirst(),
-            getBVsize(terms.get(i).getSecond().getReturnType()),
-            getBVsize(op.getSecond().getParameterTypes().get(i))));
+      for (int i = 0; i < terms.size(); i++) {
+        params.add(
+            cast(
+                terms.get(i).getFirst(),
+                getBVsize(terms.get(i).getSecond().getReturnType()),
+                getBVsize(op.getSecond().getParameterTypes().get(i))));
       }
-      return Pair.of(
-          format("(%s %s)",
-              op.getFirst(), Joiner.on(' ').join(params)),
-          op.getSecond());
+      return Pair.of(format("(%s %s)", op.getFirst(), Joiner.on(' ').join(params)), op.getSecond());
 
     } else { // UF
       if (!("_".equals(op.getFirst()) && "divisible".equals(terms.get(0).getFirst()))) {
@@ -348,8 +355,7 @@ public class BVConverter extends Converter {
       return Pair.of(
           format(
               "(%s %s)",
-              op.getFirst(),
-              Joiner.on(' ').join(Lists.transform(terms, Pair::getFirst))),
+              op.getFirst(), Joiner.on(' ').join(Lists.transform(terms, Pair::getFirst))),
           op.getSecond());
     }
   }

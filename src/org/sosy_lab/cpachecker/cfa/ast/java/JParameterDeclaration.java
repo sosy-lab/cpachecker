@@ -14,10 +14,7 @@ import org.sosy_lab.cpachecker.cfa.ast.AParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.types.java.JType;
 
-/**
- * This class contains Parameter Declarations for methods.
- * It contains a type and a name.
- */
+/** This class contains Parameter Declarations for methods. It contains a type and a name. */
 public final class JParameterDeclaration extends AParameterDeclaration
     implements JSimpleDeclaration {
 
@@ -25,8 +22,12 @@ public final class JParameterDeclaration extends AParameterDeclaration
   private final String qualifiedName;
   private final boolean isFinal;
 
-  public JParameterDeclaration(FileLocation pFileLocation, JType pType,
-      String pName, String pQualifiedName, boolean pIsFinal) {
+  public JParameterDeclaration(
+      FileLocation pFileLocation,
+      JType pType,
+      String pName,
+      String pQualifiedName,
+      boolean pIsFinal) {
     super(pFileLocation, pType, pName);
     qualifiedName = checkNotNull(pQualifiedName);
     isFinal = pIsFinal;
@@ -63,17 +64,16 @@ public final class JParameterDeclaration extends AParameterDeclaration
 
   @Override
   public boolean equals(Object obj) {
-    if (this == obj) { return true; }
+    if (this == obj) {
+      return true;
+    }
 
-    if (!(obj instanceof JParameterDeclaration)
-        || !super.equals(obj)) {
+    if (!(obj instanceof JParameterDeclaration) || !super.equals(obj)) {
       return false;
     }
 
     JParameterDeclaration other = (JParameterDeclaration) obj;
 
-    return other.isFinal == isFinal
-        && qualifiedName.equals(other.qualifiedName);
+    return other.isFinal == isFinal && qualifiedName.equals(other.qualifiedName);
   }
-
 }

@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.cpa.rtt;
 
+import java.util.Collection;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.defaults.AbstractCPA;
@@ -18,8 +19,6 @@ import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
-
-import java.util.Collection;
 
 public class RTTCPA extends AbstractCPA implements StatisticsProvider {
 
@@ -53,5 +52,4 @@ public class RTTCPA extends AbstractCPA implements StatisticsProvider {
   public LogManager getLogger() {
     return logger;
   }
-
 }

@@ -10,7 +10,7 @@ package org.sosy_lab.cpachecker.util.ci;
 
 import static com.google.common.collect.FluentIterable.from;
 
-import com.google.common.base.Optional;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import java.io.BufferedReader;
@@ -20,12 +20,10 @@ import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayDeque;
-import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.Deque;
 import java.util.HashSet;
-import java.util.List;
+import java.util.Optional;
 import java.util.Queue;
 import java.util.Set;
 import java.util.logging.Level;
@@ -63,6 +61,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.DefaultCExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFALabelNode;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
@@ -72,31 +71,36 @@ import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
-import org.sosy_lab.cpachecker.cfa.model.c.CLabelNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.exceptions.NoException;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.Pair;
-import org.sosy_lab.cpachecker.util.globalinfo.CFAInfo;
-import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
 
 public class AppliedCustomInstructionParser {
 
   private final ShutdownNotifier shutdownNotifier;
   private final LogManager logger;
   private final CFA cfa;
+  private final ImmutableMap<Integer, CFANode> numberToCFANode;
   private final GlobalVarCheckVisitor visitor = new GlobalVarCheckVisitor();
 
-  public AppliedCustomInstructionParser(final ShutdownNotifier pShutdownNotifier, final LogManager pLogger,
-      final CFA pCfa) {
+  public AppliedCustomInstructionParser(
+      final ShutdownNotifier pShutdownNotifier, final LogManager pLogger, final CFA pCfa) {
     shutdownNotifier = pShutdownNotifier;
     logger = pLogger;
     cfa = pCfa;
+
+    ImmutableMap.Builder<Integer, CFANode> nodeNumberToNode0 = ImmutableMap.builder();
+    for (CFANode node : cfa.getAllNodes()) {
+      nodeNumberToNode0.put(node.getNodeNumber(), node);
+    }
+    numberToCFANode = nodeNumberToNode0.buildOrThrow();
   }
 
   /**
    * Creates a CustomInstructionApplication if the file contains all required data, null if not
+   *
    * @param file Path of the file to be read
    * @param signatureFile Path of the file into which the ci signature will be written
    * @return CustomInstructionApplication
@@ -109,8 +113,9 @@ public class AppliedCustomInstructionParser {
 
     try (BufferedReader br = Files.newBufferedReader(file)) {
       String line = br.readLine();
-      if(line == null) {
-        throw new AppliedCustomInstructionParsingFailedException("Empty specification. Missing at least function name for custom instruction.");
+      if (line == null) {
+        throw new AppliedCustomInstructionParsingFailedException(
+            "Empty specification. Missing at least function name for custom instruction.");
       }
 
       ci = readCustomInstruction(line);
@@ -121,8 +126,8 @@ public class AppliedCustomInstructionParser {
     }
   }
 
-  private void writeCustomInstructionSpecification(final CustomInstruction ci,
-      final Path signatureFile) throws IOException {
+  private void writeCustomInstructionSpecification(
+      final CustomInstruction ci, final Path signatureFile) throws IOException {
     try (Writer br = IO.openOutputFile(signatureFile, Charset.defaultCharset())) {
       br.write(ci.getSignature() + "\n");
       String ciString = ci.getFakeSMTDescription().getSecond();
@@ -138,7 +143,6 @@ public class AppliedCustomInstructionParser {
     }
   }
 
-
   public CustomInstructionApplications parse(final CustomInstruction pCi, final Path file)
       throws AppliedCustomInstructionParsingFailedException, IOException, InterruptedException {
     try (BufferedReader br = Files.newBufferedReader(file)) {
@@ -146,10 +150,10 @@ public class AppliedCustomInstructionParser {
     }
   }
 
-  private CustomInstructionApplications parseACIs(final BufferedReader br, final CustomInstruction ci)
+  private CustomInstructionApplications parseACIs(
+      final BufferedReader br, final CustomInstruction ci)
       throws AppliedCustomInstructionParsingFailedException, IOException, InterruptedException {
     ImmutableMap.Builder<CFANode, AppliedCustomInstruction> map = new ImmutableMap.Builder<>();
-    CFAInfo cfaInfo = GlobalInfo.getInstance().getCFAInfo().orElseThrow();
 
     CFANode startNode;
     AppliedCustomInstruction aci;
@@ -161,50 +165,52 @@ public class AppliedCustomInstructionParser {
       if (line.isEmpty()) {
         continue;
       }
-      startNode = getCFANode(line, cfaInfo);
+      startNode = getCFANode(line);
       if (startNode == null) {
         continue;
       }
 
-
       try {
         aci = ci.inspectAppliedCustomInstruction(startNode);
       } catch (InterruptedException ex) {
-        throw new AppliedCustomInstructionParsingFailedException("Parsing failed because of ShutdownNotifier: "
-            + ex.getMessage());
+        throw new AppliedCustomInstructionParsingFailedException(
+            "Parsing failed because of ShutdownNotifier: " + ex.getMessage());
       }
 
       map.put(startNode, aci);
     }
 
-    return new CustomInstructionApplications(map.build(), ci);
+    return new CustomInstructionApplications(map.buildOrThrow(), ci);
   }
 
   /**
    * Creates a new CFANode with respect to the given parameters
+   *
    * @param pNodeID String
-   * @param cfaInfo CFAInfo
    * @return a new CFANode with respect to the given parameters
    * @throws AppliedCustomInstructionParsingFailedException if the node can't be created
    */
-  protected CFANode getCFANode (final String pNodeID, final CFAInfo cfaInfo) throws AppliedCustomInstructionParsingFailedException{
-    try{
-      return cfaInfo.getNodeByNodeNumber(Integer.parseInt(pNodeID));
+  protected CFANode getCFANode(final String pNodeID)
+      throws AppliedCustomInstructionParsingFailedException {
+    try {
+      return numberToCFANode.get(Integer.parseInt(pNodeID));
     } catch (NumberFormatException ex) {
-      throw new AppliedCustomInstructionParsingFailedException
-        ("It is not possible to parse " + pNodeID + " to an integer!", ex);
+      throw new AppliedCustomInstructionParsingFailedException(
+          "It is not possible to parse " + pNodeID + " to an integer!", ex);
     }
   }
 
   /**
    * Creates a ImmutableSet out of the given String[].
+   *
    * @param pNodes String[]
    * @return Immutable Set of CFANodes out of the String[]
    */
-  protected ImmutableSet<CFANode> getCFANodes (final String[] pNodes, final CFAInfo cfaInfo) throws AppliedCustomInstructionParsingFailedException {
+  protected ImmutableSet<CFANode> getCFANodes(final String[] pNodes)
+      throws AppliedCustomInstructionParsingFailedException {
     ImmutableSet.Builder<CFANode> builder = new ImmutableSet.Builder<>();
     for (String pNode : pNodes) {
-      builder.add(getCFANode(pNode, cfaInfo));
+      builder.add(getCFANode(pNode));
     }
     return builder.build();
   }
@@ -228,19 +234,21 @@ public class AppliedCustomInstructionParser {
 
     CFANode pred;
 
-    // search for CLabelNode with label "start_ci"
+    // search for CFALabelNode with label "start_ci"
     while (!queue.isEmpty()) {
       shutdownNotifier.shutdownIfNecessary();
       pred = queue.poll();
 
-      if (pred instanceof CLabelNode && ((CLabelNode) pred).getLabel().equals("start_ci") && pred.getFunctionName().equals(functionName)) {
+      if (pred instanceof CFALabelNode
+          && ((CFALabelNode) pred).getLabel().equals("start_ci")
+          && pred.getFunctionName().equals(functionName)) {
         ciStartNode = pred;
         break;
       }
 
       // breadth-first-search
       for (CFANode succ : CFAUtils.allSuccessorsOf(pred)) {
-        if (!visitedNodes.contains(succ) && succ.getFunctionName().equals(functionName)){
+        if (!visitedNodes.contains(succ) && succ.getFunctionName().equals(functionName)) {
           queue.add(succ);
           visitedNodes.add(succ);
         }
@@ -248,7 +256,8 @@ public class AppliedCustomInstructionParser {
     }
 
     if (ciStartNode == null) {
-      throw new AppliedCustomInstructionParsingFailedException("Missing label for start of custom instruction");
+      throw new AppliedCustomInstructionParsingFailedException(
+          "Missing label for start of custom instruction");
     }
 
     Queue<Pair<CFANode, Set<String>>> pairQueue = new ArrayDeque<>();
@@ -263,14 +272,14 @@ public class AppliedCustomInstructionParser {
     Set<FunctionEntryNode> functionsWithoutGlobalVars = new HashSet<>();
     boolean usesMultiEdges = false;
 
-    while(!pairQueue.isEmpty()) {
+    while (!pairQueue.isEmpty()) {
       shutdownNotifier.shutdownIfNecessary();
       nextNode = pairQueue.poll();
       pred = nextNode.getFirst();
       predOutputVars = nextNode.getSecond();
 
       // pred is endNode of CI -> store pred in Collection of endNodes
-      if (pred instanceof CLabelNode && ((CLabelNode)pred).getLabel().startsWith("end_ci_")) {
+      if (pred instanceof CFALabelNode && ((CFALabelNode) pred).getLabel().startsWith("end_ci_")) {
         CFAUtils.predecessorsOf(pred).copyInto(ciEndNodes);
         continue;
       }
@@ -289,12 +298,17 @@ public class AppliedCustomInstructionParser {
 
         // breadth-first-search within method
         if (leavingEdge instanceof FunctionCallEdge) {
-          if (!noGlobalVariablesUsed(functionsWithoutGlobalVars, ((CFunctionCallEdge) leavingEdge).getSuccessor())) {
+          if (!noGlobalVariablesUsed(
+              functionsWithoutGlobalVars, ((CFunctionCallEdge) leavingEdge).getSuccessor())) {
             throw new AppliedCustomInstructionParsingFailedException(
-              "Function " + leavingEdge.getSuccessor().getFunctionName()
-                  + " is not side effect free, uses global variables");
+                "Function "
+                    + leavingEdge.getSuccessor().getFunctionName()
+                    + " is not side effect free, uses global variables");
           }
-          nextPair = Pair.of(((CFunctionCallEdge) leavingEdge).getSummaryEdge().getSuccessor(), succOutputVars);
+          nextPair =
+              Pair.of(
+                  ((CFunctionCallEdge) leavingEdge).getSummaryEdge().getSuccessor(),
+                  succOutputVars);
         } else {
           nextPair = Pair.of(leavingEdge.getSuccessor(), succOutputVars);
         }
@@ -306,28 +320,30 @@ public class AppliedCustomInstructionParser {
     }
 
     if (usesMultiEdges) {
-      logger.log(Level.WARNING, "Multi edges used in custom instruction. Results may be unreliable. Disable option cfa.useMultiEdges to get reliable results.");
+      logger.log(
+          Level.WARNING,
+          "Multi edges used in custom instruction. Results may be unreliable. Disable option"
+              + " cfa.useMultiEdges to get reliable results.");
     }
 
     if (ciEndNodes.isEmpty()) {
-      throw new AppliedCustomInstructionParsingFailedException("Missing label for end of custom instruction");
+      throw new AppliedCustomInstructionParsingFailedException(
+          "Missing label for end of custom instruction");
     }
 
-    List<String> outputVariablesAsList = new ArrayList<>(outputVariables);
+    ImmutableList<String> outputVariablesAsList = ImmutableList.sortedCopyOf(outputVariables);
+    ImmutableList<String> inputVariablesAsList = ImmutableList.sortedCopyOf(inputVariables);
 
-    Collections.sort(outputVariablesAsList);
-
-    List<String> inputVariablesAsList = new ArrayList<>(inputVariables);
-
-    Collections.sort(inputVariablesAsList);
-
-    return new CustomInstruction(ciStartNode, ciEndNodes, inputVariablesAsList, outputVariablesAsList, shutdownNotifier);
+    return new CustomInstruction(
+        ciStartNode, ciEndNodes, inputVariablesAsList, outputVariablesAsList, shutdownNotifier);
   }
 
-  private void addNewInputVariables(final CFAEdge pLeavingEdge, final Set<String> pPredOutputVars,
+  private void addNewInputVariables(
+      final CFAEdge pLeavingEdge,
+      final Set<String> pPredOutputVars,
       final Set<String> pInputVariables) {
-    for(String var : getPotentialInputVariables(pLeavingEdge)) {
-      if(!pPredOutputVars.contains(var)) {
+    for (String var : getPotentialInputVariables(pLeavingEdge)) {
+      if (!pPredOutputVars.contains(var)) {
         pInputVariables.add(var);
       }
     }
@@ -341,25 +357,18 @@ public class AppliedCustomInstructionParser {
         return CFAUtils.getVariableNamesOfExpression(
                 ((CExpressionAssignmentStatement) edgeStmt).getRightHandSide())
             .toSet();
-      }
-
-      else if (edgeStmt instanceof CExpressionStatement) {
+      } else if (edgeStmt instanceof CExpressionStatement) {
         return CFAUtils.getVariableNamesOfExpression(
                 ((CExpressionStatement) edgeStmt).getExpression())
             .toSet();
+      } else if (edgeStmt instanceof CFunctionCallStatement) {
+        return getFunctionParameterInput(
+            ((CFunctionCallStatement) edgeStmt).getFunctionCallExpression());
+      } else if (edgeStmt instanceof CFunctionCallAssignmentStatement) {
+        return getFunctionParameterInput(
+            ((CFunctionCallAssignmentStatement) edgeStmt).getFunctionCallExpression());
       }
-
-      else if (edgeStmt instanceof CFunctionCallStatement) {
-        return getFunctionParameterInput(((CFunctionCallStatement) edgeStmt).getFunctionCallExpression());
-      }
-
-      else if (edgeStmt instanceof CFunctionCallAssignmentStatement) {
-        return getFunctionParameterInput(((CFunctionCallAssignmentStatement) edgeStmt)
-          .getFunctionCallExpression()); }
-    }
-
-
-    else if (pLeavingEdge instanceof CDeclarationEdge) {
+    } else if (pLeavingEdge instanceof CDeclarationEdge) {
       CDeclaration edgeDec = ((CDeclarationEdge) pLeavingEdge).getDeclaration();
       if (edgeDec instanceof CVariableDeclaration) {
         CInitializer edgeDecInit = ((CVariableDeclaration) edgeDec).getInitializer();
@@ -369,21 +378,15 @@ public class AppliedCustomInstructionParser {
               .toSet();
         }
       }
-    }
-
-    else if (pLeavingEdge instanceof CReturnStatementEdge) {
+    } else if (pLeavingEdge instanceof CReturnStatementEdge) {
       Optional<CExpression> edgeExp = ((CReturnStatementEdge) pLeavingEdge).getExpression();
       if (edgeExp.isPresent()) {
-        return CFAUtils.getVariableNamesOfExpression(edgeExp.get()).toSet();
+        return CFAUtils.getVariableNamesOfExpression(edgeExp.orElseThrow()).toSet();
       }
-    }
-
-    else if (pLeavingEdge instanceof CAssumeEdge) {
+    } else if (pLeavingEdge instanceof CAssumeEdge) {
       return CFAUtils.getVariableNamesOfExpression(((CAssumeEdge) pLeavingEdge).getExpression())
           .toSet();
-    }
-
-    else if (pLeavingEdge instanceof CFunctionCallEdge) {
+    } else if (pLeavingEdge instanceof CFunctionCallEdge) {
       return from(((CFunctionCallEdge) pLeavingEdge).getArguments())
           .transformAndConcat(CFAUtils::getVariableNamesOfExpression)
           .toSet();
@@ -391,14 +394,16 @@ public class AppliedCustomInstructionParser {
     return ImmutableSet.of();
   }
 
- private Set<String> getFunctionParameterInput(final CFunctionCallExpression funCall) {
+  private Set<String> getFunctionParameterInput(final CFunctionCallExpression funCall) {
     return from(funCall.getParameterExpressions())
         .transformAndConcat(CFAUtils::getVariableNamesOfExpression)
         .toSet();
- }
+  }
 
-  private Set<String> getOutputVariablesForSuccessorAndAddNewOutputVariables(final CFAEdge pLeavingEdge,
-      final Set<String> pPredOutputVars, final Set<String> pOutputVariables) {
+  private Set<String> getOutputVariablesForSuccessorAndAddNewOutputVariables(
+      final CFAEdge pLeavingEdge,
+      final Set<String> pPredOutputVars,
+      final Set<String> pOutputVariables) {
     Set<String> edgeOutputVariables;
     if (pLeavingEdge instanceof CStatementEdge) {
       CStatement edgeStmt = ((CStatementEdge) pLeavingEdge).getStatement();
@@ -407,9 +412,9 @@ public class AppliedCustomInstructionParser {
             CFAUtils.getVariableNamesOfExpression(
                     ((CExpressionAssignmentStatement) edgeStmt).getLeftHandSide())
                 .toSet();
-      }
-      else if (edgeStmt instanceof CFunctionCallAssignmentStatement) {
-        edgeOutputVariables = getFunctionalCallAssignmentOutputVars((CFunctionCallAssignmentStatement) edgeStmt);
+      } else if (edgeStmt instanceof CFunctionCallAssignmentStatement) {
+        edgeOutputVariables =
+            getFunctionalCallAssignmentOutputVars((CFunctionCallAssignmentStatement) edgeStmt);
       } else {
         return pPredOutputVars;
       }
@@ -418,9 +423,10 @@ public class AppliedCustomInstructionParser {
           ImmutableSet.of(((CDeclarationEdge) pLeavingEdge).getDeclaration().getQualifiedName());
 
     } else if (pLeavingEdge instanceof CFunctionCallEdge) {
-      CFunctionCall funCall = (((CFunctionCallEdge) pLeavingEdge).getSummaryEdge().getExpression());
+      CFunctionCall funCall = ((CFunctionCallEdge) pLeavingEdge).getSummaryEdge().getExpression();
       if (funCall instanceof CFunctionCallAssignmentStatement) {
-        edgeOutputVariables = getFunctionalCallAssignmentOutputVars((CFunctionCallAssignmentStatement) funCall);
+        edgeOutputVariables =
+            getFunctionalCallAssignmentOutputVars((CFunctionCallAssignmentStatement) funCall);
       } else {
         edgeOutputVariables = ImmutableSet.of();
       }
@@ -435,11 +441,13 @@ public class AppliedCustomInstructionParser {
     return returnRes;
   }
 
-  private Set<String> getFunctionalCallAssignmentOutputVars(final CFunctionCallAssignmentStatement stmt) {
+  private Set<String> getFunctionalCallAssignmentOutputVars(
+      final CFunctionCallAssignmentStatement stmt) {
     return CFAUtils.getVariableNamesOfExpression(stmt.getLeftHandSide()).toSet();
   }
 
-  private boolean noGlobalVariablesUsed(final Set<FunctionEntryNode> noGlobalVarUse, final FunctionEntryNode function) {
+  private boolean noGlobalVariablesUsed(
+      final Set<FunctionEntryNode> noGlobalVarUse, final FunctionEntryNode function) {
     Deque<CFANode> toVisit = new ArrayDeque<>();
     Collection<CFANode> visited = new HashSet<>();
     CFANode visit, successor;
@@ -447,10 +455,10 @@ public class AppliedCustomInstructionParser {
     toVisit.push(function);
     visited.add(function);
 
-    while(!toVisit.isEmpty()) {
+    while (!toVisit.isEmpty()) {
       visit = toVisit.pop();
 
-      if(visit instanceof FunctionExitNode) {
+      if (visit instanceof FunctionExitNode) {
         continue;
       }
 
@@ -458,13 +466,13 @@ public class AppliedCustomInstructionParser {
         continue;
       }
 
-      for(CFAEdge leave : CFAUtils.allLeavingEdges(visit)) {
-        if(containsGlobalVars(leave)) {
+      for (CFAEdge leave : CFAUtils.allLeavingEdges(visit)) {
+        if (containsGlobalVars(leave)) {
           return false;
         }
 
         successor = leave.getSuccessor();
-        if(visited.add(successor)) {
+        if (visited.add(successor)) {
           toVisit.push(successor);
         }
       }
@@ -475,37 +483,42 @@ public class AppliedCustomInstructionParser {
 
   private boolean containsGlobalVars(final CFAEdge pLeave) {
     switch (pLeave.getEdgeType()) {
-    case BlankEdge:
-      // no additional check needed.
-      break;
-    case AssumeEdge:
-      return ((CAssumeEdge) pLeave).getExpression().accept(visitor);
-    case StatementEdge:
-      return globalVarInStatement(((CStatementEdge) pLeave).getStatement());
-    case DeclarationEdge:
-      if(((CDeclarationEdge) pLeave).getDeclaration() instanceof CVariableDeclaration) {
-       CInitializer init = ((CVariableDeclaration) ((CDeclarationEdge) pLeave).getDeclaration()).getInitializer();
-       if(init != null) {
-         return init.accept(visitor);
-       }
-      }
-      break;
-    case ReturnStatementEdge:
-      if (((CReturnStatementEdge) pLeave).getExpression().isPresent()) { return ((CReturnStatementEdge) pLeave)
-          .getExpression().get().accept(visitor); }
-      break;
-    case FunctionCallEdge:
-      for (CExpression exp : ((CFunctionCallEdge) pLeave).getArguments()) {
-        if (exp.accept(visitor)) { return true; }
-      }
-      break;
-    case FunctionReturnEdge:
-      // no additional check needed.
-      break;
-    case CallToReturnEdge:
-      return globalVarInStatement(((CFunctionSummaryEdge) pLeave).getExpression());
-    default:
-      throw new AssertionError("Unhandled enum value in switch: " + pLeave.getEdgeType());
+      case BlankEdge:
+        // no additional check needed.
+        break;
+      case AssumeEdge:
+        return ((CAssumeEdge) pLeave).getExpression().accept(visitor);
+      case StatementEdge:
+        return globalVarInStatement(((CStatementEdge) pLeave).getStatement());
+      case DeclarationEdge:
+        if (((CDeclarationEdge) pLeave).getDeclaration() instanceof CVariableDeclaration) {
+          CInitializer init =
+              ((CVariableDeclaration) ((CDeclarationEdge) pLeave).getDeclaration())
+                  .getInitializer();
+          if (init != null) {
+            return init.accept(visitor);
+          }
+        }
+        break;
+      case ReturnStatementEdge:
+        if (((CReturnStatementEdge) pLeave).getExpression().isPresent()) {
+          return ((CReturnStatementEdge) pLeave).getExpression().orElseThrow().accept(visitor);
+        }
+        break;
+      case FunctionCallEdge:
+        for (CExpression exp : ((CFunctionCallEdge) pLeave).getArguments()) {
+          if (exp.accept(visitor)) {
+            return true;
+          }
+        }
+        break;
+      case FunctionReturnEdge:
+        // no additional check needed.
+        break;
+      case CallToReturnEdge:
+        return globalVarInStatement(((CFunctionSummaryEdge) pLeave).getExpression());
+      default:
+        throw new AssertionError("Unhandled enum value in switch: " + pLeave.getEdgeType());
     }
     return false;
   }
@@ -514,25 +527,38 @@ public class AppliedCustomInstructionParser {
     if (statement instanceof CExpressionStatement) {
       return ((CExpressionStatement) statement).getExpression().accept(visitor);
     } else if (statement instanceof CFunctionCallStatement) {
-      for (CExpression param : ((CFunctionCallStatement) statement).getFunctionCallExpression()
-          .getParameterExpressions()) {
-        if (param.accept(visitor)) { return true; }
+      for (CExpression param :
+          ((CFunctionCallStatement) statement)
+              .getFunctionCallExpression()
+              .getParameterExpressions()) {
+        if (param.accept(visitor)) {
+          return true;
+        }
       }
     } else if (statement instanceof CExpressionAssignmentStatement) {
-      if (((CExpressionAssignmentStatement) statement).getLeftHandSide().accept(visitor)) { return true; }
+      if (((CExpressionAssignmentStatement) statement).getLeftHandSide().accept(visitor)) {
+        return true;
+      }
       return ((CExpressionAssignmentStatement) statement).getRightHandSide().accept(visitor);
     } else if (statement instanceof CFunctionCallAssignmentStatement) {
-      if (((CFunctionCallAssignmentStatement) statement).getLeftHandSide().accept(visitor)) { return true; }
-      for (CExpression param : ((CFunctionCallAssignmentStatement) statement).getFunctionCallExpression()
-          .getParameterExpressions()) {
-        if (param.accept(visitor)) { return true; }
+      if (((CFunctionCallAssignmentStatement) statement).getLeftHandSide().accept(visitor)) {
+        return true;
+      }
+      for (CExpression param :
+          ((CFunctionCallAssignmentStatement) statement)
+              .getFunctionCallExpression()
+              .getParameterExpressions()) {
+        if (param.accept(visitor)) {
+          return true;
+        }
       }
     }
     return false;
   }
 
-  private static class GlobalVarCheckVisitor extends DefaultCExpressionVisitor<Boolean, NoException> implements
-      CInitializerVisitor<Boolean, NoException>, CDesignatorVisitor<Boolean, RuntimeException> {
+  private static class GlobalVarCheckVisitor extends DefaultCExpressionVisitor<Boolean, NoException>
+      implements CInitializerVisitor<Boolean, NoException>,
+          CDesignatorVisitor<Boolean, RuntimeException> {
 
     @Override
     public Boolean visit(final CArraySubscriptExpression pIastArraySubscriptExpression) {
@@ -599,8 +625,8 @@ public class AppliedCustomInstructionParser {
 
     @Override
     public Boolean visit(final CInitializerList pInitializerList) {
-      for(CInitializer init : pInitializerList.getInitializers()) {
-        if(init.accept(this)) {
+      for (CInitializer init : pInitializerList.getInitializers()) {
+        if (init.accept(this)) {
           return Boolean.TRUE;
         }
       }
@@ -609,12 +635,12 @@ public class AppliedCustomInstructionParser {
 
     @Override
     public Boolean visit(final CDesignatedInitializer pCStructInitializerPart) {
-      for(CDesignator des : pCStructInitializerPart.getDesignators()) {
-        if(des.accept(this)) {
+      for (CDesignator des : pCStructInitializerPart.getDesignators()) {
+        if (des.accept(this)) {
           return Boolean.TRUE;
         }
       }
-      if(pCStructInitializerPart.getRightHandSide() != null) {
+      if (pCStructInitializerPart.getRightHandSide() != null) {
         return pCStructInitializerPart.getRightHandSide().accept(this);
       }
       return Boolean.FALSE;
@@ -627,7 +653,7 @@ public class AppliedCustomInstructionParser {
 
     @Override
     public Boolean visit(final CArrayRangeDesignator pArrayRangeDesignator) {
-      if(pArrayRangeDesignator.getCeilExpression().accept(this)) {
+      if (pArrayRangeDesignator.getCeilExpression().accept(this)) {
         return Boolean.TRUE;
       }
       return pArrayRangeDesignator.getFloorExpression().accept(this);
@@ -637,7 +663,6 @@ public class AppliedCustomInstructionParser {
     public Boolean visit(final CFieldDesignator pFieldDesignator) {
       return Boolean.FALSE;
     }
-
   }
 
   public boolean isAppliedCI(final CustomInstruction pCi, final CFANode pNode) {

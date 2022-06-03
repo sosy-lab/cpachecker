@@ -18,7 +18,7 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Paths;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
@@ -68,9 +68,9 @@ public class BOMParser {
    * @throws CParserException - if we have a unknown BOM or a BOM file with non ascii characters in
    *     the code
    */
-  public static String filterAndDecode(String pFilename) throws IOException, CParserException {
+  public static String filterAndDecode(Path pFilename) throws IOException, CParserException {
     try (BufferedInputStream in =
-        new BufferedInputStream(MoreFiles.asByteSource(Paths.get(pFilename)).openStream())) {
+        new BufferedInputStream(MoreFiles.asByteSource(pFilename).openStream())) {
       List<Integer> codeBeginning = new ArrayList<>();
       int c = 0;
       int counter = 0;
@@ -110,7 +110,7 @@ public class BOMParser {
     if (isPureAscii(codeBeginning)) {
       return ByteOrderMark.NO_BOM;
     }
-    for(ByteOrderMark bom : ByteOrderMark.values()) {
+    for (ByteOrderMark bom : ByteOrderMark.values()) {
       if (codeBeginning.equals(bom.sequence)) {
         return bom;
       }
@@ -126,5 +126,4 @@ public class BOMParser {
     }
     return true;
   }
-
 }

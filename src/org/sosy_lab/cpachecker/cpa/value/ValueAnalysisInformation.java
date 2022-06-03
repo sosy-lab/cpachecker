@@ -14,9 +14,7 @@ import org.sosy_lab.common.collect.PersistentMap;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState.ValueAndType;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
-/**
- * Information about value assignments needed for symbolic interpolation.
- */
+/** Information about value assignments needed for symbolic interpolation. */
 public final class ValueAnalysisInformation {
 
   public static final ValueAnalysisInformation EMPTY = new ValueAnalysisInformation();

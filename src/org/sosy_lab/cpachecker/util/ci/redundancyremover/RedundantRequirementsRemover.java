@@ -16,7 +16,6 @@ import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -29,10 +28,7 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.Pair;
 
-
 public class RedundantRequirementsRemover {
-
-
 
   public static List<Pair<ARGState, Collection<ARGState>>> removeRedundantRequirements(
       final List<Pair<ARGState, Collection<ARGState>>> requirements,
@@ -53,7 +49,8 @@ public class RedundantRequirementsRemover {
     return remover.identifyAndRemoveRedundantRequirements(requirements, inputOutputSignatures);
   }
 
-  public static abstract class RedundantRequirementsRemoverImplementation<S extends AbstractState, V>
+  public abstract static class RedundantRequirementsRemoverImplementation<
+          S extends AbstractState, V>
       implements Comparator<V>, Serializable {
 
     private static final long serialVersionUID = 2610823786116954949L;
@@ -78,29 +75,31 @@ public class RedundantRequirementsRemover {
       return result;
     }
 
-    private V[][] getAbstractValuesForSignature(final ARGState start,
-        final Collection<ARGState> ends, final List<String> inputVarsAndConsts) throws CPAException {
+    private V[][] getAbstractValuesForSignature(
+        final ARGState start,
+        final Collection<ARGState> ends,
+        final List<String> inputVarsAndConsts)
+        throws CPAException {
       V[][] result = emptyMatrixOfSize(1 + ends.size());
-      List<V[]> intermediate = new ArrayList<>(ends.size());
 
       result[0] = getAbstractValues(extractState(start), inputVarsAndConsts);
+      int i = 1;
 
       CFANode loc = null;
       for (ARGState end : ends) {
         if (loc == null) {
           loc = AbstractStates.extractLocation(end);
         } else {
-          if (!loc.equals(AbstractStates.extractLocation(end))) { throw new CPAException(""); }
+          if (!loc.equals(AbstractStates.extractLocation(end))) {
+            throw new CPAException("");
+          }
         }
 
-        intermediate.add(getAbstractValues(extractState(end), inputVarsAndConsts));
+        result[i] = getAbstractValues(extractState(end), inputVarsAndConsts);
+        i++;
       }
 
-      Collections.sort(intermediate, sortHelper);
-
-      for (int i = 0, j = 1; i < intermediate.size(); i++, j++) {
-        result[j] = intermediate.get(i);
-      }
+      Arrays.sort(result, 1, ends.size() + 1, sortHelper);
 
       return result;
     }
@@ -108,7 +107,9 @@ public class RedundantRequirementsRemover {
     private boolean covers(final V[] covering, final V[] covered) {
       if (covering.length == covered.length) {
         for (int i = 0; i < covering.length; i++) {
-          if (covers(covering[i], covered[i])) { return false; }
+          if (covers(covering[i], covered[i])) {
+            return false;
+          }
         }
         return true;
       }
@@ -128,7 +129,9 @@ public class RedundantRequirementsRemover {
             }
           }
 
-          if (!isCovered) { return false; }
+          if (!isCovered) {
+            return false;
+          }
         }
         return true;
       }
@@ -145,18 +148,22 @@ public class RedundantRequirementsRemover {
           new ArrayList<>(requirements.size());
       try {
         for (int i = 0; i < requirements.size(); i++) {
-          sortList.add(Pair.of(
-              getAbstractValuesForSignature(requirements.get(i).getFirst(), requirements.get(i)
-                  .getSecond(), inputOutputSignatures.get(i).getFirst()), requirements.get(i)));
+          sortList.add(
+              Pair.of(
+                  getAbstractValuesForSignature(
+                      requirements.get(i).getFirst(),
+                      requirements.get(i).getSecond(),
+                      inputOutputSignatures.get(i).getFirst()),
+                  requirements.get(i)));
         }
         // sort according to signature values
-        Collections.sort(sortList, new SortingHelper());
+        sortList.sort(new SortingHelper());
 
-        List<Pair<ARGState, Collection<ARGState>>> reducedReq =
-            new ArrayList<>(sortList.size());
+        List<Pair<ARGState, Collection<ARGState>>> reducedReq = new ArrayList<>(sortList.size());
 
         // check for covered requirements
-        nextReq: for (int i = 0; i < sortList.size(); i++) {
+        nextReq:
+        for (int i = 0; i < sortList.size(); i++) {
           for (int j = 0; j < i; j++) {
             if (covers(sortList.get(j).getFirst(), sortList.get(i).getFirst())) {
               continue nextReq;
@@ -172,7 +179,12 @@ public class RedundantRequirementsRemover {
       }
     }
 
-    @SuppressFBWarnings(value="SE_INNER_CLASS", justification="Cannot make class static as suggested because require generic type parameters of outer class. Removing interface Serializable is also no option because it introduces another warning suggesting to implement Serializable interface.")
+    @SuppressFBWarnings(
+        value = "SE_INNER_CLASS",
+        justification =
+            "Cannot make class static as suggested because require generic type parameters of outer"
+                + " class. Removing interface Serializable is also no option because it introduces"
+                + " another warning suggesting to implement Serializable interface.")
     private class SortingArrayHelper implements Comparator<V[]>, Serializable {
 
       private static final long serialVersionUID = 3970718511743910013L;
@@ -189,37 +201,48 @@ public class RedundantRequirementsRemover {
         return Comparators.lexicographical(RedundantRequirementsRemoverImplementation.this)
             .compare(Arrays.asList(arg0), Arrays.asList(arg1));
       }
-
     }
 
-
-    @SuppressFBWarnings(value="SE_INNER_CLASS", justification="Cannot make class static as suggested because require generic type parameters of outer class. Removing interface Serializable is also no option because it introduces another warning suggesting to implement Serializable interface.")
-    private class SortingHelper implements
-        Comparator<Pair<V[][], Pair<ARGState, Collection<ARGState>>>>, Serializable {
+    @SuppressFBWarnings(
+        value = "SE_INNER_CLASS",
+        justification =
+            "Cannot make class static as suggested because require generic type parameters of outer"
+                + " class. Removing interface Serializable is also no option because it introduces"
+                + " another warning suggesting to implement Serializable interface.")
+    private class SortingHelper
+        implements Comparator<Pair<V[][], Pair<ARGState, Collection<ARGState>>>>, Serializable {
 
       private static final long serialVersionUID = 3894486288294859800L;
 
       @Override
-      public int compare(final Pair<V[][], Pair<ARGState, Collection<ARGState>>> arg0,
+      public int compare(
+          final Pair<V[][], Pair<ARGState, Collection<ARGState>>> arg0,
           final Pair<V[][], Pair<ARGState, Collection<ARGState>>> arg1) {
-        if (arg0 == null || arg1 == null) { throw new NullPointerException(); }
+        if (arg0 == null || arg1 == null) {
+          throw new NullPointerException();
+        }
 
         V[][] firstArg = arg0.getFirst();
         V[][] secondArg = arg1.getFirst();
 
-        if (firstArg == null || secondArg == null) { return firstArg == null ? 1
-            : 0 + (secondArg == null ? -1 : 0); }
+        if (firstArg == null || secondArg == null) {
+          return firstArg == null ? 1 : 0 + (secondArg == null ? -1 : 0);
+        }
 
-        if (firstArg.length == 0 || secondArg.length == 0) { return -(firstArg.length - secondArg.length); }
+        if (firstArg.length == 0 || secondArg.length == 0) {
+          return -(firstArg.length - secondArg.length);
+        }
 
         // compare first
         if (firstArg[0].length != secondArg[0].length) {
           return Integer.compare(secondArg[0].length, firstArg[0].length); // reverse
         }
 
-        int r = sortHelper.compare(secondArg[0],firstArg[0]);
+        int r = sortHelper.compare(secondArg[0], firstArg[0]);
 
-        if (r != 0) { return r; }
+        if (r != 0) {
+          return r;
+        }
 
         // compare remaining parts
         if (firstArg.length != secondArg.length) {
@@ -232,7 +255,5 @@ public class RedundantRequirementsRemover {
                 Arrays.asList(secondArg).subList(1, secondArg.length));
       }
     }
-
   }
-
 }

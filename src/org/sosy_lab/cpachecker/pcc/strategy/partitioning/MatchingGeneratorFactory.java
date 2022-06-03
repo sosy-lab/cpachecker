@@ -14,17 +14,19 @@ import org.sosy_lab.cpachecker.core.interfaces.pcc.MatchingGenerator;
 public class MatchingGeneratorFactory {
 
   private MatchingGeneratorFactory() {}
-  public static enum MatchingGenerators {
+
+  public enum MatchingGenerators {
     RANDOM,
     HEAVY_EDGE
   }
 
-  public static MatchingGenerator createMatchingGenerator( final LogManager pLogger, MatchingGenerators generator){
-    switch(generator){
+  public static MatchingGenerator createMatchingGenerator(
+      final LogManager pLogger, MatchingGenerators generator) {
+    switch (generator) {
       case HEAVY_EDGE:
         return new HeavyEdgeMatchingGenerator(pLogger);
-        default:
-          return new RandomMatchingGenerator(pLogger);
+      default:
+        return new RandomMatchingGenerator(pLogger);
     }
   }
 }

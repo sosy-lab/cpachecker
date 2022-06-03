@@ -16,10 +16,6 @@ import java.io.IOException;
 import java.io.Writer;
 import java.nio.charset.Charset;
 import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.logging.Level;
@@ -72,8 +68,9 @@ public class CustomInstructionApplications {
   }
 
   /**
-   * Checks if the ImmutableMap cis contains the given CFANode
-   * (after it is extracted out of the AbstractState)
+   * Checks if the ImmutableMap cis contains the given CFANode (after it is extracted out of the
+   * AbstractState)
+   *
    * @param pState AbstractState
    * @return true if cis contains the given node
    * @throws CPAException if the given node can't be extracted
@@ -88,26 +85,31 @@ public class CustomInstructionApplications {
 
   /**
    * Checks if the given AbstractState pIsEnd is an endNode of the given AbsractState pCISart
+   *
    * @param pIsEnd AbstractState
    * @param pCIStart AbstractState
    * @return true if pIsEnd is an endNode of pCISart
    */
-  public boolean isEndState(final AbstractState pIsEnd, final AbstractState pCIStart) throws CPAException {
+  public boolean isEndState(final AbstractState pIsEnd, final AbstractState pCIStart)
+      throws CPAException {
     return isEndState(pIsEnd, AbstractStates.extractLocation(pCIStart));
   }
 
   /**
    * Checks if the given AbstractState pIsEnd is an endNode of the given CFANode pCISart
+   *
    * @param pIsEnd AbstractState
    * @param pCIStart CFANode
    * @return true if pIsEnd is an endNode of pCISart
    */
-  public boolean isEndState(final AbstractState pIsEnd, final CFANode pCIStart) throws CPAException {
-    assert(cis.containsKey(pCIStart));
+  public boolean isEndState(final AbstractState pIsEnd, final CFANode pCIStart)
+      throws CPAException {
+    assert cis.containsKey(pCIStart);
     return cis.get(pCIStart).isEndState(pIsEnd);
   }
 
-  public AppliedCustomInstruction getAppliedCustomInstructionFor(final ARGState pState) throws CPAException{
+  public AppliedCustomInstruction getAppliedCustomInstructionFor(final ARGState pState)
+      throws CPAException {
     CFANode locState = AbstractStates.extractLocation(pState);
 
     if (locState == null) {
@@ -140,11 +142,10 @@ public class CustomInstructionApplications {
 
   public int getNumApplications() {
     return cis.size();
-
   }
 
   @Options(prefix = "custominstructions")
-  public static abstract class CustomInstructionApplicationBuilder {
+  public abstract static class CustomInstructionApplicationBuilder {
 
     public enum CIDescriptionType {
       MANUAL,
@@ -155,9 +156,11 @@ public class CustomInstructionApplications {
     @Option(
         secure = true,
         name = "ciSignature",
-        description = "Signature for custom instruction, describes names and order of input and output variables of a custom instruction")
+        description =
+            "Signature for custom instruction, describes names and order of input and output"
+                + " variables of a custom instruction")
     @FileOption(FileOption.Type.OUTPUT_FILE)
-    protected Path ciSpec = Paths.get("ci_spec.txt");
+    protected Path ciSpec = Path.of("ci_spec.txt");
 
     protected final LogManager logger;
     protected final ShutdownNotifier shutdownNotifier;
@@ -179,8 +182,12 @@ public class CustomInstructionApplications {
         throws AppliedCustomInstructionParsingFailedException, IOException, InterruptedException,
             UnrecognizedCodeException;
 
-    public static CustomInstructionApplicationBuilder getBuilder(CIDescriptionType type,
-        Configuration pConfig, LogManager pLogger, ShutdownNotifier pSdNotifier, CFA pCfa)
+    public static CustomInstructionApplicationBuilder getBuilder(
+        CIDescriptionType type,
+        Configuration pConfig,
+        LogManager pLogger,
+        ShutdownNotifier pSdNotifier,
+        CFA pCfa)
         throws InvalidConfigurationException {
       switch (type) {
         case AUTOMATIC:
@@ -194,30 +201,31 @@ public class CustomInstructionApplications {
               "Unknown type of custom instruction applications identifier");
       }
     }
-
   }
 
-  @Options(prefix="custominstructions")
-  private static class CustomInstructionApplicationsFromFile extends CustomInstructionApplicationBuilder{
+  @Options(prefix = "custominstructions")
+  private static class CustomInstructionApplicationsFromFile
+      extends CustomInstructionApplicationBuilder {
 
     @Option(
-      secure = true,
-      name = "definitionFile",
-      description = "File specifying start locations of custom instruction applications"
-    )
+        secure = true,
+        name = "definitionFile",
+        description = "File specifying start locations of custom instruction applications")
     @FileOption(FileOption.Type.REQUIRED_INPUT_FILE)
-    private Path appliedCustomInstructionsDefinition = Paths.get("ci_def.txt");
+    private Path appliedCustomInstructionsDefinition = Path.of("ci_def.txt");
 
-    public CustomInstructionApplicationsFromFile(Configuration pConfig, final CFA pCfa,
-        LogManager pLogger, ShutdownNotifier pSdNotifier) throws InvalidConfigurationException {
+    public CustomInstructionApplicationsFromFile(
+        Configuration pConfig, final CFA pCfa, LogManager pLogger, ShutdownNotifier pSdNotifier)
+        throws InvalidConfigurationException {
       super(pConfig, pLogger, pSdNotifier, pCfa);
 
-        pConfig.inject(this, CustomInstructionApplicationsFromFile.class);
+      pConfig.inject(this, CustomInstructionApplicationsFromFile.class);
 
       try {
         IO.checkReadableFile(appliedCustomInstructionsDefinition);
       } catch (FileNotFoundException e) {
-        throw new InvalidConfigurationException("Definition file for custom instruction application does not exist", e);
+        throw new InvalidConfigurationException(
+            "Definition file for custom instruction application does not exist", e);
       }
     }
 
@@ -227,8 +235,6 @@ public class CustomInstructionApplications {
       return new AppliedCustomInstructionParser(shutdownNotifier, logger, cfa)
           .parse(appliedCustomInstructionsDefinition, ciSpec);
     }
-
-
   }
 
   @Options(prefix = "custominstructions")
@@ -236,19 +242,17 @@ public class CustomInstructionApplications {
       extends CustomInstructionApplicationBuilder {
 
     @Option(
-      secure = true,
-      name = "ciFun",
-      description = "Name of function containing the custom instruction definition"
-    )
+        secure = true,
+        name = "ciFun",
+        description = "Name of function containing the custom instruction definition")
     private String ciFunction;
 
     @Option(
-      secure = true,
-      name = "definitionFile",
-      description = "File specifying start locations of custom instruction applications"
-    )
+        secure = true,
+        name = "definitionFile",
+        description = "File specifying start locations of custom instruction applications")
     @FileOption(FileOption.Type.OUTPUT_FILE)
-    private Path appliedCustomInstructionsDefinition = Paths.get("ci_def.txt");
+    private Path appliedCustomInstructionsDefinition = Path.of("ci_def.txt");
 
     public CustomInstructionApplicationsAutomatic(
         Configuration pConfig, final CFA pCfa, LogManager pLogger, ShutdownNotifier pSdNotifier)
@@ -273,7 +277,7 @@ public class CustomInstructionApplications {
 
       try (Writer out =
           IO.openOutputFile(appliedCustomInstructionsDefinition, Charset.defaultCharset())) {
-        for(CFANode node: cfa.getAllNodes()) {
+        for (CFANode node : cfa.getAllNodes()) {
           if (!Objects.equals(node, ci.getStartNode()) && pParser.isAppliedCI(ci, node)) {
             shutdownNotifier.shutdownIfNecessary();
             out.append(node.getNodeNumber() + "\n");
@@ -285,23 +289,33 @@ public class CustomInstructionApplications {
     }
   }
 
-  @Options(prefix="custominstructions")
-  private static class CustomInstructionsForBinaryOperator extends CustomInstructionApplicationBuilder {
+  @Options(prefix = "custominstructions")
+  private static class CustomInstructionsForBinaryOperator
+      extends CustomInstructionApplicationBuilder {
 
-    @Option(secure = true,
-        description = "Specify simple custom instruction by specifying the binary operator op. All simple cis are of the form r = x op y. Leave empty (default) if you specify a more complex custom instruction within code.")
+    @Option(
+        secure = true,
+        description =
+            "Specify simple custom instruction by specifying the binary operator op. All simple cis"
+                + " are of the form r = x op y. Leave empty (default) if you specify a more complex"
+                + " custom instruction within code.")
     private BinaryOperator binaryOperatorForSimpleCustomInstruction = BinaryOperator.PLUS;
 
-    @Option(secure=true, name="definitionFile", description = "File to dump start location of identified custom instruction applications")
+    @Option(
+        secure = true,
+        name = "definitionFile",
+        description = "File to dump start location of identified custom instruction applications")
     @FileOption(FileOption.Type.OUTPUT_FILE)
-    private Path foundCustomInstructionsDefinition = Paths.get("ci_def.txt");
+    private Path foundCustomInstructionsDefinition = Path.of("ci_def.txt");
 
-    public CustomInstructionsForBinaryOperator(Configuration pConfig, LogManager pLogger,
-        ShutdownNotifier pSdNotifier, CFA pCfa) throws InvalidConfigurationException {
+    public CustomInstructionsForBinaryOperator(
+        Configuration pConfig, LogManager pLogger, ShutdownNotifier pSdNotifier, CFA pCfa)
+        throws InvalidConfigurationException {
       super(pConfig, pLogger, pSdNotifier, pCfa);
       pConfig.inject(this);
 
-      logger.log(Level.FINE, "Using a simple custom instruction. Find out the applications ourselves");
+      logger.log(
+          Level.FINE, "Using a simple custom instruction. Find out the applications ourselves");
     }
 
     private CustomInstructionApplications findSimpleCustomInstructionApplications()
@@ -311,31 +325,52 @@ public class CustomInstructionApplications {
       // create variable expressions
       CType type = CNumericTypes.INT;
       CIdExpression r, x, y;
-      r = new CIdExpression(FileLocation.DUMMY, new CVariableDeclaration(FileLocation.DUMMY, true, CStorageClass.AUTO,
-              type, "r", "r", "r", null));
-      x = new CIdExpression(FileLocation.DUMMY, new CVariableDeclaration(FileLocation.DUMMY, true, CStorageClass.AUTO,
-              type, "x", "x", "x", null));
-      y = new CIdExpression(FileLocation.DUMMY, new CVariableDeclaration(FileLocation.DUMMY, true, CStorageClass.AUTO,
-              type, "y", "y", "y", null));
+      r =
+          new CIdExpression(
+              FileLocation.DUMMY,
+              new CVariableDeclaration(
+                  FileLocation.DUMMY, true, CStorageClass.AUTO, type, "r", "r", "r", null));
+      x =
+          new CIdExpression(
+              FileLocation.DUMMY,
+              new CVariableDeclaration(
+                  FileLocation.DUMMY, true, CStorageClass.AUTO, type, "x", "x", "x", null));
+      y =
+          new CIdExpression(
+              FileLocation.DUMMY,
+              new CVariableDeclaration(
+                  FileLocation.DUMMY, true, CStorageClass.AUTO, type, "y", "y", "y", null));
       // create statement
       CExpressionAssignmentStatement stmt =
-          new CExpressionAssignmentStatement(FileLocation.DUMMY, r, new CBinaryExpressionBuilder(MachineModel.LINUX64,
-              logger).buildBinaryExpression(x, y, binaryOperatorForSimpleCustomInstruction));
+          new CExpressionAssignmentStatement(
+              FileLocation.DUMMY,
+              r,
+              new CBinaryExpressionBuilder(MachineModel.LINUX64, logger)
+                  .buildBinaryExpression(x, y, binaryOperatorForSimpleCustomInstruction));
       // create edge
       CFunctionDeclaration ciDef =
           new CFunctionDeclaration(
-              FileLocation.DUMMY, CFunctionType.NO_ARGS_VOID_FUNCTION, "ci", ImmutableList.of());
+              FileLocation.DUMMY,
+              CFunctionType.NO_ARGS_VOID_FUNCTION,
+              "ci",
+              ImmutableList.of(),
+              ImmutableSet.of());
       CFANode start = new CFANode(ciDef);
       CFANode end = new CFANode(ciDef);
-      CFAEdge ciEdge = new CStatementEdge("r=x" + binaryOperatorForSimpleCustomInstruction + "y;", stmt, FileLocation.DUMMY, start, end);
+      CFAEdge ciEdge =
+          new CStatementEdge(
+              "r=x" + binaryOperatorForSimpleCustomInstruction + "y;",
+              stmt,
+              FileLocation.DUMMY,
+              start,
+              end);
       start.addLeavingEdge(ciEdge);
       end.addEnteringEdge(ciEdge);
       // build custom instruction
-      List<String> input = new ArrayList<>(2);
-      input.add("x");
-      input.add("y");
-      CustomInstruction ci = new CustomInstruction(start, Collections.singleton(end),
-          input, ImmutableList.of("r"), shutdownNotifier);
+      ImmutableList<String> input = ImmutableList.of("x", "y");
+      CustomInstruction ci =
+          new CustomInstruction(
+              start, ImmutableSet.of(end), input, ImmutableList.of("r"), shutdownNotifier);
 
       // find applied custom instructions in program
       try (Writer aciDef =
@@ -345,10 +380,12 @@ public class CustomInstructionApplications {
         for (CFANode node : cfa.getAllNodes()) {
           for (CFAEdge edge : CFAUtils.allLeavingEdges(node)) {
             if (edge instanceof CStatementEdge
-                && ((CStatementEdge) edge).getStatement() instanceof CExpressionAssignmentStatement) {
+                && ((CStatementEdge) edge).getStatement()
+                    instanceof CExpressionAssignmentStatement) {
               stmt = (CExpressionAssignmentStatement) ((CStatementEdge) edge).getStatement();
               if (stmt.getRightHandSide() instanceof CBinaryExpression
-                  && ((CBinaryExpression) stmt.getRightHandSide()).getOperator()
+                  && ((CBinaryExpression) stmt.getRightHandSide())
+                      .getOperator()
                       .equals(binaryOperatorForSimpleCustomInstruction)
                   && stmt.getLeftHandSide().getExpressionType().equals(type)) {
                 // application of custom instruction found, add to definition file
@@ -363,11 +400,11 @@ public class CustomInstructionApplications {
         // write signature
         br.write(ci.getSignature() + "\n");
         String ciString = ci.getFakeSMTDescription().getSecond();
-        br.write(ciString.substring(ciString.indexOf("a")-1,ciString.length()-1) + ";");
+        br.write(ciString.substring(ciString.indexOf("a") - 1, ciString.length() - 1) + ";");
       }
 
-      return new AppliedCustomInstructionParser(shutdownNotifier, logger, cfa).
-          parse(ci, foundCustomInstructionsDefinition);
+      return new AppliedCustomInstructionParser(shutdownNotifier, logger, cfa)
+          .parse(ci, foundCustomInstructionsDefinition);
     }
 
     @Override
@@ -385,5 +422,4 @@ public class CustomInstructionApplications {
       return cia;
     }
   }
-
 }

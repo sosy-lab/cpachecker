@@ -22,11 +22,7 @@ public class StructureFieldIdentifier extends StructureIdentifier {
 
   @Override
   public String toString() {
-    String info = Identifiers.getCharsOf(dereference);
-    info += "(?.";
-    info += name;
-    info += ")";
-    return info;
+    return Identifiers.getCharsOf(dereference) + "(?." + name + ")";
   }
 
   @Override

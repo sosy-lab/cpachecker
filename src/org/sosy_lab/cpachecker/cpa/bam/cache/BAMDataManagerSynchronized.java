@@ -18,6 +18,7 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
+import org.sosy_lab.cpachecker.cpa.bam.AbstractBAMCPA;
 import org.sosy_lab.cpachecker.cpa.bam.cache.BAMCache.BAMCacheEntry;
 
 public class BAMDataManagerSynchronized implements BAMDataManager {
@@ -25,8 +26,11 @@ public class BAMDataManagerSynchronized implements BAMDataManager {
   private final BAMDataManager manager;
 
   public BAMDataManagerSynchronized(
-      BAMCache pCache, ReachedSetFactory pReachedsetFactory, LogManager pLogger) {
-    manager = new BAMDataManagerImpl(pCache, pReachedsetFactory, pLogger);
+      AbstractBAMCPA pBamCpa,
+      BAMCache pCache,
+      ReachedSetFactory pReachedsetFactory,
+      LogManager pLogger) {
+    manager = new BAMDataManagerImpl(pBamCpa, pCache, pReachedsetFactory, pLogger);
   }
 
   @Override
@@ -158,13 +162,13 @@ public class BAMDataManagerSynchronized implements BAMDataManager {
 
   @Override
   public boolean addUncachedBlockEntry(CFANode pNode) {
-    //Not sure how the option works with ParallelBAM
+    // Not sure how the option works with ParallelBAM
     return true;
   }
 
   @Override
   public boolean isUncachedBlockEntry(CFANode pNode) {
-    //Not sure how the option works with ParallelBAM
+    // Not sure how the option works with ParallelBAM
     return false;
   }
 

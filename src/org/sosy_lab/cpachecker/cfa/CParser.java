@@ -8,7 +8,7 @@
 
 package org.sosy_lab.cpachecker.cfa;
 
-import java.io.IOException;
+import java.nio.file.Path;
 import java.util.List;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
@@ -26,21 +26,20 @@ import org.sosy_lab.cpachecker.exceptions.CParserException;
 /**
  * Abstraction of a C parser that creates CFAs from C code.
  *
- * A C parser should be state-less and therefore thread-safe as well as reusable.
+ * <p>A C parser should be state-less and therefore thread-safe as well as reusable.
  *
- * It may offer timing of it's operations. If present, this is not expected to
- * be thread-safe.
+ * <p>It may offer timing of it's operations. If present, this is not expected to be thread-safe.
  */
 public interface CParser extends Parser {
 
   class FileToParse {
-    private final String fileName;
+    private final Path fileName;
 
-    public FileToParse(String pFileName) {
-      this.fileName = pFileName;
+    public FileToParse(Path pFileName) {
+      fileName = pFileName;
     }
 
-    public String getFileName() {
+    public Path getFileName() {
       return fileName;
     }
   }
@@ -48,9 +47,9 @@ public interface CParser extends Parser {
   class FileContentToParse extends FileToParse {
     private final String fileContent;
 
-    public FileContentToParse(String pFileName, String pFileContent) {
+    public FileContentToParse(Path pFileName, String pFileContent) {
       super(pFileName);
-      this.fileContent = pFileContent;
+      fileContent = pFileContent;
     }
 
     public String getFileContent() {
@@ -61,27 +60,16 @@ public interface CParser extends Parser {
   /**
    * Parse the content of a String into a CFA.
    *
+   * @param filename A filename that is the supposed source of this code (for relative lookups).
    * @param code The code to parse.
    * @return The CFA.
    * @throws CParserException If parser or CFA builder cannot handle the code.
    */
   @Override
-  default ParseResult parseString(String filename, String code)
+  default ParseResult parseString(Path filename, String code)
       throws CParserException, InterruptedException {
     return parseString(filename, code, new CSourceOriginMapping(), CProgramScope.empty());
   }
-
-  /**
-   * Parse the content of files into a single CFA.
-   *
-   * @param filenames The List of files to parse. The first part of the pair should be the filename,
-   *     the second part should be the prefix which will be appended to static variables
-   * @return The CFA.
-   * @throws IOException If file cannot be read.
-   * @throws CParserException If parser or CFA builder cannot handle the C code.
-   */
-  ParseResult parseFile(List<String> filenames)
-      throws CParserException, IOException, InterruptedException;
 
   /**
    * Parse the content of Strings into a single CFA.
@@ -108,7 +96,7 @@ public interface CParser extends Parser {
    * @throws CParserException if the parser cannot handle the C code.
    */
   ParseResult parseString(
-      String pFileName, String pCode, CSourceOriginMapping pSourceOriginMapping, Scope pScope)
+      Path pFileName, String pCode, CSourceOriginMapping pSourceOriginMapping, Scope pScope)
       throws CParserException, InterruptedException;
 
   /**
@@ -163,20 +151,28 @@ public interface CParser extends Parser {
   @Options(prefix = "parser")
   abstract class ParserOptions {
 
-    @Option(secure=true, description="C dialect for parser")
+    @Option(secure = true, description = "C dialect for parser")
     private Dialect dialect = Dialect.GNUC;
+
+    @Option(secure = true, description = "Whether to collect ACSL annotations if present")
+    private boolean collectACSLAnnotations = false;
 
     protected ParserOptions() {}
 
     public Dialect getDialect() {
       return dialect;
     }
+
+    public boolean shouldCollectACSLAnnotations() {
+      return collectACSLAnnotations;
+    }
   }
 
   /** Factory that tries to create a parser based on available libraries (e.g. Eclipse CDT). */
   class Factory {
 
-    public static ParserOptions getOptions(Configuration config) throws InvalidConfigurationException {
+    public static ParserOptions getOptions(Configuration config)
+        throws InvalidConfigurationException {
       ParserOptions result = new EclipseCParserOptions();
       config.recursiveInject(result);
       return result;

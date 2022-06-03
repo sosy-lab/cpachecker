@@ -12,6 +12,7 @@ import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import com.google.common.collect.Lists;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -52,14 +53,13 @@ class TypeHierachyConverter {
   }
 
   /**
-   * Converts a Method Declaration
-   * of the JDT AST to a MethodDeclaration of the CFA AST
+   * Converts a Method Declaration of the JDT AST to a MethodDeclaration of the CFA AST
    *
    * @param md The method declaration to be transformed.
    * @param pFileOfDeclaration The File this method declaration was parsed from.
    * @return The CFA AST of this method declaration.
    */
-  public JMethodDeclaration convert(final MethodDeclaration md, String pFileOfDeclaration) {
+  public JMethodDeclaration convert(final MethodDeclaration md, Path pFileOfDeclaration) {
 
     IMethodBinding methodBinding = md.resolveBinding();
 
@@ -74,7 +74,7 @@ class TypeHierachyConverter {
     @SuppressWarnings("unchecked")
     ModifierBean mb = ModifierBean.getModifiers(md.modifiers());
 
-    @SuppressWarnings({ "cast", "unchecked" })
+    @SuppressWarnings({"cast", "unchecked"})
     List<JParameterDeclaration> param =
         convertParameterList(md.parameters(), pFileOfDeclaration, methodName);
 
@@ -87,31 +87,41 @@ class TypeHierachyConverter {
       // Constructors can't be declared by Interfaces
       JClassType declaringClass = convertClassOfConstructor(md);
 
-      JConstructorType type =
-          new JConstructorType(declaringClass, parameterTypes, md.isVarargs());
+      JConstructorType type = new JConstructorType(declaringClass, parameterTypes, md.isVarargs());
 
       return new JConstructorDeclaration(
-          fileLoc, type, methodName, simpleName,
-          param, mb.getVisibility(), mb.isStrictFp(), declaringClass);
+          fileLoc,
+          type,
+          methodName,
+          simpleName,
+          param,
+          mb.getVisibility(),
+          mb.isStrictFp(),
+          declaringClass);
 
     } else {
 
       // A Method is also abstract if its a member of an interface
-      boolean isAbstract = mb.isAbstract() ||
-          md.resolveBinding().getDeclaringClass().isInterface();
+      boolean isAbstract = mb.isAbstract() || md.resolveBinding().getDeclaringClass().isInterface();
 
       JMethodType methodType =
           new JMethodType(convert(md.getReturnType2()), parameterTypes, md.isVarargs());
 
-
       JClassOrInterfaceType declaringClass = convertDeclaringClassType(md);
 
-
-      return new JMethodDeclaration(fileLoc,
-          methodType, methodName, simpleName,
-          param, mb.getVisibility(), mb.isFinal(),
-          isAbstract, mb.isStatic(), mb.isNative(),
-          mb.isSynchronized(), mb.isStrictFp(),
+      return new JMethodDeclaration(
+          fileLoc,
+          methodType,
+          methodName,
+          simpleName,
+          param,
+          mb.getVisibility(),
+          mb.isFinal(),
+          isAbstract,
+          mb.isStatic(),
+          mb.isNative(),
+          mb.isSynchronized(),
+          mb.isStrictFp(),
           declaringClass);
     }
   }
@@ -122,7 +132,7 @@ class TypeHierachyConverter {
    * @param fd Declarations given to be transformed.
    * @return intern AST of the Field Declarations.
    */
-  public Set<JFieldDeclaration> convert(FieldDeclaration fd, String pFileOfDeclaration) {
+  public Set<JFieldDeclaration> convert(FieldDeclaration fd, Path pFileOfDeclaration) {
 
     Set<JFieldDeclaration> result = new HashSet<>();
 
@@ -133,15 +143,13 @@ class TypeHierachyConverter {
     @SuppressWarnings("unchecked")
     ModifierBean mB = ModifierBean.getModifiers(fd.modifiers());
 
-    assert (!mB.isAbstract()) : "Field Variable has this modifier?";
-    assert (!mB.isNative()) : "Field Variable has this modifier?";
-    assert (!mB.isStrictFp()) : "Field Variable has this modifier?";
-    assert (!mB.isSynchronized()) : "Field Variable has this modifier?";
-
+    assert !mB.isAbstract() : "Field Variable has this modifier?";
+    assert !mB.isNative() : "Field Variable has this modifier?";
+    assert !mB.isStrictFp() : "Field Variable has this modifier?";
+    assert !mB.isSynchronized() : "Field Variable has this modifier?";
 
     @SuppressWarnings("unchecked")
-    List<VariableDeclarationFragment> vdfs =
-        fd.fragments();
+    List<VariableDeclarationFragment> vdfs = fd.fragments();
 
     for (VariableDeclarationFragment vdf : vdfs) {
 
@@ -153,22 +161,28 @@ class TypeHierachyConverter {
     return result;
   }
 
-
-  private JFieldDeclaration handleFragment(VariableDeclarationFragment vdf,
-      Type type, FileLocation fileLoc, ModifierBean mB) {
+  private JFieldDeclaration handleFragment(
+      VariableDeclarationFragment vdf, Type type, FileLocation fileLoc, ModifierBean mB) {
 
     IVariableBinding vB = vdf.resolveBinding();
 
-    checkNotNull(vdf, "Can't resolve binding of field declaration "
-        + vdf.getName().getFullyQualifiedName());
+    checkNotNull(
+        vdf, "Can't resolve binding of field declaration " + vdf.getName().getFullyQualifiedName());
 
     String qualifiedName = NameConverter.convertName(vB);
     String simpleName = vB.getName();
 
-    JFieldDeclaration newD = new JFieldDeclaration(fileLoc,
-        convert(type), qualifiedName, simpleName,
-        mB.isFinal(), mB.isStatic(), mB.isTransient(),
-        mB.isVolatile(), mB.getVisibility());
+    JFieldDeclaration newD =
+        new JFieldDeclaration(
+            fileLoc,
+            convert(type),
+            qualifiedName,
+            simpleName,
+            mB.isFinal(),
+            mB.isStatic(),
+            mB.isTransient(),
+            mB.isVolatile(),
+            mB.getVisibility());
 
     return newD;
   }
@@ -201,8 +215,7 @@ class TypeHierachyConverter {
   }
 
   private List<JParameterDeclaration> convertParameterList(
-      List<SingleVariableDeclaration> ps, String fileOfDeclaration,
-      String methodName) {
+      List<SingleVariableDeclaration> ps, Path fileOfDeclaration, String methodName) {
     List<JParameterDeclaration> paramsList = new ArrayList<>(ps.size());
 
     for (org.eclipse.jdt.core.dom.SingleVariableDeclaration c : ps) {
@@ -212,8 +225,8 @@ class TypeHierachyConverter {
     return paramsList;
   }
 
-  private JParameterDeclaration convertParameter(SingleVariableDeclaration p,
-      String fileOfDeclaration, String methodName) {
+  private JParameterDeclaration convertParameter(
+      SingleVariableDeclaration p, Path fileOfDeclaration, String methodName) {
 
     JType type = convert(p.getType());
 
@@ -221,15 +234,19 @@ class TypeHierachyConverter {
 
     String qualifiedName = p.getName().getFullyQualifiedName();
 
-    return new JParameterDeclaration(convertFileLocation(p, fileOfDeclaration),
-        type, qualifiedName, methodName + "::" + qualifiedName, mb.isFinal());
+    return new JParameterDeclaration(
+        convertFileLocation(p, fileOfDeclaration),
+        type,
+        qualifiedName,
+        methodName + "::" + qualifiedName,
+        mb.isFinal());
   }
 
   private JType convert(Type pType) {
     return typeConverter.convert(pType);
   }
 
-  private FileLocation convertFileLocation(ASTNode l, String fileOfDeclaration) {
+  private FileLocation convertFileLocation(ASTNode l, Path fileOfDeclaration) {
 
     if (l == null) {
       return FileLocation.DUMMY;

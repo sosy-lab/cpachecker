@@ -45,7 +45,6 @@ public class PowerSetDomain implements AbstractDomain {
       if (!coverSet.contains(state) && !stop.stop(state, coverSet, prec)) {
         stateSet.add(state);
       }
-
     }
 
     if (stateSet.isEmpty()) {
@@ -67,18 +66,17 @@ public class PowerSetDomain implements AbstractDomain {
     return state1.isMergedInto(state2) || isCoverage(state1, state2);
   }
 
-  private boolean isCoverage(final PowerSetState pCovered, final PowerSetState pCovering) {
-    if (prec == null) { return false; }
-    Collection<AbstractState> coverSet = pCovering.getWrappedStates();
-    try {
-      for (AbstractState state : pCovered.getWrappedStates()) {
-
-        if (!coverSet.contains(state) && !stop.stop(state, coverSet, prec)) {
-          return false;
-        }
-      }
-    } catch (CPAException | InterruptedException e) {
+  private boolean isCoverage(final PowerSetState pCovered, final PowerSetState pCovering)
+      throws CPAException, InterruptedException {
+    if (prec == null) {
       return false;
+    }
+    Collection<AbstractState> coverSet = pCovering.getWrappedStates();
+    for (AbstractState state : pCovered.getWrappedStates()) {
+
+      if (!coverSet.contains(state) && !stop.stop(state, coverSet, prec)) {
+        return false;
+      }
     }
     return true;
   }
@@ -86,5 +84,4 @@ public class PowerSetDomain implements AbstractDomain {
   public void setPrecision(final Precision pPrec) {
     prec = pPrec;
   }
-
 }

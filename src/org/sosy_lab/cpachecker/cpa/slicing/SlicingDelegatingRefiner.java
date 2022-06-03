@@ -40,11 +40,10 @@ public class SlicingDelegatingRefiner implements Refiner, StatisticsProvider {
   private static class SlicingDelegatingRefinerOptions {
 
     @Option(
-      secure = true,
-      name = "refiner",
-      required = true,
-      description = "Refiner that SlicingDelegatingRefiner should delegate to"
-    )
+        secure = true,
+        name = "refiner",
+        required = true,
+        description = "Refiner that SlicingDelegatingRefiner should delegate to")
     @ClassOption(packagePrefix = "org.sosy_lab.cpachecker")
     private Refiner.Factory delegate = null;
   }
@@ -85,7 +84,7 @@ public class SlicingDelegatingRefiner implements Refiner, StatisticsProvider {
     if (sliceRefinementSuccessful) {
       return true;
     }
-    
+
     boolean refinementResult = delegate.performRefinement(pReached);
     // Update counterexamples to be imprecise, because the program slice
     // may not reflect the real program semantics, but reflects the real program
@@ -103,7 +102,6 @@ public class SlicingDelegatingRefiner implements Refiner, StatisticsProvider {
 
   @Override
   public void collectStatistics(Collection<Statistics> statsCollection) {
-    slicingRefiner.collectStatistics(statsCollection);
     if (delegate instanceof Statistics) {
       statsCollection.add((Statistics) delegate);
     } else if (delegate instanceof StatisticsProvider) {

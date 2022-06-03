@@ -8,6 +8,7 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 
+import getpass
 import glob
 import logging
 import os
@@ -19,12 +20,14 @@ cpachecker_dir = os.path.join(os.path.dirname(__file__), os.pardir)
 for egg in glob.glob(os.path.join(cpachecker_dir, "lib", "python-benchmark", "*.whl")):
     sys.path.insert(0, egg)
 
+from benchmark.vcloudbenchmarkbase import VcloudBenchmarkBase  # noqa E402
 from benchexec import __version__
 import benchexec.benchexec
 import benchexec.model
+import benchexec.tooladapter
 import benchexec.tools
 import benchexec.util
-import benchmark.util
+from benchmark import vcloudutil
 
 # Add ./benchmark/tools to __path__ of benchexec.tools package
 # such that additional tool-wrapper modules can be placed in this directory.
@@ -32,8 +35,19 @@ benchexec.tools.__path__ = [
     os.path.join(os.path.dirname(__file__), "benchmark", "tools")
 ] + benchexec.tools.__path__
 
+_ROOT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir))
 
-class Benchmark(benchexec.benchexec.BenchExec):
+
+def download_required_jars():
+    # install cloud and dependencies
+    subprocess.run(
+        ["ant", "resolve-benchmark-dependencies"],
+        cwd=_ROOT_DIR,
+        shell=vcloudutil.is_windows(),  # noqa: S602
+    )
+
+
+class Benchmark(VcloudBenchmarkBase):
     """
     An extension of BenchExec for use with CPAchecker
     that supports executing the benchmarks in the VerifierCloud.
@@ -41,37 +55,12 @@ class Benchmark(benchexec.benchexec.BenchExec):
 
     DEFAULT_OUTPUT_PATH = "test/results/"
 
-    def create_argument_parser(self):
-        parser = super(Benchmark, self).create_argument_parser()
-        vcloud_args = parser.add_argument_group("Options for using VerifierCloud")
+    def add_vcloud_args(self, vcloud_args):
         vcloud_args.add_argument(
             "--cloud",
             dest="cloud",
             action="store_true",
             help="Use VerifierCloud to execute benchmarks.",
-        )
-
-        vcloud_args.add_argument(
-            "--cloudMaster",
-            dest="cloudMaster",
-            metavar="HOST",
-            help="Sets the master host of the VerifierCloud instance to be used. If this is a HTTP URL, the web interface is used.",
-        )
-
-        vcloud_args.add_argument(
-            "--cloudPriority",
-            dest="cloudPriority",
-            metavar="PRIORITY",
-            help="Sets the priority for this benchmark used in the VerifierCloud. Possible values are IDLE, LOW, HIGH, URGENT.",
-        )
-
-        vcloud_args.add_argument(
-            "--cloudCPUModel",
-            dest="cpu_model",
-            type=str,
-            default=None,
-            metavar="CPU_MODEL",
-            help="Only execute runs in the VerifierCloud on CPU models that contain the given string.",
         )
 
         vcloud_args.add_argument(
@@ -90,22 +79,6 @@ class Benchmark(benchexec.benchexec.BenchExec):
         )
 
         vcloud_args.add_argument(
-            "--justReprocessResults",
-            dest="reprocessResults",
-            action="store_true",
-            help="Do not run the benchmarks. Assume that the benchmarks were already executed in the VerifierCloud and the log files are stored (use --startTime to point the script to the results).",
-        )
-
-        vcloud_args.add_argument(
-            "--cloudClientHeap",
-            dest="cloudClientHeap",
-            metavar="MB",
-            default=100,
-            type=int,
-            help="The heap-size (in MB) used by the VerifierCloud client. A too small heap-size may terminate the client without any results.",
-        )
-
-        vcloud_args.add_argument(
             "--cloudSubmissionThreads",
             dest="cloud_threads",
             default=5,
@@ -121,29 +94,32 @@ class Benchmark(benchexec.benchexec.BenchExec):
             type=int,
             help="The interval in seconds for polling results from the server (if using the web interface of the VerifierCloud).",
         )
-        vcloud_args.add_argument(
-            "--zipResultFiles",
-            dest="zipResultFiles",
-            action="store_true",
-            help="Packs all result files on the worker into a zip file before file transfer (add this flag if a large number of result files is generated).",
-        )
-        vcloud_args.add_argument(
-            "--cgroupAccess",
-            dest="cgroupAccess",
-            action="store_true",
-            help="Allows the usage of cgroups inside the execution environment. This is useful e.g. if a tool wants to make use of resource limits for subprocesses it spawns.",
-        )
+        # add arguments from the base class.
+        super(Benchmark, self).add_vcloud_args(vcloud_args)
 
-        return parser
+    def get_param_name(self, pname):
+        return "--" + pname
 
     def load_executor(self):
         webclient = False
+        if getpass.getuser() == "root":
+            logging.warning(
+                "Benchmarking as root user is not advisable! Please execute this script as normal user!"
+            )
         if self.config.cloud:
             if self.config.cloudMaster and "http" in self.config.cloudMaster:
                 webclient = True
                 import benchmark.webclient_executor as executor
             else:
+
+                download_required_jars()
+
                 import benchmark.benchmarkclient_executor as executor
+
+                executor.set_vcloud_jar_path(
+                    os.path.join(_ROOT_DIR, "lib", "java-benchmark", "vcloud.jar")
+                )
+
             logging.debug(
                 "This is CPAchecker's benchmark.py (based on benchexec %s) "
                 "using the VerifierCloud %s API.",
@@ -161,13 +137,19 @@ class Benchmark(benchexec.benchexec.BenchExec):
                     # This duplicates the logic from our tool-info module,
                     # but we cannot call it here.
                     # Note that base_dir can be different from cpachecker_dir!
-                    script = benchexec.util.find_executable("cpa.sh", "scripts/cpa.sh")
+                    tool_locator = benchexec.tooladapter.create_tool_locator(
+                        self.config
+                    )
+                    script = tool_locator.find_executable("cpa.sh", subdir="scripts")
                     base_dir = os.path.join(os.path.dirname(script), os.path.pardir)
                     build_file = os.path.join(base_dir, "build.xml")
-                    if os.path.exists(build_file) and subprocess.call(
-                        ["ant", "-q", "jar"],
-                        cwd=base_dir,
-                        shell=benchmark.util.is_windows(),  # noqa: S602
+                    if (
+                        os.path.exists(build_file)
+                        and subprocess.run(
+                            ["ant", "-q", "jar"],
+                            cwd=base_dir,
+                            shell=vcloudutil.is_windows(),  # noqa: S602
+                        ).returncode
                     ):
                         sys.exit(
                             "Failed to build CPAchecker, please fix the build first."

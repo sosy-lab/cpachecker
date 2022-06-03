@@ -12,7 +12,6 @@ import static org.sosy_lab.cpachecker.core.defaults.precision.VariableTrackingPr
 
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.FluentIterable;
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
@@ -22,11 +21,8 @@ import java.util.Optional;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
-import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.core.defaults.precision.VariableTrackingPrecision;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
@@ -47,18 +43,24 @@ public class OctagonAnalysisFeasibilityChecker {
   private final ARGPath checkedPath;
   private final ARGPath foundPath;
 
-  public OctagonAnalysisFeasibilityChecker(Configuration pConfig, ShutdownNotifier pShutdownNotifier,
-                                           ARGPath pPath, Class<? extends ConfigurableProgramAnalysis> pClass, Optional<VariableClassification> pVarClass, TransferRelation pTransfer,
-                                           AbstractState pInitialState) throws InvalidConfigurationException, CPAException, InterruptedException {
+  public OctagonAnalysisFeasibilityChecker(
+      Configuration pConfig,
+      ShutdownNotifier pShutdownNotifier,
+      ARGPath pPath,
+      Class<? extends ConfigurableProgramAnalysis> pClass,
+      Optional<VariableClassification> pVarClass,
+      TransferRelation pTransfer,
+      AbstractState pInitialState)
+      throws InvalidConfigurationException, CPAException, InterruptedException {
 
     shutdownNotifier = pShutdownNotifier;
 
     // use the normal configuration for creating the transferrelation
-    transfer  = pTransfer;
+    transfer = pTransfer;
     checkedPath = pPath;
 
-    foundPath = getInfeasiblePrefix(createStaticPrecision(pConfig, pVarClass, pClass),
-                                    pInitialState);
+    foundPath =
+        getInfeasiblePrefix(createStaticPrecision(pConfig, pVarClass, pClass), pInitialState);
   }
 
   /**
@@ -67,7 +69,7 @@ public class OctagonAnalysisFeasibilityChecker {
    * @return true, if the path is feasible, else false
    */
   public boolean isFeasible() {
-      return checkedPath.size() == foundPath.size();
+    return checkedPath.size() == foundPath.size();
   }
 
   public Multimap<CFANode, MemoryLocation> getPrecisionIncrement() {
@@ -75,16 +77,10 @@ public class OctagonAnalysisFeasibilityChecker {
       return ArrayListMultimap.<CFANode, MemoryLocation>create();
     } else {
 
-      Multimap<CFANode, MemoryLocation> increment = ArrayListMultimap.<CFANode, MemoryLocation>create();
+      Multimap<CFANode, MemoryLocation> increment =
+          ArrayListMultimap.<CFANode, MemoryLocation>create();
       for (MemoryLocation loc : getMemoryLocationsFromUseDefRelation()) {
-        increment.put(
-            new CFANode(
-                new CFunctionDeclaration(
-                    FileLocation.DUMMY,
-                    CFunctionType.NO_ARGS_VOID_FUNCTION,
-                    "BOGUS-NODE",
-                    ImmutableList.of())),
-            loc);
+        increment.put(CFANode.newDummyCFANode("BOGUS-NODE"), loc);
       }
 
       return increment;
@@ -92,25 +88,26 @@ public class OctagonAnalysisFeasibilityChecker {
   }
 
   /**
-   * This method returns the variables contained in the use-def relation
-   * of the last (failing) assume edge in the found error path.
+   * This method returns the variables contained in the use-def relation of the last (failing)
+   * assume edge in the found error path.
    */
   private FluentIterable<MemoryLocation> getMemoryLocationsFromUseDefRelation() {
     UseDefRelation useDefRelation = new UseDefRelation(foundPath, ImmutableSet.of(), false);
 
     return FluentIterable.from(useDefRelation.getUsesAsQualifiedName())
-        .transform(MemoryLocation::valueOf);
+        .transform(MemoryLocation::parseExtendedQualifiedName);
   }
 
   /**
-   * This method obtains the prefix of the path, that is infeasible by itself. If the path is feasible, the whole path
-   * is returned
+   * This method obtains the prefix of the path, that is infeasible by itself. If the path is
+   * feasible, the whole path is returned
    *
    * @param pPrecision the precision to use
    * @param pInitial the initial state
    * @return the prefix of the path that is feasible by itself
    */
-  private ARGPath getInfeasiblePrefix(final VariableTrackingPrecision pPrecision, final AbstractState pInitial)
+  private ARGPath getInfeasiblePrefix(
+      final VariableTrackingPrecision pPrecision, final AbstractState pInitial)
       throws CPAException, InterruptedException {
     try {
       Collection<AbstractState> next = Lists.newArrayList(pInitial);
@@ -124,10 +121,7 @@ public class OctagonAnalysisFeasibilityChecker {
         successors.clear();
 
         for (AbstractState st : next) {
-          successors.addAll(transfer.getAbstractSuccessorsForEdge(
-              st,
-              pPrecision,
-              edge));
+          successors.addAll(transfer.getAbstractSuccessorsForEdge(st, pPrecision, edge));
 
           // computing the feasibility check takes sometimes much time with octagons
           // so we let the shutdownNotifier cancel the computation if necessary
@@ -149,8 +143,8 @@ public class OctagonAnalysisFeasibilityChecker {
       return pathIt.getPrefixInclusive();
 
     } catch (CPATransferException e) {
-      throw new CPAException("Computation of successor failed for checking path: " + e.getMessage(), e);
+      throw new CPAException(
+          "Computation of successor failed for checking path: " + e.getMessage(), e);
     }
   }
-
 }

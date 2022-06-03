@@ -76,7 +76,11 @@ public class PersistentMultimap<K, V> {
     return set == null ? ImmutableSet.of() : set;
   }
 
-  public boolean contains(K key, V value) {
+  public boolean contains(K key) {
+    return delegate.containsKey(key);
+  }
+
+  public boolean containsEntry(K key, V value) {
     return delegate.containsKey(key) && delegate.get(key).contains(value);
   }
 
@@ -88,6 +92,10 @@ public class PersistentMultimap<K, V> {
     return delegate.size();
   }
 
+  public boolean isEmpty() {
+    return delegate.isEmpty();
+  }
+
   @Override
   public int hashCode() {
     return delegate.hashCode();
@@ -96,7 +104,7 @@ public class PersistentMultimap<K, V> {
   @Override
   public boolean equals(Object o) {
     return o instanceof PersistentMultimap
-        && delegate.equals(((PersistentMultimap<?,?>)o).delegate);
+        && delegate.equals(((PersistentMultimap<?, ?>) o).delegate);
   }
 
   @Override

@@ -14,7 +14,6 @@ import java.io.Writer;
 import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
@@ -49,13 +48,12 @@ public abstract class ErrorTracePrinter {
 
   @Option(name = "falseUnsafesOutput", description = "path to write results", secure = true)
   @FileOption(FileOption.Type.OUTPUT_FILE)
-  private Path outputFalseUnsafes = Paths.get("FalseUnsafes");
+  private Path outputFalseUnsafes = Path.of("FalseUnsafes");
 
   @Option(
-    name = "filterMissedFiles",
-    description = "if a file do not exist, do not include the corresponding edge",
-    secure = true
-  )
+      name = "filterMissedFiles",
+      description = "if a file do not exist, do not include the corresponding edge",
+      secure = true)
   private boolean filterMissedFiles = true;
 
   @Option(description = "print all unsafe cases in report", secure = true)
@@ -96,10 +94,10 @@ public abstract class ErrorTracePrinter {
       return false;
     }
     FileLocation loc = e.getFileLocation();
-    if (loc == null || loc.equals(FileLocation.DUMMY)) {
+    if (loc == null || !loc.isRealLocation()) {
       return false;
     }
-    if (filterMissedFiles && !Files.exists(Paths.get(loc.getFileName()))) {
+    if (filterMissedFiles && !Files.exists(loc.getFileName())) {
       return false;
     }
     return true;
@@ -124,7 +122,7 @@ public abstract class ErrorTracePrinter {
   }
 
   protected String createUniqueName(SingleIdentifier id) {
-    return id.getType().toASTString("_" + id.toString()).replace(" ", "_");
+    return id.getType().toASTString("_" + id).replace(" ", "_");
   }
 
   public void printErrorTraces(UnmodifiableReachedSet reached) {
@@ -178,7 +176,7 @@ public abstract class ErrorTracePrinter {
             writer.append(createUniqueName(id) + "\n");
           }
         } catch (IOException e) {
-          logger.log(Level.SEVERE, e.getMessage());
+          logger.logUserException(Level.WARNING, e, "Could not write error trace");
         }
       }
     }

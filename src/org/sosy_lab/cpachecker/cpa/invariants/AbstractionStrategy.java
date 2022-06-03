@@ -15,28 +15,23 @@ interface AbstractionStrategy {
    *
    * @return an abstraction state with no specific data.
    */
-  public AbstractionState getAbstractionState();
+  AbstractionState getAbstractionState();
 
   /**
-   * Gets an abstraction state that represents the successor of the given
-   * abstraction state.
+   * Gets an abstraction state that represents the successor of the given abstraction state.
    *
    * @param pPrevious the preceding state.
-   *
-   * @return an abstraction state that represents the successor of the given
-   * abstraction state.
+   * @return an abstraction state that represents the successor of the given abstraction state.
    */
-  public AbstractionState getSuccessorState(AbstractionState pPrevious);
+  AbstractionState getSuccessorState(AbstractionState pPrevious);
 
   /**
-   * Gets an abstraction state that resembles the given abstraction state as
-   * close as this factory allows.
+   * Gets an abstraction state that resembles the given abstraction state as close as this factory
+   * allows.
    *
    * @param pOther the state to be represented.
-   *
-   * @return an abstraction state that resembles the given abstraction state as
-   * close as this factory allows.
+   * @return an abstraction state that resembles the given abstraction state as close as this
+   *     factory allows.
    */
-  public AbstractionState from(AbstractionState pOther);
-
+  AbstractionState from(AbstractionState pOther);
 }

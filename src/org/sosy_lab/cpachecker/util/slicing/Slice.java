@@ -9,33 +9,77 @@
 package org.sosy_lab.cpachecker.util.slicing;
 
 import com.google.common.collect.ImmutableCollection;
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
-import java.util.Collection;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.ast.ASimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
-public class Slice {
+/** Represents a program slice. */
+public interface Slice {
 
-  private final CFA cfa;
-  private final ImmutableSet<CFAEdge> relevantEdges;
-  private final ImmutableCollection<CFAEdge> criteria;
+  /**
+   * Returns the {@link CFA} from which this program slice was created.
+   *
+   * @return the {@link CFA} from which this program slice was created
+   */
+  CFA getOriginalCfa();
 
-  Slice(final CFA pCfa, final Collection<CFAEdge> pRelevantEdges, Collection<CFAEdge> pCriteria) {
-    cfa = pCfa;
-    relevantEdges = ImmutableSet.copyOf(pRelevantEdges);
-    criteria = ImmutableList.copyOf(pCriteria);
-  }
+  /**
+   * Returns the slicing criteria that were used to create this program slice.
+   *
+   * @return the slicing criteria that were used to create this program slice
+   */
+  ImmutableCollection<CFAEdge> getSlicingCriteria();
 
-  public ImmutableSet<CFAEdge> getRelevantEdges() {
-    return relevantEdges;
-  }
+  /**
+   * Returns a set of all edges contained in this program slice.
+   *
+   * <p>The edges contained in a program slice are called relevant edges. Some edges are only
+   * partially relevant to a program slice (e.g., not all function parameters are relevant). These
+   * partially relevant edges are, as well as the fully relevant edges, contained in the returned
+   * set.
+   *
+   * @return a set of all edges contained in this program slice
+   */
+  ImmutableSet<CFAEdge> getRelevantEdges();
 
-  public ImmutableCollection<CFAEdge> getUsedCriteria() {
-    return criteria;
-  }
+  /**
+   * Returns a set of all declarations in this program slice.
+   *
+   * @return a set of all declarations in this program slice
+   */
+  ImmutableSet<ASimpleDeclaration> getRelevantDeclarations();
 
-  public CFA getOriginalCfa() {
-    return cfa;
-  }
+  /**
+   * Returns whether the write to the specified memory location at the specified edge is relevant to
+   * this program slice.
+   *
+   * <p>If the specified memory location is not actually written to at the specified edge, either
+   * {@code true} or {@code false} is returned.
+   *
+   * @param pEdge the {@link CFAEdge} at which the memory location is written to
+   * @param pMemoryLocation the {@link MemoryLocation} that is written to
+   * @return whether the write to the specified memory location at the specified edge is relevant to
+   *     this program slice
+   * @throws IllegalArgumentException if {@code pEdge} is not a relevant edge to this program slice
+   * @throws NullPointerException if any parameter is {@code null}
+   */
+  boolean isRelevantDef(CFAEdge pEdge, MemoryLocation pMemoryLocation);
+
+  /**
+   * Returns whether the read of the specified memory location at the specified edge is relevant to
+   * this program slice.
+   *
+   * <p>If the specified memory location is not actually read at the specified edge, either {@code
+   * true} or {@code false} is returned.
+   *
+   * @param pEdge the {@link CFAEdge} at which the memory location is read
+   * @param pMemoryLocation the {@link MemoryLocation} that is read
+   * @return whether the read of the specified memory location at the specified edge is relevant to
+   *     this program slice
+   * @throws IllegalArgumentException if {@code pEdge} is not a relevant edge to this program slice
+   * @throws NullPointerException if any parameter is {@code null}
+   */
+  boolean isRelevantUse(CFAEdge pEdge, MemoryLocation pMemoryLocation);
 }

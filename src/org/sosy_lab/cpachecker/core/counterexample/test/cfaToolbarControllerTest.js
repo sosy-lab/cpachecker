@@ -7,71 +7,67 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-describe("ReportController", function () {
-    var $rootScope,
+describe("ReportController", () => {
+  let $rootScope;
+  let $scope;
+
+  beforeEach(() => {
+    angular.mock.module("report");
+
+    angular.mock.inject(($injector) => {
+      $rootScope = $injector.get("$rootScope");
+      $scope = $rootScope.$new();
+      $injector.get("$controller")("CFAToolbarController", {
         $scope,
-        controller;
+      });
+    });
+    jasmine.getFixtures().fixturesPath = "base/";
+    jasmine.getFixtures().load("testReport.html");
+  });
 
-    beforeEach(function () {
-        module('report');
+  describe("selectedCFAFunction initialization", () => {
+    it("Should be defined", () => {
+      if ($scope.functions) {
+        expect($scope.selectedCFAFunction).not.toBeUndefined();
+      }
+    });
+  });
 
-        inject(function ($injector) {
-            $rootScope = $injector.get('$rootScope');
-            $scope = $rootScope.$new();
-            controller = $injector.get('$controller')("CFAToolbarController", {
-                $scope: $scope
-            });
-        })
-        jasmine.getFixtures().fixturesPath = 'base/';
-        jasmine.getFixtures().load('testReport.html');
+  describe("zoomEnabled initialization", () => {
+    it("Should be defined", () => {
+      if ($scope.functions) {
+        expect($scope.zoomEnabled).not.toBeUndefined();
+      }
+    });
+  });
 
-    })
+  describe("showValues action handler", () => {
+    it("Should be defined", () => {
+      expect($scope.setCFAFunction).not.toBeUndefined();
+    });
+  });
 
-    describe("selectedCFAFunction initialization", function () {
-        it("Should be defined", function () {
-            if ($scope.functions) {
-                expect($scope.selectedCFAFunction).not.toBeUndefined();
-            }
-        })
-    })
+  describe("cfaFunctionIsSet action handler", () => {
+    it("Should be defined", () => {
+      expect($scope.cfaFunctionIsSet).not.toBeUndefined();
+    });
+  });
 
-    describe("zoomEnabled initialization", function () {
-        it("Should be defined", function () {
-            if ($scope.functions) {
-                expect($scope.zoomEnabled).not.toBeUndefined();
-            }
-        })
-    })
+  describe("zoomControl action handler", () => {
+    it("Should be defined", () => {
+      expect($scope.zoomControl).not.toBeUndefined();
+    });
+  });
 
+  describe("redraw action handler", () => {
+    it("Should be defined", () => {
+      expect($scope.redraw).not.toBeUndefined();
+    });
+  });
 
-    describe("showValues action handler", function () {
-        it("Should be defined", function () {
-            expect($scope.setCFAFunction).not.toBeUndefined();
-        })
-    })
-
-    describe("cfaFunctionIsSet action handler", function () {
-        it("Should be defined", function () {
-            expect($scope.cfaFunctionIsSet).not.toBeUndefined();
-        })
-    })
-
-    describe("zoomControl action handler", function () {
-        it("Should be defined", function () {
-            expect($scope.zoomControl).not.toBeUndefined();
-        })
-    })
-
-    describe("redraw action handler", function () {
-        it("Should be defined", function () {
-            expect($scope.redraw).not.toBeUndefined();
-        })
-    })
-
-    describe("validateInput action handler", function () {
-        it("Should be defined", function () {
-            expect($scope.validateInput).not.toBeUndefined();
-        })
-    })
-
+  describe("validateInput action handler", () => {
+    it("Should be defined", () => {
+      expect($scope.validateInput).not.toBeUndefined();
+    });
+  });
 });

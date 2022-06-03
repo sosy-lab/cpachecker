@@ -24,18 +24,18 @@ import org.sosy_lab.cpachecker.cpa.invariants.operators.Operator;
 enum IIIOperatorFactory {
   INSTANCE;
 
-  public Operator<BitVectorInterval, BitVectorInterval, BitVectorInterval> getAdd(final boolean pAllowSignedWrapAround, final OverflowEventHandler pOverflowEventHandler) {
+  public Operator<BitVectorInterval, BitVectorInterval, BitVectorInterval> getAdd(
+      final boolean pAllowSignedWrapAround, final OverflowEventHandler pOverflowEventHandler) {
     return new Operator<>() {
 
       /**
-       * Computes the interval of possible results from adding any value of
-       * the first operand interval to any value of the second operand interval <code>pInterval</code>.
+       * Computes the interval of possible results from adding any value of the first operand
+       * interval to any value of the second operand interval <code>pInterval</code>.
        *
        * @param pOperand1 the values of the first operand.
        * @param pOperand2 the values to add to any of the values of the first operand interval.
-       *
-       * @return the interval of possible results from adding any value of
-       * the first operand interval to any value of the second operand interval <code>pInterval</code>.
+       * @return the interval of possible results from adding any value of the first operand
+       *     interval to any value of the second operand interval <code>pInterval</code>.
        */
       @Override
       public BitVectorInterval apply(BitVectorInterval pOperand1, BitVectorInterval pOperand2) {
@@ -81,26 +81,22 @@ enum IIIOperatorFactory {
     };
   }
 
-  public Operator<BitVectorInterval, BitVectorInterval, BitVectorInterval> getDivide(final boolean pAllowSignedWrapAround, final OverflowEventHandler pOverflowEventHandler) {
+  public Operator<BitVectorInterval, BitVectorInterval, BitVectorInterval> getDivide(
+      final boolean pAllowSignedWrapAround, final OverflowEventHandler pOverflowEventHandler) {
     return new Operator<>() {
 
       /**
-       * Calculates a superset of the possible results from dividing any value
-       * of the first operand interval by any of values in the second operand
-       * interval.
+       * Calculates a superset of the possible results from dividing any value of the first operand
+       * interval by any of values in the second operand interval.
        *
-       * This will return <code>null</code> only if the second operand
-       * interval is [0,0] (a singleton interval of the value 0).
+       * <p>This will return <code>null</code> only if the second operand interval is [0,0] (a
+       * singleton interval of the value 0).
        *
-       * @param pFirstOperand the interval to divide by the second operand
-       * interval.
-       * @param pSecondOperand the values to divide the values of the first
-       * operand interval by.
-       *
-       * @return a superset of the possible results from dividing any value of
-       * the first operand interval by the values of the second operand
-       * interval or <code>null</code> if <code>pSecondOperand</code> is a
-       * singleton interval of the value 0.
+       * @param pFirstOperand the interval to divide by the second operand interval.
+       * @param pSecondOperand the values to divide the values of the first operand interval by.
+       * @return a superset of the possible results from dividing any value of the first operand
+       *     interval by the values of the second operand interval or <code>null</code> if <code>
+       *     pSecondOperand</code> is a singleton interval of the value 0.
        */
       @Override
       public @Nullable BitVectorInterval apply(
@@ -118,7 +114,8 @@ enum IIIOperatorFactory {
 
         List<BigInteger> divisors = pSecondOperand.getSplitZeroBounds();
 
-        assert !divisors.isEmpty() : "Should only happen for singleton zero, but all singletons should be handled above.";
+        assert !divisors.isEmpty()
+            : "Should only happen for singleton zero, but all singletons should be handled above.";
 
         Operator<BitVectorInterval, BigInteger, BitVectorInterval> isiDivider =
             ISIOperatorFactory.INSTANCE.getDivide(pAllowSignedWrapAround, pOverflowEventHandler);
@@ -139,24 +136,22 @@ enum IIIOperatorFactory {
     };
   }
 
-  public Operator<BitVectorInterval, BitVectorInterval, BitVectorInterval> getModulo(final boolean pAllowSignedWrapAround, final OverflowEventHandler pOverflowEventHandler) {
+  public Operator<BitVectorInterval, BitVectorInterval, BitVectorInterval> getModulo(
+      final boolean pAllowSignedWrapAround, final OverflowEventHandler pOverflowEventHandler) {
     return new Operator<>() {
 
       /**
-       * Computes a superset of the possible values resulting from calculating
-       * for any value <code>a</code> of the first operand interval and any
-       * value <code>b</code> of the second operand interval the operation
-       * <code>a%b</code>.
+       * Computes a superset of the possible values resulting from calculating for any value <code>a
+       * </code> of the first operand interval and any value <code>b</code> of the second operand
+       * interval the operation <code>a%b</code>.
        *
-       * @param pFirstOperand the first operand, which is an interval that
-       * contains the values to be divided by the second operand interval
-       * values.
-       * @param pSecondOperand the second operand interval which represents the
-       * range of modulo divisors.
-       *
-       * @return a superset of the possible results from calculating the modulo
-       * operation between any value of the first operand interval as numerators
-       * and any value of the second operand interval as divisors.
+       * @param pFirstOperand the first operand, which is an interval that contains the values to be
+       *     divided by the second operand interval values.
+       * @param pSecondOperand the second operand interval which represents the range of modulo
+       *     divisors.
+       * @return a superset of the possible results from calculating the modulo operation between
+       *     any value of the first operand interval as numerators and any value of the second
+       *     operand interval as divisors.
        */
       @Override
       public BitVectorInterval apply(
@@ -282,18 +277,18 @@ enum IIIOperatorFactory {
     };
   }
 
-  public Operator<BitVectorInterval, BitVectorInterval, BitVectorInterval> getMultiply(final boolean pAllowSignedWrapAround, final OverflowEventHandler pOverflowEventHandler) {
+  public Operator<BitVectorInterval, BitVectorInterval, BitVectorInterval> getMultiply(
+      final boolean pAllowSignedWrapAround, final OverflowEventHandler pOverflowEventHandler) {
     return new Operator<>() {
 
       /**
-       * Calculates a superset of the possible results obtained by multiplying
-       * any value of the first operand interval with any value of the second operand interval.
+       * Calculates a superset of the possible results obtained by multiplying any value of the
+       * first operand interval with any value of the second operand interval.
        *
        * @param pFirstOperand the values to multiply the values of the second operand interval with.
        * @param pSecondOperand the values to multiply the values of the first operand interval with.
-       *
-       * @return a superset of the possible results obtained by multiplying
-       * any value of the first operand interval with any value of the second operand interval.
+       * @return a superset of the possible results obtained by multiplying any value of the first
+       *     operand interval with any value of the second operand interval.
        */
       @Override
       public BitVectorInterval apply(
@@ -356,22 +351,21 @@ enum IIIOperatorFactory {
     };
   }
 
-  public Operator<BitVectorInterval, BitVectorInterval, BitVectorInterval> getShiftLeft(final boolean pAllowSignedWrapAround, final OverflowEventHandler pOverflowEventHandler) {
+  public Operator<BitVectorInterval, BitVectorInterval, BitVectorInterval> getShiftLeft(
+      final boolean pAllowSignedWrapAround, final OverflowEventHandler pOverflowEventHandler) {
     return new Operator<>() {
 
       /**
-       * Computes an interval representing a superset of the possible values
-       * of left-shifting any value contained in the first operand interval by
-       * any value of the second operand interval.
+       * Computes an interval representing a superset of the possible values of left-shifting any
+       * value contained in the first operand interval by any value of the second operand interval.
        *
-       * @param pFirstOperand the first operand simple interval containing the
-       * values to be shifted by the second operand simple interval.
-       * @param pSecondOperand the range of values to shift the values of the
-       * first operand simple interval by.
-       *
-       * @return an interval representing a superset of the possible values
-       * of left-shifting any value contained in the first operand simple
-       * interval by any value of the second operand simple interval.
+       * @param pFirstOperand the first operand simple interval containing the values to be shifted
+       *     by the second operand simple interval.
+       * @param pSecondOperand the range of values to shift the values of the first operand simple
+       *     interval by.
+       * @return an interval representing a superset of the possible values of left-shifting any
+       *     value contained in the first operand simple interval by any value of the second operand
+       *     simple interval.
        */
       @Override
       public BitVectorInterval apply(
@@ -431,22 +425,21 @@ enum IIIOperatorFactory {
     };
   }
 
-  public Operator<BitVectorInterval, BitVectorInterval, BitVectorInterval> getShiftRight(final boolean pAllowSignedWrapAround, final OverflowEventHandler pOverflowEventHandler) {
+  public Operator<BitVectorInterval, BitVectorInterval, BitVectorInterval> getShiftRight(
+      final boolean pAllowSignedWrapAround, final OverflowEventHandler pOverflowEventHandler) {
     return new Operator<>() {
 
       /**
-       * Computes an interval representing a superset of the possible values
-       * of right-shifting any value contained in the first operand simple
-       * interval by any value of the second operand simple interval.
+       * Computes an interval representing a superset of the possible values of right-shifting any
+       * value contained in the first operand simple interval by any value of the second operand
+       * simple interval.
        *
-       * @param pFirstOperand the simple interval containing the values to be
-       * right shifted.
-       * @param pSecondOperand the range of values to shift the values of the first
-       * operator interval by.
-       *
-       * @return an interval representing a superset of the possible values
-       * of right-shifting any value contained in the first operand simple
-       * interval by any value of the second operand simple interval.
+       * @param pFirstOperand the simple interval containing the values to be right shifted.
+       * @param pSecondOperand the range of values to shift the values of the first operator
+       *     interval by.
+       * @return an interval representing a superset of the possible values of right-shifting any
+       *     value contained in the first operand simple interval by any value of the second operand
+       *     simple interval.
        */
       @Override
       public BitVectorInterval apply(
@@ -510,10 +503,10 @@ enum IIIOperatorFactory {
     };
   }
 
-  private static void checkBitVectorCompatibility(BitVectorInterval pFirstOperand, BitVectorInterval pSecondOperand) {
+  private static void checkBitVectorCompatibility(
+      BitVectorInterval pFirstOperand, BitVectorInterval pSecondOperand) {
     Preconditions.checkArgument(
         pFirstOperand.getTypeInfo().equals(pSecondOperand.getTypeInfo()),
         "Both operands must have the same bit length and signedness.");
   }
-
 }

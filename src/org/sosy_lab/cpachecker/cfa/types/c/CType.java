@@ -33,21 +33,19 @@ public interface CType extends Type {
 
   /**
    * Check whether the current type is *incomplete* as defined by the C standard in § 6.2.5 (1).
-   * Incomplete types miss some information (e.g., <code>struct s;</code>),
-   * and for example their size cannot be computed.
+   * Incomplete types miss some information (e.g., <code>struct s;</code>), and for example their
+   * size cannot be computed.
    */
   boolean isIncomplete();
 
-  /**
-   * Will throw a UnsupportedOperationException
-   */
+  /** Will throw a UnsupportedOperationException */
   @Override
   int hashCode();
 
   /**
-   * Be careful, this method compares the CType as it is to the given object,
-   * typedefs won't be resolved. If you want to compare the type without having
-   * typedefs in it use #getCanonicalType().equals()
+   * Be careful, this method compares the CType as it is to the given object, typedefs won't be
+   * resolved. If you want to compare the type without having typedefs in it use
+   * #getCanonicalType().equals()
    */
   @Override
   boolean equals(@Nullable Object obj);
@@ -59,17 +57,15 @@ public interface CType extends Type {
   CType getCanonicalType(boolean forceConst, boolean forceVolatile);
 
   /**
-   * Implements assignment compatibility for simple assignments (=)
-   * as described in the constraints of C-Standard §6.5.16.1 (1).
-   * <p>
-   * Currently the fifth of those constraints is not considered,
-   * since a {@link CType} does not expose if it is a null pointer
-   * constant.
-   * <p>
-   * Do not override this method. If you find some condition that
-   * is not met by this implementation yet but required for
-   * compliance with the standard, just add the necessary condition
-   * to this code.
+   * Implements assignment compatibility for simple assignments (=) as described in the constraints
+   * of C-Standard §6.5.16.1 (1).
+   *
+   * <p>Currently the fifth of those constraints is not considered, since a {@link CType} does not
+   * expose if it is a null pointer constant.
+   *
+   * <p>Do not override this method. If you find some condition that is not met by this
+   * implementation yet but required for compliance with the standard, just add the necessary
+   * condition to this code.
    *
    * @param pType the {@link CType} to check, if it can be assigned to <b><code>this</code></b>
    * @return if pType can be assigned to <b><code>this</code></b>

@@ -13,12 +13,10 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import static org.sosy_lab.cpachecker.util.CFAUtils.leavingEdges;
 
 import com.google.common.base.Joiner;
-import com.google.common.base.Optional;
 import com.google.common.collect.HashMultiset;
 import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
-import com.google.common.collect.Multimap;
 import com.google.common.collect.Multiset;
 import com.google.common.collect.Sets;
 import java.io.IOException;
@@ -27,10 +25,10 @@ import java.io.Writer;
 import java.math.BigInteger;
 import java.nio.charset.Charset;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.logging.Level;
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -91,27 +89,26 @@ import org.sosy_lab.cpachecker.util.variableclassification.VariableAndFieldRelev
 @Options(prefix = "cfa.variableClassification")
 public class VariableClassificationBuilder implements StatisticsProvider {
 
-  @Option(secure=true, name = "logfile", description = "Dump variable classification to a file.")
+  @Option(secure = true, name = "logfile", description = "Dump variable classification to a file.")
   @FileOption(FileOption.Type.OUTPUT_FILE)
-  private Path dumpfile = Paths.get("VariableClassification.log");
+  private Path dumpfile = Path.of("VariableClassification.log");
 
-  @Option(secure=true, description = "Dump variable type mapping to a file.")
+  @Option(secure = true, description = "Dump variable type mapping to a file.")
   @FileOption(FileOption.Type.OUTPUT_FILE)
-  private Path typeMapFile = Paths.get("VariableTypeMapping.txt");
+  private Path typeMapFile = Path.of("VariableTypeMapping.txt");
 
-  @Option(secure=true, description = "Dump domain type statistics to a CSV file.")
+  @Option(secure = true, description = "Dump domain type statistics to a CSV file.")
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private Path domainTypeStatisticsFile = null;
 
-  @Option(secure=true, description = "Print some information about the variable classification.")
+  @Option(secure = true, description = "Print some information about the variable classification.")
   private boolean printStatsOnStartup = false;
 
   /**
-   * Use {@link FunctionEntryNode#getReturnVariable()} and
-   * {@link AReturnStatement#asAssignment()} instead.
+   * Use {@link FunctionEntryNode#getReturnVariable()} and {@link AReturnStatement#asAssignment()}
+   * instead.
    */
-  @Deprecated
-  public static final String FUNCTION_RETURN_VARIABLE = "__retval__";
+  @Deprecated public static final String FUNCTION_RETURN_VARIABLE = "__retval__";
 
   private static final String SCOPE_SEPARATOR = "::";
 
@@ -124,10 +121,10 @@ public class VariableClassificationBuilder implements StatisticsProvider {
 
   private final Dependencies dependencies = new Dependencies();
 
-  private Optional<Set<String>> relevantVariables = Optional.absent();
-  private Optional<Multimap<CCompositeType, String>> relevantFields = Optional.absent();
-  private Optional<Multimap<CCompositeType, String>> addressedFields = Optional.absent();
-  private Optional<Set<String>> addressedVariables = Optional.absent();
+  private @Nullable ImmutableSet<String> relevantVariables;
+  private @Nullable ImmutableMultimap<CCompositeType, String> relevantFields;
+  private @Nullable ImmutableMultimap<CCompositeType, String> addressedFields;
+  private @Nullable ImmutableSet<String> addressedVariables;
 
   private final LogManager logger;
   private final VariableClassificationStatistics stats = new VariableClassificationStatistics();
@@ -160,7 +157,8 @@ public class VariableClassificationBuilder implements StatisticsProvider {
     }
   }
 
-  public VariableClassificationBuilder(Configuration config, LogManager pLogger) throws InvalidConfigurationException {
+  public VariableClassificationBuilder(Configuration config, LogManager pLogger)
+      throws InvalidConfigurationException {
     logger = checkNotNull(pLogger);
     config.inject(this);
   }
@@ -170,11 +168,13 @@ public class VariableClassificationBuilder implements StatisticsProvider {
     pStatsCollection.add(stats);
   }
 
-  /** This function does the whole work:
-   * creating all maps, collecting vars, solving dependencies.
-   * The function runs only once, after that it does nothing. */
+  /**
+   * This function does the whole work: creating all maps, collecting vars, solving dependencies.
+   * The function runs only once, after that it does nothing.
+   */
   public VariableClassification build(CFA cfa) throws UnrecognizedCodeException {
-    checkArgument(cfa.getLanguage() == Language.C, "VariableClassification currently only supports C");
+    checkArgument(
+        cfa.getLanguage() == Language.C, "VariableClassification currently only supports C");
 
     stats.variableClassificationTimer.start();
     // fill maps
@@ -231,7 +231,8 @@ public class VariableClassificationBuilder implements StatisticsProvider {
       dependencies.addVar(var);
     }
 
-    boolean hasRelevantNonIntAddVars = !Sets.intersection(relevantVariables.get(), nonIntAddVars).isEmpty();
+    boolean hasRelevantNonIntAddVars =
+        !Sets.intersection(relevantVariables, nonIntAddVars).isEmpty();
 
     stats.buildTimer.start();
     VariableClassification result =
@@ -241,18 +242,17 @@ public class VariableClassificationBuilder implements StatisticsProvider {
             intEqualVars,
             intAddVars,
             intOverflowVars,
-            relevantVariables.get(),
-            addressedVariables.get(),
-            relevantFields.get(),
-            addressedFields.get(),
+            relevantVariables,
+            addressedVariables,
+            relevantFields,
+            addressedFields,
             dependencies.partitions,
             intBoolPartitions,
             intEqualPartitions,
             intAddPartitions,
             dependencies.edgeToPartition,
             extractAssumedVariables(cfa.getAllNodes()),
-            extractAssignedVariables(cfa.getAllNodes()),
-            logger);
+            extractAssignedVariables(cfa.getAllNodes()));
     stats.buildTimer.stop();
 
     stats.exportTimer.start();
@@ -275,12 +275,13 @@ public class VariableClassificationBuilder implements StatisticsProvider {
         w.append("\n\nDEPENDENCIES\n\n");
         w.append(dependencies.toString());
         w.append("\n\nRELEVANT VARS\n\n");
-        w.append(relevantVariables.get().toString());
+        w.append(relevantVariables.toString());
         w.append("\n\nRELEVANT FIELDS\n\n");
-        w.append(relevantFields.get().toString());
+        w.append(relevantFields.toString());
         w.append("\n");
       } catch (IOException e) {
-        logger.logUserException(Level.WARNING, e, "Could not write variable classification to file");
+        logger.logUserException(
+            Level.WARNING, e, "Could not write variable classification to file");
       }
     }
 
@@ -326,22 +327,23 @@ public class VariableClassificationBuilder implements StatisticsProvider {
       }
       w.write("\n");
     } catch (IOException e) {
-      logger.logUserException(Level.WARNING, e, "Could not write variable classification statistics to file");
+      logger.logUserException(
+          Level.WARNING, e, "Could not write variable classification statistics to file");
     }
   }
 
   private void dumpVariableTypeMapping(Path target, VariableClassification vc) {
     try (Writer w = IO.openOutputFile(target, Charset.defaultCharset())) {
-        for (String var : allVars) {
-          int type = 0;
-          if (vc.getIntBoolVars().contains(var)) {
-            type += 1 + 2 + 4; // IntBool is subset of IntEqualBool and IntAddEqBool
-          } else if (vc.getIntEqualVars().contains(var)) {
-            type += 2 + 4; // IntEqual is subset of IntAddEqBool
-          } else if (vc.getIntAddVars().contains(var)) {
-            type += 4;
-          }
-          w.append(String.format("%s\t%d%n", var, type));
+      for (String var : allVars) {
+        int type = 0;
+        if (vc.getIntBoolVars().contains(var)) {
+          type += 1 + 2 + 4; // IntBool is subset of IntEqualBool and IntAddEqBool
+        } else if (vc.getIntEqualVars().contains(var)) {
+          type += 2 + 4; // IntEqual is subset of IntAddEqBool
+        } else if (vc.getIntAddVars().contains(var)) {
+          type += 4;
+        }
+        w.append(String.format("%s\t%d%n", var, type));
       }
     } catch (IOException e) {
       logger.logUserException(Level.WARNING, e, "Could not write variable type mapping to file");
@@ -369,32 +371,37 @@ public class VariableClassificationBuilder implements StatisticsProvider {
 
     final String prefix = "\nVC ";
     StringBuilder str = new StringBuilder("VariableClassification Statistics\n");
-    Joiner.on(prefix).appendTo(str, new String[] {
-        "---------------------------------",
-        "number of boolean vars:  " + numOfBooleans,
-        "number of intEq vars:    " + numOfIntEquals,
-        "number of intAdd vars:   " + numOfIntAdds,
-        "number of all vars:      " + allVars.size(),
-        "number of rel. vars:     " + relevantVariables.get().size(),
-        "number of addr. vars:    " + addressedVariables.get().size(),
-        "number of rel. fields:   " + relevantFields.get().size(),
-        "number of addr. fields:  " + addressedFields.get().size(),
-        "number of intBool partitions:  " + vc.getIntBoolPartitions().size(),
-        "number of intEq partitions:    " + vc.getIntEqualPartitions().size(),
-        "number of intAdd partitions:   " + vc.getIntAddPartitions().size(),
-        "number of all partitions:      " + dependencies.partitions.size(),
-        });
+    Joiner.on(prefix)
+        .appendTo(
+            str,
+            new String[] {
+              "---------------------------------",
+              "number of boolean vars:  " + numOfBooleans,
+              "number of intEq vars:    " + numOfIntEquals,
+              "number of intAdd vars:   " + numOfIntAdds,
+              "number of all vars:      " + allVars.size(),
+              "number of rel. vars:     " + relevantVariables.size(),
+              "number of addr. vars:    " + addressedVariables.size(),
+              "number of rel. fields:   " + relevantFields.size(),
+              "number of addr. fields:  " + addressedFields.size(),
+              "number of intBool partitions:  " + vc.getIntBoolPartitions().size(),
+              "number of intEq partitions:    " + vc.getIntEqualPartitions().size(),
+              "number of intAdd partitions:   " + vc.getIntAddPartitions().size(),
+              "number of all partitions:      " + dependencies.partitions.size(),
+            });
     str.append("\n---------------------------------\n");
 
     logger.log(Level.INFO, str.toString());
   }
 
   private int countNumberOfRelevantVars(Set<String> ofVars) {
-    return Sets.intersection(ofVars, relevantVariables.get()).size();
+    return Sets.intersection(ofVars, relevantVariables).size();
   }
 
-  /** This function iterates over all edges of the cfa, collects all variables
-   * and orders them into different sets, i.e. nonBoolean and nonIntEuqalNumber. */
+  /**
+   * This function iterates over all edges of the cfa, collects all variables and orders them into
+   * different sets, i.e. nonBoolean and nonIntEuqalNumber.
+   */
   private void collectVars(CFA cfa) throws UnrecognizedCodeException {
     Collection<CFANode> nodes = cfa.getAllNodes();
     VarFieldDependencies varFieldDependencies = VarFieldDependencies.emptyDependencies();
@@ -406,12 +413,12 @@ public class VariableClassificationBuilder implements StatisticsProvider {
                 VariableAndFieldRelevancyComputer.handleEdge(cfa, edge));
       }
     }
-    addressedVariables = Optional.of(varFieldDependencies.computeAddressedVariables());
-    addressedFields = Optional.of(varFieldDependencies.computeAddressedFields());
+    addressedVariables = varFieldDependencies.computeAddressedVariables();
+    addressedFields = varFieldDependencies.computeAddressedFields();
     final Pair<ImmutableSet<String>, ImmutableMultimap<CCompositeType, String>> relevant =
-                                                              varFieldDependencies.computeRelevantVariablesAndFields();
-    relevantVariables = Optional.of(relevant.getFirst());
-    relevantFields = Optional.of(relevant.getSecond());
+        varFieldDependencies.computeRelevantVariablesAndFields();
+    relevantVariables = relevant.getFirst();
+    relevantFields = relevant.getSecond();
   }
 
   /**
@@ -433,8 +440,8 @@ public class VariableClassificationBuilder implements StatisticsProvider {
   }
 
   /**
-   * This method extracts all variables (i.e., their qualified name), that occur
-   * as left-hand side in an assignment.
+   * This method extracts all variables (i.e., their qualified name), that occur as left-hand side
+   * in an assignment.
    */
   private Multiset<String> extractAssignedVariables(Collection<CFANode> nodes) {
     Multiset<String> assignedVariables = HashMultiset.create();
@@ -482,68 +489,82 @@ public class VariableClassificationBuilder implements StatisticsProvider {
           break;
         }
 
-    case DeclarationEdge: {
-      handleDeclarationEdge((CDeclarationEdge) edge);
-      break;
-    }
+      case DeclarationEdge:
+        {
+          handleDeclarationEdge((CDeclarationEdge) edge);
+          break;
+        }
 
-    case StatementEdge: {
-      final CStatement statement = ((CStatementEdge) edge).getStatement();
+      case StatementEdge:
+        {
+          final CStatement statement = ((CStatementEdge) edge).getStatement();
 
-      // normal assignment of variable, rightHandSide can be expression or (external) functioncall
-      if (statement instanceof CAssignment) {
-        handleAssignment(edge, (CAssignment) statement, cfa);
+          // normal assignment of variable, rightHandSide can be expression or (external)
+          // functioncall
+          if (statement instanceof CAssignment) {
+            handleAssignment(edge, (CAssignment) statement, cfa);
 
-        // pure external functioncall
-      } else if (statement instanceof CFunctionCallStatement) {
-        handleExternalFunctionCall(edge, ((CFunctionCallStatement) statement).
-            getFunctionCallExpression().getParameterExpressions());
-      }
+            // pure external functioncall
+          } else if (statement instanceof CFunctionCallStatement) {
+            handleExternalFunctionCall(
+                edge,
+                ((CFunctionCallStatement) statement)
+                    .getFunctionCallExpression()
+                    .getParameterExpressions());
+          }
 
-      break;
-    }
+          break;
+        }
 
-    case FunctionCallEdge: {
-      handleFunctionCallEdge((CFunctionCallEdge) edge);
-      break;
-    }
+      case FunctionCallEdge:
+        {
+          handleFunctionCallEdge((CFunctionCallEdge) edge);
+          break;
+        }
 
-    case FunctionReturnEdge: {
-      Optional<CVariableDeclaration> returnVar = ((CFunctionReturnEdge)edge).getFunctionEntry().getReturnVariable();
-      if (returnVar.isPresent()) {
-        String scopedVarName = returnVar.get().getQualifiedName();
-        dependencies.addVar(scopedVarName);
-        Partition partition = dependencies.getPartitionForVar(scopedVarName);
-        partition.addEdge(edge, 0);
-      }
-      break;
-    }
+      case FunctionReturnEdge:
+        {
+          Optional<CVariableDeclaration> returnVar =
+              ((CFunctionReturnEdge) edge).getFunctionEntry().getReturnVariable();
+          if (returnVar.isPresent()) {
+            String scopedVarName = returnVar.orElseThrow().getQualifiedName();
+            dependencies.addVar(scopedVarName);
+            Partition partition = dependencies.getPartitionForVar(scopedVarName);
+            partition.addEdge(edge, 0);
+          }
+          break;
+        }
 
-    case ReturnStatementEdge: {
-      // this is the 'x' from 'return (x);
-      // adding a new temporary FUNCTION_RETURN_VARIABLE, that is not global (-> false)
-      CReturnStatementEdge returnStatement = (CReturnStatementEdge) edge;
-      if (returnStatement.asAssignment().isPresent()) {
-        handleAssignment(edge, returnStatement.asAssignment().get(), cfa);
-      }
-      break;
-    }
+      case ReturnStatementEdge:
+        {
+          // this is the 'x' from 'return (x);
+          // adding a new temporary FUNCTION_RETURN_VARIABLE, that is not global (-> false)
+          CReturnStatementEdge returnStatement = (CReturnStatementEdge) edge;
+          if (returnStatement.asAssignment().isPresent()) {
+            handleAssignment(edge, returnStatement.asAssignment().orElseThrow(), cfa);
+          }
+          break;
+        }
 
-    case BlankEdge:
-    case CallToReturnEdge:
-      // other cases are not interesting
-      break;
+      case BlankEdge:
+      case CallToReturnEdge:
+        // other cases are not interesting
+        break;
 
-    default:
+      default:
         throw new UnrecognizedCodeException("Unknown edgeType: " + edge.getEdgeType(), edge);
     }
   }
 
-  /** This function handles a declaration with an optional initializer.
-   * Only simple types are handled. */
+  /**
+   * This function handles a declaration with an optional initializer. Only simple types are
+   * handled.
+   */
   private void handleDeclarationEdge(final CDeclarationEdge edge) {
     CDeclaration declaration = edge.getDeclaration();
-    if (!(declaration instanceof CVariableDeclaration)) { return; }
+    if (!(declaration instanceof CVariableDeclaration)) {
+      return;
+    }
 
     CVariableDeclaration vdecl = (CVariableDeclaration) declaration;
     String varName = vdecl.getQualifiedName();
@@ -563,10 +584,14 @@ public class VariableClassificationBuilder implements StatisticsProvider {
 
     final CInitializer initializer = vdecl.getInitializer();
 
-    if ((initializer == null) || !(initializer instanceof CInitializerExpression)) { return; }
+    if (!(initializer instanceof CInitializerExpression)) {
+      return;
+    }
 
     CExpression exp = ((CInitializerExpression) initializer).getExpression();
-    if (exp == null) { return; }
+    if (exp == null) {
+      return;
+    }
 
     handleExpression(edge, exp, varName);
   }
@@ -606,7 +631,8 @@ public class VariableClassificationBuilder implements StatisticsProvider {
       String functionName = func.getFunctionNameExpression().toASTString(); // TODO correct?
 
       if (cfa.getAllFunctionNames().contains(functionName)) {
-        Optional<? extends AVariableDeclaration> returnVariable = cfa.getFunctionHead(functionName).getReturnVariable();
+        Optional<? extends AVariableDeclaration> returnVariable =
+            cfa.getFunctionHead(functionName).getReturnVariable();
         if (!returnVariable.isPresent()) {
           throw new UnrecognizedCodeException(
               "Void function " + functionName + " used in assignment", edge, assignment);
@@ -629,9 +655,10 @@ public class VariableClassificationBuilder implements StatisticsProvider {
     }
   }
 
-  /** This function handles the call of an external function
-   * without an assignment of the result.
-   * example: "printf("%d", output);" or "assert(exp);" */
+  /**
+   * This function handles the call of an external function without an assignment of the result.
+   * example: "printf("%d", output);" or "assert(exp);"
+   */
   private void handleExternalFunctionCall(final CFAEdge edge, final List<CExpression> params) {
     for (int i = 0; i < params.size(); i++) {
       final CExpression param = params.get(i);
@@ -641,9 +668,9 @@ public class VariableClassificationBuilder implements StatisticsProvider {
        * and the var can be boolean, intEqual or intAdd,
        * because we know, the variable can have a random (unknown) value after the functioncall.
        * example: "scanf("%d", &input);" */
-      if (param instanceof CUnaryExpression &&
-          UnaryOperator.AMPER == ((CUnaryExpression) param).getOperator() &&
-          ((CUnaryExpression) param).getOperand() instanceof CIdExpression) {
+      if (param instanceof CUnaryExpression
+          && UnaryOperator.AMPER == ((CUnaryExpression) param).getOperator()
+          && ((CUnaryExpression) param).getOperand() instanceof CIdExpression) {
         final CIdExpression id = (CIdExpression) ((CUnaryExpression) param).getOperand();
         final String varName = id.getDeclaration().getQualifiedName();
 
@@ -671,8 +698,10 @@ public class VariableClassificationBuilder implements StatisticsProvider {
     }
   }
 
-  /** This function puts each param in same partition than its arg.
-   * If there the functionresult is assigned, it is also handled. */
+  /**
+   * This function puts each param in same partition than its arg. If there the functionresult is
+   * assigned, it is also handled.
+   */
   private void handleFunctionCallEdge(CFunctionCallEdge edge) {
 
     // overtake arguments from last functioncall into function,
@@ -704,7 +733,7 @@ public class VariableClassificationBuilder implements StatisticsProvider {
     CFunctionCall statement = func.getExpression();
     Optional<CVariableDeclaration> returnVar = edge.getSuccessor().getReturnVariable();
     if (returnVar.isPresent()) {
-      String scopedRetVal = returnVar.get().getQualifiedName();
+      String scopedRetVal = returnVar.orElseThrow().getQualifiedName();
       if (statement instanceof CFunctionCallAssignmentStatement) {
         // a=f();
         CFunctionCallAssignmentStatement call = (CFunctionCallAssignmentStatement) statement;
@@ -723,19 +752,15 @@ public class VariableClassificationBuilder implements StatisticsProvider {
   }
 
   /** evaluates an expression and adds containing vars to the sets. */
-  private void handleExpression(CFAEdge edge,
-                                CExpression exp,
-                                String varName) {
+  private void handleExpression(CFAEdge edge, CExpression exp, String varName) {
     handleExpression(edge, exp, varName, 0);
   }
 
-  /** evaluates an expression and adds containing vars to the sets.
-   * the id is the position of the expression in the edge,
-   * it is 0 for all edges except a FuntionCallEdge. */
-  private void handleExpression(CFAEdge edge,
-                                CExpression exp,
-                                String varName,
-                                int id) {
+  /**
+   * evaluates an expression and adds containing vars to the sets. the id is the position of the
+   * expression in the edge, it is 0 for all edges except a FuntionCallEdge.
+   */
+  private void handleExpression(CFAEdge edge, CExpression exp, String varName, int id) {
     CFANode pre = edge.getPredecessor();
 
     VariablesCollectingVisitor dcv = new VariablesCollectingVisitor(pre);
@@ -765,8 +790,9 @@ public class VariableClassificationBuilder implements StatisticsProvider {
     handleResult(varName, possibleIntOverflowVars, intOverflowVars);
   }
 
-  /** adds the variable to notPossibleVars, if possibleVars is null.  */
-  private void handleResult(String varName, Collection<String> possibleVars, Collection<String> notPossibleVars) {
+  /** adds the variable to notPossibleVars, if possibleVars is null. */
+  private void handleResult(
+      String varName, Collection<String> possibleVars, Collection<String> notPossibleVars) {
     if (possibleVars == null) {
       notPossibleVars.add(varName);
     }
@@ -780,13 +806,14 @@ public class VariableClassificationBuilder implements StatisticsProvider {
   static boolean isGlobal(CExpression exp) {
     if (checkNotNull(exp) instanceof CIdExpression) {
       CSimpleDeclaration decl = ((CIdExpression) exp).getDeclaration();
-      if (decl instanceof CDeclaration) { return ((CDeclaration) decl).isGlobal(); }
+      if (decl instanceof CDeclaration) {
+        return ((CDeclaration) decl).isGlobal();
+      }
     }
     return false;
   }
 
-  /** returns the value of a (nested) IntegerLiteralExpression
-   * or null for everything else. */
+  /** returns the value of a (nested) IntegerLiteralExpression or null for everything else. */
   public static BigInteger getNumber(CExpression exp) {
     checkNotNull(exp);
     if (exp instanceof CIntegerLiteralExpression) {
@@ -795,12 +822,14 @@ public class VariableClassificationBuilder implements StatisticsProvider {
     } else if (exp instanceof CUnaryExpression) {
       CUnaryExpression unExp = (CUnaryExpression) exp;
       BigInteger value = getNumber(unExp.getOperand());
-      if (value == null) { return null; }
-      switch (unExp.getOperator()) {
-      case MINUS:
-        return value.negate();
-      default:
+      if (value == null) {
         return null;
+      }
+      switch (unExp.getOperator()) {
+        case MINUS:
+          return value.negate();
+        default:
+          return null;
       }
 
     } else if (exp instanceof CCastExpression) {

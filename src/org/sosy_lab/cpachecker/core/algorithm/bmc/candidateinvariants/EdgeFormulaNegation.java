@@ -35,16 +35,18 @@ public class EdgeFormulaNegation extends SingleLocationFormulaInvariant
   public EdgeFormulaNegation(CFANode pLocation, AssumeEdge pEdge) {
     super(pLocation);
     Preconditions.checkNotNull(pEdge);
-    this.edge = pEdge;
+    edge = pEdge;
   }
 
   @Override
   public BooleanFormula getFormula(
       FormulaManagerView pFMGR, PathFormulaManager pPFMGR, PathFormula pContext)
       throws CPATransferException, InterruptedException {
-    PathFormula clearContext = pPFMGR.makeEmptyPathFormula(pContext);
+    PathFormula clearContext = pPFMGR.makeEmptyPathFormulaWithContextFrom(pContext);
     PathFormula invariantPathFormula = pPFMGR.makeAnd(clearContext, edge);
-    return pFMGR.getBooleanFormulaManager().not(pFMGR.uninstantiate(invariantPathFormula.getFormula()));
+    return pFMGR
+        .getBooleanFormulaManager()
+        .not(pFMGR.uninstantiate(invariantPathFormula.getFormula()));
   }
 
   @Override

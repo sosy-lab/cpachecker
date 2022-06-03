@@ -40,24 +40,24 @@ public class PredicateCPATest {
   private static final Pattern BDD_CLASS_PATTERN = Pattern.compile("(BDD|bdd)");
 
   /**
-   * This tests that the BDD library is NOT loaded by PredicateCPA if it is not necessary
-   * (loading the library might occupy a lot of memory).
+   * This tests that the BDD library is NOT loaded by PredicateCPA if it is not necessary (loading
+   * the library might occupy a lot of memory).
    */
   @Test
   public void dontLoadBDDLibraryIfNotNecessary() throws Exception {
-    Configuration config = TestDataTools.configurationForTest()
-        .setOption("cpa.predicate.blk.alwaysAtFunctions", "false")
-        .setOption("cpa.predicate.blk.alwaysAtLoops", "false")
-        .build();
+    Configuration config =
+        TestDataTools.configurationForTest()
+            .setOption("cpa.predicate.blk.alwaysAtFunctions", "false")
+            .setOption("cpa.predicate.blk.alwaysAtLoops", "false")
+            .build();
 
     FluentIterable<String> loadedClasses = loadPredicateCPA(config);
     assertThat(loadedClasses.filter(Predicates.contains(BDD_CLASS_PATTERN))).isEmpty();
   }
 
   /**
-   * This tests that the BDD library is loaded by PredicateCPA if it is necessary
-   * (if this test fails, the {@link #loadBDDLibraryIfNecessary} test
-   * won't work).
+   * This tests that the BDD library is loaded by PredicateCPA if it is necessary (if this test
+   * fails, the {@link #loadBDDLibraryIfNecessary} test won't work).
    */
   @Test
   public void loadBDDLibraryIfNecessary() throws Exception {
@@ -79,21 +79,23 @@ public class PredicateCPATest {
             .setUrls(((URLClassLoader) myClassLoader).getURLs())
             .setDirectLoadClasses(PREDICATECPA_CLASSES)
             .build()) {
-      Class<?> cpaClass = cl.loadClass(PredicateCPATest.class.getPackage().getName() + ".PredicateCPA");
-      Invokable<?, CPAFactory> factoryMethod = Invokable.from(cpaClass.getDeclaredMethod("factory")).returning(CPAFactory.class);
+      Class<?> cpaClass =
+          cl.loadClass(PredicateCPATest.class.getPackage().getName() + ".PredicateCPA");
+      Invokable<?, CPAFactory> factoryMethod =
+          Invokable.from(cpaClass.getDeclaredMethod("factory")).returning(CPAFactory.class);
       CPAFactory factory = factoryMethod.invoke(null);
 
       factory.setConfiguration(config);
       factory.setLogger(logger);
       factory.setShutdownNotifier(ShutdownNotifier.createDummy());
-      factory.set(new AggregatedReachedSets(), AggregatedReachedSets.class);
+      factory.set(AggregatedReachedSets.empty(), AggregatedReachedSets.class);
       factory.set(TestDataTools.makeCFA(config, "void main() { }"), CFA.class);
       factory.set(new ReachedSetFactory(config, logger), ReachedSetFactory.class);
       factory.set(Specification.alwaysSatisfied(), Specification.class);
 
       ConfigurableProgramAnalysis cpa = factory.createInstance();
       if (cpa instanceof AutoCloseable) {
-        ((AutoCloseable)cpa).close();
+        ((AutoCloseable) cpa).close();
       }
 
       Field classesField = ClassLoader.class.getDeclaredField("classes");

@@ -13,8 +13,8 @@ import org.sosy_lab.java_smt.api.ProverEnvironment;
 /** Wrapping handler for ProverEnvironment. */
 class ProverEnvironmentView extends BasicProverEnvironmentView<Void> implements ProverEnvironment {
 
-  public ProverEnvironmentView(ProverEnvironment pDelegate,
-      FormulaWrappingHandler pWrappingHandler) {
+  public ProverEnvironmentView(
+      ProverEnvironment pDelegate, FormulaWrappingHandler pWrappingHandler) {
     super(pDelegate, pWrappingHandler);
   }
 }

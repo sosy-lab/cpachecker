@@ -11,10 +11,11 @@ package org.sosy_lab.cpachecker.cfa.parser.eclipse.java;
 import static com.google.common.base.Preconditions.checkArgument;
 import static org.sosy_lab.cpachecker.cfa.parser.eclipse.java.NameConverter.convertClassOrInterfaceToFullName;
 
+import com.google.common.collect.ImmutableSet;
 import java.util.HashSet;
 import java.util.Set;
-
 import org.eclipse.jdt.core.dom.ITypeBinding;
+import org.sosy_lab.cpachecker.cfa.ast.java.VisibilityModifier;
 import org.sosy_lab.cpachecker.cfa.parser.eclipse.java.ASTConverter.ModifierBean;
 import org.sosy_lab.cpachecker.cfa.parser.eclipse.java.TypeHierarchy.THTypeTable;
 import org.sosy_lab.cpachecker.cfa.types.java.JClassOrInterfaceType;
@@ -37,24 +38,42 @@ class THTypeConverter extends TypeConverter {
     String typeName = convertClassOrInterfaceToFullName(t);
 
     // check if type is was already converted.
-    if (typeTable.containsType(typeName)) {
-      JClassOrInterfaceType type = typeTable.getType(typeName);
+    if (typeTable.containsType(typeName) || typeTable.containsType("java.lang." + typeName)) {
+      JClassOrInterfaceType type =
+          typeTable.getType(typeName) != null
+              ? typeTable.getType(typeName)
+              : typeTable.getType("java.lang." + typeName);
 
       if (type instanceof JClassType) {
         return (JClassType) type;
       } else {
-        throw new CFAGenerationRuntimeException("Class Type " + typeName +
-            " was parsed as Interface.");
+        throw new CFAGenerationRuntimeException(
+            "Class Type " + typeName + " was parsed as Interface.");
       }
     }
 
     // convert super class. Type of class 'Object' terminates this recursion.
     ITypeBinding superClass = t.getSuperclass();
-
     JClassType superClassType;
 
-    if (superClass != null) {
+    if (superClass != null && !t.isRecovered()) {
       superClassType = convertClassType(superClass);
+    } else if (t.isRecovered()) {
+      Class<?> cls;
+      try {
+        cls = Class.forName(typeName);
+      } catch (ClassNotFoundException e) {
+        try {
+          cls = Class.forName("java.lang." + typeName);
+        } catch (ClassNotFoundException pE) {
+          cls = null;
+        }
+      }
+      if (cls != null && cls.getSuperclass() != null) {
+        superClassType = createJClassTypeFromClass(cls.getSuperclass());
+      } else {
+        superClassType = JClassType.createUnresolvableType();
+      }
     } else {
       superClassType = JClassType.createUnresolvableType();
     }
@@ -80,6 +99,36 @@ class THTypeConverter extends TypeConverter {
     return resultType;
   }
 
+  private JClassType createJClassTypeFromClass(final Class<?> pClazz) {
+    final String name = pClazz.getName();
+    if (typeTable.containsType(name)) {
+      return (JClassType) typeTable.getType(name);
+    }
+
+    final String simpleName = pClazz.getSimpleName();
+    final Class<?> superclass = pClazz.getSuperclass();
+
+    JClassType jTypeOfSuperClass;
+    if ("java.lang.Object".equals(superclass.getName())) {
+      jTypeOfSuperClass = JClassType.getTypeOfObject();
+    } else {
+      jTypeOfSuperClass = createJClassTypeFromClass(superclass);
+    }
+    ModifierBean modifierBean = ModifierBean.getModifiers(pClazz.getModifiers());
+    final JClassType jClassType =
+        JClassType.valueOf(
+            name,
+            simpleName,
+            VisibilityModifier.PUBLIC,
+            modifierBean.isFinal(),
+            modifierBean.isAbstract(),
+            modifierBean.isStrictFp(),
+            jTypeOfSuperClass,
+            ImmutableSet.of());
+    typeTable.registerType(jClassType);
+    return jClassType;
+  }
+
   @Override
   public JInterfaceType convertInterfaceType(ITypeBinding t) {
 
@@ -98,8 +147,8 @@ class THTypeConverter extends TypeConverter {
       if (type instanceof JInterfaceType) {
         return (JInterfaceType) type;
       } else {
-        throw new CFAGenerationRuntimeException("Interface type " + typeName +
-            " was parsed as class type.");
+        throw new CFAGenerationRuntimeException(
+            "Interface type " + typeName + " was parsed as class type.");
       }
     }
 
@@ -139,8 +188,8 @@ class THTypeConverter extends TypeConverter {
     }
   }
 
-  private JClassType createClassType(ITypeBinding t, JClassType pSuperClass,
-      Set<JInterfaceType> pImplementedInterfaces) {
+  private JClassType createClassType(
+      ITypeBinding t, JClassType pSuperClass, Set<JInterfaceType> pImplementedInterfaces) {
 
     checkArgument(t.isTopLevel());
 
@@ -148,12 +197,19 @@ class THTypeConverter extends TypeConverter {
     String simpleName = t.getName();
 
     ModifierBean mB = ModifierBean.getModifiers(t);
-    return JClassType.valueOf(name, simpleName, mB.getVisibility(), mB.isFinal(), mB.isNative(),
-        mB.isStrictFp(), pSuperClass, pImplementedInterfaces);
+    return JClassType.valueOf(
+        name,
+        simpleName,
+        mB.getVisibility(),
+        mB.isFinal(),
+        mB.isNative(),
+        mB.isStrictFp(),
+        pSuperClass,
+        pImplementedInterfaces);
   }
 
-  private JInterfaceType createInterfaceType(ITypeBinding t,
-      Set<JInterfaceType> pExtendedInterfaces) {
+  private JInterfaceType createInterfaceType(
+      ITypeBinding t, Set<JInterfaceType> pExtendedInterfaces) {
 
     checkArgument(t.isTopLevel());
 
@@ -164,8 +220,11 @@ class THTypeConverter extends TypeConverter {
     return JInterfaceType.valueOf(name, simpleName, mB.getVisibility(), pExtendedInterfaces);
   }
 
-  private JClassType createClassType(ITypeBinding t, JClassType pSuperClass,
-      Set<JInterfaceType> pImplementedInterfaces, JClassOrInterfaceType pEnclosingType) {
+  private JClassType createClassType(
+      ITypeBinding t,
+      JClassType pSuperClass,
+      Set<JInterfaceType> pImplementedInterfaces,
+      JClassOrInterfaceType pEnclosingType) {
 
     checkArgument(!t.isTopLevel());
 
@@ -178,12 +237,22 @@ class THTypeConverter extends TypeConverter {
     }
 
     ModifierBean mB = ModifierBean.getModifiers(t);
-    return JClassType.valueOf(name, simpleName, mB.getVisibility(), mB.isFinal(), mB.isNative(),
-        mB.isStrictFp(), pSuperClass, pImplementedInterfaces, pEnclosingType);
+    return JClassType.valueOf(
+        name,
+        simpleName,
+        mB.getVisibility(),
+        mB.isFinal(),
+        mB.isNative(),
+        mB.isStrictFp(),
+        pSuperClass,
+        pImplementedInterfaces,
+        pEnclosingType);
   }
 
-  private JInterfaceType createInterfaceType(ITypeBinding t,
-      Set<JInterfaceType> pExtendedInterfaces, JClassOrInterfaceType pEnclosingType) {
+  private JInterfaceType createInterfaceType(
+      ITypeBinding t,
+      Set<JInterfaceType> pExtendedInterfaces,
+      JClassOrInterfaceType pEnclosingType) {
 
     checkArgument(!t.isTopLevel());
 
@@ -191,8 +260,7 @@ class THTypeConverter extends TypeConverter {
     String simpleName = t.getName();
 
     ModifierBean mB = ModifierBean.getModifiers(t);
-    return JInterfaceType.valueOf(name, simpleName, mB.getVisibility(),
-        pExtendedInterfaces, pEnclosingType);
+    return JInterfaceType.valueOf(
+        name, simpleName, mB.getVisibility(), pExtendedInterfaces, pEnclosingType);
   }
-
 }

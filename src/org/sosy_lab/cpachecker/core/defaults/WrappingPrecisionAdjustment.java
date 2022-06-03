@@ -20,31 +20,36 @@ import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 /**
- * Base implementation for precision adjustment implementations wrap other
- * precision adjustment operators.
+ * Base implementation for precision adjustment implementations wrap other precision adjustment
+ * operators.
  */
 public abstract class WrappingPrecisionAdjustment implements PrecisionAdjustment {
 
   private final PrecisionAdjustment wrappedPrecOp;
 
   protected WrappingPrecisionAdjustment(PrecisionAdjustment pWrappedPrecOp) {
-    this.wrappedPrecOp = Preconditions.checkNotNull(pWrappedPrecOp);
+    wrappedPrecOp = Preconditions.checkNotNull(pWrappedPrecOp);
   }
 
   protected abstract Optional<PrecisionAdjustmentResult> wrappingPrec(
-      AbstractState pState, Precision pPrecision,
+      AbstractState pState,
+      Precision pPrecision,
       UnmodifiableReachedSet pStates,
       Function<AbstractState, AbstractState> pProjection,
-      AbstractState pFullState) throws CPAException;
+      AbstractState pFullState)
+      throws CPAException;
 
   @Override
   public final Optional<PrecisionAdjustmentResult> prec(
-      AbstractState pState, Precision pPrecision,
+      AbstractState pState,
+      Precision pPrecision,
       UnmodifiableReachedSet pStates,
       Function<AbstractState, AbstractState> pProjection,
-      AbstractState pFullState) throws CPAException, InterruptedException {
+      AbstractState pFullState)
+      throws CPAException, InterruptedException {
 
-    Optional<PrecisionAdjustmentResult> result = wrappedPrecOp.prec(pState, pPrecision, pStates, pProjection, pFullState);
+    Optional<PrecisionAdjustmentResult> result =
+        wrappedPrecOp.prec(pState, pPrecision, pStates, pProjection, pFullState);
 
     if (result.isPresent()) {
       if (result.orElseThrow().action() == Action.BREAK) {

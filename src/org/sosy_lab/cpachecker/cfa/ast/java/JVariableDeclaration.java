@@ -16,7 +16,7 @@ import org.sosy_lab.cpachecker.cfa.types.java.JType;
 /**
  * This class and its subclasses represent locale Variable declarations or Field declarations.
  *
- * e.g. Type a = b;
+ * <p>e.g. Type a = b;
  */
 public class JVariableDeclaration extends AVariableDeclaration implements JDeclaration {
 
@@ -26,15 +26,28 @@ public class JVariableDeclaration extends AVariableDeclaration implements JDecla
   private static final boolean IS_LOCAL = false;
   private final boolean isFinal;
 
-  protected JVariableDeclaration(FileLocation pFileLocation, boolean pIsGlobal, JType pType, String pName,
-      String pOrigName, String pQualifiedName, AInitializer pInitializer, boolean pIsFinal) {
+  protected JVariableDeclaration(
+      FileLocation pFileLocation,
+      boolean pIsGlobal,
+      JType pType,
+      String pName,
+      String pOrigName,
+      String pQualifiedName,
+      AInitializer pInitializer,
+      boolean pIsFinal) {
     super(pFileLocation, pIsGlobal, pType, pName, pOrigName, pQualifiedName, pInitializer);
 
     isFinal = pIsFinal;
   }
 
-  public JVariableDeclaration(FileLocation pFileLocation,  JType pType, String pName,
-      String pOrigName, String pQualifiedName, AInitializer pInitializer, boolean pIsFinal) {
+  public JVariableDeclaration(
+      FileLocation pFileLocation,
+      JType pType,
+      String pName,
+      String pOrigName,
+      String pQualifiedName,
+      AInitializer pInitializer,
+      boolean pIsFinal) {
     super(pFileLocation, IS_LOCAL, pType, pName, pOrigName, pQualifiedName, pInitializer);
 
     isFinal = pIsFinal;
@@ -50,7 +63,7 @@ public class JVariableDeclaration extends AVariableDeclaration implements JDecla
     StringBuilder lASTString = new StringBuilder();
 
     if (isFinal) {
-    lASTString.append("final ");
+      lASTString.append("final ");
     }
 
     if (pQualified) {
@@ -92,8 +105,7 @@ public class JVariableDeclaration extends AVariableDeclaration implements JDecla
       return true;
     }
 
-    if (!(obj instanceof JVariableDeclaration)
-        || !super.equals(obj)) {
+    if (!(obj instanceof JVariableDeclaration) || !super.equals(obj)) {
       return false;
     }
 
@@ -101,5 +113,4 @@ public class JVariableDeclaration extends AVariableDeclaration implements JDecla
 
     return other.isFinal == isFinal;
   }
-
 }

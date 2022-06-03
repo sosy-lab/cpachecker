@@ -7,12 +7,12 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-describe('Report.js test', function() {
-  it('Title test', function() {
-    var dirname =  __dirname + '/Counterexample.1.html';
+describe("Report.js test", () => {
+  it("Title test", () => {
+    let dirname = `${__dirname}/Counterexample.1.html`;
     dirname = dirname.replace(/\\/g, "/");
     browser.waitForAngularEnabled(false);
     browser.get(dirname);
-    expect(browser.getTitle()).toEqual('CPAchecker Report');
+    expect(browser.getTitle()).toEqual("CPAchecker Report");
   });
 });

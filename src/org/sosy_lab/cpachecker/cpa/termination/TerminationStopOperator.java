@@ -44,8 +44,7 @@ public class TerminationStopOperator implements StopOperator {
 
     // Separate states from loop and stem.
     Collection<AbstractState> wrappedReached =
-        pReached
-            .stream()
+        pReached.stream()
             .map(s -> (TerminationState) s)
             .filter(s -> terminationState.isPartOfLoop() == s.isPartOfLoop())
             .map(TerminationState::getWrappedState)

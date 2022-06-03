@@ -13,7 +13,6 @@ import java.io.PrintStream;
 import java.io.Writer;
 import java.nio.charset.Charset;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.logging.Level;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
@@ -32,10 +31,9 @@ import org.sosy_lab.cpachecker.util.coverage.CoverageReportStdoutSummary;
 @Options
 public class CoverageStatistics implements Statistics {
 
-  @Option(secure=true, name="coverage.file",
-      description="print coverage info to file")
+  @Option(secure = true, name = "coverage.file", description = "print coverage info to file")
   @FileOption(FileOption.Type.OUTPUT_FILE)
-  private Path outputCoverageFile = Paths.get("coverage.info");
+  private Path outputCoverageFile = Path.of("coverage.info");
 
   private final LogManager logger;
   private final CoverageData cov;
@@ -45,8 +43,8 @@ public class CoverageStatistics implements Statistics {
 
     pConfig.inject(this);
 
-    this.logger = pLogger;
-    this.cov = pCov;
+    logger = pLogger;
+    cov = pCov;
   }
 
   @Override

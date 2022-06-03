@@ -47,7 +47,7 @@ public class BDDPointerCompressExpressionVisitor extends BDDCompressExpressionVi
     if (explicitSet != null && explicitSet.getSize() == 1) {
       MemoryLocation memLoc = Iterables.getOnlyElement(explicitSet);
       return predMgr.createPredicate(
-          memLoc.getAsSimpleString(), e.getExpressionType(), location, size, precision);
+          memLoc.getExtendedQualifiedName(), e.getExpressionType(), location, size, precision);
     }
     return visitDefault(e);
   }

@@ -22,6 +22,7 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
@@ -48,13 +49,14 @@ public class ReachedSetStrategy extends SequentialReadStrategy {
       @Nullable PropertyCheckerCPA pCpa)
       throws InvalidConfigurationException {
     super(pConfig, pLogger, pProofFile);
-    cpa= pCpa;
+    cpa = pCpa;
     shutdownNotifier = pShutdownNotifier;
   }
 
-
   @Override
-  public void constructInternalProofRepresentation(UnmodifiableReachedSet pReached) throws InvalidConfigurationException {
+  public void constructInternalProofRepresentation(
+      UnmodifiableReachedSet pReached, ConfigurableProgramAnalysis pCpa)
+      throws InvalidConfigurationException {
     reachedSet = new AbstractState[pReached.size()];
     pReached.asCollection().toArray(reachedSet);
     if (reachedSet.length > 0 && reachedSet[0] instanceof ARGState) {
@@ -67,7 +69,8 @@ public class ReachedSetStrategy extends SequentialReadStrategy {
   }
 
   @Override
-  public boolean checkCertificate(final ReachedSet pReachedSet) throws CPAException, InterruptedException {
+  public boolean checkCertificate(final ReachedSet pReachedSet)
+      throws CPAException, InterruptedException {
 
     /*also restrict stop to elements of same location as analysis does*/
     StopOperator stop = cpa.getStopOperator();
@@ -79,7 +82,10 @@ public class ReachedSetStrategy extends SequentialReadStrategy {
 
     try {
       stats.stopTimer.start();
-      if (!stop.stop(initialState, statesPerLocation.get(AbstractStates.extractLocation(initialState)), initialPrec)) {
+      if (!stop.stop(
+          initialState,
+          statesPerLocation.get(AbstractStates.extractLocation(initialState)),
+          initialPrec)) {
         logger.log(Level.FINE, "Cannot check that initial element is covered by result.");
         return false;
       }
@@ -89,7 +95,6 @@ public class ReachedSetStrategy extends SequentialReadStrategy {
     } finally {
       stats.stopTimer.stop();
     }
-
 
     // check if elements form transitive closure
     Collection<? extends AbstractState> successors;
@@ -106,9 +111,16 @@ public class ReachedSetStrategy extends SequentialReadStrategy {
         for (AbstractState succ : successors) {
           try {
             stats.stopTimer.start();
-            if (!stop.stop(succ, statesPerLocation.get(AbstractStates.extractLocation(succ)), initialPrec)) {
-              logger.log(Level.FINE, "Cannot check that result is transitive closure.", "Successor ", succ,
-                  "of element ", state, "not covered by result.");
+            if (!stop.stop(
+                succ, statesPerLocation.get(AbstractStates.extractLocation(succ)), initialPrec)) {
+              logger.log(
+                  Level.FINE,
+                  "Cannot check that result is transitive closure.",
+                  "Successor ",
+                  succ,
+                  "of element ",
+                  state,
+                  "not covered by result.");
               return false;
             }
           } finally {
@@ -132,25 +144,27 @@ public class ReachedSetStrategy extends SequentialReadStrategy {
   }
 
   @Override
-  protected Object getProofToWrite(UnmodifiableReachedSet pReached) throws InvalidConfigurationException {
-    constructInternalProofRepresentation(pReached);
+  protected Object getProofToWrite(
+      UnmodifiableReachedSet pReached, ConfigurableProgramAnalysis pCpa)
+      throws InvalidConfigurationException {
+    constructInternalProofRepresentation(pReached, pCpa);
     return reachedSet;
   }
-
 
   @Override
   protected void prepareForChecking(Object pReadProof) throws InvalidConfigurationException {
     try {
       stats.preparationTimer.start();
-    if (!(pReadProof instanceof AbstractState[])) { throw new InvalidConfigurationException(
-        "Proof Type requires reached set as set of abstract states."); }
-    reachedSet = (AbstractState[])pReadProof;
-    stats.increaseProofSize(reachedSet.length);
-    orderReachedSetByLocation(reachedSet);
+      if (!(pReadProof instanceof AbstractState[])) {
+        throw new InvalidConfigurationException(
+            "Proof Type requires reached set as set of abstract states.");
+      }
+      reachedSet = (AbstractState[]) pReadProof;
+      stats.increaseProofSize(reachedSet.length);
+      orderReachedSetByLocation(reachedSet);
     } finally {
       stats.preparationTimer.stop();
     }
-
   }
 
   protected void orderReachedSetByLocation(AbstractState[] pReached) {
@@ -159,5 +173,4 @@ public class ReachedSetStrategy extends SequentialReadStrategy {
       statesPerLocation.put(AbstractStates.extractLocation(state), state);
     }
   }
-
 }

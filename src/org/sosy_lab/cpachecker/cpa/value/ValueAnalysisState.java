@@ -61,6 +61,7 @@ import org.sosy_lab.cpachecker.cpa.value.refiner.ValueAnalysisInterpolant;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.ConstantSymbolicExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicIdentifier;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValue;
+import org.sosy_lab.cpachecker.cpa.value.type.EnumConstantValue;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
@@ -82,9 +83,14 @@ import org.sosy_lab.java_smt.api.FormulaType;
 import org.sosy_lab.java_smt.api.FormulaType.FloatingPointType;
 
 public final class ValueAnalysisState
-    implements AbstractQueryableState, FormulaReportingState, ExpressionTreeReportingState,
-        ForgetfulState<ValueAnalysisInformation>, Serializable, Graphable,
-        LatticeAbstractState<ValueAnalysisState>, PseudoPartitionable {
+    implements AbstractQueryableState,
+        FormulaReportingState,
+        ExpressionTreeReportingState,
+        ForgetfulState<ValueAnalysisInformation>,
+        Serializable,
+        Graphable,
+        LatticeAbstractState<ValueAnalysisState>,
+        PseudoPartitionable {
 
   private static final long serialVersionUID = -3152134511524554358L;
 
@@ -110,9 +116,7 @@ public final class ValueAnalysisState
   private final @Nullable MachineModel machineModel;
 
   public ValueAnalysisState(MachineModel pMachineModel) {
-    this(
-        checkNotNull(pMachineModel),
-        PathCopyingPersistentTreeMap.of());
+    this(checkNotNull(pMachineModel), PathCopyingPersistentTreeMap.of());
   }
 
   public ValueAnalysisState(
@@ -147,7 +151,7 @@ public final class ValueAnalysisState
    * @param value value to be assigned.
    */
   void assignConstant(String variableName, Value value) {
-    addToConstantsMap(MemoryLocation.valueOf(variableName), value, null);
+    addToConstantsMap(MemoryLocation.parseExtendedQualifiedName(variableName), value, null);
   }
 
   private void addToConstantsMap(
@@ -248,13 +252,15 @@ public final class ValueAnalysisState
   }
 
   @Override
-  public void remember(final MemoryLocation pLocation, final ValueAnalysisInformation pValueAndType) {
+  public void remember(
+      final MemoryLocation pLocation, final ValueAnalysisInformation pValueAndType) {
     final ValueAndType value = pValueAndType.getAssignments().get(pLocation);
     assignConstant(pLocation, value.getValue(), value.getType());
   }
 
   /**
-   * This method retains all variables and their respective values in the underlying map, while removing all others.
+   * This method retains all variables and their respective values in the underlying map, while
+   * removing all others.
    *
    * @param toRetain the names of the variables to retain
    */
@@ -273,7 +279,8 @@ public final class ValueAnalysisState
   }
 
   /**
-   * This method drops all entries belonging to the stack frame of a function. This method should be called right before leaving a function.
+   * This method drops all entries belonging to the stack frame of a function. This method should be
+   * called right before leaving a function.
    *
    * @param functionName the name of the function that is about to be left
    */
@@ -384,10 +391,12 @@ public final class ValueAnalysisState
   }
 
   /**
-   * This method decides if this element is less or equal than the other element, based on the order imposed by the lattice.
+   * This method decides if this element is less or equal than the other element, based on the order
+   * imposed by the lattice.
    *
    * @param other the other element
-   * @return true, if this element is less or equal than the other element, based on the order imposed by the lattice
+   * @return true, if this element is less or equal than the other element, based on the order
+   *     imposed by the lattice
    */
   @Override
   public boolean isLessOrEqual(ValueAnalysisState other) {
@@ -451,7 +460,7 @@ public final class ValueAnalysisState
     for (Entry<MemoryLocation, ValueAndType> entry : constantsMap.entrySet()) {
       MemoryLocation key = entry.getKey();
       sb.append(" <");
-      sb.append(key.getAsSimpleString());
+      sb.append(key.getExtendedQualifiedName());
       sb.append(" = ");
       sb.append(entry.getValue().getValue());
       sb.append(">\n");
@@ -487,16 +496,20 @@ public final class ValueAnalysisState
 
     if (pProperty.startsWith("contains(")) {
       String varName = pProperty.substring("contains(".length(), pProperty.length() - 1);
-      return this.constantsMap.containsKey(MemoryLocation.valueOf(varName));
+      return constantsMap.containsKey(MemoryLocation.parseExtendedQualifiedName(varName));
     } else {
       List<String> parts = Splitter.on("==").trimResults().splitToList(pProperty);
       if (parts.size() != 2) {
-        ValueAndType value = this.constantsMap.get(MemoryLocation.valueOf(pProperty));
+        ValueAndType value = constantsMap.get(MemoryLocation.parseExtendedQualifiedName(pProperty));
         if (value != null && value.getValue().isExplicitlyKnown()) {
           return value.getValue();
         } else {
-          throw new InvalidQueryException("The Query \"" + pProperty + "\" is invalid. Could not find the variable \""
-              + pProperty + "\"");
+          throw new InvalidQueryException(
+              "The Query \""
+                  + pProperty
+                  + "\" is invalid. Could not find the variable \""
+                  + pProperty
+                  + "\"");
         }
       } else {
         return checkProperty(pProperty);
@@ -510,11 +523,13 @@ public final class ValueAnalysisState
     List<String> parts = Splitter.on("==").trimResults().splitToList(pProperty);
 
     if (parts.size() != 2) {
-      throw new InvalidQueryException("The Query \"" + pProperty
-          + "\" is invalid. Could not split the property string correctly.");
+      throw new InvalidQueryException(
+          "The Query \""
+              + pProperty
+              + "\" is invalid. Could not split the property string correctly.");
     } else {
       // The following is a hack
-      ValueAndType val = this.constantsMap.get(MemoryLocation.valueOf(parts.get(0)));
+      ValueAndType val = constantsMap.get(MemoryLocation.parseExtendedQualifiedName(parts.get(0)));
       if (val == null) {
         return false;
       }
@@ -558,8 +573,9 @@ public final class ValueAnalysisState
           throw new InvalidQueryException(statement + " should end with \")\"");
         }
 
-        MemoryLocation varName = MemoryLocation.valueOf(
-            statement.substring("deletevalues(".length(), statement.length() - 1));
+        MemoryLocation varName =
+            MemoryLocation.parseExtendedQualifiedName(
+                statement.substring("deletevalues(".length(), statement.length() - 1));
 
         if (contains(varName)) {
           forget(varName);
@@ -577,8 +593,10 @@ public final class ValueAnalysisState
         List<String> assignmentParts = Splitter.on(":=").trimResults().splitToList(assignment);
 
         if (assignmentParts.size() != 2) {
-          throw new InvalidQueryException("The Query \"" + pModification
-              + "\" is invalid. Could not split the property string correctly.");
+          throw new InvalidQueryException(
+              "The Query \""
+                  + pModification
+                  + "\" is invalid. Could not split the property string correctly.");
         } else {
           String varName = assignmentParts.get(0);
           try {
@@ -624,7 +642,7 @@ public final class ValueAnalysisState
           if (simpleType.getType().isIntegerType()) {
             int bitSize = machineModel.getSizeof(simpleType) * machineModel.getSizeofCharInBits();
             BitvectorFormula var =
-                bitvectorFMGR.makeVariable(bitSize, entry.getKey().getAsSimpleString());
+                bitvectorFMGR.makeVariable(bitSize, entry.getKey().getExtendedQualifiedName());
 
             Number value = num.getNumber();
             final BitvectorFormula val;
@@ -637,16 +655,17 @@ public final class ValueAnalysisState
           } else if (simpleType.getType().isFloatingPointType()) {
             final FloatingPointType fpType;
             switch (simpleType.getType()) {
-            case FLOAT:
-              fpType = FormulaType.getSinglePrecisionFloatingPointType();
-              break;
-            case DOUBLE:
-              fpType = FormulaType.getDoublePrecisionFloatingPointType();
-              break;
-            default:
-              throw new AssertionError("Unsupported floating point type: " + simpleType);
+              case FLOAT:
+                fpType = FormulaType.getSinglePrecisionFloatingPointType();
+                break;
+              case DOUBLE:
+                fpType = FormulaType.getDoublePrecisionFloatingPointType();
+                break;
+              default:
+                throw new AssertionError("Unsupported floating point type: " + simpleType);
             }
-            FloatingPointFormula var = floatFMGR.makeVariable(entry.getKey().getAsSimpleString(), fpType);
+            FloatingPointFormula var =
+                floatFMGR.makeVariable(entry.getKey().getExtendedQualifiedName(), fpType);
             FloatingPointFormula val = floatFMGR.makeNumber(num.doubleValue(), fpType);
             result.add(floatFMGR.equalWithFPSemantics(var, val));
           } else {
@@ -697,7 +716,8 @@ public final class ValueAnalysisState
   }
 
   /**
-   * This method acts as factory to create a value-analysis interpolant from this value-analysis state.
+   * This method acts as factory to create a value-analysis interpolant from this value-analysis
+   * state.
    *
    * @return the value-analysis interpolant reflecting the value assignment of this state
    */
@@ -709,10 +729,13 @@ public final class ValueAnalysisState
     return new ValueAnalysisInformation(constantsMap);
   }
 
-  /** If there was a recursive function, we have wrong values for scoped variables in the returnState.
-   * This function rebuilds a new state with the correct values from the previous callState.
-   * We delete the wrong values and insert new values, if necessary. */
-  public ValueAnalysisState rebuildStateAfterFunctionCall(final ValueAnalysisState callState, final FunctionExitNode functionExit) {
+  /**
+   * If there was a recursive function, we have wrong values for scoped variables in the
+   * returnState. This function rebuilds a new state with the correct values from the previous
+   * callState. We delete the wrong values and insert new values, if necessary.
+   */
+  public ValueAnalysisState rebuildStateAfterFunctionCall(
+      final ValueAnalysisState callState, final FunctionExitNode functionExit) {
 
     // we build a new state from:
     // - local variables from callState,
@@ -730,17 +753,22 @@ public final class ValueAnalysisState
     }
 
     // second: learn new information
-    for (Entry<MemoryLocation, ValueAndType> e : this.getConstants()) {
+    for (Entry<MemoryLocation, ValueAndType> e : getConstants()) {
       final MemoryLocation trackedVar = e.getKey();
 
       if (!trackedVar.isOnFunctionStack()) { // global -> override deleted value
         rebuildState.assignConstant(trackedVar, e.getValue().getValue(), e.getValue().getType());
 
-      } else if (functionExit.getEntryNode().getReturnVariable().isPresent() &&
-          functionExit.getEntryNode().getReturnVariable().get().getQualifiedName().equals(trackedVar.getAsSimpleString())) {
+      } else if (functionExit.getEntryNode().getReturnVariable().isPresent()
+          && functionExit
+              .getEntryNode()
+              .getReturnVariable()
+              .get()
+              .getQualifiedName()
+              .equals(trackedVar.getExtendedQualifiedName())) {
         /*assert (!rebuildState.contains(trackedVar)) :
-                "calling function should not contain return-variable of called function: " + trackedVar;*/
-        if (this.contains(trackedVar)) {
+        "calling function should not contain return-variable of called function: " + trackedVar;*/
+        if (contains(trackedVar)) {
           rebuildState.assignConstant(trackedVar, e.getValue().getValue(), e.getValue().getType());
         }
       }
@@ -767,14 +795,18 @@ public final class ValueAnalysisState
       return ExpressionTrees.getTrue();
     }
 
-    //TODO: Get real logger
+    // TODO: Get real logger
     CBinaryExpressionBuilder builder =
         new CBinaryExpressionBuilder(machineModel, LogManager.createNullLogManager());
     ExpressionTreeFactory<Object> factory = ExpressionTrees.newFactory();
     List<ExpressionTree<Object>> result = new ArrayList<>();
 
     for (Entry<MemoryLocation, ValueAndType> entry : constantsMap.entrySet()) {
-      NumericValue num = entry.getValue().getValue().asNumericValue();
+      Value valueOfEntry = entry.getValue().getValue();
+      if (valueOfEntry instanceof EnumConstantValue) {
+        continue;
+      }
+      NumericValue num = valueOfEntry.asNumericValue();
       if (num != null) {
         MemoryLocation memoryLocation = entry.getKey();
         Type type = entry.getValue().getType();
@@ -805,7 +837,7 @@ public final class ValueAnalysisState
                     cType,
                     id,
                     id,
-                    memoryLocation.getAsSimpleString(),
+                    memoryLocation.getExtendedQualifiedName(),
                     null);
             CExpression var = new CIdExpression(loc, decl);
             CExpression val = null;
@@ -833,7 +865,7 @@ public final class ValueAnalysisState
                   break;
                 }
               }
-              if(val == null) {
+              if (val == null) {
                 val = new CIntegerLiteralExpression(loc, enumType, BigInteger.valueOf(value));
               }
             } else {

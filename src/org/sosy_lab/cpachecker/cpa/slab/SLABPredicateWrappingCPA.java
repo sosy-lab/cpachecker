@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.cpa.slab;
 
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.defaults.AbstractSingleWrapperCPA;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
@@ -20,35 +21,31 @@ import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
 import org.sosy_lab.cpachecker.cpa.predicate.SymbolicLocationsUtility;
-import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.predicates.BlockOperator;
 
 public class SLABPredicateWrappingCPA extends AbstractSingleWrapperCPA {
 
-  SLABPredicateTransferRelation transferRelation;
-  PredicateAbstractState startState;
-  private PredicateCPA predicateCPA;
+  private final SymbolicLocationsUtility symbolicLocationsUtility;
+  private final SLABPredicateTransferRelation transferRelation;
+
+  // To guarantee consistent initial state (it is mutable) TODO necessary?
+  private PredicateAbstractState startState;
 
   protected SLABPredicateWrappingCPA(Specification pSpecification, ConfigurableProgramAnalysis pCpa)
-      throws CPAException {
+      throws InvalidConfigurationException {
     super(pCpa);
-    // this will give a class-cast exception if a config tries to insert s.th. else than a
-    // PredicateCPA, so no need for an extra warning:
-    predicateCPA = (PredicateCPA) getWrappedCpa();
-    transferRelation = new SLABPredicateTransferRelation(predicateCPA, pSpecification);
-
-    // it is not allowed to throw InterruptedException if we want to use AutomaticCPAFactory:
-    try {
-      startState =
-          new SymbolicLocationsUtility(predicateCPA, pSpecification)
-              .makePredicateState(true, false);
-    } catch (InterruptedException e) {
-      throw new CPAException("Building of initial state was interrupted!", e);
+    if (!(pCpa instanceof PredicateCPA)) {
+      throw new InvalidConfigurationException(
+          "SLABPredicateWrappingCPA requires a PredicateCPA as child");
     }
+    symbolicLocationsUtility =
+        new SymbolicLocationsUtility((PredicateCPA) getWrappedCpa(), pSpecification);
+    transferRelation = new SLABPredicateTransferRelation(symbolicLocationsUtility);
   }
 
   public static CPAFactory factory() {
-    return AutomaticCPAFactory.forType(SLABPredicateWrappingCPA.class).withOptions(BlockOperator.class);
+    return AutomaticCPAFactory.forType(SLABPredicateWrappingCPA.class)
+        .withOptions(BlockOperator.class);
   }
 
   @Override
@@ -57,7 +54,11 @@ public class SLABPredicateWrappingCPA extends AbstractSingleWrapperCPA {
   }
 
   @Override
-  public AbstractState getInitialState(CFANode pNode, StateSpacePartition pPartition) {
+  public AbstractState getInitialState(CFANode pNode, StateSpacePartition pPartition)
+      throws InterruptedException {
+    if (startState == null) {
+      startState = symbolicLocationsUtility.makePredicateState(true, false);
+    }
     return startState;
   }
 }

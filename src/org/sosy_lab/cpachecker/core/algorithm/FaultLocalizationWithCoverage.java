@@ -11,8 +11,10 @@ package org.sosy_lab.cpachecker.core.algorithm;
 import static com.google.common.collect.FluentIterable.from;
 
 import com.google.common.collect.FluentIterable;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import java.io.PrintStream;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Comparator;
 import java.util.List;
@@ -145,17 +147,22 @@ public class FaultLocalizationWithCoverage implements Algorithm, StatisticsProvi
   }
 
   public List<Fault> getFaultsForCex(List<Fault> pFaults, CounterexampleInfo counterexample) {
-    ImmutableSet<CFAEdge> fullPath = ImmutableSet.copyOf(counterexample.getTargetPath().getFullPath());
+    ImmutableSet<CFAEdge> fullPath =
+        ImmutableSet.copyOf(counterexample.getTargetPath().getFullPath());
     return pFaults.stream()
         .filter(f -> f.stream().anyMatch(e -> fullPath.contains(e.correspondingEdge())))
-        .collect(Collectors.toList());
+        // cf.
+        // https://gitlab.com/sosy-lab/software/cpachecker/-/commit/50e6fd55278032c0eb7365c3923aed3942bbeaf4#note_486588922
+        // Better code would be not relying on mutability or better encapsulation in
+        // FaultLocalizationInfo.
+        .collect(Collectors.toCollection(ArrayList::new));
   }
 
   private List<Fault> sortingByScoreReversed(List<Fault> faults) {
     return faults.stream()
         .filter(f -> f.getScore() != 0)
         .sorted(Comparator.comparing((Fault f) -> f.getScore()).reversed())
-        .collect(Collectors.toList());
+        .collect(ImmutableList.toImmutableList());
   }
 
   private SuspiciousnessMeasure createSuspiciousnessMeasure(AlgorithmType pAlgorithmType) {

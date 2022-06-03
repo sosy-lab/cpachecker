@@ -40,6 +40,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CEnumType.CEnumerator;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
+import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.smg.SMGInconsistentException;
 import org.sosy_lab.cpachecker.cpa.smg.SMGState;
@@ -50,6 +51,8 @@ import org.sosy_lab.cpachecker.cpa.smg.evaluator.SMGAbstractObjectAndState.SMGVa
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGAddress;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGAddressValue;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGExplicitValue;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownAddressValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownExpValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownSymValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownSymbolicValue;
@@ -70,10 +73,17 @@ class ExpressionValueVisitor
     implements CRightHandSideVisitor<List<? extends SMGValueAndState>, CPATransferException> {
 
   final SMGExpressionEvaluator smgExpressionEvaluator;
+
+  /**
+   * The edge should never be used to retrieve any information. It should only be used for logging
+   * and debugging, because we do not know the context of the caller.
+   */
   final CFAEdge cfaEdge;
+
   private final SMGState initialSmgState;
 
-  public ExpressionValueVisitor(SMGExpressionEvaluator pSmgExpressionEvaluator, CFAEdge pEdge, SMGState pSmgState) {
+  public ExpressionValueVisitor(
+      SMGExpressionEvaluator pSmgExpressionEvaluator, CFAEdge pEdge, SMGState pSmgState) {
     smgExpressionEvaluator = pSmgExpressionEvaluator;
     cfaEdge = pEdge;
     initialSmgState = pSmgState;
@@ -145,12 +155,12 @@ class ExpressionValueVisitor
 
     List<SMGValueAndState> result = new ArrayList<>(2);
     List<SMGAddressAndState> addressOfFieldAndStates =
-        smgExpressionEvaluator.getAddressOfField(getInitialSmgState(), getCfaEdge(), fieldReference);
+        smgExpressionEvaluator.getAddressOfField(
+            getInitialSmgState(), getCfaEdge(), fieldReference);
 
     for (SMGAddressAndState addressOfFieldAndState : addressOfFieldAndStates) {
       SMGAddress addressOfField = addressOfFieldAndState.getObject();
       SMGState newState = addressOfFieldAndState.getSmgState();
-
 
       if (addressOfField.isUnknown()) {
         result.add(SMGValueAndState.withUnknownValue(newState));
@@ -194,8 +204,7 @@ class ExpressionValueVisitor
       SMGSymbolicValue val = enumValue == 0 ? SMGZeroValue.INSTANCE : SMGUnknownValue.INSTANCE;
       return singletonList(SMGValueAndState.of(getInitialSmgState(), val));
 
-    } else if (decl instanceof CVariableDeclaration
-        || decl instanceof CParameterDeclaration) {
+    } else if (decl instanceof CVariableDeclaration || decl instanceof CParameterDeclaration) {
       SMGState smgState = getInitialSmgState();
 
       SMGObject variableObject =
@@ -229,13 +238,11 @@ class ExpressionValueVisitor
     CExpression unaryOperand = unaryExpression.getOperand();
 
     switch (unaryOperator) {
-
-    case AMPER:
+      case AMPER:
         throw new UnrecognizedCodeException(
             "Can't use & of expression " + unaryOperand.toASTString(), cfaEdge, unaryExpression);
 
-    case MINUS:
-
+      case MINUS:
         ImmutableList.Builder<SMGValueAndState> result = ImmutableList.builderWithExpectedSize(2);
 
         List<? extends SMGValueAndState> valueAndStates = unaryOperand.accept(this);
@@ -245,13 +252,13 @@ class ExpressionValueVisitor
           SMGValue value = valueAndState.getObject();
 
           SMGValue val = value.equals(SMGZeroValue.INSTANCE) ? value : SMGUnknownValue.INSTANCE;
-        result.add(SMGValueAndState.of(valueAndState.getSmgState(), val));
-      }
+          result.add(SMGValueAndState.of(valueAndState.getSmgState(), val));
+        }
 
         return result.build();
 
-    case SIZEOF:
-        int size =
+      case SIZEOF:
+        long size =
             smgExpressionEvaluator.getBitSizeof(
                 cfaEdge,
                 TypeUtils.getRealExpressionType(unaryOperand),
@@ -259,9 +266,9 @@ class ExpressionValueVisitor
                 unaryOperand);
         SMGSymbolicValue val = (size == 0) ? SMGZeroValue.INSTANCE : SMGUnknownValue.INSTANCE;
         return singletonList(SMGValueAndState.of(getInitialSmgState(), val));
-    case TILDE:
+      case TILDE:
 
-    default:
+      default:
         return singletonList(SMGValueAndState.withUnknownValue(getInitialSmgState()));
     }
   }
@@ -291,13 +298,13 @@ class ExpressionValueVisitor
     CType type = typeIdExp.getType();
 
     switch (typeOperator) {
-    case SIZEOF:
+      case SIZEOF:
         SMGSymbolicValue val =
             smgExpressionEvaluator.getBitSizeof(cfaEdge, type, getInitialSmgState(), typeIdExp) == 0
                 ? SMGZeroValue.INSTANCE
                 : SMGUnknownValue.INSTANCE;
         return singletonList(SMGValueAndState.of(getInitialSmgState(), val));
-    default:
+      default:
         return singletonList(SMGValueAndState.withUnknownValue(getInitialSmgState()));
         // TODO Investigate the other Operators.
     }
@@ -328,13 +335,13 @@ class ExpressionValueVisitor
         SMGValue rVal = rValAndState.getObject();
         newState = rValAndState.getSmgState();
 
-        if (rVal.equals(SMGUnknownValue.INSTANCE)
-            || lVal.equals(SMGUnknownValue.INSTANCE)) {
+        if (rVal.equals(SMGUnknownValue.INSTANCE) || lVal.equals(SMGUnknownValue.INSTANCE)) {
           result.add(SMGValueAndState.withUnknownValue(newState));
           continue;
         }
 
-        result.addAll(evaluateBinaryExpression(lVal, rVal, binaryOperator, newState));
+        result.addAll(
+            evaluateBinaryExpression(lVal, rVal, lVarInBinaryExp, binaryOperator, newState));
       }
     }
 
@@ -342,7 +349,11 @@ class ExpressionValueVisitor
   }
 
   private List<? extends SMGValueAndState> evaluateBinaryExpression(
-      SMGValue lVal, SMGValue rVal, BinaryOperator binaryOperator, SMGState newState)
+      SMGValue lVal,
+      SMGValue rVal,
+      CExpression lVarInBinaryExp,
+      BinaryOperator binaryOperator,
+      SMGState newState)
       throws SMGInconsistentException {
 
     if (lVal.equals(SMGUnknownValue.INSTANCE) || rVal.equals(SMGUnknownValue.INSTANCE)) {
@@ -359,76 +370,106 @@ class ExpressionValueVisitor
       case SHIFT_RIGHT:
       case BINARY_AND:
       case BINARY_OR:
-      case BINARY_XOR: {
+      case BINARY_XOR:
+        {
+          boolean isZero;
 
-        boolean isZero;
-
-        switch (binaryOperator) {
-          case PLUS:
-          case SHIFT_LEFT:
-          case BINARY_OR:
-          case BINARY_XOR:
-          case SHIFT_RIGHT:
+          switch (binaryOperator) {
+            case PLUS:
+            case SHIFT_LEFT:
+            case BINARY_OR:
+            case BINARY_XOR:
+            case SHIFT_RIGHT:
               isZero = lVal.equals(SMGZeroValue.INSTANCE) && rVal.equals(SMGZeroValue.INSTANCE);
               SMGSymbolicValue val = isZero ? SMGZeroValue.INSTANCE : SMGUnknownValue.INSTANCE;
               return singletonList(SMGValueAndState.of(newState, val));
 
-          case MINUS:
-          case MODULO:
+            case MINUS:
+              if (lVal instanceof SMGKnownAddressValue && rVal instanceof SMGKnownAddressValue) {
+                SMGKnownAddressValue lValAddress = (SMGKnownAddressValue) lVal;
+                SMGKnownAddressValue rValAddress = (SMGKnownAddressValue) rVal;
+                if (lValAddress.getObject().equals(rValAddress.getObject())) {
+                  CType lVarType = lVarInBinaryExp.getExpressionType().getCanonicalType();
+                  final CType type;
+                  if (lVarType instanceof CPointerType) {
+                    // normal pointer type
+                    type = ((CPointerType) lVarType).getType();
+                  } else if (lVarType instanceof CSimpleType) {
+                    // pointers can also be casted as "long int" (32bit) or "long long int" (64bit).
+                    // Lets assume, that invalid combinations like "int" for 64bit do not appear.
+                    type = lVarType;
+                  } else {
+                    throw new AssertionError(
+                        String.format(
+                            "unhandled type '%s' for pointer comparison using '%s'.",
+                            lVarType, lVarInBinaryExp));
+                  }
+                  BigInteger sizeOfLVal = smgExpressionEvaluator.machineModel.getSizeofInBits(type);
+                  SMGExplicitValue diff = lValAddress.getOffset().subtract(rValAddress.getOffset());
+                  diff = diff.divide(SMGKnownExpValue.valueOf(sizeOfLVal));
+                  return singletonList(SMGValueAndState.of(newState, diff));
+                }
+              }
+              // else
               isZero = lVal.equals(rVal);
               val = isZero ? SMGZeroValue.INSTANCE : SMGUnknownValue.INSTANCE;
               return singletonList(SMGValueAndState.of(newState, val));
 
-          case DIVIDE:
+            case MODULO:
+              isZero = lVal.equals(rVal);
+              val = isZero ? SMGZeroValue.INSTANCE : SMGUnknownValue.INSTANCE;
+              return singletonList(SMGValueAndState.of(newState, val));
+
+            case DIVIDE:
               // TODO maybe we should signal a division by zero error?
               if (rVal.equals(SMGZeroValue.INSTANCE)) {
                 return singletonList(SMGValueAndState.withUnknownValue(newState));
-            }
+              }
 
               isZero = lVal.equals(SMGZeroValue.INSTANCE);
               val = isZero ? SMGZeroValue.INSTANCE : SMGUnknownValue.INSTANCE;
               return singletonList(SMGValueAndState.of(newState, val));
 
-          case MULTIPLY:
-          case BINARY_AND:
+            case MULTIPLY:
+            case BINARY_AND:
               isZero = lVal.equals(SMGZeroValue.INSTANCE) || rVal.equals(SMGZeroValue.INSTANCE);
               val = isZero ? SMGZeroValue.INSTANCE : SMGUnknownValue.INSTANCE;
               return singletonList(SMGValueAndState.of(newState, val));
 
-          default:
-            throw new AssertionError();
+            default:
+              throw new AssertionError();
+          }
         }
-      }
 
       case EQUALS:
       case NOT_EQUALS:
       case GREATER_THAN:
       case GREATER_EQUAL:
       case LESS_THAN:
-      case LESS_EQUAL: {
-
-        AssumeVisitor v = smgExpressionEvaluator.getAssumeVisitor(getCfaEdge(), newState);
+      case LESS_EQUAL:
+        {
+          AssumeVisitor v = smgExpressionEvaluator.getAssumeVisitor(getCfaEdge(), newState);
 
           List<? extends SMGValueAndState> assumptionValueAndStates =
               v.evaluateBinaryAssumption(newState, binaryOperator, lVal, rVal);
 
-        ImmutableList.Builder<SMGValueAndState> result = ImmutableList.builderWithExpectedSize(2);
+          ImmutableList.Builder<SMGValueAndState> result = ImmutableList.builderWithExpectedSize(2);
 
           for (SMGValueAndState assumptionValueAndState : assumptionValueAndStates) {
-          newState = assumptionValueAndState.getSmgState();
+            newState = assumptionValueAndState.getSmgState();
             SMGValue assumptionVal = assumptionValueAndState.getObject();
 
             if (assumptionVal.isZero()) {
               SMGValueAndState resultValueAndState =
                   SMGValueAndState.of(newState, SMGZeroValue.INSTANCE);
-            result.add(resultValueAndState);
-          } else {
-            result.add(SMGValueAndState.withUnknownValue(newState));
+              result.add(resultValueAndState);
+            } else {
+              result.add(SMGValueAndState.withUnknownValue(newState));
+            }
           }
-        }
 
-        return result.build();
-      }
+          return result.build();
+        }
 
       default:
         return singletonList(SMGValueAndState.withUnknownValue(getInitialSmgState()));
@@ -449,10 +490,7 @@ class ExpressionValueVisitor
       List<SMGValueAndState> castedValueAndStates = new ArrayList<>(smgValueAndStates.size());
       for (SMGValueAndState valueAndState : smgValueAndStates) {
         if (valueAndState instanceof SMGAddressValueAndState) {
-          castedValueAndStates.add(
-              SMGValueAndState.of(
-                  valueAndState.getSmgState(),
-                  ((SMGAddressValueAndState) valueAndState).getObject()));
+          castedValueAndStates.add(valueAndState);
         }
       }
       return castedValueAndStates;
@@ -486,7 +524,9 @@ class ExpressionValueVisitor
             smgExpressionEvaluator.createAddress(
                 newState, address.getObject(), address.getOffset()));
       } else {
-        result.add(smgExpressionEvaluator.readValue(newState, address.getObject(), address.getOffset(), derefType, cfaEdge));
+        result.add(
+            smgExpressionEvaluator.readValue(
+                newState, address.getObject(), address.getOffset(), derefType, cfaEdge));
       }
     }
 
@@ -519,7 +559,9 @@ class ExpressionValueVisitor
             smgExpressionEvaluator.createAddress(
                 newState, address.getObject(), address.getOffset()));
       } else {
-        result.add(smgExpressionEvaluator.readValue(newState, address.getObject(), address.getOffset(), derefType, cfaEdge));
+        result.add(
+            smgExpressionEvaluator.readValue(
+                newState, address.getObject(), address.getOffset(), derefType, cfaEdge));
       }
     }
 

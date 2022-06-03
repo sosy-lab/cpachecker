@@ -14,6 +14,7 @@ import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import java.util.List;
+import java.util.Optional;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -21,14 +22,17 @@ import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameter;
 import org.junit.runners.Parameterized.Parameters;
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
+import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
+import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManagerImpl;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSet;
 import org.sosy_lab.cpachecker.util.predicates.regions.Region;
 import org.sosy_lab.cpachecker.util.predicates.regions.RegionManager;
 import org.sosy_lab.cpachecker.util.predicates.regions.SymbolicRegionManager;
@@ -65,6 +69,15 @@ public class PredicateTranslatorTest extends SolverViewBasedTest0 {
   @Before
   public void init() throws Exception {
     FormulaManagerView fmv = mgrv;
+    PathFormulaManager pfmgr =
+        new PathFormulaManagerImpl(
+            fmv,
+            config,
+            logger,
+            shutdownNotifierToUse(),
+            MachineModel.LINUX32,
+            Optional.empty(),
+            AnalysisDirection.FORWARD);
     pReqTrans = new PredicateRequirementsTranslator(fmv);
 
     SSAMapBuilder ssaBuilder = SSAMap.emptySSAMap().builder();
@@ -82,8 +95,7 @@ public class PredicateTranslatorTest extends SolverViewBasedTest0 {
     BooleanFormula bf = bfmgr.makeTrue();
 
     // create empty path formula
-    PathFormula pathFormula =
-        new PathFormula(bf, SSAMap.emptySSAMap(), PointerTargetSet.emptyPointerTargetSet(), 0);
+    PathFormula pathFormula = pfmgr.makeEmptyPathFormula();
 
     // create PredicateAbstractState ptrueState
     AbstractionFormula aFormula =
@@ -190,7 +202,8 @@ public class PredicateTranslatorTest extends SolverViewBasedTest0 {
     assertFormulaIsExpected(
         convertedRequirements.getSecond(),
         "post",
-        "(or (and (or (> var1@1 0) (= var3@1 0)) (< |fun::var1| 0))(and (> var2 |fun::varB@1|) (< |fun::varC| 0)))");
+        "(or (and (or (> var1@1 0) (= var3@1 0)) (< |fun::var1| 0))(and (> var2 |fun::varB@1|) (<"
+            + " |fun::varC| 0)))");
   }
 
   private void assertFormulaIsExpected(

@@ -10,9 +10,10 @@ package org.sosy_lab.cpachecker.cfa.model;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
-import com.google.common.base.Optional;
 import com.google.common.collect.Lists;
 import java.util.List;
+import java.util.Optional;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.AParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.AReturnStatement;
@@ -24,7 +25,7 @@ public abstract class FunctionEntryNode extends CFANode {
   private static final long serialVersionUID = 1837494813423960670L;
   private final FileLocation location;
   private final AFunctionDeclaration functionDefinition;
-  private final Optional<? extends AVariableDeclaration> returnVariable;
+  private final @Nullable AVariableDeclaration returnVariable;
 
   // Check if call edges are added in the second pass
   private final FunctionExitNode exitNode;
@@ -39,7 +40,7 @@ public abstract class FunctionEntryNode extends CFANode {
     location = checkNotNull(pFileLocation);
     functionDefinition = pFunctionDefinition;
     exitNode = pExitNode;
-    returnVariable = checkNotNull(pReturnVariable);
+    returnVariable = pReturnVariable.orElse(null);
   }
 
   public FileLocation getFileLocation() {
@@ -61,11 +62,11 @@ public abstract class FunctionEntryNode extends CFANode {
   public abstract List<? extends AParameterDeclaration> getFunctionParameters();
 
   /**
-   * Return a declaration for a pseudo variable that can be used to store
-   * the return value of this function (if it has one).
-   * This variable is the same as the one used by {@link AReturnStatement#asAssignment()}.
+   * Return a declaration for a pseudo variable that can be used to store the return value of this
+   * function (if it has one). This variable is the same as the one used by {@link
+   * AReturnStatement#asAssignment()}.
    */
   public Optional<? extends AVariableDeclaration> getReturnVariable() {
-    return returnVariable;
+    return Optional.ofNullable(returnVariable);
   }
 }

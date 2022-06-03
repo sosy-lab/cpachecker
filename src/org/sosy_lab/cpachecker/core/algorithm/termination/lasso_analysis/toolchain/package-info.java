@@ -7,10 +7,10 @@
 // SPDX-License-Identifier: Apache-2.0
 
 /**
- * Incomplete implementation of interfaces from Ultimate required by
- * {@link de.uni_freiburg.informatik.ultimate.lassoranker.nontermination.NonTerminationArgumentSynthesizer}
- * and
- * {@link de.uni_freiburg.informatik.ultimate.lassoranker.termination.TerminationArgumentSynthesizer}.
+ * Incomplete implementation of interfaces from Ultimate required by {@link
+ * de.uni_freiburg.informatik.ultimate.lassoranker.nontermination.NonTerminationArgumentSynthesizer}
+ * and {@link
+ * de.uni_freiburg.informatik.ultimate.lassoranker.termination.TerminationArgumentSynthesizer}.
  */
 @javax.annotation.ParametersAreNonnullByDefault
 @org.sosy_lab.common.annotations.FieldsAreNonnullByDefault

@@ -37,47 +37,43 @@ import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 /**
- * CPAFactory implementation that can be used to automatically instantiate
- * classes with a single constructor that has parameters.
+ * CPAFactory implementation that can be used to automatically instantiate classes with a single
+ * constructor that has parameters.
  *
- * Parameters can be marked as optional with an annotation to specify that the
- * factory may pass null for them.
+ * <p>Parameters can be marked as optional with an annotation to specify that the factory may pass
+ * null for them.
  */
 public class AutomaticCPAFactory implements CPAFactory {
 
   /**
-   * Marker interface for optional constructor parameters.
-   * The factory may decide to pass null for such parameters.
+   * Marker interface for optional constructor parameters. The factory may decide to pass null for
+   * such parameters.
    */
   @Target(ElementType.PARAMETER)
   @Retention(RetentionPolicy.RUNTIME)
-  public static @interface OptionalAnnotation { }
+  public static @interface OptionalAnnotation {}
 
   private final Class<? extends ConfigurableProgramAnalysis> type;
   private final ClassToInstanceMap<Object> injects = MutableClassToInstanceMap.create();
 
-  /**
-   * Construct a CPAFactory for the given type.
-   */
+  /** Construct a CPAFactory for the given type. */
   public static AutomaticCPAFactory forType(Class<? extends ConfigurableProgramAnalysis> type) {
     return new AutomaticCPAFactory(type);
   }
 
   /**
-   * Construct a CPAFactory for the given type.
-   * The CPA will be loaded using the given class loader.
-   * It is advisable to use something like
-   * {@link org.sosy_lab.common.Classes.ClassLoaderBuilder#setDirectLoadClasses(java.util.function.Predicate)}
-   * to ensure that the other classes of the CPA will be loaded with the same
-   * class loader, even if they are on the class path of the parent class loader.
+   * Construct a CPAFactory for the given type. The CPA will be loaded using the given class loader.
+   * It is advisable to use something like {@link
+   * org.sosy_lab.common.Classes.ClassLoaderBuilder#setDirectLoadClasses(java.util.function.Predicate)}
+   * to ensure that the other classes of the CPA will be loaded with the same class loader, even if
+   * they are on the class path of the parent class loader.
    *
-   * When using this method, make sure that the class that calls this method
-   * does not reference any of the other classes of the CPA.
-   * Specifically, you cannot put this method in the same class that should
-   * be instantiated.
+   * <p>When using this method, make sure that the class that calls this method does not reference
+   * any of the other classes of the CPA. Specifically, you cannot put this method in the same class
+   * that should be instantiated.
    *
-   * Also, using this means that other classes from other CPAs
-   * or from CPAchecker itself cannot access classes of your CPA.
+   * <p>Also, using this means that other classes from other CPAs or from CPAchecker itself cannot
+   * access classes of your CPA.
    */
   public static CPAFactory forType(String className, ClassLoader cl) {
     Class<?> cls;
@@ -87,7 +83,10 @@ public class AutomaticCPAFactory implements CPAFactory {
       throw new IllegalArgumentException(e);
     }
 
-    checkArgument(ConfigurableProgramAnalysis.class.isAssignableFrom(cls), "Class %s does not implement the CPA interface and cannot be used with AutomaticCPAFactory", className);
+    checkArgument(
+        ConfigurableProgramAnalysis.class.isAssignableFrom(cls),
+        "Class %s does not implement the CPA interface and cannot be used with AutomaticCPAFactory",
+        className);
 
     return new AutomaticCPAFactory(cls.asSubclass(ConfigurableProgramAnalysis.class));
   }
@@ -96,8 +95,8 @@ public class AutomaticCPAFactory implements CPAFactory {
     this.type = type;
   }
 
-  private AutomaticCPAFactory(Class<? extends ConfigurableProgramAnalysis> pType,
-                              ClassToInstanceMap<Object> pInjects) {
+  private AutomaticCPAFactory(
+      Class<? extends ConfigurableProgramAnalysis> pType, ClassToInstanceMap<Object> pInjects) {
     type = pType;
     injects.putAll(pInjects);
   }
@@ -159,11 +158,15 @@ public class AutomaticCPAFactory implements CPAFactory {
             CPAException.class,
             InterruptedException.class);
     if (exception != null) {
-      throw new UnsupportedOperationException("Cannot automatically create CPAs if the constructor declares the unsupported checked exception " + exception);
+      throw new UnsupportedOperationException(
+          "Cannot automatically create CPAs if the constructor declares the unsupported checked"
+              + " exception "
+              + exception);
     }
 
     if (!childCpaInjected && injects.containsKey(ConfigurableProgramAnalysis.class)) {
-      throw new InvalidConfigurationException("Child CPA configured for " + type.getSimpleName() + ", but this is not a wrapper CPA.");
+      throw new InvalidConfigurationException(
+          "Child CPA configured for " + type.getSimpleName() + ", but this is not a wrapper CPA.");
     }
 
     // instantiate
@@ -175,12 +178,12 @@ public class AutomaticCPAFactory implements CPAFactory {
       throw new UnexpectedCheckedException("instantiation of CPA " + type.getSimpleName(), t);
 
     } catch (InstantiationException e) {
-      throw new UnsupportedOperationException("Cannot automatically create CPAs " +
-          "that are declared abstract!");
+      throw new UnsupportedOperationException(
+          "Cannot automatically create CPAs " + "that are declared abstract!");
 
     } catch (IllegalAccessException e) {
-      throw new UnsupportedOperationException("Cannot automatically create CPAs " +
-          "without an accessible constructor!");
+      throw new UnsupportedOperationException(
+          "Cannot automatically create CPAs " + "without an accessible constructor!");
     }
   }
 
@@ -210,8 +213,8 @@ public class AutomaticCPAFactory implements CPAFactory {
   public <T> CPAFactory set(T obj, Class<T> cls) throws UnsupportedOperationException {
     Preconditions.checkNotNull(cls);
     Preconditions.checkNotNull(obj);
-    Preconditions.checkState(!injects.containsKey(cls),
-        "Cannot store two objects of class %s", cls.getSimpleName());
+    Preconditions.checkState(
+        !injects.containsKey(cls), "Cannot store two objects of class %s", cls.getSimpleName());
 
     injects.putInstance(cls, obj);
     return this;
@@ -224,42 +227,40 @@ public class AutomaticCPAFactory implements CPAFactory {
   @Override
   public CPAFactory setChildren(List<ConfigurableProgramAnalysis> pChildren)
       throws UnsupportedOperationException {
-    throw new UnsupportedOperationException("Cannot automatically create CPAs " +
-      "with multiple children CPAs!");
+    throw new UnsupportedOperationException(
+        "Cannot automatically create CPAs " + "with multiple children CPAs!");
   }
 
   /**
-   * Return a new factory for the same type, where each fresh CPA instance will be
-   * given an instance of an options holder class. When the options holder instance
-   * is passed to the CPA constructor, the option values will already have been
-   * injected into it.
+   * Return a new factory for the same type, where each fresh CPA instance will be given an instance
+   * of an options holder class. When the options holder instance is passed to the CPA constructor,
+   * the option values will already have been injected into it.
    *
-   * Each CPA instance will receive their own options holder instance, and it is
-   * guaranteed that no other references to this instance will remain, so the
-   * CPA is free to do anything with the instance.
+   * <p>Each CPA instance will receive their own options holder instance, and it is guaranteed that
+   * no other references to this instance will remain, so the CPA is free to do anything with the
+   * instance.
    *
-   * This method does not modify the CPAFactory instance on which it is called.
-   * All calls to the various set* methods that were made before this call
-   * reflect in the CPAFactory instance returned by this method, but subsequent
-   * calls to set* on this instance don't affect the new instance and vice-versa.
+   * <p>This method does not modify the CPAFactory instance on which it is called. All calls to the
+   * various set* methods that were made before this call reflect in the CPAFactory instance
+   * returned by this method, but subsequent calls to set* on this instance don't affect the new
+   * instance and vice-versa.
    *
-   * It is safe to call this method again on its result, although only once for
-   * each class passed as a parameter (similar to {@link #set(Object, Class)}).
+   * <p>It is safe to call this method again on its result, although only once for each class passed
+   * as a parameter (similar to {@link #set(Object, Class)}).
    *
-   * The option holder class has to have an accessible default constructor
-   * (i.e., one without any parameters) and must not be abstract.
-   * The default constructor may throw checked exceptions of the types
-   * {@link InvalidConfigurationException} and {@link CPAException}, but of no
-   * other types! Of course the options holder class has to have the {@link Options}
-   * annotation. Violations of these requirements may result in either a
-   * {@link IllegalArgumentException} thrown by this method or in some unchecked
-   * exception when the CPA is instantiated.
+   * <p>The option holder class has to have an accessible default constructor (i.e., one without any
+   * parameters) and must not be abstract. The default constructor may throw checked exceptions of
+   * the types {@link InvalidConfigurationException} and {@link CPAException}, but of no other
+   * types! Of course the options holder class has to have the {@link Options} annotation.
+   * Violations of these requirements may result in either a {@link IllegalArgumentException} thrown
+   * by this method or in some unchecked exception when the CPA is instantiated.
    *
    * @param optionsClass The class object of the option holder class.
    * @return A new CPAFactory for the same type as this one.
    */
   public <T> AutomaticCPAFactory withOptions(final Class<T> optionsClass) {
-    checkArgument(optionsClass.getAnnotation(Options.class) != null,
+    checkArgument(
+        optionsClass.getAnnotation(Options.class) != null,
         "Options holder class must be annotated with the Options annotation");
 
     final Constructor<T> constructor;
@@ -271,7 +272,9 @@ public class AutomaticCPAFactory implements CPAFactory {
     }
 
     // verify types of declared exceptions
-    String exception = Classes.verifyDeclaredExceptions(constructor, InvalidConfigurationException.class, CPAException.class);
+    String exception =
+        Classes.verifyDeclaredExceptions(
+            constructor, InvalidConfigurationException.class, CPAException.class);
     checkArgument(
         exception == null,
         "Constructor of options holder class declares illegal checked exception: %s",
@@ -281,12 +284,13 @@ public class AutomaticCPAFactory implements CPAFactory {
   }
 
   private static final class AutomaticCPAFactoryWithOptions<T> extends AutomaticCPAFactory {
-    private final Class<T>       optionsClass;
+    private final Class<T> optionsClass;
     private final Constructor<T> constructor;
 
     private AutomaticCPAFactoryWithOptions(
         Class<? extends ConfigurableProgramAnalysis> pType,
-        ClassToInstanceMap<Object> pInjects, Class<T> pOptionsClass,
+        ClassToInstanceMap<Object> pInjects,
+        Class<T> pOptionsClass,
         Constructor<T> pConstructor) {
       super(pType, pInjects);
       optionsClass = pOptionsClass;
@@ -294,7 +298,8 @@ public class AutomaticCPAFactory implements CPAFactory {
     }
 
     @Override
-    public ConfigurableProgramAnalysis createInstance() throws InvalidConfigurationException, CPAException {
+    public ConfigurableProgramAnalysis createInstance()
+        throws InvalidConfigurationException, CPAException {
       T options;
       try {
         // create options holder class instance
@@ -303,13 +308,18 @@ public class AutomaticCPAFactory implements CPAFactory {
       } catch (InvocationTargetException e) {
         Throwable t = e.getCause();
         Throwables.propagateIfPossible(t, CPAException.class, InvalidConfigurationException.class);
-        throw new UnexpectedCheckedException("instantiation of CPA options holder class " + optionsClass.getCanonicalName(), t);
+        throw new UnexpectedCheckedException(
+            "instantiation of CPA options holder class " + optionsClass.getCanonicalName(), t);
 
       } catch (IllegalAccessException e) {
-        throw new UnsupportedOperationException("Cannot automatically create CPAs without an accessible constructor for their options class!", e);
+        throw new UnsupportedOperationException(
+            "Cannot automatically create CPAs without an accessible constructor for their options"
+                + " class!",
+            e);
 
       } catch (InstantiationException e) {
-        throw new UnsupportedOperationException("Cannot automatically create CPAs with an abstract options class!", e);
+        throw new UnsupportedOperationException(
+            "Cannot automatically create CPAs with an abstract options class!", e);
       }
 
       // inject options into holder class

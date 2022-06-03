@@ -11,15 +11,16 @@ package org.sosy_lab.cpachecker.core.counterexample;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.collect.FluentIterable.from;
 import static com.google.common.html.HtmlEscapers.htmlEscaper;
-import static java.nio.file.Files.isReadable;
 import static java.util.logging.Level.WARNING;
 
-import com.google.common.base.Charsets;
+import com.google.common.base.CharMatcher;
 import com.google.common.base.Joiner;
 import com.google.common.base.Predicates;
 import com.google.common.base.Splitter;
+import com.google.common.collect.Collections2;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.SetMultimap;
 import com.google.common.io.Resources;
@@ -30,12 +31,13 @@ import java.io.InputStreamReader;
 import java.io.PrintStream;
 import java.io.Writer;
 import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.EnumSet;
 import java.util.HashMap;
@@ -59,6 +61,7 @@ import org.sosy_lab.common.io.IO;
 import org.sosy_lab.common.io.PathTemplate;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.export.DOTBuilder2;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
@@ -67,6 +70,8 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.core.CPAchecker;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
+import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.FaultLocalizationInfoWithTraceFormula;
+import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.trace_formula.precondition.PreCondition;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.core.specification.Specification;
@@ -88,29 +93,32 @@ public class ReportGenerator {
   private static final Splitter LINE_SPLITTER = Splitter.on('\n');
 
   private static final String HTML_TEMPLATE = "report.html";
-  private static final String CSS_TEMPLATE = "report.css";
-  private static final String JS_TEMPLATE = "report.js";
+  private static final String CSS_TEMPLATE = "build/main.css";
+  private static final String JS_TEMPLATE = "build/main.js";
+  private static final String WORKER_DATA_TEMPLATE = "build/workerData.js";
+  private static final String VENDOR_CSS_TEMPLATE = "build/vendors.css";
+  private static final String VENDOR_JS_TEMPLATE = "build/vendors.js";
 
   private final Configuration config;
   private final LogManager logger;
 
   @Option(
-    secure = true,
-    name = "report.export",
-    description = "Generate HTML report with analysis result.")
+      secure = true,
+      name = "report.export",
+      description = "Generate HTML report with analysis result.")
   private boolean generateReport = true;
 
   @Option(
-    secure = true,
-    name = "report.file",
-    description = "File name for analysis report in case no counterexample was found.")
+      secure = true,
+      name = "report.file",
+      description = "File name for analysis report in case no counterexample was found.")
   @FileOption(FileOption.Type.OUTPUT_FILE)
-  private Path reportFile = Paths.get("Report.html");
+  private Path reportFile = Path.of("Report.html");
 
   @Option(
-    secure = true,
-    name = "counterexample.export.report",
-    description = "File name for analysis report in case a counterexample was found.")
+      secure = true,
+      name = "counterexample.export.report",
+      description = "File name for analysis report in case a counterexample was found.")
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private PathTemplate counterExampleFiles = PathTemplate.ofFormatString("Counterexample.%d.html");
 
@@ -170,20 +178,25 @@ public class ReportGenerator {
       return;
     }
 
+    ImmutableSet<Path> allInputFiles = getAllInputFiles(pCfa);
+
     extractWitness(pResult, pCfa, pReached);
 
     // we cannot export the graph for some special analyses, e.g., termination analysis
     if (!pReached.isEmpty() && pReached.getFirstState() instanceof ARGState) {
       buildArgGraphData(pReached);
-      buildRelevantArgGraphData(pReached);
-      buildReducedArgGraphData();
+      if (!argNodes.isEmpty() && !argEdges.isEmpty()) {
+        // makes no sense to create other data structures that we will not show anyway
+        buildRelevantArgGraphData(pReached);
+        buildReducedArgGraphData();
+      }
     }
 
     DOTBuilder2 dotBuilder = new DOTBuilder2(pCfa);
     PrintStream console = System.out;
     if (counterExamples.isEmpty()) {
       if (reportFile != null) {
-        fillOutTemplate(null, reportFile, pCfa, dotBuilder, pStatistics);
+        fillOutTemplate(null, reportFile, pCfa, allInputFiles, dotBuilder, pStatistics);
         console.println("Graphical representation included in the file \"" + reportFile + "\".");
       }
 
@@ -193,6 +206,7 @@ public class ReportGenerator {
             counterExample,
             counterExampleFiles.getPath(counterExample.getUniqueId()),
             pCfa,
+            allInputFiles,
             dotBuilder,
             pStatistics);
       }
@@ -216,7 +230,7 @@ public class ReportGenerator {
     if (EnumSet.of(Result.TRUE, Result.UNKNOWN).contains(pResult)) {
       ImmutableSet<ARGState> rootStates = ARGUtils.getRootStates(pReached);
       if (rootStates.size() != 1) {
-        logger.log(Level.INFO, "Could not determine ARG root for witness view");
+        logger.log(Level.FINER, "Could not determine ARG root for witness view");
         return;
       }
       ARGState rootState = rootStates.iterator().next();
@@ -232,6 +246,9 @@ public class ReportGenerator {
                     argWitnessExporter.getProofInvariantProvider()));
       } catch (InvalidConfigurationException e) {
         logger.logUserException(Level.WARNING, e, "Could not generate witness for witness view");
+      } catch (InterruptedException e) {
+        logger.logUserException(
+            Level.WARNING, e, "Could not generate witness for witness view due to interruption");
       }
     }
   }
@@ -240,14 +257,15 @@ public class ReportGenerator {
       @Nullable CounterexampleInfo counterExample,
       Path reportPath,
       CFA cfa,
+      Set<Path> allInputFiles,
       DOTBuilder2 dotBuilder,
       String statistics) {
 
-    try (
-        BufferedReader reader =
-            Resources.asCharSource(Resources.getResource(getClass(), HTML_TEMPLATE), Charsets.UTF_8)
+    try (BufferedReader reader =
+            Resources.asCharSource(
+                    Resources.getResource(getClass(), HTML_TEMPLATE), StandardCharsets.UTF_8)
                 .openBufferedStream();
-        Writer writer = IO.openOutputFile(reportPath, Charsets.UTF_8)) {
+        Writer writer = IO.openOutputFile(reportPath, StandardCharsets.UTF_8)) {
 
       String line;
       while (null != (line = reader.readLine())) {
@@ -256,11 +274,11 @@ public class ReportGenerator {
         } else if (line.contains("REPORT_CSS")) {
           insertCss(writer);
         } else if (line.contains("REPORT_JS")) {
-          insertJs(writer, cfa, dotBuilder, counterExample);
+          insertJs(writer, cfa, allInputFiles, dotBuilder, counterExample);
         } else if (line.contains("STATISTICS")) {
           insertStatistics(writer, statistics);
         } else if (line.contains("SOURCE_CONTENT")) {
-          insertSources(writer);
+          insertSources(writer, allInputFiles);
         } else if (line.contains("LOG")) {
           insertLog(writer);
         } else if (line.contains("REPORT_NAME")) {
@@ -276,35 +294,36 @@ public class ReportGenerator {
       }
     } catch (IOException e) {
       logger.logUserException(
-          WARNING,
-          e,
-          "Could not create report: Processing of HTML template failed.");
+          WARNING, e, "Could not create report: Processing of HTML template failed.");
+    }
+  }
+
+  private void insertJsFile(Writer writer, String file) throws IOException {
+    try (BufferedReader reader =
+        Resources.asCharSource(Resources.getResource(getClass(), file), StandardCharsets.UTF_8)
+            .openBufferedStream(); ) {
+      String line;
+      while (null != (line = reader.readLine())) {
+        writer.write(line);
+        writer.write('\n');
+      }
     }
   }
 
   private void insertJs(
       Writer writer,
       CFA cfa,
+      Set<Path> allInputFiles,
       DOTBuilder2 dotBuilder,
       @Nullable CounterexampleInfo counterExample)
       throws IOException {
-    try (BufferedReader reader =
-        Resources.asCharSource(Resources.getResource(getClass(), JS_TEMPLATE), Charsets.UTF_8)
-            .openBufferedStream();) {
-      String line;
-      while (null != (line = reader.readLine())) {
-        if (line.contains("CFA_JSON_INPUT")) {
-          insertCfaJson(writer, cfa, dotBuilder, counterExample);
-        } else if (line.contains("ARG_JSON_INPUT")) {
-          insertArgJson(writer);
-        } else if (line.contains("SOURCE_FILES")) {
-          insertSourceFileNames(writer);
-        } else {
-          writer.write(line);
-          writer.write('\n');
-        }
-      }
-    }
+    insertCfaJson(writer, cfa, dotBuilder, counterExample);
+    insertArgJson(writer);
+    insertSourceFileNames(writer, allInputFiles);
+
+    insertJsFile(writer, WORKER_DATA_TEMPLATE);
+    insertJsFile(writer, VENDOR_JS_TEMPLATE);
+    insertJsFile(writer, JS_TEMPLATE);
   }
 
   private void insertCfaJson(
@@ -335,14 +354,17 @@ public class ReportGenerator {
 
     if (counterExample != null) {
       if (counterExample instanceof FaultLocalizationInfo) {
-        FaultLocalizationInfo flInfo = (FaultLocalizationInfo)counterExample;
+        FaultLocalizationInfo flInfo = (FaultLocalizationInfo) counterExample;
         flInfo.prepare();
         writer.write(",\n\"errorPath\":");
         counterExample.toJSON(writer);
         writer.write(",\n\"faults\":");
         flInfo.faultsToJSON(writer);
         writer.write(",\n\"precondition\":");
-        flInfo.writePrecondition(writer);
+        JSON.writeJSONString(
+            ImmutableMap.of(
+                "fl-precondition", extractPreconditionFromFaultLocalizationInfo(flInfo)),
+            writer);
       } else {
         writer.write(",\n\"errorPath\":");
         counterExample.toJSON(writer);
@@ -352,6 +374,30 @@ public class ReportGenerator {
     writer.write(",\n");
     dotBuilder.writeCfaInfo(writer);
     writer.write("\n}\n");
+    writer.write("window.cfaJson = cfaJson;\n");
+  }
+
+  private String extractPreconditionFromFaultLocalizationInfo(FaultLocalizationInfo fInfo) {
+    if (!(fInfo instanceof FaultLocalizationInfoWithTraceFormula)) {
+      return "";
+    }
+    List<String> preconditionParts = new ArrayList<>();
+    PreCondition preCondition =
+        ((FaultLocalizationInfoWithTraceFormula) fInfo).getTraceFormula().getPrecondition();
+    for (CFAEdge cfaEdge : preCondition.getEdgesForPrecondition()) {
+      String input = cfaEdge.getCode().replaceAll(";", "");
+      List<String> parts = Splitter.on(" ").limit(2).splitToList(input);
+      assert !parts.isEmpty() : "Splitter split " + input + " into 0 parts.";
+      if (parts.size() == 1) {
+        preconditionParts.add(parts.get(0));
+      } else {
+        preconditionParts.add(parts.get(1));
+      }
+    }
+    if (preconditionParts.isEmpty()) {
+      preconditionParts.add("true");
+    }
+    return Joiner.on(" && ").join(preconditionParts);
   }
 
   private void insertArgJson(Writer writer) throws IOException {
@@ -378,13 +424,19 @@ public class ReportGenerator {
       writer.write("\n");
     }
     writer.write("}\n");
+    writer.write("window.argJson = argJson;\n");
+  }
+
+  private void insertCssFile(Writer writer, String file) throws IOException {
+    writer.write("<style>\n");
+    Resources.asCharSource(Resources.getResource(getClass(), file), StandardCharsets.UTF_8)
+        .copyTo(writer);
+    writer.write("</style>");
   }
 
   private void insertCss(Writer writer) throws IOException {
-    writer.write("<style>\n");
-    Resources.asCharSource(Resources.getResource(getClass(), CSS_TEMPLATE), Charsets.UTF_8)
-        .copyTo(writer);
-    writer.write("</style>");
+    insertCssFile(writer, CSS_TEMPLATE);
+    insertCssFile(writer, VENDOR_CSS_TEMPLATE);
   }
 
   private void insertMetaTags(Writer writer) throws IOException {
@@ -412,7 +464,10 @@ public class ReportGenerator {
   private void insertStatistics(Writer writer, String statistics) throws IOException {
     int counter = 0;
     String insertTableLine =
-        "<table  id=\"statistics_table\" class=\"display\" style=\"width:100%;padding: 10px\" class=\"table table-bordered\"><thead class=\"thead-light\"><tr><th scope=\"col\">Statistics Name</th><th scope=\"col\">Statistics Value</th scope=\"col\"><th>Additional Value</th></tr></thead><tbody>\n";
+        "<table  id=\"statistics_table\" class=\"display\" style=\"width:100%;padding: 10px\""
+            + " class=\"table table-bordered\"><thead class=\"thead-light\"><tr><th"
+            + " scope=\"col\">Statistics Name</th><th scope=\"col\">Statistics Value</th><th"
+            + " scope=\"col\">Additional Value</th></tr></thead><tbody>\n";
     writer.write(insertTableLine);
     for (String line : LINE_SPLITTER.split(statistics)) {
       if (!line.contains(":") && !line.trim().isEmpty() && !line.contains("----------")) {
@@ -441,7 +496,8 @@ public class ReportGenerator {
                     + "</td><td>"
                     + htmlEscaper().escape(splitLineAnotherValue.get(0))
                     + "</td><td>"
-                    + htmlEscaper().escape(splitLineAnotherValue.get(1).replaceAll("[()]", ""))
+                    + htmlEscaper()
+                        .escape(CharMatcher.anyOf("()").removeFrom(splitLineAnotherValue.get(1)))
                     + "</td></tr>\n";
             writer.write(line);
           } else {
@@ -464,23 +520,22 @@ public class ReportGenerator {
     writer.write(exitTableLine);
   }
 
-  private void insertSources(Writer report) throws IOException {
+  private void insertSources(Writer report, Iterable<Path> allSources) throws IOException {
     int index = 0;
-    for (String sourceFile : sourceFiles) {
-      insertSource(Paths.get(sourceFile), report, index);
+    for (Path sourceFile : allSources) {
+      insertSource(sourceFile, report, index);
       index++;
     }
   }
 
   private void insertSource(Path sourcePath, Writer writer, int sourceFileNumber)
       throws IOException {
-    if (isReadable(sourcePath)) {
+    if (Files.isReadable(sourcePath) && !Files.isDirectory(sourcePath)) {
       int lineNumber = 1;
       try (BufferedReader source =
           new BufferedReader(
               new InputStreamReader(
-                  new FileInputStream(sourcePath.toFile()),
-                  Charset.defaultCharset()))) {
+                  new FileInputStream(sourcePath.toFile()), Charset.defaultCharset()))) {
         writer.write(
             "<div id=\"source-file\" class=\"sourceContent\" ng-show = \"sourceFileIsSet("
                 + sourceFileNumber
@@ -509,7 +564,10 @@ public class ReportGenerator {
     Iterable<String> lines = LINE_SPLITTER.split(config.asPropertiesString());
     int iterator = 0;
     String insertTableLine =
-        "<table  id=\"config_table\" class=\"display\" style=\"width:100%;padding: 10px\" class=\"table table-bordered\"><thead class=\"thead-light\"><tr><th scope=\"col\">#</th><th scope=\"col\">Configuration Name</th><th scope=\"col\">Configuration Value</th></tr></thead><tbody>\n";
+        "<table  id=\"config_table\" class=\"display\" style=\"width:100%;padding: 10px\""
+            + " class=\"table table-bordered\"><thead class=\"thead-light\"><tr><th"
+            + " scope=\"col\">#</th><th scope=\"col\">Configuration Name</th><th"
+            + " scope=\"col\">Configuration Value</th></tr></thead><tbody>\n";
     writer.write(insertTableLine);
     for (String line : lines) {
       List<String> splitLine = Splitter.on('=').limit(2).splitToList(line);
@@ -540,14 +598,10 @@ public class ReportGenerator {
       final Splitter logDateSplitter = Splitter.on(' ').limit(2);
 
       String insertTableLine =
-          "<table  id=\"log_table\" class=\"display\" style=\"width:100%;padding: 10px\" class=\"table table-bordered\">"
-              + "<thead class=\"thead-light\"><tr>"
-              + "<th scope=\"col\">Date</th>"
-              + "<th scope=\"col\">Time</th>"
-              + "<th scope=\"col\">Level</th>"
-              + "<th scope=\"col\">Component</th>"
-              + "<th scope=\"col\">Message</th>"
-              + "</tr></thead><tbody>\n";
+          "<table  id=\"log_table\" class=\"display\" style=\"width:100%;padding: 10px\""
+              + " class=\"table table-bordered\"><thead class=\"thead-light\"><tr><th"
+              + " scope=\"col\">Date</th><th scope=\"col\">Time</th><th scope=\"col\">Level</th><th"
+              + " scope=\"col\">Component</th><th scope=\"col\">Message</th></tr></thead><tbody>\n";
       writer.write(insertTableLine);
       try (BufferedReader log = Files.newBufferedReader(logFile, Charset.defaultCharset())) {
         int counter = 0;
@@ -566,7 +620,7 @@ public class ReportGenerator {
           writer.write("</td><td>");
           writer.write(htmlEscaper().escape(splitLine.get(1)));
           writer.write("</td><td>");
-          writer.write(htmlEscaper().escape(splitLine.get(2)).replaceAll(":", "<br>"));
+          writer.write(htmlEscaper().escape(splitLine.get(2)).replace(":", "<br>"));
           writer.write("</td><td>");
           writer.write(htmlEscaper().escape(splitLine.get(3)));
 
@@ -589,15 +643,41 @@ public class ReportGenerator {
     }
   }
 
-  private void insertSourceFileNames(Writer writer) throws IOException {
+  private void insertSourceFileNames(Writer writer, Iterable<Path> allSourceFiles)
+      throws IOException {
     writer.write("var sourceFiles = ");
-    JSON.writeJSONString(sourceFiles, writer);
+    JSON.writeJSONString(allSourceFiles, writer);
     writer.write(";\n");
+    writer.write("window.sourceFiles = sourceFiles;\n");
+  }
+
+  /** Returns ordered set of input files that were relevant for this verification run. */
+  private ImmutableSet<Path> getAllInputFiles(CFA cfa) {
+    // Typically, input files are given on the command line (and appear in sourceFiles).
+    // However, this list can also include directories, and it can miss files that are #included.
+    // So we augment it with files from the file locations in the CFA.
+    // Selecting file locations from all function definitions does not find all files,
+    // it misses included header that do not happen to define functions, just other definitions and
+    // macros. But this actually seems like a good thing to not add lots of useless system headers.
+
+    Set<FileLocation> allLocations =
+        FluentIterable.of(cfa.getMainFunction()) // We want this as first element
+            .append(cfa.getAllFunctionHeads())
+            .transform(FunctionEntryNode::getFileLocation)
+            .filter(FileLocation::isRealLocation)
+            .toSet();
+
+    return FluentIterable.concat(
+            Collections2.transform(sourceFiles, Path::of),
+            Collections2.transform(allLocations, FileLocation::getFileName))
+        .filter(path -> Files.isReadable(path))
+        .filter(path -> !Files.isDirectory(path))
+        .toSet();
   }
 
   /** Build ARG data for all ARG states in the reached set. */
   private void buildArgGraphData(UnmodifiableReachedSet reached) {
-    for (AbstractState entry : reached.asCollection()) {
+    for (AbstractState entry : reached) {
       int parentStateId = ((ARGState) entry).getStateId();
       for (CFANode node : AbstractStates.extractLocations(entry)) {
         if (!argNodes.containsKey(parentStateId)) {
@@ -627,7 +707,7 @@ public class ReportGenerator {
   private void buildRelevantArgGraphData(UnmodifiableReachedSet reached) {
     SetMultimap<ARGState, ARGState> relevantSetMultimap =
         ARGUtils.projectARG(
-            (ARGState) reached.getFirstState(), ARGState::getChildren, ARGUtils.RELEVANT_STATE);
+            (ARGState) reached.getFirstState(), ARGState::getChildren, ARGUtils::isRelevantState);
 
     for (Entry<ARGState, Collection<ARGState>> entry : relevantSetMultimap.asMap().entrySet()) {
       ARGState parent = entry.getKey();
@@ -659,7 +739,8 @@ public class ReportGenerator {
       return;
     }
     Witness witness = witnessOptional.orElseThrow();
-    WitnessToOutputFormatsUtils.witnessToMapsForHTMLReport(witness, argReducedNodes, argReducedEdges);
+    WitnessToOutputFormatsUtils.witnessToMapsForHTMLReport(
+        witness, argReducedNodes, argReducedEdges);
   }
 
   private Map<String, Object> createArgNode(int parentStateId, CFANode node, ARGState argState) {
@@ -783,9 +864,9 @@ public class ReportGenerator {
   // Similar to the getEdgeText method in DOTBuilder2
   private static String getEdgeText(CFAEdge edge) {
     return edge.getDescription()
-        .replaceAll("\\\"", "\\\\\\\"")
-        .replaceAll("\n", " ")
+        .replace("\"", "\\\"")
+        .replace('\n', ' ')
         .replaceAll("\\s+", " ")
-        .replaceAll(" ;", ";");
+        .replace(" ;", ";");
   }
 }

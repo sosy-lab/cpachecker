@@ -149,7 +149,7 @@ public class SMGPathInterpolationExporter {
       IO.writeFile(path, Charset.defaultCharset(), interpolationPath.toString());
     } catch (IOException e) {
       logger.logUserException(
-          Level.WARNING, e, "Failed to write interpolation path to path " + path.toString());
+          Level.WARNING, e, "Failed to write interpolation path to path " + path);
     }
   }
 }

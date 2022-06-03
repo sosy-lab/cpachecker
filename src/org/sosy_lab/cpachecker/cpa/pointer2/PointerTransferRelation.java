@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.cpa.pointer2;
 
+import static com.google.common.collect.FluentIterable.from;
+
 import com.google.common.base.Predicates;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableSet;
@@ -102,7 +104,7 @@ public class PointerTransferRelation extends SingleEdgeTransferRelation {
   @Override
   public Collection<? extends AbstractState> getAbstractSuccessorsForEdge(
       AbstractState pState, Precision pPrecision, CFAEdge pCfaEdge)
-          throws CPATransferException, InterruptedException {
+      throws CPATransferException, InterruptedException {
     PointerState pointerState = (PointerState) pState;
     PointerState resultState = getAbstractSuccessor(pointerState, pCfaEdge);
     return resultState == null
@@ -118,26 +120,26 @@ public class PointerTransferRelation extends SingleEdgeTransferRelation {
       case AssumeEdge:
         resultState = handleAssumeEdge(pState, (AssumeEdge) pCfaEdge);
         break;
-    case BlankEdge:
-      break;
-    case CallToReturnEdge:
-      break;
-    case DeclarationEdge:
-      resultState = handleDeclarationEdge(pState, (CDeclarationEdge) pCfaEdge);
-      break;
-    case FunctionCallEdge:
-      resultState = handleFunctionCallEdge(pState, ((CFunctionCallEdge) pCfaEdge));
-      break;
-    case FunctionReturnEdge:
+      case BlankEdge:
+        break;
+      case CallToReturnEdge:
+        break;
+      case DeclarationEdge:
+        resultState = handleDeclarationEdge(pState, (CDeclarationEdge) pCfaEdge);
+        break;
+      case FunctionCallEdge:
+        resultState = handleFunctionCallEdge(pState, ((CFunctionCallEdge) pCfaEdge));
+        break;
+      case FunctionReturnEdge:
         resultState = handleFunctionReturnEdge(pState, ((CFunctionReturnEdge) pCfaEdge));
         break;
-    case ReturnStatementEdge:
-      resultState = handleReturnStatementEdge(pState, (CReturnStatementEdge) pCfaEdge);
-      break;
-    case StatementEdge:
-      resultState = handleStatementEdge(pState, (CStatementEdge) pCfaEdge);
-      break;
-    default:
+      case ReturnStatementEdge:
+        resultState = handleReturnStatementEdge(pState, (CReturnStatementEdge) pCfaEdge);
+        break;
+      case StatementEdge:
+        resultState = handleStatementEdge(pState, (CStatementEdge) pCfaEdge);
+        break;
+      default:
         throw new UnrecognizedCodeException("Unrecognized CFA edge.", pCfaEdge);
     }
     return resultState;
@@ -284,30 +286,33 @@ public class PointerTransferRelation extends SingleEdgeTransferRelation {
     if (!returnVariable.isPresent()) {
       return pState;
     }
-    return handleAssignment(pState, returnVariable.orElseThrow(), pCfaEdge.getExpression().get());
+    return handleAssignment(
+        pState, returnVariable.orElseThrow(), pCfaEdge.getExpression().orElseThrow());
   }
 
   private Optional<MemoryLocation> getFunctionReturnVariable(FunctionEntryNode pFunctionEntryNode) {
-    com.google.common.base.Optional<? extends AVariableDeclaration> returnVariable =
+    Optional<? extends AVariableDeclaration> returnVariable =
         pFunctionEntryNode.getReturnVariable();
     if (!returnVariable.isPresent()) {
       return Optional.empty();
     } else {
-      return Optional.of(MemoryLocation.valueOf(returnVariable.get().getQualifiedName()));
+      return Optional.of(MemoryLocation.forDeclaration(returnVariable.get()));
     }
   }
 
   private PointerState handleFunctionCallEdge(
       PointerState pState, CFunctionCallEdge pCFunctionCallEdge) throws UnrecognizedCodeException {
     PointerState newState = pState;
-    List<CParameterDeclaration> formalParams = pCFunctionCallEdge.getSuccessor().getFunctionParameters();
+    List<CParameterDeclaration> formalParams =
+        pCFunctionCallEdge.getSuccessor().getFunctionParameters();
     List<CExpression> actualParams = pCFunctionCallEdge.getArguments();
     int limit = Math.min(formalParams.size(), actualParams.size());
     formalParams = FluentIterable.from(formalParams).limit(limit).toList();
     actualParams = FluentIterable.from(actualParams).limit(limit).toList();
 
     // Handle the mapping of arguments to formal parameters
-    for (Pair<CParameterDeclaration, CExpression> param : Pair.zipList(formalParams, actualParams)) {
+    for (Pair<CParameterDeclaration, CExpression> param :
+        Pair.zipList(formalParams, actualParams)) {
       CExpression actualParam = param.getSecond();
       CParameterDeclaration formalParam = param.getFirst();
       MemoryLocation location = toLocation(formalParam);
@@ -342,9 +347,10 @@ public class PointerTransferRelation extends SingleEdgeTransferRelation {
       type = ((CType) type).getCanonicalType();
     }
     if (isStructOrUnion(type)) {
-      return MemoryLocation.valueOf(type.toString()); // TODO find a better way to handle this
+      return MemoryLocation.parseExtendedQualifiedName(
+          type.toString()); // TODO find a better way to handle this
     }
-    return MemoryLocation.valueOf(name);
+    return MemoryLocation.parseExtendedQualifiedName(name);
   }
 
   private static boolean isStructOrUnion(Type pType) {
@@ -366,8 +372,10 @@ public class PointerTransferRelation extends SingleEdgeTransferRelation {
         // this means that the called function is not defined.
         // If the function returns a non-deterministic pointer,
         // handle it that way. Otherwise, assume that no existing variable is pointed to.
-        if (isNondetPointerReturn(((CFunctionCallAssignmentStatement) assignment)
-            .getFunctionCallExpression().getFunctionNameExpression())) {
+        if (isNondetPointerReturn(
+            ((CFunctionCallAssignmentStatement) assignment)
+                .getFunctionCallExpression()
+                .getFunctionNameExpression())) {
           return handleAssignment(pState, assignment.getLeftHandSide(), LocationSetTop.INSTANCE);
         } else {
           return pState;
@@ -422,7 +430,8 @@ public class PointerTransferRelation extends SingleEdgeTransferRelation {
     return handleAssignment(pState, pLhsLocation, asLocations(pRightHandSide, pState, 1));
   }
 
-  private PointerState handleAssignment(PointerState pState, MemoryLocation pLeftHandSide, LocationSet pRightHandSide) {
+  private PointerState handleAssignment(
+      PointerState pState, MemoryLocation pLeftHandSide, LocationSet pRightHandSide) {
     return pState.addPointsToInformation(pLeftHandSide, pRightHandSide);
   }
 
@@ -530,7 +539,7 @@ public class PointerTransferRelation extends SingleEdgeTransferRelation {
     String infix = ".";
     String suffix = pFieldName;
     // TODO use offsets instead
-    return MemoryLocation.valueOf(prefix + infix + suffix);
+    return MemoryLocation.parseExtendedQualifiedName(prefix + infix + suffix);
   }
 
   private static LocationSet asLocations(
@@ -588,13 +597,14 @@ public class PointerTransferRelation extends SingleEdgeTransferRelation {
             final MemoryLocation location;
             if (isStructOrUnion(type)) {
               location =
-                  MemoryLocation.valueOf(type.toString()); // TODO find a better way to handle this
+                  MemoryLocation.parseExtendedQualifiedName(
+                      type.toString()); // TODO find a better way to handle this
             } else {
               CSimpleDeclaration declaration = pIastIdExpression.getDeclaration();
               if (declaration != null) {
-                location = MemoryLocation.valueOf(declaration.getQualifiedName());
+                location = MemoryLocation.forDeclaration(declaration);
               } else {
-                location = MemoryLocation.valueOf(pIastIdExpression.getName());
+                location = MemoryLocation.forIdentifier(pIastIdExpression.getName());
               }
             }
             return visit(location);
@@ -702,7 +712,7 @@ public class PointerTransferRelation extends SingleEdgeTransferRelation {
               return toLocationSet(
                   FluentIterable.from(toNormalSet(pState, result)).filter(Predicates.notNull()));
             }
-            return visit(MemoryLocation.valueOf(declaration.getQualifiedName()));
+            return visit(MemoryLocation.forDeclaration(declaration));
           }
 
           @Override
@@ -726,16 +736,15 @@ public class PointerTransferRelation extends SingleEdgeTransferRelation {
   }
 
   /**
-   * Gets the locations represented by the given location set considering the
-   * context of the given state. The returned iterable is guaranteed to be free
-   * of duplicates.
+   * Gets the locations represented by the given location set considering the context of the given
+   * state. The returned iterable is guaranteed to be free of duplicates.
    *
    * @param pState the context.
    * @param pLocationSet the location set.
-   *
    * @return the locations represented by the given location set.
    */
-  public static Iterable<MemoryLocation> toNormalSet(PointerState pState, LocationSet pLocationSet) {
+  public static Iterable<MemoryLocation> toNormalSet(
+      PointerState pState, LocationSet pLocationSet) {
     if (pLocationSet.isBot()) {
       return ImmutableSet.of();
     }
@@ -808,10 +817,6 @@ public class PointerTransferRelation extends SingleEdgeTransferRelation {
   }
 
   private static <T> Optional<T> find(Iterable<? super T> pIterable, Class<T> pClass) {
-    Object result = Iterables.find(pIterable, Predicates.instanceOf(pClass), null);
-    if (result == null) {
-      return Optional.empty();
-    }
-    return Optional.of(pClass.cast(result));
+    return from(pIterable).filter(pClass).first().toJavaUtil();
   }
 }

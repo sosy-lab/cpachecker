@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.cpa.splitter;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Sets;
@@ -74,7 +76,7 @@ public abstract class SplitInfoState implements AbstractQueryableState {
           splitPart >= 0 && splitPart < numSplitParts,
           "The split part must be in [0,numSplitParts).");
 
-      if(inSplit.length < numSplitParts) {
+      if (inSplit.length < numSplitParts) {
         return this;
       }
 
@@ -155,7 +157,7 @@ public abstract class SplitInfoState implements AbstractQueryableState {
     private final Set<Integer> inSplit;
 
     private SetSplitInfoState(final Set<Integer> pInSplit) {
-      inSplit = pInSplit;
+      inSplit = checkNotNull(pInSplit);
     }
 
     @Override
@@ -166,7 +168,7 @@ public abstract class SplitInfoState implements AbstractQueryableState {
           pSplitPart >= 0 && pSplitPart < pNumSplitParts,
           "The split part must be in [0,numSplitParts).");
 
-      if(inSplit.size() < pNumSplitParts) {
+      if (inSplit.size() < pNumSplitParts) {
         return this;
       }
 
@@ -218,10 +220,7 @@ public abstract class SplitInfoState implements AbstractQueryableState {
 
     @Override
     public int hashCode() {
-      final int prime = 31;
-      int result = 1;
-      result = prime * result + ((inSplit == null) ? 0 : inSplit.hashCode());
-      return result;
+      return inSplit.hashCode();
     }
 
     @Override
@@ -241,14 +240,7 @@ public abstract class SplitInfoState implements AbstractQueryableState {
         return false;
       }
       SetSplitInfoState other = (SetSplitInfoState) obj;
-      if (inSplit == null) {
-        if (other.inSplit != null) {
-          return false;
-        }
-      } else if (!inSplit.equals(other.inSplit)) {
-        return false;
-      }
-      return true;
+      return inSplit.equals(other.inSplit);
     }
   }
 }

@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.cpa.smg;
 
+import com.google.common.collect.ImmutableSet;
 import java.math.BigInteger;
 import java.util.HashMap;
 import java.util.Map;
@@ -22,12 +23,12 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.SMGPredicateRelation;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.SMGPredicateRelation.ExplicitRelation;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.SMGPredicateRelation.SMGValuesPair;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.SMGPredicateRelation.SymbolicRelation;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.SMGType;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownExpValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownSymbolicValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGValue;
-import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.predicates.smt.BitvectorFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
@@ -39,9 +40,7 @@ import org.sosy_lab.java_smt.api.SolverException;
 
 @Options(prefix = "cpa.smg")
 public class SMGPredicateManager {
-  private static final String SYM_NAME = "Sym_";
-
-  @Option(secure=true, name="verifyPredicates", description = "Allow SMG to check predicates")
+  @Option(secure = true, name = "verifyPredicates", description = "Allow SMG to check predicates")
   private boolean verifyPredicates = false;
 
   private final Configuration config;
@@ -53,13 +52,13 @@ public class SMGPredicateManager {
   private final Map<SMGValue, BitvectorFormula> createdValueFormulas;
   private final Map<SMGValue, SMGType> valueTypes;
 
-  public SMGPredicateManager(Configuration pConfig, LogManager pLogger, ShutdownNotifier
-      shutdownNotifier)
+  public SMGPredicateManager(
+      Configuration pConfig, LogManager pLogger, ShutdownNotifier shutdownNotifier)
       throws InvalidConfigurationException {
     config = pConfig;
     config.inject(this);
     logger = pLogger;
-    solver = Solver.create(pConfig, pLogger,shutdownNotifier);
+    solver = Solver.create(pConfig, pLogger, shutdownNotifier);
     fmgr = solver.getFormulaManager();
     bfmgr = fmgr.getBooleanFormulaManager();
     efmgr = fmgr.getBitvectorFormulaManager();
@@ -92,13 +91,18 @@ public class SMGPredicateManager {
     BooleanFormula result;
     BigInteger explicitValue = pRelation.getExplicitValue().getValue();
     SMGType symbolicSMGType = pRelation.getSymbolicSMGType();
-    int explicitSize = symbolicSMGType.getCastedSize();
+    long explicitSize = symbolicSMGType.getCastedSize();
     boolean isExplicitSigned = symbolicSMGType.isCastedSigned();
     BinaryOperator op = pRelation.getOperator();
 
-    BitvectorFormula explicitValueFormula = efmgr.makeBitvector(explicitSize + 1, explicitValue);
+    BitvectorFormula explicitValueFormula =
+        efmgr.makeBitvector(BigInteger.valueOf(explicitSize + 1).intValueExact(), explicitValue);
     BitvectorFormula explicitValueFormulaCasted =
-        efmgr.extract(explicitValueFormula, explicitSize - 1, 0, isExplicitSigned);
+        efmgr.extract(
+            explicitValueFormula,
+            BigInteger.valueOf(explicitSize - 1).intValueExact(),
+            0,
+            isExplicitSigned);
 
     BitvectorFormula symbolicValue = getCastedValue(pRelation.getSymbolicValue(), symbolicSMGType);
     result = createBooleanFormula(symbolicValue, explicitValueFormulaCasted, op);
@@ -112,18 +116,19 @@ public class SMGPredicateManager {
   }
 
   /**
-   * Method for getting symbolic value casted to different types
+   * Method for getting value casted to different types
    *
-   * @param pSMGValue symbolic value
+   * @param pSMGValue value
    * @param pSMGType casting type
    * @return formula with variable for value casted according to pSMGType
    */
   private BitvectorFormula getCastedValue(SMGValue pSMGValue, SMGType pSMGType) {
     BitvectorFormula valueFormula = createdValueFormulas.get(pSMGValue);
     if (valueFormula == null) {
-      int size = pSMGType.getOriginSize();
+      long size = pSMGType.getOriginSize();
       boolean isSigned = pSMGType.isOriginSigned();
-      valueFormula = efmgr.makeVariable(size, SYM_NAME + pSMGValue);
+      valueFormula =
+          efmgr.makeVariable(BigInteger.valueOf(size).intValueExact(), pSMGValue.toString());
       valueFormula = efmgr.extend(valueFormula, 0, isSigned);
       createdValueFormulas.put(pSMGValue, valueFormula);
       valueTypes.put(pSMGValue, pSMGType);
@@ -134,15 +139,16 @@ public class SMGPredicateManager {
   private BitvectorFormula cast(
       BitvectorFormula pVariableFormula, SMGType pFromSMGType, SMGType pToSMGType) {
     BitvectorFormula result;
-    int fromSize = pFromSMGType.getOriginSize();
+    long fromSize = pFromSMGType.getOriginSize();
     boolean isFromSigned = pFromSMGType.isOriginSigned();
-    int toSize = pToSMGType.getCastedSize();
+    long toSize = pToSMGType.getCastedSize();
     boolean isToSigned = pToSMGType.isCastedSigned();
     result = pVariableFormula;
     if (toSize > fromSize) {
-      result = efmgr.extend(result, toSize - fromSize, isToSigned);
+      result =
+          efmgr.extend(result, BigInteger.valueOf(toSize - fromSize).intValueExact(), isToSigned);
     } else if (toSize < fromSize) {
-      result = efmgr.extract(result, toSize - 1, 0, isToSigned);
+      result = efmgr.extract(result, BigInteger.valueOf(toSize - 1).intValueExact(), 0, isToSigned);
     } else if (isToSigned != isFromSigned) {
       result = efmgr.extend(result, 0, isToSigned);
     }
@@ -156,24 +162,33 @@ public class SMGPredicateManager {
     BitvectorFormula formulaTwo;
 
     SMGType firstValSMGType = pRelation.getFirstValSMGType();
-    int firstCastedSize = firstValSMGType.getCastedSize();
+    long firstCastedSize = firstValSMGType.getCastedSize();
 
     SMGType secondValSMGType = pRelation.getSecondValSMGType();
-    int secondCastedSize = secondValSMGType.getCastedSize();
+    long secondCastedSize = secondValSMGType.getCastedSize();
 
     // Special case for NULL value
     if (pRelation.getFirstValue().isZero()) {
       firstCastedSize = secondCastedSize;
-      formulaOne = efmgr.makeBitvector(firstCastedSize, 0);
+      formulaOne = efmgr.makeBitvector(BigInteger.valueOf(firstCastedSize).intValueExact(), 0);
     } else {
       formulaOne = getCastedValue(pRelation.getFirstValue(), firstValSMGType);
     }
 
     if (pRelation.getSecondValue().isZero()) {
       secondCastedSize = firstCastedSize;
-      formulaTwo = efmgr.makeBitvector(secondCastedSize, 0);
+      formulaTwo = efmgr.makeBitvector(BigInteger.valueOf(secondCastedSize).intValueExact(), 0);
     } else {
       formulaTwo = getCastedValue(pRelation.getSecondValue(), secondValSMGType);
+    }
+
+    // FIXME: require calculate cast on integer promotions
+    if (firstCastedSize > secondCastedSize) {
+      formulaTwo = cast(formulaTwo, secondValSMGType, firstValSMGType);
+    }
+
+    if (secondCastedSize > firstCastedSize) {
+      formulaOne = cast(formulaOne, firstValSMGType, secondValSMGType);
     }
 
     BinaryOperator op = pRelation.getOperator();
@@ -203,6 +218,9 @@ public class SMGPredicateManager {
 
   private BooleanFormula getExplicitFormulaFromState(UnmodifiableSMGState pState) {
     BooleanFormula result = bfmgr.makeBoolean(true);
+    if (!verifyPredicates) {
+      return result;
+    }
     SMGPredicateRelation errorPredicateRelation = pState.getErrorPredicateRelation();
     SMGPredicateRelation pathPredicateRelation = pState.getPathPredicateRelation();
     for (Entry<SMGKnownSymbolicValue, SMGKnownExpValue> expValueEntry :
@@ -217,7 +235,9 @@ public class SMGPredicateManager {
         BooleanFormula equality =
             fmgr.makeEqual(
                 valueFormula,
-                efmgr.makeBitvector(symbolicType.getCastedSize(), explicitValue.getValue()));
+                efmgr.makeBitvector(
+                    BigInteger.valueOf(symbolicType.getCastedSize()).intValueExact(),
+                    explicitValue.getValue()));
         result = fmgr.makeAnd(result, equality);
       }
     }
@@ -231,10 +251,13 @@ public class SMGPredicateManager {
       return result;
     }
 
-    for (Entry<Pair<SMGValue, SMGValue>, SymbolicRelation> entry : pRelation.getValuesRelations()) {
+    for (Entry<SMGValuesPair, ImmutableSet<SymbolicRelation>> entry :
+        pRelation.getValuesRelations()) {
       if (entry.getKey().getSecond().compareTo(entry.getKey().getFirst()) >= 0) {
-        SymbolicRelation value = entry.getValue();
-        result = addPredicateToFormula(result, value, conjunction);
+        ImmutableSet<SymbolicRelation> values = entry.getValue();
+        for (SymbolicRelation value : values) {
+          result = addPredicateToFormula(result, value, conjunction);
+        }
       }
     }
 
@@ -274,8 +297,9 @@ public class SMGPredicateManager {
       } catch (SolverException pE) {
         logger.log(Level.WARNING, "Solver Exception: " + pE + " on predicate " + errorPredicate);
       } catch (InterruptedException pE) {
-        logger.log(Level.WARNING, "Solver Interrupted Exception: " + pE + " on predicate " +
-            errorPredicate);
+        logger.log(
+            Level.WARNING,
+            "Solver Interrupted Exception: " + pE + " on predicate " + errorPredicate);
       }
     }
 

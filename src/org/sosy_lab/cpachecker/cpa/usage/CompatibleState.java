@@ -12,17 +12,17 @@ import org.sosy_lab.cpachecker.util.identifiers.SingleIdentifier;
 
 public interface CompatibleState extends Comparable<CompatibleState> {
 
-  public default boolean isCompatibleWith(@SuppressWarnings("unused") CompatibleState state) {
+  default boolean isCompatibleWith(@SuppressWarnings("unused") CompatibleState state) {
     return true;
   }
 
-  public default CompatibleState prepareToStore() {
+  default CompatibleState prepareToStore() {
     return this;
   }
 
-  public CompatibleNode getCompatibleNode();
+  CompatibleNode getCompatibleNode();
 
-  public default boolean isRelevantFor(@SuppressWarnings("unused") SingleIdentifier id) {
+  default boolean isRelevantFor(@SuppressWarnings("unused") SingleIdentifier id) {
     return true;
   }
 }

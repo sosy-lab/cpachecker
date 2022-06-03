@@ -11,15 +11,15 @@ package org.sosy_lab.cpachecker.cpa.usage;
 import static com.google.common.collect.FluentIterable.from;
 
 import com.google.common.base.Joiner;
-import com.google.common.base.Optional;
 import com.google.common.base.Predicates;
 import com.google.common.collect.HashMultiset;
 import com.google.common.collect.Multiset;
 import java.util.Map.Entry;
 import java.util.Objects;
+import java.util.Optional;
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.collect.PersistentSortedMap;
-import org.sosy_lab.cpachecker.core.defaults.AbstractSingleWrapperState;
+import org.sosy_lab.cpachecker.core.defaults.AbstractSerializableSingleWrapperState;
 import org.sosy_lab.cpachecker.core.defaults.LatticeAbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
@@ -37,7 +37,7 @@ import org.sosy_lab.cpachecker.util.statistics.StatTimer;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 
 /** Represents one abstract state of the Usage CPA. */
-public final class UsageState extends AbstractSingleWrapperState
+public final class UsageState extends AbstractSerializableSingleWrapperState
     implements LatticeAbstractState<UsageState> {
 
   private static final long serialVersionUID = -898577877284268426L;
@@ -113,16 +113,17 @@ public final class UsageState extends AbstractSingleWrapperState
      * If we get **b, having (*b, c), we give *c
      */
     Optional<AbstractIdentifier> linkedId =
-        from(Identifiers.getDereferencedIdentifiers(id))
-            .firstMatch(variableBindingRelation::containsKey);
+        Identifiers.getDereferencedIdentifiers(id).stream()
+            .filter(variableBindingRelation::containsKey)
+            .findFirst();
 
     if (linkedId.isPresent()) {
-      AbstractIdentifier pointsFrom = linkedId.get();
+      AbstractIdentifier pointsFrom = linkedId.orElseThrow();
       int delta = id.getDereference() - pointsFrom.getDereference();
       AbstractIdentifier initialId = variableBindingRelation.get(pointsFrom);
       AbstractIdentifier pointsTo =
           initialId.cloneWithDereference(initialId.getDereference() + delta);
-      if (this.containsLinks(pointsTo)) {
+      if (containsLinks(pointsTo)) {
         pointsTo = getLinksIfNecessary(pointsTo);
       }
       return pointsTo;
@@ -132,7 +133,7 @@ public final class UsageState extends AbstractSingleWrapperState
   }
 
   public UsageState copy() {
-    return copy(this.getWrappedState());
+    return copy(getWrappedState());
   }
 
   public UsageState copy(final AbstractState pWrappedState) {
@@ -184,7 +185,7 @@ public final class UsageState extends AbstractSingleWrapperState
     // If we are here, the wrapped domain return true and the stop depends only on this value
     stats.lessTimer.start();
     // this element is not less or equal than the other element, if that one contains less elements
-    if (this.variableBindingRelation.size() > other.variableBindingRelation.size()) {
+    if (variableBindingRelation.size() > other.variableBindingRelation.size()) {
       stats.lessTimer.stop();
       return false;
     }
@@ -204,7 +205,7 @@ public final class UsageState extends AbstractSingleWrapperState
         other.addUsage(id, usage);
       }
     }*/
-    if (!this.recentUsages.isSubsetOf(other.recentUsages)) {
+    if (!recentUsages.isSubsetOf(other.recentUsages)) {
       stats.lessTimer.stop();
       return false;
     }
@@ -251,8 +252,8 @@ public final class UsageState extends AbstractSingleWrapperState
         PathCopyingPersistentTreeMap.of(),
         recentUsages.copy(),
         functionContainer.clone(difference),
-        this.stats,
-        this.isExitState);
+        stats,
+        isExitState);
   }
 
   public void saveUnsafesInContainerIfNecessary(AbstractState abstractState) {
@@ -345,9 +346,9 @@ public final class UsageState extends AbstractSingleWrapperState
     return new UsageState(
         getWrappedState(),
         PathCopyingPersistentTreeMap.of(),
-        this.recentUsages,
-        this.functionContainer,
-        new StateStatistics(this.functionContainer.getStatistics()),
-        this.isExitState);
+        recentUsages,
+        functionContainer,
+        new StateStatistics(functionContainer.getStatistics()),
+        isExitState);
   }
 }

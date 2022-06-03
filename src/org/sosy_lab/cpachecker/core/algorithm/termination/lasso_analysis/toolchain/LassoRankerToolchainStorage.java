@@ -22,19 +22,16 @@ import de.uni_freiburg.informatik.ultimate.core.model.services.IUltimateServiceP
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.logging.Level;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.log.LogManager;
 
 public class LassoRankerToolchainStorage implements IToolchainStorage, IUltimateServiceProvider {
 
-  private final LogManager logger;
   private final ShutdownNotifier shutdownNotifier;
   private final ILoggingService lassoRankerLoggingService;
   private final Map<String, IStorable> toolchainStorage;
 
   public LassoRankerToolchainStorage(LogManager pLogger, ShutdownNotifier pShutdownNotifier) {
-    logger = Preconditions.checkNotNull(pLogger);
     shutdownNotifier = Preconditions.checkNotNull(pShutdownNotifier);
     lassoRankerLoggingService = new LassoRankerLoggingService(pLogger);
     toolchainStorage = new ConcurrentHashMap<>();
@@ -68,14 +65,7 @@ public class LassoRankerToolchainStorage implements IToolchainStorage, IUltimate
   @Override
   public void clear() {
     for (final IStorable storable : toolchainStorage.values()) {
-      try {
-        storable.destroy();
-      } catch (final Throwable t) {
-        logger.logException(
-            Level.WARNING,
-            t,
-            "Exception during clearing of toolchain storage while destroying " + storable);
-      }
+      storable.destroy();
     }
     toolchainStorage.clear();
   }
@@ -114,8 +104,7 @@ public class LassoRankerToolchainStorage implements IToolchainStorage, IUltimate
   @Override
   public <T extends IService, K extends IServiceFactory<T>> T getServiceInstance(
       Class<K> pServiceType) {
-    throw new UnsupportedOperationException(
-        getClass() + "::getServiceInstance is not implemented");
+    throw new UnsupportedOperationException(getClass() + "::getServiceInstance is not implemented");
   }
 
   @Override

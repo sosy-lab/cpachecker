@@ -6,8 +6,5 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-/**
- * Utility classes for SMG-CPA.
- * Might also be usefull elsewhere.
- */
+/** Utility classes for SMG-CPA. Might also be usefull elsewhere. */
 package org.sosy_lab.cpachecker.cpa.smg.util;

@@ -24,7 +24,8 @@ public class StatisticsData implements Iterable<Entry<StatisticsProvider, Statis
   private final Map<StatisticsProvider, StatisticsDataProvider> data;
 
   public StatisticsData(Set<StatisticsProvider> propertyProviders) {
-    Map<StatisticsProvider, StatisticsDataProvider> dataProvider = Maps.newHashMapWithExpectedSize(propertyProviders.size());
+    Map<StatisticsProvider, StatisticsDataProvider> dataProvider =
+        Maps.newHashMapWithExpectedSize(propertyProviders.size());
     for (StatisticsProvider providerEntry : propertyProviders) {
       dataProvider.put(providerEntry, providerEntry.createDataProvider());
     }
@@ -37,15 +38,19 @@ public class StatisticsData implements Iterable<Entry<StatisticsProvider, Statis
 
   public StatisticsData mergeState(StatisticsData state2) {
     assert data.size() == state2.data.size() : "sized and properties have to match";
-    Map<StatisticsProvider, StatisticsDataProvider> merged = Maps.newHashMapWithExpectedSize(data.size());
+    Map<StatisticsProvider, StatisticsDataProvider> merged =
+        Maps.newHashMapWithExpectedSize(data.size());
     for (Entry<StatisticsProvider, StatisticsDataProvider> providerEntry : data.entrySet()) {
-      merged.put(providerEntry.getKey(), providerEntry.getValue().mergePath(state2.data.get(providerEntry.getKey())));
+      merged.put(
+          providerEntry.getKey(),
+          providerEntry.getValue().mergePath(state2.data.get(providerEntry.getKey())));
     }
     return new StatisticsData(merged);
   }
 
   public StatisticsData getNextState(CFAEdge node) {
-    Map<StatisticsProvider, StatisticsDataProvider> dataProvider = Maps.newHashMapWithExpectedSize(data.size());
+    Map<StatisticsProvider, StatisticsDataProvider> dataProvider =
+        Maps.newHashMapWithExpectedSize(data.size());
     for (Entry<StatisticsProvider, StatisticsDataProvider> providerEntry : data.entrySet()) {
       StatisticsProvider key = providerEntry.getKey();
       StatisticsDataProvider value = providerEntry.getValue();

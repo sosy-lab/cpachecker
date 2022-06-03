@@ -87,11 +87,6 @@ SPDX-License-Identifier: Apache-2.0
     <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
   </tasks>
 
-  <tasks name="ConcurrencySafety-Main">
-    <includesfile>../programs/benchmarks/ConcurrencySafety-Main.set</includesfile>
-    <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
-  </tasks>
-
   <tasks name="SoftwareSystems-AWS-C-Common-ReachSafety">
     <includesfile>../programs/benchmarks/SoftwareSystems-AWS-C-Common-ReachSafety.set</includesfile>
     <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>

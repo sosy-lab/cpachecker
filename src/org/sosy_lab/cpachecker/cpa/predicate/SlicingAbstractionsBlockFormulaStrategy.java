@@ -8,8 +8,6 @@
 
 package org.sosy_lab.cpachecker.cpa.predicate;
 
-import static org.sosy_lab.common.collect.Collections3.transformedImmutableListCopy;
-
 import com.google.common.collect.ImmutableSet;
 import java.util.List;
 import org.sosy_lab.common.configuration.Configuration;
@@ -19,13 +17,11 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.predicate.SlicingAbstractionsUtils.AbstractionPosition;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 
 /**
- * BlockFormulaStrategy for graph-like ARGs where
- * the formulas have to be generated on the fly.
+ * BlockFormulaStrategy for graph-like ARGs where the formulas have to be generated on the fly.
  * Intended for use with {@link SlicingAbstractionsStrategy}
  */
 @Options(prefix = "cpa.predicate.refinement")
@@ -39,9 +35,10 @@ public class SlicingAbstractionsBlockFormulaStrategy extends BlockFormulaStrateg
   private PathFormulaManager pfmgr;
   private Solver solver;
 
-  public SlicingAbstractionsBlockFormulaStrategy(Solver solver, Configuration pConfig, PathFormulaManager pPfmgr)
+  public SlicingAbstractionsBlockFormulaStrategy(
+      Solver solver, Configuration pConfig, PathFormulaManager pPfmgr)
       throws InvalidConfigurationException {
-    this.pfmgr = pPfmgr;
+    pfmgr = pPfmgr;
     this.solver = solver;
     pConfig.inject(this);
   }
@@ -49,11 +46,8 @@ public class SlicingAbstractionsBlockFormulaStrategy extends BlockFormulaStrateg
   @Override
   BlockFormulas getFormulasForPath(final ARGState pRoot, final List<ARGState> pPath)
       throws CPATransferException, InterruptedException {
-    return new BlockFormulas(
-        transformedImmutableListCopy(
-            SlicingAbstractionsUtils.getFormulasForPath(
-                pfmgr, solver, pRoot, pPath, includePartialInvariants),
-            PathFormula::getFormula));
+    return BlockFormulas.createFromPathFormulas(
+        SlicingAbstractionsUtils.getFormulasForPath(
+            pfmgr, solver, pRoot, pPath, includePartialInvariants));
   }
-
 }

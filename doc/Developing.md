@@ -70,7 +70,7 @@ Develop CPAchecker from within Eclipse
 
 1. Install [Eclipse](http://www.eclipse.org/) with at least version 4.6, with JDT.
 
-2. IMPORTANT: Install the Eclipse plugin for [google-java-format](https://github.com/google/google-java-format/):
+2. Install the Eclipse plugin for [google-java-format](https://github.com/google/google-java-format/):
    Download the `google-java-format-eclipse-plugin-*.jar`
    from the most recent [google-java-format release](https://github.com/google/google-java-format/releases)
    and put it into the `dropins` folder of your Eclipse installation
@@ -153,6 +153,16 @@ just run `scripts/cpa.sh -debug ...` and point your debugger to TCP port 5005
 of the respective machine.
 
 
+JavaScript Development
+-----------------------
+The JS files can be found in the directory `src/org/sosy_lab/cpachecker/core/counterexample`. We use Node.js as environment for our files.
+All necessary third party libraries that we rely on can be installed via `npm run install`.
+
+Our JS code is postprocessed with [webpack](https://webpack.js.org/). Webpack bundles our JS and CSS code as well as the third party libraries and puts the resulting files in the `build` directory. This can be done via the `npm run build` command, which should be executed every time changes to the JS related files are made. **Note that none of the raw files are actually used in the report generating, so any changes will not take effect unless the bundled files are updated.**
+
+During development, we also have a small development server that can be started via `npm run start`. This server automatically opens an example report file in the browser and enables live updates for any changes to the JS code. Since a fully rendered HTML file is necessary for this server, the example file was created by CPAchecker and can be found under `development_data/index.html`. Therefore, changes to the `report.html` file will not be updated automatically. It is important to keep this file up to date by hand after any changes to the `report.html` file.
+
+
 Releasing a New Version
 -----------------------
 
@@ -173,6 +183,11 @@ Releasing a New Version
 4. Update homepage:
    - Add release archives to `/html` in the repository.
    - Put changelog of newest into `/html/NEWS-<version>.txt`.
+   - Publish new CPAchecker version on Zenodo under https://doi.org/10.5281/zenodo.3816620:
+     - Assign new DOI and upload archive.
+     - Update description with entries for new version in [`NEWS.md`](../NEWS.md).
+     - Update version field and publication date.
+     - Update list of contributors according to [`Authors.md`](../Authors.md).
    - Add links to `/html/download.php`.
    - Move the old download links to `/html/download-oldversions.php`.
    - Update section News on `/html/index.php`.

@@ -12,16 +12,24 @@ variables:
   PROJECT_PATH: "sosy-lab/software/cpachecker"
   GH_REF: "github.com/sosy-lab/cpachecker"
   # Version of https://gitlab.com/sosy-lab/software/refaster/ to use
-  REFASTER_REPO_REVISION: 673d65a54133408a2936656271aa67b9aa4035fe
+  REFASTER_REPO_REVISION: e842c376f095c5307f72391f1286bd438f455b97
   # Needs to be synchronized with Error Prone version in lib/ivy.xml
-  REFASTER_VERSION: 2.4.0
+  REFASTER_VERSION: 2.13.1
   PIP_CACHE_DIR: "${CI_PROJECT_DIR}/.cache/pip"
+  npm_config_cache: "${CI_PROJECT_DIR}/.cache/npm"
+  npm_config_prefer_offline: "true"
 
 .pip-cache: &pip-cache
   cache:
     key: "${CI_JOB_NAME}"
     paths:
       - ".cache/pip"
+
+.node-cache: &node-cache
+  cache:
+    key: "${CI_JOB_NAME}"
+    paths:
+      - ".cache/npm"
 
 .binary_check: &binary_check
   stage: checks
@@ -47,22 +55,22 @@ configuration-checks:jdk-11:
     - build:jdk-11
   image: ${CI_REGISTRY_IMAGE}/test:jdk-11
 
-configuration-checks:jdk-14:
+configuration-checks:jdk-17:
   <<: *configuration-checks
   dependencies:
     - build-dependencies
-    - build:jdk-14
+    - build:jdk-17
   needs:
     - build-dependencies
-    - build:jdk-14
-  image: ${CI_REGISTRY_IMAGE}/test:jdk-14
+    - build:jdk-17
+  image: ${CI_REGISTRY_IMAGE}/test:jdk-17
 
 
 configuration-documentation:
   <<: *binary_check
   script:
     - "cp doc/ConfigurationOptions.txt doc/ConfigurationOptions.txt.old"
-    - "ant $ANT_PROPS_CHECKS build-documentation"
+    - "ant $ANT_PROPS_CHECKS build-documentation -Ddocumentation.uptodate=false"
     - "diff doc/ConfigurationOptions.txt.old doc/ConfigurationOptions.txt"
   dependencies:
     - build-dependencies
@@ -111,24 +119,42 @@ python-unit-tests:jdk-11:
     - build:jdk-11
   image: ${CI_REGISTRY_IMAGE}/test:jdk-11
 
-python-unit-tests:jdk-14:
+python-unit-tests:jdk-17:
   <<: *python-unit-tests
   dependencies:
     - build-dependencies
-    - build:jdk-14
+    - build:jdk-17
   needs:
     - build-dependencies
-    - build:jdk-14
-  image: ${CI_REGISTRY_IMAGE}/test:jdk-14
+    - build:jdk-17
+  image: ${CI_REGISTRY_IMAGE}/test:jdk-17
 
+
+javascript-build:
+  stage: checks
+  dependencies: []
+  needs: []
+  image: ${CI_REGISTRY_IMAGE}/test:node
+  before_script:
+    - cd src/org/sosy_lab/cpachecker/core/counterexample/
+    - npm ci
+  script:
+    - npm run build
+    - git diff --stat --exit-code
+  artifacts:
+    paths:
+      -  src/org/sosy_lab/cpachecker/core/counterexample/build
+    when: on_failure
+  <<: *node-cache
 
 javascript-unit-tests:
   stage: checks
   dependencies: []
+  needs: []
   image: ${CI_REGISTRY_IMAGE}/test:node
   before_script:
     - cd src/org/sosy_lab/cpachecker/core/counterexample/
-    - npm install
+    - npm ci
   script:
     - npm test
   cache:
@@ -138,6 +164,19 @@ javascript-unit-tests:
     paths:
       - src/org/sosy_lab/cpachecker/core/counterexample/unit_testing_report.html
     when: always
+  <<: *node-cache
+
+javascript-eslint:
+  stage: checks
+  dependencies: []
+  needs: []
+  image: ${CI_REGISTRY_IMAGE}/test:node
+  before_script:
+    - cd src/org/sosy_lab/cpachecker/core/counterexample/
+    - npm ci
+  script:
+    - npm run lint
+  <<: *node-cache
 
 
 build-docker:test:java-node:
@@ -146,7 +185,7 @@ build-docker:test:java-node:
     DOCKERFILE: build/gitlab-ci.Dockerfile.java-node
     IMAGE: /test:java-node
 
-build-docker:test:java-node:
+build-docker:test:node:
   extends: .build-docker
   variables:
     DOCKERFILE: build/gitlab-ci.Dockerfile.node
@@ -156,7 +195,7 @@ build-docker:release:
   extends: .build-docker
   variables:
     DOCKERFILE: build/Dockerfile.release
-    IMAGE: ":1.9.1"
+    IMAGE: ":2.1.1"
     EXTRA_ARGS: "--destination $CI_REGISTRY_IMAGE:latest"
 
 
@@ -173,8 +212,8 @@ javascript-e2e-tests:
       # generate example report
     - scripts/cpa.sh -predicateAnalysis test/programs/simple/SSAMap-bug.c
     - cd src/org/sosy_lab/cpachecker/core/counterexample/
-    - npm install
-    - "./node_modules/protractor/node_modules/webdriver-manager/bin/webdriver-manager update --versions.chrome $(dpkg-query --showformat='${Version}' --show chromium-browser)"
+    - npm ci
+    - "npx webdriver-manager update --versions.chrome $(dpkg-query --showformat='${Version}' --show google-chrome-stable)"
   script:
     - npm run e2e-test
   cache:
@@ -205,7 +244,7 @@ flake8:
   needs: []
   image: python:3.8
   before_script:
-    - pip install flake8-awesome
+    - "pip install 'flake8<4' 'bandit==1.7.2' flake8-awesome"
   script:
     - flake8
   <<: *pip-cache
@@ -231,6 +270,8 @@ deploy-docker:
   stage: deploy
   dependencies:
     - build-tar
+  needs:
+    - build-tar
   extends: .build-docker
   variables:
     DOCKERFILE: build/Dockerfile.dev
@@ -248,7 +289,7 @@ unit-tests:jdk-11:
     reports:
       junit: "output/junit/TESTS-TestSuites.xml"
 
-unit-tests:jdk-14:
+unit-tests:jdk-17:
   script: "ant $ANT_PROPS_CHECKS unit-tests"
   artifacts:
     reports:
@@ -256,8 +297,5 @@ unit-tests:jdk-14:
 
 
 # Disable some checks because they are not used for CPAchecker
-check-format:
-  only: []
-
 javadoc:
   only: []

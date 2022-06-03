@@ -95,9 +95,7 @@ import org.sosy_lab.cpachecker.core.algorithm.bmc.candidateinvariants.CandidateI
 import org.sosy_lab.cpachecker.core.algorithm.bmc.candidateinvariants.EdgeFormulaNegation;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.candidateinvariants.ExpressionTreeLocationInvariant;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.candidateinvariants.TargetLocationCandidateInvariant;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
-import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
@@ -130,10 +128,9 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator
 
     @FileOption(Type.OPTIONAL_INPUT_FILE)
     @Option(
-      secure = true,
-      description =
-          "Provides additional candidate invariants to the k-induction invariant generator."
-    )
+        secure = true,
+        description =
+            "Provides additional candidate invariants to the k-induction invariant generator.")
     private Path invariantsAutomatonFile = null;
 
     @Option(
@@ -142,13 +139,16 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator
     private CfaCandidateInvariantExtractorFactories guessCandidatesFromCFA =
         CfaCandidateInvariantExtractorFactories.ASSUME_EDGES_PLAIN;
 
-    @Option(secure = true, description = "For correctness-witness validation: Shut down if a candidate invariant is found to be incorrect.")
+    @Option(
+        secure = true,
+        description =
+            "For correctness-witness validation: Shut down if a candidate invariant is found to be"
+                + " incorrect.")
     private boolean terminateOnCounterexample = false;
 
     @Option(
-      secure = true,
-      description = "Check candidate invariants in a separate thread asynchronously."
-    )
+        secure = true,
+        description = "Check candidate invariants in a separate thread asynchronously.")
     private boolean async = true;
   }
 
@@ -177,7 +177,8 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator
     }
   }
 
-  private final KInductionInvariantGeneratorStatistics stats = new KInductionInvariantGeneratorStatistics();
+  private final KInductionInvariantGeneratorStatistics stats =
+      new KInductionInvariantGeneratorStatistics();
 
   private final BMCAlgorithmForInvariantGeneration algorithm;
   private final ConfigurableProgramAnalysis cpa;
@@ -194,13 +195,14 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator
   private Future<Pair<InvariantSupplier, ExpressionTreeSupplier>> invariantGenerationFuture = null;
 
   @SuppressWarnings("UnnecessaryAnonymousClass") // ShutdownNotifier needs a strong reference
-  private final ShutdownRequestListener shutdownListener = new ShutdownRequestListener() {
+  private final ShutdownRequestListener shutdownListener =
+      new ShutdownRequestListener() {
 
-    @Override
-    public void shutdownRequested(String pReason) {
-      invariantGenerationFuture.cancel(true);
-    }
-  };
+        @Override
+        public void shutdownRequested(String pReason) {
+          invariantGenerationFuture.cancel(true);
+        }
+      };
 
   public static KInductionInvariantGenerator create(
       final Configuration pConfig,
@@ -255,7 +257,7 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator
         pReachedSetFactory,
         pAsync,
         candidateGenerator,
-        new AggregatedReachedSets());
+        AggregatedReachedSets.empty());
   }
 
   private KInductionInvariantGenerator(
@@ -390,11 +392,6 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator
   }
 
   @Override
-  public AggregatedReachedSets get() {
-    throw new UnsupportedOperationException(
-        "This invariant generator does only return an invariant supplier via the method getSupplier()");
-  }
-
   public InvariantSupplier getSupplier() throws InterruptedException, CPAException {
     checkState(invariantGenerationFuture != null);
 
@@ -416,6 +413,7 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator
     }
   }
 
+  @Override
   public ExpressionTreeSupplier getExpressionTreeSupplier()
       throws InterruptedException, CPAException {
     checkState(invariantGenerationFuture != null);
@@ -428,7 +426,8 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator
       try {
         return invariantGenerationFuture.get().getSecond();
       } catch (ExecutionException e) {
-        Throwables.propagateIfPossible(e.getCause(), CPAException.class, InterruptedException.class);
+        Throwables.propagateIfPossible(
+            e.getCause(), CPAException.class, InterruptedException.class);
         throw new UnexpectedCheckedException("invariant generation", e.getCause());
       } catch (CancellationException e) {
         shutdownManager.getNotifier().shutdownIfNecessary();
@@ -464,10 +463,9 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator
       shutdownManager.getNotifier().shutdownIfNecessary();
 
       try {
-        ReachedSet reachedSet = reachedSetFactory.create();
-        AbstractState initialState = cpa.getInitialState(initialLocation, StateSpacePartition.getDefaultPartition());
-        Precision initialPrecision = cpa.getInitialPrecision(initialLocation, StateSpacePartition.getDefaultPartition());
-        reachedSet.add(initialState, initialPrecision);
+        ReachedSet reachedSet =
+            reachedSetFactory.createAndInitialize(
+                cpa, initialLocation, StateSpacePartition.getDefaultPartition());
         algorithm.run(reachedSet);
         return Pair.of(
             algorithm.getCurrentInvariants(), algorithm.getCurrentInvariantsAsExpressionTree());
@@ -534,7 +532,8 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator
             public CandidateInvariant next() {
               if (safetyPropertyConfirmed) {
                 throw new NoSuchElementException(
-                    "No more candidates available: The safety property has already been confirmed.");
+                    "No more candidates available: The safety property has already been"
+                        + " confirmed.");
               }
               return candidate = iterator.next();
             }
@@ -553,7 +552,7 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator
                 // If no location remains, the invariant has been disproved at all possible
                 // locations
                 if (remainingLocations.isEmpty()) {
-                  pShutdownManager.requestShutdown("Incorrect invariant: " + candidate.toString());
+                  pShutdownManager.requestShutdown("Incorrect invariant: " + candidate);
                 }
               }
               iterator.remove();
@@ -577,7 +576,6 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator
    * Gets the relevant assume edges.
    *
    * @param pTargetLocations the predetermined target locations.
-   *
    * @return the relevant assume edges.
    */
   private static Set<AssumeEdge> getRelevantAssumeEdges(Collection<CFANode> pTargetLocations) {
@@ -589,7 +587,7 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator
       for (CFAEdge enteringEdge : CFAUtils.enteringEdges(current)) {
         CFANode predecessor = enteringEdge.getPredecessor();
         if (enteringEdge.getEdgeType() == CFAEdgeType.AssumeEdge) {
-          assumeEdges.add((AssumeEdge)enteringEdge);
+          assumeEdges.add((AssumeEdge) enteringEdge);
         } else if (visited.add(predecessor)) {
           waitlist.add(predecessor);
         }
@@ -608,7 +606,7 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator
     algorithm.adjustmentRefused(pCpa);
   }
 
-  private static interface CfaCandidateInvariantExtractorFactory {
+  private interface CfaCandidateInvariantExtractorFactory {
 
     Iterable<CandidateInvariant> create(
         CFA pCfa,
@@ -618,9 +616,8 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator
         throws InvalidConfigurationException;
   }
 
-  private static enum CfaCandidateInvariantExtractorFactories
+  private enum CfaCandidateInvariantExtractorFactories
       implements CfaCandidateInvariantExtractorFactory {
-
     NONE {
 
       @Override
@@ -666,7 +663,8 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator
           throws InvalidConfigurationException {
         if (!pCfa.getVarClassification().isPresent()) {
           throw new InvalidConfigurationException(
-              "Variable classification not available but required to generate candidate invariants.");
+              "Variable classification not available but required to generate candidate"
+                  + " invariants.");
         }
         Optional<ImmutableSet<CFANode>> loopHeads = pCfa.getAllLoopHeads();
         if (!loopHeads.isPresent()) {
@@ -824,7 +822,8 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator
           throws InvalidConfigurationException {
         if (!pCfa.getVarClassification().isPresent()) {
           throw new InvalidConfigurationException(
-              "Variable classification not available but required to generate candidate invariants.");
+              "Variable classification not available but required to generate candidate"
+                  + " invariants.");
         }
         VariableClassification varClassification = pCfa.getVarClassification().orElseThrow();
         Optional<ImmutableSet<CFANode>> loopHeads = pCfa.getAllLoopHeads();
@@ -865,8 +864,7 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator
                       typePartitions.put(type, decl.getQualifiedName());
                       functions.put(id, e.getPredecessor().getFunction());
                       if (type instanceof CSimpleType) {
-                        constants.add(
-                            machineModel.getMaximalIntegerValue((CSimpleType) type));
+                        constants.add(machineModel.getMaximalIntegerValue((CSimpleType) type));
                       }
                     }
                   }
@@ -946,7 +944,9 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator
           CFANode dummySucc = new CFANode(function);
           for (CExpression instantiatedTemplate : expressions) {
             String raw = "!(" + instantiatedTemplate.toASTString() + ")";
-            CAssumeEdge dummyEdge = new CAssumeEdge(raw, FileLocation.DUMMY, dummyPred, dummySucc, instantiatedTemplate, false);
+            CAssumeEdge dummyEdge =
+                new CAssumeEdge(
+                    raw, FileLocation.DUMMY, dummyPred, dummySucc, instantiatedTemplate, false);
             assumeEdges.add(dummyEdge);
           }
         }

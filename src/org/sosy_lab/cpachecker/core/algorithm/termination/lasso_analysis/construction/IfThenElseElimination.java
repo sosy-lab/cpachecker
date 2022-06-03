@@ -51,7 +51,7 @@ class IfThenElseElimination extends BooleanFormulaTransformationVisitor {
 
   private static class IfThenElseTransformation extends DefaultFormulaVisitor<Formula> {
 
-    private final static UniqueIdGenerator ID_GENERATOR = new UniqueIdGenerator();
+    private static final UniqueIdGenerator ID_GENERATOR = new UniqueIdGenerator();
 
     private final FormulaManagerView fmgrView;
     private final FormulaManager fmgr;

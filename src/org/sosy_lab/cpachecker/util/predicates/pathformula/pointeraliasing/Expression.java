@@ -11,13 +11,14 @@ package org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing;
 import static com.google.common.base.MoreObjects.toStringHelper;
 import static com.google.common.base.Preconditions.checkNotNull;
 
+import com.google.errorprone.annotations.InlineMe;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Expression.Location.AliasedLocation;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Expression.Location.UnaliasedLocation;
 import org.sosy_lab.java_smt.api.Formula;
 
 abstract class Expression {
-  static abstract class Location extends Expression {
+  abstract static class Location extends Expression {
     static final class AliasedLocation extends Location {
 
       static AliasedLocation ofAddress(final Formula address) {
@@ -46,12 +47,14 @@ abstract class Expression {
         return Kind.ALIASED_LOCATION;
       }
 
+      @InlineMe(replacement = "this")
       @Override
       @Deprecated
       AliasedLocation asAliased() {
         return this;
       }
 
+      @InlineMe(replacement = "this")
       @Override
       @Deprecated
       AliasedLocation asAliasedLocation() {
@@ -72,17 +75,14 @@ abstract class Expression {
 
       @Override
       public String toString() {
-        return toStringHelper(this)
-                      .add("address", address)
-                      .toString();
+        return toStringHelper(this).add("address", address).toString();
       }
 
       private final Formula address;
 
       private final @Nullable MemoryRegion region;
 
-      @Nullable
-      MemoryRegion getMemoryRegion() {
+      @Nullable MemoryRegion getMemoryRegion() {
         return region;
       }
     }
@@ -118,12 +118,14 @@ abstract class Expression {
         throw new IllegalStateException();
       }
 
+      @InlineMe(replacement = "this")
       @Override
       @Deprecated
       UnaliasedLocation asUnaliased() {
         return this;
       }
 
+      @InlineMe(replacement = "this")
       @Override
       @Deprecated
       UnaliasedLocation asUnaliasedLocation() {
@@ -132,9 +134,7 @@ abstract class Expression {
 
       @Override
       public String toString() {
-        return toStringHelper(this)
-                      .add("variable", variableName)
-                      .toString();
+        return toStringHelper(this).add("variable", variableName).toString();
       }
 
       private final String variableName;
@@ -144,6 +144,7 @@ abstract class Expression {
       return this instanceof AliasedLocation;
     }
 
+    @InlineMe(replacement = "this")
     @Override
     @Deprecated
     final Location asLocation() {
@@ -191,8 +192,7 @@ abstract class Expression {
 
       @Override
       public String toString() {
-        return toStringHelper(this)
-                      .toString();
+        return toStringHelper(this).toString();
       }
     }
 
@@ -231,6 +231,7 @@ abstract class Expression {
       throw new IllegalStateException();
     }
 
+    @InlineMe(replacement = "this")
     @Override
     @Deprecated
     final Value asValue() {
@@ -239,9 +240,7 @@ abstract class Expression {
 
     @Override
     public String toString() {
-      return toStringHelper(this)
-                    .add("value", value)
-                    .toString();
+      return toStringHelper(this).add("value", value).toString();
     }
 
     @Override
@@ -279,11 +278,11 @@ abstract class Expression {
   }
 
   boolean isAliasedLocation() {
-    return this.isLocation() && this.asLocation().isAliased();
+    return isLocation() && asLocation().isAliased();
   }
 
   boolean isUnaliasedLocation() {
-    return this.isLocation() && !this.asLocation().isAliased();
+    return isLocation() && !asLocation().isAliased();
   }
 
   abstract Location asLocation();

@@ -18,47 +18,60 @@ import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
-@Options(prefix="cpa.apron.mergeop")
+@Options(prefix = "cpa.apron.mergeop")
 public class ApronMergeOperator {
 
   private final ApronDomain domain;
 
-  @Option(secure=true, name="type", toUppercase=true, values={"SEP", "JOIN", "WIDENING"},
-      description="of which type should the merge be?")
+  @Option(
+      secure = true,
+      name = "type",
+      toUppercase = true,
+      values = {"SEP", "JOIN", "WIDENING"},
+      description = "of which type should the merge be?")
   private String type = "SEP";
 
-  @Option(secure=true, name="onlyMergeAtLoopHeads", description="with this option enabled"
-      + " the states are only merged at loop heads")
+  @Option(
+      secure = true,
+      name = "onlyMergeAtLoopHeads",
+      description = "with this option enabled" + " the states are only merged at loop heads")
   private boolean onlyMergeAtLoopHeads = false;
 
-  public static MergeOperator getInstance(ApronDomain domain, Configuration config) throws InvalidConfigurationException {
+  public static MergeOperator getInstance(ApronDomain domain, Configuration config)
+      throws InvalidConfigurationException {
     ApronMergeOperator mergeOp = new ApronMergeOperator(domain, config);
 
     switch (mergeOp.type) {
-    case "SEP": return MergeSepOperator.getInstance();
-    case "JOIN": return mergeOp.new ApronMergeJoinOperator(domain, config);
-    case "WIDENING": return mergeOp.new ApronMergeWideningOperator(domain, config);
-    default:
-      throw new InvalidConfigurationException("Unknown type for merge operator");
+      case "SEP":
+        return MergeSepOperator.getInstance();
+      case "JOIN":
+        return mergeOp.new ApronMergeJoinOperator(domain, config);
+      case "WIDENING":
+        return mergeOp.new ApronMergeWideningOperator(domain, config);
+      default:
+        throw new InvalidConfigurationException("Unknown type for merge operator");
     }
   }
 
-  private ApronMergeOperator(ApronDomain domain, Configuration config) throws InvalidConfigurationException {
+  private ApronMergeOperator(ApronDomain domain, Configuration config)
+      throws InvalidConfigurationException {
     config.inject(this);
     this.domain = domain;
   }
 
-  @Options(prefix="cpa.apron.mergeop")
+  @Options(prefix = "cpa.apron.mergeop")
   class ApronMergeJoinOperator extends ApronMergeOperator implements MergeOperator {
 
-    private ApronMergeJoinOperator(ApronDomain domain, Configuration config) throws InvalidConfigurationException {
+    private ApronMergeJoinOperator(ApronDomain domain, Configuration config)
+        throws InvalidConfigurationException {
       super(domain, config);
     }
 
     @Override
-    public AbstractState merge(AbstractState el1, AbstractState el2, Precision p) throws CPAException {
+    public AbstractState merge(AbstractState el1, AbstractState el2, Precision p)
+        throws CPAException {
       if (onlyMergeAtLoopHeads) {
-        if (!(((ApronState)el1).isLoopHead() && ((ApronState)el2).isLoopHead())) {
+        if (!(((ApronState) el1).isLoopHead() && ((ApronState) el2).isLoopHead())) {
           return el2;
         }
       }
@@ -66,21 +79,23 @@ public class ApronMergeOperator {
     }
   }
 
-  @Options(prefix="cpa.apron.mergeop")
+  @Options(prefix = "cpa.apron.mergeop")
   class ApronMergeWideningOperator extends ApronMergeOperator implements MergeOperator {
 
-    private ApronMergeWideningOperator(ApronDomain domain, Configuration config) throws InvalidConfigurationException {
+    private ApronMergeWideningOperator(ApronDomain domain, Configuration config)
+        throws InvalidConfigurationException {
       super(domain, config);
     }
 
     @Override
-    public AbstractState merge(AbstractState el1, AbstractState el2, Precision p) throws CPAException {
+    public AbstractState merge(AbstractState el1, AbstractState el2, Precision p)
+        throws CPAException {
       if (onlyMergeAtLoopHeads) {
-        if (!(((ApronState)el1).isLoopHead() && ((ApronState)el2).isLoopHead())) {
+        if (!(((ApronState) el1).isLoopHead() && ((ApronState) el2).isLoopHead())) {
           return el2;
         }
       }
-      return domain.widening((ApronState)el1, (ApronState)el2);
+      return domain.widening((ApronState) el1, (ApronState) el2);
     }
   }
 }

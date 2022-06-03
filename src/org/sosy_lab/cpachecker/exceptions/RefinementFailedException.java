@@ -14,13 +14,10 @@ import com.google.common.base.Strings;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 
-/**
- * Exception raised when the refinement procedure fails, or was
- * abandoned.
- */
+/** Exception raised when the refinement procedure fails, or was abandoned. */
 public class RefinementFailedException extends CPAException {
 
-  public static enum Reason {
+  public enum Reason {
     InterpolationFailed("Interpolation failed"),
     InvariantRefinementFailed("Could not find invariant"),
     StaticRefinementFailed("Static refinement failed"),
@@ -34,7 +31,7 @@ public class RefinementFailedException extends CPAException {
 
     private final String humanReableReason;
 
-    private Reason(String pHumanReableReason) {
+    Reason(String pHumanReableReason) {
       humanReableReason = pHumanReableReason;
     }
 

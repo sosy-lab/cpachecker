@@ -10,10 +10,10 @@ package org.sosy_lab.cpachecker.cpa.usage.storage;
 
 import static com.google.common.collect.FluentIterable.from;
 
-import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.TreeSet;
 import org.sosy_lab.cpachecker.cpa.usage.CompatibleNode;
@@ -35,12 +35,12 @@ public final class UsagePoint implements Comparable<UsagePoint> {
   public boolean addCoveredUsage(UsagePoint newChild) {
     if (!coveredUsages.contains(newChild)) {
 
-      Optional<UsagePoint> usage = from(coveredUsages)
-                         .firstMatch(u -> u.covers(newChild));
+      Optional<UsagePoint> usage =
+          coveredUsages.stream().filter(u -> u.covers(newChild)).findFirst();
 
       if (usage.isPresent()) {
-        assert !usage.get().equals(newChild);
-        return usage.get().addCoveredUsage(newChild);
+        assert !usage.orElseThrow().equals(newChild);
+        return usage.orElseThrow().addCoveredUsage(newChild);
       }
       return coveredUsages.add(newChild);
     }
@@ -65,18 +65,17 @@ public final class UsagePoint implements Comparable<UsagePoint> {
     if (this == obj) {
       return true;
     }
-    if (obj == null ||
-        getClass() != obj.getClass()) {
+    if (obj == null || getClass() != obj.getClass()) {
       return false;
     }
     UsagePoint other = (UsagePoint) obj;
-    return access == other.access
-        && Objects.equals(compatibleNodes, other.compatibleNodes);
+    return access == other.access && Objects.equals(compatibleNodes, other.compatibleNodes);
   }
 
   @Override
   public int compareTo(UsagePoint o) {
-    //It is very important to compare at first the accesses, because an algorithm base on this suggestion
+    // It is very important to compare at first the accesses, because an algorithm base on this
+    // suggestion
     int result = access.compareTo(o.access);
     if (result != 0) {
       return result;
@@ -93,7 +92,7 @@ public final class UsagePoint implements Comparable<UsagePoint> {
     return result;
   }
 
-  //TODO CompareTo? with enums
+  // TODO CompareTo? with enums
   public boolean covers(UsagePoint o) {
     // access 'write' is higher than 'read', but only for nonempty locksets
     if (access.compareTo(o.access) > 0) {
@@ -101,12 +100,12 @@ public final class UsagePoint implements Comparable<UsagePoint> {
     }
 
     return from(Pair.zipList(compatibleNodes, o.compatibleNodes))
-           .allMatch(p -> p.getFirst().cover(p.getSecond()));
+        .allMatch(p -> p.getFirst().cover(p.getSecond()));
   }
 
   public boolean isCompatible(UsagePoint other) {
     return from(Pair.zipList(compatibleNodes, other.compatibleNodes))
-           .allMatch(p -> p.getFirst().isCompatibleWith(p.getSecond()));
+        .allMatch(p -> p.getFirst().isCompatibleWith(p.getSecond()));
   }
 
   public boolean isEmpty() {

@@ -42,23 +42,28 @@ import org.sosy_lab.cpachecker.util.refinement.StrongestPostOperator;
 import org.sosy_lab.cpachecker.util.refinement.UseDefRelation;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
-@Options(prefix="cpa.value.refinement")
+@Options(prefix = "cpa.value.refinement")
 public class ValueAnalysisPathInterpolator
     extends GenericPathInterpolator<ValueAnalysisState, ValueAnalysisInterpolant> {
 
-  @Option(secure=true, description="whether to perform (more precise) edge-based interpolation or (more efficient) path-based interpolation")
+  @Option(
+      secure = true,
+      description =
+          "whether to perform (more precise) edge-based interpolation or (more efficient)"
+              + " path-based interpolation")
   private boolean performEdgeBasedInterpolation = true;
 
   /**
-   * whether or not to do lazy-abstraction, i.e., when true, the re-starting node
-   * for the re-exploration of the ARG will be the node closest to the root
-   * where new information is made available through the current refinement
+   * whether or not to do lazy-abstraction, i.e., when true, the re-starting node for the
+   * re-exploration of the ARG will be the node closest to the root where new information is made
+   * available through the current refinement
    */
-  @Option(secure=true, description="whether or not to do lazy-abstraction")
+  @Option(secure = true, description = "whether or not to do lazy-abstraction")
   private boolean doLazyAbstraction = true;
 
   /**
-   * a reference to the assignment-counting state, to make the precision increment aware of thresholds
+   * a reference to the assignment-counting state, to make the precision increment aware of
+   * thresholds
    */
   private UniqueAssignmentsInPathConditionState assignments = null;
 
@@ -76,11 +81,9 @@ public class ValueAnalysisPathInterpolator
       final CFA pCfa)
       throws InvalidConfigurationException {
 
-    super(new ValueAnalysisEdgeInterpolator(pFeasibilityChecker,
-            pStrongestPostOperator,
-            pConfig,
-            pShutdownNotifier,
-            pCfa),
+    super(
+        new ValueAnalysisEdgeInterpolator(
+            pFeasibilityChecker, pStrongestPostOperator, pConfig, pShutdownNotifier, pCfa),
         pFeasibilityChecker,
         pPrefixProvider,
         ValueAnalysisInterpolantManager.getInstance(),
@@ -96,9 +99,8 @@ public class ValueAnalysisPathInterpolator
 
   @Override
   public Map<ARGState, ValueAnalysisInterpolant> performInterpolation(
-      final ARGPath errorPath,
-      final ValueAnalysisInterpolant interpolant
-  ) throws CPAException, InterruptedException {
+      final ARGPath errorPath, final ValueAnalysisInterpolant interpolant)
+      throws CPAException, InterruptedException {
 
     if (performEdgeBasedInterpolation) {
       return super.performInterpolation(errorPath, interpolant);
@@ -122,31 +124,30 @@ public class ValueAnalysisPathInterpolator
   }
 
   /**
-   * This method performs interpolation on the complete path, based on the
-   * use-def-relation. It creates fake interpolants that are not inductive.
+   * This method performs interpolation on the complete path, based on the use-def-relation. It
+   * creates fake interpolants that are not inductive.
    *
    * @param errorPathPrefix the error path prefix to interpolate
    */
-  private Map<ARGState, ValueAnalysisInterpolant> performPathBasedInterpolation(ARGPath errorPathPrefix) {
+  private Map<ARGState, ValueAnalysisInterpolant> performPathBasedInterpolation(
+      ARGPath errorPathPrefix) {
 
     Set<String> booleanVariables =
         cfa.getVarClassification().isPresent()
             ? cfa.getVarClassification().orElseThrow().getIntBoolVars()
             : ImmutableSet.of();
 
-    UseDefRelation useDefRelation = new UseDefRelation(errorPathPrefix,
-        booleanVariables,
-        !isRefinementSelectionEnabled());
+    UseDefRelation useDefRelation =
+        new UseDefRelation(errorPathPrefix, booleanVariables, !isRefinementSelectionEnabled());
 
-    Map<ARGState, ValueAnalysisInterpolant> interpolants = new UseDefBasedInterpolator(
-        errorPathPrefix,
-        useDefRelation,
-        cfa.getMachineModel()).obtainInterpolantsAsMap();
+    Map<ARGState, ValueAnalysisInterpolant> interpolants =
+        new UseDefBasedInterpolator(errorPathPrefix, useDefRelation, cfa.getMachineModel())
+            .obtainInterpolantsAsMap();
 
     totalInterpolationQueries.setNextValue(1);
 
     int size = 0;
-    for(ValueAnalysisInterpolant itp : interpolants.values()) {
+    for (ValueAnalysisInterpolant itp : interpolants.values()) {
       size = size + itp.getSize();
     }
     sizeOfInterpolant.setNextValue(size);
@@ -162,8 +163,9 @@ public class ValueAnalysisPathInterpolator
   public Multimap<CFANode, MemoryLocation> determinePrecisionIncrement(ARGPath errorPath)
       throws CPAException, InterruptedException {
 
-    assignments = AbstractStates.extractStateByType(errorPath.getLastState(),
-                                                    UniqueAssignmentsInPathConditionState.class);
+    assignments =
+        AbstractStates.extractStateByType(
+            errorPath.getLastState(), UniqueAssignmentsInPathConditionState.class);
 
     Multimap<CFANode, MemoryLocation> increment = HashMultimap.create();
 
@@ -171,8 +173,8 @@ public class ValueAnalysisPathInterpolator
         performInterpolation(errorPath, interpolantManager.createInitialInterpolant());
 
     for (Map.Entry<ARGState, ValueAnalysisInterpolant> itp : itps.entrySet()) {
-      addToPrecisionIncrement(increment, AbstractStates.extractLocation(itp.getKey()),
-          itp.getValue());
+      addToPrecisionIncrement(
+          increment, AbstractStates.extractLocation(itp.getKey()), itp.getValue());
     }
 
     return increment;
@@ -188,8 +190,7 @@ public class ValueAnalysisPathInterpolator
   private void addToPrecisionIncrement(
       final Multimap<CFANode, MemoryLocation> increment,
       final CFANode currentNode,
-      final ValueAnalysisInterpolant itp
-  ) {
+      final ValueAnalysisInterpolant itp) {
 
     for (MemoryLocation memoryLocation : itp.getMemoryLocations()) {
       if (assignments == null || !assignments.exceedsThreshold(memoryLocation)) {
@@ -214,7 +215,8 @@ public class ValueAnalysisPathInterpolator
       throw new RefinementFailedException(Reason.InterpolationFailed, errorPath);
     }
 
-    // if doing lazy abstraction, use the node closest to the root node where new information is present
+    // if doing lazy abstraction, use the node closest to the root node where new information is
+    // present
     if (doLazyAbstraction) {
       PathIterator it = errorPath.pathIterator();
       for (int i = 0; i < interpolationOffset; i++) {

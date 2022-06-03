@@ -14,7 +14,6 @@ import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.java.JExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -69,20 +68,30 @@ public class ToFormulaVisitor
     AExpression expression = pLeafExpression.getExpression();
     final CFAEdge edge;
     if (expression instanceof CExpression) {
-      edge = new CAssumeEdge("", FileLocation.DUMMY,
-          new CFANode(CFunctionDeclaration.DUMMY), new CFANode(CFunctionDeclaration.DUMMY),
-          (CExpression) expression, pLeafExpression.assumeTruth());
+      edge =
+          new CAssumeEdge(
+              "",
+              FileLocation.DUMMY,
+              CFANode.newDummyCFANode(),
+              CFANode.newDummyCFANode(),
+              (CExpression) expression,
+              pLeafExpression.assumeTruth());
     } else if (expression instanceof JExpression) {
-      edge = new JAssumeEdge("", FileLocation.DUMMY,
-          new CFANode(CFunctionDeclaration.DUMMY), new CFANode(CFunctionDeclaration.DUMMY),
-          (JExpression) expression, pLeafExpression.assumeTruth());
+      edge =
+          new JAssumeEdge(
+              "",
+              FileLocation.DUMMY,
+              CFANode.newDummyCFANode(),
+              CFANode.newDummyCFANode(),
+              (JExpression) expression,
+              pLeafExpression.assumeTruth());
     } else {
       throw new AssertionError("Unsupported expression type.");
     }
     PathFormula clearContext =
         context == null
             ? pathFormulaManager.makeEmptyPathFormula()
-            : pathFormulaManager.makeEmptyPathFormula(context);
+            : pathFormulaManager.makeEmptyPathFormulaWithContextFrom(context);
     PathFormula invariantPathFormula;
     try {
       invariantPathFormula = pathFormulaManager.makeAnd(clearContext, edge);
@@ -114,5 +123,4 @@ public class ToFormulaVisitor
       super(pCause);
     }
   }
-
 }

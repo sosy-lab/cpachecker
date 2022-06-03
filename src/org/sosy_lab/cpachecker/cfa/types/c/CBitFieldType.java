@@ -38,7 +38,8 @@ public class CBitFieldType implements CType {
    */
   public CBitFieldType(CType pBitFieldType, int pBitFieldSize) {
     type = checkType(pBitFieldType);
-    Preconditions.checkArgument(pBitFieldSize >= 0, "Bit-field size must not be negative, but was %s", pBitFieldSize);
+    Preconditions.checkArgument(
+        pBitFieldSize >= 0, "Bit-field size must not be negative, but was %s", pBitFieldSize);
     bitFieldSize = pBitFieldSize;
   }
 
@@ -68,6 +69,10 @@ public class CBitFieldType implements CType {
 
   @Override
   public String toASTString(String pDeclarator) {
+    if (bitFieldSize == 0) {
+      // bit-field types are valid only in fields, and zero-width bit fields need to be anonymous
+      pDeclarator = "";
+    }
     return type.toASTString(pDeclarator) + " : " + bitFieldSize;
   }
 
@@ -140,10 +145,8 @@ public class CBitFieldType implements CType {
     }
     if (pObj instanceof CBitFieldType) {
       CBitFieldType other = (CBitFieldType) pObj;
-      return bitFieldSize == other.bitFieldSize
-          && type.equals(other.type);
+      return bitFieldSize == other.bitFieldSize && type.equals(other.type);
     }
     return false;
   }
-
 }

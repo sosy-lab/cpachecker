@@ -15,6 +15,7 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdge;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValueFilter;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValueFilter.SMGEdgeHasValueFilterByObject;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGNullObject;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGValue;
@@ -31,7 +32,7 @@ final class SMGConsistencyVerifier {
    * @param pMessage A message to log
    * @return True, if the check was successful (equivalent to { @link pResult }
    */
-  static private boolean verifySMGProperty(boolean pResult, LogManager pLogger, String pMessage) {
+  private static boolean verifySMGProperty(boolean pResult, LogManager pLogger, String pMessage) {
     pLogger.log(Level.FINEST, "Checking SMG consistency: ", pMessage, ":", pResult);
     return pResult;
   }
@@ -75,7 +76,8 @@ final class SMGConsistencyVerifier {
     }
 
     // Verify that NULL object has no value
-    SMGEdgeHasValueFilter filter = SMGEdgeHasValueFilter.objectFilter(SMGNullObject.INSTANCE);
+    SMGEdgeHasValueFilterByObject filter =
+        SMGEdgeHasValueFilter.objectFilter(SMGNullObject.INSTANCE);
 
     if (!pSmg.getHVEdges(filter).isEmpty()) {
       pLogger.log(Level.SEVERE, "SMG inconsistent: null object has some value");
@@ -98,8 +100,8 @@ final class SMGConsistencyVerifier {
   }
 
   /**
-   * Verifies that invalid regions do not have any Has-Value edges, as this
-   * is forbidden in consistent SMGs
+   * Verifies that invalid regions do not have any Has-Value edges, as this is forbidden in
+   * consistent SMGs
    *
    * @param pLogger A logger to record results
    * @param pSmg A SMG to verify
@@ -112,7 +114,7 @@ final class SMGConsistencyVerifier {
         continue;
       }
       // Verify that the HasValue edge set for this invalid object is empty
-      SMGEdgeHasValueFilter filter = SMGEdgeHasValueFilter.objectFilter(obj);
+      SMGEdgeHasValueFilterByObject filter = SMGEdgeHasValueFilter.objectFilter(obj);
 
       if (!pSmg.getHVEdges(filter).isEmpty()) {
         pLogger.log(Level.SEVERE, "SMG inconsistent: invalid object has a HVEdge");
@@ -124,8 +126,8 @@ final class SMGConsistencyVerifier {
   }
 
   /**
-   * Verifies that any fields (as designated by Has-Value edges) do not
-   * exceed the boundary of the object.
+   * Verifies that any fields (as designated by Has-Value edges) do not exceed the boundary of the
+   * object.
    *
    * @param pLogger A logger to record results
    * @param pObject An object to verify
@@ -136,7 +138,7 @@ final class SMGConsistencyVerifier {
       LogManager pLogger, SMGObject pObject, UnmodifiableSMG pSmg) {
 
     // For all fields in the object, verify that sizeof(type)+field_offset < object_size
-    SMGEdgeHasValueFilter filter = SMGEdgeHasValueFilter.objectFilter(pObject);
+    SMGEdgeHasValueFilterByObject filter = SMGEdgeHasValueFilter.objectFilter(pObject);
 
     for (SMGEdgeHasValue hvEdge : pSmg.getHVEdges(filter)) {
       if ((hvEdge.getOffset() + hvEdge.getSizeInBits()) > pObject.getSize()) {
@@ -151,13 +153,14 @@ final class SMGConsistencyVerifier {
 
   /**
    * Verify all objects satisfy the Field Consistency criteria
+   *
    * @param pLogger A logger to record results
    * @param pSmg A SMG to verify
    * @return True, if pSmg satisfies all consistency criteria. False otherwise.
    */
   private static boolean verifyFieldConsistency(LogManager pLogger, UnmodifiableSMG pSmg) {
     for (SMGObject obj : pSmg.getObjects()) {
-      if (! checkSingleFieldConsistency(pLogger, obj, pSmg)) {
+      if (!checkSingleFieldConsistency(pLogger, obj, pSmg)) {
         return false;
       }
     }
@@ -187,7 +190,7 @@ final class SMGConsistencyVerifier {
       }
 
       // Verify that the value assigned to the edge exists in the SMG
-      if (! pSmg.getValues().contains(edge.getValue())) {
+      if (!pSmg.getValues().contains(edge.getValue())) {
         pLogger.log(Level.SEVERE, "SMG inconsistent: Edge to a nonexistent value:", edge);
         return false;
       }
@@ -203,7 +206,7 @@ final class SMGConsistencyVerifier {
       //    - different values point to same place (object, offset)
       //    - same values do not point to the same place
       for (SMGEdge other_edge : to_verify) {
-        if (! edge.isConsistentWith(other_edge)) {
+        if (!edge.isConsistentWith(other_edge)) {
           pLogger.log(Level.SEVERE, "SMG inconsistent: inconsistent edges");
           pLogger.log(Level.SEVERE, "First edge:  ", edge);
           pLogger.log(Level.SEVERE, "Second edge: ", other_edge);
@@ -231,10 +234,11 @@ final class SMGConsistencyVerifier {
     return true;
   }
 
-  //TODO: NEQ CONSISTENCY
+  // TODO: NEQ CONSISTENCY
 
   /**
    * Verify a single SMG if it meets all consistency criteria.
+   *
    * @param pLogger A logger to record results
    * @param pSmg A SMG to verify
    * @return True, if pSmg satisfies all consistency criteria
@@ -243,30 +247,36 @@ final class SMGConsistencyVerifier {
     boolean toReturn = true;
     pLogger.log(Level.FINEST, "Starting constistency check of a SMG");
 
-    toReturn = toReturn && verifySMGProperty(
-        verifyNullObject(pLogger, pSmg),
-        pLogger,
-        "null object invariants hold");
-    toReturn = toReturn && verifySMGProperty(
-        verifyInvalidRegionsHaveNoHVEdges(pLogger, pSmg),
-        pLogger,
-        "invalid regions have no outgoing edges");
-    toReturn = toReturn && verifySMGProperty(
-        verifyFieldConsistency(pLogger, pSmg),
-        pLogger,
-        "field consistency");
-    toReturn = toReturn && verifySMGProperty(
-        verifyEdgeConsistency(pLogger, pSmg, pSmg.getHVEdges()),
-        pLogger,
-        "Has Value edge consistency");
-    toReturn = toReturn && verifySMGProperty(
-        verifyEdgeConsistency(pLogger, pSmg, pSmg.getPTEdges()),
-        pLogger,
-        "Points To edge consistency");
-    toReturn = toReturn && verifySMGProperty(
-        verifyObjectConsistency(pLogger, pSmg),
-        pLogger,
-        "Validity consistency");
+    toReturn =
+        toReturn
+            && verifySMGProperty(
+                verifyNullObject(pLogger, pSmg), pLogger, "null object invariants hold");
+    toReturn =
+        toReturn
+            && verifySMGProperty(
+                verifyInvalidRegionsHaveNoHVEdges(pLogger, pSmg),
+                pLogger,
+                "invalid regions have no outgoing edges");
+    toReturn =
+        toReturn
+            && verifySMGProperty(
+                verifyFieldConsistency(pLogger, pSmg), pLogger, "field consistency");
+    toReturn =
+        toReturn
+            && verifySMGProperty(
+                verifyEdgeConsistency(pLogger, pSmg, pSmg.getHVEdges()),
+                pLogger,
+                "Has Value edge consistency");
+    toReturn =
+        toReturn
+            && verifySMGProperty(
+                verifyEdgeConsistency(pLogger, pSmg, pSmg.getPTEdges()),
+                pLogger,
+                "Points To edge consistency");
+    toReturn =
+        toReturn
+            && verifySMGProperty(
+                verifyObjectConsistency(pLogger, pSmg), pLogger, "Validity consistency");
 
     pLogger.log(Level.FINEST, "Ending consistency check of a SMG");
 

@@ -18,7 +18,6 @@ import java.io.PrintStream;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.List;
 import java.util.logging.Level;
 import org.sosy_lab.common.Optionals;
@@ -34,7 +33,6 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.NestingAlgorithm;
@@ -57,7 +55,7 @@ import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.Triple;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 
-@Options(prefix = "explainer")
+@Options(prefix = "faultLocalization.by_distance")
 public class Explainer extends NestingAlgorithm {
 
   private enum Metric {
@@ -68,14 +66,14 @@ public class Explainer extends NestingAlgorithm {
 
   @Option(
       secure = true,
-      name = "firstStep",
-      description = "Configuration of the first step of the Explainer Algorithm")
+      name = "analysis",
+      description = "Configuration to use for initial program-state exploration")
   @FileOption(Type.REQUIRED_INPUT_FILE)
-  private Path firstStepConfig;
+  private Path firstStepConfig = null;
 
   @Option(
       secure = true,
-      name = "distanceMetric",
+      name = "metric",
       description = "The distance metric that ought to be used for the computation of the distance")
   private Metric distanceMetric = Metric.ADM;
 
@@ -83,12 +81,16 @@ public class Explainer extends NestingAlgorithm {
       secure = true,
       name = "stopAfter",
       description =
-          "The number that specifies how many times are we going to iterate over the reachedSet")
+          "Maximum number of explorations to run for collecting error paths, before performing"
+              + " fault localization.  Exploration runs stop when the program under analysis is"
+              + " fully explored or the specified number of runs is reached. Fault localization may"
+              + " be more precise if more error paths are available.")
   private int stopAfter = 40;
 
   private PredicateCPA cpa;
 
   private final ExplainerAlgorithmStatistics stats;
+  private final CFA cfa;
 
   public Explainer(
       Configuration pConfig,
@@ -97,8 +99,9 @@ public class Explainer extends NestingAlgorithm {
       Specification pSpecification,
       CFA pCfa)
       throws InvalidConfigurationException {
-    super(pConfig, pLogger, pShutdownNotifier, pSpecification, pCfa);
+    super(pConfig, pLogger, pShutdownNotifier, pSpecification);
     pConfig.inject(this);
+    cfa = pCfa;
     stats = new ExplainerAlgorithmStatistics(pLogger);
   }
 
@@ -111,7 +114,7 @@ public class Explainer extends NestingAlgorithm {
 
     try {
       ShutdownManager shutdownManager = ShutdownManager.createWithParent(shutdownNotifier);
-      secondAlg = createAlgorithm(firstStepConfig, cfa.getMainFunction(), shutdownManager, reached);
+      secondAlg = createAlgorithm(firstStepConfig, cfa, shutdownManager, reached);
       cpa = CPAs.retrieveCPAOrFail(secondAlg.getSecond(), PredicateCPA.class, Explainer.class);
     } catch (IOException pE) {
       throw new AssertionError(pE);
@@ -260,22 +263,23 @@ public class Explainer extends NestingAlgorithm {
 
   private Triple<Algorithm, ConfigurableProgramAnalysis, ReachedSet> createAlgorithm(
       Path singleConfigFileName,
-      CFANode mainFunction,
+      CFA pCfa,
       ShutdownManager singleShutdownManager,
       ReachedSet currentReached)
       throws InvalidConfigurationException, CPAException, IOException, InterruptedException {
     AggregatedReachedSets aggregateReached;
     if (currentReached != null) {
-      aggregateReached = new AggregatedReachedSets(Collections.singleton(currentReached));
+      aggregateReached = AggregatedReachedSets.singleton(currentReached);
     } else {
-      aggregateReached = new AggregatedReachedSets();
+      aggregateReached = AggregatedReachedSets.empty();
     }
     return super.createAlgorithm(
         singleConfigFileName,
-        mainFunction,
+        pCfa.getMainFunction(),
+        pCfa,
         singleShutdownManager,
         aggregateReached,
-        ImmutableSet.of("analysis.useExplainer"),
+        ImmutableSet.of("analysis.algorithm.faultLocalization.by_distance"),
         stats.getSubStatistics());
   }
 

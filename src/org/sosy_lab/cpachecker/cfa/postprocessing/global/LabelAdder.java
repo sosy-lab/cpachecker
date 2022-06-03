@@ -23,34 +23,27 @@ import org.sosy_lab.cpachecker.cfa.ast.AFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFALabelNode;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.CFATerminationNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
-import org.sosy_lab.cpachecker.cfa.model.c.CLabelNode;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.predicates.BlockOperator;
 
-/**
- * Post-processing step for {@link CFA} that adds labels at specified points.
- */
-@Options(prefix="cfa.addLabels")
+/** Post-processing step for {@link CFA} that adds labels at specified points. */
+@Options(prefix = "cfa.addLabels")
 public class LabelAdder {
 
   private static final String BLOCK_LABEL_NAME = "BLOCK_";
   private static final String EXIT_LABEL_NAME = "PROG_EXIT_";
 
-  @Option(
-      secure = true,
-      name = "atBlocks",
-      description = "Add a unique label for each basic block"
-  )
+  @Option(secure = true, name = "atBlocks", description = "Add a unique label for each basic block")
   private boolean addBlockLabels = true;
 
   @Option(
       secure = true,
       name = "atProgramExit",
-      description = "Add a unique label before each program exit"
-  )
+      description = "Add a unique label before each program exit")
   private boolean addProgramExitLabels = false;
 
   private final Configuration config;
@@ -126,10 +119,11 @@ public class LabelAdder {
     }
   }
 
-  private int addLabelBefore(CFANode pNode, String pBlockSuffix, int pBlockNumberStart, MutableCFA pCfa) {
+  private int addLabelBefore(
+      CFANode pNode, String pBlockSuffix, int pBlockNumberStart, MutableCFA pCfa) {
     final List<CFAEdge> enteringEdges = CFAUtils.enteringEdges(pNode).toList();
     int num = 0;
-    for (CFAEdge e : enteringEdges)  {
+    for (CFAEdge e : enteringEdges) {
       final String labelName = pBlockSuffix + (pBlockNumberStart + num);
       if (pNode instanceof FunctionExitNode) {
         addLabelBefore(e, labelName, pCfa);
@@ -147,7 +141,7 @@ public class LabelAdder {
     final String functionName = start.getFunctionName();
     final AFunctionDeclaration function = start.getFunction();
     final FunctionCloner fc = new FunctionCloner(functionName, functionName, false);
-    final CFANode labelNode = new CLabelNode(function, pLabelName);
+    final CFANode labelNode = new CFALabelNode(function, pLabelName);
     pCfa.addNode(labelNode);
 
     final CFAEdge redirectedEdge = fc.cloneEdge(pEdge, labelNode, end);
@@ -156,7 +150,9 @@ public class LabelAdder {
     end.removeEnteringEdge(pEdge);
     end.addEnteringEdge(redirectedEdge);
 
-    final CFAEdge labelEdge = new BlankEdge(pLabelName + ":; ", FileLocation.DUMMY, start, labelNode, "Label: " + pLabelName);
+    final CFAEdge labelEdge =
+        new BlankEdge(
+            pLabelName + ":; ", FileLocation.DUMMY, start, labelNode, "Label: " + pLabelName);
     start.addLeavingEdge(labelEdge);
     labelNode.addEnteringEdge(labelEdge);
   }
@@ -168,7 +164,7 @@ public class LabelAdder {
     final AFunctionDeclaration function = start.getFunction();
     final FunctionCloner fc = new FunctionCloner(functionName, functionName, false);
     final CFANode labelConnector = new CFANode(function);
-    final CFANode labelNode = new CLabelNode(function, pLabelName);
+    final CFANode labelNode = new CFALabelNode(function, pLabelName);
     pCfa.addNode(labelNode);
     pCfa.addNode(labelConnector);
 
@@ -178,10 +174,17 @@ public class LabelAdder {
     end.removeEnteringEdge(pEdge);
     labelConnector.addEnteringEdge(redirectedEdge);
 
-    final CFAEdge labelEdge = new BlankEdge(pLabelName + ":; ", FileLocation.DUMMY, labelConnector, labelNode, "Label: " + pLabelName);
+    final CFAEdge labelEdge =
+        new BlankEdge(
+            pLabelName + ":; ",
+            FileLocation.DUMMY,
+            labelConnector,
+            labelNode,
+            "Label: " + pLabelName);
     labelConnector.addLeavingEdge(labelEdge);
     labelNode.addEnteringEdge(labelEdge);
-    final CFAEdge connectorEdge = new BlankEdge("", FileLocation.DUMMY, labelNode, end, "label connector");
+    final CFAEdge connectorEdge =
+        new BlankEdge("", FileLocation.DUMMY, labelNode, end, "label connector");
     labelNode.addLeavingEdge(connectorEdge);
     end.addEnteringEdge(connectorEdge);
   }

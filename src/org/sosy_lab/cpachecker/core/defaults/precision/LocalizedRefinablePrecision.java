@@ -15,22 +15,16 @@ import com.google.common.collect.Multimap;
 import com.google.common.collect.Ordering;
 import java.io.IOException;
 import java.io.Writer;
-import java.util.Map.Entry;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.types.Type;
-import org.sosy_lab.cpachecker.util.globalinfo.CFAInfo;
-import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 class LocalizedRefinablePrecision extends RefinablePrecision {
-
-  private static final long serialVersionUID = 1L;
-
   /**
    * the immutable collection that determines which variables are tracked at a specific location -
    * if it is null, all variables are tracked
    */
-  private transient ImmutableSetMultimap<CFANode, MemoryLocation> rawPrecision;
+  private final ImmutableSetMultimap<CFANode, MemoryLocation> rawPrecision;
 
   LocalizedRefinablePrecision(VariableTrackingPrecision pBaseline) {
     super(pBaseline);
@@ -46,7 +40,7 @@ class LocalizedRefinablePrecision extends RefinablePrecision {
 
   @Override
   public LocalizedRefinablePrecision withIncrement(Multimap<CFANode, MemoryLocation> increment) {
-    if (this.rawPrecision.entries().containsAll(increment.entries())) {
+    if (rawPrecision.entries().containsAll(increment.entries())) {
       return this;
     } else {
       ImmutableSetMultimap<CFANode, MemoryLocation> refinedPrec =
@@ -68,7 +62,7 @@ class LocalizedRefinablePrecision extends RefinablePrecision {
       writer.write("\n" + currentLocation + ":\n");
 
       for (MemoryLocation variable : rawPrecision.get(currentLocation)) {
-        writer.write(variable.serialize() + "\n");
+        writer.write(variable.getExtendedQualifiedName() + "\n");
       }
     }
   }
@@ -127,27 +121,5 @@ class LocalizedRefinablePrecision extends RefinablePrecision {
   @Override
   public int hashCode() {
     return super.hashCode() * 31 + rawPrecision.hashCode();
-  }
-
-  private void writeObject(java.io.ObjectOutputStream out) throws IOException {
-    out.defaultWriteObject();
-
-    out.writeInt(rawPrecision.size());
-    for (Entry<CFANode, MemoryLocation> e : rawPrecision.entries()) {
-      out.writeInt(e.getKey().getNodeNumber());
-      out.writeObject(e.getValue());
-    }
-  }
-
-  @SuppressWarnings("UnusedVariable") // parameter is required by API
-  private void readObject(java.io.ObjectInputStream in) throws IOException, ClassNotFoundException {
-    in.defaultReadObject();
-    CFAInfo cfa = GlobalInfo.getInstance().getCFAInfo().orElseThrow();
-    ImmutableSetMultimap.Builder<CFANode, MemoryLocation> precisionBuilder = createBuilder();
-    final int entryCount = in.readInt();
-    for (int i = 0; i < entryCount; i++) {
-      precisionBuilder.put(cfa.getNodeByNodeNumber(in.readInt()), (MemoryLocation) in.readObject());
-    }
-    rawPrecision = precisionBuilder.build();
   }
 }

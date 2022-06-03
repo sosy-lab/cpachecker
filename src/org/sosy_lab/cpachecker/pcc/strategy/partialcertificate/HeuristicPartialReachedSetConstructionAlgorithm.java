@@ -13,20 +13,25 @@ import java.util.List;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.pcc.PartialReachedConstructionAlgorithm;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 
-public class HeuristicPartialReachedSetConstructionAlgorithm implements PartialReachedConstructionAlgorithm {
+public class HeuristicPartialReachedSetConstructionAlgorithm
+    implements PartialReachedConstructionAlgorithm {
 
   @Override
-  public AbstractState[] computePartialReachedSet(final UnmodifiableReachedSet pReached) {
+  public AbstractState[] computePartialReachedSet(
+      final UnmodifiableReachedSet pReached, final ConfigurableProgramAnalysis pCpa) {
     List<AbstractState> result = new ArrayList<>();
     CFANode node;
     for (AbstractState state : pReached) {
       node = AbstractStates.extractLocation(state);
-      if (node == null || node.getNumEnteringEdges() > 1
-          || (node.getNumLeavingEdges() > 0 && node.getLeavingEdge(0).getEdgeType() == CFAEdgeType.FunctionCallEdge)) {
+      if (node == null
+          || node.getNumEnteringEdges() > 1
+          || (node.getNumLeavingEdges() > 0
+              && node.getLeavingEdge(0).getEdgeType() == CFAEdgeType.FunctionCallEdge)) {
         result.add(state);
       }
     }
@@ -37,5 +42,4 @@ public class HeuristicPartialReachedSetConstructionAlgorithm implements PartialR
     result.toArray(arrayRep);
     return arrayRep;
   }
-
 }

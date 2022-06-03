@@ -10,7 +10,6 @@ package org.sosy_lab.cpachecker.util.faultlocalization;
 
 import com.google.common.base.Splitter;
 import java.util.Collection;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -21,17 +20,11 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.util.faultlocalization.appendables.FaultInfo;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.pretty_print.BooleanFormulaParser;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.pretty_print.ExpressionNode;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.pretty_print.FormulaNode;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.pretty_print.LiteralNode;
-import org.sosy_lab.java_smt.api.BooleanFormula;
 
 public class InformationProvider {
 
   /**
-   * Search for iteration variables and for suspicious
-   * calculations within the array subscript.
+   * Search for iteration variables and for suspicious calculations within the array subscript.
    *
    * @param faults ranked faults
    * @param edges counterexample as list of edges
@@ -39,8 +32,8 @@ public class InformationProvider {
   public static void searchForAdditionalInformation(Collection<Fault> faults, List<CFAEdge> edges) {
     // matches eg "x = x + 1", "test = test4    - 3" but not "test = 3 + test4"
     final Pattern matchIteration = Pattern.compile(".+=.+[+\\-/*][ 1-9]+[0-9]+");
-    // matches eg "x = 4 + arr[c + 3]
-    final Pattern matchArrayOperation = Pattern.compile(".*\\[.*[+\\-/*]+.*].*");
+    // matches eg "x = 4 + arr[c + 3] does not match "[.*]"
+    final Pattern matchArrayOperation = Pattern.compile(".+\\[.*[+\\-/*]+.*].*");
 
     // Find iteration variables
     Map<Object, Long> counts =
@@ -97,54 +90,6 @@ public class InformationProvider {
         }
       }
     }
-  }
-
-  public static String prettyPrecondition(BooleanFormula precondition, List<BooleanFormula> atoms) {
-    FormulaNode root = BooleanFormulaParser.parse(precondition);
-    List<FormulaNode> conjuncts = BooleanFormulaParser.toConjunctionArgs(root);
-
-    Map<String, String> nondetToName = new HashMap<>();
-
-    for (BooleanFormula atom : atoms) {
-      FormulaNode atomRoot = BooleanFormulaParser.parse(atom);
-      if (atomRoot.getType().equals(FormulaNode.FormulaNodeType.ExpressionNode)) {
-        ExpressionNode exNode = (ExpressionNode) atomRoot;
-        if (exNode.getOperands().size() == 2 &&
-            exNode.getOperator().contains("=")) {
-          FormulaNode left = exNode.getOperands().get(0);
-          FormulaNode right = exNode.getOperands().get(1);
-          if (left.toString().contains("__VERIFIER_nondet")) {
-            nondetToName.put(left.toString(), right.toString());
-          }
-          if (right.toString().contains("__VERIFIER_nondet")) {
-            nondetToName.put(right.toString(), left.toString());
-          }
-        }
-      }
-    }
-
-
-    for (FormulaNode conjunct : conjuncts) {
-      if (conjunct.getSuccessors().size() == 2 &&
-          conjunct.getType().equals(FormulaNode.FormulaNodeType.ExpressionNode) &&
-          conjunct.toString().contains("__VERIFIER_nondet") &&
-          conjunct.getSuccessors().get(0).getType().equals(FormulaNode.FormulaNodeType.LiteralNode) &&
-          conjunct.getSuccessors().get(1).getType().equals(FormulaNode.FormulaNodeType.LiteralNode)) {
-          LiteralNode n1 = (LiteralNode) conjunct.getSuccessors().get(0);
-          if (n1.toString().contains("__VERIFIER_nondet")) {
-            conjunct.getSuccessors().remove(0);
-            conjunct.getSuccessors().add(0, new LiteralNode(nondetToName.getOrDefault(n1.toString(), n1.toString())));
-            continue;
-          }
-          LiteralNode n2 = (LiteralNode) conjunct.getSuccessors().get(1);
-          if (n1.toString().contains("__VERIFIER_nondet")) {
-            conjunct.getSuccessors().remove(1);
-            conjunct.getSuccessors().add(new LiteralNode(nondetToName.getOrDefault(n2.toString(), n2.toString())));
-          }
-      }
-    }
-
-    return root.toString();
   }
 
   public static void addDefaultPotentialFixesToFaults(

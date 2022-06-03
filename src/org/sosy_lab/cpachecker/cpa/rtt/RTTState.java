@@ -27,40 +27,29 @@ import org.sosy_lab.cpachecker.cfa.ast.java.JFieldDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.java.JClassOrInterfaceType;
 import org.sosy_lab.cpachecker.core.defaults.LatticeAbstractState;
 
-
-public class RTTState extends AbstractAppender implements
-    LatticeAbstractState<RTTState> {
-
+public class RTTState extends AbstractAppender implements LatticeAbstractState<RTTState> {
 
   public static final String KEYWORD_THIS = "this";
-
 
   public static final String NULL_REFERENCE = "null";
 
   /**
-   * the map that keeps the name of ReferenceVariables and their constant  Java Run Time Class Objects
+   * the map that keeps the name of ReferenceVariables and their constant Java Run Time Class
+   * Objects
    */
   private final Map<String, String> constantsMap;
 
-  /**
-   * this is a convenience map that gives the unique Identification
-   * of each Object back
-   */
+  /** this is a convenience map that gives the unique Identification of each Object back */
   private final Map<String, String> identificationMap;
 
-  /**
-   * this is a convenience map that gives the runTimeClassType
-   * of each Object back
-   */
+  /** this is a convenience map that gives the runTimeClassType of each Object back */
   private final Map<String, String> classTypeMap;
 
   private final Set<String> staticFieldVariables = new HashSet<>();
 
   private final Set<String> nonStaticFieldVariables = new HashSet<>();
 
-  /**
-   * Marks the current unique Object Scope this states belons to.
-   */
+  /** Marks the current unique Object Scope this states belons to. */
   private String classObjectScope;
 
   /** Unique Object Scope Stack */
@@ -90,11 +79,11 @@ public class RTTState extends AbstractAppender implements
 
   /**
    * Assigns a Java Run Time Class Type to the variable and puts it in the map
+   *
    * @param variableName name of the variable.
    * @param object value to be assigned.
    */
   void assignObject(String variableName, String object) {
-
 
     checkNotNull(variableName);
     checkNotNull(object);
@@ -122,7 +111,8 @@ public class RTTState extends AbstractAppender implements
   }
 
   public boolean isKnown(String pFieldName) {
-    return staticFieldVariables.contains(pFieldName) || nonStaticFieldVariables.contains(pFieldName);
+    return staticFieldVariables.contains(pFieldName)
+        || nonStaticFieldVariables.contains(pFieldName);
   }
 
   public boolean isKnownAsStatic(String pFieldName) {
@@ -135,13 +125,13 @@ public class RTTState extends AbstractAppender implements
 
   /**
    * Assigns a Java Run Time Class Type to the variable and puts it in the map
+   *
    * @param variableName name of the variable.
    * @param javaRunTimeClassName value to be assigned.
    */
   private void assignNewUniqueObject(String variableName, String javaRunTimeClassName) {
     checkNotNull(variableName);
     checkNotNull(javaRunTimeClassName);
-
 
     String iD;
     String uniqueObject;
@@ -162,17 +152,19 @@ public class RTTState extends AbstractAppender implements
   void forget(String variableName) {
     String oldValue = constantsMap.get(variableName);
 
-    if (oldValue != null && !oldValue.equals(NULL_REFERENCE) && !constantsMap.containsValue(oldValue)) {
-     forgetObject(oldValue);
+    if (oldValue != null
+        && !oldValue.equals(NULL_REFERENCE)
+        && !constantsMap.containsValue(oldValue)) {
+      forgetObject(oldValue);
     }
 
     constantsMap.remove(variableName);
   }
 
   /**
-   * This method drops all entries belonging to the stack frame of a function.
-   * Additionally, it retrieves the Object scope of the returned to function.
-   * This method should be called right before leaving a function.
+   * This method drops all entries belonging to the stack frame of a function. Additionally, it
+   * retrieves the Object scope of the returned to function. This method should be called right
+   * before leaving a function.
    *
    * @param functionName the name of the function that is about to be left
    */
@@ -192,7 +184,7 @@ public class RTTState extends AbstractAppender implements
     retrieveObjectScope();
   }
 
-   private void retrieveObjectScope() {
+  private void retrieveObjectScope() {
     // TODO Own Exception for Stack is empty
     classObjectScope = classObjectStack.pop();
     constantsMap.put(KEYWORD_THIS, classObjectScope);
@@ -202,13 +194,13 @@ public class RTTState extends AbstractAppender implements
     return checkNotNull(constantsMap.get(variableName));
   }
 
-   String getRunTimeClassFor(String variableName) {
+  String getRunTimeClassFor(String variableName) {
     checkNotNull(variableName);
     String uniqueObject = getUniqueObjectFor(variableName);
     return classTypeMap.get(uniqueObject);
   }
 
-   String getObjectIDFor(String uniqueObject) {
+  String getObjectIDFor(String uniqueObject) {
     checkNotNull(uniqueObject);
     String iD = classTypeMap.get(uniqueObject);
     checkNotNull(iD);
@@ -219,7 +211,7 @@ public class RTTState extends AbstractAppender implements
     return constantsMap.containsKey(variableName);
   }
 
-   int getSize() {
+  int getSize() {
     return constantsMap.size();
   }
 
@@ -236,7 +228,6 @@ public class RTTState extends AbstractAppender implements
     Map<String, String> newConstantsMap = Maps.newHashMapWithExpectedSize(size);
     Map<String, String> newIdentificationMap = new HashMap<>(0);
     Map<String, String> newClassTypeMap = new HashMap<>(0);
-
 
     for (Map.Entry<String, String> otherEntry : other.constantsMap.entrySet()) {
       String key = otherEntry.getKey();
@@ -262,16 +253,19 @@ public class RTTState extends AbstractAppender implements
       }
     }
 
-    //TODO no this for unequal scope (Is it possible)
+    // TODO no this for unequal scope (Is it possible)
 
-    return new RTTState(newConstantsMap, newIdentificationMap, newClassTypeMap, classObjectScope, classObjectStack);
+    return new RTTState(
+        newConstantsMap, newIdentificationMap, newClassTypeMap, classObjectScope, classObjectStack);
   }
 
   /**
-   * This method decides if this element is less or equal than the other element, based on the order imposed by the lattice.
+   * This method decides if this element is less or equal than the other element, based on the order
+   * imposed by the lattice.
    *
    * @param other the other element
-   * @return true, if this element is less or equal than the other element, based on the order imposed by the lattice
+   * @return true, if this element is less or equal than the other element, based on the order
+   *     imposed by the lattice
    */
   @Override
   public boolean isLessOrEqual(RTTState other) {
@@ -282,7 +276,8 @@ public class RTTState extends AbstractAppender implements
     }
 
     // this element is not less or equal than the other element,
-    // if any one Java Class Types of the other element differs from the Java Class Type in this element
+    // if any one Java Class Types of the other element differs from the Java Class Type in this
+    // element
     for (Map.Entry<String, String> otherEntry : other.constantsMap.entrySet()) {
       String key = otherEntry.getKey();
 
@@ -301,16 +296,18 @@ public class RTTState extends AbstractAppender implements
       return false;
     }
 
-
     return true;
   }
 
-
-
   public static RTTState copyOf(RTTState old) {
     Deque<String> newClassObjectStack = new ArrayDeque<>(old.classObjectStack);
-      //TODO Investigate if this works
-    return new RTTState(new HashMap<>(old.constantsMap), new HashMap<>(old.identificationMap), new HashMap<>(old.classTypeMap), old.classObjectScope, newClassObjectStack);
+    // TODO Investigate if this works
+    return new RTTState(
+        new HashMap<>(old.constantsMap),
+        new HashMap<>(old.identificationMap),
+        new HashMap<>(old.classTypeMap),
+        old.classObjectScope,
+        newClassObjectStack);
   }
 
   @Override
@@ -335,7 +332,7 @@ public class RTTState extends AbstractAppender implements
   }
 
   void deleteValue(String varName) {
-    this.constantsMap.remove(varName);
+    constantsMap.remove(varName);
   }
 
   Set<String> getTrackedVariableNames() {
@@ -350,7 +347,7 @@ public class RTTState extends AbstractAppender implements
     return classObjectScope;
   }
 
-   void setClassObjectScope(String classObjectScope) {
+  void setClassObjectScope(String classObjectScope) {
     this.classObjectScope = classObjectScope;
   }
 
@@ -359,21 +356,20 @@ public class RTTState extends AbstractAppender implements
   }
 
   /**
-   * Assigns a new Object Scope either from a run Time Type, or a unique Object.
-   * In case of RunTimeTyp, a new unique object will be created,
-   * In case of unique Object, it will simply be referenced to this and the object scope
+   * Assigns a new Object Scope either from a run Time Type, or a unique Object. In case of
+   * RunTimeTyp, a new unique object will be created, In case of unique Object, it will simply be
+   * referenced to this and the object scope
    */
-   void assignThisAndNewObjectScope(String scope) {
+  void assignThisAndNewObjectScope(String scope) {
     classObjectStack.push(classObjectScope);
 
     assignObject(KEYWORD_THIS, scope);
     classObjectScope = getKeywordThisUniqueObject();
-
   }
 
-   public String getKeywordThisUniqueObject() {
-     return getUniqueObjectFor(KEYWORD_THIS);
-   }
+  public String getKeywordThisUniqueObject() {
+    return getUniqueObjectFor(KEYWORD_THIS);
+  }
 
   public String getRunTimeClassOfUniqueObject(String uniqueObject) {
     return classTypeMap.get(uniqueObject);
@@ -386,8 +382,7 @@ public class RTTState extends AbstractAppender implements
     a.append("]");
   }
 
- void assignAssumptionType(String pReferenz, JClassOrInterfaceType pAssignableType) {
+  void assignAssumptionType(String pReferenz, JClassOrInterfaceType pAssignableType) {
     assignNewUniqueObject(pReferenz, pAssignableType.getName());
   }
-
 }

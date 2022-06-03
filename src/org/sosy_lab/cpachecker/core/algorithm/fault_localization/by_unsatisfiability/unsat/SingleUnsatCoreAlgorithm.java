@@ -9,15 +9,20 @@
 package org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.unsat;
 
 import com.google.common.base.VerifyException;
+import com.google.common.collect.FluentIterable;
+import com.google.common.collect.HashBiMap;
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Maps;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
-import java.util.stream.Collectors;
 import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.FaultLocalizerWithTraceFormula;
 import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.trace_formula.FormulaContext;
-import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.trace_formula.Selector;
 import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.trace_formula.TraceFormula;
+import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.trace_formula.trace.ConjunctionTraceInterpreter;
+import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.trace_formula.trace.Trace.TraceAtom;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
@@ -46,19 +51,19 @@ public class SingleUnsatCoreAlgorithm
     Solver solver = context.getSolver();
     BooleanFormulaManager bmgr = solver.getFormulaManager().getBooleanFormulaManager();
     stats.totalTime.start();
-    // if precondition is not needed to guarantee unsatisfiability, do not add it and obtain better
-    // results (i.e. find locations independently from the inputs first).
-    BooleanFormula toVerify = bmgr.and(tf.getTrace(), tf.getPostcondition());
-    if (!solver.isUnsat(toVerify)) {
-      toVerify = bmgr.and(tf.getPrecondition(), toVerify);
-    }
+    BooleanFormula booleanTraceFormula = tf.toFormula(new ConjunctionTraceInterpreter(bmgr), true);
+
+    Map<BooleanFormula, TraceAtom> formulaToAtom =
+        HashBiMap.create(
+                Maps.asMap(ImmutableSet.copyOf(tf.getTrace()), entry -> entry.getFormula()))
+            .inverse();
 
     // calculate an arbitrary UNSAT-core and filter the ones with selectors
-    List<Selector> unsatCore =
-        solver.unsatCore(toVerify).stream()
-            .filter(l -> Selector.of(l).isPresent())
-            .map(l -> Selector.of(l).orElseThrow())
-            .collect(Collectors.toList());
+    List<TraceAtom> unsatCore =
+        FluentIterable.from(solver.unsatCore(booleanTraceFormula))
+            .filter(formulaToAtom::containsKey)
+            .transform(formula -> formulaToAtom.get(formula))
+            .toList();
 
     stats.totalTime.stop();
     Set<Fault> resultSet = new HashSet<>();

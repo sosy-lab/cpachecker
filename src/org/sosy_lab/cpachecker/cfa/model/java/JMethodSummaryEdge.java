@@ -15,24 +15,26 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
 
 public class JMethodSummaryEdge extends FunctionSummaryEdge {
 
-
   private static final long serialVersionUID = -8173820285051148491L;
 
-  public JMethodSummaryEdge(String pRawStatement, FileLocation pFileLocation,
-      CFANode pPredecessor, CFANode pSuccessor,
-      JMethodOrConstructorInvocation pExpression, JMethodEntryNode pMethodEntry) {
+  public JMethodSummaryEdge(
+      String pRawStatement,
+      FileLocation pFileLocation,
+      CFANode pPredecessor,
+      CFANode pSuccessor,
+      JMethodOrConstructorInvocation pExpression,
+      JMethodEntryNode pMethodEntry) {
 
-    super(pRawStatement, pFileLocation, pPredecessor, pSuccessor, pExpression,
-        pMethodEntry);
+    super(pRawStatement, pFileLocation, pPredecessor, pSuccessor, pExpression, pMethodEntry);
   }
 
   @Override
   public JMethodOrConstructorInvocation getExpression() {
-    return (JMethodOrConstructorInvocation)super.getExpression();
+    return (JMethodOrConstructorInvocation) super.getExpression();
   }
 
   @Override
   public JMethodEntryNode getFunctionEntry() {
-    return (JMethodEntryNode)super.getFunctionEntry();
+    return (JMethodEntryNode) super.getFunctionEntry();
   }
 }

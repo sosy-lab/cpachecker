@@ -12,7 +12,8 @@ import static com.google.common.base.Preconditions.checkNotNull;
 
 import java.util.Objects;
 
-public abstract class AExpressionAssignmentStatement extends AbstractStatement implements AAssignment {
+public abstract class AExpressionAssignmentStatement extends AbstractStatement
+    implements AAssignment {
 
   private static final long serialVersionUID = -6099960243945488221L;
   private final ALeftHandSide leftHandSide;
@@ -64,15 +65,13 @@ public abstract class AExpressionAssignmentStatement extends AbstractStatement i
       return true;
     }
 
-    if (!(obj instanceof AExpressionAssignmentStatement)
-        || !super.equals(obj)) {
+    if (!(obj instanceof AExpressionAssignmentStatement) || !super.equals(obj)) {
       return false;
     }
 
     AExpressionAssignmentStatement other = (AExpressionAssignmentStatement) obj;
 
     return Objects.equals(other.leftHandSide, leftHandSide)
-            && Objects.equals(other.rightHandSide, rightHandSide);
+        && Objects.equals(other.rightHandSide, rightHandSide);
   }
-
 }

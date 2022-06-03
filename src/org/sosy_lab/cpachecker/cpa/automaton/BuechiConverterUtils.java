@@ -33,7 +33,6 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CParser;
-import org.sosy_lab.cpachecker.cfa.CProgramScope;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
@@ -45,6 +44,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CProblemType;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonBoolExpr.CPAQuery;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonBoolExpr.MatchCFAEdgeRegEx;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
+import org.sosy_lab.cpachecker.util.CParserUtils;
 import org.sosy_lab.cpachecker.util.ltl.LtlParseException;
 
 public class BuechiConverterUtils {
@@ -79,17 +79,6 @@ public class BuechiConverterUtils {
         .doConvert();
   }
 
-  /**
-   * Produces an {@link Automaton} from a {@link StoredAutomaton} (an automaton in HOA-format)
-   * without requiring a logger, machine-model and scope.
-   *
-   * <p>This method can be used for testing the transformation outside of CPAchecker.
-   */
-  public static Automaton convertFromHOAFormat(StoredAutomaton pStoredAutomaton)
-      throws LtlParseException, InterruptedException {
-    return new HoaToAutomatonTransformer(pStoredAutomaton).doConvert();
-  }
-
   private static class HoaToAutomatonTransformer {
 
     private static final String AUTOMATON_NAME = "Buechi_Automaton";
@@ -104,19 +93,6 @@ public class BuechiConverterUtils {
     private final StoredAutomaton storedAutomaton;
     private final Optional<String> entryFunctionOpt;
     private final ShutdownNotifier shutdownNotifier;
-
-    private HoaToAutomatonTransformer(StoredAutomaton pStoredAutomaton) {
-      storedAutomaton = checkNotNull(pStoredAutomaton);
-
-      logger = LogManager.createNullLogManager();
-      machineModel = MachineModel.LINUX64;
-      shutdownNotifier = ShutdownNotifier.createDummy();
-      scope = CProgramScope.empty();
-      parser =
-          CParser.Factory.getParser(
-              logger, CParser.Factory.getDefaultOptions(), machineModel, shutdownNotifier);
-      entryFunctionOpt = Optional.empty();
-    }
 
     private HoaToAutomatonTransformer(
         StoredAutomaton pStoredAutomaton,
@@ -155,17 +131,16 @@ public class BuechiConverterUtils {
         throw new LtlParseException(
             String.format(
                 "Only 'Buchi'-acceptance is allowed, but instead the following was found: %s (%s)",
-                accName.name,
-                accName.extra.toString()));
+                accName.name, accName.extra.toString()));
       }
 
       String accCond = storedHeader.getAcceptanceCondition().toStringInfix();
       if (!accCond.equals("Inf(0)")) {
         throw new LtlParseException(
             String.format(
-                "The only allowed acceptance-condition is %s, but instead the following was found: %s",
-                "Inf(0)",
-                accCond));
+                "The only allowed acceptance-condition is %s, but instead the following was found:"
+                    + " %s",
+                "Inf(0)", accCond));
       }
 
       ImmutableSet<String> requiredProperties =
@@ -194,8 +169,7 @@ public class BuechiConverterUtils {
       if (numAccSets != 1) {
         throw new LtlParseException(
             String.format(
-                "Only one acceptance set was expected, but instead %d were found",
-                numAccSets));
+                "Only one acceptance set was expected, but instead %d were found", numAccSets));
       }
 
       try {
@@ -203,7 +177,7 @@ public class BuechiConverterUtils {
             new ImmutableList.Builder<>();
 
         StoredState initBuchiState =
-            storedAutomaton.getStoredState(Iterables.getOnlyElement(initStateList).intValue());
+            storedAutomaton.getStoredState(Iterables.getOnlyElement(initStateList));
         String initBuechiStateName = getStateName(initBuchiState);
 
         String initStateName = null;
@@ -220,7 +194,7 @@ public class BuechiConverterUtils {
           List<AutomatonTransition> transitionList = new ArrayList<>();
 
           for (StoredEdgeWithLabel edge : storedAutomaton.getEdgesWithLabel(i)) {
-            int successorStateId = Iterables.getOnlyElement(edge.getConjSuccessors()).intValue();
+            int successorStateId = Iterables.getOnlyElement(edge.getConjSuccessors());
             String successorName = getStateName(storedAutomaton.getStoredState(successorStateId));
 
             transitionList.addAll(getTransitions(edge.getLabelExpr(), successorName));
@@ -249,8 +223,7 @@ public class BuechiConverterUtils {
 
       } catch (InvalidAutomatonException e) {
         throw new RuntimeException(
-            "The passed storedAutomaton-parameter produces an inconsistent automaton",
-            e);
+            "The passed storedAutomaton-parameter produces an inconsistent automaton", e);
       } catch (UnrecognizedCodeException e) {
         throw new LtlParseException(e.getMessage(), e);
       }
@@ -370,8 +343,7 @@ public class BuechiConverterUtils {
         sourceAST = CParserUtils.parseSingleStatement(pExpression, parser, scope);
       } catch (InvalidAutomatonException e) {
         throw new LtlParseException(
-            String.format("Error in literal of ltl-formula: %s", e.getMessage()),
-            e);
+            String.format("Error in literal of ltl-formula: %s", e.getMessage()), e);
       }
       CExpression expression = ((CExpressionStatement) sourceAST).getExpression();
       if (expression.getExpressionType() instanceof CProblemType) {
@@ -383,8 +355,8 @@ public class BuechiConverterUtils {
       return expression;
     }
 
-    private AutomatonTransition
-        createTransition(List<AExpression> pAssumptions, String pFollowStateName) {
+    private AutomatonTransition createTransition(
+        List<AExpression> pAssumptions, String pFollowStateName) {
       return new AutomatonTransition.Builder(AutomatonBoolExpr.TRUE, pFollowStateName)
           .withAssumptions(pAssumptions)
           .build();

@@ -19,15 +19,14 @@ import org.sosy_lab.java_smt.api.Formula;
 import org.sosy_lab.java_smt.api.FormulaType;
 import org.sosy_lab.java_smt.api.visitors.TraversalProcess;
 
-
 public class BooleanFormulaManagerView extends BaseManagerView implements BooleanFormulaManager {
 
   private final BooleanFormulaManager manager;
 
-  BooleanFormulaManagerView(FormulaWrappingHandler pWrappingHandler,
-      BooleanFormulaManager pManager) {
+  BooleanFormulaManagerView(
+      FormulaWrappingHandler pWrappingHandler, BooleanFormulaManager pManager) {
     super(pWrappingHandler);
-    this.manager = checkNotNull(pManager);
+    manager = checkNotNull(pManager);
   }
 
   public BooleanFormula makeVariable(String pVar, int pI) {
@@ -164,19 +163,19 @@ public class BooleanFormulaManagerView extends BaseManagerView implements Boolea
   }
 
   /**
-   * Base class for visitors for boolean formulas that traverse recursively
-   * through the formula and somehow transform it (i.e., return a boolean formula).
+   * Base class for visitors for boolean formulas that traverse recursively through the formula and
+   * somehow transform it (i.e., return a boolean formula).
    *
    * <p>Should be called with {@link #transformRecursively}
    *
-   * <p>This class ensures that each identical subtree of the formula
-   * is visited only once to avoid the exponential explosion.
+   * <p>This class ensures that each identical subtree of the formula is visited only once to avoid
+   * the exponential explosion.
    *
    * <p>By default this class implements the identity function.
    *
    * <p>No guarantee on iteration order is made.
    */
-  public static abstract class BooleanFormulaTransformationVisitor
+  public abstract static class BooleanFormulaTransformationVisitor
       extends org.sosy_lab.java_smt.api.visitors.BooleanFormulaTransformationVisitor {
 
     protected BooleanFormulaTransformationVisitor(FormulaManagerView pFmgr) {

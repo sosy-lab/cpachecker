@@ -24,12 +24,14 @@ public class NoOpReducer implements Reducer {
   }
 
   @Override
-  public AbstractState getVariableReducedState(AbstractState pExpandedState, Block pContext, CFANode pCallNode) {
+  public AbstractState getVariableReducedState(
+      AbstractState pExpandedState, Block pContext, CFANode pCallNode) {
     return pExpandedState;
   }
 
   @Override
-  public AbstractState getVariableExpandedState(AbstractState pRootState, Block pReducedContext, AbstractState pReducedState) {
+  public AbstractState getVariableExpandedState(
+      AbstractState pRootState, Block pReducedContext, AbstractState pReducedState) {
     return pReducedState;
   }
 
@@ -44,13 +46,17 @@ public class NoOpReducer implements Reducer {
   }
 
   @Override
-  public Precision getVariableExpandedPrecision(Precision rootPrecision, Block rootContext, Precision reducedPrecision) {
-   return reducedPrecision;
+  public Precision getVariableExpandedPrecision(
+      Precision rootPrecision, Block rootContext, Precision reducedPrecision) {
+    return reducedPrecision;
   }
 
   @Override
-  public AbstractState rebuildStateAfterFunctionCall(AbstractState rootState, AbstractState entryState,
-      AbstractState expandedState, FunctionExitNode exitLocation) {
+  public AbstractState rebuildStateAfterFunctionCall(
+      AbstractState rootState,
+      AbstractState entryState,
+      AbstractState expandedState,
+      FunctionExitNode exitLocation) {
     return expandedState;
   }
 }

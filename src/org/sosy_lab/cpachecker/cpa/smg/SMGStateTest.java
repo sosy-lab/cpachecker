@@ -10,7 +10,6 @@ package org.sosy_lab.cpachecker.cpa.smg;
 
 import static com.google.common.truth.Truth.assertThat;
 
-import com.google.common.collect.HashBiMap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
@@ -34,6 +33,7 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.SMGHasValueEdges;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.UnmodifiableSMG;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValueFilter;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValueFilter.SMGEdgeHasValueFilterByObject;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgePointsTo;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgePointsToFilter;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
@@ -47,9 +47,10 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGSymbolicValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGUnknownValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGZeroValue;
+import org.sosy_lab.cpachecker.cpa.smg.util.PersistentBiMap;
 
 public class SMGStateTest {
-  static private final  LogManager logger = LogManager.createTestLogManager();
+  private static final LogManager logger = LogManager.createTestLogManager();
 
   private SMGState consistent_state;
   private SMGState inconsistent_state;
@@ -57,7 +58,9 @@ public class SMGStateTest {
   private static final int mockSize16b = 16;
   private static final int mockSize8b = 8;
 
-  private CSimpleType unspecifiedType = new CSimpleType(false, false, CBasicType.UNSPECIFIED, false, false, true, false, false, false, false);
+  private CSimpleType unspecifiedType =
+      new CSimpleType(
+          false, false, CBasicType.UNSPECIFIED, false, false, true, false, false, false, false);
   private CType pointerType = new CPointerType(false, false, unspecifiedType);
   private static final MachineModel MM = MachineModel.LINUX32;
   private final long ptrSize = MM.getSizeofInBits(pointerType).longValueExact();
@@ -141,8 +144,13 @@ public class SMGStateTest {
     smg1.setValidity(l4, true);
     smg1.setValidity(l5, true);
 
-    SMGState smg1State = new SMGState(
-        logger, new SMGOptions(Configuration.defaultConfiguration()), smg1, 0, HashBiMap.create());
+    SMGState smg1State =
+        new SMGState(
+            logger,
+            new SMGOptions(Configuration.defaultConfiguration()),
+            smg1,
+            0,
+            PersistentBiMap.of());
 
     SMGObject head = smg1State.addGlobalVariable(64, "head");
     smg1State.addPointsToEdge(head, 0, value5);
@@ -189,11 +197,11 @@ public class SMGStateTest {
     heap.addPointsToEdge(new SMGEdgePointsTo(value6, dll, 0, SMGTargetSpecifier.FIRST));
     heap.addPointsToEdge(new SMGEdgePointsTo(value7, dll, 0, SMGTargetSpecifier.LAST));
 
-   SMGRegion l1 = new SMGRegion(96, "l1", 1);
-   SMGRegion l2 = new SMGRegion(96, "l2", 1);
-   SMGRegion l3 = new SMGRegion(96, "l3", 1);
-   SMGRegion l4 = new SMGRegion(96, "l4", 1);
-   SMGRegion l5 = new SMGRegion(96, "l5", 1);
+    SMGRegion l1 = new SMGRegion(96, "l1", 1);
+    SMGRegion l2 = new SMGRegion(96, "l2", 1);
+    SMGRegion l3 = new SMGRegion(96, "l3", 1);
+    SMGRegion l4 = new SMGRegion(96, "l4", 1);
+    SMGRegion l5 = new SMGRegion(96, "l5", 1);
 
     SMGEdgeHasValue l1fn = new SMGEdgeHasValue(ptrSize, 0, l1, value13);
     SMGEdgeHasValue l2fn = new SMGEdgeHasValue(ptrSize, 0, l2, value8);
@@ -214,11 +222,11 @@ public class SMGStateTest {
     SMGEdgePointsTo l4t = new SMGEdgePointsTo(value9, l4, 0);
     SMGEdgePointsTo l5t = new SMGEdgePointsTo(value10, l5, 0);
 
-   heap.addHeapObject(l1);
-   heap.addHeapObject(l2);
-   heap.addHeapObject(l3);
-   heap.addHeapObject(l4);
-   heap.addHeapObject(l5);
+    heap.addHeapObject(l1);
+    heap.addHeapObject(l2);
+    heap.addHeapObject(l3);
+    heap.addHeapObject(l4);
+    heap.addHeapObject(l5);
 
     heap.addValue(value11);
     heap.addValue(value12);
@@ -227,33 +235,38 @@ public class SMGStateTest {
     heap.addValue(value9);
     heap.addValue(value10);
 
-   heap.addHasValueEdge(l1fn);
-   heap.addHasValueEdge(l2fn);
-   heap.addHasValueEdge(l3fn);
-   heap.addHasValueEdge(l4fn);
-   heap.addHasValueEdge(l5fn);
-   heap.addHasValueEdge(dllSub);
+    heap.addHasValueEdge(l1fn);
+    heap.addHasValueEdge(l2fn);
+    heap.addHasValueEdge(l3fn);
+    heap.addHasValueEdge(l4fn);
+    heap.addHasValueEdge(l5fn);
+    heap.addHasValueEdge(dllSub);
 
-   heap.addHasValueEdge(l1fp);
-   heap.addHasValueEdge(l2fp);
-   heap.addHasValueEdge(l3fp);
-   heap.addHasValueEdge(l4fp);
-   heap.addHasValueEdge(l5fp);
+    heap.addHasValueEdge(l1fp);
+    heap.addHasValueEdge(l2fp);
+    heap.addHasValueEdge(l3fp);
+    heap.addHasValueEdge(l4fp);
+    heap.addHasValueEdge(l5fp);
 
-   heap.addPointsToEdge(l1t);
-   heap.addPointsToEdge(l2t);
-   heap.addPointsToEdge(l3t);
-   heap.addPointsToEdge(l4t);
-   heap.addPointsToEdge(l5t);
+    heap.addPointsToEdge(l1t);
+    heap.addPointsToEdge(l2t);
+    heap.addPointsToEdge(l3t);
+    heap.addPointsToEdge(l4t);
+    heap.addPointsToEdge(l5t);
 
-   heap.setValidity(l1, true);
-   heap.setValidity(l2, true);
-   heap.setValidity(l3, true);
-   heap.setValidity(l4, true);
-   heap.setValidity(l5, true);
+    heap.setValidity(l1, true);
+    heap.setValidity(l2, true);
+    heap.setValidity(l3, true);
+    heap.setValidity(l4, true);
+    heap.setValidity(l5, true);
 
-    SMGState smg1State = new SMGState(logger, new SMGOptions(
-        Configuration.defaultConfiguration()), heap, 0, HashBiMap.create());
+    SMGState smg1State =
+        new SMGState(
+            logger,
+            new SMGOptions(Configuration.defaultConfiguration()),
+            heap,
+            0,
+            PersistentBiMap.of());
 
     smg1State.addStackFrame(CLangSMGTest.DUMMY_FUNCTION);
     SMGObject head = smg1State.addGlobalVariable(64, "head");
@@ -315,7 +328,7 @@ public class SMGStateTest {
     heap.addHasValueEdge(nextField);
 
     SMGOptions options = new SMGOptions(Configuration.defaultConfiguration());
-    SMGState smg1State = new SMGState(logger, options, heap, 0, HashBiMap.create());
+    SMGState smg1State = new SMGState(logger, options, heap, 0, PersistentBiMap.of());
 
     smg1State.addStackFrame(CLangSMGTest.DUMMY_FUNCTION);
     SMGObject head = smg1State.addGlobalVariable(model32.getSizeofPtrInBits(), "head");
@@ -390,7 +403,7 @@ public class SMGStateTest {
     heap.addHasValueEdge(initialDataField);
 
     SMGOptions options = new SMGOptions(Configuration.defaultConfiguration());
-    SMGState smg1State = new SMGState(logger, options, heap, 0, HashBiMap.create());
+    SMGState smg1State = new SMGState(logger, options, heap, 0, PersistentBiMap.of());
 
     smg1State.addStackFrame(CLangSMGTest.DUMMY_FUNCTION);
     SMGObject head = smg1State.addGlobalVariable(model32.getSizeofPtrInBits(), "head");
@@ -455,8 +468,8 @@ public class SMGStateTest {
     inconsistent_state = new SMGState(logger, MachineModel.LINUX64, new SMGOptions(config));
     SMGEdgePointsTo pt = inconsistent_state.addNewHeapAllocation(8, "label");
 
-    consistent_state.addGlobalObject((SMGRegion)pt.getObject());
-    inconsistent_state.addGlobalObject((SMGRegion)pt.getObject());
+    consistent_state.addGlobalObject((SMGRegion) pt.getObject());
+    inconsistent_state.addGlobalObject((SMGRegion) pt.getObject());
   }
 
   /*
@@ -464,9 +477,9 @@ public class SMGStateTest {
    *   - inconsistent state
    *   - requested check level is lower than threshold
    */
-  @Test(expected=SMGInconsistentException.class)
+  @Test(expected = SMGInconsistentException.class)
   public void ConfigurableConsistencyInconsistentReported1Test() throws SMGInconsistentException {
-    SMGState inconsistentState = this.inconsistent_state.copyOf();
+    SMGState inconsistentState = inconsistent_state.copyOf();
     inconsistentState.performConsistencyCheck(SMGRuntimeCheck.NONE);
   }
 
@@ -475,9 +488,9 @@ public class SMGStateTest {
    *   - inconsistent state
    *   - requested check level is equal to threshold
    */
-  @Test(expected=SMGInconsistentException.class)
+  @Test(expected = SMGInconsistentException.class)
   public void ConfigurableConsistencyInconsistentReported2Test() throws SMGInconsistentException {
-    SMGState inconsistentState = this.inconsistent_state.copyOf();
+    SMGState inconsistentState = inconsistent_state.copyOf();
     inconsistentState.performConsistencyCheck(SMGRuntimeCheck.HALF);
   }
 
@@ -488,7 +501,7 @@ public class SMGStateTest {
    */
   @Test
   public void ConfigurableConsistencyInconsistentNotReportedTest() throws SMGInconsistentException {
-    SMGState inconsistentState = this.inconsistent_state.copyOf();
+    SMGState inconsistentState = inconsistent_state.copyOf();
     inconsistentState.performConsistencyCheck(SMGRuntimeCheck.FULL);
   }
 
@@ -499,7 +512,7 @@ public class SMGStateTest {
    */
   @Test
   public void ConfigurableConsistencyConsistent1Test() throws SMGInconsistentException {
-    SMGState consistentState = this.consistent_state.copyOf();
+    SMGState consistentState = consistent_state.copyOf();
     consistentState.performConsistencyCheck(SMGRuntimeCheck.HALF);
   }
   /*
@@ -509,7 +522,7 @@ public class SMGStateTest {
    */
   @Test
   public void ConfigurableConsistencyConsistent2Test() throws SMGInconsistentException {
-    SMGState consistentState = this.consistent_state.copyOf();
+    SMGState consistentState = consistent_state.copyOf();
     consistentState.performConsistencyCheck(SMGRuntimeCheck.FULL);
   }
 
@@ -530,9 +543,12 @@ public class SMGStateTest {
   }
 
   @Test
-  public void WriteReinterpretationTest() throws SMGInconsistentException, InvalidConfigurationException {
+  public void WriteReinterpretationTest()
+      throws SMGInconsistentException, InvalidConfigurationException {
     // Empty state
-    SMGState state = new SMGState(logger, MachineModel.LINUX64, new SMGOptions(Configuration.defaultConfiguration()));
+    SMGState state =
+        new SMGState(
+            logger, MachineModel.LINUX64, new SMGOptions(Configuration.defaultConfiguration()));
     state.performConsistencyCheck(SMGRuntimeCheck.FORCED);
 
     // Add an 16b object and write a 16b value into it
@@ -542,7 +558,7 @@ public class SMGStateTest {
     state.performConsistencyCheck(SMGRuntimeCheck.FORCED);
 
     // Check the object values and assert it has only the written 16b value
-    SMGEdgeHasValueFilter filter = SMGEdgeHasValueFilter.objectFilter(pt.getObject());
+    SMGEdgeHasValueFilterByObject filter = SMGEdgeHasValueFilter.objectFilter(pt.getObject());
 
     SMGHasValueEdges values_for_obj = state.getHVEdges(filter);
     assertThat(values_for_obj).hasSize(1);
@@ -594,9 +610,12 @@ public class SMGStateTest {
   }
 
   @Test
-  public void WriteReinterpretationNullifiedTest() throws SMGInconsistentException, InvalidConfigurationException {
+  public void WriteReinterpretationNullifiedTest()
+      throws SMGInconsistentException, InvalidConfigurationException {
     // Empty state
-    SMGState state = new SMGState(logger, MachineModel.LINUX64, new SMGOptions(Configuration.defaultConfiguration()));
+    SMGState state =
+        new SMGState(
+            logger, MachineModel.LINUX64, new SMGOptions(Configuration.defaultConfiguration()));
     state.performConsistencyCheck(SMGRuntimeCheck.FORCED);
 
     // Add an 16b object and write a 16b zero value into it
@@ -628,7 +647,7 @@ public class SMGStateTest {
         SMGEdgeHasValueFilter.objectFilter(pt.getObject())
             .filterHavingValue(SMGZeroValue.INSTANCE)
             .filterWithoutSize();
-    SMGHasValueEdges nulls_for_value = state.getHVEdges(nullFilter);
+    Iterable<SMGEdgeHasValue> nulls_for_value = state.getHVEdges(nullFilter);
     assertThat(nulls_for_value).hasSize(2);
 
     assertThat(state.getHVEdges(nullFilter.filterAtOffset(0))).hasSize(1);
@@ -636,9 +655,12 @@ public class SMGStateTest {
   }
 
   @Test
-  public void getPointerFromValueTest() throws SMGInconsistentException, InvalidConfigurationException {
-   // Empty state
-    SMGState state = new SMGState(logger, MachineModel.LINUX64, new SMGOptions(Configuration.defaultConfiguration()));
+  public void getPointerFromValueTest()
+      throws SMGInconsistentException, InvalidConfigurationException {
+    // Empty state
+    SMGState state =
+        new SMGState(
+            logger, MachineModel.LINUX64, new SMGOptions(Configuration.defaultConfiguration()));
     state.performConsistencyCheck(SMGRuntimeCheck.FORCED);
 
     SMGEdgePointsTo pt = state.addNewHeapAllocation(16, "OBJECT");
@@ -648,9 +670,12 @@ public class SMGStateTest {
     assertThat(pt.getObject()).isEqualTo(pt_obtained.getObject());
   }
 
-  @Test(expected=SMGInconsistentException.class)
-  public void getPointerFromValueNonPointerTest() throws SMGInconsistentException, InvalidConfigurationException {
-    SMGState state = new SMGState(logger, MachineModel.LINUX64, new SMGOptions(Configuration.defaultConfiguration()));
+  @Test(expected = SMGInconsistentException.class)
+  public void getPointerFromValueNonPointerTest()
+      throws SMGInconsistentException, InvalidConfigurationException {
+    SMGState state =
+        new SMGState(
+            logger, MachineModel.LINUX64, new SMGOptions(Configuration.defaultConfiguration()));
     state.performConsistencyCheck(SMGRuntimeCheck.FORCED);
 
     SMGEdgePointsTo pt = state.addNewHeapAllocation(16, "OBJECT");

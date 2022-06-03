@@ -20,12 +20,10 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.WrapperCPA;
 
-/**
- * Helper functions to work with CPAs.
- */
+/** Helper functions to work with CPAs. */
 public class CPAs {
 
-  private CPAs() { }
+  private CPAs() {}
 
   /**
    * Retrieve a specific CPA out of a structure of wrapper and composite CPAs.
@@ -40,7 +38,7 @@ public class CPAs {
     if (cls.isInstance(cpa)) {
       return cls.cast(cpa);
     } else if (cpa instanceof WrapperCPA) {
-      return ((WrapperCPA)cpa).retrieveWrappedCpa(cls);
+      return ((WrapperCPA) cpa).retrieveWrappedCpa(cls);
     } else {
       return null;
     }
@@ -83,6 +81,7 @@ public class CPAs {
 
   /**
    * Close all CPAs (including wrapped CPAs) if they support this.
+   *
    * @param cpa A CPA (possibly a WrapperCPA).
    */
   public static void closeCpaIfPossible(ConfigurableProgramAnalysis cpa, LogManager logger) {
@@ -92,17 +91,19 @@ public class CPAs {
   }
 
   /**
-   * Call {@link AutoCloseable#close()} on an supplied object if it implements
-   * {@link AutoCloseable}. Checked exceptions are logged but not re-thrown.
+   * Call {@link AutoCloseable#close()} on an supplied object if it implements {@link
+   * AutoCloseable}. Checked exceptions are logged but not re-thrown.
+   *
    * @param obj An object.
    */
   public static void closeIfPossible(Object obj, LogManager logger) {
     if (obj instanceof AutoCloseable) {
       try {
-        ((AutoCloseable)obj).close();
+        ((AutoCloseable) obj).close();
       } catch (Exception e) {
         Throwables.throwIfUnchecked(e);
-        logger.logUserException(Level.WARNING, e, "Failed to close " + obj.getClass().getSimpleName());
+        logger.logUserException(
+            Level.WARNING, e, "Failed to close " + obj.getClass().getSimpleName());
       }
     }
   }

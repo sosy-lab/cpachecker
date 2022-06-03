@@ -52,16 +52,17 @@ Verifying a Program with CPAchecker
    Example: `doc/examples/example.c` or `doc/examples/example_bug.c`
    A good source for more example programs is the benchmark set of the
    [International Competition on Software Verification](http://sv-comp.sosy-lab.org/),
-   which can be checked out from https://github.com/sosy-lab/sv-benchmarks.
+   which can be checked out from https://gitlab.com/sosy-lab/benchmarking/sv-benchmarks.
 
 2. If you want to enable certain analyses like predicate analysis,
    choose a configuration file. This file defines for example which CPAs are used.
    Standard configuration files can be found in the directory config/.
    If you do not want a specific analysis,
    we recommend `config/default.properties`.
-   However, note that if you are on Windows or MacOS
+   However, note that if you are on MacOS
    you need to provide specifically-compiled MathSAT binaries
-   for this configuration to work.
+   for this configuration to work
+   (or use Docker in order to run the Linux version of CPAchecker).
    The configuration of CPAchecker is explained in doc/Configuration.md.
 
 3. Choose a specification file (you may not need this for some CPAs).
@@ -81,16 +82,17 @@ Verifying a Program with CPAchecker
    you need to specify it in the environment variable JAVA.
    Example: `export JAVA=/usr/lib/jvm/java-11-openjdk-amd64/bin/java`
    for 64bit OpenJDK 11 on Ubuntu.
-   On Windows (without Cygwin), you need to use `cpa.bat` instead of `cpa.sh`.
+   On Windows (without Cygwin or WSL),
+   you need to use `cpa.bat` instead of `cpa.sh`.
 
-   Please note that not all analysis configurations are available for Windows and Mac
-   because we do not ship binaries for SMT solvers for these platforms.
+   Please note that not all analysis configurations are available for MacOS
+   because we do not ship binaries for SMT solvers for this platform.
    You either need to build the appropriate binaries yourself
    or use less powerful analyses that work with Java-based solvers,
    for example this one instead of `-default`:
    `-predicateAnalysis-linear -setprop solver.solver=SMTInterpol`
-   Of course you can also use solutions like the Windows Subsystem for Linux (WSL)
-   or Docker for executing the Linux version of CPAchecker.
+   Of course you can also use solutions like Docker
+   for executing the Linux version of CPAchecker.
 
    If you installed CPAchecker using Docker, the above example command line would look like this:
    `docker run -v $(pwd):/workdir -u $UID:$GID registry.gitlab.com/sosy-lab/software/cpachecker -default /cpachecker/doc/examples/example.c`

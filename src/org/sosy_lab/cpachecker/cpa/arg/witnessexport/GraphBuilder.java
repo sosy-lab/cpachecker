@@ -37,7 +37,6 @@ import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.Pair;
 
 enum GraphBuilder {
-
   ARG_PATH {
 
     @Override
@@ -61,7 +60,8 @@ enum GraphBuilder {
         Multimap<ARGState, CFAEdgeWithAssumptions> pValueMap,
         Map<ARGState, CFAEdgeWithAdditionalInfo> pAdditionalInfo,
         Iterable<Pair<ARGState, Iterable<ARGState>>> pARGEdges,
-        EdgeAppender pEdgeAppender) {
+        EdgeAppender pEdgeAppender)
+        throws InterruptedException {
       int multiEdgeCount = 0;
       for (Pair<ARGState, Iterable<ARGState>> argEdges : pARGEdges) {
         ARGState s = argEdges.getFirst();
@@ -98,7 +98,7 @@ enum GraphBuilder {
               CFAEdge innerEdge = allEdgeToNextState.get(i);
               String pseudoStateId = getId(child, i, multiEdgeCount);
 
-              assert (!(innerEdge instanceof AssumeEdge));
+              assert !(innerEdge instanceof AssumeEdge);
 
               boolean isAssumptionAvailableForEdge =
                   Iterables.any(pValueMap.get(s), a -> a.getCFAEdge().equals(innerEdge));
@@ -159,7 +159,6 @@ enum GraphBuilder {
         }
       }
     }
-
   },
 
   @Deprecated
@@ -178,10 +177,12 @@ enum GraphBuilder {
         Multimap<ARGState, CFAEdgeWithAssumptions> pValueMap,
         Map<ARGState, CFAEdgeWithAdditionalInfo> pAdditionalInfo,
         Iterable<Pair<ARGState, Iterable<ARGState>>> pARGEdges,
-        EdgeAppender pEdgeAppender) {
+        EdgeAppender pEdgeAppender)
+        throws InterruptedException {
 
       // normally there is only one node per state, thus we assume that there is only one root-node
-      final CFANode rootNode = Iterables.getOnlyElement(AbstractStates.extractLocations(pRootState));
+      final CFANode rootNode =
+          Iterables.getOnlyElement(AbstractStates.extractLocations(pRootState));
 
       // Get all successor nodes of edges
       final Set<CFANode> subProgramNodes = new HashSet<>();
@@ -190,7 +191,8 @@ enum GraphBuilder {
       subProgramNodes.add(rootNode);
       for (final Pair<ARGState, Iterable<ARGState>> edge : pARGEdges) {
         for (ARGState target : edge.getSecond()) {
-          // where the successor ARG node is in the set of target path states AND the edge is relevant
+          // where the successor ARG node is in the set of target path states AND the edge is
+          // relevant
           if (pIsRelevantState.apply(target) && pIsRelevantEdge.test(edge.getFirst(), target)) {
             for (CFANode location : AbstractStates.extractLocations(target)) {
               subProgramNodes.add(location);
@@ -216,14 +218,14 @@ enum GraphBuilder {
           } else {
             locationStates = ImmutableSet.of();
           }
-          boolean appended = appendEdge(pEdgeAppender, leavingEdge, Optional.of(locationStates), pValueMap);
+          boolean appended =
+              appendEdge(pEdgeAppender, leavingEdge, Optional.of(locationStates), pValueMap);
           if (tryAddToWaitlist && appended && visited.add(successor)) {
             waitlist.offer(successor);
           }
         }
       }
     }
-
   },
 
   CFA_FULL {
@@ -241,10 +243,12 @@ enum GraphBuilder {
         Multimap<ARGState, CFAEdgeWithAssumptions> pValueMap,
         Map<ARGState, CFAEdgeWithAdditionalInfo> pAdditionalInfo,
         Iterable<Pair<ARGState, Iterable<ARGState>>> pARGEdges,
-        EdgeAppender pEdgeAppender) {
+        EdgeAppender pEdgeAppender)
+        throws InterruptedException {
 
       // normally there is only one node per state, thus we assume that there is only one root-node
-      final CFANode rootNode = Iterables.getOnlyElement(AbstractStates.extractLocations(pRootState));
+      final CFANode rootNode =
+          Iterables.getOnlyElement(AbstractStates.extractLocations(pRootState));
 
       // Get all successor nodes of edges
       final Set<CFANode> subProgramNodes = new HashSet<>();
@@ -253,7 +257,8 @@ enum GraphBuilder {
       subProgramNodes.add(rootNode);
       for (final Pair<ARGState, Iterable<ARGState>> edge : pARGEdges) {
         for (ARGState target : edge.getSecond()) {
-          // where the successor ARG node is in the set of target path states AND the edge is relevant
+          // where the successor ARG node is in the set of target path states AND the edge is
+          // relevant
           if (pIsRelevantState.apply(target) && pIsRelevantEdge.test(edge.getFirst(), target)) {
             for (CFANode location : AbstractStates.extractLocations(target)) {
               subProgramNodes.add(location);
@@ -303,14 +308,14 @@ enum GraphBuilder {
         }
       }
     }
-
   };
 
   private static boolean appendEdge(
       EdgeAppender pEdgeAppender,
       CFAEdge pEdge,
       Optional<Collection<ARGState>> pStates,
-      Multimap<ARGState, CFAEdgeWithAssumptions> pValueMap) {
+      Multimap<ARGState, CFAEdgeWithAssumptions> pValueMap)
+      throws InterruptedException {
 
     String sourceId = pEdge.getPredecessor().toString();
     String targetId = pEdge.getSuccessor().toString();
@@ -331,5 +336,6 @@ enum GraphBuilder {
       Multimap<ARGState, CFAEdgeWithAssumptions> pValueMap,
       Map<ARGState, CFAEdgeWithAdditionalInfo> pAdditionalInfo,
       Iterable<Pair<ARGState, Iterable<ARGState>>> pARGEdges,
-      EdgeAppender pEdgeAppender);
+      EdgeAppender pEdgeAppender)
+      throws InterruptedException;
 }

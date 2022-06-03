@@ -21,15 +21,13 @@ import org.sosy_lab.cpachecker.cfa.ast.java.VisibilityModifier;
 /**
  * Description of a Java class or interface.
  *
- * <p>
- * Each <code>JClassOrInterfaceType</code> instance includes:
+ * <p>Each <code>JClassOrInterfaceType</code> instance includes:
  *
  * <ul>
- *  <li>the name of the class or interface (both fully qualified and simple)</li>
- *  <li> the visibility of the described class or interface and</li>
- *  <li>the enclosing type of the described class or interface, if one exists</li>
+ *   <li>the name of the class or interface (both fully qualified and simple)
+ *   <li>the visibility of the described class or interface and
+ *   <li>the enclosing type of the described class or interface, if one exists
  * </ul>
- * </p>
  */
 public abstract class JClassOrInterfaceType implements JReferenceType {
 
@@ -43,20 +41,18 @@ public abstract class JClassOrInterfaceType implements JReferenceType {
   private final Set<JClassOrInterfaceType> nestedTypes = new HashSet<>();
 
   /**
-   * Creates a new <code>JClassOrInterfaceType</code> object with the given
-   * properties.
+   * Creates a new <code>JClassOrInterfaceType</code> object with the given properties.
    *
-   * <p>The fully qualified name includes the full package name and the simple name of the class
-   * or interface. <br />
+   * <p>The fully qualified name includes the full package name and the simple name of the class or
+   * interface. <br>
    * Example: <code>java.lang.Object</code>, with <code>Object</code> as the simple name.
-   * </p>
    *
    * @param fullyQualifiedName the fully qualified name of the class or interface
    * @param pSimpleName the simple name of the class or interface
    * @param pVisibility the visibility of the described class or interface
    */
-  protected JClassOrInterfaceType(String fullyQualifiedName, String pSimpleName,
-      final VisibilityModifier pVisibility) {
+  protected JClassOrInterfaceType(
+      String fullyQualifiedName, String pSimpleName, final VisibilityModifier pVisibility) {
     name = fullyQualifiedName;
     visibility = pVisibility;
     simpleName = pSimpleName;
@@ -64,28 +60,29 @@ public abstract class JClassOrInterfaceType implements JReferenceType {
 
     checkNotNull(fullyQualifiedName);
     checkNotNull(pSimpleName);
-    //checkArgument(fullyQualifiedName.endsWith(pSimpleName));
+    // checkArgument(fullyQualifiedName.endsWith(pSimpleName));
 
-    checkArgument((getVisibility() != VisibilityModifier.PRIVATE)
-        || (getVisibility() != VisibilityModifier.PROTECTED),
+    checkArgument(
+        (getVisibility() != VisibilityModifier.PRIVATE)
+            || (getVisibility() != VisibilityModifier.PROTECTED),
         " Interfaces can't be private or protected");
   }
 
   /**
-   * Creates a new <code>JClassOrInterfaceType</code> object with the given
-   * properties.
+   * Creates a new <code>JClassOrInterfaceType</code> object with the given properties.
    *
-   * <p>The fully qualified name includes the full package name and the simple name of the class
-   * or interface. <br />
+   * <p>The fully qualified name includes the full package name and the simple name of the class or
+   * interface. <br>
    * Example: <code>java.lang.Object</code>, with <code>Object</code> as the simple name.
-   * </p>
    *
    * @param fullyQualifiedName the fully qualified name of the class or interface
    * @param pSimpleName the simple name of the class or interface
    * @param pVisibility the visibility of the described class or interface
    * @param pEnclosingType the enclosing type of the class or interface
    */
-  protected JClassOrInterfaceType(String fullyQualifiedName, String pSimpleName,
+  protected JClassOrInterfaceType(
+      String fullyQualifiedName,
+      String pSimpleName,
       final VisibilityModifier pVisibility,
       JClassOrInterfaceType pEnclosingType) {
     name = fullyQualifiedName;
@@ -93,14 +90,14 @@ public abstract class JClassOrInterfaceType implements JReferenceType {
     visibility = pVisibility;
     enclosingType = pEnclosingType;
 
-
     checkNotNull(fullyQualifiedName);
     checkNotNull(pSimpleName);
     checkArgument(fullyQualifiedName.endsWith(pSimpleName));
 
     checkNotNull(pEnclosingType);
-    checkArgument((getVisibility() != VisibilityModifier.PRIVATE)
-        || (getVisibility() != VisibilityModifier.PROTECTED),
+    checkArgument(
+        (getVisibility() != VisibilityModifier.PRIVATE)
+            || (getVisibility() != VisibilityModifier.PROTECTED),
         " Interfaces can't be private or protected");
 
     enclosingType.notifyEnclosingTypeOfNestedType(this);
@@ -151,11 +148,9 @@ public abstract class JClassOrInterfaceType implements JReferenceType {
   /**
    * Returns whether the given object equals this <code>JClassOrInterfaceType</code>.
    *
-   * <p>
-   * Two <code>JClassOrInterfaceType</code>s equal only if their fully qualified names equal.
-   * A <code>JClassOrInterfaceType</code> instance does never equal an object that is not of this
+   * <p>Two <code>JClassOrInterfaceType</code>s equal only if their fully qualified names equal. A
+   * <code>JClassOrInterfaceType</code> instance does never equal an object that is not of this
    * type.
-   * </p>
    *
    * @return <code>true</code> if the given object equals this object, <code>false</code> otherwise
    */
@@ -177,10 +172,10 @@ public abstract class JClassOrInterfaceType implements JReferenceType {
 
   @Override
   public int hashCode() {
-      final int prime = 31;
-      int result = 7;
-      result = prime * result + Objects.hashCode(name);
-      return result;
+    final int prime = 31;
+    int result = 7;
+    result = prime * result + Objects.hashCode(name);
+    return result;
   }
 
   @Override
@@ -227,7 +222,7 @@ public abstract class JClassOrInterfaceType implements JReferenceType {
   /**
    * Returns the directly enclosing type, if one exists.
    *
-   * If the class does not have an enclosing type, a <code>NullPointerException</code> is thrown.
+   * <p>If the class does not have an enclosing type, a <code>NullPointerException</code> is thrown.
    * To check this, {@link #isTopLevel()} can be used.
    *
    * @return the enclosing type of the described class or interface, if one exists
@@ -239,27 +234,25 @@ public abstract class JClassOrInterfaceType implements JReferenceType {
   }
 
   /**
-   * Returns a <code>Set</code> containing one <code>JClassOrInterfaceType</code> for each
-   * directly nested class or interface of the class or interface this object describes.
+   * Returns a <code>Set</code> containing one <code>JClassOrInterfaceType</code> for each directly
+   * nested class or interface of the class or interface this object describes.
    *
-   * <p>
-   * If no nested types exist, an empty <code>Set</code> is returned.
-   * </p>
+   * <p>If no nested types exist, an empty <code>Set</code> is returned.
    *
    * @return a <code>Set</code> containing descriptions for all directly nested types of the class
-   *         or interface this object describes
+   *     or interface this object describes
    */
   public Set<JClassOrInterfaceType> getNestedTypes() {
     return ImmutableSet.copyOf(nestedTypes);
   }
 
   /**
-   * Returns a <code>Set</code> containing one <code>JClassOrInterfaceType</code> for each
-   * enclosing type of the class or interface described by this object.
+   * Returns a <code>Set</code> containing one <code>JClassOrInterfaceType</code> for each enclosing
+   * type of the class or interface described by this object.
    *
-   * <p>
-   * This includes directly and indirectly enclosing types.<br />
+   * <p>This includes directly and indirectly enclosing types.<br>
    * Example:
+   *
    * <pre>
    *  public class TopClass {
    *    public class NestedClass {
@@ -267,13 +260,13 @@ public abstract class JClassOrInterfaceType implements JReferenceType {
    *    }
    *  }
    * </pre>
+   *
    * For the class hierarchy above and a <code>JClassOrInterfaceType</code> instance describing
    * <code>NestedInterface</code>, a call to this method returns a set containing descriptions for
    * <code>NestedClass</code> and <code>TopClass</code>.
-   * </p>
    *
-   * @return a <code>Set</code> containing one <code>JClassOrInterfaceType</code> for each
-   * enclosing type of the class or interface described by this object
+   * @return a <code>Set</code> containing one <code>JClassOrInterfaceType</code> for each enclosing
+   *     type of the class or interface described by this object
    */
   public final Set<JClassOrInterfaceType> getAllEnclosingTypes() {
 
@@ -290,14 +283,13 @@ public abstract class JClassOrInterfaceType implements JReferenceType {
   }
 
   /**
-   * Returns whether the class or interface described by this object is at the top level of a
-   * class hierarchy. A class or interface is at the top level of a class hierarchy, if it is not
-   * a nested type and does not contain an enclosing type.
+   * Returns whether the class or interface described by this object is at the top level of a class
+   * hierarchy. A class or interface is at the top level of a class hierarchy, if it is not a nested
+   * type and does not contain an enclosing type.
    *
-   * @return <code>true</code> if the class or interface described by this
-   *         <code>JClassOrInterfaceType</code> does not have any enclosing types,
-   *         <code>false</code> otherwise
-   *
+   * @return <code>true</code> if the class or interface described by this <code>
+   *     JClassOrInterfaceType</code> does not have any enclosing types, <code>false</code>
+   *     otherwise
    */
   public boolean isTopLevel() {
     return enclosingType == null;

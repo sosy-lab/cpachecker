@@ -18,9 +18,7 @@ import org.sosy_lab.cpachecker.cpa.andersen.util.SimpleConstraint;
 
 public class AndersenState implements LatticeAbstractState<AndersenState> {
 
-  /**
-   * The local constraint system.
-   */
+  /** The local constraint system. */
   private final ConstraintSystem localConstraintSystem;
 
   public AndersenState() {
@@ -28,37 +26,38 @@ public class AndersenState implements LatticeAbstractState<AndersenState> {
   }
 
   public AndersenState(ConstraintSystem pLocalConstraintSystem) {
-    this.localConstraintSystem = pLocalConstraintSystem == null ? new ConstraintSystem() : pLocalConstraintSystem;
+    localConstraintSystem =
+        pLocalConstraintSystem == null ? new ConstraintSystem() : pLocalConstraintSystem;
   }
 
   /**
-   * Adds a (new) {@link BaseConstraint} returns the result.
-   * This instance is not modified by the operation.
+   * Adds a (new) {@link BaseConstraint} returns the result. This instance is not modified by the
+   * operation.
    *
    * @param pConstr {@link BaseConstraint} that should be added.
    */
   AndersenState addConstraint(BaseConstraint pConstr) {
-    return new AndersenState(this.localConstraintSystem.addConstraint(pConstr));
+    return new AndersenState(localConstraintSystem.addConstraint(pConstr));
   }
 
   /**
-   * Adds a (new) {@link SimpleConstraint} and returns the result.
-   * This instance is not modified by the operation.
+   * Adds a (new) {@link SimpleConstraint} and returns the result. This instance is not modified by
+   * the operation.
    *
    * @param pConstr {@link SimpleConstraint} that should be added.
    */
   AndersenState addConstraint(SimpleConstraint pConstr) {
-    return new AndersenState(this.localConstraintSystem.addConstraint(pConstr));
+    return new AndersenState(localConstraintSystem.addConstraint(pConstr));
   }
 
   /**
-   * Adds a (new) {@link ComplexConstraint} and returns the result.
-   * This instance is not modified by the operation.
+   * Adds a (new) {@link ComplexConstraint} and returns the result. This instance is not modified by
+   * the operation.
    *
    * @param pConstr {@link ComplexConstraint} that should be added.
    */
   AndersenState addConstraint(ComplexConstraint pConstr) {
-    return new AndersenState(this.localConstraintSystem.addConstraint(pConstr));
+    return new AndersenState(localConstraintSystem.addConstraint(pConstr));
   }
 
   /**
@@ -67,7 +66,7 @@ public class AndersenState implements LatticeAbstractState<AndersenState> {
    * @return points-to sets for the local constraint system.
    */
   public ImmutableListMultimap<String, String> getLocalPointsToSets() {
-    return this.localConstraintSystem.getPointsToSets();
+    return localConstraintSystem.getPointsToSets();
   }
 
   @Override
@@ -84,21 +83,26 @@ public class AndersenState implements LatticeAbstractState<AndersenState> {
 
   @Override
   public int hashCode() {
-    return this.localConstraintSystem.hashCode();
+    return localConstraintSystem.hashCode();
   }
 
   @Override
   public String toString() {
-    return this.localConstraintSystem.toString();
+    return localConstraintSystem.toString();
   }
 
   @Override
   public boolean isLessOrEqual(AndersenState pReachedState) {
     return Objects.equals(this, pReachedState)
-        || (this.localConstraintSystem.getBaseConstraints()
-            .containsAll(pReachedState.localConstraintSystem.getBaseConstraints())
-        && this.localConstraintSystem.getSimpleConstraints().containsAll(pReachedState.localConstraintSystem.getSimpleConstraints())
-        && this.localConstraintSystem.getComplexConstraints().containsAll(pReachedState.localConstraintSystem.getComplexConstraints()));
+        || (localConstraintSystem
+                .getBaseConstraints()
+                .containsAll(pReachedState.localConstraintSystem.getBaseConstraints())
+            && localConstraintSystem
+                .getSimpleConstraints()
+                .containsAll(pReachedState.localConstraintSystem.getSimpleConstraints())
+            && localConstraintSystem
+                .getComplexConstraints()
+                .containsAll(pReachedState.localConstraintSystem.getComplexConstraints()));
   }
 
   @Override
@@ -109,6 +113,6 @@ public class AndersenState implements LatticeAbstractState<AndersenState> {
     if (pReachedState.isLessOrEqual(this)) {
       return this;
     }
-    return new AndersenState(this.localConstraintSystem.join(pReachedState.localConstraintSystem));
+    return new AndersenState(localConstraintSystem.join(pReachedState.localConstraintSystem));
   }
 }

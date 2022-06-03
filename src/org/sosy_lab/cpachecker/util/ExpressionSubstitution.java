@@ -69,18 +69,11 @@ public final class ExpressionSubstitution {
       CExpression pSubstitute,
       CBinaryExpressionBuilder pBinExpBuilder)
       throws SubstitutionException {
-    Substitution substitution =
-        new Substitution() {
-
-          @Override
-          public CExpression substitute(CExpression pE) throws SubstitutionException {
-            return pE.equals(pToSubstitute) ? pSubstitute : pE;
-          }
-        };
+    Substitution substitution = pE -> pE.equals(pToSubstitute) ? pSubstitute : pE;
     return applySubstitution(pExpression, substitution, pBinExpBuilder);
   }
 
-  public static interface Substitution {
+  public interface Substitution {
 
     /**
      * Substitutes the given expression by another expression.
@@ -101,8 +94,8 @@ public final class ExpressionSubstitution {
 
     public SubstitutingVisitor(
         Substitution pSubstitution, CBinaryExpressionBuilder pBinExpBuilder) {
-      this.substitution = pSubstitution;
-      this.binExpBuilder = pBinExpBuilder;
+      substitution = pSubstitution;
+      binExpBuilder = pBinExpBuilder;
     }
 
     @Override

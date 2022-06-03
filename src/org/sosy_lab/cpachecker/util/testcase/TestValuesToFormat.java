@@ -13,5 +13,5 @@ import java.util.List;
 @FunctionalInterface
 public interface TestValuesToFormat {
 
-  public String convertToOutput(List<String> values);
+  String convertToOutput(List<String> values);
 }

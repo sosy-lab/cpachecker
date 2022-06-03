@@ -8,13 +8,12 @@
 
 package org.sosy_lab.cpachecker.pcc.propertychecker;
 
+import org.sosy_lab.cpachecker.cfa.model.CFALabelNode;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.cfa.model.c.CLabelNode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.sign.SIGN;
 import org.sosy_lab.cpachecker.cpa.sign.SignState;
 import org.sosy_lab.cpachecker.util.AbstractStates;
-
 
 public class SingleSignChecker extends PerElementPropertyChecker {
 
@@ -29,16 +28,18 @@ public class SingleSignChecker extends PerElementPropertyChecker {
   }
 
   @Override
-  public boolean satisfiesProperty(AbstractState pElemToCheck) throws UnsupportedOperationException {
+  public boolean satisfiesProperty(AbstractState pElemToCheck)
+      throws UnsupportedOperationException {
     CFANode node = AbstractStates.extractLocation(pElemToCheck);
-    if (node instanceof CLabelNode && ((CLabelNode) node).getLabel().equals(label)) {
+    if (node instanceof CFALabelNode && ((CFALabelNode) node).getLabel().equals(label)) {
       SignState state = AbstractStates.extractStateByType(pElemToCheck, SignState.class);
       if (state != null) {
-        if (state.getSignForVariable(varName) == value) { return true; }
+        if (state.getSignForVariable(varName) == value) {
+          return true;
+        }
       }
       return false;
     }
     return true;
   }
-
 }

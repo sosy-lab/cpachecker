@@ -20,7 +20,7 @@ SPDX-License-Identifier: Apache-2.0
     <property file="build.properties"/>
     <property environment="env"/>
 
-    <property name="version.base" value="1.9.2-svn"/> <!-- change here for a release -->
+    <property name="version.base" value="2.1.2-svn"/> <!-- change here for a release -->
 
     <!-- Customization of build process. -->
     <property name="jar.file" value="cpachecker.jar"/>
@@ -36,11 +36,14 @@ SPDX-License-Identifier: Apache-2.0
          BadImport: we often import FluentIterable.from and we have a Checkstyle check instead
          ReferenceEquality: TODO enable this and fix alarms (but there are many cases where reference equality is desired)
          MissingSummary: currently buggy (fails build without specifying class)
+         UnusedMethods: Most CPAs have private constructors that are called only via reflection
          -->
     <property name="errorprone.options" value="
         -Xep:BadImport:OFF
         -Xep:ReferenceEquality:OFF
         -Xep:MissingSummary:OFF
+        -Xep:BanSerializableRead:OFF
+        -Xep:UnusedMethod:OFF
         "/>
 
     <import file="build/build-ivy.xml"/>
@@ -58,6 +61,13 @@ SPDX-License-Identifier: Apache-2.0
     <property name="version.file" value="${class.dir}/org/sosy_lab/cpachecker/VERSION.txt"/>
     <property name="verifiercloud.version" value="0.+"/> <!-- Version of VerifierCloud to use ("+" is wildcard). -->
     <property name="verifiercloud.refresh" value="true"/> <!-- Lookup newest version of VerifierCloud on server each time. -->
+
+    <!-- Set of files to be copied from src to bin -->
+    <patternset id="source.additional">
+        <include name="**/*.properties" />
+        <include name="org/sosy_lab/cpachecker/core/counterexample/build/*" />
+        <include name="org/sosy_lab/cpachecker/core/counterexample/report.html" />
+    </patternset>
 
     <path id="classpath">
         <pathelement location="${class.dir}"/>
@@ -132,6 +142,8 @@ SPDX-License-Identifier: Apache-2.0
             <ant antfile="src/org/sosy_lab/cpachecker/util/predicates/precisionConverter/Parser.xml" inheritAll="false"/>
             <echo message="Generate antlr4 parser if necessary" level="info"/>
             <ant antfile="src/org/sosy_lab/cpachecker/util/ltl/AntlrParser.xml" inheritAll="false"/>
+            <echo message="Generate ACSL parser if necessary" level="info"/>
+            <ant antfile="src/org/sosy_lab/cpachecker/cfa/ast/acsl/ACSLParserBuild.xml" inheritAll="false"/>
     </target>
 
     <target name="build-dependencies" depends="init, resolve-dependencies, build-subprojects"/>

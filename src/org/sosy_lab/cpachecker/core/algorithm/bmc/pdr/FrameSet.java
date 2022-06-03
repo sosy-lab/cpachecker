@@ -57,8 +57,7 @@ class FrameSet implements AutoCloseable {
 
     @SuppressWarnings("resource")
     ProverEnvironmentWithFallback prover =
-        new ProverEnvironmentWithFallback(
-            solver, proverOptions.toArray(new ProverOptions[0]));
+        new ProverEnvironmentWithFallback(solver, proverOptions.toArray(new ProverOptions[0]));
     frameProvers.add(prover);
   }
 
@@ -101,7 +100,7 @@ class FrameSet implements AutoCloseable {
     return frameProvers.get(pFrameIndex);
   }
 
-  public Set<CandidateInvariant> getInvariants(int pFrameIndex) {
+  public ImmutableSet<CandidateInvariant> getInvariants(int pFrameIndex) {
     if (pFrameIndex < 0) {
       throw new IndexOutOfBoundsException("Illegal frame index: " + pFrameIndex);
     }
@@ -111,7 +110,7 @@ class FrameSet implements AutoCloseable {
     return IntStream.rangeClosed(pFrameIndex, getFrontierIndex())
         .mapToObj(frames::get)
         .flatMap(Collection::stream)
-        .collect(Collectors.toSet());
+        .collect(ImmutableSet.toImmutableSet());
   }
 
   public void addFrameClause(int pFrameIndex, CandidateInvariant pClause) {

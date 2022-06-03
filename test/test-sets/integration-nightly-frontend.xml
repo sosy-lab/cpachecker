@@ -22,7 +22,6 @@ SPDX-License-Identifier: Apache-2.0
       <include>../programs/ldv-benchmarks/*/*/*.c</include>
       <include>../programs/ldv-benchmarks/*/*/*/*.c</include>
       <includesfile>../programs/benchmarks/*.set</includesfile>
-      <excludesfile>../programs/benchmarks/*-new.set</excludesfile>
     </tasks>
     <tasks name="original">
       <include>../programs/simple/*.c</include>

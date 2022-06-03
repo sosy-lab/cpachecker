@@ -16,9 +16,7 @@ public class CCharLiteralExpression extends ACharLiteralExpression implements CL
 
   private static final long serialVersionUID = -8145502438011551776L;
 
-  public CCharLiteralExpression(FileLocation pFileLocation,
-                                   CType pType,
-                                   char pCharacter) {
+  public CCharLiteralExpression(FileLocation pFileLocation, CType pType, char pCharacter) {
     super(pFileLocation, pType, pCharacter);
   }
 

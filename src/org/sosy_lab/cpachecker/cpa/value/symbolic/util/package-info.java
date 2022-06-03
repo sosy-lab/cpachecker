@@ -6,7 +6,5 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-/**
- * Package containing util classes for symbolic value analysis.
- */
+/** Package containing util classes for symbolic value analysis. */
 package org.sosy_lab.cpachecker.cpa.value.symbolic.util;

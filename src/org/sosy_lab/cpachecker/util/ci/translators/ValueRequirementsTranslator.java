@@ -22,7 +22,8 @@ import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
-public class ValueRequirementsTranslator extends CartesianRequirementsTranslator<ValueAnalysisState> {
+public class ValueRequirementsTranslator
+    extends CartesianRequirementsTranslator<ValueAnalysisState> {
 
   public ValueRequirementsTranslator(final LogManager pLog) {
     super(ValueAnalysisState.class, pLog);
@@ -32,7 +33,7 @@ public class ValueRequirementsTranslator extends CartesianRequirementsTranslator
   protected List<String> getVarsInRequirements(final ValueAnalysisState pRequirement) {
     List<String> list = new ArrayList<>(pRequirement.getConstants().size());
     for (MemoryLocation memLoc : pRequirement.getTrackedMemoryLocations()) {
-      list.add(memLoc.getAsSimpleString());
+      list.add(memLoc.getExtendedQualifiedName());
     }
     return list;
   }
@@ -58,10 +59,10 @@ public class ValueRequirementsTranslator extends CartesianRequirementsTranslator
                 + memLoc
                 + " is not an Integer.");
       } else {
-        if (pRequiredVars == null || pRequiredVars.contains(memLoc.getAsSimpleString())) {
+        if (pRequiredVars == null || pRequiredVars.contains(memLoc.getExtendedQualifiedName())) {
           list.add(
               "(= "
-                  + getVarWithIndex(memLoc.getAsSimpleString(), pIndices)
+                  + getVarWithIndex(memLoc.getExtendedQualifiedName(), pIndices)
                   + " "
                   + integerValue.asNumericValue().getNumber()
                   + ")");

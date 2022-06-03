@@ -11,10 +11,10 @@ package org.sosy_lab.cpachecker.cfa;
 import com.google.common.collect.Range;
 import com.google.common.collect.RangeMap;
 import com.google.common.collect.TreeRangeMap;
+import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
-
 
 public class CSourceOriginMapping {
 
@@ -22,11 +22,11 @@ public class CSourceOriginMapping {
   // from its lines to the tuple of (originalFile, lineDelta).
   // The full mapping is a map with those RangeMaps as values,
   // one for each input file.
-  private final Map<String, RangeMap<Integer, CodePosition>> mapping = new HashMap<>();
+  private final Map<Path, RangeMap<Integer, CodePosition>> mapping = new HashMap<>();
 
   void mapInputLineRangeToDelta(
-      String pAnalysisFileName,
-      String pOriginFileName,
+      Path pAnalysisFileName,
+      Path pOriginFileName,
       int pFromAnalysisCodeLineNumber,
       int pToAnalysisCodeLineNumber,
       int pLineDeltaToOrigin) {
@@ -51,7 +51,7 @@ public class CSourceOriginMapping {
    *     preprocessing).
    */
   public CodePosition getOriginLineFromAnalysisCodeLine(
-      String pAnalysisFileName, int pAnalysisCodeLine) {
+      Path pAnalysisFileName, int pAnalysisCodeLine) {
     RangeMap<Integer, CodePosition> fileMapping = mapping.get(pAnalysisFileName);
 
     if (fileMapping != null) {
@@ -75,16 +75,16 @@ public class CSourceOriginMapping {
   /** Code position in terms of file name and absolute or relative line number. */
   public static class CodePosition {
 
-    private final String fileName;
+    private final Path fileName;
 
     private final int lineNumber;
 
-    private CodePosition(String pFileName, int pLineNumber) {
+    private CodePosition(Path pFileName, int pLineNumber) {
       fileName = pFileName;
       lineNumber = pLineNumber;
     }
 
-    public String getFileName() {
+    public Path getFileName() {
       return fileName;
     }
 
@@ -109,7 +109,7 @@ public class CSourceOriginMapping {
       return Objects.hash(fileName, lineNumber);
     }
 
-    public CodePosition withFileName(String pFileName) {
+    public CodePosition withFileName(Path pFileName) {
       return of(pFileName, lineNumber);
     }
 
@@ -117,9 +117,8 @@ public class CSourceOriginMapping {
       return of(fileName, lineNumber + pDelta);
     }
 
-    public static CodePosition of(String pFileName, int pLineNumber) {
+    public static CodePosition of(Path pFileName, int pLineNumber) {
       return new CodePosition(pFileName, pLineNumber);
     }
-
   }
 }

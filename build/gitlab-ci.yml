@@ -56,9 +56,9 @@ build:jdk-11:
   <<: *build
   image: ${CI_REGISTRY_IMAGE}/test:jdk-11
 
-build:jdk-14:
+build:jdk-17:
   <<: *build
-  image: ${CI_REGISTRY_IMAGE}/test:jdk-14
+  image: ${CI_REGISTRY_IMAGE}/test:jdk-17
 
 
 # For checks that need the binaries
@@ -84,9 +84,9 @@ build-project-ecj:jdk-11:
   <<: *build-project-ecj
   image: ${CI_REGISTRY_IMAGE}/test:jdk-11
 
-build-project-ecj:jdk-14:
+build-project-ecj:jdk-17:
   <<: *build-project-ecj
-  image: ${CI_REGISTRY_IMAGE}/test:jdk-14
+  image: ${CI_REGISTRY_IMAGE}/test:jdk-17
 
 
 check-format:
@@ -154,20 +154,20 @@ unit-tests:jdk-11:
     - build:jdk-11
   image: ${CI_REGISTRY_IMAGE}/test:jdk-11
 
-unit-tests:jdk-14:
+unit-tests:jdk-17:
   <<: *unit-tests
   dependencies:
     - build-dependencies
-    - build:jdk-14
+    - build:jdk-17
   needs:
     - build-dependencies
-    - build:jdk-14
-  image: ${CI_REGISTRY_IMAGE}/test:jdk-14
+    - build:jdk-17
+  image: ${CI_REGISTRY_IMAGE}/test:jdk-17
 
 
 refaster:
   <<: *source_check
-  image: ${CI_REGISTRY_IMAGE}/test:jdk-14
+  image: ${CI_REGISTRY_IMAGE}/test:jdk-11
   before_script:
     - 'test -d refaster || git clone https://gitlab.com/sosy-lab/software/refaster.git'
     - 'cd refaster'
@@ -206,26 +206,6 @@ reuse:
     - reuse lint
 
 
-deploy-coverage:
-  stage: deploy
-  script: "build/deploy-coverage.sh"
-  dependencies:
-    - unit-tests:jdk-11
-  needs:
-    - unit-tests:jdk-11
-  only:
-    refs:
-      - master
-    variables:
-      - $CI_PROJECT_PATH == $PROJECT_PATH # not on forks
-  except:
-    variables:
-      - $CODACY_PROJECT_TOKEN == null # required for job
-      - $GH_TOKEN == null # required for job
-  cache:
-    paths:
-      - "codacy-coverage-reporter-assembly*.jar"
-
 deploy-gh-pages:
   stage: deploy
   script: "build/deploy-gh-pages.sh"
@@ -236,9 +216,8 @@ deploy-gh-pages:
     - build:jdk-11
     - javadoc
   only:
-    refs:
-      - master
     variables:
+      - $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH # only on default branch
       - $CI_PROJECT_PATH == $PROJECT_PATH # not on forks
   except:
     variables:
@@ -268,8 +247,8 @@ build-docker:test:jdk-11:
     DOCKERFILE: build/gitlab-ci.Dockerfile.jdk-11
     IMAGE: /test:jdk-11
 
-build-docker:test:jdk-14:
+build-docker:test:jdk-17:
   extends: .build-docker
   variables:
-    DOCKERFILE: build/gitlab-ci.Dockerfile.jdk-14
-    IMAGE: /test:jdk-14
+    DOCKERFILE: build/gitlab-ci.Dockerfile.jdk-17
+    IMAGE: /test:jdk-17

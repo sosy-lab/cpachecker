@@ -8,7 +8,6 @@
 
 package org.sosy_lab.cpachecker.cpa.smg;
 
-import com.google.common.collect.BiMap;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
@@ -27,6 +26,7 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownExpValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownSymbolicValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGSymbolicValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGValue;
+import org.sosy_lab.cpachecker.cpa.smg.util.PersistentBiMap;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 /**
@@ -46,7 +46,8 @@ public interface UnmodifiableSMGState extends LatticeAbstractState<UnmodifiableS
    * Returns mutable instance of subclass, with the given SMG and ExplicitValues. Changes to the
    * returned instance are independent of this immutable instance and do not change it.
    */
-  SMGState copyWith(CLangSMG pSmg, BiMap<SMGKnownSymbolicValue, SMGKnownExpValue> pValues);
+  SMGState copyWith(
+      CLangSMG pSmg, PersistentBiMap<SMGKnownSymbolicValue, SMGKnownExpValue> pValues);
 
   /**
    * Returns mutable instance of subclass, with the flag for blockEnd. Changes to the returned
@@ -141,8 +142,7 @@ public interface UnmodifiableSMGState extends LatticeAbstractState<UnmodifiableS
    * @param offset get address with this offset relative to the beginning of the memory.
    * @return Address of the given field, or NULL, if such an address does not yet exist in the SMG.
    */
-  @Nullable
-  SMGSymbolicValue getAddress(SMGObject memory, long offset, SMGTargetSpecifier tg);
+  @Nullable SMGSymbolicValue getAddress(SMGObject memory, long offset, SMGTargetSpecifier tg);
 
   Collection<Object> getInvalidChain();
 
@@ -154,9 +154,9 @@ public interface UnmodifiableSMGState extends LatticeAbstractState<UnmodifiableS
 
   SMGPredicateRelation getErrorPredicateRelation();
 
-  boolean isExplicit(SMGKnownSymbolicValue value);
+  boolean isExplicit(SMGValue value);
 
-  SMGKnownExpValue getExplicit(SMGKnownSymbolicValue pKey);
+  SMGKnownExpValue getExplicit(SMGValue pKey);
 
   boolean hasMemoryErrors();
 

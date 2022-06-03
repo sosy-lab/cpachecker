@@ -28,9 +28,8 @@ import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 
 @RunWith(Parameterized.class)
 @SuppressFBWarnings(
-  value = "NP_NONNULL_FIELD_NOT_INITIALIZED_IN_CONSTRUCTOR",
-  justification = "Fields are filled by parameterization of JUnit"
-)
+    value = "NP_NONNULL_FIELD_NOT_INITIALIZED_IN_CONSTRUCTOR",
+    justification = "Fields are filled by parameterization of JUnit")
 public class MachineModelSizeOfVisitorTest {
 
   private static final String TEST_STRUCT = "testStruct";
@@ -183,31 +182,27 @@ public class MachineModelSizeOfVisitorTest {
 
   @Parameters(name = "{3}: {1}")
   public static Object[][] machineModels() {
-    Object[][] types =
-        new Object[][] {
-          // struct   // machinemodel // expected size            // name
-          // according to gcc, c11
-          {STRUCT_1, MODEL64, 8, "Struct_1"},
-          {STRUCT_1, MODEL32, 8, "Struct_1"},
-          {STRUCT_2, MODEL64, 8, "Struct_2"},
-          {STRUCT_2, MODEL32, 8, "Struct_2"},
-          {STRUCT_3, MODEL64, 12, "Struct_3"},
-          {STRUCT_3, MODEL32, 12, "Struct_3"},
-          {STRUCT_4, MODEL64, 8, "Struct_4"},
-          {STRUCT_4, MODEL32, 4, "Struct_4"},
-          {STRUCT_5, MODEL64, 40, "Struct_5"},
-          {STRUCT_5, MODEL32, 24, "Struct_5"},
-          {STRUCT_6, MODEL64, 8, "Struct_6"},
-          {STRUCT_6, MODEL32, 8, "Struct_6"},
-          {STRUCT_7, MODEL64, 16, "Struct_7"},
-          {STRUCT_7, MODEL32, 12, "Struct_7"},
-          {STRUCT_8, MODEL64, 8, "Struct_8"},
-          {STRUCT_8, MODEL32, 8, "Struct_8"},
-          {STRUCT_9, MODEL64, 16, "Struct_9"},
-          {STRUCT_9, MODEL32, 12, "Struct_9"}
-        };
-
-    return types;
+    return new Object[][] {
+      // struct, machine model, expected size according to gcc/c11, name
+      {STRUCT_1, MODEL64, 8, "Struct_1"},
+      {STRUCT_1, MODEL32, 8, "Struct_1"},
+      {STRUCT_2, MODEL64, 8, "Struct_2"},
+      {STRUCT_2, MODEL32, 8, "Struct_2"},
+      {STRUCT_3, MODEL64, 12, "Struct_3"},
+      {STRUCT_3, MODEL32, 12, "Struct_3"},
+      {STRUCT_4, MODEL64, 8, "Struct_4"},
+      {STRUCT_4, MODEL32, 4, "Struct_4"},
+      {STRUCT_5, MODEL64, 40, "Struct_5"},
+      {STRUCT_5, MODEL32, 24, "Struct_5"},
+      {STRUCT_6, MODEL64, 8, "Struct_6"},
+      {STRUCT_6, MODEL32, 8, "Struct_6"},
+      {STRUCT_7, MODEL64, 16, "Struct_7"},
+      {STRUCT_7, MODEL32, 12, "Struct_7"},
+      {STRUCT_8, MODEL64, 8, "Struct_8"},
+      {STRUCT_8, MODEL32, 8, "Struct_8"},
+      {STRUCT_9, MODEL64, 16, "Struct_9"},
+      {STRUCT_9, MODEL32, 12, "Struct_9"}
+    };
   }
 
   @Parameter(0)

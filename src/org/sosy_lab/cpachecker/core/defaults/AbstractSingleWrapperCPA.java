@@ -25,10 +25,9 @@ import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.WrapperCPA;
 
-/**
- * Base class for CPAs which wrap exactly one other CPA.
- */
-public abstract class AbstractSingleWrapperCPA implements ConfigurableProgramAnalysis, WrapperCPA, StatisticsProvider {
+/** Base class for CPAs which wrap exactly one other CPA. */
+public abstract class AbstractSingleWrapperCPA
+    implements ConfigurableProgramAnalysis, WrapperCPA, StatisticsProvider {
 
   private final ConfigurableProgramAnalysis wrappedCpa;
 
@@ -82,7 +81,7 @@ public abstract class AbstractSingleWrapperCPA implements ConfigurableProgramAna
   @Override
   public void collectStatistics(Collection<Statistics> pStatsCollection) {
     if (wrappedCpa instanceof StatisticsProvider) {
-      ((StatisticsProvider)wrappedCpa).collectStatistics(pStatsCollection);
+      ((StatisticsProvider) wrappedCpa).collectStatistics(pStatsCollection);
     }
   }
 
@@ -93,7 +92,7 @@ public abstract class AbstractSingleWrapperCPA implements ConfigurableProgramAna
     } else if (pType.isAssignableFrom(wrappedCpa.getClass())) {
       return pType.cast(wrappedCpa);
     } else if (wrappedCpa instanceof WrapperCPA) {
-      return ((WrapperCPA)wrappedCpa).retrieveWrappedCpa(pType);
+      return ((WrapperCPA) wrappedCpa).retrieveWrappedCpa(pType);
     } else {
       return null;
     }

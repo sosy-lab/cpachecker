@@ -18,12 +18,13 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 /**
- * This visitor evaluates the address of a LValue. It is predominantly
- * used to evaluate the left hand side of a Assignment.
+ * This visitor evaluates the address of a LValue. It is predominantly used to evaluate the left
+ * hand side of a Assignment.
  */
 public class LValueAssignmentVisitor extends AddressVisitor {
 
-  public LValueAssignmentVisitor(SMGExpressionEvaluator pSmgExpressionEvaluator, CFAEdge pEdge, SMGState pSmgState) {
+  public LValueAssignmentVisitor(
+      SMGExpressionEvaluator pSmgExpressionEvaluator, CFAEdge pEdge, SMGState pSmgState) {
     super(pSmgExpressionEvaluator, pEdge, pSmgState);
   }
 
@@ -34,7 +35,8 @@ public class LValueAssignmentVisitor extends AddressVisitor {
   }
 
   @Override
-  public List<SMGAddressAndState> visit(CFunctionCallExpression lValue) throws CPATransferException {
+  public List<SMGAddressAndState> visit(CFunctionCallExpression lValue)
+      throws CPATransferException {
     throw new UnrecognizedCodeException(
         lValue.toASTString() + " is not a lValue", getCfaEdge(), lValue);
   }

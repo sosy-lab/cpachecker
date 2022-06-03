@@ -19,8 +19,8 @@ public class CAddressOfLabelExpression extends AbstractExpression implements CEx
   private static final long serialVersionUID = -6304788147442934412L;
   private final String label;
 
-  public CAddressOfLabelExpression(final FileLocation pFileLocation,
-                            final CType pType, final String pLabelName) {
+  public CAddressOfLabelExpression(
+      final FileLocation pFileLocation, final CType pType, final String pLabelName) {
     super(pFileLocation, pType);
     label = checkNotNull(pLabelName);
   }
@@ -74,7 +74,6 @@ public class CAddressOfLabelExpression extends AbstractExpression implements CEx
       return false;
     }
 
-    return label.equals(((CAddressOfLabelExpression)obj).label)
-        && super.equals(obj);
+    return label.equals(((CAddressOfLabelExpression) obj).label) && super.equals(obj);
   }
 }

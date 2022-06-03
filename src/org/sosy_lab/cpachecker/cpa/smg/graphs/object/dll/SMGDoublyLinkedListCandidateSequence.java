@@ -25,10 +25,14 @@ import org.sosy_lab.cpachecker.cpa.smg.join.SMGJoinSubSMGsForAbstraction;
 import org.sosy_lab.cpachecker.cpa.smg.refiner.SMGMemoryPath;
 import org.sosy_lab.cpachecker.cpa.smg.refiner.SMGMemoryPathCollector;
 
-public class SMGDoublyLinkedListCandidateSequence extends SMGAbstractListCandidateSequence<SMGDoublyLinkedListCandidate> {
+public class SMGDoublyLinkedListCandidateSequence
+    extends SMGAbstractListCandidateSequence<SMGDoublyLinkedListCandidate> {
 
-  public SMGDoublyLinkedListCandidateSequence(SMGDoublyLinkedListCandidate pCandidate,
-      int pLength, SMGJoinStatus pSmgJoinStatus, boolean pIncludesDll) {
+  public SMGDoublyLinkedListCandidateSequence(
+      SMGDoublyLinkedListCandidate pCandidate,
+      int pLength,
+      SMGJoinStatus pSmgJoinStatus,
+      boolean pIncludesDll) {
     super(pCandidate, pLength, pSmgJoinStatus, pIncludesDll);
   }
 
@@ -42,7 +46,7 @@ public class SMGDoublyLinkedListCandidateSequence extends SMGAbstractListCandida
     pSmgState.pruneUnreachable();
 
     // Abstraction not reachable
-    if(!pSMG.getHeapObjects().contains(prevObject)) {
+    if (!pSMG.getHeapObjects().contains(prevObject)) {
       return pSMG;
     }
 
@@ -73,12 +77,12 @@ public class SMGDoublyLinkedListCandidateSequence extends SMGAbstractListCandida
       SMGJoinSubSMGsForAbstraction join =
           new SMGJoinSubSMGsForAbstraction(pSMG, prevObject, nextObject, candidate, pSmgState);
 
-      if(!join.isDefined()) {
+      if (!join.isDefined()) {
         throw new AssertionError(
             "Unexpected join failure while abstracting longest mergeable sequence");
       }
 
-//      SMGDebugTest.dumpPlot("afterAbstractionBeforeRemoval", pSmgState);
+      //      SMGDebugTest.dumpPlot("afterAbstractionBeforeRemoval", pSmgState);
 
       SMGObject newAbsObj = join.getNewAbstractObject();
 
@@ -129,7 +133,7 @@ public class SMGDoublyLinkedListCandidateSequence extends SMGAbstractListCandida
 
       replaceSourceValues(pSMG, newAbsObj);
 
-//      SMGDebugTest.dumpPlot("afterAbstractionAfterRemoval", pSmgState);
+      //      SMGDebugTest.dumpPlot("afterAbstractionAfterRemoval", pSmgState);
     }
 
     return pSMG;
@@ -149,8 +153,7 @@ public class SMGDoublyLinkedListCandidateSequence extends SMGAbstractListCandida
     Map<SMGObject, SMGMemoryPath> map =
         new SMGMemoryPathCollector(pSmgState.getHeap()).getHeapObjectMemoryPaths();
     SMGMemoryPath pPointerToStartObject = map.get(candidate.getStartObject());
-    return new SMGDoublyLinkedListCandidateSequenceBlock(candidate.getShape(), length,
-        pPointerToStartObject);
+    return new SMGDoublyLinkedListCandidateSequenceBlock(
+        candidate.getShape(), length, pPointerToStartObject);
   }
-
 }

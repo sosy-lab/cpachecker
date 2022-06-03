@@ -13,9 +13,6 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterators;
-import java.io.IOException;
-import java.io.ObjectInputStream;
-import java.io.Serializable;
 import java.util.AbstractCollection;
 import java.util.Collection;
 import java.util.Collections;
@@ -24,9 +21,11 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.BiConsumer;
+import java.util.stream.Stream;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.waitlist.AbstractSortedWaitlist;
 import org.sosy_lab.cpachecker.core.waitlist.Waitlist;
@@ -35,24 +34,33 @@ import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.statistics.AbstractStatValue;
 
 /** Basic implementation of ReachedSet. It does not group states by location or any other key. */
-class DefaultReachedSet implements ReachedSet, Serializable {
+class DefaultReachedSet implements ReachedSet {
 
-  private static final long serialVersionUID = 1L;
-
+  private final ConfigurableProgramAnalysis cpa;
   private final Map<AbstractState, Precision> reached;
-  private transient Set<AbstractState> unmodifiableReached;
+  private final Set<AbstractState> unmodifiableReached;
   private @Nullable AbstractState lastState = null;
   private @Nullable AbstractState firstState = null;
   private final Waitlist waitlist;
 
-  DefaultReachedSet(WaitlistFactory waitlistFactory) {
+  DefaultReachedSet(ConfigurableProgramAnalysis pCpa, WaitlistFactory waitlistFactory) {
+    cpa = checkNotNull(pCpa);
     reached = new LinkedHashMap<>();
     unmodifiableReached = Collections.unmodifiableSet(reached.keySet());
     waitlist = waitlistFactory.createWaitlistInstance();
   }
 
   @Override
-  public void add(AbstractState state, Precision precision) throws IllegalArgumentException {
+  public void add(AbstractState state, Precision precision) {
+    add(state, precision, /*updateWaitlist=*/ true);
+  }
+
+  @Override
+  public void addNoWaitlist(AbstractState state, Precision precision) {
+    add(state, precision, /*updateWaitlist=*/ false);
+  }
+
+  private void add(AbstractState state, Precision precision, boolean updateWaitlist) {
     Preconditions.checkNotNull(state);
     Preconditions.checkNotNull(precision);
 
@@ -64,7 +72,9 @@ class DefaultReachedSet implements ReachedSet, Serializable {
 
     if (previousPrecision == null) {
       // State wasn't already in the reached set.
-      waitlist.add(state);
+      if (updateWaitlist) {
+        waitlist.add(state);
+      }
       lastState = state;
 
     } else {
@@ -89,7 +99,9 @@ class DefaultReachedSet implements ReachedSet, Serializable {
         // (a method shouldn't change state if it throws an IAE).
         reached.put(state, previousPrecision);
 
-        throw new IllegalArgumentException("State added to reached set which is already contained, but with a different precision");
+        throw new IllegalArgumentException(
+            "State added to reached set which is already contained, but with a different"
+                + " precision");
       }
     }
   }
@@ -121,7 +133,8 @@ class DefaultReachedSet implements ReachedSet, Serializable {
       // State was not contained in the reached set.
       // Restore previous state and throw exception.
       reached.remove(s);
-      throw new IllegalArgumentException("State needs to be in the reached set in order to change the precision.");
+      throw new IllegalArgumentException(
+          "State needs to be in the reached set in order to change the precision.");
     }
   }
 
@@ -162,6 +175,11 @@ class DefaultReachedSet implements ReachedSet, Serializable {
   }
 
   @Override
+  public void clearWaitlist() {
+    waitlist.clear();
+  }
+
+  @Override
   public Set<AbstractState> asCollection() {
     return unmodifiableReached;
   }
@@ -169,6 +187,11 @@ class DefaultReachedSet implements ReachedSet, Serializable {
   @Override
   public Iterator<AbstractState> iterator() {
     return unmodifiableReached.iterator();
+  }
+
+  @Override
+  public Stream<AbstractState> stream() {
+    return reached.keySet().stream();
   }
 
   @Override
@@ -217,7 +240,7 @@ class DefaultReachedSet implements ReachedSet, Serializable {
         if (!(obj instanceof AbstractState)) {
           return false;
         }
-        return waitlist.contains((AbstractState)obj);
+        return waitlist.contains((AbstractState) obj);
       }
 
       @Override
@@ -286,9 +309,8 @@ class DefaultReachedSet implements ReachedSet, Serializable {
     }
   }
 
-  @SuppressWarnings("UnusedVariable") // parameter is required by API
-  private void readObject(ObjectInputStream s) throws IOException, ClassNotFoundException {
-    s.defaultReadObject();
-    unmodifiableReached = Collections.unmodifiableSet(reached.keySet());
+  @Override
+  public ConfigurableProgramAnalysis getCPA() {
+    return cpa;
   }
 }

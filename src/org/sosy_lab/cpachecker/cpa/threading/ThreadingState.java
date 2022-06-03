@@ -32,6 +32,7 @@ import org.sosy_lab.cpachecker.cfa.model.AStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithLocations;
@@ -44,12 +45,17 @@ import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 /** This immutable state represents a location state combined with a callstack state. */
-public class ThreadingState implements AbstractState, AbstractStateWithLocations, Graphable, Partitionable, AbstractQueryableState {
+public class ThreadingState
+    implements AbstractState,
+        AbstractStateWithLocations,
+        Graphable,
+        Partitionable,
+        AbstractQueryableState {
 
   private static final String PROPERTY_DEADLOCK = "deadlock";
   private static final String PROPERTY_DATA_RACE = "data-race";
 
-  final static int MIN_THREAD_NUM = 0;
+  static final int MIN_THREAD_NUM = 0;
 
   // String :: identifier for the thread TODO change to object or memory-location
   // CallstackState +  LocationState :: thread-position
@@ -68,6 +74,17 @@ public class ThreadingState implements AbstractState, AbstractStateWithLocations
   @Nullable private final String activeThread;
 
   /**
+   * This functioncall was called when creating this thread. This value should only be set in {@link
+   * ThreadingTransferRelation#getAbstractSuccessorsForEdge} when creating a new thread, i.e., only
+   * for the first state in the new thread, which is directly after the function call.
+   *
+   * <p>It must be deleted in {@link ThreadingTransferRelation#strengthen}, e.g. set to {@code
+   * null}. It is not considered to be part of any 'full' abstract state, but serves as intermediate
+   * flag to have information for the strengthening process.
+   */
+  @Nullable private final FunctionCallEdge entryFunction;
+
+  /**
    * This map contains the mapping of threadIds to the unique identifier used for witness
    * validation. Without a witness, it should always be empty.
    */
@@ -76,10 +93,11 @@ public class ThreadingState implements AbstractState, AbstractStateWithLocations
   @Nullable private final DataRaceTracker tracker;
 
   public ThreadingState() {
-    this.threads = PathCopyingPersistentTreeMap.of();
-    this.locks = PathCopyingPersistentTreeMap.of();
-    this.activeThread = null;
-    this.threadIdsForWitness = PathCopyingPersistentTreeMap.of();
+    threads = PathCopyingPersistentTreeMap.of();
+    locks = PathCopyingPersistentTreeMap.of();
+    activeThread = null;
+    entryFunction = null;
+    threadIdsForWitness = PathCopyingPersistentTreeMap.of();
     tracker = null;
   }
 
@@ -87,33 +105,40 @@ public class ThreadingState implements AbstractState, AbstractStateWithLocations
       PersistentMap<String, ThreadState> pThreads,
       PersistentMap<String, String> pLocks,
       String pActiveThread,
+      FunctionCallEdge entryFunction,
       PersistentMap<String, Integer> pThreadIdsForWitness,
       DataRaceTracker pTracker) {
-    this.threads = pThreads;
-    this.locks = pLocks;
-    this.activeThread = pActiveThread;
-    this.threadIdsForWitness = pThreadIdsForWitness;
+    threads = pThreads;
+    locks = pLocks;
+    activeThread = pActiveThread;
+    this.entryFunction = entryFunction;
+    threadIdsForWitness = pThreadIdsForWitness;
     tracker = pTracker;
   }
 
   private ThreadingState withThreads(PersistentMap<String, ThreadState> pThreads) {
-    return new ThreadingState(pThreads, locks, activeThread, threadIdsForWitness, tracker);
+    return new ThreadingState(
+        pThreads, locks, activeThread, entryFunction, threadIdsForWitness, tracker);
   }
 
   private ThreadingState withLocks(PersistentMap<String, String> pLocks) {
-    return new ThreadingState(threads, pLocks, activeThread, threadIdsForWitness, tracker);
+    return new ThreadingState(
+        threads, pLocks, activeThread, entryFunction, threadIdsForWitness, tracker);
   }
 
   private ThreadingState withThreadIdsForWitness(
       PersistentMap<String, Integer> pThreadIdsForWitness) {
-    return new ThreadingState(threads, locks, activeThread, pThreadIdsForWitness, tracker);
+    return new ThreadingState(
+        threads, locks, activeThread, entryFunction, pThreadIdsForWitness, tracker);
   }
 
   private ThreadingState withDataRaceTracker(DataRaceTracker pTracker) {
-    return new ThreadingState(threads, locks, activeThread, threadIdsForWitness, pTracker);
+    return new ThreadingState(
+        threads, locks, activeThread, entryFunction, threadIdsForWitness, pTracker);
   }
 
-  public ThreadingState addThreadAndCopy(String id, int num, AbstractState stack, AbstractState loc) {
+  public ThreadingState addThreadAndCopy(
+      String id, int num, AbstractState stack, AbstractState loc) {
     Preconditions.checkNotNull(id);
     Preconditions.checkArgument(!threads.containsKey(id), "thread already exists");
     return withThreads(threads.putAndCopy(id, new ThreadState(loc, stack, num)));
@@ -152,8 +177,7 @@ public class ThreadingState implements AbstractState, AbstractStateWithLocations
       return this;
     }
     assert hasDataRaceTracker();
-    DataRaceTracker newTracker =
-        tracker.update(threads.keySet(), pActiveThread, edge);
+    DataRaceTracker newTracker = tracker.update(threads.keySet(), pActiveThread, edge);
     return withDataRaceTracker(newTracker);
   }
 
@@ -182,7 +206,7 @@ public class ThreadingState implements AbstractState, AbstractStateWithLocations
     int num = MIN_THREAD_NUM;
     // TODO loop is not efficient for big number of threads
     final Set<Integer> threadNums = getThreadNums();
-    while(threadNums.contains(num)) {
+    while (threadNums.contains(num)) {
       num++;
     }
     return num;
@@ -243,7 +267,7 @@ public class ThreadingState implements AbstractState, AbstractStateWithLocations
     if (!(other instanceof ThreadingState)) {
       return false;
     }
-    ThreadingState ts = (ThreadingState)other;
+    ThreadingState ts = (ThreadingState) other;
     return threads.equals(ts.threads)
         && locks.equals(ts.locks)
         && Objects.equals(activeThread, ts.activeThread)
@@ -256,8 +280,8 @@ public class ThreadingState implements AbstractState, AbstractStateWithLocations
   }
 
   private FluentIterable<AbstractStateWithLocations> getLocations() {
-    return FluentIterable.from(threads.values()).transform(
-        s -> (AbstractStateWithLocations) s.getLocation());
+    return FluentIterable.from(threads.values())
+        .transform(s -> (AbstractStateWithLocations) s.getLocation());
   }
 
   @Override
@@ -296,7 +320,6 @@ public class ThreadingState implements AbstractState, AbstractStateWithLocations
     return threads;
   }
 
-
   @Override
   public String getCPAName() {
     return "ThreadingCPA";
@@ -320,8 +343,7 @@ public class ThreadingState implements AbstractState, AbstractStateWithLocations
   }
 
   /**
-   * check, whether one of the outgoing edges can be visited
-   * without requiring a already used lock.
+   * check, whether one of the outgoing edges can be visited without requiring a already used lock.
    */
   private boolean hasDeadlock() throws UnrecognizedCodeException {
     FluentIterable<CFAEdge> edges = FluentIterable.from(getOutgoingEdges());
@@ -358,15 +380,18 @@ public class ThreadingState implements AbstractState, AbstractStateWithLocations
     return newLock != null && hasLock(newLock);
   }
 
-  /** A thread might need to wait for another thread, if the other thread joins at
-   * the current edge. If the other thread never exits, we have found a deadlock. */
+  /**
+   * A thread might need to wait for another thread, if the other thread joins at the current edge.
+   * If the other thread never exits, we have found a deadlock.
+   */
   private boolean isWaitingForOtherThread(CFAEdge edge) throws UnrecognizedCodeException {
     if (edge.getEdgeType() == CFAEdgeType.StatementEdge) {
-      AStatement statement = ((AStatementEdge)edge).getStatement();
+      AStatement statement = ((AStatementEdge) edge).getStatement();
       if (statement instanceof AFunctionCall) {
-        AExpression functionNameExp = ((AFunctionCall)statement).getFunctionCallExpression().getFunctionNameExpression();
+        AExpression functionNameExp =
+            ((AFunctionCall) statement).getFunctionCallExpression().getFunctionNameExpression();
         if (functionNameExp instanceof AIdExpression) {
-          final String functionName = ((AIdExpression)functionNameExp).getName();
+          final String functionName = ((AIdExpression) functionNameExp).getName();
           if (THREAD_JOIN.equals(functionName)) {
             final String joiningThread = extractParamName(statement, 0);
             // check whether other thread is running and has at least one outgoing edge,
@@ -394,10 +419,10 @@ public class ThreadingState implements AbstractState, AbstractStateWithLocations
     // TODO do we really need this? -> needed for identification of cloned functions.
     private final int num;
 
-    ThreadState(AbstractState pLocation, AbstractState pCallstack, int  pNum) {
+    ThreadState(AbstractState pLocation, AbstractState pCallstack, int pNum) {
       location = pLocation;
-      callstack = new CallstackStateEqualsWrapper((CallstackState)pCallstack);
-      num= pNum;
+      callstack = new CallstackStateEqualsWrapper((CallstackState) pCallstack);
+      num = pNum;
     }
 
     public AbstractState getLocation() {
@@ -422,8 +447,10 @@ public class ThreadingState implements AbstractState, AbstractStateWithLocations
       if (!(o instanceof ThreadState)) {
         return false;
       }
-      ThreadState other = (ThreadState)o;
-      return location.equals(other.location) && callstack.equals(other.callstack) && num == other.num;
+      ThreadState other = (ThreadState) o;
+      return location.equals(other.location)
+          && callstack.equals(other.callstack)
+          && num == other.num;
     }
 
     @Override
@@ -433,16 +460,28 @@ public class ThreadingState implements AbstractState, AbstractStateWithLocations
   }
 
   /** See {@link #activeThread}. */
-  public ThreadingState withActiveThread(String pActiveThread) {
-    return new ThreadingState(threads, locks, pActiveThread, threadIdsForWitness, tracker);
+  public ThreadingState withActiveThread(@Nullable String pActiveThread) {
+    return new ThreadingState(
+        threads, locks, pActiveThread, entryFunction, threadIdsForWitness, tracker);
   }
 
   String getActiveThread() {
     return activeThread;
   }
 
+  /** See {@link #entryFunction}. */
+  public ThreadingState withEntryFunction(@Nullable FunctionCallEdge pEntryFunction) {
+    return new ThreadingState(
+        threads, locks, activeThread, pEntryFunction, threadIdsForWitness, tracker);
+  }
+
+  /** See {@link #entryFunction}. */
   @Nullable
-  Integer getThreadIdForWitness(String threadId) {
+  public FunctionCallEdge getEntryFunction() {
+    return entryFunction;
+  }
+
+  @Nullable Integer getThreadIdForWitness(String threadId) {
     Preconditions.checkNotNull(threadId);
     return threadIdsForWitness.get(threadId);
   }

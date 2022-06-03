@@ -20,4 +20,5 @@ RUN apt-get update && apt-get install -y \
   graphviz \
   libgmp10 \
   libgomp1 \
-  python3
+  python3 \
+  clang-9

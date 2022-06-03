@@ -8,6 +8,7 @@
 package org.sosy_lab.cpachecker.core.algorithm.explainer;
 
 import com.google.common.collect.ForwardingList;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Streams;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -15,7 +16,6 @@ import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-import java.util.stream.Collectors;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -49,7 +49,7 @@ public class ControlFlowDistanceMetric implements DistanceMetric {
   private final DistanceCalculationHelper distanceHelper;
 
   public ControlFlowDistanceMetric(DistanceCalculationHelper pDistanceCalculationHelper) {
-    this.distanceHelper = pDistanceCalculationHelper;
+    distanceHelper = pDistanceCalculationHelper;
   }
 
   @Override
@@ -403,14 +403,14 @@ class PathDistancePair<T, Y> {
  */
 class PathDistanceList<T, Y> extends ForwardingList<PathDistancePair<T, Y>> {
 
-  private List<PathDistancePair<T, Y>> delegate;
+  private final ImmutableList<PathDistancePair<T, Y>> delegate;
 
   PathDistanceList(List<List<T>> programExecution, List<List<Y>> listOfDistances) {
     assert programExecution.size() == listOfDistances.size();
     delegate =
         Streams.zip(programExecution.stream(), listOfDistances.stream(), PathDistancePair::new)
             .filter(p -> p.getDistances().isEmpty()) // get rid of safe paths with distance = 0
-            .collect(Collectors.toList());
+            .collect(ImmutableList.toImmutableList());
   }
 
   @Override

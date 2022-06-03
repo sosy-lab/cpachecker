@@ -20,11 +20,8 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ResultProviderReachedSet;
-import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 
-/**
- * Class that represents the result of a CPAchecker analysis.
- */
+/** Class that represents the result of a CPAchecker analysis. */
 public class CPAcheckerResult {
 
   /** Enum for the possible outcomes of a CPAchecker analysis */
@@ -43,7 +40,7 @@ public class CPAcheckerResult {
 
   private final Result result;
 
-  private final String violatedPropertyDescription;
+  private final String targetDescription;
 
   private final @Nullable ReachedSet reached;
 
@@ -55,11 +52,11 @@ public class CPAcheckerResult {
 
   CPAcheckerResult(
       Result result,
-      String violatedPropertyDescription,
+      String targetDescription,
       @Nullable ReachedSet reached,
       @Nullable CFA cfa,
       @Nullable Statistics stats) {
-    this.violatedPropertyDescription = checkNotNull(violatedPropertyDescription);
+    this.targetDescription = checkNotNull(targetDescription);
     this.result = checkNotNull(result);
     this.reached = reached;
     this.cfa = cfa;
@@ -70,36 +67,30 @@ public class CPAcheckerResult {
     this(result, "");
   }
 
-  private CPAcheckerResult(Result result, String violatedPropertyDescription) {
-    this(result, violatedPropertyDescription, null, null, null);
+  private CPAcheckerResult(Result result, String targetDescription) {
+    this(result, targetDescription, null, null, null);
   }
 
-  /**
-   * Return the result of the analysis.
-   */
+  /** Return the result of the analysis. */
   public Result getResult() {
     return result;
   }
 
   /**
-   * Return the reason as to why a property got violated. If the result does not contain a property
-   * violation, then calling this method will result in an error.
+   * Return information about the reached target. If the result does not contain a target, then
+   * calling this method will result in an error.
    */
-  public String getViolatedPropertyDescription() {
+  public String getTargetDescription() {
     checkState(result == Result.FALSE);
-    return violatedPropertyDescription;
+    return targetDescription;
   }
 
-  /**
-   * Return the final reached set.
-   */
-  public @Nullable UnmodifiableReachedSet getReached() {
+  /** Return the final reached set. */
+  public @Nullable ReachedSet getReached() {
     return reached;
   }
 
-  /**
-   * Return the CFA.
-   */
+  /** Return the CFA. */
   public @Nullable CFA getCfa() {
     return cfa;
   }
@@ -109,8 +100,8 @@ public class CPAcheckerResult {
   }
 
   /**
-   * Write the statistics to a given PrintWriter. Additionally some output files
-   * may be written here, if configuration says so.
+   * Write the statistics to a given PrintWriter. Additionally some output files may be written
+   * here, if configuration says so.
    */
   public void printStatistics(PrintStream target) {
     if (stats != null) {
@@ -122,6 +113,10 @@ public class CPAcheckerResult {
   }
 
   public void writeOutputFiles() {
+    if (result == Result.NOT_YET_STARTED) {
+      return;
+    }
+
     stats.writeOutputFiles(result, reached);
     if (proofGeneratorStats != null) {
       proofGeneratorStats.writeOutputFiles(result, reached);
@@ -150,8 +145,8 @@ public class CPAcheckerResult {
       case FALSE:
         StringBuilder sb = new StringBuilder();
         sb.append("FALSE. Property violation");
-        if (!violatedPropertyDescription.isEmpty()) {
-          sb.append(" (").append(violatedPropertyDescription).append(")");
+        if (!targetDescription.isEmpty()) {
+          sb.append(" (").append(targetDescription).append(")");
         }
         sb.append(" found by chosen configuration.");
         return sb.toString();

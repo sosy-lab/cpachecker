@@ -13,7 +13,12 @@ import static org.sosy_lab.cpachecker.util.CFAUtils.predecessorsOf;
 import static org.sosy_lab.cpachecker.util.CFAUtils.successorsOf;
 
 import com.google.common.base.Predicates;
-
+import java.util.ArrayDeque;
+import java.util.ArrayList;
+import java.util.Deque;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.CFACreationUtils;
 import org.sosy_lab.cpachecker.cfa.MutableCFA;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
@@ -24,21 +29,12 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 
-import java.util.ArrayDeque;
-import java.util.ArrayList;
-import java.util.Deque;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
-
-
 public class CFASimplifier {
 
   /**
-   * This method takes a cfa as input and simplifies it, in the way, that
-   * Assume Edges which are not needed (p.e. because there are no edges besides
-   * BlankEdges in the subtree of an AssumeEdge) are deleted and replaced by a
-   * single BlankEdge.
+   * This method takes a cfa as input and simplifies it, in the way, that Assume Edges which are not
+   * needed (p.e. because there are no edges besides BlankEdges in the subtree of an AssumeEdge) are
+   * deleted and replaced by a single BlankEdge.
    *
    * @param cfa The cfa which should be simplified
    */
@@ -49,8 +45,8 @@ public class CFASimplifier {
   }
 
   /**
-   * This method makes the simplification step for a single function, the
-   * root node is the node where the search for possible simplifications starts.
+   * This method makes the simplification step for a single function, the root node is the node
+   * where the search for possible simplifications starts.
    *
    * @param root start node for simplification
    * @param cfa The cfa where the simplifications should be applied
@@ -73,8 +69,9 @@ public class CFASimplifier {
   }
 
   /**
-   * Search all branching points in a CFA in post order
-   * (any (transitive) predecessor of a node comes before that node in the result).
+   * Search all branching points in a CFA in post order (any (transitive) predecessor of a node
+   * comes before that node in the result).
+   *
    * @param root The entry point of the CFA.
    * @return A queue of CFANodes that are branching points, in post order.
    */
@@ -134,9 +131,14 @@ public class CFASimplifier {
 
         if (current.getNumLeavingEdges() > 1) {
           if (current.getNumLeavingEdges() > 2) {
-            throw new AssertionError("More than 2 leaving edges on node " + current + " in function " + current.getFunctionName());
+            throw new AssertionError(
+                "More than 2 leaving edges on node "
+                    + current
+                    + " in function "
+                    + current.getFunctionName());
           }
-          assert CFAUtils.allLeavingEdges(current).allMatch(Predicates.instanceOf(AssumeEdge.class));
+          assert CFAUtils.allLeavingEdges(current)
+              .allMatch(Predicates.instanceOf(AssumeEdge.class));
 
           boolean firstNodeQualifies =
               nodeQualifiesForPossibleRemoval(current.getLeavingEdge(0).getSuccessor());
@@ -168,12 +170,14 @@ public class CFASimplifier {
 
   /**
    * Simplify one branching in the CFA at the given node (if possible).
+   *
    * @param branchingPoint The root of the branching (needs to have 2 outgoing AssumeEdges).
    * @param cfa the cfa which should be simplified
    */
   private static void simplifyBranching(final CFANode branchingPoint, final MutableCFA cfa) {
-    CFANode leftEndpoint  = findEndOfBlankEdgeChain(branchingPoint.getLeavingEdge(0).getSuccessor());
-    CFANode rightEndpoint = findEndOfBlankEdgeChain(branchingPoint.getLeavingEdge(1).getSuccessor());
+    CFANode leftEndpoint = findEndOfBlankEdgeChain(branchingPoint.getLeavingEdge(0).getSuccessor());
+    CFANode rightEndpoint =
+        findEndOfBlankEdgeChain(branchingPoint.getLeavingEdge(1).getSuccessor());
 
     if (leftEndpoint.equals(rightEndpoint)) {
       final CFANode endpoint = leftEndpoint;
@@ -204,8 +208,13 @@ public class CFASimplifier {
       final CFANode endpoint2 = findEndOfBlankEdgeChain(endpoint);
       removeChainOfNodes(endpoint, endpoint2, cfa, removedFileLocations);
 
-      CFAEdge blankEdge = new BlankEdge("skipped unnecessary edges",
-          FileLocation.merge(removedFileLocations), branchingPoint, endpoint2, "skipped unnecessary edges");
+      CFAEdge blankEdge =
+          new BlankEdge(
+              "skipped unnecessary edges",
+              FileLocation.merge(removedFileLocations),
+              branchingPoint,
+              endpoint2,
+              "skipped unnecessary edges");
       CFACreationUtils.addEdgeUnconditionallyToCFA(blankEdge);
     }
   }
@@ -213,8 +222,7 @@ public class CFASimplifier {
   private static CFANode findEndOfBlankEdgeChain(CFANode current) {
     Set<CFANode> visitedNodes = new HashSet<>();
 
-    while (current.getNumLeavingEdges() == 1
-        && current.getLeavingEdge(0) instanceof BlankEdge) {
+    while (current.getNumLeavingEdges() == 1 && current.getLeavingEdge(0) instanceof BlankEdge) {
 
       if (!visitedNodes.add(current)) {
         return current;
@@ -225,8 +233,11 @@ public class CFASimplifier {
     return current;
   }
 
-  private static void removeChainOfNodes(final CFANode start, final CFANode endpoint,
-      final MutableCFA cfa, final List<FileLocation> removedFileLocations) {
+  private static void removeChainOfNodes(
+      final CFANode start,
+      final CFANode endpoint,
+      final MutableCFA cfa,
+      final List<FileLocation> removedFileLocations) {
     CFANode toRemove = start;
 
     while (!toRemove.equals(endpoint)) {

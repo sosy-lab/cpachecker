@@ -35,7 +35,8 @@ public class CoverageReportStdoutSummary {
 
     if (numTotalFunctions > 0) {
       final double functionCoverage = numVisitedFunctions / (double) numTotalFunctions;
-      StatisticsUtils.write(pStdOut, 1, 25, "Function coverage", String.format("%.3f", functionCoverage));
+      StatisticsUtils.write(
+          pStdOut, 1, 25, "Function coverage", String.format("%.3f", functionCoverage));
     }
 
     if (numTotalLines > 0) {
@@ -49,8 +50,8 @@ public class CoverageReportStdoutSummary {
       final double conditionCoverage = numVisitedConditions / (double) numTotalConditions;
       StatisticsUtils.write(pStdOut, 1, 25, "Visited conditions", numVisitedConditions);
       StatisticsUtils.write(pStdOut, 1, 25, "Total conditions", numTotalConditions);
-      StatisticsUtils.write(pStdOut, 1, 25, "Condition coverage", String.format("%.3f", conditionCoverage));
+      StatisticsUtils.write(
+          pStdOut, 1, 25, "Condition coverage", String.format("%.3f", conditionCoverage));
     }
   }
-
 }

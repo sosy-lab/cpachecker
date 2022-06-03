@@ -24,18 +24,22 @@ SPDX-License-Identifier: Apache-2.0
     <property name="class.main" value=""/>
     <property name="project.url" value=""/>
     <property name="jar.excludes" value="**/*Test.class **/*Test$*.class"/>
+    <property name="jar.sources.excludes" value="**/*Test.java"/>
 
     <target name="jar" depends="determine-version,build" description="Create a runnable JAR file">
         <property name="jar.file" value="${ivy.module}-${version}.jar"/>
         <copy todir="${class.dir}"><fileset dir="." includes="META-INF/**"/></copy>
-        <manifestclasspath property="classpath.jar" jarfile="${ivy.lib.dir}/runtime/${jar.file}" maxParentLevels="0">
-            <classpath><fileset dir="${ivy.lib.dir}/runtime" includes="*.jar"/></classpath>
+        <manifestclasspath property="classpath.jar"
+                jarfile="${ivy.lib.dir}/${ivy.configuration.main}/${jar.file}"
+                maxParentLevels="0">
+            <classpath><fileset dir="${ivy.lib.dir}/${ivy.configuration.main}" includes="*.jar"/></classpath>
         </manifestclasspath>
         <jar basedir="${class.dir}/"
                 destfile="${jar.file}"
                 includes="**"
                 excludes="${jar.excludes}"
                 whenmanifestonly="fail">
+            <metainf dir="." includes="LICENSE"/>
             <manifest>
                 <attribute name="Class-Path" value="${classpath.jar}"/>
                 <attribute name="Main-Class" value="${class.main}"/>
@@ -49,8 +53,9 @@ SPDX-License-Identifier: Apache-2.0
     <target name="sources" depends="determine-version, resolve-dependencies">
         <jar destfile="${ivy.module}-${version}-sources.jar"
                 whenmanifestonly="fail">
-            <fileset dir="${source.dir}/" includes="**/*.java"/>
-            <fileset dir="${source.generated.dir}/" includes="**/*.java"/>
+            <fileset dir="${source.dir}/" includes="**/*.java" excludes="${jar.sources.excludes}"/>
+            <fileset dir="${source.generated.dir}/" includes="**/*.java" excludes="${jar.sources.excludes}"/>
+            <metainf dir="." includes="LICENSE"/>
             <manifest>
                     <attribute name="Implementation-Title" value="${ant.project.name}"/>
                     <attribute name="Implementation-Version" value="${version}"/>

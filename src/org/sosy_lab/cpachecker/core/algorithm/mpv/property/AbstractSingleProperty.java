@@ -14,7 +14,7 @@ import org.sosy_lab.common.time.TimeSpan;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
-import org.sosy_lab.cpachecker.core.interfaces.Property;
+import org.sosy_lab.cpachecker.core.interfaces.Targetable.TargetInformation;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonState;
 
 /** Abstract representation of a single property inside multi-property verification. */
@@ -27,7 +27,7 @@ public abstract class AbstractSingleProperty {
   private int violations; // number of found property violations
   private boolean allViolationsFound;
   private Result result;
-  private final Set<Property> violatedPropertyDescription;
+  private final Set<TargetInformation> violatedPropertyDescription;
   private String reasonOfUnknown;
 
   protected AbstractSingleProperty(String pName) {
@@ -99,7 +99,7 @@ public abstract class AbstractSingleProperty {
     return allViolationsFound;
   }
 
-  public void addViolatedPropertyDescription(Set<Property> pDescription) {
+  public void addViolatedPropertyDescription(Set<TargetInformation> pDescription) {
     violatedPropertyDescription.addAll(pDescription);
   }
 
@@ -112,7 +112,7 @@ public abstract class AbstractSingleProperty {
     reasonOfUnknown = pReasonOfUnknown;
   }
 
-  public Set<Property> getViolatedPropertyDescription() {
+  public Set<TargetInformation> getViolatedPropertyDescription() {
     return violatedPropertyDescription;
   }
 

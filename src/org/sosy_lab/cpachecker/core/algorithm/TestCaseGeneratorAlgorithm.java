@@ -27,26 +27,23 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.counterexample.AssumptionToEdgeAllocator;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
-import org.sosy_lab.cpachecker.core.defaults.NamedProperty;
+import org.sosy_lab.cpachecker.core.defaults.PropertyTargetInformation;
 import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
-import org.sosy_lab.cpachecker.core.interfaces.Property;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
-import org.sosy_lab.cpachecker.core.specification.Property.CommonCoverageType;
+import org.sosy_lab.cpachecker.core.specification.Property;
+import org.sosy_lab.cpachecker.core.specification.Property.CommonCoverageProperty;
 import org.sosy_lab.cpachecker.core.specification.Specification;
-import org.sosy_lab.cpachecker.core.specification.SpecificationProperty;
 import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
-import org.sosy_lab.cpachecker.cpa.testtargets.CoverFunction;
 import org.sosy_lab.cpachecker.cpa.testtargets.TestTargetCPA;
 import org.sosy_lab.cpachecker.cpa.testtargets.TestTargetProvider;
 import org.sosy_lab.cpachecker.cpa.testtargets.TestTargetState;
 import org.sosy_lab.cpachecker.cpa.testtargets.TestTargetTransferRelation;
-import org.sosy_lab.cpachecker.exceptions.CPAEnabledAnalysisPropertyViolationException;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CounterexampleAnalysisFailed;
 import org.sosy_lab.cpachecker.exceptions.InfeasibleCounterexampleException;
@@ -65,25 +62,36 @@ public class TestCaseGeneratorAlgorithm implements ProgressReportingAlgorithm, S
   }
 
   @Option(
-    secure = true,
-    name = "inStats",
-    description = "display all test targets and non-covered test targets in statistics"
-  )
+      secure = true,
+      name = "inStats",
+      description = "display all test targets and non-covered test targets in statistics")
   private boolean printTestTargetInfoInStats = false;
 
-  @Option(secure = true,  description = "when generating tests covering error call stop as soon as generated one test case and report false (only possible in combination with error call property specification")
+  @Option(
+      secure = true,
+      description =
+          "when generating tests covering error call stop as soon as generated one test case and"
+              + " report false (only possible in combination with error call property"
+              + " specification")
   private boolean reportCoveredErrorCallAsError = false;
 
   @Option(secure = true, name = "progress", description = "defines how progress is computed")
   private ProgressComputation progressType = ProgressComputation.RELATIVE_TOTAL;
+
+  @Option(
+      secure = true,
+      name = "mutants",
+      description =
+          "how many mutated test cases should be additionally generated (disabled if <= 0)")
+  private int numMutations = 0;
 
   private final Algorithm algorithm;
   private final AssumptionToEdgeAllocator assumptionToEdgeAllocator;
   private final ConfigurableProgramAnalysis cpa;
   private final LogManager logger;
   private final ShutdownNotifier shutdownNotifier;
-  private final Set<CFAEdge> testTargets;
-  private final SpecificationProperty specProp;
+  private Set<CFAEdge> testTargets;
+  private final Property specProp;
   private final TestCaseExporter exporter;
   private double progress = 0;
 
@@ -108,31 +116,28 @@ public class TestCaseGeneratorAlgorithm implements ProgressReportingAlgorithm, S
         CPAs.retrieveCPAOrFail(pCpa, TestTargetCPA.class, TestCaseGeneratorAlgorithm.class);
     testTargets =
         ((TestTargetTransferRelation) testTargetCpa.getTransferRelation()).getTestTargets();
+
     exporter = new TestCaseExporter(pCfa, logger, pConfig);
+
+    numMutations = Math.max(numMutations, 0);
 
     if (pSpec.getProperties().size() == 1) {
       specProp = pSpec.getProperties().iterator().next();
       Preconditions.checkArgument(
-          specProp.getProperty() instanceof CommonCoverageType
-              || specProp.getProperty() instanceof CoverFunction,
-          "Property %s not supported for test generation",
-          specProp.getProperty());
+          specProp.isCoverage(), "Property %s not supported for test generation", specProp);
     } else {
       specProp = null;
     }
   }
 
   @Override
-  public AlgorithmStatus run(final ReachedSet pReached)
-      throws CPAException, InterruptedException, CPAEnabledAnalysisPropertyViolationException {
+  public AlgorithmStatus run(final ReachedSet pReached) throws CPAException, InterruptedException {
     int uncoveredGoalsAtStart = testTargets.size();
     progress = 0;
     // clean up ARG
     if (pReached.getWaitlist().size() > 1
         || !pReached.getWaitlist().contains(pReached.getFirstState())) {
-      pReached
-          .getWaitlist()
-          .stream()
+      pReached.getWaitlist().stream()
           .filter(
               (AbstractState state) -> {
                 return !((ARGState) state).getChildren().isEmpty();
@@ -160,7 +165,7 @@ public class TestCaseGeneratorAlgorithm implements ProgressReportingAlgorithm, S
         ignoreTargetState = false;
 
         assert ARGUtils.checkARG(pReached);
-        assert (from(pReached).filter(AbstractStates::isTargetState).isEmpty());
+        assert from(pReached).filter(AbstractStates::isTargetState).isEmpty();
 
         AlgorithmStatus status = AlgorithmStatus.UNSOUND_AND_IMPRECISE;
         try {
@@ -183,11 +188,6 @@ public class TestCaseGeneratorAlgorithm implements ProgressReportingAlgorithm, S
           // may be thrown only be counterexample check, if not will be thrown again in finally
           // block due to respective shutdown notifier call)
           status = status.withPrecise(false);
-        } catch (Exception e2) {
-          // precaution always set precision to false, thus last target state not handled in case of
-          // exception
-          status = status.withPrecise(false);
-          throw e2;
         } finally {
 
           assert ARGUtils.checkARG(pReached);
@@ -211,14 +211,18 @@ public class TestCaseGeneratorAlgorithm implements ProgressReportingAlgorithm, S
               if (testTargets.contains(targetEdge)) {
 
                 if (status.isPrecise()) {
-                  CounterexampleInfo cexInfo = ARGUtils.tryGetOrCreateCounterexampleInformation(argState, cpa, assumptionToEdgeAllocator).orElseThrow();
-                  exporter.writeTestCaseFiles(cexInfo, Optional.ofNullable(specProp));
+                  CounterexampleInfo cexInfo =
+                      ARGUtils.tryGetOrCreateCounterexampleInformation(
+                              argState, cpa, assumptionToEdgeAllocator)
+                          .orElseThrow();
+                  exporter.writeTestCaseFilesAndMutations(
+                      cexInfo, Optional.ofNullable(specProp), numMutations);
 
-                  logger.log(Level.FINE, "Removing test target: " + targetEdge.toString());
+                  logger.log(Level.FINE, "Removing test target: " + targetEdge);
                   testTargets.remove(targetEdge);
 
                   if (shouldReportCoveredErrorCallAsError()) {
-                    addErrorStateWithViolatedProperty(pReached);
+                    addErrorStateWithTargetInformation(pReached);
                     shouldReturnFalse = true;
                   }
                   progress++;
@@ -234,14 +238,12 @@ public class TestCaseGeneratorAlgorithm implements ProgressReportingAlgorithm, S
                   }
                   logger.log(
                       Level.FINE,
-                      "Status was not precise. Current test target is not removed:"
-                          + targetEdge.toString());
+                      "Status was not precise. Current test target is not removed:" + targetEdge);
                 }
               } else {
                 logger.log(
                     Level.FINE,
-                    "Found test target is not in provided set of test targets:"
-                        + targetEdge.toString());
+                    "Found test target is not in provided set of test targets:" + targetEdge);
               }
             } else {
               logger.log(Level.FINE, "Target edge was null.");
@@ -276,31 +278,26 @@ public class TestCaseGeneratorAlgorithm implements ProgressReportingAlgorithm, S
 
   private void cleanUpIfNoTestTargetsRemain(final ReachedSet pReached) {
     if (testTargets.isEmpty()) {
-      List<AbstractState> waitlist = new ArrayList<>(pReached.getWaitlist());
-      for (AbstractState state : waitlist) {
-        pReached.removeOnlyFromWaitlist(state);
-      }
+      pReached.clearWaitlist();
     }
   }
 
-  private void addErrorStateWithViolatedProperty(final ReachedSet pReached) {
+  private void addErrorStateWithTargetInformation(final ReachedSet pReached) {
     Preconditions.checkState(shouldReportCoveredErrorCallAsError());
     pReached.add(
         new DummyErrorState(pReached.getLastState()) {
           private static final long serialVersionUID = 5522643115974481914L;
 
           @Override
-          public Set<Property> getViolatedProperties() {
-            return NamedProperty.singleton(specProp.getProperty().toString());
+          public Set<TargetInformation> getTargetInformation() {
+            return PropertyTargetInformation.singleton(specProp);
           }
         },
         SingletonPrecision.getInstance());
   }
 
   private boolean shouldReportCoveredErrorCallAsError() {
-    return reportCoveredErrorCallAsError
-        && specProp != null
-        && specProp.getProperty().equals(CommonCoverageType.COVERAGE_ERROR);
+    return reportCoveredErrorCallAsError && CommonCoverageProperty.COVERAGE_ERROR.equals(specProp);
   }
 
   @Override

@@ -50,8 +50,7 @@ public class AndersenTransferRelation extends SingleEdgeTransferRelation {
 
   @Override
   public Collection<AbstractState> getAbstractSuccessorsForEdge(
-      AbstractState pElement, Precision pPrecision, CFAEdge pCfaEdge)
-      throws CPATransferException {
+      AbstractState pElement, Precision pPrecision, CFAEdge pCfaEdge) throws CPATransferException {
 
     AbstractState successor = null;
     AndersenState andersenState = (AndersenState) pElement;
@@ -59,33 +58,33 @@ public class AndersenTransferRelation extends SingleEdgeTransferRelation {
     // check the type of the edge
     switch (pCfaEdge.getEdgeType()) {
 
-    // if edge is a statement edge, e.g. a = b + c
-    case StatementEdge:
-      CStatementEdge statementEdge = (CStatementEdge) pCfaEdge;
-      successor = handleStatement(andersenState, statementEdge.getStatement(), pCfaEdge);
-      break;
+        // if edge is a statement edge, e.g. a = b + c
+      case StatementEdge:
+        CStatementEdge statementEdge = (CStatementEdge) pCfaEdge;
+        successor = handleStatement(andersenState, statementEdge.getStatement(), pCfaEdge);
+        break;
 
-    // edge is a declaration edge, e.g. int a;
-    case DeclarationEdge:
-      CDeclarationEdge declarationEdge = (CDeclarationEdge) pCfaEdge;
-      successor = handleDeclaration(andersenState, declarationEdge);
-      break;
+        // edge is a declaration edge, e.g. int a;
+      case DeclarationEdge:
+        CDeclarationEdge declarationEdge = (CDeclarationEdge) pCfaEdge;
+        successor = handleDeclaration(andersenState, declarationEdge);
+        break;
 
-    // this is an assumption, e.g. if (a == b)
-    case AssumeEdge:
-      successor = andersenState;
-      break;
+        // this is an assumption, e.g. if (a == b)
+      case AssumeEdge:
+        successor = andersenState;
+        break;
 
-    case BlankEdge:
-      successor = andersenState;
-      break;
+      case BlankEdge:
+        successor = andersenState;
+        break;
 
-    case CallToReturnEdge:
-    case FunctionCallEdge:
-    case ReturnStatementEdge:
-    case FunctionReturnEdge:
-    default:
-      printWarning(pCfaEdge);
+      case CallToReturnEdge:
+      case FunctionCallEdge:
+      case ReturnStatementEdge:
+      case FunctionReturnEdge:
+      default:
+        printWarning(pCfaEdge);
     }
 
     if (successor == null) {
@@ -124,8 +123,7 @@ public class AndersenTransferRelation extends SingleEdgeTransferRelation {
 
       return handleAssignmentTo(op1.toASTString(), op2, pElement, pCfaEdge);
 
-    } else if (op1 instanceof CPointerExpression
-        && op2 instanceof CIdExpression) {
+    } else if (op1 instanceof CPointerExpression && op2 instanceof CIdExpression) {
 
       // *a = b; complex constraint
 
@@ -133,7 +131,8 @@ public class AndersenTransferRelation extends SingleEdgeTransferRelation {
 
       if (op1 instanceof CIdExpression) {
 
-        return pElement.addConstraint(new ComplexConstraint(op2.toASTString(), op1.toASTString(), false));
+        return pElement.addConstraint(
+            new ComplexConstraint(op2.toASTString(), op1.toASTString(), false));
 
       } else {
         throw new UnrecognizedCodeException("not supported", pCfaEdge, op2);
@@ -147,17 +146,14 @@ public class AndersenTransferRelation extends SingleEdgeTransferRelation {
   /**
    * Handles an assignement of the form <code>op1 = ...</code> to a given variable <code>op1</code>.
    *
-   * @param pOp1
-   *        Name of the lefthandside variable in the assignement <code>op1 = ...</code>.
-   * @param pOp2
-   *        Righthandside of the assignement.
-   * @param pElement
-   *        Predecessor of this assignement's AndersonElement.
-   * @param pCfaEdge
-  *          Corresponding edge of the CFA.
+   * @param pOp1 Name of the lefthandside variable in the assignement <code>op1 = ...</code>.
+   * @param pOp2 Righthandside of the assignement.
+   * @param pElement Predecessor of this assignement's AndersonElement.
+   * @param pCfaEdge Corresponding edge of the CFA.
    * @return <code>element</code>'s successor.
    */
-  private AndersenState handleAssignmentTo(String pOp1, CRightHandSide pOp2, AndersenState pElement, CFAEdge pCfaEdge)
+  private AndersenState handleAssignmentTo(
+      String pOp1, CRightHandSide pOp2, AndersenState pElement, CFAEdge pCfaEdge)
       throws UnrecognizedCodeException {
 
     // unpack cast if necessary
@@ -171,7 +167,8 @@ public class AndersenTransferRelation extends SingleEdgeTransferRelation {
 
       return pElement.addConstraint(new SimpleConstraint(pOp2.toASTString(), pOp1));
 
-    } else if (pOp2 instanceof CUnaryExpression && ((CUnaryExpression) pOp2).getOperator() == UnaryOperator.AMPER) {
+    } else if (pOp2 instanceof CUnaryExpression
+        && ((CUnaryExpression) pOp2).getOperator() == UnaryOperator.AMPER) {
 
       // a = &b; base constraint
 
@@ -200,11 +197,11 @@ public class AndersenTransferRelation extends SingleEdgeTransferRelation {
       }
 
     } else if (pOp2 instanceof CFunctionCallExpression
-        && "malloc".equals(((CFunctionCallExpression) pOp2).getFunctionNameExpression().toASTString())) {
+        && "malloc"
+            .equals(((CFunctionCallExpression) pOp2).getFunctionNameExpression().toASTString())) {
 
       // TODO line numbers are not unique when we have multiple input files!
       return pElement.addConstraint(new BaseConstraint("malloc-" + pCfaEdge.getLineNumber(), pOp1));
-
     }
 
     // not implemented, or not interessing
@@ -238,11 +235,13 @@ public class AndersenTransferRelation extends SingleEdgeTransferRelation {
   }
 
   /**
-   * Prints a warning to System.err that the statement corresponding to the given
-   * <code>cfaEdge</code> was not handled.
+   * Prints a warning to System.err that the statement corresponding to the given <code>cfaEdge
+   * </code> was not handled.
    */
   private void printWarning(CFAEdge pCfaEdge) {
-    logger.log(Level.WARNING, pCfaEdge.getFileLocation() + ":",
+    logger.log(
+        Level.WARNING,
+        pCfaEdge.getFileLocation() + ":",
         "Warning! CFA Edge \"" + pCfaEdge.getRawStatement() + "\" not handled.");
   }
 }

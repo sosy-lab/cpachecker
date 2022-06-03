@@ -11,7 +11,10 @@ SPDX-License-Identifier: Apache-2.0
 Style & Coding Guide
 ====================
 
-The style guide of this project is the [Google Java Style](https://google.github.io/styleguide/javaguide.html).
+The style guide of this project is the [Google Java Style](https://google.github.io/styleguide/javaguide.html)
+and we format all code with [google-java-format](https://github.com/google/google-java-format).
+we recommend to install the google-java-format plugin for your IDE,
+otherwise you need to execute `ant format-source` before each commit.
 
 Further guidelines that are worth reading:
 - Bloch: [Effective Java, 3rd Edition](https://www.amazon.com/Effective-Java-3rd-Joshua-Bloch/dp/0134685997)
@@ -22,20 +25,6 @@ in this directory, e.g. [`Logging.md`](Logging.md) and [`Test.md`](Test.md).
 
 Please read all these documents, they will let you write better code
 with considerably less effort!
-
-We use an automatic code formatter to format our new code
-(existing code still may violate the style guide).
-Before committing, run `ant format-diff` to reformat your changes
-according to the style guide.
-For git users: You need to stage your changes first (with `git add`),
-then run `ant format-diff` and then stage the changes again.
-This allows you to view exactly what the reformatter changed after running it.
-
-IMPORTANT for Eclipse users:
-The automatic code formatter is enabled in our project whenever you save a file,
-so no need to run it manually.
-However, you must [install the google-java-format plugin](Developing.md#develop-cpachecker-from-within-eclipse)!
-Otherwise Eclipse will produce ugly code formatting.
 
 
 ## Additional rules and hints
@@ -192,6 +181,9 @@ Several other collection methods from Java have the same disadvantage as above,
 but have no direct replacement because they accept null values and Guava doesn't.
 Null values in collections are typically bad design anyway,
 so make sure null is avoided and replace them.
+The `Collectors.toList/Map/Set()` results have the additional disadvantage
+that they do not guarantee mutability,
+but it is easy to accidentally mutate them and thus introduce a bug.
 
 | Java method - AVOID         | Guava method - USE AFTER REMOVING NULL VALUES |
 | ----------------------------|-----------------------------------------------|
@@ -209,6 +201,7 @@ Avoid the following classes:
 | Avoid                          | Replacement          | Why? |
 |--------------------------------|----------------------|------|
 | com.google.common.base.Objects | java.util.Objects    | only necessary for older Java |
+| com.google.common.base.Optional| java.util.Optional   | only necessary for older Java, mix of types is confusing |
 | java.io.**PrintStream**        | BufferedOutputStream | Swallows IOExceptions, but use for CPAchecker's statistics is ok |
 | java.io.**PrintWriter**        | BufferedWriter       | Swallows IOExceptions |
 | java.util.Hashtable            | HashMap              | old and deprecated |
@@ -216,3 +209,8 @@ Avoid the following classes:
 | java.util.Stack                | Deque                | old and deprecated |
 | java.util.Vector               | ArrayList            | old and deprecated |
 | org.junit.**Assert**           | Truth.assertThat     | much better failure messages |
+
+For Guava's Optional, usage that is hidden inside fluent method chains is ok
+(Example: `FluentIterable.from(...).first().orNull()`)
+but using it as a type (for declaring variables etc.) is not
+as it introduces confusion with Java's Optional.

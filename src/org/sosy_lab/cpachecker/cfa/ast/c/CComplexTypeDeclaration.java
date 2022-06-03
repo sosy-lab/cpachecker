@@ -12,29 +12,26 @@ import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.types.c.CComplexType;
 
 /**
- * This class represents declaration of complex types without declarations of
- * variables at the same time. Typedefs are not represented by this class.
- * Example code:
+ * This class represents declaration of complex types without declarations of variables at the same
+ * time. Typedefs are not represented by this class. Example code:
  *
- * struct s { ... };
- * struct s;
- * enum e { ... };
+ * <p>struct s { ... }; struct s; enum e { ... };
  *
- * TODO: As these declarations have no name, they should not be in the hierarchy
- * below {@link CSimpleDeclaration}.
+ * <p>TODO: As these declarations have no name, they should not be in the hierarchy below {@link
+ * CSimpleDeclaration}.
  */
 public final class CComplexTypeDeclaration extends CTypeDeclaration {
 
   private static final long serialVersionUID = -1789123397167943609L;
 
-  public CComplexTypeDeclaration(FileLocation pFileLocation,
-      boolean pIsGlobal, CComplexType pType) {
+  public CComplexTypeDeclaration(
+      FileLocation pFileLocation, boolean pIsGlobal, CComplexType pType) {
     super(pFileLocation, pIsGlobal, pType, null, null);
   }
 
   @Override
   public CComplexType getType() {
-    return (CComplexType)super.getType();
+    return (CComplexType) super.getType();
   }
 
   @Override

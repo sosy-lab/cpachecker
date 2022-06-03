@@ -24,13 +24,15 @@ import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 
-/**
- * Abstract base class for static refinement approaches.
- */
-@Options(prefix="staticRefiner")
-abstract public class StaticRefiner {
+/** Abstract base class for static refinement approaches. */
+@Options(prefix = "staticRefiner")
+public abstract class StaticRefiner {
 
-  @Option(secure=true, description="collect at most this number of assumes along a path, backwards from each target (= error) location")
+  @Option(
+      secure = true,
+      description =
+          "collect at most this number of assumes along a path, backwards from each target (="
+              + " error) location")
   private int maxBackscanPathAssumes = 1;
 
   protected final LogManager logger;
@@ -38,20 +40,21 @@ abstract public class StaticRefiner {
   protected StaticRefiner(Configuration pConfig, LogManager pLogger)
       throws InvalidConfigurationException {
 
-    this.logger = pLogger;
+    logger = pLogger;
 
     pConfig.inject(this, StaticRefiner.class);
   }
 
   /**
-   * This method finds in a backwards search, starting from the target locations in the
-   * CFA, the list of n assume edges preceeding each target node, where n equals the
-   * maxBackscanPathAssumes option.
+   * This method finds in a backwards search, starting from the target locations in the CFA, the
+   * list of n assume edges preceeding each target node, where n equals the maxBackscanPathAssumes
+   * option.
    *
    * @return the mapping from target nodes to the corresponding preceeding assume edges
    */
-  protected ListMultimap<CFANode, AssumeEdge> getTargetLocationAssumes(Collection<CFANode> targetNodes) {
-    ListMultimap<CFANode, AssumeEdge> result  = ArrayListMultimap.create();
+  protected ListMultimap<CFANode, AssumeEdge> getTargetLocationAssumes(
+      Collection<CFANode> targetNodes) {
+    ListMultimap<CFANode, AssumeEdge> result = ArrayListMultimap.create();
     if (targetNodes.isEmpty()) {
       return result;
     }
@@ -67,7 +70,7 @@ abstract public class StaticRefiner {
         Pair<CFANode, Integer> v = queue.pop();
 
         // Each node that enters node v
-        for (CFAEdge e: CFAUtils.enteringEdges(v.getFirst())) {
+        for (CFAEdge e : CFAUtils.enteringEdges(v.getFirst())) {
           CFANode u = e.getPredecessor();
 
           boolean isAssumeEdge = (e instanceof AssumeEdge);

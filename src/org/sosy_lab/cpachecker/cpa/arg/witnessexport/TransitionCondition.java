@@ -87,7 +87,7 @@ public class TransitionCondition implements Comparable<TransitionCondition> {
       return true;
     }
     return pOther instanceof TransitionCondition
-        && this.keyValues.equals(((TransitionCondition) pOther).keyValues)
+        && keyValues.equals(((TransitionCondition) pOther).keyValues)
         && scope.equals(((TransitionCondition) pOther).scope);
   }
 

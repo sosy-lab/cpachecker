@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.cfa;
 
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import org.sosy_lab.common.time.Timer;
@@ -17,8 +18,8 @@ import org.sosy_lab.cpachecker.exceptions.CParserException;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
 
 /**
- * Encapsulates a {@link CParser} instance and processes all files first
- * with a {@link CPreprocessor}.
+ * Encapsulates a {@link CParser} instance and processes all files first with a {@link
+ * CPreprocessor}.
  */
 class CParserWithPreprocessor implements CParser {
 
@@ -31,17 +32,8 @@ class CParserWithPreprocessor implements CParser {
   }
 
   @Override
-  public ParseResult parseFile(String pFilename) throws ParserException, InterruptedException {
-    String programCode = preprocessor.preprocess(pFilename);
-    if (programCode.isEmpty()) {
-      throw new CParserException("Preprocessor returned empty program");
-    }
-    return realParser.parseString(pFilename, programCode);
-  }
-
-  @Override
   public ParseResult parseString(
-      String pFilename, String pCode, CSourceOriginMapping pSourceOriginMapping, Scope pScope) {
+      Path pFilename, String pCode, CSourceOriginMapping pSourceOriginMapping, Scope pScope) {
     // TODO
     throw new UnsupportedOperationException();
   }
@@ -57,16 +49,17 @@ class CParserWithPreprocessor implements CParser {
   }
 
   @Override
-  public ParseResult parseFile(List<String> pFilenames)
-      throws CParserException, InterruptedException {
+  public ParseResult parseFiles(List<String> pFilenames)
+      throws ParserException, InterruptedException {
 
     List<FileContentToParse> programs = new ArrayList<>(pFilenames.size());
     for (String f : pFilenames) {
-      String programCode = preprocessor.preprocess(f);
+      Path path = Path.of(f);
+      String programCode = preprocessor.preprocess(path);
       if (programCode.isEmpty()) {
         throw new CParserException("Preprocessor returned empty program");
       }
-      programs.add(new FileContentToParse(f, programCode));
+      programs.add(new FileContentToParse(path, programCode));
     }
     return realParser.parseString(programs, new CSourceOriginMapping());
   }

@@ -11,11 +11,11 @@ package org.sosy_lab.cpachecker.cfa.parser.llvm;
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Level;
 import org.sosy_lab.common.NativeLibraries;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.ParseResult;
@@ -46,10 +46,20 @@ public class LlvmParser implements Parser {
   }
 
   @Override
-  public ParseResult parseFile(final String pFilename) throws ParserException {
+  public ParseResult parseFiles(final List<String> pFilenames)
+      throws ParserException, InterruptedException, InvalidConfigurationException {
+
+    if (pFilenames.size() > 1) {
+      throw new InvalidConfigurationException(
+          "Multiple program files not supported when using LLVM frontend.");
+    }
+    return parseFile(Path.of(pFilenames.get(0)));
+  }
+
+  protected ParseResult parseFile(final Path pFilename) throws LLVMParserException {
     addLlvmLookupDirs();
     try (Context llvmContext = Context.create();
-        Module llvmModule = Module.parseIR(pFilename, llvmContext)) {
+        Module llvmModule = Module.parseIR(pFilename.toString(), llvmContext)) {
       parseTimer.start();
       return buildCfa(llvmModule, pFilename);
 
@@ -71,9 +81,9 @@ public class LlvmParser implements Parser {
         LlvmParser.class.getProtectionDomain().getCodeSource().getLocation().getPath();
     String decodedBasePath = URLDecoder.decode(encodedBasePath, StandardCharsets.UTF_8);
 
-    Path cpacheckerDir = Paths.get(decodedBasePath).getParent();
+    Path cpacheckerDir = Path.of(decodedBasePath).getParent();
     if (cpacheckerDir != null) {
-      Path runtimeLibDir = Paths.get(cpacheckerDir.toString(), "lib", "java", "runtime");
+      Path runtimeLibDir = Path.of(cpacheckerDir.toString(), "lib", "java", "runtime");
       libDirs.add(runtimeLibDir);
     } else {
       logger.logf(
@@ -88,13 +98,15 @@ public class LlvmParser implements Parser {
     Module.addLibraryLookupPaths(libDirs);
   }
 
-  private ParseResult buildCfa(final Module pModule, final String pFilename) throws LLVMException {
+  private ParseResult buildCfa(final Module pModule, final Path pFilename) throws LLVMException {
     return cfaBuilder.build(pModule, pFilename);
   }
 
   @Override
-  public ParseResult parseString(final String pFilename, final String pCode) {
-    return null;
+  public ParseResult parseString(final Path pFilename, final String pCode)
+      throws ParserException, InterruptedException {
+    // TODO
+    throw new UnsupportedOperationException();
   }
 
   @Override

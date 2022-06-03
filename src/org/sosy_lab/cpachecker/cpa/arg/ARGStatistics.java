@@ -27,7 +27,6 @@ import java.nio.file.FileSystem;
 import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.EnumSet;
@@ -71,34 +70,36 @@ import org.sosy_lab.cpachecker.util.BiPredicates;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.cwriter.ARGToCTranslator;
 
-@Options(prefix="cpa.arg")
+@Options(prefix = "cpa.arg")
 public class ARGStatistics implements Statistics {
 
-  @Option(secure=true, name="dumpAfterIteration", description="Dump all ARG related statistics files after each iteration of the CPA algorithm? (for debugging and demonstration)")
+  @Option(
+      secure = true,
+      name = "dumpAfterIteration",
+      description =
+          "Dump all ARG related statistics files after each iteration of the CPA algorithm? (for"
+              + " debugging and demonstration)")
   private boolean dumpArgInEachCpaIteration = false;
 
-  @Option(secure=true, name="export", description="export final ARG as .dot file")
+  @Option(secure = true, name = "export", description = "export final ARG as .dot file")
   private boolean exportARG = true;
 
-  @Option(secure=true, name="file",
-      description="export final ARG as .dot file")
+  @Option(secure = true, name = "file", description = "export final ARG as .dot file")
   @FileOption(FileOption.Type.OUTPUT_FILE)
-  private Path argFile = Paths.get("ARG.dot");
+  private Path argFile = Path.of("ARG.dot");
 
   @Option(
-    secure = true,
-    name = "pixelGraphicFile",
-    description =
-        "Export final ARG as pixel graphic to the given file name. The suffix is added "
-            + " corresponding"
-            + " to the value of option pixelgraphic.export.format"
-            + "If set to 'null', no pixel graphic is exported."
-  )
+      secure = true,
+      name = "pixelGraphicFile",
+      description =
+          "Export final ARG as pixel graphic to the given file name. The suffix is added "
+              + " corresponding"
+              + " to the value of option pixelgraphic.export.format"
+              + "If set to 'null', no pixel graphic is exported.")
   @FileOption(FileOption.Type.OUTPUT_FILE)
-  private Path pixelGraphicFile = Paths.get("ARG");
+  private Path pixelGraphicFile = Path.of("ARG");
 
-  @Option(secure=true, name="proofWitness",
-      description="export a proof as .graphml file")
+  @Option(secure = true, name = "proofWitness", description = "export a proof as .graphml file")
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private Path proofWitness = null;
 
@@ -110,30 +111,35 @@ public class ARGStatistics implements Statistics {
   private Path proofWitnessDot = null;
 
   @Option(
-    secure = true,
-    name = "compressWitness",
-    description = "compress the produced correctness-witness automata using GZIP compression."
-  )
+      secure = true,
+      name = "compressWitness",
+      description = "compress the produced correctness-witness automata using GZIP compression.")
   private boolean compressWitness = true;
 
-  @Option(secure=true, name="simplifiedARG.file",
-      description="export final ARG as .dot file, showing only loop heads and function entries/exits")
+  @Option(
+      secure = true,
+      name = "simplifiedARG.file",
+      description =
+          "export final ARG as .dot file, showing only loop heads and function entries/exits")
   @FileOption(FileOption.Type.OUTPUT_FILE)
-  private Path simplifiedArgFile = Paths.get("ARGSimplified.dot");
+  private Path simplifiedArgFile = Path.of("ARGSimplified.dot");
 
-  @Option(secure=true, name="refinements.file",
-      description="export simplified ARG that shows all refinements to .dot file")
+  @Option(
+      secure = true,
+      name = "refinements.file",
+      description = "export simplified ARG that shows all refinements to .dot file")
   @FileOption(FileOption.Type.OUTPUT_FILE)
-  private Path refinementGraphFile = Paths.get("ARGRefinements.dot");
+  private Path refinementGraphFile = Path.of("ARGRefinements.dot");
 
-  @Option(secure = true, name = "translateToC",
-      description = "translate final ARG into C program")
+  @Option(secure = true, name = "translateToC", description = "translate final ARG into C program")
   private boolean translateARG = false;
 
-  @Option(secure = true, name = "CTranslation.file",
+  @Option(
+      secure = true,
+      name = "CTranslation.file",
       description = "translate final ARG into this C file")
   @FileOption(FileOption.Type.OUTPUT_FILE)
-  private Path argCFile = Paths.get("ARG.c");
+  private Path argCFile = Path.of("ARG.c");
 
   @Option(
       secure = true,
@@ -146,7 +152,7 @@ public class ARGStatistics implements Statistics {
       name = "automaton.exportSpcZipFile",
       description = "translate final ARG into an automaton, depends on 'automaton.export=true'")
   @FileOption(FileOption.Type.OUTPUT_FILE)
-  private Path automatonSpcZipFile = Paths.get("ARG_parts.zip");
+  private Path automatonSpcZipFile = Path.of("ARG_parts.zip");
 
   @Option(
       secure = true,
@@ -262,8 +268,7 @@ public class ARGStatistics implements Statistics {
           }
         }
 
-        logger.logUserException(Level.WARNING, e,
-            "Could not write refinement graph to file");
+        logger.logUserException(Level.WARNING, e, "Could not write refinement graph to file");
 
         refinementGraphFile = null; // ensure we won't try again
         refinementGraphUnderlyingWriter = null;
@@ -308,8 +313,12 @@ public class ARGStatistics implements Statistics {
     }
 
     if (translateARG) {
-      try (Writer writer = IO.openOutputFile(argCFile, Charset.defaultCharset())) {
-        writer.write(argToCExporter.translateARG((ARGState) pReached.getFirstState(), true));
+      try {
+        final String argAsC =
+            argToCExporter.translateARG((ARGState) pReached.getFirstState(), true);
+        try (Writer writer = IO.openOutputFile(argCFile, Charset.defaultCharset())) {
+          writer.write(argAsC);
+        }
       } catch (IOException | CPAException e) {
         logger.logUserException(Level.WARNING, e, "Could not write C translation of ARG to file");
       }
@@ -332,7 +341,7 @@ public class ARGStatistics implements Statistics {
     int sepIx = path.lastIndexOf(".");
     String prefix = path.substring(0, sepIx);
     String extension = path.substring(sepIx);
-    return Paths.get(prefix + "-" + partitionKey + extension);
+    return Path.of(prefix + "-" + partitionKey + extension);
   }
 
   private void exportARG(
@@ -351,11 +360,13 @@ public class ARGStatistics implements Statistics {
             || AbstractStates.extractStateByType(pReached.getFirstState(), PartitionState.class)
                 != null;
 
-    final Set<ARGState> rootStates = partitionedArg
-        ? ARGUtils.getRootStates(pReached)
-        : Collections.singleton(AbstractStates.extractStateByType(pReached.getFirstState(), ARGState.class));
+    final Set<ARGState> rootStates =
+        partitionedArg
+            ? ARGUtils.getRootStates(pReached)
+            : Collections.singleton(
+                AbstractStates.extractStateByType(pReached.getFirstState(), ARGState.class));
 
-    for (ARGState rootState: rootStates) {
+    for (ARGState rootState : rootStates) {
       exportARG0(rootState, BiPredicates.pairIn(allTargetPathEdges), pResult);
     }
   }
@@ -366,34 +377,38 @@ public class ARGStatistics implements Statistics {
       final BiPredicate<ARGState, ARGState> isTargetPathEdge,
       Result pResult) {
     SetMultimap<ARGState, ARGState> relevantSuccessorRelation =
-        ARGUtils.projectARG(rootState, ARGState::getChildren, ARGUtils.RELEVANT_STATE);
+        ARGUtils.projectARG(rootState, ARGState::getChildren, ARGUtils::isRelevantState);
     Function<ARGState, Collection<ARGState>> relevantSuccessorFunction =
         Functions.forMap(relevantSuccessorRelation.asMap(), ImmutableSet.of());
 
     if (EnumSet.of(Result.TRUE, Result.UNKNOWN).contains(pResult)) {
-      final Witness witness =
-          argWitnessExporter.generateProofWitness(
-              rootState,
-              Predicates.alwaysTrue(),
-              BiPredicates.alwaysTrue(),
-              argWitnessExporter.getProofInvariantProvider());
+      try {
+        final Witness witness =
+            argWitnessExporter.generateProofWitness(
+                rootState,
+                Predicates.alwaysTrue(),
+                BiPredicates.alwaysTrue(),
+                argWitnessExporter.getProofInvariantProvider());
 
-      if (proofWitness != null) {
-        Path witnessFile = adjustPathNameForPartitioning(rootState, proofWitness);
-        WitnessToOutputFormatsUtils.writeWitness(
-            witnessFile,
-            compressWitness,
-            pAppendable -> WitnessToOutputFormatsUtils.writeToGraphMl(witness, pAppendable),
-            logger);
-      }
+        if (proofWitness != null) {
+          Path witnessFile = adjustPathNameForPartitioning(rootState, proofWitness);
+          WitnessToOutputFormatsUtils.writeWitness(
+              witnessFile,
+              compressWitness,
+              pAppendable -> WitnessToOutputFormatsUtils.writeToGraphMl(witness, pAppendable),
+              logger);
+        }
 
-      if (proofWitnessDot != null) {
-        Path witnessFile = adjustPathNameForPartitioning(rootState, proofWitnessDot);
-        WitnessToOutputFormatsUtils.writeWitness(
-            witnessFile,
-            compressWitness,
-            pAppendable -> WitnessToOutputFormatsUtils.writeToDot(witness, pAppendable),
-            logger);
+        if (proofWitnessDot != null) {
+          Path witnessFile = adjustPathNameForPartitioning(rootState, proofWitnessDot);
+          WitnessToOutputFormatsUtils.writeWitness(
+              witnessFile,
+              compressWitness,
+              pAppendable -> WitnessToOutputFormatsUtils.writeToDot(witness, pAppendable),
+              logger);
+        }
+      } catch (InterruptedException e) {
+        logger.logUserException(Level.WARNING, e, "Could not export witness due to interruption");
       }
     }
 
@@ -506,7 +521,7 @@ public class ARGStatistics implements Statistics {
     ImmutableMap.Builder<ARGState, CounterexampleInfo> counterexamples = ImmutableMap.builder();
 
     for (AbstractState targetState : from(pReached).filter(AbstractStates::isTargetState)) {
-      ARGState s = (ARGState)targetState;
+      ARGState s = (ARGState) targetState;
       CounterexampleInfo cex =
           ARGUtils.tryGetOrCreateCounterexampleInformation(s, cpa, assumptionToEdgeAllocator)
               .orElse(null);
@@ -515,7 +530,7 @@ public class ARGStatistics implements Statistics {
       }
     }
 
-    Map<ARGState, CounterexampleInfo> allCounterexamples = counterexamples.build();
+    Map<ARGState, CounterexampleInfo> allCounterexamples = counterexamples.buildOrThrow();
     final Map<ARGState, CounterexampleInfo> preciseCounterexamples =
         Maps.filterValues(allCounterexamples, cex -> cex.isPreciseCounterExample());
     return preciseCounterexamples.isEmpty() ? allCounterexamples : preciseCounterexamples;
@@ -544,5 +559,4 @@ public class ARGStatistics implements Statistics {
       exportARG(pReached, getAllCounterexamples(pReached), CPAcheckerResult.Result.UNKNOWN);
     }
   }
-
 }

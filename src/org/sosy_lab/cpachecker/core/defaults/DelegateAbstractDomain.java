@@ -14,22 +14,17 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 /**
- * Default implementation of the abstract domain which delegates the
- * {@link #join} and {@link #isLessOrEqual} methods to the {@link LatticeAbstractState}
- * implementation.
+ * Default implementation of the abstract domain which delegates the {@link #join} and {@link
+ * #isLessOrEqual} methods to the {@link LatticeAbstractState} implementation.
  *
- * @param <E> Parametrize by the {@link AbstractState} implementation used for
- * the analysis.
+ * @param <E> Parametrize by the {@link AbstractState} implementation used for the analysis.
  */
-public class DelegateAbstractDomain<E extends LatticeAbstractState<E>>
-    implements AbstractDomain {
+public class DelegateAbstractDomain<E extends LatticeAbstractState<E>> implements AbstractDomain {
   private DelegateAbstractDomain() {}
 
-  public static <E extends LatticeAbstractState<E>>
-        DelegateAbstractDomain<E> getInstance() {
+  public static <E extends LatticeAbstractState<E>> DelegateAbstractDomain<E> getInstance() {
     return new DelegateAbstractDomain<>();
   }
-
 
   @Override
   @SuppressWarnings("unchecked")

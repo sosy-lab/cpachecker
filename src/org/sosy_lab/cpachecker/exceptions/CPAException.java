@@ -11,8 +11,8 @@ package org.sosy_lab.cpachecker.exceptions;
 /**
  * Super class for all exceptions thrown by CPA operators.
  *
- * TODO This exception should probably be abstract, and specialized sub-classes
- * should be used for specific reasons.
+ * <p>TODO This exception should probably be abstract, and specialized sub-classes should be used
+ * for specific reasons.
  */
 public class CPAException extends Exception {
 

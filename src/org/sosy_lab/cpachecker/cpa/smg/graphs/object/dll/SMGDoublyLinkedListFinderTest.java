@@ -134,7 +134,7 @@ public class SMGDoublyLinkedListFinderTest {
 
     SMGDoublyLinkedListFinder f = new SMGDoublyLinkedListFinder();
 
-     Set<SMGAbstractionCandidate> s = f.traverse(smg1, null, ImmutableSet.of());
+    Set<SMGAbstractionCandidate> s = f.traverse(smg1, null, ImmutableSet.of());
 
     assertThat(s).isNotEmpty();
   }

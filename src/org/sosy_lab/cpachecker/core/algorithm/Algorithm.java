@@ -9,8 +9,8 @@
 package org.sosy_lab.cpachecker.core.algorithm;
 
 import com.google.errorprone.annotations.CheckReturnValue;
+import java.util.Objects;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
-import org.sosy_lab.cpachecker.exceptions.CPAEnabledAnalysisPropertyViolationException;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 public interface Algorithm {
@@ -23,7 +23,7 @@ public interface Algorithm {
    * @throws CPAException may be thrown by implementors
    * @throws InterruptedException may be thrown by implementors
    */
-  AlgorithmStatus run(ReachedSet reachedSet) throws CPAException, InterruptedException, CPAEnabledAnalysisPropertyViolationException;
+  AlgorithmStatus run(ReachedSet reachedSet) throws CPAException, InterruptedException;
 
   /**
    * This class serves as an indication how a result produced by an {@link Algorithm} should be
@@ -64,8 +64,8 @@ public interface Algorithm {
     }
 
     /**
-     * Create a new instance of {@link AlgorithmStatus} where both SOUND and PRECISE
-     * are a *conjunction* of this instance's and the other's fields.
+     * Create a new instance of {@link AlgorithmStatus} where both SOUND and PRECISE are a
+     * *conjunction* of this instance's and the other's fields.
      */
     @CheckReturnValue
     public AlgorithmStatus update(AlgorithmStatus other) {
@@ -76,8 +76,8 @@ public interface Algorithm {
     }
 
     /**
-     * Create a new instance of {@link AlgorithmStatus} where SOUND is as given,
-     * and PRECISE is as in this instance.
+     * Create a new instance of {@link AlgorithmStatus} where SOUND is as given, and PRECISE is as
+     * in this instance.
      */
     @CheckReturnValue
     public AlgorithmStatus withSound(boolean pIsSound) {
@@ -85,8 +85,8 @@ public interface Algorithm {
     }
 
     /**
-     * Create a new instance of {@link AlgorithmStatus} where PRECISE is as given,
-     * and SOUND is as in this instance.
+     * Create a new instance of {@link AlgorithmStatus} where PRECISE is as given, and SOUND is as
+     * in this instance.
      */
     @CheckReturnValue
     public AlgorithmStatus withPrecise(boolean pIsPrecise) {
@@ -107,12 +107,7 @@ public interface Algorithm {
 
     @Override
     public int hashCode() {
-      final int prime = 31;
-      int result = 1;
-      result = prime * result + (propertyChecked ? 1231 : 1237);
-      result = prime * result + (isSound ? 1231 : 1237);
-      result = prime * result + (isPrecise ? 1231 : 1237);
-      return result;
+      return Objects.hash(propertyChecked, isSound, isPrecise);
     }
 
     @Override

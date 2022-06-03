@@ -9,21 +9,18 @@
 package org.sosy_lab.cpachecker.util.predicates;
 
 import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Verify.verifyNotNull;
 
 import com.google.common.base.Joiner;
-import com.google.common.primitives.ImmutableIntArray;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.util.ArrayDeque;
-import java.util.ArrayList;
 import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Iterator;
-import java.util.List;
 import java.util.Map;
-import java.util.Random;
 import java.util.Set;
 import java.util.logging.Level;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.AbstractMBean;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -33,6 +30,7 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.util.Triple;
 import org.sosy_lab.cpachecker.util.predicates.regions.Region;
 import org.sosy_lab.cpachecker.util.predicates.regions.RegionManager;
+import org.sosy_lab.cpachecker.util.predicates.regions.RegionManager.VariableOrderingStrategy;
 import org.sosy_lab.cpachecker.util.predicates.regions.SymbolicRegionManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
@@ -41,17 +39,38 @@ import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.SolverException;
 
 /**
- * This class stores a mapping between abstract regions and the corresponding
- * symbolic formula. It is therefore the bridge between the abstract and the
- * symbolic "worlds".
- * It is also responsible for the creation of {@link AbstractionPredicate}s.
+ * This class stores a mapping between abstract regions and the corresponding symbolic formula. It
+ * is therefore the bridge between the abstract and the symbolic "worlds". It is also responsible
+ * for the creation of {@link AbstractionPredicate}s.
  */
 @Options(prefix = "cpa.predicate")
 public final class AbstractionManager {
+
+  /**
+   * This enum represents the different strategies available for sorting the bdd variables that
+   * store predicates during the predicate analysis.
+   */
+  private enum PredicateOrderingStrategy {
+    CHRONOLOGICAL(null), // do not execute any reordering, variables are in creation order
+    FRAMEWORK_RANDOM(VariableOrderingStrategy.RANDOM),
+    FRAMEWORK_SIFT(VariableOrderingStrategy.SIFT),
+    FRAMEWORK_SIFTITE(VariableOrderingStrategy.SIFTITE),
+    FRAMEWORK_WIN2(VariableOrderingStrategy.WIN2),
+    FRAMEWORK_WIN2ITE(VariableOrderingStrategy.WIN2ITE),
+    FRAMEWORK_WIN3(VariableOrderingStrategy.WIN3),
+    FRAMEWORK_WIN3ITE(VariableOrderingStrategy.WIN3ITE);
+
+    final @Nullable VariableOrderingStrategy frameworkStrategy;
+
+    PredicateOrderingStrategy(VariableOrderingStrategy pFrameworkStrategy) {
+      frameworkStrategy = pFrameworkStrategy;
+    }
+  }
+
   private final LogManager logger;
   private final RegionManager rmgr;
   private final FormulaManagerView fmgr;
-  private final Solver solver;
+
   // Here we keep the mapping abstract predicate variable -> predicate
   private final Map<Region, AbstractionPredicate> absVarToPredicate = new HashMap<>();
   // and the mapping symbolic variable -> predicate
@@ -60,31 +79,25 @@ public final class AbstractionManager {
   private final Map<BooleanFormula, AbstractionPredicate> atomToPredicate = new HashMap<>();
 
   // Properties for BDD variable ordering:
-  @Option(secure = true, name = "abs.predicateOrdering.method",
-      description = "Predicate ordering")
+  @Option(secure = true, name = "abs.predicateOrdering.method", description = "Predicate ordering")
   private PredicateOrderingStrategy varOrderMethod = PredicateOrderingStrategy.CHRONOLOGICAL;
-  // mapping predicate variable -> partition containing predicates with this predicate variable
-  private final Map<String, PredicatePartition> predVarToPartition = new HashMap<>();
-  // and mapping partition ID -> set of predicate variables covered by partition
-  private final Map<Integer, Set<String>> partitionIDToPredVars = new HashMap<>();
-  private PredicatePartition partition;
-  @Option(secure = true, name = "abs.predicateOrdering.partitions",
-      description = "Use multiple partitions for predicates")
-  private boolean multiplePartitions = false;
-
-  private final List<Integer> randomListOfVarIDs = new ArrayList<>();
 
   private final Map<Region, BooleanFormula> toConcreteCache;
 
-  @SuppressFBWarnings(value = "VO_VOLATILE_INCREMENT",
-      justification = "Class is not thread-safe, but concurrent read access to this variable is needed for the MBean")
+  @SuppressFBWarnings(
+      value = "VO_VOLATILE_INCREMENT",
+      justification =
+          "Class is not thread-safe, but concurrent read access to this variable is needed for the"
+              + " MBean")
   private volatile int numberOfPredicates = 0;
 
-  @Option(secure = true, name = "abs.useCache", description = "use caching of region to formula conversions")
+  @Option(
+      secure = true,
+      name = "abs.useCache",
+      description = "use caching of region to formula conversions")
   private boolean useCache = true;
-  private BooleanFormulaManagerView bfmgr;
 
-  private final Random random = new Random(0);
+  private BooleanFormulaManagerView bfmgr;
 
   public AbstractionManager(
       RegionManager pRmgr, Configuration config, LogManager pLogger, Solver pSolver)
@@ -94,11 +107,6 @@ public final class AbstractionManager {
     rmgr = pRmgr;
     fmgr = pSolver.getFormulaManager();
     bfmgr = fmgr.getBooleanFormulaManager();
-    solver = pSolver;
-
-    if (!this.varOrderMethod.getIsFrameworkStrategy()) {
-      this.partition = createNewPredicatePartition();
-    }
 
     if (useCache) {
       toConcreteCache = new HashMap<>();
@@ -110,33 +118,11 @@ public final class AbstractionManager {
     new AbstractionPredicatesMBean().register();
   }
 
-  /**
-   * Creates a new predicate partition based on the property varOrderMethod.
-   *
-   * @return a new predicate partition.
-   */
-  private PredicatePartition createNewPredicatePartition() {
-    switch (this.varOrderMethod) {
-      case SIMILARITY:
-        return new PredicatePartitionSimilarity(fmgr, solver, logger);
-      case FREQUENCY:
-        return new PredicatePartitionFrequency(fmgr, solver, logger);
-      case IMPLICATION:
-        return new PredicatePartitionImplication(fmgr, solver, logger);
-      case REV_IMPLICATION:
-        return new PredicatePartitionRevImplication(fmgr, solver, logger);
-      default:
-        return new PredicatePartitionSimilarity(fmgr, solver, logger);
-    }
-  }
-
   public int getNumberOfPredicates() {
     return numberOfPredicates;
   }
 
-  /**
-   * creates a Predicate from the Boolean symbolic variable (var) and the atom that defines it
-   */
+  /** creates a Predicate from the Boolean symbolic variable (var) and the atom that defines it */
   @SuppressWarnings("NonAtomicVolatileUpdate") // no thread-safe anyway
   public AbstractionPredicate makePredicate(BooleanFormula atom) {
     AbstractionPredicate result = atomToPredicate.get(atom);
@@ -154,23 +140,13 @@ public final class AbstractionManager {
               ? ((SymbolicRegionManager) rmgr).createPredicate(atom)
               : rmgr.createPredicate();
 
-      logger.log(Level.FINEST, "Created predicate", absVar, "from variable", symbVar, "and atom", atom);
+      logger.log(
+          Level.FINEST, "Created predicate", absVar, "from variable", symbVar, "and atom", atom);
 
-      result = new AbstractionPredicate(absVar, symbVar, atom, numberOfPredicates);
+      result = new AbstractionPredicate(absVar, symbVar, atom);
       symbVarToPredicate.put(symbVar, result);
       absVarToPredicate.put(absVar, result);
       atomToPredicate.put(atom, result);
-
-      if (!this.varOrderMethod.getIsFrameworkStrategy()) {
-        if (varOrderMethod.equals(PredicateOrderingStrategy.RANDOMLY)) {
-          int randomIndex = random.nextInt(randomListOfVarIDs.size() + 1);
-          randomListOfVarIDs.add(randomIndex, numberOfPredicates);
-        } else if (multiplePartitions) {
-          updatePartitions(result);
-        } else {
-          this.partition.insertPredicate(result);
-        }
-      }
 
       numberOfPredicates++;
     }
@@ -178,91 +154,14 @@ public final class AbstractionManager {
     return result;
   }
 
-  /**
-   * Calculates the partition(s) the new predicate is similar to and inserts the new predicate. If there is no similar
-   * partition found, a new partition containing the new predicate will be created.
-   * If there is more than one partition similar to the new predicate, the similar partitions are merged together and
-   * the new predicate is inserted into the partition that results of the merging.
-   *
-   * @param newPredicate the new predicate as symbolic atom.
-   */
-  private void updatePartitions(AbstractionPredicate newPredicate) {
-    Set<String> predVars = fmgr.extractVariableNames(newPredicate.getSymbolicAtom());
-    PredicatePartition firstPartition;
-
-    // this is the case if the new predicate contains just "false" or "true"
-    // create an own partition for that
-    if (predVars.isEmpty()) {
-      firstPartition = createNewPredicatePartition();
-      predVarToPartition.put(newPredicate.getSymbolicAtom().toString(), firstPartition);
-      partitionIDToPredVars.put(firstPartition.getPartitionID(), new HashSet<>());
-    } else {
-      Set<String> predVarsCoveredByPartition = new HashSet<>(predVars);
-
-      // check which variables of the predicate are covered by the partitions.
-      Set<String> varIntersection = new HashSet<>(predVars);
-      varIntersection.retainAll(predVarToPartition.keySet());
-
-      if (!varIntersection.isEmpty()) {
-        // merge partitions that are similar to the new predicate
-        Iterator<String> varIterator = varIntersection.iterator();
-        firstPartition = predVarToPartition.get(varIterator.next());
-        predVarsCoveredByPartition.addAll(partitionIDToPredVars.get(firstPartition.getPartitionID()));
-
-        while (varIterator.hasNext()) {
-          PredicatePartition nextPartition = predVarToPartition.get(varIterator.next());
-          firstPartition = firstPartition.merge(nextPartition);
-          predVarsCoveredByPartition.addAll(partitionIDToPredVars.get(nextPartition.getPartitionID()));
-        }
-      } else {
-        firstPartition = createNewPredicatePartition();
-      }
-
-      // update predicate variables covered by the new partition
-      partitionIDToPredVars.put(firstPartition.getPartitionID(), predVarsCoveredByPartition);
-      // update keys such that they point to the result partition of the merging
-      for (String predVar : predVarsCoveredByPartition) {
-        predVarToPartition.put(predVar, firstPartition);
-      }
-    }
-
-    firstPartition.insertPredicate(newPredicate);
-  }
-
-  /**
-   * Reorders the BDD variables.
-   */
+  /** Reorders the BDD variables. */
   public void reorderPredicates() {
-    if (varOrderMethod == PredicateOrderingStrategy.DISABLE) {
-      return; // do nothing
-    }
-    if (this.varOrderMethod.getIsFrameworkStrategy()) {
-      rmgr.reorder(this.varOrderMethod);
-    } else {
-      ImmutableIntArray.Builder predicateOrdering = ImmutableIntArray.builder(numberOfPredicates);
-      if (varOrderMethod.equals(PredicateOrderingStrategy.RANDOMLY)) {
-        predicateOrdering.addAll(randomListOfVarIDs);
-      } else if (multiplePartitions) {
-        Set<PredicatePartition> partitions = new HashSet<>(predVarToPartition.values());
-        for (PredicatePartition part : partitions) {
-          for (AbstractionPredicate predicate : part.getPredicates()) {
-            predicateOrdering.add(predicate.getVariableNumber());
-          }
-        }
-      } else {
-        List<AbstractionPredicate> predicates = partition.getPredicates();
-        for (AbstractionPredicate predicate : predicates) {
-          predicateOrdering.add(predicate.getVariableNumber());
-        }
-      }
-
-      rmgr.setVarOrder(predicateOrdering.build());
+    if (varOrderMethod != PredicateOrderingStrategy.CHRONOLOGICAL) {
+      rmgr.reorder(verifyNotNull(varOrderMethod.frameworkStrategy));
     }
   }
 
-  /**
-   * creates a Predicate that represents "false"
-   */
+  /** creates a Predicate that represents "false" */
   public AbstractionPredicate makeFalsePredicate() {
     return makePredicate(bfmgr.makeFalse());
   }
@@ -270,29 +169,27 @@ public final class AbstractionManager {
   /**
    * Get predicate corresponding to a variable.
    *
-   * @param var A symbolic formula representing the variable. The same formula has to been passed to makePredicate
-   * earlier.
+   * @param var A symbolic formula representing the variable. The same formula has to been passed to
+   *     makePredicate earlier.
    * @return a Predicate
    */
   public AbstractionPredicate getPredicate(BooleanFormula var) {
     AbstractionPredicate result = symbVarToPredicate.get(var);
     if (result == null) {
       throw new IllegalArgumentException(
-          var
-              + " seems not to be a formula corresponding to a single predicate variable.");
+          var + " seems not to be a formula corresponding to a single predicate variable.");
     }
     return result;
   }
 
   /**
-   * Convert a Region (typically a BDD over the AbstractionPredicates)
-   * into a BooleanFormula (an SMT formula).
-   * Each predicate is replaced by its corresponding SMT definition
-   * ({@link AbstractionPredicate#getSymbolicAtom()}).
+   * Convert a Region (typically a BDD over the AbstractionPredicates) into a BooleanFormula (an SMT
+   * formula). Each predicate is replaced by its corresponding SMT definition ({@link
+   * AbstractionPredicate#getSymbolicAtom()}).
    *
-   * The inverse of this method is {@link #convertFormulaToRegion(BooleanFormula)},
-   * except in cases where the predicates in the given regions do not correspond to SMT atoms
-   * but to larger SMT formulas.
+   * <p>The inverse of this method is {@link #convertFormulaToRegion(BooleanFormula)}, except in
+   * cases where the predicates in the given regions do not correspond to SMT atoms but to larger
+   * SMT formulas.
    *
    * @param af A Region.
    * @return An uninstantiated BooleanFormula.
@@ -300,7 +197,7 @@ public final class AbstractionManager {
   public BooleanFormula convertRegionToFormula(Region af) {
     if (rmgr instanceof SymbolicRegionManager) {
       // optimization shortcut
-      return ((SymbolicRegionManager)rmgr).toFormula(af);
+      return ((SymbolicRegionManager) rmgr).toFormula(af);
     }
 
     Map<Region, BooleanFormula> cache;
@@ -395,20 +292,18 @@ public final class AbstractionManager {
    * @param f2 an AbstractFormula
    * @return true if (f1 => f2), false otherwise
    */
-  public boolean entails(Region f1, Region f2) throws SolverException,
-      InterruptedException {
+  public boolean entails(Region f1, Region f2) throws SolverException, InterruptedException {
     return rmgr.entails(f1, f2);
   }
 
   /**
    * Return the set of predicates that occur in a region.
    *
-   * Note: this method currently fails with SymbolicRegionManager,
-   * and it probably cannot really be fixed either, because when using symbolic regions
-   * we do not know what are the predicates (a predicate does not need to be an SMT atom,
-   * it can be larger).
+   * <p>Note: this method currently fails with SymbolicRegionManager, and it probably cannot really
+   * be fixed either, because when using symbolic regions we do not know what are the predicates (a
+   * predicate does not need to be an SMT atom, it can be larger).
    *
-   * Thus better avoid using this method if possible.
+   * <p>Thus better avoid using this method if possible.
    */
   public Set<AbstractionPredicate> extractPredicates(Region af) {
     Set<AbstractionPredicate> vars = new HashSet<>();
@@ -442,13 +337,12 @@ public final class AbstractionManager {
   }
 
   /**
-   * Convert a BooleanFormula (an SMT formula) into a Region (typically a BDD over predicates).
-   * Each atom of the BooleanFormula will be one predicate of the Region.
-   * To allow more control over what is represented by each predicate,
-   * use {@link #makePredicate(BooleanFormula)} and construct the region out of the predicates
-   * using {@link #getRegionCreator()}.
+   * Convert a BooleanFormula (an SMT formula) into a Region (typically a BDD over predicates). Each
+   * atom of the BooleanFormula will be one predicate of the Region. To allow more control over what
+   * is represented by each predicate, use {@link #makePredicate(BooleanFormula)} and construct the
+   * region out of the predicates using {@link #getRegionCreator()}.
    *
-   * The inverse of this function is {@link #convertRegionToFormula(Region)}.
+   * <p>The inverse of this function is {@link #convertRegionToFormula(Region)}.
    *
    * @param pF An uninstantiated BooleanFormula.
    * @return A region that represents the same state space.
@@ -482,13 +376,11 @@ public final class AbstractionManager {
     String getPredicates();
   }
 
-  private class AbstractionPredicatesMBean extends AbstractMBean implements
-      AbstractionPredicatesMXBean {
+  private class AbstractionPredicatesMBean extends AbstractMBean
+      implements AbstractionPredicatesMXBean {
 
     public AbstractionPredicatesMBean() {
-      super(
-          "org.sosy_lab.cpachecker:type=predicate,name=AbstractionPredicates",
-          logger);
+      super("org.sosy_lab.cpachecker:type=predicate,name=AbstractionPredicates", logger);
     }
 
     @Override

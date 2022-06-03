@@ -28,7 +28,7 @@ public class JMethodType extends AFunctionType implements JType {
    * @param pReturnType the return type of the method this object describes
    * @param pParameters the list of parameters the described method takes
    * @param pTakesVarArgs if <code>true</code>, the described method takes a variable amount of
-   *        arguments, otherwise not
+   *     arguments, otherwise not
    */
   public JMethodType(JType pReturnType, List<JType> pParameters, boolean pTakesVarArgs) {
     super(pReturnType, pParameters, pTakesVarArgs);
@@ -56,14 +56,14 @@ public class JMethodType extends AFunctionType implements JType {
 
   @Override
   public int hashCode() {
-      final int prime = 31;
-      int result = 7;
-      result = prime * result + super.hashCode();
-      return result;
+    final int prime = 31;
+    int result = 7;
+    result = prime * result + super.hashCode();
+    return result;
   }
 
   @Override
   public boolean equals(Object obj) {
-      return super.equals(obj);
+    return super.equals(obj);
   }
 }

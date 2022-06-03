@@ -8,7 +8,8 @@
 
 package org.sosy_lab.cpachecker.util.predicates;
 
-import com.google.common.base.Predicate;
+import static org.sosy_lab.common.collect.Collections3.transformedImmutableListCopy;
+
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
@@ -26,7 +27,6 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.logging.Level;
-import java.util.stream.Collectors;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -82,39 +82,36 @@ public class NewtonRefinementManager implements StatisticsProvider {
   private final NewtonStatistics stats = new NewtonStatistics();
 
   @Option(
-    secure = true,
-    description =
-        "use unsatisfiable Core in order to abstract the predicates produced while NewtonRefinement"
-  )
+      secure = true,
+      description =
+          "use unsatisfiable Core in order to abstract the predicates produced while"
+              + " NewtonRefinement")
   private boolean infeasibleCore = true;
 
   @Option(
-    secure = true,
-    description =
-        "use live variables in order to abstract the predicates produced while NewtonRefinement"
-  )
+      secure = true,
+      description =
+          "use live variables in order to abstract the predicates produced while NewtonRefinement")
   private boolean liveVariables = true;
 
   @Option(
-    secure = true,
-    description =
-        "sets the level of the pathformulas to use for abstraction. \n"
-            + "  EDGE : Based on Pathformulas of every edge in ARGPath\n"
-            + "  BLOCK: Based on Pathformulas at Abstractionstates"
-  )
+      secure = true,
+      description =
+          "sets the level of the pathformulas to use for abstraction. \n"
+              + "  EDGE : Based on Pathformulas of every edge in ARGPath\n"
+              + "  BLOCK: Based on Pathformulas at Abstractionstates")
   private PathFormulaAbstractionLevel abstractionLevel = PathFormulaAbstractionLevel.EDGE;
 
   public enum PathFormulaAbstractionLevel {
-    BLOCK, //Abstracts the whole Block(between abstraction states) at once
-    EDGE //Abstracts every edge of the ARGPath
+    BLOCK, // Abstracts the whole Block(between abstraction states) at once
+    EDGE // Abstracts every edge of the ARGPath
   }
 
-  //TODO: Default true once it is tested
+  // TODO: Default true once it is tested
   @Option(
-    secure = true,
-    description =
-        "Activate fallback to interpolation. Typically in case of a repeated counterexample."
-  )
+      secure = true,
+      description =
+          "Activate fallback to interpolation. Typically in case of a repeated counterexample.")
   private boolean fallback = false;
 
   public NewtonRefinementManager(
@@ -147,11 +144,10 @@ public class NewtonRefinementManager implements StatisticsProvider {
     stats.noOfRefinements++;
     stats.totalTimer.start();
     try {
-      List<PathLocation> pathLocations = this.buildPathLocationList(pAllStatesTrace);
+      List<PathLocation> pathLocations = buildPathLocationList(pAllStatesTrace);
       if (isFeasible(pFormulas.getFormulas(), pAllStatesTrace)) {
         // Create feasible CounterexampleTrace
-        return CounterexampleTraceInfo.feasible(
-            pFormulas.getFormulas(), ImmutableList.of(), ImmutableMap.of());
+        return CounterexampleTraceInfo.feasibleImprecise(pFormulas.getFormulas());
       } else {
         // Create infeasible Counterexample
         List<BooleanFormula> predicates;
@@ -215,10 +211,7 @@ public class NewtonRefinementManager implements StatisticsProvider {
 
     // Create the list of path
     List<BooleanFormula> pathFormulas =
-        pathLocations
-            .stream()
-            .map(l -> l.getPathFormula().getFormula())
-            .collect(Collectors.toList());
+        transformedImmutableListCopy(pathLocations, l -> l.getPathFormula().getFormula());
 
     assert isFeasible(pFormulas.getFormulas(), pPath) == isFeasible(pathFormulas, pPath);
 
@@ -254,12 +247,10 @@ public class NewtonRefinementManager implements StatisticsProvider {
 
     // Filter pathlocations to only abstractionstate locations
     Iterator<PathLocation> abstractionLocations =
-        pPathLocations
-            .stream()
+        pPathLocations.stream()
             .filter(l -> l.hasAbstractionState())
-            .collect(Collectors.toList())
+            .collect(ImmutableList.toImmutableList())
             .iterator();
-
 
     BooleanFormula pred = bfmgr.makeTrue();
     for (BooleanFormula pathFormula : pFormulas.getFormulas()) {
@@ -354,7 +345,8 @@ public class NewtonRefinementManager implements StatisticsProvider {
               break;
             }
 
-            // Throw an exception if the type of the Edge is none of the above but it holds a PathFormula
+            // Throw an exception if the type of the Edge is none of the above but it holds a
+            // PathFormula
             throw new UnsupportedOperationException(
                 "Found unsupported EdgeType in Newton Refinement: "
                     + edge.getDescription()
@@ -392,7 +384,8 @@ public class NewtonRefinementManager implements StatisticsProvider {
 
     BooleanFormula toExist;
 
-    // If this formula should be abstracted(no requiredPart), this statement havocs the leftHand variable
+    // If this formula should be abstracted(no requiredPart), this statement havocs the leftHand
+    // variable
     // Therefore its previous values can be existentially quantified in the preCondition
     if (!requiredPart.isEmpty()) {
       toExist = bfmgr.and(preCondition, bfmgr.and(requiredPart));
@@ -423,19 +416,9 @@ public class NewtonRefinementManager implements StatisticsProvider {
     // Mutable as removing entries might be necessary.
     Map<String, Formula> intermediateVars =
         ImmutableMap.copyOf(
-            Maps.filterEntries(
+            Maps.filterKeys(
                 fmgr.extractVariables(toExist),
-                new Predicate<Entry<String, Formula>>() {
-
-                  @Override
-                  public boolean apply(@Nullable Entry<String, Formula> pInput) {
-                    if (pInput == null) {
-                      return false;
-                    } else {
-                      return fmgr.isIntermediate(pInput.getKey(), pathFormula.getSsa());
-                    }
-                  }
-                }));
+                varName -> fmgr.isIntermediate(varName, pathFormula.getSsa())));
 
     // If there are no intermediate Variables, no quantification is necessary
     if (intermediateVars.isEmpty()) {
@@ -498,7 +481,7 @@ public class NewtonRefinementManager implements StatisticsProvider {
       try {
         unsatCore = solver.unsatCore(ImmutableSet.copyOf(pFormulas));
       } catch (SolverException e) {
-        //Solver failed while computing unsat core
+        // Solver failed while computing unsat core
         throw new RefinementFailedException(Reason.NewtonRefinementFailed, pPath, e);
       }
       logger.log(Level.FINEST, "Unsatisfiable Core is: ", unsatCore);
@@ -563,11 +546,7 @@ public class NewtonRefinementManager implements StatisticsProvider {
 
         // identify the variables that are not future live and can be quantified
         Map<String, Formula> toQuantify =
-            Maps.filterEntries(
-                fmgr.extractVariables(pred),
-                (e) -> {
-                  return !futureLives.contains(e.getKey());
-                });
+            Maps.filterKeys(fmgr.extractVariables(pred), varName -> !futureLives.contains(varName));
 
         // quantify the previously identified variables
         if (!toQuantify.isEmpty()) {
@@ -620,7 +599,8 @@ public class NewtonRefinementManager implements StatisticsProvider {
               : Optional.empty();
       // Build PathFormula
       try {
-        pathFormula = pfmgr.makeAnd(pfmgr.makeEmptyPathFormula(pathFormula), lastEdge);
+        pathFormula =
+            pfmgr.makeAnd(pfmgr.makeEmptyPathFormulaWithContextFrom(pathFormula), lastEdge);
       } catch (CPATransferException e) {
         // Failed to compute the Pathformula
         throw new RefinementFailedException(Reason.NewtonRefinementFailed, pPath, e);
@@ -711,7 +691,7 @@ public class NewtonRefinementManager implements StatisticsProvider {
               ? lastEdge.toString()
               : ("First State: " + state.orElseThrow().toDOTLabel()))
           + ", PathFormula: "
-          + pathFormula.toString();
+          + pathFormula;
     }
   }
 

@@ -18,7 +18,6 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 import com.google.common.io.Resources;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.ObjectInputStream;
@@ -26,7 +25,6 @@ import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
@@ -46,12 +44,10 @@ import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.common.io.IO;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CFACheck;
 import org.sosy_lab.cpachecker.cfa.CFACreator;
-import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
@@ -59,7 +55,6 @@ import org.sosy_lab.cpachecker.cmdline.CPAMain;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus;
-import org.sosy_lab.cpachecker.core.algorithm.ExternalCBMCAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.impact.ImpactAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.mpv.MPVAlgorithm;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -71,7 +66,6 @@ import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ResultProviderReachedSet;
 import org.sosy_lab.cpachecker.core.specification.Specification;
-import org.sosy_lab.cpachecker.core.specification.SpecificationProperty;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
@@ -86,10 +80,10 @@ import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
 @Options
 public class CPAchecker {
 
-  public static interface CPAcheckerMXBean {
-    public int getReachedSetSize();
+  public interface CPAcheckerMXBean {
+    int getReachedSetSize();
 
-    public void stop();
+    void stop();
   }
 
   private static class CPAcheckerBean extends AbstractMBean implements CPAcheckerMXBean {
@@ -97,7 +91,8 @@ public class CPAchecker {
     private final ReachedSet reached;
     private final ShutdownManager shutdownManager;
 
-    public CPAcheckerBean(ReachedSet pReached, LogManager logger, ShutdownManager pShutdownManager) {
+    public CPAcheckerBean(
+        ReachedSet pReached, LogManager logger, ShutdownManager pShutdownManager) {
       super("org.sosy_lab.cpachecker:type=CPAchecker", logger);
       reached = pReached;
       shutdownManager = pShutdownManager;
@@ -112,113 +107,89 @@ public class CPAchecker {
     public void stop() {
       shutdownManager.requestShutdown("A stop request was received via the JMX interface.");
     }
-
   }
 
   @Option(
-    secure = true,
-    name = "analysis.stopAfterError",
-    description = "stop after the first error has been found"
-  )
+      secure = true,
+      name = "analysis.stopAfterError",
+      description = "stop after the first error has been found")
   private boolean stopAfterError = true;
 
-  public static enum InitialStatesFor {
-    /**
-     * Function entry node of the entry function
-     */
+  public enum InitialStatesFor {
+    /** Function entry node of the entry function */
     ENTRY,
 
-    /**
-     * Set of function entry nodes of all functions.
-     */
+    /** Set of function entry nodes of all functions. */
     FUNCTION_ENTRIES,
 
-    /**
-     * All locations that are possible targets of the analysis.
-     */
+    /** All locations that are possible targets of the analysis. */
     TARGET,
 
-    /**
-     * Function exit node of the entry function.
-     */
+    /** Function exit node of the entry function. */
     EXIT,
 
-    /**
-     * All function exit nodes of all functions and all loop heads of endless loops.
-     */
+    /** All function exit nodes of all functions and all loop heads of endless loops. */
     FUNCTION_SINKS,
 
-    /**
-     * All function exit nodes of the entry function, and all loop heads of endless loops.
-     */
+    /** All function exit nodes of the entry function, and all loop heads of endless loops. */
     PROGRAM_SINKS
   }
 
   @Option(
-    secure = true,
-    name = "analysis.initialStatesFor",
-    description = "What CFA nodes should be the starting point of the analysis?"
-  )
+      secure = true,
+      name = "analysis.initialStatesFor",
+      description = "What CFA nodes should be the starting point of the analysis?")
   private Set<InitialStatesFor> initialStatesFor = Sets.newHashSet(InitialStatesFor.ENTRY);
 
   @Option(
-    secure = true,
-    name = "analysis.partitionInitialStates",
-    description =
-        "Partition the initial states based on the type of location they were created for (see 'initialStatesFor')"
-  )
+      secure = true,
+      name = "analysis.partitionInitialStates",
+      description =
+          "Partition the initial states based on the type of location they were created for (see"
+              + " 'initialStatesFor')")
   private boolean partitionInitialStates = false;
 
   @Option(
-    secure = true,
-    name = "specification",
-    description =
-        "comma-separated list of files with specifications that should be checked"
-            + "\n(see config/specification/ for examples)"
-  )
+      secure = true,
+      name = "specification",
+      description =
+          "Comma-separated list of files with specifications that should be checked (cf."
+              + " config/specification/ for examples). Property files as used in SV-COMP can also"
+              + " be used here, but when these are specified inside a configuration file instead of"
+              + " on the command line, CPAchecker"
+              + " will ignore the entry function in the property file.")
   @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
   private List<Path> specificationFiles = ImmutableList.of();
 
   @Option(
-    secure = true,
-    name = "backwardSpecification",
-    description =
-        "comma-separated list of files with specifications that should be used "
-            + "\nin a backwards analysis; used if the analysis starts at the target states!"
-            + "\n(see config/specification/ for examples)"
-  )
+      secure = true,
+      name = "backwardSpecification",
+      description =
+          "comma-separated list of files with specifications that should be used "
+              + "\nin a backwards analysis; used if the analysis starts at the target states!"
+              + "\n(see config/specification/ for examples)")
   @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
   private List<Path> backwardSpecificationFiles = ImmutableList.of();
 
   @Option(
-    secure = true,
-    name = "analysis.algorithm.CBMC",
-    description = "use CBMC as an external tool from CPAchecker"
-  )
-  private boolean runCBMCasExternalTool = false;
-
-  @Option(
-    secure = true,
-    name = "analysis.serializedCfaFile",
-    description =
-        "if this option is used, the CFA will be loaded from the given file "
-            + "instead of parsed from sourcefile."
-  )
+      secure = true,
+      name = "analysis.serializedCfaFile",
+      description =
+          "if this option is used, the CFA will be loaded from the given file "
+              + "instead of parsed from sourcefile.")
   @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
   private @Nullable Path serializedCfaFile = null;
 
   @Option(
-    secure = true,
-    name = "analysis.unknownAsTrue",
-    description = "Do not report unknown if analysis terminated, report true (UNSOUND!)."
-  )
+      secure = true,
+      name = "analysis.unknownAsTrue",
+      description = "Do not report unknown if analysis terminated, report true (UNSOUND!).")
   private boolean unknownAsTrue = false;
 
   @Option(
       secure = true,
       name = "analysis.counterexampleLimit",
-      description = "Maximum number of counterexamples to be created."
-    )
+      description = "Maximum number of counterexamples to be created.")
   private int cexLimit = 0;
 
   private final LogManager logger;
@@ -231,10 +202,12 @@ public class CPAchecker {
   // ant task "init".
   // To change the version, update the property in build.xml.
   private static final String version;
+
   static {
     String v = "(unknown version)";
     try {
-      URL url = CPAchecker.class.getClassLoader().getResource("org/sosy_lab/cpachecker/VERSION.txt");
+      URL url =
+          CPAchecker.class.getClassLoader().getResource("org/sosy_lab/cpachecker/VERSION.txt");
       if (url != null) {
         String content = Resources.toString(url, StandardCharsets.US_ASCII).trim();
         if (content.matches("[a-zA-Z0-9 ._+:-]+")) {
@@ -275,21 +248,34 @@ public class CPAchecker {
   public static String getVersion(Configuration pConfig) {
     StringJoiner joiner = new StringJoiner(" / ");
     joiner.add("CPAchecker " + getPlainVersion());
-    try {
-      String analysisName = new ApproachNameInformation(pConfig).getApproachName();
-      if (analysisName != null) {
-        joiner.add(analysisName);
-      }
-    } catch (InvalidConfigurationException e) {
-      // Injecting a non-required "secure" String option without restrictions on allowed values
-      // actually never fails, and avoiding a throws clause simplifies callers of this method.
-      throw new AssertionError(e);
+    String analysisName = getApproachName(pConfig);
+    if (analysisName != null) {
+      joiner.add(analysisName);
     }
     return joiner.toString();
   }
 
   public static String getPlainVersion() {
     return version;
+  }
+
+  /**
+   * Returns a string that represents the aproach that CPAchecker runs (typically the name of the
+   * properties file).
+   *
+   * <p>Result can be null if name can not be determined.
+   *
+   * @param pConfig current config
+   * @return approach name
+   */
+  public static String getApproachName(Configuration pConfig) {
+    try {
+      return new ApproachNameInformation(pConfig).getApproachName();
+    } catch (InvalidConfigurationException e) {
+      // Injecting a non-required "secure" String option without restrictions on allowed values
+      // actually never fails, and avoiding a throws clause simplifies callers of this method.
+      throw new AssertionError(e);
+    }
   }
 
   public static String getJavaInformation() {
@@ -309,11 +295,10 @@ public class CPAchecker {
     config.inject(this);
     factory =
         new CoreComponentsFactory(
-            pConfiguration, pLogManager, shutdownNotifier, new AggregatedReachedSets());
+            pConfiguration, pLogManager, shutdownNotifier, AggregatedReachedSets.empty());
   }
 
-  public CPAcheckerResult run(
-      List<String> programDenotation, Set<SpecificationProperty> properties) {
+  public CPAcheckerResult run(List<String> programDenotation) {
     checkArgument(!programDenotation.isEmpty());
 
     logger.logf(Level.INFO, "%s (%s) started", getVersion(config), getJavaInformation());
@@ -323,7 +308,7 @@ public class CPAchecker {
     ReachedSet reached = null;
     CFA cfa = null;
     Result result = Result.NOT_YET_STARTED;
-    String violatedPropertyDescription = "";
+    String targetDescription = "";
     Specification specification = null;
 
     final ShutdownRequestListener interruptThreadOnShutdown = interruptCurrentThreadOnShutdown();
@@ -334,57 +319,50 @@ public class CPAchecker {
 
       // create reached set, cpa, algorithm
       stats.creationTime.start();
-      reached = factory.createReachedSet();
 
-      if (runCBMCasExternalTool) {
-        algorithm =
-            new ExternalCBMCAlgorithm(checkIfOneValidFile(programDenotation), config, logger);
+      cfa = parse(programDenotation, stats);
+      GlobalInfo.getInstance().storeCFA(cfa);
+      shutdownNotifier.shutdownIfNecessary();
 
+      ConfigurableProgramAnalysis cpa;
+      stats.cpaCreationTime.start();
+      try {
+        specification =
+            Specification.fromFiles(specificationFiles, cfa, config, logger, shutdownNotifier);
+        cpa = factory.createCPA(cfa, specification);
+      } finally {
+        stats.cpaCreationTime.stop();
+      }
+      stats.setCPA(cpa);
+
+      if (cpa instanceof StatisticsProvider) {
+        ((StatisticsProvider) cpa).collectStatistics(stats.getSubStatistics());
+      }
+
+      GlobalInfo.getInstance().setUpInfoFromCPA(cpa);
+
+      algorithm = factory.createAlgorithm(cpa, cfa, specification);
+
+      if (algorithm instanceof MPVAlgorithm && !stopAfterError) {
+        // sanity check
+        throw new InvalidConfigurationException(
+            "Cannot use option 'analysis.stopAfterError' along with "
+                + "multi-property verification algorithm. "
+                + "Please use option 'mpv.findAllViolations' instead");
+      }
+
+      if (algorithm instanceof StatisticsProvider) {
+        ((StatisticsProvider) algorithm).collectStatistics(stats.getSubStatistics());
+      }
+
+      reached = factory.createReachedSet(cpa);
+      if (algorithm instanceof ImpactAlgorithm) {
+        ImpactAlgorithm mcmillan = (ImpactAlgorithm) algorithm;
+        reached.add(
+            mcmillan.getInitialState(cfa.getMainFunction()),
+            mcmillan.getInitialPrecision(cfa.getMainFunction()));
       } else {
-        cfa = parse(programDenotation, stats);
-        GlobalInfo.getInstance().storeCFA(cfa);
-        shutdownNotifier.shutdownIfNecessary();
-
-        ConfigurableProgramAnalysis cpa;
-        stats.cpaCreationTime.start();
-        try {
-          specification =
-              Specification.fromFiles(
-                  properties, specificationFiles, cfa, config, logger, shutdownNotifier);
-          cpa = factory.createCPA(cfa, specification);
-        } finally {
-          stats.cpaCreationTime.stop();
-        }
-        stats.setCPA(cpa);
-
-        if (cpa instanceof StatisticsProvider) {
-          ((StatisticsProvider) cpa).collectStatistics(stats.getSubStatistics());
-        }
-
-        GlobalInfo.getInstance().setUpInfoFromCPA(cpa);
-
-        algorithm = factory.createAlgorithm(cpa, cfa, specification);
-
-        if (algorithm instanceof MPVAlgorithm && !stopAfterError) {
-          // sanity check
-          throw new InvalidConfigurationException(
-              "Cannot use option 'analysis.stopAfterError' along with "
-                  + "multi-property verification algorithm. "
-                  + "Please use option 'mpv.findAllViolations' instead");
-        }
-
-        if (algorithm instanceof StatisticsProvider) {
-          ((StatisticsProvider) algorithm).collectStatistics(stats.getSubStatistics());
-        }
-
-        if (algorithm instanceof ImpactAlgorithm) {
-          ImpactAlgorithm mcmillan = (ImpactAlgorithm) algorithm;
-          reached.add(
-              mcmillan.getInitialState(cfa.getMainFunction()),
-              mcmillan.getInitialPrecision(cfa.getMainFunction()));
-        } else {
-          initializeReachedSet(reached, cpa, properties, cfa.getMainFunction(), cfa);
-        }
+        initializeReachedSet(reached, cpa, cfa.getMainFunction(), cfa);
       }
 
       printConfigurationWarnings();
@@ -400,8 +378,8 @@ public class CPAchecker {
 
       if (status.wasPropertyChecked()) {
         stats.resultAnalysisTime.start();
-        if (reached.hasViolatedProperties()) {
-          violatedPropertyDescription = Joiner.on(", ").join(reached.getViolatedProperties());
+        if (reached.wasTargetReached()) {
+          targetDescription = Joiner.on(", ").join(reached.getTargetInformation());
 
           if (!status.isPrecise()) {
             result = Result.UNKNOWN;
@@ -426,10 +404,24 @@ public class CPAchecker {
       logger.logUserException(Level.SEVERE, e, "Parsing failed");
       StringBuilder msg = new StringBuilder();
       msg.append("Please make sure that the code can be compiled by a compiler.\n");
-      if (e.getLanguage() == Language.C) {
-        msg.append("If the code was not preprocessed, please use a C preprocessor\nor specify the -preprocess command-line argument.\n");
+      switch (e.getLanguage()) {
+        case C:
+          msg.append(
+              "If the code was not preprocessed, please use a C preprocessor\n"
+                  + "or specify the -preprocess command-line argument.\n");
+          break;
+        case LLVM:
+          msg.append(
+              "If you want to use the LLVM frontend, please make sure that\n"
+                  + "the code can be compiled by clang or input valid LLVM code.\n");
+          break;
+        default:
+          // do not log additional messages
+          break;
       }
-      msg.append("If the error still occurs, please send this error message\ntogether with the input file to cpachecker-users@googlegroups.com.\n");
+      msg.append(
+          "If the error still occurs, please send this error message\n"
+              + "together with the input file to cpachecker-users@googlegroups.com.\n");
       logger.log(Level.INFO, msg);
 
     } catch (ClassNotFoundException e) {
@@ -451,30 +443,12 @@ public class CPAchecker {
       CPAs.closeIfPossible(algorithm, logger);
       shutdownNotifier.unregister(interruptThreadOnShutdown);
     }
-    return new CPAcheckerResult(result, violatedPropertyDescription, reached, cfa, stats);
-  }
-
-  private Path checkIfOneValidFile(List<String> fileDenotation)
-      throws InvalidConfigurationException {
-    if (fileDenotation.size() != 1) {
-      throw new InvalidConfigurationException(
-        "Exactly one code file has to be given.");
-    }
-
-    Path file = Paths.get(fileDenotation.get(0));
-
-    try {
-      IO.checkReadableFile(file);
-    } catch (FileNotFoundException e) {
-      throw new InvalidConfigurationException(e.getMessage());
-    }
-
-    return file;
+    return new CPAcheckerResult(result, targetDescription, reached, cfa, stats);
   }
 
   private CFA parse(List<String> fileNames, MainCPAStatistics stats)
       throws InvalidConfigurationException, IOException, ParserException, InterruptedException,
-      ClassNotFoundException {
+          ClassNotFoundException {
 
     final CFA cfa;
     if (serializedCfaFile == null) {
@@ -503,19 +477,25 @@ public class CPAchecker {
   private void printConfigurationWarnings() {
     Set<String> unusedProperties = config.getUnusedProperties();
     if (!unusedProperties.isEmpty()) {
-      logger.log(Level.WARNING, "The following configuration options were specified but are not used:\n",
-          Joiner.on("\n ").join(unusedProperties), "\n");
+      logger.log(
+          Level.WARNING,
+          "The following configuration options were specified but are not used:\n",
+          Joiner.on("\n ").join(unusedProperties),
+          "\n");
     }
     Set<String> deprecatedProperties = config.getDeprecatedProperties();
     if (!deprecatedProperties.isEmpty()) {
-      logger.log(Level.WARNING, "The following options are deprecated and will be removed in the future:\n",
-          Joiner.on("\n ").join(deprecatedProperties), "\n");
+      logger.log(
+          Level.WARNING,
+          "The following options are deprecated and will be removed in the future:\n",
+          Joiner.on("\n ").join(deprecatedProperties),
+          "\n");
     }
   }
 
-  private AlgorithmStatus runAlgorithm(final Algorithm algorithm,
-      final ReachedSet reached,
-      final MainCPAStatistics stats) throws CPAException, InterruptedException {
+  private AlgorithmStatus runAlgorithm(
+      final Algorithm algorithm, final ReachedSet reached, final MainCPAStatistics stats)
+      throws CPAException, InterruptedException {
 
     logger.log(Level.INFO, "Starting analysis ...");
 
@@ -543,7 +523,9 @@ public class CPAchecker {
         // either run only once (if stopAfterError == true)
         // or until the waitlist is empty
         // or until maximum number of counterexamples is reached
-      } while (!stopAfterError && reached.hasWaitingState() && (cexLimit == 0 || cexLimit > counterExampleCount));
+      } while (!stopAfterError
+          && reached.hasWaitingState()
+          && (cexLimit == 0 || cexLimit > counterExampleCount));
 
       logger.log(Level.INFO, "Stopping analysis ...");
       return status;
@@ -566,7 +548,9 @@ public class CPAchecker {
     }
 
     if (!isSound) {
-      logger.log(Level.WARNING, "Analysis incomplete: no errors found, but not everything could be checked.");
+      logger.log(
+          Level.WARNING,
+          "Analysis incomplete: no errors found, but not everything could be checked.");
       return Result.UNKNOWN;
     }
 
@@ -577,12 +561,14 @@ public class CPAchecker {
       final Set<? extends CFANode> pLocations,
       final Object pPartitionKey,
       final ReachedSet pReached,
-      final ConfigurableProgramAnalysis pCpa) throws InterruptedException {
+      final ConfigurableProgramAnalysis pCpa)
+      throws InterruptedException {
 
-    for (CFANode loc: pLocations) {
-      StateSpacePartition putIntoPartition = partitionInitialStates
-          ? StateSpacePartition.getPartitionWithKey(pPartitionKey)
-          : StateSpacePartition.getDefaultPartition();
+    for (CFANode loc : pLocations) {
+      StateSpacePartition putIntoPartition =
+          partitionInitialStates
+              ? StateSpacePartition.getPartitionWithKey(pPartitionKey)
+              : StateSpacePartition.getDefaultPartition();
 
       AbstractState initialState = pCpa.getInitialState(loc, putIntoPartition);
       Precision initialPrecision = pCpa.getInitialPrecision(loc, putIntoPartition);
@@ -594,33 +580,32 @@ public class CPAchecker {
   private void initializeReachedSet(
       final ReachedSet pReached,
       final ConfigurableProgramAnalysis pCpa,
-      final Set<SpecificationProperty> pProperties,
       final FunctionEntryNode pAnalysisEntryFunction,
       final CFA pCfa)
       throws InvalidConfigurationException, InterruptedException {
 
     logger.log(Level.FINE, "Creating initial reached set");
 
-    for (InitialStatesFor isf: initialStatesFor) {
+    for (InitialStatesFor isf : initialStatesFor) {
       final ImmutableSet<? extends CFANode> initialLocations;
       switch (isf) {
-      case ENTRY:
-        initialLocations = ImmutableSet.of(pAnalysisEntryFunction);
-        break;
-      case EXIT:
-        initialLocations = ImmutableSet.of(pAnalysisEntryFunction.getExitNode());
-        break;
-      case FUNCTION_ENTRIES:
-        initialLocations = ImmutableSet.copyOf(pCfa.getAllFunctionHeads());
-        break;
-      case FUNCTION_SINKS:
+        case ENTRY:
+          initialLocations = ImmutableSet.of(pAnalysisEntryFunction);
+          break;
+        case EXIT:
+          initialLocations = ImmutableSet.of(pAnalysisEntryFunction.getExitNode());
+          break;
+        case FUNCTION_ENTRIES:
+          initialLocations = ImmutableSet.copyOf(pCfa.getAllFunctionHeads());
+          break;
+        case FUNCTION_SINKS:
           initialLocations =
               ImmutableSet.<CFANode>builder()
                   .addAll(getAllEndlessLoopHeads(pCfa.getLoopStructure().orElseThrow()))
                   .addAll(getAllFunctionExitNodes(pCfa))
                   .build();
-        break;
-      case PROGRAM_SINKS:
+          break;
+        case PROGRAM_SINKS:
           initialLocations =
               ImmutableSet.<CFANode>builder()
                   .addAll(
@@ -628,7 +613,7 @@ public class CPAchecker {
                           pCfa, pCfa.getLoopStructure().orElseThrow(), pAnalysisEntryFunction))
                   .build();
 
-        break;
+          break;
         case TARGET:
           TargetLocationProvider tlp =
               new TargetLocationProviderImpl(shutdownNotifier, logger, pCfa);
@@ -636,15 +621,10 @@ public class CPAchecker {
               tlp.tryGetAutomatonTargetLocations(
                   pAnalysisEntryFunction,
                   Specification.fromFiles(
-                      pProperties,
-                      backwardSpecificationFiles,
-                      pCfa,
-                      config,
-                      logger,
-                      shutdownNotifier));
+                      backwardSpecificationFiles, pCfa, config, logger, shutdownNotifier));
           break;
-      default:
-        throw new AssertionError("Unhandled case statement: " + initialStatesFor);
+        default:
+          throw new AssertionError("Unhandled case statement: " + initialStatesFor);
       }
 
       addToInitialReachedSet(initialLocations, isf, pReached, pCpa);
@@ -652,14 +632,14 @@ public class CPAchecker {
 
     if (!pReached.hasWaitingState()
         && !initialStatesFor.equals(Collections.singleton(InitialStatesFor.TARGET))) {
-      throw new InvalidConfigurationException("Initialization of the set of initial states failed: No analysis target found!");
+      throw new InvalidConfigurationException(
+          "Initialization of the set of initial states failed: No analysis target found!");
     } else {
       logger.logf(
           Level.FINE,
           "Initial reached set has a waitlist of %d states.",
           pReached.getWaitlist().size());
     }
-
   }
 
   private Set<CFANode> getAllFunctionExitNodes(CFA cfa) {

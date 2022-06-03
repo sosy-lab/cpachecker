@@ -33,6 +33,7 @@ import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.core.specification.Specification;
+import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.slicing.Slice;
 import org.sosy_lab.cpachecker.util.slicing.Slicer;
 import org.sosy_lab.cpachecker.util.slicing.SlicerFactory;
@@ -53,7 +54,8 @@ public class SlicingCPA extends AbstractSingleWrapperCPA implements StatisticsPr
       secure = true,
       name = "refinableSlice",
       description =
-          "Whether to use a refinable slicing precision that starts with an empty slice, or a statically computed, fixed slicing precision")
+          "Whether to use a refinable slicing precision that starts with an empty slice, or a"
+              + " statically computed, fixed slicing precision")
   private boolean useRefinableSlice = false;
 
   private final LogManager logger;
@@ -62,6 +64,7 @@ public class SlicingCPA extends AbstractSingleWrapperCPA implements StatisticsPr
   private final CFA cfa;
   private final Specification spec;
 
+  private final SlicerFactory slicerFactory;
   private final Slicer slicer;
 
   private TransferRelation transferRelation;
@@ -69,10 +72,7 @@ public class SlicingCPA extends AbstractSingleWrapperCPA implements StatisticsPr
   private StopOperator stopOperator;
   private PrecisionAdjustment precisionAdjustment;
 
-
-  /**
-   * Returns the factory for creating this CPA.
-   */
+  /** Returns the factory for creating this CPA. */
   public static CPAFactory factory() {
     return AutomaticCPAFactory.forType(SlicingCPA.class);
   }
@@ -84,7 +84,7 @@ public class SlicingCPA extends AbstractSingleWrapperCPA implements StatisticsPr
       final Configuration pConfig,
       final CFA pCfa,
       final Specification pSpec)
-      throws InvalidConfigurationException {
+      throws CPAException, InvalidConfigurationException {
     super(pCpa);
     pConfig.inject(this);
 
@@ -99,7 +99,8 @@ public class SlicingCPA extends AbstractSingleWrapperCPA implements StatisticsPr
     stopOperator = new PrecisionDelegatingStop(pCpa.getStopOperator());
     precisionAdjustment = new PrecisionDelegatingPrecisionAdjustment(pCpa.getPrecisionAdjustment());
 
-    slicer = new SlicerFactory().create(logger, shutdownNotifier, config, pCfa);
+    slicerFactory = new SlicerFactory();
+    slicer = slicerFactory.create(logger, shutdownNotifier, config, pCfa);
   }
 
   @Override
@@ -123,14 +124,14 @@ public class SlicingCPA extends AbstractSingleWrapperCPA implements StatisticsPr
   }
 
   @Override
-  public AbstractState getInitialState(
-      CFANode node, StateSpacePartition partition) throws InterruptedException {
+  public AbstractState getInitialState(CFANode node, StateSpacePartition partition)
+      throws InterruptedException {
     return super.getInitialState(node, partition);
   }
 
   @Override
-  public Precision getInitialPrecision(
-      CFANode pNode, StateSpacePartition pPartition) throws InterruptedException {
+  public Precision getInitialPrecision(CFANode pNode, StateSpacePartition pPartition)
+      throws InterruptedException {
     Precision wrappedPrec = getWrappedCpa().getInitialPrecision(pNode, pPartition);
 
     ImmutableSet<CFAEdge> relevantEdges;
@@ -169,6 +170,9 @@ public class SlicingCPA extends AbstractSingleWrapperCPA implements StatisticsPr
 
   @Override
   public void collectStatistics(Collection<Statistics> pStatsCollection) {
+
+    slicerFactory.collectStatistics(pStatsCollection);
+
     if (slicer instanceof StatisticsProvider) {
       ((StatisticsProvider) slicer).collectStatistics(pStatsCollection);
     }

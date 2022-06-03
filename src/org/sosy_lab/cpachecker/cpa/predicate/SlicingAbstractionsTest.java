@@ -15,7 +15,7 @@ import com.google.common.collect.Lists;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.io.File;
 import java.io.IOException;
-import java.nio.file.Paths;
+import java.nio.file.Path;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
@@ -30,29 +30,27 @@ import org.sosy_lab.cpachecker.util.test.CPATestRunner;
 import org.sosy_lab.cpachecker.util.test.TestDataTools;
 import org.sosy_lab.cpachecker.util.test.TestResults;
 
-/**
- * Integration testing for Slicing Abstractions.
- */
+/** Integration testing for Slicing Abstractions. */
 @RunWith(Parameterized.class)
 public class SlicingAbstractionsTest {
 
   private static final String TEST_DIR_PATH = "test/programs/slicingabstractions/";
   private static final String CONFIG_DIR_PATH = "config/";
 
-  private static final boolean isConfig(File pPathname) {
-          return ((pPathname.getName().contains("Kojak")
-                  || pPathname.getName().contains("SlicingAbstractions"))
-              && !pPathname.getName().contains("overflow"));
+  private static boolean isConfig(File pPathname) {
+    return ((pPathname.getName().contains("Kojak")
+            || pPathname.getName().contains("SlicingAbstractions"))
+        && !pPathname.getName().contains("overflow"));
   }
 
-  private static final boolean isSlabConfig(File pPathname) {
-      return pPathname.getName().contains("Slab");
+  private static boolean isSlabConfig(File pPathname) {
+    return pPathname.getName().contains("Slab");
   }
 
-  private static final boolean isOverflowConfig(File pPathname) {
-          return ((pPathname.getName().contains("Kojak")
-                  || pPathname.getName().contains("SlicingAbstractions"))
-              && pPathname.getName().contains("overflow"));
+  private static boolean isOverflowConfig(File pPathname) {
+    return ((pPathname.getName().contains("Kojak")
+            || pPathname.getName().contains("SlicingAbstractions"))
+        && pPathname.getName().contains("overflow"));
   }
 
   private static final ImmutableMap<String, String> EMPTY_OPTIONS = ImmutableMap.of();
@@ -183,7 +181,9 @@ public class SlicingAbstractionsTest {
     return true;
   }
 
-  public SlicingAbstractionsTest(String filename, String configname,
+  public SlicingAbstractionsTest(
+      String filename,
+      String configname,
       Map<String, String> extraOptions,
       @SuppressWarnings("unused") String name) {
     this.filename = filename;
@@ -201,11 +201,11 @@ public class SlicingAbstractionsTest {
   }
 
   private void check(String pFilename, Configuration config) throws Exception {
-    String fullPath = Paths.get(TEST_DIR_PATH, filename).toString();
+    String fullPath = Path.of(TEST_DIR_PATH, filename).toString();
 
     TestResults results = CPATestRunner.run(config, fullPath);
     if (!configname.contains("overflow")) {
-    if (pFilename.contains("_true_assert") || pFilename.contains("_true-unreach")) {
+      if (pFilename.contains("_true_assert") || pFilename.contains("_true-unreach")) {
         results.assertIsSafe();
       } else if (pFilename.contains("_false_assert") || pFilename.contains("_false-unreach")) {
         results.assertIsUnsafe();

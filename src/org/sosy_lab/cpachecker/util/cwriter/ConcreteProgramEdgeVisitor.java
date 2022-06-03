@@ -25,7 +25,6 @@ import org.sosy_lab.cpachecker.core.counterexample.CFAEdgeWithAssumptions;
 import org.sosy_lab.cpachecker.core.counterexample.CFAPathWithAssumptions;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 
-
 public class ConcreteProgramEdgeVisitor extends DefaultEdgeVisitor {
 
   private final CFAPathWithAssumptions exactValuePath;
@@ -45,16 +44,17 @@ public class ConcreteProgramEdgeVisitor extends DefaultEdgeVisitor {
   private void createAssumedAssigmentString(
       Deque<FunctionBody> functionStack, CFAEdge currentCFAEdge) {
     CFAEdgeWithAssumptions e = findMatchingEdge(currentCFAEdge);
-    if (e != null &&
-        e.getCFAEdge() instanceof CStatementEdge) {
+    if (e != null && e.getCFAEdge() instanceof CStatementEdge) {
 
       CStatementEdge cse = (CStatementEdge) e.getCFAEdge();
       // could improve detection of introductions of non-det variables
-      if (!(cse.getStatement() instanceof CFunctionCallAssignmentStatement)) { return; }
+      if (!(cse.getStatement() instanceof CFunctionCallAssignmentStatement)) {
+        return;
+      }
 
       for (AExpressionStatement exp : e.getExpStmts()) {
-        if (!(exp instanceof CExpressionStatement) ||
-            !(exp.getExpression() instanceof CBinaryExpression)) {
+        if (!(exp instanceof CExpressionStatement)
+            || !(exp.getExpression() instanceof CBinaryExpression)) {
           continue;
         }
 
@@ -63,7 +63,8 @@ public class ConcreteProgramEdgeVisitor extends DefaultEdgeVisitor {
           continue;
         }
 
-        assert cexp.getOperand1() instanceof CLeftHandSide : "model-refined element is not a lefthandside expression";
+        assert cexp.getOperand1() instanceof CLeftHandSide
+            : "model-refined element is not a lefthandside expression";
 
         CLeftHandSide lho = ((CLeftHandSide) cexp.getOperand1());
 
@@ -75,7 +76,6 @@ public class ConcreteProgramEdgeVisitor extends DefaultEdgeVisitor {
 
         CExpressionAssignmentStatement cass =
             new CExpressionAssignmentStatement(cexp.getFileLocation(), lho, cexp.getOperand2());
-
 
         functionStack.peek().write(cass.toASTString());
       }
@@ -91,6 +91,4 @@ public class ConcreteProgramEdgeVisitor extends DefaultEdgeVisitor {
 
     return null;
   }
-
-
 }

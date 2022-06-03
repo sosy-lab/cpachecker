@@ -52,18 +52,18 @@ import org.sosy_lab.cpachecker.util.templates.TemplateToFormulaConversionManager
 import org.sosy_lab.java_smt.api.BitvectorFormula;
 import org.sosy_lab.java_smt.api.BitvectorFormulaManager;
 import org.sosy_lab.java_smt.api.BooleanFormula;
-import org.sosy_lab.java_smt.api.BooleanFormulaManager;
 import org.sosy_lab.java_smt.api.Formula;
 import org.sosy_lab.java_smt.api.ProverEnvironment;
 import org.sosy_lab.java_smt.api.SolverException;
 
-@Options(prefix="cpa.congruence")
-public class CongruenceManager implements
-                               ABEManager<CongruenceState, TemplatePrecision> {
+@Options(prefix = "cpa.congruence")
+public class CongruenceManager implements ABEManager<CongruenceState, TemplatePrecision> {
 
-  @Option(secure=true,
-  description="Generate congruences for sums of variables "
-      + "(<=> x and y have same/different evenness)")
+  @Option(
+      secure = true,
+      description =
+          "Generate congruences for sums of variables "
+              + "(<=> x and y have same/different evenness)")
   private boolean trackCongruenceSum = false;
 
   private final Solver solver;
@@ -73,7 +73,6 @@ public class CongruenceManager implements
   private final CongruenceStatistics statistics;
   private final PathFormulaManager pfmgr;
   private final TemplatePrecision precision;
-  private final BooleanFormulaManager bfmgr;
   private final Configuration configuration;
   private final CFA cfa;
   private final LogManager logManager;
@@ -97,19 +96,14 @@ public class CongruenceManager implements
     configuration = config;
     solver = pSolver;
     fmgr = pFormulaManager;
-    bfmgr = fmgr.getBooleanFormulaManager();
     statistics = pStatistics;
     bvfmgr = fmgr.getBitvectorFormulaManager();
     pfmgr = pPathFormulaManager;
-    precision = new TemplatePrecision(logger, config, cfa,
-        pTemplateToFormulaConversionManager);
+    precision = new TemplatePrecision(logger, config, cfa, pTemplateToFormulaConversionManager);
     shutdownNotifier = pShutdownNotifier;
   }
 
-  public CongruenceState join(
-      CongruenceState a,
-      CongruenceState b
-  ) {
+  public CongruenceState join(CongruenceState a, CongruenceState b) {
     Map<Template, Congruence> abstraction =
         Maps.difference(a.getAbstraction(), b.getAbstraction()).entriesInCommon();
     return new CongruenceState(
@@ -118,8 +112,7 @@ public class CongruenceManager implements
         a.getPointerTargetSet(),
         a.getSSAMap(),
         b.getGeneratingState(),
-        a.getNode()
-    );
+        a.getNode());
   }
 
   @Override
@@ -153,8 +146,8 @@ public class CongruenceManager implements
       SSAMap pSsaMap,
       ABEIntermediateState<CongruenceState> generatingState,
       UnmodifiableReachedSet states,
-      AbstractState fullState
-  ) throws CPATransferException, InterruptedException {
+      AbstractState fullState)
+      throws CPATransferException, InterruptedException {
 
     Map<Template, Congruence> abstraction = new HashMap<>();
 
@@ -201,10 +194,10 @@ public class CongruenceManager implements
       statistics.congruenceTimer.stop();
     }
 
-    CongruenceState out = new CongruenceState(
-        abstraction, this, pPointerTargetSet, pSsaMap, Optional.of(generatingState), node);
-    Optional<ABEAbstractedState<CongruenceState>> sibling =
-        findSibling(states, fullState, out);
+    CongruenceState out =
+        new CongruenceState(
+            abstraction, this, pPointerTargetSet, pSsaMap, Optional.of(generatingState), node);
+    Optional<ABEAbstractedState<CongruenceState>> sibling = findSibling(states, fullState, out);
     if (sibling.isPresent()) {
       out = join(sibling.orElseThrow().cast(), out);
     }
@@ -212,12 +205,11 @@ public class CongruenceManager implements
   }
 
   public BooleanFormula toFormula(CongruenceState state) {
-    return toFormula(pfmgr, fmgr, state, new PathFormula(
-        bfmgr.makeTrue(),
-        state.getSSAMap(),
-        state.getPointerTargetSet(),
-        1
-    ));
+    return toFormula(
+        pfmgr,
+        fmgr,
+        state,
+        pfmgr.makeEmptyPathFormulaWithContext(state.getSSAMap(), state.getPointerTargetSet()));
   }
 
   public BooleanFormula toFormulaUninstantiated(
@@ -233,19 +225,15 @@ public class CongruenceManager implements
               cfa,
               AnalysisDirection.FORWARD);
     } catch (InvalidConfigurationException pE) {
-      throw new UnsupportedOperationException("Could not construct path "
-          + "formula manager", pE);
+      throw new UnsupportedOperationException("Could not construct path " + "formula manager", pE);
     }
     return pFormulaManager.uninstantiate(
         toFormula(
             pfmgrv,
             pFormulaManager,
             state,
-            new PathFormula(
-                pFormulaManager.getBooleanFormulaManager().makeTrue(),
-                state.getSSAMap(),
-                state.getPointerTargetSet(),
-                1)));
+            pfmgrv.makeEmptyPathFormulaWithContext(
+                state.getSSAMap(), state.getPointerTargetSet())));
   }
 
   public BooleanFormula toFormula(
@@ -283,10 +271,9 @@ public class CongruenceManager implements
   }
 
   private boolean shouldUseTemplate(Template template) {
-    return template.isIntegral() && (
-        (template.getKind() == Kind.UPPER_BOUND)
-        || (trackCongruenceSum && template.getKind() == Kind.SUM)
-    );
+    return template.isIntegral()
+        && ((template.getKind() == Kind.UPPER_BOUND)
+            || (trackCongruenceSum && template.getKind() == Kind.SUM));
   }
 
   private Formula makeBv(BitvectorFormulaManager pBvfmgr, Formula other, int value) {
@@ -294,14 +281,12 @@ public class CongruenceManager implements
   }
 
   @Override
-  public CongruenceState getInitialState(
-      CFANode node, StateSpacePartition pPartition) {
+  public CongruenceState getInitialState(CFANode node, StateSpacePartition pPartition) {
     return CongruenceState.empty(this, node);
   }
 
   @Override
-  public TemplatePrecision getInitialPrecision(
-      CFANode node, StateSpacePartition pPartition) {
+  public TemplatePrecision getInitialPrecision(CFANode node, StateSpacePartition pPartition) {
     return precision;
   }
 
@@ -315,8 +300,7 @@ public class CongruenceManager implements
 
   @Override
   public boolean isLessOrEqual(
-      ABEAbstractedState<CongruenceState> pState1,
-      ABEAbstractedState<CongruenceState> pState2) {
+      ABEAbstractedState<CongruenceState> pState1, ABEAbstractedState<CongruenceState> pState2) {
     return isLessOrEqual(pState1.cast(), pState2.cast());
   }
 
@@ -338,10 +322,7 @@ public class CongruenceManager implements
       ABEAbstractedState<CongruenceState> state) {
     Set<CongruenceState> filteredSiblings =
         ImmutableSet.copyOf(
-            AbstractStates.projectToType(
-                states.getReached(pArgState),
-                CongruenceState.class)
-        );
+            AbstractStates.projectToType(states.getReached(pArgState), CongruenceState.class));
     if (filteredSiblings.isEmpty()) {
       return Optional.empty();
     }
@@ -352,7 +333,7 @@ public class CongruenceManager implements
     ABEState<CongruenceState> a = state;
     while (true) {
       if (a.isAbstract()) {
-        ABEAbstractedState<CongruenceState> aState = a .asAbstracted();
+        ABEAbstractedState<CongruenceState> aState = a.asAbstracted();
 
         if (filteredSiblings.contains(aState)) {
           return Optional.of(aState);
@@ -369,5 +350,4 @@ public class CongruenceManager implements
       }
     }
   }
-
 }

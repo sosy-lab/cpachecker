@@ -13,26 +13,33 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
 
-public class CFunctionSummaryEdge extends FunctionSummaryEdge {
-
+public class CFunctionSummaryEdge extends FunctionSummaryEdge implements CCfaEdge {
 
   private static final long serialVersionUID = -2005621000523551217L;
 
-  public CFunctionSummaryEdge(String pRawStatement, FileLocation pFileLocation,
-      CFANode pPredecessor, CFANode pSuccessor, CFunctionCall pExpression,
+  public CFunctionSummaryEdge(
+      String pRawStatement,
+      FileLocation pFileLocation,
+      CFANode pPredecessor,
+      CFANode pSuccessor,
+      CFunctionCall pExpression,
       CFunctionEntryNode pFunctionEntry) {
 
-    super(pRawStatement, pFileLocation, pPredecessor, pSuccessor, pExpression,
-        pFunctionEntry);
+    super(pRawStatement, pFileLocation, pPredecessor, pSuccessor, pExpression, pFunctionEntry);
   }
 
   @Override
   public CFunctionCall getExpression() {
-    return (CFunctionCall)super.getExpression();
+    return (CFunctionCall) super.getExpression();
   }
 
   @Override
   public CFunctionEntryNode getFunctionEntry() {
-    return (CFunctionEntryNode)super.getFunctionEntry();
+    return (CFunctionEntryNode) super.getFunctionEntry();
+  }
+
+  @Override
+  public <R, X extends Exception> R accept(CCfaEdgeVisitor<R, X> pVisitor) throws X {
+    return pVisitor.visit(this);
   }
 }

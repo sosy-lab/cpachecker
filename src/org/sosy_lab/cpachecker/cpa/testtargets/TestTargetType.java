@@ -29,6 +29,18 @@ public enum TestTargetType {
       return getEdgeCriterion();
     }
   },
+  TEST_COMP_ASSUME {
+    @Override
+    public Predicate<CFAEdge> getEdgeCriterion() {
+      return edge ->
+          (edge instanceof AssumeEdge) || TestTargetProvider.isTerminatingFunctionCall(edge);
+    }
+
+    @Override
+    public Predicate<CFAEdge> getEdgeCriterion(final String pProp) {
+      return getEdgeCriterion();
+    }
+  },
   ERROR_CALL {
     @Override
     public Predicate<CFAEdge> getEdgeCriterion() {
@@ -55,19 +67,20 @@ public enum TestTargetType {
 
     @Override
     public Predicate<CFAEdge> getEdgeCriterion(final String funName) {
-      return edge -> (edge instanceof CStatementEdge
-          && ((CStatementEdge) edge).getStatement() instanceof CFunctionCall
-          && ((CFunctionCall) ((CStatementEdge) edge).getStatement()).getFunctionCallExpression()
-              .getFunctionNameExpression()
-              .toASTString()
-              .equals(funName))
-          || (edge instanceof CFunctionCallEdge
-              && ((CFunctionCallEdge) edge).getRawAST().isPresent()
-              && ((CFunctionCallEdge) edge).getRawAST().get().getFunctionCallExpression()
-                  .getFunctionNameExpression()
-                  .toASTString()
-                  .equals(funName));
-
+      return edge ->
+          (edge instanceof CStatementEdge
+                  && ((CStatementEdge) edge).getStatement() instanceof CFunctionCall
+                  && ((CFunctionCall) ((CStatementEdge) edge).getStatement())
+                      .getFunctionCallExpression()
+                      .getFunctionNameExpression()
+                      .toASTString()
+                      .equals(funName))
+              || (edge instanceof CFunctionCallEdge
+                  && ((CFunctionCallEdge) edge)
+                      .getFunctionCallExpression()
+                      .getFunctionNameExpression()
+                      .toASTString()
+                      .equals(funName));
     }
   },
   STATEMENT {

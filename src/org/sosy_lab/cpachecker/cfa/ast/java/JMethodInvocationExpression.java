@@ -18,26 +18,32 @@ import org.sosy_lab.cpachecker.cfa.types.java.JType;
 /**
  * This class represents the unqualified method invocation expression AST node type.
  *
+ * <pre>{@code
  * Unqualified MethodInvocation:
  *        [ < Type { , Type } > ]
  *        Identifier ( [ Expression { , Expression } ] )
+ * }</pre>
  *
- * Note that in the cfa, all method names are transformed to have unique names.
- * It is therefore unnecessary to have Qualifiers for methods with the same simple name.
+ * Note that in the cfa, all method names are transformed to have unique names. It is therefore
+ * unnecessary to have Qualifiers for methods with the same simple name.
  */
 public class JMethodInvocationExpression extends AFunctionCallExpression implements JRightHandSide {
 
   // TODO refactor to be either abstract or final
 
-  //TODO Type parameters
+  // TODO Type parameters
 
   private static final long serialVersionUID = 4603127283599981678L;
   // TODO erase these two fields and change the algorithm to find known run time type bindings,
   private boolean hasKnownRunTimeBinding = false;
   private JClassOrInterfaceType runTimeBinding = null;
 
-  public JMethodInvocationExpression(FileLocation pFileLocation, JType pType, JExpression pFunctionName,
-      List<? extends JExpression> pParameters, JMethodDeclaration pDeclaration) {
+  public JMethodInvocationExpression(
+      FileLocation pFileLocation,
+      JType pType,
+      JExpression pFunctionName,
+      List<? extends JExpression> pParameters,
+      JMethodDeclaration pDeclaration) {
     super(pFileLocation, pType, pFunctionName, pParameters, pDeclaration);
   }
 
@@ -59,8 +65,8 @@ public class JMethodInvocationExpression extends AFunctionCallExpression impleme
 
   @SuppressWarnings("unchecked")
   @Override
-  public List<? extends JExpression> getParameterExpressions() {
-    return (List<? extends JExpression>) super.getParameterExpressions();
+  public List<JExpression> getParameterExpressions() {
+    return (List<JExpression>) super.getParameterExpressions();
   }
 
   @Override
@@ -101,14 +107,13 @@ public class JMethodInvocationExpression extends AFunctionCallExpression impleme
       return true;
     }
 
-    if (!(obj instanceof JMethodInvocationExpression)
-        || !super.equals(obj)) {
+    if (!(obj instanceof JMethodInvocationExpression) || !super.equals(obj)) {
       return false;
     }
 
     JMethodInvocationExpression other = (JMethodInvocationExpression) obj;
 
     return other.hasKnownRunTimeBinding == hasKnownRunTimeBinding
-            && Objects.equals(other.runTimeBinding, runTimeBinding);
+        && Objects.equals(other.runTimeBinding, runTimeBinding);
   }
 }

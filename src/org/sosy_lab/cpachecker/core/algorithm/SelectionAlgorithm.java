@@ -58,7 +58,6 @@ import org.sosy_lab.cpachecker.core.reachedset.ForwardingReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.core.specification.Specification;
-import org.sosy_lab.cpachecker.exceptions.CPAEnabledAnalysisPropertyViolationException;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
 import org.sosy_lab.cpachecker.util.CFATraversal;
@@ -159,6 +158,7 @@ public class SelectionAlgorithm extends NestingAlgorithm {
     private boolean requiresArrayHandling = false;
     private boolean requiresFloatHandling = false;
     private boolean requiresRecursionHandling = false;
+    private boolean hasSingleLoop = false;
 
     SelectionAlgorithmStatistics(LogManager pLogger) {
       super(pLogger);
@@ -174,16 +174,23 @@ public class SelectionAlgorithm extends NestingAlgorithm {
       out.println("Size of preliminary analysis reached set:      " + sizeOfPreAnaReachedSet);
       out.println("Used algorithm property:                       " + chosenConfig);
       out.println(
-          "Program containing only relevant bools:        " + (requiresOnlyRelevantBoolsHandling ? 1 : 0));
+          "Program containing only relevant bools:        "
+              + (requiresOnlyRelevantBoolsHandling ? 1 : 0));
       out.println(
           String.format("Relevant boolean vars / relevant vars ratio:   %.4f", relevantBoolRatio));
-      out.println("Requires alias handling:                       " + (requiresAliasHandling ? 1 : 0));
-      out.println("Requires loop handling:                        " + (requiresLoopHandling ? 1 : 0));
       out.println(
-          "Requires composite-type handling:              " + (requiresCompositeTypeHandling ? 1 : 0));
-      out.println("Requires array handling:                       " + (requiresArrayHandling ? 1 : 0));
-      out.println("Requires float handling:                       " + (requiresFloatHandling ? 1 : 0));
-      out.println("Requires recursion handling:                   " + (requiresRecursionHandling ? 1 : 0));
+          "Requires alias handling:                       " + (requiresAliasHandling ? 1 : 0));
+      out.println(
+          "Requires loop handling:                        " + (requiresLoopHandling ? 1 : 0));
+      out.println(
+          "Requires composite-type handling:              "
+              + (requiresCompositeTypeHandling ? 1 : 0));
+      out.println(
+          "Requires array handling:                       " + (requiresArrayHandling ? 1 : 0));
+      out.println(
+          "Requires float handling:                       " + (requiresFloatHandling ? 1 : 0));
+      out.println(
+          "Requires recursion handling:                   " + (requiresRecursionHandling ? 1 : 0));
       out.println(
           String.format(
               "Relevant addressed vars / relevant vars ratio: %.4f", relevantAddressedRatio));
@@ -205,16 +212,17 @@ public class SelectionAlgorithm extends NestingAlgorithm {
   @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
   private Path preAnalysisAlgorithmConfig = null;
 
-  @Option(
-    secure = true,
-    description = "Configuration for programs containing recursion."
-  )
+  @Option(secure = true, description = "Configuration for programs containing recursion.")
   @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
   private Path recursionConfig;
 
   @Option(secure = true, description = "Configuration for loop-free programs.")
   @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
   private Path loopFreeConfig;
+
+  @Option(secure = true, description = "Configuration for programs with a single loop.")
+  @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
+  private Path singleLoopConfig;
 
   @Option(secure = true, required = true, description = "Configuration for programs with loops.")
   @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
@@ -250,8 +258,11 @@ public class SelectionAlgorithm extends NestingAlgorithm {
   @Option(
       secure = true,
       description =
-          "Ratio of addressed vars. Values bigger than the passed value lead to @option addressedConfig.")
+          "Ratio of addressed vars. Values bigger than the passed value lead to @option"
+              + " addressedConfig.")
   private double addressedRatio = 0;
+
+  private final CFA cfa;
 
   public SelectionAlgorithm(
       CFA pCfa,
@@ -260,8 +271,9 @@ public class SelectionAlgorithm extends NestingAlgorithm {
       Specification pSpecification,
       LogManager pLogger)
       throws InvalidConfigurationException {
-    super(pConfig, pLogger, pShutdownNotifier, pSpecification, pCfa);
+    super(pConfig, pLogger, pShutdownNotifier, pSpecification);
     pConfig.inject(this);
+    cfa = pCfa;
     stats = new SelectionAlgorithmStatistics(pLogger);
   }
 
@@ -274,19 +286,19 @@ public class SelectionAlgorithm extends NestingAlgorithm {
     final Path preAnalysisConfig = preAnalysisAlgorithmConfig;
     ShutdownManager shutdownManager = ShutdownManager.createWithParent(shutdownNotifier);
     try {
-      preAnaAlg = createAlgorithm(preAnalysisConfig, cfa.getMainFunction(), shutdownManager);
+      preAnaAlg = createAlgorithm(preAnalysisConfig, cfa.getMainFunction(), cfa, shutdownManager);
     } catch (InvalidConfigurationException e) {
       logger.logUserException(
           Level.WARNING,
           e,
           "Skipping preAnalysisAlgorithm because the configuration file "
-              + preAnalysisConfig.toString()
+              + preAnalysisConfig
               + " is invalid");
       return AlgorithmStatus.UNSOUND_AND_PRECISE;
     } catch (IOException e) {
       String message =
           "Skipping preAnalysisAlgorithm because the configuration file "
-              + preAnalysisConfig.toString()
+              + preAnalysisConfig
               + " could not be read";
       if (shutdownNotifier.shouldShutdown() && e instanceof ClosedByInterruptException) {
         logger.log(Level.WARNING, message);
@@ -304,8 +316,7 @@ public class SelectionAlgorithm extends NestingAlgorithm {
 
   @SuppressWarnings({"resource", "null"})
   @Override
-  public AlgorithmStatus run(ReachedSet pReachedSet)
-      throws CPAException, InterruptedException, CPAEnabledAnalysisPropertyViolationException {
+  public AlgorithmStatus run(ReachedSet pReachedSet) throws CPAException, InterruptedException {
     checkArgument(
         pReachedSet instanceof ForwardingReachedSet,
         "SelectionAlgorithm needs ForwardingReachedSet");
@@ -395,6 +406,9 @@ public class SelectionAlgorithm extends NestingAlgorithm {
         !Collections.disjoint(variableClassification.getRelevantVariables(), visitor.floatVariables)
             || !Collections.disjoint(
                 variableClassification.getAddressedFields().values(), visitor.floatVariables);
+
+    stats.hasSingleLoop =
+        loopStructure.isPresent() && loopStructure.orElseThrow().getAllLoops().size() == 1;
   }
 
   /** use statistical data and choose a configuration for further analysis. */
@@ -427,6 +441,9 @@ public class SelectionAlgorithm extends NestingAlgorithm {
         && complexLoopConfig != null) {
       // Run complex loop config
       chosenConfig = complexLoopConfig;
+    } else if (stats.hasSingleLoop && singleLoopConfig != null) {
+      // Run single loop config
+      chosenConfig = singleLoopConfig;
     } else {
       // Run standard loop config
       chosenConfig = loopConfig;
@@ -437,24 +454,24 @@ public class SelectionAlgorithm extends NestingAlgorithm {
 
   /** build all components for the analysis and run the further analysis. */
   private AlgorithmStatus run0(ReachedSet pReachedSet, final Path chosenConfig)
-      throws CPAException, InterruptedException, CPAEnabledAnalysisPropertyViolationException {
+      throws CPAException, InterruptedException {
     Algorithm chosenAlgorithm;
     Triple<Algorithm, ConfigurableProgramAnalysis, ReachedSet> currentAlg;
     ShutdownManager shutdownManager = ShutdownManager.createWithParent(shutdownNotifier);
     try {
-      currentAlg = createAlgorithm(chosenConfig, cfa.getMainFunction(), shutdownManager);
+      currentAlg = createAlgorithm(chosenConfig, cfa.getMainFunction(), cfa, shutdownManager);
     } catch (InvalidConfigurationException e) {
       logger.logUserException(
           Level.WARNING,
           e,
           "Skipping SelectionAlgorithm because the configuration file "
-              + chosenConfig.toString()
+              + chosenConfig
               + " is invalid");
       return AlgorithmStatus.UNSOUND_AND_PRECISE;
     } catch (IOException e) {
       String message =
           "Skipping SelectionAlgorithm because the configuration file "
-              + chosenConfig.toString()
+              + chosenConfig
               + " could not be read";
       if (shutdownNotifier.shouldShutdown() && e instanceof ClosedByInterruptException) {
         logger.log(Level.WARNING, message);
@@ -475,12 +492,16 @@ public class SelectionAlgorithm extends NestingAlgorithm {
   }
 
   private Triple<Algorithm, ConfigurableProgramAnalysis, ReachedSet> createAlgorithm(
-      Path singleConfigFileName, CFANode mainFunction, ShutdownManager singleShutdownManager)
+      Path singleConfigFileName,
+      CFANode pInitialNode,
+      CFA pCfa,
+      ShutdownManager singleShutdownManager)
       throws InvalidConfigurationException, CPAException, IOException, InterruptedException {
-    AggregatedReachedSets aggregateReached = new AggregatedReachedSets();
+    AggregatedReachedSets aggregateReached = AggregatedReachedSets.empty();
     return super.createAlgorithm(
         singleConfigFileName,
-        mainFunction,
+        pInitialNode,
+        pCfa,
         singleShutdownManager,
         aggregateReached,
         ImmutableSet.of("analysis.selectAnalysisHeuristically"),

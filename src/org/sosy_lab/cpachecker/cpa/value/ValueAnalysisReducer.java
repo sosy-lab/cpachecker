@@ -19,7 +19,6 @@ import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState.ValueAndType;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
-
 class ValueAnalysisReducer extends GenericReducer<ValueAnalysisState, VariableTrackingPrecision> {
 
   @Override
@@ -28,7 +27,8 @@ class ValueAnalysisReducer extends GenericReducer<ValueAnalysisState, VariableTr
     ValueAnalysisState clonedElement = ValueAnalysisState.copyOf(pExpandedState);
     for (MemoryLocation trackedVar : pExpandedState.getTrackedMemoryLocations()) {
       // ignore offset (like "3" from "array/3") to match assignments in loops ("array[i]=12;")
-      final String simpleName = Splitter.on("/").splitToList(trackedVar.getAsSimpleString()).get(0);
+      final String simpleName =
+          Splitter.on("/").splitToList(trackedVar.getExtendedQualifiedName()).get(0);
       if (!pContext.getVariables().contains(simpleName)) {
         clonedElement.forget(trackedVar);
       }
@@ -49,11 +49,11 @@ class ValueAnalysisReducer extends GenericReducer<ValueAnalysisState, VariableTr
       // ignore offset ("3" from "array[3]") to match assignments in loops ("array[i]=12;")
       final MemoryLocation memloc = e.getKey();
       final ValueAndType valueAndType = e.getValue();
-      final String simpleName = memloc.getAsSimpleString();
+      final String simpleName = memloc.getExtendedQualifiedName();
       if (!pReducedContext.getVariables().contains(simpleName)) {
         diffElement.assignConstant(memloc, valueAndType.getValue(), valueAndType.getType());
 
-      //} else {
+        // } else {
         // ignore this case, the variables are part of the reduced state
         // (or might even be deleted, then they must stay unknown)
       }

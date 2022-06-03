@@ -11,11 +11,14 @@ package org.sosy_lab.cpachecker.cfa.ast;
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 
-import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ComparisonChain;
 import com.google.common.collect.Iterables;
 import com.google.errorprone.annotations.Immutable;
+import java.io.IOException;
+import java.io.InvalidObjectException;
+import java.io.ObjectInputStream;
 import java.io.Serializable;
+import java.nio.file.Path;
 import java.util.List;
 import java.util.Objects;
 
@@ -24,7 +27,7 @@ public class FileLocation implements Serializable, Comparable<FileLocation> {
 
   private static final long serialVersionUID = 6652099907084949014L;
 
-  private final String fileName;
+  private final transient Path fileName;
   private final String niceFileName;
 
   private final int offset;
@@ -39,10 +42,10 @@ public class FileLocation implements Serializable, Comparable<FileLocation> {
   private final boolean offsetRelatedToOrigin;
 
   public FileLocation(
-      String pFileName, int pOffset, int pLength, int pStartingLine, int pEndingLine) {
+      Path pFileName, int pOffset, int pLength, int pStartingLine, int pEndingLine) {
     this(
         pFileName,
-        pFileName,
+        pFileName.toString(),
         pOffset,
         pLength,
         pStartingLine,
@@ -53,7 +56,7 @@ public class FileLocation implements Serializable, Comparable<FileLocation> {
   }
 
   public FileLocation(
-      String pFileName,
+      Path pFileName,
       String pNiceFileName,
       int pOffset,
       int pLength,
@@ -63,6 +66,7 @@ public class FileLocation implements Serializable, Comparable<FileLocation> {
       int pEndingLineInOrigin,
       boolean pOffsetRelatedToOrigin) {
     fileName = checkNotNull(pFileName);
+    checkArgument(!fileName.toString().isEmpty(), "Non-empty file name required");
     niceFileName = checkNotNull(pNiceFileName);
     offset = pOffset;
     length = pLength;
@@ -74,8 +78,13 @@ public class FileLocation implements Serializable, Comparable<FileLocation> {
   }
 
   public static final FileLocation DUMMY =
-      new FileLocation("<none>", 0, 0, 0, 0) {
+      new FileLocation(Path.of("#none#"), 0, 0, 0, 0) {
         private static final long serialVersionUID = -3012034075570811723L;
+
+        @Override
+        public boolean isRealLocation() {
+          return false;
+        }
 
         @Override
         public String toString() {
@@ -84,19 +93,24 @@ public class FileLocation implements Serializable, Comparable<FileLocation> {
       };
 
   public static final FileLocation MULTIPLE_FILES =
-      new FileLocation("<multiple files>", 0, 0, 0, 0) {
+      new FileLocation(Path.of("#multiple files#"), 0, 0, 0, 0) {
         private static final long serialVersionUID = -1725179775900132985L;
 
         @Override
+        public boolean isRealLocation() {
+          return false;
+        }
+
+        @Override
         public String toString() {
-          return getFileName();
+          return getFileName().toString();
         }
       };
 
   public static FileLocation merge(List<FileLocation> locations) {
     checkArgument(!Iterables.isEmpty(locations));
 
-    String fileName = null;
+    Path fileName = null;
     String niceFileName = null;
     int startingLine = Integer.MAX_VALUE;
     int startingLineInOrigin = Integer.MAX_VALUE;
@@ -141,11 +155,16 @@ public class FileLocation implements Serializable, Comparable<FileLocation> {
         offsetRelatedToOrigin);
   }
 
-  public String getFileName() {
+  /** Whether this is a real location or a dummy one like {@link FileLocation#DUMMY} */
+  public boolean isRealLocation() {
+    return true;
+  }
+
+  /** Return the non-null and non-empty file name. */
+  public Path getFileName() {
     return fileName;
   }
 
-  @VisibleForTesting
   public String getNiceFileName() {
     return niceFileName;
   }
@@ -220,13 +239,67 @@ public class FileLocation implements Serializable, Comparable<FileLocation> {
 
   @Override
   public String toString() {
-    String prefix = niceFileName.isEmpty()
-        ? ""
-        : niceFileName + ", ";
+    String prefix = niceFileName.isEmpty() ? "" : niceFileName + ", ";
     if (startingLineInOrigin == endingLineInOrigin) {
       return prefix + "line " + startingLineInOrigin;
     } else {
       return prefix + "lines " + startingLineInOrigin + "-" + endingLineInOrigin;
+    }
+  }
+
+  protected Object writeReplace() {
+    return new SerializationProxy(this);
+  }
+
+  @SuppressWarnings({"UnusedVariable", "unused"}) // parameter is required by API
+  private void readObject(ObjectInputStream in) throws IOException {
+    throw new InvalidObjectException("Proxy required");
+  }
+
+  private static class SerializationProxy implements Serializable {
+    private static final long serialVersionUID = -3730421630343690695L;
+
+    private final String fileName;
+    private final String niceFileName;
+    private final int offset;
+    private final int length;
+    private final int startingLine;
+    private final int endingLine;
+    private final int startingLineInOrigin;
+    private final int endingLineInOrigin;
+    private final boolean offsetRelatedToOrigin;
+
+    SerializationProxy(FileLocation loc) {
+      fileName = loc.fileName.toString();
+      niceFileName = loc.niceFileName;
+      offset = loc.offset;
+      length = loc.length;
+      startingLine = loc.startingLine;
+      endingLine = loc.endingLine;
+      startingLineInOrigin = loc.startingLineInOrigin;
+      endingLineInOrigin = loc.endingLineInOrigin;
+      offsetRelatedToOrigin = loc.offsetRelatedToOrigin;
+    }
+
+    private Object readResolve() {
+      FileLocation result =
+          new FileLocation(
+              Path.of(fileName),
+              niceFileName,
+              offset,
+              length,
+              startingLine,
+              endingLine,
+              startingLineInOrigin,
+              endingLineInOrigin,
+              offsetRelatedToOrigin);
+
+      if (result.equals(DUMMY)) {
+        return DUMMY;
+      } else if (result.equals(MULTIPLE_FILES)) {
+        return MULTIPLE_FILES;
+      }
+      return result;
     }
   }
 }

@@ -16,7 +16,7 @@ public class CFloatNative extends CFloat {
   private final int type;
 
   public CFloatNative(String rep, int type) {
-    this.wrapper = CFloatNativeAPI.createFp(rep, type);
+    wrapper = CFloatNativeAPI.createFp(rep, type);
     this.type = type;
   }
 
@@ -211,11 +211,7 @@ public class CFloatNative extends CFloat {
   }
 
   private int constructParametersForMultiOperation(
-      int index,
-      int maxType,
-      CFloatWrapper[] wrappers,
-      int[] types,
-      CFloat... summands) {
+      int index, int maxType, CFloatWrapper[] wrappers, int[] types, CFloat... summands) {
     types[0] = type;
     for (CFloat f : summands) {
       wrappers[index] = f.copyWrapper();

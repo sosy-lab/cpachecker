@@ -17,14 +17,10 @@ import com.google.common.base.Preconditions;
  */
 public class Equal<ConstantType> implements BooleanFormula<ConstantType> {
 
-  /**
-   * The first operand.
-   */
+  /** The first operand. */
   private final NumeralFormula<ConstantType> operand1;
 
-  /**
-   * The second operand.
-   */
+  /** The second operand. */
   private final NumeralFormula<ConstantType> operand2;
 
   /**
@@ -33,8 +29,7 @@ public class Equal<ConstantType> implements BooleanFormula<ConstantType> {
    * @param pOperand1 the first operand of the equation.
    * @param pOperand2 the first operand of the equation.
    */
-  private Equal(NumeralFormula<ConstantType> pOperand1,
-      NumeralFormula<ConstantType> pOperand2) {
+  private Equal(NumeralFormula<ConstantType> pOperand1, NumeralFormula<ConstantType> pOperand2) {
     Preconditions.checkArgument(pOperand1.getTypeInfo().equals(pOperand2.getTypeInfo()));
     this.operand1 = pOperand1;
     this.operand2 = pOperand2;
@@ -81,22 +76,20 @@ public class Equal<ConstantType> implements BooleanFormula<ConstantType> {
 
   @Override
   public <ReturnType, ParamType> ReturnType accept(
-      ParameterizedBooleanFormulaVisitor<ConstantType, ParamType, ReturnType> pVisitor, ParamType pParameter) {
+      ParameterizedBooleanFormulaVisitor<ConstantType, ParamType, ReturnType> pVisitor,
+      ParamType pParameter) {
     return pVisitor.visit(this, pParameter);
   }
 
   /**
-   * Gets an invariants formula representing the equation over the given
-   * formulae.
+   * Gets an invariants formula representing the equation over the given formulae.
    *
    * @param pOperand1 the first operand of the equation.
    * @param pOperand2 the second operand of the equation.
-   *
-   * @return an invariants formula representing the equation of the given
-   * operands.
+   * @return an invariants formula representing the equation of the given operands.
    */
-  static <ConstantType> Equal<ConstantType> of(NumeralFormula<ConstantType> pOperand1, NumeralFormula<ConstantType> pOperand2) {
+  static <ConstantType> Equal<ConstantType> of(
+      NumeralFormula<ConstantType> pOperand1, NumeralFormula<ConstantType> pOperand2) {
     return new Equal<>(pOperand1, pOperand2);
   }
-
 }

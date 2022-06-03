@@ -7,8 +7,8 @@
 // SPDX-License-Identifier: Apache-2.0
 
 /**
- * Package to remove some extracted requirements which are covered by others.
- * Assume that for coverage it is sufficient to look at the part of the requirement
- * which is associated with the variables of the applied custom instructions signature
+ * Package to remove some extracted requirements which are covered by others. Assume that for
+ * coverage it is sufficient to look at the part of the requirement which is associated with the
+ * variables of the applied custom instructions signature
  */
 package org.sosy_lab.cpachecker.util.ci.redundancyremover;

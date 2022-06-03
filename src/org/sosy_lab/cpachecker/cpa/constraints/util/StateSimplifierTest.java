@@ -22,7 +22,6 @@ import org.sosy_lab.cpachecker.cpa.constraints.domain.ConstraintsState;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValueFactory;
-import org.sosy_lab.cpachecker.cpa.value.symbolic.util.SymbolicValues;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
@@ -46,7 +45,7 @@ public class StateSimplifierTest {
   private final SymbolicExpression number =
       factory.asConstant(new NumericValue(5), defaultNumericType);
 
-  private final MemoryLocation memLoc1 = MemoryLocation.valueOf("id1");
+  private final MemoryLocation memLoc1 = MemoryLocation.forIdentifier("id1");
   private final SymbolicExpression group1Id1 =
       factory.asConstant(factory.newIdentifier(memLoc1), defaultNumericType);
   private final SymbolicExpression group1Id2 =
@@ -56,30 +55,28 @@ public class StateSimplifierTest {
   private final SymbolicExpression group2Id2 =
       factory.asConstant(factory.newIdentifier(memLoc1), defaultNumericType);
 
-  private final Constraint group1Constraint1 = (Constraint)
-      factory.greaterThanOrEqual(group1Id1, group1Id2, defaultNumericType, defaultNumericType);
-  private final Constraint group1Constraint2 = (Constraint)
-      factory.lessThanOrEqual(group1Id2, group1Id1, defaultNumericType, defaultNumericType);
+  private final Constraint group1Constraint1 =
+      (Constraint)
+          factory.greaterThanOrEqual(group1Id1, group1Id2, defaultNumericType, defaultNumericType);
+  private final Constraint group1Constraint2 =
+      (Constraint)
+          factory.lessThanOrEqual(group1Id2, group1Id1, defaultNumericType, defaultNumericType);
 
-  private final Constraint group2Constraint1 = (Constraint)
-      factory.lessThan(group2Id1, number, defaultNumericType, defaultNumericType);
-  private final Constraint group2Constraint2 = (Constraint)
-      factory.lessThan(group2Id2, group2Id1, defaultNumericType, defaultNumericType);
+  private final Constraint group2Constraint1 =
+      (Constraint) factory.lessThan(group2Id1, number, defaultNumericType, defaultNumericType);
+  private final Constraint group2Constraint2 =
+      (Constraint) factory.lessThan(group2Id2, group2Id1, defaultNumericType, defaultNumericType);
 
-
-  private final MemoryLocation group1MemLoc1 = MemoryLocation.valueOf("a");
-  private final MemoryLocation group1MemLoc2 = MemoryLocation.valueOf("b");
-  private final MemoryLocation group2MemLoc1 = MemoryLocation.valueOf("c");
-  private final MemoryLocation group2MemLoc2 = MemoryLocation.valueOf("d");
+  private final MemoryLocation group1MemLoc1 = MemoryLocation.forIdentifier("a");
+  private final MemoryLocation group1MemLoc2 = MemoryLocation.forIdentifier("b");
+  private final MemoryLocation group2MemLoc1 = MemoryLocation.forIdentifier("c");
+  private final MemoryLocation group2MemLoc2 = MemoryLocation.forIdentifier("d");
 
   public StateSimplifierTest() throws InvalidConfigurationException {
-    Configuration config = Configuration.builder()
-        .setOption("cpa.constraints.removeTrivial", "true")
-        .build();
+    Configuration config =
+        Configuration.builder().setOption("cpa.constraints.removeTrivial", "true").build();
     simplifier = new StateSimplifier(config, new ConstraintsStatistics());
-    SymbolicValues.initialize();
   }
-
 
   @Test
   public void testRemoveOutdatedConstraints_allConstraintsOutdated() {
@@ -106,9 +103,7 @@ public class StateSimplifierTest {
     assertThat(group2ConstraintsExist(constraintsState)).isTrue();
   }
 
-  private boolean group2ConstraintsExist(
-      ConstraintsState pNewState
-  ) {
+  private boolean group2ConstraintsExist(ConstraintsState pNewState) {
     return pNewState.contains(group2Constraint1) && pNewState.contains(group2Constraint2);
   }
 
@@ -148,5 +143,4 @@ public class StateSimplifierTest {
 
     return state;
   }
-
 }

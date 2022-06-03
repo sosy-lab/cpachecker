@@ -36,7 +36,7 @@ public class SMGBasicRefiner implements Refiner {
     argCpa = pArgCpa;
   }
 
-  public static final SMGBasicRefiner create(ConfigurableProgramAnalysis pCpa)
+  public static SMGBasicRefiner create(ConfigurableProgramAnalysis pCpa)
       throws InvalidConfigurationException {
 
     ARGCPA argCpa = CPAs.retrieveCPAOrFail(pCpa, ARGCPA.class, SMGBasicRefiner.class);

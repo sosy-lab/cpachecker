@@ -8,9 +8,12 @@
 
 package org.sosy_lab.cpachecker.util.dependencegraph;
 
+import com.google.common.base.Equivalence;
 import com.google.common.collect.ImmutableSet;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.ast.AAstNode;
@@ -57,9 +60,10 @@ import org.sosy_lab.cpachecker.cfa.types.c.CComplexType;
 import org.sosy_lab.cpachecker.cfa.types.c.CEnumType.CEnumerator;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.exceptions.NoException;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
-final class EdgeDefUseData {
+public final class EdgeDefUseData {
 
   private final ImmutableSet<MemoryLocation> defs;
   private final ImmutableSet<MemoryLocation> uses;
@@ -105,45 +109,60 @@ final class EdgeDefUseData {
     return partialDefs;
   }
 
-  private static EdgeDefUseData createEdgeDefUseData(Collector pCollector) {
+  public static EdgeDefUseData.Extractor createExtractor(boolean pConsiderPointees) {
 
-    ImmutableSet<MemoryLocation> defs = ImmutableSet.copyOf(pCollector.defs);
-    ImmutableSet<MemoryLocation> uses = ImmutableSet.copyOf(pCollector.uses);
+    return new Extractor() {
 
-    ImmutableSet<CExpression> pointeeDefs = ImmutableSet.copyOf(pCollector.pointeeDefs);
-    ImmutableSet<CExpression> pointeeUses = ImmutableSet.copyOf(pCollector.pointeeUses);
+      private EdgeDefUseData createEdgeDefUseData(Collector pCollector) {
 
-    return new EdgeDefUseData(defs, uses, pointeeDefs, pointeeUses, pCollector.partialDefs);
-  }
+        ImmutableSet<MemoryLocation> defs = ImmutableSet.copyOf(pCollector.defs);
+        ImmutableSet<MemoryLocation> uses = ImmutableSet.copyOf(pCollector.uses);
 
-  public static EdgeDefUseData extract(CFAEdge pEdge) {
+        ImmutableSet<CExpression> pointeeDefs;
+        ImmutableSet<CExpression> pointeeUses;
 
-    Optional<? extends AAstNode> optAstNode = pEdge.getRawAST().toJavaUtil();
+        if (pConsiderPointees) {
+          pointeeDefs = ImmutableSet.copyOf(pCollector.pointeeDefs);
+          pointeeUses = ImmutableSet.copyOf(pCollector.pointeeUses);
+        } else {
+          pointeeDefs = ImmutableSet.of();
+          pointeeUses = ImmutableSet.of();
+        }
 
-    if (optAstNode.isPresent()) {
+        return new EdgeDefUseData(defs, uses, pointeeDefs, pointeeUses, pCollector.partialDefs);
+      }
 
-      AAstNode astNode = optAstNode.orElseThrow();
+      @Override
+      public EdgeDefUseData extract(CFAEdge pEdge) {
+        Optional<AAstNode> optAstNode = pEdge.getRawAST();
 
-      if (astNode instanceof CAstNode) {
+        if (optAstNode.isPresent()) {
 
-        CAstNode cAstNode = (CAstNode) astNode;
-        Collector collector = new Collector();
-        cAstNode.accept(collector);
+          AAstNode astNode = optAstNode.orElseThrow();
+
+          if (astNode instanceof CAstNode) {
+
+            CAstNode cAstNode = (CAstNode) astNode;
+            Collector collector = new Collector(pConsiderPointees);
+            cAstNode.accept(collector);
+
+            return createEdgeDefUseData(collector);
+          }
+        }
+
+        return new EdgeDefUseData(
+            ImmutableSet.of(), ImmutableSet.of(), ImmutableSet.of(), ImmutableSet.of(), false);
+      }
+
+      @Override
+      public EdgeDefUseData extract(CAstNode pAstNode) {
+
+        Collector collector = new Collector(pConsiderPointees);
+        pAstNode.accept(collector);
 
         return createEdgeDefUseData(collector);
       }
-    }
-
-    return new EdgeDefUseData(
-        ImmutableSet.of(), ImmutableSet.of(), ImmutableSet.of(), ImmutableSet.of(), false);
-  }
-
-  public static EdgeDefUseData extract(CExpression pExpression) {
-
-    Collector collector = new Collector();
-    pExpression.accept(collector);
-
-    return createEdgeDefUseData(collector);
+    };
   }
 
   @Override
@@ -154,11 +173,39 @@ final class EdgeDefUseData {
         defs.toString(), uses.toString(), pointeeDefs.toString(), pointeeUses.toString());
   }
 
-  private static final class EdgeDefUseDataException extends RuntimeException {
-    private static final long serialVersionUID = -2034884371415467901L;
+  public interface Extractor {
+
+    EdgeDefUseData extract(CFAEdge pEdge);
+
+    EdgeDefUseData extract(CAstNode pAstNode);
   }
 
-  private static class Collector implements CAstNodeVisitor<Void, EdgeDefUseDataException> {
+  public static final class CachingExtractor implements Extractor {
+
+    private final Extractor delegateExtractor;
+    private final Map<Equivalence.Wrapper<Object>, EdgeDefUseData> cache;
+
+    public CachingExtractor(Extractor pDelegateExtractor) {
+      delegateExtractor = pDelegateExtractor;
+      cache = new HashMap<>();
+    }
+
+    @Override
+    public EdgeDefUseData extract(CFAEdge pEdge) {
+      return cache.computeIfAbsent(
+          Equivalence.identity().wrap(pEdge), key -> delegateExtractor.extract(pEdge));
+    }
+
+    @Override
+    public EdgeDefUseData extract(CAstNode pAstNode) {
+      return cache.computeIfAbsent(
+          Equivalence.identity().wrap(pAstNode), key -> delegateExtractor.extract(pAstNode));
+    }
+  }
+
+  private static class Collector implements CAstNodeVisitor<Void, NoException> {
+
+    private final boolean considerPointees;
 
     private final Set<MemoryLocation> defs;
     private final Set<MemoryLocation> uses;
@@ -170,7 +217,9 @@ final class EdgeDefUseData {
 
     private Mode mode;
 
-    private Collector() {
+    private Collector(boolean pConsiderPointees) {
+
+      considerPointees = pConsiderPointees;
 
       partialDefs = false;
 
@@ -179,12 +228,17 @@ final class EdgeDefUseData {
       defs = new HashSet<>();
       uses = new HashSet<>();
 
-      pointeeDefs = new HashSet<>();
-      pointeeUses = new HashSet<>();
+      if (considerPointees) {
+        pointeeDefs = new HashSet<>();
+        pointeeUses = new HashSet<>();
+      } else {
+        pointeeDefs = null;
+        pointeeUses = null;
+      }
     }
 
     @Override
-    public Void visit(CArrayDesignator pArrayDesignator) throws EdgeDefUseDataException {
+    public Void visit(CArrayDesignator pArrayDesignator) {
 
       pArrayDesignator.getSubscriptExpression().accept(this);
 
@@ -192,7 +246,7 @@ final class EdgeDefUseData {
     }
 
     @Override
-    public Void visit(CArrayRangeDesignator pArrayRangeDesignator) throws EdgeDefUseDataException {
+    public Void visit(CArrayRangeDesignator pArrayRangeDesignator) {
 
       pArrayRangeDesignator.getFloorExpression().accept(this);
       pArrayRangeDesignator.getCeilExpression().accept(this);
@@ -201,13 +255,12 @@ final class EdgeDefUseData {
     }
 
     @Override
-    public Void visit(CFieldDesignator pFieldDesignator) throws EdgeDefUseDataException {
+    public Void visit(CFieldDesignator pFieldDesignator) {
       return null;
     }
 
     @Override
-    public Void visit(CInitializerExpression pInitializerExpression)
-        throws EdgeDefUseDataException {
+    public Void visit(CInitializerExpression pInitializerExpression) {
 
       pInitializerExpression.getExpression().accept(this);
 
@@ -215,7 +268,7 @@ final class EdgeDefUseData {
     }
 
     @Override
-    public Void visit(CInitializerList pInitializerList) throws EdgeDefUseDataException {
+    public Void visit(CInitializerList pInitializerList) {
 
       for (CInitializer initializer : pInitializerList.getInitializers()) {
         initializer.accept(this);
@@ -225,8 +278,7 @@ final class EdgeDefUseData {
     }
 
     @Override
-    public Void visit(CDesignatedInitializer pCStructInitializerPart)
-        throws EdgeDefUseDataException {
+    public Void visit(CDesignatedInitializer pCStructInitializerPart) {
 
       pCStructInitializerPart.getRightHandSide().accept(this);
 
@@ -238,8 +290,7 @@ final class EdgeDefUseData {
     }
 
     @Override
-    public Void visit(CFunctionCallExpression pIastFunctionCallExpression)
-        throws EdgeDefUseDataException {
+    public Void visit(CFunctionCallExpression pIastFunctionCallExpression) {
 
       pIastFunctionCallExpression.getFunctionNameExpression().accept(this);
 
@@ -251,7 +302,7 @@ final class EdgeDefUseData {
     }
 
     @Override
-    public Void visit(CBinaryExpression pIastBinaryExpression) throws EdgeDefUseDataException {
+    public Void visit(CBinaryExpression pIastBinaryExpression) {
 
       pIastBinaryExpression.getOperand1().accept(this);
       pIastBinaryExpression.getOperand2().accept(this);
@@ -260,7 +311,7 @@ final class EdgeDefUseData {
     }
 
     @Override
-    public Void visit(CCastExpression pIastCastExpression) throws EdgeDefUseDataException {
+    public Void visit(CCastExpression pIastCastExpression) {
 
       pIastCastExpression.getOperand().accept(this);
 
@@ -268,36 +319,32 @@ final class EdgeDefUseData {
     }
 
     @Override
-    public Void visit(CCharLiteralExpression pIastCharLiteralExpression)
-        throws EdgeDefUseDataException {
+    public Void visit(CCharLiteralExpression pIastCharLiteralExpression) {
       return null;
     }
 
     @Override
-    public Void visit(CFloatLiteralExpression pIastFloatLiteralExpression)
-        throws EdgeDefUseDataException {
+    public Void visit(CFloatLiteralExpression pIastFloatLiteralExpression) {
       return null;
     }
 
     @Override
-    public Void visit(CIntegerLiteralExpression pIastIntegerLiteralExpression)
-        throws EdgeDefUseDataException {
+    public Void visit(CIntegerLiteralExpression pIastIntegerLiteralExpression) {
       return null;
     }
 
     @Override
-    public Void visit(CStringLiteralExpression pIastStringLiteralExpression)
-        throws EdgeDefUseDataException {
+    public Void visit(CStringLiteralExpression pIastStringLiteralExpression) {
       return null;
     }
 
     @Override
-    public Void visit(CTypeIdExpression pIastTypeIdExpression) throws EdgeDefUseDataException {
+    public Void visit(CTypeIdExpression pIastTypeIdExpression) {
       return null;
     }
 
     @Override
-    public Void visit(CUnaryExpression pIastUnaryExpression) throws EdgeDefUseDataException {
+    public Void visit(CUnaryExpression pIastUnaryExpression) {
 
       pIastUnaryExpression.getOperand().accept(this);
 
@@ -305,20 +352,17 @@ final class EdgeDefUseData {
     }
 
     @Override
-    public Void visit(CImaginaryLiteralExpression PIastLiteralExpression)
-        throws EdgeDefUseDataException {
+    public Void visit(CImaginaryLiteralExpression PIastLiteralExpression) {
       return null;
     }
 
     @Override
-    public Void visit(CAddressOfLabelExpression pAddressOfLabelExpression)
-        throws EdgeDefUseDataException {
+    public Void visit(CAddressOfLabelExpression pAddressOfLabelExpression) {
       return null;
     }
 
     @Override
-    public Void visit(CArraySubscriptExpression pIastArraySubscriptExpression)
-        throws EdgeDefUseDataException {
+    public Void visit(CArraySubscriptExpression pIastArraySubscriptExpression) {
 
       Mode prev = mode;
 
@@ -337,7 +381,7 @@ final class EdgeDefUseData {
     }
 
     @Override
-    public Void visit(CFieldReference pIastFieldReference) throws EdgeDefUseDataException {
+    public Void visit(CFieldReference pIastFieldReference) {
 
       if (pIastFieldReference.isPointerDereference()) {
 
@@ -348,8 +392,10 @@ final class EdgeDefUseData {
 
         mode = prev;
 
-        Set<CExpression> pointeeSet = (mode == Mode.USE ? pointeeUses : pointeeDefs);
-        pointeeSet.add(pIastFieldReference);
+        if (considerPointees) {
+          Set<CExpression> pointeeSet = (mode == Mode.USE ? pointeeUses : pointeeDefs);
+          pointeeSet.add(pIastFieldReference);
+        }
 
       } else {
         pIastFieldReference.getFieldOwner().accept(this);
@@ -368,21 +414,21 @@ final class EdgeDefUseData {
       if (type instanceof CComplexType) {
         String name = ((CComplexType) type).getQualifiedName();
         Set<MemoryLocation> set = (mode == Mode.USE ? uses : defs);
-        set.add(MemoryLocation.valueOf(name));
+        set.add(MemoryLocation.parseExtendedQualifiedName(name));
       }
 
       return null;
     }
 
     @Override
-    public Void visit(CIdExpression pIastIdExpression) throws EdgeDefUseDataException {
+    public Void visit(CIdExpression pIastIdExpression) {
 
       CSimpleDeclaration declaration = pIastIdExpression.getDeclaration();
 
       if (declaration instanceof CVariableDeclaration
           || declaration instanceof CParameterDeclaration) {
 
-        MemoryLocation memLoc = MemoryLocation.valueOf(declaration.getQualifiedName());
+        MemoryLocation memLoc = MemoryLocation.forDeclaration(declaration);
         Set<MemoryLocation> set = (mode == Mode.USE ? uses : defs);
         set.add(memLoc);
       }
@@ -391,7 +437,7 @@ final class EdgeDefUseData {
     }
 
     @Override
-    public Void visit(CPointerExpression pPointerExpression) throws EdgeDefUseDataException {
+    public Void visit(CPointerExpression pPointerExpression) {
 
       Mode prev = mode;
 
@@ -400,15 +446,16 @@ final class EdgeDefUseData {
 
       mode = prev;
 
-      Set<CExpression> pointeeSet = (mode == Mode.USE ? pointeeUses : pointeeDefs);
-      pointeeSet.add(pPointerExpression);
+      if (considerPointees) {
+        Set<CExpression> pointeeSet = (mode == Mode.USE ? pointeeUses : pointeeDefs);
+        pointeeSet.add(pPointerExpression);
+      }
 
       return null;
     }
 
     @Override
-    public Void visit(CComplexCastExpression pComplexCastExpression)
-        throws EdgeDefUseDataException {
+    public Void visit(CComplexCastExpression pComplexCastExpression) {
 
       pComplexCastExpression.getOperand().accept(this);
 
@@ -416,7 +463,7 @@ final class EdgeDefUseData {
     }
 
     @Override
-    public Void visit(CFunctionDeclaration pDecl) throws EdgeDefUseDataException {
+    public Void visit(CFunctionDeclaration pDecl) {
 
       for (CParameterDeclaration declaration : pDecl.getParameters()) {
         declaration.accept(this);
@@ -426,19 +473,19 @@ final class EdgeDefUseData {
     }
 
     @Override
-    public Void visit(CComplexTypeDeclaration pDecl) throws EdgeDefUseDataException {
+    public Void visit(CComplexTypeDeclaration pDecl) {
       return null;
     }
 
     @Override
-    public Void visit(CTypeDefDeclaration pDecl) throws EdgeDefUseDataException {
+    public Void visit(CTypeDefDeclaration pDecl) {
       return null;
     }
 
     @Override
-    public Void visit(CVariableDeclaration pDecl) throws EdgeDefUseDataException {
+    public Void visit(CVariableDeclaration pDecl) {
 
-      MemoryLocation memLoc = MemoryLocation.valueOf(pDecl.getQualifiedName());
+      MemoryLocation memLoc = MemoryLocation.forDeclaration(pDecl);
       defs.add(memLoc);
 
       CInitializer initializer = pDecl.getInitializer();
@@ -451,7 +498,7 @@ final class EdgeDefUseData {
     }
 
     @Override
-    public Void visit(CParameterDeclaration pDecl) throws EdgeDefUseDataException {
+    public Void visit(CParameterDeclaration pDecl) {
 
       pDecl.asVariableDeclaration().accept(this);
 
@@ -459,13 +506,12 @@ final class EdgeDefUseData {
     }
 
     @Override
-    public Void visit(CEnumerator pDecl) throws EdgeDefUseDataException {
+    public Void visit(CEnumerator pDecl) {
       return null;
     }
 
     @Override
-    public Void visit(CExpressionStatement pIastExpressionStatement)
-        throws EdgeDefUseDataException {
+    public Void visit(CExpressionStatement pIastExpressionStatement) {
 
       pIastExpressionStatement.getExpression().accept(this);
 
@@ -473,8 +519,7 @@ final class EdgeDefUseData {
     }
 
     @Override
-    public Void visit(CExpressionAssignmentStatement pIastExpressionAssignmentStatement)
-        throws EdgeDefUseDataException {
+    public Void visit(CExpressionAssignmentStatement pIastExpressionAssignmentStatement) {
 
       mode = Mode.DEF;
       pIastExpressionAssignmentStatement.getLeftHandSide().accept(this);
@@ -486,8 +531,7 @@ final class EdgeDefUseData {
     }
 
     @Override
-    public Void visit(CFunctionCallAssignmentStatement pIastFunctionCallAssignmentStatement)
-        throws EdgeDefUseDataException {
+    public Void visit(CFunctionCallAssignmentStatement pIastFunctionCallAssignmentStatement) {
 
       mode = Mode.DEF;
       pIastFunctionCallAssignmentStatement.getLeftHandSide().accept(this);
@@ -499,8 +543,7 @@ final class EdgeDefUseData {
     }
 
     @Override
-    public Void visit(CFunctionCallStatement pIastFunctionCallStatement)
-        throws EdgeDefUseDataException {
+    public Void visit(CFunctionCallStatement pIastFunctionCallStatement) {
 
       List<CExpression> paramExpressions =
           pIastFunctionCallStatement.getFunctionCallExpression().getParameterExpressions();
@@ -519,9 +562,9 @@ final class EdgeDefUseData {
     }
 
     @Override
-    public Void visit(CReturnStatement pNode) throws EdgeDefUseDataException {
+    public Void visit(CReturnStatement pNode) {
 
-      Optional<CExpression> optExpression = pNode.getReturnValue().toJavaUtil();
+      Optional<CExpression> optExpression = pNode.getReturnValue();
 
       if (optExpression.isPresent()) {
         return optExpression.orElseThrow().accept(this);

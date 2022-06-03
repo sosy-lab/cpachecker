@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.cfa;
 
+import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.AAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -31,8 +32,8 @@ public class DummyCFAEdge implements CFAEdge {
   }
 
   @Override
-  public com.google.common.base.Optional<? extends AAstNode> getRawAST() {
-    return com.google.common.base.Optional.absent();
+  public Optional<AAstNode> getRawAST() {
+    return Optional.empty();
   }
 
   @Override

@@ -8,7 +8,6 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.counterexamplecheck;
 
-import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocations;
 
 import com.google.common.base.Predicate;
@@ -30,6 +29,7 @@ import java.util.function.Function;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.ShutdownNotifier;
+import org.sosy_lab.common.collect.Collections3;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.ConfigurationBuilder;
 import org.sosy_lab.common.configuration.FileOption;
@@ -70,7 +70,7 @@ import org.sosy_lab.cpachecker.util.BiPredicates;
 import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.resources.ResourceLimitChecker;
 
-@Options(prefix="counterexample.checker")
+@Options(prefix = "counterexample.checker")
 public class CounterexampleCPAchecker implements CounterexampleChecker {
 
   // The following options will be forced in the counterexample check
@@ -90,34 +90,37 @@ public class CounterexampleCPAchecker implements CounterexampleChecker {
   private final Specification specification;
   private final CFA cfa;
 
-  @Option(secure=true, name = "path.file",
-      description = "File name where to put the path specification that is generated "
-      + "as input for the counterexample check. A temporary file is used if this is unspecified.")
+  @Option(
+      secure = true,
+      name = "path.file",
+      description =
+          "File name where to put the path specification that is generated as input for the"
+              + " counterexample check. A temporary file is used if this is unspecified.")
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private @Nullable Path specFile;
 
   @Option(
-    secure = true,
-    name = "config",
-    required = true,
-    description = "configuration file for counterexample checks with CPAchecker"
-  )
+      secure = true,
+      name = "config",
+      required = true,
+      description = "configuration file for counterexample checks with CPAchecker")
   @FileOption(FileOption.Type.REQUIRED_INPUT_FILE)
   private @Nullable Path configFile;
 
   @Option(
-    secure = true,
-    name = "changeCEXInfo",
-    description =
-        "counterexample information should provide more precise information from counterexample check, if available"
-  )
+      secure = true,
+      name = "changeCEXInfo",
+      description =
+          "counterexample information should provide more precise information from counterexample"
+              + " check, if available")
   private boolean provideCEXInfoFromCEXCheck = false;
 
   @Option(
       secure = true,
       name = "forceCEXChange",
       description =
-          "counterexample check should fully replace existing counterexamples with own ones, if available")
+          "counterexample check should fully replace existing counterexamples with own ones, if"
+              + " available")
   private boolean replaceCexWithCexFromCheck = false;
 
   private final Function<ARGState, Optional<CounterexampleInfo>> getCounterexampleInfo;
@@ -136,15 +139,15 @@ public class CounterexampleCPAchecker implements CounterexampleChecker {
     this.config = config;
     specification = pSpecification;
     config.inject(this);
-    this.shutdownNotifier = pShutdownNotifier;
-    this.cfa = pCfa;
+    shutdownNotifier = pShutdownNotifier;
+    cfa = pCfa;
     getCounterexampleInfo = Objects.requireNonNull(pGetCounterexampleInfo);
-    this.witnessExporter = new WitnessExporter(config, logger, specification, cfa);
+    witnessExporter = new WitnessExporter(config, logger, specification, cfa);
   }
 
   @Override
-  public boolean checkCounterexample(ARGState pRootState,
-      ARGState pErrorState, Set<ARGState> pErrorPathStates)
+  public boolean checkCounterexample(
+      ARGState pRootState, ARGState pErrorState, Set<ARGState> pErrorPathStates)
       throws CPAException, InterruptedException {
 
     try {
@@ -159,17 +162,19 @@ public class CounterexampleCPAchecker implements CounterexampleChecker {
               .suffix(".graphml")
               .createDeleteOnClose()) {
 
-        return checkCounterexample(pRootState, pErrorState, pErrorPathStates,
-            automatonFile.toPath());
+        return checkCounterexample(
+            pRootState, pErrorState, pErrorPathStates, automatonFile.toPath());
       }
 
     } catch (IOException e) {
-      throw new CounterexampleAnalysisFailed("Could not write path automaton to file " + e.getMessage(), e);
+      throw new CounterexampleAnalysisFailed(
+          "Could not write path automaton to file " + e.getMessage(), e);
     }
   }
 
-  private boolean checkCounterexample(ARGState pRootState, ARGState pErrorState, Set<ARGState> pErrorPathStates,
-      Path automatonFile) throws IOException, CPAException, InterruptedException {
+  private boolean checkCounterexample(
+      ARGState pRootState, ARGState pErrorState, Set<ARGState> pErrorPathStates, Path automatonFile)
+      throws IOException, CPAException, InterruptedException {
 
     final Predicate<ARGState> relevantState = Predicates.in(pErrorPathStates);
     final Witness witness =
@@ -193,6 +198,15 @@ public class CounterexampleCPAchecker implements CounterexampleChecker {
         lConfigBuilder.copyOptionFromIfPresent(config, option);
       }
 
+      if (provideCEXInfoFromCEXCheck) {
+        CFAEdge targetEdge = pErrorState.getParents().iterator().next().getEdgeToChild(pErrorState);
+        lConfigBuilder.setOption(
+            "testcase.targets.edge",
+            targetEdge.getPredecessor().getNodeNumber()
+                + "#"
+                + System.identityHashCode(targetEdge));
+      }
+
       Configuration lConfig = lConfigBuilder.build();
       ShutdownManager lShutdownManager = ShutdownManager.createWithParent(shutdownNotifier);
       ResourceLimitChecker.fromConfiguration(lConfig, lLogger, lShutdownManager).start();
@@ -202,10 +216,10 @@ public class CounterexampleCPAchecker implements CounterexampleChecker {
               ImmutableSet.of(automatonFile), cfa, lConfig, lLogger, shutdownNotifier);
       CoreComponentsFactory factory =
           new CoreComponentsFactory(
-              lConfig, lLogger, lShutdownManager.getNotifier(), new AggregatedReachedSets());
+              lConfig, lLogger, lShutdownManager.getNotifier(), AggregatedReachedSets.empty());
       ConfigurableProgramAnalysis lCpas = factory.createCPA(cfa, lSpecification);
       Algorithm lAlgorithm = factory.createAlgorithm(lCpas, cfa, lSpecification);
-      ReachedSet lReached = factory.createReachedSet();
+      ReachedSet lReached = factory.createReachedSet(lCpas);
       lReached.add(
           lCpas.getInitialState(entryNode, StateSpacePartition.getDefaultPartition()),
           lCpas.getInitialPrecision(entryNode, StateSpacePartition.getDefaultPartition()));
@@ -217,34 +231,34 @@ public class CounterexampleCPAchecker implements CounterexampleChecker {
       CPAs.closeIfPossible(lAlgorithm, lLogger);
 
       if (provideCEXInfoFromCEXCheck || replaceCexWithCexFromCheck) {
-        AbstractState target = from(lReached).firstMatch(AbstractStates::isTargetState).orNull();
-        if (target instanceof ARGState) {
-          ARGState argTarget = (ARGState) target;
-          Optional<CounterexampleInfo> counterexampleFromCheck =
-              argTarget.getCounterexampleInformation();
-          if (counterexampleFromCheck.isPresent()) {
-            if (replaceCexWithCexFromCheck) {
-              replaceCounterexampleInformation(
-                  pRootState, pErrorState, counterexampleFromCheck.orElseThrow());
+        Optional<CounterexampleInfo> counterexampleFromCheck =
+            Collections3.filterByClass(lReached.stream(), ARGState.class)
+                .filter(AbstractStates::isTargetState)
+                .findFirst()
+                .flatMap(ARGState::getCounterexampleInformation);
+        if (counterexampleFromCheck.isPresent()) {
+          if (replaceCexWithCexFromCheck) {
+            replaceCounterexampleInformation(
+                pRootState, pErrorState, counterexampleFromCheck.orElseThrow());
 
-            } else if (provideCEXInfoFromCEXCheck) {
-              improveCounterexampleInformation(pErrorState, counterexampleFromCheck.orElseThrow());
-              assert (pErrorPathStates.containsAll(
-                  pErrorState
-                      .getCounterexampleInformation()
-                      .orElseThrow()
-                      .getTargetPath()
-                      .asStatesList()));
-            }
+          } else if (provideCEXInfoFromCEXCheck) {
+            improveCounterexampleInformation(pErrorState, counterexampleFromCheck.orElseThrow());
+            assert pErrorPathStates.containsAll(
+                pErrorState
+                    .getCounterexampleInformation()
+                    .orElseThrow()
+                    .getTargetPath()
+                    .asStatesList());
           }
         }
       }
 
       // counterexample is feasible if a target state is reachable
-      return lReached.hasViolatedProperties();
+      return lReached.wasTargetReached();
 
     } catch (InvalidConfigurationException e) {
-      throw new CounterexampleAnalysisFailed("Invalid configuration in counterexample-check config: " + e.getMessage(), e);
+      throw new CounterexampleAnalysisFailed(
+          "Invalid configuration in counterexample-check config: " + e.getMessage(), e);
     } catch (IOException e) {
       throw new CounterexampleAnalysisFailed(e.getMessage(), e);
     } catch (InterruptedException e) {

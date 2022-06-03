@@ -9,7 +9,6 @@
 package org.sosy_lab.cpachecker.cpa.usage;
 
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.Collection;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
@@ -61,25 +60,25 @@ public class UsageCPA extends AbstractSingleWrapperCPA
 
   @Option(description = "A path to precision", name = "precision.path", secure = true)
   @FileOption(Type.OUTPUT_FILE)
-  private Path outputFileName = Paths.get("localsave");
+  private Path outputFileName = Path.of("localsave");
 
   private UsageCPA(
       ConfigurableProgramAnalysis pCpa, CFA pCfa, LogManager pLogger, Configuration pConfig)
       throws InvalidConfigurationException {
     super(pCpa);
     pConfig.inject(this);
-    this.cfa = pCfa;
-    this.stopOperator = new UsageStopOperator(pCpa.getStopOperator());
-    this.mergeOperator = new UsageMergeOperator(pCpa.getMergeOperator());
+    cfa = pCfa;
+    stopOperator = new UsageStopOperator(pCpa.getStopOperator());
+    mergeOperator = new UsageMergeOperator(pCpa.getMergeOperator());
 
     LockCPA lockCPA = CPAs.retrieveCPA(this, LockCPA.class);
-    this.statistics =
+    statistics =
         new UsageCPAStatistics(
             pConfig,
             pLogger,
             pCfa,
             lockCPA != null ? (LockTransferRelation) lockCPA.getTransferRelation() : null);
-    this.precisionAdjustment = new UsagePrecisionAdjustment(pCpa.getPrecisionAdjustment());
+    precisionAdjustment = new UsagePrecisionAdjustment(pCpa.getPrecisionAdjustment());
     if (pCpa instanceof ConfigurableProgramAnalysisWithBAM) {
       Reducer wrappedReducer = ((ConfigurableProgramAnalysisWithBAM) pCpa).getReducer();
       reducer = new UsageReducer(wrappedReducer);
@@ -87,7 +86,7 @@ public class UsageCPA extends AbstractSingleWrapperCPA
       reducer = null;
     }
     logger = pLogger;
-    this.transferRelation =
+    transferRelation =
         new UsageTransferRelation(pCpa.getTransferRelation(), pConfig, pLogger, statistics);
   }
 
@@ -121,7 +120,7 @@ public class UsageCPA extends AbstractSingleWrapperCPA
       throws InterruptedException {
     PresisionParser parser = new PresisionParser(cfa, logger);
     return UsagePrecision.create(
-        this.getWrappedCpa().getInitialPrecision(pNode, p), parser.parse(outputFileName));
+        getWrappedCpa().getInitialPrecision(pNode, p), parser.parse(outputFileName));
   }
 
   @Override

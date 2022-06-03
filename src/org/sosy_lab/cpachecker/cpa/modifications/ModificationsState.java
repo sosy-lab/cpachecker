@@ -21,8 +21,7 @@ import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 
 public final class ModificationsState
-    implements AvoidanceReportingState, AbstractQueryableState,
-                                           Graphable {
+    implements AvoidanceReportingState, AbstractQueryableState, Graphable {
 
   private boolean hasModification;
   private CFANode locationInGivenCfa;
@@ -62,7 +61,7 @@ public final class ModificationsState
     ModificationsState that = (ModificationsState) pO;
     return Objects.equals(locationInOriginalCfa, that.locationInOriginalCfa)
         && Objects.equals(locationInGivenCfa, that.locationInGivenCfa)
-        && Objects.equals(hasModification, that.hasModification);
+        && hasModification == that.hasModification;
   }
 
   @Override

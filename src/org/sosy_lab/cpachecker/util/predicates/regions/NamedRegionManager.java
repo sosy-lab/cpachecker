@@ -12,14 +12,13 @@ import static com.google.common.base.Preconditions.checkNotNull;
 
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Maps;
 import com.google.common.primitives.ImmutableIntArray;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.util.ArrayDeque;
-import java.util.ArrayList;
-import java.util.Collections;
 import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -33,7 +32,6 @@ import org.sosy_lab.common.Appender;
 import org.sosy_lab.common.Appenders.AbstractAppender;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.cpachecker.util.Triple;
-import org.sosy_lab.cpachecker.util.predicates.PredicateOrderingStrategy;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.SolverException;
@@ -56,9 +54,9 @@ public class NamedRegionManager implements RegionManager {
   }
 
   /**
-   * Create a predicate with a name associated to it.
-   * If the same name is passed again to this method, the old predicate will be
-   * returned (guaranteeing uniqueness of predicate<->name mapping).
+   * Create a predicate with a name associated to it. If the same name is passed again to this
+   * method, the old predicate will be returned (guaranteeing uniqueness of predicate<->name
+   * mapping).
    *
    * @param pName An arbitary name for a predicate.
    * @return A region representing a predicate
@@ -72,9 +70,7 @@ public class NamedRegionManager implements RegionManager {
     return createPredicate(ANONYMOUS_PREDICATE + anonymousPredicateCounter.getAndIncrement());
   }
 
-  /**
-   * Returns a String representation of a region.
-   */
+  /** Returns a String representation of a region. */
   public Appender dumpRegion(final Region r) {
     return new AbstractAppender() {
       @Override
@@ -104,36 +100,26 @@ public class NamedRegionManager implements RegionManager {
       if (trueBranch.isFalse()) {
         assert !falseBranch.isFalse();
         // only falseBranch is present
-        out.append("!")
-            .append(predName)
-            .append(" & ");
+        out.append("!").append(predName).append(" & ");
         dumpRegion(falseBranch, out);
 
       } else if (falseBranch.isFalse()) {
         // only trueBranch is present
-        out.append(predName)
-            .append(" & ");
+        out.append(predName).append(" & ");
         dumpRegion(trueBranch, out);
 
       } else {
         // both branches present
-        out.append("((")
-            .append(predName)
-            .append(" & ");
+        out.append("((").append(predName).append(" & ");
         dumpRegion(trueBranch, out);
-        out.append(") | (")
-            .append("!")
-            .append(predName)
-            .append(" & ");
+        out.append(") | (").append("!").append(predName).append(" & ");
         dumpRegion(falseBranch, out);
         out.append("))");
       }
     }
   }
 
-  /**
-   * Returns a representation of a region in dot-format (graphviz).
-   */
+  /** Returns a representation of a region in dot-format (graphviz). */
   public String regionToDot(Region r) {
     // counter for nodes, values 0 and 1 are used for nodes FALSE and TRUE.
     // we use a reference to an integer to be able to change its value in called methods.
@@ -237,15 +223,18 @@ public class NamedRegionManager implements RegionManager {
   }
 
   @Override
-  public void setVarOrder(ImmutableIntArray pOrder) {}
-
-  @Override
-  public void reorder(PredicateOrderingStrategy strategy) {
+  public void setVarOrder(ImmutableIntArray pOrder) {
+    delegate.setVarOrder(pOrder);
   }
 
   @Override
-  public Region fromFormula(BooleanFormula pF, FormulaManagerView pFmgr,
-      Function<BooleanFormula, Region> pAtomToRegion) {
+  public void reorder(VariableOrderingStrategy strategy) {
+    delegate.reorder(strategy);
+  }
+
+  @Override
+  public Region fromFormula(
+      BooleanFormula pF, FormulaManagerView pFmgr, Function<BooleanFormula, Region> pAtomToRegion) {
     return delegate.fromFormula(pF, pFmgr, pAtomToRegion);
   }
 
@@ -284,20 +273,20 @@ public class NamedRegionManager implements RegionManager {
     synchronized (regionMap) {
       // sort predicates according to BDD ordering.
       // create small BDDs "AND(A,B)" and check which node is the root.
-      List<String> predicates = new ArrayList<>(regionMap.keySet());
-      Collections.sort(predicates, (a, b) -> {
-        Region ra = regionMap.get(a);
-        Region rb = regionMap.get(b);
-        Region root = getIfThenElse(makeAnd(ra, rb)).getFirst();
-        if (ra.equals(root)) {
-          return 1;
-        } else if (rb.equals(root)) {
-          return -1;
-        } else {
-          throw new AssertionError("should not happen, all predicates are unique");
-        }
-      });
-      return predicates;
+      return ImmutableList.sortedCopyOf(
+          (a, b) -> {
+            Region ra = regionMap.get(a);
+            Region rb = regionMap.get(b);
+            Region root = getIfThenElse(makeAnd(ra, rb)).getFirst();
+            if (ra.equals(root)) {
+              return 1;
+            } else if (rb.equals(root)) {
+              return -1;
+            } else {
+              throw new AssertionError("should not happen, all predicates are unique");
+            }
+          },
+          regionMap.keySet());
     }
   }
 
@@ -328,7 +317,7 @@ public class NamedRegionManager implements RegionManager {
   }
 
   @Override
-  public Region replace(Region pRegion, Region[] pOldPredicates, Region[] pNewPredicates) {
+  public Region replace(Region pRegion, List<Region> pOldPredicates, List<Region> pNewPredicates) {
     return delegate.replace(pRegion, pOldPredicates, pNewPredicates);
   }
 }

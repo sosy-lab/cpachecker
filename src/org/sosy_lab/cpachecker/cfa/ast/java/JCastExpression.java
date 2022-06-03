@@ -13,14 +13,14 @@ import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.types.java.JType;
 
 /**
- *
  * This class represents a Cast expression AST node type.
  *
+ * <pre>
  * CastExpression:
  *   ( Type ) Expression
+ * </pre>
  *
  * The expression type also denotes the type the expression is casted to.
- *
  */
 public final class JCastExpression extends ACastExpression implements JExpression {
 

@@ -12,8 +12,8 @@ import com.google.common.collect.ConcurrentHashMultiset;
 import com.google.common.collect.Multiset;
 
 /**
- * Thread-safe implementation of numerical statistics.
- * This class tracks the number how often each value is added.
+ * Thread-safe implementation of numerical statistics. This class tracks the number how often each
+ * value is added.
  */
 public class StatIntHist extends StatInt {
 

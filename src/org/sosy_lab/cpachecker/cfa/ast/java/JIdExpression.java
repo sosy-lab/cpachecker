@@ -14,11 +14,10 @@ import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.types.java.JType;
 
 /**
- * Class for expressions that represent names of declared constructs.
- * ( e.g. variables, names of methods in Invocation).
+ * Class for expressions that represent names of declared constructs. ( e.g. variables, names of
+ * methods in Invocation).
  *
- * If possible, it saves a reference to the declaration this name references.
- *
+ * <p>If possible, it saves a reference to the declaration this name references.
  */
 public class JIdExpression extends AIdExpression implements JLeftHandSide {
 
@@ -31,7 +30,7 @@ public class JIdExpression extends AIdExpression implements JLeftHandSide {
     super(pFileLocation, pType, pName, pDeclaration);
     // TODO Refactor, so we do not need null for declaration.
     // (Insert extra classes or objects for unresolvable declarations)
-    //assert pDeclaration != null;
+    // assert pDeclaration != null;
   }
 
   @Override

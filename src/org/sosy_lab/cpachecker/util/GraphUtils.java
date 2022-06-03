@@ -13,6 +13,8 @@ import static org.sosy_lab.common.collect.Collections3.transformedImmutableListC
 
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
+import com.google.common.collect.Collections2;
+import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.LinkedHashMultimap;
@@ -28,42 +30,38 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
-import java.util.stream.Collectors;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.StronglyConnectedComponent;
 
-/**
- * Some utilities for generic graphs.
- */
+/** Some utilities for generic graphs. */
 public class GraphUtils {
 
-  private GraphUtils() { }
+  private GraphUtils() {}
 
   /**
-   * Project a graph to a subset of "relevant" nodes.
-   * The result is a SetMultimap containing the successor relationships between all relevant nodes.
-   * A pair of nodes (a, b) is in the SetMultimap,
-   * if there is a path through the graph from a to b which does not pass through
-   * any other relevant node.
+   * Project a graph to a subset of "relevant" nodes. The result is a SetMultimap containing the
+   * successor relationships between all relevant nodes. A pair of nodes (a, b) is in the
+   * SetMultimap, if there is a path through the graph from a to b which does not pass through any
+   * other relevant node.
    *
-   * To get the predecessor relationship, you can use {@link Multimaps#invertFrom(com.google.common.collect.Multimap, com.google.common.collect.Multimap)}.
+   * <p>To get the predecessor relationship, you can use {@link
+   * Multimaps#invertFrom(com.google.common.collect.Multimap, com.google.common.collect.Multimap)}.
    *
    * @param root The start of the graph to project (always considered relevant).
    * @param isRelevant The predicate determining which nodes are in the resulting relationship.
    * @param successorFunction A function giving the direct successors of any node.
    * @param <N> The node type of the graph.
    */
-  public static <N> SetMultimap<N, N> projectARG(final N root,
+  public static <N> SetMultimap<N, N> projectARG(
+      final N root,
       final Function<? super N, ? extends Iterable<N>> successorFunction,
       Predicate<? super N> isRelevant) {
     checkNotNull(root);
 
-    isRelevant = Predicates.or(Predicates.equalTo(root),
-                               isRelevant);
+    isRelevant = Predicates.or(Predicates.equalTo(root), isRelevant);
 
     SetMultimap<N, N> successors = LinkedHashMultimap.create();
 
@@ -105,7 +103,7 @@ public class GraphUtils {
    * within the list are considered, while every other ARGState from the {@link ReachedSet} is
    * explicitly ignored.
    *
-   * <p>For more information, see {@link GraphUtils#retrieveSimpleCycles(List, Optional)}
+   * <p>For more information, see {@link GraphUtils#retrieveSimpleCycles(List, Set)}
    *
    * @param pStates list of {@link ARGState}s to be looked for cycles
    * @param pReached the {@link ReachedSet} to retrieve all other states which are ignored later on
@@ -114,13 +112,9 @@ public class GraphUtils {
   public static List<List<ARGState>> retrieveSimpleCycles(
       List<ARGState> pStates, ReachedSet pReached) {
     Set<ARGState> filteredStates =
-        pReached
-            .asCollection()
-            .stream()
-            .map(x -> (ARGState) x)
-            .filter(x -> !pStates.contains(x))
-            .collect(Collectors.toCollection(HashSet::new));
-    return retrieveSimpleCycles(pStates, Optional.of(filteredStates));
+        new HashSet<>(Collections2.transform(pReached.asCollection(), s -> (ARGState) s));
+    filteredStates.removeAll(pStates);
+    return retrieveSimpleCycles(pStates, filteredStates);
   }
 
   /**
@@ -138,10 +132,10 @@ public class GraphUtils {
    *     href="https://github.com/mission-peace/interview/blob/master/src/com/interview/graph/AllCyclesInDirectedGraphJohnson.java">code-references
    *     2</a>
    */
-  public static List<List<ARGState>>
-      retrieveSimpleCycles(List<ARGState> pStates, Optional<Set<ARGState>> pExcludeStates) {
+  public static List<List<ARGState>> retrieveSimpleCycles(
+      List<ARGState> pStates, Set<ARGState> pExcludeStates) {
     Set<ARGState> blockedSet = new HashSet<>();
-    Map<ARGState, Set<ARGState>> blockedMap = new HashMap<>();
+    SetMultimap<ARGState, ARGState> blockedMap = HashMultimap.create();
     Deque<ARGState> stack = new ArrayDeque<>();
     List<List<ARGState>> allCycles = new ArrayList<>();
 
@@ -152,13 +146,10 @@ public class GraphUtils {
       // smaller than startIndex do not exist (these are stored in the excludeSet)
       List<ARGState> subList = pStates.subList(startIndex, pStates.size());
       Set<ARGState> excludeSet = new HashSet<>(pStates);
-      if (pExcludeStates.isPresent()) {
-        excludeSet.addAll(pExcludeStates.orElseThrow());
-      }
+      excludeSet.addAll(pExcludeStates);
       excludeSet.removeAll(subList);
       ImmutableSet<StronglyConnectedComponent> SCCs =
-          retrieveSCCs(subList, Optional.of(excludeSet))
-              .stream()
+          retrieveSCCs(subList, excludeSet).stream()
               .filter(x -> x.getNodes().size() > 1)
               .collect(ImmutableSet.toImmutableSet());
 
@@ -174,7 +165,7 @@ public class GraphUtils {
         blockedSet.clear();
         blockedMap.clear();
 
-        findCyclesInSCC(s, s, blockedSet, blockedMap, stack, allCycles, Optional.of(excludeSet));
+        findCyclesInSCC(s, s, blockedSet, blockedMap, stack, allCycles, excludeSet);
 
         // TODO: the next line only works if pStates has a deterministic order
         startIndex = pStates.indexOf(s) + 1;
@@ -192,12 +183,12 @@ public class GraphUtils {
       ARGState pStartState,
       ARGState pCurrentState,
       Set<ARGState> pBlockedSet,
-      Map<ARGState, Set<ARGState>> pBlockedMap,
+      SetMultimap<ARGState, ARGState> pBlockedMap,
       Deque<ARGState> pStack,
       List<List<ARGState>> pAllCycles,
-      Optional<Set<ARGState>> pExcludeSet) {
+      Set<ARGState> pExcludeSet) {
 
-    if (pExcludeSet.isPresent() && pExcludeSet.orElseThrow().contains(pCurrentState)) {
+    if (pExcludeSet.contains(pCurrentState)) {
       // Do not regard nodes which were deliberately put into a set of excluded states
       return false;
     }
@@ -230,8 +221,7 @@ public class GraphUtils {
       unblock(pCurrentState, pBlockedSet, pBlockedMap);
     } else {
       for (ARGState s : pCurrentState.getChildren()) {
-        Set<ARGState> blockedSet = pBlockedMap.computeIfAbsent(s, (key) -> new HashSet<>());
-        blockedSet.add(pCurrentState);
+        pBlockedMap.put(s, pCurrentState);
       }
     }
     pStack.pop();
@@ -240,18 +230,18 @@ public class GraphUtils {
   }
 
   private static void unblock(
-      ARGState pCurrentState, Set<ARGState> pBlockedSet, Map<ARGState, Set<ARGState>> pBlockedMap) {
+      ARGState pCurrentState,
+      Set<ARGState> pBlockedSet,
+      SetMultimap<ARGState, ARGState> pBlockedMap) {
     pBlockedSet.remove(pCurrentState);
-    if (pBlockedMap.get(pCurrentState) != null) {
-      pBlockedMap
-          .get(pCurrentState)
-          .forEach(
-              state -> {
-                if (pBlockedSet.contains(state)) {
-                  unblock(state, pBlockedSet, pBlockedMap);
-                }
-              });
-    }
+    pBlockedMap
+        .get(pCurrentState)
+        .forEach(
+            state -> {
+              if (pBlockedSet.contains(state)) {
+                unblock(state, pBlockedSet, pBlockedMap);
+              }
+            });
   }
 
   /**
@@ -272,11 +262,11 @@ public class GraphUtils {
     ImmutableList<ARGState> argStates =
         transformedImmutableListCopy(pReached.asCollection(), x -> (ARGState) x);
 
-    return retrieveSCCs(argStates, Optional.empty());
+    return retrieveSCCs(argStates, ImmutableSet.of());
   }
 
   private static ImmutableSet<StronglyConnectedComponent> retrieveSCCs(
-      List<ARGState> pARGStates, Optional<Collection<ARGState>> pExcludeStates) {
+      List<ARGState> pARGStates, Collection<ARGState> pExcludeStates) {
     checkNotNull(pARGStates);
 
     List<StronglyConnectedComponent> SCCs = new ArrayList<>();
@@ -290,10 +280,8 @@ public class GraphUtils {
     Map<ARGState, Integer> stateLowLink = new HashMap<>();
 
     for (ARGState state : pARGStates) {
-      if (pExcludeStates.isPresent()) {
-        if (pExcludeStates.orElseThrow().contains(state)) {
-          continue;
-        }
+      if (pExcludeStates.contains(state)) {
+        continue;
       }
       if (!stateIndex.containsKey(state)) {
         strongConnect(state, index, stateIndex, stateLowLink, dfsStack, SCCs, pExcludeStates);
@@ -311,7 +299,7 @@ public class GraphUtils {
       Map<ARGState, Integer> pStateLowLink,
       Deque<ARGState> pDfsStack,
       List<StronglyConnectedComponent> pSCCs,
-      Optional<Collection<ARGState>> pExcludeStates) {
+      Collection<ARGState> pExcludeStates) {
 
     pStateIndex.put(pState, pIndex);
     pStateLowLink.put(pState, pIndex);
@@ -319,7 +307,7 @@ public class GraphUtils {
     pDfsStack.push(pState);
 
     for (ARGState sucessorState : pState.getChildren()) {
-      if (pExcludeStates.isPresent() && pExcludeStates.orElseThrow().contains(sucessorState)) {
+      if (pExcludeStates.contains(sucessorState)) {
         continue;
       }
       if (!pStateIndex.containsKey(sucessorState)) {

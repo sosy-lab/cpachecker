@@ -71,10 +71,7 @@ public class IntOverflowCollectingVisitor extends VariablesCollectingVisitor {
           if (operand1 != null) {
             return operand1;
           }
-          if (operand2 != null) {
-            return operand2;
-          }
-          return null;
+          return operand2;
         } else {
           operand1.addAll(operand2);
           return operand1;

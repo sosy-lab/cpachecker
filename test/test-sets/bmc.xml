@@ -126,18 +126,18 @@ SPDX-License-Identifier: Apache-2.0
 
   <rundefinition name="k1-boolector">
     <option name="-setprop">cpa.loopbound.maxLoopIterations=1</option>
-    <option name="-setprop">cpa.predicate.encodeFloatAs=INTEGER</option>
+    <option name="-setprop">cpa.predicate.encodeFloatAs=UNSUPPORTED</option>
     <option name="-setprop">cpa.predicate.encodeIntegerAs=BITVECTOR</option>
-    <option name="-setprop">cpa.predicate.createFormulaEncodingEagerly=false</option>
     <option name="-setprop">cpa.predicate.handlePointerAliasing=false</option>
+    <option name="-setprop">counterexample.export.allowImpreciseCounterexamples=true</option>
     <option name="-setprop">solver.solver=boolector</option>
   </rundefinition>
   <rundefinition name="k10-boolector">
     <option name="-setprop">cpa.loopbound.maxLoopIterations=10</option>
-    <option name="-setprop">cpa.predicate.encodeFloatAs=INTEGER</option>
+    <option name="-setprop">cpa.predicate.encodeFloatAs=UNSUPPORTED</option>
     <option name="-setprop">cpa.predicate.encodeIntegerAs=BITVECTOR</option>
-    <option name="-setprop">cpa.predicate.createFormulaEncodingEagerly=false</option>
     <option name="-setprop">cpa.predicate.handlePointerAliasing=false</option>
+    <option name="-setprop">counterexample.export.allowImpreciseCounterexamples=true</option>
     <option name="-setprop">solver.solver=boolector</option>
   </rundefinition>
 

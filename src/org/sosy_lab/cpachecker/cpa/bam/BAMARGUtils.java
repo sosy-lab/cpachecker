@@ -31,8 +31,7 @@ class BAMARGUtils {
   private BAMARGUtils() {}
 
   /**
-   * Convert a {@link ReachedSet} into a map from blocks to the reached
-   * sets they contain.
+   * Convert a {@link ReachedSet} into a map from blocks to the reached sets they contain.
    *
    * <p>Only used for statistics.
    *
@@ -40,7 +39,8 @@ class BAMARGUtils {
    * @param finalReachedSet resached set to partition.
    */
   @Deprecated // reason: unused, possibly misunderstood and maybe error-prone
-  public static Multimap<Block, UnmodifiableReachedSet> gatherReachedSets(BAMCPA cpa, UnmodifiableReachedSet finalReachedSet) {
+  public static Multimap<Block, UnmodifiableReachedSet> gatherReachedSets(
+      BAMCPA cpa, UnmodifiableReachedSet finalReachedSet) {
     Multimap<Block, UnmodifiableReachedSet> result = HashMultimap.create();
     gatherReachedSets(cpa, cpa.getBlockPartitioning().getMainBlock(), finalReachedSet, result);
     return result;
@@ -52,12 +52,12 @@ class BAMARGUtils {
       UnmodifiableReachedSet reachedSet,
       Multimap<Block, UnmodifiableReachedSet> blockToReachedSet) {
     if (blockToReachedSet.containsEntry(block, reachedSet)) {
-      return; //avoid looping in recursive block calls
+      return; // avoid looping in recursive block calls
     }
 
     blockToReachedSet.put(block, reachedSet);
 
-    ARGState firstElement = (ARGState)reachedSet.getFirstState();
+    ARGState firstElement = (ARGState) reachedSet.getFirstState();
 
     Deque<ARGState> worklist = new ArrayDeque<>();
     Set<ARGState> processed = new HashSet<>();
@@ -100,9 +100,7 @@ class BAMARGUtils {
     return Pair.of(rootSubtree, reachSet);
   }
 
-  /**
-   * Only used for PCC.
-   */
+  /** Only used for PCC. */
   public static ARGState copyARG(ARGState pRoot) {
     Map<ARGState, ARGState> stateToCopyElem = new HashMap<>();
     Set<ARGState> visited = new HashSet<>();
@@ -155,7 +153,8 @@ class BAMARGUtils {
     ARGState copyState;
     if (toCopy instanceof BAMARGBlockStartState) {
       copyState = new BAMARGBlockStartState(toCopy.getWrappedState(), null);
-      ((BAMARGBlockStartState) copyState).setAnalyzedBlock(((BAMARGBlockStartState) toCopy).getAnalyzedBlock());
+      ((BAMARGBlockStartState) copyState)
+          .setAnalyzedBlock(((BAMARGBlockStartState) toCopy).getAnalyzedBlock());
     } else {
       copyState = new ARGState(toCopy.getWrappedState(), null);
     }

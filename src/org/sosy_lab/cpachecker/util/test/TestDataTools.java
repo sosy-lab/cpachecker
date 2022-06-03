@@ -13,7 +13,7 @@ import com.google.common.base.Preconditions;
 import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Paths;
+import java.nio.file.Path;
 import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.HashMap;
@@ -43,31 +43,28 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSet;
-import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 
 public class TestDataTools {
 
   /**
-   * Create a configuration suitable for unit tests
-   * (writing output files is disabled).
-   * @return A {@link ConfigurationBuilder} which can be further modified and then can be used to {@link ConfigurationBuilder#build()} a {@link Configuration} object.
+   * Create a configuration suitable for unit tests (writing output files is disabled).
+   *
+   * @return A {@link ConfigurationBuilder} which can be further modified and then can be used to
+   *     {@link ConfigurationBuilder#build()} a {@link Configuration} object.
    */
   public static ConfigurationBuilder configurationForTest() throws InvalidConfigurationException {
-    Configuration typeConverterConfig = Configuration.builder()
-        .setOption("output.disable", "true")
-        .build();
+    Configuration typeConverterConfig =
+        Configuration.builder().setOption("output.disable", "true").build();
     FileTypeConverter fileTypeConverter = FileTypeConverter.create(typeConverterConfig);
-    Configuration.getDefaultConverters().put(
-        FileOption.class, fileTypeConverter
-    );
-    return Configuration.builder()
-        .addConverter(FileOption.class, fileTypeConverter);
+    Configuration.getDefaultConverters().put(FileOption.class, fileTypeConverter);
+    return Configuration.builder().addConverter(FileOption.class, fileTypeConverter);
   }
 
   public static CIdExpression makeVariable(String varName, CSimpleType varType) {
     FileLocation loc = FileLocation.DUMMY;
-    CVariableDeclaration decl = new CVariableDeclaration(
-        loc, true, CStorageClass.AUTO, varType, varName, varName, varName, null);
+    CVariableDeclaration decl =
+        new CVariableDeclaration(
+            loc, true, CStorageClass.AUTO, varType, varName, varName, varName, null);
 
     return new CIdExpression(loc, decl);
   }
@@ -92,30 +89,20 @@ public class TestDataTools {
   /**
    * Convert a given loop-free {@code cfa} to a single {@link PathFormula}.
    *
-   * @param ignoreDeclarations Do not include the formula for declarations
-   * in the resulting formula.
-   * This can be very convenient if the {@link PathFormula}s from different
-   * calls to this method should be conjoined together.
-   *
+   * @param ignoreDeclarations Do not include the formula for declarations in the resulting formula.
+   *     This can be very convenient if the {@link PathFormula}s from different calls to this method
+   *     should be conjoined together.
    * @param initialSSA Starting {@link SSAMap} for the resultant formula.
-   *
    * @throws Exception if the given {@code cfa} contains loop.
    */
   public static PathFormula toPathFormula(
-      CFA cfa,
-      SSAMap initialSSA,
-      FormulaManagerView fmgr,
-      PathFormulaManager pfmgr,
-      boolean ignoreDeclarations
-      ) throws Exception {
+      CFA cfa, SSAMap initialSSA, PathFormulaManager pfmgr, boolean ignoreDeclarations)
+      throws Exception {
     Map<CFANode, PathFormula> mapping = new HashMap<>(cfa.getAllNodes().size());
     CFANode start = cfa.getMainFunction();
 
-    PathFormula initial = new PathFormula(
-        fmgr.getBooleanFormulaManager().makeTrue(), initialSSA,
-        PointerTargetSet.emptyPointerTargetSet(),
-        0
-    );
+    PathFormula initial =
+        pfmgr.makeEmptyPathFormulaWithContext(initialSSA, PointerTargetSet.emptyPointerTargetSet());
 
     mapping.put(start, initial);
     Deque<CFANode> queue = new ArrayDeque<>();
@@ -123,8 +110,7 @@ public class TestDataTools {
 
     while (!queue.isEmpty()) {
       CFANode node = queue.removeLast();
-      Preconditions.checkState(!node.isLoopStart(),
-          "Can only work on loop-free fragments");
+      Preconditions.checkState(!node.isLoopStart(), "Can only work on loop-free fragments");
       PathFormula path = mapping.get(node);
 
       for (CFAEdge e : CFAUtils.leavingEdges(node)) {
@@ -146,16 +132,13 @@ public class TestDataTools {
           out = n;
         } else {
           out = pfmgr.makeOr(old, n);
-          out = out.updateFormula(fmgr.simplify(out.getFormula()));
         }
         mapping.put(toNode, out);
         queue.add(toNode);
       }
     }
 
-    PathFormula out = mapping.get(cfa.getMainFunction().getExitNode());
-    out = out.updateFormula(fmgr.simplify(out.getFormula()));
-    return out;
+    return mapping.get(cfa.getMainFunction().getExitNode());
   }
 
   /** Convert a given string to a {@link CFA}, assuming it is a body of a single function. */
@@ -170,12 +153,11 @@ public class TestDataTools {
   }
 
   private static String getProgram(String... parts) {
-    return "int main() {" +  Joiner.on('\n').join(parts) + "}";
+    return "int main() {" + Joiner.on('\n').join(parts) + "}";
   }
 
   /**
-   * Returns and, if necessary, creates a new empty C or Java program
-   * in the given temporary folder.
+   * Returns and, if necessary, creates a new empty C or Java program in the given temporary folder.
    */
   public static String getEmptyProgram(TemporaryFolder pTempFolder, boolean isJava)
       throws IOException {
@@ -183,7 +165,7 @@ public class TestDataTools {
     String fileContent;
     String program;
     if (isJava) {
-      tempFile = getTempFile(pTempFolder,"Main.java");
+      tempFile = getTempFile(pTempFolder, "Main.java");
       fileContent = "public class Main { public static void main(String... args) {} }";
       program = "Main";
     } else {
@@ -193,21 +175,17 @@ public class TestDataTools {
     }
     if (tempFile.createNewFile()) {
       // if the file didn't exist yet, write its content
-      IO.writeFile(
-          tempFile.toPath(),
-          StandardCharsets.US_ASCII,
-          fileContent
-      );
+      IO.writeFile(tempFile.toPath(), StandardCharsets.US_ASCII, fileContent);
     }
 
     return program;
   }
 
   /**
-   *  Returns the file object for the given file name in the given
-   *  temporary folder. If the described file does not exist, it will <b>not</b> be created.
+   * Returns the file object for the given file name in the given temporary folder. If the described
+   * file does not exist, it will <b>not</b> be created.
    */
   private static File getTempFile(TemporaryFolder pTempFolder, String pFileName) {
-    return Paths.get(pTempFolder.getRoot().toString(), pFileName).toFile();
+    return Path.of(pTempFolder.getRoot().toString(), pFileName).toFile();
   }
 }

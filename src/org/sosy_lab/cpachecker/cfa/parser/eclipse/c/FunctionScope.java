@@ -13,7 +13,6 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
 
 import com.google.common.base.Joiner;
-import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
@@ -24,6 +23,8 @@ import java.util.Deque;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
+import java.util.Optional;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.CProgramScope;
 import org.sosy_lab.cpachecker.cfa.ast.c.CComplexTypeDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
@@ -31,7 +32,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeDefDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
-import org.sosy_lab.cpachecker.cfa.model.c.CLabelNode;
+import org.sosy_lab.cpachecker.cfa.model.CFALabelNode;
 import org.sosy_lab.cpachecker.cfa.parser.Scope;
 import org.sosy_lab.cpachecker.cfa.types.c.CComplexType;
 import org.sosy_lab.cpachecker.cfa.types.c.CEnumType.CEnumerator;
@@ -42,9 +43,8 @@ import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
 import org.sosy_lab.cpachecker.util.variableclassification.VariableClassificationBuilder;
 
 /**
- * Implementation of {@link Scope} for the local scope inside functions.
- * Only variables can be declared.
- * Provides the mechanism to have nested scopes (i.e., inside {} blocks).
+ * Implementation of {@link Scope} for the local scope inside functions. Only variables can be
+ * declared. Provides the mechanism to have nested scopes (i.e., inside {} blocks).
  */
 class FunctionScope extends AbstractScope {
 
@@ -54,12 +54,11 @@ class FunctionScope extends AbstractScope {
   private final Deque<Map<String, CComplexTypeDeclaration>> typesStack = new ArrayDeque<>();
   private final Map<String, CTypeDefDeclaration> typedefs;
   private final Deque<Map<String, CVariableDeclaration>> labelsStack = new ArrayDeque<>();
-  private final Deque<Map<String, CLabelNode>> labelsNodeStack = new ArrayDeque<>();
+  private final Deque<Map<String, CFALabelNode>> labelsNodeStack = new ArrayDeque<>();
   private final Deque<Map<String, CSimpleDeclaration>> varsStack = new ArrayDeque<>();
   private final Deque<Map<String, CSimpleDeclaration>> varsStackWitNewNames = new ArrayDeque<>();
   private final Deque<Map<String, CSimpleDeclaration>> varsList = new ArrayDeque<>();
   private final Deque<Map<String, CSimpleDeclaration>> varsListWithNewNames = new ArrayDeque<>();
-
 
   private CFunctionDeclaration currentFunction = null;
   private Optional<CVariableDeclaration> returnVariable = null;
@@ -82,7 +81,7 @@ class FunctionScope extends AbstractScope {
     varsList.push(pGlobalVars);
     varsListWithNewNames.push(pGlobalVars);
 
-    this.artificialScope = pArtificialScope;
+    artificialScope = pArtificialScope;
 
     enterBlock();
   }
@@ -114,14 +113,22 @@ class FunctionScope extends AbstractScope {
         localFunctions.keySet());
 
     if (currentFunction.getType().getReturnType().getCanonicalType() instanceof CVoidType) {
-      returnVariable = Optional.absent();
+      returnVariable = Optional.empty();
     } else {
-      @SuppressWarnings("deprecation") // As soon as this is the only usage of the deprecated constant, it should be inlined here
+      @SuppressWarnings("deprecation")
+      // As soon as this is the only usage of the deprecated constant, it should be inlined here
       String name = VariableClassificationBuilder.FUNCTION_RETURN_VARIABLE;
-      returnVariable = Optional.of(
-          new CVariableDeclaration(currentFunction.getFileLocation(), false,
-            CStorageClass.AUTO, currentFunction.getType().getReturnType(),
-            name, name, createScopedNameOf(name), null));
+      returnVariable =
+          Optional.of(
+              new CVariableDeclaration(
+                  currentFunction.getFileLocation(),
+                  false,
+                  CStorageClass.AUTO,
+                  currentFunction.getType().getReturnType(),
+                  name,
+                  name,
+                  createScopedNameOf(name),
+                  null));
     }
   }
 
@@ -191,7 +198,7 @@ class FunctionScope extends AbstractScope {
   }
 
   @Override
-  public CFunctionDeclaration lookupFunction(String name) {
+  public @Nullable CFunctionDeclaration lookupFunction(String name) {
     checkNotNull(name);
 
     // we look at first if the function is available in the local functions
@@ -209,7 +216,7 @@ class FunctionScope extends AbstractScope {
   }
 
   @Override
-  public CComplexType lookupType(String name) {
+  public @Nullable CComplexType lookupType(String name) {
     checkNotNull(name);
 
     Iterator<Map<String, CComplexTypeDeclaration>> it = typesStack.descendingIterator();
@@ -231,7 +238,7 @@ class FunctionScope extends AbstractScope {
   }
 
   @Override
-  public CType lookupTypedef(final String name) {
+  public @Nullable CType lookupTypedef(final String name) {
     checkNotNull(name);
 
     final CTypeDefDeclaration declaration = typedefs.get(name);
@@ -250,10 +257,7 @@ class FunctionScope extends AbstractScope {
     return createQualifiedName(getCurrentFunctionName(), pName);
   }
 
-  /**
-   * Take a name and return a name that is unconditionally qualified
-   * with the given function.
-   */
+  /** Take a name and return a name that is unconditionally qualified with the given function. */
   public static String createQualifiedName(String pFunction, String pName) {
     return (pFunction + "::" + pName).intern();
   }
@@ -261,10 +265,11 @@ class FunctionScope extends AbstractScope {
   @Override
   public void registerDeclaration(CSimpleDeclaration declaration) {
     assert declaration instanceof CVariableDeclaration
-        || declaration instanceof CEnumerator
-        || declaration instanceof CParameterDeclaration
-        : "Tried to register a declaration which does not define a name in the standard namespace: " + declaration;
-    assert  !(declaration.getType() instanceof CFunctionTypeWithNames);
+            || declaration instanceof CEnumerator
+            || declaration instanceof CParameterDeclaration
+        : "Tried to register a declaration which does not define a name in the standard namespace: "
+            + declaration;
+    assert !(declaration.getType() instanceof CFunctionTypeWithNames);
 
     String name = declaration.getOrigName();
     assert name != null;
@@ -274,7 +279,8 @@ class FunctionScope extends AbstractScope {
 
     // multiple declarations of the same variable are disallowed
     if (vars.containsKey(name)) {
-      throw new CFAGenerationRuntimeException("Variable " + name + " already declared", declaration);
+      throw new CFAGenerationRuntimeException(
+          "Variable " + name + " already declared", declaration);
     }
 
     vars.put(name, declaration);
@@ -288,7 +294,8 @@ class FunctionScope extends AbstractScope {
     String typeName = declaration.getType().getQualifiedName();
 
     if (lookupType(typeName) != null) {
-      throw new CFAGenerationRuntimeException("Shadowing types are currently not supported", declaration);
+      throw new CFAGenerationRuntimeException(
+          "Shadowing types are currently not supported", declaration);
     }
 
     typesStack.peekLast().put(typeName, declaration);
@@ -326,20 +333,20 @@ class FunctionScope extends AbstractScope {
     return labelsStack.peekLast().containsKey(labelName);
   }
 
-  public boolean containsLabelCFANode(CLabelNode node) {
+  public boolean containsLabelCFANode(CFALabelNode node) {
     return labelsNodeStack.peekLast().containsKey(node.getLabel());
   }
 
-  public void addLabelCFANode(CLabelNode node) {
+  public void addLabelCFANode(CFALabelNode node) {
     labelsNodeStack.peekLast().put(node.getLabel(), node);
   }
 
-  public CLabelNode lookupLocalLabelNode(String name) {
-    Iterator<Map<String, CLabelNode>> it = labelsNodeStack.descendingIterator();
+  public CFALabelNode lookupLocalLabelNode(String name) {
+    Iterator<Map<String, CFALabelNode>> it = labelsNodeStack.descendingIterator();
     while (it.hasNext()) {
-      Map<String, CLabelNode> nodes = it.next();
+      Map<String, CFALabelNode> nodes = it.next();
 
-      CLabelNode node = nodes.get(name);
+      CFALabelNode node = nodes.get(name);
       if (node != null) {
         return node;
       }
@@ -363,6 +370,8 @@ class FunctionScope extends AbstractScope {
 
   @Override
   public String toString() {
-    return "Functions: " + Joiner.on(' ').join(globalFunctions.keySet()) + Joiner.on(' ').join(localFunctions.keySet());
+    return "Functions: "
+        + Joiner.on(' ').join(globalFunctions.keySet())
+        + Joiner.on(' ').join(localFunctions.keySet());
   }
 }

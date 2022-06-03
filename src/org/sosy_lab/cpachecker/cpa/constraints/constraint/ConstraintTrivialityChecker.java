@@ -38,8 +38,8 @@ import org.sosy_lab.cpachecker.cpa.value.symbolic.type.UnarySymbolicExpression;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 
 /**
- * Checks whether a {@link Constraint} is trivial, that means that it does not contain any
- * variables with unknown concrete values.
+ * Checks whether a {@link Constraint} is trivial, that means that it does not contain any variables
+ * with unknown concrete values.
  */
 public class ConstraintTrivialityChecker implements SymbolicValueVisitor<Boolean> {
 
@@ -62,8 +62,7 @@ public class ConstraintTrivialityChecker implements SymbolicValueVisitor<Boolean
   }
 
   private boolean isTrivialExpression(BinarySymbolicExpression pExpression) {
-    return pExpression.getOperand1().accept(this)
-      && pExpression.getOperand2().accept(this);
+    return pExpression.getOperand1().accept(this) && pExpression.getOperand2().accept(this);
   }
 
   private boolean isTrivialExpression(UnarySymbolicExpression pExpression) {

@@ -20,11 +20,11 @@ import org.sosy_lab.cpachecker.util.CFAUtils;
 public class CFAReversePostorder {
 
   // for assignSorting
-  private int                reversePostorderId = 0;
+  private int reversePostorderId = 0;
 
   // for checkIds
-  private final Set<CFANode> visited   = new HashSet<>();
-  private int                reversePostorderId2 = 0;
+  private final Set<CFANode> visited = new HashSet<>();
+  private int reversePostorderId2 = 0;
 
   @SuppressWarnings("unused")
   private boolean checkIds(CFANode node) {
@@ -43,8 +43,14 @@ public class CFAReversePostorder {
       checkIds(successor);
     }
 
-    //node.setReversePostorderId(reversePostorderId2++);
-    assert node.getReversePostorderId() == reversePostorderId2++ : "Node " + node + " got " + node.getReversePostorderId() + ", but should get " + (reversePostorderId2-1);
+    // node.setReversePostorderId(reversePostorderId2++);
+    assert node.getReversePostorderId() == reversePostorderId2++
+        : "Node "
+            + node
+            + " got "
+            + node.getReversePostorderId()
+            + ", but should get "
+            + (reversePostorderId2 - 1);
     return true;
   }
 
@@ -52,7 +58,8 @@ public class CFAReversePostorder {
     // This is an iterative version of the original algorithm that is now in checkIds().
     // We store the state of the function in two stacks:
     // - the current node (variable "node" in checkIds())
-    // - the iterator over the current node's successors (this is state hidden in the for-each loop in checkIds())
+    // - the iterator over the current node's successors (this is state hidden in the for-each loop
+    // in checkIds())
     // Together, these two items form a "stack frame".
 
     final Set<CFANode> finished = new HashSet<>();
@@ -115,6 +122,6 @@ public class CFAReversePostorder {
 
     // Disabled because the recursive algorithm throws StackOverflowError
     // for large files.
-    //assert checkIds(start);
+    // assert checkIds(start);
   }
 }

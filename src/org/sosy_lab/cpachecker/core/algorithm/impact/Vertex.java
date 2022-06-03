@@ -12,9 +12,6 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
 
 import com.google.common.collect.ImmutableList;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import java.io.IOException;
-import java.io.NotSerializableException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -28,25 +25,11 @@ import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.BooleanFormulaManager;
 
 /**
- * This class represents the vertices/abstract states used by the
- * {@link ImpactAlgorithm}.
- * This class is basically similar to {@link AbstractState},
- * but allows only one parent and additionally stores a modifiable state formula.
+ * This class represents the vertices/abstract states used by the {@link ImpactAlgorithm}. This
+ * class is basically similar to {@link AbstractState}, but allows only one parent and additionally
+ * stores a modifiable state formula.
  */
-@SuppressFBWarnings("SE_BAD_FIELD")
 class Vertex extends AbstractSingleWrapperState {
-  /* Boilerplate code to avoid serializing this class */
-  private static final long serialVersionUID = 0xDEADBEEF;
-
-  /**
-   * javadoc to remove unused parameter warning
-   *
-   * @param out the output stream
-   */
-  @SuppressWarnings("UnusedVariable") // parameter is required by API
-  private void writeObject(java.io.ObjectOutputStream out) throws IOException {
-    throw new NotSerializableException();
-  }
 
   private static int nextId = 0;
   private final int id = nextId++;
@@ -69,14 +52,17 @@ class Vertex extends AbstractSingleWrapperState {
     stateFormula = pStateFormula;
   }
 
-  public Vertex(BooleanFormulaManager bfmgr, Vertex pParent, BooleanFormula pStateFormula, @Nullable AbstractState pElement) {
+  public Vertex(
+      BooleanFormulaManager bfmgr,
+      Vertex pParent,
+      BooleanFormula pStateFormula,
+      @Nullable AbstractState pElement) {
     super(pElement);
     this.bfmgr = bfmgr;
     parent = checkNotNull(pParent);
     parent.children.add(this);
     stateFormula = checkNotNull(pStateFormula);
   }
-
 
   public BooleanFormula getStateFormula() {
     return stateFormula;
@@ -97,6 +83,7 @@ class Vertex extends AbstractSingleWrapperState {
 
   /**
    * Uncover all nodes covered by this node.
+   *
    * @return a list of all nodes that were previously covered by this node
    */
   public List<Vertex> cleanCoverage() {
@@ -166,7 +153,8 @@ class Vertex extends AbstractSingleWrapperState {
   }
 
   public boolean isLeaf() {
-    return children.isEmpty() && AbstractStates.extractLocation(getWrappedState()).getNumLeavingEdges() > 0;
+    return children.isEmpty()
+        && AbstractStates.extractLocation(getWrappedState()).getNumLeavingEdges() > 0;
   }
 
   @Override
@@ -189,7 +177,7 @@ class Vertex extends AbstractSingleWrapperState {
   }
 
   public boolean isOlderThan(Vertex v) {
-    return (id < v.id);
+    return id < v.id;
   }
 
   @Override

@@ -7,10 +7,9 @@
 // SPDX-License-Identifier: Apache-2.0
 
 /**
- * CPA which only explores the edges which can syntactically lead to a
- * property violation.
+ * CPA which only explores the edges which can syntactically lead to a property violation.
  *
- * <p>Needs to be used in conjunction with
- * {@link org.sosy_lab.cpachecker.cpa.assumptions.storage.AssumptionStorageCPA}.
+ * <p>Needs to be used in conjunction with {@link
+ * org.sosy_lab.cpachecker.cpa.assumptions.storage.AssumptionStorageCPA}.
  */
 package org.sosy_lab.cpachecker.cpa.targetreachability;

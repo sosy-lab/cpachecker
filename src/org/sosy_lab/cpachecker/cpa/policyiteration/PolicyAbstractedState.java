@@ -26,38 +26,25 @@ import org.sosy_lab.cpachecker.util.templates.Template;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 
 public final class PolicyAbstractedState extends PolicyState
-      implements Iterable<Entry<Template, PolicyBound>>,
-                 FormulaReportingState {
+    implements Iterable<Entry<Template, PolicyBound>>, FormulaReportingState {
 
   private final StateFormulaConversionManager manager;
 
-  /**
-   * Finite bounds for templates: binds each template from above.
-   */
+  /** Finite bounds for templates: binds each template from above. */
   private final ImmutableMap<Template, PolicyBound> upperBounds;
 
-  /**
-   * Expected starting {@link PointerTargetSet} and {@link SSAMap}.
-   */
+  /** Expected starting {@link PointerTargetSet} and {@link SSAMap}. */
   private final SSAMap ssaMap;
+
   private final PointerTargetSet pointerTargetSet;
 
-  /**
-   * Uninstantiated invariant associated with a state,
-   * derived from other analyses.
-   */
+  /** Uninstantiated invariant associated with a state, derived from other analyses. */
   private final BooleanFormula extraInvariant;
 
-  /**
-   * Intermediate state used to generate this abstraction,
-   * empty only for the initial state.
-   */
+  /** Intermediate state used to generate this abstraction, empty only for the initial state. */
   private final @Nullable PolicyIntermediateState generator;
 
-  /**
-   * If state A and state B can potentially get merged, they share the same
-   * location.
-   */
+  /** If state A and state B can potentially get merged, they share the same location. */
   private final int locationID;
 
   /**
@@ -69,7 +56,7 @@ public final class PolicyAbstractedState extends PolicyState
 
   private transient int hashCache = 0;
 
-  private final static UniqueIdGenerator idGenerator = new UniqueIdGenerator();
+  private static final UniqueIdGenerator idGenerator = new UniqueIdGenerator();
   private final int stateId;
 
   private PolicyAbstractedState(
@@ -128,11 +115,8 @@ public final class PolicyAbstractedState extends PolicyState
         pSibling.orElse(null));
   }
 
-  /**
-   * Replace the abstraction with the given input.
-   */
-  PolicyAbstractedState withNewAbstraction(
-      Map<Template, PolicyBound> newAbstraction) {
+  /** Replace the abstraction with the given input. */
+  PolicyAbstractedState withNewAbstraction(Map<Template, PolicyBound> newAbstraction) {
     return new PolicyAbstractedState(
         getNode(),
         newAbstraction,
@@ -162,16 +146,14 @@ public final class PolicyAbstractedState extends PolicyState
   }
 
   /**
-   * @return {@link PolicyBound} for the given {@link Template}
-   * <code>e</code> or an empty optional if it is unbounded.
+   * @return {@link PolicyBound} for the given {@link Template} <code>e</code> or an empty optional
+   *     if it is unbounded.
    */
   Optional<PolicyBound> getBound(Template e) {
     return Optional.ofNullable(upperBounds.get(e));
   }
 
-  /**
-   * Create a TOP state with empty abstraction.
-   */
+  /** Create a TOP state with empty abstraction. */
   public static PolicyAbstractedState top(
       CFANode node,
       int pLocationID,
@@ -220,9 +202,7 @@ public final class PolicyAbstractedState extends PolicyState
   @Override
   public String toDOTLabel() {
     return String.format(
-        "(node=%s, locID=%s)%s%n",
-        getNode(), locationID, manager.toDOTLabel(upperBounds)
-    );
+        "(node=%s, locID=%s)%s%n", getNode(), locationID, manager.toDOTLabel(upperBounds));
   }
 
   @Override
@@ -232,8 +212,7 @@ public final class PolicyAbstractedState extends PolicyState
 
   @Override
   public String toString() {
-    return String.format("(loc=%s, node=%s)%s", locationID, getNode(),
-        upperBounds);
+    return String.format("(loc=%s, node=%s)%s", locationID, getNode(), upperBounds);
   }
 
   @Override
@@ -247,9 +226,8 @@ public final class PolicyAbstractedState extends PolicyState
 
   @Override
   public BooleanFormula getFormulaApproximation(FormulaManagerView fmgr) {
-    return fmgr.uninstantiate(fmgr.getBooleanFormulaManager().and(
-        manager.abstractStateToConstraints(fmgr, this, false)
-    ));
+    return fmgr.uninstantiate(
+        fmgr.getBooleanFormulaManager().and(manager.abstractStateToConstraints(fmgr, this, false)));
   }
 
   @Override
@@ -261,22 +239,17 @@ public final class PolicyAbstractedState extends PolicyState
       return false;
     }
     PolicyAbstractedState entries = (PolicyAbstractedState) pO;
-    return Objects.equals(upperBounds, entries.upperBounds) &&
-        Objects.equals(ssaMap, entries.ssaMap) &&
-        Objects.equals(pointerTargetSet, entries.pointerTargetSet) &&
-        Objects.equals(extraInvariant, entries.extraInvariant) &&
-        Objects.equals(getNode(), entries.getNode());
+    return Objects.equals(upperBounds, entries.upperBounds)
+        && Objects.equals(ssaMap, entries.ssaMap)
+        && Objects.equals(pointerTargetSet, entries.pointerTargetSet)
+        && Objects.equals(extraInvariant, entries.extraInvariant)
+        && Objects.equals(getNode(), entries.getNode());
   }
 
   @Override
   public int hashCode() {
     if (hashCache == 0) {
-      hashCache = Objects.hash(
-          getNode(),
-          upperBounds,
-          ssaMap,
-          pointerTargetSet,
-          extraInvariant);
+      hashCache = Objects.hash(getNode(), upperBounds, ssaMap, pointerTargetSet, extraInvariant);
     }
     return hashCache;
   }

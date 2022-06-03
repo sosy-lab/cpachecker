@@ -25,9 +25,8 @@ import org.sosy_lab.cpachecker.util.refinement.DelegatingARGBasedRefinerWithRefi
 import org.sosy_lab.cpachecker.util.refinement.PrefixSelector;
 
 /**
- * Refiner implementation that delegates to a value refiner
- * and if this fails, optionally delegates also to a predicate refiner.
- * Also supports Refinement Selection and can delegate to the refiner
+ * Refiner implementation that delegates to a value refiner and if this fails, optionally delegates
+ * also to a predicate refiner. Also supports Refinement Selection and can delegate to the refiner
  * which has prefixes with the better score.
  */
 public abstract class ValueAnalysisDelegatingRefiner implements Refiner {
@@ -40,24 +39,19 @@ public abstract class ValueAnalysisDelegatingRefiner implements Refiner {
     PredicateCPA predicateCpa =
         CPAs.retrieveCPAOrFail(cpa, PredicateCPA.class, ValueAnalysisDelegatingRefiner.class);
 
-    Configuration config      = valueCpa.getConfiguration();
-    LogManager logger         = valueCpa.getLogger();
-    CFA cfa                   = valueCpa.getCFA();
+    Configuration config = valueCpa.getConfiguration();
+    LogManager logger = valueCpa.getLogger();
+    CFA cfa = valueCpa.getCFA();
 
     return AbstractARGBasedRefiner.forARGBasedRefiner(
         new DelegatingARGBasedRefinerWithRefinementSelection(
             config,
-            new PrefixSelector(cfa.getVarClassification(), cfa.getLoopStructure()),
+            new PrefixSelector(cfa.getVarClassification(), cfa.getLoopStructure(), logger),
             ValueAnalysisRefiner.create0(cpa),
             new ValueAnalysisPrefixProvider(logger, cfa, config, valueCpa.getShutdownNotifier()),
             PredicateRefiner.create0(cpa),
             new PredicateBasedPrefixProvider(
-                config,
-                logger,
-                predicateCpa.getSolver(),
-                predicateCpa.getPathFormulaManager(),
-                predicateCpa.getShutdownNotifier())),
+                config, logger, predicateCpa.getSolver(), predicateCpa.getShutdownNotifier())),
         cpa);
   }
 }
-

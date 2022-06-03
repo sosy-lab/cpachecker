@@ -8,27 +8,28 @@
 
 package org.sosy_lab.cpachecker.cfa.model.c;
 
-import com.google.common.base.Optional;
 import java.util.List;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 
-public class CFunctionCallEdge extends FunctionCallEdge {
-
-
+public class CFunctionCallEdge extends FunctionCallEdge implements CCfaEdge {
 
   private static final long serialVersionUID = -3203684033841624723L;
 
-  public CFunctionCallEdge(String pRawStatement,
-      FileLocation pFileLocation, CFANode pPredecessor, CFunctionEntryNode pSuccessor,
-      CFunctionCall pFunctionCall, CFunctionSummaryEdge pSummaryEdge) {
+  public CFunctionCallEdge(
+      String pRawStatement,
+      FileLocation pFileLocation,
+      CFANode pPredecessor,
+      CFunctionEntryNode pSuccessor,
+      CFunctionCall pFunctionCall,
+      CFunctionSummaryEdge pSummaryEdge) {
 
     super(pRawStatement, pFileLocation, pPredecessor, pSuccessor, pFunctionCall, pSummaryEdge);
-
   }
 
   @Override
@@ -41,10 +42,19 @@ public class CFunctionCallEdge extends FunctionCallEdge {
     return (CFunctionSummaryEdge) summaryEdge;
   }
 
-  @SuppressWarnings("unchecked")
+  @Override
+  public CFunctionCall getFunctionCall() {
+    return (CFunctionCall) functionCall;
+  }
+
+  @Override
+  public CFunctionCallExpression getFunctionCallExpression() {
+    return getFunctionCall().getFunctionCallExpression();
+  }
+
   @Override
   public List<CExpression> getArguments() {
-    return (List<CExpression>) functionCall.getFunctionCallExpression().getParameterExpressions();
+    return getFunctionCallExpression().getParameterExpressions();
   }
 
   @Override
@@ -53,13 +63,13 @@ public class CFunctionCallEdge extends FunctionCallEdge {
   }
 
   @Override
-  public Optional<CFunctionCall> getRawAST() {
-    return Optional.of((CFunctionCall)functionCall);
+  public CFunctionEntryNode getSuccessor() {
+    // the constructor enforces that the successor is always a FunctionEntryNode
+    return (CFunctionEntryNode) super.getSuccessor();
   }
 
   @Override
-  public CFunctionEntryNode getSuccessor() {
-    // the constructor enforces that the successor is always a FunctionEntryNode
-    return (CFunctionEntryNode)super.getSuccessor();
+  public <R, X extends Exception> R accept(CCfaEdgeVisitor<R, X> pVisitor) throws X {
+    return pVisitor.visit(this);
   }
 }

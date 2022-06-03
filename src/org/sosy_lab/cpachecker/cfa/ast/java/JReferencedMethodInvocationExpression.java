@@ -33,10 +33,15 @@ public final class JReferencedMethodInvocationExpression extends JMethodInvocati
   private static final long serialVersionUID = -3779312927011479073L;
   private final JIdExpression qualifier;
 
-  public JReferencedMethodInvocationExpression(FileLocation pFileLocation, JType pType, JExpression pFunctionName,
-      List<? extends JExpression> pParameters, JMethodDeclaration pDeclaration, JIdExpression pQualifier) {
+  public JReferencedMethodInvocationExpression(
+      FileLocation pFileLocation,
+      JType pType,
+      JExpression pFunctionName,
+      List<? extends JExpression> pParameters,
+      JMethodDeclaration pDeclaration,
+      JIdExpression pQualifier) {
     super(pFileLocation, pType, pFunctionName, pParameters, pDeclaration);
-      qualifier = pQualifier;
+    qualifier = pQualifier;
   }
 
   public JIdExpression getReferencedVariable() {
@@ -63,8 +68,7 @@ public final class JReferencedMethodInvocationExpression extends JMethodInvocati
       return true;
     }
 
-    if (!(obj instanceof JReferencedMethodInvocationExpression)
-        || super.equals(obj)) {
+    if (!(obj instanceof JReferencedMethodInvocationExpression) || super.equals(obj)) {
       return false;
     }
 
@@ -72,5 +76,4 @@ public final class JReferencedMethodInvocationExpression extends JMethodInvocati
 
     return Objects.equals(other.qualifier, qualifier);
   }
-
 }

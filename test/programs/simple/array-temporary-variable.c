@@ -18,6 +18,9 @@ struct my_struct {
    union my_union my_name ;
 };
 
+void f(int * p) {
+}
+
 int main(struct my_struct const   *attr) {
   char const *name ;
 
@@ -25,6 +28,9 @@ int main(struct my_struct const   *attr) {
   if (name == 0) {
     return 0;
   }
+
+  f((int[]) {1, 2, 3});
+
 ERROR:
   return 1;
 }

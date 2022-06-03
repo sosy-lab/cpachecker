@@ -34,9 +34,9 @@ public final class Constant implements Term {
       return false;
     }
 
-    Constant lConstant = (Constant)pOther;
+    Constant lConstant = (Constant) pOther;
 
-    return (mValue == lConstant.mValue);
+    return mValue == lConstant.mValue;
   }
 
   @Override
@@ -53,5 +53,4 @@ public final class Constant implements Term {
   public <T> T accept(TermVisitor<T> pVisitor) {
     return pVisitor.visit(this);
   }
-
 }

@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.cpa.slicing;
 
+import static com.google.common.collect.FluentIterable.from;
+
 import com.google.common.base.Predicates;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
@@ -17,7 +19,6 @@ import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-import java.util.stream.Collectors;
 import org.sosy_lab.common.configuration.ClassOption;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -35,8 +36,6 @@ import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.Refiner;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
-import org.sosy_lab.cpachecker.core.interfaces.Statistics;
-import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.WrapperPrecision;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
@@ -70,7 +69,7 @@ import org.sosy_lab.cpachecker.util.slicing.Slicer;
  * <p>[1] Weiser, 1984: Program Slicing.
  */
 @Options(prefix = "cpa.slicing.refinement")
-public class SlicingRefiner implements Refiner, StatisticsProvider {
+public class SlicingRefiner implements Refiner {
 
   @Option(
       secure = true,
@@ -276,7 +275,8 @@ public class SlicingRefiner implements Refiner, StatisticsProvider {
     return CounterexampleInfo.feasibleImprecise(pTargetPath);
   }
 
-  Collection<ARGPath> getTargetPaths(ReachedSet pReached) throws RefinementFailedException {
+  Collection<ARGPath> getTargetPaths(ReachedSet pReached)
+      throws RefinementFailedException, InterruptedException {
     ARGReachedSet argReached = new ARGReachedSet(pReached, argCpa, refinementCount);
 
     Collection<ARGState> targetStates = pathExtractor.getTargetStates(argReached);
@@ -387,7 +387,7 @@ public class SlicingRefiner implements Refiner, StatisticsProvider {
   private RefinedSlicingPrecision getNewPrecision(final ReachedSet pReached)
       throws InterruptedException, CPAException {
     ARGReachedSet argReached = new ARGReachedSet(pReached, argCpa, refinementCount);
-    
+
     Collection<ARGState> targetStates = pathExtractor.getTargetStates(argReached);
     Collection<ARGPath> targetPaths = pathExtractor.getTargetPaths(targetStates);
     Set<StateSlicingPrecision> newPrecs = new HashSet<>();
@@ -416,10 +416,7 @@ public class SlicingRefiner implements Refiner, StatisticsProvider {
     List<CFAEdge> criteriaEdges = new ArrayList<>(1);
     Set<CFAEdge> relevantEdges = new HashSet<>();
 
-    List<CFAEdge> cexConstraints =
-        innerEdges.stream()
-            .filter(Predicates.instanceOf(CAssumeEdge.class))
-            .collect(Collectors.toList());
+    List<CAssumeEdge> cexConstraints = from(innerEdges).filter(CAssumeEdge.class).toList();
 
     if (takeEagerSlice) {
       criteriaEdges.addAll(cexConstraints);
@@ -431,7 +428,7 @@ public class SlicingRefiner implements Refiner, StatisticsProvider {
           Set<CFAEdge> prefixAssumeEdges =
               prefixes.get(0).getPath().getInnerEdges().stream()
                   .filter(edge -> edge.getEdgeType() == CFAEdgeType.AssumeEdge)
-                  .collect(Collectors.toSet());
+                  .collect(ImmutableSet.toImmutableSet());
           criteriaEdges.addAll(prefixAssumeEdges);
         }
 
@@ -537,18 +534,10 @@ public class SlicingRefiner implements Refiner, StatisticsProvider {
 
   private static SlicingPrecision extractSlicingPrecision(
       final ReachedSet pReached, final AbstractState pState) {
-    return (SlicingPrecision)
-        Precisions.asIterable(pReached.getPrecision(pState))
-            .filter(Predicates.instanceOf(SlicingPrecision.class))
-            .first()
-            .orNull();
-  }
-
-  @Override
-  public void collectStatistics(Collection<Statistics> pStatsCollection) {
-    if (slicer instanceof StatisticsProvider) {
-      ((StatisticsProvider) slicer).collectStatistics(pStatsCollection);
-    }
+    return Precisions.asIterable(pReached.getPrecision(pState))
+        .filter(SlicingPrecision.class)
+        .first()
+        .orNull();
   }
 
   private static final class StateSlicingPrecision {

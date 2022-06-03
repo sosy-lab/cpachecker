@@ -11,6 +11,5 @@ package org.sosy_lab.cpachecker.cpa.invariants;
 interface BitVectorType extends Typed {
 
   @Override
-  public BitVectorInfo getTypeInfo();
-
+  BitVectorInfo getTypeInfo();
 }

@@ -46,7 +46,7 @@ public class ExpressionTreeInvariantSupplier implements ExpressionTreeSupplier {
   }
 
   @Override
-  public ExpressionTree<Object> getInvariantFor(CFANode pNode) {
+  public ExpressionTree<Object> getInvariantFor(CFANode pNode) throws InterruptedException {
     return lastInvariantSupplier.getInvariantFor(pNode);
   }
 
@@ -80,11 +80,12 @@ public class ExpressionTreeInvariantSupplier implements ExpressionTreeSupplier {
     }
 
     @Override
-    public ExpressionTree<Object> getInvariantFor(CFANode pNode) {
-      return invariantSuppliers
-          .stream()
-          .map(s -> s.getInvariantFor(pNode))
-          .reduce(ExpressionTrees.getTrue(), And::of);
+    public ExpressionTree<Object> getInvariantFor(CFANode pNode) throws InterruptedException {
+      ExpressionTree<Object> result = ExpressionTrees.getTrue();
+      for (ExpressionTreeSupplier supplier : invariantSuppliers) {
+        result = And.of(result, supplier.getInvariantFor(pNode));
+      }
+      return result;
     }
   }
 }

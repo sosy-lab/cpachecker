@@ -8,15 +8,15 @@
 
 package org.sosy_lab.cpachecker.cpa.value.refiner.utils;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
+import org.sosy_lab.common.collect.PersistentMap;
 import org.sosy_lab.cpachecker.cfa.ast.ASimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
@@ -46,49 +46,42 @@ import org.sosy_lab.cpachecker.util.refinement.PrefixSelector;
 import org.sosy_lab.cpachecker.util.refinement.UseDefRelation;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
-/**
- * This class allows to obtain interpolants statically from a given ARGPath.
- */
+/** This class allows to obtain interpolants statically from a given ARGPath. */
 public class UseDefBasedInterpolator {
 
-  /**
-   * the use-def relation of the final, failing (assume) edge
-   */
+  /** the use-def relation of the final, failing (assume) edge */
   private final UseDefRelation useDefRelation;
 
-  /**
-   * the sliced infeasible prefix for which to compute the interpolants
-   */
+  /** the sliced infeasible prefix for which to compute the interpolants */
   private final ARGPath slicedPrefix;
 
-  /**
-   * the machine model in use
-   */
+  /** the machine model in use */
   private final MachineModel machineModel;
 
   /**
-   * This class allows the creation of (fake) interpolants by using the use-def-relation.
-   * This interpolation approach only works if the given path is a sliced prefix,
-   * obtained via {@link PrefixSelector#selectSlicedPrefix(List, List)}.
+   * This class allows the creation of (fake) interpolants by using the use-def-relation. This
+   * interpolation approach only works if the given path is a sliced prefix, obtained via {@link
+   * PrefixSelector#selectSlicedPrefix(List, List)}.
    */
   public UseDefBasedInterpolator(
       final ARGPath pSlicedPrefix,
       final UseDefRelation pUseDefRelation,
-      final MachineModel pMachineModel
-  ) {
-    slicedPrefix   = pSlicedPrefix;
+      final MachineModel pMachineModel) {
+    slicedPrefix = pSlicedPrefix;
     useDefRelation = pUseDefRelation;
-    machineModel   = pMachineModel;
+    machineModel = pMachineModel;
   }
 
   /**
-   * This method obtains the interpolation sequence as pairs of {@link ARGState}s
-   * and their respective {@link ValueAnalysisInterpolant}s.
+   * This method obtains the interpolation sequence as pairs of {@link ARGState}s and their
+   * respective {@link ValueAnalysisInterpolant}s.
    *
-   * @return the (ordered) list of {@link ARGState}s and their respective {@link ValueAnalysisInterpolant}s
+   * @return the (ordered) list of {@link ARGState}s and their respective {@link
+   *     ValueAnalysisInterpolant}s
    */
   public List<Pair<ARGState, ValueAnalysisInterpolant>> obtainInterpolants() {
-    Map<ARGState, Collection<ASimpleDeclaration>> useDefSequence = useDefRelation.getExpandedUses(slicedPrefix);
+    Map<ARGState, Collection<ASimpleDeclaration>> useDefSequence =
+        useDefRelation.getExpandedUses(slicedPrefix);
     ValueAnalysisInterpolant trivialItp = ValueAnalysisInterpolant.FALSE;
 
     // reverse order!
@@ -100,9 +93,7 @@ public class UseDefBasedInterpolator {
 
       Collection<ASimpleDeclaration> uses = useDefSequence.get(state);
 
-      ValueAnalysisInterpolant interpolant = uses.isEmpty()
-          ? trivialItp
-          : createInterpolant(uses);
+      ValueAnalysisInterpolant interpolant = uses.isEmpty() ? trivialItp : createInterpolant(uses);
 
       interpolants.add(Pair.of(state, interpolant));
 
@@ -117,15 +108,16 @@ public class UseDefBasedInterpolator {
   }
 
   /**
-   * This method obtains the interpolation sequence as mapping from {@link ARGState}s
-   * to their respective {@link ValueAnalysisInterpolant}s.
+   * This method obtains the interpolation sequence as mapping from {@link ARGState}s to their
+   * respective {@link ValueAnalysisInterpolant}s.
    *
-   * @return the (ordered) mapping from {@link ARGState}s to their respective {@link ValueAnalysisInterpolant}s
+   * @return the (ordered) mapping from {@link ARGState}s to their respective {@link
+   *     ValueAnalysisInterpolant}s
    */
   public Map<ARGState, ValueAnalysisInterpolant> obtainInterpolantsAsMap() {
 
     Map<ARGState, ValueAnalysisInterpolant> interpolants = new LinkedHashMap<>();
-    for(Pair<ARGState, ValueAnalysisInterpolant> itp : obtainInterpolants()) {
+    for (Pair<ARGState, ValueAnalysisInterpolant> itp : obtainInterpolants()) {
       interpolants.put(itp.getFirst(), itp.getSecond());
     }
 
@@ -135,62 +127,59 @@ public class UseDefBasedInterpolator {
   /**
    * This method creates an interpolant for the given variable declaration.
    *
-   * As this interpolation strategy is static, memory locations for the whole type are created,
-   * i.e, even if only a single offset in an array would suffice, still the whole array is add
-   * here, because interesting offsets are not known statically. The same applies for complex
-   * types, where also the whole type ends up in the interpolant and not only partially.
+   * <p>As this interpolation strategy is static, memory locations for the whole type are created,
+   * i.e, even if only a single offset in an array would suffice, still the whole array is add here,
+   * because interesting offsets are not known statically. The same applies for complex types, where
+   * also the whole type ends up in the interpolant and not only partially.
    *
    * @param uses the variable declaration for which to create the interpolant
    * @return the interpolant for the given variable declaration
    */
   private ValueAnalysisInterpolant createInterpolant(Collection<ASimpleDeclaration> uses) {
-    Map<MemoryLocation, ValueAndType> useDefInterpolant = new HashMap<>();
+    PersistentMap<MemoryLocation, ValueAndType> useDefInterpolant =
+        PathCopyingPersistentTreeMap.of();
 
     for (ASimpleDeclaration use : uses) {
 
       for (MemoryLocation memoryLocation : obtainMemoryLocationsForType(use)) {
-        useDefInterpolant.put(memoryLocation, new ValueAndType(UnknownValue.getInstance(), null));
+        useDefInterpolant =
+            useDefInterpolant.putAndCopy(
+                memoryLocation, new ValueAndType(UnknownValue.getInstance(), null));
       }
     }
 
-    return new ValueAnalysisInterpolant(PathCopyingPersistentTreeMap.copyOf(useDefInterpolant));
+    return new ValueAnalysisInterpolant(useDefInterpolant);
   }
 
   /**
-   * This method returns a list of all memory locations needed to represent the type
-   * of the given variable declaration.
+   * This method returns a list of all memory locations needed to represent the type of the given
+   * variable declaration.
    */
-  private List<MemoryLocation> obtainMemoryLocationsForType(ASimpleDeclaration use) {
+  private ImmutableList<MemoryLocation> obtainMemoryLocationsForType(ASimpleDeclaration use) {
 
-    return ((CType) use.getType()).accept(
-        new MemoryLocationCreator(use.getQualifiedName(), machineModel));
+    return ((CType) use.getType())
+        .accept(new MemoryLocationCreator(use.getQualifiedName(), machineModel));
   }
 
   /**
    * This class creates the needed memory locations for a given type.
    *
-   * This class has one mutable field {@link MemoryLocationCreator#currentOffset}, so throw away after use.
+   * <p>This class has one mutable field {@link MemoryLocationCreator#currentOffset}, so throw away
+   * after use.
    */
-  private static class MemoryLocationCreator implements CTypeVisitor<List<MemoryLocation>, IllegalArgumentException> {
+  private static class MemoryLocationCreator
+      implements CTypeVisitor<ImmutableList<MemoryLocation>, IllegalArgumentException> {
 
-    /**
-     * the qualified name of the actual variable identifier for which to create memory location
-     */
+    /** the qualified name of the actual variable identifier for which to create memory location */
     private final String qualifiedName;
 
-    /**
-     * the machine model to use
-     */
+    /** the machine model to use */
     private final MachineModel model;
 
-    /**
-     * the current offset for which to create the next memory location
-     */
+    /** the current offset for which to create the next memory location */
     private long currentOffset = 0L;
 
-    /**
-     * marker to know if traversal went through a complex type
-     */
+    /** marker to know if traversal went through a complex type */
     private boolean withinComplexType = false;
 
     private MemoryLocationCreator(final String pQualifiedName, final MachineModel pModel) {
@@ -199,13 +188,13 @@ public class UseDefBasedInterpolator {
     }
 
     @Override
-    public List<MemoryLocation> visit(final CArrayType pArrayType) throws IllegalArgumentException {
+    public ImmutableList<MemoryLocation> visit(final CArrayType pArrayType) {
       withinComplexType = true;
 
       CExpression arrayLength = pArrayType.getLength();
 
       if (arrayLength instanceof CIntegerLiteralExpression) {
-        int length = ((CIntegerLiteralExpression)arrayLength).getValue().intValue();
+        int length = ((CIntegerLiteralExpression) arrayLength).getValue().intValue();
 
         return createMemoryLocationsForArray(length, pArrayType.getType());
       }
@@ -215,19 +204,22 @@ public class UseDefBasedInterpolator {
     }
 
     @Override
-    public List<MemoryLocation> visit(final CCompositeType pCompositeType) throws IllegalArgumentException {
+    public ImmutableList<MemoryLocation> visit(final CCompositeType pCompositeType) {
       withinComplexType = true;
 
       switch (pCompositeType.getKind()) {
-        case STRUCT: return createMemoryLocationsForStructure(pCompositeType);
-        case UNION:  return createMemoryLocationsForUnion(pCompositeType);
-        case ENUM:   // there is no such kind of CompositeType
-        default: throw new AssertionError();
+        case STRUCT:
+          return createMemoryLocationsForStructure(pCompositeType);
+        case UNION:
+          return createMemoryLocationsForUnion(pCompositeType);
+        case ENUM: // there is no such kind of CompositeType
+        default:
+          throw new AssertionError();
       }
     }
 
     @Override
-    public List<MemoryLocation> visit(final CElaboratedType pElaboratedType) throws IllegalArgumentException {
+    public ImmutableList<MemoryLocation> visit(final CElaboratedType pElaboratedType) {
       withinComplexType = true;
 
       CType definition = pElaboratedType.getRealType();
@@ -236,89 +228,93 @@ public class UseDefBasedInterpolator {
       }
 
       switch (pElaboratedType.getKind()) {
-      case ENUM:
-      case STRUCT: // TODO: UNDEFINED
-      case UNION:  // TODO: UNDEFINED
-      default:
-        return createSingleMemoryLocation(model.getSizeofInt());
+        case ENUM:
+        case STRUCT: // TODO: UNDEFINED
+        case UNION: // TODO: UNDEFINED
+        default:
+          return createSingleMemoryLocation(model.getSizeofInt());
       }
     }
 
     @Override
-    public List<MemoryLocation> visit(final CEnumType pEnumType) throws IllegalArgumentException {
+    public ImmutableList<MemoryLocation> visit(final CEnumType pEnumType) {
       return createSingleMemoryLocation(model.getSizeofInt());
     }
 
     @Override
-    public List<MemoryLocation> visit(final CFunctionType pFunctionType) throws IllegalArgumentException {
+    public ImmutableList<MemoryLocation> visit(final CFunctionType pFunctionType) {
       // a function does not really have a size, but references to functions can be used as pointers
       return createSingleMemoryLocation(model.getSizeofPtr());
     }
 
     @Override
-    public List<MemoryLocation> visit(final CPointerType pPointerType) throws IllegalArgumentException {
+    public ImmutableList<MemoryLocation> visit(final CPointerType pPointerType) {
       return createSingleMemoryLocation(model.getSizeofPtr());
     }
 
     @Override
-    public List<MemoryLocation> visit(final CProblemType pProblemType) throws IllegalArgumentException {
-      throw new IllegalArgumentException("Unknown C-Type: " + pProblemType.getClass().toString());
+    public ImmutableList<MemoryLocation> visit(final CProblemType pProblemType) {
+      throw new IllegalArgumentException("Unknown C-Type: " + pProblemType.getClass());
     }
 
     @Override
-    public List<MemoryLocation> visit(final CSimpleType pSimpleType) throws IllegalArgumentException {
+    public ImmutableList<MemoryLocation> visit(final CSimpleType pSimpleType) {
       return createSingleMemoryLocation(model.getSizeof(pSimpleType));
     }
 
     @Override
-    public List<MemoryLocation> visit(final CTypedefType pTypedefType) throws IllegalArgumentException {
+    public ImmutableList<MemoryLocation> visit(final CTypedefType pTypedefType) {
       return pTypedefType.getRealType().accept(this);
     }
 
     @Override
-    public List<MemoryLocation> visit(final CVoidType pVoidType) throws IllegalArgumentException {
+    public ImmutableList<MemoryLocation> visit(final CVoidType pVoidType) {
       return createSingleMemoryLocation(model.getSizeofVoid());
     }
 
-    private List<MemoryLocation> createSingleMemoryLocation(final long pSize) {
+    private ImmutableList<MemoryLocation> createSingleMemoryLocation(final long pSize) {
       if (withinComplexType) {
-        List<MemoryLocation> memory = Collections.singletonList(MemoryLocation.valueOf(qualifiedName, currentOffset));
+        ImmutableList<MemoryLocation> memory =
+            ImmutableList.of(MemoryLocation.fromQualifiedName(qualifiedName, currentOffset));
 
         currentOffset = currentOffset + pSize;
 
         return memory;
       }
 
-      return Collections.singletonList(MemoryLocation.valueOf(qualifiedName));
+      return ImmutableList.of(MemoryLocation.fromQualifiedName(qualifiedName));
     }
 
-    private List<MemoryLocation> createMemoryLocationsForArray(final int pLength, final CType pType) {
+    private ImmutableList<MemoryLocation> createMemoryLocationsForArray(
+        final int pLength, final CType pType) {
       long sizeOfType = model.getSizeof(pType).longValueExact();
 
-      List<MemoryLocation> memoryLocationsForArray = new ArrayList<>(pLength);
+      ImmutableList.Builder<MemoryLocation> memoryLocationsForArray =
+          ImmutableList.builderWithExpectedSize(pLength);
       for (int i = 0; i < pLength; i++) {
         memoryLocationsForArray.addAll(createSingleMemoryLocation(sizeOfType));
       }
 
-      return memoryLocationsForArray;
+      return memoryLocationsForArray.build();
     }
 
-    private List<MemoryLocation> createMemoryLocationsForStructure(final CCompositeType pCompositeType) {
-      List<MemoryLocation> memoryLocationsForStructure = new ArrayList<>();
+    private ImmutableList<MemoryLocation> createMemoryLocationsForStructure(
+        final CCompositeType pCompositeType) {
+      ImmutableList.Builder<MemoryLocation> memoryLocationsForStructure = ImmutableList.builder();
       for (CCompositeTypeMemberDeclaration member : pCompositeType.getMembers()) {
         memoryLocationsForStructure.addAll(member.getType().accept(this));
       }
 
-      return memoryLocationsForStructure;
+      return memoryLocationsForStructure.build();
     }
 
-    private List<MemoryLocation> createMemoryLocationsForUnion(final CCompositeType pCompositeType) {
+    private ImmutableList<MemoryLocation> createMemoryLocationsForUnion(
+        final CCompositeType pCompositeType) {
       return createSingleMemoryLocation(model.getSizeof(pCompositeType).longValueExact());
     }
 
     @Override
-    public List<MemoryLocation> visit(CBitFieldType pCBitFieldType)
-        throws IllegalArgumentException {
+    public ImmutableList<MemoryLocation> visit(CBitFieldType pCBitFieldType) {
       return createSingleMemoryLocation(model.getSizeof(pCBitFieldType).longValueExact());
     }
   }

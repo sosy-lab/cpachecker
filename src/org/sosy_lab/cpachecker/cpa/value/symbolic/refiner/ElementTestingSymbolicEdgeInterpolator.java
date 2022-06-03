@@ -11,10 +11,9 @@ package org.sosy_lab.cpachecker.cpa.value.symbolic.refiner;
 import com.google.common.collect.ImmutableList;
 import java.util.Deque;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Optional;
-import java.util.stream.Collectors;
 import org.sosy_lab.common.ShutdownNotifier;
+import org.sosy_lab.common.collect.Collections3;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -39,16 +38,13 @@ import org.sosy_lab.cpachecker.util.refinement.StrongestPostOperator;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 /**
- * Edge interpolator for
- * {@link org.sosy_lab.cpachecker.cpa.constraints.ConstraintsCPA ConstraintsCPA}.
- * Creates {@link SymbolicInterpolant SymbolicInterpolants} based on a combination of
- * {@link org.sosy_lab.cpachecker.cpa.value.ValueAnalysisCPA ValueAnalysisCPA} and
- * <code>ConstraintsCPA</code>.
+ * Edge interpolator for {@link org.sosy_lab.cpachecker.cpa.constraints.ConstraintsCPA
+ * ConstraintsCPA}. Creates {@link SymbolicInterpolant SymbolicInterpolants} based on a combination
+ * of {@link org.sosy_lab.cpachecker.cpa.value.ValueAnalysisCPA ValueAnalysisCPA} and <code>
+ * ConstraintsCPA</code>.
  */
-
 @Options(prefix = "cpa.value.symbolic.refinement")
-public class ElementTestingSymbolicEdgeInterpolator
-    implements SymbolicEdgeInterpolator {
+public class ElementTestingSymbolicEdgeInterpolator implements SymbolicEdgeInterpolator {
 
   private enum RefinementStrategy {
     /* First try to delete as many constraints as possible, then assignments */
@@ -77,7 +73,7 @@ public class ElementTestingSymbolicEdgeInterpolator
       interpolantManager;
   private final MachineModel machineModel;
 
-  private List<SymbolicStateReducer> stateReducers;
+  private ImmutableList<SymbolicStateReducer> stateReducers;
   private int currentReducerIndex = 0;
 
   private final ShutdownNotifier shutdownNotifier;
@@ -91,8 +87,8 @@ public class ElementTestingSymbolicEdgeInterpolator
       final InterpolantManager<ForgettingCompositeState, SymbolicInterpolant> pInterpolantManager,
       final Configuration pConfig,
       final ShutdownNotifier pShutdownNotifier,
-      final CFA pCfa
-  ) throws InvalidConfigurationException {
+      final CFA pCfa)
+      throws InvalidConfigurationException {
 
     pConfig.inject(this);
 
@@ -100,7 +96,8 @@ public class ElementTestingSymbolicEdgeInterpolator
     strongestPost = pStrongestPost;
     interpolantManager = pInterpolantManager;
     shutdownNotifier = pShutdownNotifier;
-    valuePrecision = VariableTrackingPrecision.createStaticPrecision(
+    valuePrecision =
+        VariableTrackingPrecision.createStaticPrecision(
             pConfig, pCfa.getVarClassification(), ValueAnalysisCPA.class);
     machineModel = pCfa.getMachineModel();
 
@@ -121,10 +118,8 @@ public class ElementTestingSymbolicEdgeInterpolator
         throw new AssertionError("Unhandled strategy: " + strategy);
     }
     if (avoidConstraints) {
-      stateReducers = stateReducers
-          .stream()
-          .map(r -> new AvoidConstraintsReducer(r))
-          .collect(Collectors.toList());
+      stateReducers =
+          Collections3.transformedImmutableListCopy(stateReducers, AvoidConstraintsReducer::new);
     }
   }
 
@@ -134,8 +129,8 @@ public class ElementTestingSymbolicEdgeInterpolator
       final CFAEdge pCurrentEdge,
       final Deque<ForgettingCompositeState> pCallstack,
       final PathPosition pLocationInPath,
-      final SymbolicInterpolant pInputInterpolant
-  ) throws CPAException, InterruptedException {
+      final SymbolicInterpolant pInputInterpolant)
+      throws CPAException, InterruptedException {
 
     interpolationQueries = 0;
 
@@ -303,8 +298,7 @@ public class ElementTestingSymbolicEdgeInterpolator
 
     private ForgettingCompositeState removeAllConstraints(final ForgettingCompositeState pState) {
       return new ForgettingCompositeState(
-          pState.getValueState(),
-          new ConstraintsState(new HashSet<>()));
+          pState.getValueState(), new ConstraintsState(new HashSet<>()));
     }
   }
 }

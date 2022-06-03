@@ -17,7 +17,6 @@ import java.io.IOException;
 import java.io.PrintStream;
 import java.nio.file.Path;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.Callable;
@@ -56,13 +55,16 @@ import org.sosy_lab.cpachecker.cpa.assumptions.storage.AssumptionStorageState;
 import org.sosy_lab.cpachecker.cpa.automaton.Automaton;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
+import org.sosy_lab.cpachecker.util.predicates.invariants.ExpressionTreeInvariantSupplier;
+import org.sosy_lab.cpachecker.util.predicates.invariants.FormulaInvariantsSupplier;
 
 /**
- * Class that encapsulates invariant generation by using the CPAAlgorithm
- * with an appropriate configuration.
+ * Class that encapsulates invariant generation by using the CPAAlgorithm with an appropriate
+ * configuration.
  */
-@Options(prefix="invariantGeneration")
-public class CPAInvariantGenerator extends AbstractInvariantGenerator implements StatisticsProvider {
+@Options(prefix = "invariantGeneration")
+public class CPAInvariantGenerator extends AbstractInvariantGenerator
+    implements StatisticsProvider {
 
   public static class CPAInvariantGeneratorStatistics implements Statistics {
 
@@ -85,9 +87,11 @@ public class CPAInvariantGenerator extends AbstractInvariantGenerator implements
     }
   }
 
-  @Option(secure=true, name="config",
-          required=true,
-          description="configuration file for invariant generation")
+  @Option(
+      secure = true,
+      name = "config",
+      required = true,
+      description = "configuration file for invariant generation")
   @FileOption(FileOption.Type.REQUIRED_INPUT_FILE)
   private Path configFile;
 
@@ -110,15 +114,16 @@ public class CPAInvariantGenerator extends AbstractInvariantGenerator implements
   private volatile boolean programIsSafe = false;
 
   @SuppressWarnings("UnnecessaryAnonymousClass") // ShutdownNotifier needs a strong reference
-  private final ShutdownRequestListener shutdownListener = new ShutdownRequestListener() {
+  private final ShutdownRequestListener shutdownListener =
+      new ShutdownRequestListener() {
 
-    @Override
-    public void shutdownRequested(String pReason) {
-      if (!invariantGenerationFuture.isDone() && !programIsSafe) {
-        invariantGenerationFuture.cancel(true);
-      }
-    }
-  };
+        @Override
+        public void shutdownRequested(String pReason) {
+          if (!invariantGenerationFuture.isDone() && !programIsSafe) {
+            invariantGenerationFuture.cancel(true);
+          }
+        }
+      };
 
   private Optional<ShutdownManager> shutdownOnSafeNotifier;
 
@@ -128,14 +133,12 @@ public class CPAInvariantGenerator extends AbstractInvariantGenerator implements
    * @param pConfig the configuration options.
    * @param pLogger the logger to be used.
    * @param pShutdownManager shutdown notifier to shutdown the invariant generator.
-   * @param pShutdownOnSafeManager optional shutdown notifier that will be
-   * notified if the invariant generator proves safety.
+   * @param pShutdownOnSafeManager optional shutdown notifier that will be notified if the invariant
+   *     generator proves safety.
    * @param pCFA the CFA to run the CPA on.
-   * @param additionalAutomata additional specification automata that should be used
-   *                           during invariant generation
-   *
+   * @param additionalAutomata additional specification automata that should be used during
+   *     invariant generation
    * @return a new {@link CPAInvariantGenerator}.
-   *
    * @throws InvalidConfigurationException if the configuration is invalid.
    * @throws CPAException if the CPA cannot be created.
    */
@@ -153,14 +156,14 @@ public class CPAInvariantGenerator extends AbstractInvariantGenerator implements
         ShutdownManager.createWithParent(pShutdownManager.getNotifier());
 
     return new CPAInvariantGenerator(
-            pConfig,
-            pLogger.withComponentName("CPAInvariantGenerator"),
-            childShutdownManager,
-            pShutdownOnSafeManager,
-            1,
-            pCFA,
-            specification,
-            additionalAutomata);
+        pConfig,
+        pLogger.withComponentName("CPAInvariantGenerator"),
+        childShutdownManager,
+        pShutdownOnSafeManager,
+        1,
+        pCFA,
+        specification,
+        additionalAutomata);
   }
 
   private CPAInvariantGenerator(
@@ -184,18 +187,20 @@ public class CPAInvariantGenerator extends AbstractInvariantGenerator implements
     try {
       invariantConfig = Configuration.builder().loadFromFile(configFile).build();
     } catch (IOException e) {
-      throw new InvalidConfigurationException("could not read configuration file for invariant generation: " + e.getMessage(), e);
+      throw new InvalidConfigurationException(
+          "could not read configuration file for invariant generation: " + e.getMessage(), e);
     }
 
     reachedSetFactory = new ReachedSetFactory(invariantConfig, logger);
     cfa = pCFA;
     cpa =
         new CPABuilder(invariantConfig, logger, shutdownManager.getNotifier(), reachedSetFactory)
-            .buildCPAs(cfa, pSpecification, pAdditionalAutomata, new AggregatedReachedSets());
+            .buildCPAs(cfa, pSpecification, pAdditionalAutomata, AggregatedReachedSets.empty());
     algorithm = CPAAlgorithm.create(cpa, logger, invariantConfig, shutdownManager.getNotifier());
   }
 
-  private CPAInvariantGenerator(final Configuration config,
+  private CPAInvariantGenerator(
+      final Configuration config,
       final LogManager pLogger,
       final ShutdownManager pShutdownManager,
       Optional<ShutdownManager> pShutdownOnSafeManager,
@@ -204,7 +209,8 @@ public class CPAInvariantGenerator extends AbstractInvariantGenerator implements
       ReachedSetFactory pReachedSetFactory,
       ConfigurableProgramAnalysis pCPA,
       CPAAlgorithm pAlgorithm,
-      CPAInvariantGeneratorStatistics pStats) throws InvalidConfigurationException {
+      CPAInvariantGeneratorStatistics pStats)
+      throws InvalidConfigurationException {
     config.inject(this);
     logger = pLogger;
     shutdownManager = pShutdownManager;
@@ -236,9 +242,8 @@ public class CPAInvariantGenerator extends AbstractInvariantGenerator implements
     shutdownManager.requestShutdown("Invariant generation cancel requested.");
   }
 
-  @Override
-  public AggregatedReachedSets get() throws CPAException, InterruptedException {
-    checkState(invariantGenerationFuture != null);
+  private AggregatedReachedSets getAggregatedReachedSets()
+      throws CPAException, InterruptedException {
 
     try {
       return invariantGenerationFuture.get();
@@ -252,6 +257,18 @@ public class CPAInvariantGenerator extends AbstractInvariantGenerator implements
   }
 
   @Override
+  public InvariantSupplier getSupplier() throws CPAException, InterruptedException {
+
+    return new FormulaInvariantsSupplier(getAggregatedReachedSets());
+  }
+
+  @Override
+  public ExpressionTreeSupplier getExpressionTreeSupplier()
+      throws CPAException, InterruptedException {
+    return new ExpressionTreeInvariantSupplier(getAggregatedReachedSets(), cfa);
+  }
+
+  @Override
   public boolean isProgramSafe() {
     return programIsSafe;
   }
@@ -259,20 +276,20 @@ public class CPAInvariantGenerator extends AbstractInvariantGenerator implements
   @Override
   public void collectStatistics(Collection<Statistics> pStatsCollection) {
     if (cpa instanceof StatisticsProvider) {
-      ((StatisticsProvider)cpa).collectStatistics(pStatsCollection);
+      ((StatisticsProvider) cpa).collectStatistics(pStatsCollection);
     }
     algorithm.collectStatistics(pStatsCollection);
     pStatsCollection.add(stats);
   }
 
   /**
-   * Callable for creating invariants by running the CPAAlgorithm,
-   * potentially in a loop with increasing precision.
-   * Returns the final invariants.
+   * Callable for creating invariants by running the CPAAlgorithm, potentially in a loop with
+   * increasing precision. Returns the final invariants.
    */
   private class InvariantGenerationTask implements Callable<AggregatedReachedSets> {
 
-    private static final String SAFE_MESSAGE = "Invariant generation with abstract interpretation proved specification to hold.";
+    private static final String SAFE_MESSAGE =
+        "Invariant generation with abstract interpretation proved specification to hold.";
     private final CFANode initialLocation;
 
     private InvariantGenerationTask(final CFANode pInitialLocation) {
@@ -285,7 +302,11 @@ public class CPAInvariantGenerator extends AbstractInvariantGenerator implements
       try {
 
         shutdownManager.getNotifier().shutdownIfNecessary();
-        logger.log(Level.INFO, "Starting iteration", iteration, "of invariant generation with abstract interpretation.");
+        logger.log(
+            Level.INFO,
+            "Starting iteration",
+            iteration,
+            "of invariant generation with abstract interpretation.");
 
         return runInvariantGeneration(initialLocation);
 
@@ -297,18 +318,18 @@ public class CPAInvariantGenerator extends AbstractInvariantGenerator implements
     private AggregatedReachedSets runInvariantGeneration(CFANode pInitialLocation)
         throws CPAException, InterruptedException {
 
-      ReachedSet taskReached = reachedSetFactory.create();
-      taskReached.add(cpa.getInitialState(pInitialLocation, StateSpacePartition.getDefaultPartition()),
-          cpa.getInitialPrecision(pInitialLocation, StateSpacePartition.getDefaultPartition()));
+      ReachedSet taskReached =
+          reachedSetFactory.createAndInitialize(
+              cpa, pInitialLocation, StateSpacePartition.getDefaultPartition());
 
       while (taskReached.hasWaitingState()) {
         if (!algorithm.run(taskReached).isSound()) {
           // ignore unsound invariant and abort
-          return new AggregatedReachedSets();
+          return AggregatedReachedSets.empty();
         }
       }
 
-      if (!taskReached.hasViolatedProperties()
+      if (!taskReached.wasTargetReached()
           && !from(taskReached).anyMatch(CPAInvariantGenerator::hasAssumption)) {
         // program is safe (waitlist is empty, algorithm was sound, no target states present)
         logger.log(Level.INFO, SAFE_MESSAGE);
@@ -320,11 +341,11 @@ public class CPAInvariantGenerator extends AbstractInvariantGenerator implements
 
       checkState(!taskReached.hasWaitingState());
       checkState(!taskReached.isEmpty());
-      return new AggregatedReachedSets(Collections.singleton(taskReached));
+      return AggregatedReachedSets.singleton(taskReached);
     }
   }
 
-  private static final boolean hasAssumption(AbstractState state) {
+  private static boolean hasAssumption(AbstractState state) {
     AssumptionStorageState assumption =
         AbstractStates.extractStateByType(state, AssumptionStorageState.class);
     return assumption != null && !assumption.isStopFormulaTrue() && !assumption.isAssumptionTrue();

@@ -42,7 +42,6 @@ import org.sosy_lab.cpachecker.cpa.constraints.domain.SubsetLessOrEqualOperator;
 import org.sosy_lab.cpachecker.cpa.constraints.refiner.ConstraintsPrecisionAdjustment;
 import org.sosy_lab.cpachecker.cpa.constraints.refiner.precision.ConstraintsPrecision;
 import org.sosy_lab.cpachecker.cpa.constraints.refiner.precision.FullConstraintsPrecision;
-import org.sosy_lab.cpachecker.cpa.value.symbolic.util.SymbolicValues;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaConverter;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.CToFormulaConverterWithPointerAliasing;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.FormulaEncodingWithPointerAliasingOptions;
@@ -59,12 +58,15 @@ public class ConstraintsCPA
     SUBSET,
   }
 
-  public enum MergeType { SEP, JOIN_FITTING_CONSTRAINT }
+  public enum MergeType {
+    SEP,
+    JOIN_FITTING_CONSTRAINT
+  }
 
   @Option(description = "Type of less-or-equal operator to use", toUppercase = true)
   private ComparisonType lessOrEqualType = ComparisonType.SUBSET;
 
-  @Option(description = "Type of merge operator to use", toUppercase =  true)
+  @Option(description = "Type of merge operator to use", toUppercase = true)
   private MergeType mergeType = MergeType.SEP;
 
   private final LogManager logger;
@@ -85,8 +87,9 @@ public class ConstraintsCPA
     return AutomaticCPAFactory.forType(ConstraintsCPA.class);
   }
 
-  private ConstraintsCPA(Configuration pConfig, LogManager pLogger, ShutdownNotifier pShutdownNotifier,
-      CFA pCfa) throws InvalidConfigurationException {
+  private ConstraintsCPA(
+      Configuration pConfig, LogManager pLogger, ShutdownNotifier pShutdownNotifier, CFA pCfa)
+      throws InvalidConfigurationException {
 
     pConfig.inject(this);
 
@@ -94,11 +97,10 @@ public class ConstraintsCPA
     solver = Solver.create(pConfig, pLogger, pShutdownNotifier);
     FormulaManagerView formulaManager = solver.getFormulaManager();
     CtoFormulaConverter converter =
-        initializeCToFormulaConverter(formulaManager, pLogger, pConfig, pShutdownNotifier,
-            pCfa.getMachineModel());
+        initializeCToFormulaConverter(
+            formulaManager, pLogger, pConfig, pShutdownNotifier, pCfa.getMachineModel());
     constraintsSolver = new ConstraintsSolver(pConfig, solver, formulaManager, converter, stats);
 
-    SymbolicValues.initialize();
     abstractDomain = initializeAbstractDomain();
     mergeOperator = initializeMergeOperator();
     stopOperator = initializeStopOperator();
@@ -134,7 +136,6 @@ public class ConstraintsCPA
         typeHandler,
         AnalysisDirection.FORWARD);
   }
-
 
   private MergeOperator initializeMergeOperator() {
     switch (mergeType) {

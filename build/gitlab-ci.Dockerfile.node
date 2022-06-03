@@ -14,12 +14,20 @@
 # docker build --pull -t registry.gitlab.com/sosy-lab/software/cpachecker/test:node - < build/gitlab-ci.Dockerfile.node
 # docker push registry.gitlab.com/sosy-lab/software/cpachecker/test
 
-# We base it on Ubuntu 18.04 instead of some Node image
+# We base it on Ubuntu 20.04 instead of some Node image
 # to make sure that the tests are also executable on a standard Ubuntu easily.
-FROM ubuntu:18.04
+FROM ubuntu:20.04
+
+# Prevent Ubuntu from waiting for user input during setup
+ARG DEBIAN_FRONTEND=noninteractive
 
 RUN apt-get update && apt-get install -y \
-      chromium-browser \
       firefox \
       nodejs \
-      npm
+      npm \
+      wget \
+      git
+
+RUN wget https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb && \
+    apt-get install -y ./google-chrome-stable_current_amd64.deb && \
+    rm google-chrome-stable_current_amd64.deb

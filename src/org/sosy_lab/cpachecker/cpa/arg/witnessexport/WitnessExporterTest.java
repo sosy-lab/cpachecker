@@ -10,24 +10,21 @@ package org.sosy_lab.cpachecker.cpa.arg.witnessexport;
 
 import static com.google.common.truth.Truth.assertWithMessage;
 
-import com.google.common.base.Charsets;
 import com.google.common.base.Joiner;
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableMap;
 import com.google.errorprone.annotations.CanIgnoreReturnValue;
-import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.Writer;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import java.util.stream.Collectors;
 import org.junit.Test;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.ConfigurationBuilder;
@@ -58,7 +55,7 @@ public class WitnessExporterTest {
 
     private final String fileName;
 
-    private WitnessGenerationConfig(String pConfigName) {
+    WitnessGenerationConfig(String pConfigName) {
       fileName = String.format("witnessGeneration-%s.properties", pConfigName);
     }
   }
@@ -128,21 +125,20 @@ public class WitnessExporterTest {
   @Test(timeout = 90000)
   public void rule60_list2_false_2() throws Exception {
     new WitnessTester(
-        "rule60_list2.i", ExpectedVerdict.FALSE, WitnessGenerationConfig.VALUE_ANALYSIS)
+            "rule60_list2.i", ExpectedVerdict.FALSE, WitnessGenerationConfig.VALUE_ANALYSIS)
         .performTest();
   }
 
   @Test(timeout = 90000)
   public void valueInvariant_true() throws Exception {
     new WitnessTester(
-        "valueInvariant.c", ExpectedVerdict.TRUE, WitnessGenerationConfig.VALUE_ANALYSIS)
+            "valueInvariant.c", ExpectedVerdict.TRUE, WitnessGenerationConfig.VALUE_ANALYSIS)
         .performTest();
   }
 
   @Test(timeout = 90000)
   public void valueInvariant_true_2() throws Exception {
-    new WitnessTester(
-        "valueInvariant.c", ExpectedVerdict.TRUE, WitnessGenerationConfig.BAM)
+    new WitnessTester("valueInvariant.c", ExpectedVerdict.TRUE, WitnessGenerationConfig.BAM)
         .performTest();
   }
 
@@ -153,15 +149,16 @@ public class WitnessExporterTest {
 
   @Test(timeout = 90000)
   public void weekdays_true() throws Exception {
-    new WitnessTester(
-            "weekdays.c", ExpectedVerdict.TRUE, WitnessGenerationConfig.VALUE_ANALYSIS)
+    new WitnessTester("weekdays.c", ExpectedVerdict.TRUE, WitnessGenerationConfig.VALUE_ANALYSIS)
         .performTest();
   }
 
   @Test(timeout = 90000)
   public void weekdays_no_termination_true() throws Exception {
     new WitnessTester(
-        "weekdays_no_termination.c", ExpectedVerdict.TRUE, WitnessGenerationConfig.VALUE_ANALYSIS)
+            "weekdays_no_termination.c",
+            ExpectedVerdict.TRUE,
+            WitnessGenerationConfig.VALUE_ANALYSIS)
         .performTest();
   }
 
@@ -172,7 +169,7 @@ public class WitnessExporterTest {
       WitnessGenerationConfig pGenerationConfig,
       Map<String, String> pOverrideOptions)
       throws Exception {
-    String fullPath = Paths.get(TEST_DIR_PATH, pFilename).toString();
+    String fullPath = Path.of(TEST_DIR_PATH, pFilename).toString();
 
     TempCompressedFilePath witnessPath = new TempCompressedFilePath("witness", ".graphml");
 
@@ -205,7 +202,7 @@ public class WitnessExporterTest {
     } else {
       overrideOptions.put("cpa.arg.proofWitness", pWitnessPath.uncompressedFilePath.toString());
     }
-    if(pExpected.equals(ExpectedVerdict.TRUE)) {
+    if (pExpected.equals(ExpectedVerdict.TRUE)) {
       overrideOptions.put("cpa.arg.compressWitness", "false");
     }
     Configuration generationConfig =
@@ -229,30 +226,22 @@ public class WitnessExporterTest {
   }
 
   private static String getInvGenFile(TempCompressedFilePath pWitnessPath) throws IOException {
-    Path origInvGenConfigFile = Paths.get("test/config/invariantGeneration-witness.properties");
+    Path origInvGenConfigFile = Path.of("test/config/invariantGeneration-witness.properties");
     Path invGenConfigFile =
         origInvGenConfigFile.resolveSibling(
             pWitnessPath.uncompressedFilePath.getFileName() + ".properties");
     invGenConfigFile.toFile().deleteOnExit();
     Files.copy(origInvGenConfigFile, invGenConfigFile);
-    List<String> lines;
-    try (BufferedReader reader = Files.newBufferedReader(invGenConfigFile)) {
-      lines =
-          reader
-              .lines()
-              .map(
-                  line -> {
-                    Matcher matcher = PROOF_WITNESS_OPTION_PATTERN.matcher(line);
-                    if (matcher.matches()) {
-                      return matcher.group(1) + pWitnessPath.uncompressedFilePath.toString();
-                    }
-                    return line;
-                  })
-              .collect(Collectors.toList());
-    }
-    try (Writer writer = IO.openOutputFile(invGenConfigFile, Charsets.UTF_8)) {
+    List<String> lines = Files.readAllLines(invGenConfigFile);
+    try (Writer writer = IO.openOutputFile(invGenConfigFile, StandardCharsets.UTF_8)) {
       for (String line : lines) {
-        writer.write(line);
+        Matcher matcher = PROOF_WITNESS_OPTION_PATTERN.matcher(line);
+        if (matcher.matches()) {
+          writer.write(matcher.group(1));
+          writer.write(pWitnessPath.uncompressedFilePath.toString());
+        } else {
+          writer.write(line);
+        }
         writer.write(System.lineSeparator());
       }
     }
@@ -330,7 +319,8 @@ public class WitnessExporterTest {
               .toAbsolutePath();
       Path compressedFileNamePath = compressedFilePath.getFileName();
       if (compressedFileNamePath == null) {
-        throw new AssertionError("Files obtained from TempFile.builder().create() should always have a file name.");
+        throw new AssertionError(
+            "Files obtained from TempFile.builder().create() should always have a file name.");
       }
       String fileName = compressedFileNamePath.toString();
       String uncompressedFileName =
@@ -396,7 +386,7 @@ public class WitnessExporterTest {
           specificationFile,
           expected,
           generationConfig,
-          overrideOptionsBuilder.build());
+          overrideOptionsBuilder.buildOrThrow());
     }
   }
 }

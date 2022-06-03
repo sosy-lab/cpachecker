@@ -169,7 +169,7 @@ public class MPVTest {
     builder.put("mpv.propertySeparator", propertySeparator);
     builder.put("mpv.partitionOperator", partitioningOperator);
     builder.put("mpv.findAllViolations", String.valueOf(findAllViolations));
-    return builder.build();
+    return builder.buildOrThrow();
   }
 
   private List<AbstractSingleProperty> parseResult(CPAcheckerResult result) {
@@ -211,7 +211,7 @@ public class MPVTest {
       }
       matcher = RELEVANCY_PATTERN.matcher(line);
       if (matcher.find()) {
-        boolean isRelevant = Boolean.valueOf(matcher.group(1));
+        boolean isRelevant = Boolean.parseBoolean(matcher.group(1));
         assert currentProperty != null;
         if (isRelevant) {
           currentProperty.setRelevant();
@@ -219,7 +219,7 @@ public class MPVTest {
       }
       matcher = ALL_VIOLATIONS_PATTERN.matcher(line);
       if (matcher.find()) {
-        boolean isAllViolationsFound = Boolean.valueOf(matcher.group(1));
+        boolean isAllViolationsFound = Boolean.parseBoolean(matcher.group(1));
         assert currentProperty != null;
         if (isAllViolationsFound) {
           currentProperty.allViolationsFound();

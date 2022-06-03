@@ -136,7 +136,7 @@ class DataRaceTracker {
         if (declaration instanceof CVariableDeclaration) {
           CVariableDeclaration variableDeclaration = (CVariableDeclaration) declaration;
           MemoryLocation declaredVariable =
-              MemoryLocation.valueOf(variableDeclaration.getQualifiedName());
+              MemoryLocation.fromQualifiedName(variableDeclaration.getQualifiedName());
           accessedByEdge.add(declaredVariable);
           CInitializer initializer = variableDeclaration.getInitializer();
           if (initializer != null) {

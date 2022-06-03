@@ -15,8 +15,14 @@ public enum SMGRuntimeCheck {
   FULL(2);
 
   private final int id;
-  SMGRuntimeCheck(int pId) { id = pId; }
-  public int getValue() { return id; }
+
+  SMGRuntimeCheck(int pId) {
+    id = pId;
+  }
+
+  public int getValue() {
+    return id;
+  }
 
   public boolean isFinerOrEqualThan(SMGRuntimeCheck other) {
     return id >= other.id;

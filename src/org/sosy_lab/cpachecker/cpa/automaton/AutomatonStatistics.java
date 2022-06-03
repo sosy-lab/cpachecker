@@ -17,16 +17,23 @@ import org.sosy_lab.cpachecker.util.statistics.StatIntHist;
 import org.sosy_lab.cpachecker.util.statistics.StatKind;
 import org.sosy_lab.cpachecker.util.statistics.ThreadSafeTimerContainer;
 
+@SuppressWarnings("deprecation") // remove ThreadSafeTimerContainer
 class AutomatonStatistics implements Statistics {
 
   private final Automaton automaton;
 
-  ThreadSafeTimerContainer totalPostTime       = new ThreadSafeTimerContainer("Total time for successor computation");
-  ThreadSafeTimerContainer matchTime           = new ThreadSafeTimerContainer("Time for transition matches");
-  ThreadSafeTimerContainer assertionsTime      = new ThreadSafeTimerContainer("Time for transition assertions");
-  ThreadSafeTimerContainer actionTime          = new ThreadSafeTimerContainer("Time for transition actions");
-  ThreadSafeTimerContainer totalStrengthenTime = new ThreadSafeTimerContainer("Total time for strengthen operator");
-  StatIntHist automatonSuccessors = new StatIntHist(StatKind.AVG, "Automaton transfer successors");
+  final ThreadSafeTimerContainer totalPostTime =
+      new ThreadSafeTimerContainer("Total time for successor computation");
+  final ThreadSafeTimerContainer matchTime =
+      new ThreadSafeTimerContainer("Time for transition matches");
+  final ThreadSafeTimerContainer assertionsTime =
+      new ThreadSafeTimerContainer("Time for transition assertions");
+  final ThreadSafeTimerContainer actionTime =
+      new ThreadSafeTimerContainer("Time for transition actions");
+  final ThreadSafeTimerContainer totalStrengthenTime =
+      new ThreadSafeTimerContainer("Total time for strengthen operator");
+  final StatIntHist automatonSuccessors =
+      new StatIntHist(StatKind.AVG, "Automaton transfer successors");
 
   public AutomatonStatistics(Automaton pAutomaton) {
     automaton = pAutomaton;

@@ -114,8 +114,7 @@ class InOutVariablesCollector extends DefaultFormulaVisitor<TraversalProcess> {
     public TraversalProcess visitFunction(
         Formula pF, List<Formula> pArgs, FunctionDeclaration<?> pFunctionDeclaration) {
       // ignore meta variables and variables that are not in the current scope
-      if (!pArgs
-          .stream()
+      if (!pArgs.stream()
           .map(formulaManagerView::uninstantiate)
           .flatMap(f -> formulaManagerView.extractVariableNames(f).stream())
           .allMatch(relevantVariables::contains)) {
@@ -123,8 +122,7 @@ class InOutVariablesCollector extends DefaultFormulaVisitor<TraversalProcess> {
       }
 
       int argIndexes =
-          pArgs
-              .stream()
+          pArgs.stream()
               .flatMap(f -> formulaManagerView.extractFunctionNames(f).stream())
               .map(FormulaManagerView::parseName)
               .map(Pair::getSecondNotNull)
@@ -149,14 +147,14 @@ class InOutVariablesCollector extends DefaultFormulaVisitor<TraversalProcess> {
   public Set<Formula> getInVariables() {
     ImmutableSet.Builder<Formula> allInVariables = ImmutableSet.builder();
     allInVariables.addAll(inVariables);
-    ufs.values().stream().map(m -> m.get(m.firstKey())).forEach(allInVariables::add);
+    ufs.values().stream().map(m -> m.firstEntry().getValue()).forEach(allInVariables::add);
     return allInVariables.build();
   }
 
   public Set<Formula> getOutVariables() {
     ImmutableSet.Builder<Formula> allOutVariables = ImmutableSet.builder();
     allOutVariables.addAll(outVariables);
-    ufs.values().stream().map(m -> m.get(m.lastKey())).forEach(allOutVariables::add);
+    ufs.values().stream().map(m -> m.lastEntry().getValue()).forEach(allOutVariables::add);
     return allOutVariables.build();
   }
 }

@@ -10,19 +10,16 @@ package org.sosy_lab.cpachecker.cfa.parser.eclipse.c;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
+import com.google.common.base.Preconditions;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Deque;
 import java.util.List;
-
 import org.eclipse.cdt.core.dom.ast.IASTExpression;
-import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
-
-import com.google.common.base.Preconditions;
-
+import org.sosy_lab.cpachecker.util.Pair;
 
 class Sideassignments {
 
@@ -36,7 +33,10 @@ class Sideassignments {
     conditionalExpressions = new ArrayDeque<>();
   }
 
-  public Sideassignments(Deque<List<CAstNode>> preSideAssignments, Deque<List<CAstNode>> postSideAssignments, Deque<List<Pair<IASTExpression, CIdExpression>>> conditionalExpressions) {
+  public Sideassignments(
+      Deque<List<CAstNode>> preSideAssignments,
+      Deque<List<CAstNode>> postSideAssignments,
+      Deque<List<Pair<IASTExpression, CIdExpression>>> conditionalExpressions) {
     this.preSideAssignments = preSideAssignments;
     this.postSideAssignments = postSideAssignments;
     this.conditionalExpressions = conditionalExpressions;
@@ -49,9 +49,13 @@ class Sideassignments {
   }
 
   public void leaveBlock() {
-    Preconditions.checkArgument(!preSideAssignments.isEmpty(), "leaving sideassignment block before handling all of them");
-    Preconditions.checkArgument(!postSideAssignments.isEmpty(), "leaving sideassignment block before handling all of them");
-    Preconditions.checkArgument(!conditionalExpressions.isEmpty(), "leaving sideassignment block before handling all of them");
+    Preconditions.checkArgument(
+        !preSideAssignments.isEmpty(), "leaving sideassignment block before handling all of them");
+    Preconditions.checkArgument(
+        !postSideAssignments.isEmpty(), "leaving sideassignment block before handling all of them");
+    Preconditions.checkArgument(
+        !conditionalExpressions.isEmpty(),
+        "leaving sideassignment block before handling all of them");
     preSideAssignments.pop();
     postSideAssignments.pop();
     conditionalExpressions.pop();
@@ -70,7 +74,8 @@ class Sideassignments {
   }
 
   public List<Pair<IASTExpression, CIdExpression>> getAndResetConditionalExpressions() {
-    List<Pair<IASTExpression, CIdExpression>> result = new ArrayList<>(conditionalExpressions.peek());
+    List<Pair<IASTExpression, CIdExpression>> result =
+        new ArrayList<>(conditionalExpressions.peek());
     conditionalExpressions.peek().clear();
     return result;
   }

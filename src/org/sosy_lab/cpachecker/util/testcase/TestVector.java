@@ -83,13 +83,12 @@ public class TestVector {
   public List<TestValue> getTestInputsInOrder() {
     checkState(
         inputValues.size()
-            == inputVariableValues.values().size()
+            == inputVariableValues.size()
                 + inputFunctionValues.values().stream()
                     .map(l -> l.size())
                     .reduce(0, (x, y) -> x + y));
     return inputValues;
   }
-
 
   public TestVector addInputValue(AVariableDeclaration pVariable, AInitializer pValue) {
     return addInputValue(pVariable, InitializerTestValue.of(pValue));
@@ -160,7 +159,7 @@ public class TestVector {
 
   @Override
   public String toString() {
-    return inputFunctionValues.toString() + inputVariableValues.toString();
+    return inputFunctionValues.toString() + inputVariableValues;
   }
 
   public static TestVector newTestVector() {
@@ -183,7 +182,7 @@ public class TestVector {
     private final AFunctionDeclaration declaration;
 
     public ComparableFunctionDeclaration(AFunctionDeclaration pDeclaration) {
-      this.declaration = Objects.requireNonNull(pDeclaration);
+      declaration = Objects.requireNonNull(pDeclaration);
     }
 
     @Override
@@ -233,7 +232,7 @@ public class TestVector {
     private final AVariableDeclaration declaration;
 
     public ComparableVariableDeclaration(AVariableDeclaration pDeclaration) {
-      this.declaration = Objects.requireNonNull(pDeclaration);
+      declaration = Objects.requireNonNull(pDeclaration);
     }
 
     @Override

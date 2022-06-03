@@ -17,7 +17,7 @@ import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.core.specification.SpecificationProperty;
+import org.sosy_lab.cpachecker.core.specification.Property;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon;
 
 public class XMLTestCaseExport {
@@ -27,7 +27,7 @@ public class XMLTestCaseExport {
   public static void writeXMLMetadata(
       final Appendable pWriter,
       final CFA pCfa,
-      final @Nullable SpecificationProperty pProp,
+      final @Nullable Property pProp,
       final String producerString)
       throws IOException {
 
@@ -36,7 +36,8 @@ public class XMLTestCaseExport {
 
     pWriter.append(
         "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"no\"?>\n"
-            + "<!DOCTYPE test-metadata SYSTEM \"https://gitlab.com/sosy-lab/software/test-format/blob/master/test-metadata.dtd\">\n");
+            + "<!DOCTYPE test-metadata SYSTEM"
+            + " \"https://gitlab.com/sosy-lab/software/test-format/blob/master/test-metadata.dtd\">\n");
     pWriter.append("<test-metadata>\n");
 
     pWriter.append("\t<sourcecodelang>");
@@ -49,7 +50,7 @@ public class XMLTestCaseExport {
 
     if (pProp != null) {
       pWriter.append("\t<specification>");
-      pWriter.append(pProp.toString());
+      pWriter.append(pProp.toFullString(pCfa));
       pWriter.append("</specification>\n");
     } else {
       pWriter.append("\t<specification/>\n");
@@ -86,7 +87,8 @@ public class XMLTestCaseExport {
         StringBuilder strB = new StringBuilder();
         strB.append("<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"no\"?>\n");
         strB.append(
-            "<!DOCTYPE testcase SYSTEM \"https://gitlab.com/sosy-lab/software/test-format/blob/master/testcase.dtd\">\n");
+            "<!DOCTYPE testcase SYSTEM"
+                + " \"https://gitlab.com/sosy-lab/software/test-format/blob/master/testcase.dtd\">\n");
         strB.append("<testcase>\n");
         for (String value : valueList) {
           strB.append("\t<input>");

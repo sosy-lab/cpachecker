@@ -100,7 +100,7 @@ public class SMGTest {
 
     assertThat(smg1.getHVEdges()).hasSize(0);
 
-    //copy constructor
+    // copy constructor
     SMG smg_copy = new SMG(smg1);
     assertThat(SMGConsistencyVerifier.verifySMG(logger, smg1)).isTrue();
     assertThat(SMGConsistencyVerifier.verifySMG(logger, smg_copy)).isTrue();
@@ -347,7 +347,7 @@ public class SMGTest {
     assertThat(smg.isObjectValid(new SMGRegion(192, "wee"))).isFalse();
   }
 
-  @Test(expected=IllegalArgumentException.class)
+  @Test(expected = IllegalArgumentException.class)
   public void setValidityBadCallTest() {
     smg.setValidity(new SMGRegion(192, "wee"), true);
   }

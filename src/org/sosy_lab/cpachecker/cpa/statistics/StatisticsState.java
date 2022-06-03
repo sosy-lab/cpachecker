@@ -10,7 +10,6 @@ package org.sosy_lab.cpachecker.cpa.statistics;
 
 import static com.google.common.base.Preconditions.checkState;
 
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -20,16 +19,11 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithLocation;
 import org.sosy_lab.cpachecker.core.interfaces.Partitionable;
-import org.sosy_lab.cpachecker.util.CFAUtils;
 
-/**
- * Represents a state along the currently analysed path within the StatisticsCPA domain.
- */
+/** Represents a state along the currently analysed path within the StatisticsCPA domain. */
 public class StatisticsState implements AbstractStateWithLocation, Partitionable {
 
-  /**
-   * This class handles the logic of creating new states and merging them.
-   */
+  /** This class handles the logic of creating new states and merging them. */
   public static class StatisticsStateFactory {
     private Set<StatisticsProvider> propertyProviders = new HashSet<>();
     private boolean fixed = false;
@@ -37,8 +31,9 @@ public class StatisticsState implements AbstractStateWithLocation, Partitionable
     private StatisticsData analysisData = null;
     private Map<CFAEdge, Boolean> analysisTrack = null;
 
-    public static enum FactoryAnalysisType {
-      Analysis, MetricsQuery
+    public enum FactoryAnalysisType {
+      Analysis,
+      MetricsQuery
     }
 
     public StatisticsStateFactory(FactoryAnalysisType analysisType) {
@@ -47,14 +42,14 @@ public class StatisticsState implements AbstractStateWithLocation, Partitionable
 
     public void setAnalysisType(FactoryAnalysisType analysisType) {
       switch (analysisType) {
-      case Analysis:
-        isAnalysis = true;
-        break;
-      case MetricsQuery:
-        isAnalysis = false;
-        break;
-      default:
-        throw new IllegalStateException("unknown analysisType");
+        case Analysis:
+          isAnalysis = true;
+          break;
+        case MetricsQuery:
+          isAnalysis = false;
+          break;
+        default:
+          throw new IllegalStateException("unknown analysisType");
       }
     }
 
@@ -78,7 +73,6 @@ public class StatisticsState implements AbstractStateWithLocation, Partitionable
       return new StatisticsState(initialState, this, node);
     }
 
-
     public StatisticsState nextState(StatisticsState state, CFAEdge successor) {
       StatisticsData nextState = null;
       if (!isAnalysis) {
@@ -93,18 +87,15 @@ public class StatisticsState implements AbstractStateWithLocation, Partitionable
     }
 
     public StatisticsState mergedState(StatisticsState state1, StatisticsState state2) {
-      assert Objects
-          .equals(state1.getLocationNode(), state2.getLocationNode()) : "Locations have to match!";
-      return
-          new StatisticsState(
-              state1.data.mergeState(state2.data),
-              this,
-              state1.locationNode);
+      assert Objects.equals(state1.getLocationNode(), state2.getLocationNode())
+          : "Locations have to match!";
+      return new StatisticsState(state1.data.mergeState(state2.data), this, state1.locationNode);
     }
 
     public boolean containsPrevious(StatisticsState state1, StatisticsState state2) {
       if (!isAnalysis) {
-        throw new  UnsupportedOperationException("Not implemented jet. Figure out if this is already covered (see also mergedState)");
+        throw new UnsupportedOperationException(
+            "Not implemented jet. Figure out if this is already covered (see also mergedState)");
       }
 
       return state1.locationNode.equals(state2.locationNode);
@@ -119,40 +110,21 @@ public class StatisticsState implements AbstractStateWithLocation, Partitionable
   private final StatisticsStateFactory factory;
   private final StatisticsData data;
 
-  /**
-   * Should only be used by StatisticsStateFactory
-   */
-  private StatisticsState(StatisticsData data, StatisticsStateFactory factory, CFANode locationNode) {
-      this.locationNode = locationNode;
-      this.factory = factory;
-      this.data = data;
+  /** Should only be used by StatisticsStateFactory */
+  private StatisticsState(
+      StatisticsData data, StatisticsStateFactory factory, CFANode locationNode) {
+    this.locationNode = locationNode;
+    this.factory = factory;
+    this.data = data;
   }
 
   public StatisticsData getStatistics() {
-    if (data == null) {
-      return null;
-    }
     return data;
   }
 
   @Override
   public CFANode getLocationNode() {
-      return locationNode;
-  }
-
-  @Override
-  public Iterable<CFANode> getLocationNodes() {
-    return Collections.singleton(locationNode);
-  }
-
-  @Override
-  public Iterable<CFAEdge> getOutgoingEdges() {
-    return CFAUtils.leavingEdges(locationNode);
-  }
-
-  @Override
-  public Iterable<CFAEdge> getIngoingEdges() {
-    return CFAUtils.enteringEdges(locationNode);
+    return locationNode;
   }
 
   @Override
@@ -179,23 +151,23 @@ public class StatisticsState implements AbstractStateWithLocation, Partitionable
 
   @Override
   public int hashCode() {
-      int hash = 1;
-      //hash = hash * 17 + covered.hashCode();
-      hash = hash * 31 + locationNode.hashCode();
-      return hash;
+    int hash = 1;
+    // hash = hash * 17 + covered.hashCode();
+    hash = hash * 31 + locationNode.hashCode();
+    return hash;
   }
 
   @Override
-  public boolean equals(Object pArg0) {
-    if (super.equals(pArg0)) {
+  public boolean equals(Object pOther) {
+    if (super.equals(pOther)) {
       return true;
     }
-    StatisticsState other = (StatisticsState)pArg0;
+    StatisticsState other = (StatisticsState) pOther;
     if (other == null) {
       return false;
     }
     if (locationNode.equals(other.locationNode)
-        /*&& covered.equals(other.covered)*/) {
+    /*&& covered.equals(other.covered)*/ ) {
       return true;
     }
     return false;

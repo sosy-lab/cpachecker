@@ -35,9 +35,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.util.Pair;
 
-/**
- * Builder to traverse AST. This Class has to be reusable for more ASTs.
- */
+/** Builder to traverse AST. This Class has to be reusable for more ASTs. */
 class CFABuilder extends ASTVisitor {
 
   private static final boolean SKIP_CHILDREN = false;
@@ -83,14 +81,14 @@ class CFABuilder extends ASTVisitor {
 
   /**
    * Retrieves list of all static field declarations
+   *
    * @return global declarations
    */
   public List<Pair<ADeclaration, String>> getStaticFieldDeclarations() {
 
-    Map<String, JFieldDeclaration> staticFieldDeclarations
-                                  = scope.getStaticFieldDeclarations();
+    Map<String, JFieldDeclaration> staticFieldDeclarations = scope.getStaticFieldDeclarations();
 
-    List<Pair<ADeclaration, String>> result = new ArrayList<> (staticFieldDeclarations.size());
+    List<Pair<ADeclaration, String>> result = new ArrayList<>(staticFieldDeclarations.size());
 
     for (Entry<String, JFieldDeclaration> entry : staticFieldDeclarations.entrySet()) {
       ADeclaration declaration = entry.getValue();
@@ -105,7 +103,8 @@ class CFABuilder extends ASTVisitor {
     ITypeBinding classBinding = pClassDeclaration.resolveBinding();
 
     if (classBinding == null) {
-      logger.logf(Level.WARNING,
+      logger.logf(
+          Level.WARNING,
           "Binding for anonymous class %s can't be resolved. Skipping class body.",
           pClassDeclaration.toString());
 
@@ -164,7 +163,7 @@ class CFABuilder extends ASTVisitor {
 
   @Override
   public boolean visit(MethodDeclaration md) {
-    //methodDeclarations.add(fd);
+    // methodDeclarations.add(fd);
 
     // parse Method
     CFAMethodBuilder methodBuilder = new CFAMethodBuilder(logger, scope, astCreator);
@@ -188,7 +187,8 @@ class CFABuilder extends ASTVisitor {
 
     cfas.put(methodName, pStartNode);
     cfaNodes.putAll(methodName, pMethodNodes);
-    allParsedMethodDeclaration.put(methodName, (JMethodDeclaration) pStartNode.getFunctionDefinition());
+    allParsedMethodDeclaration.put(
+        methodName, (JMethodDeclaration) pStartNode.getFunctionDefinition());
   }
 
   @Override
@@ -200,8 +200,8 @@ class CFABuilder extends ASTVisitor {
     // In Java, initializer of field Variable may be Object Creation, which means Side Assignments
     //
     if (astCreator.numberOfPreSideAssignments() > 0) {
-      throw new CFAGenerationRuntimeException(
-        "Initializer of field variable has side effect.", fd); }
+      throw new CFAGenerationRuntimeException("Initializer of field variable has side effect.", fd);
+    }
 
     return SKIP_CHILDREN;
   }
@@ -227,8 +227,7 @@ class CFABuilder extends ASTVisitor {
 
     if (hasDefaultConstructor) {
 
-      CFAMethodBuilder methodBuilder = new CFAMethodBuilder(logger,
-          scope, astCreator);
+      CFAMethodBuilder methodBuilder = new CFAMethodBuilder(logger, scope, astCreator);
 
       methodBuilder.createDefaultConstructor(classBinding);
 
@@ -236,8 +235,7 @@ class CFABuilder extends ASTVisitor {
       String methodName = startNode.getFunctionName();
 
       if (cfas.containsKey(methodName)) {
-        throw new CFAGenerationRuntimeException("Duplicate default Constructor "
-          + methodName);
+        throw new CFAGenerationRuntimeException("Duplicate default Constructor " + methodName);
       }
 
       cfas.put(methodName, startNode);
@@ -286,7 +284,7 @@ class CFABuilder extends ASTVisitor {
   public void preVisit(ASTNode problem) {
     if (ASTNode.RECOVERED == (problem.getFlags() & ASTNode.RECOVERED)
         || ASTNode.MALFORMED == (problem.getFlags() & ASTNode.MALFORMED)) {
-      throw new CFAGenerationRuntimeException("Syntax error." , problem);
+      throw new CFAGenerationRuntimeException("Syntax error.", problem);
     }
   }
 }
