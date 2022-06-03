@@ -207,7 +207,7 @@ public class CSystemDependenceGraphBuilder implements StatisticsProvider {
   private void insertDependencies(
       CallGraph<AFunctionDeclaration> pCallGraph,
       ImmutableSet<AFunctionDeclaration> pReachableFunctions)
-      throws CPAException {
+      throws CPAException, InterruptedException {
 
     if (considerFlowDeps) {
       flowDependenceTimer.start();
@@ -239,7 +239,7 @@ public class CSystemDependenceGraphBuilder implements StatisticsProvider {
     }
   }
 
-  public CSystemDependenceGraph build() throws CPAException {
+  public CSystemDependenceGraph build() throws CPAException, InterruptedException {
 
     dependenceGraphConstructionTimer.start();
 
@@ -278,7 +278,7 @@ public class CSystemDependenceGraphBuilder implements StatisticsProvider {
     return Optional.of(node.getFunction());
   }
 
-  private GlobalPointerState createGlobalPointerState() throws CPAException {
+  private GlobalPointerState createGlobalPointerState() throws CPAException, InterruptedException {
 
     GlobalPointerState pointerState = null;
     if (considerPointees) {
@@ -310,9 +310,11 @@ public class CSystemDependenceGraphBuilder implements StatisticsProvider {
             throw new AssertionError("Invalid PointerStateComputationMethod: " + method);
           }
         } catch (InterruptedException ex) {
-          if (shutdownNotifier.shouldShutdown()) {
-            break;
+          shutdownNotifier.shutdownIfNecessary(); // handle global shutdown
+          if (pointerShutdownNotifier.shouldShutdown()) {
+            continue; // pointer analysis timeout, run next pointer analysis
           }
+          throw ex; // propagate other causes for `InterruptedException`
         } finally {
           if (pointerTimeChecker != null) {
             pointerTimeChecker.cancel();
@@ -697,7 +699,7 @@ public class CSystemDependenceGraphBuilder implements StatisticsProvider {
   }
 
   private void insertFlowDependencies(ImmutableSet<AFunctionDeclaration> pReachableFunctions)
-      throws CPAException {
+      throws CPAException, InterruptedException {
 
     GlobalPointerState pointerState = createGlobalPointerState();
     if (pointerState != null) {
@@ -705,6 +707,8 @@ public class CSystemDependenceGraphBuilder implements StatisticsProvider {
     } else {
       return;
     }
+
+    shutdownNotifier.shutdownIfNecessary();
 
     ForeignDefUseData foreignDefUseData =
         ForeignDefUseData.extract(cfa, defUseExtractor, pointerState);
@@ -716,6 +720,8 @@ public class CSystemDependenceGraphBuilder implements StatisticsProvider {
         getComplexTypeDeclarationEdges(globalEdges);
 
     for (FunctionEntryNode entryNode : cfa.getAllFunctionHeads()) {
+
+      shutdownNotifier.shutdownIfNecessary();
 
       if (onlyReachableFunctions && !pReachableFunctions.contains(entryNode.getFunction())) {
         continue;
