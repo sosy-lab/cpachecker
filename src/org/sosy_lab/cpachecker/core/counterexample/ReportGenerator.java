@@ -670,6 +670,10 @@ public class ReportGenerator {
                 + sourceFileNumber
                 + ")\">\n<table>\n");
         String line;
+        String prettyPrint = "";
+        if (covHandler.getAllTypes().isEmpty()) {
+          prettyPrint = "class=\"prettyprint\"";
+        }
         while (null != (line = source.readLine())) {
           line =
               "<td><pre id=\"right-source-"
@@ -677,7 +681,9 @@ public class ReportGenerator {
                   + "\" style=\"background-color: "
                   + CoverageColorUtil.getAlternatingLineColor(lineNumber)
                   + determineLineColors(covHandler, cfa, sourcePath, lineNumber)
-                  + "\">"
+                  + "\""
+                  + prettyPrint
+                  + ">"
                   + htmlEscaper().escape(line)
                   + "  </pre></td>";
           writer.write(
