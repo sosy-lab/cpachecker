@@ -140,6 +140,7 @@ public class ConfigurationFileChecks {
           "pcc.cmc.file",
           // only handled if specification automaton is additionally specified
           "cpa.automaton.breakOnTargetState",
+          "cpa.automaton.treatErrorsAsTargets",
           "WitnessAutomaton.cpa.automaton.treatErrorsAsTargets",
           "witness.stopNotBreakAtSinkStates",
           "witness.invariantsSpecificationAutomaton",

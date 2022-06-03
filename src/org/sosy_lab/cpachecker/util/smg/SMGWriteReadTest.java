@@ -977,7 +977,7 @@ public class SMGWriteReadTest extends SMGTest0 {
     SMGObject testObject = createRegion(BigInteger.valueOf(256));
     smg = smg.copyAndAddObject(testObject);
     // Write the entire SMG to the zero value in 1 Byte blocks
-    for (int i = 0; i < 32; i++) {
+    for (long i = 0; i < 32; i++) {
       smg =
           smg.writeValue(
               testObject, BigInteger.valueOf(i * 8), BigInteger.valueOf(8), SMGValue.zeroValue());
@@ -1005,7 +1005,7 @@ public class SMGWriteReadTest extends SMGTest0 {
     SMGObject testObject = createRegion(BigInteger.valueOf(256));
     smg = smg.copyAndAddObject(testObject);
     // Write the SMG to the zero value in 1 Byte blocks except every 4th Byte
-    for (int i = 0; i < 32; i++) {
+    for (long i = 0; i < 32; i++) {
       if (i % 4 != 3) {
         smg =
             smg.writeValue(

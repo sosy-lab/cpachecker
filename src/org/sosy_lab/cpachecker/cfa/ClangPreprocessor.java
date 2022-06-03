@@ -21,9 +21,9 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.cfa.parser.llvm.LlvmUtils;
 import org.sosy_lab.cpachecker.exceptions.ClangParserException;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
-import org.sosy_lab.llvm_j.binding.LLVMLibrary;
 
 @Options(prefix = "parser")
 public class ClangPreprocessor extends Preprocessor {
@@ -35,7 +35,7 @@ public class ClangPreprocessor extends Preprocessor {
               + "The source file name will be appended to this string. "
               + "Clang needs to print the output to stdout.")
   private String clang =
-      "clang-" + extractVersionNumberFromLlvmJ() + " -S -emit-llvm -o /dev/stdout";
+      "clang-" + LlvmUtils.extractVersionNumberFromLlvmJ() + " -S -emit-llvm -o /dev/stdout";
 
   @Option(
       name = "clang.dumpResults",
@@ -101,10 +101,6 @@ public class ClangPreprocessor extends Preprocessor {
       return file + llvmSuffix;
     }
     return file.replaceFirst("(\\.c|\\.i)$", llvmSuffix);
-  }
-
-  private String extractVersionNumberFromLlvmJ() {
-    return LLVMLibrary.JNA_LIBRARY_NAME.substring("LLVM-".length());
   }
 
   private void assumeLanguageC() {
