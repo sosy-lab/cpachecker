@@ -19,7 +19,9 @@ public enum TimeDependentCoverageType {
   VisitedLines("Visited Lines", CoverageColorUtil.GREEN_TDCG_COLOR),
   PredicatesGenerated("Predicates Generated", CoverageColorUtil.BLUE_TDCG_COLOR, false),
   PredicateConsideredLocations("Predicate-Considered Locations", CoverageColorUtil.RED_TDCG_COLOR),
-  PredicateRelevantVariables("Predicate-Relevant-Variables", CoverageColorUtil.YELLOW_TDCG_COLOR);
+  PredicateRelevantVariables("Predicate-Relevant-Variables", CoverageColorUtil.YELLOW_TDCG_COLOR),
+  PredicateAbstractionVariables(
+      "Predicate-Abstraction-Variables", CoverageColorUtil.YELLOW_TDCG_COLOR);
 
   private final String name;
   private final String color;

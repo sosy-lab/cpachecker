@@ -102,6 +102,13 @@ public class PredicateAnalysisCoverageCollector extends CoverageCollector {
     return getTempCoverage(TimeDependentCoverageType.PredicateRelevantVariables);
   }
 
+  public double getTempPredicateAbstractionVariablesCoverage() {
+    if (getAllVariables().isEmpty()) {
+      addAllProgramVariables();
+    }
+    return getPredicateAbstractionVariables().size() / (double) getAllVariables().size();
+  }
+
   public Set<CFANode> getPredicateConsideredLocations() {
     return Collections.unmodifiableSet(predicateConsideredLocations);
   }

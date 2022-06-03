@@ -48,6 +48,7 @@ public class PredicateCoverageTransferRelation extends PredicateTransferRelation
   private final TimeDependentCoverageData predicateTDCG;
   private final TimeDependentCoverageData predicateConsideredTDCG;
   private final TimeDependentCoverageData predicateRelevantVariablesTDCG;
+  private final TimeDependentCoverageData predicateAbstractionVariablesTDCG;
   private final FormulaManagerView fmgr;
   private static final double RELEVANT_VARIABLES_FREQUENCY_FACTOR = 0.5;
   private int predicatesInUse = 0;
@@ -72,6 +73,8 @@ public class PredicateCoverageTransferRelation extends PredicateTransferRelation
         coverageHandler.getData(TimeDependentCoverageType.PredicateConsideredLocations);
     predicateRelevantVariablesTDCG =
         coverageHandler.getData(TimeDependentCoverageType.PredicateRelevantVariables);
+    predicateAbstractionVariablesTDCG =
+        coverageHandler.getData(TimeDependentCoverageType.PredicateAbstractionVariables);
     coverageCollector.addInitialNodesForTDCG(
         predicateConsideredTDCG, TimeDependentCoverageType.PredicateConsideredLocations);
     coverageCollector.addInitialNodesForTDCG(
@@ -108,6 +111,8 @@ public class PredicateCoverageTransferRelation extends PredicateTransferRelation
   private void processRelevantAbstractionVariablesCoverage(CFAEdge edge, AbstractState state) {
     Set<String> variableNames = getAllAbstractStateVariables(state);
     coverageCollector.addRelevantAbstractionVariables(variableNames, edge);
+    predicateAbstractionVariablesTDCG.addTimestamp(
+        coverageCollector.getTempPredicateAbstractionVariablesCoverage());
   }
 
   private Set<String> getAllAbstractStateVariables(AbstractState state) {
