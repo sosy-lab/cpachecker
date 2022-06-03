@@ -14,6 +14,7 @@ import com.google.common.collect.FluentIterable;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.LinkedHashMultiset;
 import com.google.common.collect.Multiset;
+import com.google.common.collect.Multisets;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -89,7 +90,7 @@ public class ReachedSetCoverageCollector extends CoverageCollector {
   }
 
   public Multiset<CFANode> getReachedLocations() {
-    return reachedLocations;
+    return Multisets.unmodifiableMultiset(reachedLocations);
   }
 
   /**

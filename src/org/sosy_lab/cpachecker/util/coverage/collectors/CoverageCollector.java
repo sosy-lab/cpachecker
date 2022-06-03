@@ -15,6 +15,7 @@ import com.google.common.collect.ImmutableMultiset;
 import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.Multiset;
 import com.google.common.collect.SetMultimap;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
@@ -104,7 +105,7 @@ public abstract class CoverageCollector {
   }
 
   public Set<FunctionInfo> getAllFunctions() {
-    return allFunctions;
+    return Collections.unmodifiableSet(allFunctions);
   }
 
   public Map<String, Multiset<String>> getVisitedFunctionsPerFile() {
@@ -119,7 +120,7 @@ public abstract class CoverageCollector {
   }
 
   public Set<AssumeEdge> getAllAssumes() {
-    return allAssumes;
+    return Collections.unmodifiableSet(allAssumes);
   }
 
   public ImmutableSetMultimap<String, AssumeEdge> getVisitedAssumesPerFile() {

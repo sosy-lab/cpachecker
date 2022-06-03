@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.util.coverage.collectors;
 
 import com.google.common.collect.LinkedHashMultiset;
 import com.google.common.collect.Multiset;
+import com.google.common.collect.Multisets;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Optional;
@@ -74,7 +75,7 @@ public class AnalysisIndependentCoverageCollector extends CoverageCollector {
   }
 
   public Multiset<CFANode> getVisitedLocations() {
-    return visitedLocations;
+    return Multisets.unmodifiableMultiset(visitedLocations);
   }
 
   public double getTempVisitedCoverage() {

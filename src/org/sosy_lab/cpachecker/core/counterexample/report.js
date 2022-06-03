@@ -162,7 +162,7 @@ function renderTDG(dataJSON, color, inPercentage) {
   svg
     .append("g")
     .attr("transform", `translate(0,${height})`)
-    .call(d3.axisBottom(x));
+    .call(d3.axisBottom(x).tickFormat(d3.format("d")));
 
   // Add Y axis
   const y = d3.scaleLinear().domain([0, maxY]).range([height, 0]);
@@ -177,7 +177,7 @@ function renderTDG(dataJSON, color, inPercentage) {
     .text(`Time in ${timeDimension}`);
 
   // Y axis label:
-  let yLabel = "Amount of chosen value";
+  let yLabel = "Chosen value";
   if (inPercentage) {
     yLabel = "Coverage in %";
   }
@@ -267,7 +267,7 @@ function renderTDG(dataJSON, color, inPercentage) {
       focus
         .select(".tooltip-x")
         .text(`Time: ${Math.round(d.x * 100) / 100}${timeDimension}`);
-      let yFocusLabel = `Amount: #${d.y}`;
+      let yFocusLabel = `Value: ${d.y}`;
       if (inPercentage) {
         yFocusLabel = `Coverage: ${Math.round(d.y * 100) / 100}%`;
       }
