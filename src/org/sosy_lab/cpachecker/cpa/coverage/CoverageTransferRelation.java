@@ -25,6 +25,7 @@ import org.sosy_lab.cpachecker.util.coverage.util.CoverageUtility;
 public class CoverageTransferRelation extends SingleEdgeTransferRelation {
   private final AnalysisIndependentCoverageCollector coverageCollector;
   private final TimeDependentCoverageData visitedTDCG;
+  private boolean isFirstTransferRelation = true;
 
   public CoverageTransferRelation(CoverageCollectorHandler pCovCollectorHandler) {
     coverageCollector =
@@ -37,8 +38,16 @@ public class CoverageTransferRelation extends SingleEdgeTransferRelation {
   @Override
   public Collection<? extends AbstractState> getAbstractSuccessorsForEdge(
       AbstractState pElement, Precision pPrecision, CFAEdge pCfaEdge) throws CPATransferException {
+    addInitialTDCGTimestamps();
     handleEdge(pCfaEdge);
     return Collections.singleton(pElement);
+  }
+
+  private void addInitialTDCGTimestamps() {
+    if (isFirstTransferRelation) {
+      visitedTDCG.addTimestamp(0);
+      isFirstTransferRelation = false;
+    }
   }
 
   private void handleEdge(CFAEdge pEdge) {

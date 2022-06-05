@@ -52,6 +52,7 @@ public class PredicateCoverageTransferRelation extends PredicateTransferRelation
   private final FormulaManagerView fmgr;
   private static final double RELEVANT_VARIABLES_FREQUENCY_FACTOR = 0.5;
   private int predicatesInUse = 0;
+  private boolean isFirstTransferRelation = true;
 
   public PredicateCoverageTransferRelation(
       LogManager pLogger,
@@ -75,18 +76,29 @@ public class PredicateCoverageTransferRelation extends PredicateTransferRelation
         coverageHandler.getData(TimeDependentCoverageType.PredicateRelevantVariables);
     predicateAbstractionVariablesTDCG =
         coverageHandler.getData(TimeDependentCoverageType.PredicateAbstractionVariables);
-    coverageCollector.addInitialNodesForTDCG(
-        predicateConsideredTDCG, TimeDependentCoverageType.PredicateConsideredLocations);
-    coverageCollector.addInitialNodesForTDCG(
-        predicateRelevantVariablesTDCG, TimeDependentCoverageType.PredicateRelevantVariables);
   }
 
   @Override
   public Collection<? extends AbstractState> getAbstractSuccessorsForEdge(
       AbstractState state, Precision precision, CFAEdge cfaEdge)
       throws CPATransferException, InterruptedException {
+    addInitialTDCGTimestamps();
     processAllCoverageMeasures(precision, cfaEdge, state);
     return super.getAbstractSuccessorsForEdge(state, precision, cfaEdge);
+  }
+
+  private void addInitialTDCGTimestamps() {
+    if (isFirstTransferRelation) {
+      predicateTDCG.addTimestamp(0);
+      predicateConsideredTDCG.addTimestamp(0);
+      predicateRelevantVariablesTDCG.addTimestamp(0);
+      predicateAbstractionVariablesTDCG.addTimestamp(0);
+      coverageCollector.addInitialNodesForTDCG(
+          predicateConsideredTDCG, TimeDependentCoverageType.PredicateConsideredLocations);
+      coverageCollector.addInitialNodesForTDCG(
+          predicateRelevantVariablesTDCG, TimeDependentCoverageType.PredicateRelevantVariables);
+      isFirstTransferRelation = false;
+    }
   }
 
   private void processAllCoverageMeasures(
@@ -189,6 +201,7 @@ public class PredicateCoverageTransferRelation extends PredicateTransferRelation
       predicateTDCG.addTimestamp(predicatesInUse);
 
       predicateRelevantVariablesTDCG.resetTimeStamps();
+      predicateRelevantVariablesTDCG.addTimestamp(0);
       coverageCollector.resetPredicateRelevantVariablesNodes();
       coverageCollector.addInitialNodesForTDCG(
           predicateRelevantVariablesTDCG, TimeDependentCoverageType.PredicateRelevantVariables);
