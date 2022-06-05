@@ -26,7 +26,7 @@ import java.util.Optional;
 import org.junit.Test;
 
 /** Tests for dominator trees and dominance frontiers. */
-public final class DomTest {
+public final class DominanceTest {
 
   private static final String ENTRY_NODE = "ENTRY";
   private static final String EXIT_NODE = "EXIT";
