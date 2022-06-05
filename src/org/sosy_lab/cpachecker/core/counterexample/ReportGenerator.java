@@ -474,27 +474,14 @@ public class ReportGenerator {
     }
 
     writer.write(",\n\"coverage\":");
-    writeCoverageTypes(
-        covHandler.getAllTypesForCategoriesAsString(CoverageMeasureInputCategory.LOCATION_BASED),
-        writer);
+    List<String> types =
+        covHandler.getAllTypesForCategoriesAsString(CoverageMeasureInputCategory.LOCATION_BASED);
+    JSON.writeJSONString(FluentIterable.of("None").append(types), writer);
 
     writer.write(",\n");
     dotBuilder.writeCfaInfo(writer);
     writer.write("\n}\n");
     writer.write("window.cfaJson = cfaJson;\n");
-  }
-
-  private void writeCoverageTypes(List<String> coverageSelections, Writer writer)
-      throws IOException {
-    writer.write("[");
-    writer.write("\"None\",");
-    for (int i = 0; i < coverageSelections.size(); i++) {
-      JSON.writeJSONString(coverageSelections.get(i), writer);
-      if (i != coverageSelections.size() - 1) {
-        writer.write(",");
-      }
-    }
-    writer.write("]");
   }
 
   private String extractPreconditionFromFaultLocalizationInfo(FaultLocalizationInfo fInfo) {
