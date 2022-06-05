@@ -44,23 +44,14 @@ public class PredicateAnalysisCoverageCollector extends CoverageCollector {
   }
 
   public void addPredicateConsideredNode(final CFAEdge pEdge) {
-    if (!CoverageUtility.coversLine(pEdge)) {
-      return;
-    }
     predicateConsideredLocations.add(pEdge.getSuccessor());
   }
 
   public void addPredicateRelevantVariablesNodes(final CFAEdge pEdge) {
-    if (!CoverageUtility.coversLine(pEdge)) {
-      return;
-    }
     predicateRelevantVariablesLocations.add(pEdge.getSuccessor());
   }
 
   public void addRelevantAbstractionVariables(Set<String> pVariableNames, final CFAEdge pEdge) {
-    if (!CoverageUtility.coversLine(pEdge)) {
-      return;
-    }
     predicateAbstractionVariables.addAll(pVariableNames);
   }
 
