@@ -96,7 +96,7 @@ public class PredicateCoverageTransferRelation extends PredicateTransferRelation
       processPredicates(predicatePrecision);
       processPredicatesConsideredCoverage(predicatePrecision, cfaEdge, state);
       processPredicateRelevantVariablesCoverage(predicatePrecision, cfaEdge, state);
-      processRelevantAbstractionVariablesCoverage(cfaEdge, state);
+      processRelevantAbstractionVariablesCoverage(state);
     }
   }
 
@@ -105,12 +105,11 @@ public class PredicateCoverageTransferRelation extends PredicateTransferRelation
    * It is important to note, that we just look at the variable names here not at their actual
    * value.
    *
-   * @param edge current CFA edge which is considered.
    * @param state state which is considered for the variable extraction.
    */
-  private void processRelevantAbstractionVariablesCoverage(CFAEdge edge, AbstractState state) {
+  private void processRelevantAbstractionVariablesCoverage(AbstractState state) {
     Set<String> variableNames = getAllAbstractStateVariables(state);
-    coverageCollector.addRelevantAbstractionVariables(variableNames, edge);
+    coverageCollector.addRelevantAbstractionVariables(variableNames);
     predicateAbstractionVariablesTDCG.addTimestamp(
         coverageCollector.getTempPredicateAbstractionVariablesCoverage());
   }

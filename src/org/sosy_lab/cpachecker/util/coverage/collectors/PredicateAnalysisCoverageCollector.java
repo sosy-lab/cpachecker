@@ -19,7 +19,6 @@ import org.sosy_lab.cpachecker.util.coverage.measures.CoverageMeasureHandler;
 import org.sosy_lab.cpachecker.util.coverage.tdcg.TimeDependentCoverageData;
 import org.sosy_lab.cpachecker.util.coverage.tdcg.TimeDependentCoverageHandler;
 import org.sosy_lab.cpachecker.util.coverage.tdcg.TimeDependentCoverageType;
-import org.sosy_lab.cpachecker.util.coverage.util.CoverageUtility;
 
 /**
  * Coverage collector which is called used by the PredicateCoverageCPA. The calculated coverage
@@ -51,7 +50,7 @@ public class PredicateAnalysisCoverageCollector extends CoverageCollector {
     predicateRelevantVariablesLocations.add(pEdge.getSuccessor());
   }
 
-  public void addRelevantAbstractionVariables(Set<String> pVariableNames, final CFAEdge pEdge) {
+  public void addRelevantAbstractionVariables(Set<String> pVariableNames) {
     predicateAbstractionVariables.addAll(pVariableNames);
   }
 
