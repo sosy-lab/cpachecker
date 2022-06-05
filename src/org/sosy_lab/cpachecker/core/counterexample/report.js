@@ -1602,6 +1602,7 @@ function renderTDG(dataJSON, color, inPercentage) {
                 );
                 for (let j = 0; j < variables.length; j += 1) {
                   codeLine = $scope.colorRelevantVariables(
+                    $rootScope.displayedSourceFiles,
                     codeLine,
                     variables[j],
                     currentFunction,
@@ -1647,16 +1648,50 @@ function renderTDG(dataJSON, color, inPercentage) {
         lineStyle.split("current-function: ").slice(-1)[0].split(";")[0];
 
       $scope.colorRelevantVariables = (
+        sourceFile,
         rawCodeLine,
         variable,
         currentFunction,
         lineColor
       ) => {
-        const functionName = variable.split("::")[0];
-        if (functionName === currentFunction) {
-          const variableName = variable.split("::")[1];
+        // we do not want comments to be considered for coloring
+        if (rawCodeLine.startsWith("//")) {
+          return rawCodeLine;
+        }
+
+        // extract variable name and eventually its function name
+        const variableParts = variable.split("::");
+        let functionName = "";
+        let variableName = variableParts[0];
+        if (variableParts.length > 1) {
+          functionName = variableParts[0];
+          variableName = variableParts[1];
+        }
+
+        // extract filename to deduce static variables
+        const fileName = sourceFile
+          .split("/")
+          .slice(-1)[0]
+          .replaceAll(".", "_");
+        if (variableParts.length === 1 && variable.startsWith(fileName)) {
+          variableName = variableName.replace(fileName, "");
+        }
+
+        // check for function static variable
+        if (variableName.startsWith("static")) {
+          return $scope.colorLineText(
+            rawCodeLine,
+            variableName.split("__").slice(-1)[0],
+            lineColor
+          );
+        }
+
+        // color variables in line if it has correct function scope
+        if (functionName === "" || functionName === currentFunction) {
           return $scope.colorLineText(rawCodeLine, variableName, lineColor);
         }
+
+        // return line without changes
         return rawCodeLine;
       };
 
@@ -1666,7 +1701,7 @@ function renderTDG(dataJSON, color, inPercentage) {
         const preStyle = `<mark style="background-color: ${lineColor}; color: ${textColor}; font-weight: bold; padding: 0;">`;
         const postStyle = "</mark>";
         const lineParts = lineCode.split(variableName);
-        const variableEnvironment = /^\s|\(|\)|\+|-|=|;|,|\.|\[|\]$/;
+        const variableEnvironment = /^\s|\(|\)|\+|-|\/|\*|=|;|,|\.|\[|\]$/;
         for (let i = 0; i < lineParts.length; i += 1) {
           if (i !== lineParts.length - 1) {
             if (
