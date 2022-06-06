@@ -93,10 +93,6 @@ public class PredicateCoverageTransferRelation extends PredicateTransferRelation
       predicateConsideredTDCG.addTimestamp(0);
       predicateRelevantVariablesTDCG.addTimestamp(0);
       predicateAbstractionVariablesTDCG.addTimestamp(0);
-      coverageCollector.addInitialNodesForTDCG(
-          predicateConsideredTDCG, TimeDependentCoverageType.PredicateConsideredLocations);
-      coverageCollector.addInitialNodesForTDCG(
-          predicateRelevantVariablesTDCG, TimeDependentCoverageType.PredicateRelevantVariables);
       isFirstTransferRelation = false;
     }
   }
@@ -141,7 +137,7 @@ public class PredicateCoverageTransferRelation extends PredicateTransferRelation
     Set<String> predicateVariables = getRelevantVariables(cfaEdge, precision, state);
     Set<String> assumeVariables = convertAssumeToVariables(cfaEdge);
     if (shouldAddPredicateRelevantVariableNode(cfaEdge, assumeVariables, predicateVariables)) {
-      coverageCollector.addPredicateRelevantVariablesNodes(cfaEdge);
+      coverageCollector.addPredicateRelevantVariablesLocation(cfaEdge);
       predicateRelevantVariablesTDCG.addTimestamp(
           coverageCollector.getTempPredicateRelevantVariablesCoverage());
     }
@@ -175,11 +171,6 @@ public class PredicateCoverageTransferRelation extends PredicateTransferRelation
 
   private boolean shouldAddPredicateRelevantVariableNode(
       CFAEdge cfaEdge, Set<String> assumeVariables, Set<String> predicateVariables) {
-    if (!coverageCollector
-        .getPredicateRelevantConsideredLocations()
-        .contains(cfaEdge.getPredecessor())) {
-      return false;
-    }
     if (cfaEdge.getEdgeType() != CFAEdgeType.AssumeEdge) {
       return true;
     }
@@ -202,16 +193,14 @@ public class PredicateCoverageTransferRelation extends PredicateTransferRelation
 
       predicateRelevantVariablesTDCG.resetTimeStamps();
       predicateRelevantVariablesTDCG.addTimestamp(0);
-      coverageCollector.resetPredicateRelevantVariablesNodes();
-      coverageCollector.addInitialNodesForTDCG(
-          predicateRelevantVariablesTDCG, TimeDependentCoverageType.PredicateRelevantVariables);
+      coverageCollector.resetPredicateRelevantVariablesLocations();
     }
   }
 
   private void processPredicatesConsideredCoverage(
       PredicatePrecision precision, CFAEdge cfaEdge, AbstractState state) {
     if (shouldAddPredicateConsideredNode(cfaEdge, precision, state)) {
-      coverageCollector.addPredicateConsideredNode(cfaEdge);
+      coverageCollector.addPredicateConsideredLocation(cfaEdge);
       predicateConsideredTDCG.addTimestamp(coverageCollector.getTempPredicateConsideredCoverage());
     }
   }
@@ -230,9 +219,6 @@ public class PredicateCoverageTransferRelation extends PredicateTransferRelation
   private boolean shouldAddPredicateConsideredNode(
       CFAEdge cfaEdge, PredicatePrecision precision, AbstractState state) {
     CFANode location = cfaEdge.getPredecessor();
-    if (!coverageCollector.getPredicateConsideredLocations().contains(location)) {
-      return false;
-    }
     Set<AbstractionPredicate> allPredicates = getAllPredicatesForNode(precision, state, location);
     if (cfaEdge.getEdgeType() == CFAEdgeType.AssumeEdge) {
       if (coversPredicate(allPredicates, convertAssumeToVariables(cfaEdge))) {

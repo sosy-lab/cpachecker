@@ -20,7 +20,6 @@ import org.sosy_lab.cpachecker.util.coverage.collectors.AnalysisIndependentCover
 import org.sosy_lab.cpachecker.util.coverage.collectors.CoverageCollectorHandler;
 import org.sosy_lab.cpachecker.util.coverage.tdcg.TimeDependentCoverageData;
 import org.sosy_lab.cpachecker.util.coverage.tdcg.TimeDependentCoverageType;
-import org.sosy_lab.cpachecker.util.coverage.util.CoverageUtility;
 
 public class CoverageTransferRelation extends SingleEdgeTransferRelation {
   private final AnalysisIndependentCoverageCollector coverageCollector;
@@ -51,9 +50,6 @@ public class CoverageTransferRelation extends SingleEdgeTransferRelation {
   }
 
   private void handleEdge(CFAEdge pEdge) {
-    if (!CoverageUtility.coversLine(pEdge)) {
-      return;
-    }
     coverageCollector.addVisitedEdge(pEdge);
     coverageCollector.addVisitedLocation(pEdge);
     coverageCollector.addVisitedVariables(pEdge);

@@ -14,9 +14,9 @@ import java.util.LinkedHashSet;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.util.coverage.measures.CoverageMeasureHandler;
-import org.sosy_lab.cpachecker.util.coverage.tdcg.TimeDependentCoverageData;
 import org.sosy_lab.cpachecker.util.coverage.tdcg.TimeDependentCoverageHandler;
 import org.sosy_lab.cpachecker.util.coverage.tdcg.TimeDependentCoverageType;
 
@@ -42,44 +42,19 @@ public class PredicateAnalysisCoverageCollector extends CoverageCollector {
     cfa = pCfa;
   }
 
-  public void addPredicateConsideredNode(final CFAEdge pEdge) {
-    predicateConsideredLocations.add(pEdge.getSuccessor());
+  public void addPredicateConsideredLocation(CFAEdge pEdge) {
+    addCoverageLocation(predicateConsideredLocations, pEdge);
   }
 
-  public void addPredicateRelevantVariablesNodes(final CFAEdge pEdge) {
-    predicateRelevantVariablesLocations.add(pEdge.getSuccessor());
+  public void addPredicateRelevantVariablesLocation(CFAEdge pEdge) {
+    addCoverageLocation(predicateRelevantVariablesLocations, pEdge);
   }
 
   public void addRelevantAbstractionVariables(Set<String> pVariableNames) {
     predicateAbstractionVariables.addAll(pVariableNames);
   }
 
-  public void addInitialNodesForTDCG(
-      TimeDependentCoverageData tdcgData, TimeDependentCoverageType type) {
-    for (CFANode node : cfa.getAllNodes()) {
-      if (node.getNodeNumber() == 1) {
-        CFANode candidateNode = node;
-        do {
-          switch (type) {
-            case PredicateConsideredLocations:
-              predicateConsideredLocations.add(candidateNode);
-              tdcgData.addTimestamp(getTempPredicateConsideredCoverage());
-              break;
-            case PredicateRelevantVariables:
-              predicateRelevantVariablesLocations.add(candidateNode);
-              tdcgData.addTimestamp(getTempPredicateRelevantVariablesCoverage());
-              break;
-            default:
-              break;
-          }
-          candidateNode = candidateNode.getLeavingEdge(0).getSuccessor();
-        } while (candidateNode.getNumLeavingEdges() == 1);
-        break;
-      }
-    }
-  }
-
-  public void resetPredicateRelevantVariablesNodes() {
+  public void resetPredicateRelevantVariablesLocations() {
     previousPredicateRelevantVariablesLocationsSize = predicateRelevantVariablesLocations.size();
     predicateRelevantVariablesLocations.clear();
   }
@@ -115,6 +90,16 @@ public class PredicateAnalysisCoverageCollector extends CoverageCollector {
 
   public Set<String> getPredicateAbstractionVariables() {
     return Collections.unmodifiableSet(predicateAbstractionVariables);
+  }
+
+  private void addCoverageLocation(Set<CFANode> pLocations, CFAEdge pEdge) {
+    if (pLocations.isEmpty()) {
+      pLocations.add(pEdge.getPredecessor());
+    }
+    if (pLocations.contains(pEdge.getPredecessor())
+        || pEdge.getEdgeType() == CFAEdgeType.FunctionReturnEdge) {
+      pLocations.add(pEdge.getSuccessor());
+    }
   }
 
   private double getTempCoverage(TimeDependentCoverageType type) {

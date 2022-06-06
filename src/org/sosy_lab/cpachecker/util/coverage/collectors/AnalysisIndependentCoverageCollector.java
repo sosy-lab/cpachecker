@@ -37,34 +37,13 @@ public class AnalysisIndependentCoverageCollector extends CoverageCollector {
       TimeDependentCoverageHandler pTimeDependentCoverageHandler,
       CFA pCfa) {
     super(pCoverageMeasureHandler, pTimeDependentCoverageHandler, pCfa);
-    addInitialNodesForMeasures(pCfa);
-  }
-
-  public void addInitialNodesForMeasures(CFA pCFA) {
-    boolean isLoop = false;
-    for (CFANode node : pCFA.getAllNodes()) {
-      if (node.getNodeNumber() == 1) {
-        CFANode candidateNode = node;
-        do {
-          if (!visitedLocations.contains(candidateNode)) {
-            visitedLocations.add(candidateNode);
-          }
-          CFANode currentNode = candidateNode;
-          candidateNode = candidateNode.getLeavingEdge(0).getSuccessor();
-          if (currentNode == candidateNode) {
-            isLoop = true;
-          }
-        } while (candidateNode.getNumLeavingEdges() == 1 && !isLoop);
-        break;
-      }
-    }
   }
 
   public void addVisitedLocation(CFAEdge pEdge) {
-    visitedLocations.add(pEdge.getSuccessor());
-    if (!visitedLocations.contains(pEdge.getPredecessor())) {
+    if (visitedLocations.isEmpty()) {
       visitedLocations.add(pEdge.getPredecessor());
     }
+    visitedLocations.add(pEdge.getSuccessor());
   }
 
   public Multiset<CFANode> getVisitedLocations() {
