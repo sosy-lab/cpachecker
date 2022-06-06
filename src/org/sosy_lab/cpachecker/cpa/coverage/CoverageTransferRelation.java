@@ -24,21 +24,28 @@ import org.sosy_lab.cpachecker.util.coverage.tdcg.TimeDependentCoverageType;
 public class CoverageTransferRelation extends SingleEdgeTransferRelation {
   private final AnalysisIndependentCoverageCollector coverageCollector;
   private final TimeDependentCoverageData visitedTDCG;
+  private final boolean shouldCollectCoverage;
   private boolean isFirstTransferRelation = true;
 
-  public CoverageTransferRelation(CoverageCollectorHandler pCovCollectorHandler) {
+  public CoverageTransferRelation(
+      CoverageCollectorHandler pCovCollectorHandler, boolean pShouldCollectCoverage) {
+    shouldCollectCoverage = pShouldCollectCoverage;
     coverageCollector =
         Preconditions.checkNotNull(pCovCollectorHandler.getAnalysisIndependentCollector());
     visitedTDCG =
         pCovCollectorHandler.getTDCGHandler().getData(TimeDependentCoverageType.VisitedLines);
-    coverageCollector.addAllProgramVariables();
+    if (shouldCollectCoverage) {
+      coverageCollector.addAllProgramVariables();
+    }
   }
 
   @Override
   public Collection<? extends AbstractState> getAbstractSuccessorsForEdge(
       AbstractState pElement, Precision pPrecision, CFAEdge pCfaEdge) throws CPATransferException {
-    addInitialTDCGTimestamps();
-    handleEdge(pCfaEdge);
+    if (shouldCollectCoverage) {
+      addInitialTDCGTimestamps();
+      handleEdge(pCfaEdge);
+    }
     return Collections.singleton(pElement);
   }
 

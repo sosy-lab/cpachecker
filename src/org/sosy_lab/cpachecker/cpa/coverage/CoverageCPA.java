@@ -38,7 +38,9 @@ public class CoverageCPA implements ConfigurableProgramAnalysis {
     coverageCollectorHandler = pCovCollectorHandler;
     domain = new FlatLatticeDomain(SingletonAbstractState.INSTANCE);
     stop = new StopSepOperator(domain);
-    transfer = new CoverageTransferRelation(coverageCollectorHandler);
+    transfer =
+        new CoverageTransferRelation(
+            coverageCollectorHandler, coverageCollectorHandler.shouldCollectCoverage());
   }
 
   public static CPAFactory factory() {
