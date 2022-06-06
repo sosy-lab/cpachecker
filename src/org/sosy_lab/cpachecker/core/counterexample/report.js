@@ -1207,7 +1207,7 @@ function renderTDG(dataJSON, color, inPercentage) {
           $scope.colorId = $scope.getStringId($rootScope.displayedCoverages);
           const maxNodes = Math.max(
             cfaJson.nodes.length,
-            Math.max.apply(Math, cfaJson.mergedNodes)
+            Math.max(...cfaJson.mergedNodes)
           );
           for (let i = 0; i <= maxNodes; i += 1) {
             d3.selectAll(`[id$='cfa-node${i}']`).each($scope.colorNode);
