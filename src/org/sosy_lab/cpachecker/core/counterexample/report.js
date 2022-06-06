@@ -1205,7 +1205,13 @@ function renderTDG(dataJSON, color, inPercentage) {
 
         $scope.cfaColoringControl = function cfaColoringControl() {
           $scope.colorId = $scope.getStringId($rootScope.displayedCoverages);
-          d3.selectAll(".cfa-node").each($scope.colorNode);
+          const maxNodes = Math.max(
+            cfaJson.nodes.length,
+            Math.max.apply(Math, cfaJson.mergedNodes)
+          );
+          for (let i = 0; i <= maxNodes; i += 1) {
+            d3.selectAll(`[id$='cfa-node${i}']`).each($scope.colorNode);
+          }
         };
       }
 
