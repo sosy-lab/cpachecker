@@ -101,9 +101,17 @@ public class PredicateAnalysisCoverageCollector extends CoverageCollector {
     if (pLocations.isEmpty()) {
       pLocations.add(pEdge.getPredecessor());
     }
-    if (pLocations.contains(pEdge.getPredecessor())
-        || pEdge.getEdgeType() == CFAEdgeType.FunctionReturnEdge) {
+    if (pLocations.contains(pEdge.getPredecessor())) {
       pLocations.add(pEdge.getSuccessor());
+    }
+    if (pEdge.getEdgeType() == CFAEdgeType.FunctionReturnEdge) {
+      CFANode previousNode = pEdge.getPredecessor();
+      for (int i = 0; i < previousNode.getNumEnteringEdges(); i++) {
+        if (pLocations.contains(previousNode.getEnteringEdge(i).getPredecessor())) {
+          pLocations.add(pEdge.getSuccessor());
+          break;
+        }
+      }
     }
   }
 
