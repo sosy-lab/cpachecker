@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.util.coverage.collectors;
 
+import com.google.common.collect.ImmutableSet;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
@@ -32,7 +33,7 @@ public class PredicateAnalysisCoverageCollector extends CoverageCollector {
   private final Set<CFANode> predicateRelevantVariablesLocations = new LinkedHashSet<>();
   private final Set<String> predicateAbstractionVariables = new HashSet<>();
   private final CFA cfa;
-  private int previousPredicateRelevantVariablesLocationsSize = 0;
+  private ImmutableSet<CFANode> oldPredicateRelevantVariablesLocations = ImmutableSet.of();
 
   PredicateAnalysisCoverageCollector(
       CoverageMeasureHandler pCoverageMeasureHandler,
@@ -55,7 +56,8 @@ public class PredicateAnalysisCoverageCollector extends CoverageCollector {
   }
 
   public void resetPredicateRelevantVariablesLocations() {
-    previousPredicateRelevantVariablesLocationsSize = predicateRelevantVariablesLocations.size();
+    oldPredicateRelevantVariablesLocations =
+        ImmutableSet.copyOf(predicateRelevantVariablesLocations);
     predicateRelevantVariablesLocations.clear();
   }
 
@@ -79,13 +81,16 @@ public class PredicateAnalysisCoverageCollector extends CoverageCollector {
   }
 
   public Set<CFANode> getPredicateRelevantConsideredLocations() {
-    return Collections.unmodifiableSet(predicateRelevantVariablesLocations);
+    if (predicateRelevantVariablesLocations.size()
+        > oldPredicateRelevantVariablesLocations.size()) {
+      return Collections.unmodifiableSet(predicateRelevantVariablesLocations);
+    } else {
+      return Collections.unmodifiableSet(oldPredicateRelevantVariablesLocations);
+    }
   }
 
   public int getPredicateRelevantConsideredLocationsCount() {
-    return Math.max(
-        predicateRelevantVariablesLocations.size(),
-        previousPredicateRelevantVariablesLocationsSize);
+    return getPredicateRelevantConsideredLocations().size();
   }
 
   public Set<String> getPredicateAbstractionVariables() {
