@@ -23,47 +23,58 @@ public enum CoverageMeasureType {
   VISITED_LOCATIONS(
       "Visited Locations",
       CoverageMeasureInputCategory.LOCATION_BASED,
-      CoverageMeasureAnalysisCategory.ANALYSIS_INDEPENDENT),
+      CoverageMeasureAnalysisCategory.ANALYSIS_INDEPENDENT,
+      CoverageMeasureProcessingTime.DURING_ANALYSIS),
   REACHED_LOCATIONS(
       "Reached Locations",
       CoverageMeasureInputCategory.LOCATION_BASED,
-      CoverageMeasureAnalysisCategory.ANALYSIS_INDEPENDENT),
+      CoverageMeasureAnalysisCategory.ANALYSIS_INDEPENDENT,
+      CoverageMeasureProcessingTime.AFTER_ANALYSIS),
   CONSIDERED_LOCATIONS_HEAT_MAP(
       "Considered-Locations Heat Map",
       CoverageMeasureInputCategory.LOCATION_BASED,
-      CoverageMeasureAnalysisCategory.ANALYSIS_INDEPENDENT),
+      CoverageMeasureAnalysisCategory.ANALYSIS_INDEPENDENT,
+      CoverageMeasureProcessingTime.DURING_ANALYSIS),
   VISITED_LINES_HEAT_MAP(
       "Visited-Lines Heat Map",
       CoverageMeasureInputCategory.LINE_BASED,
-      CoverageMeasureAnalysisCategory.ANALYSIS_INDEPENDENT),
+      CoverageMeasureAnalysisCategory.ANALYSIS_INDEPENDENT,
+      CoverageMeasureProcessingTime.DURING_ANALYSIS),
   PREDICATE_CONSIDERED_LOCATIONS(
       "Predicate-Considered Locations",
       CoverageMeasureInputCategory.LOCATION_BASED,
-      CoverageMeasureAnalysisCategory.PREDICATE_ANALYSIS),
+      CoverageMeasureAnalysisCategory.PREDICATE_ANALYSIS,
+      CoverageMeasureProcessingTime.DURING_ANALYSIS),
   PREDICATE_RELEVANT_VARIABLES_LOCATIONS(
       "Predicate-Relevant-Variables Locations",
       CoverageMeasureInputCategory.LOCATION_BASED,
-      CoverageMeasureAnalysisCategory.PREDICATE_ANALYSIS),
+      CoverageMeasureAnalysisCategory.PREDICATE_ANALYSIS,
+      CoverageMeasureProcessingTime.DURING_ANALYSIS),
   PREDICATE_ABSTRACTION_VARIABLES(
       "Predicate-Abstraction Variables",
       CoverageMeasureInputCategory.VARIABLE_BASED,
-      CoverageMeasureAnalysisCategory.PREDICATE_ANALYSIS),
+      CoverageMeasureAnalysisCategory.PREDICATE_ANALYSIS,
+      CoverageMeasureProcessingTime.DURING_ANALYSIS),
   VISITED_VARIABLES(
       "Visited Variables",
       CoverageMeasureInputCategory.VARIABLE_BASED,
-      CoverageMeasureAnalysisCategory.ANALYSIS_INDEPENDENT);
+      CoverageMeasureAnalysisCategory.ANALYSIS_INDEPENDENT,
+      CoverageMeasureProcessingTime.DURING_ANALYSIS);
 
   private final String name;
   private final CoverageMeasureInputCategory category;
   private final CoverageMeasureAnalysisCategory analysisCategory;
+  private final CoverageMeasureProcessingTime processingTime;
 
   CoverageMeasureType(
       String pName,
       CoverageMeasureInputCategory pCategeory,
-      CoverageMeasureAnalysisCategory pAnalysisCategory) {
+      CoverageMeasureAnalysisCategory pAnalysisCategory,
+      CoverageMeasureProcessingTime pProcessingTime) {
     name = pName;
     category = pCategeory;
     analysisCategory = pAnalysisCategory;
+    processingTime = pProcessingTime;
   }
 
   public CoverageMeasure getCoverageMeasure(CoverageCollectorHandler covHandler) {
@@ -116,6 +127,14 @@ public enum CoverageMeasureType {
 
   public CoverageMeasureInputCategory getCategory() {
     return category;
+  }
+
+  public boolean shouldProcessDuringAnalysis() {
+    return processingTime == CoverageMeasureProcessingTime.DURING_ANALYSIS;
+  }
+
+  public boolean shouldProcessAfterAnalysis() {
+    return processingTime == CoverageMeasureProcessingTime.AFTER_ANALYSIS;
   }
 
   public CoverageMeasureAnalysisCategory getAnalysisCategory() {
