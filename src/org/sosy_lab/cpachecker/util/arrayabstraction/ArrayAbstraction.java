@@ -52,7 +52,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.util.arrayabstraction.ArrayAbstractionResult.Status;
-import org.sosy_lab.cpachecker.util.dependencegraph.EdgeDefUseData;
+import org.sosy_lab.cpachecker.util.sdg.c.EdgeDefUseData;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 /** Array abstraction algorithm. */

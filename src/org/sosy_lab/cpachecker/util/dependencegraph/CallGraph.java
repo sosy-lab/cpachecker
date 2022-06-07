@@ -31,7 +31,7 @@ import java.util.function.Function;
  *
  * @param <P> the procedure type of the call graph.
  */
-final class CallGraph<P> {
+public final class CallGraph<P> {
 
   private final ImmutableList<Node.ImmutableNode<P>> nodes;
   private final ImmutableMap<P, Node.ImmutableNode<P>> nodeMap;
@@ -149,7 +149,7 @@ final class CallGraph<P> {
     return nodes.get(pId);
   }
 
-  ImmutableSet<P> getReachableFrom(Collection<? extends P> pProcedures) {
+  public ImmutableSet<P> getReachableFrom(Collection<? extends P> pProcedures) {
 
     Deque<Node<P>> waitlist = new ArrayDeque<>();
     Set<Node<P>> waitlisted = new HashSet<>();
@@ -175,7 +175,7 @@ final class CallGraph<P> {
     return builder.build();
   }
 
-  ImmutableSet<P> getRecursiveProcedures() {
+  public ImmutableSet<P> getRecursiveProcedures() {
 
     Deque<Node<P>> waitlist = new ArrayDeque<>();
     Multimap<Node<P>, Node<P>> callers = HashMultimap.create(); // node -> its (transitive) callers
@@ -213,7 +213,7 @@ final class CallGraph<P> {
     return ImmutableSet.copyOf(recursiveProcedures);
   }
 
-  ImmutableList<P> getPostOrder(P pStart) {
+  public ImmutableList<P> getPostOrder(P pStart) {
 
     Node<P> startNode = nodeMap.get(pStart);
 

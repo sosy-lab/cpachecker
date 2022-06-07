@@ -69,13 +69,6 @@ import org.sosy_lab.cpachecker.cpa.predicate.persistence.PredicatePersistenceUti
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.NoException;
 import org.sosy_lab.cpachecker.util.CFAUtils;
-import org.sosy_lab.cpachecker.util.dependencegraph.CSystemDependenceGraph;
-import org.sosy_lab.cpachecker.util.dependencegraph.CSystemDependenceGraph.BackwardsVisitor;
-import org.sosy_lab.cpachecker.util.dependencegraph.CSystemDependenceGraph.Node;
-import org.sosy_lab.cpachecker.util.dependencegraph.CSystemDependenceGraphBuilder;
-import org.sosy_lab.cpachecker.util.dependencegraph.SystemDependenceGraph.BackwardsVisitOnceVisitor;
-import org.sosy_lab.cpachecker.util.dependencegraph.SystemDependenceGraph.EdgeType;
-import org.sosy_lab.cpachecker.util.dependencegraph.SystemDependenceGraph.VisitResult;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionManager;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 import org.sosy_lab.cpachecker.util.predicates.regions.RegionManager;
@@ -85,6 +78,13 @@ import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.cpachecker.util.resources.ResourceLimit;
 import org.sosy_lab.cpachecker.util.resources.ResourceLimitChecker;
 import org.sosy_lab.cpachecker.util.resources.WalltimeLimit;
+import org.sosy_lab.cpachecker.util.sdg.SystemDependenceGraph.BackwardsVisitOnceVisitor;
+import org.sosy_lab.cpachecker.util.sdg.SystemDependenceGraph.EdgeType;
+import org.sosy_lab.cpachecker.util.sdg.SystemDependenceGraph.VisitResult;
+import org.sosy_lab.cpachecker.util.sdg.c.CSystemDependenceGraph;
+import org.sosy_lab.cpachecker.util.sdg.c.CSystemDependenceGraph.BackwardsVisitor;
+import org.sosy_lab.cpachecker.util.sdg.c.CSystemDependenceGraph.Node;
+import org.sosy_lab.cpachecker.util.sdg.c.CSystemDependenceGraphBuilder;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 @Options(prefix = "cpa.value.reuse.precision.predicate")

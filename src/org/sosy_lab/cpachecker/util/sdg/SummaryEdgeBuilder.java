@@ -6,7 +6,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.util.dependencegraph;
+package org.sosy_lab.cpachecker.util.sdg;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ArrayListMultimap;
@@ -18,15 +18,16 @@ import java.util.Arrays;
 import java.util.BitSet;
 import java.util.Collection;
 import java.util.List;
-import org.sosy_lab.cpachecker.util.dependencegraph.SystemDependenceGraph.BackwardsVisitOnceVisitor;
-import org.sosy_lab.cpachecker.util.dependencegraph.SystemDependenceGraph.BackwardsVisitor;
-import org.sosy_lab.cpachecker.util.dependencegraph.SystemDependenceGraph.EdgeType;
-import org.sosy_lab.cpachecker.util.dependencegraph.SystemDependenceGraph.Node;
-import org.sosy_lab.cpachecker.util.dependencegraph.SystemDependenceGraph.NodeType;
-import org.sosy_lab.cpachecker.util.dependencegraph.SystemDependenceGraph.VisitResult;
+import org.sosy_lab.cpachecker.util.dependencegraph.CallGraph;
+import org.sosy_lab.cpachecker.util.sdg.SystemDependenceGraph.BackwardsVisitOnceVisitor;
+import org.sosy_lab.cpachecker.util.sdg.SystemDependenceGraph.BackwardsVisitor;
+import org.sosy_lab.cpachecker.util.sdg.SystemDependenceGraph.EdgeType;
+import org.sosy_lab.cpachecker.util.sdg.SystemDependenceGraph.Node;
+import org.sosy_lab.cpachecker.util.sdg.SystemDependenceGraph.NodeType;
+import org.sosy_lab.cpachecker.util.sdg.SystemDependenceGraph.VisitResult;
 
 /** Class for computing summary edges and inserting them into a {@link SystemDependenceGraph}. */
-final class SummaryEdgeBuilder {
+public final class SummaryEdgeBuilder {
 
   /** Method for computing summary edges. */
   public enum Method {
@@ -55,7 +56,7 @@ final class SummaryEdgeBuilder {
    *     this procedure are inserted)
    * @param pMethod the method used from computing summary edges
    */
-  static <P, N extends Node<P, ?, ?>> void insertSummaryEdges(
+  public static <P, N extends Node<P, ?, ?>> void insertSummaryEdges(
       SystemDependenceGraph.Builder<P, ?, ?, N> pBuilder,
       CallGraph<P> pCallGraph,
       P pStartProcedure,

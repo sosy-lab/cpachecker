@@ -6,7 +6,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.util.dependencegraph;
+package org.sosy_lab.cpachecker.util.sdg.c;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
@@ -58,16 +58,22 @@ import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.CFAUtils;
-import org.sosy_lab.cpachecker.util.dependencegraph.FlowDepAnalysis.DependenceConsumer;
-import org.sosy_lab.cpachecker.util.dependencegraph.SystemDependenceGraph.EdgeType;
-import org.sosy_lab.cpachecker.util.dependencegraph.SystemDependenceGraph.Node;
-import org.sosy_lab.cpachecker.util.dependencegraph.SystemDependenceGraph.NodeType;
+import org.sosy_lab.cpachecker.util.dependencegraph.CallGraph;
+import org.sosy_lab.cpachecker.util.dependencegraph.CallGraphUtils;
 import org.sosy_lab.cpachecker.util.graph.dominance.DomFrontiers;
 import org.sosy_lab.cpachecker.util.graph.dominance.DomTree;
 import org.sosy_lab.cpachecker.util.graph.dominance.DominanceUtils;
 import org.sosy_lab.cpachecker.util.resources.ResourceLimit;
 import org.sosy_lab.cpachecker.util.resources.ResourceLimitChecker;
 import org.sosy_lab.cpachecker.util.resources.WalltimeLimit;
+import org.sosy_lab.cpachecker.util.sdg.ControlDependenceBuilder;
+import org.sosy_lab.cpachecker.util.sdg.SdgDotExporter;
+import org.sosy_lab.cpachecker.util.sdg.SummaryEdgeBuilder;
+import org.sosy_lab.cpachecker.util.sdg.SystemDependenceGraph;
+import org.sosy_lab.cpachecker.util.sdg.SystemDependenceGraph.EdgeType;
+import org.sosy_lab.cpachecker.util.sdg.SystemDependenceGraph.Node;
+import org.sosy_lab.cpachecker.util.sdg.SystemDependenceGraph.NodeType;
+import org.sosy_lab.cpachecker.util.sdg.c.FlowDepAnalysis.DependenceConsumer;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 import org.sosy_lab.cpachecker.util.statistics.StatTimer;
 

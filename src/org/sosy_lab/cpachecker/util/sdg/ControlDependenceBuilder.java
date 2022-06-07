@@ -6,7 +6,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.util.dependencegraph;
+package org.sosy_lab.cpachecker.util.sdg;
 
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableSet;
@@ -24,21 +24,21 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.util.CFATraversal;
 import org.sosy_lab.cpachecker.util.CFATraversal.NodeCollectingCFAVisitor;
 import org.sosy_lab.cpachecker.util.CFAUtils;
-import org.sosy_lab.cpachecker.util.dependencegraph.SystemDependenceGraph.EdgeType;
-import org.sosy_lab.cpachecker.util.dependencegraph.SystemDependenceGraph.ForwardsVisitor;
-import org.sosy_lab.cpachecker.util.dependencegraph.SystemDependenceGraph.Node;
-import org.sosy_lab.cpachecker.util.dependencegraph.SystemDependenceGraph.NodeType;
-import org.sosy_lab.cpachecker.util.dependencegraph.SystemDependenceGraph.VisitResult;
 import org.sosy_lab.cpachecker.util.graph.dominance.DomFrontiers;
 import org.sosy_lab.cpachecker.util.graph.dominance.DomTree;
 import org.sosy_lab.cpachecker.util.graph.dominance.DominanceUtils;
+import org.sosy_lab.cpachecker.util.sdg.SystemDependenceGraph.EdgeType;
+import org.sosy_lab.cpachecker.util.sdg.SystemDependenceGraph.ForwardsVisitor;
+import org.sosy_lab.cpachecker.util.sdg.SystemDependenceGraph.Node;
+import org.sosy_lab.cpachecker.util.sdg.SystemDependenceGraph.NodeType;
+import org.sosy_lab.cpachecker.util.sdg.SystemDependenceGraph.VisitResult;
 
 /**
  * Class for computing control dependencies and inserting them into a {@link SystemDependenceGraph}.
  *
  * @param <N> the node type of the SDG
  */
-final class ControlDependenceBuilder<N extends Node<AFunctionDeclaration, CFAEdge, ?>> {
+public final class ControlDependenceBuilder<N extends Node<AFunctionDeclaration, CFAEdge, ?>> {
 
   private final SystemDependenceGraph.Builder<AFunctionDeclaration, CFAEdge, ?, N> builder;
   private final Optional<AFunctionDeclaration> procedure;
@@ -74,7 +74,7 @@ final class ControlDependenceBuilder<N extends Node<AFunctionDeclaration, CFAEdg
    * @param pDependOnBothAssumptions whether to always depend on both assume edges of a branching,
    *     even if it would be sufficient to only depend on one of the assume edges
    */
-  static void insertControlDependencies(
+  public static void insertControlDependencies(
       SystemDependenceGraph.Builder<AFunctionDeclaration, CFAEdge, ?, ?> pBuilder,
       FunctionEntryNode pEntryNode,
       boolean pDependOnBothAssumptions) {

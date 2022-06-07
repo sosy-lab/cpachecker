@@ -19,7 +19,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.dependencegraph.CallGraph.SuccessorResult;
 
-final class CallGraphUtils {
+public final class CallGraphUtils {
 
   /**
    * Returns a list of {@link SuccessorResult}s for a specified {@link CFANode}. The returned list
@@ -47,7 +47,7 @@ final class CallGraphUtils {
     return edges;
   }
 
-  static CallGraph<AFunctionDeclaration> createCallGraph(CFA pCfa) {
+  public static CallGraph<AFunctionDeclaration> createCallGraph(CFA pCfa) {
     return CallGraph.createCallGraph(
         CallGraphUtils::getSuccessorResults, ImmutableSet.of(pCfa.getMainFunction()));
   }

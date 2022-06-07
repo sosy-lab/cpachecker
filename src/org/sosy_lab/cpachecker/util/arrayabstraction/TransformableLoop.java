@@ -38,9 +38,9 @@ import org.sosy_lab.cpachecker.util.CFATraversal.TraversalProcess;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.LoopStructure;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
-import org.sosy_lab.cpachecker.util.dependencegraph.EdgeDefUseData;
 import org.sosy_lab.cpachecker.util.graph.dominance.DomTree;
 import org.sosy_lab.cpachecker.util.graph.dominance.DominanceUtils;
+import org.sosy_lab.cpachecker.util.sdg.c.EdgeDefUseData;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 import org.sosy_lab.cpachecker.util.variableclassification.VariableClassification;
 

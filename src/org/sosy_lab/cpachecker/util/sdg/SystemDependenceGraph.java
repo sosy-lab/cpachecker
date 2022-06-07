@@ -6,7 +6,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.util.dependencegraph;
+package org.sosy_lab.cpachecker.util.sdg;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableCollection;

@@ -6,10 +6,11 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.util.dependencegraph;
+package org.sosy_lab.cpachecker.util.sdg.c;
 
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.util.sdg.SystemDependenceGraph;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 /** Represents a {@link SystemDependenceGraph} for C programs. */

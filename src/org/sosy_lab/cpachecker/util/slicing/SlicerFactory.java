@@ -20,8 +20,8 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
-import org.sosy_lab.cpachecker.util.dependencegraph.CSystemDependenceGraph;
-import org.sosy_lab.cpachecker.util.dependencegraph.CSystemDependenceGraphBuilder;
+import org.sosy_lab.cpachecker.util.sdg.c.CSystemDependenceGraph;
+import org.sosy_lab.cpachecker.util.sdg.c.CSystemDependenceGraphBuilder;
 
 /**
  * Factory class for creating {@link Slicer} objects. The concrete <code>Slicer</code> that is

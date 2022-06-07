@@ -6,7 +6,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.util.dependencegraph;
+package org.sosy_lab.cpachecker.util.sdg;
 
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.ImmutableMap;
@@ -23,9 +23,9 @@ import java.util.Optional;
 import java.util.logging.Level;
 import org.sosy_lab.common.io.IO;
 import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.util.dependencegraph.SystemDependenceGraph.EdgeType;
-import org.sosy_lab.cpachecker.util.dependencegraph.SystemDependenceGraph.Node;
-import org.sosy_lab.cpachecker.util.dependencegraph.SystemDependenceGraph.VisitResult;
+import org.sosy_lab.cpachecker.util.sdg.SystemDependenceGraph.EdgeType;
+import org.sosy_lab.cpachecker.util.sdg.SystemDependenceGraph.Node;
+import org.sosy_lab.cpachecker.util.sdg.SystemDependenceGraph.VisitResult;
 
 /**
  * Exporter to export {@link SystemDependenceGraph} instances as dot files.
@@ -35,7 +35,7 @@ import org.sosy_lab.cpachecker.util.dependencegraph.SystemDependenceGraph.VisitR
  * @param <V> the variable type of the SDG
  * @param <N> the node type of the SDG
  */
-abstract class SdgDotExporter<P, T, V, N extends SystemDependenceGraph.Node<P, T, V>> {
+public abstract class SdgDotExporter<P, T, V, N extends SystemDependenceGraph.Node<P, T, V>> {
 
   private static final ImmutableMap<EdgeType, String> edgeStyles;
   private static final ImmutableMap<EdgeType, String> edgeLabels;
@@ -305,7 +305,7 @@ abstract class SdgDotExporter<P, T, V, N extends SystemDependenceGraph.Node<P, T
    * @param pLogger the logger used for logging exceptions and other notable messages occurring
    *     during export of the SDG
    */
-  void export(SystemDependenceGraph<V, N> pSdg, Path pPath, LogManager pLogger) {
+  public void export(SystemDependenceGraph<V, N> pSdg, Path pPath, LogManager pLogger) {
 
     try (Writer writer = IO.openOutputFile(pPath, Charset.defaultCharset())) {
       write(writer, pSdg);
