@@ -1583,12 +1583,14 @@ function renderTDG(dataJSON, color, inPercentage) {
       $rootScope.displayedSourceCoverages = $scope.sourceCoverageSelections[0];
       $scope.extractColor = extractColor;
       $scope.getStringId = getCoverageStringId;
+      $scope.inBlockComment = false;
 
       $scope.sourceColoringControl = () => {
         $scope.colorId = $scope.getStringId(
           $rootScope.displayedSourceCoverages
         );
         const linesCount = d3.select("#source-file").selectAll("tr").size();
+        $scope.inBlockComment = false;
         for (let currentLine = 1; currentLine <= linesCount; currentLine += 1) {
           d3.selectAll(`#right-source-${currentLine}`).each(
             function colorLines() {
@@ -1610,14 +1612,25 @@ function renderTDG(dataJSON, color, inPercentage) {
                   defaultColor,
                   currentFunction
                 );
-                for (let j = 0; j < variables.length; j += 1) {
-                  codeLine = $scope.colorRelevantVariables(
-                    $rootScope.displayedSourceFiles,
-                    codeLine,
-                    variables[j],
-                    currentFunction,
-                    defaultColor
-                  );
+                let changeCommentEnv = false;
+                if (codeLine.indexOf("/*") !== -1) {
+                  $scope.inBlockComment = true;
+                  changeCommentEnv = true;
+                }
+                if (codeLine.indexOf("*/") !== -1) {
+                  $scope.inBlockComment = false;
+                  changeCommentEnv = true;
+                }
+                if (!$scope.inBlockComment || changeCommentEnv) {
+                  for (let j = 0; j < variables.length; j += 1) {
+                    codeLine = $scope.colorRelevantVariables(
+                      $rootScope.displayedSourceFiles,
+                      codeLine,
+                      variables[j],
+                      currentFunction,
+                      defaultColor
+                    );
+                  }
                 }
                 line.html(codeLine);
               } else {
@@ -1665,8 +1678,28 @@ function renderTDG(dataJSON, color, inPercentage) {
         lineColor
       ) => {
         // we do not want comments to be considered for coloring
+        const startingCommentSymbols = ["//", "/*"];
+        const endingCommentSymbols = ["*/"];
+
         if (rawCodeLine.startsWith("//")) {
           return rawCodeLine;
+        }
+        let preLineComment = "";
+        let postLineComment = "";
+
+        for (let i = 0; i < startingCommentSymbols.length; i += 1) {
+          const commentLineParts = rawCodeLine.split(startingCommentSymbols[i]);
+          if (commentLineParts.length > 1) {
+            rawCodeLine = commentLineParts[0];
+            postLineComment = startingCommentSymbols[i] + commentLineParts[1];
+          }
+        }
+        for (let i = 0; i < endingCommentSymbols.length; i += 1) {
+          const commentLineParts = rawCodeLine.split(endingCommentSymbols[i]);
+          if (commentLineParts.length > 1) {
+            rawCodeLine = commentLineParts[1];
+            preLineComment = commentLineParts[0] + endingCommentSymbols[i];
+          }
         }
 
         // extract variable name and eventually its function name
@@ -1689,20 +1722,28 @@ function renderTDG(dataJSON, color, inPercentage) {
 
         // check for function static variable
         if (variableName.startsWith("static")) {
-          return $scope.colorLineText(
-            rawCodeLine,
-            variableName.split("__").slice(-1)[0],
-            lineColor
+          return (
+            preLineComment +
+            $scope.colorLineText(
+              rawCodeLine,
+              variableName.split("__").slice(-1)[0],
+              lineColor
+            ) +
+            postLineComment
           );
         }
 
         // color variables in line if it has correct function scope
         if (functionName === "" || functionName === currentFunction) {
-          return $scope.colorLineText(rawCodeLine, variableName, lineColor);
+          return (
+            preLineComment +
+            $scope.colorLineText(rawCodeLine, variableName, lineColor) +
+            postLineComment
+          );
         }
 
         // return line without changes
-        return rawCodeLine;
+        return preLineComment + rawCodeLine + postLineComment;
       };
 
       $scope.colorLineText = (lineCode, variableName, lineColor) => {
@@ -1715,7 +1756,8 @@ function renderTDG(dataJSON, color, inPercentage) {
         for (let i = 0; i < lineParts.length; i += 1) {
           if (i !== lineParts.length - 1) {
             if (
-              variableEnvironment.test(lineParts[i].slice(-1)) &&
+              (variableEnvironment.test(lineParts[i].slice(-1)) ||
+                lineCode.startsWith(variableName)) &&
               variableEnvironment.test(lineParts[i + 1].slice(0, 1))
             ) {
               outputStr += lineParts[i] + preStyle + variableName + postStyle;
