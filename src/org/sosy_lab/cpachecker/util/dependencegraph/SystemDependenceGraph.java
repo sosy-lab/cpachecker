@@ -8,9 +8,6 @@
 
 package org.sosy_lab.cpachecker.util.dependencegraph;
 
-import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.base.Preconditions.checkNotNull;
-
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.ImmutableList;
@@ -1146,27 +1143,6 @@ public class SystemDependenceGraph<V, N extends SystemDependenceGraph.Node<?, ?,
       edgeTypeCounter.increment(pType);
     }
 
-    private static <P, T, V> void checkNode(
-        NodeType pType, Optional<P> pProcedure, Optional<T> pStatement, Optional<V> pVariable) {
-
-      checkNotNull(pProcedure);
-      checkNotNull(pStatement);
-      checkNotNull(pVariable);
-
-      if (pType == NodeType.FORMAL_IN
-          || pType == NodeType.FORMAL_OUT
-          || pType == NodeType.ACTUAL_IN
-          || pType == NodeType.ACTUAL_OUT) {
-        checkArgument(pVariable.isPresent(), "node requires variable, but it's missing");
-      }
-
-      if (pType == NodeType.STATEMENT
-          || pType == NodeType.ACTUAL_IN
-          || pType == NodeType.ACTUAL_OUT) {
-        checkArgument(pStatement.isPresent(), "node requires statement, but it's missing");
-      }
-    }
-
     int getNodeCount() {
       return nodes.size();
     }
@@ -1291,7 +1267,10 @@ public class SystemDependenceGraph<V, N extends SystemDependenceGraph.Node<?, ?,
     public EdgeChooser node(
         NodeType pType, Optional<P> pProcedure, Optional<T> pStatement, Optional<V> pVariable) {
 
-      checkNode(pType, pProcedure, pStatement, pVariable);
+      Objects.requireNonNull(pType, "pType must not be null");
+      Objects.requireNonNull(pProcedure, "pProcedure must not be null");
+      Objects.requireNonNull(pStatement, "pStatement must not be null");
+      Objects.requireNonNull(pVariable, "pVariable must not be null");
 
       return new EdgeChooser(graphNode(pType, pProcedure, pStatement, pVariable));
     }
@@ -1435,7 +1414,10 @@ public class SystemDependenceGraph<V, N extends SystemDependenceGraph.Node<?, ?,
       public void on(
           NodeType pType, Optional<P> pProcedure, Optional<T> pStatement, Optional<V> pVariable) {
 
-        checkNode(pType, pProcedure, pStatement, pVariable);
+        Objects.requireNonNull(pType, "pType must not be null");
+        Objects.requireNonNull(pProcedure, "pProcedure must not be null");
+        Objects.requireNonNull(pStatement, "pStatement must not be null");
+        Objects.requireNonNull(pVariable, "pVariable must not be null");
 
         insertEdge(graphNode(pType, pProcedure, pStatement, pVariable), graphNode, edgeType, cause);
       }
