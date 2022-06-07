@@ -24,9 +24,9 @@ final class SimpleMutableCfaNetwork implements MutableCfaNetwork {
   private final MutableCFA mutableCfa;
   private final CfaNetwork mutableCfaView;
 
-  SimpleMutableCfaNetwork(MutableCFA pMutableCfa, CfaNetwork pMutableCfaView) {
+  SimpleMutableCfaNetwork(MutableCFA pMutableCfa) {
     mutableCfa = pMutableCfa;
-    mutableCfaView = pMutableCfaView;
+    mutableCfaView = CfaNetwork.wrap(pMutableCfa);
   }
 
   @Override
