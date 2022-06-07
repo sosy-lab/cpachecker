@@ -764,7 +764,7 @@ public class CSystemDependenceGraphBuilder implements StatisticsProvider {
       }
 
       ControlDependenceBuilder.insertControlDependencies(
-          builder, entryNode, controlDepsTakeBothAssumptions);
+          builder, entryNode, entryNode.getFunction(), controlDepsTakeBothAssumptions);
 
       AFunctionDeclaration procedure = entryNode.getFunction();
 

@@ -15,7 +15,6 @@ import com.google.common.collect.Iterators;
 import java.util.HashSet;
 import java.util.Optional;
 import java.util.Set;
-import org.sosy_lab.cpachecker.cfa.ast.AFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -34,20 +33,20 @@ import org.sosy_lab.cpachecker.util.sdg.traversal.SdgVisitResult;
 /**
  * Class for computing control dependencies and inserting them into a {@link SystemDependenceGraph}.
  *
+ * @param <P> the procedure type of the SDG
  * @param <N> the node type of the SDG
  */
-public final class ControlDependenceBuilder<N extends Node<AFunctionDeclaration, CFAEdge, ?>> {
+public final class ControlDependenceBuilder<P, N extends Node<P, CFAEdge, ?>> {
 
-  private final SystemDependenceGraph.Builder<AFunctionDeclaration, CFAEdge, ?, N> builder;
-  private final AFunctionDeclaration procedure;
+  private final SystemDependenceGraph.Builder<P, CFAEdge, ?, N> builder;
+  private final P procedure;
   private final Set<CFAEdge> dependentEdges;
 
   private ControlDependenceBuilder(
-      SystemDependenceGraph.Builder<AFunctionDeclaration, CFAEdge, ?, N> pBuilder,
-      FunctionEntryNode pEntryNode) {
+      SystemDependenceGraph.Builder<P, CFAEdge, ?, N> pBuilder, P pProcedure) {
 
     builder = pBuilder;
-    procedure = pEntryNode.getFunction();
+    procedure = pProcedure;
     dependentEdges = new HashSet<>();
   }
 
@@ -66,19 +65,23 @@ public final class ControlDependenceBuilder<N extends Node<AFunctionDeclaration,
    * Compute control dependencies for a specified function and insert them into a {@link
    * SystemDependenceGraph}.
    *
+   * @param <P> the procedure type of the SDG
    * @param pBuilder the SDG builder used to insert dependencies
    * @param pEntryNode the function (specified by its entry node) to compute control dependencies
    *     for
+   * @param pProcedure the procedure that the nodes of the function (specified by its entry node)
+   *     belong to
    * @param pDependOnBothAssumptions whether to always depend on both assume edges of a branching,
    *     even if it would be sufficient to only depend on one of the assume edges
    */
-  public static void insertControlDependencies(
-      SystemDependenceGraph.Builder<AFunctionDeclaration, CFAEdge, ?, ?> pBuilder,
+  public static <P> void insertControlDependencies(
+      SystemDependenceGraph.Builder<P, CFAEdge, ?, ?> pBuilder,
       FunctionEntryNode pEntryNode,
+      P pProcedure,
       boolean pDependOnBothAssumptions) {
 
-    ControlDependenceBuilder<?> controlDependenceBuilder =
-        new ControlDependenceBuilder<>(pBuilder, pEntryNode);
+    ControlDependenceBuilder<?, ?> controlDependenceBuilder =
+        new ControlDependenceBuilder<>(pBuilder, pProcedure);
 
     DomTree<CFANode> postDomTree = DominanceUtils.createFunctionPostDomTree(pEntryNode);
     Set<CFANode> postDomTreeNodes = new HashSet<>();
