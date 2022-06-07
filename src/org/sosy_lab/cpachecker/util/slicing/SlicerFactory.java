@@ -40,7 +40,7 @@ public class SlicerFactory implements StatisticsProvider {
     /**
      * Use static program slicing based on dependence graph of CFA
      *
-     * @see org.sosy_lab.cpachecker.util.dependencegraph.CSystemDependenceGraphBuilder
+     * @see CSystemDependenceGraph
      * @see StaticSlicer
      */
     STATIC,

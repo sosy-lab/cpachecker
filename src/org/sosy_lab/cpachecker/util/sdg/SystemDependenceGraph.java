@@ -796,7 +796,7 @@ public class SystemDependenceGraph<V, N extends SystemDependenceGraph.Node<?, ?,
 
   /**
    * This class is used to represent a node in an SDG and its connection to other nodes via entering
-   * and leaving edges. This class is private to the SDG class, use {@link Visitor} for graph
+   * and leaving edges. This class is private to the SDG class, use {@link SdgVisitor} for graph
    * traversals and {@link Node} to refer to SDG nodes outside the SDG class.
    */
   private abstract static class GraphNode<V, N extends Node<?, ?, V>> {
