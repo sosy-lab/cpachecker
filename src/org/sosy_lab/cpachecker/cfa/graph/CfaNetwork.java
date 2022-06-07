@@ -80,7 +80,7 @@ public interface CfaNetwork extends Network<CFANode, CFAEdge> {
    * @throws NullPointerException if {@code pCfa == null}
    */
   public static CfaNetwork wrap(CFA pCfa) {
-    return new SimpleCfaNetwork(pCfa);
+    return new WrappingCfaNetwork(pCfa);
   }
 
   public static CfaNetwork filterEdges(CfaNetwork pNetwork, Predicate<CFAEdge> pFilter) {
