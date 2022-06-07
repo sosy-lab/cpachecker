@@ -252,8 +252,13 @@ class ComputeCoverage:
         create_temp_dir(temp_dir)
         command = [
             os.path.join(cpachecker_root, "scripts", "cpa.sh"),
-            # Using this configuration because it seems lightweight
-            "-detectRecursion",
+            "-valueAnalysis",
+            "-setprop",
+            "CompositeCPA.cpas=cpa.location.LocationCPA,cpa.callstack.CallstackCPA,"
+            "cpa.functionpointer.FunctionPointerCPA,cpa.coverage.CoverageCPA,"
+            "cpa.value.ValueAnalysisCPA",
+            "-setprop",
+            "shouldCollectCoverage=true",
             "-outputpath",
             temp_dir,
             instance,
