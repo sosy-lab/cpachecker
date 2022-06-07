@@ -1567,6 +1567,7 @@ function renderTDG(dataJSON, color, inPercentage) {
             break;
           }
         }
+        $scope.sourceColoringControl();
       };
       $scope.sourceFileIsSet = (value) => value === $scope.selectedSourceFile;
 
@@ -1583,15 +1584,17 @@ function renderTDG(dataJSON, color, inPercentage) {
       $rootScope.displayedSourceCoverages = $scope.sourceCoverageSelections[0];
       $scope.extractColor = extractColor;
       $scope.getStringId = getCoverageStringId;
-      $scope.inBlockComment = false;
+      $scope.inBlockComment = {};
+      $scope.fileId = 0;
 
       $scope.sourceColoringControl = () => {
         $scope.colorId = $scope.getStringId(
           $rootScope.displayedSourceCoverages
         );
         const linesCount = d3.select("#source-file").selectAll("tr").size();
-        $scope.inBlockComment = false;
+        $scope.inBlockComment = {};
         for (let currentLine = 1; currentLine <= linesCount; currentLine += 1) {
+          $scope.fileId = 0;
           d3.selectAll(`#right-source-${currentLine}`).each(
             function colorLines() {
               const line = d3.select(this);
@@ -1606,6 +1609,7 @@ function renderTDG(dataJSON, color, inPercentage) {
                   "NoVerificationCoverage"
                 );
                 let codeLine = line.text();
+                console.log(codeLine);
                 $scope.colorLineBackground(
                   lineStyle,
                   line,
@@ -1614,14 +1618,18 @@ function renderTDG(dataJSON, color, inPercentage) {
                 );
                 let changeCommentEnv = false;
                 if (codeLine.indexOf("/*") !== -1) {
-                  $scope.inBlockComment = true;
+                  $scope.inBlockComment[$scope.fileId] = true;
                   changeCommentEnv = true;
                 }
                 if (codeLine.indexOf("*/") !== -1) {
-                  $scope.inBlockComment = false;
+                  $scope.inBlockComment[$scope.fileId] = false;
                   changeCommentEnv = true;
                 }
-                if (!$scope.inBlockComment || changeCommentEnv) {
+                if (
+                  $scope.inBlockComment[$scope.fileId] === undefined ||
+                  !$scope.inBlockComment[$scope.fileId] ||
+                  changeCommentEnv
+                ) {
                   for (let j = 0; j < variables.length; j += 1) {
                     codeLine = $scope.colorRelevantVariables(
                       $rootScope.displayedSourceFiles,
@@ -1632,6 +1640,7 @@ function renderTDG(dataJSON, color, inPercentage) {
                     );
                   }
                 }
+                $scope.fileId += 1;
                 line.html(codeLine);
               } else {
                 $scope.colorLineBackground(
@@ -1687,6 +1696,8 @@ function renderTDG(dataJSON, color, inPercentage) {
         let preLineComment = "";
         let postLineComment = "";
 
+        const fileName = sourceFile.split("/").slice(-1)[0];
+
         for (let i = 0; i < startingCommentSymbols.length; i += 1) {
           const commentLineParts = rawCodeLine.split(startingCommentSymbols[i]);
           if (commentLineParts.length > 1) {
@@ -1711,39 +1722,20 @@ function renderTDG(dataJSON, color, inPercentage) {
           variableName = variableParts[1];
         }
 
-        // extract filename to deduce static variables
-        const fileName = sourceFile
-          .split("/")
-          .slice(-1)[0]
-          .replaceAll(".", "_");
-        if (variableParts.length === 1 && variable.startsWith(fileName)) {
-          variableName = variableName.replace(fileName, "");
-        }
-
-        // check for function static variable
-        if (variableName.startsWith("static")) {
-          return (
-            preLineComment +
-            $scope.colorLineText(
-              rawCodeLine,
-              variableName.split("__").slice(-1)[0],
-              lineColor
-            ) +
-            postLineComment
-          );
-        }
-
         // color variables in line if it has correct function scope
-        if (functionName === "" || functionName === currentFunction) {
-          return (
-            preLineComment +
-            $scope.colorLineText(rawCodeLine, variableName, lineColor) +
-            postLineComment
+        let newCodeLine = rawCodeLine;
+        if (
+          functionName === "" ||
+          functionName === currentFunction ||
+          functionName === fileName
+        ) {
+          newCodeLine = $scope.colorLineText(
+            rawCodeLine,
+            variableName,
+            lineColor
           );
         }
-
-        // return line without changes
-        return preLineComment + rawCodeLine + postLineComment;
+        return preLineComment + newCodeLine + postLineComment;
       };
 
       $scope.colorLineText = (lineCode, variableName, lineColor) => {

@@ -8,11 +8,13 @@
 
 package org.sosy_lab.cpachecker.util.coverage.collectors;
 
+import com.google.common.base.Splitter;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.HashMultiset;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMultiset;
 import com.google.common.collect.ImmutableSetMultimap;
+import com.google.common.collect.Iterators;
 import com.google.common.collect.Multiset;
 import com.google.common.collect.SetMultimap;
 import java.util.Collections;
@@ -181,16 +183,25 @@ public abstract class CoverageCollector {
       return Optional.empty();
     }
     String CPACHECKER_TMP_PREFIX = "__CPACHECKER_TMP";
+    String SCOPE_SEPARATOR = "::";
     CDeclaration declaration = ((CDeclarationEdge) edge).getDeclaration();
-    String qualifiedVariableName = declaration.getQualifiedName();
+    String functionName = edge.getPredecessor().getFunctionName();
+    String origVariableName = declaration.getOrigName();
     String variableName = declaration.getName();
+    String fileName =
+        Iterators.getLast(
+            Splitter.on('/').split(declaration.getFileLocation().getNiceFileName()).iterator());
     if (declaration instanceof CFunctionDeclaration
         || variableName == null
-        || qualifiedVariableName == null
+        || origVariableName == null
         || variableName.toUpperCase().startsWith(CPACHECKER_TMP_PREFIX)) {
       return Optional.empty();
     }
-    return Optional.of(qualifiedVariableName);
+    if (declaration.isGlobal()) {
+      return Optional.of(fileName + SCOPE_SEPARATOR + origVariableName);
+    } else {
+      return Optional.of(functionName + SCOPE_SEPARATOR + origVariableName);
+    }
   }
 
   private void putCFA(CFA pCFA) {
