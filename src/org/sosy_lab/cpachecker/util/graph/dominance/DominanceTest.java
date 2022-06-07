@@ -58,7 +58,9 @@ public final class DominanceTest {
 
   @Test
   public void testEmptyDomTree() {
-    var tester = new DomTreeTester<>(DomTree.empty());
+    DomTree<String> emptyDomTree = DomTree.empty();
+    var tester = new DomTreeTester<>(emptyDomTree);
+
     tester.assertNodeCountIs(0);
     tester.assertHasNoRoot();
     tester.assertNodeIsUnknown(UNKNOWN_NODE);
@@ -68,6 +70,7 @@ public final class DominanceTest {
   public void testEmptyDomTreeIterator() {
     DomTree<String> emptyDomTree = DomTree.empty();
     Iterator<String> emptyDomTreeIterator = emptyDomTree.iterator();
+
     assertNoNextElement(emptyDomTreeIterator);
     assertRemoveUnsupported(emptyDomTreeIterator);
   }
@@ -76,6 +79,7 @@ public final class DominanceTest {
   public void testEmptyDomTreeGraph() {
     DomTree<String> emptyDomTree = DomTree.empty();
     Graph<String> emptyDomTreeGraph = emptyDomTree.asGraph();
+
     assertDirectedAndNoSelfLoops(emptyDomTreeGraph);
     assertThat(emptyDomTreeGraph.nodes()).isEmpty();
     assertThat(emptyDomTreeGraph.edges()).isEmpty();
@@ -85,6 +89,7 @@ public final class DominanceTest {
   public void testEmptyDomFrontiers() {
     DomTree<String> emptyDomTree = DomTree.empty();
     DomFrontiers<String> emptyDomTreeFrontiers = DomFrontiers.forDomTree(emptyDomTree);
+
     assertThrows(
         IllegalArgumentException.class, () -> emptyDomTreeFrontiers.getFrontier(UNKNOWN_NODE));
     assertThat(emptyDomTreeFrontiers.getIteratedFrontier(ImmutableSet.of())).isEmpty();
@@ -104,6 +109,7 @@ public final class DominanceTest {
   public void testSingleNodeDomTree() {
     DomTree<String> singleNodeDomTree = DomTree.forGraph(createSingleNodeGraph(), ENTRY_NODE);
     var tester = new DomTreeTester<>(singleNodeDomTree);
+
     tester.assertNodeCountIs(1);
     tester.assertRootIs(ENTRY_NODE);
     tester.assertThat(ENTRY_NODE).hasNoParent();
@@ -116,6 +122,7 @@ public final class DominanceTest {
   public void testSingleNodeDomTreeIterator() {
     DomTree<String> singleNodeDomTree = DomTree.forGraph(createSingleNodeGraph(), ENTRY_NODE);
     Iterator<String> singleNodeDomTreeIterator = singleNodeDomTree.iterator();
+
     assertHasNextElement(singleNodeDomTreeIterator);
     assertRemoveUnsupported(singleNodeDomTreeIterator);
     assertThat(singleNodeDomTreeIterator.next()).isEqualTo(ENTRY_NODE);
@@ -127,6 +134,7 @@ public final class DominanceTest {
   public void testSingleNodeDomTreeGraph() {
     DomTree<String> singleNodeDomTree = DomTree.forGraph(createSingleNodeGraph(), ENTRY_NODE);
     Graph<String> singleNodeTreeGraph = singleNodeDomTree.asGraph();
+
     assertDirectedAndNoSelfLoops(singleNodeTreeGraph);
     assertThat(singleNodeTreeGraph.nodes()).containsExactly(ENTRY_NODE);
     assertThat(singleNodeTreeGraph.edges()).isEmpty();
@@ -136,6 +144,7 @@ public final class DominanceTest {
   public void testSingleNodeDomFrontiers() {
     DomTree<String> singleNodeDomTree = DomTree.forGraph(createSingleNodeGraph(), ENTRY_NODE);
     DomFrontiers<String> singleNodeDomTreeFrontiers = DomFrontiers.forDomTree(singleNodeDomTree);
+
     assertThat(singleNodeDomTreeFrontiers.getFrontier(ENTRY_NODE)).isEmpty();
     assertThrows(
         IllegalArgumentException.class, () -> singleNodeDomTreeFrontiers.getFrontier(UNKNOWN_NODE));
@@ -179,6 +188,7 @@ public final class DominanceTest {
     Graph<String> branchingGraph = createBranchingGraph();
     DomTree<String> branchingDomTree = DomTree.forGraph(branchingGraph, ENTRY_NODE);
     var tester = new DomTreeTester<>(branchingDomTree);
+
     tester.assertNodeCountIs(branchingGraph.nodes().size());
     tester.assertRootIs(ENTRY_NODE);
 
@@ -214,6 +224,7 @@ public final class DominanceTest {
   public void testBranchingDomTreeIterator() {
     Graph<String> branchingGraph = createBranchingGraph();
     DomTree<String> branchingDomTree = DomTree.forGraph(branchingGraph, ENTRY_NODE);
+
     assertThat(branchingDomTree).containsExactly(branchingGraph.nodes().toArray());
   }
 
@@ -222,6 +233,7 @@ public final class DominanceTest {
     Graph<String> branchingGraph = createBranchingGraph();
     DomTree<String> branchingDomTree = DomTree.forGraph(branchingGraph, ENTRY_NODE);
     Graph<String> branchingDomTreeGraph = branchingDomTree.asGraph();
+
     assertDirectedAndNoSelfLoops(branchingDomTreeGraph);
     assertThat(branchingDomTreeGraph.nodes()).containsExactly(branchingGraph.nodes().toArray());
     assertThat(branchingDomTreeGraph.edges())
@@ -293,6 +305,7 @@ public final class DominanceTest {
     Graph<String> loopGraph = createLoopGraph();
     DomTree<String> loopDomTree = DomTree.forGraph(loopGraph, ENTRY_NODE);
     var tester = new DomTreeTester<>(loopDomTree);
+
     tester.assertNodeCountIs(loopGraph.nodes().size());
     tester.assertRootIs(ENTRY_NODE);
 
@@ -313,6 +326,7 @@ public final class DominanceTest {
   public void testLoopDomTreeIterator() {
     Graph<String> loopGraph = createLoopGraph();
     DomTree<String> loopDomTree = DomTree.forGraph(loopGraph, ENTRY_NODE);
+
     assertThat(loopDomTree).containsExactly(loopGraph.nodes().toArray());
   }
 
@@ -321,6 +335,7 @@ public final class DominanceTest {
     Graph<String> loopGraph = createLoopGraph();
     DomTree<String> loopDomTree = DomTree.forGraph(loopGraph, ENTRY_NODE);
     Graph<String> loopDomTreeGraph = loopDomTree.asGraph();
+
     assertDirectedAndNoSelfLoops(loopDomTreeGraph);
     assertThat(loopDomTreeGraph.nodes()).containsExactly(loopGraph.nodes().toArray());
     assertThat(loopDomTreeGraph.edges())
@@ -409,6 +424,7 @@ public final class DominanceTest {
     Graph<String> transposedInfiniteLoopGraph = Graphs.transpose(createInfiniteLoopGraph());
     DomTree<String> infiniteLoopPostDomTree =
         DomTree.forGraph(transposedInfiniteLoopGraph, EXIT_NODE);
+
     assertThat(infiniteLoopPostDomTree)
         .containsExactly(
             Sets.difference(transposedInfiniteLoopGraph.nodes(), ImmutableSet.of("B")).toArray());
@@ -420,6 +436,7 @@ public final class DominanceTest {
     DomTree<String> infiniteLoopPostDomTree =
         DomTree.forGraph(transposedInfiniteLoopGraph, EXIT_NODE);
     Graph<String> infiniteLoopPostDomTreeGraph = infiniteLoopPostDomTree.asGraph();
+
     assertDirectedAndNoSelfLoops(infiniteLoopPostDomTreeGraph);
     assertThat(infiniteLoopPostDomTreeGraph.nodes())
         .containsExactly(Iterables.toArray(infiniteLoopPostDomTree, Object.class));
@@ -435,6 +452,7 @@ public final class DominanceTest {
         DomTree.forGraph(transposedInfiniteLoopGraph, EXIT_NODE);
     DomFrontiers<String> infiniteLoopPostDomFrontiers =
         DomFrontiers.forDomTree(infiniteLoopPostDomTree);
+
     assertThat(infiniteLoopPostDomFrontiers.getFrontier(ENTRY_NODE)).isEmpty();
     assertThat(infiniteLoopPostDomFrontiers.getFrontier("A")).isEmpty();
     assertThat(infiniteLoopPostDomFrontiers.getFrontier(EXIT_NODE)).isEmpty();
@@ -560,6 +578,7 @@ public final class DominanceTest {
     Graph<String> exampleGraph = createExampleGraph();
     DomTree<String> exampleDomTree = DomTree.forGraph(exampleGraph, ENTRY_NODE);
     var tester = new DomTreeTester<>(exampleDomTree);
+
     tester.assertNodeCountIs(exampleGraph.nodes().size());
     tester.assertRootIs(ENTRY_NODE);
 
@@ -641,6 +660,7 @@ public final class DominanceTest {
     Graph<String> transposedExampleGraph = Graphs.transpose(createExampleGraph());
     DomTree<String> examplePostDomTree = DomTree.forGraph(transposedExampleGraph, EXIT_NODE);
     var tester = new DomTreeTester<>(examplePostDomTree);
+
     tester.assertNodeCountIs(
         Sets.difference(transposedExampleGraph.nodes(), ImmutableSet.of("O")).size());
     tester.assertRootIs(EXIT_NODE);
