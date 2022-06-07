@@ -35,14 +35,15 @@ import org.sosy_lab.cpachecker.util.sdg.traversal.SdgVisitResult;
  * @param <P> the procedure type of the SDG
  * @param <N> the node type of the SDG
  */
-public final class ControlDependenceBuilder<P, N extends SdgNode<P, CFAEdge, ?>> {
+public final class ControlDependenceBuilder<
+    P, V, N extends SdgNode<P, CFAEdge, V>, E extends SdgEdge<V>> {
 
-  private final SystemDependenceGraph.Builder<P, CFAEdge, ?, N> builder;
+  private final SystemDependenceGraph.Builder<P, CFAEdge, V, N, E> builder;
   private final P procedure;
   private final Set<CFAEdge> dependentEdges;
 
   private ControlDependenceBuilder(
-      SystemDependenceGraph.Builder<P, CFAEdge, ?, N> pBuilder, P pProcedure) {
+      SystemDependenceGraph.Builder<P, CFAEdge, V, N, E> pBuilder, P pProcedure) {
 
     builder = pBuilder;
     procedure = pProcedure;
@@ -74,12 +75,12 @@ public final class ControlDependenceBuilder<P, N extends SdgNode<P, CFAEdge, ?>>
    *     even if it would be sufficient to only depend on one of the assume edges
    */
   public static <P> void insertControlDependencies(
-      SystemDependenceGraph.Builder<P, CFAEdge, ?, ?> pBuilder,
+      SystemDependenceGraph.Builder<P, CFAEdge, ?, ?, ?> pBuilder,
       FunctionEntryNode pEntryNode,
       P pProcedure,
       boolean pDependOnBothAssumptions) {
 
-    ControlDependenceBuilder<?, ?> controlDependenceBuilder =
+    ControlDependenceBuilder<?, ?, ?, ?> controlDependenceBuilder =
         new ControlDependenceBuilder<>(pBuilder, pProcedure);
 
     DomTree<CFANode> postDomTree = DominanceUtils.createFunctionPostDomTree(pEntryNode);
@@ -263,8 +264,8 @@ public final class ControlDependenceBuilder<P, N extends SdgNode<P, CFAEdge, ?>>
           }
 
           @Override
-          public SdgVisitResult visitEdge(SdgEdgeType pType, N pPredecessor, N pSuccessor) {
-            return pType == SdgEdgeType.CONTROL_DEPENDENCY
+          public SdgVisitResult visitEdge(E pEdge, N pPredecessor, N pSuccessor) {
+            return pEdge.getType() == SdgEdgeType.CONTROL_DEPENDENCY
                 ? SdgVisitResult.CONTINUE
                 : SdgVisitResult.SKIP;
           }

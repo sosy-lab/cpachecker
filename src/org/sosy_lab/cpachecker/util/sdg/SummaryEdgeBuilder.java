@@ -54,8 +54,8 @@ public final class SummaryEdgeBuilder {
    *     this procedure are inserted)
    * @param pMethod the method used from computing summary edges
    */
-  public static <P, N extends SdgNode<P, ?, ?>> void insertSummaryEdges(
-      SystemDependenceGraph.Builder<P, ?, ?, N> pBuilder,
+  public static <P, V, N extends SdgNode<P, ?, V>, E extends SdgEdge<V>> void insertSummaryEdges(
+      SystemDependenceGraph.Builder<P, ?, V, N, E> pBuilder,
       CallGraph<P> pCallGraph,
       P pStartProcedure,
       Method pMethod) {
@@ -75,7 +75,7 @@ public final class SummaryEdgeBuilder {
     ImmutableSet<P> recursiveProcedures = pCallGraph.getRecursiveProcedures();
     int[] procedureIds = pBuilder.createIds(node -> Optional.of(node.getProcedure()));
 
-    SummaryEdgeFinder<N> summaryEdgeFinder;
+    SummaryEdgeFinder<V, N, E> summaryEdgeFinder;
     int batchSize;
     if (pMethod == Method.BATCH) {
       summaryEdgeFinder = new BatchSummaryEdgeFinder<>(pBuilder, procedureIds);
@@ -129,15 +129,16 @@ public final class SummaryEdgeBuilder {
    *
    * <p>Implementation must implement the run method.
    */
-  private abstract static class SummaryEdgeFinder<N extends SdgNode<?, ?, ?>> {
+  private abstract static class SummaryEdgeFinder<
+      V, N extends SdgNode<?, ?, V>, E extends SdgEdge<V>> {
 
-    private final SystemDependenceGraph.Builder<?, ?, ?, N> builder;
+    private final SystemDependenceGraph.Builder<?, ?, V, N, E> builder;
     private final int[] procedureIds;
     private final BitSet finished;
     private final List<N> reachedFormalInNodes;
 
     private SummaryEdgeFinder(
-        SystemDependenceGraph.Builder<?, ?, ?, N> pBuilder, int[] pProcedureIds) {
+        SystemDependenceGraph.Builder<?, ?, V, N, E> pBuilder, int[] pProcedureIds) {
 
       builder = pBuilder;
       procedureIds = pProcedureIds;
@@ -148,7 +149,7 @@ public final class SummaryEdgeBuilder {
     protected abstract void run(
         List<N> pFormalOutNode, boolean pRecursive, SummaryEdgeConsumer<N> pConsumer);
 
-    protected void traverse(Collection<N> pStartNodes, BackwardsSdgVisitor<N> pVisitor) {
+    protected void traverse(Collection<N> pStartNodes, BackwardsSdgVisitor<V, N, E> pVisitor) {
       builder.traverse(pStartNodes, pVisitor);
     }
 
@@ -177,16 +178,17 @@ public final class SummaryEdgeBuilder {
     }
   }
 
-  private static final class SingleSummaryEdgeFinder<N extends SdgNode<?, ?, ?>>
-      extends SummaryEdgeFinder<N> implements BackwardsSdgVisitor<N> {
+  private static final class SingleSummaryEdgeFinder<
+          V, N extends SdgNode<?, ?, V>, E extends SdgEdge<V>>
+      extends SummaryEdgeFinder<V, N, E> implements BackwardsSdgVisitor<V, N, E> {
 
-    private final VisitOnceBackwardsSdgVisitor<N> visitor;
+    private final VisitOnceBackwardsSdgVisitor<V, N, E> visitor;
 
     private int procedureId;
     private boolean recursive;
 
     private SingleSummaryEdgeFinder(
-        SystemDependenceGraph.Builder<?, ?, ?, N> pBuilder, int[] pProcedureIds) {
+        SystemDependenceGraph.Builder<?, ?, V, N, E> pBuilder, int[] pProcedureIds) {
       super(pBuilder, pProcedureIds);
 
       visitor = new VisitOnceBackwardsSdgVisitor<>(this, pBuilder.getNodeCount());
@@ -224,7 +226,7 @@ public final class SummaryEdgeBuilder {
     }
 
     @Override
-    public SdgVisitResult visitEdge(SdgEdgeType pType, N pPredecessor, N pSuccessor) {
+    public SdgVisitResult visitEdge(E pEdge, N pPredecessor, N pSuccessor) {
 
       int predId = pPredecessor.getId();
       int succId = pSuccessor.getId();
@@ -236,7 +238,7 @@ public final class SummaryEdgeBuilder {
 
         if (predProcedureId != succProcedureId) {
 
-          if (pType != SdgEdgeType.PARAMETER_EDGE) {
+          if (pEdge.getType() != SdgEdgeType.PARAMETER_EDGE) {
             // don't leave procedure via non-parameter call edge
             return SdgVisitResult.SKIP;
           }
@@ -257,8 +259,9 @@ public final class SummaryEdgeBuilder {
     }
   }
 
-  private static final class BatchSummaryEdgeFinder<N extends SdgNode<?, ?, ?>>
-      extends SummaryEdgeFinder<N> implements BackwardsSdgVisitor<N> {
+  private static final class BatchSummaryEdgeFinder<
+          V, N extends SdgNode<?, ?, V>, E extends SdgEdge<V>>
+      extends SummaryEdgeFinder<V, N, E> implements BackwardsSdgVisitor<V, N, E> {
 
     private static final int MAX_BATCH_SIZE = 64;
     private static final int EMPTY_STATE = 0;
@@ -275,7 +278,7 @@ public final class SummaryEdgeBuilder {
     private int statesDirtyMax;
 
     private BatchSummaryEdgeFinder(
-        SystemDependenceGraph.Builder<?, ?, ?, N> pBuilder, int[] pProcedureIds) {
+        SystemDependenceGraph.Builder<?, ?, V, N, E> pBuilder, int[] pProcedureIds) {
       super(pBuilder, pProcedureIds);
 
       states = new long[pBuilder.getNodeCount()];
@@ -342,7 +345,7 @@ public final class SummaryEdgeBuilder {
     }
 
     @Override
-    public SdgVisitResult visitEdge(SdgEdgeType pType, N pPredecessor, N pSuccessor) {
+    public SdgVisitResult visitEdge(E pEdge, N pPredecessor, N pSuccessor) {
 
       int predId = pPredecessor.getId();
       int succId = pSuccessor.getId();
@@ -354,7 +357,7 @@ public final class SummaryEdgeBuilder {
 
         if (predProcedureId != succProcedureId) {
 
-          if (pType != SdgEdgeType.PARAMETER_EDGE) {
+          if (pEdge.getType() != SdgEdgeType.PARAMETER_EDGE) {
             // don't leave procedure via non-parameter call edge
             return SdgVisitResult.SKIP;
           }

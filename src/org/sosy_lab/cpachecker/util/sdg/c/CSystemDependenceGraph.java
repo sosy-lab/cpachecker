@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.util.sdg.c;
 
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.util.sdg.SdgEdge;
 import org.sosy_lab.cpachecker.util.sdg.SdgNode;
 import org.sosy_lab.cpachecker.util.sdg.SystemDependenceGraph;
 import org.sosy_lab.cpachecker.util.sdg.traversal.BackwardsSdgVisitor;
@@ -18,9 +19,13 @@ import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 /** Represents a {@link SystemDependenceGraph} for C programs. */
 public final class CSystemDependenceGraph
-    extends SystemDependenceGraph<MemoryLocation, CSystemDependenceGraph.Node> {
+    extends SystemDependenceGraph<
+        MemoryLocation, CSystemDependenceGraph.Node, CSystemDependenceGraph.Edge> {
 
-  CSystemDependenceGraph(SystemDependenceGraph<MemoryLocation, CSystemDependenceGraph.Node> pSdg) {
+  CSystemDependenceGraph(
+      SystemDependenceGraph<
+              MemoryLocation, CSystemDependenceGraph.Node, CSystemDependenceGraph.Edge>
+          pSdg) {
     super(pSdg);
   }
 
@@ -31,7 +36,18 @@ public final class CSystemDependenceGraph
     }
   }
 
-  public interface ForwardsVisitor extends ForwardsSdgVisitor<CSystemDependenceGraph.Node> {}
+  public static final class Edge extends SdgEdge<MemoryLocation> {
 
-  public interface BackwardsVisitor extends BackwardsSdgVisitor<CSystemDependenceGraph.Node> {}
+    Edge(SdgEdge<MemoryLocation> pEdge) {
+      super(pEdge);
+    }
+  }
+
+  public interface ForwardsVisitor
+      extends ForwardsSdgVisitor<
+          MemoryLocation, CSystemDependenceGraph.Node, CSystemDependenceGraph.Edge> {}
+
+  public interface BackwardsVisitor
+      extends BackwardsSdgVisitor<
+          MemoryLocation, CSystemDependenceGraph.Node, CSystemDependenceGraph.Edge> {}
 }

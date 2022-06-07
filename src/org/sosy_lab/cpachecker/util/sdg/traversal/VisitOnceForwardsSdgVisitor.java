@@ -9,7 +9,7 @@
 package org.sosy_lab.cpachecker.util.sdg.traversal;
 
 import java.util.Collection;
-import org.sosy_lab.cpachecker.util.sdg.SdgEdgeType;
+import org.sosy_lab.cpachecker.util.sdg.SdgEdge;
 import org.sosy_lab.cpachecker.util.sdg.SdgNode;
 import org.sosy_lab.cpachecker.util.sdg.SystemDependenceGraph;
 
@@ -21,14 +21,16 @@ import org.sosy_lab.cpachecker.util.sdg.SystemDependenceGraph;
  * not visited again during the second traversal. Visit-once-visitors only work for the SDG they
  * were created for.
  *
- * @param <N> the node type of the SDG
+ * @param <V> the variable type of the SDG
+ * @param <N> the SDG node type of the SDG
+ * @param <E> the SDG edge type of the SDG
  * @see SystemDependenceGraph#createVisitOnceVisitor(ForwardsSdgVisitor)
  * @see SystemDependenceGraph#traverse(Collection, ForwardsSdgVisitor)
  */
-public final class VisitOnceForwardsSdgVisitor<N extends SdgNode<?, ?, ?>>
-    extends VisitOnceSdgVisitor<N> implements ForwardsSdgVisitor<N> {
+public final class VisitOnceForwardsSdgVisitor<V, N extends SdgNode<?, ?, V>, E extends SdgEdge<V>>
+    extends VisitOnceSdgVisitor<V, N, E> implements ForwardsSdgVisitor<V, N, E> {
 
-  public VisitOnceForwardsSdgVisitor(ForwardsSdgVisitor<N> pDelegateVisitor, int pNodeCount) {
+  public VisitOnceForwardsSdgVisitor(ForwardsSdgVisitor<V, N, E> pDelegateVisitor, int pNodeCount) {
     super(true, pDelegateVisitor, pNodeCount);
   }
 
@@ -49,7 +51,7 @@ public final class VisitOnceForwardsSdgVisitor<N extends SdgNode<?, ?, ?>>
   }
 
   @Override
-  public SdgVisitResult visitEdge(SdgEdgeType pType, N pPredecessor, N pSuccessor) {
-    return super.visitEdge(pType, pPredecessor, pSuccessor);
+  public SdgVisitResult visitEdge(E pEdge, N pPredecessor, N pSuccessor) {
+    return super.visitEdge(pEdge, pPredecessor, pSuccessor);
   }
 }

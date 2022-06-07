@@ -9,23 +9,29 @@
 package org.sosy_lab.cpachecker.util.sdg.traversal;
 
 import java.util.Arrays;
-import org.sosy_lab.cpachecker.util.sdg.SdgEdgeType;
+import org.sosy_lab.cpachecker.util.sdg.SdgEdge;
 import org.sosy_lab.cpachecker.util.sdg.SdgNode;
 
 /**
  * Implementation of a visit-once-visitor (i.e., a visitor that guarantees that the delegate visitor
  * visits every node/edge at most once during a traversal). Extended by {@link
  * VisitOnceForwardsSdgVisitor} and {@link VisitOnceBackwardsSdgVisitor}.
+ *
+ * @param <V> the variable type of the SDG
+ * @param <N> the SDG node type of the SDG
+ * @param <E> the SDG edge type of the SDG
  */
-abstract class VisitOnceSdgVisitor<N extends SdgNode<?, ?, ?>> implements SdgVisitor<N> {
+abstract class VisitOnceSdgVisitor<V, N extends SdgNode<?, ?, V>, E extends SdgEdge<V>>
+    implements SdgVisitor<V, N, E> {
 
   private final boolean forwards;
-  private final SdgVisitor<N> delegateVisitor;
+  private final SdgVisitor<V, N, E> delegateVisitor;
 
   private final byte[] visited;
   private byte visitedMarker;
 
-  protected VisitOnceSdgVisitor(boolean pForwards, SdgVisitor<N> pDelegateVisitor, int pNodeCount) {
+  protected VisitOnceSdgVisitor(
+      boolean pForwards, SdgVisitor<V, N, E> pDelegateVisitor, int pNodeCount) {
 
     forwards = pForwards;
     delegateVisitor = pDelegateVisitor;
@@ -63,9 +69,9 @@ abstract class VisitOnceSdgVisitor<N extends SdgNode<?, ?, ?>> implements SdgVis
   }
 
   @Override
-  public SdgVisitResult visitEdge(SdgEdgeType pType, N pPredecessor, N pSuccessor) {
+  public SdgVisitResult visitEdge(E pEdge, N pPredecessor, N pSuccessor) {
 
-    SdgVisitResult visitResult = delegateVisitor.visitEdge(pType, pPredecessor, pSuccessor);
+    SdgVisitResult visitResult = delegateVisitor.visitEdge(pEdge, pPredecessor, pSuccessor);
 
     if (visitResult == SdgVisitResult.CONTINUE) {
 

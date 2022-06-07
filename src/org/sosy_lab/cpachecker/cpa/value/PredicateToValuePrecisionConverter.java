@@ -222,9 +222,10 @@ public class PredicateToValuePrecisionConverter implements Statistics {
 
             Deque<MemoryLocation> toProcess = new ArrayDeque<>(result.values());
             Collection<MemoryLocation> inspectedVars = new HashSet<>(toProcess);
-            VisitOnceBackwardsSdgVisitor<Node> cdVisit =
-                depGraph.createVisitOnceVisitor(
-                    new ControlDependenceVisitor(inspectedVars, toProcess, result));
+            VisitOnceBackwardsSdgVisitor<MemoryLocation, Node, CSystemDependenceGraph.Edge>
+                cdVisit =
+                    depGraph.createVisitOnceVisitor(
+                        new ControlDependenceVisitor(inspectedVars, toProcess, result));
             MemoryLocation var;
             Collection<CSystemDependenceGraph.Node> relevantGraphNodes;
             boolean allUsesTracked, oneUseTracked;
@@ -498,8 +499,8 @@ public class PredicateToValuePrecisionConverter implements Statistics {
 
     @Override
     public SdgVisitResult visitEdge(
-        final SdgEdgeType pType, final Node pPredecessor, final Node pSuccessor) {
-      if (pType == SdgEdgeType.CONTROL_DEPENDENCY) {
+        final CSystemDependenceGraph.Edge pEdge, final Node pPredecessor, final Node pSuccessor) {
+      if (pEdge.getType() == SdgEdgeType.CONTROL_DEPENDENCY) {
         CFAEdge edge = pSuccessor.getStatement().orElse(null);
         if (edge instanceof CAssumeEdge) {
           ((CAssumeEdge) edge).getExpression().accept(assumeVisitor);

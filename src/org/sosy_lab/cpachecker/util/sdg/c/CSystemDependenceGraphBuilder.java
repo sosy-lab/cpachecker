@@ -174,10 +174,15 @@ public class CSystemDependenceGraphBuilder implements StatisticsProvider {
       ImmutableList.of(PointerStateComputationMethod.FLOW_SENSITIVE);
 
   private final SystemDependenceGraph.Builder<
-          AFunctionDeclaration, CFAEdge, MemoryLocation, CSystemDependenceGraph.Node>
+          AFunctionDeclaration,
+          CFAEdge,
+          MemoryLocation,
+          CSystemDependenceGraph.Node,
+          CSystemDependenceGraph.Edge>
       builder;
-  private SystemDependenceGraph<MemoryLocation, CSystemDependenceGraph.Node> systemDependenceGraph =
-      SystemDependenceGraph.empty();
+  private SystemDependenceGraph<
+          MemoryLocation, CSystemDependenceGraph.Node, CSystemDependenceGraph.Edge>
+      systemDependenceGraph = SystemDependenceGraph.empty();
   private String usedGlobalPointerState = "none";
 
   private enum PointerStateComputationMethod {
@@ -207,7 +212,9 @@ public class CSystemDependenceGraphBuilder implements StatisticsProvider {
               + " to build a meaningful dependence graph");
     }
 
-    builder = SystemDependenceGraph.builder(CSystemDependenceGraph.Node::new);
+    builder =
+        SystemDependenceGraph.builder(
+            CSystemDependenceGraph.Node::new, CSystemDependenceGraph.Edge::new);
   }
 
   private void insertDependencies(
@@ -878,7 +885,11 @@ public class CSystemDependenceGraphBuilder implements StatisticsProvider {
 
   private static final class CSdgDotExporter
       extends SdgDotExporter<
-          AFunctionDeclaration, CFAEdge, MemoryLocation, CSystemDependenceGraph.Node> {
+          AFunctionDeclaration,
+          CFAEdge,
+          MemoryLocation,
+          CSystemDependenceGraph.Node,
+          CSystemDependenceGraph.Edge> {
 
     @Override
     protected String getProcedureLabel(AFunctionDeclaration pContext) {

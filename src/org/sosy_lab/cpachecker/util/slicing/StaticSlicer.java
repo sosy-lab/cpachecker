@@ -271,7 +271,7 @@ public class StaticSlicer extends AbstractSlicer implements StatisticsProvider {
       };
     }
 
-    private boolean isInitializerRelevant(CFAEdge pEdge) {
+    private boolean isInitializerRelevant(CFAEdge pCfaEdge) {
 
       var declarationEdgeSdgVisitor =
           new CSystemDependenceGraph.ForwardsVisitor() {
@@ -291,11 +291,12 @@ public class StaticSlicer extends AbstractSlicer implements StatisticsProvider {
 
             @Override
             public SdgVisitResult visitEdge(
-                SdgEdgeType pType,
+                CSystemDependenceGraph.Edge pEdge,
                 CSystemDependenceGraph.Node pPredecessor,
                 CSystemDependenceGraph.Node pSuccessor) {
 
-              if (relevantSdgNodes.contains(pSuccessor) && pType == SdgEdgeType.FLOW_DEPENDENCY) {
+              if (relevantSdgNodes.contains(pSuccessor)
+                  && pEdge.hasType(SdgEdgeType.FLOW_DEPENDENCY)) {
                 relevantDef = true;
               }
 
@@ -304,7 +305,7 @@ public class StaticSlicer extends AbstractSlicer implements StatisticsProvider {
           };
 
       sdg.traverse(
-          ImmutableSet.copyOf(cfaEdgeToSdgNodes.apply(pEdge)),
+          ImmutableSet.copyOf(cfaEdgeToSdgNodes.apply(pCfaEdge)),
           sdg.createVisitOnceVisitor(declarationEdgeSdgVisitor));
 
       return declarationEdgeSdgVisitor.isDefRelevant();
@@ -423,7 +424,7 @@ public class StaticSlicer extends AbstractSlicer implements StatisticsProvider {
 
     @Override
     public SdgVisitResult visitEdge(
-        SdgEdgeType pType,
+        CSystemDependenceGraph.Edge pEdge,
         CSystemDependenceGraph.Node pPredecessor,
         CSystemDependenceGraph.Node pSuccessor) {
 
@@ -473,12 +474,12 @@ public class StaticSlicer extends AbstractSlicer implements StatisticsProvider {
 
     @Override
     public SdgVisitResult visitEdge(
-        SdgEdgeType pType,
+        CSystemDependenceGraph.Edge pEdge,
         CSystemDependenceGraph.Node pPredecessor,
         CSystemDependenceGraph.Node pSuccessor) {
 
       // don't "ascend" into calling procedures
-      if (pSuccessor.getType() == SdgNodeType.FORMAL_IN || pType == SdgEdgeType.CALL_EDGE) {
+      if (pSuccessor.getType() == SdgNodeType.FORMAL_IN || pEdge.hasType(SdgEdgeType.CALL_EDGE)) {
         return SdgVisitResult.SKIP;
       }
 

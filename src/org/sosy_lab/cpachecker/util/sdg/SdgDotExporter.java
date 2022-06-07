@@ -33,7 +33,7 @@ import org.sosy_lab.cpachecker.util.sdg.traversal.SdgVisitResult;
  * @param <V> the variable type of the SDG
  * @param <N> the node type of the SDG
  */
-public abstract class SdgDotExporter<P, T, V, N extends SdgNode<P, T, V>> {
+public abstract class SdgDotExporter<P, T, V, N extends SdgNode<P, T, V>, E extends SdgEdge<V>> {
 
   private static final ImmutableMap<SdgEdgeType, String> edgeStyles;
   private static final ImmutableMap<SdgEdgeType, String> edgeLabels;
@@ -204,7 +204,9 @@ public abstract class SdgDotExporter<P, T, V, N extends SdgNode<P, T, V>> {
   }
 
   private void writeEdges(
-      Writer pWriter, SystemDependenceGraph<V, N> pSdg, Map<SdgNode<P, T, V>, Long> pVisitedNodes)
+      Writer pWriter,
+      SystemDependenceGraph<V, N, E> pSdg,
+      Map<SdgNode<P, T, V>, Long> pVisitedNodes)
       throws IOException {
 
     StringBuilder sb = new StringBuilder();
@@ -215,7 +217,7 @@ public abstract class SdgDotExporter<P, T, V, N extends SdgNode<P, T, V>> {
 
       pSdg.traverse(
           ImmutableSet.of(node),
-          new ForwardsSdgVisitor<N>() {
+          new ForwardsSdgVisitor<V, N, E>() {
 
             @Override
             public SdgVisitResult visitNode(N pNode) {
@@ -223,15 +225,17 @@ public abstract class SdgDotExporter<P, T, V, N extends SdgNode<P, T, V>> {
             }
 
             @Override
-            public SdgVisitResult visitEdge(SdgEdgeType pType, N pPredecessor, N pSuccessor) {
+            public SdgVisitResult visitEdge(E pEdge, N pPredecessor, N pSuccessor) {
 
               sb.append(nodeId(pVisitedNodes, pPredecessor));
               sb.append(" -> ");
               sb.append(nodeId(pVisitedNodes, pSuccessor));
               sb.append(' ');
 
-              String color = isHighlighted(pType, pPredecessor, pSuccessor) ? "red" : "black";
-              String edgeStyle = edgeStyles.get(pType).replace("{color}", color);
+              // TODO add cause label
+              String color =
+                  isHighlighted(pEdge.getType(), pPredecessor, pSuccessor) ? "red" : "black";
+              String edgeStyle = edgeStyles.get(pEdge.getType()).replace("{color}", color);
               sb.append('[');
               sb.append(edgeStyle);
               sb.append("]\n");
@@ -244,7 +248,7 @@ public abstract class SdgDotExporter<P, T, V, N extends SdgNode<P, T, V>> {
     }
   }
 
-  private void write(Writer pWriter, SystemDependenceGraph<V, N> pSdg) throws IOException {
+  private void write(Writer pWriter, SystemDependenceGraph<V, N, E> pSdg) throws IOException {
 
     pWriter.write("digraph SystemDependenceGraph {\n");
     pWriter.write("rankdir=LR;\n");
@@ -303,7 +307,7 @@ public abstract class SdgDotExporter<P, T, V, N extends SdgNode<P, T, V>> {
    * @param pLogger the logger used for logging exceptions and other notable messages occurring
    *     during export of the SDG
    */
-  public void export(SystemDependenceGraph<V, N> pSdg, Path pPath, LogManager pLogger) {
+  public void export(SystemDependenceGraph<V, N, E> pSdg, Path pPath, LogManager pLogger) {
 
     try (Writer writer = IO.openOutputFile(pPath, Charset.defaultCharset())) {
       write(writer, pSdg);

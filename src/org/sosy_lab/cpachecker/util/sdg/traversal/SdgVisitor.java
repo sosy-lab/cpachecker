@@ -9,7 +9,7 @@
 package org.sosy_lab.cpachecker.util.sdg.traversal;
 
 import java.util.Collection;
-import org.sosy_lab.cpachecker.util.sdg.SdgEdgeType;
+import org.sosy_lab.cpachecker.util.sdg.SdgEdge;
 import org.sosy_lab.cpachecker.util.sdg.SdgNode;
 import org.sosy_lab.cpachecker.util.sdg.SystemDependenceGraph;
 
@@ -22,12 +22,14 @@ import org.sosy_lab.cpachecker.util.sdg.SystemDependenceGraph;
  * BackwardsSdgVisitor} instead of implementing this interface directly. This enforces the correct
  * direction for SDG traversal.
  *
- * @param <N> the node type of the SDG
+ * @param <V> the variable type of the SDG
+ * @param <N> the SDG node type of the SDG
+ * @param <E> the SDG edge type of the SDG
  * @see SdgVisitResult
  * @see SystemDependenceGraph#traverse(Collection, ForwardsSdgVisitor)
  * @see SystemDependenceGraph#traverse(Collection, BackwardsSdgVisitor)
  */
-public interface SdgVisitor<N extends SdgNode<?, ?, ?>> {
+public interface SdgVisitor<V, N extends SdgNode<?, ?, V>, E extends SdgEdge<V>> {
 
   /**
    * Called during SDG traversals when a node is visited and returns a {@link SdgVisitResult}
@@ -42,10 +44,10 @@ public interface SdgVisitor<N extends SdgNode<?, ?, ?>> {
    * Called during SDG traversals when an edge is visited and returns a {@link SdgVisitResult}
    * constant that guides the SDG traversal.
    *
-   * @param pType the {@link SdgEdgeType} of the visited edge
+   * @param pEdge the visitedEdge
    * @param pPredecessor the predecessor of the visited edge
    * @param pSuccessor the successor of the visited edge
    * @return a {@link SdgVisitResult} constant to guide the SDG traversal
    */
-  SdgVisitResult visitEdge(SdgEdgeType pType, N pPredecessor, N pSuccessor);
+  SdgVisitResult visitEdge(E pEdge, N pPredecessor, N pSuccessor);
 }
