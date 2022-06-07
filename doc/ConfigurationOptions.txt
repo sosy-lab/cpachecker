@@ -3842,9 +3842,6 @@ mpv.partitionOperator = no default value
 mpv.propertySeparator = FILE
   enum:     [FILE, AUTOMATON]
 
-# disable all default output files
-output.disable = false
-
 # When checking for the overflow property, use this configuration file
 # instead of the current one.
 overflow.config = no default value
@@ -4274,8 +4271,11 @@ restartAlgorithm.printIntermediateStatistics = true
 # the last one that is excuted
 restartAlgorithm.writeIntermediateOutputFiles = false
 
+# Flag which indicates if we should collect coverage data after the analysis
+shouldCollectCoverageAfterAnalysis = true
+
 # Flag which indicates if we should collect coverage data during the analysis
-shouldCollectCoverage = true
+shouldCollectCoverageDuringAnalysis = false
 
 # path to condition file
 slicing.conditionFile = "output/AssumptionAutomaton.txt"

@@ -318,11 +318,13 @@ class MainCPAStatistics implements Statistics {
     if (exportCoverage && cfa != null && reached.size() > 1) {
       Optional<CoverageCollectorHandler> optionalCoverageCollectorHandler =
           CoverageUtility.getCoverageCollectorHandlerFromReachedSet(reached);
-      CoverageCollectorHandler coverageCollectorHandler = new CoverageCollectorHandler(cfa);
+      CoverageCollectorHandler coverageCollectorHandler;
       if (optionalCoverageCollectorHandler.isPresent()) {
         coverageCollectorHandler = optionalCoverageCollectorHandler.orElseThrow();
-      }
-      if (!coverageCollectorHandler.shouldCollectCoverage()) {
+        if (!coverageCollectorHandler.shouldCollectCoverageAfterAnalysis()) {
+          return;
+        }
+      } else {
         return;
       }
       ReachedSetCoverageCollector coverageCollector =

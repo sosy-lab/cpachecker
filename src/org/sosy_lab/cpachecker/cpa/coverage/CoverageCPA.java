@@ -40,7 +40,8 @@ public class CoverageCPA implements ConfigurableProgramAnalysis {
     stop = new StopSepOperator(domain);
     transfer =
         new CoverageTransferRelation(
-            coverageCollectorHandler, coverageCollectorHandler.shouldCollectCoverage());
+            coverageCollectorHandler,
+            coverageCollectorHandler.shouldCollectCoverageDuringAnalysis());
   }
 
   public static CPAFactory factory() {

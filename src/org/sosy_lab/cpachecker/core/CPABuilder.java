@@ -69,13 +69,6 @@ public class CPABuilder {
       description = "CPA to use (see doc/Configuration.md for more documentation on this)")
   private String cpaName = CompositeCPA.class.getCanonicalName();
 
-  @Option(
-      description = "Flag which indicates if we should collect coverage data during the analysis")
-  private boolean shouldCollectCoverage = true;
-
-  @Option(name = "output.disable", description = "disable all default output files")
-  private boolean isOutputDisabled = false;
-
   private final Configuration config;
   private final LogManager logger;
   private final ShutdownNotifier shutdownNotifier;
@@ -122,13 +115,7 @@ public class CPABuilder {
       throws InvalidConfigurationException, CPAException {
     final FluentIterable<Automaton> allAutomata =
         FluentIterable.concat(specification.getSpecificationAutomata(), additionalAutomata);
-    CoverageCollectorHandler coverageCollectorHandler;
-    if (!isOutputDisabled && shouldCollectCoverage) {
-      logger.log(Level.INFO, "Collecting verification coverage data");
-      coverageCollectorHandler = new CoverageCollectorHandler(cfa, true);
-    } else {
-      coverageCollectorHandler = new CoverageCollectorHandler(cfa, false);
-    }
+    CoverageCollectorHandler coverageCollectorHandler = new CoverageCollectorHandler(cfa, config);
 
     // 1. Parse config
     final CPAConfig rootCpaConfig = collectCPAConfigs(CPA_OPTION_NAME, cpaName);

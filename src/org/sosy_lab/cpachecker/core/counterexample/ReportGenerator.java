@@ -198,7 +198,8 @@ public class ReportGenerator {
     // is present
     Optional<CoverageCollectorHandler> optionalCoverageCollectorHandler =
         CoverageUtility.getCoverageCollectorHandlerFromReachedSet(pReached);
-    CoverageCollectorHandler coverageCollectorHandler = new CoverageCollectorHandler(pCfa);
+    CoverageCollectorHandler coverageCollectorHandler =
+        new CoverageCollectorHandler(pCfa, config, false, false);
     if (optionalCoverageCollectorHandler.isPresent()) {
       coverageCollectorHandler = optionalCoverageCollectorHandler.orElseThrow();
     }

@@ -10,6 +10,10 @@ package org.sosy_lab.cpachecker.util.coverage.collectors;
 
 import java.util.HashSet;
 import java.util.Set;
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Option;
+import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.util.coverage.measures.CoverageMeasure;
 import org.sosy_lab.cpachecker.util.coverage.measures.CoverageMeasureAnalysisCategory;
@@ -21,6 +25,7 @@ import org.sosy_lab.cpachecker.util.coverage.tdcg.TimeDependentCoverageHandler;
  * Coverage collector handler which holds all coverage collectors. It handles the initialization and
  * access of collectors.
  */
+@Options
 public class CoverageCollectorHandler {
   private final CoverageMeasureHandler coverageMeasureHandler;
   private final TimeDependentCoverageHandler timeDependentCoverageHandler;
@@ -28,10 +33,16 @@ public class CoverageCollectorHandler {
   private final AnalysisIndependentCoverageCollector analysisIndependentCoverageCollector;
   private final PredicateAnalysisCoverageCollector predicateAnalysisCoverageCollector;
   private final Set<CoverageMeasureAnalysisCategory> analysisCategories;
-  private final boolean shouldCollectCoverage;
 
-  public CoverageCollectorHandler(CFA cfa, boolean pShouldCollectCoverage) {
-    shouldCollectCoverage = pShouldCollectCoverage;
+  @Option(
+      description = "Flag which indicates if we should collect coverage data during the analysis")
+  private boolean shouldCollectCoverageDuringAnalysis = false;
+
+  @Option(
+      description = "Flag which indicates if we should collect coverage data after the analysis")
+  private boolean shouldCollectCoverageAfterAnalysis = true;
+
+  public CoverageCollectorHandler(CFA cfa, Configuration config) {
     timeDependentCoverageHandler = new TimeDependentCoverageHandler();
     coverageMeasureHandler = new CoverageMeasureHandler();
     reachedSetCoverageCollector =
@@ -44,10 +55,25 @@ public class CoverageCollectorHandler {
             coverageMeasureHandler, timeDependentCoverageHandler, cfa);
     analysisCategories = new HashSet<>();
     analysisCategories.add(CoverageMeasureAnalysisCategory.ANALYSIS_INDEPENDENT);
+    try {
+      config.inject(this);
+      if (shouldCollectCoverageDuringAnalysis) {
+        shouldCollectCoverageAfterAnalysis = true;
+      }
+    } catch (InvalidConfigurationException e) {
+      // should never happen here
+      throw new AssertionError(e);
+    }
   }
 
-  public CoverageCollectorHandler(CFA cfa) {
-    this(cfa, false);
+  public CoverageCollectorHandler(
+      CFA cfa,
+      Configuration config,
+      boolean pShouldCollectCoverageDuringAnalysis,
+      boolean pShouldCollectCoverageAfterAnalysis) {
+    this(cfa, config);
+    shouldCollectCoverageDuringAnalysis = pShouldCollectCoverageDuringAnalysis;
+    shouldCollectCoverageAfterAnalysis = pShouldCollectCoverageAfterAnalysis;
   }
 
   /**
@@ -56,13 +82,13 @@ public class CoverageCollectorHandler {
    * its type.
    */
   public void collectAllData() {
-    if (!shouldCollectCoverage) {
-      return;
-    }
     for (CoverageMeasureType type : CoverageMeasureType.values()) {
       if (analysisCategories.contains(type.getAnalysisCategory())) {
-        CoverageMeasure coverageMeasure = type.getCoverageMeasure(this);
-        coverageMeasureHandler.addData(type, coverageMeasure);
+        if ((shouldCollectCoverageAfterAnalysis && type.shouldProcessAfterAnalysis())
+            || (shouldCollectCoverageDuringAnalysis && type.shouldProcessDuringAnalysis())) {
+          CoverageMeasure coverageMeasure = type.getCoverageMeasure(this);
+          coverageMeasureHandler.addData(type, coverageMeasure);
+        }
       }
     }
   }
@@ -91,7 +117,11 @@ public class CoverageCollectorHandler {
     return reachedSetCoverageCollector;
   }
 
-  public boolean shouldCollectCoverage() {
-    return shouldCollectCoverage;
+  public boolean shouldCollectCoverageAfterAnalysis() {
+    return shouldCollectCoverageAfterAnalysis;
+  }
+
+  public boolean shouldCollectCoverageDuringAnalysis() {
+    return shouldCollectCoverageDuringAnalysis;
   }
 }
