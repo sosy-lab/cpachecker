@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.util.sdg.c;
 
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.util.sdg.SdgNode;
 import org.sosy_lab.cpachecker.util.sdg.SystemDependenceGraph;
 import org.sosy_lab.cpachecker.util.sdg.traversal.BackwardsSdgVisitor;
 import org.sosy_lab.cpachecker.util.sdg.traversal.ForwardsSdgVisitor;
@@ -23,10 +24,9 @@ public final class CSystemDependenceGraph
     super(pSdg);
   }
 
-  public static final class Node
-      extends SystemDependenceGraph.Node<AFunctionDeclaration, CFAEdge, MemoryLocation> {
+  public static final class Node extends SdgNode<AFunctionDeclaration, CFAEdge, MemoryLocation> {
 
-    Node(SystemDependenceGraph.Node<AFunctionDeclaration, CFAEdge, MemoryLocation> pNode) {
+    Node(SdgNode<AFunctionDeclaration, CFAEdge, MemoryLocation> pNode) {
       super(pNode);
     }
   }

@@ -26,7 +26,6 @@ import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.graph.dominance.DomFrontiers;
 import org.sosy_lab.cpachecker.util.graph.dominance.DomTree;
 import org.sosy_lab.cpachecker.util.graph.dominance.DominanceUtils;
-import org.sosy_lab.cpachecker.util.sdg.SystemDependenceGraph.Node;
 import org.sosy_lab.cpachecker.util.sdg.traversal.ForwardsSdgVisitor;
 import org.sosy_lab.cpachecker.util.sdg.traversal.SdgVisitResult;
 
@@ -36,7 +35,7 @@ import org.sosy_lab.cpachecker.util.sdg.traversal.SdgVisitResult;
  * @param <P> the procedure type of the SDG
  * @param <N> the node type of the SDG
  */
-public final class ControlDependenceBuilder<P, N extends Node<P, CFAEdge, ?>> {
+public final class ControlDependenceBuilder<P, N extends SdgNode<P, CFAEdge, ?>> {
 
   private final SystemDependenceGraph.Builder<P, CFAEdge, ?, N> builder;
   private final P procedure;

@@ -46,10 +46,10 @@ import org.sosy_lab.cpachecker.util.sdg.traversal.VisitOnceForwardsSdgVisitor;
  * @param <V> The type of variables in this SDG. Variables are defined and used. Dependencies exist
  *     between defs and subsequent uses. Furthermore, formal-in/out and actual-in/out nodes exist
  *     for specific variables.
- * @param <N> The node type of this SDG. The node type must be a subclass of {@link
- *     SystemDependenceGraph.Node} or {@link SystemDependenceGraph.Node} itself.
+ * @param <N> The node type of this SDG. The node type must be a subclass of {@link SdgNode} or
+ *     {@link SdgNode} itself.
  */
-public class SystemDependenceGraph<V, N extends SystemDependenceGraph.Node<?, ?, V>> {
+public class SystemDependenceGraph<V, N extends SdgNode<?, ?, V>> {
 
   // list of nodes where the node's index is equal to its id
   private final ImmutableList<N> nodes;
@@ -85,15 +85,15 @@ public class SystemDependenceGraph<V, N extends SystemDependenceGraph.Node<?, ?,
     this(pSdg.nodes, pSdg.graphNodes, pSdg.nodeTypeCounter, pSdg.edgeTypeCounter);
   }
 
-  private static <N extends Node<?, ?, ?>> void throwExceptionForUnknownNode(N pNode) {
+  private static <N extends SdgNode<?, ?, ?>> void throwExceptionForUnknownNode(N pNode) {
     throw new IllegalArgumentException("SystemDependenceGraph does not contain node: " + pNode);
   }
 
   /**
-   * Gets the corresponding {@link GraphNode} for the specified {@link Node}. Throws runtime
+   * Gets the corresponding {@link GraphNode} for the specified {@link SdgNode}. Throws runtime
    * exception if the graph node does not exist or the specified node is {@code null}.
    */
-  private static <V, N extends Node<?, ?, V>> GraphNode<V, N> getGraphNode(
+  private static <V, N extends SdgNode<?, ?, V>> GraphNode<V, N> getGraphNode(
       List<? extends GraphNode<V, N>> pGraphNodes, N pNode) {
 
     Objects.requireNonNull(pNode, "node must not be null");
@@ -118,7 +118,7 @@ public class SystemDependenceGraph<V, N extends SystemDependenceGraph.Node<?, ?,
    * @param <N> the node type of the SDG
    * @return a new SDG that contains no nodes and no edges
    */
-  public static <V, N extends Node<?, ?, V>> SystemDependenceGraph<V, N> empty() {
+  public static <V, N extends SdgNode<?, ?, V>> SystemDependenceGraph<V, N> empty() {
     return new SystemDependenceGraph<>(
         ImmutableList.of(),
         ImmutableList.of(),
@@ -137,7 +137,7 @@ public class SystemDependenceGraph<V, N extends SystemDependenceGraph.Node<?, ?,
    * @param <V> the variable type for the SDG
    * @return a new SDG builder
    */
-  public static <P, T, V> Builder<P, T, V, Node<P, T, V>> builder() {
+  public static <P, T, V> Builder<P, T, V, SdgNode<P, T, V>> builder() {
     return new Builder<>(Function.identity());
   }
 
@@ -151,12 +151,12 @@ public class SystemDependenceGraph<V, N extends SystemDependenceGraph.Node<?, ?,
    * @param <T> the statement type for the SDG
    * @param <V> the variable type for the SDG
    * @param <N> the node type for the SDG
-   * @param pNodeCreationFunction function that transforms {@link SystemDependenceGraph.Node}
-   *     instances to instances of {@code N}
+   * @param pNodeCreationFunction function that transforms {@link SdgNode} instances to instances of
+   *     {@code N}
    * @return a new SDG builder
    */
-  public static <P, T, V, N extends Node<P, T, V>> Builder<P, T, V, N> builder(
-      Function<Node<P, T, V>, N> pNodeCreationFunction) {
+  public static <P, T, V, N extends SdgNode<P, T, V>> Builder<P, T, V, N> builder(
+      Function<SdgNode<P, T, V>, N> pNodeCreationFunction) {
     return new Builder<>(pNodeCreationFunction);
   }
 
@@ -260,7 +260,7 @@ public class SystemDependenceGraph<V, N extends SystemDependenceGraph.Node<?, ?,
    * Traverses the SDG specified by the graph nodes using the specified start nodes, visitor, and
    * direction.
    */
-  private static <V, N extends Node<?, ?, V>> void traverse(
+  private static <V, N extends SdgNode<?, ?, V>> void traverse(
       List<? extends GraphNode<V, N>> pGraphNodes,
       Collection<N> pStartNodes,
       SdgVisitor<N> pVisitor,
@@ -395,150 +395,11 @@ public class SystemDependenceGraph<V, N extends SystemDependenceGraph.Node<?, ?,
   }
 
   /**
-   * Represents a single node in a system dependence graph.
-   *
-   * @param <P> The type of procedures in the SDG. Typically, programs are organized into
-   *     procedures, functions, or similar constructs that consist of statements, expressions, and
-   *     declarations. In an SDG, all these compound constructs are refered to as procedures and are
-   *     of the type specified by this type parameter.
-   * @param <T> The statement type of the SDG. Typically, programs consist of statements,
-   *     expressions, and declarations. In an SDG, all these parts are refered to as statements and
-   *     are of the type specified by this type parameter.
-   * @param <V> The type of variables in the SDG. Variables are defined and used. Dependencies exist
-   *     between defs and subsequent uses. Furthermore, formal-in/out and actual-in/out nodes exist
-   *     for specific variables.
-   */
-  public static class Node<P, T, V> {
-
-    private final int id;
-    private final SdgNodeType type;
-    private final P procedure;
-    private final Optional<T> statement;
-    private final Optional<V> variable;
-
-    private final int hash;
-
-    private Node(
-        int pId, SdgNodeType pType, P pProcedure, Optional<T> pStatement, Optional<V> pVariable) {
-
-      id = pId;
-      type = pType;
-      procedure = pProcedure;
-      statement = pStatement;
-      variable = pVariable;
-
-      hash = Objects.hash(id, type, procedure, statement, variable);
-    }
-
-    /**
-     * Creates a new {@link SystemDependenceGraph.Node} instance from the specified node.
-     *
-     * <p>The constructed node is a copy of the specified node. This non-private constructor is
-     * required for subclasses of {@link SystemDependenceGraph.Node}.
-     *
-     * @param pNode a node to create a copy of
-     */
-    protected Node(Node<P, T, V> pNode) {
-      this(pNode.id, pNode.type, pNode.procedure, pNode.statement, pNode.variable);
-    }
-
-    /**
-     * Returns the id of this node.
-     *
-     * <p>Node ids are unique inside a system dependence graph.
-     *
-     * @return the id of this node
-     */
-    public final int getId() {
-      return id;
-    }
-
-    /**
-     * Returns the type of the node.
-     *
-     * @return the type of the node
-     */
-    public final SdgNodeType getType() {
-      return type;
-    }
-
-    /**
-     * Returns the procedure of the node.
-     *
-     * @return the procedure of the node
-     */
-    public final P getProcedure() {
-      return procedure;
-    }
-
-    /**
-     * Returns the statement of the node.
-     *
-     * <p>Depending on the {@code NodeType} of the node, the returned optional can be empty.
-     *
-     * @return the statement of the node.
-     */
-    public final Optional<T> getStatement() {
-      return statement;
-    }
-
-    /**
-     * Returns the variable of the node.
-     *
-     * <p>Depending on the {@code NodeType} of the node, the returned optional can be empty.
-     *
-     * @return the variable of the node
-     */
-    public final Optional<V> getVariable() {
-      return variable;
-    }
-
-    @Override
-    public final int hashCode() {
-      return hash;
-    }
-
-    @Override
-    public final boolean equals(Object pObject) {
-
-      if (this == pObject) {
-        return true;
-      }
-
-      if (!(pObject instanceof Node)) {
-        return false;
-      }
-
-      Node<?, ?, ?> other = (Node<?, ?, ?>) pObject;
-
-      return id == other.id
-          && hash == other.hash
-          && type == other.type
-          && Objects.equals(procedure, other.procedure)
-          && Objects.equals(statement, other.statement)
-          && Objects.equals(variable, other.variable);
-    }
-
-    @Override
-    public final String toString() {
-      return String.format(
-          Locale.ENGLISH,
-          "%s[id=%d, type=%s, procedure=%s, statement=%s, variable=%s]",
-          getClass().getName(),
-          id,
-          type,
-          procedure,
-          statement,
-          variable);
-    }
-  }
-
-  /**
    * This class is used to represent a node in an SDG and its connection to other nodes via entering
    * and leaving edges. This class is private to the SDG class, use {@link SdgVisitor} for graph
-   * traversals and {@link Node} to refer to SDG nodes outside the SDG class.
+   * traversals and {@link SdgNode} to refer to SDG nodes outside the SDG class.
    */
-  private abstract static class GraphNode<V, N extends Node<?, ?, V>> {
+  private abstract static class GraphNode<V, N extends SdgNode<?, ?, V>> {
 
     private final N node;
 
@@ -591,7 +452,7 @@ public class SystemDependenceGraph<V, N extends SystemDependenceGraph.Node<?, ?,
           getUses());
     }
 
-    private static class MutableGraphNode<V, N extends Node<?, ?, V>> extends GraphNode<V, N> {
+    private static class MutableGraphNode<V, N extends SdgNode<?, ?, V>> extends GraphNode<V, N> {
 
       private final List<GraphEdge<V, N>> enteringEdges;
       private final List<GraphEdge<V, N>> leavingEdges;
@@ -681,7 +542,7 @@ public class SystemDependenceGraph<V, N extends SystemDependenceGraph.Node<?, ?,
       }
     }
 
-    private static class ImmutableGraphNode<V, N extends Node<?, ?, V>> extends GraphNode<V, N> {
+    private static class ImmutableGraphNode<V, N extends SdgNode<?, ?, V>> extends GraphNode<V, N> {
 
       private ImmutableList<GraphEdge<V, N>> enteringEdges;
       private ImmutableList<GraphEdge<V, N>> leavingEdges;
@@ -722,7 +583,7 @@ public class SystemDependenceGraph<V, N extends SystemDependenceGraph.Node<?, ?,
    * This class is used to represent an edge between two graph nodes ({@link GraphNode}). This class
    * is private, use {@link SdgVisitor} for graph traversals.
    */
-  private static final class GraphEdge<V, N extends Node<?, ?, V>> {
+  private static final class GraphEdge<V, N extends SdgNode<?, ?, V>> {
 
     private final SdgEdgeType type;
 
@@ -801,9 +662,9 @@ public class SystemDependenceGraph<V, N extends SystemDependenceGraph.Node<?, ?,
    * @param <T> the statement type for the SDG
    * @param <V> the variable type for the SDG
    */
-  public static final class Builder<P, T, V, N extends Node<P, T, V>> {
+  public static final class Builder<P, T, V, N extends SdgNode<P, T, V>> {
 
-    private final Function<Node<P, T, V>, N> nodeCreationFunction;
+    private final Function<SdgNode<P, T, V>, N> nodeCreationFunction;
 
     // list of nodes where the node's index is equal to its id
     private final List<N> nodes;
@@ -814,7 +675,7 @@ public class SystemDependenceGraph<V, N extends SystemDependenceGraph.Node<?, ?,
     private final TypeCounter<SdgNodeType> nodeTypeCounter;
     private final TypeCounter<SdgEdgeType> edgeTypeCounter;
 
-    private Builder(Function<Node<P, T, V>, N> pNodeCreationFunction) {
+    private Builder(Function<SdgNode<P, T, V>, N> pNodeCreationFunction) {
 
       nodeCreationFunction = pNodeCreationFunction;
 
@@ -827,14 +688,14 @@ public class SystemDependenceGraph<V, N extends SystemDependenceGraph.Node<?, ?,
     }
 
     private GraphNode.MutableGraphNode<V, N> newGraphNode(NodeMapKey<P, T, V> pNodeKey) {
-      Node<P, T, V> node = pNodeKey.createNode(nodes.size());
+      SdgNode<P, T, V> node = pNodeKey.createNode(nodes.size());
       return new GraphNode.MutableGraphNode<>(nodeCreationFunction.apply(node));
     }
 
     /**
-     * Creates and inserts a {@link GraphNode} and {@link Node} for the specified parameters if such
-     * a node does not already exist. In all cases it returns a graph node fitting the specified
-     * parameters.
+     * Creates and inserts a {@link GraphNode} and {@link SdgNode} for the specified parameters if
+     * such a node does not already exist. In all cases it returns a graph node fitting the
+     * specified parameters.
      */
     private GraphNode.MutableGraphNode<V, N> graphNode(
         SdgNodeType pType, P pProcedure, Optional<T> pStatement, Optional<V> pVariable) {
@@ -916,7 +777,7 @@ public class SystemDependenceGraph<V, N extends SystemDependenceGraph.Node<?, ?,
      * @return an array that contains the generated ids for every node
      * @throws NullPointerException if {@code pFunction == null}
      */
-    int[] createIds(Function<Node<P, T, V>, Optional<?>> pFunction) {
+    int[] createIds(Function<SdgNode<P, T, V>, Optional<?>> pFunction) {
 
       Objects.requireNonNull(pFunction, "pFunction must not be null");
 
@@ -925,7 +786,7 @@ public class SystemDependenceGraph<V, N extends SystemDependenceGraph.Node<?, ?,
 
       for (int nodeId = 0; nodeId < ids.length; nodeId++) {
 
-        Node<P, T, V> node = nodes.get(nodeId);
+        SdgNode<P, T, V> node = nodes.get(nodeId);
         Optional<?> result = pFunction.apply(node);
 
         if (result != null && result.isPresent()) {
@@ -1193,8 +1054,8 @@ public class SystemDependenceGraph<V, N extends SystemDependenceGraph.Node<?, ?,
       hash = Objects.hash(type, procedure, statement, variable);
     }
 
-    private Node<P, T, V> createNode(int pId) {
-      return new Node<>(pId, type, procedure, statement, variable);
+    private SdgNode<P, T, V> createNode(int pId) {
+      return new SdgNode<>(pId, type, procedure, statement, variable);
     }
 
     @Override

@@ -69,10 +69,10 @@ import org.sosy_lab.cpachecker.util.resources.WalltimeLimit;
 import org.sosy_lab.cpachecker.util.sdg.ControlDependenceBuilder;
 import org.sosy_lab.cpachecker.util.sdg.SdgDotExporter;
 import org.sosy_lab.cpachecker.util.sdg.SdgEdgeType;
+import org.sosy_lab.cpachecker.util.sdg.SdgNode;
 import org.sosy_lab.cpachecker.util.sdg.SdgNodeType;
 import org.sosy_lab.cpachecker.util.sdg.SummaryEdgeBuilder;
 import org.sosy_lab.cpachecker.util.sdg.SystemDependenceGraph;
-import org.sosy_lab.cpachecker.util.sdg.SystemDependenceGraph.Node;
 import org.sosy_lab.cpachecker.util.sdg.c.FlowDepAnalysis.DependenceConsumer;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 import org.sosy_lab.cpachecker.util.statistics.StatTimer;
@@ -886,7 +886,7 @@ public class CSystemDependenceGraphBuilder implements StatisticsProvider {
     }
 
     @Override
-    protected String getNodeStyle(Node<AFunctionDeclaration, CFAEdge, MemoryLocation> pNode) {
+    protected String getNodeStyle(SdgNode<AFunctionDeclaration, CFAEdge, MemoryLocation> pNode) {
 
       Optional<CFAEdge> optCfaEdge = pNode.getStatement();
 
@@ -907,7 +907,7 @@ public class CSystemDependenceGraphBuilder implements StatisticsProvider {
     }
 
     @Override
-    protected String getNodeLabel(Node<AFunctionDeclaration, CFAEdge, MemoryLocation> pNode) {
+    protected String getNodeLabel(SdgNode<AFunctionDeclaration, CFAEdge, MemoryLocation> pNode) {
 
       StringBuilder sb = new StringBuilder();
 
@@ -942,15 +942,15 @@ public class CSystemDependenceGraphBuilder implements StatisticsProvider {
     }
 
     @Override
-    protected boolean isHighlighted(Node<AFunctionDeclaration, CFAEdge, MemoryLocation> pNode) {
+    protected boolean isHighlighted(SdgNode<AFunctionDeclaration, CFAEdge, MemoryLocation> pNode) {
       return false;
     }
 
     @Override
     protected boolean isHighlighted(
         SdgEdgeType pEdgeType,
-        Node<AFunctionDeclaration, CFAEdge, MemoryLocation> pPredecessor,
-        Node<AFunctionDeclaration, CFAEdge, MemoryLocation> pSuccessor) {
+        SdgNode<AFunctionDeclaration, CFAEdge, MemoryLocation> pPredecessor,
+        SdgNode<AFunctionDeclaration, CFAEdge, MemoryLocation> pSuccessor) {
       return false;
     }
   }

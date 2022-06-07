@@ -20,7 +20,6 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.util.dependencegraph.CallGraph;
-import org.sosy_lab.cpachecker.util.sdg.SystemDependenceGraph.Node;
 import org.sosy_lab.cpachecker.util.sdg.traversal.BackwardsSdgVisitor;
 import org.sosy_lab.cpachecker.util.sdg.traversal.SdgVisitResult;
 import org.sosy_lab.cpachecker.util.sdg.traversal.VisitOnceBackwardsSdgVisitor;
@@ -55,7 +54,7 @@ public final class SummaryEdgeBuilder {
    *     this procedure are inserted)
    * @param pMethod the method used from computing summary edges
    */
-  public static <P, N extends Node<P, ?, ?>> void insertSummaryEdges(
+  public static <P, N extends SdgNode<P, ?, ?>> void insertSummaryEdges(
       SystemDependenceGraph.Builder<P, ?, ?, N> pBuilder,
       CallGraph<P> pCallGraph,
       P pStartProcedure,
@@ -115,7 +114,7 @@ public final class SummaryEdgeBuilder {
   }
 
   @FunctionalInterface
-  private interface SummaryEdgeConsumer<N extends Node<?, ?, ?>> {
+  private interface SummaryEdgeConsumer<N extends SdgNode<?, ?, ?>> {
     void accept(N pFormalInNode, N pFormalOutNode);
   }
 
@@ -130,7 +129,7 @@ public final class SummaryEdgeBuilder {
    *
    * <p>Implementation must implement the run method.
    */
-  private abstract static class SummaryEdgeFinder<N extends Node<?, ?, ?>> {
+  private abstract static class SummaryEdgeFinder<N extends SdgNode<?, ?, ?>> {
 
     private final SystemDependenceGraph.Builder<?, ?, ?, N> builder;
     private final int[] procedureIds;
@@ -178,7 +177,7 @@ public final class SummaryEdgeBuilder {
     }
   }
 
-  private static final class SingleSummaryEdgeFinder<N extends Node<?, ?, ?>>
+  private static final class SingleSummaryEdgeFinder<N extends SdgNode<?, ?, ?>>
       extends SummaryEdgeFinder<N> implements BackwardsSdgVisitor<N> {
 
     private final VisitOnceBackwardsSdgVisitor<N> visitor;
@@ -258,7 +257,7 @@ public final class SummaryEdgeBuilder {
     }
   }
 
-  private static final class BatchSummaryEdgeFinder<N extends Node<?, ?, ?>>
+  private static final class BatchSummaryEdgeFinder<N extends SdgNode<?, ?, ?>>
       extends SummaryEdgeFinder<N> implements BackwardsSdgVisitor<N> {
 
     private static final int MAX_BATCH_SIZE = 64;

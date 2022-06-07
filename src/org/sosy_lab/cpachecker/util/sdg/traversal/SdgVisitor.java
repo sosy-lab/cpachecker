@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.util.sdg.traversal;
 
 import java.util.Collection;
 import org.sosy_lab.cpachecker.util.sdg.SdgEdgeType;
+import org.sosy_lab.cpachecker.util.sdg.SdgNode;
 import org.sosy_lab.cpachecker.util.sdg.SystemDependenceGraph;
 
 /**
@@ -26,7 +27,7 @@ import org.sosy_lab.cpachecker.util.sdg.SystemDependenceGraph;
  * @see SystemDependenceGraph#traverse(Collection, ForwardsSdgVisitor)
  * @see SystemDependenceGraph#traverse(Collection, BackwardsSdgVisitor)
  */
-public interface SdgVisitor<N extends SystemDependenceGraph.Node<?, ?, ?>> {
+public interface SdgVisitor<N extends SdgNode<?, ?, ?>> {
 
   /**
    * Called during SDG traversals when a node is visited and returns a {@link SdgVisitResult}

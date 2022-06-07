@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.util.sdg.traversal;
 
 import java.util.Collection;
 import org.sosy_lab.cpachecker.util.sdg.SdgEdgeType;
+import org.sosy_lab.cpachecker.util.sdg.SdgNode;
 import org.sosy_lab.cpachecker.util.sdg.SystemDependenceGraph;
 
 /**
@@ -24,7 +25,7 @@ import org.sosy_lab.cpachecker.util.sdg.SystemDependenceGraph;
  * @see SystemDependenceGraph#createVisitOnceVisitor(BackwardsSdgVisitor)
  * @see SystemDependenceGraph#traverse(Collection, BackwardsSdgVisitor)
  */
-public final class VisitOnceBackwardsSdgVisitor<N extends SystemDependenceGraph.Node<?, ?, ?>>
+public final class VisitOnceBackwardsSdgVisitor<N extends SdgNode<?, ?, ?>>
     extends VisitOnceSdgVisitor<N> implements BackwardsSdgVisitor<N> {
 
   public VisitOnceBackwardsSdgVisitor(BackwardsSdgVisitor<N> pDelegateVisitor, int pNodeCount) {

@@ -10,15 +10,14 @@ package org.sosy_lab.cpachecker.util.sdg.traversal;
 
 import java.util.Arrays;
 import org.sosy_lab.cpachecker.util.sdg.SdgEdgeType;
-import org.sosy_lab.cpachecker.util.sdg.SystemDependenceGraph;
+import org.sosy_lab.cpachecker.util.sdg.SdgNode;
 
 /**
  * Implementation of a visit-once-visitor (i.e., a visitor that guarantees that the delegate visitor
  * visits every node/edge at most once during a traversal). Extended by {@link
  * VisitOnceForwardsSdgVisitor} and {@link VisitOnceBackwardsSdgVisitor}.
  */
-abstract class VisitOnceSdgVisitor<N extends SystemDependenceGraph.Node<?, ?, ?>>
-    implements SdgVisitor<N> {
+abstract class VisitOnceSdgVisitor<N extends SdgNode<?, ?, ?>> implements SdgVisitor<N> {
 
   private final boolean forwards;
   private final SdgVisitor<N> delegateVisitor;

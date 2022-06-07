@@ -22,7 +22,6 @@ import java.util.Map;
 import java.util.logging.Level;
 import org.sosy_lab.common.io.IO;
 import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.util.sdg.SystemDependenceGraph.Node;
 import org.sosy_lab.cpachecker.util.sdg.traversal.ForwardsSdgVisitor;
 import org.sosy_lab.cpachecker.util.sdg.traversal.SdgVisitResult;
 
@@ -34,7 +33,7 @@ import org.sosy_lab.cpachecker.util.sdg.traversal.SdgVisitResult;
  * @param <V> the variable type of the SDG
  * @param <N> the node type of the SDG
  */
-public abstract class SdgDotExporter<P, T, V, N extends SystemDependenceGraph.Node<P, T, V>> {
+public abstract class SdgDotExporter<P, T, V, N extends SdgNode<P, T, V>> {
 
   private static final ImmutableMap<SdgEdgeType, String> edgeStyles;
   private static final ImmutableMap<SdgEdgeType, String> edgeLabels;
@@ -91,7 +90,7 @@ public abstract class SdgDotExporter<P, T, V, N extends SystemDependenceGraph.No
    * @return dot file compatible style, shape, color, and possibly other attributes (except label)
    *     for the node
    */
-  protected abstract String getNodeStyle(Node<P, T, V> pNode);
+  protected abstract String getNodeStyle(SdgNode<P, T, V> pNode);
 
   /**
    * Returns the value of the dot file label for the specified node.
@@ -101,7 +100,7 @@ public abstract class SdgDotExporter<P, T, V, N extends SystemDependenceGraph.No
    * @param pNode the node to get the label for
    * @return the value of the dot file label for the specified node
    */
-  protected abstract String getNodeLabel(Node<P, T, V> pNode);
+  protected abstract String getNodeLabel(SdgNode<P, T, V> pNode);
 
   /**
    * Returns whether the specified node is highlighted.
@@ -109,7 +108,7 @@ public abstract class SdgDotExporter<P, T, V, N extends SystemDependenceGraph.No
    * @param pNode the node to check the highlighting for
    * @return {@code true} if the specified node is highlighted; otherwise, {@code false} is returned
    */
-  protected abstract boolean isHighlighted(Node<P, T, V> pNode);
+  protected abstract boolean isHighlighted(SdgNode<P, T, V> pNode);
 
   /**
    * Returns whether the edge (specified by its type, predecessor and successor) is highlighted.
@@ -120,7 +119,7 @@ public abstract class SdgDotExporter<P, T, V, N extends SystemDependenceGraph.No
    * @return {@code true} if the specified edge is highlighted; otherwise, {@code false} is returned
    */
   protected abstract boolean isHighlighted(
-      SdgEdgeType pEdgeType, Node<P, T, V> pPredecessor, Node<P, T, V> pSuccessor);
+      SdgEdgeType pEdgeType, SdgNode<P, T, V> pPredecessor, SdgNode<P, T, V> pSuccessor);
 
   /** Returns the specified string with escaped quotation marks. */
   private String escape(String pLabel) {
@@ -128,7 +127,7 @@ public abstract class SdgDotExporter<P, T, V, N extends SystemDependenceGraph.No
   }
 
   /** Returns the identifier used in the dot file for the specified node. */
-  private String nodeId(Map<Node<P, T, V>, Long> pVisitedNodes, Node<P, T, V> pNode) {
+  private String nodeId(Map<SdgNode<P, T, V>, Long> pVisitedNodes, SdgNode<P, T, V> pNode) {
     return "n" + pVisitedNodes.get(pNode);
   }
 
@@ -205,7 +204,7 @@ public abstract class SdgDotExporter<P, T, V, N extends SystemDependenceGraph.No
   }
 
   private void writeEdges(
-      Writer pWriter, SystemDependenceGraph<V, N> pSdg, Map<Node<P, T, V>, Long> pVisitedNodes)
+      Writer pWriter, SystemDependenceGraph<V, N> pSdg, Map<SdgNode<P, T, V>, Long> pVisitedNodes)
       throws IOException {
 
     StringBuilder sb = new StringBuilder();
@@ -252,11 +251,11 @@ public abstract class SdgDotExporter<P, T, V, N extends SystemDependenceGraph.No
 
     writeLegend(pWriter);
 
-    Map<Node<P, T, V>, Long> visitedNodes = new HashMap<>();
-    Multimap<P, Node<P, T, V>> procedureNodes = ArrayListMultimap.create();
+    Map<SdgNode<P, T, V>, Long> visitedNodes = new HashMap<>();
+    Multimap<P, SdgNode<P, T, V>> procedureNodes = ArrayListMultimap.create();
 
     long counter = 0;
-    for (Node<P, T, V> node : pSdg.getNodes()) {
+    for (SdgNode<P, T, V> node : pSdg.getNodes()) {
       visitedNodes.put(node, counter);
       counter++;
       procedureNodes.put(node.getProcedure(), node);
@@ -274,7 +273,7 @@ public abstract class SdgDotExporter<P, T, V, N extends SystemDependenceGraph.No
       pWriter.write(escape(procedureLabel));
       pWriter.write("\";\n");
 
-      for (Node<P, T, V> node : procedureNodes.get(procedure)) {
+      for (SdgNode<P, T, V> node : procedureNodes.get(procedure)) {
 
         String color = isHighlighted(node) ? "red" : "black";
         String style = getNodeStyle(node).replace("{color}", color);
