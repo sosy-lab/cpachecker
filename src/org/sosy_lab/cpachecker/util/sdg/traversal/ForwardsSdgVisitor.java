@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.util.sdg.traversal;
 
 import java.util.Collection;
+import org.sosy_lab.cpachecker.util.sdg.SdgNode;
 import org.sosy_lab.cpachecker.util.sdg.SystemDependenceGraph;
 
 /**
@@ -18,5 +19,4 @@ import org.sosy_lab.cpachecker.util.sdg.SystemDependenceGraph;
  * @param <N> the node type of the SDG
  * @see SystemDependenceGraph#traverse(Collection, ForwardsSdgVisitor)
  */
-public interface ForwardsSdgVisitor<N extends SystemDependenceGraph.Node<?, ?, ?>>
-    extends SdgVisitor<N> {}
+public interface ForwardsSdgVisitor<N extends SdgNode<?, ?, ?>> extends SdgVisitor<N> {}
