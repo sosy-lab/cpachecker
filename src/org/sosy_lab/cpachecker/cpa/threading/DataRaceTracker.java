@@ -69,7 +69,7 @@ class DataRaceTracker {
       if (nextHasDataRace) {
         break;
       }
-      if (entry.getKey().equals(activeThread)) {
+      if (entry.getKey().equals(activeThread) || !threadIds.contains(entry.getKey())) {
         continue;
       }
       for (MemoryLocation accessed : entry.getValue()) {
@@ -84,7 +84,7 @@ class DataRaceTracker {
       if (nextHasDataRace) {
         break;
       }
-      if (entry.getKey().equals(activeThread)) {
+      if (entry.getKey().equals(activeThread) || !threadIds.contains(entry.getKey())) {
         continue;
       }
       for (MemoryLocation modified : entry.getValue()) {
