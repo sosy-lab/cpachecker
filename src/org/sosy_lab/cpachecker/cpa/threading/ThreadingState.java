@@ -168,14 +168,6 @@ public class ThreadingState
   }
 
   public ThreadingState updateDataRaceTracker(CFAEdge edge, String pActiveThread) {
-    if (getThreadIds().size() < 2) {
-      return this;
-    }
-    if (hasLockForThread(pActiveThread)) {
-      // TODO: Are locks for all memory locations?
-      //  -> If not there could still be a data race
-      return this;
-    }
     assert hasDataRaceTracker();
     DataRaceTracker newTracker = tracker.update(threads.keySet(), pActiveThread, edge);
     return withDataRaceTracker(newTracker);
