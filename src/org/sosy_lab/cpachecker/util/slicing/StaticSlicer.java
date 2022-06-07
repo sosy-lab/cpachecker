@@ -48,6 +48,7 @@ import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.sdg.SystemDependenceGraph;
 import org.sosy_lab.cpachecker.util.sdg.c.CSystemDependenceGraph;
+import org.sosy_lab.cpachecker.util.sdg.traversal.SdgVisitResult;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 import org.sosy_lab.cpachecker.util.statistics.StatCounter;
 import org.sosy_lab.cpachecker.util.statistics.StatInt;
@@ -283,14 +284,14 @@ public class StaticSlicer extends AbstractSlicer implements StatisticsProvider {
             }
 
             @Override
-            public SystemDependenceGraph.VisitResult visitNode(CSystemDependenceGraph.Node pNode) {
+            public SdgVisitResult visitNode(CSystemDependenceGraph.Node pNode) {
               return relevantSdgNodes.contains(pNode)
-                  ? SystemDependenceGraph.VisitResult.CONTINUE
-                  : SystemDependenceGraph.VisitResult.SKIP;
+                  ? SdgVisitResult.CONTINUE
+                  : SdgVisitResult.SKIP;
             }
 
             @Override
-            public SystemDependenceGraph.VisitResult visitEdge(
+            public SdgVisitResult visitEdge(
                 SystemDependenceGraph.EdgeType pType,
                 CSystemDependenceGraph.Node pPredecessor,
                 CSystemDependenceGraph.Node pSuccessor) {
@@ -300,7 +301,7 @@ public class StaticSlicer extends AbstractSlicer implements StatisticsProvider {
                 relevantDef = true;
               }
 
-              return SystemDependenceGraph.VisitResult.SKIP;
+              return SdgVisitResult.SKIP;
             }
           };
 
@@ -414,26 +415,26 @@ public class StaticSlicer extends AbstractSlicer implements StatisticsProvider {
     }
 
     @Override
-    public SystemDependenceGraph.VisitResult visitNode(CSystemDependenceGraph.Node pNode) {
+    public SdgVisitResult visitNode(CSystemDependenceGraph.Node pNode) {
 
       visitedSdgNodes.add(pNode);
       pNode.getStatement().ifPresent(relevantEdges::add);
 
-      return SystemDependenceGraph.VisitResult.CONTINUE;
+      return SdgVisitResult.CONTINUE;
     }
 
     @Override
-    public SystemDependenceGraph.VisitResult visitEdge(
+    public SdgVisitResult visitEdge(
         SystemDependenceGraph.EdgeType pType,
         CSystemDependenceGraph.Node pPredecessor,
         CSystemDependenceGraph.Node pSuccessor) {
 
       // don't "descend" into called procedures
       if (pPredecessor.getType() == SystemDependenceGraph.NodeType.FORMAL_OUT) {
-        return SystemDependenceGraph.VisitResult.SKIP;
+        return SdgVisitResult.SKIP;
       }
 
-      return SystemDependenceGraph.VisitResult.CONTINUE;
+      return SdgVisitResult.CONTINUE;
     }
   }
 
@@ -464,16 +465,16 @@ public class StaticSlicer extends AbstractSlicer implements StatisticsProvider {
     }
 
     @Override
-    public SystemDependenceGraph.VisitResult visitNode(CSystemDependenceGraph.Node pNode) {
+    public SdgVisitResult visitNode(CSystemDependenceGraph.Node pNode) {
 
       visitedSdgNodes.add(pNode);
       pNode.getStatement().ifPresent(relevantEdges::add);
 
-      return SystemDependenceGraph.VisitResult.CONTINUE;
+      return SdgVisitResult.CONTINUE;
     }
 
     @Override
-    public SystemDependenceGraph.VisitResult visitEdge(
+    public SdgVisitResult visitEdge(
         SystemDependenceGraph.EdgeType pType,
         CSystemDependenceGraph.Node pPredecessor,
         CSystemDependenceGraph.Node pSuccessor) {
@@ -481,10 +482,10 @@ public class StaticSlicer extends AbstractSlicer implements StatisticsProvider {
       // don't "ascend" into calling procedures
       if (pSuccessor.getType() == SystemDependenceGraph.NodeType.FORMAL_IN
           || pType == SystemDependenceGraph.EdgeType.CALL_EDGE) {
-        return SystemDependenceGraph.VisitResult.SKIP;
+        return SdgVisitResult.SKIP;
       }
 
-      return SystemDependenceGraph.VisitResult.CONTINUE;
+      return SdgVisitResult.CONTINUE;
     }
   }
 }

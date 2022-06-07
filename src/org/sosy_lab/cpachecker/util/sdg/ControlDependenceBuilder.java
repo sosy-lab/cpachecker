@@ -28,10 +28,10 @@ import org.sosy_lab.cpachecker.util.graph.dominance.DomFrontiers;
 import org.sosy_lab.cpachecker.util.graph.dominance.DomTree;
 import org.sosy_lab.cpachecker.util.graph.dominance.DominanceUtils;
 import org.sosy_lab.cpachecker.util.sdg.SystemDependenceGraph.EdgeType;
-import org.sosy_lab.cpachecker.util.sdg.SystemDependenceGraph.ForwardsVisitor;
 import org.sosy_lab.cpachecker.util.sdg.SystemDependenceGraph.Node;
 import org.sosy_lab.cpachecker.util.sdg.SystemDependenceGraph.NodeType;
-import org.sosy_lab.cpachecker.util.sdg.SystemDependenceGraph.VisitResult;
+import org.sosy_lab.cpachecker.util.sdg.traversal.ForwardsSdgVisitor;
+import org.sosy_lab.cpachecker.util.sdg.traversal.SdgVisitResult;
 
 /**
  * Class for computing control dependencies and inserting them into a {@link SystemDependenceGraph}.
@@ -245,26 +245,28 @@ public final class ControlDependenceBuilder<N extends Node<AFunctionDeclaration,
 
     builder.traverse(
         ImmutableSet.of(entryNode),
-        new ForwardsVisitor<>() {
+        new ForwardsSdgVisitor<>() {
 
           @Override
-          public VisitResult visitNode(N pNode) {
+          public SdgVisitResult visitNode(N pNode) {
 
             if (pNode.getType() == NodeType.ENTRY) {
-              return VisitResult.CONTINUE;
+              return SdgVisitResult.CONTINUE;
             }
 
             Optional<CFAEdge> statement = pNode.getStatement();
             if (statement.isPresent() && entryNodeDependent.add(statement.orElseThrow())) {
-              return VisitResult.CONTINUE;
+              return SdgVisitResult.CONTINUE;
             } else {
-              return VisitResult.SKIP;
+              return SdgVisitResult.SKIP;
             }
           }
 
           @Override
-          public VisitResult visitEdge(EdgeType pType, N pPredecessor, N pSuccessor) {
-            return pType == EdgeType.CONTROL_DEPENDENCY ? VisitResult.CONTINUE : VisitResult.SKIP;
+          public SdgVisitResult visitEdge(EdgeType pType, N pPredecessor, N pSuccessor) {
+            return pType == EdgeType.CONTROL_DEPENDENCY
+                ? SdgVisitResult.CONTINUE
+                : SdgVisitResult.SKIP;
           }
         });
 

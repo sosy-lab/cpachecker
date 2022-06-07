@@ -19,12 +19,12 @@ import java.util.BitSet;
 import java.util.Collection;
 import java.util.List;
 import org.sosy_lab.cpachecker.util.dependencegraph.CallGraph;
-import org.sosy_lab.cpachecker.util.sdg.SystemDependenceGraph.BackwardsVisitOnceVisitor;
-import org.sosy_lab.cpachecker.util.sdg.SystemDependenceGraph.BackwardsVisitor;
 import org.sosy_lab.cpachecker.util.sdg.SystemDependenceGraph.EdgeType;
 import org.sosy_lab.cpachecker.util.sdg.SystemDependenceGraph.Node;
 import org.sosy_lab.cpachecker.util.sdg.SystemDependenceGraph.NodeType;
-import org.sosy_lab.cpachecker.util.sdg.SystemDependenceGraph.VisitResult;
+import org.sosy_lab.cpachecker.util.sdg.traversal.BackwardsSdgVisitor;
+import org.sosy_lab.cpachecker.util.sdg.traversal.SdgVisitResult;
+import org.sosy_lab.cpachecker.util.sdg.traversal.VisitOnceBackwardsSdgVisitor;
 
 /** Class for computing summary edges and inserting them into a {@link SystemDependenceGraph}. */
 public final class SummaryEdgeBuilder {
@@ -150,7 +150,7 @@ public final class SummaryEdgeBuilder {
     protected abstract void run(
         List<N> pFormalOutNode, boolean pRecursive, SummaryEdgeConsumer<N> pConsumer);
 
-    protected void traverse(Collection<N> pStartNodes, BackwardsVisitor<N> pVisitor) {
+    protected void traverse(Collection<N> pStartNodes, BackwardsSdgVisitor<N> pVisitor) {
       builder.traverse(pStartNodes, pVisitor);
     }
 
@@ -180,9 +180,9 @@ public final class SummaryEdgeBuilder {
   }
 
   private static final class SingleSummaryEdgeFinder<N extends Node<?, ?, ?>>
-      extends SummaryEdgeFinder<N> implements BackwardsVisitor<N> {
+      extends SummaryEdgeFinder<N> implements BackwardsSdgVisitor<N> {
 
-    private final BackwardsVisitOnceVisitor<N> visitor;
+    private final VisitOnceBackwardsSdgVisitor<N> visitor;
 
     private int procedureId;
     private boolean recursive;
@@ -191,7 +191,7 @@ public final class SummaryEdgeBuilder {
         SystemDependenceGraph.Builder<?, ?, ?, N> pBuilder, int[] pProcedureIds) {
       super(pBuilder, pProcedureIds);
 
-      visitor = new BackwardsVisitOnceVisitor<>(this, pBuilder.getNodeCount());
+      visitor = new VisitOnceBackwardsSdgVisitor<>(this, pBuilder.getNodeCount());
     }
 
     @Override
@@ -215,17 +215,17 @@ public final class SummaryEdgeBuilder {
     }
 
     @Override
-    public VisitResult visitNode(N pNode) {
+    public SdgVisitResult visitNode(N pNode) {
 
       if (pNode.getType() == NodeType.FORMAL_IN && getProcedureId(pNode.getId()) == procedureId) {
         addReachedFormalInNode(pNode);
       }
 
-      return VisitResult.CONTINUE;
+      return SdgVisitResult.CONTINUE;
     }
 
     @Override
-    public VisitResult visitEdge(EdgeType pType, N pPredecessor, N pSuccessor) {
+    public SdgVisitResult visitEdge(EdgeType pType, N pPredecessor, N pSuccessor) {
 
       int predId = pPredecessor.getId();
       int succId = pSuccessor.getId();
@@ -239,27 +239,27 @@ public final class SummaryEdgeBuilder {
 
           if (pType != EdgeType.PARAMETER_EDGE) {
             // don't leave procedure via non-parameter call edge
-            return VisitResult.SKIP;
+            return SdgVisitResult.SKIP;
           }
 
           if (succProcedureId == procedureId && !recursive) {
             // Procedure P contains the relevant formal-in/out edges for this traversal:
             // don't leave P via call edge if P does not recursively call itself
-            return VisitResult.SKIP;
+            return SdgVisitResult.SKIP;
           }
         }
 
       } else if (isFormalOutFinished(predId)) {
         // follow summary edges instead of return edges if they were already added
-        return VisitResult.SKIP;
+        return SdgVisitResult.SKIP;
       }
 
-      return VisitResult.CONTINUE;
+      return SdgVisitResult.CONTINUE;
     }
   }
 
   private static final class BatchSummaryEdgeFinder<N extends Node<?, ?, ?>>
-      extends SummaryEdgeFinder<N> implements BackwardsVisitor<N> {
+      extends SummaryEdgeFinder<N> implements BackwardsSdgVisitor<N> {
 
     private static final int MAX_BATCH_SIZE = 64;
     private static final int EMPTY_STATE = 0;
@@ -338,12 +338,12 @@ public final class SummaryEdgeBuilder {
     }
 
     @Override
-    public VisitResult visitNode(N pNode) {
-      return VisitResult.CONTINUE;
+    public SdgVisitResult visitNode(N pNode) {
+      return SdgVisitResult.CONTINUE;
     }
 
     @Override
-    public VisitResult visitEdge(EdgeType pType, N pPredecessor, N pSuccessor) {
+    public SdgVisitResult visitEdge(EdgeType pType, N pPredecessor, N pSuccessor) {
 
       int predId = pPredecessor.getId();
       int succId = pSuccessor.getId();
@@ -357,13 +357,13 @@ public final class SummaryEdgeBuilder {
 
           if (pType != EdgeType.PARAMETER_EDGE) {
             // don't leave procedure via non-parameter call edge
-            return VisitResult.SKIP;
+            return SdgVisitResult.SKIP;
           }
 
           if (succProcedureId == procedureId && !recursive) {
             // Procedure P contains the relevant formal-in/out edges for this traversal:
             // don't leave P via call edge if P does not recursively call itself
-            return VisitResult.SKIP;
+            return SdgVisitResult.SKIP;
           }
         }
 
@@ -376,7 +376,7 @@ public final class SummaryEdgeBuilder {
 
       } else if (isFormalOutFinished(predId)) {
         // follow summary edges instead of return edges if they were already added
-        return VisitResult.SKIP;
+        return SdgVisitResult.SKIP;
       }
 
       // update state of predecessor, visit predecessor if state has changed
@@ -385,9 +385,9 @@ public final class SummaryEdgeBuilder {
 
       if (oldPredState != newPredState) {
         setStateDirty(predId);
-        return VisitResult.CONTINUE;
+        return SdgVisitResult.CONTINUE;
       } else {
-        return VisitResult.SKIP;
+        return SdgVisitResult.SKIP;
       }
     }
   }

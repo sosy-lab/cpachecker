@@ -26,6 +26,12 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
+import org.sosy_lab.cpachecker.util.sdg.traversal.BackwardsSdgVisitor;
+import org.sosy_lab.cpachecker.util.sdg.traversal.ForwardsSdgVisitor;
+import org.sosy_lab.cpachecker.util.sdg.traversal.SdgVisitResult;
+import org.sosy_lab.cpachecker.util.sdg.traversal.SdgVisitor;
+import org.sosy_lab.cpachecker.util.sdg.traversal.VisitOnceBackwardsSdgVisitor;
+import org.sosy_lab.cpachecker.util.sdg.traversal.VisitOnceForwardsSdgVisitor;
 
 /**
  * Represents a system dependence graph (SDG).
@@ -34,8 +40,8 @@ import java.util.function.Function;
  * {@link #builder()}. Types for procedures, statements, and variables should be specified using the
  * respective type parameters.
  *
- * <p>SDGs are traversed by calling the methods {@link #traverse(Collection, ForwardsVisitor)} or
- * {@link #traverse(Collection, BackwardsVisitor)}.
+ * <p>SDGs are traversed by calling the methods {@link #traverse(Collection, ForwardsSdgVisitor)} or
+ * {@link #traverse(Collection, BackwardsSdgVisitor)}.
  *
  * @param <V> The type of variables in this SDG. Variables are defined and used. Dependencies exist
  *     between defs and subsequent uses. Furthermore, formal-in/out and actual-in/out nodes exist
@@ -256,7 +262,7 @@ public class SystemDependenceGraph<V, N extends SystemDependenceGraph.Node<?, ?,
   private static <V, N extends Node<?, ?, V>> void traverse(
       List<? extends GraphNode<V, N>> pGraphNodes,
       Collection<N> pStartNodes,
-      Visitor<N> pVisitor,
+      SdgVisitor<N> pVisitor,
       boolean pForwards) {
 
     Objects.requireNonNull(pStartNodes, "pStartNodes must not be null");
@@ -271,9 +277,9 @@ public class SystemDependenceGraph<V, N extends SystemDependenceGraph.Node<?, ?,
     while (!waitlist.isEmpty()) {
 
       GraphNode<V, N> graphNode = waitlist.remove();
-      VisitResult nodeVisitResult = pVisitor.visitNode(graphNode.getNode());
+      SdgVisitResult nodeVisitResult = pVisitor.visitNode(graphNode.getNode());
 
-      if (nodeVisitResult == VisitResult.CONTINUE) {
+      if (nodeVisitResult == SdgVisitResult.CONTINUE) {
 
         List<GraphEdge<V, N>> edges =
             pForwards ? graphNode.getLeavingEdges() : graphNode.getEnteringEdges();
@@ -282,20 +288,20 @@ public class SystemDependenceGraph<V, N extends SystemDependenceGraph.Node<?, ?,
 
           GraphNode<V, N> predecessor = edge.getPredecessor();
           GraphNode<V, N> successor = edge.getSuccessor();
-          VisitResult edgeVisitResult =
+          SdgVisitResult edgeVisitResult =
               pVisitor.visitEdge(edge.getType(), predecessor.getNode(), successor.getNode());
 
-          if (edgeVisitResult == VisitResult.CONTINUE) {
+          if (edgeVisitResult == SdgVisitResult.CONTINUE) {
 
             GraphNode<V, N> next = pForwards ? successor : predecessor;
             waitlist.add(next);
 
-          } else if (nodeVisitResult == VisitResult.TERMINATE) {
+          } else if (nodeVisitResult == SdgVisitResult.TERMINATE) {
             return;
           }
         }
 
-      } else if (nodeVisitResult == VisitResult.TERMINATE) {
+      } else if (nodeVisitResult == SdgVisitResult.TERMINATE) {
         return;
       }
     }
@@ -312,7 +318,7 @@ public class SystemDependenceGraph<V, N extends SystemDependenceGraph.Node<?, ?,
    * <p>If the SDG contains cycles, some nodes can be visited an infinite number if times. The
    * visitor must return appropriate visit results to break out of these cycles. Alternatively, the
    * original visitor can be wrapped by a visit-once-visitor ({@link
-   * #createVisitOnceVisitor(ForwardsVisitor)}).
+   * #createVisitOnceVisitor(ForwardsSdgVisitor)}).
    *
    * @param pStartNodes the nodes to start the traversal at
    * @param pVisitor the visitor to inform about node and edge visits and to guide the traversal
@@ -321,7 +327,7 @@ public class SystemDependenceGraph<V, N extends SystemDependenceGraph.Node<?, ?,
    * @throws IllegalArgumentException if any of the nodes contained in {@code pStartNodes} does not
    *     belong to this SDG
    */
-  public final void traverse(Collection<N> pStartNodes, ForwardsVisitor<N> pVisitor) {
+  public final void traverse(Collection<N> pStartNodes, ForwardsSdgVisitor<N> pVisitor) {
     traverse(graphNodes, pStartNodes, pVisitor, true);
   }
 
@@ -336,7 +342,7 @@ public class SystemDependenceGraph<V, N extends SystemDependenceGraph.Node<?, ?,
    * <p>If the SDG contains cycles, some nodes can be visited an infinite number if times. The
    * visitor must return appropriate visit results to break out of these cycles. Alternatively, the
    * original visitor can be wrapped by a visit-once-visitor ({@link
-   * #createVisitOnceVisitor(BackwardsVisitor)}).
+   * #createVisitOnceVisitor(BackwardsSdgVisitor)}).
    *
    * @param pStartNodes the nodes to start the traversal at
    * @param pVisitor the visitor to inform about node and edge visits and to guide the traversal
@@ -345,7 +351,7 @@ public class SystemDependenceGraph<V, N extends SystemDependenceGraph.Node<?, ?,
    * @throws IllegalArgumentException if any of the nodes contained in {@code pStartNodes} does not
    *     belong to this SDG
    */
-  public final void traverse(Collection<N> pStartNodes, BackwardsVisitor<N> pVisitor) {
+  public final void traverse(Collection<N> pStartNodes, BackwardsSdgVisitor<N> pVisitor) {
     traverse(graphNodes, pStartNodes, pVisitor, false);
   }
 
@@ -360,16 +366,16 @@ public class SystemDependenceGraph<V, N extends SystemDependenceGraph.Node<?, ?,
    * @return a new visit-once-visitor that wraps the specified visitor
    * @throws NullPointerException if {@code pDelegateVisitor == null}
    */
-  public final ForwardsVisitOnceVisitor<N> createVisitOnceVisitor(
-      ForwardsVisitor<N> pDelegateVisitor) {
+  public final VisitOnceForwardsSdgVisitor<N> createVisitOnceVisitor(
+      ForwardsSdgVisitor<N> pDelegateVisitor) {
 
     Objects.requireNonNull(pDelegateVisitor, "pDelegateVisitor must not be null");
 
-    return new ForwardsVisitOnceVisitor<>(pDelegateVisitor, getNodeCount());
+    return new VisitOnceForwardsSdgVisitor<>(pDelegateVisitor, getNodeCount());
   }
 
   /**
-   * Creates a new {@link BackwardsVisitOnceVisitor} that wraps the specified visitor.
+   * Creates a new {@link VisitOnceBackwardsSdgVisitor} that wraps the specified visitor.
    *
    * <p>Node and edge visits are only delegated to the wrapped visitor if the visit-once-visitor has
    * not visited the node/edge yet. Visit results of the wrapped visitor are delegated during the
@@ -379,12 +385,12 @@ public class SystemDependenceGraph<V, N extends SystemDependenceGraph.Node<?, ?,
    * @return a new visit-once-visitor that wraps the specified visitor
    * @throws NullPointerException if {@code pDelegateVisitor == null}
    */
-  public final BackwardsVisitOnceVisitor<N> createVisitOnceVisitor(
-      BackwardsVisitor<N> pDelegateVisitor) {
+  public final VisitOnceBackwardsSdgVisitor<N> createVisitOnceVisitor(
+      BackwardsSdgVisitor<N> pDelegateVisitor) {
 
     Objects.requireNonNull(pDelegateVisitor, "pDelegateVisitor must not be null");
 
-    return new BackwardsVisitOnceVisitor<>(pDelegateVisitor, getNodeCount());
+    return new VisitOnceBackwardsSdgVisitor<>(pDelegateVisitor, getNodeCount());
   }
 
   /**
@@ -975,7 +981,7 @@ public class SystemDependenceGraph<V, N extends SystemDependenceGraph.Node<?, ?,
 
   /**
    * This class is used to represent an edge between two graph nodes ({@link GraphNode}). This class
-   * is private, use {@link Visitor} for graph traversals.
+   * is private, use {@link SdgVisitor} for graph traversals.
    */
   private static final class GraphEdge<V, N extends Node<?, ?, V>> {
 
@@ -1151,11 +1157,11 @@ public class SystemDependenceGraph<V, N extends SystemDependenceGraph.Node<?, ?,
       return ImmutableList.copyOf(nodes);
     }
 
-    void traverse(Collection<N> pStartNodes, ForwardsVisitor<N> pVisitor) {
+    void traverse(Collection<N> pStartNodes, ForwardsSdgVisitor<N> pVisitor) {
       SystemDependenceGraph.traverse(graphNodes, pStartNodes, pVisitor, true);
     }
 
-    void traverse(Collection<N> pStartNodes, BackwardsVisitor<N> pVisitor) {
+    void traverse(Collection<N> pStartNodes, BackwardsSdgVisitor<N> pVisitor) {
       SystemDependenceGraph.traverse(graphNodes, pStartNodes, pVisitor, false);
     }
 
@@ -1519,244 +1525,6 @@ public class SystemDependenceGraph<V, N extends SystemDependenceGraph.Node<?, ?,
 
     private TypeCounter<T> copy() {
       return new TypeCounter<>(Arrays.copyOf(counters, counters.length));
-    }
-  }
-
-  /**
-   * Result of a node or edge visit that guides the system dependence graph traversal and is
-   * returned by a visitor.
-   *
-   * @see Visitor
-   */
-  public enum VisitResult {
-
-    /**
-     * Continue traversal.
-     *
-     * <p>Meaning for a visited node: follow all edges leaving (for forward traversals) or entering
-     * (for backwards traversals) this node.
-     *
-     * <p>Meaning for a visited edge: follow the edge to its successor (for forward traversals) or
-     * predecessor (for backwards traversals).
-     */
-    CONTINUE,
-
-    /**
-     * Terminate traversal immediately.
-     *
-     * <p>No more nodes and edges are visited after returning this result during SDG traversal. The
-     * traversal ends immediately after returning this visit result.
-     */
-    TERMINATE,
-
-    /**
-     * Skip this node or edge during traversal.
-     *
-     * <p>Meaning for a visited node: do not follow any edges leaving (for forward traversals) or
-     * entering (for backward traversals) this node. Other nodes connected to the visited nodes may
-     * still be visited during the traversal when adjacent nodes are reached.
-     *
-     * <p>Meaning for a visited edge: do not follow the edge to its successor (for forward
-     * traversals) or predecessor (for backward traversals).
-     *
-     * <p>The traversal still continues for other edges and nodes that were not skipped.
-     */
-    SKIP;
-  }
-
-  /**
-   * Represents an object that gets informed about node and edge visits during system dependence
-   * graph traversals. Also, guides the SDG traversal by returning specific visit results. Visitors
-   * must implement the {@link ForwardsVisitor} or {@link BackwardsVisitor} interface to be used for
-   * SDG traversal.
-   *
-   * @param <N> the node type of the SDG
-   * @see VisitResult
-   * @see SystemDependenceGraph#traverse(Collection, ForwardsVisitor)
-   * @see SystemDependenceGraph#traverse(Collection, BackwardsVisitor)
-   */
-  public interface Visitor<N extends Node<?, ?, ?>> {
-
-    /**
-     * Accepts visited nodes during system dependence graph traversal.
-     *
-     * @param pNode the visited node
-     * @return a {@link VisitResult} to guide the SDG traversal
-     */
-    VisitResult visitNode(N pNode);
-
-    /**
-     * Accepts visited edges during system dependence graph traversal.
-     *
-     * <p>Called during SDG traversals for every visited edge. Returns a {@link VisitResult} that
-     * guides the SDG traversal.
-     *
-     * @param pType the {@link EdgeType} of the visited edge
-     * @param pPredecessor the predecessor of the visited edge
-     * @param pSuccessor the successor of the visited edge
-     * @return a {@link VisitResult} to guide the SDG traversal
-     */
-    VisitResult visitEdge(EdgeType pType, N pPredecessor, N pSuccessor);
-  }
-
-  /**
-   * Represents a {@link Visitor} that can be used for forward traversals of system dependence
-   * graphs.
-   *
-   * @param <N> the node type of the SDG
-   * @see SystemDependenceGraph#traverse(Collection, ForwardsVisitor)
-   */
-  public interface ForwardsVisitor<N extends Node<?, ?, ?>> extends Visitor<N> {}
-
-  /**
-   * Represents a {@link Visitor} that can be used for backward traversals of system dependence
-   * graphs.
-   *
-   * @param <N> the node type of the SDG
-   * @see SystemDependenceGraph#traverse(Collection, BackwardsVisitor)
-   */
-  public interface BackwardsVisitor<N extends Node<?, ?, ?>> extends Visitor<N> {}
-
-  /**
-   * Implementation of the visit-once-visitor. Extended by {@link ForwardsVisitOnceVisitor} and
-   * {@link BackwardsVisitOnceVisitor}.
-   */
-  private abstract static class VisitOnceVisitor<N extends Node<?, ?, ?>> implements Visitor<N> {
-
-    private final boolean forwards;
-    private final Visitor<N> delegateVisitor;
-
-    private final byte[] visited;
-    private byte visitedMarker;
-
-    private VisitOnceVisitor(boolean pForwards, Visitor<N> pDelegateVisitor, int pNodeCount) {
-
-      forwards = pForwards;
-      delegateVisitor = pDelegateVisitor;
-
-      visited = new byte[pNodeCount];
-      visitedMarker = 1;
-    }
-
-    private void reset() {
-
-      visitedMarker++;
-
-      if (visitedMarker == 0) {
-
-        Arrays.fill(visited, (byte) 0);
-        visitedMarker = 1;
-      }
-    }
-
-    private boolean isVisited(N pNode) {
-      return visited[pNode.getId()] == visitedMarker;
-    }
-
-    @Override
-    public VisitResult visitNode(N pNode) {
-
-      if (!isVisited(pNode)) {
-
-        visited[pNode.getId()] = visitedMarker;
-
-        return delegateVisitor.visitNode(pNode);
-      }
-
-      return VisitResult.SKIP;
-    }
-
-    @Override
-    public VisitResult visitEdge(EdgeType pType, N pPredecessor, N pSuccessor) {
-
-      VisitResult visitResult = delegateVisitor.visitEdge(pType, pPredecessor, pSuccessor);
-
-      if (visitResult == VisitResult.CONTINUE) {
-
-        N nextNode = forwards ? pSuccessor : pPredecessor;
-
-        if (isVisited(nextNode)) {
-          return VisitResult.SKIP;
-        }
-      }
-
-      return visitResult;
-    }
-  }
-
-  /**
-   * Represents a {@link Visitor} that can can be used for forward system dependence graph
-   * traversals where every node should only be visited once. The visitor can forget all visited
-   * nodes by calling {@link ForwardsVisitOnceVisitor#reset}. The visitor can be (re)used for
-   * multiple traversals of the same SDG. Visit-once-visitors only work for the SDG they were
-   * created for.
-   *
-   * @param <N> the node type of the SDG
-   * @see SystemDependenceGraph#createVisitOnceVisitor(ForwardsVisitor)
-   * @see SystemDependenceGraph#traverse(Collection, ForwardsVisitor)
-   */
-  public static final class ForwardsVisitOnceVisitor<N extends Node<?, ?, ?>>
-      extends VisitOnceVisitor<N> implements ForwardsVisitor<N> {
-
-    ForwardsVisitOnceVisitor(ForwardsVisitor<N> pDelegateVisitor, int pNodeCount) {
-      super(true, pDelegateVisitor, pNodeCount);
-    }
-
-    /**
-     * Causes this visit-once-visitor to forget all previously visited nodes.
-     *
-     * <p>This can, but doesn't have to, be called between different SDG traversals of the same SDG.
-     */
-    public void reset() {
-      super.reset();
-    }
-
-    @Override
-    public VisitResult visitNode(N pNode) {
-      return super.visitNode(pNode);
-    }
-
-    @Override
-    public VisitResult visitEdge(EdgeType pType, N pPredecessor, N pSuccessor) {
-      return super.visitEdge(pType, pPredecessor, pSuccessor);
-    }
-  }
-
-  /**
-   * Represents a {@link Visitor} that can can be used for backward system dependence graph
-   * traversals where every node should only be visited once. The visitor can forget all visited
-   * nodes by calling {@link ForwardsVisitOnceVisitor#reset}. The visitor can be (re)used for
-   * multiple traversals of the same SDG. Visit-once-visitors only work for the SDG they were
-   * created for.
-   *
-   * @param <N> the node type of the SDG
-   * @see SystemDependenceGraph#createVisitOnceVisitor(BackwardsVisitor)
-   * @see SystemDependenceGraph#traverse(Collection, BackwardsVisitor)
-   */
-  public static final class BackwardsVisitOnceVisitor<N extends Node<?, ?, ?>>
-      extends VisitOnceVisitor<N> implements BackwardsVisitor<N> {
-
-    BackwardsVisitOnceVisitor(BackwardsVisitor<N> pDelegateVisitor, int pNodeCount) {
-      super(false, pDelegateVisitor, pNodeCount);
-    }
-
-    /**
-     * Causes this visit-once-visitor to forget all previously visited nodes.
-     *
-     * <p>This can, but doesn't have to, be called between different SDG traversals of the same SDG.
-     */
-    public void reset() {
-      super.reset();
-    }
-
-    @Override
-    public VisitResult visitNode(N pNode) {
-      return super.visitNode(pNode);
-    }
-
-    @Override
-    public VisitResult visitEdge(EdgeType pType, N pPredecessor, N pSuccessor) {
-      return super.visitEdge(pType, pPredecessor, pSuccessor);
     }
   }
 }

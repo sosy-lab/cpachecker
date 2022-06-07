@@ -78,13 +78,13 @@ import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.cpachecker.util.resources.ResourceLimit;
 import org.sosy_lab.cpachecker.util.resources.ResourceLimitChecker;
 import org.sosy_lab.cpachecker.util.resources.WalltimeLimit;
-import org.sosy_lab.cpachecker.util.sdg.SystemDependenceGraph.BackwardsVisitOnceVisitor;
 import org.sosy_lab.cpachecker.util.sdg.SystemDependenceGraph.EdgeType;
-import org.sosy_lab.cpachecker.util.sdg.SystemDependenceGraph.VisitResult;
 import org.sosy_lab.cpachecker.util.sdg.c.CSystemDependenceGraph;
 import org.sosy_lab.cpachecker.util.sdg.c.CSystemDependenceGraph.BackwardsVisitor;
 import org.sosy_lab.cpachecker.util.sdg.c.CSystemDependenceGraph.Node;
 import org.sosy_lab.cpachecker.util.sdg.c.CSystemDependenceGraphBuilder;
+import org.sosy_lab.cpachecker.util.sdg.traversal.SdgVisitResult;
+import org.sosy_lab.cpachecker.util.sdg.traversal.VisitOnceBackwardsSdgVisitor;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 @Options(prefix = "cpa.value.reuse.precision.predicate")
@@ -222,7 +222,7 @@ public class PredicateToValuePrecisionConverter implements Statistics {
 
             Deque<MemoryLocation> toProcess = new ArrayDeque<>(result.values());
             Collection<MemoryLocation> inspectedVars = new HashSet<>(toProcess);
-            BackwardsVisitOnceVisitor<Node> cdVisit =
+            VisitOnceBackwardsSdgVisitor<Node> cdVisit =
                 depGraph.createVisitOnceVisitor(
                     new ControlDependenceVisitor(inspectedVars, toProcess, result));
             MemoryLocation var;
@@ -492,21 +492,21 @@ public class PredicateToValuePrecisionConverter implements Statistics {
     }
 
     @Override
-    public VisitResult visitNode(final Node pNode) {
-      return VisitResult.CONTINUE;
+    public SdgVisitResult visitNode(final Node pNode) {
+      return SdgVisitResult.CONTINUE;
     }
 
     @Override
-    public VisitResult visitEdge(
+    public SdgVisitResult visitEdge(
         final EdgeType pType, final Node pPredecessor, final Node pSuccessor) {
       if (pType == EdgeType.CONTROL_DEPENDENCY) {
         CFAEdge edge = pSuccessor.getStatement().orElse(null);
         if (edge instanceof CAssumeEdge) {
           ((CAssumeEdge) edge).getExpression().accept(assumeVisitor);
         }
-        return VisitResult.CONTINUE;
+        return SdgVisitResult.CONTINUE;
       }
-      return VisitResult.SKIP;
+      return SdgVisitResult.SKIP;
     }
   }
 

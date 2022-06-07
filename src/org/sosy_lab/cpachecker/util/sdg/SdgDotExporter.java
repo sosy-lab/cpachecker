@@ -25,7 +25,8 @@ import org.sosy_lab.common.io.IO;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.util.sdg.SystemDependenceGraph.EdgeType;
 import org.sosy_lab.cpachecker.util.sdg.SystemDependenceGraph.Node;
-import org.sosy_lab.cpachecker.util.sdg.SystemDependenceGraph.VisitResult;
+import org.sosy_lab.cpachecker.util.sdg.traversal.ForwardsSdgVisitor;
+import org.sosy_lab.cpachecker.util.sdg.traversal.SdgVisitResult;
 
 /**
  * Exporter to export {@link SystemDependenceGraph} instances as dot files.
@@ -216,15 +217,15 @@ public abstract class SdgDotExporter<P, T, V, N extends SystemDependenceGraph.No
 
       pSdg.traverse(
           ImmutableSet.of(node),
-          new SystemDependenceGraph.ForwardsVisitor<N>() {
+          new ForwardsSdgVisitor<N>() {
 
             @Override
-            public VisitResult visitNode(N pNode) {
-              return VisitResult.CONTINUE;
+            public SdgVisitResult visitNode(N pNode) {
+              return SdgVisitResult.CONTINUE;
             }
 
             @Override
-            public VisitResult visitEdge(EdgeType pType, N pPredecessor, N pSuccessor) {
+            public SdgVisitResult visitEdge(EdgeType pType, N pPredecessor, N pSuccessor) {
 
               sb.append(nodeId(pVisitedNodes, pPredecessor));
               sb.append(" -> ");
@@ -237,7 +238,7 @@ public abstract class SdgDotExporter<P, T, V, N extends SystemDependenceGraph.No
               sb.append(edgeStyle);
               sb.append("]\n");
 
-              return VisitResult.SKIP;
+              return SdgVisitResult.SKIP;
             }
           });
 

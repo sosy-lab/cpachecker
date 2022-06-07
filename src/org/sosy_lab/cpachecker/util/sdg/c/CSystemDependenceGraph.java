@@ -11,6 +11,8 @@ package org.sosy_lab.cpachecker.util.sdg.c;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.util.sdg.SystemDependenceGraph;
+import org.sosy_lab.cpachecker.util.sdg.traversal.BackwardsSdgVisitor;
+import org.sosy_lab.cpachecker.util.sdg.traversal.ForwardsSdgVisitor;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 /** Represents a {@link SystemDependenceGraph} for C programs. */
@@ -29,9 +31,7 @@ public final class CSystemDependenceGraph
     }
   }
 
-  public interface ForwardsVisitor
-      extends SystemDependenceGraph.ForwardsVisitor<CSystemDependenceGraph.Node> {}
+  public interface ForwardsVisitor extends ForwardsSdgVisitor<CSystemDependenceGraph.Node> {}
 
-  public interface BackwardsVisitor
-      extends SystemDependenceGraph.BackwardsVisitor<CSystemDependenceGraph.Node> {}
+  public interface BackwardsVisitor extends BackwardsSdgVisitor<CSystemDependenceGraph.Node> {}
 }
