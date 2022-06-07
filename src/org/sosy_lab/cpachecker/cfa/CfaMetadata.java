@@ -104,7 +104,15 @@ public final class CfaMetadata implements Serializable {
   }
 
   public CfaMetadata withMachineModel(MachineModel pMachineModel) {
-    return new Builder(this).setMachineModel(pMachineModel).build();
+    return new CfaMetadata(
+        checkNotNull(pMachineModel),
+        language,
+        fileNames,
+        mainFunctionEntry,
+        connectedness,
+        loopStructure,
+        variableClassification,
+        liveVariables);
   }
 
   public Language getLanguage() {
@@ -120,7 +128,15 @@ public final class CfaMetadata implements Serializable {
   }
 
   public CfaMetadata withMainFunctionEntry(FunctionEntryNode pMainFunctionEntry) {
-    return new Builder(this).setMainFunctionEntry(pMainFunctionEntry).build();
+    return new CfaMetadata(
+        machineModel,
+        language,
+        fileNames,
+        checkNotNull(pMainFunctionEntry),
+        connectedness,
+        loopStructure,
+        variableClassification,
+        liveVariables);
   }
 
   public CfaConnectedness getConnectedness() {
@@ -128,7 +144,15 @@ public final class CfaMetadata implements Serializable {
   }
 
   public CfaMetadata withConnectedness(CfaConnectedness pConnectedness) {
-    return new Builder(this).setConnectedness(pConnectedness).build();
+    return new CfaMetadata(
+        machineModel,
+        language,
+        fileNames,
+        mainFunctionEntry,
+        checkNotNull(pConnectedness),
+        loopStructure,
+        variableClassification,
+        liveVariables);
   }
 
   public Optional<LoopStructure> getLoopStructure() {
@@ -136,7 +160,15 @@ public final class CfaMetadata implements Serializable {
   }
 
   public CfaMetadata withLoopStructure(@Nullable LoopStructure pLoopStructure) {
-    return new Builder(this).setLoopStructure(pLoopStructure).build();
+    return new CfaMetadata(
+        machineModel,
+        language,
+        fileNames,
+        mainFunctionEntry,
+        connectedness,
+        pLoopStructure,
+        variableClassification,
+        liveVariables);
   }
 
   public Optional<VariableClassification> getVariableClassification() {
@@ -145,7 +177,15 @@ public final class CfaMetadata implements Serializable {
 
   public CfaMetadata withVariableClassification(
       @Nullable VariableClassification pVariableClassification) {
-    return new Builder(this).setVariableClassification(pVariableClassification).build();
+    return new CfaMetadata(
+        machineModel,
+        language,
+        fileNames,
+        mainFunctionEntry,
+        connectedness,
+        loopStructure,
+        pVariableClassification,
+        liveVariables);
   }
 
   public Optional<LiveVariables> getLiveVariables() {
@@ -153,7 +193,15 @@ public final class CfaMetadata implements Serializable {
   }
 
   public CfaMetadata withLiveVariables(@Nullable LiveVariables pLiveVariables) {
-    return new Builder(this).setLiveVariables(pLiveVariables).build();
+    return new CfaMetadata(
+        machineModel,
+        language,
+        fileNames,
+        mainFunctionEntry,
+        connectedness,
+        loopStructure,
+        variableClassification,
+        pLiveVariables);
   }
 
   private void writeObject(java.io.ObjectOutputStream pObjectOutputStream) throws IOException {
@@ -173,86 +221,5 @@ public final class CfaMetadata implements Serializable {
     @SuppressWarnings("unchecked") // paths are always serialized as a list of strings
     List<String> stringFileNames = (List<String>) pObjectInputStream.readObject();
     fileNames = ImmutableList.copyOf(Lists.transform(stringFileNames, Path::of));
-  }
-
-  private static final class Builder {
-
-    private MachineModel machineModel;
-    private Language language;
-    private ImmutableList<Path> fileNames;
-    private FunctionEntryNode mainFunctionEntry;
-    private CfaConnectedness connectedness;
-
-    private @Nullable LoopStructure loopStructure;
-    private @Nullable VariableClassification variableClassification;
-    private @Nullable LiveVariables liveVariables;
-
-    private Builder(CfaMetadata pCfaMetadata) {
-
-      machineModel = pCfaMetadata.machineModel;
-      language = pCfaMetadata.language;
-      fileNames = pCfaMetadata.fileNames;
-      mainFunctionEntry = pCfaMetadata.mainFunctionEntry;
-      connectedness = pCfaMetadata.connectedness;
-
-      loopStructure = pCfaMetadata.loopStructure;
-      variableClassification = pCfaMetadata.variableClassification;
-      liveVariables = pCfaMetadata.liveVariables;
-    }
-
-    private Builder setMachineModel(MachineModel pMachineModel) {
-
-      machineModel = checkNotNull(pMachineModel);
-
-      return this;
-    }
-
-    private Builder setMainFunctionEntry(FunctionEntryNode pMainFunctionEntry) {
-
-      mainFunctionEntry = checkNotNull(pMainFunctionEntry);
-
-      return this;
-    }
-
-    private Builder setConnectedness(CfaConnectedness pConnectedness) {
-
-      connectedness = checkNotNull(pConnectedness);
-
-      return this;
-    }
-
-    private Builder setLoopStructure(@Nullable LoopStructure pLoopStructure) {
-
-      loopStructure = pLoopStructure;
-
-      return this;
-    }
-
-    private Builder setVariableClassification(
-        @Nullable VariableClassification pVariableClassification) {
-
-      variableClassification = pVariableClassification;
-
-      return this;
-    }
-
-    private Builder setLiveVariables(@Nullable LiveVariables pLiveVariables) {
-
-      liveVariables = pLiveVariables;
-
-      return this;
-    }
-
-    private CfaMetadata build() {
-      return new CfaMetadata(
-          machineModel,
-          language,
-          fileNames,
-          mainFunctionEntry,
-          connectedness,
-          loopStructure,
-          variableClassification,
-          liveVariables);
-    }
   }
 }
