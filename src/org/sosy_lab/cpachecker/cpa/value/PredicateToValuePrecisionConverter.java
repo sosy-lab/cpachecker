@@ -79,9 +79,10 @@ import org.sosy_lab.cpachecker.util.resources.ResourceLimit;
 import org.sosy_lab.cpachecker.util.resources.ResourceLimitChecker;
 import org.sosy_lab.cpachecker.util.resources.WalltimeLimit;
 import org.sosy_lab.cpachecker.util.sdg.SdgEdgeType;
+import org.sosy_lab.cpachecker.util.sdg.c.CSdgEdge;
+import org.sosy_lab.cpachecker.util.sdg.c.CSdgNode;
 import org.sosy_lab.cpachecker.util.sdg.c.CSystemDependenceGraph;
 import org.sosy_lab.cpachecker.util.sdg.c.CSystemDependenceGraph.BackwardsVisitor;
-import org.sosy_lab.cpachecker.util.sdg.c.CSystemDependenceGraph.Node;
 import org.sosy_lab.cpachecker.util.sdg.c.CSystemDependenceGraphBuilder;
 import org.sosy_lab.cpachecker.util.sdg.traversal.SdgVisitResult;
 import org.sosy_lab.cpachecker.util.sdg.traversal.VisitOnceBackwardsSdgVisitor;
@@ -222,12 +223,11 @@ public class PredicateToValuePrecisionConverter implements Statistics {
 
             Deque<MemoryLocation> toProcess = new ArrayDeque<>(result.values());
             Collection<MemoryLocation> inspectedVars = new HashSet<>(toProcess);
-            VisitOnceBackwardsSdgVisitor<MemoryLocation, Node, CSystemDependenceGraph.Edge>
-                cdVisit =
-                    depGraph.createVisitOnceVisitor(
-                        new ControlDependenceVisitor(inspectedVars, toProcess, result));
+            VisitOnceBackwardsSdgVisitor<MemoryLocation, CSdgNode, CSdgEdge> cdVisit =
+                depGraph.createVisitOnceVisitor(
+                    new ControlDependenceVisitor(inspectedVars, toProcess, result));
             MemoryLocation var;
-            Collection<CSystemDependenceGraph.Node> relevantGraphNodes;
+            Collection<CSdgNode> relevantGraphNodes;
             boolean allUsesTracked, oneUseTracked;
             ImmutableSet<MemoryLocation> defs;
             while (!toProcess.isEmpty()) {
@@ -235,7 +235,7 @@ public class PredicateToValuePrecisionConverter implements Statistics {
               var = toProcess.pop();
 
               relevantGraphNodes = getRelevantGraphDefining(var, depGraph, relevantEdges);
-              for (CSystemDependenceGraph.Node relVarDef : relevantGraphNodes) {
+              for (CSdgNode relVarDef : relevantGraphNodes) {
                 conversionShutdownNotifier.shutdownIfNecessary();
 
                 for (MemoryLocation varDep : depGraph.getUses(relVarDef)) {
@@ -254,7 +254,7 @@ public class PredicateToValuePrecisionConverter implements Statistics {
 
               if (converterStrategy == PredicateConverterStrategy.CONVERT_AND_ADD_FLOW_BIDIRECTED) {
                 relevantGraphNodes = getRelevantGraphUsing(var, depGraph, relevantEdges);
-                for (CSystemDependenceGraph.Node relVarUse : relevantGraphNodes) {
+                for (CSdgNode relVarUse : relevantGraphNodes) {
                   defs = depGraph.getDefs(relVarUse);
                   if (!defs.isEmpty()) {
                     allUsesTracked = true;
@@ -424,21 +424,21 @@ public class PredicateToValuePrecisionConverter implements Statistics {
         .toSet();
   }
 
-  private Collection<Node> getRelevantGraphUsing(
+  private Collection<CSdgNode> getRelevantGraphUsing(
       final MemoryLocation pVar,
       final CSystemDependenceGraph pDepGraph,
       final Collection<CFAEdge> pRelevantEdges) {
     return getRelevantGraphNodes(pVar, pDepGraph, pRelevantEdges, false);
   }
 
-  private Collection<Node> getRelevantGraphDefining(
+  private Collection<CSdgNode> getRelevantGraphDefining(
       final MemoryLocation pVar,
       final CSystemDependenceGraph pDepGraph,
       final Collection<CFAEdge> pRelevantEdges) {
     return getRelevantGraphNodes(pVar, pDepGraph, pRelevantEdges, true);
   }
 
-  private Collection<Node> getRelevantGraphNodes(
+  private Collection<CSdgNode> getRelevantGraphNodes(
       final MemoryLocation pVar,
       final CSystemDependenceGraph pDepGraph,
       final Collection<CFAEdge> pRelevantEdges,
@@ -493,13 +493,13 @@ public class PredicateToValuePrecisionConverter implements Statistics {
     }
 
     @Override
-    public SdgVisitResult visitNode(final Node pNode) {
+    public SdgVisitResult visitNode(final CSdgNode pNode) {
       return SdgVisitResult.CONTINUE;
     }
 
     @Override
     public SdgVisitResult visitEdge(
-        final CSystemDependenceGraph.Edge pEdge, final Node pPredecessor, final Node pSuccessor) {
+        final CSdgEdge pEdge, final CSdgNode pPredecessor, final CSdgNode pSuccessor) {
       if (pEdge.getType() == SdgEdgeType.CONTROL_DEPENDENCY) {
         CFAEdge edge = pSuccessor.getStatement().orElse(null);
         if (edge instanceof CAssumeEdge) {
