@@ -39,7 +39,7 @@ import org.sosy_lab.cpachecker.util.sdg.traversal.SdgVisitResult;
 public final class ControlDependenceBuilder<N extends Node<AFunctionDeclaration, CFAEdge, ?>> {
 
   private final SystemDependenceGraph.Builder<AFunctionDeclaration, CFAEdge, ?, N> builder;
-  private final Optional<AFunctionDeclaration> procedure;
+  private final AFunctionDeclaration procedure;
   private final Set<CFAEdge> dependentEdges;
 
   private ControlDependenceBuilder(
@@ -47,7 +47,7 @@ public final class ControlDependenceBuilder<N extends Node<AFunctionDeclaration,
       FunctionEntryNode pEntryNode) {
 
     builder = pBuilder;
-    procedure = Optional.of(pEntryNode.getFunction());
+    procedure = pEntryNode.getFunction();
     dependentEdges = new HashSet<>();
   }
 

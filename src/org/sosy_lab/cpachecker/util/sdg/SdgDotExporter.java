@@ -19,7 +19,6 @@ import java.nio.charset.Charset;
 import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Optional;
 import java.util.logging.Level;
 import org.sosy_lab.common.io.IO;
 import org.sosy_lab.common.log.LogManager;
@@ -254,7 +253,7 @@ public abstract class SdgDotExporter<P, T, V, N extends SystemDependenceGraph.No
     writeLegend(pWriter);
 
     Map<Node<P, T, V>, Long> visitedNodes = new HashMap<>();
-    Multimap<Optional<P>, Node<P, T, V>> procedureNodes = ArrayListMultimap.create();
+    Multimap<P, Node<P, T, V>> procedureNodes = ArrayListMultimap.create();
 
     long counter = 0;
     for (Node<P, T, V> node : pSdg.getNodes()) {
@@ -263,15 +262,14 @@ public abstract class SdgDotExporter<P, T, V, N extends SystemDependenceGraph.No
       procedureNodes.put(node.getProcedure(), node);
     }
 
-    for (Optional<P> procedure : procedureNodes.keySet()) {
+    for (P procedure : procedureNodes.keySet()) {
 
       pWriter.write("subgraph cluster_f");
       pWriter.write(String.valueOf(counter));
       pWriter.write(" {\n");
       counter++;
 
-      String procedureLabel =
-          procedure.isPresent() ? getProcedureLabel(procedure.orElseThrow()) : "";
+      String procedureLabel = getProcedureLabel(procedure);
       pWriter.write("label=\"");
       pWriter.write(escape(procedureLabel));
       pWriter.write("\";\n");

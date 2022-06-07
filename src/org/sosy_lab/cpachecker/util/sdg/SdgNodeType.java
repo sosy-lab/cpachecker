@@ -154,14 +154,10 @@ public enum SdgNodeType {
    * Type of regular statement, expression, and declaration nodes.
    *
    * <ul>
-   *   <li>Procedure: optional (*)
+   *   <li>Procedure: required
    *   <li>Statement: required
    *   <li>Variable: empty
    * </ul>
-   *
-   * (*) If the system dependence graph only contains statements from a single procedure and no
-   * other non-statement nodes, the procedure can be omitted (this can be used to represent a
-   * program dependence graph (PDG)). Otherwise, the procedure is required.
    */
   STATEMENT,
 

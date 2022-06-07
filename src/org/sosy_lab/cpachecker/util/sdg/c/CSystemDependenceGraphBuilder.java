@@ -276,12 +276,12 @@ public class CSystemDependenceGraphBuilder implements StatisticsProvider {
     return new CSystemDependenceGraph(systemDependenceGraph);
   }
 
-  private static Optional<AFunctionDeclaration> getOptionalFunction(CFAEdge pEdge) {
+  private static AFunctionDeclaration getFunction(CFAEdge pEdge) {
 
     CFANode node =
         pEdge instanceof CFunctionReturnEdge ? pEdge.getPredecessor() : pEdge.getSuccessor();
 
-    return Optional.of(node.getFunction());
+    return node.getFunction();
   }
 
   private GlobalPointerState createGlobalPointerState() throws CPAException, InterruptedException {
@@ -479,28 +479,24 @@ public class CSystemDependenceGraphBuilder implements StatisticsProvider {
 
     for (CFAEdge functionDeclarationEdge : pDeclarationEdges.get(pEntryNode.getFunctionName())) {
       builder
-          .node(
-              SdgNodeType.ENTRY,
-              Optional.of(pEntryNode.getFunction()),
-              Optional.empty(),
-              Optional.empty())
+          .node(SdgNodeType.ENTRY, pEntryNode.getFunction(), Optional.empty(), Optional.empty())
           .depends(SdgEdgeType.DECLARATION_EDGE, Optional.empty())
           .on(
               SdgNodeType.STATEMENT,
-              getOptionalFunction(functionDeclarationEdge),
+              getFunction(functionDeclarationEdge),
               Optional.of(functionDeclarationEdge),
               Optional.empty());
     }
   }
 
   private void insertDefSummaryUseCallEdges(
-      Optional<AFunctionDeclaration> pDefFunction,
-      Optional<AFunctionDeclaration> pUseFunction,
+      AFunctionDeclaration pDefFunction,
+      AFunctionDeclaration pUseFunction,
       Optional<CFAEdge> pDefEdge,
       MemoryLocation pCause) {
 
-    Optional<AFunctionDeclaration> callerFunction = pDefFunction;
-    Optional<AFunctionDeclaration> calleeFunction = pUseFunction;
+    AFunctionDeclaration callerFunction = pDefFunction;
+    AFunctionDeclaration calleeFunction = pUseFunction;
     Optional<CFAEdge> summaryEdge = pDefEdge;
 
     // actual-in ----(PARAMETER_EDGE)---> formal-in
@@ -517,13 +513,13 @@ public class CSystemDependenceGraphBuilder implements StatisticsProvider {
   }
 
   private void insertDefReturnUseSummaryEdges(
-      Optional<AFunctionDeclaration> pDefFunction,
-      Optional<AFunctionDeclaration> pUseFunction,
+      AFunctionDeclaration pDefFunction,
+      AFunctionDeclaration pUseFunction,
       Optional<CFAEdge> pUseEdge,
       MemoryLocation pCause) {
 
-    Optional<AFunctionDeclaration> callerFunction = pUseFunction;
-    Optional<AFunctionDeclaration> calleeFunction = pDefFunction;
+    AFunctionDeclaration callerFunction = pUseFunction;
+    AFunctionDeclaration calleeFunction = pDefFunction;
     Optional<CFAEdge> summaryEdge = pUseEdge;
 
     // formal-out ----(PARAMETER_EDGE)---> actual-out
@@ -543,14 +539,14 @@ public class CSystemDependenceGraphBuilder implements StatisticsProvider {
       GlobalPointerState pPointerState,
       ForeignDefUseData pForeignDefUseData,
       SdgNodeType pDefNodeType,
-      Optional<AFunctionDeclaration> pDefFunction,
+      AFunctionDeclaration pDefFunction,
       Optional<CFAEdge> pDefEdge,
       Optional<MemoryLocation> pDefVariable,
       CFAEdge pUseEdge,
       MemoryLocation pCause,
       SdgEdgeType pEdgeType) {
 
-    Optional<AFunctionDeclaration> useFunction = getOptionalFunction(pUseEdge);
+    AFunctionDeclaration useFunction = getFunction(pUseEdge);
     Optional<CFAEdge> useEdge = Optional.of(pUseEdge);
 
     CFunctionSummaryEdge summaryEdge = (CFunctionSummaryEdge) pUseEdge;
@@ -626,8 +622,8 @@ public class CSystemDependenceGraphBuilder implements StatisticsProvider {
       MemoryLocation pCause,
       boolean pIsDeclaration) {
 
-    Optional<AFunctionDeclaration> defFunction = getOptionalFunction(pDefEdge);
-    Optional<AFunctionDeclaration> useFunction = getOptionalFunction(pUseEdge);
+    AFunctionDeclaration defFunction = getFunction(pDefEdge);
+    AFunctionDeclaration useFunction = getFunction(pUseEdge);
     Optional<CFAEdge> defEdge = Optional.of(pDefEdge);
     Optional<CFAEdge> useEdge = Optional.of(pUseEdge);
 
@@ -770,7 +766,7 @@ public class CSystemDependenceGraphBuilder implements StatisticsProvider {
       ControlDependenceBuilder.insertControlDependencies(
           builder, entryNode, controlDepsTakeBothAssumptions);
 
-      Optional<AFunctionDeclaration> procedure = Optional.of(entryNode.getFunction());
+      AFunctionDeclaration procedure = entryNode.getFunction();
 
       for (CFAEdge edge : CFAUtils.allEnteringEdges(entryNode)) {
         if (edge instanceof CFunctionCallEdge) {
@@ -783,8 +779,7 @@ public class CSystemDependenceGraphBuilder implements StatisticsProvider {
               .on(SdgNodeType.STATEMENT, procedure, Optional.of(callEdge), Optional.empty());
 
           CFunctionSummaryEdge summaryEdge = callEdge.getSummaryEdge();
-          Optional<AFunctionDeclaration> summaryEdgeProcedure =
-              Optional.of(summaryEdge.getPredecessor().getFunction());
+          AFunctionDeclaration summaryEdgeProcedure = summaryEdge.getPredecessor().getFunction();
 
           builder
               .node(SdgNodeType.STATEMENT, procedure, Optional.of(callEdge), Optional.empty())
@@ -922,7 +917,7 @@ public class CSystemDependenceGraphBuilder implements StatisticsProvider {
         sb.append(" of ");
 
         if (pNode.getType() == SdgNodeType.ENTRY) {
-          sb.append(pNode.getProcedure().orElse(null));
+          sb.append(pNode.getProcedure());
         } else {
           sb.append(pNode.getVariable().orElse(null));
         }

@@ -412,18 +412,14 @@ public class SystemDependenceGraph<V, N extends SystemDependenceGraph.Node<?, ?,
 
     private final int id;
     private final SdgNodeType type;
-    private final Optional<P> procedure;
+    private final P procedure;
     private final Optional<T> statement;
     private final Optional<V> variable;
 
     private final int hash;
 
     private Node(
-        int pId,
-        SdgNodeType pType,
-        Optional<P> pProcedure,
-        Optional<T> pStatement,
-        Optional<V> pVariable) {
+        int pId, SdgNodeType pType, P pProcedure, Optional<T> pStatement, Optional<V> pVariable) {
 
       id = pId;
       type = pType;
@@ -469,11 +465,9 @@ public class SystemDependenceGraph<V, N extends SystemDependenceGraph.Node<?, ?,
     /**
      * Returns the procedure of the node.
      *
-     * <p>Depending on the {@code NodeType} of the node, the returned optional can be empty.
-     *
      * @return the procedure of the node
      */
-    public final Optional<P> getProcedure() {
+    public final P getProcedure() {
       return procedure;
     }
 
@@ -843,7 +837,7 @@ public class SystemDependenceGraph<V, N extends SystemDependenceGraph.Node<?, ?,
      * parameters.
      */
     private GraphNode.MutableGraphNode<V, N> graphNode(
-        SdgNodeType pType, Optional<P> pProcedure, Optional<T> pStatement, Optional<V> pVariable) {
+        SdgNodeType pType, P pProcedure, Optional<T> pStatement, Optional<V> pVariable) {
 
       NodeMapKey<P, T, V> nodeKey = new NodeMapKey<>(pType, pProcedure, pStatement, pVariable);
       GraphNode.MutableGraphNode<V, N> graphNode =
@@ -1006,8 +1000,7 @@ public class SystemDependenceGraph<V, N extends SystemDependenceGraph.Node<?, ?,
      * (or already existing but equivalent) node as its successor.
      *
      * @param pType the type of the node to insert
-     * @param pProcedure the, depending on the {@link SdgNodeType}, optional procedure of the node
-     *     to insert
+     * @param pProcedure the procedure of the node to insert
      * @param pStatement the, depending on the {@link SdgNodeType}, optional statement of the node
      *     to insert
      * @param pVariable the, depending on the {@link SdgNodeType}, optional variable of the node to
@@ -1016,7 +1009,7 @@ public class SystemDependenceGraph<V, N extends SystemDependenceGraph.Node<?, ?,
      * @throws NullPointerException if any of the parameters is {@code null}
      */
     public EdgeChooser node(
-        SdgNodeType pType, Optional<P> pProcedure, Optional<T> pStatement, Optional<V> pVariable) {
+        SdgNodeType pType, P pProcedure, Optional<T> pStatement, Optional<V> pVariable) {
 
       Objects.requireNonNull(pType, "pType must not be null");
       Objects.requireNonNull(pProcedure, "pProcedure must not be null");
@@ -1155,18 +1148,14 @@ public class SystemDependenceGraph<V, N extends SystemDependenceGraph.Node<?, ?,
        * <p>The node specified by the parameters is used as the edge predecessor.
        *
        * @param pType the type of the node to insert
-       * @param pProcedure the, depending on the {@link SdgNodeType}, optional procedure of the node
-       *     to insert
+       * @param pProcedure the procedure of the node to insert
        * @param pStatement the, depending on the {@link SdgNodeType}, optional statement of the node
        *     to insert
        * @param pVariable the, depending on the {@link SdgNodeType}, optional variable of the node
        *     to insert
        */
       public void on(
-          SdgNodeType pType,
-          Optional<P> pProcedure,
-          Optional<T> pStatement,
-          Optional<V> pVariable) {
+          SdgNodeType pType, P pProcedure, Optional<T> pStatement, Optional<V> pVariable) {
 
         Objects.requireNonNull(pType, "pType must not be null");
         Objects.requireNonNull(pProcedure, "pProcedure must not be null");
@@ -1185,7 +1174,7 @@ public class SystemDependenceGraph<V, N extends SystemDependenceGraph.Node<?, ?,
   private static final class NodeMapKey<P, T, V> {
 
     private final SdgNodeType type;
-    private final Optional<P> procedure;
+    private final P procedure;
     private final Optional<T> statement;
     private final Optional<V> variable;
 
@@ -1194,7 +1183,7 @@ public class SystemDependenceGraph<V, N extends SystemDependenceGraph.Node<?, ?,
     private final int hash;
 
     private NodeMapKey(
-        SdgNodeType pType, Optional<P> pProcedure, Optional<T> pStatement, Optional<V> pVariable) {
+        SdgNodeType pType, P pProcedure, Optional<T> pStatement, Optional<V> pVariable) {
 
       type = pType;
       procedure = pProcedure;

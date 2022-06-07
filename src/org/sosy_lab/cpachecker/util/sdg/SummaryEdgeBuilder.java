@@ -18,6 +18,7 @@ import java.util.Arrays;
 import java.util.BitSet;
 import java.util.Collection;
 import java.util.List;
+import java.util.Optional;
 import org.sosy_lab.cpachecker.util.dependencegraph.CallGraph;
 import org.sosy_lab.cpachecker.util.sdg.SystemDependenceGraph.Node;
 import org.sosy_lab.cpachecker.util.sdg.traversal.BackwardsSdgVisitor;
@@ -63,7 +64,7 @@ public final class SummaryEdgeBuilder {
     Multimap<P, N> formalOutNodesPerProcedure = ArrayListMultimap.create();
     for (N node : pBuilder.getNodes()) {
       if (node.getType() == SdgNodeType.FORMAL_OUT) {
-        formalOutNodesPerProcedure.put(node.getProcedure().orElseThrow(), node);
+        formalOutNodesPerProcedure.put(node.getProcedure(), node);
       }
     }
 
@@ -73,7 +74,7 @@ public final class SummaryEdgeBuilder {
     }
 
     ImmutableSet<P> recursiveProcedures = pCallGraph.getRecursiveProcedures();
-    int[] procedureIds = pBuilder.createIds(Node::getProcedure);
+    int[] procedureIds = pBuilder.createIds(node -> Optional.of(node.getProcedure()));
 
     SummaryEdgeFinder<N> summaryEdgeFinder;
     int batchSize;
@@ -107,7 +108,7 @@ public final class SummaryEdgeBuilder {
         index++;
       }
 
-      boolean recursive = recursiveProcedures.contains(node.getProcedure().orElseThrow());
+      boolean recursive = recursiveProcedures.contains(node.getProcedure());
       summaryEdgeFinder.run(selectedFormalOutNodes, recursive, pBuilder::insertActualSummaryEdges);
       selectedFormalOutNodes.clear();
     }
