@@ -78,7 +78,7 @@ import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.cpachecker.util.resources.ResourceLimit;
 import org.sosy_lab.cpachecker.util.resources.ResourceLimitChecker;
 import org.sosy_lab.cpachecker.util.resources.WalltimeLimit;
-import org.sosy_lab.cpachecker.util.sdg.SystemDependenceGraph.EdgeType;
+import org.sosy_lab.cpachecker.util.sdg.SdgEdgeType;
 import org.sosy_lab.cpachecker.util.sdg.c.CSystemDependenceGraph;
 import org.sosy_lab.cpachecker.util.sdg.c.CSystemDependenceGraph.BackwardsVisitor;
 import org.sosy_lab.cpachecker.util.sdg.c.CSystemDependenceGraph.Node;
@@ -498,8 +498,8 @@ public class PredicateToValuePrecisionConverter implements Statistics {
 
     @Override
     public SdgVisitResult visitEdge(
-        final EdgeType pType, final Node pPredecessor, final Node pSuccessor) {
-      if (pType == EdgeType.CONTROL_DEPENDENCY) {
+        final SdgEdgeType pType, final Node pPredecessor, final Node pSuccessor) {
+      if (pType == SdgEdgeType.CONTROL_DEPENDENCY) {
         CFAEdge edge = pSuccessor.getStatement().orElse(null);
         if (edge instanceof CAssumeEdge) {
           ((CAssumeEdge) edge).getExpression().accept(assumeVisitor);

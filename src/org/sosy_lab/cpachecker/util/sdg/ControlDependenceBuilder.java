@@ -27,9 +27,7 @@ import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.graph.dominance.DomFrontiers;
 import org.sosy_lab.cpachecker.util.graph.dominance.DomTree;
 import org.sosy_lab.cpachecker.util.graph.dominance.DominanceUtils;
-import org.sosy_lab.cpachecker.util.sdg.SystemDependenceGraph.EdgeType;
 import org.sosy_lab.cpachecker.util.sdg.SystemDependenceGraph.Node;
-import org.sosy_lab.cpachecker.util.sdg.SystemDependenceGraph.NodeType;
 import org.sosy_lab.cpachecker.util.sdg.traversal.ForwardsSdgVisitor;
 import org.sosy_lab.cpachecker.util.sdg.traversal.SdgVisitResult;
 
@@ -128,9 +126,9 @@ public final class ControlDependenceBuilder<N extends Node<AFunctionDeclaration,
                   Optional<CFAEdge> controlStatement = Optional.of(assumeEdge);
 
                   builder
-                      .node(NodeType.STATEMENT, procedure, dependentStatement, Optional.empty())
-                      .depends(EdgeType.CONTROL_DEPENDENCY, Optional.empty())
-                      .on(NodeType.STATEMENT, procedure, controlStatement, Optional.empty());
+                      .node(SdgNodeType.STATEMENT, procedure, dependentStatement, Optional.empty())
+                      .depends(SdgEdgeType.CONTROL_DEPENDENCY, Optional.empty())
+                      .on(SdgNodeType.STATEMENT, procedure, controlStatement, Optional.empty());
 
                   dependentEdges.add(dependentEdge);
                 }
@@ -181,9 +179,9 @@ public final class ControlDependenceBuilder<N extends Node<AFunctionDeclaration,
             Optional<CFAEdge> controlStatement = Optional.of(assumeEdge);
 
             builder
-                .node(NodeType.STATEMENT, procedure, dependentStatement, Optional.empty())
-                .depends(EdgeType.CONTROL_DEPENDENCY, Optional.empty())
-                .on(NodeType.STATEMENT, procedure, controlStatement, Optional.empty());
+                .node(SdgNodeType.STATEMENT, procedure, dependentStatement, Optional.empty())
+                .depends(SdgEdgeType.CONTROL_DEPENDENCY, Optional.empty())
+                .on(SdgNodeType.STATEMENT, procedure, controlStatement, Optional.empty());
 
             dependentEdges.add(dependentEdge);
           }
@@ -233,15 +231,15 @@ public final class ControlDependenceBuilder<N extends Node<AFunctionDeclaration,
     for (CFAEdge edge : functionEdges(pFunctionNodes)) {
       if (!dependentEdges.contains(edge)) {
         builder
-            .node(NodeType.STATEMENT, procedure, Optional.of(edge), Optional.empty())
-            .depends(EdgeType.CONTROL_DEPENDENCY, Optional.empty())
-            .on(NodeType.ENTRY, procedure, Optional.empty(), Optional.empty());
+            .node(SdgNodeType.STATEMENT, procedure, Optional.of(edge), Optional.empty())
+            .depends(SdgEdgeType.CONTROL_DEPENDENCY, Optional.empty())
+            .on(SdgNodeType.ENTRY, procedure, Optional.empty(), Optional.empty());
       }
     }
 
     Set<CFAEdge> entryNodeDependent = new HashSet<>();
     N entryNode =
-        builder.node(NodeType.ENTRY, procedure, Optional.empty(), Optional.empty()).getNode();
+        builder.node(SdgNodeType.ENTRY, procedure, Optional.empty(), Optional.empty()).getNode();
 
     builder.traverse(
         ImmutableSet.of(entryNode),
@@ -250,7 +248,7 @@ public final class ControlDependenceBuilder<N extends Node<AFunctionDeclaration,
           @Override
           public SdgVisitResult visitNode(N pNode) {
 
-            if (pNode.getType() == NodeType.ENTRY) {
+            if (pNode.getType() == SdgNodeType.ENTRY) {
               return SdgVisitResult.CONTINUE;
             }
 
@@ -263,8 +261,8 @@ public final class ControlDependenceBuilder<N extends Node<AFunctionDeclaration,
           }
 
           @Override
-          public SdgVisitResult visitEdge(EdgeType pType, N pPredecessor, N pSuccessor) {
-            return pType == EdgeType.CONTROL_DEPENDENCY
+          public SdgVisitResult visitEdge(SdgEdgeType pType, N pPredecessor, N pSuccessor) {
+            return pType == SdgEdgeType.CONTROL_DEPENDENCY
                 ? SdgVisitResult.CONTINUE
                 : SdgVisitResult.SKIP;
           }
@@ -273,9 +271,9 @@ public final class ControlDependenceBuilder<N extends Node<AFunctionDeclaration,
     for (CFAEdge edge : functionEdges(pFunctionNodes)) {
       if (!entryNodeDependent.contains(edge)) {
         builder
-            .node(NodeType.STATEMENT, procedure, Optional.of(edge), Optional.empty())
-            .depends(EdgeType.CONTROL_DEPENDENCY, Optional.empty())
-            .on(NodeType.ENTRY, procedure, Optional.empty(), Optional.empty());
+            .node(SdgNodeType.STATEMENT, procedure, Optional.of(edge), Optional.empty())
+            .depends(SdgEdgeType.CONTROL_DEPENDENCY, Optional.empty())
+            .on(SdgNodeType.ENTRY, procedure, Optional.empty(), Optional.empty());
       }
     }
   }

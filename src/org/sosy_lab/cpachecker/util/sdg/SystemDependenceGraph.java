@@ -57,14 +57,14 @@ public class SystemDependenceGraph<V, N extends SystemDependenceGraph.Node<?, ?,
   private final ImmutableList<GraphNode.ImmutableGraphNode<V, N>> graphNodes;
 
   // counters for nodes and edges per type
-  private final TypeCounter<NodeType> nodeTypeCounter;
-  private final TypeCounter<EdgeType> edgeTypeCounter;
+  private final TypeCounter<SdgNodeType> nodeTypeCounter;
+  private final TypeCounter<SdgEdgeType> edgeTypeCounter;
 
   private SystemDependenceGraph(
       ImmutableList<N> pNodes,
       ImmutableList<GraphNode.ImmutableGraphNode<V, N>> pGraphNodes,
-      TypeCounter<NodeType> pNodeTypeCounter,
-      TypeCounter<EdgeType> pEdgeTypeCounter) {
+      TypeCounter<SdgNodeType> pNodeTypeCounter,
+      TypeCounter<SdgEdgeType> pEdgeTypeCounter) {
 
     nodes = pNodes;
     graphNodes = pGraphNodes;
@@ -122,8 +122,8 @@ public class SystemDependenceGraph<V, N extends SystemDependenceGraph.Node<?, ?,
     return new SystemDependenceGraph<>(
         ImmutableList.of(),
         ImmutableList.of(),
-        new TypeCounter<>(NodeType.values().length),
-        new TypeCounter<>(EdgeType.values().length));
+        new TypeCounter<>(SdgNodeType.values().length),
+        new TypeCounter<>(SdgEdgeType.values().length));
   }
 
   /**
@@ -170,14 +170,14 @@ public class SystemDependenceGraph<V, N extends SystemDependenceGraph.Node<?, ?,
   }
 
   /**
-   * Returns the number of nodes of the specified {@link NodeType} contained in this system
+   * Returns the number of nodes of the specified {@link SdgNodeType} contained in this system
    * dependence graph.
    *
    * @param pType the type to get the node count for
    * @return the number of nodes of the specified type in this SDG
    * @throws NullPointerException if {@code pType == null}
    */
-  public final int getNodeCount(NodeType pType) {
+  public final int getNodeCount(SdgNodeType pType) {
 
     Objects.requireNonNull(pType, "pType must not be null");
 
@@ -185,13 +185,14 @@ public class SystemDependenceGraph<V, N extends SystemDependenceGraph.Node<?, ?,
   }
 
   /**
-   * Returns the number of edges of the specified {@link EdgeType} in this system dependence graph.
+   * Returns the number of edges of the specified {@link SdgEdgeType} in this system dependence
+   * graph.
    *
    * @param pType the type to get the edge count for
    * @return the number of edges of the specified type in this SDG
    * @throws NullPointerException if {@code pType == null}
    */
-  public final int getEdgeCount(EdgeType pType) {
+  public final int getEdgeCount(SdgEdgeType pType) {
 
     Objects.requireNonNull(pType, "pType must not be null");
 
@@ -394,262 +395,6 @@ public class SystemDependenceGraph<V, N extends SystemDependenceGraph.Node<?, ?,
   }
 
   /**
-   * Type of a system dependence graph node.
-   *
-   * <p>C program example to show the different node types (the resulting nodes depend on the used
-   * construction method, so real result may differ):
-   *
-   * <pre>
-   * int global = 1;
-   *
-   * int foo(int p) {
-   *   global += p;
-   *   return global;
-   * }
-   *
-   * int main() {
-   *   int x = 2;
-   *   int y = foo(x);
-   * }
-   * </pre>
-   *
-   * <table>
-   *   <tr>
-   *     <th>Type</th>
-   *     <th>Procedure</th>
-   *     <th>Statement</th>
-   *     <th>Variable</th>
-   *   </tr>
-   *   <tr>
-   *   <tr>
-   *     <th>{@code STATEMENT}</th>
-   *     <th>-</th>
-   *     <th>{@code int global = 0;}</th>
-   *     <th>-</th>
-   *   </tr>
-   *   <tr>
-   *     <th>{@code ENTRY}</th>
-   *     <th>{@code int foo(int)}</th>
-   *     <th>-</th>
-   *     <th>-</th>
-   *   </tr>
-   *   <tr>
-   *     <th>{@code FORMAL_IN}</th>
-   *     <th>{@code int foo(int)}</th>
-   *     <th>-</th>
-   *     <th>{@code foo::p}</th>
-   *   </tr>
-   *    <tr>
-   *     <th>{@code FORMAL_IN}</th>
-   *     <th>{@code int foo(int)}</th>
-   *     <th>-</th>
-   *     <th>{@code global}</th>
-   *   </tr>
-   *    <tr>
-   *     <th>{@code STATEMENT}</th>
-   *     <th>{@code int foo(int)}</th>
-   *     <th>{@code global += p;}</th>
-   *     <th>-</th>
-   *   </tr>
-   *    <tr>
-   *     <th>{@code STATEMENT}</th>
-   *     <th>{@code int foo(int)}</th>
-   *     <th>{@code return global;}</th>
-   *     <th>-</th>
-   *   </tr>
-   *   <tr>
-   *     <th>{@code FORMAL_OUT}</th>
-   *     <th>{@code int foo(int)}</th>
-   *     <th>-</th>
-   *     <th>{@code foo::__retval__}</th>
-   *   </tr>
-   *    <tr>
-   *     <th>{@code FORMAL_OUT}</th>
-   *     <th>{@code int foo(int)}</th>
-   *     <th>-</th>
-   *     <th>{@code global}</th>
-   *   </tr>
-   *   <tr>
-   *     <th>{@code ENTRY}</th>
-   *     <th>{@code int main()}</th>
-   *     <th>-</th>
-   *     <th>-</th>
-   *   </tr>
-   *   <tr>
-   *     <th>{@code STATEMENT}</th>
-   *     <th>{@code int main()}</th>
-   *     <th>{@code int x = 5;}</th>
-   *     <th>-</th>
-   *   </tr>
-   *   <tr>
-   *     <th>{@code STATEMENT}</th>
-   *     <th>{@code int main()}</th>
-   *     <th>{@code int y = foo(x);}</th>
-   *     <th>-</th>
-   *   </tr>
-   *   <tr>
-   *     <th>{@code ACTUAL_IN}</th>
-   *     <th>{@code int main()}</th>
-   *     <th>{@code int y = foo(x);}</th>
-   *     <th>{@code foo::p}</th>
-   *   </tr>
-   *   <tr>
-   *     <th>{@code ACTUAL_IN}</th>
-   *     <th>{@code int main()}</th>
-   *     <th>{@code int y = foo(x);}</th>
-   *     <th>{@code global}</th>
-   *   </tr>
-   *   <tr>
-   *     <th>{@code ACTUAL_OUT}</th>
-   *     <th>{@code int main()}</th>
-   *     <th>{@code int y = foo(x);}</th>
-   *     <th>{@code foo::__retval__}</th>
-   *   </tr>
-   *   <tr>
-   *     <th>{@code ACTUAL_OUT}</th>
-   *     <th>{@code int main()}</th>
-   *     <th>{@code int y = foo(x);}</th>
-   *     <th>{@code global}</th>
-   *   </tr>
-   *   <tr>
-   *     <th>{@code FORMAL_OUT}</th>
-   *     <th>{@code int main()}</th>
-   *     <th>-</th>
-   *     <th>{@code main::__retval__}</th>
-   *   </tr>
-   * </table>
-   */
-  public enum NodeType {
-
-    /**
-     * Type of procedure entry nodes.
-     *
-     * <p>Only one node with this type should exist per procedure. Nodes of the procedure should be
-     * directly or indirectly control dependent on the entry node.
-     *
-     * <ul>
-     *   <li>Procedure: required
-     *   <li>Statement: empty
-     *   <li>Variable: empty
-     * </ul>
-     */
-    ENTRY,
-
-    /**
-     * Type of regular statement, expression, and declaration nodes.
-     *
-     * <ul>
-     *   <li>Procedure: optional (*)
-     *   <li>Statement: required
-     *   <li>Variable: empty
-     * </ul>
-     *
-     * (*) If the system dependence graph only contains statements from a single procedure and no
-     * other non-statement nodes, the procedure can be omitted (this can be used to represent a
-     * program dependence graph (PDG)). Otherwise, the procedure is required.
-     */
-    STATEMENT,
-
-    /**
-     * Type of nodes that represent variables that are visible to or defined by some procedure
-     * caller and used inside the procedure.
-     *
-     * <p>This is the case for e.g. parameters and used global variables.
-     *
-     * <ul>
-     *   <li>Procedure: required
-     *   <li>Statement: empty
-     *   <li>Variable: required
-     * </ul>
-     */
-    FORMAL_IN,
-
-    /**
-     * Type of nodes that represent variables that are visible to some procedure caller and defined
-     * inside the procedure.
-     *
-     * <p>This is the case for e.g. return values and modified global variables.
-     *
-     * <ul>
-     *   <li>Procedure: required
-     *   <li>Statement: empty
-     *   <li>Variable: required
-     * </ul>
-     */
-    FORMAL_OUT,
-
-    /**
-     * Type of nodes that represent variables at a specific call sites and are connected to {@code
-     * FORMAL_IN} nodes.
-     *
-     * <ul>
-     *   <li>Procedure: required
-     *   <li>Statement: required
-     *   <li>Variable: required
-     * </ul>
-     */
-    ACTUAL_IN,
-
-    /**
-     * Type of nodes that represent variables at a specific call sites and are connected to {@code
-     * FORMAL_OUT} nodes.
-     *
-     * <ul>
-     *   <li>Procedure: required
-     *   <li>Statement: required
-     *   <li>Variable: required
-     * </ul>
-     */
-    ACTUAL_OUT;
-  }
-
-  /** Type for system dependence graph edges. */
-  public enum EdgeType {
-
-    /**
-     * Type for flow dependencies.
-     *
-     * <p>Edges with this type should always be intra-procedural.
-     */
-    FLOW_DEPENDENCY,
-
-    /**
-     * Type for control dependencies.
-     *
-     * <p>Edges with this type should always be intra-procedural.
-     */
-    CONTROL_DEPENDENCY,
-
-    /**
-     * Type for declaration dependency edges.
-     *
-     * <p>Edges with this type can be intra-procedural or inter-procedural.
-     */
-    DECLARATION_EDGE,
-
-    /**
-     * Type for procedure call edges.
-     *
-     * <p>Edges with this type should always be inter-procedural.
-     */
-    CALL_EDGE,
-
-    /**
-     * Type for parameter edges from actual-in to formal-in or from formal-out to actual-out nodes.
-     *
-     * <p>Edges with this type should always be inter-procedural.
-     */
-    PARAMETER_EDGE,
-
-    /**
-     * Type for summary edges from actual-in to actual-out nodes.
-     *
-     * <p>Edges with this type should always be intra-procedural.
-     */
-    SUMMARY_EDGE;
-  }
-
-  /**
    * Represents a single node in a system dependence graph.
    *
    * @param <P> The type of procedures in the SDG. Typically, programs are organized into
@@ -666,7 +411,7 @@ public class SystemDependenceGraph<V, N extends SystemDependenceGraph.Node<?, ?,
   public static class Node<P, T, V> {
 
     private final int id;
-    private final NodeType type;
+    private final SdgNodeType type;
     private final Optional<P> procedure;
     private final Optional<T> statement;
     private final Optional<V> variable;
@@ -675,7 +420,7 @@ public class SystemDependenceGraph<V, N extends SystemDependenceGraph.Node<?, ?,
 
     private Node(
         int pId,
-        NodeType pType,
+        SdgNodeType pType,
         Optional<P> pProcedure,
         Optional<T> pStatement,
         Optional<V> pVariable) {
@@ -717,7 +462,7 @@ public class SystemDependenceGraph<V, N extends SystemDependenceGraph.Node<?, ?,
      *
      * @return the type of the node
      */
-    public final NodeType getType() {
+    public final SdgNodeType getType() {
       return type;
     }
 
@@ -880,7 +625,7 @@ public class SystemDependenceGraph<V, N extends SystemDependenceGraph.Node<?, ?,
         return enteringEdges;
       }
 
-      private boolean hasEnteringEdgeFrom(EdgeType pType, GraphNode<V, N> pPredecessor) {
+      private boolean hasEnteringEdgeFrom(SdgEdgeType pType, GraphNode<V, N> pPredecessor) {
 
         for (GraphEdge<V, N> graphEdge : enteringEdges) {
           // identity comparison between graph nodes is intended here
@@ -906,7 +651,7 @@ public class SystemDependenceGraph<V, N extends SystemDependenceGraph.Node<?, ?,
         return leavingEdges;
       }
 
-      private boolean hasLeavingEdgeTo(EdgeType pType, GraphNode<V, N> pSuccessor) {
+      private boolean hasLeavingEdgeTo(SdgEdgeType pType, GraphNode<V, N> pSuccessor) {
 
         for (GraphEdge<V, N> graphEdge : leavingEdges) {
           // identity comparison between graph nodes is intended here
@@ -985,12 +730,12 @@ public class SystemDependenceGraph<V, N extends SystemDependenceGraph.Node<?, ?,
    */
   private static final class GraphEdge<V, N extends Node<?, ?, V>> {
 
-    private final EdgeType type;
+    private final SdgEdgeType type;
 
     private final GraphNode<V, N> predecessor;
     private final GraphNode<V, N> successor;
 
-    private GraphEdge(EdgeType pType, GraphNode<V, N> pPredecessor, GraphNode<V, N> pSuccessor) {
+    private GraphEdge(SdgEdgeType pType, GraphNode<V, N> pPredecessor, GraphNode<V, N> pSuccessor) {
 
       type = pType;
 
@@ -998,7 +743,7 @@ public class SystemDependenceGraph<V, N extends SystemDependenceGraph.Node<?, ?,
       successor = pSuccessor;
     }
 
-    private EdgeType getType() {
+    private SdgEdgeType getType() {
       return type;
     }
 
@@ -1072,8 +817,8 @@ public class SystemDependenceGraph<V, N extends SystemDependenceGraph.Node<?, ?,
     private final List<GraphNode.MutableGraphNode<V, N>> graphNodes;
     private final Map<NodeMapKey<P, T, V>, GraphNode.MutableGraphNode<V, N>> nodeMap;
 
-    private final TypeCounter<NodeType> nodeTypeCounter;
-    private final TypeCounter<EdgeType> edgeTypeCounter;
+    private final TypeCounter<SdgNodeType> nodeTypeCounter;
+    private final TypeCounter<SdgEdgeType> edgeTypeCounter;
 
     private Builder(Function<Node<P, T, V>, N> pNodeCreationFunction) {
 
@@ -1083,8 +828,8 @@ public class SystemDependenceGraph<V, N extends SystemDependenceGraph.Node<?, ?,
       graphNodes = new ArrayList<>();
       nodeMap = new HashMap<>();
 
-      nodeTypeCounter = new TypeCounter<>(NodeType.values().length);
-      edgeTypeCounter = new TypeCounter<>(EdgeType.values().length);
+      nodeTypeCounter = new TypeCounter<>(SdgNodeType.values().length);
+      edgeTypeCounter = new TypeCounter<>(SdgEdgeType.values().length);
     }
 
     private GraphNode.MutableGraphNode<V, N> newGraphNode(NodeMapKey<P, T, V> pNodeKey) {
@@ -1098,7 +843,7 @@ public class SystemDependenceGraph<V, N extends SystemDependenceGraph.Node<?, ?,
      * parameters.
      */
     private GraphNode.MutableGraphNode<V, N> graphNode(
-        NodeType pType, Optional<P> pProcedure, Optional<T> pStatement, Optional<V> pVariable) {
+        SdgNodeType pType, Optional<P> pProcedure, Optional<T> pStatement, Optional<V> pVariable) {
 
       NodeMapKey<P, T, V> nodeKey = new NodeMapKey<>(pType, pProcedure, pStatement, pVariable);
       GraphNode.MutableGraphNode<V, N> graphNode =
@@ -1123,7 +868,7 @@ public class SystemDependenceGraph<V, N extends SystemDependenceGraph.Node<?, ?,
     private void insertEdge(
         GraphNode.MutableGraphNode<V, N> pPredecessor,
         GraphNode.MutableGraphNode<V, N> pSuccessor,
-        EdgeType pType,
+        SdgEdgeType pType,
         Optional<V> pCause) {
 
       boolean insertEdge = true;
@@ -1220,10 +965,10 @@ public class SystemDependenceGraph<V, N extends SystemDependenceGraph.Node<?, ?,
       Objects.requireNonNull(pFormalInNode, "pFormalOutNode must not be null");
 
       Preconditions.checkArgument(
-          pFormalInNode.getType() == NodeType.FORMAL_IN,
+          pFormalInNode.getType() == SdgNodeType.FORMAL_IN,
           "pFormalInNode does not have type FORMAL_IN");
       Preconditions.checkArgument(
-          pFormalOutNode.getType() == NodeType.FORMAL_OUT,
+          pFormalOutNode.getType() == SdgNodeType.FORMAL_OUT,
           "pFormalOutNode does not have type FORMAL_OUT");
 
       GraphNode<V, N> formalOutGraphNode = graphNodes.get(pFormalOutNode.getId());
@@ -1232,15 +977,15 @@ public class SystemDependenceGraph<V, N extends SystemDependenceGraph.Node<?, ?,
           "pFormalOutNode does not belong to this SDG builder");
 
       for (GraphEdge<V, N> outEdge : formalOutGraphNode.getLeavingEdges()) {
-        if (outEdge.getType() == EdgeType.PARAMETER_EDGE) {
+        if (outEdge.getType() == SdgEdgeType.PARAMETER_EDGE) {
 
           GraphNode.MutableGraphNode<V, N> actualOutGraphNode =
               (GraphNode.MutableGraphNode<V, N>) outEdge.getSuccessor();
-          assert actualOutGraphNode.getNode().getType() == NodeType.ACTUAL_OUT;
+          assert actualOutGraphNode.getNode().getType() == SdgNodeType.ACTUAL_OUT;
 
           NodeMapKey<P, T, V> actualInNodeKey =
               new NodeMapKey<>(
-                  NodeType.ACTUAL_IN,
+                  SdgNodeType.ACTUAL_IN,
                   actualOutGraphNode.getNode().getProcedure(),
                   actualOutGraphNode.getNode().getStatement(),
                   pFormalInNode.getVariable());
@@ -1248,7 +993,7 @@ public class SystemDependenceGraph<V, N extends SystemDependenceGraph.Node<?, ?,
 
           if (actualInGraphNode != null) {
             insertEdge(
-                actualInGraphNode, actualOutGraphNode, EdgeType.SUMMARY_EDGE, Optional.empty());
+                actualInGraphNode, actualOutGraphNode, SdgEdgeType.SUMMARY_EDGE, Optional.empty());
           }
         }
       }
@@ -1261,17 +1006,17 @@ public class SystemDependenceGraph<V, N extends SystemDependenceGraph.Node<?, ?,
      * (or already existing but equivalent) node as its successor.
      *
      * @param pType the type of the node to insert
-     * @param pProcedure the, depending on the {@link NodeType}, optional procedure of the node to
-     *     insert
-     * @param pStatement the, depending on the {@link NodeType}, optional statement of the node to
-     *     insert
-     * @param pVariable the, depending on the {@link NodeType}, optional variable of the node to
+     * @param pProcedure the, depending on the {@link SdgNodeType}, optional procedure of the node
+     *     to insert
+     * @param pStatement the, depending on the {@link SdgNodeType}, optional statement of the node
+     *     to insert
+     * @param pVariable the, depending on the {@link SdgNodeType}, optional variable of the node to
      *     insert
      * @return an edge chooser that can be used to insert a dependency
      * @throws NullPointerException if any of the parameters is {@code null}
      */
     public EdgeChooser node(
-        NodeType pType, Optional<P> pProcedure, Optional<T> pStatement, Optional<V> pVariable) {
+        SdgNodeType pType, Optional<P> pProcedure, Optional<T> pStatement, Optional<V> pVariable) {
 
       Objects.requireNonNull(pType, "pType must not be null");
       Objects.requireNonNull(pProcedure, "pProcedure must not be null");
@@ -1366,7 +1111,7 @@ public class SystemDependenceGraph<V, N extends SystemDependenceGraph.Node<?, ?,
        * @return a chooser for the predecessor of the edge
        * @throws NullPointerException if any of the parameters is {@code null}
        */
-      public DependencyChooser depends(EdgeType pType, Optional<V> pCause) {
+      public DependencyChooser depends(SdgEdgeType pType, Optional<V> pCause) {
 
         Objects.requireNonNull(pType, "pType must not be null");
         Objects.requireNonNull(pCause, "pCause must not be null");
@@ -1393,11 +1138,11 @@ public class SystemDependenceGraph<V, N extends SystemDependenceGraph.Node<?, ?,
     public final class DependencyChooser {
 
       private final GraphNode.MutableGraphNode<V, N> graphNode;
-      private final EdgeType edgeType;
+      private final SdgEdgeType edgeType;
       private final Optional<V> cause;
 
       private DependencyChooser(
-          GraphNode.MutableGraphNode<V, N> pGraphNode, EdgeType pEdgeType, Optional<V> pCause) {
+          GraphNode.MutableGraphNode<V, N> pGraphNode, SdgEdgeType pEdgeType, Optional<V> pCause) {
         graphNode = pGraphNode;
         edgeType = pEdgeType;
         cause = pCause;
@@ -1410,15 +1155,18 @@ public class SystemDependenceGraph<V, N extends SystemDependenceGraph.Node<?, ?,
        * <p>The node specified by the parameters is used as the edge predecessor.
        *
        * @param pType the type of the node to insert
-       * @param pProcedure the, depending on the {@link NodeType}, optional procedure of the node to
-       *     insert
-       * @param pStatement the, depending on the {@link NodeType}, optional statement of the node to
-       *     insert
-       * @param pVariable the, depending on the {@link NodeType}, optional variable of the node to
-       *     insert
+       * @param pProcedure the, depending on the {@link SdgNodeType}, optional procedure of the node
+       *     to insert
+       * @param pStatement the, depending on the {@link SdgNodeType}, optional statement of the node
+       *     to insert
+       * @param pVariable the, depending on the {@link SdgNodeType}, optional variable of the node
+       *     to insert
        */
       public void on(
-          NodeType pType, Optional<P> pProcedure, Optional<T> pStatement, Optional<V> pVariable) {
+          SdgNodeType pType,
+          Optional<P> pProcedure,
+          Optional<T> pStatement,
+          Optional<V> pVariable) {
 
         Objects.requireNonNull(pType, "pType must not be null");
         Objects.requireNonNull(pProcedure, "pProcedure must not be null");
@@ -1436,7 +1184,7 @@ public class SystemDependenceGraph<V, N extends SystemDependenceGraph.Node<?, ?,
    */
   private static final class NodeMapKey<P, T, V> {
 
-    private final NodeType type;
+    private final SdgNodeType type;
     private final Optional<P> procedure;
     private final Optional<T> statement;
     private final Optional<V> variable;
@@ -1446,7 +1194,7 @@ public class SystemDependenceGraph<V, N extends SystemDependenceGraph.Node<?, ?,
     private final int hash;
 
     private NodeMapKey(
-        NodeType pType, Optional<P> pProcedure, Optional<T> pStatement, Optional<V> pVariable) {
+        SdgNodeType pType, Optional<P> pProcedure, Optional<T> pStatement, Optional<V> pVariable) {
 
       type = pType;
       procedure = pProcedure;
@@ -1502,7 +1250,9 @@ public class SystemDependenceGraph<V, N extends SystemDependenceGraph.Node<?, ?,
     }
   }
 
-  /** Used to count objects of a specific type. Used for {@link NodeType} and {@link EdgeType}. */
+  /**
+   * Used to count objects of a specific type. Used for {@link SdgNodeType} and {@link SdgEdgeType}.
+   */
   private static final class TypeCounter<T extends Enum<T>> {
 
     private final int[] counters;

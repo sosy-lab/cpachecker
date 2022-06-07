@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.util.sdg.traversal;
 
 import java.util.Collection;
+import org.sosy_lab.cpachecker.util.sdg.SdgEdgeType;
 import org.sosy_lab.cpachecker.util.sdg.SystemDependenceGraph;
 
 /**
@@ -40,11 +41,10 @@ public interface SdgVisitor<N extends SystemDependenceGraph.Node<?, ?, ?>> {
    * Called during SDG traversals when an edge is visited and returns a {@link SdgVisitResult}
    * constant that guides the SDG traversal.
    *
-   * @param pType the {@link org.sosy_lab.cpachecker.util.sdg.SystemDependenceGraph.EdgeType} of the
-   *     visited edge
+   * @param pType the {@link SdgEdgeType} of the visited edge
    * @param pPredecessor the predecessor of the visited edge
    * @param pSuccessor the successor of the visited edge
    * @return a {@link SdgVisitResult} constant to guide the SDG traversal
    */
-  SdgVisitResult visitEdge(SystemDependenceGraph.EdgeType pType, N pPredecessor, N pSuccessor);
+  SdgVisitResult visitEdge(SdgEdgeType pType, N pPredecessor, N pSuccessor);
 }

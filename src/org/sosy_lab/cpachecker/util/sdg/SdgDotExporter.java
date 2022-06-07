@@ -23,7 +23,6 @@ import java.util.Optional;
 import java.util.logging.Level;
 import org.sosy_lab.common.io.IO;
 import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.util.sdg.SystemDependenceGraph.EdgeType;
 import org.sosy_lab.cpachecker.util.sdg.SystemDependenceGraph.Node;
 import org.sosy_lab.cpachecker.util.sdg.traversal.ForwardsSdgVisitor;
 import org.sosy_lab.cpachecker.util.sdg.traversal.SdgVisitResult;
@@ -38,29 +37,30 @@ import org.sosy_lab.cpachecker.util.sdg.traversal.SdgVisitResult;
  */
 public abstract class SdgDotExporter<P, T, V, N extends SystemDependenceGraph.Node<P, T, V>> {
 
-  private static final ImmutableMap<EdgeType, String> edgeStyles;
-  private static final ImmutableMap<EdgeType, String> edgeLabels;
+  private static final ImmutableMap<SdgEdgeType, String> edgeStyles;
+  private static final ImmutableMap<SdgEdgeType, String> edgeLabels;
 
   static {
-    ImmutableSortedMap.Builder<EdgeType, String> edgeLabelBuilder =
+    ImmutableSortedMap.Builder<SdgEdgeType, String> edgeLabelBuilder =
         ImmutableSortedMap.naturalOrder();
-    edgeLabelBuilder.put(EdgeType.FLOW_DEPENDENCY, "Flow Dependency");
-    edgeLabelBuilder.put(EdgeType.CONTROL_DEPENDENCY, "Control Dependency");
-    edgeLabelBuilder.put(EdgeType.DECLARATION_EDGE, "Declaration Edge");
-    edgeLabelBuilder.put(EdgeType.CALL_EDGE, "Call Edge");
-    edgeLabelBuilder.put(EdgeType.PARAMETER_EDGE, "Parameter Edge");
-    edgeLabelBuilder.put(EdgeType.SUMMARY_EDGE, "Summary Edge");
+    edgeLabelBuilder.put(SdgEdgeType.FLOW_DEPENDENCY, "Flow Dependency");
+    edgeLabelBuilder.put(SdgEdgeType.CONTROL_DEPENDENCY, "Control Dependency");
+    edgeLabelBuilder.put(SdgEdgeType.DECLARATION_EDGE, "Declaration Edge");
+    edgeLabelBuilder.put(SdgEdgeType.CALL_EDGE, "Call Edge");
+    edgeLabelBuilder.put(SdgEdgeType.PARAMETER_EDGE, "Parameter Edge");
+    edgeLabelBuilder.put(SdgEdgeType.SUMMARY_EDGE, "Summary Edge");
     edgeLabels = edgeLabelBuilder.buildOrThrow();
 
-    ImmutableMap.Builder<EdgeType, String> edgeStyleBuilder =
-        ImmutableMap.builderWithExpectedSize(EdgeType.values().length);
-    edgeStyleBuilder.put(EdgeType.FLOW_DEPENDENCY, "style=\"bold\",color=\"{color}\"");
-    edgeStyleBuilder.put(EdgeType.CONTROL_DEPENDENCY, "style=\"bold,dashed\",color=\"{color}\"");
-    edgeStyleBuilder.put(EdgeType.DECLARATION_EDGE, "color=\"{color}\"");
-    edgeStyleBuilder.put(EdgeType.CALL_EDGE, "style=\"dashed\",color=\"{color}\"");
-    edgeStyleBuilder.put(EdgeType.PARAMETER_EDGE, "style=\"bold,dotted\",color=\"{color}\"");
+    ImmutableMap.Builder<SdgEdgeType, String> edgeStyleBuilder =
+        ImmutableMap.builderWithExpectedSize(SdgEdgeType.values().length);
+    edgeStyleBuilder.put(SdgEdgeType.FLOW_DEPENDENCY, "style=\"bold\",color=\"{color}\"");
+    edgeStyleBuilder.put(SdgEdgeType.CONTROL_DEPENDENCY, "style=\"bold,dashed\",color=\"{color}\"");
+    edgeStyleBuilder.put(SdgEdgeType.DECLARATION_EDGE, "color=\"{color}\"");
+    edgeStyleBuilder.put(SdgEdgeType.CALL_EDGE, "style=\"dashed\",color=\"{color}\"");
+    edgeStyleBuilder.put(SdgEdgeType.PARAMETER_EDGE, "style=\"bold,dotted\",color=\"{color}\"");
     edgeStyleBuilder.put(
-        EdgeType.SUMMARY_EDGE, "style=\"bold\",peripheries=\"2\",color=\"{color}:invis:{color}\"");
+        SdgEdgeType.SUMMARY_EDGE,
+        "style=\"bold\",peripheries=\"2\",color=\"{color}:invis:{color}\"");
     edgeStyles = edgeStyleBuilder.buildOrThrow();
   }
 
@@ -121,7 +121,7 @@ public abstract class SdgDotExporter<P, T, V, N extends SystemDependenceGraph.No
    * @return {@code true} if the specified edge is highlighted; otherwise, {@code false} is returned
    */
   protected abstract boolean isHighlighted(
-      EdgeType pEdgeType, Node<P, T, V> pPredecessor, Node<P, T, V> pSuccessor);
+      SdgEdgeType pEdgeType, Node<P, T, V> pPredecessor, Node<P, T, V> pSuccessor);
 
   /** Returns the specified string with escaped quotation marks. */
   private String escape(String pLabel) {
@@ -187,7 +187,7 @@ public abstract class SdgDotExporter<P, T, V, N extends SystemDependenceGraph.No
     pWriter.write("</table>>]\n");
 
     i = 1;
-    for (EdgeType edgeType : edgeLabels.keySet()) {
+    for (SdgEdgeType edgeType : edgeLabels.keySet()) {
       String edgeStyle = edgeStyles.get(edgeType).replace("{color}", "black");
       pWriter.write("key1:i");
       pWriter.write(String.valueOf(i));
@@ -225,7 +225,7 @@ public abstract class SdgDotExporter<P, T, V, N extends SystemDependenceGraph.No
             }
 
             @Override
-            public SdgVisitResult visitEdge(EdgeType pType, N pPredecessor, N pSuccessor) {
+            public SdgVisitResult visitEdge(SdgEdgeType pType, N pPredecessor, N pSuccessor) {
 
               sb.append(nodeId(pVisitedNodes, pPredecessor));
               sb.append(" -> ");

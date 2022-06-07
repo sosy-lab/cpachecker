@@ -19,9 +19,7 @@ import java.util.BitSet;
 import java.util.Collection;
 import java.util.List;
 import org.sosy_lab.cpachecker.util.dependencegraph.CallGraph;
-import org.sosy_lab.cpachecker.util.sdg.SystemDependenceGraph.EdgeType;
 import org.sosy_lab.cpachecker.util.sdg.SystemDependenceGraph.Node;
-import org.sosy_lab.cpachecker.util.sdg.SystemDependenceGraph.NodeType;
 import org.sosy_lab.cpachecker.util.sdg.traversal.BackwardsSdgVisitor;
 import org.sosy_lab.cpachecker.util.sdg.traversal.SdgVisitResult;
 import org.sosy_lab.cpachecker.util.sdg.traversal.VisitOnceBackwardsSdgVisitor;
@@ -64,7 +62,7 @@ public final class SummaryEdgeBuilder {
 
     Multimap<P, N> formalOutNodesPerProcedure = ArrayListMultimap.create();
     for (N node : pBuilder.getNodes()) {
-      if (node.getType() == NodeType.FORMAL_OUT) {
+      if (node.getType() == SdgNodeType.FORMAL_OUT) {
         formalOutNodesPerProcedure.put(node.getProcedure().orElseThrow(), node);
       }
     }
@@ -217,7 +215,8 @@ public final class SummaryEdgeBuilder {
     @Override
     public SdgVisitResult visitNode(N pNode) {
 
-      if (pNode.getType() == NodeType.FORMAL_IN && getProcedureId(pNode.getId()) == procedureId) {
+      if (pNode.getType() == SdgNodeType.FORMAL_IN
+          && getProcedureId(pNode.getId()) == procedureId) {
         addReachedFormalInNode(pNode);
       }
 
@@ -225,19 +224,19 @@ public final class SummaryEdgeBuilder {
     }
 
     @Override
-    public SdgVisitResult visitEdge(EdgeType pType, N pPredecessor, N pSuccessor) {
+    public SdgVisitResult visitEdge(SdgEdgeType pType, N pPredecessor, N pSuccessor) {
 
       int predId = pPredecessor.getId();
       int succId = pSuccessor.getId();
 
-      if (pPredecessor.getType() != NodeType.FORMAL_OUT) {
+      if (pPredecessor.getType() != SdgNodeType.FORMAL_OUT) {
 
         int predProcedureId = getProcedureId(predId);
         int succProcedureId = getProcedureId(succId);
 
         if (predProcedureId != succProcedureId) {
 
-          if (pType != EdgeType.PARAMETER_EDGE) {
+          if (pType != SdgEdgeType.PARAMETER_EDGE) {
             // don't leave procedure via non-parameter call edge
             return SdgVisitResult.SKIP;
           }
@@ -312,7 +311,7 @@ public final class SummaryEdgeBuilder {
 
       for (int formalOutBit = 0; formalOutBit < pFormalOutNodes.size(); formalOutBit++) {
 
-        assert pFormalOutNodes.get(formalOutBit).getType() == NodeType.FORMAL_OUT;
+        assert pFormalOutNodes.get(formalOutBit).getType() == SdgNodeType.FORMAL_OUT;
         assert getProcedureId(pFormalOutNodes.get(formalOutBit).getId()) == procedureId;
 
         setFormalOutReachable(pFormalOutNodes.get(formalOutBit), formalOutBit);
@@ -343,19 +342,19 @@ public final class SummaryEdgeBuilder {
     }
 
     @Override
-    public SdgVisitResult visitEdge(EdgeType pType, N pPredecessor, N pSuccessor) {
+    public SdgVisitResult visitEdge(SdgEdgeType pType, N pPredecessor, N pSuccessor) {
 
       int predId = pPredecessor.getId();
       int succId = pSuccessor.getId();
 
-      if (pPredecessor.getType() != NodeType.FORMAL_OUT) {
+      if (pPredecessor.getType() != SdgNodeType.FORMAL_OUT) {
 
         int predProcedureId = getProcedureId(predId);
         int succProcedureId = getProcedureId(succId);
 
         if (predProcedureId != succProcedureId) {
 
-          if (pType != EdgeType.PARAMETER_EDGE) {
+          if (pType != SdgEdgeType.PARAMETER_EDGE) {
             // don't leave procedure via non-parameter call edge
             return SdgVisitResult.SKIP;
           }
@@ -367,7 +366,7 @@ public final class SummaryEdgeBuilder {
           }
         }
 
-        if (pPredecessor.getType() == NodeType.FORMAL_IN
+        if (pPredecessor.getType() == SdgNodeType.FORMAL_IN
             && states[predId] == EMPTY_STATE
             && predProcedureId == procedureId) {
           // relevant formal-in node reached for the first time

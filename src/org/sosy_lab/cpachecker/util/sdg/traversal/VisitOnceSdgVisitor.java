@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.util.sdg.traversal;
 
 import java.util.Arrays;
+import org.sosy_lab.cpachecker.util.sdg.SdgEdgeType;
 import org.sosy_lab.cpachecker.util.sdg.SystemDependenceGraph;
 
 /**
@@ -63,8 +64,7 @@ abstract class VisitOnceSdgVisitor<N extends SystemDependenceGraph.Node<?, ?, ?>
   }
 
   @Override
-  public SdgVisitResult visitEdge(
-      SystemDependenceGraph.EdgeType pType, N pPredecessor, N pSuccessor) {
+  public SdgVisitResult visitEdge(SdgEdgeType pType, N pPredecessor, N pSuccessor) {
 
     SdgVisitResult visitResult = delegateVisitor.visitEdge(pType, pPredecessor, pSuccessor);
 

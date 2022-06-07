@@ -46,7 +46,8 @@ import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.util.CFAUtils;
-import org.sosy_lab.cpachecker.util.sdg.SystemDependenceGraph;
+import org.sosy_lab.cpachecker.util.sdg.SdgEdgeType;
+import org.sosy_lab.cpachecker.util.sdg.SdgNodeType;
 import org.sosy_lab.cpachecker.util.sdg.c.CSystemDependenceGraph;
 import org.sosy_lab.cpachecker.util.sdg.traversal.SdgVisitResult;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
@@ -243,13 +244,11 @@ public class StaticSlicer extends AbstractSlicer implements StatisticsProvider {
     }
 
     private static boolean isFormalNode(CSystemDependenceGraph.Node pNode) {
-      return pNode.getType() == SystemDependenceGraph.NodeType.FORMAL_IN
-          || pNode.getType() == SystemDependenceGraph.NodeType.FORMAL_OUT;
+      return pNode.getType() == SdgNodeType.FORMAL_IN || pNode.getType() == SdgNodeType.FORMAL_OUT;
     }
 
     private static boolean isActualNode(CSystemDependenceGraph.Node pNode) {
-      return pNode.getType() == SystemDependenceGraph.NodeType.ACTUAL_IN
-          || pNode.getType() == SystemDependenceGraph.NodeType.ACTUAL_OUT;
+      return pNode.getType() == SdgNodeType.ACTUAL_IN || pNode.getType() == SdgNodeType.ACTUAL_OUT;
     }
 
     private static Predicate<ASimpleDeclaration> createRelevantDeclarationFilter(
@@ -292,12 +291,11 @@ public class StaticSlicer extends AbstractSlicer implements StatisticsProvider {
 
             @Override
             public SdgVisitResult visitEdge(
-                SystemDependenceGraph.EdgeType pType,
+                SdgEdgeType pType,
                 CSystemDependenceGraph.Node pPredecessor,
                 CSystemDependenceGraph.Node pSuccessor) {
 
-              if (relevantSdgNodes.contains(pSuccessor)
-                  && pType == SystemDependenceGraph.EdgeType.FLOW_DEPENDENCY) {
+              if (relevantSdgNodes.contains(pSuccessor) && pType == SdgEdgeType.FLOW_DEPENDENCY) {
                 relevantDef = true;
               }
 
@@ -425,12 +423,12 @@ public class StaticSlicer extends AbstractSlicer implements StatisticsProvider {
 
     @Override
     public SdgVisitResult visitEdge(
-        SystemDependenceGraph.EdgeType pType,
+        SdgEdgeType pType,
         CSystemDependenceGraph.Node pPredecessor,
         CSystemDependenceGraph.Node pSuccessor) {
 
       // don't "descend" into called procedures
-      if (pPredecessor.getType() == SystemDependenceGraph.NodeType.FORMAL_OUT) {
+      if (pPredecessor.getType() == SdgNodeType.FORMAL_OUT) {
         return SdgVisitResult.SKIP;
       }
 
@@ -475,13 +473,12 @@ public class StaticSlicer extends AbstractSlicer implements StatisticsProvider {
 
     @Override
     public SdgVisitResult visitEdge(
-        SystemDependenceGraph.EdgeType pType,
+        SdgEdgeType pType,
         CSystemDependenceGraph.Node pPredecessor,
         CSystemDependenceGraph.Node pSuccessor) {
 
       // don't "ascend" into calling procedures
-      if (pSuccessor.getType() == SystemDependenceGraph.NodeType.FORMAL_IN
-          || pType == SystemDependenceGraph.EdgeType.CALL_EDGE) {
+      if (pSuccessor.getType() == SdgNodeType.FORMAL_IN || pType == SdgEdgeType.CALL_EDGE) {
         return SdgVisitResult.SKIP;
       }
 
