@@ -40,7 +40,7 @@ public class SlicingAlgorithm implements Algorithm {
       Configuration pConfig,
       CFA pCfa,
       Specification pSpecification)
-      throws CPAException, InvalidConfigurationException {
+      throws CPAException, InvalidConfigurationException, InterruptedException {
 
     slicer = new SlicerFactory().create(pLogger, pShutdownNotifier, pConfig, pCfa);
     cfa = pCfa;
