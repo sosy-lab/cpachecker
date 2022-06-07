@@ -25,7 +25,7 @@ import java.util.NoSuchElementException;
 import java.util.Optional;
 import org.junit.Test;
 
-/** Tests for dominator trees and dominance frontiers. */
+/** Tests for dominator trees ({@link DomTree}) and dominance frontiers ({@link DomFrontiers}). */
 public final class DominanceTest {
 
   private static final String ENTRY_NODE = "ENTRY";
