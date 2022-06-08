@@ -19,7 +19,6 @@ import java.util.stream.Collectors;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
@@ -483,24 +482,6 @@ public class SMGState implements LatticeAbstractState<SMGState>, AbstractQueryab
             .withProperty(Property.INVALID_READ)
             .withErrorMessage(errorMSG)
             .withInvalidObjects(Collections.singleton(uninitializedVariableName));
-    // Log the error in the logger
-    logMemoryError(errorMSG, true);
-    return copyWithErrorInfo(memoryModel, newErrorInfo);
-  }
-
-  /**
-   * Error for using a not declared variable.
-   *
-   * @param undeclaredExpr the {@link CIdExpression} that is undeclared.
-   * @return A new {@link SMGState} with the error info.
-   */
-  public SMGState withUndeclaredVariableUsage(CIdExpression undeclaredExpr) {
-    String errorMSG = "Usage of undeclared variable: " + undeclaredExpr.getName() + ".";
-    SMGErrorInfo newErrorInfo =
-        errorInfo
-            .withProperty(Property.INVALID_READ)
-            .withErrorMessage(errorMSG)
-            .withInvalidObjects(Collections.singleton(undeclaredExpr));
     // Log the error in the logger
     logMemoryError(errorMSG, true);
     return copyWithErrorInfo(memoryModel, newErrorInfo);

@@ -270,8 +270,7 @@ public class SMGCPAAddressVisitor
     CSimpleDeclaration varDecl = e.getDeclaration();
     if (varDecl == null) {
       // The var was not declared
-      SMGState errorState = state.withUndeclaredVariableUsage(e);
-      throw new SMG2Exception(errorState);
+      throw new SMG2Exception("Usage of undeclared variable: " + e.getName() + ".");
     }
     return ImmutableList.of(evaluator.getTargetObjectAndOffset(state, varDecl.getQualifiedName()));
   }

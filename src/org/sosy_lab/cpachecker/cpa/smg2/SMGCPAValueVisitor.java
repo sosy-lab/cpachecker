@@ -483,7 +483,6 @@ public class SMGCPAValueVisitor
         builder.add(readValueAndState);
 
       } else {
-        // TODO: improve error and check if its even needed
         throw new SMG2Exception("Unknown field type in field expression.");
       }
     }
@@ -503,8 +502,7 @@ public class SMGCPAValueVisitor
     CType type = SMGCPAValueExpressionEvaluator.getCanonicalType(e.getExpressionType());
     if (varDecl == null) {
       // The var was not declared
-      SMGState errorState = state.withUndeclaredVariableUsage(e);
-      throw new SMG2Exception(errorState);
+      throw new SMG2Exception("Usage of undeclared variable: " + e.getName() + ".");
     }
 
     String variableName = varDecl.getQualifiedName();
@@ -679,7 +677,7 @@ public class SMGCPAValueVisitor
           continue loop;
 
         default:
-          throw new AssertionError("unknown unary operator: " + unaryOperator);
+          throw new AssertionError("Unknown unary operator: " + unaryOperator);
       }
     }
     return builder.build();
@@ -2155,9 +2153,9 @@ public class SMGCPAValueVisitor
       case BINARY_AND:
       case BINARY_OR:
       case BINARY_XOR:
-        throw new AssertionError("trying to perform " + op + " on floating point operands");
+        throw new AssertionError("Trying to perform " + op + " on floating point operands");
       default:
-        throw new AssertionError("unknown binary operation: " + op);
+        throw new AssertionError("Unknown binary operation: " + op);
     }
   }
 
@@ -2214,7 +2212,7 @@ public class SMGCPAValueVisitor
       case BINARY_XOR:
         return l.xor(r);
       default:
-        throw new AssertionError("unknown binary operation: " + op);
+        throw new AssertionError("Unknown binary operation: " + op);
     }
   }
 
@@ -2243,9 +2241,9 @@ public class SMGCPAValueVisitor
       case BINARY_AND:
       case BINARY_OR:
       case BINARY_XOR:
-        throw new AssertionError("trying to perform " + op + " on floating point operands");
+        throw new AssertionError("Trying to perform " + op + " on floating point operands");
       default:
-        throw new AssertionError("unknown binary operation: " + op);
+        throw new AssertionError("Unknown binary operation: " + op);
     }
   }
 
@@ -2343,7 +2341,7 @@ public class SMGCPAValueVisitor
       case NOT_EQUALS:
         return cmp != 0;
       default:
-        throw new AssertionError("unknown binary operation: " + op);
+        throw new AssertionError("Unknown binary operation: " + op);
     }
   }
 
