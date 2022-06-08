@@ -110,17 +110,6 @@ public class SMGErrorInfo {
     return invalidWrite || invalidRead || invalidFree || hasMemoryLeak;
   }
 
-  SMGErrorInfo mergeWith(SMGErrorInfo pOther) {
-    return new SMGErrorInfo(
-        invalidWrite || pOther.invalidWrite,
-        invalidRead || pOther.invalidRead,
-        invalidFree || pOther.invalidFree,
-        hasMemoryLeak || pOther.hasMemoryLeak,
-        errorDescription,
-        invalidChain,
-        currentChain);
-  }
-
   SMGErrorInfo withClearChain() {
     return new SMGErrorInfo(
         invalidWrite,
