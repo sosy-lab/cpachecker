@@ -31,6 +31,7 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
+import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
@@ -66,9 +67,11 @@ import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
+import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CElaboratedType;
+import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
@@ -79,10 +82,12 @@ import org.sosy_lab.cpachecker.cpa.smg2.util.SMG2Exception;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGObjectAndOffset;
 import org.sosy_lab.cpachecker.cpa.smg2.util.value.SMGCPAValueExpressionEvaluator;
 import org.sosy_lab.cpachecker.cpa.smg2.util.value.ValueAndSMGState;
+import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.ConstantSymbolicExpression;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
+import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGObject;
 
 public class SMGTransferRelation
@@ -112,7 +117,6 @@ public class SMGTransferRelation
     machineModel = pMachineModel;
     shutdownNotifier = pShutdownNotifier;
     evaluator = new SMGCPAValueExpressionEvaluator(machineModel, logger, exportSMGOptions, options);
-    // TODO: only use this evaluator
   }
 
   @Override
@@ -356,8 +360,68 @@ public class SMGTransferRelation
     // though.
     // Assumptions are for example all comparisons like ==, !=, <.... and should always be a
     // CBinaryExpression
-    return null;
+    return handleAssumption();
   }
+
+  private Collection<SMGState> handleAssumption(
+      CAssumeEdge cfaEdge, AExpression expression, boolean truthValue)
+      throws UnrecognizedCodeException {
+
+    if (stats != null) {
+      stats.incrementAssumptions();
+    }
+
+    Pair<AExpression, Boolean> simplifiedExpression = simplifyAssumption(expression, truthValue);
+    expression = simplifiedExpression.getFirst();
+    truthValue = simplifiedExpression.getSecond();
+
+    final SMGCPAValueVisitor vv = new SMGCPAValueVisitor(evaluator, state, cfaEdge, logger);
+    // We know the bool type of C and we don't handle Java
+    final Type booleanType = CNumericTypes.INT;
+
+    // get the value of the expression (either true[1L], false[0L], or unknown[null])
+    Value value = getExpressionValue(expression, booleanType, vv);
+
+    if (value.isExplicitlyKnown() && stats != null) {
+      stats.incrementDeterministicAssumptions();
+    }
+
+    if (!value.isExplicitlyKnown()) {
+      ValueAnalysisState element = ValueAnalysisState.copyOf(state);
+
+      AssigningValueVisitor avv =
+          new AssigningValueVisitor(
+              element,
+              truthValue,
+              booleanVariables,
+              functionName,
+              state,
+              machineModel,
+              logger,
+              options);
+
+      ((CExpression) expression).accept(avv);
+
+      if (isMissingCExpressionInformation(vv, expression)) {
+        missingInformationList.add(new MissingInformation(truthValue, expression));
+      }
+
+      return element;
+
+    } else if (representsBoolean(value, truthValue)) {
+      // we do not know more than before, and the assumption is fulfilled, so return a copy of the
+      // old state
+      // we need to return a copy, otherwise precision adjustment might reset too much information,
+      // even on the original state
+      return ValueAnalysisState.copyOf(state);
+
+    } else {
+      // assumption not fulfilled
+      return null;
+    }
+  }
+
+
 
   @Override
   protected Collection<SMGState> handleStatementEdge(CStatementEdge pCfaEdge, CStatement cStmt)
