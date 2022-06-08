@@ -57,7 +57,7 @@ public class ConfigReadingProofCheckAlgorithm implements Algorithm, StatisticsPr
       final ShutdownNotifier pShutdownNotifier,
       final CFA pCfa,
       final Specification pSpecification)
-      throws InvalidConfigurationException, CPAException {
+      throws InvalidConfigurationException, CPAException, InterruptedException {
     pConfig.inject(this);
 
     cfa = pCfa;
@@ -90,7 +90,8 @@ public class ConfigReadingProofCheckAlgorithm implements Algorithm, StatisticsPr
   }
 
   private ConfigurableProgramAnalysis instantiateCPA(
-      final CFA pCfa, final Specification pSpecification) throws InvalidConfigurationException {
+      final CFA pCfa, final Specification pSpecification)
+      throws InvalidConfigurationException, InterruptedException {
     try {
       return coreFact.createCPA(pCfa, pSpecification);
     } catch (CPAException e) {
