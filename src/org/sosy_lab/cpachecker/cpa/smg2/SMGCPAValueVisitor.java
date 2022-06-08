@@ -2395,4 +2395,40 @@ public class SMGCPAValueVisitor
         return false;
     }
   }
+
+  /**
+   * Only accessible for subclasses.
+   *
+   * @return the {@link SMGState} given to this visitor when it was created.
+   */
+  protected SMGState getInitialVisitorState() {
+    return state;
+  }
+
+  /**
+   * Only accessible for subclasses.
+   *
+   * @return the {@link CFAEdge} given to this visitor when it was created.
+   */
+  protected CFAEdge getInitialVisitorCFAEdge() {
+    return cfaEdge;
+  }
+
+  /**
+   * Only accessible for subclasses.
+   *
+   * @return the {@link SMGCPAValueExpressionEvaluator} given to this visitor when it was created.
+   */
+  protected SMGCPAValueExpressionEvaluator getInitialVisitorEvaluator() {
+    return evaluator;
+  }
+
+  /**
+   * Only accessible for subclasses.
+   *
+   * @return the {@link LogManagerWithoutDuplicates} given to this visitor when it was created.
+   */
+  protected LogManagerWithoutDuplicates getInitialVisitorLogger() {
+    return logger;
+  }
 }
