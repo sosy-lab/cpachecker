@@ -137,9 +137,7 @@ public class SMGCPAValueVisitor
   public List<ValueAndSMGState> visit(CArraySubscriptExpression e) throws CPATransferException {
     // Array subscript is default Java array usage. Example: array[5]
     // In C this can be translated to *(array + 5), but the array may be on the stack/heap (or
-    // global, but be throw global and stack togehter when reading). Note: this is commutative!
-    // TODO: how to handle *(array++) etc.? This case equals *(array + 1). Would the ++ case come
-    // from an assignment edge?
+    // global, but be throw global and stack together when reading). Note: this is commutative!
 
     // The expression is split into array and subscript expression
     // Use the array expression in the visitor again to get the array address
@@ -342,7 +340,7 @@ public class SMGCPAValueVisitor
    */
   @Override
   public List<ValueAndSMGState> visit(CCastExpression e) throws CPATransferException {
-    // Casts are not trivial within SMGs as there might be type reinterpretation used inside the
+    // Casts are not trivial within SMGs as there might be type reinterpretations used inside the
     // SMGs,
     // but this should be taken care of by the SMGCPAValueExpressionEvaluator and no longer be a
     // problem here!
@@ -434,8 +432,9 @@ public class SMGCPAValueVisitor
         // This AddressExpr theoretically can have a offset
         Value structPointerOffsetExpr = addressAndOffsetValue.getOffset();
         if (!structPointerOffsetExpr.isNumericValue()) {
-          // The offset is some non numeric Value and therefore not useable!
-
+          // The offset is some non numeric Value and therefore not usable!
+          builder.add(ValueAndSMGState.ofUnknownValue(currentState));
+          continue;
         }
         BigInteger finalFieldOffset =
             structPointerOffsetExpr.asNumericValue().bigInteger().add(fieldOffset);
@@ -483,7 +482,8 @@ public class SMGCPAValueVisitor
         builder.add(readValueAndState);
 
       } else {
-        throw new SMG2Exception("Unknown field type in field expression.");
+        throw new SMG2Exception(
+            "Unknown field type in field expression when trying to retrieve a value.");
       }
     }
     return builder.build();
@@ -493,7 +493,7 @@ public class SMGCPAValueVisitor
   public List<ValueAndSMGState> visit(CIdExpression e) throws CPATransferException {
     // essentially stack or global variables
     // Either CEnumerator, CVariableDeclaration, CParameterDeclaration
-    // Could also be a type/function declaration, one if which is malloc.
+    // Could also be a type/function declaration, one if which is malloc().
     // We either read the stack/global variable for non pointer and non struct/unions, or package it
     // in a AddressExpression for pointers
     // or SymbolicValue with a memory location and the name of the variable inside of that.
@@ -501,7 +501,7 @@ public class SMGCPAValueVisitor
     CSimpleDeclaration varDecl = e.getDeclaration();
     CType type = SMGCPAValueExpressionEvaluator.getCanonicalType(e.getExpressionType());
     if (varDecl == null) {
-      // The var was not declared
+      // The variable was not declared
       throw new SMG2Exception("Usage of undeclared variable: " + e.getName() + ".");
     }
 
@@ -685,7 +685,7 @@ public class SMGCPAValueVisitor
 
   @Override
   public List<ValueAndSMGState> visit(CPointerExpression e) throws CPATransferException {
-    // This should subavaluate to a AddressExpression in the visit call in the beginning as we
+    // This should subevaluate to a AddressExpression in the visit call in the beginning as we
     // always evaluate to the address, but only
     // dereference and read it if its not a struct/union as those will be dereferenced by the field
     // expression
@@ -736,7 +736,6 @@ public class SMGCPAValueVisitor
         // Default case either *pointer or *(pointer + smth), but both get transformed into a
         // AddressExpression Value type with the correct offset build in
         // Just dereference the pointer with the correct type
-        // TODO: revisit
         BigInteger sizeInBits = evaluator.getBitSizeof(currentState, type);
         BigInteger offsetInBits = offset.asNumericValue().bigInteger();
 
@@ -745,7 +744,7 @@ public class SMGCPAValueVisitor
             evaluator.readValueWithPointerDereference(
                 currentState, pointerValue.getMemoryAddress(), offsetInBits, sizeInBits);
         currentState = readValueAndState.getState();
-        // The read value may be a pointer! In that case we would need to encapsule it
+        // In the pointer case we would need to encapsulate it again
         builder.add(
             ValueAndSMGState.of(
                 AddressExpression.withZeroOffset(readValueAndState.getValue(), type),
@@ -781,6 +780,7 @@ public class SMGCPAValueVisitor
     // This is not in the C standard, just gcc
     // https://gcc.gnu.org/onlinedocs/gcc/Labels-as-Values.html
     // Returns a address to a function
+    // TODO:
 
     return visitDefault(e);
   }
@@ -1726,7 +1726,7 @@ public class SMGCPAValueVisitor
    * @param rightValue right hand side value of the arithmetic operation.
    * @param binaryOperator {@link BinaryOperator} in between the values.
    * @param expressionType {@link CType} of the final expression.
-   * @param calculationType {@link CType} of the claculation. (Should be int for pointers)
+   * @param calculationType {@link CType} of the calculation. (Should be int for pointers)
    * @param currentState current {@link SMGState}
    * @return {@link ValueAndSMGState} with the result Value that may be {@link AddressExpression} /
    *     {@link UnknownValue} or a symbolic/numeric one depending on input + the new up to date
@@ -2267,7 +2267,7 @@ public class SMGCPAValueVisitor
       case CHAR:
       case INT:
         {
-          // TODO: test this in particulas!
+          // TODO: test this in particular!
           BigInteger leftBigInt =
               l.getNumber() instanceof BigInteger
                   ? (BigInteger) l.getNumber()
