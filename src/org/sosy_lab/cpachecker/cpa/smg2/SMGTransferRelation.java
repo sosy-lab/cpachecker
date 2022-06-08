@@ -84,7 +84,6 @@ import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGObject;
-import org.sosy_lab.cpachecker.util.smg.graph.SMGValue;
 
 public class SMGTransferRelation
     extends ForwardingTransferRelation<Collection<SMGState>, SMGState, SMGPrecision> {
@@ -122,15 +121,8 @@ public class SMGTransferRelation
     return transformedImmutableSetCopy(
         pSuccessors,
         successorState -> {
-          SMGState prunedState = successorState.copyAndPruneOutOfScopeVariables(outOfScopeVars);
-          return checkAndSetErrorRelation(prunedState);
+          return successorState.copyAndPruneOutOfScopeVariables(outOfScopeVars);
         });
-  }
-
-  @SuppressWarnings("unused")
-  private SMGState checkAndSetErrorRelation(SMGState pPrunedState) {
-    // TODO Auto-generated method stub
-    return null;
   }
 
   @Override
@@ -217,28 +209,6 @@ public class SMGTransferRelation
       return handleReturnEntryFunction(successorsBuilder.build());
     }
     return successorsBuilder.build();
-  }
-
-  /**
-   * Evaluates the value of the given expression (i.e. a return statement) and assigns the value to
-   * given state at the given region.
-   *
-   * @param pState - The current {@link SMGState}.
-   * @param pRegion - The {@link SMGObject} that is the return object on the heap of the function
-   *     just returned.
-   * @param pReturnEdge - The {@link CReturnStatementEdge} that models the return of the function
-   *     that just returned.
-   * @return A collection of {@link SMGState}s that represents the successor states.
-   * @throws CPATransferException is thrown if TODO:?
-   */
-  @SuppressWarnings("unused")
-  private Collection<SMGState> assignStatementToField(
-      SMGState pState, SMGObject pRegion, CReturnStatementEdge pReturnEdge)
-      throws CPATransferException {
-    // If there is no concrete value use 0 as that is the C default value
-    CExpression returnExp = pReturnEdge.getExpression().orElse(CIntegerLiteralExpression.ZERO);
-    // TODO: the rest, because this makes no sense
-    return evaluator.evaluateValues(pState, pReturnEdge, returnExp);
   }
 
   @Override
@@ -476,7 +446,7 @@ public class SMGTransferRelation
     } else if (cDecl instanceof CVariableDeclaration) {
       return handleVariableDeclaration(state, (CVariableDeclaration) cDecl, edge);
     }
-    // Fallthrough
+    // Fall through
     // TODO: log that declaration failed
     return ImmutableList.of(state);
   }
@@ -515,7 +485,7 @@ public class SMGTransferRelation
         && (!isExtern || options.getAllocateExternalVariables())) {
       int typeSize = evaluator.getBitSizeof(pState, cType).intValueExact();
 
-      // Handle incomplete type of extern variables as externally allocated
+      // Handle incomplete type of external variables as externally allocated
       if (options.isHandleIncompleteExternalVariableAsExternalAllocation()
           && cType.isIncomplete()
           && isExtern) {
@@ -557,7 +527,7 @@ public class SMGTransferRelation
 
     if (pVarDecl.isGlobal()) {
       // Global vars are always initialized to 0
-      // Don't nullify extern variables
+      // Don't nullify external variables
       if (pVarDecl.getCStorageClass().equals(CStorageClass.EXTERN)) {
         if (options.isHandleIncompleteExternalVariableAsExternalAllocation()) {
           currentState = currentState.setExternallyAllocatedFlag(pVarName);
@@ -1005,87 +975,8 @@ public class SMGTransferRelation
     return returnStateBuilder.build();
   }
 
-  @SuppressWarnings("unused")
-  public SMGState assignFieldToState(
-      SMGState currentState,
-      CFAEdge cfaEdge,
-      SMGObject memoryOfField,
-      BigInteger valueOffset,
-      SMGValue pValue,
-      CType rValueType)
-      throws UnrecognizedCodeException {
-
-    // TODO: getSizeof() method does not cover variable array length in C. Develop ideas for that!
-    // For variable length stuff we need to read the SMG (for values) but also information from the
-    // CFAEdge to determin which SMG object to read correctly! So this method needs to be
-    // re-thought.
-
-    BigInteger valueSize = machineModel.getSizeof(rValueType);
-
-    // write values depending on the type of values
-    if (valueOffset.compareTo(BigInteger.ZERO) < 0
-        || memoryOfField.getSize().compareTo(valueOffset.add(valueSize)) < 0) {
-      // Out of range does not mean failure just yet, it might be that
-      // Log out of range info
-      logOutOfRangeInformation(cfaEdge, memoryOfField, valueOffset, valueSize);
-
-      if (memoryOfField.isZero()) {
-        // Try to dereference a null pointer / all null pointers should be out of range
-        return currentState.withNullPointerDereferenceWhenWriting(memoryOfField);
-      } else {
-        // Non null memory object but out of range write
-        // return currentState.withOutOfRangeWrite(memoryOfField, valueOffset, valueSize, pValue);
-      }
-    } else if (SMGCPAValueExpressionEvaluator.isStructOrUnionType(rValueType)) {
-      // Write the struct
-      // return assignStruct(currentState, memoryOfField, fieldOffset, rValueType, value, cfaEdge);
-    } else {
-      // Write non-struct value
-      // return writeValue(currentState, memoryOfField, fieldOffset, rValueType, value, cfaEdge);
-    }
-    return null;
-  }
-
-  /**
-   * TODO: move this. Structs get a seperate assignment method because we need to potentially copy
-   * from one struct to another. TODO: Do we have to do more? They might have pointers in them.
-   * (might even have methods)
-   */
-  @SuppressWarnings("unused")
-  private SMGState assignStruct(
-      SMGState pNewState,
-      SMGObject pMemoryOfField,
-      long pFieldOffset,
-      CType pRValueType,
-      SMGValue pValue,
-      CFAEdge pCfaEdge)
-      throws UnrecognizedCodeException {
-    // If the value is a known address of a struct do:
-    // Get the object for the (value address) struct
-    // Write the information of the struct at the value address into the new struct at the given
-    // offset/size
-    // (I don't know if writeValue() is good, or a dedicated copy method would be better)
-
-    return pNewState;
-  }
-
-  /** Logs attempts to write outside of the objects field size. */
-  private void logOutOfRangeInformation(
-      CFAEdge cfaEdge, SMGObject memoryOfField, BigInteger valueOffset, BigInteger valueSize) {
-    // TODO: Does this work with DLS?
-    logger.logf(
-        Level.INFO,
-        "%s, Out of range: Attempting to write %d bytes at offset %d into a field with size %d"
-            + " bytes: %s",
-        cfaEdge.getFileLocation(),
-        valueSize,
-        valueOffset,
-        memoryOfField.getSize(),
-        cfaEdge.getRawStatement());
-  }
-
   /*
-   * Preliminary options. Copied and modified from value CPA!
+   * Preliminary options. Copied and modified from value + old SMG CPA!
    */
   @Options(prefix = "cpa.smg2")
   public static class ValueTransferOptions {
