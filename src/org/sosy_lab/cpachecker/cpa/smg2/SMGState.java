@@ -422,8 +422,15 @@ public class SMGState implements LatticeAbstractState<SMGState>, AbstractQueryab
     return retState;
   }
 
-  private SMGState copyAndReplaceMemoryModel(SymbolicProgramConfiguration newSPC) {
+  public SMGState copyAndReplaceMemoryModel(SymbolicProgramConfiguration newSPC) {
     return of(machineModel, newSPC, logger, options, errorInfo);
+  }
+
+  public SMGState copyAndReplaceValueMapping(Value oldValue, Value newValue) {
+    // Get the SMGValue counterpart that we know exists because we have read it before getting the
+    // oldValue mapping
+    return copyAndReplaceMemoryModel(
+        getMemoryModel().copyAndReplaceValueMapping(oldValue, newValue));
   }
 
   private SMGState copyAndPruneVariable(MemoryLocation pMemoryLocation) {
