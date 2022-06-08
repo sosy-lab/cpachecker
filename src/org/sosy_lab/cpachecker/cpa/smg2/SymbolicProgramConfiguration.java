@@ -238,7 +238,7 @@ public class SymbolicProgramConfiguration {
    * @return a SPC with the mapping of the Value replaced with the new one.
    */
   public SymbolicProgramConfiguration copyAndReplaceValueMapping(
-      SMGValue oldValue, Value newValueToBeAssigned) {
+      Value oldValue, Value newValueToBeAssigned) {
     ImmutableBiMap.Builder<Value, SMGValue> builder = ImmutableBiMap.builder();
     for (Entry<Value, SMGValue> entry : valueMapping.entrySet()) {
       if (entry.getKey() == oldValue) {
