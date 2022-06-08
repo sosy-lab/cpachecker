@@ -216,6 +216,19 @@ public class SMGOptions {
           "Perform merge SMGStates by SMGJoin on ends of code block. Works with 'merge=JOIN'")
   private boolean joinOnBlockEnd = true;
 
+  @Option(
+      secure = true,
+      description = "Use equality assumptions to assign values (e.g., (x == 0) => x = 0)")
+  private boolean assignEqualityAssumptions = true;
+
+  @Option(
+      secure = true,
+      description =
+          "if there is an assumption like (x!=0), "
+              + "this option sets unknown (uninitialized) variables to 1L, "
+              + "when the true-branch is handled.")
+  private boolean initAssumptionVars = false;
+
   public enum SMGExportLevel {
     NEVER,
     LEAF,
@@ -225,6 +238,10 @@ public class SMGOptions {
 
   public SMGOptions(Configuration config) throws InvalidConfigurationException {
     config.inject(this);
+  }
+
+  boolean isInitAssumptionVars() {
+    return initAssumptionVars;
   }
 
   public boolean isCheckForMemLeaksAtEveryFrameDrop() {
@@ -345,5 +362,9 @@ public class SMGOptions {
 
   public boolean crashOnUnknown() {
     return crashOnUnknown;
+  }
+
+  boolean isAssignEqualityAssumptions() {
+    return assignEqualityAssumptions;
   }
 }
