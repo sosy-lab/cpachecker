@@ -128,7 +128,9 @@ public class SMGCPAAddressVisitor
         SMGState currentState = subscriptValueAndState.getState();
         // If the subscript is a unknown value, we can't read anything and return unknown
         if (!subscriptValue.isNumericValue()) {
-          // TODO: log this!
+          logger.log(
+              Level.FINE,
+              "A subscript value was found to be non concrete when trying to find a memory location of an array. No memory region could be returned.");
           resultBuilder.add(Optional.empty());
           continue;
         }
@@ -141,17 +143,18 @@ public class SMGCPAAddressVisitor
         if (arrayExpr.getExpressionType() instanceof CPointerType) {
           // In the pointer case, the Value needs to be a AddressExpression
           if (!(arrayValue instanceof AddressExpression)) {
-            // TODO: log
-            resultBuilder.add(Optional.empty());
-            continue;
+            throw new SMG2Exception(
+                "A pointer expression was found to be not of the type AddressExpression and is therefore invalid.");
           }
           AddressExpression addressValue = (AddressExpression) arrayValue;
           // The pointer might actually point inside of the array, take the offset of that into
           // account!
           Value arrayPointerOffsetExpr = addressValue.getOffset();
           if (!arrayPointerOffsetExpr.isNumericValue()) {
-            // The offset is some non numeric Value and therefore not useable!
-            // TODO: log
+            // The offset is some non numeric Value and therefore not usable!
+            logger.log(
+                Level.FINE,
+                "A subscript value was found to be non concrete when trying to find a memory location in an array. No memory region could be returned.");
             resultBuilder.add(Optional.empty());
           }
           subscriptOffset =
@@ -177,7 +180,9 @@ public class SMGCPAAddressVisitor
                   currentState, maybeVariableIdent.getIdentifier(), subscriptOffset));
         } else {
           // Unknown case etc.
-          // TODO: log
+          logger.log(
+              Level.FINE,
+              "Unknown subscript value when trying to find a memory location of an array. No memory region could be returned.");
           resultBuilder.add(Optional.empty());
         }
       }
@@ -229,8 +234,10 @@ public class SMGCPAAddressVisitor
         // This AddressExpr theoretically can have a offset
         Value structPointerOffsetExpr = addressAndOffsetValue.getOffset();
         if (!structPointerOffsetExpr.isNumericValue()) {
-          // The offset is some non numeric Value and therefore not useable!
-          // TODO: log
+          // The offset is some non numeric Value and therefore not usable!
+          logger.log(
+              Level.FINE,
+              "A field reference could not be resolved to a concrete offset when trying to find the memory location of a composite field. No memory region could be returned.");
           resultBuilder.add(Optional.empty());
         }
         BigInteger finalFieldOffset =
@@ -258,8 +265,8 @@ public class SMGCPAAddressVisitor
                 currentState, maybeVariableIdent.getIdentifier(), finalFieldOffset));
 
       } else {
-        // TODO: improve error and check if its even needed
-        throw new SMG2Exception("Unknown field type in field expression.");
+        throw new SMG2Exception(
+            "Unknown field type in field expression in the search for memory addresses.");
       }
     }
     return resultBuilder.build();
@@ -308,6 +315,9 @@ public class SMGCPAAddressVisitor
       if (type instanceof CFunctionType) {
         // Special cases
         // TODO:
+        logger.log(
+            Level.FINE,
+            "Currently there is no function pointer implementation. No memory region could be returned.");
         resultBuilder.addAll(visitDefault(e));
       } else {
         BigInteger offsetInBits = offset.asNumericValue().bigInteger();
