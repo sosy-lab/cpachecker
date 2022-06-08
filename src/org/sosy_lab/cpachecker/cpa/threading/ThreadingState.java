@@ -18,7 +18,9 @@ import static org.sosy_lab.cpachecker.cpa.threading.ThreadingTransferRelation.is
 import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.FluentIterable;
+import java.util.HashSet;
 import java.util.LinkedHashSet;
+import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Set;
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -169,7 +171,8 @@ public class ThreadingState
 
   public ThreadingState updateDataRaceTracker(CFAEdge edge, String pActiveThread) {
     assert hasDataRaceTracker();
-    DataRaceTracker newTracker = tracker.update(threads.keySet(), pActiveThread, edge);
+    DataRaceTracker newTracker =
+        tracker.update(threads.keySet(), pActiveThread, edge, getLocksForThread(pActiveThread));
     return withDataRaceTracker(newTracker);
   }
 
@@ -239,6 +242,16 @@ public class ThreadingState
   /** returns whether there is any lock registered for the thread. */
   public boolean hasLockForThread(String threadId) {
     return locks.containsValue(threadId);
+  }
+
+  Set<String> getLocksForThread(String threadId) {
+    Set<String> locksForThread = new HashSet<>();
+    for (Entry<String, String> entry : locks.entrySet()) {
+      if (entry.getValue().equals(threadId)) {
+        locksForThread.add(entry.getKey());
+      }
+    }
+    return locksForThread;
   }
 
   @Override

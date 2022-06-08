@@ -8,11 +8,9 @@
 
 package org.sosy_lab.cpachecker.cpa.threading;
 
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableMap.Builder;
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Sets;
 import java.util.HashSet;
-import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Set;
 import javax.annotation.Nullable;
 import org.sosy_lab.cpachecker.cfa.ast.ADeclaration;
@@ -35,22 +33,50 @@ import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 class DataRaceTracker {
 
-  private final ImmutableMap<String, Set<MemoryLocation>> accessedLocations;
-  private final ImmutableMap<String, Set<MemoryLocation>> modifiedLocations;
+  private static class MemoryAccess {
+
+    private final @Nullable String threadId;
+    private final MemoryLocation memoryLocation;
+    private final boolean isWrite;
+    private final ImmutableSet<String> locks;
+
+    MemoryAccess(
+        String pThreadId, MemoryLocation pMemoryLocation, boolean pIsWrite, Set<String> pLocks) {
+      threadId = pThreadId;
+      memoryLocation = pMemoryLocation;
+      isWrite = pIsWrite;
+      locks = ImmutableSet.copyOf(pLocks);
+    }
+
+    @Nullable
+    public String getThreadId() {
+      return threadId;
+    }
+
+    public MemoryLocation getMemoryLocation() {
+      return memoryLocation;
+    }
+
+    public boolean isWrite() {
+      return isWrite;
+    }
+
+    public Set<String> getLocks() {
+      return locks;
+    }
+  }
+
+  private final ImmutableSet<MemoryAccess> memoryAccesses;
   private final boolean hasDataRace;
   private final EdgeAnalyzer edgeAnalyzer;
 
   DataRaceTracker(EdgeAnalyzer pEdgeAnalyzer) {
-    this(ImmutableMap.of(), ImmutableMap.of(), false, pEdgeAnalyzer);
+    this(ImmutableSet.of(), false, pEdgeAnalyzer);
   }
 
   private DataRaceTracker(
-      Map<String, Set<MemoryLocation>> pAccessedLocations,
-      Map<String, Set<MemoryLocation>> pModifiedLocations,
-      boolean pHasDataRace,
-      EdgeAnalyzer pEdgeAnalyzer) {
-    accessedLocations = ImmutableMap.copyOf(pAccessedLocations);
-    modifiedLocations = ImmutableMap.copyOf(pModifiedLocations);
+      Set<MemoryAccess> pMemoryAccesses, boolean pHasDataRace, EdgeAnalyzer pEdgeAnalyzer) {
+    memoryAccesses = ImmutableSet.copyOf(pMemoryAccesses);
     hasDataRace = pHasDataRace;
     edgeAnalyzer = pEdgeAnalyzer;
   }
@@ -59,77 +85,53 @@ class DataRaceTracker {
     return hasDataRace;
   }
 
-  DataRaceTracker update(Set<String> threadIds, @Nullable String activeThread, CFAEdge edge) {
-    Set<MemoryLocation> newlyAccessedLocations = getAccessedMemoryLocations(edge);
-    Set<MemoryLocation> newlyModifiedLocations = getModifiedMemoryLocations(edge);
+  DataRaceTracker update(
+      Set<String> threadIds, @Nullable String activeThread, CFAEdge edge, Set<String> locks) {
+    // TODO: Check in which cases activeThread can be null and handle accordingly
+    Set<MemoryAccess> newMemoryAccesses = getNewAccesses(activeThread, edge, locks);
+    ImmutableSet.Builder<MemoryAccess> builder = ImmutableSet.builder();
+    builder.addAll(newMemoryAccesses);
+    for (MemoryAccess access : memoryAccesses) {
+      if (threadIds.contains(access.getThreadId())) {
+        builder.add(access);
+      }
+    }
+    Set<MemoryAccess> accesses = builder.build();
 
     boolean nextHasDataRace = hasDataRace;
 
-    for (Entry<String, Set<MemoryLocation>> entry : accessedLocations.entrySet()) {
+    for (MemoryAccess access : accesses) {
       if (nextHasDataRace) {
         break;
       }
-      if (entry.getKey().equals(activeThread) || !threadIds.contains(entry.getKey())) {
+      // In particular, this skips all new memory accesses
+      if (access.getThreadId().equals(activeThread)) {
         continue;
       }
-      for (MemoryLocation accessed : entry.getValue()) {
-        if (newlyModifiedLocations.contains(accessed)) {
+      for (MemoryAccess newAccess : newMemoryAccesses) {
+        if (access.getMemoryLocation().equals(newAccess.getMemoryLocation())
+            && Sets.intersection(access.getLocks(), newAccess.getLocks()).isEmpty()
+            && (access.isWrite() || newAccess.isWrite())) {
           nextHasDataRace = true;
           break;
         }
       }
     }
 
-    for (Entry<String, Set<MemoryLocation>> entry : modifiedLocations.entrySet()) {
-      if (nextHasDataRace) {
-        break;
-      }
-      if (entry.getKey().equals(activeThread) || !threadIds.contains(entry.getKey())) {
-        continue;
-      }
-      for (MemoryLocation modified : entry.getValue()) {
-        if (newlyAccessedLocations.contains(modified)) {
-          nextHasDataRace = true;
-          break;
-        }
-      }
-    }
-
-    assert accessedLocations.keySet().containsAll(modifiedLocations.keySet());
-    assert modifiedLocations.keySet().containsAll(accessedLocations.keySet());
-
-    Builder<String, Set<MemoryLocation>> accessedBuilder = new Builder<>();
-    Builder<String, Set<MemoryLocation>> modifiedBuilder = new Builder<>();
-    for (String threadId : threadIds) {
-      Set<MemoryLocation> accessed;
-      Set<MemoryLocation> modified;
-      if (!accessedLocations.containsKey(threadId)) {
-        accessed = new HashSet<>();
-        modified = new HashSet<>();
-      } else {
-        accessed = new HashSet<>(accessedLocations.get(threadId));
-        modified = new HashSet<>(modifiedLocations.get(threadId));
-      }
-
-      if (threadId.equals(activeThread)) {
-        accessed.addAll(newlyAccessedLocations);
-        modified.addAll(newlyModifiedLocations);
-      }
-      accessedBuilder.put(threadId, accessed);
-      modifiedBuilder.put(threadId, modified);
-    }
-    return new DataRaceTracker(accessedBuilder.build(), modifiedBuilder.build(), nextHasDataRace,
-        edgeAnalyzer);
+    return new DataRaceTracker(accesses, nextHasDataRace, edgeAnalyzer);
   }
 
-  private Set<MemoryLocation> getAccessedMemoryLocations(CFAEdge edge) {
-    Set<MemoryLocation> accessedByEdge = new HashSet<>();
+  private Set<MemoryAccess> getNewAccesses(String activeThread, CFAEdge edge, Set<String> locks) {
+    Set<MemoryLocation> accessedLocations = new HashSet<>();
+    Set<MemoryLocation> modifiedLocations = new HashSet<>();
+    Set<MemoryAccess> newAccesses = new HashSet<>();
+
     switch (edge.getEdgeType()) {
-      case AssumeEdge: {
+      case AssumeEdge:
         AssumeEdge assumeEdge = (AssumeEdge) edge;
-        AExpression expression = assumeEdge.getExpression();
-        return edgeAnalyzer.getInvolvedVariableTypes(expression, assumeEdge).keySet();
-      }
+        accessedLocations =
+            edgeAnalyzer.getInvolvedVariableTypes(assumeEdge.getExpression(), assumeEdge).keySet();
+        break;
       case DeclarationEdge:
         ADeclarationEdge declarationEdge = (ADeclarationEdge) edge;
         ADeclaration declaration = declarationEdge.getDeclaration();
@@ -137,103 +139,86 @@ class DataRaceTracker {
           CVariableDeclaration variableDeclaration = (CVariableDeclaration) declaration;
           MemoryLocation declaredVariable =
               MemoryLocation.fromQualifiedName(variableDeclaration.getQualifiedName());
-          accessedByEdge.add(declaredVariable);
           CInitializer initializer = variableDeclaration.getInitializer();
+          newAccesses.add(
+              new MemoryAccess(activeThread, declaredVariable, initializer != null, locks));
           if (initializer != null) {
-            accessedByEdge.addAll(
-                edgeAnalyzer.getInvolvedVariableTypes(initializer, edge).keySet());
+            accessedLocations =
+                edgeAnalyzer.getInvolvedVariableTypes(initializer, declarationEdge).keySet();
           }
         }
-        return accessedByEdge;
-      case FunctionCallEdge: {
+        break;
+      case FunctionCallEdge:
         FunctionCallEdge functionCallEdge = (FunctionCallEdge) edge;
         for (AExpression argument : functionCallEdge.getArguments()) {
-          accessedByEdge.addAll(
+          accessedLocations.addAll(
               edgeAnalyzer.getInvolvedVariableTypes(argument, functionCallEdge).keySet());
         }
-        return accessedByEdge;
-      }
-      case ReturnStatementEdge: {
+        break;
+      case ReturnStatementEdge:
         AReturnStatementEdge returnStatementEdge = (AReturnStatementEdge) edge;
         if (returnStatementEdge.getExpression().isPresent()) {
           AExpression returnExpression = returnStatementEdge.getExpression().get();
-          accessedByEdge.addAll(
-              edgeAnalyzer.getInvolvedVariableTypes(returnExpression, edge).keySet());
+          accessedLocations =
+              edgeAnalyzer.getInvolvedVariableTypes(returnExpression, returnStatementEdge).keySet();
         }
-        return accessedByEdge;
-      }
-      case StatementEdge: {
+        break;
+      case StatementEdge:
         AStatementEdge statementEdge = (AStatementEdge) edge;
         AStatement statement = statementEdge.getStatement();
         if (statement instanceof AExpressionAssignmentStatement) {
-          accessedByEdge.addAll(
+          AExpressionAssignmentStatement expressionAssignmentStatement =
+              (AExpressionAssignmentStatement) statement;
+          accessedLocations =
               edgeAnalyzer
-                  .getInvolvedVariableTypes((AExpressionAssignmentStatement) statement, edge)
-                  .keySet());
-        } else if (statement instanceof AExpressionStatement) {
-          accessedByEdge.addAll(
+                  .getInvolvedVariableTypes(expressionAssignmentStatement, statementEdge)
+                  .keySet();
+          modifiedLocations =
               edgeAnalyzer
                   .getInvolvedVariableTypes(
-                      ((AExpressionStatement) statement).getExpression(), edge)
-                  .keySet());
-        } else if (statement instanceof AFunctionCallAssignmentStatement) {
-          accessedByEdge.addAll(
+                      expressionAssignmentStatement.getLeftHandSide(), statementEdge)
+                  .keySet();
+          assert accessedLocations.containsAll(modifiedLocations);
+        } else if (statement instanceof AExpressionStatement) {
+          accessedLocations =
               edgeAnalyzer
-                  .getInvolvedVariableTypes((AFunctionCallAssignmentStatement) statement, edge)
-                  .keySet());
+                  .getInvolvedVariableTypes(
+                      ((AExpressionStatement) statement).getExpression(), statementEdge)
+                  .keySet();
+        } else if (statement instanceof AFunctionCallAssignmentStatement) {
+          AFunctionCallAssignmentStatement functionCallAssignmentStatement =
+              (AFunctionCallAssignmentStatement) statement;
+          accessedLocations =
+              edgeAnalyzer
+                  .getInvolvedVariableTypes(functionCallAssignmentStatement, statementEdge)
+                  .keySet();
+          modifiedLocations =
+              edgeAnalyzer
+                  .getInvolvedVariableTypes(
+                      functionCallAssignmentStatement.getLeftHandSide(), statementEdge)
+                  .keySet();
+          assert accessedLocations.containsAll(modifiedLocations);
         } else if (statement instanceof AFunctionCallStatement) {
           AFunctionCallStatement functionCallStatement = (AFunctionCallStatement) statement;
           for (AExpression expression :
               functionCallStatement.getFunctionCallExpression().getParameterExpressions()) {
-            accessedByEdge.addAll(
-                edgeAnalyzer.getInvolvedVariableTypes(expression, edge).keySet());
+            accessedLocations =
+                edgeAnalyzer.getInvolvedVariableTypes(expression, statementEdge).keySet();
           }
         }
-        return accessedByEdge;
-      }
+        break;
       case FunctionReturnEdge:
       case BlankEdge:
       case CallToReturnEdge:
-        return accessedByEdge;
+        break;
       default:
         throw new AssertionError("Unknown edge type: " + edge.getEdgeType());
     }
-  }
 
-  private Set<MemoryLocation> getModifiedMemoryLocations(CFAEdge edge) {
-    Set<MemoryLocation> modifiedByEdge = new HashSet<>();
-    switch (edge.getEdgeType()) {
-      case StatementEdge: {
-        AStatementEdge statementEdge = (AStatementEdge) edge;
-        AStatement statement = statementEdge.getStatement();
-        if (statement instanceof AExpressionAssignmentStatement) {
-          modifiedByEdge.addAll(
-              edgeAnalyzer
-                  .getInvolvedVariableTypes(
-                      ((AExpressionAssignmentStatement) statement).getLeftHandSide(), edge)
-                  .keySet());
-        } else if (statement instanceof AExpressionStatement) {
-          return modifiedByEdge;
-        } else if (statement instanceof AFunctionCallAssignmentStatement) {
-          modifiedByEdge.addAll(
-              edgeAnalyzer
-                  .getInvolvedVariableTypes(
-                      ((AFunctionCallAssignmentStatement) statement).getLeftHandSide(), edge)
-                  .keySet());
-        }
-        return modifiedByEdge;
-      }
-      // TODO: Find modified variables for other edge types as well
-      case ReturnStatementEdge:
-      case FunctionCallEdge:
-      case AssumeEdge:
-      case FunctionReturnEdge:
-      case DeclarationEdge:
-      case BlankEdge:
-      case CallToReturnEdge:
-        return modifiedByEdge;
-      default:
-        throw new AssertionError("Unknown edge type: " + edge.getEdgeType());
+    for (MemoryLocation location : accessedLocations) {
+      newAccesses.add(
+          new MemoryAccess(activeThread, location, modifiedLocations.contains(location), locks));
     }
+    return newAccesses;
   }
 }
