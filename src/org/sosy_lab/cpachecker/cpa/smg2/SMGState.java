@@ -8,9 +8,11 @@
 
 package org.sosy_lab.cpachecker.cpa.smg2;
 
+import com.google.common.collect.ImmutableList;
 import java.math.BigInteger;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.logging.Level;
@@ -81,8 +83,7 @@ public class SMGState implements LatticeAbstractState<SMGState>, AbstractQueryab
 
   private final MachineModel machineModel;
   private final LogManager logger;
-  // TODO: is there always just 1 error? If not this is bad, use a list!
-  private SMGErrorInfo errorInfo;
+  private List<SMGErrorInfo> errorInfo;
   private final SMGOptions options;
 
   private SMGState(
@@ -94,7 +95,7 @@ public class SMGState implements LatticeAbstractState<SMGState>, AbstractQueryab
     machineModel = pMachineModel;
     logger = logManager;
     options = opts;
-    errorInfo = SMGErrorInfo.of();
+    errorInfo = ImmutableList.of(SMGErrorInfo.of());
   }
 
   private SMGState(
@@ -102,7 +103,7 @@ public class SMGState implements LatticeAbstractState<SMGState>, AbstractQueryab
       SymbolicProgramConfiguration spc,
       LogManager logManager,
       SMGOptions opts,
-      SMGErrorInfo errorInf) {
+      List<SMGErrorInfo> errorInf) {
     memoryModel = spc;
     machineModel = pMachineModel;
     logger = logManager;
@@ -162,17 +163,29 @@ public class SMGState implements LatticeAbstractState<SMGState>, AbstractQueryab
       SymbolicProgramConfiguration pSPC,
       LogManager logManager,
       SMGOptions opts,
-      SMGErrorInfo pErrorInfo) {
+      List<SMGErrorInfo> pErrorInfo) {
     return new SMGState(pMachineModel, pSPC, logManager, opts, pErrorInfo);
   }
 
+  /**
+   * Merge the error info of pOther into this {@link SMGState}.
+   *
+   * @param pOther the state you want the error info from.
+   * @return this state with the error info of this + other.
+   */
   public SMGState withViolationsOf(SMGState pOther) {
     if (errorInfo.equals(pOther.errorInfo)) {
       return this;
     }
-    SMGState result = new SMGState(machineModel, memoryModel, logger, options);
-    result.errorInfo = result.errorInfo.mergeWith(pOther.errorInfo);
-    return result;
+    return of(
+        machineModel,
+        memoryModel,
+        logger,
+        options,
+        new ImmutableList.Builder<SMGErrorInfo>()
+            .addAll(errorInfo)
+            .addAll(pOther.errorInfo)
+            .build());
   }
 
   /**
@@ -349,11 +362,21 @@ public class SMGState implements LatticeAbstractState<SMGState>, AbstractQueryab
   }
 
   public boolean hasMemoryErrors() {
-    return errorInfo.hasMemoryErrors();
+    for (SMGErrorInfo info : errorInfo) {
+      if (info.hasMemoryErrors()) {
+        return true;
+      }
+    }
+    return false;
   }
 
   public boolean hasMemoryLeaks() {
-    return errorInfo.hasMemoryLeak();
+    for (SMGErrorInfo info : errorInfo) {
+      if (info.hasMemoryLeak()) {
+        return true;
+      }
+    }
+    return false;
   }
 
   /*
@@ -442,24 +465,24 @@ public class SMGState implements LatticeAbstractState<SMGState>, AbstractQueryab
     if (unreachableObjects.isEmpty()) {
       return this;
     }
-    return copyWithMemLeak(newHeap, unreachableObjects);
+
+    return copyAndReplaceMemoryModel(newHeap).copyWithMemLeak(unreachableObjects);
   }
 
   /*
    * Copy the state with an error attached. This method is used for memory leaks, meaning its a non fatal error.
    */
-  private SMGState copyWithMemLeak(
-      SymbolicProgramConfiguration newHeap, Collection<SMGObject> leakedObjects) {
+  private SMGState copyWithMemLeak(Collection<SMGObject> leakedObjects) {
     String leakedObjectsLabels =
         leakedObjects.stream().map(Object::toString).collect(Collectors.joining(","));
     String errorMSG = "Memory leak of " + leakedObjectsLabels + " is detected.";
     SMGErrorInfo newErrorInfo =
-        errorInfo
+        SMGErrorInfo.of()
             .withProperty(Property.INVALID_HEAP)
             .withErrorMessage(errorMSG)
             .withInvalidObjects(leakedObjects);
     logMemoryError(errorMSG, true);
-    return copyWithErrorInfo(newHeap, newErrorInfo);
+    return copyWithNewErrorInfo(newErrorInfo);
   }
 
   // TODO: invalid read/write because of invalidated object/memory
@@ -478,13 +501,13 @@ public class SMGState implements LatticeAbstractState<SMGState>, AbstractQueryab
             + ". A unknown value was assumed, but behavior is of this variable is generally"
             + " undefined.";
     SMGErrorInfo newErrorInfo =
-        errorInfo
+        SMGErrorInfo.of()
             .withProperty(Property.INVALID_READ)
             .withErrorMessage(errorMSG)
             .withInvalidObjects(Collections.singleton(uninitializedVariableName));
     // Log the error in the logger
     logMemoryError(errorMSG, true);
-    return copyWithErrorInfo(memoryModel, newErrorInfo);
+    return copyWithNewErrorInfo(newErrorInfo);
   }
 
   /**
@@ -498,13 +521,13 @@ public class SMGState implements LatticeAbstractState<SMGState>, AbstractQueryab
   public SMGState withUnknownPointerDereferenceWhenReading(Value unknownAddress) {
     String errorMSG = "Unknown value pointer dereference for value: " + unknownAddress + ".";
     SMGErrorInfo newErrorInfo =
-        errorInfo
+        SMGErrorInfo.of()
             .withProperty(Property.INVALID_READ)
             .withErrorMessage(errorMSG)
             .withInvalidObjects(Collections.singleton(unknownAddress));
     // Log the error in the logger
     logMemoryError(errorMSG, true);
-    return copyWithErrorInfo(memoryModel, newErrorInfo);
+    return copyWithNewErrorInfo(newErrorInfo);
   }
 
   /**
@@ -521,13 +544,13 @@ public class SMGState implements LatticeAbstractState<SMGState>, AbstractQueryab
             + unknownAddress
             + ".";
     SMGErrorInfo newErrorInfo =
-        errorInfo
+        SMGErrorInfo.of()
             .withProperty(Property.INVALID_READ)
             .withErrorMessage(errorMSG)
             .withInvalidObjects(Collections.singleton(unknownAddress));
     // Log the error in the logger
     logMemoryError(errorMSG, true);
-    return copyWithErrorInfo(memoryModel, newErrorInfo);
+    return copyWithNewErrorInfo(newErrorInfo);
   }
 
   /**
@@ -539,13 +562,13 @@ public class SMGState implements LatticeAbstractState<SMGState>, AbstractQueryab
   public SMGState withWriteToUnknownVariable(String variableName) {
     String errorMSG = "Failed write to variable " + variableName + ".";
     SMGErrorInfo newErrorInfo =
-        errorInfo
+        SMGErrorInfo.of()
             .withProperty(Property.INVALID_WRITE)
             .withErrorMessage(errorMSG)
             .withInvalidObjects(Collections.singleton(variableName));
     // Log the error in the logger
     logMemoryError(errorMSG, true);
-    return copyWithErrorInfo(memoryModel, newErrorInfo);
+    return copyWithNewErrorInfo(newErrorInfo);
   }
 
   /**
@@ -562,13 +585,13 @@ public class SMGState implements LatticeAbstractState<SMGState>, AbstractQueryab
             + nullObject
             + ".";
     SMGErrorInfo newErrorInfo =
-        errorInfo
+        SMGErrorInfo.of()
             .withProperty(Property.INVALID_READ)
             .withErrorMessage(errorMSG)
             .withInvalidObjects(Collections.singleton(nullObject));
     // Log the error in the logger
     logMemoryError(errorMSG, true);
-    return copyWithErrorInfo(memoryModel, newErrorInfo);
+    return copyWithNewErrorInfo(newErrorInfo);
   }
 
   /**
@@ -581,13 +604,13 @@ public class SMGState implements LatticeAbstractState<SMGState>, AbstractQueryab
   public SMGState withMemoryLeak(String errorMsg, Collection<Object> pUnreachableObjects) {
     // TODO: replace Object; currently it is only used by Value (address to SMGObject)
     SMGErrorInfo newErrorInfo =
-        errorInfo
+        SMGErrorInfo.of()
             .withProperty(Property.INVALID_HEAP)
             .withErrorMessage(errorMsg)
             .withInvalidObjects(pUnreachableObjects);
     // Log the error in the logger
     logMemoryError(errorMsg, true);
-    return copyWithErrorInfo(memoryModel, newErrorInfo);
+    return copyWithNewErrorInfo(newErrorInfo);
   }
 
   /**
@@ -603,13 +626,13 @@ public class SMGState implements LatticeAbstractState<SMGState>, AbstractQueryab
             + invalidAddress
             + ".";
     SMGErrorInfo newErrorInfo =
-        errorInfo
+        SMGErrorInfo.of()
             .withProperty(Property.INVALID_WRITE)
             .withErrorMessage(errorMSG)
             .withInvalidObjects(Collections.singleton(invalidAddress));
     // Log the error in the logger
     logMemoryError(errorMSG, true);
-    return copyWithErrorInfo(memoryModel, newErrorInfo);
+    return copyWithNewErrorInfo(newErrorInfo);
   }
 
   /**
@@ -625,13 +648,13 @@ public class SMGState implements LatticeAbstractState<SMGState>, AbstractQueryab
             + invalidWriteRegion
             + ".";
     SMGErrorInfo newErrorInfo =
-        errorInfo
+        SMGErrorInfo.of()
             .withProperty(Property.INVALID_WRITE)
             .withErrorMessage(errorMSG)
             .withInvalidObjects(Collections.singleton(invalidWriteRegion));
     // Log the error in the logger
     logMemoryError(errorMSG, true);
-    return copyWithErrorInfo(memoryModel, newErrorInfo);
+    return copyWithNewErrorInfo(newErrorInfo);
   }
 
   /**
@@ -643,13 +666,13 @@ public class SMGState implements LatticeAbstractState<SMGState>, AbstractQueryab
    */
   public SMGState withInvalidWrite(String errorMSG, Value invalidValue) {
     SMGErrorInfo newErrorInfo =
-        errorInfo
+        SMGErrorInfo.of()
             .withProperty(Property.INVALID_WRITE)
             .withErrorMessage(errorMSG)
             .withInvalidObjects(Collections.singleton(invalidValue));
     // Log the error in the logger
     logMemoryError(errorMSG, true);
-    return copyWithErrorInfo(memoryModel, newErrorInfo);
+    return copyWithNewErrorInfo(newErrorInfo);
   }
 
   /**
@@ -666,13 +689,13 @@ public class SMGState implements LatticeAbstractState<SMGState>, AbstractQueryab
             + nullObject
             + ".";
     SMGErrorInfo newErrorInfo =
-        errorInfo
+        SMGErrorInfo.of()
             .withProperty(Property.INVALID_READ)
             .withErrorMessage(errorMSG)
             .withInvalidObjects(Collections.singleton(nullObject));
     // Log the error in the logger
     logMemoryError(errorMSG, true);
-    return copyWithErrorInfo(memoryModel, newErrorInfo);
+    return copyWithNewErrorInfo(newErrorInfo);
   }
 
   /**
@@ -684,13 +707,13 @@ public class SMGState implements LatticeAbstractState<SMGState>, AbstractQueryab
   public SMGState withInvalidStackVariableRead(String readVariable) {
     String errorMSG = "Invalid read of variable named: " + readVariable + ".";
     SMGErrorInfo newErrorInfo =
-        errorInfo
+        SMGErrorInfo.of()
             .withProperty(Property.INVALID_READ)
             .withErrorMessage(errorMSG)
             .withInvalidObjects(Collections.singleton(readVariable));
     // Log the error in the logger
     logMemoryError(errorMSG, true);
-    return copyWithErrorInfo(memoryModel, newErrorInfo);
+    return copyWithNewErrorInfo(newErrorInfo);
   }
 
   /**
@@ -702,13 +725,13 @@ public class SMGState implements LatticeAbstractState<SMGState>, AbstractQueryab
   public SMGState withInvalidRead(SMGObject readMemory) {
     String errorMSG = "Invalid read of memory object: " + readMemory + ".";
     SMGErrorInfo newErrorInfo =
-        errorInfo
+        SMGErrorInfo.of()
             .withProperty(Property.INVALID_READ)
             .withErrorMessage(errorMSG)
             .withInvalidObjects(Collections.singleton(readMemory));
     // Log the error in the logger
     logMemoryError(errorMSG, true);
-    return copyWithErrorInfo(memoryModel, newErrorInfo);
+    return copyWithNewErrorInfo(newErrorInfo);
   }
 
   /**
@@ -728,13 +751,13 @@ public class SMGState implements LatticeAbstractState<SMGState>, AbstractQueryab
             "Try writing value %s with size %d at offset %d bit to object sized %d bit.",
             pValue.toString(), writeSize, writeOffset, objectWrittenTo.getSize());
     SMGErrorInfo newErrorInfo =
-        errorInfo
+        SMGErrorInfo.of()
             .withProperty(Property.INVALID_WRITE)
             .withErrorMessage(errorMSG)
             .withInvalidObjects(Collections.singleton(objectWrittenTo));
     // Log the error in the logger
     logMemoryError(errorMSG, true);
-    return copyWithErrorInfo(memoryModel, newErrorInfo);
+    return copyWithNewErrorInfo(newErrorInfo);
   }
 
   /**
@@ -753,13 +776,13 @@ public class SMGState implements LatticeAbstractState<SMGState>, AbstractQueryab
             "Try reading object %s with size %d bits at offset %d bit with read type size %d bit",
             objectRead, objectRead.getSize(), readOffset, readSize);
     SMGErrorInfo newErrorInfo =
-        errorInfo
+        SMGErrorInfo.of()
             .withProperty(Property.INVALID_READ)
             .withErrorMessage(errorMSG)
             .withInvalidObjects(Collections.singleton(objectRead));
     // Log the error in the logger
     logMemoryError(errorMSG, true);
-    return copyWithErrorInfo(memoryModel, newErrorInfo);
+    return copyWithNewErrorInfo(newErrorInfo);
   }
 
   /**
@@ -771,13 +794,13 @@ public class SMGState implements LatticeAbstractState<SMGState>, AbstractQueryab
    */
   public SMGState withUndefinedbehavior(String errorMSG, Collection<Object> reason) {
     SMGErrorInfo newErrorInfo =
-        errorInfo
+        SMGErrorInfo.of()
             .withProperty(Property.UNDEFINED_BEHAVIOR)
             .withErrorMessage(errorMSG)
             .withInvalidObjects(reason);
     // Log the error in the logger
     logMemoryError(errorMSG, true);
-    return copyWithErrorInfo(memoryModel, newErrorInfo);
+    return copyWithNewErrorInfo(newErrorInfo);
   }
 
   /**
@@ -790,29 +813,30 @@ public class SMGState implements LatticeAbstractState<SMGState>, AbstractQueryab
    */
   public SMGState withInvalidFree(String errorMSG, Value invalidValue) {
     SMGErrorInfo newErrorInfo =
-        errorInfo
+        SMGErrorInfo.of()
             .withProperty(Property.INVALID_FREE)
             .withErrorMessage(errorMSG)
             .withInvalidObjects(Collections.singleton(invalidValue));
     // Log the error in the logger
     logMemoryError(errorMSG, true);
-    return copyWithErrorInfo(memoryModel, newErrorInfo);
+    return copyWithNewErrorInfo(newErrorInfo);
   }
 
   /**
-   * Returns a copy of this {@link SMGState} with the entered SPC and {@link SMGErrorInfo} added.
+   * Returns a copy of this {@link SMGState} with the entered SPC and a new {@link SMGErrorInfo}
+   * added.
    *
-   * @param newMemoryModel the new {@link SymbolicProgramConfiguration} for the state. May be the
-   *     same as the old one.
    * @param pErrorInfo The new {@link SMGErrorInfo} tied to the returned state.
    * @return a copy of the {@link SMGState} this is based on with the newly entered SPC and error
    *     info.
    */
-  public SMGState copyWithErrorInfo(
-      SymbolicProgramConfiguration newMemoryModel, SMGErrorInfo pErrorInfo) {
-    SMGState copy = of(machineModel, newMemoryModel, logger, options);
-    copy.errorInfo = pErrorInfo;
-    return copy;
+  public SMGState copyWithNewErrorInfo(SMGErrorInfo pErrorInfo) {
+    return of(
+        machineModel,
+        memoryModel,
+        logger,
+        options,
+        new ImmutableList.Builder<SMGErrorInfo>().addAll(errorInfo).add(pErrorInfo).build());
   }
 
   /**
@@ -856,7 +880,7 @@ public class SMGState implements LatticeAbstractState<SMGState>, AbstractQueryab
     return null;
   }
 
-  public SMGErrorInfo getErrorInfo() {
+  public List<SMGErrorInfo> getErrorInfo() {
     return errorInfo;
   }
 
@@ -895,11 +919,7 @@ public class SMGState implements LatticeAbstractState<SMGState>, AbstractQueryab
   public ValueAndSMGState readValue(
       SMGObject pObject, BigInteger pFieldOffset, BigInteger pSizeofInBits) {
     if (!memoryModel.isObjectValid(pObject) && !memoryModel.isObjectExternallyAllocated(pObject)) {
-      SMGState newState =
-          copyWithErrorInfo(
-              memoryModel, errorInfo.withObject(pObject).withErrorMessage(HAS_INVALID_READS));
-      // TODO: does the analysis need to stop here?
-      return ValueAndSMGState.of(UnknownValue.getInstance(), newState);
+      return ValueAndSMGState.of(UnknownValue.getInstance(), withInvalidRead(pObject));
     }
     SMGValueAndSPC valueAndNewSPC = memoryModel.readValue(pObject, pFieldOffset, pSizeofInBits);
     // Try to translate the SMGValue to a Value or create a new mapping (the same read on the same
