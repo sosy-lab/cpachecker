@@ -3601,7 +3601,7 @@ faultLocalization.by_traceformula.postConditionType = LAST_ASSUME_EDGES_ON_SAME_
 # By default, the precondition only contains the failing variable assignment
 # of all nondet variables. Choose INITIAL_ASSIGNMENT to assignments like
 # '<datatype> <variable-name> = <value>' to the precondition.
-faultLocalization.by_traceformula.preconditionType = NONDETERMINISTIC_VARIABLES_ONLY
+faultLocalization.by_traceformula.preconditionType = INITIAL_ASSIGNMENT
   enum:     [NONDETERMINISTIC_VARIABLES_ONLY, INITIAL_ASSIGNMENT, ALWAYS_TRUE]
 
 # whether maxsat algorithms should stop after they found the first minimal
@@ -3611,6 +3611,14 @@ faultLocalization.by_traceformula.stopAfterFirstFault = false
 # which algorithm to use
 faultLocalization.by_traceformula.type = UNSAT
   enum:     [UNSAT, MAXSAT, MAXORG, ERRINV]
+
+# how to merge lists of faults
+faultLocalization.merge.mergeStrategy = no default value
+  enum:     [REPLACE, INTERSECTION, UNION, RELAXED_INTERSECTION, PREVIOUS]
+
+# which faults to use
+faultLocalization.merge.selectionStrategy = no default value
+  enum:     [MIN, MAX, FIRST, CROSSPRODUCT]
 
 # Configuration for programs containing more than @Option adressedRatio
 # addressed vars.

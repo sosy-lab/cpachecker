@@ -55,6 +55,7 @@ import org.sosy_lab.cpachecker.core.algorithm.bmc.pdr.PdrAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.composition.CompositionAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.counterexamplecheck.CounterexampleCheckAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.explainer.Explainer;
+import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.trace_formula.FaultLocalizationMergeOptions;
 import org.sosy_lab.cpachecker.core.algorithm.impact.ImpactAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.mpv.MPVAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.mpv.MPVReachedSet;
@@ -732,6 +733,8 @@ public class CoreComponentsFactory {
         algorithm = new MPVAlgorithm(cpa, config, logger, shutdownNotifier, specification, cfa);
       }
 
+      // Fault Localization
+      FaultLocalizationMergeOptions mergeOptions = new FaultLocalizationMergeOptions(config);
       if (useFaultLocalizationWithTraceFormulas) {
         if (!forceCexStore) {
           throw new InvalidConfigurationException(
@@ -739,14 +742,15 @@ public class CoreComponentsFactory {
                   + " ErrInv or SingleUnsat");
         }
         algorithm =
-            new FaultLocalizationWithTraceFormula(algorithm, config, logger, cfa, shutdownNotifier);
+            new FaultLocalizationWithTraceFormula(
+                algorithm, config, logger, cfa, shutdownNotifier, mergeOptions);
       }
       if (useFaultLocalizationWithCoverage) {
         algorithm = new FaultLocalizationWithCoverage(algorithm, shutdownNotifier, logger, config);
       }
       if (findWitnessEdges) {
         // mark edges that are part of the witness as especially error-prone
-        algorithm = new WitnessTransitionExtractorAlgorithm(algorithm);
+        algorithm = new WitnessTransitionExtractorAlgorithm(algorithm, mergeOptions);
       }
     }
 

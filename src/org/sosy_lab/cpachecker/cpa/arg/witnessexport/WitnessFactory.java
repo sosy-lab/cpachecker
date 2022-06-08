@@ -623,7 +623,15 @@ class WitnessFactory implements EdgeAppender {
     return Collections.singleton(result);
   }
 
-  // overriden in FaultLocalizationWitnessFactory
+  /**
+   * Getter for additional information. Overwritten at {@link FaultLocalizationWitnessFactory}
+   *
+   * @param pResult current transition condition
+   * @param pEdge replace transition condition over this CFAEdge with original metadata
+   * @param pFromStates abstract state before transitioning over pEdge
+   * @return a new transition condition that contains a minimal number of CPAchecker specific
+   *     metadata.
+   */
   protected TransitionCondition conformWithOriginalWitness(
       TransitionCondition pResult, CFAEdge pEdge, Collection<ARGState> pFromStates) {
     return pResult;
@@ -1490,7 +1498,7 @@ class WitnessFactory implements EdgeAppender {
           label = label.removeAndCopy(KeyDef.ORIGINFILE);
         }
         if (pMergeMetaInformation) {
-          label = mergeMetaData(label, leavingEdge, pEdge);
+          label = mergeMetaData(label, leavingEdge);
         }
         Edge replacementEdge = new Edge(nodeToKeep, leavingEdge.getTarget(), label);
         putEdge(replacementEdge);
@@ -1545,8 +1553,7 @@ class WitnessFactory implements EdgeAppender {
     return replacementEdges;
   }
 
-  protected TransitionCondition mergeMetaData(
-      TransitionCondition pLabel, Edge pLeavingEdge, Edge pEdge) {
+  protected TransitionCondition mergeMetaData(TransitionCondition pLabel, Edge pLeavingEdge) {
     return pLabel.putAllAndCopy(pLeavingEdge.getLabel());
   }
 

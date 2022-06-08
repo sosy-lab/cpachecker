@@ -29,6 +29,7 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.Optionals;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
+import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.trace_formula.FaultLocalizationMergeOptions;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
@@ -58,28 +59,33 @@ public class WitnessTransitionExtractorAlgorithm
 
   private final Algorithm algorithm;
   private final StatTimer timer = new StatTimer("Total time for finding edges");
+  private final FaultLocalizationMergeOptions mergeOptions;
 
   /**
    * Simulates a fault localization algorithm that reduces the edges in the counterexample to the
    * edges contained in a given witness.
    *
    * @param pAlgorithm arbitrary algorithm that validates a witness
+   * @param pMergeOptions how to merge fault if another fault localization algorithm was run before
+   *     this algorithm
    */
-  public WitnessTransitionExtractorAlgorithm(Algorithm pAlgorithm) {
+  public WitnessTransitionExtractorAlgorithm(
+      Algorithm pAlgorithm, FaultLocalizationMergeOptions pMergeOptions) {
     algorithm = pAlgorithm;
+    mergeOptions = pMergeOptions;
   }
 
   @Override
-  public AlgorithmStatus run(ReachedSet reachedSet)
-      throws CPAException, InterruptedException {
+  public AlgorithmStatus run(ReachedSet reachedSet) throws CPAException, InterruptedException {
     // take the ARGPath and find all CFAEdges along the path where WitnessAutomatonState changed!
     AlgorithmStatus status = algorithm.run(reachedSet);
     Map<AutomatonState, ARGState> stateMap = new HashMap<>();
     for (AbstractState abstractState : reachedSet) {
       stateMap.put(witnessStateFromARGState((ARGState) abstractState), (ARGState) abstractState);
     }
-    Set<GraphMLTransition> allTransitions = findAllTransitionsOfAutomaton((ARGState) Objects.requireNonNull(
-        reachedSet.getFirstState()));
+    Set<GraphMLTransition> allTransitions =
+        findAllTransitionsOfAutomaton(
+            (ARGState) Objects.requireNonNull(reachedSet.getFirstState()));
     Multimap<ARGState, TracingInformation> information = ArrayListMultimap.create();
     for (TracingInformation coveredTransition :
         AutomatonTracker.getInstance().getCoveredTransitions()) {
@@ -117,11 +123,11 @@ public class WitnessTransitionExtractorAlgorithm
       }
       Fault witnessFault = FaultUtil.fromEdges(relevantEdges);
       witnessFault.addInfo(new AppendixFaultInfo(information, allTransitions));
-      List<Fault> singleFault =
-          ImmutableList.of(witnessFault);
+      List<Fault> singleFault = ImmutableList.of(witnessFault);
 
       // adapt counterexample
-      new FaultLocalizationInfo(singleFault, info).apply();
+      new FaultLocalizationInfo(singleFault, info)
+          .apply(mergeOptions.getMergeStrategy(), mergeOptions.getSelectionStrategy());
     }
     timer.stop();
     return status;
@@ -148,10 +154,8 @@ public class WitnessTransitionExtractorAlgorithm
   }
 
   @Override
-  public void printStatistics(
-      PrintStream out, Result result, UnmodifiableReachedSet reached) {
-    StatisticsWriter.writingStatisticsTo(out)
-        .put(timer);
+  public void printStatistics(PrintStream out, Result result, UnmodifiableReachedSet reached) {
+    StatisticsWriter.writingStatisticsTo(out).put(timer);
   }
 
   @Override
@@ -168,7 +172,8 @@ public class WitnessTransitionExtractorAlgorithm
   }
 
   private static Set<GraphMLTransition> findAllTransitionsOfAutomaton(ARGState pState) {
-    AutomatonWithMetaData automaton = (AutomatonWithMetaData) witnessStateFromARGState(pState).getOwningAutomaton();
+    AutomatonWithMetaData automaton =
+        (AutomatonWithMetaData) witnessStateFromARGState(pState).getOwningAutomaton();
     return ImmutableSet.copyOf(automaton.getTransitions().values());
   }
 
@@ -177,7 +182,8 @@ public class WitnessTransitionExtractorAlgorithm
     private final Multimap<ARGState, TracingInformation> information;
     private final Set<GraphMLTransition> transitions;
 
-    protected AppendixFaultInfo(Multimap<ARGState, TracingInformation> pInformation, Set<GraphMLTransition> pTransitions) {
+    protected AppendixFaultInfo(
+        Multimap<ARGState, TracingInformation> pInformation, Set<GraphMLTransition> pTransitions) {
       super(InfoType.REASON);
       transitions = pTransitions;
       information = pInformation;

@@ -26,7 +26,6 @@ import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiabi
 import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.trace_formula.trace.Trace;
 import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.trace_formula.trace.TraceInterpreter;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
-import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.java_smt.api.BooleanFormula;
@@ -212,8 +211,7 @@ public class TraceFormula {
     return instantiate(pContext, precondition, trace, postCondition);
   }
 
-  public static TraceFormula emptyTraceFormula(FormulaContext pContext)
-      throws CPATransferException, InterruptedException {
+  public static TraceFormula emptyTraceFormula(FormulaContext pContext) {
     BooleanFormula trueFormula =
         pContext.getSolver().getFormulaManager().getBooleanFormulaManager().makeTrue();
     return new TraceFormula(

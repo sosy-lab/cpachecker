@@ -46,7 +46,7 @@ import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
  */
 public class FaultLocalizationInfo extends CounterexampleInfo {
 
-  enum FaultLocalizationInfoMergeStrategy {
+  public enum FaultLocalizationInfoMergeStrategy {
     /** Always use the most recent FaultLocalizationInfo instance */
     REPLACE {
       @Override
@@ -92,7 +92,7 @@ public class FaultLocalizationInfo extends CounterexampleInfo {
     public abstract Fault merge(Fault pOldFault, Fault pNewFault);
   }
 
-  enum FaultSelectionStrategy {
+  public enum FaultSelectionStrategy {
     MIN {
       @Override
       public List<Fault> select(List<Fault> pRanked) {
@@ -133,13 +133,6 @@ public class FaultLocalizationInfo extends CounterexampleInfo {
   }
 
   private final ImmutableList<Fault> rankedList;
-
-  // @Option(secure = true, description = "how to merge faults")
-  private final FaultLocalizationInfoMergeStrategy strategy =
-      FaultLocalizationInfoMergeStrategy.RELAXED_INTERSECTION;
-
-  // @Option(secure = true, description = "which faults to sleect")
-  private final FaultSelectionStrategy selectionStrategy = FaultSelectionStrategy.MIN;
 
   private final CounterexampleInfo parentInfo;
 
@@ -336,7 +329,8 @@ public class FaultLocalizationInfo extends CounterexampleInfo {
    * Replace default CounterexampleInfo with this extended version. Activates the visual
    * representation of fault localization.
    */
-  public void apply() {
+  public void apply(
+      FaultLocalizationInfoMergeStrategy mergeStrategy, FaultSelectionStrategy selectionStrategy) {
     List<Fault> currentList = getRankedList();
     if (parentInfo instanceof FaultLocalizationInfo) {
       necessaryWitnessEdges.addAll(((FaultLocalizationInfo) parentInfo).necessaryWitnessEdges);
@@ -347,7 +341,7 @@ public class FaultLocalizationInfo extends CounterexampleInfo {
       Set<Fault> newFaults = new HashSet<>(currentList.size() * previousList.size());
       for (Fault faultContributions : currentList) {
         for (Fault contributions : previousList) {
-          newFaults.add(strategy.merge(contributions, faultContributions));
+          newFaults.add(mergeStrategy.merge(contributions, faultContributions));
         }
       }
       currentList = newFaults.stream().sorted().collect(ImmutableList.toImmutableList());
@@ -356,5 +350,13 @@ public class FaultLocalizationInfo extends CounterexampleInfo {
     super.getTargetPath()
         .getLastState()
         .replaceCounterexampleInformation(exchangeList(currentList));
+  }
+
+  /**
+   * Replace default CounterexampleInfo with this extended version. Activates the visual
+   * representation of fault localization.
+   */
+  public void apply() {
+    apply(FaultLocalizationInfoMergeStrategy.RELAXED_INTERSECTION, FaultSelectionStrategy.FIRST);
   }
 }

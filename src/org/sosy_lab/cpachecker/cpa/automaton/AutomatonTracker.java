@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.cpa.automaton;
 
 import java.util.LinkedHashSet;
+import java.util.Objects;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 
@@ -91,23 +92,19 @@ public class AutomatonTracker {
 
     @Override
     public boolean equals(Object pO) {
-      if (this == pO) {
-        return true;
-      }
-      if (pO == null || getClass() != pO.getClass()) {
+      if (!(pO instanceof TracingInformation)) {
         return false;
       }
       TracingInformation that = (TracingInformation) pO;
-      return com.google.common.base.Objects.equal(edge, that.edge)
-          && com.google.common.base.Objects.equal(transition, that.transition)
-          && com.google.common.base.Objects.equal(to, that.to)
-          && com.google.common.base.Objects.equal(from, that.from);
+      return Objects.equals(edge, that.edge)
+          && Objects.equals(transition, that.transition)
+          && Objects.equals(to, that.to)
+          && Objects.equals(from, that.from);
     }
 
     @Override
     public int hashCode() {
-      return com.google.common.base.Objects.hashCode(edge, transition, from, to);
+      return Objects.hash(edge, transition, from, to);
     }
   }
-
 }

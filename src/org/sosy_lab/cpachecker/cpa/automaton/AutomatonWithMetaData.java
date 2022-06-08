@@ -19,7 +19,8 @@ public class AutomatonWithMetaData extends Automaton {
   public AutomatonWithMetaData(
       String pName,
       Map<String, AutomatonVariable> pVars,
-      List<AutomatonInternalState> pStates, String pInitialStateName,
+      List<AutomatonInternalState> pStates,
+      String pInitialStateName,
       Map<AutomatonTransition, GraphMLTransition> pTransitions)
       throws InvalidAutomatonException {
     super(pName, pVars, pStates, pInitialStateName);

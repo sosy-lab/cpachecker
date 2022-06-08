@@ -39,6 +39,7 @@ import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiabi
 import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.error_invariants.IntervalReportWriter;
 import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.rankings.CallHierarchyScoring;
 import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.rankings.EdgeTypeScoring;
+import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.trace_formula.FaultLocalizationMergeOptions;
 import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.trace_formula.FormulaContext;
 import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.trace_formula.InvalidCounterexampleException;
 import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.trace_formula.TraceFormula;
@@ -154,15 +155,19 @@ public class FaultLocalizationWithTraceFormula
           "whether maxsat algorithms should stop after they found the first minimal unsat core")
   private boolean stopAfterFirstFault = false;
 
+  private final FaultLocalizationMergeOptions mergeOptions;
+
   public FaultLocalizationWithTraceFormula(
       final Algorithm pStoreAlgorithm,
       final Configuration pConfig,
       final LogManager pLogger,
       final CFA pCfa,
-      final ShutdownNotifier pShutdownNotifier)
+      final ShutdownNotifier pShutdownNotifier,
+      final FaultLocalizationMergeOptions pMergeOptions)
       throws InvalidConfigurationException {
 
     logger = pLogger;
+    mergeOptions = pMergeOptions;
 
     // Options
     pConfig.inject(this);
@@ -415,12 +420,6 @@ public class FaultLocalizationWithTraceFormula
 
       throw new CPAException(
           "Found an infeasible counterexample. Fault localization not possible.", pE);
-      /*Fault relevant = FaultUtil.fromEdges(edgeList);
-      relevant.addInfo(
-          FaultInfo.justify(
-              "Fault localization was executed on an infeasible counterexample. "
-                  + "This fault marks all edges along the wrong error path."));
-      apply(new FaultLocalizationInfo(ImmutableList.of(relevant), pInfo));*/
     }
   }
 
@@ -483,6 +482,6 @@ public class FaultLocalizationWithTraceFormula
     }
 
     pInfo.getHtmlWriter().hideTypes(InfoType.RANK_INFO);
-    pInfo.apply();
+    pInfo.apply(mergeOptions.getMergeStrategy(), mergeOptions.getSelectionStrategy());
   }
 }

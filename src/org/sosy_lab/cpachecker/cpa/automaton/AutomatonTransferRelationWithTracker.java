@@ -233,13 +233,18 @@ public class AutomatonTransferRelationWithTracker extends AutomatonTransferRelat
     }
   }
 
-  private void track(AutomatonState state, AutomatonState lSuccessor, CFAEdge edge, AutomatonTransition transition) {
+  private void track(
+      AutomatonState state,
+      AutomatonState lSuccessor,
+      CFAEdge edge,
+      AutomatonTransition transition) {
     Automaton owningAutomaton = state.getOwningAutomaton();
     if (owningAutomaton instanceof AutomatonWithMetaData) {
       AutomatonWithMetaData metaData = (AutomatonWithMetaData) owningAutomaton;
       Map<AutomatonTransition, GraphMLTransition> data = metaData.getTransitions();
       if (data.containsKey(transition)) {
-        AutomatonTracker.getInstance().track(TracingInformation.of(state, lSuccessor, edge, data.get(transition)));
+        AutomatonTracker.getInstance()
+            .track(TracingInformation.of(state, lSuccessor, edge, data.get(transition)));
       }
     }
   }

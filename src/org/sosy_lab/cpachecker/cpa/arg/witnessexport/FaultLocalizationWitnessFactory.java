@@ -8,12 +8,12 @@
 
 package org.sosy_lab.cpachecker.cpa.arg.witnessexport;
 
+import static com.google.common.base.Preconditions.checkArgument;
 import static org.sosy_lab.common.collect.Collections3.transformedImmutableSetCopy;
 import static org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.SINK_NODE_ID;
 
 import com.google.common.base.Function;
 import com.google.common.base.Joiner;
-import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.ImmutableSet;
@@ -67,14 +67,22 @@ public class FaultLocalizationWitnessFactory extends WitnessFactory {
       @Nullable String pDefaultSourceFileName,
       WitnessType pGraphType,
       InvariantProvider pInvariantProvider) {
-    super(pOptions, pCfa, pLogger, pMetaData, pFactory, pSimplifier, pDefaultSourceFileName,
-        pGraphType, pInvariantProvider);
+    super(
+        pOptions,
+        pCfa,
+        pLogger,
+        pMetaData,
+        pFactory,
+        pSimplifier,
+        pDefaultSourceFileName,
+        pGraphType,
+        pInvariantProvider);
   }
 
   @Override
   protected TransitionCondition conformWithOriginalWitness(
       TransitionCondition pResult, CFAEdge pEdge, final Collection<ARGState> pFromStates) {
-    Preconditions.checkArgument(
+    checkArgument(
         pFromStates.size() == 1,
         "pFromStates cannot contain more than one element but has: " + pFromStates);
     Map<KeyDef, String> keys = new HashMap<>();
@@ -171,7 +179,6 @@ public class FaultLocalizationWitnessFactory extends WitnessFactory {
       if (sink) {
         break;
       }
-
     }
 
     if (!relevant) {
@@ -231,31 +238,29 @@ public class FaultLocalizationWitnessFactory extends WitnessFactory {
         // valueMap = Multimaps.filterValues(valueMap, v -> edgesInFault.contains(v.getCFAEdge()));
       }
     }
-    return super.produceWitness(pRootState, pIsRelevantState, pIsRelevantEdge, pIsCyclehead, cycleHeadToQuasiInvariant, pCounterExample, pGraphBuilder);
+    return super.produceWitness(
+        pRootState,
+        pIsRelevantState,
+        pIsRelevantEdge,
+        pIsCyclehead,
+        cycleHeadToQuasiInvariant,
+        pCounterExample,
+        pGraphBuilder);
   }
 
   @Override
-  protected TransitionCondition mergeMetaData(TransitionCondition pLabel, Edge pLeavingEdge, Edge pEdge) {
+  protected TransitionCondition mergeMetaData(TransitionCondition pLabel, Edge pLeavingEdge) {
     Set<KeyDef> available = new HashSet<>(pLabel.getMapping().keySet());
     available.removeAll(pLeavingEdge.getLabel().getMapping().keySet());
-    available.remove(KeyDef.STARTLINE);
+    /*available.remove(KeyDef.STARTLINE);
     available.remove(KeyDef.ENDLINE);
     available.remove(KeyDef.ASSUMPTION);
     available.remove(KeyDef.ASSUMPTIONRESULTFUNCTION);
-    available.remove(KeyDef.ASSUMPTIONSCOPE);
+    available.remove(KeyDef.ASSUMPTIONSCOPE);*/
     pLabel = pLabel.putAllAndCopy(pLeavingEdge.getLabel());
     for (KeyDef keyDef : available) {
       pLabel = pLabel.removeAndCopy(keyDef);
     }
-    /*label = label.removeAndCopy(KeyDef.OFFSET);
-    label = label.removeAndCopy(KeyDef.ENDOFFSET);
-    label = label.removeAndCopy(KeyDef.FUNCTIONENTRY);
-    label = label.removeAndCopy(KeyDef.FUNCTIONEXIT);
-    label = label.removeAndCopy(KeyDef.CONTROLCASE);
-    if (!pLeavingEdge.getLabel().getMapping().containsKey(KeyDef.ENTERLOOPHEAD)) {
-      pLabel = pLabel.removeAndCopy(KeyDef.ENTERLOOPHEAD);
-    }*/
     return pLabel;
   }
-
 }
