@@ -193,38 +193,44 @@ class ASTConverter {
     ImmutableMap.Builder<String, Optional<FunctionAttribute>> builder = ImmutableMap.builder();
     KNOWN_FUNCTION_ATTRIBUTES =
         builder
+            // occurs in sv-benchmarks
+            .put("ldv_model", Optional.empty())
+            .put("ldv_model_inline", Optional.empty())
+            // https://gcc.gnu.org/onlinedocs/gcc-12.1.0/gcc/Common-Function-Attributes.html
             .put("access", Optional.empty())
             .put("alias", Optional.empty())
             .put("aligned", Optional.empty())
             .put("alloc_size", Optional.empty())
             .put("always_inline", Optional.empty())
-            .put("cdecl", Optional.empty())
             .put("const", Optional.empty())
-            .put("dllimport", Optional.empty())
-            .put("fastcall", Optional.empty())
-            .put("format", Optional.empty())
             .put("deprecated", Optional.empty())
-            .put("ldv_model", Optional.empty())
-            .put("ldv_model_inline", Optional.empty())
+            .put("warning", Optional.empty())
+            .put("format", Optional.empty())
             .put("leaf", Optional.empty())
             .put("malloc", Optional.empty())
-            .put("mode", Optional.empty()) // handled in ASTConverter
             .put("no_instrument_function", Optional.empty())
             .put("noinline", Optional.empty())
             .put("nonnull", Optional.empty())
             .put("noreturn", Optional.of(FunctionAttribute.NO_RETURN))
             .put("nothrow", Optional.empty())
             .put("pure", Optional.empty())
-            .put("regparm", Optional.empty())
             .put("returns_twice", Optional.empty())
             .put("section", Optional.empty())
-            .put("stdcall", Optional.empty())
-            .put("warn_unused_result", Optional.empty())
             .put("unused", Optional.empty())
             .put("used", Optional.empty())
             .put("visibility", Optional.empty())
-            .put("warning", Optional.empty())
+            .put("warn_unused_result", Optional.empty())
             .put("weak", Optional.empty())
+            // https://gcc.gnu.org/onlinedocs/gcc-12.1.0/gcc/x86-Function-Attributes.html
+            .put("cdecl", Optional.empty())
+            .put("fastcall", Optional.empty())
+            .put("regparm", Optional.empty())
+            .put("stdcall", Optional.empty())
+            // https://gcc.gnu.org/onlinedocs/gcc/Common-Variable-Attributes.html
+            // might end up as a funciton attribute when used for the return type?
+            .put("mode", Optional.empty()) // handled by this class
+            // https://gcc.gnu.org/onlinedocs/gcc-12.1.0/gcc/Microsoft-Windows-Function-Attributes.html
+            .put("dllimport", Optional.empty())
             .buildOrThrow();
   }
 
