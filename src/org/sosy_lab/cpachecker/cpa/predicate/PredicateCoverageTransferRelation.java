@@ -50,7 +50,10 @@ public class PredicateCoverageTransferRelation extends PredicateTransferRelation
   private final TimeDependentCoverageData predicateRelevantVariablesTDCG;
   private final TimeDependentCoverageData predicateAbstractionVariablesTDCG;
   private final FormulaManagerView fmgr;
-  private static final double RELEVANT_VARIABLES_FREQUENCY_FACTOR = 0.5;
+
+  // should be a value between 0 and 1, the lower, the more variables will be sorted out
+  private static final double RELEVANT_VARIABLES_FREQUENCY_FACTOR = 0.75;
+
   private int predicatesInUse = 0;
   private boolean isFirstTransferRelation = true;
 
@@ -190,10 +193,6 @@ public class PredicateCoverageTransferRelation extends PredicateTransferRelation
     if (shouldAddPredicate(precision)) {
       predicatesInUse = getAllPredicates(precision).size();
       predicateTDCG.addTimestamp(predicatesInUse);
-
-      predicateRelevantVariablesTDCG.resetTimeStamps();
-      predicateRelevantVariablesTDCG.addTimestamp(0);
-      coverageCollector.resetPredicateRelevantVariablesLocations();
     }
   }
 

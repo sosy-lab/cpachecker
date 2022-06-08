@@ -55,12 +55,6 @@ public class PredicateAnalysisCoverageCollector extends CoverageCollector {
     predicateAbstractionVariables.addAll(pVariableNames);
   }
 
-  public void resetPredicateRelevantVariablesLocations() {
-    oldPredicateRelevantVariablesLocations =
-        ImmutableSet.copyOf(predicateRelevantVariablesLocations);
-    predicateRelevantVariablesLocations.clear();
-  }
-
   public double getTempPredicateConsideredCoverage() {
     return getTempCoverage(TimeDependentCoverageType.PredicateConsideredLocations);
   }

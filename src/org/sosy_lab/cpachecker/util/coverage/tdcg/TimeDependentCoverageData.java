@@ -22,7 +22,6 @@ import org.sosy_lab.common.time.TimeSpan;
  */
 public class TimeDependentCoverageData {
   private List<TimeDependentCoverageDataElement> coveragePerTimestamps;
-  private List<TimeDependentCoverageDataElement> previousCoveragePerTimeStamps;
   private long startTimeInNanos = 0;
   private final TickerWithUnit TICKER = Tickers.getWalltimeNanos();
 
@@ -51,7 +50,6 @@ public class TimeDependentCoverageData {
 
   public TimeDependentCoverageData() {
     initCoveragePerTimestamps();
-    previousCoveragePerTimeStamps = new ArrayList<>();
   }
 
   public void addTimestamp(double coverage) {
@@ -59,29 +57,11 @@ public class TimeDependentCoverageData {
         new TimeDependentCoverageDataElement(getDurationInMicros(), coverage));
   }
 
-  public void resetTimeStamps() {
-    startTimeInNanos = 0;
-    previousCoveragePerTimeStamps = coveragePerTimestamps;
-    initCoveragePerTimestamps();
-  }
-
   public List<TimeDependentCoverageDataElement> getReducedCoveragePerTimestamps(int max) {
     return thinOutMap(getCoveragePerTimestamps(), max);
   }
 
   public List<TimeDependentCoverageDataElement> getCoveragePerTimestamps() {
-    if (!previousCoveragePerTimeStamps.isEmpty()) {
-      double maxPreviousCoverage =
-          previousCoveragePerTimeStamps.stream()
-              .map(l -> l.getValue())
-              .reduce(Double::max)
-              .orElseThrow();
-      double maxCoverage =
-          coveragePerTimestamps.stream().map(l -> l.getValue()).reduce(Double::max).orElseThrow();
-      if (maxPreviousCoverage > maxCoverage) {
-        return previousCoveragePerTimeStamps;
-      }
-    }
     return coveragePerTimestamps;
   }
 
