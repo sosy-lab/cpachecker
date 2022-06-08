@@ -903,8 +903,7 @@ public class CFASingleLoopTransformation {
     }
     while (!nodesWithNoIdAssigned.isEmpty()) {
       this.shutdownNotifier.shutdownIfNecessary();
-      CFAReversePostorder sorter = new CFAReversePostorder();
-      sorter.assignSorting(nodesWithNoIdAssigned.iterator().next());
+      CFAReversePostorder.assignIds(nodesWithNoIdAssigned.iterator().next());
       nodesWithNoIdAssigned =
           from(nodesWithNoIdAssigned)
               .filter(pArg0 -> pArg0 == null ? false : pArg0.getReversePostorderId() < 0)
