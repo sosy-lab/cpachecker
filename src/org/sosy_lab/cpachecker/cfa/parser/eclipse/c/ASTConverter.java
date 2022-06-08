@@ -1194,8 +1194,10 @@ class ASTConverter {
         sideAssignmentStack.getAndResetPreSideAssignments();
         sideAssignmentStack.leaveBlock();
         if (params.size() == 2) {
-          if (areCompatibleTypes(
-              params.get(0).getExpressionType(), params.get(1).getExpressionType())) {
+          // Expression from convertExpressionWithoutSideEffects is null if type was void
+          CType type1 = params.get(0) == null ? CVoidType.VOID : params.get(0).getExpressionType();
+          CType type2 = params.get(1) == null ? CVoidType.VOID : params.get(1).getExpressionType();
+          if (areCompatibleTypes(type1, type2)) {
             return CIntegerLiteralExpression.ONE;
           } else {
             return CIntegerLiteralExpression.ZERO;
