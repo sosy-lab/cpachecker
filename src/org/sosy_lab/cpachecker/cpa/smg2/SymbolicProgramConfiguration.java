@@ -11,7 +11,7 @@ package org.sosy_lab.cpachecker.cpa.smg2;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.FluentIterable;
-import com.google.common.collect.HashBiMap;
+import com.google.common.collect.ImmutableBiMap;
 import com.google.common.collect.Sets;
 import com.google.common.collect.Streams;
 import java.math.BigInteger;
@@ -80,7 +80,7 @@ public class SymbolicProgramConfiguration {
    * the SPC! TODO: use SymbolicRegionManager or smth like it in a changed implementation of the
    * value. TODO: map the SMGValues using the SPC mapping or decide on a new mapping idea
    */
-  private final BiMap<Value, SMGValue> valueMapping;
+  private final ImmutableBiMap<Value, SMGValue> valueMapping;
 
   private SymbolicProgramConfiguration(
       SMG pSmg,
@@ -88,7 +88,7 @@ public class SymbolicProgramConfiguration {
       PersistentStack<StackFrame> pStackVariableMapping,
       PersistentSet<SMGObject> pHeapObjects,
       PersistentMap<SMGObject, Boolean> pExternalObjectAllocation,
-      BiMap<Value, SMGValue> pValueMapping) {
+      ImmutableBiMap<Value, SMGValue> pValueMapping) {
     globalVariableMapping = pGlobalVariableMapping;
     stackVariableMapping = pStackVariableMapping;
     smg = pSmg;
@@ -117,7 +117,7 @@ public class SymbolicProgramConfiguration {
       PersistentStack<StackFrame> pStackVariableMapping,
       PersistentSet<SMGObject> pHeapObjects,
       PersistentMap<SMGObject, Boolean> pExternalObjectAllocation,
-      BiMap<Value, SMGValue> pValueMapping) {
+      ImmutableBiMap<Value, SMGValue> pValueMapping) {
     return new SymbolicProgramConfiguration(
         pSmg,
         pGlobalVariableMapping,
@@ -134,15 +134,13 @@ public class SymbolicProgramConfiguration {
    * @return The newly created {@link SymbolicProgramConfiguration}.
    */
   public static SymbolicProgramConfiguration of(BigInteger sizeOfPtr) {
-    BiMap<Value, SMGValue> emptyMap = HashBiMap.create();
-    emptyMap.put(new NumericValue(0), SMGValue.zeroValue());
     return new SymbolicProgramConfiguration(
         new SMG(sizeOfPtr),
         PathCopyingPersistentTreeMap.of(),
         PersistentStack.of(),
         PersistentSet.of(),
         PathCopyingPersistentTreeMap.of(),
-        emptyMap);
+        ImmutableBiMap.of(new NumericValue(0), SMGValue.zeroValue()));
   }
 
   /**
@@ -228,6 +226,34 @@ public class SymbolicProgramConfiguration {
         heapObjects,
         externalObjectAllocation,
         valueMapping);
+  }
+
+  /**
+   * Replaces the Value mapping of the oldValue <-> SMGValue to the newValueToBeAssigned for the
+   * same SMGValue. (Represents a change of Value without a write operation)
+   *
+   * @param oldValue The {@link Value} currently mapped to a {@link SMGValue} that should be
+   *     replaced.
+   * @param newValueToBeAssigned the new {@link Value} that should replace the old Value.
+   * @return a SPC with the mapping of the Value replaced with the new one.
+   */
+  public SymbolicProgramConfiguration copyAndReplaceValueMapping(
+      SMGValue oldValue, Value newValueToBeAssigned) {
+    ImmutableBiMap.Builder<Value, SMGValue> builder = ImmutableBiMap.builder();
+    for (Entry<Value, SMGValue> entry : valueMapping.entrySet()) {
+      if (entry.getKey() == oldValue) {
+        builder.put(newValueToBeAssigned, entry.getValue());
+      } else {
+        builder.put(entry);
+      }
+    }
+    return of(
+        smg,
+        globalVariableMapping,
+        stackVariableMapping,
+        heapObjects,
+        externalObjectAllocation,
+        builder.build());
   }
 
   /**
@@ -411,20 +437,21 @@ public class SymbolicProgramConfiguration {
   /**
    * Copies the {@link SymbolicProgramConfiguration} and puts the mapping for the cValue to the
    * smgValue (and vice versa) into the returned copy. Note: the value is not yet added to the SMG!
+   * And if there is a mapping already present for a Value or SMGValue this will fail!
    *
    * @param cValue {@link CValue} that is mapped to the entered smgValue.
    * @param smgValue {@link SMGValue} that is mapped to the entered cValue.
    * @return A copy of this SPC with the value mapping added.
    */
   public SymbolicProgramConfiguration copyAndPutValue(Value cValue, SMGValue smgValue) {
-    valueMapping.put(cValue, smgValue);
+    ImmutableBiMap.Builder<Value, SMGValue> builder = ImmutableBiMap.builder();
     return of(
         smg,
         globalVariableMapping,
         stackVariableMapping,
         heapObjects,
         externalObjectAllocation,
-        valueMapping);
+        builder.putAll(valueMapping).put(cValue, smgValue).build());
   }
 
   /**
