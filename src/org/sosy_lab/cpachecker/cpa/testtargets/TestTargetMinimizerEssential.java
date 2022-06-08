@@ -23,8 +23,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.Pair;
-import org.sosy_lab.cpachecker.util.dependencegraph.Dominance;
-import org.sosy_lab.cpachecker.util.dependencegraph.Dominance.DomTree;
+import org.sosy_lab.cpachecker.util.graph.dominance.DomTree;
 
 public class TestTargetMinimizerEssential {
 
@@ -359,10 +358,10 @@ public class TestTargetMinimizerEssential {
     CFAEdge removedEdge;
 
     DomTree<CFANode> inverseDomTree =
-        Dominance.createDomTree(
-            pCopiedFunctionEntryExit.getSecond(),
+        DomTree.forGraph(
+            CFAUtils::allSuccessorsOf,
             CFAUtils::allPredecessorsOf,
-            CFAUtils::allSuccessorsOf);
+            pCopiedFunctionEntryExit.getSecond());
 
     waitlist.add(pCopiedFunctionEntryExit.getFirst());
     visitedNodes.add(pCopiedFunctionEntryExit.getFirst());
@@ -371,8 +370,7 @@ public class TestTargetMinimizerEssential {
       ruleApplicable = currentNode.getNumEnteringEdges() > 0;
       removedEdge = null;
       for (CFAEdge leavingEdge : CFAUtils.leavingEdges(currentNode)) {
-        if (!inverseDomTree.isAncestorOf(
-            inverseDomTree.getId(leavingEdge.getSuccessor()), inverseDomTree.getId(currentNode))) {
+        if (!inverseDomTree.isAncestorOf(leavingEdge.getSuccessor(), currentNode)) {
           if (removedEdge == null) {
             removedEdge = leavingEdge;
             if (entersProgramStart(removedEdge, pCopiedFunctionEntryExit.getFirst())
@@ -420,8 +418,8 @@ public class TestTargetMinimizerEssential {
 
     // create domination relationship on the reduced graph
     DomTree<CFANode> domTree =
-        Dominance.createDomTree(
-            copiedFunctionEntry, CFAUtils::allSuccessorsOf, CFAUtils::allPredecessorsOf);
+        DomTree.forGraph(
+            CFAUtils::allPredecessorsOf, CFAUtils::allSuccessorsOf, copiedFunctionEntry);
     // start at entry node because why not?
     waitlist.add(copiedFunctionEntry);
     visitedNodes.add(copiedFunctionEntry);
@@ -430,8 +428,7 @@ public class TestTargetMinimizerEssential {
       ruleApplicable = currentNode.getNumLeavingEdges() > 0;
       removedEdge = null;
       for (CFAEdge enteringEdge : CFAUtils.enteringEdges(currentNode)) {
-        if (!domTree.isAncestorOf(
-            domTree.getId(currentNode), domTree.getId(enteringEdge.getPredecessor()))) {
+        if (!domTree.isAncestorOf(currentNode, enteringEdge.getPredecessor())) {
           if (removedEdge == null) {
             removedEdge = enteringEdge;
             if (entersProgramStart(removedEdge, copiedFunctionEntry) || isSelfLoop(removedEdge)) {

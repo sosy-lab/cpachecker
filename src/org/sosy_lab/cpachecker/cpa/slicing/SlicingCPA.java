@@ -84,7 +84,7 @@ public class SlicingCPA extends AbstractSingleWrapperCPA implements StatisticsPr
       final Configuration pConfig,
       final CFA pCfa,
       final Specification pSpec)
-      throws CPAException, InvalidConfigurationException {
+      throws CPAException, InvalidConfigurationException, InterruptedException {
     super(pCpa);
     pConfig.inject(this);
 

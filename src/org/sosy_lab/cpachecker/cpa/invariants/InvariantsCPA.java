@@ -116,6 +116,7 @@ public class InvariantsCPA
             "the maximum number of variables to consider as interesting. -1 one disables the limit,"
                 + " but this is not recommended. 0 means that no variables are considered to be"
                 + " interesting.")
+    @IntegerOption(min = -1)
     private volatile int interestingVariableLimit = 2;
 
     @Option(

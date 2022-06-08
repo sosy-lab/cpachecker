@@ -612,10 +612,7 @@ public class CFACreator {
     // THIRD, do read-only post-processings on each single function CFA
 
     // Annotate CFA nodes with reverse postorder information for later use.
-    for (FunctionEntryNode function : cfa.getAllFunctionHeads()) {
-      CFAReversePostorder sorter = new CFAReversePostorder();
-      sorter.assignSorting(function);
-    }
+    cfa.getAllFunctionHeads().forEach(CFAReversePostorder::assignIds);
 
     // get loop information
     // (needs post-order information)
@@ -713,10 +710,7 @@ public class CFACreator {
       new LabelAdder(config).addLabels(pCfa);
 
       // Re-compute postorder ids to include newly added label nodes
-      for (FunctionEntryNode function : pCfa.getAllFunctionHeads()) {
-        CFAReversePostorder sorter = new CFAReversePostorder();
-        sorter.assignSorting(function);
-      }
+      pCfa.getAllFunctionHeads().forEach(CFAReversePostorder::assignIds);
     }
   }
 
