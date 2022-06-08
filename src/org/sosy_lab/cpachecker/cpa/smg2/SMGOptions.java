@@ -229,6 +229,11 @@ public class SMGOptions {
               + "when the true-branch is handled.")
   private boolean initAssumptionVars = false;
 
+  @Option(
+      secure = true,
+      description = "Assume that variables used only in a boolean context are either zero or one.")
+  private boolean optimizeBooleanVariables = true;
+
   public enum SMGExportLevel {
     NEVER,
     LEAF,
@@ -238,6 +243,10 @@ public class SMGOptions {
 
   public SMGOptions(Configuration config) throws InvalidConfigurationException {
     config.inject(this);
+  }
+
+  boolean isOptimizeBooleanVariables() {
+    return optimizeBooleanVariables;
   }
 
   boolean isInitAssumptionVars() {
