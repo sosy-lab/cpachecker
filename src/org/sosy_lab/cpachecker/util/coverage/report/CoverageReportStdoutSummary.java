@@ -151,6 +151,29 @@ public class CoverageReportStdoutSummary {
 
   private static void writeVariableRelatedCoverage(
       CoverageMeasureHandler handler, PrintStream pStdOut) {
+    CoverageMeasure visitedVariables = handler.getData(CoverageMeasureType.VISITED_VARIABLES);
+    if (visitedVariables == null || visitedVariables.getMaxValue() <= 0) {
+      return;
+    }
+    StatisticsUtils.write(
+        pStdOut,
+        INDENT_LEVEL,
+        FIELD_COLUMN_WIDTH,
+        CoverageMeasureType.VISITED_VARIABLES.getCoverageName(),
+        String.format("%.2f", visitedVariables.getNormalizedValue()));
+    StatisticsUtils.write(
+        pStdOut,
+        INDENT_LEVEL,
+        FIELD_COLUMN_WIDTH,
+        CoverageMeasureType.VISITED_VARIABLES.getName(),
+        String.format("%.0f", visitedVariables.getValue()));
+    StatisticsUtils.write(
+        pStdOut,
+        INDENT_LEVEL,
+        FIELD_COLUMN_WIDTH,
+        "Total variables",
+        String.format("%.0f", visitedVariables.getMaxValue()));
+
     CoverageMeasure abstractionVariables =
         handler.getData(CoverageMeasureType.PREDICATE_ABSTRACTION_VARIABLES);
     if (abstractionVariables == null || abstractionVariables.getMaxValue() <= 0) {
@@ -174,28 +197,5 @@ public class CoverageReportStdoutSummary {
         FIELD_COLUMN_WIDTH,
         "Total variables",
         String.format("%.0f", abstractionVariables.getMaxValue()));
-
-    CoverageMeasure visitedVariables = handler.getData(CoverageMeasureType.VISITED_VARIABLES);
-    if (visitedVariables == null || visitedVariables.getMaxValue() <= 0) {
-      return;
-    }
-    StatisticsUtils.write(
-        pStdOut,
-        INDENT_LEVEL,
-        FIELD_COLUMN_WIDTH,
-        CoverageMeasureType.VISITED_VARIABLES.getCoverageName(),
-        String.format("%.2f", visitedVariables.getNormalizedValue()));
-    StatisticsUtils.write(
-        pStdOut,
-        INDENT_LEVEL,
-        FIELD_COLUMN_WIDTH,
-        CoverageMeasureType.VISITED_VARIABLES.getName(),
-        String.format("%.0f", visitedVariables.getValue()));
-    StatisticsUtils.write(
-        pStdOut,
-        INDENT_LEVEL,
-        FIELD_COLUMN_WIDTH,
-        "Total variables",
-        String.format("%.0f", visitedVariables.getMaxValue()));
   }
 }
