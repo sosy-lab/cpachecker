@@ -28,7 +28,6 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
@@ -139,13 +138,14 @@ class MainCPAStatistics implements Statistics {
   private @Nullable Statistics cfaCreatorStatistics;
   private @Nullable CFA cfa;
   private @Nullable ConfigurableProgramAnalysis cpa;
+  private final Configuration config;
 
   public MainCPAStatistics(
       Configuration pConfig, LogManager pLogger, ShutdownNotifier pShutdownNotifier)
       throws InvalidConfigurationException {
     logger = pLogger;
     pConfig.inject(this);
-
+    config = pConfig;
     subStats = new ArrayList<>();
 
     if (monitorMemoryUsage) {
@@ -316,15 +316,9 @@ class MainCPAStatistics implements Statistics {
 
   private void exportCoverage(PrintStream out, UnmodifiableReachedSet reached) {
     if (exportCoverage && cfa != null && reached.size() > 1) {
-      Optional<CoverageCollectorHandler> optionalCoverageCollectorHandler =
-          CoverageUtility.getCoverageCollectorHandlerFromReachedSet(reached);
-      CoverageCollectorHandler coverageCollectorHandler;
-      if (optionalCoverageCollectorHandler.isPresent()) {
-        coverageCollectorHandler = optionalCoverageCollectorHandler.orElseThrow();
-        if (!coverageCollectorHandler.shouldCollectCoverageAfterAnalysis()) {
-          return;
-        }
-      } else {
+      CoverageCollectorHandler coverageCollectorHandler =
+          CoverageUtility.getCoverageCollectorHandlerFromReachedSet(reached, cfa, config);
+      if (!coverageCollectorHandler.shouldCollectCoverageAfterAnalysis()) {
         return;
       }
       ReachedSetCoverageCollector coverageCollector =
