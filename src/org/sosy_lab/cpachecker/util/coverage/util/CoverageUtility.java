@@ -8,7 +8,6 @@
 
 package org.sosy_lab.cpachecker.util.coverage.util;
 
-import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.ADeclarationEdge;
@@ -53,7 +52,7 @@ public class CoverageUtility {
    * @return either a backup handler or a unique specified CoverageCollectorHandler instance.
    */
   public static CoverageCollectorHandler getCoverageCollectorHandlerFromReachedSet(
-      UnmodifiableReachedSet pReached, CFA cfa, Configuration config) {
+      UnmodifiableReachedSet pReached, CFA cfa) {
     if (pReached instanceof PartitionedReachedSet) {
       CoverageCPA cpa =
           CPAs.retrieveCPA(((PartitionedReachedSet) pReached).getCPA(), CoverageCPA.class);
@@ -61,6 +60,6 @@ public class CoverageUtility {
         return cpa.getCoverageCollectorHandler();
       }
     }
-    return new CoverageCollectorHandler(cfa, config, false, false);
+    return new CoverageCollectorHandler(cfa);
   }
 }

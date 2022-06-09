@@ -25,7 +25,6 @@ import org.sosy_lab.cpachecker.util.coverage.tdcg.TimeDependentCoverageHandler;
  * Coverage collector handler which holds all coverage collectors. It handles the initialization and
  * access of collectors.
  */
-@Options
 public class CoverageCollectorHandler {
   private final CoverageMeasureHandler coverageMeasureHandler;
   private final TimeDependentCoverageHandler timeDependentCoverageHandler;
@@ -33,16 +32,37 @@ public class CoverageCollectorHandler {
   private final AnalysisIndependentCoverageCollector analysisIndependentCoverageCollector;
   private final PredicateAnalysisCoverageCollector predicateAnalysisCoverageCollector;
   private final Set<CoverageMeasureAnalysisCategory> analysisCategories;
+  private boolean shouldCollectCoverageDuringAnalysis;
+  private boolean shouldCollectCoverageAfterAnalysis;
 
-  @Option(
-      description = "Flag which indicates if we should collect coverage data during the analysis")
-  private boolean shouldCollectCoverageDuringAnalysis = false;
+  @Options
+  private static class CoverageCollectorOption {
+    public CoverageCollectorOption(Configuration config) throws InvalidConfigurationException {
+      config.inject(this);
+    }
 
-  @Option(
-      description = "Flag which indicates if we should collect coverage data after the analysis")
-  private boolean shouldCollectCoverageAfterAnalysis = true;
+    @Option(
+        description = "Flag which indicates if we should collect coverage data during the analysis")
+    private boolean shouldCollectCoverageDuringAnalysis = false;
 
-  public CoverageCollectorHandler(CFA cfa, Configuration config) {
+    @Option(
+        description = "Flag which indicates if we should collect coverage data after the analysis")
+    private boolean shouldCollectCoverageAfterAnalysis = true;
+
+    public boolean shouldCollectCoverageAfterAnalysis() {
+      if (shouldCollectCoverageDuringAnalysis) {
+        return true;
+      } else {
+        return shouldCollectCoverageAfterAnalysis;
+      }
+    }
+
+    public boolean shouldCollectCoverageDuringAnalysis() {
+      return shouldCollectCoverageDuringAnalysis;
+    }
+  }
+
+  public CoverageCollectorHandler(CFA cfa) {
     timeDependentCoverageHandler = new TimeDependentCoverageHandler();
     coverageMeasureHandler = new CoverageMeasureHandler();
     reachedSetCoverageCollector =
@@ -55,25 +75,16 @@ public class CoverageCollectorHandler {
             coverageMeasureHandler, timeDependentCoverageHandler, cfa);
     analysisCategories = new HashSet<>();
     analysisCategories.add(CoverageMeasureAnalysisCategory.ANALYSIS_INDEPENDENT);
-    try {
-      config.inject(this);
-      if (shouldCollectCoverageDuringAnalysis) {
-        shouldCollectCoverageAfterAnalysis = true;
-      }
-    } catch (InvalidConfigurationException e) {
-      // should never happen here
-      throw new AssertionError(e);
-    }
+    shouldCollectCoverageDuringAnalysis = false;
+    shouldCollectCoverageAfterAnalysis = false;
   }
 
-  public CoverageCollectorHandler(
-      CFA cfa,
-      Configuration config,
-      boolean pShouldCollectCoverageDuringAnalysis,
-      boolean pShouldCollectCoverageAfterAnalysis) {
-    this(cfa, config);
-    shouldCollectCoverageDuringAnalysis = pShouldCollectCoverageDuringAnalysis;
-    shouldCollectCoverageAfterAnalysis = pShouldCollectCoverageAfterAnalysis;
+  public CoverageCollectorHandler(CFA cfa, Configuration config)
+      throws InvalidConfigurationException {
+    this(cfa);
+    CoverageCollectorOption option = new CoverageCollectorOption(config);
+    shouldCollectCoverageDuringAnalysis = option.shouldCollectCoverageDuringAnalysis();
+    shouldCollectCoverageAfterAnalysis = option.shouldCollectCoverageAfterAnalysis();
   }
 
   /**

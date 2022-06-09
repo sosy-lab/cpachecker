@@ -138,14 +138,12 @@ class MainCPAStatistics implements Statistics {
   private @Nullable Statistics cfaCreatorStatistics;
   private @Nullable CFA cfa;
   private @Nullable ConfigurableProgramAnalysis cpa;
-  private final Configuration config;
 
   public MainCPAStatistics(
       Configuration pConfig, LogManager pLogger, ShutdownNotifier pShutdownNotifier)
       throws InvalidConfigurationException {
     logger = pLogger;
     pConfig.inject(this);
-    config = pConfig;
     subStats = new ArrayList<>();
 
     if (monitorMemoryUsage) {
@@ -317,7 +315,7 @@ class MainCPAStatistics implements Statistics {
   private void exportCoverage(PrintStream out, UnmodifiableReachedSet reached) {
     if (exportCoverage && cfa != null && reached.size() > 1) {
       CoverageCollectorHandler coverageCollectorHandler =
-          CoverageUtility.getCoverageCollectorHandlerFromReachedSet(reached, cfa, config);
+          CoverageUtility.getCoverageCollectorHandlerFromReachedSet(reached, cfa);
       if (!coverageCollectorHandler.shouldCollectCoverageAfterAnalysis()) {
         return;
       }

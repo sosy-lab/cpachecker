@@ -4272,10 +4272,10 @@ restartAlgorithm.printIntermediateStatistics = true
 restartAlgorithm.writeIntermediateOutputFiles = false
 
 # Flag which indicates if we should collect coverage data after the analysis
-shouldCollectCoverageAfterAnalysis = true
+shouldCollectCoverageAfterAnalysis = no default value
 
 # Flag which indicates if we should collect coverage data during the analysis
-shouldCollectCoverageDuringAnalysis = false
+shouldCollectCoverageDuringAnalysis = no default value
 
 # path to condition file
 slicing.conditionFile = "output/AssumptionAutomaton.txt"
