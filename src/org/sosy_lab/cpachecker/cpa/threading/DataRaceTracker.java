@@ -66,6 +66,38 @@ class DataRaceTracker {
     }
   }
 
+  private static final ImmutableSet<String> THREAD_SAFE_FUNCTIONS =
+      ImmutableSet.of(
+          "pthread_mutex_lock",
+          "pthread_mutex_unlock",
+          "pthread_create",
+          "pthread_mutexattr_init",
+          "pthread_mutexattr_settype",
+          "pthread_mutex_init",
+          "pthread_rwlock_wrlock",
+          "pthread_rwlock_unlock",
+          "pthread_rwlock_rdlock",
+          "pthread_mutex_trylock",
+          "pthread_join",
+          "pthread_cond_wait",
+          "pthread_cond_signal",
+          "pthread_mutex_destroy",
+          "pthread_attr_init",
+          "pthread_attr_setdetachstate",
+          "pthread_attr_destroy",
+          "pthread_cond_init",
+          "pthread_cond_destroy",
+          "pthread_self",
+          "pthread_cleanup_push",
+          "pthread_cleanup_pop",
+          "pthread_cond_broadcast",
+          "pthread_getspecific",
+          "pthread_setspecific",
+          "pthread_key_create",
+          "pthread_exit",
+          "pthread_equal",
+          "pthread_mutexattr_destroy");
+
   private final ImmutableSet<MemoryAccess> memoryAccesses;
   private final boolean hasDataRace;
   private final EdgeAnalyzer edgeAnalyzer;
@@ -150,9 +182,13 @@ class DataRaceTracker {
         break;
       case FunctionCallEdge:
         FunctionCallEdge functionCallEdge = (FunctionCallEdge) edge;
-        for (AExpression argument : functionCallEdge.getArguments()) {
-          accessedLocations.addAll(
-              edgeAnalyzer.getInvolvedVariableTypes(argument, functionCallEdge).keySet());
+        String functionName =
+            functionCallEdge.getFunctionCallExpression().getDeclaration().getName();
+        if (!THREAD_SAFE_FUNCTIONS.contains(functionName)) {
+          for (AExpression argument : functionCallEdge.getArguments()) {
+            accessedLocations.addAll(
+                edgeAnalyzer.getInvolvedVariableTypes(argument, functionCallEdge).keySet());
+          }
         }
         break;
       case ReturnStatementEdge:
@@ -188,10 +224,23 @@ class DataRaceTracker {
         } else if (statement instanceof AFunctionCallAssignmentStatement) {
           AFunctionCallAssignmentStatement functionCallAssignmentStatement =
               (AFunctionCallAssignmentStatement) statement;
-          accessedLocations =
-              edgeAnalyzer
-                  .getInvolvedVariableTypes(functionCallAssignmentStatement, statementEdge)
-                  .keySet();
+          functionName =
+              functionCallAssignmentStatement
+                  .getFunctionCallExpression()
+                  .getDeclaration()
+                  .getName();
+          if (THREAD_SAFE_FUNCTIONS.contains(functionName)) {
+            accessedLocations =
+                edgeAnalyzer
+                    .getInvolvedVariableTypes(
+                        functionCallAssignmentStatement.getLeftHandSide(), statementEdge)
+                    .keySet();
+          } else {
+            accessedLocations =
+                edgeAnalyzer
+                    .getInvolvedVariableTypes(functionCallAssignmentStatement, statementEdge)
+                    .keySet();
+          }
           modifiedLocations =
               edgeAnalyzer
                   .getInvolvedVariableTypes(
@@ -200,10 +249,14 @@ class DataRaceTracker {
           assert accessedLocations.containsAll(modifiedLocations);
         } else if (statement instanceof AFunctionCallStatement) {
           AFunctionCallStatement functionCallStatement = (AFunctionCallStatement) statement;
-          for (AExpression expression :
-              functionCallStatement.getFunctionCallExpression().getParameterExpressions()) {
-            accessedLocations =
-                edgeAnalyzer.getInvolvedVariableTypes(expression, statementEdge).keySet();
+          functionName =
+              functionCallStatement.getFunctionCallExpression().getDeclaration().getName();
+          if (!THREAD_SAFE_FUNCTIONS.contains(functionName)) {
+            for (AExpression expression :
+                functionCallStatement.getFunctionCallExpression().getParameterExpressions()) {
+              accessedLocations =
+                  edgeAnalyzer.getInvolvedVariableTypes(expression, statementEdge).keySet();
+            }
           }
         }
         break;
