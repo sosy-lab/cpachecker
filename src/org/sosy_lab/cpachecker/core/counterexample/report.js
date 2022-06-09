@@ -1609,7 +1609,6 @@ function renderTDG(dataJSON, color, inPercentage) {
                   "NoVerificationCoverage"
                 );
                 let codeLine = line.text();
-                console.log(codeLine);
                 $scope.colorLineBackground(
                   lineStyle,
                   line,
@@ -1641,7 +1640,14 @@ function renderTDG(dataJSON, color, inPercentage) {
                   }
                 }
                 $scope.fileId += 1;
-                line.html(codeLine);
+                if (
+                  codeLine.indexOf("<pre") !== -1 ||
+                  codeLine.indexOf("<mark") !== -1
+                ) {
+                  line.html(codeLine);
+                } else {
+                  line.html(codeLine.replaceAll("<", "&#60;"));
+                }
               } else {
                 $scope.colorLineBackground(
                   lineStyle,
@@ -1672,7 +1678,10 @@ function renderTDG(dataJSON, color, inPercentage) {
 
       $scope.cleanVariableColoring = (line) => {
         let lineHtml = line.html();
-        lineHtml = lineHtml.replace(/<\/?[^>]+(>|$)/g, "");
+        lineHtml = lineHtml.replace(
+          /(<mark?[^>]+(>|$))|(<\/mark?[^>]+(>|$))/g,
+          ""
+        );
         line.html(lineHtml);
       };
 
