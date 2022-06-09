@@ -15,6 +15,7 @@ import java.util.Optional;
 import java.util.logging.Level;
 import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.IntegerOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
@@ -69,10 +70,260 @@ import org.sosy_lab.java_smt.api.SolverException;
 @Options(prefix = "imc")
 public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
   private enum FixedPointComputeStrategy {
-    NONE,
-    ITP,
-    ITPSEQ,
-    ITPSEQ_AND_ITP
+    NONE {
+      @Override
+      boolean isIMCEnabled() {
+        return false;
+      }
+
+      @Override
+      boolean isISMCEnabled() {
+        return false;
+      }
+    },
+    ITP {
+      @Override
+      boolean isIMCEnabled() {
+        return true;
+      }
+
+      @Override
+      boolean isISMCEnabled() {
+        return false;
+      }
+    },
+    ITPSEQ {
+      @Override
+      boolean isIMCEnabled() {
+        return false;
+      }
+
+      @Override
+      boolean isISMCEnabled() {
+        return true;
+      }
+    },
+    ITPSEQ_AND_ITP {
+      @Override
+      boolean isIMCEnabled() {
+        return true;
+      }
+
+      @Override
+      boolean isISMCEnabled() {
+        return true;
+      }
+    };
+
+    abstract boolean isIMCEnabled();
+
+    abstract boolean isISMCEnabled();
+  }
+
+  private enum LoopBoundIncrementStrategy {
+    CONST {
+      @Override
+      int computeNextLoopBoundToCheck(
+          int currentLoopBound, int loopBoundIncrementValue, int nextLoopBoundToCheck) {
+        assert currentLoopBound <= nextLoopBoundToCheck;
+        if (currentLoopBound == nextLoopBoundToCheck) {
+          return currentLoopBound + loopBoundIncrementValue;
+        }
+        return nextLoopBoundToCheck;
+      }
+
+      @Override
+      int resetLoopBoundIncrementValue(int loopBoundIncrementValue) {
+        return loopBoundIncrementValue;
+      }
+
+      @Override
+      int adjustLoopBoundIncrementValue(int loopBoundIncrementValue, int imcInnerLoopIter) {
+        return loopBoundIncrementValue;
+      }
+    },
+    BY_IMC_INNER {
+      @Override
+      int computeNextLoopBoundToCheck(
+          int currentLoopBound, int loopBoundIncrementValue, int nextLoopBoundToCheck) {
+        return Math.max(currentLoopBound + loopBoundIncrementValue, nextLoopBoundToCheck);
+      }
+
+      @Override
+      int resetLoopBoundIncrementValue(int loopBoundIncrementValue) {
+        return LoopBoundManager.DEFAULT_LOOP_BOUND_INCREMENT_VALUE;
+      }
+
+      @Override
+      int adjustLoopBoundIncrementValue(int loopBoundIncrementValue, int imcInnerLoopIter) {
+        return imcInnerLoopIter;
+      }
+    };
+
+    abstract int computeNextLoopBoundToCheck(
+        int currentLoopBound, int loopBoundIncrementValue, int nextLoopBoundToCheck);
+
+    abstract int resetLoopBoundIncrementValue(int loopBoundIncrementValue);
+
+    abstract int adjustLoopBoundIncrementValue(int loopBoundIncrementValue, int imcInnerLoopIter);
+  }
+
+  @Options(prefix = "imc")
+  private class LoopBoundManager {
+    private static final int DEFAULT_LOOP_BOUND_INCREMENT_VALUE = 1;
+
+    @Option(secure = true, description = "toggle the strategy to increment loop bound for BMC")
+    private LoopBoundIncrementStrategy loopBoundIncrementStrategyOfBMC =
+        LoopBoundIncrementStrategy.CONST;
+
+    @Option(secure = true, description = "toggle the strategy to increment loop bound for IMC")
+    private LoopBoundIncrementStrategy loopBoundIncrementStrategyOfIMC =
+        LoopBoundIncrementStrategy.CONST;
+
+    @Option(secure = true, description = "toggle the strategy to increment loop bound for ISMC")
+    private LoopBoundIncrementStrategy loopBoundIncrementStrategyOfISMC =
+        LoopBoundIncrementStrategy.CONST;
+
+    /** Not configurable by the user to guarantee that the shortest counterexample can be found */
+    private int loopBoundIncrementValueOfBMC = DEFAULT_LOOP_BOUND_INCREMENT_VALUE;
+
+    @Option(
+        secure = true,
+        description = "toggle the value to increment the loop bound by at each step for IMC")
+    @IntegerOption(min = 1)
+    private int loopBoundIncrementValueOfIMC = DEFAULT_LOOP_BOUND_INCREMENT_VALUE;
+
+    @Option(
+        secure = true,
+        description = "toggle the value to increment the loop bound by at each step for ISMC")
+    @IntegerOption(min = 1)
+    private int loopBoundIncrementValueOfISMC = DEFAULT_LOOP_BOUND_INCREMENT_VALUE;
+
+    private int nextLoopBoundForBMC = 1;
+    private int nextLoopBoundForIMC = 2;
+    private int nextLoopBoundForISMC = 2;
+
+    private LoopBoundManager(Configuration pConfig) throws InvalidConfigurationException {
+      pConfig.inject(this);
+
+      // configuration checks
+      if (!fixedPointComputeStrategy.isIMCEnabled()) {
+        if (loopBoundIncrementStrategyOfBMC == LoopBoundIncrementStrategy.BY_IMC_INNER) {
+          logger.log(
+              Level.WARNING,
+              "IMC is disabled, the loop bound is incremented by",
+              loopBoundIncrementValueOfBMC,
+              "each time for BMC.");
+          loopBoundIncrementStrategyOfBMC = LoopBoundIncrementStrategy.CONST;
+        }
+        if (fixedPointComputeStrategy.isISMCEnabled()
+            && loopBoundIncrementStrategyOfISMC == LoopBoundIncrementStrategy.BY_IMC_INNER) {
+          logger.log(
+              Level.WARNING,
+              "IMC is disabled, the loop bound is incremented by",
+              loopBoundIncrementValueOfISMC,
+              "each time for ISMC.");
+          loopBoundIncrementStrategyOfISMC = LoopBoundIncrementStrategy.CONST;
+        }
+      }
+      if (loopBoundIncrementStrategyOfIMC == LoopBoundIncrementStrategy.BY_IMC_INNER
+          && loopBoundIncrementValueOfIMC != DEFAULT_LOOP_BOUND_INCREMENT_VALUE) {
+        logger.log(
+            Level.WARNING,
+            "The specified [ loopBoundIncrementValueOfIMC =",
+            loopBoundIncrementValueOfIMC,
+            "] will be overwritten by the configuration [ loopBoundIncrementStrategyOfIMC ="
+                + " BY_IMC_INNER]");
+      }
+      resetLoopBoundIncrementValues();
+    }
+
+    private int getCurrentMaxLoopIterations() {
+      return CPAs.retrieveCPA(cpa, LoopBoundCPA.class).getMaxLoopIterations();
+    }
+
+    private void incrementLoopBoundsToCheck() {
+      final int currentLoopBound = getCurrentMaxLoopIterations();
+      nextLoopBoundForBMC =
+          loopBoundIncrementStrategyOfBMC.computeNextLoopBoundToCheck(
+              currentLoopBound, loopBoundIncrementValueOfBMC, nextLoopBoundForBMC);
+      nextLoopBoundForIMC =
+          loopBoundIncrementStrategyOfIMC.computeNextLoopBoundToCheck(
+              currentLoopBound, loopBoundIncrementValueOfIMC, nextLoopBoundForIMC);
+      nextLoopBoundForISMC =
+          loopBoundIncrementStrategyOfISMC.computeNextLoopBoundToCheck(
+              currentLoopBound, loopBoundIncrementValueOfISMC, nextLoopBoundForISMC);
+      resetLoopBoundIncrementValues();
+      logger.log(Level.FINEST, "Next loop iteration for BMC is", nextLoopBoundForBMC);
+      logger.log(Level.FINEST, "Next loop iteration for IMC is", nextLoopBoundForIMC);
+      logger.log(Level.FINEST, "Next loop iteration for ISMC is", nextLoopBoundForISMC);
+    }
+
+    private void adjustLoopBoundIncrementValues(int imcInnerLoopIter) {
+      loopBoundIncrementValueOfBMC =
+          loopBoundIncrementStrategyOfBMC.adjustLoopBoundIncrementValue(
+              loopBoundIncrementValueOfBMC, imcInnerLoopIter);
+      loopBoundIncrementValueOfIMC =
+          loopBoundIncrementStrategyOfIMC.adjustLoopBoundIncrementValue(
+              loopBoundIncrementValueOfIMC, imcInnerLoopIter);
+      loopBoundIncrementValueOfISMC =
+          loopBoundIncrementStrategyOfISMC.adjustLoopBoundIncrementValue(
+              loopBoundIncrementValueOfISMC, imcInnerLoopIter);
+      assert loopBoundIncrementValueOfBMC > 0;
+      assert loopBoundIncrementValueOfIMC > 0;
+      assert loopBoundIncrementValueOfISMC > 0;
+    }
+
+    private void resetLoopBoundIncrementValues() {
+      loopBoundIncrementValueOfBMC =
+          loopBoundIncrementStrategyOfBMC.resetLoopBoundIncrementValue(
+              loopBoundIncrementValueOfBMC);
+      loopBoundIncrementValueOfIMC =
+          loopBoundIncrementStrategyOfIMC.resetLoopBoundIncrementValue(
+              loopBoundIncrementValueOfIMC);
+      loopBoundIncrementValueOfISMC =
+          loopBoundIncrementStrategyOfISMC.resetLoopBoundIncrementValue(
+              loopBoundIncrementValueOfISMC);
+      assert loopBoundIncrementValueOfBMC == DEFAULT_LOOP_BOUND_INCREMENT_VALUE;
+      assert loopBoundIncrementValueOfIMC > 0;
+      assert loopBoundIncrementValueOfISMC > 0;
+    }
+
+    private boolean performBMC() {
+      final int currentLoopIter = getCurrentMaxLoopIterations();
+      assert currentLoopIter <= nextLoopBoundForBMC;
+      if (currentLoopIter == nextLoopBoundForBMC) {
+        logger.log(Level.FINE, "Performing BMC at loop iteration", currentLoopIter);
+        return true;
+      } else {
+        logger.log(Level.FINE, "Skipping BMC at loop iteration", currentLoopIter);
+        return false;
+      }
+    }
+
+    private boolean performIMC() {
+      final int currentLoopIter = getCurrentMaxLoopIterations();
+      assert currentLoopIter <= nextLoopBoundForIMC;
+      if (currentLoopIter == nextLoopBoundForIMC) {
+        logger.log(Level.FINE, "Performing IMC at loop iteration", currentLoopIter);
+        return true;
+      } else {
+        logger.log(Level.FINE, "Skipping IMC at loop iteration", currentLoopIter);
+        return false;
+      }
+    }
+
+    private boolean performISMC() {
+      final int currentLoopIter = getCurrentMaxLoopIterations();
+      assert currentLoopIter <= nextLoopBoundForISMC;
+      if (currentLoopIter == nextLoopBoundForISMC) {
+        logger.log(Level.FINE, "Performing ISMC at loop iteration", currentLoopIter);
+        return true;
+      } else {
+        logger.log(Level.FINE, "Skipping ISMC at loop iteration", currentLoopIter);
+        return false;
+      }
+    }
   }
 
   @Option(secure = true, description = "toggle checking forward conditions")
@@ -114,6 +365,7 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
   private final CFA cfa;
 
   private BooleanFormula finalFixedPoint;
+  private LoopBoundManager loopBoundMgr;
 
   public IMCAlgorithm(
       Algorithm pAlgorithm,
@@ -156,6 +408,7 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
             pfmgr, solver, Optional.empty(), Optional.empty(), pConfig, shutdownNotifier, logger);
 
     finalFixedPoint = bfmgr.makeFalse();
+    loopBoundMgr = new LoopBoundManager(pConfig);
 
     if (assertTargetsAtEveryIteration
         && fixedPointComputeStrategy != FixedPointComputeStrategy.ITP) {
@@ -224,22 +477,24 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
       }
       shutdownNotifier.shutdownIfNecessary();
       // BMC
-      try (ProverEnvironment bmcProver =
-          solver.newProverEnvironment(ProverOptions.GENERATE_MODELS)) {
-        BooleanFormula targetFormula =
-            InterpolationHelper.buildReachTargetStateFormula(bfmgr, pReachedSet);
-        stats.satCheck.start();
-        final boolean isTargetStateReachable;
-        try {
-          bmcProver.push(targetFormula);
-          isTargetStateReachable = !bmcProver.isUnsat();
-        } finally {
-          stats.satCheck.stop();
-        }
-        if (isTargetStateReachable) {
-          logger.log(Level.FINE, "A target state is reached by BMC");
-          analyzeCounterexample(targetFormula, pReachedSet, bmcProver);
-          return AlgorithmStatus.UNSOUND_AND_PRECISE;
+      if (loopBoundMgr.performBMC()) {
+        try (ProverEnvironment bmcProver =
+            solver.newProverEnvironment(ProverOptions.GENERATE_MODELS)) {
+          BooleanFormula targetFormula =
+              InterpolationHelper.buildReachTargetStateFormula(bfmgr, pReachedSet);
+          stats.satCheck.start();
+          final boolean isTargetStateReachable;
+          try {
+            bmcProver.push(targetFormula);
+            isTargetStateReachable = !bmcProver.isUnsat();
+          } finally {
+            stats.satCheck.stop();
+          }
+          if (isTargetStateReachable) {
+            logger.log(Level.FINE, "A target state is reached by BMC");
+            analyzeCounterexample(targetFormula, pReachedSet, bmcProver);
+            return AlgorithmStatus.UNSOUND_AND_PRECISE;
+          }
         }
       }
       // Check if interpolation or forward-condition check is applicable
@@ -277,10 +532,8 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
         }
       }
       // Interpolation
-      final int maxLoopIterations =
-          CPAs.retrieveCPA(cpa, LoopBoundCPA.class).getMaxLoopIterations();
       if (isInterpolationEnabled()
-          && maxLoopIterations > 1
+          && loopBoundMgr.getCurrentMaxLoopIterations() > 1
           && !AbstractStates.getTargetStates(pReachedSet).isEmpty()) {
         stats.interpolationPreparation.start();
         partitionedFormulas.collectFormulasFromARG(pReachedSet);
@@ -293,6 +546,7 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
         }
       }
       InterpolationHelper.removeUnreachableTargetStates(pReachedSet);
+      loopBoundMgr.incrementLoopBoundsToCheck();
     } while (adjustConditions());
     return AlgorithmStatus.UNSOUND_AND_PRECISE;
   }
@@ -355,6 +609,9 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
    */
   private boolean reachFixedPointByInterpolation(final PartitionedFormulas formulas)
       throws InterruptedException, CPAException, SolverException {
+    if (!loopBoundMgr.performIMC()) {
+      return false;
+    }
     logger.log(Level.FINE, "Computing fixed points by interpolation (IMC)");
     logger.log(Level.ALL, "The SSA map is", formulas.getPrefixSsaMap());
     BooleanFormula currentImage = formulas.getPrefixFormula();
@@ -367,7 +624,10 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
 
     Optional<ImmutableList<BooleanFormula>> interpolants =
         itpMgr.interpolate(ImmutableList.of(currentImage, loops.get(0), suffixFormula));
-    while (interpolants.isPresent()) {
+    assert interpolants.isPresent();
+    int iter = 0;
+    for (; interpolants.isPresent(); ++iter) {
+      logger.log(Level.ALL, "IMC inner loop iteration:", iter);
       logger.log(Level.ALL, "The current image is", currentImage);
       assert interpolants.orElseThrow().size() == 2;
       BooleanFormula interpolant = interpolants.orElseThrow().get(1);
@@ -382,6 +642,12 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
       currentImage = bfmgr.or(currentImage, interpolant);
       interpolants = itpMgr.interpolate(ImmutableList.of(interpolant, loops.get(0), suffixFormula));
     }
+    logger.log(
+        Level.FINE,
+        "Attempted to compute fixed point in",
+        iter,
+        "IMC inner iterations but did not succeed");
+    loopBoundMgr.adjustLoopBoundIncrementValues(iter);
     return false;
   }
 
@@ -395,6 +661,9 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
   private boolean reachFixedPointByInterpolationSequence(
       PartitionedFormulas pFormulas, List<BooleanFormula> reachVector)
       throws CPAException, InterruptedException, SolverException {
+    if (!loopBoundMgr.performISMC()) {
+      return false;
+    }
     logger.log(Level.FINE, "Computing fixed points by interpolation-sequence (ISMC)");
     List<BooleanFormula> itpSequence = getInterpolationSequence(pFormulas);
     updateReachabilityVector(reachVector, itpSequence);
@@ -430,8 +699,10 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
       List<BooleanFormula> reachVector, List<BooleanFormula> itpSequence) {
     logger.log(Level.FINE, "Updating reachability vector");
 
-    assert reachVector.size() + 1 == itpSequence.size();
-    reachVector.add(bfmgr.makeTrue());
+    assert reachVector.size() < itpSequence.size();
+    for (int i = 0; i < itpSequence.size() - reachVector.size(); ++i) {
+      reachVector.add(bfmgr.makeTrue());
+    }
     for (int i = 0; i < reachVector.size(); ++i) {
       BooleanFormula image = reachVector.get(i);
       BooleanFormula itp = fmgr.uninstantiate(itpSequence.get(i));

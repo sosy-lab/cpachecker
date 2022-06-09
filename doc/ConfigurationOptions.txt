@@ -3643,6 +3643,24 @@ imc.fixedPointComputeStrategy = ITP
 # toggle Impact-like covering for the ISMC fixed-point check
 imc.impactLikeCovering = false
 
+# toggle the strategy to increment loop bound for BMC
+imc.loopBoundIncrementStrategyOfBMC = CONST
+  enum:     [CONST, BY_IMC_INNER]
+
+# toggle the strategy to increment loop bound for IMC
+imc.loopBoundIncrementStrategyOfIMC = CONST
+  enum:     [CONST, BY_IMC_INNER]
+
+# toggle the strategy to increment loop bound for ISMC
+imc.loopBoundIncrementStrategyOfISMC = CONST
+  enum:     [CONST, BY_IMC_INNER]
+
+# toggle the value to increment the loop bound by at each step for IMC
+imc.loopBoundIncrementValueOfIMC = DEFAULT_LOOP_BOUND_INCREMENT_VALUE
+
+# toggle the value to increment the loop bound by at each step for ISMC
+imc.loopBoundIncrementValueOfISMC = DEFAULT_LOOP_BOUND_INCREMENT_VALUE
+
 # toggle removing unreachable stop states in ARG
 imc.removeUnreachableStopStates = false
 
