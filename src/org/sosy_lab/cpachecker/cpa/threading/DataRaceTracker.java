@@ -12,7 +12,6 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 import java.util.HashSet;
 import java.util.Set;
-import javax.annotation.Nullable;
 import org.sosy_lab.cpachecker.cfa.ast.ADeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AExpressionAssignmentStatement;
@@ -35,7 +34,7 @@ class DataRaceTracker {
 
   private static class MemoryAccess {
 
-    private final @Nullable String threadId;
+    private final String threadId;
     private final MemoryLocation memoryLocation;
     private final boolean isWrite;
     private final ImmutableSet<String> locks;
@@ -48,7 +47,6 @@ class DataRaceTracker {
       locks = ImmutableSet.copyOf(pLocks);
     }
 
-    @Nullable
     public String getThreadId() {
       return threadId;
     }
@@ -118,8 +116,7 @@ class DataRaceTracker {
   }
 
   DataRaceTracker update(
-      Set<String> threadIds, @Nullable String activeThread, CFAEdge edge, Set<String> locks) {
-    // TODO: Check in which cases activeThread can be null and handle accordingly
+      Set<String> threadIds, String activeThread, CFAEdge edge, Set<String> locks) {
     Set<MemoryAccess> newMemoryAccesses = getNewAccesses(activeThread, edge, locks);
     ImmutableSet.Builder<MemoryAccess> builder = ImmutableSet.builder();
     builder.addAll(newMemoryAccesses);
