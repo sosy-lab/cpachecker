@@ -78,7 +78,6 @@ import org.sosy_lab.cpachecker.cfa.postprocessing.function.NullPointerChecks;
 import org.sosy_lab.cpachecker.cfa.postprocessing.function.ThreadCreateTransformer;
 import org.sosy_lab.cpachecker.cfa.postprocessing.global.CFACloner;
 import org.sosy_lab.cpachecker.cfa.postprocessing.global.FunctionCallUnwinder;
-import org.sosy_lab.cpachecker.cfa.postprocessing.global.LabelAdder;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CComplexType.ComplexTypeKind;
 import org.sosy_lab.cpachecker.cfa.types.c.CDefaults;
@@ -610,9 +609,6 @@ public class CFACreator {
       addLoopStructure(cfa);
     }
 
-    // instrument the cfa, if any configuration regarding that is set (needs loop structure)
-    instrumentCfa(cfa);
-
     // FOURTH, insert call and return edges and build the supergraph
     if (interprocedural) {
       logger.log(Level.FINE, "Analysis is interprocedural, adding super edges.");
@@ -684,18 +680,6 @@ public class CFACreator {
         Level.FINE, "DONE, CFA for", immutableCFA.getNumberOfFunctions(), "functions created.");
 
     return immutableCFA;
-  }
-
-  private void instrumentCfa(MutableCFA pCfa) throws InvalidConfigurationException {
-    if (addLabels) {
-      // add a block label at the beginning of each basic block.
-      // This may require the CFA's loop structure, and thus should be done
-      // after computing and adding that.
-      new LabelAdder(config).addLabels(pCfa);
-
-      // Re-compute postorder ids to include newly added label nodes
-      pCfa.getAllFunctionHeads().forEach(CFAReversePostorder::assignIds);
-    }
   }
 
   /**
