@@ -634,9 +634,10 @@ class DynamicMemoryHandler {
       // Actually there is always either 1 variable (just address) or 2 variables (nondet +
       // allocation address)
       for (final String mangledVariable : rhsVariables) {
-        if (PointerTargetSet.isBaseName(mangledVariable)) {
-          final String variable =
-              PointerTargetSet.getBase(FormulaManagerView.parseName(mangledVariable).getFirst());
+        final String nameWithoutIndex = FormulaManagerView.parseName(mangledVariable).getFirst();
+        if (PointerTargetSet.isBaseName(nameWithoutIndex)) {
+          assert FormulaManagerView.parseName(mangledVariable).getSecond().isEmpty();
+          final String variable = PointerTargetSet.getBase(nameWithoutIndex);
           if (pts.isTemporaryDeferredAllocationPointer(variable)) {
             if (!isAllocation) {
               if (CExpressionVisitorWithPointerAliasing.isRevealingType(lhsType)) {

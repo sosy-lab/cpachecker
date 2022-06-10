@@ -506,13 +506,13 @@ public class AssignmentToPathAllocator {
     ImmutableMap.Builder<LeftHandSide, Address> addressOfVariables = ImmutableMap.builder();
 
     for (ValueAssignment constant : assignableTerms.getConstants()) {
-      String name = constant.getName();
+      String name = FormulaManagerView.parseName(constant.getName()).getFirst();
       if (PointerTargetSet.isBaseName(name)) {
+        assert FormulaManagerView.parseName(constant.getName()).getSecond().isEmpty();
         Address address = Address.valueOf(constant.getValue());
 
         // TODO ugly, refactor?
-        String constantName =
-            PointerTargetSet.getBase(FormulaManagerView.parseName(name).getFirst());
+        String constantName = PointerTargetSet.getBase(name);
         LeftHandSide leftHandSide = createLeftHandSide(constantName);
         addressOfVariables.put(leftHandSide, address);
       }
