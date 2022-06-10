@@ -297,9 +297,6 @@ public class CFACreator {
               + " is read later on.")
   private boolean findLiveVariables = false;
 
-  @Option(secure = true, name = "cfa.addLabels", description = "Add custom labels to the CFA")
-  private boolean addLabels = false;
-
   @Option(
       secure = true,
       description =
