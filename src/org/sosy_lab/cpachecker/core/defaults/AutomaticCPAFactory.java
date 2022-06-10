@@ -104,7 +104,7 @@ public class AutomaticCPAFactory implements CPAFactory {
   @Override
   @SuppressForbidden("reflection necessary")
   public ConfigurableProgramAnalysis createInstance()
-      throws InvalidConfigurationException, CPAException {
+      throws InvalidConfigurationException, CPAException, InterruptedException {
 
     Constructor<?>[] allConstructors = type.getDeclaredConstructors();
     if (allConstructors.length != 1) {
@@ -175,6 +175,7 @@ public class AutomaticCPAFactory implements CPAFactory {
     } catch (InvocationTargetException e) {
       Throwable t = e.getCause();
       Throwables.propagateIfPossible(t, CPAException.class, InvalidConfigurationException.class);
+      Throwables.propagateIfPossible(t, InterruptedException.class);
       throw new UnexpectedCheckedException("instantiation of CPA " + type.getSimpleName(), t);
 
     } catch (InstantiationException e) {
@@ -299,7 +300,7 @@ public class AutomaticCPAFactory implements CPAFactory {
 
     @Override
     public ConfigurableProgramAnalysis createInstance()
-        throws InvalidConfigurationException, CPAException {
+        throws InvalidConfigurationException, CPAException, InterruptedException {
       T options;
       try {
         // create options holder class instance

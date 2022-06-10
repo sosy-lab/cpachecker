@@ -184,14 +184,11 @@ public interface PointerTargetSetBuilder {
         return;
       }
 
+      // Add base to prevent adding spurious targets when merging.
       // If type is incomplete, we can use a dummy size here because it is only used for the fake
       // base.
       int size = type.isIncomplete() ? 0 : typeHandler.getSizeof(type);
-      bases =
-          bases.putAndCopy(
-              name,
-              PointerTargetSetManager.getFakeBaseType(
-                  size)); // To prevent adding spurious targets when merging
+      bases = bases.putAndCopy(name, PointerTargetSetManager.getFakeBaseType(size));
 
       makeNextBaseAddressInequality(name, type, sizeExp, constraints);
     }
@@ -205,9 +202,8 @@ public interface PointerTargetSetBuilder {
     @Override
     public void shareBase(final String name, CType type) {
       checkIsSimplified(type);
-      //      Preconditions.checkArgument(bases.containsKey(name),
-      //                                  "The base should be prepared beforehead with
-      // prepareBase()");
+      // checkArgument(bases.containsKey(name),
+      //     "The base should be prepared before with prepareBase()");
 
       if (type instanceof CElaboratedType) {
         assert ((CElaboratedType) type).getRealType() == null

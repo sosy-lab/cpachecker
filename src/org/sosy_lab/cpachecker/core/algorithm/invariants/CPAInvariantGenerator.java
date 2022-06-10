@@ -150,7 +150,7 @@ public class CPAInvariantGenerator extends AbstractInvariantGenerator
       final CFA pCFA,
       final Specification specification,
       final List<Automaton> additionalAutomata)
-      throws InvalidConfigurationException, CPAException {
+      throws InvalidConfigurationException, CPAException, InterruptedException {
 
     final ShutdownManager childShutdownManager =
         ShutdownManager.createWithParent(pShutdownManager.getNotifier());
@@ -175,7 +175,7 @@ public class CPAInvariantGenerator extends AbstractInvariantGenerator
       final CFA pCFA,
       final Specification pSpecification,
       final List<Automaton> pAdditionalAutomata)
-      throws InvalidConfigurationException, CPAException {
+      throws InvalidConfigurationException, CPAException, InterruptedException {
     config.inject(this);
     stats = new CPAInvariantGeneratorStatistics();
     logger = pLogger;

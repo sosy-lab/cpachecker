@@ -105,5 +105,6 @@ public interface CPAFactory {
    * @return a new ConfigurableProgramAnalysis instance
    * @exception CPAException If the CPA cannot be instantiated.
    */
-  ConfigurableProgramAnalysis createInstance() throws InvalidConfigurationException, CPAException;
+  ConfigurableProgramAnalysis createInstance()
+      throws InvalidConfigurationException, CPAException, InterruptedException;
 }
