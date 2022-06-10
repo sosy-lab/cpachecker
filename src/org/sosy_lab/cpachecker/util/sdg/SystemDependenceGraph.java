@@ -759,7 +759,9 @@ public class SystemDependenceGraph<V, N extends SdgNode<?, ?, V>, E extends SdgE
       }
 
       if (insertEdge) {
-        E edge = edgeCreationFunction.apply(SdgEdge.of(edges.size(), pType, pCause.orElse(null)));
+        E edge =
+            edgeCreationFunction.apply(
+                AbstractSdgEdge.of(edges.size(), pType, pCause.orElse(null)));
         edges.add(edge);
         GraphEdge<V, N, E> graphEdge = new GraphEdge<>(edge, pPredecessor, pSuccessor);
         pPredecessor.addLeavingEdge(graphEdge);
@@ -1084,7 +1086,7 @@ public class SystemDependenceGraph<V, N extends SdgNode<?, ?, V>, E extends SdgE
     }
 
     private SdgNode<P, T, V> createNode(int pId) {
-      return new SdgNode<>(pId, type, procedure, statement, variable);
+      return new AbstractSdgNode<>(pId, type, procedure, statement, variable) {};
     }
 
     @Override

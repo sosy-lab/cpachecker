@@ -8,10 +8,11 @@
 
 package org.sosy_lab.cpachecker.util.sdg.c;
 
+import org.sosy_lab.cpachecker.util.sdg.AbstractSdgEdge;
 import org.sosy_lab.cpachecker.util.sdg.SdgEdge;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
-public final class CSdgEdge extends SdgEdge<MemoryLocation> {
+public final class CSdgEdge extends AbstractSdgEdge<MemoryLocation> {
 
   CSdgEdge(SdgEdge<MemoryLocation> pEdge) {
     super(pEdge);

@@ -10,10 +10,11 @@ package org.sosy_lab.cpachecker.util.sdg.c;
 
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.util.sdg.AbstractSdgNode;
 import org.sosy_lab.cpachecker.util.sdg.SdgNode;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
-public final class CSdgNode extends SdgNode<AFunctionDeclaration, CFAEdge, MemoryLocation> {
+public final class CSdgNode extends AbstractSdgNode<AFunctionDeclaration, CFAEdge, MemoryLocation> {
 
   CSdgNode(SdgNode<AFunctionDeclaration, CFAEdge, MemoryLocation> pNode) {
     super(pNode);
