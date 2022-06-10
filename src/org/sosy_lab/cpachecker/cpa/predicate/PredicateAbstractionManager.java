@@ -392,6 +392,8 @@ public class PredicateAbstractionManager {
       }
     }
 
+    AbstractionFormula result = null;
+
     if (options.getAbstractionType() == AbstractionType.ELIMINATION) {
       quantifierEliminationTimer.start();
       try {
@@ -409,19 +411,22 @@ public class PredicateAbstractionManager {
       // return as new abstraction formula
       logger.log(Level.FINEST, "Abstraction", currentAbstractionId, "using SUBSTITUTION");
       stats.numSymbolicAbstractions.incrementAndGet();
-      AbstractionFormula abstracted = asAbstraction(fmgr.uninstantiate(
-          syntacticSubstitution(f, ssa)), abstractionFormula.getBlockFormula());
-      if (unsat(abstracted, pathFormula)) {
+      BooleanFormula substituted = syntacticSubstitution(f, ssa);
+      if (solver.isUnsat(substituted)) {
         abs = amgr.makeFalsePredicate().getAbstractVariable();
-      } else {
-        abs = abstracted.asRegion();
       }
-//      abs = amgr.convertFormulaToRegion(fmgr.uninstantiate(syntactic_substitution(f, ssa)));
+      else {
+        // ToDo Martin This does not look right
+        // Research how regions work here
+        result = new AbstractionFormula(fmgr, amgr.convertFormulaToRegion(fmgr.uninstantiate(substituted)), fmgr.uninstantiate(substituted), substituted, pathFormula, noAbstractionReuse);
+      }
     } else {
       abs = rmgr.makeAnd(abs, computeAbstraction(f, remainingPredicates, instantiator));
     }
+    if (!(result==null)){
+      result = makeAbstractionFormula(abs, ssa, pathFormula);
+    }
 
-    AbstractionFormula result = makeAbstractionFormula(abs, ssa, pathFormula);
 
     if (options.isUseCache()) {
       abstractionCache.put(absKey, result);
@@ -461,17 +466,17 @@ public class PredicateAbstractionManager {
     bfmgr.visitRecursively(bf, stvisitor);
     HashMap<Formula, Formula> substituteMap = stvisitor.fmap;
     logger.log(Level.INFO, "Substituion map", substituteMap);
-    logger.log(Level.INFO, "Before substituion", bf);
+    logger.log(Level.INFO, "Before substituion          ", bf);
     if (!substituteMap.isEmpty()) {
-//      SubstituteAssumptionTransformationVisitor
-//          stAssume = new SubstituteAssumptionTransformationVisitor(fmgr.manager, substituteMap);
-//      bf = bfmgr.transformRecursively(bf, stAssume);
-//      logger.log(Level.INFO, "After Assumption substituion", bf);
+      SubstituteAssumptionTransformationVisitor
+          stAssume = new SubstituteAssumptionTransformationVisitor(fmgr.manager, substituteMap);
+      bf = bfmgr.transformRecursively(bf, stAssume);
+      logger.log(Level.INFO, "After Assumption substituion", bf);
       SubstituteAssignmentTransformationVisitor stAssign;
       stAssign =
           new SubstituteAssignmentTransformationVisitor(fmgr.manager, substituteMap, pSSAMap);
       bf = bfmgr.transformRecursively(bf, stAssign);
-      logger.log(Level.INFO, "After Assignment substituion", bf);
+      logger.log(Level.INFO, "After Assignment substituion", bf, "\n");
     }
     return bf;
   }
