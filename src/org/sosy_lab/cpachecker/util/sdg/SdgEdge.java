@@ -26,9 +26,14 @@ public class SdgEdge<V> {
   private final SdgEdgeType type;
   private final @Nullable V cause;
 
+  private final int hash;
+
   private SdgEdge(SdgEdgeType pType, @Nullable V pCause) {
+
     type = pType;
     cause = pCause;
+
+    hash = Objects.hash(type, cause);
   }
 
   /**
@@ -84,7 +89,7 @@ public class SdgEdge<V> {
 
   @Override
   public final int hashCode() {
-    return Objects.hash(type, cause);
+    return hash;
   }
 
   @Override
@@ -100,7 +105,7 @@ public class SdgEdge<V> {
 
     SdgEdge<?> other = (SdgEdge<?>) pObject;
 
-    return type == other.type && Objects.equals(cause, other.cause);
+    return hash == other.hash && type == other.type && Objects.equals(cause, other.cause);
   }
 
   @Override
