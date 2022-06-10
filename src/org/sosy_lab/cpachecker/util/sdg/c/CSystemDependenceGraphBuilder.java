@@ -66,6 +66,7 @@ import org.sosy_lab.cpachecker.util.graph.dominance.DominanceUtils;
 import org.sosy_lab.cpachecker.util.resources.ResourceLimit;
 import org.sosy_lab.cpachecker.util.resources.ResourceLimitChecker;
 import org.sosy_lab.cpachecker.util.resources.WalltimeLimit;
+import org.sosy_lab.cpachecker.util.sdg.AbstractSystemDependenceGraph;
 import org.sosy_lab.cpachecker.util.sdg.ControlDependenceBuilder;
 import org.sosy_lab.cpachecker.util.sdg.SdgDotExporter;
 import org.sosy_lab.cpachecker.util.sdg.SdgEdgeType;
@@ -173,11 +174,11 @@ public class CSystemDependenceGraphBuilder implements StatisticsProvider {
   private List<PointerStateComputationMethod> pointerStateComputationMethods =
       ImmutableList.of(PointerStateComputationMethod.FLOW_SENSITIVE);
 
-  private final SystemDependenceGraph.Builder<
+  private final AbstractSystemDependenceGraph.Builder<
           AFunctionDeclaration, CFAEdge, MemoryLocation, CSdgNode, CSdgEdge>
       builder;
-  private SystemDependenceGraph<MemoryLocation, CSdgNode, CSdgEdge> systemDependenceGraph =
-      SystemDependenceGraph.empty();
+  private AbstractSystemDependenceGraph<MemoryLocation, CSdgNode, CSdgEdge> systemDependenceGraph =
+      AbstractSystemDependenceGraph.empty();
   private String usedGlobalPointerState = "none";
 
   private enum PointerStateComputationMethod {
@@ -207,7 +208,7 @@ public class CSystemDependenceGraphBuilder implements StatisticsProvider {
               + " to build a meaningful dependence graph");
     }
 
-    builder = SystemDependenceGraph.builder(CSdgNode::new, CSdgEdge::new);
+    builder = AbstractSystemDependenceGraph.builder(CSdgNode::new, CSdgEdge::new);
   }
 
   private void insertDependencies(

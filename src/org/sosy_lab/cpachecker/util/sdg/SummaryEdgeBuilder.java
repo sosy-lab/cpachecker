@@ -55,7 +55,7 @@ public final class SummaryEdgeBuilder {
    * @param pMethod the method used from computing summary edges
    */
   public static <P, V, N extends SdgNode<P, ?, V>, E extends SdgEdge<V>> void insertSummaryEdges(
-      SystemDependenceGraph.Builder<P, ?, V, N, E> pBuilder,
+      AbstractSystemDependenceGraph.Builder<P, ?, V, N, E> pBuilder,
       CallGraph<P> pCallGraph,
       P pStartProcedure,
       Method pMethod) {
@@ -132,13 +132,13 @@ public final class SummaryEdgeBuilder {
   private abstract static class SummaryEdgeFinder<
       V, N extends SdgNode<?, ?, V>, E extends SdgEdge<V>> {
 
-    private final SystemDependenceGraph.Builder<?, ?, V, N, E> builder;
+    private final AbstractSystemDependenceGraph.Builder<?, ?, V, N, E> builder;
     private final int[] procedureIds;
     private final BitSet finished;
     private final List<N> reachedFormalInNodes;
 
     private SummaryEdgeFinder(
-        SystemDependenceGraph.Builder<?, ?, V, N, E> pBuilder, int[] pProcedureIds) {
+        AbstractSystemDependenceGraph.Builder<?, ?, V, N, E> pBuilder, int[] pProcedureIds) {
 
       builder = pBuilder;
       procedureIds = pProcedureIds;
@@ -188,7 +188,7 @@ public final class SummaryEdgeBuilder {
     private boolean recursive;
 
     private SingleSummaryEdgeFinder(
-        SystemDependenceGraph.Builder<?, ?, V, N, E> pBuilder, int[] pProcedureIds) {
+        AbstractSystemDependenceGraph.Builder<?, ?, V, N, E> pBuilder, int[] pProcedureIds) {
       super(pBuilder, pProcedureIds);
 
       visitor = new VisitOnceBackwardsSdgVisitor<>(this, pBuilder.getNodeCount());
@@ -278,7 +278,7 @@ public final class SummaryEdgeBuilder {
     private int statesDirtyMax;
 
     private BatchSummaryEdgeFinder(
-        SystemDependenceGraph.Builder<?, ?, V, N, E> pBuilder, int[] pProcedureIds) {
+        AbstractSystemDependenceGraph.Builder<?, ?, V, N, E> pBuilder, int[] pProcedureIds) {
       super(pBuilder, pProcedureIds);
 
       states = new long[pBuilder.getNodeCount()];

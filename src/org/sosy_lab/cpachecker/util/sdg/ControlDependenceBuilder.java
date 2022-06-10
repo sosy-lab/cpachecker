@@ -38,12 +38,12 @@ import org.sosy_lab.cpachecker.util.sdg.traversal.SdgVisitResult;
 public final class ControlDependenceBuilder<
     P, V, N extends SdgNode<P, CFAEdge, V>, E extends SdgEdge<V>> {
 
-  private final SystemDependenceGraph.Builder<P, CFAEdge, V, N, E> builder;
+  private final AbstractSystemDependenceGraph.Builder<P, CFAEdge, V, N, E> builder;
   private final P procedure;
   private final Set<CFAEdge> dependentEdges;
 
   private ControlDependenceBuilder(
-      SystemDependenceGraph.Builder<P, CFAEdge, V, N, E> pBuilder, P pProcedure) {
+      AbstractSystemDependenceGraph.Builder<P, CFAEdge, V, N, E> pBuilder, P pProcedure) {
 
     builder = pBuilder;
     procedure = pProcedure;
@@ -75,7 +75,7 @@ public final class ControlDependenceBuilder<
    *     even if it would be sufficient to only depend on one of the assume edges
    */
   public static <P> void insertControlDependencies(
-      SystemDependenceGraph.Builder<P, CFAEdge, ?, ?, ?> pBuilder,
+      AbstractSystemDependenceGraph.Builder<P, CFAEdge, ?, ?, ?> pBuilder,
       FunctionEntryNode pEntryNode,
       P pProcedure,
       boolean pDependOnBothAssumptions) {

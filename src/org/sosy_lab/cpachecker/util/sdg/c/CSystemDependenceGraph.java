@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.util.sdg.c;
 
+import org.sosy_lab.cpachecker.util.sdg.AbstractSystemDependenceGraph;
 import org.sosy_lab.cpachecker.util.sdg.SystemDependenceGraph;
 import org.sosy_lab.cpachecker.util.sdg.traversal.BackwardsSdgVisitor;
 import org.sosy_lab.cpachecker.util.sdg.traversal.ForwardsSdgVisitor;
@@ -15,9 +16,9 @@ import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 /** Represents a {@link SystemDependenceGraph} for C programs. */
 public final class CSystemDependenceGraph
-    extends SystemDependenceGraph<MemoryLocation, CSdgNode, CSdgEdge> {
+    extends AbstractSystemDependenceGraph<MemoryLocation, CSdgNode, CSdgEdge> {
 
-  CSystemDependenceGraph(SystemDependenceGraph<MemoryLocation, CSdgNode, CSdgEdge> pSdg) {
+  CSystemDependenceGraph(AbstractSystemDependenceGraph<MemoryLocation, CSdgNode, CSdgEdge> pSdg) {
     super(pSdg);
   }
 
