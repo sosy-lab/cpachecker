@@ -55,6 +55,8 @@ public class SystemDependenceGraph<V, N extends SdgNode<?, ?, V>, E extends SdgE
 
   // list of nodes where the node's index is equal to its id
   private final ImmutableList<N> nodes;
+  // list of edges where the edge's index is equal to its id
+  private final ImmutableList<E> edges;
   // list of nodes where the graph node's index is equal to its id
   private final ImmutableList<GraphNode.ImmutableGraphNode<V, N, E>> graphNodes;
 
@@ -64,11 +66,13 @@ public class SystemDependenceGraph<V, N extends SdgNode<?, ?, V>, E extends SdgE
 
   private SystemDependenceGraph(
       ImmutableList<N> pNodes,
+      ImmutableList<E> pEdges,
       ImmutableList<GraphNode.ImmutableGraphNode<V, N, E>> pGraphNodes,
       TypeCounter<SdgNodeType> pNodeTypeCounter,
       TypeCounter<SdgEdgeType> pEdgeTypeCounter) {
 
     nodes = pNodes;
+    edges = pEdges;
     graphNodes = pGraphNodes;
 
     nodeTypeCounter = pNodeTypeCounter;
@@ -84,7 +88,7 @@ public class SystemDependenceGraph<V, N extends SdgNode<?, ?, V>, E extends SdgE
    * @param pSdg a SDG to create a copy of
    */
   protected SystemDependenceGraph(SystemDependenceGraph<V, N, E> pSdg) {
-    this(pSdg.nodes, pSdg.graphNodes, pSdg.nodeTypeCounter, pSdg.edgeTypeCounter);
+    this(pSdg.nodes, pSdg.edges, pSdg.graphNodes, pSdg.nodeTypeCounter, pSdg.edgeTypeCounter);
   }
 
   private static <N extends SdgNode<?, ?, ?>> void throwExceptionForUnknownNode(N pNode) {
@@ -123,6 +127,7 @@ public class SystemDependenceGraph<V, N extends SdgNode<?, ?, V>, E extends SdgE
   public static <V, N extends SdgNode<?, ?, V>, E extends SdgEdge<V>>
       SystemDependenceGraph<V, N, E> empty() {
     return new SystemDependenceGraph<>(
+        ImmutableList.of(),
         ImmutableList.of(),
         ImmutableList.of(),
         new TypeCounter<>(SdgNodeType.values().length),
@@ -680,6 +685,8 @@ public class SystemDependenceGraph<V, N extends SdgNode<?, ?, V>, E extends SdgE
 
     // list of nodes where the node's index is equal to its id
     private final List<N> nodes;
+    // list of edges where the edges's index is equal to its id
+    private final List<E> edges;
     // list of nodes where the graph node's index is equal to its id
     private final List<GraphNode.MutableGraphNode<V, N, E>> graphNodes;
     private final Map<NodeMapKey<P, T, V>, GraphNode.MutableGraphNode<V, N, E>> nodeMap;
@@ -695,6 +702,7 @@ public class SystemDependenceGraph<V, N extends SdgNode<?, ?, V>, E extends SdgE
       edgeCreationFunction = pEdgeCreationFunction;
 
       nodes = new ArrayList<>();
+      edges = new ArrayList<>();
       graphNodes = new ArrayList<>();
       nodeMap = new HashMap<>();
 
@@ -751,7 +759,8 @@ public class SystemDependenceGraph<V, N extends SdgNode<?, ?, V>, E extends SdgE
       }
 
       if (insertEdge) {
-        E edge = edgeCreationFunction.apply(SdgEdge.of(pType, pCause.orElse(null)));
+        E edge = edgeCreationFunction.apply(SdgEdge.of(edges.size(), pType, pCause.orElse(null)));
+        edges.add(edge);
         GraphEdge<V, N, E> graphEdge = new GraphEdge<>(edge, pPredecessor, pSuccessor);
         pPredecessor.addLeavingEdge(graphEdge);
         pSuccessor.addEnteringEdge(graphEdge);
@@ -951,6 +960,7 @@ public class SystemDependenceGraph<V, N extends SdgNode<?, ?, V>, E extends SdgE
 
       return new SystemDependenceGraph<>(
           ImmutableList.copyOf(nodes),
+          ImmutableList.copyOf(edges),
           immutableGraphNodes,
           nodeTypeCounter.copy(),
           edgeTypeCounter.copy());

@@ -23,13 +23,15 @@ import org.checkerframework.checker.nullness.qual.Nullable;
  */
 public class SdgEdge<V> {
 
+  private final int id;
   private final SdgEdgeType type;
   private final @Nullable V cause;
 
   private final int hash;
 
-  private SdgEdge(SdgEdgeType pType, @Nullable V pCause) {
+  private SdgEdge(int pId, SdgEdgeType pType, @Nullable V pCause) {
 
+    id = pId;
     type = pType;
     cause = pCause;
 
@@ -45,15 +47,19 @@ public class SdgEdge<V> {
    * @param pEdge a edge to create a copy of
    */
   protected SdgEdge(SdgEdge<V> pEdge) {
-    this(pEdge.type, pEdge.cause);
+    this(pEdge.id, pEdge.type, pEdge.cause);
   }
 
-  static <V> SdgEdge<V> of(SdgEdgeType pType) {
-    return new SdgEdge<>(pType, null);
+  static <V> SdgEdge<V> of(int pId, SdgEdgeType pType) {
+    return new SdgEdge<>(pId, pType, null);
   }
 
-  static <V> SdgEdge<V> of(SdgEdgeType pType, @Nullable V pCause) {
-    return new SdgEdge<>(pType, pCause);
+  static <V> SdgEdge<V> of(int pId, SdgEdgeType pType, @Nullable V pCause) {
+    return new SdgEdge<>(pId, pType, pCause);
+  }
+
+  public int getId() {
+    return id;
   }
 
   /**
@@ -105,7 +111,10 @@ public class SdgEdge<V> {
 
     SdgEdge<?> other = (SdgEdge<?>) pObject;
 
-    return hash == other.hash && type == other.type && Objects.equals(cause, other.cause);
+    return hash == other.hash
+        && id == other.id
+        && type == other.type
+        && Objects.equals(cause, other.cause);
   }
 
   @Override
