@@ -63,7 +63,7 @@ class DynamicMemoryHandler {
 
   private static final String CALLOC_FUNCTION = "calloc";
 
-  private static final String MALLOC_INDEX_SEPARATOR = "#";
+  private static final char MALLOC_INDEX_SEPARATOR = '#';
 
   private final CToFormulaConverterWithPointerAliasing conv;
   private final TypeHandlerWithPointerAliasing typeHandler;
@@ -432,11 +432,22 @@ class DynamicMemoryHandler {
    */
   private String makeAllocVariableName(
       final String functionName, final CType type, final int allocationId) {
-    return functionName
+    return MALLOC_INDEX_SEPARATOR
+        + functionName
         + "_"
         + typeHandler.getPointerAccessNameForType(type)
         + MALLOC_INDEX_SEPARATOR
         + allocationId;
+  }
+
+  /**
+   * Checks whether a given (non-empty) string is one that could be returned by {@link
+   * #makeAllocVariableName(String, CType, int)}.
+   */
+  static boolean isAllocVariableName(String name) {
+    // Check could be stricter, but should reliably distinguish everything returned from
+    // makeAllocVariableName from other bases anyway.
+    return name.charAt(0) == MALLOC_INDEX_SEPARATOR && name.lastIndexOf(MALLOC_INDEX_SEPARATOR) > 2;
   }
 
   /**

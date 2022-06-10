@@ -509,12 +509,14 @@ public class AssignmentToPathAllocator {
       String name = FormulaManagerView.parseName(constant.getName()).getFirst();
       if (PointerTargetSet.isBaseName(name)) {
         assert FormulaManagerView.parseName(constant.getName()).getSecond().isEmpty();
-        Address address = Address.valueOf(constant.getValue());
+        if (!PointerTargetSet.isMallocBase(name)) {
+          Address address = Address.valueOf(constant.getValue());
 
-        // TODO ugly, refactor?
-        String constantName = PointerTargetSet.getBase(name);
-        LeftHandSide leftHandSide = createLeftHandSide(constantName);
-        addressOfVariables.put(leftHandSide, address);
+          // TODO ugly, refactor?
+          String constantName = PointerTargetSet.getBase(name);
+          LeftHandSide leftHandSide = createLeftHandSide(constantName);
+          addressOfVariables.put(leftHandSide, address);
+        }
       }
     }
 
