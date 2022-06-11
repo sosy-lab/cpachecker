@@ -423,7 +423,7 @@ public class PredicateAbstractionManager {
     } else {
       abs = rmgr.makeAnd(abs, computeAbstraction(f, remainingPredicates, instantiator));
     }
-    if (!(result==null)){
+    if (result==null){
       result = makeAbstractionFormula(abs, ssa, pathFormula);
     }
 
