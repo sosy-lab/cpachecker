@@ -2623,12 +2623,9 @@ class CFAFunctionBuilder extends ASTVisitor {
         final IASTGotoStatement pGotoStatement,
         final FileLocation pFileLoc) {
 
-      checkNotNull(pGotoStatement);
-      checkNotNull(pFileLoc);
-
       prevNode = pPrevNode;
-      gotoStatement = pGotoStatement;
-      fileLoc = pFileLoc;
+      gotoStatement = checkNotNull(pGotoStatement);
+      fileLoc = checkNotNull(pFileLoc);
     }
 
     public CFANode getPrevNode() {

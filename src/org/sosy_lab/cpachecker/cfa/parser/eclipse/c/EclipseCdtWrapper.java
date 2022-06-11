@@ -32,7 +32,7 @@ import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.cpachecker.cfa.CParser.ParserOptions;
 
 /** Wrapper for Eclipse CDT */
-public class NativeCdtParser {
+public class EclipseCdtWrapper {
 
   // we don't use IASTName#getImageLocation(), so the parser doesn't need to create them
   private static final int PARSER_OPTIONS = ILanguage.OPTION_NO_IMAGE_LOCATIONS;
@@ -42,7 +42,7 @@ public class NativeCdtParser {
 
   private final ShutdownNotifier shutdownNotifier;
 
-  public NativeCdtParser(final ParserOptions pOptions, final ShutdownNotifier pShutdownNotifier) {
+  public EclipseCdtWrapper(final ParserOptions pOptions, final ShutdownNotifier pShutdownNotifier) {
 
     shutdownNotifier = pShutdownNotifier;
     parserLog = new ShutdownNotifierLogAdapter(shutdownNotifier);
@@ -79,8 +79,8 @@ public class NativeCdtParser {
     try {
       return language.getASTTranslationUnit(
           pCode,
-          NativeCdtParser.StubScannerInfo.instance,
-          NativeCdtParser.FileContentProvider.instance,
+          StubScannerInfo.instance,
+          FileContentProvider.instance,
           null,
           PARSER_OPTIONS,
           parserLog);

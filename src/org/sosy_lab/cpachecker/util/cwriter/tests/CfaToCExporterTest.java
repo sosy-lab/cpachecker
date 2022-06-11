@@ -61,21 +61,13 @@ public class CfaToCExporterTest extends ToCTranslationTest {
     IO.writeFile(pTargetPath, Charset.defaultCharset(), result);
   }
 
-  private CFA parseProgram(Path pProgram) {
+  private CFA parseProgram(Path pProgram)
+      throws ParserException, IOException, InterruptedException, InvalidConfigurationException {
+
     final ShutdownNotifier shutdown = ShutdownNotifier.createDummy();
     final Configuration parseConfig = Configuration.defaultConfiguration();
-
-    try {
-      final CFACreator cfaCreator = new CFACreator(parseConfig, logger, shutdown);
-
-      return cfaCreator.parseFileAndCreateCFA(ImmutableList.of(pProgram.toString()));
-
-    } catch (InvalidConfigurationException
-        | ParserException
-        | IOException
-        | InterruptedException pE) {
-      throw new AssertionError(pE);
-    }
+    final CFACreator cfaCreator = new CFACreator(parseConfig, logger, shutdown);
+    return cfaCreator.parseFileAndCreateCFA(ImmutableList.of(pProgram.toString()));
   }
 
   @Parameters(name = "{0}")

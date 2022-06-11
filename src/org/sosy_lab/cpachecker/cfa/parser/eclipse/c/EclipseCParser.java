@@ -9,8 +9,8 @@
 package org.sosy_lab.cpachecker.cfa.parser.eclipse.c;
 
 import static com.google.common.base.Preconditions.checkArgument;
-import static org.sosy_lab.cpachecker.cfa.parser.eclipse.c.NativeCdtParser.wrapCode;
-import static org.sosy_lab.cpachecker.cfa.parser.eclipse.c.NativeCdtParser.wrapFile;
+import static org.sosy_lab.cpachecker.cfa.parser.eclipse.c.EclipseCdtWrapper.wrapCode;
+import static org.sosy_lab.cpachecker.cfa.parser.eclipse.c.EclipseCdtWrapper.wrapFile;
 
 import com.google.common.base.CharMatcher;
 import com.google.common.base.Function;
@@ -52,10 +52,10 @@ import org.sosy_lab.cpachecker.cfa.parser.Scope;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.exceptions.CParserException;
 
-/** Wrapper for {@link NativeCdtParser} */
+/** Parser based on Eclipse CDT */
 class EclipseCParser implements CParser {
 
-  private final NativeCdtParser nativeCdtParser;
+  private final EclipseCdtWrapper eclipseCdt;
 
   private final MachineModel machine;
   private final LogManager logger;
@@ -76,7 +76,7 @@ class EclipseCParser implements CParser {
     options = pOptions;
     shutdownNotifier = pShutdownNotifier;
 
-    nativeCdtParser = new NativeCdtParser(pOptions, pShutdownNotifier);
+    eclipseCdt = new EclipseCdtWrapper(pOptions, pShutdownNotifier);
   }
 
   /**
@@ -259,7 +259,7 @@ class EclipseCParser implements CParser {
       throws CParserException, InterruptedException {
     parseTimer.start();
     try {
-      IASTTranslationUnit result = nativeCdtParser.getASTTranslationUnit(codeReader);
+      IASTTranslationUnit result = eclipseCdt.getASTTranslationUnit(codeReader);
 
       // Separate handling of include problems
       // so that we can give a better error message.

@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.util.cwriter;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
+import com.google.common.base.Verify;
 import java.io.IOException;
 import org.eclipse.cdt.core.dom.ast.IASTTranslationUnit;
 import org.eclipse.core.runtime.CoreException;
@@ -20,17 +21,17 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CParser.Factory;
 import org.sosy_lab.cpachecker.cfa.CParser.ParserOptions;
 import org.sosy_lab.cpachecker.cfa.Language;
-import org.sosy_lab.cpachecker.cfa.parser.eclipse.c.NativeCdtParser;
+import org.sosy_lab.cpachecker.cfa.parser.eclipse.c.EclipseCdtWrapper;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 public class CfaToCExporter {
 
-  private final NativeCdtParser nativeCdtParser;
+  private final EclipseCdtWrapper nativeCdtParser;
 
   public CfaToCExporter(final Configuration pConfig, final ShutdownNotifier pShutdownNotifier)
       throws InvalidConfigurationException {
     final ParserOptions options = Factory.getOptions(pConfig);
-    nativeCdtParser = new NativeCdtParser(options, pShutdownNotifier);
+    nativeCdtParser = new EclipseCdtWrapper(options, pShutdownNotifier);
   }
 
   /**
@@ -55,10 +56,11 @@ public class CfaToCExporter {
     try {
       final IASTTranslationUnit astUnit =
           nativeCdtParser.getASTTranslationUnit(
-              NativeCdtParser.wrapFile(pCfa.getFileNames().get(0)));
+              EclipseCdtWrapper.wrapFile(pCfa.getFileNames().get(0)));
 
-      assert astUnit.getPreprocessorProblemsCount() == 0
-          : "Problems should have been caught during CFA generation.";
+      Verify.verify(
+          astUnit.getPreprocessorProblemsCount() == 0,
+          "Problems should have been caught during CFA generation.");
 
       return astUnit.getRawSignature();
 
