@@ -500,7 +500,10 @@ public final class EdgeDefUseData {
     @Override
     public Void visit(CParameterDeclaration pDecl) {
 
-      pDecl.asVariableDeclaration().accept(this);
+      // undeclared functions don't have qualified parameter names, so we ignore them
+      if (pDecl.getQualifiedName() != null) {
+        pDecl.asVariableDeclaration().accept(this);
+      }
 
       return null;
     }

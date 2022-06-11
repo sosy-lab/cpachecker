@@ -63,7 +63,7 @@ class DynamicMemoryHandler {
 
   private static final String CALLOC_FUNCTION = "calloc";
 
-  private static final String MALLOC_INDEX_SEPARATOR = "#";
+  private static final char MALLOC_INDEX_SEPARATOR = '#';
 
   private final CToFormulaConverterWithPointerAliasing conv;
   private final TypeHandlerWithPointerAliasing typeHandler;
@@ -432,11 +432,22 @@ class DynamicMemoryHandler {
    */
   private String makeAllocVariableName(
       final String functionName, final CType type, final int allocationId) {
-    return functionName
+    return MALLOC_INDEX_SEPARATOR
+        + functionName
         + "_"
         + typeHandler.getPointerAccessNameForType(type)
         + MALLOC_INDEX_SEPARATOR
         + allocationId;
+  }
+
+  /**
+   * Checks whether a given (non-empty) string is one that could be returned by {@link
+   * #makeAllocVariableName(String, CType, int)}.
+   */
+  static boolean isAllocVariableName(String name) {
+    // Check could be stricter, but should reliably distinguish everything returned from
+    // makeAllocVariableName from other bases anyway.
+    return name.charAt(0) == MALLOC_INDEX_SEPARATOR && name.lastIndexOf(MALLOC_INDEX_SEPARATOR) > 2;
   }
 
   /**
@@ -634,9 +645,10 @@ class DynamicMemoryHandler {
       // Actually there is always either 1 variable (just address) or 2 variables (nondet +
       // allocation address)
       for (final String mangledVariable : rhsVariables) {
-        if (PointerTargetSet.isBaseName(mangledVariable)) {
-          final String variable =
-              PointerTargetSet.getBase(FormulaManagerView.parseName(mangledVariable).getFirst());
+        final String nameWithoutIndex = FormulaManagerView.parseName(mangledVariable).getFirst();
+        if (PointerTargetSet.isBaseName(nameWithoutIndex)) {
+          assert FormulaManagerView.parseName(mangledVariable).getSecond().isEmpty();
+          final String variable = PointerTargetSet.getBase(nameWithoutIndex);
           if (pts.isTemporaryDeferredAllocationPointer(variable)) {
             if (!isAllocation) {
               if (CExpressionVisitorWithPointerAliasing.isRevealingType(lhsType)) {

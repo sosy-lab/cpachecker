@@ -11,6 +11,8 @@ package org.sosy_lab.cpachecker.cpa.predicate;
 import static com.google.common.collect.Iterables.getOnlyElement;
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocation;
 
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
@@ -53,11 +55,12 @@ public final class BAMBlockFormulaStrategy extends BlockFormulaStrategy {
     final Map<ARGState, ARGState> callStacks =
         new HashMap<>(); // contains states and their next higher callstate
     final Map<ARGState, PathFormula> finishedFormulas = new HashMap<>();
-    final List<BooleanFormula> abstractionFormulas = new ArrayList<>();
+    final ImmutableList.Builder<BooleanFormula> abstractionFormulas = ImmutableList.builder();
     final Deque<ARGState> waitlist = new ArrayDeque<>();
 
     // map from states to formulas for truth assumption path formula
-    final Map<Pair<ARGState, CFAEdge>, PathFormula> branchingFormulas = new HashMap<>();
+    final ImmutableMap.Builder<Pair<ARGState, CFAEdge>, PathFormula> branchingFormulas =
+        ImmutableMap.builder();
 
     // initialize
     assert pRoot.getParents().isEmpty() : "rootState must be the first state of the program";
@@ -181,11 +184,7 @@ public final class BAMBlockFormulaStrategy extends BlockFormulaStrategy {
       finishedFormulas.put(currentState, currentFormula);
       waitlist.addAll(currentState.getChildren());
     }
-    @SuppressWarnings("deprecation")
-    // remove once PathChecker#handleFeasibleCounterexample does not need it anymore
-    BooleanFormula branchingFormula =
-        pfmgr.buildBranchingFormula(finishedFormulas.keySet(), branchingFormulas);
-    return new BlockFormulas(abstractionFormulas, branchingFormula);
+    return new BlockFormulas(abstractionFormulas.build(), branchingFormulas.buildOrThrow());
   }
 
   /** Add assumptions from OverflowCPA. */

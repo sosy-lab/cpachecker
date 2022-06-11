@@ -11,17 +11,16 @@ package org.sosy_lab.cpachecker.util.predicates.pathformula;
 import static org.sosy_lab.cpachecker.util.statistics.StatisticsUtils.toPercent;
 
 import com.google.common.base.Equivalence;
+import com.google.common.base.Predicate;
 import java.io.PrintStream;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.concurrent.atomic.LongAdder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
@@ -35,7 +34,6 @@ import org.sosy_lab.cpachecker.util.statistics.ThreadSafeTimerContainer.TimerWra
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.Formula;
 import org.sosy_lab.java_smt.api.Model;
-import org.sosy_lab.java_smt.api.Model.ValueAssignment;
 
 /**
  * Implementation of {@link PathFormulaManager} that delegates to another instance but caches
@@ -198,43 +196,13 @@ public class CachingPathFormulaManager implements PathFormulaManager {
   }
 
   @Override
-  @Deprecated
-  public BooleanFormula buildBranchingFormula(Set<ARGState> pElementsOnPath)
-      throws CPATransferException, InterruptedException {
-    return delegate.buildBranchingFormula(pElementsOnPath);
-  }
-
-  @Override
-  @Deprecated
-  public BooleanFormula buildBranchingFormula(
-      Set<ARGState> pElementsOnPath,
-      Map<Pair<ARGState, CFAEdge>, PathFormula> pParentFormulasOnPath)
-      throws CPATransferException, InterruptedException {
-    return delegate.buildBranchingFormula(pElementsOnPath, pParentFormulasOnPath);
-  }
-
-  @Override
-  @Deprecated
-  public Map<Integer, Boolean> getBranchingPredicateValuesFromModel(
-      Iterable<ValueAssignment> pModel) {
-    return delegate.getBranchingPredicateValuesFromModel(pModel);
-  }
-
-  @Override
-  public ARGPath getARGPathFromModel(
-      Model pModel, ARGState pRoot, Set<? extends AbstractState> pElementsOnPath)
-      throws CPATransferException, InterruptedException {
-    return delegate.getARGPathFromModel(pModel, pRoot, pElementsOnPath);
-  }
-
-  @Override
   public ARGPath getARGPathFromModel(
       Model pModel,
       ARGState pRoot,
-      Set<? extends AbstractState> pElementsOnPath,
-      Map<Pair<ARGState, CFAEdge>, PathFormula> pParentFormulasOnPath)
+      Predicate<? super ARGState> pStateFilter,
+      Map<Pair<ARGState, CFAEdge>, PathFormula> pBranchingFormulasOverride)
       throws CPATransferException, InterruptedException {
-    return delegate.getARGPathFromModel(pModel, pRoot, pElementsOnPath, pParentFormulasOnPath);
+    return delegate.getARGPathFromModel(pModel, pRoot, pStateFilter, pBranchingFormulasOverride);
   }
 
   @Override

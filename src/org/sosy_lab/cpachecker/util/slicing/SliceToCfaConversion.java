@@ -257,6 +257,22 @@ final class SliceToCfaConversion {
                 ImmutableMap.toImmutableMap(
                     entryNode -> entryNode.getFunction(), entryNode -> entryNode));
 
+    // if the program slice is empty, return a CFA containing an empty main function
+    if (relevantEdges.isEmpty()) {
+
+      FunctionEntryNode mainEntryNode = pSlice.getOriginalCfa().getMainFunction();
+      graph.addNode(mainEntryNode);
+      graph.addNode(mainEntryNode.getExitNode());
+
+      return CCfaTransformer.createCfa(
+          pConfig,
+          pLogger,
+          pSlice.getOriginalCfa(),
+          graph,
+          (cfaEdge, astNode) -> astNode,
+          (cfaNode, astNode) -> astNode);
+    }
+
     CFA sliceCfa =
         CCfaTransformer.createCfa(
             pConfig,

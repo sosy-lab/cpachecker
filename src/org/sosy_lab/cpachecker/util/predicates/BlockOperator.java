@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.util.predicates;
 import static com.google.common.base.Preconditions.checkState;
 
 import com.google.common.collect.ImmutableSet;
+import org.sosy_lab.common.configuration.IntegerOption;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.CFA;
@@ -36,6 +37,7 @@ public class BlockOperator {
       description =
           "maximum blocksize before abstraction is forced\n"
               + "(non-negative number, special values: 0 = don't check threshold, 1 = SBE)")
+  @IntegerOption(min = 0)
   private int threshold = 0;
 
   @Option(
