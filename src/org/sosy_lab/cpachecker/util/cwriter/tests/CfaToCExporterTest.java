@@ -46,7 +46,7 @@ public class CfaToCExporterTest extends ToCTranslationTest {
             .loadFromResource(CFAToCTranslatorTest.class, "predicateAnalysis.properties")
             .build());
 
-    originalProgram = Path.of(EXPORTER_TEST_DIR_PATH + pProgram);
+    originalProgram = Path.of(pProgram);
   }
 
   @Override
@@ -71,38 +71,41 @@ public class CfaToCExporterTest extends ToCTranslationTest {
 
   @Parameters(name = "{0}")
   public static Collection<Object[]> data() {
-    return ImmutableList.of(
-        directExportTest("declaration.c"),
-        directExportTest("declaration_multiple-on-one-line.c"),
-        directExportTest("declaration_split.c"),
-        directExportTest("declaration_with-side-effect.c"),
-        directExportTest("declaration_with-side-effect_multiple-on-one-line.c"),
-        directExportTest("for.c"),
-        directExportTest("for_condition-negated.c"),
-        directExportTest("function-call.c"),
-        directExportTest("functions_multiple.c"),
-        directExportTest("global-var.c"),
-        directExportTest("global-var_multiple.c"),
-        directExportTest("goto_label_multiple-per-statement.c"),
-        directExportTest("goto_label_on-empty-statement.c"),
-        directExportTest("goto_label_on-if.c"),
-        directExportTest("goto_with-dead-code.c"),
-        directExportTest("if-else.c"),
-        directExportTest("if-else_condition-abbreviated.c"),
-        directExportTest("if-else_condition-negated.c"),
-        directExportTest("if-else_condition-negated_double.c"),
-        directExportTest("if-else_condition-true.c"),
-        directExportTest("if-else_else-branch-empty.c"),
-        directExportTest("if-else_else-branch-missing.c"),
-        directExportTest("if-else_multiple-returns.c"),
-        directExportTest("if-else_with-goto.c"),
-        directExportTest("if-else_with-goto-out-and-back-in.c"),
-        directExportTest("if-else_with-goto-out-of-both-branches.c"),
-        directExportTest("if-else_with-goto_labeled-return-within.c"),
-        directExportTest("if-else_with-goto_labeled-return-within-both-branches.c"),
-        directExportTest("mixed.c"),
-        directExportTest("switch-case.c"),
-        directExportTest("while.c"));
+    return ImmutableList.<Object[]>builder()
+        .addAll(CFAToCTranslatorTest.data())
+        .add(
+            directExportTest("declaration.c"),
+            directExportTest("declaration_multiple-on-one-line.c"),
+            directExportTest("declaration_split.c"),
+            directExportTest("declaration_with-side-effect.c"),
+            directExportTest("declaration_with-side-effect_multiple-on-one-line.c"),
+            directExportTest("for.c"),
+            directExportTest("for_condition-negated.c"),
+            directExportTest("function-call.c"),
+            directExportTest("functions_multiple.c"),
+            directExportTest("global-var.c"),
+            directExportTest("global-var_multiple.c"),
+            directExportTest("goto_label_multiple-per-statement.c"),
+            directExportTest("goto_label_on-empty-statement.c"),
+            directExportTest("goto_label_on-if.c"),
+            directExportTest("goto_with-dead-code.c"),
+            directExportTest("if-else.c"),
+            directExportTest("if-else_condition-abbreviated.c"),
+            directExportTest("if-else_condition-negated.c"),
+            directExportTest("if-else_condition-negated_double.c"),
+            directExportTest("if-else_condition-true.c"),
+            directExportTest("if-else_else-branch-empty.c"),
+            directExportTest("if-else_else-branch-missing.c"),
+            directExportTest("if-else_multiple-returns.c"),
+            directExportTest("if-else_with-goto.c"),
+            directExportTest("if-else_with-goto-out-and-back-in.c"),
+            directExportTest("if-else_with-goto-out-of-both-branches.c"),
+            directExportTest("if-else_with-goto_labeled-return-within.c"),
+            directExportTest("if-else_with-goto_labeled-return-within-both-branches.c"),
+            directExportTest("mixed.c"),
+            directExportTest("switch-case.c"),
+            directExportTest("while.c"))
+        .build();
   }
 
   /**
@@ -118,6 +121,6 @@ public class CfaToCExporterTest extends ToCTranslationTest {
   private static Object[] directExportTest(final String pProgram) {
     final boolean verdict = true;
     final String testLabel = String.format("directExportTest(%s)", pProgram);
-    return new Object[] {testLabel, pProgram, verdict};
+    return new Object[] {testLabel, EXPORTER_TEST_DIR_PATH + pProgram, verdict};
   }
 }

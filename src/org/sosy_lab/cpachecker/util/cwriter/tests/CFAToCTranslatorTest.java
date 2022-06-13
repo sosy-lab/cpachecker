@@ -48,7 +48,7 @@ public class CFAToCTranslatorTest extends ToCTranslationTest {
             .loadFromResource(CFAToCTranslatorTest.class, "predicateAnalysis.properties")
             .build());
 
-    originalProgram = Path.of(TEST_DIR_PATH, pProgram);
+    originalProgram = Path.of(pProgram);
   }
 
   private CFAToCTranslator getTranslator() throws InvalidConfigurationException {
@@ -99,6 +99,6 @@ public class CFAToCTranslatorTest extends ToCTranslationTest {
 
   private static Object[] directTranslationTest(final String pProgram, final boolean pVerdict) {
     final String testLabel = String.format("directTranslationTest(%s is %s)", pProgram, pVerdict);
-    return new Object[] {testLabel, pProgram, pVerdict};
+    return new Object[] {testLabel, TEST_DIR_PATH + pProgram, pVerdict};
   }
 }
