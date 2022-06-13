@@ -1217,14 +1217,17 @@ public class CFACreator {
       try {
         String code;
         if (exportCfaToCPrettyPrint) {
-          code = new CfaToCExporter(config, shutdownNotifier).exportCfa(cfa);
+          code = new CfaToCExporter(logger, config, shutdownNotifier).exportCfa(cfa);
         } else {
           code = new CFAToCTranslator(config).translateCfa(cfa);
         }
         try (Writer writer = IO.openOutputFile(exportCfaToCFile, Charset.defaultCharset())) {
           writer.write(code);
         }
-      } catch (CPAException | IOException | InvalidConfigurationException e) {
+      } catch (CPAException
+          | IOException
+          | InterruptedException
+          | InvalidConfigurationException e) {
         logger.logUserException(Level.WARNING, e, "Could not write CFA to C file.");
       }
     }

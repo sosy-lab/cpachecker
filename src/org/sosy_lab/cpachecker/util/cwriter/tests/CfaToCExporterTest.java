@@ -55,7 +55,8 @@ public class CfaToCExporterTest extends ToCTranslationTest {
   protected void createProgram(Path pTargetPath) throws Exception {
     CFA cfaToExport = parseProgram(originalProgram);
     String result =
-        new CfaToCExporter(Configuration.defaultConfiguration(), ShutdownNotifier.createDummy())
+        new CfaToCExporter(
+                logger, Configuration.defaultConfiguration(), ShutdownNotifier.createDummy())
             .exportCfa(cfaToExport);
 
     IO.writeFile(pTargetPath, Charset.defaultCharset(), result);
