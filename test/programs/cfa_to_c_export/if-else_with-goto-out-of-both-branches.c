@@ -19,10 +19,10 @@ int main() {
     goto LABEL2;
   }
 
-LABEL1:
-  return y;
-
 LABEL2:
   z = y;
   return z;
+
+LABEL1:
+  return y;
 }
