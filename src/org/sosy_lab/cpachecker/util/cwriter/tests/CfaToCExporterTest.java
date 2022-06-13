@@ -8,8 +8,6 @@
 
 package org.sosy_lab.cpachecker.util.cwriter.tests;
 
-import static org.sosy_lab.cpachecker.util.cwriter.tests.CFAToCTranslatorTest.directTranslationTest;
-
 import com.google.common.collect.ImmutableList;
 import java.io.IOException;
 import java.nio.charset.Charset;
@@ -74,36 +72,52 @@ public class CfaToCExporterTest extends ToCTranslationTest {
   @Parameters(name = "{0}")
   public static Collection<Object[]> data() {
     return ImmutableList.of(
-        directTranslationTest("declaration.c", true),
-        directTranslationTest("declaration_multiple-on-one-line.c", true),
-        directTranslationTest("declaration_split.c", true),
-        directTranslationTest("declaration_with-side-effect.c", true),
-        directTranslationTest("declaration_with-side-effect_multiple-on-one-line.c", true),
-        directTranslationTest("for.c", true),
-        directTranslationTest("for_condition-negated.c", true),
-        directTranslationTest("function-call.c", true),
-        directTranslationTest("functions_multiple.c", true),
-        directTranslationTest("global-var.c", true),
-        directTranslationTest("global-var_multiple.c", true),
-        directTranslationTest("goto_label_multiple-per-statement.c", true),
-        directTranslationTest("goto_label_on-empty-statement.c", true),
-        directTranslationTest("goto_label_on-if.c", true),
-        directTranslationTest("goto_with-dead-code.c", true),
-        directTranslationTest("if-else.c", true),
-        directTranslationTest("if-else_condition-abbreviated.c", true),
-        directTranslationTest("if-else_condition-negated.c", true),
-        directTranslationTest("if-else_condition-negated_double.c", true),
-        directTranslationTest("if-else_condition-true.c", true),
-        directTranslationTest("if-else_else-branch-empty.c", true),
-        directTranslationTest("if-else_else-branch-missing.c", true),
-        directTranslationTest("if-else_multiple-returns.c", true),
-        directTranslationTest("if-else_with-goto.c", true),
-        directTranslationTest("if-else_with-goto-out-and-back-in.c", true),
-        directTranslationTest("if-else_with-goto-out-of-both-branches.c", true),
-        directTranslationTest("if-else_with-goto_labeled-return-within.c", true),
-        directTranslationTest("if-else_with-goto_labeled-return-within-both-branches.c", true),
-        directTranslationTest("mixed.c", true),
-        directTranslationTest("switch-case.c", true),
-        directTranslationTest("while.c", true));
+        directExportTest("declaration.c"),
+        directExportTest("declaration_multiple-on-one-line.c"),
+        directExportTest("declaration_split.c"),
+        directExportTest("declaration_with-side-effect.c"),
+        directExportTest("declaration_with-side-effect_multiple-on-one-line.c"),
+        directExportTest("for.c"),
+        directExportTest("for_condition-negated.c"),
+        directExportTest("function-call.c"),
+        directExportTest("functions_multiple.c"),
+        directExportTest("global-var.c"),
+        directExportTest("global-var_multiple.c"),
+        directExportTest("goto_label_multiple-per-statement.c"),
+        directExportTest("goto_label_on-empty-statement.c"),
+        directExportTest("goto_label_on-if.c"),
+        directExportTest("goto_with-dead-code.c"),
+        directExportTest("if-else.c"),
+        directExportTest("if-else_condition-abbreviated.c"),
+        directExportTest("if-else_condition-negated.c"),
+        directExportTest("if-else_condition-negated_double.c"),
+        directExportTest("if-else_condition-true.c"),
+        directExportTest("if-else_else-branch-empty.c"),
+        directExportTest("if-else_else-branch-missing.c"),
+        directExportTest("if-else_multiple-returns.c"),
+        directExportTest("if-else_with-goto.c"),
+        directExportTest("if-else_with-goto-out-and-back-in.c"),
+        directExportTest("if-else_with-goto-out-of-both-branches.c"),
+        directExportTest("if-else_with-goto_labeled-return-within.c"),
+        directExportTest("if-else_with-goto_labeled-return-within-both-branches.c"),
+        directExportTest("mixed.c"),
+        directExportTest("switch-case.c"),
+        directExportTest("while.c"));
+  }
+
+  /**
+   * Generate test case for the given program with verdict true.
+   *
+   * <p>The test programs do not include error locations, because the latter do not need to be
+   * handled in a special manner in export. Therefore, the verdict is always true. Consequently, a
+   * verdict change is highly unlikely and the inherited {@link
+   * ToCTranslationTest#testVerdictsStaySame()} is unlikely to fail. The {@link ToCTranslationTest}
+   * is extended nonetheless because we are interested in compilability and parsability of the
+   * exported program.
+   */
+  private static Object[] directExportTest(final String pProgram) {
+    final boolean verdict = true;
+    final String testLabel = String.format("directExportTest(%s)", pProgram);
+    return new Object[] {testLabel, pProgram, verdict};
   }
 }

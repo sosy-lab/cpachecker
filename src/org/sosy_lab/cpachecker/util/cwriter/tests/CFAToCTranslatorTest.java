@@ -97,7 +97,7 @@ public class CFAToCTranslatorTest extends ToCTranslationTest {
         directTranslationTest("multipleLoops.c", false));
   }
 
-  static Object[] directTranslationTest(final String pProgram, final boolean pVerdict) {
+  private static Object[] directTranslationTest(final String pProgram, final boolean pVerdict) {
     final String testLabel = String.format("directTranslationTest(%s is %s)", pProgram, pVerdict);
     return new Object[] {testLabel, pProgram, pVerdict};
   }
