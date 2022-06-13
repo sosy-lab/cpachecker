@@ -37,12 +37,19 @@ public class CfaToCExporterTest extends ToCTranslationTest {
   private final Path originalProgram;
 
   public CfaToCExporterTest(
-      @SuppressWarnings("unused") String pTestLabel, String pProgram, boolean pVerdict)
+      @SuppressWarnings("unused") final String pTestLabel,
+      final String pProgram,
+      final boolean pVerdict)
       throws InvalidConfigurationException, IOException {
+
     super(
-        TempFile.builder().prefix("residual").suffix(".c").create().toAbsolutePath(),
-        pVerdict,
-        TestDataTools.configurationForTest()
+        /* pTargetProgram = */ TempFile.builder()
+            .prefix("residual")
+            .suffix(".c")
+            .create()
+            .toAbsolutePath(),
+        /* pVerdict = */ pVerdict,
+        /* pCheckerConfig = */ TestDataTools.configurationForTest()
             .loadFromResource(CFAToCTranslatorTest.class, "predicateAnalysis.properties")
             .build());
 
@@ -50,22 +57,27 @@ public class CfaToCExporterTest extends ToCTranslationTest {
   }
 
   @Override
-  protected void createProgram(Path pTargetPath) throws Exception {
-    CFA cfaToExport = parseProgram(originalProgram);
-    String result =
-        new CfaToCExporter(
-                logger, Configuration.defaultConfiguration(), ShutdownNotifier.createDummy())
-            .exportCfa(cfaToExport);
+  protected void createProgram(final Path pTargetPath) throws Exception {
+    final CfaToCExporter exporter = getExporter();
+
+    final CFA cfaToExport = parseProgram(originalProgram);
+    final String result = exporter.exportCfa(cfaToExport);
 
     IO.writeFile(pTargetPath, Charset.defaultCharset(), result);
   }
 
-  private CFA parseProgram(Path pProgram)
+  private CfaToCExporter getExporter() throws InvalidConfigurationException {
+    return new CfaToCExporter(
+        logger, Configuration.defaultConfiguration(), ShutdownNotifier.createDummy());
+  }
+
+  private CFA parseProgram(final Path pProgram)
       throws ParserException, IOException, InterruptedException, InvalidConfigurationException {
 
     final ShutdownNotifier shutdown = ShutdownNotifier.createDummy();
     final Configuration parseConfig = Configuration.defaultConfiguration();
     final CFACreator cfaCreator = new CFACreator(parseConfig, logger, shutdown);
+
     return cfaCreator.parseFileAndCreateCFA(ImmutableList.of(pProgram.toString()));
   }
 

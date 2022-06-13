@@ -9,9 +9,8 @@
 package org.sosy_lab.cpachecker.util.cwriter.tests;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Lists;
 import java.io.IOException;
-import java.nio.file.Files;
+import java.nio.charset.Charset;
 import java.nio.file.Path;
 import java.util.Collection;
 import org.junit.runner.RunWith;
@@ -20,6 +19,7 @@ import org.junit.runners.Parameterized.Parameters;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.io.IO;
 import org.sosy_lab.common.io.TempFile;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CFACreator;
@@ -32,11 +32,14 @@ import org.sosy_lab.cpachecker.util.test.ToCTranslationTest;
 @RunWith(Parameterized.class)
 public class CFAToCTranslatorTest extends ToCTranslationTest {
 
-  private Path originalProgram;
+  private final Path originalProgram;
 
   public CFAToCTranslatorTest(
-      @SuppressWarnings("unused") String pTestLabel, String pProgram, boolean pVerdict)
+      @SuppressWarnings("unused") final String pTestLabel,
+      final String pProgram,
+      final boolean pVerdict)
       throws InvalidConfigurationException, IOException {
+
     super(
         /* pTargetProgram = */ TempFile.builder()
             .prefix("residual")
@@ -51,6 +54,16 @@ public class CFAToCTranslatorTest extends ToCTranslationTest {
     originalProgram = Path.of(pProgram);
   }
 
+  @Override
+  protected void createProgram(final Path pTargetPath) throws Exception {
+    final CFAToCTranslator translator = getTranslator();
+
+    final CFA cfaToTranslate = parseProgram(originalProgram);
+    final String result = translator.translateCfa(cfaToTranslate);
+
+    IO.writeFile(pTargetPath, Charset.defaultCharset(), result);
+  }
+
   private CFAToCTranslator getTranslator() throws InvalidConfigurationException {
     return new CFAToCTranslator(
         TestDataTools.configurationForTest()
@@ -58,31 +71,15 @@ public class CFAToCTranslatorTest extends ToCTranslationTest {
             .build());
   }
 
-  private CFA parseProgram(Path pProgram) {
-    try {
-      final ShutdownNotifier shutdown = ShutdownNotifier.createDummy();
-      final Configuration parseConfig;
-      parseConfig = Configuration.builder().setOption("analysis.useLoopStructure", "false").build();
-      final CFACreator cfaCreator = new CFACreator(parseConfig, logger, shutdown);
+  private CFA parseProgram(final Path pProgram)
+      throws ParserException, IOException, InterruptedException, InvalidConfigurationException {
 
-      return cfaCreator.parseFileAndCreateCFA(Lists.newArrayList(pProgram.toString()));
+    final ShutdownNotifier shutdown = ShutdownNotifier.createDummy();
+    final Configuration parseConfig =
+        Configuration.builder().setOption("analysis.useLoopStructure", "false").build();
+    final CFACreator cfaCreator = new CFACreator(parseConfig, logger, shutdown);
 
-    } catch (InvalidConfigurationException
-        | InterruptedException
-        | IOException
-        | ParserException pE) {
-      throw new AssertionError(pE);
-    }
-  }
-
-  @Override
-  protected void createProgram(Path pTargetPath) throws Exception {
-    CFAToCTranslator translator = getTranslator();
-
-    CFA cfaToTranslate = parseProgram(originalProgram);
-    String res = translator.translateCfa(cfaToTranslate);
-
-    Files.write(pTargetPath, res.getBytes("utf-8"));
+    return cfaCreator.parseFileAndCreateCFA(ImmutableList.of(pProgram.toString()));
   }
 
   @Parameters(name = "{0}")
