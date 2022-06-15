@@ -192,15 +192,13 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
       }
     }
 
-    if (trackDataRaces && globalAccessChecker.hasGlobalAccess(cfaEdge)) {
-      if (!threadingState.hasDataRaceTracker()) {
-        CompoundIntervalManagerFactory compoundIntervalManagerFactory =
-            CompoundBitVectorIntervalManagerFactory.FORBID_SIGNED_WRAP_AROUND;
-        EdgeAnalyzer edgeAnalyzer = new EdgeAnalyzer(compoundIntervalManagerFactory, cfa.getMachineModel());
-        DataRaceTracker dataRaceTracker = new DataRaceTracker(edgeAnalyzer);
-        threadingState = threadingState.setDataRaceTracker(dataRaceTracker);
-      }
-      threadingState = threadingState.updateDataRaceTracker(cfaEdge, activeThread);
+    if (trackDataRaces && !threadingState.hasDataRaceTracker()) {
+      CompoundIntervalManagerFactory compoundIntervalManagerFactory =
+          CompoundBitVectorIntervalManagerFactory.FORBID_SIGNED_WRAP_AROUND;
+      EdgeAnalyzer edgeAnalyzer =
+          new EdgeAnalyzer(compoundIntervalManagerFactory, cfa.getMachineModel());
+      DataRaceTracker dataRaceTracker = new DataRaceTracker(edgeAnalyzer);
+      threadingState = threadingState.setDataRaceTracker(dataRaceTracker);
     }
 
     // check, if we can abort the complete analysis of all other threads after this edge.
@@ -217,6 +215,11 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
 
     // Store the active thread in the given states, cf. JavaDoc of activeThread
     results = Collections2.transform(results, ts -> ts.withActiveThread(activeThread));
+
+    if (trackDataRaces && globalAccessChecker.hasGlobalAccess(cfaEdge)) {
+      results =
+          Collections2.transform(results, ts -> ts.updateDataRaceTracker(cfaEdge, activeThread));
+    }
 
     return ImmutableList.copyOf(results);
   }
