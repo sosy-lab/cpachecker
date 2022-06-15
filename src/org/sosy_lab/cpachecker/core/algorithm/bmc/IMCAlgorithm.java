@@ -700,9 +700,10 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
     logger.log(Level.FINE, "Updating reachability vector");
 
     assert reachVector.size() < itpSequence.size();
-    for (int i = 0; i < itpSequence.size() - reachVector.size(); ++i) {
+    while (reachVector.size() < itpSequence.size()) {
       reachVector.add(bfmgr.makeTrue());
     }
+    assert reachVector.size() == itpSequence.size();
     for (int i = 0; i < reachVector.size(); ++i) {
       BooleanFormula image = reachVector.get(i);
       BooleanFormula itp = fmgr.uninstantiate(itpSequence.get(i));
@@ -738,7 +739,6 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
       for (int i = 1; i < reachVector.size(); ++i) {
         BooleanFormula imageAtI = reachVector.get(i);
         if (solver.implies(imageAtI, currentImage)) {
-          logger.log(Level.INFO, "Fixed point reached");
           finalFixedPoint = currentImage;
           return true;
         }
