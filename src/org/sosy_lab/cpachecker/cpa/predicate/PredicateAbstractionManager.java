@@ -34,6 +34,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.OptionalInt;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.function.Function;
@@ -411,7 +412,7 @@ public class PredicateAbstractionManager {
       // return as new abstraction formula
       logger.log(Level.FINEST, "Abstraction", currentAbstractionId, "using SUBSTITUTION");
       stats.numSymbolicAbstractions.incrementAndGet();
-      BooleanFormula substituted = syntacticSubstitution(f, ssa);
+      BooleanFormula substituted = syntacticSubstitution(f, ssa, pathFormula);
       if (solver.isUnsat(substituted)) {
         abs = amgr.makeFalsePredicate().getAbstractVariable();
       }
@@ -460,11 +461,16 @@ public class PredicateAbstractionManager {
    * @param pSSAMap Corresponding SSAMap
    * @return Another BooleanFormula, where syntactic substition has taken place
    */
-  private BooleanFormula syntacticSubstitution(BooleanFormula bf, SSAMap pSSAMap){
-    org.sosy_lab.java_smt.utils.PrettyPrinter pp = SolverUtils.prettyPrinter(fmgr.manager);
-    SubstituteVisitor stvisitor = new SubstituteVisitor(fmgr.manager);
-    bfmgr.visitRecursively(bf, stvisitor);
-    HashMap<Formula, Formula> substituteMap = stvisitor.fmap;
+  private BooleanFormula syntacticSubstitution(BooleanFormula bf, SSAMap pSSAMap, PathFormula pPathFormula){
+    BooleanFormula partNewBf = pPathFormula.getFormula();
+    SubstituteVisitor stvisitorBf = new SubstituteVisitor(fmgr.manager);
+    bfmgr.visitRecursively(bf, stvisitorBf);
+    HashMap<Formula, Formula> substituteMap = stvisitorBf.fmap;
+    SubstituteVisitor stvisitorBfnew = new SubstituteVisitor(fmgr.manager);
+    bfmgr.visitRecursively(partNewBf, stvisitorBfnew);
+    HashMap<Formula, Formula> substituteMapnew = stvisitorBfnew.fmap;
+    substituteMap.putAll(substituteMapnew);
+
     logger.log(Level.INFO, "Substituion map", substituteMap);
     logger.log(Level.INFO, "Before substituion          ", bf);
     if (!substituteMap.isEmpty()) {
@@ -477,8 +483,39 @@ public class PredicateAbstractionManager {
           new SubstituteAssignmentTransformationVisitor(fmgr.manager, substituteMap, pSSAMap);
       bf = bfmgr.transformRecursively(bf, stAssign);
       logger.log(Level.INFO, "After Assignment substituion", bf, "\n");
+      for (Formula key : substituteMap.keySet()) {
+        if (formulaInSsaMap(key, pSSAMap)) {
+          bf = fmgr.makeAnd(bf, fmgr.makeEqual(key, substituteMap.get(key)));
+        }
+      }
+      logger.log(Level.INFO, "After adding formulas       ", bf, "\n");
     }
     return bf;
+  }
+
+  /**
+   * Checks if a variable along with it's index is in the SSAMap
+   * @param f Formula consisting of only one variable in the form `name@index`
+   * @return the result of this check
+   */
+  private boolean formulaInSsaMap(Formula f, SSAMap pSSAMap){
+    Map<String, Formula> vars = fmgr.extractVariables(f);
+    if (vars.size()!=1) {
+      // TODO Martin reenable error
+      return true;
+//      throw new IllegalArgumentException("Error checking if variable index in SSAMAP: " + f.toString() +
+//          "\nNot exactly one variable in f");
+    }
+    Pair<String, OptionalInt> stringOptionalIntPair = FormulaManagerView.parseName(vars.keySet().iterator().next());
+    assert stringOptionalIntPair.getFirst() != null;
+    if (stringOptionalIntPair.getFirst().isEmpty() || stringOptionalIntPair.getSecond().isEmpty()) {
+      // TODO Martin Does javasmt have a unified logging system?
+      // TODO Martin reenable error
+      return true;
+//      throw new IllegalArgumentException("Error checking if variable index in SSAMAP: " + f.toString());
+    }
+//    String[] parts = f.toString().split("@");
+    return pSSAMap.containsVariable(stringOptionalIntPair.getFirst()) && (pSSAMap.getIndex(stringOptionalIntPair.getFirst()) == stringOptionalIntPair.getSecond().getAsInt());
   }
 
   /**

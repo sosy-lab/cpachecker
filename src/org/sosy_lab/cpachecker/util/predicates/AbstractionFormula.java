@@ -142,7 +142,7 @@ public class AbstractionFormula implements Serializable {
       abs = ": false";
     }
     // TODO Martin Either add a configuration option or revert this entirely
-    return "ABS " + formula + " sep " + instantiatedFormula + abs;
+    return instantiatedFormula + abs;
 //    return "ABS" + id + abs;
   }
 
