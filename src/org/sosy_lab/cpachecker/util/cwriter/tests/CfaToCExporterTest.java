@@ -13,6 +13,8 @@ import java.io.IOException;
 import java.nio.charset.Charset;
 import java.nio.file.Path;
 import java.util.Collection;
+import org.apache.commons.io.FileUtils;
+import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
@@ -54,6 +56,14 @@ public class CfaToCExporterTest extends ToCTranslationTest {
             .build());
 
     originalProgram = Path.of(pProgram);
+  }
+
+  @Test
+  public void testProgramsStaySame() throws Exception {
+    createProgram(targetProgram);
+
+    // test whether exported C program is equal to the input program
+    FileUtils.contentEquals(originalProgram.toFile(), targetProgram.toFile());
   }
 
   @Override
