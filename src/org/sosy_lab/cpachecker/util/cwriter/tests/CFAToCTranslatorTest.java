@@ -85,13 +85,17 @@ public class CFAToCTranslatorTest extends ToCTranslationTest {
   @Parameters(name = "{0}")
   public static Collection<Object[]> data() {
     return ImmutableList.of(
+        directTranslationTest("functionreturn.c", true),
         directTranslationTest("gotos.c", false),
-        directTranslationTest("main2.c", true),
         directTranslationTest("main.c", true),
+        directTranslationTest("main2.c", true),
         directTranslationTest("multipleErrors.c", false),
-        directTranslationTest("simple2.c", true),
+        directTranslationTest("multipleLoops.c", false),
+        directTranslationTest("no_overflow.c", true),
+        // overflow.c has verdict true because the configuration does not check for overflows
+        directTranslationTest("overflow.c", true),
         directTranslationTest("simple.c", true),
-        directTranslationTest("multipleLoops.c", false));
+        directTranslationTest("simple2.c", true));
   }
 
   private static Object[] directTranslationTest(final String pProgram, final boolean pVerdict) {
