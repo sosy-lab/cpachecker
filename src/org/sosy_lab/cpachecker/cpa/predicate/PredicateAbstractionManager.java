@@ -463,9 +463,7 @@ public class PredicateAbstractionManager {
    */
   private BooleanFormula syntacticSubstitution(BooleanFormula bf, SSAMap pSSAMap, PathFormula pPathFormula){
     BooleanFormula partNewBf = pPathFormula.getFormula();
-    boolean changed = true;
-    while (changed){
-      BooleanFormula bfOld = bf;
+//    boolean changed = true;
     SubstituteVisitor stvisitorBf = new SubstituteVisitor(fmgr.manager);
     bfmgr.visitRecursively(bf, stvisitorBf);
     HashMap<Formula, Formula> substituteMap = stvisitorBf.fmap;
@@ -476,7 +474,8 @@ public class PredicateAbstractionManager {
 
     logger.log(Level.INFO, "Substituion map", substituteMap);
     logger.log(Level.INFO, "Before substituion          ", bf);
-
+//    while (changed){
+//      BooleanFormula bfOld = bf;
       if (!substituteMap.isEmpty()) {
         SubstituteAssumptionTransformationVisitor
             stAssume = new SubstituteAssumptionTransformationVisitor(fmgr.manager, substituteMap);
@@ -494,8 +493,10 @@ public class PredicateAbstractionManager {
 //      }
 //      logger.log(Level.INFO, "After adding formulas       ", bf, "\n");
       }
-      changed = !(bfOld.equals(bf));
-    }
+//      bf = fmgr.manager.substitute(bf, substituteMap);
+//      changed = !(bfOld.equals(bf));
+//      changed = false;
+//    }
 
     return bf;
   }
