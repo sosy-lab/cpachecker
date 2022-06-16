@@ -17,22 +17,20 @@ import org.sosy_lab.cpachecker.cfa.parser.Parsers;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 /**
- * Abstraction of a C writer that generates C code from CFAs.
+ * Writer that generates C code from CFAs.
  *
- * <p>A C writer should be state-less and therefore thread-safe as well as reusable.
+ * <p>A CWriter should be state-less and therefore thread-safe as well as reusable.
  */
 public interface CWriter {
 
   String exportCfa(final CFA pCfa) throws IOException, CPAException, InterruptedException;
 
-  /** Factory that tries to create a writer based on available libraries (e.g. Eclipse CDT). */
-  class Factory {
+  /** Tries to create a writer based on available libraries (e.g. Eclipse CDT). */
+  static CWriter createInstance(
+      final LogManager pLogger,
+      final ParserOptions pOptions,
+      final ShutdownNotifier pShutdownNotifier) {
 
-    public static CWriter getWriter(
-        final LogManager pLogger,
-        final ParserOptions pOptions,
-        final ShutdownNotifier pShutdownNotifier) {
-      return Parsers.getCWriter(pLogger, pOptions, pShutdownNotifier);
-    }
+    return Parsers.getCWriter(pLogger, pOptions, pShutdownNotifier);
   }
 }

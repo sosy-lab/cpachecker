@@ -31,7 +31,12 @@ import org.eclipse.core.runtime.CoreException;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.cpachecker.cfa.CParser.ParserOptions;
 
-/** Wrapper for Eclipse CDT */
+/**
+ * Wrapper for the Eclipse CDT parser component. Provides basic functionality to parse C code with
+ * Eclipse CDT into an AST.
+ *
+ * <p>To parse C code to a CFA, use {@link EclipseCParser}.
+ */
 public class EclipseCdtWrapper {
 
   // we don't use IASTName#getImageLocation(), so the parser doesn't need to create them
@@ -43,7 +48,6 @@ public class EclipseCdtWrapper {
   private final ShutdownNotifier shutdownNotifier;
 
   public EclipseCdtWrapper(final ParserOptions pOptions, final ShutdownNotifier pShutdownNotifier) {
-
     shutdownNotifier = pShutdownNotifier;
     parserLog = new ShutdownNotifierLogAdapter(shutdownNotifier);
 

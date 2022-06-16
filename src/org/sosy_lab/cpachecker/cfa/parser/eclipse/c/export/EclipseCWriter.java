@@ -22,13 +22,12 @@ import org.sosy_lab.cpachecker.cfa.export.CWriter;
 import org.sosy_lab.cpachecker.cfa.parser.eclipse.c.EclipseCdtWrapper;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
-/** Writer based on Eclipse CDT */
+/** Writer based on Eclipse CDT. */
 class EclipseCWriter implements CWriter {
 
   private final EclipseCdtWrapper eclipseCdt;
 
   public EclipseCWriter(final ParserOptions pOptions, final ShutdownNotifier pShutdownNotifier) {
-
     eclipseCdt = new EclipseCdtWrapper(pOptions, pShutdownNotifier);
   }
 

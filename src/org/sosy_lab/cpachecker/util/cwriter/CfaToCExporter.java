@@ -20,6 +20,7 @@ import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.cfa.export.CWriter;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
+/** Exporter that exports CFAs to C programs while trying to stay close to the input program. */
 public class CfaToCExporter {
 
   private final CWriter cWriter;
@@ -31,7 +32,7 @@ public class CfaToCExporter {
       throws InvalidConfigurationException {
 
     final ParserOptions options = CParser.Factory.getOptions(pConfig);
-    cWriter = CWriter.Factory.getWriter(pLogger, options, pShutdownNotifier);
+    cWriter = CWriter.createInstance(pLogger, options, pShutdownNotifier);
   }
 
   /**

@@ -6,8 +6,5 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-/**
- * A {@link org.sosy_lab.cpachecker.cfa.export.CWriter} implementation based on the Eclipse CDT
- * project.
- */
+/** This package contains Eclipse-CDT-specific functionality to export CFAs. */
 package org.sosy_lab.cpachecker.cfa.parser.eclipse.c.export;

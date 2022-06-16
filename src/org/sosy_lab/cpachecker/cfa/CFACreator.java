@@ -197,10 +197,11 @@ public class CFACreator {
 
   @Option(
       secure = true,
-      name = "cfa.exportToC.prettyPrint",
+      name = "cfa.exportToC.stayCloserToInput",
       description =
-          "use CFA-to-C exporter which produces C programs more similar to the original programs")
-  private boolean exportCfaToCPrettyPrint = false;
+          "produce C programs more similar to the input program"
+              + "\n(only possible for a single input file)")
+  private boolean exportCfaToCStayingCloserToInput = false;
 
   @Option(secure = true, name = "cfa.callgraph.export", description = "dump a simple call graph")
   private boolean exportFunctionCalls = true;
@@ -1216,9 +1217,15 @@ public class CFACreator {
     if (exportCfaToC && exportCfaToCFile != null) {
       try {
         String code;
-        if (exportCfaToCPrettyPrint) {
+        if (exportCfaToCStayingCloserToInput && cfa.getFileNames().size() == 1) {
           code = new CfaToCExporter(logger, config, shutdownNotifier).exportCfa(cfa);
         } else {
+          if (exportCfaToCStayingCloserToInput) {
+            logger.log(
+                Level.INFO,
+                "Using the regular CFA-to-C exporter (staying closer to the input program is only"
+                    + " possible for a single input program)");
+          }
           code = new CFAToCTranslator(config).translateCfa(cfa);
         }
         try (Writer writer = IO.openOutputFile(exportCfaToCFile, Charset.defaultCharset())) {
