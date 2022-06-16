@@ -463,6 +463,9 @@ public class PredicateAbstractionManager {
    */
   private BooleanFormula syntacticSubstitution(BooleanFormula bf, SSAMap pSSAMap, PathFormula pPathFormula){
     BooleanFormula partNewBf = pPathFormula.getFormula();
+    boolean changed = true;
+    while (changed){
+      BooleanFormula bfOld = bf;
     SubstituteVisitor stvisitorBf = new SubstituteVisitor(fmgr.manager);
     bfmgr.visitRecursively(bf, stvisitorBf);
     HashMap<Formula, Formula> substituteMap = stvisitorBf.fmap;
@@ -473,23 +476,27 @@ public class PredicateAbstractionManager {
 
     logger.log(Level.INFO, "Substituion map", substituteMap);
     logger.log(Level.INFO, "Before substituion          ", bf);
-    if (!substituteMap.isEmpty()) {
-      SubstituteAssumptionTransformationVisitor
-          stAssume = new SubstituteAssumptionTransformationVisitor(fmgr.manager, substituteMap);
-      bf = bfmgr.transformRecursively(bf, stAssume);
-      logger.log(Level.INFO, "After Assumption substituion", bf);
-      SubstituteAssignmentTransformationVisitor stAssign;
-      stAssign =
-          new SubstituteAssignmentTransformationVisitor(fmgr.manager, substituteMap, pSSAMap);
-      bf = bfmgr.transformRecursively(bf, stAssign);
-      logger.log(Level.INFO, "After Assignment substituion", bf, "\n");
-      for (Formula key : substituteMap.keySet()) {
-        if (formulaInSsaMap(key, pSSAMap)) {
-          bf = fmgr.makeAnd(bf, fmgr.makeEqual(key, substituteMap.get(key)));
-        }
+
+      if (!substituteMap.isEmpty()) {
+        SubstituteAssumptionTransformationVisitor
+            stAssume = new SubstituteAssumptionTransformationVisitor(fmgr.manager, substituteMap);
+        bf = bfmgr.transformRecursively(bf, stAssume);
+        logger.log(Level.INFO, "After Assumption substituion", bf);
+        SubstituteAssignmentTransformationVisitor stAssign;
+        stAssign =
+            new SubstituteAssignmentTransformationVisitor(fmgr.manager, substituteMap, pSSAMap);
+        bf = bfmgr.transformRecursively(bf, stAssign);
+        logger.log(Level.INFO, "After Assignment substituion", bf, "\n");
+//      for (Formula key : substituteMap.keySet()) {
+//        if (formulaInSsaMap(key, pSSAMap)) {
+//          bf = fmgr.makeAnd(bf, fmgr.makeEqual(key, substituteMap.get(key)));
+//        }
+//      }
+//      logger.log(Level.INFO, "After adding formulas       ", bf, "\n");
       }
-      logger.log(Level.INFO, "After adding formulas       ", bf, "\n");
+      changed = !(bfOld.equals(bf));
     }
+
     return bf;
   }
 
@@ -502,7 +509,7 @@ public class PredicateAbstractionManager {
     Map<String, Formula> vars = fmgr.extractVariables(f);
     if (vars.size()!=1) {
       // TODO Martin reenable error
-      return true;
+      return false;
 //      throw new IllegalArgumentException("Error checking if variable index in SSAMAP: " + f.toString() +
 //          "\nNot exactly one variable in f");
     }
@@ -511,7 +518,7 @@ public class PredicateAbstractionManager {
     if (stringOptionalIntPair.getFirst().isEmpty() || stringOptionalIntPair.getSecond().isEmpty()) {
       // TODO Martin Does javasmt have a unified logging system?
       // TODO Martin reenable error
-      return true;
+      return false;
 //      throw new IllegalArgumentException("Error checking if variable index in SSAMAP: " + f.toString());
     }
 //    String[] parts = f.toString().split("@");
