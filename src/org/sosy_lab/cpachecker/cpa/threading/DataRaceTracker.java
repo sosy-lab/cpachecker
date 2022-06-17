@@ -13,7 +13,6 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 import edu.umd.cs.findbugs.annotations.Nullable;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
@@ -24,11 +23,7 @@ import org.sosy_lab.cpachecker.cfa.ast.AExpressionStatement;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.AStatement;
-import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
-import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
-import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.ADeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.AReturnStatementEdge;
@@ -36,7 +31,6 @@ import org.sosy_lab.cpachecker.cfa.model.AStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
-import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cpa.invariants.EdgeAnalyzer;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
@@ -203,7 +197,7 @@ class DataRaceTracker {
 
   DataRaceTracker update(
       Set<String> threadIds, String activeThread, CFAEdge edge, Set<String> locks) {
-    ImmutableMap<String, Thread> newThreads = getNewThreads(activeThread, edge);
+    ImmutableMap<String, Thread> newThreads = getNewThreads(threadIds, activeThread);
 
     Set<MemoryAccess> newMemoryAccesses = getNewAccesses(activeThread, edge, locks);
     ImmutableSet.Builder<MemoryAccess> builder = ImmutableSet.builder();
@@ -371,46 +365,27 @@ class DataRaceTracker {
     return newAccesses;
   }
 
-  private ImmutableMap<String, Thread> getNewThreads(String activeThread, CFAEdge edge) {
-    String newThreadName = null;
-    if (edge instanceof CStatementEdge) {
-      CStatementEdge statementEdge = (CStatementEdge) edge;
-      if (statementEdge.getStatement() instanceof CFunctionCallStatement) {
-        CFunctionCallStatement functionCallStatement =
-            (CFunctionCallStatement) statementEdge.getStatement();
-        if (functionCallStatement.getFunctionCallExpression().getFunctionNameExpression()
-            instanceof CIdExpression) {
-          CIdExpression functionNameExpression =
-              (CIdExpression)
-                  functionCallStatement.getFunctionCallExpression().getFunctionNameExpression();
-          if (functionNameExpression.getName().equals("pthread_create")) {
-            List<CExpression> parameters =
-                functionCallStatement.getFunctionCallExpression().getParameterExpressions();
-            if (!parameters.isEmpty() && parameters.get(0) instanceof CUnaryExpression) {
-              CUnaryExpression threadReference = (CUnaryExpression) parameters.get(0);
-              if (threadReference.getOperand() instanceof CIdExpression) {
-                CIdExpression threadIdExpression = (CIdExpression) threadReference.getOperand();
-                newThreadName = threadIdExpression.getName();
-              }
-            }
-          }
-        }
-      }
-    }
-
-    // TODO: Handle thread termination (pthread_join)
-
-    if (newThreadName == null) {
-      return threads;
-    }
+  private ImmutableMap<String, Thread> getNewThreads(Set<String> threadIds, String activeThread) {
+    Set<String> added = Sets.difference(threadIds, threads.keySet());
+    assert added.size() < 2 : "Multiple thread creations in same step not supported";
+    Set<String> removed = Sets.difference(threads.keySet(), threadIds);
 
     ImmutableMap.Builder<String, Thread> threadsBuilder = ImmutableMap.builder();
-    Thread parent = threads.get(activeThread);
-    threadsBuilder.put(newThreadName, new Thread(parent, newThreadName, 0, parent.getEpoch() + 1));
-    threadsBuilder.put(parent.getName(), parent.increaseEpoch());
-    for (Entry<String, Thread> entry : threads.entrySet()) {
-      if (!entry.getKey().equals(activeThread)) {
-        threadsBuilder.put(entry);
+    if (added.isEmpty()) {
+      for (Entry<String, Thread> entry : threads.entrySet()) {
+        if (!removed.contains(entry.getKey())) {
+          threadsBuilder.put(entry);
+        }
+      }
+    } else {
+      String threadId = added.iterator().next();
+      Thread parent = threads.get(activeThread);
+      threadsBuilder.put(threadId, new Thread(parent, threadId, 0, parent.getEpoch() + 1));
+      threadsBuilder.put(parent.getName(), parent.increaseEpoch());
+      for (Entry<String, Thread> entry : threads.entrySet()) {
+        if (!(removed.contains(entry.getKey()) || entry.getKey().equals(activeThread))) {
+          threadsBuilder.put(entry);
+        }
       }
     }
     return threadsBuilder.build();
