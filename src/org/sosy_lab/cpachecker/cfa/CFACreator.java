@@ -1224,7 +1224,7 @@ public class CFACreator {
             logger.log(
                 Level.INFO,
                 "Using the regular CFA-to-C exporter (staying closer to the input program is only"
-                    + " possible for a single input program)");
+                    + " possible for a single input file)");
           }
           code = new CFAToCTranslator(config).translateCfa(cfa);
         }
