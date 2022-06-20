@@ -6,14 +6,14 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.util.invariantwitness.exchange.model;
+package org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.records.common;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.errorprone.annotations.Immutable;
 import java.util.Objects;
 
 @Immutable
-public class InvariantStoreEntryProducer {
+public class ProducerRecord {
   @JsonProperty("name")
   private final String name;
 
@@ -29,7 +29,7 @@ public class InvariantStoreEntryProducer {
   @JsonProperty("command_line")
   private final String commandLine;
 
-  public InvariantStoreEntryProducer(
+  public ProducerRecord(
       @JsonProperty("name") String pName,
       @JsonProperty("version") String pVersion,
       @JsonProperty("configuration") String pConfiguration,
@@ -67,10 +67,10 @@ public class InvariantStoreEntryProducer {
     if (o == this) {
       return true;
     }
-    if (!(o instanceof InvariantStoreEntryProducer)) {
+    if (!(o instanceof ProducerRecord)) {
       return false;
     }
-    InvariantStoreEntryProducer invariantStoreEntryProducer = (InvariantStoreEntryProducer) o;
+    ProducerRecord invariantStoreEntryProducer = (ProducerRecord) o;
     return Objects.equals(name, invariantStoreEntryProducer.name)
         && Objects.equals(version, invariantStoreEntryProducer.version)
         && Objects.equals(configuration, invariantStoreEntryProducer.configuration)
@@ -85,7 +85,7 @@ public class InvariantStoreEntryProducer {
 
   @Override
   public String toString() {
-    return "InvariantStoreEntryProducer{"
+    return "ProducerRecord{"
         + " name='"
         + getName()
         + "'"
