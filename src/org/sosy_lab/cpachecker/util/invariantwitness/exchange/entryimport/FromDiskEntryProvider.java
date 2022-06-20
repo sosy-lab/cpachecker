@@ -11,7 +11,7 @@ package org.sosy_lab.cpachecker.util.invariantwitness.exchange.entryimport;
 import com.fasterxml.jackson.databind.JavaType;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
-import com.google.common.collect.ImmutableList;
+import com.google.common.collect.FluentIterable;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.DirectoryStream;
@@ -149,11 +149,7 @@ class FromDiskEntryProvider implements AutoCloseable {
 
   private synchronized void loadEntries(File entriesFile) throws IOException {
     List<AbstractEntry> entries = mapper.readValue(entriesFile, entryType);
-    loadedEntries.addAll(
-        entries.stream()
-            .filter(x -> x instanceof LoopInvariantEntry)
-            .map(LoopInvariantEntry.class::cast)
-            .collect(ImmutableList.toImmutableList()));
+    FluentIterable.from(entries).filter(LoopInvariantEntry.class).copyInto(loadedEntries);
   }
 
   @Override
