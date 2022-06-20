@@ -17,8 +17,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import java.io.File;
 import java.io.IOException;
-import java.net.URISyntaxException;
-import java.nio.file.Paths;
+import java.nio.file.Path;
 import java.util.ArrayDeque;
 import java.util.List;
 import java.util.Queue;
@@ -29,11 +28,11 @@ import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.LoopInvarian
 
 public class InvariantWitnessTest {
 
+  public static final String TEST_DIR_PATH = "test/witness/";
+
   @Test
-  public void testParsingEntries()
-      throws URISyntaxException, JsonParseException, JsonMappingException, IOException {
-    File yamlWitness =
-        Paths.get(getClass().getResource("loop_invariant_and_certificate.yml").toURI()).toFile();
+  public void testParsingEntries() throws JsonParseException, JsonMappingException, IOException {
+    File yamlWitness = Path.of(TEST_DIR_PATH, "loop_invariant_and_certificate.yml").toFile();
     ObjectMapper mapper = new ObjectMapper(new YAMLFactory());
     JavaType entryType =
         mapper.getTypeFactory().constructCollectionType(List.class, AbstractEntry.class);
