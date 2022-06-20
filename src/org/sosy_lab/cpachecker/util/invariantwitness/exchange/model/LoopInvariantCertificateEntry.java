@@ -74,4 +74,50 @@ public class LoopInvariantCertificateEntry extends AbstractEntry {
         + "'"
         + "}";
   }
+
+  @Override
+  public int hashCode() {
+    final int prime = 31;
+    int result = super.hashCode();
+    result = prime * result + ((certification == null) ? 0 : certification.hashCode());
+    result = prime * result + ((metadata == null) ? 0 : metadata.hashCode());
+    result = prime * result + ((target == null) ? 0 : target.hashCode());
+    return result;
+  }
+
+  @Override
+  public boolean equals(Object obj) {
+    if (this == obj) {
+      return true;
+    }
+    if (!super.equals(obj)) {
+      return false;
+    }
+    if (!(obj instanceof LoopInvariantCertificateEntry)) {
+      return false;
+    }
+    LoopInvariantCertificateEntry other = (LoopInvariantCertificateEntry) obj;
+    if (certification == null) {
+      if (other.certification != null) {
+        return false;
+      }
+    } else if (!certification.equals(other.certification)) {
+      return false;
+    }
+    if (metadata == null) {
+      if (other.metadata != null) {
+        return false;
+      }
+    } else if (!metadata.equals(other.metadata)) {
+      return false;
+    }
+    if (target == null) {
+      if (other.target != null) {
+        return false;
+      }
+    } else if (!target.equals(other.target)) {
+      return false;
+    }
+    return true;
+  }
 }

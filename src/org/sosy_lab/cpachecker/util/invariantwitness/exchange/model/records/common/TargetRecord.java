@@ -61,7 +61,7 @@ public class TargetRecord {
     if (obj == null) {
       return false;
     }
-    if (getClass() != obj.getClass()) {
+    if (!(obj instanceof TargetRecord)) {
       return false;
     }
     TargetRecord other = (TargetRecord) obj;
