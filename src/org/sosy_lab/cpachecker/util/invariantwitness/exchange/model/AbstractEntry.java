@@ -24,7 +24,7 @@ import com.fasterxml.jackson.annotation.JsonTypeInfo.Id;
 public abstract class AbstractEntry {
 
   @JsonProperty("entry_type")
-  protected String entryType;
+  protected final String entryType;
 
   public AbstractEntry(@JsonProperty("entry_type") String entry_type) {
     this.entryType = entry_type;
@@ -55,7 +55,7 @@ public abstract class AbstractEntry {
     if (obj == null) {
       return false;
     }
-    if (getClass() != obj.getClass()) {
+    if (!(obj instanceof AbstractEntry)) {
       return false;
     }
     AbstractEntry other = (AbstractEntry) obj;
