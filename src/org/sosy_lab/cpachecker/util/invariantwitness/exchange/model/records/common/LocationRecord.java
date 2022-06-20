@@ -6,13 +6,13 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.util.invariantwitness.exchange.model;
+package org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.records.common;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.errorprone.annotations.Immutable;
 
 @Immutable
-public class InvariantStoreEntryLocation {
+public class LocationRecord {
   @JsonProperty("file_name")
   private final String fileName;
 
@@ -28,7 +28,7 @@ public class InvariantStoreEntryLocation {
   @JsonProperty("function")
   private final String function;
 
-  public InvariantStoreEntryLocation(
+  public LocationRecord(
       @JsonProperty("file_name") String fileName,
       @JsonProperty("file_hash") String fileHash,
       @JsonProperty("line") int line,
@@ -66,10 +66,10 @@ public class InvariantStoreEntryLocation {
     if (o == this) {
       return true;
     }
-    if (!(o instanceof InvariantStoreEntryLocation)) {
+    if (!(o instanceof LocationRecord)) {
       return false;
     }
-    InvariantStoreEntryLocation other = (InvariantStoreEntryLocation) o;
+    LocationRecord other = (LocationRecord) o;
     return fileName.equals(other.fileName)
         && fileHash.equals(other.fileHash)
         && line == other.line
@@ -89,7 +89,7 @@ public class InvariantStoreEntryLocation {
 
   @Override
   public String toString() {
-    return "InvariantStoreEntryLocation{"
+    return "LocationRecord{"
         + " fileName='"
         + getFileName()
         + "'"

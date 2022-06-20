@@ -41,8 +41,8 @@ import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
 import org.sosy_lab.cpachecker.util.invariantwitness.InvariantWitness;
 import org.sosy_lab.cpachecker.util.invariantwitness.InvariantWitnessFactory;
 import org.sosy_lab.cpachecker.util.invariantwitness.exchange.InvariantStoreUtil;
-import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.InvariantStoreEntry;
-import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.InvariantStoreEntryLocation;
+import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.LoopInvariantEntry;
+import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.records.common.LocationRecord;
 
 class InvariantStoreEntryParser {
   private final ListMultimap<String, Integer> lineOffsetsByFile;
@@ -110,9 +110,9 @@ class InvariantStoreEntryParser {
    * @return collection of invariants that might be represented by the given entry
    * @throws InterruptedException if this thread was interrputed during parsing
    */
-  Collection<InvariantWitness> parseStoreEntry(InvariantStoreEntry entry)
+  Collection<InvariantWitness> parseStoreEntry(LoopInvariantEntry entry)
       throws InterruptedException {
-    final InvariantStoreEntryLocation location = entry.getLocation();
+    final LocationRecord location = entry.getLocation();
 
     // Currently we only do very minimal validation of the witnesses we read.
     // If the witness was produced for another file we can just ignore it.
@@ -221,7 +221,7 @@ class InvariantStoreEntryParser {
     return result.build();
   }
 
-  private FileLocation parseFileLocation(InvariantStoreEntryLocation entryLocation) {
+  private FileLocation parseFileLocation(LocationRecord entryLocation) {
     int offetInFile =
         lineOffsetsByFile.get(entryLocation.getFileName()).get(entryLocation.getLine() - 1);
 
