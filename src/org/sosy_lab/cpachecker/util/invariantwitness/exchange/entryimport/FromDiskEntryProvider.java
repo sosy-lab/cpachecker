@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.util.invariantwitness.exchange.entryimport;
 import com.fasterxml.jackson.databind.JavaType;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
+import com.google.common.collect.ImmutableList;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.DirectoryStream;
@@ -30,6 +31,7 @@ import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.AbstractEntry;
 import org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.LoopInvariantEntry;
 
 /**
@@ -60,8 +62,7 @@ class FromDiskEntryProvider implements AutoCloseable {
     pConfig.inject(this);
     loadedEntries = new ArrayDeque<>();
 
-    entryType =
-        mapper.getTypeFactory().constructCollectionType(List.class, LoopInvariantEntry.class);
+    entryType = mapper.getTypeFactory().constructCollectionType(List.class, AbstractEntry.class);
   }
 
   static FromDiskEntryProvider getNewFromDiskEntryProvider(Configuration pConfig)
@@ -147,8 +148,12 @@ class FromDiskEntryProvider implements AutoCloseable {
   }
 
   private synchronized void loadEntries(File entriesFile) throws IOException {
-    List<LoopInvariantEntry> entries = mapper.readValue(entriesFile, entryType);
-    loadedEntries.addAll(entries);
+    List<AbstractEntry> entries = mapper.readValue(entriesFile, entryType);
+    loadedEntries.addAll(
+        entries.stream()
+            .filter(x -> x instanceof LoopInvariantEntry)
+            .map(LoopInvariantEntry.class::cast)
+            .collect(ImmutableList.toImmutableList()));
   }
 
   @Override
