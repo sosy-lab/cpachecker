@@ -18,9 +18,8 @@ import static org.sosy_lab.cpachecker.cpa.threading.ThreadingTransferRelation.is
 import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.FluentIterable;
-import java.util.HashSet;
 import java.util.LinkedHashSet;
-import java.util.Map.Entry;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -245,13 +244,10 @@ public class ThreadingState
   }
 
   Set<String> getLocksForThread(String threadId) {
-    Set<String> locksForThread = new HashSet<>();
-    for (Entry<String, String> entry : locks.entrySet()) {
-      if (entry.getValue().equals(threadId)) {
-        locksForThread.add(entry.getKey());
-      }
-    }
-    return locksForThread;
+    return FluentIterable.from(locks.entrySet())
+        .filter(entry -> entry.getValue().equals(threadId))
+        .transform(Map.Entry::getKey)
+        .toSet();
   }
 
   @Override
