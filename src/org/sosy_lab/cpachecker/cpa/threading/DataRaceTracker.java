@@ -61,10 +61,6 @@ class DataRaceTracker {
       return threadId;
     }
 
-    public int getEpoch() {
-      return epoch;
-    }
-
     public MemoryLocation getMemoryLocation() {
       return memoryLocation;
     }
@@ -104,14 +100,12 @@ class DataRaceTracker {
     private final String name;
     private final int epoch;
     private final int creationEpoch;
-    private final boolean terminated;
 
     ThreadInfo(@Nullable ThreadInfo pParent, String pName, int pEpoch, int pCreationEpoch) {
       parent = pParent;
       name = pName;
       epoch = pEpoch;
       creationEpoch = pCreationEpoch;
-      terminated = false;
     }
 
     public @Nullable ThreadInfo getParent() {
@@ -128,10 +122,6 @@ class DataRaceTracker {
 
     public int getCreationEpoch() {
       return creationEpoch;
-    }
-
-    public boolean isTerminated() {
-      return terminated;
     }
 
     public ThreadInfo increaseEpoch() {
