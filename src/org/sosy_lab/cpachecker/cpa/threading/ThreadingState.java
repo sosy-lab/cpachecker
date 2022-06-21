@@ -338,7 +338,7 @@ public class ThreadingState
       if (hasDataRaceTracker()) {
         return tracker.hasDataRace();
       }
-      return false;
+      throw new InvalidQueryException("Data Race detection is not enabled.");
     }
     throw new InvalidQueryException("Query '" + pProperty + "' is invalid.");
   }
