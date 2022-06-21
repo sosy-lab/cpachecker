@@ -82,11 +82,15 @@ class DataRaceTracker {
         return true;
       }
       if (threads.containsKey(other.getThreadId())) {
-        Thread othersThread = threads.get(other.getThreadId());
-        Thread othersThreadsParent = othersThread.getParent();
-        if (othersThreadsParent != null
-            && othersThreadsParent.getName().equals(threadId)
-            && othersThread.getCreationEpoch() > epoch) {
+        Thread ancestor = threads.get(other.getThreadId());
+        while (ancestor != null) {
+          Thread parent = ancestor.getParent();
+          if (parent != null && parent.getName().equals(threadId)) {
+            break;
+          }
+          ancestor = parent;
+        }
+        if (ancestor != null && ancestor.getCreationEpoch() > epoch) {
           return true;
         }
       }
