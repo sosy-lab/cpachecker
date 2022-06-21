@@ -77,14 +77,14 @@ class DataRaceTracker {
       return locks;
     }
 
-    public boolean happensBefore(MemoryAccess other, Map<String, Thread> threads) {
+    public boolean happensBefore(MemoryAccess other, Map<String, ThreadInfo> threads) {
       if (threadId.equals(other.getThreadId())) {
         return true;
       }
       if (threads.containsKey(other.getThreadId())) {
-        Thread ancestor = threads.get(other.getThreadId());
+        ThreadInfo ancestor = threads.get(other.getThreadId());
         while (ancestor != null) {
-          Thread parent = ancestor.getParent();
+          ThreadInfo parent = ancestor.getParent();
           if (parent != null && parent.getName().equals(threadId)) {
             break;
           }
@@ -99,14 +99,14 @@ class DataRaceTracker {
     }
   }
 
-  private static class Thread {
-    private final @Nullable Thread parent;
+  private static class ThreadInfo {
+    private final @Nullable ThreadInfo parent;
     private final String name;
     private final int epoch;
     private final int creationEpoch;
     private final boolean terminated;
 
-    Thread(@Nullable Thread pParent, String pName, int pEpoch, int pCreationEpoch) {
+    ThreadInfo(@Nullable ThreadInfo pParent, String pName, int pEpoch, int pCreationEpoch) {
       parent = pParent;
       name = pName;
       epoch = pEpoch;
@@ -114,7 +114,7 @@ class DataRaceTracker {
       terminated = false;
     }
 
-    public @Nullable Thread getParent() {
+    public @Nullable ThreadInfo getParent() {
       return parent;
     }
 
@@ -134,8 +134,8 @@ class DataRaceTracker {
       return terminated;
     }
 
-    public Thread increaseEpoch() {
-      return new Thread(parent, name, epoch + 1, creationEpoch);
+    public ThreadInfo increaseEpoch() {
+      return new ThreadInfo(parent, name, epoch + 1, creationEpoch);
     }
   }
 
@@ -172,21 +172,21 @@ class DataRaceTracker {
           "pthread_mutexattr_destroy");
 
   private final ImmutableSet<MemoryAccess> memoryAccesses;
-  private final ImmutableMap<String, Thread> threads;
+  private final ImmutableMap<String, ThreadInfo> threads;
   private final boolean hasDataRace;
   private final EdgeAnalyzer edgeAnalyzer;
 
   DataRaceTracker(EdgeAnalyzer pEdgeAnalyzer) {
     this(
         ImmutableSet.of(),
-        ImmutableMap.of("main", new Thread(null, "main", 0, 0)),
+        ImmutableMap.of("main", new ThreadInfo(null, "main", 0, 0)),
         false,
         pEdgeAnalyzer);
   }
 
   private DataRaceTracker(
       Set<MemoryAccess> pMemoryAccesses,
-      Map<String, Thread> pThreads,
+      Map<String, ThreadInfo> pThreads,
       boolean pHasDataRace,
       EdgeAnalyzer pEdgeAnalyzer) {
     memoryAccesses = ImmutableSet.copyOf(pMemoryAccesses);
@@ -201,7 +201,7 @@ class DataRaceTracker {
 
   DataRaceTracker update(
       Set<String> threadIds, String activeThread, CFAEdge edge, Set<String> locks) {
-    ImmutableMap<String, Thread> newThreads = getNewThreads(threadIds, activeThread);
+    ImmutableMap<String, ThreadInfo> newThreads = getNewThreads(threadIds, activeThread);
 
     Set<MemoryAccess> newMemoryAccesses = getNewAccesses(activeThread, edge, locks);
     ImmutableSet.Builder<MemoryAccess> builder = ImmutableSet.builder();
@@ -369,24 +369,25 @@ class DataRaceTracker {
     return newAccesses;
   }
 
-  private ImmutableMap<String, Thread> getNewThreads(Set<String> threadIds, String activeThread) {
+  private ImmutableMap<String, ThreadInfo> getNewThreads(
+      Set<String> threadIds, String activeThread) {
     Set<String> added = Sets.difference(threadIds, threads.keySet());
     assert added.size() < 2 : "Multiple thread creations in same step not supported";
     Set<String> removed = Sets.difference(threads.keySet(), threadIds);
 
-    ImmutableMap.Builder<String, Thread> threadsBuilder = ImmutableMap.builder();
+    ImmutableMap.Builder<String, ThreadInfo> threadsBuilder = ImmutableMap.builder();
     if (added.isEmpty()) {
-      for (Entry<String, Thread> entry : threads.entrySet()) {
+      for (Entry<String, ThreadInfo> entry : threads.entrySet()) {
         if (!removed.contains(entry.getKey())) {
           threadsBuilder.put(entry);
         }
       }
     } else {
       String threadId = added.iterator().next();
-      Thread parent = threads.get(activeThread);
-      threadsBuilder.put(threadId, new Thread(parent, threadId, 0, parent.getEpoch() + 1));
+      ThreadInfo parent = threads.get(activeThread);
+      threadsBuilder.put(threadId, new ThreadInfo(parent, threadId, 0, parent.getEpoch() + 1));
       threadsBuilder.put(parent.getName(), parent.increaseEpoch());
-      for (Entry<String, Thread> entry : threads.entrySet()) {
+      for (Entry<String, ThreadInfo> entry : threads.entrySet()) {
         if (!(removed.contains(entry.getKey()) || entry.getKey().equals(activeThread))) {
           threadsBuilder.put(entry);
         }
