@@ -6,7 +6,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.util.invariantwitness.exchange.model;
+package org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.records.common;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.collect.ImmutableList;
@@ -17,7 +17,7 @@ import java.util.Map;
 import java.util.Objects;
 
 @Immutable
-public class InvariantStoreEntryTask {
+public class TaskRecord {
   @JsonProperty("input_files")
   private final ImmutableList<String> inputFiles;
 
@@ -33,7 +33,7 @@ public class InvariantStoreEntryTask {
   @JsonProperty("language")
   private final String language;
 
-  public InvariantStoreEntryTask(
+  public TaskRecord(
       @JsonProperty("input_files") List<String> pInputFiles,
       @JsonProperty("input_file_hashes") Map<String, String> pInputFileHashes,
       @JsonProperty("specification") String pSpecification,
@@ -71,10 +71,10 @@ public class InvariantStoreEntryTask {
     if (o == this) {
       return true;
     }
-    if (!(o instanceof InvariantStoreEntryTask)) {
+    if (!(o instanceof TaskRecord)) {
       return false;
     }
-    InvariantStoreEntryTask invariantStoreEntryTask = (InvariantStoreEntryTask) o;
+    TaskRecord invariantStoreEntryTask = (TaskRecord) o;
     return Objects.equals(inputFiles, invariantStoreEntryTask.inputFiles)
         && Objects.equals(inputFileHashes, invariantStoreEntryTask.inputFileHashes)
         && Objects.equals(specification, invariantStoreEntryTask.specification)
@@ -89,7 +89,7 @@ public class InvariantStoreEntryTask {
 
   @Override
   public String toString() {
-    return "InvariantStoreEntryTask{"
+    return "TaskRecord{"
         + " inputFiles='"
         + getInputFiles()
         + "'"

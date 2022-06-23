@@ -799,6 +799,10 @@ cfa.exportPerFunction = true
 cfa.exportToC = false
 cfa.exportToC.file = "cfa.c"
 
+# produce C programs more similar to the input program
+# (only possible for a single input file)
+cfa.exportToC.stayCloserToInput = false
+
 # export CFA as .dot file
 cfa.file = "cfa.dot"
 

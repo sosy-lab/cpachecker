@@ -6,13 +6,13 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.util.invariantwitness.exchange.model;
+package org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.records.common;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.errorprone.annotations.Immutable;
 
 @Immutable
-public class InvariantStoreEntryLoopInvariant {
+public class InformationRecord {
   @JsonProperty("string")
   private final String string;
 
@@ -22,7 +22,7 @@ public class InvariantStoreEntryLoopInvariant {
   @JsonProperty("format")
   private final String format;
 
-  public InvariantStoreEntryLoopInvariant(
+  public InformationRecord(
       @JsonProperty("string") String string,
       @JsonProperty("type") String type,
       @JsonProperty("format") String format) {
@@ -48,11 +48,10 @@ public class InvariantStoreEntryLoopInvariant {
     if (o == this) {
       return true;
     }
-    if (!(o instanceof InvariantStoreEntryLoopInvariant)) {
+    if (!(o instanceof InformationRecord)) {
       return false;
     }
-    InvariantStoreEntryLoopInvariant invariantStoreEntryLoopInvariant =
-        (InvariantStoreEntryLoopInvariant) o;
+    InformationRecord invariantStoreEntryLoopInvariant = (InformationRecord) o;
     return string.equals(invariantStoreEntryLoopInvariant.string)
         && type.equals(invariantStoreEntryLoopInvariant.type)
         && format.equals(invariantStoreEntryLoopInvariant.format);
@@ -68,7 +67,7 @@ public class InvariantStoreEntryLoopInvariant {
 
   @Override
   public String toString() {
-    return "InvariantStoreEntryLoopInvariant{"
+    return "InformationRecord{"
         + " string='"
         + getString()
         + "'"
