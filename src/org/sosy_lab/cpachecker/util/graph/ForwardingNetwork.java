@@ -8,7 +8,6 @@
 
 package org.sosy_lab.cpachecker.util.graph;
 
-
 import com.google.common.graph.ElementOrder;
 import com.google.common.graph.EndpointPair;
 import com.google.common.graph.Graph;
