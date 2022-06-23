@@ -130,7 +130,7 @@ public class SMGCPAValueVisitor
   public List<ValueAndSMGState> visit(CFunctionCallExpression pIastFunctionCallExpression)
       throws CPATransferException {
 
-    return ImmutableList.of(handleFunctions(pIastFunctionCallExpression));
+    return handleFunctions(pIastFunctionCallExpression);
   }
 
   @Override
@@ -1137,10 +1137,10 @@ public class SMGCPAValueVisitor
   }
 
   /*
-   * Handles arithmetic functions only!
+   * Handles ALL function calls
    */
-  private ValueAndSMGState handleFunctions(CFunctionCallExpression pIastFunctionCallExpression)
-      throws CPATransferException {
+  private List<ValueAndSMGState> handleFunctions(
+      CFunctionCallExpression pIastFunctionCallExpression) throws CPATransferException {
     CExpression functionNameExp = pIastFunctionCallExpression.getFunctionNameExpression();
 
     // We only handle builtin functions
@@ -1148,11 +1148,12 @@ public class SMGCPAValueVisitor
       String calledFunctionName = ((CIdExpression) functionNameExp).getName();
 
       if (BuiltinFunctions.isBuiltinFunction(calledFunctionName)) {
+
         CType functionType = BuiltinFunctions.getFunctionType(calledFunctionName);
 
         if (isUnspecifiedType(functionType)) {
           // unsupported formula
-          return ValueAndSMGState.ofUnknownValue(state);
+          return ImmutableList.of(ValueAndSMGState.ofUnknownValue(state));
         }
 
         List<CExpression> parameterExpressions =
@@ -1185,7 +1186,7 @@ public class SMGCPAValueVisitor
            * return BuiltinOverflowFunctions.evaluateFunctionCall(
            *   pIastFunctionCallExpression, this, evaluator.getMachineModel(), logger);
            */
-          return ValueAndSMGState.of(UnknownValue.getInstance(), currentState);
+          return ImmutableList.of(ValueAndSMGState.of(UnknownValue.getInstance(), currentState));
         } else if (BuiltinFloatFunctions.matchesAbsolute(calledFunctionName)) {
           assert parameterValues.size() == 1;
 
@@ -1193,7 +1194,7 @@ public class SMGCPAValueVisitor
           final Value parameter = parameterValues.get(0);
 
           if (parameterType instanceof CSimpleType && !((CSimpleType) parameterType).isSigned()) {
-            return ValueAndSMGState.of(parameter, currentState);
+            return ImmutableList.of(ValueAndSMGState.of(parameter, currentState));
 
           } else if (parameter.isExplicitlyKnown()) {
             assert parameter.isNumericValue();
@@ -1201,7 +1202,8 @@ public class SMGCPAValueVisitor
 
             // absolute value for INT_MIN is undefined behaviour, so we do not bother handling it
             // in any specific way
-            return ValueAndSMGState.of(new NumericValue(absoluteValue), currentState);
+            return ImmutableList.of(
+                ValueAndSMGState.of(new NumericValue(absoluteValue), currentState));
           }
 
         } else if (BuiltinFloatFunctions.matchesHugeVal(calledFunctionName)
@@ -1211,7 +1213,8 @@ public class SMGCPAValueVisitor
           if (BuiltinFloatFunctions.matchesHugeValFloat(calledFunctionName)
               || BuiltinFloatFunctions.matchesInfinityFloat(calledFunctionName)) {
 
-            return ValueAndSMGState.of(new NumericValue(Float.POSITIVE_INFINITY), currentState);
+            return ImmutableList.of(
+                ValueAndSMGState.of(new NumericValue(Float.POSITIVE_INFINITY), currentState));
 
           } else {
             assert BuiltinFloatFunctions.matchesInfinityDouble(calledFunctionName)
@@ -1220,20 +1223,22 @@ public class SMGCPAValueVisitor
                     || BuiltinFloatFunctions.matchesHugeValLongDouble(calledFunctionName)
                 : " Unhandled builtin function for infinity: " + calledFunctionName;
 
-            return ValueAndSMGState.of(new NumericValue(Double.POSITIVE_INFINITY), currentState);
+            return ImmutableList.of(
+                ValueAndSMGState.of(new NumericValue(Double.POSITIVE_INFINITY), currentState));
           }
 
         } else if (BuiltinFloatFunctions.matchesNaN(calledFunctionName)) {
           assert parameterValues.isEmpty() || parameterValues.size() == 1;
 
           if (BuiltinFloatFunctions.matchesNaNFloat(calledFunctionName)) {
-            return ValueAndSMGState.of(new NumericValue(Float.NaN), currentState);
+            return ImmutableList.of(ValueAndSMGState.of(new NumericValue(Float.NaN), currentState));
           } else {
             assert BuiltinFloatFunctions.matchesNaNDouble(calledFunctionName)
                     || BuiltinFloatFunctions.matchesNaNLongDouble(calledFunctionName)
                 : "Unhandled builtin function for NaN: " + calledFunctionName;
 
-            return ValueAndSMGState.of(new NumericValue(Double.NaN), currentState);
+            return ImmutableList.of(
+                ValueAndSMGState.of(new NumericValue(Double.NaN), currentState));
           }
         } else if (BuiltinFloatFunctions.matchesIsNaN(calledFunctionName)) {
           if (parameterValues.size() == 1) {
@@ -1245,12 +1250,12 @@ public class SMGCPAValueVisitor
               switch (paramType.getType()) {
                 case FLOAT:
                   return Float.isNaN(numericValue.floatValue())
-                      ? ValueAndSMGState.of(new NumericValue(1), currentState)
-                      : ValueAndSMGState.of(new NumericValue(0), currentState);
+                      ? ImmutableList.of(ValueAndSMGState.of(new NumericValue(1), currentState))
+                      : ImmutableList.of(ValueAndSMGState.of(new NumericValue(0), currentState));
                 case DOUBLE:
                   return Double.isNaN(numericValue.doubleValue())
-                      ? ValueAndSMGState.of(new NumericValue(1), currentState)
-                      : ValueAndSMGState.of(new NumericValue(0), currentState);
+                      ? ImmutableList.of(ValueAndSMGState.of(new NumericValue(1), currentState))
+                      : ImmutableList.of(ValueAndSMGState.of(new NumericValue(0), currentState));
                 default:
                   break;
               }
@@ -1266,12 +1271,12 @@ public class SMGCPAValueVisitor
               switch (paramType.getType()) {
                 case FLOAT:
                   return Float.isInfinite(numericValue.floatValue())
-                      ? ValueAndSMGState.of(new NumericValue(1), currentState)
-                      : ValueAndSMGState.of(new NumericValue(0), currentState);
+                      ? ImmutableList.of(ValueAndSMGState.of(new NumericValue(1), currentState))
+                      : ImmutableList.of(ValueAndSMGState.of(new NumericValue(0), currentState));
                 case DOUBLE:
                   return Double.isInfinite(numericValue.doubleValue())
-                      ? ValueAndSMGState.of(new NumericValue(1), currentState)
-                      : ValueAndSMGState.of(new NumericValue(0), currentState);
+                      ? ImmutableList.of(ValueAndSMGState.of(new NumericValue(1), currentState))
+                      : ImmutableList.of(ValueAndSMGState.of(new NumericValue(0), currentState));
                 default:
                   break;
               }
@@ -1287,12 +1292,12 @@ public class SMGCPAValueVisitor
               switch (paramType.getType()) {
                 case FLOAT:
                   return Float.isInfinite(numericValue.floatValue())
-                      ? ValueAndSMGState.of(new NumericValue(0), currentState)
-                      : ValueAndSMGState.of(new NumericValue(1), currentState);
+                      ? ImmutableList.of(ValueAndSMGState.of(new NumericValue(0), currentState))
+                      : ImmutableList.of(ValueAndSMGState.of(new NumericValue(1), currentState));
                 case DOUBLE:
                   return Double.isInfinite(numericValue.doubleValue())
-                      ? ValueAndSMGState.of(new NumericValue(0), currentState)
-                      : ValueAndSMGState.of(new NumericValue(1), currentState);
+                      ? ImmutableList.of(ValueAndSMGState.of(new NumericValue(0), currentState))
+                      : ImmutableList.of(ValueAndSMGState.of(new NumericValue(1), currentState));
                 default:
                   break;
               }
@@ -1306,17 +1311,20 @@ public class SMGCPAValueVisitor
               assert parameter.isNumericValue();
               Number number = parameter.asNumericValue().getNumber();
               if (number instanceof BigDecimal) {
-                return ValueAndSMGState.of(
-                    new NumericValue(((BigDecimal) number).setScale(0, RoundingMode.FLOOR)),
-                    currentState);
+                return ImmutableList.of(
+                    ValueAndSMGState.of(
+                        new NumericValue(((BigDecimal) number).setScale(0, RoundingMode.FLOOR)),
+                        currentState));
               } else if (number instanceof Float) {
-                return ValueAndSMGState.of(
-                    new NumericValue(Math.floor(number.floatValue())), currentState);
+                return ImmutableList.of(
+                    ValueAndSMGState.of(
+                        new NumericValue(Math.floor(number.floatValue())), currentState));
               } else if (number instanceof Double) {
-                return ValueAndSMGState.of(
-                    new NumericValue(Math.floor(number.doubleValue())), currentState);
+                return ImmutableList.of(
+                    ValueAndSMGState.of(
+                        new NumericValue(Math.floor(number.doubleValue())), currentState));
               } else if (number instanceof NumericValue.NegativeNaN) {
-                return ValueAndSMGState.of(parameter, currentState);
+                return ImmutableList.of(ValueAndSMGState.of(parameter, currentState));
               }
             }
           }
@@ -1328,17 +1336,20 @@ public class SMGCPAValueVisitor
               assert parameter.isNumericValue();
               Number number = parameter.asNumericValue().getNumber();
               if (number instanceof BigDecimal) {
-                return ValueAndSMGState.of(
-                    new NumericValue(((BigDecimal) number).setScale(0, RoundingMode.CEILING)),
-                    currentState);
+                return ImmutableList.of(
+                    ValueAndSMGState.of(
+                        new NumericValue(((BigDecimal) number).setScale(0, RoundingMode.CEILING)),
+                        currentState));
               } else if (number instanceof Float) {
-                return ValueAndSMGState.of(
-                    new NumericValue(Math.ceil(number.floatValue())), currentState);
+                return ImmutableList.of(
+                    ValueAndSMGState.of(
+                        new NumericValue(Math.ceil(number.floatValue())), currentState));
               } else if (number instanceof Double) {
-                return ValueAndSMGState.of(
-                    new NumericValue(Math.ceil(number.doubleValue())), currentState);
+                return ImmutableList.of(
+                    ValueAndSMGState.of(
+                        new NumericValue(Math.ceil(number.doubleValue())), currentState));
               } else if (number instanceof NumericValue.NegativeNaN) {
-                return ValueAndSMGState.of(parameter, currentState);
+                return ImmutableList.of(ValueAndSMGState.of(parameter, currentState));
               }
             }
           }
@@ -1351,23 +1362,26 @@ public class SMGCPAValueVisitor
               assert parameter.isNumericValue();
               Number number = parameter.asNumericValue().getNumber();
               if (number instanceof BigDecimal) {
-                return ValueAndSMGState.of(
-                    new NumericValue(((BigDecimal) number).setScale(0, RoundingMode.HALF_UP)),
-                    currentState);
+                return ImmutableList.of(
+                    ValueAndSMGState.of(
+                        new NumericValue(((BigDecimal) number).setScale(0, RoundingMode.HALF_UP)),
+                        currentState));
               } else if (number instanceof Float) {
                 float f = number.floatValue();
                 if (0 == f || Float.isInfinite(f)) {
-                  return ValueAndSMGState.of(parameter, currentState);
+                  return ImmutableList.of(ValueAndSMGState.of(parameter, currentState));
                 }
-                return ValueAndSMGState.of(new NumericValue(Math.round(f)), currentState);
+                return ImmutableList.of(
+                    ValueAndSMGState.of(new NumericValue(Math.round(f)), currentState));
               } else if (number instanceof Double) {
                 double d = number.doubleValue();
                 if (0 == d || Double.isInfinite(d)) {
-                  return ValueAndSMGState.of(parameter, currentState);
+                  return ImmutableList.of(ValueAndSMGState.of(parameter, currentState));
                 }
-                return ValueAndSMGState.of(new NumericValue(Math.round(d)), currentState);
+                return ImmutableList.of(
+                    ValueAndSMGState.of(new NumericValue(Math.round(d)), currentState));
               } else if (number instanceof NumericValue.NegativeNaN) {
-                return ValueAndSMGState.of(parameter, currentState);
+                return ImmutableList.of(ValueAndSMGState.of(parameter, currentState));
               }
             }
           }
@@ -1378,35 +1392,38 @@ public class SMGCPAValueVisitor
               assert parameter.isNumericValue();
               Number number = parameter.asNumericValue().getNumber();
               if (number instanceof BigDecimal) {
-                return ValueAndSMGState.of(
-                    new NumericValue(((BigDecimal) number).setScale(0, RoundingMode.DOWN)),
-                    currentState);
+                return ImmutableList.of(
+                    ValueAndSMGState.of(
+                        new NumericValue(((BigDecimal) number).setScale(0, RoundingMode.DOWN)),
+                        currentState));
               } else if (number instanceof Float) {
                 float f = number.floatValue();
                 if (0 == f || Float.isInfinite(f) || Float.isNaN(f)) {
                   // +/-0.0 and +/-INF and +/-NaN are returned unchanged
-                  return ValueAndSMGState.of(parameter, currentState);
+                  return ImmutableList.of(ValueAndSMGState.of(parameter, currentState));
                 }
-                return ValueAndSMGState.of(
-                    new NumericValue(
-                        BigDecimal.valueOf(number.floatValue())
-                            .setScale(0, RoundingMode.DOWN)
-                            .floatValue()),
-                    currentState);
+                return ImmutableList.of(
+                    ValueAndSMGState.of(
+                        new NumericValue(
+                            BigDecimal.valueOf(number.floatValue())
+                                .setScale(0, RoundingMode.DOWN)
+                                .floatValue()),
+                        currentState));
               } else if (number instanceof Double) {
                 double d = number.doubleValue();
                 if (0 == d || Double.isInfinite(d) || Double.isNaN(d)) {
                   // +/-0.0 and +/-INF and +/-NaN are returned unchanged
-                  return ValueAndSMGState.of(parameter, currentState);
+                  return ImmutableList.of(ValueAndSMGState.of(parameter, currentState));
                 }
-                return ValueAndSMGState.of(
-                    new NumericValue(
-                        BigDecimal.valueOf(number.doubleValue())
-                            .setScale(0, RoundingMode.DOWN)
-                            .doubleValue()),
-                    currentState);
+                return ImmutableList.of(
+                    ValueAndSMGState.of(
+                        new NumericValue(
+                            BigDecimal.valueOf(number.doubleValue())
+                                .setScale(0, RoundingMode.DOWN)
+                                .doubleValue()),
+                        currentState));
               } else if (number instanceof NumericValue.NegativeNaN) {
-                return ValueAndSMGState.of(parameter, currentState);
+                return ImmutableList.of(ValueAndSMGState.of(parameter, currentState));
               }
             }
           }
@@ -1424,7 +1441,7 @@ public class SMGCPAValueVisitor
 
               Value result = fdim(op1, op2, calledFunctionName);
               if (!Value.UnknownValue.getInstance().equals(result)) {
-                return ValueAndSMGState.of(result, currentState);
+                return ImmutableList.of(ValueAndSMGState.of(result, currentState));
               }
             }
           }
@@ -1440,7 +1457,7 @@ public class SMGCPAValueVisitor
               Number op1 = operand1.asNumericValue().getNumber();
               Number op2 = operand2.asNumericValue().getNumber();
 
-              return ValueAndSMGState.of(fmax(op1, op2), currentState);
+              return ImmutableList.of(ValueAndSMGState.of(fmax(op1, op2), currentState));
             }
           }
         } else if (BuiltinFloatFunctions.matchesFmin(calledFunctionName)) {
@@ -1455,7 +1472,7 @@ public class SMGCPAValueVisitor
               Number op1 = operand1.asNumericValue().getNumber();
               Number op2 = operand2.asNumericValue().getNumber();
 
-              return ValueAndSMGState.of(fmin(op1, op2), currentState);
+              return ImmutableList.of(ValueAndSMGState.of(fmin(op1, op2), currentState));
             }
           }
         } else if (BuiltinFloatFunctions.matchesSignbit(calledFunctionName)) {
@@ -1467,8 +1484,9 @@ public class SMGCPAValueVisitor
               Number number = parameter.asNumericValue().getNumber();
               Optional<Boolean> isNegative = isNegative(number);
               if (isNegative.isPresent()) {
-                return ValueAndSMGState.of(
-                    new NumericValue(isNegative.orElseThrow() ? 1 : 0), currentState);
+                return ImmutableList.of(
+                    ValueAndSMGState.of(
+                        new NumericValue(isNegative.orElseThrow() ? 1 : 0), currentState));
               }
             }
           }
@@ -1485,9 +1503,11 @@ public class SMGCPAValueVisitor
               Optional<Boolean> targetNegative = isNegative(targetNumber);
               if (sourceNegative.isPresent() && targetNegative.isPresent()) {
                 if (sourceNegative.orElseThrow().equals(targetNegative.orElseThrow())) {
-                  return ValueAndSMGState.of(new NumericValue(targetNumber), currentState);
+                  return ImmutableList.of(
+                      ValueAndSMGState.of(new NumericValue(targetNumber), currentState));
                 }
-                return ValueAndSMGState.of(target.asNumericValue().negate(), currentState);
+                return ImmutableList.of(
+                    ValueAndSMGState.of(target.asNumericValue().negate(), currentState));
               }
             }
           }
@@ -1504,35 +1524,43 @@ public class SMGCPAValueVisitor
                   {
                     float v = numericValue.floatValue();
                     if (Float.isNaN(v)) {
-                      return ValueAndSMGState.of(new NumericValue(0), currentState);
+                      return ImmutableList.of(
+                          ValueAndSMGState.of(new NumericValue(0), currentState));
                     }
                     if (Float.isInfinite(v)) {
-                      return ValueAndSMGState.of(new NumericValue(1), currentState);
+                      return ImmutableList.of(
+                          ValueAndSMGState.of(new NumericValue(1), currentState));
                     }
                     if (v == 0.0) {
-                      return ValueAndSMGState.of(new NumericValue(2), currentState);
+                      return ImmutableList.of(
+                          ValueAndSMGState.of(new NumericValue(2), currentState));
                     }
                     if (Float.toHexString(v).startsWith("0x0.")) {
-                      return ValueAndSMGState.of(new NumericValue(3), currentState);
+                      return ImmutableList.of(
+                          ValueAndSMGState.of(new NumericValue(3), currentState));
                     }
-                    return ValueAndSMGState.of(new NumericValue(4), currentState);
+                    return ImmutableList.of(ValueAndSMGState.of(new NumericValue(4), currentState));
                   }
                 case DOUBLE:
                   {
                     double v = numericValue.doubleValue();
                     if (Double.isNaN(v)) {
-                      return ValueAndSMGState.of(new NumericValue(0), currentState);
+                      return ImmutableList.of(
+                          ValueAndSMGState.of(new NumericValue(0), currentState));
                     }
                     if (Double.isInfinite(v)) {
-                      return ValueAndSMGState.of(new NumericValue(1), currentState);
+                      return ImmutableList.of(
+                          ValueAndSMGState.of(new NumericValue(1), currentState));
                     }
                     if (v == 0.0) {
-                      return ValueAndSMGState.of(new NumericValue(2), currentState);
+                      return ImmutableList.of(
+                          ValueAndSMGState.of(new NumericValue(2), currentState));
                     }
                     if (Double.toHexString(v).startsWith("0x0.")) {
-                      return ValueAndSMGState.of(new NumericValue(3), currentState);
+                      return ImmutableList.of(
+                          ValueAndSMGState.of(new NumericValue(3), currentState));
                     }
-                    return ValueAndSMGState.of(new NumericValue(4), currentState);
+                    return ImmutableList.of(ValueAndSMGState.of(new NumericValue(4), currentState));
                   }
                 default:
                   break;
@@ -1551,13 +1579,15 @@ public class SMGCPAValueVisitor
                   {
                     long integralPart = (long) numericValue.floatValue();
                     float fractionalPart = numericValue.floatValue() - integralPart;
-                    return ValueAndSMGState.of(new NumericValue(fractionalPart), currentState);
+                    return ImmutableList.of(
+                        ValueAndSMGState.of(new NumericValue(fractionalPart), currentState));
                   }
                 case DOUBLE:
                   {
                     long integralPart = (long) numericValue.doubleValue();
                     double fractionalPart = numericValue.doubleValue() - integralPart;
-                    return ValueAndSMGState.of(new NumericValue(fractionalPart), currentState);
+                    return ImmutableList.of(
+                        ValueAndSMGState.of(new NumericValue(fractionalPart), currentState));
                   }
                 default:
                   break;
@@ -1578,10 +1608,12 @@ public class SMGCPAValueVisitor
                     float num = numerValue.floatValue();
                     float den = denomValue.floatValue();
                     if (Float.isNaN(num) || Float.isNaN(den) || Float.isInfinite(num) || den == 0) {
-                      return ValueAndSMGState.of(new NumericValue(Float.NaN), currentState);
+                      return ImmutableList.of(
+                          ValueAndSMGState.of(new NumericValue(Float.NaN), currentState));
                     }
-                    return ValueAndSMGState.of(
-                        new NumericValue((float) Math.IEEEremainder(num, den)), currentState);
+                    return ImmutableList.of(
+                        ValueAndSMGState.of(
+                            new NumericValue((float) Math.IEEEremainder(num, den)), currentState));
                   }
                 case DOUBLE:
                   {
@@ -1591,10 +1623,12 @@ public class SMGCPAValueVisitor
                         || Double.isNaN(den)
                         || Double.isInfinite(num)
                         || den == 0) {
-                      return ValueAndSMGState.of(new NumericValue(Double.NaN), currentState);
+                      return ImmutableList.of(
+                          ValueAndSMGState.of(new NumericValue(Double.NaN), currentState));
                     }
-                    return ValueAndSMGState.of(
-                        new NumericValue(Math.IEEEremainder(num, den)), currentState);
+                    return ImmutableList.of(
+                        ValueAndSMGState.of(
+                            new NumericValue(Math.IEEEremainder(num, den)), currentState));
                   }
                 default:
                   break;
@@ -1615,14 +1649,16 @@ public class SMGCPAValueVisitor
                     float num = numerValue.floatValue();
                     float den = denomValue.floatValue();
                     if (Float.isNaN(num) || Float.isNaN(den) || Float.isInfinite(num) || den == 0) {
-                      return ValueAndSMGState.of(new NumericValue(Float.NaN), currentState);
+                      return ImmutableList.of(
+                          ValueAndSMGState.of(new NumericValue(Float.NaN), currentState));
                     }
                     if (num == 0 && den != 0) {
                       // keep the sign on +0 and -0
-                      return ValueAndSMGState.of(numer, currentState);
+                      return ImmutableList.of(ValueAndSMGState.of(numer, currentState));
                     }
                     // TODO computations on float/double are imprecise! Use epsilon environment?
-                    return ValueAndSMGState.of(new NumericValue(num % den), currentState);
+                    return ImmutableList.of(
+                        ValueAndSMGState.of(new NumericValue(num % den), currentState));
                   }
                 case DOUBLE:
                   {
@@ -1632,14 +1668,16 @@ public class SMGCPAValueVisitor
                         || Double.isNaN(den)
                         || Double.isInfinite(num)
                         || den == 0) {
-                      return ValueAndSMGState.of(new NumericValue(Double.NaN), currentState);
+                      return ImmutableList.of(
+                          ValueAndSMGState.of(new NumericValue(Double.NaN), currentState));
                     }
                     if (num == 0 && den != 0) {
                       // keep the sign on +0 and -0
-                      return ValueAndSMGState.of(numer, currentState);
+                      return ImmutableList.of(ValueAndSMGState.of(numer, currentState));
                     }
                     // TODO computations on float/double are imprecise! Use epsilon environment?
-                    return ValueAndSMGState.of(new NumericValue(num % den), currentState);
+                    return ImmutableList.of(
+                        ValueAndSMGState.of(new NumericValue(num % den), currentState));
                   }
                 default:
                   break;
@@ -1652,7 +1690,8 @@ public class SMGCPAValueVisitor
           if (op1.isExplicitlyKnown() && op2.isExplicitlyKnown()) {
             double num1 = op1.asNumericValue().doubleValue();
             double num2 = op2.asNumericValue().doubleValue();
-            return ValueAndSMGState.of(new NumericValue(num1 > num2 ? 1 : 0), currentState);
+            return ImmutableList.of(
+                ValueAndSMGState.of(new NumericValue(num1 > num2 ? 1 : 0), currentState));
           }
         } else if (BuiltinFloatFunctions.matchesIsgreaterequal(calledFunctionName)) {
           Value op1 = parameterValues.get(0);
@@ -1660,7 +1699,8 @@ public class SMGCPAValueVisitor
           if (op1.isExplicitlyKnown() && op2.isExplicitlyKnown()) {
             double num1 = op1.asNumericValue().doubleValue();
             double num2 = op2.asNumericValue().doubleValue();
-            return ValueAndSMGState.of(new NumericValue(num1 >= num2 ? 1 : 0), currentState);
+            return ImmutableList.of(
+                ValueAndSMGState.of(new NumericValue(num1 >= num2 ? 1 : 0), currentState));
           }
         } else if (BuiltinFloatFunctions.matchesIsless(calledFunctionName)) {
           Value op1 = parameterValues.get(0);
@@ -1668,7 +1708,8 @@ public class SMGCPAValueVisitor
           if (op1.isExplicitlyKnown() && op2.isExplicitlyKnown()) {
             double num1 = op1.asNumericValue().doubleValue();
             double num2 = op2.asNumericValue().doubleValue();
-            return ValueAndSMGState.of(new NumericValue(num1 < num2 ? 1 : 0), currentState);
+            return ImmutableList.of(
+                ValueAndSMGState.of(new NumericValue(num1 < num2 ? 1 : 0), currentState));
           }
         } else if (BuiltinFloatFunctions.matchesIslessequal(calledFunctionName)) {
           Value op1 = parameterValues.get(0);
@@ -1676,7 +1717,8 @@ public class SMGCPAValueVisitor
           if (op1.isExplicitlyKnown() && op2.isExplicitlyKnown()) {
             double num1 = op1.asNumericValue().doubleValue();
             double num2 = op2.asNumericValue().doubleValue();
-            return ValueAndSMGState.of(new NumericValue(num1 <= num2 ? 1 : 0), currentState);
+            return ImmutableList.of(
+                ValueAndSMGState.of(new NumericValue(num1 <= num2 ? 1 : 0), currentState));
           }
         } else if (BuiltinFloatFunctions.matchesIslessgreater(calledFunctionName)) {
           Value op1 = parameterValues.get(0);
@@ -1684,8 +1726,9 @@ public class SMGCPAValueVisitor
           if (op1.isExplicitlyKnown() && op2.isExplicitlyKnown()) {
             double num1 = op1.asNumericValue().doubleValue();
             double num2 = op2.asNumericValue().doubleValue();
-            return ValueAndSMGState.of(
-                new NumericValue(num1 > num2 || num1 < num2 ? 1 : 0), currentState);
+            return ImmutableList.of(
+                ValueAndSMGState.of(
+                    new NumericValue(num1 > num2 || num1 < num2 ? 1 : 0), currentState));
           }
         } else if (BuiltinFloatFunctions.matchesIsunordered(calledFunctionName)) {
           Value op1 = parameterValues.get(0);
@@ -1693,13 +1736,22 @@ public class SMGCPAValueVisitor
           if (op1.isExplicitlyKnown() && op2.isExplicitlyKnown()) {
             double num1 = op1.asNumericValue().doubleValue();
             double num2 = op2.asNumericValue().doubleValue();
-            return ValueAndSMGState.of(
-                new NumericValue(Double.isNaN(num1) || Double.isNaN(num2) ? 1 : 0), currentState);
+            return ImmutableList.of(
+                ValueAndSMGState.of(
+                    new NumericValue(Double.isNaN(num1) || Double.isNaN(num2) ? 1 : 0),
+                    currentState));
           }
         }
       }
+
+      // Now check and use builtins of C (malloc etc.)
+      SMGCPABuiltins smgBuiltins = new SMGCPABuiltins(evaluator, null, null, null, logger);
+      // We don't check for the builtins because we want the failure handling of the
+      // handleFunctioncall method
+      return smgBuiltins.handleFunctioncall(
+          pIastFunctionCallExpression, calledFunctionName, state, cfaEdge);
     }
-    return ValueAndSMGState.ofUnknownValue(state);
+    return ImmutableList.of(ValueAndSMGState.ofUnknownValue(state));
   }
 
   /* ++++++++++++++++++ Below this point value arithmetics and comparisons  ++++++++++++++++++ */
