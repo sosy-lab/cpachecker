@@ -10,25 +10,16 @@ package org.sosy_lab.cpachecker.cfa;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
-import com.google.common.collect.ImmutableList;
-import com.google.common.graph.EndpointPair;
 import com.google.common.graph.MutableNetwork;
 import com.google.common.graph.NetworkBuilder;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import java.util.ArrayList;
-import java.util.List;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.util.CFAUtils;
-import org.sosy_lab.cpachecker.util.graph.ForwardingMutableNetwork;
 
-public class CfaMutableNetwork extends ForwardingMutableNetwork<CFANode, CFAEdge> {
-
-  private CfaMutableNetwork(MutableNetwork<CFANode, CFAEdge> pDelegate) {
-    super(pDelegate);
-  }
+public interface CfaMutableNetwork extends MutableNetwork<CFANode, CFAEdge> {
 
   /**
    * Returns a new {@code CfaMutableNetwork} instance representing the specified CFA.
@@ -46,7 +37,7 @@ public class CfaMutableNetwork extends ForwardingMutableNetwork<CFANode, CFAEdge
    *     connected to the same nodes in the same order)
    * @throws NullPointerException if {@code pCfa == null}
    */
-  public static CfaMutableNetwork of(CFA pCfa) {
+  static CfaMutableNetwork of(CFA pCfa) {
 
     MutableNetwork<CFANode, CFAEdge> mutableNetwork =
         NetworkBuilder.directed().allowsSelfLoops(true).build();
@@ -68,7 +59,7 @@ public class CfaMutableNetwork extends ForwardingMutableNetwork<CFANode, CFAEdge
       }
     }
 
-    return new CfaMutableNetwork(mutableNetwork);
+    return new ChangeRecordingCfaMutableNetwork(mutableNetwork);
   }
 
   /**
@@ -83,24 +74,7 @@ public class CfaMutableNetwork extends ForwardingMutableNetwork<CFANode, CFAEdge
    *
    * }</pre>
    */
-  public void insertPredecessor(CFANode pNewPredecessor, CFANode pNode, CFAEdge pNewInEdge) {
-
-    List<CFAEdge> nodeInEdges = ImmutableList.copyOf(inEdges(pNode));
-    List<CFANode> nodeUs = new ArrayList<>(nodeInEdges.size());
-
-    for (CFAEdge nodeInEdge : nodeInEdges) {
-      nodeUs.add(incidentNodes(nodeInEdge).nodeU());
-      removeEdge(nodeInEdge);
-    }
-
-    addNode(pNewPredecessor);
-
-    for (int index = 0; index < nodeInEdges.size(); index++) {
-      addEdge(nodeUs.get(index), pNewPredecessor, nodeInEdges.get(index));
-    }
-
-    addEdge(pNewPredecessor, pNode, pNewInEdge);
-  }
+  void insertPredecessor(CFANode pNewPredecessor, CFANode pNode, CFAEdge pNewInEdge);
 
   /**
    *
@@ -114,24 +88,7 @@ public class CfaMutableNetwork extends ForwardingMutableNetwork<CFANode, CFAEdge
    *
    * }</pre>
    */
-  public void insertSuccessor(CFANode pNode, CFANode pNewSuccessor, CFAEdge pNewOutEdge) {
-
-    List<CFAEdge> nodeOutEdges = ImmutableList.copyOf(outEdges(pNode));
-    List<CFANode> nodeVs = new ArrayList<>(nodeOutEdges.size());
-
-    for (CFAEdge nodeOutEdge : nodeOutEdges) {
-      nodeVs.add(incidentNodes(nodeOutEdge).nodeV());
-      removeEdge(nodeOutEdge);
-    }
-
-    addNode(pNewSuccessor);
-
-    for (int index = 0; index < nodeOutEdges.size(); index++) {
-      addEdge(pNewSuccessor, nodeVs.get(index), nodeOutEdges.get(index));
-    }
-
-    addEdge(pNode, pNewSuccessor, pNewOutEdge);
-  }
+  void insertSuccessor(CFANode pNode, CFANode pNewSuccessor, CFAEdge pNewOutEdge);
 
   /**
    * Replaces a CFA node with a different CFA node in this mutable network.
@@ -153,24 +110,7 @@ public class CfaMutableNetwork extends ForwardingMutableNetwork<CFANode, CFAEdge
    *
    * }</pre>
    */
-  public void replace(CFANode pNode, CFANode pNewNode) {
-
-    addNode(pNewNode);
-
-    for (CFAEdge inEdge : ImmutableList.copyOf(inEdges(pNode))) {
-      CFANode nodeU = incidentNodes(inEdge).nodeU();
-      removeEdge(inEdge);
-      addEdge(nodeU, pNewNode, inEdge);
-    }
-
-    for (CFAEdge outEdge : ImmutableList.copyOf(outEdges(pNode))) {
-      CFANode nodeV = incidentNodes(outEdge).nodeV();
-      removeEdge(outEdge);
-      addEdge(pNewNode, nodeV, outEdge);
-    }
-
-    removeNode(pNode);
-  }
+  void replace(CFANode pNode, CFANode pNewNode);
 
   /**
    * Replaces a CFA edge with a different CFA edge in this mutable network.
@@ -193,10 +133,5 @@ public class CfaMutableNetwork extends ForwardingMutableNetwork<CFANode, CFAEdge
    * }</pre>
    */
   @SuppressFBWarnings("UC_USELESS_VOID_METHOD") // false positive by SpotBugs
-  public void replace(CFAEdge pEdge, CFAEdge pNewEdge) {
-
-    EndpointPair<CFANode> endpoints = incidentNodes(pEdge);
-    removeEdge(pEdge);
-    addEdge(endpoints.nodeU(), endpoints.nodeV(), pNewEdge);
-  }
+  void replace(CFAEdge pEdge, CFAEdge pNewEdge);
 }
