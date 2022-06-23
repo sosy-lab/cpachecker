@@ -31,6 +31,7 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
+import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
@@ -67,11 +68,9 @@ import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
-import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CElaboratedType;
-import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
@@ -82,8 +81,9 @@ import org.sosy_lab.cpachecker.cpa.smg2.util.SMG2Exception;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGObjectAndOffset;
 import org.sosy_lab.cpachecker.cpa.smg2.util.value.SMGCPAValueExpressionEvaluator;
 import org.sosy_lab.cpachecker.cpa.smg2.util.value.ValueAndSMGState;
-import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.ConstantSymbolicExpression;
+import org.sosy_lab.cpachecker.cpa.value.type.BooleanValue;
+import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
@@ -105,18 +105,35 @@ public class SMGTransferRelation
 
   private final SMGCPAValueExpressionEvaluator evaluator;
 
+  // Collection of tracked symbolic boolean variables that get used when learning assumptions
+  // (see SMGCPAAssigningValueVisitor)
+  private final Collection<String> booleanVariables;
+
+  // Ignored variables (declarations)
+  // TODO: ignore the declarations using these variables
+  @SuppressWarnings("unused")
+  private final Collection<String> addressedVariables;
+
   public SMGTransferRelation(
       LogManager pLogger,
       SMGOptions pOptions,
       SMGCPAExportOptions pExportSMGOptions,
-      MachineModel pMachineModel,
-      ShutdownNotifier pShutdownNotifier) {
+      ShutdownNotifier pShutdownNotifier,
+      CFA pCfa) {
     logger = new LogManagerWithoutDuplicates(pLogger);
     options = pOptions;
     exportSMGOptions = pExportSMGOptions;
-    machineModel = pMachineModel;
+    machineModel = pCfa.getMachineModel();
     shutdownNotifier = pShutdownNotifier;
     evaluator = new SMGCPAValueExpressionEvaluator(machineModel, logger, exportSMGOptions, options);
+
+    if (pCfa.getVarClassification().isPresent()) {
+      addressedVariables = pCfa.getVarClassification().orElseThrow().getAddressedVariables();
+      booleanVariables = pCfa.getVarClassification().orElseThrow().getIntBoolVars();
+    } else {
+      addressedVariables = ImmutableSet.of();
+      booleanVariables = ImmutableSet.of();
+    }
   }
 
   @Override
@@ -356,72 +373,109 @@ public class SMGTransferRelation
   protected Collection<SMGState> handleAssumption(
       CAssumeEdge cfaEdge, CExpression expression, boolean truthAssumption)
       throws CPATransferException, InterruptedException {
-    // Assumptions are essentially all value analysis in nature. We get the values from the SMGs
+    // Assumptions are essentially all value analysis in nature. We might get the values from the
+    // SMGs
     // though.
     // Assumptions are for example all comparisons like ==, !=, <.... and should always be a
     // CBinaryExpression
-    return handleAssumption();
+    // We also might learn something by assuming symbolic or unknown values based on known values
+    return handleAssumption(cfaEdge, (AExpression) expression, truthAssumption);
   }
 
   private Collection<SMGState> handleAssumption(
-      CAssumeEdge cfaEdge, AExpression expression, boolean truthValue)
-      throws UnrecognizedCodeException {
+      CAssumeEdge cfaEdge, AExpression expression, boolean truthValue) throws CPATransferException {
 
+    // TODO: statistics
+    /*
     if (stats != null) {
       stats.incrementAssumptions();
     }
+    */
 
+    // We know it has to be a CExpression as this analysis only supports C
     Pair<AExpression, Boolean> simplifiedExpression = simplifyAssumption(expression, truthValue);
-    expression = simplifiedExpression.getFirst();
+    CExpression cExpression = (CExpression) simplifiedExpression.getFirst();
     truthValue = simplifiedExpression.getSecond();
 
     final SMGCPAValueVisitor vv = new SMGCPAValueVisitor(evaluator, state, cfaEdge, logger);
-    // We know the bool type of C and we don't handle Java
-    final Type booleanType = CNumericTypes.INT;
 
-    // get the value of the expression (either true[1L], false[0L], or unknown[null])
-    Value value = getExpressionValue(expression, booleanType, vv);
+    ImmutableList.Builder<SMGState> resultStateBuilder = ImmutableList.builder();
+    // Get the value of the expression (either true[1L], false[0L], or unknown[null])
+    List<ValueAndSMGState> valuesAndStates = cExpression.accept(vv);
+    for (ValueAndSMGState valueAndState : valuesAndStates) {
+      Value value = valueAndState.getValue();
+      SMGState currentState = valueAndState.getState();
 
-    if (value.isExplicitlyKnown() && stats != null) {
-      stats.incrementDeterministicAssumptions();
-    }
-
-    if (!value.isExplicitlyKnown()) {
-      ValueAnalysisState element = ValueAnalysisState.copyOf(state);
-
-      AssigningValueVisitor avv =
-          new AssigningValueVisitor(
-              element,
-              truthValue,
-              booleanVariables,
-              functionName,
-              state,
-              machineModel,
-              logger,
-              options);
-
-      ((CExpression) expression).accept(avv);
-
-      if (isMissingCExpressionInformation(vv, expression)) {
-        missingInformationList.add(new MissingInformation(truthValue, expression));
+      // TODO: statistics
+      /*
+      if (value.isExplicitlyKnown() && stats != null) {
+        stats.incrementDeterministicAssumptions();
       }
+      */
 
-      return element;
+      if (!value.isExplicitlyKnown()) {
+        SMGCPAAssigningValueVisitor avv =
+            new SMGCPAAssigningValueVisitor(
+                evaluator, state, cfaEdge, logger, truthValue, options, booleanVariables);
 
-    } else if (representsBoolean(value, truthValue)) {
-      // we do not know more than before, and the assumption is fulfilled, so return a copy of the
-      // old state
-      // we need to return a copy, otherwise precision adjustment might reset too much information,
-      // even on the original state
-      return ValueAnalysisState.copyOf(state);
+        for (ValueAndSMGState newValueAndUpdatedState : cExpression.accept(avv)) {
+          SMGState updatedState = newValueAndUpdatedState.getState();
 
-    } else {
-      // assumption not fulfilled
-      return null;
+          // TODO: track missing information needed to succeed with the analysis
+          /*
+          if (isMissingCExpressionInformation(vv, cExpression)) {
+            missingInformationList.add(new MissingInformation(truthValue, cExpression));
+          }
+          */
+
+          // If we now learned something from the SMGCPAAssigningValueVisitor the branch we are in
+          // (either if(expression) or the else which is !expression) condition is fulfilled.
+          // TODO: is it possible to learn something in such a way that the assumption is NOT
+          // fulfilled?
+          resultStateBuilder.add(updatedState);
+        }
+
+      } else if (representsBoolean(value, truthValue)) {
+        // We do not know more than before, and the assumption is fulfilled, so return the state
+        // from
+        // the value visitor (we don't need a copy as every state operation generates a new state
+        // and
+        // never modifies the old state)
+        resultStateBuilder.add(currentState);
+
+      } else {
+        // Assumption not fulfilled
+        Preconditions.checkArgument(valuesAndStates.size() == 1);
+        return null;
+      }
     }
+    return resultStateBuilder.build();
   }
 
+  /*
+   *  returns 'true' if the given value represents the specified boolean bool.
+   *  A return of 'false' does not necessarily mean that the given value represents !bool,
+   *  but only that it does not represent bool.
+   *
+   *  For example:
+   *    * representsTrue(BooleanValue.valueOf(true), true)  = true
+   *    * representsTrue(BooleanValue.valueOf(false), true) = false
+   *  but:
+   *    * representsTrue(NullValue.getInstance(), true)     = false
+   *    * representsTrue(NullValue.getInstance(), false)    = false
+   *
+   */
+  private boolean representsBoolean(Value value, boolean bool) {
+    if (value instanceof BooleanValue) {
+      return ((BooleanValue) value).isTrue() == bool;
 
+    } else if (value.isNumericValue()) {
+      return value.equals(new NumericValue(bool ? 1L : 0L));
+
+    } else {
+      return false;
+    }
+  }
 
   @Override
   protected Collection<SMGState> handleStatementEdge(CStatementEdge pCfaEdge, CStatement cStmt)
