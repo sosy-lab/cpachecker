@@ -1061,9 +1061,9 @@ public class SMGTransferRelation
       // the
       // later case this means the entire structure behind it needs to be copied as C is
       // pass-by-value.
-      SMGState currentState = valuesAndStates.get(valuesAndStates.size() - 1).getState();
-      for (ValueAndSMGState valueAndState : valuesAndStates) {
+      for (ValueAndSMGState valueAndState : rValue.accept(rightHandSideVisitor)) {
         Value valueToWrite = valueAndState.getValue();
+        SMGState currentState = valueAndState.getState();
         if (valueToWrite instanceof ConstantSymbolicExpression
             && ((ConstantSymbolicExpression) valueToWrite).getValue() == null) {
           // A ConstantSymbolicValue without Value is used to copy entire variable structures (i.e.
@@ -1103,8 +1103,6 @@ public class SMGTransferRelation
               currentState.writeValueTo(
                   addressToWriteTo, offsetToWriteTo, sizeInBits, valueToWrite);
           returnStateBuilder.add(currentState);
-          // For Strings we give back the chars in sequence; add size to offset and reuse state
-          offsetToWriteTo = offsetToWriteTo.add(sizeInBits);
         }
       }
     }
