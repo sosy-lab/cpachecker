@@ -360,6 +360,10 @@ public class SymbolicProgramConfiguration {
     return heapObjects.contains(pObject);
   }
 
+  public PersistentSet<SMGObject> getHeapObjects() {
+    return heapObjects;
+  }
+
   /**
    * Remove a top stack frame from the SMG, along with all objects in it, and any edges leading
    * from/to it.
