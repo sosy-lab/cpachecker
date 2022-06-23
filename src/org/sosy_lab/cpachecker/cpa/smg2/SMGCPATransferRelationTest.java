@@ -13,8 +13,12 @@ import static org.sosy_lab.common.collect.Collections3.transformedImmutableListC
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import java.math.BigInteger;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 import org.junit.Before;
 import org.junit.Test;
 import org.sosy_lab.common.ShutdownNotifier;
@@ -22,32 +26,47 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCharLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerList;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CComplexType.ComplexTypeKind;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
+import org.sosy_lab.cpachecker.cfa.types.c.CDefaults;
 import org.sosy_lab.cpachecker.cfa.types.c.CElaboratedType;
+import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.cpa.smg2.util.SMGObjectAndOffset;
 import org.sosy_lab.cpachecker.cpa.smg2.util.value.ValueAndSMGState;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGObject;
+import org.sosy_lab.cpachecker.util.smg.graph.SMGValue;
 
 public class SMGCPATransferRelationTest {
+
+  SMGState initialState;
+  SMGOptions smgOptions;
 
   private static final CType CHAR_TYPE = CNumericTypes.CHAR;
   private static final CType SHORT_TYPE = CNumericTypes.SHORT_INT;
@@ -139,7 +158,9 @@ public class SMGCPATransferRelationTest {
   @Before
   public void init() throws InvalidConfigurationException {
     LogManager logManager = LogManager.createTestLogManager();
-    SMGOptions smgOptions = new SMGOptions(Configuration.defaultConfiguration());
+    smgOptions = new SMGOptions(Configuration.defaultConfiguration());
+    initialState = SMGState.of(MACHINE_MODEL, logManager, smgOptions)
+        .copyAndAddStackFrame(CFunctionDeclaration.DUMMY);
 
     transferRelation =
         new SMGTransferRelation(
@@ -150,9 +171,8 @@ public class SMGCPATransferRelationTest {
             MACHINE_MODEL,
             ImmutableList.of(),
             ImmutableList.of());
-    transferRelation.setInfo(
-        SMGState.of(MACHINE_MODEL, logManager, smgOptions)
-            .copyAndAddStackFrame(CFunctionDeclaration.DUMMY),
+
+    transferRelation.setInfo(initialState,
         null,
         new CDeclarationEdge(
             "", FileLocation.DUMMY, CFANode.newDummyCFANode(), CFANode.newDummyCFANode(), null));
@@ -675,6 +695,834 @@ public class SMGCPATransferRelationTest {
       // We increment the value to make them distinct
       value = value.add(BigInteger.ONE);
     }
+  }
+
+  /*
+   * Test basically int * pointer = malloc(...); with different sizes.
+   * The sizes are entered using constant values.
+   * The option for malloc failure is tested as well.
+   */
+  @Test
+  public void localVariableDeclarationWithAssignmentMallocTest() throws CPATransferException {
+    String variableName = "variableName";
+
+    CType sizeType = INT_TYPE;
+    for (int i = 0; i < 5000; i = i + 100) {
+      BigInteger sizeInBytes = BigInteger.valueOf(i);
+
+    for (CType type : TEST_TYPES) {
+        CType pointerType = new CPointerType(false, false, type);
+
+        // Make a non global and not external variable with the current type
+        List<SMGState> statesAfterDecl =
+            transferRelation.handleDeclarationEdge(
+                null, declareVariableWithoutInitializer(variableName, pointerType, false, false));
+
+        // Since we declare variables we know there will be only 1 state afterwards
+        assertThat(statesAfterDecl).hasSize(1);
+        // We check the variable later
+        SMGState stateAfterDecl = statesAfterDecl.get(0);
+
+        CFunctionCallAssignmentStatement mallocAndAssignmentExpr =
+            new CFunctionCallAssignmentStatement(
+                FileLocation.DUMMY,
+                new CIdExpression(
+                    FileLocation.DUMMY,
+                    new CPointerType(false, false, pointerType),
+                    variableName,
+                    declareVariableWithoutInitializer(variableName, pointerType, false, false)),
+                makeMalloc(
+                    new CIntegerLiteralExpression(FileLocation.DUMMY, sizeType, sizeInBytes)));
+
+        CStatementEdge mallocAndAssignmentEdge =
+            new CStatementEdge(
+                pointerType + " " + variableName + " = malloc(" + sizeInBytes + ")",
+                mallocAndAssignmentExpr,
+                FileLocation.DUMMY,
+                CFANode.newDummyCFANode(),
+                CFANode.newDummyCFANode());
+
+        // Update transfer relation state
+        transferRelation.setInfo(stateAfterDecl, null, mallocAndAssignmentEdge);
+
+        Collection<SMGState> statesAfterMallocAssign =
+            transferRelation.handleStatementEdge(mallocAndAssignmentEdge, mallocAndAssignmentExpr);
+
+        assertThat(statesAfterMallocAssign instanceof List<?>).isTrue();
+        List<SMGState> statesListAfterMallocAssign = (List<SMGState>) statesAfterMallocAssign;
+        // Depending on the options this might have 2 return states, one where malloc succeeds and
+        // one where it fails
+        // TODO:
+        SMGState stateAfterMallocAssignSuccess;
+        if (sizeInBytes.compareTo(BigInteger.ZERO) == 0) {
+          // malloc(0) is always a single null pointer
+          assertThat(
+                  checkMallocFailure(statesListAfterMallocAssign.get(0), variableName, pointerType))
+              .isTrue();
+          continue;
+
+        } else if (!smgOptions.isEnableMallocFailure()) {
+          assertThat(statesListAfterMallocAssign).hasSize(1);
+          stateAfterMallocAssignSuccess = statesListAfterMallocAssign.get(0);
+
+        } else {
+          // Malloc can fail in this case, check the additional state
+          assertThat(statesListAfterMallocAssign).hasSize(2);
+          // (Since we return a list, the order should be success then failure)
+          // It might however be that this is the wrong state, we check and flip them if necessary
+          SMGState stateAfterMallocAssignFailure = statesListAfterMallocAssign.get(1);
+          if (!checkMallocFailure(stateAfterMallocAssignFailure, variableName, pointerType)) {
+            stateAfterMallocAssignFailure = statesListAfterMallocAssign.get(0);
+            stateAfterMallocAssignSuccess = statesListAfterMallocAssign.get(1);
+            assertThat(checkMallocFailure(stateAfterMallocAssignFailure, variableName, pointerType))
+                .isTrue();
+          } else {
+            stateAfterMallocAssignSuccess = statesListAfterMallocAssign.get(0);
+          }
+        }
+        // State 1 (always the malloc succeed case) has a variable with the pointer, which has a
+        // value pointing to the memory allocated by malloc which has to have the sizeInBytes times
+        // 8. No ErrorInfo should be set.
+
+        // TODO: error check
+        SymbolicProgramConfiguration memoryModel = stateAfterMallocAssignSuccess.getMemoryModel();
+      assertThat(memoryModel.getStackFrames().peek().containsVariable(variableName)).isTrue();
+      SMGObject memoryObject = memoryModel.getStackFrames().peek().getVariable(variableName);
+        // SMG sizes are in bits!
+        BigInteger expectedSize = MACHINE_MODEL.getSizeofInBits(pointerType);
+      assertThat(memoryObject.getSize().compareTo(expectedSize) == 0).isTrue();
+        // further, in the memory there must be a SMGValue that is a pointer (points to edge)
+        // leading to the larger memory field with the size of malloc
+        ValueAndSMGState readValueAndState =
+            stateAfterMallocAssignSuccess.readValue(memoryObject, BigInteger.ZERO, expectedSize);
+        // The read state should not have any errors
+        // TODO: error check
+        assertThat(memoryModel.isPointer(readValueAndState.getValue())).isTrue();
+        Optional<SMGObjectAndOffset> mallocObjectAndOffset =
+            memoryModel.dereferencePointer(readValueAndState.getValue());
+        assertThat(mallocObjectAndOffset.isPresent()).isTrue();
+        assertThat(
+                mallocObjectAndOffset
+                        .orElseThrow()
+                        .getSMGObject()
+                        .getSize()
+                        .compareTo(sizeInBytes.multiply(BigInteger.valueOf(8)))
+                    == 0)
+            .isTrue();
+        assertThat(
+                mallocObjectAndOffset
+                        .orElseThrow()
+                        .getSMGObject()
+                        .getOffset()
+                        .compareTo(BigInteger.ZERO)
+                    == 0)
+            .isTrue();
+        assertThat(
+                mallocObjectAndOffset.orElseThrow().getOffsetForObject().compareTo(BigInteger.ZERO)
+                    == 0)
+            .isTrue();
+        // Read the SMGObject to make sure that there is no value written
+        // TODO:
+      }
+    }
+  }
+
+  /*
+   * Test basically int * pointer = malloc(...); with different sizes but
+   * always based on some binary expression multiplication of a sizeof.
+   * The option for malloc failure is tested as well.
+   */
+  @Test
+  public void localVariableDeclarationWithAssignmentMallocWithSizeOfBinaryExpressionTest() throws CPATransferException {
+    String variableName = "variableName";
+    for (int i = 0; i < 50; i++) {
+      BigInteger sizeMultiplikator = BigInteger.valueOf(i);
+
+      for (CType type : TEST_TYPES) {
+        for (CType sizeofType : TEST_TYPES) {
+          CType pointerType = new CPointerType(false, false, type);
+
+          CExpression binarySizeExpression =
+              new CBinaryExpression(
+                  FileLocation.DUMMY,
+                  INT_TYPE,
+                  INT_TYPE,
+                  new CIntegerLiteralExpression(FileLocation.DUMMY, INT_TYPE, sizeMultiplikator),
+                  new CUnaryExpression(
+                      FileLocation.DUMMY,
+                      INT_TYPE,
+                      new CIdExpression(
+                          FileLocation.DUMMY,
+                          new CVariableDeclaration(
+                              FileLocation.DUMMY,
+                              false,
+                              CStorageClass.AUTO,
+                              sizeofType,
+                              "SomeTypeNotQual",
+                              "SomeTypeNotQual",
+                              "SomeType",
+                              CDefaults.forType(sizeofType, FileLocation.DUMMY))),
+                      CUnaryExpression.UnaryOperator.SIZEOF),
+                  BinaryOperator.MULTIPLY);
+
+          // Make a non global and not external variable with the current type
+          List<SMGState> statesAfterDecl =
+              transferRelation.handleDeclarationEdge(
+                  null, declareVariableWithoutInitializer(variableName, pointerType, false, false));
+
+          // Since we declare variables we know there will be only 1 state afterwards
+          assertThat(statesAfterDecl).hasSize(1);
+          // We check the variable later
+          SMGState stateAfterDecl = statesAfterDecl.get(0);
+
+          CFunctionCallAssignmentStatement mallocAndAssignmentExpr =
+              new CFunctionCallAssignmentStatement(
+                  FileLocation.DUMMY,
+                  new CIdExpression(
+                      FileLocation.DUMMY,
+                      new CPointerType(false, false, pointerType),
+                      variableName,
+                      declareVariableWithoutInitializer(variableName, pointerType, false, false)),
+                  makeMalloc(binarySizeExpression));
+
+          CStatementEdge mallocAndAssignmentEdge =
+              new CStatementEdge(
+                  pointerType
+                      + " "
+                      + variableName
+                      + " = malloc("
+                      + binarySizeExpression.toASTString()
+                      + ")",
+                  mallocAndAssignmentExpr,
+                  FileLocation.DUMMY,
+                  CFANode.newDummyCFANode(),
+                  CFANode.newDummyCFANode());
+
+          // Update transfer relation state
+          transferRelation.setInfo(stateAfterDecl, null, mallocAndAssignmentEdge);
+
+          Collection<SMGState> statesAfterMallocAssign =
+              transferRelation.handleStatementEdge(mallocAndAssignmentEdge, mallocAndAssignmentExpr);
+
+          assertThat(statesAfterMallocAssign instanceof List<?>).isTrue();
+          List<SMGState> statesListAfterMallocAssign = (List<SMGState>) statesAfterMallocAssign;
+          // Depending on the options this might have 2 return states, one where malloc succeeds and
+          // one where it fails
+          // TODO:
+          SMGState stateAfterMallocAssignSuccess;
+          if (sizeMultiplikator.compareTo(BigInteger.ZERO) == 0) {
+            // malloc(0) is always a single null pointer
+            assertThat(
+                    checkMallocFailure(statesListAfterMallocAssign.get(0), variableName, pointerType))
+                .isTrue();
+            continue;
+
+          } else if (!smgOptions.isEnableMallocFailure()) {
+            assertThat(statesListAfterMallocAssign).hasSize(1);
+            stateAfterMallocAssignSuccess = statesListAfterMallocAssign.get(0);
+
+          } else {
+            // Malloc can fail in this case, check the additional state
+            assertThat(statesListAfterMallocAssign).hasSize(2);
+            // (Since we return a list, the order should be success then failure)
+            // It might however be that this is the wrong state, we check and flip them if necessary
+            SMGState stateAfterMallocAssignFailure = statesListAfterMallocAssign.get(1);
+            if (!checkMallocFailure(stateAfterMallocAssignFailure, variableName, pointerType)) {
+              stateAfterMallocAssignFailure = statesListAfterMallocAssign.get(0);
+              stateAfterMallocAssignSuccess = statesListAfterMallocAssign.get(1);
+              assertThat(checkMallocFailure(stateAfterMallocAssignFailure, variableName, pointerType))
+                  .isTrue();
+            } else {
+              stateAfterMallocAssignSuccess = statesListAfterMallocAssign.get(0);
+            }
+          }
+          // State 1 (always the malloc succeed case) has a variable with the pointer, which has a
+          // value pointing to the memory allocated by malloc which has to have the sizeInBytes times
+          // 8. No ErrorInfo should be set.
+
+          // TODO: error check
+          SymbolicProgramConfiguration memoryModel = stateAfterMallocAssignSuccess.getMemoryModel();
+          assertThat(memoryModel.getStackFrames().peek().containsVariable(variableName)).isTrue();
+          SMGObject memoryObject = memoryModel.getStackFrames().peek().getVariable(variableName);
+          // SMG sizes are in bits!
+          BigInteger expectedSize = MACHINE_MODEL.getSizeofInBits(pointerType);
+          assertThat(memoryObject.getSize().compareTo(expectedSize) == 0).isTrue();
+          // further, in the memory there must be a SMGValue that is a pointer (points to edge)
+          // leading to the larger memory field with the size of malloc
+          ValueAndSMGState readValueAndState =
+              stateAfterMallocAssignSuccess.readValue(memoryObject, BigInteger.ZERO, expectedSize);
+          // The read state should not have any errors
+          // TODO: error check
+          assertThat(memoryModel.isPointer(readValueAndState.getValue())).isTrue();
+          Optional<SMGObjectAndOffset> mallocObjectAndOffset =
+              memoryModel.dereferencePointer(readValueAndState.getValue());
+          assertThat(mallocObjectAndOffset.isPresent()).isTrue();
+          BigInteger expectedMemorySizeInBits =
+              sizeMultiplikator
+                  .multiply(BigInteger.valueOf(8))
+                  .multiply(MACHINE_MODEL.getSizeof(sizeofType));
+          assertThat(
+                  mallocObjectAndOffset
+                          .orElseThrow()
+                          .getSMGObject()
+                          .getSize()
+                          .compareTo(expectedMemorySizeInBits)
+                      == 0)
+              .isTrue();
+          assertThat(
+                  mallocObjectAndOffset
+                          .orElseThrow()
+                          .getSMGObject()
+                          .getOffset()
+                          .compareTo(BigInteger.ZERO)
+                      == 0)
+              .isTrue();
+          assertThat(
+                  mallocObjectAndOffset.orElseThrow().getOffsetForObject().compareTo(BigInteger.ZERO)
+                      == 0)
+              .isTrue();
+          // Read the SMGObject to make sure that there is no value written
+          // TODO:
+        }
+      }
+    }
+  }
+
+  /*
+   * Checks the state for a variable with the name entered and the type entered.
+   * This variable should have a failed malloc (value = 0) result.
+   * If this is not the case, this method returns false.
+   * True if the value read from the variable is zero, which is a malloc failure.
+   */
+  private boolean checkMallocFailure(
+      SMGState stateAfterMallocAssignFailure, String variableName, CType pointerType) {
+    SymbolicProgramConfiguration memoryModel = stateAfterMallocAssignFailure.getMemoryModel();
+    assertThat(memoryModel.getStackFrames().peek().containsVariable(variableName)).isTrue();
+    SMGObject memoryObject = memoryModel.getStackFrames().peek().getVariable(variableName);
+    // SMG sizes are in bits!
+    BigInteger expectedSize = MACHINE_MODEL.getSizeofInBits(pointerType);
+    assertThat(memoryObject.getSize().compareTo(expectedSize) == 0).isTrue();
+    // further, in the memory there must be a SMGValue that is a pointer (points to edge)
+    // leading to the larger memory field with the size of malloc
+    ValueAndSMGState readValueAndState =
+        stateAfterMallocAssignFailure.readValue(memoryObject, BigInteger.ZERO, expectedSize);
+    // The read state should not have any errors
+    // TODO: error check
+    // If now the read value is not numeric (!= 0) it can't be a malloc failure
+    if (!readValueAndState.getValue().isNumericValue()) {
+      return false;
+    }
+
+    assertThat(readValueAndState.getValue().isNumericValue()).isTrue();
+    assertThat(
+            readValueAndState.getValue().asNumericValue().bigInteger().compareTo(BigInteger.ZERO)
+                == 0)
+        .isTrue();
+    assertThat(memoryModel.getSMGValueFromValue(readValueAndState.getValue()).orElseThrow())
+        .isEqualTo(SMGValue.zeroValue());
+    return true;
+  }
+
+  /*
+   * Test basic boolean 1 == 1, 0 == 0, numbers/chars == true and even address == address true
+   *  with constant values in the CBinaryExpression.
+   */
+  @Test
+  public void testBasicTrueAssumptionWithTrueTruthAssumption()
+      throws CPATransferException, InterruptedException {
+    for (CType type : STRUCT_UNION_TEST_TYPES) {
+      for (int i = -100; i < 100; i++) {
+        BigInteger testValue = BigInteger.valueOf(i);
+        if (type.equals(UNSIGNED_SHORT_TYPE)
+            || type.equals(UNSIGNED_INT_TYPE)
+            || type.equals(UNSIGNED_LONG_TYPE)
+            || type.equals(CHAR_TYPE)) {
+          testValue = testValue.abs();
+        }
+        CExpression equality;
+        if (type.equals(CHAR_TYPE)) {
+          equality =
+              new CBinaryExpression(
+                  FileLocation.DUMMY,
+                  INT_TYPE,
+                  INT_TYPE,
+                  makeCharExpressionFrom((char) testValue.intValue()),
+                  makeCharExpressionFrom((char) testValue.intValue()),
+                  BinaryOperator.EQUALS);
+        } else {
+          equality =
+              new CBinaryExpression(
+                  FileLocation.DUMMY,
+                  INT_TYPE,
+                  INT_TYPE,
+                  makeIntegerExpressionFrom(testValue, (CSimpleType) INT_TYPE),
+                  makeIntegerExpressionFrom(testValue, (CSimpleType) INT_TYPE),
+                  BinaryOperator.EQUALS);
+        }
+        Collection<SMGState> statesAfter = transferRelation.handleAssumption(null, equality, true);
+
+        // The result is the unchanged initial state as we used constants only in the binary
+        // expression and nothing was learned, read etc.
+        assertThat(statesAfter).hasSize(1);
+        assertThat(statesAfter.toArray(new SMGState[0])[0]).isEqualTo(initialState);
+      }
+    }
+  }
+
+  /*
+   * Test basic boolean 1 == 1, 0 == 0  with constant values in the CBinaryExpression.
+   * But with false truth assumption so everything is false. Null as return is expected.
+   */
+  @Test
+  public void testBasicTrueAssumptionWithFalseTruthAssumption()
+      throws CPATransferException, InterruptedException {
+    for (CType type : STRUCT_UNION_TEST_TYPES) {
+      for (int i = -100; i < 100; i++) {
+        BigInteger testValue = BigInteger.valueOf(i);
+        if (type.equals(UNSIGNED_SHORT_TYPE)
+            || type.equals(UNSIGNED_INT_TYPE)
+            || type.equals(UNSIGNED_LONG_TYPE)
+            || type.equals(CHAR_TYPE)) {
+          testValue = testValue.abs();
+        }
+        CExpression equality;
+        if (type.equals(CHAR_TYPE)) {
+          equality =
+              new CBinaryExpression(
+                  FileLocation.DUMMY,
+                  INT_TYPE,
+                  INT_TYPE,
+                  makeCharExpressionFrom((char) testValue.intValue()),
+                  makeCharExpressionFrom((char) testValue.intValue()),
+                  BinaryOperator.EQUALS);
+        } else {
+          equality =
+              new CBinaryExpression(
+                  FileLocation.DUMMY,
+                  INT_TYPE,
+                  INT_TYPE,
+                  makeIntegerExpressionFrom(testValue, (CSimpleType) INT_TYPE),
+                  makeIntegerExpressionFrom(testValue, (CSimpleType) INT_TYPE),
+                  BinaryOperator.EQUALS);
+        }
+        Collection<SMGState> statesAfter = transferRelation.handleAssumption(null, equality, false);
+
+        // The truth assumption is false -> the true assumption gets turned to false -> null return
+        assertThat(statesAfter).isNull();
+      }
+    }
+  }
+
+  /*
+   * Test basic boolean false 1 == 0, -1 == 0 with constant values in the CBinaryExpression.
+   * But with true truth assumption so everything is false. Null as return is expected.
+   */
+  @Test
+  public void testBasicFalseAssumptionWithTrueTruthAssumption()
+      throws CPATransferException, InterruptedException {
+    for (CType type : STRUCT_UNION_TEST_TYPES) {
+      for (int i = -100; i < 100; i++) {
+        BigInteger testValue = BigInteger.valueOf(i);
+        BigInteger secondValue = testValue.add(BigInteger.ONE);
+        if (type.equals(UNSIGNED_SHORT_TYPE)
+            || type.equals(UNSIGNED_INT_TYPE)
+            || type.equals(UNSIGNED_LONG_TYPE)
+            || type.equals(CHAR_TYPE)) {
+          testValue = testValue.abs();
+          secondValue = secondValue.abs();
+        }
+        CExpression equality;
+        if (type.equals(CHAR_TYPE)) {
+          equality =
+              new CBinaryExpression(
+                  FileLocation.DUMMY,
+                  INT_TYPE,
+                  INT_TYPE,
+                  makeCharExpressionFrom((char) testValue.intValue()),
+                  makeCharExpressionFrom((char) secondValue.intValue()),
+                  BinaryOperator.EQUALS);
+        } else {
+          equality =
+              new CBinaryExpression(
+                  FileLocation.DUMMY,
+                  INT_TYPE,
+                  INT_TYPE,
+                  makeIntegerExpressionFrom(testValue, (CSimpleType) INT_TYPE),
+                  makeIntegerExpressionFrom(secondValue, (CSimpleType) INT_TYPE),
+                  BinaryOperator.EQUALS);
+        }
+        Collection<SMGState> statesAfter = transferRelation.handleAssumption(null, equality, true);
+
+        // False statement with true truth -> false -> null
+        assertThat(statesAfter).isNull();
+      }
+    }
+  }
+
+  /*
+   * Test basic boolean false; 1 == 0, 0 == 1 with constant values in the CBinaryExpression.
+   * But with false truth assumption so everything is true.
+   */
+  @Test
+  public void testBasicFalseAssumptionWithFalseTruthAssumption()
+      throws CPATransferException, InterruptedException {
+    for (CType type : STRUCT_UNION_TEST_TYPES) {
+      for (int i = -100; i < 100; i++) {
+        BigInteger testValue = BigInteger.valueOf(i);
+        BigInteger secondValue = testValue.add(BigInteger.ONE);
+        if (type.equals(UNSIGNED_SHORT_TYPE)
+            || type.equals(UNSIGNED_INT_TYPE)
+            || type.equals(UNSIGNED_LONG_TYPE)
+            || type.equals(CHAR_TYPE)) {
+          testValue = testValue.abs();
+          secondValue = secondValue.abs();
+        }
+        CExpression equality;
+        if (type.equals(CHAR_TYPE)) {
+          equality =
+              new CBinaryExpression(
+                  FileLocation.DUMMY,
+                  INT_TYPE,
+                  INT_TYPE,
+                  makeCharExpressionFrom((char) testValue.intValue()),
+                  makeCharExpressionFrom((char) secondValue.intValue()),
+                  BinaryOperator.EQUALS);
+        } else {
+          equality =
+              new CBinaryExpression(
+                  FileLocation.DUMMY,
+                  INT_TYPE,
+                  INT_TYPE,
+                  makeIntegerExpressionFrom(testValue, (CSimpleType) INT_TYPE),
+                  makeIntegerExpressionFrom(secondValue, (CSimpleType) INT_TYPE),
+                  BinaryOperator.EQUALS);
+        }
+        Collection<SMGState> statesAfter = transferRelation.handleAssumption(null, equality, false);
+
+        // false statement w false truth assumption -> true -> no state change
+        // because we used constants only
+        assertThat(statesAfter).hasSize(1);
+        assertThat(statesAfter.toArray(new SMGState[0])[0]).isEqualTo(initialState);
+      }
+    }
+  }
+
+  /**
+   * Declares a variable with the entered name, type and value assignment on the stack with the
+   * entered value and then uses the state with it and updates the transfer relation.
+   *
+   * @throws CPATransferException won't be thrown.
+   */
+  private void declareSimpleTypedTestVariablesWithValues(
+      BigInteger value, String variableName, CType type) throws CPATransferException {
+    CExpression exprToInit;
+    if (type == CNumericTypes.CHAR) {
+      exprToInit = makeCharExpressionFrom((char) value.intValue());
+    } else {
+      exprToInit = makeIntegerExpressionFrom(value, (CSimpleType) type);
+    }
+    CInitializer initializer = makeCInitializerExpressionFor(exprToInit);
+
+    // Make a non global and not external variable with the current type
+    List<SMGState> statesAfterDecl =
+        transferRelation.handleDeclarationEdge(
+            null, declareVariableWithInitializer(variableName, type, false, false, initializer));
+    // Since we declare variables we know there will be only 1 state afterwards
+    assertThat(statesAfterDecl).hasSize(1);
+    // This state must have a local variable the size of the type used (on the current stack
+    // frame)
+    // The state should not have any errors
+    SMGState state = statesAfterDecl.get(0);
+    // Technically the Edge is always wrong. This influences only error detection however.
+    transferRelation.setInfo(
+        state,
+        null,
+        new CDeclarationEdge(
+            "", FileLocation.DUMMY, CFANode.newDummyCFANode(), CFANode.newDummyCFANode(), null));
+  }
+
+  /**
+   * Declare an array with the type and size entered, the values entered in the order entered and
+   * the variableName entered on the stack.
+   *
+   * @throws CPATransferException won't be thrown.
+   */
+  private void declareArrayVariableWithSimpleTypeWithValuesOnTheStack(
+      int size, BigInteger[] values, String variableName, CType type) throws CPATransferException {
+    Preconditions.checkArgument(values.length == size);
+    // Build assignments starting from numeric value 0 and increment after each assignment. Chars
+    // are simply the int cast to a char.
+    ImmutableList.Builder<CInitializer> listOfInitsBuilder = ImmutableList.builder();
+    for (int i = 0; i < size; i++) {
+      CExpression exprToInit;
+      if (type == CNumericTypes.CHAR) {
+        exprToInit = makeCharExpressionFrom((char) values[i].intValue());
+      } else {
+        exprToInit = makeIntegerExpressionFrom(values[i], (CSimpleType) type);
+      }
+      listOfInitsBuilder.add(makeCInitializerExpressionFor(exprToInit));
+    }
+    CInitializer initList = makeCInitializerListFor(listOfInitsBuilder.build());
+    // Make a non global and not external variable with the current type
+    List<SMGState> statesAfterDecl =
+        transferRelation.handleDeclarationEdge(
+            null,
+            declareVariableWithInitializer(
+                variableName,
+                makeArrayTypeFor(type, BigInteger.valueOf(size)),
+                false,
+                false,
+                initList));
+    // Since we declare variables we know there will be only 1 state afterwards
+    assertThat(statesAfterDecl).hasSize(1);
+    // This state must have a local variable the size of the type used (on the current stack
+    // frame)
+    // The state should not have any errors
+    SMGState state = statesAfterDecl.get(0);
+    // Technically the Edge is always wrong. This influences only error detection however.
+    transferRelation.setInfo(
+        state,
+        null,
+        new CDeclarationEdge(
+            "", FileLocation.DUMMY, CFANode.newDummyCFANode(), CFANode.newDummyCFANode(), null));
+    // TODO: initializer
+  }
+
+  /**
+   * Declare an array with the type and size entered, the values entered in the order entered on the
+   * heap. Then a variable with the address of this array is made with the variableName.
+   *
+   * @throws CPATransferException not thrown if no bug in the code.
+   */
+  private void declareArrayVariableWithSimpleTypeWithValuesOnTheHeap(
+      int size, BigInteger[] values, String variableName, CType type) throws CPATransferException {
+    Preconditions.checkArgument(values.length == size);
+    CType pointerType = new CPointerType(false, false, type);
+
+    CExpression sizeExpression =
+        new CIntegerLiteralExpression(FileLocation.DUMMY, INT_TYPE, BigInteger.valueOf(size));
+
+    // Make a non global and not external variable with the current type
+    List<SMGState> statesAfterDecl =
+        transferRelation.handleDeclarationEdge(
+            null, declareVariableWithoutInitializer(variableName, pointerType, false, false));
+
+    // Since we declare variables we know there will be only 1 state afterwards
+    assertThat(statesAfterDecl).hasSize(1);
+    // We check the variable later
+    SMGState stateAfterDecl = statesAfterDecl.get(0);
+
+    CFunctionCallAssignmentStatement mallocAndAssignmentExpr =
+        new CFunctionCallAssignmentStatement(
+            FileLocation.DUMMY,
+            new CIdExpression(
+                FileLocation.DUMMY,
+                new CPointerType(false, false, pointerType),
+                variableName,
+                declareVariableWithoutInitializer(variableName, pointerType, false, false)),
+            makeMalloc(sizeExpression));
+
+    CStatementEdge mallocAndAssignmentEdge =
+        new CStatementEdge(
+            pointerType + " " + variableName + " = malloc(" + sizeExpression.toASTString() + ")",
+            mallocAndAssignmentExpr,
+            FileLocation.DUMMY,
+            CFANode.newDummyCFANode(),
+            CFANode.newDummyCFANode());
+
+    // Update transfer relation state
+    transferRelation.setInfo(stateAfterDecl, null, mallocAndAssignmentEdge);
+
+    Collection<SMGState> statesAfterMallocAssign =
+        transferRelation.handleStatementEdge(mallocAndAssignmentEdge, mallocAndAssignmentExpr);
+
+    // Per default this returns 2 states, one for successful memory allocation and one with a
+    // failure (variable = 0). We ignore the error state if it exists in this!
+    assertThat(statesAfterMallocAssign instanceof List<?>).isTrue();
+    List<SMGState> statesListAfterMallocAssign = (List<SMGState>) statesAfterMallocAssign;
+    // Depending on the options this might have 2 return states, one where malloc succeeds and
+    // one where it fails
+    // TODO:
+    SMGState stateAfterMallocAssignSuccess;
+    if (size == 0 || !smgOptions.isEnableMallocFailure()) {
+      // either its malloc(0) which is always a single null pointer, or its just 1 valid state
+      // If malloc(0) happens we still use the state in the transferRelation
+      assertThat(statesListAfterMallocAssign).hasSize(1);
+      stateAfterMallocAssignSuccess = statesListAfterMallocAssign.get(0);
+
+    } else {
+      // Malloc can fail in this case, check the additional state
+      assertThat(statesListAfterMallocAssign).hasSize(2);
+      // (Since we return a list, the order should be success then failure)
+      // It might however be that this is the wrong state, we check and flip them if necessary
+      SMGState stateAfterMallocAssignFailure = statesListAfterMallocAssign.get(1);
+      if (!checkMallocFailure(stateAfterMallocAssignFailure, variableName, pointerType)) {
+        stateAfterMallocAssignFailure = statesListAfterMallocAssign.get(0);
+        stateAfterMallocAssignSuccess = statesListAfterMallocAssign.get(1);
+        assertThat(checkMallocFailure(stateAfterMallocAssignFailure, variableName, pointerType))
+            .isTrue();
+      } else {
+        stateAfterMallocAssignSuccess = statesListAfterMallocAssign.get(0);
+      }
+    }
+    transferRelation.setInfo(stateAfterMallocAssignSuccess, null, null);
+    // TODO: initializer
+  }
+
+  /**
+   * Declare a struct with the types entered, the values entered in the order entered and the
+   * variableName entered on the stack.
+   *
+   * @throws CPATransferException won't be thrown.
+   */
+  private void declareStructVariableWithSimpleTypeWithValuesOnTheStack(
+      BigInteger[] values,
+      String variableName,
+      String structTypeName,
+      CType[] types,
+      String[] fieldNames)
+      throws CPATransferException {
+    Preconditions.checkArgument(values.length == types.length && types.length == fieldNames.length);
+
+    CType type =
+        makeElaboratedTypeFor(
+            structTypeName,
+            ComplexTypeKind.STRUCT,
+            ImmutableList.copyOf(types),
+            ImmutableList.copyOf(fieldNames));
+    // Build assignments starting from numeric value 1 and increment after each assignment. Chars
+    // are simply the int cast to a char.
+    ImmutableList.Builder<CInitializer> listOfInitsBuilder = ImmutableList.builder();
+    for (int i = 0; i < types.length; i++) {
+      CType currType = types[i];
+      BigInteger value = values[i];
+      CExpression exprToInit;
+      if (currType == CNumericTypes.CHAR) {
+        exprToInit = makeCharExpressionFrom((char) value.intValue());
+      } else {
+        exprToInit = makeIntegerExpressionFrom(value, (CSimpleType) currType);
+      }
+      listOfInitsBuilder.add(makeCInitializerExpressionFor(exprToInit));
+      value = value.add(BigInteger.ONE);
+    }
+    CInitializer initList = makeCInitializerListFor(listOfInitsBuilder.build());
+    // Make a non global and not external variable with the current type
+    List<SMGState> statesAfterDecl =
+        transferRelation.handleDeclarationEdge(
+            null, declareVariableWithInitializer(variableName, type, false, false, initList));
+    // Since we declare variables we know there will be only 1 state afterwards
+    assertThat(statesAfterDecl).hasSize(1);
+    // This state must have a local variable the size of the type used (on the current stack frame)
+    // The state should not have any errors
+    SMGState state = statesAfterDecl.get(0);
+    // Technically the Edge is always wrong. This influences only error detection however.
+    transferRelation.setInfo(
+        state,
+        null,
+        new CDeclarationEdge(
+            "", FileLocation.DUMMY, CFANode.newDummyCFANode(), CFANode.newDummyCFANode(), null));
+    // TODO: initializer
+  }
+
+  /**
+   * Declare a struct with the types entered, the values entered in the order entered on the heap.
+   * Then a variable with the address of this array is made with the variableName.
+   *
+   * @throws CPATransferException not thrown if no bug in the code.
+   */
+  private void declareStructVariableWithSimpleTypeWithValuesOnTheHeap(
+      BigInteger[] values, String variableName, CType type) throws CPATransferException {
+    CType pointerType = new CPointerType(false, false, type);
+
+    CExpression sizeExpression =
+        new CIntegerLiteralExpression(FileLocation.DUMMY, INT_TYPE, MACHINE_MODEL.getSizeof(type));
+
+    // Make a non global and not external variable with the current type
+    List<SMGState> statesAfterDecl =
+        transferRelation.handleDeclarationEdge(
+            null, declareVariableWithoutInitializer(variableName, pointerType, false, false));
+
+    // Since we declare variables we know there will be only 1 state afterwards
+    assertThat(statesAfterDecl).hasSize(1);
+    // We check the variable later
+    SMGState stateAfterDecl = statesAfterDecl.get(0);
+
+    CFunctionCallAssignmentStatement mallocAndAssignmentExpr =
+        new CFunctionCallAssignmentStatement(
+            FileLocation.DUMMY,
+            new CIdExpression(
+                FileLocation.DUMMY,
+                new CPointerType(false, false, pointerType),
+                variableName,
+                declareVariableWithoutInitializer(variableName, pointerType, false, false)),
+            makeMalloc(sizeExpression));
+
+    CStatementEdge mallocAndAssignmentEdge =
+        new CStatementEdge(
+            pointerType + " " + variableName + " = malloc(" + sizeExpression.toASTString() + ")",
+            mallocAndAssignmentExpr,
+            FileLocation.DUMMY,
+            CFANode.newDummyCFANode(),
+            CFANode.newDummyCFANode());
+
+    // Update transfer relation state
+    transferRelation.setInfo(stateAfterDecl, null, mallocAndAssignmentEdge);
+
+    Collection<SMGState> statesAfterMallocAssign =
+        transferRelation.handleStatementEdge(mallocAndAssignmentEdge, mallocAndAssignmentExpr);
+
+    // Per default this returns 2 states, one for successful memory allocation and one with a
+    // failure (variable = 0). We ignore the error state if it exists in this!
+    assertThat(statesAfterMallocAssign instanceof List<?>).isTrue();
+    List<SMGState> statesListAfterMallocAssign = (List<SMGState>) statesAfterMallocAssign;
+    // Depending on the options this might have 2 return states, one where malloc succeeds and
+    // one where it fails
+    // TODO:
+    SMGState stateAfterMallocAssignSuccess;
+    if (MACHINE_MODEL.getSizeof(type).intValue() == 0 || !smgOptions.isEnableMallocFailure()) {
+      // either its malloc(0) which is always a single null pointer, or its just 1 valid state
+      // If malloc(0) happens we still use the state in the transferRelation
+      assertThat(statesListAfterMallocAssign).hasSize(1);
+      stateAfterMallocAssignSuccess = statesListAfterMallocAssign.get(0);
+
+    } else {
+      // Malloc can fail in this case, check the additional state
+      assertThat(statesListAfterMallocAssign).hasSize(2);
+      // (Since we return a list, the order should be success then failure)
+      // It might however be that this is the wrong state, we check and flip them if necessary
+      SMGState stateAfterMallocAssignFailure = statesListAfterMallocAssign.get(1);
+      if (!checkMallocFailure(stateAfterMallocAssignFailure, variableName, pointerType)) {
+        stateAfterMallocAssignFailure = statesListAfterMallocAssign.get(0);
+        stateAfterMallocAssignSuccess = statesListAfterMallocAssign.get(1);
+        assertThat(checkMallocFailure(stateAfterMallocAssignFailure, variableName, pointerType))
+            .isTrue();
+      } else {
+        stateAfterMallocAssignSuccess = statesListAfterMallocAssign.get(0);
+      }
+    }
+    transferRelation.setInfo(stateAfterMallocAssignSuccess, null, null);
+    // TODO: initializer
+  }
+
+  private CFunctionCallExpression makeMalloc(CExpression sizeExpr) {
+    CFunctionType mallocType =
+        new CFunctionType(
+            CPointerType.POINTER_TO_VOID, Collections.singletonList(CNumericTypes.INT), false);
+    CFunctionDeclaration mallocFunctionDeclaration =
+        new CFunctionDeclaration(
+            FileLocation.DUMMY,
+            mallocType,
+            "malloc",
+            ImmutableList.of(
+                new CParameterDeclaration(
+                    FileLocation.DUMMY, CPointerType.POINTER_TO_VOID, "size")),
+            ImmutableSet.of());
+    return new CFunctionCallExpression(
+        FileLocation.DUMMY,
+        CPointerType.POINTER_TO_VOID,
+        new CIdExpression(FileLocation.DUMMY, mallocFunctionDeclaration),
+        Collections.singletonList(sizeExpr),
+        mallocFunctionDeclaration);
   }
 
   private CVariableDeclaration declareVariableWithoutInitializer(
