@@ -136,6 +136,25 @@ public class SMGTransferRelation
     }
   }
 
+  /* For tests only. */
+  protected SMGTransferRelation(
+      LogManager pLogger,
+      SMGOptions pOptions,
+      SMGCPAExportOptions pExportSMGOptions,
+      ShutdownNotifier pShutdownNotifier,
+      MachineModel pMachineModel,
+      Collection<String> pAddressedVariables,
+      Collection<String> pBooleanVariables) {
+    logger = new LogManagerWithoutDuplicates(pLogger);
+    options = pOptions;
+    exportSMGOptions = pExportSMGOptions;
+    machineModel = pMachineModel;
+    shutdownNotifier = pShutdownNotifier;
+    evaluator = new SMGCPAValueExpressionEvaluator(machineModel, logger, exportSMGOptions, options);
+    addressedVariables = pAddressedVariables;
+    booleanVariables = pBooleanVariables;
+  }
+
   @Override
   protected Collection<SMGState> postProcessing(Collection<SMGState> pSuccessors, CFAEdge edge) {
     Set<CSimpleDeclaration> outOfScopeVars = edge.getSuccessor().getOutOfScopeVariables();

@@ -140,13 +140,16 @@ public class SMGCPATransferRelationTest {
   public void init() throws InvalidConfigurationException {
     LogManager logManager = LogManager.createTestLogManager();
     SMGOptions smgOptions = new SMGOptions(Configuration.defaultConfiguration());
+
     transferRelation =
         new SMGTransferRelation(
             logManager,
             smgOptions,
             SMGCPAExportOptions.getNoExportInstance(),
+            ShutdownNotifier.createDummy(),
             MACHINE_MODEL,
-            ShutdownNotifier.createDummy());
+            ImmutableList.of(),
+            ImmutableList.of());
     transferRelation.setInfo(
         SMGState.of(MACHINE_MODEL, logManager, smgOptions)
             .copyAndAddStackFrame(CFunctionDeclaration.DUMMY),
