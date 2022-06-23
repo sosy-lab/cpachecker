@@ -1745,7 +1745,7 @@ public class SMGCPAValueVisitor
       }
 
       // Now check and use builtins of C (malloc etc.)
-      SMGCPABuiltins smgBuiltins = new SMGCPABuiltins(evaluator, null, null, null, logger);
+      SMGCPABuiltins smgBuiltins = evaluator.getBuiltinFunctionHandler();
       // We don't check for the builtins because we want the failure handling of the
       // handleFunctioncall method
       return smgBuiltins.handleFunctioncall(
