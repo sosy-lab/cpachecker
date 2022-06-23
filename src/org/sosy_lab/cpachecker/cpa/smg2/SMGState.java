@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.cpa.smg2;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import java.math.BigInteger;
 import java.util.Collection;
@@ -28,6 +29,7 @@ import org.sosy_lab.cpachecker.core.defaults.LatticeAbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
 import org.sosy_lab.cpachecker.core.interfaces.Graphable;
 import org.sosy_lab.cpachecker.cpa.smg.join.SMGJoinStatus;
+import org.sosy_lab.cpachecker.cpa.smg.util.PersistentSet;
 import org.sosy_lab.cpachecker.cpa.smg2.SMGErrorInfo.Property;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMG2Exception;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGObjectAndOffset;
@@ -41,6 +43,7 @@ import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.cpa.value.type.Value.UnknownValue;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGHasValueEdge;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGObject;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGPointsToEdge;
@@ -109,6 +112,117 @@ public class SMGState implements LatticeAbstractState<SMGState>, AbstractQueryab
     logger = logManager;
     options = opts;
     errorInfo = errorInf;
+  }
+
+  @Override
+  public Object evaluateProperty(String pProperty) throws InvalidQueryException {
+    switch (pProperty) {
+      case "toString":
+        return toString();
+      case "heapObjects":
+        return memoryModel.getHeapObjects();
+      default:
+        // try boolean properties
+        return checkProperty(pProperty);
+    }
+  }
+
+  @Override
+  public boolean checkProperty(String pProperty) throws InvalidQueryException {
+    switch (pProperty) {
+      case HAS_LEAKS:
+        if (hasMemoryLeak()) {
+          // TODO: Give more information
+          issueMemoryError("Memory leak found", false);
+          return true;
+        }
+        return false;
+      case HAS_INVALID_WRITES:
+        if (hasInvalidWrite()) {
+          // TODO: Give more information
+          issueMemoryError("Invalid write found", true);
+          return true;
+        }
+        return false;
+      case HAS_INVALID_READS:
+        if (hasInvalidRead()) {
+          // TODO: Give more information
+          issueMemoryError("Invalid read found", true);
+          return true;
+        }
+        return false;
+      case HAS_INVALID_FREES:
+        if (hasInvalidFree()) {
+          // TODO: Give more information
+          issueMemoryError("Invalid free found", true);
+          return true;
+        }
+        return false;
+      case HAS_HEAP_OBJECTS:
+        // Having heap objects is not an error on its own.
+        // However, when combined with program exit, we can detect property MemCleanup.
+        PersistentSet<SMGObject> heapObs = memoryModel.getHeapObjects();
+        Preconditions.checkState(
+            heapObs.size() >= 1 && heapObs.contains(SMGObject.nullInstance()),
+            "NULL must always be a heap object");
+        // TODO: check the validity check!
+        for (SMGObject object : heapObs) {
+          if (!memoryModel.isObjectValid(object)) {
+            heapObs = heapObs.removeAndCopy(object);
+          }
+        }
+        return !heapObs.isEmpty();
+
+      default:
+        throw new InvalidQueryException("Query '" + pProperty + "' is invalid.");
+    }
+  }
+
+  private void issueMemoryError(String pMessage, boolean pUndefinedBehavior) {
+    if (options.isMemoryErrorTarget()) {
+      logger.log(Level.FINE, pMessage);
+    } else if (pUndefinedBehavior) {
+      logger.log(Level.FINE, pMessage);
+      logger.log(
+          Level.FINE,
+          "Non-target undefined behavior detected. The verification result is unreliable.");
+    }
+  }
+
+  private boolean hasInvalidWrite() {
+    for (SMGErrorInfo errorInf : errorInfo) {
+      if (errorInf.isInvalidWrite()) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  private boolean hasInvalidRead() {
+    for (SMGErrorInfo errorInf : errorInfo) {
+      if (errorInf.isInvalidRead()) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  private boolean hasInvalidFree() {
+    for (SMGErrorInfo errorInf : errorInfo) {
+      if (errorInf.isInvalidFree()) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  private boolean hasMemoryLeak() {
+    for (SMGErrorInfo errorInf : errorInfo) {
+      if (errorInf.hasMemoryLeak()) {
+        return true;
+      }
+    }
+    return false;
   }
 
   /**
