@@ -401,9 +401,9 @@ public class SMGCPABuiltins {
         if (options.isGuessSizeOfUnknownMemorySize()) {
           Value forcedValue = new NumericValue(options.getGuessSize());
           resultBuilder.add(ValueAndSMGState.of(forcedValue, currentState));
-        } else {
-          resultBuilder.add(sizeValueAndState);
         }
+      } else {
+        resultBuilder.add(sizeValueAndState);
       }
     }
 
@@ -472,6 +472,15 @@ public class SMGCPABuiltins {
       }
       BigInteger sizeInBits = sizeValue.asNumericValue().bigInteger();
       SMGState currentState = sizeAndState.getState();
+
+      if (sizeInBits.compareTo(BigInteger.ZERO) == 0) {
+        // C99 says that allocation functions with argument 0 can return a null-pointer (or a valid
+        // pointer that may not be accessed but can be freed)
+        // This mapping always exists
+        Value addressToZero = new NumericValue(0);
+        resultBuilder.add(ValueAndSMGState.of(addressToZero, currentState));
+        continue;
+      }
 
       // Create a new memory region with the specified size and use the pointer to its beginning
       // from now on
