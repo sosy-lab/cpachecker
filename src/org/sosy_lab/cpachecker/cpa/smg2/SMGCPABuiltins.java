@@ -470,7 +470,9 @@ public class SMGCPABuiltins {
         throw new SMG2Exception(
             "TODO: implement symbolic memory creation with allocation functions.");
       }
-      BigInteger sizeInBits = sizeValue.asNumericValue().bigInteger();
+      // The size is always given in bytes
+      BigInteger sizeInBits =
+          sizeValue.asNumericValue().bigInteger().multiply(BigInteger.valueOf(8));
       SMGState currentState = sizeAndState.getState();
 
       if (sizeInBits.compareTo(BigInteger.ZERO) == 0) {
