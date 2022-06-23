@@ -59,7 +59,7 @@ public interface CfaMutableNetwork extends MutableNetwork<CFANode, CFAEdge> {
       }
     }
 
-    return new ChangeRecordingCfaMutableNetwork(mutableNetwork);
+    return new ChangeRecordingCfaMutableNetwork(new PlainCfaMutableNetwork(mutableNetwork));
   }
 
   /**

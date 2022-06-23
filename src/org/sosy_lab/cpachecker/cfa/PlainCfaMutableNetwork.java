@@ -20,8 +20,15 @@ import org.sosy_lab.cpachecker.util.graph.ForwardingMutableNetwork;
 public class PlainCfaMutableNetwork extends ForwardingMutableNetwork<CFANode, CFAEdge>
     implements CfaMutableNetwork {
 
+  private final MutableNetwork<CFANode, CFAEdge> delegate;
+
   PlainCfaMutableNetwork(final MutableNetwork<CFANode, CFAEdge> pDelegate) {
-    super(pDelegate);
+    delegate = pDelegate;
+  }
+
+  @Override
+  protected MutableNetwork<CFANode, CFAEdge> delegate() {
+    return delegate;
   }
 
   @Override

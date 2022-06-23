@@ -10,7 +10,6 @@ package org.sosy_lab.cpachecker.cfa;
 
 import com.google.common.collect.ImmutableSet;
 import com.google.common.graph.EndpointPair;
-import com.google.common.graph.MutableNetwork;
 import java.util.HashSet;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -20,16 +19,20 @@ import org.sosy_lab.cpachecker.util.graph.ForwardingNetwork;
 public class ChangeRecordingCfaMutableNetwork extends ForwardingNetwork<CFANode, CFAEdge>
     implements CfaMutableNetwork {
 
-  private final PlainCfaMutableNetwork delegate;
+  private final CfaMutableNetwork delegate;
 
   private final Set<CFAEdge> addedEdges = new HashSet<>();
   private final Set<CFAEdge> removedEdges = new HashSet<>();
   private final Set<CFANode> addedNodes = new HashSet<>();
   private final Set<CFANode> removedNodes = new HashSet<>();
 
-  ChangeRecordingCfaMutableNetwork(final MutableNetwork<CFANode, CFAEdge> pDelegate) {
-    super(pDelegate);
-    delegate = new PlainCfaMutableNetwork(pDelegate);
+  ChangeRecordingCfaMutableNetwork(final CfaMutableNetwork pDelegate) {
+    delegate = pDelegate;
+  }
+
+  @Override
+  protected CfaMutableNetwork delegate() {
+    return delegate;
   }
 
   @Override
