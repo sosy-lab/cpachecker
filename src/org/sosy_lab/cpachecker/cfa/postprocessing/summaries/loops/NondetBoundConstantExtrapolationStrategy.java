@@ -35,6 +35,8 @@ import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 
 public class NondetBoundConstantExtrapolationStrategy extends ConstantExtrapolationStrategy {
 
+  public static final String TMP_VAR_NONDET_BOUND = "__VERIFIER_LA_NONDET_BOUND_tmp";
+
   public NondetBoundConstantExtrapolationStrategy(
       final LogManager pLogger,
       ShutdownNotifier pShutdownNotifier,
@@ -45,17 +47,15 @@ public class NondetBoundConstantExtrapolationStrategy extends ConstantExtrapolat
 
   private Optional<GhostCFA> createSumaryCFA(
       CFANode beforeWhile, AExpression loopBoundExpression, Loop pLoopStructure) {
-    String variableName =
-        "tmpVarForLoopBoundWithExtraUniqueIdentifierIfThisVaribeleNameWasAlreadyTakenSomethingIsWrongWithYourCode";
     CVariableDeclaration iterationsVariableDeclaration =
         new CVariableDeclaration(
             FileLocation.DUMMY,
             false,
             CStorageClass.AUTO,
             CNumericTypes.LONG_LONG_INT, // TODO Improve this
-            variableName,
-            variableName,
-            beforeWhile.getFunctionName() + "::" + variableName,
+            TMP_VAR_NONDET_BOUND,
+            TMP_VAR_NONDET_BOUND,
+            beforeWhile.getFunctionName() + "::" + TMP_VAR_NONDET_BOUND,
             null);
 
     CIdExpression iterationsVariableExpression =
