@@ -74,7 +74,6 @@ import org.sosy_lab.java_smt.api.Formula;
 import org.sosy_lab.java_smt.api.ProverEnvironment;
 import org.sosy_lab.java_smt.api.SolverContext.ProverOptions;
 import org.sosy_lab.java_smt.api.SolverException;
-import org.sosy_lab.java_smt.utils.SolverUtils;
 
 public class PredicateAbstractionManager {
 
@@ -461,42 +460,47 @@ public class PredicateAbstractionManager {
    * @param pSSAMap Corresponding SSAMap
    * @return Another BooleanFormula, where syntactic substition has taken place
    */
-  private BooleanFormula syntacticSubstitution(BooleanFormula bf, SSAMap pSSAMap, PathFormula pPathFormula){
-    BooleanFormula partNewBf = pPathFormula.getFormula();
-//    boolean changed = true;
+  private BooleanFormula syntacticSubstitution(BooleanFormula bf, SSAMap pSSAMap, PathFormula pPathFormula)
+      throws SolverException, InterruptedException {
     SubstituteVisitor stvisitorBf = new SubstituteVisitor(fmgr.manager);
     bfmgr.visitRecursively(bf, stvisitorBf);
     HashMap<Formula, Formula> substituteMap = stvisitorBf.fmap;
+    logger.log(Level.INFO, "substituion map", substituteMap);
     SubstituteVisitor stvisitorBfnew = new SubstituteVisitor(fmgr.manager);
-    bfmgr.visitRecursively(partNewBf, stvisitorBfnew);
+    bfmgr.visitRecursively(pPathFormula.getFormula(), stvisitorBfnew);
     HashMap<Formula, Formula> substituteMapnew = stvisitorBfnew.fmap;
     substituteMap.putAll(substituteMapnew);
-
-    logger.log(Level.INFO, "Substituion map", substituteMap);
-    logger.log(Level.INFO, "Before substituion          ", bf);
-//    while (changed){
-//      BooleanFormula bfOld = bf;
-      if (!substituteMap.isEmpty()) {
-        SubstituteAssumptionTransformationVisitor
-            stAssume = new SubstituteAssumptionTransformationVisitor(fmgr.manager, substituteMap);
-        bf = bfmgr.transformRecursively(bf, stAssume);
-        logger.log(Level.INFO, "After Assumption substituion", bf);
-        SubstituteAssignmentTransformationVisitor stAssign;
-        stAssign =
-            new SubstituteAssignmentTransformationVisitor(fmgr.manager, substituteMap, pSSAMap);
-        bf = bfmgr.transformRecursively(bf, stAssign);
-        logger.log(Level.INFO, "After Assignment substituion", bf, "\n");
-//      for (Formula key : substituteMap.keySet()) {
-//        if (formulaInSsaMap(key, pSSAMap)) {
-//          bf = fmgr.makeAnd(bf, fmgr.makeEqual(key, substituteMap.get(key)));
-//        }
-//      }
-//      logger.log(Level.INFO, "After adding formulas       ", bf, "\n");
+    logger.log(Level.INFO, "Updated substituion map with path formula", substituteMap);
+    HashMap<Formula, Formula> substituteMapUpdated = new HashMap<>();
+    for (Formula key : substituteMap.keySet()) {
+      HashMap<Formula, Formula> localMap = new HashMap<>(substituteMap);
+      localMap.remove(key);
+      if (!localMap.isEmpty()){
+        substituteMapUpdated.put(key, fmgr.manager.substitute(substituteMap.get(key), localMap));
       }
-//      bf = fmgr.manager.substitute(bf, substituteMap);
-//      changed = !(bfOld.equals(bf));
-//      changed = false;
-//    }
+    }
+    substituteMap = substituteMapUpdated;
+    logger.log(Level.INFO, "Updated substituion map with simplifications", substituteMap);
+    logger.log(Level.INFO, "Before substituion          ", bf);
+    if (!substituteMap.isEmpty()) {
+      SubstituteAssumptionTransformationVisitor
+          stAssume = new SubstituteAssumptionTransformationVisitor(fmgr.manager, substituteMap);
+      bf = bfmgr.transformRecursively(bf, stAssume);
+      logger.log(Level.INFO, "After Assumption substituion", bf);
+      SubstituteAssignmentTransformationVisitor stAssign;
+      stAssign =
+          new SubstituteAssignmentTransformationVisitor(fmgr.manager, substituteMap, pSSAMap);
+      bf = bfmgr.transformRecursively(bf, stAssign);
+      logger.log(Level.INFO, "After Assignment substituion", bf, "\n");
+      BooleanFormula substitionFormula = bfmgr.makeBoolean(true);
+      for (Formula key : substituteMapUpdated.keySet()) {
+        if (formulaInSsaMap(key, pSSAMap)) {
+          substitionFormula = fmgr.makeAnd(substitionFormula, fmgr.makeEqual(key, substituteMapUpdated.get(key)));
+        }
+      }
+      bf = fmgr.makeAnd(bf,substitionFormula);
+      logger.log(Level.INFO, "After adding formulas       ", bf, "\n");
+    }
 
     return bf;
   }
@@ -840,7 +844,7 @@ public class PredicateAbstractionManager {
     Region abs = rmgr.makeTrue();
 
     try (ProverEnvironment thmProver =
-        solver.newProverEnvironment(ProverOptions.GENERATE_ALL_SAT)) {
+             solver.newProverEnvironment(ProverOptions.GENERATE_ALL_SAT)) {
       thmProver.push(f);
 
       if (remainingPredicates.isEmpty()) {

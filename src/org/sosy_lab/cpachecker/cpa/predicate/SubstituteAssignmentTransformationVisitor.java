@@ -46,13 +46,21 @@ public class SubstituteAssignmentTransformationVisitor extends org.sosy_lab.java
     // only substitute Assignments and Equal assumptions??? TODO also equal assumptions?
     if (decl.getKind() == FunctionDeclarationKind.EQ) {
       HashMap<Formula,Formula> tosubstiture = new HashMap<>();
-      // modify fmap
-      for (Formula key : fmap.keySet()) {
-        if (!formulaInSsaMap(key)) {
-          tosubstiture.put(key, fmap.get(key));
-        }
-      }
-      atom = fmgr.substitute(atom, tosubstiture);
+//       modify fmap
+//      for (Formula key : fmap.keySet()) {
+//        if (!formulaInSsaMap(key)) {
+//          tosubstiture.put(key, fmap.get(key));
+//        }
+//      }
+//      atom = fmgr.substitute(atom, tosubstiture);
+//      boolean changed = true;
+//      while (changed) {
+//        BooleanFormula atomOld = atom;
+//        atom = fmgr.substitute(atom, fmap);
+//        changed = !(atom.equals(atomOld));
+//      }
+
+      atom = fmgr.substitute(atom, fmap);
     }
     return atom;
   }
