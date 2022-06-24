@@ -39,6 +39,17 @@ public class Rewrite {
     content = pContent;
   }
 
+  /**
+   * This method has the same effect like {@link Rewrite#insert(int, String)}, with the difference
+   * that the inserted snipped will be indented, i.e., all but the first line of the snippet will be
+   * prepended by the whitespace that is found in the beginning of the line of the offset where the
+   * snippet shall be inserted
+   */
+  public void insertIndented(int offset, String snippet) throws ConflictingModificationException {
+    snippet = indent(snippet, determineIndent(offset));
+    insert(offset, snippet);
+  }
+
   public void insert(int offset, String snippet) throws ConflictingModificationException {
     checkUntouched(offset - 1, 1);
     changes.add(new Insertion(offset, snippet));
@@ -81,6 +92,24 @@ public class Rewrite {
 
   public boolean untouched(int offset, int length) {
     return FluentIterable.from(changes).filter(x -> x.touches(offset, length)).isEmpty();
+  }
+
+  private String determineIndent(int offset) {
+    int start = offset;
+    while (start > 0) {
+      if (!content.substring(start - 1, offset).matches("\\s.*")) {
+        break;
+      }
+      start--;
+    }
+    return content.substring(start, offset);
+  }
+
+  private String indent(String toindent, String indentation) {
+    StringBuilder builder = new StringBuilder();
+    toindent.lines().findFirst().ifPresent(builder::append);
+    toindent.lines().skip(1).map(x -> indentation + x).forEach(builder::append);
+    return builder.toString();
   }
 
   private class Modification implements Comparable<Modification> {
