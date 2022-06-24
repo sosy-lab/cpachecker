@@ -157,12 +157,9 @@ public class SummaryInformation {
     unallowedStrategiesForNode.computeIfAbsent(node, x -> new HashSet<>()).add(strategy);
   }
 
-  public List<StrategiesEnum> getAllowedStrategies(CFAEdge cfaEdge, CFANode node) {
+  public List<StrategiesEnum> getAllowedStrategies(CFANode node) {
     List<StrategiesEnum> availableStrategies =
-        new ArrayList<>(
-            CFAUtils.successorsOf(cfaEdge.getPredecessor())
-                .transform(n -> getStrategyForNode(n))
-                .toSet());
+        new ArrayList<>(CFAUtils.successorsOf(node).transform(this::getStrategyForNode).toSet());
     availableStrategies.removeAll(getUnallowedStrategiesForNode(node));
     List<StrategiesEnum> allowedStrategies =
         new ArrayList<>(getTransferSummaryStrategy().filter(availableStrategies));

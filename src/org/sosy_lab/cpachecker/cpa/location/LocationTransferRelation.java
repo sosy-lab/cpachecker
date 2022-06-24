@@ -70,8 +70,7 @@ public class LocationTransferRelation implements TransferRelation {
         return Collections.singleton(factory.getState(cfaEdge.getSuccessor()));
       } else {
         SummaryInformation summaryInformation = pCFA.getSummaryInformation().orElseThrow();
-        List<StrategiesEnum> allowedStrategies =
-            summaryInformation.getAllowedStrategies(cfaEdge, node);
+        List<StrategiesEnum> allowedStrategies = summaryInformation.getAllowedStrategies(node);
 
         List<CFANode> successors = new ArrayList<>();
         successors.add(cfaEdge.getSuccessor());
