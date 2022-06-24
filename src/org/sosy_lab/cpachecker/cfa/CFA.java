@@ -50,6 +50,8 @@ public interface CFA {
 
   Optional<LiveVariables> getLiveVariables();
 
+  Optional<CfaTransformationRecords> getTransformationRecords();
+
   Language getLanguage();
 
   List<Path> getFileNames();

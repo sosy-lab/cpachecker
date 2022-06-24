@@ -10,16 +10,16 @@ package org.sosy_lab.cpachecker.cfa;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
+import com.google.common.collect.BiMap;
+import com.google.common.collect.HashBiMap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.TreeMultimap;
 import com.google.common.graph.EndpointPair;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Deque;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.NavigableMap;
 import java.util.Optional;
 import java.util.Set;
@@ -144,8 +144,8 @@ public final class CCfaTransformer {
     private final BiFunction<CFAEdge, CAstNode, CAstNode> cfaEdgeAstNodeSubstitution;
     private final BiFunction<CFANode, CAstNode, CAstNode> cfaNodeAstNodeSubstitution;
 
-    private final Map<CFANode, CFANode> oldNodeToNewNode;
-    private final Map<CFAEdge, CFAEdge> oldEdgeToNewEdge;
+    private final BiMap<CFANode, CFANode> oldNodeToNewNode;
+    private final BiMap<CFAEdge, CFAEdge> oldEdgeToNewEdge;
 
     private CfaBuilder(
         CfaMutableNetwork pCfaMutableNetwork,
@@ -157,8 +157,8 @@ public final class CCfaTransformer {
       cfaEdgeAstNodeSubstitution = pCfaEdgeAstNodeSubstitution;
       cfaNodeAstNodeSubstitution = pCfaNodeAstNodeSubstitution;
 
-      oldNodeToNewNode = new HashMap<>();
-      oldEdgeToNewEdge = new HashMap<>();
+      oldNodeToNewNode = HashBiMap.create();
+      oldEdgeToNewEdge = HashBiMap.create();
     }
 
     private CFunctionDeclaration newFunctionDeclaration(CFANode pOldNode) {
@@ -621,6 +621,20 @@ public final class CCfaTransformer {
             createVariableClassification(pConfiguration, pLogger, newMutableCfa);
       } else {
         variableClassification = Optional.empty();
+      }
+
+      if (graph instanceof ChangeRecordingCfaMutableNetwork) {
+        final ChangeRecordingCfaMutableNetwork changeRecordingNetwork =
+            (ChangeRecordingCfaMutableNetwork) graph;
+        final CfaTransformationRecords transformationRecords =
+            new CfaTransformationRecords(
+                changeRecordingNetwork.getAddedEdges(),
+                changeRecordingNetwork.getRemovedEdges(),
+                oldEdgeToNewEdge.inverse(),
+                changeRecordingNetwork.getAddedNodes(),
+                changeRecordingNetwork.getRemovedNodes(),
+                oldNodeToNewNode.inverse());
+        newMutableCfa.setTransformationRecords(transformationRecords);
       }
 
       return newMutableCfa.makeImmutableCFA(variableClassification);

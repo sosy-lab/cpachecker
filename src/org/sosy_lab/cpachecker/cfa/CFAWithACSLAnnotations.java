@@ -106,6 +106,11 @@ public class CFAWithACSLAnnotations implements CFA {
   }
 
   @Override
+  public Optional<CfaTransformationRecords> getTransformationRecords() {
+    return delegate.getTransformationRecords();
+  }
+
+  @Override
   public Language getLanguage() {
     return delegate.getLanguage();
   }

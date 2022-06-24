@@ -36,6 +36,7 @@ public class MutableCFA implements CFA {
   private final Language language;
   private Optional<LoopStructure> loopStructure = Optional.empty();
   private Optional<LiveVariables> liveVariables = Optional.empty();
+  private Optional<CfaTransformationRecords> transformationRecords = Optional.empty();
 
   public MutableCFA(
       MachineModel pMachineModel,
@@ -151,6 +152,7 @@ public class MutableCFA implements CFA {
         loopStructure,
         pVarClassification,
         liveVariables,
+        transformationRecords,
         fileNames,
         language);
   }
@@ -167,6 +169,15 @@ public class MutableCFA implements CFA {
 
   public void setLiveVariables(LiveVariables pLiveVariables) {
     liveVariables = Optional.of(pLiveVariables);
+  }
+
+  @Override
+  public Optional<CfaTransformationRecords> getTransformationRecords() {
+    return transformationRecords;
+  }
+
+  public void setTransformationRecords(final CfaTransformationRecords pTransformationRecords) {
+    transformationRecords = Optional.of(pTransformationRecords);
   }
 
   @Override
