@@ -15,6 +15,7 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.AbstractStrategy;
 import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.GhostCFA;
+import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.StrategiesEnum;
 import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.StrategyDependencies.StrategyDependency;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
@@ -22,13 +23,16 @@ import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 public class LoopStrategy extends AbstractStrategy {
 
   protected static final CSimpleType SIGNED_LONG_INT = CNumericTypes.SIGNED_LONG_INT;
+  protected StrategiesEnum strategyEnum;
 
   protected LoopStrategy(
       LogManager pLogger,
       ShutdownNotifier pShutdownNotifier,
       StrategyDependency pStrategyDependencies,
+      StrategiesEnum pStrategyEnum,
       CFA pCFA) {
     super(pLogger, pShutdownNotifier, pStrategyDependencies, pCFA);
+    strategyEnum = pStrategyEnum;
   }
 
   @Override

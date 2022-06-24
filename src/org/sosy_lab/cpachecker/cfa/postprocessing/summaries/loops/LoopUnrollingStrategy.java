@@ -29,17 +29,14 @@ public class LoopUnrollingStrategy extends LoopStrategy {
 
   private Integer maxUnrollingsStrategy = 0;
 
-  private StrategiesEnum strategyEnum;
-
   public LoopUnrollingStrategy(
       LogManager pLogger,
       ShutdownNotifier pShutdownNotifier,
       int pMaxUnrollingsStrategy,
       StrategyDependency pStrategyDependencies,
       CFA pCFA) {
-    super(pLogger, pShutdownNotifier, pStrategyDependencies, pCFA);
+    super(pLogger, pShutdownNotifier, pStrategyDependencies, StrategiesEnum.LOOPUNROLLING, pCFA);
     maxUnrollingsStrategy = pMaxUnrollingsStrategy;
-    strategyEnum = StrategiesEnum.LOOPUNROLLING;
   }
 
   protected Optional<GhostCFA> summarizeLoop(Loop pLoopStructure, CFANode pBeforeWhile) {

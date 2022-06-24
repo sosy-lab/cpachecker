@@ -42,6 +42,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
+import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.StrategiesEnum;
 import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.StrategyDependencies.StrategyDependency;
 import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.utils.LinearVariableDependency;
 import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.utils.LoopVariableDeltaVisitor;
@@ -70,8 +71,9 @@ public class LoopExtrapolationStrategy extends LoopStrategy {
       LogManager pLogger,
       ShutdownNotifier pShutdownNotifier,
       StrategyDependency pStrategyDependencies,
+      StrategiesEnum pStrategyEnum,
       CFA pCFA) {
-    super(pLogger, pShutdownNotifier, pStrategyDependencies, pCFA);
+    super(pLogger, pShutdownNotifier, pStrategyDependencies, pStrategyEnum, pCFA);
   }
 
   /**

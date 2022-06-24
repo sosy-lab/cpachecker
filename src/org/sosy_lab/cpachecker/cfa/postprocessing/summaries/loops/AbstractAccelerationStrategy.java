@@ -33,15 +33,12 @@ import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 
 public class AbstractAccelerationStrategy extends LoopStrategy {
 
-  private StrategiesEnum strategyEnum;
-
   public AbstractAccelerationStrategy(
       LogManager pLogger,
       ShutdownNotifier pShutdownNotifier,
       StrategyDependency pStrategyDependencies,
       CFA pCFA) {
-    super(pLogger, pShutdownNotifier, pStrategyDependencies, pCFA);
-    this.strategyEnum = StrategiesEnum.HAVOCSTRATEGY;
+    super(pLogger, pShutdownNotifier, pStrategyDependencies, StrategiesEnum.HAVOCSTRATEGY, pCFA);
   }
 
   @Override

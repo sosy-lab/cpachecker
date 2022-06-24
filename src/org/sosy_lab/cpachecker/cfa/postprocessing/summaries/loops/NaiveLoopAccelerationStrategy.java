@@ -39,16 +39,17 @@ import org.sosy_lab.cpachecker.util.Pair;
 
 public class NaiveLoopAccelerationStrategy extends LoopStrategy {
 
-  private StrategiesEnum strategyEnum;
-
   public NaiveLoopAccelerationStrategy(
       final LogManager pLogger,
       ShutdownNotifier pShutdownNotifier,
       StrategyDependency pStrategyDependencies,
       CFA pCFA) {
-    super(pLogger, pShutdownNotifier, pStrategyDependencies, pCFA);
-
-    this.strategyEnum = StrategiesEnum.NAIVELOOPACCELERATION;
+    super(
+        pLogger,
+        pShutdownNotifier,
+        pStrategyDependencies,
+        StrategiesEnum.NAIVELOOPACCELERATION,
+        pCFA);
   }
 
   private Optional<GhostCFA> summarizeLoop(

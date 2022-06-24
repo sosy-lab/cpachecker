@@ -41,16 +41,12 @@ public class LinearExtrapolationStrategy extends LoopExtrapolationStrategy {
   // See
   // https://math.stackexchange.com/questions/2079950/compute-the-n-th-power-of-triangular-3-times3-matrix
 
-  private StrategiesEnum strategyEnum;
-
   public LinearExtrapolationStrategy(
       final LogManager pLogger,
       ShutdownNotifier pShutdownNotifier,
       StrategyDependency pStrategyDependencies,
       CFA pCFA) {
-    super(pLogger, pShutdownNotifier, pStrategyDependencies, pCFA);
-
-    this.strategyEnum = StrategiesEnum.LOOPLINEAREXTRAPOLATION;
+    super(pLogger, pShutdownNotifier, pStrategyDependencies, StrategiesEnum.LOOPLINEAREXTRAPOLATION,  pCFA);
   }
 
   @Override

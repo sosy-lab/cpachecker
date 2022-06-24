@@ -44,16 +44,21 @@ import org.sosy_lab.cpachecker.util.Pair;
 
 public class ConstantExtrapolationStrategy extends LoopExtrapolationStrategy {
 
-  private StrategiesEnum strategyEnum;
-
   public ConstantExtrapolationStrategy(
       final LogManager pLogger,
       ShutdownNotifier pShutdownNotifier,
       StrategyDependency pStrategyDependencies,
       CFA pCFA) {
-    super(pLogger, pShutdownNotifier, pStrategyDependencies, pCFA);
+    super(pLogger, pShutdownNotifier, pStrategyDependencies, StrategiesEnum.LOOPCONSTANTEXTRAPOLATION, pCFA);
+  }
 
-    this.strategyEnum = StrategiesEnum.LOOPCONSTANTEXTRAPOLATION;
+  public ConstantExtrapolationStrategy(
+      final LogManager pLogger,
+      ShutdownNotifier pShutdownNotifier,
+      StrategyDependency pStrategyDependencies,
+      StrategiesEnum pStrategyEnum,
+      CFA pCFA) {
+    super(pLogger, pShutdownNotifier, pStrategyDependencies, pStrategyEnum, pCFA);
   }
 
   protected Optional<GhostCFA> summarizeLoop(

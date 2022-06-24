@@ -39,16 +39,12 @@ import org.sosy_lab.cpachecker.util.Pair;
 
 public class HavocStrategy extends LoopStrategy {
 
-  private StrategiesEnum strategyEnum;
-
   public HavocStrategy(
       final LogManager pLogger,
       ShutdownNotifier pShutdownNotifier,
       StrategyDependency pStrategyDependencies,
       CFA pCFA) {
-    super(pLogger, pShutdownNotifier, pStrategyDependencies, pCFA);
-
-    this.strategyEnum = StrategiesEnum.HAVOCSTRATEGY;
+    super(pLogger, pShutdownNotifier, pStrategyDependencies,StrategiesEnum.HAVOCSTRATEGY,  pCFA);
   }
 
   private Optional<GhostCFA> summarizeLoop(

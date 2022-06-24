@@ -52,16 +52,17 @@ public class OutputLoopAccelerationStrategy extends LoopStrategy {
 
   // counter name for output acceleration
   private static final String SUMMARY_COUNTER_VARIABLE = "__VERIFIER_LA_OA_counter";
-  private StrategiesEnum strategyEnum;
-
   public OutputLoopAccelerationStrategy(
       LogManager pLogger,
       ShutdownNotifier pShutdownNotifier,
       StrategyDependency pStrategyDependencies,
       CFA pCFA) {
-    super(pLogger, pShutdownNotifier, pStrategyDependencies, pCFA);
-
-    this.strategyEnum = StrategiesEnum.OUTPUTLOOPACCELERATION;
+    super(
+        pLogger,
+        pShutdownNotifier,
+        pStrategyDependencies,
+        StrategiesEnum.OUTPUTLOOPACCELERATION,
+        pCFA);
   }
 
   @SuppressWarnings("unused")
