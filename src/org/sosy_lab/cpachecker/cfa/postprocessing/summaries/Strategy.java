@@ -13,19 +13,13 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 
 public interface Strategy {
 
-  /*
-   *
-   * Gives a summary state back if the State can be summarized using the Strategy given
-   * Return an Empty option if this is not the case.
-   *
+  /**
+   * Gives a summary state back if the State can be summarized using the Strategy given Return an
+   * Empty option if this is not the case.
    */
   public Optional<GhostCFA> summarize(final CFANode loopStartNode);
 
-  /*
-   *
-   * Returns true if the Summary is Precise, false in any other case
-   *
-   */
+  /** Returns true if the Summary is Precise, false in any other case */
   public boolean isPrecise();
 
   default String getName() {
