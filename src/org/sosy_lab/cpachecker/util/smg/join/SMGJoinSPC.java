@@ -15,7 +15,7 @@ package org.sosy_lab.cpachecker.util.smg.join;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
-import com.google.common.collect.HashBiMap;
+import com.google.common.collect.ImmutableBiMap;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Optional;
@@ -114,7 +114,7 @@ public class SMGJoinSPC extends SMGAbstractJoin {
             resultStackMapping,
             PersistentSet.of(),
             PathCopyingPersistentTreeMap.of(),
-            HashBiMap.create());
+            ImmutableBiMap.of());
   }
 
   /** Apply joinSubSMG on the two input SMG and the SMGObjects connected to a certain variable. */
