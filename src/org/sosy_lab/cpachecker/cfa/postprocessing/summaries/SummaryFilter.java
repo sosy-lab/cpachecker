@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.cfa.postprocessing.summaries;
 
+import com.google.common.collect.FluentIterable;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
@@ -44,12 +45,10 @@ public class SummaryFilter {
   }
 
   public List<CFAEdge> getEdgesForStrategies(List<CFAEdge> edges, Set<StrategiesEnum> strategies) {
-    List<CFAEdge> newEdges = new ArrayList<>();
-    for (CFAEdge e : edges) {
-      if (strategies.contains(summaryInformation.getStrategyForEdge(e))) {
-        newEdges.add(e);
-      }
-    }
-    return newEdges;
+    return FluentIterable.from(edges).filter(x -> filter(x, strategies)).toList();
+  }
+
+  public boolean filter(CFAEdge edge, Set<StrategiesEnum> strategies) {
+    return strategies.contains(summaryInformation.getStrategyForEdge(edge));
   }
 }

@@ -8,8 +8,9 @@
 
 package org.sosy_lab.cpachecker.cfa.postprocessing.summaries.loops;
 
-import java.util.Arrays;
-import java.util.HashSet;
+import com.google.common.base.Predicate;
+import com.google.common.collect.FluentIterable;
+import com.google.common.collect.ImmutableSet;
 import java.util.List;
 import java.util.Optional;
 import org.sosy_lab.common.ShutdownNotifier;
@@ -45,20 +46,35 @@ public class LoopStrategy extends AbstractStrategy {
   }
 
   protected final Optional<CFANode> determineLoopHead(final CFANode loopStartNode) {
+    return determineLoopHead(
+        loopStartNode,
+        x -> summaryFilter.filter(x, ImmutableSet.of(StrategiesEnum.BASE, this.strategyEnum)));
+  }
+
+  private static final Optional<CFANode> determineLoopHead(
+      final CFANode loopStartNode, Predicate<? super CFAEdge> filterFunction) {
     List<CFAEdge> filteredOutgoingEdges =
-        this.summaryFilter.getEdgesForStrategies(
-            loopStartNode.getLeavingEdges(),
-            new HashSet<>(Arrays.asList(StrategiesEnum.BASE, this.strategyEnum)));
+        FluentIterable.from(loopStartNode.getLeavingEdges()).filter(filterFunction).toList();
 
     if (filteredOutgoingEdges.size() != 1) {
       return Optional.empty();
     }
 
-    if (!filteredOutgoingEdges.get(0).getDescription().equals("while")) {
+    if (!isLoopInit(loopStartNode)) {
       return Optional.empty();
     }
 
     CFANode loopHead = filteredOutgoingEdges.get(0).getSuccessor();
     return Optional.of(loopHead);
+  }
+
+  /**
+   * Returns true in case this node is the init of a loop, i.e., the single edge leaving this node
+   * is the "while" blank edge marking the beginning of the loop.
+   */
+  public static final boolean isLoopInit(final CFANode node) {
+    return !FluentIterable.from(node.getLeavingEdges())
+        .filter(x -> x.getDescription().equals("while"))
+        .isEmpty();
   }
 }
