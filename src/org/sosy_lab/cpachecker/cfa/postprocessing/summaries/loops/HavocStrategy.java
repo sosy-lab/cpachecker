@@ -31,6 +31,7 @@ import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.GhostCFA;
 import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.StrategiesEnum;
 import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.StrategyDependencies.StrategyDependency;
+import org.sosy_lab.cpachecker.core.counterexample.CExpressionToOrinalCodeVisitor;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 import org.sosy_lab.cpachecker.util.Pair;
 
@@ -154,5 +155,55 @@ public class HavocStrategy extends LoopStrategy {
     Optional<GhostCFA> summarizedLoopMaybe = summarizeLoop(loop, beforeWhile);
 
     return summarizedLoopMaybe;
+  }
+
+  public static Optional<String> summarizeAsCode(Loop loop, CFANode node) {
+    StringBuilder builder = new StringBuilder();
+
+    Optional<AExpression> loopBoundExpressionMaybe = loop.getBound();
+    if (loopBoundExpressionMaybe.isEmpty()) {
+      return Optional.empty();
+    }
+    AExpression loopBoundExpression = loopBoundExpressionMaybe.orElseThrow();
+
+    // 1. add a wrapping if  with the loop condition. Only in this case
+    // we need to havoc the variables modified in the loop.
+
+    builder.append(
+        String.format(
+            "if (%s) {\n",
+            // the visitor will help to use the original variable name,
+            // which is important when there are multiple variables with the same
+            // name, e.g. via different scopes.
+            ((CExpression) loopBoundExpression)
+                .accept(CExpressionToOrinalCodeVisitor.BASIC_TRANSFORMER)));
+
+    // 2. add a line <varname> = __VERIFIER_nondet_X(); for all modified variables
+    Set<AVariableDeclaration> modifiedVariables = loop.getModifiedVariables();
+    for (AVariableDeclaration pc : modifiedVariables) {
+      CSimpleDeclaration decl = (CSimpleDeclaration) pc;
+      // it is important to use the decl.getOrigName here, otherwise of the variable
+      // exists in multiple scopes it will e.g. be called x__1 instead of 1!
+      CIdExpression leftHandSide =
+          new CIdExpression(FileLocation.DUMMY, decl.getType(), decl.getOrigName(), decl);
+      CFunctionCallExpression rightHandSide =
+          (CFunctionCallExpression) new AFunctionFactory().callNondetFunction(pc.getType());
+      if (rightHandSide == null) {
+        return Optional.empty();
+      }
+      CFunctionCallAssignmentStatement cStatement =
+          new CFunctionCallAssignmentStatement(FileLocation.DUMMY, leftHandSide, rightHandSide);
+      builder.append(String.format("  %s\n", cStatement.toASTString()));
+    }
+    builder.append("}\n");
+
+    // 3. assume that the loop condition does not hold anymore
+    builder.append(
+        String.format(
+            "if ((%s)) abort();\n",
+            ((CExpression) loopBoundExpression)
+                .accept(CExpressionToOrinalCodeVisitor.BASIC_TRANSFORMER)));
+
+    return Optional.of(builder.toString());
   }
 }
