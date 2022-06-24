@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.cpa.arg.witnessexport;
 import static com.google.common.base.Strings.nullToEmpty;
 import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.common.collect.Collections3.transformedImmutableListCopy;
+import static org.sosy_lab.common.collect.Collections3.transformedImmutableSetCopy;
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractStateByType;
 import static org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.SINK_NODE_ID;
 
@@ -1103,7 +1104,8 @@ class WitnessFactory implements EdgeAppender {
 
     // Merge nodes with empty or repeated edges
     int sizeBeforeMerging = edgeToCFAEdges.size();
-    mergeRepeatedEdges(entryStateNodeId);
+    mergeEdges(entryStateNodeId, true, this::isEdgeIrrelevant);
+    mergeEdges(entryStateNodeId, false, this::isEdgeIrrelevantByFaultLocalization);
     int sizeAfterMerging = edgeToCFAEdges.size();
     logger.logf(
         Level.ALL,
@@ -1138,16 +1140,20 @@ class WitnessFactory implements EdgeAppender {
    * witness graph, i.e., we compute an abstraction of the ARG-based graph without redundant or
    * irrelevant information.
    */
-  private void mergeRepeatedEdges(final String entryStateNodeId) throws InterruptedException {
+  private void mergeEdges(
+      final String entryStateNodeId, boolean mergeMetaInformation, Predicate<Edge> isIrrelevant)
+      throws InterruptedException {
     NavigableSet<Edge> waitlist = new TreeSet<>(leavingEdges.values());
     while (!waitlist.isEmpty()) {
       Edge edge = waitlist.pollFirst();
       // If the edge still exists in the graph and is irrelevant, remove it
-      if (leavingEdges.get(edge.getSource()).contains(edge) && isEdgeIrrelevant(edge)) {
-        Iterables.addAll(waitlist, mergeNodes(edge));
+      if (leavingEdges.get(edge.getSource()).contains(edge) && isIrrelevant.test(edge)) {
+        Iterables.addAll(waitlist, mergeNodes(edge, mergeMetaInformation));
         assert leavingEdges.isEmpty() || leavingEdges.containsKey(entryStateNodeId);
       }
-      setLoopHeadInvariantIfApplicable(edge.getTarget());
+      if (mergeMetaInformation) {
+        setLoopHeadInvariantIfApplicable(edge.getTarget());
+      }
     }
   }
 
@@ -1376,11 +1382,14 @@ class WitnessFactory implements EdgeAppender {
       return false;
     }
 
-    // function entries and exits as well as every transition to sink nodes must be included
-    if (pEdge.getLabel().getMapping().containsKey(KeyDef.FUNCTIONENTRY)
-        || pEdge.getLabel().getMapping().containsKey(KeyDef.FUNCTIONEXIT)
-        || pEdge.getLabel().getMapping().containsKey(KeyDef.ISVIOLATIONNODE)
-        || pEdge.getTarget().equals(SINK_NODE_ID)) {
+    Set<String> importantNodes =
+        transformedImmutableSetCopy(
+            Multimaps.filterValues(edgeToCFAEdges, cfaEdge -> edgesInFault.contains(cfaEdge))
+                .keySet(),
+            e -> e.getSource());
+
+    // not irrelevant if it is an edge to a sink node and the source node is part of the fault
+    if (pEdge.getTarget().equals(SINK_NODE_ID) && importantNodes.contains(pEdge.getSource())) {
       return false;
     }
 
@@ -1403,7 +1412,7 @@ class WitnessFactory implements EdgeAppender {
     final String target = pEdge.getTarget();
     final TransitionCondition label = pEdge.getLabel();
 
-    if (isIrrelevantNode(target) || isEdgeIrrelevantByFaultLocalization(pEdge)) {
+    if (isIrrelevantNode(target)) {
       return true;
     }
 
@@ -1471,8 +1480,9 @@ class WitnessFactory implements EdgeAppender {
    *
    * @return replacement edges that should be (re-)visited for potential further merges.
    */
-  private Iterable<Edge> mergeNodes(final Edge pEdge) {
-    Preconditions.checkArgument(isEdgeIrrelevant(pEdge));
+  private Iterable<Edge> mergeNodes(final Edge pEdge, boolean pMergeMetaInformation) {
+    Preconditions.checkArgument(
+        isEdgeIrrelevant(pEdge) || isEdgeIrrelevantByFaultLocalization(pEdge));
 
     // Always merge into the predecessor, unless the successor is the sink
     boolean intoPredecessor =
@@ -1526,7 +1536,9 @@ class WitnessFactory implements EdgeAppender {
         if (leavingEdge.getLabel().getMapping().containsKey(KeyDef.SOURCECODE)) {
           label = label.removeAndCopy(KeyDef.ORIGINFILE);
         }
-        label = label.putAllAndCopy(leavingEdge.getLabel());
+        if (pMergeMetaInformation) {
+          label = label.putAllAndCopy(leavingEdge.getLabel());
+        }
         Edge replacementEdge = new Edge(nodeToKeep, leavingEdge.getTarget(), label);
         putEdge(replacementEdge);
         edgeToCFAEdges.putAll(replacementEdge, edgeToCFAEdges.get(leavingEdge));
@@ -1553,7 +1565,10 @@ class WitnessFactory implements EdgeAppender {
     // Add add them as leaving edges to their source nodes
     for (Edge enteringEdge : enteringEdgesToMove) {
       if (!pEdge.equals(enteringEdge)) {
-        TransitionCondition label = pEdge.getLabel().putAllAndCopy(enteringEdge.getLabel());
+        TransitionCondition label =
+            pMergeMetaInformation
+                ? pEdge.getLabel().putAllAndCopy(enteringEdge.getLabel())
+                : pEdge.getLabel();
         Edge replacementEdge = new Edge(enteringEdge.getSource(), nodeToKeep, label);
         putEdge(replacementEdge);
         edgeToCFAEdges.putAll(replacementEdge, edgeToCFAEdges.get(pEdge));

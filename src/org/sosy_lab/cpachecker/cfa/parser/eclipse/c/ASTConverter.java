@@ -193,38 +193,102 @@ class ASTConverter {
     ImmutableMap.Builder<String, Optional<FunctionAttribute>> builder = ImmutableMap.builder();
     KNOWN_FUNCTION_ATTRIBUTES =
         builder
+            // occurs in sv-benchmarks
+            .put("ldv_model", Optional.empty())
+            .put("ldv_model_inline", Optional.empty())
+            // https://gcc.gnu.org/onlinedocs/gcc-12.1.0/gcc/Common-Function-Attributes.html
             .put("access", Optional.empty())
             .put("alias", Optional.empty())
             .put("aligned", Optional.empty())
+            .put("alloc_align", Optional.empty())
             .put("alloc_size", Optional.empty())
             .put("always_inline", Optional.empty())
-            .put("cdecl", Optional.empty())
+            .put("assume_aligned", Optional.empty())
+            .put("cold", Optional.empty())
             .put("const", Optional.empty())
-            .put("dllimport", Optional.empty())
-            .put("fastcall", Optional.empty())
-            .put("format", Optional.empty())
             .put("deprecated", Optional.empty())
-            .put("ldv_model", Optional.empty())
-            .put("ldv_model_inline", Optional.empty())
+            .put("unavailable", Optional.empty())
+            .put("error", Optional.empty())
+            .put("warning", Optional.empty())
+            .put("externally_visible", Optional.empty())
+            .put("flatten", Optional.empty())
+            .put("format", Optional.empty())
+            .put("gnu_inline", Optional.empty())
+            .put("hot", Optional.empty())
+            .put("ifunc", Optional.empty())
+            .put("interrupt", Optional.empty())
+            .put("interrupt_handler", Optional.empty())
             .put("leaf", Optional.empty())
             .put("malloc", Optional.empty())
-            .put("mode", Optional.empty()) // handled in ASTConverter
+            .put("no_icf", Optional.empty())
             .put("no_instrument_function", Optional.empty())
+            .put("no_profile_instrument_function", Optional.empty())
+            .put("no_reorder", Optional.empty())
+            .put("no_sanitize", Optional.empty())
+            .put("no_sanitize_address", Optional.empty())
+            .put("no_address_safety_analysis", Optional.empty())
+            .put("no_sanitize_thread", Optional.empty())
+            .put("no_sanitize_undefined", Optional.empty())
+            .put("no_sanitize_coverage", Optional.empty())
+            .put("no_split_stack", Optional.empty())
+            .put("no_stack_limit", Optional.empty())
+            .put("noclone", Optional.empty())
             .put("noinline", Optional.empty())
+            .put("noipa", Optional.empty())
             .put("nonnull", Optional.empty())
+            .put("noplt", Optional.empty())
             .put("noreturn", Optional.of(FunctionAttribute.NO_RETURN))
             .put("nothrow", Optional.empty())
+            .put("optimize", Optional.empty())
+            .put("patchable_function_entry", Optional.empty())
             .put("pure", Optional.empty())
-            .put("regparm", Optional.empty())
+            .put("returns_nonnull", Optional.empty())
             .put("returns_twice", Optional.empty())
             .put("section", Optional.empty())
-            .put("stdcall", Optional.empty())
-            .put("warn_unused_result", Optional.empty())
+            .put("sentinel", Optional.empty())
+            .put("simd", Optional.empty())
+            .put("stack_protect", Optional.empty())
+            .put("no_stack_protector", Optional.empty())
+            .put("target", Optional.empty())
+            .put("symver", Optional.empty())
+            .put("tainted_args", Optional.empty())
+            .put("target_clones", Optional.empty())
             .put("unused", Optional.empty())
             .put("used", Optional.empty())
+            .put("retain", Optional.empty())
             .put("visibility", Optional.empty())
-            .put("warning", Optional.empty())
+            .put("warn_unused_result", Optional.empty())
             .put("weak", Optional.empty())
+            .put("weakref", Optional.empty())
+            .put("zero_call_used_regs", Optional.empty())
+            // https://gcc.gnu.org/onlinedocs/gcc-12.1.0/gcc/x86-Function-Attributes.html
+            .put("cdecl", Optional.empty())
+            .put("fastcall", Optional.empty())
+            .put("thiscall", Optional.empty())
+            .put("ms_abi", Optional.empty())
+            .put("sysv_abi", Optional.empty())
+            .put("callee_pop_aggregate_return", Optional.empty())
+            .put("ms_hook_prologue", Optional.empty())
+            .put("naked", Optional.empty())
+            .put("regparm", Optional.empty())
+            .put("sseregparm", Optional.empty())
+            .put("force_align_arg_pointer", Optional.empty())
+            .put("stdcall", Optional.empty())
+            .put("no_caller_saved_registers", Optional.empty())
+            .put("indirect_branch", Optional.empty())
+            .put("function_return", Optional.empty())
+            .put("nocf_check", Optional.empty())
+            .put("cf_check", Optional.empty())
+            .put("indirect_return", Optional.empty())
+            .put("fentry_name", Optional.empty())
+            .put("fentry_section", Optional.empty())
+            .put("nodirect_extern_access", Optional.empty())
+            // https://gcc.gnu.org/onlinedocs/gcc/Common-Variable-Attributes.html
+            // might end up as a funciton attribute when used for the return type?
+            .put("mode", Optional.empty()) // handled by this class
+            // https://gcc.gnu.org/onlinedocs/gcc-12.1.0/gcc/Microsoft-Windows-Function-Attributes.html
+            .put("dllexport", Optional.empty())
+            .put("dllimport", Optional.empty())
             .buildOrThrow();
   }
 
@@ -1130,8 +1194,10 @@ class ASTConverter {
         sideAssignmentStack.getAndResetPreSideAssignments();
         sideAssignmentStack.leaveBlock();
         if (params.size() == 2) {
-          if (areCompatibleTypes(
-              params.get(0).getExpressionType(), params.get(1).getExpressionType())) {
+          // Expression from convertExpressionWithoutSideEffects is null if type was void
+          CType type1 = params.get(0) == null ? CVoidType.VOID : params.get(0).getExpressionType();
+          CType type2 = params.get(1) == null ? CVoidType.VOID : params.get(1).getExpressionType();
+          if (areCompatibleTypes(type1, type2)) {
             return CIntegerLiteralExpression.ONE;
           } else {
             return CIntegerLiteralExpression.ZERO;

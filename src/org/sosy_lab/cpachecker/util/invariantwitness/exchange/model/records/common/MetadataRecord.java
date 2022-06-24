@@ -6,14 +6,14 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.util.invariantwitness.exchange.model;
+package org.sosy_lab.cpachecker.util.invariantwitness.exchange.model.records.common;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.errorprone.annotations.Immutable;
 import java.util.Objects;
 
 @Immutable
-public class InvariantStoreEntryMetadata {
+public class MetadataRecord {
   @JsonProperty("format_version")
   private final String formatVersion;
 
@@ -24,17 +24,17 @@ public class InvariantStoreEntryMetadata {
   private final String creationTime;
 
   @JsonProperty("producer")
-  private final InvariantStoreEntryProducer producer;
+  private final ProducerRecord producer;
 
   @JsonProperty("task")
-  private final InvariantStoreEntryTask task;
+  private final TaskRecord task;
 
-  public InvariantStoreEntryMetadata(
+  public MetadataRecord(
       @JsonProperty("format_version") String pFormatVersion,
       @JsonProperty("uuid") String pUuid,
       @JsonProperty("creation_time") String pCreationTime,
-      @JsonProperty("producer") InvariantStoreEntryProducer pProducer,
-      @JsonProperty("task") InvariantStoreEntryTask pTask) {
+      @JsonProperty("producer") ProducerRecord pProducer,
+      @JsonProperty("task") TaskRecord pTask) {
 
     formatVersion = pFormatVersion;
     uuid = pUuid;
@@ -55,11 +55,11 @@ public class InvariantStoreEntryMetadata {
     return creationTime;
   }
 
-  public InvariantStoreEntryProducer getProducer() {
+  public ProducerRecord getProducer() {
     return producer;
   }
 
-  public InvariantStoreEntryTask getTask() {
+  public TaskRecord getTask() {
     return task;
   }
 
@@ -68,10 +68,10 @@ public class InvariantStoreEntryMetadata {
     if (o == this) {
       return true;
     }
-    if (!(o instanceof InvariantStoreEntryMetadata)) {
+    if (!(o instanceof MetadataRecord)) {
       return false;
     }
-    InvariantStoreEntryMetadata invariantStoreEntryMetadata = (InvariantStoreEntryMetadata) o;
+    MetadataRecord invariantStoreEntryMetadata = (MetadataRecord) o;
     return Objects.equals(formatVersion, invariantStoreEntryMetadata.formatVersion)
         && Objects.equals(uuid, invariantStoreEntryMetadata.uuid)
         && Objects.equals(creationTime, invariantStoreEntryMetadata.creationTime)
@@ -86,7 +86,7 @@ public class InvariantStoreEntryMetadata {
 
   @Override
   public String toString() {
-    return "InvariantStoreEntryMetadata{"
+    return "MetadataRecord{"
         + " formatVersion='"
         + getFormatVersion()
         + "'"

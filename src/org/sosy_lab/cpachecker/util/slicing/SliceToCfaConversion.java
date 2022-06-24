@@ -164,10 +164,19 @@ final class SliceToCfaConversion {
       Function<AFunctionDeclaration, @Nullable FunctionEntryNode> pFunctionToEntryNode) {
 
     return (edge, astNode) -> {
-      var transformingVisitor =
-          new RelevantCAstNodeTransformingVisitor(pSlice, pFunctionToEntryNode, edge);
 
-      return astNode.accept(transformingVisitor);
+      // The transforming visitor only works for relevant edges.
+      // Irrelevant edges are going to be removed in CFA post-processing (irrelevant assume edges
+      // are kept for CFA simplification), so we just keep their original AST nodes.
+      if (pSlice.getRelevantEdges().contains(edge)) {
+
+        var transformingVisitor =
+            new RelevantCAstNodeTransformingVisitor(pSlice, pFunctionToEntryNode, edge);
+
+        return astNode.accept(transformingVisitor);
+      }
+
+      return astNode;
     };
   }
 
@@ -247,6 +256,22 @@ final class SliceToCfaConversion {
             .collect(
                 ImmutableMap.toImmutableMap(
                     entryNode -> entryNode.getFunction(), entryNode -> entryNode));
+
+    // if the program slice is empty, return a CFA containing an empty main function
+    if (relevantEdges.isEmpty()) {
+
+      FunctionEntryNode mainEntryNode = pSlice.getOriginalCfa().getMainFunction();
+      graph.addNode(mainEntryNode);
+      graph.addNode(mainEntryNode.getExitNode());
+
+      return CCfaTransformer.createCfa(
+          pConfig,
+          pLogger,
+          pSlice.getOriginalCfa(),
+          graph,
+          (cfaEdge, astNode) -> astNode,
+          (cfaNode, astNode) -> astNode);
+    }
 
     CFA sliceCfa =
         CCfaTransformer.createCfa(

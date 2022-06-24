@@ -45,6 +45,17 @@ public final class PointerTargetSet implements Serializable {
     return baseName.substring(BASE_PREFIX.length());
   }
 
+  /**
+   * Check whether the given string is a base as it is created for dynamic memory allocation, i.e.,
+   * for malloc. Other bases would be those created for local and global variables.
+   *
+   * @param baseName must be a base as determined by {@link #isBaseName(String)}
+   */
+  public static boolean isMallocBase(final String baseName) {
+    assert isBaseName(baseName);
+    return DynamicMemoryHandler.isAllocVariableName(getBase(baseName));
+  }
+
   PersistentList<PointerTarget> getAllTargets(final String regionName) {
     return targets.getOrDefault(regionName, PersistentLinkedList.of());
   }

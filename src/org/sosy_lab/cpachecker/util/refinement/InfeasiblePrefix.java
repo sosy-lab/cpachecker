@@ -12,9 +12,9 @@ import static org.sosy_lab.common.collect.Collections3.transformedImmutableSetCo
 
 import com.google.common.base.Predicates;
 import com.google.common.collect.FluentIterable;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
@@ -27,12 +27,13 @@ public class InfeasiblePrefix {
 
   private final ARGPath prefix;
 
-  private final List<Set<String>> interpolantSequence;
+  private final ImmutableList<ImmutableSet<String>> interpolantSequence;
 
-  private final List<BooleanFormula> pathFormulas;
+  private final ImmutableList<BooleanFormula> pathFormulas;
 
   private InfeasiblePrefix(
-      final ARGPath pInfeasiblePrefix, final List<Set<String>> pSimpleInterpolantSequence) {
+      final ARGPath pInfeasiblePrefix,
+      final ImmutableList<ImmutableSet<String>> pSimpleInterpolantSequence) {
 
     prefix = pInfeasiblePrefix;
     interpolantSequence = pSimpleInterpolantSequence;
@@ -42,8 +43,8 @@ public class InfeasiblePrefix {
 
   private InfeasiblePrefix(
       final ARGPath pInfeasiblePrefix,
-      final List<Set<String>> pSimpleInterpolantSequence,
-      final List<BooleanFormula> pPathFormulas) {
+      final ImmutableList<ImmutableSet<String>> pSimpleInterpolantSequence,
+      final ImmutableList<BooleanFormula> pPathFormulas) {
 
     prefix = pInfeasiblePrefix;
     interpolantSequence = pSimpleInterpolantSequence;
@@ -54,29 +55,32 @@ public class InfeasiblePrefix {
   public static InfeasiblePrefix buildForPredicateDomain(
       final RawInfeasiblePrefix pRawInfeasiblePrefix, final FormulaManagerView pFmgr) {
 
-    List<Set<String>> simpleInterpolantSequence = new ArrayList<>();
+    ImmutableList.Builder<ImmutableSet<String>> simpleInterpolantSequence = ImmutableList.builder();
     for (BooleanFormula itp : pRawInfeasiblePrefix.interpolantSequence) {
-      simpleInterpolantSequence.add(pFmgr.extractVariableNames(pFmgr.uninstantiate(itp)));
+      simpleInterpolantSequence.add(
+          ImmutableSet.copyOf(pFmgr.extractVariableNames(pFmgr.uninstantiate(itp))));
     }
 
     return new InfeasiblePrefix(
-        pRawInfeasiblePrefix.prefix, simpleInterpolantSequence, pRawInfeasiblePrefix.pathFormulas);
+        pRawInfeasiblePrefix.prefix,
+        simpleInterpolantSequence.build(),
+        pRawInfeasiblePrefix.pathFormulas);
   }
 
   public static InfeasiblePrefix buildForValueDomain(
       final ARGPath pInfeasiblePrefix, final List<ValueAnalysisInterpolant> pInterpolantSequence) {
 
-    List<Set<String>> simpleInterpolantSequence = new ArrayList<>();
+    ImmutableList.Builder<ImmutableSet<String>> simpleInterpolantSequence = ImmutableList.builder();
     for (ValueAnalysisInterpolant itp : pInterpolantSequence) {
       simpleInterpolantSequence.add(
           transformedImmutableSetCopy(
               itp.getMemoryLocations(), MemoryLocation::getExtendedQualifiedName));
     }
 
-    return new InfeasiblePrefix(pInfeasiblePrefix, simpleInterpolantSequence);
+    return new InfeasiblePrefix(pInfeasiblePrefix, simpleInterpolantSequence.build());
   }
 
-  public Set<String> extractSetOfIdentifiers() {
+  public ImmutableSet<String> extractSetOfIdentifiers() {
     return ImmutableSet.copyOf(Iterables.concat(interpolantSequence));
   }
 
@@ -113,20 +117,20 @@ public class InfeasiblePrefix {
     return prefix;
   }
 
-  public List<BooleanFormula> getPathFormulae() {
+  public ImmutableList<BooleanFormula> getPathFormulae() {
     return pathFormulas;
   }
 
   public static class RawInfeasiblePrefix {
 
     private final ARGPath prefix;
-    private final List<BooleanFormula> interpolantSequence;
-    private final List<BooleanFormula> pathFormulas;
+    private final ImmutableList<BooleanFormula> interpolantSequence;
+    private final ImmutableList<BooleanFormula> pathFormulas;
 
     public RawInfeasiblePrefix(
         final ARGPath pInfeasiblePrefix,
-        final List<BooleanFormula> pInterpolantSequence,
-        final List<BooleanFormula> pPathFormulas) {
+        final ImmutableList<BooleanFormula> pInterpolantSequence,
+        final ImmutableList<BooleanFormula> pPathFormulas) {
 
       prefix = pInfeasiblePrefix;
       interpolantSequence = pInterpolantSequence;

@@ -91,6 +91,7 @@ SPDX-License-Identifier: Apache-2.0
         <ant antfile="src/org/sosy_lab/cpachecker/cpa/automaton/AutomatonBuild.xml" target="clean" inheritAll="false"/>
         <ant antfile="src/org/sosy_lab/cpachecker/util/predicates/precisionConverter/Parser.xml" target="clean" inheritAll="false"/>
         <ant antfile="src/org/sosy_lab/cpachecker/util/ltl/AntlrParser.xml" target="clean" inheritAll="false"/>
+        <ant antfile="src/org/sosy_lab/cpachecker/cfa/ast/acsl/ACSLParserBuild.xml" target="clean" inheritAll="false"/>
     </target>
 
     <target name="build" depends="-warn-factorypath, build-project, build-documentation" description="Build"/>

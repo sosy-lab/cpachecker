@@ -9,7 +9,6 @@
 package org.sosy_lab.cpachecker.cfa.ast.c;
 
 import static com.google.common.collect.FluentIterable.from;
-import static org.sosy_lab.cpachecker.cfa.types.c.CTypes.isAggregateType;
 import static org.sosy_lab.cpachecker.cfa.types.c.CTypes.withoutConst;
 import static org.sosy_lab.cpachecker.cfa.types.c.CTypes.withoutVolatile;
 
@@ -509,12 +508,9 @@ public final class CInitializers {
         from(structType.getMembers())
             .filter(
                 field ->
+                    // filter anonymous member, but keep anonymous array/composite members
                     !(field.getName().contains("__anon_type_member")
-                        && (!isAggregateType(field.getType())
-                            && (field.getType() instanceof CElaboratedType)
-                            && !((CElaboratedType) field.getType())
-                                .getKind()
-                                .equals(ComplexTypeKind.UNION))))
+                        && !isArrayOrCompositeType(field.getType())))
             .transform(
                 field ->
                     new CFieldReference(
@@ -567,6 +563,11 @@ public final class CInitializers {
     }
 
     return true;
+  }
+
+  private static boolean isArrayOrCompositeType(CType type) {
+    type = type.getCanonicalType();
+    return type instanceof CArrayType || type instanceof CCompositeType;
   }
 
   /**
