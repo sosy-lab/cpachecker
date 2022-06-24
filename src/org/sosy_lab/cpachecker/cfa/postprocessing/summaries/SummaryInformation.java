@@ -154,15 +154,7 @@ public class SummaryInformation {
   }
 
   public void addUnallowedStrategiesForNode(CFANode node, StrategiesEnum strategy) {
-    if (unallowedStrategiesForNode.containsKey(node)) {
-      Set<StrategiesEnum> unallowedStrategies = unallowedStrategiesForNode.get(node);
-      unallowedStrategies.add(strategy);
-      unallowedStrategiesForNode.put(node, unallowedStrategies);
-    } else {
-      Set<StrategiesEnum> unallowedStrategies = new HashSet<>();
-      unallowedStrategies.add(strategy);
-      unallowedStrategiesForNode.put(node, unallowedStrategies);
-    }
+    unallowedStrategiesForNode.computeIfAbsent(node, x -> new HashSet<>()).add(strategy);
   }
 
   public List<StrategiesEnum> getAllowedStrategies(CFAEdge cfaEdge, CFANode node) {
