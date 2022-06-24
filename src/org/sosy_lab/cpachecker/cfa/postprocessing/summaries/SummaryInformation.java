@@ -8,8 +8,10 @@
 
 package org.sosy_lab.cpachecker.cfa.postprocessing.summaries;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
@@ -20,6 +22,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.StrategyDependencies.StrategyDependency;
+import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.LoopStructure;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 
@@ -160,6 +163,18 @@ public class SummaryInformation {
       unallowedStrategies.add(strategy);
       unallowedStrategiesForNode.put(node, unallowedStrategies);
     }
+  }
+
+  public List<StrategiesEnum> getAllowedStrategies(CFAEdge cfaEdge, CFANode node) {
+    List<StrategiesEnum> availableStrategies =
+        new ArrayList<>(
+            CFAUtils.successorsOf(cfaEdge.getPredecessor())
+                .transform(n -> getStrategyForNode(n))
+                .toSet());
+    availableStrategies.removeAll(getUnallowedStrategiesForNode(node));
+    List<StrategiesEnum> allowedStrategies =
+        new ArrayList<>(getTransferSummaryStrategy().filter(availableStrategies));
+    return allowedStrategies;
   }
 
   public void setTransferStrategy(StrategyDependency pSummaryTransferStrategy) {
