@@ -44,11 +44,7 @@ public class HavocStrategy extends LoopStrategy {
     super(pLogger, pShutdownNotifier, pStrategyDependencies,StrategiesEnum.HAVOCSTRATEGY,  pCFA);
   }
 
-  private Optional<GhostCFA> summarizeLoop(
-      Loop pLoopStructure,
-      Set<AVariableDeclaration> pModifiedVariables,
-      CFANode pBeforeWhile,
-      AExpression pLoopBoundExpression) {
+  private Optional<GhostCFA> summarizeLoop(Loop pLoopStructure, CFANode pBeforeWhile) {
 
     CFANode startNodeGhostCFA = CFANode.newDummyCFANode(pBeforeWhile.getFunctionName());
     CFANode endNodeGhostCFA = CFANode.newDummyCFANode(pBeforeWhile.getFunctionName());
@@ -56,13 +52,21 @@ public class HavocStrategy extends LoopStrategy {
     CFANode currentNode = CFANode.newDummyCFANode(pBeforeWhile.getFunctionName());
     CFANode newNode = CFANode.newDummyCFANode(pBeforeWhile.getFunctionName());
 
+    Set<AVariableDeclaration> modifiedVariables = pLoopStructure.getModifiedVariables();
+
+    Optional<AExpression> loopBoundExpressionMaybe = pLoopStructure.getBound();
+    if (loopBoundExpressionMaybe.isEmpty()) {
+      return Optional.empty();
+    }
+    AExpression loopBoundExpression = loopBoundExpressionMaybe.orElseThrow();
+
     CFAEdge loopBoundCFAEdge =
         new CAssumeEdge(
             "Loop Bound Assumption",
             FileLocation.DUMMY,
             startNodeGhostCFA,
             currentNode,
-            (CExpression) pLoopBoundExpression,
+            (CExpression) loopBoundExpression,
             true);
     CFACreationUtils.addEdgeUnconditionallyToCFA(loopBoundCFAEdge);
 
@@ -70,7 +74,7 @@ public class HavocStrategy extends LoopStrategy {
         ((CAssumeEdge) loopBoundCFAEdge).negate().copyWith(startNodeGhostCFA, endNodeGhostCFA);
     CFACreationUtils.addEdgeUnconditionallyToCFA(negatedBoundCFAEdge);
 
-    for (AVariableDeclaration pc : pModifiedVariables) {
+    for (AVariableDeclaration pc : modifiedVariables) {
       CIdExpression leftHandSide = new CIdExpression(FileLocation.DUMMY, (CSimpleDeclaration) pc);
       CFunctionCallExpression rightHandSide =
           (CFunctionCallExpression) new AFunctionFactory().callNondetFunction(pc.getType());
@@ -98,7 +102,7 @@ public class HavocStrategy extends LoopStrategy {
             FileLocation.DUMMY,
             currentNode,
             CFANode.newDummyCFANode(pBeforeWhile.getFunctionName()),
-            (CExpression) pLoopBoundExpression,
+            (CExpression) loopBoundExpression,
             true);
     CFACreationUtils.addEdgeUnconditionallyToCFA(loopBoundCFAEdgeEnd);
 
@@ -146,16 +150,8 @@ public class HavocStrategy extends LoopStrategy {
       return Optional.empty();
     }
 
-    Set<AVariableDeclaration> modifiedVariables = loop.getModifiedVariables();
 
-    Optional<AExpression> loopBoundExpressionMaybe = loop.getBound();
-    if (loopBoundExpressionMaybe.isEmpty()) {
-      return Optional.empty();
-    }
-    AExpression loopBoundExpression = loopBoundExpressionMaybe.orElseThrow();
-
-    Optional<GhostCFA> summarizedLoopMaybe =
-        summarizeLoop(loop, modifiedVariables, beforeWhile, loopBoundExpression);
+    Optional<GhostCFA> summarizedLoopMaybe = summarizeLoop(loop, beforeWhile);
 
     return summarizedLoopMaybe;
   }
