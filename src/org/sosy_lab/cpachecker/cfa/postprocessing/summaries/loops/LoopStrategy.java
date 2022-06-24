@@ -8,10 +8,14 @@
 
 package org.sosy_lab.cpachecker.cfa.postprocessing.summaries.loops;
 
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.List;
 import java.util.Optional;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.AbstractStrategy;
 import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.GhostCFA;
@@ -38,5 +42,23 @@ public class LoopStrategy extends AbstractStrategy {
   @Override
   public Optional<GhostCFA> summarize(final CFANode loopStartNode) {
     return Optional.empty();
+  }
+
+  protected final Optional<CFANode> determineLoopHead(final CFANode loopStartNode) {
+    List<CFAEdge> filteredOutgoingEdges =
+        this.summaryFilter.getEdgesForStrategies(
+            loopStartNode.getLeavingEdges(),
+            new HashSet<>(Arrays.asList(StrategiesEnum.BASE, this.strategyEnum)));
+
+    if (filteredOutgoingEdges.size() != 1) {
+      return Optional.empty();
+    }
+
+    if (!filteredOutgoingEdges.get(0).getDescription().equals("while")) {
+      return Optional.empty();
+    }
+
+    CFANode loopHead = filteredOutgoingEdges.get(0).getSuccessor();
+    return Optional.of(loopHead);
   }
 }

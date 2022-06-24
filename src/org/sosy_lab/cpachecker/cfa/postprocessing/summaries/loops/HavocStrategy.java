@@ -8,10 +8,7 @@
 
 package org.sosy_lab.cpachecker.cfa.postprocessing.summaries.loops;
 
-import java.util.Arrays;
-import java.util.HashSet;
 import java.util.Iterator;
-import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import org.sosy_lab.common.ShutdownNotifier;
@@ -130,21 +127,11 @@ public class HavocStrategy extends LoopStrategy {
 
   @Override
   public Optional<GhostCFA> summarize(final CFANode beforeWhile) {
-
-    List<CFAEdge> filteredOutgoingEdges =
-        this.summaryFilter.getEdgesForStrategies(
-            beforeWhile.getLeavingEdges(),
-            new HashSet<>(Arrays.asList(StrategiesEnum.BASE, this.strategyEnum)));
-
-    if (filteredOutgoingEdges.size() != 1) {
+    Optional<CFANode> maybeLoopHead = this.determineLoopHead(beforeWhile);
+    if (maybeLoopHead.isEmpty()) {
       return Optional.empty();
     }
-
-    if (!filteredOutgoingEdges.get(0).getDescription().equals("while")) {
-      return Optional.empty();
-    }
-
-    CFANode loopStartNode = filteredOutgoingEdges.get(0).getSuccessor();
+    CFANode loopStartNode = maybeLoopHead.orElseThrow();
 
     Optional<Loop> loopMaybe = summaryInformation.getLoop(loopStartNode);
     if (loopMaybe.isEmpty()) {
