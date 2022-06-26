@@ -1165,7 +1165,7 @@ public class SMGCPATransferRelationTest {
    */
   @Test
   public void checkStackStructWithAssignments() throws CPATransferException {
-    String variableName = "testArray";
+    String variableName = "testStruct";
     String structTypeName = "testStructType";
 
     for (int sublist = 1; sublist < STRUCT_UNION_TEST_TYPES.size(); sublist++) {
@@ -1238,7 +1238,7 @@ public class SMGCPATransferRelationTest {
    */
   @Test
   public void checkHeapStructWithAssignments() throws CPATransferException {
-    String variableName = "testArray";
+    String variableName = "testStruct";
     String structTypeName = "testStructType";
 
     for (int sublist = 1; sublist < STRUCT_UNION_TEST_TYPES.size(); sublist++) {
@@ -1307,6 +1307,49 @@ public class SMGCPATransferRelationTest {
         assertThat(
                 readValueAndState.getValue().asNumericValue().bigInteger().compareTo(expectedValue)
                     == 0)
+            .isTrue();
+      }
+    }
+  }
+
+  /*
+   * Declares variables for most simple types and assigns a value to them.
+   * Test for declareSimpleTypedTestVariablesWithValues().
+   */
+  @Test
+  public void checkStackVariablesWithSimpleTypesAndValues() throws CPATransferException {
+    String variableName = "testVariable";
+
+    for (CType type : TEST_TYPES) {
+      for (int i = 0; i < 2; i++) {
+        variableName = variableName + type + i;
+        BigInteger value;
+        if (((CSimpleType) type).isSigned() && i % 2 == 1) {
+          // Make every second value a negative for signed values
+          value = BigInteger.valueOf(-i);
+        } else {
+          value = BigInteger.valueOf(i);
+        }
+
+        // Declares a variable on the stack with the given name and type and value
+        SMGState stateWithStruct =
+            declareSimpleTypedTestVariablesWithValues(value, variableName, type);
+
+        SymbolicProgramConfiguration memoryModel = stateWithStruct.getMemoryModel();
+        assertThat(memoryModel.getStackFrames().peek().containsVariable(variableName)).isTrue();
+        SMGObject memoryObject = memoryModel.getStackFrames().peek().getVariable(variableName);
+        // The size of the variable is the size of the type
+        BigInteger expectedTypeSizeInBits = MACHINE_MODEL.getSizeofInBits(type);
+        assertThat(memoryObject.getSize().compareTo(expectedTypeSizeInBits) == 0).isTrue();
+
+        ValueAndSMGState readValueAndState =
+            stateWithStruct.readValue(memoryObject, BigInteger.ZERO, expectedTypeSizeInBits);
+        // The read state should not have any errors
+        // TODO: error check
+        // The value should be numeric
+        assertThat(readValueAndState.getValue().isNumericValue()).isTrue();
+
+        assertThat(readValueAndState.getValue().asNumericValue().bigInteger().compareTo(value) == 0)
             .isTrue();
       }
     }
@@ -1496,13 +1539,11 @@ public class SMGCPATransferRelationTest {
     }
   }
 
-  /**
+  /*
    * Declares a variable with the entered name, type and value assignment on the stack with the
    * entered value and then uses the state with it and updates the transfer relation.
-   *
-   * @throws CPATransferException won't be thrown.
    */
-  private void declareSimpleTypedTestVariablesWithValues(
+  private SMGState declareSimpleTypedTestVariablesWithValues(
       BigInteger value, String variableName, CType type) throws CPATransferException {
     CExpression exprToInit;
     if (type == CNumericTypes.CHAR) {
@@ -1528,6 +1569,7 @@ public class SMGCPATransferRelationTest {
         null,
         new CDeclarationEdge(
             "", FileLocation.DUMMY, CFANode.newDummyCFANode(), CFANode.newDummyCFANode(), null));
+    return state;
   }
 
   /*
