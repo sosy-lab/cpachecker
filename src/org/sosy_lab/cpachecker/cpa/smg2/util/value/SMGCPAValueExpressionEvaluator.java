@@ -515,7 +515,6 @@ public class SMGCPAValueExpressionEvaluator {
     if (maybeTargetAndOffset.isEmpty()) {
       // The value is unknown and therefore does not point to a valid memory location
       SMGState errorState = pState.withUnknownPointerDereferenceWhenReading(value);
-      throw new SMG2Exception(errorState);
     }
     SMGObjectAndOffset targetAndOffset = maybeTargetAndOffset.orElseThrow();
     BigInteger baseOffset = targetAndOffset.getOffsetForObject();
