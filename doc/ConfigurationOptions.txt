@@ -764,12 +764,6 @@ cegar.refiner = no default value
 # whether or not to use refinement selection to decide which domain to refine
 cegar.useRefinementSelection = false
 
-# Add a unique label for each basic block
-cfa.addLabels.atBlocks = no default value
-
-# Add a unique label before each program exit
-cfa.addLabels.atProgramExit = no default value
-
 # Which functions should be interpreted as encoding assumptions
 cfa.assumeFunctions = {"__VERIFIER_assume"}
 

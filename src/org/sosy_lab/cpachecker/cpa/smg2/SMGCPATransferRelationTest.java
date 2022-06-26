@@ -26,10 +26,13 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCharLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
@@ -59,6 +62,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGObjectAndOffset;
 import org.sosy_lab.cpachecker.cpa.smg2.util.value.ValueAndSMGState;
+import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGObject;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGValue;
@@ -1024,6 +1028,291 @@ public class SMGCPATransferRelationTest {
   }
 
   /*
+   * Tests essentially:
+   * type testArray[size] = {....};
+   * For the declareArrayVariableWithSimpleTypeWithValuesOnTheStack() method.
+   */
+  @Test
+  public void checkStackArrayWithAssignments() throws CPATransferException {
+    String variableName = "testArray";
+    BigInteger[] values = new BigInteger[TEST_ARRAY_LENGTH.intValue()];
+
+    for (CType testType : ARRAY_TEST_TYPES) {
+      variableName = variableName + testType.toString();
+      for (int i = 0; i < TEST_ARRAY_LENGTH.intValue(); i++) {
+        if (((CSimpleType) testType).isSigned() && i % 2 == 1) {
+          // Make every second value a negative for signed values
+          values[i] = BigInteger.valueOf(-i);
+        } else {
+          values[i] = BigInteger.valueOf(i);
+        }
+      }
+      // Declares the array on the stack and assigns the values
+      SMGState stateWithArray =
+          declareArrayVariableWithSimpleTypeWithValuesOnTheStack(
+              TEST_ARRAY_LENGTH.intValue(), values, variableName, testType);
+
+      SymbolicProgramConfiguration memoryModel = stateWithArray.getMemoryModel();
+      assertThat(memoryModel.getStackFrames().peek().containsVariable(variableName)).isTrue();
+      SMGObject memoryObject = memoryModel.getStackFrames().peek().getVariable(variableName);
+      // SMG sizes are in bits!
+      BigInteger expectedTypeSizeInBits = MACHINE_MODEL.getSizeofInBits(testType);
+      // The size of the variable is the array size as it is on the stack
+      assertThat(memoryObject.getSize().compareTo(expectedTypeSizeInBits.multiply(TEST_ARRAY_LENGTH)) == 0).isTrue();
+
+      for (int i = 0; i < TEST_ARRAY_LENGTH.intValue(); i++) {
+        BigInteger offsetInBits = BigInteger.valueOf(i).multiply(expectedTypeSizeInBits);
+        ValueAndSMGState readValueAndState =
+            stateWithArray.readValue(memoryObject, offsetInBits, expectedTypeSizeInBits);
+        // The read state should not have any errors
+        // TODO: error check
+        // The value should be numeric
+        assertThat(readValueAndState.getValue().isNumericValue()).isTrue();
+
+        // Check the value (chars are also numerically saved!)
+        BigInteger expectedValue;
+        if (((CSimpleType) testType).isSigned() && i % 2 == 1) {
+            // Make every second value a negative for signed values
+            expectedValue = BigInteger.valueOf(-i);
+        } else {
+          expectedValue = BigInteger.valueOf(i);
+        }
+        assertThat(
+                readValueAndState.getValue().asNumericValue().bigInteger().compareTo(expectedValue)
+                    == 0)
+            .isTrue();
+      }
+    }
+  }
+
+  /*
+   * Tests essentially:
+   * type * testName = malloc(size * sizeof(type));
+   * testName[0] = value;
+   * ....
+   * For the declareArrayVariableWithSimpleTypeWithValuesOnTheHeap() method.
+   */
+  @Test
+  public void checkHeapArrayWithAssignments() throws CPATransferException {
+    String variableName = "testArray";
+    BigInteger[] values = new BigInteger[TEST_ARRAY_LENGTH.intValue()];
+
+    for (CType testType : ARRAY_TEST_TYPES) {
+      for (int i = 0; i < TEST_ARRAY_LENGTH.intValue(); i++) {
+        if (((CSimpleType) testType).isSigned() && i % 2 == 1) {
+          // Make every second value a negative for signed values
+          values[i] = BigInteger.valueOf(-i);
+        } else {
+          values[i] = BigInteger.valueOf(i);
+        }
+      }
+      // Declares the array on the stack and assigns the values
+      SMGState stateWithArray =
+          declareArrayVariableWithSimpleTypeWithValuesOnTheHeap(
+              TEST_ARRAY_LENGTH.intValue(), values, variableName, testType);
+
+      SymbolicProgramConfiguration memoryModel = stateWithArray.getMemoryModel();
+      assertThat(memoryModel.getStackFrames().peek().containsVariable(variableName)).isTrue();
+      SMGObject memoryObject = memoryModel.getStackFrames().peek().getVariable(variableName);
+      // SMG sizes are in bits!
+      BigInteger expectedTypeSizeInBits = MACHINE_MODEL.getSizeofInBits(testType);
+      // The size of the variable is the size of a pointer
+      assertThat(memoryObject.getSize().compareTo(BigInteger.valueOf(POINTER_SIZE_IN_BITS)) == 0).isTrue();
+      // Read the address from the variable and then dereference the pointer
+      ValueAndSMGState readAddressValueAndState =
+          stateWithArray.readValue(memoryObject, BigInteger.ZERO, BigInteger.valueOf(POINTER_SIZE_IN_BITS));
+      Value address = readAddressValueAndState.getValue();
+      // TODO: address this type thing
+      // assertThat(address instanceof ConstantSymbolicExpression).isTrue();
+      Optional<SMGObjectAndOffset> maybeTargetOfPointer = memoryModel.dereferencePointer(address);
+      assertThat(maybeTargetOfPointer.isPresent()).isTrue();
+      SMGObjectAndOffset targetOfPointer = maybeTargetOfPointer.orElseThrow();
+      // The offset of the address should be 0
+      assertThat(targetOfPointer.getOffsetForObject().compareTo(BigInteger.ZERO)).isEqualTo(0);
+      SMGObject arrayMemoryObject = targetOfPointer.getSMGObject();
+      // The object is not 0
+      assertThat(arrayMemoryObject.isZero()).isFalse();
+
+      for (int i = 0; i < TEST_ARRAY_LENGTH.intValue(); i++) {
+        BigInteger offsetInBits = BigInteger.valueOf(i).multiply(expectedTypeSizeInBits);
+        ValueAndSMGState readValueAndState =
+            stateWithArray.readValue(arrayMemoryObject, offsetInBits, expectedTypeSizeInBits);
+        // The read state should not have any errors
+        // TODO: error check
+        // The value should be numeric
+        assertThat(readValueAndState.getValue().isNumericValue()).isTrue();
+
+        // Check the value (chars are also numerically saved!)
+        BigInteger expectedValue;
+        if (((CSimpleType) testType).isSigned() && i % 2 == 1) {
+            // Make every second value a negative for signed values
+            expectedValue = BigInteger.valueOf(-i);
+        } else {
+          expectedValue = BigInteger.valueOf(i);
+        }
+        assertThat(
+                readValueAndState.getValue().asNumericValue().bigInteger().compareTo(expectedValue)
+                    == 0)
+            .isTrue();
+      }
+    }
+  }
+
+  /*
+   * Tests essentially:
+   * struct StructType variableName =  {....};
+   * For the declareStructVariableWithSimpleTypeWithValuesOnTheStack() method.
+   */
+  @Test
+  public void checkStackStructWithAssignments() throws CPATransferException {
+    String variableName = "testArray";
+    String structTypeName = "testStructType";
+
+    for (int sublist = 1; sublist < STRUCT_UNION_TEST_TYPES.size(); sublist++) {
+      variableName = variableName + "sublist" + sublist;
+      structTypeName = structTypeName + "sublist" + sublist;
+      List<CType> structTestTypes = STRUCT_UNION_TEST_TYPES.subList(0, sublist);
+      List<String> structFieldNames = STRUCT_UNION_FIELD_NAMES.subList(0, sublist);
+      BigInteger[] values = new BigInteger[structTestTypes.size()];
+      for (int i = 0; i < structTestTypes.size(); i++) {
+        if (((CSimpleType) structTestTypes.get(i)).isSigned() && i % 2 == 1) {
+          // Make every second value a negative for signed values
+          values[i] = BigInteger.valueOf(-i);
+        } else {
+          values[i] = BigInteger.valueOf(i);
+        }
+      }
+      CType structType =
+          makeElaboratedTypeFor(
+              structTypeName, ComplexTypeKind.STRUCT, structTestTypes, structFieldNames);
+      // Declares the struct on the stack and assigns the values
+      SMGState stateWithStruct =
+          declareStructVariableWithSimpleTypeWithValuesOnTheStack(
+              values, variableName, structType, structTestTypes);
+
+      SymbolicProgramConfiguration memoryModel = stateWithStruct.getMemoryModel();
+      assertThat(memoryModel.getStackFrames().peek().containsVariable(variableName)).isTrue();
+      SMGObject memoryObject = memoryModel.getStackFrames().peek().getVariable(variableName);
+      // The size of the variable is the size of the struct
+      BigInteger sizeOfStructInBits = MACHINE_MODEL.getSizeofInBits(structType);
+      assertThat(memoryObject.getSize().compareTo(sizeOfStructInBits) == 0).isTrue();
+      // The object is not 0
+      assertThat(memoryObject.isZero()).isFalse();
+
+      // Read the values we entered
+      for (int i = 0; i < structTestTypes.size(); i++) {
+        CType currentFieldType = structTestTypes.get(i);
+        BigInteger expectedTypeSizeInBits = MACHINE_MODEL.getSizeofInBits(currentFieldType);
+        BigInteger offsetInBits =
+            MACHINE_MODEL.getFieldOffsetInBits(
+                (CCompositeType) ((CElaboratedType) structType).getRealType(),
+                structFieldNames.get(i));
+        ValueAndSMGState readValueAndState =
+            stateWithStruct.readValue(memoryObject, offsetInBits, expectedTypeSizeInBits);
+        // The read state should not have any errors
+        // TODO: error check
+        // The value should be numeric
+        assertThat(readValueAndState.getValue().isNumericValue()).isTrue();
+
+        assertThat(currentFieldType instanceof CSimpleType).isTrue();
+        // Check the value (chars are also numerically saved!)
+        BigInteger expectedValue;
+        if (((CSimpleType) currentFieldType).isSigned() && i % 2 == 1) {
+          // Make every second value a negative for signed values
+          expectedValue = BigInteger.valueOf(-i);
+        } else {
+          expectedValue = BigInteger.valueOf(i);
+        }
+        assertThat(
+                readValueAndState.getValue().asNumericValue().bigInteger().compareTo(expectedValue)
+                    == 0)
+            .isTrue();
+      }
+    }
+  }
+
+  /*
+   * Tests essentially:
+   * struct StructType * variableName = malloc(sizeof(struct StructType));
+   * For the declareStructVariableWithSimpleTypeWithValuesOnTheHeap() method.
+   */
+  @Test
+  public void checkHeapStructWithAssignments() throws CPATransferException {
+    String variableName = "testArray";
+    String structTypeName = "testStructType";
+
+    for (int sublist = 1; sublist < STRUCT_UNION_TEST_TYPES.size(); sublist++) {
+      List<CType> structTestTypes = STRUCT_UNION_TEST_TYPES.subList(0, sublist);
+      List<String> structFieldNames = STRUCT_UNION_FIELD_NAMES.subList(0, sublist);
+      BigInteger[] values = new BigInteger[structTestTypes.size()];
+      for (int i = 0; i < structTestTypes.size(); i++) {
+        if (((CSimpleType) structTestTypes.get(i)).isSigned() && i % 2 == 1) {
+          // Make every second value a negative for signed values
+          values[i] = BigInteger.valueOf(-i);
+        } else {
+          values[i] = BigInteger.valueOf(i);
+        }
+      }
+      CType structType =
+          makeElaboratedTypeFor(
+              structTypeName, ComplexTypeKind.STRUCT, structTestTypes, structFieldNames);
+      // Declares the struct on the heap with malloc and assigns the values
+      SMGState stateWithStruct =
+          declareStructVariableWithSimpleTypeWithValuesOnTheHeap(values, variableName, structType);
+
+      SymbolicProgramConfiguration memoryModel = stateWithStruct.getMemoryModel();
+      assertThat(memoryModel.getStackFrames().peek().containsVariable(variableName)).isTrue();
+      SMGObject memoryObject = memoryModel.getStackFrames().peek().getVariable(variableName);
+      // The size of the variable is the size of a pointer
+      assertThat(memoryObject.getSize().compareTo(BigInteger.valueOf(POINTER_SIZE_IN_BITS)) == 0)
+          .isTrue();
+      // Read the address from the variable and then dereference the pointer
+      ValueAndSMGState readAddressValueAndState =
+          stateWithStruct.readValue(
+              memoryObject, BigInteger.ZERO, BigInteger.valueOf(POINTER_SIZE_IN_BITS));
+      Value address = readAddressValueAndState.getValue();
+      // assertThat(address instanceof ConstantSymbolicExpression).isTrue();
+      Optional<SMGObjectAndOffset> maybeTargetOfPointer = memoryModel.dereferencePointer(address);
+      assertThat(maybeTargetOfPointer.isPresent()).isTrue();
+      SMGObjectAndOffset targetOfPointer = maybeTargetOfPointer.orElseThrow();
+      // The offset of the address should be 0
+      assertThat(targetOfPointer.getOffsetForObject().compareTo(BigInteger.ZERO)).isEqualTo(0);
+      SMGObject arrayMemoryObject = targetOfPointer.getSMGObject();
+      // The object is not 0
+      assertThat(arrayMemoryObject.isZero()).isFalse();
+
+      for (int i = 0; i < structTestTypes.size(); i++) {
+        CType currentFieldType = structTestTypes.get(i);
+        BigInteger expectedTypeSizeInBits = MACHINE_MODEL.getSizeofInBits(currentFieldType);
+        BigInteger offsetInBits =
+            MACHINE_MODEL.getFieldOffsetInBits(
+                (CCompositeType) ((CElaboratedType) structType).getRealType(),
+                structFieldNames.get(i));
+        ValueAndSMGState readValueAndState =
+            stateWithStruct.readValue(arrayMemoryObject, offsetInBits, expectedTypeSizeInBits);
+        // The read state should not have any errors
+        // TODO: error check
+        // The value should be numeric
+        assertThat(readValueAndState.getValue().isNumericValue()).isTrue();
+
+        assertThat(currentFieldType instanceof CSimpleType).isTrue();
+        // Check the value (chars are also numerically saved!)
+        BigInteger expectedValue;
+        if (((CSimpleType) currentFieldType).isSigned() && i % 2 == 1) {
+          // Make every second value a negative for signed values
+          expectedValue = BigInteger.valueOf(-i);
+        } else {
+          expectedValue = BigInteger.valueOf(i);
+        }
+        assertThat(
+                readValueAndState.getValue().asNumericValue().bigInteger().compareTo(expectedValue)
+                    == 0)
+            .isTrue();
+      }
+    }
+  }
+
+  /*
    * Test basic boolean 1 == 1, 0 == 0, numbers/chars == true and even address == address true
    *  with constant values in the CBinaryExpression.
    */
@@ -1241,13 +1530,16 @@ public class SMGCPATransferRelationTest {
             "", FileLocation.DUMMY, CFANode.newDummyCFANode(), CFANode.newDummyCFANode(), null));
   }
 
-  /**
+  /*
    * Declare an array with the type and size entered, the values entered in the order entered and
    * the variableName entered on the stack.
+   * Returns the last state acquired, but also sets the transfer
+   * relation with this state, so it can be ignored.
    *
-   * @throws CPATransferException won't be thrown.
+   * This is tested in a dedicated test and therefore save to use in other tests!
+   *
    */
-  private void declareArrayVariableWithSimpleTypeWithValuesOnTheStack(
+  private SMGState declareArrayVariableWithSimpleTypeWithValuesOnTheStack(
       int size, BigInteger[] values, String variableName, CType type) throws CPATransferException {
     Preconditions.checkArgument(values.length == size);
     // Build assignments starting from numeric value 0 and increment after each assignment. Chars
@@ -1264,15 +1556,10 @@ public class SMGCPATransferRelationTest {
     }
     CInitializer initList = makeCInitializerListFor(listOfInitsBuilder.build());
     // Make a non global and not external variable with the current type
+    CType arrayType = makeArrayTypeFor(type, BigInteger.valueOf(size));
     List<SMGState> statesAfterDecl =
         transferRelation.handleDeclarationEdge(
-            null,
-            declareVariableWithInitializer(
-                variableName,
-                makeArrayTypeFor(type, BigInteger.valueOf(size)),
-                false,
-                false,
-                initList));
+            null, declareVariableWithInitializer(variableName, arrayType, false, false, initList));
     // Since we declare variables we know there will be only 1 state afterwards
     assertThat(statesAfterDecl).hasSize(1);
     // This state must have a local variable the size of the type used (on the current stack
@@ -1285,22 +1572,80 @@ public class SMGCPATransferRelationTest {
         null,
         new CDeclarationEdge(
             "", FileLocation.DUMMY, CFANode.newDummyCFANode(), CFANode.newDummyCFANode(), null));
-    // TODO: initializer
+
+    // Assign values
+    SMGState lastState = state;
+    BigInteger index = BigInteger.ZERO;
+    for (BigInteger value : values) {
+      CExpression valueExpr;
+      if (type.equals(CHAR_TYPE)) {
+        valueExpr =
+            new CCharLiteralExpression(FileLocation.DUMMY, type, (char) value.intValueExact());
+      } else if (type instanceof CSimpleType) {
+        // all other currently used test types are in this category
+        valueExpr = new CIntegerLiteralExpression(FileLocation.DUMMY, type, value);
+      } else {
+        // TODO: add arrays/structs
+        throw new RuntimeException(
+            "Unsupported type in struct test type. Add the handling to where the exception is thrown.");
+      }
+
+      CExpressionAssignmentStatement assignmentExpr =
+          new CExpressionAssignmentStatement(
+              FileLocation.DUMMY,
+              new CArraySubscriptExpression(
+                  FileLocation.DUMMY,
+                  type,
+                  new CIdExpression(
+                      FileLocation.DUMMY,
+                      arrayType,
+                      variableName,
+                      new CVariableDeclaration(
+                          FileLocation.DUMMY,
+                          false,
+                          CStorageClass.AUTO,
+                          arrayType,
+                          variableName,
+                          variableName,
+                          variableName,
+                          null)),
+                  new CIntegerLiteralExpression(FileLocation.DUMMY, INT_TYPE, index)),
+              valueExpr);
+
+      Collection<SMGState> statesAfterAssign =
+          transferRelation.handleStatementEdge(null, assignmentExpr);
+      // Since we assign variables we know there will be only 1 state afterwards
+      assertThat(statesAfterAssign).hasSize(1);
+      SMGState newState = statesAfterAssign.toArray(new SMGState[0])[0];
+      // Technically the Edge is always wrong. This influences only error detection however.
+      transferRelation.setInfo(
+          newState,
+          null,
+          new CDeclarationEdge(
+              "", FileLocation.DUMMY, CFANode.newDummyCFANode(), CFANode.newDummyCFANode(), null));
+       lastState = newState;
+      index = index.add(BigInteger.ONE);
+    }
+    return lastState;
   }
 
-  /**
+  /*
    * Declare an array with the type and size entered, the values entered in the order entered on the
-   * heap. Then a variable with the address of this array is made with the variableName.
+   * heap. Then a variable with the address of this array is made with the variableName. Returns the
+   * last state acquired, but also sets the transfer relation with this state, so it can be ignored.
    *
-   * @throws CPATransferException not thrown if no bug in the code.
+   * This is tested in a dedicated test and therefore save to use in other tests!
    */
-  private void declareArrayVariableWithSimpleTypeWithValuesOnTheHeap(
+  private SMGState declareArrayVariableWithSimpleTypeWithValuesOnTheHeap(
       int size, BigInteger[] values, String variableName, CType type) throws CPATransferException {
     Preconditions.checkArgument(values.length == size);
     CType pointerType = new CPointerType(false, false, type);
 
     CExpression sizeExpression =
-        new CIntegerLiteralExpression(FileLocation.DUMMY, INT_TYPE, BigInteger.valueOf(size));
+        new CIntegerLiteralExpression(
+            FileLocation.DUMMY,
+            INT_TYPE,
+            BigInteger.valueOf(size).multiply(MACHINE_MODEL.getSizeof(type)));
 
     // Make a non global and not external variable with the current type
     List<SMGState> statesAfterDecl =
@@ -1317,7 +1662,7 @@ public class SMGCPATransferRelationTest {
             FileLocation.DUMMY,
             new CIdExpression(
                 FileLocation.DUMMY,
-                new CPointerType(false, false, pointerType),
+                pointerType,
                 variableName,
                 declareVariableWithoutInitializer(variableName, pointerType, false, false)),
             makeMalloc(sizeExpression));
@@ -1342,7 +1687,6 @@ public class SMGCPATransferRelationTest {
     List<SMGState> statesListAfterMallocAssign = (List<SMGState>) statesAfterMallocAssign;
     // Depending on the options this might have 2 return states, one where malloc succeeds and
     // one where it fails
-    // TODO:
     SMGState stateAfterMallocAssignSuccess;
     if (size == 0 || !smgOptions.isEnableMallocFailure()) {
       // either its malloc(0) which is always a single null pointer, or its just 1 valid state
@@ -1365,36 +1709,83 @@ public class SMGCPATransferRelationTest {
         stateAfterMallocAssignSuccess = statesListAfterMallocAssign.get(0);
       }
     }
-    transferRelation.setInfo(stateAfterMallocAssignSuccess, null, null);
-    // TODO: initializer
+    transferRelation.setInfo(
+        stateAfterMallocAssignSuccess,
+        null,
+        new CDeclarationEdge(
+            "", FileLocation.DUMMY, CFANode.newDummyCFANode(), CFANode.newDummyCFANode(), null));
+
+    // Assign values
+    BigInteger index = BigInteger.ZERO;
+    SMGState lastState = stateAfterDecl;
+    for (BigInteger value : values) {
+      CExpression valueExpr;
+      if (type.equals(CHAR_TYPE)) {
+        valueExpr =
+            new CCharLiteralExpression(FileLocation.DUMMY, type, (char) value.intValueExact());
+      } else if (type instanceof CSimpleType) {
+        // all other currently used test types are in this category
+        valueExpr = new CIntegerLiteralExpression(FileLocation.DUMMY, type, value);
+      } else {
+        // TODO: add arrays/structs
+        throw new RuntimeException(
+            "Unsupported type in struct test type. Add the handling to where the exception is thrown.");
+      }
+
+      CExpressionAssignmentStatement assignmentExpr =
+          new CExpressionAssignmentStatement(
+              FileLocation.DUMMY,
+              new CArraySubscriptExpression(
+                  FileLocation.DUMMY,
+                  type,
+                  new CIdExpression(
+                      FileLocation.DUMMY,
+                      new CPointerType(false, false, type),
+                      variableName,
+                      new CVariableDeclaration(
+                          FileLocation.DUMMY,
+                          false,
+                          CStorageClass.AUTO,
+                          new CPointerType(false, false, type),
+                          variableName,
+                          variableName,
+                          variableName,
+                          null)),
+                  new CIntegerLiteralExpression(FileLocation.DUMMY, INT_TYPE, index)),
+              valueExpr);
+      index = index.add(BigInteger.ONE);
+
+      Collection<SMGState> statesAfterAssign =
+          transferRelation.handleStatementEdge(null, assignmentExpr);
+      // Since we assign variables we know there will be only 1 state afterwards
+      assertThat(statesAfterAssign).hasSize(1);
+      SMGState newState = statesAfterAssign.toArray(new SMGState[0])[0];
+      // Technically the Edge is always wrong. This influences only error detection however.
+      transferRelation.setInfo(
+          newState,
+          null,
+          new CDeclarationEdge(
+              "", FileLocation.DUMMY, CFANode.newDummyCFANode(), CFANode.newDummyCFANode(), null));
+      lastState = newState;
+    }
+    return lastState;
   }
 
-  /**
+  /*
    * Declare a struct with the types entered, the values entered in the order entered and the
-   * variableName entered on the stack.
+   * variableName entered on the stack. Returns the last state acquired, but also sets the
+   * transfer relation with this state, so it can be ignored. types should be the CTypes used in the struct type in the order they appear in the struct.
    *
-   * @throws CPATransferException won't be thrown.
+   * This is tested in a dedicated test and therefore save to use in other tests!
    */
-  private void declareStructVariableWithSimpleTypeWithValuesOnTheStack(
-      BigInteger[] values,
-      String variableName,
-      String structTypeName,
-      CType[] types,
-      String[] fieldNames)
+  private SMGState declareStructVariableWithSimpleTypeWithValuesOnTheStack(
+      BigInteger[] values, String variableName, CType structType, List<CType> types)
       throws CPATransferException {
-    Preconditions.checkArgument(values.length == types.length && types.length == fieldNames.length);
-
-    CType type =
-        makeElaboratedTypeFor(
-            structTypeName,
-            ComplexTypeKind.STRUCT,
-            ImmutableList.copyOf(types),
-            ImmutableList.copyOf(fieldNames));
     // Build assignments starting from numeric value 1 and increment after each assignment. Chars
     // are simply the int cast to a char.
     ImmutableList.Builder<CInitializer> listOfInitsBuilder = ImmutableList.builder();
-    for (int i = 0; i < types.length; i++) {
-      CType currType = types[i];
+    for (int i = 0; i < types.size(); i++) {
+      CType currType = types.get(i);
       BigInteger value = values[i];
       CExpression exprToInit;
       if (currType == CNumericTypes.CHAR) {
@@ -1409,7 +1800,7 @@ public class SMGCPATransferRelationTest {
     // Make a non global and not external variable with the current type
     List<SMGState> statesAfterDecl =
         transferRelation.handleDeclarationEdge(
-            null, declareVariableWithInitializer(variableName, type, false, false, initList));
+            null, declareVariableWithInitializer(variableName, structType, false, false, initList));
     // Since we declare variables we know there will be only 1 state afterwards
     assertThat(statesAfterDecl).hasSize(1);
     // This state must have a local variable the size of the type used (on the current stack frame)
@@ -1421,16 +1812,18 @@ public class SMGCPATransferRelationTest {
         null,
         new CDeclarationEdge(
             "", FileLocation.DUMMY, CFANode.newDummyCFANode(), CFANode.newDummyCFANode(), null));
-    // TODO: initializer
+    return state;
   }
 
-  /**
+  /*
    * Declare a struct with the types entered, the values entered in the order entered on the heap.
-   * Then a variable with the address of this array is made with the variableName.
+   * Then a variable with the address of this array is made with the variableName. This uses the ->
+   * operator. But the SMG2 CPA translates this always to (struct*).field so its the same.
+   * Returns the last state acquired, but also sets the transfer relation with this state, so it can be ignored.
    *
-   * @throws CPATransferException not thrown if no bug in the code.
+   * This is tested in a dedicated test and therefore save to use in other tests!
    */
-  private void declareStructVariableWithSimpleTypeWithValuesOnTheHeap(
+  private SMGState declareStructVariableWithSimpleTypeWithValuesOnTheHeap(
       BigInteger[] values, String variableName, CType type) throws CPATransferException {
     CType pointerType = new CPointerType(false, false, type);
 
@@ -1500,8 +1893,68 @@ public class SMGCPATransferRelationTest {
         stateAfterMallocAssignSuccess = statesListAfterMallocAssign.get(0);
       }
     }
-    transferRelation.setInfo(stateAfterMallocAssignSuccess, null, null);
-    // TODO: initializer
+    transferRelation.setInfo(stateAfterMallocAssignSuccess, null, mallocAndAssignmentEdge);
+
+    assertThat(type instanceof CElaboratedType).isTrue();
+    CElaboratedType ceType = (CElaboratedType) type;
+    assertThat(ceType.getRealType() instanceof CCompositeType).isTrue();
+    List<CCompositeTypeMemberDeclaration> members =
+        ((CCompositeType) ceType.getRealType()).getMembers();
+    assertThat(members.size()).isEqualTo(values.length);
+    SMGState lastState = stateAfterMallocAssignSuccess;
+    for (int i = 0; i < members.size(); i++) {
+      CCompositeTypeMemberDeclaration member = members.get(i);
+      BigInteger value = values[i];
+      CType memberType = member.getType();
+      String memberName = member.getName();
+      CExpression valueExpr;
+      if (memberType.equals(CHAR_TYPE)) {
+        valueExpr =
+            new CCharLiteralExpression(
+                FileLocation.DUMMY, memberType, (char) value.intValueExact());
+      } else if (memberType instanceof CSimpleType) {
+        // all other currently used test types are in this category
+        valueExpr = new CIntegerLiteralExpression(FileLocation.DUMMY, memberType, value);
+      } else {
+        // TODO: add arrays/structs
+        throw new RuntimeException(
+            "Unsupported type in struct test type. Add the handling to where the exception is thrown.");
+      }
+      CExpressionAssignmentStatement assignExpr =
+          new CExpressionAssignmentStatement(
+              FileLocation.DUMMY,
+              new CFieldReference(
+                  FileLocation.DUMMY,
+                  pointerType,
+                  memberName,
+                  new CIdExpression(
+                      FileLocation.DUMMY,
+                      pointerType,
+                      variableName,
+                      new CVariableDeclaration(
+                          FileLocation.DUMMY,
+                          false,
+                          CStorageClass.AUTO,
+                          pointerType,
+                          variableName,
+                          variableName,
+                          variableName,
+                          null)),
+                  true),
+              valueExpr);
+
+      Collection<SMGState> statesAfterAssign =
+          transferRelation.handleStatementEdge(null, assignExpr);
+
+      // Since we assign variables we know there will be only 1 state afterwards
+      assertThat(statesAfterAssign).hasSize(1);
+      SMGState stateAfterAssign = statesAfterAssign.toArray(new SMGState[0])[0];
+      // Update transfer relation state. The edge will be wrong, which is fine as it only effects
+      // error checks
+      transferRelation.setInfo(stateAfterAssign, null, mallocAndAssignmentEdge);
+      lastState = stateAfterAssign;
+    }
+    return lastState;
   }
 
   private CFunctionCallExpression makeMalloc(CExpression sizeExpr) {
@@ -1575,17 +2028,13 @@ public class SMGCPATransferRelationTest {
         false, false, complexTypeKind, structureName, structureName, realType);
   }
 
-  @SuppressWarnings("unused")
   private CType makeArrayTypeFor(CType elementType, CExpression length) {
     return new CArrayType(false, false, elementType, length);
   }
 
   private CType makeArrayTypeFor(CType elementType, BigInteger length) {
-    return new CArrayType(
-        false,
-        false,
-        elementType,
-        new CIntegerLiteralExpression(FileLocation.DUMMY, CNumericTypes.INT, length));
+    return makeArrayTypeFor(
+        elementType, new CIntegerLiteralExpression(FileLocation.DUMMY, CNumericTypes.INT, length));
   }
 
   private CType makePointerTypeFor(CType pointerType) {
