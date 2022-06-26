@@ -1044,7 +1044,6 @@ public class SMGTransferRelation
         new SMGCPAValueVisitor(evaluator, pState, cfaEdge, logger);
 
     List<Optional<SMGObjectAndOffset>> maybeAddresses = lValue.accept(leftHandSidevisitor);
-    List<ValueAndSMGState> valuesAndStates = rValue.accept(rightHandSideVisitor);
     for (Optional<SMGObjectAndOffset> maybeAddress : maybeAddresses) {
       if (maybeAddress.isEmpty()) {
         // No memory for the left hand side -> can't write
