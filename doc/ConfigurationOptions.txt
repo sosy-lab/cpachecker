@@ -4288,6 +4288,10 @@ slicing.exportToC.enable = false
 # File template for exported C program slices
 slicing.exportToC.file = "programSlice.%d.c"
 
+# produce C programs more similar to the input program
+# (only possible for a single input file)
+slicing.exportToC.stayCloserToInput = false
+
 # Whether to export program slices as DOT files.
 slicing.exportToDot.enable = true
 

@@ -14,6 +14,7 @@ import java.nio.charset.Charset;
 import java.nio.file.Path;
 import java.util.logging.Level;
 import org.sosy_lab.common.Concurrency;
+import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -28,6 +29,7 @@ import org.sosy_lab.cpachecker.cfa.export.DOTBuilder;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.cwriter.CFAToCTranslator;
+import org.sosy_lab.cpachecker.util.cwriter.CfaToCExporter;
 
 @Options(prefix = "slicing")
 public class SliceExporter {
@@ -44,6 +46,14 @@ public class SliceExporter {
       description = "File template for exported C program slices")
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private PathTemplate exportToCFile = PathTemplate.ofFormatString("programSlice.%d.c");
+
+  @Option(
+      secure = true,
+      name = "exportToC.stayCloserToInput",
+      description =
+          "produce C programs more similar to the input program"
+              + "\n(only possible for a single input file)")
+  private boolean exportToCStayingCloserToInput = false;
 
   @Option(
       secure = true,
@@ -74,16 +84,20 @@ public class SliceExporter {
 
   private final Configuration config;
   private final LogManager logger;
+  private final ShutdownNotifier shutdownNotifier;
   private int exportCount = 0;
-  private final CFAToCTranslator translator;
 
-  public SliceExporter(Configuration pConfig, LogManager pLogger)
+  public SliceExporter(
+      final Configuration pConfig,
+      final LogManager pLogger,
+      final ShutdownNotifier pShutdownNotifier)
       throws InvalidConfigurationException {
+
     pConfig.inject(this);
 
-    translator = new CFAToCTranslator(pConfig);
     config = pConfig;
     logger = pLogger;
+    shutdownNotifier = pShutdownNotifier;
   }
 
   private void exportToC(Slice pSlice, Path pPath) {
@@ -92,10 +106,16 @@ public class SliceExporter {
 
     try (Writer writer = IO.openOutputFile(pPath, Charset.defaultCharset())) {
 
-      String code = translator.translateCfa(sliceCfa);
+      final String code;
+
+      if (exportToCStayingCloserToInput) {
+        code = new CfaToCExporter(logger, config, shutdownNotifier).exportCfa(sliceCfa);
+      } else {
+        code = new CFAToCTranslator(config).translateCfa(sliceCfa);
+      }
       writer.write(code);
 
-    } catch (CPAException | IOException | InvalidConfigurationException ex) {
+    } catch (CPAException | IOException | InvalidConfigurationException | InterruptedException ex) {
       logger.logUserException(
           Level.WARNING, ex, "Could not write program slice to C file: " + pPath);
     }
