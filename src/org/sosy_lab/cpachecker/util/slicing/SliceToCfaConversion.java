@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.util.slicing;
 
+import com.google.common.base.Verify;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
@@ -15,6 +16,7 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.TreeMultimap;
 import java.util.List;
 import java.util.NavigableMap;
+import java.util.Set;
 import java.util.TreeMap;
 import java.util.function.BiFunction;
 import java.util.function.Function;
@@ -37,10 +39,12 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.TransformingCAstNodeVisitor;
+import org.sosy_lab.cpachecker.cfa.ast.java.JBooleanLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -49,7 +53,9 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionEntryNode;
+import org.sosy_lab.cpachecker.cfa.model.java.JAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.postprocessing.function.CFASimplifier;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionTypeWithNames;
@@ -110,7 +116,7 @@ final class SliceToCfaConversion {
    * Returns whether the specified edge should be replaced with a no-op blank edge if the edge is
    * not part of the slice.
    */
-  private static boolean isReplaceableEdge(CFAEdge pEdge) {
+  private static boolean isReplaceableWithBlankEdge(CFAEdge pEdge) {
 
     // Replacing function call/return edges leads to invalid CFAs.
     // Irrelevant assume edges are replaced during CFA simplification, which requires assume edges
@@ -118,6 +124,75 @@ final class SliceToCfaConversion {
     return !(pEdge instanceof FunctionCallEdge)
         && !(pEdge instanceof FunctionReturnEdge)
         && !(pEdge instanceof AssumeEdge);
+  }
+
+  /**
+   * Returns an {@link AssumeEdge} of the same type and with the same file location and endpoints as
+   * the given edge, but with the given expression value (constant, without variables) instead of
+   * the original one.
+   */
+  private static CFAEdge createAssumeEdgeWithoutVariables(
+      final AssumeEdge oldEdge, final boolean pExpressionValue) {
+
+    if (oldEdge instanceof CAssumeEdge) {
+      final CExpression expression =
+          pExpressionValue ? CIntegerLiteralExpression.ONE : CIntegerLiteralExpression.ZERO;
+      return new CAssumeEdge(
+          IRRELEVANT_EDGE_DESCRIPTION,
+          oldEdge.getFileLocation(),
+          oldEdge.getPredecessor(),
+          oldEdge.getSuccessor(),
+          expression,
+          oldEdge.getTruthAssumption(),
+          oldEdge.isSwapped(),
+          oldEdge.isArtificialIntermediate());
+    }
+
+    if (oldEdge instanceof JAssumeEdge) {
+      return new JAssumeEdge(
+          IRRELEVANT_EDGE_DESCRIPTION,
+          oldEdge.getFileLocation(),
+          oldEdge.getPredecessor(),
+          oldEdge.getSuccessor(),
+          new JBooleanLiteralExpression(
+              oldEdge.getExpression().getFileLocation(), pExpressionValue),
+          oldEdge.getTruthAssumption());
+    }
+
+    throw new AssertionError("Unknown type of AssumeEdge: " + oldEdge.getClass());
+  }
+
+  /**
+   * Replaces irrelevant {@link AssumeEdge}s with new AssumeEdges that do not contain any variables,
+   * when possible, so that the resulting {@link CFA} does not contain any undefined variables and
+   * therefore is valid, even if the {@link CFASimplifier} is not used.
+   *
+   * <p>Semantically, this does not have an effect. AssumeEdges are only replaced when both
+   * AssumeEdges at the corresponding branching point are irrelevant. In that case, both the
+   * then-branch and the else-branch consist solely of irrelevant edges. When one of the AssumeEdges
+   * is still relevant, that means that potential variables in the expressions of the AssumeEdges
+   * must be defined, so there is no need to replace them.
+   */
+  private static void replaceIrrelevantAssumeEdges(
+      final CfaMutableNetwork pGraph, final Set<CFAEdge> pRelevantEdges) {
+
+    final Set<CFANode> branchingPointsWithIrrelevantAssumeEdges =
+        pGraph.edges().stream()
+            .filter(edge -> edge instanceof AssumeEdge && !pRelevantEdges.contains(edge))
+            .map(CFAEdge::getPredecessor)
+            .collect(ImmutableSet.toImmutableSet());
+
+    for (final CFANode branchingPoint : branchingPointsWithIrrelevantAssumeEdges) {
+      Verify.verify(branchingPoint.getNumLeavingEdges() == 2);
+      final CFAEdge edge1 = branchingPoint.getLeavingEdge(0);
+      final CFAEdge edge2 = branchingPoint.getLeavingEdge(1);
+      Verify.verify(edge1 instanceof AssumeEdge && edge2 instanceof AssumeEdge);
+
+      if (!pRelevantEdges.contains(edge1) && !pRelevantEdges.contains(edge2)) {
+        pGraph.replace(edge1, createAssumeEdgeWithoutVariables((AssumeEdge) edge1, true));
+        pGraph.replace(edge2, createAssumeEdgeWithoutVariables((AssumeEdge) edge2, false));
+      }
+    }
   }
 
   /**
@@ -246,9 +321,10 @@ final class SliceToCfaConversion {
 
     ImmutableList<CFAEdge> irrelevantEdges =
         graph.edges().stream()
-            .filter(edge -> !relevantEdges.contains(edge) && isReplaceableEdge(edge))
+            .filter(edge -> !relevantEdges.contains(edge) && isReplaceableWithBlankEdge(edge))
             .collect(ImmutableList.toImmutableList());
     irrelevantEdges.forEach(edge -> graph.replace(edge, createNoopBlankEdge(edge)));
+    replaceIrrelevantAssumeEdges(graph, relevantEdges);
 
     ImmutableList<CFANode> irrelevantNodes =
         graph.nodes().stream()
