@@ -163,8 +163,9 @@ public class SMGCPATransferRelationTest {
   public void init() throws InvalidConfigurationException {
     LogManager logManager = LogManager.createTestLogManager();
     smgOptions = new SMGOptions(Configuration.defaultConfiguration());
-    initialState = SMGState.of(MACHINE_MODEL, logManager, smgOptions)
-        .copyAndAddStackFrame(CFunctionDeclaration.DUMMY);
+    initialState =
+        SMGState.of(MACHINE_MODEL, logManager, smgOptions)
+            .copyAndAddStackFrame(CFunctionDeclaration.DUMMY);
 
     transferRelation =
         new SMGTransferRelation(
@@ -176,7 +177,8 @@ public class SMGCPATransferRelationTest {
             ImmutableList.of(),
             ImmutableList.of());
 
-    transferRelation.setInfo(initialState,
+    transferRelation.setInfo(
+        initialState,
         null,
         new CDeclarationEdge(
             "", FileLocation.DUMMY, CFANode.newDummyCFANode(), CFANode.newDummyCFANode(), null));
@@ -714,7 +716,7 @@ public class SMGCPATransferRelationTest {
     for (int i = 0; i < 5000; i = i + 100) {
       BigInteger sizeInBytes = BigInteger.valueOf(i);
 
-    for (CType type : TEST_TYPES) {
+      for (CType type : TEST_TYPES) {
         CType pointerType = new CPointerType(false, false, type);
 
         // Make a non global and not external variable with the current type
@@ -790,11 +792,11 @@ public class SMGCPATransferRelationTest {
 
         // TODO: error check
         SymbolicProgramConfiguration memoryModel = stateAfterMallocAssignSuccess.getMemoryModel();
-      assertThat(memoryModel.getStackFrames().peek().containsVariable(variableName)).isTrue();
-      SMGObject memoryObject = memoryModel.getStackFrames().peek().getVariable(variableName);
+        assertThat(memoryModel.getStackFrames().peek().containsVariable(variableName)).isTrue();
+        SMGObject memoryObject = memoryModel.getStackFrames().peek().getVariable(variableName);
         // SMG sizes are in bits!
         BigInteger expectedSize = MACHINE_MODEL.getSizeofInBits(pointerType);
-      assertThat(memoryObject.getSize().compareTo(expectedSize) == 0).isTrue();
+        assertThat(memoryObject.getSize().compareTo(expectedSize) == 0).isTrue();
         // further, in the memory there must be a SMGValue that is a pointer (points to edge)
         // leading to the larger memory field with the size of malloc
         ValueAndSMGState readValueAndState =
@@ -837,7 +839,8 @@ public class SMGCPATransferRelationTest {
    * The option for malloc failure is tested as well.
    */
   @Test
-  public void localVariableDeclarationWithAssignmentMallocWithSizeOfBinaryExpressionTest() throws CPATransferException {
+  public void localVariableDeclarationWithAssignmentMallocWithSizeOfBinaryExpressionTest()
+      throws CPATransferException {
     String variableName = "variableName";
     for (int i = 0; i < 50; i++) {
       BigInteger sizeMultiplikator = BigInteger.valueOf(i);
@@ -906,7 +909,8 @@ public class SMGCPATransferRelationTest {
           transferRelation.setInfo(stateAfterDecl, null, mallocAndAssignmentEdge);
 
           Collection<SMGState> statesAfterMallocAssign =
-              transferRelation.handleStatementEdge(mallocAndAssignmentEdge, mallocAndAssignmentExpr);
+              transferRelation.handleStatementEdge(
+                  mallocAndAssignmentEdge, mallocAndAssignmentExpr);
 
           assertThat(statesAfterMallocAssign instanceof List<?>).isTrue();
           List<SMGState> statesListAfterMallocAssign = (List<SMGState>) statesAfterMallocAssign;
@@ -917,7 +921,8 @@ public class SMGCPATransferRelationTest {
           if (sizeMultiplikator.compareTo(BigInteger.ZERO) == 0) {
             // malloc(0) is always a single null pointer
             assertThat(
-                    checkMallocFailure(statesListAfterMallocAssign.get(0), variableName, pointerType))
+                    checkMallocFailure(
+                        statesListAfterMallocAssign.get(0), variableName, pointerType))
                 .isTrue();
             continue;
 
@@ -934,14 +939,16 @@ public class SMGCPATransferRelationTest {
             if (!checkMallocFailure(stateAfterMallocAssignFailure, variableName, pointerType)) {
               stateAfterMallocAssignFailure = statesListAfterMallocAssign.get(0);
               stateAfterMallocAssignSuccess = statesListAfterMallocAssign.get(1);
-              assertThat(checkMallocFailure(stateAfterMallocAssignFailure, variableName, pointerType))
+              assertThat(
+                      checkMallocFailure(stateAfterMallocAssignFailure, variableName, pointerType))
                   .isTrue();
             } else {
               stateAfterMallocAssignSuccess = statesListAfterMallocAssign.get(0);
             }
           }
           // State 1 (always the malloc succeed case) has a variable with the pointer, which has a
-          // value pointing to the memory allocated by malloc which has to have the sizeInBytes times
+          // value pointing to the memory allocated by malloc which has to have the sizeInBytes
+          // times
           // 8. No ErrorInfo should be set.
 
           // TODO: error check
@@ -982,7 +989,10 @@ public class SMGCPATransferRelationTest {
                       == 0)
               .isTrue();
           assertThat(
-                  mallocObjectAndOffset.orElseThrow().getOffsetForObject().compareTo(BigInteger.ZERO)
+                  mallocObjectAndOffset
+                          .orElseThrow()
+                          .getOffsetForObject()
+                          .compareTo(BigInteger.ZERO)
                       == 0)
               .isTrue();
           // Read the SMGObject to make sure that there is no value written
@@ -1038,7 +1048,7 @@ public class SMGCPATransferRelationTest {
     BigInteger[] values = new BigInteger[TEST_ARRAY_LENGTH.intValue()];
 
     for (CType testType : ARRAY_TEST_TYPES) {
-      variableName = variableName + testType.toString();
+      variableName = variableName + testType;
       for (int i = 0; i < TEST_ARRAY_LENGTH.intValue(); i++) {
         if (((CSimpleType) testType).isSigned() && i % 2 == 1) {
           // Make every second value a negative for signed values
@@ -1058,7 +1068,10 @@ public class SMGCPATransferRelationTest {
       // SMG sizes are in bits!
       BigInteger expectedTypeSizeInBits = MACHINE_MODEL.getSizeofInBits(testType);
       // The size of the variable is the array size as it is on the stack
-      assertThat(memoryObject.getSize().compareTo(expectedTypeSizeInBits.multiply(TEST_ARRAY_LENGTH)) == 0).isTrue();
+      assertThat(
+              memoryObject.getSize().compareTo(expectedTypeSizeInBits.multiply(TEST_ARRAY_LENGTH))
+                  == 0)
+          .isTrue();
 
       for (int i = 0; i < TEST_ARRAY_LENGTH.intValue(); i++) {
         BigInteger offsetInBits = BigInteger.valueOf(i).multiply(expectedTypeSizeInBits);
@@ -1072,8 +1085,8 @@ public class SMGCPATransferRelationTest {
         // Check the value (chars are also numerically saved!)
         BigInteger expectedValue;
         if (((CSimpleType) testType).isSigned() && i % 2 == 1) {
-            // Make every second value a negative for signed values
-            expectedValue = BigInteger.valueOf(-i);
+          // Make every second value a negative for signed values
+          expectedValue = BigInteger.valueOf(-i);
         } else {
           expectedValue = BigInteger.valueOf(i);
         }
@@ -1117,10 +1130,12 @@ public class SMGCPATransferRelationTest {
       // SMG sizes are in bits!
       BigInteger expectedTypeSizeInBits = MACHINE_MODEL.getSizeofInBits(testType);
       // The size of the variable is the size of a pointer
-      assertThat(memoryObject.getSize().compareTo(BigInteger.valueOf(POINTER_SIZE_IN_BITS)) == 0).isTrue();
+      assertThat(memoryObject.getSize().compareTo(BigInteger.valueOf(POINTER_SIZE_IN_BITS)) == 0)
+          .isTrue();
       // Read the address from the variable and then dereference the pointer
       ValueAndSMGState readAddressValueAndState =
-          stateWithArray.readValue(memoryObject, BigInteger.ZERO, BigInteger.valueOf(POINTER_SIZE_IN_BITS));
+          stateWithArray.readValue(
+              memoryObject, BigInteger.ZERO, BigInteger.valueOf(POINTER_SIZE_IN_BITS));
       Value address = readAddressValueAndState.getValue();
       // TODO: address this type thing
       // assertThat(address instanceof ConstantSymbolicExpression).isTrue();
@@ -1145,8 +1160,8 @@ public class SMGCPATransferRelationTest {
         // Check the value (chars are also numerically saved!)
         BigInteger expectedValue;
         if (((CSimpleType) testType).isSigned() && i % 2 == 1) {
-            // Make every second value a negative for signed values
-            expectedValue = BigInteger.valueOf(-i);
+          // Make every second value a negative for signed values
+          expectedValue = BigInteger.valueOf(-i);
         } else {
           expectedValue = BigInteger.valueOf(i);
         }
@@ -1629,7 +1644,8 @@ public class SMGCPATransferRelationTest {
       } else {
         // TODO: add arrays/structs
         throw new RuntimeException(
-            "Unsupported type in struct test type. Add the handling to where the exception is thrown.");
+            "Unsupported type in struct test type. Add the handling to where the exception is"
+                + " thrown.");
       }
 
       CExpressionAssignmentStatement assignmentExpr =
@@ -1665,7 +1681,7 @@ public class SMGCPATransferRelationTest {
           null,
           new CDeclarationEdge(
               "", FileLocation.DUMMY, CFANode.newDummyCFANode(), CFANode.newDummyCFANode(), null));
-       lastState = newState;
+      lastState = newState;
       index = index.add(BigInteger.ONE);
     }
     return lastState;
@@ -1771,7 +1787,8 @@ public class SMGCPATransferRelationTest {
       } else {
         // TODO: add arrays/structs
         throw new RuntimeException(
-            "Unsupported type in struct test type. Add the handling to where the exception is thrown.");
+            "Unsupported type in struct test type. Add the handling to where the exception is"
+                + " thrown.");
       }
 
       CExpressionAssignmentStatement assignmentExpr =
@@ -1942,7 +1959,7 @@ public class SMGCPATransferRelationTest {
     assertThat(ceType.getRealType() instanceof CCompositeType).isTrue();
     List<CCompositeTypeMemberDeclaration> members =
         ((CCompositeType) ceType.getRealType()).getMembers();
-    assertThat(members.size()).isEqualTo(values.length);
+    assertThat(members).hasSize(values.length);
     SMGState lastState = stateAfterMallocAssignSuccess;
     for (int i = 0; i < members.size(); i++) {
       CCompositeTypeMemberDeclaration member = members.get(i);
@@ -1960,7 +1977,8 @@ public class SMGCPATransferRelationTest {
       } else {
         // TODO: add arrays/structs
         throw new RuntimeException(
-            "Unsupported type in struct test type. Add the handling to where the exception is thrown.");
+            "Unsupported type in struct test type. Add the handling to where the exception is"
+                + " thrown.");
       }
       CExpressionAssignmentStatement assignExpr =
           new CExpressionAssignmentStatement(

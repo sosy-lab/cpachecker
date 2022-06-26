@@ -253,7 +253,7 @@ public class SymbolicProgramConfiguration {
         stackVariableMapping,
         heapObjects,
         externalObjectAllocation,
-        builder.build());
+        builder.buildOrThrow());
   }
 
   /**
@@ -455,7 +455,7 @@ public class SymbolicProgramConfiguration {
         stackVariableMapping,
         heapObjects,
         externalObjectAllocation,
-        builder.putAll(valueMapping).put(cValue, smgValue).build());
+        builder.putAll(valueMapping).put(cValue, smgValue).buildOrThrow());
   }
 
   /**

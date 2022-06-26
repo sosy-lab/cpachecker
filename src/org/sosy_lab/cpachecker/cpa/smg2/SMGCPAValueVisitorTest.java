@@ -670,8 +670,10 @@ public class SMGCPAValueVisitorTest {
           Value resultValue = resultList.get(0).getValue();
           // Check that types with the size of the current have the correct value, and all other
           // should be unknown
-          if (MACHINE_MODEL.getSizeof(STRUCT_UNION_TEST_TYPES.get(k))
-              == MACHINE_MODEL.getSizeof(STRUCT_UNION_TEST_TYPES.get(i))) {
+          if (MACHINE_MODEL
+                  .getSizeof(STRUCT_UNION_TEST_TYPES.get(k))
+                  .compareTo(MACHINE_MODEL.getSizeof(STRUCT_UNION_TEST_TYPES.get(i)))
+              == 0) {
             assertThat(resultValue).isInstanceOf(NumericValue.class);
             assertThat(resultValue.asNumericValue().bigInteger())
                 .isEqualTo(BigInteger.valueOf(k + 1));
