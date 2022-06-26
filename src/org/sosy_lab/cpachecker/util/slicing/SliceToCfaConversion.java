@@ -219,10 +219,15 @@ final class SliceToCfaConversion {
    * @param pConfig the configuration to use
    * @param pLogger the logger to use during conversion
    * @param pSlice the slice to create a CFA for
+   * @param simplifierEnabled whether to use the {@link CFASimplifier}
    * @return the CFA created for the specified slice
    * @throws NullPointerException if any parameter is {@code null}
    */
-  public static CFA convert(Configuration pConfig, LogManager pLogger, Slice pSlice) {
+  public static CFA convert(
+      final Configuration pConfig,
+      final LogManager pLogger,
+      final Slice pSlice,
+      final boolean simplifierEnabled) {
 
     ImmutableSet<CFAEdge> relevantEdges = pSlice.getRelevantEdges();
 
@@ -282,7 +287,10 @@ final class SliceToCfaConversion {
             createAstNodeSubstitutionForCfaEdges(pSlice, functionToEntryNodeMap::get),
             createAstNodeSubstitutionForCfaNodes(pSlice, functionToEntryNodeMap::get));
 
-    return createSimplifiedCfa(sliceCfa);
+    if (simplifierEnabled) {
+      return createSimplifiedCfa(sliceCfa);
+    }
+    return sliceCfa;
   }
 
   /**

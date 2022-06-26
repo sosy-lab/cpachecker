@@ -82,6 +82,15 @@ public class SliceExporter {
   private PathTemplate exportCriteriaFile =
       PathTemplate.ofFormatString("programSlice.%d.criteria.txt");
 
+  @Option(
+      secure = true,
+      name = "simplifierEnabled",
+      description =
+          "Whether to use the CFASimplifier when converting the program slice to a CFA"
+              + "\n(because these simplifications are not recorded, it is not possible to stay "
+              + "closer to the input program in export when enabled)")
+  private boolean simplifierEnabled = true;
+
   private final Configuration config;
   private final LogManager logger;
   private final ShutdownNotifier shutdownNotifier;
@@ -102,7 +111,7 @@ public class SliceExporter {
 
   private void exportToC(Slice pSlice, Path pPath) {
 
-    CFA sliceCfa = SliceToCfaConversion.convert(config, logger, pSlice);
+    CFA sliceCfa = SliceToCfaConversion.convert(config, logger, pSlice, simplifierEnabled);
 
     try (Writer writer = IO.openOutputFile(pPath, Charset.defaultCharset())) {
 
@@ -123,7 +132,7 @@ public class SliceExporter {
 
   private void exportAsDotFile(Slice pSlice, Path pPath) {
 
-    CFA sliceCfa = SliceToCfaConversion.convert(config, logger, pSlice);
+    CFA sliceCfa = SliceToCfaConversion.convert(config, logger, pSlice, simplifierEnabled);
 
     try (Writer writer = IO.openOutputFile(pPath, Charset.defaultCharset())) {
       DOTBuilder.generateDOT(writer, sliceCfa);

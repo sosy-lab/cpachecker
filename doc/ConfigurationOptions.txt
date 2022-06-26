@@ -4308,6 +4308,11 @@ slicing.extractor = ALL
 # slice.
 slicing.partiallyRelevantEdges = true
 
+# Whether to use the CFASimplifier when converting the program slice to a CFA
+# (because these simplifications are not recorded, it is not possible to stay
+# closer to the input program in export when enabled)
+slicing.simplifierEnabled = true
+
 # what kind of slicing to use
 slicing.type = STATIC
   enum:     [STATIC, IDENTITY]
