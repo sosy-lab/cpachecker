@@ -561,6 +561,7 @@ public class CPAMain {
           .put(CommonPropertyType.VALID_MEMTRACK, "sv-comp-memorysafety")
           .put(CommonPropertyType.VALID_MEMCLEANUP, "sv-comp-memorycleanup")
           .put(CommonPropertyType.OVERFLOW, "sv-comp-overflow")
+          .put(CommonPropertyType.DATA_RACE, "sv-comp-datarace")
           .put(CommonPropertyType.DEADLOCK, "deadlock")
           // .put(CommonPropertyType.TERMINATION, "none needed")
           .build();

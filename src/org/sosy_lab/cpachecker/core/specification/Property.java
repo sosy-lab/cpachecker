@@ -27,6 +27,8 @@ public interface Property {
 
     OVERFLOW("G ! overflow"),
 
+    DATA_RACE("G ! data-race"),
+
     DEADLOCK("G ! deadlock"),
 
     TERMINATION("F end"),

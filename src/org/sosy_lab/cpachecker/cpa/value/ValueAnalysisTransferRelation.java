@@ -964,6 +964,10 @@ public class ValueAnalysisTransferRelation
   }
 
   private MemoryLocation getMemoryLocation(AIdExpression pIdExpression) {
+    return getMemoryLocation(pIdExpression, functionName);
+  }
+
+  public static MemoryLocation getMemoryLocation(AIdExpression pIdExpression, String functionName) {
     String varName = pIdExpression.getName();
 
     if (isGlobal(pIdExpression)) {

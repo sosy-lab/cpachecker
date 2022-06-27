@@ -9,7 +9,7 @@
 // This automaton contains the specification of the
 // category Overflows of the
 // Competition on Software Verification.
-CONTROL AUTOMATON Overflows
+CONTROL AUTOMATON DataRace
 
 INITIAL STATE Init;
 
