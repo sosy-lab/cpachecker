@@ -8,7 +8,6 @@
 
 package org.sosy_lab.cpachecker.cpa.giacombiner;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;

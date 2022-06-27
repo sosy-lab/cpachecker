@@ -26,7 +26,6 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.OptionalInt;
 import java.util.Set;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
 import java.util.regex.Pattern;
 import java.util.stream.Stream;
@@ -142,7 +141,6 @@ public class ValueAnalysisTransferRelation
   // the value of the map entry is the explanation for the user
   private static final ImmutableMap<String, String> UNSUPPORTED_FUNCTIONS = ImmutableMap.of();
 
-  private static final AtomicInteger indexForNextRandomValue = new AtomicInteger();
   private CFAEdge cfaEdgeFromInfo;
 
   @Options(prefix = "cpa.value")
@@ -329,7 +327,7 @@ public class ValueAnalysisTransferRelation
           return ((SplitValueAnalysisState)successor).split();
         } catch (CPATransferException pE) {
           logger.logfUserException(Level.SEVERE, pE, "Cannot splitt the state! Aborting");
-          return Collections.emptyList();
+          return ImmutableSet.of();
         }
       }
 
@@ -1823,7 +1821,7 @@ public class ValueAnalysisTransferRelation
 
     Pattern pattern =
         Pattern.compile(options.functionValuesForRandomPathRegex, Pattern.CASE_INSENSITIVE);
-    try (Stream<Path> stream = Files.list(Paths.get(options.functionValuesForRandomDir))) {
+    try (Stream<Path> stream = Files.list(Path.of(options.functionValuesForRandomDir))) {
       ImmutableSet<Path> randomFiles =
           stream
               .filter(file -> !Files.isDirectory(file))
@@ -1837,7 +1835,7 @@ public class ValueAnalysisTransferRelation
           // Nothing to do here, as we are not able to lead the additional information, hence
           // ignoring
           // the file
-          logger.logfUserException(
+          logger.logUserException(
               Level.WARNING,e,
               String.format(
                   "Ignoring the additionally given file 'functionValuesForRandom' %s due to an error",
@@ -1862,7 +1860,6 @@ public class ValueAnalysisTransferRelation
       return new ExpressionValueVisitorWithPredefinedValues(
           pState,
           pFunctionName,
-          ValueAnalysisTransferRelation.indexForNextRandomValue,
           machineModel,
           logger);
     } else if (options.isIgnoreFunctionValue()) {

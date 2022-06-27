@@ -104,17 +104,17 @@ public class GIAARGStateEdge<T extends AbstractState> {
     this.additionalAssumption = pAdditionalAssumption;
   }
 
-  public GIAARGStateEdge(T pSource, T pTarget, CFAEdge pEdge, Set<ExpressionTree<Object>> pAssumption) {
-    this.source = pSource;
-    this.target = Optional.of(pTarget);
-    this.edge = pEdge;scope =pEdge.getPredecessor().getFunctionName();
-    this.assumptions = pAssumption;
-    this.source_mulitEdgeIndex = Optional.empty();
-    this.target_mulitEdgeIndex = Optional.empty();
-    this.giaTransition = Optional.empty();
-
-    //    this.additionalAssumption = Optional.empty();
-  }
+//  public GIAARGStateEdge(T pSource, T pTarget, CFAEdge pEdge, Set<ExpressionTree<Object>> pAssumption) {
+//    this.source = pSource;
+//    this.target = Optional.of(pTarget);
+//    this.edge = pEdge;scope =pEdge.getPredecessor().getFunctionName();
+//    this.assumptions = pAssumption;
+//    this.source_mulitEdgeIndex = Optional.empty();
+//    this.target_mulitEdgeIndex = Optional.empty();
+//    this.giaTransition = Optional.empty();
+//
+//    //    this.additionalAssumption = Optional.empty();
+//  }
 
   public GIAARGStateEdge(T pSource, CFAEdge pEdge) {
     this.source = pSource;
@@ -182,7 +182,7 @@ public class GIAARGStateEdge<T extends AbstractState> {
     return target;
   }
 
-  public String getStringOfAssumption(Optional<T> pState) throws IOException, InterruptedException {
+  public String getStringOfAssumption(Optional<T> pState) throws IOException {
     if (!this.assumptions.isEmpty() && pState.isPresent()) {
       StringBuilder sb = new StringBuilder();
       genAssumptionScope(sb);
@@ -199,7 +199,7 @@ public class GIAARGStateEdge<T extends AbstractState> {
   public String getStringOfAssumption(
       Optional<T> pState,
       String pAdditionalAssumption)
-      throws IOException, InterruptedException {
+      throws IOException {
     if (!this.assumptions.isEmpty() && pState.isPresent()) {
       StringBuilder sb = new StringBuilder();
       genAssumptionScope(sb);
@@ -259,7 +259,7 @@ public class GIAARGStateEdge<T extends AbstractState> {
       Set<T> pNonTargetStates,
       Set<T> pUnknownStates,
       boolean pStopAtUnknownStates)
-      throws IOException, InterruptedException {
+      throws IOException {
     if (this.edgesPresentAsCFAEdge || this.giaTransition.isEmpty()) {
       sb.append("    MATCH ");
 

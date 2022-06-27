@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.cpa.giacombiner;
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
@@ -81,12 +82,12 @@ public class GIACombinerTransferRelation extends SingleEdgeTransferRelation {
 
     if (first instanceof NotPresentGIAState && second instanceof NotPresentGIAState) {
       // This is a shortcut to abort the computation, if only a single gia is present
-      return Collections.emptyList();
+      return ImmutableSet.of();
     }
 
     // Abort if a target state is reached
     if (stateIsTargetOrNonTarget(first) || stateIsTargetOrNonTarget(second)) {
-      return Collections.emptyList();
+      return ImmutableSet.of();
     }
 
     if (first.statePresent()) {
@@ -317,8 +318,7 @@ public class GIACombinerTransferRelation extends SingleEdgeTransferRelation {
       AutomatonState pSecond,
       CFAEdge pCfaEdge,
       LogManager pLogger,
-      MachineModel pMachineModel)
-      throws CPATransferException {
+      MachineModel pMachineModel) {
 
     if (pFirst.getCandidateInvariants().equals(pSecond.getCandidateInvariants())
         && pTransitionFirst

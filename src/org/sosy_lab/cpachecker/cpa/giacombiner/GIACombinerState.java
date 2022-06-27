@@ -20,7 +20,6 @@ import org.sosy_lab.cpachecker.core.defaults.LatticeAbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Graphable;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonStateTypes;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
-import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
 public class GIACombinerState
     implements LatticeAbstractState<GIACombinerState>, Serializable, Graphable {
@@ -42,8 +41,7 @@ public class GIACombinerState
     return successors.asMap();
   }
 
-  public void addSuccessor(GIATransition pTransition, GIACombinerState pSuccessor)
-      throws CPATransferException {
+  public void addSuccessor(GIATransition pTransition, GIACombinerState pSuccessor) {
     successors.put(pTransition, pSuccessor);
   }
 
@@ -94,13 +92,17 @@ public class GIACombinerState
     if (this == pO) {
       return true;
     }
-    if ( !(pO instanceof GIACombinerState)) {
+    if (!(pO instanceof GIACombinerState)) {
       return false;
     }
     return Objects.equals(this.stateOfAutomaton1, ((GIACombinerState) pO).stateOfAutomaton1)
         && Objects.equals(this.stateOfAutomaton2, ((GIACombinerState) pO).stateOfAutomaton2)
-        && this.successors.entries().stream().allMatch(e ->((GIACombinerState) pO).successors.containsEntry(e.getKey(), e.getValue()))
-        && ((GIACombinerState) pO).successors.entries().stream().allMatch(e ->this.successors.containsEntry(e.getKey(), e.getValue()));
+        && this.successors.entries().stream()
+            .allMatch(
+                e -> ((GIACombinerState) pO).successors.containsEntry(e.getKey(), e.getValue()))
+        && ((GIACombinerState) pO)
+            .successors.entries().stream()
+                .allMatch(e -> this.successors.containsEntry(e.getKey(), e.getValue()));
   }
 
   @Override

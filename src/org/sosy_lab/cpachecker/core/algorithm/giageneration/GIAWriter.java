@@ -46,7 +46,7 @@ public class GIAWriter<T extends AbstractState> {
       Set<T> pTargetStates,
       Set<T> pNonTargetStates,
       Set<T> pUnknownStates)
-      throws IOException, InterruptedException {
+      throws IOException {
     int numProducedStates = 0;
     sb.append(GIAGenerator.AUTOMATON_HEADER);
 
@@ -146,7 +146,7 @@ public class GIAWriter<T extends AbstractState> {
         } else {
           notOtherwise.add(edge);
         }
-      } catch (IOException | InterruptedException pE) {
+      } catch (IOException pE) {
         notOtherwise.add(edge);
       }
     }
@@ -180,7 +180,7 @@ public class GIAWriter<T extends AbstractState> {
           return false;
         }
       }
-    } catch (IOException | InterruptedException pE) {
+    } catch (IOException pE) {
       return false;
     }
     return true;

@@ -13,7 +13,7 @@ import static org.sosy_lab.cpachecker.cpa.testtargets.TestTargetState.Status.TAR
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Set;
@@ -57,7 +57,7 @@ public class TestTargetTransferRelation extends SingleEdgeTransferRelation {
 
     if (successor.getCurrentState() == TARGET && splitAtTestTargetStates) {
       // Split target states into two for gia generation
-      return Lists.newArrayList( TestTargetState.noTargetState(), successor);
+      return Sets.newHashSet(TestTargetState.noTargetState(), successor);
     }
     return Collections.singleton(successor);
   }

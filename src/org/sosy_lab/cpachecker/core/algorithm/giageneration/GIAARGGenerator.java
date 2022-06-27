@@ -75,8 +75,6 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.CPAs;
-import org.sosy_lab.cpachecker.util.LoopStructure;
-import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 import org.sosy_lab.cpachecker.util.Triple;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
@@ -88,7 +86,6 @@ public class GIAARGGenerator {
 
   private final LogManager logger;
   private final GIAGeneratorOptions options;
-  private final MachineModel machineModel;
   private final Configuration config;
   private final ConfigurableProgramAnalysis cpa;
   private final FormulaManagerView formulaManager;
@@ -110,7 +107,7 @@ public class GIAARGGenerator {
 
     this.logger = pLogger;
     this.options = pOptions;
-    this.machineModel = pCfa.getMachineModel();
+    MachineModel machineModel = pCfa.getMachineModel();
     this.cfa = pCfa;
     this.cpa = pCpa;
     this.config = pConfig;
@@ -132,7 +129,7 @@ public class GIAARGGenerator {
     logger.log(Level.INFO, "Starting generation of GIA");
 
 
-    /**
+    /*
      * now we compute all states that needs to be merged. Two states will be merged if: (1) They
      * have the same child and the child has both as states as parents<br>
      * (2) The edges between them is a blank edge with file Location "none"
@@ -294,48 +291,48 @@ public class GIAARGGenerator {
         .collect(ImmutableSet.toImmutableSet());
   }
 
-  private Set<GIAARGStateEdge<ARGState>> cleanupSingleBlankEdges(
-      Set<GIAARGStateEdge<ARGState>> pRelevantEdges) {
-    Set<GIAARGStateEdge<ARGState>> toRemove = new HashSet<>();
-    for (GIAARGStateEdge<ARGState> edge : pRelevantEdges) {
-      if (isBlankEdgeWithNoneLocation(edge.getEdge()) && edge.getTarget().isPresent()) {
-        if (pRelevantEdges.stream()
-                .map(e -> e.getSource())
-                .filter(source -> source.equals(edge.getSource()))
-                .count()
-            == 1) {
-          // replace this edge by setting its target to the element in edgesPointingToThisEdge
-          pRelevantEdges.stream()
-              .filter(e -> e.getTarget().isPresent())
-              .filter(e -> edge.getSource().equals(e.getTarget().orElseThrow()))
-              .forEach(e -> e.setTarget(edge.getTarget().orElseThrow()));
-          toRemove.add(edge);
-        }
-      }
-    }
-    return pRelevantEdges.stream()
-        .filter(e -> !toRemove.contains(e))
-        .collect(ImmutableSet.toImmutableSet());
-  }
+//  private Set<GIAARGStateEdge<ARGState>> cleanupSingleBlankEdges(
+//      Set<GIAARGStateEdge<ARGState>> pRelevantEdges) {
+//    Set<GIAARGStateEdge<ARGState>> toRemove = new HashSet<>();
+//    for (GIAARGStateEdge<ARGState> edge : pRelevantEdges) {
+//      if (isBlankEdgeWithNoneLocation(edge.getEdge()) && edge.getTarget().isPresent()) {
+//        if (pRelevantEdges.stream()
+//                .map(e -> e.getSource())
+//                .filter(source -> source.equals(edge.getSource()))
+//                .count()
+//            == 1) {
+//          // replace this edge by setting its target to the element in edgesPointingToThisEdge
+//          pRelevantEdges.stream()
+//              .filter(e -> e.getTarget().isPresent())
+//              .filter(e -> edge.getSource().equals(e.getTarget().orElseThrow()))
+//              .forEach(e -> e.setTarget(edge.getTarget().orElseThrow()));
+//          toRemove.add(edge);
+//        }
+//      }
+//    }
+//    return pRelevantEdges.stream()
+//        .filter(e -> !toRemove.contains(e))
+//        .collect(ImmutableSet.toImmutableSet());
+//  }
 
-  private Set<Set<ARGState>> computeAdditionalEqualStatesToMoveMergePointBeforeFunctionExit(
-      Set<GIAARGStateEdge<ARGState>> pRelevantEdges, Set<Set<ARGState>> pStatesThatAreEqual) {
-    HashMultimap<ARGState, GIAARGStateEdge<ARGState>> targetsToEdge = HashMultimap.create();
-    pRelevantEdges.stream()
-        .filter(e -> e.getTarget().isPresent())
-        .filter(e -> e.getEdge() instanceof FunctionReturnEdge)
-        .forEach(e -> targetsToEdge.put(e.getTarget().orElseThrow(), e));
-    for (Entry<ARGState, Collection<GIAARGStateEdge<ARGState>>> entry :
-        targetsToEdge.asMap().entrySet()) {
-      if (entry.getValue().size() > 1) {
-        pStatesThatAreEqual.add(
-            entry.getValue().stream()
-                .map(e -> e.getSource())
-                .collect(ImmutableSet.toImmutableSet()));
-      }
-    }
-    return pStatesThatAreEqual;
-  }
+//  private Set<Set<ARGState>> computeAdditionalEqualStatesToMoveMergePointBeforeFunctionExit(
+//      Set<GIAARGStateEdge<ARGState>> pRelevantEdges, Set<Set<ARGState>> pStatesThatAreEqual) {
+//    HashMultimap<ARGState, GIAARGStateEdge<ARGState>> targetsToEdge = HashMultimap.create();
+//    pRelevantEdges.stream()
+//        .filter(e -> e.getTarget().isPresent())
+//        .filter(e -> e.getEdge() instanceof FunctionReturnEdge)
+//        .forEach(e -> targetsToEdge.put(e.getTarget().orElseThrow(), e));
+//    for (Entry<ARGState, Collection<GIAARGStateEdge<ARGState>>> entry :
+//        targetsToEdge.asMap().entrySet()) {
+//      if (entry.getValue().size() > 1) {
+//        pStatesThatAreEqual.add(
+//            entry.getValue().stream()
+//                .map(e -> e.getSource())
+//                .collect(ImmutableSet.toImmutableSet()));
+//      }
+//    }
+//    return pStatesThatAreEqual;
+//  }
 
   private Set<GIAARGStateEdge<ARGState>> mergeStates(
       Set<GIAARGStateEdge<ARGState>> pRelevantEdges, Set<Set<ARGState>> pStatesThatAreEqual)
@@ -361,7 +358,7 @@ public class GIAARGGenerator {
                 "the merging of states failed, as %s does contain at most one state", toMerge));
       }
     }
-    return pRelevantEdges.stream().distinct().collect(Collectors.toUnmodifiableSet());
+    return pRelevantEdges.stream().distinct().collect(ImmutableSet.toImmutableSet());
   }
 
   private Set<Set<ARGState>> buildEquivaenceClasses(HashMultimap<ARGState, ARGState> pStatesToMerge)
@@ -897,20 +894,20 @@ public class GIAARGGenerator {
     return pRelevantEdges;
   }
 
-  private Optional<Loop> getOutermostLoopContainingNode(
-      LoopStructure pLoopStrc, CFANode pSuccessor) {
-    Loop outerLoop = null;
-    for (Loop current : pLoopStrc.getAllLoops()) {
-      if (current.getOutgoingEdges().stream().anyMatch(e -> e.getSuccessor().equals(pSuccessor))) {
-        if (outerLoop == null) {
-          outerLoop = current;
-        } else if (current.isOuterLoopOf(outerLoop)) {
-          outerLoop = current;
-        }
-      }
-    }
-    return Optional.ofNullable(outerLoop);
-  }
+//  private Optional<Loop> getOutermostLoopContainingNode(
+//      LoopStructure pLoopStrc, CFANode pSuccessor) {
+//    Loop outerLoop = null;
+//    for (Loop current : pLoopStrc.getAllLoops()) {
+//      if (current.getOutgoingEdges().stream().anyMatch(e -> e.getSuccessor().equals(pSuccessor))) {
+//        if (outerLoop == null) {
+//          outerLoop = current;
+//        } else if (current.isOuterLoopOf(outerLoop)) {
+//          outerLoop = current;
+//        }
+//      }
+//    }
+//    return Optional.ofNullable(outerLoop);
+//  }
 
   private boolean nextStatementIsBreak(CFANode pSuccessor) {
     // FIXME: check and fix if break is blank edge
@@ -1143,7 +1140,7 @@ public class GIAARGGenerator {
   //    }
   //  }
 
-  /** Adds the counterexample infos to pEdgesWithAssumptions */
+  /* Adds the counterexample infos to pEdgesWithAssumptions */
   private void storeInterpolantsAsAssumptions(
       Optional<CounterexampleInfo> pCounterExample,
       Multimap<ARGState, CFAEdgeWithAssumptions> pEdgesWithAssumptions) {
@@ -1175,7 +1172,7 @@ public class GIAARGGenerator {
               PreCondition preCondition = fInfo.getPrecondition().orElseThrow();
               edgesInFault.addAll(preCondition.responsibleEdges());
             }
-            valueMap = Multimaps.filterValues(valueMap, v -> edgesInFault.contains(v.getCFAEdge()));
+            valueMap = Multimaps.filterValues(valueMap, v -> v != null && edgesInFault.contains(v.getCFAEdge()));
           }
         }
         pEdgesWithAssumptions.putAll(valueMap);

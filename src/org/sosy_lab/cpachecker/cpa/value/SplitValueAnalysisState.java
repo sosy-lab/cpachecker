@@ -9,10 +9,8 @@
 package org.sosy_lab.cpachecker.cpa.value;
 
 import com.google.common.collect.Lists;
-
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.logging.Level;
@@ -29,6 +27,8 @@ public class SplitValueAnalysisState extends ValueAnalysisState {
   private final VariableTrackingPrecision precision;
   private final CFAEdge edge;
   private final LogManagerWithoutDuplicates logger;
+  private static final long serialVersionUID = -3152134551524554358L;
+
 
   public SplitValueAnalysisState(
       ValueAnalysisState pState,
@@ -48,7 +48,7 @@ public class SplitValueAnalysisState extends ValueAnalysisState {
   public Collection<ValueAnalysisState> split() throws CPATransferException {
 
     if (this.valuesFromFiles.isEmpty())
-      return Collections.singleton(ValueAnalysisState.copyOf(oldState));
+      return Lists.newArrayList(ValueAnalysisState.copyOf(oldState));
 
     ArrayList<ValueAnalysisState> splitStates = new ArrayList<>();
     for (Map<Integer, String> valuesMap : valuesFromFiles) {

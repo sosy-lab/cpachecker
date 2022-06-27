@@ -16,7 +16,6 @@ import org.sosy_lab.cpachecker.cfa.ast.AIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 
@@ -91,12 +90,9 @@ public class LeafExpression<LeafType> extends AbstractExpressionTree<LeafType> {
     return of(pLeafExpression, true);
   }
 
-  @SuppressWarnings("unchecked")
   public static <LeafType> ExpressionTree<LeafType> of(
       LeafType pLeafExpression, boolean pAssumeTruth) {
-    LeafType leafExpression = pLeafExpression;
-    boolean assumeTruth = pAssumeTruth;
-    if (leafExpression instanceof CBinaryExpression) {
+    if (pLeafExpression instanceof CBinaryExpression) {
       //TODO: Find a way to make this work with parsing ExpressionTrees to Cexpressions without having the negation go away
 //      CBinaryExpression binaryExpression = (CBinaryExpression) pLeafExpression;
 //      if (binaryExpression.getOperator() == BinaryOperator.NOT_EQUALS) {
@@ -112,25 +108,25 @@ public class LeafExpression<LeafType> extends AbstractExpressionTree<LeafType> {
 //                    BinaryOperator.EQUALS);
 //      }
     }
-    if (leafExpression instanceof AIntegerLiteralExpression) {
+    if (pLeafExpression instanceof AIntegerLiteralExpression) {
       AIntegerLiteralExpression expression = (AIntegerLiteralExpression) pLeafExpression;
       if (expression.getValue().equals(BigInteger.ZERO)) {
-        return assumeTruth ? ExpressionTrees.getFalse() : ExpressionTrees.getTrue();
+        return pAssumeTruth ? ExpressionTrees.getFalse() : ExpressionTrees.getTrue();
       }
-      return assumeTruth ? ExpressionTrees.getTrue() : ExpressionTrees.getFalse();
+      return pAssumeTruth ? ExpressionTrees.getTrue() : ExpressionTrees.getFalse();
     }
-    if (leafExpression instanceof String) {
-      String expressionString = (String) leafExpression;
+    if (pLeafExpression instanceof String) {
+      String expressionString = (String) pLeafExpression;
       if (expressionString.equals("0")) {
-        return assumeTruth ? ExpressionTrees.getFalse() : ExpressionTrees.getTrue();
+        return pAssumeTruth ? ExpressionTrees.getFalse() : ExpressionTrees.getTrue();
       }
       if (expressionString.equals("1")) {
-        return assumeTruth ? ExpressionTrees.getTrue() : ExpressionTrees.getFalse();
+        return pAssumeTruth ? ExpressionTrees.getTrue() : ExpressionTrees.getFalse();
       }
     }
     return new LeafExpression<>(
-        leafExpression,
-        assumeTruth,
-        assumeTruth ? leafExpression.hashCode() : -leafExpression.hashCode());
+        pLeafExpression,
+        pAssumeTruth,
+        pAssumeTruth ? pLeafExpression.hashCode() : -pLeafExpression.hashCode());
   }
 }

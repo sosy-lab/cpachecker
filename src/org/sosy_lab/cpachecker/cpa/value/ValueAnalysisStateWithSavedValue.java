@@ -11,10 +11,7 @@ package org.sosy_lab.cpachecker.cpa.value;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
-import org.sosy_lab.common.collect.PersistentMap;
-import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
-import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 public class ValueAnalysisStateWithSavedValue extends ValueAnalysisState {
   private static final long serialVersionUID = 6590808222591196385L;

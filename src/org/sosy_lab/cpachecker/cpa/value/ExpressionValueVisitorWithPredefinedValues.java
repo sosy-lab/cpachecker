@@ -10,10 +10,6 @@ package org.sosy_lab.cpachecker.cpa.value;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Objects;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
@@ -37,17 +33,6 @@ public class ExpressionValueVisitorWithPredefinedValues extends ExpressionValueV
   private boolean lastRequestSuccessful = true;
 
   private boolean lastRequestedValue = false;
-
-  public ExpressionValueVisitorWithPredefinedValues(
-      ValueAnalysisState pState,
-      String pFunctionName,
-      MachineModel pMachineModel,
-      LogManagerWithoutDuplicates pLogger) {
-    super(pState, pFunctionName, pMachineModel, pLogger);
-    this.logger = pLogger;
-    this.state = pState;
-  }
-
   /**
    * @param pState see {@link ExpressionValueVisitor#ExpressionValueVisitor(ValueAnalysisState,
    *     String, MachineModel, LogManagerWithoutDuplicates) pState}
@@ -63,29 +48,27 @@ public class ExpressionValueVisitorWithPredefinedValues extends ExpressionValueV
   public ExpressionValueVisitorWithPredefinedValues(
       ValueAnalysisState pState,
       String pFunctionName,
-      AtomicInteger pAtomicInteger,
       MachineModel pMachineModel,
       LogManagerWithoutDuplicates pLogger) {
     super(pState, pFunctionName, pMachineModel, pLogger);
-    this.state = pState;
     this.logger = pLogger;
-
+    this.state = pState;
   }
 
-@Override
-@SuppressWarnings("unused")
-  public boolean wouldReturnAValueForRandom(CRightHandSide pExp, CType pTargetType){
+  @Override
+  @SuppressWarnings("unused")
+  public boolean wouldReturnAValueForRandom(CRightHandSide pExp, CType pTargetType) {
     if (lastRequestSuccessful && pExp instanceof CFunctionCallExpression) {
       CFunctionCallExpression call = (CFunctionCallExpression) pExp;
       if (call.getFunctionNameExpression() instanceof CIdExpression
           && ((CIdExpression) call.getFunctionNameExpression())
-          .getName()
-          .startsWith(PATERN_FOR_RANDOM)) {
+              .getName()
+              .startsWith(PATERN_FOR_RANDOM)) {
         return true;
-      }}
+      }
+    }
     return false;
   }
-
 
   @Override
   public Value evaluate(CRightHandSide pExp, CType pTargetType) throws UnrecognizedCodeException {
@@ -117,9 +100,7 @@ public class ExpressionValueVisitorWithPredefinedValues extends ExpressionValueV
     return super.evaluate(pExp, pTargetType);
   }
 
-  /**
-   * @return true, if the value used in the last request was loaded from the testcomp-testcase
-   */
+  /** @return true, if the value used in the last request was loaded from the testcomp-testcase */
   public boolean isLastRequestedValuePresent() {
     return lastRequestedValue;
   }
