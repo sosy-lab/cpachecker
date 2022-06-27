@@ -211,7 +211,7 @@ public class GIAARGGenerator {
             relevantEdges,
             processed,
             edgesWithAssumptions,
-            statesWithInterpolant);
+            statesWithInterpolant, unknownStates);
       }
       processed.add(state);
     }
@@ -755,8 +755,7 @@ public class GIAARGGenerator {
 
   /**
    * Traverse allpath from parent to its child node, until a relevant edge is found
-   *
-   * @param pCurrentState the current state that is processed
+   *  @param pCurrentState the current state that is processed
    * @param pChild its child to check for beeing relevant (i.e. any edge on the path leading to that
    *     edge )
    * @param pFinalStates the target states
@@ -765,7 +764,7 @@ public class GIAARGGenerator {
    * @param pProcessed the edges already processed
    * @param pEdgesWithAssumptions the assumptions from the preicse ce
    * @param pStatesWithInterpolant the states that contain a non-trivial interpolation and are thus
-   *     important
+   * @param pUnknownStates set leading to pUnknwon
    */
   private void addAllRelevantEdges(
       ARGState pCurrentState,
@@ -775,12 +774,13 @@ public class GIAARGGenerator {
       Set<GIAARGStateEdge<ARGState>> pRelevantEdges,
       List<ARGState> pProcessed,
       Multimap<ARGState, CFAEdgeWithAssumptions> pEdgesWithAssumptions,
-      ImmutableSet<ARGState> pStatesWithInterpolant) {
+      ImmutableSet<ARGState> pStatesWithInterpolant,
+      Set<ARGState> pUnknownStates) {
 
     // Check, if the pChild is relevant
     Optional<Pair<CFAEdge, Optional<ARGState>>> relevantEdge =
         gedEdgeIfIsRelevant(
-            pChild, pCurrentState, pFinalStates, pEdgesWithAssumptions, pStatesWithInterpolant);
+            pChild, pCurrentState, pFinalStates,pUnknownStates,  pEdgesWithAssumptions, pStatesWithInterpolant);
     boolean edgesAdded = false;
     if (relevantEdge.isPresent()) {
       // now, create a new edge.
@@ -860,9 +860,9 @@ public class GIAARGGenerator {
             pCurrentState.getStateId(),
             pChild.getStateId(),
             grandChild.getStateId());
-        // As there might be cycles with not-rpcoessed nodes, only continue with nodes that are
+        // As there might be cycles with not-processed nodes, only continue with nodes that are
         // already expanded
-        if (grandChild.wasExpanded()) {
+        if (grandChild.wasExpanded() || pFinalStates.contains(grandChild)) {
           addAllRelevantEdges(
               pCurrentState,
               grandChild,
@@ -871,7 +871,7 @@ public class GIAARGGenerator {
               pRelevantEdges,
               pProcessed,
               pEdgesWithAssumptions,
-              pStatesWithInterpolant);
+              pStatesWithInterpolant, pUnknownStates);
         } else {
           // Add an edge to qtemp if needed
           Optional<GIAARGStateEdge<ARGState>> additionalEdgeToQtemp =
@@ -880,7 +880,7 @@ public class GIAARGGenerator {
                   grandChild,
                   pFinalStates,
                   pEdgesWithAssumptions,
-                  pStatesWithInterpolant);
+                  pStatesWithInterpolant, pUnknownStates);
           if (additionalEdgeToQtemp.isPresent()) {
             pRelevantEdges.add(additionalEdgeToQtemp.orElseThrow());
           }
@@ -906,7 +906,7 @@ public class GIAARGGenerator {
    * 3. The child is a final state <br>
    * 4 Alternative: The child is a {@link FunctionCallEdge} or {@link
    * org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge}<br>
-   * 5. The child node is a final state <br>
+   * 5. The grand child is unknown <br>
    * 6. It contains an assumption 7. It contians an interpolant
    *
    * @param pChild the child
@@ -920,7 +920,7 @@ public class GIAARGGenerator {
   private Optional<Pair<CFAEdge, Optional<ARGState>>> gedEdgeIfIsRelevant(
       ARGState pChild,
       ARGState pParent,
-      Set<ARGState> pFinalStates,
+      Set<ARGState> pFinalStates, Set<ARGState> pUnknownStates,
       Multimap<ARGState, CFAEdgeWithAssumptions> pEdgesWithAssumptions,
       ImmutableSet<ARGState> pStatesWithInterpolant) {
     List<CFAEdge> pathToChild = pParent.getFirstPathToChild(pChild);
@@ -953,9 +953,9 @@ public class GIAARGGenerator {
     //            &&
     // lastEdge.getDescription().contains(GIAGenerator.DESC_OF_DUMMY_FUNC_START_EDGE));
     // Case 5:
-    boolean case5a = pFinalStates.contains(pChild);
-    //    boolean case5b = false;
-    //    boolean case5b = pChild.getChildren().stream().anyMatch(gc -> pFinalStates.contains(gc));
+   // boolean case5a = pFinalStates.contains(pChild);
+    boolean case5b = false;
+//        boolean case5b = pChild.getChildren().stream().anyMatch(gc -> pUnknownStates.contains(gc));
 
     boolean case6 =
         pEdgesWithAssumptions.values().stream().anyMatch(e -> e.getCFAEdge().equals(lastEdge));
@@ -964,26 +964,26 @@ public class GIAARGGenerator {
     // If the pChild cannot reach the error state, do not add it to the toProcessed
     // and let the edge goto the qTemp State (as not relevant for the path)
     // If it can reach the error state, add the edge and the child to the toProcess
-    if (case2 || case3 || case4 || case5a || case6 || case7) {
-      if (case5a || case7 || canReachFinalState(pChild, pFinalStates)) {
+    if (case2 || case3 || case4  || case6 || case7) {
+      if ( case7 || canReachFinalState(pChild, pFinalStates)) {
         return Optional.of(Pair.of(lastEdge, Optional.of(pChild)));
       } else {
         return Optional.of(Pair.of(lastEdge, Optional.empty()));
       }
-      //    } else if (case5b) {
-      //      // If case 5 applies, we want to return the error state
-      //      if (!canReachFinalState(pChild, pFinalStates)) {
-      //        return Optional.of(Pair.of(lastEdge, Optional.empty()));
-      //      } else {
-      //        return Optional.of(
-      //            Pair.of(
-      //                lastEdge,
-      //                Optional.of(
-      //                    pChild.getChildren().stream()
-      //                        .filter(gc -> pFinalStates.contains(gc))
-      //                        .findFirst()
-      //                        .orElseThrow())));
-      //      }
+          } else if (case5b) {
+            // If case 5 applies, we want to return the error state
+            if (!canReachFinalState(pChild, pUnknownStates)) {
+              return Optional.of(Pair.of(lastEdge, Optional.empty()));
+            } else {
+              return Optional.of(
+                  Pair.of(
+                      lastEdge,
+                      Optional.of(
+                          pChild.getChildren().stream()
+                              .filter(gc -> pUnknownStates.contains(gc))
+                              .findFirst()
+                              .orElseThrow())));
+            }
     }
 
     return Optional.empty();
@@ -994,10 +994,11 @@ public class GIAARGGenerator {
       ARGState pGrandChild,
       Set<ARGState> pTargetStates,
       Multimap<ARGState, CFAEdgeWithAssumptions> pEdgesWithAssumptions,
-      ImmutableSet<ARGState> pStatesWithInterpolant) {
+      ImmutableSet<ARGState> pStatesWithInterpolant,
+      Set<ARGState> pUnknownStates) {
     Optional<Pair<CFAEdge, Optional<ARGState>>> relevantEdge =
         gedEdgeIfIsRelevant(
-            pGrandChild, pParent, pTargetStates, pEdgesWithAssumptions, pStatesWithInterpolant);
+            pGrandChild, pParent, pTargetStates, pUnknownStates, pEdgesWithAssumptions, pStatesWithInterpolant);
     if (relevantEdge.isPresent()) {
       return Optional.of(new GIAARGStateEdge<>(pParent, relevantEdge.orElseThrow().getFirst()));
     } else {
@@ -1019,6 +1020,7 @@ public class GIAARGGenerator {
    * @return Return true, if there is a children state that is the a final state
    */
   private boolean canReachFinalState(ARGState pState, Set<ARGState> pFinalStates) {
+    if (pFinalStates.contains(pState)) return true;
     for (ARGState child : pState.getChildren()) {
       if (pFinalStates.contains(child)) return true;
       else {

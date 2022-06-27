@@ -565,7 +565,7 @@ public interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
 
     @Override
     public String toString() {
-      return "MATCH FUNCTION EXIT \"" + functionName + "\"";
+      return "MATCH FUNCTIONEXIT \"" + functionName + "\"";
     }
 
     @Override

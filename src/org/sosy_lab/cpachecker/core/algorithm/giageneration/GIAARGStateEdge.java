@@ -267,7 +267,7 @@ public class GIAARGStateEdge<T extends AbstractState> {
     } else {
       GIATransition transition = giaTransition.orElseThrow();
       sb.append("    ");
-      sb.append(transition.getTrigger().toString());
+      sb.append(AssumptionCollectorAlgorithm.escapeSpacingChars(transition.getTrigger().toString()));
       sb.append(" -> ");
       if (!transition.getAssumptions().isEmpty()) {
         ExpressionTreeFactory<AExpression> fac = ExpressionTrees.newFactory();
