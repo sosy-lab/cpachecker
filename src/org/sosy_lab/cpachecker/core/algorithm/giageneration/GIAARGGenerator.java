@@ -1691,10 +1691,11 @@ public class GIAARGGenerator {
     // and let the edge goto the qTemp State (as not relevant for the path)
     // If it can reach the error state, add the edge and the child to the toProcess
     if (case2 || case3 || case4 || case5 || case6 || case7) {
+      boolean case5Only = case5 &&( ! case2 && !case3 && !case4 && !case6 && !case7);
       if (case7 || pStatesReachingFinalState.contains(pChild)) {
-        return Optional.of(Triple.of(lastEdge, Optional.of(pChild), case5));
+        return Optional.of(Triple.of(lastEdge, Optional.of(pChild), case5Only));
       } else {
-        return Optional.of(Triple.of(lastEdge, Optional.empty(), case5));
+        return Optional.of(Triple.of(lastEdge, Optional.empty(), case5Only));
       }
       //          } else if (case5b) {
       //            // If case 5 applies, we want to return the error state
