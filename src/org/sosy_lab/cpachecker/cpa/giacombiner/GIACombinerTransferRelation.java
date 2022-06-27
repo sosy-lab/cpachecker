@@ -35,6 +35,7 @@ import org.sosy_lab.cpachecker.core.algorithm.giageneration.GIAARGStateEdge;
 import org.sosy_lab.cpachecker.core.defaults.SingleEdgeTransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
+import org.sosy_lab.cpachecker.cpa.automaton.Automaton;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonBoolExpr;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonBoolExpr.MatchOtherwise;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonExpression.ResultValue;
@@ -52,10 +53,21 @@ public class GIACombinerTransferRelation extends SingleEdgeTransferRelation {
 
   private final LogManager logger;
   private final CFA cfa;
+  private Map<AutomatonInternalState, Boolean> mayLeadToFinalInAutomaton1 = new HashMap<>();
+  private Map<AutomatonInternalState, Boolean> mayLeadToFinalInAutomaton2 = new HashMap<>();
+  private Map<AutomatonInternalState, Boolean> onlyLeadsToFUInAutomaton1 = new HashMap<>();
+  private Map<AutomatonInternalState, Boolean> onlyLeadsToFUInAutomaton2 = new HashMap<>();
+  private Automaton automaton1;
+  private Automaton automaton2;
 
   public GIACombinerTransferRelation(LogManager pLogger, CFA pCFA) {
     this.logger = pLogger;
     this.cfa = pCFA;
+  }
+
+  public void setAutomaton(Automaton pAutomaton1, Automaton pAutomaton2) {
+    this.automaton1 = pAutomaton1;
+    this.automaton2 = pAutomaton2;
   }
 
   @Override
@@ -164,8 +176,7 @@ public class GIACombinerTransferRelation extends SingleEdgeTransferRelation {
             for (Entry<AutomatonTransition, AutomatonState> transition :
                 successorSecond.entrySet()) {
               GIACombinerState newState =
-                  new GIACombinerState(
-                       first, new GIAInternalState(transition.getValue()));
+                  new GIACombinerState(first, new GIAInternalState(transition.getValue()));
               successors.add(newState);
               combinerState.addSuccessor(
                   new GIATransition(
@@ -175,15 +186,13 @@ public class GIACombinerTransferRelation extends SingleEdgeTransferRelation {
                   newState);
             }
             return successors;
-          } else   if  (successorSecond.entrySet().stream()
+          } else if (successorSecond.entrySet().stream()
               .allMatch(t -> t.getKey().getTrigger() == AutomatonBoolExpr.TRUE)) {
             // Second is only true (hence we are in qTemp, qFinal or qError, hence no need to merge
             Set<GIACombinerState> successors = new HashSet<>();
             for (Entry<AutomatonTransition, AutomatonState> transition :
                 successorFirst.entrySet()) {
-              GIACombinerState newState =
-                  new GIACombinerState(
-                     first, new NotPresentGIAState());
+              GIACombinerState newState = new GIACombinerState(first, new NotPresentGIAState());
               successors.add(newState);
               combinerState.addSuccessor(
                   new GIATransition(
@@ -326,8 +335,8 @@ public class GIACombinerTransferRelation extends SingleEdgeTransferRelation {
           newState);
       return Lists.newArrayList(newState);
     } else if (pFirst.getCandidateInvariants().equals(pSecond.getCandidateInvariants())
-        && onlyLeadsToFU(pFirst)
-        && onlyLeadsToFU(pSecond)
+        && onlyLeadsToFU(pFirst, automaton1)
+        && onlyLeadsToFU(pSecond,automaton2)
         && ((isTrueAssumption(pTransitionFirst, pCfaEdge, pLogger, pMachineModel)
                 && trueAssumptions(pFirst, pCfaEdge, pLogger, pMachineModel))
             || (isTrueAssumption(pTransitionSecond, pCfaEdge, pLogger, pMachineModel)
@@ -354,8 +363,8 @@ public class GIACombinerTransferRelation extends SingleEdgeTransferRelation {
         return Lists.newArrayList(newState);
       }
     } else if (pFirst.getCandidateInvariants().equals(pSecond.getCandidateInvariants())
-        && mayLeadToFinalOrNonFinal(pFirst)
-        && onlyLeadsToFU(pSecond)) {
+        && mayLeadToFinalOrNonFinal(pFirst, automaton1)
+        && onlyLeadsToFU(pSecond,automaton2)) {
       // Case in line 8
       GIACombinerState newState =
           new GIACombinerState(new GIAInternalState(pFirst), new GIAInternalState(pSecond));
@@ -367,8 +376,8 @@ public class GIACombinerTransferRelation extends SingleEdgeTransferRelation {
           newState);
       return Lists.newArrayList(newState);
     } else if (pFirst.getCandidateInvariants().equals(pSecond.getCandidateInvariants())
-        && onlyLeadsToFU(pFirst)
-        && mayLeadToFinalOrNonFinal(pSecond)) {
+        && onlyLeadsToFU(pFirst,automaton1)
+        && mayLeadToFinalOrNonFinal(pSecond, automaton2)) {
       // Case in line 11
       GIACombinerState newState =
           new GIACombinerState(new GIAInternalState(pFirst), new GIAInternalState(pSecond));
@@ -402,24 +411,36 @@ public class GIACombinerTransferRelation extends SingleEdgeTransferRelation {
   }
 
   /** Checks if any path starting in pFirst leads to a state in final or Non-Final */
-  private boolean mayLeadToFinalOrNonFinal(AutomatonState pFirst) {
+  private boolean mayLeadToFinalOrNonFinal(AutomatonState pFirst, Automaton pAutomaton) {
 
     Set<AutomatonInternalState> processed = new HashSet<>();
-    List<AutomatonInternalState> toProcess = new ArrayList<>();
+    Set<AutomatonInternalState> toProcess = new HashSet<>();
     toProcess.add(pFirst.getInternalState());
+    Map<AutomatonInternalState, Boolean> currentMap;
+
+    if (pAutomaton.equals(automaton1)) {
+      currentMap = this.mayLeadToFinalInAutomaton1;
+    } else {
+      currentMap = this.mayLeadToFinalInAutomaton2;
+    }
+    if (currentMap.containsKey(pFirst.getInternalState())) return currentMap.get(pFirst.getInternalState());
     if (pFirst.getInternalState().getStateType().equals(AutomatonStateTypes.NON_TARGET)
         || pFirst.getInternalState().getStateType().equals(AutomatonStateTypes.TARGET)) {
+      currentMap.putIfAbsent(pFirst.getInternalState(), true);
       return true;
     }
     while (!toProcess.isEmpty()) {
-      AutomatonInternalState current = toProcess.remove(0);
+      AutomatonInternalState current =toProcess.stream().findFirst().orElseThrow();
+          toProcess.remove(current);
       if (current.getTransitions().stream()
           .anyMatch(
               t ->
                   t.getFollowState().getStateType().equals(AutomatonStateTypes.NON_TARGET)
                       || t.getFollowState().getStateType().equals(AutomatonStateTypes.TARGET))) {
+        currentMap.putIfAbsent(pFirst.getInternalState(), true);
         return true;
       } else {
+        processed.add(current);
         current
             .getTransitions()
             .forEach(
@@ -428,9 +449,10 @@ public class GIACombinerTransferRelation extends SingleEdgeTransferRelation {
                     toProcess.add(t.getFollowState());
                   }
                 });
-        processed.add(current);
+
       }
     }
+    currentMap.putIfAbsent(pFirst.getInternalState(), false);
     return false;
   }
 
@@ -452,15 +474,17 @@ public class GIACombinerTransferRelation extends SingleEdgeTransferRelation {
   private boolean trueAssumptions(
       AutomatonState pFirst, CFAEdge pCfaEdge, LogManager pLogger, MachineModel pMachineModel) {
     Set<AutomatonInternalState> processed = new HashSet<>();
-    List<AutomatonInternalState> toProcess = new ArrayList<>();
+    Set<AutomatonInternalState> toProcess = new HashSet<>();
     toProcess.add(pFirst.getInternalState());
 
     while (!toProcess.isEmpty()) {
-      AutomatonInternalState current = toProcess.remove(0);
+      AutomatonInternalState current = toProcess.stream().findFirst().orElseThrow();
+          toProcess.remove(current);
       if (current.getTransitions().stream()
           .anyMatch(t -> isTrueAssumption(t, pCfaEdge, pLogger, pMachineModel))) {
         return false;
       } else {
+        processed.add(current);
         current
             .getTransitions()
             .forEach(
@@ -469,7 +493,7 @@ public class GIACombinerTransferRelation extends SingleEdgeTransferRelation {
                     toProcess.add(t.getFollowState());
                   }
                 });
-        processed.add(current);
+
       }
     }
     return true;
@@ -479,28 +503,43 @@ public class GIACombinerTransferRelation extends SingleEdgeTransferRelation {
    * Checks, if (1) pFirst and any successor is neither target not non-target, (2) at least one
    * successor of pFirst or pFirst is in unknown.
    */
-  private boolean onlyLeadsToFU(AutomatonState pFirst) {
+  private boolean onlyLeadsToFU(AutomatonState pFirst, Automaton pAutomaton) {
     boolean unknownAlreadySeen =
         pFirst.getInternalState().getStateType().equals(AutomatonStateTypes.UNKNOWN);
     Set<AutomatonInternalState> processed = new HashSet<>();
-    List<AutomatonInternalState> toProcess = new ArrayList<>();
+    Set<AutomatonInternalState> toProcess = new HashSet<>();
     toProcess.add(pFirst.getInternalState());
+
+    Map<AutomatonInternalState, Boolean> currentMap;
+    if (pAutomaton.equals(automaton1)) {
+      currentMap = this.onlyLeadsToFUInAutomaton1;
+    } else {
+      currentMap = this.onlyLeadsToFUInAutomaton2;
+    }
+    if (currentMap.containsKey(pFirst.getInternalState())) return currentMap.get(pFirst.getInternalState());
+
     if (pFirst.getInternalState().getStateType().equals(AutomatonStateTypes.NON_TARGET)
         || pFirst.getInternalState().getStateType().equals(AutomatonStateTypes.TARGET)) {
+      currentMap.putIfAbsent(pFirst.getInternalState(), false);logger.log(Level.INFO,"returning false");
       return false;
     }
     while (!toProcess.isEmpty()) {
-      AutomatonInternalState current = toProcess.remove(0);
+      AutomatonInternalState current = toProcess.stream().findFirst().orElseThrow();
+          toProcess.remove(current);
+
       if (current.getTransitions().stream()
           .anyMatch(
               t ->
                   t.getFollowState().getStateType().equals(AutomatonStateTypes.NON_TARGET)
                       || t.getFollowState().getStateType().equals(AutomatonStateTypes.TARGET))) {
+        currentMap.putIfAbsent(pFirst.getInternalState(), false);
+
         return false;
       } else {
         if (current.getStateType().equals(AutomatonStateTypes.UNKNOWN)) {
           unknownAlreadySeen = true;
         }
+        processed.add(current);
         current
             .getTransitions()
             .forEach(
@@ -509,9 +548,10 @@ public class GIACombinerTransferRelation extends SingleEdgeTransferRelation {
                     toProcess.add(t.getFollowState());
                   }
                 });
-        processed.add(current);
+
       }
     }
+    currentMap.putIfAbsent(pFirst.getInternalState(), unknownAlreadySeen);
     return unknownAlreadySeen;
   }
 

@@ -59,6 +59,7 @@ public class GIACombinerCPA extends AbstractCPA implements ProofCheckerCPA {
   private final Automaton automaton2;
   private Optional<Path> pathToOnlyAutomaton = Optional.empty();
 
+
   @Option(secure = true, description = "Filename to the first GIA")
   @FileOption(Type.OPTIONAL_INPUT_FILE)
   private Path pathToGIA1 = null;
@@ -77,6 +78,7 @@ public class GIACombinerCPA extends AbstractCPA implements ProofCheckerCPA {
     super(DelegateAbstractDomain.getInstance(), new GIACombinerTransferRelation(pLogger, pCFA));
     pConfig.inject(this);
     this.logger = pLogger;
+
     this.cfa = pCFA;
     this.shutdownNotifier = pShutdownNotifier;
     this.config = pConfig;
@@ -95,6 +97,9 @@ public class GIACombinerCPA extends AbstractCPA implements ProofCheckerCPA {
         this.pathToOnlyAutomaton = Optional.of(pathToGIA1);
       }
     }
+    GIACombinerTransferRelation transferRelation = (GIACombinerTransferRelation) super.getTransferRelation();
+    if (automaton1!= null && automaton2 != null){
+    transferRelation.setAutomaton(automaton1, automaton2);}
   }
 
   private Automaton getAutomaton(Path pPath) throws InvalidConfigurationException {
