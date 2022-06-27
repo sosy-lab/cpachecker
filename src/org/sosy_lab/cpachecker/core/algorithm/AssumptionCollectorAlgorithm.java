@@ -661,28 +661,34 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
   }
 
   public static void escape(String s, Appendable appendTo) throws IOException {
+   appendTo.append(escape(s));
+  }
+
+  public static String escape(String s)  {
+    StringBuilder sb = new StringBuilder();
     for (int i = 0; i < s.length(); i++) {
       char c = s.charAt(i);
       switch (c) {
         case '\r':
-          appendTo.append("\\r");
+          sb.append("\\r");
           break;
         case '\n':
-          appendTo.append("\\n");
+          sb.append("\\n");
           break;
         case '\"':
-          appendTo.append("\\\"");
+          sb.append("\\\"");
           break;
         case '\\':
-          appendTo.append("\\\\");
+          sb.append("\\\\");
           break;
         case '`':
           break;
         default:
-          appendTo.append(c);
+          sb.append(c);
           break;
       }
     }
+    return sb.toString();
   }
 
   @Override
