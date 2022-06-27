@@ -83,7 +83,7 @@ _Assertions_ ::= _Assertion_ _Assertions_ |
 
 _Assertion_ ::= **ASSERT** _Bool_
 
-_Assume_ ::= **ASSUME** CURLYEXPR |
+_Assume_ ::= **ASSUME** **SCOPE** IDENTIFIER CURLYEXPR | **ASSUME**  CURLYEXPR |
 
 _Actions_ ::= _Action_ _Actions_ |
 
@@ -317,6 +317,10 @@ If trigger is evaluated as true and assertion holds for an automaton transition,
 `ASSUME {expr_1; expr_2; ...; expr_n}`, where `n>=1`, `expr_i` is a C-expression.
 
 This assumption represent a conjunction of `expr_i` C-expressions, which are evaluated by other CPAs in general case.
+
+If the scope is needed (e.g. if multiple variable with the same name exists),
+if can be defiened using the keyword `SCOPE` as in
+`ASSUME SCOPE main {expr_1; expr_2; ...; expr_n}`.
 
 The assumption may either restrict abstract state for the automation transition (for example, by adding assumption as a predicate) or reject the automaton transition, if it never evaluates as true.
 In order to create disjunction of assumptions one should add several transition, for example:

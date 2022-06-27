@@ -38,6 +38,7 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.UniqueIdGenerator;
 import org.sosy_lab.cpachecker.cfa.CParser;
+import org.sosy_lab.cpachecker.cfa.CProgramScope;
 import org.sosy_lab.cpachecker.cfa.DummyParser;
 import org.sosy_lab.cpachecker.cfa.DummyScope;
 import org.sosy_lab.cpachecker.cfa.Language;
@@ -191,7 +192,7 @@ parser code {:
 
 terminal EXCLAMATION, AND, OR, ARROW, SEMICOLON, COMMA, COLON, OPEN_BRACKETS,
     CLOSE_BRACKETS, AUTOMATON,OBSERVER, CONTROL, END, LOCAL, INITIAL, STATE,
-    ERROR, STOP, EXIT, ENTRY, FUNCTIONCALL, FUNCTIONEXIT, BREAK, ASSERT, ASSUME, INVARIANT, MATCH, OTHERWISE, LABEL, CHECK, EVAL,
+    ERROR, STOP, EXIT, ENTRY, FUNCTIONCALL, FUNCTIONEXIT, BREAK, ASSERT, ASSUME, SCOPE, INVARIANT, MATCH, OTHERWISE, LABEL, CHECK, EVAL,
     MODIFY, DO, PRINT, PRINTONCE, GOTO, IDENTIFIER, INTEGER_LITERAL, NEQ, EQ, EQEQ, PLUS,
     MINUS, TRUE, FALSE, STRING_LITERAL, CURLYEXPR, SQUAREEXPR, USEALL, USEFIRST,
     TARGET, NON_TARGET, UNKNOWN, IS_TARGET_STATE, COVERS_LINES, OPEN_ANGLE_BRACKETS, CLOSE_ANGLE_BRACKETS ;
@@ -334,12 +335,20 @@ Assertions ::= Assertion:a Assertions:lst {: lst.add(0,a); RESULT = lst; :}
              ;
 Assertion  ::= ASSERT  Bool:b   {: RESULT = b; :};
 
-Assume    ::= ASSUME CURLYEXPR:a {: RESULT =   CParserUtils.parseStatementsAsExpressionList(
+Assume    ::= ASSUME  SCOPE IDENTIFIER:scopeName CURLYEXPR:a {: RESULT =   CParserUtils.parseStatementsAsExpressionList(
                                                                ImmutableSet.copyOf(a.toString().split(";")),
                                                                Optional.empty(),
                                                                cparser,
-                                                               scope,
+                                                               scopeName.toString().isEmpty() ? scope :  ((CProgramScope) scope).withFunctionScope(scopeName.toString()),
                                                                ParserTools.create(new CachingExpressionTreeFactory<>(), machineModel, logger)); :}
+             |ASSUME  CURLYEXPR:a {: RESULT =   CParserUtils.parseStatementsAsExpressionList(
+                                                                ImmutableSet.copyOf(a.toString().split(";")),
+                                                                Optional.empty(),
+                                                                cparser,
+                                                                scope,
+                                                                ParserTools.create(new CachingExpressionTreeFactory<>(),
+                                                                machineModel,
+                                                                logger)); :}
              | /* empty */ {: RESULT = new ArrayList<AExpression>(); :};
 
 StateInvariant    ::= INVARIANT CURLYEXPR:a  SEMICOLON
