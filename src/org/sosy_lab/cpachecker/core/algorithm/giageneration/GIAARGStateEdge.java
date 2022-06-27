@@ -37,6 +37,8 @@ public class GIAARGStateEdge<T extends AbstractState> {
   private boolean edgesPresentAsCFAEdge = true;
   private Optional<String> additionalAssumption = Optional.empty();
   private final String scope;
+  private Boolean isTemp = false;
+
 
   //  public GIAARGStateEdge(
   //      ARGState pSource,
@@ -323,4 +325,11 @@ public class GIAARGStateEdge<T extends AbstractState> {
     this.source = newSource;
   }
 
+  public void setIsTemp( Boolean pIsTemp) {
+    this.isTemp = pIsTemp;
+  }
+
+  public Boolean getTemp() {
+    return isTemp;
+  }
 }

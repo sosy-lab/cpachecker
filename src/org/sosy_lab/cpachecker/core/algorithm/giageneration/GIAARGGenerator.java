@@ -77,7 +77,7 @@ import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.LoopStructure;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
-import org.sosy_lab.cpachecker.util.Pair;
+import org.sosy_lab.cpachecker.util.Triple;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
 import org.sosy_lab.cpachecker.util.faultlocalization.Fault;
@@ -226,6 +226,11 @@ public class GIAARGGenerator {
 
     //relevantEdges = cleanupSingleBlankEdges(relevantEdges);
 
+    relevantEdges = cleanupTempEdges(relevantEdges);
+
+
+
+
     // Now, a short cleaning is applied:
     // All states leading to the error state are replaced by the error state directly
     //    Map<ARGState, Optional<ARGState>> statesToReplaceToReplacement = new HashMap<>();
@@ -256,6 +261,37 @@ public class GIAARGGenerator {
 
     return writer.writeGIA(
         pOutput, pArgRoot, relevantEdges, targetStates, nonTargetStates, unknownStates);
+  }
+
+
+  private Set<GIAARGStateEdge<ARGState>> cleanupTempEdges(
+      Set<GIAARGStateEdge<ARGState>> pRelevantEdges) {
+    Set<GIAARGStateEdge<ARGState>> toRemove = new HashSet<>();
+
+    Multimap<ARGState, GIAARGStateEdge<ARGState>> targetsToEdges = HashMultimap.create();
+    pRelevantEdges.stream().filter(e -> e.getTarget().isPresent()).forEach(e -> targetsToEdges.put(e.getTarget().orElseThrow(),e));
+
+
+
+    for (GIAARGStateEdge<ARGState> edge : pRelevantEdges) {
+      if (edge.getTarget().isPresent() && edge.getTemp()) {
+          // replace this edge by setting its target to the element in edgesPointingToThisEdge
+          if (targetsToEdges.containsKey(edge.getSource())){
+            ARGState target = edge.getTarget().orElseThrow();
+            for (GIAARGStateEdge<ARGState> e : targetsToEdges.get(edge.getSource())){
+              if (e.getTarget().isPresent()){
+                targetsToEdges.remove(target, e);
+              }
+              e.setTarget(target);
+              targetsToEdges.put(target, e );
+            }
+          }
+          toRemove.add(edge);
+      }
+    }
+    return pRelevantEdges.stream()
+        .filter(e -> !toRemove.contains(e))
+        .collect(ImmutableSet.toImmutableSet());
   }
 
   private Set<GIAARGStateEdge<ARGState>> cleanupSingleBlankEdges(
@@ -1421,7 +1457,7 @@ public class GIAARGGenerator {
       throws InterruptedException {
 
     // Check, if the pChild is relevant
-    Optional<Pair<CFAEdge, Optional<ARGState>>> relevantEdge =
+    Optional<Triple<CFAEdge, Optional<ARGState>, Boolean>> relevantEdge =
         gedEdgeIfIsRelevant(
             pChild,
             pCurrentState,
@@ -1433,9 +1469,11 @@ public class GIAARGGenerator {
     boolean edgesAdded = false;
     if (relevantEdge.isPresent()) {
       // now, create a new edge.
-      Pair<CFAEdge, Optional<ARGState>> pair = relevantEdge.orElseThrow();
+      Triple<CFAEdge, Optional<ARGState>, Boolean> pair = relevantEdge.orElseThrow();
       if (pair.getSecond().isEmpty()) {
-        pRelevantEdges.add(new GIAARGStateEdge<>(pCurrentState, pair.getFirst()));
+        final GIAARGStateEdge<ARGState> newEdge = new GIAARGStateEdge<>(pCurrentState, pair.getFirst());
+        newEdge.setIsTemp(pair.getThird());
+        pRelevantEdges.add(newEdge);
       } else {
         // Only check for assumptions for edges not leading to sink nodes
         // TODO Validate that this handling is in fact correct and the ARG node is the target node
@@ -1445,14 +1483,17 @@ public class GIAARGGenerator {
                 .findFirst();
         Optional<String> additionalAssumption =
             optAddAssumption.map(CFAEdgeWithAssumptions::getAsCode);
+        final GIAARGStateEdge<ARGState> newEdge = new GIAARGStateEdge<>(
+            pCurrentState,
+            pair.getSecond().orElseThrow(),
+            pair.getFirst(),
+            retriveInterpolantAndAssumptionsIfPresent(
+                pair.getSecond().orElseThrow(), pStatesWithInterpolant, pStatesWithAssumption),
+            additionalAssumption);
+        newEdge.setIsTemp(pair.getThird());
         pRelevantEdges.add(
-            new GIAARGStateEdge<>(
-                pCurrentState,
-                pair.getSecond().orElseThrow(),
-                pair.getFirst(),
-                retriveInterpolantAndAssumptionsIfPresent(
-                    pair.getSecond().orElseThrow(), pStatesWithInterpolant, pStatesWithAssumption),
-                additionalAssumption));
+            newEdge);
+
         if (!pProcessed.contains(pChild)
             && (options.generateGIAForTesttargets()
                 || !pFinalStates.contains(pair.getSecond().get()))) {
@@ -1594,7 +1635,7 @@ public class GIAARGGenerator {
    * @return the last edge on the path from parent to child, if the edge is relevant, otherwise an
    *     empty optional and the final node to use for the edge
    */
-  private Optional<Pair<CFAEdge, Optional<ARGState>>> gedEdgeIfIsRelevant(
+  private Optional<Triple<CFAEdge, Optional<ARGState>, Boolean>> gedEdgeIfIsRelevant(
       ARGState pChild,
       ARGState pParent,
       Set<ARGState> pFinalStates,
@@ -1651,9 +1692,9 @@ public class GIAARGGenerator {
     // If it can reach the error state, add the edge and the child to the toProcess
     if (case2 || case3 || case4 || case5 || case6 || case7) {
       if (case7 || pStatesReachingFinalState.contains(pChild)) {
-        return Optional.of(Pair.of(lastEdge, Optional.of(pChild)));
+        return Optional.of(Triple.of(lastEdge, Optional.of(pChild), case5));
       } else {
-        return Optional.of(Pair.of(lastEdge, Optional.empty()));
+        return Optional.of(Triple.of(lastEdge, Optional.empty(), case5));
       }
       //          } else if (case5b) {
       //            // If case 5 applies, we want to return the error state
@@ -1690,7 +1731,7 @@ public class GIAARGGenerator {
       ImmutableSet<ARGState> pStatesWithInterpolant,
       ImmutableSet<ARGState> pStatesWithAssumption,
       Set<ARGState> pStatesReachingFinalState) {
-    Optional<Pair<CFAEdge, Optional<ARGState>>> relevantEdge =
+    Optional<Triple<CFAEdge, Optional<ARGState>, Boolean>> relevantEdge =
         gedEdgeIfIsRelevant(
             pGrandChild,
             pParent,
@@ -1700,7 +1741,10 @@ public class GIAARGGenerator {
             pStatesWithAssumption,
             pStatesReachingFinalState);
     if (relevantEdge.isPresent()) {
-      return Optional.of(new GIAARGStateEdge<>(pParent, relevantEdge.orElseThrow().getFirst()));
+      final GIAARGStateEdge<ARGState> value =
+          new GIAARGStateEdge<>(pParent, relevantEdge.orElseThrow().getFirst());
+      value.setIsTemp(relevantEdge.orElseThrow().getThird());
+      return Optional.of(value);
     } else {
       return Optional.empty();
     }
