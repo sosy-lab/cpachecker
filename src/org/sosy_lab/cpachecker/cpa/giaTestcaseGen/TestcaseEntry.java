@@ -8,9 +8,9 @@
 
 package org.sosy_lab.cpachecker.cpa.giaTestcaseGen;
 
-import com.google.common.base.Optional;
 import java.io.Serializable;
 import java.util.Objects;
+import java.util.Optional;
 
 public class TestcaseEntry implements Serializable {
 

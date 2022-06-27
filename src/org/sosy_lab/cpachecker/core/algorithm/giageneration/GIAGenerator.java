@@ -16,7 +16,6 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.logging.Level;
-import javax.annotation.Nonnull;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -350,16 +349,18 @@ public class GIAGenerator {
   }
 
   static String getName(AbstractState pSource) {
-    if (pSource instanceof ARGState)
+    if (pSource instanceof ARGState) {
       return String.format("ARG%d", +((ARGState) pSource).getStateId());
-    else if (pSource instanceof GIACombinerState) {
+    } else if (pSource instanceof GIACombinerState) {
       return ((GIACombinerState) pSource).toDOTLabel();
     }
     return "STATE_" + pSource.hashCode();
   }
 
   static String getEdgeString(CFAEdge pEdge) {
-    if (pEdge == null) return String.format("\"%s\"", "");
+    if (pEdge == null) {
+      return String.format("\"%s\"", "");
+    }
     if (pEdge instanceof BlankEdge
         && pEdge.getDescription().equals(DESC_OF_DUMMY_FUNC_START_EDGE)) {
       if (AutomatonGraphmlCommon.isMainFunctionEntry(pEdge)) {
@@ -496,7 +497,6 @@ public class GIAGenerator {
   //    return numProducedStates;
   //  }
 
-  @Nonnull
   public static Map<ARGState, Set<GIAARGStateEdge<ARGState>>> groupEdgesByNodes(
       Set<GIAARGStateEdge<ARGState>> edgesToAdd) {
     Map<ARGState, Set<GIAARGStateEdge<ARGState>>> nodesToEdges = new HashMap<>();
@@ -505,7 +505,7 @@ public class GIAGenerator {
           if (nodesToEdges.containsKey(e.getSource())) {
             nodesToEdges.get(e.getSource()).add(e);
           } else {
-            HashSet<GIAARGStateEdge<ARGState>> set = new HashSet<>();
+            Set<GIAARGStateEdge<ARGState>> set = new HashSet<>();
             set.add(e);
             nodesToEdges.put(e.getSource(), set);
           }

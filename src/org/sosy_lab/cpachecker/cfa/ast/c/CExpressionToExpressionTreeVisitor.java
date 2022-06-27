@@ -30,14 +30,16 @@ public class CExpressionToExpressionTreeVisitor
       ExpressionTree<CExpression> left = visitDefault(pIastBinaryExpression.getOperand1());
       ExpressionTree<CExpression> right = visitDefault(pIastBinaryExpression.getOperand2());
       return Or.of(left, right);
-    } else return LeafExpression.of(pIastBinaryExpression);
+    } else {return LeafExpression.of(pIastBinaryExpression);}
   }
 
   public ExpressionTree<CExpression> visitDefault(AExpression pIastExpression) {
     if (pIastExpression instanceof CExpression) {
       if (pIastExpression instanceof CBinaryExpression) {
         return this.visit((CBinaryExpression) pIastExpression);
-      } else return LeafExpression.of((CExpression) pIastExpression);
+      } else {
+        return LeafExpression.of((CExpression) pIastExpression);
+      }
     } else {
       // TODO Find nicer way
       throw new IllegalArgumentException("Only applicable for CExpressions");

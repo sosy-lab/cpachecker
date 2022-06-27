@@ -159,7 +159,9 @@ public class GIAWriter<T extends AbstractState> {
       Set<T> pTargetStates,
       Set<T> pNonTargetStates,
       Set<T> pUnknownStates) {
-    if (pEdges.isEmpty()) return false;
+    if (pEdges.isEmpty()) {
+      return false;
+    }
     StringBuilder sb = new StringBuilder();
     try {
       //noinspection ResultOfMethodCallIgnored

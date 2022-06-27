@@ -81,8 +81,9 @@ public class GIACombinerCPA extends AbstractCPA implements ProofCheckerCPA {
     this.cfa = pCFA;
     this.shutdownNotifier = pShutdownNotifier;
     this.config = pConfig;
-    if (pathToGIA1 != null) automaton1 = getAutomaton(pathToGIA1);
-    else {
+    if (pathToGIA1 != null) {
+      automaton1 = getAutomaton(pathToGIA1);
+    } else {
       automaton1 = null;
       this.pathToOnlyAutomaton = Optional.of(pathToGIA2);
     }

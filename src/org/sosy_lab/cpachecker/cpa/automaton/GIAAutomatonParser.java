@@ -47,7 +47,9 @@ public class GIAAutomatonParser {
 
   public List<Automaton> postProcessGIA(List<Automaton> pAutomata) {
 
-    if (pAutomata.size() != 1) return pAutomata;
+    if (pAutomata.size() != 1) {
+      return pAutomata;
+    }
     Automaton automaton = pAutomata.get(0);
     // Firstly, set the DISTANCE_TO_UNKNOWN for all states
     automaton = computeDistanceToUnknown(automaton);

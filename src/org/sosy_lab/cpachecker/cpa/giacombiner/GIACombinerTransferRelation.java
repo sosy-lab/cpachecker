@@ -423,7 +423,9 @@ public class GIACombinerTransferRelation extends SingleEdgeTransferRelation {
     } else {
       currentMap = this.mayLeadToFinalInAutomaton2;
     }
-    if (currentMap.containsKey(pFirst.getInternalState())) return currentMap.get(pFirst.getInternalState());
+    if (currentMap.containsKey(pFirst.getInternalState())) {
+      return currentMap.get(pFirst.getInternalState());
+    }
     if (pFirst.getInternalState().getStateType().equals(AutomatonStateTypes.NON_TARGET)
         || pFirst.getInternalState().getStateType().equals(AutomatonStateTypes.TARGET)) {
       currentMap.putIfAbsent(pFirst.getInternalState(), true);
@@ -516,7 +518,9 @@ public class GIACombinerTransferRelation extends SingleEdgeTransferRelation {
     } else {
       currentMap = this.onlyLeadsToFUInAutomaton2;
     }
-    if (currentMap.containsKey(pFirst.getInternalState())) return currentMap.get(pFirst.getInternalState());
+    if (currentMap.containsKey(pFirst.getInternalState())) {
+      return currentMap.get(pFirst.getInternalState());
+    }
 
     if (pFirst.getInternalState().getStateType().equals(AutomatonStateTypes.NON_TARGET)
         || pFirst.getInternalState().getStateType().equals(AutomatonStateTypes.TARGET)) {

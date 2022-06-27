@@ -47,7 +47,9 @@ public class GIACombinerState
 
   @Override
   public GIACombinerState join(GIACombinerState other) throws CPAException, InterruptedException {
-    if (this.isLessOrEqual(other)) return other;
+    if (this.isLessOrEqual(other)) {
+      return other;
+    }
     if (Objects.equals(this.stateOfAutomaton1, other.stateOfAutomaton1)
         && Objects.equals(this.stateOfAutomaton2, other.stateOfAutomaton2)) {
       GIACombinerState newState = new GIACombinerState(stateOfAutomaton1, stateOfAutomaton2);

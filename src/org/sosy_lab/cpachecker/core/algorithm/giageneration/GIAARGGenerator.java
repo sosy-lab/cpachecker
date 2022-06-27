@@ -31,8 +31,6 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.logging.Level;
-import java.util.stream.Collectors;
-import javax.annotation.Nonnull;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
@@ -134,7 +132,7 @@ public class GIAARGGenerator {
      * have the same child and the child has both as states as parents<br>
      * (2) The edges between them is a blank edge with file Location "none"
      */
-    HashMultimap<ARGState, ARGState> statesToMerge = HashMultimap.create();
+    Multimap<ARGState, ARGState> statesToMerge = HashMultimap.create();
     pReached.asCollection().stream()
         .map(as -> AbstractStates.extractStateByType(as, ARGState.class))
         .filter(as -> as != null)
@@ -317,7 +315,7 @@ public class GIAARGGenerator {
 
 //  private Set<Set<ARGState>> computeAdditionalEqualStatesToMoveMergePointBeforeFunctionExit(
 //      Set<GIAARGStateEdge<ARGState>> pRelevantEdges, Set<Set<ARGState>> pStatesThatAreEqual) {
-//    HashMultimap<ARGState, GIAARGStateEdge<ARGState>> targetsToEdge = HashMultimap.create();
+//    Multimap<ARGState, GIAARGStateEdge<ARGState>> targetsToEdge = HashMultimap.create();
 //    pRelevantEdges.stream()
 //        .filter(e -> e.getTarget().isPresent())
 //        .filter(e -> e.getEdge() instanceof FunctionReturnEdge)
@@ -361,7 +359,7 @@ public class GIAARGGenerator {
     return pRelevantEdges.stream().distinct().collect(ImmutableSet.toImmutableSet());
   }
 
-  private Set<Set<ARGState>> buildEquivaenceClasses(HashMultimap<ARGState, ARGState> pStatesToMerge)
+  private Set<Set<ARGState>> buildEquivaenceClasses(Multimap<ARGState, ARGState> pStatesToMerge)
       throws CPAException {
 
     Set<Set<ARGState>> res = new HashSet<>();
@@ -384,7 +382,7 @@ public class GIAARGGenerator {
    */
   private Set<ARGState> handleCurrentState(
       ARGState pCurrentKey,
-      HashMultimap<ARGState, ARGState> pStatesToMerge,
+      Multimap<ARGState, ARGState> pStatesToMerge,
       Set<ARGState> pKeysToProcess,
       boolean pNotCheckForParents)
       throws CPAException {
@@ -490,7 +488,6 @@ public class GIAARGGenerator {
         .collect(ImmutableSet.toImmutableSet());
   }
 
-  @Nonnull
   private Set<GIAARGStateEdge<ARGState>> getGiaargStateEdges(
       UnmodifiableReachedSet pReached,
       ARGState pArgRoot,
@@ -512,7 +509,9 @@ public class GIAARGGenerator {
                     as -> {
                       @Nullable CFANode loc = AbstractStates.extractLocation(as);
                       Optional<ARGState> parent = as.getParents().stream().findFirst();
-                      if (parent.isEmpty()) return false;
+                      if (parent.isEmpty()) {
+                        return false;
+                      }
                       CFAEdge edge =
                           Objects.requireNonNull(
                                   AbstractStates.extractLocation(parent.orElseThrow()))
@@ -550,8 +549,12 @@ public class GIAARGGenerator {
                   s -> {
                     @Nullable PredicateAbstractState pState =
                         AbstractStates.extractStateByType(s, PredicateAbstractState.class);
-                    if (pState == null) return false;
-                    if (!pState.isAbstractionState()) return false;
+                    if (pState == null) {
+                      return false;
+                    }
+                    if (!pState.isAbstractionState()) {
+                      return false;
+                    }
                     // Remove all non-abstract states and abstract states with true abstraction
                     // formula
                     return !formulaManager
@@ -569,7 +572,9 @@ public class GIAARGGenerator {
                 s -> {
                   @Nullable AssumptionStorageState pState =
                       AbstractStates.extractStateByType(s, AssumptionStorageState.class);
-                  if (pState == null) return false;
+                  if (pState == null) {
+                    return false;
+                  }
                   boolean trueAssumption = pState.isAssumptionTrue();
                   return !trueAssumption;
                 })
@@ -605,7 +610,7 @@ public class GIAARGGenerator {
     // Relevant state: Function enter, branching, loopHead or error states
     // We start at the root and iterate through the ARG
     //    Set<GIAARGStateEdge> relevantEdges = new HashSet<>();
-    LinkedHashSet<ARGState> toProcess = new LinkedHashSet<>();
+    Set<ARGState> toProcess = new LinkedHashSet<>();
     toProcess.add(pArgRoot);
     Set<ARGState> processed = new HashSet<>();
 
@@ -711,9 +716,9 @@ public class GIAARGGenerator {
             nodesToEdges.put(e.getSource(), Lists.newArrayList(e));
           }
         });
-    for (Entry<ARGState, List<GIAARGStateEdge<ARGState>>> edge : nodesToEdges.entrySet()) {
+    for ( List<GIAARGStateEdge<ARGState>> edge : nodesToEdges.values()) {
       List<GIAARGStateEdge<ARGState>> assumeEdgesPresent =
-          edge.getValue().stream()
+          edge.stream()
               .filter(e -> e.getEdge() instanceof AssumeEdge)
               .collect(ImmutableList.toImmutableList());
       if (assumeEdgesPresent.stream().map(e -> e.getEdge()).distinct().count() == 1) {
@@ -732,7 +737,7 @@ public class GIAARGGenerator {
   private Map<ARGState, Set<CFAEdge>> computeCoveredGoals(UnmodifiableReachedSet pReached) {
     // Compute all covered goals for the Abstract states
     Map<ARGState, Set<CFAEdge>> stateToCoveredGoals = new HashMap<>();
-    LinkedHashSet<AbstractState> toProcess = new LinkedHashSet<>(pReached.asCollection());
+    Set<AbstractState> toProcess = new LinkedHashSet<>(pReached.asCollection());
     while (!toProcess.isEmpty()) {
       AbstractState state = toProcess.stream().findFirst().orElseThrow();
       toProcess.remove(state);
@@ -740,7 +745,9 @@ public class GIAARGGenerator {
       if (current == null) {
         return new HashMap<>();
       }
-      if (stateToCoveredGoals.containsKey(current)) continue;
+      if (stateToCoveredGoals.containsKey(current)) {
+        continue;
+      }
       if (current.getChildren().stream().allMatch(c -> stateToCoveredGoals.containsKey(c))) {
 
         Set<CFAEdge> coveredByCurrent =
@@ -833,7 +840,9 @@ public class GIAARGGenerator {
    */
   private Set<GIAARGStateEdge<ARGState>> updateForBreakEdges(
       Set<GIAARGStateEdge<ARGState>> pRelevantEdges) {
-    if (cfa.getLoopStructure().isEmpty()) return pRelevantEdges;
+    if (cfa.getLoopStructure().isEmpty()) {
+      return pRelevantEdges;
+    }
     for (GIAARGStateEdge<ARGState> edge : pRelevantEdges) {
       if (edge.getEdge() instanceof AssumeEdge
           && nextStatementIsBreak(edge.getEdge().getSuccessor())) {
@@ -1444,7 +1453,7 @@ public class GIAARGGenerator {
       ARGState pCurrentState,
       ARGState pChild,
       Set<ARGState> pFinalStates,
-      LinkedHashSet<ARGState> pToProcess,
+      Set<ARGState> pToProcess,
       Set<GIAARGStateEdge<ARGState>> pRelevantEdges,
       Set<ARGState> pProcessed,
       Multimap<ARGState, CFAEdgeWithAssumptions> pEdgesWithAssumptions,
@@ -1526,10 +1535,11 @@ public class GIAARGGenerator {
                 .collect(ImmutableList.toImmutableList());
         for (GIAARGStateEdge<ARGState> edge : edgesToUpdate) {
           edgesToAdd.remove(edge);
-          if (edge.getTarget().isPresent())
+          if (edge.getTarget().isPresent()) {
             edgesToAdd.add(
                 new GIAARGStateEdge<>(
                     pCurrentState, edge.getTarget().orElseThrow(), edge.getEdge()));
+          }
         }
         if (!edgesToAdd.isEmpty()) {
           pRelevantEdges.addAll(edgesToAdd);
@@ -1589,21 +1599,23 @@ public class GIAARGGenerator {
       throws InterruptedException {
     Set<ExpressionTree<Object>> res = new HashSet<>();
 
-    if (pStatesWithInterpolant.contains(pState))
+    if (pStatesWithInterpolant.contains(pState)) {
       res.add(
           Objects.requireNonNull(
                   AbstractStates.extractStateByType(pState, PredicateAbstractState.class))
               .getAbstractionFormula()
               .asExpressionTree(AbstractStates.extractLocation(pState)));
+    }
     if (pStatesWithAssumption.contains(pState)) {
       @Nullable AssumptionStorageState assumptionState =
           AbstractStates.extractStateByType(pState, AssumptionStorageState.class);
-      if (Objects.nonNull(assumptionState))
+      if (Objects.nonNull(assumptionState)) {
         res.add(
             ExpressionTrees.fromFormula(
                 assumptionState.getAssumption(),
                 assumptionState.getFormulaManager(),
                 AbstractStates.extractLocation(pState)));
+      }
     }
     return res;
   }

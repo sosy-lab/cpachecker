@@ -411,12 +411,15 @@ public class WitnessInvariantsExtractor {
 
     ExpressionTree<AExpression> res = ExpressionTrees.getTrue();
     ExpressionTreeFactory<AExpression> factory = ExpressionTrees.newFactory();
-    HashSet<ExpressionTree<AExpression>> assumptions = new HashSet<>();
+    Set<ExpressionTree<AExpression>> assumptions = new HashSet<>();
     for (AExpression assumption : pAssumptions) {
       assumptions.add(transformToTree(factory, assumption));
     }
-    if (assumptions.isEmpty()) return res;
-    else return factory.and(assumptions);
+    if (assumptions.isEmpty()) {
+      return res;
+    } else {
+      return factory.and(assumptions);
+    }
   }
 
   private ExpressionTree<AExpression> transformToTree(

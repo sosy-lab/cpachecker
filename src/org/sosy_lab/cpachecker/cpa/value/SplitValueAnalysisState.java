@@ -47,10 +47,11 @@ public class SplitValueAnalysisState extends ValueAnalysisState {
 
   public Collection<ValueAnalysisState> split() throws CPATransferException {
 
-    if (this.valuesFromFiles.isEmpty())
+    if (this.valuesFromFiles.isEmpty()) {
       return Lists.newArrayList(ValueAnalysisState.copyOf(oldState));
+    }
 
-    ArrayList<ValueAnalysisState> splitStates = new ArrayList<>();
+    List<ValueAnalysisState> splitStates = new ArrayList<>();
     for (Map<Integer, String> valuesMap : valuesFromFiles) {
       ValueAnalysisStateWithSavedValue newState =
           new ValueAnalysisStateWithSavedValue(ValueAnalysisState.copyOf(oldState), valuesMap);

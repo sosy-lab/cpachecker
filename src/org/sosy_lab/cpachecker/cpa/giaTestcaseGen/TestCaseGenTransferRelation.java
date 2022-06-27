@@ -8,12 +8,13 @@
 
 package org.sosy_lab.cpachecker.cpa.giaTestcaseGen;
 
-import com.google.common.base.Optional;
+
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
 import java.io.IOException;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Optional;
 import java.util.logging.Level;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.configuration.Configuration;

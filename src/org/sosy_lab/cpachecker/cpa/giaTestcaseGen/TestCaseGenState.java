@@ -8,13 +8,13 @@
 
 package org.sosy_lab.cpachecker.cpa.giaTestcaseGen;
 
-import com.google.common.base.Optional;
 import java.io.IOException;
 import java.io.Serializable;
 import java.nio.charset.Charset;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.logging.Level;
 import java.util.stream.Collectors;
 import org.sosy_lab.common.io.IO;
@@ -36,7 +36,7 @@ public class TestCaseGenState
 
   public TestCaseGenState(LogManager pLogger) {
     this.entries = new ArrayList<>();
-    automatonState = Optional.absent();
+    automatonState = Optional.empty();
     this.logger = pLogger;
   }
 

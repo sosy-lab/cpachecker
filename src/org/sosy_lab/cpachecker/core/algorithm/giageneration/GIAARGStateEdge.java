@@ -95,7 +95,8 @@ public class GIAARGStateEdge<T extends AbstractState> {
       Optional<String> pAdditionalAssumption) {
     this.source = pSource;
     this.target = Optional.of(pTarget);
-    this.edge = pEdge;scope = getScopeForEdge(pEdge);
+    this.edge = pEdge;
+    this.scope = getScopeForEdge(pEdge);
     this.assumptions = pAssumption;
     this.source_mulitEdgeIndex = Optional.empty();
     this.target_mulitEdgeIndex = Optional.empty();
@@ -119,7 +120,8 @@ public class GIAARGStateEdge<T extends AbstractState> {
   public GIAARGStateEdge(T pSource, CFAEdge pEdge) {
     this.source = pSource;
     this.target = Optional.empty();
-    this.edge = pEdge;scope =pEdge.getPredecessor().getFunctionName();
+    this.edge = pEdge;
+    this.scope =pEdge.getPredecessor().getFunctionName();
     this.assumptions = new HashSet<>();
     this.source_mulitEdgeIndex = Optional.empty();
     this.target_mulitEdgeIndex = Optional.empty();
@@ -131,7 +133,7 @@ public class GIAARGStateEdge<T extends AbstractState> {
     this.source = pSource;
     this.target = Optional.ofNullable(pTarget);
     this.edge = pEdge;
-    scope =pEdge.getPredecessor().getFunctionName();
+    this.scope =pEdge.getPredecessor().getFunctionName();
     this.assumptions = new HashSet<>();
     this.source_mulitEdgeIndex = Optional.empty();
     this.target_mulitEdgeIndex = Optional.empty();
@@ -166,9 +168,15 @@ public class GIAARGStateEdge<T extends AbstractState> {
       Set<T> pTargetStates, Set<T> pNonTargetStates, Set<T> pUnknownStates, boolean stopAtUnknownStates) {
     if (this.target.isPresent()) {
       final T targetState = target.orElseThrow();
-      if (pTargetStates.contains(targetState)) return GIAGenerator.NAME_OF_ERROR_STATE;
-      if (pNonTargetStates.contains(targetState)) return GIAGenerator.NAME_OF_FINAL_STATE;
-      if (stopAtUnknownStates && pUnknownStates.contains(targetState)) return GIAGenerator.NAME_OF_UNKNOWN_STATE;
+      if (pTargetStates.contains(targetState)) {
+        return GIAGenerator.NAME_OF_ERROR_STATE;
+      }
+      if (pNonTargetStates.contains(targetState)) {
+        return GIAGenerator.NAME_OF_FINAL_STATE;
+      }
+      if (stopAtUnknownStates && pUnknownStates.contains(targetState)) {
+        return GIAGenerator.NAME_OF_UNKNOWN_STATE;
+      }
       return GIAGenerator.getName(targetState);
     }
     return GIAGenerator.NAME_OF_TEMP_STATE;
