@@ -148,12 +148,43 @@ public interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
     }
   }
 
-  enum MatchOtherwise implements AutomatonBoolExpr {
-    INSTANCE;
+  public static class MatchOtherwise implements AutomatonBoolExpr {
+
+    private List<AutomatonBoolExpr> otherExpressions;
+
+    public MatchOtherwise() {
+      otherExpressions = new ArrayList<>();
+    }
+
+    public void addOtherExpressions(List<AutomatonBoolExpr> pOtherExpressions) {
+      otherExpressions.addAll(pOtherExpressions);
+    }
+
+    public MatchOtherwise(List<AutomatonBoolExpr> pOtherExpressions) {
+      this.otherExpressions = pOtherExpressions;
+    }
 
     @Override
-    public ResultValue<Boolean> eval(AutomatonExpressionArguments pArgs) {
+    public ResultValue<Boolean> eval(AutomatonExpressionArguments pArgs)
+        throws CPATransferException {
+      for (AutomatonBoolExpr expr : otherExpressions) {
+        if (expr.eval(pArgs).getValue()) {
+          return CONST_TRUE;
+        }
+      }
       return CONST_TRUE;
+    }
+
+    @Override
+    public boolean equals(Object pO) {
+      //Ignore the condition when it is taken, otherwise is always equal to otherwise
+      return pO instanceof MatchOtherwise;
+    }
+
+    @Override
+    public int hashCode() {
+      //Ignore the condition when it is taken, otherwise is always equal to otherwise
+      return Objects.hash(MatchOtherwise.class);
     }
 
     @Override

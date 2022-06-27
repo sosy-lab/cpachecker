@@ -12,10 +12,12 @@ import com.google.common.collect.ImmutableList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import org.sosy_lab.common.UniqueIdGenerator;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cpa.automaton.AutomatonBoolExpr.MatchOtherwise;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonExpression.StringExpression;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
@@ -54,7 +56,7 @@ public class AutomatonInternalState {
       };
 
   /** Break state, used to halt the analysis without being a target state */
- public  static final AutomatonInternalState BREAK =
+  public static final AutomatonInternalState BREAK =
       new AutomatonInternalState(
           "_predefinedState_BREAK",
           Collections.singletonList(
@@ -79,6 +81,7 @@ public class AutomatonInternalState {
 
   /** The list of state invariants for the node */
   private final ExpressionTree<AExpression> stateInvariants;
+
   private final AutomatonStateTypes stateType;
 
   public AutomatonInternalState(
@@ -89,12 +92,31 @@ public class AutomatonInternalState {
       boolean pIsCycleStart,
       ExpressionTree<AExpression> pStateInvariants) {
     this.name = pName;
-    this.transitions = ImmutableList.copyOf(pTransitions);
+    this.transitions = ImmutableList.copyOf(postProcessTransitions(pTransitions));
     this.stateType = pStateType;
     this.mIsTarget = pStateType == AutomatonStateTypes.TARGET;
     this.mAllTransitions = pAllTransitions;
     this.isCycleStart = pIsCycleStart;
     this.stateInvariants = pStateInvariants;
+  }
+
+  /**
+   * If there is an otherwise-edge, add all other triggers to the otherwise-edge
+   * @param pTransitions the transitions of the edge
+   * @return the transitions, where the otherwise edge is updated
+   */
+  private List<AutomatonTransition> postProcessTransitions(List<AutomatonTransition> pTransitions) {
+    Optional<AutomatonTransition> otherwiseOpt =
+        pTransitions.stream().filter(t -> t.getTrigger() instanceof MatchOtherwise).findFirst();
+    if (otherwiseOpt.isPresent()) {
+      MatchOtherwise otherwiseTrigger = (MatchOtherwise) otherwiseOpt.orElseThrow().getTrigger();
+      otherwiseTrigger.addOtherExpressions(
+          pTransitions.stream()
+              .map(t -> t.getTrigger())
+              .filter(pTrigger -> !(pTrigger instanceof MatchOtherwise))
+              .collect(ImmutableList.toImmutableList()));
+    }
+    return pTransitions;
   }
 
   public AutomatonInternalState(
@@ -118,16 +140,46 @@ public class AutomatonInternalState {
     this(pName, pTransitions, AutomatonStateTypes.ANY, false, false, ExpressionTrees.getTrue());
   }
 
-  public AutomatonInternalState(String pName, List<AutomatonTransition> pNewTransitions, boolean pTarget, boolean pNonDetState, ExpressionTree<AExpression> pInvCnds) {
-    this(pName, pNewTransitions, pTarget? AutomatonStateTypes.TARGET:AutomatonStateTypes.ANY, pNonDetState, pInvCnds);
+  public AutomatonInternalState(
+      String pName,
+      List<AutomatonTransition> pNewTransitions,
+      boolean pTarget,
+      boolean pNonDetState,
+      ExpressionTree<AExpression> pInvCnds) {
+    this(
+        pName,
+        pNewTransitions,
+        pTarget ? AutomatonStateTypes.TARGET : AutomatonStateTypes.ANY,
+        pNonDetState,
+        pInvCnds);
   }
 
-  public AutomatonInternalState(String pStateName, List<AutomatonTransition> pTransitions, boolean pTarget, boolean pAllTransitions) {
-    this(pStateName, pTransitions, pTarget? AutomatonStateTypes.TARGET:AutomatonStateTypes.ANY, pAllTransitions );
+  public AutomatonInternalState(
+      String pStateName,
+      List<AutomatonTransition> pTransitions,
+      boolean pTarget,
+      boolean pAllTransitions) {
+    this(
+        pStateName,
+        pTransitions,
+        pTarget ? AutomatonStateTypes.TARGET : AutomatonStateTypes.ANY,
+        pAllTransitions);
   }
 
-  public AutomatonInternalState(String pStateName, List<AutomatonTransition> pTransitionList, boolean pTarget, boolean pAllTransitions, boolean pIsCycleStart, ExpressionTree<AExpression> pInvCnds) {
-    this(pStateName, pTransitionList,  pTarget? AutomatonStateTypes.TARGET:AutomatonStateTypes.ANY, pAllTransitions, pIsCycleStart, pInvCnds);
+  public AutomatonInternalState(
+      String pStateName,
+      List<AutomatonTransition> pTransitionList,
+      boolean pTarget,
+      boolean pAllTransitions,
+      boolean pIsCycleStart,
+      ExpressionTree<AExpression> pInvCnds) {
+    this(
+        pStateName,
+        pTransitionList,
+        pTarget ? AutomatonStateTypes.TARGET : AutomatonStateTypes.ANY,
+        pAllTransitions,
+        pIsCycleStart,
+        pInvCnds);
   }
 
   public boolean isNonDetState() {
@@ -194,7 +246,7 @@ public class AutomatonInternalState {
 
   @Override
   public String toString() {
-    return name+"("+this.stateType+")";
+    return name + "(" + this.stateType + ")";
   }
 
   public boolean nontriviallyMatches(final CFAEdge pEdge, final LogManager pLogger) {

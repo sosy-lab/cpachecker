@@ -54,14 +54,15 @@ public class GIAGenerator {
       Set<? extends AbstractState> pTargetStates,
       Set<? extends AbstractState> pNonTargetStates,
       Set<? extends AbstractState> pUnknownStates) {
+    String prefix = "";
     if (pTargetStates.contains(pCurrentState)) {
-      return String.format("TARGET STATE USEFIRST %s :\n", GIAGenerator.getName(pCurrentState));
+      prefix = "TARGET ";
     } else if (pNonTargetStates.contains(pCurrentState)) {
-      return String.format("NON_TARGET STATE USEFIRST %s :\n", GIAGenerator.getName(pCurrentState));
+      prefix = "NON_TARGET ";
     } else if (pUnknownStates.contains(pCurrentState)) {
-      return String.format("UNKNOWN STATE USEFIRST %s :\n", GIAGenerator.getName(pCurrentState));
+      prefix = "UNKNOWN ";
     }
-    return String.format("STATE USEFIRST %s :\n", GIAGenerator.getName(pCurrentState));
+    return String.format("%SSTATE USEALL %s :\n", prefix, GIAGenerator.getName(pCurrentState));
   }
 
   @Options

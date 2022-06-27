@@ -413,7 +413,7 @@ Bool      ::= TRUE  {: RESULT = AutomatonBoolExpr.TRUE; :}
             | MATCH FUNCTIONCALL STRING_LITERAL:functionname
               {: RESULT = new AutomatonBoolExpr.MatchFunctionCall(functionname.toString()); :}
             | MATCH OTHERWISE
-              {: RESULT = AutomatonBoolExpr.MatchOtherwise.INSTANCE; :}
+              {: RESULT = new  AutomatonBoolExpr.MatchOtherwise(); :}
 /*next statement is deprecated*/ 
             | CHECK OPEN_BRACKETS IDENTIFIER:cpa OPEN_BRACKETS STRING_LITERAL:query CLOSE_BRACKETS CLOSE_BRACKETS
               {: RESULT = new AutomatonBoolExpr.CPAQuery(cpa.toString(), query.toString()); :}

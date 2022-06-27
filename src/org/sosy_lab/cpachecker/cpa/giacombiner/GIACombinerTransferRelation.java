@@ -34,7 +34,7 @@ import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.core.defaults.SingleEdgeTransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
-import org.sosy_lab.cpachecker.cpa.automaton.AutomatonBoolExpr;
+import org.sosy_lab.cpachecker.cpa.automaton.AutomatonBoolExpr.MatchOtherwise;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonExpression.ResultValue;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonExpressionArguments;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonInternalState;
@@ -482,7 +482,7 @@ public class GIACombinerTransferRelation extends SingleEdgeTransferRelation {
               //              return ImmutableSet.of(new AutomatonUnknownState(state));
               throw new CPATransferException("unknown transitions currently not supported");
             }
-            if (t.getTrigger() instanceof AutomatonBoolExpr.MatchOtherwise) {
+            if (t.getTrigger() instanceof MatchOtherwise) {
               if (!transitionsToBeTaken.isEmpty()) {
                 // The otherwise edge is by default true.
                 // If there is another transition that was taken in advance,
