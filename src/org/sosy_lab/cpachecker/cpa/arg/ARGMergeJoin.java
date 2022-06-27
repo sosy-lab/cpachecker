@@ -40,6 +40,13 @@ public class ARGMergeJoin implements MergeOperator {
     @Option(
         secure = true,
         description =
+            "If this option is enabled, ARG states will also be merged if the first wrapped state "
+                + "is subsumed by the second wrapped state (and the parents are not yet subsumed).")
+    private boolean mergeOnWrappedSubsumption = false;
+
+    @Option(
+        secure = true,
+        description =
             "What do to on a late merge, i.e., if the second parameter of the merge already has"
                 + " child states (cf. issue #991):\n"
                 + "- ALLOW: Just merge as usual.\n"
@@ -63,19 +70,16 @@ public class ARGMergeJoin implements MergeOperator {
 
   private final MergeOperator wrappedMerge;
   private final AbstractDomain wrappedDomain;
-  private final boolean mergeOnWrappedSubsumption;
   private final LogManager logger;
   private final MergeOptions options;
 
   public ARGMergeJoin(
       MergeOperator pWrappedMerge,
       AbstractDomain pWrappedDomain,
-      boolean pMergeOnWrappedSubsumption,
       LogManager pLogger,
       MergeOptions pOptions) {
     wrappedMerge = pWrappedMerge;
     wrappedDomain = pWrappedDomain;
-    mergeOnWrappedSubsumption = pMergeOnWrappedSubsumption;
     logger = checkNotNull(pLogger);
     options = checkNotNull(pOptions);
   }
@@ -117,7 +121,7 @@ public class ARGMergeJoin implements MergeOperator {
     AbstractState retElement = wrappedMerge.merge(wrappedState1, wrappedState2, pPrecision);
 
     boolean continueMerge = !retElement.equals(wrappedState2);
-    if (mergeOnWrappedSubsumption) {
+    if (options.mergeOnWrappedSubsumption) {
       Set<ARGState> parents1 = ImmutableSet.copyOf(argElement1.getParents());
       Set<ARGState> parents2 = ImmutableSet.copyOf(argElement2.getParents());
       continueMerge =
