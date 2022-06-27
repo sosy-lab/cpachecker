@@ -214,27 +214,51 @@ public class PredicatePrecisionBootstrapper implements StatisticsProvider {
     return result;
   }
 
-  private PredicatePrecision parseInvariantsFromGIAAsPredicates(Path pPredicatesFile) {
+  private PredicatePrecision parseInvariantsFromGIAAsPredicates(Path pPredicatesFile)
+      throws InterruptedException {
     Optional<Automaton> optAutomaton = loadGIA(pPredicatesFile);
     if (optAutomaton.isEmpty()) {
       logger.logf(Level.WARNING, "Could not load an automaton from file %s", pPredicatesFile);
       return PredicatePrecision.empty();
     }
-    Automaton automaton = optAutomaton.orElseThrow();
+
+    PredicatePrecision result = PredicatePrecision.empty();
     try {
+      Automaton automaton = optAutomaton.orElseThrow();
       WitnessInvariantsExtractor extractor =
           new WitnessInvariantsExtractor(config, automaton, logger, cfa, shutdownNotifier);
 
       Set<ExpressionTreeLocationInvariant> invariants = extractor.extractInvariantsFromReachedSet();
-      if (options.useAssumptionsFromGIAAsInvariants && options.applyGlobally) {
-        invariants = extractor.extractAdditionalInvariantsFromAssumptions(invariants);
-      }
-      logger.log(Level.INFO, invariants);
-      return addInvariantsToResult(PredicatePrecision.empty(), invariants);
-    } catch (CPAException | InterruptedException | InvalidConfigurationException pE) {
-      logger.log(Level.WARNING, Throwables.getStackTraceAsString(pE));
+      invariants = extractor.extractAdditionalInvariantsFromAssumptions(invariants);
+      result = addInvariantsToResult(result, invariants);
+    } catch (CPAException | InvalidConfigurationException e) {
+      logger.logUserException(
+          Level.WARNING, e, "Predicate from correctness witness invariants could not be computed");
     }
-    return PredicatePrecision.empty();
+    return result;
+
+
+//
+//
+//    try {
+//      WitnessInvariantsExtractor extractor =
+//          new WitnessInvariantsExtractor(config, automaton, logger, cfa, shutdownNotifier);
+//
+//      Set<ExpressionTreeLocationInvariant> invariants = extractor.extractInvariantsFromReachedSet();
+//
+//
+//
+//
+//
+//      if (options.useAssumptionsFromGIAAsInvariants && options.applyGlobally) {
+//        invariants = extractor.extractAdditionalInvariantsFromAssumptions(invariants);
+//      }
+//      logger.log(Level.INFO, invariants);
+//      return addInvariantsToResult(PredicatePrecision.empty(), invariants);
+//    } catch (CPAException | InterruptedException | InvalidConfigurationException pE) {
+//      logger.log(Level.WARNING, Throwables.getStackTraceAsString(pE));
+//    }
+//    return PredicatePrecision.empty();
   }
 
   private boolean isGIA(Path pPredicatesFile) {

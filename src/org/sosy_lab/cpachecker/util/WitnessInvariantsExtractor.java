@@ -13,6 +13,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Multimap;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
@@ -31,7 +32,9 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.ast.ABinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
 import org.sosy_lab.cpachecker.core.CPABuilder;
@@ -325,8 +328,8 @@ public class WitnessInvariantsExtractor {
     }
   }
 
-  public Set<ExpressionTreeLocationInvariant> extractAdditionalInvariantsFromAssumptions(Set<ExpressionTreeLocationInvariant> pInvariants)
-      throws InterruptedException {
+  public Set<ExpressionTreeLocationInvariant> extractAdditionalInvariantsFromAssumptions(
+      Set<ExpressionTreeLocationInvariant> pInvariants) throws InterruptedException {
     Set<ExpressionTreeLocationInvariant> expressionTreeLocationInvariants = new HashSet<>();
     Map<String, ExpressionTree<AExpression>> expressionTrees = new HashMap<>();
     Set<CFANode> visited = new HashSet<>();
@@ -403,17 +406,35 @@ public class WitnessInvariantsExtractor {
     return pInvariants;
   }
 
-  private ExpressionTree<AExpression> createTreeForAssumptions(ImmutableList<AExpression> pAssumptions) {
+  private ExpressionTree<AExpression> createTreeForAssumptions(
+      ImmutableList<AExpression> pAssumptions) {
+
     ExpressionTree<AExpression> res = ExpressionTrees.getTrue();
-    ExpressionTreeFactory<AExpression> factory =
-        ExpressionTrees.newFactory();
+    ExpressionTreeFactory<AExpression> factory = ExpressionTrees.newFactory();
     HashSet<ExpressionTree<AExpression>> assumptions = new HashSet<>();
-    for (AExpression assumption : pAssumptions){
-      assumptions.add( factory.leaf(assumption));
+    for (AExpression assumption : pAssumptions) {
+      assumptions.add(transformToTree(factory, assumption));
     }
-    if (assumptions.isEmpty())
-       return res;
-    else
-      return factory.and(assumptions);
+    if (assumptions.isEmpty()) return res;
+    else return factory.and(assumptions);
+  }
+
+  private ExpressionTree<AExpression> transformToTree(
+      ExpressionTreeFactory<AExpression> factory, AExpression assumption) {
+    if (assumption instanceof ABinaryExpression) {
+      ABinaryExpression bin = (ABinaryExpression) assumption;
+      if (bin.getOperator().equals(BinaryOperator.BINARY_AND)) {
+        List<ExpressionTree<AExpression>> args = new ArrayList<>();
+        args.add(transformToTree(factory, bin.getOperand1()));
+        args.add(transformToTree(factory, bin.getOperand2()));
+        return factory.and(args);
+      } else if (bin.getOperator().equals(BinaryOperator.BINARY_OR)) {
+        List<ExpressionTree<AExpression>> args = new ArrayList<>();
+        args.add(transformToTree(factory, bin.getOperand1()));
+        args.add(transformToTree(factory, bin.getOperand2()));
+        return factory.or(args);
+      }
+    }
+    return factory.leaf(assumption);
   }
 }
