@@ -12,6 +12,7 @@ import com.google.common.collect.ImmutableSet;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.util.AbstractMap.SimpleEntry;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -103,14 +104,15 @@ public class GIACombinerGenerator {
       statesUsedForTransitions.putIfAbsent(pairOfStates, current);
       GIACombinerState source = statesUsedForTransitions.get(pairOfStates);
 
-      for (Entry<GIATransition, GIACombinerState> edge : current.getSuccessors().entrySet()) {
+      for (Entry<GIATransition, Collection<GIACombinerState>> edge : current.getSuccessors().entrySet()) {
+        for (GIACombinerState successor : edge.getValue()){
         Pair<AbstractGIAState, AbstractGIAState> pairTarget =
-            Pair.of(edge.getValue().getStateOfAutomaton1(), edge.getValue().getStateOfAutomaton2());
-        statesUsedForTransitions.putIfAbsent(pairTarget, edge.getValue());
+            Pair.of(successor.getStateOfAutomaton1(), successor.getStateOfAutomaton2());
+        statesUsedForTransitions.putIfAbsent(pairTarget, successor);
         GIACombinerState target = statesUsedForTransitions.get(pairTarget);
         CombinerTransition e = new CombinerTransition(source, edge.getKey(), target, edge.getKey().getScope());
         transitionsSeen.add(e);
-      }
+      }}
     }
     return transitionsSeen.stream().map(t -> t.toEdge()).collect(ImmutableSet.toImmutableSet());
   }

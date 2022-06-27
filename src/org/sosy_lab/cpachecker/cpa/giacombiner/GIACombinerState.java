@@ -8,8 +8,10 @@
 
 package org.sosy_lab.cpachecker.cpa.giacombiner;
 
+import com.google.common.collect.HashMultimap;
+import com.google.common.collect.Multimap;
 import java.io.Serializable;
-import java.util.HashMap;
+import java.util.Collection;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
@@ -26,30 +28,22 @@ public class GIACombinerState
 
   private final AbstractGIAState stateOfAutomaton1;
   private final AbstractGIAState stateOfAutomaton2;
-  private final Map<GIATransition, GIACombinerState> successors;
+  private final Multimap<GIATransition, GIACombinerState> successors;
 
   public GIACombinerState(
       AbstractGIAState pStateOfAutomaton1, AbstractGIAState pStateOfAutomaton2) {
     stateOfAutomaton1 = pStateOfAutomaton1;
     stateOfAutomaton2 = pStateOfAutomaton2;
-    successors = new HashMap<>();
+    successors = HashMultimap.create();
   }
 
-  public Map<GIATransition, GIACombinerState> getSuccessors() {
-    return successors;
+  public Map<GIATransition, Collection<GIACombinerState>> getSuccessors() {
+    return successors.asMap();
   }
 
   public void addSuccessor(GIATransition pTransition, GIACombinerState pSuccessor)
       throws CPATransferException {
-    if (this.successors.containsKey(pTransition)) {
-      if (!this.successors.get(pTransition).equals(pSuccessor)) {
-        throw new CPATransferException("Cannot have two transitions to different successors");
-      } else {
-        // nothing to do, as already contianed
-      }
-    } else {
-      successors.put(pTransition, pSuccessor);
-    }
+      successors.put(pTransition,pSuccessor);
   }
 
   @Override
@@ -59,12 +53,12 @@ public class GIACombinerState
         && Objects.equals(this.stateOfAutomaton2, other.stateOfAutomaton2)) {
       GIACombinerState newState = new GIACombinerState(stateOfAutomaton1, stateOfAutomaton2);
       for (Entry<GIATransition, GIACombinerState> automatonTransitionGIACombinerStateEntry :
-          successors.entrySet()) {
+          successors.entries()) {
         newState.addSuccessor(
             automatonTransitionGIACombinerStateEntry.getKey(),
             automatonTransitionGIACombinerStateEntry.getValue());
       }
-      for (Entry<GIATransition, GIACombinerState> e : other.successors.entrySet()) {
+      for (Entry<GIATransition, GIACombinerState> e : other.successors.entries()) {
         newState.addSuccessor(e.getKey(), e.getValue());
       }
     }
@@ -77,8 +71,7 @@ public class GIACombinerState
   public boolean isLessOrEqual(GIACombinerState other) throws CPAException, InterruptedException {
     return Objects.equals(this.stateOfAutomaton1, other.stateOfAutomaton1)
         && Objects.equals(this.stateOfAutomaton2, other.stateOfAutomaton2)
-        && this.successors.entrySet().stream()
-            .allMatch(e -> e.getValue().equals(other.successors.get(e.getKey())));
+        && other.successors.entries().containsAll(this.successors.entries());
   }
 
 
@@ -101,12 +94,13 @@ public class GIACombinerState
     if (this == pO) {
       return true;
     }
-    if (Objects.isNull(pO) || !(pO instanceof GIACombinerState)) {
+    if ( !(pO instanceof GIACombinerState)) {
       return false;
     }
     return Objects.equals(this.stateOfAutomaton1, ((GIACombinerState) pO).stateOfAutomaton1)
         && Objects.equals(this.stateOfAutomaton2, ((GIACombinerState) pO).stateOfAutomaton2)
-        && Objects.equals(this.successors, ((GIACombinerState) pO).successors);
+        && this.successors.entries().stream().allMatch(e ->((GIACombinerState) pO).successors.containsEntry(e.getKey(), e.getValue()))
+        && ((GIACombinerState) pO).successors.entries().stream().allMatch(e ->this.successors.containsEntry(e.getKey(), e.getValue()));
   }
 
   @Override
