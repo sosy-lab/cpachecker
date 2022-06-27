@@ -678,6 +678,9 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
         case '\n':
           sb.append("\\n");
           break;
+        case '\\':
+          sb.append("\\\\");
+          break;
         default:
           sb.append(c);
           break;

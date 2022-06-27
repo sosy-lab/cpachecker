@@ -105,8 +105,8 @@ public class GIACombinerTransferRelation extends SingleEdgeTransferRelation {
 
           Map<AutomatonTransition, AutomatonState> successorSecond =
               getSuccesor(secondState, cfaEdge);
-          if (successorSecond.isEmpty()) {
-            // Second has no trnasitions at this edge
+          if (successorSecond.isEmpty() ||  successorSecond.entrySet().stream().allMatch(t -> t.getKey().getTrigger() instanceof  MatchOtherwise)) {
+            // Second has no trnasitions at this edge or only an otherwise edge
             Set<GIACombinerState> successors = new HashSet<>();
             for (Entry<AutomatonTransition, AutomatonState> transition :
                 successorFirst.entrySet()) {
@@ -173,8 +173,8 @@ public class GIACombinerTransferRelation extends SingleEdgeTransferRelation {
 
           Map<AutomatonTransition, AutomatonState> successorFirst =
               getSuccesor(firstState, cfaEdge);
-          if (successorFirst.isEmpty()) {
-            // First has no transitions at this edge
+          if (successorFirst.isEmpty() ||    successorFirst.entrySet().stream().allMatch(t -> t.getKey().getTrigger() instanceof  MatchOtherwise)) {
+            // First has no transitions at this edge or only a self-loop
             Set<GIACombinerState> successors = new HashSet<>();
             for (Entry<AutomatonTransition, AutomatonState> transition :
                 successorSecond.entrySet()) {
