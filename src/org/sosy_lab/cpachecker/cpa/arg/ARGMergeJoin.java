@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.cpa.arg;
 
+import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import com.google.common.collect.ImmutableSet;
@@ -86,7 +87,11 @@ public class ARGMergeJoin implements MergeOperator {
     ARGState argElement1 = (ARGState) pElement1;
     ARGState argElement2 = (ARGState) pElement2;
 
-    assert !argElement1.isCovered() : "Trying to merge covered element " + argElement1;
+    checkArgument(!argElement1.isCovered(), "Trying to merge covered element %s", argElement1);
+    checkArgument(
+        argElement1.getChildren().isEmpty(),
+        "First parameter %s of merge operator unexpectedly already has children",
+        argElement1);
 
     if (!argElement2.mayCover()) {
       // elements that may not cover should also not be used for merge
