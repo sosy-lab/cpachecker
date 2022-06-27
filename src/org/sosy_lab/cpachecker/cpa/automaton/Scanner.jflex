@@ -156,6 +156,7 @@ DecIntegerLiteral = 0 | [1-9][0-9]*
 <YYINITIAL> "EXIT"              { return symbol("EXIT", AutomatonSym.EXIT); }
 <YYINITIAL> "ENTRY"             { return symbol("ENTRY", AutomatonSym.ENTRY); }
 <YYINITIAL> "FUNCTIONCALL"      { return symbol("FUNCTIONCALL", AutomatonSym.FUNCTIONCALL); }
+<YYINITIAL> "FUNCTIONEXIT"      { return symbol("FUNCTIONEXIT", AutomatonSym.FUNCTIONEXIT); }
 <YYINITIAL> "ASSUME"            { return symbol("ASSUME", AutomatonSym.ASSUME); }
 <YYINITIAL> "ASSERT"            { return symbol("ASSERT", AutomatonSym.ASSERT); }
 <YYINITIAL> "INVARIANT"            { return symbol("INVARIANT", AutomatonSym.INVARIANT); }

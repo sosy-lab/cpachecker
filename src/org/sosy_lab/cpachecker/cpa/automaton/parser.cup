@@ -191,7 +191,7 @@ parser code {:
 
 terminal EXCLAMATION, AND, OR, ARROW, SEMICOLON, COMMA, COLON, OPEN_BRACKETS,
     CLOSE_BRACKETS, AUTOMATON,OBSERVER, CONTROL, END, LOCAL, INITIAL, STATE,
-    ERROR, STOP, EXIT, ENTRY, FUNCTIONCALL, BREAK, ASSERT, ASSUME, INVARIANT, MATCH, OTHERWISE, LABEL, CHECK, EVAL,
+    ERROR, STOP, EXIT, ENTRY, FUNCTIONCALL, FUNCTIONEXIT, BREAK, ASSERT, ASSUME, INVARIANT, MATCH, OTHERWISE, LABEL, CHECK, EVAL,
     MODIFY, DO, PRINT, PRINTONCE, GOTO, IDENTIFIER, INTEGER_LITERAL, NEQ, EQ, EQEQ, PLUS,
     MINUS, TRUE, FALSE, STRING_LITERAL, CURLYEXPR, SQUAREEXPR, USEALL, USEFIRST,
     TARGET, NON_TARGET, UNKNOWN, IS_TARGET_STATE, COVERS_LINES, OPEN_ANGLE_BRACKETS, CLOSE_ANGLE_BRACKETS ;
@@ -417,6 +417,8 @@ Bool      ::= TRUE  {: RESULT = AutomatonBoolExpr.TRUE; :}
               {: RESULT = AutomatonBoolExpr.MatchProgramEntry.INSTANCE; :}
             | MATCH FUNCTIONCALL STRING_LITERAL:functionname
               {: RESULT = new AutomatonBoolExpr.MatchFunctionCall(functionname.toString()); :}
+            | MATCH FUNCTIONEXIT STRING_LITERAL:functionname
+              {: RESULT = new AutomatonBoolExpr.MatchFunctionExit(functionname.toString()); :}
             | MATCH OTHERWISE
               {: RESULT = new  AutomatonBoolExpr.MatchOtherwise(); :}
 /*next statement is deprecated*/ 

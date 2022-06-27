@@ -33,6 +33,7 @@ import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
+import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.trace_formula.TraceFormula.PostCondition;
 import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.trace_formula.TraceFormula.PreCondition;
@@ -87,8 +88,7 @@ public class GIAARGGenerator {
         s -> ARGUtils.tryGetOrCreateCounterexampleInformation(s, cpa, assumptionToEdgeAllocator);
   }
 
-  int produceGIA4ARG(
-      Appendable pOutput, UnmodifiableReachedSet pReached)
+  int produceGIA4ARG(Appendable pOutput, UnmodifiableReachedSet pReached)
       throws IOException, InterruptedException {
     final AbstractState firstState = pReached.getFirstState();
     if (!(firstState instanceof ARGState)) {
@@ -247,8 +247,7 @@ public class GIAARGGenerator {
     //    relevantEdges.addAll(toAdd);
     GIAWriter<ARGState> writer = new GIAWriter<>();
     return writer.writeGIA(
-        pOutput, pArgRoot, relevantEdges, targetStates, nonTargetStates, unknownStates
-    );
+        pOutput, pArgRoot, relevantEdges, targetStates, nonTargetStates, unknownStates);
   }
 
   // TODO: Addept implementation
@@ -709,34 +708,35 @@ public class GIAARGGenerator {
   //    }
   //    return edges;
   //  }
-//
-//  private Optional<String> getAssumptionForEdge(
-//      ARGState pS, CFAEdge pEdgeToNextState, Multimap<ARGState, CFAEdgeWithAssumptions> pValueMap) {
-//    if (pValueMap.get(pS).stream().anyMatch(e -> e.getCFAEdge().equals(pEdgeToNextState))) {
-//      CFAEdgeWithAssumptions ass =
-//          pValueMap.get(pS).stream()
-//              .filter(e -> e.getCFAEdge().equals(pEdgeToNextState))
-//              .findFirst()
-//              .orElseThrow();
-//      return Optional.of(ass.getAsCode());
-//    }
-//    return Optional.empty();
-//  }
-//
-//  private BiPredicate<ARGState, ARGState> getRelevantEdges(Set<ARGState> pFinalStates) {
-//    Set<Pair<ARGState, ARGState>> relevantEdges = new HashSet<>();
-//    for (ARGState finalState : pFinalStates) {
-//      ImmutableSet<ARGState> nodes = ARGUtils.getAllStatesOnPathsTo(finalState);
-//      for (ARGState node : nodes) {
-//        for (ARGState successors : node.getChildren()) {
-//          if (nodes.contains(successors)) {
-//            relevantEdges.add(Pair.of(node, successors));
-//          }
-//        }
-//      }
-//    }
-//    return BiPredicates.pairIn(relevantEdges);
-//  }
+  //
+  //  private Optional<String> getAssumptionForEdge(
+  //      ARGState pS, CFAEdge pEdgeToNextState, Multimap<ARGState, CFAEdgeWithAssumptions>
+  // pValueMap) {
+  //    if (pValueMap.get(pS).stream().anyMatch(e -> e.getCFAEdge().equals(pEdgeToNextState))) {
+  //      CFAEdgeWithAssumptions ass =
+  //          pValueMap.get(pS).stream()
+  //              .filter(e -> e.getCFAEdge().equals(pEdgeToNextState))
+  //              .findFirst()
+  //              .orElseThrow();
+  //      return Optional.of(ass.getAsCode());
+  //    }
+  //    return Optional.empty();
+  //  }
+  //
+  //  private BiPredicate<ARGState, ARGState> getRelevantEdges(Set<ARGState> pFinalStates) {
+  //    Set<Pair<ARGState, ARGState>> relevantEdges = new HashSet<>();
+  //    for (ARGState finalState : pFinalStates) {
+  //      ImmutableSet<ARGState> nodes = ARGUtils.getAllStatesOnPathsTo(finalState);
+  //      for (ARGState node : nodes) {
+  //        for (ARGState successors : node.getChildren()) {
+  //          if (nodes.contains(successors)) {
+  //            relevantEdges.add(Pair.of(node, successors));
+  //          }
+  //        }
+  //      }
+  //    }
+  //    return BiPredicates.pairIn(relevantEdges);
+  //  }
 
   /**
    * Compute all non.target states: States that (1) are explored, (2) are not covered, (3) do not
@@ -839,7 +839,8 @@ public class GIAARGGenerator {
           edgesToAdd.remove(edge);
           if (edge.getTarget().isPresent())
             edgesToAdd.add(
-                new GIAARGStateEdge<>(pCurrentState, edge.getTarget().orElseThrow(), edge.getEdge()));
+                new GIAARGStateEdge<>(
+                    pCurrentState, edge.getTarget().orElseThrow(), edge.getEdge()));
         }
         if (!edgesToAdd.isEmpty()) {
           pRelevantEdges.addAll(edgesToAdd);
@@ -903,8 +904,9 @@ public class GIAARGGenerator {
    * 2. The child is the direct successor of the parent and the edge is an assumeEdge or function
    * call edge <br>
    * 3. The child is a final state <br>
-   * 4 Alternative: The child is a {@link FunctionCallEdge}<br>
-   * 5. The child node is a final state or has a grandchild node that is a final state <br>
+   * 4 Alternative: The child is a {@link FunctionCallEdge} or {@link
+   * org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge}<br>
+   * 5. The child node is a final state <br>
    * 6. It contains an assumption 7. It contians an interpolant
    *
    * @param pChild the child
@@ -943,14 +945,17 @@ public class GIAARGGenerator {
     // Case 3:
     boolean case3 = pFinalStates.contains(pChild);
     // Case 4:
-    boolean case4 = pathToChild.get(pathToChild.size() - 1) instanceof FunctionCallEdge;
+    boolean case4 =
+        pathToChild.get(pathToChild.size() - 1) instanceof FunctionCallEdge
+            || pathToChild.get(pathToChild.size() - 1) instanceof FunctionReturnEdge;
     // This is an old option!
     //        lastEdge instanceof BlankEdge
     //            &&
     // lastEdge.getDescription().contains(GIAGenerator.DESC_OF_DUMMY_FUNC_START_EDGE));
     // Case 5:
     boolean case5a = pFinalStates.contains(pChild);
-    boolean case5b = pChild.getChildren().stream().anyMatch(gc -> pFinalStates.contains(gc));
+    //    boolean case5b = false;
+    //    boolean case5b = pChild.getChildren().stream().anyMatch(gc -> pFinalStates.contains(gc));
 
     boolean case6 =
         pEdgesWithAssumptions.values().stream().anyMatch(e -> e.getCFAEdge().equals(lastEdge));
@@ -965,20 +970,20 @@ public class GIAARGGenerator {
       } else {
         return Optional.of(Pair.of(lastEdge, Optional.empty()));
       }
-    } else if (case5b) {
-      // If case 5 applies, we want to return the error state
-      if (!canReachFinalState(pChild, pFinalStates)) {
-        return Optional.of(Pair.of(lastEdge, Optional.empty()));
-      } else {
-        return Optional.of(
-            Pair.of(
-                lastEdge,
-                Optional.of(
-                    pChild.getChildren().stream()
-                        .filter(gc -> pFinalStates.contains(gc))
-                        .findFirst()
-                        .orElseThrow())));
-      }
+      //    } else if (case5b) {
+      //      // If case 5 applies, we want to return the error state
+      //      if (!canReachFinalState(pChild, pFinalStates)) {
+      //        return Optional.of(Pair.of(lastEdge, Optional.empty()));
+      //      } else {
+      //        return Optional.of(
+      //            Pair.of(
+      //                lastEdge,
+      //                Optional.of(
+      //                    pChild.getChildren().stream()
+      //                        .filter(gc -> pFinalStates.contains(gc))
+      //                        .findFirst()
+      //                        .orElseThrow())));
+      //      }
     }
 
     return Optional.empty();
@@ -1180,8 +1185,6 @@ public class GIAARGGenerator {
   //    return numProducedStates;
   //  }
 
-
-
   private Set<ARGState> getAllTargetStates(UnmodifiableReachedSet pReached) {
     Set<ARGState> targetStates = new HashSet<>();
     for (ARGState errorState :
@@ -1202,7 +1205,4 @@ public class GIAARGGenerator {
 
     return targetStates;
   }
-
-
-
-  }
+}

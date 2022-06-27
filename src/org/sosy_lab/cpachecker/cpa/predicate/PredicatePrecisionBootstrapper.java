@@ -372,6 +372,7 @@ public class PredicatePrecisionBootstrapper implements StatisticsProvider {
               + "They are present, but are not correctly loaded");
     }
 
+    logger.log(Level.INFO, String.format("The invariants loaded are %s", pResult.getGlobalPredicates() ));
     return pResult;
   }
 

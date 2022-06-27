@@ -27,6 +27,7 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
+import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.AssumptionCollectorAlgorithm;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -329,6 +330,9 @@ public class GIAGenerator {
     } else if (pEdge instanceof FunctionCallEdge) {
       final String funcName = pEdge.getSuccessor().getFunction().getOrigName();
       return String.format("FUNCTIONCALL \"%s\"", funcName);
+    }else if (pEdge instanceof FunctionReturnEdge) {
+      final String funcName = pEdge.getPredecessor().getFunction().getOrigName();
+      return String.format("FUNCTIONEXIT \"%s\"", funcName);
     }
 
     return String.format("\"%s\"", AssumptionCollectorAlgorithm.escape(pEdge.getRawStatement()));
