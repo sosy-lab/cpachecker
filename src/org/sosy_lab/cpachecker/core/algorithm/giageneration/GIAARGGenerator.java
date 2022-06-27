@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.core.algorithm.giageneration;
 
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.FluentIterable;
+import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
@@ -30,6 +31,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.logging.Level;
+import java.util.stream.Collectors;
 import javax.annotation.Nonnull;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.ShutdownNotifier;
@@ -129,6 +131,32 @@ public class GIAARGGenerator {
 
     logger.log(Level.INFO, "Starting generation of GIA");
 
+
+    /**
+     * now we compute all states that needs to be merged. Two states will be merged if: (1) They
+     * have the same child and the child has both as states as parents<br>
+     * (2) The edges between them is a blank edge with file Location "none"
+     */
+    HashMultimap<ARGState, ARGState> statesToMerge = HashMultimap.create();
+    pReached.asCollection().stream()
+        .map(as -> AbstractStates.extractStateByType(as, ARGState.class))
+        .filter(as -> as != null)
+        .filter(as -> as.getParents().size() == 2)
+        .filter(
+            as -> {
+              @Nullable CFANode node = AbstractStates.extractLocation(as);
+              return node != null
+                  && CFAUtils.enteringEdges(node).size() == 2
+                  && CFAUtils.enteringEdges(node)
+                      .allMatch(
+                          edge ->
+                              edge instanceof BlankEdge
+                                  && edge.getRawStatement().isEmpty()
+                                  && edge.getFileLocation().toString().equals("none"));
+            })
+        .forEach(as -> as.getParents().forEach(p -> statesToMerge.put(as, p)));
+    Set<Set<ARGState>> statesThatAreEqual = buildEquivaenceClasses(statesToMerge);
+
     final ARGState pArgRoot = (ARGState) pReached.getFirstState();
 
     // Compute all target states: States marked as target
@@ -186,7 +214,7 @@ public class GIAARGGenerator {
         }
       }
     }
-
+    relevantEdges = mergeStates(relevantEdges, statesThatAreEqual);
     logger.log(
         logLevel,
         relevantEdges.stream().map(e -> e.toString()).collect(ImmutableList.toImmutableList()));
@@ -221,6 +249,93 @@ public class GIAARGGenerator {
 
     return writer.writeGIA(
         pOutput, pArgRoot, relevantEdges, targetStates, nonTargetStates, unknownStates);
+  }
+
+  private Set<GIAARGStateEdge<ARGState>> mergeStates(Set<GIAARGStateEdge<ARGState>> pRelevantEdges, Set<Set<ARGState>> pStatesThatAreEqual)
+      throws CPAException {
+    for (Set<ARGState> toMerge : pStatesThatAreEqual){
+      if (toMerge.size() > 1){
+        ARGState keep = toMerge.stream().findFirst().orElseThrow();
+        ImmutableSet<ARGState> statesToReplace =
+            toMerge.stream().filter(s -> !s.equals(keep)).collect(ImmutableSet.toImmutableSet());
+        for (ARGState toReplace : statesToReplace){
+          for (GIAARGStateEdge<ARGState> edge : pRelevantEdges){
+            if (edge.getSource().equals(toReplace)){
+              edge.setSource(keep);
+            }if (edge.getTarget().isPresent() && edge.getTarget().orElseThrow().equals(toReplace)){
+              edge.setTarget(keep);
+            }
+          }
+        }
+      }else{
+        throw new CPAException(String.format("the merging of states failed, as %s does contain at most one state",toMerge ));
+      }
+    }
+    return pRelevantEdges.stream().distinct().collect(Collectors.toUnmodifiableSet());
+  }
+
+  private Set<Set<ARGState>> buildEquivaenceClasses(HashMultimap<ARGState, ARGState> pStatesToMerge)
+      throws CPAException {
+
+    Set<Set<ARGState>> res = new HashSet<>();
+    Set<ARGState> keysToProcess = new HashSet<>(pStatesToMerge.keySet());
+    while (!keysToProcess.isEmpty()) {
+      ARGState currentKey = keysToProcess.stream().findFirst().orElseThrow();
+      res.add(handleCurrentState(currentKey, pStatesToMerge, keysToProcess, true));
+    }
+    return res;
+  }
+
+  /**
+   * @param pCurrentKey the current key
+   * @param pStatesToMerge the set
+   * @param pKeysToProcess the processed keys
+   * @param pNotCheckForParents true if we want to search backwards, false if we do not want to
+   *     search backwards anymore!
+   * @return the computed set
+   * @throws CPAException if an unhandled case occurs
+   */
+  private Set<ARGState> handleCurrentState(
+      ARGState pCurrentKey,
+      HashMultimap<ARGState, ARGState> pStatesToMerge,
+      Set<ARGState> pKeysToProcess,
+      boolean pNotCheckForParents)
+      throws CPAException {
+    if (!pStatesToMerge.containsKey(pCurrentKey)) {
+      return Sets.newHashSet(pCurrentKey);
+    }
+    Set<Entry<ARGState, ARGState>> keysPointingToCurrentKey = new HashSet<>();
+    if (pNotCheckForParents) {
+      keysPointingToCurrentKey =
+          pStatesToMerge.entries().stream()
+              .filter(ent -> ent.getValue().equals(pCurrentKey))
+              .collect(ImmutableSet.toImmutableSet());
+    }
+    if (keysPointingToCurrentKey.isEmpty()) {
+      // we found a node from which we can start merging
+      pKeysToProcess.remove(pCurrentKey);
+      // check if the target nodes also will be merged and compute the set for merged states for
+      // these
+      Set<ARGState> acc = new HashSet<>();
+      for (ARGState val : pStatesToMerge.get(pCurrentKey)) {
+        Set<ARGState> argStates = handleCurrentState(val, pStatesToMerge, pKeysToProcess, false);
+        acc = Sets.union(acc, argStates);
+      }
+      return acc;
+    } else if (keysPointingToCurrentKey.size() == 1) {
+      // we are not at the point where we can merge, hence restart with the parent of the current
+      // node (the one the current will be merged with
+      return handleCurrentState(
+          keysPointingToCurrentKey.stream().findFirst().orElseThrow().getKey(),
+          pStatesToMerge,
+          pKeysToProcess,
+          pNotCheckForParents);
+    } else {
+      throw new CPAException(
+          String.format(
+              "Dont know how multiple succesor states while merging for %s, hence aborting",
+              pCurrentKey.toString()));
+    }
   }
 
   private Set<GIAARGStateEdge<ARGState>> merge(
@@ -416,8 +531,7 @@ public class GIAARGGenerator {
                     .map(a -> Integer.toString(a.getStateId()))
                     .collect(ImmutableList.toImmutableList())));
 
-    Set<ARGState> statesReachingFinalState =
-        computeSetOfTargetReachingStates(finalStates);
+    Set<ARGState> statesReachingFinalState = computeSetOfTargetReachingStates(finalStates);
 
     while (!toProcess.isEmpty()) {
       ARGState state = toProcess.stream().findFirst().orElseThrow();
@@ -481,8 +595,7 @@ public class GIAARGGenerator {
     return relevantEdges;
   }
 
-  private Set<ARGState> computeSetOfTargetReachingStates(
-      Set<ARGState> pFinalStates) {
+  private Set<ARGState> computeSetOfTargetReachingStates(Set<ARGState> pFinalStates) {
     Set<ARGState> processed = new HashSet<>(pFinalStates);
     Set<ARGState> targetReachingStates = new HashSet<>(processed);
     Set<ARGState> toProcess = new LinkedHashSet<>(targetReachingStates);
@@ -1421,7 +1534,8 @@ public class GIAARGGenerator {
    * @param pEdgesWithAssumptions additional assumptinos for precise CEs
    * @param pStatesWithInterpolant the set of states with interpolants assigned to
    * @param pStatesWithAssumption the set of states with assumption
-   * @param pStatesReachingFinalState the set of arg states reaching a target node (computed in advance for efficiency)
+   * @param pStatesReachingFinalState the set of arg states reaching a target node (computed in
+   *     advance for efficiency)
    * @return the last edge on the path from parent to child, if the edge is relevant, otherwise an
    *     empty optional and the final node to use for the edge
    */
