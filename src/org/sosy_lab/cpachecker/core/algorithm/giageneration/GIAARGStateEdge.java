@@ -22,6 +22,7 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.arg.witnessexport.WitnessFactory;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonBoolExpr.MatchOtherwise;
 import org.sosy_lab.cpachecker.cpa.giacombiner.GIATransition;
+import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTreeFactory;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
@@ -172,10 +173,10 @@ public class GIAARGStateEdge<T extends AbstractState> {
     return target;
   }
 
-  public String getStringOfAssumption(Optional<T> pState) throws IOException, InterruptedException {
+  public String getStringOfAssumption(Optional<T> pState, CFAEdge pEdge) throws IOException, InterruptedException {
     if (!this.assumptions.isEmpty() && pState.isPresent()) {
       StringBuilder sb = new StringBuilder();
-      sb.append("ASSUME {");
+      sb.append(String.format("ASSUME SCOPE %s {", pEdge.getPredecessor().getFunctionName()));
       AssumptionCollectorAlgorithm.escape(
           WitnessFactory.getAssumptionAsCode(
               ExpressionTrees.newFactory().and(this.assumptions), Optional.empty()),
@@ -186,16 +187,16 @@ public class GIAARGStateEdge<T extends AbstractState> {
     return "";
   }
 
-  public String getStringOfAssumption(Optional<T> pState, String pAdditionalAssumption)
+  public String getStringOfAssumption(Optional<T> pState, String pAdditionalAssumption, CFAEdge pEdge)
       throws IOException, InterruptedException {
     if (!this.assumptions.isEmpty() && pState.isPresent()) {
       StringBuilder sb = new StringBuilder();
-      sb.append("ASSUME {");
+      sb.append(String.format("ASSUME SCOPE %s {", pEdge.getPredecessor().getFunctionName()));
       AssumptionCollectorAlgorithm.escape(
           WitnessFactory.getAssumptionAsCode(
               ExpressionTrees.newFactory().and(this.assumptions), Optional.empty()),
           sb);
-      sb.append(";" + pAdditionalAssumption);
+      sb.append(";").append(pAdditionalAssumption);
       sb.append("} ");
       return sb.toString();
     }
@@ -253,9 +254,9 @@ public class GIAARGStateEdge<T extends AbstractState> {
       sb.append(GIAGenerator.getEdgeString(this.getEdge()));
       sb.append(" -> ");
       if (additionalAssumption.isPresent()) {
-        sb.append(getStringOfAssumption(getTarget(), additionalAssumption.orElseThrow()));
+        sb.append(getStringOfAssumption(getTarget(), additionalAssumption.orElseThrow(), edge));
       } else {
-        sb.append(getStringOfAssumption(getTarget()));
+        sb.append(getStringOfAssumption(getTarget(),edge));
       }
       sb.append(
           String.format("GOTO %s", getTargetName(pTargetStates, pNonTargetStates, pUnknownStates, pStopAtUnknownStates)));
@@ -273,13 +274,13 @@ public class GIAARGStateEdge<T extends AbstractState> {
         for (AExpression c : transition.getAssumptions()) {
           newAssumptions = fac.and(newAssumptions, fac.leaf(c));
         }
-        sb.append("ASSUME {");
+        sb.append(String.format("ASSUME SCOPE %s{", edge.getPredecessor().getFunctionName()));
         AssumptionCollectorAlgorithm.escape(
             WitnessFactory.getAssumptionAsCode(
                 ExpressionTrees.cast(newAssumptions), Optional.empty()),
             sb);
         if (additionalAssumption.isPresent()) {
-          sb.append(";" + this.additionalAssumption.orElseThrow());
+          sb.append(";").append(this.additionalAssumption.orElseThrow());
         }
         sb.append("} ");
       }
