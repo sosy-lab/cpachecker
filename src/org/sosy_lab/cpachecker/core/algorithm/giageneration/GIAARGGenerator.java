@@ -81,7 +81,6 @@ import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
 import org.sosy_lab.cpachecker.util.faultlocalization.Fault;
 import org.sosy_lab.cpachecker.util.faultlocalization.FaultLocalizationInfo;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
-import org.sosy_lab.java_smt.api.BooleanFormula;
 
 public class GIAARGGenerator {
 
@@ -153,10 +152,10 @@ public class GIAARGGenerator {
       targetStates = new HashSet<>();
     }
 
-
     Map<ARGState, Set<CFAEdge>> coveredGoals = new HashMap<>();
-    if (options.generateGIAForTesttargets()){
-      coveredGoals = computeCoveredGoals(pReached);}
+    if (options.generateGIAForTesttargets()) {
+      coveredGoals = computeCoveredGoals(pReached);
+    }
 
     Set<GIAARGStateEdge<ARGState>> relevantEdges =
         getGiaargStateEdges(
@@ -265,6 +264,7 @@ public class GIAARGGenerator {
       StateSpacePartition partition = StateSpacePartition.getDefaultPartition();
 
       ReachedSet reachedSet = reachedSetFactory.createAndInitialize(localCPA, rootNode, partition);
+      //noinspection ResultOfMethodCallIgnored
       algorithm.run(reachedSet);
       return reachedSet;
     } catch (InterruptedException | InvalidConfigurationException | CPAException pE) {
@@ -407,7 +407,6 @@ public class GIAARGGenerator {
     toProcess.add(pArgRoot);
     Set<ARGState> processed = new HashSet<>();
 
-
     logger.log(
         logLevel,
         "Final states found are "
@@ -416,6 +415,9 @@ public class GIAARGGenerator {
                 finalStates.stream()
                     .map(a -> Integer.toString(a.getStateId()))
                     .collect(ImmutableList.toImmutableList())));
+
+    Set<ARGState> statesReachingFinalState =
+        computeSetOfTargetReachingStates(finalStates);
 
     while (!toProcess.isEmpty()) {
       ARGState state = toProcess.stream().findFirst().orElseThrow();
@@ -437,8 +439,8 @@ public class GIAARGGenerator {
             processed,
             edgesWithAssumptions,
             statesWithInterpolant,
-            statesWithAssumption
-        );
+            statesWithAssumption,
+            statesReachingFinalState);
       }
       processed.add(state);
     }
@@ -479,6 +481,25 @@ public class GIAARGGenerator {
     return relevantEdges;
   }
 
+  private Set<ARGState> computeSetOfTargetReachingStates(
+      Set<ARGState> pFinalStates) {
+    Set<ARGState> processed = new HashSet<>(pFinalStates);
+    Set<ARGState> targetReachingStates = new HashSet<>(processed);
+    Set<ARGState> toProcess = new LinkedHashSet<>(targetReachingStates);
+    while (!toProcess.isEmpty()) {
+      ARGState current = toProcess.stream().findFirst().orElseThrow();
+      toProcess.remove(current);
+      ImmutableSet<ARGState> toProcessNext =
+          current.getParents().stream()
+              .filter(p -> !processed.contains(p))
+              .collect(ImmutableSet.toImmutableSet());
+      toProcess.addAll(toProcessNext);
+      processed.add(current);
+      targetReachingStates.addAll(current.getParents());
+    }
+    return targetReachingStates;
+  }
+
   private Set<GIAARGStateEdge<ARGState>> addMissingAssumeEdges(
       Set<GIAARGStateEdge<ARGState>> pRelevantEdges) {
     Map<ARGState, List<GIAARGStateEdge<ARGState>>> nodesToEdges = new HashMap<>();
@@ -511,9 +532,11 @@ public class GIAARGGenerator {
   private Map<ARGState, Set<CFAEdge>> computeCoveredGoals(UnmodifiableReachedSet pReached) {
     // Compute all covered goals for the Abstract states
     Map<ARGState, Set<CFAEdge>> stateToCoveredGoals = new HashMap<>();
-    List<AbstractState> toProcess = new ArrayList<>(pReached.asCollection());
+    LinkedHashSet<AbstractState> toProcess = new LinkedHashSet<>(pReached.asCollection());
     while (!toProcess.isEmpty()) {
-      ARGState current = AbstractStates.extractStateByType(toProcess.remove(0), ARGState.class);
+      AbstractState state = toProcess.stream().findFirst().orElseThrow();
+      toProcess.remove(state);
+      ARGState current = AbstractStates.extractStateByType(state, ARGState.class);
       if (current == null) {
         return new HashMap<>();
       }
@@ -675,8 +698,7 @@ public class GIAARGGenerator {
       LoopStructure pLoopStrc, CFANode pSuccessor) {
     Loop outerLoop = null;
     for (Loop current : pLoopStrc.getAllLoops()) {
-      if (current.getOutgoingEdges().stream()
-          .anyMatch(e -> e.getSuccessor().equals(pSuccessor))){
+      if (current.getOutgoingEdges().stream().anyMatch(e -> e.getSuccessor().equals(pSuccessor))) {
         if (outerLoop == null) {
           outerLoop = current;
         } else if (current.isOuterLoopOf(outerLoop)) {
@@ -1193,7 +1215,12 @@ public class GIAARGGenerator {
     return pReached.stream()
         .map(as -> AbstractStates.extractStateByType(as, ARGState.class))
         .filter(
-            s -> s != null &&  !s.isTarget() && s.wasExpanded() && !s.isCovered() && s.getChildren().isEmpty())
+            s ->
+                s != null
+                    && !s.isTarget()
+                    && s.wasExpanded()
+                    && !s.isCovered()
+                    && s.getChildren().isEmpty())
         .collect(ImmutableSet.toImmutableSet());
   }
 
@@ -1210,6 +1237,8 @@ public class GIAARGGenerator {
    * @param pEdgesWithAssumptions the assumptions from the preicse ce
    * @param pStatesWithInterpolant the states that contain a non-trivial interpolation and are thus
    * @param pStatesWithAssumption states with assumptions
+   * @param pStatesReachingFinalState states reaching a final state (more efficient to compute once
+   *     in advance
    */
   private void addAllRelevantEdges(
       ARGState pCurrentState,
@@ -1220,7 +1249,8 @@ public class GIAARGGenerator {
       Set<ARGState> pProcessed,
       Multimap<ARGState, CFAEdgeWithAssumptions> pEdgesWithAssumptions,
       ImmutableSet<ARGState> pStatesWithInterpolant,
-      ImmutableSet<ARGState> pStatesWithAssumption)
+      ImmutableSet<ARGState> pStatesWithAssumption,
+      Set<ARGState> pStatesReachingFinalState)
       throws InterruptedException {
 
     // Check, if the pChild is relevant
@@ -1231,7 +1261,8 @@ public class GIAARGGenerator {
             pFinalStates,
             pEdgesWithAssumptions,
             pStatesWithInterpolant,
-            pStatesWithAssumption);
+            pStatesWithAssumption,
+            pStatesReachingFinalState);
     boolean edgesAdded = false;
     if (relevantEdge.isPresent()) {
       // now, create a new edge.
@@ -1325,8 +1356,8 @@ public class GIAARGGenerator {
               pProcessed,
               pEdgesWithAssumptions,
               pStatesWithInterpolant,
-              pStatesWithAssumption
-          );
+              pStatesWithAssumption,
+              pStatesReachingFinalState);
         } else {
           // Add an edge to qtemp if needed
           Optional<GIAARGStateEdge<ARGState>> additionalEdgeToQtemp =
@@ -1336,8 +1367,8 @@ public class GIAARGGenerator {
                   pFinalStates,
                   pEdgesWithAssumptions,
                   pStatesWithInterpolant,
-                  pStatesWithAssumption
-              );
+                  pStatesWithAssumption,
+                  pStatesReachingFinalState);
           if (additionalEdgeToQtemp.isPresent()) {
             pRelevantEdges.add(additionalEdgeToQtemp.orElseThrow());
           }
@@ -1390,6 +1421,7 @@ public class GIAARGGenerator {
    * @param pEdgesWithAssumptions additional assumptinos for precise CEs
    * @param pStatesWithInterpolant the set of states with interpolants assigned to
    * @param pStatesWithAssumption the set of states with assumption
+   * @param pStatesReachingFinalState the set of arg states reaching a target node (computed in advance for efficiency)
    * @return the last edge on the path from parent to child, if the edge is relevant, otherwise an
    *     empty optional and the final node to use for the edge
    */
@@ -1399,7 +1431,8 @@ public class GIAARGGenerator {
       Set<ARGState> pFinalStates,
       Multimap<ARGState, CFAEdgeWithAssumptions> pEdgesWithAssumptions,
       ImmutableSet<ARGState> pStatesWithInterpolant,
-      ImmutableSet<ARGState> pStatesWithAssumption) {
+      ImmutableSet<ARGState> pStatesWithAssumption,
+      Set<ARGState> pStatesReachingFinalState) {
     List<CFAEdge> pathToChild = pParent.getFirstPathToChild(pChild);
 
     // CAse 1 is irrelevant
@@ -1444,7 +1477,7 @@ public class GIAARGGenerator {
     // and let the edge goto the qTemp State (as not relevant for the path)
     // If it can reach the error state, add the edge and the child to the toProcess
     if (case2 || case3 || case4 || case6 || case7) {
-      if (case7 || canReachFinalState(pChild, pFinalStates)) {
+      if (case7 || pStatesReachingFinalState.contains(pChild)) {
         return Optional.of(Pair.of(lastEdge, Optional.of(pChild)));
       } else {
         return Optional.of(Pair.of(lastEdge, Optional.empty()));
@@ -1474,7 +1507,8 @@ public class GIAARGGenerator {
       Set<ARGState> pTargetStates,
       Multimap<ARGState, CFAEdgeWithAssumptions> pEdgesWithAssumptions,
       ImmutableSet<ARGState> pStatesWithInterpolant,
-      ImmutableSet<ARGState> pStatesWithAssumption) {
+      ImmutableSet<ARGState> pStatesWithAssumption,
+      Set<ARGState> pStatesReachingFinalState) {
     Optional<Pair<CFAEdge, Optional<ARGState>>> relevantEdge =
         gedEdgeIfIsRelevant(
             pGrandChild,
@@ -1482,7 +1516,8 @@ public class GIAARGGenerator {
             pTargetStates,
             pEdgesWithAssumptions,
             pStatesWithInterpolant,
-            pStatesWithAssumption);
+            pStatesWithAssumption,
+            pStatesReachingFinalState);
     if (relevantEdge.isPresent()) {
       return Optional.of(new GIAARGStateEdge<>(pParent, relevantEdge.orElseThrow().getFirst()));
     } else {
@@ -1494,28 +1529,6 @@ public class GIAARGGenerator {
     return pCFAEdge instanceof FunctionCallEdge
         || (pCFAEdge instanceof BlankEdge
             && pCFAEdge.getDescription().contains(GIAGenerator.DESC_OF_DUMMY_FUNC_START_EDGE));
-  }
-
-  /**
-   * Return true, if there is a children state that is the a final state
-   *
-   * @param pState the state to check the children for
-   * @param pFinalStates the set of final states
-   * @return Return true, if there is a children state that is the a final state
-   */
-  private boolean canReachFinalState(ARGState pState, Set<ARGState> pFinalStates) {
-    if (pFinalStates.contains(pState)) return true;
-    for (ARGState child : pState.getChildren()) {
-      if (pFinalStates.contains(child)) return true;
-      else {
-        if (canReachFinalState(child, pFinalStates)) {
-          return true;
-        } else {
-          continue;
-        }
-      }
-    }
-    return false;
   }
 
   //  private int produceGIA4WitnessTransformation(
