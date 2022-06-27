@@ -11,9 +11,7 @@ package org.sosy_lab.cpachecker.core.algorithm.giageneration;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.ListMultimap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Multimaps;
@@ -32,9 +30,11 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
@@ -53,6 +53,8 @@ import org.sosy_lab.cpachecker.cpa.arg.witnessexport.WitnessAssumptionFilter;
 import org.sosy_lab.cpachecker.cpa.assumptions.storage.AssumptionStorageState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.util.AbstractStates;
+import org.sosy_lab.cpachecker.util.LoopStructure;
+import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
@@ -69,13 +71,15 @@ public class GIAARGGenerator {
   private final Configuration config;
   private final ConfigurableProgramAnalysis cpa;
   private final FormulaManagerView formulaManager;
+  private final Level logLevel = Level.INFO;
 
   private final Function<ARGState, Optional<CounterexampleInfo>> getCounterexampleInfo;
+  private final CFA cfa;
 
   public GIAARGGenerator(
       LogManager pLogger,
       GIAGeneratorOptions pOptions,
-      MachineModel pMachineModel,
+      CFA pCfa,
       ConfigurableProgramAnalysis pCpa,
       Configuration pConfig,
       FormulaManagerView pFormulaManager)
@@ -83,7 +87,8 @@ public class GIAARGGenerator {
 
     this.logger = pLogger;
     this.optinons = pOptions;
-    this.machineModel = pMachineModel;
+    this.machineModel = pCfa.getMachineModel();
+    this.cfa = pCfa;
     this.cpa = pCpa;
     this.config = pConfig;
     this.formulaManager = pFormulaManager;
@@ -158,7 +163,7 @@ public class GIAARGGenerator {
     }
 
     // Get all states that have some assumptions
-    ImmutableSet<ARGState>   statesWithAssumption =
+    ImmutableSet<ARGState> statesWithAssumption =
         pReached.asCollection().stream()
             .filter(
                 s -> {
@@ -204,7 +209,7 @@ public class GIAARGGenerator {
     List<ARGState> processed = new ArrayList<>();
 
     logger.log(
-        Level.FINE,
+        logLevel,
         "Final states found are "
             + String.join(
                 ",",
@@ -215,7 +220,7 @@ public class GIAARGGenerator {
     while (!toProcess.isEmpty()) {
       ARGState state = toProcess.remove(0);
       logger.logf(
-          Level.FINE,
+          logLevel,
           "Taking %s from the list, processed %s, toProcess %s",
           state.getStateId(),
           processed.stream().map(a -> a.getStateId()).collect(ImmutableList.toImmutableList()),
@@ -236,8 +241,11 @@ public class GIAARGGenerator {
       }
       processed.add(state);
     }
+
+    relevantEdges = updateForBreakEdges(relevantEdges);
+
     logger.log(
-        Level.FINE,
+        logLevel,
         relevantEdges.stream().map(e -> e.toString()).collect(ImmutableList.toImmutableList()));
 
     // Now, a short cleaning is applied:
@@ -269,6 +277,100 @@ public class GIAARGGenerator {
     GIAWriter<ARGState> writer = new GIAWriter<>();
     return writer.writeGIA(
         pOutput, pArgRoot, relevantEdges, targetStates, nonTargetStates, unknownStates);
+  }
+
+  /**
+   * If there are break edges present, simplify the GIA as follows: The edge of the break should
+   * lead directly to the else branch of the loop head. This is any other ARG state with same
+   * location but different from the current break target state
+   */
+  private Set<GIAARGStateEdge<ARGState>> updateForBreakEdges(
+      Set<GIAARGStateEdge<ARGState>> pRelevantEdges) {
+    if (cfa.getLoopStructure().isEmpty()) return pRelevantEdges;
+    for (GIAARGStateEdge<ARGState> edge : pRelevantEdges) {
+      if (edge.getEdge() instanceof AssumeEdge
+          && nextStatementIsBreak(edge.getEdge().getSuccessor())) {
+        LoopStructure loopStrc = cfa.getLoopStructure().orElseThrow();
+        Optional<Loop> loop =
+            getOutermostLoopContainingNode(loopStrc, edge.getEdge().getSuccessor());
+        CFANode targetNodeOfBreak = edge.getEdge().getSuccessor();
+        Optional<GIAARGStateEdge<ARGState>> edgeToReplace =
+            pRelevantEdges.stream()
+                .filter(
+                    e -> AbstractStates.extractLocation(e.getSource()).equals(targetNodeOfBreak))
+                .findFirst();
+
+        if (edgeToReplace.isPresent() && edgeToReplace.orElseThrow().getTarget().isPresent()) {
+          Optional<GIAARGStateEdge<ARGState>> newTarget =
+              pRelevantEdges.stream()
+                  .filter(
+                      e ->
+                          !e.equals(edge)
+                              && e.getTarget().isPresent()
+                              && e.getTarget()
+                                  .orElseThrow()
+                                  .equals(edgeToReplace.orElseThrow().getTarget().orElseThrow()))
+                  .findFirst();
+          edge.setTarget(newTarget.get().getSource());
+        }
+        //
+        //          // The node is part of a loop
+        //          if (loop.isPresent()) {
+        //          loop.orElseThrow().getOutgoingEdges().
+        //
+        //
+        //
+        //
+        //          Optional<CFANode> optLoophead = loop.orElseThrow().getLoopHeads().stream()
+        //              //.filter(node -> CFAUtils.leavingEdges(node).allMatch(e -> e instanceof
+        // AssumeEdge))
+        //              .findFirst();
+        //          if (optLoophead.isPresent()){
+        //            //we have a loophead
+        //            Optional<CFAEdge> loopLeavingEdge =
+        //                CFAUtils.leavingEdges(optLoophead.orElseThrow()).stream()
+        //                    .filter(e ->
+        // loop.orElseThrow().getOutgoingEdges().contains(e)).findFirst();
+        //            if (loopLeavingEdge.isPresent()){
+        //              //we found the edge to which target we want to redirect the current break
+        // edge
+        //              Optional<GIAARGStateEdge<ARGState>> targetOpt = pRelevantEdges.stream()
+        //                  .filter(e ->
+        // e.getEdge().equals(loopLeavingEdge.orElseThrow())).findFirst();
+        //              if (targetOpt.isPresent() &&
+        // targetOpt.orElseThrow().getTarget().isPresent()){
+        //                edge.setTarget(targetOpt.orElseThrow().getTarget().orElseThrow());
+        //              }
+        //            }
+        //          }
+        //        }
+      }
+    }
+
+    return pRelevantEdges;
+  }
+
+  private Optional<Loop> getOutermostLoopContainingNode(
+      LoopStructure pLoopStrc, CFANode pSuccessor) {
+    Loop outerLoop = null;
+    for (Loop current : pLoopStrc.getAllLoops()) {
+      if (current.getOutgoingEdges().stream()
+          .anyMatch(e -> e.getSuccessor().equals((pSuccessor)))) {
+        if (outerLoop == null) {
+          outerLoop = current;
+        } else if (current.isOuterLoopOf(outerLoop)) {
+          outerLoop = current;
+        }
+      }
+    }
+    return Optional.ofNullable(outerLoop);
+  }
+
+  private boolean nextStatementIsBreak(CFANode pSuccessor) {
+    // FIXME: check and fix if break is blank edge
+    return pSuccessor.getNumLeavingEdges() == 1
+        && pSuccessor.getLeavingEdge(0) instanceof BlankEdge
+        && pSuccessor.getLeavingEdge(0).getDescription().equals("break");
   }
 
   // TODO: Addept implementation
@@ -799,7 +901,8 @@ public class GIAARGGenerator {
       Multimap<ARGState, CFAEdgeWithAssumptions> pEdgesWithAssumptions,
       ImmutableSet<ARGState> pStatesWithInterpolant,
       ImmutableSet<ARGState> pStatesWithAssumption,
-      Set<ARGState> pUnknownStates) throws InterruptedException {
+      Set<ARGState> pUnknownStates)
+      throws InterruptedException {
 
     // Check, if the pChild is relevant
     Optional<Pair<CFAEdge, Optional<ARGState>>> relevantEdge =
@@ -835,7 +938,7 @@ public class GIAARGGenerator {
                     pair.getSecond().orElseThrow(), pStatesWithInterpolant, pStatesWithAssumption),
                 additionalAssumption));
         if (!pProcessed.contains(pChild) && !pFinalStates.contains(pair.getSecond().get())) {
-          logger.logf(Level.FINE, "Adding %s", pChild.getStateId());
+          logger.logf(logLevel, "Adding %s", pChild.getStateId());
           pToProcess.add(pChild);
         }
       }
@@ -848,7 +951,7 @@ public class GIAARGGenerator {
       // Check if there are any edges on the path that are relevant and if so, create for
       // each relevant edge an edge
       if (pahtToChild.size() > 1) {
-        logger.logf(Level.FINE, "Processing a Multi-node");
+        logger.logf(logLevel, "Processing a Multi-node");
         while (!pahtToChild.isEmpty()) {
           CFAEdge currentEdge = pahtToChild.get(pahtToChild.size() - 1);
           pahtToChild.remove(currentEdge);
@@ -875,7 +978,7 @@ public class GIAARGGenerator {
         if (!edgesToAdd.isEmpty()) {
           pRelevantEdges.addAll(edgesToAdd);
           if (!pProcessed.contains(pChild)) {
-            logger.logf(Level.FINE, "Adding %s", pChild.getStateId());
+            logger.logf(logLevel, "Adding %s", pChild.getStateId());
             pToProcess.add(pChild);
           }
           edgesAdded = true;
@@ -885,7 +988,7 @@ public class GIAARGGenerator {
     if (!edgesAdded) {
       for (ARGState grandChild : pChild.getChildren()) {
         logger.logf(
-            Level.FINE,
+            logLevel,
             "No match found for parent %s and child %s, coninue with grandchild %s",
             pCurrentState.getStateId(),
             pChild.getStateId(),
@@ -1176,7 +1279,7 @@ public class GIAARGGenerator {
   //    }
   //
   //    logger.log(
-  //        Level.FINE, edgesToAdd.stream().map(e ->
+  //        logLevel, edgesToAdd.stream().map(e ->
   // e.toString()).collect(Collectors.joining("\n")));
   //
   //    return writeGIAForViolationWitness(

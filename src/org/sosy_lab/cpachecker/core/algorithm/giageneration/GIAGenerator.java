@@ -227,7 +227,7 @@ public class GIAGenerator {
     //        new GIAWitnessGenerator(
     //            new GIACorWitGenerator(logger, options), new GIAVioWitGenerator(logger, options));
     this.argGeneator =
-        new GIAARGGenerator(logger, options, cfa.getMachineModel(), cpa, config, formulaManager);
+        new GIAARGGenerator(logger, options, cfa, cpa, config, formulaManager);
     this.combinerGenerator = new GIACombinerGenerator(cpa);
   }
 

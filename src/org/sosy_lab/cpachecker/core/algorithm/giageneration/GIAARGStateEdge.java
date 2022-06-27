@@ -30,7 +30,7 @@ import org.sosy_lab.java_smt.api.BooleanFormula;
 
 public class GIAARGStateEdge<T extends AbstractState> {
   protected final T source;
-  protected final Optional<T> target;
+  protected Optional<T> target;
   private final CFAEdge edge;
   private final Set<ExpressionTree<Object>> assumptions;
   private final Optional<String> source_mulitEdgeIndex;
@@ -295,5 +295,9 @@ public class GIAARGStateEdge<T extends AbstractState> {
 
   public Optional<GIATransition> getGiaTransition() {
     return giaTransition;
+  }
+
+  public void setTarget(T pNewTarget) {
+    this.target = Optional.ofNullable(pNewTarget);
   }
 }
