@@ -128,21 +128,17 @@ final class SliceToCfaConversion {
 
   /**
    * Returns an {@link AssumeEdge} of the same type and with the same file location and endpoints as
-   * the given edge, but with the given expression value (constant, without variables) instead of
-   * the original one.
+   * the given edge, but with a constant expression value instead of the original one.
    */
-  private static CFAEdge createAssumeEdgeWithoutVariables(
-      final AssumeEdge oldEdge, final boolean pExpressionValue) {
+  private static CFAEdge createAssumeEdgeWithoutVariables(final AssumeEdge oldEdge) {
 
     if (oldEdge instanceof CAssumeEdge) {
-      final CExpression expression =
-          pExpressionValue ? CIntegerLiteralExpression.ONE : CIntegerLiteralExpression.ZERO;
       return new CAssumeEdge(
           IRRELEVANT_EDGE_DESCRIPTION,
           oldEdge.getFileLocation(),
           oldEdge.getPredecessor(),
           oldEdge.getSuccessor(),
-          expression,
+          CIntegerLiteralExpression.ONE,
           oldEdge.getTruthAssumption(),
           oldEdge.isSwapped(),
           oldEdge.isArtificialIntermediate());
@@ -154,8 +150,7 @@ final class SliceToCfaConversion {
           oldEdge.getFileLocation(),
           oldEdge.getPredecessor(),
           oldEdge.getSuccessor(),
-          new JBooleanLiteralExpression(
-              oldEdge.getExpression().getFileLocation(), pExpressionValue),
+          new JBooleanLiteralExpression(oldEdge.getExpression().getFileLocation(), true),
           oldEdge.getTruthAssumption());
     }
 
@@ -189,8 +184,8 @@ final class SliceToCfaConversion {
       Verify.verify(edge1 instanceof AssumeEdge && edge2 instanceof AssumeEdge);
 
       if (!pRelevantEdges.contains(edge1) && !pRelevantEdges.contains(edge2)) {
-        pGraph.replace(edge1, createAssumeEdgeWithoutVariables((AssumeEdge) edge1, true));
-        pGraph.replace(edge2, createAssumeEdgeWithoutVariables((AssumeEdge) edge2, false));
+        pGraph.replace(edge1, createAssumeEdgeWithoutVariables((AssumeEdge) edge1));
+        pGraph.replace(edge2, createAssumeEdgeWithoutVariables((AssumeEdge) edge2));
       }
     }
   }
