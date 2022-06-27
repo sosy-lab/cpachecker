@@ -74,12 +74,15 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.automaton.InvalidAutomatonException;
 import org.sosy_lab.cpachecker.exceptions.CParserException;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
+import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.expressions.And;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTreeFactory;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
 import org.sosy_lab.cpachecker.util.expressions.LeafExpression;
+import org.sosy_lab.cpachecker.util.expressions.Or;
 import org.sosy_lab.cpachecker.util.expressions.Simplifier;
+import org.sosy_lab.cpachecker.util.expressions.ToCExpressionVisitor;
 
 public class CParserUtils {
 
@@ -315,6 +318,61 @@ public class CParserUtils {
     }
     return result;
   }
+
+  /**
+   Calls {@link CParserUtils#parseStatementsAsExpressionTree} and converts the expression tree into a AExpression formula
+   *
+   * @param pStatements the set of strings to parse as C statements.
+   * @param pResultFunction the target function of {@literal "\result"} expressions.
+   * @param pCParser the C parser to be used.
+   * @param pScope the scope to interpret variables in.
+   * @param pParserTools the auxiliary tools to be used for parsing.
+   * @return an expression tree conjoining the expressions of successfully parsed expression
+   *     statements.
+   */
+  public static List<AExpression> parseStatementsAsExpressionList(
+      Set<String> pStatements,
+      Optional<String> pResultFunction,
+      CParser pCParser,
+      Scope pScope,
+      ParserTools pParserTools)
+      throws InterruptedException {
+    ExpressionTree<AExpression> result = ExpressionTrees.getTrue();
+    for (String assumeCode : pStatements) {
+      try {
+        ExpressionTree<AExpression> expressionTree =
+            parseStatement(assumeCode, pResultFunction, pCParser, pScope, pParserTools);
+        result = And.of(result, expressionTree);
+      } catch (InvalidAutomatonException e) {
+        pParserTools.logger.log(
+            Level.WARNING, "Cannot interpret code as C statement(s): <" + assumeCode + ">");
+      }
+    }
+
+try{
+    ToCExpressionVisitor expressionTreeVisitor = new ToCExpressionVisitor(pParserTools.machineModel, pParserTools.logger);
+    ExpressionTree<AExpression> exp = result;
+    if (exp.equals(ExpressionTrees.getTrue())) {
+      return ImmutableList.of(expressionTreeVisitor.visitTrue());
+    } else if (exp.equals(ExpressionTrees.getFalse())) {
+      return ImmutableList.of(expressionTreeVisitor.visitFalse());
+    } else if (exp instanceof LeafExpression) {
+      return ImmutableList.of(expressionTreeVisitor.visit((LeafExpression<AExpression>) exp));
+    } else if (exp instanceof And) {
+      CExpression t = expressionTreeVisitor.visit((And<AExpression>) exp);
+      return ImmutableList.of(t);
+    } else if (exp instanceof Or) {
+      return ImmutableList.of(expressionTreeVisitor.visit((Or<AExpression>) exp));
+    } else {
+      throw new AssertionError("Unknown type of ExpressionTree.");
+    }
+  } catch (
+  UnrecognizedCodeException e) {
+    pParserTools.logger.log(Level.WARNING, "Could not convert some annotations to assumption, ignoring");
+    return ImmutableList.of(CIntegerLiteralExpression.ONE);
+  }
+  }
+
 
   private static ExpressionTree<AExpression> parseStatement(
       String pAssumeCode,

@@ -334,7 +334,12 @@ Assertions ::= Assertion:a Assertions:lst {: lst.add(0,a); RESULT = lst; :}
              ;
 Assertion  ::= ASSERT  Bool:b   {: RESULT = b; :};
 
-Assume    ::= ASSUME CURLYEXPR:a {: RESULT = CParserUtils.convertStatementsToAssumptions(CParserUtils.parseListOfStatements(a.toString(), cparser, scope), machineModel, logger); :}
+Assume    ::= ASSUME CURLYEXPR:a {: RESULT =   CParserUtils.parseStatementsAsExpressionList(
+                                                               ImmutableSet.copyOf(a.toString().split(";")),
+                                                               Optional.empty(),
+                                                               cparser,
+                                                               scope,
+                                                               ParserTools.create(new CachingExpressionTreeFactory<>(), machineModel, logger)); :}
              | /* empty */ {: RESULT = new ArrayList<AExpression>(); :};
 
 StateInvariant    ::= INVARIANT CURLYEXPR:a  SEMICOLON

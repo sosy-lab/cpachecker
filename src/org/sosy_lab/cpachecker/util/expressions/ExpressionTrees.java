@@ -33,6 +33,10 @@ import java.util.ListIterator;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import org.sosy_lab.cpachecker.cfa.ast.AExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.exceptions.NoException;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
@@ -656,6 +660,8 @@ public final class ExpressionTrees {
   public static <LeafType> Comparator<ExpressionTree<LeafType>> getComparator() {
     return new ExpressionTreeComparator<>();
   }
+
+
 
   private static class ExpressionTreeComparator<LeafType>
       implements Comparator<ExpressionTree<LeafType>>, Serializable {
