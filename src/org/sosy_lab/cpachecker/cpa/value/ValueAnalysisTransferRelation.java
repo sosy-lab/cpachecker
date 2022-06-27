@@ -937,6 +937,7 @@ public class ValueAnalysisTransferRelation
     //Extra handling to splitt the state during post processing into several states, each using one random file
     if (evv.wouldReturnAValueForRandom(functionCallExp, leftSideType) && !this.valuesFromFilesUsed){
       valuesFromFilesUsed = true;
+      state.setSplitPoint();
       return new SplitValueAnalysisState(state, valuesFromFile, this, super.precision, cfaEdgeFromInfo, logger);
     }
 

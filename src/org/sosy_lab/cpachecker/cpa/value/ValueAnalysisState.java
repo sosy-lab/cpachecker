@@ -100,6 +100,7 @@ public class ValueAnalysisState
   private static final Set<MemoryLocation> blacklist = new HashSet<>();
   private Map<Integer, String> valueMap = new HashMap<>();
   private AtomicInteger numReturnedValuesUsed = new AtomicInteger(0);
+  private boolean splitPoint = false;
 
   static void addToBlacklist(MemoryLocation var) {
     blacklist.add(checkNotNull(var));
@@ -910,6 +911,13 @@ public class ValueAnalysisState
     this.numReturnedValuesUsed = new AtomicInteger(this.numReturnedValuesUsed.get());
   }
 
+  public void setSplitPoint() {
+    this.splitPoint = true;
+  }
+
+  public boolean isSplitPoint() {
+    return splitPoint;
+  }
 
   public static class ValueAndType implements Serializable {
     private static final long serialVersionUID = 1L;

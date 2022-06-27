@@ -19,8 +19,10 @@ import com.google.common.collect.Sets;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
@@ -52,7 +54,11 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.cpa.arg.witnessexport.WitnessAssumptionFilter;
 import org.sosy_lab.cpachecker.cpa.assumptions.storage.AssumptionStorageState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
+import org.sosy_lab.cpachecker.cpa.testtargets.TestTargetCPA;
+import org.sosy_lab.cpachecker.cpa.testtargets.TestTargetState;
+import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.util.AbstractStates;
+import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.LoopStructure;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 import org.sosy_lab.cpachecker.util.Pair;
@@ -244,6 +250,30 @@ public class GIAARGGenerator {
 
     relevantEdges = updateForBreakEdges(relevantEdges);
 
+    if (optinons.isOptimizeForTestcases()) {
+      Set<ARGState> ignoreStates = optimizeForTestcase(pReached);
+      Set<GIAARGStateEdge<ARGState>> toKeep = new HashSet<>(relevantEdges.stream()
+          .filter(e -> e.getSource().equals(pArgRoot))
+          .collect(ImmutableList.toImmutableList()));
+      Set<GIAARGStateEdge<ARGState>> nextEdgeToProcess = new HashSet<>(relevantEdges.stream()
+          .filter(e -> e.getSource().equals(pArgRoot))
+          .collect(ImmutableList.toImmutableList()));
+      while (!nextEdgeToProcess.isEmpty()) {
+        GIAARGStateEdge<ARGState> current = nextEdgeToProcess.stream().findFirst().orElseThrow();
+        nextEdgeToProcess.remove(current);
+
+        Optional<ARGState> currenTarget = current.getTarget();
+        if (currenTarget.isPresent() && !ignoreStates.contains(currenTarget.orElseThrow())) {
+          toKeep.add(current);
+          nextEdgeToProcess.addAll(
+              relevantEdges.stream()
+                  .filter(e -> e.getSource().equals(currenTarget.orElseThrow()))
+                  .collect(ImmutableList.toImmutableList()));
+        }
+      }
+      relevantEdges = toKeep;
+    }
+
     logger.log(
         logLevel,
         relevantEdges.stream().map(e -> e.toString()).collect(ImmutableList.toImmutableList()));
@@ -277,6 +307,98 @@ public class GIAARGGenerator {
     GIAWriter<ARGState> writer = new GIAWriter<>();
     return writer.writeGIA(
         pOutput, pArgRoot, relevantEdges, targetStates, nonTargetStates, unknownStates);
+  }
+
+  private Set<ARGState> optimizeForTestcase(UnmodifiableReachedSet pReached) {
+
+    if (AbstractStates.extractStateByType(pReached.getFirstState(), TestTargetState.class)
+        != null) {
+      // Compute all covered goals for the Abstract states
+      Map<ARGState, Set<CFAEdge>> stateToCoveredGoals = new HashMap<>();
+      Set<CFAEdge> testgoals =
+          Objects.requireNonNull(CPAs.retrieveCPA(cpa, TestTargetCPA.class)).getTestTargets();
+      List<AbstractState> toProcess = new ArrayList<>(pReached.asCollection());
+      while (!toProcess.isEmpty()) {
+        ARGState current = AbstractStates.extractStateByType(toProcess.remove(0), ARGState.class);
+        if (current == null) {
+          return new HashSet<>();
+        }
+        if (stateToCoveredGoals.containsKey(current)) continue;
+        if (current.getChildren().stream().allMatch(c -> stateToCoveredGoals.containsKey(c))) {
+
+          Set<CFAEdge> coveredByCurrent =
+              current.isTarget()
+                  ? Sets.newHashSet(
+                      AbstractStates.extractLocation(
+                              Lists.newArrayList(current.getParents()).get(0))
+                          .getEdgeTo(AbstractStates.extractLocation(current)))
+                  : new HashSet<>();
+          stateToCoveredGoals.put(
+              current,
+              current.getChildren().stream()
+                  .map(c -> stateToCoveredGoals.get(c))
+                  .reduce(coveredByCurrent, Sets::union));
+        } else {
+          toProcess.add(current);
+        }
+      }
+
+      Optional<AbstractState> splitPointOpt =
+          pReached.asCollection().stream()
+              .filter(
+                  s ->
+                      AbstractStates.extractStateByType(s, ValueAnalysisState.class) != null
+                          && Objects.requireNonNull(
+                                  AbstractStates.extractStateByType(s, ValueAnalysisState.class))
+                              .isSplitPoint())
+              .findFirst();
+      if (splitPointOpt.isPresent()) {
+        AbstractState splitPoint = splitPointOpt.orElseThrow();
+        Set<Set<CFAEdge>> coveredByChilds = new HashSet<>();
+        Set<ARGState> toRemove = new HashSet<>();
+        for (ARGState child :
+            Objects.requireNonNull(AbstractStates.extractStateByType(splitPoint, ARGState.class))
+                .getChildren()) {
+          Set<CFAEdge> covered =
+              stateToCoveredGoals.get(AbstractStates.extractStateByType(child, ARGState.class));
+          if (!covered.isEmpty() && coveredByChilds.contains(covered)) {
+            toRemove.add(child);
+
+          } else {
+            coveredByChilds.add(covered);
+          }
+        }
+
+        //        try {
+        //          ReachedSetFactory factory = new ReachedSetFactory(config, logger);
+        //          ReachedSet newReached = factory.create(cpa);
+        //          ArrayList<ARGState> toAdd = new ArrayList<>();
+        //          toAdd.add(AbstractStates.extractStateByType(pReached.getFirstState(),
+        // ARGState.class));
+        //          ARGState argSplit = AbstractStates.extractStateByType(splitPoint,
+        // ARGState.class);
+        //          while (!toAdd.isEmpty()) {
+        //            ARGState current = toAdd.remove(0);
+        //            if (toRemove.contains(current)) {
+        //              logger.logf(Level.INFO, "Skipping %s", current);
+        //              argSplit.deleteChild(current);
+        //              continue;
+        //            } else {
+        //              newReached.add(current, pReached.getPrecision(current));
+        //              toAdd.addAll(
+        //                 current.getChildren());
+        //            }
+        //          }
+        //          return newReached;
+        //        } catch (InvalidConfigurationException pE) {
+        //          logger.logUserException(Level.INFO, pE, "Optimizing the reached set failed,
+        // skipping it");
+        //          return pReached;
+        //        }
+        return toRemove;
+      }
+    }
+    return new HashSet<>();
   }
 
   /**

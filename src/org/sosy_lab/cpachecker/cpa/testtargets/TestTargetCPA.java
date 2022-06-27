@@ -76,7 +76,7 @@ public class TestTargetCPA extends AbstractCPA {
   public static CPAFactory factory() {
     return AutomaticCPAFactory.forType(TestTargetCPA.class);
   }
-
+  final Set<CFAEdge> testTargets  ;
   public TestTargetCPA(final CFA pCfa, final Configuration pConfig)
       throws InvalidConfigurationException {
     super("sep", "sep", DelegateAbstractDomain.<TestTargetState>getInstance(), null);
@@ -88,12 +88,17 @@ public class TestTargetCPA extends AbstractCPA {
     }
 
     precisionAdjustment = new TestTargetPrecisionAdjustment();
+    testTargets = targetEdge == null
+                                     ? TestTargetProvider.getTestTargets(
+        pCfa, runParallel, targetType, targetFun, targetOptimization)
+                                     : findTargetEdge(pCfa);
     transferRelation =
         new TestTargetTransferRelation(
-            targetEdge == null
-                ? TestTargetProvider.getTestTargets(
-                    pCfa, runParallel, targetType, targetFun, targetOptimization)
-                : findTargetEdge(pCfa), splitAtTestTargetStates);
+            testTargets, splitAtTestTargetStates);
+  }
+
+  public Set<CFAEdge> getTestTargets() {
+    return testTargets;
   }
 
   private Set<CFAEdge> findTargetEdge(final CFA pCfa) {

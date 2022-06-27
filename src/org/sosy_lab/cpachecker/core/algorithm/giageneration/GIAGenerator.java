@@ -121,6 +121,15 @@ public class GIAGenerator {
         description = "Merge two GIAs, ignore all other options")
     private boolean combine = false;
 
+    @Option(
+        secure = true,
+        name = "assumptions.optimizeForTestcases",
+        description = "Remove generated testcases that follow the same path as at least one other testcase (hence covere the same target nodes")
+    private boolean optimizeForTestcases = false;
+
+
+
+
     public GIAGeneratorOptions(Configuration pConfig) throws InvalidConfigurationException {
       pConfig.inject(this);
     }
@@ -155,6 +164,10 @@ public class GIAGenerator {
 
     public boolean isCombine() {
       return combine;
+    }
+
+    public boolean isOptimizeForTestcases() {
+      return optimizeForTestcases;
     }
   }
 
