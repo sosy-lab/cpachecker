@@ -22,7 +22,6 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.arg.witnessexport.WitnessFactory;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonBoolExpr.MatchOtherwise;
 import org.sosy_lab.cpachecker.cpa.giacombiner.GIATransition;
-import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTreeFactory;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
@@ -37,6 +36,7 @@ public class GIAARGStateEdge<T extends AbstractState> {
   private final Optional<GIATransition> giaTransition;
   private boolean edgesPresentAsCFAEdge = true;
   private Optional<String> additionalAssumption = Optional.empty();
+  private final String scope;
 
   //  public GIAARGStateEdge(
   //      ARGState pSource,
@@ -93,7 +93,7 @@ public class GIAARGStateEdge<T extends AbstractState> {
       Optional<String> pAdditionalAssumption) {
     this.source = pSource;
     this.target = Optional.of(pTarget);
-    this.edge = pEdge;
+    this.edge = pEdge;scope = getScopeForEdge(pEdge);
     this.assumptions = pAssumption;
     this.source_mulitEdgeIndex = Optional.empty();
     this.target_mulitEdgeIndex = Optional.empty();
@@ -105,7 +105,7 @@ public class GIAARGStateEdge<T extends AbstractState> {
   public GIAARGStateEdge(T pSource, T pTarget, CFAEdge pEdge, Set<ExpressionTree<Object>> pAssumption) {
     this.source = pSource;
     this.target = Optional.of(pTarget);
-    this.edge = pEdge;
+    this.edge = pEdge;scope =pEdge.getPredecessor().getFunctionName();
     this.assumptions = pAssumption;
     this.source_mulitEdgeIndex = Optional.empty();
     this.target_mulitEdgeIndex = Optional.empty();
@@ -117,7 +117,7 @@ public class GIAARGStateEdge<T extends AbstractState> {
   public GIAARGStateEdge(T pSource, CFAEdge pEdge) {
     this.source = pSource;
     this.target = Optional.empty();
-    this.edge = pEdge;
+    this.edge = pEdge;scope =pEdge.getPredecessor().getFunctionName();
     this.assumptions = new HashSet<>();
     this.source_mulitEdgeIndex = Optional.empty();
     this.target_mulitEdgeIndex = Optional.empty();
@@ -129,6 +129,7 @@ public class GIAARGStateEdge<T extends AbstractState> {
     this.source = pSource;
     this.target = Optional.ofNullable(pTarget);
     this.edge = pEdge;
+    scope =pEdge.getPredecessor().getFunctionName();
     this.assumptions = new HashSet<>();
     this.source_mulitEdgeIndex = Optional.empty();
     this.target_mulitEdgeIndex = Optional.empty();
@@ -136,7 +137,7 @@ public class GIAARGStateEdge<T extends AbstractState> {
     this.giaTransition = Optional.empty();
   }
 
-  public GIAARGStateEdge(T pState, Entry<GIATransition, T> pEdge) {
+  public GIAARGStateEdge(T pState, Entry<GIATransition, T> pEdge, String pScope) {
     this.source = pState;
     this.target = Optional.ofNullable(pEdge.getValue());
     this.edge = null;
@@ -145,7 +146,13 @@ public class GIAARGStateEdge<T extends AbstractState> {
     this.target_mulitEdgeIndex = Optional.empty();
     this.giaTransition = Optional.ofNullable(pEdge.getKey());
     edgesPresentAsCFAEdge = false;
+    scope = pScope;
   }
+
+  public static String getScopeForEdge(CFAEdge pEdge) {
+    return pEdge.getPredecessor().getFunctionName();
+  }
+
 
   public String getTargetName() {
     return this.target.isPresent()
@@ -173,10 +180,10 @@ public class GIAARGStateEdge<T extends AbstractState> {
     return target;
   }
 
-  public String getStringOfAssumption(Optional<T> pState, CFAEdge pEdge) throws IOException, InterruptedException {
+  public String getStringOfAssumption(Optional<T> pState) throws IOException, InterruptedException {
     if (!this.assumptions.isEmpty() && pState.isPresent()) {
       StringBuilder sb = new StringBuilder();
-      sb.append(String.format("ASSUME SCOPE %s {", pEdge.getPredecessor().getFunctionName()));
+      genAssumptionScope(sb);
       AssumptionCollectorAlgorithm.escape(
           WitnessFactory.getAssumptionAsCode(
               ExpressionTrees.newFactory().and(this.assumptions), Optional.empty()),
@@ -187,11 +194,14 @@ public class GIAARGStateEdge<T extends AbstractState> {
     return "";
   }
 
-  public String getStringOfAssumption(Optional<T> pState, String pAdditionalAssumption, CFAEdge pEdge)
+  public String getStringOfAssumption(
+      Optional<T> pState,
+      String pAdditionalAssumption)
       throws IOException, InterruptedException {
     if (!this.assumptions.isEmpty() && pState.isPresent()) {
       StringBuilder sb = new StringBuilder();
-      sb.append(String.format("ASSUME SCOPE %s {", pEdge.getPredecessor().getFunctionName()));
+      genAssumptionScope(sb);
+
       AssumptionCollectorAlgorithm.escape(
           WitnessFactory.getAssumptionAsCode(
               ExpressionTrees.newFactory().and(this.assumptions), Optional.empty()),
@@ -254,9 +264,9 @@ public class GIAARGStateEdge<T extends AbstractState> {
       sb.append(GIAGenerator.getEdgeString(this.getEdge()));
       sb.append(" -> ");
       if (additionalAssumption.isPresent()) {
-        sb.append(getStringOfAssumption(getTarget(), additionalAssumption.orElseThrow(), edge));
+        sb.append(getStringOfAssumption(getTarget(), additionalAssumption.orElseThrow()));
       } else {
-        sb.append(getStringOfAssumption(getTarget(),edge));
+        sb.append(getStringOfAssumption(getTarget()));
       }
       sb.append(
           String.format("GOTO %s", getTargetName(pTargetStates, pNonTargetStates, pUnknownStates, pStopAtUnknownStates)));
@@ -274,7 +284,7 @@ public class GIAARGStateEdge<T extends AbstractState> {
         for (AExpression c : transition.getAssumptions()) {
           newAssumptions = fac.and(newAssumptions, fac.leaf(c));
         }
-        sb.append(String.format("ASSUME SCOPE %s{", edge.getPredecessor().getFunctionName()));
+        genAssumptionScope(sb);
         AssumptionCollectorAlgorithm.escape(
             WitnessFactory.getAssumptionAsCode(
                 ExpressionTrees.cast(newAssumptions), Optional.empty()),
@@ -289,6 +299,11 @@ public class GIAARGStateEdge<T extends AbstractState> {
       sb.append(";\n");
       return transition.getTrigger() instanceof MatchOtherwise;
     }
+  }
+
+  private void genAssumptionScope(Appendable sb) throws IOException {
+    sb.append(String.format("ASSUME SCOPE %s{", scope));
+
   }
 
   @Nullable

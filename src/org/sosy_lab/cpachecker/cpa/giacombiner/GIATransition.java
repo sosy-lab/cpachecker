@@ -18,17 +18,18 @@ public class GIATransition {
 
   private AutomatonBoolExpr trigger;
   private List<AExpression> assumptions;
+  private final String scope;
 
   public GIATransition(
       AutomatonBoolExpr pTrigger,
-      List<AExpression> pAssertions) {
+      List<AExpression> pAssertions, String pScope) {
     trigger = pTrigger;
     assumptions = pAssertions;
+    this.scope = pScope;
   }
 
-  public GIATransition(AutomatonBoolExpr pTrigger) {
-    trigger = pTrigger;
-    this.assumptions = new ArrayList<>();
+  public String getScope() {
+    return scope;
   }
 
   public AutomatonBoolExpr getTrigger() {
@@ -44,7 +45,7 @@ public class GIATransition {
     if (this == pO) {
       return true;
     }
-    if (pO instanceof GIATransition) {
+    if (! (pO instanceof GIATransition) ){
       return false;
     }
     GIATransition that = (GIATransition) pO;

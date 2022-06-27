@@ -31,6 +31,7 @@ import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
+import org.sosy_lab.cpachecker.core.algorithm.giageneration.GIAARGStateEdge;
 import org.sosy_lab.cpachecker.core.defaults.SingleEdgeTransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -43,6 +44,7 @@ import org.sosy_lab.cpachecker.cpa.automaton.AutomatonStateTypes;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonTargetInformation;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonTransition;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonVariable;
+import org.sosy_lab.cpachecker.cpa.automaton.GIAAutomatonParser;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.Pair;
 
@@ -93,7 +95,8 @@ public class GIACombinerTransferRelation extends SingleEdgeTransferRelation {
             successors.add(newState);
             combinerState.addSuccessor(
                 new GIATransition(
-                    transition.getKey().getTrigger(), transition.getKey().getAssumptions()),
+                    transition.getKey().getTrigger(), transition.getKey().getAssumptions(),
+                    GIAARGStateEdge.getScopeForEdge(cfaEdge)),
                 newState);
           }
           return successors;
@@ -119,7 +122,8 @@ public class GIACombinerTransferRelation extends SingleEdgeTransferRelation {
               successors.add(newState);
               combinerState.addSuccessor(
                   new GIATransition(
-                      transition.getKey().getTrigger(), transition.getKey().getAssumptions()),
+                      transition.getKey().getTrigger(), transition.getKey().getAssumptions(),
+                      GIAARGStateEdge.getScopeForEdge(cfaEdge)),
                   newState);
             }
             return successors;
@@ -139,7 +143,8 @@ public class GIACombinerTransferRelation extends SingleEdgeTransferRelation {
               successors.add(newState);
               combinerState.addSuccessor(
                   new GIATransition(
-                      transition.getKey().getTrigger(), transition.getKey().getAssumptions()),
+                      transition.getKey().getTrigger(), transition.getKey().getAssumptions(),
+                      GIAARGStateEdge.getScopeForEdge(cfaEdge)),
                   newState);
             }
             return successors;
@@ -186,7 +191,7 @@ public class GIACombinerTransferRelation extends SingleEdgeTransferRelation {
             successors.add(newState);
             combinerState.addSuccessor(
                 new GIATransition(
-                    transition.getKey().getTrigger(), transition.getKey().getAssumptions()),
+                    transition.getKey().getTrigger(), transition.getKey().getAssumptions(), GIAARGStateEdge.getScopeForEdge(cfaEdge)),
                 newState);
           }
           return successors;
@@ -211,7 +216,8 @@ public class GIACombinerTransferRelation extends SingleEdgeTransferRelation {
               successors.add(newState);
               combinerState.addSuccessor(
                   new GIATransition(
-                      transition.getKey().getTrigger(), transition.getKey().getAssumptions()),
+                      transition.getKey().getTrigger(), transition.getKey().getAssumptions(),
+                      GIAARGStateEdge.getScopeForEdge(cfaEdge)),
                   newState);
             }
             return successors;
@@ -262,7 +268,8 @@ public class GIACombinerTransferRelation extends SingleEdgeTransferRelation {
       GIACombinerState newState =
           new GIACombinerState(new GIAInternalState(pFirst), new GIAInternalState(pSecond));
       pCurrentState.addSuccessor(
-          new GIATransition(pTransitionFirst.getTrigger(), pTransitionFirst.getAssumptions()),
+          new GIATransition(pTransitionFirst.getTrigger(), pTransitionFirst.getAssumptions(),
+              GIAARGStateEdge.getScopeForEdge(pCfaEdge)),
           newState);
       return Lists.newArrayList(newState);
     } else if (pFirst.getCandidateInvariants().equals(pSecond.getCandidateInvariants())
@@ -278,12 +285,14 @@ public class GIACombinerTransferRelation extends SingleEdgeTransferRelation {
       if (isTrueAssumption(pTransitionFirst, pCfaEdge, pLogger, pMachineModel)
           && trueAssumptions(pFirst, pCfaEdge, pLogger, pMachineModel)) {
         pCurrentState.addSuccessor(
-            new GIATransition(pTransitionFirst.getTrigger(), pTransitionFirst.getAssumptions()),
+            new GIATransition(pTransitionFirst.getTrigger(), pTransitionFirst.getAssumptions(),
+                GIAARGStateEdge.getScopeForEdge(pCfaEdge)),
             newState);
         return Lists.newArrayList(newState);
       } else {
         pCurrentState.addSuccessor(
-            new GIATransition(pTransitionFirst.getTrigger(), pTransitionSecond.getAssumptions()),
+            new GIATransition(pTransitionFirst.getTrigger(), pTransitionSecond.getAssumptions(),
+                GIAARGStateEdge.getScopeForEdge(pCfaEdge)),
             newState);
         return Lists.newArrayList(newState);
       }
@@ -294,7 +303,8 @@ public class GIACombinerTransferRelation extends SingleEdgeTransferRelation {
       GIACombinerState newState =
           new GIACombinerState(new GIAInternalState(pFirst), new GIAInternalState(pSecond));
       pCurrentState.addSuccessor(
-          new GIATransition(pTransitionFirst.getTrigger(), pTransitionFirst.getAssumptions()),
+          new GIATransition(pTransitionFirst.getTrigger(), pTransitionFirst.getAssumptions(),
+              GIAARGStateEdge.getScopeForEdge(pCfaEdge)),
           newState);
       return Lists.newArrayList(newState);
     } else if (pFirst.getCandidateInvariants().equals(pSecond.getCandidateInvariants())
@@ -304,7 +314,8 @@ public class GIACombinerTransferRelation extends SingleEdgeTransferRelation {
       GIACombinerState newState =
           new GIACombinerState(new GIAInternalState(pFirst), new GIAInternalState(pSecond));
       pCurrentState.addSuccessor(
-          new GIATransition(pTransitionSecond.getTrigger(), pTransitionSecond.getAssumptions()),
+          new GIATransition(pTransitionSecond.getTrigger(), pTransitionSecond.getAssumptions(),
+              GIAARGStateEdge.getScopeForEdge(pCfaEdge)),
           newState);
       return Lists.newArrayList(newState);
     } else {
@@ -312,12 +323,14 @@ public class GIACombinerTransferRelation extends SingleEdgeTransferRelation {
       GIACombinerState newState1 =
           new GIACombinerState(new GIAInternalState(pFirst), new SplitGIAState());
       pCurrentState.addSuccessor(
-          new GIATransition(pTransitionFirst.getTrigger(), pTransitionFirst.getAssumptions()),
+          new GIATransition(pTransitionFirst.getTrigger(), pTransitionFirst.getAssumptions(),
+              GIAARGStateEdge.getScopeForEdge(pCfaEdge)),
           newState1);
       GIACombinerState newState2 =
           new GIACombinerState(new SplitGIAState(), new GIAInternalState(pSecond));
       pCurrentState.addSuccessor(
-          new GIATransition(pTransitionSecond.getTrigger(), pTransitionSecond.getAssumptions()),
+          new GIATransition(pTransitionSecond.getTrigger(), pTransitionSecond.getAssumptions(),
+              GIAARGStateEdge.getScopeForEdge(pCfaEdge)),
           newState2);
       return Lists.newArrayList(newState1, newState2);
     }

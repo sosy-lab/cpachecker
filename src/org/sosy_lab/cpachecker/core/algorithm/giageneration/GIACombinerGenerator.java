@@ -108,7 +108,7 @@ public class GIACombinerGenerator {
             Pair.of(edge.getValue().getStateOfAutomaton1(), edge.getValue().getStateOfAutomaton2());
         statesUsedForTransitions.putIfAbsent(pairTarget, edge.getValue());
         GIACombinerState target = statesUsedForTransitions.get(pairTarget);
-        CombinerTransition e = new CombinerTransition(source, edge.getKey(), target);
+        CombinerTransition e = new CombinerTransition(source, edge.getKey(), target, edge.getKey().getScope());
         transitionsSeen.add(e);
       }
     }
@@ -116,19 +116,21 @@ public class GIACombinerGenerator {
   }
 
   private static class CombinerTransition {
+    private final String scope;
     GIACombinerState source;
     GIATransition transition;
     GIACombinerState target;
 
     public CombinerTransition(
-        GIACombinerState pSource, GIATransition pTransition, GIACombinerState pTarget) {
+        GIACombinerState pSource, GIATransition pTransition, GIACombinerState pTarget, String pScope) {
       source = pSource;
       transition = pTransition;
       target = pTarget;
+      scope = pScope;
     }
 
     public GIAARGStateEdge<GIACombinerState> toEdge() {
-      return new GIAARGStateEdge<>(source, new SimpleEntry<>(transition, target));
+      return new GIAARGStateEdge<>(source, new SimpleEntry<>(transition, target), scope);
     }
 
     @Override
