@@ -8,10 +8,12 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.giageneration;
 
+import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.ListMultimap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Multimaps;
@@ -125,7 +127,7 @@ public class GIAARGGenerator {
     //    BiPredicate<ARGState, ARGState> isRelevantEdge = getRelevantEdges(finalStates);
     //    Predicate<ARGState> relevantState = Predicates.in(finalStates);
 
-    Multimap<ARGState, CFAEdgeWithAssumptions> edgesWithAssumptions = ImmutableListMultimap.of();
+    Multimap<ARGState, CFAEdgeWithAssumptions> edgesWithAssumptions = ArrayListMultimap.create();
     //    if (optinons.isGenGIA4Refinement()) {
     for (ARGState errorState : targetStates) {
       CounterexampleInfo pCounterExample = getCounterexampleInfo.apply(errorState).orElse(null);
@@ -235,7 +237,7 @@ public class GIAARGGenerator {
       processed.add(state);
     }
     logger.log(
-        Level.WARNING,
+        Level.FINE,
         relevantEdges.stream().map(e -> e.toString()).collect(ImmutableList.toImmutableList()));
 
     // Now, a short cleaning is applied:
