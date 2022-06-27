@@ -586,7 +586,7 @@ assumptions.genGIA4Testcase = false
 assumptions.genGIA4Witness = false
 
 # write collected assumptions as automaton to file
-assumptions.giaFile = "UniversalConditionAutomaton.txt"
+assumptions.giaFile = "GIA.txt"
 
 # Indicates whether this analysis is over-approximate (and hence can extend
 # F_NT)
@@ -2054,9 +2054,6 @@ cpa.predicate.abstraction.initialPredicates.encodePredicates = DISABLE
 
 # initial predicates are added as atomic predicates
 cpa.predicate.abstraction.initialPredicates.splitIntoAtoms = false
-
-# add also assumptions from the GIA as invariant candidates
-cpa.predicate.abstraction.initialPredicates.useAssumptionsFromGIAAsInvariants = false
 
 # An initial set of comptued abstractions that might be reusable
 cpa.predicate.abstraction.reuseAbstractionsFrom = no default value

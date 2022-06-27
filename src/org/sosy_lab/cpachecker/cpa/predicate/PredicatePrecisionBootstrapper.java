@@ -107,10 +107,6 @@ public class PredicatePrecisionBootstrapper implements StatisticsProvider {
     @Option(secure = true, description = "initial predicates are added as atomic predicates")
     private boolean splitIntoAtoms = false;
 
-    @Option(
-        secure = true,
-        description = "add also assumptions from the GIA as invariant candidates")
-    private boolean useAssumptionsFromGIAAsInvariants = false;
 
     public boolean applyFunctionWide() {
       return applyFunctionWide;
