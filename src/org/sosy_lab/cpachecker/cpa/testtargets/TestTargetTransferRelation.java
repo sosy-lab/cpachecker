@@ -9,9 +9,11 @@
 package org.sosy_lab.cpachecker.cpa.testtargets;
 
 import static com.google.common.base.Preconditions.checkNotNull;
+import static org.sosy_lab.cpachecker.cpa.testtargets.TestTargetState.Status.TARGET;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Lists;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Set;
@@ -25,9 +27,11 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 public class TestTargetTransferRelation extends SingleEdgeTransferRelation {
 
   private final Set<CFAEdge> testTargets;
+  private final boolean splitAtTestTargetStates;
 
-  TestTargetTransferRelation(final Set<CFAEdge> pTestTargets) {
+  TestTargetTransferRelation(final Set<CFAEdge> pTestTargets, boolean pSplitAtTestTargetStates) {
     testTargets = pTestTargets;
+    this.splitAtTestTargetStates = pSplitAtTestTargetStates;
   }
 
   @Override
@@ -39,14 +43,21 @@ public class TestTargetTransferRelation extends SingleEdgeTransferRelation {
         pState instanceof TestTargetState,
         "Abstract state in TestTargetTransferRelation not an element of TestTargetState");
 
-    if (((TestTargetState) pState).isStop()) {
+    if (((TestTargetState) pState).isStop() || ((TestTargetState) pState).isTarget()) {
       return ImmutableSet.of();
     }
 
-    return Collections.singleton(
+
+    final TestTargetState successor =
         testTargets.contains(pCfaEdge)
             ? new TestTargetState(Status.TARGET)
-            : TestTargetState.noTargetState());
+            : TestTargetState.noTargetState();
+
+    if (successor.getCurrentState() == TARGET && splitAtTestTargetStates) {
+      // Split target states into two for gia generation
+      return Lists.newArrayList( TestTargetState.noTargetState(), successor);
+    }
+    return Collections.singleton(successor);
   }
 
   public Set<CFAEdge> getTestTargets() {

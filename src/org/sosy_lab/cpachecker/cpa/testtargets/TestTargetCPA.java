@@ -67,6 +67,12 @@ public class TestTargetCPA extends AbstractCPA {
           "CFA edge if only a specific edge should be considered, e.g., in counterexample check")
   private String targetEdge = null;
 
+  @Option(
+      secure = true,
+      description = "When generating GIA for testcases, we need to split at a test-target state and create one successor state with the target state reached and one not reaching the target state.")
+  private boolean splitAtTestTargetStates = false;
+
+
   public static CPAFactory factory() {
     return AutomaticCPAFactory.forType(TestTargetCPA.class);
   }
@@ -87,7 +93,7 @@ public class TestTargetCPA extends AbstractCPA {
             targetEdge == null
                 ? TestTargetProvider.getTestTargets(
                     pCfa, runParallel, targetType, targetFun, targetOptimization)
-                : findTargetEdge(pCfa));
+                : findTargetEdge(pCfa), splitAtTestTargetStates);
   }
 
   private Set<CFAEdge> findTargetEdge(final CFA pCfa) {

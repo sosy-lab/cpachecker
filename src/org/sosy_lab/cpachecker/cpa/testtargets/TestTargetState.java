@@ -22,8 +22,12 @@ public class TestTargetState
 
   private static final TestTargetState noTargetState = new TestTargetState(Status.NO_TARGET);
 
-  public static AbstractState noTargetState() {
+  public static TestTargetState noTargetState() {
     return noTargetState;
+  }
+
+  public Status getCurrentState() {
+    return this.currentState;
   }
 
   enum Status {
