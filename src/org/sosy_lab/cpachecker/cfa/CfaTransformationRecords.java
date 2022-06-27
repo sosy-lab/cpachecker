@@ -43,6 +43,19 @@ public class CfaTransformationRecords {
     oldNodeToNewNodeAfterAstNodeSubstitution = pOldNodeToNewNodeAfterAstNodeSubstitution;
   }
 
+  public static CfaTransformationRecords getTransformationRecordsForUntransformedCfa(
+      final CFA pCfa) {
+
+    return new CfaTransformationRecords(
+        /* pOriginalCfa = */ pCfa,
+        /* pAddedEdges = */ ImmutableSet.of(),
+        /* pRemovedEdges =  */ ImmutableSet.of(),
+        /* pOldEdgeToNewEdgeAfterAstNodeSubstitution = */ ImmutableBiMap.of(),
+        /* pAddedNodes =  */ ImmutableSet.of(),
+        /* pRemovedNodes = */ ImmutableSet.of(),
+        /* pOldNodeToNewNodeAfterAstNodeSubstitution = */ ImmutableBiMap.of());
+  }
+
   public CFA getOriginalCfa() {
     return originalCfa;
   }
