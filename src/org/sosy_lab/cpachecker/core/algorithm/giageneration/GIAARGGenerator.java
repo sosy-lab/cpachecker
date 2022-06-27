@@ -215,16 +215,16 @@ public class GIAARGGenerator {
       }
     }
 
-    statesThatAreEqual =
-        computeAdditionalEqualStatesToMoveMergePointBeforeFunctionExit(
-            relevantEdges, statesThatAreEqual);
+//    statesThatAreEqual =
+//        computeAdditionalEqualStatesToMoveMergePointBeforeFunctionExit(
+//            relevantEdges, statesThatAreEqual);
 
     relevantEdges = mergeStates(relevantEdges, statesThatAreEqual);
     logger.log(
         logLevel,
         relevantEdges.stream().map(e -> e.toString()).collect(ImmutableList.toImmutableList()));
 
-    relevantEdges = cleanupSingleBlankEdges(relevantEdges);
+    //relevantEdges = cleanupSingleBlankEdges(relevantEdges);
 
     // Now, a short cleaning is applied:
     // All states leading to the error state are replaced by the error state directly
