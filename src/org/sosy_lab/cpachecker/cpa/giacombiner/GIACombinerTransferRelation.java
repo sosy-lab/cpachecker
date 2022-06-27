@@ -65,12 +65,11 @@ public class GIACombinerTransferRelation extends SingleEdgeTransferRelation {
     AbstractGIAState first = combinerState.getStateOfAutomaton1();
     AbstractGIAState second = combinerState.getStateOfAutomaton2();
 
-    
-    if (first instanceof NotPresentGIAState  && second instanceof  NotPresentGIAState){
-      //This is a shortcut to abort the computation, if only a single gia is present
+    if (first instanceof NotPresentGIAState && second instanceof NotPresentGIAState) {
+      // This is a shortcut to abort the computation, if only a single gia is present
       return Collections.emptyList();
     }
-    
+
     // Abort if a target state is reached
     if (stateIsTargetOrNonTarget(first) || stateIsTargetOrNonTarget(second)) {
       return Collections.emptyList();
@@ -105,7 +104,11 @@ public class GIACombinerTransferRelation extends SingleEdgeTransferRelation {
 
           Map<AutomatonTransition, AutomatonState> successorSecond =
               getSuccesor(secondState, cfaEdge);
-          if (successorSecond.isEmpty() ||  successorSecond.entrySet().stream().allMatch(t -> t.getKey().getTrigger() instanceof  MatchOtherwise)) {
+          if (successorSecond.isEmpty()
+              || (successorSecond.entrySet().stream()
+                      .allMatch(t -> t.getKey().getTrigger() instanceof MatchOtherwise)
+                  && successorFirst.entrySet().stream()
+                      .noneMatch(t -> t.getKey().getTrigger() instanceof MatchOtherwise))) {
             // Second has no trnasitions at this edge or only an otherwise edge
             Set<GIACombinerState> successors = new HashSet<>();
             for (Entry<AutomatonTransition, AutomatonState> transition :
@@ -173,7 +176,11 @@ public class GIACombinerTransferRelation extends SingleEdgeTransferRelation {
 
           Map<AutomatonTransition, AutomatonState> successorFirst =
               getSuccesor(firstState, cfaEdge);
-          if (successorFirst.isEmpty() ||    successorFirst.entrySet().stream().allMatch(t -> t.getKey().getTrigger() instanceof  MatchOtherwise)) {
+          if (successorFirst.isEmpty()
+              || (successorFirst.entrySet().stream()
+                      .allMatch(t -> t.getKey().getTrigger() instanceof MatchOtherwise)
+                  && (successorSecond.entrySet().stream()
+                      .noneMatch(t -> t.getKey().getTrigger() instanceof MatchOtherwise)))) {
             // First has no transitions at this edge or only a self-loop
             Set<GIACombinerState> successors = new HashSet<>();
             for (Entry<AutomatonTransition, AutomatonState> transition :
