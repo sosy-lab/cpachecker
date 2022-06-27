@@ -17,27 +17,34 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 
 public class CfaTransformationRecords {
 
+  private final CFA originalCfa;
   private final Set<CFAEdge> addedEdges;
   private final Set<CFAEdge> removedEdges;
-  private final BiMap<CFAEdge, CFAEdge> newEdgeToOldEdgeAfterAstNodeSubstitution;
+  private final BiMap<CFAEdge, CFAEdge> oldEdgeToNewEdgeAfterAstNodeSubstitution;
   private final Set<CFANode> addedNodes;
   private final Set<CFANode> removedNodes;
-  private final BiMap<CFANode, CFANode> newNodeToOldNodeAfterAstNodeSubstitution;
+  private final BiMap<CFANode, CFANode> oldNodeToNewNodeAfterAstNodeSubstitution;
 
   public CfaTransformationRecords(
+      final CFA pOriginalCfa,
       final Set<CFAEdge> pAddedEdges,
       final Set<CFAEdge> pRemovedEdges,
-      final BiMap<CFAEdge, CFAEdge> pNewEdgeToOldEdgeAfterAstNodeSubstitution,
+      final BiMap<CFAEdge, CFAEdge> pOldEdgeToNewEdgeAfterAstNodeSubstitution,
       final Set<CFANode> pAddedNodes,
       final Set<CFANode> pRemovedNodes,
-      final BiMap<CFANode, CFANode> pNewNodeToOldNodeAfterAstNodeSubstitution) {
+      final BiMap<CFANode, CFANode> pOldNodeToNewNodeAfterAstNodeSubstitution) {
 
+    originalCfa = pOriginalCfa;
     addedEdges = pAddedEdges;
     removedEdges = pRemovedEdges;
-    newEdgeToOldEdgeAfterAstNodeSubstitution = pNewEdgeToOldEdgeAfterAstNodeSubstitution;
+    oldEdgeToNewEdgeAfterAstNodeSubstitution = pOldEdgeToNewEdgeAfterAstNodeSubstitution;
     addedNodes = pAddedNodes;
     removedNodes = pRemovedNodes;
-    newNodeToOldNodeAfterAstNodeSubstitution = pNewNodeToOldNodeAfterAstNodeSubstitution;
+    oldNodeToNewNodeAfterAstNodeSubstitution = pOldNodeToNewNodeAfterAstNodeSubstitution;
+  }
+
+  public CFA getOriginalCfa() {
+    return originalCfa;
   }
 
   public Set<CFAEdge> getAddedEdges() {
@@ -48,8 +55,8 @@ public class CfaTransformationRecords {
     return ImmutableSet.copyOf(removedEdges);
   }
 
-  public BiMap<CFAEdge, CFAEdge> getNewEdgeToOldEdgeAfterAstNodeSubstitution() {
-    return ImmutableBiMap.copyOf(newEdgeToOldEdgeAfterAstNodeSubstitution);
+  public BiMap<CFAEdge, CFAEdge> getOldEdgeToNewEdgeAfterAstNodeSubstitution() {
+    return ImmutableBiMap.copyOf(oldEdgeToNewEdgeAfterAstNodeSubstitution);
   }
 
   public Set<CFANode> getAddedNodes() {
@@ -60,7 +67,7 @@ public class CfaTransformationRecords {
     return ImmutableSet.copyOf(removedNodes);
   }
 
-  public BiMap<CFANode, CFANode> getNewNodeToOldNodeAfterAstNodeSubstitution() {
-    return ImmutableBiMap.copyOf(newNodeToOldNodeAfterAstNodeSubstitution);
+  public BiMap<CFANode, CFANode> getOldNodeToNewNodeAfterAstNodeSubstitution() {
+    return ImmutableBiMap.copyOf(oldNodeToNewNodeAfterAstNodeSubstitution);
   }
 }

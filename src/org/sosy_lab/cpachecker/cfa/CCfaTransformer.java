@@ -628,6 +628,7 @@ public final class CCfaTransformer {
             (ChangeRecordingCfaMutableNetwork) graph;
         final CfaTransformationRecords transformationRecords =
             new CfaTransformationRecords(
+                pOriginalCfa,
                 changeRecordingNetwork.getAddedEdges(),
                 changeRecordingNetwork.getRemovedEdges(),
                 oldEdgeToNewEdge.inverse(),
