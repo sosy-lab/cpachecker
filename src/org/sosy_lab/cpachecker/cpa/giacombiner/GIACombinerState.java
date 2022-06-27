@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.cpa.giacombiner;
 
 import com.google.common.collect.HashMultimap;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Multimap;
 import java.io.Serializable;
 import java.util.Collection;
@@ -43,7 +44,7 @@ public class GIACombinerState
 
   public void addSuccessor(GIATransition pTransition, GIACombinerState pSuccessor)
       throws CPATransferException {
-      successors.put(pTransition,pSuccessor);
+    successors.put(pTransition, pSuccessor);
   }
 
   @Override
@@ -73,7 +74,6 @@ public class GIACombinerState
         && Objects.equals(this.stateOfAutomaton2, other.stateOfAutomaton2)
         && other.successors.entries().containsAll(this.successors.entries());
   }
-
 
   @Override
   public String toString() {
@@ -105,7 +105,17 @@ public class GIACombinerState
 
   @Override
   public int hashCode() {
-    return Objects.hash(stateOfAutomaton1, stateOfAutomaton2, successors);
+    return Objects.hash(
+        stateOfAutomaton1,
+        stateOfAutomaton2,
+        successors.size(),
+        successors.entries().parallelStream()
+            .map(e -> e.getKey().hashCode() + e.getValue().nonRecHashCode())
+            .collect(ImmutableSet.toImmutableSet()));
+  }
+
+  private int nonRecHashCode() {
+    return Objects.hash(stateOfAutomaton1, stateOfAutomaton2, successors.size());
   }
 
   public AbstractGIAState getStateOfAutomaton1() {
