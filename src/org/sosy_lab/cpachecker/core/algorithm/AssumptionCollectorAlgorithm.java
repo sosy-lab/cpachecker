@@ -148,7 +148,7 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
 
   @Option(secure = true, description = "write collected assumptions as automaton to file")
   @FileOption(FileOption.Type.OUTPUT_FILE)
-  private Path giaFile = Path.of("UniversalConditionAutomaton.txt");
+  private Path giaFile = Path.of("GIA.txt");
 
   private final LogManager logger;
   private final Algorithm innerAlgorithm;

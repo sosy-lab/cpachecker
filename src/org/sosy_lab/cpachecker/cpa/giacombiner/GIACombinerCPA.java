@@ -57,13 +57,14 @@ public class GIACombinerCPA extends AbstractCPA implements ProofCheckerCPA {
   private final Configuration config;
   private final Automaton automaton1;
   private final Automaton automaton2;
+  private Optional<Path> pathToOnlyAutomaton = Optional.empty();
 
   @Option(secure = true, description = "Filename to the first GIA")
-  @FileOption(Type.REQUIRED_INPUT_FILE)
+  @FileOption(Type.OPTIONAL_INPUT_FILE)
   private Path pathToGIA1 = null;
 
   @Option(secure = true, description = "Filename to the first GIA")
-  @FileOption(Type.REQUIRED_INPUT_FILE)
+  @FileOption(Type.OPTIONAL_INPUT_FILE)
   private Path pathToGIA2 = null;
 
   public static CPAFactory factory() {
@@ -79,8 +80,21 @@ public class GIACombinerCPA extends AbstractCPA implements ProofCheckerCPA {
     this.cfa = pCFA;
     this.shutdownNotifier = pShutdownNotifier;
     this.config = pConfig;
-    automaton1 = getAutomaton(pathToGIA1);
-    automaton2 = getAutomaton(pathToGIA2);
+    if (pathToGIA1 != null) automaton1 = getAutomaton(pathToGIA1);
+    else {
+      automaton1 = null;
+      this.pathToOnlyAutomaton = Optional.of(pathToGIA2);
+    }
+    if (pathToGIA2 != null) {
+      automaton2 = getAutomaton(pathToGIA2);
+    } else {
+      if (pathToOnlyAutomaton.isPresent()) {
+        throw new InvalidConfigurationException("At least one path to a GIA needs to be present");
+      } else {
+        automaton2 = null;
+        this.pathToOnlyAutomaton = Optional.of(pathToGIA1);
+      }
+    }
   }
 
   private Automaton getAutomaton(Path pPath) throws InvalidConfigurationException {
@@ -120,13 +134,21 @@ public class GIACombinerCPA extends AbstractCPA implements ProofCheckerCPA {
     return new StopSepOperator(getAbstractDomain());
   }
 
+  public Optional<Path> getPathToOnlyAutomaton() {
+    return pathToOnlyAutomaton;
+  }
+
   @Override
   public AbstractState getInitialState(CFANode node, StateSpacePartition partition)
       throws InterruptedException {
+    if (this.pathToOnlyAutomaton.isPresent()){
+      return new GIACombinerState(new NotPresentGIAState(), new NotPresentGIAState());
+    }else{
     return new GIACombinerState(
         new GIAInternalState(buildInitStateForAutomaton(automaton1)),
-        new GIAInternalState(buildInitStateForAutomaton(automaton2)));
+        new GIAInternalState(buildInitStateForAutomaton(automaton2)));}
   }
+
   public AutomatonState buildInitStateForAutomaton(Automaton pAutomaton) {
     AutomatonInternalState initState = pAutomaton.getInitialState();
     AutomatonTargetInformation safetyProp = null;
@@ -138,9 +160,9 @@ public class GIACombinerCPA extends AbstractCPA implements ProofCheckerCPA {
                   .collect(MoreCollectors.toOptional());
           safetyProp =
               assumptionOpt.isPresent()
-              ? new AutomatonTargetInformation(
-                  pAutomaton, t, assumptionOpt.orElseThrow().toASTString())
-              : new AutomatonTargetInformation(pAutomaton, t);
+                  ? new AutomatonTargetInformation(
+                      pAutomaton, t, assumptionOpt.orElseThrow().toASTString())
+                  : new AutomatonTargetInformation(pAutomaton, t);
           break;
         }
       }
@@ -155,5 +177,4 @@ public class GIACombinerCPA extends AbstractCPA implements ProofCheckerCPA {
         safetyProp,
         true);
   }
-
 }

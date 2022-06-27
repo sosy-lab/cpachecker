@@ -65,6 +65,12 @@ public class GIACombinerTransferRelation extends SingleEdgeTransferRelation {
     AbstractGIAState first = combinerState.getStateOfAutomaton1();
     AbstractGIAState second = combinerState.getStateOfAutomaton2();
 
+    
+    if (first instanceof NotPresentGIAState  && second instanceof  NotPresentGIAState){
+      //This is a shortcut to abort the computation, if only a single gia is present
+      return Collections.emptyList();
+    }
+    
     // Abort if a target state is reached
     if (stateIsTargetOrNonTarget(first) || stateIsTargetOrNonTarget(second)) {
       return Collections.emptyList();

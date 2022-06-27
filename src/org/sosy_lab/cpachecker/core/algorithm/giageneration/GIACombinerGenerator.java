@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.core.algorithm.giageneration;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 import java.io.IOException;
+import java.nio.file.Files;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -18,21 +19,27 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Set;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonBoolExpr.MatchOtherwise;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonStateTypes;
+import org.sosy_lab.cpachecker.cpa.giacombiner.GIACombinerCPA;
 import org.sosy_lab.cpachecker.cpa.giacombiner.GIACombinerState;
 import org.sosy_lab.cpachecker.cpa.giacombiner.GIATransition;
+import org.sosy_lab.cpachecker.cpa.giacombiner.NotPresentGIAState;
 import org.sosy_lab.cpachecker.util.AbstractStates;
+import org.sosy_lab.cpachecker.util.CPAs;
 
 public class GIACombinerGenerator {
 
 
+  private final ConfigurableProgramAnalysis cpa;
 
-  public GIACombinerGenerator() {
-
+  public GIACombinerGenerator(ConfigurableProgramAnalysis pCpa) {
+this.cpa = pCpa;
   }
 
   int produceGIA4ARG(
@@ -46,6 +53,18 @@ public class GIACombinerGenerator {
     if (AbstractStates.extractStateByType(firstState, GIACombinerState.class) == null) {
       throw new InterruptedException("Cannot dump combined GIA if no GIACombinerState is present.");
     }
+
+    //Check if the shortcut was taken (only a single node is present)
+    @Nullable GIACombinerState firstGIAState =
+        AbstractStates.extractStateByType(firstState, GIACombinerState.class);
+    if (firstGIAState.getStateOfAutomaton1() instanceof NotPresentGIAState && firstGIAState.getStateOfAutomaton2() instanceof  NotPresentGIAState){
+      @Nullable GIACombinerCPA combinerCPA = CPAs.retrieveCPA(cpa, GIACombinerCPA.class);
+      if (combinerCPA != null && combinerCPA.getPathToOnlyAutomaton().isPresent()){
+        pOutput.append(Files.readString(combinerCPA.getPathToOnlyAutomaton().orElseThrow()));
+
+      return 0;}
+    }
+
 
     Set<GIACombinerState> statesPresent =
         pReached.stream()
