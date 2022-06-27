@@ -20,6 +20,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.logging.Level;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.core.algorithm.giageneration.GIAGenerator;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonVariable.AutomatonIntVariable;
 
 public class GIAAutomatonParser {
@@ -31,6 +32,18 @@ public class GIAAutomatonParser {
   public GIAAutomatonParser(LogManager pLogger) {
     this.logger = pLogger;
   }
+
+  /**
+   * Checks if one automaton present and if the automaton is a GIA
+   *
+   * @param pAutomata the list of automaton to check
+   * @return true if the above conditions are matched, false otherwise
+   */
+  public static boolean isGIA(List<Automaton> pAutomata) {
+    return pAutomata.size() == 1
+        && pAutomata.get(0).getName().equals(GIAGenerator.ASSUMPTION_AUTOMATON_NAME);
+  }
+
 
   public List<Automaton> postProcessGIA(List<Automaton> pAutomata) {
 

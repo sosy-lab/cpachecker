@@ -116,7 +116,7 @@ public class GIACombinerCPA extends AbstractCPA implements ProofCheckerCPA {
 
     if (automata.isEmpty()) {
       throw new InvalidConfigurationException("Specification file contains no automata: " + pPath);
-    } else if (Specification.isGIA(automata)) {
+    } else if (GIAAutomatonParser.isGIA(automata)) {
       GIAAutomatonParser giaParsre = new GIAAutomatonParser(logger);
       automata = giaParsre.postProcessGIA(automata);
       return automata.get(0);

@@ -254,7 +254,7 @@ public final class Specification {
       if (automata.isEmpty()) {
         throw new InvalidConfigurationException(
             "Specification file contains no automata: " + specFile);
-      } else if (isGIA(automata)) {
+      } else if (GIAAutomatonParser.isGIA(automata)) {
         GIAAutomatonParser giaParsre = new GIAAutomatonParser(logger);
         automata = giaParsre.postProcessGIA(automata);
       }
@@ -271,16 +271,7 @@ public final class Specification {
     return automata;
   }
 
-  /**
-   * Checks if one automaton present and if the automaton is a GIA
-   *
-   * @param pAutomata the list of automaton to check
-   * @return true if the above conditions are matched, false otherwise
-   */
-  public static boolean isGIA(List<Automaton> pAutomata) {
-    return pAutomata.size() == 1
-        && pAutomata.get(0).getName().equals(GIAGenerator.ASSUMPTION_AUTOMATON_NAME);
-  }
+
 
   private static Automaton parseLtlFormula(
       String ltl,
