@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.cpa.value;
 
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import org.sosy_lab.common.collect.PersistentMap;
@@ -20,20 +21,6 @@ public class ValueAnalysisStateWithSavedValue extends ValueAnalysisState {
   private final Optional<Value> valueFromLastIteration;
 
   public ValueAnalysisStateWithSavedValue(
-      MachineModel pMachineModel, Value pValueFromLastIteration) {
-    super(pMachineModel);
-    this.valueFromLastIteration = Optional.ofNullable(pValueFromLastIteration);
-  }
-
-  public ValueAnalysisStateWithSavedValue(
-      Optional<MachineModel> pMachineModel,
-      PersistentMap<MemoryLocation, ValueAndType> pConstantsMap,
-      Value pValueFromLastIteration) {
-    super(pMachineModel, pConstantsMap);
-    this.valueFromLastIteration = Optional.ofNullable(pValueFromLastIteration);
-  }
-
-  public ValueAnalysisStateWithSavedValue(
       ValueAnalysisState state, Optional<Value> pValueFromLastIteration) {
     super(state);
     this.valueFromLastIteration = pValueFromLastIteration;
@@ -41,6 +28,12 @@ public class ValueAnalysisStateWithSavedValue extends ValueAnalysisState {
 
   public ValueAnalysisStateWithSavedValue(ValueAnalysisState state) {
     super(state);
+    this.valueFromLastIteration = Optional.empty();
+  }
+
+  public ValueAnalysisStateWithSavedValue(ValueAnalysisState pState, Map<Integer, String> pValuesMap) {
+    super(pState);
+    super.setValueMap(pValuesMap);
     this.valueFromLastIteration = Optional.empty();
   }
 

@@ -13,7 +13,9 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import java.io.IOException;
 import java.math.BigDecimal;
+import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -26,11 +28,12 @@ import java.util.OptionalInt;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
+import java.util.regex.Pattern;
+import java.util.stream.Stream;
 import javax.xml.parsers.ParserConfigurationException;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.configuration.Configuration;
-import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
@@ -140,6 +143,7 @@ public class ValueAnalysisTransferRelation
   private static final ImmutableMap<String, String> UNSUPPORTED_FUNCTIONS = ImmutableMap.of();
 
   private static final AtomicInteger indexForNextRandomValue = new AtomicInteger();
+  private CFAEdge cfaEdgeFromInfo;
 
   @Options(prefix = "cpa.value")
   public static class ValueTransferOptions {
@@ -181,10 +185,16 @@ public class ValueAnalysisTransferRelation
     @Option(
         secure = true,
         description =
-            "Fixed set of values for function calls to VERIFIER_nondet_*. Does only work, if"
-                + " ignoreFunctionValueExceptRandom is enabled ")
-    @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
-    private Path functionValuesForRandom = null;
+            "Directory for the files: Fixed set of values for function calls to VERIFIER_nondet_*. Does only work, if"
+                + " ignoreFunctionValueExceptRandom is enabled and  ")
+    private String functionValuesForRandomDir = "";
+
+    @Option(
+        secure = true,
+        description =
+            "Regex to load the files: Fixed set of values for function calls to VERIFIER_nondet_*. Does only work, if"
+                + " ignoreFunctionValueExceptRandom is enabled and  ")
+    private String functionValuesForRandomPathRegex = "";
 
     @Option(
         secure = true,
@@ -223,8 +233,12 @@ public class ValueAnalysisTransferRelation
       return ignoreFunctionValueExceptRandom;
     }
 
-    public Path getFunctionValuesForRandom() {
-      return functionValuesForRandom;
+    public String getFunctionValuesForRandomDir() {
+      return functionValuesForRandomDir;
+    }
+
+    public String getFunctionValuesForRandomPathRegex() {
+      return functionValuesForRandomPathRegex;
     }
 
     boolean isAllowedUnsupportedOption(String func) {
@@ -270,7 +284,8 @@ public class ValueAnalysisTransferRelation
   private final LogManagerWithoutDuplicates logger;
   private final Collection<String> addressedVariables;
   private final Collection<String> booleanVariables;
-  private Map<Integer, String> valuesFromFile;
+  private List<Map<Integer, String>> valuesFromFile;
+  private boolean valuesFromFilesUsed = false;
 
   public ValueAnalysisTransferRelation(
       LogManager pLogger,
@@ -298,7 +313,8 @@ public class ValueAnalysisTransferRelation
 
     if (options.isIgnoreFunctionValueExceptRandom()
         && options.isIgnoreFunctionValue()
-        && options.getFunctionValuesForRandom() != null) {
+        && !options.getFunctionValuesForRandomDir().isEmpty()
+        && !options.getFunctionValuesForRandomPathRegex().isEmpty()) {
       setupFunctionValuesForRandom();
     }
   }
@@ -308,6 +324,15 @@ public class ValueAnalysisTransferRelation
       ValueAnalysisState successor, CFAEdge edge) {
     // always return a new state (requirement for strengthening states with interpolants)
     if (successor != null) {
+      if (successor instanceof SplitValueAnalysisState){
+        try {
+          return ((SplitValueAnalysisState)successor).split();
+        } catch (CPATransferException pE) {
+          logger.logfUserException(Level.SEVERE, pE, "Cannot splitt the state! Aborting");
+          return Collections.emptyList();
+        }
+      }
+
       if (successor instanceof ValueAnalysisStateWithSavedValue) {
         successor = ValueAnalysisStateWithSavedValue.copyOf(successor);
       } else {
@@ -331,6 +356,7 @@ public class ValueAnalysisTransferRelation
     if (stats != null) {
       stats.incrementIterations();
     }
+    this.cfaEdgeFromInfo = pCfaEdge;
   }
 
   @Override
@@ -348,6 +374,8 @@ public class ValueAnalysisTransferRelation
     // visitor for getting the values of the actual parameters in caller function context
     final ExpressionValueVisitor visitor = getVisitor();
 
+
+
     // get value of actual parameter in caller function context
     for (int i = 0; i < parameters.size(); i++) {
       Value value;
@@ -356,6 +384,10 @@ public class ValueAnalysisTransferRelation
       if (exp instanceof JExpression) {
         value = ((JExpression) exp).accept(visitor);
       } else if (exp instanceof CExpression) {
+
+        if (visitor.wouldReturnAValueForRandom((CExpression) exp, (CType) parameters.get(i).getType())){
+        throw new UnrecognizedCodeException("Dont know how to handle this case. How to split the states for arguments?", callEdge);
+        }
         value = visitor.evaluate((CExpression) exp, (CType) parameters.get(i).getType());
       } else {
         throw new AssertionError("Unknown expression: " + exp);
@@ -899,7 +931,14 @@ public class ValueAnalysisTransferRelation
     final CType leftSideType = leftSide.getExpressionType();
     final ExpressionValueVisitor evv = getVisitor();
 
+
     ValueAnalysisState newElement = ValueAnalysisState.copyOf(state);
+
+    //Extra handling to splitt the state during post processing into several states, each using one random file
+    if (evv.wouldReturnAValueForRandom(functionCallExp, leftSideType) && !this.valuesFromFilesUsed){
+      valuesFromFilesUsed = true;
+      return new SplitValueAnalysisState(state, valuesFromFile, this, super.precision, cfaEdgeFromInfo, logger);
+    }
 
     Value newValue = evv.evaluate(functionCallExp, leftSideType);
 
@@ -1445,10 +1484,17 @@ public class ValueAnalysisTransferRelation
       }
     }
 
-    super.resetInfo();
+    resetInfo();
     oldState = null;
 
     return postProcessedResult;
+  }
+
+  @Override
+  protected void resetInfo() {
+    super.resetInfo();
+    this.cfaEdgeFromInfo = null;
+
   }
 
   /**
@@ -1773,16 +1819,36 @@ public class ValueAnalysisTransferRelation
 
   /** Load the FunctionValues for random functinos from the given Testcomp Testcase */
   private void setupFunctionValuesForRandom() {
-    try {
-      valuesFromFile = TestCompTestcaseLoader.loadTestcase(options.getFunctionValuesForRandom());
-    } catch (ParserConfigurationException | SAXException | IOException e) {
-      // Nothing to do here, as we are not able to lead the additional information, hence ignoring
-      // the file
+
+    Pattern pattern =
+        Pattern.compile(options.functionValuesForRandomPathRegex, Pattern.CASE_INSENSITIVE);
+    try (Stream<Path> stream = Files.list(Paths.get(options.functionValuesForRandomDir))) {
+      ImmutableSet<Path> randomFiles =
+          stream
+              .filter(file -> !Files.isDirectory(file))
+                            .filter(file -> pattern.matcher(file.toString()).find())
+              .collect(ImmutableSet.toImmutableSet());
+      valuesFromFile = new ArrayList<>();
+      for (Path file : randomFiles) {
+        try {
+          valuesFromFile.add(TestCompTestcaseLoader.loadTestcase(file));
+        } catch (ParserConfigurationException | SAXException | IOException e) {
+          // Nothing to do here, as we are not able to lead the additional information, hence
+          // ignoring
+          // the file
+          logger.logfUserException(
+              Level.WARNING,e,
+              String.format(
+                  "Ignoring the additionally given file 'functionValuesForRandom' %s due to an error",
+                  file));
+        }
+      }
+    } catch (IOException pE) {
       logger.log(
           Level.WARNING,
           String.format(
-              "Ignoring the additionally given file 'functionValuesForRandom' %s due to an error",
-              options.getFunctionValuesForRandom()));
+              "Ignoring the additionally given files, as the directory  %s does not exists or another error occured",
+              options.getFunctionValuesForRandomDir()));
     }
   }
 
@@ -1790,14 +1856,14 @@ public class ValueAnalysisTransferRelation
   private ExpressionValueVisitor getVisitor(ValueAnalysisState pState, String pFunctionName) {
     if (options.isIgnoreFunctionValueExceptRandom()
         && options.isIgnoreFunctionValue()
-        && options.getFunctionValuesForRandom() != null) {
+        && !options.getFunctionValuesForRandomDir().isEmpty()
+        && !options.getFunctionValuesForRandomPathRegex().isEmpty()) {
       return new ExpressionValueVisitorWithPredefinedValues(
           pState,
           pFunctionName,
           ValueAnalysisTransferRelation.indexForNextRandomValue,
           machineModel,
-          logger,
-          valuesFromFile);
+          logger);
     } else if (options.isIgnoreFunctionValue()) {
       return new ExpressionValueVisitor(pState, pFunctionName, machineModel, logger);
     } else {

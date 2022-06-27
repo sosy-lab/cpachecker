@@ -32,9 +32,8 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 public class ExpressionValueVisitorWithPredefinedValues extends ExpressionValueVisitor {
 
   public static final String PATERN_FOR_RANDOM = "__VERIFIER_nondet_";
-  private AtomicInteger numReturnedValues;
+  private final ValueAnalysisState state;
   private LogManagerWithoutDuplicates logger;
-  private Map<Integer, String> valuesFromFile = new HashMap<>();
   private boolean lastRequestSuccessful = true;
 
   private boolean lastRequestedValue = false;
@@ -46,6 +45,7 @@ public class ExpressionValueVisitorWithPredefinedValues extends ExpressionValueV
       LogManagerWithoutDuplicates pLogger) {
     super(pState, pFunctionName, pMachineModel, pLogger);
     this.logger = pLogger;
+    this.state = pState;
   }
 
   /**
@@ -54,28 +54,38 @@ public class ExpressionValueVisitorWithPredefinedValues extends ExpressionValueV
    * @param pFunctionName see {@link
    *     ExpressionValueVisitor#ExpressionValueVisitor(ValueAnalysisState, String, MachineModel,
    *     LogManagerWithoutDuplicates) pFunctionName}
-   * @param pAtomicInteger the index of the element that should be returned from the file.
    * @param pMachineModel see {@link
    *     ExpressionValueVisitor#ExpressionValueVisitor(ValueAnalysisState, String, MachineModel,
    *     LogManagerWithoutDuplicates) pMachineModel}
    * @param pLogger see {@link ExpressionValueVisitor#ExpressionValueVisitor(ValueAnalysisState,
    *     String, MachineModel, LogManagerWithoutDuplicates) pLogger}
-   * @param pValuesFromFile The Map containing the values for the random function.
    */
   public ExpressionValueVisitorWithPredefinedValues(
       ValueAnalysisState pState,
       String pFunctionName,
       AtomicInteger pAtomicInteger,
       MachineModel pMachineModel,
-      LogManagerWithoutDuplicates pLogger,
-      Map<Integer, String> pValuesFromFile) {
+      LogManagerWithoutDuplicates pLogger) {
     super(pState, pFunctionName, pMachineModel, pLogger);
+    this.state = pState;
     this.logger = pLogger;
-    this.numReturnedValues = pAtomicInteger;
-    if (Objects.nonNull(pValuesFromFile)) {
-      valuesFromFile = pValuesFromFile;
-    }
+
   }
+
+@Override
+@SuppressWarnings("unused")
+  public boolean wouldReturnAValueForRandom(CRightHandSide pExp, CType pTargetType){
+    if (lastRequestSuccessful && pExp instanceof CFunctionCallExpression) {
+      CFunctionCallExpression call = (CFunctionCallExpression) pExp;
+      if (call.getFunctionNameExpression() instanceof CIdExpression
+          && ((CIdExpression) call.getFunctionNameExpression())
+          .getName()
+          .startsWith(PATERN_FOR_RANDOM)) {
+        return true;
+      }}
+    return false;
+  }
+
 
   @Override
   public Value evaluate(CRightHandSide pExp, CType pTargetType) throws UnrecognizedCodeException {
@@ -88,9 +98,9 @@ public class ExpressionValueVisitorWithPredefinedValues extends ExpressionValueV
 
         // We found a call to random. If available, return a new value from the predefined inputs.
         // Otherwise, delegate to super
-        int counter = numReturnedValues.getAndIncrement();
-        if (this.valuesFromFile.containsKey(counter)) {
-          Value value = computeNumericalValue(call, valuesFromFile.get(counter));
+        int counter = state.getNumReturnedValuesUsed().getAndIncrement();
+        if (this.state.getValueMap().containsKey(counter)) {
+          Value value = computeNumericalValue(call, this.state.getValueMap().get(counter));
 
           this.logger.log(
               Level.FINER,

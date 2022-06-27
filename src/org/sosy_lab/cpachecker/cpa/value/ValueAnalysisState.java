@@ -18,12 +18,15 @@ import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicInteger;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.collect.PersistentMap;
@@ -95,6 +98,8 @@ public class ValueAnalysisState
   private static final long serialVersionUID = -3152134511524554358L;
 
   private static final Set<MemoryLocation> blacklist = new HashSet<>();
+  private Map<Integer, String> valueMap = new HashMap<>();
+  private AtomicInteger numReturnedValuesUsed = new AtomicInteger(0);
 
   static void addToBlacklist(MemoryLocation var) {
     blacklist.add(checkNotNull(var));
@@ -138,6 +143,8 @@ public class ValueAnalysisState
     constantsMap = checkNotNull(state.constantsMap);
     hashCode = state.hashCode;
     assert hashCode == constantsMap.hashCode();
+    this.valueMap = state.getValueMap();
+    this.numReturnedValuesUsed = state.getNumReturnedValuesUsed();
   }
 
   public static ValueAnalysisState copyOf(ValueAnalysisState state) {
@@ -425,7 +432,8 @@ public class ValueAnalysisState
       }
     }
 
-    return true;
+    return this.numReturnedValuesUsed.get() == other.numReturnedValuesUsed.get()
+        && this.valueMap.equals(other.valueMap);
   }
 
   @Override
@@ -885,6 +893,23 @@ public class ValueAnalysisState
     }
     return factory.and(result);
   }
+
+  protected void setValueMap(Map<Integer, String> pValuesMap) {
+    this.valueMap = pValuesMap;
+  }
+
+  public Map<Integer, String> getValueMap() {
+    return valueMap;
+  }
+
+  public AtomicInteger getNumReturnedValuesUsed() {
+    return this.numReturnedValuesUsed;
+  }
+
+  protected void copyCounter() {
+    this.numReturnedValuesUsed = new AtomicInteger(this.numReturnedValuesUsed.get());
+  }
+
 
   public static class ValueAndType implements Serializable {
     private static final long serialVersionUID = 1L;

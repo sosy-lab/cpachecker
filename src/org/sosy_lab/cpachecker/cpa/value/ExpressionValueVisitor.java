@@ -21,6 +21,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.DefaultCExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.java.JClassLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JIdExpression;
@@ -436,4 +437,7 @@ public class ExpressionValueVisitor extends AbstractExpressionValueVisitor {
   public ValueAnalysisState getState() {
     return readableState;
   }
+
+  @SuppressWarnings("unused")
+  public boolean wouldReturnAValueForRandom(CRightHandSide pExp, CType pTargetType) {return false;}
 }
