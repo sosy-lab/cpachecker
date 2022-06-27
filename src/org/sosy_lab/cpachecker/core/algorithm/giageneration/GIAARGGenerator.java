@@ -21,6 +21,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -127,6 +128,8 @@ public class GIAARGGenerator {
       pOutput.append("Cannot dump assumption as automaton if ARGCPA is not used.");
     }
 
+    logger.log(Level.INFO, "Starting generation of GIA");
+
     final ARGState pArgRoot = (ARGState) pReached.getFirstState();
 
     // Compute all target states: States marked as target
@@ -150,7 +153,10 @@ public class GIAARGGenerator {
       targetStates = new HashSet<>();
     }
 
-    Map<ARGState, Set<CFAEdge>> coveredGoals = computeCoveredGoals(pReached);
+
+    Map<ARGState, Set<CFAEdge>> coveredGoals = new HashMap<>();
+    if (options.generateGIAForTesttargets()){
+      coveredGoals = computeCoveredGoals(pReached);}
 
     Set<GIAARGStateEdge<ARGState>> relevantEdges =
         getGiaargStateEdges(
@@ -397,9 +403,10 @@ public class GIAARGGenerator {
     // Relevant state: Function enter, branching, loopHead or error states
     // We start at the root and iterate through the ARG
     //    Set<GIAARGStateEdge> relevantEdges = new HashSet<>();
-    List<ARGState> toProcess = new ArrayList<>();
+    LinkedHashSet<ARGState> toProcess = new LinkedHashSet<>();
     toProcess.add(pArgRoot);
-    List<ARGState> processed = new ArrayList<>();
+    Set<ARGState> processed = new HashSet<>();
+
 
     logger.log(
         logLevel,
@@ -411,7 +418,8 @@ public class GIAARGGenerator {
                     .collect(ImmutableList.toImmutableList())));
 
     while (!toProcess.isEmpty()) {
-      ARGState state = toProcess.remove(0);
+      ARGState state = toProcess.stream().findFirst().orElseThrow();
+      toProcess.remove(state);
       logger.logf(
           logLevel,
           "Taking %s from the list, processed %s, toProcess %s",
@@ -1185,7 +1193,7 @@ public class GIAARGGenerator {
     return pReached.stream()
         .map(as -> AbstractStates.extractStateByType(as, ARGState.class))
         .filter(
-            s -> !s.isTarget() && s.wasExpanded() && !s.isCovered() && s.getChildren().isEmpty())
+            s -> s != null &&  !s.isTarget() && s.wasExpanded() && !s.isCovered() && s.getChildren().isEmpty())
         .collect(ImmutableSet.toImmutableSet());
   }
 
@@ -1207,9 +1215,9 @@ public class GIAARGGenerator {
       ARGState pCurrentState,
       ARGState pChild,
       Set<ARGState> pFinalStates,
-      List<ARGState> pToProcess,
+      LinkedHashSet<ARGState> pToProcess,
       Set<GIAARGStateEdge<ARGState>> pRelevantEdges,
-      List<ARGState> pProcessed,
+      Set<ARGState> pProcessed,
       Multimap<ARGState, CFAEdgeWithAssumptions> pEdgesWithAssumptions,
       ImmutableSet<ARGState> pStatesWithInterpolant,
       ImmutableSet<ARGState> pStatesWithAssumption)
@@ -1336,17 +1344,6 @@ public class GIAARGGenerator {
         }
       }
     }
-  }
-
-  private Optional<BooleanFormula> getAssumptionIfPresent(
-      ARGState pState, ImmutableSet<ARGState> pStatesWithAssumption) {
-    if (pStatesWithAssumption.contains(pState)) {
-      return Optional.ofNullable(
-          Objects.requireNonNull(
-                  AbstractStates.extractStateByType(pState, AssumptionStorageState.class))
-              .getAssumption());
-    }
-    return Optional.empty();
   }
 
   private Set<ExpressionTree<Object>> retriveInterpolantAndAssumptionsIfPresent(
