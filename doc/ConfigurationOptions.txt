@@ -1366,6 +1366,11 @@ cpa.arg.witness.exportThreadId = false
 # names for concurrent tasks for debugging?
 cpa.arg.witness.exportThreadName = false
 
+# how to select fault from final list
+cpa.arg.witness.faultSelectionStrategy = FIRST
+  enum:     [MIN, MAX, FIRST, FIRST_NONEMPTY_MINIMAL, FIRST_NONEMPTY_MAXIMAL,
+             CROSSPRODUCT]
+
 # Produce an invariant witness instead of a correctness witness. Constructing
 # an invariant witness makes use of a different merge for quasi-invariants:
 # Instead of computing the disjunction of two invariants present when merging
@@ -3613,12 +3618,13 @@ faultLocalization.by_traceformula.type = UNSAT
   enum:     [UNSAT, MAXSAT, MAXORG, ERRINV]
 
 # how to merge lists of faults
-faultLocalization.merge.mergeStrategy = no default value
+faultLocalization.merge.mergeStrategy = RELAXED_INTERSECTION
   enum:     [REPLACE, INTERSECTION, UNION, RELAXED_INTERSECTION, PREVIOUS]
 
 # which faults to use
-faultLocalization.merge.selectionStrategy = no default value
-  enum:     [MIN, MAX, FIRST, CROSSPRODUCT]
+faultLocalization.merge.selectionStrategy = FIRST
+  enum:     [MIN, MAX, FIRST, FIRST_NONEMPTY_MINIMAL, FIRST_NONEMPTY_MAXIMAL,
+             CROSSPRODUCT]
 
 # Configuration for programs containing more than @Option adressedRatio
 # addressed vars.
