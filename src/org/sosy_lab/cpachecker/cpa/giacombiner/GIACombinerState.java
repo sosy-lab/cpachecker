@@ -81,6 +81,12 @@ public class GIACombinerState
             .allMatch(e -> e.getValue().equals(other.successors.get(e.getKey())));
   }
 
+
+  @Override
+  public String toString() {
+    return toDOTLabel();
+  }
+
   @Override
   public String toDOTLabel() {
     String resString = "";
@@ -124,13 +130,13 @@ public class GIACombinerState
   public boolean isPresent(AutomatonStateTypes pType) {
     return (stateOfAutomaton1.statePresent()
             && ((GIAInternalState) stateOfAutomaton1)
-                .getInternalState()
+                .getAutomatonState()
                 .getInternalState()
                 .getStateType()
                 .equals(pType))
         || (stateOfAutomaton2.statePresent()
             && ((GIAInternalState) stateOfAutomaton2)
-                .getInternalState()
+                .getAutomatonState()
                 .getInternalState()
                 .getStateType()
                 .equals(pType));

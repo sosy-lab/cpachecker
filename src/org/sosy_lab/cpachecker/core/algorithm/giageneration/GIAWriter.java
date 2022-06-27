@@ -18,7 +18,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
-import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 
 public class GIAWriter<T extends AbstractState> {
 
@@ -36,9 +35,8 @@ public class GIAWriter<T extends AbstractState> {
    */
   public int writeGIA(
       Appendable sb,
-      ARGState rootState,
+      T rootState,
       Set<GIAARGStateEdge<T>> edgesToAdd,
-      boolean ignoreAssumptions,
       Set<T> pTargetStates,
       Set<T> pNonTargetStates,
       Set<T> pUnknownStates)
@@ -48,7 +46,7 @@ public class GIAWriter<T extends AbstractState> {
 
     String actionOnFinalEdges = "";
 
-    GIAGenerator.storeInitialNode(sb, edgesToAdd.isEmpty(), GIAGenerator.getNameOrError(rootState));
+    GIAGenerator.storeInitialNode(sb, edgesToAdd.isEmpty(), GIAGenerator.getName(rootState));
     sb.append(String.format("    TRUE -> GOTO %s;\n\n", GIAGenerator.NAME_OF_TEMP_STATE));
 
     if (setIsReached(pTargetStates, edgesToAdd)) {

@@ -247,7 +247,7 @@ public class GIAARGGenerator {
     //    relevantEdges.addAll(toAdd);
     GIAWriter<ARGState> writer = new GIAWriter<>();
     return writer.writeGIA(
-        pOutput, pArgRoot, relevantEdges, false, targetStates, nonTargetStates, unknownStates
+        pOutput, pArgRoot, relevantEdges, targetStates, nonTargetStates, unknownStates
     );
   }
 

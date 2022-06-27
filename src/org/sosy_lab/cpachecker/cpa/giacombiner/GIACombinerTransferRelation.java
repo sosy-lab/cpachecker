@@ -78,7 +78,7 @@ public class GIACombinerTransferRelation extends SingleEdgeTransferRelation {
 
     if (first.statePresent()) {
 
-      AutomatonState firstState = ((GIAInternalState) first).getInternalState();
+      AutomatonState firstState = ((GIAInternalState) first).getAutomatonState();
 
       Map<AutomatonTransition, AutomatonState> successorFirst = getSuccesor(firstState, cfaEdge);
       if (successorFirst.isEmpty()) {
@@ -101,7 +101,7 @@ public class GIACombinerTransferRelation extends SingleEdgeTransferRelation {
           return successors;
         } else {
 
-          AutomatonState secondState = ((GIAInternalState) second).getInternalState();
+          AutomatonState secondState = ((GIAInternalState) second).getAutomatonState();
 
           Map<AutomatonTransition, AutomatonState> successorSecond =
               getSuccesor(secondState, cfaEdge);
@@ -146,7 +146,7 @@ public class GIACombinerTransferRelation extends SingleEdgeTransferRelation {
       }
     } else if (second.statePresent()) {
 
-      AutomatonState secondState = ((GIAInternalState) second).getInternalState();
+      AutomatonState secondState = ((GIAInternalState) second).getAutomatonState();
 
       Map<AutomatonTransition, AutomatonState> successorSecond = getSuccesor(secondState, cfaEdge);
       if (successorSecond.isEmpty()) {
@@ -169,7 +169,7 @@ public class GIACombinerTransferRelation extends SingleEdgeTransferRelation {
           return successors;
         } else {
 
-          AutomatonState firstState = ((GIAInternalState) first).getInternalState();
+          AutomatonState firstState = ((GIAInternalState) first).getAutomatonState();
 
           Map<AutomatonTransition, AutomatonState> successorFirst =
               getSuccesor(firstState, cfaEdge);
@@ -205,12 +205,12 @@ public class GIACombinerTransferRelation extends SingleEdgeTransferRelation {
   private boolean stateIsTargetOrNonTarget(AbstractGIAState first) {
     return first.statePresent()
         && (((GIAInternalState) first)
-                .getInternalState()
+                .getAutomatonState()
                 .getInternalState()
                 .getStateType()
                 .equals(AutomatonStateTypes.NON_TARGET)
             || ((GIAInternalState) first)
-                .getInternalState()
+                .getAutomatonState()
                 .getInternalState()
                 .getStateType()
                 .equals(AutomatonStateTypes.TARGET));

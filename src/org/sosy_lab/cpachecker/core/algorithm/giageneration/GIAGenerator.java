@@ -13,7 +13,6 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.logging.Level;
@@ -33,13 +32,11 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
-import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.cpa.assumptions.storage.AssumptionStorageCPA;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonState;
 import org.sosy_lab.cpachecker.cpa.giacombiner.GIACombinerState;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CPAs;
-import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 
@@ -293,17 +290,6 @@ public class GIAGenerator {
     return Optional.empty();
   }
 
-  static CFAEdge getEdge(Pair<ARGState, AutomatonState> parentPair, ARGState argState) {
-    return ARGUtils.getOnePathFromTo(
-            (x) ->
-                Objects.nonNull(x)
-                    && Objects.nonNull(parentPair.getFirst())
-                    && x.equals(parentPair.getFirst()),
-            argState)
-        .getFullPath()
-        .get(0);
-  }
-
   static void storeInitialNode(Appendable sb, boolean pEmpty, String pName) throws IOException {
     String initialStateName;
     if (pEmpty) {
@@ -319,10 +305,6 @@ public class GIAGenerator {
     sb.append(String.format("STATE %s :\n", NAME_OF_TEMP_STATE));
   }
 
-  static String getNameOrError(AutomatonState s) {
-    return s.isTarget() ? NAME_OF_ERROR_STATE : s.getInternalStateName();
-  }
-
   static String getName(AbstractState pSource) {
     if (pSource instanceof ARGState)
       return String.format("ARG%d", +((ARGState) pSource).getStateId());
@@ -330,10 +312,6 @@ public class GIAGenerator {
       return ((GIACombinerState) pSource).toDOTLabel();
     }
     return "STATE_" + pSource.hashCode();
-  }
-
-  static String getNameOrError(ARGState pSource) {
-    return pSource.isTarget() ? NAME_OF_ERROR_STATE : getName(pSource);
   }
 
   static String getEdgeString(CFAEdge pEdge) {

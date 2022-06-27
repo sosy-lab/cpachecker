@@ -9,12 +9,11 @@
 package org.sosy_lab.cpachecker.core.algorithm.giageneration;
 
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Lists;
 import java.io.IOException;
 import java.nio.file.Files;
+import java.util.AbstractMap.SimpleEntry;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
@@ -24,26 +23,25 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
-import org.sosy_lab.cpachecker.cpa.automaton.AutomatonBoolExpr.MatchOtherwise;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonStateTypes;
+import org.sosy_lab.cpachecker.cpa.giacombiner.AbstractGIAState;
 import org.sosy_lab.cpachecker.cpa.giacombiner.GIACombinerCPA;
 import org.sosy_lab.cpachecker.cpa.giacombiner.GIACombinerState;
 import org.sosy_lab.cpachecker.cpa.giacombiner.GIATransition;
 import org.sosy_lab.cpachecker.cpa.giacombiner.NotPresentGIAState;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CPAs;
+import org.sosy_lab.cpachecker.util.Pair;
 
 public class GIACombinerGenerator {
-
 
   private final ConfigurableProgramAnalysis cpa;
 
   public GIACombinerGenerator(ConfigurableProgramAnalysis pCpa) {
-this.cpa = pCpa;
+    this.cpa = pCpa;
   }
 
-  int produceGIA4ARG(
-      Appendable pOutput, UnmodifiableReachedSet pReached)
+  int produceGIA4ARG(Appendable pOutput, UnmodifiableReachedSet pReached)
       throws IOException, InterruptedException {
     final AbstractState firstState = pReached.getFirstState();
     if (!(firstState instanceof ARGState)) {
@@ -54,25 +52,25 @@ this.cpa = pCpa;
       throw new InterruptedException("Cannot dump combined GIA if no GIACombinerState is present.");
     }
 
-    //Check if the shortcut was taken (only a single node is present)
+    // Check if the shortcut was taken (only a single node is present)
     @Nullable GIACombinerState firstGIAState =
         AbstractStates.extractStateByType(firstState, GIACombinerState.class);
-    if (firstGIAState.getStateOfAutomaton1() instanceof NotPresentGIAState && firstGIAState.getStateOfAutomaton2() instanceof  NotPresentGIAState){
+    if (firstGIAState.getStateOfAutomaton1() instanceof NotPresentGIAState
+        && firstGIAState.getStateOfAutomaton2() instanceof NotPresentGIAState) {
       @Nullable GIACombinerCPA combinerCPA = CPAs.retrieveCPA(cpa, GIACombinerCPA.class);
-      if (combinerCPA != null && combinerCPA.getPathToOnlyAutomaton().isPresent()){
+      if (combinerCPA != null && combinerCPA.getPathToOnlyAutomaton().isPresent()) {
         pOutput.append(Files.readString(combinerCPA.getPathToOnlyAutomaton().orElseThrow()));
 
-      return 0;}
+        return 0;
+      }
     }
-
 
     Set<GIACombinerState> statesPresent =
         pReached.stream()
             .map(as -> AbstractStates.extractStateByType(as, GIACombinerState.class))
             .filter(as -> as != null)
             .collect(ImmutableSet.toImmutableSet());
-    final ARGState pArgRoot = (ARGState) pReached.getFirstState();
-    Set<GIAARGStateEdge<GIACombinerState>> relevantEdges = computeRelevantEdges(pArgRoot, pReached);
+    Set<GIAARGStateEdge<GIACombinerState>> relevantEdges = computeRelevantEdges(statesPresent);
 
     Set<GIACombinerState> targetStates =
         statesPresent.stream()
@@ -88,97 +86,82 @@ this.cpa = pCpa;
             .collect(ImmutableSet.toImmutableSet());
     GIAWriter<GIACombinerState> writer = new GIAWriter<>();
     return writer.writeGIA(
-        pOutput,
-        pArgRoot,
-        relevantEdges,
-        false,
-        targetStates,
-        nonTargetStates,
-        unknownStates
-    );
+        pOutput, firstGIAState, relevantEdges, targetStates, nonTargetStates, unknownStates);
   }
 
   private Set<GIAARGStateEdge<GIACombinerState>> computeRelevantEdges(
-      ARGState firstState, UnmodifiableReachedSet pReached) {
+      Set<GIACombinerState> pStatesPresent) {
 
-    Set<GIAARGStateEdge<GIACombinerState>> edges = new HashSet<>();
-    List<GIACombinerState> toProcess =
-        Lists.newArrayList(AbstractStates.extractStateByType(firstState, GIACombinerState.class));
-    Map<GIACombinerState, Boolean> argStateIsCovered = new HashMap<>();
-    pReached.stream()
-        .filter(as -> AbstractStates.extractStateByType(as, GIACombinerState.class) != null
-        &&  AbstractStates.extractStateByType(as, ARGState.class) != null)
-        .forEach(
-            as ->
-                argStateIsCovered.put(
-                    AbstractStates.extractStateByType(as, GIACombinerState.class),
-                    Objects.requireNonNull(AbstractStates.extractStateByType(as, ARGState.class)).isCovered()));
+    Set<CombinerTransition> transitionsSeen = new HashSet<>();
+    Map<Pair<AbstractGIAState, AbstractGIAState>, GIACombinerState> statesUsedForTransitions =
+        new HashMap<>();
 
-    while (!toProcess.isEmpty()) {
+    for (GIACombinerState current : pStatesPresent) {
+      Pair<AbstractGIAState, AbstractGIAState> pairOfStates =
+          Pair.of(current.getStateOfAutomaton1(), current.getStateOfAutomaton2());
 
-      GIACombinerState currentState = toProcess.remove(0);
-      // Check if there is only a single successor and this successor has the same inner states.
-      // Then, search for the next successor state having either two outgoing edges or  different
-      // inner states
+      statesUsedForTransitions.putIfAbsent(pairOfStates, current);
+      GIACombinerState source = statesUsedForTransitions.get(pairOfStates);
 
-      if (currentState.getSuccessors().size() == 1 && noAssumptions(currentState.getSuccessors())) {
-        GIACombinerState nextState = getNextState(currentState.getSuccessors());
-        if (!(nextState.getStateOfAutomaton1().equals(currentState.getStateOfAutomaton1())
-            && nextState.getStateOfAutomaton2().equals(currentState.getStateOfAutomaton2()))) {
-          addEdges(edges, toProcess, currentState, argStateIsCovered);
-          continue;
-        }
-        while (nextState.getSuccessors().size() == 1
-            && nextState.getStateOfAutomaton1().equals(currentState.getStateOfAutomaton1())
-            && nextState.getStateOfAutomaton2().equals(currentState.getStateOfAutomaton2())
-            && noAssumptions(currentState.getSuccessors())
-        && ! argStateIsCovered.get(getNextState(nextState.getSuccessors()))
-        ) {
-          nextState = getNextState(nextState.getSuccessors());
-        }
-        for (Entry<GIATransition, GIACombinerState> edge : nextState.getSuccessors().entrySet()) {
-
-          edges.add(new GIAARGStateEdge<>(currentState, edge));
-          if (!(edge.getKey().getTrigger() instanceof MatchOtherwise)){
-            toProcess.add(edge.getValue());
-          }
-        }
-
-      } else {
-
-        addEdges(edges, toProcess, currentState, argStateIsCovered);
+      for (Entry<GIATransition, GIACombinerState> edge : current.getSuccessors().entrySet()) {
+        Pair<AbstractGIAState, AbstractGIAState> pairTarget =
+            Pair.of(edge.getValue().getStateOfAutomaton1(), edge.getValue().getStateOfAutomaton2());
+        statesUsedForTransitions.putIfAbsent(pairTarget, edge.getValue());
+        GIACombinerState target = statesUsedForTransitions.get(pairTarget);
+        CombinerTransition e = new CombinerTransition(source, edge.getKey(), target);
+        transitionsSeen.add(e);
       }
     }
-
-    return edges;
+    return transitionsSeen.stream().map(t -> t.toEdge()).collect(ImmutableSet.toImmutableSet());
   }
 
-  private void addEdges(
-      Set<GIAARGStateEdge<GIACombinerState>> pEdges,
-      List<GIACombinerState> pToProcess,
-      GIACombinerState pCurrentState,
-      Map<GIACombinerState, Boolean> pArgStateIsCovered) {
+  private static class CombinerTransition {
+    GIACombinerState source;
+    GIATransition transition;
+    GIACombinerState target;
 
-    for (Entry<GIATransition, GIACombinerState> edge :
-        pCurrentState
-            .getSuccessors()
-            .entrySet()) {
-      if (!pArgStateIsCovered.get(edge.getValue())) {
-        pEdges.add(new GIAARGStateEdge<>(pCurrentState, edge));
-        if (!(edge.getKey().getTrigger() instanceof MatchOtherwise)) {
-          pToProcess.add(edge.getValue());
-        }
-      }
+    public CombinerTransition(
+        GIACombinerState pSource, GIATransition pTransition, GIACombinerState pTarget) {
+      source = pSource;
+      transition = pTransition;
+      target = pTarget;
     }
-  }
 
-  private boolean noAssumptions(Map<GIATransition, GIACombinerState> pSuccessors) {
-    assert pSuccessors.size() == 1;
-    return Lists.newArrayList(pSuccessors.keySet()).get(0).getAssumptions().isEmpty();
-  }
+    public GIAARGStateEdge<GIACombinerState> toEdge() {
+      return new GIAARGStateEdge<>(source, new SimpleEntry<>(transition, target));
+    }
 
-  private GIACombinerState getNextState(Map<GIATransition, GIACombinerState> pSuccessors) {
-    assert pSuccessors.size() == 1;
-    return Lists.newArrayList(pSuccessors.values()).get(0);
+    @Override
+    public boolean equals(Object pO) {
+      if (this == pO) {
+        return true;
+      }
+      if (!(pO instanceof CombinerTransition)) {
+        return false;
+      }
+      CombinerTransition that = (CombinerTransition) pO;
+      return Objects.equals(source.getStateOfAutomaton1(), that.source.getStateOfAutomaton1())
+          && Objects.equals(source.getStateOfAutomaton2(), that.source.getStateOfAutomaton2())
+          && Objects.equals(transition.getTrigger(), that.transition.getTrigger())
+          && Objects.equals(transition.getAssumptions(), that.transition.getAssumptions())
+          && Objects.equals(target.getStateOfAutomaton1(), that.target.getStateOfAutomaton1())
+          && Objects.equals(target.getStateOfAutomaton2(), that.target.getStateOfAutomaton2());
+    }
+
+    @Override
+    public int hashCode() {
+      return Objects.hash(
+          source.getStateOfAutomaton1(),
+          source.getStateOfAutomaton2(),
+          transition.getAssumptions(),
+          transition.getTrigger(),
+          target.getStateOfAutomaton1(),
+          target.getStateOfAutomaton2());
+    }
+
+    @Override
+    public String toString() {
+      return source + "-" + transition.getTrigger().toString() + "->" + target;
+    }
   }
 }

@@ -13,16 +13,16 @@ import org.sosy_lab.cpachecker.cpa.automaton.AutomatonState;
 
 public class GIAInternalState implements AbstractGIAState{
 
-private final AutomatonState internalState;
+private final AutomatonState automatonState;
 
 
   public GIAInternalState(AutomatonState pInternalState) {
-    internalState = pInternalState;
+    automatonState = pInternalState;
   }
 
   @Override
   public AbstractGIAState copy() {
-    return new GIAInternalState(internalState);
+    return new GIAInternalState(automatonState);
   }
 
   @Override
@@ -30,8 +30,8 @@ private final AutomatonState internalState;
     return true;
   }
 
-  public AutomatonState getInternalState() {
-    return internalState;
+  public AutomatonState getAutomatonState() {
+    return automatonState;
   }
 
   @Override
@@ -43,16 +43,16 @@ private final AutomatonState internalState;
       return false;
     }
     GIAInternalState that = (GIAInternalState) pO;
-    return Objects.equals(internalState, that.internalState);
+    return Objects.equals(automatonState.getInternalState(), that.automatonState.getInternalState());
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(internalState);
+    return Objects.hash(automatonState.getInternalState());
   }
 
   @Override
   public String toString() {
-    return internalState.getInternalStateName();
+    return automatonState.getInternalStateName();
   }
 }
