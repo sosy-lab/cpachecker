@@ -585,8 +585,14 @@ assumptions.genGIA4Testcase = false
 # Generate GIA for violation or correctness witness
 assumptions.genGIA4Witness = false
 
+# Ignore states that expanded and non target(F_NT)!
+assumptions.generateGIAForTesttargets = false
+
 # write collected assumptions as automaton to file
 assumptions.giaFile = "GIA.txt"
+
+# Ignore states that expanded and non target(F_NT)!
+assumptions.ignoreExpandedStates = false
 
 # Indicates whether this analysis is over-approximate (and hence can extend
 # F_NT)
@@ -595,6 +601,10 @@ assumptions.isOverApproxAnalysis = false
 # Indicates whether this analysis is under-approximate (and hence can extend
 # F_T)
 assumptions.isUnderApproxAnalysis = false
+
+# Remove generated testcases that follow the same path as at least one other
+# testcase (hence covere the same target nodes
+assumptions.optimizeForTestcases = false
 
 # If it is enabled, check if a state that should lead to false state indeed
 # has successors.
@@ -4527,6 +4537,11 @@ testcase.randomInputSeed = 0
 # test case and report false (only possible in combination with error call
 # property specification
 testcase.reportCoveredErrorCallAsError = false
+
+# When generating GIA for testcases, we need to split at a test-target state
+# and create one successor state with the target state reached and one not
+# reaching the target state.
+testcase.splitAtTestTargetStates = false
 
 # CFA edge if only a specific edge should be considered, e.g., in
 # counterexample check

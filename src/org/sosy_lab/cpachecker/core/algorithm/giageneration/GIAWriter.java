@@ -21,6 +21,12 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 
 public class GIAWriter<T extends AbstractState> {
 
+  private final boolean stopAtUnknownStates;
+
+  public GIAWriter(boolean pStopAtUnknownStates) {
+    this.stopAtUnknownStates = pStopAtUnknownStates;
+  }
+
   /**
    * Create an GIA for the given set of edges Beneth printing the edges, each node gets a self-loop
    * and a node to the temp-location
@@ -59,7 +65,7 @@ public class GIAWriter<T extends AbstractState> {
       sb.append(String.format("    TRUE -> GOTO %s;\n\n", GIAGenerator.NAME_OF_FINAL_STATE));
     }
 
-    if (setIsReached(pUnknownStates, edgesToAdd)) {
+    if (setIsReached(pUnknownStates, edgesToAdd) && stopAtUnknownStates) {
       sb.append(String.format("UNKNOWN STATE %s :\n", GIAGenerator.NAME_OF_UNKNOWN_STATE));
       sb.append(String.format("    TRUE -> GOTO %s;\n\n", GIAGenerator.NAME_OF_UNKNOWN_STATE));
     }
@@ -93,7 +99,8 @@ public class GIAWriter<T extends AbstractState> {
 
         for (GIAARGStateEdge<T> edge : edges) {
           boolean thisEdgeIsOtherwise =
-              edge.generateTransition(sb, pTargetStates, pNonTargetStates, pUnknownStates);
+              edge.generateTransition(
+                  sb, pTargetStates, pNonTargetStates, pUnknownStates, stopAtUnknownStates);
           otherwiseEdgesNotAdded = otherwiseEdgesNotAdded && !thisEdgeIsOtherwise;
         }
       }
@@ -132,7 +139,8 @@ public class GIAWriter<T extends AbstractState> {
       try {
 
         //noinspection ResultOfMethodCallIgnored
-        edge.generateTransition(sb, pTargetStates, pNonTargetStates, pUnknownStates);
+        edge.generateTransition(
+            sb, pTargetStates, pNonTargetStates, pUnknownStates, stopAtUnknownStates);
         if (sb.toString().contains("MATCH OTHERWISE ->")) {
           otherwise.add(edge);
         } else {
@@ -155,13 +163,19 @@ public class GIAWriter<T extends AbstractState> {
     StringBuilder sb = new StringBuilder();
     try {
       //noinspection ResultOfMethodCallIgnored
-      pEdges.get(0).generateTransition(sb, pTargetStates, pNonTargetStates, pUnknownStates);
+      pEdges
+          .get(0)
+          .generateTransition(
+              sb, pTargetStates, pNonTargetStates, pUnknownStates, stopAtUnknownStates);
       String resOfFirst = sb.toString();
 
       for (int i = 1; i < pEdges.size(); i++) {
         sb = new StringBuilder();
         //noinspection ResultOfMethodCallIgnored
-        pEdges.get(i).generateTransition(sb, pTargetStates, pNonTargetStates, pUnknownStates);
+        pEdges
+            .get(i)
+            .generateTransition(
+                sb, pTargetStates, pNonTargetStates, pUnknownStates, stopAtUnknownStates);
         if (!resOfFirst.equals(sb.toString())) {
           return false;
         }

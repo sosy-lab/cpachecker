@@ -22,14 +22,12 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.arg.witnessexport.WitnessFactory;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonBoolExpr.MatchOtherwise;
 import org.sosy_lab.cpachecker.cpa.giacombiner.GIATransition;
-import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTreeFactory;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
-import org.sosy_lab.java_smt.api.BooleanFormula;
 
 public class GIAARGStateEdge<T extends AbstractState> {
-  protected final T source;
+  protected T source;
   protected Optional<T> target;
   private final CFAEdge edge;
   private final Set<ExpressionTree<Object>> assumptions;
@@ -155,12 +153,12 @@ public class GIAARGStateEdge<T extends AbstractState> {
   }
 
   public String getTargetName(
-      Set<T> pTargetStates, Set<T> pNonTargetStates, Set<T> pUnknownStates) {
+      Set<T> pTargetStates, Set<T> pNonTargetStates, Set<T> pUnknownStates, boolean stopAtUnknownStates) {
     if (this.target.isPresent()) {
       final T targetState = target.orElseThrow();
       if (pTargetStates.contains(targetState)) return GIAGenerator.NAME_OF_ERROR_STATE;
       if (pNonTargetStates.contains(targetState)) return GIAGenerator.NAME_OF_FINAL_STATE;
-      if (pUnknownStates.contains(targetState)) return GIAGenerator.NAME_OF_UNKNOWN_STATE;
+      if (stopAtUnknownStates && pUnknownStates.contains(targetState)) return GIAGenerator.NAME_OF_UNKNOWN_STATE;
       return GIAGenerator.getName(targetState);
     }
     return GIAGenerator.NAME_OF_TEMP_STATE;
@@ -243,7 +241,11 @@ public class GIAARGStateEdge<T extends AbstractState> {
 
   /** @return true if the edge added is an otherwise edge, false otherwise */
   public boolean generateTransition(
-      Appendable sb, Set<T> pTargetStates, Set<T> pNonTargetStates, Set<T> pUnknownStates)
+      Appendable sb,
+      Set<T> pTargetStates,
+      Set<T> pNonTargetStates,
+      Set<T> pUnknownStates,
+      boolean pStopAtUnknownStates)
       throws IOException, InterruptedException {
     if (this.edgesPresentAsCFAEdge || this.giaTransition.isEmpty()) {
       sb.append("    MATCH ");
@@ -256,7 +258,7 @@ public class GIAARGStateEdge<T extends AbstractState> {
         sb.append(getStringOfAssumption(getTarget()));
       }
       sb.append(
-          String.format("GOTO %s", getTargetName(pTargetStates, pNonTargetStates, pUnknownStates)));
+          String.format("GOTO %s", getTargetName(pTargetStates, pNonTargetStates, pUnknownStates, pStopAtUnknownStates)));
       sb.append(";\n");
       return false;
     } else {
@@ -282,7 +284,7 @@ public class GIAARGStateEdge<T extends AbstractState> {
         sb.append("} ");
       }
       sb.append(
-          String.format("GOTO %s", getTargetName(pTargetStates, pNonTargetStates, pUnknownStates)));
+          String.format("GOTO %s", getTargetName(pTargetStates, pNonTargetStates, pUnknownStates,pStopAtUnknownStates)));
       sb.append(";\n");
       return transition.getTrigger() instanceof MatchOtherwise;
     }
@@ -300,4 +302,9 @@ public class GIAARGStateEdge<T extends AbstractState> {
   public void setTarget(T pNewTarget) {
     this.target = Optional.ofNullable(pNewTarget);
   }
+
+  public void setSource(T newSource) {
+    this.source = newSource;
+  }
+
 }

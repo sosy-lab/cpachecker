@@ -37,6 +37,7 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.assumptions.storage.AssumptionStorageCPA;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonState;
 import org.sosy_lab.cpachecker.cpa.giacombiner.GIACombinerState;
+import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon;
@@ -77,24 +78,28 @@ public class GIAGenerator {
                 + " path with corresponding this edge.")
     boolean automatonIgnoreAssumptions = false;
 
+    @SuppressWarnings("FieldMayBeFinal")
     @Option(
         secure = true,
         name = "assumptions.genGIA4Witness",
         description = "Generate GIA for violation or correctness witness")
     private boolean genGIA4Witness = false;
 
+    @SuppressWarnings("FieldMayBeFinal")
     @Option(
         secure = true,
         name = "assumptions.genGIA4Testcase",
         description = "Generate GIA for testcomp testcase")
     private boolean genGIA4Testcase = false;
 
+    @SuppressWarnings("FieldMayBeFinal")
     @Option(
         secure = true,
         name = "assumptions.genGIA4Refinement",
         description = "Generate GIA for refinement (usable in C-CEGAR for craig interpolation)")
     private boolean genGIA4Refinement = false;
 
+    @SuppressWarnings("FieldMayBeFinal")
     @Option(
         secure = true,
         name = "assumptions.isOverApproxAnalysis",
@@ -102,6 +107,7 @@ public class GIAGenerator {
             "Indicates whether this analysis is over-approximate (and hence can extend F_NT)")
     private boolean isOverApproxAnalysis = false;
 
+    @SuppressWarnings("FieldMayBeFinal")
     @Option(
         secure = true,
         name = "assumptions.isUnderApproxAnalysis",
@@ -109,26 +115,40 @@ public class GIAGenerator {
             "Indicates whether this analysis is under-approximate (and hence can extend F_T)")
     private boolean isUnderApproxAnalysis = false;
 
+    @SuppressWarnings("FieldMayBeFinal")
     @Option(
         secure = true,
         name = "assumptions.storeInterpolantsInGIA",
         description = "Store the discovered interpolants in the gia")
     private boolean storeInterpolantsInGIA = false;
 
+    @SuppressWarnings("FieldMayBeFinal")
     @Option(
         secure = true,
         name = "assumptions.combineGIAs",
         description = "Merge two GIAs, ignore all other options")
     private boolean combine = false;
 
+    @SuppressWarnings("FieldMayBeFinal")
     @Option(
         secure = true,
         name = "assumptions.optimizeForTestcases",
-        description = "Remove generated testcases that follow the same path as at least one other testcase (hence covere the same target nodes")
+        description =
+            "Remove generated testcases that follow the same path as at least one other testcase (hence covere the same target nodes")
     private boolean optimizeForTestcases = false;
 
+    @SuppressWarnings("FieldMayBeFinal")
+    @Option(
+        secure = true,
+        name = "assumptions.ignoreExpandedStates",
+        description = "Ignore states that expanded and non target(F_NT)!")
+    private boolean ignoreExpandedStates = false;
 
-
+    @Option(
+        secure = true,
+        name = "assumptions.generateGIAForTesttargets",
+        description = "Ignore states that expanded and non target(F_NT)!")
+    boolean generateGIAForTesttargets = false;
 
     public GIAGeneratorOptions(Configuration pConfig) throws InvalidConfigurationException {
       pConfig.inject(this);
@@ -168,6 +188,14 @@ public class GIAGenerator {
 
     public boolean isOptimizeForTestcases() {
       return optimizeForTestcases;
+    }
+
+    public boolean ignoreExpandedStates() {
+      return ignoreExpandedStates;
+    }
+
+    public boolean generateGIAForTesttargets() {
+      return generateGIAForTesttargets;
     }
   }
 
@@ -240,7 +268,7 @@ public class GIAGenerator {
     //        new GIAWitnessGenerator(
     //            new GIACorWitGenerator(logger, options), new GIAVioWitGenerator(logger, options));
     this.argGeneator =
-        new GIAARGGenerator(logger, options, cfa, cpa, config, formulaManager);
+        new GIAARGGenerator(logger, options, cfa, cpa, config, formulaManager, shutdownNotifier);
     this.combinerGenerator = new GIACombinerGenerator(cpa);
   }
 
@@ -253,7 +281,7 @@ public class GIAGenerator {
       } else {
         universalConditionAutomaton += argGeneator.produceGIA4ARG(output, reached);
       }
-    } catch (InterruptedException pE) {
+    } catch (InterruptedException | CPAException pE) {
       logger.log(
           Level.WARNING,
           String.format(
@@ -343,7 +371,7 @@ public class GIAGenerator {
     } else if (pEdge instanceof FunctionCallEdge) {
       final String funcName = pEdge.getSuccessor().getFunction().getOrigName();
       return String.format("FUNCTIONCALL \"%s\"", funcName);
-    }else if (pEdge instanceof FunctionReturnEdge) {
+    } else if (pEdge instanceof FunctionReturnEdge) {
       final String funcName = pEdge.getPredecessor().getFunction().getOrigName();
       return String.format("FUNCTIONEXIT \"%s\"", funcName);
     }

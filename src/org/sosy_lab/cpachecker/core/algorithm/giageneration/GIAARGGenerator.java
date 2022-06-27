@@ -23,13 +23,17 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.logging.Level;
+import javax.annotation.Nonnull;
 import org.checkerframework.checker.nullness.qual.Nullable;
+import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.ConfigurationBuilder;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
@@ -40,6 +44,8 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
+import org.sosy_lab.cpachecker.core.CPABuilder;
+import org.sosy_lab.cpachecker.core.algorithm.CPAAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.trace_formula.TraceFormula.PostCondition;
 import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.trace_formula.TraceFormula.PreCondition;
 import org.sosy_lab.cpachecker.core.algorithm.giageneration.GIAGenerator.GIAGeneratorOptions;
@@ -48,7 +54,12 @@ import org.sosy_lab.cpachecker.core.counterexample.CFAEdgeWithAssumptions;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
+import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
+import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets;
+import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
+import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.cpa.arg.witnessexport.WitnessAssumptionFilter;
@@ -57,7 +68,9 @@ import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.cpa.testtargets.TestTargetCPA;
 import org.sosy_lab.cpachecker.cpa.testtargets.TestTargetState;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
+import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
+import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.LoopStructure;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
@@ -72,15 +85,16 @@ import org.sosy_lab.java_smt.api.BooleanFormula;
 public class GIAARGGenerator {
 
   private final LogManager logger;
-  private final GIAGeneratorOptions optinons;
+  private final GIAGeneratorOptions options;
   private final MachineModel machineModel;
   private final Configuration config;
   private final ConfigurableProgramAnalysis cpa;
   private final FormulaManagerView formulaManager;
-  private final Level logLevel = Level.FINE;
+  private final Level logLevel = Level.INFO;
 
   private final Function<ARGState, Optional<CounterexampleInfo>> getCounterexampleInfo;
   private final CFA cfa;
+  private final ShutdownNotifier shutdownNotifier;
 
   public GIAARGGenerator(
       LogManager pLogger,
@@ -88,16 +102,18 @@ public class GIAARGGenerator {
       CFA pCfa,
       ConfigurableProgramAnalysis pCpa,
       Configuration pConfig,
-      FormulaManagerView pFormulaManager)
+      FormulaManagerView pFormulaManager,
+      ShutdownNotifier pShutdownNotifier)
       throws InvalidConfigurationException {
 
     this.logger = pLogger;
-    this.optinons = pOptions;
+    this.options = pOptions;
     this.machineModel = pCfa.getMachineModel();
     this.cfa = pCfa;
     this.cpa = pCpa;
     this.config = pConfig;
     this.formulaManager = pFormulaManager;
+    this.shutdownNotifier = pShutdownNotifier;
     AssumptionToEdgeAllocator assumptionToEdgeAllocator =
         AssumptionToEdgeAllocator.create(config, logger, machineModel);
     getCounterexampleInfo =
@@ -105,7 +121,7 @@ public class GIAARGGenerator {
   }
 
   int produceGIA4ARG(Appendable pOutput, UnmodifiableReachedSet pReached)
-      throws IOException, InterruptedException {
+      throws IOException, InterruptedException, CPAException {
     final AbstractState firstState = pReached.getFirstState();
     if (!(firstState instanceof ARGState)) {
       pOutput.append("Cannot dump assumption as automaton if ARGCPA is not used.");
@@ -121,15 +137,184 @@ public class GIAARGGenerator {
     Set<ARGState> unknownStates = new HashSet<>();
 
     // Determine, which of the nodes are in F_unknown:
-    if (!optinons.isOverApproxAnalysis()) {
-      unknownStates.addAll(nonTargetStates);
+    if (!options.isOverApproxAnalysis()) {
+      if (!options.ignoreExpandedStates()) {
+        unknownStates.addAll(nonTargetStates);
+      }
       // as this analysis is not allowed to add states to F_NT, clear it
       nonTargetStates = new HashSet<>();
     }
-    if (!optinons.isUnderApproxAnalysis()) {
+    if (!options.isUnderApproxAnalysis()) {
       unknownStates.addAll(targetStates);
       // as this analysis is not allowed to add states to F_T, clear it
       targetStates = new HashSet<>();
+    }
+
+    Map<ARGState, Set<CFAEdge>> coveredGoals = computeCoveredGoals(pReached);
+
+    Set<GIAARGStateEdge<ARGState>> relevantEdges =
+        getGiaargStateEdges(
+            pReached, pArgRoot, targetStates, nonTargetStates, unknownStates, coveredGoals);
+    if (options.isOptimizeForTestcases()) {
+      Set<CFAEdge> coveredGoalsSet =
+          coveredGoals.values().stream().reduce(new HashSet<>(), Sets::union);
+      Set<CFAEdge> uncoveredGoals =
+          Objects.requireNonNull(CPAs.retrieveCPA(cpa, TestTargetCPA.class)).getTestTargets();
+      uncoveredGoals.removeAll(coveredGoalsSet);
+
+      if (!uncoveredGoals.isEmpty()) {
+        ReachedSet reached = computeReachedForMissedTestgoals();
+        ARGState argRootOfSecondSet =
+            AbstractStates.extractStateByType(reached.getFirstState(), ARGState.class);
+        if (argRootOfSecondSet != null) {
+          final Set<ARGState> additionalUnknownStates = getUncoveredGoals(reached, uncoveredGoals);
+          Set<GIAARGStateEdge<ARGState>> moreRelevantEdges =
+              getGiaargStateEdges(
+                  reached,
+                  argRootOfSecondSet,
+                  new HashSet<>(),
+                  new HashSet<>(),
+                  additionalUnknownStates,
+                  new HashMap<>());
+          unknownStates.addAll(additionalUnknownStates);
+          relevantEdges = merge(relevantEdges, moreRelevantEdges, pArgRoot, argRootOfSecondSet);
+        }
+      }
+    }
+
+    logger.log(
+        logLevel,
+        relevantEdges.stream().map(e -> e.toString()).collect(ImmutableList.toImmutableList()));
+
+    // Now, a short cleaning is applied:
+    // All states leading to the error state are replaced by the error state directly
+    //    Map<ARGState, Optional<ARGState>> statesToReplaceToReplacement = new HashMap<>();
+    //    Set<GIAARGStateEdge> toRemove = new HashSet<>();
+    //    relevantEdges.stream()
+    //        .filter(e -> e.getTarget().isPresent() &&
+    // finalStates.contains(e.getTarget().orElseThrow()))
+    //        .forEach(
+    //            e -> {
+    //              statesToReplaceToReplacement.put(e.getSource(), e.getTarget());
+    //              toRemove.add(e);
+    //            });
+    //    HashSet<GIAARGStateEdge> toAdd = new HashSet<>();
+    //    for(GIAARGStateEdge edge : relevantEdges){
+    //      if (edge.getTarget().isPresent() &&
+    // statesToReplaceToReplacement.containsKey(edge.getTarget().orElseThrow())){
+    //        toRemove.add(edge);
+    //        Optional<ARGState> replacement =
+    // statesToReplaceToReplacement.get(edge.getTarget().orElseThrow());
+    //        if (replacement.isPresent())
+    //        toAdd.add(new GIAARGStateEdge(edge.source,replacement.orElseThrow(),
+    // edge.getEdge()));
+    //      }
+    //    }
+    //    relevantEdges.removeAll(toRemove);
+    //    relevantEdges.addAll(toAdd);
+    GIAWriter<ARGState> writer = new GIAWriter<>(true);
+
+    return writer.writeGIA(
+        pOutput, pArgRoot, relevantEdges, targetStates, nonTargetStates, unknownStates);
+  }
+
+  private Set<GIAARGStateEdge<ARGState>> merge(
+      Set<GIAARGStateEdge<ARGState>> pRelevantEdges,
+      Set<GIAARGStateEdge<ARGState>> pMoreRelevantEdges,
+      ARGState pRootFirst,
+      ARGState pRootOther) {
+    for (GIAARGStateEdge<ARGState> edge : pMoreRelevantEdges) {
+      if (edge.getSource().equals(pRootOther)) {
+        edge.setSource(pRootFirst);
+      }
+      if (edge.getTarget().isPresent() && edge.getTarget().orElseThrow().equals(pRootOther)) {
+        edge.setTarget(pRootFirst);
+      }
+      pRelevantEdges.add(edge);
+    }
+    return pRelevantEdges;
+  }
+
+  private ReachedSet computeReachedForMissedTestgoals() throws CPAException {
+    try {
+      ConfigurationBuilder configBuilder = Configuration.builder();
+      configBuilder.setOption("cpa.composite.aggregateBasicBlocks", "false");
+      configBuilder.setOption("analysis.checkCounterexamples", "false");
+      configBuilder.setOption("cpa", "cpa.arg.ARGCPA");
+      configBuilder.setOption("ARGCPA.cpa", "cpa.composite.CompositeCPA");
+      configBuilder.setOption("analysis.stopAfterError", "false");
+      configBuilder.setOption("analysis.collectAssumptions", "true");
+      configBuilder.setOption(
+          "CompositeCPA.cpas",
+          "cpa.location.LocationCPA, cpa.callstack.CallstackCPA, "
+              + "cpa.functionpointer.FunctionPointerCPA,"
+              + "cpa.assumptions.storage.AssumptionStorageCPA");
+      Configuration localConfig = configBuilder.build();
+      ReachedSetFactory reachedSetFactory = new ReachedSetFactory(localConfig, logger);
+      CPABuilder builder = new CPABuilder(localConfig, logger, shutdownNotifier, reachedSetFactory);
+      ConfigurableProgramAnalysis localCPA =
+          builder.buildCPAs(cfa, Specification.alwaysSatisfied(), AggregatedReachedSets.empty());
+      CPAAlgorithm algorithm = CPAAlgorithm.create(localCPA, logger, localConfig, shutdownNotifier);
+      CFANode rootNode = cfa.getMainFunction();
+      StateSpacePartition partition = StateSpacePartition.getDefaultPartition();
+
+      ReachedSet reachedSet = reachedSetFactory.createAndInitialize(localCPA, rootNode, partition);
+      algorithm.run(reachedSet);
+      return reachedSet;
+    } catch (InterruptedException | InvalidConfigurationException | CPAException pE) {
+      throw new CPAException("Failed to compute the missing edges!", pE);
+    }
+  }
+
+  private Set<ARGState> getUncoveredGoals(
+      UnmodifiableReachedSet pReached, Set<CFAEdge> pUncoveredGoals) {
+    return pReached.asCollection().stream()
+        .map(as -> AbstractStates.extractStateByType(as, ARGState.class))
+        .filter(as -> as != null)
+        .filter(
+            as ->
+                as.getParents().stream()
+                    .anyMatch(
+                        parent ->
+                            pUncoveredGoals.contains(
+                                AbstractStates.extractLocation(parent)
+                                    .getEdgeTo(AbstractStates.extractLocation(as)))))
+        .collect(ImmutableSet.toImmutableSet());
+  }
+
+  @Nonnull
+  private Set<GIAARGStateEdge<ARGState>> getGiaargStateEdges(
+      UnmodifiableReachedSet pReached,
+      ARGState pArgRoot,
+      Set<ARGState> targetStates,
+      Set<ARGState> nonTargetStates,
+      Set<ARGState> unknownStates,
+      Map<ARGState, Set<CFAEdge>> coveredGoals)
+      throws InterruptedException {
+    if (options.generateGIAForTesttargets()) {
+
+      try {
+        TestTargetCPA testCpa = new TestTargetCPA(cfa, config);
+        Set<CFAEdge> testTargets = testCpa.getTestTargets();
+        unknownStates.addAll(
+            pReached.asCollection().stream()
+                .map(as -> AbstractStates.extractStateByType(as, ARGState.class))
+                .filter(Objects::nonNull)
+                .filter(
+                    as -> {
+                      @Nullable CFANode loc = AbstractStates.extractLocation(as);
+                      Optional<ARGState> parent = as.getParents().stream().findFirst();
+                      if (parent.isEmpty()) return false;
+                      CFAEdge edge =
+                          Objects.requireNonNull(
+                                  AbstractStates.extractLocation(parent.orElseThrow()))
+                              .getEdgeTo(AbstractStates.extractLocation(as));
+                      return loc != null && testTargets.contains(edge);
+                    })
+                .collect(ImmutableList.toImmutableList()));
+      } catch (InvalidConfigurationException pE) {
+        logger.logUserException(Level.INFO, pE, "Failed to generate additional unknown states!");
+      }
     }
 
     // Determine all paths that are relevant
@@ -139,15 +324,16 @@ public class GIAARGGenerator {
     //    Predicate<ARGState> relevantState = Predicates.in(finalStates);
 
     Multimap<ARGState, CFAEdgeWithAssumptions> edgesWithAssumptions = ArrayListMultimap.create();
-    //    if (optinons.isGenGIA4Refinement()) {
-    for (ARGState errorState : targetStates) {
-      CounterexampleInfo pCounterExample = getCounterexampleInfo.apply(errorState).orElse(null);
-      storeInterpolantsAsAssumptions(Optional.ofNullable(pCounterExample), edgesWithAssumptions);
+    // TODO: Check when this option is needed (not needed for generating testcases
+    if (options.isGenGIA4Refinement()) {
+      for (ARGState errorState : targetStates) {
+        CounterexampleInfo pCounterExample = getCounterexampleInfo.apply(errorState).orElse(null);
+        storeInterpolantsAsAssumptions(Optional.ofNullable(pCounterExample), edgesWithAssumptions);
+      }
     }
-    //    }
 
     ImmutableSet<ARGState> statesWithInterpolant = ImmutableSet.<ARGState>builder().build();
-    if (optinons.isStoreInterpolantsInGIA()) {
+    if (options.isStoreInterpolantsInGIA()) {
       // Get all states that have some invariants, because for them the invariant will be printed in
       // the GIA
       statesWithInterpolant =
@@ -176,7 +362,8 @@ public class GIAARGGenerator {
                   @Nullable AssumptionStorageState pState =
                       AbstractStates.extractStateByType(s, AssumptionStorageState.class);
                   if (pState == null) return false;
-                  return !pState.isAssumptionTrue();
+                  boolean trueAssumption = pState.isAssumptionTrue();
+                  return !trueAssumption;
                 })
             .map(s -> AbstractStates.extractStateByType(s, ARGState.class))
             .collect(ImmutableSet.toImmutableSet());
@@ -242,22 +429,27 @@ public class GIAARGGenerator {
             processed,
             edgesWithAssumptions,
             statesWithInterpolant,
-            statesWithAssumption,
-            unknownStates);
+            statesWithAssumption
+        );
       }
       processed.add(state);
     }
 
     relevantEdges = updateForBreakEdges(relevantEdges);
 
-    if (optinons.isOptimizeForTestcases()) {
-      Set<ARGState> ignoreStates = optimizeForTestcase(pReached);
-      Set<GIAARGStateEdge<ARGState>> toKeep = new HashSet<>(relevantEdges.stream()
-          .filter(e -> e.getSource().equals(pArgRoot))
-          .collect(ImmutableList.toImmutableList()));
-      Set<GIAARGStateEdge<ARGState>> nextEdgeToProcess = new HashSet<>(relevantEdges.stream()
-          .filter(e -> e.getSource().equals(pArgRoot))
-          .collect(ImmutableList.toImmutableList()));
+    if (options.isOptimizeForTestcases()) {
+
+      Set<ARGState> ignoreStates = optimizeForTestcase(pReached, coveredGoals);
+      Set<GIAARGStateEdge<ARGState>> toKeep =
+          new HashSet<>(
+              relevantEdges.stream()
+                  .filter(e -> e.getSource().equals(pArgRoot))
+                  .collect(ImmutableList.toImmutableList()));
+      Set<GIAARGStateEdge<ARGState>> nextEdgeToProcess =
+          new HashSet<>(
+              relevantEdges.stream()
+                  .filter(e -> e.getSource().equals(pArgRoot))
+                  .collect(ImmutableList.toImmutableList()));
       while (!nextEdgeToProcess.isEmpty()) {
         GIAARGStateEdge<ARGState> current = nextEdgeToProcess.stream().findFirst().orElseThrow();
         nextEdgeToProcess.remove(current);
@@ -274,74 +466,75 @@ public class GIAARGGenerator {
       relevantEdges = toKeep;
     }
 
-    logger.log(
-        logLevel,
-        relevantEdges.stream().map(e -> e.toString()).collect(ImmutableList.toImmutableList()));
+    relevantEdges = addMissingAssumeEdges(relevantEdges);
 
-    // Now, a short cleaning is applied:
-    // All states leading to the error state are replaced by the error state directly
-    //    Map<ARGState, Optional<ARGState>> statesToReplaceToReplacement = new HashMap<>();
-    //    Set<GIAARGStateEdge> toRemove = new HashSet<>();
-    //    relevantEdges.stream()
-    //        .filter(e -> e.getTarget().isPresent() &&
-    // finalStates.contains(e.getTarget().orElseThrow()))
-    //        .forEach(
-    //            e -> {
-    //              statesToReplaceToReplacement.put(e.getSource(), e.getTarget());
-    //              toRemove.add(e);
-    //            });
-    //    HashSet<GIAARGStateEdge> toAdd = new HashSet<>();
-    //    for(GIAARGStateEdge edge : relevantEdges){
-    //      if (edge.getTarget().isPresent() &&
-    // statesToReplaceToReplacement.containsKey(edge.getTarget().orElseThrow())){
-    //        toRemove.add(edge);
-    //        Optional<ARGState> replacement =
-    // statesToReplaceToReplacement.get(edge.getTarget().orElseThrow());
-    //        if (replacement.isPresent())
-    //        toAdd.add(new GIAARGStateEdge(edge.source,replacement.orElseThrow(),
-    // edge.getEdge()));
-    //      }
-    //    }
-    //    relevantEdges.removeAll(toRemove);
-    //    relevantEdges.addAll(toAdd);
-    GIAWriter<ARGState> writer = new GIAWriter<>();
-    return writer.writeGIA(
-        pOutput, pArgRoot, relevantEdges, targetStates, nonTargetStates, unknownStates);
+    return relevantEdges;
   }
 
-  private Set<ARGState> optimizeForTestcase(UnmodifiableReachedSet pReached) {
+  private Set<GIAARGStateEdge<ARGState>> addMissingAssumeEdges(
+      Set<GIAARGStateEdge<ARGState>> pRelevantEdges) {
+    Map<ARGState, List<GIAARGStateEdge<ARGState>>> nodesToEdges = new HashMap<>();
+    pRelevantEdges.forEach(
+        e -> {
+          if (nodesToEdges.containsKey(e.getSource())) {
+            nodesToEdges.get(e.getSource()).add(e);
+          } else {
+            nodesToEdges.put(e.getSource(), Lists.newArrayList(e));
+          }
+        });
+    for (Entry<ARGState, List<GIAARGStateEdge<ARGState>>> edge : nodesToEdges.entrySet()) {
+      List<GIAARGStateEdge<ARGState>> assumeEdgesPresent =
+          edge.getValue().stream()
+              .filter(e -> e.getEdge() instanceof AssumeEdge)
+              .collect(ImmutableList.toImmutableList());
+      if (assumeEdgesPresent.stream().map(e -> e.getEdge()).distinct().count() == 1) {
+        // Add all edges (assumptions) that are not present
+        CFAEdge cfaEdge = assumeEdgesPresent.get(0).getEdge();
+        pRelevantEdges.addAll(
+            CFAUtils.leavingEdges(cfaEdge.getPredecessor()).stream()
+                .filter(e -> !e.equals(cfaEdge))
+                .map(e -> new GIAARGStateEdge<>(assumeEdgesPresent.get(0).source, e))
+                .collect(ImmutableList.toImmutableList()));
+      }
+    }
+    return pRelevantEdges;
+  }
+
+  private Map<ARGState, Set<CFAEdge>> computeCoveredGoals(UnmodifiableReachedSet pReached) {
+    // Compute all covered goals for the Abstract states
+    Map<ARGState, Set<CFAEdge>> stateToCoveredGoals = new HashMap<>();
+    List<AbstractState> toProcess = new ArrayList<>(pReached.asCollection());
+    while (!toProcess.isEmpty()) {
+      ARGState current = AbstractStates.extractStateByType(toProcess.remove(0), ARGState.class);
+      if (current == null) {
+        return new HashMap<>();
+      }
+      if (stateToCoveredGoals.containsKey(current)) continue;
+      if (current.getChildren().stream().allMatch(c -> stateToCoveredGoals.containsKey(c))) {
+
+        Set<CFAEdge> coveredByCurrent =
+            current.isTarget()
+                ? Sets.newHashSet(
+                    AbstractStates.extractLocation(Lists.newArrayList(current.getParents()).get(0))
+                        .getEdgeTo(AbstractStates.extractLocation(current)))
+                : new HashSet<>();
+        stateToCoveredGoals.put(
+            current,
+            current.getChildren().stream()
+                .map(c -> stateToCoveredGoals.get(c))
+                .reduce(coveredByCurrent, Sets::union));
+      } else {
+        toProcess.add(current);
+      }
+    }
+    return stateToCoveredGoals;
+  }
+
+  private Set<ARGState> optimizeForTestcase(
+      UnmodifiableReachedSet pReached, Map<ARGState, Set<CFAEdge>> pCoveredGoals) {
 
     if (AbstractStates.extractStateByType(pReached.getFirstState(), TestTargetState.class)
         != null) {
-      // Compute all covered goals for the Abstract states
-      Map<ARGState, Set<CFAEdge>> stateToCoveredGoals = new HashMap<>();
-      Set<CFAEdge> testgoals =
-          Objects.requireNonNull(CPAs.retrieveCPA(cpa, TestTargetCPA.class)).getTestTargets();
-      List<AbstractState> toProcess = new ArrayList<>(pReached.asCollection());
-      while (!toProcess.isEmpty()) {
-        ARGState current = AbstractStates.extractStateByType(toProcess.remove(0), ARGState.class);
-        if (current == null) {
-          return new HashSet<>();
-        }
-        if (stateToCoveredGoals.containsKey(current)) continue;
-        if (current.getChildren().stream().allMatch(c -> stateToCoveredGoals.containsKey(c))) {
-
-          Set<CFAEdge> coveredByCurrent =
-              current.isTarget()
-                  ? Sets.newHashSet(
-                      AbstractStates.extractLocation(
-                              Lists.newArrayList(current.getParents()).get(0))
-                          .getEdgeTo(AbstractStates.extractLocation(current)))
-                  : new HashSet<>();
-          stateToCoveredGoals.put(
-              current,
-              current.getChildren().stream()
-                  .map(c -> stateToCoveredGoals.get(c))
-                  .reduce(coveredByCurrent, Sets::union));
-        } else {
-          toProcess.add(current);
-        }
-      }
 
       Optional<AbstractState> splitPointOpt =
           pReached.asCollection().stream()
@@ -360,7 +553,8 @@ public class GIAARGGenerator {
             Objects.requireNonNull(AbstractStates.extractStateByType(splitPoint, ARGState.class))
                 .getChildren()) {
           Set<CFAEdge> covered =
-              stateToCoveredGoals.get(AbstractStates.extractStateByType(child, ARGState.class));
+              pCoveredGoals.getOrDefault(
+                  AbstractStates.extractStateByType(child, ARGState.class), new HashSet<>());
           if (!covered.isEmpty() && coveredByChilds.contains(covered)) {
             toRemove.add(child);
 
@@ -412,9 +606,6 @@ public class GIAARGGenerator {
     for (GIAARGStateEdge<ARGState> edge : pRelevantEdges) {
       if (edge.getEdge() instanceof AssumeEdge
           && nextStatementIsBreak(edge.getEdge().getSuccessor())) {
-        LoopStructure loopStrc = cfa.getLoopStructure().orElseThrow();
-        Optional<Loop> loop =
-            getOutermostLoopContainingNode(loopStrc, edge.getEdge().getSuccessor());
         CFANode targetNodeOfBreak = edge.getEdge().getSuccessor();
         Optional<GIAARGStateEdge<ARGState>> edgeToReplace =
             pRelevantEdges.stream()
@@ -477,7 +668,7 @@ public class GIAARGGenerator {
     Loop outerLoop = null;
     for (Loop current : pLoopStrc.getAllLoops()) {
       if (current.getOutgoingEdges().stream()
-          .anyMatch(e -> e.getSuccessor().equals((pSuccessor)))) {
+          .anyMatch(e -> e.getSuccessor().equals(pSuccessor))){
         if (outerLoop == null) {
           outerLoop = current;
         } else if (current.isOuterLoopOf(outerLoop)) {
@@ -1011,7 +1202,6 @@ public class GIAARGGenerator {
    * @param pEdgesWithAssumptions the assumptions from the preicse ce
    * @param pStatesWithInterpolant the states that contain a non-trivial interpolation and are thus
    * @param pStatesWithAssumption states with assumptions
-   * @param pUnknownStates set leading to pUnknwon
    */
   private void addAllRelevantEdges(
       ARGState pCurrentState,
@@ -1022,8 +1212,7 @@ public class GIAARGGenerator {
       List<ARGState> pProcessed,
       Multimap<ARGState, CFAEdgeWithAssumptions> pEdgesWithAssumptions,
       ImmutableSet<ARGState> pStatesWithInterpolant,
-      ImmutableSet<ARGState> pStatesWithAssumption,
-      Set<ARGState> pUnknownStates)
+      ImmutableSet<ARGState> pStatesWithAssumption)
       throws InterruptedException {
 
     // Check, if the pChild is relevant
@@ -1032,7 +1221,6 @@ public class GIAARGGenerator {
             pChild,
             pCurrentState,
             pFinalStates,
-            pUnknownStates,
             pEdgesWithAssumptions,
             pStatesWithInterpolant,
             pStatesWithAssumption);
@@ -1059,7 +1247,9 @@ public class GIAARGGenerator {
                 retriveInterpolantAndAssumptionsIfPresent(
                     pair.getSecond().orElseThrow(), pStatesWithInterpolant, pStatesWithAssumption),
                 additionalAssumption));
-        if (!pProcessed.contains(pChild) && !pFinalStates.contains(pair.getSecond().get())) {
+        if (!pProcessed.contains(pChild)
+            && (options.generateGIAForTesttargets()
+                || !pFinalStates.contains(pair.getSecond().get()))) {
           logger.logf(logLevel, "Adding %s", pChild.getStateId());
           pToProcess.add(pChild);
         }
@@ -1127,8 +1317,8 @@ public class GIAARGGenerator {
               pProcessed,
               pEdgesWithAssumptions,
               pStatesWithInterpolant,
-              pStatesWithAssumption,
-              pUnknownStates);
+              pStatesWithAssumption
+          );
         } else {
           // Add an edge to qtemp if needed
           Optional<GIAARGStateEdge<ARGState>> additionalEdgeToQtemp =
@@ -1138,8 +1328,8 @@ public class GIAARGGenerator {
                   pFinalStates,
                   pEdgesWithAssumptions,
                   pStatesWithInterpolant,
-                  pStatesWithAssumption,
-                  pUnknownStates);
+                  pStatesWithAssumption
+              );
           if (additionalEdgeToQtemp.isPresent()) {
             pRelevantEdges.add(additionalEdgeToQtemp.orElseThrow());
           }
@@ -1210,7 +1400,6 @@ public class GIAARGGenerator {
       ARGState pChild,
       ARGState pParent,
       Set<ARGState> pFinalStates,
-      Set<ARGState> pUnknownStates,
       Multimap<ARGState, CFAEdgeWithAssumptions> pEdgesWithAssumptions,
       ImmutableSet<ARGState> pStatesWithInterpolant,
       ImmutableSet<ARGState> pStatesWithAssumption) {
@@ -1245,7 +1434,7 @@ public class GIAARGGenerator {
     // lastEdge.getDescription().contains(GIAGenerator.DESC_OF_DUMMY_FUNC_START_EDGE));
     // Case 5:
     // boolean case5a = pFinalStates.contains(pChild);
-    boolean case5b = false;
+    //    boolean case5b = false;
     //        boolean case5b = pChild.getChildren().stream().anyMatch(gc ->
     // pUnknownStates.contains(gc));
 
@@ -1288,14 +1477,12 @@ public class GIAARGGenerator {
       Set<ARGState> pTargetStates,
       Multimap<ARGState, CFAEdgeWithAssumptions> pEdgesWithAssumptions,
       ImmutableSet<ARGState> pStatesWithInterpolant,
-      ImmutableSet<ARGState> pStatesWithAssumption,
-      Set<ARGState> pUnknownStates) {
+      ImmutableSet<ARGState> pStatesWithAssumption) {
     Optional<Pair<CFAEdge, Optional<ARGState>>> relevantEdge =
         gedEdgeIfIsRelevant(
             pGrandChild,
             pParent,
             pTargetStates,
-            pUnknownStates,
             pEdgesWithAssumptions,
             pStatesWithInterpolant,
             pStatesWithAssumption);

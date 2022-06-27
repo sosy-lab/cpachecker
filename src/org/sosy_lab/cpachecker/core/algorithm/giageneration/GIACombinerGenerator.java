@@ -84,7 +84,7 @@ public class GIACombinerGenerator {
         statesPresent.stream()
             .filter(s -> s.isPresent(AutomatonStateTypes.UNKNOWN))
             .collect(ImmutableSet.toImmutableSet());
-    GIAWriter<GIACombinerState> writer = new GIAWriter<>();
+    GIAWriter<GIACombinerState> writer = new GIAWriter<>(true);
     return writer.writeGIA(
         pOutput, firstGIAState, relevantEdges, targetStates, nonTargetStates, unknownStates);
   }
