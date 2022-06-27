@@ -35,6 +35,7 @@ import org.sosy_lab.cpachecker.core.algorithm.giageneration.GIAARGStateEdge;
 import org.sosy_lab.cpachecker.core.defaults.SingleEdgeTransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
+import org.sosy_lab.cpachecker.cpa.automaton.AutomatonBoolExpr;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonBoolExpr.MatchOtherwise;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonExpression.ResultValue;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonExpressionArguments;
@@ -110,7 +111,10 @@ public class GIACombinerTransferRelation extends SingleEdgeTransferRelation {
               || (successorSecond.entrySet().stream()
                       .allMatch(t -> t.getKey().getTrigger() instanceof MatchOtherwise)
                   && successorFirst.entrySet().stream()
-                      .noneMatch(t -> t.getKey().getTrigger() instanceof MatchOtherwise))) {
+                      .noneMatch(
+                          t ->
+                              t.getKey().getTrigger() instanceof MatchOtherwise
+                                  || t.getKey().getTrigger() == AutomatonBoolExpr.TRUE))) {
             // Second has no trnasitions at this edge or only an otherwise edge and first has no
             // otherweise edge
             Set<GIACombinerState> successors = new HashSet<>();
@@ -132,8 +136,11 @@ public class GIACombinerTransferRelation extends SingleEdgeTransferRelation {
               || (successorFirst.entrySet().stream()
                       .allMatch(t -> t.getKey().getTrigger() instanceof MatchOtherwise)
                   && successorSecond.entrySet().stream()
-                      .noneMatch(t -> t.getKey().getTrigger() instanceof MatchOtherwise))) {
-            // First has no transitions at this edge or only a self-loop and second has an otherwise
+                      .noneMatch(
+                          t ->
+                              t.getKey().getTrigger() instanceof MatchOtherwise
+                                  || t.getKey().getTrigger() == AutomatonBoolExpr.TRUE))) {
+            // First has no transitions at this edge or only a self-loop and second has no otherwise
             // edge
             Set<GIACombinerState> successors = new HashSet<>();
             for (Entry<AutomatonTransition, AutomatonState> transition :
@@ -150,7 +157,42 @@ public class GIACombinerTransferRelation extends SingleEdgeTransferRelation {
                   newState);
             }
             return successors;
-          } else {
+          } else if (successorFirst.entrySet().stream()
+              .allMatch(t -> t.getKey().getTrigger() == AutomatonBoolExpr.TRUE)) {
+            // First is only true (hence we are in qTemp, qFinal or qError, hence no need to merge
+            Set<GIACombinerState> successors = new HashSet<>();
+            for (Entry<AutomatonTransition, AutomatonState> transition :
+                successorSecond.entrySet()) {
+              GIACombinerState newState =
+                  new GIACombinerState(
+                       first, new GIAInternalState(transition.getValue()));
+              successors.add(newState);
+              combinerState.addSuccessor(
+                  new GIATransition(
+                      transition.getKey().getTrigger(),
+                      transition.getKey().getAssumptions(),
+                      GIAARGStateEdge.getScopeForEdge(cfaEdge)),
+                  newState);
+            }
+            return successors;
+          } else   if  (successorSecond.entrySet().stream()
+              .allMatch(t -> t.getKey().getTrigger() == AutomatonBoolExpr.TRUE)) {
+            // Second is only true (hence we are in qTemp, qFinal or qError, hence no need to merge
+            Set<GIACombinerState> successors = new HashSet<>();
+            for (Entry<AutomatonTransition, AutomatonState> transition :
+                successorFirst.entrySet()) {
+              GIACombinerState newState =
+                  new GIACombinerState(
+                     first, new NotPresentGIAState());
+              successors.add(newState);
+              combinerState.addSuccessor(
+                  new GIATransition(
+                      transition.getKey().getTrigger(),
+                      transition.getKey().getAssumptions(),
+                      GIAARGStateEdge.getScopeForEdge(cfaEdge)),
+                  newState);   }
+            return successors;
+            }else {
             // Both states have at least one transition different than ohterwiese or both are
             // otherwise
             Map<AutomatonTransition, Set<AutomatonTransition>> edgesTakenByBoth =
@@ -210,7 +252,10 @@ public class GIACombinerTransferRelation extends SingleEdgeTransferRelation {
               || (successorFirst.entrySet().stream()
                       .allMatch(t -> t.getKey().getTrigger() instanceof MatchOtherwise)
                   && successorSecond.entrySet().stream()
-                      .noneMatch(t -> t.getKey().getTrigger() instanceof MatchOtherwise))) {
+                      .noneMatch(
+                          t ->
+                              t.getKey().getTrigger() instanceof MatchOtherwise
+                                  || t.getKey().getTrigger() == AutomatonBoolExpr.TRUE))) {
             // First has no transitions at this edge or only a self-loop
             Set<GIACombinerState> successors = new HashSet<>();
             for (Entry<AutomatonTransition, AutomatonState> transition :
