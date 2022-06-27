@@ -71,7 +71,7 @@ public class GIAARGGenerator {
   private final Configuration config;
   private final ConfigurableProgramAnalysis cpa;
   private final FormulaManagerView formulaManager;
-  private final Level logLevel = Level.INFO;
+  private final Level logLevel = Level.FINE;
 
   private final Function<ARGState, Optional<CounterexampleInfo>> getCounterexampleInfo;
   private final CFA cfa;
