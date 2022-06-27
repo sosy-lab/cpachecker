@@ -274,7 +274,7 @@ public class PredicatePrecisionBootstrapper implements StatisticsProvider {
       }
       return Optional.of(lst.get(0));
     } catch (InvalidConfigurationException pE) {
-      logger.logf(Level.WARNING, "Error while loading the GIA: %s", pE.getMessage());
+      logger.logUserException(Level.WARNING, pE, "Error while loading the GIA:");
       return Optional.empty();
     }
   }
