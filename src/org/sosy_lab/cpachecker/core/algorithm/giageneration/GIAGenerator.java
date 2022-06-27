@@ -27,6 +27,7 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
@@ -39,6 +40,7 @@ import org.sosy_lab.cpachecker.cpa.giacombiner.GIACombinerState;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.Pair;
+import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 
 public class GIAGenerator {
@@ -172,11 +174,11 @@ public class GIAGenerator {
   @SuppressWarnings("unused")
   private final GIATestcaseGenerator testcaseGenerator;
 
-//  @SuppressWarnings("unused")
-//  private final GIAInterpolantGenerator interpolantGenerator;
+  //  @SuppressWarnings("unused")
+  //  private final GIAInterpolantGenerator interpolantGenerator;
 
-//  @SuppressWarnings("unused")
-//  private final GIAWitnessGenerator witnessGenerator;
+  //  @SuppressWarnings("unused")
+  //  private final GIAWitnessGenerator witnessGenerator;
 
   private final GIAARGGenerator argGeneator;
   final LogManager logger;
@@ -219,19 +221,18 @@ public class GIAGenerator {
     this.config = pConfig;
 
     this.testcaseGenerator = new GIATestcaseGenerator(cpa);
-//    this.interpolantGenerator = new GIAInterpolantGenerator(cpa, formulaManager);
+    //    this.interpolantGenerator = new GIAInterpolantGenerator(cpa, formulaManager);
 
-//    this.witnessGenerator =
-//        new GIAWitnessGenerator(
-//            new GIACorWitGenerator(logger, options), new GIAVioWitGenerator(logger, options));
+    //    this.witnessGenerator =
+    //        new GIAWitnessGenerator(
+    //            new GIACorWitGenerator(logger, options), new GIAVioWitGenerator(logger, options));
     this.argGeneator =
         new GIAARGGenerator(logger, options, cfa.getMachineModel(), cpa, config, formulaManager);
-    this.combinerGenerator =
-        new GIACombinerGenerator();
+    this.combinerGenerator = new GIACombinerGenerator();
   }
 
   public int produceGeneralizedInformationExchangeAutomaton(
-      Appendable output, UnmodifiableReachedSet reached) throws  IOException {
+      Appendable output, UnmodifiableReachedSet reached) throws IOException {
 
     try {
       if (options.isCombine()) {
@@ -336,133 +337,143 @@ public class GIAGenerator {
   }
 
   static String getEdgeString(CFAEdge pEdge) {
-    if (pEdge == null) return "";
+    if (pEdge == null) return String.format("\"%s\"", "");
     if (pEdge instanceof BlankEdge
         && pEdge.getDescription().equals(DESC_OF_DUMMY_FUNC_START_EDGE)) {
-      final String funcName = pEdge.getSuccessor().getFunction().toString();
-      int indexSemicolon = funcName.indexOf(";");
-      if (indexSemicolon > 0) {
-        return funcName.substring(0, indexSemicolon);
+      if (AutomatonGraphmlCommon.isMainFunctionEntry(pEdge)) {
+        final String funcName = pEdge.getSuccessor().getFunction().getOrigName();
+        return String.format("FUNCTIONCALL \"%s\"", funcName);
+      } else {
+        // FIXME: Find a workaround for this
       }
-      return funcName;
+    } else if (pEdge instanceof FunctionCallEdge) {
+      final String funcName = pEdge.getSuccessor().getFunction().getOrigName();
+      return String.format("FUNCTIONCALL \"%s\"", funcName);
     }
-    return pEdge.getRawStatement();
+
+    return String.format("\"%s\"", pEdge.getRawStatement());
   }
 
-//  /**
-//   * Create an GIA for the given set of edges Beneth printing the edges, each node gets a self-loop
-//   * and a node to the temp-location
-//   *
-//   * @param sb the appendable to print to
-//   * @param rootState the root state of the automaton
-//   * @param edgesToAdd the edges between states to add
-//   * @param pTargetStates the target states
-//   * @param pNonTargetStates the non target states
-//   * @param pUnknownStates the unknwon states
-//   * @throws IOException if the file cannot be accessed or does not exist
-//   */
-//  private static int writeGIA(
-//      Appendable sb,
-//      ARGState rootState,
-//      Set<GIAARGStateEdge<ARGState>> edgesToAdd,
-//      boolean ignoreAssumptions,
-//      Set<ARGState> pTargetStates,
-//      Set<ARGState> pNonTargetStates,
-//      Set<ARGState> pUnknownStates)
-//      throws IOException, InterruptedException {
-//    // TODO Refactor this method and the copied to one
-//    int numProducedStates = 0;
-//    sb.append(GIAGenerator.AUTOMATON_HEADER);
-//
-//    String actionOnFinalEdges = "";
-//
-//    GIAGenerator.storeInitialNode(sb, edgesToAdd.isEmpty(), GIAGenerator.getNameOrError(rootState));
-//    if (ignoreAssumptions) {
-//      sb.append(String.format("    TRUE -> GOTO %s;\n\n", GIAGenerator.NAME_OF_TEMP_STATE));
-//    } else {
-//      sb.append(
-//          String.format("    TRUE -> ASSUME {true} GOTO %s;\n\n", GIAGenerator.NAME_OF_TEMP_STATE));
-//    }
-//
-//    if (setIsReached(pTargetStates, edgesToAdd)) {
-//      sb.append(String.format("TARGET STATE %s :\n", GIAGenerator.NAME_OF_ERROR_STATE));
-//      if (ignoreAssumptions) {
-//        sb.append(String.format("    TRUE -> GOTO %s;\n\n", GIAGenerator.NAME_OF_ERROR_STATE));
-//      } else {
-//        sb.append(
-//            String.format(
-//                "    TRUE -> ASSUME {true} GOTO %s;\n\n", GIAGenerator.NAME_OF_ERROR_STATE));
-//      }
-//    }
-//
-//    if (setIsReached(pNonTargetStates, edgesToAdd)) {
-//      sb.append(String.format("NON_TARGET STATE %s :\n", GIAGenerator.NAME_OF_FINAL_STATE));
-//      if (ignoreAssumptions) {
-//        sb.append(String.format("    TRUE -> GOTO %s;\n\n", GIAGenerator.NAME_OF_FINAL_STATE));
-//      } else {
-//        sb.append(
-//            String.format(
-//                "    TRUE -> ASSUME {true} GOTO %s;\n\n", GIAGenerator.NAME_OF_FINAL_STATE));
-//      }
-//    }
-//
-//    if (setIsReached(pUnknownStates, edgesToAdd)) {
-//      sb.append(String.format("UNKNOWN STATE %s :\n", GIAGenerator.NAME_OF_UNKNOWN_STATE));
-//      if (ignoreAssumptions) {
-//        sb.append(String.format("    TRUE -> GOTO %s;\n\n", GIAGenerator.NAME_OF_UNKNOWN_STATE));
-//      } else {
-//        sb.append(
-//            String.format(
-//                "    TRUE -> ASSUME {true} GOTO %s;\n\n", GIAGenerator.NAME_OF_UNKNOWN_STATE));
-//      }
-//    }
-//
-//    // Fill the map to be able to iterate over the nodes
-//    Map<ARGState, Set<GIAARGStateEdge<ARGState>>>
-//        nodesToEdges = groupEdgesByNodes(edgesToAdd);
-//
-//    for (final ARGState currentState :
-//        nodesToEdges.keySet().stream()
-//            .sorted(Comparator.comparing(GIAGenerator::getNameOrError))
-//            .collect(ImmutableList.toImmutableList())) {
-//
-//      sb.append(
-//          GIAGenerator.getDefStringForState(
-//              currentState, pTargetStates, pNonTargetStates, pUnknownStates));
-//      numProducedStates++;
-//
-//      // Only add a node if it is neither in F_N nor F_NT
-//      if (!pTargetStates.contains(currentState) && !pNonTargetStates.contains(currentState)) {
-//
-//        for (GIAARGStateEdge<ARGState> edge : nodesToEdges.get(currentState)) {
-//
-//          sb.append("    MATCH \"");
-//          AssumptionCollectorAlgorithm.escape(GIAGenerator.getEdgeString(edge.getEdge()), sb);
-//          sb.append("\" -> ");
-//          sb.append(edge.getStringOfAssumption(edge.getTarget()));
-//          sb.append(
-//              String.format(
-//                  "GOTO %s", edge.getTargetName(pTargetStates, pNonTargetStates, pUnknownStates)));
-//          sb.append(";\n");
-//        }
-//      }
-//      //     if (pTargetStates.contains(currentState) || pNonTargetStates.contains(currentState)
-//      //      || pUnknownStates.contains(currentState)){
-//      sb.append(
-//          String.format(
-//              "    MATCH OTHERWISE -> " + actionOnFinalEdges + "GOTO %s;\n",
-//              GIAGenerator.getNameOrError(currentState)));
-//      //        sb.append("    TRUE -> " + actionOnFinalEdges + "GOTO __TRUE;\n\n");
-//      //      }
-//      sb.append("\n");
-//    }
-//    sb.append("END AUTOMATON\n");
-//
-//    return numProducedStates;
-//  }
+  //  /**
+  //   * Create an GIA for the given set of edges Beneth printing the edges, each node gets a
+  // self-loop
+  //   * and a node to the temp-location
+  //   *
+  //   * @param sb the appendable to print to
+  //   * @param rootState the root state of the automaton
+  //   * @param edgesToAdd the edges between states to add
+  //   * @param pTargetStates the target states
+  //   * @param pNonTargetStates the non target states
+  //   * @param pUnknownStates the unknwon states
+  //   * @throws IOException if the file cannot be accessed or does not exist
+  //   */
+  //  private static int writeGIA(
+  //      Appendable sb,
+  //      ARGState rootState,
+  //      Set<GIAARGStateEdge<ARGState>> edgesToAdd,
+  //      boolean ignoreAssumptions,
+  //      Set<ARGState> pTargetStates,
+  //      Set<ARGState> pNonTargetStates,
+  //      Set<ARGState> pUnknownStates)
+  //      throws IOException, InterruptedException {
+  //    // TODO Refactor this method and the copied to one
+  //    int numProducedStates = 0;
+  //    sb.append(GIAGenerator.AUTOMATON_HEADER);
+  //
+  //    String actionOnFinalEdges = "";
+  //
+  //    GIAGenerator.storeInitialNode(sb, edgesToAdd.isEmpty(),
+  // GIAGenerator.getNameOrError(rootState));
+  //    if (ignoreAssumptions) {
+  //      sb.append(String.format("    TRUE -> GOTO %s;\n\n", GIAGenerator.NAME_OF_TEMP_STATE));
+  //    } else {
+  //      sb.append(
+  //          String.format("    TRUE -> ASSUME {true} GOTO %s;\n\n",
+  // GIAGenerator.NAME_OF_TEMP_STATE));
+  //    }
+  //
+  //    if (setIsReached(pTargetStates, edgesToAdd)) {
+  //      sb.append(String.format("TARGET STATE %s :\n", GIAGenerator.NAME_OF_ERROR_STATE));
+  //      if (ignoreAssumptions) {
+  //        sb.append(String.format("    TRUE -> GOTO %s;\n\n", GIAGenerator.NAME_OF_ERROR_STATE));
+  //      } else {
+  //        sb.append(
+  //            String.format(
+  //                "    TRUE -> ASSUME {true} GOTO %s;\n\n", GIAGenerator.NAME_OF_ERROR_STATE));
+  //      }
+  //    }
+  //
+  //    if (setIsReached(pNonTargetStates, edgesToAdd)) {
+  //      sb.append(String.format("NON_TARGET STATE %s :\n", GIAGenerator.NAME_OF_FINAL_STATE));
+  //      if (ignoreAssumptions) {
+  //        sb.append(String.format("    TRUE -> GOTO %s;\n\n", GIAGenerator.NAME_OF_FINAL_STATE));
+  //      } else {
+  //        sb.append(
+  //            String.format(
+  //                "    TRUE -> ASSUME {true} GOTO %s;\n\n", GIAGenerator.NAME_OF_FINAL_STATE));
+  //      }
+  //    }
+  //
+  //    if (setIsReached(pUnknownStates, edgesToAdd)) {
+  //      sb.append(String.format("UNKNOWN STATE %s :\n", GIAGenerator.NAME_OF_UNKNOWN_STATE));
+  //      if (ignoreAssumptions) {
+  //        sb.append(String.format("    TRUE -> GOTO %s;\n\n",
+  // GIAGenerator.NAME_OF_UNKNOWN_STATE));
+  //      } else {
+  //        sb.append(
+  //            String.format(
+  //                "    TRUE -> ASSUME {true} GOTO %s;\n\n", GIAGenerator.NAME_OF_UNKNOWN_STATE));
+  //      }
+  //    }
+  //
+  //    // Fill the map to be able to iterate over the nodes
+  //    Map<ARGState, Set<GIAARGStateEdge<ARGState>>>
+  //        nodesToEdges = groupEdgesByNodes(edgesToAdd);
+  //
+  //    for (final ARGState currentState :
+  //        nodesToEdges.keySet().stream()
+  //            .sorted(Comparator.comparing(GIAGenerator::getNameOrError))
+  //            .collect(ImmutableList.toImmutableList())) {
+  //
+  //      sb.append(
+  //          GIAGenerator.getDefStringForState(
+  //              currentState, pTargetStates, pNonTargetStates, pUnknownStates));
+  //      numProducedStates++;
+  //
+  //      // Only add a node if it is neither in F_N nor F_NT
+  //      if (!pTargetStates.contains(currentState) && !pNonTargetStates.contains(currentState)) {
+  //
+  //        for (GIAARGStateEdge<ARGState> edge : nodesToEdges.get(currentState)) {
+  //
+  //          sb.append("    MATCH \"");
+  //          AssumptionCollectorAlgorithm.escape(GIAGenerator.getEdgeString(edge.getEdge()), sb);
+  //          sb.append("\" -> ");
+  //          sb.append(edge.getStringOfAssumption(edge.getTarget()));
+  //          sb.append(
+  //              String.format(
+  //                  "GOTO %s", edge.getTargetName(pTargetStates, pNonTargetStates,
+  // pUnknownStates)));
+  //          sb.append(";\n");
+  //        }
+  //      }
+  //      //     if (pTargetStates.contains(currentState) || pNonTargetStates.contains(currentState)
+  //      //      || pUnknownStates.contains(currentState)){
+  //      sb.append(
+  //          String.format(
+  //              "    MATCH OTHERWISE -> " + actionOnFinalEdges + "GOTO %s;\n",
+  //              GIAGenerator.getNameOrError(currentState)));
+  //      //        sb.append("    TRUE -> " + actionOnFinalEdges + "GOTO __TRUE;\n\n");
+  //      //      }
+  //      sb.append("\n");
+  //    }
+  //    sb.append("END AUTOMATON\n");
+  //
+  //    return numProducedStates;
+  //  }
 
   @Nonnull
-  public static Map<ARGState, Set<GIAARGStateEdge<ARGState>>> groupEdgesByNodes(Set<GIAARGStateEdge<ARGState>> edgesToAdd) {
+  public static Map<ARGState, Set<GIAARGStateEdge<ARGState>>> groupEdgesByNodes(
+      Set<GIAARGStateEdge<ARGState>> edgesToAdd) {
     Map<ARGState, Set<GIAARGStateEdge<ARGState>>> nodesToEdges = new HashMap<>();
     edgesToAdd.forEach(
         e -> {
@@ -477,9 +488,9 @@ public class GIAGenerator {
     return nodesToEdges;
   }
 
-//  private static boolean setIsReached(
-//      Set<ARGState> pSet, Set<GIAARGStateEdge<ARGState>> pEdgesToAdd) {
-//    return pEdgesToAdd.stream()
-//        .anyMatch(e -> e.getTarget().isPresent() && pSet.contains(e.getTarget().orElseThrow()));
-//  }
+  //  private static boolean setIsReached(
+  //      Set<ARGState> pSet, Set<GIAARGStateEdge<ARGState>> pEdgesToAdd) {
+  //    return pEdgesToAdd.stream()
+  //        .anyMatch(e -> e.getTarget().isPresent() && pSet.contains(e.getTarget().orElseThrow()));
+  //  }
 }

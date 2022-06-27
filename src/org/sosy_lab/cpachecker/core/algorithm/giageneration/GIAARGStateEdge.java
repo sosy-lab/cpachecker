@@ -36,7 +36,7 @@ public class GIAARGStateEdge<T extends AbstractState> {
   private final Optional<String> target_mulitEdgeIndex;
   private final Optional<GIATransition> giaTransition;
   private boolean edgesPresentAsCFAEdge = true;
-  private  Optional<String> additionalAssumption;
+  private  Optional<String> additionalAssumption = Optional.empty();
 
   //  public GIAARGStateEdge(
   //      ARGState pSource,
@@ -253,10 +253,10 @@ public class GIAARGStateEdge<T extends AbstractState> {
       Appendable sb, Set<T> pTargetStates, Set<T> pNonTargetStates, Set<T> pUnknownStates)
       throws IOException, InterruptedException {
     if (this.edgesPresentAsCFAEdge || this.giaTransition.isEmpty()) {
-      sb.append("    MATCH \"");
+      sb.append("    MATCH ");
 
-      AssumptionCollectorAlgorithm.escape(GIAGenerator.getEdgeString(this.getEdge()), sb);
-      sb.append("\" -> ");
+      sb.append(GIAGenerator.getEdgeString(this.getEdge()));
+      sb.append(" -> ");
       if (additionalAssumption.isPresent()) {sb.append(getStringOfAssumption(getTarget(), additionalAssumption.orElseThrow()));
         }else{
         sb.append(getStringOfAssumption(getTarget()));}

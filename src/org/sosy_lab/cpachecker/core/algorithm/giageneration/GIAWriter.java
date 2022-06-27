@@ -150,10 +150,9 @@ public class GIAWriter<T extends AbstractState> {
       return pEdges.subList(0, 1);
     }
 
-    @SuppressWarnings("unchecked")
-    GIAARGStateEdge<T>[] sorted = (GIAARGStateEdge<T>[]) new Object[pEdges.size()];
-    int lastIndex = pEdges.size() - 1;
-    int currentIndex = 0;
+
+    List<GIAARGStateEdge<T>> notOtherwise=  new ArrayList<>();
+    List<GIAARGStateEdge<T>> otherwise=  new ArrayList<>();
     for (GIAARGStateEdge<T> edge : pEdges) {
       StringBuilder sb = new StringBuilder();
       try {
@@ -161,18 +160,16 @@ public class GIAWriter<T extends AbstractState> {
         //noinspection ResultOfMethodCallIgnored
         edge.generateTransition(sb, pTargetStates, pNonTargetStates, pUnknownStates);
         if (sb.toString().contains("MATCH OTHERWISE ->")) {
-          sorted[lastIndex] = edge;
-          lastIndex -= 1;
+          otherwise.add( edge);
         } else {
-          sorted[currentIndex] = edge;
-          currentIndex++;
+          notOtherwise.add( edge);
         }
       } catch (IOException | InterruptedException pE) {
-        sorted[currentIndex] = edge;
-        currentIndex += 1;
+        notOtherwise.add( edge);
       }
     }
-    return new ArrayList<>(List.of(sorted));
+    notOtherwise.addAll(otherwise);
+    return notOtherwise;
   }
 
   private boolean cleanUp(

@@ -33,7 +33,6 @@ import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
-import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.trace_formula.TraceFormula.PostCondition;
 import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.trace_formula.TraceFormula.PreCondition;
@@ -904,7 +903,7 @@ public class GIAARGGenerator {
    * 2. The child is the direct successor of the parent and the edge is an assumeEdge or function
    * call edge <br>
    * 3. The child is a final state <br>
-   * 4 Alternative: THe child is a {@link FunctionEntryNode}<br>
+   * 4 Alternative: The child is a {@link FunctionCallEdge}<br>
    * 5. The child node is a final state or has a grandchild node that is a final state <br>
    * 6. It contains an assumption 7. It contians an interpolant
    *
@@ -944,7 +943,7 @@ public class GIAARGGenerator {
     // Case 3:
     boolean case3 = pFinalStates.contains(pChild);
     // Case 4:
-    boolean case4 = AbstractStates.extractLocation(pChild) instanceof FunctionEntryNode;
+    boolean case4 = pathToChild.get(pathToChild.size() - 1) instanceof FunctionCallEdge;
     // This is an old option!
     //        lastEdge instanceof BlankEdge
     //            &&
