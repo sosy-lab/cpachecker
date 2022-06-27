@@ -202,7 +202,7 @@ public class GIAARGGenerator {
     List<ARGState> processed = new ArrayList<>();
 
     logger.log(
-        Level.INFO,
+        Level.FINE,
         "Final states found are "
             + String.join(
                 ",",
@@ -213,7 +213,7 @@ public class GIAARGGenerator {
     while (!toProcess.isEmpty()) {
       ARGState state = toProcess.remove(0);
       logger.logf(
-          Level.INFO,
+          Level.FINE,
           "Taking %s from the list, processed %s, toProcess %s",
           state.getStateId(),
           processed.stream().map(a -> a.getStateId()).collect(ImmutableList.toImmutableList()),
@@ -833,7 +833,7 @@ public class GIAARGGenerator {
                     pair.getSecond().orElseThrow(), pStatesWithInterpolant, pStatesWithAssumption),
                 additionalAssumption));
         if (!pProcessed.contains(pChild) && !pFinalStates.contains(pair.getSecond().get())) {
-          logger.logf(Level.INFO, "Adding %s", pChild.getStateId());
+          logger.logf(Level.FINE, "Adding %s", pChild.getStateId());
           pToProcess.add(pChild);
         }
       }
@@ -846,7 +846,7 @@ public class GIAARGGenerator {
       // Check if there are any edges on the path that are relevant and if so, create for
       // each relevant edge an edge
       if (pahtToChild.size() > 1) {
-        logger.logf(Level.INFO, "Processing a Multi-node");
+        logger.logf(Level.FINE, "Processing a Multi-node");
         while (!pahtToChild.isEmpty()) {
           CFAEdge currentEdge = pahtToChild.get(pahtToChild.size() - 1);
           pahtToChild.remove(currentEdge);
@@ -873,7 +873,7 @@ public class GIAARGGenerator {
         if (!edgesToAdd.isEmpty()) {
           pRelevantEdges.addAll(edgesToAdd);
           if (!pProcessed.contains(pChild)) {
-            logger.logf(Level.INFO, "Adding %s", pChild.getStateId());
+            logger.logf(Level.FINE, "Adding %s", pChild.getStateId());
             pToProcess.add(pChild);
           }
           edgesAdded = true;
@@ -883,7 +883,7 @@ public class GIAARGGenerator {
     if (!edgesAdded) {
       for (ARGState grandChild : pChild.getChildren()) {
         logger.logf(
-            Level.INFO,
+            Level.FINE,
             "No match found for parent %s and child %s, coninue with grandchild %s",
             pCurrentState.getStateId(),
             pChild.getStateId(),
@@ -1174,7 +1174,7 @@ public class GIAARGGenerator {
   //    }
   //
   //    logger.log(
-  //        Level.INFO, edgesToAdd.stream().map(e ->
+  //        Level.FINE, edgesToAdd.stream().map(e ->
   // e.toString()).collect(Collectors.joining("\n")));
   //
   //    return writeGIAForViolationWitness(
