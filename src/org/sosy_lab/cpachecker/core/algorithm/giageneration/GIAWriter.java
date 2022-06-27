@@ -49,44 +49,21 @@ public class GIAWriter<T extends AbstractState> {
     String actionOnFinalEdges = "";
 
     GIAGenerator.storeInitialNode(sb, edgesToAdd.isEmpty(), GIAGenerator.getNameOrError(rootState));
-    if (ignoreAssumptions) {
-      sb.append(String.format("    TRUE -> GOTO %s;\n\n", GIAGenerator.NAME_OF_TEMP_STATE));
-    } else {
-      sb.append(
-          String.format("    TRUE -> ASSUME {true} GOTO %s;\n\n", GIAGenerator.NAME_OF_TEMP_STATE));
-    }
+    sb.append(String.format("    TRUE -> GOTO %s;\n\n", GIAGenerator.NAME_OF_TEMP_STATE));
 
     if (setIsReached(pTargetStates, edgesToAdd)) {
       sb.append(String.format("TARGET STATE %s :\n", GIAGenerator.NAME_OF_ERROR_STATE));
-      if (ignoreAssumptions) {
-        sb.append(String.format("    TRUE -> GOTO %s;\n\n", GIAGenerator.NAME_OF_ERROR_STATE));
-      } else {
-        sb.append(
-            String.format(
-                "    TRUE -> ASSUME {true} GOTO %s;\n\n", GIAGenerator.NAME_OF_ERROR_STATE));
-      }
+      sb.append(String.format("    TRUE -> GOTO %s;\n\n", GIAGenerator.NAME_OF_ERROR_STATE));
     }
 
     if (setIsReached(pNonTargetStates, edgesToAdd)) {
       sb.append(String.format("NON_TARGET STATE %s :\n", GIAGenerator.NAME_OF_FINAL_STATE));
-      if (ignoreAssumptions) {
-        sb.append(String.format("    TRUE -> GOTO %s;\n\n", GIAGenerator.NAME_OF_FINAL_STATE));
-      } else {
-        sb.append(
-            String.format(
-                "    TRUE -> ASSUME {true} GOTO %s;\n\n", GIAGenerator.NAME_OF_FINAL_STATE));
-      }
+      sb.append(String.format("    TRUE -> GOTO %s;\n\n", GIAGenerator.NAME_OF_FINAL_STATE));
     }
 
     if (setIsReached(pUnknownStates, edgesToAdd)) {
       sb.append(String.format("UNKNOWN STATE %s :\n", GIAGenerator.NAME_OF_UNKNOWN_STATE));
-      if (ignoreAssumptions) {
-        sb.append(String.format("    TRUE -> GOTO %s;\n\n", GIAGenerator.NAME_OF_UNKNOWN_STATE));
-      } else {
-        sb.append(
-            String.format(
-                "    TRUE -> ASSUME {true} GOTO %s;\n\n", GIAGenerator.NAME_OF_UNKNOWN_STATE));
-      }
+      sb.append(String.format("    TRUE -> GOTO %s;\n\n", GIAGenerator.NAME_OF_UNKNOWN_STATE));
     }
 
     // Fill the map to be able to iterate over the nodes
@@ -150,9 +127,8 @@ public class GIAWriter<T extends AbstractState> {
       return pEdges.subList(0, 1);
     }
 
-
-    List<GIAARGStateEdge<T>> notOtherwise=  new ArrayList<>();
-    List<GIAARGStateEdge<T>> otherwise=  new ArrayList<>();
+    List<GIAARGStateEdge<T>> notOtherwise = new ArrayList<>();
+    List<GIAARGStateEdge<T>> otherwise = new ArrayList<>();
     for (GIAARGStateEdge<T> edge : pEdges) {
       StringBuilder sb = new StringBuilder();
       try {
@@ -160,12 +136,12 @@ public class GIAWriter<T extends AbstractState> {
         //noinspection ResultOfMethodCallIgnored
         edge.generateTransition(sb, pTargetStates, pNonTargetStates, pUnknownStates);
         if (sb.toString().contains("MATCH OTHERWISE ->")) {
-          otherwise.add( edge);
+          otherwise.add(edge);
         } else {
-          notOtherwise.add( edge);
+          notOtherwise.add(edge);
         }
       } catch (IOException | InterruptedException pE) {
-        notOtherwise.add( edge);
+        notOtherwise.add(edge);
       }
     }
     notOtherwise.addAll(otherwise);
