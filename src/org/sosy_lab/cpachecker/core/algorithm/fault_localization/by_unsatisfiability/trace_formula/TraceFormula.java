@@ -9,7 +9,6 @@
 package org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.trace_formula;
 
 import com.google.common.base.MoreObjects;
-import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import java.util.ArrayList;
 import java.util.List;
@@ -24,6 +23,7 @@ import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiabi
 import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.trace_formula.precondition.PreCondition;
 import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.trace_formula.precondition.PreConditionComposer;
 import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.trace_formula.trace.Trace;
+import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.trace_formula.trace.Trace.TraceAtom;
 import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.trace_formula.trace.TraceInterpreter;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
@@ -202,12 +202,23 @@ public class TraceFormula {
     Trace trace = Trace.fromCounterexample(remainingCounterexample, pContext, pOptions);
     Set<String> nondets = precondition.getNondetVariables();
     List<CFAEdge> preconditionEdges = new ArrayList<>(precondition.getEdgesForPrecondition());
-    FluentIterable.from(trace)
-        .filter(
-            atom -> nondets.stream().anyMatch(name -> atom.getFormula().toString().contains(name)))
-        .transform(atom -> atom.correspondingEdge())
-        .copyInto(preconditionEdges);
-    precondition = precondition.replaceRelatedEdges(preconditionEdges);
+    List<TraceAtom> modifiedTrace = new ArrayList<>();
+    BooleanFormula formula = precondition.getPrecondition();
+    for (TraceAtom traceAtom : trace) {
+      if (nondets.stream().anyMatch(name -> traceAtom.getFormula().toString().contains(name))) {
+        preconditionEdges.add(traceAtom.correspondingEdge());
+        formula =
+            pContext
+                .getSolver()
+                .getFormulaManager()
+                .getBooleanFormulaManager()
+                .and(formula, traceAtom.getFormula());
+      } else {
+        modifiedTrace.add(traceAtom);
+      }
+    }
+    precondition = precondition.replaceRelatedEdgesAndFormula(preconditionEdges, formula);
+    trace = new Trace(pContext, modifiedTrace);
     return instantiate(pContext, precondition, trace, postCondition);
   }
 

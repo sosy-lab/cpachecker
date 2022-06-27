@@ -86,8 +86,8 @@ public class PreCondition {
         nondetVariables);
   }
 
-  public PreCondition replaceRelatedEdges(List<CFAEdge> pEdges) {
-    return new PreCondition(pEdges, remainingCounterexample, precondition, nondetVariables);
+  public PreCondition replaceRelatedEdgesAndFormula(List<CFAEdge> pEdges, BooleanFormula pFormula) {
+    return new PreCondition(pEdges, remainingCounterexample, pFormula, nondetVariables);
   }
 
   @Override

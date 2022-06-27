@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.cpa.arg.witnessexport;
 
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.trace_formula.FaultLocalizationMergeOptions.FaultSelectionStrategy;
 
 @Options(prefix = "cpa.arg.witness")
 public class WitnessOptions {
@@ -85,6 +86,9 @@ public class WitnessOptions {
   @Option(secure = true, description = "whether to use fault localization to export witnesses")
   private boolean useFaultLocalization = false;
 
+  @Option(secure = true, description = "how to select fault from final list")
+  private FaultSelectionStrategy faultSelectionStrategy = FaultSelectionStrategy.FIRST;
+
   boolean exportFunctionCallsAndReturns() {
     return exportFunctionCallsAndReturns;
   }
@@ -139,5 +143,9 @@ public class WitnessOptions {
 
   boolean usedFaultLocalization() {
     return useFaultLocalization;
+  }
+
+  public FaultSelectionStrategy getFaultSelectionStrategy() {
+    return faultSelectionStrategy;
   }
 }

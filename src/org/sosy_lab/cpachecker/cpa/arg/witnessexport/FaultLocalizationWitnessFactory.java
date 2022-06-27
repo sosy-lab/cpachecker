@@ -56,6 +56,7 @@ public class FaultLocalizationWitnessFactory extends WitnessFactory {
   private final Multimap<ARGState, TracingInformation> edgeOriginalInformation =
       ArrayListMultimap.create();
   private final Set<GraphMLTransition> originalTransitions = new HashSet<>();
+  private final WitnessOptions options;
 
   FaultLocalizationWitnessFactory(
       WitnessOptions pOptions,
@@ -77,6 +78,7 @@ public class FaultLocalizationWitnessFactory extends WitnessFactory {
         pDefaultSourceFileName,
         pGraphType,
         pInvariantProvider);
+    options = pOptions;
   }
 
   @Override
@@ -84,7 +86,8 @@ public class FaultLocalizationWitnessFactory extends WitnessFactory {
       TransitionCondition pResult, CFAEdge pEdge, final Collection<ARGState> pFromStates) {
     checkArgument(
         pFromStates.size() == 1,
-        "pFromStates cannot contain more than one element but has: " + pFromStates);
+        "pFromStates cannot contain more than one element but has: %s",
+        pFromStates);
     Map<KeyDef, String> keys = new HashMap<>();
     ARGState fromState = Iterables.getOnlyElement(pFromStates);
     if (edgeOriginalInformation.containsKey(fromState)) {
@@ -148,7 +151,7 @@ public class FaultLocalizationWitnessFactory extends WitnessFactory {
 
   @Override
   protected boolean isEdgeIrrelevant(Edge pEdge) {
-    // always relevant if FL is deactivated
+    // always irrelevant if FL is deactivated (trivial witness)
     if (edgesInFault.isEmpty()) {
       return true;
     }
@@ -227,7 +230,7 @@ public class FaultLocalizationWitnessFactory extends WitnessFactory {
       CounterexampleInfo cex = pCounterExample.orElseThrow();
       if (cex instanceof FaultLocalizationInfo) {
         FaultLocalizationInfo fInfo = (FaultLocalizationInfo) cex;
-        Fault bestFault = fInfo.getRelevantEdgesForWitness(false);
+        Fault bestFault = fInfo.getRelevantEdgesForWitness(options.getFaultSelectionStrategy());
         for (FaultInfo info : bestFault.getInfos()) {
           if (info instanceof AppendixFaultInfo) {
             edgeOriginalInformation.putAll(((AppendixFaultInfo) info).getInformation());
@@ -235,7 +238,6 @@ public class FaultLocalizationWitnessFactory extends WitnessFactory {
           }
         }
         bestFault.forEach(fc -> edgesInFault.add(fc.correspondingEdge()));
-        // valueMap = Multimaps.filterValues(valueMap, v -> edgesInFault.contains(v.getCFAEdge()));
       }
     }
     return super.produceWitness(

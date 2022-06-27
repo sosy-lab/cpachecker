@@ -115,8 +115,6 @@ public class FaultLocalizationWithTraceFormula
     INVARIANT*/
   }
 
-  private static FaultLocalizationInfo mergedInfo;
-
   private final Algorithm algorithm;
   private final LogManager logger;
   private final FormulaContext context;
@@ -275,6 +273,8 @@ public class FaultLocalizationWithTraceFormula
 
       // run algorithm for every error
       logger.log(Level.INFO, "Starting fault localization...");
+
+      FaultLocalizationInfo mergedInfo = null;
       for (CounterexampleInfo info : counterExamples) {
         logger.log(Level.INFO, "Find explanations for counterexample #" + info.getUniqueId());
         CounterexampleInfo newInfo = runAlgorithm(info, faultAlgorithm);

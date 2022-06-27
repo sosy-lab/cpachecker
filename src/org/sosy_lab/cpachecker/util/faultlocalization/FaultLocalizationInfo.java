@@ -15,7 +15,6 @@ import com.google.common.collect.Multimap;
 import java.io.IOException;
 import java.io.Writer;
 import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -25,6 +24,8 @@ import java.util.stream.Collectors;
 import org.sosy_lab.common.JSON;
 import org.sosy_lab.common.collect.Collections3;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.trace_formula.FaultLocalizationMergeOptions.FaultLocalizationInfoMergeStrategy;
+import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.trace_formula.FaultLocalizationMergeOptions.FaultSelectionStrategy;
 import org.sosy_lab.cpachecker.core.counterexample.CFAPathWithAdditionalInfo;
 import org.sosy_lab.cpachecker.core.counterexample.CFAPathWithAssumptions;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
@@ -45,92 +46,6 @@ import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
  * by this or simply call {@link #apply()} on an instance of this class.
  */
 public class FaultLocalizationInfo extends CounterexampleInfo {
-
-  public enum FaultLocalizationInfoMergeStrategy {
-    /** Always use the most recent FaultLocalizationInfo instance */
-    REPLACE {
-      @Override
-      public Fault merge(Fault pOldFault, Fault pNewFault) {
-        return pNewFault;
-      }
-    },
-    /** Take the intersection of error-prone CFAEdges */
-    INTERSECTION {
-      @Override
-      public Fault merge(Fault pOldFault, Fault pNewFault) {
-        return FaultUtil.intersection(pOldFault, pNewFault);
-      }
-    },
-    /** Take the union of error-prone CFAEdges */
-    UNION {
-      @Override
-      public Fault merge(Fault pOldFault, Fault pNewFault) {
-        return FaultUtil.union(pOldFault, pNewFault);
-      }
-    },
-    /** Take the intersection of error-prone CFAEdges but if one set is empty, take the other set */
-    RELAXED_INTERSECTION {
-      @Override
-      public Fault merge(Fault pOldFault, Fault pNewFault) {
-        if (pOldFault.isEmpty()) {
-          return pNewFault;
-        }
-        if (pNewFault.isEmpty()) {
-          return pOldFault;
-        }
-        return INTERSECTION.merge(pOldFault, pNewFault);
-      }
-    },
-    /** Use previous list */
-    PREVIOUS {
-      @Override
-      public Fault merge(Fault pOldFault, Fault pNewFault) {
-        return pOldFault;
-      }
-    };
-
-    public abstract Fault merge(Fault pOldFault, Fault pNewFault);
-  }
-
-  public enum FaultSelectionStrategy {
-    MIN {
-      @Override
-      public List<Fault> select(List<Fault> pRanked) {
-        if (!pRanked.isEmpty()) {
-          return ImmutableList.of(
-              pRanked.stream().min(Comparator.comparingInt(f -> f.size())).orElseThrow());
-        }
-        return pRanked;
-      }
-    },
-    MAX {
-      @Override
-      public List<Fault> select(List<Fault> pRanked) {
-        if (!pRanked.isEmpty()) {
-          return ImmutableList.of(
-              pRanked.stream().max(Comparator.comparingInt(f -> f.size())).orElseThrow());
-        }
-        return pRanked;
-      }
-    },
-    FIRST {
-      @Override
-      public List<Fault> select(List<Fault> pRanked) {
-        if (!pRanked.isEmpty()) {
-          return ImmutableList.of(pRanked.get(0));
-        }
-        return pRanked;
-      }
-    },
-    CROSSPRODUCT {
-      @Override
-      public List<Fault> select(List<Fault> pRanked) {
-        return pRanked;
-      }
-    };
-
-    public abstract List<Fault> select(List<Fault> pRanked);
-  }
 
   private final ImmutableList<Fault> rankedList;
 
@@ -313,16 +228,12 @@ public class FaultLocalizationInfo extends CounterexampleInfo {
     return fInfo;
   }
 
-  public Fault getRelevantEdgesForWitness(boolean pUseMinimal) {
+  public Fault getRelevantEdgesForWitness(FaultSelectionStrategy pSelectionStrategy) {
     Fault toReturn = FaultUtil.fromEdges(necessaryWitnessEdges);
     if (getRankedList().isEmpty()) {
       return toReturn;
     }
-    if (pUseMinimal) {
-      return FaultUtil.union(
-          toReturn, rankedList.stream().min(Comparator.comparingInt(f -> f.size())).orElseThrow());
-    }
-    return FaultUtil.union(toReturn, rankedList.get(0));
+    return FaultUtil.union(toReturn, pSelectionStrategy.select(rankedList).get(0));
   }
 
   /**
