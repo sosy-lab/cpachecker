@@ -214,10 +214,17 @@ public class GIAARGGenerator {
         }
       }
     }
+
+    statesThatAreEqual =
+        computeAdditionalEqualStatesToMoveMergePointBeforeFunctionExit(
+            relevantEdges, statesThatAreEqual);
+
     relevantEdges = mergeStates(relevantEdges, statesThatAreEqual);
     logger.log(
         logLevel,
         relevantEdges.stream().map(e -> e.toString()).collect(ImmutableList.toImmutableList()));
+
+    relevantEdges = cleanupSingleBlankEdges(relevantEdges);
 
     // Now, a short cleaning is applied:
     // All states leading to the error state are replaced by the error state directly
@@ -251,24 +258,71 @@ public class GIAARGGenerator {
         pOutput, pArgRoot, relevantEdges, targetStates, nonTargetStates, unknownStates);
   }
 
-  private Set<GIAARGStateEdge<ARGState>> mergeStates(Set<GIAARGStateEdge<ARGState>> pRelevantEdges, Set<Set<ARGState>> pStatesThatAreEqual)
+  private Set<GIAARGStateEdge<ARGState>> cleanupSingleBlankEdges(
+      Set<GIAARGStateEdge<ARGState>> pRelevantEdges) {
+    Set<GIAARGStateEdge<ARGState>> toRemove = new HashSet<>();
+    for (GIAARGStateEdge<ARGState> edge : pRelevantEdges) {
+      if (isBlankEdgeWithNoneLocation(edge.getEdge()) && edge.getTarget().isPresent()) {
+        if (pRelevantEdges.stream()
+                .map(e -> e.getSource())
+                .filter(source -> source.equals(edge.getSource()))
+                .count()
+            == 1) {
+          // replace this edge by setting its target to the element in edgesPointingToThisEdge
+          pRelevantEdges.stream()
+              .filter(e -> e.getTarget().isPresent())
+              .filter(e -> edge.getSource().equals(e.getTarget().orElseThrow()))
+              .forEach(e -> e.setTarget(edge.getTarget().orElseThrow()));
+          toRemove.add(edge);
+        }
+      }
+    }
+    return pRelevantEdges.stream()
+        .filter(e -> !toRemove.contains(e))
+        .collect(ImmutableSet.toImmutableSet());
+  }
+
+  private Set<Set<ARGState>> computeAdditionalEqualStatesToMoveMergePointBeforeFunctionExit(
+      Set<GIAARGStateEdge<ARGState>> pRelevantEdges, Set<Set<ARGState>> pStatesThatAreEqual) {
+    HashMultimap<ARGState, GIAARGStateEdge<ARGState>> targetsToEdge = HashMultimap.create();
+    pRelevantEdges.stream()
+        .filter(e -> e.getTarget().isPresent())
+        .filter(e -> e.getEdge() instanceof FunctionReturnEdge)
+        .forEach(e -> targetsToEdge.put(e.getTarget().orElseThrow(), e));
+    for (Entry<ARGState, Collection<GIAARGStateEdge<ARGState>>> entry :
+        targetsToEdge.asMap().entrySet()) {
+      if (entry.getValue().size() > 1) {
+        pStatesThatAreEqual.add(
+            entry.getValue().stream()
+                .map(e -> e.getSource())
+                .collect(ImmutableSet.toImmutableSet()));
+      }
+    }
+    return pStatesThatAreEqual;
+  }
+
+  private Set<GIAARGStateEdge<ARGState>> mergeStates(
+      Set<GIAARGStateEdge<ARGState>> pRelevantEdges, Set<Set<ARGState>> pStatesThatAreEqual)
       throws CPAException {
-    for (Set<ARGState> toMerge : pStatesThatAreEqual){
-      if (toMerge.size() > 1){
+    for (Set<ARGState> toMerge : pStatesThatAreEqual) {
+      if (toMerge.size() > 1) {
         ARGState keep = toMerge.stream().findFirst().orElseThrow();
         ImmutableSet<ARGState> statesToReplace =
             toMerge.stream().filter(s -> !s.equals(keep)).collect(ImmutableSet.toImmutableSet());
-        for (ARGState toReplace : statesToReplace){
-          for (GIAARGStateEdge<ARGState> edge : pRelevantEdges){
-            if (edge.getSource().equals(toReplace)){
+        for (ARGState toReplace : statesToReplace) {
+          for (GIAARGStateEdge<ARGState> edge : pRelevantEdges) {
+            if (edge.getSource().equals(toReplace)) {
               edge.setSource(keep);
-            }if (edge.getTarget().isPresent() && edge.getTarget().orElseThrow().equals(toReplace)){
+            }
+            if (edge.getTarget().isPresent() && edge.getTarget().orElseThrow().equals(toReplace)) {
               edge.setTarget(keep);
             }
           }
         }
-      }else{
-        throw new CPAException(String.format("the merging of states failed, as %s does contain at most one state",toMerge ));
+      } else {
+        throw new CPAException(
+            String.format(
+                "the merging of states failed, as %s does contain at most one state", toMerge));
       }
     }
     return pRelevantEdges.stream().distinct().collect(Collectors.toUnmodifiableSet());
@@ -1524,7 +1578,8 @@ public class GIAARGGenerator {
    * 3. The child is a final state <br>
    * 4 Alternative: The child is a {@link FunctionCallEdge} or {@link
    * org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge}<br>
-   * 5. The grand child is unknown <br>
+   * 5. The edge is a blank edge with file location none (relevant to ensure that branches are
+   * joined correctly) <br>
    * 6. It contains an assumption <br>
    * 7. It contians an interpolant or assumption
    *
@@ -1572,6 +1627,10 @@ public class GIAARGGenerator {
     boolean case4 =
         pathToChild.get(pathToChild.size() - 1) instanceof FunctionCallEdge
             || pathToChild.get(pathToChild.size() - 1) instanceof FunctionReturnEdge;
+
+    // NEW case 5:
+    boolean case5 = isBlankEdgeWithNoneLocation(lastEdge);
+
     // This is an old option!
     //        lastEdge instanceof BlankEdge
     //            &&
@@ -1590,7 +1649,7 @@ public class GIAARGGenerator {
     // If the pChild cannot reach the error state, do not add it to the toProcessed
     // and let the edge goto the qTemp State (as not relevant for the path)
     // If it can reach the error state, add the edge and the child to the toProcess
-    if (case2 || case3 || case4 || case6 || case7) {
+    if (case2 || case3 || case4 || case5 || case6 || case7) {
       if (case7 || pStatesReachingFinalState.contains(pChild)) {
         return Optional.of(Pair.of(lastEdge, Optional.of(pChild)));
       } else {
@@ -1613,6 +1672,14 @@ public class GIAARGGenerator {
     }
 
     return Optional.empty();
+  }
+
+  private boolean isBlankEdgeWithNoneLocation(CFAEdge pLastEdge) {
+    return pLastEdge instanceof BlankEdge
+        && !pLastEdge.getFileLocation().isRealLocation()
+        && pLastEdge.getFileLocation().toString().equals("none")
+        && pLastEdge.getDescription().isEmpty()
+        && pLastEdge.getRawStatement().isEmpty();
   }
 
   private Optional<GIAARGStateEdge<ARGState>> getEdgeForNotExpandedNode(
