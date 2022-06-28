@@ -24,6 +24,9 @@ import org.sosy_lab.cpachecker.cfa.ast.AFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.AStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
+import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.ADeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.AReturnStatementEdge;
@@ -254,6 +257,16 @@ class DataRaceTracker {
                   initializer != null,
                   locks));
           if (initializer != null) {
+            if (initializer instanceof CInitializerExpression
+                && ((CInitializerExpression) initializer).getExpression()
+                    instanceof CUnaryExpression) {
+              CUnaryExpression initializerExpression =
+                  (CUnaryExpression) ((CInitializerExpression) initializer).getExpression();
+              if (initializerExpression.getOperator().equals(UnaryOperator.AMPER)) {
+                // Address-of is not considered accessing its operand
+                break;
+              }
+            }
             accessedLocations =
                 edgeAnalyzer.getInvolvedVariableTypes(initializer, declarationEdge).keySet();
           }
@@ -284,10 +297,22 @@ class DataRaceTracker {
         if (statement instanceof AExpressionAssignmentStatement) {
           AExpressionAssignmentStatement expressionAssignmentStatement =
               (AExpressionAssignmentStatement) statement;
-          accessedLocations =
-              edgeAnalyzer
-                  .getInvolvedVariableTypes(expressionAssignmentStatement, statementEdge)
-                  .keySet();
+          if (expressionAssignmentStatement.getRightHandSide() instanceof CUnaryExpression
+              && ((CUnaryExpression) expressionAssignmentStatement.getRightHandSide())
+                  .getOperator()
+                  .equals(UnaryOperator.AMPER)) {
+            // Address-of is not considered accessing its operand
+            accessedLocations =
+                edgeAnalyzer
+                    .getInvolvedVariableTypes(
+                        expressionAssignmentStatement.getLeftHandSide(), statementEdge)
+                    .keySet();
+          } else {
+            accessedLocations =
+                edgeAnalyzer
+                    .getInvolvedVariableTypes(expressionAssignmentStatement, statementEdge)
+                    .keySet();
+          }
           modifiedLocations =
               edgeAnalyzer
                   .getInvolvedVariableTypes(
