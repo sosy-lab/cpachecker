@@ -78,14 +78,15 @@ class EclipseCWriter implements CWriter {
               /* pOriginalCfa = */ null,
               /* pAddedEdges = */ allEdges.build(),
               /* pRemovedEdges =  */ ImmutableSet.of(),
-              /* pOldEdgeToNewEdgeAfterAstNodeSubstitution = */ identityBiMapOfEdges.build(),
+              /* pOldEdgeToNewEdgeAfterAstNodeSubstitution = */ identityBiMapOfEdges.buildOrThrow(),
               /* pAddedNodes =  */ allNodes,
               /* pRemovedNodes = */ ImmutableSet.of(),
-              /* pOldNodeToNewNodeAfterAstNodeSubstitution = */ identityBiMapOfNodes.build());
+              /* pOldNodeToNewNodeAfterAstNodeSubstitution = */ identityBiMapOfNodes
+                  .buildOrThrow());
       originalAst = null;
 
     } else {
-      records = pCfa.getTransformationRecords().get();
+      records = pCfa.getTransformationRecords().orElseThrow();
       final CFA originalCfa = records.getOriginalCfa();
 
       checkArgument(
