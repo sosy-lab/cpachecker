@@ -117,7 +117,7 @@ public class Rewrite {
     return builder.toString();
   }
 
-  private class Modification implements Comparable<Modification> {
+  private static class Modification implements Comparable<Modification> {
 
     private final int offset;
 
@@ -140,7 +140,7 @@ public class Rewrite {
     }
   }
 
-  private class Deletion extends Modification {
+  private static class Deletion extends Modification {
 
     private final int length;
 
