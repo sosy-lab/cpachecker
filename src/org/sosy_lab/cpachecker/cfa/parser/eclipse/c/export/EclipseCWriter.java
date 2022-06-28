@@ -111,6 +111,7 @@ class EclipseCWriter implements CWriter {
     // TODO combine the original AST nodes of the unchanged parts with the newly created AST nodes
     // for the changed parts to get the C export
 
-    return ""; // TODO
+    Verify.verifyNotNull(originalAst);
+    return originalAst.getRawSignature(); // TODO adjust in case of changes
   }
 }
