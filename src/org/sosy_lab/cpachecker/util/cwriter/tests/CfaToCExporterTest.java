@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.util.cwriter.tests;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.truth.Truth;
 import java.io.IOException;
 import java.nio.charset.Charset;
 import java.nio.file.Path;
@@ -63,7 +64,8 @@ public class CfaToCExporterTest extends ToCTranslationTest {
     createProgram(targetProgram);
 
     // test whether exported C program is equal to the input program
-    FileUtils.contentEquals(originalProgram.toFile(), targetProgram.toFile());
+    Truth.assertThat(FileUtils.contentEquals(originalProgram.toFile(), targetProgram.toFile()))
+        .isTrue();
   }
 
   @Override
