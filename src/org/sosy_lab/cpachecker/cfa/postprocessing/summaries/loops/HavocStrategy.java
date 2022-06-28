@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.cfa.postprocessing.summaries.loops;
 
+import com.google.common.collect.FluentIterable;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Optional;
 import java.util.Set;
@@ -16,6 +18,7 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CFACreationUtils;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
+import org.sosy_lab.cpachecker.cfa.ast.ASimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
@@ -179,6 +182,11 @@ public class HavocStrategy extends LoopStrategy {
 
     // 2. add a line <varname> = __VERIFIER_nondet_X(); for all modified variables
     Set<AVariableDeclaration> modifiedVariables = loop.getModifiedVariables();
+    Set<String> outofScopeVariables = FluentIterable.from(getOutOfScopeVariables(loop)).transform(x->x.getQualifiedName()).toSet();
+    modifiedVariables =
+        FluentIterable.from(modifiedVariables)
+            .filter(x -> !outofScopeVariables.contains(x.getQualifiedName()))
+            .toSet();
     for (AVariableDeclaration pc : modifiedVariables) {
       CSimpleDeclaration decl = (CSimpleDeclaration) pc;
       // it is important to use the decl.getOrigName here, otherwise of the variable
@@ -204,5 +212,15 @@ public class HavocStrategy extends LoopStrategy {
                 .accept(CExpressionToOrinalCodeVisitor.BASIC_TRANSFORMER)));
 
     return Optional.of(builder.toString());
+  }
+
+  private static Set<ASimpleDeclaration> getOutOfScopeVariables(Loop loop) {
+    Set<ASimpleDeclaration> outofScopeVariables = new HashSet<>();
+    for (CFAEdge e : loop.getInnerLoopEdges()) {
+      outofScopeVariables.addAll(e.getSuccessor().getOutOfScopeVariables());
+      outofScopeVariables.addAll(e.getPredecessor().getOutOfScopeVariables());
+    }
+
+    return outofScopeVariables;
   }
 }
