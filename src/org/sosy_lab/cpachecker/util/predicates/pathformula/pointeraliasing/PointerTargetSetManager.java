@@ -45,6 +45,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDe
 import org.sosy_lab.cpachecker.cfa.types.c.CElaboratedType;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.cfa.types.c.CTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
@@ -323,8 +324,7 @@ class PointerTargetSetManager {
 
     if (!sharedFields.isEmpty()) {
       final PointerTargetSetBuilder resultPTSBuilder =
-          new RealPointerTargetSetBuilder(
-              resultPTS, formulaManager, typeHandler, this, options, regionMgr);
+          new RealPointerTargetSetBuilder(resultPTS, typeHandler, this, options, regionMgr);
       for (final CompositeField sharedField : sharedFields) {
         resultPTSBuilder.addField(sharedField);
       }
@@ -442,6 +442,101 @@ class PointerTargetSetManager {
       result = result.with(target);
     }
     return result;
+  }
+
+  /**
+   * Create the constraints that are required for a new base:
+   *
+   * <ul>
+   *   <li>for inequality between a new base and existing bases (to prevent overlapping)
+   *   <li>for alignment
+   * </ul>
+   *
+   * @param pNewBase The name of the new base.
+   * @param pType The type of the new base.
+   * @param pAllocationSize An optional expression for the size in bytes of the new base.
+   * @param pHighestAllocatedAddresses list of addresses for which this method will ensure that the
+   *     new base does not overlap
+   * @param pConstraints Where the constraints about addresses will be added to.
+   * @return list of addresses as base for allocation of the next base, nothing should overlap with
+   *     these
+   */
+  PersistentList<Formula> makeBaseAddressConstraints(
+      final String pNewBase,
+      final CType pType,
+      final @Nullable Formula pAllocationSize,
+      final PersistentList<Formula> pHighestAllocatedAddresses,
+      final Constraints pConstraints) {
+
+    if (!options.trackFunctionPointers() && CTypes.isFunctionPointer(pType)) {
+      // Avoid adding constraints about function addresses,
+      // otherwise we might track facts about function pointers for code like "if (p == &f)".
+      return pHighestAllocatedAddresses;
+    }
+
+    final FormulaType<?> pointerType = typeHandler.getPointerType();
+    final Formula newBaseFormula =
+        formulaManager.makeVariableWithoutSSAIndex(
+            pointerType, PointerTargetSet.getBaseName(pNewBase));
+
+    // Create constraints for the new base address and store them
+    if (pHighestAllocatedAddresses.isEmpty()) {
+      pConstraints.addConstraint(makeGreaterZero(newBaseFormula));
+    } else {
+      for (Formula oldAddress : pHighestAllocatedAddresses) {
+        pConstraints.addConstraint(
+            formulaManager.makeGreaterThan(newBaseFormula, oldAddress, true));
+      }
+    }
+
+    // Add alignment constraint
+    // For incomplete types, better not add constraints (imprecise) than a wrong one (unsound).
+    if (!pType.isIncomplete()) {
+      pConstraints.addConstraint(
+          formulaManager.makeModularCongruence(
+              newBaseFormula,
+              formulaManager.makeNumber(pointerType, 0L),
+              typeHandler.getAlignof(pType),
+              false));
+    }
+
+    final int typeSize =
+        pType.isIncomplete() ? options.defaultAllocationSize() : typeHandler.getSizeof(pType);
+    final Formula typeSizeF = formulaManager.makeNumber(pointerType, typeSize);
+    final Formula newBasePlusTypeSize = formulaManager.makePlus(newBaseFormula, typeSizeF);
+
+    // Prepare highestAllocatedAddresses which we will use for the constraints of the next base.
+    // We have two ways to compute the size: sizeof(type) and the allocationSize (e.g., the
+    // argument to malloc).
+    // We need both here: Only the allocation size is correct for allocations with dynamic size,
+    // and only the size of the type takes into account the default array length that we assume
+    // elsewhere and we must thus ensure here, too.
+    // Furthermore, in case of linear approximation we need a constraint that the size is
+    // positive, and using the type size takes care of this automatically.
+    // In cases where the precise size is known and correct, we need only one of the constraints.
+    // We use the one with typeSize instead of allocationSize, because the latter would add one
+    // multiplication to the formula.
+    // We also need to ensure that the highest allocated address (both variants) is greater than
+    // zero to prevent overflows with bitvector arithmetic.
+
+    pConstraints.addConstraint(makeGreaterZero(newBasePlusTypeSize));
+    PersistentList<Formula> highestAllocatedAddresses =
+        PersistentLinkedList.of(newBasePlusTypeSize);
+
+    if (pAllocationSize != null
+        && !pAllocationSize.equals(formulaManager.makeNumber(pointerType, typeSize))) {
+      Formula basePlusAllocationSize = formulaManager.makePlus(newBaseFormula, pAllocationSize);
+      pConstraints.addConstraint(makeGreaterZero(basePlusAllocationSize));
+
+      highestAllocatedAddresses = highestAllocatedAddresses.with(basePlusAllocationSize);
+    }
+
+    return highestAllocatedAddresses;
+  }
+
+  private BooleanFormula makeGreaterZero(Formula f) {
+    return formulaManager.makeGreaterThan(
+        f, formulaManager.makeNumber(typeHandler.getPointerType(), 0L), true);
   }
 
   /**

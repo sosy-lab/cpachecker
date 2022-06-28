@@ -39,13 +39,9 @@ import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CElaboratedType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
-import org.sosy_lab.cpachecker.cfa.types.c.CTypes;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.Constraints;
-import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
-import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.Formula;
-import org.sosy_lab.java_smt.api.FormulaType;
 
 public interface PointerTargetSetBuilder {
 
@@ -113,7 +109,6 @@ public interface PointerTargetSetBuilder {
    */
   final class RealPointerTargetSetBuilder implements PointerTargetSetBuilder {
 
-    private final FormulaManagerView formulaManager;
     private final TypeHandlerWithPointerAliasing typeHandler;
     private final PointerTargetSetManager ptsMgr;
     private final FormulaEncodingWithPointerAliasingOptions options;
@@ -131,13 +126,11 @@ public interface PointerTargetSetBuilder {
      * Creates a new RealPointerTargetSetBuilder.
      *
      * @param pointerTargetSet The underlying PointerTargetSet
-     * @param pFormulaManager The formula manager for SMT formulae
      * @param pPtsMgr The PointerTargetSetManager
      * @param pOptions Additional configuration options.
      */
     public RealPointerTargetSetBuilder(
         final PointerTargetSet pointerTargetSet,
-        final FormulaManagerView pFormulaManager,
         final TypeHandlerWithPointerAliasing pTypeHandler,
         final PointerTargetSetManager pPtsMgr,
         final FormulaEncodingWithPointerAliasingOptions pOptions,
@@ -148,7 +141,6 @@ public interface PointerTargetSetBuilder {
       targets = pointerTargetSet.getTargets();
       highestAllocatedAddresses = pointerTargetSet.getHighestAllocatedAddresses();
       allocationCount = pointerTargetSet.getAllocationCount();
-      formulaManager = pFormulaManager;
       typeHandler = pTypeHandler;
       ptsMgr = pPtsMgr;
       options = pOptions;
@@ -258,72 +250,9 @@ public interface PointerTargetSetBuilder {
         final @Nullable Formula allocationSize,
         final Constraints constraints) {
 
-      if (!options.trackFunctionPointers() && CTypes.isFunctionPointer(type)) {
-        // Avoid adding constraints about function addresses,
-        // otherwise we might track facts about function pointers for code like "if (p == &f)".
-        return;
-      }
-
-      final FormulaType<?> pointerType = typeHandler.getPointerType();
-      final Formula newBaseFormula =
-          formulaManager.makeVariableWithoutSSAIndex(
-              pointerType, PointerTargetSet.getBaseName(newBase));
-
-      // Create constraints for the new base address and store them
-      if (highestAllocatedAddresses.isEmpty()) {
-        constraints.addConstraint(makeGreaterZero(newBaseFormula));
-      } else {
-        for (Formula oldBaseFormula : highestAllocatedAddresses) {
-          constraints.addConstraint(
-              formulaManager.makeGreaterThan(newBaseFormula, oldBaseFormula, true));
-        }
-      }
-
-      // Add alignment constraint
-      // For incomplete types, better not add constraints (imprecise) than a wrong one (unsound).
-      if (!type.isIncomplete()) {
-        constraints.addConstraint(
-            formulaManager.makeModularCongruence(
-                newBaseFormula,
-                formulaManager.makeNumber(typeHandler.getPointerType(), 0L),
-                typeHandler.getAlignof(type),
-                false));
-      }
-
-      final int typeSize =
-          type.isIncomplete() ? options.defaultAllocationSize() : typeHandler.getSizeof(type);
-      final Formula typeSizeF = formulaManager.makeNumber(pointerType, typeSize);
-      final Formula newBasePlusTypeSize = formulaManager.makePlus(newBaseFormula, typeSizeF);
-
-      // Prepare highestAllocatedAddresses which we will use for the constraints of the next base.
-      // We have two ways to compute the size: sizeof(type) and the allocationSize (e.g., the
-      // argument to malloc).
-      // We need both here: Only the allocation size is correct for allocations with dynamic size,
-      // and only the size of the type takes into account the default array length that we assume
-      // elsewhere and we must thus ensure here, too.
-      // Furthermore, in case of linear approximation we need a constraint that the size is
-      // positive, and using the type size takes care of this automatically.
-      // In cases where the precise size is known and correct, we need only one of the constraints.
-      // We use the one with typeSize instead of allocationSize, because the latter would add one
-      // multiplication to the formula.
-      // We also need to ensure that the highest allocated address (both variants) is greater than
-      // zero to prevent overflows with bitvector arithmetic.
-
-      constraints.addConstraint(makeGreaterZero(newBasePlusTypeSize));
-      highestAllocatedAddresses = PersistentLinkedList.of(newBasePlusTypeSize);
-
-      if (allocationSize != null
-          && !allocationSize.equals(formulaManager.makeNumber(pointerType, typeSize))) {
-        Formula basePlusAllocationSize = formulaManager.makePlus(newBaseFormula, allocationSize);
-        constraints.addConstraint(makeGreaterZero(basePlusAllocationSize));
-
-        highestAllocatedAddresses = highestAllocatedAddresses.with(basePlusAllocationSize);
-      }
-    }
-
-    private BooleanFormula makeGreaterZero(Formula f) {
-      return formulaManager.makeGreaterThan(
-          f, formulaManager.makeNumber(typeHandler.getPointerType(), 0L), true);
+      highestAllocatedAddresses =
+          ptsMgr.makeBaseAddressConstraints(
+              newBase, type, allocationSize, highestAllocatedAddresses, constraints);
     }
 
     /**
