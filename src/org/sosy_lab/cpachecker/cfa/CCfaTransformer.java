@@ -631,10 +631,10 @@ public final class CCfaTransformer {
                 pOriginalCfa,
                 changeRecordingNetwork.getAddedEdges(),
                 changeRecordingNetwork.getRemovedEdges(),
-                oldEdgeToNewEdge.inverse(),
+                oldEdgeToNewEdge,
                 changeRecordingNetwork.getAddedNodes(),
                 changeRecordingNetwork.getRemovedNodes(),
-                oldNodeToNewNode.inverse());
+                oldNodeToNewNode);
         newMutableCfa.setTransformationRecords(transformationRecords);
       }
 
