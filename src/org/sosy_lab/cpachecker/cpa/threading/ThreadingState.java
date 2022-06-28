@@ -243,7 +243,7 @@ public class ThreadingState
     return locks.containsValue(threadId);
   }
 
-  Set<String> getLocksForThread(String threadId) {
+  public Set<String> getLocksForThread(String threadId) {
     return FluentIterable.from(locks.entrySet())
         .filter(entry -> entry.getValue().equals(threadId))
         .transform(Map.Entry::getKey)
