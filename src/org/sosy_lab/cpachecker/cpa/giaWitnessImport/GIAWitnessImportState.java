@@ -8,8 +8,8 @@
 
 package org.sosy_lab.cpachecker.cpa.giaWitnessImport;
 
-import com.google.common.base.Optional;
 import java.io.Serializable;
+import java.util.Optional;
 import java.util.logging.Level;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
@@ -38,7 +38,7 @@ public class GIAWitnessImportState
 
   public GIAWitnessImportState(LogManager pLogger) {
     this.tree = ExpressionTrees.getTrue();
-    automatonState = Optional.absent();
+    automatonState = Optional.empty();
     this.logger = pLogger;
   }
 

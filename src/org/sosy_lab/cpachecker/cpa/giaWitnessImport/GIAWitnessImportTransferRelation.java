@@ -8,9 +8,9 @@
 
 package org.sosy_lab.cpachecker.cpa.giaWitnessImport;
 
-import com.google.common.base.Optional;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Optional;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
