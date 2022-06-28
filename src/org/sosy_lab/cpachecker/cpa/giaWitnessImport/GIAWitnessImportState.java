@@ -23,6 +23,7 @@ import org.sosy_lab.cpachecker.cpa.automaton.AutomatonState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
+import org.checkerframework.checker.nullness.qual.Nullable;
 
 public class GIAWitnessImportState
     implements LatticeAbstractState<GIAWitnessImportState>,
@@ -34,17 +35,17 @@ public class GIAWitnessImportState
   private final LogManager logger;
 
   private final ExpressionTree<AExpression> tree;
-  private final Optional<AutomatonState> automatonState;
+  private final @Nullable AutomatonState automatonState;
 
   public GIAWitnessImportState(LogManager pLogger) {
     this.tree = ExpressionTrees.getTrue();
-    automatonState = Optional.empty();
+    automatonState = null;
     this.logger = pLogger;
   }
 
   public GIAWitnessImportState(
       ExpressionTree<AExpression> pTree,
-      Optional<AutomatonState> pAutomatonState,
+      AutomatonState pAutomatonState,
       LogManager pLogger) {
     this.automatonState = pAutomatonState;
     this.tree = pTree;
@@ -74,14 +75,15 @@ public class GIAWitnessImportState
     return String.format(
         "[%s], \n ++%s++",
         tree.toString(),
-        this.automatonState.isPresent() ? this.automatonState.get().getInternalStateName() : "");
+        this.automatonState != null
+            ? this.automatonState.getInternalStateName()
+            : "");
   }
 
   @Override
   public boolean shouldBeHighlighted() {
-    if (this.automatonState.isPresent()) {
+    if (this.automatonState != null) {
       return this.automatonState
-          .get()
           .getInternalStateName()
           .equals(GIAGenerator.NAME_OF_NEWTESTINPUT_STATE);
     }

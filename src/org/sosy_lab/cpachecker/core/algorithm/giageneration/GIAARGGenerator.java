@@ -857,7 +857,7 @@ public class GIAARGGenerator {
                                   .orElseThrow()
                                   .equals(edgeToReplace.orElseThrow().getTarget().orElseThrow()))
                   .findFirst();
-          edge.setTarget(newTarget.get().getSource());
+          edge.setTarget(newTarget.orElseThrow().getSource());
         }
         //
         //          // The node is part of a loop

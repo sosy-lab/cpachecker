@@ -247,7 +247,7 @@ public class AutomatonInternalState {
 
   @Override
   public String toString() {
-    return name + "(" + this.stateType + ")";
+    return name;
   }
 
   public boolean nontriviallyMatches(final CFAEdge pEdge, final LogManager pLogger) {

@@ -58,7 +58,7 @@ public class GIAWitnessImportTransferRelation extends SingleEdgeTransferRelation
         if (!ExpressionTrees.isConstant(autoState.getCandidateInvariants())) {
           witnessState =
               new GIAWitnessImportState(
-                  autoState.getCandidateInvariants(), Optional.of(autoState), logger);
+                  autoState.getCandidateInvariants(), autoState, logger);
           return Collections.singleton(witnessState);
         }
       }

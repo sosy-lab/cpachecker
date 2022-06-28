@@ -11,15 +11,22 @@ package org.sosy_lab.cpachecker.cpa.giaTestcaseGen;
 import java.io.Serializable;
 import java.util.Objects;
 import java.util.Optional;
+import org.checkerframework.checker.nullness.qual.Nullable;
 
 public class TestcaseEntry implements Serializable {
 
   private static final long serialVersionUID = -7715698130885655052L;
   private final String value;
-  private final Optional<String> variable;
-  private final Optional<String> type;
+  private  final @Nullable String variable;
+  private final @Nullable String type;
 
   public TestcaseEntry(String pValue, Optional<String> pVariable, Optional<String> pType) {
+    value = pValue;
+    variable = pVariable.orElse(null);
+    type = pType.orElse(null);
+  }
+
+  public TestcaseEntry(String pValue, String pVariable, String pType) {
     value = pValue;
     variable = pVariable;
     type = pType;
@@ -51,11 +58,11 @@ public class TestcaseEntry implements Serializable {
   public String toXMLTestcaseLine() {
     StringBuilder sb = new StringBuilder();
     sb.append("<input ");
-    if (this.variable.isPresent()) {
-      sb.append(String.format("variable=\"%s\" ", variable.orElseThrow()));
+    if (this.variable != null) {
+      sb.append(String.format("variable=\"%s\" ", variable));
     }
-    if (this.type.isPresent()) {
-      sb.append(String.format("type=\"%s\"", type.orElseThrow()));
+    if (this.type != null) {
+      sb.append(String.format("type=\"%s\"", type));
     }
     sb.append(String.format(">%s</input>", value));
     return sb.toString();
@@ -84,11 +91,9 @@ public class TestcaseEntry implements Serializable {
     return value;
   }
 
-  public Optional<String> getVariable() {
-    return variable;
-  }
+  public Optional<String> getVariable() {return Optional.ofNullable(variable);}
 
   public Optional<String> getType() {
-    return type;
+    return Optional.ofNullable(type);
   }
 }

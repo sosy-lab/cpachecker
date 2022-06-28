@@ -24,6 +24,7 @@ import org.sosy_lab.cpachecker.core.defaults.LatticeAbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Graphable;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.checkerframework.checker.nullness.qual.Nullable;
 
 public class TestCaseGenState
     implements LatticeAbstractState<TestCaseGenState>, Serializable, Graphable {
@@ -32,16 +33,23 @@ public class TestCaseGenState
   private final LogManager logger;
 
   private final List<TestcaseEntry> entries;
-  private final Optional<AutomatonState> automatonState;
+  private final @Nullable AutomatonState automatonState;
 
   public TestCaseGenState(LogManager pLogger) {
     this.entries = new ArrayList<>();
-    automatonState = Optional.empty();
+    automatonState = null;
     this.logger = pLogger;
   }
 
   private TestCaseGenState(
       List<TestcaseEntry> pEntries, Optional<AutomatonState> pAutomatonState, LogManager pLogger) {
+    this.automatonState = pAutomatonState.orElse(null);
+    this.entries = pEntries;
+    this.logger = pLogger;
+  }
+
+  private TestCaseGenState(
+      List<TestcaseEntry> pEntries, AutomatonState pAutomatonState, LogManager pLogger) {
     this.automatonState = pAutomatonState;
     this.entries = pEntries;
     this.logger = pLogger;
@@ -87,16 +95,15 @@ public class TestCaseGenState
     return String.format(
         "[%s], %n ++%s++",
         entries.stream().map(e -> e.getValue()).collect(Collectors.joining(",")),
-        this.automatonState.isPresent()
-            ? this.automatonState.orElseThrow().getInternalStateName()
+        this.automatonState != null
+            ? this.automatonState.getInternalStateName()
             : "");
   }
 
   @Override
   public boolean shouldBeHighlighted() {
-    if (this.automatonState.isPresent()) {
+    if (this.automatonState != null) {
       return this.automatonState
-          .orElseThrow()
           .getInternalStateName()
           .equals(GIAGenerator.NAME_OF_NEWTESTINPUT_STATE);
     }
@@ -104,9 +111,8 @@ public class TestCaseGenState
   }
 
   public boolean isNewTestCaseState() {
-    if (this.automatonState.isPresent()) {
+    if (this.automatonState!= null ) {
       return this.automatonState
-          .orElseThrow()
           .getInternalStateName()
           .equals(GIAGenerator.NAME_OF_NEWTESTINPUT_STATE);
     }

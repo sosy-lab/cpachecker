@@ -101,14 +101,13 @@ public class GIACombinerTransferRelation extends SingleEdgeTransferRelation {
         if (!second.statePresent()) {
           // Second is not present
           Set<GIACombinerState> successors = new HashSet<>();
-          for (Entry<AutomatonTransition, AutomatonState> transition : successorFirst.entrySet()) {
-            GIACombinerState newState =
-                new GIACombinerState(new GIAInternalState(transition.getValue()), second.copy());
+          for (AutomatonTransition key : successorFirst.keySet()) {
+            GIACombinerState newState = new GIACombinerState(first, new NotPresentGIAState());
             successors.add(newState);
             combinerState.addSuccessor(
                 new GIATransition(
-                    transition.getKey().getTrigger(),
-                    transition.getKey().getAssumptions(),
+                    key.getTrigger(),
+                    key.getAssumptions(),
                     GIAARGStateEdge.getScopeForEdge(cfaEdge)),
                 newState);
           }
@@ -209,8 +208,10 @@ public class GIACombinerTransferRelation extends SingleEdgeTransferRelation {
                 edgesWithSameSourceCodeLine(successorFirst.keySet(), successorSecond.keySet());
             Set<GIACombinerState> successors = new HashSet<>();
             // Merge according to MERGE algorithm
-            for (AutomatonTransition transitionFirst : edgesTakenByBoth.keySet()) {
-              for (AutomatonTransition transitionSecond : edgesTakenByBoth.get(transitionFirst)) {
+            for (Entry<AutomatonTransition, Set<AutomatonTransition>> entry :
+                edgesTakenByBoth.entrySet()) {
+              AutomatonTransition transitionFirst = entry.getKey();
+              for (AutomatonTransition transitionSecond : entry.getValue()) {
                 successors.addAll(
                     merge(
                         combinerState,

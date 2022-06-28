@@ -277,7 +277,8 @@ public class AutomatonState
       if (!vars.isEmpty()) {
         prettyPrintAsmpts += "\n" + Joiner.on(' ').withKeyValueSeparator("=").join(vars);
       }
-      return (automaton != null ? automaton.getName() + ": " : "") + internalState.getName() + "(" + internalState+")"
+      return (automaton != null ? automaton.getName() + ": " : "")
+          + internalState.getName()
           + prettyPrintAsmpts;
     }
     return "";
