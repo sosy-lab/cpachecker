@@ -32,7 +32,7 @@ public class TestCaseGenState
   private final LogManager logger;
 
   private final List<TestcaseEntry> entries;
-  private Optional<AutomatonState> automatonState;
+  private final Optional<AutomatonState> automatonState;
 
   public TestCaseGenState(LogManager pLogger) {
     this.entries = new ArrayList<>();
@@ -47,8 +47,8 @@ public class TestCaseGenState
     this.logger = pLogger;
   }
 
-  public void setAutomatonState(Optional<AutomatonState> pAutomatonState) {
-    automatonState = pAutomatonState;
+  public TestCaseGenState setAutomatonState(Optional<AutomatonState> pAutomatonState) {
+    return new TestCaseGenState(this.entries, pAutomatonState, logger);
   }
 
   public void addNewTestcase(TestcaseEntry entry) {
@@ -85,7 +85,7 @@ public class TestCaseGenState
   @Override
   public String toDOTLabel() {
     return String.format(
-        "[%s], \n ++%s++",
+        "[%s], %n ++%s++",
         entries.stream().map(e -> e.getValue()).collect(Collectors.joining(",")),
         this.automatonState.isPresent()
             ? this.automatonState.orElseThrow().getInternalStateName()

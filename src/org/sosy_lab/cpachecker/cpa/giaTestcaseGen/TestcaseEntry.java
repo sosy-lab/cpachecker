@@ -15,9 +15,9 @@ import java.util.Optional;
 public class TestcaseEntry implements Serializable {
 
   private static final long serialVersionUID = -7715698130885655052L;
-  private String value;
-  private Optional<String> variable;
-  private Optional<String> type;
+  private final String value;
+  private final Optional<String> variable;
+  private final Optional<String> type;
 
   public TestcaseEntry(String pValue, Optional<String> pVariable, Optional<String> pType) {
     value = pValue;

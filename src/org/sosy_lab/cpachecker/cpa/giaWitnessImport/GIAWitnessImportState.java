@@ -34,7 +34,7 @@ public class GIAWitnessImportState
   private final LogManager logger;
 
   private final ExpressionTree<AExpression> tree;
-  private Optional<AutomatonState> automatonState;
+  private final Optional<AutomatonState> automatonState;
 
   public GIAWitnessImportState(LogManager pLogger) {
     this.tree = ExpressionTrees.getTrue();
@@ -49,10 +49,6 @@ public class GIAWitnessImportState
     this.automatonState = pAutomatonState;
     this.tree = pTree;
     this.logger = pLogger;
-  }
-
-  public void setAutomatonState(Optional<AutomatonState> pAutomatonState) {
-    automatonState = pAutomatonState;
   }
 
   public GIAWitnessImportState copy() {

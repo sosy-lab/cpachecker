@@ -53,21 +53,21 @@ public class GIAWriter<T extends AbstractState> {
     String actionOnFinalEdges = "";
 
     GIAGenerator.storeInitialNode(sb, edgesToAdd.isEmpty(), GIAGenerator.getName(rootState));
-    sb.append(String.format("    TRUE -> GOTO %s;\n\n", GIAGenerator.NAME_OF_TEMP_STATE));
+    sb.append(String.format("    TRUE -> GOTO %s;%n%n", GIAGenerator.NAME_OF_TEMP_STATE));
 
     if (setIsReached(pTargetStates, edgesToAdd)) {
-      sb.append(String.format("TARGET STATE %s :\n", GIAGenerator.NAME_OF_ERROR_STATE));
-      sb.append(String.format("    TRUE -> GOTO %s;\n\n", GIAGenerator.NAME_OF_ERROR_STATE));
+      sb.append(String.format("TARGET STATE %s :%n", GIAGenerator.NAME_OF_ERROR_STATE));
+      sb.append(String.format("    TRUE -> GOTO %s;%n%n", GIAGenerator.NAME_OF_ERROR_STATE));
     }
 
     if (setIsReached(pNonTargetStates, edgesToAdd)) {
-      sb.append(String.format("NON_TARGET STATE %s :\n", GIAGenerator.NAME_OF_FINAL_STATE));
-      sb.append(String.format("    TRUE -> GOTO %s;\n\n", GIAGenerator.NAME_OF_FINAL_STATE));
+      sb.append(String.format("NON_TARGET STATE %s :%n", GIAGenerator.NAME_OF_FINAL_STATE));
+      sb.append(String.format("    TRUE -> GOTO %s;%n%n", GIAGenerator.NAME_OF_FINAL_STATE));
     }
 
     if (setIsReached(pUnknownStates, edgesToAdd) && stopAtUnknownStates) {
-      sb.append(String.format("UNKNOWN STATE %s :\n", GIAGenerator.NAME_OF_UNKNOWN_STATE));
-      sb.append(String.format("    TRUE -> GOTO %s;\n\n", GIAGenerator.NAME_OF_UNKNOWN_STATE));
+      sb.append(String.format("UNKNOWN STATE %s :%n", GIAGenerator.NAME_OF_UNKNOWN_STATE));
+      sb.append(String.format("    TRUE -> GOTO %s;%n%n", GIAGenerator.NAME_OF_UNKNOWN_STATE));
     }
 
     // Fill the map to be able to iterate over the nodes
@@ -109,7 +109,7 @@ public class GIAWriter<T extends AbstractState> {
       if (otherwiseEdgesNotAdded) {
         sb.append(
             String.format(
-                "    MATCH OTHERWISE -> " + actionOnFinalEdges + "GOTO %s;\n",
+                "    MATCH OTHERWISE -> " + actionOnFinalEdges + "GOTO %s;%n",
                 GIAGenerator.getName(currentState)));
       }
       //        sb.append("    TRUE -> " + actionOnFinalEdges + "GOTO __TRUE;\n\n");

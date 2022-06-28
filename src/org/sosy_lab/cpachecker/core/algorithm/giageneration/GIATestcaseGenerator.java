@@ -158,7 +158,7 @@ public class GIATestcaseGenerator {
         continue;
       }
       if (pLastStates.contains(s)) {
-        sb.append(String.format("STATE USEALL %s :\n", GIAGenerator.NAME_OF_NEWTESTINPUT_STATE));
+        sb.append(String.format("STATE USEALL %s :%n", GIAGenerator.NAME_OF_NEWTESTINPUT_STATE));
       } else {
         sb.append("STATE USEALL ARG").append(String.valueOf(s.getStateId())).append(" :\n");
       }

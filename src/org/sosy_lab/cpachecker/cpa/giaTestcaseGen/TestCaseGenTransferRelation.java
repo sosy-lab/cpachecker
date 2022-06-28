@@ -136,7 +136,7 @@ public class TestCaseGenTransferRelation extends SingleEdgeTransferRelation {
             }
           }
         }
-        testcaseStae.setAutomatonState(Optional.of(autoState));
+        testcaseStae = testcaseStae.setAutomatonState(Optional.of(autoState));
       }
     }
     return Collections.singleton(testcaseStae);

@@ -346,7 +346,7 @@ public class GIAGenerator {
     sb.append("STATE __TRUE :\n");
     sb.append("    TRUE -> GOTO __TRUE;\n\n");
 
-    sb.append(String.format("STATE %s :\n", NAME_OF_TEMP_STATE));
+    sb.append(String.format("STATE %s :%n", NAME_OF_TEMP_STATE));
   }
 
   static String getName(AbstractState pSource) {

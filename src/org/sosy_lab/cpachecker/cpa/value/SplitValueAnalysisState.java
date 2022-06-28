@@ -13,6 +13,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.logging.Level;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -71,5 +72,31 @@ public class SplitValueAnalysisState extends ValueAnalysisState {
     }
     logger.log(Level.INFO, String.format("Split into %d states", splitStates.size()));
     return splitStates;
+  }
+
+  @Override
+  public boolean equals(Object pO) {
+    if (this == pO) {
+      return true;
+    }
+    if (!(pO instanceof SplitValueAnalysisState)) {
+      return false;
+    }
+    if (!super.equals(pO)) {
+      return false;
+    }
+    SplitValueAnalysisState that = (SplitValueAnalysisState) pO;
+    return Objects.equals(valuesFromFiles, that.valuesFromFiles)
+        && Objects.equals(oldState, that.oldState)
+        && Objects.equals(transferRelation, that.transferRelation)
+        && Objects.equals(precision, that.precision)
+        && Objects.equals(edge, that.edge)
+        && Objects.equals(logger, that.logger);
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(
+        super.hashCode(), valuesFromFiles, oldState, transferRelation, precision, edge, logger);
   }
 }
