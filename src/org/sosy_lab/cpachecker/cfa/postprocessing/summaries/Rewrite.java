@@ -55,12 +55,17 @@ public class Rewrite {
     changes.add(new Insertion(offset, snippet));
   }
 
+  public Optional<Path> getPath() {
+    return path;
+  }
+
   private void checkUntouched(int offset, int length) throws ConflictingModificationException {
     if (!untouched(offset, length)) {
       throw new ConflictingModificationException(
           "This offset is already modified by a different modification operation!");
     }
   }
+
   public void delete(int offset, int length) throws ConflictingModificationException {
     checkUntouched(offset, length);
     changes.add(new Deletion(offset, length));
