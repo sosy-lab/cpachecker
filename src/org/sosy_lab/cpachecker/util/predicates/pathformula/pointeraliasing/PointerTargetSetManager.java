@@ -224,6 +224,8 @@ class PointerTargetSetManager {
 
     final Constraints mergeConstraints1 = new Constraints(bfmgr);
     final Constraints mergeConstraints2 = new Constraints(bfmgr);
+    PersistentList<Formula> highestAllocatedAddresses1 = pts1.getHighestAllocatedAddresses();
+    PersistentList<Formula> highestAllocatedAddresses2 = pts2.getHighestAllocatedAddresses();
 
     // Handle bases
 
@@ -260,6 +262,22 @@ class PointerTargetSetManager {
               }
             });
     shutdownNotifier.shutdownIfNecessary();
+
+    // For all bases only in pts1, add required constraints regarding pts2 and vice-versa.
+    // basesOnlyPtsX may contain bases for with ptsY has a fake base, but for these ptsY also had
+    // constraints created already, and duplicate constraints would contradict. So we filter these.
+    highestAllocatedAddresses2 =
+        makeBaseAddressConstraintsForMergedBases(
+            basesOnlyPts1.getSnapshot(),
+            pts2.getBases().keySet(),
+            highestAllocatedAddresses2,
+            mergeConstraints2);
+    highestAllocatedAddresses1 =
+        makeBaseAddressConstraintsForMergedBases(
+            basesOnlyPts2.getSnapshot(),
+            pts1.getBases().keySet(),
+            highestAllocatedAddresses1,
+            mergeConstraints1);
 
     // Handle fields
 
@@ -314,7 +332,7 @@ class PointerTargetSetManager {
     // Handle allocation metadata
 
     final PersistentList<Formula> highestAllocatedAddresses =
-        mergeLists(pts1.getHighestAllocatedAddresses(), pts2.getHighestAllocatedAddresses());
+        mergeLists(highestAllocatedAddresses1, highestAllocatedAddresses2);
 
     int allocationCount = Math.max(pts1.getAllocationCount(), pts2.getAllocationCount());
 
@@ -454,6 +472,44 @@ class PointerTargetSetManager {
       result = result.with(target);
     }
     return result;
+  }
+
+  /**
+   * Create base-address constraints specifically for the case where pointer-target sets are merged.
+   * At first, one would think that this is not necessary, because on paths where a base was not
+   * created, it will also not be used, and thus its address does not matter. However, this is not
+   * true for local variables: As discussed in #987, a local variable can reappear later (if we
+   * reenter the respective function) but we would never add a constraint again (because the base
+   * already exists). If we do not add the constraints on merge, there would be paths where the base
+   * is used but no constraint was added.
+   *
+   * @param pBases The bases for which to create constraints.
+   * @param pIgnoredBases Set of bases that will be ignored.
+   * @param highestAllocatedAddresses the previously highest allocated addresses as base for the new
+   *     base constraints
+   * @param pConstraints Where the constraint(s) should be added.
+   * @return The now highest allocated addresses to use for future base constraints
+   */
+  private PersistentList<Formula> makeBaseAddressConstraintsForMergedBases(
+      final Map<String, CType> pBases,
+      final Set<String> pIgnoredBases,
+      PersistentList<Formula> highestAllocatedAddresses,
+      final Constraints pConstraints) {
+
+    for (Map.Entry<String, CType> base : pBases.entrySet()) {
+      final String baseName = base.getKey();
+
+      // We do not need constraints for bases resulting from dynamic memory allocation,
+      // because these bases cannot occur later again.
+      if (!pIgnoredBases.contains(baseName)
+          && !DynamicMemoryHandler.isAllocVariableName(baseName)) {
+        highestAllocatedAddresses =
+            makeBaseAddressConstraints(
+                baseName, base.getValue(), null, highestAllocatedAddresses, pConstraints);
+      }
+    }
+
+    return highestAllocatedAddresses;
   }
 
   /**
