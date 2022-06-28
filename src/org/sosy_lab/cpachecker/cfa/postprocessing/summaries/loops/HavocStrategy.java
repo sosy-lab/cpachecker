@@ -42,7 +42,7 @@ public class HavocStrategy extends LoopStrategy {
       ShutdownNotifier pShutdownNotifier,
       StrategyDependency pStrategyDependencies,
       CFA pCFA) {
-    super(pLogger, pShutdownNotifier, pStrategyDependencies,StrategiesEnum.HAVOCSTRATEGY,  pCFA);
+    super(pLogger, pShutdownNotifier, pStrategyDependencies, StrategiesEnum.HAVOCSTRATEGY, pCFA);
   }
 
   private Optional<GhostCFA> summarizeLoop(Loop pLoopStructure, CFANode pBeforeWhile) {
@@ -151,13 +151,12 @@ public class HavocStrategy extends LoopStrategy {
       return Optional.empty();
     }
 
-
     Optional<GhostCFA> summarizedLoopMaybe = summarizeLoop(loop, beforeWhile);
 
     return summarizedLoopMaybe;
   }
 
-  public static Optional<String> summarizeAsCode(Loop loop, CFANode node) {
+  public static Optional<String> summarizeAsCode(Loop loop) {
     StringBuilder builder = new StringBuilder();
 
     Optional<AExpression> loopBoundExpressionMaybe = loop.getBound();
