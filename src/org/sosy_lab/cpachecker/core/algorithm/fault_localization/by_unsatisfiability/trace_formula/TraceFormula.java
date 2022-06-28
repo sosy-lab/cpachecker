@@ -87,6 +87,11 @@ public class TraceFormula {
                 + " from the trace. Hence, no assume edge will be part of a fault.")
     private boolean makeFlowSensitive = false;
 
+    @Option(
+        secure = true,
+        description = "if enabled, nondet declarations get a selector, otherwise they don't")
+    private boolean inlinePrecondition = true;
+
     public TraceFormulaOptions(Configuration pConfiguration) throws InvalidConfigurationException {
       pConfiguration.inject(this);
     }
@@ -109,6 +114,10 @@ public class TraceFormula {
 
     public boolean makeFlowSensitive() {
       return makeFlowSensitive;
+    }
+
+    public boolean shouldInlinePrecondition() {
+      return inlinePrecondition;
     }
   }
 
@@ -202,20 +211,24 @@ public class TraceFormula {
     Trace trace = Trace.fromCounterexample(remainingCounterexample, pContext, pOptions);
     Set<String> nondets = precondition.getNondetVariables();
     List<CFAEdge> preconditionEdges = new ArrayList<>(precondition.getEdgesForPrecondition());
-    List<TraceAtom> modifiedTrace = new ArrayList<>();
+    List<TraceAtom> modifiedTrace = new ArrayList<>(trace.size());
     BooleanFormula formula = precondition.getPrecondition();
-    for (TraceAtom traceAtom : trace) {
-      if (nondets.stream().anyMatch(name -> traceAtom.getFormula().toString().contains(name))) {
-        preconditionEdges.add(traceAtom.correspondingEdge());
-        formula =
-            pContext
-                .getSolver()
-                .getFormulaManager()
-                .getBooleanFormulaManager()
-                .and(formula, traceAtom.getFormula());
-      } else {
-        modifiedTrace.add(traceAtom);
+    if (pOptions.shouldInlinePrecondition()) {
+      for (TraceAtom traceAtom : trace) {
+        if (nondets.stream().anyMatch(name -> traceAtom.getFormula().toString().contains(name))) {
+          preconditionEdges.add(traceAtom.correspondingEdge());
+          formula =
+              pContext
+                  .getSolver()
+                  .getFormulaManager()
+                  .getBooleanFormulaManager()
+                  .and(formula, traceAtom.getFormula());
+        } else {
+          modifiedTrace.add(traceAtom);
+        }
       }
+    } else {
+      modifiedTrace = new ArrayList<>(trace);
     }
     precondition = precondition.replaceRelatedEdgesAndFormula(preconditionEdges, formula);
     trace = new Trace(pContext, modifiedTrace);

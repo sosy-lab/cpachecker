@@ -256,6 +256,12 @@ public class FaultLocalizationWithTraceFormula
               + algorithmType
               + " does not search for faults eagerly.");
     }
+    if (options.shouldInlinePrecondition() && algorithmType != AlgorithmType.MAXORG) {
+      logger.logf(
+          Level.WARNING,
+          "Using a strict choice of selectors is only recommended for algorithm %s",
+          AlgorithmType.MAXORG);
+    }
   }
 
   @Override

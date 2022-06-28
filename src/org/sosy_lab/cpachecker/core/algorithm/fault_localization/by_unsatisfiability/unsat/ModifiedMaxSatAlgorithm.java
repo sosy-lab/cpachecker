@@ -67,7 +67,7 @@ public class ModifiedMaxSatAlgorithm implements FaultLocalizerWithTraceFormula, 
       }
       // adding all possible selectors yields no information because the user knows that the program
       // has bugs
-      if (minUnsatCore.size() != initSize) {
+      if (minUnsatCore.size() != initSize || initSize == 1) {
         hard.add(minUnsatCore);
         if (stopAfterFirstFault) {
           break;
@@ -156,7 +156,7 @@ public class ModifiedMaxSatAlgorithm implements FaultLocalizerWithTraceFormula, 
    * @return boolean formula as conjunct of all selector formulas
    */
   private BooleanFormula softSetFormula(Set<TraceAtom> softSet, BooleanFormulaManager bmgr) {
-    return softSet.stream().map(f -> f.getFormula()).collect(bmgr.toConjunction());
+    return softSet.stream().map(f -> f.getSelector()).collect(bmgr.toConjunction());
   }
 
   @Override
