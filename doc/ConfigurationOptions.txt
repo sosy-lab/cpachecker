@@ -4593,6 +4593,9 @@ traceformula.filter = ["main"]
 # variable is used as prefix, separated by two ':'
 traceformula.ignore = []
 
+# if enabled, nondet declarations get a selector, otherwise they don't
+traceformula.inlinePrecondition = true
+
 # Make trace formula flow-sensitive, i.e., assume edges imply the edges that
 # are only reachable through the assume edge. Flow-sensitive traces remove
 # assume edges from the trace. Hence, no assume edge will be part of a fault.
