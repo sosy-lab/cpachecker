@@ -9,8 +9,8 @@
 package org.sosy_lab.cpachecker.cpa.giaWitnessImport;
 
 import java.io.Serializable;
-import java.util.Optional;
 import java.util.logging.Level;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -23,7 +23,6 @@ import org.sosy_lab.cpachecker.cpa.automaton.AutomatonState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
-import org.checkerframework.checker.nullness.qual.Nullable;
 
 public class GIAWitnessImportState
     implements LatticeAbstractState<GIAWitnessImportState>,
