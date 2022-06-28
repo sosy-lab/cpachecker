@@ -46,7 +46,12 @@ public class ConstantExtrapolationStrategy extends LoopExtrapolationStrategy {
       ShutdownNotifier pShutdownNotifier,
       StrategyDependency pStrategyDependencies,
       CFA pCFA) {
-    super(pLogger, pShutdownNotifier, pStrategyDependencies, StrategiesEnum.LOOPCONSTANTEXTRAPOLATION, pCFA);
+    super(
+        pLogger,
+        pShutdownNotifier,
+        pStrategyDependencies,
+        StrategiesEnum.LOOPCONSTANTEXTRAPOLATION,
+        pCFA);
   }
 
   public ConstantExtrapolationStrategy(

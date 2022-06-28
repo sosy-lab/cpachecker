@@ -44,7 +44,12 @@ public class LinearExtrapolationStrategy extends LoopExtrapolationStrategy {
       ShutdownNotifier pShutdownNotifier,
       StrategyDependency pStrategyDependencies,
       CFA pCFA) {
-    super(pLogger, pShutdownNotifier, pStrategyDependencies, StrategiesEnum.LOOPLINEAREXTRAPOLATION,  pCFA);
+    super(
+        pLogger,
+        pShutdownNotifier,
+        pStrategyDependencies,
+        StrategiesEnum.LOOPLINEAREXTRAPOLATION,
+        pCFA);
   }
 
   @Override

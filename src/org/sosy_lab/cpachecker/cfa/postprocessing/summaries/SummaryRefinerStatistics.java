@@ -61,8 +61,9 @@ public class SummaryRefinerStatistics implements Statistics {
       secure = true,
       name = "cfa.summaries.dumpinlinedsummaries",
       description =
-          "once enabled, this will create a copy of the input program in the output directory "
-              + "where parts of the program have been replaced by the corresponding summary that was used during the analysis")
+          "once enabled, this will create a copy of the input program in the output directory where"
+              + " parts of the program have been replaced by the corresponding summary that was"
+              + " used during the analysis")
   private boolean outputTask = true;
 
   @Option(

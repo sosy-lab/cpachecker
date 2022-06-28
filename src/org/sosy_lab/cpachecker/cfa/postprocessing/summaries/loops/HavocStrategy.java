@@ -182,7 +182,10 @@ public class HavocStrategy extends LoopStrategy {
 
     // 2. add a line <varname> = __VERIFIER_nondet_X(); for all modified variables
     Set<AVariableDeclaration> modifiedVariables = loop.getModifiedVariables();
-    Set<String> outofScopeVariables = FluentIterable.from(getOutOfScopeVariables(loop)).transform(x->x.getQualifiedName()).toSet();
+    Set<String> outofScopeVariables =
+        FluentIterable.from(getOutOfScopeVariables(loop))
+            .transform(x -> x.getQualifiedName())
+            .toSet();
     modifiedVariables =
         FluentIterable.from(modifiedVariables)
             .filter(x -> !outofScopeVariables.contains(x.getQualifiedName()))

@@ -50,6 +50,7 @@ public class OutputLoopAccelerationStrategy extends LoopStrategy {
 
   // counter name for output acceleration
   private static final String SUMMARY_COUNTER_VARIABLE = "__VERIFIER_LA_OA_counter";
+
   public OutputLoopAccelerationStrategy(
       LogManager pLogger,
       ShutdownNotifier pShutdownNotifier,

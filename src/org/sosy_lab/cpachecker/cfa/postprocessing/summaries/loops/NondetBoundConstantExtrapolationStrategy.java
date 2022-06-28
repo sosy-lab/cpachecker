@@ -42,7 +42,12 @@ public class NondetBoundConstantExtrapolationStrategy extends ConstantExtrapolat
       ShutdownNotifier pShutdownNotifier,
       StrategyDependency pStrategyDependencies,
       CFA pCFA) {
-    super(pLogger, pShutdownNotifier, pStrategyDependencies,StrategiesEnum.NONDETBOUNDCONSTANTEXTRAPOLATION,  pCFA);
+    super(
+        pLogger,
+        pShutdownNotifier,
+        pStrategyDependencies,
+        StrategiesEnum.NONDETBOUNDCONSTANTEXTRAPOLATION,
+        pCFA);
   }
 
   private Optional<GhostCFA> createSumaryCFA(
