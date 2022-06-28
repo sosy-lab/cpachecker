@@ -142,7 +142,7 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
 
   @Option(
       secure = true,
-      name = "transformGIA" ,
+      name = "transformGIA",
       description = "Generate additionally a universal condition automaton")
   private boolean transformGIA = true;
 
@@ -661,13 +661,10 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
   }
 
   public static void escape(String s, Appendable appendTo) throws IOException {
-   appendTo.append(escape(s));
+    appendTo.append(escape(s));
   }
 
-
-
-
-  public static String escapeSpacingChars(String s)  {
+  public static String escapeSpacingChars(String s) {
     StringBuilder sb = new StringBuilder();
     for (int i = 0; i < s.length(); i++) {
       char c = s.charAt(i);
@@ -689,8 +686,7 @@ public class AssumptionCollectorAlgorithm implements Algorithm, StatisticsProvid
     return sb.toString();
   }
 
-
-  public static String escape(String s)  {
+  public static String escape(String s) {
     StringBuilder sb = new StringBuilder();
     for (int i = 0; i < s.length(); i++) {
       char c = s.charAt(i);

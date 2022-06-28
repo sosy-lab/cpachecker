@@ -44,7 +44,6 @@ public class GIAAutomatonParser {
         && pAutomata.get(0).getName().equals(GIAGenerator.ASSUMPTION_AUTOMATON_NAME);
   }
 
-
   public List<Automaton> postProcessGIA(List<Automaton> pAutomata) {
 
     if (pAutomata.size() != 1) {
@@ -129,11 +128,11 @@ public class GIAAutomatonParser {
       pAutomata.getStates().forEach(s -> distances.put(s, Integer.MAX_VALUE));
       unknownStates.forEach(s -> distances.replace(s, 0));
 
-
-
       Map<AutomatonInternalState, Set<AutomatonInternalState>> predesessors = new HashMap<>();
       pAutomata.getStates().forEach(s -> predesessors.put(s, new HashSet<>()));
-      pAutomata.getStates().forEach(s -> s.getSuccessorStates().forEach(succ -> predesessors.get(succ).add(s)));
+      pAutomata
+          .getStates()
+          .forEach(s -> s.getSuccessorStates().forEach(succ -> predesessors.get(succ).add(s)));
 
       List<AutomatonInternalState> toProcess = new ArrayList<>(unknownStates);
       while (!toProcess.isEmpty()) {
@@ -150,7 +149,7 @@ public class GIAAutomatonParser {
       }
       logger.logf(Level.FINE, "The processed distances to unknown are %s", distances);
       return buildAutomaton(
-          Lists.newArrayList(pAutomata), pAutomata, distances, DISTANCE_TO_UNKNOWN)
+              Lists.newArrayList(pAutomata), pAutomata, distances, DISTANCE_TO_UNKNOWN)
           .get(0);
     }
   }

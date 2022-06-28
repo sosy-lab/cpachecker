@@ -107,7 +107,6 @@ public class PredicatePrecisionBootstrapper implements StatisticsProvider {
     @Option(secure = true, description = "initial predicates are added as atomic predicates")
     private boolean splitIntoAtoms = false;
 
-
     public boolean applyFunctionWide() {
       return applyFunctionWide;
     }
@@ -233,28 +232,28 @@ public class PredicatePrecisionBootstrapper implements StatisticsProvider {
     }
     return result;
 
-
-//
-//
-//    try {
-//      WitnessInvariantsExtractor extractor =
-//          new WitnessInvariantsExtractor(config, automaton, logger, cfa, shutdownNotifier);
-//
-//      Set<ExpressionTreeLocationInvariant> invariants = extractor.extractInvariantsFromReachedSet();
-//
-//
-//
-//
-//
-//      if (options.useAssumptionsFromGIAAsInvariants && options.applyGlobally) {
-//        invariants = extractor.extractAdditionalInvariantsFromAssumptions(invariants);
-//      }
-//      logger.log(Level.INFO, invariants);
-//      return addInvariantsToResult(PredicatePrecision.empty(), invariants);
-//    } catch (CPAException | InterruptedException | InvalidConfigurationException pE) {
-//      logger.log(Level.WARNING, Throwables.getStackTraceAsString(pE));
-//    }
-//    return PredicatePrecision.empty();
+    //
+    //
+    //    try {
+    //      WitnessInvariantsExtractor extractor =
+    //          new WitnessInvariantsExtractor(config, automaton, logger, cfa, shutdownNotifier);
+    //
+    //      Set<ExpressionTreeLocationInvariant> invariants =
+    // extractor.extractInvariantsFromReachedSet();
+    //
+    //
+    //
+    //
+    //
+    //      if (options.useAssumptionsFromGIAAsInvariants && options.applyGlobally) {
+    //        invariants = extractor.extractAdditionalInvariantsFromAssumptions(invariants);
+    //      }
+    //      logger.log(Level.INFO, invariants);
+    //      return addInvariantsToResult(PredicatePrecision.empty(), invariants);
+    //    } catch (CPAException | InterruptedException | InvalidConfigurationException pE) {
+    //      logger.log(Level.WARNING, Throwables.getStackTraceAsString(pE));
+    //    }
+    //    return PredicatePrecision.empty();
   }
 
   private boolean isGIA(Path pPredicatesFile) {
@@ -372,7 +371,8 @@ public class PredicatePrecisionBootstrapper implements StatisticsProvider {
               + "They are present, but are not correctly loaded");
     }
 
-    logger.log(Level.INFO, String.format("The invariants loaded are %s", pResult.getGlobalPredicates() ));
+    logger.log(
+        Level.INFO, String.format("The invariants loaded are %s", pResult.getGlobalPredicates()));
     return pResult;
   }
 

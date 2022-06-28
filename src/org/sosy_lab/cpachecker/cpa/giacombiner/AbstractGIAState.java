@@ -11,7 +11,6 @@ package org.sosy_lab.cpachecker.cpa.giacombiner;
 public interface AbstractGIAState {
 
   AbstractGIAState copy();
+
   boolean statePresent();
-
-
 }

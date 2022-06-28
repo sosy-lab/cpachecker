@@ -19,9 +19,7 @@ public class GIATransition {
   private List<AExpression> assumptions;
   private final String scope;
 
-  public GIATransition(
-      AutomatonBoolExpr pTrigger,
-      List<AExpression> pAssertions, String pScope) {
+  public GIATransition(AutomatonBoolExpr pTrigger, List<AExpression> pAssertions, String pScope) {
     trigger = pTrigger;
     assumptions = pAssertions;
     this.scope = pScope;
@@ -44,12 +42,11 @@ public class GIATransition {
     if (this == pO) {
       return true;
     }
-    if (! (pO instanceof GIATransition) ){
+    if (!(pO instanceof GIATransition)) {
       return false;
     }
     GIATransition that = (GIATransition) pO;
-    return Objects.equals(trigger, that.trigger) && Objects.equals(assumptions,
-        that.assumptions);
+    return Objects.equals(trigger, that.trigger) && Objects.equals(assumptions, that.assumptions);
   }
 
   @Override

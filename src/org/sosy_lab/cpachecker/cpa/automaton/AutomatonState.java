@@ -78,7 +78,7 @@ public class AutomatonState
     }
   }
 
- public static class BOTTOM extends AutomatonState {
+  public static class BOTTOM extends AutomatonState {
     private static final long serialVersionUID = -401794748742705212L;
 
     public BOTTOM(Automaton pAutomaton, boolean pTreatErrorsAsTarget) {
@@ -278,7 +278,10 @@ public class AutomatonState
         prettyPrintAsmpts += "\n" + Joiner.on(' ').withKeyValueSeparator("=").join(vars);
       }
       return (automaton != null ? automaton.getName() + ": " : "")
-          + internalState.getName()+ "("+internalState.toString()+")"
+          + internalState.getName()
+          + "("
+          + internalState
+          + ")"
           + prettyPrintAsmpts;
     }
     return "";
@@ -367,41 +370,39 @@ public class AutomatonState
               + pProperty
               + "\" is invalid. Could not split the property string correctly.");
     } else {
-      if (partsEqual.size() == 2){
-      String left = partsEqual.get(0);
-      String right = partsEqual.get(1);
-      if (left.equalsIgnoreCase("state")) {
-        return getInternalState().getName().equals(right);
-      } else if (left.equalsIgnoreCase("stateType")) {
-        return getInternalState().getStateType().name().equals(right);
-      }
-      else {
-        AutomatonVariable var = vars.get(left);
-        if (var != null) {
-          // is a local variable
-          try {
-            int val = Integer.parseInt(right);
+      if (partsEqual.size() == 2) {
+        String left = partsEqual.get(0);
+        String right = partsEqual.get(1);
+        if (left.equalsIgnoreCase("state")) {
+          return getInternalState().getName().equals(right);
+        } else if (left.equalsIgnoreCase("stateType")) {
+          return getInternalState().getStateType().name().equals(right);
+        } else {
+          AutomatonVariable var = vars.get(left);
+          if (var != null) {
+            // is a local variable
+            try {
+              int val = Integer.parseInt(right);
 
-
-            return var.getValue() == val;
-          } catch (NumberFormatException e) {
+              return var.getValue() == val;
+            } catch (NumberFormatException e) {
+              throw new InvalidQueryException(
+                  "The Query \""
+                      + pProperty
+                      + "\" is invalid. Could not parse the int \""
+                      + right
+                      + "\".");
+            }
+          } else {
             throw new InvalidQueryException(
                 "The Query \""
                     + pProperty
-                    + "\" is invalid. Could not parse the int \""
-                    + right
-                    + "\".");
+                    + "\" is invalid. Only accepting \"State == something\", \"stateType =="
+                    + " something\", \"varname == something\"  \"varname > something\" queries so"
+                    + " far.");
           }
-        } else {
-          throw new InvalidQueryException(
-              "The Query \""
-                  + pProperty
-                  + "\" is invalid. Only accepting \"State == something\", \"stateType == something\", \"varname =="
-                  + " something\"  \"varname > something\" queries so far.");
         }
-      }
-      }
-      else{
+      } else {
         String left = partsGreater.get(0);
         String right = partsGreater.get(1);
         AutomatonVariable var = vars.get(left);
@@ -422,8 +423,9 @@ public class AutomatonState
           throw new InvalidQueryException(
               "The Query \""
                   + pProperty
-                  + "\" is invalid. Only accepting \"State == something\", \"stateType == something\", \"varname =="
-                  + " something\"  \"varname > something\" queries so far.");
+                  + "\" is invalid. Only accepting \"State == something\", \"stateType =="
+                  + " something\", \"varname == something\"  \"varname > something\" queries so"
+                  + " far.");
         }
       }
     }

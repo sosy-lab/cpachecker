@@ -68,7 +68,6 @@ import org.sosy_lab.java_smt.api.NumeralFormula.IntegerFormula;
 @Options(prefix = "cpa.assumptionStorage")
 public class AssumptionStorageTransferRelation extends SingleEdgeTransferRelation {
 
-
   @Option(
       secure = true,
       description =
@@ -79,7 +78,8 @@ public class AssumptionStorageTransferRelation extends SingleEdgeTransferRelatio
   @Option(
       secure = true,
       description =
-          "If it is enabled, assumptions are extracted from the correctness-witness state invariants")
+          "If it is enabled, assumptions are extracted from the correctness-witness state"
+              + " invariants")
   private boolean extractAssumptionsFromAutomatonState = false;
 
   private final CtoFormulaConverter converter;
@@ -94,7 +94,8 @@ public class AssumptionStorageTransferRelation extends SingleEdgeTransferRelatio
       FormulaManagerView pFormulaManager,
       AbstractState pTopState,
       Configuration pConfig,
-      PathFormulaManager pPathFormulaManager, LogManager pLogger)
+      PathFormulaManager pPathFormulaManager,
+      LogManager pLogger)
       throws InvalidConfigurationException {
     pConfig.inject(this);
     converter = pConverter;
@@ -194,17 +195,22 @@ public class AssumptionStorageTransferRelation extends SingleEdgeTransferRelatio
         ExpressionTree<AExpression> stateInv = automatonState.getCandidateInvariants();
         if (!ExpressionTrees.isConstant(stateInv)) {
           ToFormulaVisitor visitor = new ToFormulaVisitor(formulaManager, pathFormulaManager, null);
-          try{       if (ExpressionTrees.isAnd(stateInv)) {
-            BooleanFormula invFormula = visitor.visit((And<AExpression>) stateInv);
-            assumption = bfmgr.and(assumption, formulaManager.uninstantiate(invFormula));
-          } else if (ExpressionTrees.isOr(stateInv)) {
-            BooleanFormula invFormula = visitor.visit((Or<AExpression>) stateInv);
-            assumption = bfmgr.and(assumption, formulaManager.uninstantiate(invFormula));
-          } else if (ExpressionTrees.isLeaf(stateInv)) {
-            BooleanFormula invFormula = visitor.visit((LeafExpression<AExpression>) stateInv);
-            assumption = bfmgr.and(assumption, formulaManager.uninstantiate(invFormula));
-          }}catch( ToFormulaException pE){
-            logger.logf(Level.WARNING,"Cannot parse the expression tree %s due to %s", stateInv,
+          try {
+            if (ExpressionTrees.isAnd(stateInv)) {
+              BooleanFormula invFormula = visitor.visit((And<AExpression>) stateInv);
+              assumption = bfmgr.and(assumption, formulaManager.uninstantiate(invFormula));
+            } else if (ExpressionTrees.isOr(stateInv)) {
+              BooleanFormula invFormula = visitor.visit((Or<AExpression>) stateInv);
+              assumption = bfmgr.and(assumption, formulaManager.uninstantiate(invFormula));
+            } else if (ExpressionTrees.isLeaf(stateInv)) {
+              BooleanFormula invFormula = visitor.visit((LeafExpression<AExpression>) stateInv);
+              assumption = bfmgr.and(assumption, formulaManager.uninstantiate(invFormula));
+            }
+          } catch (ToFormulaException pE) {
+            logger.logf(
+                Level.WARNING,
+                "Cannot parse the expression tree %s due to %s",
+                stateInv,
                 Throwables.getStackTraceAsString(pE));
           }
         }

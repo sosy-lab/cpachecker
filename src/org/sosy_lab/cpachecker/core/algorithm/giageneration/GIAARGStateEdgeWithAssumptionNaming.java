@@ -6,17 +6,18 @@
 ////
 //// SPDX-License-Identifier: Apache-2.0
 //
-//package org.sosy_lab.cpachecker.core.algorithm.giageneration;
+// package org.sosy_lab.cpachecker.core.algorithm.giageneration;
 //
-//import java.util.Optional;
-//import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-//import org.sosy_lab.cpachecker.cpa.arg.ARGState;
-//import org.sosy_lab.cpachecker.cpa.automaton.AutomatonState;
-//import org.sosy_lab.cpachecker.util.predicates.AbstractionFormula;
+// import java.util.Optional;
+// import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+// import org.sosy_lab.cpachecker.cpa.arg.ARGState;
+// import org.sosy_lab.cpachecker.cpa.automaton.AutomatonState;
+// import org.sosy_lab.cpachecker.util.predicates.AbstractionFormula;
 //
-//public class GIAARGStateEdgeWithAssumptionNaming extends GIAARGStateEdge {
+// public class GIAARGStateEdgeWithAssumptionNaming extends GIAARGStateEdge {
 //  public GIAARGStateEdgeWithAssumptionNaming(
-//      ARGState pSource, ARGState pTarget, CFAEdge pEdge, Optional<AbstractionFormula> pAssumption) {
+//      ARGState pSource, ARGState pTarget, CFAEdge pEdge, Optional<AbstractionFormula> pAssumption)
+// {
 //    super(pSource, pTarget, pEdge, pAssumption);
 //  }
 //
@@ -50,4 +51,4 @@
 //        ? GIAGenerator.getNameOrError(target.orElseThrow())
 //        : GIAGenerator.NAME_OF_TEMP_STATE;
 //  }
-//}
+// }

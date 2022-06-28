@@ -6,42 +6,42 @@
 ////
 //// SPDX-License-Identifier: Apache-2.0
 //
-//package org.sosy_lab.cpachecker.core.algorithm.giageneration;
+// package org.sosy_lab.cpachecker.core.algorithm.giageneration;
 //
-//import com.google.common.collect.ImmutableList;
-//import com.google.common.collect.Lists;
-//import com.google.common.collect.Sets;
-//import java.io.IOException;
-//import java.util.ArrayList;
-//import java.util.Comparator;
-//import java.util.HashMap;
-//import java.util.HashSet;
-//import java.util.List;
-//import java.util.Map;
-//import java.util.Objects;
-//import java.util.Optional;
-//import java.util.Set;
-//import java.util.logging.Level;
-//import java.util.stream.Collectors;
-//import org.checkerframework.checker.nullness.qual.Nullable;
-//import org.sosy_lab.common.log.LogManager;
-//import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
-//import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
-//import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-//import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
-//import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
-//import org.sosy_lab.cpachecker.core.algorithm.AssumptionCollectorAlgorithm;
-//import org.sosy_lab.cpachecker.core.algorithm.giageneration.GIAGenerator.GIAGeneratorOptions;
-//import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
-//import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
-//import org.sosy_lab.cpachecker.cpa.arg.ARGState;
-//import org.sosy_lab.cpachecker.cpa.assumptions.storage.AssumptionStorageState;
-//import org.sosy_lab.cpachecker.cpa.automaton.AutomatonState;
-//import org.sosy_lab.cpachecker.util.AbstractStates;
-//import org.sosy_lab.cpachecker.util.CFAUtils;
-//import org.sosy_lab.cpachecker.util.Pair;
+// import com.google.common.collect.ImmutableList;
+// import com.google.common.collect.Lists;
+// import com.google.common.collect.Sets;
+// import java.io.IOException;
+// import java.util.ArrayList;
+// import java.util.Comparator;
+// import java.util.HashMap;
+// import java.util.HashSet;
+// import java.util.List;
+// import java.util.Map;
+// import java.util.Objects;
+// import java.util.Optional;
+// import java.util.Set;
+// import java.util.logging.Level;
+// import java.util.stream.Collectors;
+// import org.checkerframework.checker.nullness.qual.Nullable;
+// import org.sosy_lab.common.log.LogManager;
+// import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
+// import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
+// import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+// import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
+// import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
+// import org.sosy_lab.cpachecker.core.algorithm.AssumptionCollectorAlgorithm;
+// import org.sosy_lab.cpachecker.core.algorithm.giageneration.GIAGenerator.GIAGeneratorOptions;
+// import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+// import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
+// import org.sosy_lab.cpachecker.cpa.arg.ARGState;
+// import org.sosy_lab.cpachecker.cpa.assumptions.storage.AssumptionStorageState;
+// import org.sosy_lab.cpachecker.cpa.automaton.AutomatonState;
+// import org.sosy_lab.cpachecker.util.AbstractStates;
+// import org.sosy_lab.cpachecker.util.CFAUtils;
+// import org.sosy_lab.cpachecker.util.Pair;
 //
-//public class GIAVioWitGenerator {
+// public class GIAVioWitGenerator {
 //
 //  private final LogManager logger;
 //  private final GIAGeneratorOptions optinons;
@@ -144,7 +144,8 @@
 //    //        Optional<ARGState> replacement =
 //    // statesToReplaceToReplacement.get(edge.getTarget().orElseThrow());
 //    //        if (replacement.isPresent())
-//    //        toAdd.add(new GIAARGStateEdge(edge.source,replacement.orElseThrow(), edge.getEdge()));
+//    //        toAdd.add(new GIAARGStateEdge(edge.source,replacement.orElseThrow(),
+// edge.getEdge()));
 //    //      }
 //    //    }
 //    //    relevantEdges.removeAll(toRemove);
@@ -156,7 +157,8 @@
 //   * Traverse allpath from parent to its child node, until a relevant edge is found
 //   *
 //   * @param pParent the parent
-//   * @param pChild its child to check for beeing relevant (i.e. any edge on the path leading to that
+//   * @param pChild its child to check for beeing relevant (i.e. any edge on the path leading to
+// that
 //   *     edge )
 //   * @param pTargetStates the target states
 //   * @param pToProcess the states to process
@@ -440,7 +442,8 @@
 //  }
 //
 //  /**
-//   * Create an GIA for the given set of edges Beneth printing the edges, each node gets a self-loop
+//   * Create an GIA for the given set of edges Beneth printing the edges, each node gets a
+// self-loop
 //   * and a node to the temp-location
 //   *
 //   * @param sb the appendable to print to
@@ -459,7 +462,8 @@
 //
 //    String actionOnFinalEdges = "";
 //
-//    GIAGenerator.storeInitialNode(sb, edgesToAdd.isEmpty(), GIAGenerator.getNameOrError(rootState));
+//    GIAGenerator.storeInitialNode(sb, edgesToAdd.isEmpty(),
+// GIAGenerator.getNameOrError(rootState));
 //    if (ignoreAssumptions) {
 //      sb.append(String.format("    TRUE -> GOTO %s;\n\n", GIAGenerator.NAME_OF_TEMP_STATE));
 //    } else {
@@ -518,7 +522,8 @@
 //  }
 //
 //  /**
-//   * Create an GIA for the given set of edges Beneth printing the edges, each node gets a self-loop
+//   * Create an GIA for the given set of edges Beneth printing the edges, each node gets a
+// self-loop
 //   * and a node to the temp-location
 //   *
 //   * @param sb the appendable to print to
@@ -527,7 +532,8 @@
 //   * @throws IOException if the file cannot be accessed or does not exist
 //   */
 //  private int writeGIAForViolationWitness(
-//      Appendable sb, ARGState rootState, Set<GIAARGStateEdge<ARGState>> edgesToAdd, boolean ignoreAssumptions)
+//      Appendable sb, ARGState rootState, Set<GIAARGStateEdge<ARGState>> edgesToAdd, boolean
+// ignoreAssumptions)
 //      throws IOException {
 //    // TODO Refactor this method and the copied to one
 //    int numProducedStates = 0;
@@ -535,7 +541,8 @@
 //
 //    String actionOnFinalEdges = "";
 //
-//    GIAGenerator.storeInitialNode(sb, edgesToAdd.isEmpty(), GIAGenerator.getNameOrError(rootState));
+//    GIAGenerator.storeInitialNode(sb, edgesToAdd.isEmpty(),
+// GIAGenerator.getNameOrError(rootState));
 //    if (ignoreAssumptions) {
 //      sb.append(String.format("    TRUE -> GOTO %s;\n\n", GIAGenerator.NAME_OF_TEMP_STATE));
 //    } else {
@@ -554,7 +561,8 @@
 //    }
 //
 //    // Fill the map to be able to iterate over the nodes
-//    Map<ARGState, Set<GIAARGStateEdge<ARGState>>> nodesToEdges = GIAGenerator.groupEdgesByNodes(edgesToAdd);
+//    Map<ARGState, Set<GIAARGStateEdge<ARGState>>> nodesToEdges =
+// GIAGenerator.groupEdgesByNodes(edgesToAdd);
 //    for (final ARGState currentState :
 //        nodesToEdges.keySet().stream()
 //            .sorted(Comparator.comparing(GIAGenerator::getNameOrError))
@@ -606,4 +614,4 @@
 //
 //    return targetStates;
 //  }
-//}
+// }

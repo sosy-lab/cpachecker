@@ -182,15 +182,15 @@ public class ValueAnalysisTransferRelation
     @Option(
         secure = true,
         description =
-            "Directory for the files: Fixed set of values for function calls to VERIFIER_nondet_*. Does only work, if"
-                + " ignoreFunctionValueExceptRandom is enabled and  ")
+            "Directory for the files: Fixed set of values for function calls to VERIFIER_nondet_*."
+                + " Does only work, if ignoreFunctionValueExceptRandom is enabled and  ")
     private String functionValuesForRandomDir = "";
 
     @Option(
         secure = true,
         description =
-            "Regex to load the files: Fixed set of values for function calls to VERIFIER_nondet_*. Does only work, if"
-                + " ignoreFunctionValueExceptRandom is enabled and  ")
+            "Regex to load the files: Fixed set of values for function calls to VERIFIER_nondet_*."
+                + " Does only work, if ignoreFunctionValueExceptRandom is enabled and  ")
     private String functionValuesForRandomPathRegex = "";
 
     @Option(
@@ -321,9 +321,9 @@ public class ValueAnalysisTransferRelation
       ValueAnalysisState successor, CFAEdge edge) {
     // always return a new state (requirement for strengthening states with interpolants)
     if (successor != null) {
-      if (successor instanceof SplitValueAnalysisState){
+      if (successor instanceof SplitValueAnalysisState) {
         try {
-          return ((SplitValueAnalysisState)successor).split();
+          return ((SplitValueAnalysisState) successor).split();
         } catch (CPATransferException pE) {
           logger.logfUserException(Level.SEVERE, pE, "Cannot splitt the state! Aborting");
           return ImmutableSet.of();
@@ -371,8 +371,6 @@ public class ValueAnalysisTransferRelation
     // visitor for getting the values of the actual parameters in caller function context
     final ExpressionValueVisitor visitor = getVisitor();
 
-
-
     // get value of actual parameter in caller function context
     for (int i = 0; i < parameters.size(); i++) {
       Value value;
@@ -382,8 +380,11 @@ public class ValueAnalysisTransferRelation
         value = ((JExpression) exp).accept(visitor);
       } else if (exp instanceof CExpression) {
 
-        if (visitor.wouldReturnAValueForRandom((CExpression) exp, (CType) parameters.get(i).getType())){
-        throw new UnrecognizedCodeException("Dont know how to handle this case. How to split the states for arguments?", callEdge);
+        if (visitor.wouldReturnAValueForRandom(
+            (CExpression) exp, (CType) parameters.get(i).getType())) {
+          throw new UnrecognizedCodeException(
+              "Dont know how to handle this case. How to split the states for arguments?",
+              callEdge);
         }
         value = visitor.evaluate((CExpression) exp, (CType) parameters.get(i).getType());
       } else {
@@ -928,14 +929,16 @@ public class ValueAnalysisTransferRelation
     final CType leftSideType = leftSide.getExpressionType();
     final ExpressionValueVisitor evv = getVisitor();
 
-
     ValueAnalysisState newElement = ValueAnalysisState.copyOf(state);
 
-    //Extra handling to splitt the state during post processing into several states, each using one random file
-    if (evv.wouldReturnAValueForRandom(functionCallExp, leftSideType) && !this.valuesFromFilesUsed){
+    // Extra handling to splitt the state during post processing into several states, each using one
+    // random file
+    if (evv.wouldReturnAValueForRandom(functionCallExp, leftSideType)
+        && !this.valuesFromFilesUsed) {
       valuesFromFilesUsed = true;
       state.setSplitPoint();
-      return new SplitValueAnalysisState(state, valuesFromFile, this, super.precision, cfaEdgeFromInfo, logger);
+      return new SplitValueAnalysisState(
+          state, valuesFromFile, this, super.precision, cfaEdgeFromInfo, logger);
     }
 
     Value newValue = evv.evaluate(functionCallExp, leftSideType);
@@ -1492,7 +1495,6 @@ public class ValueAnalysisTransferRelation
   protected void resetInfo() {
     super.resetInfo();
     this.cfaEdgeFromInfo = null;
-
   }
 
   /**
@@ -1824,7 +1826,7 @@ public class ValueAnalysisTransferRelation
       ImmutableSet<Path> randomFiles =
           stream
               .filter(file -> !Files.isDirectory(file))
-                            .filter(file -> pattern.matcher(file.toString()).find())
+              .filter(file -> pattern.matcher(file.toString()).find())
               .collect(ImmutableSet.toImmutableSet());
       valuesFromFile = new ArrayList<>();
       for (Path file : randomFiles) {
@@ -1835,9 +1837,11 @@ public class ValueAnalysisTransferRelation
           // ignoring
           // the file
           logger.logUserException(
-              Level.WARNING,e,
+              Level.WARNING,
+              e,
               String.format(
-                  "Ignoring the additionally given file 'functionValuesForRandom' %s due to an error",
+                  "Ignoring the additionally given file 'functionValuesForRandom' %s due to an"
+                      + " error",
                   file));
         }
       }
@@ -1845,7 +1849,8 @@ public class ValueAnalysisTransferRelation
       logger.log(
           Level.WARNING,
           String.format(
-              "Ignoring the additionally given files, as the directory  %s does not exists or another error occured",
+              "Ignoring the additionally given files, as the directory  %s does not exists or"
+                  + " another error occured",
               options.getFunctionValuesForRandomDir()));
     }
   }
@@ -1857,10 +1862,7 @@ public class ValueAnalysisTransferRelation
         && !options.getFunctionValuesForRandomDir().isEmpty()
         && !options.getFunctionValuesForRandomPathRegex().isEmpty()) {
       return new ExpressionValueVisitorWithPredefinedValues(
-          pState,
-          pFunctionName,
-          machineModel,
-          logger);
+          pState, pFunctionName, machineModel, logger);
     } else if (options.isIgnoreFunctionValue()) {
       return new ExpressionValueVisitor(pState, pFunctionName, machineModel, logger);
     } else {

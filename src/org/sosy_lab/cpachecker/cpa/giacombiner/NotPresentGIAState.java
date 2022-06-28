@@ -29,7 +29,7 @@ public class NotPresentGIAState implements AbstractGIAState {
 
   @Override
   public boolean equals(Object obj) {
-    return obj != null && (obj instanceof  NotPresentGIAState);
+    return obj != null && (obj instanceof NotPresentGIAState);
   }
 
   @Override

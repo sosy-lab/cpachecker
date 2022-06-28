@@ -39,7 +39,6 @@ public class GIAARGStateEdge<T extends AbstractState> {
   private final String scope;
   private Boolean isTemp = false;
 
-
   //  public GIAARGStateEdge(
   //      ARGState pSource,
   //      Optional<String> pSource_mulitEdgeIndex,
@@ -105,23 +104,24 @@ public class GIAARGStateEdge<T extends AbstractState> {
     this.additionalAssumption = pAdditionalAssumption;
   }
 
-//  public GIAARGStateEdge(T pSource, T pTarget, CFAEdge pEdge, Set<ExpressionTree<Object>> pAssumption) {
-//    this.source = pSource;
-//    this.target = Optional.of(pTarget);
-//    this.edge = pEdge;scope =pEdge.getPredecessor().getFunctionName();
-//    this.assumptions = pAssumption;
-//    this.source_mulitEdgeIndex = Optional.empty();
-//    this.target_mulitEdgeIndex = Optional.empty();
-//    this.giaTransition = Optional.empty();
-//
-//    //    this.additionalAssumption = Optional.empty();
-//  }
+  //  public GIAARGStateEdge(T pSource, T pTarget, CFAEdge pEdge, Set<ExpressionTree<Object>>
+  // pAssumption) {
+  //    this.source = pSource;
+  //    this.target = Optional.of(pTarget);
+  //    this.edge = pEdge;scope =pEdge.getPredecessor().getFunctionName();
+  //    this.assumptions = pAssumption;
+  //    this.source_mulitEdgeIndex = Optional.empty();
+  //    this.target_mulitEdgeIndex = Optional.empty();
+  //    this.giaTransition = Optional.empty();
+  //
+  //    //    this.additionalAssumption = Optional.empty();
+  //  }
 
   public GIAARGStateEdge(T pSource, CFAEdge pEdge) {
     this.source = pSource;
     this.target = Optional.empty();
     this.edge = pEdge;
-    this.scope =pEdge.getPredecessor().getFunctionName();
+    this.scope = pEdge.getPredecessor().getFunctionName();
     this.assumptions = new HashSet<>();
     this.source_mulitEdgeIndex = Optional.empty();
     this.target_mulitEdgeIndex = Optional.empty();
@@ -133,7 +133,7 @@ public class GIAARGStateEdge<T extends AbstractState> {
     this.source = pSource;
     this.target = Optional.ofNullable(pTarget);
     this.edge = pEdge;
-    this.scope =pEdge.getPredecessor().getFunctionName();
+    this.scope = pEdge.getPredecessor().getFunctionName();
     this.assumptions = new HashSet<>();
     this.source_mulitEdgeIndex = Optional.empty();
     this.target_mulitEdgeIndex = Optional.empty();
@@ -157,7 +157,6 @@ public class GIAARGStateEdge<T extends AbstractState> {
     return pEdge.getPredecessor().getFunctionName();
   }
 
-
   public String getTargetName() {
     return this.target.isPresent()
         ? GIAGenerator.getName(target.orElseThrow())
@@ -165,7 +164,10 @@ public class GIAARGStateEdge<T extends AbstractState> {
   }
 
   public String getTargetName(
-      Set<T> pTargetStates, Set<T> pNonTargetStates, Set<T> pUnknownStates, boolean stopAtUnknownStates) {
+      Set<T> pTargetStates,
+      Set<T> pNonTargetStates,
+      Set<T> pUnknownStates,
+      boolean stopAtUnknownStates) {
     if (this.target.isPresent()) {
       final T targetState = target.orElseThrow();
       if (pTargetStates.contains(targetState)) {
@@ -204,9 +206,7 @@ public class GIAARGStateEdge<T extends AbstractState> {
     return "";
   }
 
-  public String getStringOfAssumption(
-      Optional<T> pState,
-      String pAdditionalAssumption)
+  public String getStringOfAssumption(Optional<T> pState, String pAdditionalAssumption)
       throws IOException {
     if (!this.assumptions.isEmpty() && pState.isPresent()) {
       StringBuilder sb = new StringBuilder();
@@ -260,7 +260,9 @@ public class GIAARGStateEdge<T extends AbstractState> {
         + '}';
   }
 
-  /** @return true if the edge added is an otherwise edge, false otherwise */
+  /**
+   * @return true if the edge added is an otherwise edge, false otherwise
+   */
   public boolean generateTransition(
       Appendable sb,
       Set<T> pTargetStates,
@@ -279,7 +281,10 @@ public class GIAARGStateEdge<T extends AbstractState> {
         sb.append(getStringOfAssumption(getTarget()));
       }
       sb.append(
-          String.format("GOTO %s", getTargetName(pTargetStates, pNonTargetStates, pUnknownStates, pStopAtUnknownStates)));
+          String.format(
+              "GOTO %s",
+              getTargetName(
+                  pTargetStates, pNonTargetStates, pUnknownStates, pStopAtUnknownStates)));
       sb.append(";\n");
       return false;
     } else {
@@ -305,7 +310,10 @@ public class GIAARGStateEdge<T extends AbstractState> {
         sb.append("} ");
       }
       sb.append(
-          String.format("GOTO %s", getTargetName(pTargetStates, pNonTargetStates, pUnknownStates,pStopAtUnknownStates)));
+          String.format(
+              "GOTO %s",
+              getTargetName(
+                  pTargetStates, pNonTargetStates, pUnknownStates, pStopAtUnknownStates)));
       sb.append(";\n");
       return transition.getTrigger() instanceof MatchOtherwise;
     }
@@ -313,7 +321,6 @@ public class GIAARGStateEdge<T extends AbstractState> {
 
   private void genAssumptionScope(Appendable sb) throws IOException {
     sb.append(String.format("ASSUME SCOPE %s{", scope));
-
   }
 
   @Nullable
@@ -333,7 +340,7 @@ public class GIAARGStateEdge<T extends AbstractState> {
     this.source = newSource;
   }
 
-  public void setIsTemp( Boolean pIsTemp) {
+  public void setIsTemp(Boolean pIsTemp) {
     this.isTemp = pIsTemp;
   }
 

@@ -87,14 +87,16 @@ public class TestCaseGenState
     return String.format(
         "[%s], \n ++%s++",
         entries.stream().map(e -> e.getValue()).collect(Collectors.joining(",")),
-        this.automatonState.isPresent() ? this.automatonState.get().getInternalStateName() : "");
+        this.automatonState.isPresent()
+            ? this.automatonState.orElseThrow().getInternalStateName()
+            : "");
   }
 
   @Override
   public boolean shouldBeHighlighted() {
     if (this.automatonState.isPresent()) {
       return this.automatonState
-          .get()
+          .orElseThrow()
           .getInternalStateName()
           .equals(GIAGenerator.NAME_OF_NEWTESTINPUT_STATE);
     }
@@ -104,7 +106,7 @@ public class TestCaseGenState
   public boolean isNewTestCaseState() {
     if (this.automatonState.isPresent()) {
       return this.automatonState
-          .get()
+          .orElseThrow()
           .getInternalStateName()
           .equals(GIAGenerator.NAME_OF_NEWTESTINPUT_STATE);
     }

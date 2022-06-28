@@ -399,7 +399,7 @@ public enum InvariantsSpecificationAutomatonBuilder {
 
         for (AutomatonTransition transition : allTransitionsWithCandidateInv) {
           if (transition.getFollowStateName().equals(currentState.getName())) {
-            if (invCandidates.size() > 0
+            if (!invCandidates.isEmpty()
                 && !invCandidates.contains(transition.getCandidateInvariants())) {
               pLogger.logf(
                   Level.WARNING,

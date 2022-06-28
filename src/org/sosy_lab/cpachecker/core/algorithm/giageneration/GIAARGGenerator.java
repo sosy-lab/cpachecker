@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.giageneration;
 
+import static org.sosy_lab.common.collect.Collections3.transformedImmutableListCopy;
+
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.HashMultimap;
@@ -126,7 +128,6 @@ public class GIAARGGenerator {
 
     logger.log(Level.INFO, "Starting generation of GIA");
 
-
     /*
      * now we compute all states that needs to be merged. Two states will be merged if: (1) They
      * have the same child and the child has both as states as parents<br>
@@ -210,21 +211,16 @@ public class GIAARGGenerator {
       }
     }
 
-//    statesThatAreEqual =
-//        computeAdditionalEqualStatesToMoveMergePointBeforeFunctionExit(
-//            relevantEdges, statesThatAreEqual);
+    //    statesThatAreEqual =
+    //        computeAdditionalEqualStatesToMoveMergePointBeforeFunctionExit(
+    //            relevantEdges, statesThatAreEqual);
 
     relevantEdges = mergeStates(relevantEdges, statesThatAreEqual);
-    logger.log(
-        logLevel,
-        relevantEdges.stream().map(e -> e.toString()).collect(ImmutableList.toImmutableList()));
+    logger.log(logLevel, transformedImmutableListCopy(relevantEdges, e -> e.toString()));
 
-    //relevantEdges = cleanupSingleBlankEdges(relevantEdges);
+    // relevantEdges = cleanupSingleBlankEdges(relevantEdges);
 
     relevantEdges = cleanupTempEdges(relevantEdges);
-
-
-
 
     // Now, a short cleaning is applied:
     // All states leading to the error state are replaced by the error state directly
@@ -258,30 +254,29 @@ public class GIAARGGenerator {
         pOutput, pArgRoot, relevantEdges, targetStates, nonTargetStates, unknownStates);
   }
 
-
   private Set<GIAARGStateEdge<ARGState>> cleanupTempEdges(
       Set<GIAARGStateEdge<ARGState>> pRelevantEdges) {
     Set<GIAARGStateEdge<ARGState>> toRemove = new HashSet<>();
 
     Multimap<ARGState, GIAARGStateEdge<ARGState>> targetsToEdges = HashMultimap.create();
-    pRelevantEdges.stream().filter(e -> e.getTarget().isPresent()).forEach(e -> targetsToEdges.put(e.getTarget().orElseThrow(),e));
-
-
+    pRelevantEdges.stream()
+        .filter(e -> e.getTarget().isPresent())
+        .forEach(e -> targetsToEdges.put(e.getTarget().orElseThrow(), e));
 
     for (GIAARGStateEdge<ARGState> edge : pRelevantEdges) {
       if (edge.getTarget().isPresent() && edge.getTemp()) {
-          // replace this edge by setting its target to the element in edgesPointingToThisEdge
-          if (targetsToEdges.containsKey(edge.getSource())){
-            ARGState target = edge.getTarget().orElseThrow();
-            for (GIAARGStateEdge<ARGState> e : targetsToEdges.get(edge.getSource())){
-              if (e.getTarget().isPresent()){
-                targetsToEdges.remove(target, e);
-              }
-              e.setTarget(target);
-              targetsToEdges.put(target, e );
+        // replace this edge by setting its target to the element in edgesPointingToThisEdge
+        if (targetsToEdges.containsKey(edge.getSource())) {
+          ARGState target = edge.getTarget().orElseThrow();
+          for (GIAARGStateEdge<ARGState> e : targetsToEdges.get(edge.getSource())) {
+            if (e.getTarget().isPresent()) {
+              targetsToEdges.remove(target, e);
             }
+            e.setTarget(target);
+            targetsToEdges.put(target, e);
           }
-          toRemove.add(edge);
+        }
+        toRemove.add(edge);
       }
     }
     return pRelevantEdges.stream()
@@ -289,48 +284,48 @@ public class GIAARGGenerator {
         .collect(ImmutableSet.toImmutableSet());
   }
 
-//  private Set<GIAARGStateEdge<ARGState>> cleanupSingleBlankEdges(
-//      Set<GIAARGStateEdge<ARGState>> pRelevantEdges) {
-//    Set<GIAARGStateEdge<ARGState>> toRemove = new HashSet<>();
-//    for (GIAARGStateEdge<ARGState> edge : pRelevantEdges) {
-//      if (isBlankEdgeWithNoneLocation(edge.getEdge()) && edge.getTarget().isPresent()) {
-//        if (pRelevantEdges.stream()
-//                .map(e -> e.getSource())
-//                .filter(source -> source.equals(edge.getSource()))
-//                .count()
-//            == 1) {
-//          // replace this edge by setting its target to the element in edgesPointingToThisEdge
-//          pRelevantEdges.stream()
-//              .filter(e -> e.getTarget().isPresent())
-//              .filter(e -> edge.getSource().equals(e.getTarget().orElseThrow()))
-//              .forEach(e -> e.setTarget(edge.getTarget().orElseThrow()));
-//          toRemove.add(edge);
-//        }
-//      }
-//    }
-//    return pRelevantEdges.stream()
-//        .filter(e -> !toRemove.contains(e))
-//        .collect(ImmutableSet.toImmutableSet());
-//  }
+  //  private Set<GIAARGStateEdge<ARGState>> cleanupSingleBlankEdges(
+  //      Set<GIAARGStateEdge<ARGState>> pRelevantEdges) {
+  //    Set<GIAARGStateEdge<ARGState>> toRemove = new HashSet<>();
+  //    for (GIAARGStateEdge<ARGState> edge : pRelevantEdges) {
+  //      if (isBlankEdgeWithNoneLocation(edge.getEdge()) && edge.getTarget().isPresent()) {
+  //        if (pRelevantEdges.stream()
+  //                .map(e -> e.getSource())
+  //                .filter(source -> source.equals(edge.getSource()))
+  //                .count()
+  //            == 1) {
+  //          // replace this edge by setting its target to the element in edgesPointingToThisEdge
+  //          pRelevantEdges.stream()
+  //              .filter(e -> e.getTarget().isPresent())
+  //              .filter(e -> edge.getSource().equals(e.getTarget().orElseThrow()))
+  //              .forEach(e -> e.setTarget(edge.getTarget().orElseThrow()));
+  //          toRemove.add(edge);
+  //        }
+  //      }
+  //    }
+  //    return pRelevantEdges.stream()
+  //        .filter(e -> !toRemove.contains(e))
+  //        .collect(ImmutableSet.toImmutableSet());
+  //  }
 
-//  private Set<Set<ARGState>> computeAdditionalEqualStatesToMoveMergePointBeforeFunctionExit(
-//      Set<GIAARGStateEdge<ARGState>> pRelevantEdges, Set<Set<ARGState>> pStatesThatAreEqual) {
-//    Multimap<ARGState, GIAARGStateEdge<ARGState>> targetsToEdge = HashMultimap.create();
-//    pRelevantEdges.stream()
-//        .filter(e -> e.getTarget().isPresent())
-//        .filter(e -> e.getEdge() instanceof FunctionReturnEdge)
-//        .forEach(e -> targetsToEdge.put(e.getTarget().orElseThrow(), e));
-//    for (Entry<ARGState, Collection<GIAARGStateEdge<ARGState>>> entry :
-//        targetsToEdge.asMap().entrySet()) {
-//      if (entry.getValue().size() > 1) {
-//        pStatesThatAreEqual.add(
-//            entry.getValue().stream()
-//                .map(e -> e.getSource())
-//                .collect(ImmutableSet.toImmutableSet()));
-//      }
-//    }
-//    return pStatesThatAreEqual;
-//  }
+  //  private Set<Set<ARGState>> computeAdditionalEqualStatesToMoveMergePointBeforeFunctionExit(
+  //      Set<GIAARGStateEdge<ARGState>> pRelevantEdges, Set<Set<ARGState>> pStatesThatAreEqual) {
+  //    Multimap<ARGState, GIAARGStateEdge<ARGState>> targetsToEdge = HashMultimap.create();
+  //    pRelevantEdges.stream()
+  //        .filter(e -> e.getTarget().isPresent())
+  //        .filter(e -> e.getEdge() instanceof FunctionReturnEdge)
+  //        .forEach(e -> targetsToEdge.put(e.getTarget().orElseThrow(), e));
+  //    for (Entry<ARGState, Collection<GIAARGStateEdge<ARGState>>> entry :
+  //        targetsToEdge.asMap().entrySet()) {
+  //      if (entry.getValue().size() > 1) {
+  //        pStatesThatAreEqual.add(
+  //            entry.getValue().stream()
+  //                .map(e -> e.getSource())
+  //                .collect(ImmutableSet.toImmutableSet()));
+  //      }
+  //    }
+  //    return pStatesThatAreEqual;
+  //  }
 
   private Set<GIAARGStateEdge<ARGState>> mergeStates(
       Set<GIAARGStateEdge<ARGState>> pRelevantEdges, Set<Set<ARGState>> pStatesThatAreEqual)
@@ -619,9 +614,7 @@ public class GIAARGGenerator {
         "Final states found are "
             + String.join(
                 ",",
-                finalStates.stream()
-                    .map(a -> Integer.toString(a.getStateId()))
-                    .collect(ImmutableList.toImmutableList())));
+                transformedImmutableListCopy(finalStates, a -> Integer.toString(a.getStateId()))));
 
     Set<ARGState> statesReachingFinalState = computeSetOfTargetReachingStates(finalStates);
 
@@ -632,7 +625,7 @@ public class GIAARGGenerator {
           logLevel,
           "Taking %s from the list, processed %s, toProcess %s",
           state.getStateId(),
-          processed.stream().map(a -> a.getStateId()).collect(ImmutableList.toImmutableList()),
+          transformedImmutableListCopy(processed, a -> a.getStateId()),
           toProcess);
 
       for (ARGState child : state.getChildren()) {
@@ -716,7 +709,7 @@ public class GIAARGGenerator {
             nodesToEdges.put(e.getSource(), Lists.newArrayList(e));
           }
         });
-    for ( List<GIAARGStateEdge<ARGState>> edge : nodesToEdges.values()) {
+    for (List<GIAARGStateEdge<ARGState>> edge : nodesToEdges.values()) {
       List<GIAARGStateEdge<ARGState>> assumeEdgesPresent =
           edge.stream()
               .filter(e -> e.getEdge() instanceof AssumeEdge)
@@ -753,7 +746,7 @@ public class GIAARGGenerator {
         Set<CFAEdge> coveredByCurrent =
             current.isTarget()
                 ? Sets.newHashSet(
-                    AbstractStates.extractLocation(Lists.newArrayList(current.getParents()).get(0))
+                    AbstractStates.extractLocation(new ArrayList<>(current.getParents()).get(0))
                         .getEdgeTo(AbstractStates.extractLocation(current)))
                 : new HashSet<>();
         stateToCoveredGoals.put(
@@ -903,20 +896,21 @@ public class GIAARGGenerator {
     return pRelevantEdges;
   }
 
-//  private Optional<Loop> getOutermostLoopContainingNode(
-//      LoopStructure pLoopStrc, CFANode pSuccessor) {
-//    Loop outerLoop = null;
-//    for (Loop current : pLoopStrc.getAllLoops()) {
-//      if (current.getOutgoingEdges().stream().anyMatch(e -> e.getSuccessor().equals(pSuccessor))) {
-//        if (outerLoop == null) {
-//          outerLoop = current;
-//        } else if (current.isOuterLoopOf(outerLoop)) {
-//          outerLoop = current;
-//        }
-//      }
-//    }
-//    return Optional.ofNullable(outerLoop);
-//  }
+  //  private Optional<Loop> getOutermostLoopContainingNode(
+  //      LoopStructure pLoopStrc, CFANode pSuccessor) {
+  //    Loop outerLoop = null;
+  //    for (Loop current : pLoopStrc.getAllLoops()) {
+  //      if (current.getOutgoingEdges().stream().anyMatch(e ->
+  // e.getSuccessor().equals(pSuccessor))) {
+  //        if (outerLoop == null) {
+  //          outerLoop = current;
+  //        } else if (current.isOuterLoopOf(outerLoop)) {
+  //          outerLoop = current;
+  //        }
+  //      }
+  //    }
+  //    return Optional.ofNullable(outerLoop);
+  //  }
 
   private boolean nextStatementIsBreak(CFANode pSuccessor) {
     // FIXME: check and fix if break is blank edge
@@ -1181,7 +1175,9 @@ public class GIAARGGenerator {
               PreCondition preCondition = fInfo.getPrecondition().orElseThrow();
               edgesInFault.addAll(preCondition.responsibleEdges());
             }
-            valueMap = Multimaps.filterValues(valueMap, v -> v != null && edgesInFault.contains(v.getCFAEdge()));
+            valueMap =
+                Multimaps.filterValues(
+                    valueMap, v -> v != null && edgesInFault.contains(v.getCFAEdge()));
           }
         }
         pEdgesWithAssumptions.putAll(valueMap);
@@ -1477,7 +1473,8 @@ public class GIAARGGenerator {
       // now, create a new edge.
       Triple<CFAEdge, Optional<ARGState>, Boolean> pair = relevantEdge.orElseThrow();
       if (pair.getSecond().isEmpty()) {
-        final GIAARGStateEdge<ARGState> newEdge = new GIAARGStateEdge<>(pCurrentState, pair.getFirst());
+        final GIAARGStateEdge<ARGState> newEdge =
+            new GIAARGStateEdge<>(pCurrentState, pair.getFirst());
         newEdge.setIsTemp(pair.getThird());
         pRelevantEdges.add(newEdge);
       } else {
@@ -1489,20 +1486,20 @@ public class GIAARGGenerator {
                 .findFirst();
         Optional<String> additionalAssumption =
             optAddAssumption.map(CFAEdgeWithAssumptions::getAsCode);
-        final GIAARGStateEdge<ARGState> newEdge = new GIAARGStateEdge<>(
-            pCurrentState,
-            pair.getSecond().orElseThrow(),
-            pair.getFirst(),
-            retriveInterpolantAndAssumptionsIfPresent(
-                pair.getSecond().orElseThrow(), pStatesWithInterpolant, pStatesWithAssumption),
-            additionalAssumption);
+        final GIAARGStateEdge<ARGState> newEdge =
+            new GIAARGStateEdge<>(
+                pCurrentState,
+                pair.getSecond().orElseThrow(),
+                pair.getFirst(),
+                retriveInterpolantAndAssumptionsIfPresent(
+                    pair.getSecond().orElseThrow(), pStatesWithInterpolant, pStatesWithAssumption),
+                additionalAssumption);
         newEdge.setIsTemp(pair.getThird());
-        pRelevantEdges.add(
-            newEdge);
+        pRelevantEdges.add(newEdge);
 
         if (!pProcessed.contains(pChild)
             && (options.generateGIAForTesttargets()
-                || !pFinalStates.contains(pair.getSecond().get()))) {
+                || !pFinalStates.contains(pair.getSecond().orElseThrow()))) {
           logger.logf(logLevel, "Adding %s", pChild.getStateId());
           pToProcess.add(pChild);
         }
@@ -1510,7 +1507,7 @@ public class GIAARGGenerator {
       edgesAdded = true;
     } else {
 
-      List<CFAEdge> pahtToChild = Lists.newArrayList(pCurrentState.getFirstPathToChild(pChild));
+      List<CFAEdge> pahtToChild = new ArrayList<>(pCurrentState.getFirstPathToChild(pChild));
       List<GIAARGStateEdge<ARGState>> edgesToAdd = new ArrayList<>();
       ARGState lastNodeUsed = pChild;
       // Check if there are any edges on the path that are relevant and if so, create for
@@ -1700,7 +1697,7 @@ public class GIAARGGenerator {
     // and let the edge goto the qTemp State (as not relevant for the path)
     // If it can reach the error state, add the edge and the child to the toProcess
     if (case2 || case3 || case4 || case5 || case6 || case7) {
-      boolean case5Only = case5 &&( ! case2 && !case3 && !case4 && !case6 && !case7);
+      boolean case5Only = case5 && (!case2 && !case3 && !case4 && !case6 && !case7);
       if (case7 || pStatesReachingFinalState.contains(pChild)) {
         return Optional.of(Triple.of(lastEdge, Optional.of(pChild), case5Only));
       } else {

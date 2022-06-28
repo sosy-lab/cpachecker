@@ -701,7 +701,7 @@ public class WitnessFactory implements EdgeAppender {
     return cfaEdgeWithAssignments;
   }
 
-  public static  String getAssumptionAsCode(
+  public static String getAssumptionAsCode(
       ExpressionTree<Object> assumption, Optional<AIdExpression> resultVariable) {
     final CExpressionToOrinalCodeVisitor transformer =
         resultVariable.isPresent()
@@ -933,7 +933,8 @@ public class WitnessFactory implements EdgeAppender {
       final Predicate<? super ARGState> pPathStates,
       final BiPredicate<ARGState, ARGState> pIsRelevantEdge) {
     return Iterables.transform(
-        WitnessFactory.collectReachableEdges(pInitialState, pSuccessorFunction, pPathStates, pIsRelevantEdge),
+        WitnessFactory.collectReachableEdges(
+            pInitialState, pSuccessorFunction, pPathStates, pIsRelevantEdge),
         Pair::getFirst);
   }
 

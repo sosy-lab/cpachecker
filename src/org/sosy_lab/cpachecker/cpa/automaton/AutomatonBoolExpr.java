@@ -177,13 +177,13 @@ public interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
 
     @Override
     public boolean equals(Object pO) {
-      //Ignore the condition when it is taken, otherwise is always equal to otherwise
+      // Ignore the condition when it is taken, otherwise is always equal to otherwise
       return pO instanceof MatchOtherwise;
     }
 
     @Override
     public int hashCode() {
-      //Ignore the condition when it is taken, otherwise is always equal to otherwise
+      // Ignore the condition when it is taken, otherwise is always equal to otherwise
       return Objects.hash(MatchOtherwise.class);
     }
 

@@ -6,16 +6,16 @@
 ////
 //// SPDX-License-Identifier: Apache-2.0
 //
-//package org.sosy_lab.cpachecker.core.algorithm.giageneration;
+// package org.sosy_lab.cpachecker.core.algorithm.giageneration;
 //
-//import java.io.IOException;
-//import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
-//import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
-//import org.sosy_lab.cpachecker.cpa.arg.ARGState;
-//import org.sosy_lab.cpachecker.exceptions.CPAException;
-//import org.sosy_lab.cpachecker.util.AbstractStates;
+// import java.io.IOException;
+// import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+// import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
+// import org.sosy_lab.cpachecker.cpa.arg.ARGState;
+// import org.sosy_lab.cpachecker.exceptions.CPAException;
+// import org.sosy_lab.cpachecker.util.AbstractStates;
 //
-//public class GIAWitnessGenerator {
+// public class GIAWitnessGenerator {
 //
 //  private final GIAVioWitGenerator vioWitGenerator;
 ////  private final GIACorWitGenerator corWitGenerator;
@@ -42,4 +42,4 @@
 //      return corWitGenerator.produceGIA4CorrectnessWitness(pOutput, pReached);
 //    }
 //  }
-//}
+// }

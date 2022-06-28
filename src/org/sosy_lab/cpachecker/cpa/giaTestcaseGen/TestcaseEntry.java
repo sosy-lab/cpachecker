@@ -52,10 +52,10 @@ public class TestcaseEntry implements Serializable {
     StringBuilder sb = new StringBuilder();
     sb.append("<input ");
     if (this.variable.isPresent()) {
-      sb.append(String.format("variable=\"%s\" ", variable.get()));
+      sb.append(String.format("variable=\"%s\" ", variable.orElseThrow()));
     }
     if (this.type.isPresent()) {
-      sb.append(String.format("type=\"%s\"", type.get()));
+      sb.append(String.format("type=\"%s\"", type.orElseThrow()));
     }
     sb.append(String.format(">%s</input>", value));
     return sb.toString();

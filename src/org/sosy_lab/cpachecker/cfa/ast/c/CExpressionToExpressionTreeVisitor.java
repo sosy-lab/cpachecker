@@ -30,7 +30,9 @@ public class CExpressionToExpressionTreeVisitor
       ExpressionTree<CExpression> left = visitDefault(pIastBinaryExpression.getOperand1());
       ExpressionTree<CExpression> right = visitDefault(pIastBinaryExpression.getOperand2());
       return Or.of(left, right);
-    } else {return LeafExpression.of(pIastBinaryExpression);}
+    } else {
+      return LeafExpression.of(pIastBinaryExpression);
+    }
   }
 
   public ExpressionTree<CExpression> visitDefault(AExpression pIastExpression) {

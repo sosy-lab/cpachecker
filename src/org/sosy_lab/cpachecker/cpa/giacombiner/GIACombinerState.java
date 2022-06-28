@@ -83,9 +83,9 @@ public class GIACombinerState
   @Override
   public String toDOTLabel() {
     String resString = "";
-    resString = resString.concat(this.stateOfAutomaton1.toString());
-    resString = resString.concat("_");
-    resString = resString.concat(this.stateOfAutomaton2.toString());
+    resString = resString + this.stateOfAutomaton1.toString();
+    resString = resString + "_";
+    resString = resString + this.stateOfAutomaton2.toString();
     return resString;
   }
 

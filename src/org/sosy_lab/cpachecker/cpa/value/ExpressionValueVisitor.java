@@ -439,5 +439,7 @@ public class ExpressionValueVisitor extends AbstractExpressionValueVisitor {
   }
 
   @SuppressWarnings("unused")
-  public boolean wouldReturnAValueForRandom(CRightHandSide pExp, CType pTargetType) {return false;}
+  public boolean wouldReturnAValueForRandom(CRightHandSide pExp, CType pTargetType) {
+    return false;
+  }
 }

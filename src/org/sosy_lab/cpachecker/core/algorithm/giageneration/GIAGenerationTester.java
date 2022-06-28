@@ -8,50 +8,50 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.giageneration;
 //
-//import static com.google.common.truth.Truth.assertThat;
-//import static com.google.common.truth.Truth.assertWithMessage;
+// import static com.google.common.truth.Truth.assertThat;
+// import static com.google.common.truth.Truth.assertWithMessage;
 //
-//import com.google.common.base.Strings;
-//import com.google.common.base.Throwables;
-//import com.google.common.collect.ImmutableList;
-//import com.google.common.collect.Lists;
-//import com.google.errorprone.annotations.CanIgnoreReturnValue;
-//import java.io.IOException;
-//import java.nio.file.Files;
-//import java.nio.file.Path;
-//import java.util.ArrayList;
-//import java.util.HashMap;
-//import java.util.LinkedHashMap;
-//import java.util.List;
-//import java.util.Map;
-//import java.util.Objects;
-//import java.util.Optional;
-//import java.util.logging.Level;
-//import java.util.stream.Stream;
-//import javax.xml.parsers.DocumentBuilder;
-//import javax.xml.parsers.DocumentBuilderFactory;
-//import javax.xml.parsers.ParserConfigurationException;
-//import org.junit.Ignore;
-//import org.junit.Test;
-//import org.sosy_lab.common.configuration.Configuration;
-//import org.sosy_lab.common.configuration.ConfigurationBuilder;
-//import org.sosy_lab.common.configuration.InvalidConfigurationException;
-//import org.sosy_lab.common.io.PathTemplate;
-//import org.sosy_lab.common.io.TempFile;
-//import org.sosy_lab.common.log.BasicLogManager;
-//import org.sosy_lab.common.log.LogManager;
-//import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
-//import org.sosy_lab.cpachecker.exceptions.CPAException;
-//import org.sosy_lab.cpachecker.util.test.CPATestRunner;
-//import org.sosy_lab.cpachecker.util.test.TestDataTools;
-//import org.sosy_lab.cpachecker.util.test.TestResults;
-//import org.w3c.dom.Document;
-//import org.w3c.dom.Element;
-//import org.w3c.dom.Node;
-//import org.w3c.dom.NodeList;
-//import org.xml.sax.SAXException;
+// import com.google.common.base.Strings;
+// import com.google.common.base.Throwables;
+// import com.google.common.collect.ImmutableList;
+// import com.google.common.collect.Lists;
+// import com.google.errorprone.annotations.CanIgnoreReturnValue;
+// import java.io.IOException;
+// import java.nio.file.Files;
+// import java.nio.file.Path;
+// import java.util.ArrayList;
+// import java.util.HashMap;
+// import java.util.LinkedHashMap;
+// import java.util.List;
+// import java.util.Map;
+// import java.util.Objects;
+// import java.util.Optional;
+// import java.util.logging.Level;
+// import java.util.stream.Stream;
+// import javax.xml.parsers.DocumentBuilder;
+// import javax.xml.parsers.DocumentBuilderFactory;
+// import javax.xml.parsers.ParserConfigurationException;
+// import org.junit.Ignore;
+// import org.junit.Test;
+// import org.sosy_lab.common.configuration.Configuration;
+// import org.sosy_lab.common.configuration.ConfigurationBuilder;
+// import org.sosy_lab.common.configuration.InvalidConfigurationException;
+// import org.sosy_lab.common.io.PathTemplate;
+// import org.sosy_lab.common.io.TempFile;
+// import org.sosy_lab.common.log.BasicLogManager;
+// import org.sosy_lab.common.log.LogManager;
+// import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
+// import org.sosy_lab.cpachecker.exceptions.CPAException;
+// import org.sosy_lab.cpachecker.util.test.CPATestRunner;
+// import org.sosy_lab.cpachecker.util.test.TestDataTools;
+// import org.sosy_lab.cpachecker.util.test.TestResults;
+// import org.w3c.dom.Document;
+// import org.w3c.dom.Element;
+// import org.w3c.dom.Node;
+// import org.w3c.dom.NodeList;
+// import org.xml.sax.SAXException;
 //
-//public class GIAGenerationTester {
+// public class GIAGenerationTester {
 //
 //  private static final long TIMEOUT = 900000;
 //
@@ -184,7 +184,8 @@ package org.sosy_lab.cpachecker.core.algorithm.giageneration;
 //  @Test(timeout = TIMEOUT)
 //  public void gia2TestForCount() throws Exception {
 //    GIATester tester =
-//        new GIATester(Testcases.COUNT, GIAGenerationConfig.GIA2TEST, "cpa.testcasegen.exportPath");
+//        new GIATester(Testcases.COUNT, GIAGenerationConfig.GIA2TEST,
+// "cpa.testcasegen.exportPath");
 //    tester.addOverrideOption(
 //        "AssumptionAutomaton.cpa.automaton.inputFile", TEST_DIR_PATH + "gia-count.txt");
 //    tester.setPathTemplate(
@@ -201,7 +202,8 @@ package org.sosy_lab.cpachecker.core.algorithm.giageneration;
 //  @Test(timeout = TIMEOUT)
 //  public void gia2TestForCountWith2Testcases() throws Exception {
 //    GIATester tester =
-//        new GIATester(Testcases.COUNT2, GIAGenerationConfig.GIA2TEST, "cpa.testcasegen.exportPath");
+//        new GIATester(Testcases.COUNT2, GIAGenerationConfig.GIA2TEST,
+// "cpa.testcasegen.exportPath");
 //    tester.addOverrideOption(
 //        "AssumptionAutomaton.cpa.automaton.inputFile", TEST_DIR_PATH + "gia-count2.txt");
 //    tester.setPathTemplate(
@@ -275,7 +277,8 @@ package org.sosy_lab.cpachecker.core.algorithm.giageneration;
 //            pGenerationConfig, fullPath, pgiaInput, pTestcase, pWitness, pOverrideOptions);
 //
 //    validateTransformationForFiles(
-//        pGenerationConfig, pFilename, PathTemplate.ofFormatString(pTemplateForOutputValue), result);
+//        pGenerationConfig, pFilename, PathTemplate.ofFormatString(pTemplateForOutputValue),
+// result);
 //  }
 //
 //  /**
@@ -328,7 +331,8 @@ package org.sosy_lab.cpachecker.core.algorithm.giageneration;
 //  }
 //
 //  private static void validateTransformation(
-//      GIAGenerationConfig pGenerationConfig, Testcases pFilename, Path pOutputFile, Result pResult)
+//      GIAGenerationConfig pGenerationConfig, Testcases pFilename, Path pOutputFile, Result
+// pResult)
 //      throws IOException, CPAException {
 //    switch (pGenerationConfig) {
 //      case TEST2GIA:
@@ -392,7 +396,8 @@ package org.sosy_lab.cpachecker.core.algorithm.giageneration;
 //    if (pFilename == Testcases.JAIN1_1) {
 //      expectedNodesWithInvariant.put(
 //          "N24",
-//          "( ( ( ( ( y % 2 ) < 2 ) && ( ! ( y < ( y % 2 ) ) ) ) && ( ( y % 2 ) == ( ( y % 2 ) % 2 )"
+//          "( ( ( ( ( y % 2 ) < 2 ) && ( ! ( y < ( y % 2 ) ) ) ) && ( ( y % 2 ) == ( ( y % 2 ) % 2
+// )"
 //              + " ) ) && ( ( y % 2 ) == 1 ) )");
 //
 //    } else {
@@ -427,7 +432,8 @@ package org.sosy_lab.cpachecker.core.algorithm.giageneration;
 //  private static List<String> getAllEdgesToQTEMP(List<String> content) {
 //    return content.stream()
 //        .filter(s -> s.contains("-> GOTO __qTEMP;"))
-//        .map(s -> s.substring(s.indexOf("MATCH \"") + "MATCH \"".length(), s.indexOf("\" -> GOTO")))
+//        .map(s -> s.substring(s.indexOf("MATCH \"") + "MATCH \"".length(), s.indexOf("\" ->
+// GOTO")))
 //        .collect(ImmutableList.toImmutableList());
 //  }
 //
@@ -766,4 +772,4 @@ package org.sosy_lab.cpachecker.core.algorithm.giageneration;
 //      }
 //    }
 //  }
-//}
+// }

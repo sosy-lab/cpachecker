@@ -58,7 +58,6 @@ public class GIACombinerCPA extends AbstractCPA implements ProofCheckerCPA {
   private final Automaton automaton2;
   private Optional<Path> pathToOnlyAutomaton = Optional.empty();
 
-
   @Option(secure = true, description = "Filename to the first GIA")
   @FileOption(Type.OPTIONAL_INPUT_FILE)
   private Path pathToGIA1 = null;
@@ -97,9 +96,11 @@ public class GIACombinerCPA extends AbstractCPA implements ProofCheckerCPA {
         this.pathToOnlyAutomaton = Optional.of(pathToGIA1);
       }
     }
-    GIACombinerTransferRelation transferRelation = (GIACombinerTransferRelation) super.getTransferRelation();
-    if (automaton1!= null && automaton2 != null){
-    transferRelation.setAutomaton(automaton1, automaton2);}
+    GIACombinerTransferRelation transferRelation =
+        (GIACombinerTransferRelation) super.getTransferRelation();
+    if (automaton1 != null && automaton2 != null) {
+      transferRelation.setAutomaton(automaton1, automaton2);
+    }
   }
 
   private Automaton getAutomaton(Path pPath) throws InvalidConfigurationException {
@@ -146,12 +147,13 @@ public class GIACombinerCPA extends AbstractCPA implements ProofCheckerCPA {
   @Override
   public AbstractState getInitialState(CFANode node, StateSpacePartition partition)
       throws InterruptedException {
-    if (this.pathToOnlyAutomaton.isPresent()){
+    if (this.pathToOnlyAutomaton.isPresent()) {
       return new GIACombinerState(new NotPresentGIAState(), new NotPresentGIAState());
-    }else{
-    return new GIACombinerState(
-        new GIAInternalState(buildInitStateForAutomaton(automaton1)),
-        new GIAInternalState(buildInitStateForAutomaton(automaton2)));}
+    } else {
+      return new GIACombinerState(
+          new GIAInternalState(buildInitStateForAutomaton(automaton1)),
+          new GIAInternalState(buildInitStateForAutomaton(automaton2)));
+    }
   }
 
   public AutomatonState buildInitStateForAutomaton(Automaton pAutomaton) {

@@ -320,7 +320,8 @@ public class CParserUtils {
   }
 
   /**
-   Calls {@link CParserUtils#parseStatementsAsExpressionTree} and converts the expression tree into a AExpression formula
+   * Calls {@link CParserUtils#parseStatementsAsExpressionTree} and converts the expression tree
+   * into a AExpression formula
    *
    * @param pStatements the set of strings to parse as C statements.
    * @param pResultFunction the target function of {@literal "\result"} expressions.
@@ -349,30 +350,30 @@ public class CParserUtils {
       }
     }
 
-try{
-    ToCExpressionVisitor expressionTreeVisitor = new ToCExpressionVisitor(pParserTools.machineModel, pParserTools.logger);
-    ExpressionTree<AExpression> exp = result;
-    if (exp.equals(ExpressionTrees.getTrue())) {
-      return ImmutableList.of(expressionTreeVisitor.visitTrue());
-    } else if (exp.equals(ExpressionTrees.getFalse())) {
-      return ImmutableList.of(expressionTreeVisitor.visitFalse());
-    } else if (exp instanceof LeafExpression) {
-      return ImmutableList.of(expressionTreeVisitor.visit((LeafExpression<AExpression>) exp));
-    } else if (exp instanceof And) {
-      CExpression t = expressionTreeVisitor.visit((And<AExpression>) exp);
-      return ImmutableList.of(t);
-    } else if (exp instanceof Or) {
-      return ImmutableList.of(expressionTreeVisitor.visit((Or<AExpression>) exp));
-    } else {
-      throw new AssertionError("Unknown type of ExpressionTree.");
+    try {
+      ToCExpressionVisitor expressionTreeVisitor =
+          new ToCExpressionVisitor(pParserTools.machineModel, pParserTools.logger);
+      ExpressionTree<AExpression> exp = result;
+      if (exp.equals(ExpressionTrees.getTrue())) {
+        return ImmutableList.of(expressionTreeVisitor.visitTrue());
+      } else if (exp.equals(ExpressionTrees.getFalse())) {
+        return ImmutableList.of(expressionTreeVisitor.visitFalse());
+      } else if (exp instanceof LeafExpression) {
+        return ImmutableList.of(expressionTreeVisitor.visit((LeafExpression<AExpression>) exp));
+      } else if (exp instanceof And) {
+        CExpression t = expressionTreeVisitor.visit((And<AExpression>) exp);
+        return ImmutableList.of(t);
+      } else if (exp instanceof Or) {
+        return ImmutableList.of(expressionTreeVisitor.visit((Or<AExpression>) exp));
+      } else {
+        throw new AssertionError("Unknown type of ExpressionTree.");
+      }
+    } catch (UnrecognizedCodeException e) {
+      pParserTools.logger.log(
+          Level.WARNING, "Could not convert some annotations to assumption, ignoring");
+      return ImmutableList.of(CIntegerLiteralExpression.ONE);
     }
-  } catch (
-  UnrecognizedCodeException e) {
-    pParserTools.logger.log(Level.WARNING, "Could not convert some annotations to assumption, ignoring");
-    return ImmutableList.of(CIntegerLiteralExpression.ONE);
   }
-  }
-
 
   private static ExpressionTree<AExpression> parseStatement(
       String pAssumeCode,

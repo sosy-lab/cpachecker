@@ -10,10 +10,8 @@ package org.sosy_lab.cpachecker.cpa.giacombiner;
 
 import java.util.Objects;
 
-/**
- * Represents bullet
- */
-public class SplitGIAState implements AbstractGIAState{
+/** Represents bullet */
+public class SplitGIAState implements AbstractGIAState {
   @Override
   public AbstractGIAState copy() {
     return new SplitGIAState();
@@ -31,7 +29,7 @@ public class SplitGIAState implements AbstractGIAState{
 
   @Override
   public boolean equals(Object obj) {
-    return obj != null && (obj instanceof  SplitGIAState);
+    return obj != null && (obj instanceof SplitGIAState);
   }
 
   @Override

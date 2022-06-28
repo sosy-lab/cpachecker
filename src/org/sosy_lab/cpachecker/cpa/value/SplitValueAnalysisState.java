@@ -29,13 +29,13 @@ public class SplitValueAnalysisState extends ValueAnalysisState {
   private final LogManagerWithoutDuplicates logger;
   private static final long serialVersionUID = -3152134551524554358L;
 
-
   public SplitValueAnalysisState(
       ValueAnalysisState pState,
       List<Map<Integer, String>> pValuesFromFile,
       ValueAnalysisTransferRelation pValueAnalysisTransferRelation,
       VariableTrackingPrecision pPrecision,
-      CFAEdge pCfaEdgeFromInfo, LogManagerWithoutDuplicates pLogger) {
+      CFAEdge pCfaEdgeFromInfo,
+      LogManagerWithoutDuplicates pLogger) {
     super(pState);
     oldState = pState;
     this.valuesFromFiles = pValuesFromFile;
@@ -61,14 +61,15 @@ public class SplitValueAnalysisState extends ValueAnalysisState {
             transferRelation.getAbstractSuccessorsForEdge(newState, precision, edge);
         if (newStateColl.size() != 1) {
           throw new CPATransferException(
-              "The transfer relation created more than one successor, although only one successor was expected!. Aborting.");
+              "The transfer relation created more than one successor, although only one successor"
+                  + " was expected!. Aborting.");
         }
-        splitStates.add(Lists.newArrayList(newStateColl).get(0));
+        splitStates.add(new ArrayList<>(newStateColl).get(0));
       } catch (InterruptedException pE) {
         throw new CPATransferException("Execution is interrupted", pE);
       }
     }
-    logger.log(Level.INFO, String.format("Split into %d states",  splitStates.size()));
+    logger.log(Level.INFO, String.format("Split into %d states", splitStates.size()));
     return splitStates;
   }
 }

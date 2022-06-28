@@ -28,7 +28,8 @@ public class ValueAnalysisStateWithSavedValue extends ValueAnalysisState {
     this.valueFromLastIteration = Optional.empty();
   }
 
-  public ValueAnalysisStateWithSavedValue(ValueAnalysisState pState, Map<Integer, String> pValuesMap) {
+  public ValueAnalysisStateWithSavedValue(
+      ValueAnalysisState pState, Map<Integer, String> pValuesMap) {
     super(pState);
     super.setValueMap(pValuesMap);
     this.valueFromLastIteration = Optional.empty();

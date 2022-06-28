@@ -11,10 +11,9 @@ package org.sosy_lab.cpachecker.cpa.giacombiner;
 import java.util.Objects;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonState;
 
-public class GIAInternalState implements AbstractGIAState{
+public class GIAInternalState implements AbstractGIAState {
 
-private final AutomatonState automatonState;
-
+  private final AutomatonState automatonState;
 
   public GIAInternalState(AutomatonState pInternalState) {
     automatonState = pInternalState;
@@ -43,7 +42,8 @@ private final AutomatonState automatonState;
       return false;
     }
     GIAInternalState that = (GIAInternalState) pO;
-    return Objects.equals(automatonState.getInternalState(), that.automatonState.getInternalState());
+    return Objects.equals(
+        automatonState.getInternalState(), that.automatonState.getInternalState());
   }
 
   @Override

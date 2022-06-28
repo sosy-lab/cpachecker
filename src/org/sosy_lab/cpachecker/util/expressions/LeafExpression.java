@@ -93,20 +93,21 @@ public class LeafExpression<LeafType> extends AbstractExpressionTree<LeafType> {
   public static <LeafType> ExpressionTree<LeafType> of(
       LeafType pLeafExpression, boolean pAssumeTruth) {
     if (pLeafExpression instanceof CBinaryExpression) {
-      //TODO: Find a way to make this work with parsing ExpressionTrees to Cexpressions without having the negation go away
-//      CBinaryExpression binaryExpression = (CBinaryExpression) pLeafExpression;
-//      if (binaryExpression.getOperator() == BinaryOperator.NOT_EQUALS) {
-//        assumeTruth = !assumeTruth;
-//        leafExpression =
-//            (LeafType)
-//                new CBinaryExpression(
-//                    binaryExpression.getFileLocation(),
-//                    binaryExpression.getExpressionType(),
-//                    binaryExpression.getCalculationType(),
-//                    binaryExpression.getOperand1(),
-//                    binaryExpression.getOperand2(),
-//                    BinaryOperator.EQUALS);
-//      }
+      // TODO: Find a way to make this work with parsing ExpressionTrees to Cexpressions without
+      // having the negation go away
+      //      CBinaryExpression binaryExpression = (CBinaryExpression) pLeafExpression;
+      //      if (binaryExpression.getOperator() == BinaryOperator.NOT_EQUALS) {
+      //        assumeTruth = !assumeTruth;
+      //        leafExpression =
+      //            (LeafType)
+      //                new CBinaryExpression(
+      //                    binaryExpression.getFileLocation(),
+      //                    binaryExpression.getExpressionType(),
+      //                    binaryExpression.getCalculationType(),
+      //                    binaryExpression.getOperand1(),
+      //                    binaryExpression.getOperand2(),
+      //                    BinaryOperator.EQUALS);
+      //      }
     }
     if (pLeafExpression instanceof AIntegerLiteralExpression) {
       AIntegerLiteralExpression expression = (AIntegerLiteralExpression) pLeafExpression;

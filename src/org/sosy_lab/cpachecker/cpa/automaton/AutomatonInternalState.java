@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.cpa.automaton;
 
+import static org.sosy_lab.common.collect.Collections3.transformedImmutableListCopy;
+
 import com.google.common.collect.ImmutableList;
 import java.util.Collections;
 import java.util.List;
@@ -102,6 +104,7 @@ public class AutomatonInternalState {
 
   /**
    * If there is an otherwise-edge, add all other triggers to the otherwise-edge
+   *
    * @param pTransitions the transitions of the edge
    * @return the transitions, where the otherwise edge is updated
    */
@@ -239,9 +242,7 @@ public class AutomatonInternalState {
   }
 
   ImmutableList<AutomatonInternalState> getSuccessorStates() {
-    return transitions.stream()
-        .map(t -> t.getFollowState())
-        .collect(ImmutableList.toImmutableList());
+    return transformedImmutableListCopy(transitions, t -> t.getFollowState());
   }
 
   @Override

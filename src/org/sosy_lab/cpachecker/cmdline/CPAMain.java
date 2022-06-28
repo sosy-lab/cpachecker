@@ -59,8 +59,8 @@ import org.sosy_lab.cpachecker.cmdline.CmdLineArguments.InvalidCmdlineArgumentEx
 import org.sosy_lab.cpachecker.core.CPAchecker;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
-import org.sosy_lab.cpachecker.core.algorithm.pcc.ProofGenerator;
 import org.sosy_lab.cpachecker.core.algorithm.giageneration.GIAParser;
+import org.sosy_lab.cpachecker.core.algorithm.pcc.ProofGenerator;
 import org.sosy_lab.cpachecker.core.counterexample.ReportGenerator;
 import org.sosy_lab.cpachecker.core.specification.Property;
 import org.sosy_lab.cpachecker.core.specification.Property.CommonCoverageProperty;

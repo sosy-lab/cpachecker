@@ -167,7 +167,7 @@ public interface AutomatonExpression<T> {
       this.failureOrigin = pRes.failureOrigin;
     }
 
-   public boolean canNotEvaluate() {
+    public boolean canNotEvaluate() {
       return this.canNotEvaluate;
     }
     /** Return failure message or {@code null} if {@code cannotEvaluate() == false} */

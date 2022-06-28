@@ -16,8 +16,7 @@ import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.WitnessType
 
 public class GIAParser {
 
-  public static WitnessType getWitnessType(Path pWitness)
-      throws  IOException {
+  public static WitnessType getWitnessType(Path pWitness) throws IOException {
 
     // TODO Think if there is an option to actually build the automaton instead of just searching
     // for the state
@@ -52,12 +51,12 @@ public class GIAParser {
     //
     //      }
 
-
-    //FIXME: IMplement something that actually looks at the graph
+    // FIXME: IMplement something that actually looks at the graph
     boolean qErrorStatePresent;
     try (Stream<String> stream = Files.lines(pWitness)) {
 
-      qErrorStatePresent = stream.anyMatch(l -> l.contains("TARGET STATE") || l.contains("UNKNOWN STATE"));
+      qErrorStatePresent =
+          stream.anyMatch(l -> l.contains("TARGET STATE") || l.contains("UNKNOWN STATE"));
       return qErrorStatePresent ? WitnessType.VIOLATION_WITNESS : WitnessType.CORRECTNESS_WITNESS;
     }
   }

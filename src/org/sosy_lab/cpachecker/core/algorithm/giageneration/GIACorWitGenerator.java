@@ -6,41 +6,41 @@
 ////
 //// SPDX-License-Identifier: Apache-2.0
 //
-//package org.sosy_lab.cpachecker.core.algorithm.giageneration;
+// package org.sosy_lab.cpachecker.core.algorithm.giageneration;
 //
-//import com.google.common.collect.ImmutableList;
-//import com.google.common.collect.Sets;
-//import java.io.IOException;
-//import java.util.Comparator;
-//import java.util.HashMap;
-//import java.util.HashSet;
-//import java.util.Map;
-//import java.util.Objects;
-//import java.util.Optional;
-//import java.util.Set;
-//import java.util.logging.Level;
-//import java.util.stream.Collectors;
-//import org.checkerframework.checker.nullness.qual.Nullable;
-//import org.sosy_lab.common.log.LogManager;
-//import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-//import org.sosy_lab.cpachecker.cfa.model.CFANode;
-//import org.sosy_lab.cpachecker.core.algorithm.AssumptionCollectorAlgorithm;
-//import org.sosy_lab.cpachecker.core.algorithm.giageneration.GIAGenerator.GIAGeneratorOptions;
-//import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
-//import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
-//import org.sosy_lab.cpachecker.cpa.arg.ARGState;
-//import org.sosy_lab.cpachecker.cpa.assumptions.storage.AssumptionStorageState;
-//import org.sosy_lab.cpachecker.cpa.automaton.AutomatonState;
-//import org.sosy_lab.cpachecker.exceptions.CPAException;
-//import org.sosy_lab.cpachecker.util.AbstractStates;
-//import org.sosy_lab.cpachecker.util.CFAUtils;
-//import org.sosy_lab.cpachecker.util.Pair;
-//import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
-//import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
-//import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
-//import org.sosy_lab.java_smt.api.BooleanFormula;
+// import com.google.common.collect.ImmutableList;
+// import com.google.common.collect.Sets;
+// import java.io.IOException;
+// import java.util.Comparator;
+// import java.util.HashMap;
+// import java.util.HashSet;
+// import java.util.Map;
+// import java.util.Objects;
+// import java.util.Optional;
+// import java.util.Set;
+// import java.util.logging.Level;
+// import java.util.stream.Collectors;
+// import org.checkerframework.checker.nullness.qual.Nullable;
+// import org.sosy_lab.common.log.LogManager;
+// import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+// import org.sosy_lab.cpachecker.cfa.model.CFANode;
+// import org.sosy_lab.cpachecker.core.algorithm.AssumptionCollectorAlgorithm;
+// import org.sosy_lab.cpachecker.core.algorithm.giageneration.GIAGenerator.GIAGeneratorOptions;
+// import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+// import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
+// import org.sosy_lab.cpachecker.cpa.arg.ARGState;
+// import org.sosy_lab.cpachecker.cpa.assumptions.storage.AssumptionStorageState;
+// import org.sosy_lab.cpachecker.cpa.automaton.AutomatonState;
+// import org.sosy_lab.cpachecker.exceptions.CPAException;
+// import org.sosy_lab.cpachecker.util.AbstractStates;
+// import org.sosy_lab.cpachecker.util.CFAUtils;
+// import org.sosy_lab.cpachecker.util.Pair;
+// import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
+// import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
+// import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
+// import org.sosy_lab.java_smt.api.BooleanFormula;
 //
-//public class GIACorWitGenerator {
+// public class GIACorWitGenerator {
 //
 //  private final LogManager logger;
 //  private GIAGeneratorOptions optinons;
@@ -154,7 +154,8 @@
 //  }
 //
 //  /**
-//   * Create an GIA for the given set of edges Beneth printing the edges, each node gets a self-loop
+//   * Create an GIA for the given set of edges Beneth printing the edges, each node gets a
+// self-loop
 //   * and a node to the temp-location
 //   *
 //   * @param sb the appendable to print to
@@ -208,7 +209,8 @@
 //                "STATE USEALL %s :\n",
 //                GIAGenerator.getNameOrError(curAssumptionState.orElseThrow())));
 //      } else {
-//        sb.append(String.format("STATE USEALL %s :\n", GIAGenerator.getNameOrError(currentState)));
+//        sb.append(String.format("STATE USEALL %s :\n",
+// GIAGenerator.getNameOrError(currentState)));
 //      }
 //      numProducedStates++;
 //
@@ -241,9 +243,11 @@
 //          AbstractStates.extractStateByType(currentState, AssumptionStorageState.class);
 //      if (Objects.nonNull(assumptionState) && !assumptionState.isAssumptionTrue()) {
 //        // Add indent to be able to use util mehtods
-//        // TODO: Find out, why Modulo operations are exported that strange: (Happens already during
+//        // TODO: Find out, why Modulo operations are exported that strange: (Happens already
+// during
 //        // add in AssunptionTransferRelation
-//        // Example: ( ( ( ( ( y % 2 ) < 2 ) && ( ! ( y < ( y % 2 ) ) ) ) && ( ( y % 2 ) == ( ( y % 2
+//        // Example: ( ( ( ( ( y % 2 ) < 2 ) && ( ! ( y < ( y % 2 ) ) ) ) && ( ( y % 2 ) == ( ( y %
+// 2
 //        // ) % 2 ) ) ) && ( ( y % 2 ) == 1 ) ) for ( ( y % 2 ) == 1 )
 //        @Nullable CFANode cfaNode = AbstractStates.extractLocation(currentState);
 //        if (!ignoreAssumptions && Objects.nonNull(assumptionState) && Objects.nonNull(cfaNode)) {
@@ -267,4 +271,4 @@
 //
 //    return numProducedStates;
 //  }
-//}
+// }

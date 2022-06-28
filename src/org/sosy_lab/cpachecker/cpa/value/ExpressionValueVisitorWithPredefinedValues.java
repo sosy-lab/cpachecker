@@ -100,7 +100,9 @@ public class ExpressionValueVisitorWithPredefinedValues extends ExpressionValueV
     return super.evaluate(pExp, pTargetType);
   }
 
-  /** @return true, if the value used in the last request was loaded from the testcomp-testcase */
+  /**
+   * @return true, if the value used in the last request was loaded from the testcomp-testcase
+   */
   public boolean isLastRequestedValuePresent() {
     return lastRequestedValue;
   }

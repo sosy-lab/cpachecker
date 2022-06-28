@@ -606,7 +606,6 @@ public final class ExpressionTrees {
                         BooleanFormula elseFormula) {
                       // TODO: Add handling
                       return Optional.empty();
-
                     }
 
                     @Override
@@ -627,8 +626,9 @@ public final class ExpressionTrees {
                     }
                   });
 
-
-      if(parsedTree.isPresent()) {return parsedTree.orElseThrow();}
+      if (parsedTree.isPresent()) {
+        return parsedTree.orElseThrow();
+      }
       return LeafExpression.of(v.getString());
     }
     return ExpressionTrees.getTrue();
@@ -656,8 +656,6 @@ public final class ExpressionTrees {
   public static <LeafType> Comparator<ExpressionTree<LeafType>> getComparator() {
     return new ExpressionTreeComparator<>();
   }
-
-
 
   private static class ExpressionTreeComparator<LeafType>
       implements Comparator<ExpressionTree<LeafType>>, Serializable {

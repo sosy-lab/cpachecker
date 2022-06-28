@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.giageneration;
 
+import static org.sosy_lab.common.collect.Collections3.transformedImmutableSetCopy;
+
 import com.google.common.collect.ImmutableSet;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -104,17 +106,20 @@ public class GIACombinerGenerator {
       statesUsedForTransitions.putIfAbsent(pairOfStates, current);
       GIACombinerState source = statesUsedForTransitions.get(pairOfStates);
 
-      for (Entry<GIATransition, Collection<GIACombinerState>> edge : current.getSuccessors().entrySet()) {
-        for (GIACombinerState successor : edge.getValue()){
-        Pair<AbstractGIAState, AbstractGIAState> pairTarget =
-            Pair.of(successor.getStateOfAutomaton1(), successor.getStateOfAutomaton2());
-        statesUsedForTransitions.putIfAbsent(pairTarget, successor);
-        GIACombinerState target = statesUsedForTransitions.get(pairTarget);
-        CombinerTransition e = new CombinerTransition(source, edge.getKey(), target, edge.getKey().getScope());
-        transitionsSeen.add(e);
-      }}
+      for (Entry<GIATransition, Collection<GIACombinerState>> edge :
+          current.getSuccessors().entrySet()) {
+        for (GIACombinerState successor : edge.getValue()) {
+          Pair<AbstractGIAState, AbstractGIAState> pairTarget =
+              Pair.of(successor.getStateOfAutomaton1(), successor.getStateOfAutomaton2());
+          statesUsedForTransitions.putIfAbsent(pairTarget, successor);
+          GIACombinerState target = statesUsedForTransitions.get(pairTarget);
+          CombinerTransition e =
+              new CombinerTransition(source, edge.getKey(), target, edge.getKey().getScope());
+          transitionsSeen.add(e);
+        }
+      }
     }
-    return transitionsSeen.stream().map(t -> t.toEdge()).collect(ImmutableSet.toImmutableSet());
+    return transformedImmutableSetCopy(transitionsSeen, t -> t.toEdge());
   }
 
   private static class CombinerTransition {
@@ -124,7 +129,10 @@ public class GIACombinerGenerator {
     GIACombinerState target;
 
     public CombinerTransition(
-        GIACombinerState pSource, GIATransition pTransition, GIACombinerState pTarget, String pScope) {
+        GIACombinerState pSource,
+        GIATransition pTransition,
+        GIACombinerState pTarget,
+        String pScope) {
       source = pSource;
       transition = pTransition;
       target = pTarget;
@@ -165,7 +173,7 @@ public class GIACombinerGenerator {
 
     @Override
     public String toString() {
-      return source + "-" + transition.getTrigger().toString() + "->" + target;
+      return source + "-" + transition.getTrigger() + "->" + target;
     }
   }
 }

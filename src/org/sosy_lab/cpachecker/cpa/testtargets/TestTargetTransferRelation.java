@@ -34,8 +34,6 @@ public class TestTargetTransferRelation extends SingleEdgeTransferRelation {
     this.splitAtTestTargetStates = pSplitAtTestTargetStates;
   }
 
-
-
   @Override
   public Collection<? extends AbstractState> getAbstractSuccessorsForEdge(
       final AbstractState pState, final Precision pPrecision, final CFAEdge pCfaEdge)
@@ -48,7 +46,6 @@ public class TestTargetTransferRelation extends SingleEdgeTransferRelation {
     if (((TestTargetState) pState).isStop() || ((TestTargetState) pState).isTarget()) {
       return ImmutableSet.of();
     }
-
 
     final TestTargetState successor =
         testTargets.contains(pCfaEdge)

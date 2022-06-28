@@ -218,7 +218,7 @@ public class ControlAutomatonCPA
               + " automata in the File "
               + inputFile.toAbsolutePath()
               + " The CPA can only handle ONE Automaton!");
-    }else if (GIAAutomatonParser.isGIA(lst)) {
+    } else if (GIAAutomatonParser.isGIA(lst)) {
       GIAAutomatonParser giaParsre = new GIAAutomatonParser(logger);
       lst = giaParsre.postProcessGIA(lst);
     }

@@ -270,8 +270,6 @@ public final class Specification {
     return automata;
   }
 
-
-
   private static Automaton parseLtlFormula(
       String ltl,
       CFA cfa,

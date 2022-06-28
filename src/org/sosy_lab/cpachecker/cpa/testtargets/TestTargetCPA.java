@@ -69,14 +69,18 @@ public class TestTargetCPA extends AbstractCPA {
 
   @Option(
       secure = true,
-      description = "When generating GIA for testcases, we need to split at a test-target state and create one successor state with the target state reached and one not reaching the target state.")
+      description =
+          "When generating GIA for testcases, we need to split at a test-target state and create"
+              + " one successor state with the target state reached and one not reaching the target"
+              + " state.")
   private boolean splitAtTestTargetStates = false;
-
 
   public static CPAFactory factory() {
     return AutomaticCPAFactory.forType(TestTargetCPA.class);
   }
-  final Set<CFAEdge> testTargets  ;
+
+  final Set<CFAEdge> testTargets;
+
   public TestTargetCPA(final CFA pCfa, final Configuration pConfig)
       throws InvalidConfigurationException {
     super("sep", "sep", DelegateAbstractDomain.<TestTargetState>getInstance(), null);
@@ -88,13 +92,12 @@ public class TestTargetCPA extends AbstractCPA {
     }
 
     precisionAdjustment = new TestTargetPrecisionAdjustment();
-    testTargets = targetEdge == null
-                                     ? TestTargetProvider.getTestTargets(
-        pCfa, runParallel, targetType, targetFun, targetOptimization)
-                                     : findTargetEdge(pCfa);
-    transferRelation =
-        new TestTargetTransferRelation(
-            testTargets, splitAtTestTargetStates);
+    testTargets =
+        targetEdge == null
+            ? TestTargetProvider.getTestTargets(
+                pCfa, runParallel, targetType, targetFun, targetOptimization)
+            : findTargetEdge(pCfa);
+    transferRelation = new TestTargetTransferRelation(testTargets, splitAtTestTargetStates);
   }
 
   public Set<CFAEdge> getTestTargets() {

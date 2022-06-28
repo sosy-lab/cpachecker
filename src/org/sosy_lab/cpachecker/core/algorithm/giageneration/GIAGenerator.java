@@ -133,7 +133,8 @@ public class GIAGenerator {
         secure = true,
         name = "assumptions.optimizeForTestcases",
         description =
-            "Remove generated testcases that follow the same path as at least one other testcase (hence covere the same target nodes")
+            "Remove generated testcases that follow the same path as at least one other testcase"
+                + " (hence covere the same target nodes")
     private boolean optimizeForTestcases = false;
 
     @SuppressWarnings("FieldMayBeFinal")

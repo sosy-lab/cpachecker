@@ -6,42 +6,42 @@
 ////
 //// SPDX-License-Identifier: Apache-2.0
 //
-//package org.sosy_lab.cpachecker.core.algorithm.giageneration;
+// package org.sosy_lab.cpachecker.core.algorithm.giageneration;
 //
-//import com.google.common.collect.ImmutableList;
-//import com.google.common.collect.ImmutableSet;
-//import com.google.common.collect.Sets;
-//import java.io.IOException;
-//import java.util.ArrayDeque;
-//import java.util.Comparator;
-//import java.util.Deque;
-//import java.util.HashMap;
-//import java.util.HashSet;
-//import java.util.Map;
-//import java.util.Objects;
-//import java.util.Optional;
-//import java.util.Set;
-//import java.util.TreeSet;
-//import org.checkerframework.checker.nullness.qual.Nullable;
-//import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
-//import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-//import org.sosy_lab.cpachecker.core.algorithm.AssumptionCollectorAlgorithm;
-//import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
-//import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
-//import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
-//import org.sosy_lab.cpachecker.cpa.arg.ARGState;
-//import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
-//import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
-//import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
-//import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
-//import org.sosy_lab.cpachecker.exceptions.CPAException;
-//import org.sosy_lab.cpachecker.util.AbstractStates;
-//import org.sosy_lab.cpachecker.util.CFAUtils;
-//import org.sosy_lab.cpachecker.util.CPAs;
-//import org.sosy_lab.cpachecker.util.predicates.AbstractionFormula;
-//import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
+// import com.google.common.collect.ImmutableList;
+// import com.google.common.collect.ImmutableSet;
+// import com.google.common.collect.Sets;
+// import java.io.IOException;
+// import java.util.ArrayDeque;
+// import java.util.Comparator;
+// import java.util.Deque;
+// import java.util.HashMap;
+// import java.util.HashSet;
+// import java.util.Map;
+// import java.util.Objects;
+// import java.util.Optional;
+// import java.util.Set;
+// import java.util.TreeSet;
+// import org.checkerframework.checker.nullness.qual.Nullable;
+// import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
+// import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+// import org.sosy_lab.cpachecker.core.algorithm.AssumptionCollectorAlgorithm;
+// import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+// import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
+// import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
+// import org.sosy_lab.cpachecker.cpa.arg.ARGState;
+// import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
+// import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
+// import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
+// import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
+// import org.sosy_lab.cpachecker.exceptions.CPAException;
+// import org.sosy_lab.cpachecker.util.AbstractStates;
+// import org.sosy_lab.cpachecker.util.CFAUtils;
+// import org.sosy_lab.cpachecker.util.CPAs;
+// import org.sosy_lab.cpachecker.util.predicates.AbstractionFormula;
+// import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 //
-//public class GIAInterpolantGenerator {
+// public class GIAInterpolantGenerator {
 //  private final ConfigurableProgramAnalysis cpa;
 //
 //  private final FormulaManagerView formulaManager;
@@ -60,7 +60,8 @@
 //    }
 //    @Nullable PredicateCPA predicateCPA = CPAs.retrieveCPA(this.cpa, PredicateCPA.class);
 //    if (Objects.isNull(predicateCPA)) {
-//      throw new CPAException("Cannot dump interpolant as automaton if no PredicateCPA is preset.");
+//      throw new CPAException("Cannot dump interpolant as automaton if no PredicateCPA is
+// preset.");
 //    }
 //
 //    // check, if the GIA that should be generated (e.g. for a violation witness)
@@ -173,7 +174,8 @@
 //  }
 //
 //  /**
-//   * Create an GIA for the given set of edges Beneth printing the edges, each node gets a self-loop
+//   * Create an GIA for the given set of edges Beneth printing the edges, each node gets a
+// self-loop
 //   * and a node to the temp-location
 //   *
 //   * @param sb the appendable to print to
@@ -183,12 +185,14 @@
 //   * @throws IOException if the file cannot be accessed or does not exist
 //   */
 //  private int writeGIAForInterpolant(
-//      Appendable sb, ARGState rootState, Set<GIAARGStateEdge> edgesToAdd, FormulaManagerView pFmgr)
+//      Appendable sb, ARGState rootState, Set<GIAARGStateEdge> edgesToAdd, FormulaManagerView
+// pFmgr)
 //      throws IOException, InterruptedException {
 //    int numProducedStates = 0;
 //    sb.append(GIAGenerator.AUTOMATON_HEADER);
 //
-//    GIAGenerator.storeInitialNode(sb, edgesToAdd.isEmpty(), GIAGenerator.getNameOrError(rootState));
+//    GIAGenerator.storeInitialNode(sb, edgesToAdd.isEmpty(),
+// GIAGenerator.getNameOrError(rootState));
 //    sb.append(String.format("    TRUE -> GOTO %s;\n\n", GIAGenerator.NAME_OF_TEMP_STATE));
 //
 //    // Fill the map to be able to iterate over the nodes
@@ -227,4 +231,4 @@
 //
 //    return numProducedStates;
 //  }
-//}
+// }
