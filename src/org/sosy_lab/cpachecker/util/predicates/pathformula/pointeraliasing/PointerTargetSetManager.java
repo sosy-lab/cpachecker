@@ -222,6 +222,11 @@ class PointerTargetSetManager {
       return MergeResult.trivial(PointerTargetSet.emptyPointerTargetSet(), bfmgr);
     }
 
+    final Constraints mergeConstraints1 = new Constraints(bfmgr);
+    final Constraints mergeConstraints2 = new Constraints(bfmgr);
+
+    // Handle bases
+
     final CopyOnWriteSortedMap<String, CType> basesOnlyPts1 =
         CopyOnWriteSortedMap.copyOf(PathCopyingPersistentTreeMap.<String, CType>of());
     final CopyOnWriteSortedMap<String, CType> basesOnlyPts2 =
@@ -256,6 +261,8 @@ class PointerTargetSetManager {
             });
     shutdownNotifier.shutdownIfNecessary();
 
+    // Handle fields
+
     final CopyOnWriteSortedMap<CompositeField, Boolean> fieldsOnlyPts1 =
         CopyOnWriteSortedMap.copyOf(PathCopyingPersistentTreeMap.<CompositeField, Boolean>of());
     final CopyOnWriteSortedMap<CompositeField, Boolean> fieldsOnlyPts2 =
@@ -280,6 +287,8 @@ class PointerTargetSetManager {
             });
     shutdownNotifier.shutdownIfNecessary();
 
+    // Handle targets
+
     PersistentSortedMap<String, PersistentList<PointerTarget>> mergedTargets =
         merge(
             pts1.getTargets(), pts2.getTargets(), (key, list1, list2) -> mergeLists(list1, list2));
@@ -302,6 +311,8 @@ class PointerTargetSetManager {
         mergeLists(pts1.getDeferredAllocations(), pts2.getDeferredAllocations());
     shutdownNotifier.shutdownIfNecessary();
 
+    // Handle allocation metadata
+
     final PersistentList<Formula> highestAllocatedAddresses =
         mergeLists(pts1.getHighestAllocatedAddresses(), pts2.getHighestAllocatedAddresses());
 
@@ -316,11 +327,11 @@ class PointerTargetSetManager {
             highestAllocatedAddresses,
             allocationCount);
 
+    // Handle value-import constraints
+
     final List<CompositeField> sharedFields = new ArrayList<>();
-    final BooleanFormula mergeFormula2 =
-        makeValueImportConstraints(basesOnlyPts1.getSnapshot(), sharedFields, ssa);
-    final BooleanFormula mergeFormula1 =
-        makeValueImportConstraints(basesOnlyPts2.getSnapshot(), sharedFields, ssa);
+    makeValueImportConstraints(basesOnlyPts1.getSnapshot(), sharedFields, ssa, mergeConstraints2);
+    makeValueImportConstraints(basesOnlyPts2.getSnapshot(), sharedFields, ssa, mergeConstraints1);
 
     if (!sharedFields.isEmpty()) {
       final PointerTargetSetBuilder resultPTSBuilder =
@@ -331,7 +342,8 @@ class PointerTargetSetManager {
       resultPTS = resultPTSBuilder.build();
     }
 
-    return new MergeResult<>(resultPTS, mergeFormula1, mergeFormula2, bfmgr.makeTrue());
+    return new MergeResult<>(
+        resultPTS, mergeConstraints1.get(), mergeConstraints2.get(), bfmgr.makeTrue());
   }
 
   /** A handler for merge conflicts that appear when merging bases. */
@@ -545,13 +557,13 @@ class PointerTargetSetManager {
    * @param newBases A map of new bases.
    * @param sharedFields A list of shared fields.
    * @param ssaBuilder The SSA map.
-   * @return A boolean formula for the import constraint.
+   * @param constraints Where the import constraint(s) should be added.
    */
-  private BooleanFormula makeValueImportConstraints(
+  private void makeValueImportConstraints(
       final PersistentSortedMap<String, CType> newBases,
       final List<CompositeField> sharedFields,
-      final SSAMapBuilder ssaBuilder) {
-    Constraints constraints = new Constraints(bfmgr);
+      final SSAMapBuilder ssaBuilder,
+      final Constraints constraints) {
     for (final Map.Entry<String, CType> base : newBases.entrySet()) {
       if (!options.isDynamicAllocVariableName(base.getKey())
           && !CTypeUtils.containsArrayOutsideFunctionParameter(base.getValue())) {
@@ -560,8 +572,6 @@ class PointerTargetSetManager {
             baseVar, base.getKey(), base.getValue(), sharedFields, ssaBuilder, constraints, null);
       }
     }
-
-    return constraints.get();
   }
 
   /**
