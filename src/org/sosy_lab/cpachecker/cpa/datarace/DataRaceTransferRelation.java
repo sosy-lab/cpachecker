@@ -115,7 +115,7 @@ public class DataRaceTransferRelation extends SingleEdgeTransferRelation {
       @Nullable CFAEdge cfaEdge,
       Precision precision)
       throws CPATransferException, InterruptedException {
-    if (cfaEdge == null) {
+    if (cfaEdge == null || !globalAccessChecker.hasGlobalAccess(cfaEdge)) {
       return ImmutableSet.of(pState);
     }
     DataRaceState state = (DataRaceState) pState;
