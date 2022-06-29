@@ -227,8 +227,10 @@ public class SMGCPAValueVisitor
     for (ValueAndSMGState leftValueAndState : lVarInBinaryExp.accept(this)) {
       Value leftValue = leftValueAndState.getValue();
       // We can't work with unknowns
+      // Return the unknown value directly and not a new one! The mapping to the Value
+      // object is important!
       if (leftValue.isUnknown()) {
-        resultBuilder.add(ValueAndSMGState.ofUnknownValue(leftValueAndState.getState()));
+        resultBuilder.add(ValueAndSMGState.of(leftValue, leftValueAndState.getState()));
         continue;
       }
       for (ValueAndSMGState rightValueAndState :
@@ -239,7 +241,7 @@ public class SMGCPAValueVisitor
 
         Value rightValue = rightValueAndState.getValue();
         if (rightValue.isUnknown()) {
-          resultBuilder.add(ValueAndSMGState.ofUnknownValue(currentState));
+          resultBuilder.add(ValueAndSMGState.of(rightValue, currentState));
           continue;
         }
 
@@ -265,14 +267,32 @@ public class SMGCPAValueVisitor
         }
 
         if (leftValue instanceof AddressExpression || rightValue instanceof AddressExpression) {
-          resultBuilder.add(
-              calculatePointerArithmetics(
-                  leftValue,
-                  rightValue,
-                  binaryOperator,
-                  e.getExpressionType(),
-                  calculationType,
-                  currentState));
+          if (binaryOperator == BinaryOperator.EQUALS) {
+            // address == address or address == not address
+            resultBuilder.add(
+                ValueAndSMGState.of(
+                    evaluator.checkEqualityForAddresses(leftValue, rightValue, currentState),
+                    currentState));
+            continue;
+          } else if (binaryOperator == BinaryOperator.NOT_EQUALS) {
+         // address != address or address != not address
+            resultBuilder.add(
+                ValueAndSMGState.of(
+                    evaluator.checkNonEqualityForAddresses(leftValue, rightValue, currentState),
+                    currentState));
+            continue;
+          } else {
+            // Pointer arithmetics case and fall through (handled inside the method)
+            // i.e. address + 3
+            resultBuilder.add(
+                calculatePointerArithmetics(
+                    leftValue,
+                    rightValue,
+                    binaryOperator,
+                    e.getExpressionType(),
+                    calculationType,
+                    currentState));
+          }
           continue;
         }
 
@@ -1772,7 +1792,7 @@ public class SMGCPAValueVisitor
   /**
    * Calculates pointer/address arithmetic expressions. Valid is only address + value or value +
    * address and address minus value or address minus address. All others are simply unknown value!
-   * One of the 2 entered values must be a AddressExpression, no other preconditions must be met.
+   * One of the 2 entered values must be a AddressExpression, no other preconditions have to be met.
    *
    * @param leftValue left hand side value of the arithmetic operation.
    * @param rightValue right hand side value of the arithmetic operation.

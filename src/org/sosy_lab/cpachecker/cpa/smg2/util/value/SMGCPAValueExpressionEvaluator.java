@@ -84,52 +84,8 @@ public class SMGCPAValueExpressionEvaluator {
     throw new AssertionError("The operation " + methodNameString + " is not yet supported.");
   }
 
-  /**
-   * Read the values and save the mapping of concrete (C values) to symbolic (SMGValues) values.
-   *
-   * <p>TODO: what is exactly needed here?
-   */
-  public Collection<SMGState> evaluateValues(
-      SMGState pState, CFAEdge cfaEdge, CRightHandSide rValue) throws CPATransferException {
-    // TODO: use this instead of plainly using the value visitor?
-    /*
-        CType expType = TypeUtils.getRealExpressionType(rValue);
-        // TODO: Is the CFAEdge always a CReturnStatementEdge?
-        Optional<CAssignment> returnAssignment = ((CReturnStatementEdge) cfaEdge).asAssignment();
-        if (returnAssignment.isPresent()) {
-          expType = returnAssignment.orElseThrow().getLeftHandSide().getExpressionType();
-        }
-    */
-    return null;
-  }
-
-  /**
-   * Evaluates the given value with the help of the edge on the current state and returns a new
-   * state and the evaluated value. The state may change due to reading the value and the value may
-   * be concrete values, an list (arrays etc.) of values or addresses of value/pointers/structs etc.
-   *
-   * <p>TODO: what is exactly needed here?
-   */
-  public Collection<ValueAndSMGState> evaluateExpressionValue(
-      SMGState smgState, CFAEdge cfaEdge, CRightHandSide rValue) throws CPATransferException {
-    // TODO: use this instead of plainly using the value visitor?
-    if (isAddressType(rValue.getExpressionType())) {
-      /*
-       * expressions with Array Types as result are transformed. a = &(a[0])
-       */
-
-      /*
-       * expressions with structs or unions as result will be evaluated to their addresses. The
-       * address can be used e.g. to copy the struct.If the address is not in the SMG,
-       * it is entered. If the address is unknown, it + its value are entered symbolicly.
-       */
-      // return evaluateAddress(smgState, cfaEdge, rValue);
-      return null;
-    } else {
-      // derive value
-      // return rValue.accept(new NonPointerExpressionVisitor(smgState, this));
-      return null;
-    }
+  public boolean isPointerValue(Value maybeAddress, SMGState currentState) {
+    return currentState.getMemoryModel().isPointer(maybeAddress);
   }
 
   public List<ValueAndSMGState> handleSafeExternFunction(
@@ -185,6 +141,81 @@ public class SMGCPAValueExpressionEvaluator {
     }
     */
     return Collections.singletonList(ValueAndSMGState.ofUnknownValue(pSmgState));
+  }
+
+  /**
+   * Given 2 address Values, left == right, this checks whether or not they are considered equal in
+   * the SPC/SMG of the given state. This returns a Value with the result, which is a boolean (1 or
+   * 0). Note: this returns always false (0) if one of the 2 given Values is no valid address.
+   *
+   * @param leftValue the left hand side address of the equality.
+   * @param rightValue the right hand side address of the equality.
+   * @param state the current state in which the 2 values are address values.
+   * @return a {@link Value} that is either 1 or 0 as true and false result of the equality.
+   */
+  public Value checkEqualityForAddresses(Value leftValue, Value rightValue, SMGState state) {
+    boolean isNotEqual = state.areNonEqualAddresses(leftValue, rightValue);
+    return isNotEqual ? new NumericValue(0) : new NumericValue(1);
+  }
+
+  /**
+   * Given 2 address Values, left != right, this checks whether or not they are considered NOT equal
+   * in the SPC/SMG of the given state. This returns a Value with the result, which is a boolean (1
+   * or 0). Note: this returns always true (1) if one of the 2 given Values is no valid address.
+   *
+   * @param leftValue the left hand side address of the inequality.
+   * @param rightValue the right hand side address of the inequality.
+   * @param state the current state in which the 2 values are address values.
+   * @return a {@link Value} that is 1 (true) if the 2 addresses are not equal, 0 (false) if they
+   *     are equal.
+   */
+  public Value checkNonEqualityForAddresses(Value leftValue, Value rightValue, SMGState state) {
+    if (leftValue instanceof AddressExpression && rightValue instanceof AddressExpression) {
+      // AddressExpressions are basically (pointer + offset). We can compare the base pointer, if
+      // those are not equal, no offset will make them equal!
+      Value leftMemoryBaseAddress = ((AddressExpression) leftValue).getMemoryAddress();
+      Value rightMemoryBaseAddress = ((AddressExpression) rightValue).getMemoryAddress();
+      boolean baseIsNotEqual =
+          state.areNonEqualAddresses(leftMemoryBaseAddress, rightMemoryBaseAddress);
+      if (!baseIsNotEqual) {
+        // the base is  equal
+        Value leftOffset = ((AddressExpression) leftValue).getOffset();
+        Value rightOffset = ((AddressExpression) rightValue).getOffset();
+        if (leftOffset.isNumericValue() && rightValue.isNumericValue()) {
+          NumericValue leftOffsetNum = leftOffset.asNumericValue();
+          NumericValue rightOffsetNum = rightOffset.asNumericValue();
+          if (leftOffsetNum.getNumber().equals(rightOffsetNum.getNumber())) {
+            // they are truly equal (so they are not not-equal)
+            return new NumericValue(0);
+          }
+        } else if (leftOffset.isUnknown()) {
+          if (rightOffset.isUnknown()) {
+            // Both offsets are unknown, meaning that if the base address is the same, we can check
+            // both cases that they are equal and that they are not.
+            // If the base address is not equal, they can never be equal.
+            // TODO: cover all cases if an option is on
+            return UnknownValue.getInstance();
+          }
+          // left is unknown, right is concrete. We can assume 2 cases here, 1 where the addresses
+          // are equal and the unknown value is == the known, and one where they are not.
+          // TODO: cover all cases if an option is on
+          return UnknownValue.getInstance();
+
+        } else if (rightOffset.isUnknown()) {
+          // Only 1 offset is unknown, this could indicate that the 2 addresses may be the same if
+          // they point to the same SMGObject. However they might never be equal if they don't.
+          // TODO: cover all cases if an option is on
+          return UnknownValue.getInstance();
+        }
+      }
+      // They are not equal
+      return new NumericValue(1);
+    }
+      Preconditions.checkArgument(
+          !(leftValue instanceof AddressExpression) && !(rightValue instanceof AddressExpression));
+      boolean isNotEqual = state.areNonEqualAddresses(leftValue, rightValue);
+      return isNotEqual ? new NumericValue(1) : new NumericValue(0);
+
   }
 
   /**

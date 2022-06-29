@@ -63,6 +63,7 @@ public class SMGCPAAssigningValueVisitor extends SMGCPAValueVisitor {
     BinaryOperator binaryOperator = pE.getOperator();
     CExpression lVarInBinaryExp = pE.getOperand1();
     CExpression rVarInBinaryExp = pE.getOperand2();
+    // Array and composite type comparisons are filtered out by the parser!
 
     SMGCPAValueExpressionEvaluator evaluator = super.getInitialVisitorEvaluator();
     LogManagerWithoutDuplicates logger = super.getInitialVisitorLogger();
@@ -117,15 +118,19 @@ public class SMGCPAAssigningValueVisitor extends SMGCPAValueVisitor {
           SMGState updatedState = currentState;
           // Now we need to use all updated states from the assumptions (or the base case if none
           // was chosen)
+          // Never assume values for addresses!! Address equality is only truly checkable
+          // by the areNonEqualAddresses() method in the state, which is done by the value visitor.
           for (ValueAndSMGState uselessValueAndupdatedState : updatedStates) {
             updatedState = uselessValueAndupdatedState.getState();
             if (isEligibleForAssignment(leftValue)
                 && rightValue.isExplicitlyKnown()
+                && !evaluator.isPointerValue(leftValue, updatedState)
                 && isAssignable(leftHandSideAssignments)) {
               updatedState = replaceValue(leftValue, rightValue, updatedState);
 
             } else if (isEligibleForAssignment(rightValue)
                 && leftValue.isExplicitlyKnown()
+                && !evaluator.isPointerValue(rightValue, updatedState)
                 && isAssignable(rightHandSideAssignments)) {
               updatedState = replaceValue(rightValue, leftValue, updatedState);
             }

@@ -494,19 +494,17 @@ public class SMGState implements LatticeAbstractState<SMGState>, AbstractQueryab
   }
 
   /*
-   * Check non-equality of the 2 entered SMGValues. Never use == or equals on them!
+   * Check non-equality of the 2 entered potential addresses. Never use == or equals on addresses!
+   * Tries to prove the not equality of two given addresses. Returns true if the prove of
+   * not equality succeeded, returns false if both are potentially equal.
    */
-  private boolean areNonEqual(SMGValue pValue1, SMGValue pValue2) {
-    return memoryModel.proveInequality(pValue1, pValue2);
-  }
-
-  public boolean areNonEqual(Value pValue1, Value pValue2) {
+  public boolean areNonEqualAddresses(Value pValue1, Value pValue2) {
     Optional<SMGValue> smgValue1 = memoryModel.getSMGValueFromValue(pValue1);
     Optional<SMGValue> smgValue2 = memoryModel.getSMGValueFromValue(pValue2);
     if (smgValue1.isEmpty() || smgValue2.isEmpty()) {
-      return false;
+      return true;
     }
-    return areNonEqual(smgValue1.orElseThrow(), smgValue2.orElseThrow());
+    return memoryModel.proveInequality(smgValue1.orElseThrow(), smgValue2.orElseThrow());
   }
 
   /** Logs the error entered using the states logger. */
