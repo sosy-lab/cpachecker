@@ -345,10 +345,6 @@ public class ConfigurationFileChecks {
         Path.of("test/config/automata/AssumptionAutomaton.spc"),
         OUTPUT_DIR.resolve("AssumptionAutomaton.txt"),
         StandardCopyOption.REPLACE_EXISTING);
-    Files.copy(
-        Path.of("test/config/automata/AssumptionAutomaton.spc"),
-        OUTPUT_DIR.resolve("GIA.txt"),
-        StandardCopyOption.REPLACE_EXISTING);
   }
 
   @Before
@@ -368,9 +364,6 @@ public class ConfigurationFileChecks {
     Files.copy(
         Path.of("test/config/automata/AssumptionAutomaton.spc"),
         tempFolder.newFolder(OUTPUT_DIR.toString()).toPath().resolve("AssumptionAutomaton.txt"));
-    Files.copy(
-        Path.of("test/config/automata/AssumptionAutomaton.spc"),
-        tempFolder.getRoot().toPath().resolve("GIA.txt"));
   }
 
 

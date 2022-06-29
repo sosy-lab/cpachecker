@@ -23,8 +23,6 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 public class GIACombinerState
     implements LatticeAbstractState<GIACombinerState>,  Graphable {
 
-  private static final long serialVersionUID = -7715698130885641252L;
-
   private final AbstractGIAState stateOfAutomaton1;
   private final AbstractGIAState stateOfAutomaton2;
   private final Multimap<GIATransition, GIACombinerState> successors;

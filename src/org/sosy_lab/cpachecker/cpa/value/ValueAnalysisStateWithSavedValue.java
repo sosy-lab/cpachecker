@@ -10,7 +10,6 @@ package org.sosy_lab.cpachecker.cpa.value;
 
 import java.util.Map;
 import java.util.Objects;
-import java.util.Optional;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 
