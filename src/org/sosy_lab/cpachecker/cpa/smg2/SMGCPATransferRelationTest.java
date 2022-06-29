@@ -1050,7 +1050,7 @@ public class SMGCPATransferRelationTest {
     for (CType testType : ARRAY_TEST_TYPES) {
       variableName = variableName + testType;
       for (int i = 0; i < TEST_ARRAY_LENGTH.intValue(); i++) {
-        if (((CSimpleType) testType).isSigned() && i % 2 == 1) {
+        if (((CSimpleType) testType).isSigned() && Math.floorMod(i, 2) == 1) {
           // Make every second value a negative for signed values
           values[i] = BigInteger.valueOf(-i);
         } else {
@@ -1084,7 +1084,7 @@ public class SMGCPATransferRelationTest {
 
         // Check the value (chars are also numerically saved!)
         BigInteger expectedValue;
-        if (((CSimpleType) testType).isSigned() && i % 2 == 1) {
+        if (((CSimpleType) testType).isSigned() && Math.floorMod(i, 2) == 1) {
           // Make every second value a negative for signed values
           expectedValue = BigInteger.valueOf(-i);
         } else {
@@ -1112,7 +1112,7 @@ public class SMGCPATransferRelationTest {
 
     for (CType testType : ARRAY_TEST_TYPES) {
       for (int i = 0; i < TEST_ARRAY_LENGTH.intValue(); i++) {
-        if (((CSimpleType) testType).isSigned() && i % 2 == 1) {
+        if (((CSimpleType) testType).isSigned() && Math.floorMod(i, 2) == 1) {
           // Make every second value a negative for signed values
           values[i] = BigInteger.valueOf(-i);
         } else {
@@ -1159,7 +1159,7 @@ public class SMGCPATransferRelationTest {
 
         // Check the value (chars are also numerically saved!)
         BigInteger expectedValue;
-        if (((CSimpleType) testType).isSigned() && i % 2 == 1) {
+        if (((CSimpleType) testType).isSigned() && Math.floorMod(i, 2) == 1) {
           // Make every second value a negative for signed values
           expectedValue = BigInteger.valueOf(-i);
         } else {
@@ -1190,7 +1190,7 @@ public class SMGCPATransferRelationTest {
       List<String> structFieldNames = STRUCT_UNION_FIELD_NAMES.subList(0, sublist);
       BigInteger[] values = new BigInteger[structTestTypes.size()];
       for (int i = 0; i < structTestTypes.size(); i++) {
-        if (((CSimpleType) structTestTypes.get(i)).isSigned() && i % 2 == 1) {
+        if (((CSimpleType) structTestTypes.get(i)).isSigned() && Math.floorMod(i, 2) == 1) {
           // Make every second value a negative for signed values
           values[i] = BigInteger.valueOf(-i);
         } else {
@@ -1232,7 +1232,7 @@ public class SMGCPATransferRelationTest {
         assertThat(currentFieldType instanceof CSimpleType).isTrue();
         // Check the value (chars are also numerically saved!)
         BigInteger expectedValue;
-        if (((CSimpleType) currentFieldType).isSigned() && i % 2 == 1) {
+        if (((CSimpleType) currentFieldType).isSigned() && Math.floorMod(i, 2) == 1) {
           // Make every second value a negative for signed values
           expectedValue = BigInteger.valueOf(-i);
         } else {
@@ -1261,7 +1261,7 @@ public class SMGCPATransferRelationTest {
       List<String> structFieldNames = STRUCT_UNION_FIELD_NAMES.subList(0, sublist);
       BigInteger[] values = new BigInteger[structTestTypes.size()];
       for (int i = 0; i < structTestTypes.size(); i++) {
-        if (((CSimpleType) structTestTypes.get(i)).isSigned() && i % 2 == 1) {
+        if (((CSimpleType) structTestTypes.get(i)).isSigned() && Math.floorMod(i, 2) == 1) {
           // Make every second value a negative for signed values
           values[i] = BigInteger.valueOf(-i);
         } else {
@@ -1313,7 +1313,7 @@ public class SMGCPATransferRelationTest {
         assertThat(currentFieldType instanceof CSimpleType).isTrue();
         // Check the value (chars are also numerically saved!)
         BigInteger expectedValue;
-        if (((CSimpleType) currentFieldType).isSigned() && i % 2 == 1) {
+        if (((CSimpleType) currentFieldType).isSigned() && Math.floorMod(i, 2) == 1) {
           // Make every second value a negative for signed values
           expectedValue = BigInteger.valueOf(-i);
         } else {
@@ -1339,7 +1339,7 @@ public class SMGCPATransferRelationTest {
       for (int i = 0; i < 2; i++) {
         variableName = variableName + type + i;
         BigInteger value;
-        if (((CSimpleType) type).isSigned() && i % 2 == 1) {
+        if (((CSimpleType) type).isSigned() && Math.floorMod(i, 2) == 1) {
           // Make every second value a negative for signed values
           value = BigInteger.valueOf(-i);
         } else {
