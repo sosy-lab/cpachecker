@@ -997,7 +997,7 @@ public class SMGTransferRelation
       Precision pPrecision)
       throws CPATransferException, InterruptedException {
 
-    return null;
+    return ImmutableList.of(element);
   }
 
   /*

@@ -442,8 +442,8 @@ public class SMGState implements LatticeAbstractState<SMGState>, AbstractQueryab
 
   @Override
   public String toDOTLabel() {
-    // TODO Auto-generated method stub
-    return null;
+    // TODO:
+    return toString();
   }
 
   @Override
