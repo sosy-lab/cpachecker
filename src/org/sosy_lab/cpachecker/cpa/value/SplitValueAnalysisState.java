@@ -24,7 +24,7 @@ public class SplitValueAnalysisState extends ValueAnalysisState {
 
   private final List<Map<Integer, String>> valuesFromFiles;
   private final ValueAnalysisState oldState;
-  private final ValueAnalysisTransferRelation transferRelation;
+
   private final VariableTrackingPrecision precision;
   private final CFAEdge edge;
   private static final long serialVersionUID = -3152134551524554358L;
@@ -32,18 +32,16 @@ public class SplitValueAnalysisState extends ValueAnalysisState {
   public SplitValueAnalysisState(
       ValueAnalysisState pState,
       List<Map<Integer, String>> pValuesFromFile,
-      ValueAnalysisTransferRelation pValueAnalysisTransferRelation,
       VariableTrackingPrecision pPrecision,
       CFAEdge pCfaEdgeFromInfo) {
     super(pState);
     oldState = pState;
     this.valuesFromFiles = pValuesFromFile;
-    transferRelation = pValueAnalysisTransferRelation;
     this.precision = pPrecision;
     this.edge = pCfaEdgeFromInfo;
   }
 
-  public Collection<ValueAnalysisState> split(LogManagerWithoutDuplicates pLogger) throws CPATransferException {
+  public Collection<ValueAnalysisState> split(LogManagerWithoutDuplicates pLogger, ValueAnalysisTransferRelation transferRelation) throws CPATransferException {
 
     if (this.valuesFromFiles.isEmpty()) {
       return Lists.newArrayList(ValueAnalysisState.copyOf(oldState));
@@ -85,7 +83,6 @@ public class SplitValueAnalysisState extends ValueAnalysisState {
     SplitValueAnalysisState that = (SplitValueAnalysisState) pO;
     return Objects.equals(valuesFromFiles, that.valuesFromFiles)
         && Objects.equals(oldState, that.oldState)
-        && Objects.equals(transferRelation, that.transferRelation)
         && Objects.equals(precision, that.precision)
         && Objects.equals(edge, that.edge);
   }
@@ -93,6 +90,6 @@ public class SplitValueAnalysisState extends ValueAnalysisState {
   @Override
   public int hashCode() {
     return Objects.hash(
-        super.hashCode(), valuesFromFiles, oldState, transferRelation, precision, edge);
+        super.hashCode(), valuesFromFiles, oldState, precision, edge);
   }
 }

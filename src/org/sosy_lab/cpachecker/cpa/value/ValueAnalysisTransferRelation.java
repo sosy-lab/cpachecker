@@ -323,7 +323,7 @@ public class ValueAnalysisTransferRelation
     if (successor != null) {
       if (successor instanceof SplitValueAnalysisState) {
         try {
-          return ((SplitValueAnalysisState) successor).split(logger);
+          return ((SplitValueAnalysisState) successor).split(logger, this);
         } catch (CPATransferException pE) {
           logger.logfUserException(Level.SEVERE, pE, "Cannot splitt the state! Aborting");
           return ImmutableSet.of();
@@ -938,7 +938,7 @@ public class ValueAnalysisTransferRelation
       valuesFromFilesUsed = true;
       state.setSplitPoint();
       return new SplitValueAnalysisState(
-          state, valuesFromFile, this, super.precision, cfaEdgeFromInfo);
+          state, valuesFromFile,  super.precision, cfaEdgeFromInfo);
     }
 
     Value newValue = evv.evaluate(functionCallExp, leftSideType);
