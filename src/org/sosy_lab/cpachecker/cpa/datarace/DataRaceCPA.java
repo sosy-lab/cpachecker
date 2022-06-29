@@ -33,8 +33,7 @@ public class DataRaceCPA extends AbstractCPA {
     return AutomaticCPAFactory.forType(DataRaceCPA.class);
   }
 
-  private DataRaceCPA(CFA pCfa, LogManager pLogger, Configuration pConfiguration)
-      throws InvalidConfigurationException {
+  private DataRaceCPA(CFA pCfa) {
     super("sep", "sep", null);
     cfa = pCfa;
   }
