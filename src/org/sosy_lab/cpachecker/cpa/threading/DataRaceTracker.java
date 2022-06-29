@@ -408,6 +408,6 @@ class DataRaceTracker {
         }
       }
     }
-    return threadsBuilder.build();
+    return threadsBuilder.buildOrThrow();
   }
 }

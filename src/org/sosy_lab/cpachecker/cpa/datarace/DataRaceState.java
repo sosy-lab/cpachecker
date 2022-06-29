@@ -23,7 +23,8 @@ public class DataRaceState implements AbstractQueryableState {
   private final ImmutableMap<String, ThreadInfo> threads;
   private final boolean hasDataRace;
 
-  DataRaceState(Set<MemoryAccess> pMemoryAccesses, Map<String, ThreadInfo> pThreads, boolean pHasDataRace) {
+  DataRaceState(
+      Set<MemoryAccess> pMemoryAccesses, Map<String, ThreadInfo> pThreads, boolean pHasDataRace) {
     memoryAccesses = ImmutableSet.copyOf(pMemoryAccesses);
     threads = ImmutableMap.copyOf(pThreads);
     hasDataRace = pHasDataRace;

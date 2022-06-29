@@ -343,7 +343,7 @@ public class DataRaceTransferRelation extends SingleEdgeTransferRelation {
         }
       }
     }
-    return threadsBuilder.build();
+    return threadsBuilder.buildOrThrow();
   }
 
   /**
