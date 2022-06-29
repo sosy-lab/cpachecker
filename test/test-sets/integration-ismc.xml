@@ -16,7 +16,7 @@ SPDX-License-Identifier: Apache-2.0
   <option name="-noout"/>
   <option name="-heap">2000M</option>
 
-  <rundefinition name="ismc">
+  <rundefinition>
     <option name="-bmc-interpolationSequence"/>
     <option name="-setprop">ismc.fallBack=false</option>
   </rundefinition>

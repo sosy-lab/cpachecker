@@ -1286,6 +1286,17 @@ cpa.arg.inCPAEnabledAnalysis = false
 # them in the ARG
 cpa.arg.keepCoveredStatesInReached = false
 
+# What do to on a late merge, i.e., if the second parameter of the merge
+# already has child states (cf. issue #991):
+# - ALLOW: Just merge as usual.
+# - ALLOW_WARN: Log a warning the first time this happens, then ALLOW.
+# - PREVENT: Do not merge, i.e., enforce merge-sep for such situations.
+# - PREVENT_WARN: Log a warning the first time this happens, then PREVENT.
+# - CRASH: Crash CPAchecker as soon as this happens
+#   (useful for cases where a late merge should never happen).
+cpa.arg.lateMerge = ALLOW
+  enum:     [ALLOW, ALLOW_WARN, PREVENT, PREVENT_WARN, CRASH]
+
 # write the ARG at various stages during execution into dot files whose name
 # is specified by this option. Only works if 'cpa.arg.logARGs=true'
 cpa.arg.log.fileTemplate = "ARG_log/ARG_%04d.dot"
