@@ -459,6 +459,7 @@ public class ConfigurationFileChecks {
               Path.of("craigInterpolation-violationWitness.properties"),
               Path.of("wacsl.properties"),
               Path.of("giaCombiner.properties"),
+              Path.of("residualProgramGenerator-GIA.properties"),
               Path.of("craigInterpolation-gia.properties"));
     }
 
