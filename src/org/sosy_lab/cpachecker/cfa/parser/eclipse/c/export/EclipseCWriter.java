@@ -87,7 +87,6 @@ class EclipseCWriter implements CWriter {
 
     } else {
       records = pCfa.getTransformationRecords().orElseThrow();
-      assert records.getCfaBeforeTransformation().isPresent();
       final CFA originalCfa = records.getCfaBeforeTransformation().orElseThrow();
 
       checkArgument(
