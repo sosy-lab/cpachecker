@@ -10,7 +10,6 @@ package org.sosy_lab.cpachecker.cpa.smg2;
 
 import java.util.Collection;
 import org.sosy_lab.common.ShutdownNotifier;
-import org.sosy_lab.common.annotations.Unmaintained;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -23,6 +22,7 @@ import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.core.counterexample.AssumptionToEdgeAllocator;
 import org.sosy_lab.cpachecker.core.counterexample.CFAPathWithAdditionalInfo;
 import org.sosy_lab.cpachecker.core.counterexample.ConcreteStatePath;
+import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.defaults.DelegateAbstractDomain;
 import org.sosy_lab.cpachecker.core.defaults.MergeJoinOperator;
 import org.sosy_lab.cpachecker.core.defaults.MergeSepOperator;
@@ -47,8 +47,6 @@ import org.sosy_lab.cpachecker.util.predicates.BlockOperator;
 import org.sosy_lab.cpachecker.util.smg.exception.SMGInconsistencyException;
 
 @Options(prefix = "cpa.smg2")
-// TODO remove unmaintained annotation once all components are implemented
-@Unmaintained
 public class SMGCPA
     implements ConfigurableProgramAnalysis,
         ConfigurableProgramAnalysisWithConcreteCex,
@@ -106,7 +104,7 @@ public class SMGCPA
   }
 
   public static CPAFactory factory() {
-    return null;
+    return AutomaticCPAFactory.forType(SMGCPA.class);
   }
 
   @Override
