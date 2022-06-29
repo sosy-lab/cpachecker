@@ -88,7 +88,7 @@ class EclipseCWriter implements CWriter {
     } else {
       records = pCfa.getTransformationRecords().orElseThrow();
       assert records.getCfaBeforeTransformation().isPresent();
-      final CFA originalCfa = records.getCfaBeforeTransformation().get();
+      final CFA originalCfa = records.getCfaBeforeTransformation().orElseThrow();
 
       checkArgument(
           originalCfa.getFileNames().size() == 1,
