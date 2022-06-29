@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.cpa.smg2;
 
 import static com.google.common.truth.Truth.assertThat;
+import static org.junit.Assert.assertThrows;
 import static org.sosy_lab.common.collect.Collections3.transformedImmutableListCopy;
 
 import com.google.common.base.Preconditions;
@@ -1457,6 +1458,221 @@ public class SMGCPATransferRelationTest {
         // The truth assumption is false -> the true assumption gets turned to false -> null return
         assertThat(statesAfter).isNull();
       }
+    }
+  }
+
+  /*
+   * Tests the equality of 2 struct addresses which are distinct!
+   * Which means the == is false and it may never learn that the 2 symbolic
+   * expressions are equal as addresses only change through SMG merges.
+   */
+  @Test
+  public void testHeapStructAddressEqualityTrueAssumptionWithTrueTruthAssumption()
+      throws CPATransferException, InterruptedException {
+    for (int sublist = 1; sublist < STRUCT_UNION_TEST_TYPES.size(); sublist++) {
+      String structTypeName = "testStructType" + sublist;
+      String variableName1 = "testStruct1_" + sublist;
+      String variableName2 = "testStruct2_" + sublist;
+      List<CType> structTestTypes = STRUCT_UNION_TEST_TYPES.subList(0, sublist);
+      List<String> structFieldNames = STRUCT_UNION_FIELD_NAMES.subList(0, sublist);
+      BigInteger[] values = new BigInteger[structTestTypes.size()];
+      for (int i = 0; i < structTestTypes.size(); i++) {
+        if (((CSimpleType) structTestTypes.get(i)).isSigned() && Math.floorMod(i, 2) == 1) {
+          // Make every second value a negative for signed values
+          values[i] = BigInteger.valueOf(-i);
+        } else {
+          values[i] = BigInteger.valueOf(i);
+        }
+      }
+      CType structType =
+          makeElaboratedTypeFor(
+              structTypeName, ComplexTypeKind.STRUCT, structTestTypes, structFieldNames);
+
+      // Declares a struct on the heap with malloc and assigns the values
+      declareStructVariableWithSimpleTypeWithValuesOnTheHeap(values, variableName1, structType);
+      // Declares a new struct on the heap with malloc and assigns the values
+      declareStructVariableWithSimpleTypeWithValuesOnTheHeap(values, variableName2, structType);
+
+      CExpression equality =
+          new CBinaryExpression(
+              FileLocation.DUMMY,
+              INT_TYPE,
+              INT_TYPE,
+              new CIdExpression(
+                  FileLocation.DUMMY,
+                  new CPointerType(false, false, structType),
+                  variableName1,
+                  new CVariableDeclaration(
+                      FileLocation.DUMMY,
+                      false,
+                      CStorageClass.AUTO,
+                      new CPointerType(false, false, structType),
+                      variableName1,
+                      variableName1,
+                      variableName1,
+                      null)),
+              new CIdExpression(
+                  FileLocation.DUMMY,
+                  new CPointerType(false, false, structType),
+                  variableName2,
+                  new CVariableDeclaration(
+                      FileLocation.DUMMY,
+                      false,
+                      CStorageClass.AUTO,
+                      new CPointerType(false, false, structType),
+                      variableName2,
+                      variableName2,
+                      variableName2,
+                      null)),
+              BinaryOperator.EQUALS);
+
+      Collection<SMGState> statesAfter = transferRelation.handleAssumption(null, equality, true);
+
+      // The truth assumption is false -> the true assumption gets turned to false -> null return
+      // The reason is that these are 2 distinct addresses and its not allowed to assume them equal!
+      assertThat(statesAfter).isNull();
+    }
+  }
+
+  /*
+   * Tests the equality of 2 structs, throwing an exception in the process as C does not
+   * allow this operation.
+   */
+  @Test
+  public void testStructEqualityAssumption() throws CPATransferException {
+    for (int sublist = 1; sublist < STRUCT_UNION_TEST_TYPES.size(); sublist++) {
+      String structTypeName = "testStructType" + sublist;
+      String variableName1 = "testStruct1_" + sublist;
+      String variableName2 = "testStruct2_" + sublist;
+      List<CType> structTestTypes = STRUCT_UNION_TEST_TYPES.subList(0, sublist);
+      List<String> structFieldNames = STRUCT_UNION_FIELD_NAMES.subList(0, sublist);
+      BigInteger[] values = new BigInteger[structTestTypes.size()];
+      for (int i = 0; i < structTestTypes.size(); i++) {
+        if (((CSimpleType) structTestTypes.get(i)).isSigned() && Math.floorMod(i, 2) == 1) {
+          // Make every second value a negative for signed values
+          values[i] = BigInteger.valueOf(-i);
+        } else {
+          values[i] = BigInteger.valueOf(i);
+        }
+      }
+      CType structType =
+          makeElaboratedTypeFor(
+              structTypeName, ComplexTypeKind.STRUCT, structTestTypes, structFieldNames);
+
+      // Declare 2 structs on the stack with the same values but distinct declaration (those are 2
+      // distinct variables!)
+      declareStructVariableWithSimpleTypeWithValuesOnTheStack(
+          values, variableName1, structType, structTestTypes);
+      declareStructVariableWithSimpleTypeWithValuesOnTheStack(
+          values, variableName2, structType, structTestTypes);
+
+      CExpression equality =
+          new CBinaryExpression(
+              FileLocation.DUMMY,
+              INT_TYPE,
+              INT_TYPE,
+              new CIdExpression(
+                  FileLocation.DUMMY,
+                  structType,
+                  variableName1,
+                  new CVariableDeclaration(
+                      FileLocation.DUMMY,
+                      false,
+                      CStorageClass.AUTO,
+                      structType,
+                      variableName1,
+                      variableName1,
+                      variableName1,
+                      null)),
+              new CIdExpression(
+                  FileLocation.DUMMY,
+                  structType,
+                  variableName2,
+                  new CVariableDeclaration(
+                      FileLocation.DUMMY,
+                      false,
+                      CStorageClass.AUTO,
+                      structType,
+                      variableName2,
+                      variableName2,
+                      variableName2,
+                      null)),
+              BinaryOperator.EQUALS);
+
+      // This should throw an exception as this is a compilation error
+      CPATransferException e =
+          assertThrows(
+              CPATransferException.class,
+              () -> transferRelation.handleAssumption(null, equality, true));
+
+      assertThat(e).hasMessageThat().contains("invalid operator usage");
+    }
+  }
+
+  /*
+   * Tests the equality of 2 array addresses which are distinct!
+   * Which means the == is false and it may never learn that the 2 symbolic
+   * expressions are equal as addresses only change through SMG merges.
+   */
+  @Test
+  public void testHeapArrayAddressEqualityFalseAssumptionWithTrueTruthAssumption()
+      throws CPATransferException, InterruptedException {
+    for (CType testType : ARRAY_TEST_TYPES) {
+      String variableName1 = "testStruct1_" + testType;
+      String variableName2 = "testStruct2_" + testType;
+      BigInteger[] values = new BigInteger[TEST_ARRAY_LENGTH.intValue()];
+      for (int i = 0; i < TEST_ARRAY_LENGTH.intValue(); i++) {
+        if (((CSimpleType) testType).isSigned() && Math.floorMod(i, 2) == 1) {
+          // Make every second value a negative for signed values
+          values[i] = BigInteger.valueOf(-i);
+        } else {
+          values[i] = BigInteger.valueOf(i);
+        }
+      }
+      // Declares 2 distinct arrays on the heap and assigns the values
+      declareArrayVariableWithSimpleTypeWithValuesOnTheHeap(
+          TEST_ARRAY_LENGTH.intValue(), values, variableName1, testType);
+      declareArrayVariableWithSimpleTypeWithValuesOnTheHeap(
+          TEST_ARRAY_LENGTH.intValue(), values, variableName2, testType);
+
+      CExpression equality =
+          new CBinaryExpression(
+              FileLocation.DUMMY,
+              INT_TYPE,
+              INT_TYPE,
+              new CIdExpression(
+                  FileLocation.DUMMY,
+                  new CPointerType(false, false, testType),
+                  variableName1,
+                  new CVariableDeclaration(
+                      FileLocation.DUMMY,
+                      false,
+                      CStorageClass.AUTO,
+                      new CPointerType(false, false, testType),
+                      variableName1,
+                      variableName1,
+                      variableName1,
+                      null)),
+              new CIdExpression(
+                  FileLocation.DUMMY,
+                  new CPointerType(false, false, testType),
+                  variableName2,
+                  new CVariableDeclaration(
+                      FileLocation.DUMMY,
+                      false,
+                      CStorageClass.AUTO,
+                      new CPointerType(false, false, testType),
+                      variableName2,
+                      variableName2,
+                      variableName2,
+                      null)),
+              BinaryOperator.EQUALS);
+
+      Collection<SMGState> statesAfter = transferRelation.handleAssumption(null, equality, true);
+
+      // The truth assumption is false -> null return (because true truth assumption)
+      // The reason is that these are 2 distinct addresses and its not allowed to assume them equal!
+      assertThat(statesAfter).isNull();
     }
   }
 
