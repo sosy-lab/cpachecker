@@ -250,7 +250,7 @@ public class GIATestcaseGenerator {
       //      sb.append("    TRUE -> " + actionOnFinalEdges + "GOTO __TRUE;\n\n");
       sb.append(descriptionForInnerMultiEdges);
     }
-    sb.append(String.format("STATE %s :\n", GIAGenerator.NAME_OF_NEWTESTINPUT_STATE));
+    sb.append(String.format("STATE %s :%n", GIAGenerator.NAME_OF_NEWTESTINPUT_STATE));
     sb.append("    TRUE -> GOTO __FALSE;\n\n");
 
     sb.append("END AUTOMATON\n");

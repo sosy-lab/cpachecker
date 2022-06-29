@@ -189,16 +189,10 @@ public class GIACombinerTransferRelation extends SingleEdgeTransferRelation {
               .allMatch(t -> t.getKey().getTrigger() == AutomatonBoolExpr.TRUE)) {
             // Second is only true (hence we are in qTemp, qFinal or qError, hence no need to merge
             Set<GIACombinerState> successors = new HashSet<>();
-            for (Entry<AutomatonTransition, AutomatonState> transition :
-                successorFirst.entrySet()) {
+            for (AutomatonTransition key : successorFirst.keySet()) {
               GIACombinerState newState = new GIACombinerState(first, new NotPresentGIAState());
               successors.add(newState);
-              combinerState.addSuccessor(
-                  new GIATransition(
-                      transition.getKey().getTrigger(),
-                      transition.getKey().getAssumptions(),
-                      GIAARGStateEdge.getScopeForEdge(cfaEdge)),
-                  newState);
+              combinerState.addSuccessor(new GIATransition(key.getTrigger(), key.getAssumptions(), GIAARGStateEdge.getScopeForEdge(cfaEdge)), newState);
             }
             return successors;
           } else {

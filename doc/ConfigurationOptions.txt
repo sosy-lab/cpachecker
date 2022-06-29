@@ -157,7 +157,7 @@ solver.z3.usePhantomReferences = false
 
 # SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
 # SPDX-FileCopyrightText: 2007-2021 Dirk Beyer <https://www.sosy-lab.org>
-# SPDX-FileCopyrightText: 2014-2017 Université Grenoble Alpes
+# SPDX-FileCopyrightText: 2014-2017 Universit� Grenoble Alpes
 # SPDX-FileCopyrightText: 2020 Dirk Beyer <https://www.sosy-lab.org>
 # SPDX-FileCopyrightText: 2021 Dirk Beyer <https://www.sosy-lab.org>
 # SPDX-FileCopyrightText: 2022 Dirk Beyer <https://www.sosy-lab.org>
@@ -1762,6 +1762,8 @@ cpa.functionpointer.trackInvalidFunctionPointers = false
 
 # Filename to the first GIA
 cpa.giacombiner.pathToGIA1 = no default value
+
+# Filename to the second GIA
 cpa.giacombiner.pathToGIA2 = no default value
 
 # which type of merge operator to use for IntervalAnalysisCPA

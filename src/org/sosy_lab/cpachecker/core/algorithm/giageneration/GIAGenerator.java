@@ -64,7 +64,7 @@ public class GIAGenerator {
     } else if (pUnknownStates.contains(pCurrentState)) {
       prefix = "UNKNOWN ";
     }
-    return String.format("%SSTATE USEALL %s :\n", prefix, GIAGenerator.getName(pCurrentState));
+    return String.format("%SSTATE USEALL %s :%n", prefix, GIAGenerator.getName(pCurrentState));
   }
 
   @Options

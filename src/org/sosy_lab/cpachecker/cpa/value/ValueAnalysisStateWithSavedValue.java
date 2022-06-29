@@ -11,28 +11,29 @@ package org.sosy_lab.cpachecker.cpa.value;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 
 public class ValueAnalysisStateWithSavedValue extends ValueAnalysisState {
   private static final long serialVersionUID = 6590808222591196385L;
-  private final Optional<Value> valueFromLastIteration;
+  private final @Nullable Value valueFromLastIteration;
 
   public ValueAnalysisStateWithSavedValue(
-      ValueAnalysisState state, Optional<Value> pValueFromLastIteration) {
+      ValueAnalysisState state, Value pValueFromLastIteration) {
     super(state);
     this.valueFromLastIteration = pValueFromLastIteration;
   }
 
   public ValueAnalysisStateWithSavedValue(ValueAnalysisState state) {
     super(state);
-    this.valueFromLastIteration = Optional.empty();
+    this.valueFromLastIteration = null;
   }
 
   public ValueAnalysisStateWithSavedValue(
       ValueAnalysisState pState, Map<Integer, String> pValuesMap) {
     super(pState);
     super.setValueMap(pValuesMap);
-    this.valueFromLastIteration = Optional.empty();
+    this.valueFromLastIteration = null;
   }
 
   public static ValueAnalysisStateWithSavedValue copyOf(ValueAnalysisState state) {
@@ -63,7 +64,7 @@ public class ValueAnalysisStateWithSavedValue extends ValueAnalysisState {
     return Objects.hash(super.hashCode(), valueFromLastIteration);
   }
 
-  public Optional<Value> getValueFromLastIteration() {
+  public Value getValueFromLastIteration() {
     return valueFromLastIteration;
   }
 }

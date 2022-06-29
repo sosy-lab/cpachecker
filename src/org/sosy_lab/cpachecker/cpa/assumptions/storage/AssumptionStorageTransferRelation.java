@@ -164,12 +164,12 @@ public class AssumptionStorageTransferRelation extends SingleEdgeTransferRelatio
         }
       } else if (extractAssumptionsFromValueAnalysisState
           && element instanceof ValueAnalysisStateWithSavedValue
-          && ((ValueAnalysisStateWithSavedValue) element).getValueFromLastIteration().isPresent()) {
+          && ((ValueAnalysisStateWithSavedValue) element).getValueFromLastIteration() != null) {
         // We have a AssumptionStorage State and we added an value of the testcomp testcase, hence
         // store this as assumption
         // Firstly, get the value from the current state:
         Value curValue =
-            ((ValueAnalysisStateWithSavedValue) element).getValueFromLastIteration().orElseThrow();
+            ((ValueAnalysisStateWithSavedValue) element).getValueFromLastIteration();
         ALeftHandSide lhs = CFAEdgeUtils.getLeftHandSide(pEdge);
         if (lhs instanceof CIdExpression) {
           CIdExpression idExpr = (CIdExpression) lhs;

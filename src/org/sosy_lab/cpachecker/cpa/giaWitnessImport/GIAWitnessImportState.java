@@ -8,7 +8,6 @@
 
 package org.sosy_lab.cpachecker.cpa.giaWitnessImport;
 
-import java.io.Serializable;
 import java.util.logging.Level;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.log.LogManager;
@@ -26,11 +25,9 @@ import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
 
 public class GIAWitnessImportState
     implements LatticeAbstractState<GIAWitnessImportState>,
-        Serializable,
         Graphable,
         ExpressionTreeReportingState {
 
-  private static final long serialVersionUID = -7715698130885641252L;
   private final LogManager logger;
 
   private final ExpressionTree<AExpression> tree;
@@ -72,7 +69,7 @@ public class GIAWitnessImportState
   @Override
   public String toDOTLabel() {
     return String.format(
-        "[%s], \n ++%s++",
+        "[%s], %n ++%s++",
         tree.toString(),
         this.automatonState != null
             ? this.automatonState.getInternalStateName()

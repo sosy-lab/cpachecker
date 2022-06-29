@@ -323,7 +323,7 @@ public class ValueAnalysisTransferRelation
     if (successor != null) {
       if (successor instanceof SplitValueAnalysisState) {
         try {
-          return ((SplitValueAnalysisState) successor).split();
+          return ((SplitValueAnalysisState) successor).split(logger);
         } catch (CPATransferException pE) {
           logger.logfUserException(Level.SEVERE, pE, "Cannot splitt the state! Aborting");
           return ImmutableSet.of();
@@ -411,7 +411,7 @@ public class ValueAnalysisTransferRelation
             && ((ExpressionValueVisitorWithPredefinedValues) visitor)
                 .isLastRequestedValuePresent()) {
           // Store the value from the last iteration in the state
-          newElement = new ValueAnalysisStateWithSavedValue(newElement, Optional.of(value));
+          newElement = new ValueAnalysisStateWithSavedValue(newElement, value);
           newElement.assignConstant(formalParamName, value, paramType);
         } else {
           newElement.assignConstant(formalParamName, value, paramType);
@@ -938,7 +938,7 @@ public class ValueAnalysisTransferRelation
       valuesFromFilesUsed = true;
       state.setSplitPoint();
       return new SplitValueAnalysisState(
-          state, valuesFromFile, this, super.precision, cfaEdgeFromInfo, logger);
+          state, valuesFromFile, this, super.precision, cfaEdgeFromInfo);
     }
 
     Value newValue = evv.evaluate(functionCallExp, leftSideType);
@@ -950,7 +950,7 @@ public class ValueAnalysisTransferRelation
         if (evv instanceof ExpressionValueVisitorWithPredefinedValues
             && ((ExpressionValueVisitorWithPredefinedValues) evv).isLastRequestedValuePresent()) {
           // Store the value from the last iteration in the state
-          newElement = new ValueAnalysisStateWithSavedValue(newElement, Optional.of(newValue));
+          newElement = new ValueAnalysisStateWithSavedValue(newElement, newValue);
           evv.reset();
         }
         newElement.assignConstant(memLoc.orElseThrow(), newValue, leftSideType);

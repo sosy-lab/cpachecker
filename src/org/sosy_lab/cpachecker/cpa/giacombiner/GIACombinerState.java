@@ -11,7 +11,6 @@ package org.sosy_lab.cpachecker.cpa.giacombiner;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Multimap;
-import java.io.Serializable;
 import java.util.Collection;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -22,7 +21,7 @@ import org.sosy_lab.cpachecker.cpa.automaton.AutomatonStateTypes;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 public class GIACombinerState
-    implements LatticeAbstractState<GIACombinerState>, Serializable, Graphable {
+    implements LatticeAbstractState<GIACombinerState>,  Graphable {
 
   private static final long serialVersionUID = -7715698130885641252L;
 

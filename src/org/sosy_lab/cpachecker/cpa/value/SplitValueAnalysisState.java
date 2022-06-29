@@ -27,7 +27,6 @@ public class SplitValueAnalysisState extends ValueAnalysisState {
   private final ValueAnalysisTransferRelation transferRelation;
   private final VariableTrackingPrecision precision;
   private final CFAEdge edge;
-  private final LogManagerWithoutDuplicates logger;
   private static final long serialVersionUID = -3152134551524554358L;
 
   public SplitValueAnalysisState(
@@ -35,18 +34,16 @@ public class SplitValueAnalysisState extends ValueAnalysisState {
       List<Map<Integer, String>> pValuesFromFile,
       ValueAnalysisTransferRelation pValueAnalysisTransferRelation,
       VariableTrackingPrecision pPrecision,
-      CFAEdge pCfaEdgeFromInfo,
-      LogManagerWithoutDuplicates pLogger) {
+      CFAEdge pCfaEdgeFromInfo) {
     super(pState);
     oldState = pState;
     this.valuesFromFiles = pValuesFromFile;
     transferRelation = pValueAnalysisTransferRelation;
     this.precision = pPrecision;
     this.edge = pCfaEdgeFromInfo;
-    this.logger = pLogger;
   }
 
-  public Collection<ValueAnalysisState> split() throws CPATransferException {
+  public Collection<ValueAnalysisState> split(LogManagerWithoutDuplicates pLogger) throws CPATransferException {
 
     if (this.valuesFromFiles.isEmpty()) {
       return Lists.newArrayList(ValueAnalysisState.copyOf(oldState));
@@ -70,7 +67,7 @@ public class SplitValueAnalysisState extends ValueAnalysisState {
         throw new CPATransferException("Execution is interrupted", pE);
       }
     }
-    logger.log(Level.INFO, String.format("Split into %d states", splitStates.size()));
+    pLogger.log(Level.INFO, String.format("Split into %d states", splitStates.size()));
     return splitStates;
   }
 
@@ -90,13 +87,12 @@ public class SplitValueAnalysisState extends ValueAnalysisState {
         && Objects.equals(oldState, that.oldState)
         && Objects.equals(transferRelation, that.transferRelation)
         && Objects.equals(precision, that.precision)
-        && Objects.equals(edge, that.edge)
-        && Objects.equals(logger, that.logger);
+        && Objects.equals(edge, that.edge);
   }
 
   @Override
   public int hashCode() {
     return Objects.hash(
-        super.hashCode(), valuesFromFiles, oldState, transferRelation, precision, edge, logger);
+        super.hashCode(), valuesFromFiles, oldState, transferRelation, precision, edge);
   }
 }

@@ -62,7 +62,7 @@ public class GIACombinerCPA extends AbstractCPA implements ProofCheckerCPA {
   @FileOption(Type.OPTIONAL_INPUT_FILE)
   private Path pathToGIA1 = null;
 
-  @Option(secure = true, description = "Filename to the first GIA")
+  @Option(secure = true, description = "Filename to the second GIA")
   @FileOption(Type.OPTIONAL_INPUT_FILE)
   private Path pathToGIA2 = null;
 
@@ -84,16 +84,16 @@ public class GIACombinerCPA extends AbstractCPA implements ProofCheckerCPA {
       automaton1 = getAutomaton(pathToGIA1);
     } else {
       automaton1 = null;
-      this.pathToOnlyAutomaton = Optional.of(pathToGIA2);
+      this.pathToOnlyAutomaton = Optional.ofNullable(pathToGIA2);
     }
     if (pathToGIA2 != null) {
       automaton2 = getAutomaton(pathToGIA2);
     } else {
-      if (pathToOnlyAutomaton.isPresent()) {
+      if (! pathToOnlyAutomaton.isPresent()) {
         throw new InvalidConfigurationException("At least one path to a GIA needs to be present");
       } else {
         automaton2 = null;
-        this.pathToOnlyAutomaton = Optional.of(pathToGIA1);
+        this.pathToOnlyAutomaton = Optional.ofNullable(pathToGIA1);
       }
     }
     GIACombinerTransferRelation transferRelation =
