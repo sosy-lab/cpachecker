@@ -15,6 +15,7 @@ import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableBiMap;
 import com.google.common.collect.ImmutableSet;
 import java.io.IOException;
+import java.util.Optional;
 import java.util.Set;
 import org.eclipse.cdt.core.dom.ast.IASTTranslationUnit;
 import org.eclipse.core.runtime.CoreException;
@@ -72,10 +73,9 @@ class EclipseCWriter implements CWriter {
         }
       }
 
-      // TODO do I need the original CFA? should it be an Optional?
       records =
           new CfaTransformationRecords(
-              /* pOriginalCfa = */ null,
+              /* pCfaBeforeTransformation = */ Optional.empty(),
               /* pAddedEdges = */ allEdges.build(),
               /* pRemovedEdges =  */ ImmutableSet.of(),
               /* pOldEdgeToNewEdgeAfterAstNodeSubstitution = */ identityBiMapOfEdges.buildOrThrow(),
@@ -87,7 +87,8 @@ class EclipseCWriter implements CWriter {
 
     } else {
       records = pCfa.getTransformationRecords().orElseThrow();
-      final CFA originalCfa = records.getOriginalCfa();
+      assert records.getCfaBeforeTransformation().isPresent();
+      final CFA originalCfa = records.getCfaBeforeTransformation().get();
 
       checkArgument(
           originalCfa.getFileNames().size() == 1,

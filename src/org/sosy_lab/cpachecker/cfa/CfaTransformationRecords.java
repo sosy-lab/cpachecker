@@ -8,10 +8,13 @@
 
 package org.sosy_lab.cpachecker.cfa;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import com.google.common.collect.BiMap;
 import com.google.common.collect.ImmutableBiMap;
 import com.google.common.collect.ImmutableSet;
 import java.util.Map.Entry;
+import java.util.Optional;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -19,7 +22,7 @@ import org.sosy_lab.cpachecker.cfa.model.c.CFunctionEntryNode;
 
 public class CfaTransformationRecords {
 
-  private final CFA originalCfa;
+  private final Optional<CFA> cfaBeforeTransformation;
   private final Set<CFAEdge> addedEdges;
   private final Set<CFAEdge> removedEdges;
   private final BiMap<CFAEdge, CFAEdge> oldEdgeToNewEdgeAfterAstNodeSubstitution;
@@ -34,7 +37,7 @@ public class CfaTransformationRecords {
   private final Set<CFANode> missingNodes;
 
   public CfaTransformationRecords(
-      final CFA pOriginalCfa,
+      final Optional<CFA> pCfaBeforeTransformation,
       final Set<CFAEdge> pAddedEdges,
       final Set<CFAEdge> pRemovedEdges,
       final BiMap<CFAEdge, CFAEdge> pOldEdgeToNewEdgeAfterAstNodeSubstitution,
@@ -42,7 +45,7 @@ public class CfaTransformationRecords {
       final Set<CFANode> pRemovedNodes,
       final BiMap<CFANode, CFANode> pOldNodeToNewNodeAfterAstNodeSubstitution) {
 
-    originalCfa = pOriginalCfa;
+    cfaBeforeTransformation = pCfaBeforeTransformation;
     addedEdges = pAddedEdges;
     removedEdges = pRemovedEdges;
     oldEdgeToNewEdgeAfterAstNodeSubstitution = pOldEdgeToNewEdgeAfterAstNodeSubstitution;
@@ -75,9 +78,10 @@ public class CfaTransformationRecords {
 
   public static CfaTransformationRecords getTransformationRecordsForUntransformedCfa(
       final CFA pCfa) {
+    checkNotNull(pCfa);
 
     return new CfaTransformationRecords(
-        /* pOriginalCfa = */ pCfa,
+        /* pCfaBeforeTransformation = */ Optional.of(pCfa),
         /* pAddedEdges = */ ImmutableSet.of(),
         /* pRemovedEdges =  */ ImmutableSet.of(),
         /* pOldEdgeToNewEdgeAfterAstNodeSubstitution = */ ImmutableBiMap.of(),
@@ -86,8 +90,8 @@ public class CfaTransformationRecords {
         /* pOldNodeToNewNodeAfterAstNodeSubstitution = */ ImmutableBiMap.of());
   }
 
-  public CFA getOriginalCfa() {
-    return originalCfa;
+  public Optional<CFA> getCfaBeforeTransformation() {
+    return cfaBeforeTransformation;
   }
 
   public Set<CFAEdge> getAddedEdges() {
