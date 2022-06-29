@@ -45,13 +45,15 @@ public class CfaTransformationRecords {
       final Set<CFANode> pRemovedNodes,
       final BiMap<CFANode, CFANode> pOldNodeToNewNodeAfterAstNodeSubstitution) {
 
-    cfaBeforeTransformation = pCfaBeforeTransformation;
-    addedEdges = pAddedEdges;
-    removedEdges = pRemovedEdges;
-    oldEdgeToNewEdgeAfterAstNodeSubstitution = pOldEdgeToNewEdgeAfterAstNodeSubstitution;
-    addedNodes = pAddedNodes;
-    removedNodes = pRemovedNodes;
-    oldNodeToNewNodeAfterAstNodeSubstitution = pOldNodeToNewNodeAfterAstNodeSubstitution;
+    cfaBeforeTransformation = checkNotNull(pCfaBeforeTransformation);
+    addedEdges = checkNotNull(pAddedEdges);
+    removedEdges = checkNotNull(pRemovedEdges);
+    oldEdgeToNewEdgeAfterAstNodeSubstitution =
+        checkNotNull(pOldEdgeToNewEdgeAfterAstNodeSubstitution);
+    addedNodes = checkNotNull(pAddedNodes);
+    removedNodes = checkNotNull(pRemovedNodes);
+    oldNodeToNewNodeAfterAstNodeSubstitution =
+        checkNotNull(pOldNodeToNewNodeAfterAstNodeSubstitution);
 
     final ImmutableSet.Builder<CFAEdge> newEdgesBuilder = ImmutableSet.builder();
     final ImmutableSet.Builder<CFAEdge> missingEdgesBuilder = ImmutableSet.builder();
