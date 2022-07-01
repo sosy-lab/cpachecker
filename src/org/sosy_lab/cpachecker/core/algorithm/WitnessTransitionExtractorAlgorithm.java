@@ -50,7 +50,7 @@ import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.faultlocalization.Fault;
 import org.sosy_lab.cpachecker.util.faultlocalization.FaultLocalizationInfo;
 import org.sosy_lab.cpachecker.util.faultlocalization.FaultUtil;
-import org.sosy_lab.cpachecker.util.faultlocalization.appendables.FaultInfo;
+import org.sosy_lab.cpachecker.util.faultlocalization.appendables.FaultReason;
 import org.sosy_lab.cpachecker.util.statistics.StatTimer;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 
@@ -177,14 +177,14 @@ public class WitnessTransitionExtractorAlgorithm
     return ImmutableSet.copyOf(automaton.getTransitions().values());
   }
 
-  public static class AppendixFaultInfo extends FaultInfo {
+  public static class AppendixFaultInfo extends FaultReason {
 
     private final Multimap<ARGState, TracingInformation> information;
     private final Set<GraphMLTransition> transitions;
 
     protected AppendixFaultInfo(
         Multimap<ARGState, TracingInformation> pInformation, Set<GraphMLTransition> pTransitions) {
-      super(InfoType.REASON);
+      super("Original witness metadata");
       transitions = pTransitions;
       information = pInformation;
     }
