@@ -211,11 +211,10 @@ public class SMGCPAValueExpressionEvaluator {
       // They are not equal
       return new NumericValue(1);
     }
-      Preconditions.checkArgument(
-          !(leftValue instanceof AddressExpression) && !(rightValue instanceof AddressExpression));
-      boolean isNotEqual = state.areNonEqualAddresses(leftValue, rightValue);
-      return isNotEqual ? new NumericValue(1) : new NumericValue(0);
-
+    Preconditions.checkArgument(
+        !(leftValue instanceof AddressExpression) && !(rightValue instanceof AddressExpression));
+    boolean isNotEqual = state.areNonEqualAddresses(leftValue, rightValue);
+    return isNotEqual ? new NumericValue(1) : new NumericValue(0);
   }
 
   /**

@@ -62,19 +62,14 @@ import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 public class SMGState implements LatticeAbstractState<SMGState>, AbstractQueryableState, Graphable {
 
   // Properties:
-  @SuppressWarnings("unused")
   private static final String HAS_INVALID_FREES = "has-invalid-frees";
 
-  @SuppressWarnings("unused")
   private static final String HAS_INVALID_READS = "has-invalid-reads";
 
-  @SuppressWarnings("unused")
   private static final String HAS_INVALID_WRITES = "has-invalid-writes";
 
-  @SuppressWarnings("unused")
   private static final String HAS_LEAKS = "has-leaks";
 
-  @SuppressWarnings("unused")
   private static final String HAS_HEAP_OBJECTS = "has-heap-objects";
 
   @SuppressWarnings("unused")

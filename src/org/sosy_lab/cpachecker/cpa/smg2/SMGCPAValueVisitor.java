@@ -275,7 +275,7 @@ public class SMGCPAValueVisitor
                     currentState));
             continue;
           } else if (binaryOperator == BinaryOperator.NOT_EQUALS) {
-         // address != address or address != not address
+            // address != address or address != not address
             resultBuilder.add(
                 ValueAndSMGState.of(
                     evaluator.checkNonEqualityForAddresses(leftValue, rightValue, currentState),

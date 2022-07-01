@@ -15,6 +15,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import java.math.BigInteger;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
@@ -22,6 +23,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.logging.Level;
+import org.checkerframework.checker.nullness.qual.NonNull;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.collect.Collections3;
 import org.sosy_lab.common.configuration.Configuration;
@@ -76,7 +78,11 @@ import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.defaults.ForwardingTransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithAssumptions;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
+import org.sosy_lab.cpachecker.cpa.constraints.domain.ConstraintsState;
+import org.sosy_lab.cpachecker.cpa.pointer2.PointerState;
+import org.sosy_lab.cpachecker.cpa.rtt.RTTState;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMG2Exception;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGObjectAndOffset;
 import org.sosy_lab.cpachecker.cpa.smg2.util.value.SMGCPAValueExpressionEvaluator;
@@ -402,7 +408,7 @@ public class SMGTransferRelation
   }
 
   private Collection<SMGState> handleAssumption(
-      CAssumeEdge cfaEdge, AExpression expression, boolean truthValue) throws CPATransferException {
+      CFAEdge cfaEdge, AExpression expression, boolean truthValue) throws CPATransferException {
 
     // TODO: statistics
     /*
@@ -601,7 +607,7 @@ public class SMGTransferRelation
   private List<SMGState> handleVariableDeclaration(
       SMGState pState, CVariableDeclaration pVarDecl, CDeclarationEdge pEdge)
       throws CPATransferException {
-    String varName = pVarDecl.getName();
+    String varName = pVarDecl.getQualifiedName();
     CType cType = SMGCPAValueExpressionEvaluator.getCanonicalType(pVarDecl);
     boolean isExtern = pVarDecl.getCStorageClass().equals(CStorageClass.EXTERN);
 
@@ -981,14 +987,6 @@ public class SMGTransferRelation
         new CInitializerList(pFileLocation, charArrayInitialziersBuilder.build()));
   }
 
-  /**
-   * (non-Javadoc)
-   *
-   * @see
-   *     org.sosy_lab.cpachecker.core.interfaces.TransferRelation#strengthen(org.sosy_lab.cpachecker.core.interfaces.AbstractState,
-   *     java.lang.Iterable, org.sosy_lab.cpachecker.cfa.model.CFAEdge,
-   *     org.sosy_lab.cpachecker.core.interfaces.Precision)
-   */
   @Override
   public Collection<? extends AbstractState> strengthen(
       AbstractState element,
@@ -996,8 +994,126 @@ public class SMGTransferRelation
       CFAEdge cfaEdge,
       Precision pPrecision)
       throws CPATransferException, InterruptedException {
+    Preconditions.checkArgument(element instanceof SMGState);
 
-    return ImmutableList.of(element);
+    List<SMGState> toStrengthen = new ArrayList<>();
+    List<SMGState> result = new ArrayList<>();
+    toStrengthen.add((SMGState) element);
+    result.add((SMGState) element);
+
+    for (AbstractState ae : elements) {
+      if (ae instanceof RTTState) {
+        result.clear();
+        for (SMGState stateToStrengthen : toStrengthen) {
+          super.setInfo(element, pPrecision, cfaEdge);
+          result.add(stateToStrengthen);
+        }
+        toStrengthen.clear();
+        toStrengthen.addAll(result);
+      } else if (ae instanceof AbstractStateWithAssumptions) {
+        result.clear();
+        for (SMGState stateToStrengthen : toStrengthen) {
+          super.setInfo(element, pPrecision, cfaEdge);
+          AbstractStateWithAssumptions stateWithAssumptions = (AbstractStateWithAssumptions) ae;
+          result.addAll(
+              strengthenWithAssumptions(stateWithAssumptions, stateToStrengthen, cfaEdge));
+        }
+        toStrengthen.clear();
+        toStrengthen.addAll(result);
+      } else if (ae instanceof ConstraintsState) {
+        throw new CPATransferException("Not implemented.");
+        /*
+        result.clear();
+
+        for (SMGState stateToStrengthen : toStrengthen) {
+          super.setInfo(element, pPrecision, cfaEdge);
+          Collection<SMGState> ret =
+              constraintsStrengthenOperator.strengthen(
+                  (SMGState) element, (ConstraintsState) ae, cfaEdge);
+
+          if (ret == null) {
+            result.add(stateToStrengthen);
+          } else {
+            result.addAll(ret);
+          }
+        }
+        toStrengthen.clear();
+        toStrengthen.addAll(result);
+        */
+      } else if (ae instanceof PointerState) {
+        throw new CPATransferException("Don't use the pointer CPA with the SMGCPA!");
+        /*
+        CFAEdge edge = cfaEdge;
+
+        ARightHandSide rightHandSide = CFAEdgeUtils.getRightHandSide(edge);
+        ALeftHandSide leftHandSide = CFAEdgeUtils.getLeftHandSide(edge);
+        Type leftHandType = CFAEdgeUtils.getLeftHandType(edge);
+        String leftHandVariable = CFAEdgeUtils.getLeftHandVariable(edge);
+        PointerState pointerState = (PointerState) ae;
+
+        result.clear();
+
+        for (SMGState stateToStrengthen : toStrengthen) {
+          super.setInfo(element, pPrecision, cfaEdge);
+          SMGState newState =
+              strengthenWithPointerInformation(
+                  stateToStrengthen,
+                  pointerState,
+                  rightHandSide,
+                  leftHandType,
+                  leftHandSide,
+                  leftHandVariable,
+                  UnknownValue.getInstance());
+
+          newState = handleModf(rightHandSide, pointerState, newState);
+
+          result.add(newState);
+        }
+        toStrengthen.clear();
+        toStrengthen.addAll(result);
+        */
+      }
+    }
+    toStrengthen.addAll(result);
+    // Do post processing
+    final Collection<AbstractState> postProcessedResult = new ArrayList<>(result.size());
+    for (SMGState rawResult : result) {
+      // The original state has already been post-processed
+      if (rawResult == element) {
+        postProcessedResult.add(element);
+      } else {
+        postProcessedResult.addAll(postProcessing(ImmutableList.of(rawResult), cfaEdge));
+      }
+    }
+
+    super.resetInfo();
+
+    return postProcessedResult;
+  }
+
+  private @NonNull Collection<SMGState> strengthenWithAssumptions(
+      AbstractStateWithAssumptions pStateWithAssumptions, SMGState pState, CFAEdge pCfaEdge)
+      throws CPATransferException {
+
+    Collection<SMGState> newStates = ImmutableList.of(pState);
+
+    for (AExpression assumption : pStateWithAssumptions.getAssumptions()) {
+      newStates = handleAssumption(pCfaEdge, assumption, true);
+
+      if (newStates == null) {
+        break;
+      } else {
+        for (SMGState newState : newStates) {
+          setInfo(newState, precision, pCfaEdge);
+        }
+      }
+    }
+
+    if (newStates == null) {
+      return ImmutableList.of();
+    } else {
+      return newStates;
+    }
   }
 
   /*
