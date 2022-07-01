@@ -772,6 +772,24 @@ public class SMGState implements LatticeAbstractState<SMGState>, AbstractQueryab
   }
 
   /**
+   * Invalid write to 0. (0 SMGObject)
+   *
+   * @param invalidWriteRegion the invalid address pointing to nothing.
+   * @return A new SMGState with the error info.
+   */
+  public SMGState withInvalidWriteToZeroObject(SMGObject invalidWriteRegion) {
+    String errorMSG = "Write to invalid memory region: NULL.";
+    SMGErrorInfo newErrorInfo =
+        SMGErrorInfo.of()
+            .withProperty(Property.INVALID_WRITE)
+            .withErrorMessage(errorMSG)
+            .withInvalidObjects(Collections.singleton(invalidWriteRegion));
+    // Log the error in the logger
+    logMemoryError(errorMSG, true);
+    return copyWithNewErrorInfo(newErrorInfo);
+  }
+
+  /**
    * Invalid write with custom error msg.
    *
    * @param invalidValue the invalid value. Either address or write value or something like a size
@@ -1179,6 +1197,10 @@ public class SMGState implements LatticeAbstractState<SMGState>, AbstractQueryab
    */
   protected SMGState writeValue(
       SMGObject object, BigInteger writeOffsetInBits, BigInteger sizeInBits, Value valueToWrite) {
+    if (object.isZero()) {
+      // Write to 0
+      return withInvalidWriteToZeroObject(object);
+    }
     SMGValueAndSMGState valueAndState = copyAndAddValue(valueToWrite);
     SMGValue smgValue = valueAndState.getSMGValue();
     SMGState currentState = valueAndState.getSMGState();
@@ -1196,6 +1218,7 @@ public class SMGState implements LatticeAbstractState<SMGState>, AbstractQueryab
       BigInteger writeOffsetInBits,
       BigInteger sizeInBits,
       SMGValue valueToWrite) {
+
     return copyAndReplaceMemoryModel(
         memoryModel.writeValue(object, writeOffsetInBits, sizeInBits, valueToWrite));
   }
