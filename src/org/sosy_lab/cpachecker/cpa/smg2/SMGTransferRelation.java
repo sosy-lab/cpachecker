@@ -24,7 +24,6 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.logging.Level;
 import org.checkerframework.checker.nullness.qual.NonNull;
-import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.collect.Collections3;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
@@ -104,9 +103,6 @@ public class SMGTransferRelation
 
   private final MachineModel machineModel;
 
-  @SuppressWarnings("unused")
-  private final ShutdownNotifier shutdownNotifier;
-
   private final LogManagerWithoutDuplicates logger;
 
   private final SMGCPAValueExpressionEvaluator evaluator;
@@ -124,13 +120,11 @@ public class SMGTransferRelation
       LogManager pLogger,
       SMGOptions pOptions,
       SMGCPAExportOptions pExportSMGOptions,
-      ShutdownNotifier pShutdownNotifier,
       CFA pCfa) {
     logger = new LogManagerWithoutDuplicates(pLogger);
     options = pOptions;
     exportSMGOptions = pExportSMGOptions;
     machineModel = pCfa.getMachineModel();
-    shutdownNotifier = pShutdownNotifier;
     evaluator = new SMGCPAValueExpressionEvaluator(machineModel, logger, exportSMGOptions, options);
 
     if (pCfa.getVarClassification().isPresent()) {
@@ -147,7 +141,6 @@ public class SMGTransferRelation
       LogManager pLogger,
       SMGOptions pOptions,
       SMGCPAExportOptions pExportSMGOptions,
-      ShutdownNotifier pShutdownNotifier,
       MachineModel pMachineModel,
       Collection<String> pAddressedVariables,
       Collection<String> pBooleanVariables) {
@@ -155,7 +148,6 @@ public class SMGTransferRelation
     options = pOptions;
     exportSMGOptions = pExportSMGOptions;
     machineModel = pMachineModel;
-    shutdownNotifier = pShutdownNotifier;
     evaluator = new SMGCPAValueExpressionEvaluator(machineModel, logger, exportSMGOptions, options);
     addressedVariables = pAddressedVariables;
     booleanVariables = pBooleanVariables;

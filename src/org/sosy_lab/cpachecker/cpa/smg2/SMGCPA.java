@@ -9,7 +9,6 @@
 package org.sosy_lab.cpachecker.cpa.smg2;
 
 import java.util.Collection;
-import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -73,7 +72,6 @@ public class SMGCPA
   private final BlockOperator blockOperator;
 
   private final LogManager logger;
-  private final ShutdownNotifier shutdownNotifier;
   private final Configuration config;
   private final CFA cfa;
   private final AssumptionToEdgeAllocator assumptionToEdgeAllocator;
@@ -82,8 +80,7 @@ public class SMGCPA
 
   private final SMGStatistics stats = new SMGStatistics();
 
-  private SMGCPA(
-      Configuration pConfig, LogManager pLogger, ShutdownNotifier pShutdownNotifier, CFA pCfa)
+  private SMGCPA(Configuration pConfig, LogManager pLogger, CFA pCfa)
       throws InvalidConfigurationException {
     pConfig.inject(this);
     options = new SMGOptions(pConfig);
@@ -92,7 +89,6 @@ public class SMGCPA
     cfa = pCfa;
     machineModel = cfa.getMachineModel();
     logger = pLogger;
-    shutdownNotifier = pShutdownNotifier;
     assumptionToEdgeAllocator = AssumptionToEdgeAllocator.create(config, logger, machineModel);
 
     blockOperator = new BlockOperator();
@@ -135,7 +131,7 @@ public class SMGCPA
 
   @Override
   public TransferRelation getTransferRelation() {
-    return new SMGTransferRelation(logger, options, exportOptions, shutdownNotifier, cfa);
+    return new SMGTransferRelation(logger, options, exportOptions, cfa);
   }
 
   @Override

@@ -173,7 +173,6 @@ public class SMGCPATransferRelationTest {
             logManager,
             smgOptions,
             SMGCPAExportOptions.getNoExportInstance(),
-            ShutdownNotifier.createDummy(),
             MACHINE_MODEL,
             ImmutableList.of(),
             ImmutableList.of());
