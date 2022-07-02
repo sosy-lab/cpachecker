@@ -396,11 +396,11 @@ public class SMGTransferRelation
     // Assumptions are for example all comparisons like ==, !=, <.... and should always be a
     // CBinaryExpression
     // We also might learn something by assuming symbolic or unknown values based on known values
-    return handleAssumption(cfaEdge, (AExpression) expression, truthAssumption);
+    return handleAssumption(expression, cfaEdge, truthAssumption);
   }
 
   private Collection<SMGState> handleAssumption(
-      CFAEdge cfaEdge, AExpression expression, boolean truthValue) throws CPATransferException {
+      AExpression expression, CFAEdge cfaEdge, boolean truthValue) throws CPATransferException {
 
     // TODO: statistics
     /*
@@ -1090,7 +1090,7 @@ public class SMGTransferRelation
     Collection<SMGState> newStates = ImmutableList.of(pState);
 
     for (AExpression assumption : pStateWithAssumptions.getAssumptions()) {
-      newStates = handleAssumption(pCfaEdge, assumption, true);
+      newStates = handleAssumption(assumption, pCfaEdge, true);
 
       if (newStates == null) {
         break;
