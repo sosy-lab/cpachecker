@@ -117,10 +117,7 @@ public class SMGTransferRelation
   private final Collection<String> addressedVariables;
 
   public SMGTransferRelation(
-      LogManager pLogger,
-      SMGOptions pOptions,
-      SMGCPAExportOptions pExportSMGOptions,
-      CFA pCfa) {
+      LogManager pLogger, SMGOptions pOptions, SMGCPAExportOptions pExportSMGOptions, CFA pCfa) {
     logger = new LogManagerWithoutDuplicates(pLogger);
     options = pOptions;
     exportSMGOptions = pExportSMGOptions;
