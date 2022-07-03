@@ -9,7 +9,7 @@
 package org.sosy_lab.cpachecker.cfa.parser.eclipse.c.export;
 
 import static com.google.common.base.Preconditions.checkArgument;
-import static org.sosy_lab.cpachecker.cfa.parser.eclipse.c.export.ExportStatement.createNewLabelName;
+import static org.sosy_lab.cpachecker.cfa.parser.eclipse.c.export.CCfaEdgeStatement.createNewLabelName;
 
 import com.google.common.base.Verify;
 import com.google.common.collect.FluentIterable;
@@ -46,11 +46,11 @@ import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.parser.eclipse.c.EclipseCdtWrapper;
-import org.sosy_lab.cpachecker.cfa.parser.eclipse.c.export.ExportStatement.ElseStatement;
-import org.sosy_lab.cpachecker.cfa.parser.eclipse.c.export.ExportStatement.GlobalDeclaration;
-import org.sosy_lab.cpachecker.cfa.parser.eclipse.c.export.ExportStatement.IfStatement;
-import org.sosy_lab.cpachecker.cfa.parser.eclipse.c.export.ExportStatement.PlaceholderStatement;
-import org.sosy_lab.cpachecker.cfa.parser.eclipse.c.export.ExportStatement.SimpleStatement;
+import org.sosy_lab.cpachecker.cfa.parser.eclipse.c.export.CCfaEdgeStatement.ElseStatement;
+import org.sosy_lab.cpachecker.cfa.parser.eclipse.c.export.CCfaEdgeStatement.EmptyCCfaEdgeStatement;
+import org.sosy_lab.cpachecker.cfa.parser.eclipse.c.export.CCfaEdgeStatement.GlobalDeclaration;
+import org.sosy_lab.cpachecker.cfa.parser.eclipse.c.export.CCfaEdgeStatement.IfStatement;
+import org.sosy_lab.cpachecker.cfa.parser.eclipse.c.export.CCfaEdgeStatement.SimpleCCfaEdgeStatement;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 
@@ -165,7 +165,7 @@ class EclipseCWriter implements CWriter {
 
       if (records.isNew(currentEdge)) {
 
-        final ExportStatement statement = createStatementForEdge(currentEdge);
+        final CCfaEdgeStatement statement = createStatementForEdge(currentEdge);
         final Optional<FileLocation> lastRealFileLocBefore =
             functionInfo.getLastRealFileLocationSeenBeforeReachingEdge(currentEdge);
         if (statement instanceof GlobalDeclaration) {
@@ -256,13 +256,13 @@ class EclipseCWriter implements CWriter {
         .filter(edge -> !(edge instanceof FunctionReturnEdge));
   }
 
-  private static ExportStatement createStatementForEdge(final CFAEdge pEdge) {
+  private static CCfaEdgeStatement createStatementForEdge(final CFAEdge pEdge) {
 
     switch (pEdge.getEdgeType()) {
       case BlankEdge:
         {
           // in case we need to add a label here later
-          return new PlaceholderStatement(pEdge);
+          return new EmptyCCfaEdgeStatement(pEdge);
         }
 
       case AssumeEdge:
@@ -284,14 +284,14 @@ class EclipseCWriter implements CWriter {
             return new GlobalDeclaration(declarationEdge);
           }
 
-          return new SimpleStatement(pEdge);
+          return new SimpleCCfaEdgeStatement(pEdge);
         }
 
       case StatementEdge:
       case ReturnStatementEdge:
       case FunctionCallEdge:
         {
-          return new SimpleStatement(pEdge);
+          return new SimpleCCfaEdgeStatement(pEdge);
         }
 
       case FunctionReturnEdge:
@@ -364,7 +364,7 @@ class EclipseCWriter implements CWriter {
   }
 
   private static void createGoto(
-      final ExportStatement pStatement,
+      final CCfaEdgeStatement pStatement,
       final CFANode pGotoTarget,
       final FluentIterable<CFAEdge> pNextEdges,
       final FunctionExportInformation pFunctionInfo,
@@ -387,7 +387,7 @@ class EclipseCWriter implements CWriter {
 
     if (pRecords.isNew(pTargetEdge)) {
       // there has to be a created statement, because the edge was already traversed
-      final ExportStatement targetStatement =
+      final CCfaEdgeStatement targetStatement =
           pFunctionInfo.getCreatedStatementForOrigin(pTargetEdge).orElseThrow();
       return targetStatement.getOrCreateLabel();
     }
@@ -450,8 +450,8 @@ class EclipseCWriter implements CWriter {
 
     private final Map<CFAEdge, Optional<FileLocation>> edgeToLastRealFileLoc = new HashMap<>();
 
-    private final Map<CFAEdge, ExportStatement> newStatementsByOrigin = new HashMap<>();
-    private final Multimap<Optional<FileLocation>, ExportStatement>
+    private final Map<CFAEdge, CCfaEdgeStatement> newStatementsByOrigin = new HashMap<>();
+    private final Multimap<Optional<FileLocation>, CCfaEdgeStatement>
         newStatementsByFileLocToBeInsertedAfter =
             MultimapBuilder.hashKeys().linkedListValues().build();
 
@@ -481,7 +481,7 @@ class EclipseCWriter implements CWriter {
     }
 
     private void addNewStatement(
-        final ExportStatement pStatement, final Optional<FileLocation> pLastRealFileLocBefore) {
+        final CCfaEdgeStatement pStatement, final Optional<FileLocation> pLastRealFileLocBefore) {
 
       final CFAEdge origin = pStatement.getOrigin();
       assert !newStatementsByOrigin.containsKey(origin) : "Edge " + origin + " was already handled";
@@ -509,7 +509,7 @@ class EclipseCWriter implements CWriter {
       }
 
       addNewStatement(
-          new PlaceholderStatement(pOldEdge),
+          new EmptyCCfaEdgeStatement(pOldEdge),
           getLastRealFileLocationSeenBeforeReachingEdge(pOldEdge));
     }
 
@@ -518,7 +518,7 @@ class EclipseCWriter implements CWriter {
           || visitedOldEdgesByFileLocation.containsValue(pEdge);
     }
 
-    private Optional<ExportStatement> getCreatedStatementForOrigin(final CFAEdge pOrigin) {
+    private Optional<CCfaEdgeStatement> getCreatedStatementForOrigin(final CFAEdge pOrigin) {
       return Optional.ofNullable(newStatementsByOrigin.get(pOrigin));
     }
 

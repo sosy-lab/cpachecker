@@ -17,7 +17,8 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFALabelNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 
-abstract class ExportStatement {
+/** Statement representing a {@link CFAEdge} in a C-{@link org.sosy_lab.cpachecker.cfa.CFA}. */
+abstract class CCfaEdgeStatement {
 
   private static final UniqueIdGenerator labelIdGenerator = new UniqueIdGenerator();
 
@@ -29,7 +30,7 @@ abstract class ExportStatement {
 
   private final CFAEdge origin;
 
-  private ExportStatement(final CFAEdge pOrigin) {
+  private CCfaEdgeStatement(final CFAEdge pOrigin) {
     origin = pOrigin;
 
     // only label the IfStatement at branching points
@@ -85,9 +86,9 @@ abstract class ExportStatement {
     return origin;
   }
 
-  static class SimpleStatement extends ExportStatement {
+  static class SimpleCCfaEdgeStatement extends CCfaEdgeStatement {
 
-    SimpleStatement(final CFAEdge pEdge) {
+    SimpleCCfaEdgeStatement(final CFAEdge pEdge) {
       super(pEdge);
     }
 
@@ -101,7 +102,7 @@ abstract class ExportStatement {
     }
   }
 
-  static class GlobalDeclaration extends SimpleStatement {
+  static class GlobalDeclaration extends SimpleCCfaEdgeStatement {
 
     GlobalDeclaration(final CDeclarationEdge pEdge) {
       super(pEdge);
@@ -126,7 +127,7 @@ abstract class ExportStatement {
     }
   }
 
-  static class IfStatement extends ExportStatement {
+  static class IfStatement extends CCfaEdgeStatement {
 
     IfStatement(final AssumeEdge pEdge) {
       super(pEdge);
@@ -139,7 +140,7 @@ abstract class ExportStatement {
     }
   }
 
-  static class ElseStatement extends ExportStatement {
+  static class ElseStatement extends CCfaEdgeStatement {
 
     ElseStatement(final AssumeEdge pEdge) {
       super(pEdge);
@@ -158,9 +159,9 @@ abstract class ExportStatement {
     }
   }
 
-  static class PlaceholderStatement extends ExportStatement {
+  static class EmptyCCfaEdgeStatement extends CCfaEdgeStatement {
 
-    PlaceholderStatement(final CFAEdge pEdge) {
+    EmptyCCfaEdgeStatement(final CFAEdge pEdge) {
       super(pEdge);
     }
 
