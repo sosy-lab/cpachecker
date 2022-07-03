@@ -250,10 +250,8 @@ class EclipseCWriter implements CWriter {
 
       case DeclarationEdge:
         {
-          final CDeclarationEdge declarationEdge = (CDeclarationEdge) pEdge;
-
-          if (declarationEdge.getDeclaration().isGlobal()) {
-            return new GlobalDeclaration(declarationEdge);
+          if (isGlobalDeclaration(pEdge)) {
+            return new GlobalDeclaration((CDeclarationEdge) pEdge);
           }
 
           return new SimpleCCfaEdgeStatement(pEdge);
@@ -283,6 +281,11 @@ class EclipseCWriter implements CWriter {
 
   private static boolean isRealTruthAssumption(final AssumeEdge pAssumption) {
     return pAssumption.getTruthAssumption() != pAssumption.isSwapped();
+  }
+
+  private static boolean isGlobalDeclaration(final CFAEdge pEdge) {
+    return pEdge instanceof CDeclarationEdge
+        && ((CDeclarationEdge) pEdge).getDeclaration().isGlobal();
   }
 
   /**
@@ -317,8 +320,11 @@ class EclipseCWriter implements CWriter {
       }
     }
 
+    // we only want to consider edges within the same function (i.a., no global declarations, except
+    // for global declarations) that were already traversed
     final List<FileLocation> lastRealFileLocsBefore =
         getAllEnteringEdgesWithinFunction(pEdge.getPredecessor())
+            .filter(edge -> isGlobalDeclaration(edge) == isGlobalDeclaration(pEdge))
             .filter(edge -> functionInfo.isLastRealFileLocationKnown(edge))
             .transform(edge -> functionInfo.getLastRealFileLocationSeenBeforeReachingEdge(edge))
             .filter(optional -> optional.isPresent())
@@ -467,10 +473,7 @@ class EclipseCWriter implements CWriter {
     }
 
     private void addNewLabelBeforeOldEdge(final String pLabel, final CFAEdge pOldEdge) {
-      checkArgument(
-          !(pOldEdge instanceof CDeclarationEdge
-              && ((CDeclarationEdge) pOldEdge).getDeclaration().isGlobal()),
-          "Global declarations can not be labeled.");
+      checkArgument(!isGlobalDeclaration(pOldEdge), "Global declarations can not be labeled.");
 
       final FileLocation fileLoc = pOldEdge.getFileLocation();
 
