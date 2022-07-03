@@ -155,8 +155,6 @@ class EclipseCWriter implements CWriter {
       final CFAEdge currentEdge = waitList.poll();
       findAndStoreLastRealFileLocationSeenBeforeReachingEdge(currentEdge, records, functionInfo);
 
-      // TODO check whether predecessor is new CFALabelNode => add label
-
       if (records.isNew(currentEdge)) {
 
         final ExportStatement statement = createStatementForEdge(currentEdge);
@@ -172,6 +170,8 @@ class EclipseCWriter implements CWriter {
         //  necessary)
 
       } else {
+        // TODO check whether predecessor is new CFALabelNode => add label
+
         // TODO check whether edge is part of a set of edges representing the same statement (same
         //  FileLocation) and whether something was changed in between these edges (if yes, we can
         //  not use the original AST for export and have to create the code here

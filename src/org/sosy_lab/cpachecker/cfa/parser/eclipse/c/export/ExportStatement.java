@@ -14,27 +14,34 @@ import java.util.Optional;
 import org.sosy_lab.common.UniqueIdGenerator;
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFALabelNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 
 abstract class ExportStatement {
 
   private static final UniqueIdGenerator labelIdGenerator = new UniqueIdGenerator();
 
-  private boolean isGotoTarget = false;
+  private boolean isLabeled = false;
   private String gotoLabel = null;
 
   private final CFAEdge origin;
 
   private ExportStatement(final CFAEdge pOrigin) {
     origin = pOrigin;
+
+    // only label the IfStatement at branching points
+    if (!(this instanceof ElseStatement) && origin.getPredecessor() instanceof CFALabelNode) {
+      isLabeled = true;
+      gotoLabel = ((CFALabelNode) origin.getPredecessor()).getLabel();
+    }
   }
 
   private static String createNewLabelName() {
     return "label_" + labelIdGenerator.getFreshId();
   }
 
-  Optional<String> getLabelIfGotoTarget() {
-    if (!isGotoTarget) {
+  Optional<String> getLabelIfLabeled() {
+    if (!isLabeled) {
       return Optional.empty();
     } else {
       return Optional.of(gotoLabel);
@@ -42,9 +49,9 @@ abstract class ExportStatement {
   }
 
   String getOrCreateLabel() {
-    if (!isGotoTarget) {
+    if (!isLabeled) {
       gotoLabel = createNewLabelName();
-      isGotoTarget = true;
+      isLabeled = true;
     }
     return gotoLabel;
   }
@@ -93,6 +100,11 @@ abstract class ExportStatement {
 
     ElseStatement(final AssumeEdge pEdge) {
       super(pEdge);
+    }
+
+    @Override
+    String getOrCreateLabel() {
+      throw new AssertionError("The corresponding IfStatement should have been labeled.");
     }
 
     @Override
