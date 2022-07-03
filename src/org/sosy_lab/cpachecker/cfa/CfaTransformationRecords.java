@@ -169,7 +169,7 @@ public class CfaTransformationRecords {
    */
   public Optional<CFAEdge> getEdgeBeforeTransformation(final CFAEdge pNewEdge) {
     if (!newEdgeToOldEdgeAfterAstNodeSubstitution.containsKey(pNewEdge)) {
-      return Optional.empty();
+      return Optional.of(pNewEdge);
     }
     final CFAEdge pEdgeBeforeSubstitution = newEdgeToOldEdgeAfterAstNodeSubstitution.get(pNewEdge);
 
