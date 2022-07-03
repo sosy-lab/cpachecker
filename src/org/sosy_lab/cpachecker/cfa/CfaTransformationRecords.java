@@ -152,6 +152,11 @@ public class CfaTransformationRecords {
     return ImmutableSet.copyOf(missingNodes);
   }
 
+  /** Returns whether the given CFAEdge is one of the truly new CFAEdges in the transformed CFA. */
+  public boolean isNew(final CFAEdge pEdge) {
+    return newEdges.contains(pEdge);
+  }
+
   private static void collectNonTrivialEdgeChanges(
       final Set<CFAEdge> pEdgesAddedBeforeSubstitution,
       final Set<CFAEdge> pEdgesRemovedBeforeSubstitution,

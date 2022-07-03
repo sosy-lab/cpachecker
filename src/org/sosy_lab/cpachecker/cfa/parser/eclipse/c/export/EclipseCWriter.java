@@ -15,6 +15,8 @@ import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableBiMap;
 import com.google.common.collect.ImmutableSet;
 import java.io.IOException;
+import java.util.ArrayDeque;
+import java.util.Deque;
 import java.util.Optional;
 import java.util.Set;
 import org.eclipse.cdt.core.dom.ast.IASTTranslationUnit;
@@ -26,7 +28,13 @@ import org.sosy_lab.cpachecker.cfa.CfaTransformationRecords;
 import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.cfa.export.CWriter;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
+import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.parser.eclipse.c.EclipseCdtWrapper;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.CFAUtils;
@@ -80,8 +88,11 @@ class EclipseCWriter implements CWriter {
       }
     }
 
-    // TODO collect true changes (edges and nodes, in control-flow order, by traversing the CFA)
-    records.getAddedEdges();
+    final GlobalExportInformation exportInfo = new GlobalExportInformation(records);
+
+    for (final FunctionEntryNode functionEntryNode : pCfa.getAllFunctionHeads()) {
+      traverseFunctionCfaAndCreateCode(functionEntryNode, exportInfo);
+    }
 
     // TODO combine the original AST nodes of the unchanged parts with the newly created AST nodes
     // for the changed parts to get the C export
@@ -114,5 +125,82 @@ class EclipseCWriter implements CWriter {
         /* pAddedNodes =  */ allNodes,
         /* pRemovedNodes = */ ImmutableSet.of(),
         /* pOldNodeToNewNodeAfterAstNodeSubstitution = */ identityBiMapOfNodes.buildOrThrow());
+  }
+
+  private static void traverseFunctionCfaAndCreateCode(
+      final FunctionEntryNode pFunctionEntryNode, final GlobalExportInformation pExportInfo) {
+
+    final CfaTransformationRecords records = pExportInfo.getTransformationRecords();
+
+    final Deque<CFAEdge> waitList =
+        new ArrayDeque<>(CFAUtils.leavingEdges(pFunctionEntryNode).toSet());
+
+    while (!waitList.isEmpty()) {
+      // TODO get next element with a more elaborate strategy due to branchings?
+      final CFAEdge currentEdge = waitList.poll();
+
+      // TODO check whether predecessor is new CFALabelNode => add label
+
+      if (records.isNew(currentEdge)) {
+        // TODO create statement
+        // TODO traverse CFA backwards to find the last original and real FileLocation ( somehow
+        //  save this information so that we do not traverse the whole CFA everytime)
+        // TODO store the statement with the FileLocation in the FunctionExportInformation
+
+        // TODO if CFAEdge connects to a already handled CFANode => create goto (and label if
+        //  necessary)
+
+      } else {
+        // TODO check whether edge is part of a set of edges representing the same statement (same
+        //  FileLocation) and whether something was changed in between these edges (if yes, we can
+        //  not use the original AST for export and have to create the code here
+      }
+
+      final CFANode nextNode = getNextNodeInFunctionCfa(currentEdge);
+      // TODO handle two leaving edges differently? (branching or loop)
+      // TODO handle zero leaving edges differently? (add abort statement?)
+      for (final CFAEdge nextEdge : getRelevantLeavingEdges(nextNode)) {
+        waitList.offer(nextEdge);
+      }
+    }
+  }
+
+  /**
+   * Returns the CFANode to continue with after handling the given CFAEdge. Usually, this is the
+   * successor of the given CFAEdge. However, for {@link FunctionCallEdge}s it is the successor of
+   * the corresponding {@link CFunctionSummaryEdge}, so that the CFA traversal does not continue in
+   * a different function.
+   */
+  private static CFANode getNextNodeInFunctionCfa(final CFAEdge currentEdge) {
+    final CFANode nextNode;
+    if (currentEdge.getEdgeType().equals(CFAEdgeType.FunctionCallEdge)) {
+      nextNode = ((CFunctionCallEdge) currentEdge).getSummaryEdge().getSuccessor();
+    } else {
+      nextNode = currentEdge.getSuccessor();
+    }
+    return nextNode;
+  }
+
+  /**
+   * Returns the CFAEdges leaving the given node which store the relevant {@link
+   * org.sosy_lab.cpachecker.cfa.ast.AAstNode}s.
+   */
+  private static FluentIterable<CFAEdge> getRelevantLeavingEdges(final CFANode pNode) {
+    return CFAUtils.leavingEdges(pNode)
+        .filter(edge -> !(edge instanceof FunctionReturnEdge))
+        .filter(edge -> !(edge instanceof CFunctionSummaryEdge));
+  }
+
+  private static class GlobalExportInformation {
+
+    private final CfaTransformationRecords transformationRecords;
+
+    private GlobalExportInformation(final CfaTransformationRecords pTransformationRecords) {
+      transformationRecords = pTransformationRecords;
+    }
+
+    private CfaTransformationRecords getTransformationRecords() {
+      return transformationRecords;
+    }
   }
 }
