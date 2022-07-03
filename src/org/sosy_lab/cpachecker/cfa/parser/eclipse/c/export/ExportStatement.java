@@ -23,7 +23,7 @@ abstract class ExportStatement {
   private boolean isGotoTarget = false;
   private String gotoLabel = null;
 
-  protected final CFAEdge origin;
+  private final CFAEdge origin;
 
   private ExportStatement(final CFAEdge pOrigin) {
     origin = pOrigin;
@@ -51,6 +51,10 @@ abstract class ExportStatement {
 
   abstract String exportToCCode();
 
+  CFAEdge getOrigin() {
+    return origin;
+  }
+
   static class SimpleStatement extends ExportStatement {
 
     SimpleStatement(final CFAEdge pEdge) {
@@ -59,7 +63,9 @@ abstract class ExportStatement {
 
     @Override
     String exportToCCode() {
-      return origin.getRawAST().isPresent() ? origin.getRawAST().orElseThrow().toASTString() : "";
+      return getOrigin().getRawAST().isPresent()
+          ? getOrigin().getRawAST().orElseThrow().toASTString()
+          : "";
     }
   }
 
@@ -79,7 +85,7 @@ abstract class ExportStatement {
 
     @Override
     String exportToCCode() {
-      return "if (" + origin.getRawAST().orElseThrow().toASTString() + ") {";
+      return "if (" + getOrigin().getRawAST().orElseThrow().toASTString() + ") {";
     }
   }
 
