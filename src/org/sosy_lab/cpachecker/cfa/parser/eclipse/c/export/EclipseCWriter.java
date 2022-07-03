@@ -14,6 +14,7 @@ import static org.sosy_lab.cpachecker.cfa.parser.eclipse.c.export.CCfaEdgeStatem
 
 import com.google.common.base.Verify;
 import com.google.common.collect.FluentIterable;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.MultimapBuilder;
 import java.io.IOException;
@@ -293,21 +294,21 @@ class EclipseCWriter implements CWriter {
    * traversing the {@link CFA}. The result is stored to the given {@link
    * FunctionExportInformation}.
    *
-   * @param pEdge the edge
+   * @param pCurrentEdge the current edge
    * @param pTransformationRecords the {@link CfaTransformationRecords} of the CFA the given edge is
    *     a part of
    * @param functionInfo the {@link FunctionExportInformation} of the function the given edge is a
    *     part of
    */
   private static void findAndStoreLastRealFileLocationSeenBeforeReachingEdge(
-      final CFAEdge pEdge,
+      final CFAEdge pCurrentEdge,
       final CfaTransformationRecords pTransformationRecords,
       final FunctionExportInformation functionInfo) {
 
-    if (!pTransformationRecords.isNew(pEdge)) {
+    if (!pTransformationRecords.isNew(pCurrentEdge)) {
       // has to exist because edge is not new
       final CFAEdge edgeBeforeTransformation =
-          pTransformationRecords.getEdgeBeforeTransformation(pEdge).orElseThrow();
+          pTransformationRecords.getEdgeBeforeTransformation(pCurrentEdge).orElseThrow();
 
       // better use the FileLocation of the edgeBeforeTransformation in case the FileLocation was
       // not adopted for the trivial substitute edge
@@ -315,30 +316,53 @@ class EclipseCWriter implements CWriter {
 
       if (originalFileLoc.isRealLocation()) {
         functionInfo.storeEdgeWithLastRealFileLocationSeenBefore(
-            pEdge, Optional.of(originalFileLoc));
+            pCurrentEdge, Optional.of(originalFileLoc));
         return;
       }
     }
 
-    // we only want to consider edges within the same function (i.a., no global declarations, except
-    // for global declarations) that were already traversed
     final List<FileLocation> lastRealFileLocsBefore =
-        getAllEnteringEdgesWithinFunction(pEdge.getPredecessor())
-            .filter(edge -> isGlobalDeclaration(edge) == isGlobalDeclaration(pEdge))
-            .filter(edge -> functionInfo.isLastRealFileLocationKnown(edge))
-            .transform(edge -> functionInfo.getLastRealFileLocationSeenBeforeReachingEdge(edge))
-            .filter(optional -> optional.isPresent())
-            .transform(optional -> optional.orElseThrow())
-            .toList();
+        getLastRealFileLocationsSeenBeforeReachingPriorEdges(pCurrentEdge, functionInfo);
 
     if (lastRealFileLocsBefore.isEmpty()) {
-      functionInfo.storeEdgeWithLastRealFileLocationSeenBefore(pEdge, Optional.empty());
+      functionInfo.storeEdgeWithLastRealFileLocationSeenBefore(pCurrentEdge, Optional.empty());
       return;
     }
 
     final FileLocation mergedLastRealFileLocBefore = FileLocation.merge(lastRealFileLocsBefore);
     functionInfo.storeEdgeWithLastRealFileLocationSeenBefore(
-        pEdge, Optional.of(mergedLastRealFileLocBefore));
+        pCurrentEdge, Optional.of(mergedLastRealFileLocBefore));
+  }
+
+  private static List<FileLocation> getLastRealFileLocationsSeenBeforeReachingPriorEdges(
+      final CFAEdge pCurrentEdge, final FunctionExportInformation functionInfo) {
+
+    final ImmutableList.Builder<FileLocation> result = ImmutableList.builder();
+
+    // consider prior edges within the same function
+    for (final CFAEdge priorEdge :
+        getAllEnteringEdgesWithinFunction(pCurrentEdge.getPredecessor())) {
+
+      // if the current edge is a global declaration, only consider global declarations, otherwise
+      // do not consider global declarations
+      if (isGlobalDeclaration(pCurrentEdge) != isGlobalDeclaration(priorEdge)) {
+        continue;
+      }
+
+      // only consider edges that were already traversed
+      if (!functionInfo.isLastRealFileLocationKnown(priorEdge)) {
+        continue;
+      }
+      final Optional<FileLocation> optionalLastRealFileLocBeforePriorEdge =
+          functionInfo.getLastRealFileLocationSeenBeforeReachingEdge(priorEdge);
+
+      if (optionalLastRealFileLocBeforePriorEdge.isEmpty()) {
+        continue;
+      }
+      result.add(optionalLastRealFileLocBeforePriorEdge.orElseThrow());
+    }
+
+    return result.build();
   }
 
   private static void createGoto(
