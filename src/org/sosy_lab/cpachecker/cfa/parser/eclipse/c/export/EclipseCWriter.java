@@ -17,6 +17,9 @@ import com.google.common.collect.ImmutableSet;
 import java.io.IOException;
 import java.util.ArrayDeque;
 import java.util.Deque;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import org.eclipse.cdt.core.dom.ast.IASTTranslationUnit;
@@ -26,6 +29,7 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CParser.ParserOptions;
 import org.sosy_lab.cpachecker.cfa.CfaTransformationRecords;
 import org.sosy_lab.cpachecker.cfa.Language;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.export.CWriter;
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -138,6 +142,8 @@ class EclipseCWriter implements CWriter {
       final FunctionEntryNode pFunctionEntryNode, final GlobalExportInformation pExportInfo) {
 
     final CfaTransformationRecords records = pExportInfo.getTransformationRecords();
+    final FunctionExportInformation functionInfo = new FunctionExportInformation();
+    pExportInfo.addFunction(pFunctionEntryNode, functionInfo);
 
     final Deque<CFAEdge> waitList =
         new ArrayDeque<>(CFAUtils.leavingEdges(pFunctionEntryNode).toSet());
@@ -145,15 +151,17 @@ class EclipseCWriter implements CWriter {
     while (!waitList.isEmpty()) {
       // TODO get next element with a more elaborate strategy due to branchings?
       final CFAEdge currentEdge = waitList.poll();
+      findAndStoreLastRealFileLocationSeenBeforeReachingEdge(currentEdge, records, functionInfo);
 
       // TODO check whether predecessor is new CFALabelNode => add label
 
       if (records.isNew(currentEdge)) {
 
+        @SuppressWarnings("unused")
         final ExportStatement statement = createStatementForEdge(currentEdge);
-
-        // TODO traverse CFA backwards to find the last original and real FileLocation ( somehow
-        //  save this information so that we do not traverse the whole CFA everytime)
+        @SuppressWarnings("unused")
+        final Optional<FileLocation> lastRealFileLocBefore =
+            functionInfo.getLastRealFileLocationSeenBeforeReachingEdge(currentEdge);
         // TODO store the statement with the FileLocation in the FunctionExportInformation
 
         // TODO if CFAEdge connects to a already handled CFANode => create goto (and label if
@@ -168,7 +176,7 @@ class EclipseCWriter implements CWriter {
       final CFANode nextNode = getNextNodeInFunctionCfa(currentEdge);
       // TODO handle two leaving edges differently? (branching or loop)
       // TODO handle zero leaving edges differently? (add abort statement?)
-      for (final CFAEdge nextEdge : getRelevantLeavingEdges(nextNode)) {
+      for (final CFAEdge nextEdge : getLeavingEdgesWithRelevantAstNodes(nextNode)) {
         waitList.offer(nextEdge);
       }
     }
@@ -194,10 +202,20 @@ class EclipseCWriter implements CWriter {
    * Returns the CFAEdges leaving the given node which store the relevant {@link
    * org.sosy_lab.cpachecker.cfa.ast.AAstNode}s.
    */
-  private static FluentIterable<CFAEdge> getRelevantLeavingEdges(final CFANode pNode) {
+  private static FluentIterable<CFAEdge> getLeavingEdgesWithRelevantAstNodes(final CFANode pNode) {
     return CFAUtils.leavingEdges(pNode)
         .filter(edge -> !(edge instanceof FunctionReturnEdge))
         .filter(edge -> !(edge instanceof CFunctionSummaryEdge));
+  }
+
+  /**
+   * Returns all CFAEdges entering the given node (including the summary edge if the node has one)
+   * whose predecessor is part of the same function (omits calls and returns from other functions).
+   */
+  private static FluentIterable<CFAEdge> getAllEnteringEdgesWithinFunction(final CFANode pNode) {
+    return CFAUtils.allEnteringEdges(pNode)
+        .filter(edge -> !(edge instanceof FunctionCallEdge))
+        .filter(edge -> !(edge instanceof FunctionReturnEdge));
   }
 
   private static ExportStatement createStatementForEdge(final CFAEdge pEdge) {
@@ -253,9 +271,59 @@ class EclipseCWriter implements CWriter {
     }
   }
 
+  /**
+   * Finds the real {@link FileLocation} that is seen last before reaching the given edge when
+   * traversing the {@link CFA}. The result is stored to the given {@link
+   * FunctionExportInformation}.
+   *
+   * @param pEdge the edge
+   * @param pTransformationRecords the {@link CfaTransformationRecords} of the CFA the given edge is
+   *     a part of
+   * @param functionInfo the {@link FunctionExportInformation} of the function the given edge is a
+   *     part of
+   */
+  private static void findAndStoreLastRealFileLocationSeenBeforeReachingEdge(
+      final CFAEdge pEdge,
+      final CfaTransformationRecords pTransformationRecords,
+      final FunctionExportInformation functionInfo) {
+
+    if (!pTransformationRecords.isNew(pEdge)) {
+      // has to exist because edge is not new
+      final CFAEdge edgeBeforeTransformation =
+          pTransformationRecords.getEdgeBeforeTransformation(pEdge).orElseThrow();
+
+      // better use the FileLocation of the edgeBeforeTransformation in case the FileLocation was
+      // not adopted for the trivial substitute edge
+      final FileLocation originalFileLoc = edgeBeforeTransformation.getFileLocation();
+
+      if (originalFileLoc.isRealLocation()) {
+        functionInfo.storeEdgeWithLastRealFileLocationSeenBefore(
+            pEdge, Optional.of(originalFileLoc));
+      }
+    }
+
+    final List<FileLocation> lastRealFileLocsBefore =
+        getAllEnteringEdgesWithinFunction(pEdge.getPredecessor())
+            .filter(edge -> functionInfo.isLastRealFileLocationKnown(edge))
+            .transform(edge -> functionInfo.getLastRealFileLocationSeenBeforeReachingEdge(edge))
+            .filter(optional -> optional.isPresent())
+            .transform(optional -> optional.orElseThrow())
+            .toList();
+
+    if (lastRealFileLocsBefore.isEmpty()) {
+      functionInfo.storeEdgeWithLastRealFileLocationSeenBefore(pEdge, Optional.empty());
+    }
+
+    final FileLocation mergedLastRealFileLocBefore = FileLocation.merge(lastRealFileLocsBefore);
+    functionInfo.storeEdgeWithLastRealFileLocationSeenBefore(
+        pEdge, Optional.of(mergedLastRealFileLocBefore));
+  }
+
   private static class GlobalExportInformation {
 
     private final CfaTransformationRecords transformationRecords;
+
+    private final Map<FunctionEntryNode, FunctionExportInformation> functions = new HashMap<>();
 
     private GlobalExportInformation(final CfaTransformationRecords pTransformationRecords) {
       transformationRecords = pTransformationRecords;
@@ -263,6 +331,37 @@ class EclipseCWriter implements CWriter {
 
     private CfaTransformationRecords getTransformationRecords() {
       return transformationRecords;
+    }
+
+    private void addFunction(
+        final FunctionEntryNode pFunctionEntryNode, final FunctionExportInformation pFunctionInfo) {
+
+      functions.put(pFunctionEntryNode, pFunctionInfo);
+    }
+  }
+
+  private static class FunctionExportInformation {
+
+    final Map<CFAEdge, Optional<FileLocation>> edgeToLastRealFileLoc = new HashMap<>();
+
+    private FunctionExportInformation() {}
+
+    private boolean isLastRealFileLocationKnown(final CFAEdge pEdge) {
+      return edgeToLastRealFileLoc.containsKey(pEdge);
+    }
+
+    private Optional<FileLocation> getLastRealFileLocationSeenBeforeReachingEdge(
+        final CFAEdge pEdge) {
+
+      assert isLastRealFileLocationKnown(pEdge)
+          : "Asked for last real FileLocation before looking for it";
+      return edgeToLastRealFileLoc.get(pEdge);
+    }
+
+    private void storeEdgeWithLastRealFileLocationSeenBefore(
+        final CFAEdge pEdge, final Optional<FileLocation> pLastRealFileLocBefore) {
+
+      edgeToLastRealFileLoc.put(pEdge, pLastRealFileLocBefore);
     }
   }
 }
