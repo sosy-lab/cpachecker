@@ -406,6 +406,11 @@ class EclipseCWriter implements CWriter {
     }
 
     private void addNewLabelBeforeOldEdge(final String pLabel, final CFAEdge pOldEdge) {
+      checkArgument(
+          !(pOldEdge instanceof CDeclarationEdge
+              && ((CDeclarationEdge) pOldEdge).getDeclaration().isGlobal()),
+          "Global declarations can not be labeled.");
+
       final FileLocation fileLoc = pOldEdge.getFileLocation();
 
       if (fileLoc.isRealLocation()) {
