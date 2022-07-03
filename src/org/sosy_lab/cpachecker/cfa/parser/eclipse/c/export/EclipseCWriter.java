@@ -83,24 +83,7 @@ class EclipseCWriter implements CWriter {
 
     } else {
       records = pCfa.getTransformationRecords().orElseThrow();
-      final CFA originalCfa = records.getCfaBeforeTransformation().orElseThrow();
-
-      checkArgument(
-          originalCfa.getFileNames().size() == 1,
-          "CFA can only be exported for a single input file, at the moment.");
-
-      try {
-        originalAst =
-            eclipseCdt.getASTTranslationUnit(
-                EclipseCdtWrapper.wrapFile(originalCfa.getFileNames().get(0)));
-
-        Verify.verify(
-            originalAst.getPreprocessorProblemsCount() == 0,
-            "Problems should have been caught during CFA generation.");
-
-      } catch (final CoreException pE) {
-        throw new CPAException("Failed to export CFA to C program because AST parsing failed.");
-      }
+      originalAst = parseOriginalAst(records.getCfaBeforeTransformation().orElseThrow());
     }
 
     final GlobalExportInformation exportInfo = new GlobalExportInformation(records);
@@ -114,6 +97,26 @@ class EclipseCWriter implements CWriter {
 
     assert originalAst != null;
     return originalAst.getRawSignature(); // TODO adjust in case of changes
+  }
+
+  private IASTTranslationUnit parseOriginalAst(final CFA pOriginalCfa)
+      throws InterruptedException, IOException, CPAException {
+    checkArgument(
+        pOriginalCfa.getFileNames().size() == 1,
+        "CFA can only be exported for a single input file, at the moment.");
+
+    try {
+      final IASTTranslationUnit originalAst =
+          eclipseCdt.getASTTranslationUnit(
+              EclipseCdtWrapper.wrapFile(pOriginalCfa.getFileNames().get(0)));
+      Verify.verify(
+          originalAst.getPreprocessorProblemsCount() == 0,
+          "Problems should have been caught during CFA generation.");
+      return originalAst;
+
+    } catch (final CoreException pE) {
+      throw new CPAException("Failed to export CFA to C program because AST parsing failed.");
+    }
   }
 
   private static CfaTransformationRecords createTransformationRecordsForCfaWithout(final CFA pCfa) {
