@@ -56,6 +56,13 @@ abstract class ExportStatement {
     return gotoLabel;
   }
 
+  String exportLabel() {
+    if (isLabeled) {
+      return gotoLabel + ":;\n";
+    }
+    return "";
+  }
+
   abstract String exportToCCode();
 
   CFAEdge getOrigin() {
@@ -70,9 +77,11 @@ abstract class ExportStatement {
 
     @Override
     String exportToCCode() {
-      return getOrigin().getRawAST().isPresent()
-          ? getOrigin().getRawAST().orElseThrow().toASTString()
-          : "";
+      final String statement =
+          getOrigin().getRawAST().isPresent()
+              ? getOrigin().getRawAST().orElseThrow().toASTString()
+              : "";
+      return exportLabel() + statement;
     }
   }
 
@@ -81,6 +90,17 @@ abstract class ExportStatement {
     GlobalDeclaration(final CDeclarationEdge pEdge) {
       super(pEdge);
       checkArgument(pEdge.getDeclaration().isGlobal());
+    }
+
+    @Override
+    String getOrCreateLabel() {
+      throw new AssertionError("Global declarations can not be labeled.");
+    }
+
+    @Override
+    String exportToCCode() {
+      assert getLabelIfLabeled().isEmpty() : "Global declarations can not be labeled.";
+      return super.exportToCCode();
     }
   }
 
@@ -92,7 +112,8 @@ abstract class ExportStatement {
 
     @Override
     String exportToCCode() {
-      return "if (" + getOrigin().getRawAST().orElseThrow().toASTString() + ") {";
+      final String condition = getOrigin().getRawAST().orElseThrow().toASTString();
+      return exportLabel() + "if (" + condition + ") {";
     }
   }
 
@@ -109,6 +130,8 @@ abstract class ExportStatement {
 
     @Override
     String exportToCCode() {
+      assert getLabelIfLabeled().isEmpty()
+          : "The corresponding IfStatement should have been labeled.";
       return "} else {";
     }
   }
@@ -121,7 +144,7 @@ abstract class ExportStatement {
 
     @Override
     String exportToCCode() {
-      return "";
+      return exportLabel();
     }
   }
 }
