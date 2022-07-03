@@ -9,12 +9,11 @@
 package org.sosy_lab.cpachecker.cfa.parser.eclipse.c.export;
 
 import static com.google.common.base.Preconditions.checkArgument;
+import static org.sosy_lab.cpachecker.cfa.CfaTransformationRecords.createTransformationRecordsForCompletelyTransformedCfa;
 import static org.sosy_lab.cpachecker.cfa.parser.eclipse.c.export.CCfaEdgeStatement.createNewLabelName;
 
 import com.google.common.base.Verify;
 import com.google.common.collect.FluentIterable;
-import com.google.common.collect.ImmutableBiMap;
-import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.MultimapBuilder;
 import java.io.IOException;
@@ -24,7 +23,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.Set;
 import org.eclipse.cdt.core.dom.ast.IASTTranslationUnit;
 import org.eclipse.core.runtime.CoreException;
 import org.sosy_lab.common.ShutdownNotifier;
@@ -78,7 +76,7 @@ class EclipseCWriter implements CWriter {
     // that all edges and nodes were added and that the AST node substitutions were the identity.
     // In that case, we can not parse the original AST, but we also do not require it.
     if (pCfa.getTransformationRecords().isEmpty()) {
-      records = createTransformationRecordsForCfaWithout(pCfa);
+      records = createTransformationRecordsForCompletelyTransformedCfa(pCfa);
       originalAst = null;
 
     } else {
@@ -117,32 +115,6 @@ class EclipseCWriter implements CWriter {
     } catch (final CoreException pE) {
       throw new CPAException("Failed to export CFA to C program because AST parsing failed.");
     }
-  }
-
-  private static CfaTransformationRecords createTransformationRecordsForCfaWithout(final CFA pCfa) {
-    final Set<CFANode> allNodes = ImmutableSet.copyOf(pCfa.getAllNodes());
-    final ImmutableSet.Builder<CFAEdge> allEdges = ImmutableSet.builder();
-    final ImmutableBiMap.Builder<CFANode, CFANode> identityBiMapOfNodes = ImmutableBiMap.builder();
-    final ImmutableBiMap.Builder<CFAEdge, CFAEdge> identityBiMapOfEdges = ImmutableBiMap.builder();
-
-    for (final CFANode node : allNodes) {
-      identityBiMapOfNodes.put(node, node);
-
-      final FluentIterable<CFAEdge> edges = CFAUtils.leavingEdges(node);
-      for (final CFAEdge edge : edges) {
-        allEdges.add(edge);
-        identityBiMapOfEdges.put(edge, edge);
-      }
-    }
-
-    return new CfaTransformationRecords(
-        /* pCfaBeforeTransformation = */ Optional.empty(),
-        /* pAddedEdges = */ allEdges.build(),
-        /* pRemovedEdges =  */ ImmutableSet.of(),
-        /* pOldEdgeToNewEdgeAfterAstNodeSubstitution = */ identityBiMapOfEdges.buildOrThrow(),
-        /* pAddedNodes =  */ allNodes,
-        /* pRemovedNodes = */ ImmutableSet.of(),
-        /* pOldNodeToNewNodeAfterAstNodeSubstitution = */ identityBiMapOfNodes.buildOrThrow());
   }
 
   private static void traverseFunctionCfaAndCreateCode(

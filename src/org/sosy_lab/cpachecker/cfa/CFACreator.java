@@ -582,7 +582,7 @@ public class CFACreator {
             pParseResult.getFileNames(),
             language);
     cfa.setTransformationRecords(
-        CfaTransformationRecords.getTransformationRecordsForUntransformedCfa(cfa));
+        CfaTransformationRecords.createTransformationRecordsForUntransformedCfa(cfa));
 
     stats.checkTime.start();
 

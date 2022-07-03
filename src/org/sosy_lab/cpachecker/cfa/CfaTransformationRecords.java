@@ -16,51 +16,88 @@ import com.google.common.collect.ImmutableSet;
 import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Set;
+import org.sosy_lab.cpachecker.cfa.ast.AAstNode;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFALabelNode;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionEntryNode;
+import org.sosy_lab.cpachecker.util.CFAUtils;
 
+/**
+ * Records representing the CFA transformation that are facilitated by the {@link CCfaTransformer}
+ * with the {@link CfaMutableNetwork} as a data structure.
+ */
 public class CfaTransformationRecords {
 
   private final Optional<CFA> cfaBeforeTransformation;
-  private final Set<CFAEdge> addedEdges;
-  private final Set<CFAEdge> removedEdges;
-  private final BiMap<CFAEdge, CFAEdge> newEdgeToOldEdgeAfterAstNodeSubstitution;
-  private final Set<CFANode> addedNodes;
-  private final Set<CFANode> removedNodes;
-  private final BiMap<CFANode, CFANode> newNodeToOldNodeAfterAstNodeSubstitution;
 
-  private final Set<CFAEdge> newEdges;
-  private final Set<CFAEdge> missingEdges;
+  private final ImmutableSet<CFAEdge> edgesAddedBeforeAstNodeSubstitution;
+  private final ImmutableSet<CFAEdge> edgesRemovedBeforeAstNodeSubstitution;
+  private final ImmutableBiMap<CFAEdge, CFAEdge> newEdgeToOldEdgeAfterAstNodeSubstitution;
 
-  private final Set<CFANode> newNodes;
-  private final Set<CFANode> missingNodes;
+  private final ImmutableSet<CFANode> nodesAddedBeforeAstNodeSubstitution;
+  private final ImmutableSet<CFANode> nodesRemovedBeforeAstNodeSubstitution;
+  private final ImmutableBiMap<CFANode, CFANode> newNodeToOldNodeAfterAstNodeSubstitution;
 
+  private final ImmutableSet<CFAEdge> newEdges;
+  private final ImmutableSet<CFAEdge> missingEdges;
+
+  private final ImmutableSet<CFANode> newNodes;
+  private final ImmutableSet<CFANode> missingNodes;
+
+  /**
+   * Creates CfaTransformationRecords from the given changes.
+   *
+   * @param pCfaBeforeTransformation The untransformed CFA.
+   * @param pEdgesAddedBeforeAstNodeSubstitution The CFAEdges that were added to the {@link
+   *     CfaMutableNetwork} of the untransformed CFA before {@link AAstNode} substitution with the
+   *     {@link CCfaTransformer}
+   * @param pEdgesRemovedBeforeAstNodeSubstitution The CFAEdges that were removed from the {@link
+   *     CfaMutableNetwork} of the untransformed CFA before {@link AAstNode} substitution with the
+   *     {@link CCfaTransformer}
+   * @param pOldEdgeToNewEdgeAfterAstNodeSubstitution The mapping from a CFAEdge of the {@link
+   *     CfaMutableNetwork} to its substitute after {@link AAstNode} substitution with the {@link
+   *     CCfaTransformer}
+   * @param pNodesAddedBeforeAstNodeSubstitution The CFANodes that were added to the {@link
+   *     CfaMutableNetwork} of the untransformed CFA before {@link AAstNode} substitution with the
+   *     {@link CCfaTransformer}
+   * @param pNodesRemovedBeforeAstNodeSubstitution The CFANodes that were removed from the {@link
+   *     CfaMutableNetwork} of the untransformed CFA before {@link AAstNode} substitution with the
+   *     {@link CCfaTransformer}
+   * @param pOldNodeToNewNodeAfterAstNodeSubstitution The mapping from a CFANode of the {@link
+   *     CfaMutableNetwork} to its substitute after {@link AAstNode} substitution with the {@link
+   *     CCfaTransformer}
+   */
   public CfaTransformationRecords(
       final Optional<CFA> pCfaBeforeTransformation,
-      final Set<CFAEdge> pAddedEdges,
-      final Set<CFAEdge> pRemovedEdges,
+      final Set<CFAEdge> pEdgesAddedBeforeAstNodeSubstitution,
+      final Set<CFAEdge> pEdgesRemovedBeforeAstNodeSubstitution,
       final BiMap<CFAEdge, CFAEdge> pOldEdgeToNewEdgeAfterAstNodeSubstitution,
-      final Set<CFANode> pAddedNodes,
-      final Set<CFANode> pRemovedNodes,
+      final Set<CFANode> pNodesAddedBeforeAstNodeSubstitution,
+      final Set<CFANode> pNodesRemovedBeforeAstNodeSubstitution,
       final BiMap<CFANode, CFANode> pOldNodeToNewNodeAfterAstNodeSubstitution) {
 
     cfaBeforeTransformation = checkNotNull(pCfaBeforeTransformation);
-    addedEdges = checkNotNull(pAddedEdges);
-    removedEdges = checkNotNull(pRemovedEdges);
+
+    edgesAddedBeforeAstNodeSubstitution =
+        ImmutableSet.copyOf(checkNotNull(pEdgesAddedBeforeAstNodeSubstitution));
+    edgesRemovedBeforeAstNodeSubstitution =
+        ImmutableSet.copyOf(checkNotNull(pEdgesRemovedBeforeAstNodeSubstitution));
     newEdgeToOldEdgeAfterAstNodeSubstitution =
-        checkNotNull(pOldEdgeToNewEdgeAfterAstNodeSubstitution).inverse();
-    addedNodes = checkNotNull(pAddedNodes);
-    removedNodes = checkNotNull(pRemovedNodes);
+        ImmutableBiMap.copyOf(checkNotNull(pOldEdgeToNewEdgeAfterAstNodeSubstitution)).inverse();
+
+    nodesAddedBeforeAstNodeSubstitution =
+        ImmutableSet.copyOf(checkNotNull(pNodesAddedBeforeAstNodeSubstitution));
+    nodesRemovedBeforeAstNodeSubstitution =
+        ImmutableSet.copyOf(checkNotNull(pNodesRemovedBeforeAstNodeSubstitution));
     newNodeToOldNodeAfterAstNodeSubstitution =
-        checkNotNull(pOldNodeToNewNodeAfterAstNodeSubstitution).inverse();
+        ImmutableBiMap.copyOf(checkNotNull(pOldNodeToNewNodeAfterAstNodeSubstitution)).inverse();
 
     final ImmutableSet.Builder<CFAEdge> newEdgesBuilder = ImmutableSet.builder();
     final ImmutableSet.Builder<CFAEdge> missingEdgesBuilder = ImmutableSet.builder();
     collectNonTrivialEdgeChanges(
-        pAddedEdges,
-        pRemovedEdges,
+        pEdgesAddedBeforeAstNodeSubstitution,
+        pEdgesRemovedBeforeAstNodeSubstitution,
         pOldEdgeToNewEdgeAfterAstNodeSubstitution,
         newEdgesBuilder,
         missingEdgesBuilder);
@@ -70,8 +107,8 @@ public class CfaTransformationRecords {
     final ImmutableSet.Builder<CFANode> newNodesBuilder = ImmutableSet.builder();
     final ImmutableSet.Builder<CFANode> missingNodesBuilder = ImmutableSet.builder();
     collectNonTrivialNodeChanges(
-        pAddedNodes,
-        pRemovedNodes,
+        pNodesAddedBeforeAstNodeSubstitution,
+        pNodesRemovedBeforeAstNodeSubstitution,
         pOldNodeToNewNodeAfterAstNodeSubstitution,
         newNodesBuilder,
         missingNodesBuilder);
@@ -79,104 +116,154 @@ public class CfaTransformationRecords {
     missingNodes = missingNodesBuilder.build();
   }
 
-  public static CfaTransformationRecords getTransformationRecordsForUntransformedCfa(
+  /** Returns CfaTransformationRecords indicating an untransformed CFA. */
+  public static CfaTransformationRecords createTransformationRecordsForUntransformedCfa(
       final CFA pCfa) {
     checkNotNull(pCfa);
 
     return new CfaTransformationRecords(
         /* pCfaBeforeTransformation = */ Optional.of(pCfa),
-        /* pAddedEdges = */ ImmutableSet.of(),
-        /* pRemovedEdges =  */ ImmutableSet.of(),
+        /* pEdgesAddedBeforeAstNodeSubstitution = */ ImmutableSet.of(),
+        /* pEdgesRemovedBeforeAstNodeSubstitution =  */ ImmutableSet.of(),
         /* pOldEdgeToNewEdgeAfterAstNodeSubstitution = */ ImmutableBiMap.of(),
-        /* pAddedNodes =  */ ImmutableSet.of(),
-        /* pRemovedNodes = */ ImmutableSet.of(),
+        /* pNodesAddedBeforeAstNodeSubstitution =  */ ImmutableSet.of(),
+        /* pNodesRemovedBeforeAstNodeSubstitution = */ ImmutableSet.of(),
         /* pOldNodeToNewNodeAfterAstNodeSubstitution = */ ImmutableBiMap.of());
+  }
+
+  /** Returns CfaTransformationRecords indicating a completely transformed CFA. */
+  public static CfaTransformationRecords createTransformationRecordsForCompletelyTransformedCfa(
+      final CFA pCfa) {
+    checkNotNull(pCfa);
+
+    final ImmutableSet<CFAEdge> allEdges = getAllEdges(pCfa);
+    final ImmutableSet<CFANode> allNodes = ImmutableSet.copyOf(pCfa.getAllNodes());
+
+    // we model a completely transformed CFA as a CFA where all CFAEdges and CFANodes were added
+    // before a trivial identity ASTNode substitution, because there is no possibility to create
+    // CfaTransformationRecords for CFAEdges or CFANodes that were added after ASTNode substitution
+    final ImmutableBiMap.Builder<CFAEdge, CFAEdge> identityBiMapOfEdges = ImmutableBiMap.builder();
+    allEdges.forEach(edge -> identityBiMapOfEdges.put(edge, edge));
+    final ImmutableBiMap.Builder<CFANode, CFANode> identityBiMapOfNodes = ImmutableBiMap.builder();
+    allNodes.forEach(node -> identityBiMapOfNodes.put(node, node));
+
+    return new CfaTransformationRecords(
+        /* pCfaBeforeTransformation = */ Optional.empty(),
+        /* pEdgesAddedBeforeAstNodeSubstitution = */ allEdges,
+        /* pEdgesRemovedBeforeAstNodeSubstitution =  */ ImmutableSet.of(),
+        /* pOldEdgeToNewEdgeAfterAstNodeSubstitution = */ identityBiMapOfEdges.buildOrThrow(),
+        /* pNodesAddedBeforeAstNodeSubstitution =  */ allNodes,
+        /* pNodesRemovedBeforeAstNodeSubstitution = */ ImmutableSet.of(),
+        /* pOldNodeToNewNodeAfterAstNodeSubstitution = */ identityBiMapOfNodes.buildOrThrow());
   }
 
   public Optional<CFA> getCfaBeforeTransformation() {
     return cfaBeforeTransformation;
   }
 
-  public Set<CFAEdge> getAddedEdges() {
-    return ImmutableSet.copyOf(addedEdges);
+  public ImmutableSet<CFAEdge> getEdgesAddedBeforeAstNodeSubstitution() {
+    return edgesAddedBeforeAstNodeSubstitution;
   }
 
-  public Set<CFAEdge> getRemovedEdges() {
-    return ImmutableSet.copyOf(removedEdges);
+  public ImmutableSet<CFAEdge> getEdgesRemovedBeforeAstNodeSubstitution() {
+    return edgesRemovedBeforeAstNodeSubstitution;
   }
 
-  public BiMap<CFAEdge, CFAEdge> getNewEdgeToOldEdgeAfterAstNodeSubstitution() {
-    return ImmutableBiMap.copyOf(newEdgeToOldEdgeAfterAstNodeSubstitution);
+  public ImmutableBiMap<CFAEdge, CFAEdge> getNewEdgeToOldEdgeAfterAstNodeSubstitution() {
+    return newEdgeToOldEdgeAfterAstNodeSubstitution;
   }
 
-  public Set<CFANode> getAddedNodes() {
-    return ImmutableSet.copyOf(addedNodes);
+  public ImmutableSet<CFANode> getNodesAddedBeforeAstNodeSubstitution() {
+    return nodesAddedBeforeAstNodeSubstitution;
   }
 
-  public Set<CFANode> getRemovedNodes() {
-    return ImmutableSet.copyOf(removedNodes);
+  public ImmutableSet<CFANode> getNodesRemovedBeforeAstNodeSubstitution() {
+    return nodesRemovedBeforeAstNodeSubstitution;
   }
 
-  public BiMap<CFANode, CFANode> getNewNodeToOldNodeAfterAstNodeSubstitution() {
-    return ImmutableBiMap.copyOf(newNodeToOldNodeAfterAstNodeSubstitution);
+  public ImmutableBiMap<CFANode, CFANode> getNewNodeToOldNodeAfterAstNodeSubstitution() {
+    return newNodeToOldNodeAfterAstNodeSubstitution;
   }
 
   /**
    * Returns the truly new {@link CFAEdge}s in the transformed CFA, i.e., skips the ones that were
    * only trivial substitutes of the same type and with the same AST node.
    */
-  public Set<CFAEdge> getNewEdges() {
-    return ImmutableSet.copyOf(newEdges);
+  public ImmutableSet<CFAEdge> getNewEdges() {
+    return newEdges;
   }
 
   /**
    * Returns the {@link CFAEdge}s from the untransformed CFA that are truly missing in the
    * transformed CFA, either because they were removed or non-trivially substituted.
    */
-  public Set<CFAEdge> getMissingEdges() {
-    return ImmutableSet.copyOf(missingEdges);
+  public ImmutableSet<CFAEdge> getMissingEdges() {
+    return missingEdges;
   }
 
   /**
    * Returns the truly new {@link CFANode}s in the transformed CFA, i.e., skips the ones that are
    * only trivial substitutes of the same type and with the same AST nodes.
    */
-  public Set<CFANode> getNewNodes() {
-    return ImmutableSet.copyOf(newNodes);
+  public ImmutableSet<CFANode> getNewNodes() {
+    return newNodes;
   }
 
   /**
    * Returns the {@link CFANode}s from the untransformed CFA that are truly missing in the
    * transformed CFA, either because they were removed or non-trivially substituted.
    */
-  public Set<CFANode> getMissingNodes() {
-    return ImmutableSet.copyOf(missingNodes);
+  public ImmutableSet<CFANode> getMissingNodes() {
+    return missingNodes;
   }
 
-  /** Returns whether the given CFAEdge is one of the truly new CFAEdges in the transformed CFA. */
+  /**
+   * Returns whether the given CFAEdge is one of the truly new CFAEdges in the transformed CFA.
+   *
+   * @param pEdge The edge
+   * @return {@code true} if the edge was added to the {@link CfaMutableNetwork} and/or its {@link
+   *     AAstNode} was non-trivially substituted, {@code false} if the edge is part of the
+   *     untransformed CFA or if its ASTNode was only trivially substituted
+   */
   public boolean isNew(final CFAEdge pEdge) {
     return newEdges.contains(pEdge);
   }
 
-  /** Returns whether the given CFANode is one of the truly new CFANodes in the transformed CFA. */
+  /**
+   * Returns whether the given CFANode is one of the truly new CFANodes in the transformed CFA.
+   *
+   * @param pNode The node
+   * @return {@code true} if the node was added to the {@link CfaMutableNetwork} and/or its {@link
+   *     AAstNode} was non-trivially substituted, {@code false} if the edge is part of the
+   *     untransformed CFA or if its ASTNode was only trivially substituted
+   */
   public boolean isNew(final CFANode pNode) {
     return newNodes.contains(pNode);
   }
 
   /**
    * Returns the edge from the untransformed CFA that was substituted with the given edge if there
-   * is one, `Optional.empty()` otherwise.
+   * is one, {@code Optional.empty()} otherwise.
    */
   public Optional<CFAEdge> getEdgeBeforeTransformation(final CFAEdge pNewEdge) {
+
     if (!newEdgeToOldEdgeAfterAstNodeSubstitution.containsKey(pNewEdge)) {
       return Optional.of(pNewEdge);
     }
     final CFAEdge pEdgeBeforeSubstitution = newEdgeToOldEdgeAfterAstNodeSubstitution.get(pNewEdge);
 
-    if (addedEdges.contains(pEdgeBeforeSubstitution)) {
+    if (edgesAddedBeforeAstNodeSubstitution.contains(pEdgeBeforeSubstitution)) {
       return Optional.empty();
     }
-    return Optional.of(pEdgeBeforeSubstitution);
+    return Optional.ofNullable(pEdgeBeforeSubstitution);
+  }
+
+  private static ImmutableSet<CFAEdge> getAllEdges(final CFA pCfa) {
+    checkNotNull(pCfa);
+
+    final ImmutableSet.Builder<CFAEdge> allEdges = ImmutableSet.builder();
+    pCfa.getAllNodes().stream().map(CFAUtils::allLeavingEdges).forEach(allEdges::addAll);
+    return allEdges.build();
   }
 
   private static void collectNonTrivialEdgeChanges(
