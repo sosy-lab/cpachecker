@@ -55,34 +55,7 @@ class EclipseCWriter implements CWriter {
     // that all edges and nodes were added and that the AST node substitutions were the identity.
     // In that case, we can not parse the original AST, but we also do not require it.
     if (pCfa.getTransformationRecords().isEmpty()) {
-
-      final Set<CFANode> allNodes = ImmutableSet.copyOf(pCfa.getAllNodes());
-      final ImmutableSet.Builder<CFAEdge> allEdges = ImmutableSet.builder();
-      final ImmutableBiMap.Builder<CFANode, CFANode> identityBiMapOfNodes =
-          ImmutableBiMap.builder();
-      final ImmutableBiMap.Builder<CFAEdge, CFAEdge> identityBiMapOfEdges =
-          ImmutableBiMap.builder();
-
-      for (final CFANode node : allNodes) {
-        identityBiMapOfNodes.put(node, node);
-
-        final FluentIterable<CFAEdge> edges = CFAUtils.leavingEdges(node);
-        for (final CFAEdge edge : edges) {
-          allEdges.add(edge);
-          identityBiMapOfEdges.put(edge, edge);
-        }
-      }
-
-      records =
-          new CfaTransformationRecords(
-              /* pCfaBeforeTransformation = */ Optional.empty(),
-              /* pAddedEdges = */ allEdges.build(),
-              /* pRemovedEdges =  */ ImmutableSet.of(),
-              /* pOldEdgeToNewEdgeAfterAstNodeSubstitution = */ identityBiMapOfEdges.buildOrThrow(),
-              /* pAddedNodes =  */ allNodes,
-              /* pRemovedNodes = */ ImmutableSet.of(),
-              /* pOldNodeToNewNodeAfterAstNodeSubstitution = */ identityBiMapOfNodes
-                  .buildOrThrow());
+      records = createTransformationRecordsForCfaWithout(pCfa);
       originalAst = null;
 
     } else {
@@ -115,5 +88,31 @@ class EclipseCWriter implements CWriter {
 
     assert originalAst != null;
     return originalAst.getRawSignature(); // TODO adjust in case of changes
+  }
+
+  private static CfaTransformationRecords createTransformationRecordsForCfaWithout(final CFA pCfa) {
+    final Set<CFANode> allNodes = ImmutableSet.copyOf(pCfa.getAllNodes());
+    final ImmutableSet.Builder<CFAEdge> allEdges = ImmutableSet.builder();
+    final ImmutableBiMap.Builder<CFANode, CFANode> identityBiMapOfNodes = ImmutableBiMap.builder();
+    final ImmutableBiMap.Builder<CFAEdge, CFAEdge> identityBiMapOfEdges = ImmutableBiMap.builder();
+
+    for (final CFANode node : allNodes) {
+      identityBiMapOfNodes.put(node, node);
+
+      final FluentIterable<CFAEdge> edges = CFAUtils.leavingEdges(node);
+      for (final CFAEdge edge : edges) {
+        allEdges.add(edge);
+        identityBiMapOfEdges.put(edge, edge);
+      }
+    }
+
+    return new CfaTransformationRecords(
+        /* pCfaBeforeTransformation = */ Optional.empty(),
+        /* pAddedEdges = */ allEdges.build(),
+        /* pRemovedEdges =  */ ImmutableSet.of(),
+        /* pOldEdgeToNewEdgeAfterAstNodeSubstitution = */ identityBiMapOfEdges.buildOrThrow(),
+        /* pAddedNodes =  */ allNodes,
+        /* pRemovedNodes = */ ImmutableSet.of(),
+        /* pOldNodeToNewNodeAfterAstNodeSubstitution = */ identityBiMapOfNodes.buildOrThrow());
   }
 }
