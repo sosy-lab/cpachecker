@@ -30,6 +30,7 @@ import org.sosy_lab.cpachecker.util.CFAUtils;
 public class CfaTransformationRecords {
 
   private final Optional<CFA> cfaBeforeTransformation;
+  private final ImmutableSet<CFAEdge> allEdgesOfUntransformedCfa;
 
   private final ImmutableSet<CFAEdge> edgesAddedBeforeAstNodeSubstitution;
   private final ImmutableSet<CFAEdge> edgesRemovedBeforeAstNodeSubstitution;
@@ -78,6 +79,10 @@ public class CfaTransformationRecords {
       final BiMap<CFANode, CFANode> pOldNodeToNewNodeAfterAstNodeSubstitution) {
 
     cfaBeforeTransformation = checkNotNull(pCfaBeforeTransformation);
+    allEdgesOfUntransformedCfa =
+        pCfaBeforeTransformation.isPresent()
+            ? getAllEdges(pCfaBeforeTransformation.orElseThrow())
+            : ImmutableSet.of();
 
     edgesAddedBeforeAstNodeSubstitution =
         ImmutableSet.copyOf(checkNotNull(pEdgesAddedBeforeAstNodeSubstitution));
@@ -245,12 +250,15 @@ public class CfaTransformationRecords {
    * Returns the edge from the untransformed CFA that was substituted with the given edge if there
    * is one, {@code Optional.empty()} otherwise.
    */
-  public Optional<CFAEdge> getEdgeBeforeTransformation(final CFAEdge pNewEdge) {
+  public Optional<CFAEdge> getEdgeBeforeTransformation(final CFAEdge pEdge) {
 
-    if (!newEdgeToOldEdgeAfterAstNodeSubstitution.containsKey(pNewEdge)) {
-      return Optional.of(pNewEdge);
+    if (!newEdgeToOldEdgeAfterAstNodeSubstitution.containsKey(pEdge)) {
+      // edge must be part of the untransformed CFA
+      assert allEdgesOfUntransformedCfa.contains(pEdge)
+          : "CFAEdge " + pEdge + " is neither part of the untransformed nor the transformed CFA";
+      return Optional.of(pEdge);
     }
-    final CFAEdge pEdgeBeforeSubstitution = newEdgeToOldEdgeAfterAstNodeSubstitution.get(pNewEdge);
+    final CFAEdge pEdgeBeforeSubstitution = newEdgeToOldEdgeAfterAstNodeSubstitution.get(pEdge);
 
     if (edgesAddedBeforeAstNodeSubstitution.contains(pEdgeBeforeSubstitution)) {
       return Optional.empty();
