@@ -27,15 +27,22 @@ import org.sosy_lab.cpachecker.cfa.CParser.ParserOptions;
 import org.sosy_lab.cpachecker.cfa.CfaTransformationRecords;
 import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.cfa.export.CWriter;
+import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.parser.eclipse.c.EclipseCdtWrapper;
+import org.sosy_lab.cpachecker.cfa.parser.eclipse.c.export.ExportStatement.ElseStatement;
+import org.sosy_lab.cpachecker.cfa.parser.eclipse.c.export.ExportStatement.GlobalDeclaration;
+import org.sosy_lab.cpachecker.cfa.parser.eclipse.c.export.ExportStatement.IfStatement;
+import org.sosy_lab.cpachecker.cfa.parser.eclipse.c.export.ExportStatement.PlaceholderStatement;
+import org.sosy_lab.cpachecker.cfa.parser.eclipse.c.export.ExportStatement.SimpleStatement;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 
@@ -142,7 +149,9 @@ class EclipseCWriter implements CWriter {
       // TODO check whether predecessor is new CFALabelNode => add label
 
       if (records.isNew(currentEdge)) {
-        // TODO create statement
+
+        final ExportStatement statement = createStatementForEdge(currentEdge);
+
         // TODO traverse CFA backwards to find the last original and real FileLocation ( somehow
         //  save this information so that we do not traverse the whole CFA everytime)
         // TODO store the statement with the FileLocation in the FunctionExportInformation
@@ -189,6 +198,59 @@ class EclipseCWriter implements CWriter {
     return CFAUtils.leavingEdges(pNode)
         .filter(edge -> !(edge instanceof FunctionReturnEdge))
         .filter(edge -> !(edge instanceof CFunctionSummaryEdge));
+  }
+
+  private static ExportStatement createStatementForEdge(final CFAEdge pEdge) {
+
+    switch (pEdge.getEdgeType()) {
+      case BlankEdge:
+        {
+          // in case we need to add a label here later
+          return new PlaceholderStatement(pEdge);
+        }
+
+      case AssumeEdge:
+        {
+          final AssumeEdge assumption = (AssumeEdge) pEdge;
+          if (assumption.getTruthAssumption() != assumption.isSwapped()) {
+            return new IfStatement(assumption);
+          } else {
+            // TODO assert other AssumeEdge has been handled?
+            return new ElseStatement(assumption);
+          }
+        }
+
+      case DeclarationEdge:
+        {
+          final CDeclarationEdge declarationEdge = (CDeclarationEdge) pEdge;
+
+          if (declarationEdge.getDeclaration().isGlobal()) {
+            return new GlobalDeclaration(declarationEdge);
+          }
+
+          return new SimpleStatement(pEdge);
+        }
+
+      case StatementEdge:
+      case ReturnStatementEdge:
+      case FunctionCallEdge:
+        {
+          return new SimpleStatement(pEdge);
+        }
+
+      case FunctionReturnEdge:
+      case CallToReturnEdge:
+        {
+          // this edge should not have been taken
+          throw new AssertionError(
+              "Edge " + pEdge + " of type " + pEdge.getEdgeType() + " in path");
+        }
+
+      default:
+        {
+          throw new AssertionError("Unexpected edge " + pEdge + "of type " + pEdge.getEdgeType());
+        }
+    }
   }
 
   private static class GlobalExportInformation {
