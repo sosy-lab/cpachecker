@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.cfa.parser.eclipse.c.export;
 
 import static com.google.common.base.Preconditions.checkArgument;
+import static org.sosy_lab.cpachecker.cfa.parser.eclipse.c.export.ExportStatement.createNewLabelName;
 
 import com.google.common.base.Verify;
 import com.google.common.collect.FluentIterable;
@@ -156,6 +157,9 @@ class EclipseCWriter implements CWriter {
       final CFAEdge currentEdge = waitList.poll();
       findAndStoreLastRealFileLocationSeenBeforeReachingEdge(currentEdge, records, functionInfo);
 
+      final CFANode nextNode = getNextNodeInFunctionCfa(currentEdge);
+      final FluentIterable<CFAEdge> nextEdges = getLeavingEdgesWithRelevantAstNodes(nextNode);
+
       if (records.isNew(currentEdge)) {
 
         final ExportStatement statement = createStatementForEdge(currentEdge);
@@ -167,8 +171,17 @@ class EclipseCWriter implements CWriter {
           functionInfo.addNewStatement(statement, lastRealFileLocBefore);
         }
 
-        // TODO if CFAEdge connects to a already handled CFANode => create goto (and label if
-        //  necessary)
+        if (nextEdges.anyMatch(edge -> functionInfo.wasAlreadyHandled(edge))) {
+          createGoto(statement, nextNode, nextEdges, functionInfo, records);
+
+          // nextNode was already traversed, so we do not want to add its leaving edges to the
+          // waitList again
+          continue;
+        }
+
+        // TODO also create a goto (and label if necessary) when the next edge is an original edge
+        //  that was not yet traversed, but whose FileLocation is not up next (i.e., when the
+        //  transformations have altered the order of appearance of the FileLocations in the CFA)
 
       } else {
         // edge already existed before the CFA transformation
@@ -184,12 +197,21 @@ class EclipseCWriter implements CWriter {
         // TODO check whether edge is part of a set of edges representing the same statement (same
         //  FileLocation) and whether something was changed in between these edges (if yes, we can
         //  not use the original AST for export and have to create the code here
+
+        if (nextEdges.anyMatch(edge -> functionInfo.wasAlreadyHandled(edge))) {
+          // we do not need to create a goto, because this is an original edge
+
+          // nextNode was already traversed, so we do not want to add its leaving edges to the
+          // waitList again
+          continue;
+        }
+
+        functionInfo.addOldEdge(currentEdge);
       }
 
-      final CFANode nextNode = getNextNodeInFunctionCfa(currentEdge);
       // TODO handle two leaving edges differently? (branching or loop)
       // TODO handle zero leaving edges differently? (add abort statement?)
-      for (final CFAEdge nextEdge : getLeavingEdgesWithRelevantAstNodes(nextNode)) {
+      for (final CFAEdge nextEdge : nextEdges) {
         waitList.offer(nextEdge);
       }
     }
@@ -243,7 +265,7 @@ class EclipseCWriter implements CWriter {
       case AssumeEdge:
         {
           final AssumeEdge assumption = (AssumeEdge) pEdge;
-          if (assumption.getTruthAssumption() != assumption.isSwapped()) {
+          if (isRealTruthAssumption(assumption)) {
             return new IfStatement(assumption);
           } else {
             // TODO assert other AssumeEdge has been handled?
@@ -282,6 +304,10 @@ class EclipseCWriter implements CWriter {
           throw new AssertionError("Unexpected edge " + pEdge + "of type " + pEdge.getEdgeType());
         }
     }
+  }
+
+  private static boolean isRealTruthAssumption(final AssumeEdge pAssumption) {
+    return pAssumption.getTruthAssumption() != pAssumption.isSwapped();
   }
 
   /**
@@ -334,6 +360,60 @@ class EclipseCWriter implements CWriter {
         pEdge, Optional.of(mergedLastRealFileLocBefore));
   }
 
+  private static void createGoto(
+      final ExportStatement pStatement,
+      final CFANode pGotoTarget,
+      final FluentIterable<CFAEdge> pNextEdges,
+      final FunctionExportInformation pFunctionInfo,
+      final CfaTransformationRecords pRecords) {
+
+    if (pGotoTarget instanceof CFALabelNode) {
+      pStatement.addGotoTo(((CFALabelNode) pGotoTarget).getLabel());
+      return;
+    }
+
+    final CFAEdge targetEdge = getTargetEdgeOfGoto(pNextEdges);
+    final String label = getOrCreateLabelAtGotoTarget(targetEdge, pFunctionInfo, pRecords);
+    pStatement.addGotoTo(label);
+  }
+
+  private static String getOrCreateLabelAtGotoTarget(
+      final CFAEdge pTargetEdge,
+      final FunctionExportInformation pFunctionInfo,
+      final CfaTransformationRecords pRecords) {
+
+    if (pRecords.isNew(pTargetEdge)) {
+      // there has to be a created statement, because the edge was already traversed
+      final ExportStatement targetStatement =
+          pFunctionInfo.getCreatedStatementForOrigin(pTargetEdge).orElseThrow();
+      return targetStatement.getOrCreateLabel();
+    }
+
+    // the edge already existed in the untransformed CFA
+    return pFunctionInfo.getOrCreateLabelBeforeOldEdge(pTargetEdge);
+  }
+
+  private static CFAEdge getTargetEdgeOfGoto(final FluentIterable<CFAEdge> pNextEdges) {
+    assert !pNextEdges.isEmpty()
+        : "Goto creation should not have been invoked, there is nowhere to go to";
+
+    if (pNextEdges.size() == 1) {
+      return pNextEdges.first().get();
+    }
+
+    // pGotoTarget must be a branching point
+    assert pNextEdges.size() == 2 : "Branches with more than two options are not supported";
+    assert pNextEdges.allMatch(edge -> edge instanceof AssumeEdge)
+        : "Branches must have conditions";
+
+    // at a branching point, we want to label the IfStatement
+    final FluentIterable<AssumeEdge> realTruthAssumption =
+        pNextEdges.transform(edge -> (AssumeEdge) edge).filter(edge -> isRealTruthAssumption(edge));
+    assert realTruthAssumption.size() == 1
+        : "There has to be exactly one real truth assumption at a branching point";
+    return realTruthAssumption.first().get();
+  }
+
   private static class GlobalExportInformation {
 
     private final CfaTransformationRecords transformationRecords;
@@ -372,6 +452,8 @@ class EclipseCWriter implements CWriter {
         newStatementsByFileLocToBeInsertedAfter =
             MultimapBuilder.hashKeys().linkedListValues().build();
 
+    private final Multimap<FileLocation, CFAEdge> visitedOldEdgesByFileLocation =
+        MultimapBuilder.treeKeys().linkedListValues().build();
     private final Map<CFAEdge, String> newLabelsOnOldEdges = new HashMap<>();
     private final Map<FileLocation, String> newLabelsAtOldFileLocations = new HashMap<>();
 
@@ -405,6 +487,10 @@ class EclipseCWriter implements CWriter {
       newStatementsByFileLocToBeInsertedAfter.put(pLastRealFileLocBefore, pStatement);
     }
 
+    private void addOldEdge(final CFAEdge pEdge) {
+      visitedOldEdgesByFileLocation.put(pEdge.getFileLocation(), pEdge);
+    }
+
     private void addNewLabelBeforeOldEdge(final String pLabel, final CFAEdge pOldEdge) {
       checkArgument(
           !(pOldEdge instanceof CDeclarationEdge
@@ -422,6 +508,26 @@ class EclipseCWriter implements CWriter {
       addNewStatement(
           new PlaceholderStatement(pOldEdge),
           getLastRealFileLocationSeenBeforeReachingEdge(pOldEdge));
+    }
+
+    private boolean wasAlreadyHandled(final CFAEdge pEdge) {
+      return newStatementsByOrigin.containsKey(pEdge)
+          || visitedOldEdgesByFileLocation.containsValue(pEdge);
+    }
+
+    private Optional<ExportStatement> getCreatedStatementForOrigin(final CFAEdge pOrigin) {
+      return Optional.ofNullable(newStatementsByOrigin.get(pOrigin));
+    }
+
+    private String getOrCreateLabelBeforeOldEdge(final CFAEdge pOldEdge) {
+      if (newLabelsOnOldEdges.containsKey(pOldEdge)) {
+        // there already is a label
+        return newLabelsOnOldEdges.get(pOldEdge);
+      }
+
+      final String newLabel = createNewLabelName();
+      addNewLabelBeforeOldEdge(newLabel, pOldEdge);
+      return newLabel;
     }
   }
 }

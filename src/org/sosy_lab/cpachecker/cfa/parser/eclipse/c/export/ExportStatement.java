@@ -22,7 +22,10 @@ abstract class ExportStatement {
   private static final UniqueIdGenerator labelIdGenerator = new UniqueIdGenerator();
 
   private boolean isLabeled = false;
-  private String gotoLabel = null;
+  private String label = null;
+
+  private boolean isGoto = false;
+  private String gotoTarget = null;
 
   private final CFAEdge origin;
 
@@ -32,11 +35,11 @@ abstract class ExportStatement {
     // only label the IfStatement at branching points
     if (!(this instanceof ElseStatement) && origin.getPredecessor() instanceof CFALabelNode) {
       isLabeled = true;
-      gotoLabel = ((CFALabelNode) origin.getPredecessor()).getLabel();
+      label = ((CFALabelNode) origin.getPredecessor()).getLabel();
     }
   }
 
-  private static String createNewLabelName() {
+  static String createNewLabelName() {
     return "label_" + labelIdGenerator.getFreshId();
   }
 
@@ -44,21 +47,34 @@ abstract class ExportStatement {
     if (!isLabeled) {
       return Optional.empty();
     } else {
-      return Optional.of(gotoLabel);
+      return Optional.of(label);
     }
   }
 
   String getOrCreateLabel() {
     if (!isLabeled) {
-      gotoLabel = createNewLabelName();
+      label = createNewLabelName();
       isLabeled = true;
     }
-    return gotoLabel;
+    return label;
   }
 
-  String exportLabel() {
+  void addGotoTo(final String pLabel) {
+    assert !isGoto : "An edge can not be a goto to two targets";
+    gotoTarget = pLabel;
+    isGoto = true;
+  }
+
+  String exportPotentialLabel() {
     if (isLabeled) {
-      return gotoLabel + ":;\n";
+      return label + ":;\n";
+    }
+    return "";
+  }
+
+  String exportPotentialGoto() {
+    if (isGoto) {
+      return "goto " + gotoTarget + ";\n";
     }
     return "";
   }
@@ -79,9 +95,9 @@ abstract class ExportStatement {
     String exportToCCode() {
       final String statement =
           getOrigin().getRawAST().isPresent()
-              ? getOrigin().getRawAST().orElseThrow().toASTString()
+              ? getOrigin().getRawAST().orElseThrow().toASTString() + "\n"
               : "";
-      return exportLabel() + statement;
+      return exportPotentialLabel() + statement + exportPotentialGoto();
     }
   }
 
@@ -98,8 +114,14 @@ abstract class ExportStatement {
     }
 
     @Override
+    void addGotoTo(final String pLabel) {
+      throw new AssertionError("Global declarations can not be followed by gotos.");
+    }
+
+    @Override
     String exportToCCode() {
-      assert getLabelIfLabeled().isEmpty() : "Global declarations can not be labeled.";
+      assert exportPotentialGoto().isEmpty() : "Global declarations can not be labeled.";
+      assert exportPotentialGoto().isEmpty() : "Global declarations can not be followed by gotos.";
       return super.exportToCCode();
     }
   }
@@ -113,7 +135,7 @@ abstract class ExportStatement {
     @Override
     String exportToCCode() {
       final String condition = getOrigin().getRawAST().orElseThrow().toASTString();
-      return exportLabel() + "if (" + condition + ") {";
+      return exportPotentialLabel() + "if (" + condition + ") {\n" + exportPotentialGoto();
     }
   }
 
@@ -130,9 +152,9 @@ abstract class ExportStatement {
 
     @Override
     String exportToCCode() {
-      assert getLabelIfLabeled().isEmpty()
+      assert exportPotentialLabel().isEmpty()
           : "The corresponding IfStatement should have been labeled.";
-      return "} else {";
+      return "} else {\n" + exportPotentialGoto();
     }
   }
 
@@ -144,7 +166,7 @@ abstract class ExportStatement {
 
     @Override
     String exportToCCode() {
-      return exportLabel();
+      return exportPotentialLabel() + exportPotentialGoto();
     }
   }
 }
