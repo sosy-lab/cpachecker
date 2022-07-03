@@ -14,6 +14,8 @@ import com.google.common.base.Verify;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableBiMap;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Multimap;
+import com.google.common.collect.MultimapBuilder;
 import java.io.IOException;
 import java.util.ArrayDeque;
 import java.util.Deque;
@@ -157,12 +159,14 @@ class EclipseCWriter implements CWriter {
 
       if (records.isNew(currentEdge)) {
 
-        @SuppressWarnings("unused")
         final ExportStatement statement = createStatementForEdge(currentEdge);
-        @SuppressWarnings("unused")
         final Optional<FileLocation> lastRealFileLocBefore =
             functionInfo.getLastRealFileLocationSeenBeforeReachingEdge(currentEdge);
-        // TODO store the statement with the FileLocation in the FunctionExportInformation
+        if (statement instanceof GlobalDeclaration) {
+          pExportInfo.addNewGlobalDeclaration((GlobalDeclaration) statement, lastRealFileLocBefore);
+        } else {
+          functionInfo.addNewStatement(statement, lastRealFileLocBefore);
+        }
 
         // TODO if CFAEdge connects to a already handled CFANode => create goto (and label if
         //  necessary)
@@ -324,6 +328,8 @@ class EclipseCWriter implements CWriter {
     private final CfaTransformationRecords transformationRecords;
 
     private final Map<FunctionEntryNode, FunctionExportInformation> functions = new HashMap<>();
+    private final Multimap<Optional<FileLocation>, GlobalDeclaration>
+        newGlobalDeclarationsByFileLoc = MultimapBuilder.hashKeys().linkedListValues().build();
 
     private GlobalExportInformation(final CfaTransformationRecords pTransformationRecords) {
       transformationRecords = pTransformationRecords;
@@ -338,11 +344,22 @@ class EclipseCWriter implements CWriter {
 
       functions.put(pFunctionEntryNode, pFunctionInfo);
     }
+
+    public void addNewGlobalDeclaration(
+        final GlobalDeclaration pDeclaration, final Optional<FileLocation> pLastRealFileLocBefore) {
+
+      newGlobalDeclarationsByFileLoc.put(pLastRealFileLocBefore, pDeclaration);
+    }
   }
 
   private static class FunctionExportInformation {
 
     final Map<CFAEdge, Optional<FileLocation>> edgeToLastRealFileLoc = new HashMap<>();
+
+    final Map<CFAEdge, ExportStatement> newStatementsByOrigin = new HashMap<>();
+    final Multimap<Optional<FileLocation>, ExportStatement>
+        newStatementsByFileLocToBeInsertedAfter =
+            MultimapBuilder.hashKeys().linkedListValues().build();
 
     private FunctionExportInformation() {}
 
@@ -362,6 +379,16 @@ class EclipseCWriter implements CWriter {
         final CFAEdge pEdge, final Optional<FileLocation> pLastRealFileLocBefore) {
 
       edgeToLastRealFileLoc.put(pEdge, pLastRealFileLocBefore);
+    }
+
+    public void addNewStatement(
+        final ExportStatement pStatement, final Optional<FileLocation> pLastRealFileLocBefore) {
+
+      final CFAEdge origin = pStatement.getOrigin();
+      assert !newStatementsByOrigin.containsKey(origin) : "Edge " + origin + " was already handled";
+
+      newStatementsByOrigin.put(origin, pStatement);
+      newStatementsByFileLocToBeInsertedAfter.put(pLastRealFileLocBefore, pStatement);
     }
   }
 }
