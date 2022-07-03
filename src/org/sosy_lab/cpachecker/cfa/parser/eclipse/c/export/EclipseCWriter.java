@@ -36,6 +36,7 @@ import org.sosy_lab.cpachecker.cfa.export.CWriter;
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
+import org.sosy_lab.cpachecker.cfa.model.CFALabelNode;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
@@ -170,7 +171,15 @@ class EclipseCWriter implements CWriter {
         //  necessary)
 
       } else {
-        // TODO check whether predecessor is new CFALabelNode => add label
+        // edge already existed before the CFA transformation
+        final CFANode predecessor = currentEdge.getPredecessor();
+
+        if (records.isNew(predecessor) && predecessor instanceof CFALabelNode) {
+
+          functionInfo.addNewLabelBeforeOldEdge(
+              ((CFALabelNode) predecessor).getLabel(),
+              records.getEdgeBeforeTransformation(currentEdge).orElseThrow());
+        }
 
         // TODO check whether edge is part of a set of edges representing the same statement (same
         //  FileLocation) and whether something was changed in between these edges (if yes, we can
@@ -361,6 +370,9 @@ class EclipseCWriter implements CWriter {
         newStatementsByFileLocToBeInsertedAfter =
             MultimapBuilder.hashKeys().linkedListValues().build();
 
+    final Map<CFAEdge, String> newLabelsOnOldEdges = new HashMap<>();
+    final Map<FileLocation, String> newLabelsAtOldFileLocations = new HashMap<>();
+
     private FunctionExportInformation() {}
 
     private boolean isLastRealFileLocationKnown(final CFAEdge pEdge) {
@@ -389,6 +401,20 @@ class EclipseCWriter implements CWriter {
 
       newStatementsByOrigin.put(origin, pStatement);
       newStatementsByFileLocToBeInsertedAfter.put(pLastRealFileLocBefore, pStatement);
+    }
+
+    public void addNewLabelBeforeOldEdge(final String pLabel, final CFAEdge pOldEdge) {
+      final FileLocation fileLoc = pOldEdge.getFileLocation();
+
+      if (fileLoc.isRealLocation()) {
+        newLabelsOnOldEdges.put(pOldEdge, pLabel);
+        newLabelsAtOldFileLocations.put(fileLoc, pLabel);
+        return;
+      }
+
+      addNewStatement(
+          new PlaceholderStatement(pOldEdge),
+          getLastRealFileLocationSeenBeforeReachingEdge(pOldEdge));
     }
   }
 }

@@ -17,6 +17,7 @@ import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFALabelNode;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionEntryNode;
 
@@ -157,6 +158,11 @@ public class CfaTransformationRecords {
     return newEdges.contains(pEdge);
   }
 
+  /** Returns whether the given CFANode is one of the truly new CFANodes in the transformed CFA. */
+  public boolean isNew(final CFANode pNode) {
+    return newNodes.contains(pNode);
+  }
+
   /**
    * Returns the edge from the untransformed CFA that was substituted with the given edge if there
    * is one, `Optional.empty()` otherwise.
@@ -247,11 +253,18 @@ public class CfaTransformationRecords {
           continue;
         }
 
-      } else {
-        // TODO Do we really want to consider FunctionDeclaration changes in every node?
-        if (oldNode.getFunction().equals(newNode.getFunction())) {
+      } else if (oldNode instanceof CFALabelNode) {
+        final CFALabelNode oldLabelNode = (CFALabelNode) oldNode;
+        final CFALabelNode newLabelNode = (CFALabelNode) newNode;
+
+        if (oldLabelNode.getLabel().equals(newLabelNode.getLabel())) {
           continue;
         }
+
+      } else {
+        // TODO is it okay not to consider FunctionDeclaration changes in every node?
+        // do nothing for other types of CFANodes
+        continue;
       }
 
       pNewNodesBuilder.add(newNode);
