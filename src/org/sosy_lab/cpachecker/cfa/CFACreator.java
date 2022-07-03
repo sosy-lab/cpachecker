@@ -581,8 +581,6 @@ public class CFACreator {
             mainFunction,
             pParseResult.getFileNames(),
             language);
-    cfa.setTransformationRecords(
-        CfaTransformationRecords.createTransformationRecordsForUntransformedCfa(cfa));
 
     stats.checkTime.start();
 
@@ -661,6 +659,8 @@ public class CFACreator {
 
     stats.processingTime.stop();
 
+    cfa.setTransformationRecords(
+        CfaTransformationRecords.createTransformationRecordsForUntransformedCfa(cfa));
     final ImmutableCFA immutableCFA = cfa.makeImmutableCFA(varClassification);
 
     if (pParseResult instanceof ParseResultWithCommentLocations) {
