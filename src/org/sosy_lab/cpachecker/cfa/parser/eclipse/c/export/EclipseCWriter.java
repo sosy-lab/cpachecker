@@ -354,7 +354,7 @@ class EclipseCWriter implements CWriter {
       functions.put(pFunctionEntryNode, pFunctionInfo);
     }
 
-    public void addNewGlobalDeclaration(
+    private void addNewGlobalDeclaration(
         final GlobalDeclaration pDeclaration, final Optional<FileLocation> pLastRealFileLocBefore) {
 
       newGlobalDeclarationsByFileLoc.put(pLastRealFileLocBefore, pDeclaration);
@@ -363,15 +363,15 @@ class EclipseCWriter implements CWriter {
 
   private static class FunctionExportInformation {
 
-    final Map<CFAEdge, Optional<FileLocation>> edgeToLastRealFileLoc = new HashMap<>();
+    private final Map<CFAEdge, Optional<FileLocation>> edgeToLastRealFileLoc = new HashMap<>();
 
-    final Map<CFAEdge, ExportStatement> newStatementsByOrigin = new HashMap<>();
-    final Multimap<Optional<FileLocation>, ExportStatement>
+    private final Map<CFAEdge, ExportStatement> newStatementsByOrigin = new HashMap<>();
+    private final Multimap<Optional<FileLocation>, ExportStatement>
         newStatementsByFileLocToBeInsertedAfter =
             MultimapBuilder.hashKeys().linkedListValues().build();
 
-    final Map<CFAEdge, String> newLabelsOnOldEdges = new HashMap<>();
-    final Map<FileLocation, String> newLabelsAtOldFileLocations = new HashMap<>();
+    private final Map<CFAEdge, String> newLabelsOnOldEdges = new HashMap<>();
+    private final Map<FileLocation, String> newLabelsAtOldFileLocations = new HashMap<>();
 
     private FunctionExportInformation() {}
 
@@ -393,7 +393,7 @@ class EclipseCWriter implements CWriter {
       edgeToLastRealFileLoc.put(pEdge, pLastRealFileLocBefore);
     }
 
-    public void addNewStatement(
+    private void addNewStatement(
         final ExportStatement pStatement, final Optional<FileLocation> pLastRealFileLocBefore) {
 
       final CFAEdge origin = pStatement.getOrigin();
@@ -403,7 +403,7 @@ class EclipseCWriter implements CWriter {
       newStatementsByFileLocToBeInsertedAfter.put(pLastRealFileLocBefore, pStatement);
     }
 
-    public void addNewLabelBeforeOldEdge(final String pLabel, final CFAEdge pOldEdge) {
+    private void addNewLabelBeforeOldEdge(final String pLabel, final CFAEdge pOldEdge) {
       final FileLocation fileLoc = pOldEdge.getFileLocation();
 
       if (fileLoc.isRealLocation()) {
