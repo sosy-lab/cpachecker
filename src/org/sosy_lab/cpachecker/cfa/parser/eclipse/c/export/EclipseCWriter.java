@@ -312,6 +312,7 @@ class EclipseCWriter implements CWriter {
       if (originalFileLoc.isRealLocation()) {
         functionInfo.storeEdgeWithLastRealFileLocationSeenBefore(
             pEdge, Optional.of(originalFileLoc));
+        return;
       }
     }
 
@@ -325,6 +326,7 @@ class EclipseCWriter implements CWriter {
 
     if (lastRealFileLocsBefore.isEmpty()) {
       functionInfo.storeEdgeWithLastRealFileLocationSeenBefore(pEdge, Optional.empty());
+      return;
     }
 
     final FileLocation mergedLastRealFileLocBefore = FileLocation.merge(lastRealFileLocsBefore);
