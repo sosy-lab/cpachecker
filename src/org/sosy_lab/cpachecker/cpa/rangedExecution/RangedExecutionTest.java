@@ -26,7 +26,6 @@ import org.sosy_lab.common.configuration.ConfigurationBuilder;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.BasicLogManager;
 import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.core.CPAcheckerResult;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.util.test.CPATestRunner;
 import org.sosy_lab.cpachecker.util.test.TestDataTools;
@@ -37,8 +36,8 @@ public class RangedExecutionTest {
   private static final long TIMEOUT = 9000;
 
   private enum Testcases {
-    BRANCH("branch.c");
-
+    BRANCH("branch.c"),
+    BRANCH2("branch2.c");
     private final String name;
 
     Testcases(String pName) {
@@ -72,24 +71,83 @@ public class RangedExecutionTest {
   @Test(timeout = TIMEOUT)
   public void leftAndRightBoundCorrect() throws Exception {
     RangeExecTester tester =
-        new RangeExecTester(Testcases.BRANCH, RangedExecutionConfig.BoundedPredicateAnalysis, Result.TRUE);
+        new RangeExecTester(
+            Testcases.BRANCH, RangedExecutionConfig.BoundedPredicateAnalysis, Result.TRUE);
     tester.addOverrideOption("cpa.rangedExecution.path2LeftInputFile", TEST_DIR_PATH + "leaf4.xml");
-    tester.addOverrideOption("cpa.rangedExecution.path2RightInputFile", TEST_DIR_PATH + "leaf5.xml");
+    tester.addOverrideOption(
+        "cpa.rangedExecution.path2RightInputFile", TEST_DIR_PATH + "leaf5.xml");
     tester.performTest();
   }
 
   @Test(timeout = TIMEOUT)
   public void leftAndRightBoundIncorrect() throws Exception {
     RangeExecTester tester =
-        new RangeExecTester(Testcases.BRANCH, RangedExecutionConfig.BoundedPredicateAnalysis, Result.FALSE);
+        new RangeExecTester(
+            Testcases.BRANCH, RangedExecutionConfig.BoundedPredicateAnalysis, Result.FALSE);
     tester.addOverrideOption("cpa.rangedExecution.path2LeftInputFile", TEST_DIR_PATH + "leaf3.xml");
-    tester.addOverrideOption("cpa.rangedExecution.path2RightInputFile", TEST_DIR_PATH + "leaf5.xml");
+    tester.addOverrideOption(
+        "cpa.rangedExecution.path2RightInputFile", TEST_DIR_PATH + "leaf5.xml");
     tester.performTest();
   }
 
+  @Test(timeout = TIMEOUT)
+  public void leftBoundCorrect() throws Exception {
+    RangeExecTester tester =
+        new RangeExecTester(
+            Testcases.BRANCH, RangedExecutionConfig.BoundedPredicateAnalysis, Result.TRUE);
+    tester.addOverrideOption("cpa.rangedExecution.path2LeftInputFile", TEST_DIR_PATH + "leaf4.xml");
+    tester.performTest();
+  }
 
+  @Test(timeout = TIMEOUT)
+  public void leftBoundIncorrect() throws Exception {
+    RangeExecTester tester =
+        new RangeExecTester(
+            Testcases.BRANCH, RangedExecutionConfig.BoundedPredicateAnalysis, Result.FALSE);
+    tester.addOverrideOption("cpa.rangedExecution.path2LeftInputFile", TEST_DIR_PATH + "leaf3.xml");
+    tester.performTest();
+  }
 
+  @Test(timeout = TIMEOUT)
+  public void leftBoundUnderspecIncorrect() throws Exception {
+    RangeExecTester tester =
+        new RangeExecTester(
+            Testcases.BRANCH, RangedExecutionConfig.BoundedPredicateAnalysis, Result.FALSE);
+    tester.addOverrideOption(
+        "cpa.rangedExecution.path2LeftInputFile", TEST_DIR_PATH + "intermed1.xml");
+    tester.performTest();
+  }
 
+  @Test(timeout = TIMEOUT)
+  public void rightBoundCorrect() throws Exception {
+    RangeExecTester tester =
+        new RangeExecTester(
+            Testcases.BRANCH, RangedExecutionConfig.BoundedPredicateAnalysis, Result.TRUE);
+    tester.addOverrideOption(
+        "cpa.rangedExecution.path2RightInputFile", TEST_DIR_PATH + "leaf2.xml");
+    tester.performTest();
+  }
+
+  @Test(timeout = TIMEOUT)
+  public void rightBoundIncorrect() throws Exception {
+    RangeExecTester tester =
+        new RangeExecTester(
+            Testcases.BRANCH, RangedExecutionConfig.BoundedPredicateAnalysis, Result.FALSE);
+    tester.addOverrideOption(
+        "cpa.rangedExecution.path2RightInputFile", TEST_DIR_PATH + "leaf4.xml");
+    tester.performTest();
+  }
+
+  @Test(timeout = TIMEOUT)
+  public void rightBoundUnderspecIncorrect() throws Exception {
+    RangeExecTester tester =
+        new RangeExecTester(
+            Testcases.BRANCH2, RangedExecutionConfig.BoundedPredicateAnalysis, Result.TRUE);
+    tester.addOverrideOption("cpa.rangedExecution.path2LeftInputFile", TEST_DIR_PATH + "leaf4.xml");
+    tester.addOverrideOption(
+        "cpa.rangedExecution.path2RightInputFile", TEST_DIR_PATH + "intermed2.xml");
+    tester.performTest();
+  }
 
   private static void performTest(
       Testcases pFilename,
@@ -150,9 +208,7 @@ public class RangedExecutionTest {
     private final Result expectedResult;
 
     public RangeExecTester(
-        Testcases pProgramFile,
-        RangedExecutionConfig pGenerationConfig,
-        Result pResult) {
+        Testcases pProgramFile, RangedExecutionConfig pGenerationConfig, Result pResult) {
       programFile = Objects.requireNonNull(pProgramFile);
       generationConfig = Objects.requireNonNull(pGenerationConfig);
       this.expectedResult = pResult;
@@ -165,7 +221,8 @@ public class RangedExecutionTest {
     }
 
     public void performTest() throws Exception {
-      RangedExecutionTest.performTest(programFile, generationConfig, overrideOptionsBuilder, expectedResult);
+      RangedExecutionTest.performTest(
+          programFile, generationConfig, overrideOptionsBuilder, expectedResult);
     }
   }
 }

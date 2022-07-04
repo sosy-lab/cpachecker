@@ -140,7 +140,7 @@ public class ValueAnalysisTransferRelation
   // the value of the map entry is the explanation for the user
   private static final ImmutableMap<String, String> UNSUPPORTED_FUNCTIONS = ImmutableMap.of();
 
-  private static final AtomicInteger indexForNextRandomValue = new AtomicInteger();
+  private final AtomicInteger indexForNextRandomValue = new AtomicInteger(0);
 
   @Options(prefix = "cpa.value")
   public static class ValueTransferOptions {
@@ -1818,7 +1818,7 @@ public class ValueAnalysisTransferRelation
       return new ExpressionValueVisitorWithPredefinedValues(
           pState,
           pFunctionName,
-          ValueAnalysisTransferRelation.indexForNextRandomValue,
+          this.indexForNextRandomValue,
           machineModel,
           logger,
           valuesFromFile,
