@@ -18,6 +18,7 @@ import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
@@ -173,10 +174,18 @@ public class SummaryRefinerStatistics implements Statistics {
       if (r == null) {
         continue;
       }
-      if (en.equals(StrategiesEnum.HAVOCSTRATEGY)) {
-        String summary = HavocStrategy.summarizeAsCode(loop).orElseThrow();
+      final Optional<String> summary;
+      switch (en) {
+        case HAVOCSTRATEGY:
+          summary = HavocStrategy.summarizeAsCode(loop);
+          break;
+        default:
+          summary = Optional.empty();
+          break;
+      }
+      if (summary.isPresent()) {
         try {
-          r.insertIndented(offset, summary);
+          r.insertIndented(offset, summary.orElseThrow());
           r.delete(offset, len);
         } catch (ConflictingModificationException e1) {
           continue;
