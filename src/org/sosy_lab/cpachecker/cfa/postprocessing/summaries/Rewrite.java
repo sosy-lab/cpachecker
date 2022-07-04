@@ -159,7 +159,7 @@ public class Rewrite {
     }
   }
 
-  private class Insertion extends Modification {
+  private static class Insertion extends Modification {
 
     private final String snippet;
 
@@ -173,7 +173,7 @@ public class Rewrite {
     }
   }
 
-  public class ConflictingModificationException extends Exception {
+  public static class ConflictingModificationException extends Exception {
     private static final long serialVersionUID = -6169337864659759938L;
 
     public ConflictingModificationException(String msg) {
