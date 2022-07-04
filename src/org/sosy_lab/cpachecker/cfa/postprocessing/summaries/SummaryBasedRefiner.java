@@ -68,14 +68,7 @@ public class SummaryBasedRefiner implements Refiner, StatisticsProvider {
     logger = pLogger;
     argCpa = CPAs.retrieveCPAOrFail(pCpa, ARGCPA.class, Refiner.class);
 
-    if (argCpa.getCfa().getSummaryInformation().isEmpty()) {
-      // TODO: Better error handling
-      stats = new SummaryRefinerStatistics(null, pConfig, logger);
-    } else {
-      stats =
-          new SummaryRefinerStatistics(
-              argCpa.getCfa().getSummaryInformation().orElseThrow(), pConfig, logger);
-    }
+    stats = new SummaryRefinerStatistics(argCpa.getCfa(), pConfig, logger);
   }
 
   @Override

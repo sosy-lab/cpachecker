@@ -24,13 +24,14 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.GhostCFA;
+import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.LoopAbstractionExpressibleAsCode;
 import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.StrategiesEnum;
 import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.StrategyDependencies.StrategyDependency;
 import org.sosy_lab.cpachecker.core.counterexample.CExpressionToOrinalCodeVisitor;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 import org.sosy_lab.cpachecker.util.Pair;
 
-public class HavocStrategy extends LoopStrategy {
+public class HavocStrategy extends LoopStrategy implements LoopAbstractionExpressibleAsCode {
 
   public HavocStrategy(
       final LogManager pLogger,
@@ -132,7 +133,8 @@ public class HavocStrategy extends LoopStrategy {
     return summarizedLoopMaybe;
   }
 
-  public static Optional<String> summarizeAsCode(Loop loop) {
+  @Override
+  public Optional<String> summarizeAsCode(Loop loop) {
     StringBuilder builder = new StringBuilder();
 
     Optional<AExpression> loopBoundExpressionMaybe = loop.getBound();

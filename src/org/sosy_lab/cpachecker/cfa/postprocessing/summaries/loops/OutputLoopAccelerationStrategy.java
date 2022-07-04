@@ -36,6 +36,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.GhostCFA;
+import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.LoopAbstractionExpressibleAsCode;
 import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.StrategiesEnum;
 import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.StrategyDependencies.StrategyDependency;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
@@ -48,7 +49,8 @@ import org.sosy_lab.cpachecker.util.Pair;
  * This strategy reassembles output abstraction as described in section II.B of "Over-approximating
  * loops to prove properties using bounded model checking" (https://doi.org/10.7873/DATE.2015.0245)
  */
-public class OutputLoopAccelerationStrategy extends LoopStrategy {
+public class OutputLoopAccelerationStrategy extends LoopStrategy
+    implements LoopAbstractionExpressibleAsCode {
 
   // counter name for output acceleration
   private static final String SUMMARY_COUNTER_VARIABLE = "__VERIFIER_LA_OA_counter";
@@ -302,7 +304,8 @@ public class OutputLoopAccelerationStrategy extends LoopStrategy {
     return summarizedLoopMaybe;
   }
 
-  public static Optional<String> summarizeAsCode(Loop loop) {
+  @Override
+  public Optional<String> summarizeAsCode(Loop loop) {
     StringBuilder builder = new StringBuilder();
 
     Optional<AExpression> loopBoundExpressionMaybe = loop.getBound();

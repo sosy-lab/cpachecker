@@ -28,13 +28,12 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.io.IO;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.Rewrite.ConflictingModificationException;
-import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.loops.HavocStrategy;
+import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.StrategyDependencies.StrategyDependencyFactory;
 import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.loops.LoopStrategy;
-import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.loops.NaiveLoopAccelerationStrategy;
-import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.loops.OutputLoopAccelerationStrategy;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
@@ -62,6 +61,7 @@ public class SummaryRefinerStatistics implements Statistics {
   private Integer distinctNodesWithStrategies = 0;
   private SummaryInformation summaryInformation;
   private LogManager logger;
+  private final StrategyFactory strategyFactory;
 
   @Option(
       secure = true,
@@ -79,11 +79,19 @@ public class SummaryRefinerStatistics implements Statistics {
   @FileOption(FileOption.Type.OUTPUT_DIRECTORY)
   private Path outputDirectory = Path.of("LA");
 
-  public SummaryRefinerStatistics(
-      SummaryInformation pSummaryInformation, Configuration pConfig, LogManager pLogger)
+  public SummaryRefinerStatistics(CFA pCfa, Configuration pConfig, LogManager pLogger)
       throws InvalidConfigurationException {
-    summaryInformation = pSummaryInformation;
+    summaryInformation = pCfa.getSummaryInformation().orElse(null);
     logger = pLogger;
+    SummaryOptions summaryOptions = new SummaryOptions(pConfig);
+    strategyFactory =
+        new StrategyFactory(
+            pLogger,
+            null, // shutdown notifier is not really needed; TODO: remove its usage from all
+            // strategies
+            summaryOptions.getMaxUnrollingsStrategy(),
+            new StrategyDependencyFactory().createStrategy(summaryOptions.getCfaCreationStrategy()),
+            pCfa);
     pConfig.inject(this);
   }
 
@@ -169,19 +177,13 @@ public class SummaryRefinerStatistics implements Statistics {
               .getFileLocation()
               .getFileName();
       final Optional<String> summary;
-      switch (en) {
-        case HAVOCSTRATEGY:
-          summary = HavocStrategy.summarizeAsCode(loop);
-          break;
-        case NAIVELOOPACCELERATION:
-          summary = NaiveLoopAccelerationStrategy.summarizeAsCode(loop);
-          break;
-        case OUTPUTLOOPACCELERATION:
-          summary = OutputLoopAccelerationStrategy.summarizeAsCode(loop);
-          break;
-        default:
-          summary = Optional.empty();
-          break;
+
+      Strategy strategy = strategyFactory.buildStrategy(en);
+      if (strategy instanceof LoopAbstractionExpressibleAsCode) {
+        LoopAbstractionExpressibleAsCode summarizer = (LoopAbstractionExpressibleAsCode) strategy;
+        summary = summarizer.summarizeAsCode(loop);
+      } else {
+        summary = Optional.empty();
       }
       if (summary.isPresent()) {
         Rewrite r =

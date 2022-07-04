@@ -42,7 +42,7 @@ public class SummaryPostProcessor implements StatisticsProvider {
   private final SummaryInformation summaryInformation;
   private final SummaryCFAStatistics stats;
 
-  private final Set<StrategiesEnum> strategies;
+  private Set<StrategiesEnum> strategies;
   private final StrategyDependencyEnum cfaCreationStrategy;
   private final StrategyDependencyEnum transferStrategy;
   private final int maxUnrollingsStrategy;
