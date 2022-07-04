@@ -8,10 +8,7 @@
 
 package org.sosy_lab.cpachecker.cfa.postprocessing.summaries.loops;
 
-import com.google.common.collect.Iterables;
-import com.google.common.io.Files;
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.util.Iterator;
 import java.util.Optional;
 import org.sosy_lab.common.ShutdownNotifier;
@@ -201,15 +198,5 @@ public class NaiveLoopAccelerationStrategy extends LoopStrategy {
     builder.append("}\n");
 
     return Optional.of(builder.toString());
-  }
-
-  private static void executeLoopBodyAsCode(Loop loop, StringBuilder builder) throws IOException {
-    CFAEdge e = Iterables.getOnlyElement(loop.getIncomingEdges());
-    int offset = e.getFileLocation().getNodeOffset();
-    int len = e.getFileLocation().getNodeLength();
-    String content =
-        Files.asCharSource(e.getFileLocation().getFileName().toFile(), StandardCharsets.UTF_8)
-            .read();
-    builder.append(content.substring(offset, offset + len).replaceAll("^while", "if"));
   }
 }

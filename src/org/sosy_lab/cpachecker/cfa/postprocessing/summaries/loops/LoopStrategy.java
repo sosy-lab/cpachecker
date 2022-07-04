@@ -11,7 +11,11 @@ package org.sosy_lab.cpachecker.cfa.postprocessing.summaries.loops;
 import com.google.common.base.Predicate;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterables;
+import com.google.common.io.Files;
 import com.google.errorprone.annotations.CheckReturnValue;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -209,5 +213,15 @@ public class LoopStrategy extends AbstractStrategy {
     return !FluentIterable.from(node.getLeavingEdges())
         .filter(x -> x.getDescription().equals("while"))
         .isEmpty();
+  }
+
+  protected static void executeLoopBodyAsCode(Loop loop, StringBuilder builder) throws IOException {
+    CFAEdge e = Iterables.getOnlyElement(loop.getIncomingEdges());
+    int offset = e.getFileLocation().getNodeOffset();
+    int len = e.getFileLocation().getNodeLength();
+    String content =
+        Files.asCharSource(e.getFileLocation().getFileName().toFile(), StandardCharsets.UTF_8)
+            .read();
+    builder.append(content.substring(offset, offset + len).replaceAll("^while", "if"));
   }
 }
