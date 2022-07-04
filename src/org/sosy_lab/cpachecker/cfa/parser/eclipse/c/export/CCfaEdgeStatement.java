@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.cfa.parser.eclipse.c.export;
 
 import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkNotNull;
 
 import java.util.Optional;
 import org.sosy_lab.common.UniqueIdGenerator;
@@ -28,15 +29,19 @@ abstract class CCfaEdgeStatement {
   private boolean isGoto = false;
   private String gotoTarget = null;
 
-  private final CFAEdge origin;
+  private final Optional<CFAEdge> origin;
 
   private CCfaEdgeStatement(final CFAEdge pOrigin) {
-    origin = pOrigin;
+    origin = Optional.ofNullable(pOrigin);
+
+    if (origin.isEmpty()) {
+      return;
+    }
 
     // only label the IfStatement at branching points
-    if (!(this instanceof ElseStatement) && origin.getPredecessor() instanceof CFALabelNode) {
+    if (!(this instanceof ElseStatement) && pOrigin.getPredecessor() instanceof CFALabelNode) {
       isLabeled = true;
-      label = ((CFALabelNode) origin.getPredecessor()).getLabel();
+      label = ((CFALabelNode) pOrigin.getPredecessor()).getLabel();
     }
   }
 
@@ -82,21 +87,28 @@ abstract class CCfaEdgeStatement {
 
   abstract String exportToCCode();
 
-  CFAEdge getOrigin() {
+  Optional<CFAEdge> getOrigin() {
     return origin;
+  }
+
+  @Override
+  public String toString() {
+    return "`" + exportToCCode() + "`";
   }
 
   static class SimpleCCfaEdgeStatement extends CCfaEdgeStatement {
 
     SimpleCCfaEdgeStatement(final CFAEdge pEdge) {
       super(pEdge);
+      checkNotNull(pEdge);
     }
 
     @Override
     String exportToCCode() {
+      final CFAEdge origin = getOrigin().orElseThrow();
       final String statement =
-          getOrigin().getRawAST().isPresent()
-              ? getOrigin().getRawAST().orElseThrow().toASTString() + "\n"
+          origin.getRawAST().isPresent()
+              ? origin.getRawAST().orElseThrow().toASTString() + "\n"
               : "";
       return exportPotentialLabel() + statement + exportPotentialGoto();
     }
@@ -106,6 +118,7 @@ abstract class CCfaEdgeStatement {
 
     GlobalDeclaration(final CDeclarationEdge pEdge) {
       super(pEdge);
+      checkNotNull(pEdge);
       checkArgument(pEdge.getDeclaration().isGlobal());
     }
 
@@ -131,11 +144,12 @@ abstract class CCfaEdgeStatement {
 
     IfStatement(final AssumeEdge pEdge) {
       super(pEdge);
+      checkNotNull(pEdge);
     }
 
     @Override
     String exportToCCode() {
-      final String condition = getOrigin().getRawAST().orElseThrow().toASTString();
+      final String condition = getOrigin().orElseThrow().getRawAST().orElseThrow().toASTString();
       return exportPotentialLabel() + "if (" + condition + ") {\n" + exportPotentialGoto();
     }
   }
@@ -144,6 +158,7 @@ abstract class CCfaEdgeStatement {
 
     ElseStatement(final AssumeEdge pEdge) {
       super(pEdge);
+      checkNotNull(pEdge);
     }
 
     @Override
@@ -159,10 +174,37 @@ abstract class CCfaEdgeStatement {
     }
   }
 
+  static class ClosingBraceStatement extends CCfaEdgeStatement {
+
+    ClosingBraceStatement() {
+      super(null);
+    }
+
+    @Override
+    String getOrCreateLabel() {
+      throw new AssertionError(
+          "ClosingBraceStatement can not be labeled, because it does not correspond to any"
+              + " CFAEdge.");
+    }
+
+    @Override
+    void addGotoTo(final String pLabel) {
+      throw new AssertionError(
+          "ClosingBraceStatement can not be followed by a goto, because it does not correspond"
+              + " to any CFAEdge.");
+    }
+
+    @Override
+    String exportToCCode() {
+      return "}\n";
+    }
+  }
+
   static class EmptyCCfaEdgeStatement extends CCfaEdgeStatement {
 
     EmptyCCfaEdgeStatement(final CFAEdge pEdge) {
       super(pEdge);
+      checkNotNull(pEdge);
     }
 
     @Override

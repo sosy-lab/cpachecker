@@ -9,21 +9,25 @@
 package org.sosy_lab.cpachecker.cfa.parser.eclipse.c.export;
 
 import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.collect.Iterables.getOnlyElement;
 import static org.sosy_lab.cpachecker.cfa.CfaTransformationRecords.createTransformationRecordsForCompletelyTransformedCfa;
 import static org.sosy_lab.cpachecker.cfa.parser.eclipse.c.export.CCfaEdgeStatement.createNewLabelName;
 
 import com.google.common.base.Verify;
 import com.google.common.collect.FluentIterable;
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.MultimapBuilder;
 import java.io.IOException;
 import java.util.ArrayDeque;
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Deque;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import org.eclipse.cdt.core.dom.ast.IASTTranslationUnit;
 import org.eclipse.core.runtime.CoreException;
 import org.sosy_lab.common.ShutdownNotifier;
@@ -31,6 +35,7 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CParser.ParserOptions;
 import org.sosy_lab.cpachecker.cfa.CfaTransformationRecords;
 import org.sosy_lab.cpachecker.cfa.Language;
+import org.sosy_lab.cpachecker.cfa.ast.AAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.export.CWriter;
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
@@ -41,10 +46,12 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
+import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.parser.eclipse.c.EclipseCdtWrapper;
+import org.sosy_lab.cpachecker.cfa.parser.eclipse.c.export.CCfaEdgeStatement.ClosingBraceStatement;
 import org.sosy_lab.cpachecker.cfa.parser.eclipse.c.export.CCfaEdgeStatement.ElseStatement;
 import org.sosy_lab.cpachecker.cfa.parser.eclipse.c.export.CCfaEdgeStatement.EmptyCCfaEdgeStatement;
 import org.sosy_lab.cpachecker.cfa.parser.eclipse.c.export.CCfaEdgeStatement.GlobalDeclaration;
@@ -52,6 +59,7 @@ import org.sosy_lab.cpachecker.cfa.parser.eclipse.c.export.CCfaEdgeStatement.IfS
 import org.sosy_lab.cpachecker.cfa.parser.eclipse.c.export.CCfaEdgeStatement.SimpleCCfaEdgeStatement;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.CFAUtils;
+import org.sosy_lab.cpachecker.util.dependencegraph.MergePoint;
 
 /** Writer based on Eclipse CDT. */
 class EclipseCWriter implements CWriter {
@@ -122,7 +130,8 @@ class EclipseCWriter implements CWriter {
       final FunctionEntryNode pFunctionEntryNode, final GlobalExportInformation pExportInfo) {
 
     final CfaTransformationRecords records = pExportInfo.getTransformationRecords();
-    final FunctionExportInformation functionInfo = new FunctionExportInformation();
+    final FunctionExportInformation functionInfo =
+        new FunctionExportInformation(pFunctionEntryNode);
     pExportInfo.addFunction(pFunctionEntryNode, functionInfo);
 
     final Deque<CFAEdge> waitList =
@@ -133,8 +142,10 @@ class EclipseCWriter implements CWriter {
       final CFAEdge currentEdge = waitList.poll();
       findAndStoreLastRealFileLocationSeenBeforeReachingEdge(currentEdge, records, functionInfo);
 
+      handlePotentialJoinNode(currentEdge.getPredecessor(), functionInfo);
+
       final CFANode nextNode = getNextNodeInFunctionCfa(currentEdge);
-      final FluentIterable<CFAEdge> nextEdges = getLeavingEdgesWithRelevantAstNodes(nextNode);
+      final FluentIterable<CFAEdge> nextEdges = getRelevantLeavingEdges(nextNode);
 
       if (records.isNew(currentEdge)) {
 
@@ -191,6 +202,31 @@ class EclipseCWriter implements CWriter {
         waitList.offer(nextEdge);
       }
     }
+
+    closeRemainingBranchingPoints(functionInfo);
+  }
+
+  private static void handlePotentialJoinNode(
+      final CFANode pPotentialJoinNode, final FunctionExportInformation pFunctionInfo) {
+
+    final FluentIterable<CFAEdge> alreadyHandledEnteringEdges =
+        getRelevantEnteringEdges(pPotentialJoinNode)
+            .filter(edge -> pFunctionInfo.wasAlreadyHandled(edge));
+
+    if (alreadyHandledEnteringEdges.size() < 2) {
+      // can not be a join node
+      return;
+    }
+
+    assert alreadyHandledEnteringEdges.allMatch(
+            edge -> pFunctionInfo.isLastRealFileLocationKnown(edge))
+        : "The last real FileLocation before reaching these edges must be known, because they were"
+            + " already handled";
+    final Optional<FileLocation> mergedLastRealFileLocSeenBeforeReachingPotentialJoinNode =
+        mergeLastRealFileLocationsSeenBeforeReachingEdges(
+            alreadyHandledEnteringEdges.toList(), pFunctionInfo);
+    pFunctionInfo.closeBranchingPointsAtJoinNode(
+        pPotentialJoinNode, mergedLastRealFileLocSeenBeforeReachingPotentialJoinNode);
   }
 
   /**
@@ -210,23 +246,40 @@ class EclipseCWriter implements CWriter {
   }
 
   /**
-   * Returns the CFAEdges leaving the given node which store the relevant {@link
-   * org.sosy_lab.cpachecker.cfa.ast.AAstNode}s.
+   * Returns the CFAEdges leaving the given node which store the relevant {@link AAstNode}s. {@link
+   * FunctionReturnEdge}s are ignored because their successor is not part of the same function
+   * anymore. {@link CFunctionSummaryEdge}s are ignored, because the corresponding {@link
+   * FunctionCallEdge} stores the relevant {@link AAstNode}.
    */
-  private static FluentIterable<CFAEdge> getLeavingEdgesWithRelevantAstNodes(final CFANode pNode) {
+  private static FluentIterable<CFAEdge> getRelevantLeavingEdges(final CFANode pNode) {
     return CFAUtils.leavingEdges(pNode)
         .filter(edge -> !(edge instanceof FunctionReturnEdge))
         .filter(edge -> !(edge instanceof CFunctionSummaryEdge));
   }
 
   /**
-   * Returns all CFAEdges entering the given node (including the summary edge if the node has one)
-   * whose predecessor is part of the same function (omits calls and returns from other functions).
+   * Returns the CFAEdges entering the given node which store the relevant {@link AAstNode}s. This
+   * means that entering {@link FunctionCallEdge}s and {@link FunctionReturnEdge}s are ignored,
+   * because they are not relevant as their predecessor is not part of the same function anymore. On
+   * the other hand, an entering {@link FunctionSummaryEdge}s is replaced with the corresponding
+   * {@link FunctionCallEdge}, because the latter stores the relevant {@link AAstNode}.
    */
-  private static FluentIterable<CFAEdge> getAllEnteringEdgesWithinFunction(final CFANode pNode) {
-    return CFAUtils.allEnteringEdges(pNode)
-        .filter(edge -> !(edge instanceof FunctionCallEdge))
-        .filter(edge -> !(edge instanceof FunctionReturnEdge));
+  private static FluentIterable<CFAEdge> getRelevantEnteringEdges(final CFANode pNode) {
+    final FluentIterable<CFAEdge> relevantEnteringEdges =
+        CFAUtils.allEnteringEdges(pNode)
+            .filter(edge -> !(edge instanceof FunctionCallEdge))
+            .filter(edge -> !(edge instanceof FunctionReturnEdge));
+
+    if (pNode.getEnteringSummaryEdge() == null) {
+      return relevantEnteringEdges;
+    }
+
+    final CFAEdge correspondingFunctionCallEdge =
+        getOnlyElement(CFAUtils.leavingEdges(pNode.getEnteringSummaryEdge().getPredecessor()));
+    assert correspondingFunctionCallEdge instanceof CFunctionCallEdge
+        : "The only leaving edge of the predecessor of a CFunctionSummaryEdge should be a"
+            + " CFunctionCallEdge";
+    return relevantEnteringEdges.append(correspondingFunctionCallEdge);
   }
 
   private static CCfaEdgeStatement createStatementForEdge(final CFAEdge pEdge) {
@@ -321,27 +374,19 @@ class EclipseCWriter implements CWriter {
       }
     }
 
-    final List<FileLocation> lastRealFileLocsBefore =
-        getLastRealFileLocationsSeenBeforeReachingPriorEdges(pCurrentEdge, functionInfo);
+    final Optional<FileLocation> lastRealFileLocBefore =
+        getLastRealFileLocationFromPriorEdgesOfEdge(pCurrentEdge, functionInfo);
 
-    if (lastRealFileLocsBefore.isEmpty()) {
-      functionInfo.storeEdgeWithLastRealFileLocationSeenBefore(pCurrentEdge, Optional.empty());
-      return;
-    }
-
-    final FileLocation mergedLastRealFileLocBefore = FileLocation.merge(lastRealFileLocsBefore);
-    functionInfo.storeEdgeWithLastRealFileLocationSeenBefore(
-        pCurrentEdge, Optional.of(mergedLastRealFileLocBefore));
+    functionInfo.storeEdgeWithLastRealFileLocationSeenBefore(pCurrentEdge, lastRealFileLocBefore);
   }
 
-  private static List<FileLocation> getLastRealFileLocationsSeenBeforeReachingPriorEdges(
-      final CFAEdge pCurrentEdge, final FunctionExportInformation functionInfo) {
+  private static Optional<FileLocation> getLastRealFileLocationFromPriorEdgesOfEdge(
+      final CFAEdge pCurrentEdge, final FunctionExportInformation pFunctionInfo) {
 
-    final ImmutableList.Builder<FileLocation> result = ImmutableList.builder();
+    final Collection<CFAEdge> relevantEdges = new ArrayList<>();
 
     // consider prior edges within the same function
-    for (final CFAEdge priorEdge :
-        getAllEnteringEdgesWithinFunction(pCurrentEdge.getPredecessor())) {
+    for (final CFAEdge priorEdge : getRelevantEnteringEdges(pCurrentEdge.getPredecessor())) {
 
       // if the current edge is a global declaration, only consider global declarations, otherwise
       // do not consider global declarations
@@ -350,19 +395,36 @@ class EclipseCWriter implements CWriter {
       }
 
       // only consider edges that were already traversed
-      if (!functionInfo.isLastRealFileLocationKnown(priorEdge)) {
+      if (!pFunctionInfo.isLastRealFileLocationKnown(priorEdge)) {
         continue;
       }
+
+      relevantEdges.add(priorEdge);
+    }
+
+    return mergeLastRealFileLocationsSeenBeforeReachingEdges(relevantEdges, pFunctionInfo);
+  }
+
+  private static Optional<FileLocation> mergeLastRealFileLocationsSeenBeforeReachingEdges(
+      final Collection<CFAEdge> pEdges, final FunctionExportInformation pFunctionInfo) {
+
+    checkArgument(pEdges.stream().allMatch(pFunctionInfo::isLastRealFileLocationKnown));
+    final List<FileLocation> lastRealFileLocsBeforeReachingEdges = new ArrayList<>();
+
+    for (final CFAEdge edge : pEdges) {
       final Optional<FileLocation> optionalLastRealFileLocBeforePriorEdge =
-          functionInfo.getLastRealFileLocationSeenBeforeReachingEdge(priorEdge);
+          pFunctionInfo.getLastRealFileLocationSeenBeforeReachingEdge(edge);
 
       if (optionalLastRealFileLocBeforePriorEdge.isEmpty()) {
         continue;
       }
-      result.add(optionalLastRealFileLocBeforePriorEdge.orElseThrow());
+      lastRealFileLocsBeforeReachingEdges.add(optionalLastRealFileLocBeforePriorEdge.orElseThrow());
     }
 
-    return result.build();
+    if (lastRealFileLocsBeforeReachingEdges.isEmpty()) {
+      return Optional.empty();
+    }
+    return Optional.of(FileLocation.merge(lastRealFileLocsBeforeReachingEdges));
   }
 
   private static void createGoto(
@@ -419,6 +481,19 @@ class EclipseCWriter implements CWriter {
     return realTruthAssumption.first().get();
   }
 
+  private static void closeRemainingBranchingPoints(final FunctionExportInformation functionInfo) {
+
+    if (!functionInfo.areAllBranchingPointsClosed()) {
+
+      final Optional<FileLocation> mergedFileLocOfAllVisitedOldEdges =
+          mergeLastRealFileLocationsSeenBeforeReachingEdges(
+              functionInfo.getAllVisitedOldEdges(), functionInfo);
+      functionInfo.closeBranchingPointsAtJoinNode(
+          functionInfo.getFunctionEntryNode().getExitNode(), mergedFileLocOfAllVisitedOldEdges);
+    }
+    assert functionInfo.areAllBranchingPointsClosed();
+  }
+
   private static class GlobalExportInformation {
 
     private final CfaTransformationRecords transformationRecords;
@@ -450,6 +525,10 @@ class EclipseCWriter implements CWriter {
 
   private static class FunctionExportInformation {
 
+    private final FunctionEntryNode functionEntryNode;
+    private final MergePoint<CFANode> mergePoint;
+    private final Set<CFANode> unclosedBranchingPoints = new HashSet<>();
+
     private final Map<CFAEdge, Optional<FileLocation>> edgeToLastRealFileLoc = new HashMap<>();
 
     private final Map<CFAEdge, CCfaEdgeStatement> newStatementsByOrigin = new HashMap<>();
@@ -462,7 +541,18 @@ class EclipseCWriter implements CWriter {
     private final Map<CFAEdge, String> newLabelsOnOldEdges = new HashMap<>();
     private final Map<FileLocation, String> newLabelsAtOldFileLocations = new HashMap<>();
 
-    private FunctionExportInformation() {}
+    private FunctionExportInformation(final FunctionEntryNode pFunctionEntryNode) {
+      functionEntryNode = pFunctionEntryNode;
+      mergePoint =
+          new MergePoint<>(
+              pFunctionEntryNode.getExitNode(),
+              CFAUtils::allSuccessorsOf,
+              CFAUtils::allPredecessorsOf);
+    }
+
+    private FunctionEntryNode getFunctionEntryNode() {
+      return functionEntryNode;
+    }
 
     private boolean isLastRealFileLocationKnown(final CFAEdge pEdge) {
       return edgeToLastRealFileLoc.containsKey(pEdge);
@@ -485,8 +575,16 @@ class EclipseCWriter implements CWriter {
     private void addNewStatement(
         final CCfaEdgeStatement pStatement, final Optional<FileLocation> pLastRealFileLocBefore) {
 
-      final CFAEdge origin = pStatement.getOrigin();
+      assert pStatement.getOrigin().isPresent()
+          : "Expected some CFAEdge as origin for statement " + pStatement;
+      final CFAEdge origin = pStatement.getOrigin().orElseThrow();
       assert !newStatementsByOrigin.containsKey(origin) : "Edge " + origin + " was already handled";
+
+      if (pStatement instanceof ElseStatement) {
+        // do not add until ElseStatement, because that has to be handled before closing the
+        // branching point
+        unclosedBranchingPoints.add(origin.getPredecessor());
+      }
 
       newStatementsByOrigin.put(origin, pStatement);
       newStatementsByFileLocToBeInsertedAfter.put(pLastRealFileLocBefore, pStatement);
@@ -530,6 +628,32 @@ class EclipseCWriter implements CWriter {
       final String newLabel = createNewLabelName();
       addNewLabelBeforeOldEdge(newLabel, pOldEdge);
       return newLabel;
+    }
+
+    private void closeBranchingPointsAtJoinNode(
+        final CFANode pJoinNode, final Optional<FileLocation> pLastFileLocBefore) {
+
+      final Collection<CFANode> closedBranchingPoints = new HashSet<>();
+
+      for (final CFANode branchingPoint : unclosedBranchingPoints) {
+
+        if (mergePoint.findMergePoint(branchingPoint).equals(pJoinNode)) {
+
+          newStatementsByFileLocToBeInsertedAfter.put(
+              pLastFileLocBefore, new ClosingBraceStatement());
+          closedBranchingPoints.add(branchingPoint);
+        }
+      }
+
+      unclosedBranchingPoints.removeAll(closedBranchingPoints);
+    }
+
+    private boolean areAllBranchingPointsClosed() {
+      return unclosedBranchingPoints.isEmpty();
+    }
+
+    private Collection<CFAEdge> getAllVisitedOldEdges() {
+      return visitedOldEdgesByFileLocation.values();
     }
   }
 }
