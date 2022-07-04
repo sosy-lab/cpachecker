@@ -8,7 +8,12 @@
 
 package org.sosy_lab.cpachecker.cfa.postprocessing.summaries;
 
+import com.github.difflib.DiffUtils;
+import com.github.difflib.UnifiedDiffUtils;
+import com.github.difflib.algorithm.DiffException;
+import com.github.difflib.patch.Patch;
 import com.google.common.collect.FluentIterable;
+import com.google.common.collect.ImmutableList;
 import com.google.common.io.Files;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -17,6 +22,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 /**
  * This class can be used to rewrite files using delete and insert operations. All changes are
@@ -97,6 +103,17 @@ public class Rewrite {
 
   public boolean untouched(int offset, int length) {
     return FluentIterable.from(changes).filter(x -> x.touches(offset, length)).isEmpty();
+  }
+
+  public String asDiff(String origFilename, String newFilename, int contextsize)
+      throws DiffException {
+    List<String> lines = ImmutableList.copyOf(content.split("\\r?\\n"));
+    final List<String> result = ImmutableList.copyOf(apply().split("\\r?\\n"));
+    Patch<String> patch = DiffUtils.diff(lines, result);
+    return UnifiedDiffUtils.generateUnifiedDiff(
+            origFilename, newFilename, lines, patch, contextsize)
+        .stream()
+        .collect(Collectors.joining("\n", "", "\n"));
   }
 
   private String determineIndent(int offset) {

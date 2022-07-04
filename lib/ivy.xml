@@ -180,6 +180,9 @@ SPDX-License-Identifier: Apache-2.0
         <!-- YAML parser -->
         <dependency org="com.fasterxml.jackson.dataformat" name="jackson-dataformat-yaml" rev="2.12.3" conf="runtime->default"/>
 
+        <!-- java-diff-utils -->
+         <dependency org="io.github.java-diff-utils" name="java-diff-utils" rev="4.0" conf="runtime->default"/>
+
         <!-- LassoRanker
              Synthesis of ranking functions for termination analysis. -->
         <dependency org="de.uni-freiburg.informatik.ultimate" name="lasso-ranker" rev="2021-10-05-rf6ece58d9b" conf="runtime->runtime; contrib->sources"/>
