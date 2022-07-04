@@ -159,7 +159,7 @@ public class HavocStrategy extends LoopStrategy {
     // 3. assume that the loop condition does not hold anymore
     builder.append(
         String.format(
-            "if ((%s)) abort();\n",
+            "if (%s) abort();\n",
             ((CExpression) loopBoundExpression)
                 .accept(CExpressionToOrinalCodeVisitor.BASIC_TRANSFORMER)));
 
