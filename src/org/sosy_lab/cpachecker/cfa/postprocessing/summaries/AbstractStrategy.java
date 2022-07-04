@@ -20,7 +20,7 @@ public abstract class AbstractStrategy implements Strategy {
   protected final LogManager logger;
   protected final ShutdownNotifier shutdownNotifier;
   protected final SummaryInformation summaryInformation;
-  private StrategyDependency strategyDependencies;
+  protected final StrategyDependency strategyDependencies;
   protected SummaryFilter summaryFilter;
 
   protected AbstractStrategy(

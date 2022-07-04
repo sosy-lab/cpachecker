@@ -135,6 +135,11 @@ public class HavocStrategy extends LoopStrategy implements LoopAbstractionExpres
 
   @Override
   public Optional<String> summarizeAsCode(Loop loop) {
+
+    if (!isSupportedLoop(loop)) {
+      return Optional.empty();
+    }
+
     StringBuilder builder = new StringBuilder();
 
     Optional<AExpression> loopBoundExpressionMaybe = loop.getBound();

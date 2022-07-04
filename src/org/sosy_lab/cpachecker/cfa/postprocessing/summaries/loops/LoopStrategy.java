@@ -12,6 +12,7 @@ import com.google.common.base.Predicate;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
+import com.google.common.collect.Iterators;
 import com.google.common.io.Files;
 import com.google.errorprone.annotations.CheckReturnValue;
 import java.io.IOException;
@@ -39,6 +40,7 @@ import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.AbstractStrategy;
 import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.GhostCFA;
 import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.StrategiesEnum;
+import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.SummaryFilter;
 import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.StrategyDependencies.StrategyDependency;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
@@ -228,5 +230,16 @@ public class LoopStrategy extends AbstractStrategy {
             .read();
     builder.append(content.substring(offset, offset + len).replaceAll("^while", "if"));
     builder.append("\n");
+  }
+
+  protected boolean isSupportedLoop(Loop loop) {
+    CFAEdge incomingEdge = Iterators.getOnlyElement(loop.getIncomingEdges().iterator());
+    Optional<CFANode> loopHead =
+        determineLoopHead(
+            incomingEdge.getPredecessor(),
+            x ->
+                new SummaryFilter(summaryInformation, strategyDependencies)
+                    .filter(x, ImmutableSet.of(StrategiesEnum.BASE)));
+    return loopHead.isPresent() && !loop.containsUserDefinedFunctionCalls();
   }
 }

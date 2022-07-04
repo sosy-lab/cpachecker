@@ -164,6 +164,11 @@ public class NaiveLoopAccelerationStrategy extends LoopStrategy
 
   @Override
   public Optional<String> summarizeAsCode(Loop loop) {
+
+    if (!isSupportedLoop(loop)) {
+      return Optional.empty();
+    }
+
     StringBuilder builder = new StringBuilder();
 
     Optional<AExpression> loopBoundExpressionMaybe = loop.getBound();
