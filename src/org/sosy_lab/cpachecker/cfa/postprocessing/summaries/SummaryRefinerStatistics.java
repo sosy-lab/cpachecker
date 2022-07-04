@@ -20,12 +20,14 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.logging.Level;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.io.IO;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.Rewrite.ConflictingModificationException;
@@ -57,6 +59,7 @@ public class SummaryRefinerStatistics implements Statistics {
   private Integer amountStrategiesRefinedAway = 0;
   private Integer distinctNodesWithStrategies = 0;
   private SummaryInformation summaryInformation;
+  private LogManager logger;
 
   @Option(
       secure = true,
@@ -74,9 +77,11 @@ public class SummaryRefinerStatistics implements Statistics {
   @FileOption(FileOption.Type.OUTPUT_DIRECTORY)
   private Path outputDirectory = Path.of("LA");
 
-  public SummaryRefinerStatistics(SummaryInformation pSummaryInformation, Configuration pConfig)
+  public SummaryRefinerStatistics(
+      SummaryInformation pSummaryInformation, Configuration pConfig, LogManager pLogger)
       throws InvalidConfigurationException {
-    this.summaryInformation = pSummaryInformation;
+    summaryInformation = pSummaryInformation;
+    logger = pLogger;
     pConfig.inject(this);
   }
 
@@ -151,9 +156,9 @@ public class SummaryRefinerStatistics implements Statistics {
       if (loop.getIncomingEdges().size() != 1) {
         continue;
       }
-      CFAEdge e = Iterables.getOnlyElement(loop.getIncomingEdges());
-      int offset = e.getFileLocation().getNodeOffset();
-      int len = e.getFileLocation().getNodeLength();
+      CFAEdge edge = Iterables.getOnlyElement(loop.getIncomingEdges());
+      int offset = edge.getFileLocation().getNodeOffset();
+      int len = edge.getFileLocation().getNodeLength();
 
       Path containingFile =
           FluentIterable.from(loop.getIncomingEdges())
@@ -187,8 +192,13 @@ public class SummaryRefinerStatistics implements Statistics {
         try {
           r.insertIndented(offset, summary.orElseThrow());
           r.delete(offset, len);
-        } catch (ConflictingModificationException e1) {
-          continue;
+        } catch (ConflictingModificationException e) {
+          logger.logfException(
+              Level.WARNING,
+              e,
+              "Conflict when inserting loop summary for %s in file %s.",
+              loop,
+              entry.getKey().toString());
         }
       }
     }
@@ -197,7 +207,12 @@ public class SummaryRefinerStatistics implements Statistics {
     for (Map.Entry<Path, Rewrite> entry : rewrites.entrySet()) {
       try {
         entry.getValue().insert(0, EXTERN_DECLARATIONS);
-      } catch (ConflictingModificationException e1) {
+      } catch (ConflictingModificationException e) {
+        logger.logfException(
+            Level.WARNING,
+            e,
+            "Conflict when inserting extern declarations for loop summary for file %s.",
+            entry.getKey().toString());
       }
       try (Writer w =
           IO.openOutputFile(
@@ -205,6 +220,11 @@ public class SummaryRefinerStatistics implements Statistics {
               Charset.defaultCharset())) {
         w.append(entry.getValue().apply());
       } catch (IOException e) {
+        logger.logfException(
+            Level.WARNING,
+            e,
+            "Conflict when inserting extern declarations for loop summary for file %s.",
+            entry.getKey().toString());
       }
     }
   }

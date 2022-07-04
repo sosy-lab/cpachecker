@@ -70,11 +70,11 @@ public class SummaryBasedRefiner implements Refiner, StatisticsProvider {
 
     if (argCpa.getCfa().getSummaryInformation().isEmpty()) {
       // TODO: Better error handling
-      stats = new SummaryRefinerStatistics(null, pConfig);
+      stats = new SummaryRefinerStatistics(null, pConfig, logger);
     } else {
       stats =
           new SummaryRefinerStatistics(
-              argCpa.getCfa().getSummaryInformation().orElseThrow(), pConfig);
+              argCpa.getCfa().getSummaryInformation().orElseThrow(), pConfig, logger);
     }
   }
 
