@@ -140,7 +140,7 @@ public class NondetBoundConstantExtrapolationStrategy extends ConstantExtrapolat
   }
 
   @Override
-  public Optional<GhostCFA> summarize(final CFANode beforeWhile) {
+  public synchronized Optional<GhostCFA> summarize(final CFANode beforeWhile) {
     Optional<CFANode> maybeLoopHead = this.determineLoopHead(beforeWhile);
     if (maybeLoopHead.isEmpty()) {
       return Optional.empty();

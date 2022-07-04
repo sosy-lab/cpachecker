@@ -55,7 +55,7 @@ import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 public class LoopExtrapolationStrategy extends LoopStrategy {
 
   private static final String LA_TMP_ITERATION_VAR_PREFIX = "__VERIFIER_LA_iterations";
-  private static final String LA_TMP_VAR_PREFIX = "__VERIFIER_LA_tmp";
+  protected static final String LA_TMP_VAR_PREFIX = "__VERIFIER_LA_tmp";
   protected static final String LA_TMP_OLD_VAR_PREFIX = "__VERIFIER_LA_old_tmp";
 
   // maps for caching the flags for each loop; not thread-safe
