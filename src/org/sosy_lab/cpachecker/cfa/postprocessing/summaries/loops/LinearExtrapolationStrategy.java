@@ -140,17 +140,16 @@ public class LinearExtrapolationStrategy extends LoopExtrapolationStrategy {
         ((CAssumeEdge) loopBoundCFAEdge).negate().copyWith(endUnrolledLoopNode, endNodeGhostCFA);
     CFACreationUtils.addEdgeUnconditionallyToCFA(negatedBoundCFAEdge);
 
-    // Create the Amount of iterations as a long long
-    Optional<Pair<CFANode, AVariableDeclaration>> nextNodeAndIterationsVariable =
-        createIterationsVariable(currentSummaryNodeCFA, pIterations, pBeforeWhile);
+    Optional<CFANode> nextNode =
+        initializeIterationsVariable(currentSummaryNodeCFA, pIterations, pBeforeWhile);
 
-    if (nextNodeAndIterationsVariable.isEmpty()) {
+    if (nextNode.isEmpty()) {
       return Optional.empty();
     }
 
-    currentSummaryNodeCFA = nextNodeAndIterationsVariable.orElseThrow().getFirst();
+    currentSummaryNodeCFA = nextNode.orElseThrow();
     AVariableDeclaration iterationsVariable =
-        nextNodeAndIterationsVariable.orElseThrow().getSecond();
+        createIterationsVariable(pBeforeWhile.getFunctionName());
 
     LinearVariableDependencyMatrix powerOfMatrix =
         variableDependencyMatrix.toThepower(

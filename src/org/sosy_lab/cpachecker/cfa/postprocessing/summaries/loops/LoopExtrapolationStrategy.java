@@ -51,7 +51,6 @@ import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
-import org.sosy_lab.cpachecker.util.Pair;
 
 public class LoopExtrapolationStrategy extends LoopStrategy {
 
@@ -229,7 +228,7 @@ public class LoopExtrapolationStrategy extends LoopStrategy {
    *     of the block where the declaration of the new variables are generated. The second element
    *     of the Pair is the Variable encoding the new expression.
    */
-  protected Optional<Pair<CFANode, AVariableDeclaration>> createIterationsVariable(
+  protected Optional<CFANode> initializeIterationsVariable(
       CFANode pStartNode, AExpression pIterations, CFANode pBeforeWhile) {
     // Overflows occur since the iterations calculation variables do not have the correct type.
     // Because of this new Variables with more general types are introduced in order to not have
@@ -307,16 +306,7 @@ public class LoopExtrapolationStrategy extends LoopStrategy {
     transformedIterations = pIterations.accept_(replaceVariablesVisitor);
 
     CVariableDeclaration iterationsVariable =
-        new CVariableDeclaration(
-            FileLocation.DUMMY,
-            false,
-            CStorageClass.AUTO,
-            new CSimpleType(
-                false, false, CBasicType.INT, false, false, false, false, false, false, true),
-            LA_TMP_ITERATION_VAR_PREFIX + this.nameCounter,
-            LA_TMP_ITERATION_VAR_PREFIX + this.nameCounter,
-            pBeforeWhile.getFunctionName() + "::" + LA_TMP_ITERATION_VAR_PREFIX + this.nameCounter,
-            null);
+        createIterationsVariable(pBeforeWhile.getFunctionName());
 
     CFAEdge varInitEdge =
         new CDeclarationEdge(
@@ -347,7 +337,24 @@ public class LoopExtrapolationStrategy extends LoopStrategy {
 
     currentSummaryNode = nextSummaryNode;
 
-    return Optional.of(Pair.of(currentSummaryNode, iterationsVariable));
+    return Optional.of(currentSummaryNode);
+  }
+
+  protected CVariableDeclaration createIterationsVariable(String functionName) {
+
+    CVariableDeclaration iterationsVariable =
+        new CVariableDeclaration(
+            FileLocation.DUMMY,
+            false,
+            CStorageClass.AUTO,
+            new CSimpleType(
+                false, false, CBasicType.INT, false, false, false, false, false, false, true),
+            LA_TMP_ITERATION_VAR_PREFIX + this.nameCounter,
+            LA_TMP_ITERATION_VAR_PREFIX + this.nameCounter,
+            functionName + "::" + LA_TMP_ITERATION_VAR_PREFIX + this.nameCounter,
+            null);
+
+    return iterationsVariable;
   }
 
   protected boolean hasOnlyConstantVariableModifications(Loop loop) {

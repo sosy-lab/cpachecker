@@ -98,16 +98,16 @@ public class ConstantExtrapolationStrategy extends LoopExtrapolationStrategy {
         ((CAssumeEdge) loopBoundCFAEdge).negate().copyWith(endUnrolledLoopNode, endNodeGhostCFA);
     CFACreationUtils.addEdgeUnconditionallyToCFA(negatedBoundCFAEdge);
 
-    Optional<Pair<CFANode, AVariableDeclaration>> nextNodeAndIterationsVariable =
-        createIterationsVariable(currentSummaryNodeCFA, pIterations, pBeforeWhile);
+    Optional<CFANode> nextNode =
+        initializeIterationsVariable(currentSummaryNodeCFA, pIterations, pBeforeWhile);
 
-    if (nextNodeAndIterationsVariable.isEmpty()) {
+    if (nextNode.isEmpty()) {
       return Optional.empty();
     }
 
-    currentSummaryNodeCFA = nextNodeAndIterationsVariable.orElseThrow().getFirst();
+    currentSummaryNodeCFA = nextNode.orElseThrow();
     AVariableDeclaration iterationsVariable =
-        nextNodeAndIterationsVariable.orElseThrow().getSecond();
+        createIterationsVariable(pBeforeWhile.getFunctionName());
 
     CFANode nextSummaryNode = CFANode.newDummyCFANode(pBeforeWhile.getFunctionName());
 
