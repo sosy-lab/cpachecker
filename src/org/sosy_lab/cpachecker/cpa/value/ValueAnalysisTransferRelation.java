@@ -190,10 +190,11 @@ public class ValueAnalysisTransferRelation
     @Option(
         secure = true,
         description =
-            "If 'ignoreFunctionValueExceptRandom' is set to true, and functionValuesForRandom are present,"
-                + "this option determines the analysis behaviour, if all values from the file are used and another call to"
-                + " VERIFIER_nondet_* is present. If it is set to true, the analysis aborts the computation. If set to false, an unknown value is used."
-                + " functionValuesForRandom ")
+            "If 'ignoreFunctionValueExceptRandom' is set to true, and functionValuesForRandom are"
+                + " present,this option determines the analysis behaviour, if all values from the"
+                + " file are used and another call to VERIFIER_nondet_* is present. If it is set to"
+                + " true, the analysis aborts the computation. If set to false, an unknown value is"
+                + " used. functionValuesForRandom ")
     private boolean stopIfAllValuesForUnknownAreUsed = false;
 
     @Option(
@@ -366,7 +367,7 @@ public class ValueAnalysisTransferRelation
       if (exp instanceof JExpression) {
         value = ((JExpression) exp).accept(visitor);
       } else if (exp instanceof CExpression) {
-        if (visitor.valueWillBeUnknown(exp)){
+        if (visitor.valueWillBeUnknown(exp)) {
           return null;
         }
         value = visitor.evaluate((CExpression) exp, (CType) parameters.get(i).getType());
@@ -443,7 +444,7 @@ public class ValueAnalysisTransferRelation
     if (expression != null && functionReturnVar != null) {
       final Type functionReturnType =
           functionEntryNode.getFunctionDefinition().getType().getReturnType();
-      if (returnEdge instanceof  CReturnStatementEdge && evv.valueWillBeUnknown(expression)){
+      if (returnEdge instanceof CReturnStatementEdge && evv.valueWillBeUnknown(expression)) {
         return null;
       }
       return handleAssignmentToVariable(functionReturnVar, functionReturnType, expression, evv);
@@ -608,7 +609,7 @@ public class ValueAnalysisTransferRelation
 
       if (leftHandSide instanceof CLeftHandSide) {
         ExpressionValueVisitor visitor = getVisitor();
-        if (visitor.valueWillBeUnknown(leftHandSide)){
+        if (visitor.valueWillBeUnknown(leftHandSide)) {
           return null;
         }
         MemoryLocation assignedMemoryLocation =
@@ -644,7 +645,7 @@ public class ValueAnalysisTransferRelation
     final ExpressionValueVisitor evv = getVisitor();
     final Type booleanType = getBooleanType(expression);
 
-    if ( evv.valueWillBeUnknown(expression)){
+    if (evv.valueWillBeUnknown(expression)) {
       return null;
     }
 
@@ -782,7 +783,7 @@ public class ValueAnalysisTransferRelation
     if (init instanceof AInitializerExpression) {
       ExpressionValueVisitor evv = getVisitor();
       AExpression exp = ((AInitializerExpression) init).getExpression();
-      if ( evv.valueWillBeUnknown(exp)){
+      if (evv.valueWillBeUnknown(exp)) {
         return null;
       }
 
@@ -917,7 +918,7 @@ public class ValueAnalysisTransferRelation
     final CLeftHandSide leftSide = pFunctionCallAssignment.getLeftHandSide();
     final CType leftSideType = leftSide.getExpressionType();
     final ExpressionValueVisitor evv = getVisitor();
-    if ( evv.valueWillBeUnknown(functionCallExp)){
+    if (evv.valueWillBeUnknown(functionCallExp)) {
       return null;
     }
     ValueAnalysisState newElement = ValueAnalysisState.copyOf(state);
@@ -978,7 +979,7 @@ public class ValueAnalysisTransferRelation
     } else if (op1 instanceof CFieldReference) {
 
       ExpressionValueVisitor v = getVisitor();
-      if ( v.valueWillBeUnknown(op1)){
+      if (v.valueWillBeUnknown(op1)) {
         return null;
       }
       MemoryLocation memLoc = v.evaluateMemoryLocation((CFieldReference) op1);
@@ -996,7 +997,7 @@ public class ValueAnalysisTransferRelation
       if (op1 instanceof CArraySubscriptExpression) {
 
         ExpressionValueVisitor v = getVisitor();
-        if ( v.valueWillBeUnknown(op1)){
+        if (v.valueWillBeUnknown(op1)) {
           return null;
         }
         MemoryLocation memLoc = v.evaluateMemoryLocation((CLeftHandSide) op1);
@@ -1500,7 +1501,7 @@ public class ValueAnalysisTransferRelation
                     targetPointer.getExpressionType(),
                     targetPointer);
             ExpressionValueVisitor evv = getVisitor();
-            if ( evv.valueWillBeUnknown(exp)){
+            if (evv.valueWillBeUnknown(exp)) {
               return null;
             }
             Value value;
@@ -1805,7 +1806,7 @@ public class ValueAnalysisTransferRelation
           String.format(
               "Ignoring the additionally given file 'functionValuesForRandom' %s due to an error",
               options.getFunctionValuesForRandom()));
-      valuesFromFile= new HashMap<>();
+      valuesFromFile = new HashMap<>();
     }
   }
 
@@ -1820,7 +1821,8 @@ public class ValueAnalysisTransferRelation
           ValueAnalysisTransferRelation.indexForNextRandomValue,
           machineModel,
           logger,
-          valuesFromFile, options.isStopIfAllValuesForUnknownAreUsed());
+          valuesFromFile,
+          options.isStopIfAllValuesForUnknownAreUsed());
     } else if (options.isIgnoreFunctionValue()) {
       return new ExpressionValueVisitor(pState, pFunctionName, machineModel, logger);
     } else {

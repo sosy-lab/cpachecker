@@ -8,14 +8,11 @@
 
 package org.sosy_lab.cpachecker.cpa.value;
 
-import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
-import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.ARightHandSide;
-import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
@@ -101,15 +98,18 @@ public class ExpressionValueVisitorWithPredefinedValues extends ExpressionValueV
   }
 
   @Override
-  public boolean valueWillBeUnknown(ARightHandSide pExpression)  {
-    if (pExpression instanceof  CRightHandSide){
-    if (expressionIsRandomCall((CRightHandSide) pExpression) && stopIfAllValuesForUnknownAreUsed ) {
-      int counter = numReturnedValues.get();
-      boolean retVal =!valuesFromFile.containsKey(counter);
-      if (retVal){
-      logger.logf(Level.INFO, "Will abort, as no value for %s is known", pExpression);}
-      return retVal;
-    }}
+  public boolean valueWillBeUnknown(ARightHandSide pExpression) {
+    if (pExpression instanceof CRightHandSide) {
+      if (expressionIsRandomCall((CRightHandSide) pExpression)
+          && stopIfAllValuesForUnknownAreUsed) {
+        int counter = numReturnedValues.get();
+        boolean retVal = !valuesFromFile.containsKey(counter);
+        if (retVal) {
+          logger.logf(Level.INFO, "Will abort, as no value for %s is known", pExpression);
+        }
+        return retVal;
+      }
+    }
     return false;
   }
 

@@ -13,7 +13,6 @@ import java.util.Objects;
 import java.util.OptionalLong;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
-import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.ARightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
@@ -231,8 +230,8 @@ public class ExpressionValueVisitor extends AbstractExpressionValueVisitor {
     return evaluateMemoryLocation(lValue) != null;
   }
 
-
-  public boolean valueWillBeUnknown(ARightHandSide pExpression)  {
+  @SuppressWarnings("unused")
+  public boolean valueWillBeUnknown(ARightHandSide pExpression) {
     return false;
   }
 

@@ -158,7 +158,7 @@ solver.z3.usePhantomReferences = false
 # SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
 # SPDX-FileCopyrightText: 2007-2021 Dirk Beyer <https://www.sosy-lab.org>
 # SPDX-FileCopyrightText: 2007-2022 Dirk Beyer <https://www.sosy-lab.org>
-# SPDX-FileCopyrightText: 2014-2017 Université Grenoble Alpes
+# SPDX-FileCopyrightText: 2014-2017 Universit� Grenoble Alpes
 # SPDX-FileCopyrightText: 2020 Dirk Beyer <https://www.sosy-lab.org>
 # SPDX-FileCopyrightText: 2021 Dirk Beyer <https://www.sosy-lab.org>
 # SPDX-FileCopyrightText: 2022 Dirk Beyer <https://www.sosy-lab.org>
@@ -2688,17 +2688,17 @@ cpa.propertychecker.className = org.sosy_lab.cpachecker.pcc.propertychecker.Defa
 cpa.propertychecker.parameters = ""
 
 # If no path is given for the path2InputFile, try to load it automatically
-cpa.rangeExecution.autoLoadPath2Input = false
+cpa.rangedExecution.autoLoadPath2Input = false
 
 # The path for the input file to handle input/random values for the constant
-# propagation following the lower bound. If no path is given, there is no
-# lower bound.
-cpa.rangeExecution.path2LowerInputFile = no default value
+# propagation following the left bound. If no path is given, there is no left
+# bound.
+cpa.rangedExecution.path2LeftInputFile = no default value
 
 # The path for the input file to handle input/random values for the constant
-# propagation following the upper bound. If no path is given, there is no
-# upper bound.
-cpa.rangeExecution.path2UpperInputFile = no default value
+# propagation following the right bound. If no path is given, there is no
+# right bound.
+cpa.rangedExecution.path2RightInputFile = no default value
 
 # Whether to consider constraints on program variables (e.g., x > 10) as
 # definitions)
@@ -3401,6 +3401,14 @@ cpa.value.reuse.precision.predicate.useControl = false
 # which stop operator to use for ValueAnalysisCPA
 cpa.value.stop = "SEP"
   allowed values: [SEP, JOIN, NEVER, EQUALS]
+
+# If 'ignoreFunctionValueExceptRandom' is set to true, and
+# functionValuesForRandom are present,this option determines the analysis
+# behaviour, if all values from the file are used and another call to
+# VERIFIER_nondet_* is present. If it is set to true, the analysis aborts the
+# computation. If set to false, an unknown value is used.
+# functionValuesForRandom 
+cpa.value.stopIfAllValuesForUnknownAreUsed = false
 
 # Default size of arrays whose length can't be determined.
 cpa.value.symbolic.defaultArraySize = 20
