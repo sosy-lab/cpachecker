@@ -10,24 +10,16 @@ package org.sosy_lab.cpachecker.cfa.postprocessing.summaries.loops;
 
 import java.util.Iterator;
 import java.util.Optional;
-import java.util.Set;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CFACreationUtils;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
-import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
-import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.factories.AFunctionFactory;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
-import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.GhostCFA;
 import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.StrategiesEnum;
 import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.StrategyDependencies.StrategyDependency;
@@ -50,9 +42,7 @@ public class NaiveLoopAccelerationStrategy extends LoopStrategy {
   }
 
   private Optional<GhostCFA> summarizeLoop(
-      Loop pLoopStructure,
-      CFANode pBeforeWhile,
-      AExpression pLoopBoundExpression) {
+      Loop pLoopStructure, CFANode pBeforeWhile, AExpression pLoopBoundExpression) {
 
     CFANode startNodeGhostCFA = CFANode.newDummyCFANode(pBeforeWhile.getFunctionName());
     CFANode endNodeGhostCFA = CFANode.newDummyCFANode(pBeforeWhile.getFunctionName());
@@ -74,24 +64,12 @@ public class NaiveLoopAccelerationStrategy extends LoopStrategy {
         ((CAssumeEdge) loopBoundCFAEdge).negate().copyWith(startNodeGhostCFA, endNodeGhostCFA);
     CFACreationUtils.addEdgeUnconditionallyToCFA(negatedBoundCFAEdge);
 
-    Set<AVariableDeclaration> modifiedVariables =
-        LoopStrategy.getModifiedNonLocalVariables(pLoopStructure);
-
-    for (AVariableDeclaration pc : modifiedVariables) {
-      // TODO improve for Java
-      CIdExpression leftHandSide = new CIdExpression(FileLocation.DUMMY, (CSimpleDeclaration) pc);
-      CFunctionCallExpression rightHandSide =
-          (CFunctionCallExpression) new AFunctionFactory().callNondetFunction(pc.getType());
-      if (rightHandSide == null) {
-        return Optional.empty();
-      }
-      CFunctionCallAssignmentStatement cStatementEdge =
-          new CFunctionCallAssignmentStatement(FileLocation.DUMMY, leftHandSide, rightHandSide);
-      CFAEdge dummyEdge =
-          new CStatementEdge(
-              pc.getName() + " = NONDET", cStatementEdge, FileLocation.DUMMY, currentNode, newNode);
-      CFACreationUtils.addEdgeUnconditionallyToCFA(dummyEdge);
-      currentNode = newNode;
+    Optional<CFANode> currentNodeMaybe =
+        havocNonLocalLoopVars(pLoopStructure, pBeforeWhile, currentNode, newNode);
+    if (currentNodeMaybe.isEmpty()) {
+      return Optional.empty();
+    } else {
+      currentNode = currentNodeMaybe.orElseThrow();
       newNode = CFANode.newDummyCFANode(pBeforeWhile.getFunctionName());
     }
 
