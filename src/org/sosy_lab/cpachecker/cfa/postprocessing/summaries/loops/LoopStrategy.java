@@ -13,9 +13,11 @@ import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableSet;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.AbstractStrategy;
@@ -24,6 +26,7 @@ import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.StrategiesEnum;
 import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.StrategyDependencies.StrategyDependency;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
+import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 
 public class LoopStrategy extends AbstractStrategy {
 
@@ -49,6 +52,19 @@ public class LoopStrategy extends AbstractStrategy {
     return determineLoopHead(
         loopStartNode,
         x -> summaryFilter.filter(x, ImmutableSet.of(StrategiesEnum.BASE, this.strategyEnum)));
+  }
+
+  protected static Set<AVariableDeclaration> getModifiedNonLocalVariables(Loop loop) {
+    Set<AVariableDeclaration> modifiedVariables = loop.getModifiedVariables();
+    Set<String> outofScopeVariables =
+        FluentIterable.from(HavocStrategy.getOutOfScopeVariables(loop))
+            .transform(x -> x.getQualifiedName())
+            .toSet();
+    modifiedVariables =
+        FluentIterable.from(modifiedVariables)
+            .filter(x -> !outofScopeVariables.contains(x.getQualifiedName()))
+            .toSet();
+    return modifiedVariables;
   }
 
   private static final Optional<CFANode> determineLoopHead(
