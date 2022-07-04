@@ -10,6 +10,8 @@ package org.sosy_lab.cpachecker.cfa.postprocessing.summaries;
 
 import java.util.Collection;
 import java.util.logging.Level;
+import org.sosy_lab.common.ShutdownNotifier;
+import org.sosy_lab.common.configuration.ClassOption;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -40,16 +42,28 @@ public class SummaryBasedRefiner implements Refiner, StatisticsProvider {
       description = "Max amount of first refinements.")
   public int maxAmntFirstRefinements = 100;
 
+  @Option(
+      secure = true,
+      name = "wrappedrefiner",
+      required = true,
+      description =
+          "Which wrapped refinement algorithm to use? "
+              + "(give class name, required for CEGAR) If the package name starts with "
+              + "'org.sosy_lab.cpachecker.', this prefix can be omitted.")
+  @ClassOption(packagePrefix = "org.sosy_lab.cpachecker")
+  private Refiner.Factory refinerFactory;
+
   private int amntFirstRefinements = 0;
 
   public SummaryBasedRefiner(
-      Refiner pFirstRefiner,
       Refiner pSecondRefiner,
       LogManager pLogger,
+      ShutdownNotifier pShutdownNotifier,
       ConfigurableProgramAnalysis pCpa,
       Configuration pConfig)
       throws InvalidConfigurationException {
-    firstRefiner = pFirstRefiner;
+    pConfig.inject(this);
+    firstRefiner = refinerFactory.create(pCpa, pLogger, pShutdownNotifier);
     secondRefiner = pSecondRefiner;
     logger = pLogger;
     argCpa = CPAs.retrieveCPAOrFail(pCpa, ARGCPA.class, Refiner.class);
@@ -62,8 +76,6 @@ public class SummaryBasedRefiner implements Refiner, StatisticsProvider {
           new SummaryRefinerStatistics(
               argCpa.getCfa().getSummaryInformation().orElseThrow(), pConfig);
     }
-
-    pConfig.inject(this);
   }
 
   @Override

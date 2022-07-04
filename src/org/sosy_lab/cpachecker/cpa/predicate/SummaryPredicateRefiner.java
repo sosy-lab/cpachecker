@@ -29,9 +29,9 @@ public abstract class SummaryPredicateRefiner implements Refiner {
     logger = argCpa.getLogger();
 
     return new SummaryBasedRefiner(
-        PredicateRefiner.create(pCpa),
         new SummaryStrategyRefiner(logger, pCpa, argCpa.getCfa()),
         logger,
+        predicateCPA.getShutdownNotifier(),
         pCpa,
         predicateCPA.getConfiguration());
   }

@@ -29,9 +29,9 @@ public abstract class SummaryValueRefiner implements Refiner {
     logger = argCpa.getLogger();
 
     return new SummaryBasedRefiner(
-        ValueAnalysisRefiner.create(pCpa),
         new SummaryStrategyRefiner(logger, pCpa, argCpa.getCfa()),
         logger,
+        valueCPA.getShutdownNotifier(),
         pCpa,
         valueCPA.getConfiguration());
   }

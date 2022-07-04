@@ -760,6 +760,11 @@ cegar.refiner = no default value
 # Max amount of first refinements.
 cegar.refiner.summaries.maxAmntFirstRefinements = 100
 
+# Which wrapped refinement algorithm to use? (give class name, required for
+# CEGAR) If the package name starts with 'org.sosy_lab.cpachecker.', this
+# prefix can be omitted.
+cegar.refiner.summaries.wrappedrefiner = no default value
+
 # whether or not to use refinement selection to decide which domain to refine
 cegar.useRefinementSelection = false
 
@@ -863,11 +868,19 @@ cfa.summaries.dependencies = BASESTRATEGYDEPENDENCY
   enum:     [NOSTRATEGYDEPENDENCY, BASESTRATEGYDEPENDENCY, LOOPSTRATEGYDEPENDENCY,
              LOOPSTRATEGYMOSTGENERALORDERINGDEPENDENCY, LOOPSTRATEGYOVERFLOWDEPENDENCY]
 
+# once enabled, this will create a copy of the input program in the output
+# directory where parts of the program have been replaced by the
+# corresponding summary that was used during the analysis
+cfa.summaries.dumpinlinedsummaries = true
+
 # Max amount fo Iterations for adapting the CFA
 cfa.summaries.maxIterations = 10
 
 # Max amount fo Unrollings for the Unrolling Strategy
 cfa.summaries.maxUnrollingsStrategy = 100
+
+# directory in which the programs with inlined summaries are stored
+cfa.summaries.outputdirectory = "LA"
 
 # Strategies to be used in the generation of the CFA, to summarize some parts
 # of it.
