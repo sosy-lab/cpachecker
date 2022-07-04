@@ -152,8 +152,12 @@ public class LoopStrategy extends AbstractStrategy {
   }
 
   protected static boolean havocModifiedNonLocalVarsAsCode(Loop loop, StringBuilder builder) {
-    Set<AVariableDeclaration> modifiedVariables = getModifiedNonLocalVariables(loop);
-    for (AVariableDeclaration pc : modifiedVariables) {
+    return havocVarsAsCode(getModifiedNonLocalVariables(loop), builder);
+  }
+
+  protected static boolean havocVarsAsCode(
+      Set<AVariableDeclaration> variables, StringBuilder builder) {
+    for (AVariableDeclaration pc : variables) {
       CSimpleDeclaration decl = (CSimpleDeclaration) pc;
       // it is important to use the decl.getOrigName here, otherwise of the variable
       // exists in multiple scopes it will e.g. be called x__1 instead of 1!
