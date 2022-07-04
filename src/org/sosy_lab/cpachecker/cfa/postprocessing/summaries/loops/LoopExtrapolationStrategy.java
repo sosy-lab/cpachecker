@@ -57,7 +57,7 @@ public class LoopExtrapolationStrategy extends LoopStrategy {
 
   private static final String LA_TMP_ITERATION_VAR_PREFIX = "__VERIFIER_LA_iterations";
   private static final String LA_TMP_VAR_PREFIX = "__VERIFIER_LA_tmp";
-  protected static final String LA_OVF_TMP_VAR_PREFIX = "__VERIFIER_LA_ovf_tmp";
+  protected static final String LA_TMP_OLD_VAR_PREFIX = "__VERIFIER_LA_old_tmp";
 
   // maps for caching the flags for each loop; not thread-safe
   // TODO: we compute this more than once if we use multiple (child) class instances
