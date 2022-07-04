@@ -64,7 +64,6 @@ public class OutputLoopAccelerationStrategy extends LoopStrategy {
         pCFA);
   }
 
-  @SuppressWarnings("unused")
   private Optional<GhostCFA> summarizeLoop(
       Loop pLoopStructure,
       Set<AVariableDeclaration> pModifiedVariables,
