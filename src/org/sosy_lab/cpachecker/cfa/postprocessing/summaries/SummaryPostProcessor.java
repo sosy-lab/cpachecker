@@ -22,13 +22,17 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.CFAReversePostorder;
 import org.sosy_lab.cpachecker.cfa.MutableCFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.StrategyDependencies.StrategyDependency;
 import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.StrategyDependencies.StrategyDependencyEnum;
 import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.StrategyDependencies.StrategyDependencyFactory;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
+import org.sosy_lab.cpachecker.exceptions.ParserException;
+import org.sosy_lab.cpachecker.util.LoopStructure;
 
 @Options
 public class SummaryPostProcessor implements StatisticsProvider {
@@ -115,7 +119,7 @@ public class SummaryPostProcessor implements StatisticsProvider {
     }
   }
 
-  public MutableCFA process(MutableCFA pCfa) {
+  public MutableCFA process(MutableCFA pCfa) throws ParserException {
 
     List<GhostCFA> ghostCfaToBeAdded;
     CFANode startNode = pCfa.getMainFunction();
@@ -175,9 +179,16 @@ public class SummaryPostProcessor implements StatisticsProvider {
         }
         summaryInformation.addGhostCFA(gCFA);
       }
-      // TODO: update CFA structure to incorporate new summaries. Specifically, create a new
-      // LoopStructure if a Loop inside a Loop was summarized using the summarized loop as an inner
-      // edge.
+
+      // # Update CFA structure to incorporate new summaries.
+      // 1. reverse postorder for the new CFA nodes needs to be set
+      for (FunctionEntryNode function : pCfa.getAllFunctionHeads()) {
+        CFAReversePostorder sorter = new CFAReversePostorder();
+        sorter.assignSorting(function);
+      }
+
+      // 2. recalculate the loop structure based on the current state of the CFA
+      pCfa.setLoopStructure(LoopStructure.getLoopStructure(pCfa));
 
       fixpoint = this.strategyDependencies.stopPostProcessing(iterations, !fixpoint);
     }
