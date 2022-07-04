@@ -86,15 +86,26 @@ public class SummaryInformation {
   }
 
   public StrategiesEnum getStrategyForEdge(CFAEdge edge) {
-    if (nodesWithIncomingStrategies.get(edge.getPredecessor()) == StrategiesEnum.BASE) {
-      return nodesWithIncomingStrategies.get(edge.getSuccessor());
+    if (getStrategyForNode(edge.getPredecessor()) == StrategiesEnum.BASE) {
+      return getStrategyForNode(edge.getSuccessor());
     } else {
-      return nodesWithIncomingStrategies.get(edge.getPredecessor());
+      return getStrategyForNode(edge.getPredecessor());
     }
   }
 
   public StrategiesEnum getStrategyForNode(CFANode node) {
-    return nodesWithIncomingStrategies.get(node);
+    if (nodesWithIncomingStrategies.containsKey(node)) {
+      return nodesWithIncomingStrategies.get(node);
+    } else {
+      // this is a hotfix. CFASecondPassBuilder in CFACreator is modifying the CFA, adding
+      // CFATerminationNodes e.g. for calling abort().
+      // so there will be nodes that we do not track, and we do not want to throw a null pointer
+      // exception. Changing the order and
+      // running the SummaryPostProcessor after the CFASecondPassBuilder would be the way to go, but
+      // currently the loop structure recalculation
+      // does not work after CFASecondPassBuilder has done what it does. Hence this hotfix instead.
+      return StrategiesEnum.BASE;
+    }
   }
 
   public Map<String, CExpression> getVariableDeclarationsForNode(CFANode node) {
