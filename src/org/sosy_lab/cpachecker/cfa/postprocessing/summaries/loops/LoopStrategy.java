@@ -17,9 +17,20 @@ import java.util.Set;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.CFACreationUtils;
+import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.factories.AFunctionFactory;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.AbstractStrategy;
 import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.GhostCFA;
 import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.StrategiesEnum;
@@ -52,6 +63,69 @@ public class LoopStrategy extends AbstractStrategy {
     return determineLoopHead(
         loopStartNode,
         x -> summaryFilter.filter(x, ImmutableSet.of(StrategiesEnum.BASE, this.strategyEnum)));
+  }
+
+  protected static void assumeNegatedLoopBound(
+      String functionName, CFANode startNode, CFANode endNode, AExpression loopBoundExpression) {
+    CFAEdge loopBoundCFAEdgeEnd =
+        new CAssumeEdge(
+            "Loop Bound Assumption",
+            FileLocation.DUMMY,
+            startNode,
+            CFANode.newDummyCFANode(functionName),
+            (CExpression) loopBoundExpression,
+            true);
+    CFACreationUtils.addEdgeUnconditionallyToCFA(loopBoundCFAEdgeEnd);
+
+    CAssumeEdge negatedBoundCFAEdgeEnd =
+        ((CAssumeEdge) loopBoundCFAEdgeEnd).negate().copyWith(startNode, endNode);
+    CFACreationUtils.addEdgeUnconditionallyToCFA(negatedBoundCFAEdgeEnd);
+  }
+
+  protected static Optional<CFANode> havocNonLocalLoopVars(
+      Loop loop, CFANode pBeforeWhile, CFANode currentNode, CFANode newNode) {
+    Set<AVariableDeclaration> modifiedVariables =
+        getModifiedNonLocalVariables(loop);
+    for (AVariableDeclaration pc : modifiedVariables) {
+      CIdExpression leftHandSide = new CIdExpression(FileLocation.DUMMY, (CSimpleDeclaration) pc);
+      CFunctionCallExpression rightHandSide =
+          (CFunctionCallExpression) new AFunctionFactory().callNondetFunction(pc.getType());
+      if (rightHandSide == null) {
+        return Optional.empty();
+      }
+      CFunctionCallAssignmentStatement cStatementEdge =
+          new CFunctionCallAssignmentStatement(FileLocation.DUMMY, leftHandSide, rightHandSide);
+      if (newNode == null) {
+        newNode = CFANode.newDummyCFANode(pBeforeWhile.getFunctionName());
+      }
+      CFAEdge dummyEdge =
+          new CStatementEdge(
+              pc.getName() + " = NONDET", cStatementEdge, FileLocation.DUMMY, currentNode, newNode);
+      CFACreationUtils.addEdgeUnconditionallyToCFA(dummyEdge);
+      currentNode = newNode;
+      newNode = null;
+    }
+    return Optional.of(currentNode);
+  }
+
+  protected static boolean havocModifiedNonLocalVarsAsCode(Loop loop, StringBuilder builder) {
+    Set<AVariableDeclaration> modifiedVariables = getModifiedNonLocalVariables(loop);
+    for (AVariableDeclaration pc : modifiedVariables) {
+      CSimpleDeclaration decl = (CSimpleDeclaration) pc;
+      // it is important to use the decl.getOrigName here, otherwise of the variable
+      // exists in multiple scopes it will e.g. be called x__1 instead of 1!
+      CIdExpression leftHandSide =
+          new CIdExpression(FileLocation.DUMMY, decl.getType(), decl.getOrigName(), decl);
+      CFunctionCallExpression rightHandSide =
+          (CFunctionCallExpression) new AFunctionFactory().callNondetFunction(pc.getType());
+      if (rightHandSide == null) {
+        return false;
+      }
+      CFunctionCallAssignmentStatement cStatement =
+          new CFunctionCallAssignmentStatement(FileLocation.DUMMY, leftHandSide, rightHandSide);
+      builder.append(String.format("%s\n", cStatement.toASTString()));
+    }
+    return true;
   }
 
   protected static Set<AVariableDeclaration> getModifiedNonLocalVariables(Loop loop) {

@@ -18,18 +18,11 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CFACreationUtils;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.ASimpleDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
-import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.factories.AFunctionFactory;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
-import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.GhostCFA;
 import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.StrategiesEnum;
 import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.StrategyDependencies.StrategyDependency;
@@ -55,9 +48,6 @@ public class HavocStrategy extends LoopStrategy {
     CFANode currentNode = CFANode.newDummyCFANode(pBeforeWhile.getFunctionName());
     CFANode newNode = CFANode.newDummyCFANode(pBeforeWhile.getFunctionName());
 
-    Set<AVariableDeclaration> modifiedVariables =
-        LoopStrategy.getModifiedNonLocalVariables(pLoopStructure);
-
     Optional<AExpression> loopBoundExpressionMaybe = pLoopStructure.getBound();
     if (loopBoundExpressionMaybe.isEmpty()) {
       return Optional.empty();
@@ -78,41 +68,21 @@ public class HavocStrategy extends LoopStrategy {
         ((CAssumeEdge) loopBoundCFAEdge).negate().copyWith(startNodeGhostCFA, endNodeGhostCFA);
     CFACreationUtils.addEdgeUnconditionallyToCFA(negatedBoundCFAEdge);
 
-    for (AVariableDeclaration pc : modifiedVariables) {
-      CIdExpression leftHandSide = new CIdExpression(FileLocation.DUMMY, (CSimpleDeclaration) pc);
-      CFunctionCallExpression rightHandSide =
-          (CFunctionCallExpression) new AFunctionFactory().callNondetFunction(pc.getType());
-      if (rightHandSide == null) {
-        return Optional.empty();
-      }
-      CFunctionCallAssignmentStatement cStatementEdge =
-          new CFunctionCallAssignmentStatement(FileLocation.DUMMY, leftHandSide, rightHandSide);
-      CFAEdge dummyEdge =
-          new CStatementEdge(
-              pc.getName() + " = NONDET", cStatementEdge, FileLocation.DUMMY, currentNode, newNode);
-      CFACreationUtils.addEdgeUnconditionallyToCFA(dummyEdge);
-      currentNode = newNode;
-      newNode = CFANode.newDummyCFANode(pBeforeWhile.getFunctionName());
+    Optional<CFANode> currentNodeMaybe =
+        LoopStrategy.havocNonLocalLoopVars(pLoopStructure, pBeforeWhile, currentNode, newNode);
+    if (!currentNodeMaybe.isPresent()) {
+      return Optional.empty();
     }
+    currentNode = currentNodeMaybe.orElseThrow();
+    newNode = CFANode.newDummyCFANode(pBeforeWhile.getFunctionName());
 
     Optional<Pair<CFANode, CFANode>> unrolledLoopNodesMaybe = pLoopStructure.unrollOutermostLoop();
     if (unrolledLoopNodesMaybe.isEmpty()) {
       return Optional.empty();
     }
 
-    CFAEdge loopBoundCFAEdgeEnd =
-        new CAssumeEdge(
-            "Loop Bound Assumption",
-            FileLocation.DUMMY,
-            currentNode,
-            CFANode.newDummyCFANode(pBeforeWhile.getFunctionName()),
-            (CExpression) loopBoundExpression,
-            true);
-    CFACreationUtils.addEdgeUnconditionallyToCFA(loopBoundCFAEdgeEnd);
-
-    CAssumeEdge negatedBoundCFAEdgeEnd =
-        ((CAssumeEdge) loopBoundCFAEdgeEnd).negate().copyWith(currentNode, endNodeGhostCFA);
-    CFACreationUtils.addEdgeUnconditionallyToCFA(negatedBoundCFAEdgeEnd);
+    LoopStrategy.assumeNegatedLoopBound(
+        pBeforeWhile.getFunctionName(), currentNode, endNodeGhostCFA, loopBoundExpression);
 
     CFANode leavingSuccessor;
     Iterator<CFAEdge> iter = pLoopStructure.getOutgoingEdges().iterator();
@@ -181,21 +151,8 @@ public class HavocStrategy extends LoopStrategy {
                 .accept(CExpressionToOrinalCodeVisitor.BASIC_TRANSFORMER)));
 
     // 2. add a line <varname> = __VERIFIER_nondet_X(); for all modified variables
-    Set<AVariableDeclaration> modifiedVariables = LoopStrategy.getModifiedNonLocalVariables(loop);
-    for (AVariableDeclaration pc : modifiedVariables) {
-      CSimpleDeclaration decl = (CSimpleDeclaration) pc;
-      // it is important to use the decl.getOrigName here, otherwise of the variable
-      // exists in multiple scopes it will e.g. be called x__1 instead of 1!
-      CIdExpression leftHandSide =
-          new CIdExpression(FileLocation.DUMMY, decl.getType(), decl.getOrigName(), decl);
-      CFunctionCallExpression rightHandSide =
-          (CFunctionCallExpression) new AFunctionFactory().callNondetFunction(pc.getType());
-      if (rightHandSide == null) {
-        return Optional.empty();
-      }
-      CFunctionCallAssignmentStatement cStatement =
-          new CFunctionCallAssignmentStatement(FileLocation.DUMMY, leftHandSide, rightHandSide);
-      builder.append(String.format("  %s\n", cStatement.toASTString()));
+    if (!LoopStrategy.havocModifiedNonLocalVarsAsCode(loop, builder)) {
+      return Optional.empty();
     }
     builder.append("}\n");
 
