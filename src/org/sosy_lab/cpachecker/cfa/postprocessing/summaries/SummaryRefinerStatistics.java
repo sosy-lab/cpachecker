@@ -170,12 +170,7 @@ public class SummaryRefinerStatistics implements Statistics {
       int offset = edge.getFileLocation().getNodeOffset();
       int len = edge.getFileLocation().getNodeLength();
 
-      Path containingFile =
-          FluentIterable.from(loop.getIncomingEdges())
-              .first()
-              .orNull()
-              .getFileLocation()
-              .getFileName();
+      Path containingFile = edge.getFileLocation().getFileName();
       final Optional<String> summary;
 
       Strategy strategy = strategyFactory.buildStrategy(en);
