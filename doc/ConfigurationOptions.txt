@@ -222,6 +222,9 @@ analysis.algorithm.faultLocalization.by_traceformula = false
 # Use McMillan's Impact algorithm for lazy interpolation
 analysis.algorithm.impact = false
 
+# Use algorithm that calculates abstractions for loops in the program.
+analysis.algorithm.loopabstraction = false
+
 # use nontermination witness validator to check a violation witness for
 # termination
 analysis.algorithm.nonterminationWitnessCheck = false
@@ -3770,6 +3773,9 @@ locmapper.dumpTokenizedProgramToFile = no default value
 
 # all used options are printed
 log.usedOptions.export = false
+
+# directory in which the programs with inlined summaries are stored
+loopabstraction.outputdirectory = "LA"
 
 # When checking for memory cleanup properties, use this configuration file
 # instead of the current one.

@@ -34,6 +34,7 @@ import org.sosy_lab.cpachecker.core.algorithm.ExceptionHandlingAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.FaultLocalizationWithCoverage;
 import org.sosy_lab.cpachecker.core.algorithm.FaultLocalizationWithTraceFormula;
 import org.sosy_lab.cpachecker.core.algorithm.InvariantExportAlgorithm;
+import org.sosy_lab.cpachecker.core.algorithm.LoopAbstractionAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.MPIPortfolioAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.NoopAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.ParallelAlgorithm;
@@ -388,6 +389,12 @@ public class CoreComponentsFactory {
   @Option(secure = true, description = "Enable converting test goals to conditions.")
   private boolean testGoalConverter;
 
+  @Option(
+      secure = true,
+      name = "algorithm.loopabstraction",
+      description = "Use algorithm that calculates abstractions for loops in the program.")
+  private boolean useLoopAbstractionAlgorithm = false;
+
   private final Configuration config;
   private final LogManager logger;
   private final @Nullable ShutdownManager shutdownManager;
@@ -535,6 +542,8 @@ public class CoreComponentsFactory {
     } else if (useRandomTestCaseGeneratorAlgorithm) {
       algorithm =
           new RandomTestGeneratorAlgorithm(config, logger, shutdownNotifier, cfa, specification);
+    } else if (useLoopAbstractionAlgorithm) {
+      algorithm = new LoopAbstractionAlgorithm(config, logger, shutdownNotifier, cfa);
     } else {
       algorithm = CPAAlgorithm.create(cpa, logger, config, shutdownNotifier);
 
