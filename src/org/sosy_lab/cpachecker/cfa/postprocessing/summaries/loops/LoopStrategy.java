@@ -227,5 +227,6 @@ public class LoopStrategy extends AbstractStrategy {
         Files.asCharSource(e.getFileLocation().getFileName().toFile(), StandardCharsets.UTF_8)
             .read();
     builder.append(content.substring(offset, offset + len).replaceAll("^while", "if"));
+    builder.append("\n");
   }
 }
