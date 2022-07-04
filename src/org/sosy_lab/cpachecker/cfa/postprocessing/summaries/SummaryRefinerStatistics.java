@@ -194,7 +194,11 @@ public class SummaryRefinerStatistics implements Statistics {
           continue;
         }
         try {
-          r.insertIndented(offset, summary.orElseThrow());
+          r.insertIndented(
+              offset,
+              String.format(
+                  "// START %s\n%s// END %s\n",
+                  en.toString(), summary.orElseThrow(), en.toString()));
           r.delete(offset, len);
         } catch (ConflictingModificationException e) {
           logger.logfException(
