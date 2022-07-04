@@ -28,6 +28,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.Consumer;
 import org.eclipse.cdt.core.dom.ast.IASTTranslationUnit;
 import org.eclipse.core.runtime.CoreException;
 import org.sosy_lab.common.ShutdownNotifier;
@@ -196,11 +197,7 @@ class EclipseCWriter implements CWriter {
         functionInfo.addOldEdge(currentEdge);
       }
 
-      // TODO handle two leaving edges differently? (branching or loop)
-      // TODO handle zero leaving edges differently? (add abort statement?)
-      for (final CFAEdge nextEdge : nextEdges) {
-        waitList.offer(nextEdge);
-      }
+      pushToWaitList(waitList, nextNode, nextEdges, functionInfo);
     }
 
     closeRemainingBranchingPoints(functionInfo);
@@ -481,6 +478,72 @@ class EclipseCWriter implements CWriter {
     return realTruthAssumption.first().get();
   }
 
+  private static void pushToWaitList(
+      final Deque<CFAEdge> pWaitList,
+      final CFANode pNextNode,
+      final FluentIterable<CFAEdge> pNextEdges,
+      final FunctionExportInformation pFunctionInfo) {
+
+    if (pNextEdges.isEmpty()) {
+      // TODO add `abort()` statement (in some cases)?
+      // nothing to do, there are no next edges
+      return;
+    }
+
+    if (pWaitList.containsAll(pNextEdges.toSet())) {
+      // nothing to do, next edges were already added to the waitList
+      return;
+    }
+
+    final Consumer<CFAEdge> waitListAction;
+    final boolean acceptRealTruthAssumptionFirst;
+
+    if (pFunctionInfo.isMergePointForAnyUnclosedBranchingPoint(pNextNode)) {
+      // offer and in consequence wait with handling these edges, because when first encountering a
+      // merge point, only one of the entering edges has been handled, and we want to wait until as
+      // many entering edges as possible have been handled
+      waitListAction = pWaitList::offer;
+      // we need to offer the real truth assumption first to have it polled first
+      acceptRealTruthAssumptionFirst = true;
+
+    } else {
+      // otherwise push, so that at branching points the then-branch is fully traversed before
+      // starting the traversal of the second branch
+      waitListAction = pWaitList::push;
+      // we need to push the real truth assumption last to have it polled first
+      acceptRealTruthAssumptionFirst = false;
+    }
+
+    if (pNextEdges.size() == 1) {
+      waitListAction.accept(pNextEdges.first().get());
+      return;
+    }
+
+    pushMultipleEdgesToWaitList(pNextEdges, waitListAction, acceptRealTruthAssumptionFirst);
+  }
+
+  private static void pushMultipleEdgesToWaitList(
+      final FluentIterable<CFAEdge> pNextEdges,
+      final Consumer<CFAEdge> pWaitListAction,
+      final boolean pAcceptRealTruthAssumptionFirst) {
+
+    assert pNextEdges.size() == 2 : "Branches with more than two options are not supported";
+    assert pNextEdges.allMatch(edge -> edge instanceof AssumeEdge)
+        : "Both branches have to have a condition";
+    final AssumeEdge first = (AssumeEdge) pNextEdges.first().get();
+    final AssumeEdge second = (AssumeEdge) pNextEdges.last().get();
+
+    // make sure the real truth assumption is polled before the complimentary assumption, because
+    // the then-branch has to be fully traversed before starting the traversal of the else-branch
+    if (isRealTruthAssumption(first) && pAcceptRealTruthAssumptionFirst) {
+      pWaitListAction.accept(first);
+      pWaitListAction.accept(second);
+    } else {
+      pWaitListAction.accept(second);
+      pWaitListAction.accept(first);
+    }
+  }
+
   private static void closeRemainingBranchingPoints(final FunctionExportInformation functionInfo) {
 
     if (!functionInfo.areAllBranchingPointsClosed()) {
@@ -580,9 +643,8 @@ class EclipseCWriter implements CWriter {
       final CFAEdge origin = pStatement.getOrigin().orElseThrow();
       assert !newStatementsByOrigin.containsKey(origin) : "Edge " + origin + " was already handled";
 
-      if (pStatement instanceof ElseStatement) {
-        // do not add until ElseStatement, because that has to be handled before closing the
-        // branching point
+      if (pStatement instanceof IfStatement) {
+        // add when encountering IfStatement so that merge point detection is possible in advance
         unclosedBranchingPoints.add(origin.getPredecessor());
       }
 
@@ -654,6 +716,11 @@ class EclipseCWriter implements CWriter {
 
     private Collection<CFAEdge> getAllVisitedOldEdges() {
       return visitedOldEdgesByFileLocation.values();
+    }
+
+    private boolean isMergePointForAnyUnclosedBranchingPoint(final CFANode pNode) {
+      return unclosedBranchingPoints.stream()
+          .anyMatch(branchingPoint -> mergePoint.findMergePoint(branchingPoint).equals(pNode));
     }
   }
 }
