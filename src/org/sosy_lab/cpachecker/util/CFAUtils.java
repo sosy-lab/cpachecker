@@ -370,8 +370,12 @@ public class CFAUtils {
                   >= pNode.getReversePostorderId())) {
         hasBackwardsEdges = true;
         return TraversalProcess.ABORT;
-      } else if (pNode.getNumLeavingEdges() > 2) {
-        throw new AssertionError("forgotten case in traversing cfa with more than 2 leaving edges");
+      } else if (pNode.getNumLeavingEdges() > 2
+          && CFAUtils.allLeavingEdges(pNode)
+              .anyMatch(
+                  x -> x.getSuccessor().getReversePostorderId() >= pNode.getReversePostorderId())) {
+        hasBackwardsEdges = true;
+        return TraversalProcess.ABORT;
       } else {
         return TraversalProcess.CONTINUE;
       }
