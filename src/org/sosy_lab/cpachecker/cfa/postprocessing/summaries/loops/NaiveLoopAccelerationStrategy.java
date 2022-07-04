@@ -8,6 +8,10 @@
 
 package org.sosy_lab.cpachecker.cfa.postprocessing.summaries.loops;
 
+import com.google.common.collect.Iterables;
+import com.google.common.io.Files;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.Iterator;
 import java.util.Optional;
 import org.sosy_lab.common.ShutdownNotifier;
@@ -23,6 +27,7 @@ import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.GhostCFA;
 import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.StrategiesEnum;
 import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.StrategyDependencies.StrategyDependency;
+import org.sosy_lab.cpachecker.core.counterexample.CExpressionToOrinalCodeVisitor;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 import org.sosy_lab.cpachecker.util.Pair;
 
@@ -152,5 +157,55 @@ public class NaiveLoopAccelerationStrategy extends LoopStrategy {
     Optional<GhostCFA> summarizedLoopMaybe = summarizeLoop(loop, beforeWhile, loopBoundExpression);
 
     return summarizedLoopMaybe;
+  }
+
+  public static Optional<String> summarizeAsCode(Loop loop) {
+    StringBuilder builder = new StringBuilder();
+
+    Optional<AExpression> loopBoundExpressionMaybe = loop.getBound();
+    if (loopBoundExpressionMaybe.isEmpty()) {
+      return Optional.empty();
+    }
+    AExpression loopBoundExpression = loopBoundExpressionMaybe.orElseThrow();
+
+    builder.append(
+        String.format(
+            "if (%s) {\n",
+            ((CExpression) loopBoundExpression)
+                .accept(CExpressionToOrinalCodeVisitor.BASIC_TRANSFORMER)));
+
+    havocModifiedNonLocalVarsAsCode(loop, builder);
+
+    builder.append(
+        String.format(
+            "if (!(%s)) abort();\n",
+            ((CExpression) loopBoundExpression)
+                .accept(CExpressionToOrinalCodeVisitor.BASIC_TRANSFORMER)));
+
+    try {
+      executeLoopBodyAsCode(loop, builder);
+    } catch (IOException e) {
+      return Optional.empty();
+    }
+
+    builder.append(
+        String.format(
+            "if (%s) abort();\n",
+            ((CExpression) loopBoundExpression)
+                .accept(CExpressionToOrinalCodeVisitor.BASIC_TRANSFORMER)));
+
+    builder.append("}\n");
+
+    return Optional.of(builder.toString());
+  }
+
+  private static void executeLoopBodyAsCode(Loop loop, StringBuilder builder) throws IOException {
+    CFAEdge e = Iterables.getOnlyElement(loop.getIncomingEdges());
+    int offset = e.getFileLocation().getNodeOffset();
+    int len = e.getFileLocation().getNodeLength();
+    String content =
+        Files.asCharSource(e.getFileLocation().getFileName().toFile(), StandardCharsets.UTF_8)
+            .read();
+    builder.append(content.substring(offset, offset + len).replaceAll("^while", "if"));
   }
 }
