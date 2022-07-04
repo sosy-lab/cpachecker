@@ -74,6 +74,12 @@ public class SummaryPostProcessor implements StatisticsProvider {
   private StrategyDependencyEnum cfaCreationStrategy =
       StrategyDependencyEnum.BASESTRATEGYDEPENDENCY;
 
+  @Option(
+      secure = true,
+      name = "summaries.transfer",
+      description = "Dependencies between the Different Strategies")
+  private StrategyDependencyEnum transferStrategy = StrategyDependencyEnum.BASESTRATEGYDEPENDENCY;
+
   public SummaryPostProcessor(
       Configuration pConfig,
       LogManager pLogger,
@@ -84,7 +90,11 @@ public class SummaryPostProcessor implements StatisticsProvider {
 
     strategyDependencies = new StrategyDependencyFactory().createStrategy(this.cfaCreationStrategy);
 
-    summaryInformation = new SummaryInformation(pCfa, strategyDependencies, strategyDependencies);
+    summaryInformation =
+        new SummaryInformation(
+            pCfa,
+            strategyDependencies,
+            new StrategyDependencyFactory().createStrategy(transferStrategy));
     // TODO: the fact that we need to modify pCfa here in this constructor is a code smell:
     pCfa.setSummaryInformations(summaryInformation);
 

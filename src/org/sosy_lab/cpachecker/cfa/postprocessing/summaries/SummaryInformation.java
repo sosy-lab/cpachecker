@@ -47,8 +47,8 @@ public class SummaryInformation {
   private Map<CFANode, Loop> nodeToLoopStructure = new HashMap<>();
   private Set<Strategy> strategies = new HashSet<>();
   private StrategyFactory factory;
-  private StrategyDependency summaryCreationStrategy;
-  private StrategyDependency summaryTransferStrategy;
+  private final StrategyDependency summaryCreationStrategy;
+  private final StrategyDependency summaryTransferStrategy;
   private Map<CFANode, Set<StrategiesEnum>> unallowedStrategiesForNode = new HashMap<>();
 
   public SummaryInformation(
@@ -164,10 +164,6 @@ public class SummaryInformation {
     List<StrategiesEnum> allowedStrategies =
         new ArrayList<>(getTransferSummaryStrategy().filter(availableStrategies));
     return allowedStrategies;
-  }
-
-  public void setTransferStrategy(StrategyDependency pSummaryTransferStrategy) {
-    this.summaryTransferStrategy = pSummaryTransferStrategy;
   }
 
   public Set<CFANode> getDistinctNodesWithStrategies(Set<StrategiesEnum> ignoreStrategies) {

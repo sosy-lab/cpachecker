@@ -33,9 +33,8 @@ public class LocationCPA extends AbstractCPA
 
   private final LocationStateFactory stateFactory;
 
-  private LocationCPA(LocationStateFactory pStateFactory, CFA pCFA, Configuration pConfig)
-      throws InvalidConfigurationException {
-    super("sep", "sep", new LocationTransferRelation(pStateFactory, pCFA, pConfig));
+  private LocationCPA(LocationStateFactory pStateFactory, CFA pCFA) {
+    super("sep", "sep", new LocationTransferRelation(pStateFactory, pCFA));
     stateFactory = pStateFactory;
 
     Optional<CFAInfo> cfaInfo = GlobalInfo.getInstance().getCFAInfo();
@@ -51,7 +50,7 @@ public class LocationCPA extends AbstractCPA
   public static LocationCPA create(CFA pCFA, Configuration pConfig)
       throws InvalidConfigurationException {
     return new LocationCPA(
-        new LocationStateFactory(pCFA, AnalysisDirection.FORWARD, pConfig), pCFA, pConfig);
+        new LocationStateFactory(pCFA, AnalysisDirection.FORWARD, pConfig), pCFA);
   }
 
   @Override

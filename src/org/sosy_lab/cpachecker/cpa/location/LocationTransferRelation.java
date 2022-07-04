@@ -16,17 +16,10 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-import org.sosy_lab.common.configuration.Configuration;
-import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.common.configuration.Option;
-import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.StrategiesEnum;
-import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.StrategyDependencies.StrategyDependency;
-import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.StrategyDependencies.StrategyDependencyEnum;
-import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.StrategyDependencies.StrategyDependencyFactory;
 import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.SummaryInformation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -34,29 +27,14 @@ import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 
-@Options
 public class LocationTransferRelation implements TransferRelation {
 
   private final LocationStateFactory factory;
   private final CFA pCFA;
 
-  @Option(
-      secure = true,
-      name = "summaries.transfer",
-      description = "Dependencies between the Different Strategies")
-  private StrategyDependencyEnum transferStrategy = StrategyDependencyEnum.BASESTRATEGYDEPENDENCY;
-
-  public LocationTransferRelation(LocationStateFactory pFactory, CFA pCFA, Configuration config)
-      throws InvalidConfigurationException {
-    config.inject(this);
+  public LocationTransferRelation(LocationStateFactory pFactory, CFA pCFA) {
     factory = pFactory;
     this.pCFA = pCFA;
-    if (this.pCFA.getSummaryInformation().isPresent()) {
-      SummaryInformation summaryInformation = pCFA.getSummaryInformation().orElseThrow();
-      StrategyDependency summaryTransferStrategy =
-          new StrategyDependencyFactory().createStrategy(this.transferStrategy);
-      summaryInformation.setTransferStrategy(summaryTransferStrategy);
-    }
   }
 
   @Override
