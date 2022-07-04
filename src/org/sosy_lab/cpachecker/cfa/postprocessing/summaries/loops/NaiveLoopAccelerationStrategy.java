@@ -73,6 +73,10 @@ public class NaiveLoopAccelerationStrategy extends LoopStrategy {
       newNode = CFANode.newDummyCFANode(pBeforeWhile.getFunctionName());
     }
 
+    assumeLoopCondition(pBeforeWhile.getFunctionName(), currentNode, newNode, pLoopBoundExpression);
+    currentNode = newNode;
+    newNode = CFANode.newDummyCFANode(pBeforeWhile.getFunctionName());
+
     Optional<Pair<CFANode, CFANode>> unrolledLoopNodesMaybe = pLoopStructure.unrollOutermostLoop();
     if (unrolledLoopNodesMaybe.isEmpty()) {
       return Optional.empty();
