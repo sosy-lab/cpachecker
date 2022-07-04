@@ -190,8 +190,8 @@ public class BitvectorFormulaManagerView extends BaseManagerView
   }
 
   @Override
-  public BitvectorFormula extract(BitvectorFormula pNumber, int pMsb, int pLsb, boolean signed) {
-    return manager.extract(pNumber, pMsb, pLsb, signed);
+  public BitvectorFormula extract(BitvectorFormula pNumber, int pMsb, int pLsb) {
+    return manager.extract(pNumber, pMsb, pLsb);
   }
 
   @Override

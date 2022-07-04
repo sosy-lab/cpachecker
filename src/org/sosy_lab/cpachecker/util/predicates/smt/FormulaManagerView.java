@@ -805,13 +805,13 @@ public class FormulaManagerView {
 
   /** Returns a term representing the selection of pFormula[pMsb:pLsb]. */
   @SuppressWarnings("unchecked")
-  public <T extends Formula> T makeExtract(T pFormula, int pMsb, int pLsb, boolean signed) {
+  public <T extends Formula> T makeExtract(T pFormula, int pMsb, int pLsb) {
     checkArgument(pLsb >= 0);
     checkArgument(pMsb >= pLsb);
     checkNotNull(pFormula);
     Formula t;
     if (pFormula instanceof BitvectorFormula) {
-      t = getBitvectorFormulaManager().extract((BitvectorFormula) pFormula, pMsb, pLsb, signed);
+      t = getBitvectorFormulaManager().extract((BitvectorFormula) pFormula, pMsb, pLsb);
     } else {
       throw new IllegalArgumentException("Not supported interface");
     }
