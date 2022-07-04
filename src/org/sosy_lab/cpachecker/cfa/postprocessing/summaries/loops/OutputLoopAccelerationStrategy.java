@@ -204,7 +204,6 @@ public class OutputLoopAccelerationStrategy extends LoopStrategy {
         loopBoundCFAEdgeFalse.copyWith(currentNode, neverReturnNode));
 
     currentNode = newNode;
-    newNode = CFANode.newDummyCFANode(pBeforeWhile.getFunctionName());
 
     // Go through the Loop Body Once
 
@@ -217,9 +216,10 @@ public class OutputLoopAccelerationStrategy extends LoopStrategy {
     CFANode endUnrolledLoopNode = unrolledLoopNodesMaybe.orElseThrow().getSecond();
 
     CFACreationUtils.connectNodes(currentNode, startUnrolledLoopNode);
-    currentNode = newNode;
     newNode = CFANode.newDummyCFANode(pBeforeWhile.getFunctionName());
-    CFACreationUtils.connectNodes(endUnrolledLoopNode, currentNode);
+
+    CFACreationUtils.connectNodes(endUnrolledLoopNode, newNode);
+    currentNode = newNode;
 
     // Increment Counter
 
