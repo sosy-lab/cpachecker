@@ -65,27 +65,45 @@ public class LoopStrategy extends AbstractStrategy {
         x -> summaryFilter.filter(x, ImmutableSet.of(StrategiesEnum.BASE, this.strategyEnum)));
   }
 
-  protected static void assumeNegatedLoopBound(
+  protected static void assumeLoopCondition(
       String functionName, CFANode startNode, CFANode endNode, AExpression loopBoundExpression) {
+    assumeLoopConditionImpl(functionName, startNode, endNode, loopBoundExpression, false);
+  }
+
+  protected static void assumeNegatedLoopCondition(
+      String functionName, CFANode startNode, CFANode endNode, AExpression loopBoundExpression) {
+    assumeLoopConditionImpl(functionName, startNode, endNode, loopBoundExpression, true);
+  }
+
+  private static void assumeLoopConditionImpl(
+      String functionName,
+      CFANode startNode,
+      CFANode endNode,
+      AExpression loopBoundExpression,
+      boolean negated) {
+
+    CFANode dummyNode = CFANode.newDummyCFANode(functionName);
+    CFANode trueNode = negated ? dummyNode : endNode;
+    CFANode falseNode = negated ? endNode : dummyNode;
+
     CFAEdge loopBoundCFAEdgeEnd =
         new CAssumeEdge(
             "Loop Bound Assumption",
             FileLocation.DUMMY,
             startNode,
-            CFANode.newDummyCFANode(functionName),
+            trueNode,
             (CExpression) loopBoundExpression,
             true);
     CFACreationUtils.addEdgeUnconditionallyToCFA(loopBoundCFAEdgeEnd);
 
     CAssumeEdge negatedBoundCFAEdgeEnd =
-        ((CAssumeEdge) loopBoundCFAEdgeEnd).negate().copyWith(startNode, endNode);
+        ((CAssumeEdge) loopBoundCFAEdgeEnd).negate().copyWith(startNode, falseNode);
     CFACreationUtils.addEdgeUnconditionallyToCFA(negatedBoundCFAEdgeEnd);
   }
 
   protected static Optional<CFANode> havocNonLocalLoopVars(
       Loop loop, CFANode pBeforeWhile, CFANode currentNode, CFANode newNode) {
-    Set<AVariableDeclaration> modifiedVariables =
-        getModifiedNonLocalVariables(loop);
+    Set<AVariableDeclaration> modifiedVariables = getModifiedNonLocalVariables(loop);
     for (AVariableDeclaration pc : modifiedVariables) {
       CIdExpression leftHandSide = new CIdExpression(FileLocation.DUMMY, (CSimpleDeclaration) pc);
       CFunctionCallExpression rightHandSide =

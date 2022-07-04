@@ -81,7 +81,7 @@ public class HavocStrategy extends LoopStrategy {
       return Optional.empty();
     }
 
-    LoopStrategy.assumeNegatedLoopBound(
+    LoopStrategy.assumeNegatedLoopCondition(
         pBeforeWhile.getFunctionName(), currentNode, endNodeGhostCFA, loopBoundExpression);
 
     CFANode leavingSuccessor;
