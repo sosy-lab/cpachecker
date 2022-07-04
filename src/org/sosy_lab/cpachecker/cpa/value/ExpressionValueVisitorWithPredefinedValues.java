@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.cpa.value;
 
+import java.math.BigDecimal;
+import java.math.BigInteger;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
@@ -17,10 +19,13 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
+import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.cpa.value.type.BooleanValue;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
+import org.sosy_lab.cpachecker.cpa.value.type.Value.UnknownValue;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 public class ExpressionValueVisitorWithPredefinedValues extends ExpressionValueVisitor {
@@ -118,30 +123,81 @@ public class ExpressionValueVisitorWithPredefinedValues extends ExpressionValueV
     // Determine the type that needs to be returned:
     if (call.getExpressionType() instanceof CSimpleType) {
 
-      // TODO: Add support for other datatypes and unsigneds (if needed), not only signed ints
-      // CSimpleType type = (CSimpleType) call.getExpressionType();
-      // if (type.isLong()) {
-      // if (type.isUnsigned()) {
-      // return new NumericValue(Long.parseUnsignedLong(pStringValueForNumber));
-      // } else {
-      // return new NumericValue(Long.parseLong(pStringValueForNumber));
-      // }
-      // } else if (type.isShort()) {
-      // if (type.isUnsigned()) {
-      // this.logger.log(Level.WARNING, "Cannot parse unsigned short, returning unknown");
-      // return new Value.UnknownValue();
-      // } else {
-      // return new NumericValue(Short.parseShort(pStringValueForNumber));
-      // }
-      // } else if (type.isUnsigned()) {
-      // return new NumericValue(Integer.parseUnsignedInt(pStringValueForNumber));
-      // } else {
-      return new NumericValue(Integer.parseInt(pStringValueForNumber));
-      // }
+      CSimpleType type = (CSimpleType) call.getExpressionType();
 
-    } else {
-      logger.log(Level.WARNING, "Cannot parse complex types, hence returning unknown");
+      if (type.equals(CNumericTypes.BOOL)) {
+        return BooleanValue.valueOf(!pStringValueForNumber.equals("0"));
+      }
+      if (type.equals(CNumericTypes.CHAR) || type.equals(CNumericTypes.SIGNED_CHAR)) {
+        if (pStringValueForNumber.startsWith("'")
+            && pStringValueForNumber.length() == 3
+            && pStringValueForNumber.substring(2).equals("'")) {
+          // String has the form 'c'
+          final int unicodeNumericValue = pStringValueForNumber.charAt(1);
+          return new NumericValue(unicodeNumericValue);
+        } else if (pStringValueForNumber.length() == 1 && isInt(pStringValueForNumber)) {
+          // String is a number, hence parse as integer
+          final int unicodeNumericValue = Integer.parseInt(pStringValueForNumber);
+          return new NumericValue(unicodeNumericValue);
+
+        } else {
+          this.logger.logf(
+              Level.WARNING,
+              "Cannot parse type char for value %s, hence returning unknown",
+              pStringValueForNumber);
+          return new Value.UnknownValue();
+        }
+      }
+      if (type.equals(CNumericTypes.UNSIGNED_CHAR) || type.equals(CNumericTypes.UNSIGNED_INT)) {
+        return new NumericValue(Integer.parseUnsignedInt(pStringValueForNumber));
+      }
+      if (type.equals(CNumericTypes.INT) || type.equals(CNumericTypes.SIGNED_INT)) {
+        return new NumericValue(Integer.parseInt(pStringValueForNumber));
+      }
+      if (type.equals(CNumericTypes.SHORT_INT)) {
+        return new NumericValue(Short.parseShort(pStringValueForNumber));
+      }
+      if (type.equals(CNumericTypes.UNSIGNED_SHORT_INT)) {
+        this.logger.log(Level.WARNING, "Cannot parse unsigned short, returning unknown");
+        return new UnknownValue();
+      }
+      if (type.equals(CNumericTypes.UNSIGNED_LONG_INT)) {
+        return new NumericValue(Long.parseUnsignedLong(pStringValueForNumber));
+      }
+      if (type.equals(CNumericTypes.LONG_INT) || type.equals(CNumericTypes.SIGNED_LONG_INT)) {
+        return new NumericValue(Long.parseLong(pStringValueForNumber));
+      }
+      if (type.equals(CNumericTypes.UNSIGNED_LONG_LONG_INT)) {
+        this.logger.log(Level.WARNING, "Cannot parse unsigned longlong, returning unknown");
+        return new UnknownValue();
+      }
+      if (type.equals(CNumericTypes.LONG_LONG_INT)
+          || type.equals(CNumericTypes.SIGNED_LONG_LONG_INT)) {
+        return new NumericValue(new BigInteger(pStringValueForNumber));
+      }
+      if (type.equals(CNumericTypes.FLOAT)) {
+        return new NumericValue(Float.valueOf(pStringValueForNumber));
+      }
+      if (type.equals(CNumericTypes.DOUBLE)) {
+        return new NumericValue(Double.valueOf(pStringValueForNumber));
+      }
+      if (type.equals(CNumericTypes.LONG_DOUBLE)) {
+        return new NumericValue(new BigDecimal(pStringValueForNumber));
+      } else {
+        this.logger.log(Level.WARNING, "Cannot parse complex types, hence returning unknown");
+      }
     }
     return new Value.UnknownValue();
   }
+
+  private boolean isInt(String pStringValueForNumber) {
+    try {
+      Integer.parseInt(pStringValueForNumber);
+      return true;
+    } catch (Throwable e) {
+      return false;
+    }
+  }
+
+
 }
