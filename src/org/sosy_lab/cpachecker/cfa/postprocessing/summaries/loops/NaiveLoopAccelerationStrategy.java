@@ -53,7 +53,8 @@ public class NaiveLoopAccelerationStrategy extends LoopStrategy {
     CFANode endNodeGhostCFA = CFANode.newDummyCFANode(pBeforeWhile.getFunctionName());
 
     CFANode currentNode = CFANode.newDummyCFANode(pBeforeWhile.getFunctionName());
-    CFANode newNode = CFANode.newDummyCFANode(pBeforeWhile.getFunctionName());
+
+    final String functionName = pBeforeWhile.getFunctionName();
 
     CFAEdge loopBoundCFAEdge =
         new CAssumeEdge(
@@ -70,17 +71,20 @@ public class NaiveLoopAccelerationStrategy extends LoopStrategy {
     CFACreationUtils.addEdgeUnconditionallyToCFA(negatedBoundCFAEdge);
 
     Optional<CFANode> currentNodeMaybe =
-        havocNonLocalLoopVars(pLoopStructure, pBeforeWhile, currentNode, newNode);
+        havocNonLocalLoopVars(
+            pLoopStructure, pBeforeWhile, currentNode, newDummyNode(functionName));
     if (currentNodeMaybe.isEmpty()) {
       return Optional.empty();
     } else {
       currentNode = currentNodeMaybe.orElseThrow();
-      newNode = CFANode.newDummyCFANode(pBeforeWhile.getFunctionName());
     }
 
-    assumeLoopCondition(pBeforeWhile.getFunctionName(), currentNode, newNode, pLoopBoundExpression);
-    currentNode = newNode;
-    newNode = CFANode.newDummyCFANode(pBeforeWhile.getFunctionName());
+    currentNode =
+        assumeLoopCondition(
+            pBeforeWhile.getFunctionName(),
+            currentNode,
+            newDummyNode(functionName),
+            pLoopBoundExpression);
 
     Optional<Pair<CFANode, CFANode>> unrolledLoopNodesMaybe = pLoopStructure.unrollOutermostLoop();
     if (unrolledLoopNodesMaybe.isEmpty()) {

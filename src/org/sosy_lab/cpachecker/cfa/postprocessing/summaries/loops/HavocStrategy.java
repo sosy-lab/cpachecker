@@ -46,7 +46,8 @@ public class HavocStrategy extends LoopStrategy {
     CFANode endNodeGhostCFA = CFANode.newDummyCFANode(pBeforeWhile.getFunctionName());
 
     CFANode currentNode = CFANode.newDummyCFANode(pBeforeWhile.getFunctionName());
-    CFANode newNode = CFANode.newDummyCFANode(pBeforeWhile.getFunctionName());
+
+    final String functionName = pBeforeWhile.getFunctionName();
 
     Optional<AExpression> loopBoundExpressionMaybe = pLoopStructure.getBound();
     if (loopBoundExpressionMaybe.isEmpty()) {
@@ -69,20 +70,21 @@ public class HavocStrategy extends LoopStrategy {
     CFACreationUtils.addEdgeUnconditionallyToCFA(negatedBoundCFAEdge);
 
     Optional<CFANode> currentNodeMaybe =
-        LoopStrategy.havocNonLocalLoopVars(pLoopStructure, pBeforeWhile, currentNode, newNode);
+        LoopStrategy.havocNonLocalLoopVars(
+            pLoopStructure, pBeforeWhile, currentNode, newDummyNode(functionName));
     if (!currentNodeMaybe.isPresent()) {
       return Optional.empty();
     }
     currentNode = currentNodeMaybe.orElseThrow();
-    newNode = CFANode.newDummyCFANode(pBeforeWhile.getFunctionName());
 
     Optional<Pair<CFANode, CFANode>> unrolledLoopNodesMaybe = pLoopStructure.unrollOutermostLoop();
     if (unrolledLoopNodesMaybe.isEmpty()) {
       return Optional.empty();
     }
 
-    LoopStrategy.assumeNegatedLoopCondition(
-        pBeforeWhile.getFunctionName(), currentNode, endNodeGhostCFA, loopBoundExpression);
+    currentNode =
+        LoopStrategy.assumeNegatedLoopCondition(
+            pBeforeWhile.getFunctionName(), currentNode, endNodeGhostCFA, loopBoundExpression);
 
     CFANode leavingSuccessor;
     Iterator<CFAEdge> iter = pLoopStructure.getOutgoingEdges().iterator();
@@ -98,6 +100,7 @@ public class HavocStrategy extends LoopStrategy {
       }
     }
 
+    assert currentNode == endNodeGhostCFA;
     return Optional.of(
         new GhostCFA(
             startNodeGhostCFA, endNodeGhostCFA, pBeforeWhile, leavingSuccessor, this.strategyEnum));

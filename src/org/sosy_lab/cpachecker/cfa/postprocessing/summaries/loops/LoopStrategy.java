@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.cfa.postprocessing.summaries.loops;
 import com.google.common.base.Predicate;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableSet;
+import com.google.errorprone.annotations.CheckReturnValue;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -65,14 +66,34 @@ public class LoopStrategy extends AbstractStrategy {
         x -> summaryFilter.filter(x, ImmutableSet.of(StrategiesEnum.BASE, this.strategyEnum)));
   }
 
-  protected static void assumeLoopCondition(
+  /**
+   * Constructs an assume edge assuming that loopBoundExpression does hold that leads from startNode
+   * to endNode. Also constructs a dummy node for the other half of the assumption that does not
+   * have any outgoing edges.
+   *
+   * @return the CFA node after execution of the assume (can be used as new "current" node). This is
+   *     identical to the parameter endNode that is passed to this method
+   */
+  @CheckReturnValue
+  protected static CFANode assumeLoopCondition(
       String functionName, CFANode startNode, CFANode endNode, AExpression loopBoundExpression) {
     assumeLoopConditionImpl(functionName, startNode, endNode, loopBoundExpression, false);
+    return endNode;
   }
 
-  protected static void assumeNegatedLoopCondition(
+  /**
+   * Constructs an assume edge assuming that loopBoundExpression does not hold that leads from
+   * startNode to endNode. Also constructs a dummy node for the other half of the assumption that
+   * does not have any outgoing edges.
+   *
+   * @return the CFA node after execution of the assume (can be used as new "current" node). This is
+   *     identical to the parameter endNode that is passed to this method
+   */
+  @CheckReturnValue
+  protected static CFANode assumeNegatedLoopCondition(
       String functionName, CFANode startNode, CFANode endNode, AExpression loopBoundExpression) {
     assumeLoopConditionImpl(functionName, startNode, endNode, loopBoundExpression, true);
+    return endNode;
   }
 
   private static void assumeLoopConditionImpl(
@@ -82,7 +103,7 @@ public class LoopStrategy extends AbstractStrategy {
       AExpression loopBoundExpression,
       boolean negated) {
 
-    CFANode dummyNode = CFANode.newDummyCFANode(functionName);
+    CFANode dummyNode = newDummyNode(functionName);
     CFANode trueNode = negated ? dummyNode : endNode;
     CFANode falseNode = negated ? endNode : dummyNode;
 
@@ -114,7 +135,7 @@ public class LoopStrategy extends AbstractStrategy {
       CFunctionCallAssignmentStatement cStatementEdge =
           new CFunctionCallAssignmentStatement(FileLocation.DUMMY, leftHandSide, rightHandSide);
       if (newNode == null) {
-        newNode = CFANode.newDummyCFANode(pBeforeWhile.getFunctionName());
+        newNode = newDummyNode(pBeforeWhile.getFunctionName());
       }
       CFAEdge dummyEdge =
           new CStatementEdge(
@@ -174,6 +195,10 @@ public class LoopStrategy extends AbstractStrategy {
 
     CFANode loopHead = filteredOutgoingEdges.get(0).getSuccessor();
     return Optional.of(loopHead);
+  }
+
+  public static CFANode newDummyNode(String functionName) {
+    return CFANode.newDummyCFANode(functionName);
   }
 
   /**
