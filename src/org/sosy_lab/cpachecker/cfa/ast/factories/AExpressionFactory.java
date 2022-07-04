@@ -26,10 +26,10 @@ import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.java.JType;
 
-/*
- * Creates new Expressions based on old ones to generate the Expressions containing the extrapolations for the Summaries
+/**
+ * This class makes it easier to create new epressions based on existing expressions and assign
+ * their result to some left hand side.
  */
-
 public class AExpressionFactory implements ExpressionFactory {
 
   private CExpressionFactory cExpressionFactory = new CExpressionFactory();
