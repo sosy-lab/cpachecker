@@ -161,19 +161,6 @@ public class SummaryRefinerStatistics implements Statistics {
               .orNull()
               .getFileLocation()
               .getFileName();
-      Rewrite r =
-          rewrites.computeIfAbsent(
-              containingFile,
-              x -> {
-                try {
-                  return new Rewrite(x);
-                } catch (IOException e1) {
-                  return null;
-                }
-              });
-      if (r == null) {
-        continue;
-      }
       final Optional<String> summary;
       switch (en) {
         case HAVOCSTRATEGY:
@@ -184,6 +171,19 @@ public class SummaryRefinerStatistics implements Statistics {
           break;
       }
       if (summary.isPresent()) {
+        Rewrite r =
+            rewrites.computeIfAbsent(
+                containingFile,
+                x -> {
+                  try {
+                    return new Rewrite(x);
+                  } catch (IOException e1) {
+                    return null;
+                  }
+                });
+        if (r == null) {
+          continue;
+        }
         try {
           r.insertIndented(offset, summary.orElseThrow());
           r.delete(offset, len);
