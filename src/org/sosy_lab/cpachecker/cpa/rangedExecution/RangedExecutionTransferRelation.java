@@ -48,7 +48,9 @@ public class RangedExecutionTransferRelation extends SingleEdgeTransferRelation 
     RangedExecutionState state =
         AbstractStates.extractStateByType(abstractState, RangedExecutionState.class);
 
-    if (Objects.isNull(state)) throw new CPATransferException("state has the wrong format");
+    if (Objects.isNull(state)) {
+      throw new CPATransferException("state has the wrong format");
+    }
 
     ValueAnalysisState oldLeft = state.getLeftState();
     ValueAnalysisState oldRight = state.getRightState();
@@ -99,7 +101,7 @@ public class RangedExecutionTransferRelation extends SingleEdgeTransferRelation 
       }
     } else {
 
-      // Two special cases needs to be checked further:
+      // Two special cases needs to  be checked further:
       // If we are at the left bound path and the computation stops (at a non-assume edge), because
       // the testcase is under-specified, follow this path and treat it as "middel-path"
       if (oldLeft != null && newLeft == null) {

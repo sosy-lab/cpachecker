@@ -8,10 +8,6 @@
 
 package org.sosy_lab.cpachecker.cpa.rangedExecution;
 
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
@@ -96,7 +92,7 @@ public class RangedExecutionCPA extends AbstractCPA implements ProofCheckerCPA {
     if (Objects.isNull(path2LeftInputFile) && autoLoadPath2Input) {
       Optional<Path> optPath = loadPath2InputFile(suffixForLeftInputFile, pCfa);
       if (optPath.isPresent()) {
-        path2LeftInputFile = optPath.get();
+        path2LeftInputFile = optPath.orElseThrow();
         logger.log(
             Level.INFO,
             Level.INFO,
@@ -107,7 +103,7 @@ public class RangedExecutionCPA extends AbstractCPA implements ProofCheckerCPA {
     if (Objects.isNull(path2RightInputFile) && autoLoadPath2Input) {
       Optional<Path> optPath = loadPath2InputFile(suffixForRightInputFile, pCfa);
       if (optPath.isPresent()) {
-        path2RightInputFile = optPath.get();
+        path2RightInputFile = optPath.orElseThrow();
         logger.log(
             Level.INFO,
             Level.INFO,
@@ -190,9 +186,9 @@ public class RangedExecutionCPA extends AbstractCPA implements ProofCheckerCPA {
       String filename = files.get(0).toAbsolutePath().toString();
       String testcasePath = filename.substring(0, filename.lastIndexOf("."));
       if (!suffix.isEmpty()) {
-        testcasePath = testcasePath.concat(suffix);
+        testcasePath = testcasePath + suffix;
       }
-      testcasePath = testcasePath.concat(".xml");
+      testcasePath = testcasePath + ".xml";
       Path targetPath = Path.of(testcasePath);
       if (Files.exists(targetPath)) {
         return Optional.of(targetPath);

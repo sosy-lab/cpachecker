@@ -11,15 +11,12 @@ package org.sosy_lab.cpachecker.cpa.rangedExecution;
 import java.io.Serializable;
 import org.sosy_lab.cpachecker.core.defaults.LatticeAbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Graphable;
-
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 
 public class RangedExecutionState
     implements LatticeAbstractState<RangedExecutionState>, Serializable, Graphable {
 
-
   private static final long serialVersionUID = 6762491514691078996L;
-
 
   private final ValueAnalysisState leftState;
   private final ValueAnalysisState rightState;
@@ -27,13 +24,11 @@ public class RangedExecutionState
   public RangedExecutionState(ValueAnalysisState pLeftState, ValueAnalysisState pRightState) {
     leftState = pLeftState;
     rightState = pRightState;
-
   }
 
   public static RangedExecutionState getMiddleState() {
     return new MiddleRangedExecutionState();
   }
-
 
   @Override
   public boolean isLessOrEqual(RangedExecutionState other) {
@@ -49,7 +44,6 @@ public class RangedExecutionState
   public String toDOTLabel() {
     return leftState + " | " + rightState;
   }
-
 
   @Override
   public RangedExecutionState join(RangedExecutionState pOther) {
@@ -68,6 +62,4 @@ public class RangedExecutionState
   public boolean shouldBeHighlighted() {
     return false;
   }
-
-
 }
