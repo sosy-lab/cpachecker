@@ -128,6 +128,7 @@ public class OutputLoopAccelerationStrategy extends LoopStrategy {
     newNode = CFANode.newDummyCFANode(pBeforeWhile.getFunctionName());
 
     CFANode startOfForLoop = currentNode;
+    startOfForLoop.setLoopStart();
 
     // If statements for entering the for loop
     CFAEdge counterLessThanOutputVariablesTrue =

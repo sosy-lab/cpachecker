@@ -398,6 +398,9 @@ public final class LoopStructure implements Serializable {
             CFACreationUtils.addEdgeUnconditionallyToCFA(pNewLeavingEdge);
           } else if (getInnerLoopEdges().contains(succ)) {
             newSuccessor = CFANode.newDummyCFANode(functionName);
+            if (successor.isLoopStart()) {
+              newSuccessor.setLoopStart();
+            }
             originalToNewNodes.put(successor, newSuccessor);
             CFAEdge pNewLeavingEdge = succ.copyWith(newNode, newSuccessor);
             CFACreationUtils.addEdgeUnconditionallyToCFA(pNewLeavingEdge);
