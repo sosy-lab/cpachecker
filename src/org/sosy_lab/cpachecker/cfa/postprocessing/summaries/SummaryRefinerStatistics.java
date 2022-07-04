@@ -123,7 +123,7 @@ public class SummaryRefinerStatistics implements Statistics {
 
   @Override
   public void writeOutputFiles(Result pResult, UnmodifiableReachedSet pReached) {
-    if (!outputTask) {
+    if (!outputTask || outputDirectory == null) {
       return;
     }
 
