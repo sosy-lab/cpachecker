@@ -161,8 +161,16 @@ public class SummaryRefinerStatistics implements Statistics {
         continue;
       }
       StrategiesEnum en = (StrategiesEnum) entry.getValue().toArray()[0];
-      Loop loop =
-          summaryInformation.getLoop(entry.getKey().getLeavingEdge(0).getSuccessor()).orElseThrow();
+      Optional<Loop> loopMaybe =
+          summaryInformation.getLoop(entry.getKey().getLeavingEdge(0).getSuccessor());
+      if (!loopMaybe.isPresent()) {
+        logger.logf(
+            Level.WARNING,
+            "Could not determine loop for node %s",
+            entry.getKey().getLeavingEdge(0).getSuccessor());
+        continue;
+      }
+      Loop loop = loopMaybe.orElseThrow();
       if (loop.getIncomingEdges().size() != 1) {
         continue;
       }
