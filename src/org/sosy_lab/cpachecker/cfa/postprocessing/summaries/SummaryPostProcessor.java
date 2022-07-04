@@ -9,7 +9,6 @@
 package org.sosy_lab.cpachecker.cfa.postprocessing.summaries;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
@@ -18,8 +17,6 @@ import java.util.Set;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.common.configuration.Option;
-import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CFAReversePostorder;
@@ -34,7 +31,6 @@ import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
 import org.sosy_lab.cpachecker.util.LoopStructure;
 
-@Options
 public class SummaryPostProcessor implements StatisticsProvider {
 
   private static CFA originalCFA;
@@ -46,43 +42,11 @@ public class SummaryPostProcessor implements StatisticsProvider {
   private final SummaryInformation summaryInformation;
   private final SummaryCFAStatistics stats;
 
-  @Option(
-      name = "cfa.summaries.strategies",
-      secure = true,
-      description =
-          "Strategies to be used in the generation of the CFA, to summarize some parts of it.")
-  private Set<StrategiesEnum> strategies =
-      new HashSet<>(
-          Arrays.asList(
-              StrategiesEnum.LOOPCONSTANTEXTRAPOLATION,
-              StrategiesEnum.NONDETBOUNDCONSTANTEXTRAPOLATION,
-              StrategiesEnum.NAIVELOOPACCELERATION,
-              StrategiesEnum.HAVOCSTRATEGY));
-
-  @Option(
-      secure = true,
-      name = "cfa.summaries.maxUnrollingsStrategy",
-      description = "Max amount fo Unrollings for the Unrolling Strategy")
-  private int maxUnrollingsStrategy = 100;
-
-  @Option(
-      secure = true,
-      name = "cfa.summaries.maxIterations",
-      description = "Max amount fo Iterations for adapting the CFA")
-  private int maxIterationsSummaries = 10;
-
-  @Option(
-      secure = true,
-      name = "cfa.summaries.dependencies",
-      description = "Dependencies between the Different Strategies")
-  private StrategyDependencyEnum cfaCreationStrategy =
-      StrategyDependencyEnum.BASESTRATEGYDEPENDENCY;
-
-  @Option(
-      secure = true,
-      name = "summaries.transfer",
-      description = "Dependencies between the Different Strategies")
-  private StrategyDependencyEnum transferStrategy = StrategyDependencyEnum.BASESTRATEGYDEPENDENCY;
+  private final Set<StrategiesEnum> strategies;
+  private final StrategyDependencyEnum cfaCreationStrategy;
+  private final StrategyDependencyEnum transferStrategy;
+  private final int maxUnrollingsStrategy;
+  private final int maxIterationsSummaries;
 
   public SummaryPostProcessor(
       Configuration pConfig,
@@ -90,7 +54,12 @@ public class SummaryPostProcessor implements StatisticsProvider {
       ShutdownNotifier pShutdownNotifier,
       MutableCFA pCfa)
       throws InvalidConfigurationException {
-    pConfig.inject(this);
+    SummaryOptions options = new SummaryOptions(pConfig);
+    strategies = options.getStrategies();
+    cfaCreationStrategy = options.getCfaCreationStrategy();
+    transferStrategy = options.getTransferStrategy();
+    maxUnrollingsStrategy = options.getMaxUnrollingsStrategy();
+    maxIterationsSummaries = options.getMaxIterationsSummaries();
 
     strategyDependencies = new StrategyDependencyFactory().createStrategy(this.cfaCreationStrategy);
 
