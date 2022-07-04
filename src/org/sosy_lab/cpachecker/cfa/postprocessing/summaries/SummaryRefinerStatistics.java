@@ -145,7 +145,6 @@ public class SummaryRefinerStatistics implements Statistics {
         continue;
       }
       StrategiesEnum en = (StrategiesEnum) entry.getValue().toArray()[0];
-      int offset2 = entry.getKey().getLeavingEdge(0).getFileLocation().getNodeOffset();
       Loop loop =
           summaryInformation.getLoop(entry.getKey().getLeavingEdge(0).getSuccessor()).orElseThrow();
       if (loop.getIncomingEdges().size() != 1) {
@@ -153,7 +152,6 @@ public class SummaryRefinerStatistics implements Statistics {
       }
       CFAEdge e = Iterables.getOnlyElement(loop.getIncomingEdges());
       int offset = e.getFileLocation().getNodeOffset();
-      assert offset == offset2; // TODO: remove code with offset2 above
       int len = e.getFileLocation().getNodeLength();
 
       Path containingFile =
