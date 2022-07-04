@@ -287,6 +287,7 @@ public class OutputLoopAccelerationStrategy extends LoopStrategy {
     Set<AVariableDeclaration> readVariables = loop.getReadVariables();
     Set<AVariableDeclaration> readWriteVariables = new HashSet<>(modifiedVariables);
     readWriteVariables.retainAll(readVariables);
+    readWriteVariables.retainAll(getModifiedNonLocalVariables(loop));
 
     Optional<AExpression> loopBoundExpressionMaybe = loop.getBound();
     if (loopBoundExpressionMaybe.isEmpty()) {
