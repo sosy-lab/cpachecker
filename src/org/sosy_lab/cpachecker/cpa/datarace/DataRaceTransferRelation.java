@@ -43,6 +43,7 @@ import org.sosy_lab.cpachecker.cpa.invariants.EdgeAnalyzer;
 import org.sosy_lab.cpachecker.cpa.threading.GlobalAccessChecker;
 import org.sosy_lab.cpachecker.cpa.threading.ThreadingState;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
+import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
@@ -99,13 +100,8 @@ public class DataRaceTransferRelation extends SingleEdgeTransferRelation {
   public Collection<? extends AbstractState> getAbstractSuccessorsForEdge(
       AbstractState pState, Precision precision, CFAEdge cfaEdge)
       throws CPATransferException, InterruptedException {
-    if (!globalAccessChecker.hasGlobalAccess(cfaEdge)) {
-      // No relevant changes
-      return ImmutableSet.of(pState);
-    }
-    // TODO: Return unknown if one of UNSUPPORTED_FUNCTIONS is encountered
-    DataRaceState state = (DataRaceState) pState;
-    return ImmutableSet.of(state);
+    // Can only update state with info from ThreadingCPA
+    return ImmutableSet.of(pState);
   }
 
   @Override
@@ -171,7 +167,8 @@ public class DataRaceTransferRelation extends SingleEdgeTransferRelation {
   }
 
   private Set<MemoryAccess> getNewAccesses(
-      Map<String, ThreadInfo> threads, String activeThread, CFAEdge edge, Set<String> locks) {
+      Map<String, ThreadInfo> threads, String activeThread, CFAEdge edge, Set<String> locks)
+      throws UnsupportedCodeException {
     Set<MemoryLocation> accessedLocations = new HashSet<>();
     Set<MemoryLocation> modifiedLocations = new HashSet<>();
     Set<MemoryAccess> newAccesses = new HashSet<>();
@@ -217,6 +214,10 @@ public class DataRaceTransferRelation extends SingleEdgeTransferRelation {
         FunctionCallEdge functionCallEdge = (FunctionCallEdge) edge;
         String functionName =
             functionCallEdge.getFunctionCallExpression().getDeclaration().getName();
+        if (UNSUPPORTED_FUNCTIONS.contains(functionName)) {
+          throw new UnsupportedCodeException(
+              "DataRaceCPA does not support function " + functionName, edge);
+        }
         if (!THREAD_SAFE_FUNCTIONS.contains(functionName)) {
           for (AExpression argument : functionCallEdge.getArguments()) {
             accessedLocations.addAll(
@@ -274,6 +275,10 @@ public class DataRaceTransferRelation extends SingleEdgeTransferRelation {
                   .getFunctionCallExpression()
                   .getDeclaration()
                   .getName();
+          if (UNSUPPORTED_FUNCTIONS.contains(functionName)) {
+            throw new UnsupportedCodeException(
+                "DataRaceCPA does not support function " + functionName, edge);
+          }
           if (THREAD_SAFE_FUNCTIONS.contains(functionName)) {
             accessedLocations =
                 edgeAnalyzer
@@ -296,6 +301,10 @@ public class DataRaceTransferRelation extends SingleEdgeTransferRelation {
           AFunctionCallStatement functionCallStatement = (AFunctionCallStatement) statement;
           functionName =
               functionCallStatement.getFunctionCallExpression().getDeclaration().getName();
+          if (UNSUPPORTED_FUNCTIONS.contains(functionName)) {
+            throw new UnsupportedCodeException(
+                "DataRaceCPA does not support function " + functionName, edge);
+          }
           if (!THREAD_SAFE_FUNCTIONS.contains(functionName)) {
             for (AExpression expression :
                 functionCallStatement.getFunctionCallExpression().getParameterExpressions()) {
