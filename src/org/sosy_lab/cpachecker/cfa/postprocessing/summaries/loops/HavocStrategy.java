@@ -55,7 +55,8 @@ public class HavocStrategy extends LoopStrategy {
     CFANode currentNode = CFANode.newDummyCFANode(pBeforeWhile.getFunctionName());
     CFANode newNode = CFANode.newDummyCFANode(pBeforeWhile.getFunctionName());
 
-    Set<AVariableDeclaration> modifiedVariables = pLoopStructure.getModifiedVariables();
+    Set<AVariableDeclaration> modifiedVariables =
+        LoopStrategy.getModifiedNonLocalVariables(pLoopStructure);
 
     Optional<AExpression> loopBoundExpressionMaybe = pLoopStructure.getBound();
     if (loopBoundExpressionMaybe.isEmpty()) {

@@ -51,7 +51,6 @@ public class NaiveLoopAccelerationStrategy extends LoopStrategy {
 
   private Optional<GhostCFA> summarizeLoop(
       Loop pLoopStructure,
-      Set<AVariableDeclaration> pModifiedVariables,
       CFANode pBeforeWhile,
       AExpression pLoopBoundExpression) {
 
@@ -75,7 +74,10 @@ public class NaiveLoopAccelerationStrategy extends LoopStrategy {
         ((CAssumeEdge) loopBoundCFAEdge).negate().copyWith(startNodeGhostCFA, endNodeGhostCFA);
     CFACreationUtils.addEdgeUnconditionallyToCFA(negatedBoundCFAEdge);
 
-    for (AVariableDeclaration pc : pModifiedVariables) {
+    Set<AVariableDeclaration> modifiedVariables =
+        LoopStrategy.getModifiedNonLocalVariables(pLoopStructure);
+
+    for (AVariableDeclaration pc : modifiedVariables) {
       // TODO improve for Java
       CIdExpression leftHandSide = new CIdExpression(FileLocation.DUMMY, (CSimpleDeclaration) pc);
       CFunctionCallExpression rightHandSide =
@@ -159,16 +161,13 @@ public class NaiveLoopAccelerationStrategy extends LoopStrategy {
       return Optional.empty();
     }
 
-    Set<AVariableDeclaration> modifiedVariables = loop.getModifiedVariables();
-
     Optional<AExpression> loopBoundExpressionMaybe = loop.getBound();
     if (loopBoundExpressionMaybe.isEmpty()) {
       return Optional.empty();
     }
     AExpression loopBoundExpression = loopBoundExpressionMaybe.orElseThrow();
 
-    Optional<GhostCFA> summarizedLoopMaybe =
-        summarizeLoop(loop, modifiedVariables, beforeWhile, loopBoundExpression);
+    Optional<GhostCFA> summarizedLoopMaybe = summarizeLoop(loop, beforeWhile, loopBoundExpression);
 
     return summarizedLoopMaybe;
   }
