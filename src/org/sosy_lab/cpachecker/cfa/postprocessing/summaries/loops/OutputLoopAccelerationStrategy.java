@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.cfa.postprocessing.summaries.loops;
 
+import java.io.IOException;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Optional;
@@ -39,6 +40,7 @@ import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.StrategiesEnum;
 import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.StrategyDependencies.StrategyDependency;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
+import org.sosy_lab.cpachecker.core.counterexample.CExpressionToOrinalCodeVisitor;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 import org.sosy_lab.cpachecker.util.Pair;
 
@@ -296,5 +298,45 @@ public class OutputLoopAccelerationStrategy extends LoopStrategy {
             loop, modifiedVariables, readWriteVariables, beforeWhile, loopBoundExpression);
 
     return summarizedLoopMaybe;
+  }
+
+  public static Optional<String> summarizeAsCode(Loop loop) {
+    StringBuilder builder = new StringBuilder();
+
+    Optional<AExpression> loopBoundExpressionMaybe = loop.getBound();
+    if (loopBoundExpressionMaybe.isEmpty()) {
+      return Optional.empty();
+    }
+    AExpression loopBoundExpression = loopBoundExpressionMaybe.orElseThrow();
+
+    Set<AVariableDeclaration> modifiedVariables = loop.getModifiedVariables();
+    Set<AVariableDeclaration> readVariables = loop.getReadVariables();
+    Set<AVariableDeclaration> readWriteVariables = new HashSet<>(modifiedVariables);
+    readWriteVariables.retainAll(readVariables);
+    readWriteVariables.retainAll(getModifiedNonLocalVariables(loop));
+
+    final String loopBoundExpressionString =
+        ((CExpression) loopBoundExpression)
+            .accept(CExpressionToOrinalCodeVisitor.BASIC_TRANSFORMER);
+    builder.append(
+        String.format(
+            "for (long long %s = 0; %s < %d && %s ; %s++) {\n",
+            SUMMARY_COUNTER_VARIABLE,
+            SUMMARY_COUNTER_VARIABLE,
+            modifiedVariables.size(),
+            loopBoundExpressionString,
+            SUMMARY_COUNTER_VARIABLE));
+    if (!havocVarsAsCode(readWriteVariables, builder)) {
+      return Optional.empty();
+    }
+    builder.append(String.format("if (!(%s)) abort();\n", loopBoundExpressionString));
+    try {
+      executeLoopBodyAsCode(loop, builder);
+    } catch (IOException e) {
+      return Optional.empty();
+    }
+    builder.append("}\n");
+    builder.append(String.format("if (%s) abort();\n", loopBoundExpressionString));
+    return Optional.of(builder.toString());
   }
 }

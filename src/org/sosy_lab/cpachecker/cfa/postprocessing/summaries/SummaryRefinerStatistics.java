@@ -34,6 +34,7 @@ import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.Rewrite.ConflictingM
 import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.loops.HavocStrategy;
 import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.loops.LoopStrategy;
 import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.loops.NaiveLoopAccelerationStrategy;
+import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.loops.OutputLoopAccelerationStrategy;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
@@ -174,6 +175,9 @@ public class SummaryRefinerStatistics implements Statistics {
           break;
         case NAIVELOOPACCELERATION:
           summary = NaiveLoopAccelerationStrategy.summarizeAsCode(loop);
+          break;
+        case OUTPUTLOOPACCELERATION:
+          summary = OutputLoopAccelerationStrategy.summarizeAsCode(loop);
           break;
         default:
           summary = Optional.empty();
