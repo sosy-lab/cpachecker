@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.cpa.rangedExecution;
 
 import java.io.Serializable;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.core.defaults.LatticeAbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Graphable;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
@@ -18,8 +19,8 @@ public class RangedExecutionState
 
   private static final long serialVersionUID = 6762491514691078996L;
 
-  private final ValueAnalysisState leftState;
-  private final ValueAnalysisState rightState;
+  private final @Nullable ValueAnalysisState leftState;
+  private final @Nullable ValueAnalysisState rightState;
 
   public RangedExecutionState(ValueAnalysisState pLeftState, ValueAnalysisState pRightState) {
     leftState = pLeftState;
@@ -32,7 +33,14 @@ public class RangedExecutionState
 
   @Override
   public boolean isLessOrEqual(RangedExecutionState other) {
-    return false;
+    return ((this.leftState != null
+                && other.leftState != null
+                && this.leftState.isLessOrEqual(other.leftState))
+            || (this.leftState == null && other.leftState == null))
+        && ((this.rightState != null
+                && other.rightState != null
+                && this.rightState.isLessOrEqual(other.rightState))
+            || (this.rightState == null && other.rightState == null));
   }
 
   @Override
