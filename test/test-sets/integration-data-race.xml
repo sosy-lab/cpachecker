@@ -15,15 +15,14 @@ SPDX-License-Identifier: Apache-2.0
 
   <option name="-noout"/>
   <option name="-heap">1500M</option>
-  <option name="-predicateAnalysis-concurrency"/>
+  <option name="-predicateAnalysis-data-race"/>
   <option name="-spec">config/specification/datarace.spc</option>
   
-  <rundefinition name="SV-COMP22_no-data-race">
-  <tasks name="NoDataRace-Main">
-    <includesfile>../programs/benchmarks/NoDataRace-Main.set</includesfile>
-    <propertyfile>../programs/benchmarks/properties/no-data-race.prp</propertyfile>
-  </tasks>
-</rundefinition>
-
+  <rundefinition>
+    <tasks name="NoDataRace-Main">
+      <includesfile>../programs/benchmarks/NoDataRace-Main.set</includesfile>
+      <propertyfile>../programs/benchmarks/properties/no-data-race.prp</propertyfile>
+    </tasks>
+  </rundefinition>
 
 </benchmark>
