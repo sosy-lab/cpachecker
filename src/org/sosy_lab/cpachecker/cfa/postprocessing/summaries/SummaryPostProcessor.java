@@ -18,7 +18,6 @@ import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CFAReversePostorder;
 import org.sosy_lab.cpachecker.cfa.MutableCFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -33,7 +32,6 @@ import org.sosy_lab.cpachecker.util.LoopStructure;
 
 public class SummaryPostProcessor implements StatisticsProvider {
 
-  private static CFA originalCFA;
   private final Set<Strategy> strategiesClasses = new HashSet<>();
   private final StrategyFactory strategyFactory;
   protected final LogManager logger;
@@ -42,7 +40,7 @@ public class SummaryPostProcessor implements StatisticsProvider {
   private final SummaryInformation summaryInformation;
   private final SummaryCFAStatistics stats;
 
-  private Set<StrategiesEnum> strategies;
+  private final Set<StrategiesEnum> strategies;
   private final StrategyDependencyEnum cfaCreationStrategy;
   private final StrategyDependencyEnum transferStrategy;
   private final int maxUnrollingsStrategy;
@@ -73,7 +71,6 @@ public class SummaryPostProcessor implements StatisticsProvider {
 
     shutdownNotifier = pShutdownNotifier;
     logger = pLogger;
-    setOriginalCFA(pCfa);
     strategyFactory =
         new StrategyFactory(
             pLogger, pShutdownNotifier, maxUnrollingsStrategy, strategyDependencies, pCfa);
@@ -165,20 +162,8 @@ public class SummaryPostProcessor implements StatisticsProvider {
     return pCfa;
   }
 
-  public static CFA getOriginalCFA() {
-    return originalCFA;
-  }
-
-  public static void setOriginalCFA(CFA pOriginalCFA) {
-    originalCFA = pOriginalCFA;
-  }
-
   public Set<StrategiesEnum> getStrategies() {
     return strategies;
-  }
-
-  public void setStrategies(Set<StrategiesEnum> pStrategies) {
-    strategies = pStrategies;
   }
 
   @Override
