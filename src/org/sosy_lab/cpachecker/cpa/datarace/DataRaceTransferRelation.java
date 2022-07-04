@@ -218,10 +218,27 @@ public class DataRaceTransferRelation extends SingleEdgeTransferRelation {
           throw new UnsupportedCodeException(
               "DataRaceCPA does not support function " + functionName, edge);
         }
-        if (!THREAD_SAFE_FUNCTIONS.contains(functionName)) {
-          for (AExpression argument : functionCallEdge.getArguments()) {
-            accessedLocations.addAll(
-                edgeAnalyzer.getInvolvedVariableTypes(argument, functionCallEdge).keySet());
+        if (functionCallEdge.getFunctionCall() instanceof AFunctionCallAssignmentStatement) {
+          AFunctionCallAssignmentStatement functionCallAssignmentStatement =
+              (AFunctionCallAssignmentStatement) functionCallEdge.getFunctionCall();
+          if (THREAD_SAFE_FUNCTIONS.contains(functionName)) {
+            accessedLocations =
+                edgeAnalyzer
+                    .getInvolvedVariableTypes(
+                        functionCallAssignmentStatement.getLeftHandSide(), functionCallEdge)
+                    .keySet();
+          } else {
+            accessedLocations =
+                edgeAnalyzer
+                    .getInvolvedVariableTypes(functionCallAssignmentStatement, functionCallEdge)
+                    .keySet();
+          }
+        } else {
+          if (!THREAD_SAFE_FUNCTIONS.contains(functionName)) {
+            for (AExpression argument : functionCallEdge.getArguments()) {
+              accessedLocations.addAll(
+                  edgeAnalyzer.getInvolvedVariableTypes(argument, functionCallEdge).keySet());
+            }
           }
         }
         break;
