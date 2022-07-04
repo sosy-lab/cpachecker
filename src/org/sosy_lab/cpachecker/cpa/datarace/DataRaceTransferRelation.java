@@ -130,14 +130,20 @@ public class DataRaceTransferRelation extends SingleEdgeTransferRelation {
       ImmutableMap<String, ThreadInfo> newThreads = getNewThreads(threads, threadIds, activeThread);
       Set<MemoryAccess> newMemoryAccesses = getNewAccesses(threads, activeThread, cfaEdge, locks);
 
-      ImmutableSet.Builder<MemoryAccess> memoryAccessBuilder = ImmutableSet.builder();
-      memoryAccessBuilder.addAll(newMemoryAccesses);
-      for (MemoryAccess access : state.getMemoryAccesses()) {
-        if (threadIds.contains(access.getThreadId())) {
-          memoryAccessBuilder.add(access);
+      Set<MemoryAccess> memoryAccesses;
+      if (newThreads.size() == 1) {
+        // Only a single thread, no need to track memory accesses
+        memoryAccesses = ImmutableSet.of();
+      } else {
+        ImmutableSet.Builder<MemoryAccess> memoryAccessBuilder = ImmutableSet.builder();
+        memoryAccessBuilder.addAll(newMemoryAccesses);
+        for (MemoryAccess access : state.getMemoryAccesses()) {
+          if (threadIds.contains(access.getThreadId())) {
+            memoryAccessBuilder.add(access);
+          }
         }
+        memoryAccesses = memoryAccessBuilder.build();
       }
-      Set<MemoryAccess> memoryAccesses = memoryAccessBuilder.build();
 
       boolean hasDataRace = state.hasDataRace();
       for (MemoryAccess access : memoryAccesses) {
