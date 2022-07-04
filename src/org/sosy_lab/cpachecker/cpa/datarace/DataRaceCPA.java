@@ -10,9 +10,6 @@ package org.sosy_lab.cpachecker.cpa.datarace;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
-import org.sosy_lab.common.configuration.Configuration;
-import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.defaults.AbstractCPA;
@@ -34,7 +31,11 @@ public class DataRaceCPA extends AbstractCPA {
   }
 
   private DataRaceCPA(CFA pCfa) {
-    super("sep", "sep", null);
+    // TODO: Stop always is sound if DataRaceCPA is used together with ThreadingCPA (as it should)
+    //       and prevents exploding reached set due to not stopping.
+    //       However, we might be able to switch to stop sep if the tracked memory accesses in each
+    //       DataRaceState are further reduced.
+    super("sep", "always", null);
     cfa = pCfa;
   }
 
