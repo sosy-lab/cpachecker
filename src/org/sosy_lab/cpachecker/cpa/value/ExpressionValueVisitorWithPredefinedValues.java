@@ -13,6 +13,9 @@ import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
+import org.sosy_lab.cpachecker.cfa.ast.AExpression;
+import org.sosy_lab.cpachecker.cfa.ast.ARightHandSide;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
@@ -26,19 +29,11 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 public class ExpressionValueVisitorWithPredefinedValues extends ExpressionValueVisitor {
 
   public static final String PATERN_FOR_RANDOM = "__VERIFIER_nondet_";
+  private final boolean stopIfAllValuesForUnknownAreUsed;
   private AtomicInteger numReturnedValues;
   private LogManagerWithoutDuplicates logger;
-  private Map<Integer, String> valuesFromFile = new HashMap<>();
+  private Map<Integer, String> valuesFromFile;
   private boolean lastRequestSuccessful = true;
-
-  public ExpressionValueVisitorWithPredefinedValues(
-      ValueAnalysisState pState,
-      String pFunctionName,
-      MachineModel pMachineModel,
-      LogManagerWithoutDuplicates pLogger) {
-    super(pState, pFunctionName, pMachineModel, pLogger);
-    logger = pLogger;
-  }
 
   /**
    * @param pState see {@link ExpressionValueVisitor#ExpressionValueVisitor(ValueAnalysisState,
@@ -60,40 +55,62 @@ public class ExpressionValueVisitorWithPredefinedValues extends ExpressionValueV
       AtomicInteger pAtomicInteger,
       MachineModel pMachineModel,
       LogManagerWithoutDuplicates pLogger,
-      Map<Integer, String> pValuesFromFile) {
+      Map<Integer, String> pValuesFromFile,
+      boolean pStopIfAllValuesForUnknownAreUsed) {
     super(pState, pFunctionName, pMachineModel, pLogger);
     logger = pLogger;
     numReturnedValues = pAtomicInteger;
-
+    this.stopIfAllValuesForUnknownAreUsed = pStopIfAllValuesForUnknownAreUsed;
     valuesFromFile = pValuesFromFile;
   }
 
   @Override
   public Value evaluate(CRightHandSide pExp, CType pTargetType) throws UnrecognizedCodeException {
-    if (lastRequestSuccessful && pExp instanceof CFunctionCallExpression) {
+    if (lastRequestSuccessful && expressionIsRandomCall(pExp)) {
+
+      CFunctionCallExpression call = (CFunctionCallExpression) pExp;
+      // We found a call to random. If available, return a new value from the predefined inputs.
+      // Otherwise, delegate to super
+      int counter = numReturnedValues.getAndIncrement();
+      if (valuesFromFile.containsKey(counter)) {
+        Value value = computeNumericalValue(call, valuesFromFile.get(counter));
+
+        logger.log(
+            Level.FINER,
+            "Returning value at position %d, for statement " + pExp.toASTString() + " that is: ",
+            value);
+        return value;
+      } else {
+        lastRequestSuccessful = false;
+      }
+    }
+    return super.evaluate(pExp, pTargetType);
+  }
+
+  private boolean expressionIsRandomCall(CRightHandSide pExp) {
+    if (pExp instanceof CFunctionCallExpression) {
       CFunctionCallExpression call = (CFunctionCallExpression) pExp;
       if (call.getFunctionNameExpression() instanceof CIdExpression
           && ((CIdExpression) call.getFunctionNameExpression())
               .getName()
               .startsWith(PATERN_FOR_RANDOM)) {
-
-        // We found a call to random. If available, return a new value from the predefined inputs.
-        // Otherwise, delegate to super
-        int counter = numReturnedValues.getAndIncrement();
-        if (valuesFromFile.containsKey(counter)) {
-          Value value = computeNumericalValue(call, valuesFromFile.get(counter));
-
-          logger.log(
-              Level.FINER,
-              "Returning value at position %d, for statement " + pExp.toASTString() + " that is: ",
-              value);
-          return value;
-        } else {
-          lastRequestSuccessful = false;
-        }
+        return true;
       }
     }
-    return super.evaluate(pExp, pTargetType);
+    return false;
+  }
+
+  @Override
+  public boolean valueWillBeUnknown(ARightHandSide pExpression)  {
+    if (pExpression instanceof  CRightHandSide){
+    if (expressionIsRandomCall((CRightHandSide) pExpression) && stopIfAllValuesForUnknownAreUsed ) {
+      int counter = numReturnedValues.get();
+      boolean retVal =!valuesFromFile.containsKey(counter);
+      if (retVal){
+      logger.logf(Level.INFO, "Will abort, as no value for %s is known", pExpression);}
+      return retVal;
+    }}
+    return false;
   }
 
   private Value computeNumericalValue(CFunctionCallExpression call, String pStringValueForNumber) {

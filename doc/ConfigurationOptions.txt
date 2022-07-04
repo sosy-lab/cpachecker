@@ -2687,6 +2687,19 @@ cpa.propertychecker.className = org.sosy_lab.cpachecker.pcc.propertychecker.Defa
 # empty string represents an empty parameter list.
 cpa.propertychecker.parameters = ""
 
+# If no path is given for the path2InputFile, try to load it automatically
+cpa.rangeExecution.autoLoadPath2Input = false
+
+# The path for the input file to handle input/random values for the constant
+# propagation following the lower bound. If no path is given, there is no
+# lower bound.
+cpa.rangeExecution.path2LowerInputFile = no default value
+
+# The path for the input file to handle input/random values for the constant
+# propagation following the upper bound. If no path is given, there is no
+# upper bound.
+cpa.rangeExecution.path2UpperInputFile = no default value
+
 # Whether to consider constraints on program variables (e.g., x > 10) as
 # definitions)
 cpa.reachdef.constraintIsDef = false
