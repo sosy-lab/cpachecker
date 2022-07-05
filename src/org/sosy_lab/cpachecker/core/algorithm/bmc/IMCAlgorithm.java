@@ -8,11 +8,16 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.bmc;
 
+import static org.sosy_lab.cpachecker.util.statistics.StatisticsWriter.writingStatisticsTo;
+
 import com.google.common.collect.ImmutableList;
+import java.io.PrintStream;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.logging.Level;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.IntegerOption;
@@ -21,11 +26,14 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
+import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
+import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.cpa.loopbound.LoopBoundCPA;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractionManager;
@@ -746,6 +754,24 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
       }
     }
     return false;
+  }
+
+  @Override
+  public void collectStatistics(Collection<Statistics> pStatsCollection) {
+    super.collectStatistics(pStatsCollection);
+    pStatsCollection.add(
+        new Statistics() {
+          @Override
+          public void printStatistics(
+              PrintStream out, Result result, UnmodifiableReachedSet reached) {
+            itpMgr.printStatistics(writingStatisticsTo(out));
+          }
+
+          @Override
+          public @Nullable String getName() {
+            return "Interpolating SMT solver";
+          }
+        });
   }
 
   @Override
