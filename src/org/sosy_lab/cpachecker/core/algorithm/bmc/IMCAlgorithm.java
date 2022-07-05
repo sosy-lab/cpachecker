@@ -426,6 +426,9 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
               + " point.");
       assertTargetsAtEveryIteration = false;
     }
+    if (fixedPointComputeStrategy.isIMCEnabled()) {
+      stats.numOfIMCInnerIterations = 0;
+    }
   }
 
   @Override
@@ -633,9 +636,16 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
     Optional<ImmutableList<BooleanFormula>> interpolants =
         itpMgr.interpolate(ImmutableList.of(currentImage, loops.get(0), suffixFormula));
     assert interpolants.isPresent();
-    int iter = 0;
-    for (; interpolants.isPresent(); ++iter) {
-      logger.log(Level.ALL, "IMC inner loop iteration:", iter);
+    final int initialIMCIter = stats.numOfIMCInnerIterations;
+    while (interpolants.isPresent()) {
+      stats.numOfIMCInnerIterations += 1;
+      logger.log(
+          Level.ALL,
+          "IMC inner loop iteration:",
+          stats.numOfIMCInnerIterations - initialIMCIter,
+          "[ accumulated:",
+          stats.numOfIMCInnerIterations,
+          "]");
       logger.log(Level.ALL, "The current image is", currentImage);
       assert interpolants.orElseThrow().size() == 2;
       BooleanFormula interpolant = interpolants.orElseThrow().get(1);
@@ -652,10 +662,10 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
     }
     logger.log(
         Level.FINE,
-        "Attempted to compute fixed point in",
-        iter,
+        "Attempted to compute fixed point with",
+        stats.numOfIMCInnerIterations - initialIMCIter,
         "IMC inner iterations but did not succeed");
-    loopBoundMgr.adjustLoopBoundIncrementValues(iter);
+    loopBoundMgr.adjustLoopBoundIncrementValues(stats.numOfIMCInnerIterations - initialIMCIter);
     return false;
   }
 

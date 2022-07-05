@@ -30,6 +30,7 @@ public class BMCStatistics implements Statistics {
   // IMC/ISMC operations
   final Timer interpolationPreparation = new Timer();
   final Timer fixedPointComputation = new Timer();
+  int numOfIMCInnerIterations = -1;
 
   @Override
   public void printStatistics(PrintStream out, Result pResult, UnmodifiableReachedSet pReached) {
@@ -55,6 +56,9 @@ public class BMCStatistics implements Statistics {
     if (fixedPointComputation.getNumberOfIntervals() > 0) {
       out.println("Time for collecting formulas for interpolation:  " + interpolationPreparation);
       out.println("Time for computing fixed point by interpolation: " + fixedPointComputation);
+    }
+    if (numOfIMCInnerIterations >= 0) {
+      out.println("Number of IMC inner iterations:                  " + numOfIMCInnerIterations);
     }
   }
 
