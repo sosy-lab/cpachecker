@@ -570,18 +570,18 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
       throws CPAException, SolverException, InterruptedException {
     stats.fixedPointComputation.start();
     try {
-      boolean hasreachedFixedPoint = false;
+      boolean hasReachedFixedPoint = false;
       switch (fixedPointComputeStrategy) {
         case ITP:
-          hasreachedFixedPoint = reachFixedPointByInterpolation(formulas);
+          hasReachedFixedPoint = reachFixedPointByInterpolation(formulas);
           break;
         case ITPSEQ:
-          hasreachedFixedPoint = reachFixedPointByInterpolationSequence(formulas, reachVector);
+          hasReachedFixedPoint = reachFixedPointByInterpolationSequence(formulas, reachVector);
           break;
         case ITPSEQ_AND_ITP:
-          hasreachedFixedPoint = reachFixedPointByInterpolationSequence(formulas, reachVector);
-          if (!hasreachedFixedPoint) {
-            hasreachedFixedPoint = reachFixedPointByInterpolation(formulas);
+          hasReachedFixedPoint = reachFixedPointByInterpolationSequence(formulas, reachVector);
+          if (!hasReachedFixedPoint) {
+            hasReachedFixedPoint = reachFixedPointByInterpolation(formulas);
           }
           break;
         case NONE:
@@ -590,7 +590,7 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
           throw new AssertionError("Unknown fixed-point strategy " + fixedPointComputeStrategy);
       }
 
-      if (hasreachedFixedPoint) {
+      if (hasReachedFixedPoint) {
         return true;
       }
       logger.log(Level.FINE, "The overapproximation is unsafe, going back to BMC phase");
