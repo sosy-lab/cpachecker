@@ -31,7 +31,9 @@ import org.eclipse.cdt.core.dom.ast.ASTGenericVisitor;
 import org.eclipse.cdt.core.dom.ast.ExpansionOverlapsBoundaryException;
 import org.eclipse.cdt.core.dom.ast.IASTComment;
 import org.eclipse.cdt.core.dom.ast.IASTCompoundStatement;
+import org.eclipse.cdt.core.dom.ast.IASTDeclSpecifier;
 import org.eclipse.cdt.core.dom.ast.IASTDeclaration;
+import org.eclipse.cdt.core.dom.ast.IASTDeclarator;
 import org.eclipse.cdt.core.dom.ast.IASTFileLocation;
 import org.eclipse.cdt.core.dom.ast.IASTFunctionDefinition;
 import org.eclipse.cdt.core.dom.ast.IASTNode;
@@ -54,8 +56,10 @@ class AstExporter extends ASTGenericVisitor {
       addedGlobalDeclarationsByFileLocation;
   private final ImmutableMap<SimpleFileLocation, FunctionExportInformation>
       functionInfoByFileLocation;
+
   private ImmutableMultimap<SimpleFileLocation, CCfaEdgeStatement>
       addedStatementsOfCurrentFunctionByFileLocation;
+  private boolean headerOfCurrentFunctionChanged;
 
   private String originalCode;
   private List<SimpleFileLocation> allOriginalFileLocations;
@@ -184,6 +188,23 @@ class AstExporter extends ASTGenericVisitor {
       assert functionInfo != null;
       addedStatementsOfCurrentFunctionByFileLocation =
           collectAddedStatementsByFileLocation(functionInfo);
+      headerOfCurrentFunctionChanged = removedFileLocations.contains(fileLoc);
+
+      if (headerOfCurrentFunctionChanged) {
+        try {
+          final String functionHeader =
+              functionInfo
+                  .getFunctionEntryNode()
+                  .getFunctionDefinition()
+                  .toASTString()
+                  .replace(";", " ");
+          dest.append(functionHeader);
+          return PROCESS_CONTINUE;
+
+        } catch (final IOException pE) {
+          return PROCESS_ABORT;
+        }
+      }
     }
 
     return super.visit(pDeclaration);
@@ -214,6 +235,28 @@ class AstExporter extends ASTGenericVisitor {
     }
 
     return super.leave(pDeclaration);
+  }
+
+  @Override
+  public int visit(final IASTDeclSpecifier pDeclarationSpecifier) {
+
+    if (pDeclarationSpecifier.getParent() instanceof IASTFunctionDefinition
+        && headerOfCurrentFunctionChanged) {
+      return PROCESS_SKIP;
+    }
+
+    return super.visit(pDeclarationSpecifier);
+  }
+
+  @Override
+  public int visit(final IASTDeclarator pDeclarator) {
+
+    if (pDeclarator.getParent() instanceof IASTFunctionDefinition
+        && headerOfCurrentFunctionChanged) {
+      return PROCESS_SKIP;
+    }
+
+    return super.visit(pDeclarator);
   }
 
   @Override

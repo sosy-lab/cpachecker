@@ -671,7 +671,7 @@ class EclipseCWriter implements CWriter {
       return ImmutableList.copyOf(newStatementsByFileLocToBeInsertedAfter.values());
     }
 
-    private FunctionEntryNode getFunctionEntryNode() {
+    FunctionEntryNode getFunctionEntryNode() {
       return functionEntryNode;
     }
 
