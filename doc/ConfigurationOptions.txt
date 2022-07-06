@@ -2979,6 +2979,12 @@ cpa.smg2.ignoreFunctionValueExceptRandom = false
 # (uninitialized) variables to 1L, when the true-branch is handled.
 cpa.smg2.initAssumptionVars = false
 
+# get an initial precision from file
+cpa.smg2.initialPrecisionFile = no default value
+
+# get an initial precision from a predicate precision file
+cpa.smg2.initialPredicatePrecisionFile = no default value
+
 # Perform merge SMGStates by SMGJoin on ends of code block. Works with
 # 'merge=JOIN'
 cpa.smg2.joinOnBlockEnd = true
