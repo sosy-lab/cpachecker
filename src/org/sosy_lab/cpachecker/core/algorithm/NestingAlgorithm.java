@@ -14,6 +14,7 @@ import com.google.common.base.Splitter;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -39,6 +40,7 @@ import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.Triple;
 import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
 import org.sosy_lab.cpachecker.util.resources.ResourceLimitChecker;
@@ -72,7 +74,30 @@ public abstract class NestingAlgorithm implements Algorithm, StatisticsProvider 
       Collection<Statistics> stats)
       throws InvalidConfigurationException, CPAException, IOException, InterruptedException {
 
-    Configuration singleConfig = buildSubConfig(singleConfigFileName, ignoreOptions);
+    return createAlgorithm(
+        singleConfigFileName,
+        initialNode,
+        pCfa,
+        singleShutdownManager,
+        aggregateReached,
+        ignoreOptions,
+        new HashSet<>(),
+        stats);
+  }
+
+  protected Triple<Algorithm, ConfigurableProgramAnalysis, ReachedSet> createAlgorithm(
+      Path singleConfigFileName,
+      CFANode initialNode,
+      CFA pCfa,
+      ShutdownManager singleShutdownManager,
+      AggregatedReachedSets aggregateReached,
+      Collection<String> ignoreOptions,
+      Collection<Pair<String, String>> additionalOptions,
+      Collection<Statistics> stats)
+      throws InvalidConfigurationException, CPAException, IOException, InterruptedException {
+
+    Configuration singleConfig =
+        buildSubConfig(singleConfigFileName, ignoreOptions, additionalOptions);
     LogManager singleLogger = logger.withComponentName("Analysis " + singleConfigFileName);
 
     ResourceLimitChecker singleLimits =
@@ -97,7 +122,10 @@ public abstract class NestingAlgorithm implements Algorithm, StatisticsProvider 
     return Triple.of(algorithm, cpa, reached);
   }
 
-  private Configuration buildSubConfig(Path singleConfigFileName, Collection<String> ignoreOptions)
+  private Configuration buildSubConfig(
+      Path singleConfigFileName,
+      Collection<String> ignoreOptions,
+      Collection<Pair<String, String>> pAdditionalOptions)
       throws IOException, InvalidConfigurationException {
 
     ConfigurationBuilder singleConfigBuilder = Configuration.builder();
@@ -110,6 +138,9 @@ public abstract class NestingAlgorithm implements Algorithm, StatisticsProvider 
     // Perhaps we want to keep some global options like 'specification'?
     singleConfigBuilder.loadFromFile(singleConfigFileName);
 
+    for (Pair<String, String> entry : pAdditionalOptions) {
+      singleConfigBuilder.setOption(entry.getFirst(), entry.getSecond());
+    }
     Configuration singleConfig = singleConfigBuilder.build();
     checkConfigs(globalConfig, singleConfig, singleConfigFileName, logger);
     return singleConfig;

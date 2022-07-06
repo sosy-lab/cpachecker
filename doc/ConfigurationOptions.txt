@@ -60,7 +60,7 @@ rootDirectory = "."
 # SPDX-License-Identifier: Apache-2.0
 
 # Further options for Boolector in addition to the default options. Format: 
-# "Optionname=value" with â€™,â€™ to seperate options. Optionname and value can
+# "Optionname=value" with ’,’ to seperate options. Optionname and value can
 # be found in BtorOption or Boolector C Api.Example:
 # "BTOR_OPT_MODEL_GEN=2,BTOR_OPT_INCREMENTAL=1".
 solver.boolector.furtherOptions = ""
@@ -158,7 +158,7 @@ solver.z3.usePhantomReferences = false
 # SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
 # SPDX-FileCopyrightText: 2007-2021 Dirk Beyer <https://www.sosy-lab.org>
 # SPDX-FileCopyrightText: 2007-2022 Dirk Beyer <https://www.sosy-lab.org>
-# SPDX-FileCopyrightText: 2014-2017 UniversitÃ© Grenoble Alpes
+# SPDX-FileCopyrightText: 2014-2017 Université Grenoble Alpes
 # SPDX-FileCopyrightText: 2020 Dirk Beyer <https://www.sosy-lab.org>
 # SPDX-FileCopyrightText: 2021 Dirk Beyer <https://www.sosy-lab.org>
 # SPDX-FileCopyrightText: 2022 Dirk Beyer <https://www.sosy-lab.org>
@@ -206,6 +206,10 @@ analysis.algorithm.MPV = false
 # use a analysis which proves if the program satisfies a specified property
 # with the help of an enabler CPA to separate differnt program paths
 analysis.algorithm.analysisWithEnabler = false
+
+# Use algorithm to compute the input for ranged symbolic execution for a
+# given bound
+analysis.algorithm.computeRSEInput = false
 
 # use adjustable conditions algorithm
 analysis.algorithm.conditionAdjustment = false
@@ -496,6 +500,9 @@ analysis.unknownIfUnrestrictedProgram = false
 # Use array abstraction by program transformation.
 analysis.useArrayAbstraction = false
 
+# restart the analysis using a different configuration after unknown result
+analysis.useCombinedRangeExecutionAlgorithm = false
+
 # select an analysis from a set of analyses after unknown result
 analysis.useCompositionAnalysis = false
 
@@ -729,6 +736,15 @@ bmc.simplifyBooleanFormula = false
 
 # Use generalized counterexamples to induction as candidate invariants.
 bmc.usePropertyDirection = false
+
+# How to determine the bound splitting lower and upper half
+boundedRangeExecution.configForTestcase = no default value
+
+# Which analysis to use for the analysis on the lower half
+boundedRangeExecution.configLowerBound = no default value
+
+# Which analysis to use for the analysis on the upper half
+boundedRangeExecution.configUpperBound = no default value
 
 # File name where to put the path program that is generated as input for
 # CBMC. A temporary file is used if this is unspecified. If specified, the
@@ -1160,6 +1176,19 @@ cpa.abe.useCachingPathFormulaManager = true
 
 # only store pure C expressions without ACSL-specific constructs
 cpa.acsl.usePureExpressionsOnly = true
+
+# threshold for unrolling loops of the program (0 is infinite)
+cpa.aggressiveloopbound.maxLoopIterations = 0
+
+# if there is a branch not associated with a loop, only take the right
+# branch.
+cpa.aggressiveloopbound.useRigthPath = true
+
+# For nested loops: Reset the counter for inner loops at each iteration of
+# the outer loop. Meanign that, if the loobound is set to 3, the inner loop
+# is executed 3 times in each iteration of the outer loop (hence 9 times in
+# total
+cpa.aggressiveloopbound.useStack = true
 
 # Use this to change the underlying abstract domain in the APRON library
 cpa.apron.domain = OCTAGON
@@ -2715,6 +2744,13 @@ cpa.reachdef.stop = "SEP"
 # Do not report 'False' result, return UNKNOWN instead.  Useful for
 # incomplete analysis with no counterexample checking.
 cpa.reportFalseAsUnknown = false
+
+# List of names (or a part of the name) of functions, that return a random
+# value
+cpa.rseexport.namesOfRandomFunctions = {"rand", "__VERIFIER_nondet_"}
+
+# Create a file that contains the testinput.
+cpa.rseexport.outdirForExport = "output/"
 
 # which merge operator to use for SignCPA
 cpa.sign.merge = "JOIN"

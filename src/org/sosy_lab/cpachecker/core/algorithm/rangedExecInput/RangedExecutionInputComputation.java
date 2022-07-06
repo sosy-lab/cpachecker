@@ -1,0 +1,349 @@
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2021 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
+package org.sosy_lab.cpachecker.core.algorithm.rangedExecInput;
+
+import com.google.common.base.Throwables;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Lists;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.Set;
+import java.util.logging.Level;
+import java.util.stream.Collectors;
+import javax.annotation.Nonnull;
+import org.checkerframework.checker.nullness.qual.NonNull;
+import org.checkerframework.checker.nullness.qual.Nullable;
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Option;
+import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
+import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
+import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
+import org.sosy_lab.cpachecker.core.reachedset.PartitionedReachedSet;
+import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.cpa.arg.ARGState;
+import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
+import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
+import org.sosy_lab.cpachecker.cpa.arg.path.PathIterator;
+import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
+import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
+import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.util.AbstractStates;
+import org.sosy_lab.cpachecker.util.CFAEdgeUtils;
+import org.sosy_lab.cpachecker.util.CFAUtils;
+import org.sosy_lab.cpachecker.util.CPAs;
+import org.sosy_lab.cpachecker.util.Pair;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
+import org.sosy_lab.java_smt.api.Formula;
+import org.sosy_lab.java_smt.api.Model;
+import org.sosy_lab.java_smt.api.ProverEnvironment;
+import org.sosy_lab.java_smt.api.SolverContext.ProverOptions;
+import org.sosy_lab.java_smt.api.SolverException;
+
+@Options(prefix = "cpa.rseexport")
+public class RangedExecutionInputComputation implements Algorithm {
+
+  public static final String INV_FUNCTION_NAMING_SCHEMA = "Inv_%s";
+  private static final Integer DEFAULT_INT = 0;
+  private final CFA cfa;
+
+  @Option(secure = true, description = "Create a file that contains the testinput.")
+  private String outdirForExport = "output/";
+
+  @Option(
+      secure = true,
+      name = "namesOfRandomFunctions",
+      description =
+          "List of names (or a part of the name) of functions, that return a random value")
+  private ImmutableSet<String> namesOfRandomFunctions =
+      ImmutableSet.of("rand", "__VERIFIER_nondet_");
+
+  private final LogManager logger;
+
+  private final Algorithm algorithm;
+  Solver solver;
+  FormulaManagerView fmgr;
+
+  private final PathFormulaManager pfManager;
+
+  public RangedExecutionInputComputation(
+      Configuration config,
+      Algorithm pAlgorithm,
+      LogManager pLogger,
+      CFA pCfa,
+      ConfigurableProgramAnalysis pCpa)
+      throws InvalidConfigurationException {
+    config.inject(this, RangedExecutionInputComputation.class);
+    algorithm = pAlgorithm;
+    this.cfa = pCfa;
+    logger = Objects.requireNonNull(pLogger);
+
+    @SuppressWarnings("resource")
+    @NonNull
+    PredicateCPA predCPA =
+        CPAs.retrieveCPAOrFail(pCpa, PredicateCPA.class, RangedExecutionInputComputation.class);
+    solver = predCPA.getSolver();
+    fmgr = solver.getFormulaManager();
+    pfManager = predCPA.getPathFormulaManager();
+  }
+
+  @Override
+  public AlgorithmStatus run(ReachedSet pReached) throws CPAException, InterruptedException {
+    if (!(pReached instanceof PartitionedReachedSet)) {
+      throw new CPAException("Expecting a partioned reached set");
+    }
+
+    // Check, if there is any random call in the program or any loop.
+    // if not, exit directly
+    if (!hasLoop() || !hasRandom()) {
+      return AlgorithmStatus.NO_PROPERTY_CHECKED;
+    }
+
+    PartitionedReachedSet reached = (PartitionedReachedSet) pReached;
+    AlgorithmStatus status = AlgorithmStatus.NO_PROPERTY_CHECKED;
+
+    // run algorithm
+    algorithm.run(reached);
+    if (reached.hasWaitingState()) {
+      // Nested algortihm is not finished, hence do another round by returning to loop in calling
+      // class
+      return status;
+
+    } else {
+
+      AbstractState last = reached.getLastState();
+      AbstractState first = reached.getFirstState();
+
+      Set<ARGPath> paths =
+          ARGUtils.getAllPathsFromTo(
+              AbstractStates.extractStateByType(first, ARGState.class),
+              AbstractStates.extractStateByType(last, ARGState.class));
+      if (paths.size() != 1) {
+        throw new CPAException(
+            "There are more than one path present. We cannot compute a testcase for this!");
+      }
+      try {
+        List<Pair<CIdExpression, Integer>> inputs = computeInput(paths.stream().findFirst().get());
+        printFileToPutput(inputs);
+      } catch (SolverException | IOException pE) {
+        throw new CPAException(Throwables.getStackTraceAsString(pE));
+      }
+      return status;
+    }
+  }
+
+  private boolean hasRandom() {
+    for (CFANode node : cfa.getAllNodes()) {
+      for (CFAEdge edge : CFAUtils.allLeavingEdges(node)) {
+        if (edge instanceof CStatementEdge
+            && ((CStatementEdge) edge).getStatement() instanceof CAssignment) {
+          if (CFAEdgeUtils.getRightHandSide(edge) instanceof CFunctionCallExpression
+              && namesOfRandomFunctions.stream()
+                  .anyMatch(
+                      name ->
+                          ((CFunctionCallExpression)
+                                  Objects.requireNonNull(CFAEdgeUtils.getRightHandSide(edge)))
+                              .getFunctionNameExpression()
+                              .toString()
+                              .startsWith(name))) {
+            return true;
+          }
+        }
+      }
+    }
+    return false;
+  }
+
+  private boolean hasLoop() {
+    return this.cfa.getLoopStructure().isPresent()
+        && this.cfa.getLoopStructure().get().getCount() > 0;
+  }
+
+  private void printFileToPutput(List<Pair<CIdExpression, Integer>> pInputs) throws IOException {
+
+    java.nio.file.Path path = Paths.get(this.outdirForExport + "testinput.xml");
+    logger.logf(Level.INFO, "Storing the testcase at %s", path.toAbsolutePath().toString());
+    List<String> content = Lists.newArrayList();
+    content.add("<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"no\"?>");
+    content.add(
+        "<!DOCTYPE testcase PUBLIC \"+//IDN sosy-lab.org//DTD test-format testcase 1.1//EN\""
+            + " \"https://sosy-lab.org/test-format/testcase-1.1.dtd\">");
+    content.add("<testcase>");
+    for (Pair<CIdExpression, Integer> pair : pInputs) {
+
+      CIdExpression var = pair.getFirst();
+
+      content.add(
+          String.format(
+              " <input variable=\"%s\" type=\"%s\">%s</input>",
+              var.getDeclaration().getName(), var.getDeclaration().getType(), pair.getSecond()));
+    }
+
+    content.add("</testcase>");
+
+    Files.write(path, content);
+  }
+
+  private List<Pair<CIdExpression, Integer>> computeInput(ARGPath pARGPath)
+      throws InterruptedException, SolverException, CPAException {
+
+    // Check, if the given path is sat by conjoining the path formulae of the abstraction locations.
+    // If not, cut off the last part and recursively continue.
+
+    // Build the path formula
+    PathFormula pf = pfManager.makeEmptyPathFormula();
+    ProverEnvironment prover = solver.newProverEnvironment(ProverOptions.GENERATE_MODELS);
+    for (ARGState state : pARGPath.asStatesList()) {
+      @Nullable PredicateAbstractState predState =
+          AbstractStates.extractStateByType(state, PredicateAbstractState.class);
+      if (predState != null && predState.isAbstractionState()) {
+        pf =
+            pfManager.makeConjunction(
+                Lists.newArrayList(pf, predState.getAbstractionFormula().getBlockFormula()));
+        try {
+          prover.addConstraint(predState.getAbstractionFormula().getBlockFormula().getFormula());
+          boolean unsat = prover.isUnsat();
+          if (unsat) {
+
+            while (unsat) {
+              logger.log(
+                  Level.INFO,
+                  String.format(
+                      "The formul'%s' is unsat, continuing with a shorter one", pf.getFormula()));
+              prover.pop();
+              unsat = prover.isUnsat();
+            }
+            break;
+          }
+          prover.push();
+        } catch (InterruptedException | SolverException e) {
+          // In case of an error, we assume that the formula is sat and should be exported
+          prover.close();
+          return ImmutableList.of();
+        }
+      }
+    }
+    // we now that the model is sat at this point
+    logger.log(Level.FINEST, prover.isUnsat());
+    Model m = prover.getModel();
+    List<Pair<CIdExpression, Integer>> inputs = matchInputsOnPath(pARGPath, m);
+    logger.log(Level.INFO, inputs);
+    prover.close();
+    return inputs;
+  }
+
+  private List<Pair<CIdExpression, Integer>> matchInputsOnPath(ARGPath pARGPath, Model pM)
+      throws CPAException, InterruptedException {
+    //    logger.log(Level.INFO, pM.toString());
+
+    PathIterator pathIterator = pARGPath.fullPathIterator();
+    List<Pair<CIdExpression, Integer>> results = Lists.newArrayList();
+    do {
+      if (pathIterator.isPositionWithState()) {
+        final ARGState abstractState = pathIterator.getAbstractState();
+        if (pathIterator.hasNext()) {
+          @Nullable CFAEdge edge = pathIterator.getOutgoingEdge();
+          if (edge != null) {
+            // Check  if the edge is an assignemtnt with random function at rhs
+            if (edge instanceof CStatementEdge) {
+              CStatement stmt = ((CStatementEdge) edge).getStatement();
+              if (stmt instanceof CFunctionCallAssignmentStatement) {
+                CFunctionCallAssignmentStatement ass = (CFunctionCallAssignmentStatement) stmt;
+                if (leftIsVar(ass.getLeftHandSide()) && isRandomFctCall(ass.getRightHandSide())) {
+                  Optional<Integer> value =
+                      getIntegerValueFromModelForEdge(pM, abstractState, edge, ass);
+                  if (value.isPresent()) {
+                    results.add(Pair.of((CIdExpression) ass.getLeftHandSide(), value.get()));
+                  } else {
+                    throw new CPAException(
+                        String.format(
+                            "Unable to compute the value of variable from  the expression %s in the"
+                                + " model %s",
+                            edge, pM));
+                  }
+                }
+              }
+            } else if (edge instanceof CDeclarationEdge) {
+
+            }
+          }
+        }
+      }
+    } while (pathIterator.advanceIfPossible());
+    return results;
+  }
+
+  private Optional<Integer> getIntegerValueFromModelForEdge(
+      Model pM, ARGState abstractState, @Nonnull CFAEdge edge, CFunctionCallAssignmentStatement ass)
+      throws InterruptedException, CPAException {
+    @Nullable PredicateAbstractState predState =
+        AbstractStates.extractStateByType(abstractState, PredicateAbstractState.class);
+    assert predState != null;
+    PathFormula pathFormula = predState.getPathFormula();
+    PathFormula emptyPF =
+        pfManager.makeEmptyPathFormulaWithContext(
+            pathFormula.getSsa(), pathFormula.getPointerTargetSet());
+    PathFormula pfCurrent = pfManager.makeAnd(emptyPF, edge);
+
+    // As a temp variable is created representing the function call return value, we
+    // need to clean the map
+    Map<String, Formula> varMap = new HashMap<>(fmgr.extractVariables(pfCurrent.getFormula()));
+    List<String> toRemove =
+        varMap.keySet().stream()
+            .filter(
+                pFormula -> pFormula.contains(ass.getRightHandSide().getDeclaration().getName()))
+            .collect(Collectors.toList());
+    toRemove.forEach(e -> varMap.remove(e));
+    if (varMap.size() != 1) {
+      throw new CPAException(
+          String.format("Unable to compute the variable at LHS for the expression %s", edge));
+    }
+
+    Formula varAsFormula = varMap.entrySet().stream().findFirst().get().getValue();
+    Object evalRes = pM.evaluate(varAsFormula);
+    if (evalRes instanceof Number) {
+      return Optional.of(((Number) evalRes).intValue());
+    } else if (evalRes == null) {
+      return Optional.of(DEFAULT_INT);
+    }
+    return Optional.empty();
+  }
+
+  private boolean isRandomFctCall(CFunctionCallExpression pRightHandSide) {
+    String name = pRightHandSide.getDeclaration().getName();
+    return this.namesOfRandomFunctions.stream().anyMatch(s -> name.contains(s));
+  }
+
+  private boolean leftIsVar(CLeftHandSide pLeftHandSide) {
+    return pLeftHandSide instanceof CIdExpression;
+  }
+}

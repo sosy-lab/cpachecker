@@ -1307,4 +1307,40 @@ public class ARGUtils {
     }
     return results.build();
   }
+
+  /** Returns all possible paths from the given state pStart to pTarget. */
+  public static Set<ARGPath> getAllPathsFromTo(final ARGState pStart, final ARGState pTarget) {
+    ARGState root = AbstractStates.extractStateByType(pStart, ARGState.class);
+    List<ARGState> states = new ArrayList<>();
+    ImmutableSet.Builder<ARGPath> results = ImmutableSet.builder();
+    List<List<ARGState>> paths = new ArrayList<>();
+
+    states.add(pTarget);
+    paths.add(states);
+
+    // This is assuming from each node there is a way to go to the start
+    // Loop until all paths reached the root
+    while (!paths.isEmpty()) {
+      // Expand currently considered path
+      List<ARGState> curPath = paths.remove(paths.size() - 1);
+      Preconditions.checkNotNull(curPath);
+      // If there is no more to expand - add this path and continue
+      if (curPath.get(curPath.size() - 1) == root) {
+        results.add(new ARGPath(Lists.reverse(curPath)));
+
+        continue;
+      }
+
+      // Add all parents of currently first state on the current path
+      for (ARGState parentElement : curPath.get(curPath.size() - 1).getParents()) {
+        ImmutableList.Builder<ARGState> tmp =
+            ImmutableList.builderWithExpectedSize(curPath.size() + 1);
+        tmp.addAll(curPath);
+
+        tmp.add(parentElement);
+        paths.add(tmp.build());
+      }
+    }
+    return results.build();
+  }
 }

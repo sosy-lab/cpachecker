@@ -26,6 +26,7 @@ import org.sosy_lab.cpachecker.core.algorithm.AnalysisWithRefinableEnablerCPAAlg
 import org.sosy_lab.cpachecker.core.algorithm.ArrayAbstractionAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.AssumptionCollectorAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.BDDCPARestrictionAlgorithm;
+import org.sosy_lab.cpachecker.core.algorithm.BoundedRangeExecution;
 import org.sosy_lab.cpachecker.core.algorithm.CEGARAlgorithm.CEGARAlgorithmFactory;
 import org.sosy_lab.cpachecker.core.algorithm.CPAAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.CounterexampleStoreAlgorithm;
@@ -63,6 +64,7 @@ import org.sosy_lab.cpachecker.core.algorithm.pcc.ConfigReadingProofCheckAlgorit
 import org.sosy_lab.cpachecker.core.algorithm.pcc.ProofCheckAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.pcc.ProofCheckAndExtractCIRequirementsAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.pcc.ResultCheckAlgorithm;
+import org.sosy_lab.cpachecker.core.algorithm.rangedExecInput.RangedExecutionInputComputation;
 import org.sosy_lab.cpachecker.core.algorithm.residualprogram.ConditionalVerifierAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.residualprogram.ResidualProgramConstructionAfterAnalysisAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.residualprogram.ResidualProgramConstructionAlgorithm;
@@ -200,6 +202,12 @@ public class CoreComponentsFactory {
       name = "restartAfterUnknown",
       description = "restart the analysis using a different configuration after unknown result")
   private boolean useRestartingAlgorithm = false;
+
+  @Option(
+      secure = true,
+      name = "useCombinedRangeExecutionAlgorithm",
+      description = "restart the analysis using a different configuration after unknown result")
+  private boolean useCombinedRangeExecutionAlgorithm = false;
 
   @Option(
       secure = true,
@@ -385,6 +393,13 @@ public class CoreComponentsFactory {
       description = "Use fault localization with distance metrics")
   private boolean useFaultLocalizationWithDistanceMetrics = false;
 
+  @Option(
+      secure = true,
+      name = "algorithm.computeRSEInput",
+      description =
+          "Use algorithm to compute the input for ranged symbolic execution for a given bound")
+  private boolean useComputeRSEInput = false;
+
   @Option(secure = true, description = "Enable converting test goals to conditions.")
   private boolean testGoalConverter;
 
@@ -487,6 +502,11 @@ public class CoreComponentsFactory {
     } else if (useHeuristicSelectionAlgorithm) {
       logger.log(Level.INFO, "Using heuristics to select analysis");
       algorithm = new SelectionAlgorithm(cfa, shutdownNotifier, config, specification, logger);
+
+    } else if (useCombinedRangeExecutionAlgorithm) {
+      logger.log(Level.INFO, "Using Combined Range Execution analysis");
+      algorithm =
+          BoundedRangeExecution.create(config, logger, shutdownNotifier, specification, cfa);
     } else if (useRestartingAlgorithm) {
       logger.log(Level.INFO, "Using Restarting Algorithm");
       algorithm = RestartAlgorithm.create(config, logger, shutdownNotifier, specification, cfa);
@@ -573,7 +593,9 @@ public class CoreComponentsFactory {
             new CEGARAlgorithmFactory(algorithm, cpa, logger, config, shutdownNotifier)
                 .newInstance();
       }
-
+      if (useComputeRSEInput) {
+        algorithm = new RangedExecutionInputComputation(config, algorithm, logger, cfa, cpa);
+      }
       if (usePDR) {
         algorithm =
             new PdrAlgorithm(
@@ -746,6 +768,7 @@ public class CoreComponentsFactory {
     if (useCompositionAlgorithm
         || useRestartingAlgorithm
         || useHeuristicSelectionAlgorithm
+        || useCombinedRangeExecutionAlgorithm
         || useParallelAlgorithm
         || asConditionalVerifier
         || useFaultLocalizationWithDistanceMetrics
@@ -772,6 +795,7 @@ public class CoreComponentsFactory {
     if (useCompositionAlgorithm
         || useRestartingAlgorithm
         || useHeuristicSelectionAlgorithm
+        || useCombinedRangeExecutionAlgorithm
         || useParallelAlgorithm
         || useProofCheckAlgorithmWithStoredConfig
         || useProofCheckWithARGCMCStrategy

@@ -198,6 +198,4 @@ public class ExpressionValueVisitorWithPredefinedValues extends ExpressionValueV
       return false;
     }
   }
-
-
 }
