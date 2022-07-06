@@ -14,7 +14,11 @@ import static org.sosy_lab.cpachecker.cfa.CfaTransformationRecords.createTransfo
 import static org.sosy_lab.cpachecker.cfa.parser.eclipse.c.export.CCfaEdgeStatement.createNewLabelName;
 
 import com.google.common.base.Verify;
+import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.FluentIterable;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableListMultimap;
+import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.MultimapBuilder;
 import java.io.IOException;
@@ -99,14 +103,10 @@ class EclipseCWriter implements CWriter {
     final GlobalExportInformation exportInfo = new GlobalExportInformation(records);
 
     for (final FunctionEntryNode functionEntryNode : pCfa.getAllFunctionHeads()) {
-      traverseFunctionCfaAndCreateCode(functionEntryNode, exportInfo);
+      traverseFunctionCfaAndCreateStatements(functionEntryNode, exportInfo);
     }
 
-    // TODO combine the original AST nodes of the unchanged parts with the newly created AST nodes
-    // for the changed parts to get the C export
-
-    assert originalAst != null;
-    return originalAst.getRawSignature(); // TODO adjust in case of changes
+    return generateCCode(originalAst, exportInfo);
   }
 
   private IASTTranslationUnit parseOriginalAst(final CFA pOriginalCfa)
@@ -129,7 +129,36 @@ class EclipseCWriter implements CWriter {
     }
   }
 
-  private static void traverseFunctionCfaAndCreateCode(
+  private String generateCCode(
+      final IASTTranslationUnit pOriginalAst, final GlobalExportInformation pExportInfo)
+      throws IOException {
+
+    final StringBuilder stringBuilder = new StringBuilder();
+    final AstExporter writer = new AstExporter(stringBuilder, pExportInfo);
+
+    for (final GlobalDeclaration globalDeclaration :
+        pExportInfo.getNewGlobalDeclarationsByFileLocation().get(Optional.empty())) {
+
+      writer.write(globalDeclaration.exportToCCode());
+    }
+
+    if (pOriginalAst != null) {
+      final boolean success = pOriginalAst.accept(writer);
+      assert success;
+    }
+
+    for (final FunctionExportInformation functionInfo :
+        pExportInfo.getFunctionsByFileLocation().get(Optional.empty())) {
+
+      for (final CCfaEdgeStatement statement : functionInfo.getAllStatements()) {
+        writer.write(statement.exportToCCode());
+      }
+    }
+
+    return stringBuilder.toString();
+  }
+
+  private static void traverseFunctionCfaAndCreateStatements(
       final FunctionEntryNode pFunctionEntryNode, final GlobalExportInformation pExportInfo) {
 
     final CfaTransformationRecords records = pExportInfo.getTransformationRecords();
@@ -559,36 +588,51 @@ class EclipseCWriter implements CWriter {
     assert functionInfo.areAllBranchingPointsClosed();
   }
 
-  private static class GlobalExportInformation {
+  static class GlobalExportInformation {
 
     private final CfaTransformationRecords transformationRecords;
 
-    private final Map<FunctionEntryNode, FunctionExportInformation> functions = new HashMap<>();
     private final Multimap<Optional<FileLocation>, GlobalDeclaration>
-        newGlobalDeclarationsByFileLoc = MultimapBuilder.hashKeys().linkedListValues().build();
+        newGlobalDeclarationsByFileLocation = ArrayListMultimap.create();
+    private final Multimap<Optional<FileLocation>, FunctionExportInformation>
+        functionsByFileLocation = ArrayListMultimap.create();
 
     private GlobalExportInformation(final CfaTransformationRecords pTransformationRecords) {
       transformationRecords = pTransformationRecords;
     }
 
-    private CfaTransformationRecords getTransformationRecords() {
+    CfaTransformationRecords getTransformationRecords() {
       return transformationRecords;
     }
 
-    private void addFunction(
-        final FunctionEntryNode pFunctionEntryNode, final FunctionExportInformation pFunctionInfo) {
+    ImmutableMultimap<Optional<FileLocation>, GlobalDeclaration>
+        getNewGlobalDeclarationsByFileLocation() {
+      return ImmutableListMultimap.copyOf(newGlobalDeclarationsByFileLocation);
+    }
 
-      functions.put(pFunctionEntryNode, pFunctionInfo);
+    ImmutableMultimap<Optional<FileLocation>, FunctionExportInformation>
+        getFunctionsByFileLocation() {
+      return ImmutableListMultimap.copyOf(functionsByFileLocation);
     }
 
     private void addNewGlobalDeclaration(
         final GlobalDeclaration pDeclaration, final Optional<FileLocation> pLastRealFileLocBefore) {
 
-      newGlobalDeclarationsByFileLoc.put(pLastRealFileLocBefore, pDeclaration);
+      newGlobalDeclarationsByFileLocation.put(pLastRealFileLocBefore, pDeclaration);
+    }
+
+    private void addFunction(
+        final FunctionEntryNode pFunctionEntryNode, final FunctionExportInformation pFunctionInfo) {
+
+      final Optional<FileLocation> fileLocation =
+          pFunctionEntryNode.getFileLocation().isRealLocation()
+              ? Optional.of(pFunctionEntryNode.getFileLocation())
+              : Optional.empty();
+      functionsByFileLocation.put(fileLocation, pFunctionInfo);
     }
   }
 
-  private static class FunctionExportInformation {
+  static class FunctionExportInformation {
 
     private final FunctionEntryNode functionEntryNode;
     private final MergePoint<CFANode> mergePoint;
@@ -613,6 +657,17 @@ class EclipseCWriter implements CWriter {
               pFunctionEntryNode.getExitNode(),
               CFAUtils::allSuccessorsOf,
               CFAUtils::allPredecessorsOf);
+    }
+
+    ImmutableMultimap<Optional<FileLocation>, CCfaEdgeStatement> getNewStatementsByFileLocation() {
+      return ImmutableListMultimap.copyOf(newStatementsByFileLocToBeInsertedAfter);
+    }
+
+    private ImmutableList<CCfaEdgeStatement> getAllStatements() {
+      // TODO also collect the statements of old edges
+      // TODO make sure that the order of statements in the returned list corresponds to the order
+      //  of the CFAEdges they originated from in the CFA
+      return ImmutableList.copyOf(newStatementsByFileLocToBeInsertedAfter.values());
     }
 
     private FunctionEntryNode getFunctionEntryNode() {
