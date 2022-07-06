@@ -133,24 +133,29 @@ final class SliceToCfaConversion {
   private static CFAEdge createAssumeEdgeWithoutVariables(final AssumeEdge oldEdge) {
 
     if (oldEdge instanceof CAssumeEdge) {
+      // we want the truth assumption after swapping to be `ZERO` to avoid creating endless loops
+      final CExpression expression =
+          oldEdge.isSwapped() ? CIntegerLiteralExpression.ONE : CIntegerLiteralExpression.ZERO;
       return new CAssumeEdge(
           IRRELEVANT_EDGE_DESCRIPTION,
           oldEdge.getFileLocation(),
           oldEdge.getPredecessor(),
           oldEdge.getSuccessor(),
-          CIntegerLiteralExpression.ONE,
+          expression,
           oldEdge.getTruthAssumption(),
           oldEdge.isSwapped(),
           oldEdge.isArtificialIntermediate());
     }
 
     if (oldEdge instanceof JAssumeEdge) {
+      // we want the truth assumption after swapping to be `false` to avoid creating endless loops
+      final boolean expressionValue = oldEdge.isSwapped();
       return new JAssumeEdge(
           IRRELEVANT_EDGE_DESCRIPTION,
           oldEdge.getFileLocation(),
           oldEdge.getPredecessor(),
           oldEdge.getSuccessor(),
-          new JBooleanLiteralExpression(oldEdge.getExpression().getFileLocation(), true),
+          new JBooleanLiteralExpression(oldEdge.getExpression().getFileLocation(), expressionValue),
           oldEdge.getTruthAssumption());
     }
 
