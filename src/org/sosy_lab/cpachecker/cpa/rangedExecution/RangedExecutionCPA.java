@@ -28,7 +28,7 @@ import org.sosy_lab.cpachecker.core.defaults.AbstractCPA;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.defaults.DelegateAbstractDomain;
 import org.sosy_lab.cpachecker.core.defaults.MergeSepOperator;
-import org.sosy_lab.cpachecker.core.defaults.StopNeverOperator;
+import org.sosy_lab.cpachecker.core.defaults.StopEqualsOperator;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
@@ -139,7 +139,7 @@ public class RangedExecutionCPA extends AbstractCPA implements ProofCheckerCPA {
 
   @Override
   public StopOperator getStopOperator() {
-    return new StopNeverOperator();
+    return new StopEqualsOperator();
   }
 
   /**
