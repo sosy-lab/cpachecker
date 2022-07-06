@@ -99,9 +99,9 @@ public class AgressiveLoopBoundTransferRelation extends SingleEdgeTransferRelati
       outgoingEdges.forEach(e -> exitEdges.put(e, l));
       l.getLoopHeads().forEach(h -> heads.put(h, l));
     }
-    loopEntryEdges = entryEdges.build();
-    loopExitEdges = exitEdges.build();
-    loopContinuingEdges = stayInLoopEdges.build();
+    loopEntryEdges = entryEdges.buildOrThrow();
+    loopExitEdges = exitEdges.buildOrThrow();
+    loopContinuingEdges = stayInLoopEdges.buildOrThrow();
   }
 
   @Override
@@ -163,8 +163,8 @@ public class AgressiveLoopBoundTransferRelation extends SingleEdgeTransferRelati
         // Dont enter the loop
         logger.log(
             Level.FINE, String.format("Visiting edge %s, is a Loop entry, dont proceed", pCfaEdge));
-        state.setStop(true);
-        return Collections.emptyList();
+        //Dont need to set stop for the state, as we ignore it anyway
+        return ImmutableList.of();
       }
     }
 
@@ -177,7 +177,7 @@ public class AgressiveLoopBoundTransferRelation extends SingleEdgeTransferRelati
             Level.FINE,
             String.format(
                 "Visiting edge %s, is not the rightmost edge, hence dont proceed", pCfaEdge));
-        return Collections.emptyList();
+        return ImmutableList.of();
       }
     }
 

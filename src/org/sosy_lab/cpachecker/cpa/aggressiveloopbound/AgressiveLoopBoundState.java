@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.cpa.aggressiveloopbound;
 
 import com.google.common.collect.Maps;
 import java.util.ArrayDeque;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Objects;
@@ -30,15 +31,7 @@ public class AgressiveLoopBoundState implements AbstractState, Targetable, Graph
   private final ArrayDeque<Loop> loopStack;
 
   public AgressiveLoopBoundState() {
-    this(Maps.newHashMap(), false);
-  }
-
-  public boolean isStopIt() {
-    return stopIt;
-  }
-
-  public Map<Loop, Integer> getLoopHeadsVisited() {
-    return loopHeadsVisited;
+    this(new HashMap<>(), false);
   }
 
   AgressiveLoopBoundState(
@@ -56,7 +49,7 @@ public class AgressiveLoopBoundState implements AbstractState, Targetable, Graph
 
   public AgressiveLoopBoundState copy() {
     return new AgressiveLoopBoundState(
-        Maps.newHashMap(this.loopHeadsVisited), this.stopIt, new ArrayDeque<>(this.loopStack));
+        new HashMap<>(this.loopHeadsVisited), this.stopIt, new ArrayDeque<>(this.loopStack));
   }
 
   public AgressiveLoopBoundState exit(Loop pOldLoop) {
@@ -84,7 +77,7 @@ public class AgressiveLoopBoundState implements AbstractState, Targetable, Graph
 
   public AgressiveLoopBoundState visitLoopHeadInitially(Loop pLoop) {
     this.loopHeadsVisited.put(pLoop, 0);
-    return new AgressiveLoopBoundState(Maps.newHashMap(this.loopHeadsVisited), this.stopIt);
+    return new AgressiveLoopBoundState(new HashMap<>(this.loopHeadsVisited), this.stopIt);
   }
 
   public AgressiveLoopBoundState setStop(boolean pStop) {

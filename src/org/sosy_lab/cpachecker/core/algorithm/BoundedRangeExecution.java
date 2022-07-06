@@ -13,15 +13,14 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import java.io.IOException;
 import java.nio.channels.ClosedByInterruptException;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.List;
 import java.util.Optional;
 import java.util.logging.Level;
 import org.checkerframework.checker.nullness.qual.Nullable;
-import org.junit.internal.Throwables;
 import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
@@ -99,14 +98,14 @@ public class BoundedRangeExecution extends NestingAlgorithm {
     int loopBound = 3;
     Optional<Path> path2LoopBound = computeAndLoadBound(loopBound, reachedSet);
 
-    if (path2LoopBound.isPresent() && Files.exists(path2LoopBound.get())) {
+    if (path2LoopBound.isPresent() && path2LoopBound.orElseThrow().toFile().exists()) {
 
-      ArrayList<Pair<String, String>> paramsLower =
+      List<Pair<String, String>> paramsLower =
           Lists.newArrayList(
               Pair.of(
                   "cpa.rangeExecution.path2UpperInputFile",
                   path2LoopBound.get().toAbsolutePath().toString()));
-      ArrayList<Pair<String, String>> paramsUpper =
+      List<Pair<String, String>> paramsUpper =
           Lists.newArrayList(
               Pair.of(
                   "cpa.rangeExecution.path2LowerInputFile",
@@ -131,7 +130,7 @@ public class BoundedRangeExecution extends NestingAlgorithm {
           cfa.getFileNames().get(0),
           this.configLowerBound);
       Pair<AlgorithmStatus, Optional<Boolean>> res =
-          loadAndExecuteAnalysis(this.configLowerBound, reachedSet, Lists.newArrayList());
+          loadAndExecuteAnalysis(this.configLowerBound, reachedSet, new ArrayList<>());
       return res.getFirst();
     }
   }
@@ -162,7 +161,7 @@ public class BoundedRangeExecution extends NestingAlgorithm {
                   Pair.of(
                       "cpa.aggressiveloopbound.maxLoopIterations", Integer.toString(pLoopBound)));
         } else {
-          additionalParams = Lists.newArrayList();
+          additionalParams = new ArrayList<>();
         }
         Triple<Algorithm, ConfigurableProgramAnalysis, ReachedSet> currentAlg =
             createNextAlgorithm(
@@ -207,7 +206,7 @@ public class BoundedRangeExecution extends NestingAlgorithm {
       try {
         currentAlgorithm.run(currentReached);
         Path path2File = Paths.get("output/testinput.xml");
-        if (Files.exists(path2File)) return Optional.of(path2File);
+        if (path2File.toFile().exists()) {return Optional.of(path2File);}
         return Optional.empty();
       } catch (CPAException | InterruptedException pE) {
         logger.logUserException(
@@ -238,7 +237,7 @@ public class BoundedRangeExecution extends NestingAlgorithm {
   private Pair<AlgorithmStatus, Optional<Boolean>> loadAndExecuteAnalysis(
       Path path2AnalysisConfig,
       ReachedSet pReached,
-      ArrayList<Pair<String, String>> pAdditionalParams)
+      List<Pair<String, String>> pAdditionalParams)
       throws InterruptedException {
 
     ForwardingReachedSet reached = (ForwardingReachedSet) pReached;
@@ -319,7 +318,7 @@ public class BoundedRangeExecution extends NestingAlgorithm {
               path2AnalysisConfig);
         }
       } catch (CPAException pE) {
-        logger.log(Level.INFO, Throwables.getStacktrace(pE));
+        logger.logUserException(Level.INFO,pE, "An error occured during execution of the analysis " + path2AnalysisConfig);
       }
     } finally {
       singleShutdownManager.requestShutdown(
@@ -355,7 +354,7 @@ public class BoundedRangeExecution extends NestingAlgorithm {
         Sets.newHashSet(
             "restartAlgorithm.configFiles", "analysis.useCombinedRangeExecutionAlgorithm"),
         pAdditionalParams,
-        Lists.newArrayList());
+        new ArrayList<>());
   }
 
   @Override

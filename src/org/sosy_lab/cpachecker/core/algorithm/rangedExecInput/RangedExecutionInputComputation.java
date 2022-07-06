@@ -8,13 +8,17 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.rangedExecInput;
 
+import com.google.common.base.Joiner;
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
+import java.io.BufferedWriter;
+import java.io.FileWriter;
 import java.io.IOException;
-import java.nio.file.Files;
+import java.nio.charset.Charset;
 import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -23,7 +27,6 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.stream.Collectors;
-import javax.annotation.Nonnull;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.configuration.Configuration;
@@ -192,7 +195,7 @@ public class RangedExecutionInputComputation implements Algorithm {
 
     java.nio.file.Path path = Paths.get(this.outdirForExport + "testinput.xml");
     logger.logf(Level.INFO, "Storing the testcase at %s", path.toAbsolutePath().toString());
-    List<String> content = Lists.newArrayList();
+    List<String> content = new ArrayList<>();
     content.add("<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"no\"?>");
     content.add(
         "<!DOCTYPE testcase PUBLIC \"+//IDN sosy-lab.org//DTD test-format testcase 1.1//EN\""
@@ -209,8 +212,9 @@ public class RangedExecutionInputComputation implements Algorithm {
     }
 
     content.add("</testcase>");
-
-    Files.write(path, content);
+    BufferedWriter writer = new BufferedWriter(new FileWriter(path.toFile(), Charset.defaultCharset()));
+    writer.write(Joiner.on("\n").join(content));
+    writer.close();
   }
 
   private List<Pair<CIdExpression, Integer>> computeInput(ARGPath pARGPath)
@@ -221,52 +225,50 @@ public class RangedExecutionInputComputation implements Algorithm {
 
     // Build the path formula
     PathFormula pf = pfManager.makeEmptyPathFormula();
-    ProverEnvironment prover = solver.newProverEnvironment(ProverOptions.GENERATE_MODELS);
-    for (ARGState state : pARGPath.asStatesList()) {
-      @Nullable PredicateAbstractState predState =
-          AbstractStates.extractStateByType(state, PredicateAbstractState.class);
-      if (predState != null && predState.isAbstractionState()) {
-        pf =
-            pfManager.makeConjunction(
-                Lists.newArrayList(pf, predState.getAbstractionFormula().getBlockFormula()));
-        try {
-          prover.addConstraint(predState.getAbstractionFormula().getBlockFormula().getFormula());
-          boolean unsat = prover.isUnsat();
-          if (unsat) {
 
-            while (unsat) {
-              logger.log(
-                  Level.INFO,
-                  String.format(
-                      "The formul'%s' is unsat, continuing with a shorter one", pf.getFormula()));
-              prover.pop();
-              unsat = prover.isUnsat();
+    try (ProverEnvironment prover = solver.newProverEnvironment(ProverOptions.GENERATE_MODELS)) {
+      for (ARGState state : pARGPath.asStatesList()) {
+        @Nullable PredicateAbstractState predState =
+            AbstractStates.extractStateByType(state, PredicateAbstractState.class);
+        if (predState != null && predState.isAbstractionState()) {
+          pf =
+              pfManager.makeConjunction(
+                  Lists.newArrayList(pf, predState.getAbstractionFormula().getBlockFormula()));
+          try {
+            prover.addConstraint(predState.getAbstractionFormula().getBlockFormula().getFormula());
+            boolean unsat = prover.isUnsat();
+            if (unsat) {
+
+              while (unsat) {
+                logger.log(
+                    Level.INFO,
+                    String.format(
+                        "The formul'%s' is unsat, continuing with a shorter one", pf.getFormula()));
+                prover.pop();
+                unsat = prover.isUnsat();
+              }
+              break;
             }
-            break;
+            prover.push();
+          } catch (InterruptedException | SolverException e) {
+            // In case of an error, we assume that the formula is sat and should be exported
+            return ImmutableList.of();
           }
-          prover.push();
-        } catch (InterruptedException | SolverException e) {
-          // In case of an error, we assume that the formula is sat and should be exported
-          prover.close();
-          return ImmutableList.of();
         }
       }
+      // we now that the model is sat at this point
+      logger.log(Level.FINEST, prover.isUnsat());
+      Model m = prover.getModel();
+      List<Pair<CIdExpression, Integer>> inputs = matchInputsOnPath(pARGPath, m);
+      logger.log(Level.INFO, inputs);
+      return inputs;
     }
-    // we now that the model is sat at this point
-    logger.log(Level.FINEST, prover.isUnsat());
-    Model m = prover.getModel();
-    List<Pair<CIdExpression, Integer>> inputs = matchInputsOnPath(pARGPath, m);
-    logger.log(Level.INFO, inputs);
-    prover.close();
-    return inputs;
   }
 
   private List<Pair<CIdExpression, Integer>> matchInputsOnPath(ARGPath pARGPath, Model pM)
       throws CPAException, InterruptedException {
-    //    logger.log(Level.INFO, pM.toString());
-
     PathIterator pathIterator = pARGPath.fullPathIterator();
-    List<Pair<CIdExpression, Integer>> results = Lists.newArrayList();
+    List<Pair<CIdExpression, Integer>> results =new ArrayList<>();
     do {
       if (pathIterator.isPositionWithState()) {
         final ARGState abstractState = pathIterator.getAbstractState();
@@ -293,7 +295,7 @@ public class RangedExecutionInputComputation implements Algorithm {
                 }
               }
             } else if (edge instanceof CDeclarationEdge) {
-
+              // TODO: Handle this case
             }
           }
         }
@@ -303,7 +305,7 @@ public class RangedExecutionInputComputation implements Algorithm {
   }
 
   private Optional<Integer> getIntegerValueFromModelForEdge(
-      Model pM, ARGState abstractState, @Nonnull CFAEdge edge, CFunctionCallAssignmentStatement ass)
+      Model pM, ARGState abstractState, @NonNull CFAEdge edge, CFunctionCallAssignmentStatement ass)
       throws InterruptedException, CPAException {
     @Nullable PredicateAbstractState predState =
         AbstractStates.extractStateByType(abstractState, PredicateAbstractState.class);
@@ -321,7 +323,7 @@ public class RangedExecutionInputComputation implements Algorithm {
         varMap.keySet().stream()
             .filter(
                 pFormula -> pFormula.contains(ass.getRightHandSide().getDeclaration().getName()))
-            .collect(Collectors.toList());
+            .collect(ImmutableList.toImmutableList());
     toRemove.forEach(e -> varMap.remove(e));
     if (varMap.size() != 1) {
       throw new CPAException(
