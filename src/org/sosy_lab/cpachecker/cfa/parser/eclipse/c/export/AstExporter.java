@@ -275,8 +275,7 @@ class AstExporter extends ASTGenericVisitor {
         remainingOriginalCommentsByFileLocation.remove(fileLocOfExportedComment);
       }
 
-      if (!fileLocationsOfExportedTokens.contains(tokenFileLoc)) {
-        fileLocationsOfExportedTokens.add(tokenFileLoc);
+      if (fileLocationsOfExportedTokens.add(tokenFileLoc)) {
         dest.append(currentToken.getImage());
 
         final String trailingWhitespaceAfterToken =
@@ -449,7 +448,7 @@ class AstExporter extends ASTGenericVisitor {
       throw new AssertionError();
     }
 
-    return builder.build();
+    return builder.buildOrThrow();
   }
 
   private static class SimpleFileLocation implements Comparable<SimpleFileLocation> {
