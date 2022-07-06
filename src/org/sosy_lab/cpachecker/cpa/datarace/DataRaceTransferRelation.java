@@ -388,7 +388,6 @@ public class DataRaceTransferRelation extends SingleEdgeTransferRelation {
    * ThreadingTransferRelation::getActiveThread are guaranteed to give the correct result during
    * strengthening.
    */
-  @Nullable
   private String getActiveThread(final CFAEdge cfaEdge, final ThreadingState threadingState) {
     for (String id : threadingState.getThreadIds()) {
       if (Iterables.contains(threadingState.getThreadLocation(id).getIngoingEdges(), cfaEdge)) {
