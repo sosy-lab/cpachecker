@@ -54,7 +54,6 @@ public class ThreadingState
         AbstractQueryableState {
 
   private static final String PROPERTY_DEADLOCK = "deadlock";
-  private static final String PROPERTY_DATA_RACE = "data-race";
 
   static final int MIN_THREAD_NUM = 0;
 
@@ -91,15 +90,12 @@ public class ThreadingState
    */
   private final PersistentMap<String, Integer> threadIdsForWitness;
 
-  @Nullable private final DataRaceTracker tracker;
-
   public ThreadingState() {
     threads = PathCopyingPersistentTreeMap.of();
     locks = PathCopyingPersistentTreeMap.of();
     activeThread = null;
     entryFunction = null;
     threadIdsForWitness = PathCopyingPersistentTreeMap.of();
-    tracker = null;
   }
 
   private ThreadingState(
@@ -107,35 +103,25 @@ public class ThreadingState
       PersistentMap<String, String> pLocks,
       String pActiveThread,
       FunctionCallEdge entryFunction,
-      PersistentMap<String, Integer> pThreadIdsForWitness,
-      DataRaceTracker pTracker) {
+      PersistentMap<String, Integer> pThreadIdsForWitness) {
     threads = pThreads;
     locks = pLocks;
     activeThread = pActiveThread;
     this.entryFunction = entryFunction;
     threadIdsForWitness = pThreadIdsForWitness;
-    tracker = pTracker;
   }
 
   private ThreadingState withThreads(PersistentMap<String, ThreadState> pThreads) {
-    return new ThreadingState(
-        pThreads, locks, activeThread, entryFunction, threadIdsForWitness, tracker);
+    return new ThreadingState(pThreads, locks, activeThread, entryFunction, threadIdsForWitness);
   }
 
   private ThreadingState withLocks(PersistentMap<String, String> pLocks) {
-    return new ThreadingState(
-        threads, pLocks, activeThread, entryFunction, threadIdsForWitness, tracker);
+    return new ThreadingState(threads, pLocks, activeThread, entryFunction, threadIdsForWitness);
   }
 
   private ThreadingState withThreadIdsForWitness(
       PersistentMap<String, Integer> pThreadIdsForWitness) {
-    return new ThreadingState(
-        threads, locks, activeThread, entryFunction, pThreadIdsForWitness, tracker);
-  }
-
-  private ThreadingState withDataRaceTracker(DataRaceTracker pTracker) {
-    return new ThreadingState(
-        threads, locks, activeThread, entryFunction, threadIdsForWitness, pTracker);
+    return new ThreadingState(threads, locks, activeThread, entryFunction, pThreadIdsForWitness);
   }
 
   public ThreadingState addThreadAndCopy(
@@ -156,23 +142,6 @@ public class ThreadingState
     Preconditions.checkNotNull(id);
     checkState(threads.containsKey(id), "leaving non-existing thread: %s", id);
     return withThreads(threads.removeAndCopy(id));
-  }
-
-  public boolean hasDataRaceTracker() {
-    return tracker != null;
-  }
-
-  public ThreadingState setDataRaceTracker(DataRaceTracker pTracker) {
-    Preconditions.checkNotNull(pTracker);
-    checkState(!hasDataRaceTracker(), "already tracking data races, no need to update externally");
-    return withDataRaceTracker(pTracker);
-  }
-
-  public ThreadingState updateDataRaceTracker(CFAEdge edge, String pActiveThread) {
-    assert hasDataRaceTracker();
-    DataRaceTracker newTracker =
-        tracker.update(threads.keySet(), pActiveThread, edge, getLocksForThread(pActiveThread));
-    return withDataRaceTracker(newTracker);
   }
 
   public Set<String> getThreadIds() {
@@ -334,11 +303,6 @@ public class ThreadingState
       } catch (UnrecognizedCodeException e) {
         throw new InvalidQueryException("deadlock-check had a problem", e);
       }
-    } else if (PROPERTY_DATA_RACE.equals(pProperty)) {
-      if (hasDataRaceTracker()) {
-        return tracker.hasDataRace();
-      }
-      throw new InvalidQueryException("Data Race detection is not enabled.");
     }
     throw new InvalidQueryException("Query '" + pProperty + "' is invalid.");
   }
@@ -462,8 +426,7 @@ public class ThreadingState
 
   /** See {@link #activeThread}. */
   public ThreadingState withActiveThread(@Nullable String pActiveThread) {
-    return new ThreadingState(
-        threads, locks, pActiveThread, entryFunction, threadIdsForWitness, tracker);
+    return new ThreadingState(threads, locks, pActiveThread, entryFunction, threadIdsForWitness);
   }
 
   String getActiveThread() {
@@ -472,8 +435,7 @@ public class ThreadingState
 
   /** See {@link #entryFunction}. */
   public ThreadingState withEntryFunction(@Nullable FunctionCallEdge pEntryFunction) {
-    return new ThreadingState(
-        threads, locks, activeThread, pEntryFunction, threadIdsForWitness, tracker);
+    return new ThreadingState(threads, locks, activeThread, pEntryFunction, threadIdsForWitness);
   }
 
   /** See {@link #entryFunction}. */

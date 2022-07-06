@@ -61,9 +61,6 @@ import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonState;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonVariable;
 import org.sosy_lab.cpachecker.cpa.callstack.CallstackCPA;
-import org.sosy_lab.cpachecker.cpa.invariants.CompoundBitVectorIntervalManagerFactory;
-import org.sosy_lab.cpachecker.cpa.invariants.CompoundIntervalManagerFactory;
-import org.sosy_lab.cpachecker.cpa.invariants.EdgeAnalyzer;
 import org.sosy_lab.cpachecker.cpa.location.LocationCPA;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
@@ -115,9 +112,6 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
               + " CFAs.",
       secure = true)
   private boolean useAllPossibleClones = false;
-
-  @Option(description = "enable data race detection", secure = true)
-  private boolean trackDataRaces = false;
 
   public static final String THREAD_START = "pthread_create";
   public static final String THREAD_JOIN = "pthread_join";
@@ -192,15 +186,6 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
       }
     }
 
-    if (trackDataRaces && !threadingState.hasDataRaceTracker()) {
-      CompoundIntervalManagerFactory compoundIntervalManagerFactory =
-          CompoundBitVectorIntervalManagerFactory.FORBID_SIGNED_WRAP_AROUND;
-      EdgeAnalyzer edgeAnalyzer =
-          new EdgeAnalyzer(compoundIntervalManagerFactory, cfa.getMachineModel());
-      DataRaceTracker dataRaceTracker = new DataRaceTracker(edgeAnalyzer);
-      threadingState = threadingState.setDataRaceTracker(dataRaceTracker);
-    }
-
     // check, if we can abort the complete analysis of all other threads after this edge.
     if (isEndOfMainFunction(cfaEdge) || isTerminatingEdge(cfaEdge)) {
       // VERIFIER_assume not only terminates the current thread, but the whole program
@@ -215,11 +200,6 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
 
     // Store the active thread in the given states, cf. JavaDoc of activeThread
     results = Collections2.transform(results, ts -> ts.withActiveThread(activeThread));
-
-    if (trackDataRaces && globalAccessChecker.hasGlobalAccess(cfaEdge)) {
-      results =
-          Collections2.transform(results, ts -> ts.updateDataRaceTracker(cfaEdge, activeThread));
-    }
 
     return ImmutableList.copyOf(results);
   }
