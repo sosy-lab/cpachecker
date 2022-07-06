@@ -565,12 +565,12 @@ public class SymbolicProgramConfiguration {
    */
   public Optional<SMGObject> getObjectForVisibleVariable(String pName) {
 
-    // First look in stack frame
-    for (StackFrame frame : stackVariableMapping) {
-      if (frame.containsVariable(pName)) {
-        return Optional.of(frame.getVariable(pName));
-      }
+    // Only look in the current stack frame
+    StackFrame currentFrame = stackVariableMapping.peek();
+    if (currentFrame.containsVariable(pName)) {
+      return Optional.of(currentFrame.getVariable(pName));
     }
+
     // Second check global
     if (globalVariableMapping.containsKey(pName)) {
       return Optional.of(globalVariableMapping.get(pName));
