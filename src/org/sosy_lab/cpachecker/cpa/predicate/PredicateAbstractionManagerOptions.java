@@ -77,6 +77,13 @@ public class PredicateAbstractionManagerOptions {
               + " when debugging (formulas get smaller).")
   private boolean simplifyAbstractionFormula = false;
 
+  @Option(
+      secure = true,
+      name = "abstraction.substitutionCEGAR",
+      description =
+          "Use CEGAR with along Substituion precision adjustment")
+  private boolean substitutionCEGAR = false;
+
   public PredicateAbstractionManagerOptions(Configuration config)
       throws InvalidConfigurationException {
     config.inject(this);
@@ -121,4 +128,6 @@ public class PredicateAbstractionManagerOptions {
   boolean isSimplifyAbstractionFormula() {
     return simplifyAbstractionFormula;
   }
+
+  boolean useSubstitutionCEGAR() { return substitutionCEGAR; }
 }

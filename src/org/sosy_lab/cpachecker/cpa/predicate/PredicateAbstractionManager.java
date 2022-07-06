@@ -74,6 +74,7 @@ import org.sosy_lab.java_smt.api.Formula;
 import org.sosy_lab.java_smt.api.ProverEnvironment;
 import org.sosy_lab.java_smt.api.SolverContext.ProverOptions;
 import org.sosy_lab.java_smt.api.SolverException;
+import org.sosy_lab.java_smt.api.visitors.BooleanFormulaTransformationVisitor;
 
 public class PredicateAbstractionManager {
 
@@ -290,7 +291,7 @@ public class PredicateAbstractionManager {
     }
 
     // Shortcut if the precision is empty
-    if (pPredicates.isEmpty() && (options.getAbstractionType() != AbstractionType.ELIMINATION) && (options.getAbstractionType() != AbstractionType.SUBSTITUTION)) {
+    if (pPredicates.isEmpty() && (options.getAbstractionType() != AbstractionType.ELIMINATION) && (options.getAbstractionType() != AbstractionType.SUBSTITUTION || options.useSubstitutionCEGAR())) {
       logger.log(Level.FINEST, "Abstraction", currentAbstractionId, "with empty precision is true");
       stats.numSymbolicAbstractions.incrementAndGet();
       return makeTrueAbstractionFormula(pathFormula);
@@ -411,14 +412,22 @@ public class PredicateAbstractionManager {
       // return as new abstraction formula
       logger.log(Level.FINEST, "Abstraction", currentAbstractionId, "using SUBSTITUTION");
       stats.numSymbolicAbstractions.incrementAndGet();
+      logger.log(Level.INFO, "Before subsituion   ", f);
       BooleanFormula substituted = syntacticSubstitution(f, ssa, pathFormula);
       if (solver.isUnsat(substituted)) {
         abs = amgr.makeFalsePredicate().getAbstractVariable();
       }
       else {
-        // ToDo Martin This does not look right
-        // Research how regions work here
+        if(options.useSubstitutionCEGAR()){
+        logger.log(Level.INFO, "Before abstraction ", substituted);
+        logger.log(Level.INFO, "Before predicates  ", remainingPredicates);
+
+        substituted = abstractionConjucntionParts(substituted, remainingPredicates);
+//        abs = rmgr.makeAnd(abs, computeAbstraction(substituted, remainingPredicates, instantiator));
+        }
         result = new AbstractionFormula(fmgr, amgr.convertFormulaToRegion(fmgr.uninstantiate(substituted)), fmgr.uninstantiate(substituted), substituted, pathFormula, noAbstractionReuse);
+        logger.log(Level.INFO, "After abstraction ", result.asFormula());
+
       }
     } else {
       abs = rmgr.makeAnd(abs, computeAbstraction(f, remainingPredicates, instantiator));
@@ -452,6 +461,29 @@ public class PredicateAbstractionManager {
     return result;
   }
 
+  private BooleanFormula abstractionConjucntionParts(BooleanFormula pBooleanFormula, Collection<AbstractionPredicate> pPredicates){
+    HashSet<String> predicateVars = new HashSet<>();
+    for(AbstractionPredicate p : pPredicates){
+      predicateVars.addAll(fmgr.extractVariableNames(p.getSymbolicAtom()));
+    }
+    return bfmgr.transformRecursively(pBooleanFormula,
+        new BooleanFormulaTransformationVisitor(fmgr.manager) {
+          @Override
+          public BooleanFormula visitAnd(List<BooleanFormula> processedOperands) {
+            List<BooleanFormula> containgPredicateVars = new LinkedList<>();
+            logger.log(Level.INFO, "PredicateNames", predicateVars);
+            logger.log(Level.INFO, "Processed Operands", processedOperands);
+            for(BooleanFormula operand : processedOperands) {
+              logger.log(Level.INFO, "Processed Operand", fmgr.extractVariableNames(operand));
+              if(predicateVars.containsAll(fmgr.extractVariableNames(fmgr.uninstantiate(operand)))){
+                containgPredicateVars.add(operand);
+              }
+            }
+            return super.visitAnd(containgPredicateVars);
+          }
+        });
+  }
+
   /**
    * Syntactic Substitution
    * TODO Martin Possibly move to JavaSMT when finished
@@ -460,8 +492,7 @@ public class PredicateAbstractionManager {
    * @param pSSAMap Corresponding SSAMap
    * @return Another BooleanFormula, where syntactic substition has taken place
    */
-  private BooleanFormula syntacticSubstitution(BooleanFormula bf, SSAMap pSSAMap, PathFormula pPathFormula)
-      throws SolverException, InterruptedException {
+  private BooleanFormula syntacticSubstitution(BooleanFormula bf, SSAMap pSSAMap, PathFormula pPathFormula){
     SubstituteVisitor stvisitorBf = new SubstituteVisitor(fmgr.manager);
     bfmgr.visitRecursively(bf, stvisitorBf);
     HashMap<Formula, Formula> substituteMap = stvisitorBf.fmap;
@@ -477,6 +508,8 @@ public class PredicateAbstractionManager {
       localMap.remove(key);
       if (!localMap.isEmpty()){
         substituteMapUpdated.put(key, fmgr.manager.substitute(substituteMap.get(key), localMap));
+      } else {
+        substituteMapUpdated.put(key, substituteMap.get(key));
       }
     }
     substituteMap = substituteMapUpdated;
@@ -845,7 +878,7 @@ public class PredicateAbstractionManager {
 
     try (ProverEnvironment thmProver =
              solver.newProverEnvironment(ProverOptions.GENERATE_ALL_SAT)) {
-      thmProver.push(f);
+      thmProver.push((f));
 
       if (remainingPredicates.isEmpty()) {
         stats.numSatCheckAbstractions.incrementAndGet();
@@ -863,7 +896,7 @@ public class PredicateAbstractionManager {
         }
 
       } else {
-        if (options.getAbstractionType() != AbstractionType.BOOLEAN) {
+        if (options.getAbstractionType() != AbstractionType.BOOLEAN  && options.getAbstractionType() != AbstractionType.SUBSTITUTION ) {
           // First do cartesian abstraction if desired
           cartesianAbstractionTimer.start();
           try {
@@ -876,7 +909,7 @@ public class PredicateAbstractionManager {
           }
         }
 
-        if (options.getAbstractionType() != AbstractionType.CARTESIAN
+        if (options.getAbstractionType() != AbstractionType.CARTESIAN && options.getAbstractionType() != AbstractionType.SUBSTITUTION
             && !remainingPredicates.isEmpty()) {
           // Last do boolean abstraction if desired and necessary
           stats.numBooleanAbsPredicates.addAndGet(remainingPredicates.size());
@@ -1108,7 +1141,9 @@ public class PredicateAbstractionManager {
     // the formula is (abstractionFormula & pathFormula & predDef)
     thmProver.push(predDef);
     AllSatCallbackImpl callback = new AllSatCallbackImpl();
+    logger.log(Level.INFO, "Issuing SAT Call");
     Region result = thmProver.allSat(callback, predVars);
+    logger.log(Level.INFO, "Finished SAT Call");
 
     // pop() is actually costly sometimes, and we delete the environment anyway
     // thmProver.pop();
