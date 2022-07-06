@@ -138,7 +138,7 @@ public class SymbolicProgramConfiguration {
         new SMG(sizeOfPtr),
         PathCopyingPersistentTreeMap.of(),
         PersistentStack.of(),
-        PersistentSet.of(),
+        PersistentSet.of(SMGObject.nullInstance()),
         PathCopyingPersistentTreeMap.of(),
         ImmutableBiMap.of(new NumericValue(0), SMGValue.zeroValue()));
   }
