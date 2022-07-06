@@ -3366,7 +3366,9 @@ public class SMGCPAValueVisitorTest {
             MachineModel.LINUX64,
             spc,
             logger,
-            new SMGOptions(Configuration.defaultConfiguration()));
+            new SMGOptions(Configuration.defaultConfiguration()),
+            currentState.getErrorInfo(),
+            currentState.getVariableBlackList());
     visitor = new SMGCPAValueVisitor(evaluator, currentState, new DummyCFAEdge(null, null), logger);
   }
 
@@ -3390,7 +3392,9 @@ public class SMGCPAValueVisitorTest {
             MachineModel.LINUX64,
             spc,
             logger,
-            new SMGOptions(Configuration.defaultConfiguration()));
+            new SMGOptions(Configuration.defaultConfiguration()),
+            currentState.getErrorInfo(),
+            currentState.getVariableBlackList());
     visitor = new SMGCPAValueVisitor(evaluator, currentState, new DummyCFAEdge(null, null), logger);
   }
 
@@ -3417,7 +3421,9 @@ public class SMGCPAValueVisitorTest {
             MachineModel.LINUX64,
             spc,
             logger,
-            new SMGOptions(Configuration.defaultConfiguration()));
+            new SMGOptions(Configuration.defaultConfiguration()),
+            currentState.getErrorInfo(),
+            currentState.getVariableBlackList());
     visitor = new SMGCPAValueVisitor(evaluator, currentState, new DummyCFAEdge(null, null), logger);
   }
 
@@ -3449,7 +3455,9 @@ public class SMGCPAValueVisitorTest {
             MachineModel.LINUX64,
             spc,
             logger,
-            new SMGOptions(Configuration.defaultConfiguration()));
+            new SMGOptions(Configuration.defaultConfiguration()),
+            currentState.getErrorInfo(),
+            currentState.getVariableBlackList());
     visitor = new SMGCPAValueVisitor(evaluator, currentState, new DummyCFAEdge(null, null), logger);
   }
 

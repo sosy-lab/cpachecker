@@ -8,8 +8,11 @@
 
 package org.sosy_lab.cpachecker.cpa.smg2;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import java.math.BigInteger;
 import java.util.Collection;
 import java.util.Collections;
@@ -83,9 +86,13 @@ public class SMGState implements LatticeAbstractState<SMGState>, AbstractQueryab
 
   private final MachineModel machineModel;
   private final LogManager logger;
-  private List<SMGErrorInfo> errorInfo;
+  private final List<SMGErrorInfo> errorInfo;
   private final SMGOptions options;
 
+  // Blacklisted variable names. Not to be used while on this list!
+  private final ImmutableSet<String> variableBlacklist;
+
+  // Constructor only for NEW/EMPTY SMGStates!
   private SMGState(
       MachineModel pMachineModel,
       SymbolicProgramConfiguration spc,
@@ -96,6 +103,7 @@ public class SMGState implements LatticeAbstractState<SMGState>, AbstractQueryab
     logger = logManager;
     options = opts;
     errorInfo = ImmutableList.of(SMGErrorInfo.of());
+    variableBlacklist = ImmutableSet.of();
   }
 
   private SMGState(
@@ -103,12 +111,31 @@ public class SMGState implements LatticeAbstractState<SMGState>, AbstractQueryab
       SymbolicProgramConfiguration spc,
       LogManager logManager,
       SMGOptions opts,
-      List<SMGErrorInfo> errorInf) {
+      List<SMGErrorInfo> errorInf,
+      ImmutableSet<String> pVariableBlacklist) {
     memoryModel = spc;
     machineModel = pMachineModel;
     logger = logManager;
     options = opts;
     errorInfo = errorInf;
+    variableBlacklist = pVariableBlacklist;
+  }
+
+  public SMGState addToVariableBlacklist(String variableName) {
+    return of(
+        machineModel,
+        memoryModel,
+        logger,
+        options,
+        errorInfo,
+        new ImmutableSet.Builder<String>()
+            .addAll(variableBlacklist)
+            .add(checkNotNull(variableName))
+            .build());
+  }
+
+  public ImmutableSet<String> getVariableBlackList() {
+    return variableBlacklist;
   }
 
   @Override
@@ -226,10 +253,10 @@ public class SMGState implements LatticeAbstractState<SMGState>, AbstractQueryab
    * Creates a new, empty {@link SMGState} with the {@link SMGOptions} given. The {@link
    * SymbolicProgramConfiguration} and {@link SMGErrorInfo} inside are new and empty as well.
    *
-   * @param pMachineModel the {@link MachineModel} used to determin the size of types.
+   * @param pMachineModel the {@link MachineModel} used to determine the size of types.
    * @param logManager {@link LogManager} to log important information.
    * @param opts {@link SMGOptions} to be used.
-   * @return a newly created {@link SMGState} with a new and emtpy {@link
+   * @return a newly created {@link SMGState} with a new and empty {@link
    *     SymbolicProgramConfiguration} inside.
    */
   public static SMGState of(MachineModel pMachineModel, LogManager logManager, SMGOptions opts) {
@@ -241,28 +268,10 @@ public class SMGState implements LatticeAbstractState<SMGState>, AbstractQueryab
   }
 
   /**
-   * Creates a new {@link SMGState} out of the parameters, but also creates a new, empty {@link
-   * SMGErrorInfo} for the new state.
-   *
-   * @param pMachineModel {@link MachineModel} to be used to determine type sizes.
-   * @param heapSPC {@link SymbolicProgramConfiguration} to be used.
-   * @param logManager {@link LogManager} to be used to log information.
-   * @param opts {@link SMGOptions} to be used.
-   * @return new {@link SMGState} out of the parameters with empty {@link SMGErrorInfo}.
-   */
-  public static SMGState of(
-      MachineModel pMachineModel,
-      SymbolicProgramConfiguration heapSPC,
-      LogManager logManager,
-      SMGOptions opts) {
-    return new SMGState(pMachineModel, heapSPC, logManager, opts);
-  }
-
-  /**
    * Creates a new {@link SMGState} out of the parameters given. No new elements are created by
    * this.
    *
-   * @param pMachineModel the {@link MachineModel} used to determin the size of types.
+   * @param pMachineModel the {@link MachineModel} used to determine the size of types.
    * @param pSPC the {@link SymbolicProgramConfiguration} to be used in the new state.
    * @param logManager the {@link LogManager} to be used in the new state.
    * @param opts {@link SMGOptions} to be used.
@@ -274,8 +283,9 @@ public class SMGState implements LatticeAbstractState<SMGState>, AbstractQueryab
       SymbolicProgramConfiguration pSPC,
       LogManager logManager,
       SMGOptions opts,
-      List<SMGErrorInfo> pErrorInfo) {
-    return new SMGState(pMachineModel, pSPC, logManager, opts, pErrorInfo);
+      List<SMGErrorInfo> pErrorInfo,
+      ImmutableSet<String> pVariableBlacklist) {
+    return new SMGState(pMachineModel, pSPC, logManager, opts, pErrorInfo, pVariableBlacklist);
   }
 
   /**
@@ -296,7 +306,8 @@ public class SMGState implements LatticeAbstractState<SMGState>, AbstractQueryab
         new ImmutableList.Builder<SMGErrorInfo>()
             .addAll(errorInfo)
             .addAll(pOther.errorInfo)
-            .build());
+            .build(),
+        variableBlacklist);
   }
 
   /**
@@ -323,7 +334,12 @@ public class SMGState implements LatticeAbstractState<SMGState>, AbstractQueryab
   public SMGState copyAndAddGlobalVariable(BigInteger pTypeSizeInBits, String pVarName) {
     SMGObject newObject = SMGObject.of(0, pTypeSizeInBits, BigInteger.ZERO);
     return of(
-        machineModel, memoryModel.copyAndAddGlobalObject(newObject, pVarName), logger, options);
+        machineModel,
+        memoryModel.copyAndAddGlobalObject(newObject, pVarName),
+        logger,
+        options,
+        errorInfo,
+        variableBlacklist);
   }
 
   /**
@@ -337,7 +353,14 @@ public class SMGState implements LatticeAbstractState<SMGState>, AbstractQueryab
   public SMGObjectAndSMGState copyAndAddHeapObject(BigInteger pTypeSizeInBits) {
     SMGObject newObject = SMGObject.of(0, pTypeSizeInBits, BigInteger.ZERO);
     return SMGObjectAndSMGState.of(
-        newObject, of(machineModel, memoryModel.copyAndAddHeapObject(newObject), logger, options));
+        newObject,
+        of(
+            machineModel,
+            memoryModel.copyAndAddHeapObject(newObject),
+            logger,
+            options,
+            errorInfo,
+            variableBlacklist));
   }
 
   /**
@@ -370,7 +393,12 @@ public class SMGState implements LatticeAbstractState<SMGState>, AbstractQueryab
     }
     SMGObject newObject = SMGObject.of(0, BigInteger.valueOf(pTypeSize), BigInteger.ZERO);
     return of(
-        machineModel, memoryModel.copyAndAddStackObject(newObject, pVarName), logger, options);
+        machineModel,
+        memoryModel.copyAndAddStackObject(newObject, pVarName),
+        logger,
+        options,
+        errorInfo,
+        variableBlacklist);
   }
 
   /**
@@ -394,7 +422,12 @@ public class SMGState implements LatticeAbstractState<SMGState>, AbstractQueryab
     }
     SMGObject newObject = SMGObject.of(0, pTypeSize, BigInteger.ZERO);
     return of(
-        machineModel, memoryModel.copyAndAddStackObject(newObject, pVarName), logger, options);
+        machineModel,
+        memoryModel.copyAndAddStackObject(newObject, pVarName),
+        logger,
+        options,
+        errorInfo,
+        variableBlacklist);
   }
 
   /**
@@ -434,7 +467,9 @@ public class SMGState implements LatticeAbstractState<SMGState>, AbstractQueryab
         machineModel,
         memoryModel.copyAndAddStackFrame(pFunctionDefinition, machineModel),
         logger,
-        options);
+        options,
+        errorInfo,
+        variableBlacklist);
   }
 
   @Override
@@ -532,7 +567,7 @@ public class SMGState implements LatticeAbstractState<SMGState>, AbstractQueryab
   }
 
   public SMGState copyAndReplaceMemoryModel(SymbolicProgramConfiguration newSPC) {
-    return of(machineModel, newSPC, logger, options, errorInfo);
+    return of(machineModel, newSPC, logger, options, errorInfo, variableBlacklist);
   }
 
   public SMGState copyAndReplaceValueMapping(Value oldValue, Value newValue) {
@@ -555,7 +590,9 @@ public class SMGState implements LatticeAbstractState<SMGState>, AbstractQueryab
         machineModel,
         memoryModel.copyAndRemoveGlobalVariable(pMemoryLocation.getIdentifier()),
         logger,
-        options);
+        options,
+        errorInfo,
+        variableBlacklist);
   }
 
   private SMGState copyAndPruneFunctionStackVariable(MemoryLocation pMemoryLocation) {
@@ -563,11 +600,19 @@ public class SMGState implements LatticeAbstractState<SMGState>, AbstractQueryab
         machineModel,
         memoryModel.copyAndRemoveStackVariable(pMemoryLocation.getIdentifier()),
         logger,
-        options);
+        options,
+        errorInfo,
+        variableBlacklist);
   }
 
   public SMGState dropStackFrame() {
-    return of(machineModel, memoryModel.copyAndDropStackFrame(), logger, options);
+    return of(
+        machineModel,
+        memoryModel.copyAndDropStackFrame(),
+        logger,
+        options,
+        errorInfo,
+        variableBlacklist);
   }
 
   /*
@@ -970,7 +1015,8 @@ public class SMGState implements LatticeAbstractState<SMGState>, AbstractQueryab
         memoryModel,
         logger,
         options,
-        new ImmutableList.Builder<SMGErrorInfo>().addAll(errorInfo).add(pErrorInfo).build());
+        new ImmutableList.Builder<SMGErrorInfo>().addAll(errorInfo).add(pErrorInfo).build(),
+        variableBlacklist);
   }
 
   /**
@@ -997,7 +1043,13 @@ public class SMGState implements LatticeAbstractState<SMGState>, AbstractQueryab
     } else {
       SMGValue newSMGValue = SMGValue.of();
       return SMGValueAndSMGState.of(
-          of(machineModel, memoryModel.copyAndPutValue(pValue, newSMGValue), logger, options),
+          of(
+              machineModel,
+              memoryModel.copyAndPutValue(pValue, newSMGValue),
+              logger,
+              options,
+              errorInfo,
+              variableBlacklist),
           newSMGValue);
     }
   }
