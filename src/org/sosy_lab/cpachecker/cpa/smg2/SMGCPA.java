@@ -8,8 +8,10 @@
 
 package org.sosy_lab.cpachecker.cpa.smg2;
 
+import java.nio.file.Path;
 import java.util.Collection;
 import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
@@ -67,6 +69,16 @@ public class SMGCPA
       values = {"SEP", "JOIN"},
       description = "which merge operator to use for the SMGCPA")
   private String mergeType = "SEP";
+
+  @Option(secure = true, description = "get an initial precision from file")
+  @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
+  @SuppressWarnings("unused")
+  private Path initialPrecisionFile = null;
+
+  @Option(secure = true, description = "get an initial precision from a predicate precision file")
+  @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
+  @SuppressWarnings("unused")
+  private Path initialPredicatePrecisionFile = null;
 
   private final MachineModel machineModel;
   private final BlockOperator blockOperator;

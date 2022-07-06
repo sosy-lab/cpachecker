@@ -672,7 +672,11 @@ public class SMGCPAValueExpressionEvaluator {
    * @throws CPATransferException in case of critical errors.
    */
   public List<SMGState> writeValueToExpression(
-      CFAEdge edge, CExpression leftHandSideValue, Value valueToWrite, SMGState currentState)
+      CFAEdge edge,
+      CExpression leftHandSideValue,
+      Value valueToWrite,
+      SMGState currentState,
+      CType valueType)
       throws CPATransferException {
     BigInteger sizeInBits = getBitSizeof(currentState, leftHandSideValue);
     // Get the memory for the left hand side variable
@@ -682,14 +686,23 @@ public class SMGCPAValueExpressionEvaluator {
     // Write the return value into the left hand side variable
     for (Optional<SMGObjectAndOffset> maybeVariableMemoryAndOffset : variableMemorysAndOffsets) {
       if (maybeVariableMemoryAndOffset.isEmpty()) {
-        successorsBuilder.add(currentState);
+        // TODO: improve error msg
+        throw new SMG2Exception("No memory found to assign the value to.");
       }
       SMGObject leftHandSideVariableMemory =
           maybeVariableMemoryAndOffset.orElseThrow().getSMGObject();
       BigInteger offsetInBits = maybeVariableMemoryAndOffset.orElseThrow().getOffsetForObject();
+      if (leftHandSideValue.getExpressionType() != valueType) {
+        throw new SMG2Exception(
+            "TODO: cut/cast values assigning to different types without explicit cast.");
+      }
       successorsBuilder.add(
           currentState.writeValueTo(
-              leftHandSideVariableMemory, offsetInBits, sizeInBits, valueToWrite));
+              leftHandSideVariableMemory,
+              offsetInBits,
+              sizeInBits,
+              valueToWrite,
+              leftHandSideValue.getExpressionType()));
     }
 
     return successorsBuilder.build();

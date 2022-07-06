@@ -25,6 +25,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
+import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMG2Exception;
 import org.sosy_lab.cpachecker.cpa.smg2.util.value.SMGCPAValueExpressionEvaluator;
 import org.sosy_lab.cpachecker.cpa.smg2.util.value.ValueAndSMGState;
@@ -669,17 +670,18 @@ public class SMGCPABuiltins {
               bufferMemoryAddress,
               bufferOffsetInBits,
               sizeOfCharInBits.multiply(BigInteger.valueOf(count)),
-              charValue);
+              charValue,
+              CNumericTypes.CHAR);
     } else {
       // Write each char on its own
       for (int c = 0; c < count; c++) {
-        // TODO: is this really signed char? TEST!
         currentState =
             currentState.writeValueTo(
                 bufferMemoryAddress,
                 bufferOffsetInBits.add(BigInteger.valueOf(c).multiply(sizeOfCharInBits)),
                 sizeOfCharInBits,
-                charValue);
+                charValue,
+                CNumericTypes.CHAR);
       }
     }
     // Since this returns the pointer of the buffer we check the offset of the AddressExpression, if

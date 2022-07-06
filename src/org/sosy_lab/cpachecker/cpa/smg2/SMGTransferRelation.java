@@ -233,7 +233,8 @@ public class SMGTransferRelation
         successorsBuilder.add(
             returnValueAndState
                 .getState()
-                .writeToReturn(sizeInBits, returnValueAndState.getValue()));
+                .writeToReturn(
+                    sizeInBits, returnValueAndState.getValue(), returnExp.getExpressionType()));
       }
     } else {
       successorsBuilder.add(state);
@@ -295,7 +296,7 @@ public class SMGTransferRelation
       SMGState currentState = readValueAndState.getState().dropStackFrame();
       // Get the memory for the left hand side variable
       return evaluator.writeValueToExpression(
-          summaryEdge, leftValue, readValueAndState.getValue(), currentState);
+          summaryEdge, leftValue, readValueAndState.getValue(), currentState, rightValueType);
     } else {
       return ImmutableList.of(state);
     }
@@ -350,7 +351,7 @@ public class SMGTransferRelation
     // Create a variable for each parameter, then evaluate all given parameters and assign them to
     // their variables
     for (int i = 0; i < arguments.size(); i++) {
-      String varName = paramDecl.get(i).getName();
+      String varName = paramDecl.get(i).getQualifiedName();
       CExpression cParamExp = arguments.get(i);
       CType cParamType = SMGCPAValueExpressionEvaluator.getCanonicalType(paramDecl.get(i));
       BigInteger paramSizeInBits = evaluator.getBitSizeof(currentState, cParamType);
@@ -360,7 +361,7 @@ public class SMGTransferRelation
           new SMGCPAValueVisitor(evaluator, currentState, callEdge, logger);
       List<ValueAndSMGState> valuesAndStates = cParamExp.accept(valueVisitor);
 
-      // If this ever fails; we need to take all states/values into account, meaning we would neet
+      // If this ever fails; we need to take all states/values into account, meaning we would need
       // to proceed from this point onwards with all of them with all following operations
       Preconditions.checkArgument(valuesAndStates.size() == 1);
       ValueAndSMGState valueAndState = valuesAndStates.get(0);
@@ -371,7 +372,7 @@ public class SMGTransferRelation
       // Write the value into it
       currentState =
           currentState.writeToStackOrGlobalVariable(
-              varName, BigInteger.ZERO, paramSizeInBits, paramValue);
+              varName, BigInteger.ZERO, paramSizeInBits, paramValue, cParamType);
     }
 
     return currentState;
@@ -521,7 +522,8 @@ public class SMGTransferRelation
     } else {
       // Fallthrough for unhandled cases
       // TODO: log
-      return ImmutableList.of(state);
+      throw new SMG2Exception("Fallthrough handleStatementEdge");
+      // return ImmutableList.of(state);
     }
   }
 
@@ -942,7 +944,8 @@ public class SMGTransferRelation
                 variableName,
                 pOffset,
                 evaluator.getBitSizeof(addressState, pCurrentExpressionType),
-                addressAndState.getValue()));
+                addressAndState.getValue(),
+                pCurrentExpressionType));
       }
       return stateBuilder.build();
     }
@@ -1129,7 +1132,7 @@ public class SMGTransferRelation
 
       resultStatesBuilder.add(
           currentState.writeToStackOrGlobalVariable(
-              variableName, pOffsetInBits, sizeOfType, valueToAssign));
+              variableName, pOffsetInBits, sizeOfType, valueToAssign, pLFieldType));
     }
     return resultStatesBuilder.build();
   }
@@ -1155,7 +1158,10 @@ public class SMGTransferRelation
         // TODO: move the exception into the visitor! Then we can actually see more details as to
         // what
         // kind of variable we tried to find the memory for.
-        throw new SMG2Exception("Invalid write to variable.");
+        throw new SMG2Exception(
+            "Invalid write to variable: "
+                + lValue.toASTString()
+                + " as this variable does not exist.");
       }
       SMGObjectAndOffset addressAndOffsetToWriteTo = maybeAddress.orElseThrow();
       SMGObject addressToWriteTo = addressAndOffsetToWriteTo.getSMGObject();
@@ -1205,7 +1211,11 @@ public class SMGTransferRelation
           BigInteger sizeInBits = evaluator.getBitSizeof(currentState, rValue);
           currentState =
               currentState.writeValueTo(
-                  addressToWriteTo, offsetToWriteTo, sizeInBits, valueToWrite);
+                  addressToWriteTo,
+                  offsetToWriteTo,
+                  sizeInBits,
+                  valueToWrite,
+                  rValue.getExpressionType());
           returnStateBuilder.add(currentState);
         }
       }

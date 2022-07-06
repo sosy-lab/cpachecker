@@ -25,6 +25,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
+import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.defaults.LatticeAbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
 import org.sosy_lab.cpachecker.core.interfaces.Graphable;
@@ -39,6 +40,7 @@ import org.sosy_lab.cpachecker.cpa.smg2.util.SMGValueAndSPC;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SPCAndSMGObjects;
 import org.sosy_lab.cpachecker.cpa.smg2.util.value.ValueAndSMGState;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.AddressExpression;
+import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValueFactory;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.cpa.value.type.Value.UnknownValue;
@@ -1233,8 +1235,11 @@ public class SMGState implements LatticeAbstractState<SMGState>, AbstractQueryab
    * @return a new {@link SMGState} with either an error info in case of an error or the value
    *     written to the return memory.
    */
-  public SMGState writeToReturn(BigInteger sizeInBits, Value valueToWrite) {
+  public SMGState writeToReturn(BigInteger sizeInBits, Value valueToWrite, CType returnValueType) {
     SMGObject returnObject = getMemoryModel().getReturnObjectForCurrentStackFrame().orElseThrow();
+    if (valueToWrite.isUnknown()) {
+      valueToWrite = getNewSymbolicValueForType(returnValueType);
+    }
     // Check that the target can hold the value
     if (returnObject.getOffset().compareTo(BigInteger.ZERO) > 0
         || returnObject.getSize().compareTo(sizeInBits) < 0) {
@@ -1257,13 +1262,22 @@ public class SMGState implements LatticeAbstractState<SMGState>, AbstractQueryab
    * @param sizeInBits size of the written value in bits.
    * @param valueToWrite {@link Value} that gets written into the SPC. Will be mapped to a {@link
    *     SMGValue} automatically.
+   * @param valueType {@link CType} of the value to be written. Use the expression type, not the
+   *     canonical!
    * @return new {@link SMGState} with the value written to the object.
    * @throws SMG2Exception if something goes wrong. I.e. the sizes of the write don't match with the
    *     size of the object.
    */
   public SMGState writeValueTo(
-      SMGObject object, BigInteger writeOffsetInBits, BigInteger sizeInBits, Value valueToWrite)
+      SMGObject object,
+      BigInteger writeOffsetInBits,
+      BigInteger sizeInBits,
+      Value valueToWrite,
+      CType valueType)
       throws SMG2Exception {
+    if (valueToWrite.isUnknown()) {
+      valueToWrite = getNewSymbolicValueForType(valueType);
+    }
     // Check that the target can hold the value
     if (object.getOffset().compareTo(writeOffsetInBits) > 0
         || object.getSize().compareTo(sizeInBits.add(writeOffsetInBits)) < 0) {
@@ -1278,7 +1292,7 @@ public class SMGState implements LatticeAbstractState<SMGState>, AbstractQueryab
   /**
    * Writes the entered {@link Value} to the region that the addressToMemory points to at the
    * specified offset with the specified size both in bits. It can be used for heap and stack, it
-   * jsut assumes that the {@link SMGObject} exist in the SPC, so make sure beforehand! The Value
+   * just assumes that the {@link SMGObject} exist in the SPC, so make sure beforehand! The Value
    * will either add or find its {@link SMGValue} counterpart automatically. Also this checks that
    * the {@link SMGObject} is large enough for the write. If something fails, this throws an
    * exception with an error info inside the state thrown with.
@@ -1288,6 +1302,8 @@ public class SMGState implements LatticeAbstractState<SMGState>, AbstractQueryab
    * @param sizeInBits size of the written value in bits.
    * @param valueToWrite {@link Value} that gets written into the SPC. Will be mapped to a {@link
    *     SMGValue} automatically.
+   * @param valueType the type of the value to be written. Used for unknown values only, to
+   *     translate them into a symbolic value.
    * @return new {@link SMGState} with the value written to the object.
    * @throws SMG2Exception if something goes wrong. I.e. the sizes of the write don't match with the
    *     size of the object.
@@ -1296,7 +1312,8 @@ public class SMGState implements LatticeAbstractState<SMGState>, AbstractQueryab
       Value addressToMemory,
       BigInteger writeOffsetInBits,
       BigInteger sizeInBits,
-      Value valueToWrite)
+      Value valueToWrite,
+      CType valueType)
       throws SMG2Exception {
     Optional<SMGObjectAndOffset> maybeRegion = memoryModel.dereferencePointer(addressToMemory);
     if (maybeRegion.isEmpty()) {
@@ -1306,7 +1323,7 @@ public class SMGState implements LatticeAbstractState<SMGState>, AbstractQueryab
     SMGObjectAndOffset memoryRegionAndOffset = maybeRegion.orElseThrow();
     SMGObject memoryRegion = memoryRegionAndOffset.getSMGObject();
 
-    return writeValueTo(memoryRegion, writeOffsetInBits, sizeInBits, valueToWrite);
+    return writeValueTo(memoryRegion, writeOffsetInBits, sizeInBits, valueToWrite, valueType);
   }
 
   /**
@@ -1397,7 +1414,8 @@ public class SMGState implements LatticeAbstractState<SMGState>, AbstractQueryab
       String variableName,
       BigInteger writeOffsetInBits,
       BigInteger writeSizeInBits,
-      Value valueToWrite)
+      Value valueToWrite,
+      CType valueType)
       throws SMG2Exception {
     Optional<SMGObject> maybeVariableMemory =
         getMemoryModel().getObjectForVisibleVariable(variableName);
@@ -1405,6 +1423,10 @@ public class SMGState implements LatticeAbstractState<SMGState>, AbstractQueryab
     if (maybeVariableMemory.isEmpty()) {
       // Write to unknown variable
       throw new SMG2Exception(withWriteToUnknownVariable(variableName));
+    }
+
+    if (valueToWrite.isUnknown()) {
+      valueToWrite = getNewSymbolicValueForType(valueType);
     }
 
     SMGObject variableMemory = maybeVariableMemory.orElseThrow();
@@ -1469,5 +1491,19 @@ public class SMGState implements LatticeAbstractState<SMGState>, AbstractQueryab
     return copyAndReplaceMemoryModel(
         memoryModel.copyAndAddExternalObject(
             getMemoryModel().getObjectForVisibleVariable(variableName).orElseThrow()));
+  }
+
+  /**
+   * Returns a new symbolic constant value. This is meant to transform UNKNOWN Values into usable
+   * values with unknown value but known type.
+   *
+   * @param valueType the {@link CType} of the Value. Don't use the canonical type if possible!
+   * @return a new symbolic Value.
+   */
+  private Value getNewSymbolicValueForType(CType valueType) {
+    // For unknown values we use a new symbolic value without memory location as this is
+    // handled by the SMGs
+    SymbolicValueFactory factory = SymbolicValueFactory.getInstance();
+    return factory.asConstant(factory.newIdentifier(null), valueType);
   }
 }
