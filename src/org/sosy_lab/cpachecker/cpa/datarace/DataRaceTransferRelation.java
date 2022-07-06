@@ -169,15 +169,15 @@ public class DataRaceTransferRelation extends SingleEdgeTransferRelation {
   private Set<MemoryAccess> getNewAccesses(
       Map<String, ThreadInfo> threads, String activeThread, CFAEdge edge, Set<String> locks)
       throws UnsupportedCodeException {
-    Set<MemoryLocation> accessedLocations = new HashSet<>();
-    Set<MemoryLocation> modifiedLocations = new HashSet<>();
-    Set<MemoryAccess> newAccesses = new HashSet<>();
+    ImmutableSet.Builder<MemoryLocation> accessedLocationBuilder = ImmutableSet.builder();
+    ImmutableSet.Builder<MemoryLocation> modifiedLocationBuilder = ImmutableSet.builder();
+    ImmutableSet.Builder<MemoryAccess> newAccessBuilder = ImmutableSet.builder();
 
     switch (edge.getEdgeType()) {
       case AssumeEdge:
         AssumeEdge assumeEdge = (AssumeEdge) edge;
-        accessedLocations =
-            edgeAnalyzer.getInvolvedVariableTypes(assumeEdge.getExpression(), assumeEdge).keySet();
+        accessedLocationBuilder.addAll(
+            edgeAnalyzer.getInvolvedVariableTypes(assumeEdge.getExpression(), assumeEdge).keySet());
         break;
       case DeclarationEdge:
         ADeclarationEdge declarationEdge = (ADeclarationEdge) edge;
@@ -187,7 +187,7 @@ public class DataRaceTransferRelation extends SingleEdgeTransferRelation {
           MemoryLocation declaredVariable =
               MemoryLocation.fromQualifiedName(variableDeclaration.getQualifiedName());
           CInitializer initializer = variableDeclaration.getInitializer();
-          newAccesses.add(
+          newAccessBuilder.add(
               new MemoryAccess(
                   activeThread,
                   threads.get(activeThread).getEpoch(),
@@ -205,8 +205,8 @@ public class DataRaceTransferRelation extends SingleEdgeTransferRelation {
                 break;
               }
             }
-            accessedLocations =
-                edgeAnalyzer.getInvolvedVariableTypes(initializer, declarationEdge).keySet();
+            accessedLocationBuilder.addAll(
+                edgeAnalyzer.getInvolvedVariableTypes(initializer, declarationEdge).keySet());
           }
         }
         break;
@@ -222,21 +222,21 @@ public class DataRaceTransferRelation extends SingleEdgeTransferRelation {
           AFunctionCallAssignmentStatement functionCallAssignmentStatement =
               (AFunctionCallAssignmentStatement) functionCallEdge.getFunctionCall();
           if (THREAD_SAFE_FUNCTIONS.contains(functionName)) {
-            accessedLocations =
+            accessedLocationBuilder.addAll(
                 edgeAnalyzer
                     .getInvolvedVariableTypes(
                         functionCallAssignmentStatement.getLeftHandSide(), functionCallEdge)
-                    .keySet();
+                    .keySet());
           } else {
-            accessedLocations =
+            accessedLocationBuilder.addAll(
                 edgeAnalyzer
                     .getInvolvedVariableTypes(functionCallAssignmentStatement, functionCallEdge)
-                    .keySet();
+                    .keySet());
           }
         } else {
           if (!THREAD_SAFE_FUNCTIONS.contains(functionName)) {
             for (AExpression argument : functionCallEdge.getArguments()) {
-              accessedLocations.addAll(
+              accessedLocationBuilder.addAll(
                   edgeAnalyzer.getInvolvedVariableTypes(argument, functionCallEdge).keySet());
             }
           }
@@ -246,8 +246,10 @@ public class DataRaceTransferRelation extends SingleEdgeTransferRelation {
         AReturnStatementEdge returnStatementEdge = (AReturnStatementEdge) edge;
         if (returnStatementEdge.getExpression().isPresent()) {
           AExpression returnExpression = returnStatementEdge.getExpression().get();
-          accessedLocations =
-              edgeAnalyzer.getInvolvedVariableTypes(returnExpression, returnStatementEdge).keySet();
+          accessedLocationBuilder.addAll(
+              edgeAnalyzer
+                  .getInvolvedVariableTypes(returnExpression, returnStatementEdge)
+                  .keySet());
         }
         break;
       case StatementEdge:
@@ -261,29 +263,28 @@ public class DataRaceTransferRelation extends SingleEdgeTransferRelation {
                   .getOperator()
                   .equals(UnaryOperator.AMPER)) {
             // Address-of is not considered accessing its operand
-            accessedLocations =
+            accessedLocationBuilder.addAll(
                 edgeAnalyzer
                     .getInvolvedVariableTypes(
                         expressionAssignmentStatement.getLeftHandSide(), statementEdge)
-                    .keySet();
+                    .keySet());
           } else {
-            accessedLocations =
+            accessedLocationBuilder.addAll(
                 edgeAnalyzer
                     .getInvolvedVariableTypes(expressionAssignmentStatement, statementEdge)
-                    .keySet();
+                    .keySet());
           }
-          modifiedLocations =
+          modifiedLocationBuilder.addAll(
               edgeAnalyzer
                   .getInvolvedVariableTypes(
                       expressionAssignmentStatement.getLeftHandSide(), statementEdge)
-                  .keySet();
-          assert accessedLocations.containsAll(modifiedLocations);
+                  .keySet());
         } else if (statement instanceof AExpressionStatement) {
-          accessedLocations =
+          accessedLocationBuilder.addAll(
               edgeAnalyzer
                   .getInvolvedVariableTypes(
                       ((AExpressionStatement) statement).getExpression(), statementEdge)
-                  .keySet();
+                  .keySet());
         } else if (statement instanceof AFunctionCallAssignmentStatement) {
           AFunctionCallAssignmentStatement functionCallAssignmentStatement =
               (AFunctionCallAssignmentStatement) statement;
@@ -297,23 +298,22 @@ public class DataRaceTransferRelation extends SingleEdgeTransferRelation {
                 "DataRaceCPA does not support function " + functionName, edge);
           }
           if (THREAD_SAFE_FUNCTIONS.contains(functionName)) {
-            accessedLocations =
+            accessedLocationBuilder.addAll(
                 edgeAnalyzer
                     .getInvolvedVariableTypes(
                         functionCallAssignmentStatement.getLeftHandSide(), statementEdge)
-                    .keySet();
+                    .keySet());
           } else {
-            accessedLocations =
+            accessedLocationBuilder.addAll(
                 edgeAnalyzer
                     .getInvolvedVariableTypes(functionCallAssignmentStatement, statementEdge)
-                    .keySet();
+                    .keySet());
           }
-          modifiedLocations =
+          modifiedLocationBuilder.addAll(
               edgeAnalyzer
                   .getInvolvedVariableTypes(
                       functionCallAssignmentStatement.getLeftHandSide(), statementEdge)
-                  .keySet();
-          assert accessedLocations.containsAll(modifiedLocations);
+                  .keySet());
         } else if (statement instanceof AFunctionCallStatement) {
           AFunctionCallStatement functionCallStatement = (AFunctionCallStatement) statement;
           functionName =
@@ -325,8 +325,8 @@ public class DataRaceTransferRelation extends SingleEdgeTransferRelation {
           if (!THREAD_SAFE_FUNCTIONS.contains(functionName)) {
             for (AExpression expression :
                 functionCallStatement.getFunctionCallExpression().getParameterExpressions()) {
-              accessedLocations =
-                  edgeAnalyzer.getInvolvedVariableTypes(expression, statementEdge).keySet();
+              accessedLocationBuilder.addAll(
+                  edgeAnalyzer.getInvolvedVariableTypes(expression, statementEdge).keySet());
             }
           }
         }
@@ -339,8 +339,12 @@ public class DataRaceTransferRelation extends SingleEdgeTransferRelation {
         throw new AssertionError("Unknown edge type: " + edge.getEdgeType());
     }
 
+    Set<MemoryLocation> accessedLocations = accessedLocationBuilder.build();
+    Set<MemoryLocation> modifiedLocations = modifiedLocationBuilder.build();
+    assert accessedLocations.containsAll(modifiedLocations);
+
     for (MemoryLocation location : accessedLocations) {
-      newAccesses.add(
+      newAccessBuilder.add(
           new MemoryAccess(
               activeThread,
               threads.get(activeThread).getEpoch(),
@@ -348,7 +352,7 @@ public class DataRaceTransferRelation extends SingleEdgeTransferRelation {
               modifiedLocations.contains(location),
               locks));
     }
-    return newAccesses;
+    return newAccessBuilder.build();
   }
 
   private ImmutableMap<String, ThreadInfo> getNewThreads(
