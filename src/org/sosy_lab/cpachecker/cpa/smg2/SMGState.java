@@ -486,7 +486,7 @@ public class SMGState implements LatticeAbstractState<SMGState>, AbstractQueryab
 
   @Override
   public String getCPAName() {
-    return "SMG2CPA";
+    return "SMGCPA";
   }
 
   /*
