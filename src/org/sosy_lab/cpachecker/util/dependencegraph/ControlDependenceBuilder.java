@@ -24,13 +24,14 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.util.CFATraversal;
 import org.sosy_lab.cpachecker.util.CFATraversal.NodeCollectingCFAVisitor;
 import org.sosy_lab.cpachecker.util.CFAUtils;
-import org.sosy_lab.cpachecker.util.dependencegraph.Dominance.DomFrontiers;
-import org.sosy_lab.cpachecker.util.dependencegraph.Dominance.DomTree;
 import org.sosy_lab.cpachecker.util.dependencegraph.SystemDependenceGraph.EdgeType;
 import org.sosy_lab.cpachecker.util.dependencegraph.SystemDependenceGraph.ForwardsVisitor;
 import org.sosy_lab.cpachecker.util.dependencegraph.SystemDependenceGraph.Node;
 import org.sosy_lab.cpachecker.util.dependencegraph.SystemDependenceGraph.NodeType;
 import org.sosy_lab.cpachecker.util.dependencegraph.SystemDependenceGraph.VisitResult;
+import org.sosy_lab.cpachecker.util.graph.dominance.DomFrontiers;
+import org.sosy_lab.cpachecker.util.graph.dominance.DomTree;
+import org.sosy_lab.cpachecker.util.graph.dominance.DominanceUtils;
 
 /**
  * Class for computing control dependencies and inserting them into a {@link SystemDependenceGraph}.
@@ -109,17 +110,16 @@ final class ControlDependenceBuilder<N extends Node<AFunctionDeclaration, CFAEdg
       Set<CFANode> pPostDomTreeNodes,
       boolean pDependOnBothAssumptions) {
 
-    DomFrontiers<CFANode> frontiers = Dominance.createDomFrontiers(pPostDomTree);
+    DomFrontiers<CFANode> frontiers = DomFrontiers.forDomTree(pPostDomTree);
     for (CFANode dependentNode : pPostDomTree) {
-      int nodeId = pPostDomTree.getId(dependentNode);
       for (CFANode branchNode : frontiers.getFrontier(dependentNode)) {
         for (CFAEdge assumeEdge : CFAUtils.leavingEdges(branchNode)) {
-          if (pPostDomTreeNodes.contains(assumeEdge.getSuccessor())) {
+          CFANode assumeSuccessor = assumeEdge.getSuccessor();
+          if (pPostDomTreeNodes.contains(assumeSuccessor)) {
 
-            int assumeSuccessorId = pPostDomTree.getId(assumeEdge.getSuccessor());
             if (pDependOnBothAssumptions
-                || nodeId == assumeSuccessorId
-                || pPostDomTree.isAncestorOf(nodeId, assumeSuccessorId)) {
+                || assumeSuccessor.equals(dependentNode)
+                || pPostDomTree.isAncestorOf(dependentNode, assumeSuccessor)) {
 
               for (CFAEdge dependentEdge : CFAUtils.allLeavingEdges(dependentNode)) {
                 if (!ignoreFunctionEdge(dependentEdge) && !assumeEdge.equals(dependentEdge)) {
@@ -158,8 +158,7 @@ final class ControlDependenceBuilder<N extends Node<AFunctionDeclaration, CFAEdg
     Set<CFAEdge> edgesWithoutDominator = new HashSet<>();
     for (CFANode node : pFunctionNodes) {
       if (!(node instanceof FunctionExitNode)) {
-        if (!pPostDomTreeNodes.contains(node)
-            || !pPostDomTree.hasParent(pPostDomTree.getId(node))) {
+        if (!pPostDomTreeNodes.contains(node) || pPostDomTree.getParent(node).isEmpty()) {
           Iterables.addAll(edgesWithoutDominator, CFAUtils.allEnteringEdges(node));
           Iterables.addAll(edgesWithoutDominator, CFAUtils.allLeavingEdges(node));
         }

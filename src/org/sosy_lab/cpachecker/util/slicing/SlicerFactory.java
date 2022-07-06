@@ -93,7 +93,7 @@ public class SlicerFactory implements StatisticsProvider {
 
   private CSystemDependenceGraph createDependenceGraph(
       LogManager pLogger, ShutdownNotifier pShutdownNotifier, Configuration pConfig, CFA pCfa)
-      throws CPAException, InvalidConfigurationException {
+      throws CPAException, InvalidConfigurationException, InterruptedException {
 
     final CSystemDependenceGraphBuilder depGraphBuilder =
         new CSystemDependenceGraphBuilder(pCfa, pConfig, pLogger, pShutdownNotifier);
@@ -111,7 +111,7 @@ public class SlicerFactory implements StatisticsProvider {
    */
   public Slicer create(
       LogManager pLogger, ShutdownNotifier pShutdownNotifier, Configuration pConfig, CFA pCfa)
-      throws CPAException, InvalidConfigurationException {
+      throws CPAException, InvalidConfigurationException, InterruptedException {
     SlicerOptions options = new SlicerOptions(pConfig);
 
     final SlicingCriteriaExtractor extractor;
