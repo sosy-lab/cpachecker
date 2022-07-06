@@ -47,6 +47,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerList;
@@ -350,9 +351,13 @@ public class SMGTransferRelation
 
     // Create a variable for each parameter, then evaluate all given parameters and assign them to
     // their variables
+    // TODO: check if the FunctionPointerCPA would be a better option instead of doing it myself
     for (int i = 0; i < arguments.size(); i++) {
       String varName = paramDecl.get(i).getQualifiedName();
       CExpression cParamExp = arguments.get(i);
+
+      currentState = checkAndAddParameterToBlacklist(cParamExp, varName, currentState);
+
       CType cParamType = SMGCPAValueExpressionEvaluator.getCanonicalType(paramDecl.get(i));
       BigInteger paramSizeInBits = evaluator.getBitSizeof(currentState, cParamType);
 
@@ -375,6 +380,27 @@ public class SMGTransferRelation
               varName, BigInteger.ZERO, paramSizeInBits, paramValue, cParamType);
     }
 
+    return currentState;
+  }
+
+  private SMGState checkAndAddParameterToBlacklist(
+      CExpression cParamExp, String functionVariableName, SMGState currentState) {
+    CExpression parameterExpr = cParamExp;
+    if (parameterExpr instanceof CCastExpression) {
+      // Unwrap casts
+      while (parameterExpr instanceof CCastExpression) {
+        parameterExpr = ((CCastExpression) parameterExpr).getOperand();
+      }
+    }
+    // If the value we entered is a variable, we have to check that its not on the blacklist, or
+    // enter the new variable to the blacklist as well
+    if (parameterExpr instanceof CIdExpression) {
+      String paramteterVariableName =
+          ((CIdExpression) parameterExpr).getDeclaration().getQualifiedName();
+      if (currentState.getVariableBlackList().contains(paramteterVariableName)) {
+        return currentState.addToVariableBlacklist(functionVariableName);
+      }
+    }
     return currentState;
   }
 
