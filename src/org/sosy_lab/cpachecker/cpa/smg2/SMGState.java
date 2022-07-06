@@ -102,7 +102,7 @@ public class SMGState implements LatticeAbstractState<SMGState>, AbstractQueryab
     machineModel = pMachineModel;
     logger = logManager;
     options = opts;
-    errorInfo = ImmutableList.of(SMGErrorInfo.of());
+    errorInfo = ImmutableList.of();
     variableBlacklist = ImmutableSet.of();
   }
 
