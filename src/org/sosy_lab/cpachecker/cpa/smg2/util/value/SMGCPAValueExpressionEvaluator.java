@@ -483,7 +483,8 @@ public class SMGCPAValueExpressionEvaluator {
     if (maybeObject.isEmpty()) {
       // If there is no object, the variable is not initialized
       SMGState errorState = initialState.withUninitializedVariableUsage(varName);
-      throw new SMG2Exception(errorState);
+      // The Value does not matter here as the error state should always end the analysis
+      return ValueAndSMGState.ofUnknownValue(errorState);
     }
     return readValue(initialState, maybeObject.orElseThrow(), offsetInBits, sizeInBits);
   }
@@ -653,7 +654,8 @@ public class SMGCPAValueExpressionEvaluator {
     if (doesNotFitIntoObject) {
       // Field read does not fit size of declared Memory
       SMGState errorState = currentState.withOutOfRangeRead(object, offsetInBits, sizeInBits);
-      throw new SMG2Exception(errorState);
+      // Unknown value that should not be used with a error state that should stop the analysis
+      return ValueAndSMGState.ofUnknownValue(errorState);
     }
     // The read in SMGState checks for validity and external allocation
     return currentState.readValue(object, offsetInBits, sizeInBits);
