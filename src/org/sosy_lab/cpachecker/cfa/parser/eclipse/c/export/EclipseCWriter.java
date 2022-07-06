@@ -517,6 +517,7 @@ class EclipseCWriter implements CWriter {
 
     if (pNextEdges.isEmpty()) {
       // TODO add `abort()` statement (in some cases)?
+      // TODO close unclosed branchings?
       // nothing to do, there are no next edges
       return;
     }
@@ -566,7 +567,7 @@ class EclipseCWriter implements CWriter {
 
     // make sure the real truth assumption is polled before the complimentary assumption, because
     // the then-branch has to be fully traversed before starting the traversal of the else-branch
-    if (isRealTruthAssumption(first) && pAcceptRealTruthAssumptionFirst) {
+    if (isRealTruthAssumption(first) == pAcceptRealTruthAssumptionFirst) {
       pWaitListAction.accept(first);
       pWaitListAction.accept(second);
     } else {
