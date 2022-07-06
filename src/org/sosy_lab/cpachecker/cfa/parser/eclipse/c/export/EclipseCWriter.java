@@ -85,7 +85,9 @@ class EclipseCWriter implements CWriter {
     // When the CFA does not have CfaTransformationRecords we assume it is completely changed, i.e.,
     // that all edges and nodes were added and that the AST node substitutions were the identity.
     // In that case, we can not parse the original AST, but we also do not require it.
-    if (pCfa.getTransformationRecords().isEmpty()) {
+    if (pCfa.getTransformationRecords().isEmpty()
+        || pCfa.getTransformationRecords().orElseThrow().getCfaBeforeTransformation().isEmpty()) {
+
       records = createTransformationRecordsForCompletelyTransformedCfa(pCfa);
       originalAst = null;
 
