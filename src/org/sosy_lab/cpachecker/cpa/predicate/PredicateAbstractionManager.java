@@ -878,7 +878,7 @@ public class PredicateAbstractionManager {
 
     try (ProverEnvironment thmProver =
              solver.newProverEnvironment(ProverOptions.GENERATE_ALL_SAT)) {
-      thmProver.push((f));
+      thmProver.push(f);
 
       if (remainingPredicates.isEmpty()) {
         stats.numSatCheckAbstractions.incrementAndGet();
