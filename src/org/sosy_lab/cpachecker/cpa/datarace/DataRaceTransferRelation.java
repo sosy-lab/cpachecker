@@ -13,7 +13,6 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
 import java.util.Collection;
-import java.util.HashSet;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
@@ -383,26 +382,19 @@ public class DataRaceTransferRelation extends SingleEdgeTransferRelation {
   }
 
   /**
-   * Search for the thread, where the current edge is available. The result should be exactly one
-   * thread, that is denoted as 'active', or NULL, if no active thread is available.
+   * Search for the thread where the given edge is available.
    *
-   * <p>This method is needed, because we use the CompositeCPA to choose the edge, and when we have
-   * several locations in the threadingState, only one of them has an outgoing edge matching the
-   * current edge.
+   * <p>This method is necessary, because neither ThreadingState::getActiveThread nor
+   * ThreadingTransferRelation::getActiveThread are guaranteed to give the correct result during
+   * strengthening.
    */
   @Nullable
   private String getActiveThread(final CFAEdge cfaEdge, final ThreadingState threadingState) {
-    final Set<String> activeThreads = new HashSet<>();
     for (String id : threadingState.getThreadIds()) {
       if (Iterables.contains(threadingState.getThreadLocation(id).getIngoingEdges(), cfaEdge)) {
-        activeThreads.add(id);
+        return id;
       }
     }
-
-    assert activeThreads.size() <= 1 : "multiple active threads are not allowed: " + activeThreads;
-    // then either the same function is called in different threads -> not supported.
-    // (or CompositeCPA and ThreadingCPA do not work together)
-
-    return activeThreads.isEmpty() ? null : Iterables.getOnlyElement(activeThreads);
+    throw new AssertionError("Unable to determine active thread");
   }
 }
