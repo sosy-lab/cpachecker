@@ -9,7 +9,6 @@
 package org.sosy_lab.cpachecker.cpa.smg2;
 
 import static com.google.common.truth.Truth.assertThat;
-import static org.junit.Assert.assertThrows;
 import static org.sosy_lab.common.collect.Collections3.transformedImmutableListCopy;
 
 import com.google.common.base.Preconditions;
@@ -929,25 +928,18 @@ public class SMGCPAValueVisitorTest {
                     pointerArrayName, currentValueArrayType, pointerArrayOffset, valueArrayOffset);
             if (realIndex < 0 || realIndex >= TEST_ARRAY_LENGTH) {
               // Out of bounds
-              CPATransferException e =
-                  assertThrows(CPATransferException.class, () -> arrayPointerExpr.accept(visitor));
+              List<ValueAndSMGState> visitedValuesAndStates = arrayPointerExpr.accept(visitor);
+              assertThat(visitedValuesAndStates).hasSize(1);
+              ValueAndSMGState visitedValueAndState = visitedValuesAndStates.get(0);
+              // Error state + unknown value
+              assertThat(visitedValueAndState.getValue())
+                  .isEqualTo(Value.UnknownValue.getInstance());
+              // There are 2 errors. 1 read and 1 write error. The read error is first however and
+              // its the one we are interested in.
+              assertThat(visitedValueAndState.getState().getErrorInfo()).hasSize(1);
+              SMGErrorInfo error = visitedValueAndState.getState().getErrorInfo().get(0);
 
-              BigInteger expectedObjectSize =
-                  BigInteger.valueOf(sizeOfCurrentTypeInBits)
-                      .multiply(BigInteger.valueOf(TEST_ARRAY_LENGTH));
-
-              // TODO: rework once i make a more useful error msg
-              assertThat(e).hasMessageThat().contains("invalid read");
-              assertThat(e)
-                  .hasMessageThat()
-                  .contains(
-                      "with size "
-                          + expectedObjectSize
-                          + " bits at offset "
-                          + (realIndex * sizeOfCurrentTypeInBits)
-                          + " bit with read type size "
-                          + sizeOfCurrentTypeInBits
-                          + " bit");
+              assertThat(error.isInvalidRead()).isTrue();
             } else {
               List<ValueAndSMGState> resultList = arrayPointerExpr.accept(visitor);
 
@@ -1343,17 +1335,24 @@ public class SMGCPAValueVisitorTest {
               continue;
             }
 
-            CPATransferException e =
-                assertThrows(CPATransferException.class, () -> arrayPointerExpr.accept(visitor));
+            List<ValueAndSMGState> visitedValuesAndStates = arrayPointerExpr.accept(visitor);
+            assertThat(visitedValuesAndStates).hasSize(1);
+            ValueAndSMGState visitedValueAndState = visitedValuesAndStates.get(0);
+            // Error state + unknown value
+            assertThat(visitedValueAndState.getValue()).isEqualTo(Value.UnknownValue.getInstance());
+            // There are 2 errors. 1 read and 1 write error. The read error is first however and
+            // its the one we are interested in.
+            assertThat(visitedValueAndState.getState().getErrorInfo()).hasSize(1);
+            SMGErrorInfo error = visitedValueAndState.getState().getErrorInfo().get(0);
+
+            assertThat(error.isInvalidRead()).isTrue();
 
             BigInteger expectedObjectSize =
                 BigInteger.valueOf(sizeOfCurrentTypeInBits)
                     .multiply(BigInteger.valueOf(TEST_ARRAY_LENGTH));
 
             // TODO: rework once i make more useful error msg
-            assertThat(e).hasMessageThat().contains("invalid read");
-            assertThat(e)
-                .hasMessageThat()
+            assertThat(error.getErrorDescription())
                 .contains(
                     "with size "
                         + expectedObjectSize
