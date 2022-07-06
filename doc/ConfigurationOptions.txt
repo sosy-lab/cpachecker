@@ -3077,9 +3077,6 @@ cpa.threading.allowMultipleLHS = false
 # 'cfa.cfaCloner.numberOfCopies' should be set to N.
 cpa.threading.maxNumberOfThreads = 5
 
-# enable data race detection
-cpa.threading.trackDataRaces = false
-
 # in case of witness validation we need to check all possible function calls
 # of cloned CFAs.
 cpa.threading.useAllPossibleClones = false
