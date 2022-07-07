@@ -6,7 +6,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.cpa.rangedExecution;
+package org.sosy_lab.cpachecker.cpa.rangedAnalysis;
 
 import static com.google.common.truth.Truth.assertThat;
 
@@ -31,7 +31,7 @@ import org.sosy_lab.cpachecker.util.test.CPATestRunner;
 import org.sosy_lab.cpachecker.util.test.TestDataTools;
 import org.sosy_lab.cpachecker.util.test.TestResults;
 
-public class RangedExecutionTest {
+public class RangedAnalysisTest {
 
   private static final long TIMEOUT = 9000;
 
@@ -221,7 +221,7 @@ public class RangedExecutionTest {
     }
 
     public void performTest() throws Exception {
-      RangedExecutionTest.performTest(
+      RangedAnalysisTest.performTest(
           programFile, generationConfig, overrideOptionsBuilder, expectedResult);
     }
   }

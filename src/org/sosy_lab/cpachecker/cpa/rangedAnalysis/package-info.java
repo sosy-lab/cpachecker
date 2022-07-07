@@ -7,4 +7,4 @@
 // SPDX-License-Identifier: Apache-2.0
 
 /** The ranged execution analysis monitors executes an analysis within two given bounds */
-package org.sosy_lab.cpachecker.cpa.rangedExecution;
+package org.sosy_lab.cpachecker.cpa.rangedAnalysis;

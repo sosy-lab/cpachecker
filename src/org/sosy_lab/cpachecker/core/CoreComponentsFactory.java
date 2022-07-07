@@ -26,7 +26,7 @@ import org.sosy_lab.cpachecker.core.algorithm.AnalysisWithRefinableEnablerCPAAlg
 import org.sosy_lab.cpachecker.core.algorithm.ArrayAbstractionAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.AssumptionCollectorAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.BDDCPARestrictionAlgorithm;
-import org.sosy_lab.cpachecker.core.algorithm.BoundedRangeExecution;
+import org.sosy_lab.cpachecker.core.algorithm.RangeExecution;
 import org.sosy_lab.cpachecker.core.algorithm.CEGARAlgorithm.CEGARAlgorithmFactory;
 import org.sosy_lab.cpachecker.core.algorithm.CPAAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.CounterexampleStoreAlgorithm;
@@ -506,7 +506,7 @@ public class CoreComponentsFactory {
     } else if (useCombinedRangeExecutionAlgorithm) {
       logger.log(Level.INFO, "Using Combined Range Execution analysis");
       algorithm =
-          BoundedRangeExecution.create(config, logger, shutdownNotifier, specification, cfa);
+          RangeExecution.create(config, logger, shutdownNotifier, specification, cfa);
     } else if (useRestartingAlgorithm) {
       logger.log(Level.INFO, "Using Restarting Algorithm");
       algorithm = RestartAlgorithm.create(config, logger, shutdownNotifier, specification, cfa);

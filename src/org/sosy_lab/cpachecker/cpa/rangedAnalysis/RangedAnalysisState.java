@@ -6,7 +6,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.cpa.rangedExecution;
+package org.sosy_lab.cpachecker.cpa.rangedAnalysis;
 
 import java.io.Serializable;
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -14,25 +14,25 @@ import org.sosy_lab.cpachecker.core.defaults.LatticeAbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Graphable;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 
-public class RangedExecutionState
-    implements LatticeAbstractState<RangedExecutionState>, Serializable, Graphable {
+public class RangedAnalysisState
+    implements LatticeAbstractState<RangedAnalysisState>, Serializable, Graphable {
 
   private static final long serialVersionUID = 6762491514691078996L;
 
   private final @Nullable ValueAnalysisState leftState;
   private final @Nullable ValueAnalysisState rightState;
 
-  public RangedExecutionState(ValueAnalysisState pLeftState, ValueAnalysisState pRightState) {
+  public RangedAnalysisState(ValueAnalysisState pLeftState, ValueAnalysisState pRightState) {
     leftState = pLeftState;
     rightState = pRightState;
   }
 
-  public static RangedExecutionState getMiddleState() {
-    return new MiddleRangedExecutionState();
+  public static RangedAnalysisState getMiddleState() {
+    return new MiddleRangedAnalysisState();
   }
 
   @Override
-  public boolean isLessOrEqual(RangedExecutionState other) {
+  public boolean isLessOrEqual(RangedAnalysisState other) {
     return ((this.leftState != null
                 && other.leftState != null
                 && this.leftState.isLessOrEqual(other.leftState))
@@ -54,7 +54,7 @@ public class RangedExecutionState
   }
 
   @Override
-  public RangedExecutionState join(RangedExecutionState pOther) {
+  public RangedAnalysisState join(RangedAnalysisState pOther) {
     return pOther;
   }
 

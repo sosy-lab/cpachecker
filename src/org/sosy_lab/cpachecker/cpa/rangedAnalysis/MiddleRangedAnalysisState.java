@@ -6,13 +6,13 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.cpa.rangedExecution;
+package org.sosy_lab.cpachecker.cpa.rangedAnalysis;
 
-public class MiddleRangedExecutionState extends RangedExecutionState {
+public class MiddleRangedAnalysisState extends RangedAnalysisState {
 
   private static final long serialVersionUID = 6769991514691078996L;
 
-  public MiddleRangedExecutionState() {
+  public MiddleRangedAnalysisState() {
     super(null, null);
   }
 

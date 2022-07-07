@@ -17,6 +17,7 @@ import java.io.BufferedWriter;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.nio.charset.Charset;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -30,9 +31,11 @@ import java.util.stream.Collectors;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.common.io.PathTemplate;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
@@ -72,15 +75,16 @@ import org.sosy_lab.java_smt.api.ProverEnvironment;
 import org.sosy_lab.java_smt.api.SolverContext.ProverOptions;
 import org.sosy_lab.java_smt.api.SolverException;
 
-@Options(prefix = "cpa.rseexport")
+@Options(prefix = "cpa.rangedExecutionInput")
 public class RangedExecutionInputComputation implements Algorithm {
 
-  public static final String INV_FUNCTION_NAMING_SCHEMA = "Inv_%s";
   private static final Integer DEFAULT_INT = 0;
   private final CFA cfa;
 
-  @Option(secure = true, description = "Create a file that contains the testinput.")
-  private String outdirForExport = "output/";
+  @Option(secure = true, name = "testcaseName", description = "Names of the files for the testcases")
+  @FileOption(FileOption.Type.OUTPUT_FILE)
+  private Path testcaseName = Path.of("testcase.0.xml");
+
 
   @Option(
       secure = true,
@@ -193,8 +197,8 @@ public class RangedExecutionInputComputation implements Algorithm {
 
   private void printFileToPutput(List<Pair<CIdExpression, Integer>> pInputs) throws IOException {
 
-    java.nio.file.Path path = Paths.get(this.outdirForExport + "testinput.xml");
-    logger.logf(Level.INFO, "Storing the testcase at %s", path.toAbsolutePath().toString());
+
+    logger.logf(Level.INFO, "Storing the testcase at %s", testcaseName.toAbsolutePath().toString());
     List<String> content = new ArrayList<>();
     content.add("<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"no\"?>");
     content.add(
@@ -212,7 +216,7 @@ public class RangedExecutionInputComputation implements Algorithm {
     }
 
     content.add("</testcase>");
-    BufferedWriter writer = new BufferedWriter(new FileWriter(path.toFile(), Charset.defaultCharset()));
+    BufferedWriter writer = new BufferedWriter(new FileWriter(testcaseName.toFile(), Charset.defaultCharset()));
     writer.write(Joiner.on("\n").join(content));
     writer.close();
   }

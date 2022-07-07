@@ -6,7 +6,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.cpa.rangedExecution;
+package org.sosy_lab.cpachecker.cpa.rangedAnalysis;
 
 import com.google.common.collect.ImmutableSet;
 import java.util.Collection;
@@ -25,14 +25,14 @@ import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisTransferRelation;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 
-public class RangedExecutionTransferRelation extends SingleEdgeTransferRelation {
+public class RangedAnalysisTransferRelation extends SingleEdgeTransferRelation {
 
   private final LogManager logger;
 
   private ValueAnalysisTransferRelation leftTR;
   private ValueAnalysisTransferRelation rightTR;
 
-  public RangedExecutionTransferRelation(LogManager pLogger) {
+  public RangedAnalysisTransferRelation(LogManager pLogger) {
     logger = pLogger;
   }
 
@@ -41,12 +41,12 @@ public class RangedExecutionTransferRelation extends SingleEdgeTransferRelation 
    * methods.
    */
   @Override
-  public Collection<RangedExecutionState> getAbstractSuccessorsForEdge(
+  public Collection<RangedAnalysisState> getAbstractSuccessorsForEdge(
       final AbstractState abstractState, final Precision abstractPrecision, final CFAEdge cfaEdge)
       throws CPATransferException, InterruptedException {
 
-    RangedExecutionState state =
-        AbstractStates.extractStateByType(abstractState, RangedExecutionState.class);
+    RangedAnalysisState state =
+        AbstractStates.extractStateByType(abstractState, RangedAnalysisState.class);
 
     if (Objects.isNull(state)) {
       throw new CPATransferException("state has the wrong format");
@@ -57,7 +57,7 @@ public class RangedExecutionTransferRelation extends SingleEdgeTransferRelation 
 
     if (isMiddleState(oldLeft, oldRight)) {
       // Just for optimization
-      return ImmutableSet.of(RangedExecutionState.getMiddleState());
+      return ImmutableSet.of(RangedAnalysisState.getMiddleState());
     }
 
     ValueAnalysisState newLeft =
@@ -86,7 +86,7 @@ public class RangedExecutionTransferRelation extends SingleEdgeTransferRelation 
         }
         // We are either still on the left path (if newLeft != null or in the middle (if
         // !truthAssumption && newLeft == null. Both cases are handled with the same return value.
-        return Collections.singleton(new RangedExecutionState(newLeft, newRight));
+        return Collections.singleton(new RangedAnalysisState(newLeft, newRight));
       }
       // Check for right states:
       if (oldRight != null && oldLeft == null) {
@@ -97,7 +97,7 @@ public class RangedExecutionTransferRelation extends SingleEdgeTransferRelation 
         }
         // We are either still on the right bound path (if newRight != null) or in the middle (if
         // truthAssumption && newRight == null). BOth cases are handled with the same return value.
-        return Collections.singleton(new RangedExecutionState(newLeft, newRight));
+        return Collections.singleton(new RangedAnalysisState(newLeft, newRight));
       }
     } else {
 
@@ -105,7 +105,7 @@ public class RangedExecutionTransferRelation extends SingleEdgeTransferRelation 
       // If we are at the left bound path and the computation stops (at a non-assume edge), because
       // the testcase is under-specified, follow this path and treat it as "middel-path"
       if (oldLeft != null && newLeft == null) {
-        return Collections.singleton(new RangedExecutionState(newLeft, newRight));
+        return Collections.singleton(new RangedAnalysisState(newLeft, newRight));
       }
       // If we are at the right bound path and the computation stops (at a non-assume edge), because
       // the testcase is under-specified,stop the computation
@@ -113,7 +113,7 @@ public class RangedExecutionTransferRelation extends SingleEdgeTransferRelation 
         return ImmutableSet.of();
       }
     }
-    return Collections.singleton(new RangedExecutionState(newLeft, newRight));
+    return Collections.singleton(new RangedAnalysisState(newLeft, newRight));
   }
 
   private boolean isMiddleState(ValueAnalysisState pOldLeft, ValueAnalysisState pOldRight) {
@@ -132,7 +132,7 @@ public class RangedExecutionTransferRelation extends SingleEdgeTransferRelation 
         String.format(
             "Current abstract state at location %s is  '%s'",
             AbstractStates.extractLocations(pOtherStates).first().get(),
-            AbstractStates.extractStateByType(pState, RangedExecutionState.class)));
+            AbstractStates.extractStateByType(pState, RangedAnalysisState.class)));
     return super.strengthen(pState, pOtherStates, pCfaEdge, pPrecision);
   }
 

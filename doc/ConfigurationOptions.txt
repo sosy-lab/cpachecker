@@ -737,15 +737,6 @@ bmc.simplifyBooleanFormula = false
 # Use generalized counterexamples to induction as candidate invariants.
 bmc.usePropertyDirection = false
 
-# How to determine the bound splitting lower and upper half
-boundedRangeExecution.configForTestcase = no default value
-
-# Which analysis to use for the analysis on the lower half
-boundedRangeExecution.configLowerBound = no default value
-
-# Which analysis to use for the analysis on the upper half
-boundedRangeExecution.configUpperBound = no default value
-
 # File name where to put the path program that is generated as input for
 # CBMC. A temporary file is used if this is unspecified. If specified, the
 # file name should end with '.i' because otherwise CBMC runs the
@@ -770,7 +761,7 @@ cegar.domainScoreThreshold = 1024
 cegar.globalRefinement = false
 
 # Max number of refinement iterations, -1 for no limit
-cegar.maxIterations = -1
+cegar.maxIterations = 1
 
 # Which refinement algorithm to use? (give class name, required for CEGAR) If
 # the package name starts with 'org.sosy_lab.cpachecker.', this prefix can be
@@ -2717,17 +2708,24 @@ cpa.propertychecker.className = org.sosy_lab.cpachecker.pcc.propertychecker.Defa
 cpa.propertychecker.parameters = ""
 
 # If no path is given for the path2InputFile, try to load it automatically
-cpa.rangedExecution.autoLoadPath2Input = false
+cpa.rangedAnalysis.autoLoadPath2Input = false
 
 # The path for the input file to handle input/random values for the constant
-# propagation following the left bound. If no path is given, there is no left
-# bound.
-cpa.rangedExecution.path2LeftInputFile = no default value
+# propagation following the lower bound. If no path is given, there is no
+# lower bound.
+cpa.rangedAnalysis.path2LowerInputFile = no default value
 
 # The path for the input file to handle input/random values for the constant
-# propagation following the right bound. If no path is given, there is no
-# right bound.
-cpa.rangedExecution.path2RightInputFile = no default value
+# propagation following the upper bound. If no path is given, there is no
+# upper bound.
+cpa.rangedAnalysis.path2UpperInputFile = no default value
+
+# List of names (or a part of the name) of functions, that return a random
+# value
+cpa.rangedExecutionInput.namesOfRandomFunctions = {"rand", "__VERIFIER_nondet_"}
+
+# Names of the files for the testcases
+cpa.rangedExecutionInput.testcaseName = "testcase.0.xml"
 
 # Whether to consider constraints on program variables (e.g., x > 10) as
 # definitions)
@@ -2744,13 +2742,6 @@ cpa.reachdef.stop = "SEP"
 # Do not report 'False' result, return UNKNOWN instead.  Useful for
 # incomplete analysis with no counterexample checking.
 cpa.reportFalseAsUnknown = false
-
-# List of names (or a part of the name) of functions, that return a random
-# value
-cpa.rseexport.namesOfRandomFunctions = {"rand", "__VERIFIER_nondet_"}
-
-# Create a file that contains the testinput.
-cpa.rseexport.outdirForExport = "output/"
 
 # which merge operator to use for SignCPA
 cpa.sign.merge = "JOIN"
@@ -4250,6 +4241,22 @@ program.splitter.heuristic = no default value
 
 # maximal number
 program.splitter.max = 2
+
+# List of files with configurations to use. The files are used in order,
+# hence the first file is used for the left most bound, ..., the last file is
+# used for the right most bound.
+rangeExecution.configFiles = no default value
+
+# How to determine the bound splitting lower and upper half
+rangeExecution.configForTestcase = no default value
+
+# Names of the files for the testcases
+rangeExecution.testcaseNames = "testcase.%d.xml"
+
+# List of values for the loopbound. The values are used in order, hence the
+# first loopbound is used for the upper bound of the leftmost analysis and so
+# on. Need to have the same size as configFiles.
+rangeExecution.valuesForLoopBound = Lists.newArrayList(3)
 
 # Quantifier elimination strategy
 rcnf.boundVarsHandling = QE_LIGHT_THEN_DROP

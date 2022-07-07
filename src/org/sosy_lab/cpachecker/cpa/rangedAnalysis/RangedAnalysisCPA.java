@@ -2,11 +2,11 @@
 // a tool for configurable software verification:
 // https://cpachecker.sosy-lab.org
 //
-// SPDX-FileCopyrightText: 2021 Dirk Beyer <https://www.sosy-lab.org>
+// SPDX-FileCopyupperText: 2021 Dirk Beyer <https://www.sosy-lab.org>
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.cpa.rangedExecution;
+package org.sosy_lab.cpachecker.cpa.rangedAnalysis;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -39,25 +39,25 @@ import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisCPA;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
-@Options(prefix = "cpa.rangedExecution")
-public class RangedExecutionCPA extends AbstractCPA implements ProofCheckerCPA {
+@Options(prefix = "cpa.rangedAnalysis")
+public class RangedAnalysisCPA extends AbstractCPA implements ProofCheckerCPA {
 
   private final LogManager logger;
 
-  private final ValueAnalysisCPA left;
-  private final ValueAnalysisCPA right;
+  private final ValueAnalysisCPA lower;
+  private final ValueAnalysisCPA upper;
 
-  private final boolean leftBoundExists;
-  private final boolean rightBoundExists;
+  private final boolean lowerBoundExists;
+  private final boolean upperBoundExists;
   private final ShutdownNotifier shutdownNotifier;
   private final CFA cfa;
 
   public static CPAFactory factory() {
-    return AutomaticCPAFactory.forType(RangedExecutionCPA.class);
+    return AutomaticCPAFactory.forType(RangedAnalysisCPA.class);
   }
 
-  protected String suffixForLeftInputFile = ".left";
-  protected String suffixForRightInputFile = ".right";
+  protected String suffixForLowerInputFile = ".lower";
+  protected String suffixForUpperInputFile = ".upper";
 
   @Option(
       secure = true,
@@ -68,68 +68,68 @@ public class RangedExecutionCPA extends AbstractCPA implements ProofCheckerCPA {
       secure = true,
       description =
           "The path for the input file to handle input/random values for the constant propagation"
-              + " following the left bound. If no path is given, there is no left bound.")
+              + " following the lower bound. If no path is given, there is no lower bound.")
   @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
-  protected Path path2LeftInputFile = null;
+  protected Path path2LowerInputFile = null;
 
   @Option(
       secure = true,
       description =
           "The path for the input file to handle input/random values for the constant propagation"
-              + " following the right bound. If no path is given, there is no right bound.")
+              + " following the upper bound. If no path is given, there is no upper bound.")
   @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
-  protected Path path2RightInputFile = null;
+  protected Path path2UpperInputFile = null;
 
   @SuppressWarnings("unused")
-  private RangedExecutionCPA(
+  private RangedAnalysisCPA(
       Configuration config, LogManager pLogger, CFA pCfa, ShutdownNotifier pShutdownNotifier)
       throws InvalidConfigurationException, CPAException, InterruptedException {
-    super(DelegateAbstractDomain.getInstance(), new RangedExecutionTransferRelation(pLogger));
+    super(DelegateAbstractDomain.getInstance(), new RangedAnalysisTransferRelation(pLogger));
     config.inject(this);
     this.logger = pLogger;
     this.shutdownNotifier = pShutdownNotifier;
     this.cfa = pCfa;
-    if (Objects.isNull(path2LeftInputFile) && autoLoadPath2Input) {
-      Optional<Path> optPath = loadPath2InputFile(suffixForLeftInputFile, pCfa);
+    if (Objects.isNull(path2LowerInputFile) && autoLoadPath2Input) {
+      Optional<Path> optPath = loadPath2InputFile(suffixForLowerInputFile, pCfa);
       if (optPath.isPresent()) {
-        path2LeftInputFile = optPath.orElseThrow();
+        path2LowerInputFile = optPath.orElseThrow();
         logger.log(
             Level.INFO,
             Level.INFO,
-            String.format("Using the file %s for the left bound", path2LeftInputFile));
+            String.format("Using the file %s for the lower bound", path2LowerInputFile));
       }
     }
 
-    if (Objects.isNull(path2RightInputFile) && autoLoadPath2Input) {
-      Optional<Path> optPath = loadPath2InputFile(suffixForRightInputFile, pCfa);
+    if (Objects.isNull(path2UpperInputFile) && autoLoadPath2Input) {
+      Optional<Path> optPath = loadPath2InputFile(suffixForUpperInputFile, pCfa);
       if (optPath.isPresent()) {
-        path2RightInputFile = optPath.orElseThrow();
+        path2UpperInputFile = optPath.orElseThrow();
         logger.log(
             Level.INFO,
             Level.INFO,
-            String.format("Using the file %s for the right bound", path2RightInputFile));
+            String.format("Using the file %s for the upper bound", path2UpperInputFile));
       }
     }
     logger.logf(
         Level.INFO,
-        "Using %s as left bound and %s as right bound",
-        path2LeftInputFile,
-        path2RightInputFile);
-    RangedExecutionTransferRelation transferRelation =
-        (RangedExecutionTransferRelation) getTransferRelation();
-    right = getCPAForBound(path2RightInputFile, config, true);
-    left = getCPAForBound(path2LeftInputFile, config, false);
-    transferRelation.setCPTRs(left.getTransferRelation(), right.getTransferRelation());
-    this.rightBoundExists = Objects.nonNull(path2RightInputFile);
-    this.leftBoundExists = Objects.nonNull(path2LeftInputFile);
+        "Using %s as lower bound and %s as upper bound",
+        path2LowerInputFile,
+        path2UpperInputFile);
+    RangedAnalysisTransferRelation transferRelation =
+        (RangedAnalysisTransferRelation) getTransferRelation();
+    upper = getCPAForBound(path2UpperInputFile, config, path2UpperInputFile != null);
+    lower = getCPAForBound(path2LowerInputFile, config, false);
+    transferRelation.setCPTRs(lower.getTransferRelation(), upper.getTransferRelation());
+    this.upperBoundExists = Objects.nonNull(path2UpperInputFile);
+    this.lowerBoundExists = Objects.nonNull(path2LowerInputFile);
   }
 
   @Override
   public AbstractState getInitialState(CFANode node, StateSpacePartition partition)
       throws InterruptedException {
-    return new RangedExecutionState(
-        leftBoundExists ? (ValueAnalysisState) this.left.getInitialState(node, partition) : null,
-        rightBoundExists ? (ValueAnalysisState) this.right.getInitialState(node, partition) : null);
+    return new RangedAnalysisState(
+        lowerBoundExists ? (ValueAnalysisState) this.lower.getInitialState(node, partition) : null,
+        upperBoundExists ? (ValueAnalysisState) this.upper.getInitialState(node, partition) : null);
   }
 
   @Override
@@ -151,14 +151,14 @@ public class RangedExecutionCPA extends AbstractCPA implements ProofCheckerCPA {
    * @return a ValueAnalysisCPA
    * @throws InvalidConfigurationException if an error occurs
    */
-  private ValueAnalysisCPA getCPAForBound(Path pPath, Configuration config, boolean pIsRightBound)
+  private ValueAnalysisCPA getCPAForBound(Path pPath, Configuration config, boolean pIsUpperBound)
       throws InvalidConfigurationException, CPAException, InterruptedException {
     ConfigurationBuilder builder = Configuration.builder().copyFrom(config);
 
     if (Objects.nonNull(pPath)) {
       builder.setOption("cpa.value.ignoreFunctionValueExceptRandom", Boolean.toString(true));
       builder.setOption(
-          "cpa.value.stopIfAllValuesForUnknownAreUsed", Boolean.toString(pIsRightBound));
+          "cpa.value.stopIfAllValuesForUnknownAreUsed", Boolean.toString(pIsUpperBound));
       builder.setOption("cpa.value.functionValuesForRandom", pPath.toAbsolutePath().toString());
     }
     CPAFactory factory =

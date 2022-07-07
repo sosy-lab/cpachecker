@@ -1,11 +1,11 @@
-// This file is part of CPAchecker,
-// a tool for configurable software verification:
-// https://cpachecker.sosy-lab.org
+//// This file is part of CPAchecker,
+//// a tool for configurable software verification:
+//// https://cpachecker.sosy-lab.org
+////
+//// SPDX-FileCopyrightText: 2022 Dirk Beyer <https://www.sosy-lab.org>
+////
+//// SPDX-License-Identifier: Apache-2.0
 //
-// SPDX-FileCopyrightText: 2022 Dirk Beyer <https://www.sosy-lab.org>
-//
-// SPDX-License-Identifier: Apache-2.0
-
 package org.sosy_lab.cpachecker.core.algorithm;
 
 import com.google.common.collect.Iterables;
@@ -23,11 +23,13 @@ import java.util.logging.Level;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.ShutdownNotifier;
+import org.sosy_lab.common.configuration.AnnotatedValue;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.common.io.PathTemplate;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -42,22 +44,22 @@ import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.Triple;
 
-@Options(prefix = "boundedRangeExecution")
-public class BoundedRangeExecution extends NestingAlgorithm {
+@Options(prefix = "rangeExecution")
+public class RangeExecution extends NestingAlgorithm {
 
   @Option(
       secure = true,
       required = true,
-      description = "Which analysis to use for the analysis on the lower half")
+      description =
+          "List of files with configurations to use. The files are used in order, hence the first file is used for the left most bound, ..., the last file is used for the right most bound.")
   @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
-  private Path configLowerBound;
+  private List<Path> configFiles;
 
   @Option(
       secure = true,
-      required = true,
-      description = "Which analysis to use for the analysis on the upper half")
-  @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
-  private Path configUpperBound;
+      description =
+          "List of values for the loopbound. The values are used in order, hence the first loopbound is used for the upper bound of the leftmost analysis and so on. Need to have the same size as configFiles.")
+  private List<Integer> valuesForLoopBound = Lists.newArrayList(3);
 
   @Option(
       secure = true,
@@ -66,10 +68,16 @@ public class BoundedRangeExecution extends NestingAlgorithm {
   @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
   private Path configForTestcase;
 
-  private boolean useSpecificLoopbound = false;
+  @Option(
+      secure = true,
+      name = "testcaseNames",
+      description = "Names of the files for the testcases")
+  @FileOption(FileOption.Type.OUTPUT_FILE)
+  private PathTemplate testcaseNames = PathTemplate.ofFormatString("testcase.%d.xml");
+
   private CFA cfa;
 
-  protected BoundedRangeExecution(
+  protected RangeExecution(
       Configuration config,
       LogManager pLogger,
       ShutdownNotifier pShutdownNotifier,
@@ -88,36 +96,43 @@ public class BoundedRangeExecution extends NestingAlgorithm {
       Specification pSpecification,
       CFA pCfa)
       throws InvalidConfigurationException {
-    return new BoundedRangeExecution(pConfig, pLogger, pShutdownNotifier, pSpecification, pCfa);
+    return new RangeExecution(pConfig, pLogger, pShutdownNotifier, pSpecification, pCfa);
   }
 
   @Override
   public AlgorithmStatus run(ReachedSet reachedSet) throws CPAException, InterruptedException {
 
     // First, determine the bound
-    int loopBound = 3;
-    Optional<Path> path2LoopBound = computeAndLoadBound(loopBound, reachedSet);
+    List<Path> path2LoopBound = computeAndLoadBound(reachedSet);
 
-    if (path2LoopBound.isPresent() && path2LoopBound.orElseThrow().toFile().exists()) {
-
-      List<Pair<String, String>> paramsLower =
-          Lists.newArrayList(
+    if (path2LoopBound.size() == configFiles.size()-1
+        && path2LoopBound.stream().allMatch(f -> f.toFile().exists())) {
+      Pair<AlgorithmStatus, Optional<Boolean>> res = Pair.of(AlgorithmStatus.SOUND_AND_PRECISE,Optional.empty() );
+      for (int i = 0; i < configFiles.size(); i++) {
+        List<Pair<String, String>> params = new ArrayList<>();
+        if (i > 0) {
+          // Lower bound not for first analysis
+          params.add(
               Pair.of(
-                  "cpa.rangeExecution.path2UpperInputFile",
-                  path2LoopBound.get().toAbsolutePath().toString()));
-      List<Pair<String, String>> paramsUpper =
-          Lists.newArrayList(
+                  "cpa.rangedAnalysis.path2LowerInputFile",
+                  path2LoopBound.get(i-1).toAbsolutePath().toString()));
+        }
+        if (i < configFiles.size() - 1) {
+          // UpperBpund not for last analysis
+          params.add(
               Pair.of(
-                  "cpa.rangeExecution.path2LowerInputFile",
-                  path2LoopBound.get().toAbsolutePath().toString()));
+                  "cpa.rangedAnalysis.path2UpperInputFile",
+                  path2LoopBound.get(i).toAbsolutePath().toString()));
+        }
+ res =
+            loadAndExecuteAnalysis(configFiles.get(i), reachedSet, params);
 
-      Pair<AlgorithmStatus, Optional<Boolean>> res =
-          loadAndExecuteAnalysis(this.configLowerBound, reachedSet, paramsLower);
-      if (res.getSecond().isPresent() && !res.getSecond().get()) {
-        // First Analysis found an error, hence abort
-        return res.getFirst();
+        if (res.getSecond() != null && res.getSecond().isPresent() && !res.getSecond().orElseThrow() && res.getFirst() != null) {
+          //  Analysis found an error, hence abort
+          return res.getFirst();
+
+        }//TODO: Check for unsound analysis or aborts or so
       }
-      res = loadAndExecuteAnalysis(this.configUpperBound, reachedSet, paramsUpper);
       return res.getFirst();
     } else {
       // Special case: No input generated!
@@ -128,41 +143,45 @@ public class BoundedRangeExecution extends NestingAlgorithm {
               + "Could not generate a test-input for %s, hence only running %s\n"
               + " ++++++\n\n",
           cfa.getFileNames().get(0),
-          this.configLowerBound);
+          this.configFiles.get(0));
       Pair<AlgorithmStatus, Optional<Boolean>> res =
-          loadAndExecuteAnalysis(this.configLowerBound, reachedSet, new ArrayList<>());
+          loadAndExecuteAnalysis(this.configFiles.get(0), reachedSet, new ArrayList<>());
       return res.getFirst();
     }
   }
 
   /**
-   * Generate a loopbound for the given int pLoopBound and returns it. If no loopbound is returned,
-   * an empyt Optional is returned
+   * TODO: Update Generate loopbounds for the given int valuesForLoopBound and returns it. If no
+   * loopbound is generated, an empty list is generated
    *
-   * @param pLoopBound the value for the loopbound
    * @param pReached the current reached set
-   * @return either a path to the loopbound (if generated), otherwisse an empty optional
+   * @return either a list of path for the loopbounds (if generated), otherwise an empty list
    */
-  private Optional<Path> computeAndLoadBound(int pLoopBound, ReachedSet pReached) {
+  private List<Path> computeAndLoadBound(ReachedSet pReached) {
 
     Iterable<CFANode> initialNodes = AbstractStates.extractLocations(pReached.getFirstState());
     CFANode mainFunction = Iterables.getOnlyElement(initialNodes);
     ShutdownManager singleShutdownManager = ShutdownManager.createWithParent(shutdownNotifier);
-    try {
-      logger.log(Level.INFO, "Generating bound");
+
+    List<Path> res = new ArrayList<>(valuesForLoopBound.size());
+    // FIXME: Compute in parallel!
+    logger.log(Level.INFO, "Generating bound");
+    for (int i = 0; i < valuesForLoopBound.size(); i++) {
 
       @Nullable Algorithm currentAlgorithm;
       @Nullable ReachedSet currentReached;
+      Path path2File = testcaseNames.getPath(i);
       try {
         Collection<Pair<String, String>> additionalParams;
-        if (useSpecificLoopbound) {
-          additionalParams =
-              Lists.newArrayList(
-                  Pair.of(
-                      "cpa.aggressiveloopbound.maxLoopIterations", Integer.toString(pLoopBound)));
-        } else {
-          additionalParams = new ArrayList<>();
-        }
+
+        additionalParams =
+            Lists.newArrayList(
+                Pair.of(
+                    "cpa.aggressiveloopbound.maxLoopIterations",
+                    Integer.toString(valuesForLoopBound.get(i))),
+                Pair.of(
+                    "cpa.rangedExecutionInput.testcaseName",
+                    path2File.toAbsolutePath().toString()));
         Triple<Algorithm, ConfigurableProgramAnalysis, ReachedSet> currentAlg =
             createNextAlgorithm(
                 this.configForTestcase,
@@ -181,7 +200,7 @@ public class BoundedRangeExecution extends NestingAlgorithm {
             "Skipping one analysis because the configuration file "
                 + this.configForTestcase
                 + " is invalid");
-        return Optional.empty();
+        return new ArrayList<>();
       } catch (IOException e) {
         String message =
             "Skipping one analysis because the configuration file "
@@ -192,35 +211,37 @@ public class BoundedRangeExecution extends NestingAlgorithm {
         } else {
           logger.logUserException(Level.WARNING, e, message);
         }
-        return Optional.empty();
+        return new ArrayList<>();
       } catch (CPAException | InterruptedException pE) {
         logger.logUserException(
             Level.WARNING,
             pE,
-            "Failed to generate a loop bound during execution of the analysis "
-                + this.configForTestcase);
-        return Optional.empty();
+            String.format(
+                "An error occured during execution of ranged analysis: %s at iteration %d",
+                this.configForTestcase, i));
+        return new ArrayList<>();
       }
 
       // run algorith
       try {
         currentAlgorithm.run(currentReached);
-        Path path2File = Paths.get("output/testinput.xml");
-        if (path2File.toFile().exists()) {return Optional.of(path2File);}
-        return Optional.empty();
+        if (path2File.toFile().exists()) {
+          res.add(path2File);
+        } else {
+          logger.logf(Level.WARNING, "Could not generate a test-input for loopbound %d!", i);
+          return new ArrayList<>();
+        }
       } catch (CPAException | InterruptedException pE) {
         logger.logUserException(
             Level.WARNING,
             pE,
-            "An error occured during execution of ranged analysis:" + this.configForTestcase);
-        return Optional.empty();
+            String.format(
+                "An error occured during execution of ranged analysis: %s at iteration %d",
+                this.configForTestcase, i));
+        return new ArrayList<>();
       }
-
-    } catch (Exception pE) {
-      logger.logUserException(
-          Level.WARNING, pE, "An unexpected error occured during the execution");
-      return Optional.empty();
     }
+    return res;
   }
 
   /**
@@ -235,9 +256,7 @@ public class BoundedRangeExecution extends NestingAlgorithm {
    * @throws InterruptedException docu
    */
   private Pair<AlgorithmStatus, Optional<Boolean>> loadAndExecuteAnalysis(
-      Path path2AnalysisConfig,
-      ReachedSet pReached,
-      List<Pair<String, String>> pAdditionalParams)
+      Path path2AnalysisConfig, ReachedSet pReached, List<Pair<String, String>> pAdditionalParams)
       throws InterruptedException {
 
     ForwardingReachedSet reached = (ForwardingReachedSet) pReached;
@@ -282,7 +301,9 @@ public class BoundedRangeExecution extends NestingAlgorithm {
         }
         return Pair.of(AlgorithmStatus.NO_PROPERTY_CHECKED, Optional.empty());
       } catch (CPAException | InterruptedException pE) {
-        logger.logUserException(Level.WARNING, pE,
+        logger.logUserException(
+            Level.WARNING,
+            pE,
             "An error occured during execution of the analysis " + path2AnalysisConfig);
         return Pair.of(AlgorithmStatus.NO_PROPERTY_CHECKED, Optional.empty());
       }
@@ -318,7 +339,10 @@ public class BoundedRangeExecution extends NestingAlgorithm {
               path2AnalysisConfig);
         }
       } catch (CPAException pE) {
-        logger.logUserException(Level.INFO,pE, "An error occured during execution of the analysis " + path2AnalysisConfig);
+        logger.logUserException(
+            Level.INFO,
+            pE,
+            "An error occured during execution of the analysis " + path2AnalysisConfig);
       }
     } finally {
       singleShutdownManager.requestShutdown(
