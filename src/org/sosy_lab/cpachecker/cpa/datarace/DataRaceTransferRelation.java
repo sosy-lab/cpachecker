@@ -21,9 +21,13 @@ import org.sosy_lab.cpachecker.cfa.ast.ADeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.AExpressionStatement;
+import org.sosy_lab.cpachecker.cfa.ast.AFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCallAssignmentStatement;
+import org.sosy_lab.cpachecker.cfa.ast.AFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCallStatement;
+import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AStatement;
+import org.sosy_lab.cpachecker.cfa.ast.AUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
@@ -210,8 +214,7 @@ public class DataRaceTransferRelation extends SingleEdgeTransferRelation {
         break;
       case FunctionCallEdge:
         FunctionCallEdge functionCallEdge = (FunctionCallEdge) edge;
-        String functionName =
-            functionCallEdge.getFunctionCallExpression().getDeclaration().getName();
+        String functionName = getFunctionName(functionCallEdge.getFunctionCall());
         if (UNSUPPORTED_FUNCTIONS.contains(functionName)) {
           throw new CPATransferException("DataRaceCPA does not support function " + functionName);
         }
@@ -285,11 +288,7 @@ public class DataRaceTransferRelation extends SingleEdgeTransferRelation {
         } else if (statement instanceof AFunctionCallAssignmentStatement) {
           AFunctionCallAssignmentStatement functionCallAssignmentStatement =
               (AFunctionCallAssignmentStatement) statement;
-          functionName =
-              functionCallAssignmentStatement
-                  .getFunctionCallExpression()
-                  .getDeclaration()
-                  .getName();
+          functionName = getFunctionName(functionCallAssignmentStatement);
           if (UNSUPPORTED_FUNCTIONS.contains(functionName)) {
             throw new CPATransferException("DataRaceCPA does not support function " + functionName);
           }
@@ -312,8 +311,7 @@ public class DataRaceTransferRelation extends SingleEdgeTransferRelation {
                   .keySet());
         } else if (statement instanceof AFunctionCallStatement) {
           AFunctionCallStatement functionCallStatement = (AFunctionCallStatement) statement;
-          functionName =
-              functionCallStatement.getFunctionCallExpression().getDeclaration().getName();
+          functionName = getFunctionName(functionCallStatement);
           if (UNSUPPORTED_FUNCTIONS.contains(functionName)) {
             throw new CPATransferException("DataRaceCPA does not support function " + functionName);
           }
@@ -375,6 +373,24 @@ public class DataRaceTransferRelation extends SingleEdgeTransferRelation {
       }
     }
     return threadsBuilder.buildOrThrow();
+  }
+
+  private String getFunctionName(AFunctionCall pFunctionCall) {
+    AFunctionCallExpression functionCallExpression = pFunctionCall.getFunctionCallExpression();
+    if (functionCallExpression.getDeclaration() != null) {
+      return functionCallExpression.getDeclaration().getName();
+    } else {
+      AExpression functionNameExpression = functionCallExpression.getFunctionNameExpression();
+      if (functionNameExpression instanceof AIdExpression) {
+        return ((AIdExpression) functionNameExpression).getName();
+      } else if (functionNameExpression instanceof AUnaryExpression) {
+        AUnaryExpression unaryFunctionNameExpression = (AUnaryExpression) functionNameExpression;
+        if (unaryFunctionNameExpression.getOperand() instanceof AIdExpression) {
+          return ((AIdExpression) unaryFunctionNameExpression.getOperand()).getName();
+        }
+      }
+    }
+    throw new AssertionError("Unable to determine function name.");
   }
 
   /**
