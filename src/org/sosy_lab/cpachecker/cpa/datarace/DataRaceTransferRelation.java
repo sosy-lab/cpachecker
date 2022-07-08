@@ -42,7 +42,6 @@ import org.sosy_lab.cpachecker.cpa.invariants.EdgeAnalyzer;
 import org.sosy_lab.cpachecker.cpa.threading.GlobalAccessChecker;
 import org.sosy_lab.cpachecker.cpa.threading.ThreadingState;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
-import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
@@ -167,7 +166,7 @@ public class DataRaceTransferRelation extends SingleEdgeTransferRelation {
 
   private Set<MemoryAccess> getNewAccesses(
       Map<String, ThreadInfo> threads, String activeThread, CFAEdge edge, Set<String> locks)
-      throws UnsupportedCodeException {
+      throws CPATransferException {
     ImmutableSet.Builder<MemoryLocation> accessedLocationBuilder = ImmutableSet.builder();
     ImmutableSet.Builder<MemoryLocation> modifiedLocationBuilder = ImmutableSet.builder();
     ImmutableSet.Builder<MemoryAccess> newAccessBuilder = ImmutableSet.builder();
@@ -214,8 +213,7 @@ public class DataRaceTransferRelation extends SingleEdgeTransferRelation {
         String functionName =
             functionCallEdge.getFunctionCallExpression().getDeclaration().getName();
         if (UNSUPPORTED_FUNCTIONS.contains(functionName)) {
-          throw new UnsupportedCodeException(
-              "DataRaceCPA does not support function " + functionName, edge);
+          throw new CPATransferException("DataRaceCPA does not support function " + functionName);
         }
         if (functionCallEdge.getFunctionCall() instanceof AFunctionCallAssignmentStatement) {
           AFunctionCallAssignmentStatement functionCallAssignmentStatement =
@@ -293,8 +291,7 @@ public class DataRaceTransferRelation extends SingleEdgeTransferRelation {
                   .getDeclaration()
                   .getName();
           if (UNSUPPORTED_FUNCTIONS.contains(functionName)) {
-            throw new UnsupportedCodeException(
-                "DataRaceCPA does not support function " + functionName, edge);
+            throw new CPATransferException("DataRaceCPA does not support function " + functionName);
           }
           if (THREAD_SAFE_FUNCTIONS.contains(functionName)) {
             accessedLocationBuilder.addAll(
@@ -318,8 +315,7 @@ public class DataRaceTransferRelation extends SingleEdgeTransferRelation {
           functionName =
               functionCallStatement.getFunctionCallExpression().getDeclaration().getName();
           if (UNSUPPORTED_FUNCTIONS.contains(functionName)) {
-            throw new UnsupportedCodeException(
-                "DataRaceCPA does not support function " + functionName, edge);
+            throw new CPATransferException("DataRaceCPA does not support function " + functionName);
           }
           if (!THREAD_SAFE_FUNCTIONS.contains(functionName)) {
             for (AExpression expression :
