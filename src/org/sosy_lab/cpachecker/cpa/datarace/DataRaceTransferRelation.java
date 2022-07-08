@@ -51,6 +51,9 @@ import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 public class DataRaceTransferRelation extends SingleEdgeTransferRelation {
 
+  // These functions need special handling that is not currently provided by the DataRaceCPA.
+  // When one of these functions is encountered we are therefore unable to tell if a data race
+  // is present or not, so the analysis is terminated. TODO: Add support for these functions
   private static final ImmutableSet<String> UNSUPPORTED_FUNCTIONS =
       ImmutableSet.of(
           "pthread_trylock",
@@ -59,6 +62,7 @@ public class DataRaceTransferRelation extends SingleEdgeTransferRelation {
           "pthread_rwlock_timedwrlock",
           "pthread_rwlock_wrlock");
 
+  // These are the functions declared in <pthread.h> that are used in sv-benchmarks programs
   private static final ImmutableSet<String> THREAD_SAFE_FUNCTIONS =
       ImmutableSet.of(
           "pthread_mutex_lock",
@@ -167,6 +171,12 @@ public class DataRaceTransferRelation extends SingleEdgeTransferRelation {
     return strengthenedStates.build();
   }
 
+  /**
+   * Collects the memory locations accessed by the given CFA edge and builds the corresponding
+   * {@link MemoryAccess}es.
+   *
+   * <p>Throws CPATransferException if an unsupported function is encountered.</p>
+   */
   private Set<MemoryAccess> getNewAccesses(
       Map<String, ThreadInfo> threads, String activeThread, CFAEdge edge, Set<String> locks)
       throws CPATransferException {
@@ -347,6 +357,14 @@ public class DataRaceTransferRelation extends SingleEdgeTransferRelation {
     return newAccessBuilder.build();
   }
 
+  /**
+   * Updates the currently tracked thread information with information from the ThreadingCPA.
+   *
+   * @param threads The current map of thread ID -> ThreadInfo objects.
+   * @param threadIds The IDs of currently existing thread as obtained from the ThreadingCPA.
+   * @param activeThread The ID of the current active thread.
+   * @return The new thread ID -> ThreadInfo map.
+   */
   private ImmutableMap<String, ThreadInfo> getNewThreads(
       Map<String, ThreadInfo> threads, Set<String> threadIds, String activeThread) {
     Set<String> added = Sets.difference(threadIds, threads.keySet());
@@ -374,6 +392,13 @@ public class DataRaceTransferRelation extends SingleEdgeTransferRelation {
     return threadsBuilder.buildOrThrow();
   }
 
+  /**
+   * Tries to determine the function name for a given AFunctionCall.
+   *
+   * <p>Note that it is usually possible to just look up the name from the declaration of the
+   * contained function call expression but there are niche cases where this is not the case,
+   * which is why this function is necessary.</p>
+   */
   private String getFunctionName(AFunctionCall pFunctionCall) {
     AFunctionCallExpression functionCallExpression = pFunctionCall.getFunctionCallExpression();
     if (functionCallExpression.getDeclaration() != null) {
@@ -402,7 +427,7 @@ public class DataRaceTransferRelation extends SingleEdgeTransferRelation {
    *
    * <p>This method is necessary, because neither ThreadingState::getActiveThread nor
    * ThreadingTransferRelation::getActiveThread are guaranteed to give the correct result during
-   * strengthening.
+   * strengthening.</p>
    */
   private String getActiveThread(final CFAEdge cfaEdge, final ThreadingState threadingState) {
     for (String id : threadingState.getThreadIds()) {
