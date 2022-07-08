@@ -26,6 +26,7 @@ import org.sosy_lab.cpachecker.cfa.ast.AFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.APointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AStatement;
 import org.sosy_lab.cpachecker.cfa.ast.AUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
@@ -43,7 +44,6 @@ import org.sosy_lab.cpachecker.core.defaults.SingleEdgeTransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.cpa.invariants.EdgeAnalyzer;
-import org.sosy_lab.cpachecker.cpa.threading.GlobalAccessChecker;
 import org.sosy_lab.cpachecker.cpa.threading.ThreadingState;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
@@ -92,7 +92,6 @@ public class DataRaceTransferRelation extends SingleEdgeTransferRelation {
           "pthread_mutexattr_destroy");
 
   private final EdgeAnalyzer edgeAnalyzer;
-  private final GlobalAccessChecker globalAccessChecker = new GlobalAccessChecker();
 
   public DataRaceTransferRelation(EdgeAnalyzer pEdgeAnalyzer) {
     edgeAnalyzer = pEdgeAnalyzer;
@@ -113,7 +112,7 @@ public class DataRaceTransferRelation extends SingleEdgeTransferRelation {
       @Nullable CFAEdge cfaEdge,
       Precision precision)
       throws CPATransferException, InterruptedException {
-    if (cfaEdge == null || !globalAccessChecker.hasGlobalAccess(cfaEdge)) {
+    if (cfaEdge == null) {
       return ImmutableSet.of(pState);
     }
     DataRaceState state = (DataRaceState) pState;
@@ -387,6 +386,11 @@ public class DataRaceTransferRelation extends SingleEdgeTransferRelation {
         AUnaryExpression unaryFunctionNameExpression = (AUnaryExpression) functionNameExpression;
         if (unaryFunctionNameExpression.getOperand() instanceof AIdExpression) {
           return ((AIdExpression) unaryFunctionNameExpression.getOperand()).getName();
+        }
+      } else if (functionNameExpression instanceof APointerExpression) {
+        APointerExpression pointerExpression = (APointerExpression) functionNameExpression;
+        if (pointerExpression.getOperand() instanceof AIdExpression) {
+          return ((AIdExpression) pointerExpression.getOperand()).getName();
         }
       }
     }
