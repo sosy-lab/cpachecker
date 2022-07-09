@@ -29,6 +29,14 @@
         <option name="-predicateSymEx"/>
     </rundefinition>
 
+    <rundefinition name="PredicateSymEx-CEGAR">
+        <option name="-predicateSymEx-CEGAR"/>
+    </rundefinition>
+
+    <rundefinition name="PredicateSymEx-CEGAR-UCB">
+        <option name="-predicateSymEx-CEGAR-UCB"/>
+    </rundefinition>
+
     <!-- Global sourcefiles are used in every run definition. -->
     <tasks name="array">
         <include>../../sv-benchmarks/c/array-tiling/skippedu.yml</include>

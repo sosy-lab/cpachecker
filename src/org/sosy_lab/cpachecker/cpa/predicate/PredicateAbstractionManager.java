@@ -412,21 +412,21 @@ public class PredicateAbstractionManager {
       // return as new abstraction formula
       logger.log(Level.FINEST, "Abstraction", currentAbstractionId, "using SUBSTITUTION");
       stats.numSymbolicAbstractions.incrementAndGet();
-      logger.log(Level.INFO, "Before subsituion   ", f);
+      logger.log(Level.ALL, "Before subsituion   ", f);
       BooleanFormula substituted = syntacticSubstitution(f, ssa, pathFormula);
       if (solver.isUnsat(substituted)) {
         abs = amgr.makeFalsePredicate().getAbstractVariable();
       }
       else {
         if(options.useSubstitutionCEGAR()){
-        logger.log(Level.INFO, "Before abstraction ", substituted);
-        logger.log(Level.INFO, "Before predicates  ", remainingPredicates);
+        logger.log(Level.ALL, "Before abstraction ", substituted);
+        logger.log(Level.ALL, "Before predicates  ", remainingPredicates);
 
         substituted = abstractionConjucntionParts(substituted, remainingPredicates);
 //        abs = rmgr.makeAnd(abs, computeAbstraction(substituted, remainingPredicates, instantiator));
         }
         result = new AbstractionFormula(fmgr, amgr.convertFormulaToRegion(fmgr.uninstantiate(substituted)), fmgr.uninstantiate(substituted), substituted, pathFormula, noAbstractionReuse);
-        logger.log(Level.INFO, "After abstraction ", result.asFormula());
+        logger.log(Level.ALL, "After abstraction ", result.asFormula());
 
       }
     } else {
@@ -470,11 +470,11 @@ public class PredicateAbstractionManager {
         new BooleanFormulaTransformationVisitor(fmgr.manager) {
           @Override
           public BooleanFormula visitAnd(List<BooleanFormula> processedOperands) {
-            List<BooleanFormula> containgPredicateVars = new LinkedList<>();
-            logger.log(Level.INFO, "PredicateNames", predicateVars);
-            logger.log(Level.INFO, "Processed Operands", processedOperands);
+            List<BooleanFormula> containgPredicateVars = new ArrayList<>();
+            logger.log(Level.ALL, "PredicateNames", predicateVars);
+            logger.log(Level.ALL, "Processed Operands", processedOperands);
             for(BooleanFormula operand : processedOperands) {
-              logger.log(Level.INFO, "Processed Operand", fmgr.extractVariableNames(operand));
+              logger.log(Level.ALL, "Processed Operand", fmgr.extractVariableNames(operand));
               if(predicateVars.containsAll(fmgr.extractVariableNames(fmgr.uninstantiate(operand)))){
                 containgPredicateVars.add(operand);
               }
@@ -496,12 +496,12 @@ public class PredicateAbstractionManager {
     SubstituteVisitor stvisitorBf = new SubstituteVisitor(fmgr.manager);
     bfmgr.visitRecursively(bf, stvisitorBf);
     HashMap<Formula, Formula> substituteMap = stvisitorBf.fmap;
-    logger.log(Level.INFO, "substituion map", substituteMap);
+    logger.log(Level.ALL, "substituion map", substituteMap);
     SubstituteVisitor stvisitorBfnew = new SubstituteVisitor(fmgr.manager);
     bfmgr.visitRecursively(pPathFormula.getFormula(), stvisitorBfnew);
     HashMap<Formula, Formula> substituteMapnew = stvisitorBfnew.fmap;
     substituteMap.putAll(substituteMapnew);
-    logger.log(Level.INFO, "Updated substituion map with path formula", substituteMap);
+    logger.log(Level.ALL, "Updated substituion map with path formula", substituteMap);
     HashMap<Formula, Formula> substituteMapUpdated = new HashMap<>();
     for (Formula key : substituteMap.keySet()) {
       HashMap<Formula, Formula> localMap = new HashMap<>(substituteMap);
@@ -513,18 +513,18 @@ public class PredicateAbstractionManager {
       }
     }
     substituteMap = substituteMapUpdated;
-    logger.log(Level.INFO, "Updated substituion map with simplifications", substituteMap);
-    logger.log(Level.INFO, "Before substituion          ", bf);
+    logger.log(Level.ALL, "Updated substituion map with simplifications", substituteMap);
+    logger.log(Level.ALL, "Before substituion          ", bf);
     if (!substituteMap.isEmpty()) {
       SubstituteAssumptionTransformationVisitor
           stAssume = new SubstituteAssumptionTransformationVisitor(fmgr.manager, substituteMap);
       bf = bfmgr.transformRecursively(bf, stAssume);
-      logger.log(Level.INFO, "After Assumption substituion", bf);
+      logger.log(Level.ALL, "After Assumption substituion", bf);
       SubstituteAssignmentTransformationVisitor stAssign;
       stAssign =
           new SubstituteAssignmentTransformationVisitor(fmgr.manager, substituteMap, pSSAMap);
       bf = bfmgr.transformRecursively(bf, stAssign);
-      logger.log(Level.INFO, "After Assignment substituion", bf, "\n");
+      logger.log(Level.ALL, "After Assignment substituion", bf, "\n");
       BooleanFormula substitionFormula = bfmgr.makeBoolean(true);
       for (Formula key : substituteMapUpdated.keySet()) {
         if (formulaInSsaMap(key, pSSAMap)) {
@@ -532,7 +532,7 @@ public class PredicateAbstractionManager {
         }
       }
       bf = fmgr.makeAnd(bf,substitionFormula);
-      logger.log(Level.INFO, "After adding formulas       ", bf, "\n");
+      logger.log(Level.ALL, "After adding formulas       ", bf, "\n");
     }
 
     return bf;

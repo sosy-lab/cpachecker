@@ -18,6 +18,14 @@
         <option name="-predicateSymEx"/>
     </rundefinition>
 
+    <rundefinition name="PredicateSymEx-CEGAR">
+        <option name="-predicateSymEx-CEGAR"/>
+    </rundefinition>
+
+    <rundefinition name="PredicateSymEx-CEGAR-UCB">
+        <option name="-predicateSymEx-CEGAR-UCB"/>
+    </rundefinition>
+
     <tasks name="ReachSafety-Arrays">
         <includesfile>../../sv-benchmarks/c/ReachSafety-Arrays.set</includesfile>
         <propertyfile>../../sv-benchmarks/c/properties/unreach-call.prp</propertyfile>

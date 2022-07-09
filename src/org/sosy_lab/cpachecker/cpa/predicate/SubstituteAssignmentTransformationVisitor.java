@@ -45,7 +45,7 @@ public class SubstituteAssignmentTransformationVisitor extends org.sosy_lab.java
   public BooleanFormula visitAtom(BooleanFormula atom, FunctionDeclaration<BooleanFormula> decl) {
     // only substitute Assignments and Equal assumptions??? TODO also equal assumptions?
     if (decl.getKind() == FunctionDeclarationKind.EQ) {
-      HashMap<Formula,Formula> tosubstiture = new HashMap<>();
+//      HashMap<Formula,Formula> tosubstiture = new HashMap<>();
 //       modify fmap
 //      for (Formula key : fmap.keySet()) {
 //        if (!formulaInSsaMap(key)) {
@@ -71,23 +71,23 @@ public class SubstituteAssignmentTransformationVisitor extends org.sosy_lab.java
    * @param f Formula consisting of only one variable in the form `name@index`
    * @return the result of this check
    */
-  private boolean formulaInSsaMap(Formula f){
-    Map<String, Formula> vars = fmgr.extractVariables(f);
-    if (vars.size()!=1) {
-      // TODO Martin reenable error
-      return true;
-//      throw new IllegalArgumentException("Error checking if variable index in SSAMAP: " + f.toString() +
-//          "\nNot exactly one variable in f");
-    }
-    Pair<String, OptionalInt> stringOptionalIntPair = FormulaManagerView.parseName(vars.keySet().iterator().next());
-    assert stringOptionalIntPair.getFirst() != null;
-    if (stringOptionalIntPair.getFirst().isEmpty() || stringOptionalIntPair.getSecond().isEmpty()) {
-      // TODO Martin Does javasmt have a unified logging system?
-      // TODO Martin reenable error
-      return true;
-//      throw new IllegalArgumentException("Error checking if variable index in SSAMAP: " + f.toString());
-    }
-//    String[] parts = f.toString().split("@");
-    return ssaMap.containsVariable(stringOptionalIntPair.getFirst()) && (ssaMap.getIndex(stringOptionalIntPair.getFirst()) == stringOptionalIntPair.getSecond().getAsInt());
-  }
+//  private boolean formulaInSsaMap(Formula f){
+//    Map<String, Formula> vars = fmgr.extractVariables(f);
+//    if (vars.size()!=1) {
+//      // TODO Martin reenable error
+//      return true;
+////      throw new IllegalArgumentException("Error checking if variable index in SSAMAP: " + f.toString() +
+////          "\nNot exactly one variable in f");
+//    }
+//    Pair<String, OptionalInt> stringOptionalIntPair = FormulaManagerView.parseName(vars.keySet().iterator().next());
+//    assert stringOptionalIntPair.getFirst() != null;
+//    if (stringOptionalIntPair.getFirst().isEmpty() || stringOptionalIntPair.getSecond().isEmpty()) {
+//      // TODO Martin Does javasmt have a unified logging system?
+//      // TODO Martin reenable error
+//      return true;
+////      throw new IllegalArgumentException("Error checking if variable index in SSAMAP: " + f.toString());
+//    }
+////    String[] parts = f.toString().split("@");
+//    return ssaMap.containsVariable(stringOptionalIntPair.getFirst()) && (ssaMap.getIndex(stringOptionalIntPair.getFirst()) == stringOptionalIntPair.getSecond().getAsInt());
+//  }
 }

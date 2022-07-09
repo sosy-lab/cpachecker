@@ -18,14 +18,12 @@ import java.util.HashMap;
 
 public class SubstituteAssumptionTransformationVisitor extends org.sosy_lab.java_smt.api.visitors.BooleanFormulaTransformationVisitor {
 
-  private final BooleanFormulaManager bfmgr;
   private final FormulaManager fmgr;
   private HashMap<Formula,Formula> fmap;
 
   public SubstituteAssumptionTransformationVisitor(FormulaManager pFmgr, HashMap<Formula,Formula> pFmap) {
     super(pFmgr);
     fmgr = pFmgr;
-    bfmgr = pFmgr.getBooleanFormulaManager();
     fmap = pFmap;
   }
 
