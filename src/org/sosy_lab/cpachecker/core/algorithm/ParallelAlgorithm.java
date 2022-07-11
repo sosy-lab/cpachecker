@@ -109,7 +109,7 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
   private final List<ConditionAdjustmentEventSubscriber> conditionAdjustmentEventSubscribers =
       new CopyOnWriteArrayList<>();
 
-  private final ImmutableList<Callable<ParallelAnalysisResult>> analyses;
+  protected ImmutableList<Callable<ParallelAnalysisResult>> analyses;
 
   public ParallelAlgorithm(
       Configuration config,
@@ -138,6 +138,31 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
     }
     analyses = analysesBuilder.build();
   }
+
+  public ParallelAlgorithm(
+      Configuration config,
+      LogManager pLogger,
+      ShutdownNotifier pShutdownNotifier,
+      Specification pSpecification,
+      CFA pCfa,
+      AggregatedReachedSets pAggregatedReachedSets,
+      ImmutableList<Callable<ParallelAnalysisResult>> pAnalyses)
+      throws InvalidConfigurationException, CPAException, InterruptedException {
+    config.inject(this ,ParallelAlgorithm.class);
+
+    stats = new ParallelAlgorithmStatistics(pLogger);
+    globalConfig = config;
+    logger = checkNotNull(pLogger);
+    shutdownManager = ShutdownManager.createWithParent(checkNotNull(pShutdownNotifier));
+    specification = checkNotNull(pSpecification);
+    cfa = checkNotNull(pCfa);
+
+    aggregatedReachedSetManager = new AggregatedReachedSetManager();
+    aggregatedReachedSetManager.addAggregated(pAggregatedReachedSets);
+
+    analyses = pAnalyses;
+  }
+
 
   @Override
   public AlgorithmStatus run(ReachedSet pReachedSet) throws CPAException, InterruptedException {
@@ -252,6 +277,7 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
     }
   }
 
+
   private Callable<ParallelAnalysisResult> createParallelAnalysis(
       final AnnotatedValue<Path> pSingleConfigFileName, final int analysisNumber)
       throws InvalidConfigurationException, CPAException, InterruptedException {
@@ -260,14 +286,6 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
     final boolean supplyRefinableReached;
 
     final Configuration singleConfig = createSingleConfig(singleConfigFileName, logger);
-    if (singleConfig == null) {
-      return () -> ParallelAnalysisResult.absent(singleConfigFileName.toString());
-    }
-    final ShutdownManager singleShutdownManager =
-        ShutdownManager.createWithParent(shutdownManager.getNotifier());
-
-    final LogManager singleLogger = logger.withComponentName("Parallel analysis " + analysisNumber);
-
     if (pSingleConfigFileName.annotation().isPresent()) {
       switch (pSingleConfigFileName.annotation().orElseThrow()) {
         case "supply-reached":
@@ -289,6 +307,21 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
       supplyReached = false;
       supplyRefinableReached = false;
     }
+    return createParallelAnalysis(singleConfig, analysisNumber, supplyReached, supplyRefinableReached, singleConfigFileName.toString());
+  }
+
+
+  protected Callable<ParallelAnalysisResult> createParallelAnalysis(
+    @Nullable Configuration singleConfig, final int analysisNumber,  boolean supplyReached, boolean supplyRefinableReached, String singleConfigFileName)
+      throws InvalidConfigurationException, CPAException, InterruptedException {
+
+    if (singleConfig == null) {
+      return () -> ParallelAnalysisResult.absent(singleConfigFileName);
+    }
+    final ShutdownManager singleShutdownManager =
+        ShutdownManager.createWithParent(shutdownManager.getNotifier());
+
+    final LogManager singleLogger = logger.withComponentName("Parallel analysis " + analysisNumber);
 
     final ResourceLimitChecker singleAnalysisOverallLimit =
         ResourceLimitChecker.fromConfiguration(singleConfig, singleLogger, singleShutdownManager);
@@ -308,7 +341,7 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
     StatisticsEntry statisticsEntry =
         stats.getNewSubStatistics(
             reached,
-            singleConfigFileName.toString(),
+            singleConfigFileName,
             Iterables.getOnlyElement(
                 FluentIterable.from(singleAnalysisOverallLimit.getResourceLimits())
                     .filter(ThreadCpuTimeLimit.class),
@@ -339,12 +372,12 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
         singleLogger.logUserException(
             Level.INFO, e, "Initializing reached set took too long, analysis cannot be started");
         terminated.set(true);
-        return ParallelAnalysisResult.absent(singleConfigFileName.toString());
+        return ParallelAnalysisResult.absent(singleConfigFileName);
       }
 
       ParallelAnalysisResult r =
           runParallelAnalysis(
-              singleConfigFileName.toString(),
+              singleConfigFileName,
               algorithm,
               reached,
               singleLogger,
@@ -515,7 +548,7 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
     reached.add(initialState, initialPrecision);
   }
 
-  private static class ParallelAnalysisResult {
+  static class ParallelAnalysisResult {
 
     private final @Nullable ReachedSet reached;
     private final @Nullable AlgorithmStatus status;

@@ -14,17 +14,15 @@ import com.google.common.collect.Sets;
 import java.io.IOException;
 import java.nio.channels.ClosedByInterruptException;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
-import java.util.Optional;
 import java.util.logging.Level;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.ShutdownNotifier;
-import org.sosy_lab.common.configuration.AnnotatedValue;
 import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.ConfigurationBuilder;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -36,7 +34,6 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets;
-import org.sosy_lab.cpachecker.core.reachedset.ForwardingReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
@@ -76,17 +73,20 @@ public class RangeExecution extends NestingAlgorithm {
   private PathTemplate testcaseNames = PathTemplate.ofFormatString("testcase.%d.xml");
 
   private CFA cfa;
+  private static AggregatedReachedSets aggregatedReachedSets;
 
   protected RangeExecution(
       Configuration config,
       LogManager pLogger,
       ShutdownNotifier pShutdownNotifier,
       Specification pSpecification,
-      CFA pCfa)
+      CFA pCfa,
+      AggregatedReachedSets pAggregatedReachedSets)
       throws InvalidConfigurationException {
     super(config, pLogger, pShutdownNotifier, pSpecification);
     config.inject(this);
     this.cfa = pCfa;
+    aggregatedReachedSets = pAggregatedReachedSets;
   }
 
   public static Algorithm create(
@@ -94,73 +94,56 @@ public class RangeExecution extends NestingAlgorithm {
       LogManager pLogger,
       ShutdownNotifier pShutdownNotifier,
       Specification pSpecification,
-      CFA pCfa)
+      CFA pCfa,
+      AggregatedReachedSets pAggregatedReachedSets)
       throws InvalidConfigurationException {
-    return new RangeExecution(pConfig, pLogger, pShutdownNotifier, pSpecification, pCfa);
+    return new RangeExecution(
+        pConfig, pLogger, pShutdownNotifier, pSpecification, pCfa, pAggregatedReachedSets);
   }
 
   @Override
-  public AlgorithmStatus run(ReachedSet reachedSet) throws CPAException, InterruptedException {
+  public AlgorithmStatus run(ReachedSet pReached) throws CPAException, InterruptedException {
 
     // First, determine the bound
-    List<Path> path2LoopBound = computeAndLoadBound(reachedSet);
+    Iterable<CFANode> initialNodes = AbstractStates.extractLocations(pReached.getFirstState());
+    CFANode mainFunction = Iterables.getOnlyElement(initialNodes);
+    List<Path> path2LoopBound = computeAndLoadBound(mainFunction, pReached);
 
-    if (path2LoopBound.size() == configFiles.size()-1
+    if (path2LoopBound.size() == configFiles.size() - 1
         && path2LoopBound.stream().allMatch(f -> f.toFile().exists())) {
-      Pair<AlgorithmStatus, Optional<Boolean>> res = Pair.of(AlgorithmStatus.SOUND_AND_PRECISE,Optional.empty() );
-      for (int i = 0; i < configFiles.size(); i++) {
-        List<Pair<String, String>> params = new ArrayList<>();
-        if (i > 0) {
-          // Lower bound not for first analysis
-          params.add(
-              Pair.of(
-                  "cpa.rangedAnalysis.path2LowerInputFile",
-                  path2LoopBound.get(i-1).toAbsolutePath().toString()));
-        }
-        if (i < configFiles.size() - 1) {
-          // UpperBpund not for last analysis
-          params.add(
-              Pair.of(
-                  "cpa.rangedAnalysis.path2UpperInputFile",
-                  path2LoopBound.get(i).toAbsolutePath().toString()));
-        }
- res =
-            loadAndExecuteAnalysis(configFiles.get(i), reachedSet, params);
 
-        if (res.getSecond() != null && res.getSecond().isPresent() && !res.getSecond().orElseThrow() && res.getFirst() != null) {
-          //  Analysis found an error, hence abort
-          return res.getFirst();
-
-        }//TODO: Check for unsound analysis or aborts or so
+      try {
+        ConfigurationBuilder configBuilder = Configuration.builder();
+        configBuilder.copyFrom(super.globalConfig);
+        configBuilder.setOption("parallelAlgorithm.configFiles", "cfg");
+        ParallelAlgorithmForRangedExecution parallelAlgorithm =
+            new ParallelAlgorithmForRangedExecution(
+                configBuilder.build(),
+                logger,
+                shutdownNotifier,
+                specification,
+                cfa,
+                aggregatedReachedSets);
+        parallelAlgorithm.computeAnalyses(path2LoopBound, configFiles);
+      return parallelAlgorithm.run(pReached);
+      } catch (InvalidConfigurationException | IOException pE) {
+        logger.logException(
+            Level.SEVERE, pE, "Could not create parallel algorithm, hence aborting");
+        return AlgorithmStatus.NO_PROPERTY_CHECKED;
       }
-      return res.getFirst();
-    } else {
-      // Special case: No input generated!
-      logger.logf(
-          Level.WARNING,
-          "\n\n"
-              + " +++WARNING+++\n"
-              + "Could not generate a test-input for %s, hence only running %s\n"
-              + " ++++++\n\n",
-          cfa.getFileNames().get(0),
-          this.configFiles.get(0));
-      Pair<AlgorithmStatus, Optional<Boolean>> res =
-          loadAndExecuteAnalysis(this.configFiles.get(0), reachedSet, new ArrayList<>());
-      return res.getFirst();
-    }
+  }
+  return AlgorithmStatus.NO_PROPERTY_CHECKED;
   }
 
   /**
    * TODO: Update Generate loopbounds for the given int valuesForLoopBound and returns it. If no
    * loopbound is generated, an empty list is generated
    *
-   * @param pReached the current reached set
+   * @param mainFunction THe cfa node of the main function entry
    * @return either a list of path for the loopbounds (if generated), otherwise an empty list
    */
-  private List<Path> computeAndLoadBound(ReachedSet pReached) {
+  private List<Path> computeAndLoadBound(CFANode mainFunction, ReachedSet pReached) {
 
-    Iterable<CFANode> initialNodes = AbstractStates.extractLocations(pReached.getFirstState());
-    CFANode mainFunction = Iterables.getOnlyElement(initialNodes);
     ShutdownManager singleShutdownManager = ShutdownManager.createWithParent(shutdownNotifier);
 
     List<Path> res = new ArrayList<>(valuesForLoopBound.size());
@@ -188,7 +171,7 @@ public class RangeExecution extends NestingAlgorithm {
                 mainFunction,
                 singleShutdownManager,
                 false,
-                null,
+                pReached,
                 additionalParams);
         currentAlgorithm = currentAlg.getFirst();
         currentReached = currentAlg.getThird();
@@ -244,114 +227,6 @@ public class RangeExecution extends NestingAlgorithm {
     return res;
   }
 
-  /**
-   * @param path2AnalysisConfig the path to the analysis config file to load from
-   * @param pReached the reached set
-   * @param pAdditionalParams Additional Params to use in the config, as set of Pairs, where the
-   *     first String corresponds to the name of the configuration parameter and the second string
-   *     to the value. (e.g. Pair("cpa.rangeExecution.path2UpperInputFile", "output.testcase.xml").
-   *     Note that no "=" is needed.
-   * @return The status of the analysis and, if the analysis succeeded without error (isPrecise &
-   *     isSound), a boolean, that is true if the reached set computed does **not** contain an error
-   * @throws InterruptedException docu
-   */
-  private Pair<AlgorithmStatus, Optional<Boolean>> loadAndExecuteAnalysis(
-      Path path2AnalysisConfig, ReachedSet pReached, List<Pair<String, String>> pAdditionalParams)
-      throws InterruptedException {
-
-    ForwardingReachedSet reached = (ForwardingReachedSet) pReached;
-    AlgorithmStatus status = AlgorithmStatus.NO_PROPERTY_CHECKED;
-    Iterable<CFANode> initialNodes = AbstractStates.extractLocations(pReached.getFirstState());
-    CFANode mainFunction = Iterables.getOnlyElement(initialNodes);
-    ShutdownManager singleShutdownManager = ShutdownManager.createWithParent(shutdownNotifier);
-    try {
-      logger.logf(Level.INFO, "Loading analysis from file %s ...", path2AnalysisConfig);
-
-      @Nullable Algorithm currentAlgorithm;
-      @Nullable ReachedSet currentReached;
-      try {
-        Triple<Algorithm, ConfigurableProgramAnalysis, ReachedSet> currentAlg =
-            createNextAlgorithm(
-                path2AnalysisConfig,
-                mainFunction,
-                singleShutdownManager,
-                false,
-                null,
-                pAdditionalParams);
-        currentAlgorithm = currentAlg.getFirst();
-        currentReached = currentAlg.getThird();
-
-      } catch (InvalidConfigurationException e) {
-        logger.logUserException(
-            Level.WARNING,
-            e,
-            "Skipping one analysis because the configuration file "
-                + path2AnalysisConfig
-                + " is invalid");
-        return Pair.of(AlgorithmStatus.NO_PROPERTY_CHECKED, Optional.empty());
-      } catch (IOException e) {
-        String message =
-            "Skipping one analysis because the configuration file "
-                + path2AnalysisConfig
-                + " could not be read";
-        if (shutdownNotifier.shouldShutdown() && e instanceof ClosedByInterruptException) {
-          logger.log(Level.WARNING, message);
-        } else {
-          logger.logUserException(Level.WARNING, e, message);
-        }
-        return Pair.of(AlgorithmStatus.NO_PROPERTY_CHECKED, Optional.empty());
-      } catch (CPAException | InterruptedException pE) {
-        logger.logUserException(
-            Level.WARNING,
-            pE,
-            "An error occured during execution of the analysis " + path2AnalysisConfig);
-        return Pair.of(AlgorithmStatus.NO_PROPERTY_CHECKED, Optional.empty());
-      }
-
-      reached.setDelegate(currentReached);
-
-      shutdownNotifier.shutdownIfNecessary();
-
-      // run algorith
-
-      try {
-        logger.logf(Level.INFO, "Starting analysis %s ...", path2AnalysisConfig);
-        status = currentAlgorithm.run(currentReached);
-
-        if (currentReached.stream().anyMatch(s -> AbstractStates.isTargetState(s))
-            && status.isPrecise()) {
-          // If the algorithm is not _precise_, verdict "false" actually means "unknown".
-          return Pair.of(status, Optional.of(false));
-        }
-
-        if (!status.isSound()) {
-          // if the analysis is not sound and we can proceed with
-          // another algorithm, continue with the next algorithm
-          logger.logf(
-              Level.INFO, "Analysis %s terminated, but result is unsound.", path2AnalysisConfig);
-
-        } else if (currentReached.hasWaitingState()) {
-          // if there are still states in the waitlist, the result is unknown
-          // continue with the next algorithm
-          logger.logf(
-              Level.INFO,
-              "Analysis %s terminated but did not finish: There are still states to be processed.",
-              path2AnalysisConfig);
-        }
-      } catch (CPAException pE) {
-        logger.logUserException(
-            Level.INFO,
-            pE,
-            "An error occured during execution of the analysis " + path2AnalysisConfig);
-      }
-    } finally {
-      singleShutdownManager.requestShutdown(
-          "Analysis terminated"); // shutdown any remaining components
-    }
-    boolean errorFree = reached.stream().anyMatch(a -> AbstractStates.isTargetState(a));
-
-    return Pair.of(status, Optional.of(errorFree));
-  }
 
   protected Triple<Algorithm, ConfigurableProgramAnalysis, ReachedSet> createNextAlgorithm(
       Path singleConfigFileName,

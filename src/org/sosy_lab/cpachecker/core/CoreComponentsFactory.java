@@ -506,7 +506,7 @@ public class CoreComponentsFactory {
     } else if (useCombinedRangeExecutionAlgorithm) {
       logger.log(Level.INFO, "Using Combined Range Execution analysis");
       algorithm =
-          RangeExecution.create(config, logger, shutdownNotifier, specification, cfa);
+          RangeExecution.create(config, logger, shutdownNotifier, specification, cfa, aggregatedReachedSets);
     } else if (useRestartingAlgorithm) {
       logger.log(Level.INFO, "Using Restarting Algorithm");
       algorithm = RestartAlgorithm.create(config, logger, shutdownNotifier, specification, cfa);
