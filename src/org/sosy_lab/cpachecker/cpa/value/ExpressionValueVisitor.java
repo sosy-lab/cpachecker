@@ -14,7 +14,6 @@ import java.util.OptionalLong;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
-import org.sosy_lab.cpachecker.cfa.ast.ARightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
@@ -228,11 +227,6 @@ public class ExpressionValueVisitor extends AbstractExpressionValueVisitor {
 
   public boolean canBeEvaluated(CExpression lValue) throws UnrecognizedCodeException {
     return evaluateMemoryLocation(lValue) != null;
-  }
-
-  @SuppressWarnings("unused")
-  public boolean valueWillBeUnknown(ARightHandSide pExpression) {
-    return false;
   }
 
   public MemoryLocation evaluateMemoryLocation(CExpression lValue)

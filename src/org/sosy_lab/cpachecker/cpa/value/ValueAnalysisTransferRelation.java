@@ -310,9 +310,6 @@ public class ValueAnalysisTransferRelation
       if (exp instanceof JExpression) {
         value = ((JExpression) exp).accept(visitor);
       } else if (exp instanceof CExpression) {
-        if (visitor.valueWillBeUnknown(exp)) {
-          return null;
-        }
         value = visitor.evaluate((CExpression) exp, (CType) parameters.get(i).getType());
       } else {
         throw new AssertionError("Unknown expression: " + exp);
@@ -390,7 +387,7 @@ public class ValueAnalysisTransferRelation
     if (expression != null && functionReturnVar != null) {
       final Type functionReturnType =
           functionEntryNode.getFunctionDefinition().getType().getReturnType();
-      if (returnEdge instanceof CReturnStatementEdge && evv.valueWillBeUnknown(expression)) {
+      if (returnEdge instanceof CReturnStatementEdge) {
         return null;
       }
       return handleAssignmentToVariable(functionReturnVar, functionReturnType, expression, evv);
@@ -563,9 +560,6 @@ public class ValueAnalysisTransferRelation
 
       if (leftHandSide instanceof CLeftHandSide) {
         ExpressionValueVisitor visitor = getVisitor();
-        if (visitor.valueWillBeUnknown(leftHandSide)) {
-          return null;
-        }
         MemoryLocation assignedMemoryLocation =
             visitor.evaluateMemoryLocation((CLeftHandSide) leftHandSide);
 
@@ -598,10 +592,6 @@ public class ValueAnalysisTransferRelation
 
     final ExpressionValueVisitor evv = getVisitor();
     final Type booleanType = getBooleanType(expression);
-
-    if (evv.valueWillBeUnknown(expression)) {
-      return null;
-    }
 
     // get the value of the expression (either true[1L], false[0L], or unknown[null])
     Value value = getExpressionValue(expression, booleanType, evv);
@@ -737,9 +727,6 @@ public class ValueAnalysisTransferRelation
     if (init instanceof AInitializerExpression) {
       ExpressionValueVisitor evv = getVisitor();
       AExpression exp = ((AInitializerExpression) init).getExpression();
-      if (evv.valueWillBeUnknown(exp)) {
-        return null;
-      }
 
       initialValue = getExpressionValue(exp, declarationType, evv);
 
@@ -878,9 +865,6 @@ public class ValueAnalysisTransferRelation
     final CLeftHandSide leftSide = pFunctionCallAssignment.getLeftHandSide();
     final CType leftSideType = leftSide.getExpressionType();
     final ExpressionValueVisitor evv = getVisitor();
-    if (evv.valueWillBeUnknown(functionCallExp)) {
-      return null;
-    }
     ValueAnalysisState newElement = ValueAnalysisState.copyOf(state);
 
     Value newValue = evv.evaluate(functionCallExp, leftSideType);
@@ -944,9 +928,7 @@ public class ValueAnalysisTransferRelation
     } else if (op1 instanceof CFieldReference) {
 
       ExpressionValueVisitor v = getVisitor();
-      if (v.valueWillBeUnknown(op1)) {
-        return null;
-      }
+
       MemoryLocation memLoc = v.evaluateMemoryLocation((CFieldReference) op1);
 
       if (v.hasMissingPointer() && isRelevant(op1, op2)) {
@@ -962,9 +944,7 @@ public class ValueAnalysisTransferRelation
       if (op1 instanceof CArraySubscriptExpression) {
 
         ExpressionValueVisitor v = getVisitor();
-        if (v.valueWillBeUnknown(op1)) {
-          return null;
-        }
+
         MemoryLocation memLoc = v.evaluateMemoryLocation((CLeftHandSide) op1);
 
         if (v.hasMissingPointer() && isRelevant(op1, op2)) {
@@ -1473,9 +1453,6 @@ public class ValueAnalysisTransferRelation
                     targetPointer.getExpressionType(),
                     targetPointer);
             ExpressionValueVisitor evv = getVisitor();
-            if (evv.valueWillBeUnknown(exp)) {
-              return null;
-            }
             Value value;
             if (exp instanceof JRightHandSide) {
               value = evv.evaluate((JRightHandSide) exp, (JType) exp.getExpressionType());
