@@ -78,6 +78,13 @@ public class ValueAnalysisCPA extends AbstractCPA
      * will be created, but not evaluated.
      */
     INTRODUCE_SYMBOLIC,
+
+    /**
+     * This strategy uses values from a file provided for calls to the random function
+     * __VERIFIER_nondet_*(). Otherwise, the analysis either uses unknown values or aborts,
+     * depending on the value of the option 'cpa.value.stopIfAllValuesForUnknownAreUsed'.
+     */
+    FROM_INPUT_FOR_VERIFIER_NONDET
   }
 
   @Option(
@@ -165,6 +172,8 @@ public class ValueAnalysisCPA extends AbstractCPA
   private MemoryLocationValueHandler createUnknownValueHandler()
       throws InvalidConfigurationException {
     switch (unknownValueStrategy) {
+      case FROM_INPUT_FOR_VERIFIER_NONDET:
+        return new PredefinedValueAssinger(config, logger);
       case DISCARD:
         return new UnknownValueAssigner();
       case INTRODUCE_SYMBOLIC:
@@ -209,7 +218,7 @@ public class ValueAnalysisCPA extends AbstractCPA
 
   private Multimap<CFANode, MemoryLocation> restoreMappingFromFile(CFA pCfa) {
     Multimap<CFANode, MemoryLocation> mapping = HashMultimap.create();
-    List<String> contents = null;
+    List<String> contents;
     try {
       contents = Files.readAllLines(initialPrecisionFile, Charset.defaultCharset());
     } catch (IOException e) {

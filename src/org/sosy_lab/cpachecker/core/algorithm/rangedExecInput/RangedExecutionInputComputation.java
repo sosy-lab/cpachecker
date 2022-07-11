@@ -18,7 +18,6 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.nio.charset.Charset;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -27,7 +26,6 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.logging.Level;
-import java.util.stream.Collectors;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.configuration.Configuration;
@@ -35,7 +33,6 @@ import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.common.io.PathTemplate;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
@@ -81,10 +78,12 @@ public class RangedExecutionInputComputation implements Algorithm {
   private static final Integer DEFAULT_INT = 0;
   private final CFA cfa;
 
-  @Option(secure = true, name = "testcaseName", description = "Names of the files for the testcases")
+  @Option(
+      secure = true,
+      name = "testcaseName",
+      description = "Names of the files for the testcases")
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private Path testcaseName = Path.of("testcase.0.xml");
-
 
   @Option(
       secure = true,
@@ -197,7 +196,6 @@ public class RangedExecutionInputComputation implements Algorithm {
 
   private void printFileToPutput(List<Pair<CIdExpression, Integer>> pInputs) throws IOException {
 
-
     logger.logf(Level.INFO, "Storing the testcase at %s", testcaseName.toAbsolutePath().toString());
     List<String> content = new ArrayList<>();
     content.add("<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"no\"?>");
@@ -216,9 +214,10 @@ public class RangedExecutionInputComputation implements Algorithm {
     }
 
     content.add("</testcase>");
-    BufferedWriter writer = new BufferedWriter(new FileWriter(testcaseName.toFile(), Charset.defaultCharset()));
-    writer.write(Joiner.on("\n").join(content));
-    writer.close();
+    try (BufferedWriter writer =
+        new BufferedWriter(new FileWriter(testcaseName.toFile(), Charset.defaultCharset()))) {
+      writer.write(Joiner.on("\n").join(content));
+    }
   }
 
   private List<Pair<CIdExpression, Integer>> computeInput(ARGPath pARGPath)
@@ -272,7 +271,7 @@ public class RangedExecutionInputComputation implements Algorithm {
   private List<Pair<CIdExpression, Integer>> matchInputsOnPath(ARGPath pARGPath, Model pM)
       throws CPAException, InterruptedException {
     PathIterator pathIterator = pARGPath.fullPathIterator();
-    List<Pair<CIdExpression, Integer>> results =new ArrayList<>();
+    List<Pair<CIdExpression, Integer>> results = new ArrayList<>();
     do {
       if (pathIterator.isPositionWithState()) {
         final ARGState abstractState = pathIterator.getAbstractState();

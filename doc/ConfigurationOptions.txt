@@ -761,7 +761,7 @@ cegar.domainScoreThreshold = 1024
 cegar.globalRefinement = false
 
 # Max number of refinement iterations, -1 for no limit
-cegar.maxIterations = 1
+cegar.maxIterations = -1
 
 # Which refinement algorithm to use? (give class name, required for CEGAR) If
 # the package name starts with 'org.sosy_lab.cpachecker.', this prefix can be
@@ -3290,12 +3290,6 @@ cpa.value.functionValuesForRandom = no default value
 # Track or not function pointer values
 cpa.value.ignoreFunctionValue = true
 
-# If 'ignoreFunctionValue' is set to true, this option allows to provide a
-# fixed set of values in the TestComp format. It is used for function-calls
-# to calls of VERIFIER_nondet_*. The file is provided via the option
-# functionValuesForRandom 
-cpa.value.ignoreFunctionValueExceptRandom = false
-
 # if there is an assumption like (x!=0), this option sets unknown
 # (uninitialized) variables to 1L, when the true-branch is handled.
 cpa.value.initAssumptionVars = false
@@ -3470,7 +3464,7 @@ cpa.value.trackJavaArrayValues = true
 
 # Tells the value analysis how to handle unknown values.
 cpa.value.unknownValueHandling = DISCARD
-  enum:     [DISCARD, INTRODUCE_SYMBOLIC]
+  enum:     [DISCARD, INTRODUCE_SYMBOLIC, FROM_INPUT_FOR_VERIFIER_NONDET]
 
 # Specify simple custom instruction by specifying the binary operator op. All
 # simple cis are of the form r = x op y. Leave empty (default) if you specify

@@ -48,14 +48,18 @@ public class RangeExecution extends NestingAlgorithm {
       secure = true,
       required = true,
       description =
-          "List of files with configurations to use. The files are used in order, hence the first file is used for the left most bound, ..., the last file is used for the right most bound.")
+          "List of files with configurations to use. The files are used in order, hence the first"
+              + " file is used for the left most bound, ..., the last file is used for the right"
+              + " most bound.")
   @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
   private List<Path> configFiles;
 
   @Option(
       secure = true,
       description =
-          "List of values for the loopbound. The values are used in order, hence the first loopbound is used for the upper bound of the leftmost analysis and so on. Need to have the same size as configFiles.")
+          "List of values for the loopbound. The values are used in order, hence the first"
+              + " loopbound is used for the upper bound of the leftmost analysis and so on. Need to"
+              + " have the same size as configFiles.")
   private List<Integer> valuesForLoopBound = Lists.newArrayList(3);
 
   @Option(
@@ -73,7 +77,7 @@ public class RangeExecution extends NestingAlgorithm {
   private PathTemplate testcaseNames = PathTemplate.ofFormatString("testcase.%d.xml");
 
   private CFA cfa;
-  private static AggregatedReachedSets aggregatedReachedSets;
+  private AggregatedReachedSets aggregatedReachedSets;
 
   protected RangeExecution(
       Configuration config,
@@ -125,14 +129,14 @@ public class RangeExecution extends NestingAlgorithm {
                 cfa,
                 aggregatedReachedSets);
         parallelAlgorithm.computeAnalyses(path2LoopBound, configFiles);
-      return parallelAlgorithm.run(pReached);
+        return parallelAlgorithm.run(pReached);
       } catch (InvalidConfigurationException | IOException pE) {
         logger.logException(
             Level.SEVERE, pE, "Could not create parallel algorithm, hence aborting");
         return AlgorithmStatus.NO_PROPERTY_CHECKED;
       }
-  }
-  return AlgorithmStatus.NO_PROPERTY_CHECKED;
+    }
+    return AlgorithmStatus.NO_PROPERTY_CHECKED;
   }
 
   /**
@@ -226,7 +230,6 @@ public class RangeExecution extends NestingAlgorithm {
     }
     return res;
   }
-
 
   protected Triple<Algorithm, ConfigurableProgramAnalysis, ReachedSet> createNextAlgorithm(
       Path singleConfigFileName,

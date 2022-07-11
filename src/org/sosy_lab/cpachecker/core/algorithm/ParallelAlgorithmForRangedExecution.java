@@ -8,8 +8,6 @@
 
 package org.sosy_lab.cpachecker.core.algorithm;
 
-import static com.google.common.base.Preconditions.checkNotNull;
-
 import com.google.common.collect.ImmutableList;
 import java.io.IOException;
 import java.nio.file.Path;
@@ -25,7 +23,6 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets;
 import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
-import org.sosy_lab.cpachecker.util.Pair;
 
 public class ParallelAlgorithmForRangedExecution extends ParallelAlgorithm {
 
@@ -36,7 +33,7 @@ public class ParallelAlgorithmForRangedExecution extends ParallelAlgorithm {
       Specification pSpecification,
       CFA pCfa,
       AggregatedReachedSets pAggregatedReachedSets)
-      throws CPAException, InterruptedException, InvalidConfigurationException {
+      throws InvalidConfigurationException {
     super(
         pGlobalConfig,
         pLogger,

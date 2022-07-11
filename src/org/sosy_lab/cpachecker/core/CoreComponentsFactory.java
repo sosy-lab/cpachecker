@@ -26,7 +26,6 @@ import org.sosy_lab.cpachecker.core.algorithm.AnalysisWithRefinableEnablerCPAAlg
 import org.sosy_lab.cpachecker.core.algorithm.ArrayAbstractionAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.AssumptionCollectorAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.BDDCPARestrictionAlgorithm;
-import org.sosy_lab.cpachecker.core.algorithm.RangeExecution;
 import org.sosy_lab.cpachecker.core.algorithm.CEGARAlgorithm.CEGARAlgorithmFactory;
 import org.sosy_lab.cpachecker.core.algorithm.CPAAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.CounterexampleStoreAlgorithm;
@@ -40,6 +39,7 @@ import org.sosy_lab.cpachecker.core.algorithm.NoopAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.ParallelAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.ProgramSplitAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.RandomTestGeneratorAlgorithm;
+import org.sosy_lab.cpachecker.core.algorithm.RangeExecution;
 import org.sosy_lab.cpachecker.core.algorithm.RestartAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.RestartWithConditionsAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.RestrictedProgramDomainAlgorithm;
@@ -506,7 +506,8 @@ public class CoreComponentsFactory {
     } else if (useCombinedRangeExecutionAlgorithm) {
       logger.log(Level.INFO, "Using Combined Range Execution analysis");
       algorithm =
-          RangeExecution.create(config, logger, shutdownNotifier, specification, cfa, aggregatedReachedSets);
+          RangeExecution.create(
+              config, logger, shutdownNotifier, specification, cfa, aggregatedReachedSets);
     } else if (useRestartingAlgorithm) {
       logger.log(Level.INFO, "Using Restarting Algorithm");
       algorithm = RestartAlgorithm.create(config, logger, shutdownNotifier, specification, cfa);

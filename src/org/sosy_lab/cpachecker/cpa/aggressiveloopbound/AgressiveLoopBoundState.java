@@ -8,7 +8,6 @@
 
 package org.sosy_lab.cpachecker.cpa.aggressiveloopbound;
 
-import com.google.common.collect.Maps;
 import java.util.ArrayDeque;
 import java.util.HashMap;
 import java.util.HashSet;

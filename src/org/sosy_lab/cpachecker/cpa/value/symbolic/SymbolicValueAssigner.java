@@ -14,6 +14,7 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.cpachecker.cfa.ast.ARightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
@@ -82,22 +83,25 @@ public class SymbolicValueAssigner implements MemoryLocationValueHandler {
    * @param pState the {@link ValueAnalysisState} to use. Value assignments will happen directly in
    *     this state
    * @param pValueVisitor a value visitor for possibly needed evaluations or computations
+   * @param pExpression the expression that is assigned to the variable
    * @throws UnrecognizedCodeException thrown if a {@link MemoryLocation} can't be evaluated
    */
   @Override
-  public void handle(
+  public boolean handle(
       MemoryLocation pVarLocation,
       Type pVarType,
       ValueAnalysisState pState,
-      ExpressionValueVisitor pValueVisitor)
+      ExpressionValueVisitor pValueVisitor,
+      ARightHandSide pExpression)
       throws UnrecognizedCodeException {
 
     if (isEligibleForSymbolicValue(pVarType)) {
-      assignNewSymbolicIdentifier(pState, pVarLocation, pVarType, pValueVisitor);
+      assignNewSymbolicIdentifier(pState, pVarLocation, pVarType, pValueVisitor, pExpression);
 
     } else {
       pState.forget(pVarLocation);
     }
+    return false;
   }
 
   /**
@@ -117,13 +121,15 @@ public class SymbolicValueAssigner implements MemoryLocationValueHandler {
    * @param pVarLocation the memory location of the variable
    * @param pVarType the type of the variable
    * @param pValueVisitor value visitor for evaluating the memory location of struct members
+   * @param pExpression the expression that is assigned to the variable
    * @throws UnrecognizedCodeException thrown if a memory location can't be evaluated
    */
   private void assignNewSymbolicIdentifier(
       ValueAnalysisState pState,
       MemoryLocation pVarLocation,
       Type pVarType,
-      ExpressionValueVisitor pValueVisitor)
+      ExpressionValueVisitor pValueVisitor,
+      ARightHandSide pExpression)
       throws UnrecognizedCodeException {
 
     if (pVarType instanceof JType) {
@@ -132,7 +138,7 @@ public class SymbolicValueAssigner implements MemoryLocationValueHandler {
     } else {
       assert pVarType instanceof CType : "Unhandled type " + pVarType;
 
-      addSymbolicTracking(pState, pVarLocation, (CType) pVarType, pValueVisitor);
+      addSymbolicTracking(pState, pVarLocation, (CType) pVarType, pValueVisitor, pExpression);
     }
   }
 
@@ -151,7 +157,8 @@ public class SymbolicValueAssigner implements MemoryLocationValueHandler {
       ValueAnalysisState pState,
       MemoryLocation pVarLocation,
       CType pVarType,
-      ExpressionValueVisitor pValueVisitor)
+      ExpressionValueVisitor pValueVisitor,
+      ARightHandSide pExpression)
       throws UnrecognizedCodeException {
 
     final CType canonicalType = pVarType.getCanonicalType();
@@ -162,7 +169,7 @@ public class SymbolicValueAssigner implements MemoryLocationValueHandler {
 
     } else if (canonicalType instanceof CArrayType) {
       fillArrayWithSymbolicIdentifiers(
-          pState, pVarLocation, (CArrayType) canonicalType, pValueVisitor);
+          pState, pVarLocation, (CArrayType) canonicalType, pValueVisitor, pExpression);
 
     } else if (canonicalType instanceof CElaboratedType) {
       // undefined enum, struct or union
@@ -220,7 +227,8 @@ public class SymbolicValueAssigner implements MemoryLocationValueHandler {
       final ValueAnalysisState pState,
       final MemoryLocation pArrayLocation,
       final CArrayType pArrayType,
-      final ExpressionValueVisitor pValueVisitor)
+      final ExpressionValueVisitor pValueVisitor,
+      ARightHandSide pExpression)
       throws UnrecognizedCodeException {
 
     if (!handleArrays) {
@@ -250,7 +258,7 @@ public class SymbolicValueAssigner implements MemoryLocationValueHandler {
       MemoryLocation arraySlotMemLoc =
           pValueVisitor.evaluateMemLocForArraySlot(pArrayLocation, i, pArrayType);
 
-      handle(arraySlotMemLoc, pArrayType.getType(), pState, pValueVisitor);
+      handle(arraySlotMemLoc, pArrayType.getType(), pState, pValueVisitor, pExpression);
     }
   }
 

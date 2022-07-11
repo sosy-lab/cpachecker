@@ -147,8 +147,8 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
       CFA pCfa,
       AggregatedReachedSets pAggregatedReachedSets,
       ImmutableList<Callable<ParallelAnalysisResult>> pAnalyses)
-      throws InvalidConfigurationException, CPAException, InterruptedException {
-    config.inject(this ,ParallelAlgorithm.class);
+      throws InvalidConfigurationException {
+    config.inject(this, ParallelAlgorithm.class);
 
     stats = new ParallelAlgorithmStatistics(pLogger);
     globalConfig = config;
@@ -162,7 +162,6 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
 
     analyses = pAnalyses;
   }
-
 
   @Override
   public AlgorithmStatus run(ReachedSet pReachedSet) throws CPAException, InterruptedException {
@@ -277,7 +276,6 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
     }
   }
 
-
   private Callable<ParallelAnalysisResult> createParallelAnalysis(
       final AnnotatedValue<Path> pSingleConfigFileName, final int analysisNumber)
       throws InvalidConfigurationException, CPAException, InterruptedException {
@@ -307,12 +305,20 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
       supplyReached = false;
       supplyRefinableReached = false;
     }
-    return createParallelAnalysis(singleConfig, analysisNumber, supplyReached, supplyRefinableReached, singleConfigFileName.toString());
+    return createParallelAnalysis(
+        singleConfig,
+        analysisNumber,
+        supplyReached,
+        supplyRefinableReached,
+        singleConfigFileName.toString());
   }
 
-
   protected Callable<ParallelAnalysisResult> createParallelAnalysis(
-    @Nullable Configuration singleConfig, final int analysisNumber,  boolean supplyReached, boolean supplyRefinableReached, String singleConfigFileName)
+      @Nullable Configuration singleConfig,
+      final int analysisNumber,
+      boolean supplyReached,
+      boolean supplyRefinableReached,
+      String singleConfigFileName)
       throws InvalidConfigurationException, CPAException, InterruptedException {
 
     if (singleConfig == null) {

@@ -11,27 +11,19 @@ package org.sosy_lab.cpachecker.cpa.value;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
-import java.io.IOException;
 import java.math.BigDecimal;
-import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import java.util.OptionalInt;
 import java.util.Set;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.logging.Level;
-import javax.xml.parsers.ParserConfigurationException;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.configuration.Configuration;
-import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
@@ -131,7 +123,6 @@ import org.sosy_lab.cpachecker.util.CFAEdgeUtils;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 import org.sosy_lab.cpachecker.util.states.MemoryLocationValueHandler;
-import org.xml.sax.SAXException;
 
 public class ValueAnalysisTransferRelation
     extends ForwardingTransferRelation<
@@ -139,8 +130,6 @@ public class ValueAnalysisTransferRelation
   // set of functions that may not appear in the source code
   // the value of the map entry is the explanation for the user
   private static final ImmutableMap<String, String> UNSUPPORTED_FUNCTIONS = ImmutableMap.of();
-
-  private final AtomicInteger indexForNextRandomValue = new AtomicInteger(0);
 
   @Options(prefix = "cpa.value")
   public static class ValueTransferOptions {
@@ -169,33 +158,6 @@ public class ValueAnalysisTransferRelation
 
     @Option(secure = true, description = "Track or not function pointer values")
     private boolean ignoreFunctionValue = true;
-
-    @Option(
-        secure = true,
-        description =
-            "If 'ignoreFunctionValue' is set to true, this option allows to provide a fixed set of"
-                + " values in the TestComp format. It is used for function-calls to calls of"
-                + " VERIFIER_nondet_*. The file is provided via the option"
-                + " functionValuesForRandom ")
-    private boolean ignoreFunctionValueExceptRandom = false;
-
-    @Option(
-        secure = true,
-        description =
-            "Fixed set of values for function calls to VERIFIER_nondet_*. Does only work, if"
-                + " ignoreFunctionValueExceptRandom is enabled ")
-    @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
-    private Path functionValuesForRandom = null;
-
-    @Option(
-        secure = true,
-        description =
-            "If 'ignoreFunctionValueExceptRandom' is set to true, and functionValuesForRandom are"
-                + " present,this option determines the analysis behaviour, if all values from the"
-                + " file are used and another call to VERIFIER_nondet_* is present. If it is set to"
-                + " true, the analysis aborts the computation. If set to false, an unknown value is"
-                + " used. functionValuesForRandom ")
-    private boolean stopIfAllValuesForUnknownAreUsed = false;
 
     @Option(
         secure = true,
@@ -230,20 +192,8 @@ public class ValueAnalysisTransferRelation
       return ignoreFunctionValue;
     }
 
-    public boolean isIgnoreFunctionValueExceptRandom() {
-      return ignoreFunctionValueExceptRandom;
-    }
-
-    public Path getFunctionValuesForRandom() {
-      return functionValuesForRandom;
-    }
-
     boolean isAllowedUnsupportedOption(String func) {
       return allowedUnsupportedFunctions.contains(func);
-    }
-
-    public boolean isStopIfAllValuesForUnknownAreUsed() {
-      return stopIfAllValuesForUnknownAreUsed;
     }
   }
 
@@ -285,7 +235,6 @@ public class ValueAnalysisTransferRelation
   private final LogManagerWithoutDuplicates logger;
   private final Collection<String> addressedVariables;
   private final Collection<String> booleanVariables;
-  private Map<Integer, String> valuesFromFile;
 
   public ValueAnalysisTransferRelation(
       LogManager pLogger,
@@ -309,12 +258,6 @@ public class ValueAnalysisTransferRelation
 
     unknownValueHandler = pUnknownValueHandler;
     constraintsStrengthenOperator = pConstraintsStrengthenOperator;
-
-    if (options.isIgnoreFunctionValueExceptRandom()
-        && options.isIgnoreFunctionValue()
-        && options.getFunctionValuesForRandom() != null) {
-      setupFunctionValuesForRandom();
-    }
   }
 
   @Override
@@ -386,8 +329,11 @@ public class ValueAnalysisTransferRelation
         if (isMissingCExpressionInformation(visitor, exp)) {
           addMissingInformation(formalParamName, exp);
         }
-
-        unknownValueHandler.handle(formalParamName, paramType, newElement, visitor);
+        boolean shouldStop =
+            unknownValueHandler.handle(formalParamName, paramType, newElement, visitor, exp);
+        if (shouldStop) {
+          return null;
+        }
 
       } else {
         newElement.assignConstant(formalParamName, value, paramType);
@@ -541,8 +487,16 @@ public class ValueAnalysisTransferRelation
         // assign the value if a memory location was successfully computed
         if (memLoc.isPresent()) {
           if (!valueExists) {
-            unknownValueHandler.handle(
-                memLoc.orElseThrow(), op1.getExpressionType(), newElement, v);
+            boolean shouldStop =
+                unknownValueHandler.handle(
+                    memLoc.orElseThrow(),
+                    op1.getExpressionType(),
+                    newElement,
+                    v,
+                    null); // TODO:  check if  nullthis is correct
+            if (shouldStop) {
+              return null;
+            }
 
           } else {
             newElement.assignConstant(
@@ -807,7 +761,13 @@ public class ValueAnalysisTransferRelation
     }
 
     if (initialValue.isUnknown()) {
-      unknownValueHandler.handle(memoryLocation, declarationType, newElement, getVisitor());
+      boolean shouldStop =
+          unknownValueHandler.handle(
+              memoryLocation, declarationType, newElement, getVisitor(), null);
+      if (shouldStop) {
+        return null;
+      }
+
     } else {
       newElement.assignConstant(memoryLocation, initialValue, declarationType);
     }
@@ -932,7 +892,12 @@ public class ValueAnalysisTransferRelation
         newElement.assignConstant(memLoc.orElseThrow(), newValue, leftSideType);
 
       } else {
-        unknownValueHandler.handle(memLoc.orElseThrow(), leftSideType, newElement, evv);
+        boolean shouldStop =
+            unknownValueHandler.handle(
+                memLoc.orElseThrow(), leftSideType, newElement, evv, functionCallExp);
+        if (shouldStop) {
+          return null;
+        }
       }
     }
 
@@ -1080,15 +1045,17 @@ public class ValueAnalysisTransferRelation
       throws UnrecognizedCodeException {
     // here we clone the state, because we get new information or must forget it.
     ValueAnalysisState newElement = ValueAnalysisState.copyOf(state);
-    handleAssignmentToVariable(newElement, assignedVar, lType, exp, visitor);
+    newElement = handleAssignmentToVariable(newElement, assignedVar, lType, exp, visitor);
     return newElement;
   }
 
   /**
    * This method analyses the expression with the visitor and assigns the value to lParam to the
    * given value Analysis state.
+   *
+   * @return null if the analysis should be aborted, otherwise the state newElement.
    */
-  private void handleAssignmentToVariable(
+  private ValueAnalysisState handleAssignmentToVariable(
       ValueAnalysisState newElement,
       MemoryLocation assignedVar,
       final Type lType,
@@ -1105,7 +1072,7 @@ public class ValueAnalysisTransferRelation
           && exp instanceof CLeftHandSide) {
         handleAssignmentToStruct(
             newElement, assignedVar, (CCompositeType) canonicaltype, (CExpression) exp, visitor);
-        return;
+        return newElement;
       }
     }
 
@@ -1132,7 +1099,7 @@ public class ValueAnalysisTransferRelation
       // In  such a case, forget about it
       if (!value.isUnknown()) {
         newElement.forget(assignedVar);
-        return;
+        return newElement;
       } else {
         missingInformationRightJExpression = (JRightHandSide) exp;
         if (!missingScopedFieldName) {
@@ -1153,12 +1120,17 @@ public class ValueAnalysisTransferRelation
       // if there is no information left to evaluate but the value is unknown, we assign a symbolic
       // identifier to keep track of the variable.
       if (value.isUnknown()) {
-        unknownValueHandler.handle(assignedVar, lType, newElement, visitor);
+        boolean shouldStop =
+            unknownValueHandler.handle(assignedVar, lType, newElement, visitor, exp);
+        if (shouldStop) {
+          return null;
+        }
 
       } else {
         newElement.assignConstant(assignedVar, value, lType);
       }
     }
+    return newElement;
   }
 
   /**
@@ -1794,36 +1766,9 @@ public class ValueAnalysisTransferRelation
     }
   }
 
-  /** Load the FunctionValues for random functinos from the given Testcomp Testcase */
-  private void setupFunctionValuesForRandom() {
-    try {
-      valuesFromFile = TestCompTestcaseLoader.loadTestcase(options.getFunctionValuesForRandom());
-    } catch (ParserConfigurationException | SAXException | IOException e) {
-      // Nothing to do here, as we are not able to lead the additional information, hence ignoring
-      // the file
-      logger.log(
-          Level.WARNING,
-          String.format(
-              "Ignoring the additionally given file 'functionValuesForRandom' %s due to an error",
-              options.getFunctionValuesForRandom()));
-      valuesFromFile = new HashMap<>();
-    }
-  }
-
   /** returns an initialized, empty visitor */
   private ExpressionValueVisitor getVisitor(ValueAnalysisState pState, String pFunctionName) {
-    if (options.isIgnoreFunctionValueExceptRandom()
-        && options.isIgnoreFunctionValue()
-        && options.getFunctionValuesForRandom() != null) {
-      return new ExpressionValueVisitorWithPredefinedValues(
-          pState,
-          pFunctionName,
-          this.indexForNextRandomValue,
-          machineModel,
-          logger,
-          valuesFromFile,
-          options.isStopIfAllValuesForUnknownAreUsed());
-    } else if (options.isIgnoreFunctionValue()) {
+    if (options.isIgnoreFunctionValue()) {
       return new ExpressionValueVisitor(pState, pFunctionName, machineModel, logger);
     } else {
       return new FunctionPointerExpressionValueVisitor(pState, pFunctionName, machineModel, logger);

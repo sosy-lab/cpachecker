@@ -163,7 +163,7 @@ public class AgressiveLoopBoundTransferRelation extends SingleEdgeTransferRelati
         // Dont enter the loop
         logger.log(
             Level.FINE, String.format("Visiting edge %s, is a Loop entry, dont proceed", pCfaEdge));
-        //Dont need to set stop for the state, as we ignore it anyway
+        // Dont need to set stop for the state, as we ignore it anyway
         return ImmutableList.of();
       }
     }
