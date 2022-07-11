@@ -92,21 +92,21 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
   @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
   private List<AnnotatedValue<Path>> configFiles;
 
-  private static final String SUCCESS_MESSAGE =
+  protected static final String SUCCESS_MESSAGE =
       "One of the parallel analyses has finished successfully, cancelling all other runs.";
 
   private final Configuration globalConfig;
-  private final LogManager logger;
-  private final ShutdownManager shutdownManager;
+  protected final LogManager logger;
+  protected final ShutdownManager shutdownManager;
   private final CFA cfa;
   private final Specification specification;
-  private final ParallelAlgorithmStatistics stats;
+  protected final ParallelAlgorithmStatistics stats;
 
-  private ParallelAnalysisResult finalResult = null;
-  private CFANode mainEntryNode = null;
-  private final AggregatedReachedSetManager aggregatedReachedSetManager;
+  protected ParallelAnalysisResult finalResult = null;
+  protected CFANode mainEntryNode = null;
+  protected final AggregatedReachedSetManager aggregatedReachedSetManager;
 
-  private final List<ConditionAdjustmentEventSubscriber> conditionAdjustmentEventSubscribers =
+  protected final List<ConditionAdjustmentEventSubscriber> conditionAdjustmentEventSubscribers =
       new CopyOnWriteArrayList<>();
 
   protected ImmutableList<Callable<ParallelAnalysisResult>> analyses;
@@ -221,7 +221,7 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
     }
   }
 
-  private void handleFutureResults(List<ListenableFuture<ParallelAnalysisResult>> futures)
+  protected void handleFutureResults(List<ListenableFuture<ParallelAnalysisResult>> futures)
       throws InterruptedException, Error, CPAException {
 
     List<CPAException> exceptions = new ArrayList<>();
@@ -397,7 +397,7 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
     };
   }
 
-  private ParallelAnalysisResult runParallelAnalysis(
+  protected ParallelAnalysisResult runParallelAnalysis(
       final String analysisName,
       final Algorithm algorithm,
       final ReachedSet reached,
@@ -546,7 +546,7 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
     }
   }
 
-  private void initializeReachedSet(
+  protected void initializeReachedSet(
       ConfigurableProgramAnalysis cpa, CFANode mainFunction, ReachedSet reached)
       throws InterruptedException {
     AbstractState initialState = cpa.getInitialState(mainFunction, getDefaultPartition());
@@ -601,12 +601,12 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
     }
   }
 
-  private static class ParallelAlgorithmStatistics implements Statistics {
+  protected static class ParallelAlgorithmStatistics implements Statistics {
 
     private final LogManager logger;
     private final List<StatisticsEntry> allAnalysesStats = new CopyOnWriteArrayList<>();
     private int noOfAlgorithmsUsed = 0;
-    private String successfulAnalysisName = null;
+    protected String successfulAnalysisName = null;
 
     ParallelAlgorithmStatistics(LogManager pLogger) {
       logger = checkNotNull(pLogger);
@@ -719,11 +719,11 @@ public class ParallelAlgorithm implements Algorithm, StatisticsProvider {
     pStatsCollection.add(stats);
   }
 
-  private static class StatisticsEntry {
+  protected static class StatisticsEntry {
 
     private final Collection<Statistics> subStatistics;
 
-    private final AtomicReference<ReachedSet> reachedSet;
+    protected final AtomicReference<ReachedSet> reachedSet;
 
     private final String name;
 
