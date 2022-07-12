@@ -20,4 +20,21 @@ public class MiddleRangedAnalysisState extends RangedAnalysisState {
   public String toDOTLabel() {
     return "MIDDLE";
   }
+
+
+  @Override
+  public boolean isLessOrEqual(RangedAnalysisState other) {
+    return other instanceof MiddleRangedAnalysisState || super.isLessOrEqual(other);
+  }
+
+
+  @Override
+  public RangedAnalysisState join(RangedAnalysisState pOther) {
+    return super.join(pOther);
+  }
+
+  @Override
+  public boolean equals(Object obj) {
+    return obj instanceof MiddleRangedAnalysisState || super.equals(obj);
+  }
 }

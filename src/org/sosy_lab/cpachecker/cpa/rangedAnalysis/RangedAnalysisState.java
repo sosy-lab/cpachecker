@@ -55,7 +55,10 @@ public class RangedAnalysisState
 
   @Override
   public RangedAnalysisState join(RangedAnalysisState pOther) {
-    return pOther;
+    if (pOther.isLessOrEqual(this)){
+      return this;
+    }
+      return pOther;
   }
 
   public ValueAnalysisState getLeftState() {
