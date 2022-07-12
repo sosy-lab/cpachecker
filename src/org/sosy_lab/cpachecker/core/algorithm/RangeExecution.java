@@ -89,6 +89,9 @@ public class RangeExecution extends NestingAlgorithm {
       throws InvalidConfigurationException {
     super(config, pLogger, pShutdownNotifier, pSpecification);
     config.inject(this);
+    if (testcaseNames == null) {
+      testcaseNames = PathTemplate.ofFormatString("testcase.%d.xml");
+    }
     this.cfa = pCfa;
     aggregatedReachedSets = pAggregatedReachedSets;
   }
