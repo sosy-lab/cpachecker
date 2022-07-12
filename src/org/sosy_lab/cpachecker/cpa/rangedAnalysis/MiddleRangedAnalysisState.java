@@ -23,6 +23,11 @@ public class MiddleRangedAnalysisState extends RangedAnalysisState {
 
 
   @Override
+  public int hashCode() {
+    return Long.hashCode(serialVersionUID);
+  }
+
+  @Override
   public boolean isLessOrEqual(RangedAnalysisState other) {
     return other instanceof MiddleRangedAnalysisState || super.isLessOrEqual(other);
   }

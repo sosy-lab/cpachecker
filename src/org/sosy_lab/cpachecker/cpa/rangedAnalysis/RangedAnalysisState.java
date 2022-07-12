@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.cpa.rangedAnalysis;
 
 import java.io.Serializable;
+import java.util.Objects;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.core.defaults.LatticeAbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Graphable;
@@ -72,5 +73,23 @@ public class RangedAnalysisState
   @Override
   public boolean shouldBeHighlighted() {
     return false;
+  }
+
+  @Override
+  public boolean equals(Object pO) {
+    if (this == pO) {
+      return true;
+    }
+    if (!(pO instanceof RangedAnalysisState)) {
+      return false;
+    }
+    RangedAnalysisState that = (RangedAnalysisState) pO;
+    return Objects.equals(leftState, that.leftState) && Objects.equals(rightState,
+        that.rightState);
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(leftState, rightState);
   }
 }
