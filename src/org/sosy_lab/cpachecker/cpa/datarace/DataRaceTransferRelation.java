@@ -125,6 +125,9 @@ public class DataRaceTransferRelation extends SingleEdgeTransferRelation {
     for (ThreadingState threadingState :
         AbstractStates.projectToType(otherStates, ThreadingState.class)) {
       Map<String, ThreadInfo> threads = state.getThreads();
+      ImmutableSet.Builder<ThreadSynchronization> newThreadSynchronizationsBuilder =
+          ImmutableSet.builder();
+      newThreadSynchronizationsBuilder.addAll(state.getThreadSynchronizations());
       Set<String> threadIds = threadingState.getThreadIds();
       String activeThread = getActiveThread(cfaEdge, threadingState);
       Set<String> locks = threadingState.getLocksForThread(activeThread);
@@ -132,18 +135,46 @@ public class DataRaceTransferRelation extends SingleEdgeTransferRelation {
       Set<MemoryAccess> newMemoryAccesses = getNewAccesses(threads, activeThread, cfaEdge, locks);
 
       Set<MemoryAccess> memoryAccesses;
+      Set<ThreadSynchronization> newThreadSynchronizations;
       if (newThreads.size() == 1) {
         // Only a single thread, no need to track memory accesses
         memoryAccesses = ImmutableSet.of();
+        newThreadSynchronizations = ImmutableSet.of();
       } else {
         ImmutableSet.Builder<MemoryAccess> memoryAccessBuilder = ImmutableSet.builder();
         memoryAccessBuilder.addAll(newMemoryAccesses);
         for (MemoryAccess access : state.getMemoryAccesses()) {
           if (threadIds.contains(access.getThreadId())) {
+            if (access.isWrite() && !access.hasSubsequentRead()) {
+              boolean foundSubsequentRead = false;
+              // TODO: What to do if (t1 writes x) -> (t2 writes x) -> (t3 reads x)?
+              //       (Currently, both writes synchronize with the read)
+              for (MemoryAccess newAccess : newMemoryAccesses) {
+                if (!newAccess.isWrite()
+                    && access.getMemoryLocation().equals(newAccess.getMemoryLocation())) {
+                  foundSubsequentRead = true;
+                  memoryAccessBuilder.add(access.withSubsequentRead());
+                  if (!access.getThreadId().equals(newAccess.getThreadId())) {
+                    // Unnecessary if both accesses were made by the same thread
+                    newThreadSynchronizationsBuilder.add(
+                        new ThreadSynchronization(
+                            access.getThreadId(),
+                            newAccess.getThreadId(),
+                            access.getThreadIndex(),
+                            newAccess.getThreadIndex()));
+                  }
+                  break;
+                }
+              }
+              if (foundSubsequentRead) {
+                continue;
+              }
+            }
             memoryAccessBuilder.add(access);
           }
         }
         memoryAccesses = memoryAccessBuilder.build();
+        newThreadSynchronizations = newThreadSynchronizationsBuilder.build();
       }
 
       boolean hasDataRace = state.hasDataRace();
@@ -159,13 +190,14 @@ public class DataRaceTransferRelation extends SingleEdgeTransferRelation {
           if (access.getMemoryLocation().equals(newAccess.getMemoryLocation())
               && Sets.intersection(access.getLocks(), newAccess.getLocks()).isEmpty()
               && (access.isWrite() || newAccess.isWrite())
-              && !access.happensBefore(newAccess, threads)) {
+              && !access.happensBefore(newAccess, threads, newThreadSynchronizations)) {
             hasDataRace = true;
             break;
           }
         }
       }
-      strengthenedStates.add(new DataRaceState(memoryAccesses, newThreads, hasDataRace));
+      strengthenedStates.add(
+          new DataRaceState(memoryAccesses, newThreads, newThreadSynchronizations, hasDataRace));
     }
 
     return strengthenedStates.build();
@@ -175,7 +207,7 @@ public class DataRaceTransferRelation extends SingleEdgeTransferRelation {
    * Collects the memory locations accessed by the given CFA edge and builds the corresponding
    * {@link MemoryAccess}es.
    *
-   * <p>Throws CPATransferException if an unsupported function is encountered.</p>
+   * <p>Throws CPATransferException if an unsupported function is encountered.
    */
   private Set<MemoryAccess> getNewAccesses(
       Map<String, ThreadInfo> threads, String activeThread, CFAEdge edge, Set<String> locks)
@@ -183,6 +215,7 @@ public class DataRaceTransferRelation extends SingleEdgeTransferRelation {
     ImmutableSet.Builder<MemoryLocation> accessedLocationBuilder = ImmutableSet.builder();
     ImmutableSet.Builder<MemoryLocation> modifiedLocationBuilder = ImmutableSet.builder();
     ImmutableSet.Builder<MemoryAccess> newAccessBuilder = ImmutableSet.builder();
+    ThreadInfo activeThreadInfo = threads.get(activeThread);
 
     switch (edge.getEdgeType()) {
       case AssumeEdge:
@@ -204,7 +237,10 @@ public class DataRaceTransferRelation extends SingleEdgeTransferRelation {
                   threads.get(activeThread).getEpoch(),
                   declaredVariable,
                   initializer != null,
-                  locks));
+                  locks,
+                  edge,
+                  false,
+                  activeThreadInfo.getCurrentIndex()));
           if (initializer != null) {
             if (initializer instanceof CInitializerExpression
                 && ((CInitializerExpression) initializer).getExpression()
@@ -352,7 +388,10 @@ public class DataRaceTransferRelation extends SingleEdgeTransferRelation {
               threads.get(activeThread).getEpoch(),
               location,
               modifiedLocations.contains(location),
-              locks));
+              locks,
+              edge,
+              false,
+              activeThreadInfo.getCurrentIndex()));
     }
     return newAccessBuilder.build();
   }
@@ -370,19 +409,24 @@ public class DataRaceTransferRelation extends SingleEdgeTransferRelation {
     Set<String> added = Sets.difference(threadIds, threads.keySet());
     assert added.size() < 2 : "Multiple thread creations in same step not supported";
     Set<String> removed = Sets.difference(threads.keySet(), threadIds);
+    assert !removed.contains(activeThread) : "Thread active after join";
 
     ImmutableMap.Builder<String, ThreadInfo> threadsBuilder = ImmutableMap.builder();
     if (added.isEmpty()) {
       for (Entry<String, ThreadInfo> entry : threads.entrySet()) {
         if (!removed.contains(entry.getKey())) {
-          threadsBuilder.put(entry);
+          if (entry.getKey().equals(activeThread)) {
+            threadsBuilder.put(activeThread, entry.getValue().increaseIndex());
+          } else {
+            threadsBuilder.put(entry);
+          }
         }
       }
     } else {
       String threadId = added.iterator().next();
       ThreadInfo parent = threads.get(activeThread);
-      threadsBuilder.put(threadId, new ThreadInfo(parent, threadId, 0, parent.getEpoch() + 1));
-      threadsBuilder.put(parent.getName(), parent.increaseEpoch());
+      threadsBuilder.put(threadId, new ThreadInfo(parent, threadId, 0, parent.getEpoch() + 1, 0));
+      threadsBuilder.put(parent.getName(), parent.increaseEpoch().increaseIndex());
       for (Entry<String, ThreadInfo> entry : threads.entrySet()) {
         if (!(removed.contains(entry.getKey()) || entry.getKey().equals(activeThread))) {
           threadsBuilder.put(entry);
@@ -396,8 +440,8 @@ public class DataRaceTransferRelation extends SingleEdgeTransferRelation {
    * Tries to determine the function name for a given AFunctionCall.
    *
    * <p>Note that it is usually possible to just look up the name from the declaration of the
-   * contained function call expression but there are niche cases where this is not the case,
-   * which is why this function is necessary.</p>
+   * contained function call expression but there are niche cases where this is not the case, which
+   * is why this function is necessary.
    */
   private String getFunctionName(AFunctionCall pFunctionCall) {
     AFunctionCallExpression functionCallExpression = pFunctionCall.getFunctionCallExpression();
@@ -427,7 +471,7 @@ public class DataRaceTransferRelation extends SingleEdgeTransferRelation {
    *
    * <p>This method is necessary, because neither ThreadingState::getActiveThread nor
    * ThreadingTransferRelation::getActiveThread are guaranteed to give the correct result during
-   * strengthening.</p>
+   * strengthening.
    */
   private String getActiveThread(final CFAEdge cfaEdge, final ThreadingState threadingState) {
     for (String id : threadingState.getThreadIds()) {

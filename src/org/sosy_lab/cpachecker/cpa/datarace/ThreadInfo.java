@@ -16,12 +16,19 @@ class ThreadInfo {
   private final String name;
   private final int epoch;
   private final int creationEpoch;
+  private final int currentIndex;
 
-  ThreadInfo(@Nullable ThreadInfo pParent, String pName, int pEpoch, int pCreationEpoch) {
+  ThreadInfo(
+      @Nullable ThreadInfo pParent,
+      String pName,
+      int pEpoch,
+      int pCreationEpoch,
+      int pCurrentIndex) {
     parent = pParent;
     name = pName;
     epoch = pEpoch;
     creationEpoch = pCreationEpoch;
+    currentIndex = pCurrentIndex;
   }
 
   @Nullable ThreadInfo getParent() {
@@ -40,7 +47,15 @@ class ThreadInfo {
     return creationEpoch;
   }
 
+  int getCurrentIndex() {
+    return currentIndex;
+  }
+
   ThreadInfo increaseEpoch() {
-    return new ThreadInfo(parent, name, epoch + 1, creationEpoch);
+    return new ThreadInfo(parent, name, epoch + 1, creationEpoch, currentIndex);
+  }
+
+  ThreadInfo increaseIndex() {
+    return new ThreadInfo(parent, name, epoch, creationEpoch, currentIndex + 1);
   }
 }
