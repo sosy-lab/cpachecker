@@ -10,7 +10,6 @@ package org.sosy_lab.cpachecker.cpa.datarace;
 
 import com.google.common.collect.ImmutableSet;
 import java.util.HashSet;
-import java.util.Map;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
@@ -18,31 +17,28 @@ import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 class MemoryAccess {
 
   private final String threadId;
-  private final int epoch;
   private final MemoryLocation memoryLocation;
   private final boolean isWrite;
   private final ImmutableSet<String> locks;
   private final CFAEdge edge;
   private final boolean hasSubsequentRead;
-  private final int threadIndex;
+  private final int accessEpoch;
 
   MemoryAccess(
       String pThreadId,
-      int pEpoch,
       MemoryLocation pMemoryLocation,
       boolean pIsWrite,
       Set<String> pLocks,
       CFAEdge pEdge,
       boolean pHasSubsequentRead,
-      int pThreadIndex) {
+      int pAccessEpoch) {
     threadId = pThreadId;
-    epoch = pEpoch;
     memoryLocation = pMemoryLocation;
     isWrite = pIsWrite;
     locks = ImmutableSet.copyOf(pLocks);
     edge = pEdge;
     hasSubsequentRead = pHasSubsequentRead;
-    threadIndex = pThreadIndex;
+    accessEpoch = pAccessEpoch;
   }
 
   String getThreadId() {
@@ -65,35 +61,17 @@ class MemoryAccess {
     return hasSubsequentRead;
   }
 
-  int getThreadIndex() {
-    return threadIndex;
+  int getAccessEpoch() {
+    return accessEpoch;
   }
 
   MemoryAccess withSubsequentRead() {
-    return new MemoryAccess(
-        threadId, epoch, memoryLocation, isWrite, locks, edge, true, threadIndex);
+    return new MemoryAccess(threadId, memoryLocation, isWrite, locks, edge, true, accessEpoch);
   }
 
-  boolean happensBefore(
-      MemoryAccess other,
-      Map<String, ThreadInfo> threads,
-      Set<ThreadSynchronization> threadSynchronizations) {
+  boolean happensBefore(MemoryAccess other, Set<ThreadSynchronization> threadSynchronizations) {
     if (threadId.equals(other.threadId)) {
-      return threadIndex <= other.threadIndex;
-    }
-
-    if (threads.containsKey(other.getThreadId())) {
-      ThreadInfo ancestor = threads.get(other.getThreadId());
-      while (ancestor != null) {
-        ThreadInfo parent = ancestor.getParent();
-        if (parent != null && parent.getName().equals(threadId)) {
-          break;
-        }
-        ancestor = parent;
-      }
-      if (ancestor != null && ancestor.getCreationEpoch() > epoch) {
-        return true;
-      }
+      return accessEpoch <= other.accessEpoch;
     }
 
     Set<ThreadSynchronization> relevantSynchronizations = new HashSet<>();
@@ -111,7 +89,7 @@ class MemoryAccess {
 
     for (ThreadSynchronization synchronization : threadSynchronizations) {
       if (synchronization.getReadThread().equals(other.threadId)
-          && synchronization.getReadThreadIndex() <= other.threadIndex) {
+          && synchronization.getReadThreadIndex() <= other.accessEpoch) {
         return true;
       }
     }
@@ -122,7 +100,7 @@ class MemoryAccess {
       ThreadSynchronization threadSynchronization,
       Set<ThreadSynchronization> relevantSynchronizations) {
     if (threadSynchronization.getWriteThread().equals(threadId)) {
-      return threadSynchronization.getWriteThreadIndex() >= threadIndex;
+      return threadSynchronization.getWriteThreadIndex() >= accessEpoch;
     }
     for (ThreadSynchronization relevantSynchronization : relevantSynchronizations) {
       if (relevantSynchronization.getReadThread().equals(threadSynchronization.getWriteThread())

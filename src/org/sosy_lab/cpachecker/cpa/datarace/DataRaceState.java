@@ -20,17 +20,17 @@ public class DataRaceState implements AbstractQueryableState {
   private static final String PROPERTY_DATA_RACE = "data-race";
 
   private final ImmutableSet<MemoryAccess> memoryAccesses;
-  private final ImmutableMap<String, ThreadInfo> threads;
+  private final ImmutableMap<String, Integer> threadEpochs;
   private final ImmutableSet<ThreadSynchronization> threadSynchronizations;
   private final boolean hasDataRace;
 
   DataRaceState(
       Set<MemoryAccess> pMemoryAccesses,
-      Map<String, ThreadInfo> pThreads,
+      Map<String, Integer> pThreadEpochs,
       Set<ThreadSynchronization> pThreadSynchronizations,
       boolean pHasDataRace) {
     memoryAccesses = ImmutableSet.copyOf(pMemoryAccesses);
-    threads = ImmutableMap.copyOf(pThreads);
+    threadEpochs = ImmutableMap.copyOf(pThreadEpochs);
     threadSynchronizations = ImmutableSet.copyOf(pThreadSynchronizations);
     hasDataRace = pHasDataRace;
   }
@@ -39,8 +39,8 @@ public class DataRaceState implements AbstractQueryableState {
     return memoryAccesses;
   }
 
-  Map<String, ThreadInfo> getThreads() {
-    return threads;
+  Map<String, Integer> getThreadEpochs() {
+    return threadEpochs;
   }
 
   Set<ThreadSynchronization> getThreadSynchronizations() {

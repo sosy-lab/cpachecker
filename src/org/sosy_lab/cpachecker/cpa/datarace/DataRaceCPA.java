@@ -53,7 +53,7 @@ public class DataRaceCPA extends AbstractCPA {
       throws InterruptedException {
     return new DataRaceState(
         ImmutableSet.of(),
-        ImmutableMap.of("main", new ThreadInfo(null, "main", 0, 0, 0)),
+        ImmutableMap.of("main", 0),
         ImmutableSet.of(),
         false);
   }

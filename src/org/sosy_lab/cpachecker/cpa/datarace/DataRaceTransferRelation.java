@@ -124,15 +124,16 @@ public class DataRaceTransferRelation extends SingleEdgeTransferRelation {
 
     for (ThreadingState threadingState :
         AbstractStates.projectToType(otherStates, ThreadingState.class)) {
-      Map<String, ThreadInfo> threads = state.getThreads();
+      Map<String, Integer> threadEpochs = state.getThreadEpochs();
       ImmutableSet.Builder<ThreadSynchronization> newThreadSynchronizationsBuilder =
           ImmutableSet.builder();
       newThreadSynchronizationsBuilder.addAll(state.getThreadSynchronizations());
       Set<String> threadIds = threadingState.getThreadIds();
       String activeThread = getActiveThread(cfaEdge, threadingState);
       Set<String> locks = threadingState.getLocksForThread(activeThread);
-      ImmutableMap<String, ThreadInfo> newThreads = getNewThreads(threads, threadIds, activeThread);
-      Set<MemoryAccess> newMemoryAccesses = getNewAccesses(threads, activeThread, cfaEdge, locks);
+      ImmutableMap<String, Integer> newThreads =
+          getNewThreads(threadEpochs, threadIds, activeThread, newThreadSynchronizationsBuilder);
+      Set<MemoryAccess> newMemoryAccesses = getNewAccesses(threadEpochs, activeThread, cfaEdge, locks);
 
       Set<MemoryAccess> memoryAccesses;
       Set<ThreadSynchronization> newThreadSynchronizations;
@@ -160,8 +161,8 @@ public class DataRaceTransferRelation extends SingleEdgeTransferRelation {
                         new ThreadSynchronization(
                             access.getThreadId(),
                             newAccess.getThreadId(),
-                            access.getThreadIndex(),
-                            newAccess.getThreadIndex()));
+                            access.getAccessEpoch(),
+                            newAccess.getAccessEpoch()));
                   }
                   break;
                 }
@@ -190,7 +191,7 @@ public class DataRaceTransferRelation extends SingleEdgeTransferRelation {
           if (access.getMemoryLocation().equals(newAccess.getMemoryLocation())
               && Sets.intersection(access.getLocks(), newAccess.getLocks()).isEmpty()
               && (access.isWrite() || newAccess.isWrite())
-              && !access.happensBefore(newAccess, threads, newThreadSynchronizations)) {
+              && !access.happensBefore(newAccess, newThreadSynchronizations)) {
             hasDataRace = true;
             break;
           }
@@ -210,12 +211,11 @@ public class DataRaceTransferRelation extends SingleEdgeTransferRelation {
    * <p>Throws CPATransferException if an unsupported function is encountered.
    */
   private Set<MemoryAccess> getNewAccesses(
-      Map<String, ThreadInfo> threads, String activeThread, CFAEdge edge, Set<String> locks)
+      Map<String, Integer> threadEpochs, String activeThread, CFAEdge edge, Set<String> locks)
       throws CPATransferException {
     ImmutableSet.Builder<MemoryLocation> accessedLocationBuilder = ImmutableSet.builder();
     ImmutableSet.Builder<MemoryLocation> modifiedLocationBuilder = ImmutableSet.builder();
     ImmutableSet.Builder<MemoryAccess> newAccessBuilder = ImmutableSet.builder();
-    ThreadInfo activeThreadInfo = threads.get(activeThread);
 
     switch (edge.getEdgeType()) {
       case AssumeEdge:
@@ -234,13 +234,12 @@ public class DataRaceTransferRelation extends SingleEdgeTransferRelation {
           newAccessBuilder.add(
               new MemoryAccess(
                   activeThread,
-                  threads.get(activeThread).getEpoch(),
                   declaredVariable,
                   initializer != null,
                   locks,
                   edge,
                   false,
-                  activeThreadInfo.getCurrentIndex()));
+                  threadEpochs.get(activeThread)));
           if (initializer != null) {
             if (initializer instanceof CInitializerExpression
                 && ((CInitializerExpression) initializer).getExpression()
@@ -385,13 +384,12 @@ public class DataRaceTransferRelation extends SingleEdgeTransferRelation {
       newAccessBuilder.add(
           new MemoryAccess(
               activeThread,
-              threads.get(activeThread).getEpoch(),
               location,
               modifiedLocations.contains(location),
               locks,
               edge,
               false,
-              activeThreadInfo.getCurrentIndex()));
+              threadEpochs.get(activeThread)));
     }
     return newAccessBuilder.build();
   }
@@ -399,36 +397,33 @@ public class DataRaceTransferRelation extends SingleEdgeTransferRelation {
   /**
    * Updates the currently tracked thread information with information from the ThreadingCPA.
    *
-   * @param threads The current map of thread ID -> ThreadInfo objects.
+   * @param threadEpochs The current map of thread ID -> thread epoch.
    * @param threadIds The IDs of currently existing thread as obtained from the ThreadingCPA.
    * @param activeThread The ID of the current active thread.
-   * @return The new thread ID -> ThreadInfo map.
+   * @return The new thread ID -> thread epoch map.
    */
-  private ImmutableMap<String, ThreadInfo> getNewThreads(
-      Map<String, ThreadInfo> threads, Set<String> threadIds, String activeThread) {
-    Set<String> added = Sets.difference(threadIds, threads.keySet());
+  private ImmutableMap<String, Integer> getNewThreads(
+      Map<String, Integer> threadEpochs,
+      Set<String> threadIds,
+      String activeThread,
+      ImmutableSet.Builder<ThreadSynchronization> threadSynchronizations) {
+    Set<String> added = Sets.difference(threadIds, threadEpochs.keySet());
     assert added.size() < 2 : "Multiple thread creations in same step not supported";
-    Set<String> removed = Sets.difference(threads.keySet(), threadIds);
+    Set<String> removed = Sets.difference(threadEpochs.keySet(), threadIds);
     assert !removed.contains(activeThread) : "Thread active after join";
 
-    ImmutableMap.Builder<String, ThreadInfo> threadsBuilder = ImmutableMap.builder();
-    if (added.isEmpty()) {
-      for (Entry<String, ThreadInfo> entry : threads.entrySet()) {
-        if (!removed.contains(entry.getKey())) {
-          if (entry.getKey().equals(activeThread)) {
-            threadsBuilder.put(activeThread, entry.getValue().increaseIndex());
-          } else {
-            threadsBuilder.put(entry);
-          }
-        }
-      }
-    } else {
+    ImmutableMap.Builder<String, Integer> threadsBuilder = ImmutableMap.builder();
+    if (!added.isEmpty()) {
       String threadId = added.iterator().next();
-      ThreadInfo parent = threads.get(activeThread);
-      threadsBuilder.put(threadId, new ThreadInfo(parent, threadId, 0, parent.getEpoch() + 1, 0));
-      threadsBuilder.put(parent.getName(), parent.increaseEpoch().increaseIndex());
-      for (Entry<String, ThreadInfo> entry : threads.entrySet()) {
-        if (!(removed.contains(entry.getKey()) || entry.getKey().equals(activeThread))) {
+      threadsBuilder.put(threadId, 0);
+      threadSynchronizations.add(
+          new ThreadSynchronization(activeThread, threadId, threadEpochs.get(activeThread) + 1, 0));
+    }
+    for (Entry<String, Integer> entry : threadEpochs.entrySet()) {
+      if (!removed.contains(entry.getKey())) {
+        if (entry.getKey().equals(activeThread)) {
+          threadsBuilder.put(activeThread, entry.getValue() + 1);
+        } else {
           threadsBuilder.put(entry);
         }
       }
