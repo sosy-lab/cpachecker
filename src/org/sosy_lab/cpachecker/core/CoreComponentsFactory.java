@@ -33,6 +33,7 @@ import org.sosy_lab.cpachecker.core.algorithm.CustomInstructionRequirementsExtra
 import org.sosy_lab.cpachecker.core.algorithm.ExceptionHandlingAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.FaultLocalizationWithCoverage;
 import org.sosy_lab.cpachecker.core.algorithm.FaultLocalizationWithTraceFormula;
+import org.sosy_lab.cpachecker.core.algorithm.rangedExecInput.InputGenerationWithRandomWalkAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.InvariantExportAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.MPIPortfolioAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.NoopAlgorithm;
@@ -403,6 +404,13 @@ public class CoreComponentsFactory {
   @Option(secure = true, description = "Enable converting test goals to conditions.")
   private boolean testGoalConverter;
 
+  @Option(
+      secure = true,
+      name = "algorithm.inputGenRandomWalk",
+      description =
+          "Generate a set of test inputs using a random exploration of the executino tree.")
+  private boolean useInputGenerationWithRandomWalk = false;
+
   private final Configuration config;
   private final LogManager logger;
   private final @Nullable ShutdownManager shutdownManager;
@@ -593,6 +601,11 @@ public class CoreComponentsFactory {
         algorithm =
             new CEGARAlgorithmFactory(algorithm, cpa, logger, config, shutdownNotifier)
                 .newInstance();
+      }
+      if (useInputGenerationWithRandomWalk) {
+        algorithm =
+            new InputGenerationWithRandomWalkAlgorithm(
+                cpa, algorithm, cfa, logger, config);
       }
       if (useComputeRSEInput) {
         algorithm = new RangedExecutionInputComputation(config, algorithm, logger, cfa, cpa);

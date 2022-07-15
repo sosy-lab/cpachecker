@@ -227,6 +227,10 @@ analysis.algorithm.faultLocalization.by_traceformula = false
 # Use McMillan's Impact algorithm for lazy interpolation
 analysis.algorithm.impact = false
 
+# Generate a set of test inputs using a random exploration of the executino
+# tree.
+analysis.algorithm.inputGenRandomWalk = false
+
 # use nontermination witness validator to check a violation witness for
 # termination
 analysis.algorithm.nonterminationWitnessCheck = false
@@ -1754,6 +1758,19 @@ cpa.functionpointer.ignoreUnknownFunctionPointerCalls = false
 # in order to find calls to such pointers
 cpa.functionpointer.trackInvalidFunctionPointers = false
 
+# Number of testcases to generate
+cpa.inputGenWithRandomWalk.abortAfterUnsuccessfulRetries = numberOfTestcases * 5
+
+# List of names (or a part of the name) of functions, that return a random
+# value
+cpa.inputGenWithRandomWalk.namesOfRandomFunctions = {"rand", "__VERIFIER_nondet_"}
+
+# Number of testcases to generate
+cpa.inputGenWithRandomWalk.numberOfTestcases = 2
+
+# Names of the files for the testcases
+cpa.inputGenWithRandomWalk.testcaseName = "testcase.%d.xml"
+
 # which type of merge operator to use for IntervalAnalysisCPA
 cpa.interval.merge = "SEP"
   allowed values: [SEP, JOIN]
@@ -2706,6 +2723,17 @@ cpa.propertychecker.className = org.sosy_lab.cpachecker.pcc.propertychecker.Defa
 # respective constructor. Every parameter value is finished with ",". The
 # empty string represents an empty parameter list.
 cpa.propertychecker.parameters = ""
+
+# Maximal number of branches taken before the computation aborts (-1 is no
+# abort)
+cpa.randomWalk.maxBranchesLength = -1
+
+# If there is an if and else branch, take first with this probability in % 
+cpa.randomWalk.probForLeftBranchForAssign = 50
+
+# If there is an if and else branch for a loophead, take first with this
+# probability in % 
+cpa.randomWalk.probForLeftBranchForLoop = 60
 
 # If no path is given for the path2InputFile, try to load it automatically
 cpa.rangedAnalysis.autoLoadPath2Input = false
