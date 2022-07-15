@@ -23,8 +23,6 @@ import org.sosy_lab.cpachecker.core.interfaces.pcc.ProofChecker.ProofCheckerCPA;
 
 public class RandomWalkCPA extends AbstractCPA implements ProofCheckerCPA {
 
-
-
   public static CPAFactory factory() {
     return AutomaticCPAFactory.forType(RandomWalkCPA.class);
   }
@@ -32,7 +30,6 @@ public class RandomWalkCPA extends AbstractCPA implements ProofCheckerCPA {
   RandomWalkCPA(Configuration pConfig, CFA pCFA, LogManager pLogger)
       throws InvalidConfigurationException {
     super("sep", "sep", new RandomWalkTransferRelation(pConfig, pCFA, pLogger));
-
   }
 
   @Override

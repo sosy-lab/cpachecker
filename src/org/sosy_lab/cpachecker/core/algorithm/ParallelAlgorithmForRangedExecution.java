@@ -47,7 +47,8 @@ import org.sosy_lab.cpachecker.util.CPAs;
 public class ParallelAlgorithmForRangedExecution extends ParallelAlgorithm {
 
   protected static final String FAILURE_MESSAGE =
-      "The analysis '%s'  of the parallel analyses did not compute a result, cancelling all other runs.";
+      "The analysis '%s'  of the parallel analyses did not compute a result, cancelling all other"
+          + " runs.";
 
   public ParallelAlgorithmForRangedExecution(
       Configuration pGlobalConfig,
@@ -93,7 +94,6 @@ public class ParallelAlgorithmForRangedExecution extends ParallelAlgorithm {
     super.analyses = ImmutableList.copyOf(newAnanlyses);
   }
 
-
   @Override
   protected void handleFutureResults(List<ListenableFuture<ParallelAnalysisResult>> futures)
       throws InterruptedException, Error, CPAException {
@@ -104,32 +104,35 @@ public class ParallelAlgorithmForRangedExecution extends ParallelAlgorithm {
         ParallelAnalysisResult result = f.get();
         if (result.hasValidReachedSet() && finalResult == null) {
 
-
-
           finalResult = result;
 
-          //IF the result is false, then we need to stop the other analysis
-          if (finalResult.getReached().wasTargetReached()){
+          // IF the result is false, then we need to stop the other analysis
+          if (finalResult.getReached().wasTargetReached()) {
             stats.successfulAnalysisName = result.getAnalysisName();
             futures.forEach(future -> future.cancel(true));
-            logger.log(Level.INFO, result.getAnalysisName() + " finished successfully and found a property violation.");
+            logger.log(
+                Level.INFO,
+                result.getAnalysisName()
+                    + " finished successfully and found a property violation.");
             shutdownManager.requestShutdown(SUCCESS_MESSAGE);
 
-          }else{
-            //Let the other analyses run
+          } else {
+            // Let the other analyses run
             logger.log(Level.INFO, result.getAnalysisName() + " finished successfully.");
           }
 
         } else if (!result.hasValidReachedSet()) {
-          logger.log(Level.INFO, result.getAnalysisName() + " finished without usable result, hence aborting!");
+          logger.log(
+              Level.INFO,
+              result.getAnalysisName() + " finished without usable result, hence aborting!");
 
-          stats.successfulAnalysisName = String.format("NONE ('%s' failed)", result.getAnalysisName());
+          stats.successfulAnalysisName =
+              String.format("NONE ('%s' failed)", result.getAnalysisName());
 
           // cancel other computations
           futures.forEach(future -> future.cancel(true));
           logger.log(Level.INFO, result.getAnalysisName() + " finished successfully.");
           shutdownManager.requestShutdown(String.format(FAILURE_MESSAGE, result.getAnalysisName()));
-
         }
       } catch (ExecutionException e) {
         Throwable cause = e.getCause();
@@ -167,6 +170,7 @@ public class ParallelAlgorithmForRangedExecution extends ParallelAlgorithm {
       }
     }
   }
+
   @Override
   protected ParallelAnalysisResult runParallelAnalysis(
       final String analysisName,
@@ -183,7 +187,6 @@ public class ParallelAlgorithmForRangedExecution extends ParallelAlgorithm {
       AlgorithmStatus status = null;
       ReachedSet currentReached = reached;
       AtomicReference<ReachedSet> oldReached = new AtomicReference<>();
-
 
       if (!supplyRefinableReached) {
         status = algorithm.run(currentReached);
@@ -204,7 +207,7 @@ public class ParallelAlgorithmForRangedExecution extends ParallelAlgorithm {
           // check if we could prove the program to be safe
           if (status.isSound()
               && !from(currentReached)
-              .anyMatch(or(AbstractStates::isTargetState, AbstractStates::hasAssumptions))) {
+                  .anyMatch(or(AbstractStates::isTargetState, AbstractStates::hasAssumptions))) {
             ReachedSet oldReachedSet = oldReached.get();
             if (oldReachedSet != null) {
               aggregatedReachedSetManager.updateReachedSet(oldReachedSet, currentReached);
@@ -269,5 +272,4 @@ public class ParallelAlgorithmForRangedExecution extends ParallelAlgorithm {
       return ParallelAnalysisResult.absent(analysisName);
     }
   }
-
 }

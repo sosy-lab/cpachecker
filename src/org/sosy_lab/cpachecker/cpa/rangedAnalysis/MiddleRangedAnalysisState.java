@@ -21,7 +21,6 @@ public class MiddleRangedAnalysisState extends RangedAnalysisState {
     return "MIDDLE";
   }
 
-
   @Override
   public int hashCode() {
     return Long.hashCode(serialVersionUID);
@@ -31,7 +30,6 @@ public class MiddleRangedAnalysisState extends RangedAnalysisState {
   public boolean isLessOrEqual(RangedAnalysisState other) {
     return other instanceof MiddleRangedAnalysisState || super.isLessOrEqual(other);
   }
-
 
   @Override
   public RangedAnalysisState join(RangedAnalysisState pOther) {

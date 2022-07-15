@@ -52,10 +52,7 @@ import org.sosy_lab.java_smt.api.SolverException;
 @Options(prefix = "cpa.rangedExecutionInput")
 public class RangedExecutionInputComputation implements Algorithm {
 
-
   private final CFA cfa;
-
-
 
   @Option(
       secure = true,
@@ -72,12 +69,12 @@ public class RangedExecutionInputComputation implements Algorithm {
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private Path testcaseName = Path.of("testcase.0.xml");
 
-
   private final Algorithm algorithm;
   Solver solver;
   FormulaManagerView fmgr;
 
-  private final     TestcaseGenUtils utils;
+  private final TestcaseGenUtils utils;
+
   public RangedExecutionInputComputation(
       Configuration config,
       Algorithm pAlgorithm,
@@ -136,7 +133,8 @@ public class RangedExecutionInputComputation implements Algorithm {
             "There are more than one path present. We cannot compute a testcase for this!");
       }
       try {
-        List<Pair<CIdExpression, Integer>> inputs = utils.computeInputForLoopbound(paths.stream().findFirst().get());
+        List<Pair<CIdExpression, Integer>> inputs =
+            utils.computeInputForLoopbound(paths.stream().findFirst().get());
         utils.printFileToPutput(inputs, testcaseName);
       } catch (SolverException | IOException pE) {
         throw new CPAException(Throwables.getStackTraceAsString(pE));
@@ -171,5 +169,4 @@ public class RangedExecutionInputComputation implements Algorithm {
     return this.cfa.getLoopStructure().isPresent()
         && this.cfa.getLoopStructure().get().getCount() > 0;
   }
-
 }

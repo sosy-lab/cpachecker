@@ -43,7 +43,8 @@ public class RandomWalkTransferRelation extends SingleEdgeTransferRelation {
   @Option(
       secure = true,
       description =
-          "If there is an if and else branch for a loophead, take first with this probability in % ")
+          "If there is an if and else branch for a loophead, take first with this probability in %"
+              + " ")
   private int probForLeftBranchForLoop = 60;
 
   @Option(
@@ -79,7 +80,8 @@ public class RandomWalkTransferRelation extends SingleEdgeTransferRelation {
 
     RandomWalkState state = (RandomWalkState) pState;
     if (pCfaEdge instanceof AssumeEdge) {
-      if (state.thisEdgeShouldBeTaken((AssumeEdge) pCfaEdge, probForLeftBranchForLoop, probForLeftBranchForAssign)) {
+      if (state.thisEdgeShouldBeTaken(
+          (AssumeEdge) pCfaEdge, probForLeftBranchForLoop, probForLeftBranchForAssign)) {
         return Collections.singleton(state.takeEdge(pCfaEdge, logger));
       } else {
         return ImmutableSet.of();

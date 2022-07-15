@@ -56,10 +56,10 @@ public class RangedAnalysisState
 
   @Override
   public RangedAnalysisState join(RangedAnalysisState pOther) {
-    if (pOther.isLessOrEqual(this)){
+    if (pOther.isLessOrEqual(this)) {
       return this;
     }
-      return pOther;
+    return pOther;
   }
 
   public ValueAnalysisState getLeftState() {
@@ -84,8 +84,7 @@ public class RangedAnalysisState
       return false;
     }
     RangedAnalysisState that = (RangedAnalysisState) pO;
-    return Objects.equals(leftState, that.leftState) && Objects.equals(rightState,
-        that.rightState);
+    return Objects.equals(leftState, that.leftState) && Objects.equals(rightState, that.rightState);
   }
 
   @Override

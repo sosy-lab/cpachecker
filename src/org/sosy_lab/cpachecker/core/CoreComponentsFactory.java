@@ -33,7 +33,6 @@ import org.sosy_lab.cpachecker.core.algorithm.CustomInstructionRequirementsExtra
 import org.sosy_lab.cpachecker.core.algorithm.ExceptionHandlingAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.FaultLocalizationWithCoverage;
 import org.sosy_lab.cpachecker.core.algorithm.FaultLocalizationWithTraceFormula;
-import org.sosy_lab.cpachecker.core.algorithm.rangedExecInput.InputGenerationWithRandomWalkAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.InvariantExportAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.MPIPortfolioAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.NoopAlgorithm;
@@ -65,6 +64,7 @@ import org.sosy_lab.cpachecker.core.algorithm.pcc.ConfigReadingProofCheckAlgorit
 import org.sosy_lab.cpachecker.core.algorithm.pcc.ProofCheckAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.pcc.ProofCheckAndExtractCIRequirementsAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.pcc.ResultCheckAlgorithm;
+import org.sosy_lab.cpachecker.core.algorithm.rangedExecInput.InputGenerationWithRandomWalkAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.rangedExecInput.RangedExecutionInputComputation;
 import org.sosy_lab.cpachecker.core.algorithm.residualprogram.ConditionalVerifierAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.residualprogram.ResidualProgramConstructionAfterAnalysisAlgorithm;
@@ -603,9 +603,7 @@ public class CoreComponentsFactory {
                 .newInstance();
       }
       if (useInputGenerationWithRandomWalk) {
-        algorithm =
-            new InputGenerationWithRandomWalkAlgorithm(
-                cpa, algorithm, cfa, logger, config);
+        algorithm = new InputGenerationWithRandomWalkAlgorithm(cpa, algorithm, cfa, logger, config);
       }
       if (useComputeRSEInput) {
         algorithm = new RangedExecutionInputComputation(config, algorithm, logger, cfa, cpa);

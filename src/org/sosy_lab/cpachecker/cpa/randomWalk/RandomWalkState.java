@@ -39,7 +39,6 @@ public class RandomWalkState
 
   private List<Integer> numberOfSuccessorTaken;
 
-
   private CFAEdge edgeToTakeNext;
 
   private @Nullable RandomWalkState lastBranchingPoint;
@@ -54,8 +53,7 @@ public class RandomWalkState
       PathFormula pCurrentPathFormula,
       List<CFANode> pAssumeEdgesTaken,
       List<Integer> pNumberOfSuccessorTaken,
-      RandomWalkState
-      pLastBranchingPoint) {
+      RandomWalkState pLastBranchingPoint) {
     currentPathFormula = pCurrentPathFormula;
     nodesOnPath = pAssumeEdgesTaken;
     numberOfSuccessorTaken = pNumberOfSuccessorTaken;
@@ -68,7 +66,10 @@ public class RandomWalkState
 
   private RandomWalkState copy() {
     return new RandomWalkState(
-        currentPathFormula, new ArrayList<>(nodesOnPath), new ArrayList<>(numberOfSuccessorTaken), lastBranchingPoint);
+        currentPathFormula,
+        new ArrayList<>(nodesOnPath),
+        new ArrayList<>(numberOfSuccessorTaken),
+        lastBranchingPoint);
   }
 
   public PathFormula getCurrentPathFormula() {
@@ -163,8 +164,9 @@ public class RandomWalkState
     }
   }
 
-  public boolean thisEdgeShouldBeTaken(AssumeEdge pCfaEdge, int pProbForLeftBranchForLoop,
-                                       int pProbForLeftBranchForAssign) throws CPATransferException {
+  public boolean thisEdgeShouldBeTaken(
+      AssumeEdge pCfaEdge, int pProbForLeftBranchForLoop, int pProbForLeftBranchForAssign)
+      throws CPATransferException {
     CFANode predecessor = pCfaEdge.getPredecessor();
     if (nodesOnPath.size() > 1 && nodesOnPath.get(nodesOnPath.size() - 2).equals(predecessor)) {
       // There is already another edge taken
@@ -173,21 +175,23 @@ public class RandomWalkState
         && this.nodesOnPath.get(nodesOnPath.size() - 1).equals(predecessor)) {
       if (this.edgeToTakeNext == null) {
         // Decide which node to take next
-        if (predecessor.getNumLeavingEdges() ==2){
-          if (pCfaEdge.getPredecessor().isLoopStart()){
+        if (predecessor.getNumLeavingEdges() == 2) {
+          if (pCfaEdge.getPredecessor().isLoopStart()) {
             edgeToTakeNext =
                 predecessor.getLeavingEdge(
-                    ThreadLocalRandom.current().nextInt( 100)< pProbForLeftBranchForLoop? 0 : 1);
-          }else {
+                    ThreadLocalRandom.current().nextInt(100) < pProbForLeftBranchForLoop ? 0 : 1);
+          } else {
+            edgeToTakeNext =
+                predecessor.getLeavingEdge(
+                    ThreadLocalRandom.current().nextInt(100) < pProbForLeftBranchForAssign ? 0 : 1);
+          }
+        } else {
+
           edgeToTakeNext =
               predecessor.getLeavingEdge(
-                  ThreadLocalRandom.current().nextInt( 100)< pProbForLeftBranchForAssign? 0 : 1);}
-        }else{
-
-        edgeToTakeNext =
-            predecessor.getLeavingEdge(
-                ThreadLocalRandom.current().nextInt(0, predecessor.getNumLeavingEdges()));
-      }}
+                  ThreadLocalRandom.current().nextInt(0, predecessor.getNumLeavingEdges()));
+        }
+      }
       return pCfaEdge.equals(edgeToTakeNext);
     }
     throw new CPATransferException(
@@ -216,8 +220,4 @@ public class RandomWalkState
   public void setPathFormula(PathFormula pPathFormula) {
     this.currentPathFormula = pPathFormula;
   }
-
-
-
-
 }

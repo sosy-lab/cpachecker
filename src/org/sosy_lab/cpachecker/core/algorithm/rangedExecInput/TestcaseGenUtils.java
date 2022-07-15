@@ -84,7 +84,6 @@ public class TestcaseGenUtils {
           AbstractStates.extractStateByType(path.getLastState(), RandomWalkState.class);
       RandomWalkState pState = firstState;
 
-
       try (ProverEnvironment prover = solver.newProverEnvironment(ProverOptions.GENERATE_MODELS)) {
 
         try {
