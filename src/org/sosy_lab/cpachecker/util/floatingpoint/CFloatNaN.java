@@ -33,8 +33,8 @@ public class CFloatNaN extends CFloat {
   }
 
   public CFloatNaN(boolean pNegative, int pType) {
-    this.negative = pNegative;
-    this.type = pType;
+    negative = pNegative;
+    type = pType;
   }
 
   @Override

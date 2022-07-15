@@ -28,7 +28,7 @@ import org.sosy_lab.java_smt.api.SolverException;
 @SuppressFBWarnings("NP_NONNULL_FIELD_NOT_INITIALIZED_IN_CONSTRUCTOR")
 public class SolverQuantifierTest extends SolverViewBasedTest0 {
 
-  @Parameters(name="{0}")
+  @Parameters(name = "{0}")
   public static Object[] getAllSolvers() {
     return Solvers.values();
   }
@@ -53,7 +53,7 @@ public class SolverQuantifierTest extends SolverViewBasedTest0 {
     requireArrays();
     requireQuantifiers();
 
-    this.qfm = mgrv.getQuantifiedFormulaManager();
+    qfm = mgrv.getQuantifiedFormulaManager();
     imgr = imgrv;
 
     _x = imgr.makeVariable("x");
@@ -67,10 +67,8 @@ public class SolverQuantifierTest extends SolverViewBasedTest0 {
   public void testExistsRestrictedRange() throws SolverException, InterruptedException {
     BooleanFormula f;
 
-    BooleanFormula _exists_10_20_bx_1 = qfm.exists(_x,
-        imgr.makeNumber(10),
-        imgr.makeNumber(20),
-        _b_at_x_eq_1);
+    BooleanFormula _exists_10_20_bx_1 =
+        qfm.exists(_x, imgr.makeNumber(10), imgr.makeNumber(20), _b_at_x_eq_1);
 
     BooleanFormula _forall_x_bx_0 = qfm.forall(_x, _b_at_x_eq_0);
 
@@ -79,19 +77,29 @@ public class SolverQuantifierTest extends SolverViewBasedTest0 {
     assertThatFormula(f).isUnsatisfiable();
 
     // (exists x in [10..20] . b[x] = 1) AND (b[10] = 0) is SAT
-    f = bmgr.and(_exists_10_20_bx_1, imgr.equal(amgr.select(_b, imgr.makeNumber(10)), imgr.makeNumber(0)));
+    f =
+        bmgr.and(
+            _exists_10_20_bx_1,
+            imgr.equal(amgr.select(_b, imgr.makeNumber(10)), imgr.makeNumber(0)));
     assertThatFormula(f).isSatisfiable();
 
     // (exists x in [10..20] . b[x] = 1) AND (b[1000] = 0) is SAT
-    f = bmgr.and(_exists_10_20_bx_1, imgr.equal(amgr.select(_b, imgr.makeNumber(1000)), imgr.makeNumber(0)));
+    f =
+        bmgr.and(
+            _exists_10_20_bx_1,
+            imgr.equal(amgr.select(_b, imgr.makeNumber(1000)), imgr.makeNumber(0)));
     assertThatFormula(f).isSatisfiable();
   }
 
   @Test
   public void testExistsRestrictedRangeInconclusive() throws SolverException, InterruptedException {
-    assume().withMessage(
-        "Solver %s does not support the complete theory of quantifiers and returns INCONCLUSIVE",
-        solverToUse()).that(solverUnderTest).isNoneOf(Solvers.PRINCESS, Solvers.CVC4);
+    assume()
+        .withMessage(
+            "Solver %s does not support the complete theory of quantifiers and returns"
+                + " INCONCLUSIVE",
+            solverToUse())
+        .that(solverUnderTest)
+        .isNoneOf(Solvers.PRINCESS, Solvers.CVC4);
 
     BooleanFormula f;
 
@@ -117,10 +125,8 @@ public class SolverQuantifierTest extends SolverViewBasedTest0 {
   public void testForallRestrictedRange() throws SolverException, InterruptedException {
     BooleanFormula f;
 
-    BooleanFormula _forall_10_20_bx_1 = qfm.forall(_x,
-        imgr.makeNumber(10),
-        imgr.makeNumber(20),
-        _b_at_x_eq_1);
+    BooleanFormula _forall_10_20_bx_1 =
+        qfm.forall(_x, imgr.makeNumber(10), imgr.makeNumber(20), _b_at_x_eq_1);
 
     // (forall x in [10..20] . b[x] = 1) AND (exits x in [15..17] . b[x] = 0) is UNSAT
     f =
@@ -146,9 +152,13 @@ public class SolverQuantifierTest extends SolverViewBasedTest0 {
 
   @Test
   public void testForallRestrictedRangeInconclusive() throws SolverException, InterruptedException {
-    assume().withMessage(
-        "Solver %s does not support the complete theory of quantifiers and returns INCONCLUSIVE",
-        solverToUse()).that(solverUnderTest).isNoneOf(Solvers.PRINCESS, Solvers.CVC4);
+    assume()
+        .withMessage(
+            "Solver %s does not support the complete theory of quantifiers and returns"
+                + " INCONCLUSIVE",
+            solverToUse())
+        .that(solverUnderTest)
+        .isNoneOf(Solvers.PRINCESS, Solvers.CVC4);
 
     BooleanFormula f;
 
@@ -159,37 +169,35 @@ public class SolverQuantifierTest extends SolverViewBasedTest0 {
         qfm.forall(_x, imgr.makeNumber(10), imgr.makeNumber(20), _b_at_x_eq_1);
 
     // (forall x in [10..20] . b[x] = 0) AND (forall x . b[x] = 0) is SAT
-    f = bmgr.and(
-        _forall_10_20_bx_0,
-        qfm.forall(_x, _b_at_x_eq_0));
+    f = bmgr.and(_forall_10_20_bx_0, qfm.forall(_x, _b_at_x_eq_0));
     assertThatFormula(f).isSatisfiable();
 
     // (forall x in [10..20] . b[x] = 1) AND b[9] = 0 is SAT
-    f = bmgr.and(
-        _forall_10_20_bx_1,
-        imgr.equal(
-            amgr.select(_b, imgr.makeNumber(9)),
-            imgr.makeNumber(0)));
+    f =
+        bmgr.and(
+            _forall_10_20_bx_1,
+            imgr.equal(amgr.select(_b, imgr.makeNumber(9)), imgr.makeNumber(0)));
     assertThatFormula(f).isSatisfiable();
 
     // (forall x in [10..20] . b[x] = 1) AND b[21] = 0 is SAT
-    f = bmgr.and(
-        _forall_10_20_bx_1,
-        imgr.equal(
-            amgr.select(_b, imgr.makeNumber(21)),
-            imgr.makeNumber(0)));
+    f =
+        bmgr.and(
+            _forall_10_20_bx_1,
+            imgr.equal(amgr.select(_b, imgr.makeNumber(21)), imgr.makeNumber(0)));
     assertThatFormula(f).isSatisfiable();
 
     // (forall x in [10..20] . b[x] = 1) AND (forall x in [0..20] . b[x] = 0) is UNSAT
-    f = bmgr.and(
-        _forall_10_20_bx_1,
-        qfm.forall(_x, imgr.makeNumber(0), imgr.makeNumber(20), _b_at_x_eq_0));
+    f =
+        bmgr.and(
+            _forall_10_20_bx_1,
+            qfm.forall(_x, imgr.makeNumber(0), imgr.makeNumber(20), _b_at_x_eq_0));
     assertThatFormula(f).isUnsatisfiable();
 
     // (forall x in [10..20] . b[x] = 1) AND (forall x in [0..9] . b[x] = 0) is SAT
-    f = bmgr.and(
-        _forall_10_20_bx_1,
-        qfm.forall(_x, imgr.makeNumber(0), imgr.makeNumber(9), _b_at_x_eq_0));
+    f =
+        bmgr.and(
+            _forall_10_20_bx_1,
+            qfm.forall(_x, imgr.makeNumber(0), imgr.makeNumber(9), _b_at_x_eq_0));
     assertThatFormula(f).isSatisfiable();
   }
 }

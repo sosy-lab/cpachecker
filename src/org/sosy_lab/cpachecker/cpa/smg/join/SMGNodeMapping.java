@@ -46,7 +46,7 @@ public class SMGNodeMapping {
     return value_map.get(i);
   }
 
-  public SMGObject get (SMGObject o) {
+  public SMGObject get(SMGObject o) {
     return object_map.get(o);
   }
 

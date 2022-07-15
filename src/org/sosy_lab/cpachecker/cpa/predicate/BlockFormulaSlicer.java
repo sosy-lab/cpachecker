@@ -61,19 +61,21 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 
 /**
- * Implementation of {@link BlockFormulaStrategy} that slices the formulas
- * (i.e., it removes irrelevant parts based on variable usage).
+ * Implementation of {@link BlockFormulaStrategy} that slices the formulas (i.e., it removes
+ * irrelevant parts based on variable usage).
  */
 class BlockFormulaSlicer extends BlockFormulaStrategy {
 
-  /** if important or not, this does not matter, because it will be ignored later,
-   * so it can be used for optimization. */
+  /**
+   * if important or not, this does not matter, because it will be ignored later, so it can be used
+   * for optimization.
+   */
   private static final boolean IS_BLANK_EDGE_IMPORTANT = false;
 
   private final PathFormulaManager pfmgr;
 
   BlockFormulaSlicer(PathFormulaManager pPfmgr) {
-    this.pfmgr = pPfmgr;
+    pfmgr = pPfmgr;
   }
 
   @Override
@@ -128,10 +130,11 @@ class BlockFormulaSlicer extends BlockFormulaStrategy {
     return new BlockFormulas(pfs.build());
   }
 
-  /** This function returns all states, that are contained in a block.
-   * The block is the union of all paths, that end in the end-state.
-   * We assume, that all paths begin in the start-state (that may be null).
-   * The returned collection includes the end-state and the start-state. */
+  /**
+   * This function returns all states, that are contained in a block. The block is the union of all
+   * paths, that end in the end-state. We assume, that all paths begin in the start-state (that may
+   * be null). The returned collection includes the end-state and the start-state.
+   */
   private Set<ARGState> getARGStatesOfBlock(ARGState start, ARGState end) {
     final Set<ARGState> states = new HashSet<>();
     states.add(start); // start is the last state to be reachable backwards
@@ -152,9 +155,11 @@ class BlockFormulaSlicer extends BlockFormulaStrategy {
     return states;
   }
 
-
-  private Collection<String> sliceBlock(ARGState start, ARGState end,
-      Set<ARGState> block, Collection<String> importantVars,
+  private Collection<String> sliceBlock(
+      ARGState start,
+      ARGState end,
+      Set<ARGState> block,
+      Collection<String> importantVars,
       final Multimap<ARGState, ARGState> importantEdges) {
 
     // this map contains all done states with their vars (if not removed through cleanup)
@@ -316,49 +321,48 @@ class BlockFormulaSlicer extends BlockFormulaStrategy {
     // check the type of the edge
     switch (edge.getEdgeType()) {
 
-    // int a;
-    case DeclarationEdge:
-      result = handleDeclaration((CDeclarationEdge) edge, importantVars);
-      break;
+        // int a;
+      case DeclarationEdge:
+        result = handleDeclaration((CDeclarationEdge) edge, importantVars);
+        break;
 
-    // if (a == b) {...}
-    case AssumeEdge:
-      result = handleAssumption((CAssumeEdge) edge, importantVars);
-      break;
+        // if (a == b) {...}
+      case AssumeEdge:
+        result = handleAssumption((CAssumeEdge) edge, importantVars);
+        break;
 
-    // a = b + c;
-    case StatementEdge:
-      result = handleStatement((CStatementEdge) edge, importantVars);
-      break;
+        // a = b + c;
+      case StatementEdge:
+        result = handleStatement((CStatementEdge) edge, importantVars);
+        break;
 
-    // return (x);
-    case ReturnStatementEdge:
-      result = handleReturnStatement((CReturnStatementEdge) edge, importantVars);
-      break;
+        // return (x);
+      case ReturnStatementEdge:
+        result = handleReturnStatement((CReturnStatementEdge) edge, importantVars);
+        break;
 
-    // assignment from y = f(x);
-    case FunctionReturnEdge:
-      result = handleFunctionReturn((CFunctionReturnEdge) edge, importantVars);
-      break;
+        // assignment from y = f(x);
+      case FunctionReturnEdge:
+        result = handleFunctionReturn((CFunctionReturnEdge) edge, importantVars);
+        break;
 
-    // call from y = f(x);
-    case FunctionCallEdge:
-      result = handleFunctionCall((CFunctionCallEdge) edge, importantVars);
-      break;
+        // call from y = f(x);
+      case FunctionCallEdge:
+        result = handleFunctionCall((CFunctionCallEdge) edge, importantVars);
+        break;
 
-    case BlankEdge:
-      result = IS_BLANK_EDGE_IMPORTANT;
-      break;
+      case BlankEdge:
+        result = IS_BLANK_EDGE_IMPORTANT;
+        break;
 
-    default:
-      throw new AssertionError("unhandled edge: " + edge.getRawStatement());
+      default:
+        throw new AssertionError("unhandled edge: " + edge.getRawStatement());
     }
 
     return result;
   }
 
-  private boolean handleDeclaration(CDeclarationEdge edge,
-      Collection<String> importantVars) {
+  private boolean handleDeclaration(CDeclarationEdge edge, Collection<String> importantVars) {
     final CDeclaration decl = edge.getDeclaration();
 
     if (decl instanceof CVariableDeclaration) {
@@ -381,15 +385,13 @@ class BlockFormulaSlicer extends BlockFormulaStrategy {
     }
   }
 
-  private boolean handleAssumption(CAssumeEdge edge,
-      Collection<String> importantVars) {
+  private boolean handleAssumption(CAssumeEdge edge, Collection<String> importantVars) {
     CFAUtils.getVariableNamesOfExpression(edge.getExpression()).copyInto(importantVars);
     return true;
   }
 
   /** This function handles statements like "a = 0;" and calls of external functions. */
-  private boolean handleStatement(CStatementEdge edge,
-      Collection<String> importantVars) {
+  private boolean handleStatement(CStatementEdge edge, Collection<String> importantVars) {
     final AStatement statement = edge.getStatement();
 
     // expression is an assignment operation, e.g. a = b;
@@ -410,7 +412,6 @@ class BlockFormulaSlicer extends BlockFormulaStrategy {
       throw new AssertionError("unhandled statement: " + edge.getRawStatement());
     }
   }
-
 
   private boolean handleAssignment(CAssignment statement, Collection<String> importantVars) {
     final CExpression lhs = statement.getLeftHandSide();
@@ -443,10 +444,12 @@ class BlockFormulaSlicer extends BlockFormulaStrategy {
     }
   }
 
-  /** This function handles functionStatements like "return (x)".
-   * The FUNCTION_RETURN_VARIABLE is equal to the right side ("x"). */
-  private boolean handleReturnStatement(CReturnStatementEdge edge,
-      Collection<String> importantVars) {
+  /**
+   * This function handles functionStatements like "return (x)". The FUNCTION_RETURN_VARIABLE is
+   * equal to the right side ("x").
+   */
+  private boolean handleReturnStatement(
+      CReturnStatementEdge edge, Collection<String> importantVars) {
 
     if (!edge.asAssignment().isPresent()) {
       return false;
@@ -456,12 +459,11 @@ class BlockFormulaSlicer extends BlockFormulaStrategy {
     }
   }
 
-
-  /** This function handles functionReturns like "y=f(x)".
-   * The equality of the FUNCTION_RETURN_VARIABLE and the
-   * left side ("y") is build. */
-  private boolean handleFunctionReturn(CFunctionReturnEdge edge,
-      Collection<String> importantVars) {
+  /**
+   * This function handles functionReturns like "y=f(x)". The equality of the
+   * FUNCTION_RETURN_VARIABLE and the left side ("y") is build.
+   */
+  private boolean handleFunctionReturn(CFunctionReturnEdge edge, Collection<String> importantVars) {
 
     // set result of function equal to variable on left side
     CFunctionSummaryEdge fnkCall = edge.getSummaryEdge();
@@ -495,10 +497,11 @@ class BlockFormulaSlicer extends BlockFormulaStrategy {
     }
   }
 
-  /** This function handles functioncalls like "f(x)", that calls "f(int a)".
-   * Therefore each arg ("x") assigned to a param ("int a") of the function. */
-  private boolean handleFunctionCall(CFunctionCallEdge edge,
-      Collection<String> importantVars) {
+  /**
+   * This function handles functioncalls like "f(x)", that calls "f(int a)". Therefore each arg
+   * ("x") assigned to a param ("int a") of the function.
+   */
+  private boolean handleFunctionCall(CFunctionCallEdge edge, Collection<String> importantVars) {
 
     // overtake arguments from last functioncall into function,
     // get args from functioncall and make them equal with params from functionstart
@@ -518,13 +521,17 @@ class BlockFormulaSlicer extends BlockFormulaStrategy {
     return true;
   }
 
-  /** This function returns a PathFormula for the whole block from start to end.
-   * The SSA-indices of the new formula are based on the old formula.
+  /**
+   * This function returns a PathFormula for the whole block from start to end. The SSA-indices of
+   * the new formula are based on the old formula.
    */
-  private PathFormula buildFormula(ARGState start, ARGState end,
-      Collection<ARGState> block, PathFormula oldPf,
+  private PathFormula buildFormula(
+      ARGState start,
+      ARGState end,
+      Collection<ARGState> block,
+      PathFormula oldPf,
       final Multimap<ARGState, ARGState> importantEdges)
-          throws CPATransferException, InterruptedException {
+      throws CPATransferException, InterruptedException {
 
     // this map contains all done states with their formulas
     final Map<ARGState, PathFormula> s2f = Maps.newHashMapWithExpectedSize(block.size());
@@ -578,8 +585,9 @@ class BlockFormulaSlicer extends BlockFormulaStrategy {
     return s2f.get(end);
   }
 
-
-  private PathFormula makeFormulaForState(ARGState current, Map<ARGState, PathFormula> s2f,
+  private PathFormula makeFormulaForState(
+      ARGState current,
+      Map<ARGState, PathFormula> s2f,
       final Multimap<ARGState, ARGState> importantEdges)
       throws CPATransferException, InterruptedException {
 
@@ -600,7 +608,10 @@ class BlockFormulaSlicer extends BlockFormulaStrategy {
     return joined;
   }
 
-  private PathFormula buildFormulaForEdge(ARGState parent, ARGState child, PathFormula oldFormula,
+  private PathFormula buildFormulaForEdge(
+      ARGState parent,
+      ARGState child,
+      PathFormula oldFormula,
       final Multimap<ARGState, ARGState> importantEdges)
       throws CPATransferException, InterruptedException {
     if (!importantEdges.containsEntry(parent, child)) {
@@ -614,22 +625,24 @@ class BlockFormulaSlicer extends BlockFormulaStrategy {
     }
   }
 
-  /** This function returns, if all parents of a state,
-   * that are in the subset, are done. */
-  private boolean isAllChildrenDone(ARGState s,
-      Collection<ARGState> done, Collection<ARGState> subset) {
+  /** This function returns, if all parents of a state, that are in the subset, are done. */
+  private boolean isAllChildrenDone(
+      ARGState s, Collection<ARGState> done, Collection<ARGState> subset) {
     for (ARGState child : s.getChildren()) {
-      if (subset.contains(child) && !done.contains(child)) { return false; }
+      if (subset.contains(child) && !done.contains(child)) {
+        return false;
+      }
     }
     return true;
   }
 
-  /** This function returns, if all parents of a state,
-   * that are in the subset, are done. */
-  private boolean isAllParentsDone(ARGState s,
-      Collection<ARGState> done, Collection<ARGState> subset) {
+  /** This function returns, if all parents of a state, that are in the subset, are done. */
+  private boolean isAllParentsDone(
+      ARGState s, Collection<ARGState> done, Collection<ARGState> subset) {
     for (ARGState parent : s.getParents()) {
-      if (subset.contains(parent) && !done.contains(parent)) { return false; }
+      if (subset.contains(parent) && !done.contains(parent)) {
+        return false;
+      }
     }
     return true;
   }

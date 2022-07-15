@@ -34,7 +34,7 @@ public class TestTargetState
     private final boolean isConsideredTarget;
 
     Status(final boolean isTarget) {
-      this.isConsideredTarget = isTarget;
+      isConsideredTarget = isTarget;
     }
   }
 
@@ -78,7 +78,7 @@ public class TestTargetState
   public boolean isLessOrEqual(TestTargetState pOther) throws CPAException, InterruptedException {
     return equals(pOther)
         || (pOther.currentState == Status.TARGET
-            && this.currentState == Status.STOP_POSSIBLY_INFEASIBLE_TARGET);
+            && currentState == Status.STOP_POSSIBLY_INFEASIBLE_TARGET);
   }
 
   public void changeToStopTargetStatus() {

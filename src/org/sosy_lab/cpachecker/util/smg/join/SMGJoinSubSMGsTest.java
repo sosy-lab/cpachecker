@@ -23,7 +23,6 @@ public class SMGJoinSubSMGsTest extends SMGJoinTest0 {
   @Before
   public void setUp() {
 
-
     SMGObject obj1 = createRegion(64);
     SMGObject obj2 = createRegion(64);
 

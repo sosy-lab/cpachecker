@@ -40,7 +40,8 @@ public class ProofCheckAndExtractCIRequirementsAlgorithm extends ProofCheckAlgor
   private final CustomInstructionRequirementsExtractor ciExtractor;
   private final ConfigurableProgramAnalysis cpa;
 
-  @Option(secure = true,
+  @Option(
+      secure = true,
       name = "pcc.HWrequirements.extraction.mode",
       description = "Specifies the mode how HW requirements are detected in the proof.")
   private CIDescriptionType ciMode = CIDescriptionType.OPERATOR;
@@ -57,34 +58,45 @@ public class ProofCheckAndExtractCIRequirementsAlgorithm extends ProofCheckAlgor
 
     pConfig.inject(this);
 
-    ciasBuilder = CustomInstructionApplicationBuilder.getBuilder(ciMode, pConfig, pLogger, pShutdownNotifier, pCfa);
-    ciExtractor = new CustomInstructionRequirementsExtractor(pConfig, pLogger, pShutdownNotifier, pCpa);
+    ciasBuilder =
+        CustomInstructionApplicationBuilder.getBuilder(
+            ciMode, pConfig, pLogger, pShutdownNotifier, pCfa);
+    ciExtractor =
+        new CustomInstructionRequirementsExtractor(pConfig, pLogger, pShutdownNotifier, pCpa);
     cpa = pCpa;
 
     Class<? extends AbstractState> requirementsStateClass = ciExtractor.getRequirementsStateClass();
     try {
-      if (AbstractStates.extractStateByType(pCpa.getInitialState(pCfa.getMainFunction(), StateSpacePartition.getDefaultPartition()),
-                                            requirementsStateClass) == null) {
-        throw new InvalidConfigurationException(requirementsStateClass + "is not an abstract state.");
+      if (AbstractStates.extractStateByType(
+              pCpa.getInitialState(
+                  pCfa.getMainFunction(), StateSpacePartition.getDefaultPartition()),
+              requirementsStateClass)
+          == null) {
+        throw new InvalidConfigurationException(
+            requirementsStateClass + "is not an abstract state.");
       }
     } catch (InterruptedException e) {
-      throw new InvalidConfigurationException(requirementsStateClass + "initial state computation did not finish in time");
+      throw new InvalidConfigurationException(
+          requirementsStateClass + "initial state computation did not finish in time");
     }
 
-    if(!(checkingStrategy instanceof AbstractARGStrategy)) {
-      throw new InvalidConfigurationException("Custom instruction requirements extraction only works with proofs that are ARGs.");
+    if (!(checkingStrategy instanceof AbstractARGStrategy)) {
+      throw new InvalidConfigurationException(
+          "Custom instruction requirements extraction only works with proofs that are ARGs.");
     }
   }
 
   @Override
-  public AlgorithmStatus run(final ReachedSet reachedSet) throws CPAException, InterruptedException {
+  public AlgorithmStatus run(final ReachedSet reachedSet)
+      throws CPAException, InterruptedException {
 
     CustomInstructionApplications cia;
     try {
       logger.log(Level.INFO, "Get custom instruction applications in program.");
       cia = ciasBuilder.identifyCIApplications();
     } catch (IOException e) {
-      logger.log(Level.SEVERE, "Detecting the custom instruction applications in program failed.", e);
+      logger.log(
+          Level.SEVERE, "Detecting the custom instruction applications in program failed.", e);
       return AlgorithmStatus.UNSOUND_AND_PRECISE;
     }
 
@@ -92,8 +104,10 @@ public class ProofCheckAndExtractCIRequirementsAlgorithm extends ProofCheckAlgor
       @SuppressWarnings("resource")
       PredicateCPA predCPA = CPAs.retrieveCPA(cpa, PredicateCPA.class);
       if (predCPA == null) {
-        logger.log(Level.SEVERE,
-            "Cannot find PredicateCPA in CPA configuration but it is required to set abstraction nodes");
+        logger.log(
+            Level.SEVERE,
+            "Cannot find PredicateCPA in CPA configuration but it is required to set abstraction"
+                + " nodes");
         return AlgorithmStatus.UNSOUND_AND_PRECISE;
       }
       predCPA.changeExplicitAbstractionNodes(cia.getStartAndEndLocationsOfCIApplications());
@@ -110,7 +124,5 @@ public class ProofCheckAndExtractCIRequirementsAlgorithm extends ProofCheckAlgor
     }
 
     return status;
-
   }
-
 }

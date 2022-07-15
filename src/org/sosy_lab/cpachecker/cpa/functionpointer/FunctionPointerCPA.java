@@ -29,7 +29,8 @@ public class FunctionPointerCPA extends AbstractCPA
     return AutomaticCPAFactory.forType(FunctionPointerCPA.class);
   }
 
-  private FunctionPointerCPA(LogManager pLogger, Configuration pConfig) throws InvalidConfigurationException {
+  private FunctionPointerCPA(LogManager pLogger, Configuration pConfig)
+      throws InvalidConfigurationException {
     super(
         "sep",
         "sep",

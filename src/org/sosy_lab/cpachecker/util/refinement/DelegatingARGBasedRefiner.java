@@ -31,9 +31,8 @@ import org.sosy_lab.cpachecker.util.statistics.StatCounter;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 
 /**
- * This is a {@link ARGBasedRefiner} that delegates each refinement
- * to a list of given {@link ARGBasedRefiner}s (in the given order)
- * until one succeeds.
+ * This is a {@link ARGBasedRefiner} that delegates each refinement to a list of given {@link
+ * ARGBasedRefiner}s (in the given order) until one succeeds.
  */
 public final class DelegatingARGBasedRefiner implements ARGBasedRefiner, StatisticsProvider {
 
@@ -61,8 +60,8 @@ public final class DelegatingARGBasedRefiner implements ARGBasedRefiner, Statist
   }
 
   @Override
-  public CounterexampleInfo performRefinementForPath(final ARGReachedSet reached, ARGPath pErrorPath)
-      throws CPAException, InterruptedException {
+  public CounterexampleInfo performRefinementForPath(
+      final ARGReachedSet reached, ARGPath pErrorPath) throws CPAException, InterruptedException {
 
     CounterexampleInfo cex = null;
 
@@ -75,7 +74,11 @@ public final class DelegatingARGBasedRefiner implements ARGBasedRefiner, Statist
       totalRefinementsSelected.get(i).inc();
       try {
 
-        logger.logf(Level.FINE, "starting refinement %d of %d with %s", i + 1, refiners.size(),
+        logger.logf(
+            Level.FINE,
+            "starting refinement %d of %d with %s",
+            i + 1,
+            refiners.size(),
             refiners.get(i).getClass().getSimpleName());
         cex = refiners.get(i).performRefinementForPath(reached, pErrorPath);
 

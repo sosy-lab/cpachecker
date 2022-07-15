@@ -6,7 +6,5 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-/**
- * Package with the classes representing the memory graphs.
- */
+/** Package with the classes representing the memory graphs. */
 package org.sosy_lab.cpachecker.cpa.smg.graphs;

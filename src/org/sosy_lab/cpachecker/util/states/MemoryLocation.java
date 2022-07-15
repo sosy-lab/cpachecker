@@ -185,8 +185,8 @@ public final class MemoryLocation implements Comparable<MemoryLocation>, Seriali
   }
 
   /**
-   * Gets the offset of a reference. Only valid for references.
-   * See {@link MemoryLocation#isReference()}.
+   * Gets the offset of a reference. Only valid for references. See {@link
+   * MemoryLocation#isReference()}.
    *
    * @return the offset of a reference.
    */

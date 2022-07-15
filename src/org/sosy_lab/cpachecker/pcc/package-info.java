@@ -7,8 +7,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 /**
- * Sub-project by the University of Paderborn, implementing
- * proof-carrying code (generating and checking certificates
- * for verification).
+ * Sub-project by the University of Paderborn, implementing proof-carrying code (generating and
+ * checking certificates for verification).
  */
 package org.sosy_lab.cpachecker.pcc;

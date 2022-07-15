@@ -6,7 +6,5 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-/**
- * Package for evaluating expressions.
- */
+/** Package for evaluating expressions. */
 package org.sosy_lab.cpachecker.cpa.smg.evaluator;

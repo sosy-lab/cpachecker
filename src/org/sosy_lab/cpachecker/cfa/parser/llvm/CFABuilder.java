@@ -14,6 +14,7 @@ import static org.sosy_lab.llvm_j.Value.OpCode.AShr;
 
 import com.google.common.base.CharMatcher;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.TreeMultimap;
 import java.math.BigDecimal;
 import java.math.BigInteger;
@@ -117,7 +118,8 @@ public class CFABuilder {
           FileLocation.DUMMY,
           new CFunctionType(CVoidType.VOID, ImmutableList.of(), false),
           "abort",
-          ImmutableList.of());
+          ImmutableList.of(),
+          ImmutableSet.of());
   private static final CExpression ABORT_FUNC_NAME =
       new CIdExpression(FileLocation.DUMMY, CVoidType.VOID, "abort", ABORT_FUNC_DECL);
 
@@ -607,11 +609,7 @@ public class CFABuilder {
             curNode = newNode(pFunction);
             addEdge(
                 new CStatementEdge(
-                    expr.toASTString() + i,
-                    (CStatement) expr,
-                    exprLocation,
-                    prevNode,
-                    curNode));
+                    expr.toASTString() + i, (CStatement) expr, exprLocation, prevNode, curNode));
           }
 
           prevNode = curNode;
@@ -726,10 +724,10 @@ public class CFABuilder {
     assert pItem.isCallInst();
 
     if (pItem.isIntrinsicInst()) {
-        if(pItem.isMemIntrinsic()) {
-            logger.logf(Level.WARNING, "Unhandled memory intrinsic!");
-        }
-        logger.logf(Level.FINE, "Taking intrinsic function call as undefined");
+      if (pItem.isMemIntrinsic()) {
+        logger.logf(Level.WARNING, "Unhandled memory intrinsic!");
+      }
+      logger.logf(Level.FINE, "Taking intrinsic function call as undefined");
     }
 
     FileLocation loc = getLocation(pItem, pFileName);
@@ -741,9 +739,8 @@ public class CFABuilder {
     String functionName = null;
 
     // if the function has been casted in the call, strip the cast
-    if (calledFunction.isConstantExpr() &&
-        calledFunction.getConstOpCode() == OpCode.BitCast) {
-        calledFunction = calledFunction.getOperand(0);
+    if (calledFunction.isConstantExpr() && calledFunction.getConstOpCode() == OpCode.BitCast) {
+      calledFunction = calledFunction.getOperand(0);
     }
 
     // we must have a function now, otherwise it is a call
@@ -783,7 +780,11 @@ public class CFABuilder {
       if (functionName != null) {
         CFunctionDeclaration derivedDeclaration =
             new CFunctionDeclaration(
-                FileLocation.DUMMY, functionType, functionName, parameterDeclarations);
+                FileLocation.DUMMY,
+                functionType,
+                functionName,
+                parameterDeclarations,
+                ImmutableSet.of());
         functionDeclarations.put(functionName, derivedDeclaration);
       }
     } else {
@@ -801,13 +802,12 @@ public class CFABuilder {
         expectedType = parameterDeclarations.get(i).getType();
       } else {
         // var arg
-        assert functionType.takesVarArgs() : "Too many arguments for function "
-            + functionDeclaration + ": " + functionArg;
+        assert functionType.takesVarArgs()
+            : "Too many arguments for function " + functionDeclaration + ": " + functionArg;
         expectedType = typeConverter.getCType(functionArg.typeOf());
       }
 
-      assert functionArg.isConstant()
-          || variableDeclarations.containsKey(functionArg.getAddress());
+      assert functionArg.isConstant() || variableDeclarations.containsKey(functionArg.getAddress());
       parameters.add(getExpression(functionArg, expectedType, pFileName));
     }
 
@@ -982,9 +982,13 @@ public class CFABuilder {
       case PtrToInt:
         // fall through
       case IntToPtr:
-        return new CCastExpression(getLocation(pItem, pFileName), typeConverter.getCType(pItem
-            .typeOf()), getExpression(pItem.getOperand(0), typeConverter.getCType(pItem
-            .getOperand(0).typeOf()), pFileName));
+        return new CCastExpression(
+            getLocation(pItem, pFileName),
+            typeConverter.getCType(pItem.typeOf()),
+            getExpression(
+                pItem.getOperand(0),
+                typeConverter.getCType(pItem.getOperand(0).typeOf()),
+                pFileName));
 
         // Comparison operations
       case ICmp:
@@ -1221,8 +1225,7 @@ public class CFABuilder {
       return castToExpectedType(literalExpression, pExpectedType, location);
 
     } else if (pItem.isConstantPointerNull()) {
-      return new CCastExpression(location, pExpectedType,
-                                 getNull(location));
+      return new CCastExpression(location, pExpectedType, getNull(location));
 
     } else if (pItem.isConstantExpr()) {
       return getExpression(pItem, pExpectedType, pFileName);
@@ -1262,12 +1265,12 @@ public class CFABuilder {
       }
 
     } else if (pItem.isGlobalVariable()) {
-        if (!pItem.isExternallyInitialized() || pItem.isGlobalConstant()) {
-            return getAssignedIdExpression(pItem, pExpectedType, pFileName);
-        } else {
+      if (!pItem.isExternallyInitialized() || pItem.isGlobalConstant()) {
+        return getAssignedIdExpression(pItem, pExpectedType, pFileName);
+      } else {
         throw new UnsupportedOperationException(
             "LLVM parsing does not support this global variable: " + pItem);
-        }
+      }
     } else {
       throw new UnsupportedOperationException("LLVM parsing does not support constant " + pItem);
     }
@@ -1381,11 +1384,12 @@ public class CFABuilder {
     // the left hand side is not a variable but some constant expression
     // (e.g. dereference of a pointer to a global variable)
     if (pAssignee.isConstantExpr()) {
-        CExpression assigneeExpr = getExpression(pAssignee, expectedType, pFileName);
-        return ImmutableList.of(
-            new CExpressionAssignmentStatement(
-                getLocation(pAssignee, pFileName),
-                (CLeftHandSide) assigneeExpr, (CExpression) pAssignment));
+      CExpression assigneeExpr = getExpression(pAssignee, expectedType, pFileName);
+      return ImmutableList.of(
+          new CExpressionAssignmentStatement(
+              getLocation(pAssignee, pFileName),
+              (CLeftHandSide) assigneeExpr,
+              (CExpression) pAssignment));
     }
 
     // Variable is already declared, so it must only be assigned the new value
@@ -1489,8 +1493,8 @@ public class CFABuilder {
     return ((CPointerType) type).getType().getCanonicalType();
   }
 
-  private CExpression castToExpectedType(CExpression expression, final CType pExpectedType,
-                                         final FileLocation location) {
+  private CExpression castToExpectedType(
+      CExpression expression, final CType pExpectedType, final FileLocation location) {
     CType expressionType = expression.getExpressionType();
 
     if (expressionType.canBeAssignedFrom(pExpectedType)) {
@@ -1509,13 +1513,13 @@ public class CFABuilder {
     } else if (expressionType instanceof CArrayType) {
       /* Pointer to an array is the pointer to the beginning of the array */
       if (pExpectedType instanceof CPointerType) {
-        if(getReferencedType(pExpectedType).equals(
-           ((CArrayType) expressionType).getType().getCanonicalType())) {
+        if (getReferencedType(pExpectedType)
+            .equals(((CArrayType) expressionType).getType().getCanonicalType())) {
           return expression;
         }
-    }
-      throw new AssertionError("Unhandled cast of array type " + expressionType +
-                               " to " + pExpectedType);
+      }
+      throw new AssertionError(
+          "Unhandled cast of array type " + expressionType + " to " + pExpectedType);
     } else if (expressionType instanceof CFunctionType) {
       logger.logf(Level.WARNING, "Using incompatible function pointer");
       return expression;
@@ -1532,7 +1536,7 @@ public class CFABuilder {
       final Value pItem, final CType pExpectedType, final Path pFileName) throws LLVMException {
     logger.log(Level.FINE, "Getting var declaration for item");
 
-    if(!variableDeclarations.containsKey(pItem.getAddress())) {
+    if (!variableDeclarations.containsKey(pItem.getAddress())) {
       throw new LLVMException("ID expression has no declaration: " + pItem);
     }
 
@@ -1635,7 +1639,11 @@ public class CFABuilder {
     // Function declaration, exit
     CFunctionDeclaration functionDeclaration =
         new CFunctionDeclaration(
-            getLocation(pFuncDef, pFileName), cFuncType, functionName, parameters);
+            getLocation(pFuncDef, pFileName),
+            cFuncType,
+            functionName,
+            parameters,
+            ImmutableSet.of());
     functionDeclarations.put(functionName, functionDeclaration);
   }
 
@@ -1687,29 +1695,29 @@ public class CFABuilder {
   }
 
   private CType getPointerOfType(final CType type) {
-      return new CPointerType(false, false, type);
+    return new CPointerType(false, false, type);
   }
 
   private CExpression getReference(FileLocation fileLocation, CExpression expr) {
     CType exprType = expr.getExpressionType();
     /* if this expression starts with *, just remove the * */
     if (expr instanceof CPointerExpression) {
-        return ((CPointerExpression) expr).getOperand();
+      return ((CPointerExpression) expr).getOperand();
     } else if (expr instanceof CArraySubscriptExpression) {
-        /* this is taking an address of "array[x]", so just
-         * transform it to "array + x" */
-        CType type = getPointerOfType(exprType);
-        return new CBinaryExpression(
-                        fileLocation,
-                        type,
-                        type,
-                        ((CArraySubscriptExpression) expr).getArrayExpression(),
-                        ((CArraySubscriptExpression) expr).getSubscriptExpression(),
-                        BinaryOperator.PLUS);
+      /* this is taking an address of "array[x]", so just
+       * transform it to "array + x" */
+      CType type = getPointerOfType(exprType);
+      return new CBinaryExpression(
+          fileLocation,
+          type,
+          type,
+          ((CArraySubscriptExpression) expr).getArrayExpression(),
+          ((CArraySubscriptExpression) expr).getSubscriptExpression(),
+          BinaryOperator.PLUS);
     }
 
-    return new CUnaryExpression(fileLocation, getPointerOfType(exprType),
-                                expr, UnaryOperator.AMPER);
+    return new CUnaryExpression(
+        fileLocation, getPointerOfType(exprType), expr, UnaryOperator.AMPER);
   }
 
   private CExpression getDereference(FileLocation fileLocation, CExpression expr) {
@@ -1740,14 +1748,13 @@ public class CFABuilder {
 
     if (pItem.canBeTransformedFromGetElementPtrToString()) {
       String constant = pItem.getGetElementPtrAsString();
-      CType constCharType = new CSimpleType(
-          true, false, CBasicType.CHAR, false, false, false,
-          false, false, false, false);
+      CType constCharType =
+          new CSimpleType(
+              true, false, CBasicType.CHAR, false, false, false, false, false, false, false);
 
       CType stringType = new CPointerType(false, false, constCharType);
 
-      return new CStringLiteralExpression(fileLocation, stringType,
-                                          '"' + constant + '"');
+      return new CStringLiteralExpression(fileLocation, stringType, '"' + constant + '"');
     }
 
     CType currentType = typeConverter.getCType(startPointer.typeOf());
@@ -1763,24 +1770,27 @@ public class CFABuilder {
 
       if (currentType instanceof CPointerType) {
         if (valueIsZero(indexValue)) {
-            /* if we do not shift the pointer, just dereference the type (and expression) */
-            currentExpression = getDereference(fileLocation, currentExpression);
+          /* if we do not shift the pointer, just dereference the type (and expression) */
+          currentExpression = getDereference(fileLocation, currentExpression);
         } else {
           currentExpression =
-            getDereference(fileLocation,
+              getDereference(
+                  fileLocation,
                   new CBinaryExpression(
-                    fileLocation,
-                    currentType,
-                    currentType,
-                    currentExpression,
-                    index,
-                    BinaryOperator.PLUS));
+                      fileLocation,
+                      currentType,
+                      currentType,
+                      currentExpression,
+                      index,
+                      BinaryOperator.PLUS));
         }
       } else if (currentType instanceof CArrayType) {
         currentExpression =
-            new CArraySubscriptExpression(fileLocation,
-                                          ((CArrayType) currentType).getType().getCanonicalType(),
-                                          currentExpression, index);
+            new CArraySubscriptExpression(
+                fileLocation,
+                ((CArrayType) currentType).getType().getCanonicalType(),
+                currentExpression,
+                index);
       } else if (currentType instanceof CCompositeType) {
         if (!(index instanceof CIntegerLiteralExpression)) {
           throw new UnsupportedOperationException(
@@ -1793,14 +1803,17 @@ public class CFABuilder {
 
         /* use "ptr_to_struct->elem" instead of "(*ptr_to_struct).elem" */
         if (currentExpression instanceof CPointerExpression) {
-            currentExpression =
-                new CFieldReference(fileLocation, field.getType(), fieldName,
-                                    ((CPointerExpression)currentExpression).getOperand(),
-                                    true /* is ptr deref */);
+          currentExpression =
+              new CFieldReference(
+                  fileLocation,
+                  field.getType(),
+                  fieldName,
+                  ((CPointerExpression) currentExpression).getOperand(),
+                  true /* is ptr deref */);
         } else {
-            currentExpression =
-                new CFieldReference(fileLocation, field.getType(), fieldName,
-                                    currentExpression, false);
+          currentExpression =
+              new CFieldReference(
+                  fileLocation, field.getType(), fieldName, currentExpression, false);
         }
       }
 
@@ -1828,25 +1841,25 @@ public class CFABuilder {
         break;
       case IntUGT:
         isUnsignedCmp = true;
-        //$FALL-THROUGH$
+        // $FALL-THROUGH$
       case IntSGT:
         operator = BinaryOperator.GREATER_THAN;
         break;
       case IntULT:
         isUnsignedCmp = true;
-        //$FALL-THROUGH$
+        // $FALL-THROUGH$
       case IntSLT:
         operator = BinaryOperator.LESS_THAN;
         break;
       case IntULE:
         isUnsignedCmp = true;
-        //$FALL-THROUGH$
+        // $FALL-THROUGH$
       case IntSLE:
         operator = BinaryOperator.LESS_EQUAL;
         break;
       case IntUGE:
         isUnsignedCmp = true;
-        //$FALL-THROUGH$
+        // $FALL-THROUGH$
       case IntSGE:
         operator = BinaryOperator.GREATER_EQUAL;
         break;
@@ -1860,14 +1873,16 @@ public class CFABuilder {
     CType op1type = typeConverter.getCType(operand1.typeOf());
     CType op2type = typeConverter.getCType(operand2.typeOf());
     try {
-      CCastExpression op1Cast = new CCastExpression(
-          getLocation(pItem, pFileName),
-          typeConverter.getCType(operand1.typeOf(), isUnsignedCmp),
-          getExpression(operand1, op1type, pFileName));
-      CCastExpression op2Cast = new CCastExpression(
-          getLocation(pItem, pFileName),
-          typeConverter.getCType(operand2.typeOf(), isUnsignedCmp),
-          getExpression(operand2, op2type, pFileName));
+      CCastExpression op1Cast =
+          new CCastExpression(
+              getLocation(pItem, pFileName),
+              typeConverter.getCType(operand1.typeOf(), isUnsignedCmp),
+              getExpression(operand1, op1type, pFileName));
+      CCastExpression op2Cast =
+          new CCastExpression(
+              getLocation(pItem, pFileName),
+              typeConverter.getCType(operand2.typeOf(), isUnsignedCmp),
+              getExpression(operand2, op2type, pFileName));
 
       CBinaryExpression cmp =
           binaryExpressionBuilder.buildBinaryExpression(op1Cast, op2Cast, operator);
@@ -1899,9 +1914,9 @@ public class CFABuilder {
     if (!pItem.isExternallyInitialized()) {
       Value initializerRaw = pItem.getInitializer();
       if (initializerRaw == null) {
-          assert pItem.getLinkage() == Value.Linkage.ExternalLinkage :
-                  "Non-external global variable with no initializer: " + pItem;
-          initializer = null;
+        assert pItem.getLinkage() == Value.Linkage.ExternalLinkage
+            : "Non-external global variable with no initializer: " + pItem;
+        initializer = null;
       } else if (isConstantArrayOrVector(initializerRaw)) {
         initializer = getConstantAggregateInitializer(initializerRaw, pFileName);
       } else if (initializerRaw.isConstantStruct()) {

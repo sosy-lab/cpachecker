@@ -10,10 +10,9 @@ package org.sosy_lab.cpachecker.cpa.lock.effects;
 
 import org.sosy_lab.cpachecker.cpa.lock.AbstractLockStateBuilder;
 
-
 public class SaveStateLockEffect implements AbstractLockEffect {
 
-  private final static SaveStateLockEffect instance = new SaveStateLockEffect();
+  private static final SaveStateLockEffect instance = new SaveStateLockEffect();
 
   private SaveStateLockEffect() {}
 

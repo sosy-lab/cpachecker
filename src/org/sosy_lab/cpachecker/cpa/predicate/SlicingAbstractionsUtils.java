@@ -60,9 +60,8 @@ import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 
 /**
- * Utility class for Slicing Abstractions like in the papers:
- * "Slicing Abstractions" (doi:10.1007/978-3-540-75698-9_2)
- * "Splitting via Interpolants" (doi:10.1007/978-3-642-27940-9_13)
+ * Utility class for Slicing Abstractions like in the papers: "Slicing Abstractions"
+ * (doi:10.1007/978-3-540-75698-9_2) "Splitting via Interpolants" (doi:10.1007/978-3-642-27940-9_13)
  */
 public class SlicingAbstractionsUtils {
 
@@ -83,13 +82,14 @@ public class SlicingAbstractionsUtils {
     final Map<ARGState, PersistentList<ARGState>> result = new TreeMap<>();
     final List<ARGState> startAbstractionStates = calculateStartStates(originState);
 
-    // This looks a bit expensive, but we cannot simply write this method like calculateOutgoingSegments!
+    // This looks a bit expensive, but we cannot simply write this method like
+    // calculateOutgoingSegments!
     // Because of the way we build our ARG, we can be sure that a block has only one starting
     // abstraction state, but there could be several abstraction states to end at.
     for (ARGState s : startAbstractionStates) {
       Map<ARGState, PersistentList<ARGState>> outgoing = calculateOutgoingSegments(s);
       if (outgoing.containsKey(originState)) {
-         result.put(s,outgoing.get(originState));
+        result.put(s, outgoing.get(originState));
       }
     }
 
@@ -97,10 +97,11 @@ public class SlicingAbstractionsUtils {
   }
 
   /**
-   * This method can be seen as a generalized way of calculating the parent
-   * abstraction states of a given abstraction state.
-   * @param originState The (abstraction) state for which to calculate the
-   *        effective parent (abstraction) states
+   * This method can be seen as a generalized way of calculating the parent abstraction states of a
+   * given abstraction state.
+   *
+   * @param originState The (abstraction) state for which to calculate the effective parent
+   *     (abstraction) states
    * @return A list of (abstraction) states from which originState can be reached
    */
   public static List<ARGState> calculateStartStates(ARGState originState) {
@@ -109,7 +110,7 @@ public class SlicingAbstractionsUtils {
     final Deque<ARGState> waitlist = new ArrayDeque<>();
     final Set<ARGState> reached = new HashSet<>();
 
-    for (ARGState parent: originState.getParents()) {
+    for (ARGState parent : originState.getParents()) {
 
       if (isAbstractionState(parent)) {
         result.add(parent);
@@ -159,10 +160,10 @@ public class SlicingAbstractionsUtils {
 
     // prepare initial state
     frontier.put(originState, PersistentLinkedList.of());
-    for (ARGState startState: outgoingStates) {
+    for (ARGState startState : outgoingStates) {
       // we need to treat AbstractionStates differently!
       if (!isAbstractionState(startState)) {
-          waitlist.add(startState);
+        waitlist.add(startState);
       } else {
         segmentMap.put(startState, PersistentLinkedList.of());
       }
@@ -299,7 +300,8 @@ public class SlicingAbstractionsUtils {
       PathFormulaManager pPfmgr,
       ImmutableSet<AbstractionPosition> withInvariants)
       throws CPATransferException, InterruptedException {
-    List<ARGState> segmentList = SlicingAbstractionsUtils.calculateOutgoingSegments(start).get(stop);
+    List<ARGState> segmentList =
+        SlicingAbstractionsUtils.calculateOutgoingSegments(start).get(stop);
     if (segmentList == null) {
       segmentList = ImmutableList.of();
     }
@@ -349,11 +351,12 @@ public class SlicingAbstractionsUtils {
     // generate the PathFormula for the path between start and stop
     // using the relevant non-abstraction states
     pfb = buildFormulaBuilder(start, stop, segmentList, pPfmgr);
-    PathFormula p = pfb.build(pPfmgr,startFormula);
+    PathFormula p = pfb.build(pPfmgr, startFormula);
 
     // add the abstraction formula of abstraction state if the caller wants this:
     if (withInvariants.contains(AbstractionPosition.END)) {
-      BooleanFormula endInvariant = PredicateAbstractState.getPredicateState(stop).getAbstractionFormula().asFormula();
+      BooleanFormula endInvariant =
+          PredicateAbstractState.getPredicateState(stop).getAbstractionFormula().asFormula();
       pathFormula = pPfmgr.makeAnd(p, endInvariant);
     } else {
       pathFormula = p;
@@ -388,8 +391,8 @@ public class SlicingAbstractionsUtils {
             }
             DCAState dcaState = AbstractStates.extractStateByType(currentState, DCAState.class);
             if (dcaState != null) {
-              for (CExpression assumption : FluentIterable.from(dcaState.getAssumptions())
-                  .filter(CExpression.class)) {
+              for (CExpression assumption :
+                  FluentIterable.from(dcaState.getAssumptions()).filter(CExpression.class)) {
                 currentBuilder = currentBuilder.makeAnd(assumption);
               }
             }
@@ -413,7 +416,7 @@ public class SlicingAbstractionsUtils {
       if (currentBuilder == null) {
         currentBuilder = pPfmgr.createNewPathFormulaBuilder();
       }
-      finishedBuilders.put(currentState,currentBuilder);
+      finishedBuilders.put(currentState, currentBuilder);
     }
 
     return finishedBuilders.get(stop);
@@ -434,11 +437,11 @@ public class SlicingAbstractionsUtils {
    * @param pRoot The (abstraction) state to start at
    * @param pPath the path consisting of a list of (abstraction) states
    * @param includePartialInvariants whether to include the abstraction formulas of the first and
-   *        last ARGState (with the right SSA indices)
+   *     last ARGState (with the right SSA indices)
    * @return generated list of PathFormulas
    * @throws CPATransferException building the {@link PathFormula} from {@link CFAEdge}s failed
    * @throws InterruptedException building the {@link PathFormula} from {@link CFAEdge}s got
-   *         interrupted
+   *     interrupted
    */
   public static List<PathFormula> getFormulasForPath(
       PathFormulaManager pfmgr,
@@ -506,15 +509,16 @@ public class SlicingAbstractionsUtils {
   }
 
   /**
-   * Copy the effective edges of a (abstraction) state over to a new (abstraction) state.
-   * This means that we make a copy of the non-abstraction states
-   * that lie between originalState and each abstraction state
-   * that is connected to originalState via non-abstraction states.
+   * Copy the effective edges of a (abstraction) state over to a new (abstraction) state. This means
+   * that we make a copy of the non-abstraction states that lie between originalState and each
+   * abstraction state that is connected to originalState via non-abstraction states.
+   *
    * @param forkedState state at which the new edges should start/ end
    * @param originalState state at which the original edges start/ end
    * @param pReached the reached-set that will track the added states
    */
-  public static void copyEdges(ARGState forkedState, ARGState originalState, ARGReachedSet pReached) {
+  public static void copyEdges(
+      ARGState forkedState, ARGState originalState, ARGReachedSet pReached) {
 
     final Map<ARGState, PersistentList<ARGState>> outgoingSegmentMap =
         calculateOutgoingSegments(originalState);
@@ -528,7 +532,8 @@ public class SlicingAbstractionsUtils {
       copyEdge(intermediateStateList, originalState, endState, forkedState, endState, pReached);
       // if we have a self-loop, we have to make a self-loop from forkedState->forkedState:
       if (endState.equals(originalState)) {
-        copyEdge(intermediateStateList, originalState, endState,forkedState,forkedState, pReached);
+        copyEdge(
+            intermediateStateList, originalState, endState, forkedState, forkedState, pReached);
       }
     }
 
@@ -540,8 +545,13 @@ public class SlicingAbstractionsUtils {
     }
   }
 
-  private static void copyEdge(List<ARGState> pSegmentStates, ARGState oldStartState,
-      ARGState oldEndState, ARGState newStartState, ARGState newEndState, ARGReachedSet pReached) {
+  private static void copyEdge(
+      List<ARGState> pSegmentStates,
+      ARGState oldStartState,
+      ARGState oldEndState,
+      ARGState newStartState,
+      ARGState newEndState,
+      ARGReachedSet pReached) {
 
     // we need to treat the case where we have no intermediate non-abstraction states differently:
     if (oldEndState.getParents().contains(oldStartState)) {
@@ -590,10 +600,11 @@ public class SlicingAbstractionsUtils {
     addForkedStatesToReachedSet(newSegmentStates, pSegmentStates, pReached);
   }
 
-  private static void addForkedStatesToReachedSet(List<ARGState> newStates, List<ARGState> originalStates, ARGReachedSet pReached) {
-    checkArgument(newStates.size()==originalStates.size());
-    for (int i = 0; i< newStates.size(); i++) {
-      pReached.addForkedState(newStates.get(i),originalStates.get(i));
+  private static void addForkedStatesToReachedSet(
+      List<ARGState> newStates, List<ARGState> originalStates, ARGReachedSet pReached) {
+    checkArgument(newStates.size() == originalStates.size());
+    for (int i = 0; i < newStates.size(); i++) {
+      pReached.addForkedState(newStates.get(i), originalStates.get(i));
     }
   }
 
@@ -608,34 +619,36 @@ public class SlicingAbstractionsUtils {
   }
 
   /**
-   * Check that there is no path through the ARG anymore that has the same sequence of abstraction states as the error path.
-   * This is a mathematically proven progress property that should hold after splitting and slicing.
-   * This method makes no restrictions on the shape of the ARG, so one abstraction state could have several abstraction state
-   * parents. For analysis where this is not the case there are more efficient ways to check this.
+   * Check that there is no path through the ARG anymore that has the same sequence of abstraction
+   * states as the error path. This is a mathematically proven progress property that should hold
+   * after splitting and slicing. This method makes no restrictions on the shape of the ARG, so one
+   * abstraction state could have several abstraction state parents. For analysis where this is not
+   * the case there are more efficient ways to check this.
    */
   public static boolean checkProgress(UnmodifiableReachedSet pReached, ARGPath pErrorPath) {
     Set<ARGState> rootStates = ARGUtils.getRootStates(pReached);
-    assert rootStates.size()==1;
+    assert rootStates.size() == 1;
     ARGState root = rootStates.iterator().next();
-    final List<ARGState> abstractionStatesTrace = PredicateCPARefiner.filterAbstractionStates(pErrorPath);
-    assert abstractionStatesTrace.get(0).getStateId()!=0;
-    for (int i = -1 ; i < abstractionStatesTrace.size()-1; i++) {
-       ARGState first = (i==-1) ? root : abstractionStatesTrace.get(i);
-       ARGState second = abstractionStatesTrace.get(i+1);
+    final List<ARGState> abstractionStatesTrace =
+        PredicateCPARefiner.filterAbstractionStates(pErrorPath);
+    assert abstractionStatesTrace.get(0).getStateId() != 0;
+    for (int i = -1; i < abstractionStatesTrace.size() - 1; i++) {
+      ARGState first = (i == -1) ? root : abstractionStatesTrace.get(i);
+      ARGState second = abstractionStatesTrace.get(i + 1);
       if (!SlicingAbstractionsUtils.calculateOutgoingSegments(first).containsKey(second)) {
-         return true;
-       }
+        return true;
+      }
     }
     return false;
   }
 
   /**
-   * Calculates all states on the error path to the given error state.
-   * This method is a replacement of {@link ARGUtils#getAllStatesOnPathsTo(ARGState)}
-   * for cases where the abstraction states in the ARG do not form a tree.
+   * Calculates all states on the error path to the given error state. This method is a replacement
+   * of {@link ARGUtils#getAllStatesOnPathsTo(ARGState)} for cases where the abstraction states in
+   * the ARG do not form a tree.
    *
-   * @param errorState The state at which the error path ends.
-   *                   Should ideally contain counterexample information
+   * @param errorState The state at which the error path ends. Should ideally contain counterexample
+   *     information
    * @return A set of all states on the path to errorState
    */
   public static Set<ARGState> getStatesOnErrorPath(ARGState errorState) {
@@ -654,9 +667,9 @@ public class SlicingAbstractionsUtils {
 
     final Set<ARGState> statesOnErrorPath = new HashSet<>(abstractionStatesOnErrorPath);
 
-    for (int i = 0; i< abstractionStatesOnErrorPath.size()-1;i++) {
+    for (int i = 0; i < abstractionStatesOnErrorPath.size() - 1; i++) {
       ARGState start = abstractionStatesOnErrorPath.get(i);
-      ARGState stop = abstractionStatesOnErrorPath.get(i+1);
+      ARGState stop = abstractionStatesOnErrorPath.get(i + 1);
       statesOnErrorPath.addAll(SlicingAbstractionsUtils.calculateOutgoingSegments(start).get(stop));
     }
 
@@ -692,7 +705,7 @@ public class SlicingAbstractionsUtils {
     for (ARGState parent : state.getParents()) {
       EdgeSet edgeSet = ((SLARGState) parent).getEdgeSetToChild(state);
       if (edgeSet != null) {
-        for (Iterator<CFAEdge> it = edgeSet.iterator();it.hasNext(); ) {
+        for (Iterator<CFAEdge> it = edgeSet.iterator(); it.hasNext(); ) {
           CFAEdge edge = it.next();
           if (!locations.contains(edge.getSuccessor())) {
             it.remove();
@@ -754,17 +767,13 @@ public class SlicingAbstractionsUtils {
     }
     if (pState instanceof SLARGState) {
       // if not all EdgeSets from parents to pState are singletons, return true:
-      if (!pState
-          .getParents()
-          .stream()
+      if (!pState.getParents().stream()
           .map(parent -> ((SLARGState) parent).getEdgeSetToChild(pState))
           .allMatch(x -> x.size() == 1)) {
         return true;
       }
       // if not all EdgeSets from pState to children are singletons, return true:
-      if (!pState
-          .getChildren()
-          .stream()
+      if (!pState.getChildren().stream()
           .map(child -> ((SLARGState) pState).getEdgeSetToChild(child))
           .allMatch(x -> x.size() == 1)) {
         return true;
@@ -781,8 +790,7 @@ public class SlicingAbstractionsUtils {
     boolean changed = false;
     for (AbstractState state : new ArrayList<>(pArgReachedSet.asReachedSet().asCollection())) {
       ARGState currentState = (ARGState) state;
-      PredicateAbstractState predState =
-          PredicateAbstractState.getPredicateState(currentState);
+      PredicateAbstractState predState = PredicateAbstractState.getPredicateState(currentState);
       assert predState != null;
       if (predState.isAbstractionState() && !blk(currentState)) {
         changed = true;
@@ -813,5 +821,4 @@ public class SlicingAbstractionsUtils {
     }
     return changed;
   }
-
 }

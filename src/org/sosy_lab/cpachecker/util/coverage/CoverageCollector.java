@@ -28,9 +28,7 @@ import org.sosy_lab.cpachecker.cpa.automaton.AutomatonState;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 
-/**
- * Class responsible for extracting coverage information.
- */
+/** Class responsible for extracting coverage information. */
 public abstract class CoverageCollector {
 
   public static CoverageData fromReachedSet(Iterable<AbstractState> pReached, CFA cfa) {
@@ -116,28 +114,29 @@ class ReachedSetCoverageCollector {
   private void collectCoveredEdges(Iterable<AbstractState> reached, CoverageData cov) {
     Set<CFANode> reachedNodes =
         from(reached).transform(AbstractStates::extractLocation).filter(notNull()).toSet();
-    //Add information about visited locations
+    // Add information about visited locations
 
     for (AbstractState state : reached) {
       ARGState argState = AbstractStates.extractStateByType(state, ARGState.class);
-      if (argState != null ) {
+      if (argState != null) {
         for (ARGState child : argState.getChildren()) {
-          // Do not specially check child.isCovered, as the edge to covered state also should be marked as covered edge
+          // Do not specially check child.isCovered, as the edge to covered state also should be
+          // marked as covered edge
           List<CFAEdge> edges = argState.getEdgesToChild(child);
           if (edges.size() > 1) {
             for (CFAEdge innerEdge : edges) {
               cov.addVisitedEdge(innerEdge);
             }
 
-            //BAM produces paths with no edge connection thus the list will be empty
+            // BAM produces paths with no edge connection thus the list will be empty
           } else if (!edges.isEmpty()) {
             cov.addVisitedEdge(Iterables.getOnlyElement(edges));
           }
         }
       } else {
-        //Simple kind of analysis
-        //Cover all edges from reached nodes
-        //It is less precise, but without ARG it is impossible to know what path we chose
+        // Simple kind of analysis
+        // Cover all edges from reached nodes
+        // It is less precise, but without ARG it is impossible to know what path we chose
         CFANode node = AbstractStates.extractLocation(state);
         for (CFAEdge edge : CFAUtils.leavingEdges(node)) {
           if (reachedNodes.contains(edge.getSuccessor())) {

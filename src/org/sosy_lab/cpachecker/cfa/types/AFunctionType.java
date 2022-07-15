@@ -10,12 +10,10 @@ package org.sosy_lab.cpachecker.cfa.types;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
-import java.util.List;
-import java.util.Objects;
-
 import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
-
+import java.util.List;
+import java.util.Objects;
 
 public class AFunctionType implements IAFunctionType {
 
@@ -24,10 +22,7 @@ public class AFunctionType implements IAFunctionType {
   private final List<? extends Type> parameters;
   private final boolean takesVarArgs;
 
-  public AFunctionType(
-      Type pReturnType,
-      List<? extends Type> pParameters,
-      boolean pTakesVarArgs) {
+  public AFunctionType(Type pReturnType, List<? extends Type> pParameters, boolean pTakesVarArgs) {
 
     returnType = checkNotNull(pReturnType);
     parameters = ImmutableList.copyOf(pParameters);
@@ -58,7 +53,6 @@ public class AFunctionType implements IAFunctionType {
 
     lASTString.append(pDeclarator);
 
-
     lASTString.append("(");
     Joiner.on(", ").appendTo(lASTString, parameters);
     if (takesVarArgs) {
@@ -74,11 +68,11 @@ public class AFunctionType implements IAFunctionType {
 
   @Override
   public int hashCode() {
-      final int prime = 31;
-      int result = 7;
-      result = prime * result + Objects.hashCode(parameters);
-      result = prime * result + Objects.hashCode(returnType);
-      return result;
+    final int prime = 31;
+    int result = 7;
+    result = prime * result + Objects.hashCode(parameters);
+    result = prime * result + Objects.hashCode(returnType);
+    return result;
   }
 
   @Override
@@ -96,7 +90,7 @@ public class AFunctionType implements IAFunctionType {
     // We don't compare takesVarArgs here,
     // because it's not really relevant for type equality.
     return Objects.equals(parameters, other.parameters)
-           && Objects.equals(returnType, other.returnType);
+        && Objects.equals(returnType, other.returnType);
   }
 
   @Override
@@ -105,7 +99,7 @@ public class AFunctionType implements IAFunctionType {
     int parameterCounter = 0;
 
     sb.append(returnType.toString());
-    sb.append ("], ");
+    sb.append("], ");
 
     sb.append("Parameters: " + parameters.size() + ", ");
 

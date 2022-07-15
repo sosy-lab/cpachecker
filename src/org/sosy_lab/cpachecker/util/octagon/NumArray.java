@@ -32,11 +32,11 @@ public class NumArray {
       return false;
     }
     NumArray otherArr = (NumArray) pObj;
-    return this.array == otherArr.array;
+    return array == otherArr.array;
   }
 
   @Override
   public int hashCode() {
-    return (int)array;
+    return (int) array;
   }
 }

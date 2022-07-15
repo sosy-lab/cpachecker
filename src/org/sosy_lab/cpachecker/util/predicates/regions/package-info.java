@@ -7,7 +7,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 /**
- * A region represents some part of the state space of a program,
- * i.e., with a BDD or an SMT formula.
+ * A region represents some part of the state space of a program, i.e., with a BDD or an SMT
+ * formula.
  */
 package org.sosy_lab.cpachecker.util.predicates.regions;

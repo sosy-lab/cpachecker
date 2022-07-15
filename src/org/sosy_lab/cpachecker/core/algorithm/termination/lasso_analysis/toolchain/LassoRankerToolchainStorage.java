@@ -104,8 +104,7 @@ public class LassoRankerToolchainStorage implements IToolchainStorage, IUltimate
   @Override
   public <T extends IService, K extends IServiceFactory<T>> T getServiceInstance(
       Class<K> pServiceType) {
-    throw new UnsupportedOperationException(
-        getClass() + "::getServiceInstance is not implemented");
+    throw new UnsupportedOperationException(getClass() + "::getServiceInstance is not implemented");
   }
 
   @Override

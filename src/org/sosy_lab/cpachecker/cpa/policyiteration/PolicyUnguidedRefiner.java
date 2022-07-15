@@ -26,15 +26,16 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.CPAs;
 
 /**
- * Unguided precision refiner: increase the number of generated templates
- * at each refinement stage.
+ * Unguided precision refiner: increase the number of generated templates at each refinement stage.
  */
-@Options(prefix="cpa.lpi")
+@Options(prefix = "cpa.lpi")
 public class PolicyUnguidedRefiner implements Refiner {
 
-  @Option(secure=true,
-      description="Number of refinements after which the unrolling depth is increased."
-          + "Set to -1 to never increase the depth.")
+  @Option(
+      secure = true,
+      description =
+          "Number of refinements after which the unrolling depth is increased."
+              + "Set to -1 to never increase the depth.")
   private int unrollingRefinementThreshold = 2;
 
   private final PolicyCPA policyCPA;
@@ -53,10 +54,8 @@ public class PolicyUnguidedRefiner implements Refiner {
     logger = pLogger;
   }
 
-
-  public static PolicyUnguidedRefiner create(
-      final ConfigurableProgramAnalysis pCpa
-  ) throws InvalidConfigurationException {
+  public static PolicyUnguidedRefiner create(final ConfigurableProgramAnalysis pCpa)
+      throws InvalidConfigurationException {
 
     PolicyCPA policyCPA =
         CPAs.retrieveCPAOrFail(pCpa, PolicyCPA.class, PolicyUnguidedRefiner.class);
@@ -67,8 +66,7 @@ public class PolicyUnguidedRefiner implements Refiner {
   }
 
   @Override
-  public boolean performRefinement(ReachedSet pReached)
-      throws CPAException, InterruptedException {
+  public boolean performRefinement(ReachedSet pReached) throws CPAException, InterruptedException {
     boolean out = policyCPA.adjustPrecision();
     if (out) {
 
@@ -91,8 +89,8 @@ public class PolicyUnguidedRefiner implements Refiner {
   }
 
   private void forceRestart(ReachedSet reached) throws InterruptedException {
-    ARGState firstChild = Iterables
-        .getOnlyElement(((ARGState)reached.getFirstState()).getChildren());
+    ARGState firstChild =
+        Iterables.getOnlyElement(((ARGState) reached.getFirstState()).getChildren());
 
     new ARGReachedSet(reached).removeSubtree(firstChild);
   }

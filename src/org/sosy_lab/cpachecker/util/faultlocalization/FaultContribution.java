@@ -16,11 +16,10 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.util.faultlocalization.appendables.FaultInfo;
 
 /**
- * Every FaultContribution represents an edge in the program that contains a fault or is
- * responsible for a fault in combination with the other edges in the set.
- * Reasons can be added to a FaultContribution object. They should explain why this object is
- * responsible for the error.
- * The assigned score is used to rank the FaultContributions.
+ * Every FaultContribution represents an edge in the program that contains a fault or is responsible
+ * for a fault in combination with the other edges in the set. Reasons can be added to a
+ * FaultContribution object. They should explain why this object is responsible for the error. The
+ * assigned score is used to rank the FaultContributions.
  */
 public class FaultContribution {
 
@@ -28,16 +27,18 @@ public class FaultContribution {
   private final CFAEdge correspondingEdge;
 
   /**
-   * The calculation of the score of FaultContribution is not implemented.
-   * The score is used to rank FaultContributions.
-   * The recommended way is to calculate the score based on the likelihood of the appended RankInfos instead of setting it to an value manually.
-   * The score will be printed to the user as an indicator of how likely this edge is to fix the error when changed.
-   * However, there exists an example method for calculating the score. For more details see FaultRankingUtils.
+   * The calculation of the score of FaultContribution is not implemented. The score is used to rank
+   * FaultContributions. The recommended way is to calculate the score based on the likelihood of
+   * the appended RankInfos instead of setting it to an value manually. The score will be printed to
+   * the user as an indicator of how likely this edge is to fix the error when changed. However,
+   * there exists an example method for calculating the score. For more details see
+   * FaultRankingUtils.
+   *
    * @see FaultRankingUtils#assignScoreTo(FaultContribution)
    */
   private double score;
 
-  public FaultContribution(CFAEdge pCorrespondingEdge){
+  public FaultContribution(CFAEdge pCorrespondingEdge) {
     infos = new ArrayList<>();
     correspondingEdge = pCorrespondingEdge;
     score = 0;
@@ -51,8 +52,7 @@ public class FaultContribution {
     score = pScore;
   }
 
-  public void addInfo(
-      FaultInfo pFaultInfo) {
+  public void addInfo(FaultInfo pFaultInfo) {
     infos.add(pFaultInfo);
   }
 
@@ -92,16 +92,16 @@ public class FaultContribution {
     return !infos.isEmpty();
   }
 
-  public CFAEdge correspondingEdge(){
+  public CFAEdge correspondingEdge() {
     return correspondingEdge;
   }
 
   @Override
   public boolean equals(Object q) {
-    if (q instanceof FaultContribution){
-      FaultContribution casted = (FaultContribution)q;
-      if (correspondingEdge.equals(casted.correspondingEdge())){
-        if(casted.getInfos().size() == getInfos().size()){
+    if (q instanceof FaultContribution) {
+      FaultContribution casted = (FaultContribution) q;
+      if (correspondingEdge.equals(casted.correspondingEdge())) {
+        if (casted.getInfos().size() == getInfos().size()) {
           return ImmutableList.sortedCopyOf(infos).equals(ImmutableList.sortedCopyOf(casted.infos));
         }
       }

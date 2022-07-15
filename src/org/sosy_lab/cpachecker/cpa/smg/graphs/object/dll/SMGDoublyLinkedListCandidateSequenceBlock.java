@@ -16,14 +16,15 @@ import org.sosy_lab.cpachecker.cpa.smg.refiner.SMGMemoryPath;
 public class SMGDoublyLinkedListCandidateSequenceBlock
     extends SMGAbstractListCandidateSequenceBlock<SMGDoublyLinkedListShape> {
 
-  public SMGDoublyLinkedListCandidateSequenceBlock(SMGDoublyLinkedListShape pShape, int pLength,
-      SMGMemoryPath pPointerToStartObject) {
+  public SMGDoublyLinkedListCandidateSequenceBlock(
+      SMGDoublyLinkedListShape pShape, int pLength, SMGMemoryPath pPointerToStartObject) {
     super(pShape, pLength, pPointerToStartObject);
   }
 
   @Override
   public boolean isBlocked(SMGAbstractionCandidate pCandidate, UnmodifiableCLangSMG smg) {
-    return pCandidate instanceof SMGDoublyLinkedListCandidateSequence && super.isBlocked(pCandidate, smg);
+    return pCandidate instanceof SMGDoublyLinkedListCandidateSequence
+        && super.isBlocked(pCandidate, smg);
   }
 
   @Override

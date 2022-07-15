@@ -26,9 +26,8 @@ import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.assumptions.PreventingHeuristic;
 
 /**
- * Precision Adjustment for Monitoring.
- * Simply delegates the operation to the wrapped CPA's precision adjustment operator
- * and updates the {@link MonitorState} based on this computation.
+ * Precision Adjustment for Monitoring. Simply delegates the operation to the wrapped CPA's
+ * precision adjustment operator and updates the {@link MonitorState} based on this computation.
  */
 public class MonitorPrecisionAdjustment implements PrecisionAdjustment {
 
@@ -42,19 +41,20 @@ public class MonitorPrecisionAdjustment implements PrecisionAdjustment {
 
   @Override
   public Optional<PrecisionAdjustmentResult> prec(
-      AbstractState pElement, Precision oldPrecision,
+      AbstractState pElement,
+      Precision oldPrecision,
       UnmodifiableReachedSet pElements,
       Function<AbstractState, AbstractState> projection,
-      AbstractState fullState) throws CPAException, InterruptedException {
+      AbstractState fullState)
+      throws CPAException, InterruptedException {
 
     Preconditions.checkArgument(pElement instanceof MonitorState);
-    MonitorState element = (MonitorState)pElement;
+    MonitorState element = (MonitorState) pElement;
 
     if (element.getWrappedState() == TimeoutState.INSTANCE) {
 
       // we can't call prec() in this case because we don't have an element of the CPA
-      return Optional.of(PrecisionAdjustmentResult
-          .create(pElement, oldPrecision, Action.CONTINUE));
+      return Optional.of(PrecisionAdjustmentResult.create(pElement, oldPrecision, Action.CONTINUE));
     }
 
     UnmodifiableReachedSet elements =
@@ -81,11 +81,11 @@ public class MonitorPrecisionAdjustment implements PrecisionAdjustment {
 
     Pair<PreventingHeuristic, Long> preventingCondition = element.getPreventingCondition();
     // TODO we should check for timeLimitForPath here
-//    if (preventingCondition != null) {
-//      if (timeLimitForPath > 0 && updatedTotalTime > timeLimitForPath) {
-//        preventingCondition = Pair.of(PreventingHeuristicType.PATHCOMPTIME, timeLimitForPath);
-//      }
-//    }
+    //    if (preventingCondition != null) {
+    //      if (timeLimitForPath > 0 && updatedTotalTime > timeLimitForPath) {
+    //        preventingCondition = Pair.of(PreventingHeuristicType.PATHCOMPTIME, timeLimitForPath);
+    //      }
+    //    }
     if (!unwrappedResult.isPresent()) {
       return Optional.empty();
     }
@@ -93,9 +93,9 @@ public class MonitorPrecisionAdjustment implements PrecisionAdjustment {
     PrecisionAdjustmentResult unwrapped = unwrappedResult.orElseThrow();
 
     // no. of nodes and no. of branches on the path does not change, just update the
-      // set the adjusted wrapped element and update the time
+    // set the adjusted wrapped element and update the time
     MonitorState resultElement =
-      new MonitorState(unwrapped.abstractState(), updatedTotalTime, preventingCondition);
+        new MonitorState(unwrapped.abstractState(), updatedTotalTime, preventingCondition);
 
     return Optional.of(unwrapped.withAbstractState(resultElement));
   }

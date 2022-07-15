@@ -9,7 +9,6 @@
 package org.sosy_lab.cpachecker.cfa.types.c;
 
 public enum CBasicType {
-
   UNSPECIFIED(""),
   BOOL("_Bool"),
   CHAR("char"),
@@ -26,18 +25,12 @@ public enum CBasicType {
     code = pCode;
   }
 
-  /**
-   * Returns true if a type is a floating type as defined by
-   * the C standard §6.2.5.
-   */
+  /** Returns true if a type is a floating type as defined by the C standard §6.2.5. */
   public boolean isFloatingPointType() {
     return this == FLOAT || this == DOUBLE || this == FLOAT128;
   }
 
-  /**
-   * Returns true if a type is an integer type as defined by
-   * the C standard §6.2.5.
-   */
+  /** Returns true if a type is an integer type as defined by the C standard §6.2.5. */
   public boolean isIntegerType() {
     return this == BOOL || this == CHAR || this == INT || this == INT128 || this == UNSPECIFIED;
   }

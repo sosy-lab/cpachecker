@@ -8,7 +8,6 @@
 
 package org.sosy_lab.cpachecker.util.slicing;
 
-
 import java.io.IOException;
 import java.io.Writer;
 import java.nio.charset.Charset;

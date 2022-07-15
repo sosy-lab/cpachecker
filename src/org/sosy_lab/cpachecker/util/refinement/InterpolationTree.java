@@ -53,14 +53,10 @@ import org.sosy_lab.cpachecker.util.states.MemoryLocation;
  * not yet excluded by previous path interpolation need to be interpolated.
  */
 public class InterpolationTree<S extends AbstractState, I extends Interpolant<S, I>> {
-  /**
-   * the logger in use
-   */
+  /** the logger in use */
   private final LogManager logger;
 
-  /**
-   * the counter to count interpolation queries
-   */
+  /** the counter to count interpolation queries */
   private int interpolationCounter = 0;
 
   /** the predecessor relation of the states contained in this tree */
@@ -72,25 +68,20 @@ public class InterpolationTree<S extends AbstractState, I extends Interpolant<S,
   /**
    * the mapping from state to the identified interpolants
    *
-   * this has to be a linked hash map, because the ImpactRefiner has to iterate over this in insertion-order
+   * <p>this has to be a linked hash map, because the ImpactRefiner has to iterate over this in
+   * insertion-order
    */
   private final Map<ARGState, I> interpolants = new LinkedHashMap<>();
 
-  /**
-   * the root of the tree
-   */
+  /** the root of the tree */
   private final ARGState root;
 
-  /**
-   * the strategy on how to select paths for interpolation
-   */
+  /** the strategy on how to select paths for interpolation */
   private final InterpolationStrategy<I> strategy;
 
   private final InterpolantManager<S, I> interpolantManager;
 
-  /**
-   * the path denoting the empty path
-   */
+  /** the path denoting the empty path */
   public static final ARGPath EMPTY_PATH = null;
 
   /**
@@ -103,12 +94,13 @@ public class InterpolationTree<S extends AbstractState, I extends Interpolant<S,
    */
   public InterpolationTree(
       final InterpolantManager<S, I> pInterpolantManager,
-      final LogManager pLogger, final List<ARGPath> pTargetPaths,
+      final LogManager pLogger,
+      final List<ARGPath> pTargetPaths,
       final boolean useTopDownInterpolationStrategy) {
-    logger    = pLogger;
+    logger = pLogger;
     interpolantManager = pInterpolantManager;
 
-    root      = build(pTargetPaths);
+    root = build(pTargetPaths);
 
     if (useTopDownInterpolationStrategy) {
       strategy = new TopDownInterpolationStrategy();
@@ -131,11 +123,11 @@ public class InterpolationTree<S extends AbstractState, I extends Interpolant<S,
   /**
    * This method builds a (linear) tree from a single path.
    *
-   * Note that, while this is just a special case of {@link #buildTreeFromMultiplePaths},
-   * this is the preferred way, because the given path could come from any analysis,
-   * e.g., a predicate analysis, and the exact given path should be used for interpolation.
-   * This is not guaranteed by the more general approach given in {@link #buildTreeFromMultiplePaths},
-   * because there the interpolation tree is build from a (non-unambiguous) set of states.
+   * <p>Note that, while this is just a special case of {@link #buildTreeFromMultiplePaths}, this is
+   * the preferred way, because the given path could come from any analysis, e.g., a predicate
+   * analysis, and the exact given path should be used for interpolation. This is not guaranteed by
+   * the more general approach given in {@link #buildTreeFromMultiplePaths}, because there the
+   * interpolation tree is build from a (non-unambiguous) set of states.
    */
   private ARGState buildTreeFromSinglePath(final ARGPath targetPath) {
     ImmutableList<ARGState> states = targetPath.asStatesList();
@@ -151,9 +143,7 @@ public class InterpolationTree<S extends AbstractState, I extends Interpolant<S,
     return states.get(0);
   }
 
-  /**
-   * This method builds an actual tree from multiple path.
-   */
+  /** This method builds an actual tree from multiple path. */
   private ARGState buildTreeFromMultiplePaths(final Collection<ARGPath> targetPaths) {
     ARGState itpTreeRoot = null;
     Deque<ARGState> todo = new ArrayDeque<>(extractTargets(targetPaths));
@@ -164,7 +154,7 @@ public class InterpolationTree<S extends AbstractState, I extends Interpolant<S,
 
       if (currentState.getParents().iterator().hasNext()) {
 
-        if(!predecessorRelation.containsKey(currentState)) {
+        if (!predecessorRelation.containsKey(currentState)) {
           ARGState parentState = currentState.getParents().iterator().next();
 
           predecessorRelation.put(currentState, parentState);
@@ -181,9 +171,7 @@ public class InterpolationTree<S extends AbstractState, I extends Interpolant<S,
     return itpTreeRoot;
   }
 
-  /**
-   * This method extracts all targets states from the target paths.
-   */
+  /** This method extracts all targets states from the target paths. */
   private Set<ARGState> extractTargets(final Collection<ARGPath> targetsPaths) {
     return transformedImmutableSetCopy(targetsPaths, ARGPath::getLastState);
   }
@@ -219,9 +207,11 @@ public class InterpolationTree<S extends AbstractState, I extends Interpolant<S,
                   " [label=\"%d / %s has itp %s\"]%n",
                   parent.getStateId(), AbstractStates.extractLocation(parent), interpolant));
       result.append(parent.getStateId() + " -> " + current.getValue().getStateId() + "\n");
-      // + " [label=\"" + parent.getEdgeToChild(current.getValue()).getRawStatement().replace("\n", "") + "\"]\n");
+      // + " [label=\"" + parent.getEdgeToChild(current.getValue()).getRawStatement().replace("\n",
+      // "") + "\"]\n");
       if (current.getValue().isTarget()) {
-        result.append(current.getValue().getStateId() + " [style=filled, fillcolor=\"red\"]" + "\n");
+        result.append(
+            current.getValue().getStateId() + " [style=filled, fillcolor=\"red\"]" + "\n");
       }
       assert !parent.isTarget();
     }
@@ -273,8 +263,8 @@ public class InterpolationTree<S extends AbstractState, I extends Interpolant<S,
   }
 
   /**
-   * This method extracts the precision increment for the given refinement root.
-   * It does so by collection all non-trivial interpolants in the subtree of the given refinement root.
+   * This method extracts the precision increment for the given refinement root. It does so by
+   * collection all non-trivial interpolants in the subtree of the given refinement root.
    *
    * @return the precision increment for the given refinement root
    */
@@ -324,7 +314,8 @@ public class InterpolationTree<S extends AbstractState, I extends Interpolant<S,
     while (!todo.isEmpty()) {
       final ARGState currentState = todo.removeFirst();
 
-      // determine the first branching point, which is the lowest node common to all refinement roots
+      // determine the first branching point, which is the lowest node common to all refinement
+      // roots
       if (commonRoot == null && successorRelation.get(currentState).size() > 1) {
         commonRoot = currentState;
       }
@@ -333,7 +324,7 @@ public class InterpolationTree<S extends AbstractState, I extends Interpolant<S,
         refinementRoots.add(currentState);
 
         if (pStrategy == GenericRefiner.RestartStrategy.COMMON && refinementRoots.size() > 2) {
-          assert commonRoot != null: "common root not yet set";
+          assert commonRoot != null : "common root not yet set";
           return ImmutableSet.of(commonRoot);
         }
         continue;
@@ -346,9 +337,9 @@ public class InterpolationTree<S extends AbstractState, I extends Interpolant<S,
   }
 
   /**
-   * This method obtains, for the IMPACT-like approach, the cut-off roots,
-   * i.e., for each disjunct path from target states to the root, it collects
-   * the highest state that has a false interpolant associated.
+   * This method obtains, for the IMPACT-like approach, the cut-off roots, i.e., for each disjunct
+   * path from target states to the root, it collects the highest state that has a false interpolant
+   * associated.
    *
    * @return the set of cut-off roots
    */
@@ -363,7 +354,6 @@ public class InterpolationTree<S extends AbstractState, I extends Interpolant<S,
       if (stateHasFalseInterpolant(currentState)) {
         refinementRoots.add(currentState);
         continue;
-
       }
 
       todo.addAll(successorRelation.get(currentState));
@@ -398,8 +388,8 @@ public class InterpolationTree<S extends AbstractState, I extends Interpolant<S,
   }
 
   /**
-   * This method returns, from the subtree of the given state, the target states
-   * that have an interpolant, i.e., that were interpolated.
+   * This method returns, from the subtree of the given state, the target states that have an
+   * interpolant, i.e., that were interpolated.
    *
    * @param state the state for which to collect the interpolated target states in its subtree.
    * @return the target states that were interpolated
@@ -415,8 +405,7 @@ public class InterpolationTree<S extends AbstractState, I extends Interpolant<S,
    * @return true, if a non-trivial interpolant is present, else false
    */
   private boolean stateHasNonTrivialInterpolant(final ARGState currentState) {
-    return interpolants.containsKey(currentState)
-        && !interpolants.get(currentState).isTrivial();
+    return interpolants.containsKey(currentState) && !interpolants.get(currentState).isTrivial();
   }
 
   /**
@@ -426,8 +415,7 @@ public class InterpolationTree<S extends AbstractState, I extends Interpolant<S,
    * @return true, if a false interpolant is present, else false
    */
   private boolean stateHasFalseInterpolant(final ARGState currentState) {
-    return interpolants.containsKey(currentState)
-        && interpolants.get(currentState).isFalse();
+    return interpolants.containsKey(currentState) && interpolants.get(currentState).isFalse();
   }
 
   /**
@@ -473,9 +461,7 @@ public class InterpolationTree<S extends AbstractState, I extends Interpolant<S,
 
   private class TopDownInterpolationStrategy implements InterpolationStrategy<I> {
 
-    /**
-     * the states that are the sources for obtaining (partial) error paths
-     */
+    /** the states that are the sources for obtaining (partial) error paths */
     private Deque<ARGState> sources = new ArrayDeque<>(Collections.singleton(root));
 
     @Override
@@ -485,14 +471,22 @@ public class InterpolationTree<S extends AbstractState, I extends Interpolant<S,
       ARGState current = sources.pop();
 
       if (!isValidInterpolationRoot(predecessorRelation.get(current))) {
-        logger.log(Level.FINEST, "interpolant of predecessor of ", current.getStateId(), " is already false, so return empty path");
+        logger.log(
+            Level.FINEST,
+            "interpolant of predecessor of ",
+            current.getStateId(),
+            " is already false, so return empty path");
         return EMPTY_PATH;
       }
 
-      // if the current state is not the root, it is a child of a branch , however, the path should not start with the
-      // child, but with the branching node (children are stored on the stack because this needs less book-keeping)
+      // if the current state is not the root, it is a child of a branch , however, the path should
+      // not start with the
+      // child, but with the branching node (children are stored on the stack because this needs
+      // less book-keeping)
       if (!Objects.equals(current, root)) {
-        errorPathBuilder.add(predecessorRelation.get(current), predecessorRelation.get(current).getEdgeToChild(current));
+        errorPathBuilder.add(
+            predecessorRelation.get(current),
+            predecessorRelation.get(current).getEdgeToChild(current));
       }
 
       while (successorRelation.get(current).iterator().hasNext()) {
@@ -500,15 +494,21 @@ public class InterpolationTree<S extends AbstractState, I extends Interpolant<S,
         ARGState child = children.next();
         errorPathBuilder.add(current, current.getEdgeToChild(child));
 
-        // push all other children of the current state, if any, onto the stack for later interpolations
+        // push all other children of the current state, if any, onto the stack for later
+        // interpolations
         int size = 1;
         while (children.hasNext()) {
           size++;
           ARGState sibling = children.next();
-          logger.log(Level.FINEST, "\tpush new root ", sibling.getStateId(), " onto stack for parent ", predecessorRelation.get(sibling).getStateId());
+          logger.log(
+              Level.FINEST,
+              "\tpush new root ",
+              sibling.getStateId(),
+              " onto stack for parent ",
+              predecessorRelation.get(sibling).getStateId());
           sources.push(sibling);
         }
-        assert(size <= 2);
+        assert (size <= 2);
 
         current = child;
       }
@@ -517,7 +517,8 @@ public class InterpolationTree<S extends AbstractState, I extends Interpolant<S,
     }
 
     /**
-     * The given state is not a valid interpolation root if it is associated with a interpolant representing "false"
+     * The given state is not a valid interpolation root if it is associated with a interpolant
+     * representing "false"
      */
     private boolean isValidInterpolationRoot(ARGState pRoot) {
       return !stateHasFalseInterpolant(pRoot);
@@ -545,9 +546,7 @@ public class InterpolationTree<S extends AbstractState, I extends Interpolant<S,
 
   private class BottomUpInterpolationStrategy implements InterpolationStrategy<I> {
 
-    /**
-     * the states that are the sources for obtaining error paths
-     */
+    /** the states that are the sources for obtaining error paths */
     private List<ARGState> sources;
 
     public BottomUpInterpolationStrategy(Set<ARGState> pTargets) {
@@ -562,14 +561,19 @@ public class InterpolationTree<S extends AbstractState, I extends Interpolant<S,
 
       ARGPathBuilder errorPathBuilder = ARGPath.reverseBuilder();
 
-      errorPathBuilder.add(current, FluentIterable.from(AbstractStates.getOutgoingEdges(current)).first().orNull());
+      errorPathBuilder.add(
+          current, FluentIterable.from(AbstractStates.getOutgoingEdges(current)).first().orNull());
 
       while (predecessorRelation.get(current) != null) {
 
         ARGState parent = predecessorRelation.get(current);
 
-        if(stateHasFalseInterpolant(parent)) {
-          logger.log(Level.FINEST, "interpolant on path, namely for state ", parent.getStateId(), " is already false, so return empty path");
+        if (stateHasFalseInterpolant(parent)) {
+          logger.log(
+              Level.FINEST,
+              "interpolant on path, namely for state ",
+              parent.getStateId(),
+              " is already false, so return empty path");
           return EMPTY_PATH;
         }
 

@@ -29,11 +29,7 @@ public class SMGObject implements SMGNode, Comparable<SMGObject> {
     id = U_ID_GENERATOR.getFreshId();
   }
 
-  protected SMGObject(
-      int pNestingLevel,
-      BigInteger pSize,
-      BigInteger pOffset,
-      int pId) {
+  protected SMGObject(int pNestingLevel, BigInteger pSize, BigInteger pOffset, int pId) {
     nestingLevel = pNestingLevel;
     size = pSize;
     offset = pOffset;
@@ -44,8 +40,7 @@ public class SMGObject implements SMGNode, Comparable<SMGObject> {
     return NULL_OBJECT;
   }
 
-  public static SMGObject
-      of(int pNestingLevel, BigInteger pSize, BigInteger pOffset) {
+  public static SMGObject of(int pNestingLevel, BigInteger pSize, BigInteger pOffset) {
     return new SMGObject(pNestingLevel, pSize, pOffset);
   }
 
@@ -63,8 +58,8 @@ public class SMGObject implements SMGNode, Comparable<SMGObject> {
   }
 
   @Override
-  public int compareTo(SMGObject pArg0) {
-    return Integer.compare(id, pArg0.id);
+  public int compareTo(SMGObject pOther) {
+    return Integer.compare(id, pOther.id);
   }
 
   @Override

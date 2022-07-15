@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.util.arrayabstraction;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
@@ -69,7 +70,8 @@ class VariableGenerator {
             nondetFunctionType,
             nondetFunctionName,
             nondetFunctionName,
-            ImmutableList.of());
+            ImmutableList.of(),
+            ImmutableSet.of());
     CIdExpression nondetFunctionNameExpression =
         new CIdExpression(
             FileLocation.DUMMY, nondetFunctionType, nondetFunctionName, nondetFunctionDeclaration);

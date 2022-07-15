@@ -15,7 +15,6 @@ import org.sosy_lab.cpachecker.core.defaults.GenericReducer;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.util.Pair;
 
-
 class IntervalAnalysisReducer extends GenericReducer<IntervalAnalysisState, Precision> {
 
   @Override
@@ -47,7 +46,7 @@ class IntervalAnalysisReducer extends GenericReducer<IntervalAnalysisState, Prec
       if (!pReducedContext.getVariables().contains(trackedVar)) {
         diffElement = diffElement.addInterval(trackedVar, pRootState.getInterval(trackedVar), -1);
 
-      //} else {
+        // } else {
         // ignore this case, the variables are part of the reduced state
         // (or might even be deleted, then they must stay unknown)
       }

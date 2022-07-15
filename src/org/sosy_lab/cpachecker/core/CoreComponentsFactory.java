@@ -378,7 +378,7 @@ public class CoreComponentsFactory {
       secure = true,
       name = "algorithm.faultLocalization.by_traceformula",
       description = "for found property violation, perform fault lCoreCocalization with trace formulas")
-  boolean useFaultLocalizationWithTraceFormulas = false;
+  private boolean useFaultLocalizationWithTraceFormulas = false;
 
   @Option(
       secure = true,
@@ -777,7 +777,7 @@ public class CoreComponentsFactory {
   }
 
   public ConfigurableProgramAnalysis createCPA(final CFA cfa, final Specification pSpecification)
-      throws InvalidConfigurationException, CPAException {
+      throws InvalidConfigurationException, CPAException, InterruptedException {
     logger.log(Level.FINE, "Creating CPAs");
 
     if (useCompositionAlgorithm

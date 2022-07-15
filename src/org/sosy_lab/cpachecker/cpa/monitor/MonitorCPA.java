@@ -34,7 +34,8 @@ public class MonitorCPA extends AbstractSingleWrapperCPA {
   private final MonitorTransferRelation transferRelation;
   private final Statistics stats;
 
-  private MonitorCPA(ConfigurableProgramAnalysis pCpa, Configuration config) throws InvalidConfigurationException {
+  private MonitorCPA(ConfigurableProgramAnalysis pCpa, Configuration config)
+      throws InvalidConfigurationException {
     super(pCpa);
     transferRelation = new MonitorTransferRelation(getWrappedCpa(), config);
     stats = new MonitorStatistics(this);
@@ -46,7 +47,8 @@ public class MonitorCPA extends AbstractSingleWrapperCPA {
   }
 
   @Override
-  public AbstractState getInitialState(CFANode pNode, StateSpacePartition pPartition) throws InterruptedException {
+  public AbstractState getInitialState(CFANode pNode, StateSpacePartition pPartition)
+      throws InterruptedException {
     return new MonitorState(getWrappedCpa().getInitialState(pNode, pPartition), 0L);
   }
 
@@ -67,7 +69,7 @@ public class MonitorCPA extends AbstractSingleWrapperCPA {
 
   @Override
   public MonitorTransferRelation getTransferRelation() {
-    return this.transferRelation;
+    return transferRelation;
   }
 
   @Override

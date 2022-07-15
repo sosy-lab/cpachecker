@@ -48,8 +48,7 @@ class TimedReducer implements Reducer {
 
   @Override
   public AbstractState getVariableReducedState(
-      AbstractState pExpandedState, Block pContext,
-      CFANode pCallNode) throws InterruptedException {
+      AbstractState pExpandedState, Block pContext, CFANode pCallNode) throws InterruptedException {
     reduceTimer.start();
     try {
       return wrappedReducer.getVariableReducedState(pExpandedState, pContext, pCallNode);
@@ -60,8 +59,8 @@ class TimedReducer implements Reducer {
 
   @Override
   public AbstractState getVariableExpandedState(
-      AbstractState pRootState, Block pReducedContext,
-      AbstractState pReducedState) throws InterruptedException {
+      AbstractState pRootState, Block pReducedContext, AbstractState pReducedState)
+      throws InterruptedException {
     expandTimer.start();
     try {
       return wrappedReducer.getVariableExpandedState(pRootState, pReducedContext, pReducedState);
@@ -76,8 +75,7 @@ class TimedReducer implements Reducer {
   }
 
   @Override
-  public Precision getVariableReducedPrecision(Precision pPrecision,
-      Block pContext) {
+  public Precision getVariableReducedPrecision(Precision pPrecision, Block pContext) {
     reducePrecisionTimer.start();
     try {
       return wrappedReducer.getVariableReducedPrecision(pPrecision, pContext);
@@ -87,10 +85,12 @@ class TimedReducer implements Reducer {
   }
 
   @Override
-  public Precision getVariableExpandedPrecision(Precision rootPrecision, Block rootContext, Precision reducedPrecision) {
+  public Precision getVariableExpandedPrecision(
+      Precision rootPrecision, Block rootContext, Precision reducedPrecision) {
     expandPrecisionTimer.start();
     try {
-      return wrappedReducer.getVariableExpandedPrecision(rootPrecision, rootContext, reducedPrecision);
+      return wrappedReducer.getVariableExpandedPrecision(
+          rootPrecision, rootContext, reducedPrecision);
     } finally {
       expandPrecisionTimer.stop();
     }
@@ -104,20 +104,26 @@ class TimedReducer implements Reducer {
   @Override
   public AbstractState getVariableReducedStateForProofChecking(
       AbstractState pExpandedState, Block pContext, CFANode pCallNode) throws InterruptedException {
-    return wrappedReducer.getVariableReducedStateForProofChecking(pExpandedState, pContext, pCallNode);
-
+    return wrappedReducer.getVariableReducedStateForProofChecking(
+        pExpandedState, pContext, pCallNode);
   }
 
   @Override
-  public AbstractState getVariableExpandedStateForProofChecking(AbstractState pRootState, Block pReducedContext,
-      AbstractState pReducedState) throws InterruptedException {
-    return wrappedReducer.getVariableExpandedStateForProofChecking(pRootState, pReducedContext, pReducedState);
+  public AbstractState getVariableExpandedStateForProofChecking(
+      AbstractState pRootState, Block pReducedContext, AbstractState pReducedState)
+      throws InterruptedException {
+    return wrappedReducer.getVariableExpandedStateForProofChecking(
+        pRootState, pReducedContext, pReducedState);
   }
 
   @Override
-  public AbstractState rebuildStateAfterFunctionCall(AbstractState rootState, AbstractState entryState,
-      AbstractState expandedState, FunctionExitNode exitLocation) {
-    return wrappedReducer.rebuildStateAfterFunctionCall(rootState, entryState, expandedState, exitLocation);
+  public AbstractState rebuildStateAfterFunctionCall(
+      AbstractState rootState,
+      AbstractState entryState,
+      AbstractState expandedState,
+      FunctionExitNode exitLocation) {
+    return wrappedReducer.rebuildStateAfterFunctionCall(
+        rootState, entryState, expandedState, exitLocation);
   }
 
   @Override

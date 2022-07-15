@@ -61,7 +61,8 @@ public class SMG {
     smgObjects = smgObjectsTmp.putAndCopy(SMGObject.nullInstance(), false);
     SMGPointsToEdge nullPointer =
         new SMGPointsToEdge(getNullObject(), BigInteger.ZERO, SMGTargetSpecifier.IS_REGION);
-    PersistentMap<SMGValue, SMGPointsToEdge> pointsToEdgesTmpMap = PathCopyingPersistentTreeMap.of();
+    PersistentMap<SMGValue, SMGPointsToEdge> pointsToEdgesTmpMap =
+        PathCopyingPersistentTreeMap.of();
     pointsToEdges = pointsToEdgesTmpMap.putAndCopy(SMGValue.zeroValue(), nullPointer);
     sizeOfPointer = pSizeOfPointer;
   }
@@ -102,11 +103,7 @@ public class SMG {
    */
   public SMG copyAndAddValue(SMGValue pValue) {
     return new SMG(
-        smgObjects,
-        smgValues.addAndCopy(pValue),
-        hasValueEdges,
-        pointsToEdges,
-        sizeOfPointer);
+        smgObjects, smgValues.addAndCopy(pValue), hasValueEdges, pointsToEdges, sizeOfPointer);
   }
 
   /**
@@ -117,11 +114,7 @@ public class SMG {
    */
   public SMG copyAndRemoveValue(SMGValue pValue) {
     return new SMG(
-        smgObjects,
-        smgValues.removeAndCopy(pValue),
-        hasValueEdges,
-        pointsToEdges,
-        sizeOfPointer);
+        smgObjects, smgValues.removeAndCopy(pValue), hasValueEdges, pointsToEdges, sizeOfPointer);
   }
 
   public SMG copyAndRemoveValues(Collection<SMGValue> pUnreachableValues) {
@@ -278,18 +271,18 @@ public class SMG {
     for (Map.Entry<SMGValue, SMGPointsToEdge> oldEntry : pointsToEdges.entrySet()) {
       if (pOldObject.equals(oldEntry.getValue().pointsTo())) {
         SMGPointsToEdge newEdge =
-            new SMGPointsToEdge(pNewObject, oldEntry.getValue().getOffset(), oldEntry.getValue().targetSpecifier());
+            new SMGPointsToEdge(
+                pNewObject, oldEntry.getValue().getOffset(), oldEntry.getValue().targetSpecifier());
         newPointsToEdges = pointsToEdges.putAndCopy(oldEntry.getKey(), newEdge);
       }
     }
 
-    //replace object
+    // replace object
     PersistentMap<SMGObject, Boolean> newObjects =
         smgObjects.removeAndCopy(pOldObject).putAndCopy(pNewObject, true);
 
     return new SMG(newObjects, smgValues, newHVEdges, newPointsToEdges, sizeOfPointer);
   }
-
 
   public SMG copyAndInvalidateObject(SMGObject pObject) {
     PersistentMap<SMGObject, Boolean> newObjects = smgObjects.putAndCopy(pObject, false);
@@ -370,20 +363,18 @@ public class SMG {
    * This is a general method to get a all SMGHasValueEdges by object and a filter predicate.
    * Examples:
    *
-   * <p>
-   * {@code Predicate<SMGHasValueEdge> filterOffset = o -> o.getOffset().equals(offset);} Returns
+   * <p>{@code Predicate<SMGHasValueEdge> filterOffset = o -> o.getOffset().equals(offset);} Returns
    * all existing SMGHasValueEdge with the offset entered.
    *
-   * <p>
-   * {@code o -> o.getOffset().equals(offset) && o.getSizeInBits().equals(sizeInBits);} Returns all
-   * existing SMGHasValueEdge with the offset and size entered.
+   * <p>{@code o -> o.getOffset().equals(offset) && o.getSizeInBits().equals(sizeInBits);} Returns
+   * all existing SMGHasValueEdge with the offset and size entered.
    *
    * @param object SMGObject for which the SMGHasValueEdge are searched.
    * @param filter The filter predicate for SMGHasValueEdges.
    * @return A FluentIterable with all edges matching the specified filter
    */
-  public FluentIterable<SMGHasValueEdge>
-      getHasValueEdgesByPredicate(SMGObject object, Predicate<SMGHasValueEdge> filter) {
+  public FluentIterable<SMGHasValueEdge> getHasValueEdgesByPredicate(
+      SMGObject object, Predicate<SMGHasValueEdge> filter) {
     return FluentIterable.from(hasValueEdges.getOrDefault(object, PersistentSet.of()))
         .filter(filter);
   }
@@ -414,7 +405,7 @@ public class SMG {
     Predicate<SMGHasValueEdge> filterByOffsetAndSize =
         o -> o.getOffset().compareTo(offset) == 0 && o.getSizeInBits().compareTo(sizeInBits) == 0;
     Optional<SMGHasValueEdge> maybeValue =
-        this.getHasValueEdgeByPredicate(object, filterByOffsetAndSize);
+        getHasValueEdgeByPredicate(object, filterByOffsetAndSize);
 
     // if v != undefined then return (smg, v)
     if (maybeValue.isPresent()) {
@@ -424,12 +415,12 @@ public class SMG {
     // if the field to be read is covered by nullified blocks, i.e. if
     // forall . of <= i < of +  size(t) exists . e element H(o, of, t): i element I(e),
     // let v := 0. Otherwise extend V by a fresh value node v.
-    if (this.isCoveredByNullifiedBlocks(object, offset, sizeInBits)) {
+    if (isCoveredByNullifiedBlocks(object, offset, sizeInBits)) {
       return new SMGandValue(this, SMGValue.zeroValue());
     }
     int nestingLevel = object.getNestingLevel();
     SMGValue newValue = SMGValue.of(nestingLevel);
-    SMG newSMG = this.copyAndAddValue(newValue);
+    SMG newSMG = copyAndAddValue(newValue);
     // Extend H by the has-value edge o -> v with the offset and size and return (smg,v) based on
     // the newly obtained SMG.
     SMGHasValueEdge newHVEdge = new SMGHasValueEdge(newValue, offset, sizeInBits);
@@ -458,7 +449,7 @@ public class SMG {
     // If there exists a hasValueEdge in the specified object, with the specified field that equals
     // the specified value, simply return the original SMG
     Optional<SMGHasValueEdge> hvEdge =
-        this.getHasValueEdgeByPredicate(
+        getHasValueEdgeByPredicate(
             object,
             o ->
                 o.getOffset().compareTo(offset) == 0
@@ -467,7 +458,7 @@ public class SMG {
       return this;
     }
     // Add the value to the Values present in this SMG
-    SMG newSMG = this.copyAndAddValue(value);
+    SMG newSMG = copyAndAddValue(value);
     // Remove all HasValueEdges from the object with non-zero values overlapping with the given
     // field.
     FluentIterable<SMGHasValueEdge> nonZeroOverlappingEdges =
@@ -505,7 +496,6 @@ public class SMG {
     PersistentSet<SMGHasValueEdge> toRemoveEdgesSet = PersistentSet.of();
     PersistentSet<SMGHasValueEdge> toAddEdgesSet = PersistentSet.of();
 
-
     for (SMGHasValueEdge hvEdge : hasValueEdges.get(object)) {
       final BigInteger hvEdgeOffsetPlusSize = hvEdge.getOffset().add(hvEdge.getSizeInBits());
       // Overlapping zero value edges
@@ -534,10 +524,10 @@ public class SMG {
   }
 
   /**
-   * Calculates Byte precise the size of new SMGHasValueEdges.
-   * This is needed as sizes used by us are bit precise and we need it only byte precise.
-   * It works by subtracting the second from the first and then rounding it up to match byte sizes.
-   * This works under the assumption that the beginning and ends of each field are byte precise!
+   * Calculates Byte precise the size of new SMGHasValueEdges. This is needed as sizes used by us
+   * are bit precise and we need it only byte precise. It works by subtracting the second from the
+   * first and then rounding it up to match byte sizes. This works under the assumption that the
+   * beginning and ends of each field are byte precise!
    *
    * @param first The precision in bits that will be subtracted upon.
    * @param second The precision that will be subtracted from first.
@@ -619,9 +609,7 @@ public class SMG {
     // FIT-TR-2013-4 appendix B states that the entered field has to be covered. It does not matter
     // if this is done in a sinle edge, or multiple, or that the edges exceed the field entered.
     // They must be in the objects boundries however.
-    return hasValueEdges
-        .get(smgObject)
-        .stream()
+    return hasValueEdges.get(smgObject).stream()
         .filter(
             n ->
                 n.hasValue().isZero()
@@ -642,18 +630,21 @@ public class SMG {
    * @param pFieldOffset - the start offset of the memory chunk
    * @param pSizeofInBits - the size of the memory chunk
    * @return all edges with: edgeOffset <= pFieldOffset && pFieldOffset < edgeOffset + edgeSize ||
-   *         edgeOffset > pFieldOffset && edgeOffset < pSizeofInBits + pFieldOffset
+   *     edgeOffset > pFieldOffset && edgeOffset < pSizeofInBits + pFieldOffset
    */
-  public Collection<SMGHasValueEdge>
-      getOverlappingEdges(SMGObject pObject, BigInteger pFieldOffset, BigInteger pSizeofInBits) {
-    return getHasValueEdgesByPredicate(pObject, edge -> {
-      // edgeOffset <= pFieldOffset && pFieldOffset < edgeOffset + edgeSize
-      return (edge.getOffset().compareTo(pFieldOffset) <= 0
-          && edge.getOffset().add(edge.getSizeInBits()).compareTo(pFieldOffset) > 0)
-          // edgeOffset > pFieldOffset && edgeOffset < pSizeofInBits + pFieldOffset
-          || (edge.getOffset().compareTo(pFieldOffset) > 0
-              && edge.getOffset().compareTo(pFieldOffset.add(pSizeofInBits)) < 0);
-    }).toSortedSet(Comparator.comparing(SMGHasValueEdge::getOffset));
+  public Collection<SMGHasValueEdge> getOverlappingEdges(
+      SMGObject pObject, BigInteger pFieldOffset, BigInteger pSizeofInBits) {
+    return getHasValueEdgesByPredicate(
+            pObject,
+            edge -> {
+              // edgeOffset <= pFieldOffset && pFieldOffset < edgeOffset + edgeSize
+              return (edge.getOffset().compareTo(pFieldOffset) <= 0
+                      && edge.getOffset().add(edge.getSizeInBits()).compareTo(pFieldOffset) > 0)
+                  // edgeOffset > pFieldOffset && edgeOffset < pSizeofInBits + pFieldOffset
+                  || (edge.getOffset().compareTo(pFieldOffset) > 0
+                      && edge.getOffset().compareTo(pFieldOffset.add(pSizeofInBits)) < 0);
+            })
+        .toSortedSet(Comparator.comparing(SMGHasValueEdge::getOffset));
   }
 
   /**
@@ -694,11 +685,9 @@ public class SMG {
     return getPTEdges().filter(ptEdge -> ptEdge.pointsTo().equals(pointingTo));
   }
 
-
   public PersistentMap<SMGValue, SMGPointsToEdge> getPTEdgeMapping() {
     return pointsToEdges;
   }
-
 
   /**
    * Returns the SMGPointsToEdge associated with the entered SMGValue.
@@ -729,23 +718,25 @@ public class SMG {
    * @return true if there exists an overlapping edge with the provided edge.
    */
   public boolean hasOverlappingEdge(SMGHasValueEdge pHValueEdge, SMGObject pObject) {
-    return getEdges(pObject).stream().anyMatch(other -> {
-      BigInteger otherStart = other.getOffset();
-      BigInteger otherEnd = otherStart.add(other.getSizeInBits());
-      BigInteger pStart = pHValueEdge.getOffset();
-      BigInteger pEnd = pStart.add(pHValueEdge.getSizeInBits());
+    return getEdges(pObject).stream()
+        .anyMatch(
+            other -> {
+              BigInteger otherStart = other.getOffset();
+              BigInteger otherEnd = otherStart.add(other.getSizeInBits());
+              BigInteger pStart = pHValueEdge.getOffset();
+              BigInteger pEnd = pStart.add(pHValueEdge.getSizeInBits());
 
-      // pStart greater
-      if (pStart.compareTo(otherStart) > 0) {
-        return pStart.compareTo(otherEnd) < 0;
-      }
-      // pStart less
-      if (pStart.compareTo(otherStart) < 0) {
-        return pEnd.compareTo(otherStart) > 0;
-      }
+              // pStart greater
+              if (pStart.compareTo(otherStart) > 0) {
+                return pStart.compareTo(otherEnd) < 0;
+              }
+              // pStart less
+              if (pStart.compareTo(otherStart) < 0) {
+                return pEnd.compareTo(otherStart) > 0;
+              }
 
-      return true;
-    });
+              return true;
+            });
   }
 
   /**
@@ -757,15 +748,17 @@ public class SMG {
    * @return Optional empty, if there is no such pointer or the address of a matching pointer.
    */
   public Optional<SMGValue> findAddressForEdge(
-      SMGObject targetObject,
-      BigInteger pOffset,
-      SMGTargetSpecifier pTargetSpecifier) {
-    return pointsToEdges.entrySet().stream().filter(entry -> {
-      SMGPointsToEdge edge = entry.getValue();
-      return edge.getOffset().equals(pOffset)
-          && edge.targetSpecifier().equals(pTargetSpecifier)
-          && edge.pointsTo().equals(targetObject);
-    }).findAny().map(entry -> entry.getKey());
+      SMGObject targetObject, BigInteger pOffset, SMGTargetSpecifier pTargetSpecifier) {
+    return pointsToEdges.entrySet().stream()
+        .filter(
+            entry -> {
+              SMGPointsToEdge edge = entry.getValue();
+              return edge.getOffset().equals(pOffset)
+                  && edge.targetSpecifier().equals(pTargetSpecifier)
+                  && edge.pointsTo().equals(targetObject);
+            })
+        .findAny()
+        .map(entry -> entry.getKey());
   }
 
   /**
@@ -802,7 +795,8 @@ public class SMG {
     return sizeOfPointer;
   }
 
-  public SMGObjectsAndValues collectReachableObjectsAndValues(Collection<SMGObject> pVisibleObjects) {
+  public SMGObjectsAndValues collectReachableObjectsAndValues(
+      Collection<SMGObject> pVisibleObjects) {
     Set<SMGObject> visitedObjects = new HashSet<>();
     Set<SMGValue> visitedValues = new HashSet<>();
     Deque<SMGObject> workDeque = new ArrayDeque<>(pVisibleObjects);
@@ -823,7 +817,4 @@ public class SMG {
 
     return new SMGObjectsAndValues(visitedObjects, visitedValues);
   }
-
-
-
 }

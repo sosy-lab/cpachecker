@@ -81,17 +81,15 @@ public class SMGOptions {
       ImmutableSet.of("malloc", "__kmalloc", "kmalloc", "realloc");
 
   @Option(
-    secure = true,
-    name = "guessSize",
-    description = "Allocation size of memory that cannot be calculated."
-  )
+      secure = true,
+      name = "guessSize",
+      description = "Allocation size of memory that cannot be calculated.")
   private int guessSize = 2;
 
   @Option(
-    secure = true,
-    name = "memoryAllocationFunctionsSizeParameter",
-    description = "Size parameter of memory allocation functions"
-  )
+      secure = true,
+      name = "memoryAllocationFunctionsSizeParameter",
+      description = "Size parameter of memory allocation functions")
   private int memoryAllocationFunctionsSizeParameter = 0;
 
   @Option(
@@ -146,12 +144,11 @@ public class SMGOptions {
   private boolean trackErrorPredicates = false;
 
   @Option(
-    secure = true,
-    name = "handleUnknownDereferenceAsSafe",
-    description =
-        "Handle unknown dereference as safe and check error based on error predicate, "
-            + "depends on trackPredicates"
-  )
+      secure = true,
+      name = "handleUnknownDereferenceAsSafe",
+      description =
+          "Handle unknown dereference as safe and check error based on error predicate, "
+              + "depends on trackPredicates")
   private boolean handleUnknownDereferenceAsSafe = false;
 
   @Option(

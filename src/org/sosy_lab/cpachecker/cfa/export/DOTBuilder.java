@@ -28,12 +28,12 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
 import org.sosy_lab.cpachecker.util.CFATraversal;
 import org.sosy_lab.cpachecker.util.CFATraversal.TraversalProcess;
 
-/**
- * Class for generating a DOT file from a CFA.
- */
+/** Class for generating a DOT file from a CFA. */
 public final class DOTBuilder {
 
-  private DOTBuilder() { /* utility class */ }
+  private DOTBuilder() {
+    /* utility class */
+  }
 
   private static final String MAIN_GRAPH = "____Main____Diagram__";
   private static final Joiner JOINER_ON_NEWLINE = Joiner.on('\n');
@@ -49,8 +49,8 @@ public final class DOTBuilder {
     generateDOT(sb, cfa, DOTBuilder::formatNode);
   }
 
-  public static void generateDOT(Appendable sb, CFA cfa,
-      Function<CFANode, String> formatNodeLabel) throws IOException{
+  public static void generateDOT(Appendable sb, CFA cfa, Function<CFANode, String> formatNodeLabel)
+      throws IOException {
     DotGenerator dotGenerator = new DotGenerator(cfa, formatNodeLabel);
     CFATraversal.dfs().traverseOnce(cfa.getMainFunction(), dotGenerator);
 
@@ -65,9 +65,10 @@ public final class DOTBuilder {
     for (FunctionEntryNode fnode : cfa.getAllFunctionHeads()) {
       // If Array belongs to functionCall in Parameter, replace [].
       // If Name Contains '.' replace with '_'
-      sb.append("subgraph cluster_" + fnode.getFunctionName()
-          .replace("[", "").replace("]", "_array")
-          .replace(".", "_") + " {\n");
+      sb.append(
+          "subgraph cluster_"
+              + fnode.getFunctionName().replace("[", "").replace("]", "_array").replace(".", "_")
+              + " {\n");
       sb.append("label=\"" + fnode.getFunctionName() + "()\"\n");
       JOINER_ON_NEWLINE.appendTo(sb, dotGenerator.edges.get(fnode.getFunctionName()));
       sb.append("}\n");
@@ -87,7 +88,6 @@ public final class DOTBuilder {
     private final Optional<ImmutableSet<CFANode>> loopHeads;
     private final Function<CFANode, String> formatNodeLabel;
 
-
     public DotGenerator(CFA cfa, Function<CFANode, String> pFormatNodeLabel) {
       loopHeads = cfa.getAllLoopHeads();
       formatNodeLabel = pFormatNodeLabel;
@@ -97,7 +97,8 @@ public final class DOTBuilder {
     public TraversalProcess visitEdge(CFAEdge edge) {
       CFANode predecessor = edge.getPredecessor();
       List<String> graph;
-      if ((edge.getEdgeType() == CFAEdgeType.FunctionCallEdge) || edge.getEdgeType() == CFAEdgeType.FunctionReturnEdge) {
+      if ((edge.getEdgeType() == CFAEdgeType.FunctionCallEdge)
+          || edge.getEdgeType() == CFAEdgeType.FunctionReturnEdge) {
         graph = edges.get(MAIN_GRAPH);
       } else {
         graph = edges.get(predecessor.getFunctionName());
@@ -121,8 +122,8 @@ public final class DOTBuilder {
       sb.append(edge.getSuccessor().getNodeNumber());
       sb.append(" [label=\"");
 
-      //the first call to replaceAll replaces \" with \ " to prevent a bug in dotty.
-      //future updates of dotty may make this obsolete.
+      // the first call to replaceAll replaces \" with \ " to prevent a bug in dotty.
+      // future updates of dotty may make this obsolete.
       sb.append(escapeGraphvizLabel(edge.getDescription(), " "));
       sb.append("\"");
 
@@ -134,13 +135,13 @@ public final class DOTBuilder {
     }
   }
 
-  static String formatNode(
-      CFANode node, Optional<ImmutableSet<CFANode>> loopHeads) {
+  static String formatNode(CFANode node, Optional<ImmutableSet<CFANode>> loopHeads) {
     return formatNode(node, loopHeads, DOTBuilder::formatNode);
   }
 
   static String formatNode(
-      CFANode node, Optional<ImmutableSet<CFANode>> loopHeads,
+      CFANode node,
+      Optional<ImmutableSet<CFANode>> loopHeads,
       Function<CFANode, String> formatNodeLabel) {
     final String shape;
 
@@ -166,7 +167,8 @@ public final class DOTBuilder {
         + " [shape=\""
         + shape
         + "\" label=\""
-        + escapeGraphvizLabel(nodeAnnotation, "\\\\n") + "\"]";
+        + escapeGraphvizLabel(nodeAnnotation, "\\\\n")
+        + "\"]";
   }
 
   public static String escapeGraphvizLabel(String input, String newlineReplacement) {

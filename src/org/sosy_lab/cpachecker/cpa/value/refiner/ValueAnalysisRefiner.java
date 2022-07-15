@@ -78,7 +78,11 @@ import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 public class ValueAnalysisRefiner
     extends GenericRefiner<ValueAnalysisState, ValueAnalysisInterpolant> {
 
-  @Option(secure = true, description = "whether or not to do lazy-abstraction", name = "restart", toUppercase = true)
+  @Option(
+      secure = true,
+      description = "whether or not to do lazy-abstraction",
+      name = "restart",
+      toUppercase = true)
   private RestartStrategy restartStrategy = RestartStrategy.PIVOT;
 
   @Option(
@@ -87,14 +91,12 @@ public class ValueAnalysisRefiner
   private boolean avoidSimilarRepeatedRefinement = false;
 
   @Option(
-    secure = true, // name="refinement.basisStrategy",
-    description =
-        "Which base precision should be used for a new precision? "
-            + "ALL: During refinement, collect precisions from the complete ARG. "
-            + "SUBGRAPH: During refinement, keep precision from all removed parts (subgraph) of the ARG. "
-            + "CUTPOINT: Only the cut-point's precision is kept. "
-            + "TARGET: Only the target state's precision is kept."
-  )
+      secure = true, // name="refinement.basisStrategy",
+      description =
+          "Which base precision should be used for a new precision? ALL: During refinement, collect"
+              + " precisions from the complete ARG. SUBGRAPH: During refinement, keep precision"
+              + " from all removed parts (subgraph) of the ARG. CUTPOINT: Only the cut-point's"
+              + " precision is kept. TARGET: Only the target state's precision is kept.")
   /* see also: {@link PredicateAbstractionRefinementStrategy} */
   /* There are usually more tracked variables at the target location that at the cut-point.
    * 05/2017: An evaluation on sv-benchmark files for ALL, SUBGRAPH, TARGET, and CUTPOINT showed:
@@ -114,9 +116,7 @@ public class ValueAnalysisRefiner
     CUTPOINT
   }
 
-  /**
-   * keep log of previous refinements to identify repeated one
-   */
+  /** keep log of previous refinements to identify repeated one */
   private final Set<Integer> previousRefinementIds = new HashSet<>();
 
   private final ValueAnalysisFeasibilityChecker checker;
@@ -127,7 +127,8 @@ public class ValueAnalysisRefiner
 
   // Statistics
   private final StatCounter rootRelocations = new StatCounter("Number of root relocations");
-  private final StatCounter repeatedRefinements = new StatCounter("Number of similar, repeated refinements");
+  private final StatCounter repeatedRefinements =
+      new StatCounter("Number of similar, repeated refinements");
 
   public static Refiner create(final ConfigurableProgramAnalysis pCpa)
       throws InvalidConfigurationException {
@@ -155,7 +156,8 @@ public class ValueAnalysisRefiner
         new ValueAnalysisPrefixProvider(
             logger, cfa, config, valueAnalysisCpa.getShutdownNotifier());
 
-    return new ValueAnalysisRefiner(checker,
+    return new ValueAnalysisRefiner(
+        checker,
         strongestPostOp,
         new PathExtractor(logger, config),
         prefixProvider,
@@ -170,15 +172,22 @@ public class ValueAnalysisRefiner
       final StrongestPostOperator<ValueAnalysisState> pStrongestPostOperator,
       final PathExtractor pPathExtractor,
       final GenericPrefixProvider<ValueAnalysisState> pPrefixProvider,
-      final Configuration pConfig, final LogManager pLogger,
-      final ShutdownNotifier pShutdownNotifier, final CFA pCfa)
+      final Configuration pConfig,
+      final LogManager pLogger,
+      final ShutdownNotifier pShutdownNotifier,
+      final CFA pCfa)
       throws InvalidConfigurationException {
 
-    super(pFeasibilityChecker,
-        new ValueAnalysisPathInterpolator(pFeasibilityChecker,
+    super(
+        pFeasibilityChecker,
+        new ValueAnalysisPathInterpolator(
+            pFeasibilityChecker,
             pStrongestPostOperator,
             pPrefixProvider,
-            pConfig, pLogger, pShutdownNotifier, pCfa),
+            pConfig,
+            pLogger,
+            pShutdownNotifier,
+            pCfa),
         ValueAnalysisInterpolantManager.getInstance(),
         pPathExtractor,
         pConfig,
@@ -187,27 +196,30 @@ public class ValueAnalysisRefiner
     pConfig.inject(this, ValueAnalysisRefiner.class);
 
     checker = pFeasibilityChecker;
-    concreteErrorPathAllocator = new ValueAnalysisConcreteErrorPathAllocator(pConfig, logger, pCfa.getMachineModel());
+    concreteErrorPathAllocator =
+        new ValueAnalysisConcreteErrorPathAllocator(pConfig, logger, pCfa.getMachineModel());
     shutdownNotifier = pShutdownNotifier;
   }
 
   @Override
   protected void refineUsingInterpolants(
       final ARGReachedSet pReached,
-      final InterpolationTree<ValueAnalysisState, ValueAnalysisInterpolant> pInterpolationTree
-      ) throws InterruptedException {
+      final InterpolationTree<ValueAnalysisState, ValueAnalysisInterpolant> pInterpolationTree)
+      throws InterruptedException {
     final UnmodifiableReachedSet reached = pReached.asReachedSet();
     final boolean predicatePrecisionIsAvailable = isPredicatePrecisionAvailable(reached);
 
     Map<ARGState, List<Precision>> refinementInformation = new LinkedHashMap<>();
-    Collection<ARGState> refinementRoots = pInterpolationTree.obtainRefinementRoots(restartStrategy);
+    Collection<ARGState> refinementRoots =
+        pInterpolationTree.obtainRefinementRoots(restartStrategy);
 
     for (ARGState root : refinementRoots) {
       shutdownNotifier.shutdownIfNecessary();
       root = relocateRefinementRoot(root, predicatePrecisionIsAvailable);
 
-      if (refinementRoots.size() == 1 && isSimilarRepeatedRefinement(
-          pInterpolationTree.extractPrecisionIncrement(root).values())) {
+      if (refinementRoots.size() == 1
+          && isSimilarRepeatedRefinement(
+              pInterpolationTree.extractPrecisionIncrement(root).values())) {
         root = relocateRepeatedRefinementRoot(root);
       }
 
@@ -286,9 +298,7 @@ public class ValueAnalysisRefiner
             .get();
   }
 
-  /**
-   * A simple heuristic to detect similar repeated refinements.
-   */
+  /** A simple heuristic to detect similar repeated refinements. */
   private boolean isSimilarRepeatedRefinement(Collection<MemoryLocation> currentIncrement) {
 
     boolean isSimilar = false;
@@ -306,9 +316,9 @@ public class ValueAnalysisRefiner
   }
 
   /**
-   * This method chooses a new refinement root, in a bottom-up fashion along the error path.
-   * It either picks the next state on the path sharing the same CFA location, or the (only)
-   * child of the ARG root, what ever comes first.
+   * This method chooses a new refinement root, in a bottom-up fashion along the error path. It
+   * either picks the next state on the path sharing the same CFA location, or the (only) child of
+   * the ARG root, what ever comes first.
    *
    * @param currentRoot the current refinement root
    * @return the relocated refinement root
@@ -332,8 +342,9 @@ public class ValueAnalysisRefiner
     return Iterables.getOnlyElement(path.getFirstState().getChildren());
   }
 
-  private ARGState relocateRefinementRoot(final ARGState pRefinementRoot,
-      final boolean  predicatePrecisionIsAvailable) throws InterruptedException{
+  private ARGState relocateRefinementRoot(
+      final ARGState pRefinementRoot, final boolean predicatePrecisionIsAvailable)
+      throws InterruptedException {
 
     // no relocation needed if only running value analysis,
     // because there, this does slightly degrade performance
@@ -345,12 +356,12 @@ public class ValueAnalysisRefiner
     // is set to the lowest common ancestor of those states
     // that are covered by the states in the subtree of the
     // original refinement root
-    if(!predicatePrecisionIsAvailable) {
+    if (!predicatePrecisionIsAvailable) {
       return pRefinementRoot;
     }
 
     // no relocation needed if restart at top
-    if(restartStrategy == RestartStrategy.ROOT) {
+    if (restartStrategy == RestartStrategy.ROOT) {
       return pRefinementRoot;
     }
 
@@ -363,7 +374,7 @@ public class ValueAnalysisRefiner
     shutdownNotifier.shutdownIfNecessary();
 
     // no relocation needed if set of descendants is closed under coverage
-    if(descendants.containsAll(coveredStates)) {
+    if (descendants.containsAll(coveredStates)) {
       return pRefinementRoot;
     }
 
@@ -409,7 +420,8 @@ public class ValueAnalysisRefiner
    * @return the model for the given error path
    */
   @Override
-  protected CFAPathWithAssumptions createModel(ARGPath errorPath) throws InterruptedException, CPAException {
+  protected CFAPathWithAssumptions createModel(ARGPath errorPath)
+      throws InterruptedException, CPAException {
     List<Pair<ValueAnalysisState, List<CFAEdge>>> concretePath = checker.evaluate(errorPath);
     if (concretePath.size() < errorPath.getInnerEdges().size()) {
       // If concretePath is shorter than errorPath, this means that errorPath is actually
@@ -425,10 +437,12 @@ public class ValueAnalysisRefiner
   }
 
   @Override
-  protected void printAdditionalStatistics(PrintStream pOut, Result pResult, UnmodifiableReachedSet pReached) {
+  protected void printAdditionalStatistics(
+      PrintStream pOut, Result pResult, UnmodifiableReachedSet pReached) {
     StatisticsWriter writer = StatisticsWriter.writingStatisticsTo(pOut);
 
-    writer.put(rootRelocations)
+    writer
+        .put(rootRelocations)
         .put(repeatedRefinements)
         .put("Number of unique precision increments", previousRefinementIds.size());
   }

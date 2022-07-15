@@ -19,7 +19,6 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
-import java.util.function.BiFunction;
 import org.sosy_lab.cpachecker.core.defaults.LatticeAbstractState;
 import org.sosy_lab.cpachecker.util.identifiers.AbstractIdentifier;
 import org.sosy_lab.cpachecker.util.identifiers.ConstantIdentifier;
@@ -36,16 +35,15 @@ public final class LocalState implements LatticeAbstractState<LocalState> {
       return name().toLowerCase();
     }
 
-    public static final BiFunction<DataType, DataType, DataType> max =
-        (d1, d2) -> {
-          if (d1 == GLOBAL || d2 == GLOBAL) {
-            return GLOBAL;
-          } else if (d1 == null || d2 == null) {
-            return null;
-          } else {
-            return LOCAL;
-          }
-        };
+    public static final DataType max(DataType d1, DataType d2) {
+      if (d1 == GLOBAL || d2 == GLOBAL) {
+        return GLOBAL;
+      } else if (d1 == null || d2 == null) {
+        return null;
+      } else {
+        return LOCAL;
+      }
+    }
   }
   // map from variable id to its type
   private final LocalState previousState;
@@ -81,11 +79,11 @@ public final class LocalState implements LatticeAbstractState<LocalState> {
   }
 
   public LocalState copy() {
-    return new LocalState(this.DataInfo, this.previousState, this.alwaysLocalData);
+    return new LocalState(DataInfo, previousState, alwaysLocalData);
   }
 
   private LocalState clone(LocalState pPreviousState) {
-    return new LocalState(this.DataInfo, pPreviousState, this.alwaysLocalData);
+    return new LocalState(DataInfo, pPreviousState, alwaysLocalData);
   }
 
   public LocalState expand(LocalState rootState) {
@@ -169,33 +167,33 @@ public final class LocalState implements LatticeAbstractState<LocalState> {
   @Override
   public LocalState join(LocalState pState2) {
     // by definition of Merge operator we should return state2, not this!
-    if (this.equals(pState2)) {
+    if (equals(pState2)) {
       return pState2;
     }
     LocalState joinedPreviousState = null;
-    if (this.previousState != null && pState2.previousState == null) {
+    if (previousState != null && pState2.previousState == null) {
       // One of them was already reduced and one not yet
       return pState2;
-    } else if (this.previousState == null && pState2.previousState != null) {
+    } else if (previousState == null && pState2.previousState != null) {
       return this;
-    } else if (this.previousState != null
+    } else if (previousState != null
         && pState2.previousState != null
-        && !this.previousState.equals(pState2.previousState)) {
+        && !previousState.equals(pState2.previousState)) {
       // it can be, when we join states, called from different functions
-      joinedPreviousState = this.previousState.join(pState2.previousState);
-    } else if (this.previousState != null
+      joinedPreviousState = previousState.join(pState2.previousState);
+    } else if (previousState != null
         && pState2.previousState != null
-        && this.previousState.equals(pState2.previousState)) {
-      joinedPreviousState = this.previousState;
+        && previousState.equals(pState2.previousState)) {
+      joinedPreviousState = previousState;
     }
 
     LocalState joinState = this.clone(joinedPreviousState);
 
-    Sets.union(this.DataInfo.keySet(), pState2.DataInfo.keySet())
+    Sets.union(DataInfo.keySet(), pState2.DataInfo.keySet())
         .forEach(
             id ->
                 joinState.putIntoDataInfo(
-                    id, DataType.max.apply(DataInfo.get(id), pState2.DataInfo.get(id))));
+                    id, DataType.max(DataInfo.get(id), pState2.DataInfo.get(id))));
 
     return joinState;
   }
@@ -203,7 +201,7 @@ public final class LocalState implements LatticeAbstractState<LocalState> {
   @Override
   public boolean isLessOrEqual(LocalState pState2) {
     // LOCAL < NULL < GLOBAL
-    if (from(this.DataInfo.keySet())
+    if (from(DataInfo.keySet())
         .filter(Predicates.not(this::isLocal))
         .anyMatch(i -> !pState2.DataInfo.containsKey(i) || pState2.isLocal(i))) {
       return false;
@@ -211,7 +209,7 @@ public final class LocalState implements LatticeAbstractState<LocalState> {
 
     if (from(pState2.DataInfo.keySet())
         .filter(pState2::isLocal)
-        .anyMatch(i -> !this.DataInfo.containsKey(i))) {
+        .anyMatch(i -> !DataInfo.containsKey(i))) {
       return false;
     }
     /*for (AbstractIdentifier name : this.DataInfo.keySet()) {

@@ -66,31 +66,32 @@ public class BAMPredicateReducer
 
   private final Map<BooleanFormula, Set<String>> variableCache = new HashMap<>();
 
-  /** A meaning of the following options is a number of problems in BAM:
-   *  sometimes it is more efficient not to reduce precision, than to have a
-   *  RepeatedCounterexampleException.
-   *  The results without both of reductions are better (now).
-   *  However, there are not only one possible combination of the options,
-   *  so, (at least now) there should not be used a single option for switching to NoOpReducer.
+  /**
+   * A meaning of the following options is a number of problems in BAM: sometimes it is more
+   * efficient not to reduce precision, than to have a RepeatedCounterexampleException. The results
+   * without both of reductions are better (now). However, there are not only one possible
+   * combination of the options, so, (at least now) there should not be used a single option for
+   * switching to NoOpReducer.
    */
   @Option(description = "Enable/disable precision reduction at the BAM block entry", secure = true)
   private boolean usePrecisionReduction = true;
 
-  @Option(description = "Enable/disable abstraction reduction at the BAM block entry", secure = true)
+  @Option(
+      description = "Enable/disable abstraction reduction at the BAM block entry",
+      secure = true)
   private boolean useAbstractionReduction = true;
 
   public BAMPredicateReducer(BAMPredicateCPA cpa, Configuration pConfig)
       throws InvalidConfigurationException {
     pConfig.inject(this);
-    this.pmgr = cpa.getPathFormulaManager();
-    this.pamgr = cpa.getPredicateManager();
-    this.fmgr = cpa.getSolver().getFormulaManager();
-    this.bfmgr = cpa.getSolver().getFormulaManager().getBooleanFormulaManager();
-    this.rmgr = cpa.getAbstractionManager().getRegionCreator();
-    this.logger = cpa.getLogger();
-    this.shutdownNotifier = cpa.getShutdownNotifier();
-    this.addressedVariables =
-        cpa.getCfa().getVarClassification().orElseThrow().getAddressedVariables();
+    pmgr = cpa.getPathFormulaManager();
+    pamgr = cpa.getPredicateManager();
+    fmgr = cpa.getSolver().getFormulaManager();
+    bfmgr = cpa.getSolver().getFormulaManager().getBooleanFormulaManager();
+    rmgr = cpa.getAbstractionManager().getRegionCreator();
+    logger = cpa.getLogger();
+    shutdownNotifier = cpa.getShutdownNotifier();
+    addressedVariables = cpa.getCfa().getVarClassification().orElseThrow().getAddressedVariables();
   }
 
   @Override
@@ -304,7 +305,8 @@ public class BAMPredicateReducer
     if (usePrecisionReduction) {
 
       assert pPrecision.getLocationInstancePredicates().isEmpty()
-          : "TODO: need to handle location-instance-specific predicates in ReducedPredicatePrecision";
+          : "TODO: need to handle location-instance-specific predicates in"
+              + " ReducedPredicatePrecision";
       /* LocationInstancePredicates is useless, because a block can be visited
        * several times along a error path and the index would always start from 0 again.
        * Thus we ignore LocationInstancePredicates and hope nobody is using them.
@@ -338,10 +340,10 @@ public class BAMPredicateReducer
       }
 
       return new PredicatePrecision(
-              ImmutableSetMultimap.of(),
-              localPredicates.build(),
-              functionPredicates.build(),
-              globalPredicates);
+          ImmutableSetMultimap.of(),
+          localPredicates.build(),
+          functionPredicates.build(),
+          globalPredicates);
     } else {
       return pPrecision;
     }
@@ -354,19 +356,22 @@ public class BAMPredicateReducer
   }
 
   @Override
-  public AbstractState getVariableReducedStateForProofChecking(AbstractState pExpandedState, Block pContext,
-      CFANode pCallNode) {
+  public AbstractState getVariableReducedStateForProofChecking(
+      AbstractState pExpandedState, Block pContext, CFANode pCallNode) {
     return pExpandedState;
   }
 
   @Override
-  public AbstractState getVariableExpandedStateForProofChecking(AbstractState pRootState, Block pReducedContext,
-      AbstractState pReducedState) throws InterruptedException {
+  public AbstractState getVariableExpandedStateForProofChecking(
+      AbstractState pRootState, Block pReducedContext, AbstractState pReducedState)
+      throws InterruptedException {
 
     PredicateAbstractState rootState = (PredicateAbstractState) pRootState;
     PredicateAbstractState reducedState = (PredicateAbstractState) pReducedState;
 
-    if (!reducedState.isAbstractionState()) { return reducedState; }
+    if (!reducedState.isAbstractionState()) {
+      return reducedState;
+    }
 
     AbstractionFormula rootAbstraction = rootState.getAbstractionFormula();
     AbstractionFormula reducedAbstraction = reducedState.getAbstractionFormula();
@@ -385,8 +390,9 @@ public class BAMPredicateReducer
     PathFormula oldPathFormula = reducedState.getPathFormula();
     SSAMap oldSSA = oldPathFormula.getSsa();
 
-    //pathFormula.getSSa() might not contain index for the newly added variables in predicates; while the actual index is not really important at this point,
-    //there still should be at least _some_ index for each variable of the abstraction formula.
+    // pathFormula.getSSa() might not contain index for the newly added variables in predicates;
+    // while the actual index is not really important at this point,
+    // there still should be at least _some_ index for each variable of the abstraction formula.
     SSAMap newSSA = copyMissingIndizes(rootState.getPathFormula().getSsa(), oldSSA);
     // FIXME: seems buggy because it completely forgets the PointerTargetSet!
     PathFormula newPathFormula =
@@ -398,7 +404,8 @@ public class BAMPredicateReducer
     AbstractionFormula newAbstractionFormula =
         pamgr.makeAbstractionFormula(
             expandedAbstraction, newSSA, reducedAbstraction.getBlockFormula());
-    PersistentMap<CFANode, Integer> abstractionLocations = rootState.getAbstractionLocationsOnPath();
+    PersistentMap<CFANode, Integer> abstractionLocations =
+        rootState.getAbstractionLocationsOnPath();
 
     return PredicateAbstractState.mkAbstractionState(
         newPathFormula, newAbstractionFormula.copyOf(), abstractionLocations);
@@ -414,34 +421,38 @@ public class BAMPredicateReducer
     Preconditions.checkState(entryState.isAbstractionState());
     Preconditions.checkState(expandedState.isAbstractionState());
 
-    final PersistentMap<CFANode, Integer> abstractionLocations = expandedState.getAbstractionLocationsOnPath();
+    final PersistentMap<CFANode, Integer> abstractionLocations =
+        expandedState.getAbstractionLocationsOnPath();
 
     // we have:
     // - abstraction of rootState with ssa                --> use as it is
     // - callEdge-pathFormula with ssa (from rootState)   --> use as it is, with updated SSAMap
-    // - abstraction of functioncall (expandedSSA)        --> instantiate, with updated SSAMap, so that:
+    // - abstraction of functioncall (expandedSSA)        --> instantiate, with updated SSAMap, so
+    // that:
     //           - only param and return-var overlap to callEdge
     //           - all other vars are distinct
     final String calledFunction = exitLocation.getFunctionName();
     final PathFormula functionCall = entryState.getAbstractionFormula().getBlockFormula();
     final SSAMap entrySsaWithRet = functionCall.getSsa();
     final SSAMapBuilder entrySsaWithRetBuilder = entrySsaWithRet.builder();
-    final SSAMapBuilder summSsa = rootState.getAbstractionFormula().getBlockFormula().getSsa().builder();
+    final SSAMapBuilder summSsa =
+        rootState.getAbstractionFormula().getBlockFormula().getSsa().builder();
 
     final SSAMap expandedSSA = expandedState.getAbstractionFormula().getBlockFormula().getSsa();
     for (String var : expandedSSA.allVariables()) {
       final CType type = expandedSSA.getType(var);
-      if (var.startsWith(calledFunction + "::")
-              && var.endsWith(PARAM_VARIABLE_NAME)) {
+      if (var.startsWith(calledFunction + "::") && var.endsWith(PARAM_VARIABLE_NAME)) {
         int newIndex = entrySsaWithRet.getIndex(var);
-        assert entrySsaWithRet.containsVariable(var) : "param for function is not used in functioncall";
+        assert entrySsaWithRet.containsVariable(var)
+            : "param for function is not used in functioncall";
         entrySsaWithRetBuilder.setIndex(var, type, newIndex);
         setFreshValueBasis(summSsa, var, newIndex);
 
-      } else if (exitLocation.getEntryNode().getReturnVariable().isPresent() &&
-          exitLocation.getEntryNode().getReturnVariable().get().getQualifiedName().equals(var)) {
+      } else if (exitLocation.getEntryNode().getReturnVariable().isPresent()
+          && exitLocation.getEntryNode().getReturnVariable().get().getQualifiedName().equals(var)) {
         // var.startsWith(calledFunction + "::") && var.endsWith(RETURN_VARIABLE_NAME)
-        final int newIndex = Math.max(expandedSSA.getIndex(var), entrySsaWithRetBuilder.getFreshIndex(var));
+        final int newIndex =
+            Math.max(expandedSSA.getIndex(var), entrySsaWithRetBuilder.getFreshIndex(var));
         entrySsaWithRetBuilder.setIndex(var, type, newIndex);
         summSsa.setIndex(var, type, newIndex);
 
@@ -470,8 +481,8 @@ public class BAMPredicateReducer
 
     // concat function-call with function-summary,
     // function-summary will be instantiated with indices for params and retvars.
-    PathFormula executedFunction = pmgr.makeAnd(functionCallWithSSA,
-            expandedState.getAbstractionFormula().asFormula());
+    PathFormula executedFunction =
+        pmgr.makeAnd(functionCallWithSSA, expandedState.getAbstractionFormula().asFormula());
 
     // after function-execution we have to re-use the previous indices (fromouter scope),
     // thus lets change the SSAmap.
@@ -485,14 +496,20 @@ public class BAMPredicateReducer
         PredicateAbstractState.mkNonAbstractionState(
             executedFunctionWithSSA, rootState.getAbstractionFormula(), abstractionLocations);
 
-    logger.log(Level.ALL,
-            "\noldAbs: ", rootState.getAbstractionFormula().asInstantiatedFormula(),
-            "\ncall: ", functionCallWithSSA,
-            "\nsumm: ", expandedState.getAbstractionFormula().asFormula(),
-            "\nexe: ", executedFunction,
-            "\nentrySsaRet", newEntrySsaWithRet,
-            "\nsummSsaRet", newSummSsa
-    );
+    logger.log(
+        Level.ALL,
+        "\noldAbs: ",
+        rootState.getAbstractionFormula().asInstantiatedFormula(),
+        "\ncall: ",
+        functionCallWithSSA,
+        "\nsumm: ",
+        expandedState.getAbstractionFormula().asFormula(),
+        "\nexe: ",
+        executedFunction,
+        "\nentrySsaRet",
+        newEntrySsaWithRet,
+        "\nsummSsaRet",
+        newSummSsa);
 
     return rebuildState;
   }
@@ -515,22 +532,21 @@ public class BAMPredicateReducer
   }
 
   /**
-   * rootSSA might not contain correct indices for the local variables of calling function-scope.
-   * so lets build a new SSA from:
-   * - local variables from rootSSA,                  -> update indices (their indices will have "holes")
-   * - local variables from expandedSSA,              -> ignore indices (their indices are the "holes")
-   * - global variables from expandedSSA,             -> update indices (we have to keep them)
-   * - the local return variables from expandedState. -> update indices (we have to keep them,
-   *       there can be several ret-vars from distinct functions, ignore them, they are created new, if needed)
-   * we copy expandedState and override all local values.
+   * rootSSA might not contain correct indices for the local variables of calling function-scope. so
+   * lets build a new SSA from: - local variables from rootSSA, -> update indices (their indices
+   * will have "holes") - local variables from expandedSSA, -> ignore indices (their indices are the
+   * "holes") - global variables from expandedSSA, -> update indices (we have to keep them) - the
+   * local return variables from expandedState. -> update indices (we have to keep them, there can
+   * be several ret-vars from distinct functions, ignore them, they are created new, if needed) we
+   * copy expandedState and override all local values.
    *
    * @param rootSSA SSA before function-call
    * @param expandedSSA SSA before function-return
    * @param functionExitNode the function-return-location
    * @return new SSAMap
    */
-  static SSAMap updateIndices(final SSAMap rootSSA, final SSAMap expandedSSA,
-      FunctionExitNode functionExitNode) {
+  static SSAMap updateIndices(
+      final SSAMap rootSSA, final SSAMap expandedSSA, FunctionExitNode functionExitNode) {
 
     final SSAMapBuilder rootBuilder = rootSSA.builder();
 
@@ -539,7 +555,8 @@ public class BAMPredicateReducer
       // Depending on the scope of vars, set either only the lastUsedIndex or the default index.
       // var was used and maybe overridden inside the block
       final CType type = expandedSSA.getType(var);
-      if (var.contains("::") && !isReturnVar(var, functionExitNode)) { // var is scoped -> not global
+      if (var.contains("::")
+          && !isReturnVar(var, functionExitNode)) { // var is scoped -> not global
 
         if (!rootSSA.containsVariable(var)) {
 
@@ -550,7 +567,9 @@ public class BAMPredicateReducer
         } else {
 
           // Outer variable or inner variable from previous function call
-          setFreshValueBasis(rootBuilder, var,
+          setFreshValueBasis(
+              rootBuilder,
+              var,
               Math.max(expandedSSA.builder().getFreshIndex(var), rootSSA.getIndex(var)));
         }
 
@@ -578,14 +597,15 @@ public class BAMPredicateReducer
   }
 
   /**
-   * Set a new index (7) for an old index (3),
-   * so that getIndex() returns the old index (3) and getFreshIndex() returns a higher index (8).
-   * Warning: do not use out of order!
+   * Set a new index (7) for an old index (3), so that getIndex() returns the old index (3) and
+   * getFreshIndex() returns a higher index (8). Warning: do not use out of order!
    */
   private static void setFreshValueBasis(SSAMapBuilder ssa, String name, int idx) {
-    Preconditions.checkArgument(idx > 0, "Indices need to be positive for this SSAMap implementation:", name, idx);
+    Preconditions.checkArgument(
+        idx > 0, "Indices need to be positive for this SSAMap implementation:", name, idx);
     int oldIdx = ssa.getIndex(name);
-    Preconditions.checkArgument(idx >= oldIdx, "SSAMap updates need to be strictly monotone:", name, idx, "vs", oldIdx);
+    Preconditions.checkArgument(
+        idx >= oldIdx, "SSAMap updates need to be strictly monotone:", name, idx, "vs", oldIdx);
 
     if (idx > oldIdx) {
       PersistentSortedMap<String, Integer> newMapping =

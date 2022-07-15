@@ -46,6 +46,7 @@ public class SequentialInterpolation extends ITPStrategy {
     BWD,
     BWD_FALLBACK,
     CONJUNCTION,
+    DISJUNCTION,
     WEIGHTED,
     RANDOM
   }
@@ -104,6 +105,7 @@ public class SequentialInterpolation extends ITPStrategy {
         return getFwdInterpolants(interpolator, formulas);
 
       case CONJUNCTION:
+      case DISJUNCTION:
       case WEIGHTED:
       case RANDOM:
         List<BooleanFormula> forward = null;
@@ -184,13 +186,23 @@ public class SequentialInterpolation extends ITPStrategy {
 
     switch (sequentialStrategy) {
       case CONJUNCTION:
-        final ImmutableList.Builder<BooleanFormula> interpolants =
-            ImmutableList.builderWithExpectedSize(forward.size());
-        for (int i = 0; i < forward.size(); i++) {
-          interpolants.add(bfmgr.and(forward.get(i), backward.get(i)));
+        {
+          final ImmutableList.Builder<BooleanFormula> interpolants =
+              ImmutableList.builderWithExpectedSize(forward.size());
+          for (int i = 0; i < forward.size(); i++) {
+            interpolants.add(bfmgr.and(forward.get(i), backward.get(i)));
+          }
+          return interpolants.build();
         }
-        return interpolants.build();
-
+      case DISJUNCTION:
+        {
+          final ImmutableList.Builder<BooleanFormula> interpolants =
+              ImmutableList.builderWithExpectedSize(forward.size());
+          for (int i = 0; i < forward.size(); i++) {
+            interpolants.add(bfmgr.or(forward.get(i), backward.get(i)));
+          }
+          return interpolants.build();
+        }
       case WEIGHTED:
         long weightFwd = getWeight(forward);
         long weightBwd = getWeight(backward);

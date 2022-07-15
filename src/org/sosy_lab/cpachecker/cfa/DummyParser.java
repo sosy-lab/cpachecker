@@ -16,8 +16,8 @@ import org.sosy_lab.cpachecker.cfa.parser.Scope;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonParser;
 
 /**
- * For all languages, where parsing of single or blocks of statements is not yet implemented,
- * use this dummy scope when parsing an automaton {@link AutomatonParser}.
+ * For all languages, where parsing of single or blocks of statements is not yet implemented, use
+ * this dummy scope when parsing an automaton {@link AutomatonParser}.
  */
 public class DummyParser implements CParser {
 

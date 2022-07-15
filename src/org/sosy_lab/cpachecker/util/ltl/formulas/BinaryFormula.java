@@ -18,8 +18,8 @@ public abstract class BinaryFormula implements LtlFormula {
   private final LtlFormula right;
 
   BinaryFormula(LtlFormula pLeft, LtlFormula pRight) {
-    this.left = requireNonNull(pLeft);
-    this.right = requireNonNull(pRight);
+    left = requireNonNull(pLeft);
+    right = requireNonNull(pRight);
   }
 
   public LtlFormula getLeft() {

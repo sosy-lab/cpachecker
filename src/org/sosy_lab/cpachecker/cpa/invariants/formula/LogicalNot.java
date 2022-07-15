@@ -10,9 +10,7 @@ package org.sosy_lab.cpachecker.cpa.invariants.formula;
 
 import com.google.common.base.Preconditions;
 
-/**
- * Instances of this class represent logical negations of invariants formulae.
- */
+/** Instances of this class represent logical negations of invariants formulae. */
 public class LogicalNot<ConstantType> implements BooleanFormula<ConstantType> {
 
   /** The formula logically negated by this formula. */
@@ -45,13 +43,11 @@ public class LogicalNot<ConstantType> implements BooleanFormula<ConstantType> {
     }
     if (negated instanceof Equal<?>) {
       Equal<?> equation = (Equal<?>) negated;
-      return String.format("(%s != %s)",
-          equation.getOperand1(), equation.getOperand2());
+      return String.format("(%s != %s)", equation.getOperand1(), equation.getOperand2());
     }
     if (negated instanceof LessThan<?>) {
       LessThan<?> lessThan = (LessThan<?>) negated;
-      return String.format("(%s >= %s)",
-          lessThan.getOperand1(), lessThan.getOperand2());
+      return String.format("(%s >= %s)", lessThan.getOperand1(), lessThan.getOperand2());
     }
     if (negated instanceof LogicalAnd<?>) {
       LogicalAnd<?> and = (LogicalAnd<?>) negated;
@@ -95,21 +91,18 @@ public class LogicalNot<ConstantType> implements BooleanFormula<ConstantType> {
 
   @Override
   public <ReturnType, ParamType> ReturnType accept(
-      ParameterizedBooleanFormulaVisitor<ConstantType, ParamType, ReturnType> pVisitor, ParamType pParameter) {
+      ParameterizedBooleanFormulaVisitor<ConstantType, ParamType, ReturnType> pVisitor,
+      ParamType pParameter) {
     return pVisitor.visit(this, pParameter);
   }
 
   /**
-   * Gets an invariants formula representing the logical negation of the given
-   * operand.
+   * Gets an invariants formula representing the logical negation of the given operand.
    *
    * @param pToNegate the invariants formula to negate.
-   *
-   * @return an invariants formula representing the logical negation of the given
-   * operand.
+   * @return an invariants formula representing the logical negation of the given operand.
    */
   static <ConstantType> LogicalNot<ConstantType> of(BooleanFormula<ConstantType> pToNegate) {
     return new LogicalNot<>(pToNegate);
   }
-
 }

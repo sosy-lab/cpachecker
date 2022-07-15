@@ -49,7 +49,7 @@ abstract class SdgDotExporter<P, T, V, N extends SystemDependenceGraph.Node<P, T
     edgeLabelBuilder.put(EdgeType.CALL_EDGE, "Call Edge");
     edgeLabelBuilder.put(EdgeType.PARAMETER_EDGE, "Parameter Edge");
     edgeLabelBuilder.put(EdgeType.SUMMARY_EDGE, "Summary Edge");
-    edgeLabels = edgeLabelBuilder.build();
+    edgeLabels = edgeLabelBuilder.buildOrThrow();
 
     ImmutableMap.Builder<EdgeType, String> edgeStyleBuilder =
         ImmutableMap.builderWithExpectedSize(EdgeType.values().length);
@@ -60,7 +60,7 @@ abstract class SdgDotExporter<P, T, V, N extends SystemDependenceGraph.Node<P, T
     edgeStyleBuilder.put(EdgeType.PARAMETER_EDGE, "style=\"bold,dotted\",color=\"{color}\"");
     edgeStyleBuilder.put(
         EdgeType.SUMMARY_EDGE, "style=\"bold\",peripheries=\"2\",color=\"{color}:invis:{color}\"");
-    edgeStyles = edgeStyleBuilder.build();
+    edgeStyles = edgeStyleBuilder.buildOrThrow();
   }
 
   /**

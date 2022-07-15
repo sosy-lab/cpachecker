@@ -8,7 +8,7 @@
 
 package org.sosy_lab.cpachecker.cpa.smg;
 
-import com.google.common.collect.FluentIterable;
+import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -38,12 +38,14 @@ public final class SMGIntersectStates {
 
   /** constant data from input */
   private final UnmodifiableSMGState smgState1;
+
   private final UnmodifiableSMGState smgState2;
   private final UnmodifiableCLangSMG heap1;
   private final UnmodifiableCLangSMG heap2;
 
   /** working data, will be modified when calling {@link #intersect}. */
   private final SMGNodeMapping mapping1 = new SMGNodeMapping();
+
   private final SMGNodeMapping mapping2 = new SMGNodeMapping();
   private final Set<SMGEdgeHasValue> singleHveEdge1 = new HashSet<>();
   private final Set<SMGEdgeHasValue> singleHveEdge2 = new HashSet<>();
@@ -77,7 +79,6 @@ public final class SMGIntersectStates {
     Map<String, SMGRegion> globals_in_smg1 = heap1.getGlobalObjects();
     Map<String, SMGRegion> globals_in_smg2 = heap2.getGlobalObjects();
 
-
     Set<String> globalVars = Sets.union(globals_in_smg1.keySet(), globals_in_smg2.keySet());
 
     for (String globalVar : globalVars) {
@@ -93,7 +94,7 @@ public final class SMGIntersectStates {
     Iterator<CLangStackFrame> smg1stackIterator = heap1.getStackFrames().iterator();
     Iterator<CLangStackFrame> smg2stackIterator = heap2.getStackFrames().iterator();
 
-    while ( smg1stackIterator.hasNext() && smg2stackIterator.hasNext() ) {
+    while (smg1stackIterator.hasNext() && smg2stackIterator.hasNext()) {
       CLangStackFrame frameInSMG1 = smg1stackIterator.next();
       CLangStackFrame frameInSMG2 = smg2stackIterator.next();
 
@@ -138,7 +139,7 @@ public final class SMGIntersectStates {
     smg1stackIterator = heap1.getStackFrames().iterator();
     smg2stackIterator = heap2.getStackFrames().iterator();
 
-    while ( smg1stackIterator.hasNext() && smg2stackIterator.hasNext() ) {
+    while (smg1stackIterator.hasNext() && smg2stackIterator.hasNext()) {
       CLangStackFrame frameInSMG1 = smg1stackIterator.next();
       CLangStackFrame frameInSMG2 = smg2stackIterator.next();
 
@@ -173,11 +174,11 @@ public final class SMGIntersectStates {
       }
     }
 
-    for(SMGEdgeHasValue hve1 : singleHveEdge1) {
+    for (SMGEdgeHasValue hve1 : singleHveEdge1) {
       intersectHveEdgeWithTop(hve1, heap1, smgState1, mapping1);
     }
 
-    for(SMGEdgeHasValue hve2 : singleHveEdge2) {
+    for (SMGEdgeHasValue hve2 : singleHveEdge2) {
       intersectHveEdgeWithTop(hve2, heap2, smgState2, mapping2);
     }
 
@@ -209,7 +210,7 @@ public final class SMGIntersectStates {
       UnmodifiableSMGState pSmgState,
       SMGNodeMapping pMapping) {
 
-    if(pMapping.containsKey(pValue)) {
+    if (pMapping.containsKey(pValue)) {
       return;
     }
 
@@ -240,7 +241,7 @@ public final class SMGIntersectStates {
       UnmodifiableSMGState pSmgState,
       SMGNodeMapping pMapping) {
 
-    if(pMapping.containsKey(pObject)) {
+    if (pMapping.containsKey(pObject)) {
       return;
     }
 
@@ -259,10 +260,10 @@ public final class SMGIntersectStates {
     SMGHasValueEdges hves2 = heap2.getHVEdges(SMGEdgeHasValueFilter.objectFilter(pObject2));
 
     Map<Long, SMGEdgeHasValue> offsetToHve1Map =
-        FluentIterable.from(hves1).uniqueIndex(SMGEdgeHasValue::getOffset);
+        Maps.uniqueIndex(hves1, SMGEdgeHasValue::getOffset);
 
     Map<Long, SMGEdgeHasValue> offsetToHve2Map =
-        FluentIterable.from(hves2).uniqueIndex(SMGEdgeHasValue::getOffset);
+        Maps.uniqueIndex(hves2, SMGEdgeHasValue::getOffset);
 
     Set<Long> offsetSet = Sets.union(offsetToHve1Map.keySet(), offsetToHve2Map.keySet());
 
@@ -485,7 +486,7 @@ public final class SMGIntersectStates {
       case SLL:
         return ((SMGSingleLinkedList) pObj1).matchSpecificShape((SMGSingleLinkedList) pObj2);
       case GENERIC:
-        //TODO match generic
+        // TODO match generic
         return pObj1.equals(pObj2);
       default:
         return true;
@@ -535,7 +536,8 @@ public final class SMGIntersectStates {
   }
 
   public static class SMGIntersectionResult {
-    private static final SMGIntersectionResult NOT_DEFINED = new SMGIntersectionResult(null, null, null, false);
+    private static final SMGIntersectionResult NOT_DEFINED =
+        new SMGIntersectionResult(null, null, null, false);
     private final UnmodifiableSMGState smg1;
     private final UnmodifiableSMGState smg2;
     private final UnmodifiableSMGState combinationResult;

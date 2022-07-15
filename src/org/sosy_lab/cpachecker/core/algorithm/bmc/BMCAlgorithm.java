@@ -124,7 +124,8 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
   }
 
   @Override
-  public AlgorithmStatus run(final ReachedSet reachedSet) throws CPAException, InterruptedException {
+  public AlgorithmStatus run(final ReachedSet reachedSet)
+      throws CPAException, InterruptedException {
     try {
       return super.run(reachedSet);
     } catch (SolverException e) {

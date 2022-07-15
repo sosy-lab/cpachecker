@@ -43,38 +43,45 @@ public class CBitFieldTypeTest {
     SerializableTester.reserializeAndAssert(new CBitFieldType(CNumericTypes.INT, 8));
   }
 
-  @Test(expected=IllegalArgumentException.class)
+  @Test(expected = IllegalArgumentException.class)
   public void testBaseTypeVoid() {
     new CBitFieldType(CVoidType.VOID, 0);
   }
 
-  @Test(expected=IllegalArgumentException.class)
+  @Test(expected = IllegalArgumentException.class)
   public void testBaseTypeFloat() {
     new CBitFieldType(CNumericTypes.FLOAT, 0);
   }
 
-  @Test(expected=IllegalArgumentException.class)
+  @Test(expected = IllegalArgumentException.class)
   public void testBaseTypeDouble() {
     new CBitFieldType(CNumericTypes.DOUBLE, 0);
   }
 
-  @Test(expected=IllegalArgumentException.class)
+  @Test(expected = IllegalArgumentException.class)
   public void testBaseTypeProblem() {
     new CBitFieldType(new CProblemType("Problem"), 0);
   }
 
-  @Test(expected=IllegalArgumentException.class)
+  @Test(expected = IllegalArgumentException.class)
   public void testBaseTypePointer() {
     new CBitFieldType(new CPointerType(false, false, CNumericTypes.INT), 0);
   }
 
-  @Test(expected=IllegalArgumentException.class)
+  @Test(expected = IllegalArgumentException.class)
   public void testBaseTypeElaborateStruct() {
     new CBitFieldType(
-        new CElaboratedType(false, false, ComplexTypeKind.STRUCT, "DummyElaborateStruct", "DummyElaborateStruct", null), 0);
+        new CElaboratedType(
+            false,
+            false,
+            ComplexTypeKind.STRUCT,
+            "DummyElaborateStruct",
+            "DummyElaborateStruct",
+            null),
+        0);
   }
 
-  @Test(expected=IllegalArgumentException.class)
+  @Test(expected = IllegalArgumentException.class)
   public void testNegativeSize() {
     new CBitFieldType(CNumericTypes.INT, -1);
   }
@@ -115,7 +122,8 @@ public class CBitFieldTypeTest {
   @Test
   public void testBaseTypeElaborateEnum() {
     new CBitFieldType(
-        new CElaboratedType(false, false, ComplexTypeKind.ENUM, "DummyElaborateEnum", "DummyElaborateEnum", null), 0);
+        new CElaboratedType(
+            false, false, ComplexTypeKind.ENUM, "DummyElaborateEnum", "DummyElaborateEnum", null),
+        0);
   }
-
 }

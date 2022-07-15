@@ -285,7 +285,6 @@ public final class CCfaTransformer {
               newSummaryEdge.getExpression(),
               newSummaryEdge);
         }
-
       }
 
       throw new IllegalStateException(
@@ -597,10 +596,7 @@ public final class CCfaTransformer {
 
       MutableCFA newMutableCfa = createUnconnectedFunctionCfa(pOriginalCfa);
 
-      for (FunctionEntryNode function : newMutableCfa.getAllFunctionHeads()) {
-        CFAReversePostorder sorter = new CFAReversePostorder();
-        sorter.assignSorting(function);
-      }
+      newMutableCfa.getAllFunctionHeads().forEach(CFAReversePostorder::assignIds);
 
       if (pOriginalCfa.getLoopStructure().isPresent()) {
         try {

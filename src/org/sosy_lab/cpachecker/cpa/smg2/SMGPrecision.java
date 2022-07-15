@@ -10,7 +10,4 @@ package org.sosy_lab.cpachecker.cpa.smg2;
 
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 
-public class SMGPrecision implements Precision {
-
-
-}
+public class SMGPrecision implements Precision {}

@@ -30,11 +30,19 @@ import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 @Options
 public class LiveVariablesCPA extends AbstractCPA {
 
-  @Option(secure=true, name = "merge", toUppercase = true, values = { "SEP", "JOIN" },
+  @Option(
+      secure = true,
+      name = "merge",
+      toUppercase = true,
+      values = {"SEP", "JOIN"},
       description = "which merge operator to use for LiveVariablesCPA")
   private String mergeType = "JOIN";
 
-  @Option(secure=true, name = "stop", toUppercase = true, values = { "SEP", "JOIN", "NEVER" },
+  @Option(
+      secure = true,
+      name = "stop",
+      toUppercase = true,
+      values = {"SEP", "JOIN", "NEVER"},
       description = "which stop operator to use for LiveVariablesCPA")
   private String stopType = "SEP";
 
@@ -42,9 +50,8 @@ public class LiveVariablesCPA extends AbstractCPA {
     return AutomaticCPAFactory.forType(LiveVariablesCPA.class);
   }
 
-  private LiveVariablesCPA(final Configuration pConfig,
-                           final LogManager pLogger,
-                           final CFA cfa) throws InvalidConfigurationException {
+  private LiveVariablesCPA(final Configuration pConfig, final LogManager pLogger, final CFA cfa)
+      throws InvalidConfigurationException {
     super(
         DelegateAbstractDomain.getInstance(),
         new LiveVariablesTransferRelation(
@@ -68,12 +75,12 @@ public class LiveVariablesCPA extends AbstractCPA {
   }
 
   /**
-   * Returns the liveVariables that are currently computed. Calling this method
-   * makes only sense if the analysis was completed
+   * Returns the liveVariables that are currently computed. Calling this method makes only sense if
+   * the analysis was completed
+   *
    * @return a Multimap containing the variables that are live at each location
    */
   public Multimap<CFANode, Wrapper<ASimpleDeclaration>> getLiveVariables() {
     return ((LiveVariablesTransferRelation) getTransferRelation()).getLiveVariables();
   }
-
 }

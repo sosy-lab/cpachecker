@@ -12,16 +12,16 @@ import org.sosy_lab.cpachecker.cfa.ast.AArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
-public final class CArraySubscriptExpression extends AArraySubscriptExpression implements CLeftHandSide {
-
-
+public final class CArraySubscriptExpression extends AArraySubscriptExpression
+    implements CLeftHandSide {
 
   private static final long serialVersionUID = 129923340158722862L;
 
-  public CArraySubscriptExpression(final FileLocation pFileLocation,
-                                      final CType pType,
-                                      final CExpression pArrayExpression,
-                                      final CExpression pSubscriptExpression) {
+  public CArraySubscriptExpression(
+      final FileLocation pFileLocation,
+      final CType pType,
+      final CExpression pArrayExpression,
+      final CExpression pSubscriptExpression) {
     super(pFileLocation, pType, pArrayExpression, pSubscriptExpression);
   }
 

@@ -29,7 +29,7 @@ class LocationCPAFactory extends AbstractCPAFactory {
   @Override
   public <T> LocationCPAFactory set(T pObject, Class<T> pClass) {
     if (CFA.class.isAssignableFrom(pClass)) {
-      cfa = (CFA)pObject;
+      cfa = (CFA) pObject;
     } else {
       super.set(pObject, pClass);
     }

@@ -32,9 +32,7 @@ class PointerTargetPattern implements Serializable, Predicate<PointerTarget> {
     containerOffset = pContainerOffset;
   }
 
-  /**
-   * Create PointerTargetPattern matching any possible target.
-   */
+  /** Create PointerTargetPattern matching any possible target. */
   static PointerTargetPattern any() {
     return new PointerTargetPattern(null, null, null, null);
   }
@@ -42,6 +40,7 @@ class PointerTargetPattern implements Serializable, Predicate<PointerTarget> {
   /**
    * Create PointerTargetPattern matching targets in the memory block with the specified base name
    * and offset 0.
+   *
    * @param base the base name specified
    */
   static PointerTargetPattern forBase(String base) {
@@ -122,7 +121,8 @@ class PointerTargetPattern implements Serializable, Predicate<PointerTarget> {
     private final long startOffset;
     private final long endOffset;
 
-    private RangePointerTargetPattern(final String pBase, final long pStartOffset, final int pSize) {
+    private RangePointerTargetPattern(
+        final String pBase, final long pStartOffset, final int pSize) {
       base = pBase;
       startOffset = pStartOffset;
       endOffset = pStartOffset + pSize;
@@ -170,13 +170,11 @@ class PointerTargetPattern implements Serializable, Predicate<PointerTarget> {
       this.properOffset = properOffset;
     }
 
-    @Nullable
-    Long getProperOffset() {
+    @Nullable Long getProperOffset() {
       return properOffset;
     }
 
-    @Nullable
-    Long getRemainingOffset(TypeHandlerWithPointerAliasing typeHandler) {
+    @Nullable Long getRemainingOffset(TypeHandlerWithPointerAliasing typeHandler) {
       if (containerType != null && containerOffset != null && properOffset != null) {
         return typeHandler.getSizeof(containerType) - properOffset;
       } else {
@@ -189,7 +187,7 @@ class PointerTargetPattern implements Serializable, Predicate<PointerTarget> {
      * for array subscript visitors.
      */
     void shift(final CType pContainerType) {
-      this.containerType = pContainerType;
+      containerType = pContainerType;
       if (containerOffset != null) {
         if (properOffset != null) {
           containerOffset += properOffset;
@@ -206,21 +204,17 @@ class PointerTargetPattern implements Serializable, Predicate<PointerTarget> {
      */
     void shift(final CType pContainerType, final long pProperOffset) {
       shift(pContainerType);
-      this.properOffset = pProperOffset;
+      properOffset = pProperOffset;
     }
 
-    /**
-     * Unset everything, except base
-     */
+    /** Unset everything, except base */
     void retainBase() {
       containerType = null;
       properOffset = null;
       containerOffset = null;
     }
 
-    /**
-     * Unset all criteria
-     */
+    /** Unset all criteria */
     void clear() {
       base = null;
       containerType = null;

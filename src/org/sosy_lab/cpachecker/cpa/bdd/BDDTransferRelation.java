@@ -69,7 +69,8 @@ import org.sosy_lab.cpachecker.util.variableclassification.Partition;
 import org.sosy_lab.cpachecker.util.variableclassification.VariableClassification;
 
 /** This Transfer Relation tracks variables and handles them as bitvectors. */
-public class BDDTransferRelation extends ForwardingTransferRelation<BDDState, BDDState, VariableTrackingPrecision> {
+public class BDDTransferRelation
+    extends ForwardingTransferRelation<BDDState, BDDState, VariableTrackingPrecision> {
 
   private final int bitsize;
   private final VariableClassification varClass;
@@ -89,12 +90,12 @@ public class BDDTransferRelation extends ForwardingTransferRelation<BDDState, BD
       CFA cfa,
       int pBitsize,
       BitvectorComputer pBvComputer) {
-    this.rmgr = manager;
-    this.bvmgr = pBvmgr;
-    this.predmgr = pPredmgr;
+    rmgr = manager;
+    bvmgr = pBvmgr;
+    predmgr = pPredmgr;
     bitsize = pBitsize;
     assert cfa.getVarClassification().isPresent();
-    this.varClass = cfa.getVarClassification().orElseThrow();
+    varClass = cfa.getVarClassification().orElseThrow();
     bvComputer = pBvComputer;
   }
 
@@ -111,8 +112,9 @@ public class BDDTransferRelation extends ForwardingTransferRelation<BDDState, BD
     return null;
   }
 
-  /** This function handles statements like "a = 0;" and "b = !a;" and
-   * calls of external functions. */
+  /**
+   * This function handles statements like "a = 0;" and "b = !a;" and calls of external functions.
+   */
   @Override
   protected BDDState handleStatementEdge(final CStatementEdge cfaEdge, final CStatement statement)
       throws UnsupportedCodeException {
@@ -126,18 +128,24 @@ public class BDDTransferRelation extends ForwardingTransferRelation<BDDState, BD
       // call of external function, "scanf(...)" without assignment
       // internal functioncalls are handled as FunctionCallEdges
     } else if (statement instanceof CFunctionCallStatement) {
-      result = handleExternalFunctionCall(result, cfaEdge.getSuccessor(),
-              ((CFunctionCallStatement) statement).getFunctionCallExpression().getParameterExpressions());
+      result =
+          handleExternalFunctionCall(
+              result,
+              cfaEdge.getSuccessor(),
+              ((CFunctionCallStatement) statement)
+                  .getFunctionCallExpression()
+                  .getParameterExpressions());
     }
 
     assert !result.getRegion().isFalse();
     return result;
   }
 
-  /** This function handles statements like "a = 0;" and "b = !a;".
-   * A region is build for the right side of the statement.
-   * Then this region is assigned to the variable at the left side.
-   * This equality is added to the BDDstate to get the next state. */
+  /**
+   * This function handles statements like "a = 0;" and "b = !a;". A region is build for the right
+   * side of the statement. Then this region is assigned to the variable at the left side. This
+   * equality is added to the BDDstate to get the next state.
+   */
   private BDDState handleAssignment(CAssignment assignment, CFANode successor, CFAEdge edge)
       throws UnsupportedCodeException {
     CExpression lhs = assignment.getLeftHandSide();
@@ -209,14 +217,21 @@ public class BDDTransferRelation extends ForwardingTransferRelation<BDDState, BD
 
     } else if (rhs instanceof CFunctionCallExpression) {
       // handle params of functionCall, maybe there is a sideeffect
-      newState = handleExternalFunctionCall(newState, successor,
-              ((CFunctionCallExpression) rhs).getParameterExpressions());
+      newState =
+          handleExternalFunctionCall(
+              newState, successor, ((CFunctionCallExpression) rhs).getParameterExpressions());
 
       // call of external function: we know nothing, so we delete the value of the var
       // TODO can we assume, that malloc returns something !=0?
       // are there some "save functions"?
 
-      final Region[] var = predmgr.createPredicate(scopeVar(lhs), targetType, successor, bitsize, precision); // is default bitsize enough?
+      final Region[] var =
+          predmgr.createPredicate(
+              scopeVar(lhs),
+              targetType,
+              successor,
+              bitsize,
+              precision); // is default bitsize enough?
       newState = newState.forget(var);
 
       return newState;
@@ -226,9 +241,12 @@ public class BDDTransferRelation extends ForwardingTransferRelation<BDDState, BD
     }
   }
 
-  /** This function deletes all vars, that could be modified
-   * through a side-effect of the (external) functionCall. */
-  private BDDState handleExternalFunctionCall(BDDState currentState, CFANode successor, final List<CExpression> params) {
+  /**
+   * This function deletes all vars, that could be modified through a side-effect of the (external)
+   * functionCall.
+   */
+  private BDDState handleExternalFunctionCall(
+      BDDState currentState, CFANode successor, final List<CExpression> params) {
 
     for (final CExpression param : params) {
 
@@ -245,7 +263,13 @@ public class BDDTransferRelation extends ForwardingTransferRelation<BDDState, BD
           && UnaryOperator.AMPER == ((CUnaryExpression) unpackedParam).getOperator()
           && ((CUnaryExpression) unpackedParam).getOperand() instanceof CIdExpression) {
         final CIdExpression id = (CIdExpression) ((CUnaryExpression) unpackedParam).getOperand();
-        final Region[] var = predmgr.createPredicate(scopeVar(id), id.getExpressionType(), successor, bitsize, precision); // is default bitsize enough?
+        final Region[] var =
+            predmgr.createPredicate(
+                scopeVar(id),
+                id.getExpressionType(),
+                successor,
+                bitsize,
+                precision); // is default bitsize enough?
         currentState = currentState.forget(var);
 
       } else {
@@ -256,11 +280,12 @@ public class BDDTransferRelation extends ForwardingTransferRelation<BDDState, BD
     return currentState;
   }
 
-  /** This function handles declarations like "int a = 0;" and "int b = !a;".
-   * Regions are build for all Bits of the right side of the declaration,
-   * if it is not null. Then these regions are assigned to the regions of
-   * variable (bitvector) at the left side.
-   * These equalities are added to the BDDstate to get the next state. */
+  /**
+   * This function handles declarations like "int a = 0;" and "int b = !a;". Regions are build for
+   * all Bits of the right side of the declaration, if it is not null. Then these regions are
+   * assigned to the regions of variable (bitvector) at the left side. These equalities are added to
+   * the BDDstate to get the next state.
+   */
   @Override
   protected BDDState handleDeclarationEdge(CDeclarationEdge cfaEdge, CDeclaration decl)
       throws UnsupportedCodeException {
@@ -280,7 +305,8 @@ public class BDDTransferRelation extends ForwardingTransferRelation<BDDState, BD
       }
 
       // make variable (predicate) for LEFT SIDE of declaration,
-      // delete variable, if it was initialized before i.e. in another block, with an existential operator
+      // delete variable, if it was initialized before i.e. in another block, with an existential
+      // operator
       Partition partition = varClass.getPartitionForEdge(cfaEdge);
       Region[] var =
           predmgr.createPredicate(
@@ -305,10 +331,11 @@ public class BDDTransferRelation extends ForwardingTransferRelation<BDDState, BD
     return state; // if we know nothing, we return the old state
   }
 
-  /** This function handles functioncalls like "f(x)", that calls "f(int a)".
-   * Therefore each arg ("x") is transformed into a region and assigned
-   * to a param ("int a") of the function. The equalities of
-   * all arg-param-pairs are added to the BDDstate to get the next state. */
+  /**
+   * This function handles functioncalls like "f(x)", that calls "f(int a)". Therefore each arg
+   * ("x") is transformed into a region and assigned to a param ("int a") of the function. The
+   * equalities of all arg-param-pairs are added to the BDDstate to get the next state.
+   */
   @Override
   protected BDDState handleFunctionCallEdge(
       CFunctionCallEdge cfaEdge,
@@ -343,13 +370,17 @@ public class BDDTransferRelation extends ForwardingTransferRelation<BDDState, BD
     return newState;
   }
 
-  /** This function handles functionReturns like "y=f(x)".
-   * The equality of the returnValue (FUNCTION_RETURN_VARIABLE) and the
-   * left side ("y") is added to the new state.
-   * Each variable from inside the function is removed from the BDDstate. */
+  /**
+   * This function handles functionReturns like "y=f(x)". The equality of the returnValue
+   * (FUNCTION_RETURN_VARIABLE) and the left side ("y") is added to the new state. Each variable
+   * from inside the function is removed from the BDDstate.
+   */
   @Override
-  protected BDDState handleFunctionReturnEdge(CFunctionReturnEdge cfaEdge,
-                                              CFunctionSummaryEdge fnkCall, CFunctionCall summaryExpr, String outerFunctionName) {
+  protected BDDState handleFunctionReturnEdge(
+      CFunctionReturnEdge cfaEdge,
+      CFunctionSummaryEdge fnkCall,
+      CFunctionCall summaryExpr,
+      String outerFunctionName) {
     BDDState newState = state;
 
     // set result of function equal to variable on left side
@@ -365,11 +396,19 @@ public class BDDTransferRelation extends ForwardingTransferRelation<BDDState, BD
 
       // make variable (predicate) for LEFT SIDE of assignment,
       // delete variable, if it was used before, this is done with an existential operator
-      final Region[] var = predmgr.createPredicate(scopeVar(lhs), lhs.getExpressionType(), cfaEdge.getSuccessor(), size, precision);
+      final Region[] var =
+          predmgr.createPredicate(
+              scopeVar(lhs), lhs.getExpressionType(), cfaEdge.getSuccessor(), size, precision);
       newState = newState.forget(var);
 
       // make region (predicate) for RIGHT SIDE
-      final Region[] retVar = predmgr.createPredicate(returnVar, summaryExpr.getFunctionCallExpression().getExpressionType(), cfaEdge.getSuccessor(),  size, precision);
+      final Region[] retVar =
+          predmgr.createPredicate(
+              returnVar,
+              summaryExpr.getFunctionCallExpression().getExpressionType(),
+              cfaEdge.getSuccessor(),
+              size,
+              precision);
       newState = newState.addAssignment(var, retVar);
 
       // remove returnVar from state,
@@ -386,9 +425,10 @@ public class BDDTransferRelation extends ForwardingTransferRelation<BDDState, BD
     return newState;
   }
 
-  /** This function handles functionStatements like "return (x)".
-   * The equality of the returnValue (FUNCTION_RETURN_VARIABLE) and the
-   * evaluated right side ("x") is added to the new state. */
+  /**
+   * This function handles functionStatements like "return (x)". The equality of the returnValue
+   * (FUNCTION_RETURN_VARIABLE) and the evaluated right side ("x") is added to the new state.
+   */
   @Override
   protected BDDState handleReturnStatementEdge(CReturnStatementEdge cfaEdge)
       throws UnsupportedCodeException {
@@ -401,8 +441,10 @@ public class BDDTransferRelation extends ForwardingTransferRelation<BDDState, BD
               .getDeclaration()
               .getQualifiedName();
       final Partition partition = varClass.getPartitionForEdge(cfaEdge);
-      final CType functionReturnType = ((CFunctionDeclaration) cfaEdge.getSuccessor().getEntryNode()
-              .getFunctionDefinition()).getType().getReturnType();
+      final CType functionReturnType =
+          ((CFunctionDeclaration) cfaEdge.getSuccessor().getEntryNode().getFunctionDefinition())
+              .getType()
+              .getReturnType();
 
       // make region for RIGHT SIDE, this is the 'x' from 'return (x);
       final Region[] regRHS =
@@ -442,7 +484,7 @@ public class BDDTransferRelation extends ForwardingTransferRelation<BDDState, BD
   protected BDDState handleBlankEdge(BlankEdge cfaEdge) {
     if (cfaEdge.getSuccessor() instanceof FunctionExitNode) {
       assert "default return".equals(cfaEdge.getDescription())
-              || "skipped unnecessary edges".equals(cfaEdge.getDescription());
+          || "skipped unnecessary edges".equals(cfaEdge.getDescription());
 
       // delete variables from returning function,
       // we do not need them after this location, because the next edge is the functionReturnEdge.
@@ -459,11 +501,11 @@ public class BDDTransferRelation extends ForwardingTransferRelation<BDDState, BD
     return state;
   }
 
-  /** This function handles assumptions like "if(a==b)" and "if(a!=0)".
-   * A region is build for the assumption.
-   * This region is added to the BDDstate to get the next state.
-   * If the next state is False, the assumption is not fulfilled.
-   * In this case NULL is returned. */
+  /**
+   * This function handles assumptions like "if(a==b)" and "if(a!=0)". A region is build for the
+   * assumption. This region is added to the BDDstate to get the next state. If the next state is
+   * False, the assumption is not fulfilled. In this case NULL is returned.
+   */
   @Override
   protected BDDState handleAssumption(
       CAssumeEdge cfaEdge, CExpression expression, boolean truthAssumption)

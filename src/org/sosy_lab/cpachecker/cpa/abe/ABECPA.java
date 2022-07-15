@@ -43,24 +43,15 @@ import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 
 /**
- * Helper CPA for configurable program analyses based on SMT
- * and adjustable block encoding.
- * Meant to be used as a field inside another CPA.
+ * Helper CPA for configurable program analyses based on SMT and adjustable block encoding. Meant to
+ * be used as a field inside another CPA.
  */
-@Options(prefix="cpa.abe")
-public final class ABECPA
-    <
-        A extends ABEAbstractedState<A>,
-        P extends Precision
-    >
+@Options(prefix = "cpa.abe")
+public final class ABECPA<A extends ABEAbstractedState<A>, P extends Precision>
     extends SingleEdgeTransferRelation
-    implements ConfigurableProgramAnalysis,
-               AbstractDomain,
-               PrecisionAdjustment,
-               MergeOperator {
+    implements ConfigurableProgramAnalysis, AbstractDomain, PrecisionAdjustment, MergeOperator {
 
-  @Option(secure=true,
-      description="Cache formulas produced by path formula manager")
+  @Option(secure = true, description = "Cache formulas produced by path formula manager")
   private boolean useCachingPathFormulaManager = true;
 
   private final ABEWrappingManager<A, P> manager;
@@ -71,25 +62,36 @@ public final class ABECPA
       ShutdownNotifier pShutdownNotifier,
       CFA pCFA,
       ABEManager<A, P> clientManager,
-      Solver pSolver
-  ) throws InvalidConfigurationException {
+      Solver pSolver)
+      throws InvalidConfigurationException {
     pConfiguration.inject(this, ABECPA.class);
 
     FormulaManagerView formulaManager = pSolver.getFormulaManager();
-    PathFormulaManager pathFormulaManager = new PathFormulaManagerImpl(
-        formulaManager, pConfiguration, pLogger, pShutdownNotifier, pCFA,
-        AnalysisDirection.FORWARD);
+    PathFormulaManager pathFormulaManager =
+        new PathFormulaManagerImpl(
+            formulaManager,
+            pConfiguration,
+            pLogger,
+            pShutdownNotifier,
+            pCFA,
+            AnalysisDirection.FORWARD);
 
     if (useCachingPathFormulaManager) {
       pathFormulaManager = new CachingPathFormulaManager(pathFormulaManager);
     }
-    manager = new ABEWrappingManager<>(clientManager, pathFormulaManager,
-        formulaManager, pCFA, pLogger, pSolver, pConfiguration);
+    manager =
+        new ABEWrappingManager<>(
+            clientManager,
+            pathFormulaManager,
+            formulaManager,
+            pCFA,
+            pLogger,
+            pSolver,
+            pConfiguration);
   }
 
   @Override
-  public AbstractState join(
-      AbstractState state1, AbstractState state2)
+  public AbstractState join(AbstractState state1, AbstractState state2)
       throws CPAException, InterruptedException {
     throw new UnsupportedOperationException("Join operator not supported.");
   }
@@ -101,8 +103,7 @@ public final class ABECPA
 
   @Override
   @SuppressWarnings("unchecked")
-  public boolean isLessOrEqual(
-      AbstractState state1, AbstractState state2)
+  public boolean isLessOrEqual(AbstractState state1, AbstractState state2)
       throws CPAException, InterruptedException {
     return manager.isLessOrEqual((ABEState<A>) state1, (ABEState<A>) state2);
   }
@@ -128,26 +129,22 @@ public final class ABECPA
   }
 
   @Override
-  public AbstractState getInitialState(
-      CFANode node, StateSpacePartition partition) throws InterruptedException {
+  public AbstractState getInitialState(CFANode node, StateSpacePartition partition)
+      throws InterruptedException {
     return manager.getInitialState(node, partition);
   }
 
   @Override
-  public Precision getInitialPrecision(
-      CFANode node, StateSpacePartition partition) throws InterruptedException {
+  public Precision getInitialPrecision(CFANode node, StateSpacePartition partition)
+      throws InterruptedException {
     return manager.getInitialPrecision(node, partition);
   }
 
   @Override
   @SuppressWarnings("unchecked")
-  public AbstractState merge(
-      AbstractState state1, AbstractState state2, Precision precision)
+  public AbstractState merge(AbstractState state1, AbstractState state2, Precision precision)
       throws CPAException, InterruptedException {
-    return manager.merge(
-        (ABEState<A>) state1,
-        (ABEState<A>) state2
-    );
+    return manager.merge((ABEState<A>) state1, (ABEState<A>) state2);
   }
 
   @Override
@@ -157,13 +154,9 @@ public final class ABECPA
       Precision precision,
       UnmodifiableReachedSet states,
       Function<AbstractState, AbstractState> stateProjection,
-      AbstractState fullState) throws CPAException, InterruptedException {
-    return manager.prec(
-        (ABEState<A>) state,
-        (P) precision,
-        states,
-        fullState
-    );
+      AbstractState fullState)
+      throws CPAException, InterruptedException {
+    return manager.prec((ABEState<A>) state, (P) precision, states, fullState);
   }
 
   @Override
@@ -171,9 +164,7 @@ public final class ABECPA
   public Optional<? extends AbstractState> strengthen(
       AbstractState pState, Precision pPrecision, Iterable<AbstractState> otherStates)
       throws CPAException, InterruptedException {
-    return manager.strengthen(
-        (ABEState<A>) pState,
-        (P) pPrecision, otherStates);
+    return manager.strengthen((ABEState<A>) pState, (P) pPrecision, otherStates);
   }
 
   @Override
@@ -181,9 +172,6 @@ public final class ABECPA
   public Collection<? extends AbstractState> getAbstractSuccessorsForEdge(
       AbstractState state, Precision precision, CFAEdge cfaEdge)
       throws CPATransferException, InterruptedException {
-    return manager.getAbstractSuccessorsForEdge(
-        (ABEState<A>) state,
-        cfaEdge
-    );
+    return manager.getAbstractSuccessorsForEdge((ABEState<A>) state, cfaEdge);
   }
 }

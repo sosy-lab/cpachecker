@@ -17,9 +17,8 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 
 /**
- * Thread-safe implementation of numerical statistics.
- * This class tracks how often a value is used in a series of values.
- * Use case might be sampling of values during an analysis.
+ * Thread-safe implementation of numerical statistics. This class tracks how often a value is used
+ * in a series of values. Use case might be sampling of values during an analysis.
  */
 public class StatHist extends AbstractStatValue {
 
@@ -107,8 +106,7 @@ public class StatHist extends AbstractStatValue {
   /** returns the sum of all values, or 0 if no value is available. */
   public double getSum() {
     synchronized (hist) {
-      return hist.entrySet()
-          .stream()
+      return hist.entrySet().stream()
           .mapToDouble(e -> ((double) e.getElement()) * e.getCount())
           .sum();
     }

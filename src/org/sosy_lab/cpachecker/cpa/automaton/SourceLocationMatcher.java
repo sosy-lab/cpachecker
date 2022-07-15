@@ -18,7 +18,7 @@ import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 
 class SourceLocationMatcher {
 
-  private static abstract class BaseFileNameMatcher implements Predicate<FileLocation> {
+  private abstract static class BaseFileNameMatcher implements Predicate<FileLocation> {
 
     private final Optional<String> originFileName;
 
@@ -31,7 +31,7 @@ class SourceLocationMatcher {
       if (!originFileName.isPresent()) {
         return true;
       }
-      String fileName = this.originFileName.orElseThrow();
+      String fileName = originFileName.orElseThrow();
       String fileLocationFileName = pFileLocation.getFileName().toString();
       fileName = getBaseName(fileName);
       fileLocationFileName = getBaseName(fileLocationFileName);
@@ -58,7 +58,6 @@ class SourceLocationMatcher {
     protected Optional<String> getOriginFileName() {
       return originFileName;
     }
-
   }
 
   static class LineMatcher extends BaseFileNameMatcher {
@@ -69,12 +68,13 @@ class SourceLocationMatcher {
 
     private final boolean origin;
 
-    public LineMatcher(Optional<String> pFileName, int pStartLineNumber, int pEndLineNumber, boolean pOrigin) {
+    public LineMatcher(
+        Optional<String> pFileName, int pStartLineNumber, int pEndLineNumber, boolean pOrigin) {
       super(pFileName);
       Preconditions.checkArgument(pStartLineNumber <= pEndLineNumber);
-      this.startLineNumber = pStartLineNumber;
-      this.endLineNumber = pEndLineNumber;
-      this.origin = pOrigin;
+      startLineNumber = pStartLineNumber;
+      endLineNumber = pEndLineNumber;
+      origin = pOrigin;
     }
 
     public LineMatcher(Optional<String> pFileName, int pStartLineNumber, int pEndLineNumber) {
@@ -103,12 +103,10 @@ class SourceLocationMatcher {
 
     @Override
     public boolean apply(FileLocation pFileLocation) {
-      int compStartingLine = origin
-          ? pFileLocation.getStartingLineInOrigin()
-          : pFileLocation.getStartingLineNumber();
-      int compEndingLine = origin
-          ? pFileLocation.getEndingLineInOrigin()
-          : pFileLocation.getEndingLineNumber();
+      int compStartingLine =
+          origin ? pFileLocation.getStartingLineInOrigin() : pFileLocation.getStartingLineNumber();
+      int compEndingLine =
+          origin ? pFileLocation.getEndingLineInOrigin() : pFileLocation.getEndingLineNumber();
       return super.apply(pFileLocation)
           && startLineNumber <= compEndingLine
           && compStartingLine <= endLineNumber;
@@ -136,8 +134,8 @@ class SourceLocationMatcher {
     OffsetMatcher(Optional<String> pOriginFileName, int pStartOffset, int pEndOffset) {
       super(pOriginFileName);
       Preconditions.checkArgument(pStartOffset <= pEndOffset);
-      this.startOffset = pStartOffset;
-      this.endOffset = pEndOffset;
+      startOffset = pStartOffset;
+      endOffset = pEndOffset;
     }
 
     @Override

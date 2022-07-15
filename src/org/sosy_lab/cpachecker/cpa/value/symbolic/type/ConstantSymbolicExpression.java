@@ -13,9 +13,7 @@ import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
-/**
- * {@link SymbolicExpression} that represents a single constant value of a specific type.
- */
+/** {@link SymbolicExpression} that represents a single constant value of a specific type. */
 public final class ConstantSymbolicExpression extends SymbolicExpression {
 
   private static final long serialVersionUID = 8720056661933193765L;
@@ -98,16 +96,13 @@ public final class ConstantSymbolicExpression extends SymbolicExpression {
 
     ConstantSymbolicExpression that = (ConstantSymbolicExpression) o;
 
-    return super.equals(o)
-        && Objects.equals(type, that.type) && Objects.equals(value, that.value);
-
+    return super.equals(o) && Objects.equals(type, that.type) && Objects.equals(value, that.value);
   }
 
   @Override
   public int hashCode() {
     int result = value.hashCode();
-    result = type != null ? 31 * result + type.hashCode()
-        : result;
+    result = type != null ? 31 * result + type.hashCode() : result;
     return result;
   }
 }

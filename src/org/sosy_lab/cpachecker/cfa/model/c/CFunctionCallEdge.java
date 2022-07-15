@@ -21,12 +21,15 @@ public class CFunctionCallEdge extends FunctionCallEdge implements CCfaEdge {
 
   private static final long serialVersionUID = -3203684033841624723L;
 
-  public CFunctionCallEdge(String pRawStatement,
-      FileLocation pFileLocation, CFANode pPredecessor, CFunctionEntryNode pSuccessor,
-      CFunctionCall pFunctionCall, CFunctionSummaryEdge pSummaryEdge) {
+  public CFunctionCallEdge(
+      String pRawStatement,
+      FileLocation pFileLocation,
+      CFANode pPredecessor,
+      CFunctionEntryNode pSuccessor,
+      CFunctionCall pFunctionCall,
+      CFunctionSummaryEdge pSummaryEdge) {
 
     super(pRawStatement, pFileLocation, pPredecessor, pSuccessor, pFunctionCall, pSummaryEdge);
-
   }
 
   @Override
@@ -62,7 +65,7 @@ public class CFunctionCallEdge extends FunctionCallEdge implements CCfaEdge {
   @Override
   public CFunctionEntryNode getSuccessor() {
     // the constructor enforces that the successor is always a FunctionEntryNode
-    return (CFunctionEntryNode)super.getSuccessor();
+    return (CFunctionEntryNode) super.getSuccessor();
   }
 
   @Override

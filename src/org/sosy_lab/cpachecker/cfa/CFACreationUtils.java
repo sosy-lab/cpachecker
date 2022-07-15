@@ -17,8 +17,8 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 
 /**
- * Helper class that contains some complex operations that may be useful during
- * the creation of a CFA.
+ * Helper class that contains some complex operations that may be useful during the creation of a
+ * CFA.
  */
 public class CFACreationUtils {
 
@@ -27,9 +27,8 @@ public class CFACreationUtils {
   private static int lastDetectedDeadCode = -1;
 
   /**
-   * This method adds this edge to the leaving and entering edges
-   * of its predecessor and successor respectively, but it does so only
-   * if the edge does not contain dead code
+   * This method adds this edge to the leaving and entering edges of its predecessor and successor
+   * respectively, but it does so only if the edge does not contain dead code
    */
   public static void addEdgeToCFA(CFAEdge edge, LogManager logger) {
     addEdgeToCFA(edge, logger, true);
@@ -73,7 +72,8 @@ public class CFACreationUtils {
           level = Level.FINER;
         }
 
-        logger.logf(level, "%s: Dead code detected: %s", edge.getFileLocation(), edge.getRawStatement());
+        logger.logf(
+            level, "%s: Dead code detected: %s", edge.getFileLocation(), edge.getRawStatement());
       }
 
       lastDetectedDeadCode = edge.getSuccessor().getNodeNumber();
@@ -81,10 +81,8 @@ public class CFACreationUtils {
   }
 
   /**
-   * This method adds this edge to the leaving and entering edges
-   * of its predecessor and successor respectively.
-   * It does so without further checks, so use with care and only if really
-   * necessary.
+   * This method adds this edge to the leaving and entering edges of its predecessor and successor
+   * respectively. It does so without further checks, so use with care and only if really necessary.
    */
   public static void addEdgeUnconditionallyToCFA(CFAEdge edge) {
     edge.getPredecessor().addLeavingEdge(edge);
@@ -92,8 +90,8 @@ public class CFACreationUtils {
   }
 
   /**
-   * Returns true if a node is reachable, that is if it contains an incoming edge.
-   * Label nodes and function start nodes are always considered to be reachable.
+   * Returns true if a node is reachable, that is if it contains an incoming edge. Label nodes and
+   * function start nodes are always considered to be reachable.
    */
   public static boolean isReachableNode(CFANode node) {
     return (node.getNumEnteringEdges() > 0)
@@ -103,16 +101,16 @@ public class CFACreationUtils {
   }
 
   /**
-   * Remove nodes from the CFA beginning at a certain node n until there is a node
-   * that is reachable via some other path (not going through n).
-   * Useful for eliminating dead node, if node n is not reachable.
+   * Remove nodes from the CFA beginning at a certain node n until there is a node that is reachable
+   * via some other path (not going through n). Useful for eliminating dead node, if node n is not
+   * reachable.
    */
   public static void removeChainOfNodesFromCFA(CFANode n) {
     if (n.getNumEnteringEdges() > 0) {
       return;
     }
 
-    for (int i = n.getNumLeavingEdges()-1; i >= 0; i--) {
+    for (int i = n.getNumLeavingEdges() - 1; i >= 0; i--) {
       CFAEdge e = n.getLeavingEdge(i);
       CFANode succ = e.getSuccessor();
 

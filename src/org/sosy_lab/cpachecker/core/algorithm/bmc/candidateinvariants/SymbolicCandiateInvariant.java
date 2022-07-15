@@ -207,7 +207,10 @@ public class SymbolicCandiateInvariant implements CandidateInvariant {
   }
 
   public static SymbolicCandiateInvariant makeSymbolicInvariant(
-      Set<CFANode> pApplicableLocations, Predicate<? super AbstractState> pStateFilter, BooleanFormula pInvariant, FormulaManagerView pOriginalFormulaManager) {
+      Set<CFANode> pApplicableLocations,
+      Predicate<? super AbstractState> pStateFilter,
+      BooleanFormula pInvariant,
+      FormulaManagerView pOriginalFormulaManager) {
     return new SymbolicCandiateInvariant(
         pApplicableLocations,
         pStateFilter,
@@ -353,7 +356,8 @@ public class SymbolicCandiateInvariant implements CandidateInvariant {
     builder.put(firstApplicableStates, first);
     while (candidateIterator.hasNext()) {
       SymbolicCandiateInvariant current = candidateIterator.next();
-      if (current.stateFilter.equals(first.stateFilter) && current.applicableLocations.equals(first.applicableLocations)) {
+      if (current.stateFilter.equals(first.stateFilter)
+          && current.applicableLocations.equals(first.applicableLocations)) {
         builder.put(firstApplicableStates, current);
       } else {
         builder.put(Sets.newHashSet(current.filterApplicable(pStates)), current);

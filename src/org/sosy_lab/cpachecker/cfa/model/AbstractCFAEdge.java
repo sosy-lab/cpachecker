@@ -8,7 +8,6 @@
 
 package org.sosy_lab.cpachecker.cfa.model;
 
-
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import com.google.common.base.Preconditions;
@@ -89,8 +88,12 @@ public abstract class AbstractCFAEdge implements CFAEdge {
 
   @Override
   public String toString() {
-    return getFileLocation() + ":\t" + getPredecessor() + " -{" +
-        getDescription().replace('\n', ' ') +
-        "}-> " + getSuccessor();
+    return getFileLocation()
+        + ":\t"
+        + getPredecessor()
+        + " -{"
+        + getDescription().replace('\n', ' ')
+        + "}-> "
+        + getSuccessor();
   }
 }

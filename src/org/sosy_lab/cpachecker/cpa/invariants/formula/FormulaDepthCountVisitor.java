@@ -8,8 +8,9 @@
 
 package org.sosy_lab.cpachecker.cpa.invariants.formula;
 
-
-public class FormulaDepthCountVisitor<ConstantType> implements NumeralFormulaVisitor<ConstantType, Integer>, BooleanFormulaVisitor<ConstantType, Integer> {
+public class FormulaDepthCountVisitor<ConstantType>
+    implements NumeralFormulaVisitor<ConstantType, Integer>,
+        BooleanFormulaVisitor<ConstantType, Integer> {
 
   @Override
   public Integer visit(Add<ConstantType> pAdd) {
@@ -83,12 +84,16 @@ public class FormulaDepthCountVisitor<ConstantType> implements NumeralFormulaVis
 
   @Override
   public Integer visit(ShiftLeft<ConstantType> pShiftLeft) {
-    return Math.max(pShiftLeft.getShifted().accept(this), pShiftLeft.getShiftDistance().accept(this)) + 1;
+    return Math.max(
+            pShiftLeft.getShifted().accept(this), pShiftLeft.getShiftDistance().accept(this))
+        + 1;
   }
 
   @Override
   public Integer visit(ShiftRight<ConstantType> pShiftRight) {
-    return Math.max(pShiftRight.getShifted().accept(this), pShiftRight.getShiftDistance().accept(this)) + 1;
+    return Math.max(
+            pShiftRight.getShifted().accept(this), pShiftRight.getShiftDistance().accept(this))
+        + 1;
   }
 
   @Override
@@ -114,16 +119,15 @@ public class FormulaDepthCountVisitor<ConstantType> implements NumeralFormulaVis
   @Override
   public Integer visit(IfThenElse<ConstantType> pIfThenElse) {
     return Math.max(
-        pIfThenElse.getCondition().accept(this),
-        Math.max(
-            pIfThenElse.getPositiveCase().accept(this),
-            pIfThenElse.getNegativeCase().accept(this))
-        ) + 1;
+            pIfThenElse.getCondition().accept(this),
+            Math.max(
+                pIfThenElse.getPositiveCase().accept(this),
+                pIfThenElse.getNegativeCase().accept(this)))
+        + 1;
   }
 
   @Override
   public Integer visit(Cast<ConstantType> pCast) {
     return pCast.getCasted().accept(this) + 1;
   }
-
 }

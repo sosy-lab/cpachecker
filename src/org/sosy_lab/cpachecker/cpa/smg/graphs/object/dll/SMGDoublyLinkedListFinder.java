@@ -36,8 +36,7 @@ import org.sosy_lab.cpachecker.util.Pair;
 public class SMGDoublyLinkedListFinder extends SMGAbstractionFinder {
 
   @VisibleForTesting
-  public SMGDoublyLinkedListFinder() {
-  }
+  public SMGDoublyLinkedListFinder() {}
 
   public SMGDoublyLinkedListFinder(
       int pSeqLengthEqualityThreshold,
@@ -99,7 +98,7 @@ public class SMGDoublyLinkedListFinder extends SMGAbstractionFinder {
       return;
     }
 
-    if(!(pObject.getKind() == SMGObjectKind.DLL || pObject.getKind() == SMGObjectKind.REG)) {
+    if (!(pObject.getKind() == SMGObjectKind.DLL || pObject.getKind() == SMGObjectKind.REG)) {
       return;
     }
 
@@ -133,7 +132,7 @@ public class SMGDoublyLinkedListFinder extends SMGAbstractionFinder {
         continue;
       }
 
-      if(pObject == nextObject) {
+      if (pObject == nextObject) {
         continue;
       }
 
@@ -145,7 +144,8 @@ public class SMGDoublyLinkedListFinder extends SMGAbstractionFinder {
         continue;
       }
 
-      if(!(nextObject.getKind() == SMGObjectKind.DLL || nextObject.getKind() == SMGObjectKind.REG)) {
+      if (!(nextObject.getKind() == SMGObjectKind.DLL
+          || nextObject.getKind() == SMGObjectKind.REG)) {
         continue;
       }
 
@@ -154,7 +154,7 @@ public class SMGDoublyLinkedListFinder extends SMGAbstractionFinder {
 
         long pfo = hvePrev.getOffset();
 
-        if(!(nfo < pfo)) {
+        if (!(nfo < pfo)) {
           continue;
         }
 
@@ -165,7 +165,7 @@ public class SMGDoublyLinkedListFinder extends SMGAbstractionFinder {
 
         SMGEdgePointsTo prevPointerEdge = pSmg.getPointer(prevPointer);
 
-        if(prevPointerEdge.getOffset() != hfo) {
+        if (prevPointerEdge.getOffset() != hfo) {
           continue;
         }
 
@@ -176,7 +176,7 @@ public class SMGDoublyLinkedListFinder extends SMGAbstractionFinder {
           continue;
         }
 
-        if(pObject != prevPointerEdge.getObject()) {
+        if (pObject != prevPointerEdge.getObject()) {
           continue;
         }
 
@@ -226,7 +226,7 @@ public class SMGDoublyLinkedListFinder extends SMGAbstractionFinder {
     SMGObject startObject = pPrevCandidate.getStartObject();
 
     // First, calculate the longest mergeable sequence of the next object
-    if(!pSmg.isHeapObject(nextObject)) {
+    if (!pSmg.isHeapObject(nextObject)) {
       return;
     }
 
@@ -249,7 +249,8 @@ public class SMGDoublyLinkedListFinder extends SMGAbstractionFinder {
         return;
       }
 
-      if(!(nextObject.getKind() == SMGObjectKind.DLL || nextObject.getKind() == SMGObjectKind.REG)) {
+      if (!(nextObject.getKind() == SMGObjectKind.DLL
+          || nextObject.getKind() == SMGObjectKind.REG)) {
         return;
       }
 
@@ -305,7 +306,7 @@ public class SMGDoublyLinkedListFinder extends SMGAbstractionFinder {
         new SMGJoinSubSMGsForAbstraction(
             pSmg.copyOf(), startObject, nextObject, candidate, pSmgState);
 
-    if(!join.isDefined()) {
+    if (!join.isDefined()) {
       return;
     }
 
@@ -338,21 +339,21 @@ public class SMGDoublyLinkedListFinder extends SMGAbstractionFinder {
 
     nonSharedValues1.remove(prevValue);
 
-    // Third, calculate if the respective nfo,pfo restricted subsmgs are only reachable from their candidate objects
-    if (!isSubSmgSeperate(nonSharedObject1, nonSharedValues1, pSmg, objectsOfSubSmg1,
-        valuesOfSubSmg1, startObject)) {
+    // Third, calculate if the respective nfo,pfo restricted subsmgs are only reachable from their
+    // candidate objects
+    if (!isSubSmgSeperate(
+        nonSharedObject1, nonSharedValues1, pSmg, objectsOfSubSmg1, valuesOfSubSmg1, startObject)) {
       return;
     }
 
-    if (!isSubSmgSeperate(nonSharedObject2, nonSharedValues2, pSmg, objectsOfSubSmg2,
-        valuesOfSubSmg2, nextObject)) {
+    if (!isSubSmgSeperate(
+        nonSharedObject2, nonSharedValues2, pSmg, objectsOfSubSmg2, valuesOfSubSmg2, nextObject)) {
       return;
     }
 
     // check if the sequence is uninterrupted
     Set<SMGEdgePointsTo> ptes1 = SMGUtils.getPointerToThisObject(startObject, pSmg);
     Set<SMGEdgePointsTo> ptes2 = SMGUtils.getPointerToThisObject(nextObject, pSmg);
-
 
     for (SMGEdgePointsTo pte : ptes1) {
       if (pte.getOffset() != candidate.getShape().getHfo()) {
@@ -386,8 +387,7 @@ public class SMGDoublyLinkedListFinder extends SMGAbstractionFinder {
         if (Iterables.size(prevs) != 1) {
           return;
         }
-      } else if (nextObject.getKind() == SMGObjectKind.REG
-          && !hasToBeLastInSequence) {
+      } else if (nextObject.getKind() == SMGObjectKind.REG && !hasToBeLastInSequence) {
         Iterable<SMGEdgeHasValue> hves =
             pSmg.getHVEdges(SMGEdgeHasValueFilter.valueFilter(pte.getValue()));
 

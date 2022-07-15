@@ -55,16 +55,18 @@ import org.sosy_lab.java_smt.api.SolverException;
 /**
  * This class provides an implementation of a global refinement for predicate abstraction.
  *
- * It does not define any strategy for using the interpolants to update the
- * abstraction, this is left to an instance of {@link GlobalRefinementStrategy}.
+ * <p>It does not define any strategy for using the interpolants to update the abstraction, this is
+ * left to an instance of {@link GlobalRefinementStrategy}.
  */
-@Options(prefix="cpa.predicate.refinement.global")
+@Options(prefix = "cpa.predicate.refinement.global")
 public class PredicateCPAGlobalRefiner implements Refiner, StatisticsProvider {
 
-  @Option(secure = true,
-          description = "Instead of updating precision and arg we say that the refinement was not successful"
-              + " after N times of refining. A real error state is not necessary to be found. Use 0 for"
-              + " unlimited refinements (default).")
+  @Option(
+      secure = true,
+      description =
+          "Instead of updating precision and arg we say that the refinement was not successful"
+              + " after N times of refining. A real error state is not necessary to be found. Use 0"
+              + " for unlimited refinements (default).")
   @IntegerOption(min = 0)
   private int stopAfterNRefinements = 0;
 
@@ -85,7 +87,8 @@ public class PredicateCPAGlobalRefiner implements Refiner, StatisticsProvider {
       final GlobalRefinementStrategy pStrategy,
       final Solver pSolver,
       final ARGCPA pArgcpa,
-      final Configuration pConfig) throws InvalidConfigurationException {
+      final Configuration pConfig)
+      throws InvalidConfigurationException {
     pConfig.inject(this);
 
     logger = pLogger;
@@ -135,10 +138,9 @@ public class PredicateCPAGlobalRefiner implements Refiner, StatisticsProvider {
   /**
    * Do refinement for a set of target states.
    *
-   * The strategy is to first build the predecessor/successor relations for all
-   * abstraction states on the paths to the target states, and then call
-   * {@link #performRefinementOnPath(List, ARGState, List, ARGReachedSet, InterpolatingProverEnvironment)}
-   * on the root state of the ARG.
+   * <p>The strategy is to first build the predecessor/successor relations for all abstraction
+   * states on the paths to the target states, and then call {@link #performRefinementOnPath(List,
+   * ARGState, List, ARGReachedSet, InterpolatingProverEnvironment)} on the root state of the ARG.
    */
   private Optional<ARGState> doPathWiseRefinement(
       ARGReachedSet pReached, List<AbstractState> targets)
@@ -202,20 +204,16 @@ public class PredicateCPAGlobalRefiner implements Refiner, StatisticsProvider {
   }
 
   /**
-   * Recursively perform refinement on the subgraph of the ARG starting with a given state.
-   * Each recursion step corresponds to one "block" of the ARG. As one block
-   * may have several successors, this is recursion on a tree.
-   * We proceed in a DFS order.
-   * Recursion stops as soon as the path has been determined to be infeasible
-   * (so we do refinement as soon as possible) or a target state is reached
-   * (then we found a feasible counterexample).
-   * When an infeasible state was found, we call
-   * {@link #performRefinementOnPath(List, ARGState, List, ARGReachedSet, InterpolatingProverEnvironment)}
-   * to do the actual refinement.
+   * Recursively perform refinement on the subgraph of the ARG starting with a given state. Each
+   * recursion step corresponds to one "block" of the ARG. As one block may have several successors,
+   * this is recursion on a tree. We proceed in a DFS order. Recursion stops as soon as the path has
+   * been determined to be infeasible (so we do refinement as soon as possible) or a target state is
+   * reached (then we found a feasible counterexample). When an infeasible state was found, we call
+   * {@link #performRefinementOnPath(List, ARGState, List, ARGReachedSet,
+   * InterpolatingProverEnvironment)} to do the actual refinement.
    *
-   * Note that the successor and predecessor relation contains only states
-   * that belong to paths to a target state, so we refine only such paths,
-   * and not all paths in the ARG.
+   * <p>Note that the successor and predecessor relation contains only states that belong to paths
+   * to a target state, so we refine only such paths, and not all paths in the ARG.
    *
    * @param currentPath The list of ARG states from the root to the current element.
    * @param itpStack The stack of interpolation groups added to the solver environment so far.
@@ -291,12 +289,14 @@ public class PredicateCPAGlobalRefiner implements Refiner, StatisticsProvider {
   }
 
   /**
-   * Actually perform refinement on one path. We compute the interpolants from
-   * the first state to the unreachable one.
+   * Actually perform refinement on one path. We compute the interpolants from the first state to
+   * the unreachable one.
    *
    * @param itpStack The list with the interpolation groups.
-   * @param unreachableState The first state in the path which is infeasible (this identifies the path).
-   * @param pAbstractionStatesTrace The complete trace of abstraction states including the unreachable state
+   * @param unreachableState The first state in the path which is infeasible (this identifies the
+   *     path).
+   * @param pAbstractionStatesTrace The complete trace of abstraction states including the
+   *     unreachable state
    * @param reached The reached set.
    */
   private <T> void performRefinementOnPath(

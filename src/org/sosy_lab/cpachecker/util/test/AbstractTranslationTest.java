@@ -84,15 +84,15 @@ public abstract class AbstractTranslationTest {
   }
 
   /**
-   * Checks the verdict of the configuration run on the given program.
-   * Fails with an AssertionError if the computed verdict is different from the
-   * given, expected verdict.
+   * Checks the verdict of the configuration run on the given program. Fails with an AssertionError
+   * if the computed verdict is different from the given, expected verdict.
    *
    * @param config config to run
    * @param program program to run config on
    * @param expectedVerdict expected verdict
    */
-  protected static void check(Configuration config, Path program, boolean expectedVerdict) throws Exception {
+  protected static void check(Configuration config, Path program, boolean expectedVerdict)
+      throws Exception {
     TestResults results = run0(config, program);
     if (expectedVerdict) {
       results.assertIsSafe();

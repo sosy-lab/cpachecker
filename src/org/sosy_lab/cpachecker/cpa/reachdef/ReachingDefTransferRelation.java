@@ -114,7 +114,8 @@ public class ReachingDefTransferRelation implements TransferRelation {
   }
 
   @Override
-  public Collection<? extends AbstractState> getAbstractSuccessors(AbstractState pState, Precision pPrecision)
+  public Collection<? extends AbstractState> getAbstractSuccessors(
+      AbstractState pState, Precision pPrecision)
       throws CPATransferException, InterruptedException {
     List<CFANode> nodes = ReachingDefUtils.getAllNodesFromCFA();
     if (nodes == null) {
@@ -127,7 +128,8 @@ public class ReachingDefTransferRelation implements TransferRelation {
         shutdownNotifier.shutdownIfNecessary();
 
         if (!(cfaedge.getEdgeType() == CFAEdgeType.FunctionReturnEdge)) {
-          if (cfaedge.getEdgeType() == CFAEdgeType.StatementEdge || cfaedge.getEdgeType() == CFAEdgeType.DeclarationEdge) {
+          if (cfaedge.getEdgeType() == CFAEdgeType.StatementEdge
+              || cfaedge.getEdgeType() == CFAEdgeType.DeclarationEdge) {
             definitions.add(cfaedge);
           } else {
             successors.addAll(getAbstractSuccessors0(pState, cfaedge));
@@ -135,7 +137,7 @@ public class ReachingDefTransferRelation implements TransferRelation {
         }
       }
     }
-    for (CFAEdge edge: definitions) {
+    for (CFAEdge edge : definitions) {
       successors.addAll(getAbstractSuccessors0(pState, edge));
     }
     return successors;
@@ -149,18 +151,25 @@ public class ReachingDefTransferRelation implements TransferRelation {
     return getAbstractSuccessors0(pState, pCfaEdge);
   }
 
-  private Collection<? extends AbstractState> getAbstractSuccessors0(AbstractState pState, CFAEdge pCfaEdge) throws CPATransferException {
+  private Collection<? extends AbstractState> getAbstractSuccessors0(
+      AbstractState pState, CFAEdge pCfaEdge) throws CPATransferException {
 
     logger.log(Level.FINE, "Compute successor for ", pState, "along edge", pCfaEdge);
 
-    if (localVariablesPerFunction == null) { throw new CPATransferException(
-        "Incorrect initialization of reaching definition transfer relation."); }
+    if (localVariablesPerFunction == null) {
+      throw new CPATransferException(
+          "Incorrect initialization of reaching definition transfer relation.");
+    }
 
-    if (!(pState instanceof ReachingDefState)) { throw new CPATransferException(
-        "Unexpected type of abstract state. The transfer relation is not defined for this type"); }
+    if (!(pState instanceof ReachingDefState)) {
+      throw new CPATransferException(
+          "Unexpected type of abstract state. The transfer relation is not defined for this type");
+    }
 
-    if (pCfaEdge == null) { throw new CPATransferException(
-        "Expected an edge along which the successors should be computed"); }
+    if (pCfaEdge == null) {
+      throw new CPATransferException(
+          "Expected an edge along which the successors should be computed");
+    }
 
     if (pState == ReachingDefState.topElement) {
       return Collections.singleton(pState);
@@ -320,7 +329,8 @@ public class ReachingDefTransferRelation implements TransferRelation {
     } else if (pStatement instanceof CFunctionCallAssignmentStatement) {
       // handle function call on right hand side to external method
       left = ((CFunctionCallAssignmentStatement) pStatement).getLeftHandSide();
-      logger.logOnce(Level.WARNING,
+      logger.logOnce(
+          Level.WARNING,
           "Analysis may be unsound if external method redefines global variables",
           "or considers extra global variables.");
     } else {
@@ -424,7 +434,9 @@ public class ReachingDefTransferRelation implements TransferRelation {
 
   private ReachingDefState handleReturnEdge(
       ReachingDefState pState, CFunctionReturnEdge pReturnEdge) {
-    logger.log(Level.FINE, "Return from internal function call. ",
+    logger.log(
+        Level.FINE,
+        "Return from internal function call. ",
         "Remove local variables and parameters of function from reaching definition.");
     ReachingDefState newState = pState.pop(pReturnEdge.getPredecessor().getFunctionName());
 

@@ -36,9 +36,8 @@ import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
 /**
- * Implementation of {@link Scope} for the global scope
- * (i.e., outside of functions).
- * Allows to register functions, types and global variables.
+ * Implementation of {@link Scope} for the global scope (i.e., outside of functions). Allows to
+ * register functions, types and global variables.
  */
 class GlobalScope extends AbstractScope {
 
@@ -66,7 +65,7 @@ class GlobalScope extends AbstractScope {
     this.types = types;
     this.typedefs = typedefs;
     this.programDeclarations = programDeclarations;
-    this.fallbackScope = pFallbackScope;
+    fallbackScope = pFallbackScope;
   }
 
   public GlobalScope() {
@@ -162,7 +161,7 @@ class GlobalScope extends AbstractScope {
   public @Nullable CTypeDefDeclaration lookupTypedefForTypename(final String name) {
     for (CTypeDefDeclaration d : typedefs.values()) {
       if (d.getType() instanceof CComplexType
-          && ((CComplexType)d.getType()).getName().equals(name)) {
+          && ((CComplexType) d.getType()).getName().equals(name)) {
         return d;
       }
     }
@@ -179,12 +178,17 @@ class GlobalScope extends AbstractScope {
     String name = declaration.getName();
     assert name != null;
 
-    // TODO multiple function declarations are legal, as long as they are equal, check this and throw exception if not
+    // TODO multiple function declarations are legal, as long as they are equal, check this and
+    // throw exception if not
 
     if (globalVars.containsKey(name)) {
-      throw new CFAGenerationRuntimeException("Name of global variable "
-          + name + " from " + globalVars.get(name).getFileLocation()
-          + " is reused as function declaration", declaration);
+      throw new CFAGenerationRuntimeException(
+          "Name of global variable "
+              + name
+              + " from "
+              + globalVars.get(name).getFileLocation()
+              + " is reused as function declaration",
+          declaration);
     }
 
     functions.put(name, declaration);
@@ -193,19 +197,23 @@ class GlobalScope extends AbstractScope {
 
   @Override
   public void registerDeclaration(CSimpleDeclaration declaration) {
-    assert declaration instanceof CVariableDeclaration
-        || declaration instanceof CEnumerator
-        : "Tried to register a declaration which does not define a name in the standard namespace: " + declaration;
-    assert  !(declaration.getType().getCanonicalType() instanceof CFunctionType)
+    assert declaration instanceof CVariableDeclaration || declaration instanceof CEnumerator
+        : "Tried to register a declaration which does not define a name in the standard namespace: "
+            + declaration;
+    assert !(declaration.getType().getCanonicalType() instanceof CFunctionType)
         : "Tried to register a variable with the type of a function: " + declaration;
 
     String name = declaration.getOrigName();
     assert name != null;
 
     if (functions.containsKey(name)) {
-      throw new CFAGenerationRuntimeException("Name of function "
-          + name + " from " + functions.get(name).getFileLocation()
-          + " is reused as identifier in global scope", declaration);
+      throw new CFAGenerationRuntimeException(
+          "Name of function "
+              + name
+              + " from "
+              + functions.get(name).getFileLocation()
+              + " is reused as identifier in global scope",
+          declaration);
     }
 
     globalVars.put(name, declaration);
@@ -215,7 +223,8 @@ class GlobalScope extends AbstractScope {
   /**
    * Register a type, e.g., a new struct type.
    *
-   * @return True if the type actually needs to be declared, False if the declaration can be omitted because the type is already known.
+   * @return True if the type actually needs to be declared, False if the declaration can be omitted
+   *     because the type is already known.
    */
   @Override
   public boolean registerTypeDeclaration(CComplexTypeDeclaration declaration) {
@@ -233,7 +242,8 @@ class GlobalScope extends AbstractScope {
       // registered we can quit here.
     } else if (type instanceof CElaboratedType) {
       if (isOnlyElaboratedType) {
-        assert isFileSpecificTypeName(type.getName()) : "The type should have the correct name before registering it.";
+        assert isFileSpecificTypeName(type.getName())
+            : "The type should have the correct name before registering it.";
       }
 
       // the current declaration just re-declares an existing type this could
@@ -245,8 +255,10 @@ class GlobalScope extends AbstractScope {
       }
     }
 
-    boolean programContainsEqualType = !isOnlyElaboratedType && programDeclarations.containsEqualType(declaration);
-    boolean programContainsExactNamedType = !isOnlyElaboratedType && programDeclarations.containsTypeWithExactName(name);
+    boolean programContainsEqualType =
+        !isOnlyElaboratedType && programDeclarations.containsEqualType(declaration);
+    boolean programContainsExactNamedType =
+        !isOnlyElaboratedType && programDeclarations.containsTypeWithExactName(name);
 
     // when entering this if clause we know that the current type is not an elaborated
     // type, as this would have been captured in the if clause above, thus it was
@@ -264,9 +276,13 @@ class GlobalScope extends AbstractScope {
       // sets the realtype in some cases before the complete type is registered
       if (!(oldType.getCanonicalType() instanceof CElaboratedType)
           && oldType.getCanonicalType() != type) {
-        throw new CFAGenerationRuntimeException("Redeclaring " + name
-            + " in " + declaration.getFileLocation()
-            + ", originally declared in " + oldDeclaration.getFileLocation());
+        throw new CFAGenerationRuntimeException(
+            "Redeclaring "
+                + name
+                + " in "
+                + declaration.getFileLocation()
+                + ", originally declared in "
+                + oldDeclaration.getFileLocation());
       }
 
       // there was already a declaration before and the found type is already known
@@ -277,8 +293,8 @@ class GlobalScope extends AbstractScope {
         overwriteTypeIfNecessary(type, oldProgDeclaration.getType());
         type = oldProgDeclaration.getType();
 
-      // there was already a declaration with this typename before, however
-      // the types do not match so we need to rename the type for this file
+        // there was already a declaration with this typename before, however
+        // the types do not match so we need to rename the type for this file
       } else if (programContainsExactNamedType) {
         declaration = createRenamedTypeDeclaration(declaration);
         name = declaration.getType().getQualifiedName();
@@ -289,7 +305,7 @@ class GlobalScope extends AbstractScope {
       // declaration. We set a reference to the full type in the old type he types
       // map with the full type. But only if this was not done before
       if (oldType.getCanonicalType() instanceof CElaboratedType) {
-        ((CElaboratedType)oldType).setRealType(type);
+        ((CElaboratedType) oldType).setRealType(type);
       }
       types.remove(fileSpecificTypeName);
 
@@ -325,66 +341,74 @@ class GlobalScope extends AbstractScope {
   }
 
   /**
-   * This method creates a new CComplexTypeDeclaration with an unoccupied name for
-   * unequal types with the same name.
+   * This method creates a new CComplexTypeDeclaration with an unoccupied name for unequal types
+   * with the same name.
    */
-  private CComplexTypeDeclaration createRenamedTypeDeclaration(CComplexTypeDeclaration oldDeclaration) {
-    assert !isFileSpecificTypeName(oldDeclaration.getType().getName()) : "The type is already renamed to its file specific version.";
+  private CComplexTypeDeclaration createRenamedTypeDeclaration(
+      CComplexTypeDeclaration oldDeclaration) {
+    assert !isFileSpecificTypeName(oldDeclaration.getType().getName())
+        : "The type is already renamed to its file specific version.";
 
     CComplexType oldType = (CComplexType) oldDeclaration.getType().getCanonicalType();
 
-    return new CComplexTypeDeclaration(oldDeclaration.getFileLocation(),
-                                       oldDeclaration.isGlobal(),
-                                       createRenamedType(oldType));
+    return new CComplexTypeDeclaration(
+        oldDeclaration.getFileLocation(), oldDeclaration.isGlobal(), createRenamedType(oldType));
   }
 
   /**
-   * This method is a helper method for <code>createRenamedTypeDeclaration</code>.
-   * It renames the given CComplexType to its files specific version.
+   * This method is a helper method for <code>createRenamedTypeDeclaration</code>. It renames the
+   * given CComplexType to its files specific version.
    *
    * @param oldType The type that should be renamed.
    * @return The renamed type.
    */
   private CComplexType createRenamedType(CComplexType oldType) {
-    assert !isFileSpecificTypeName(oldType.getName()) : "The type is already renamed to its file specific version.";
+    assert !isFileSpecificTypeName(oldType.getName())
+        : "The type is already renamed to its file specific version.";
 
     String newName = getFileSpecificTypeName(oldType.getName());
 
     if (oldType instanceof CCompositeType) {
       CCompositeType oldCompositeType = (CCompositeType) oldType;
-      CCompositeType renamedCompositeType = new CCompositeType(oldType.isConst(),
-                                                               oldType.isVolatile(),
-                                                               oldType.getKind(),
-                                                               newName,
-                                                               oldType.getOrigName());
+      CCompositeType renamedCompositeType =
+          new CCompositeType(
+              oldType.isConst(),
+              oldType.isVolatile(),
+              oldType.getKind(),
+              newName,
+              oldType.getOrigName());
 
       // overwrite the already found type in the types map of the ASTTypeConverter if necessary
-      // we need to do this, that the members of the renamed CCompositeType get the correct type names
+      // we need to do this, that the members of the renamed CCompositeType get the correct type
+      // names
       // in case of members pointing to the renamed type itself
-      CElaboratedType renamedElaboratedType = new CElaboratedType(renamedCompositeType.isConst(),
-                                                                  renamedCompositeType.isVolatile(),
-                                                                  renamedCompositeType.getKind(),
-                                                                  renamedCompositeType.getName(),
-                                                                  renamedCompositeType.getOrigName(),
-                                                                  renamedCompositeType);
+      CElaboratedType renamedElaboratedType =
+          new CElaboratedType(
+              renamedCompositeType.isConst(),
+              renamedCompositeType.isVolatile(),
+              renamedCompositeType.getKind(),
+              renamedCompositeType.getName(),
+              renamedCompositeType.getOrigName(),
+              renamedCompositeType);
       overwriteTypeIfNecessary(oldType, renamedElaboratedType);
 
-      List<CCompositeTypeMemberDeclaration> newMembers = new ArrayList<>(oldCompositeType.getMembers().size());
+      List<CCompositeTypeMemberDeclaration> newMembers =
+          new ArrayList<>(oldCompositeType.getMembers().size());
       for (CCompositeTypeMemberDeclaration decl : oldCompositeType.getMembers()) {
-
 
         // here we need to take care of the case that the pointer could be pointing
         // to the same that that is renamed currently
         // we need to put in the elaborated renamed type, otherwise there will be
         // infinite recursion in the types toASTString method, what we don't want
         if (decl.getType() instanceof CPointerType) {
-          newMembers.add(new CCompositeTypeMemberDeclaration(createPointerField((CPointerType) decl.getType(), oldType,
-              renamedElaboratedType), decl.getName()));
+          newMembers.add(
+              new CCompositeTypeMemberDeclaration(
+                  createPointerField((CPointerType) decl.getType(), oldType, renamedElaboratedType),
+                  decl.getName()));
 
-        // this member cannot be self referencing as it is no pointer
+          // this member cannot be self referencing as it is no pointer
         } else {
           newMembers.add(new CCompositeTypeMemberDeclaration(decl.getType(), decl.getName()));
-
         }
       }
       renamedCompositeType.setMembers(newMembers);
@@ -405,7 +429,9 @@ class GlobalScope extends AbstractScope {
         list.add(newC);
       }
 
-      CEnumType renamedEnumType = new CEnumType(oldType.isConst(), oldType.isVolatile(), list, newName, oldType.getOrigName());
+      CEnumType renamedEnumType =
+          new CEnumType(
+              oldType.isConst(), oldType.isVolatile(), list, newName, oldType.getOrigName());
       for (CEnumerator enumValue : renamedEnumType.getEnumerators()) {
         enumValue.setEnum(renamedEnumType);
       }
@@ -416,19 +442,26 @@ class GlobalScope extends AbstractScope {
       if (((CElaboratedType) oldType).getRealType() != null) {
         renamedRealType = createRenamedType(((CElaboratedType) oldType).getRealType());
       }
-      return new CElaboratedType(oldType.isConst(), oldType.isVolatile(), oldType.getKind(), newName, oldType.getOrigName(), renamedRealType);
+      return new CElaboratedType(
+          oldType.isConst(),
+          oldType.isVolatile(),
+          oldType.getKind(),
+          newName,
+          oldType.getOrigName(),
+          renamedRealType);
 
     } else {
       throw new AssertionError("Unhandled CComplexType.");
     }
   }
 
-  /**
-   * This method creates the CType for a referenced field of a CCompositeType.
-   */
+  /** This method creates the CType for a referenced field of a CCompositeType. */
   private CType createPointerField(CPointerType oldType, CType eqType, CType newType) {
     if (oldType.getType() instanceof CPointerType) {
-      return new CPointerType(oldType.isConst(), oldType.isVolatile(), createPointerField((CPointerType) oldType.getType(), eqType, newType));
+      return new CPointerType(
+          oldType.isConst(),
+          oldType.isVolatile(),
+          createPointerField((CPointerType) oldType.getType(), eqType, newType));
     } else {
       if (oldType.getType().getCanonicalType().equals(eqType.getCanonicalType())) {
         return new CPointerType(oldType.isConst(), oldType.isVolatile(), newType);
@@ -441,7 +474,8 @@ class GlobalScope extends AbstractScope {
   /**
    * Register a typedef.
    *
-   * @return True if the type actually needs to be declared, False if the declaration can be omitted because the type is already known.
+   * @return True if the type actually needs to be declared, False if the declaration can be omitted
+   *     because the type is already known.
    */
   public boolean registerTypeDeclaration(CTypeDefDeclaration declaration) {
     String name = declaration.getName();
@@ -452,18 +486,25 @@ class GlobalScope extends AbstractScope {
 
       CType oldType = oldDeclaration.getType();
 
-      if (oldType.getCanonicalType() instanceof CElaboratedType && type.getCanonicalType() instanceof CCompositeType
-          && ((CElaboratedType) oldType).getName().equals(((CCompositeType)type).getName())) {
+      if (oldType.getCanonicalType() instanceof CElaboratedType
+          && type.getCanonicalType() instanceof CCompositeType
+          && ((CElaboratedType) oldType).getName().equals(((CCompositeType) type).getName())) {
         typedefs.put(name, declaration);
         return true;
       }
 
       if (!type.getCanonicalType().equals(oldType.getCanonicalType())) {
-        throw new CFAGenerationRuntimeException("Redeclaring " + name
-            + " in " + declaration.getFileLocation()
-            + " with type " + type.toASTString("")
-            + ", originally declared in " + oldDeclaration.getFileLocation()
-            + " with type " + oldType.toASTString(""));
+        throw new CFAGenerationRuntimeException(
+            "Redeclaring "
+                + name
+                + " in "
+                + declaration.getFileLocation()
+                + " with type "
+                + type.toASTString("")
+                + ", originally declared in "
+                + oldDeclaration.getFileLocation()
+                + " with type "
+                + oldType.toASTString(""));
       }
       // redundant typedef, ignore it
       return false;

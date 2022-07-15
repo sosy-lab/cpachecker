@@ -43,22 +43,33 @@ import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.blocking.interfaces.BlockComputer;
 
-@Options(prefix="blockreducer")
+@Options(prefix = "blockreducer")
 public class BlockedCFAReducer implements BlockComputer {
 
-  @Option(secure=true, description="Do at most n summarizations on a node.")
+  @Option(secure = true, description = "Do at most n summarizations on a node.")
   private int reductionThreshold = 100;
 
-  @Option(secure=true, description="Allow reduction of loop heads; calculate abstractions always at loop heads?")
+  @Option(
+      secure = true,
+      description = "Allow reduction of loop heads; calculate abstractions always at loop heads?")
   private boolean allowReduceLoopHeads = false;
 
-  @Option(secure=true, description="Allow reduction of function entries; calculate abstractions always at function entries?")
+  @Option(
+      secure = true,
+      description =
+          "Allow reduction of function entries; calculate abstractions always at function entries?")
   private boolean allowReduceFunctionEntries = true;
 
-  @Option(secure=true, description="Allow reduction of function exits; calculate abstractions always at function exits?")
+  @Option(
+      secure = true,
+      description =
+          "Allow reduction of function exits; calculate abstractions always at function exits?")
   private boolean allowReduceFunctionExits = true;
 
-  @Option(secure=true, name="reducedCfaFile", description="write the reduced cfa to the specified file.")
+  @Option(
+      secure = true,
+      name = "reducedCfaFile",
+      description = "write the reduced cfa to the specified file.")
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private Path reducedCfaFile = Path.of("ReducedCfa.rsf");
 
@@ -67,11 +78,12 @@ public class BlockedCFAReducer implements BlockComputer {
 
   private final LogManager logger;
 
-  public BlockedCFAReducer(Configuration pConfig, LogManager pLogger) throws InvalidConfigurationException {
+  public BlockedCFAReducer(Configuration pConfig, LogManager pLogger)
+      throws InvalidConfigurationException {
     pConfig.inject(this);
 
-    this.logger = checkNotNull(pLogger);
-    this.inliningStack = new ArrayDeque<>();
+    logger = checkNotNull(pLogger);
+    inliningStack = new ArrayDeque<>();
   }
 
   private boolean isAbstractionNode(ReducedNode pNode) {
@@ -80,10 +92,7 @@ public class BlockedCFAReducer implements BlockComputer {
         || (pNode.isFunctionExit() && !allowReduceFunctionExits);
   }
 
-  /**
-   * Increment the number of summarizations that are done
-   * with pNode as the root-node.
-   */
+  /** Increment the number of summarizations that are done with pNode as the root-node. */
   private void incSummarizationsOnNode(ReducedNode pNode, int pIncBy) {
     assert reductionThreshold > 0;
     pNode.incSummarizations(pIncBy);
@@ -105,7 +114,7 @@ public class BlockedCFAReducer implements BlockComputer {
     while (!toTraverse.isEmpty()) {
       ReducedNode u = toTraverse.remove();
 
-      for (ReducedEdge e: pApplyTo.getLeavingEdges(u)) {
+      for (ReducedEdge e : pApplyTo.getLeavingEdges(u)) {
         ReducedNode v = e.getPointsTo();
 
         if (!traverseDone.add(e)) {
@@ -137,7 +146,7 @@ public class BlockedCFAReducer implements BlockComputer {
         }
 
         boolean uvRemoved = false;
-        for (ReducedEdge f: vLeavingEdges) {
+        for (ReducedEdge f : vLeavingEdges) {
           ReducedNode w = f.getPointsTo();
 
           assert u != v;
@@ -150,12 +159,12 @@ public class BlockedCFAReducer implements BlockComputer {
           pApplyTo.removeEdge(v, w, f);
           if (!uvRemoved) {
             pApplyTo.removeEdge(u, v, e);
-            this.incSummarizationsOnNode(u, v.getSummarizations());
+            incSummarizationsOnNode(u, v.getSummarizations());
             uvRemoved = true;
           }
           pApplyTo.addEdge(u, w, sumEdge);
 
-          this.incSummarizationsOnNode(u, 1);
+          incSummarizationsOnNode(u, 1);
         }
 
         toTraverse.clear();
@@ -184,7 +193,7 @@ public class BlockedCFAReducer implements BlockComputer {
 
       List<ReducedEdge> leavingEdges = pApplyTo.getLeavingEdges(u);
       if (leavingEdges.size() < 2 || getSummarizationsOnNode(u) >= reductionThreshold) {
-        for (ReducedEdge e: leavingEdges) {
+        for (ReducedEdge e : leavingEdges) {
           toTraverse.add(e.getPointsTo());
         }
         traverseDone.add(u);
@@ -193,8 +202,8 @@ public class BlockedCFAReducer implements BlockComputer {
 
       // Find pairs of leaving edges, that point to the same target.
       boolean onePairMerged = false;
-      for (int x=0; x<leavingEdges.size() && !onePairMerged; x++) {
-        for (int y=x+1; y<leavingEdges.size() && !onePairMerged; y++) {
+      for (int x = 0; x < leavingEdges.size() && !onePairMerged; x++) {
+        for (int y = x + 1; y < leavingEdges.size() && !onePairMerged; y++) {
           ReducedEdge edgeX = leavingEdges.get(x);
           ReducedEdge edgeY = leavingEdges.get(y);
 
@@ -243,36 +252,33 @@ public class BlockedCFAReducer implements BlockComputer {
       if (result == null) {
         boolean isLoopHead = cfa.getAllLoopHeads().orElseThrow().contains(pNode);
         result = new ReducedNode(pNode, isLoopHead);
-        result.setFunctionCallId(this.functionCallId);
-        this.nodeMapping.put(pNode, result);
+        result.setFunctionCallId(functionCallId);
+        nodeMapping.put(pNode, result);
       }
       return result;
     }
 
     public FunctionNodeManager(int pFunctionCallId, CFA pCfa) {
-      this.functionCallId = pFunctionCallId;
-      this.cfa = pCfa;
+      functionCallId = pFunctionCallId;
+      cfa = pCfa;
     }
   }
 
-
   /**
-   * Returns the summarized subgraph described by the function
-   * and the outgoing function calls that get inlined.
-   *
+   * Returns the summarized subgraph described by the function and the outgoing function calls that
+   * get inlined.
    */
   private ReducedFunction inlineAndSummarize(FunctionEntryNode pFunctionNode, CFA cfa) {
-    this.functionCallSeq++;
-    this.inliningStack.push(pFunctionNode);
+    functionCallSeq++;
+    inliningStack.push(pFunctionNode);
 
     Set<CFAEdge> traversed = new HashSet<>();
     Deque<ReducedNode> openEndpoints = new ArrayDeque<>();
-    FunctionNodeManager functionNodes = new FunctionNodeManager(this.functionCallSeq, cfa);
+    FunctionNodeManager functionNodes = new FunctionNodeManager(functionCallSeq, cfa);
 
     ReducedNode entryNode = functionNodes.getWrapper(pFunctionNode);
     ReducedNode exitNode = functionNodes.getWrapper(pFunctionNode.getExitNode());
     ReducedFunction result = new ReducedFunction(entryNode, exitNode);
-
 
     // First: Inline called functions in a summarized version.
     //        --> recursion
@@ -283,7 +289,7 @@ public class BlockedCFAReducer implements BlockComputer {
       ReducedNode uSn = openEndpoints.removeFirst();
 
       // Look at all leaving edges.
-      for (CFAEdge e: CFAUtils.leavingEdges(uSn.getWrapped())) {
+      for (CFAEdge e : CFAUtils.leavingEdges(uSn.getWrapped())) {
         if (!traversed.add(e)) {
           continue;
         }
@@ -291,7 +297,8 @@ public class BlockedCFAReducer implements BlockComputer {
         // Depending on the type of the edge...
         if (e instanceof CFunctionCallEdge) {
           CFunctionCallEdge callEdge = (CFunctionCallEdge) e;
-          ReducedNode callReturnTarget = functionNodes.getWrapper(callEdge.getSummaryEdge().getSuccessor());
+          ReducedNode callReturnTarget =
+              functionNodes.getWrapper(callEdge.getSummaryEdge().getSuccessor());
           FunctionEntryNode calledFunction = callEdge.getSuccessor();
 
           if (inliningStack.contains(calledFunction)) {
@@ -305,7 +312,8 @@ public class BlockedCFAReducer implements BlockComputer {
 
             // it is possible, that a function never returns e.g. if there is a loop
             // in the form of "labelXYZ: goto labelXYZ;"
-            // --> integrate the exit of the function to the control flow only if it has entering edges!
+            // --> integrate the exit of the function to the control flow only if it has entering
+            // edges!
             if (functionSum.getExitNode().getWrapped().getNumEnteringEdges() > 0) {
               result.addEdge(functionSum.getExitNode(), callReturnTarget);
             }
@@ -343,24 +351,26 @@ public class BlockedCFAReducer implements BlockComputer {
   }
 
   private String getRsfEntryFor(ReducedNode pNode) {
-    return String.format("%s_%s_%d_%d",
+    return String.format(
+        "%s_%s_%d_%d",
         pNode.getWrapped().getFunctionName(),
         pNode.getNodeKindText(),
         pNode.getFunctionCallId(),
         pNode.getWrapped().getNodeNumber());
   }
 
-  /**
-   * Write the in-lined version of the CFA to the given output.
-   */
+  /** Write the in-lined version of the CFA to the given output. */
   @VisibleForTesting
-  void printInlinedCfa(Map<ReducedNode, Map<ReducedNode, Set<ReducedEdge>>> pInlinedCfa, Writer pOut) throws IOException {
-    for (Entry<ReducedNode, Map<ReducedNode, Set<ReducedEdge>>> outerEntry : pInlinedCfa.entrySet()) {
+  void printInlinedCfa(
+      Map<ReducedNode, Map<ReducedNode, Set<ReducedEdge>>> pInlinedCfa, Writer pOut)
+      throws IOException {
+    for (Entry<ReducedNode, Map<ReducedNode, Set<ReducedEdge>>> outerEntry :
+        pInlinedCfa.entrySet()) {
       ReducedNode u = outerEntry.getKey();
       Map<ReducedNode, Set<ReducedEdge>> uTarget = outerEntry.getValue();
-      for (Entry<ReducedNode, Set<ReducedEdge>> entry: uTarget.entrySet()) {
+      for (Entry<ReducedNode, Set<ReducedEdge>> entry : uTarget.entrySet()) {
         ReducedNode v = entry.getKey();
-        for (int i=0; i < entry.getValue().size(); i++) {
+        for (int i = 0; i < entry.getValue().size(); i++) {
           pOut.append("REL\t")
               .append(getRsfEntryFor(u))
               .append('\t')
@@ -371,20 +381,19 @@ public class BlockedCFAReducer implements BlockComputer {
     }
   }
 
-  /**
-   * Compute the nodes of the given CFA that should be abstraction-nodes.
-   */
+  /** Compute the nodes of the given CFA that should be abstraction-nodes. */
   @Override
   public ImmutableSet<CFANode> computeAbstractionNodes(final CFA pCfa) {
     assert pCfa != null;
-    assert this.inliningStack.isEmpty();
-    assert this.functionCallSeq == 0;
+    assert inliningStack.isEmpty();
+    assert functionCallSeq == 0;
 
-    this.functionCallSeq = 0;
+    functionCallSeq = 0;
     ReducedFunction reducedProgram = inlineAndSummarize(pCfa.getMainFunction(), pCfa);
 
     if (reducedCfaFile != null) {
-      Map<ReducedNode, Map<ReducedNode, Set<ReducedEdge>>> inlinedCfa = reducedProgram.getInlinedCfa();
+      Map<ReducedNode, Map<ReducedNode, Set<ReducedEdge>>> inlinedCfa =
+          reducedProgram.getInlinedCfa();
       try (Writer w = IO.openOutputFile(reducedCfaFile, Charset.defaultCharset())) {
         printInlinedCfa(inlinedCfa, w);
       } catch (IOException e) {
@@ -401,4 +410,3 @@ public class BlockedCFAReducer implements BlockComputer {
     return ImmutableSet.copyOf(result);
   }
 }
-

@@ -61,7 +61,7 @@ class DivAndModElimination extends BooleanFormulaTransformationVisitor {
    */
   private static class DivAndModTransformation extends DefaultFormulaVisitor<Formula> {
 
-    private final static UniqueIdGenerator ID_GENERATOR = new UniqueIdGenerator();
+    private static final UniqueIdGenerator ID_GENERATOR = new UniqueIdGenerator();
 
     private final FormulaManagerView fmgrView;
     private final FormulaManager fmgr;
@@ -106,13 +106,11 @@ class DivAndModElimination extends BooleanFormulaTransformationVisitor {
     }
 
     /**
-     * Transform a modulo operation into a new linear {@link Formula}
-     * and adds it to {@link #additionalAxioms}.
-     * The returned {@link Formula} represents the modulo opertion's result
-     * if that {@link Formula} is satisfied.
+     * Transform a modulo operation into a new linear {@link Formula} and adds it to {@link
+     * #additionalAxioms}. The returned {@link Formula} represents the modulo opertion's result if
+     * that {@link Formula} is satisfied.
      *
      * @return a {@link Formula} representing the result of the modulo operation
-     *
      * @see RewriteDivision
      */
     private Formula transformModulo(Formula dividend, Formula divisor, FormulaType<?> formulaType) {
@@ -161,13 +159,11 @@ class DivAndModElimination extends BooleanFormulaTransformationVisitor {
     }
 
     /**
-     * Transform a division operation into a new linear {@link Formula}
-     * and adds it to {@link #additionalAxioms}.
-     * The returned {@link Formula} represents the divsion's result
-     * if that {@link Formula} is satisfied.
+     * Transform a division operation into a new linear {@link Formula} and adds it to {@link
+     * #additionalAxioms}. The returned {@link Formula} represents the divsion's result if that
+     * {@link Formula} is satisfied.
      *
      * @return a {@link Formula} representing the result of the division operation
-     *
      * @see RewriteDivision
      */
     private Formula transformDivision(

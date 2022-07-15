@@ -101,8 +101,8 @@ public class SymbolicProgramConfiguration {
     return nequality.proveInequality(pValue1, pValue2);
   }
 
-  public SymbolicProgramConfiguration
-      copyAndAddGlobalObject(SMGObject pNewObject, String pVarName) {
+  public SymbolicProgramConfiguration copyAndAddGlobalObject(
+      SMGObject pNewObject, String pVarName) {
     return of(
         smg.copyAndAddObject(pNewObject),
         globalVariableMapping.putAndCopy(pVarName, pNewObject),
@@ -129,8 +129,8 @@ public class SymbolicProgramConfiguration {
         valueMapping);
   }
 
-  public SymbolicProgramConfiguration
-      copyAndAddStackFrame(CFunctionDeclaration pFunctionDefinition, MachineModel model) {
+  public SymbolicProgramConfiguration copyAndAddStackFrame(
+      CFunctionDeclaration pFunctionDefinition, MachineModel model) {
     return of(
         smg,
         globalVariableMapping,
@@ -205,9 +205,9 @@ public class SymbolicProgramConfiguration {
    * Remove a top stack frame from the SMG, along with all objects in it, and any edges leading
    * from/to it.
    *
-   * TODO: A test case with (invalid) passing of an address of a dropped frame object outside, and
-   * working with them. For that, we should probably keep those as invalid, so we can spot such bug.
-   *
+   * <p>TODO: A test case with (invalid) passing of an address of a dropped frame object outside,
+   * and working with them. For that, we should probably keep those as invalid, so we can spot such
+   * bug.
    */
   public SymbolicProgramConfiguration copyAndDropStackFrame() {
     StackFrame frame = stackVariableMapping.peek();
@@ -225,11 +225,10 @@ public class SymbolicProgramConfiguration {
         valueMapping);
   }
 
-  public SymbolicProgramConfiguration
-      copyAndPruneUnreachable(Collection<SMGObject> pUnreachableObjects) {
+  public SymbolicProgramConfiguration copyAndPruneUnreachable(
+      Collection<SMGObject> pUnreachableObjects) {
     Collection<SMGObject> visibleObjects =
-        FluentIterable
-            .concat(
+        FluentIterable.concat(
                 getGolbalVariableToSmgObjectMap().values(),
                 FluentIterable.from(stackVariableMapping)
                     .transformAndConcat(stackFrame -> stackFrame.getAllObjects()))
@@ -379,11 +378,10 @@ public class SymbolicProgramConfiguration {
    * @param pSizeofInBits - the chunks size
    * @return edgeOffset + edgeSize >= pFieldOffset + pSizeofInBits
    */
-  private boolean
-      reachedBlockEnd(SMGHasValueEdge pEdge, BigInteger pFieldOffset, BigInteger pSizeofInBits) {
-    return pEdge.getOffset()
-        .add(pEdge.getSizeInBits())
-        .compareTo(pSizeofInBits.add(pFieldOffset)) >= 0;
+  private boolean reachedBlockEnd(
+      SMGHasValueEdge pEdge, BigInteger pFieldOffset, BigInteger pSizeofInBits) {
+    return pEdge.getOffset().add(pEdge.getSizeInBits()).compareTo(pSizeofInBits.add(pFieldOffset))
+        >= 0;
   }
 
   /**
@@ -397,7 +395,7 @@ public class SymbolicProgramConfiguration {
    * @param readValue - the value which is represented by the edge
    * @param returnCValue - the CValue bits which were already read with previous edges
    * @return the concatenation of returnCValue with the bits of readValue which are in the memory
-   *         chunk
+   *     chunk
    */
   private CValue bitwiseReadValue(
       BigInteger fieldOffset,
@@ -413,8 +411,7 @@ public class SymbolicProgramConfiguration {
     readValue = readValue.shiftRight(leftBitsToBeCutOff);
 
     // Edge may end "after" the chunk to be read. Cut off the bits to right of the chunk.
-    int cutOffCounter =
-        fieldOffset.add(fieldSize).subtract(edgeSize.add(edgeOffset)).intValue();
+    int cutOffCounter = fieldOffset.add(fieldSize).subtract(edgeSize.add(edgeOffset)).intValue();
 
     while (cutOffCounter > 0) {
       readValue = readValue.clearBit(edgeSize.intValue() - cutOffCounter--);
@@ -422,7 +419,5 @@ public class SymbolicProgramConfiguration {
 
     // concatenate the resulting bits with the already computed bit value
     return returnCValue.concat(readValue);
-
   }
-
 }

@@ -74,7 +74,7 @@ final class SMGJoinTargetObjects {
   private boolean checkObjectMatch(SMGObject pObj1, SMGObject pObj2) {
     SMGJoinMatchObjects mo =
         new SMGJoinMatchObjects(status, inputSMG1, inputSMG2, mapping1, mapping2, pObj1, pObj2);
-    if (! mo.isDefined()) {
+    if (!mo.isDefined()) {
       defined = false;
       recoverable = true;
       return true;
@@ -164,7 +164,7 @@ final class SMGJoinTargetObjects {
         target1.join(target2, pLevelMapping.get(SMGJoinLevel.valueOf(pLevel1, pLevel2)));
 
     if (destSMG instanceof CLangSMG) {
-      ((CLangSMG)destSMG).addHeapObject(newObject);
+      ((CLangSMG) destSMG).addHeapObject(newObject);
     } else {
       destSMG.addObject(newObject);
     }
@@ -179,14 +179,29 @@ final class SMGJoinTargetObjects {
     mapping2.map(target2, newObject);
 
     // Algorithm 6 from FIT-TR-2012-04, line 13
-    SMGJoinMapTargetAddress mta = new SMGJoinMapTargetAddress(inputSMG1, inputSMG2, destSMG, mapping1, mapping2, pAddress1, pAddress2);
+    SMGJoinMapTargetAddress mta =
+        new SMGJoinMapTargetAddress(
+            inputSMG1, inputSMG2, destSMG, mapping1, mapping2, pAddress1, pAddress2);
     destSMG = mta.getSMG();
     value = mta.getValue();
 
     // Algorithm 6 from FIT-TR-2012-04, line 14
-    SMGJoinSubSMGs jss = new SMGJoinSubSMGs(status, inputSMG1, inputSMG2, destSMG,
-        mapping1, mapping2, pLevelMapping,
-        target1, target2, newObject, ldiff, identicalInputSmgs, pSmgState1, pSmgState2);
+    SMGJoinSubSMGs jss =
+        new SMGJoinSubSMGs(
+            status,
+            inputSMG1,
+            inputSMG2,
+            destSMG,
+            mapping1,
+            mapping2,
+            pLevelMapping,
+            target1,
+            target2,
+            newObject,
+            ldiff,
+            identicalInputSmgs,
+            pSmgState1,
+            pSmgState2);
 
     if (jss.isDefined()) {
       defined = true;
@@ -205,8 +220,9 @@ final class SMGJoinTargetObjects {
       removeSubSmgAndMappping(oldTarget, mapping1);
 
       for (SMGEdgePointsTo ptE : pointer) {
-        destSMG.addPointsToEdge(new SMGEdgePointsTo(ptE.getValue(), targetObject, ptE.getOffset(),
-            ptE.getTargetSpecifier()));
+        destSMG.addPointsToEdge(
+            new SMGEdgePointsTo(
+                ptE.getValue(), targetObject, ptE.getOffset(), ptE.getTargetSpecifier()));
       }
     }
 
@@ -217,8 +233,8 @@ final class SMGJoinTargetObjects {
 
       for (SMGEdgePointsTo ptE : pointer) {
         destSMG.addPointsToEdge(
-            new SMGEdgePointsTo(ptE.getValue(), targetObject, ptE.getOffset(),
-                ptE.getTargetSpecifier()));
+            new SMGEdgePointsTo(
+                ptE.getValue(), targetObject, ptE.getOffset(), ptE.getTargetSpecifier()));
       }
     }
   }
@@ -269,19 +285,24 @@ final class SMGJoinTargetObjects {
       }
     }
 
-    while(!toBeChecked.isEmpty()) {
+    while (!toBeChecked.isEmpty()) {
       toCheck.clear();
       toCheck.addAll(toBeChecked);
       toBeChecked.clear();
 
-      for(SMGObject objToCheck : toCheck) {
-        removeObjectAndNodesFromDestSMG(objToCheck, reached, toBeChecked, targetObject.getLevel(), pMapping);
+      for (SMGObject objToCheck : toCheck) {
+        removeObjectAndNodesFromDestSMG(
+            objToCheck, reached, toBeChecked, targetObject.getLevel(), pMapping);
       }
     }
   }
 
-  private void removeObjectAndNodesFromDestSMG(SMGObject pObjToCheck, Set<SMGObject> pReached,
-      Set<SMGObject> pToBeChecked, int pLevel, SMGNodeMapping pMapping) {
+  private void removeObjectAndNodesFromDestSMG(
+      SMGObject pObjToCheck,
+      Set<SMGObject> pReached,
+      Set<SMGObject> pToBeChecked,
+      int pLevel,
+      SMGNodeMapping pMapping) {
 
     pMapping.removeValue(pObjToCheck);
     for (SMGEdgeHasValue hve :
@@ -292,8 +313,7 @@ final class SMGJoinTargetObjects {
 
         if (destSMG.isPointer(val)) {
           SMGObject reachedObject = destSMG.getPointer(val).getObject();
-          if (!pReached.contains(reachedObject)
-              && reachedObject.getLevel() <= pLevel) {
+          if (!pReached.contains(reachedObject) && reachedObject.getLevel() <= pLevel) {
             pToBeChecked.add(reachedObject);
             pReached.add(reachedObject);
             pMapping.removeValue(val);

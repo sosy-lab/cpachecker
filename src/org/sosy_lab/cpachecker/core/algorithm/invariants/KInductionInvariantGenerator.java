@@ -128,10 +128,9 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator
 
     @FileOption(Type.OPTIONAL_INPUT_FILE)
     @Option(
-      secure = true,
-      description =
-          "Provides additional candidate invariants to the k-induction invariant generator."
-    )
+        secure = true,
+        description =
+            "Provides additional candidate invariants to the k-induction invariant generator.")
     private Path invariantsAutomatonFile = null;
 
     @Option(
@@ -148,9 +147,8 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator
     private boolean terminateOnCounterexample = false;
 
     @Option(
-      secure = true,
-      description = "Check candidate invariants in a separate thread asynchronously."
-    )
+        secure = true,
+        description = "Check candidate invariants in a separate thread asynchronously.")
     private boolean async = true;
   }
 
@@ -179,7 +177,8 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator
     }
   }
 
-  private final KInductionInvariantGeneratorStatistics stats = new KInductionInvariantGeneratorStatistics();
+  private final KInductionInvariantGeneratorStatistics stats =
+      new KInductionInvariantGeneratorStatistics();
 
   private final BMCAlgorithmForInvariantGeneration algorithm;
   private final ConfigurableProgramAnalysis cpa;
@@ -196,13 +195,14 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator
   private Future<Pair<InvariantSupplier, ExpressionTreeSupplier>> invariantGenerationFuture = null;
 
   @SuppressWarnings("UnnecessaryAnonymousClass") // ShutdownNotifier needs a strong reference
-  private final ShutdownRequestListener shutdownListener = new ShutdownRequestListener() {
+  private final ShutdownRequestListener shutdownListener =
+      new ShutdownRequestListener() {
 
-    @Override
-    public void shutdownRequested(String pReason) {
-      invariantGenerationFuture.cancel(true);
-    }
-  };
+        @Override
+        public void shutdownRequested(String pReason) {
+          invariantGenerationFuture.cancel(true);
+        }
+      };
 
   public static KInductionInvariantGenerator create(
       final Configuration pConfig,
@@ -426,7 +426,8 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator
       try {
         return invariantGenerationFuture.get().getSecond();
       } catch (ExecutionException e) {
-        Throwables.propagateIfPossible(e.getCause(), CPAException.class, InterruptedException.class);
+        Throwables.propagateIfPossible(
+            e.getCause(), CPAException.class, InterruptedException.class);
         throw new UnexpectedCheckedException("invariant generation", e.getCause());
       } catch (CancellationException e) {
         shutdownManager.getNotifier().shutdownIfNecessary();
@@ -575,7 +576,6 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator
    * Gets the relevant assume edges.
    *
    * @param pTargetLocations the predetermined target locations.
-   *
    * @return the relevant assume edges.
    */
   private static Set<AssumeEdge> getRelevantAssumeEdges(Collection<CFANode> pTargetLocations) {
@@ -587,7 +587,7 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator
       for (CFAEdge enteringEdge : CFAUtils.enteringEdges(current)) {
         CFANode predecessor = enteringEdge.getPredecessor();
         if (enteringEdge.getEdgeType() == CFAEdgeType.AssumeEdge) {
-          assumeEdges.add((AssumeEdge)enteringEdge);
+          assumeEdges.add((AssumeEdge) enteringEdge);
         } else if (visited.add(predecessor)) {
           waitlist.add(predecessor);
         }
@@ -864,8 +864,7 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator
                       typePartitions.put(type, decl.getQualifiedName());
                       functions.put(id, e.getPredecessor().getFunction());
                       if (type instanceof CSimpleType) {
-                        constants.add(
-                            machineModel.getMaximalIntegerValue((CSimpleType) type));
+                        constants.add(machineModel.getMaximalIntegerValue((CSimpleType) type));
                       }
                     }
                   }
@@ -945,7 +944,9 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator
           CFANode dummySucc = new CFANode(function);
           for (CExpression instantiatedTemplate : expressions) {
             String raw = "!(" + instantiatedTemplate.toASTString() + ")";
-            CAssumeEdge dummyEdge = new CAssumeEdge(raw, FileLocation.DUMMY, dummyPred, dummySucc, instantiatedTemplate, false);
+            CAssumeEdge dummyEdge =
+                new CAssumeEdge(
+                    raw, FileLocation.DUMMY, dummyPred, dummySucc, instantiatedTemplate, false);
             assumeEdges.add(dummyEdge);
           }
         }

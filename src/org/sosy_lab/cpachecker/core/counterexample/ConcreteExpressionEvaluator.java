@@ -15,19 +15,18 @@ import org.sosy_lab.cpachecker.cfa.ast.AUnaryExpression;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 
 /**
- * Implement this interface to use analysis specific expression evaluation when
- * calculating the error path.
+ * Implement this interface to use analysis specific expression evaluation when calculating the
+ * error path.
  */
 public interface ConcreteExpressionEvaluator {
 
   /**
-   * Checks, if this specific expression should be evaluated with this class.
-   * If it returns false, it will be evaluated based on the concrete expression evaluation
-   * of the value analysis.
+   * Checks, if this specific expression should be evaluated with this class. If it returns false,
+   * it will be evaluated based on the concrete expression evaluation of the value analysis.
    *
    * @param exp expression to be checked.
    * @return True, if the expression should be evaluated with this class, false, if the expression
-   * should be evaluated based on the expression evaluation of the value analysis.
+   *     should be evaluated based on the expression evaluation of the value analysis.
    */
   boolean shouldEvaluateExpressionWithThisEvaluator(AExpression exp);
 

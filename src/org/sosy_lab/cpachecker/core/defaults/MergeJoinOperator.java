@@ -14,25 +14,19 @@ import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
-/**
- * Standard merge-join operator
- */
+/** Standard merge-join operator */
 public class MergeJoinOperator implements MergeOperator {
 
   private final AbstractDomain domain;
 
-  /**
-   * Creates a merge-join operator, based on the given join
-   * operator
-   */
+  /** Creates a merge-join operator, based on the given join operator */
   public MergeJoinOperator(AbstractDomain d) {
-    this.domain = d;
+    domain = d;
   }
 
   @Override
   public AbstractState merge(AbstractState el1, AbstractState el2, Precision p)
-    throws CPAException, InterruptedException {
+      throws CPAException, InterruptedException {
     return domain.join(el1, el2);
   }
-
 }

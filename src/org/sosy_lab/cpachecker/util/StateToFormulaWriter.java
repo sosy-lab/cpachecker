@@ -55,33 +55,39 @@ import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 
 /**
- * This class allows to export the information of abstract states as SMT-formula.
- * Therefore we filter the abstract states for matching {@link FormulaReportingState}s
- * and retrieve the formula from there.
- * Then we export the formulas in a fixed line-based format,
- * which allows re-usage with a further predicate analysis.
+ * This class allows to export the information of abstract states as SMT-formula. Therefore we
+ * filter the abstract states for matching {@link FormulaReportingState}s and retrieve the formula
+ * from there. Then we export the formulas in a fixed line-based format, which allows re-usage with
+ * a further predicate analysis.
  *
- * The solver used for the formula-creation is configured as usual
- * (including options like 'encodeBitVectorAs={Int,BV}').
- * Each abstract state is responsible for correct C-types in its own formula
- * and thus there can be wrong/imprecise bitvector-operations in the formula,
- * for example, every variable can be handled as 'signed integer'.
+ * <p>The solver used for the formula-creation is configured as usual (including options like
+ * 'encodeBitVectorAs={Int,BV}'). Each abstract state is responsible for correct C-types in its own
+ * formula and thus there can be wrong/imprecise bitvector-operations in the formula, for example,
+ * every variable can be handled as 'signed integer'.
  */
-@Options(prefix="statesToFormulas")
+@Options(prefix = "statesToFormulas")
 public class StateToFormulaWriter implements StatisticsProvider {
 
-  @Option(secure=true, description="export abstract states as formula, e.g. for re-using them as PredicatePrecision.")
+  @Option(
+      secure = true,
+      description =
+          "export abstract states as formula, e.g. for re-using them as PredicatePrecision.")
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private Path exportFile = null; // default is null to disable unwanted output of big files
 
-  @Option(secure=true,
-      description="instead of writing the exact state-representation as a single formula, "
-      + "write its atoms as a list of formulas. Therefore we ignore operators for conjunction and disjunction.")
+  @Option(
+      secure = true,
+      description =
+          "instead of writing the exact state-representation as a single formula, write its atoms"
+              + " as a list of formulas. Therefore we ignore operators for conjunction and"
+              + " disjunction.")
   private FormulaSplitter splitFormulas = FormulaSplitter.LOCATION;
 
-  @Option(secure=true,
-      description="export formulas for all program locations or just the important locations,"
-          + "which include loop-heads, funtion-calls and function-exits.")
+  @Option(
+      secure = true,
+      description =
+          "export formulas for all program locations or just the important locations,"
+              + "which include loop-heads, funtion-calls and function-exits.")
   private boolean exportOnlyImporantLocations = false;
 
   private static final Splitter LINE_SPLITTER = Splitter.on('\n').omitEmptyStrings();
@@ -93,14 +99,13 @@ public class StateToFormulaWriter implements StatisticsProvider {
 
   public enum FormulaSplitter {
     LOCATION, // one formula per location: "(a=2&b=3)|(a=2&b=4)"
-    STATE,    // one formula per state: "a=2&b=3", "a=2&b=4"
-    ATOM      // really split into atoms: "a=2", "b=3", "b=4"
+    STATE, // one formula per state: "a=2&b=3", "a=2&b=4"
+    ATOM // really split into atoms: "a=2", "b=3", "b=4"
   }
 
   public StateToFormulaWriter(
-      Configuration config, LogManager pLogger,
-      ShutdownNotifier shutdownNotifier, CFA pCfa)
-          throws InvalidConfigurationException {
+      Configuration config, LogManager pLogger, ShutdownNotifier shutdownNotifier, CFA pCfa)
+      throws InvalidConfigurationException {
     config.inject(this);
     logger = pLogger;
     cfa = pCfa;
@@ -148,19 +153,18 @@ public class StateToFormulaWriter implements StatisticsProvider {
     for (AbstractState state : pReachedSet) {
       CFANode location = extractLocation(state);
       if (location != null && isImportantNode(location)) {
-        FluentIterable<FormulaReportingState> formulaState = asIterable(state).filter(FormulaReportingState.class);
+        FluentIterable<FormulaReportingState> formulaState =
+            asIterable(state).filter(FormulaReportingState.class);
         locationPredicates.putAll(location, formulaState);
       }
-
     }
     write(locationPredicates, pAppendable);
   }
 
   /**
-   * Filter important program locations.
-   * In some cases we re-use only states at abstraction locations,
-   * which include loop-starts and function calls.
-   * We use a simple filter-mechanism to export only them!
+   * Filter important program locations. In some cases we re-use only states at abstraction
+   * locations, which include loop-starts and function calls. We use a simple filter-mechanism to
+   * export only them!
    */
   private boolean isImportantNode(CFANode location) {
     if (exportOnlyImporantLocations) {
@@ -182,11 +186,14 @@ public class StateToFormulaWriter implements StatisticsProvider {
       final CFANode pCfaNode, UnmodifiableReachedSet pReachedSet, Appendable pAppendable)
       throws IOException {
     SetMultimap<CFANode, FormulaReportingState> statesToNode = HashMultimap.create();
-    statesToNode.putAll(pCfaNode, projectToType(filterLocation(pReachedSet, pCfaNode), FormulaReportingState.class));
+    statesToNode.putAll(
+        pCfaNode,
+        projectToType(filterLocation(pReachedSet, pCfaNode), FormulaReportingState.class));
     write(statesToNode, pAppendable);
   }
 
-  private void write(SetMultimap<CFANode, FormulaReportingState> pStates, Appendable pAppendable) throws IOException {
+  private void write(SetMultimap<CFANode, FormulaReportingState> pStates, Appendable pAppendable)
+      throws IOException {
 
     // (global) definitions used for predicates
     final Set<String> definitions = new LinkedHashSet<>();
@@ -223,8 +230,8 @@ public class StateToFormulaWriter implements StatisticsProvider {
         // atomize formulas
         formulas = formulas.flatMap(f -> fmgr.extractAtoms(f, false).stream());
         break;
-    default:
-      throw new AssertionError("unknown option");
+      default:
+        throw new AssertionError("unknown option");
     }
 
     // filter out formulas with no information
@@ -260,10 +267,13 @@ public class StateToFormulaWriter implements StatisticsProvider {
     cfaNodeToPredicate.put(cfaNode, predString);
   }
 
-  /** write the definitions and predicates in the commonly used precision-format
-   *  (that is defined somewhere else...)*/
-  private void writeFormulas(Appendable pAppendable, Set<String> definitions,
-      Multimap<CFANode, String> cfaNodeToPredicate) throws IOException {
+  /**
+   * write the definitions and predicates in the commonly used precision-format (that is defined
+   * somewhere else...)
+   */
+  private void writeFormulas(
+      Appendable pAppendable, Set<String> definitions, Multimap<CFANode, String> cfaNodeToPredicate)
+      throws IOException {
 
     // write definitions to file
     LINE_JOINER.appendTo(pAppendable, definitions);

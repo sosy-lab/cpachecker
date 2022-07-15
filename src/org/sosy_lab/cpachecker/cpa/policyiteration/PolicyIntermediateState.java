@@ -21,27 +21,20 @@ import org.sosy_lab.java_smt.api.Model.ValueAssignment;
 
 public final class PolicyIntermediateState extends PolicyState {
 
-  /**
-   * Formula + SSA associated with the state.
-   */
+  /** Formula + SSA associated with the state. */
   private final PathFormula pathFormula;
 
-  /**
-   * Abstract state representing start of the trace.
-   */
+  /** Abstract state representing start of the trace. */
   private final PolicyAbstractedState startingAbstraction;
 
   private @Nullable transient ImmutableList<ValueAssignment> counterexample = null;
-  /**
-   * Meta-information for determining the coverage.
-   */
+  /** Meta-information for determining the coverage. */
   private @Nullable transient PolicyIntermediateState mergedInto = null;
+
   private transient int hashCache = 0;
 
   private PolicyIntermediateState(
-      CFANode node,
-      PathFormula pPathFormula,
-      PolicyAbstractedState pStartingAbstraction) {
+      CFANode node, PathFormula pPathFormula, PolicyAbstractedState pStartingAbstraction) {
     super(node);
 
     pathFormula = pPathFormula;
@@ -49,24 +42,16 @@ public final class PolicyIntermediateState extends PolicyState {
   }
 
   public static PolicyIntermediateState of(
-      CFANode node,
-      PathFormula pPathFormula,
-      PolicyAbstractedState generatingState
-  ) {
-    return new PolicyIntermediateState(
-        node, pPathFormula, generatingState);
+      CFANode node, PathFormula pPathFormula, PolicyAbstractedState generatingState) {
+    return new PolicyIntermediateState(node, pPathFormula, generatingState);
   }
 
   public void setCounterexample(ImmutableList<ValueAssignment> pCounterexample) {
     counterexample = pCounterexample;
   }
 
-  public PolicyIntermediateState withPathFormula(
-      PathFormula pPathFormula
-  ) {
-    return new PolicyIntermediateState(
-        getNode(), pPathFormula, startingAbstraction
-    );
+  public PolicyIntermediateState withPathFormula(PathFormula pPathFormula) {
+    return new PolicyIntermediateState(getNode(), pPathFormula, startingAbstraction);
   }
 
   public void setMergedInto(PolicyIntermediateState other) {
@@ -91,27 +76,25 @@ public final class PolicyIntermediateState extends PolicyState {
     return false;
   }
 
-  /**
-   * Iterator for all states <em>including</em> this one,
-   * up to the analysis root.
-   */
+  /** Iterator for all states <em>including</em> this one, up to the analysis root. */
   Iterable<PolicyIntermediateState> allStatesToRoot() {
     PolicyIntermediateState pThis = this;
-    Iterator<PolicyIntermediateState> it = new Iterator<>() {
-      private Optional<PolicyIntermediateState> cursor = Optional.of(pThis);
+    Iterator<PolicyIntermediateState> it =
+        new Iterator<>() {
+          private Optional<PolicyIntermediateState> cursor = Optional.of(pThis);
 
-      @Override
-      public boolean hasNext() {
-        return cursor.isPresent();
-      }
+          @Override
+          public boolean hasNext() {
+            return cursor.isPresent();
+          }
 
-      @Override
-      public PolicyIntermediateState next() {
-        PolicyIntermediateState toReturn = cursor.orElseThrow();
-        cursor = cursor.orElseThrow().getBackpointerState().getGeneratingState();
-        return toReturn;
-      }
-    };
+          @Override
+          public PolicyIntermediateState next() {
+            PolicyIntermediateState toReturn = cursor.orElseThrow();
+            cursor = cursor.orElseThrow().getBackpointerState().getGeneratingState();
+            return toReturn;
+          }
+        };
     return () -> it;
   }
 
@@ -137,10 +120,10 @@ public final class PolicyIntermediateState extends PolicyState {
       return false;
     }
     PolicyIntermediateState that = (PolicyIntermediateState) pO;
-    return Objects.equals(pathFormula, that.pathFormula) &&
-        Objects.equals(startingAbstraction, that.startingAbstraction) &&
-        Objects.equals(mergedInto, that.mergedInto) &&
-        Objects.equals(getNode(), that.getNode());
+    return Objects.equals(pathFormula, that.pathFormula)
+        && Objects.equals(startingAbstraction, that.startingAbstraction)
+        && Objects.equals(mergedInto, that.mergedInto)
+        && Objects.equals(getNode(), that.getNode());
   }
 
   @Override

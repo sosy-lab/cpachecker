@@ -48,15 +48,14 @@ import org.sosy_lab.cpachecker.cfa.parser.Scope;
 import org.sosy_lab.cpachecker.exceptions.NoException;
 import org.sosy_lab.cpachecker.util.CParserUtils;
 
-/**
- * Provides methods for generating, comparing and printing the ASTs generated from String.
- */
+/** Provides methods for generating, comparing and printing the ASTs generated from String. */
 class AutomatonASTComparator {
 
   /**
-   * Every occurrence of the joker expression $? in the pattern is substituted by JOKER_EXPR.
-   * This is necessary because the C-parser cannot parse the pattern if it contains Dollar-Symbols.
-   * The JOKER_EXPR must be a valid C-Identifier. It will be used to recognize the jokers in the generated AST.
+   * Every occurrence of the joker expression $? in the pattern is substituted by JOKER_EXPR. This
+   * is necessary because the C-parser cannot parse the pattern if it contains Dollar-Symbols. The
+   * JOKER_EXPR must be a valid C-Identifier. It will be used to recognize the jokers in the
+   * generated AST.
    */
   static final String JOKER_EXPR = "CPAchecker_AutomatonAnalysis_JokerExpression_Wildcard";
 
@@ -97,9 +96,7 @@ class AutomatonASTComparator {
     return result.toString();
   }
 
-  /**
-   * The interface for a pre-compiled AST pattern.
-   */
+  /** The interface for a pre-compiled AST pattern. */
   interface ASTMatcher {
 
     boolean matches(CAstNode pSource, AutomatonExpressionArguments pArgs);
@@ -263,8 +260,7 @@ class AutomatonASTComparator {
         parameterPatterns.add(parameter.accept(this));
       }
 
-      if ((parameterPatterns.size() == 1)
-          && (parameterPatterns.get(0) == JokerMatcher.INSTANCE)) {
+      if ((parameterPatterns.size() == 1) && (parameterPatterns.get(0) == JokerMatcher.INSTANCE)) {
         // pattern is something like foo($?), this should match all calls of foo(),
         // regardless of the number of parameters
         return createMatcher(
@@ -308,12 +304,12 @@ class AutomatonASTComparator {
 
     @Override
     public ASTMatcher visit(final CExpressionAssignmentStatement stmt) {
-      return visit((CAssignment)stmt);
+      return visit((CAssignment) stmt);
     }
 
     @Override
     public ASTMatcher visit(CFunctionCallAssignmentStatement stmt) {
-      return visit((CAssignment)stmt);
+      return visit((CAssignment) stmt);
     }
 
     @Override

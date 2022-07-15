@@ -28,10 +28,9 @@ public class ARGTransferRelation extends AbstractSingleWrapperTransferRelation {
   }
 
   @Override
-  public Collection<ARGState> getAbstractSuccessors(
-      AbstractState pElement, Precision pPrecision)
+  public Collection<ARGState> getAbstractSuccessors(AbstractState pElement, Precision pPrecision)
       throws CPATransferException, InterruptedException {
-    ARGState element = (ARGState)pElement;
+    ARGState element = (ARGState) pElement;
 
     // covered elements may be in the reached set, but should always be ignored
     if (element.isCovered()) {
@@ -69,7 +68,7 @@ public class ARGTransferRelation extends AbstractSingleWrapperTransferRelation {
 
     throw new UnsupportedOperationException(
         "ARGCPA needs to be used as the outer-most CPA,"
-        + " thus it does not support returning successors for a single edge.");
+            + " thus it does not support returning successors for a single edge.");
   }
 
   @Override

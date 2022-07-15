@@ -61,47 +61,45 @@ import org.sosy_lab.cpachecker.util.Pair;
 
 public class UseDefRelation {
 
-  /**
-   * the set of variables of boolean character
-   */
+  /** the set of variables of boolean character */
   private Set<String> booleanVariables = new HashSet<>();
 
   /**
    * the use-def relation
    *
-   * The key of the map has to be the {@link Pair} of {@link ARGState} and {@link CFAEdge}.
-   * {@link ARGState} alone would not be precise enough because of multi edges,
-   * and {@link CFAEdge}s alone would not be precise enough because one edge may occur
-   * multiple times in a {@link ARGPath}.
+   * <p>The key of the map has to be the {@link Pair} of {@link ARGState} and {@link CFAEdge}.
+   * {@link ARGState} alone would not be precise enough because of multi edges, and {@link CFAEdge}s
+   * alone would not be precise enough because one edge may occur multiple times in a {@link
+   * ARGPath}.
    */
-  private final Map<Pair<ARGState, CFAEdge>, Pair<Set<ASimpleDeclaration>, Set<ASimpleDeclaration>>> relation = new LinkedHashMap<>();
+  private final Map<Pair<ARGState, CFAEdge>, Pair<Set<ASimpleDeclaration>, Set<ASimpleDeclaration>>>
+      relation = new LinkedHashMap<>();
 
   /**
    * the cache for storing uses that are not yet resolved
    *
-   * This information also contained in the relation, but would require iterating over it
-   * to find such uses. Rather than iterating, a cache is used to store this information.
+   * <p>This information also contained in the relation, but would require iterating over it to find
+   * such uses. Rather than iterating, a cache is used to store this information.
    */
   private final Set<ASimpleDeclaration> unresolvedUses = new HashSet<>();
 
   /**
-   * the flag to determine, if the final (failing, contradicting) assume edge
-   * has already been handled (mind that the traversal proceeds in reverse order)
+   * the flag to determine, if the final (failing, contradicting) assume edge has already been
+   * handled (mind that the traversal proceeds in reverse order)
    */
   private boolean hasContradictingAssumeEdgeBeenHandled = false;
 
   /**
-   * the flag to determine if all assume operations should add to the use-def-relation
-   * instead of only the final (failing, contradicting) one
+   * the flag to determine if all assume operations should add to the use-def-relation instead of
+   * only the final (failing, contradicting) one
    */
   private boolean addAllAssumes = false;
 
-  public UseDefRelation(final ARGPath path,
-      final Set<String> pBooleanVariables,
-      final boolean pAddAllAssumes) {
+  public UseDefRelation(
+      final ARGPath path, final Set<String> pBooleanVariables, final boolean pAddAllAssumes) {
 
     booleanVariables = pBooleanVariables;
-    addAllAssumes    = pAddAllAssumes;
+    addAllAssumes = pAddAllAssumes;
 
     buildRelation(path);
   }
@@ -163,7 +161,7 @@ public class UseDefRelation {
       updateUseDefRelation(state, edge);
 
       // stop the traversal once a fix-point is reached
-      if(hasContradictingAssumeEdgeBeenHandled && unresolvedUses.isEmpty()) {
+      if (hasContradictingAssumeEdgeBeenHandled && unresolvedUses.isEmpty()) {
         break;
       }
     }
@@ -173,15 +171,18 @@ public class UseDefRelation {
     return unresolvedUses.contains(use);
   }
 
-  private void addUseDef(ARGState state, CFAEdge edge, ASimpleDeclaration def, ASimpleDeclaration use) {
+  private void addUseDef(
+      ARGState state, CFAEdge edge, ASimpleDeclaration def, ASimpleDeclaration use) {
     updateRelation(state, edge, Sets.newHashSet(def), Sets.newHashSet(use));
   }
 
-  private void addUseDef(ARGState state, CFAEdge edge, ASimpleDeclaration def, Set<ASimpleDeclaration> uses) {
+  private void addUseDef(
+      ARGState state, CFAEdge edge, ASimpleDeclaration def, Set<ASimpleDeclaration> uses) {
     updateRelation(state, edge, Sets.newHashSet(def), uses);
   }
 
-  private void addUseDef(ARGState state, CFAEdge edge, Set<ASimpleDeclaration> defs, Set<ASimpleDeclaration> uses) {
+  private void addUseDef(
+      ARGState state, CFAEdge edge, Set<ASimpleDeclaration> defs, Set<ASimpleDeclaration> uses) {
     updateRelation(state, edge, defs, uses);
   }
 
@@ -189,7 +190,8 @@ public class UseDefRelation {
     updateRelation(state, edge, ImmutableSet.of(), uses);
   }
 
-  private void updateRelation(ARGState state, CFAEdge edge, Set<ASimpleDeclaration> defs, Set<ASimpleDeclaration> uses) {
+  private void updateRelation(
+      ARGState state, CFAEdge edge, Set<ASimpleDeclaration> defs, Set<ASimpleDeclaration> uses) {
     assert !relation.containsKey(Pair.of(state, edge))
         : "There is already a use-def entry for this pair of state, edge";
 
@@ -199,7 +201,7 @@ public class UseDefRelation {
   }
 
   private Collection<ASimpleDeclaration> getDef(ARGState state, CFAEdge edge) {
-    if(relation.containsKey(Pair.of(state, edge))) {
+    if (relation.containsKey(Pair.of(state, edge))) {
       return relation.get(Pair.of(state, edge)).getFirst();
     } else {
       return ImmutableSet.of();
@@ -207,7 +209,7 @@ public class UseDefRelation {
   }
 
   private Collection<ASimpleDeclaration> getUses(ARGState state, CFAEdge edge) {
-    if(relation.containsKey(Pair.of(state, edge))) {
+    if (relation.containsKey(Pair.of(state, edge))) {
       return relation.get(Pair.of(state, edge)).getSecond();
     } else {
       return ImmutableSet.of();
@@ -216,27 +218,31 @@ public class UseDefRelation {
 
   private void updateUseDefRelation(ARGState state, CFAEdge edge) {
     switch (edge.getEdgeType()) {
-
       case FunctionReturnEdge:
-        AFunctionCall summaryExpr = ((FunctionReturnEdge)edge).getSummaryEdge().getExpression();
+        AFunctionCall summaryExpr = ((FunctionReturnEdge) edge).getSummaryEdge().getExpression();
 
         if (summaryExpr instanceof AFunctionCallAssignmentStatement) {
-          Set<ASimpleDeclaration> assignedVariables = acceptLeft(((CFunctionCallAssignmentStatement) summaryExpr).getLeftHandSide());
+          Set<ASimpleDeclaration> assignedVariables =
+              acceptLeft(((CFunctionCallAssignmentStatement) summaryExpr).getLeftHandSide());
 
-          if(assignedVariables.size() > 1) {
+          if (assignedVariables.size() > 1) {
             break;
           }
 
           ASimpleDeclaration assignedVariable = Iterables.getOnlyElement(assignedVariables);
-          if(hasUnresolvedUse(assignedVariable)) {
-            addUseDef(state, edge, assignedVariable, ((FunctionReturnEdge)edge).getFunctionEntry().getReturnVariable().get());
+          if (hasUnresolvedUse(assignedVariable)) {
+            addUseDef(
+                state,
+                edge,
+                assignedVariable,
+                ((FunctionReturnEdge) edge).getFunctionEntry().getReturnVariable().get());
           }
         }
 
         break;
 
       case DeclarationEdge:
-        CDeclaration declaration = ((CDeclarationEdge)edge).getDeclaration();
+        CDeclaration declaration = ((CDeclarationEdge) edge).getDeclaration();
 
         // only variable declarations are of interest
         if (declaration instanceof AVariableDeclaration && hasUnresolvedUse(declaration)) {
@@ -246,7 +252,7 @@ public class UseDefRelation {
         break;
 
       case ReturnStatementEdge:
-        AReturnStatementEdge returnStatementEdge = (AReturnStatementEdge)edge;
+        AReturnStatementEdge returnStatementEdge = (AReturnStatementEdge) edge;
         if (returnStatementEdge.asAssignment().isPresent()) {
           handleAssignments(returnStatementEdge.asAssignment().get(), edge, state);
         }
@@ -273,16 +279,16 @@ public class UseDefRelation {
 
       case AssumeEdge:
         if (hasContradictingAssumeEdgeBeenHandled) {
-          handleFeasibleAssumption(state, (CAssumeEdge)edge);
+          handleFeasibleAssumption(state, (CAssumeEdge) edge);
         } else {
           hasContradictingAssumeEdgeBeenHandled = !addAllAssumes;
-          addUseDef(state, edge, acceptAll(((CAssumeEdge)edge).getExpression()));
+          addUseDef(state, edge, acceptAll(((CAssumeEdge) edge).getExpression()));
         }
 
         break;
 
       case StatementEdge:
-        CStatement statement = ((CStatementEdge)edge).getStatement();
+        CStatement statement = ((CStatementEdge) edge).getStatement();
 
         if (statement instanceof AExpressionAssignmentStatement
             || statement instanceof AFunctionCallAssignmentStatement) {
@@ -309,20 +315,16 @@ public class UseDefRelation {
     ASimpleDeclaration operand = null;
     if (binaryExpression.getOperand1() instanceof CIdExpression
         && binaryExpression.getOperand2() instanceof CLiteralExpression) {
-      operand = ((CIdExpression)binaryExpression.getOperand1()).getDeclaration();
-    }
-
-    else if (binaryExpression.getOperand2() instanceof CIdExpression
+      operand = ((CIdExpression) binaryExpression.getOperand1()).getDeclaration();
+    } else if (binaryExpression.getOperand2() instanceof CIdExpression
         && binaryExpression.getOperand1() instanceof CLiteralExpression) {
-      operand = ((CIdExpression)binaryExpression.getOperand2()).getDeclaration();
+      operand = ((CIdExpression) binaryExpression.getOperand2()).getDeclaration();
     }
 
     if (isEquality(assumeEdge, binaryExpression.getOperator()) && hasUnresolvedUse(operand)) {
       addUseDef(state, assumeEdge, operand, ImmutableSet.of());
-    }
-
-    else {
-      if(isInequality(assumeEdge, binaryExpression.getOperator())
+    } else {
+      if (isInequality(assumeEdge, binaryExpression.getOperator())
           && hasUnresolvedUse(operand)
           && hasBooleanCharacter(operand)) {
         addUseDef(state, assumeEdge, operand, ImmutableSet.of());
@@ -340,7 +342,7 @@ public class UseDefRelation {
   }
 
   private boolean isInequality(CAssumeEdge assumeEdge, BinaryOperator operator) {
-    return ((assumeEdge.getTruthAssumption() && operator== BinaryOperator.NOT_EQUALS)
+    return ((assumeEdge.getTruthAssumption() && operator == BinaryOperator.NOT_EQUALS)
         || (!assumeEdge.getTruthAssumption() && operator == BinaryOperator.EQUALS));
   }
 
@@ -358,10 +360,7 @@ public class UseDefRelation {
         .toSet();
   }
 
-
-  /**
-   * This method computes the variables that are used in the declaration of a variable.
-   */
+  /** This method computes the variables that are used in the declaration of a variable. */
   private Set<ASimpleDeclaration> getVariablesUsedInDeclaration(CDeclaration declaration) {
     AInitializer initializer = ((AVariableDeclaration) declaration).getInitializer();
 
@@ -373,12 +372,14 @@ public class UseDefRelation {
   }
 
   /**
-   * This method computes the variables that are used for initializing another variable from a given initializer.
+   * This method computes the variables that are used for initializing another variable from a given
+   * initializer.
    */
   private Set<ASimpleDeclaration> getVariablesUsedForInitialization(AInitializer initializer) {
     // e.g. .x=b or .p.x.=1  as part of struct initialization
     if (initializer instanceof CDesignatedInitializer) {
-      return getVariablesUsedForInitialization(((CDesignatedInitializer) initializer).getRightHandSide());
+      return getVariablesUsedForInitialization(
+          ((CDesignatedInitializer) initializer).getRightHandSide());
     }
 
     // e.g. {a, b, s->x} (array) , {.x=1, .y=0} (initialization of struct, array)
@@ -390,13 +391,9 @@ public class UseDefRelation {
       }
 
       return readVars;
-    }
-
-    else if (initializer instanceof AInitializerExpression) {
+    } else if (initializer instanceof AInitializerExpression) {
       return acceptAll(((AInitializerExpression) initializer).getExpression());
-    }
-
-    else {
+    } else {
       throw new AssertionError("Missing case for if-then-else statement.");
     }
   }
@@ -408,25 +405,25 @@ public class UseDefRelation {
     final Set<ASimpleDeclaration> leftHandSideUses =
         from(allLeftHandSideVariables).filter(not(in(assignedVariables))).toSet();
 
-    if(assignedVariables.size() > 1) {
+    if (assignedVariables.size() > 1) {
       return;
     }
 
-/*
-    // hack to handle assignments of structs, which keeps the whole struct in "use" all the time,
-    // until is is reassigned, and not only a single field
-    // if assigned variable is resolving a dependency
-    if (dependencies.contains(Iterables.getOnlyElement(assignedVariables))) {
-      // hack to handle assignments of structs (keeps the whole struct in use all the time)
-      if(leftHandSide.toString().contains("->")) {
-        //Syso("NO remove " + Iterables.getOnlyElement(assignedVariables) + " in " + leftHandSide.toString());
-        addDependency(assignedVariables);
-      }
-      else {
-        //Syso("DO remove " + Iterables.getOnlyElement(assignedVariables) + " in " + leftHandSide.toString());
-        dependencies.remove(Iterables.getOnlyElement(assignedVariables));
-      }
-*/
+    /*
+        // hack to handle assignments of structs, which keeps the whole struct in "use" all the time,
+        // until is is reassigned, and not only a single field
+        // if assigned variable is resolving a dependency
+        if (dependencies.contains(Iterables.getOnlyElement(assignedVariables))) {
+          // hack to handle assignments of structs (keeps the whole struct in use all the time)
+          if(leftHandSide.toString().contains("->")) {
+            //Syso("NO remove " + Iterables.getOnlyElement(assignedVariables) + " in " + leftHandSide.toString());
+            addDependency(assignedVariables);
+          }
+          else {
+            //Syso("DO remove " + Iterables.getOnlyElement(assignedVariables) + " in " + leftHandSide.toString());
+            dependencies.remove(Iterables.getOnlyElement(assignedVariables));
+          }
+    */
 
     // if assigned variable is resolving a dependency
     if (hasUnresolvedUse(Iterables.getOnlyElement(assignedVariables))) {
@@ -437,21 +434,26 @@ public class UseDefRelation {
       // all variables of the right hand side are "used" afterwards
       if (assignment instanceof AExpressionAssignmentStatement) {
         rightHandSideUses = acceptAll((AExpression) assignment.getRightHandSide());
-      } else if (assignment instanceof AFunctionCallAssignmentStatement){
+      } else if (assignment instanceof AFunctionCallAssignmentStatement) {
         AFunctionCallAssignmentStatement funcStmt = (AFunctionCallAssignmentStatement) assignment;
-        rightHandSideUses = getVariablesUsedAsParameters(funcStmt.getFunctionCallExpression().getParameterExpressions());
+        rightHandSideUses =
+            getVariablesUsedAsParameters(
+                funcStmt.getFunctionCallExpression().getParameterExpressions());
       } else {
         throw new AssertionError("Unhandled assignment type.");
       }
 
-      addUseDef(state, edge, Iterables.getOnlyElement(assignedVariables), Sets.union(leftHandSideUses, rightHandSideUses));
+      addUseDef(
+          state,
+          edge,
+          Iterables.getOnlyElement(assignedVariables),
+          Sets.union(leftHandSideUses, rightHandSideUses));
     }
   }
 
-  /**
-   * This method returns the variables that are used in a given list of CExpressions.
-   */
-  private Set<ASimpleDeclaration> getVariablesUsedAsParameters(List<? extends AExpression> parameters) {
+  /** This method returns the variables that are used in a given list of CExpressions. */
+  private Set<ASimpleDeclaration> getVariablesUsedAsParameters(
+      List<? extends AExpression> parameters) {
     Set<ASimpleDeclaration> usedParameters = new HashSet<>();
     for (AExpression expression : parameters) {
       usedParameters.addAll(acceptAll(expression));

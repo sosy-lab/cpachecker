@@ -30,8 +30,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.Pair;
-import org.sosy_lab.cpachecker.util.dependencegraph.Dominance;
-import org.sosy_lab.cpachecker.util.dependencegraph.Dominance.DomTree;
+import org.sosy_lab.cpachecker.util.graph.dominance.DomTree;
 
 public class TestTargetReductionSpanningSet {
 
@@ -43,9 +42,8 @@ public class TestTargetReductionSpanningSet {
                 constructSubsumptionGraph(pTargets, pCfa.getMainFunction()))));
   }
 
-
-  private ImmutableSet<CFAEdgeNode>
-      constructSubsumptionGraph(final Set<CFAEdge> pTargets, FunctionEntryNode pStartNode) {
+  private ImmutableSet<CFAEdgeNode> constructSubsumptionGraph(
+      final Set<CFAEdge> pTargets, FunctionEntryNode pStartNode) {
     ImmutableSet.Builder<CFAEdgeNode> nodeBuilder = ImmutableSet.builder();
 
     CFAEdgeNode node;
@@ -72,12 +70,12 @@ public class TestTargetReductionSpanningSet {
 
     DomTree<CFANode>
         domTree =
-            Dominance.createDomTree(
-                entryExit.getFirst(), CFAUtils::allSuccessorsOf, CFAUtils::allPredecessorsOf),
+            DomTree.forGraph(
+                CFAUtils::allPredecessorsOf, CFAUtils::allSuccessorsOf, entryExit.getFirst()),
         inverseDomTree =
             entryExit.getSecond() != null
-                ? Dominance.createDomTree(
-                    entryExit.getSecond(), CFAUtils::allPredecessorsOf, CFAUtils::allSuccessorsOf)
+                ? DomTree.forGraph(
+                    CFAUtils::allSuccessorsOf, CFAUtils::allPredecessorsOf, entryExit.getSecond())
                 : null;
 
     for (CFAEdge targetPred : pTargets) {
@@ -89,18 +87,18 @@ public class TestTargetReductionSpanningSet {
         if (targetPred.getSuccessor().getNumEnteringEdges() == 1
             && targetSucc.getSuccessor().getNumEnteringEdges() == 1
             && (domTree.isAncestorOf( // pred is ancestor/dominator of succ
-                    domTree.getId(targetToCopy.get(targetPred).getSuccessor()),
-                    domTree.getId(targetToCopy.get(targetSucc).getSuccessor()))
+                    targetToCopy.get(targetPred).getSuccessor(),
+                    targetToCopy.get(targetSucc).getSuccessor())
                 || (inverseDomTree != null
                     && inverseDomTree.isAncestorOf(
-                        inverseDomTree.getId(targetToCopy.get(targetPred).getSuccessor()),
-                        inverseDomTree.getId(targetToCopy.get(targetSucc).getSuccessor()))))) {
+                        targetToCopy.get(targetPred).getSuccessor(),
+                        targetToCopy.get(targetSucc).getSuccessor())))) {
           /*
            * Implementation of Arcs subsumes?. An arc e subsumes an arc e’ if every path from the
            * entry arc to e contains e’ or else if every path from e to the exit arc contains e’
            * [4], i.e., if AL(eo,e’,e) or AL(e,e’,e~).
            */
-            edgeToNode.get(targetPred).addEdgeTo(edgeToNode.get(targetSucc));
+          edgeToNode.get(targetPred).addEdgeTo(edgeToNode.get(targetSucc));
         }
       }
     }
@@ -108,8 +106,8 @@ public class TestTargetReductionSpanningSet {
     return nodeBuilder.build();
   }
 
-  private ImmutableSet<Collection<CFAEdgeNode>>
-      computeStronglyConnectedComponents(final ImmutableSet<CFAEdgeNode> nodes) {
+  private ImmutableSet<Collection<CFAEdgeNode>> computeStronglyConnectedComponents(
+      final ImmutableSet<CFAEdgeNode> nodes) {
     ImmutableSet.Builder<Collection<CFAEdgeNode>> componentsBuilder = ImmutableSet.builder();
     Deque<CFAEdgeNode> componentElems, ordered = new ArrayDeque<>(nodes.size());
 
@@ -143,8 +141,8 @@ public class TestTargetReductionSpanningSet {
     }
   }
 
-  private ImmutableSet<CFAEdgeNode>
-      reduceSubsumptionGraph(final ImmutableSet<Collection<CFAEdgeNode>> pComponents) {
+  private ImmutableSet<CFAEdgeNode> reduceSubsumptionGraph(
+      final ImmutableSet<Collection<CFAEdgeNode>> pComponents) {
     ImmutableSet.Builder<CFAEdgeNode> nodeBuilder = ImmutableSet.builder();
 
     for (Collection<CFAEdgeNode> component : pComponents) {
@@ -158,7 +156,7 @@ public class TestTargetReductionSpanningSet {
     // set must not be immutable
     return new HashSet<>(
         FluentIterable.from(pNodes)
-        .filter(node -> node.isLeave())
+            .filter(node -> node.isLeave())
             .transform(node -> node.representativeTarget)
             .toSet());
   }
@@ -227,5 +225,4 @@ public class TestTargetReductionSpanningSet {
           + "\n";
     }
   }
-
 }

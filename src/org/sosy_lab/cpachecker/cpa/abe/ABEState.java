@@ -12,15 +12,14 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 
 /**
- * Abstract or intermediate state of ABE-based analysis.
- * Intermediate state (representing formula) is the same for all implementations
- * ({@link ABEIntermediateState}) while abstracted state (representing
- * abstraction)
- * is provided by the interface {@link ABEAbstractedState}
- * and the implementation differs.
+ * Abstract or intermediate state of ABE-based analysis. Intermediate state (representing formula)
+ * is the same for all implementations ({@link ABEIntermediateState}) while abstracted state
+ * (representing abstraction) is provided by the interface {@link ABEAbstractedState} and the
+ * implementation differs.
  */
 public interface ABEState<A extends ABEAbstractedState<A>> extends AbstractState {
   boolean isAbstract();
+
   CFANode getNode();
 
   default ABEIntermediateState<A> asIntermediate() {

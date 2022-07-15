@@ -19,7 +19,7 @@ class DefaultRegionManager extends AbstractMemoryRegionManager implements Memory
     private final CType type;
 
     DefaultMemoryRegion(CType pType) {
-      this.type = pType;
+      type = pType;
     }
 
     @Override

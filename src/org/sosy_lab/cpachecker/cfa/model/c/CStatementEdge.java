@@ -17,13 +17,15 @@ public class CStatementEdge extends AStatementEdge implements CCfaEdge {
 
   private static final long serialVersionUID = -2606975234598958304L;
 
-  public CStatementEdge(String pRawStatement, CStatement pStatement,
-      FileLocation pFileLocation, CFANode pPredecessor, CFANode pSuccessor) {
+  public CStatementEdge(
+      String pRawStatement,
+      CStatement pStatement,
+      FileLocation pFileLocation,
+      CFANode pPredecessor,
+      CFANode pSuccessor) {
 
     super(pRawStatement, pStatement, pFileLocation, pPredecessor, pSuccessor);
   }
-
-
 
   @Override
   public CStatement getStatement() {

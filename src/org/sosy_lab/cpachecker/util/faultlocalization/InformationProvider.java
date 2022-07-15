@@ -24,8 +24,7 @@ import org.sosy_lab.cpachecker.util.faultlocalization.appendables.FaultInfo;
 public class InformationProvider {
 
   /**
-   * Search for iteration variables and for suspicious
-   * calculations within the array subscript.
+   * Search for iteration variables and for suspicious calculations within the array subscript.
    *
    * @param faults ranked faults
    * @param edges counterexample as list of edges

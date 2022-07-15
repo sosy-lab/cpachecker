@@ -29,11 +29,11 @@ class ReducedFunction {
     assert pEntryNode != null;
     assert pExitNode != null;
 
-    this.cfaEdges = HashBasedTable.create();
-    this.activeNodes = HashMultiset.create();
+    cfaEdges = HashBasedTable.create();
+    activeNodes = HashMultiset.create();
 
-    this.entryNode = pEntryNode;
-    this.exitNode = pExitNode;
+    entryNode = pEntryNode;
+    exitNode = pExitNode;
   }
 
   public ReducedEdge addEdge(ReducedNode pFrom, ReducedNode pTo) {
@@ -77,16 +77,16 @@ class ReducedFunction {
 
   public void insertFunctionSum(ReducedFunction pToInline) {
     // Copy CFA edges.
-    this.cfaEdges.putAll(pToInline.cfaEdges);
-    this.activeNodes.addAll(pToInline.activeNodes);
+    cfaEdges.putAll(pToInline.cfaEdges);
+    activeNodes.addAll(pToInline.activeNodes);
   }
 
   public ReducedNode getEntryNode() {
-    return this.entryNode;
+    return entryNode;
   }
 
   public ReducedNode getExitNode() {
-    return this.exitNode;
+    return exitNode;
   }
 
   public Map<ReducedNode, Map<ReducedNode, Set<ReducedEdge>>> getInlinedCfa() {
@@ -96,7 +96,7 @@ class ReducedFunction {
   public List<ReducedEdge> getLeavingEdges(ReducedNode pOfNode) {
     List<ReducedEdge> result = new ArrayList<>();
     Collection<Set<ReducedEdge>> edges = cfaEdges.row(pOfNode).values();
-    for (Set<ReducedEdge> edgesToNode: edges) {
+    for (Set<ReducedEdge> edgesToNode : edges) {
       result.addAll(edgesToNode);
     }
 
@@ -106,7 +106,7 @@ class ReducedFunction {
   public int getNumEnteringEdges(ReducedNode pOfNode) {
     int result = 0;
     Collection<Set<ReducedEdge>> edges = cfaEdges.column(pOfNode).values();
-    for (Set<ReducedEdge> edgesToNode: edges) {
+    for (Set<ReducedEdge> edgesToNode : edges) {
       result += edgesToNode.size();
     }
     return result;
@@ -115,7 +115,7 @@ class ReducedFunction {
   public int getNumLeavingEdges(ReducedNode pOfNode) {
     int result = 0;
     Collection<Set<ReducedEdge>> edges = cfaEdges.row(pOfNode).values();
-    for (Set<ReducedEdge> edgesToNode: edges) {
+    for (Set<ReducedEdge> edgesToNode : edges) {
       result += edgesToNode.size();
     }
     return result;
@@ -126,6 +126,6 @@ class ReducedFunction {
   }
 
   public Set<ReducedNode> getAllActiveNodes() {
-    return this.activeNodes.elementSet();
+    return activeNodes.elementSet();
   }
 }

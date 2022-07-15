@@ -28,10 +28,10 @@ public abstract class AArrayType implements Type {
 
   @Override
   public int hashCode() {
-      final int prime = 31;
-      int result = 7;
-      result = prime * result + Objects.hashCode(elementType);
-      return result;
+    final int prime = 31;
+    int result = 7;
+    result = prime * result + Objects.hashCode(elementType);
+    return result;
   }
 
   @Override
@@ -48,6 +48,4 @@ public abstract class AArrayType implements Type {
 
     return Objects.equals(elementType, other.elementType);
   }
-
-
 }

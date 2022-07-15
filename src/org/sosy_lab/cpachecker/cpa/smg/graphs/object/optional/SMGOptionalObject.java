@@ -15,11 +15,10 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObjectKind;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObjectVisitor;
 
 /**
- * Abstraction that represents states either containing a concrete region
- * represented by this abstract object, or no region. Every field of this
- * object may only contain the same value. Every pointer leading to this
- * object either lead to the concrete region represented by this object,
- * or to the one value leading from this object.
+ * Abstraction that represents states either containing a concrete region represented by this
+ * abstract object, or no region. Every field of this object may only contain the same value. Every
+ * pointer leading to this object either lead to the concrete region represented by this object, or
+ * to the one value leading from this object.
  */
 public class SMGOptionalObject extends SMGObject implements SMGAbstractObject {
 
@@ -77,7 +76,7 @@ public class SMGOptionalObject extends SMGObject implements SMGAbstractObject {
 
     assert getSize() == pOther.getSize();
 
-    int level = Math.max(this.getLevel(), pOther.getLevel());
+    int level = Math.max(getLevel(), pOther.getLevel());
 
     switch (pOther.getKind()) {
       case REG:

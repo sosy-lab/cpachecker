@@ -32,9 +32,7 @@ import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BitvectorFormula;
 import org.sosy_lab.java_smt.api.Formula;
 
-/**
- * Converting {@link Template} to {@link Formula}.
- */
+/** Converting {@link Template} to {@link Formula}. */
 public final class TemplateToFormulaConversionManager {
   private final CFA cfa;
 
@@ -46,8 +44,7 @@ public final class TemplateToFormulaConversionManager {
           CFANode.newDummyCFANode("dummy-2"),
           "Dummy Edge");
 
-  private final Map<ToFormulaCacheKey, Formula> toFormulaCache =
-      new HashMap<>();
+  private final Map<ToFormulaCacheKey, Formula> toFormulaCache = new HashMap<>();
   private final CBinaryExpressionBuilder expressionBuilder;
 
   public TemplateToFormulaConversionManager(CFA pCfa, LogManager logger) {
@@ -56,10 +53,10 @@ public final class TemplateToFormulaConversionManager {
   }
 
   /**
-   * Convert {@code template} to {@link Formula}, using
-   * {@link org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap} and
-   * the {@link org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSet}
-   * provided by {@code contextFormula}.
+   * Convert {@code template} to {@link Formula}, using {@link
+   * org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap} and the {@link
+   * org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSet} provided
+   * by {@code contextFormula}.
    *
    * @return Resulting formula.
    */
@@ -68,14 +65,13 @@ public final class TemplateToFormulaConversionManager {
       FormulaManagerView fmgr,
       Template template,
       PathFormula contextFormula) {
-    ToFormulaCacheKey key =
-        new ToFormulaCacheKey(pfmgr, fmgr, template, contextFormula);
+    ToFormulaCacheKey key = new ToFormulaCacheKey(pfmgr, fmgr, template, contextFormula);
     Formula out = toFormulaCache.get(key);
     if (out != null) {
       return out;
     }
     Formula sum = null;
-    int maxBitvectorSize = getBitvectorSize(template, pfmgr, contextFormula,fmgr);
+    int maxBitvectorSize = getBitvectorSize(template, pfmgr, contextFormula, fmgr);
 
     for (Entry<CIdExpression, Rational> entry : template.getLinearExpression()) {
       Rational coeff = entry.getValue();
@@ -83,8 +79,7 @@ public final class TemplateToFormulaConversionManager {
 
       final Formula item;
       try {
-        Formula f = pfmgr.expressionToFormula(
-            contextFormula, declaration, dummyEdge);
+        Formula f = pfmgr.expressionToFormula(contextFormula, declaration, dummyEdge);
         item = normalizeLength(f, maxBitvectorSize, fmgr);
       } catch (UnrecognizedCodeException e) {
         throw new UnsupportedOperationException();
@@ -95,11 +90,10 @@ public final class TemplateToFormulaConversionManager {
         continue;
       } else if (coeff.equals(Rational.NEG_ONE)) {
         multipliedItem = fmgr.makeNegate(item);
-      } else if (coeff.equals(Rational.ONE)){
+      } else if (coeff.equals(Rational.ONE)) {
         multipliedItem = item;
       } else {
-        multipliedItem = fmgr.makeMultiply(
-            item, fmgr.makeNumber(item, entry.getValue()));
+        multipliedItem = fmgr.makeMultiply(item, fmgr.makeNumber(item, entry.getValue()));
       }
 
       if (sum == null) {
@@ -116,10 +110,8 @@ public final class TemplateToFormulaConversionManager {
   public boolean isOverflowing(Template template, Rational v) {
     CSimpleType templateType = getTemplateType(template);
     if (templateType.getType().isIntegerType()) {
-      BigInteger maxValue = cfa.getMachineModel()
-          .getMaximalIntegerValue(templateType);
-      BigInteger minValue = cfa.getMachineModel()
-          .getMinimalIntegerValue(templateType);
+      BigInteger maxValue = cfa.getMachineModel().getMaximalIntegerValue(templateType);
+      BigInteger minValue = cfa.getMachineModel().getMinimalIntegerValue(templateType);
 
       // The bound obtained is larger than the highest representable
       // value, ignore it.
@@ -137,29 +129,27 @@ public final class TemplateToFormulaConversionManager {
     // also note: there is an overall _expression_ type.
     // Wonder how that one is computed --- it actually depends on the order of
     // the operands.
-    for (Entry<CIdExpression, Rational> e: t.getLinearExpression()) {
+    for (Entry<CIdExpression, Rational> e : t.getLinearExpression()) {
       CIdExpression expr = e.getKey();
       if (sum == null) {
         sum = expr;
       } else {
-        sum = expressionBuilder.buildBinaryExpressionUnchecked(
-            sum, expr, BinaryOperator.PLUS);
+        sum = expressionBuilder.buildBinaryExpressionUnchecked(sum, expr, BinaryOperator.PLUS);
       }
     }
     assert sum != null;
     return (CSimpleType) sum.getExpressionType();
   }
 
-  private int getBitvectorSize(Template t, PathFormulaManager pfmgr,
-                               PathFormula contextFormula, FormulaManagerView fmgr) {
+  private int getBitvectorSize(
+      Template t, PathFormulaManager pfmgr, PathFormula contextFormula, FormulaManagerView fmgr) {
     int length = 0;
 
     // Figure out the maximum bitvector size.
     for (Entry<CIdExpression, Rational> entry : t.getLinearExpression()) {
       Formula item;
       try {
-        item = pfmgr.expressionToFormula(
-            contextFormula, entry.getKey(), dummyEdge);
+        item = pfmgr.expressionToFormula(contextFormula, entry.getKey(), dummyEdge);
       } catch (UnrecognizedCodeException e) {
         throw new UnsupportedOperationException();
       }
@@ -167,24 +157,21 @@ public final class TemplateToFormulaConversionManager {
         continue;
       }
       BitvectorFormula b = (BitvectorFormula) item;
-      length = Math.max(
-          fmgr.getBitvectorFormulaManager().getLength(b),
-          length);
+      length = Math.max(fmgr.getBitvectorFormulaManager().getLength(b), length);
     }
     return length;
   }
 
-  private Formula normalizeLength(Formula f, int maxBitvectorSize,
-                                  FormulaManagerView fmgr) {
+  private Formula normalizeLength(Formula f, int maxBitvectorSize, FormulaManagerView fmgr) {
     if (!(f instanceof BitvectorFormula)) {
       return f;
     }
     BitvectorFormula bv = (BitvectorFormula) f;
-    return fmgr.getBitvectorFormulaManager().extend(
-        bv,
-        Math.max(0,
-            maxBitvectorSize - fmgr.getBitvectorFormulaManager().getLength(bv)),
-        true);
+    return fmgr.getBitvectorFormulaManager()
+        .extend(
+            bv,
+            Math.max(0, maxBitvectorSize - fmgr.getBitvectorFormulaManager().getLength(bv)),
+            true);
   }
 
   private static class ToFormulaCacheKey {
@@ -192,7 +179,6 @@ public final class TemplateToFormulaConversionManager {
     private final FormulaManagerView formulaManagerView;
     private final Template template;
     private final PathFormula contextFormula;
-
 
     private ToFormulaCacheKey(
         PathFormulaManager pPathFormulaManager,
@@ -215,26 +201,28 @@ public final class TemplateToFormulaConversionManager {
       }
       ToFormulaCacheKey that = (ToFormulaCacheKey) pO;
       return pathFormulaManager == that.pathFormulaManager
-          && formulaManagerView == that.formulaManagerView &&
-          Objects.equals(template, that.template) &&
-          Objects.equals(contextFormula, that.contextFormula);
+          && formulaManagerView == that.formulaManagerView
+          && Objects.equals(template, that.template)
+          && Objects.equals(contextFormula, that.contextFormula);
     }
 
     @Override
     public int hashCode() {
-      return Objects
-          .hash(pathFormulaManager, formulaManagerView, template,
-              contextFormula);
+      return Objects.hash(pathFormulaManager, formulaManagerView, template, contextFormula);
     }
 
     @Override
     public String toString() {
-      return "ToFormulaCacheKey{" +
-          "pathFormulaManager=" + pathFormulaManager +
-          ", formulaManagerView=" + formulaManagerView +
-          ", template=" + template +
-          ", contextFormula=" + contextFormula +
-          '}';
+      return "ToFormulaCacheKey{"
+          + "pathFormulaManager="
+          + pathFormulaManager
+          + ", formulaManagerView="
+          + formulaManagerView
+          + ", template="
+          + template
+          + ", contextFormula="
+          + contextFormula
+          + '}';
     }
   }
 }

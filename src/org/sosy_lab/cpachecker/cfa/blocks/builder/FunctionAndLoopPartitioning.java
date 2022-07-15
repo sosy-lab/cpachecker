@@ -13,17 +13,16 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 
-
-/**
- * <code>PartitioningHeuristic</code> that creates blocks for each loop- and function-body.
- */
+/** <code>PartitioningHeuristic</code> that creates blocks for each loop- and function-body. */
 public class FunctionAndLoopPartitioning extends CompositePartitioning {
 
   public FunctionAndLoopPartitioning(LogManager pLogger, CFA pCfa, Configuration pConfig)
       throws InvalidConfigurationException {
-    super(pLogger, pCfa, pConfig,
+    super(
+        pLogger,
+        pCfa,
+        pConfig,
         new FunctionPartitioning(pLogger, pCfa, pConfig),
         new LoopPartitioning(pLogger, pCfa, pConfig));
   }
-
 }

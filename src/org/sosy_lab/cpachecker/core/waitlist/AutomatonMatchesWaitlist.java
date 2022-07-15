@@ -12,7 +12,6 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonState;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 
-
 public class AutomatonMatchesWaitlist extends AbstractSortedWaitlist<Integer> {
 
   protected AutomatonMatchesWaitlist(WaitlistFactory pSecondaryStrategy) {
@@ -22,7 +21,8 @@ public class AutomatonMatchesWaitlist extends AbstractSortedWaitlist<Integer> {
   @Override
   protected Integer getSortKey(AbstractState pState) {
     int sortKey = 0;
-    for (AutomatonState automatonState : AbstractStates.asIterable(pState).filter(AutomatonState.class)) {
+    for (AutomatonState automatonState :
+        AbstractStates.asIterable(pState).filter(AutomatonState.class)) {
       sortKey = Math.max(sortKey, automatonState.getMatches());
     }
 

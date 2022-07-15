@@ -49,7 +49,7 @@ public class ControlFlowDistanceMetric implements DistanceMetric {
   private final DistanceCalculationHelper distanceHelper;
 
   public ControlFlowDistanceMetric(DistanceCalculationHelper pDistanceCalculationHelper) {
-    this.distanceHelper = pDistanceCalculationHelper;
+    distanceHelper = pDistanceCalculationHelper;
   }
 
   @Override

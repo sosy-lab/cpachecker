@@ -11,11 +11,17 @@ package org.sosy_lab.cpachecker.cpa.usage.refinement;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 
-
 public interface RefinementInterface {
 
-  void update(Class<? extends RefinementInterface> callerClass, Class<? extends RefinementInterface> dstClass, Object data);
+  void update(
+      Class<? extends RefinementInterface> callerClass,
+      Class<? extends RefinementInterface> dstClass,
+      Object data);
+
   void start(Class<? extends RefinementInterface> callerClass);
-  void finish(Class<? extends RefinementInterface> callerClass) throws CPAException, InterruptedException;
+
+  void finish(Class<? extends RefinementInterface> callerClass)
+      throws CPAException, InterruptedException;
+
   void printStatistics(StatisticsWriter pOut);
 }

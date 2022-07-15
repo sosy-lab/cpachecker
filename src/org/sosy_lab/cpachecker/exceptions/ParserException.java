@@ -12,10 +12,10 @@ import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 
 /**
- * Exception thrown if an error occurs during parsing step (e.g. because the
- * parser library throws an exception).
+ * Exception thrown if an error occurs during parsing step (e.g. because the parser library throws
+ * an exception).
  */
-public  class ParserException extends Exception {
+public class ParserException extends Exception {
 
   private static final long serialVersionUID = 2377475523222364935L;
 

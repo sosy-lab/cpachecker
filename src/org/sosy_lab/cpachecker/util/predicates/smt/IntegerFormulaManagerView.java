@@ -19,15 +19,13 @@ public class IntegerFormulaManagerView
   private final IntegerFormulaManager integerFormulaManager;
 
   IntegerFormulaManagerView(
-      FormulaWrappingHandler pWrappingHandler,
-      IntegerFormulaManager pManager) {
+      FormulaWrappingHandler pWrappingHandler, IntegerFormulaManager pManager) {
     super(pWrappingHandler, pManager);
     integerFormulaManager = pManager;
   }
 
   @Override
-  public BooleanFormula modularCongruence(
-      IntegerFormula number1, IntegerFormula number2, long n) {
+  public BooleanFormula modularCongruence(IntegerFormula number1, IntegerFormula number2, long n) {
     return integerFormulaManager.modularCongruence(number1, number2, n);
   }
 

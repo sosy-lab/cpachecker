@@ -30,9 +30,7 @@ import org.sosy_lab.cpachecker.cpa.smg2.SymbolicProgramConfiguration;
 import org.sosy_lab.cpachecker.util.smg.SMG;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGObject;
 
-/**
- * Class implementing joinSPC algorithm10 from FIT-TR-2013-4 (Appendix C.7)
- */
+/** Class implementing joinSPC algorithm10 from FIT-TR-2013-4 (Appendix C.7) */
 public class SMGJoinSPC extends SMGAbstractJoin {
 
   private final SymbolicProgramConfiguration inputSPC1;
@@ -58,8 +56,8 @@ public class SMGJoinSPC extends SMGAbstractJoin {
 
     // step 2 and 3 loop over all variables and apply joinSubSMGS on
     // global heap mapping
-    for (Map.Entry<String, SMGObject> variableAndObject : inputSPC1.getGolbalVariableToSmgObjectMap()
-        .entrySet()) {
+    for (Map.Entry<String, SMGObject> variableAndObject :
+        inputSPC1.getGolbalVariableToSmgObjectMap().entrySet()) {
       SMGObject destObject =
           joinVariable(
               variableAndObject.getValue(),
@@ -79,10 +77,7 @@ public class SMGJoinSPC extends SMGAbstractJoin {
       for (Map.Entry<String, SMGObject> variableAndObject : frameInSMG1.getVariables().entrySet()) {
         SMGObject localInSMG1 = variableAndObject.getValue();
         SMGObject localInSMG2 = frameInSMG2.getVariable(variableAndObject.getKey());
-        SMGObject destObject =
-            joinVariable(
-                localInSMG1,
-                localInSMG2);
+        SMGObject destObject = joinVariable(localInSMG1, localInSMG2);
         frameMapping.put(variableAndObject.getKey(), destObject);
         if (status.equals(SMGJoinStatus.INCOMPARABLE)) {
           return;
@@ -113,24 +108,17 @@ public class SMGJoinSPC extends SMGAbstractJoin {
 
     // step 5
     resultSPC =
-        SymbolicProgramConfiguration
-            .of(
-                destSMG,
-                PathCopyingPersistentTreeMap.copyOf(resultGolbalMapping),
-                resultStackMapping,
-                PersistentSet.of(),
-                PersistentSet.of(),
-                PersistentBiMap.of());
+        SymbolicProgramConfiguration.of(
+            destSMG,
+            PathCopyingPersistentTreeMap.copyOf(resultGolbalMapping),
+            resultStackMapping,
+            PersistentSet.of(),
+            PersistentSet.of(),
+            PersistentBiMap.of());
   }
 
-
-
-  /**
-   * Apply joinSubSMG on the two input SMG and the SMGObjects connected to a certain variable.
-   */
-  private SMGObject joinVariable(
-      SMGObject obj1,
-      SMGObject obj2) {
+  /** Apply joinSubSMG on the two input SMG and the SMGObjects connected to a certain variable. */
+  private SMGObject joinVariable(SMGObject obj1, SMGObject obj2) {
     // step 2-1 and 3-1 create fresh region
     SMGObject newObject = obj1.freshCopy();
     destSMG = destSMG.copyAndAddObject(newObject);
@@ -140,16 +128,7 @@ public class SMGJoinSPC extends SMGAbstractJoin {
     // step 3 join on the newly created region
     SMGJoinSubSMGs joinSubSMGs =
         new SMGJoinSubSMGs(
-            status,
-            inputSMG1,
-            inputSMG2,
-            destSMG,
-            mapping1,
-            mapping2,
-            obj1,
-            obj2,
-            newObject,
-            0);
+            status, inputSMG1, inputSMG2, destSMG, mapping1, mapping2, obj1, obj2, newObject, 0);
 
     if (!joinSubSMGs.isDefined() || joinSubSMGs.isRecoverableFailur()) {
       // join failed
@@ -164,14 +143,10 @@ public class SMGJoinSPC extends SMGAbstractJoin {
   private void checkVariableRanges() {
     Set<String> spc1Variables = inputSPC1.getGolbalVariableToSmgObjectMap().keySet();
     Set<String> spc2Variables = inputSPC2.getGolbalVariableToSmgObjectMap().keySet();
-    checkArgument(
-        spc1Variables.containsAll(spc2Variables),
-        "Variable ranges are not equal.");
+    checkArgument(spc1Variables.containsAll(spc2Variables), "Variable ranges are not equal.");
   }
-
 
   public SymbolicProgramConfiguration getResult() {
     return resultSPC;
   }
-
 }

@@ -8,12 +8,28 @@ SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
 SPDX-License-Identifier: Apache-2.0
 -->
 
+Changes since CPAchecker 2.1.1
+------------------------------
+* Preparation for Java 18  
+  CPAchecker before revision 39743 might not work correctly if
+  - Java 18 or newer is used,
+  - the system's default encoding is different from UTF-8
+    (this is usually the case on Windows, but uncommon on Linux and Mac), and
+  - non-ASCII characters appear in input files or are otherwise relevant during the analysis.
+  This is due to a change in Java, for full details cf. [JEP 400](https://openjdk.java.net/jeps/400).
+  Note that due to the same change, textual output files of CPAchecker
+  on non-UTF-8 machines will be in the system encoding if Java 17 or older is used
+  and in UTF-8 if Java 18 or newer is used
+  (this behavior is the same for all versions of CPAchecker).
+
+
 Changes from CPAchecker 2.1 to CPAchecker 2.1.1
 -----------------------------------------------
 * CPAchecker can be used as abstract model explorer
   and precision refiner for component-based CEGAR
   (cf. "Decomposing Software Verification into Off-the-Shelf Components:
   An Application to CEGAR", Proc. ICSE, 2022, to be released).
+
 
 Changes from CPAchecker 2.0 to CPAchecker 2.1
 ---------------------------------------------

@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.cfa.ast.java;
 import com.google.common.collect.ImmutableList;
 import java.util.List;
 import java.util.Objects;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.ast.AbstractExpression;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.types.java.JArrayType;
@@ -35,14 +36,14 @@ import org.sosy_lab.cpachecker.cfa.types.java.JArrayType;
 public final class JArrayCreationExpression extends AbstractExpression implements JExpression {
 
   private static final long serialVersionUID = 8794036217601570272L;
-  private final List<JExpression> length;
-  private final JArrayInitializer initializer;
+  private final ImmutableList<JExpression> length;
+  private final @Nullable JArrayInitializer initializer;
   // TODO Type Variables < Type { , Type } >
 
   public JArrayCreationExpression(
       FileLocation pFileLocation,
       JArrayType pType,
-      JArrayInitializer pInitializer,
+      @Nullable JArrayInitializer pInitializer,
       List<JExpression> pLength) {
     super(pFileLocation, pType);
     length = ImmutableList.copyOf(pLength);
@@ -78,11 +79,11 @@ public final class JArrayCreationExpression extends AbstractExpression implement
     return v.visit(this);
   }
 
-  public List<JExpression> getLength() {
+  public ImmutableList<JExpression> getLength() {
     return length;
   }
 
-  public JArrayInitializer getInitializer() {
+  public @Nullable JArrayInitializer getInitializer() {
     return initializer;
   }
 

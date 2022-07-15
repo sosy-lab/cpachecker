@@ -52,7 +52,7 @@ public class SMGEdgeHasValue extends SMGEdge implements Comparable<SMGEdgeHasVal
 
   @Override
   public boolean isConsistentWith(SMGEdge other) {
-    if (! (other instanceof SMGEdgeHasValue)) {
+    if (!(other instanceof SMGEdgeHasValue)) {
       return false;
     }
 

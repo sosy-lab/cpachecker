@@ -16,15 +16,13 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 public interface UnsoundRefiner extends Refiner {
 
   /**
-   * Any unsound refiner, like, e.g., the {@link ValueAnalysisImpactRefiner}
-   * whose refinement procedure leaves the coverage relation in an inconsistent
-   * state, must ensure that a complete re-exploration of the state-space must
-   * be performed before finishing the analysis.
+   * Any unsound refiner, like, e.g., the {@link ValueAnalysisImpactRefiner} whose refinement
+   * procedure leaves the coverage relation in an inconsistent state, must ensure that a complete
+   * re-exploration of the state-space must be performed before finishing the analysis.
    *
-   * To this end, all states except the root state must be removed from the
-   * reached set, and a valid precision must be put in place, e.g. by calling
-   * the respective {@link ARGReachedSet#removeSubtree(ARGState)} method.
-   *
+   * <p>To this end, all states except the root state must be removed from the reached set, and a
+   * valid precision must be put in place, e.g. by calling the respective {@link
+   * ARGReachedSet#removeSubtree(ARGState)} method.
    */
   void forceRestart(ReachedSet reached) throws InterruptedException;
 }

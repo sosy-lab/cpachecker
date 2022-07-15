@@ -20,6 +20,7 @@ import com.google.common.base.Splitter;
 import com.google.common.collect.Collections2;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.SetMultimap;
 import com.google.common.io.Resources;
@@ -36,6 +37,7 @@ import java.nio.file.Path;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.EnumSet;
 import java.util.HashMap;
@@ -68,6 +70,8 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.core.CPAchecker;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
+import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.FaultLocalizationInfoWithTraceFormula;
+import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.trace_formula.precondition.PreCondition;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.core.specification.Specification;
@@ -99,22 +103,22 @@ public class ReportGenerator {
   private final LogManager logger;
 
   @Option(
-    secure = true,
-    name = "report.export",
-    description = "Generate HTML report with analysis result.")
+      secure = true,
+      name = "report.export",
+      description = "Generate HTML report with analysis result.")
   private boolean generateReport = true;
 
   @Option(
-    secure = true,
-    name = "report.file",
-    description = "File name for analysis report in case no counterexample was found.")
+      secure = true,
+      name = "report.file",
+      description = "File name for analysis report in case no counterexample was found.")
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private Path reportFile = Path.of("Report.html");
 
   @Option(
-    secure = true,
-    name = "counterexample.export.report",
-    description = "File name for analysis report in case a counterexample was found.")
+      secure = true,
+      name = "counterexample.export.report",
+      description = "File name for analysis report in case a counterexample was found.")
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private PathTemplate counterExampleFiles = PathTemplate.ofFormatString("Counterexample.%d.html");
 
@@ -290,26 +294,21 @@ public class ReportGenerator {
       }
     } catch (IOException e) {
       logger.logUserException(
-          WARNING,
-          e,
-          "Could not create report: Processing of HTML template failed.");
+          WARNING, e, "Could not create report: Processing of HTML template failed.");
     }
   }
 
-  private void insertJsFile(
-      Writer writer,
-      String file)
-      throws IOException {
+  private void insertJsFile(Writer writer, String file) throws IOException {
     try (BufferedReader reader =
         Resources.asCharSource(Resources.getResource(getClass(), file), StandardCharsets.UTF_8)
             .openBufferedStream(); ) {
-          String line;
-          while (null != (line = reader.readLine())) {
-              writer.write(line);
-              writer.write('\n');
-          }
-        }
+      String line;
+      while (null != (line = reader.readLine())) {
+        writer.write(line);
+        writer.write('\n');
       }
+    }
+  }
 
   private void insertJs(
       Writer writer,
@@ -318,14 +317,14 @@ public class ReportGenerator {
       DOTBuilder2 dotBuilder,
       @Nullable CounterexampleInfo counterExample)
       throws IOException {
-        insertCfaJson(writer, cfa, dotBuilder, counterExample);
-        insertArgJson(writer);
-        insertSourceFileNames(writer, allInputFiles);
+    insertCfaJson(writer, cfa, dotBuilder, counterExample);
+    insertArgJson(writer);
+    insertSourceFileNames(writer, allInputFiles);
 
-        insertJsFile(writer, WORKER_DATA_TEMPLATE);
-        insertJsFile(writer, VENDOR_JS_TEMPLATE);
-        insertJsFile(writer, JS_TEMPLATE);
-      }
+    insertJsFile(writer, WORKER_DATA_TEMPLATE);
+    insertJsFile(writer, VENDOR_JS_TEMPLATE);
+    insertJsFile(writer, JS_TEMPLATE);
+  }
 
   private void insertCfaJson(
       Writer writer, CFA cfa, DOTBuilder2 dotBuilder, @Nullable CounterexampleInfo counterExample)
@@ -355,14 +354,17 @@ public class ReportGenerator {
 
     if (counterExample != null) {
       if (counterExample instanceof FaultLocalizationInfo) {
-        FaultLocalizationInfo flInfo = (FaultLocalizationInfo)counterExample;
+        FaultLocalizationInfo flInfo = (FaultLocalizationInfo) counterExample;
         flInfo.prepare();
         writer.write(",\n\"errorPath\":");
         counterExample.toJSON(writer);
         writer.write(",\n\"faults\":");
         flInfo.faultsToJSON(writer);
         writer.write(",\n\"precondition\":");
-        flInfo.writePrecondition(writer);
+        JSON.writeJSONString(
+            ImmutableMap.of(
+                "fl-precondition", extractPreconditionFromFaultLocalizationInfo(flInfo)),
+            writer);
       } else {
         writer.write(",\n\"errorPath\":");
         counterExample.toJSON(writer);
@@ -373,6 +375,29 @@ public class ReportGenerator {
     dotBuilder.writeCfaInfo(writer);
     writer.write("\n}\n");
     writer.write("window.cfaJson = cfaJson;\n");
+  }
+
+  private String extractPreconditionFromFaultLocalizationInfo(FaultLocalizationInfo fInfo) {
+    if (!(fInfo instanceof FaultLocalizationInfoWithTraceFormula)) {
+      return "";
+    }
+    List<String> preconditionParts = new ArrayList<>();
+    PreCondition preCondition =
+        ((FaultLocalizationInfoWithTraceFormula) fInfo).getTraceFormula().getPrecondition();
+    for (CFAEdge cfaEdge : preCondition.getEdgesForPrecondition()) {
+      String input = cfaEdge.getCode().replaceAll(";", "");
+      List<String> parts = Splitter.on(" ").limit(2).splitToList(input);
+      assert !parts.isEmpty() : "Splitter split " + input + " into 0 parts.";
+      if (parts.size() == 1) {
+        preconditionParts.add(parts.get(0));
+      } else {
+        preconditionParts.add(parts.get(1));
+      }
+    }
+    if (preconditionParts.isEmpty()) {
+      preconditionParts.add("true");
+    }
+    return Joiner.on(" && ").join(preconditionParts);
   }
 
   private void insertArgJson(Writer writer) throws IOException {
@@ -439,7 +464,10 @@ public class ReportGenerator {
   private void insertStatistics(Writer writer, String statistics) throws IOException {
     int counter = 0;
     String insertTableLine =
-        "<table  id=\"statistics_table\" class=\"display\" style=\"width:100%;padding: 10px\" class=\"table table-bordered\"><thead class=\"thead-light\"><tr><th scope=\"col\">Statistics Name</th><th scope=\"col\">Statistics Value</th scope=\"col\"><th>Additional Value</th></tr></thead><tbody>\n";
+        "<table  id=\"statistics_table\" class=\"display\" style=\"width:100%;padding: 10px\""
+            + " class=\"table table-bordered\"><thead class=\"thead-light\"><tr><th"
+            + " scope=\"col\">Statistics Name</th><th scope=\"col\">Statistics Value</th><th"
+            + " scope=\"col\">Additional Value</th></tr></thead><tbody>\n";
     writer.write(insertTableLine);
     for (String line : LINE_SPLITTER.split(statistics)) {
       if (!line.contains(":") && !line.trim().isEmpty() && !line.contains("----------")) {
@@ -507,8 +535,7 @@ public class ReportGenerator {
       try (BufferedReader source =
           new BufferedReader(
               new InputStreamReader(
-                  new FileInputStream(sourcePath.toFile()),
-                  Charset.defaultCharset()))) {
+                  new FileInputStream(sourcePath.toFile()), Charset.defaultCharset()))) {
         writer.write(
             "<div id=\"source-file\" class=\"sourceContent\" ng-show = \"sourceFileIsSet("
                 + sourceFileNumber
@@ -537,7 +564,10 @@ public class ReportGenerator {
     Iterable<String> lines = LINE_SPLITTER.split(config.asPropertiesString());
     int iterator = 0;
     String insertTableLine =
-        "<table  id=\"config_table\" class=\"display\" style=\"width:100%;padding: 10px\" class=\"table table-bordered\"><thead class=\"thead-light\"><tr><th scope=\"col\">#</th><th scope=\"col\">Configuration Name</th><th scope=\"col\">Configuration Value</th></tr></thead><tbody>\n";
+        "<table  id=\"config_table\" class=\"display\" style=\"width:100%;padding: 10px\""
+            + " class=\"table table-bordered\"><thead class=\"thead-light\"><tr><th"
+            + " scope=\"col\">#</th><th scope=\"col\">Configuration Name</th><th"
+            + " scope=\"col\">Configuration Value</th></tr></thead><tbody>\n";
     writer.write(insertTableLine);
     for (String line : lines) {
       List<String> splitLine = Splitter.on('=').limit(2).splitToList(line);
@@ -568,14 +598,10 @@ public class ReportGenerator {
       final Splitter logDateSplitter = Splitter.on(' ').limit(2);
 
       String insertTableLine =
-          "<table  id=\"log_table\" class=\"display\" style=\"width:100%;padding: 10px\" class=\"table table-bordered\">"
-              + "<thead class=\"thead-light\"><tr>"
-              + "<th scope=\"col\">Date</th>"
-              + "<th scope=\"col\">Time</th>"
-              + "<th scope=\"col\">Level</th>"
-              + "<th scope=\"col\">Component</th>"
-              + "<th scope=\"col\">Message</th>"
-              + "</tr></thead><tbody>\n";
+          "<table  id=\"log_table\" class=\"display\" style=\"width:100%;padding: 10px\""
+              + " class=\"table table-bordered\"><thead class=\"thead-light\"><tr><th"
+              + " scope=\"col\">Date</th><th scope=\"col\">Time</th><th scope=\"col\">Level</th><th"
+              + " scope=\"col\">Component</th><th scope=\"col\">Message</th></tr></thead><tbody>\n";
       writer.write(insertTableLine);
       try (BufferedReader log = Files.newBufferedReader(logFile, Charset.defaultCharset())) {
         int counter = 0;
@@ -681,7 +707,7 @@ public class ReportGenerator {
   private void buildRelevantArgGraphData(UnmodifiableReachedSet reached) {
     SetMultimap<ARGState, ARGState> relevantSetMultimap =
         ARGUtils.projectARG(
-            (ARGState) reached.getFirstState(), ARGState::getChildren, ARGUtils.RELEVANT_STATE);
+            (ARGState) reached.getFirstState(), ARGState::getChildren, ARGUtils::isRelevantState);
 
     for (Entry<ARGState, Collection<ARGState>> entry : relevantSetMultimap.asMap().entrySet()) {
       ARGState parent = entry.getKey();
@@ -713,7 +739,8 @@ public class ReportGenerator {
       return;
     }
     Witness witness = witnessOptional.orElseThrow();
-    WitnessToOutputFormatsUtils.witnessToMapsForHTMLReport(witness, argReducedNodes, argReducedEdges);
+    WitnessToOutputFormatsUtils.witnessToMapsForHTMLReport(
+        witness, argReducedNodes, argReducedEdges);
   }
 
   private Map<String, Object> createArgNode(int parentStateId, CFANode node, ARGState argState) {

@@ -55,14 +55,14 @@ import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 import org.sosy_lab.cpachecker.util.statistics.StatTimer;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 
-public class ValueAnalysisImpactRefiner extends AbstractARGBasedRefiner implements UnsoundRefiner,
-                                                                                   StatisticsProvider {
+public class ValueAnalysisImpactRefiner extends AbstractARGBasedRefiner
+    implements UnsoundRefiner, StatisticsProvider {
 
   // statistics
   private int restartCounter = 0;
 
   public static ValueAnalysisImpactRefiner create(final ConfigurableProgramAnalysis pCpa)
-    throws InvalidConfigurationException {
+      throws InvalidConfigurationException {
 
     final ARGCPA argCpa =
         CPAs.retrieveCPAOrFail(pCpa, ARGCPA.class, ValueAnalysisImpactRefiner.class);
@@ -88,43 +88,50 @@ public class ValueAnalysisImpactRefiner extends AbstractARGBasedRefiner implemen
             logger, cfa, config, valueAnalysisCpa.getShutdownNotifier());
 
     ImpactDelegateRefiner delegate =
-        new ImpactDelegateRefiner(checker, strongestPostOperator, pathExtractor, prefixProvider,
-            config, logger, valueAnalysisCpa.getShutdownNotifier(), valueAnalysisCpa.getCFA());
+        new ImpactDelegateRefiner(
+            checker,
+            strongestPostOperator,
+            pathExtractor,
+            prefixProvider,
+            config,
+            logger,
+            valueAnalysisCpa.getShutdownNotifier(),
+            valueAnalysisCpa.getCFA());
 
     return new ValueAnalysisImpactRefiner(delegate, argCpa, logger);
   }
 
   ValueAnalysisImpactRefiner(
-      final ImpactDelegateRefiner pDelegate,
-      final ARGCPA pArgCpa,
-      final LogManager pLogger) {
+      final ImpactDelegateRefiner pDelegate, final ARGCPA pArgCpa, final LogManager pLogger) {
     super(pDelegate, pArgCpa, pLogger);
   }
 
   @Override
   public void forceRestart(ReachedSet pReached) throws InterruptedException {
     restartCounter++;
-    ARGState firstChild = Iterables.getOnlyElement(((ARGState)pReached.getFirstState()).getChildren());
+    ARGState firstChild =
+        Iterables.getOnlyElement(((ARGState) pReached.getFirstState()).getChildren());
 
     ARGReachedSet reached = new ARGReachedSet(pReached);
 
-    reached.removeSubtree(firstChild,
+    reached.removeSubtree(
+        firstChild,
         mergeValuePrecisionsForSubgraph(firstChild, reached),
         VariableTrackingPrecision.isMatchingCPAClass(ValueAnalysisCPA.class));
   }
 
-  private VariableTrackingPrecision mergeValuePrecisionsForSubgraph(final ARGState pRefinementRoot,
-                                                                    final ARGReachedSet pReached) {
+  private VariableTrackingPrecision mergeValuePrecisionsForSubgraph(
+      final ARGState pRefinementRoot, final ARGReachedSet pReached) {
     // get all unique precisions from the subtree
     Set<VariableTrackingPrecision> uniquePrecisions = Sets.newIdentityHashSet();
 
     for (ARGState descendant : ARGUtils.getNonCoveredStatesInSubgraph(pRefinementRoot)) {
-      if(pReached.asReachedSet().contains(descendant)) {
+      if (pReached.asReachedSet().contains(descendant)) {
         uniquePrecisions.add(extractValuePrecision(pReached, descendant));
       }
     }
 
-    if(uniquePrecisions.isEmpty()) {
+    if (uniquePrecisions.isEmpty()) {
       return null;
     }
 
@@ -138,29 +145,29 @@ public class ValueAnalysisImpactRefiner extends AbstractARGBasedRefiner implemen
   }
 
   private static VariableTrackingPrecision extractValuePrecision(
-      final ARGReachedSet pReached,
-      ARGState state) {
-    return (VariableTrackingPrecision) Precisions.asIterable(pReached.asReachedSet().getPrecision(state))
-        .filter(VariableTrackingPrecision.isMatchingCPAClass(ValueAnalysisCPA.class))
-        .get(0);
+      final ARGReachedSet pReached, ARGState state) {
+    return (VariableTrackingPrecision)
+        Precisions.asIterable(pReached.asReachedSet().getPrecision(state))
+            .filter(VariableTrackingPrecision.isMatchingCPAClass(ValueAnalysisCPA.class))
+            .get(0);
   }
-
 
   @Override
   public void collectStatistics(Collection<Statistics> pStatsCollection) {
-    pStatsCollection.add(new Statistics() {
-      @Override
-      public void printStatistics(
-          PrintStream pOut, Result pResult, UnmodifiableReachedSet pReached) {
-        pOut.println("Total number of restarts:      " + String.format("%9d", restartCounter));
-      }
+    pStatsCollection.add(
+        new Statistics() {
+          @Override
+          public void printStatistics(
+              PrintStream pOut, Result pResult, UnmodifiableReachedSet pReached) {
+            pOut.println("Total number of restarts:      " + String.format("%9d", restartCounter));
+          }
 
-      @Nullable
-      @Override
-      public String getName() {
-        return ValueAnalysisImpactRefiner.class.getSimpleName();
-      }
-    });
+          @Nullable
+          @Override
+          public String getName() {
+            return ValueAnalysisImpactRefiner.class.getSimpleName();
+          }
+        });
     super.collectStatistics(pStatsCollection);
   }
 
@@ -178,15 +185,22 @@ public class ValueAnalysisImpactRefiner extends AbstractARGBasedRefiner implemen
         final StrongestPostOperator<ValueAnalysisState> pStrongestPostOperator,
         final PathExtractor pPathExtractor,
         final GenericPrefixProvider<ValueAnalysisState> pPrefixProvider,
-        final Configuration pConfig, final LogManager pLogger,
-        final ShutdownNotifier pShutdownNotifier, final CFA pCfa)
+        final Configuration pConfig,
+        final LogManager pLogger,
+        final ShutdownNotifier pShutdownNotifier,
+        final CFA pCfa)
         throws InvalidConfigurationException {
 
-      super(pFeasibilityChecker,
-          new ValueAnalysisPathInterpolator(pFeasibilityChecker,
+      super(
+          pFeasibilityChecker,
+          new ValueAnalysisPathInterpolator(
+              pFeasibilityChecker,
               pStrongestPostOperator,
               pPrefixProvider,
-              pConfig, pLogger, pShutdownNotifier, pCfa),
+              pConfig,
+              pLogger,
+              pShutdownNotifier,
+              pCfa),
           ValueAnalysisInterpolantManager.getInstance(),
           pPathExtractor,
           pConfig,
@@ -205,8 +219,8 @@ public class ValueAnalysisImpactRefiner extends AbstractARGBasedRefiner implemen
 
       // this works correctly for global-refinement, too, doesn't it?
       timeCoverage.start();
-      for (ARGState interpolatedTarget : pInterpolationTree
-          .getInterpolatedTargetsInSubtree(pInterpolationTree.getRoot())) {
+      for (ARGState interpolatedTarget :
+          pInterpolationTree.getInterpolatedTargetsInSubtree(pInterpolationTree.getRoot())) {
         tryToCoverArg(strengthenedStates, pReached, interpolatedTarget);
       }
       timeCoverage.stop();
@@ -215,12 +229,12 @@ public class ValueAnalysisImpactRefiner extends AbstractARGBasedRefiner implemen
       VariableTrackingPrecision previsousPrecision = null;
       SetMultimap<CFANode, MemoryLocation> previousIncrement = null;
       timePrecision.start();
-      for (Map.Entry<ARGState, ValueAnalysisInterpolant> itp : pInterpolationTree
-          .getInterpolantMapping()) {
+      for (Map.Entry<ARGState, ValueAnalysisInterpolant> itp :
+          pInterpolationTree.getInterpolantMapping()) {
         ARGState currentState = itp.getKey();
 
-        if (pInterpolationTree.hasInterpolantForState(currentState) && pInterpolationTree
-            .getInterpolantForState(currentState).isTrivial()) {
+        if (pInterpolationTree.hasInterpolantForState(currentState)
+            && pInterpolationTree.getInterpolantForState(currentState).isTrivial()) {
           continue;
         }
 
@@ -229,8 +243,8 @@ public class ValueAnalysisImpactRefiner extends AbstractARGBasedRefiner implemen
               extractValuePrecision(pReached, currentState);
 
           SetMultimap<CFANode, MemoryLocation> increment = HashMultimap.create();
-          for (MemoryLocation memoryLocation : pInterpolationTree
-              .getInterpolantForState(currentState).getMemoryLocations()) {
+          for (MemoryLocation memoryLocation :
+              pInterpolationTree.getInterpolantForState(currentState).getMemoryLocations()) {
             increment.put(dummyCfaNode, memoryLocation);
           }
 
@@ -241,7 +255,9 @@ public class ValueAnalysisImpactRefiner extends AbstractARGBasedRefiner implemen
           }
 
           // tried with readding to waitlist -> slower / less effective
-          pReached.updatePrecisionForState(currentState, newPrecision,
+          pReached.updatePrecisionForState(
+              currentState,
+              newPrecision,
               VariableTrackingPrecision.isMatchingCPAClass(ValueAnalysisCPA.class));
 
           // an option, that if a state has more than one child, the one child
@@ -252,9 +268,8 @@ public class ValueAnalysisImpactRefiner extends AbstractARGBasedRefiner implemen
 
           ARGState parent = Iterables.getFirst(currentState.getParents(), null);
           if (parent != null) {
-            //readdSiblings(pReached, parent, currentState, newPrecision);
+            // readdSiblings(pReached, parent, currentState, newPrecision);
           }
-
 
           previsousPrecision = currentPrecision;
           previousIncrement = increment;
@@ -271,8 +286,8 @@ public class ValueAnalysisImpactRefiner extends AbstractARGBasedRefiner implemen
         InterpolationTree<ValueAnalysisState, ValueAnalysisInterpolant> interpolationTree) {
       Set<ARGState> strengthenedStates = new HashSet<>();
 
-      for (Map.Entry<ARGState, ValueAnalysisInterpolant> entry : interpolationTree
-          .getInterpolantMapping()) {
+      for (Map.Entry<ARGState, ValueAnalysisInterpolant> entry :
+          interpolationTree.getInterpolantMapping()) {
         if (!entry.getValue().isTrivial()) {
 
           ARGState state = entry.getKey();
@@ -330,16 +345,9 @@ public class ValueAnalysisImpactRefiner extends AbstractARGBasedRefiner implemen
 
     @Override
     protected void printAdditionalStatistics(
-        PrintStream pOut,
-        Result pResult,
-        UnmodifiableReachedSet pReached) {
+        PrintStream pOut, Result pResult, UnmodifiableReachedSet pReached) {
       StatisticsWriter w = StatisticsWriter.writingStatisticsTo(pOut);
-      w.beginLevel()
-          .put(timeStrengthen)
-          .put(timeCoverage)
-          .put(timePrecision)
-          .put(timeRemove);
+      w.beginLevel().put(timeStrengthen).put(timeCoverage).put(timePrecision).put(timeRemove);
     }
-
   }
 }

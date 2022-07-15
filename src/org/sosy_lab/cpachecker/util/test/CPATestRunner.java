@@ -20,9 +20,7 @@ import org.sosy_lab.common.log.StringBuildingLogHandler;
 import org.sosy_lab.cpachecker.core.CPAchecker;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult;
 
-/**
- * Helper class for running CPA tests.
- */
+/** Helper class for running CPA tests. */
 public class CPATestRunner {
 
   public enum ExpectedVerdict {
@@ -31,13 +29,10 @@ public class CPATestRunner {
     NONE
   }
 
-  public static TestResults run(
-      Map<String, String> pProperties,
-      String pSourceCodeFilePath) throws Exception {
+  public static TestResults run(Map<String, String> pProperties, String pSourceCodeFilePath)
+      throws Exception {
 
-    Configuration config = TestDataTools.configurationForTest()
-        .setOptions(pProperties)
-        .build();
+    Configuration config = TestDataTools.configurationForTest().setOptions(pProperties).build();
     return run(config, pSourceCodeFilePath);
   }
 
@@ -45,8 +40,9 @@ public class CPATestRunner {
     return run(config, pSourceCodeFilePath, Level.INFO);
   }
 
-  public static TestResults run(Configuration config, String pSourceCodeFilePath, Level logLevel) throws Exception {
-        StringBuildingLogHandler stringLogHandler = new StringBuildingLogHandler();
+  public static TestResults run(Configuration config, String pSourceCodeFilePath, Level logLevel)
+      throws Exception {
+    StringBuildingLogHandler stringLogHandler = new StringBuildingLogHandler();
     stringLogHandler.setLevel(logLevel);
     stringLogHandler.setFormatter(ConsoleLogFormatter.withoutColors());
     LogManager logger = BasicLogManager.createWithHandler(stringLogHandler);

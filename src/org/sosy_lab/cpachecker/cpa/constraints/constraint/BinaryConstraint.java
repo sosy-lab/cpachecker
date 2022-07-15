@@ -11,9 +11,7 @@ package org.sosy_lab.cpachecker.cpa.constraints.constraint;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicExpression;
 
-/**
- * A {@link Constraint} with two operands, like 'equals'.
- */
+/** A {@link Constraint} with two operands, like 'equals'. */
 public interface BinaryConstraint extends Constraint {
 
   SymbolicExpression getOperand1();

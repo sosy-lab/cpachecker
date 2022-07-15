@@ -8,7 +8,6 @@
 
 package org.sosy_lab.cpachecker.cfa.ast.c;
 
-
 public interface CExpressionVisitor<R, X extends Exception> extends CLeftHandSideVisitor<R, X> {
 
   R visit(CBinaryExpression pIastBinaryExpression) throws X;
@@ -27,7 +26,7 @@ public interface CExpressionVisitor<R, X extends Exception> extends CLeftHandSid
 
   R visit(CUnaryExpression pIastUnaryExpression) throws X;
 
-  R visit (CImaginaryLiteralExpression PIastLiteralExpression) throws X;
+  R visit(CImaginaryLiteralExpression PIastLiteralExpression) throws X;
 
   R visit(CAddressOfLabelExpression pAddressOfLabelExpression) throws X;
 }

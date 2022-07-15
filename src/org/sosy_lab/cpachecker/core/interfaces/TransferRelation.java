@@ -15,46 +15,39 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
 /**
- * Interface for transfer relations.
- * The transfer relation is used to compute the successors of abstract states
- * (post operation).
+ * Interface for transfer relations. The transfer relation is used to compute the successors of
+ * abstract states (post operation).
  *
- * Most CPAs can use
- * {@link org.sosy_lab.cpachecker.core.defaults.SingleEdgeTransferRelation}
- * as base class.
+ * <p>Most CPAs can use {@link org.sosy_lab.cpachecker.core.defaults.SingleEdgeTransferRelation} as
+ * base class.
  */
 public interface TransferRelation {
 
   /**
    * Get all successors of the current abstract state.
    *
-   * Note that most CPAs do not need this method and should only implement
-   * {@link #getAbstractSuccessorsForEdge(AbstractState, Precision, CFAEdge)}.
+   * <p>Note that most CPAs do not need this method and should only implement {@link
+   * #getAbstractSuccessorsForEdge(AbstractState, Precision, CFAEdge)}.
    *
    * @param state current abstract state
    * @param precision precision for abstract state
    * @return collection of all successors of the current state (may be empty)
    */
   Collection<? extends AbstractState> getAbstractSuccessors(
-      AbstractState state,
-      Precision precision)
-          throws CPATransferException, InterruptedException;
+      AbstractState state, Precision precision) throws CPATransferException, InterruptedException;
 
   /**
    * Get all successors of the current abstract state for a given single CFA edge.
    *
-   * This is an optimization.
-   * In theory, we could ask all CPAs for all abstract successors
-   * regarding any CFA edge.
-   * One CPA tracks the program counter and would return bottom (no successor)
-   * for all edges that cannot be applied at the current location.
-   * By taking the cross product of the returned states of all CPAs,
-   * the states for the invalid edges would be filtered out.
-   * Of course this is inefficient,
-   * thus we pass the edge we are currently interested in to the other CPAs.
+   * <p>This is an optimization. In theory, we could ask all CPAs for all abstract successors
+   * regarding any CFA edge. One CPA tracks the program counter and would return bottom (no
+   * successor) for all edges that cannot be applied at the current location. By taking the cross
+   * product of the returned states of all CPAs, the states for the invalid edges would be filtered
+   * out. Of course this is inefficient, thus we pass the edge we are currently interested in to the
+   * other CPAs.
    *
-   * Most CPAs only need this method and can extend
-   * {@link org.sosy_lab.cpachecker.core.defaults.SingleEdgeTransferRelation}.
+   * <p>Most CPAs only need this method and can extend {@link
+   * org.sosy_lab.cpachecker.core.defaults.SingleEdgeTransferRelation}.
    *
    * @param state current abstract state
    * @param precision precision for abstract state
@@ -62,10 +55,8 @@ public interface TransferRelation {
    * @return collection of all successors of the current state (may be empty)
    */
   Collection<? extends AbstractState> getAbstractSuccessorsForEdge(
-      AbstractState state,
-      Precision precision,
-      CFAEdge cfaEdge)
-          throws CPATransferException, InterruptedException;
+      AbstractState state, Precision precision, CFAEdge cfaEdge)
+      throws CPATransferException, InterruptedException;
 
   /**
    * Updates an abstract state with information from the abstract states of other CPAs. An
