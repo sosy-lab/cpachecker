@@ -153,7 +153,7 @@ public class RandomWalkState
     }
     if (this.numberOfSuccessorTaken.size() < other.numberOfSuccessorTaken.size()) {
       for (int i = 0; i < this.numberOfSuccessorTaken.size(); i++) {
-        if (this.numberOfSuccessorTaken.get(i) != other.numberOfSuccessorTaken.get(i)) {
+        if (!this.numberOfSuccessorTaken.get(i).equals(other.numberOfSuccessorTaken.get(i))) {
           return false;
         }
       }
