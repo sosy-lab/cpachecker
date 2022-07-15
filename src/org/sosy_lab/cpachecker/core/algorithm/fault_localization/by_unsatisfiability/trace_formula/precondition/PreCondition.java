@@ -94,4 +94,9 @@ public class PreCondition {
   public String toString() {
     return MoreObjects.toStringHelper(this).add("precondition", precondition).toString();
   }
+
+  public PreCondition replaceRelatedEdges(List<CFAEdge> pPreconditionEdges) {
+    return new PreCondition(
+        pPreconditionEdges, remainingCounterexample, precondition, nondetVariables);
+  }
 }

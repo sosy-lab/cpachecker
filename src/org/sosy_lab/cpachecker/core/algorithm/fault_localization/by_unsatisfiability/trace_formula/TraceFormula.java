@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.trace_formula;
 
 import com.google.common.base.MoreObjects;
+import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import java.util.ArrayList;
 import java.util.List;
@@ -211,9 +212,9 @@ public class TraceFormula {
     Trace trace = Trace.fromCounterexample(remainingCounterexample, pContext, pOptions);
     Set<String> nondets = precondition.getNondetVariables();
     List<CFAEdge> preconditionEdges = new ArrayList<>(precondition.getEdgesForPrecondition());
-    List<TraceAtom> modifiedTrace = new ArrayList<>(trace.size());
-    BooleanFormula formula = precondition.getPrecondition();
     if (pOptions.shouldInlinePrecondition()) {
+      List<TraceAtom> modifiedTrace = new ArrayList<>(trace.size());
+      BooleanFormula formula = precondition.getPrecondition();
       for (TraceAtom traceAtom : trace) {
         if (nondets.stream().anyMatch(name -> traceAtom.getFormula().toString().contains(name))) {
           preconditionEdges.add(traceAtom.correspondingEdge());
@@ -227,11 +228,17 @@ public class TraceFormula {
           modifiedTrace.add(traceAtom);
         }
       }
+      precondition = precondition.replaceRelatedEdgesAndFormula(preconditionEdges, formula);
+      trace = new Trace(pContext, modifiedTrace);
     } else {
-      modifiedTrace = new ArrayList<>(trace);
+      FluentIterable.from(trace)
+          .filter(
+              atom ->
+                  nondets.stream().anyMatch(name -> atom.getFormula().toString().contains(name)))
+          .transform(atom -> atom.correspondingEdge())
+          .copyInto(preconditionEdges);
+      precondition = precondition.replaceRelatedEdges(preconditionEdges);
     }
-    precondition = precondition.replaceRelatedEdgesAndFormula(preconditionEdges, formula);
-    trace = new Trace(pContext, modifiedTrace);
     return instantiate(pContext, precondition, trace, postCondition);
   }
 
