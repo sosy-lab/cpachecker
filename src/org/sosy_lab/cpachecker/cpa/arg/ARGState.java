@@ -372,6 +372,19 @@ public class ARGState extends AbstractSerializableSingleWrapperState
 
   @Override
   public String toString() {
+    StringBuilder sb = toShortString();
+    sb.append(" ");
+    sb.append(getWrappedState());
+    return sb.toString();
+  }
+
+  /**
+   * Return a short summary of this state (without information about wrapped states).
+   *
+   * @return A fresh {@link StringBuilder} with the content. Callers are free to use the instance
+   *     and mutate it however they want.
+   */
+  StringBuilder toShortString() {
     StringBuilder sb = new StringBuilder();
     if (destroyed) {
       sb.append("Destroyed ");
@@ -395,9 +408,8 @@ public class ARGState extends AbstractSerializableSingleWrapperState
         sb.append(stateIdsOf(getCoveredByThis()));
       }
     }
-    sb.append(") ");
-    sb.append(getWrappedState());
-    return sb.toString();
+    sb.append(")");
+    return sb;
   }
 
   @Override

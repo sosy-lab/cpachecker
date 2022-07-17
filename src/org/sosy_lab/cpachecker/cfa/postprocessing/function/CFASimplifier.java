@@ -180,7 +180,7 @@ public class CFASimplifier {
         findEndOfBlankEdgeChain(branchingPoint.getLeavingEdge(1).getSuccessor());
 
     if (leftEndpoint.equals(rightEndpoint)) {
-      final CFANode endpoint = leftEndpoint;
+      final CFANode endpoint = leftEndpoint; // the merge point of the two branches
       final List<FileLocation> removedFileLocations = new ArrayList<>();
 
       final CFAEdge leftEdge = branchingPoint.getLeavingEdge(0);
@@ -203,8 +203,8 @@ public class CFASimplifier {
         removeChainOfNodes(toRemove, endpoint, cfa, removedFileLocations);
       }
 
-      // Maybe there are more outgoing blank edges from the endpoint,
-      // also remove them.
+      // If there is an outgoing blank edge chain from the merge point of the two branches, remove
+      // it as well.
       final CFANode endpoint2 = findEndOfBlankEdgeChain(endpoint);
       removeChainOfNodes(endpoint, endpoint2, cfa, removedFileLocations);
 
@@ -223,6 +223,10 @@ public class CFASimplifier {
     Set<CFANode> visitedNodes = new HashSet<>();
 
     while (current.getNumLeavingEdges() == 1 && current.getLeavingEdge(0) instanceof BlankEdge) {
+      // if there are multiple entering edges, the end of the blank edge chain is reached
+      if (current.getNumEnteringEdges() > 1) {
+        break;
+      }
 
       if (!visitedNodes.add(current)) {
         return current;
@@ -241,9 +245,6 @@ public class CFASimplifier {
     CFANode toRemove = start;
 
     while (!toRemove.equals(endpoint)) {
-      if (toRemove.getNumEnteringEdges() > 0) {
-        return;
-      }
       assert toRemove.getNumEnteringEdges() == 0;
       assert toRemove.getNumLeavingEdges() == 1;
 
