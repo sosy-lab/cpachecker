@@ -197,7 +197,6 @@ public final class CCfaTransformer {
               newFunctionDeclaration(pOldNode),
               newExitNode,
               newReturnVariable);
-
       if (newExitNode != null) {
         newExitNode.setEntryNode(newEntryNode);
       }

@@ -71,7 +71,6 @@ public class CustomInstructionTest {
 
     startNode = cfa.getMainFunction();
     endNodes = new HashSet<>();
-
     cfa.getMainFunction()
         .getExitNode()
         .map(mainExitNode -> CFAUtils.allPredecessorsOf(mainExitNode).toList())

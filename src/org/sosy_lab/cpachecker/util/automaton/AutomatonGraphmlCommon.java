@@ -1077,7 +1077,6 @@ public class AutomatonGraphmlCommon {
     if (defaultReturnEdges.hasNext() || !(defaultReturnEdge instanceof BlankEdge)) {
       return false;
     }
-
     return pEntryNode
         .getExitNode()
         .map(exitNode -> exitNode.equals(defaultReturnEdge.getSuccessor()))

@@ -397,7 +397,6 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
 
   /** the whole program will terminate after this edge */
   private boolean isEndOfMainFunction(CFAEdge edge) {
-
     return cfa.getMainFunction()
         .getExitNode()
         .map(mainExitNode -> mainExitNode.equals(edge.getSuccessor()))

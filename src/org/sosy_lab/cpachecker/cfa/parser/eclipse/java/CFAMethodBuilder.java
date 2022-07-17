@@ -330,7 +330,6 @@ class CFAMethodBuilder extends ASTVisitor {
     // During method CFA construction, every function entry node must have a function exit node
     // (unreachable function exit nodes have not been removed yet).
     FunctionExitNode functionExitNode = cfa.getExitNode().orElseThrow();
-
     if (isReachableNode(lastNode)) {
       BlankEdge blankEdge =
           new BlankEdge("", FileLocation.DUMMY, lastNode, functionExitNode, "default return");

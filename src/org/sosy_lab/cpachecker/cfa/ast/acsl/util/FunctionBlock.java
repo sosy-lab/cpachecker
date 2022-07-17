@@ -56,9 +56,7 @@ public class FunctionBlock implements SyntacticBlock {
 
   @Override
   public Set<CFANode> getContainedNodes() {
-
     CFATraversal traversal = CFATraversal.dfs().ignoreFunctionCalls();
-
     return function
         .getExitNode()
         .map(exitNode -> traversal.collectNodesReachableFromTo(function, exitNode))

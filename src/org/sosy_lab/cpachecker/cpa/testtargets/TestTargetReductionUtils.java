@@ -114,7 +114,6 @@ public final class TestTargetReductionUtils {
                         origCFANodeToCopyMap.get(exitNode)))
             .map(exitNode -> origCFANodeToCopyMap.get(exitNode))
             .orElse(null);
-
     return Pair.of(origCFANodeToCopyMap.get(pEntryNode), exitNodeCopy);
   }
 

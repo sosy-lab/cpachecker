@@ -539,10 +539,8 @@ public class CParserUtils {
         }
       }
     }
-
     @Nullable ExpressionTree<AExpression> exitNodeExpressionTree =
         pEntry.getExitNode().map(memo::get).orElse(null);
-
     return pParserTools.expressionTreeSimplifier.simplify(exitNodeExpressionTree);
   }
 

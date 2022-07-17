@@ -293,7 +293,6 @@ public class CFASecondPassBuilder {
 
     boolean isExitNodeUnreachable =
         fExitNode.filter(exitNode -> exitNode.getNumEnteringEdges() > 0).isEmpty();
-
     if (isExitNodeUnreachable) {
       // exit node of called functions is not reachable, i.e. this function never returns
       // no need to add return edges, instead we can remove the part after this function call
@@ -304,7 +303,6 @@ public class CFASecondPassBuilder {
       if (fExitNode.isPresent()) {
         fDefNode.removeExitNode();
       }
-
     } else {
 
       FunctionExitNode exitNode = fExitNode.orElseThrow();

@@ -104,12 +104,10 @@ public class TestTargetMinimizerEssential {
         }
       }
     }
-
     // complete dummy graph has been created
 
     @Nullable CFANode exitNodeCopy =
         pEntryNode.getExitNode().map(exitNode -> origCFANodeToCopyMap.get(exitNode)).orElse(null);
-
     return Pair.of(origCFANodeToCopyMap.get(pEntryNode), exitNodeCopy);
   }
 
