@@ -7,8 +7,8 @@
 // SPDX-License-Identifier: Apache-2.0
 
 void reach_error() {};
-int main() 
-  int n = 0{
+int main(){
+  int n = 0;
   int i = 0;
   int j = 42;
   int k = 42;
