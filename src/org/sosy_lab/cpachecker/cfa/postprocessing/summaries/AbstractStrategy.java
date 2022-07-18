@@ -32,7 +32,7 @@ public abstract class AbstractStrategy implements Strategy {
     this.logger = pLogger;
     this.strategyDependencies = strategyDependencies;
     this.summaryInformation = pCfa.getSummaryInformation().orElseThrow();
-    this.summaryFilter = new SummaryFilter(this.summaryInformation, this.strategyDependencies);
+    this.summaryFilter = new SummaryFilter(this.strategyDependencies);
   }
 
   @Override

@@ -16,10 +16,11 @@ import java.util.logging.Level;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.utils.LocationPrecision;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Refiner;
+import org.sosy_lab.cpachecker.core.interfaces.WrapperPrecision;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
 import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
@@ -64,20 +65,16 @@ public class SummaryStrategyRefiner implements Refiner {
       Collection<ARGState> newWaitlist = new ArrayList<>();
       while (iter.hasNext()) {
         ARGState currentElement = iter.next();
-        if (!summaryInformation
+        CFANode node = AbstractStates.extractLocation(currentElement);
+        if (node.getNumEnteringEdges() == 1 && !summaryInformation
             .getFactory()
-            .buildStrategy(
-                summaryInformation.getStrategyForNode(
-                    AbstractStates.extractLocation(currentElement)))
+            .buildStrategy(SummaryUtils.getStrategyForEdge(node.getEnteringEdge(0)))
             .isPrecise()) {
-          optionalRefinementState = Optional.of(currentElement);
-          optionalStrategy =
-              Optional.of(
-                  summaryInformation.getStrategyForNode(
-                      AbstractStates.extractLocation(currentElement)));
-          waitlist.clear();
-          newWaitlist.clear();
-          break;
+            optionalRefinementState = Optional.of(currentElement);
+          optionalStrategy = Optional.of(SummaryUtils.getStrategyForEdge(node.getEnteringEdge(0)));
+            waitlist.clear();
+            newWaitlist.clear();
+            break;
         } else {
           if (!seen.contains(currentElement)) {
             newWaitlist.addAll(currentElement.getParents());
@@ -94,11 +91,11 @@ public class SummaryStrategyRefiner implements Refiner {
       ARGState refinementState = optionalRefinementState.orElseThrow();
 
       if (optionalStrategy.orElseThrow() != StrategiesEnum.BASE) {
-        CFANode n = AbstractStates.extractLocation(refinementState);
-        for (int i = 0; i < n.getNumEnteringEdges(); i++) {
-          CFAEdge e = n.getEnteringEdge(i);
-          this.summaryInformation.addUnallowedStrategiesForNode(
-              e.getPredecessor(), optionalStrategy.orElseThrow());
+        for (ARGState parentState : refinementState.getParents()) {
+          LocationPrecision locationPrecision =
+              ((WrapperPrecision) pReached.getPrecision(parentState))
+                  .retrieveWrappedPrecision(LocationPrecision.class);
+          locationPrecision.addUnallowedStrategy(optionalStrategy.orElseThrow());
         }
       }
 

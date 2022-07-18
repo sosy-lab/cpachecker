@@ -8,7 +8,10 @@
 
 package org.sosy_lab.cpachecker.cfa.postprocessing.summaries;
 
+import java.util.Collection;
+import java.util.HashSet;
 import java.util.Optional;
+import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.ast.AAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AExpressionAssignmentStatement;
@@ -19,7 +22,9 @@ import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.visitors.LinearVariableDependencyVisitor;
 import org.sosy_lab.cpachecker.cfa.model.AStatementEdge;
+import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.utils.LinearVariableDependency;
 
 public class SummaryUtils {
@@ -70,5 +75,22 @@ public class SummaryUtils {
       }
     }
     return Optional.empty();
+  }
+
+  public static StrategiesEnum getStrategyForEdge(CFAEdge e) {
+    if (e instanceof BlankEdge && ((BlankEdge) e).getStrategy().isPresent()) {
+      return ((BlankEdge) e).getStrategy().orElseThrow();
+    } else {
+      return StrategiesEnum.BASE;
+    }
+  }
+
+  public static Collection<? extends StrategiesEnum> getAvailableStrategies(CFANode n) {
+    Set<StrategiesEnum> availableStrategies = new HashSet<>();
+    for (CFAEdge e : n.getLeavingEdges()) {
+      availableStrategies.add(SummaryUtils.getStrategyForEdge(e));
+    }
+
+    return availableStrategies;
   }
 }

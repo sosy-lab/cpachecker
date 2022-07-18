@@ -238,7 +238,7 @@ public class LoopStrategy extends AbstractStrategy {
         determineLoopHead(
             incomingEdge.getPredecessor(),
             x ->
-                new SummaryFilter(summaryInformation, strategyDependencies)
+                new SummaryFilter(strategyDependencies)
                     .filter(x, ImmutableSet.of(StrategiesEnum.BASE)));
     return loopHead.isPresent() && !loop.containsUserDefinedFunctionCalls();
   }

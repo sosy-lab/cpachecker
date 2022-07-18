@@ -92,7 +92,7 @@ public class SummaryBasedRefiner implements Refiner, StatisticsProvider {
       stats.increaseDoubleRefinements();
       stats.increaseDoubleRefinementsCausedByMaximumAmountFirstRefinements();
       if (!secondRefiner.performRefinement(pReached)) {
-        stats.recalculateDistinctStartegies();
+        stats.recalculateDistinctStrategies();
         return firstRefiner.performRefinement(pReached);
       } else {
         return true;
@@ -105,7 +105,7 @@ public class SummaryBasedRefiner implements Refiner, StatisticsProvider {
         boolean resultSecondRefiner = secondRefiner.performRefinement(pReached);
         if (resultSecondRefiner) {
           stats.increaseStrategiesRefinedAway();
-          stats.recalculateDistinctStartegies();
+          stats.recalculateDistinctStrategies();
         }
         return resultSecondRefiner;
       } else {

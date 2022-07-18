@@ -54,7 +54,8 @@ public class GhostCFA {
               FileLocation.DUMMY,
               getStartOriginalCfaNode(),
               getStartGhostCfaNode(),
-              "Start Ghost Connection Strategy: " + this.getStrategy().name());
+              "Start Ghost Connection Strategy: " + this.getStrategy().name(),
+              strategy);
       CFACreationUtils.addEdgeUnconditionallyToCFA(startNodesConnectionLocal);
       setStartNodesConnection(Optional.of(startNodesConnectionLocal));
     }
@@ -66,7 +67,8 @@ public class GhostCFA {
               FileLocation.DUMMY,
               getStopGhostCfaNode(),
               getStopOriginalCfaNode(),
-              "End Ghost Connection Strategy: " + this.getStrategy().name());
+              "End Ghost Connection Strategy: " + this.getStrategy().name(),
+              strategy);
       CFACreationUtils.addEdgeUnconditionallyToCFA(endNodesConnectionLocal);
       setStartNodesConnection(Optional.of(endNodesConnectionLocal));
     }

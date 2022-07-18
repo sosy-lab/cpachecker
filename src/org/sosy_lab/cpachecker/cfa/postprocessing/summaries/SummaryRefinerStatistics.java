@@ -119,13 +119,9 @@ public class SummaryRefinerStatistics implements Statistics {
     this.amountStrategiesRefinedAway += 1;
   }
 
-  public void recalculateDistinctStartegies() {
-    Set<StrategiesEnum> ignoredStrategies = new HashSet<>();
-    ignoredStrategies.add(StrategiesEnum.BASE);
-    distinctNodesWithStrategies =
-        summaryInformation
-            .getDistinctNodesWithStrategiesWithoutDissallowed(ignoredStrategies)
-            .size();
+  public void recalculateDistinctStrategies() {
+    // TODO: This must be refactored, since the unallowed strategies are now in the precision
+    this.distinctNodesWithStrategies = -100;
   }
 
   public void increaseDoubleRefinementsCausedByMaximumAmountFirstRefinements() {
@@ -151,7 +147,8 @@ public class SummaryRefinerStatistics implements Statistics {
               n ->
                   stratMap
                       .computeIfAbsent(n, x -> new HashSet<>())
-                      .addAll(summaryInformation.getAllowedStrategies(n)));
+                      // TODO: Check if it is correct
+                      .addAll(SummaryUtils.getAvailableStrategies(n)));
     }
 
     // go over all loop locations and rewrite them if possible:

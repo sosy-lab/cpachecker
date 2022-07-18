@@ -18,26 +18,21 @@ import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.StrategyDependencies
 
 public class SummaryFilter {
 
-  private SummaryInformation summaryInformation;
   private StrategyDependency strategyDependencies;
 
-  public SummaryFilter(
-      SummaryInformation pSummaryInformation, StrategyDependency pStrategyDependencies) {
+  public SummaryFilter(StrategyDependency pStrategyDependencies) {
     strategyDependencies = pStrategyDependencies;
-    summaryInformation = pSummaryInformation;
   }
 
   public List<CFAEdge> getOutgoingEdges(CFANode node) {
     List<StrategiesEnum> availableStrategies = new ArrayList<>();
     for (int i = 0; i < node.getNumLeavingEdges(); i++) {
-      availableStrategies.add(
-          summaryInformation.getStrategyForNode(node.getLeavingEdge(i).getSuccessor()));
+      availableStrategies.add(SummaryUtils.getStrategyForEdge(node.getLeavingEdge(i)));
     }
     List<StrategiesEnum> filteredStrategies = strategyDependencies.filter(availableStrategies);
     List<CFAEdge> filteredLeavingEdges = new ArrayList<>();
     for (int i = 0; i < node.getNumLeavingEdges(); i++) {
-      if (filteredStrategies.contains(
-          summaryInformation.getStrategyForNode(node.getLeavingEdge(i).getSuccessor()))) {
+      if (filteredStrategies.contains(SummaryUtils.getStrategyForEdge(node.getLeavingEdge(i)))) {
         filteredLeavingEdges.add(node.getLeavingEdge(i));
       }
     }
@@ -49,6 +44,6 @@ public class SummaryFilter {
   }
 
   public boolean filter(CFAEdge edge, Set<StrategiesEnum> strategies) {
-    return strategies.contains(summaryInformation.getStrategyForEdge(edge));
+    return strategies.contains(SummaryUtils.getStrategyForEdge(edge));
   }
 }

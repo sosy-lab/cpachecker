@@ -13,16 +13,13 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
-import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.StrategyDependencies.StrategyDependency;
-import org.sosy_lab.cpachecker.util.CFAUtils;
+import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.utils.LocationPrecision;
 import org.sosy_lab.cpachecker.util.LoopStructure;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 
@@ -36,14 +33,8 @@ import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
  */
 public class SummaryInformation {
 
-  private Map<StrategiesEnum, CFANode> strategiesToNodes = new HashMap<>();
-  // TODO: Refactor the nodes with incoming strategies to also consider Multiple incoming
-  // strategies. This should only happen with the base strategy so it is currently not a constraint
-  private Map<CFANode, StrategiesEnum> nodesWithIncomingStrategies = new HashMap<>();
-  private Map<CFANode, Set<StrategiesEnum>> nodesWithOutgoingStrategies = new HashMap<>();
   private Map<CFANode, GhostCFA> startNodeGhostCFAToGhostCFA = new HashMap<>();
   private Map<CFANode, GhostCFA> startNodeOriginalCFAToGhostCFA = new HashMap<>();
-  private Map<CFANode, Map<String, CExpression>> variableDeclarations = new HashMap<>();
   private Map<CFANode, Loop> nodeToLoopStructure = new HashMap<>();
   private Set<Strategy> strategies = new HashSet<>();
   private StrategyFactory factory;
@@ -60,56 +51,13 @@ public class SummaryInformation {
     this.addCfaInformations(pCfa);
   }
 
-  public void addNodeForStrategy(StrategiesEnum strategy, CFANode node) {
-    strategiesToNodes.put(strategy, node);
-    nodesWithIncomingStrategies.put(node, strategy);
-    for (int i = 0; i < node.getNumEnteringEdges(); i++) {
-      CFAEdge e = node.getEnteringEdge(i);
-      Set<StrategiesEnum> set = new HashSet<>();
-      if (nodesWithOutgoingStrategies.containsKey(e.getPredecessor())) {
-        set.addAll(nodesWithOutgoingStrategies.get(e.getPredecessor()));
-      }
-      set.add(strategy);
-      nodesWithOutgoingStrategies.put(e.getPredecessor(), set);
-    }
-  }
-
   public void addGhostCFA(GhostCFA ghostCFA) {
     startNodeGhostCFAToGhostCFA.put(ghostCFA.getStartGhostCfaNode(), ghostCFA);
     startNodeOriginalCFAToGhostCFA.put(ghostCFA.getStartOriginalCfaNode(), ghostCFA);
     for (CFANode n : ghostCFA.getAllNodes()) {
-      this.addNodeForStrategy(StrategiesEnum.BASE, n);
+      // this.addNodeForStrategy(StrategiesEnum.BASE, n);
       this.unallowedStrategiesForNode.put(n, new HashSet<>());
     }
-
-    addNodeForStrategy(ghostCFA.getStrategy(), ghostCFA.getStartGhostCfaNode());
-  }
-
-  public StrategiesEnum getStrategyForEdge(CFAEdge edge) {
-    if (getStrategyForNode(edge.getPredecessor()) == StrategiesEnum.BASE) {
-      return getStrategyForNode(edge.getSuccessor());
-    } else {
-      return getStrategyForNode(edge.getPredecessor());
-    }
-  }
-
-  public StrategiesEnum getStrategyForNode(CFANode node) {
-    if (nodesWithIncomingStrategies.containsKey(node)) {
-      return nodesWithIncomingStrategies.get(node);
-    } else {
-      // this is a hotfix. CFASecondPassBuilder in CFACreator is modifying the CFA, adding
-      // CFATerminationNodes e.g. for calling abort().
-      // so there will be nodes that we do not track, and we do not want to throw a null pointer
-      // exception. Changing the order and
-      // running the SummaryPostProcessor after the CFASecondPassBuilder would be the way to go, but
-      // currently the loop structure recalculation
-      // does not work after CFASecondPassBuilder has done what it does. Hence this hotfix instead.
-      return StrategiesEnum.BASE;
-    }
-  }
-
-  public Map<String, CExpression> getVariableDeclarationsForNode(CFANode node) {
-    return variableDeclarations.get(node);
   }
 
   public void addStrategy(Strategy strategy) {
@@ -124,11 +72,6 @@ public class SummaryInformation {
           nodeToLoopStructure.put(node, loop);
         }
       }
-    }
-
-    for (CFANode n : pCfa.getAllNodes()) {
-      this.addNodeForStrategy(StrategiesEnum.BASE, n);
-      this.unallowedStrategiesForNode.put(n, new HashSet<>());
     }
   }
 
@@ -160,53 +103,12 @@ public class SummaryInformation {
     return this.summaryTransferStrategy;
   }
 
-  public Set<StrategiesEnum> getUnallowedStrategiesForNode(CFANode node) {
-    return this.unallowedStrategiesForNode.get(node);
-  }
-
-  public void addUnallowedStrategiesForNode(CFANode node, StrategiesEnum strategy) {
-    unallowedStrategiesForNode.computeIfAbsent(node, x -> new HashSet<>()).add(strategy);
-  }
-
-  public List<StrategiesEnum> getAllowedStrategies(CFANode node) {
+  public List<StrategiesEnum> getChosenStrategies(CFANode node, LocationPrecision prec) {
     List<StrategiesEnum> availableStrategies =
-        new ArrayList<>(CFAUtils.successorsOf(node).transform(this::getStrategyForNode).toSet());
-    availableStrategies.removeAll(getUnallowedStrategiesForNode(node));
+        new ArrayList<>(SummaryUtils.getAvailableStrategies(node));
+    availableStrategies.removeAll(prec.getUnallowedStrategies());
     List<StrategiesEnum> allowedStrategies =
         new ArrayList<>(getTransferSummaryStrategy().filter(availableStrategies));
     return allowedStrategies;
-  }
-
-  public Set<CFANode> getDistinctNodesWithStrategies(Set<StrategiesEnum> ignoreStrategies) {
-    Set<CFANode> nodes = new HashSet<>();
-    for (Entry<CFANode, StrategiesEnum> e : this.nodesWithIncomingStrategies.entrySet()) {
-      if (!ignoreStrategies.contains(e.getValue())) {
-        if (e.getKey().getNumEnteringEdges() == 1) {
-          // The predecessor Nodes are those for which the Strategies are calculated with the
-          // entering
-          // function
-          nodes.add(e.getKey().getEnteringEdge(0).getPredecessor());
-        }
-      }
-    }
-    return nodes;
-  }
-
-  public Set<CFANode> getDistinctNodesWithStrategiesWithoutDissallowed(
-      Set<StrategiesEnum> pIgnoreStrategies) {
-    Set<CFANode> nodes = new HashSet<>();
-    for (Entry<CFANode, StrategiesEnum> e : this.nodesWithIncomingStrategies.entrySet()) {
-      Set<StrategiesEnum> ignoreStrategies = new HashSet<>(pIgnoreStrategies);
-      ignoreStrategies.addAll(this.getUnallowedStrategiesForNode(e.getKey()));
-      if (!ignoreStrategies.contains(e.getValue())) {
-        if (e.getKey().getNumEnteringEdges() == 1) {
-          // The predecessor Nodes are those for which the Strategies are calculated with the
-          // entering
-          // function
-          nodes.add(e.getKey().getEnteringEdge(0).getPredecessor());
-        }
-      }
-    }
-    return nodes;
   }
 }

@@ -16,12 +16,16 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.utils.LocationPrecision;
+import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.utils.LocationPrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.defaults.AbstractCPA;
 import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysisWithBAM;
+import org.sosy_lab.cpachecker.core.interfaces.Precision;
+import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.pcc.ProofChecker.ProofCheckerCPA;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
@@ -69,5 +73,16 @@ public class LocationCPA extends AbstractCPA
                 .getAbstractSuccessorsForEdge(
                     pElement, SingletonPrecision.getInstance(), pCfaEdge));
     return successors.equals(actualSuccessors);
+  }
+
+  @Override
+  public Precision getInitialPrecision(CFANode node, StateSpacePartition partition)
+      throws InterruptedException {
+    return new LocationPrecision();
+  }
+
+  @Override
+  public PrecisionAdjustment getPrecisionAdjustment() {
+    return new LocationPrecisionAdjustment();
   }
 }
