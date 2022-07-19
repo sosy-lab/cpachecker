@@ -66,6 +66,7 @@ public class AbstractAccelerationStrategy extends LoopStrategy {
     return Optional.empty();
   }
 
+  @SuppressWarnings("unused")
   private PathConstraints calculateConstraints(Loop loop, CFANode loopStartNode) {
     return calculateConstraints(loop, loopStartNode, 0);
   }
