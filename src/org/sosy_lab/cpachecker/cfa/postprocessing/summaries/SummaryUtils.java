@@ -8,7 +8,6 @@
 
 package org.sosy_lab.cpachecker.cfa.postprocessing.summaries;
 
-import java.util.Collection;
 import java.util.HashSet;
 import java.util.Optional;
 import java.util.Set;
@@ -85,12 +84,16 @@ public class SummaryUtils {
     }
   }
 
-  public static Collection<? extends StrategiesEnum> getAvailableStrategies(CFANode n) {
+  public static Set<StrategiesEnum> getAvailableStrategies(CFANode n) {
     Set<StrategiesEnum> availableStrategies = new HashSet<>();
     for (CFAEdge e : n.getLeavingEdges()) {
       availableStrategies.add(SummaryUtils.getStrategyForEdge(e));
     }
 
     return availableStrategies;
+  }
+
+  public static boolean containsStrategies(CFAEdge edge, Set<StrategiesEnum> strategies) {
+    return strategies.contains(SummaryUtils.getStrategyForEdge(edge));
   }
 }

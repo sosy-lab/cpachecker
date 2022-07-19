@@ -6,7 +6,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.cfa.postprocessing.summaries.utils;
+package org.sosy_lab.cpachecker.cpa.location;
 
 import java.util.HashSet;
 import java.util.Set;

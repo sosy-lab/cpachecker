@@ -40,7 +40,7 @@ import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.AbstractStrategy;
 import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.GhostCFA;
 import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.StrategiesEnum;
-import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.SummaryFilter;
+import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.SummaryUtils;
 import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.StrategyDependencies.StrategyDependency;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
@@ -69,7 +69,9 @@ public class LoopStrategy extends AbstractStrategy {
   protected final Optional<CFANode> determineLoopHead(final CFANode loopStartNode) {
     return determineLoopHead(
         loopStartNode,
-        x -> summaryFilter.filter(x, ImmutableSet.of(StrategiesEnum.BASE, this.strategyEnum)));
+        x ->
+            SummaryUtils.containsStrategies(
+                x, ImmutableSet.of(StrategiesEnum.BASE, this.strategyEnum)));
   }
 
   /**
@@ -237,9 +239,7 @@ public class LoopStrategy extends AbstractStrategy {
     Optional<CFANode> loopHead =
         determineLoopHead(
             incomingEdge.getPredecessor(),
-            x ->
-                new SummaryFilter(strategyDependencies)
-                    .filter(x, ImmutableSet.of(StrategiesEnum.BASE)));
+            x -> SummaryUtils.containsStrategies(x, ImmutableSet.of(StrategiesEnum.BASE)));
     return loopHead.isPresent() && !loop.containsUserDefinedFunctionCalls();
   }
 }

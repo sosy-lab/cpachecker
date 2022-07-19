@@ -19,7 +19,7 @@ import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.StrategyDependencies.StrategyDependency;
-import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.utils.LocationPrecision;
+import org.sosy_lab.cpachecker.cpa.location.LocationPrecision;
 import org.sosy_lab.cpachecker.util.LoopStructure;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 

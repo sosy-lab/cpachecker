@@ -24,26 +24,38 @@ public class SummaryFilter {
     strategyDependencies = pStrategyDependencies;
   }
 
-  public List<CFAEdge> getOutgoingEdges(CFANode node) {
-    List<StrategiesEnum> availableStrategies = new ArrayList<>();
-    for (int i = 0; i < node.getNumLeavingEdges(); i++) {
-      availableStrategies.add(SummaryUtils.getStrategyForEdge(node.getLeavingEdge(i)));
-    }
-    List<StrategiesEnum> filteredStrategies = strategyDependencies.filter(availableStrategies);
-    List<CFAEdge> filteredLeavingEdges = new ArrayList<>();
-    for (int i = 0; i < node.getNumLeavingEdges(); i++) {
-      if (filteredStrategies.contains(SummaryUtils.getStrategyForEdge(node.getLeavingEdge(i)))) {
-        filteredLeavingEdges.add(node.getLeavingEdge(i));
-      }
-    }
-    return filteredLeavingEdges;
+  public List<CFAEdge> getFilteredOutgoingEdges(CFANode node) {
+    Set<StrategiesEnum> availableStrategies = SummaryUtils.getAvailableStrategies(node);
+
+    List<StrategiesEnum> filteredStrategies =
+        strategyDependencies.filter(new ArrayList<>(availableStrategies));
+
+    return FluentIterable.from(node.getLeavingEdges())
+        .filter(e -> filteredStrategies.contains(SummaryUtils.getStrategyForEdge(e)))
+        .toList();
   }
 
-  public List<CFAEdge> getEdgesForStrategies(List<CFAEdge> edges, Set<StrategiesEnum> strategies) {
-    return FluentIterable.from(edges).filter(x -> filter(x, strategies)).toList();
+  /**
+   * Filters in order such that only the edges corresponding to the strategies remain
+   *
+   * @param edges The edges to be filtered
+   * @param presentStrategies the strategies which should remain present
+   * @return the filtered edges
+   */
+  public List<CFAEdge> filterStrategies(
+      List<CFAEdge> edges, Set<StrategiesEnum> presentStrategies) {
+    return FluentIterable.from(edges)
+        .filter(e -> presentStrategies.contains(SummaryUtils.getStrategyForEdge(e)))
+        .toList();
   }
 
-  public boolean filter(CFAEdge edge, Set<StrategiesEnum> strategies) {
-    return strategies.contains(SummaryUtils.getStrategyForEdge(edge));
+  public List<CFAEdge> filterStrategies(CFANode node, Set<StrategiesEnum> presentStrategies) {
+    return filterStrategies(node.getLeavingEdges(), presentStrategies);
+  }
+
+  public List<CFAEdge> filterStrategies(CFAEdge e, Set<StrategiesEnum> presentStrategies) {
+    List<CFAEdge> edges = new ArrayList<>();
+    edges.add(e);
+    return filterStrategies(edges, presentStrategies);
   }
 }
