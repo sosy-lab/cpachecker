@@ -146,16 +146,16 @@ public class DataRaceTransferRelation extends SingleEdgeTransferRelation {
         memoryAccessBuilder.addAll(newMemoryAccesses);
         for (MemoryAccess access : state.getMemoryAccesses()) {
           if (threadIds.contains(access.getThreadId())) {
-            if (access.isWrite() && !access.hasSubsequentRead()) {
-              boolean foundSubsequentRead = false;
+            if (access.isWrite() && !access.hasSubsequentWrite()) {
+              boolean foundSubsequentWrite = false;
               // TODO: What to do if (t1 writes x) -> (t2 writes x) -> (t3 reads x)?
               //       (Currently, both writes synchronize with the read)
               for (MemoryAccess newAccess : newMemoryAccesses) {
-                if (!newAccess.isWrite()
-                    && access.getMemoryLocation().equals(newAccess.getMemoryLocation())) {
-                  foundSubsequentRead = true;
-                  memoryAccessBuilder.add(access.withSubsequentRead());
-                  if (!access.getThreadId().equals(newAccess.getThreadId())) {
+                if (access.getMemoryLocation().equals(newAccess.getMemoryLocation())) {
+                  if (newAccess.isWrite()) {
+                    foundSubsequentWrite = true;
+                    memoryAccessBuilder.add(access.withSubsequentWrite());
+                  } else if (!access.getThreadId().equals(newAccess.getThreadId())) {
                     // Unnecessary if both accesses were made by the same thread
                     newThreadSynchronizationsBuilder.add(
                         new ThreadSynchronization(
@@ -164,10 +164,9 @@ public class DataRaceTransferRelation extends SingleEdgeTransferRelation {
                             access.getAccessEpoch(),
                             newAccess.getAccessEpoch()));
                   }
-                  break;
                 }
               }
-              if (foundSubsequentRead) {
+              if (foundSubsequentWrite) {
                 continue;
               }
             }

@@ -21,7 +21,7 @@ class MemoryAccess {
   private final boolean isWrite;
   private final ImmutableSet<String> locks;
   private final CFAEdge edge;
-  private final boolean hasSubsequentRead;
+  private final boolean hasSubsequentWrite;
   private final int accessEpoch;
 
   MemoryAccess(
@@ -30,14 +30,14 @@ class MemoryAccess {
       boolean pIsWrite,
       Set<String> pLocks,
       CFAEdge pEdge,
-      boolean pHasSubsequentRead,
+      boolean pHasSubsequentWrite,
       int pAccessEpoch) {
     threadId = pThreadId;
     memoryLocation = pMemoryLocation;
     isWrite = pIsWrite;
     locks = ImmutableSet.copyOf(pLocks);
     edge = pEdge;
-    hasSubsequentRead = pHasSubsequentRead;
+    hasSubsequentWrite = pHasSubsequentWrite;
     accessEpoch = pAccessEpoch;
   }
 
@@ -57,15 +57,15 @@ class MemoryAccess {
     return locks;
   }
 
-  boolean hasSubsequentRead() {
-    return hasSubsequentRead;
+  boolean hasSubsequentWrite() {
+    return hasSubsequentWrite;
   }
 
   int getAccessEpoch() {
     return accessEpoch;
   }
 
-  MemoryAccess withSubsequentRead() {
+  MemoryAccess withSubsequentWrite() {
     return new MemoryAccess(threadId, memoryLocation, isWrite, locks, edge, true, accessEpoch);
   }
 
