@@ -87,7 +87,7 @@ class MemoryAccess {
       }
     }
 
-    for (ThreadSynchronization synchronization : threadSynchronizations) {
+    for (ThreadSynchronization synchronization : relevantSynchronizations) {
       if (synchronization.getReadThread().equals(other.threadId)
           && synchronization.getReadThreadIndex() <= other.accessEpoch) {
         return true;
