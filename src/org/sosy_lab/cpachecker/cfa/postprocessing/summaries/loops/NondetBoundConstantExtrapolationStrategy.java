@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.cfa.postprocessing.summaries.loops;
 
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Optional;
 import org.sosy_lab.common.ShutdownNotifier;
@@ -28,6 +29,7 @@ import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.GhostCFA;
 import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.StrategiesEnum;
+import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.SummaryUtils;
 import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.StrategyDependencies.StrategyDependency;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
@@ -157,7 +159,11 @@ public class NondetBoundConstantExtrapolationStrategy extends ConstantExtrapolat
       return Optional.empty();
     }
 
-    if (!hasOnlyConstantVariableModifications(loop) || loop.amountOfInnerAssumeEdges() != 1) {
+    if (!hasOnlyConstantVariableModifications(loop)
+        || SummaryUtils.getAssumeEdges(
+                    new HashSet<>(summaryFilter.filterEdges(loop.getInnerLoopEdges())))
+                .size()
+            != 1) {
       return Optional.empty();
     }
 

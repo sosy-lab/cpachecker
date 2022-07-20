@@ -64,7 +64,6 @@ public class SummaryPostProcessor implements StatisticsProvider {
     summaryInformation =
         new SummaryInformation(
             pCfa,
-            strategyDependencies,
             new StrategyDependencyFactory().createStrategy(transferStrategy));
     // TODO: the fact that we need to modify pCfa here in this constructor is a code smell:
     pCfa.setSummaryInformations(summaryInformation);

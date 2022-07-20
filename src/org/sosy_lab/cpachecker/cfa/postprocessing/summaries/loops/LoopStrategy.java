@@ -131,8 +131,13 @@ public class LoopStrategy extends AbstractStrategy {
   }
 
   protected static Optional<CFANode> havocNonLocalLoopVars(
-      Loop loop, CFANode pBeforeWhile, CFANode currentNode, CFANode newNode) {
-    Set<AVariableDeclaration> modifiedVariables = getModifiedNonLocalVariables(loop);
+      Set<CFAEdge> edges,
+      Set<AVariableDeclaration> pModifiedVariables,
+      CFANode pBeforeWhile,
+      CFANode currentNode,
+      CFANode newNode) {
+    Set<AVariableDeclaration> modifiedVariables =
+        SummaryUtils.getModifiedNonLocalVariables(edges, pModifiedVariables);
     for (AVariableDeclaration pc : modifiedVariables) {
       CIdExpression leftHandSide = new CIdExpression(FileLocation.DUMMY, (CSimpleDeclaration) pc);
       CFunctionCallExpression rightHandSide =
@@ -155,8 +160,10 @@ public class LoopStrategy extends AbstractStrategy {
     return Optional.of(currentNode);
   }
 
-  protected static boolean havocModifiedNonLocalVarsAsCode(Loop loop, StringBuilder builder) {
-    return havocVarsAsCode(getModifiedNonLocalVariables(loop), builder);
+  protected static boolean havocModifiedNonLocalVarsAsCode(
+      Set<CFAEdge> pEdges, Set<AVariableDeclaration> pModifiedVariables, StringBuilder builder) {
+    return havocVarsAsCode(
+        SummaryUtils.getModifiedNonLocalVariables(pEdges, pModifiedVariables), builder);
   }
 
   protected static boolean havocVarsAsCode(
@@ -177,19 +184,6 @@ public class LoopStrategy extends AbstractStrategy {
       builder.append(String.format("%s\n", cStatement.toASTString()));
     }
     return true;
-  }
-
-  protected static Set<AVariableDeclaration> getModifiedNonLocalVariables(Loop loop) {
-    Set<AVariableDeclaration> modifiedVariables = loop.getModifiedVariables();
-    Set<String> outofScopeVariables =
-        FluentIterable.from(HavocStrategy.getOutOfScopeVariables(loop))
-            .transform(x -> x.getQualifiedName())
-            .toSet();
-    modifiedVariables =
-        FluentIterable.from(modifiedVariables)
-            .filter(x -> !outofScopeVariables.contains(x.getQualifiedName()))
-            .toSet();
-    return modifiedVariables;
   }
 
   private static final Optional<CFANode> determineLoopHead(

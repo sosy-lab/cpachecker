@@ -14,6 +14,7 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -66,7 +67,6 @@ public class AbstractAccelerationStrategy extends LoopStrategy {
     return Optional.empty();
   }
 
-  @SuppressWarnings("unused")
   private PathConstraints calculateConstraints(Loop loop, CFANode loopStartNode) {
     return calculateConstraints(loop, loopStartNode, 0);
   }
@@ -82,8 +82,10 @@ public class AbstractAccelerationStrategy extends LoopStrategy {
       CFANode current = waitlist.remove(0);
       assert !current.isLoopStart() || current == loopStartNode; //  we deal with nested loops later
       PathConstraints currentConstraint = constraintMap.get(current);
-      Set<CFAEdge> leaving = ImmutableSet.copyOf(current.getLeavingEdges());
-      Set<CFAEdge> filteredLeaving = Sets.intersection(leaving, loop.getInnerLoopEdges());
+      Set<CFAEdge> leaving = ImmutableSet.copyOf(summaryFilter.getFilteredLeavingEdges(current));
+      Set<CFAEdge> filteredLeaving =
+          Sets.intersection(
+              leaving, new HashSet<>(summaryFilter.filterEdges(loop.getInnerLoopEdges())));
       assert leaving.size() == filteredLeaving.size() || current == loopStartNode;
       int multiplicity = filteredLeaving.size();
       assert multiplicity <= 2 && multiplicity >= 1;
@@ -119,12 +121,13 @@ public class AbstractAccelerationStrategy extends LoopStrategy {
   private void sortWaitlist(List<CFANode> waitlist, Map<CFANode, PathConstraints> constraintMap) {
     while (true) {
       CFANode firstState = waitlist.get(0);
-      if (firstState.getNumEnteringEdges() == 1 || firstState.isLoopStart()) {
+      if (summaryFilter.getFilteredEnteringEdges(firstState).size() == 1
+          || firstState.isLoopStart()) {
         break;
       } else {
         boolean OK = true;
-        for (int i = 0; i < firstState.getNumEnteringEdges(); i++) {
-          if (!constraintMap.containsKey(firstState.getEnteringEdge(i).getPredecessor())) {
+        for (CFAEdge e : summaryFilter.getFilteredEnteringEdges(firstState)) {
+          if (!constraintMap.containsKey(e.getPredecessor())) {
             OK = false;
             break;
           }

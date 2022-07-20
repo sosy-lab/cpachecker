@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.cfa.postprocessing.summaries.loops;
 
 import com.google.common.collect.FluentIterable;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Optional;
@@ -42,6 +43,7 @@ import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.GhostCFA;
 import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.LoopAbstractionExpressibleAsCode;
 import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.StrategiesEnum;
+import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.SummaryUtils;
 import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.StrategyDependencies.StrategyDependency;
 import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
@@ -261,7 +263,8 @@ public class ConstantExtrapolationStrategy extends LoopExtrapolationStrategy
     CFACreationUtils.connectNodes(secondEndUnrolledNode, endNodeGhostCFA);
 
     CFAEdge leavingEdge;
-    Iterator<CFAEdge> iter = pLoopStructure.getOutgoingEdges().iterator();
+    Iterator<CFAEdge> iter =
+        summaryFilter.filterEdges(pLoopStructure.getOutgoingEdges()).iterator();
     if (iter.hasNext()) {
       leavingEdge = iter.next();
       if (iter.hasNext()) {
@@ -295,7 +298,11 @@ public class ConstantExtrapolationStrategy extends LoopExtrapolationStrategy
     Loop loop = loopMaybe.orElseThrow();
 
     // TODO: support more general loop conditions!
-    if (!hasOnlyConstantVariableModifications(loop) || loop.amountOfInnerAssumeEdges() != 1) {
+    if (!hasOnlyConstantVariableModifications(loop)
+        || SummaryUtils.getAssumeEdges(
+                    new HashSet<>(summaryFilter.filterEdges(loop.getInnerLoopEdges())))
+                .size()
+            != 1) {
       return Optional.empty();
     }
 
@@ -329,7 +336,10 @@ public class ConstantExtrapolationStrategy extends LoopExtrapolationStrategy
   protected boolean isSupportedLoop(Loop loop) {
     return super.isSupportedLoop(loop)
         && hasOnlyConstantVariableModifications(loop)
-        && loop.amountOfInnerAssumeEdges() == 1;
+        && SummaryUtils.getAssumeEdges(
+                    new HashSet<>(summaryFilter.filterEdges(loop.getInnerLoopEdges())))
+                .size()
+            == 1;
   }
 
   @Override
