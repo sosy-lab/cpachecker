@@ -141,10 +141,6 @@ public class CFANode implements Comparable<CFANode>, Serializable {
     return enteringEdges.get(pIndex);
   }
 
-  public List<CFAEdge> getEnteringEdges() {
-    return enteringEdges;
-  }
-
   public CFAEdge getEdgeTo(CFANode pOther) {
     for (CFAEdge edge : leavingEdges) {
       if (edge.getSuccessor().equals(pOther)) {

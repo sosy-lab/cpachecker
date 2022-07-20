@@ -38,7 +38,6 @@ import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.GhostCFA;
 import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.LoopAbstractionExpressibleAsCode;
 import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.StrategiesEnum;
-import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.SummaryUtils;
 import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.StrategyDependencies.StrategyDependency;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
@@ -290,10 +289,7 @@ public class OutputLoopAccelerationStrategy extends LoopStrategy
     Set<AVariableDeclaration> readVariables = loop.getReadVariables();
     Set<AVariableDeclaration> readWriteVariables = new HashSet<>(modifiedVariables);
     readWriteVariables.retainAll(readVariables);
-    readWriteVariables.retainAll(
-        SummaryUtils.getModifiedNonLocalVariables(
-            new HashSet<>(summaryFilter.filterEdges(loop.getInnerLoopEdges())),
-            loop.getModifiedVariables()));
+    readWriteVariables.retainAll(getModifiedNonLocalVariables(loop));
 
     Optional<AExpression> loopBoundExpressionMaybe = loop.getBound();
     if (loopBoundExpressionMaybe.isEmpty()) {
@@ -327,10 +323,7 @@ public class OutputLoopAccelerationStrategy extends LoopStrategy
     Set<AVariableDeclaration> readVariables = loop.getReadVariables();
     Set<AVariableDeclaration> readWriteVariables = new HashSet<>(modifiedVariables);
     readWriteVariables.retainAll(readVariables);
-    readWriteVariables.retainAll(
-        SummaryUtils.getModifiedNonLocalVariables(
-            new HashSet<>(summaryFilter.filterEdges(loop.getInnerLoopEdges())),
-            loop.getModifiedVariables()));
+    readWriteVariables.retainAll(getModifiedNonLocalVariables(loop));
 
     final String loopBoundExpressionString =
         ((CExpression) loopBoundExpression)

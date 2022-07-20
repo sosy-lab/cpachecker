@@ -8,7 +8,6 @@
 
 package org.sosy_lab.cpachecker.cfa.postprocessing.summaries;
 
-import com.google.common.collect.FluentIterable;
 import java.util.HashSet;
 import java.util.Optional;
 import java.util.Set;
@@ -18,12 +17,10 @@ import org.sosy_lab.cpachecker.cfa.ast.AExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.ALeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.ARightHandSide;
-import org.sosy_lab.cpachecker.cfa.ast.ASimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.visitors.LinearVariableDependencyVisitor;
 import org.sosy_lab.cpachecker.cfa.model.AStatementEdge;
-import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -98,38 +95,5 @@ public class SummaryUtils {
 
   public static boolean containsStrategies(CFAEdge edge, Set<StrategiesEnum> strategies) {
     return strategies.contains(SummaryUtils.getStrategyForEdge(edge));
-  }
-
-  public static Set<CFAEdge> getAssumeEdges(Set<CFAEdge> edges) {
-    Set<CFAEdge> selectedEdges = new HashSet<>();
-    for (CFAEdge e : edges) {
-      if (e instanceof AssumeEdge) {
-        selectedEdges.add(e);
-      }
-    }
-    return selectedEdges;
-  }
-
-  public static Set<ASimpleDeclaration> getOutOfScopeVariables(Set<CFAEdge> edges) {
-    Set<ASimpleDeclaration> outofScopeVariables = new HashSet<>();
-    for (CFAEdge e : edges) {
-      outofScopeVariables.addAll(e.getSuccessor().getOutOfScopeVariables());
-      outofScopeVariables.addAll(e.getPredecessor().getOutOfScopeVariables());
-    }
-
-    return outofScopeVariables;
-  }
-
-  public static Set<AVariableDeclaration> getModifiedNonLocalVariables(
-      Set<CFAEdge> edges, Set<AVariableDeclaration> modifiedVariables) {
-    Set<String> outofScopeVariables =
-        FluentIterable.from(SummaryUtils.getOutOfScopeVariables(edges))
-            .transform(x -> x.getQualifiedName())
-            .toSet();
-    modifiedVariables =
-        FluentIterable.from(modifiedVariables)
-            .filter(x -> !outofScopeVariables.contains(x.getQualifiedName()))
-            .toSet();
-    return modifiedVariables;
   }
 }

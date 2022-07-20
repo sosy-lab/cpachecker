@@ -10,10 +10,8 @@ package org.sosy_lab.cpachecker.cfa.postprocessing.summaries;
 
 import com.google.common.collect.FluentIterable;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.List;
 import java.util.Set;
-import java.util.stream.Collectors;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.StrategyDependencies.StrategyDependency;
@@ -26,22 +24,13 @@ public class SummaryFilter {
     strategyDependencies = pStrategyDependencies;
   }
 
-  public List<CFAEdge> getFilteredLeavingEdges(CFANode node) {
-    return filterEdges(node.getLeavingEdges());
-  }
-
-  public List<CFAEdge> getFilteredEnteringEdges(CFANode node) {
-    return filterEdges(node.getEnteringEdges());
-  }
-
-  public List<CFAEdge> filterEdges(Collection<CFAEdge> pEdges) {
-    Set<StrategiesEnum> availableStrategies =
-        pEdges.stream().map(x -> SummaryUtils.getStrategyForEdge(x)).collect(Collectors.toSet());
+  public List<CFAEdge> getFilteredOutgoingEdges(CFANode node) {
+    Set<StrategiesEnum> availableStrategies = SummaryUtils.getAvailableStrategies(node);
 
     List<StrategiesEnum> filteredStrategies =
         strategyDependencies.filter(new ArrayList<>(availableStrategies));
 
-    return FluentIterable.from(pEdges)
+    return FluentIterable.from(node.getLeavingEdges())
         .filter(e -> filteredStrategies.contains(SummaryUtils.getStrategyForEdge(e)))
         .toList();
   }

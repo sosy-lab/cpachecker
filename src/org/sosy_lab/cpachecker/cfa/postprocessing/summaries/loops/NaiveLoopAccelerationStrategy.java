@@ -9,7 +9,6 @@
 package org.sosy_lab.cpachecker.cfa.postprocessing.summaries.loops;
 
 import java.io.IOException;
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Optional;
 import org.sosy_lab.common.ShutdownNotifier;
@@ -72,11 +71,7 @@ public class NaiveLoopAccelerationStrategy extends LoopStrategy
 
     Optional<CFANode> currentNodeMaybe =
         havocNonLocalLoopVars(
-            new HashSet<>(summaryFilter.filterEdges(pLoopStructure.getInnerLoopEdges())),
-            pLoopStructure.getModifiedVariables(),
-            pBeforeWhile,
-            currentNode,
-            newDummyNode(functionName));
+            pLoopStructure, pBeforeWhile, currentNode, newDummyNode(functionName));
     if (currentNodeMaybe.isEmpty()) {
       return Optional.empty();
     } else {
@@ -188,10 +183,7 @@ public class NaiveLoopAccelerationStrategy extends LoopStrategy
             ((CExpression) loopBoundExpression)
                 .accept(CExpressionToOrinalCodeVisitor.BASIC_TRANSFORMER)));
 
-    havocModifiedNonLocalVarsAsCode(
-        new HashSet<>(summaryFilter.filterEdges(loop.getInnerLoopEdges())),
-        loop.getModifiedVariables(),
-        builder);
+    havocModifiedNonLocalVarsAsCode(loop, builder);
 
     builder.append(
         String.format(

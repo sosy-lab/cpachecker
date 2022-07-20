@@ -11,11 +11,13 @@ package org.sosy_lab.cpachecker.cfa.postprocessing.summaries.loops;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Optional;
+import java.util.Set;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CFACreationUtils;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
+import org.sosy_lab.cpachecker.cfa.ast.ASimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -70,11 +72,7 @@ public class HavocStrategy extends LoopStrategy implements LoopAbstractionExpres
 
     Optional<CFANode> currentNodeMaybe =
         LoopStrategy.havocNonLocalLoopVars(
-            new HashSet<>(summaryFilter.filterEdges(pLoopStructure.getInnerLoopEdges())),
-            pLoopStructure.getModifiedVariables(),
-            pBeforeWhile,
-            currentNode,
-            newDummyNode(functionName));
+            pLoopStructure, pBeforeWhile, currentNode, newDummyNode(functionName));
     if (!currentNodeMaybe.isPresent()) {
       return Optional.empty();
     }
@@ -163,10 +161,7 @@ public class HavocStrategy extends LoopStrategy implements LoopAbstractionExpres
                 .accept(CExpressionToOrinalCodeVisitor.BASIC_TRANSFORMER)));
 
     // 2. add a line <varname> = __VERIFIER_nondet_X(); for all modified variables
-    if (!LoopStrategy.havocModifiedNonLocalVarsAsCode(
-        new HashSet<>(summaryFilter.filterEdges(loop.getInnerLoopEdges())),
-        loop.getModifiedVariables(),
-        builder)) {
+    if (!LoopStrategy.havocModifiedNonLocalVarsAsCode(loop, builder)) {
       return Optional.empty();
     }
     builder.append("}\n");
@@ -179,5 +174,15 @@ public class HavocStrategy extends LoopStrategy implements LoopAbstractionExpres
                 .accept(CExpressionToOrinalCodeVisitor.BASIC_TRANSFORMER)));
 
     return Optional.of(builder.toString());
+  }
+
+  static Set<ASimpleDeclaration> getOutOfScopeVariables(Loop loop) {
+    Set<ASimpleDeclaration> outofScopeVariables = new HashSet<>();
+    for (CFAEdge e : loop.getInnerLoopEdges()) {
+      outofScopeVariables.addAll(e.getSuccessor().getOutOfScopeVariables());
+      outofScopeVariables.addAll(e.getPredecessor().getOutOfScopeVariables());
+    }
+
+    return outofScopeVariables;
   }
 }

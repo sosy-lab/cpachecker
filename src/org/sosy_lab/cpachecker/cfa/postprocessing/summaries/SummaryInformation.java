@@ -38,12 +38,15 @@ public class SummaryInformation {
   private Map<CFANode, Loop> nodeToLoopStructure = new HashMap<>();
   private Set<Strategy> strategies = new HashSet<>();
   private StrategyFactory factory;
+  private final StrategyDependency summaryCreationStrategy;
   private final StrategyDependency summaryTransferStrategy;
   private Map<CFANode, Set<StrategiesEnum>> unallowedStrategiesForNode = new HashMap<>();
 
   public SummaryInformation(
       CFA pCfa,
+      StrategyDependency pCreationSummaryStrategy,
       StrategyDependency pTransferSummaryStrategy) {
+    summaryCreationStrategy = pCreationSummaryStrategy;
     summaryTransferStrategy = pTransferSummaryStrategy;
     this.addCfaInformations(pCfa);
   }
@@ -90,6 +93,10 @@ public class SummaryInformation {
       return Optional.empty();
     }
     return Optional.of(loop);
+  }
+
+  public StrategyDependency getCreationSummaryStrategy() {
+    return this.summaryCreationStrategy;
   }
 
   public StrategyDependency getTransferSummaryStrategy() {

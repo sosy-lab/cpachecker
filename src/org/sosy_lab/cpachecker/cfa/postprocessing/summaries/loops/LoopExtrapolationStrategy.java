@@ -361,7 +361,7 @@ public class LoopExtrapolationStrategy extends LoopStrategy {
     if (!onlyConstantVariableModifications.containsKey(loop)) {
       onlyConstantVariableModifications.put(loop, true);
       // Calculate the value if it is not present
-      for (CFAEdge e : summaryFilter.filterEdges(loop.getInnerLoopEdges())) {
+      for (CFAEdge e : loop.getInnerLoopEdges()) {
         if (e instanceof AStatementEdge) {
           AStatementEdge stmtEdge = (AStatementEdge) e;
           if (stmtEdge.getStatement() instanceof AAssignment) {
@@ -397,7 +397,7 @@ public class LoopExtrapolationStrategy extends LoopStrategy {
 
       // Calculate the value if it is not present
       onlyLinearVariableModifications.put(loop, true);
-      for (CFAEdge e : summaryFilter.filterEdges(loop.getInnerLoopEdges())) {
+      for (CFAEdge e : loop.getInnerLoopEdges()) {
         if (e instanceof AStatementEdge) {
           AStatementEdge stmtEdge = (AStatementEdge) e;
           if (stmtEdge.getStatement() instanceof AAssignment) {

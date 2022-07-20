@@ -8,7 +8,6 @@
 
 package org.sosy_lab.cpachecker.cfa.postprocessing.summaries.loops;
 
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Optional;
@@ -29,7 +28,6 @@ import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.GhostCFA;
 import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.StrategiesEnum;
-import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.SummaryUtils;
 import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.StrategyDependencies.StrategyDependency;
 import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.utils.LinearVariableDependencyGraph;
 import org.sosy_lab.cpachecker.cfa.postprocessing.summaries.utils.LinearVariableDependencyMatrix;
@@ -69,10 +67,7 @@ public class LinearExtrapolationStrategy extends LoopExtrapolationStrategy {
     Loop loop = loopMaybe.orElseThrow();
 
     if (hasOnlyConstantVariableModifications(loop)
-        || SummaryUtils.getAssumeEdges(
-                    new HashSet<>(summaryFilter.filterEdges(loop.getInnerLoopEdges())))
-                .size()
-            != 1
+        || loop.amountOfInnerAssumeEdges() != 1
         || !hasOnlyLinearVariableModifications(loop)) {
       return Optional.empty();
     }
