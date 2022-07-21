@@ -11,6 +11,7 @@
 import argparse
 import json
 import sys
+import webbrowser
 from pathlib import Path
 from datetime import datetime
 
@@ -18,9 +19,10 @@ from typing import Dict
 
 from airium import Airium
 
-import webbrowser
 import networkx as nx
 import pydot
+
+ENCODING = "UTF-8"
 
 
 def create_arg_parser():
@@ -32,7 +34,8 @@ def create_arg_parser():
     )
     parser.add_argument(
         "--block-structure-json",
-        help="Path to JSON file that contains the block structure used for distributed block analysis",
+        help="Path to JSON file that contains the block structure used for"
+        " distributed block analysis",
         default="output/block_analysis/blocks.json",
     )
     parser.add_argument(
@@ -61,7 +64,7 @@ def parse_args(argv):
 
 
 def parse_jsons(json_file: Path):
-    with open(json_file) as inp:
+    with open(json_file, encoding=ENCODING) as inp:
         return json.load(inp)
 
 
@@ -146,10 +149,9 @@ def html_dict_to_html_table(all_messages, block_logs: Dict[str, str]):
             "ERROR_CONDITION": "postcondition",
             "ERROR_CONDITION_UNREACHABLE": "postcondition",
         }
-        for timestamp in timestamp_to_message:
+        for timestamp, messages in timestamp_to_message.items():
             with table.tr():
                 table.td(_t=str(timestamp))
-                messages = timestamp_to_message[timestamp]
                 for msg in messages:
                     if not msg:
                         table.td()
@@ -160,7 +162,7 @@ def html_dict_to_html_table(all_messages, block_logs: Dict[str, str]):
     return str(table)
 
 
-def visualize(
+def visualize_blocks(
     block_structure_file: Path,
     output_path: Path,
     output_dot_name="graph.dot",
@@ -177,29 +179,22 @@ def visualize(
             for successor in block_logs[key]["successors"]:
                 g.add_edge(key, successor)
 
+    output_path.mkdir(parent=True, exist_ok=True)
     graph_dot = output_path / output_dot_name
     nx.drawing.nx_pydot.write_dot(g, str(graph_dot))
     (graph,) = pydot.graph_from_dot_file(str(graph_dot))
     graph.write_png(str(output_path / output_png_name))
 
 
-def main(
-    argv=None,
+def export_messages_table(
+    *,
+    all_messages,
+    block_logs,
+    output_path,
     report_filename="report.html",
     message_table_filename="table.html",
     message_table_css_filename="table.css",
 ):
-    if argv is None:
-        argv = sys.argv[1:]
-    args = parse_args(argv)
-
-    block_logs = parse_jsons(args.messages_json)
-    all_messages = []
-    for key in block_logs:
-        if "messages" in block_logs[key]:
-            all_messages += block_logs[key]["messages"]
-    if not all_messages:
-        return
     for message in all_messages:
         # 2022 - 03 - 10 14: 44:07.031875
         message["timestamp"] = int(
@@ -209,10 +204,9 @@ def main(
         all_messages, key=lambda entry: (entry["timestamp"], entry["from"][1::])
     )
 
-    output_path: Path = args.output
     output_path.mkdir(parents=True, exist_ok=True)
-    with open(message_table_filename) as html:
-        with open(message_table_css_filename) as css:
+    with open(message_table_filename, encoding=ENCODING) as html:
+        with open(message_table_css_filename, encoding=ENCODING) as css:
             text = (
                 html.read()
                 .replace(
@@ -221,11 +215,39 @@ def main(
                 )
                 .replace("/*CSS*/", css.read())
             )
-            with open(output_path / report_filename, "w+") as new_html:
+            with open(
+                output_path / report_filename, "w+", encoding=ENCODING
+            ) as new_html:
                 new_html.write(text)
-    visualize(block_structure_file=args.block_structure_json, output_path=output_path)
-    webbrowser.open(str(output_path / report_filename))
-    return 0
+    return report_filename
+
+
+def visualize_messages(messages_file: Path, output_path: Path):
+    block_logs = parse_jsons(messages_file)
+    all_messages = []
+    for key in block_logs:
+        if "messages" in block_logs[key]:
+            all_messages += block_logs[key]["messages"]
+    if not all_messages:
+        return
+
+    export_filename = export_messages_table(
+        all_messages=all_messages, block_logs=block_logs, output_path=output_path
+    )
+    webbrowser.open(export_filename)
+
+
+def main(argv=None):
+    if argv is None:
+        argv = sys.argv[1:]
+    args = parse_args(argv)
+    output_path: Path = args.output
+
+    visualize_blocks(
+        block_structure_file=args.block_structure_json, output_path=output_path
+    )
+
+    visualize_messages(messages_file=args.message_json, output_path=output_path)
 
 
 if __name__ == "__main__":
