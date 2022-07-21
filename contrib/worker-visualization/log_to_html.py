@@ -45,9 +45,9 @@ def html_for_message(message, block_log):
 
     infos = block_log[message["from"]]
 
-    predecessors = ["none"] if "predecessors" not in infos else infos["predecessors"]
-    successors = ["none"] if "successors" not in infos else infos["successors"]
-    result = message["payload"] if message["payload"] else "no contents available"
+    predecessors = infos.get("predecessors", [])
+    successors = infos.get("successors", [])
+    result = message.get("payload", "no contents available")
     direction = message["type"]
     arrow = "-"
     senders = ["all"]
@@ -77,9 +77,14 @@ def html_for_message(message, block_log):
                 sender = "self"
                 if senders:
                     sender = ", ".join(senders)
+                else:
+                    sender = "None"
                 div(f"React to message from <strong>{sender}</strong>:")
         with div.p():
-            receiver = ", ".join(receivers)
+            if receivers:
+                receiver = ", ".join(receivers)
+            else:
+                receiver = "None"
             div(f"Calculated new {direction} message for <strong>{receiver}</strong>")
         div.textarea(_t=result)
 
@@ -118,7 +123,7 @@ def html_dict_to_html_table(all_messages, block_logs: dict):
                     if not msg:
                         table.td()
                     else:
-                        klass = type_to_klass[msg["type"]] if msg["type"] in type_to_klass else "normal"
+                        klass = type_to_klass.get(msg["type"], "normal")
                         table.td(klass=klass, _t=html_for_message(msg, block_logs))
 
     return str(table)
