@@ -24,12 +24,41 @@ and the payload in its string representation.
 The visualization is mainly useful for debugging as it may be hard to track messages 
 on multiple threads.
 
+## Setup
+
+Install the Python requirements listed in `requirements.txt`,
+e.g., with `pip install -r requirements.txt`.
+
 ## Options
-- `--directory <path>` or `-d <path>`: path to the directory produced by concurrent block analysis. 
+
+Run `./log_to_html.py --help` to see a list of the available
+command-line options.
 
 ## Example
+
+### Running the command
+
+Directory `example_input/` contains example JSON files for
+running the visualization.
+
+Example run:
+
+```
+$ ./log_to_html.py \
+    --messages-json example_input/block_analysis.json \
+    --block-structure-json example_input/blocks.json
+    --output output 
+```
+
+The command exits silently.  
+The output is stored in `output/` and all data is accessible as HTML `report.html`.
+
+## Visualization
+
 You can find an example for the visualization below.
-The columns represent the workers operating on blocks `B0` and `B1`.
+
+In the table,
+the columns represent the workers operating on blocks `B0` and `B1`.
 Forward analyses produce yellow messages while backward analyses color them red.
 Results are colored in green.
 The rows are sorted ascending by time of creation. 
