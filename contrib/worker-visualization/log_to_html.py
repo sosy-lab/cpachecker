@@ -11,15 +11,16 @@
 import argparse
 import json
 import sys
-import webbrowser
-import networkx as nx
-import pydot
+from pathlib import Path
 from datetime import datetime
 
 from typing import Dict
 
 from airium import Airium
-from pathlib import Path
+
+import webbrowser
+import networkx as nx
+import pydot
 
 block_analysis_file_name = "block_analysis.json"
 summary_file_name = "blocks.json"
@@ -34,7 +35,7 @@ def create_arg_parser():
     return parser
 
 
-def parse_jsons(json_file):
+def parse_jsons(json_file: Path):
     with open(json_file) as inp:
         return json.load(inp)
 
@@ -133,9 +134,9 @@ def html_dict_to_html_table(all_messages, block_logs: Dict[str, str]):
     return str(table)
 
 
-def visualize(output_path):
+def visualize(output_path: Path):
     g = nx.DiGraph()
-    block_logs = parse_jsons(str(Path(output_path) / Path(summary_file_name)))
+    block_logs = parse_jsons(output_path / summary_file_name)
     for key in block_logs:
         code = "\n".join(c for c in block_logs[key]["code"] if c)
         label = key + ":\n" + code if code else key
@@ -145,17 +146,20 @@ def visualize(output_path):
             for successor in block_logs[key]["successors"]:
                 g.add_edge(key, successor)
 
-    graph_dot = Path(output_path) / Path("graph.dot")
+    graph_dot = output_path / "graph.dot"
     nx.drawing.nx_pydot.write_dot(g, str(graph_dot))
     (graph,) = pydot.graph_from_dot_file(str(graph_dot))
-    graph.write_png(str(Path(output_path) / Path("graph.png")))
+    graph.write_png(str(output_path / "graph.png"))
 
 
 def main(argv=None):
     parser = create_arg_parser()
     args = parser.parse_args(argv)
-    output_path = args.directory
-    block_logs = parse_jsons(str(Path(output_path) / Path(block_analysis_file_name)))
+    output_path = Path(args.directory)
+    if not output_path.exists():
+        print(f"Path {output_path} does not exist.", file=sys.stderr)
+        return 1
+    block_logs = parse_jsons(output_path / block_analysis_file_name)
     all_messages = []
     for key in block_logs:
         if "messages" in block_logs[key]:
@@ -171,10 +175,11 @@ def main(argv=None):
             text = html.read().replace(
                 "<!--<<<TABLE>>><!-->", html_dict_to_html_table(all_messages, block_logs)
             ).replace("/*CSS*/", css.read())
-            with open(Path(output_path) / Path("report.html"), "w+") as new_html:
+            with open(output_path / "report.html", "w+") as new_html:
                 new_html.write(text)
     visualize(output_path)
-    webbrowser.open(str(Path(output_path) / Path("report.html")))
+    webbrowser.open(str(output_path / "report.html"))
+    return 0
 
 
 if __name__ == "__main__":
