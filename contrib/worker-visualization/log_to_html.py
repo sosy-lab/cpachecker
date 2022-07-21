@@ -153,6 +153,8 @@ def visualize(output_path: Path):
 
 
 def main(argv=None):
+    if argv is None:
+        argv = sys.argv[1:]
     parser = create_arg_parser()
     args = parser.parse_args(argv)
     output_path = Path(args.directory)
