@@ -173,7 +173,7 @@ def visualize_blocks(
     for key in block_logs:
         code = "\n".join(c for c in block_logs[key]["code"] if c)
         label = key + ":\n" + code if code else key
-        g.add_node(key, shape="box", label=label)
+        g.add_node(key, shape="box", label=f'"{label}"')
     for key in block_logs:
         if "successors" in block_logs[key]:
             for successor in block_logs[key]["successors"]:
