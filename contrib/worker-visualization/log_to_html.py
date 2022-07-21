@@ -30,9 +30,9 @@ def create_arg_parser():
     return parser
 
 
-def parse_jsons(file):
-    with open(file, "r") as f:
-        return json.loads(f.read())
+def parse_jsons(json_file):
+    with open(json_file) as inp:
+        return json.load(inp)
 
 
 def html_for_message(message, block_log):
