@@ -14,6 +14,8 @@ import networkx as nx
 import pydot
 from datetime import datetime
 
+from typing import Dict
+
 from airium import Airium
 from pathlib import Path
 
@@ -35,7 +37,7 @@ def parse_jsons(json_file):
         return json.load(inp)
 
 
-def html_for_message(message, block_log):
+def html_for_message(message, block_log: Dict[str, str]):
     div = Airium()
 
     if not message:
@@ -91,7 +93,7 @@ def html_for_message(message, block_log):
     return str(div)
 
 
-def html_dict_to_html_table(all_messages, block_logs: dict):
+def html_dict_to_html_table(all_messages, block_logs: Dict[str, str]):
     first_timestamp = int(all_messages[0]["timestamp"])
     timestamp_to_message = {}
     sorted_keys = sorted(block_logs.keys(), key=lambda x: int(x[1::]))
