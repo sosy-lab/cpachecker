@@ -24,7 +24,6 @@ summary_file_name = "blocks.json"
 def create_arg_parser():
     parser = argparse.ArgumentParser(description="Transforms Worker logs to HTML.")
     parser.add_argument("-d", "--directory",
-                        type=str,
                         help="set the path to the logs of worker (adjustable block "
                              "analysis) usually found here: output/block_analysis",
                         default="../../output/block_analysis")
