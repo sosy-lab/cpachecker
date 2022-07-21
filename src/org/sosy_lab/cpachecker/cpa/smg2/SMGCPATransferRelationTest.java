@@ -1335,7 +1335,7 @@ public class SMGCPATransferRelationTest {
 
     for (CType type : TEST_TYPES) {
       for (int i = 0; i < 2; i++) {
-        variableName = variableName + type + i;
+        variableName = variableName.concat(type.toString()).concat(Integer.toString(i));
         BigInteger value;
         if (((CSimpleType) type).isSigned() && Math.floorMod(i, 2) == 1) {
           // Make every second value a negative for signed values

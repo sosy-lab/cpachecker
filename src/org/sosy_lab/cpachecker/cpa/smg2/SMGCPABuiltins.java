@@ -473,7 +473,8 @@ public class SMGCPABuiltins {
         } else {
 
           throw new SMG2Exception(
-              "An allocation function was called with a symbolic size. This is not supported currently by the SMG2 analysis. Try GuessSizeOfUnknownMemorySize.");
+              "An allocation function was called with a symbolic size. This is not supported"
+                  + " currently by the SMG2 analysis. Try GuessSizeOfUnknownMemorySize.");
         }
       }
       // The size is always given in bytes
