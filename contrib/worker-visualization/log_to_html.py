@@ -26,7 +26,7 @@ def create_arg_parser():
     parser.add_argument("-d", "--directory",
                         help="set the path to the logs of worker (adjustable block "
                              "analysis) usually found here: output/block_analysis",
-                        default="../../output/block_analysis")
+                        default="output/block_analysis")
     return parser
 
 
