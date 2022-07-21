@@ -22,20 +22,42 @@ import webbrowser
 import networkx as nx
 import pydot
 
-block_analysis_file_name = "block_analysis.json"
-summary_file_name = "blocks.json"
-
 
 def create_arg_parser():
     parser = argparse.ArgumentParser(description="Transforms Worker logs to HTML.")
     parser.add_argument(
-        "-d",
-        "--directory",
-        help="set the path to the logs of worker (adjustable block "
-        "analysis) usually found here: output/block_analysis",
+        "--messages-json",
+        help="Path to JSON file that contains messages sent during distributed block analysis.",
+        default="output/block_analysis/block_analysis.json",
+    )
+    parser.add_argument(
+        "--block-structure-json",
+        help="Path to JSON file that contains the block structure used for distributed block analysis",
+        default="output/block_analysis/blocks.json",
+    )
+    parser.add_argument(
+        "-o",
+        "--output",
+        help="Output path for generated files",
         default="output/block_analysis",
     )
     return parser
+
+
+def parse_args(argv):
+    parser = create_arg_parser()
+    args = parser.parse_args(argv)
+
+    args.block_structure_json = Path(args.block_structure_json)
+    if not args.block_structure_json.exists():
+        raise ValueError(f"Path {args.block_structure_json} does not exist.")
+
+    args.messages_json = Path(args.messages_json)
+    if not args.messages_json.exists():
+        raise ValueError(f"Path {args.messages_json} does not exist.")
+
+    args.output = Path(args.output)
+    return args
 
 
 def parse_jsons(json_file: Path):
@@ -138,9 +160,14 @@ def html_dict_to_html_table(all_messages, block_logs: Dict[str, str]):
     return str(table)
 
 
-def visualize(output_path: Path):
+def visualize(
+    block_structure_file: Path,
+    output_path: Path,
+    output_dot_name="graph.dot",
+    output_png_name="graph.png",
+):
     g = nx.DiGraph()
-    block_logs = parse_jsons(output_path / summary_file_name)
+    block_logs = parse_jsons(block_structure_file)
     for key in block_logs:
         code = "\n".join(c for c in block_logs[key]["code"] if c)
         label = key + ":\n" + code if code else key
@@ -150,22 +177,23 @@ def visualize(output_path: Path):
             for successor in block_logs[key]["successors"]:
                 g.add_edge(key, successor)
 
-    graph_dot = output_path / "graph.dot"
+    graph_dot = output_path / output_dot_name
     nx.drawing.nx_pydot.write_dot(g, str(graph_dot))
     (graph,) = pydot.graph_from_dot_file(str(graph_dot))
-    graph.write_png(str(output_path / "graph.png"))
+    graph.write_png(str(output_path / output_png_name))
 
 
-def main(argv=None):
+def main(
+    argv=None,
+    report_filename="report.html",
+    message_table_filename="table.html",
+    message_table_css_filename="table.css",
+):
     if argv is None:
         argv = sys.argv[1:]
-    parser = create_arg_parser()
-    args = parser.parse_args(argv)
-    output_path = Path(args.directory)
-    if not output_path.exists():
-        print(f"Path {output_path} does not exist.", file=sys.stderr)
-        return 1
-    block_logs = parse_jsons(output_path / block_analysis_file_name)
+    args = parse_args(argv)
+
+    block_logs = parse_jsons(args.messages_json)
     all_messages = []
     for key in block_logs:
         if "messages" in block_logs[key]:
@@ -180,8 +208,11 @@ def main(argv=None):
     all_messages = sorted(
         all_messages, key=lambda entry: (entry["timestamp"], entry["from"][1::])
     )
-    with open("table.html") as html:
-        with open("table.css") as css:
+
+    output_path: Path = args.output
+    output_path.mkdir(parents=True, exist_ok=True)
+    with open(message_table_filename) as html:
+        with open(message_table_css_filename) as css:
             text = (
                 html.read()
                 .replace(
@@ -190,10 +221,10 @@ def main(argv=None):
                 )
                 .replace("/*CSS*/", css.read())
             )
-            with open(output_path / "report.html", "w+") as new_html:
+            with open(output_path / report_filename, "w+") as new_html:
                 new_html.write(text)
-    visualize(output_path)
-    webbrowser.open(str(output_path / "report.html"))
+    visualize(block_structure_file=args.block_structure_json, output_path=output_path)
+    webbrowser.open(str(output_path / report_filename))
     return 0
 
 
