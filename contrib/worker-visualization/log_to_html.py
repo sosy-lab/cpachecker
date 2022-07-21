@@ -28,10 +28,13 @@ summary_file_name = "blocks.json"
 
 def create_arg_parser():
     parser = argparse.ArgumentParser(description="Transforms Worker logs to HTML.")
-    parser.add_argument("-d", "--directory",
-                        help="set the path to the logs of worker (adjustable block "
-                             "analysis) usually found here: output/block_analysis",
-                        default="output/block_analysis")
+    parser.add_argument(
+        "-d",
+        "--directory",
+        help="set the path to the logs of worker (adjustable block "
+        "analysis) usually found here: output/block_analysis",
+        default="output/block_analysis",
+    )
     return parser
 
 
@@ -104,21 +107,22 @@ def html_dict_to_html_table(all_messages, block_logs: Dict[str, str]):
     for index in enumerate(sorted_keys):
         index_dict[index[1]] = index[0]
     for message in all_messages:
-        timestamp_to_message.setdefault(message["timestamp"] - first_timestamp, [""] * len(block_logs))[
-            index_dict[message["from"]]] = message
+        timestamp_to_message.setdefault(
+            message["timestamp"] - first_timestamp, [""] * len(block_logs)
+        )[index_dict[message["from"]]] = message
     headers = ["time"] + sorted_keys
     table = Airium()
     with table.table(klass="worker"):
         # header
-        with table.tr(klass='header_row'):
+        with table.tr(klass="header_row"):
             for key in headers:
-                table.th(_t=f'{key}')
+                table.th(_t=f"{key}")
 
         # row values
         type_to_klass = {
             "BLOCK_POSTCONDITION": "precondition",
             "ERROR_CONDITION": "postcondition",
-            "ERROR_CONDITION_UNREACHABLE": "postcondition"
+            "ERROR_CONDITION_UNREACHABLE": "postcondition",
         }
         for timestamp in timestamp_to_message:
             with table.tr():
@@ -170,13 +174,22 @@ def main(argv=None):
         return
     for message in all_messages:
         # 2022 - 03 - 10 14: 44:07.031875
-        message["timestamp"] = int(datetime.strptime(message["timestamp"], '%Y-%m-%d %H:%M:%S.%f').timestamp())
-    all_messages = sorted(all_messages, key=lambda entry: (entry["timestamp"], entry["from"][1::]))
+        message["timestamp"] = int(
+            datetime.strptime(message["timestamp"], "%Y-%m-%d %H:%M:%S.%f").timestamp()
+        )
+    all_messages = sorted(
+        all_messages, key=lambda entry: (entry["timestamp"], entry["from"][1::])
+    )
     with open("table.html") as html:
         with open("table.css") as css:
-            text = html.read().replace(
-                "<!--<<<TABLE>>><!-->", html_dict_to_html_table(all_messages, block_logs)
-            ).replace("/*CSS*/", css.read())
+            text = (
+                html.read()
+                .replace(
+                    "<!--<<<TABLE>>><!-->",
+                    html_dict_to_html_table(all_messages, block_logs),
+                )
+                .replace("/*CSS*/", css.read())
+            )
             with open(output_path / "report.html", "w+") as new_html:
                 new_html.write(text)
     visualize(output_path)
