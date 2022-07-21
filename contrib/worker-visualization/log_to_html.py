@@ -201,7 +201,7 @@ def export_messages_table(
         message_table_css_file = Path(__file__).parent / "table.css"
 
     for message in all_messages:
-        # 2022 - 03 - 10 14: 44:07.031875
+        # 2022-03-10 14:44:07.0318755
         message["timestamp"] = int(
             datetime.strptime(message["timestamp"], "%Y-%m-%d %H:%M:%S.%f").timestamp()
         )
