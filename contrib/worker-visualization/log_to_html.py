@@ -192,9 +192,14 @@ def export_messages_table(
     block_logs,
     output_path,
     report_filename="report.html",
-    message_table_filename="table.html",
-    message_table_css_filename="table.css",
+    message_table_html_file=None,
+    message_table_css_file=None,
 ):
+    if message_table_html_file is None:
+        message_table_html_file = Path(__file__).parent / "table.html"
+    if message_table_css_file is None:
+        message_table_css_file = Path(__file__).parent / "table.css"
+
     for message in all_messages:
         # 2022 - 03 - 10 14: 44:07.031875
         message["timestamp"] = int(
@@ -205,8 +210,8 @@ def export_messages_table(
     )
 
     output_path.mkdir(parents=True, exist_ok=True)
-    with open(message_table_filename, encoding=ENCODING) as html:
-        with open(message_table_css_filename, encoding=ENCODING) as css:
+    with open(message_table_html_file, encoding=ENCODING) as html:
+        with open(message_table_css_file, encoding=ENCODING) as css:
             text = (
                 html.read()
                 .replace(
@@ -215,11 +220,10 @@ def export_messages_table(
                 )
                 .replace("/*CSS*/", css.read())
             )
-            with open(
-                output_path / report_filename, "w+", encoding=ENCODING
-            ) as new_html:
+            output_file = output_path / report_filename
+            with open(output_file, "w+", encoding=ENCODING) as new_html:
                 new_html.write(text)
-    return report_filename
+    return output_file
 
 
 def visualize_messages(messages_file: Path, output_path: Path):
@@ -234,7 +238,7 @@ def visualize_messages(messages_file: Path, output_path: Path):
     export_filename = export_messages_table(
         all_messages=all_messages, block_logs=block_logs, output_path=output_path
     )
-    webbrowser.open(export_filename)
+    webbrowser.open(str(export_filename))
 
 
 def main(argv=None):
