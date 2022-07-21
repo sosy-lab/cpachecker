@@ -112,7 +112,8 @@ public class SMGCPAAssigningValueVisitor extends SMGCPAValueVisitor {
                           evaluator, currentState, edge, logger, truthValue, options, booleans));
             }
             // TODO: if both left and right are nested we can go 1 step deeper and update first one
-            // branch and if that does not update the other branch we can do that branch as well
+            // branch and if that does not update the other branch we can do that branch as well.
+            // This is difficult because of different possible equivalence classes.
           }
 
           SMGState updatedState = currentState;
@@ -241,7 +242,7 @@ public class SMGCPAAssigningValueVisitor extends SMGCPAValueVisitor {
   }
 
   private boolean isEligibleForAssignment(final Value pValue) {
-    return pValue.isUnknown() && options.isAssignEqualityAssumptions();
+    return !pValue.isExplicitlyKnown() && options.isAssignEqualityAssumptions();
   }
 
   // TODO: option?
