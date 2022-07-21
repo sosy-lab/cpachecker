@@ -179,7 +179,7 @@ def visualize_blocks(
             for successor in block_logs[key]["successors"]:
                 g.add_edge(key, successor)
 
-    output_path.mkdir(parent=True, exist_ok=True)
+    output_path.mkdir(parents=True, exist_ok=True)
     graph_dot = output_path / output_dot_name
     nx.drawing.nx_pydot.write_dot(g, str(graph_dot))
     (graph,) = pydot.graph_from_dot_file(str(graph_dot))
@@ -247,7 +247,7 @@ def main(argv=None):
         block_structure_file=args.block_structure_json, output_path=output_path
     )
 
-    visualize_messages(messages_file=args.message_json, output_path=output_path)
+    visualize_messages(messages_file=args.messages_json, output_path=output_path)
 
 
 if __name__ == "__main__":
