@@ -467,9 +467,14 @@ public class SMGCPABuiltins {
 
       Value sizeValue = sizeAndState.getValue();
       if (!sizeValue.isNumericValue()) {
-        // TODO: symbolic handling!
-        throw new SMG2Exception(
-            "TODO: implement symbolic memory creation with allocation functions.");
+
+        if (options.isGuessSizeOfUnknownMemorySize()) {
+          sizeValue = new NumericValue(options.getGuessSize());
+        } else {
+
+          throw new SMG2Exception(
+              "An allocation function was called with a symbolic size. This is not supported currently by the SMG2 analysis. Try GuessSizeOfUnknownMemorySize.");
+        }
       }
       // The size is always given in bytes
       BigInteger sizeInBits =
