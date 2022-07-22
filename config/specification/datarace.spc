@@ -6,6 +6,9 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
+// This automaton contains the specification of the
+// category NoDataRace of the
+// Competition on Software Verification.
 CONTROL AUTOMATON DataRace
 
 INITIAL STATE Init;
