@@ -133,7 +133,8 @@ public class DataRaceTransferRelation extends SingleEdgeTransferRelation {
       Set<String> locks = threadingState.getLocksForThread(activeThread);
       ImmutableMap<String, Integer> newThreads =
           getNewThreads(threadEpochs, threadIds, activeThread, newThreadSynchronizationsBuilder);
-      Set<MemoryAccess> newMemoryAccesses = getNewAccesses(threadEpochs, activeThread, cfaEdge, locks);
+      Set<MemoryAccess> newMemoryAccesses =
+          getNewAccesses(threadEpochs, activeThread, cfaEdge, locks);
 
       Set<MemoryAccess> memoryAccesses;
       Set<ThreadSynchronization> newThreadSynchronizations;
