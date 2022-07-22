@@ -124,6 +124,7 @@ public class DataRaceTransferRelation extends SingleEdgeTransferRelation {
 
     for (ThreadingState threadingState :
         AbstractStates.projectToType(otherStates, ThreadingState.class)) {
+      Map<MemoryAccess, MemoryAccess> subsequentWrites = state.getSubsequentWrites();
       Map<String, Integer> threadEpochs = state.getThreadEpochs();
       ImmutableSet.Builder<ThreadSynchronization> newThreadSynchronizationsBuilder =
           ImmutableSet.builder();
@@ -137,25 +138,34 @@ public class DataRaceTransferRelation extends SingleEdgeTransferRelation {
           getNewAccesses(threadEpochs, activeThread, cfaEdge, locks);
 
       Set<MemoryAccess> memoryAccesses;
+      Map<MemoryAccess, MemoryAccess> newSubsequentWrites;
       Set<ThreadSynchronization> newThreadSynchronizations;
       if (newThreads.size() == 1) {
         // Only a single thread, no need to track memory accesses
         memoryAccesses = ImmutableSet.of();
+        newSubsequentWrites = ImmutableMap.of();
         newThreadSynchronizations = ImmutableSet.of();
       } else {
+        ImmutableMap.Builder<MemoryAccess, MemoryAccess> subsequentWritesBuilder =
+            ImmutableMap.builder();
+        for (Entry<MemoryAccess, MemoryAccess> entry : subsequentWrites.entrySet()) {
+          if (threadIds.contains(entry.getKey().getThreadId())
+              && threadIds.contains(entry.getValue().getThreadId())) {
+            subsequentWritesBuilder.put(entry);
+          }
+        }
         ImmutableSet.Builder<MemoryAccess> memoryAccessBuilder = ImmutableSet.builder();
         memoryAccessBuilder.addAll(newMemoryAccesses);
         for (MemoryAccess access : state.getMemoryAccesses()) {
           if (threadIds.contains(access.getThreadId())) {
-            if (access.isWrite() && !access.hasSubsequentWrite()) {
-              boolean foundSubsequentWrite = false;
+            memoryAccessBuilder.add(access);
+            if (access.isWrite() && !subsequentWrites.containsKey(access)) {
               // TODO: What to do if (t1 writes x) -> (t2 writes x) -> (t3 reads x)?
               //       (Currently, both writes synchronize with the read)
               for (MemoryAccess newAccess : newMemoryAccesses) {
                 if (access.getMemoryLocation().equals(newAccess.getMemoryLocation())) {
                   if (newAccess.isWrite()) {
-                    foundSubsequentWrite = true;
-                    memoryAccessBuilder.add(access.withSubsequentWrite());
+                    subsequentWritesBuilder.put(access, newAccess);
                   } else if (!access.getThreadId().equals(newAccess.getThreadId())) {
                     // Unnecessary if both accesses were made by the same thread
                     newThreadSynchronizationsBuilder.add(
@@ -167,14 +177,11 @@ public class DataRaceTransferRelation extends SingleEdgeTransferRelation {
                   }
                 }
               }
-              if (foundSubsequentWrite) {
-                continue;
-              }
             }
-            memoryAccessBuilder.add(access);
           }
         }
         memoryAccesses = memoryAccessBuilder.build();
+        newSubsequentWrites = subsequentWritesBuilder.build();
         newThreadSynchronizations = newThreadSynchronizationsBuilder.build();
       }
 
@@ -198,7 +205,12 @@ public class DataRaceTransferRelation extends SingleEdgeTransferRelation {
         }
       }
       strengthenedStates.add(
-          new DataRaceState(memoryAccesses, newThreads, newThreadSynchronizations, hasDataRace));
+          new DataRaceState(
+              memoryAccesses,
+              newSubsequentWrites,
+              newThreads,
+              newThreadSynchronizations,
+              hasDataRace));
     }
 
     return strengthenedStates.build();
@@ -238,7 +250,6 @@ public class DataRaceTransferRelation extends SingleEdgeTransferRelation {
                   initializer != null,
                   locks,
                   edge,
-                  false,
                   threadEpochs.get(activeThread)));
           if (initializer != null) {
             if (initializer instanceof CInitializerExpression
@@ -388,7 +399,6 @@ public class DataRaceTransferRelation extends SingleEdgeTransferRelation {
               modifiedLocations.contains(location),
               locks,
               edge,
-              false,
               threadEpochs.get(activeThread)));
     }
     return newAccessBuilder.build();
