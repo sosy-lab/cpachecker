@@ -824,4 +824,14 @@ public class SMG {
 
     return new SMGObjectsAndValues(visitedObjects, visitedValues);
   }
+
+  /**
+   * Used to identify a object <-> value relationship. Can be used to map out the current memory.
+   *
+   * @return the current SMGObject - HasValueEdge mappings.
+   */
+  public PersistentMap<SMGObject, PersistentSet<SMGHasValueEdge>>
+      getSMGObjectsWithSMGHasValueEdges() {
+    return hasValueEdges;
+  }
 }
