@@ -13,7 +13,6 @@ import com.google.common.collect.BiMap;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableBiMap;
 import com.google.common.collect.Sets;
-import com.google.common.collect.Streams;
 import java.math.BigInteger;
 import java.util.Collection;
 import java.util.HashSet;
@@ -309,18 +308,21 @@ public class SymbolicProgramConfiguration {
   public SymbolicProgramConfiguration copyAndRemoveStackVariable(String pIdentifier) {
     // If a stack variable becomes out of scope, there are not more than one frames which could
     // contain the variable
-    Optional<StackFrame> frameOptional =
-        Streams.stream(stackVariableMapping)
-            .filter(frame -> frame.containsVariable(pIdentifier))
-            .findAny();
+    Optional<StackFrame> frameOptional = Optional.empty();
+    for (StackFrame frame : stackVariableMapping) {
+      if (frame.containsVariable(pIdentifier)) {
+        frameOptional = Optional.of(frame);
+      }
+    }
     if (frameOptional.isEmpty()) {
       return this;
     }
+    StackFrame oldFrame = frameOptional.orElseThrow();
     // ensured by frameOptional.isPresent()
     SMGObject objToRemove = frameOptional.orElseThrow().getVariable(pIdentifier);
     StackFrame newFrame = frameOptional.orElseThrow().copyAndRemoveVariable(pIdentifier);
     PersistentStack<StackFrame> newStack =
-        stackVariableMapping.replace(frame -> frame == frameOptional.orElseThrow(), newFrame);
+        stackVariableMapping.replace(frame -> frame == oldFrame, newFrame);
     SMG newSmg = smg.copyAndInvalidateObject(objToRemove);
     return of(
         newSmg,
