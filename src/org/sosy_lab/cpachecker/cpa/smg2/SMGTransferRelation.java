@@ -153,6 +153,9 @@ public class SMGTransferRelation
 
   @Override
   protected Collection<SMGState> postProcessing(Collection<SMGState> pSuccessors, CFAEdge edge) {
+    if (pSuccessors == null) {
+      return super.postProcessing(pSuccessors, edge);
+    }
     Set<CSimpleDeclaration> outOfScopeVars = edge.getSuccessor().getOutOfScopeVariables();
     return transformedImmutableSetCopy(
         pSuccessors,
