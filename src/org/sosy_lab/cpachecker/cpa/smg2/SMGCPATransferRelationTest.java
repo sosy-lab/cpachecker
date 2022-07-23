@@ -1335,7 +1335,8 @@ public class SMGCPATransferRelationTest {
 
     for (CType type : TEST_TYPES) {
       for (int i = 0; i < 2; i++) {
-        variableName = variableName.concat(type.toString()).concat(Integer.toString(i));
+        variableName = variableName.concat(type.toString());
+        variableName = variableName.concat(Integer.toString(i));
         BigInteger value;
         if (((CSimpleType) type).isSigned() && Math.floorMod(i, 2) == 1) {
           // Make every second value a negative for signed values
@@ -1409,7 +1410,9 @@ public class SMGCPATransferRelationTest {
         // The result is the unchanged initial state as we used constants only in the binary
         // expression and nothing was learned, read etc.
         assertThat(statesAfter).hasSize(1);
-        assertThat(statesAfter.toArray(new SMGState[0])[0]).isEqualTo(initialState);
+        for (SMGState state : statesAfter) {
+          assertThat(state).isEqualTo(initialState);
+        }
       }
     }
   }
@@ -1687,7 +1690,9 @@ public class SMGCPATransferRelationTest {
         // false statement w false truth assumption -> true -> no state change
         // because we used constants only
         assertThat(statesAfter).hasSize(1);
-        assertThat(statesAfter.toArray(new SMGState[0])[0]).isEqualTo(initialState);
+        for (SMGState state : statesAfter) {
+          assertThat(state).isEqualTo(initialState);
+        }
       }
     }
   }
@@ -1812,7 +1817,10 @@ public class SMGCPATransferRelationTest {
           transferRelation.handleStatementEdge(null, assignmentExpr);
       // Since we assign variables we know there will be only 1 state afterwards
       assertThat(statesAfterAssign).hasSize(1);
-      SMGState newState = statesAfterAssign.toArray(new SMGState[0])[0];
+      SMGState newState = state;
+      for (SMGState stateAS : statesAfterAssign) {
+        newState = stateAS;
+      }
       // Technically the Edge is always wrong. This influences only error detection however.
       transferRelation.setInfo(
           newState,
@@ -1956,7 +1964,10 @@ public class SMGCPATransferRelationTest {
           transferRelation.handleStatementEdge(null, assignmentExpr);
       // Since we assign variables we know there will be only 1 state afterwards
       assertThat(statesAfterAssign).hasSize(1);
-      SMGState newState = statesAfterAssign.toArray(new SMGState[0])[0];
+      SMGState newState = lastState;
+      for (SMGState stateAS : statesAfterAssign) {
+        newState = stateAS;
+      }
       // Technically the Edge is always wrong. This influences only error detection however.
       transferRelation.setInfo(
           newState,
@@ -2146,7 +2157,10 @@ public class SMGCPATransferRelationTest {
 
       // Since we assign variables we know there will be only 1 state afterwards
       assertThat(statesAfterAssign).hasSize(1);
-      SMGState stateAfterAssign = statesAfterAssign.toArray(new SMGState[0])[0];
+      SMGState stateAfterAssign = stateAfterDecl;
+      for (SMGState stateAS : statesAfterAssign) {
+        stateAfterAssign = stateAS;
+      }
       // Update transfer relation state. The edge will be wrong, which is fine as it only effects
       // error checks
       transferRelation.setInfo(stateAfterAssign, null, mallocAndAssignmentEdge);
