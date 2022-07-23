@@ -187,7 +187,8 @@ public class SMGConcreteErrorPathAllocator extends ConcreteErrorPathAllocator<SM
     String functionName = currentStackFrame.getFunctionDefinition().getName();
     // Start with Address 0
     Address nextAddressToBeAssigned = Address.valueOf(BigInteger.ZERO);
-    // Value and the old SMG analysis put some random values here. I have the feeling that this system is either not explained well or broken
+    // Value and the old SMG analysis put some random values here. I have the feeling that this
+    // system is either not explained well or broken
     long spaceForLastValue = 64;
     // Stack variables
     for (Entry<String, SMGObject> var : currentStackFrame.getVariables().entrySet()) {
@@ -199,14 +200,17 @@ public class SMGConcreteErrorPathAllocator extends ConcreteErrorPathAllocator<SM
 
       SMGObject objectForVar = var.getValue();
       // These values are either alone (i.e. int bla = 5;) or there are multiple for arrays etc.
-      long biggestOffset = putValuesIntoMap(nextAddressToBeAssigned, state, valuesMap, objectForVar, alreadyVisited, todo);
+      long biggestOffset =
+          putValuesIntoMap(
+              nextAddressToBeAssigned, state, valuesMap, objectForVar, alreadyVisited, todo);
       // Make a new Address for the next variable
       BigInteger offset = BigInteger.valueOf(biggestOffset + spaceForLastValue);
 
       nextAddressToBeAssigned = nextAddressToBeAssigned.addOffset(offset);
     }
     // Global vars
-    PersistentMap<String, SMGObject> globalVarMapping = state.getMemoryModel().getGlobalVariableToSmgObjectMap();
+    PersistentMap<String, SMGObject> globalVarMapping =
+        state.getMemoryModel().getGlobalVariableToSmgObjectMap();
     for (Entry<String, SMGObject> var : globalVarMapping.entrySet()) {
       String variableName = var.getKey();
       IDExpression idExp = new IDExpression(variableName);
@@ -215,7 +219,9 @@ public class SMGConcreteErrorPathAllocator extends ConcreteErrorPathAllocator<SM
 
       SMGObject objectForVar = var.getValue();
       // These values are either alone (i.e. int bla = 5;) or there are multiple for arrays etc.
-      long biggestOffset = putValuesIntoMap(nextAddressToBeAssigned, state, valuesMap, objectForVar, alreadyVisited, todo);
+      long biggestOffset =
+          putValuesIntoMap(
+              nextAddressToBeAssigned, state, valuesMap, objectForVar, alreadyVisited, todo);
       // Make a new Address for the next variable
       BigInteger offset = BigInteger.valueOf(biggestOffset + spaceForLastValue);
 
@@ -223,9 +229,16 @@ public class SMGConcreteErrorPathAllocator extends ConcreteErrorPathAllocator<SM
     }
   }
 
-  private long putValuesIntoMap(Address baseAddress, SMGState state, Map<Address, Object> valuesMap, SMGObject objectForVar, Set<SMGObject> alreadyVisited, Set<SMGObject> todo) {
+  private long putValuesIntoMap(
+      Address baseAddress,
+      SMGState state,
+      Map<Address, Object> valuesMap,
+      SMGObject objectForVar,
+      Set<SMGObject> alreadyVisited,
+      Set<SMGObject> todo) {
     alreadyVisited.add(objectForVar);
-    PersistentMap<SMGObject, PersistentSet<SMGHasValueEdge>> valuesByObject = state.getMemoryModel().getSmg().getSMGObjectsWithSMGHasValueEdges();
+    PersistentMap<SMGObject, PersistentSet<SMGHasValueEdge>> valuesByObject =
+        state.getMemoryModel().getSmg().getSMGObjectsWithSMGHasValueEdges();
     PersistentSet<SMGHasValueEdge> valuesInObject = valuesByObject.get(objectForVar);
     if (valuesInObject == null || valuesInObject.isEmpty()) {
       return 0;
@@ -241,14 +254,16 @@ public class SMGConcreteErrorPathAllocator extends ConcreteErrorPathAllocator<SM
       if (!value.orElseThrow().isNumericValue()) {
         // This is either a symbolic/unknown value or a pointer
         if (state.getMemoryModel().isPointer(value.orElseThrow())) {
-          Optional<SMGObjectAndOffset> target = state.getMemoryModel().dereferencePointer(value.orElseThrow());
+          Optional<SMGObjectAndOffset> target =
+              state.getMemoryModel().dereferencePointer(value.orElseThrow());
           if (target.isPresent() && !alreadyVisited.contains(target.orElseThrow().getSMGObject())) {
             todo.add(target.orElseThrow().getSMGObject());
           }
         }
         continue;
       }
-      valuesMap.put(baseAddress.addOffset(offset), value.orElseThrow().asNumericValue().bigInteger());
+      valuesMap.put(
+          baseAddress.addOffset(offset), value.orElseThrow().asNumericValue().bigInteger());
     }
     return biggestOffset;
   }
