@@ -163,7 +163,7 @@ public class ActorMessage implements Comparable<ActorMessage> {
 
   @Override
   public int compareTo(ActorMessage o) {
-    return Integer.compare(type.priority, o.getType().priority);
+    return getType().compareTo(o.getType());
   }
 
   public int getTargetNodeNumber() {
@@ -215,17 +215,11 @@ public class ActorMessage implements Comparable<ActorMessage> {
 
   // ORDER BY PRIORITY:
   public enum MessageType {
-    FOUND_RESULT(0),
-    ERROR_CONDITION(1),
-    ERROR_CONDITION_UNREACHABLE(1),
-    BLOCK_POSTCONDITION(2),
-    ERROR(0);
-
-    private final int priority;
-
-    MessageType(int pPriority) {
-      priority = pPriority;
-    }
+    FOUND_RESULT,
+    ERROR,
+    ERROR_CONDITION_UNREACHABLE,
+    ERROR_CONDITION,
+    BLOCK_POSTCONDITION
   }
 
   public static class MessageConverter {
