@@ -14,14 +14,15 @@ import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.BlockNode.BlockNodeFactory;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.BlockNode.BlockNodeMetaData;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.BlockNode.BlockTreeBuilder;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 
 public class SingleBlockDecomposer implements CFADecomposer {
 
   @Override
   public BlockTree cut(CFA cfa) {
-    BlockNodeFactory factory = new BlockNodeFactory(cfa);
+    BlockTreeBuilder builder = new BlockTreeBuilder(cfa);
     CFANode startNode = cfa.getMainFunction();
     // we do not get error conditions
     CFANode lastNode = CFANode.newDummyCFANode();
@@ -32,10 +33,11 @@ public class SingleBlockDecomposer implements CFADecomposer {
     }
     Set<CFANode> nodes = new HashSet<>(cfa.getAllNodes());
     nodes.add(lastNode);
-    BlockNode root =
-        factory.makeBlock(startNode, startNode, ImmutableSet.of(startNode), ImmutableSet.of());
-    BlockNode workerBlock = factory.makeBlock(startNode, lastNode, nodes, edges);
-    factory.linkSuccessor(root, workerBlock);
-    return new BlockTree(root, factory);
+    BlockNodeMetaData root =
+        builder.makeBlock(startNode, startNode, ImmutableSet.of(startNode), ImmutableSet.of());
+    BlockNodeMetaData workerBlock = builder.makeBlock(startNode, lastNode, nodes, edges);
+    builder.setRoot(root);
+    builder.linkSuccessor(root, workerBlock);
+    return builder.build();
   }
 }

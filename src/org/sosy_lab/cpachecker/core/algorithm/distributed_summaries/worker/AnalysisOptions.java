@@ -28,7 +28,10 @@ public class AnalysisOptions {
   @Option(description = "whether error conditions are always checked for unsatisfiability")
   private boolean checkEveryErrorCondition = true;
 
-  @Option(description = "loop free programs do not require to deny all possible error messages")
+  @Option(
+      description =
+          "Whether loop free programs have to deny all possible error messages. "
+              + "Enable this option to eagerly process every possible error message that occurs after an precondition update.")
   private boolean sendEveryErrorMessage = false;
 
   @Option(

@@ -82,6 +82,22 @@ public abstract class BlockAnalysis {
 
   protected AlgorithmStatus status;
 
+  /**
+   * Analyze a subgraph of the CFA (block node) with an arbitrary CPA.
+   *
+   * @param pLogger logger to log information
+   * @param pTypeMap map containing metadata for types
+   * @param pBlock coherent subgraph of the CFA
+   * @param pCFA CFA where the subgraph pBlock is built from
+   * @param pDirection analysis direction (forward or backward)
+   * @param pSpecification the specification that the analysis should prove correct/wrong
+   * @param pConfiguration user defined configurations
+   * @param pShutdownManager shutdown manager for unexpected shutdown requests
+   * @param pOptions user defined options for block analyses
+   * @throws CPAException if the misbehaviour should be logged instead of causing a crash
+   * @throws InterruptedException if the analysis is interrupted by the user
+   * @throws InvalidConfigurationException if the configurations contain wrong values
+   */
   public BlockAnalysis(
       LogManager pLogger,
       UpdatedTypeMap pTypeMap,
@@ -100,12 +116,6 @@ public abstract class BlockAnalysis {
             pCFA,
             pConfiguration,
             pShutdownManager,
-            ImmutableSet.of(
-                "analysis.algorithm.configurableComponents",
-                "analysis.useLoopStructure",
-                "cpa.predicate.blk.alwaysAtJoin",
-                "cpa.predicate.blk.alwaysAtBranch",
-                "cpa.predicate.blk.alwaysAtProgramExit"),
             pBlock);
     algorithm = parts.getFirst();
     cpa = parts.getSecond();
@@ -121,7 +131,8 @@ public abstract class BlockAnalysis {
     logger = pLogger;
 
     DCPABuilder builder = new DCPABuilder(pTypeMap, pOptions);
-    CompositeCPA compositeCPA = CPAs.retrieveCPA(cpa, CompositeCPA.class);
+    CompositeCPA compositeCPA =
+        CPAs.retrieveCPAOrFail(cpa, CompositeCPA.class, BlockAnalysis.class);
     for (ConfigurableProgramAnalysis wrappedCPA : compositeCPA.getWrappedCPAs()) {
       builder.addCPA(wrappedCPA, block, direction);
     }

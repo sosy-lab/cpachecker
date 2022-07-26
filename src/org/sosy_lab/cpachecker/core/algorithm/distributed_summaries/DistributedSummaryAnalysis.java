@@ -13,7 +13,6 @@ import static com.google.common.collect.FluentIterable.from;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.util.Collection;
-import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.ShutdownManager;
@@ -21,9 +20,7 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.common.configuration.TimeSpanOption;
 import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.common.time.TimeSpan;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
@@ -90,13 +87,6 @@ public class DistributedSummaryAnalysis implements Algorithm, StatisticsProvider
 
   @Option(description = "desired number of BlockNodes")
   private int desiredNumberOfBlocks = 5;
-
-  @Option(description = "maximal overall wall-time for parallel analysis")
-  @TimeSpanOption(codeUnit = TimeUnit.MILLISECONDS, min = 0)
-  private TimeSpan maxWallTime = TimeSpan.ofSeconds(15 * 60);
-
-  @Option(description = "whether to use daemon threads for workers")
-  private boolean daemon = true;
 
   @Option(
       description =
@@ -198,11 +188,6 @@ public class DistributedSummaryAnalysis implements Algorithm, StatisticsProvider
           "Decomposed CFA in %d blocks using the %s.",
           tree.getDistinctNodes().size(),
           decomposer.getClass().getCanonicalName());
-      // drawBlockDot(tree);
-      Collection<BlockNode> removed = tree.removeEmptyBlocks();
-      if (!removed.isEmpty()) {
-        logger.log(Level.INFO, "Removed " + removed.size() + " empty BlockNodes from the tree.");
-      }
 
       // create type map (maps variables to their type)
       SSAMap ssaMap = getTypeMap(tree);
@@ -223,7 +208,6 @@ public class DistributedSummaryAnalysis implements Algorithm, StatisticsProvider
       builder = builder.addResultCollectorWorker(blocks, options);
 
       if (spawnUtilWorkers) {
-        builder = builder.addTimeoutWorker(maxWallTime, options);
         builder = builder.addVisualizationWorker(tree, options, configuration);
       }
 
@@ -234,7 +218,7 @@ public class DistributedSummaryAnalysis implements Algorithm, StatisticsProvider
       // run workers
       for (BlockSummaryActor worker : components.getWorkers()) {
         Thread thread = new Thread(worker, worker.getId());
-        thread.setDaemon(daemon);
+        thread.setDaemon(true);
         thread.start();
       }
 

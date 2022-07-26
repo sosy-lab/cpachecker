@@ -15,7 +15,6 @@ import java.util.List;
 import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.common.time.TimeSpan;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.BlockNode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.BlockTree;
@@ -94,13 +93,6 @@ public class DistributedComponentsBuilder {
   public DistributedComponentsBuilder addResultCollectorWorker(
       Collection<BlockNode> nodes, AnalysisOptions pOptions) {
     workerGenerators.add(connection -> new ResultBlockSummaryWorker(nodes, connection, pOptions));
-    return this;
-  }
-
-  public DistributedComponentsBuilder addTimeoutWorker(
-      TimeSpan pTimeout, AnalysisOptions pOptions) {
-    workerGenerators.add(
-        connection -> new TimeoutBlockSummaryWorker(pTimeout, connection, pOptions));
     return this;
   }
 

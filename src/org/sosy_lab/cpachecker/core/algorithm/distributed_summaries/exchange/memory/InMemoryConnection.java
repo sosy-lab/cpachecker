@@ -9,13 +9,10 @@
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.memory;
 
 import java.io.IOException;
-import java.util.Collection;
 import java.util.List;
 import java.util.concurrent.BlockingQueue;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.ActorMessage;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.Connection;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.ConnectionStats;
-import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 
 public class InMemoryConnection implements Connection, StatisticsProvider {
@@ -23,8 +20,6 @@ public class InMemoryConnection implements Connection, StatisticsProvider {
   private final BlockingQueue<ActorMessage> in;
   private final List<BlockingQueue<ActorMessage>> out;
   private boolean closed;
-
-  private static final ConnectionStats stats = new ConnectionStats();
 
   InMemoryConnection(BlockingQueue<ActorMessage> pIn, List<BlockingQueue<ActorMessage>> pOut) {
     in = pIn;
@@ -57,14 +52,8 @@ public class InMemoryConnection implements Connection, StatisticsProvider {
       throw new IllegalStateException(
           "Cannot write to an already closed " + InMemoryConnection.class);
     }
-    stats.averageMessageSize.setNextValue(
-        (message.getUniqueBlockId()
-                + message.getType()
-                + message.getPayload()
-                + message.getTargetNodeNumber())
-            .length());
     for (BlockingQueue<ActorMessage> messages : out) {
-      messages.put(message);
+      messages.add(message);
     }
   }
 
@@ -75,8 +64,4 @@ public class InMemoryConnection implements Connection, StatisticsProvider {
     closed = true;
   }
 
-  @Override
-  public void collectStatistics(Collection<Statistics> statsCollection) {
-    statsCollection.add(stats);
-  }
 }

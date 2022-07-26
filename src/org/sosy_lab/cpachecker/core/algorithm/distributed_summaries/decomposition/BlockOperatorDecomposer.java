@@ -22,7 +22,8 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.BlockNode.BlockNodeFactory;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.BlockNode.BlockNodeMetaData;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.BlockNode.BlockTreeBuilder;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.predicates.BlockOperator;
 
@@ -42,11 +43,13 @@ public class BlockOperatorDecomposer implements CFADecomposer {
     // start with the first node of the CFA
     CFANode startNode = cfa.getMainFunction();
 
-    BlockNodeFactory nodeFactory = new BlockNodeFactory(cfa);
+    BlockTreeBuilder builder = new BlockTreeBuilder(cfa);
 
     // create the root node of the tree consisting of the entry node only
-    BlockNode root =
-        nodeFactory.makeBlock(startNode, startNode, ImmutableSet.of(startNode), ImmutableSet.of());
+    BlockNodeMetaData root =
+        builder.makeBlock(startNode, startNode, ImmutableSet.of(startNode), ImmutableSet.of());
+
+    builder.setRoot(root);
 
     // the stack stores all block ends (i.e., operator.isBlockEnd(node) == true)
     ArrayDeque<CFANode> blockEnds = new ArrayDeque<>();
@@ -55,13 +58,13 @@ public class BlockOperatorDecomposer implements CFADecomposer {
 
     // map a CFANode (that is the last node of a BlockNode) to its BlockNode
     // we use multimap since one CFANode can have multiple successors
-    Multimap<CFANode, BlockNode> lastNodeMap = ArrayListMultimap.create();
+    Multimap<CFANode, BlockNodeMetaData> lastNodeMap = ArrayListMultimap.create();
     // the first entry node maps to the root node of the BlockTree
     lastNodeMap.put(startNode, root);
 
     // map a CFANode (that is the start node of a BlockNode) to its BlockNode
     // we use multimap since one CFANode can have multiple successors
-    Multimap<CFANode, BlockNode> startNodeMap = ArrayListMultimap.create();
+    Multimap<CFANode, BlockNodeMetaData> startNodeMap = ArrayListMultimap.create();
     // the first entry node maps to the root node of the BlockTree
     startNodeMap.put(startNode, root);
 
@@ -105,24 +108,24 @@ public class BlockOperatorDecomposer implements CFADecomposer {
           // successorOfCurrNode. Additionally, tell the BlockNode which nodes are part of the
           // block.
           blockEnds.push(successorOfCurrNode);
-          BlockNode childBlockNode =
-              nodeFactory.makeBlock(
+          BlockNodeMetaData childBlockNode =
+              builder.makeBlock(
                   lastCFANode, successorOfCurrNode, nodeEntry.seen, nodeEntry.seenEdges);
 
           // every previous block that ends with lastCFANode is now linked to the new BlockNode that
           // starts with lastCFANode.
           lastNodeMap
               .get(lastCFANode)
-              .forEach(contained -> nodeFactory.linkSuccessor(contained, childBlockNode));
+              .forEach(contained -> builder.linkSuccessor(contained, childBlockNode));
           // every previous block that starts with the current end node is now linked to the new
           // BlockNode
           startNodeMap
               .get(successorOfCurrNode)
-              .forEach(contained -> nodeFactory.linkSuccessor(childBlockNode, contained));
+              .forEach(contained -> builder.linkSuccessor(childBlockNode, contained));
 
           // current BlockNode is stored nowhere -> link to self if start and end are equal.
           if (childBlockNode.getStartNode().equals(childBlockNode.getLastNode())) {
-            nodeFactory.linkSuccessor(childBlockNode, childBlockNode);
+            builder.linkSuccessor(childBlockNode, childBlockNode);
           }
           // successorOfCurrNode is the lastNode of childBlockNode
           // note that other BlockNodes can have successorOfCurrNode as their last nodes.
@@ -145,7 +148,7 @@ public class BlockOperatorDecomposer implements CFADecomposer {
         }
       }
     }
-    return new BlockTree(root, nodeFactory);
+    return builder.build();
   }
 
   private static class Entry {

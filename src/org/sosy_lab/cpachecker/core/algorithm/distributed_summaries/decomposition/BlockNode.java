@@ -8,82 +8,71 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition;
 
+import com.google.common.base.Preconditions;
+import com.google.common.collect.ArrayListMultimap;
+import com.google.common.collect.FluentIterable;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
+import com.google.common.collect.Multimap;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
+import java.util.function.Supplier;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.cfa.blocks.Block;
-import org.sosy_lab.cpachecker.cfa.blocks.builder.ReferencedVariablesCollector;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 
+/** BlockNodes are coherent subgraphs of CFAs with exactly one entry and exit node. */
 public class BlockNode {
 
-  private final CFANode startNode;
-  private final CFANode lastNode;
-  private final Set<CFANode> nodesInBlock;
-  private final Set<CFAEdge> edgesInBlock;
-  private final Block block;
+  private final BlockNodeMetaData metaData;
 
-  private final Set<BlockNode> predecessors;
-  private final Set<BlockNode> successors;
+  private final Supplier<Set<BlockNode>> predecessors;
+  private final Supplier<Set<BlockNode>> successors;
 
   private final Map<Integer, CFANode> idToNodeMap;
 
-  private final String id;
   private final String code;
 
   /**
-   * Represents a sub graph of the CFA beginning at {@code pStartNode} and ending at {@code
+   * Represents a subgraph of the CFA beginning at {@code pStartNode} and ending at {@code
    * pLastNode}
    *
-   * @param pStartNode the root node of the block
-   * @param pLastNode the final node of the block
-   * @param pNodesInBlock all nodes that are part of the sub graph including the root node and the
-   *     last node.
+   * @param pMetaData all the metadata for this block
+   * @param pPredecessors supplier for all predecessors
+   * @param pSuccessors supplier for all successors
    */
   private BlockNode(
-      @NonNull String pId,
-      @NonNull CFANode pStartNode,
-      @NonNull CFANode pLastNode,
-      @NonNull Set<CFANode> pNodesInBlock,
-      @NonNull Set<CFAEdge> pEdgesInBlock,
+      @NonNull BlockNodeMetaData pMetaData,
+      @NonNull Supplier<Set<BlockNode>> pPredecessors,
+      @NonNull Supplier<Set<BlockNode>> pSuccessors,
       @NonNull Map<Integer, CFANode> pIdToNodeMap) {
-    // pNodesInBlock is a set allowing to represent branches.
-    if (!pNodesInBlock.contains(pStartNode) || !pNodesInBlock.contains(pLastNode)) {
-      throw new AssertionError(
-          "pNodesInBlock ("
-              + pNodesInBlock
-              + ") must list all nodes but misses either the root node ("
-              + pStartNode
-              + ") or the last node ("
-              + pLastNode
-              + ").");
-    }
+    Preconditions.checkState(
+        pMetaData.getNodesInBlock().contains(pMetaData.getStartNode())
+            && pMetaData.getNodesInBlock().contains(pMetaData.getLastNode()),
+        "pNodesInBlock ("
+            + pMetaData.getNodesInBlock()
+            + ") must list all nodes but misses either the root node ("
+            + pMetaData.getStartNode()
+            + ") or the last node ("
+            + pMetaData.getLastNode()
+            + ").");
 
-    block =
-        new Block(
-            new ReferencedVariablesCollector(pNodesInBlock).getVars(),
-            ImmutableSet.of(pStartNode),
-            ImmutableSet.of(pLastNode),
-            pNodesInBlock);
-    startNode = pStartNode;
-    lastNode = pLastNode;
+    metaData = pMetaData;
+    predecessors = pPredecessors;
+    successors = pSuccessors;
 
-    predecessors = new HashSet<>();
-    successors = new HashSet<>();
-
-    nodesInBlock = new LinkedHashSet<>(pNodesInBlock);
-    edgesInBlock = new LinkedHashSet<>(pEdgesInBlock);
     idToNodeMap = pIdToNodeMap;
-    id = pId;
 
     code = blockToPseudoCode();
   }
@@ -105,7 +94,7 @@ public class BlockNode {
    */
   private String blockToPseudoCode() {
     StringBuilder codeLines = new StringBuilder();
-    for (CFAEdge leavingEdge : edgesInBlock) {
+    for (CFAEdge leavingEdge : metaData.getEdgesInBlock()) {
       if (leavingEdge.getCode().isBlank()) {
         continue;
       }
@@ -124,87 +113,63 @@ public class BlockNode {
    * @return true if block is its own predecessor/successor, false otherwise
    */
   public boolean isSelfCircular() {
-    return lastNode.equals(startNode) && !isEmpty() && !isRoot();
+    return metaData.getLastNode().equals(metaData.getStartNode()) && !isEmpty() && !isRoot();
   }
 
   public boolean isEmpty() {
-    return edgesInBlock.isEmpty();
-  }
-
-  /**
-   * Add successor to this bloc node. The successor thus has a new predecessor
-   *
-   * @param node new successor for this
-   */
-  private void linkSuccessor(BlockNode node) {
-    successors.add(node);
-    node.predecessors.add(this);
-  }
-
-  /**
-   * Remove successor from this block node
-   *
-   * @param pNodeSuccessor successor to remove
-   */
-  private void unlinkSuccessor(BlockNode pNodeSuccessor) {
-    successors.remove(pNodeSuccessor);
-    pNodeSuccessor.predecessors.remove(this);
+    return metaData.getEdgesInBlock().isEmpty();
   }
 
   public Set<BlockNode> getPredecessors() {
-    return ImmutableSet.copyOf(predecessors);
+    return ImmutableSet.copyOf(predecessors.get());
   }
 
   public Set<BlockNode> getSuccessors() {
-    return ImmutableSet.copyOf(successors);
+    return ImmutableSet.copyOf(successors.get());
   }
 
   public CFANode getStartNode() {
-    return startNode;
+    return metaData.getStartNode();
   }
 
   public CFANode getLastNode() {
-    return lastNode;
-  }
-
-  public Block getBlock() {
-    return block;
+    return metaData.getLastNode();
   }
 
   public Set<CFANode> getNodesInBlock() {
-    return ImmutableSet.copyOf(nodesInBlock);
+    return ImmutableSet.copyOf(metaData.getNodesInBlock());
   }
 
   public Set<CFAEdge> getEdgesInBlock() {
-    return edgesInBlock;
+    return ImmutableSet.copyOf(metaData.getEdgesInBlock());
   }
 
   @Override
   public boolean equals(Object pO) {
-    if (!(pO instanceof BlockNode)) {
+    if (!(pO instanceof BlockNodeMetaData)) {
       return false;
     }
-    BlockNode blockNode = (BlockNode) pO;
-    return id.equals(blockNode.id);
+    BlockNodeMetaData blockNode = (BlockNodeMetaData) pO;
+    return getId().equals(blockNode.getId());
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(id);
+    return Objects.hash(metaData.getId());
   }
 
   @Override
   public String toString() {
     return "BlockNode{"
         + "id='"
-        + id
+        + getId()
         + '\''
         + ", startNode="
-        + startNode
+        + getStartNode()
         + ", lastNode="
-        + lastNode
+        + getLastNode()
         + ", size="
-        + nodesInBlock.size()
+        + getNodesInBlock().size()
         + ", code='"
         + code.replaceAll("\n", "")
         + '\''
@@ -216,55 +181,269 @@ public class BlockNode {
   }
 
   public String getId() {
-    return id;
+    return metaData.getId();
   }
 
   public boolean isRoot() {
-    return predecessors.isEmpty();
+    return predecessors.get().isEmpty();
   }
 
-  // blocks are immutable, thus we need a factory for the initial creation
-  public static class BlockNodeFactory {
+  public static class BlockTreeBuilder {
 
     private int blockCount;
     private final Map<Integer, CFANode> idToNodeMap;
+    private final Multimap<BlockNodeMetaData, BlockNodeMetaData> successors;
+    private final Multimap<BlockNodeMetaData, BlockNodeMetaData> predecessors;
+    private final Set<BlockNodeMetaData> blocks;
 
-    public BlockNodeFactory(CFA pCfa) {
+    private BlockNodeMetaData root;
+
+    public BlockTreeBuilder(CFA pCfa) {
       idToNodeMap = Maps.uniqueIndex(pCfa.getAllNodes(), CFANode::getNodeNumber);
+      successors = ArrayListMultimap.create();
+      predecessors = ArrayListMultimap.create();
+      blocks = new LinkedHashSet<>();
     }
 
-    public BlockNode makeBlock(
+    public void setRoot(BlockNodeMetaData pRoot) {
+      root = pRoot;
+    }
+
+    public BlockNodeMetaData makeBlock(
         CFANode pStartNode, CFANode pEndNode, Set<CFANode> pNodesInBlock, Set<CFAEdge> pEdges) {
-      return new BlockNode(
-          "B" + blockCount++,
-          pStartNode,
-          pEndNode,
-          pNodesInBlock,
-          pEdges,
-          new HashMap<>(idToNodeMap));
+      BlockNodeMetaData blockNodeMetaData =
+          new BlockNodeMetaData(
+              "B" + blockCount++,
+              pStartNode,
+              pEndNode,
+              pNodesInBlock,
+              pEdges,
+              ImmutableMap.copyOf(idToNodeMap));
+      blocks.add(blockNodeMetaData);
+      return blockNodeMetaData;
     }
 
-    public void linkSuccessor(BlockNode pNode, BlockNode pNodeSuccessor) {
-      pNode.linkSuccessor(pNodeSuccessor);
+    public void linkSuccessor(BlockNodeMetaData pNode, BlockNodeMetaData pNodeSuccessor) {
+      successors.put(pNode, pNodeSuccessor);
+      predecessors.put(pNodeSuccessor, pNode);
     }
 
-    public void unlinkSuccessor(BlockNode pNode, BlockNode pNodeSuccessor) {
-      pNode.unlinkSuccessor(pNodeSuccessor);
+    public void unlinkSuccessor(BlockNodeMetaData pNode, BlockNodeMetaData pNodeSuccessor) {
+      successors.remove(pNode, pNodeSuccessor);
+      predecessors.remove(pNodeSuccessor, pNode);
     }
 
-    public void removeNode(BlockNode pNode) {
-      pNode.predecessors.forEach(p -> p.successors.remove(pNode));
-      pNode.successors.forEach(p -> p.predecessors.remove(pNode));
+    public void removeNode(BlockNodeMetaData pNode) {
+      removeFromMultimap(successors, pNode);
+      removeFromMultimap(predecessors, pNode);
+      blocks.remove(pNode);
+    }
+
+    private void removeFromMultimap(
+        Multimap<BlockNodeMetaData, BlockNodeMetaData> pMultimap, BlockNodeMetaData pNode) {
+      pMultimap.removeAll(pNode);
+      Set<BlockNodeMetaData> keys = pMultimap.keySet();
+      for (BlockNodeMetaData key : keys) {
+        pMultimap.remove(key, pNode);
+      }
     }
 
     public BlockNode copy(BlockNode pNode) {
       return new BlockNode(
-          "B" + blockCount++,
-          pNode.startNode,
-          pNode.lastNode,
-          pNode.nodesInBlock,
-          pNode.edgesInBlock,
-          new HashMap<>(idToNodeMap));
+          pNode.metaData, pNode.predecessors, pNode.successors, ImmutableMap.copyOf(idToNodeMap));
+    }
+
+    public BlockNodeMetaData mergeSameStartAndEnd(
+        BlockNodeMetaData pNode1, BlockNodeMetaData pNode2) {
+      if (!(pNode1.getStartNode().equals(pNode2.getStartNode())
+          && pNode1.getLastNode().equals(pNode2.getLastNode()))) {
+        throw new AssertionError(
+            "Nodes must start and end on the same CFANode: " + pNode1 + " " + pNode2);
+      }
+      Set<CFANode> nodesInBlock = new LinkedHashSet<>(pNode1.getNodesInBlock());
+      nodesInBlock.addAll(pNode2.getNodesInBlock());
+      Set<CFAEdge> edgesInBlock = new LinkedHashSet<>(pNode1.getEdgesInBlock());
+      edgesInBlock.addAll(pNode2.getEdgesInBlock());
+      BlockNodeMetaData merged =
+          makeBlock(pNode1.getStartNode(), pNode2.getLastNode(), nodesInBlock, edgesInBlock);
+      predecessors.get(pNode1).forEach(n -> linkSuccessor(n, merged));
+      predecessors.get(pNode2).forEach(n -> linkSuccessor(n, merged));
+      successors.get(pNode1).forEach(n -> linkSuccessor(merged, n));
+      successors.get(pNode2).forEach(n -> linkSuccessor(merged, n));
+      removeNode(pNode1);
+      removeNode(pNode2);
+      return merged;
+    }
+
+    public BlockNodeMetaData mergeSingleSuccessors(
+        BlockNodeMetaData pNode1, BlockNodeMetaData pNode2) {
+      if (successors.get(pNode1).size() == 1 && predecessors.get(pNode2).size() == 1) {
+        if (predecessors.get(pNode2).contains(pNode1)) {
+          Set<CFANode> nodesInBlock = new LinkedHashSet<>(pNode1.getNodesInBlock());
+          nodesInBlock.addAll(pNode2.getNodesInBlock());
+          Set<CFAEdge> edgesInBlock = new LinkedHashSet<>(pNode1.getEdgesInBlock());
+          edgesInBlock.addAll(pNode2.getEdgesInBlock());
+          BlockNodeMetaData merged =
+              makeBlock(pNode1.getStartNode(), pNode2.getLastNode(), nodesInBlock, edgesInBlock);
+          predecessors.get(pNode1).forEach(n -> linkSuccessor(n, merged));
+          predecessors.get(pNode2).forEach(n -> linkSuccessor(merged, n));
+          removeNode(pNode1);
+          removeNode(pNode2);
+          return merged;
+        }
+      }
+      throw new AssertionError("Blocks must be in one line to be merged");
+    }
+
+    public void removeEmptyBlocks() {
+      for (BlockNodeMetaData node : blocks) {
+        if (predecessors.get(node).isEmpty() || !node.getEdgesInBlock().isEmpty()) {
+          continue;
+        }
+        Set<BlockNodeMetaData> pred = ImmutableSet.copyOf(predecessors.get(node));
+        Set<BlockNodeMetaData> succ = ImmutableSet.copyOf(successors.get(node));
+        for (BlockNodeMetaData predecessor : pred) {
+          for (BlockNodeMetaData successor : succ) {
+            linkSuccessor(predecessor, successor);
+          }
+        }
+        removeNode(node);
+      }
+    }
+
+    public BlockTree build() {
+      Objects.requireNonNull(root, "Root has to be set manually in advance");
+      removeEmptyBlocks();
+      Map<BlockNodeMetaData, BlockNode> nodes = new HashMap<>();
+      for (BlockNodeMetaData data : blocks) {
+        BlockNode blockNode =
+            new BlockNode(
+                data,
+                () -> FluentIterable.from(predecessors.get(data)).transform(nodes::get).toSet(),
+                () -> FluentIterable.from(successors.get(data)).transform(nodes::get).toSet(),
+                idToNodeMap);
+        nodes.put(data, blockNode);
+      }
+      return new BlockTree(nodes.get(root), this);
+    }
+
+    public BlockTree merge(int desiredNumberOfBlocks) {
+      Set<BlockNodeMetaData> nodes = new LinkedHashSet<>(blocks);
+      nodes.remove(root);
+      Multimap<String, BlockNodeMetaData> compatibleBlocks = ArrayListMultimap.create();
+      nodes.forEach(
+          n ->
+              compatibleBlocks.put(
+                  "N" + n.getStartNode().getNodeNumber() + "N" + n.getLastNode().getNodeNumber(),
+                  n));
+      for (String key : ImmutableSet.copyOf(compatibleBlocks.keySet())) {
+        List<BlockNodeMetaData> mergeNodes = new ArrayList<>(compatibleBlocks.removeAll(key));
+        if (nodes.size() <= desiredNumberOfBlocks) {
+          break;
+        }
+        if (mergeNodes.size() > 1) {
+          BlockNodeMetaData current = mergeNodes.remove(0);
+          nodes.remove(current);
+          for (int i = mergeNodes.size() - 1; i >= 0; i--) {
+            BlockNodeMetaData remove = mergeNodes.remove(i);
+            nodes.remove(remove);
+            current = mergeSameStartAndEnd(current, remove);
+          }
+          nodes.add(current);
+          compatibleBlocks.put(key, current);
+        }
+      }
+      Set<BlockNodeMetaData> alreadyFound = new HashSet<>();
+      while (desiredNumberOfBlocks < nodes.size()) {
+        Optional<BlockNodeMetaData> potentialNode =
+            nodes.stream()
+                .filter(n -> successors.get(n).size() == 1 && !alreadyFound.contains(n))
+                .findAny();
+        if (potentialNode.isEmpty()) {
+          break;
+        }
+        BlockNodeMetaData node = potentialNode.orElseThrow();
+        alreadyFound.add(node);
+        if (node.equals(root)) {
+          continue;
+        }
+        BlockNodeMetaData singleSuccessor = Iterables.getOnlyElement(successors.get(node));
+        if (predecessors.get(singleSuccessor).size() == 1) {
+          BlockNodeMetaData merged = mergeSingleSuccessors(node, singleSuccessor);
+          nodes.remove(node);
+          nodes.remove(singleSuccessor);
+          nodes.add(merged);
+        }
+      }
+      return build();
+    }
+  }
+
+  static class BlockNodeMetaData {
+
+    private final String id;
+    private final CFANode startNode;
+    private final CFANode lastNode;
+    private final Set<CFANode> nodesInBlock;
+    private final Set<CFAEdge> edgesInBlock;
+    private final Map<Integer, CFANode> idToNodeMap;
+
+    private BlockNodeMetaData(
+        String pId,
+        CFANode pStartNode,
+        CFANode pLastNode,
+        Set<CFANode> pNodesInBlock,
+        Set<CFAEdge> pEdgesInBlock,
+        Map<Integer, CFANode> pIdToNodeMap) {
+      id = pId;
+      startNode = pStartNode;
+      lastNode = pLastNode;
+      nodesInBlock = pNodesInBlock;
+      edgesInBlock = pEdgesInBlock;
+      idToNodeMap = pIdToNodeMap;
+    }
+
+    public CFANode getLastNode() {
+      return lastNode;
+    }
+
+    public CFANode getStartNode() {
+      return startNode;
+    }
+
+    public Map<Integer, CFANode> getIdToNodeMap() {
+      return idToNodeMap;
+    }
+
+    public Set<CFAEdge> getEdgesInBlock() {
+      return edgesInBlock;
+    }
+
+    public Set<CFANode> getNodesInBlock() {
+      return nodesInBlock;
+    }
+
+    public String getId() {
+      return id;
+    }
+
+    @Override
+    public boolean equals(Object pO) {
+      if (!(pO instanceof BlockNodeMetaData)) {
+        return false;
+      }
+      BlockNodeMetaData that = (BlockNodeMetaData) pO;
+      return Objects.equals(id, that.id)
+          && Objects.equals(startNode, that.startNode)
+          && Objects.equals(lastNode, that.lastNode)
+          && Objects.equals(nodesInBlock, that.nodesInBlock)
+          && Objects.equals(edgesInBlock, that.edgesInBlock)
+          && Objects.equals(idToNodeMap, that.idToNodeMap);
+    }
+
+    @Override
+    public int hashCode() {
+      return Objects.hash(id, startNode, lastNode, nodesInBlock, edgesInBlock, idToNodeMap);
     }
   }
 }
