@@ -12,7 +12,9 @@ import static com.google.common.collect.FluentIterable.from;
 
 import java.io.IOException;
 import java.io.PrintStream;
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.List;
 import java.util.logging.Level;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.ShutdownManager;
@@ -31,24 +33,28 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decompositio
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.CFADecomposer;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.GivenSizeDecomposer;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.SingleBlockDecomposer;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.CleverMessageQueue;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.Connection;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.UpdatedTypeMap;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.observer.ErrorMessageObserver;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.observer.FaultLocalizationMessageObserver;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.observer.MessageObserverSupport;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.observer.ResultMessageObserver;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.observer.StatusObserver;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.memory.InMemoryConnectionProvider;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.AnalysisOptions;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.BlockSummaryActor;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.DistributedComponentsBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.DistributedComponentsBuilder.Components;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.ObserverBlockSummaryWorker;
+import org.sosy_lab.cpachecker.core.defaults.DummyTargetState;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.core.specification.Specification;
+import org.sosy_lab.cpachecker.cpa.arg.ARGState;
+import org.sosy_lab.cpachecker.cpa.composite.CompositeState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
+import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManagerImpl;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
@@ -196,7 +202,12 @@ public class DistributedSummaryAnalysis implements Algorithm, StatisticsProvider
       // create workers
       Collection<BlockNode> blocks = tree.getDistinctNodes();
       DistributedComponentsBuilder builder =
-          new DistributedComponentsBuilder(cfa, specification, configuration, shutdownManager);
+          new DistributedComponentsBuilder(
+              cfa,
+              new InMemoryConnectionProvider(() -> new CleverMessageQueue()),
+              specification,
+              configuration,
+              shutdownManager);
       builder = builder.createAdditionalConnections(1);
       for (BlockNode distinctNode : blocks) {
         if (distinctNode.isRoot()) {
@@ -222,36 +233,27 @@ public class DistributedSummaryAnalysis implements Algorithm, StatisticsProvider
         thread.start();
       }
 
-      // create message listener
-      MessageObserverSupport listener = new MessageObserverSupport();
-      listener.register(new ResultMessageObserver(reachedSet));
-      listener.register(new ErrorMessageObserver());
-      listener.register(new StatusObserver());
-
       // listen to messages
       try (Connection mainThreadConnection = components.getAdditionalConnections().get(0)) {
         mainThreadConnection.collectStatistics(statsCollection);
-        if (workerType == WorkerType.FAULT_LOCALIZATION) {
-          listener.register(
-              new FaultLocalizationMessageObserver(logger, mainThreadConnection, configuration));
+        ObserverBlockSummaryWorker observer =
+            new ObserverBlockSummaryWorker("observer", mainThreadConnection, options);
+        Pair<AlgorithmStatus, Result> resultPair = observer.observe();
+        Result result = resultPair.getSecond();
+        if (result == Result.FALSE) {
+          ARGState state = (ARGState) reachedSet.getFirstState();
+          assert state != null;
+          CompositeState cState = (CompositeState) state.getWrappedState();
+          Precision initialPrecision = reachedSet.getPrecision(state);
+          assert cState != null;
+          List<AbstractState> states = new ArrayList<>(cState.getWrappedStates());
+          states.add(DummyTargetState.withoutTargetInformation());
+          reachedSet.add(new ARGState(new CompositeState(states), null), initialPrecision);
+        } else if (result == Result.TRUE) {
+          reachedSet.clear();
         }
-
-        // wait for result
-        while (true) {
-          // breaks if one observer wants to finish.
-          if (listener.process(mainThreadConnection.read())) {
-            break;
-          }
-        }
-
-        // finish and shutdown
-        listener.finish();
-
-        // shutting down workers is not necessary because they will react to result/error messages
-        // correctly themselves. (components.getWorkers().forEach(Worker::shutdown);)
+        return resultPair.getFirst();
       }
-
-      return listener.getObserver(StatusObserver.class).getStatus();
     } catch (InvalidConfigurationException | IOException pE) {
       logger.logException(Level.SEVERE, pE, "Block analysis stopped unexpectedly.");
       throw new CPAException("Component Analysis run into an error.", pE);

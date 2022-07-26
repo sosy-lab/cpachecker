@@ -38,10 +38,10 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.ActorMessage;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.Payload;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.UpdatedTypeMap;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.observer.StatusObserver.StatusPrecise;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.observer.StatusObserver.StatusPropertyChecked;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.observer.StatusObserver.StatusSoundness;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.AnalysisOptions;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.ObserverBlockSummaryWorker.StatusObserver.StatusPrecise;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.ObserverBlockSummaryWorker.StatusObserver.StatusPropertyChecked;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.ObserverBlockSummaryWorker.StatusObserver.StatusSoundness;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;

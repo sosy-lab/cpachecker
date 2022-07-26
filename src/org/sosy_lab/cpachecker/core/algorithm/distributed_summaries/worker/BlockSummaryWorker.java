@@ -20,7 +20,7 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.Con
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.java_smt.api.SolverException;
 
-abstract class BlockSummaryWorker implements BlockSummaryActor {
+public abstract class BlockSummaryWorker implements BlockSummaryActor {
 
   private final LogManager logger;
   private final String id;

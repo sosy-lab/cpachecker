@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker;
 
+import com.google.common.collect.ImmutableList;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -18,11 +19,9 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.BlockNode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.BlockTree;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.CleverMessageQueue;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.Connection;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.ConnectionProvider;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.UpdatedTypeMap;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.memory.InMemoryConnectionProvider;
 import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
@@ -38,6 +37,7 @@ public class DistributedComponentsBuilder {
 
   public DistributedComponentsBuilder(
       CFA pCFA,
+      ConnectionProvider<?> pConnectionProvider,
       Specification pSpecification,
       Configuration pConfiguration,
       ShutdownManager pShutdownManager) {
@@ -46,7 +46,7 @@ public class DistributedComponentsBuilder {
     shutdownManager = pShutdownManager;
     specification = pSpecification;
     // only one available for now
-    connectionProvider = new InMemoryConnectionProvider(() -> new CleverMessageQueue());
+    connectionProvider = pConnectionProvider;
     workerGenerators = new ArrayList<>();
   }
 
@@ -125,24 +125,25 @@ public class DistributedComponentsBuilder {
   public Components build()
       throws IOException, CPAException, InterruptedException, InvalidConfigurationException {
     List<? extends Connection> connections =
-        connectionProvider.createConnections(workerGenerators.size() + additionalConnections);
-    List<Connection> excessConnections = new ArrayList<>();
+        ImmutableList.copyOf(
+            connectionProvider.createConnections(workerGenerators.size() + additionalConnections));
     List<BlockSummaryWorker> worker = new ArrayList<>(workerGenerators.size());
     for (int i = 0; i < workerGenerators.size(); i++) {
       worker.add(workerGenerators.get(i).apply(connections.get(i)));
     }
-    for (int i = 0; i < additionalConnections; i++) {
-      excessConnections.add(connections.get(i + workerGenerators.size()));
-    }
+    List<? extends Connection> excessConnections =
+        connections.subList(
+            workerGenerators.size(), workerGenerators.size() + additionalConnections);
     return new Components(worker, excessConnections);
   }
 
   public static class Components {
 
     private final List<BlockSummaryWorker> workers;
-    private final List<Connection> additionalConnections;
+    private final List<? extends Connection> additionalConnections;
 
-    private Components(List<BlockSummaryWorker> pWorkers, List<Connection> pAdditionalConnections) {
+    private Components(
+        List<BlockSummaryWorker> pWorkers, List<? extends Connection> pAdditionalConnections) {
       workers = pWorkers;
       additionalConnections = pAdditionalConnections;
     }
@@ -151,7 +152,7 @@ public class DistributedComponentsBuilder {
       return workers;
     }
 
-    public List<Connection> getAdditionalConnections() {
+    public List<? extends Connection> getAdditionalConnections() {
       return additionalConnections;
     }
   }

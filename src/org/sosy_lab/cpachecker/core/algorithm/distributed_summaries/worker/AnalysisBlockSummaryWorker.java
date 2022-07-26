@@ -187,9 +187,11 @@ public class AnalysisBlockSummaryWorker extends BlockSummaryWorker {
     try {
       broadcast(forwardAnalysis.performInitialAnalysis());
       super.run();
-    } catch (CPAException | InterruptedException pE) {
-      getLogger().logException(Level.SEVERE, pE, "Thread interrupted unexpectedly.");
+    } catch (CPAException pE) {
+      getLogger().logException(Level.SEVERE, pE, "Worker stopped working...");
       broadcastOrLogException(ImmutableSet.of(ActorMessage.newErrorMessage(getBlockId(), pE)));
+    } catch (InterruptedException pE) {
+      getLogger().logException(Level.SEVERE, pE, "Thread interrupted unexpectedly.");
     }
   }
 
