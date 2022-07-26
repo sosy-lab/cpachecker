@@ -661,11 +661,6 @@ public class SMGCPAValueVisitor
       SMGState currentState = valueAndState.getState();
       Value value = valueAndState.getValue();
 
-      if (value.isUnknown()) {
-        builder.add(ValueAndSMGState.ofUnknownValue(currentState));
-        continue;
-      }
-
       // & operator is seperate as the value returned leads to the underlying memory location
       if (unaryOperator == UnaryOperator.AMPER) {
         // Check if a pointer already exits, if not create a pointer (points-to-edge), map it to a
