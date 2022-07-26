@@ -72,7 +72,7 @@ public abstract class BlockAnalysis {
   protected final ConfigurableProgramAnalysis cpa;
   protected final DistributedCompositeCPA distributedCompositeCPA;
 
-  protected final Precision initialPrecision;
+  protected Precision precision;
   protected final AnalysisDirection direction;
   protected final AbstractState top;
 
@@ -119,7 +119,7 @@ public abstract class BlockAnalysis {
     status = AlgorithmStatus.SOUND_AND_PRECISE;
 
     checkNotNull(reachedSet, "BlockAnalysis requires the initial reachedSet");
-    initialPrecision = reachedSet.getPrecision(Objects.requireNonNull(reachedSet.getFirstState()));
+    precision = reachedSet.getPrecision(Objects.requireNonNull(reachedSet.getFirstState()));
 
     block = pBlock;
     logger = pLogger;
@@ -169,20 +169,12 @@ public abstract class BlockAnalysis {
     }
     return new ARGState(
         Iterables.getOnlyElement(
-            distributedCompositeCPA.getCombineOperator().combine(states, top, initialPrecision)),
+            distributedCompositeCPA.getCombineOperator().combine(states, top, precision)),
         null);
   }
 
   public DistributedCompositeCPA getDistributedCPA() {
     return distributedCompositeCPA;
-  }
-
-  public Algorithm getAlgorithm() {
-    return algorithm;
-  }
-
-  public Precision getInitialPrecision() {
-    return initialPrecision;
   }
 
   /**
@@ -231,7 +223,7 @@ public abstract class BlockAnalysis {
       throws CPAException, InterruptedException {
     relation.init(block);
     reachedSet.clear();
-    reachedSet.add(startState, initialPrecision);
+    reachedSet.add(startState, precision);
 
     // find all target states in block, except target states that are only reachable from another
     // target state
@@ -347,7 +339,6 @@ public abstract class BlockAnalysis {
       }
 
       ImmutableSet.Builder<ActorMessage> answers = ImmutableSet.builder();
-      // if (!reportedOriginalViolation) {
       Set<ARGState> violations = extractViolations(targetStates);
       if (!violations.isEmpty() && (!alreadyReportedError || containsLoops)) {
         // we only need to report error locations once
@@ -355,7 +346,6 @@ public abstract class BlockAnalysis {
         answers.addAll(createErrorConditionMessages(violations));
         alreadyReportedError = true;
       }
-      // }
 
       Set<ARGState> blockEntries = extractBlockTargetStates(targetStates);
       answers.addAll(createBlockPostConditionMessage(messages, blockEntries));
@@ -375,6 +365,9 @@ public abstract class BlockAnalysis {
               true,
               ImmutableSet.of());
       Collection<ActorMessage> result = analyze(ImmutableSet.of(initial));
+      if (reachedSet.getLastState() != null) {
+        precision = reachedSet.getPrecision(reachedSet.getLastState());
+      }
       if (result.isEmpty()) {
         // full path = true as no predecessor can ever change unreachability of block exit
         return ImmutableSet.of(
@@ -395,8 +388,10 @@ public abstract class BlockAnalysis {
       List<AbstractState> compositeStates =
           transformedImmutableListCopy(
               blockEntries,
-              state ->
-                  (AbstractState) AbstractStates.extractStateByType(state, CompositeState.class));
+              state -> AbstractStates.extractStateByType(state, CompositeState.class));
+      if (reachedSet.getLastState() != null) {
+        precision = reachedSet.getPrecision(reachedSet.getLastState());
+      }
       ImmutableSet.Builder<ActorMessage> answers = ImmutableSet.builder();
       if (!compositeStates.isEmpty()) {
         boolean fullPath =
@@ -408,7 +403,7 @@ public abstract class BlockAnalysis {
             Iterables.getOnlyElement(
                 distributedCompositeCPA
                     .getCombineOperator()
-                    .combine(compositeStates, top, initialPrecision));
+                    .combine(compositeStates, top, precision));
         Payload result = distributedCompositeCPA.getSerializeOperator().serialize(combined);
         result = appendStatus(status, result);
         BlockPostConditionMessage response =
@@ -491,6 +486,9 @@ public abstract class BlockAnalysis {
           transformedImmutableListCopy(
               targetStates,
               state -> AbstractStates.extractStateByType(state, CompositeState.class));
+      if (reachedSet.getLastState() != null) {
+        precision = reachedSet.getPrecision(reachedSet.getLastState());
+      }
       if (states.isEmpty()) {
         // should only happen if abstraction is activated
         logger.log(Level.ALL, "Cannot reach block start?", reachedSet);

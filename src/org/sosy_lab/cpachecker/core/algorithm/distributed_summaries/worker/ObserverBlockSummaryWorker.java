@@ -115,7 +115,7 @@ public class ObserverBlockSummaryWorker extends BlockSummaryWorker {
 
     private void updateStatus(ActorMessage pMessage) {
       pMessage
-          .getStatusIfPresent()
+          .getOptionalStatus()
           .ifPresent(status -> statusMap.put(pMessage.getUniqueBlockId(), status));
     }
 

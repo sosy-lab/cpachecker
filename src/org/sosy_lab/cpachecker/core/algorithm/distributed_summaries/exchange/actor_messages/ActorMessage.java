@@ -101,7 +101,7 @@ public abstract class ActorMessage implements Comparable<ActorMessage> {
     return Optional.ofNullable(getPayload().get(pKey.getName()));
   }
 
-  public Optional<AlgorithmStatus> getStatusIfPresent() {
+  public Optional<AlgorithmStatus> getOptionalStatus() {
     if (!(payload.containsKey(Payload.PRECISE)
         && payload.containsKey(Payload.PROPERTY)
         && payload.containsKey(Payload.SOUND))) {
