@@ -19,6 +19,7 @@ import java.util.HashSet;
 import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Set;
+import java.util.stream.Collectors;
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.collect.PersistentMap;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
@@ -408,6 +409,11 @@ public class SymbolicProgramConfiguration {
         new HashSet<>(Sets.difference(smg.getObjects(), reachable.getObjects()));
     Set<SMGValue> unreachableValues =
         new HashSet<>(Sets.difference(smg.getValues(), reachable.getValues()));
+    // Remove 0 Value and object
+    unreachableObjects =
+        unreachableObjects.stream().filter(o -> !o.isZero()).collect(Collectors.toSet());
+    unreachableValues =
+        unreachableValues.stream().filter(v -> !v.isZero()).collect(Collectors.toSet());
     SMG newSmg =
         smg.copyAndRemoveObjects(unreachableObjects).copyAndRemoveValues(unreachableValues);
     // copy into return collection
