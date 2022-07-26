@@ -1095,7 +1095,7 @@ public class SMGState implements LatticeAbstractState<SMGState>, AbstractQueryab
    * Read the value in the {@link SMGObject} at the position specified by the offset and size.
    * Checks for validity of the object and if its externally allocated and may fail because of that.
    * The read {@link SMGValue} will be translated into a {@link Value}. If the Value is known, the
-   * known value is used, unknown else.
+   * known value is used, unknown symbolic else.
    *
    * @param pObject {@link SMGObject} where to read. May not be 0.
    * @param pFieldOffset {@link BigInteger} offset.
@@ -1119,7 +1119,7 @@ public class SMGState implements LatticeAbstractState<SMGState>, AbstractQueryab
       return ValueAndSMGState.of(maybeValue.orElseThrow(), newState);
     }
     // If there is no Value for the SMGValue, we need to create it as an unknown, map it and return
-    Value unknownValue = UnknownValue.getInstance();
+    Value unknownValue = SymbolicValueFactory.getInstance().newIdentifier(null);
     return ValueAndSMGState.of(
         unknownValue,
         copyAndReplaceMemoryModel(
