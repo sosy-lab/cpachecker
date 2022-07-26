@@ -101,7 +101,7 @@ public final class ConstantSymbolicExpression extends SymbolicExpression {
 
   @Override
   public int hashCode() {
-    int result = value.hashCode();
+    int result = value != null ? value.hashCode() : 71;
     result = type != null ? 31 * result + type.hashCode() : result;
     return result;
   }
