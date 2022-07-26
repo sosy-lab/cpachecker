@@ -618,11 +618,12 @@ public class SMGTransferRelation
     } else if (cDecl instanceof CTypeDefDeclaration) {
       // TODO:
     } else if (cDecl instanceof CVariableDeclaration) {
-      if (addressedVariables.contains(cDecl.getQualifiedName())) {
-        return ImmutableList.of(state.addToVariableBlacklist(cDecl.getQualifiedName()));
-      } else {
-        return handleVariableDeclaration(state, (CVariableDeclaration) cDecl, edge);
-      }
+      // TODO: re enable CEGAR
+      // if (addressedVariables.contains(cDecl.getQualifiedName())) {
+      // return ImmutableList.of(state.addToVariableBlacklist(cDecl.getQualifiedName()));
+      // } else {
+      return handleVariableDeclaration(state, (CVariableDeclaration) cDecl, edge);
+      // }
     }
     // Fall through
     // TODO: log that declaration failed
