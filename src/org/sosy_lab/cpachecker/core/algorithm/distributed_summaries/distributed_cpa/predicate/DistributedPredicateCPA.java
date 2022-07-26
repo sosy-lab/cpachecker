@@ -25,7 +25,6 @@ import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
-import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 
 public class DistributedPredicateCPA implements DistributedConfigurableProgramAnalysis {
@@ -41,8 +40,7 @@ public class DistributedPredicateCPA implements DistributedConfigurableProgramAn
       PredicateCPA pPredicateCPA,
       BlockNode pNode,
       AnalysisDirection pDirection,
-      AnalysisOptions pOptions)
-      throws CPAException {
+      AnalysisOptions pOptions) {
     predicateCPA = pPredicateCPA;
     serialize =
         new SerializePredicateStateOperator(

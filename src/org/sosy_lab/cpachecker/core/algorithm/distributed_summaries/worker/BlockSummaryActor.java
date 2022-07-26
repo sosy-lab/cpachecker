@@ -28,7 +28,7 @@ public interface BlockSummaryActor extends Runnable {
 
   String getId();
 
-  default ActorMessage nextMessage() throws InterruptedException, SolverException {
+  default ActorMessage nextMessage() throws InterruptedException {
     return getConnection().read();
   }
 }

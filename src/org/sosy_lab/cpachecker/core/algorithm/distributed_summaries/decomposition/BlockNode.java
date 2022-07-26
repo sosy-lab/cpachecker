@@ -147,10 +147,10 @@ public class BlockNode {
 
   @Override
   public boolean equals(Object pO) {
-    if (!(pO instanceof BlockNodeMetaData)) {
+    if (!(pO instanceof BlockNode)) {
       return false;
     }
-    BlockNodeMetaData blockNode = (BlockNodeMetaData) pO;
+    BlockNode blockNode = (BlockNode) pO;
     return getId().equals(blockNode.getId());
   }
 

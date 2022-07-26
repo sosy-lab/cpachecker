@@ -18,7 +18,7 @@ import org.sosy_lab.java_smt.api.SolverException;
 public class AlwaysProceed implements ProceedOperator {
   @Override
   public MessageProcessing proceedForward(BlockPostConditionMessage pMessage)
-      throws InterruptedException, SolverException {
+      throws InterruptedException {
     return proceed(pMessage);
   }
 

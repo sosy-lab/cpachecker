@@ -25,7 +25,6 @@ import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.cpa.callstack.CallstackCPA;
 import org.sosy_lab.cpachecker.cpa.callstack.CallstackState;
-import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 public class DistributedCallstackCPA implements DistributedConfigurableProgramAnalysis {
 
@@ -39,8 +38,7 @@ public class DistributedCallstackCPA implements DistributedConfigurableProgramAn
   private final CallstackCPA callstackCPA;
 
   public DistributedCallstackCPA(
-      CallstackCPA pCallstackCPA, BlockNode pNode, AnalysisDirection pDirection)
-      throws CPAException {
+      CallstackCPA pCallstackCPA, BlockNode pNode, AnalysisDirection pDirection) {
     callstackCPA = pCallstackCPA;
     proceed = new AlwaysProceed();
     combine = new CombineCallstackStateOperator(pDirection, pCallstackCPA, pNode);

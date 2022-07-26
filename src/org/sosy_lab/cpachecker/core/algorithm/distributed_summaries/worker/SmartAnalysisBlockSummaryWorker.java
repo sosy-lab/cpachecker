@@ -25,7 +25,6 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.act
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockPostConditionMessage;
 import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
-import org.sosy_lab.java_smt.api.SolverException;
 
 public class SmartAnalysisBlockSummaryWorker extends AnalysisBlockSummaryWorker {
 
@@ -54,7 +53,7 @@ public class SmartAnalysisBlockSummaryWorker extends AnalysisBlockSummaryWorker 
   }
 
   @Override
-  public ActorMessage nextMessage() throws InterruptedException, SolverException {
+  public ActorMessage nextMessage() throws InterruptedException {
     final Connection connection = getConnection();
     if (!smartQueue.isEmpty()) {
       return smartQueue.take();

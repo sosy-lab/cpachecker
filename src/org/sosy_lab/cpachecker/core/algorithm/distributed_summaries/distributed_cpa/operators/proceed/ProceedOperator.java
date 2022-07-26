@@ -17,8 +17,7 @@ import org.sosy_lab.java_smt.api.SolverException;
 
 public interface ProceedOperator {
 
-  MessageProcessing proceedForward(BlockPostConditionMessage pMessage)
-      throws InterruptedException, SolverException;
+  MessageProcessing proceedForward(BlockPostConditionMessage pMessage) throws InterruptedException;
 
   MessageProcessing proceedBackward(ErrorConditionMessage pMessage)
       throws InterruptedException, SolverException;

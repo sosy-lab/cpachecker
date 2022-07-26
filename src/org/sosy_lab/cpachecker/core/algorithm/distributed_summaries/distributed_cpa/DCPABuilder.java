@@ -21,7 +21,6 @@ import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.cpa.callstack.CallstackCPA;
 import org.sosy_lab.cpachecker.cpa.functionpointer.FunctionPointerCPA;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
-import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 public class DCPABuilder {
 
@@ -36,8 +35,7 @@ public class DCPABuilder {
   }
 
   public void addCPA(
-      ConfigurableProgramAnalysis pCPA, BlockNode pBlockNode, AnalysisDirection pDirection)
-      throws CPAException {
+      ConfigurableProgramAnalysis pCPA, BlockNode pBlockNode, AnalysisDirection pDirection) {
     if (pCPA instanceof PredicateCPA) {
       addCPA((PredicateCPA) pCPA, pBlockNode, pDirection);
       return;
@@ -52,23 +50,20 @@ public class DCPABuilder {
   }
 
   private void addCPA(
-      PredicateCPA pPredicateCPA, BlockNode pBlockNode, AnalysisDirection pDirection)
-      throws CPAException {
+      PredicateCPA pPredicateCPA, BlockNode pBlockNode, AnalysisDirection pDirection) {
     analyses.put(
         pPredicateCPA.getClass(),
         new DistributedPredicateCPA(pPredicateCPA, pBlockNode, pDirection, options));
   }
 
   private void addCPA(
-      CallstackCPA pCallstackCPA, BlockNode pBlockNode, AnalysisDirection pDirection)
-      throws CPAException {
+      CallstackCPA pCallstackCPA, BlockNode pBlockNode, AnalysisDirection pDirection) {
     analyses.put(
         pCallstackCPA.getClass(),
         new DistributedCallstackCPA(pCallstackCPA, pBlockNode, pDirection));
   }
 
-  private void addCPA(FunctionPointerCPA pFunctionPointerCPA, BlockNode pBlockNode)
-      throws CPAException {
+  private void addCPA(FunctionPointerCPA pFunctionPointerCPA, BlockNode pBlockNode) {
     analyses.put(
         pFunctionPointerCPA.getClass(),
         new DistributedFunctionPointerCPA(pFunctionPointerCPA, pBlockNode));

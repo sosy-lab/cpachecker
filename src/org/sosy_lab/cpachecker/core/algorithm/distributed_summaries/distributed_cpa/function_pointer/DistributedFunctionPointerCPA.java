@@ -25,7 +25,6 @@ import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.cpa.functionpointer.FunctionPointerCPA;
 import org.sosy_lab.cpachecker.cpa.functionpointer.FunctionPointerState;
-import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 public class DistributedFunctionPointerCPA implements DistributedConfigurableProgramAnalysis {
 
@@ -36,8 +35,7 @@ public class DistributedFunctionPointerCPA implements DistributedConfigurablePro
 
   private final FunctionPointerCPA functionPointerCPA;
 
-  public DistributedFunctionPointerCPA(FunctionPointerCPA pParentCPA, BlockNode pNode)
-      throws CPAException {
+  public DistributedFunctionPointerCPA(FunctionPointerCPA pParentCPA, BlockNode pNode) {
     functionPointerCPA = pParentCPA;
     serialize = new SerializeFunctionPointerStateOperator();
     deserialize = new DeserializeFunctionPointerStateOperator(pParentCPA, pNode);

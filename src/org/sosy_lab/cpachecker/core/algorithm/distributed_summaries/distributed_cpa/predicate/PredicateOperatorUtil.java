@@ -10,7 +10,6 @@ package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed
 
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.ActorMessage;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
-import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
@@ -26,7 +25,7 @@ public class PredicateOperatorUtil {
       Class<? extends ConfigurableProgramAnalysis> pKey,
       FormulaManagerView pFormulaManagerView) {
     return pMessage
-        .getAbstractStateString(PredicateCPA.class)
+        .getAbstractStateString(pKey)
         .orElse(
             pFormulaManagerView
                 .dumpFormula(pFormulaManagerView.getBooleanFormulaManager().makeTrue())

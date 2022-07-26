@@ -26,7 +26,6 @@ import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeCPA;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeState;
-import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 public class DistributedCompositeCPA implements DistributedConfigurableProgramAnalysis {
 
@@ -41,8 +40,7 @@ public class DistributedCompositeCPA implements DistributedConfigurableProgramAn
       BlockNode pNode,
       AnalysisDirection pDirection,
       Map<Class<? extends ConfigurableProgramAnalysis>, DistributedConfigurableProgramAnalysis>
-          registered)
-      throws CPAException {
+          registered) {
     compositeCPA = pCompositeCPA;
     serialize = new SerializeCompositeStateOperator(registered);
     deserialize = new DeserializeCompositeStateOperator(compositeCPA, pNode, registered);

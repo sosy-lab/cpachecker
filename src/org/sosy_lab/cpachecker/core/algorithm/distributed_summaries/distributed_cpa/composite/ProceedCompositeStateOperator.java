@@ -39,7 +39,7 @@ public class ProceedCompositeStateOperator implements ProceedOperator {
 
   @Override
   public MessageProcessing proceedForward(BlockPostConditionMessage pMessage)
-      throws InterruptedException, SolverException {
+      throws InterruptedException {
     MessageProcessing processing = MessageProcessing.proceed();
     for (DistributedConfigurableProgramAnalysis value : registered.values()) {
       processing = processing.merge(value.getProceedOperator().proceedForward(pMessage), true);

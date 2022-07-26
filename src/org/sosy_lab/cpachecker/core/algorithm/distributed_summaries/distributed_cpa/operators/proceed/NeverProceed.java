@@ -19,7 +19,7 @@ public class NeverProceed implements ProceedOperator {
 
   @Override
   public MessageProcessing proceedForward(BlockPostConditionMessage pMessage)
-      throws InterruptedException, SolverException {
+      throws InterruptedException {
     return proceed(pMessage);
   }
 
