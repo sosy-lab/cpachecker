@@ -88,10 +88,12 @@ import org.sosy_lab.cpachecker.cpa.smg2.util.SMG2Exception;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGObjectAndOffset;
 import org.sosy_lab.cpachecker.cpa.smg2.util.value.SMGCPAValueExpressionEvaluator;
 import org.sosy_lab.cpachecker.cpa.smg2.util.value.ValueAndSMGState;
+import org.sosy_lab.cpachecker.cpa.value.symbolic.type.AddressExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.ConstantSymbolicExpression;
 import org.sosy_lab.cpachecker.cpa.value.type.BooleanValue;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
+import org.sosy_lab.cpachecker.cpa.value.type.Value.UnknownValue;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.Pair;
@@ -303,7 +305,7 @@ public class SMGTransferRelation
       return evaluator.writeValueToExpression(
           summaryEdge, leftValue, readValueAndState.getValue(), currentState, rightValueType);
     } else {
-      return ImmutableList.of(state);
+      return ImmutableList.of(state.dropStackFrame());
     }
   }
 
@@ -1250,6 +1252,36 @@ public class SMGTransferRelation
                   addressToWriteTo,
                   offsetToWriteTo,
                   addressToWriteTo.getSize().subtract(offsetToWriteTo)));
+        } else if (valueToWrite instanceof AddressExpression) {
+          // Retranslate into a pointer and write the pointer
+          AddressExpression addressInValue = (AddressExpression) valueToWrite;
+          if (addressInValue.getOffset().isNumericValue()
+              && addressInValue.getOffset().asNumericValue().longValue() == 0) {
+            // offset == 0 -> write the value directly (known pointer)
+            valueToWrite = addressInValue.getMemoryAddress();
+          } else if (addressInValue.getOffset().isNumericValue()) {
+            // Offset known but not 0, search for/create the correct address
+            ValueAndSMGState newAddressAndState =
+                evaluator.findOrcreateNewPointer(
+                    addressInValue.getMemoryAddress(),
+                    addressInValue.getOffset().asNumericValue().bigInteger(),
+                    currentState);
+            currentState = newAddressAndState.getState();
+            valueToWrite = newAddressAndState.getValue();
+          } else {
+            // Offset unknown/symbolic. This is not usable!
+            valueToWrite = UnknownValue.getInstance();
+          }
+          BigInteger sizeInBits = evaluator.getBitSizeof(currentState, rValue);
+          currentState =
+              currentState.writeValueTo(
+                  addressToWriteTo,
+                  offsetToWriteTo,
+                  sizeInBits,
+                  valueToWrite,
+                  rValue.getExpressionType());
+          returnStateBuilder.add(currentState);
+
         } else {
           // All other cases should return such that the value can be written directly to the left
           // hand side!
