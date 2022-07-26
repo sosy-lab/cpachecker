@@ -10,10 +10,8 @@ package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker;
 
 import com.google.common.collect.ImmutableList;
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -23,7 +21,6 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.Con
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.ActorMessage;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.ErrorMessage;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.ResultMessage;
-import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.java_smt.api.SolverException;
@@ -35,8 +32,6 @@ public class ObserverBlockSummaryWorker extends BlockSummaryWorker {
   private boolean shutdown;
   private Optional<Result> result;
   private Optional<String> errorMessage;
-
-  private final List<String> abstractStates = new ArrayList<>();
 
   public ObserverBlockSummaryWorker(String pId, Connection pConnection, AnalysisOptions pOptions)
       throws InvalidConfigurationException {
@@ -62,7 +57,6 @@ public class ObserverBlockSummaryWorker extends BlockSummaryWorker {
       case ERROR_CONDITION:
         // fall-through
       case BLOCK_POSTCONDITION:
-        pMessage.getAbstractStateString(PredicateCPA.class).ifPresent(abstractStates::add);
         statusObserver.updateStatus(pMessage);
         break;
       case ERROR:
