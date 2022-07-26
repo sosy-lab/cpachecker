@@ -635,19 +635,19 @@ public class PredicateCPARefiner implements ARGBasedRefiner, StatisticsProvider 
 
       int numberOfRefinements = totalRefinement.getUpdateCount();
       w0.put("Number of predicate refinements", totalRefinement.getUpdateCount());
+      StatisticsWriter w1 = w0.beginLevel();
       if (numberOfRefinements > 0) {
         w0.put(totalPathLength).put(totalPrefixes).spacer().put(totalRefinement);
-
-        StatisticsWriter w1 = w0.beginLevel();
-        interpolationManager.printStatistics(w1);
 
         w1.put(getFormulasForPathTime);
         if (isRefinementSelectionEnabled()) {
           w1.put(prefixExtractionTime);
           w1.put(prefixSelectionTime);
         }
-        w1.put(errorPathProcessing);
       }
+
+      interpolationManager.printStatistics(w1);
+      w1.putIfUpdatedAtLeastOnce(errorPathProcessing);
     }
 
     @Override

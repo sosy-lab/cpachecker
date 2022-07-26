@@ -553,7 +553,8 @@ public class LiveVariables {
       final CFA cfa,
       final LogManager logger,
       final ShutdownNotifier shutdownNotifier,
-      final EvaluationStrategy evaluationStrategy) {
+      final EvaluationStrategy evaluationStrategy)
+      throws InterruptedException {
 
     try {
       String configFile;

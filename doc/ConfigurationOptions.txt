@@ -760,15 +760,6 @@ cegar.refiner = no default value
 # whether or not to use refinement selection to decide which domain to refine
 cegar.useRefinementSelection = false
 
-# Add custom labels to the CFA
-cfa.addLabels = false
-
-# Add a unique label for each basic block
-cfa.addLabels.atBlocks = true
-
-# Add a unique label before each program exit
-cfa.addLabels.atProgramExit = false
-
 # Which functions should be interpreted as encoding assumptions
 cfa.assumeFunctions = {"__VERIFIER_assume"}
 
@@ -803,6 +794,10 @@ cfa.exportPerFunction = true
 # export CFA as C file
 cfa.exportToC = false
 cfa.exportToC.file = "cfa.c"
+
+# produce C programs more similar to the input program
+# (only possible for a single input file)
+cfa.exportToC.stayCloserToInput = false
 
 # export CFA as .dot file
 cfa.file = "cfa.dot"
@@ -1286,6 +1281,17 @@ cpa.arg.inCPAEnabledAnalysis = false
 # whether to keep covered states in the reached set as addition to keeping
 # them in the ARG
 cpa.arg.keepCoveredStatesInReached = false
+
+# What do to on a late merge, i.e., if the second parameter of the merge
+# already has child states (cf. issue #991):
+# - ALLOW: Just merge as usual.
+# - ALLOW_WARN: Log a warning the first time this happens, then ALLOW.
+# - PREVENT: Do not merge, i.e., enforce merge-sep for such situations.
+# - PREVENT_WARN: Log a warning the first time this happens, then PREVENT.
+# - CRASH: Crash CPAchecker as soon as this happens
+#   (useful for cases where a late merge should never happen).
+cpa.arg.lateMerge = ALLOW
+  enum:     [ALLOW, ALLOW_WARN, PREVENT, PREVENT_WARN, CRASH]
 
 # write the ARG at various stages during execution into dot files whose name
 # is specified by this option. Only works if 'cpa.arg.logARGs=true'

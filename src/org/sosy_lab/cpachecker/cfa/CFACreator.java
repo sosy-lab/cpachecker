@@ -78,7 +78,6 @@ import org.sosy_lab.cpachecker.cfa.postprocessing.function.NullPointerChecks;
 import org.sosy_lab.cpachecker.cfa.postprocessing.function.ThreadCreateTransformer;
 import org.sosy_lab.cpachecker.cfa.postprocessing.global.CFACloner;
 import org.sosy_lab.cpachecker.cfa.postprocessing.global.FunctionCallUnwinder;
-import org.sosy_lab.cpachecker.cfa.postprocessing.global.LabelAdder;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CComplexType.ComplexTypeKind;
 import org.sosy_lab.cpachecker.cfa.types.c.CDefaults;
@@ -99,6 +98,7 @@ import org.sosy_lab.cpachecker.util.LiveVariables;
 import org.sosy_lab.cpachecker.util.LoopStructure;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.cwriter.CFAToCTranslator;
+import org.sosy_lab.cpachecker.util.cwriter.CfaToCExporter;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsUtils;
 import org.sosy_lab.cpachecker.util.variableclassification.VariableClassification;
 import org.sosy_lab.cpachecker.util.variableclassification.VariableClassificationBuilder;
@@ -194,6 +194,14 @@ public class CFACreator {
   @Option(secure = true, name = "cfa.exportToC.file", description = "export CFA as C file")
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private Path exportCfaToCFile = Path.of("cfa.c");
+
+  @Option(
+      secure = true,
+      name = "cfa.exportToC.stayCloserToInput",
+      description =
+          "produce C programs more similar to the input program"
+              + "\n(only possible for a single input file)")
+  private boolean exportCfaToCStayingCloserToInput = false;
 
   @Option(secure = true, name = "cfa.callgraph.export", description = "dump a simple call graph")
   private boolean exportFunctionCalls = true;
@@ -297,9 +305,6 @@ public class CFACreator {
               + " computed for each edge of the cfa. Live means that their value"
               + " is read later on.")
   private boolean findLiveVariables = false;
-
-  @Option(secure = true, name = "cfa.addLabels", description = "Add custom labels to the CFA")
-  private boolean addLabels = false;
 
   @Option(
       secure = true,
@@ -602,19 +607,13 @@ public class CFACreator {
     // THIRD, do read-only post-processings on each single function CFA
 
     // Annotate CFA nodes with reverse postorder information for later use.
-    for (FunctionEntryNode function : cfa.getAllFunctionHeads()) {
-      CFAReversePostorder sorter = new CFAReversePostorder();
-      sorter.assignSorting(function);
-    }
+    cfa.getAllFunctionHeads().forEach(CFAReversePostorder::assignIds);
 
     // get loop information
     // (needs post-order information)
     if (useLoopStructure) {
       addLoopStructure(cfa);
     }
-
-    // instrument the cfa, if any configuration regarding that is set (needs loop structure)
-    instrumentCfa(cfa);
 
     // FOURTH, insert call and return edges and build the supergraph
     if (interprocedural) {
@@ -687,21 +686,6 @@ public class CFACreator {
         Level.FINE, "DONE, CFA for", immutableCFA.getNumberOfFunctions(), "functions created.");
 
     return immutableCFA;
-  }
-
-  private void instrumentCfa(MutableCFA pCfa) throws InvalidConfigurationException {
-    if (addLabels) {
-      // add a block label at the beginning of each basic block.
-      // This may require the CFA's loop structure, and thus should be done
-      // after computing and adding that.
-      new LabelAdder(config).addLabels(pCfa);
-
-      // Re-compute postorder ids to include newly added label nodes
-      for (FunctionEntryNode function : pCfa.getAllFunctionHeads()) {
-        CFAReversePostorder sorter = new CFAReversePostorder();
-        sorter.assignSorting(function);
-      }
-    }
   }
 
   /**
@@ -1232,11 +1216,25 @@ public class CFACreator {
 
     if (exportCfaToC && exportCfaToCFile != null) {
       try {
-        String code = new CFAToCTranslator(config).translateCfa(cfa);
+        String code;
+        if (exportCfaToCStayingCloserToInput && cfa.getFileNames().size() == 1) {
+          code = new CfaToCExporter(logger, config, shutdownNotifier).exportCfa(cfa);
+        } else {
+          if (exportCfaToCStayingCloserToInput) {
+            logger.log(
+                Level.INFO,
+                "Using the regular CFA-to-C exporter (staying closer to the input program is only"
+                    + " possible for a single input file)");
+          }
+          code = new CFAToCTranslator(config).translateCfa(cfa);
+        }
         try (Writer writer = IO.openOutputFile(exportCfaToCFile, Charset.defaultCharset())) {
           writer.write(code);
         }
-      } catch (CPAException | IOException | InvalidConfigurationException e) {
+      } catch (CPAException
+          | IOException
+          | InterruptedException
+          | InvalidConfigurationException e) {
         logger.logUserException(Level.WARNING, e, "Could not write CFA to C file.");
       }
     }
