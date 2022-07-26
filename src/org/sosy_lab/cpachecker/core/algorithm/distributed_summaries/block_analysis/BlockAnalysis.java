@@ -289,8 +289,8 @@ public abstract class BlockAnalysis {
   }
 
   protected Payload appendStatus(AlgorithmStatus pStatus, Payload pCurrentPayload) {
-    return Payload.builder()
-        .putAll(pCurrentPayload)
+    return new Payload.Builder()
+        .addAllEntries(pCurrentPayload)
         .addEntry(
             Payload.PROPERTY,
             pStatus.wasPropertyChecked()
@@ -302,7 +302,7 @@ public abstract class BlockAnalysis {
         .addEntry(
             Payload.PRECISE,
             pStatus.isPrecise() ? StatusPrecise.PRECISE.name() : StatusPrecise.IMPRECISE.name())
-        .build();
+        .buildPayload();
   }
 
   public static class ForwardAnalysis extends BlockAnalysis {

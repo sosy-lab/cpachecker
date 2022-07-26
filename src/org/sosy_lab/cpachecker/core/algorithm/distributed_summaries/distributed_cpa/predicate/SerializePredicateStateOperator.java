@@ -48,6 +48,6 @@ public class SerializePredicateStateOperator implements SerializeOperator {
     }
     // TODO: typeMap.merge(pathFormula.getSsa());
     String formula = formulaManagerView.dumpFormula(pathFormula.getFormula()).toString();
-    return Payload.builder().addEntry(PredicateCPA.class.getName(), formula).build();
+    return new Payload.Builder().addEntry(PredicateCPA.class.getName(), formula).buildPayload();
   }
 }

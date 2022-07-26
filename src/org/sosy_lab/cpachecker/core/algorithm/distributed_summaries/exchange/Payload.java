@@ -42,20 +42,8 @@ public class Payload extends ForwardingMap<String, String> {
 
   private final Map<String, String> delegate;
 
-  public Payload(Map<String, String> pDelegate) {
+  private Payload(Map<String, String> pDelegate) {
     delegate = ImmutableMap.copyOf(pDelegate);
-  }
-
-  public static Payload from(String json) throws JsonProcessingException {
-    TypeFactory factory = TypeFactory.defaultInstance();
-    MapType type = factory.constructMapType(HashMap.class, String.class, String.class);
-    ObjectMapper mapper = new ObjectMapper();
-    Map<String, String> result = mapper.readValue(json, type);
-    return new Payload(result);
-  }
-
-  public static PayloadBuilder builder() {
-    return new PayloadBuilder();
   }
 
   public static Payload empty() {
@@ -73,36 +61,29 @@ public class Payload extends ForwardingMap<String, String> {
     return delegate;
   }
 
-  public static class PayloadBuilder {
+  public static class Builder extends ImmutableMap.Builder<String, String> {
 
-    private final Map<String, String> payload;
-
-    public PayloadBuilder() {
-      payload = new HashMap<>();
-    }
-
-    public PayloadBuilder addEntry(String key, String value) {
-      payload.put(key, value);
+    public Builder addEntriesFromJSON(String json) throws JsonProcessingException {
+      TypeFactory factory = TypeFactory.defaultInstance();
+      MapType type = factory.constructMapType(HashMap.class, String.class, String.class);
+      ObjectMapper mapper = new ObjectMapper();
+      Map<String, String> result = mapper.readValue(json, type);
+      putAll(result);
       return this;
     }
 
-    public PayloadBuilder addEntry(String key, Payload pPayload) throws IOException {
-      payload.put(key, pPayload.toJSONString());
+    public Builder addEntry(String key, String value) {
+      put(key, value);
       return this;
     }
 
-    public PayloadBuilder putAll(Map<String, String> pMap) {
-      payload.putAll(pMap);
+    public Builder addAllEntries(Map<String, String> entries) {
+      putAll(entries);
       return this;
     }
 
-    public PayloadBuilder remove(String pKey) {
-      payload.remove(pKey);
-      return this;
-    }
-
-    public Payload build() {
-      return new Payload(payload);
+    public Payload buildPayload() {
+      return new Payload(build());
     }
   }
 }

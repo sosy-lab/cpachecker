@@ -164,9 +164,11 @@ public class ProceedPredicateStateOperator implements ProceedOperator {
 
   private void storePostCondition(ActorMessage pMessage) {
     Payload payload = pMessage.getPayload();
+    Map<String, String> copy = new HashMap<>(payload);
+    copy.remove(Payload.SMART);
     ActorMessage toStore =
         ActorMessage.replacePayload(
-            pMessage, Payload.builder().putAll(payload).remove(Payload.SMART).build());
+            pMessage, new Payload.Builder().addAllEntries(copy).buildPayload());
     if (analysisOptions.storeCircularPostConditions()
         && Splitter.on(",").splitToList(payload.getOrDefault(Payload.VISITED, "")).stream()
             .anyMatch(s -> s.equals(block.getId()))) {

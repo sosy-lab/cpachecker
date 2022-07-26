@@ -31,6 +31,7 @@ import java.util.Set;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.Payload.Builder;
 
 /**
  * Immutable communication entity for the actor model. Messages cannot be created with the
@@ -105,12 +106,12 @@ public class ActorMessage implements Comparable<ActorMessage> {
       boolean pReachable,
       Set<String> pVisited) {
     Payload newPayload =
-        Payload.builder()
-            .putAll(pPayload)
+        new Builder()
+            .addAllEntries(pPayload)
             .addEntry(Payload.FULL_PATH, Boolean.toString(pFull))
             .addEntry(Payload.VISITED, Joiner.on(",").join(pVisited))
             .addEntry(Payload.REACHABLE, Boolean.toString(pReachable))
-            .build();
+            .buildPayload();
     return new ActorMessage(
         MessageType.BLOCK_POSTCONDITION, pUniqueBlockId, pTargetNodeNumber, newPayload);
   }
@@ -122,11 +123,11 @@ public class ActorMessage implements Comparable<ActorMessage> {
       boolean pFirst,
       Set<String> pVisited) {
     Payload newPayload =
-        Payload.builder()
-            .putAll(pPayload)
+        new Builder()
+            .addAllEntries(pPayload)
             .addEntry(Payload.FIRST, Boolean.toString(pFirst))
             .addEntry(Payload.VISITED, Joiner.on(",").join(pVisited))
-            .build();
+            .buildPayload();
     return new ActorMessage(
         MessageType.ERROR_CONDITION, pUniqueBlockId, pTargetNodeNumber, newPayload);
   }
@@ -137,16 +138,16 @@ public class ActorMessage implements Comparable<ActorMessage> {
         MessageType.ERROR_CONDITION_UNREACHABLE,
         pUniqueBlockId,
         0,
-        Payload.builder().addEntry(Payload.REASON, denied).build());
+        new Builder().addEntry(Payload.REASON, denied).buildPayload());
   }
 
   public static ActorMessage newResultMessage(
       String pUniqueBlockId, int pTargetNodeNumber, Result pResult, Set<String> pVisited) {
     Payload payload =
-        Payload.builder()
+        new Builder()
             .addEntry(Payload.RESULT, pResult.name())
             .addEntry(Payload.VISITED, Joiner.on(",").join(pVisited))
-            .build();
+            .buildPayload();
     return new ActorMessage(MessageType.FOUND_RESULT, pUniqueBlockId, pTargetNodeNumber, payload);
   }
 
@@ -155,9 +156,9 @@ public class ActorMessage implements Comparable<ActorMessage> {
         MessageType.ERROR,
         pUniqueBlockId,
         0,
-        Payload.builder()
+        new Builder()
             .addEntry(Payload.EXCEPTION, Throwables.getStackTraceAsString(pException))
-            .build());
+            .buildPayload());
   }
 
   @Override
@@ -303,7 +304,8 @@ public class ActorMessage implements Comparable<ActorMessage> {
       String uniqueBlockId = node.get("uniqueBlockId").asText();
       int nodeNumber = node.get("targetNodeNumber").asInt();
       MessageType type = MessageType.valueOf(node.get("type").asText());
-      Payload payload = Payload.from(node.get("payload").asText());
+      Payload payload =
+          new Builder().addEntriesFromJSON(node.get("payload").asText()).buildPayload();
       Instant timestamp = Instant.parse(node.get("timestamp").asText());
       return new ActorMessage(type, uniqueBlockId, nodeNumber, timestamp, payload);
     }

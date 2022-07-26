@@ -110,11 +110,9 @@ public class ObserverBlockSummaryWorker extends BlockSummaryWorker {
     }
 
     private final Map<String, AlgorithmStatus> statusMap;
-    private AlgorithmStatus status;
 
     private StatusObserver() {
       statusMap = new HashMap<>();
-      status = AlgorithmStatus.NO_PROPERTY_CHECKED;
     }
 
     private void updateStatus(ActorMessage pMessage) {

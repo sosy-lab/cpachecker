@@ -109,12 +109,12 @@ public class MessageLogger {
     String message = p.get(PredicateCPA.class.getName());
     if (message != null) {
       p =
-          Payload.builder()
-              .putAll(p)
+          new Payload.Builder()
+              .addAllEntries(p)
               .addEntry(
                   PredicateCPA.class.getName(),
                   fmgr == null ? message : fmgr.parse(message).toString())
-              .build();
+              .buildPayload();
     }
     messageToJSON.put("payload", p.toJSONString());
     entries.get(pMessage.getUniqueBlockId()).put("messages", messageToJSON);

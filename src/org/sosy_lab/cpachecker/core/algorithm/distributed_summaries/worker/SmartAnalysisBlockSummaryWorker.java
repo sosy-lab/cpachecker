@@ -78,7 +78,11 @@ public class SmartAnalysisBlockSummaryWorker extends AnalysisBlockSummaryWorker 
             Payload payload = m.getPayload();
             // proceedForward stores already processed messages and won't continue with a plain
             // copy of this message. We add "smart": "true" to it to avoid equality.
-            payload = Payload.builder().putAll(payload).addEntry(Payload.SMART, "true").build();
+            payload =
+                new Payload.Builder()
+                    .addAllEntries(payload)
+                    .addEntry(Payload.SMART, "true")
+                    .buildPayload();
             postcondMessage = ActorMessage.replacePayload(m, payload);
           }
         }
