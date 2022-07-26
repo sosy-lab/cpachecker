@@ -12,6 +12,7 @@ import static org.sosy_lab.common.collect.Collections3.transformedImmutableSetCo
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableList.Builder;
 import com.google.common.collect.ImmutableSet;
 import java.math.BigInteger;
 import java.nio.file.Path;
@@ -348,21 +349,16 @@ public class SMGTransferRelation
       List<CExpression> arguments,
       List<CParameterDeclaration> paramDecl)
       throws CPATransferException {
-    // Add the new stack frame based on the function def
-    SMGState currentState =
-        initialState.copyAndAddStackFrame(callEdge.getSuccessor().getFunctionDefinition());
-
     // Create a variable for each parameter, then evaluate all given parameters and assign them to
     // their variables
     // TODO: check if the FunctionPointerCPA would be a better option instead of doing it myself
+    SMGState currentState = initialState;
+    Builder<Value> readValuesInOrderBuilder = ImmutableList.builder();
     for (int i = 0; i < arguments.size(); i++) {
       String varName = paramDecl.get(i).getQualifiedName();
       CExpression cParamExp = arguments.get(i);
 
       currentState = checkAndAddParameterToBlacklist(cParamExp, varName, currentState);
-
-      CType cParamType = SMGCPAValueExpressionEvaluator.getCanonicalType(paramDecl.get(i));
-      BigInteger paramSizeInBits = evaluator.getBitSizeof(currentState, cParamType);
 
       // Evaluator the CExpr into a Value
       SMGCPAValueVisitor valueVisitor =
@@ -373,10 +369,25 @@ public class SMGTransferRelation
       // to proceed from this point onwards with all of them with all following operations
       Preconditions.checkArgument(valuesAndStates.size() == 1);
       ValueAndSMGState valueAndState = valuesAndStates.get(0);
-      Value paramValue = valueAndState.getValue();
+
+      readValuesInOrderBuilder.add(valueAndState.getValue());
+      currentState = valueAndState.getState();
+    }
+
+    // Add the new stack frame based on the function def, but only after we read the values from the
+    // old stack frame
+    currentState =
+        currentState.copyAndAddStackFrame(callEdge.getSuccessor().getFunctionDefinition());
+
+    ImmutableList<Value> readValuesInOrder = readValuesInOrderBuilder.build();
+    for (int i = 0; i < arguments.size(); i++) {
+      Value paramValue = readValuesInOrder.get(i);
+      String varName = paramDecl.get(i).getQualifiedName();
+      CType cParamType = SMGCPAValueExpressionEvaluator.getCanonicalType(paramDecl.get(i));
+      BigInteger paramSizeInBits = evaluator.getBitSizeof(currentState, cParamType);
 
       // Create the new local variable
-      currentState = valueAndState.getState().copyAndAddLocalVariable(paramSizeInBits, varName);
+      currentState = currentState.copyAndAddLocalVariable(paramSizeInBits, varName);
       // Write the value into it
       currentState =
           currentState.writeToStackOrGlobalVariable(
