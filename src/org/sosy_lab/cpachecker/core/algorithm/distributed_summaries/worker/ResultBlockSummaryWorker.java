@@ -22,24 +22,28 @@ import java.util.logging.Level;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.BlockNode;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.ActorMessage;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.ActorMessage.MessageType;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.Connection;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.Message;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.Message.MessageType;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.Payload;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.java_smt.api.SolverException;
 
-public class ResultWorker extends Worker {
+public class ResultBlockSummaryWorker extends BlockSummaryWorker {
 
   private final Map<String, BlockNode> nodeMap;
   private final Set<String> messageReceived;
   private final Map<String, Integer> expectAnswer;
   private final int numWorkers;
+  private final Connection connection;
+  private boolean shutdown;
 
-  ResultWorker(Collection<BlockNode> pNodes, Connection pConnection, AnalysisOptions pOptions)
+  ResultBlockSummaryWorker(
+      Collection<BlockNode> pNodes, Connection pConnection, AnalysisOptions pOptions)
       throws InvalidConfigurationException {
-    super("result-worker", pConnection, pOptions);
+    super("result-worker", pOptions);
     nodeMap = new HashMap<>();
+    connection = pConnection;
     pNodes.forEach(node -> nodeMap.put(node.getId(), node));
     messageReceived = new HashSet<>();
     expectAnswer = new ConcurrentHashMap<>();
@@ -48,7 +52,7 @@ public class ResultWorker extends Worker {
   }
 
   @Override
-  public Collection<Message> processMessage(Message pMessage)
+  public Collection<ActorMessage> processMessage(ActorMessage pMessage)
       throws InterruptedException, CPAException, IOException, SolverException {
     String senderId = pMessage.getUniqueBlockId();
     MessageType type = pMessage.getType();
@@ -80,7 +84,7 @@ public class ResultWorker extends Worker {
       case FOUND_RESULT:
         // fall through
       case ERROR:
-        shutdown();
+        shutdown = true;
         return ImmutableSet.of();
       case BLOCK_POSTCONDITION:
         // we need a block to first send an own error condition or the first BLOCKPOSTCONDITION
@@ -90,25 +94,35 @@ public class ResultWorker extends Worker {
     }
   }
 
-  private Collection<Message> response(Message pMessage) {
+  @Override
+  public Connection getConnection() {
+    return connection;
+  }
+
+  @Override
+  public boolean shutdownRequested() {
+    return shutdown;
+  }
+
+  private Collection<ActorMessage> response(ActorMessage pMessage) {
     // negative values can occur as it is not guaranteed
     // that messages are processed in the same way on all workers
     // that's why we use allMatch
     // to ensure we do not forget an error location, we need every worker to send an initial message
-    if (logger.wouldBeLogged(Level.ALL)) {
-      logger.log(
-          Level.ALL,
-          "Waiting for answers: %s (%d/%d)",
-          Maps.filterValues(expectAnswer, v -> v != 0),
-          messageReceived.size(),
-          numWorkers);
+    if (getLogger().wouldBeLogged(Level.ALL)) {
+      getLogger()
+          .logf(
+              Level.ALL,
+              "Waiting for answers: %s (%d/%d)",
+              Maps.filterValues(expectAnswer, v -> v != 0),
+              messageReceived.size(),
+              numWorkers);
     }
-    finished =
-        messageReceived.size() == numWorkers
-            && expectAnswer.values().stream().allMatch(i -> i == 0);
-    if (finished) {
+    if (messageReceived.size() == numWorkers
+        && expectAnswer.values().stream().allMatch(i -> i == 0)) {
+      shutdown = true;
       return ImmutableSet.of(
-          Message.newResultMessage(
+          ActorMessage.newResultMessage(
               pMessage.getUniqueBlockId(),
               0,
               Result.TRUE,

@@ -11,14 +11,14 @@ package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.ob
 import java.util.ArrayList;
 import java.util.List;
 import java.util.NoSuchElementException;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.Message;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.ActorMessage;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
-public class MessageListener implements MessageObserver {
+public class MessageObserverSupport implements MessageObserver {
 
   private final List<MessageObserver> observerList;
 
-  public MessageListener() {
+  public MessageObserverSupport() {
     observerList = new ArrayList<>();
   }
 
@@ -28,13 +28,14 @@ public class MessageListener implements MessageObserver {
 
   /**
    * Publishes a message to all registered observers and returns true if a listener wants to stop.
+   * Listeners stop whenever they identified a verification result or an exception was reported.
    *
    * @param pMessage message to be processed
    * @return true, if listener should stop listening
    * @throws CPAException wrapper exception
    */
   @Override
-  public boolean process(Message pMessage) throws CPAException {
+  public boolean process(ActorMessage pMessage) throws CPAException {
     boolean finish = false;
     for (MessageObserver messageObserver : observerList) {
       finish |= messageObserver.process(pMessage);
@@ -51,7 +52,7 @@ public class MessageListener implements MessageObserver {
 
   public <T extends MessageObserver> T getObserver(Class<T> clazz) {
     for (MessageObserver messageObserver : observerList) {
-      if (messageObserver.getClass().equals(clazz)) {
+      if (clazz.isInstance(messageObserver)) {
         return clazz.cast(messageObserver);
       }
     }

@@ -11,7 +11,7 @@ package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.ob
 import java.util.HashMap;
 import java.util.Map;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.Message;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.ActorMessage;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.Payload;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
@@ -41,7 +41,7 @@ public class StatusObserver implements MessageObserver {
   }
 
   @Override
-  public boolean process(Message pMessage) throws CPAException {
+  public boolean process(ActorMessage pMessage) throws CPAException {
     Payload payload = pMessage.getPayload();
     if (!(payload.containsKey(Payload.PRECISE)
         && payload.containsKey(Payload.PROPERTY)
@@ -52,13 +52,12 @@ public class StatusObserver implements MessageObserver {
     StatusPropertyChecked isPropertyChecked =
         StatusPropertyChecked.valueOf(payload.get(Payload.PROPERTY));
     StatusSoundness isSound = StatusSoundness.valueOf(payload.get(Payload.SOUND));
-    statusMap.put(
-        pMessage.getUniqueBlockId(),
-        statusOf(isPropertyChecked, isSound, isPrecise));
+    statusMap.put(pMessage.getUniqueBlockId(), statusOf(isPropertyChecked, isSound, isPrecise));
     return false;
   }
 
-  private AlgorithmStatus statusOf(StatusPropertyChecked pPropertyChecked, StatusSoundness pIsSound, StatusPrecise pIsPrecise) {
+  private AlgorithmStatus statusOf(
+      StatusPropertyChecked pPropertyChecked, StatusSoundness pIsSound, StatusPrecise pIsPrecise) {
     if (pPropertyChecked == StatusPropertyChecked.UNCHECKED) {
       return AlgorithmStatus.NO_PROPERTY_CHECKED;
     }

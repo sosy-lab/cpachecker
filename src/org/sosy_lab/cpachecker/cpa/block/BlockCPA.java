@@ -14,6 +14,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.BlockNode;
 import org.sosy_lab.cpachecker.core.defaults.AbstractCPA;
+import org.sosy_lab.cpachecker.core.defaults.FlatLatticeDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
@@ -26,15 +27,18 @@ public class BlockCPA extends AbstractCPA {
   private BlockNode blockNode;
 
   public BlockCPA() {
-    super("sep", "sep", new BlockDomain(), new ForwardBlockTransferRelation());
+    super("sep", "sep", new FlatLatticeDomain(), new ForwardBlockTransferRelation());
   }
 
   public void init(BlockNode pBlockNode) {
     assert pBlockNode != null;
     blockNode = pBlockNode;
     TransferRelation relation = getTransferRelation();
-    checkState(relation instanceof BlockTransferRelation, "Expected %s but got %s",
-        BlockTransferRelation.class, relation.getClass());
+    checkState(
+        relation instanceof BlockTransferRelation,
+        "Expected %s but got %s",
+        BlockTransferRelation.class,
+        relation.getClass());
     ((BlockTransferRelation) relation).init(pBlockNode);
   }
 
@@ -43,8 +47,8 @@ public class BlockCPA extends AbstractCPA {
   }
 
   @Override
-  public AbstractState getInitialState(
-      CFANode node, StateSpacePartition partition) throws InterruptedException {
+  public AbstractState getInitialState(CFANode node, StateSpacePartition partition)
+      throws InterruptedException {
     return new BlockState(node, blockNode, AnalysisDirection.FORWARD, BlockStateType.INITIAL);
   }
 

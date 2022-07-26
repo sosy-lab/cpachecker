@@ -23,7 +23,7 @@ public class AnalysisOptions {
   private boolean flPreconditionAlwaysTrue = false;
 
   @Option(description = "whether analysis worker store circular post conditions")
-  private boolean doStoreCircularPostConditions = false;
+  private boolean storeCircularPostConditions = false;
 
   @Option(description = "whether error conditions are always checked for unsatisfiability")
   private boolean checkEveryErrorCondition = true;
@@ -31,12 +31,14 @@ public class AnalysisOptions {
   @Option(description = "loop free programs do not require to deny all possible error messages")
   private boolean sendEveryErrorMessage = false;
 
-  @Option(description = "define the configuration for the desired forward analysis")
+  @Option(
+      description = "Configuration for forward analysis in computation of distributed summaries")
   @FileOption(Type.OPTIONAL_INPUT_FILE)
   private Path forwardConfiguration =
       Path.of("config/distributed-block-summaries/predicateAnalysis-block-forward.properties");
 
-  @Option(description = "define the configuration for the desired backward analysis")
+  @Option(
+      description = "Configuration for backward analysis in computation of distributed summaries")
   @FileOption(Type.OPTIONAL_INPUT_FILE)
   private Path backwardConfiguration =
       Path.of("config/distributed-block-summaries/predicateAnalysis-block-backward.properties");
@@ -52,8 +54,8 @@ public class AnalysisOptions {
     return flPreconditionAlwaysTrue;
   }
 
-  public boolean doStoreCircularPostConditions() {
-    return doStoreCircularPostConditions;
+  public boolean storeCircularPostConditions() {
+    return storeCircularPostConditions;
   }
 
   public boolean checkEveryErrorConditionForUnsatisfiability() {

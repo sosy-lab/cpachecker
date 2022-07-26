@@ -82,10 +82,13 @@ public class BlockOperatorDecomposer implements CFADecomposer {
       // additionally, we want to store any node that is between start -> end of a BlockNode,
       // so we use the class Entry to track the current node and the nodes in between.
       final CFANode currentRootNode = lastCFANode;
-      CFAUtils.leavingEdges(lastCFANode).transform(
-              edge -> new Entry(edge.getSuccessor(),
-                  new LinkedHashSet<>(ImmutableList.of(currentRootNode, edge.getSuccessor())),
-                  new LinkedHashSet<>(ImmutableList.of(edge))))
+      CFAUtils.leavingEdges(lastCFANode)
+          .transform(
+              edge ->
+                  new Entry(
+                      edge.getSuccessor(),
+                      new LinkedHashSet<>(ImmutableList.of(currentRootNode, edge.getSuccessor())),
+                      new LinkedHashSet<>(ImmutableList.of(edge))))
           .copyInto(toSearch);
 
       // if toSearch is empty, all successor nodes of lastCFANode have reached the block end
@@ -95,15 +98,16 @@ public class BlockOperatorDecomposer implements CFADecomposer {
         // successorOfCurrNode is a successor of lastCFANode
         CFANode successorOfCurrNode = nodeEntry.node;
         if (operator.isBlockEnd(successorOfCurrNode, 0)) {
-          // alternative: if (successorOfCurrNode.getNumEnteringEdges() > 1 || successorOfCurrNode.getNumLeavingEdges() > 1) {
+          // alternative: if (successorOfCurrNode.getNumEnteringEdges() > 1 ||
+          // successorOfCurrNode.getNumLeavingEdges() > 1) {
           // if successorOfCurrNode is a block end, create a new BlockNode that starts with
           // lastCFANode and ends with
           // successorOfCurrNode. Additionally, tell the BlockNode which nodes are part of the
           // block.
           blockEnds.push(successorOfCurrNode);
           BlockNode childBlockNode =
-              nodeFactory.makeBlock(lastCFANode, successorOfCurrNode, nodeEntry.seen,
-                  nodeEntry.seenEdges);
+              nodeFactory.makeBlock(
+                  lastCFANode, successorOfCurrNode, nodeEntry.seen, nodeEntry.seenEdges);
 
           // every previous block that ends with lastCFANode is now linked to the new BlockNode that
           // starts with lastCFANode.
@@ -169,5 +173,4 @@ public class BlockOperatorDecomposer implements CFADecomposer {
       return Objects.hash(node, seen);
     }
   }
-
 }

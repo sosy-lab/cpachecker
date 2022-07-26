@@ -51,9 +51,9 @@ import org.sosy_lab.cpachecker.core.algorithm.bmc.BMCAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.IMCAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.ISMCAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.pdr.PdrAlgorithm;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.DistributedSummaryAnalysis;
 import org.sosy_lab.cpachecker.core.algorithm.composition.CompositionAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.counterexamplecheck.CounterexampleCheckAlgorithm;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.DistributedSummaryAnalysis;
 import org.sosy_lab.cpachecker.core.algorithm.explainer.Explainer;
 import org.sosy_lab.cpachecker.core.algorithm.impact.ImpactAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.mpv.MPVAlgorithm;
@@ -377,7 +377,7 @@ public class CoreComponentsFactory {
   @Option(
       secure = true,
       name = "algorithm.faultLocalization.by_traceformula",
-      description = "for found property violation, perform fault lCoreCocalization with trace formulas")
+      description = "for found property violation, perform fault localization with trace formulas")
   private boolean useFaultLocalizationWithTraceFormulas = false;
 
   @Option(
@@ -389,7 +389,7 @@ public class CoreComponentsFactory {
   @Option(
       secure = true,
       name = "algorithm.configurableComponents",
-      description = "Use fault localization with distance metrics")
+      description = "Distribute predicate analysis to multiple workers")
   private boolean useConfigurableComponents = false;
 
   @Option(secure = true, description = "Enable converting test goals to conditions.")
@@ -731,7 +731,13 @@ public class CoreComponentsFactory {
       }
 
       if (useConfigurableComponents) {
-        algorithm = new DistributedSummaryAnalysis(config, logger, cfa, ShutdownManager.createWithParent(shutdownNotifier), specification);
+        algorithm =
+            new DistributedSummaryAnalysis(
+                config,
+                logger,
+                cfa,
+                ShutdownManager.createWithParent(shutdownNotifier),
+                specification);
       }
 
       if (useFaultLocalizationWithCoverage) {

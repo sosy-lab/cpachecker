@@ -15,48 +15,50 @@ import com.google.common.collect.ImmutableList;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.Message;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.ActorMessage;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.Payload;
 
 /**
- * Proceed operators need two return a collection of messages and a boolean indicating
- * whether the analysis should proceed. This class combines these two return types by forwarding
- * a collection and having an unmodifiable boolean attribute {@code end}.
+ * Proceed operators need to return a collection of messages and a boolean indicating whether the
+ * analysis should proceed. This class combines these two return types by forwarding a collection
+ * and having an unmodifiable boolean attribute {@code end}.
  */
-public class MessageProcessing extends ForwardingCollection<Message> {
+public class MessageProcessing extends ForwardingCollection<ActorMessage> {
 
-  private final Collection<Message> messages;
+  private final Collection<ActorMessage> messages;
   private final boolean end;
 
-  private final static MessageProcessing emptyProceed = new MessageProcessing(ImmutableList.of(), false);
-  private final static MessageProcessing emptyStop = new MessageProcessing(ImmutableList.of(), true);
+  private static final MessageProcessing EMPTY_PROCEED =
+      new MessageProcessing(ImmutableList.of(), false);
+  private static final MessageProcessing EMPTY_STOP =
+      new MessageProcessing(ImmutableList.of(), true);
 
-  private MessageProcessing(Collection<Message> pMessages, boolean pEnd) {
+  private MessageProcessing(Collection<ActorMessage> pMessages, boolean pEnd) {
     messages = pMessages;
     end = pEnd;
   }
 
   public static MessageProcessing proceed() {
-    return emptyProceed;
+    return EMPTY_PROCEED;
   }
 
   public static MessageProcessing stop() {
-    return emptyStop;
+    return EMPTY_STOP;
   }
 
-  public static MessageProcessing proceedWith(Collection<Message> pMessages) {
+  public static MessageProcessing proceedWith(Collection<ActorMessage> pMessages) {
     return new MessageProcessing(pMessages, false);
   }
 
-  public static MessageProcessing stopWith(Collection<Message> pMessages) {
+  public static MessageProcessing stopWith(Collection<ActorMessage> pMessages) {
     return new MessageProcessing(pMessages, true);
   }
 
-  public static MessageProcessing proceedWith(Message... pMessages) {
+  public static MessageProcessing proceedWith(ActorMessage... pMessages) {
     return new MessageProcessing(ImmutableList.copyOf(pMessages), false);
   }
 
-  public static MessageProcessing stopWith(Message... pMessages) {
+  public static MessageProcessing stopWith(ActorMessage... pMessages) {
     return new MessageProcessing(ImmutableList.copyOf(pMessages), true);
   }
 
@@ -65,18 +67,18 @@ public class MessageProcessing extends ForwardingCollection<Message> {
   }
 
   public Collection<Payload> toPayloadCollection() {
-    return transformedImmutableListCopy(messages, m->m.getPayload());
+    return transformedImmutableListCopy(messages, m -> m.getPayload());
   }
 
   public MessageProcessing merge(MessageProcessing pProcessing, boolean removeDuplicates) {
-    Collection<Message> copy =
+    Collection<ActorMessage> copy =
         removeDuplicates ? new HashSet<>(messages) : new ArrayList<>(messages);
     copy.addAll(pProcessing);
     return new MessageProcessing(copy, end || pProcessing.end);
   }
 
   @Override
-  protected Collection<Message> delegate() {
+  protected Collection<ActorMessage> delegate() {
     return messages;
   }
 }

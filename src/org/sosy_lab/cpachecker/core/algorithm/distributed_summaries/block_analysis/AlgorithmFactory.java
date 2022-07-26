@@ -59,7 +59,9 @@ public class AlgorithmFactory {
 
     CoreComponentsFactory coreComponents =
         new CoreComponentsFactory(
-            singleConfig, singleLogger, singleShutdownManager.getNotifier(),
+            singleConfig,
+            singleLogger,
+            singleShutdownManager.getNotifier(),
             AggregatedReachedSets.empty());
 
     ConfigurableProgramAnalysis cpa = coreComponents.createCPA(cfa, specification);
@@ -85,8 +87,7 @@ public class AlgorithmFactory {
   }
 
   private static Configuration buildSubConfig(
-      Collection<String> ignoreOptions,
-      Configuration globalConfig)
+      Collection<String> ignoreOptions, Configuration globalConfig)
       throws InvalidConfigurationException {
 
     ConfigurationBuilder singleConfigBuilder = Configuration.builder();
@@ -115,5 +116,4 @@ public class AlgorithmFactory {
     reached.add(initialState, initialPrecision);
     return reached;
   }
-
 }

@@ -32,10 +32,10 @@ public class SingleBlockDecomposer implements CFADecomposer {
     }
     Set<CFANode> nodes = new HashSet<>(cfa.getAllNodes());
     nodes.add(lastNode);
-    BlockNode root = factory.makeBlock(startNode, startNode, ImmutableSet.of(startNode), ImmutableSet.of());
+    BlockNode root =
+        factory.makeBlock(startNode, startNode, ImmutableSet.of(startNode), ImmutableSet.of());
     BlockNode workerBlock = factory.makeBlock(startNode, lastNode, nodes, edges);
     factory.linkSuccessor(root, workerBlock);
     return new BlockTree(root, factory);
   }
-
 }

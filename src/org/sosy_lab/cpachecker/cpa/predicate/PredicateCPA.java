@@ -244,16 +244,17 @@ public class PredicateCPA
             abstractionStats,
             statistics);
 
-    predicatePrecisionAdjustment = new PredicatePrecisionAdjustment(
-        logger,
-        config,
-        formulaManager,
-        pathFormulaManager,
-        blk,
-        getPredicateManager(),
-        invariantsManager,
-        predicateProvider,
-        statistics);
+    predicatePrecisionAdjustment =
+        new PredicatePrecisionAdjustment(
+            logger,
+            config,
+            formulaManager,
+            pathFormulaManager,
+            blk,
+            getPredicateManager(),
+            invariantsManager,
+            predicateProvider,
+            statistics);
   }
 
   @Override

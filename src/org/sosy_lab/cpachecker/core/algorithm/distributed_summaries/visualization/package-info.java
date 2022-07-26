@@ -6,7 +6,5 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-/**
- * Provide useful util functions for block analysis
- */
+/** Provide useful util functions for block analysis */
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.visualization;

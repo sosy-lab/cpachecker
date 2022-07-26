@@ -38,15 +38,13 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.Con
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.UpdatedTypeMap;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.observer.ErrorMessageObserver;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.observer.FaultLocalizationMessageObserver;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.observer.MessageListener;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.observer.MessageObserverSupport;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.observer.ResultMessageObserver;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.observer.StatusObserver;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.AnalysisOptions;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.BlockSummaryActor;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.DistributedComponentsBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.DistributedComponentsBuilder.Components;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.FaultLocalizationWorker;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.RootWorker;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.Worker;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
@@ -75,10 +73,19 @@ public class DistributedSummaryAnalysis implements Algorithm, StatisticsProvider
 
   private final StatInt numberWorkers = new StatInt(StatKind.MAX, "number of workers");
 
-  @Option(description = "algorithm to decompose the CFA")
+  @Option(
+      description =
+          "Allows to set the algorithm for decomposing the CFA. BLOCK_OPERATOR creates blocks from"
+              + " each merge/branching point to the next merge/branching point. GIVEN_SIZE merges"
+              + " blocks obtained by BLOCK_OPERATOR until"
+              + " distributedSummaries.desiredNumberOfBlocks blocks are present. SINGLE_BLOCK"
+              + " creates one block around the complete CFA.")
   private DecompositionType decompositionType = DecompositionType.BLOCK_OPERATOR;
 
-  @Option(description = "which worker to use")
+  @Option(
+      description =
+          "Choose the workers that are spawned for each block. Contrary to DEFAULT workers, SMART"
+              + " workers consume multiple messages at once.")
   private WorkerType workerType = WorkerType.DEFAULT;
 
   @Option(description = "desired number of BlockNodes")
@@ -91,7 +98,11 @@ public class DistributedSummaryAnalysis implements Algorithm, StatisticsProvider
   @Option(description = "whether to use daemon threads for workers")
   private boolean daemon = true;
 
-  @Option(description = "whether to spawn util worker")
+  @Option(
+      description =
+          "Whether to spawn util workers. "
+              + "Util workers listen to every message and create visual output for debugging. "
+              + "Workers consume resources and should not be used for benchmarks.")
   private boolean spawnUtilWorkers = true;
 
   private enum DecompositionType {
@@ -111,7 +122,8 @@ public class DistributedSummaryAnalysis implements Algorithm, StatisticsProvider
       LogManager pLogger,
       CFA pCfa,
       ShutdownManager pShutdownManager,
-      Specification pSpecification) throws InvalidConfigurationException {
+      Specification pSpecification)
+      throws InvalidConfigurationException {
     configuration = pConfig;
     configuration.inject(this);
     logger = pLogger;
@@ -131,13 +143,16 @@ public class DistributedSummaryAnalysis implements Algorithm, StatisticsProvider
     if (workerType == WorkerType.FAULT_LOCALIZATION) {
       if (decompositionType != DecompositionType.BLOCK_OPERATOR) {
         throw new InvalidConfigurationException(
-            FaultLocalizationWorker.class.getCanonicalName() + " needs decomposition with type "
-                + DecompositionType.BLOCK_OPERATOR + " but got " + decompositionType);
+            "FaultLocalizationWorker needs decomposition with type "
+                + DecompositionType.BLOCK_OPERATOR
+                + " but got "
+                + decompositionType);
       }
     } else {
       if (options.isFlPreconditionAlwaysTrue()) {
         throw new InvalidConfigurationException(
-            "Unused option: faultLocalizationPreconditionAlwaysTrue. Fault localization is deactivated");
+            "Unused option: faultLocalizationPreconditionAlwaysTrue. Fault localization is"
+                + " deactivated");
       }
     }
   }
@@ -147,8 +162,8 @@ public class DistributedSummaryAnalysis implements Algorithm, StatisticsProvider
       case BLOCK_OPERATOR:
         return new BlockOperatorDecomposer(configuration);
       case GIVEN_SIZE:
-        return new GivenSizeDecomposer(new BlockOperatorDecomposer(configuration),
-            desiredNumberOfBlocks);
+        return new GivenSizeDecomposer(
+            new BlockOperatorDecomposer(configuration), desiredNumberOfBlocks);
       case SINGLE_BLOCK:
         return new SingleBlockDecomposer();
       default:
@@ -157,16 +172,15 @@ public class DistributedSummaryAnalysis implements Algorithm, StatisticsProvider
   }
 
   private DistributedComponentsBuilder analysisWorker(
-      DistributedComponentsBuilder pBuilder,
-      BlockNode pNode,
-      UpdatedTypeMap pMap) {
+      DistributedComponentsBuilder pBuilder, BlockNode pNode, UpdatedTypeMap pMap) {
     switch (workerType) {
       case DEFAULT:
-        return pBuilder.addAnalysisWorker(pNode, pMap, options);
+        return pBuilder.addAnalysisWorker(pNode, options, pMap);
       case SMART:
-        return pBuilder.addSmartAnalysisWorker(pNode, pMap, options);
+        return pBuilder.addSmartAnalysisWorker(pNode, options, pMap);
       case FAULT_LOCALIZATION:
-        return pBuilder.addFaultLocalizationWorker(pNode, pMap, options);
+        throw new AssertionError("Fault localization is not supported");
+        // return pBuilder.addFaultLocalizationWorker(pNode, pMap, options);
       default:
         throw new AssertionError("Unknown WorkerType: " + workerType);
     }
@@ -179,9 +193,12 @@ public class DistributedSummaryAnalysis implements Algorithm, StatisticsProvider
       // create block tree and reduce to relevant parts
       CFADecomposer decomposer = getDecomposer();
       BlockTree tree = decomposer.cut(cfa);
-      logger.logf(Level.INFO, "Decomposed CFA in %d blocks using the %s.",
-          tree.getDistinctNodes().size(), decomposer.getClass().getCanonicalName());
-      //drawBlockDot(tree);
+      logger.logf(
+          Level.INFO,
+          "Decomposed CFA in %d blocks using the %s.",
+          tree.getDistinctNodes().size(),
+          decomposer.getClass().getCanonicalName());
+      // drawBlockDot(tree);
       Collection<BlockNode> removed = tree.removeEmptyBlocks();
       if (!removed.isEmpty()) {
         logger.log(Level.INFO, "Removed " + removed.size() + " empty BlockNodes from the tree.");
@@ -198,7 +215,7 @@ public class DistributedSummaryAnalysis implements Algorithm, StatisticsProvider
       builder = builder.createAdditionalConnections(1);
       for (BlockNode distinctNode : blocks) {
         if (distinctNode.isRoot()) {
-          builder = builder.addRootWorker(distinctNode, options);
+          builder = builder.addRootWorker(distinctNode, options, map);
         } else {
           builder = analysisWorker(builder, distinctNode, map);
         }
@@ -215,17 +232,14 @@ public class DistributedSummaryAnalysis implements Algorithm, StatisticsProvider
       numberWorkers.setNextValue(components.getWorkers().size());
 
       // run workers
-      for (Worker worker : components.getWorkers()) {
-        if (worker instanceof RootWorker) {
-          worker.collectStatistics(statsCollection);
-        }
+      for (BlockSummaryActor worker : components.getWorkers()) {
         Thread thread = new Thread(worker, worker.getId());
         thread.setDaemon(daemon);
         thread.start();
       }
 
       // create message listener
-      MessageListener listener = new MessageListener();
+      MessageObserverSupport listener = new MessageObserverSupport();
       listener.register(new ResultMessageObserver(reachedSet));
       listener.register(new ErrorMessageObserver());
       listener.register(new StatusObserver());
@@ -234,7 +248,8 @@ public class DistributedSummaryAnalysis implements Algorithm, StatisticsProvider
       try (Connection mainThreadConnection = components.getAdditionalConnections().get(0)) {
         mainThreadConnection.collectStatistics(statsCollection);
         if (workerType == WorkerType.FAULT_LOCALIZATION) {
-          listener.register(new FaultLocalizationMessageObserver(logger, mainThreadConnection, configuration));
+          listener.register(
+              new FaultLocalizationMessageObserver(logger, mainThreadConnection, configuration));
         }
 
         // wait for result
@@ -285,15 +300,12 @@ public class DistributedSummaryAnalysis implements Algorithm, StatisticsProvider
   }
 
   @Override
-  public void printStatistics(
-      PrintStream out, Result result, UnmodifiableReachedSet reached) {
-    StatisticsWriter.writingStatisticsTo(out)
-        .put(numberWorkers);
+  public void printStatistics(PrintStream out, Result result, UnmodifiableReachedSet reached) {
+    StatisticsWriter.writingStatisticsTo(out).put(numberWorkers);
   }
 
   @Override
   public @Nullable String getName() {
     return "DistributedSummaryAnalysis";
   }
-
 }

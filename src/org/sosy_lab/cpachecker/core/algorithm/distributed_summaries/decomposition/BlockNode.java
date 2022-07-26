@@ -41,12 +41,13 @@ public class BlockNode {
   private final String code;
 
   /**
-   * Represents a sub graph of the CFA beginning at {@code pStartNode} and ending at {@code pLastNode}
+   * Represents a sub graph of the CFA beginning at {@code pStartNode} and ending at {@code
+   * pLastNode}
    *
-   * @param pStartNode    the root node of the block
-   * @param pLastNode     the final node of the block
+   * @param pStartNode the root node of the block
+   * @param pLastNode the final node of the block
    * @param pNodesInBlock all nodes that are part of the sub graph including the root node and the
-   *                      last node.
+   *     last node.
    */
   private BlockNode(
       @NonNull String pId,
@@ -67,8 +68,12 @@ public class BlockNode {
               + ").");
     }
 
-    block = new Block(new ReferencedVariablesCollector(pNodesInBlock).getVars(),
-        ImmutableSet.of(pStartNode), ImmutableSet.of(pLastNode), pNodesInBlock);
+    block =
+        new Block(
+            new ReferencedVariablesCollector(pNodesInBlock).getVars(),
+            ImmutableSet.of(pStartNode),
+            ImmutableSet.of(pLastNode),
+            pNodesInBlock);
     startNode = pStartNode;
     lastNode = pLastNode;
 
@@ -80,11 +85,12 @@ public class BlockNode {
     idToNodeMap = pIdToNodeMap;
     id = pId;
 
-    code = computeCode();
+    code = blockToPseudoCode();
   }
 
   /**
    * Returns the corresponding CFANode for a given node number
+   *
    * @param number id of CFANode
    * @return CFANode with id {@code number}
    */
@@ -94,9 +100,10 @@ public class BlockNode {
 
   /**
    * compute the code that this block contains (for debugging only)
+   *
    * @return code represented by this block
    */
-  private String computeCode() {
+  private String blockToPseudoCode() {
     StringBuilder codeLines = new StringBuilder();
     for (CFAEdge leavingEdge : edgesInBlock) {
       if (leavingEdge.getCode().isBlank()) {
@@ -111,6 +118,11 @@ public class BlockNode {
     return codeLines.toString();
   }
 
+  /**
+   * Check whether this block is self-circular. Self-circular blocks are their own predecessor.
+   *
+   * @return true if block is its own predecessor/successor, false otherwise
+   */
   public boolean isSelfCircular() {
     return lastNode.equals(startNode) && !isEmpty() && !isRoot();
   }
@@ -120,8 +132,8 @@ public class BlockNode {
   }
 
   /**
-   * Add successor to a node.
-   * The successor thus has a new predecessor
+   * Add successor to this bloc node. The successor thus has a new predecessor
+   *
    * @param node new successor for this
    */
   private void linkSuccessor(BlockNode node) {
@@ -130,7 +142,8 @@ public class BlockNode {
   }
 
   /**
-   * Remove successor of this block
+   * Remove successor from this block node
+   *
    * @param pNodeSuccessor successor to remove
    */
   private void unlinkSuccessor(BlockNode pNodeSuccessor) {
@@ -182,13 +195,20 @@ public class BlockNode {
 
   @Override
   public String toString() {
-    return "BlockNode{" +
-        "id='" + id + '\'' +
-        ", startNode=" + startNode +
-        ", lastNode=" + lastNode +
-        ", size=" + nodesInBlock.size() +
-        ", code='" + code.replaceAll("\n", "") + '\'' +
-        '}';
+    return "BlockNode{"
+        + "id='"
+        + id
+        + '\''
+        + ", startNode="
+        + startNode
+        + ", lastNode="
+        + lastNode
+        + ", size="
+        + nodesInBlock.size()
+        + ", code='"
+        + code.replaceAll("\n", "")
+        + '\''
+        + '}';
   }
 
   public String getCode() {
@@ -214,11 +234,13 @@ public class BlockNode {
     }
 
     public BlockNode makeBlock(
-        CFANode pStartNode,
-        CFANode pEndNode,
-        Set<CFANode> pNodesInBlock,
-        Set<CFAEdge> pEdges) {
-      return new BlockNode("B" + blockCount++, pStartNode, pEndNode, pNodesInBlock, pEdges,
+        CFANode pStartNode, CFANode pEndNode, Set<CFANode> pNodesInBlock, Set<CFAEdge> pEdges) {
+      return new BlockNode(
+          "B" + blockCount++,
+          pStartNode,
+          pEndNode,
+          pNodesInBlock,
+          pEdges,
           new HashMap<>(idToNodeMap));
     }
 
@@ -236,9 +258,13 @@ public class BlockNode {
     }
 
     public BlockNode copy(BlockNode pNode) {
-      return new BlockNode("B" + blockCount++, pNode.startNode, pNode.lastNode, pNode.nodesInBlock,
-          pNode.edgesInBlock, new HashMap<>(idToNodeMap));
+      return new BlockNode(
+          "B" + blockCount++,
+          pNode.startNode,
+          pNode.lastNode,
+          pNode.nodesInBlock,
+          pNode.edgesInBlock,
+          new HashMap<>(idToNodeMap));
     }
-
   }
 }

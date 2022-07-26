@@ -12,7 +12,6 @@ import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableSet;
 import java.io.IOException;
 import java.util.Collection;
-import java.util.HashSet;
 import java.util.logging.Level;
 import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.configuration.Configuration;
@@ -24,22 +23,24 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.block_analys
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.block_analysis.BlockAnalysis.NoopAnalysis;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.BlockNode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.MessageProcessing;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.ActorMessage;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.Connection;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.Message;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.Payload;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.UpdatedTypeMap;
 import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.java_smt.api.SolverException;
 
-public class RootWorker extends Worker {
+public class RootBlockSummaryWorker extends BlockSummaryWorker {
 
   private final BlockNode root;
   private final BlockAnalysis analysis;
+  private final Connection connection;
+  private boolean shutdown;
 
-  public RootWorker(
+  public RootBlockSummaryWorker(
       String pId,
+      UpdatedTypeMap pTypeMap,
       Connection pConnection,
       AnalysisOptions pOptions,
       BlockNode pNode,
@@ -48,18 +49,19 @@ public class RootWorker extends Worker {
       Configuration pConfiguration,
       ShutdownManager pShutdownManager)
       throws CPAException, InterruptedException, InvalidConfigurationException {
-    super("root-worker-" + pId, pConnection, pOptions);
+    super("root-worker-" + pId, pOptions);
+    connection = pConnection;
+    shutdown = false;
     root = pNode;
     if (!root.isRoot() || !root.isEmpty() || !root.getLastNode().equals(root.getStartNode())) {
       throw new AssertionError("Root node must be empty and cannot have predecessors: " + pNode);
     }
     analysis =
         new NoopAnalysis(
-            pId,
-            logger,
+            getLogger(),
+            pTypeMap,
             pNode,
             pCfa,
-            new UpdatedTypeMap(SSAMap.emptySSAMap()),
             AnalysisDirection.FORWARD,
             pSpecification,
             pConfiguration,
@@ -68,31 +70,32 @@ public class RootWorker extends Worker {
   }
 
   @Override
-  public Collection<Message> processMessage(Message pMessage)
+  public Collection<ActorMessage> processMessage(ActorMessage pMessage)
       throws InterruptedException, SolverException, CPAException, IOException {
     switch (pMessage.getType()) {
       case ERROR_CONDITION:
         if (pMessage.getTargetNodeNumber() == root.getLastNode().getNodeNumber()
             && root.getSuccessors().stream()
                 .anyMatch(block -> block.getId().equals(pMessage.getUniqueBlockId()))) {
-          MessageProcessing processing = analysis.getDistributedCPA().proceedBackward(pMessage);
+          MessageProcessing processing =
+              analysis.getDistributedCPA().getProceedOperator().proceedBackward(pMessage);
           if (processing.end()) {
             return processing;
           }
           return ImmutableSet.of(
-              Message.newResultMessage(
+              ActorMessage.newResultMessage(
                   root.getId(),
                   root.getLastNode().getNodeNumber(),
                   Result.FALSE,
-                  new HashSet<>(
+                  ImmutableSet.copyOf(
                       Splitter.on(",")
-                          .splitToList(pMessage.getPayload().getOrDefault(Payload.VISITED, "")))));
+                          .split(pMessage.getPayload().getOrDefault(Payload.VISITED, "")))));
         }
         return ImmutableSet.of();
       case FOUND_RESULT:
         // fall through
       case ERROR:
-        shutdown();
+        shutdown = true;
         return ImmutableSet.of();
       case BLOCK_POSTCONDITION:
         // fall through
@@ -104,17 +107,28 @@ public class RootWorker extends Worker {
   }
 
   @Override
+  public Connection getConnection() {
+    return connection;
+  }
+
+  @Override
+  public boolean shutdownRequested() {
+    return shutdown;
+  }
+
+  @Override
   public void run() {
     try {
-      Collection<Message> initialMessage = analysis.initialAnalysis();
+      Collection<ActorMessage> initialMessage = analysis.performInitialAnalysis();
       analysis
           .getDistributedCPA()
-          .setLatestOwnPostConditionMessage(initialMessage.stream().findAny().orElseThrow());
+          .getProceedOperator()
+          .update(initialMessage.stream().findAny().orElseThrow());
       broadcast(initialMessage);
       super.run();
     } catch (InterruptedException | CPAException pE) {
-      logger.logException(Level.SEVERE, pE, "Root worker stopped unexpectedly.");
-      broadcastOrLogException(ImmutableSet.of(Message.newErrorMessage(id, pE)));
+      getLogger().logException(Level.SEVERE, pE, "Root worker stopped unexpectedly.");
+      broadcastOrLogException(ImmutableSet.of(ActorMessage.newErrorMessage(getId(), pE)));
     }
   }
 }

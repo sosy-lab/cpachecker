@@ -60,78 +60,65 @@ public class DistributedComponentsBuilder {
   }
 
   public DistributedComponentsBuilder addAnalysisWorker(
-      BlockNode pNode, UpdatedTypeMap pTypeMap, AnalysisOptions pOptions) {
+      BlockNode pNode, AnalysisOptions pOptions, UpdatedTypeMap pTypeMap) {
     workerGenerators.add(
         connection ->
-            new AnalysisWorker(
+            new AnalysisBlockSummaryWorker(
                 nextId(pNode.getId()),
+                pTypeMap,
                 pOptions,
                 connection,
                 pNode,
                 cfa,
                 specification,
-                shutdownManager,
-                pTypeMap));
+                shutdownManager));
     return this;
   }
 
   public DistributedComponentsBuilder addSmartAnalysisWorker(
-      BlockNode pNode, UpdatedTypeMap pTypeMap, AnalysisOptions pOptions) {
+      BlockNode pNode, AnalysisOptions pOptions, UpdatedTypeMap pTypeMap) {
     workerGenerators.add(
         connection ->
-            new SmartAnalysisWorker(
+            new SmartAnalysisBlockSummaryWorker(
                 nextId(pNode.getId()),
+                pTypeMap,
                 pOptions,
                 connection,
                 pNode,
                 cfa,
                 specification,
-                shutdownManager,
-                pTypeMap));
-    return this;
-  }
-
-  public DistributedComponentsBuilder addFaultLocalizationWorker(
-      BlockNode pNode, UpdatedTypeMap pTypeMap, AnalysisOptions pOptions) {
-    workerGenerators.add(
-        connection ->
-            new FaultLocalizationWorker(
-                nextId(pNode.getId()),
-                pOptions,
-                connection,
-                pNode,
-                cfa,
-                specification,
-                configuration,
-                shutdownManager,
-                pTypeMap));
+                shutdownManager));
     return this;
   }
 
   public DistributedComponentsBuilder addResultCollectorWorker(
       Collection<BlockNode> nodes, AnalysisOptions pOptions) {
-    workerGenerators.add(connection -> new ResultWorker(nodes, connection, pOptions));
+    workerGenerators.add(connection -> new ResultBlockSummaryWorker(nodes, connection, pOptions));
     return this;
   }
 
   public DistributedComponentsBuilder addTimeoutWorker(
       TimeSpan pTimeout, AnalysisOptions pOptions) {
-    workerGenerators.add(connection -> new TimeoutWorker(pTimeout, connection, pOptions));
+    workerGenerators.add(
+        connection -> new TimeoutBlockSummaryWorker(pTimeout, connection, pOptions));
     return this;
   }
 
   public DistributedComponentsBuilder addVisualizationWorker(
       BlockTree pBlockTree, AnalysisOptions pOptions, Configuration pConfiguration) {
     workerGenerators.add(
-        connection -> new VisualizationWorker(pBlockTree, connection, pOptions, pConfiguration));
+        connection ->
+            new VisualizationBlockSummaryWorker(pBlockTree, connection, pOptions, pConfiguration));
     return this;
   }
 
-  public DistributedComponentsBuilder addRootWorker(BlockNode pNode, AnalysisOptions pOptions) {
+  public DistributedComponentsBuilder addRootWorker(
+      BlockNode pNode, AnalysisOptions pOptions, UpdatedTypeMap pTypeMap) {
     workerGenerators.add(
         connection ->
-            new RootWorker(
+            new RootBlockSummaryWorker(
                 nextId(pNode.getId()),
+                pTypeMap,
                 connection,
                 pOptions,
                 pNode,
@@ -147,7 +134,7 @@ public class DistributedComponentsBuilder {
     List<? extends Connection> connections =
         connectionProvider.createConnections(workerGenerators.size() + additionalConnections);
     List<Connection> excessConnections = new ArrayList<>();
-    List<Worker> worker = new ArrayList<>(workerGenerators.size());
+    List<BlockSummaryWorker> worker = new ArrayList<>(workerGenerators.size());
     for (int i = 0; i < workerGenerators.size(); i++) {
       worker.add(workerGenerators.get(i).apply(connections.get(i)));
     }
@@ -159,15 +146,15 @@ public class DistributedComponentsBuilder {
 
   public static class Components {
 
-    private final List<Worker> workers;
+    private final List<BlockSummaryWorker> workers;
     private final List<Connection> additionalConnections;
 
-    private Components(List<Worker> pWorkers, List<Connection> pAdditionalConnections) {
+    private Components(List<BlockSummaryWorker> pWorkers, List<Connection> pAdditionalConnections) {
       workers = pWorkers;
       additionalConnections = pAdditionalConnections;
     }
 
-    public List<Worker> getWorkers() {
+    public List<BlockSummaryWorker> getWorkers() {
       return workers;
     }
 
@@ -179,7 +166,7 @@ public class DistributedComponentsBuilder {
   // Needed to forward exception handling to actual method and not this function.
   @FunctionalInterface
   private interface WorkerGenerator {
-    Worker apply(Connection t)
+    BlockSummaryWorker apply(Connection t)
         throws CPAException, InterruptedException, InvalidConfigurationException, IOException;
   }
 }

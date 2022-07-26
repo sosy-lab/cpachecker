@@ -6,7 +6,5 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-/**
- * Implements our exchange format.
- */
+/** Implements our exchange format. */
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange;

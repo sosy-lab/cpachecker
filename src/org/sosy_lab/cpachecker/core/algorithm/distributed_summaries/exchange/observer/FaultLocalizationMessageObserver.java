@@ -29,9 +29,9 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.io.IO;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.ActorMessage;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.ActorMessage.MessageType;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.Connection;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.Message;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.Message.MessageType;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.Payload;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
@@ -42,15 +42,17 @@ public class FaultLocalizationMessageObserver implements MessageObserver {
       description =
           "path for the file storing the results of the distributed fault localization algorithm")
   @FileOption(Type.OUTPUT_FILE)
-  private Path resultFile = Path.of("faults.txt");
+  private Path distributedFaultLocalizationResultFile =
+      Path.of("distributedFaultLocalizationFaults.txt");
 
-  private final Set<Message> faults;
+  private final Set<ActorMessage> faults;
   private final Connection mainConnection;
   private final LogManager logger;
-  private Message resultMessage;
+  private ActorMessage resultMessage;
   private Result result;
 
-  public FaultLocalizationMessageObserver(LogManager pLogManager, Connection pConnection, Configuration pConfiguration)
+  public FaultLocalizationMessageObserver(
+      LogManager pLogManager, Connection pConnection, Configuration pConfiguration)
       throws InvalidConfigurationException {
     pConfiguration.inject(this);
     faults = new HashSet<>();
@@ -60,7 +62,7 @@ public class FaultLocalizationMessageObserver implements MessageObserver {
 
   @Override
   @CanIgnoreReturnValue
-  public boolean process(Message pMessage) throws CPAException {
+  public boolean process(ActorMessage pMessage) throws CPAException {
     if (pMessage.getType() == MessageType.ERROR_CONDITION
         && pMessage.getPayload().containsKey(Payload.FAULT_LOCALIZATION)) {
       faults.add(pMessage);
@@ -90,10 +92,11 @@ public class FaultLocalizationMessageObserver implements MessageObserver {
     if (!faults.isEmpty()) {
       logger.logf(
           Level.INFO,
-          "Fault localization found %d faults. See %s for more information.",
+          "Fault localization found %d potential faults. See %s for more information.",
           faults.size(),
-          resultFile);
-      try (Writer outputFile = IO.openOutputFile(resultFile, StandardCharsets.UTF_8)) {
+          distributedFaultLocalizationResultFile);
+      try (Writer outputFile =
+          IO.openOutputFile(distributedFaultLocalizationResultFile, StandardCharsets.UTF_8)) {
         Joiner.on("\n")
             .appendTo(
                 outputFile,
@@ -106,8 +109,9 @@ public class FaultLocalizationMessageObserver implements MessageObserver {
     } else {
       logger.log(
           Level.INFO,
-          "It seems like no block changes the value of the variables in the pre-condition. Most likely"
-              + " the variables in your post-condition never change their value.");
+          "Fault localization did not find any potential faults. The most likely reasons for this:"
+              + " (a) No block changes the value of the variables in the pre-condition, or (b) the"
+              + " variables in your post-condition never change their value.");
     }
   }
 }

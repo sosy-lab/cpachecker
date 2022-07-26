@@ -14,12 +14,12 @@ import com.google.common.util.concurrent.ForwardingBlockingQueue;
 import java.util.Optional;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.Message.MessageType;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.ActorMessage.MessageType;
 
-public class CleverMessageQueue extends ForwardingBlockingQueue<Message> {
+public class CleverMessageQueue extends ForwardingBlockingQueue<ActorMessage> {
 
-  private final BlockingQueue<Message> queue;
-  private final Multimap<MessageType, Message> messages;
+  private final BlockingQueue<ActorMessage> queue;
+  private final Multimap<MessageType, ActorMessage> messages;
 
   private final MessageType[] ordering;
 
@@ -29,7 +29,7 @@ public class CleverMessageQueue extends ForwardingBlockingQueue<Message> {
    *
    * @param pQueue the queue to forward
    */
-  public CleverMessageQueue(BlockingQueue<Message> pQueue) {
+  private CleverMessageQueue(BlockingQueue<ActorMessage> pQueue) {
     queue = pQueue;
     messages = ArrayListMultimap.create();
     ordering =
@@ -47,7 +47,7 @@ public class CleverMessageQueue extends ForwardingBlockingQueue<Message> {
   }
 
   @Override
-  protected BlockingQueue<Message> delegate() {
+  protected BlockingQueue<ActorMessage> delegate() {
     return queue;
   }
 
@@ -56,13 +56,13 @@ public class CleverMessageQueue extends ForwardingBlockingQueue<Message> {
     System.arraycopy(pOrdering, 0, ordering, 0, pOrdering.length);
   }
 
-  private void moveToMap(Message pMessage) {
+  private void moveToMap(ActorMessage pMessage) {
     messages.put(pMessage.getType(), pMessage);
   }
 
-  private Optional<Message> firstOfType(MessageType pType) {
+  private Optional<ActorMessage> firstOfType(MessageType pType) {
     if (!messages.get(pType).isEmpty()) {
-      Optional<Message> optionalMessage = messages.get(pType).stream().findFirst();
+      Optional<ActorMessage> optionalMessage = messages.get(pType).stream().findFirst();
       messages.remove(pType, optionalMessage.orElseThrow());
       return optionalMessage;
     }
@@ -70,20 +70,20 @@ public class CleverMessageQueue extends ForwardingBlockingQueue<Message> {
   }
 
   /**
-   * Returns the next message to be processed.
-   * The method sorts all new messages of the underlying blocking queue by their type in a multimap.
-   * As long as entries are present in the multimap, simply return them by the defined ordering
-   * If no message is present, wait for one by calling the take method of the underlying blocking queue.
+   * Messages are returned according to the defined ordering.
+   *
+   * @return Next message to process
+   * @throws InterruptedException thrown if the process is interrupted
    */
   @Override
-  public Message take() throws InterruptedException {
+  public ActorMessage take() throws InterruptedException {
     // empty pending messages (non blocking)
-    //return queue.take();
+    // return queue.take();
     while (!queue.isEmpty()) {
       moveToMap(queue.take());
     }
     for (MessageType messageType : ordering) {
-      Optional<Message> m = firstOfType(messageType);
+      Optional<ActorMessage> m = firstOfType(messageType);
       if (m.isPresent()) {
         return m.orElseThrow();
       }

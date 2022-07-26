@@ -6,7 +6,5 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-/**
- * Implements an in-memory connection
- */
+/** Implements an in-memory connection */
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.memory;

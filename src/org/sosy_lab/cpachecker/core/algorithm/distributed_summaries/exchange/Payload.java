@@ -35,7 +35,6 @@ public class Payload extends ForwardingMap<String, String> {
   // fault localization
   public static final String FAULT_LOCALIZATION = "fl";
 
-
   // AlgorithmStatus
   public static final String SOUND = "sound";
   public static final String PRECISE = "precise";
@@ -105,6 +104,5 @@ public class Payload extends ForwardingMap<String, String> {
     public Payload build() {
       return new Payload(payload);
     }
-
   }
 }

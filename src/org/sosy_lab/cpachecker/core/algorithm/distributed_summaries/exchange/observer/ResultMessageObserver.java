@@ -11,8 +11,8 @@ package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.ob
 import java.util.ArrayList;
 import java.util.List;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.Message;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.Message.MessageType;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.ActorMessage;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.ActorMessage.MessageType;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.Payload;
 import org.sosy_lab.cpachecker.core.defaults.DummyTargetState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -32,7 +32,7 @@ public class ResultMessageObserver implements MessageObserver {
   }
 
   @Override
-  public boolean process(Message pMessage) {
+  public boolean process(ActorMessage pMessage) {
     if (pMessage.getType() == MessageType.FOUND_RESULT) {
       result = Result.valueOf(pMessage.getPayload().get(Payload.RESULT));
       return true;
@@ -53,5 +53,4 @@ public class ResultMessageObserver implements MessageObserver {
       reachedSet.clear();
     }
   }
-
 }

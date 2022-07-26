@@ -268,7 +268,9 @@ public class ARGUtils {
 
       ARGState parentElement = parents.next();
 
-      while (!pIsStart.apply(parentElement) && seenElements.contains(parentElement) && parents.hasNext()) {
+      while (!pIsStart.apply(parentElement)
+          && seenElements.contains(parentElement)
+          && parents.hasNext()) {
         // while seenElements already contained parentElement, try next parent
         parentElement = parents.next();
       }

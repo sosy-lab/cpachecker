@@ -15,44 +15,64 @@ import java.util.logging.Level;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.BlockTree;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.ActorMessage;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.ActorMessage.MessageType;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.Connection;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.Message;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.Message.MessageType;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.visualization.MessageLogger;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.java_smt.api.SolverException;
 
-public class VisualizationWorker extends Worker {
+public class VisualizationBlockSummaryWorker extends BlockSummaryWorker {
 
   private final MessageLogger messageLogger;
+  private final Connection connection;
+  private boolean shutdown = false;
 
-  protected VisualizationWorker(
-      BlockTree pTree, Connection pConnection, AnalysisOptions pOptions, Configuration pConfiguration)
+  protected VisualizationBlockSummaryWorker(
+      BlockTree pTree,
+      Connection pConnection,
+      AnalysisOptions pOptions,
+      Configuration pConfiguration)
       throws InvalidConfigurationException {
-    super("visualization-worker", pConnection, pOptions);
+    super("visualization-worker", pOptions);
+    connection = pConnection;
     messageLogger = new MessageLogger(pTree, pConfiguration);
     try {
       messageLogger.logTree();
     } catch (IOException pE) {
-      logger.logException(Level.WARNING, pE, "VisualizationWorker failed to log the BlockTree. "
-          + "The visualization might contain old data or will not work. "
-          + "However, the analysis continues normally.");
+      getLogger()
+          .logException(
+              Level.WARNING,
+              pE,
+              "VisualizationWorker failed to log the BlockTree. "
+                  + "The visualization might contain old data or will not work. "
+                  + "However, the analysis continues normally.");
     }
   }
 
   @Override
-  public Collection<Message> processMessage(Message pMessage)
+  public Collection<ActorMessage> processMessage(ActorMessage pMessage)
       throws InterruptedException, IOException, SolverException, CPAException {
     messageLogger.log(pMessage);
     boolean stop = false;
     while (!connection.isEmpty()) {
-      Message m = connection.read();
+      ActorMessage m = connection.read();
       messageLogger.log(m);
       stop |= m.getType() == MessageType.ERROR || m.getType() == MessageType.FOUND_RESULT;
     }
     if (stop) {
-      shutdown();
+      shutdown = true;
     }
     return ImmutableSet.of();
+  }
+
+  @Override
+  public Connection getConnection() {
+    return connection;
+  }
+
+  @Override
+  public boolean shutdownRequested() {
+    return shutdown;
   }
 }

@@ -6,7 +6,5 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-/**
- * Provides an interface and its implementations for cutting CFA to BlockNodes
- */
+/** Provides an interface and its implementations for cutting CFA to BlockNodes */
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition;

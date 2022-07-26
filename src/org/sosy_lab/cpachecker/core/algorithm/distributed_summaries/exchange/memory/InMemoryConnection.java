@@ -12,28 +12,32 @@ import java.io.IOException;
 import java.util.Collection;
 import java.util.List;
 import java.util.concurrent.BlockingQueue;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.CleverMessageQueue;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.ActorMessage;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.Connection;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.ConnectionStats;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.Message;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.Message.MessageType;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 
 public class InMemoryConnection implements Connection, StatisticsProvider {
 
-  private final BlockingQueue<Message> in;
-  private final List<BlockingQueue<Message>> out;
+  private final BlockingQueue<ActorMessage> in;
+  private final List<BlockingQueue<ActorMessage>> out;
+  private boolean closed;
 
-  private final static ConnectionStats stats = new ConnectionStats();
+  private static final ConnectionStats stats = new ConnectionStats();
 
-  public InMemoryConnection(BlockingQueue<Message> pIn, List<BlockingQueue<Message>> pOut) {
+  InMemoryConnection(BlockingQueue<ActorMessage> pIn, List<BlockingQueue<ActorMessage>> pOut) {
     in = pIn;
     out = pOut;
+    closed = false;
   }
 
   @Override
-  public Message read() throws InterruptedException {
+  public ActorMessage read() throws InterruptedException {
+    if (closed) {
+      throw new IllegalStateException(
+          "Cannot read from an already closed " + InMemoryConnection.class);
+    }
     return in.take();
   }
 
@@ -48,25 +52,27 @@ public class InMemoryConnection implements Connection, StatisticsProvider {
   }
 
   @Override
-  public void write(Message message) throws InterruptedException {
+  public void write(ActorMessage message) throws InterruptedException {
+    if (closed) {
+      throw new IllegalStateException(
+          "Cannot write to an already closed " + InMemoryConnection.class);
+    }
     stats.averageMessageSize.setNextValue(
-        (message.getUniqueBlockId() + message.getType() + message.getPayload()
-            + message.getTargetNodeNumber()).length());
-    for (BlockingQueue<Message> messages : out) {
+        (message.getUniqueBlockId()
+                + message.getType()
+                + message.getPayload()
+                + message.getTargetNodeNumber())
+            .length());
+    for (BlockingQueue<ActorMessage> messages : out) {
       messages.put(message);
     }
   }
 
   @Override
-  public void setOrdering(MessageType... pOrdering) {
-    if (in instanceof CleverMessageQueue) {
-      ((CleverMessageQueue) in).setOrdering(pOrdering);
-    }
-  }
-
-  @Override
   public void close() throws IOException {
-
+    in.clear();
+    out.clear();
+    closed = true;
   }
 
   @Override

@@ -189,7 +189,7 @@ public class Fault extends ForwardingSet<FaultContribution> implements Comparabl
   }
 
   public static Fault merge(Fault f1, Fault f2) {
-    Set<FaultContribution> contributions = new HashSet<>(f1);
+    Set<FaultContribution> contributions = new LinkedHashSet<>(f1);
     contributions.addAll(f2);
     List<FaultInfo> infos = new ArrayList<>(f1.infos);
     infos.addAll(f2.infos);

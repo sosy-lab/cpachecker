@@ -16,42 +16,50 @@ import java.util.TimerTask;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.time.TimeSpan;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.ActorMessage;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.Connection;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.Message;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.java_smt.api.SolverException;
 
-public class TimeoutWorker extends Worker {
+public class TimeoutBlockSummaryWorker extends BlockSummaryWorker {
 
   private final long waitTime;
   private final Timer timer;
   private final TimerTask task;
+  private boolean shutdown;
+  private final Connection connection;
 
-  protected TimeoutWorker(TimeSpan pTimeSpan, Connection pConnection, AnalysisOptions pOptions)
+  protected TimeoutBlockSummaryWorker(
+      TimeSpan pTimeSpan, Connection pConnection, AnalysisOptions pOptions)
       throws InvalidConfigurationException {
-    super("timeout-worker", pConnection, pOptions);
+    super("timeout-worker", pOptions);
     waitTime = pTimeSpan.asMillis();
     timer = new Timer();
+    connection = getConnection();
     task =
         new TimerTask() {
           @Override
           public void run() {
             broadcastOrLogException(
                 ImmutableSet.of(
-                    Message.newResultMessage(id, 0, Result.UNKNOWN, ImmutableSet.of())));
-            shutdown();
+                    ActorMessage.newResultMessage(getId(), 0, Result.UNKNOWN, ImmutableSet.of())));
+            shutdown = true;
+            timer.cancel();
+            timer.purge();
           }
         };
   }
 
   @Override
-  public Collection<Message> processMessage(Message pMessage)
+  public Collection<ActorMessage> processMessage(ActorMessage pMessage)
       throws InterruptedException, IOException, SolverException, CPAException {
     switch (pMessage.getType()) {
       case ERROR:
         // fall through
       case FOUND_RESULT:
-        shutdown();
+        shutdown = true;
+        timer.cancel();
+        timer.purge();
         return ImmutableSet.of();
       case ERROR_CONDITION:
         // fall through
@@ -71,17 +79,20 @@ public class TimeoutWorker extends Worker {
   }
 
   @Override
+  public Connection getConnection() {
+    return connection;
+  }
+
+  @Override
+  public boolean shutdownRequested() {
+    return shutdown;
+  }
+
+  @Override
   public void run() {
     // abort in waitTime milliseconds
     timer.schedule(task, waitTime);
     // read incoming messages to terminate in case analysis finished early
     super.run();
-  }
-
-  @Override
-  public synchronized void shutdown() {
-    timer.cancel();
-    timer.purge();
-    super.shutdown();
   }
 }

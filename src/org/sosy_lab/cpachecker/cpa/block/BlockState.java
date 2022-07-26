@@ -22,8 +22,7 @@ import org.sosy_lab.cpachecker.core.interfaces.Partitionable;
 import org.sosy_lab.cpachecker.core.interfaces.Targetable;
 
 // cannot be an AbstractStateWithLocation as initialization corrupts analysis
-public class BlockState implements AbstractQueryableState, Partitionable,
-               Serializable, Targetable {
+public class BlockState implements AbstractQueryableState, Partitionable, Serializable, Targetable {
 
   private static final long serialVersionUID = 3805801L;
 
@@ -39,10 +38,7 @@ public class BlockState implements AbstractQueryableState, Partitionable,
   private final BlockStateType type;
 
   public BlockState(
-      CFANode pNode,
-      BlockNode pTargetNode,
-      AnalysisDirection pDirection,
-      BlockStateType pType) {
+      CFANode pNode, BlockNode pTargetNode, AnalysisDirection pDirection, BlockStateType pType) {
     node = pNode;
     direction = pDirection;
     type = pType;
@@ -92,8 +88,10 @@ public class BlockState implements AbstractQueryableState, Partitionable,
       return false;
     }
     BlockState that = (BlockState) pO;
-    return direction == that.direction && Objects.equals(targetCFANode, that.targetCFANode)
-        && Objects.equals(node, that.node) && type == that.type;
+    return direction == that.direction
+        && Objects.equals(targetCFANode, that.targetCFANode)
+        && Objects.equals(node, that.node)
+        && type == that.type;
   }
 
   @Override
@@ -105,5 +103,4 @@ public class BlockState implements AbstractQueryableState, Partitionable,
   public boolean isTarget() {
     return targetCFANode.equals(node);
   }
-
 }

@@ -8,25 +8,23 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.memory;
 
-import com.google.common.collect.ImmutableList;
+import com.google.common.collect.FluentIterable;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.BlockingQueue;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.ActorMessage;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.CleverMessageQueue;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.ConnectionProvider;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.Message;
 
 public class InMemoryConnectionProvider implements ConnectionProvider<InMemoryConnection> {
 
   @Override
   public List<InMemoryConnection> createConnections(int connections) throws IOException {
-    List<BlockingQueue<Message>> outs = new ArrayList<>();
+    List<BlockingQueue<ActorMessage>> outs = new ArrayList<>();
     for (int i = 0; i < connections; i++) {
       outs.add(new CleverMessageQueue());
     }
-    return outs.stream().map(out -> new InMemoryConnection(out, outs)).collect(
-        ImmutableList.toImmutableList());
+    return FluentIterable.from(outs).transform(out -> new InMemoryConnection(out, outs)).toList();
   }
-
 }

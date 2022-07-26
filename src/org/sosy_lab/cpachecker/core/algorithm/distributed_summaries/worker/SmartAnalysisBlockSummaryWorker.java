@@ -18,63 +18,68 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.BlockNode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.MessageProcessing;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.ActorMessage;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.ActorMessage.MessageType;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.Connection;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.Message;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.Message.MessageType;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.Payload;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.UpdatedTypeMap;
 import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.java_smt.api.SolverException;
 
-public class SmartAnalysisWorker extends AnalysisWorker {
+public class SmartAnalysisBlockSummaryWorker extends AnalysisBlockSummaryWorker {
 
-  private final BlockingQueue<Message> smartQueue;
+  private final BlockingQueue<ActorMessage> smartQueue;
+  private final BlockNode block;
 
-  SmartAnalysisWorker(
+  SmartAnalysisBlockSummaryWorker(
       String pId,
+      UpdatedTypeMap pTypeMap,
       AnalysisOptions pOptions,
       Connection pConnection,
       BlockNode pBlock,
       CFA pCFA,
       Specification pSpecification,
-      ShutdownManager pShutdownManager,
-      UpdatedTypeMap pTypeMap)
+      ShutdownManager pShutdownManager)
       throws CPAException, IOException, InterruptedException, InvalidConfigurationException {
     super(
         "smart-worker-" + pId,
+        pTypeMap,
         pOptions,
         pConnection,
         pBlock,
         pCFA,
         pSpecification,
-        pShutdownManager,
-        pTypeMap);
+        pShutdownManager);
     smartQueue = new PriorityBlockingQueue<>();
+    block = pBlock;
   }
 
   @Override
-  public Message nextMessage() throws InterruptedException {
+  public ActorMessage nextMessage() throws InterruptedException, SolverException {
+    final Connection connection = getConnection();
     if (!smartQueue.isEmpty()) {
       return smartQueue.take();
     }
     if (connection.isEmpty()) {
       return connection.read();
     }
-    Set<Message> newMessages = new LinkedHashSet<>();
+    Set<ActorMessage> newMessages = new LinkedHashSet<>();
     while (!connection.isEmpty()) {
       newMessages.add(connection.read());
     }
-    Message postcondMessage = null;
-    for (Message m : newMessages) {
+    ActorMessage postcondMessage = null;
+    for (ActorMessage m : newMessages) {
       if (m.getType() == MessageType.BLOCK_POSTCONDITION) {
         if (m.getTargetNodeNumber() == block.getStartNode().getNodeNumber()) {
-          MessageProcessing mp = forwardAnalysis.getDistributedCPA().proceedForward(m);
+          MessageProcessing mp =
+              getForwardAnalysis().getDistributedCPA().getProceedOperator().proceedForward(m);
           if (!mp.end()) {
             Payload payload = m.getPayload();
             // proceedForward stores already processed messages and won't continue with a plain
             // copy of this message. We add "smart": "true" to it to avoid equality.
             payload = Payload.builder().putAll(payload).addEntry(Payload.SMART, "true").build();
-            postcondMessage = Message.replacePayload(m, payload);
+            postcondMessage = ActorMessage.replacePayload(m, payload);
           }
         }
       } else {

@@ -11,9 +11,6 @@ package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange;
 import java.io.IOException;
 import java.util.List;
 
-/**
- * Classes that implements this interface need a constructor without parameters.
- */
 public interface ConnectionProvider<T extends Connection> {
 
   /**
@@ -24,5 +21,4 @@ public interface ConnectionProvider<T extends Connection> {
    * @throws IOException if creating the connections fails
    */
   List<T> createConnections(int connections) throws IOException;
-
 }

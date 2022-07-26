@@ -6,7 +6,5 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-/**
- * Contains all classes that are responsible for parallel computation of BlockNodes
- */
+/** Contains all classes that are responsible for parallel computation of individual code blocks */
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.block_analysis;

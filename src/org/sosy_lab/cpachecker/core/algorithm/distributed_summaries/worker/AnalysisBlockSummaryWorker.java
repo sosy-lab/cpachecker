@@ -21,39 +21,43 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.block_analys
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.block_analysis.BlockAnalysis.BackwardAnalysis;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.block_analysis.BlockAnalysis.ForwardAnalysis;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.BlockNode;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DistributedCompositeCPA;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.MessageProcessing;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.StatTimerSum.StatTimerType;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.composite.DistributedCompositeCPA;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.ActorMessage;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.Connection;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.Message;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.UpdatedTypeMap;
 import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.statistics.StatTimer;
 import org.sosy_lab.java_smt.api.SolverException;
 
-public class AnalysisWorker extends Worker {
+public class AnalysisBlockSummaryWorker extends BlockSummaryWorker {
 
-  protected final BlockNode block;
+  private final BlockNode block;
 
-  protected final BlockAnalysis forwardAnalysis;
-  protected final BlockAnalysis backwardAnalysis;
+  private final BlockAnalysis forwardAnalysis;
+  private final BlockAnalysis backwardAnalysis;
+
+  private boolean shutdown;
+
+  private final Connection connection;
 
   private final StatTimer forwardAnalysisTime = new StatTimer("Forward Analysis");
   private final StatTimer backwardAnalysisTime = new StatTimer("Backward Analysis");
 
-  AnalysisWorker(
+  AnalysisBlockSummaryWorker(
       String pId,
+      UpdatedTypeMap pTypeMap,
       AnalysisOptions pOptions,
       Connection pConnection,
       BlockNode pBlock,
       CFA pCFA,
       Specification pSpecification,
-      ShutdownManager pShutdownManager,
-      UpdatedTypeMap pTypeMap)
+      ShutdownManager pShutdownManager)
       throws CPAException, InterruptedException, InvalidConfigurationException, IOException {
-    super("analysis-worker-" + pId, pConnection, pOptions);
+    super("analysis-worker-" + pId, pOptions);
     block = pBlock;
+    connection = pConnection;
 
     Configuration forwardConfiguration =
         Configuration.builder().loadFromFile(pOptions.getForwardConfiguration()).build();
@@ -67,16 +71,15 @@ public class AnalysisWorker extends Worker {
                 Path.of("config/specification/TerminatingFunctions.spc")),
             pCFA,
             backwardConfiguration,
-            logger,
+            getLogger(),
             pShutdownManager.getNotifier());
 
     forwardAnalysis =
         new ForwardAnalysis(
-            pId,
-            logger,
+            getLogger(),
+            pTypeMap,
             pBlock,
             pCFA,
-            pTypeMap,
             pSpecification,
             forwardConfiguration,
             pShutdownManager,
@@ -84,25 +87,24 @@ public class AnalysisWorker extends Worker {
 
     backwardAnalysis =
         new BackwardAnalysis(
-            pId,
-            logger,
+            getLogger(),
+            pTypeMap,
             pBlock,
             pCFA,
-            pTypeMap,
             backwardSpecification,
             backwardConfiguration,
             pShutdownManager,
             pOptions);
-
+    /*
     addTimer(forwardAnalysis);
     addTimer(backwardAnalysis);
 
     stats.forwardTimer.register(forwardAnalysisTime);
-    stats.backwardTimer.register(backwardAnalysisTime);
+    stats.backwardTimer.register(backwardAnalysisTime);*/
   }
 
   @Override
-  public Collection<Message> processMessage(Message message)
+  public Collection<ActorMessage> processMessage(ActorMessage message)
       throws InterruptedException, CPAException, IOException, SolverException {
     switch (message.getType()) {
       case ERROR_CONDITION:
@@ -112,7 +114,7 @@ public class AnalysisWorker extends Worker {
       case ERROR:
         // fall through
       case FOUND_RESULT:
-        shutdown();
+        shutdown = true;
         return ImmutableSet.of();
       case ERROR_CONDITION_UNREACHABLE:
         return ImmutableSet.of();
@@ -121,19 +123,30 @@ public class AnalysisWorker extends Worker {
     }
   }
 
-  private Collection<Message> processBlockPostCondition(Message message)
+  @Override
+  public Connection getConnection() {
+    return connection;
+  }
+
+  @Override
+  public boolean shutdownRequested() {
+    return shutdown;
+  }
+
+  private Collection<ActorMessage> processBlockPostCondition(ActorMessage message)
       throws CPAException, InterruptedException, SolverException {
-    MessageProcessing processing = forwardAnalysis.getDistributedCPA().proceed(message);
+    MessageProcessing processing =
+        forwardAnalysis.getDistributedCPA().getProceedOperator().proceed(message);
     if (processing.end()) {
       return processing;
     }
     return forwardAnalysis(processing);
   }
 
-  private Collection<Message> processErrorCondition(Message message)
+  private Collection<ActorMessage> processErrorCondition(ActorMessage message)
       throws SolverException, InterruptedException, CPAException {
     DistributedCompositeCPA distributed = backwardAnalysis.getDistributedCPA();
-    MessageProcessing processing = distributed.proceed(message);
+    MessageProcessing processing = distributed.getProceedOperator().proceed(message);
     if (processing.end()) {
       return processing;
     }
@@ -141,24 +154,30 @@ public class AnalysisWorker extends Worker {
   }
 
   // return post condition
-  private Collection<Message> forwardAnalysis(Collection<Message> pPostConditionMessages)
+  private Collection<ActorMessage> forwardAnalysis(Collection<ActorMessage> pPostConditionMessages)
       throws CPAException, InterruptedException, SolverException {
     forwardAnalysisTime.start();
-    forwardAnalysis.getDistributedCPA().synchronizeKnowledge(backwardAnalysis.getDistributedCPA());
-    stats.forwardAnalysis.inc();
-    Collection<Message> response = forwardAnalysis.analyze(pPostConditionMessages);
+    forwardAnalysis
+        .getDistributedCPA()
+        .getProceedOperator()
+        .synchronizeKnowledge(backwardAnalysis.getDistributedCPA());
+    // stats.forwardAnalysis.inc();
+    Collection<ActorMessage> response = forwardAnalysis.analyze(pPostConditionMessages);
     forwardAnalysisTime.stop();
     return response;
   }
 
   // return pre-condition
-  protected Collection<Message> backwardAnalysis(MessageProcessing pMessageProcessing)
+  protected Collection<ActorMessage> backwardAnalysis(MessageProcessing pMessageProcessing)
       throws CPAException, InterruptedException, SolverException {
     assert pMessageProcessing.size() == 1 : "BackwardAnalysis can only be based on one message";
     backwardAnalysisTime.start();
-    backwardAnalysis.getDistributedCPA().synchronizeKnowledge(forwardAnalysis.getDistributedCPA());
-    stats.backwardAnalysis.inc();
-    Collection<Message> response = backwardAnalysis.analyze(pMessageProcessing);
+    backwardAnalysis
+        .getDistributedCPA()
+        .getProceedOperator()
+        .synchronizeKnowledge(forwardAnalysis.getDistributedCPA());
+    // stats.backwardAnalysis.inc();
+    Collection<ActorMessage> response = backwardAnalysis.analyze(pMessageProcessing);
     backwardAnalysisTime.stop();
     return response;
   }
@@ -166,11 +185,11 @@ public class AnalysisWorker extends Worker {
   @Override
   public void run() {
     try {
-      broadcast(forwardAnalysis.initialAnalysis());
+      broadcast(forwardAnalysis.performInitialAnalysis());
       super.run();
     } catch (CPAException | InterruptedException pE) {
-      logger.logException(Level.SEVERE, pE, "Thread interrupted unexpectedly.");
-      broadcastOrLogException(ImmutableSet.of(Message.newErrorMessage(getBlockId(), pE)));
+      getLogger().logException(Level.SEVERE, pE, "Thread interrupted unexpectedly.");
+      broadcastOrLogException(ImmutableSet.of(ActorMessage.newErrorMessage(getBlockId(), pE)));
     }
   }
 
@@ -178,7 +197,7 @@ public class AnalysisWorker extends Worker {
     return block.getId();
   }
 
-  private void addTimer(BlockAnalysis pBlockAnalysis) {
+  /*  private void addTimer(BlockAnalysis pBlockAnalysis) {
     pBlockAnalysis
         .getDistributedCPA()
         .registerTimer(stats.proceedSerializeTime, StatTimerType.SERIALIZE);
@@ -194,10 +213,14 @@ public class AnalysisWorker extends Worker {
     pBlockAnalysis
         .getDistributedCPA()
         .registerTimer(stats.proceedCombineTime, StatTimerType.COMBINE);
-  }
+  }*/
 
   @Override
   public String toString() {
-    return "Worker{" + "block=" + block + ", finished=" + finished + '}';
+    return "Worker{" + "block=" + block + ", finished=" + shutdownRequested() + '}';
+  }
+
+  public BlockAnalysis getForwardAnalysis() {
+    return forwardAnalysis;
   }
 }

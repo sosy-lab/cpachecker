@@ -22,10 +22,8 @@ public class ConnectionStats implements Statistics {
   public final StatInt averageMessageSize = new StatInt(StatKind.AVG, "average message size");
 
   @Override
-  public void printStatistics(
-      PrintStream out, Result result, UnmodifiableReachedSet reached) {
-    StatisticsWriter.writingStatisticsTo(out)
-        .put(averageMessageSize);
+  public void printStatistics(PrintStream out, Result result, UnmodifiableReachedSet reached) {
+    StatisticsWriter.writingStatisticsTo(out).put(averageMessageSize);
   }
 
   @Override

@@ -10,7 +10,6 @@ package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange;
 
 import java.io.Closeable;
 import java.util.Collection;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.Message.MessageType;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 
@@ -22,7 +21,7 @@ public interface Connection extends Closeable, StatisticsProvider {
    * @return current Message to process
    * @throws InterruptedException if thread is interrupted.
    */
-  Message read() throws InterruptedException;
+  ActorMessage read() throws InterruptedException;
 
   /**
    * Returns the size of pending messages
@@ -41,32 +40,11 @@ public interface Connection extends Closeable, StatisticsProvider {
   }
 
   /**
-   * If a queue supports on the fly ordering of message types, the desired ordering can be set here.
-   * If available, <code>read</code> returns messages by their type in the given order.
-   *
-   * <p>Example: pOrdering = [A, B, C] read will first return all pending messages of type A, then
-   * B, then C
-   *
-   * @param pOrdering an array of MessageTypes.
-   */
-  default void setOrdering(MessageType... pOrdering) {
-    throw new AssertionError("This implementation does not support custom orderings");
-  }
-
-  /*
-   * Get all messages with a certain type
-   * @param pType filter messages with this type
-   * @return collection of messages with type pType
-   */
-  /*
-  Collection<Message> readType(MessageType pType);*/
-
-  /**
    * Write and broadcast a message to all connections including itself
    *
    * @param message Message to broadcast
    */
-  void write(Message message) throws InterruptedException;
+  void write(ActorMessage message) throws InterruptedException;
 
   @Override
   default void collectStatistics(Collection<Statistics> statsCollection) {}

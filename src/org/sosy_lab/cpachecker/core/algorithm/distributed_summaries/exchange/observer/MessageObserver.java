@@ -8,13 +8,12 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.observer;
 
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.Message;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.ActorMessage;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 public interface MessageObserver {
 
-  boolean process(Message pMessage) throws CPAException;
+  boolean process(ActorMessage pMessage) throws CPAException;
 
   void finish() throws InterruptedException, CPAException;
-
 }

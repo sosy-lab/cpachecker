@@ -6,7 +6,5 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-/**
- * Implement distributed CPAs here
- */
+/** Implement distributed CPAs here */
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa;

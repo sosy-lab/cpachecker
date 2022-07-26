@@ -57,7 +57,9 @@ public class PredicatePrecisionAdjustment implements PrecisionAdjustment {
   private final TimerWrapper totalPrecTime;
   private final TimerWrapper computingAbstractionTime;
 
-  @Option(description = "if the predicate precision adjustment should abstract at target states", secure = true)
+  @Option(
+      description = "Whether the predicate precision adjustment should abstract at target states",
+      secure = true)
   private boolean abstractAtTargetState = true;
 
   public PredicatePrecisionAdjustment(
@@ -69,7 +71,8 @@ public class PredicatePrecisionAdjustment implements PrecisionAdjustment {
       PredicateAbstractionManager pPredAbsManager,
       PredicateCPAInvariantsManager pInvariantSupplier,
       PredicateProvider pPredicateProvider,
-      PredicateStatistics pPredicateStatistics) throws InvalidConfigurationException {
+      PredicateStatistics pPredicateStatistics)
+      throws InvalidConfigurationException {
     pConfig.inject(this);
     logger = pLogger;
     fmgr = pFmgr;

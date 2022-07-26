@@ -8,23 +8,25 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.observer;
 
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.Message;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.Message.MessageType;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.ActorMessage;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.ActorMessage.MessageType;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.Payload;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 public class ErrorMessageObserver implements MessageObserver {
 
   @Override
-  public boolean process(Message pMessage) throws CPAException {
+  public boolean process(ActorMessage pMessage) throws CPAException {
     if (pMessage.getType() == MessageType.ERROR) {
-      throw new CPAException(pMessage.getPayload().getOrDefault(Payload.EXCEPTION, "unknown"));
+      throw new CPAException(
+          pMessage
+              .getPayload()
+              .getOrDefault(
+                  Payload.EXCEPTION, "Error message received without exception message."));
     }
     return false;
   }
 
   @Override
-  public void finish() {
-
-  }
+  public void finish() {}
 }

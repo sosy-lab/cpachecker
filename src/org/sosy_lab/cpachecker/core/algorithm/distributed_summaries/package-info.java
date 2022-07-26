@@ -6,7 +6,5 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-/**
- * Implements the configurable block analysis.
- */
+/** Implements the configurable block analysis. */
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries;

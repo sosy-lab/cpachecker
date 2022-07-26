@@ -25,7 +25,6 @@ import com.google.common.base.Throwables;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.sql.Timestamp;
 import java.time.Instant;
 import java.util.Objects;
 import java.util.Set;
@@ -34,46 +33,44 @@ import java.util.zip.GZIPOutputStream;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 
 /**
- * Immutable communication entity for the actor model
- * Messages cannot be created with the constructor as they have to contain different information depending on their type.
- * Therefore, this class provides static methods to create messages of a certain type.
+ * Immutable communication entity for the actor model. Messages cannot be created with the
+ * constructor as they have to contain different information depending on their type. Therefore,
+ * this class provides static methods to create messages of a certain type.
  */
-public class Message implements Comparable<Message> {
+public class ActorMessage implements Comparable<ActorMessage> {
 
   private final int targetNodeNumber;
   private final String uniqueBlockId;
   private final MessageType type;
   // forwards an immutable hashmap
   private final Payload payload;
-  private final Timestamp timestamp;
+  private final Instant timestamp;
 
   /**
-   * A message is the interface of communication of {@link org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.Worker}
+   * A message is the interface of communication of {@link
+   * org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.BlockSummaryActor}
    *
-   * @param pType             the type of the message
-   * @param pUniqueBlockId    the id of the worker/block that sends this message
+   * @param pType the type of the message
+   * @param pUniqueBlockId the id of the worker/block that sends this message
    * @param pTargetNodeNumber the location from which this message originated from
-   * @param pPayload          a map that will be transformed into JSON.
+   * @param pPayload a map that will be transformed into JSON.
    */
-  private Message(
-      MessageType pType,
-      String pUniqueBlockId,
-      int pTargetNodeNumber,
-      Payload pPayload) {
+  private ActorMessage(
+      MessageType pType, String pUniqueBlockId, int pTargetNodeNumber, Payload pPayload) {
     targetNodeNumber = pTargetNodeNumber;
     type = pType;
     payload = pPayload;
     uniqueBlockId = pUniqueBlockId;
     // when the message was created
-    timestamp = Timestamp.from(Instant.now());
+    timestamp = Instant.now();
   }
 
-  // Deserialize
-  private Message(
+  // For deserialization only
+  private ActorMessage(
       MessageType pType,
       String pUniqueBlockId,
       int pTargetNodeNumber,
-      Timestamp pTimestamp,
+      Instant pTimestamp,
       Payload pPayload) {
     targetNodeNumber = pTargetNodeNumber;
     type = pType;
@@ -84,19 +81,23 @@ public class Message implements Comparable<Message> {
   }
 
   /**
-   * Copy {@code pMessage} and replace its payload with {@code pPayload}.
-   * The message {@code pMessage} remains unchanged.
+   * Copy {@code pMessage} and replace its payload with {@code pPayload}. The message {@code
+   * pMessage} remains unchanged.
    *
    * @param pMessage message to copy
    * @param pPayload new payload
    * @return new message that is a copy of {@code pMessage} with a new payload {@code pPayload}
    */
-  public static Message replacePayload(Message pMessage, Payload pPayload) {
-    return new Message(pMessage.getType(), pMessage.getUniqueBlockId(),
-        pMessage.getTargetNodeNumber(), pMessage.getTimestamp(), pPayload);
+  public static ActorMessage replacePayload(ActorMessage pMessage, Payload pPayload) {
+    return new ActorMessage(
+        pMessage.getType(),
+        pMessage.getUniqueBlockId(),
+        pMessage.getTargetNodeNumber(),
+        pMessage.getTimestamp(),
+        pPayload);
   }
 
-  public static Message newBlockPostCondition(
+  public static ActorMessage newBlockPostCondition(
       String pUniqueBlockId,
       int pTargetNodeNumber,
       Payload pPayload,
@@ -104,57 +105,63 @@ public class Message implements Comparable<Message> {
       boolean pReachable,
       Set<String> pVisited) {
     Payload newPayload =
-        Payload.builder().putAll(pPayload)
+        Payload.builder()
+            .putAll(pPayload)
             .addEntry(Payload.FULL_PATH, Boolean.toString(pFull))
-            .addEntry(Payload.VISITED,
-                Joiner.on(",").join(pVisited))
+            .addEntry(Payload.VISITED, Joiner.on(",").join(pVisited))
             .addEntry(Payload.REACHABLE, Boolean.toString(pReachable))
             .build();
-    return new Message(MessageType.BLOCK_POSTCONDITION, pUniqueBlockId, pTargetNodeNumber,
-        newPayload);
+    return new ActorMessage(
+        MessageType.BLOCK_POSTCONDITION, pUniqueBlockId, pTargetNodeNumber, newPayload);
   }
 
-  public static Message newErrorConditionMessage(
+  public static ActorMessage newErrorConditionMessage(
       String pUniqueBlockId,
       int pTargetNodeNumber,
       Payload pPayload,
       boolean pFirst,
       Set<String> pVisited) {
     Payload newPayload =
-        Payload.builder().putAll(pPayload).addEntry(Payload.FIRST, Boolean.toString(pFirst))
-            .addEntry(Payload.VISITED,
-                Joiner.on(",").join(pVisited))
+        Payload.builder()
+            .putAll(pPayload)
+            .addEntry(Payload.FIRST, Boolean.toString(pFirst))
+            .addEntry(Payload.VISITED, Joiner.on(",").join(pVisited))
             .build();
-    return new Message(MessageType.ERROR_CONDITION, pUniqueBlockId, pTargetNodeNumber,
-        newPayload);
+    return new ActorMessage(
+        MessageType.ERROR_CONDITION, pUniqueBlockId, pTargetNodeNumber, newPayload);
   }
 
-  public static Message newErrorConditionUnreachableMessage(String pUniqueBlockId, String denied) {
-    return new Message(MessageType.ERROR_CONDITION_UNREACHABLE, pUniqueBlockId, 0,
+  public static ActorMessage newErrorConditionUnreachableMessage(
+      String pUniqueBlockId, String denied) {
+    return new ActorMessage(
+        MessageType.ERROR_CONDITION_UNREACHABLE,
+        pUniqueBlockId,
+        0,
         Payload.builder().addEntry(Payload.REASON, denied).build());
   }
 
-  public static Message newResultMessage(
-      String pUniqueBlockId,
-      int pTargetNodeNumber,
-      Result pResult,
-      Set<String> pVisited
-  ) {
+  public static ActorMessage newResultMessage(
+      String pUniqueBlockId, int pTargetNodeNumber, Result pResult, Set<String> pVisited) {
     Payload payload =
-        Payload.builder().addEntry(Payload.RESULT, pResult.name())
-            .addEntry(Payload.VISITED,
-                Joiner.on(",").join(pVisited))
+        Payload.builder()
+            .addEntry(Payload.RESULT, pResult.name())
+            .addEntry(Payload.VISITED, Joiner.on(",").join(pVisited))
             .build();
-    return new Message(MessageType.FOUND_RESULT, pUniqueBlockId, pTargetNodeNumber, payload);
+    return new ActorMessage(MessageType.FOUND_RESULT, pUniqueBlockId, pTargetNodeNumber, payload);
   }
 
-  public static Message newErrorMessage(String pUniqueBlockId, Throwable pException) {
-    return new Message(MessageType.ERROR, pUniqueBlockId, 0,
-        Payload.builder().addEntry(Payload.EXCEPTION, Throwables.getStackTraceAsString(pException)).build());
+  public static ActorMessage newErrorMessage(String pUniqueBlockId, Throwable pException) {
+    return new ActorMessage(
+        MessageType.ERROR,
+        pUniqueBlockId,
+        0,
+        Payload.builder()
+            .addEntry(Payload.EXCEPTION, Throwables.getStackTraceAsString(pException))
+            .build());
   }
 
   @Override
-  public int compareTo(Message o) {
+  public int compareTo(ActorMessage o) {
     return Integer.compare(type.priority, o.getType().priority);
   }
 
@@ -174,7 +181,7 @@ public class Message implements Comparable<Message> {
     return uniqueBlockId;
   }
 
-  public Timestamp getTimestamp() {
+  public Instant getTimestamp() {
     return timestamp;
   }
 
@@ -190,13 +197,14 @@ public class Message implements Comparable<Message> {
 
   @Override
   public boolean equals(Object pO) {
-    if (!(pO instanceof Message)) {
+    if (!(pO instanceof ActorMessage)) {
       return false;
     }
-    Message message = (Message) pO;
-    return targetNodeNumber == message.targetNodeNumber && Objects.equals(uniqueBlockId,
-        message.uniqueBlockId) && type == message.type && Objects.equals(payload,
-        message.payload);
+    ActorMessage message = (ActorMessage) pO;
+    return targetNodeNumber == message.targetNodeNumber
+        && Objects.equals(uniqueBlockId, message.uniqueBlockId)
+        && type == message.type
+        && Objects.equals(payload, message.payload);
   }
 
   @Override
@@ -227,34 +235,30 @@ public class Message implements Comparable<Message> {
       mapper = new ObjectMapper();
       SimpleModule serializer =
           new SimpleModule("MessageSerializer", new Version(1, 0, 0, null, null, null));
-      serializer.addSerializer(Message.class, new MessageSerializer(Message.class));
+      serializer.addSerializer(ActorMessage.class, new MessageSerializer(ActorMessage.class));
       mapper.registerModule(serializer);
 
       SimpleModule deserializer =
           new SimpleModule("MessageDeserializer", new Version(1, 0, 0, null, null, null));
-      deserializer.addDeserializer(Message.class, new MessageDeserializer(Message.class));
+      deserializer.addDeserializer(ActorMessage.class, new MessageDeserializer(ActorMessage.class));
       mapper.registerModule(deserializer);
     }
 
-    public byte[] messageToJson(Message pMessage) throws IOException {
-      //return mapper.writeValueAsBytes(pMessage);
+    public byte[] messageToJson(ActorMessage pMessage) throws IOException {
+      // return mapper.writeValueAsBytes(pMessage);
       return mapper.writeValueAsBytes(pMessage);
     }
 
-    public Message jsonToMessage(byte[] pBytes) throws IOException {
-      //return mapper.readValue(pBytes, Message.class);
-      return mapper.readValue(pBytes, Message.class);
+    public ActorMessage jsonToMessage(byte[] pBytes) throws IOException {
+      // return mapper.readValue(pBytes, Message.class);
+      return mapper.readValue(pBytes, ActorMessage.class);
     }
-
   }
-
+  /** Mimics a MessageConverter but it zips messages. */
   public static class CompressedMessageConverter extends MessageConverter {
 
-    /** Mimics a MessageConverter but it zips messages. */
-    public CompressedMessageConverter() {}
-
     @Override
-    public byte[] messageToJson(Message pMessage) throws IOException {
+    public byte[] messageToJson(ActorMessage pMessage) throws IOException {
       try (ByteArrayOutputStream output = new ByteArrayOutputStream();
           GZIPOutputStream writer = new GZIPOutputStream(output)) {
         byte[] message = super.messageToJson(pMessage);
@@ -264,7 +268,7 @@ public class Message implements Comparable<Message> {
     }
 
     @Override
-    public Message jsonToMessage(byte[] pBytes) throws IOException {
+    public ActorMessage jsonToMessage(byte[] pBytes) throws IOException {
       try (GZIPInputStream reader = new GZIPInputStream(new ByteArrayInputStream(pBytes));
           ByteArrayOutputStream output = new ByteArrayOutputStream()) {
 
@@ -282,16 +286,16 @@ public class Message implements Comparable<Message> {
     }
   }
 
-  private static class MessageDeserializer extends StdDeserializer<Message> {
+  private static class MessageDeserializer extends StdDeserializer<ActorMessage> {
 
     private static final long serialVersionUID = 196344175L;
 
-    public MessageDeserializer(Class<Message> vc) {
+    public MessageDeserializer(Class<ActorMessage> vc) {
       super(vc);
     }
 
     @Override
-    public Message deserialize(JsonParser parser, DeserializationContext deserializer)
+    public ActorMessage deserialize(JsonParser parser, DeserializationContext deserializer)
         throws IOException {
       ObjectCodec codec = parser.getCodec();
       JsonNode node = codec.readTree(parser);
@@ -300,22 +304,22 @@ public class Message implements Comparable<Message> {
       int nodeNumber = node.get("targetNodeNumber").asInt();
       MessageType type = MessageType.valueOf(node.get("type").asText());
       Payload payload = Payload.from(node.get("payload").asText());
-      Timestamp timestamp = Timestamp.valueOf(node.get("timestamp").asText());
-      return new Message(type, uniqueBlockId, nodeNumber, timestamp, payload);
+      Instant timestamp = Instant.parse(node.get("timestamp").asText());
+      return new ActorMessage(type, uniqueBlockId, nodeNumber, timestamp, payload);
     }
   }
 
-  private static class MessageSerializer extends StdSerializer<Message> {
+  private static class MessageSerializer extends StdSerializer<ActorMessage> {
 
     private static final long serialVersionUID = 1324289L;
 
-    private MessageSerializer(Class<Message> t) {
+    private MessageSerializer(Class<ActorMessage> t) {
       super(t);
     }
 
     @Override
     public void serialize(
-        Message pMessage, JsonGenerator pJsonGenerator, SerializerProvider pSerializerProvider)
+        ActorMessage pMessage, JsonGenerator pJsonGenerator, SerializerProvider pSerializerProvider)
         throws IOException {
       pJsonGenerator.writeStartObject();
       pJsonGenerator.writeStringField("uniqueBlockId", pMessage.getUniqueBlockId());

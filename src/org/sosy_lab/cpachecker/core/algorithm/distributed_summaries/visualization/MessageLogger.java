@@ -31,7 +31,7 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.BlockNode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.BlockTree;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.Message;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.ActorMessage;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.Payload;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
@@ -60,8 +60,12 @@ public class MessageLogger {
     tree = pTree;
     pTree.getDistinctNodes().forEach(n -> entries.put(n.getId(), createInitialMap(n)));
     try {
-      fmgr = Solver.create(Configuration.defaultConfiguration(), LogManager.createNullLogManager(),
-          ShutdownNotifier.createDummy()).getFormulaManager();
+      fmgr =
+          Solver.create(
+                  Configuration.defaultConfiguration(),
+                  LogManager.createNullLogManager(),
+                  ShutdownNotifier.createDummy())
+              .getFormulaManager();
     } catch (InvalidConfigurationException pE) {
       fmgr = null;
     }
@@ -70,8 +74,9 @@ public class MessageLogger {
   private Multimap<String, Object> createInitialMap(BlockNode pNode) {
     Multimap<String, Object> map = ArrayListMultimap.create();
     map.putAll("code", Splitter.on("\n").splitToList(pNode.getCode()));
-    map.putAll("predecessors", transformedImmutableSetCopy(pNode.getPredecessors(), p->p.getId()));
-    map.putAll("successors", transformedImmutableSetCopy(pNode.getSuccessors(), p->p.getId()));
+    map.putAll(
+        "predecessors", transformedImmutableSetCopy(pNode.getPredecessors(), p -> p.getId()));
+    map.putAll("successors", transformedImmutableSetCopy(pNode.getSuccessors(), p -> p.getId()));
     return map;
   }
 
@@ -84,16 +89,15 @@ public class MessageLogger {
               attributes.put("code", Splitter.on("\n").splitToList(n.getCode()));
               attributes.put(
                   "predecessors",
-                  transformedImmutableListCopy(n.getPredecessors(), p->p.getId()));
+                  transformedImmutableListCopy(n.getPredecessors(), p -> p.getId()));
               attributes.put(
-                  "successors",
-                  transformedImmutableListCopy(n.getSuccessors(), p->p.getId()));
+                  "successors", transformedImmutableListCopy(n.getSuccessors(), p -> p.getId()));
               treeMap.put(n.getId(), attributes);
             });
     JSON.writeJSONString(treeMap, blockCFAFile);
   }
 
-  public synchronized void log(Message pMessage) throws IOException {
+  public synchronized void log(ActorMessage pMessage) throws IOException {
     if (entries.get(pMessage.getUniqueBlockId()) == null) {
       return;
     }
@@ -104,8 +108,13 @@ public class MessageLogger {
     Payload p = pMessage.getPayload();
     String message = p.get(PredicateCPA.class.getName());
     if (message != null) {
-      p = Payload.builder().putAll(p).addEntry(PredicateCPA.class.getName(),
-          fmgr == null ? message : fmgr.parse(message).toString()).build();
+      p =
+          Payload.builder()
+              .putAll(p)
+              .addEntry(
+                  PredicateCPA.class.getName(),
+                  fmgr == null ? message : fmgr.parse(message).toString())
+              .build();
     }
     messageToJSON.put("payload", p.toJSONString());
     entries.get(pMessage.getUniqueBlockId()).put("messages", messageToJSON);
@@ -113,5 +122,4 @@ public class MessageLogger {
     entries.forEach((k, v) -> converted.put(k, v.asMap()));
     JSON.writeJSONString(converted, reportFile);
   }
-
 }

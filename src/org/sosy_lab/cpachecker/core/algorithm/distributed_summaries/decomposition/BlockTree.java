@@ -45,8 +45,8 @@ public class BlockTree {
   }
 
   public BlockNode mergeSameStartAndEnd(BlockNode pNode1, BlockNode pNode2) {
-    if (!(pNode1.getStartNode().equals(pNode2.getStartNode()) && pNode1.getLastNode()
-        .equals(pNode2.getLastNode()))) {
+    if (!(pNode1.getStartNode().equals(pNode2.getStartNode())
+        && pNode1.getLastNode().equals(pNode2.getLastNode()))) {
       throw new AssertionError(
           "Nodes must start and end on the same CFANode: " + pNode1 + " " + pNode2);
     }
@@ -73,8 +73,8 @@ public class BlockTree {
         Set<CFAEdge> edgesInBlock = new LinkedHashSet<>(pNode1.getEdgesInBlock());
         edgesInBlock.addAll(pNode2.getEdgesInBlock());
         BlockNode merged =
-            factory.makeBlock(pNode1.getStartNode(), pNode2.getLastNode(), nodesInBlock,
-                edgesInBlock);
+            factory.makeBlock(
+                pNode1.getStartNode(), pNode2.getLastNode(), nodesInBlock, edgesInBlock);
         pNode1.getPredecessors().forEach(n -> factory.linkSuccessor(n, merged));
         pNode2.getSuccessors().forEach(n -> factory.linkSuccessor(merged, n));
         factory.removeNode(pNode1);

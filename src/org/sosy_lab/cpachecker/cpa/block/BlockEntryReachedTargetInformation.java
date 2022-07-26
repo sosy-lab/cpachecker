@@ -11,6 +11,11 @@ package org.sosy_lab.cpachecker.cpa.block;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.Targetable.TargetInformation;
 
+/**
+ * Distributed analyses use independent blocks for analyzing simultaneously. These analyses stop at
+ * target locations. This class states whether an analysis reached the entry or exit node of a
+ * block.
+ */
 public class BlockEntryReachedTargetInformation implements TargetInformation {
 
   private final CFANode node;

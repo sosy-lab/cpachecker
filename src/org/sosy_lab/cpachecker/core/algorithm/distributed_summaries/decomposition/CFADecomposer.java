@@ -10,11 +10,8 @@ package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decompositi
 
 import org.sosy_lab.cpachecker.cfa.CFA;
 
-/**
- * Decomposes the CFA in coherent blocks
- */
+/** Decomposes the CFA in coherent blocks */
 public interface CFADecomposer {
 
   BlockTree cut(CFA cfa);
-
 }

@@ -28,7 +28,7 @@ class BlockCPAFactory extends AbstractCPAFactory {
   @Override
   public <T> BlockCPAFactory set(T pObject, Class<T> pClass) {
     if (CFA.class.isAssignableFrom(pClass)) {
-      cfa = (CFA)pObject;
+      cfa = (CFA) pObject;
     } else {
       super.set(pObject, pClass);
     }

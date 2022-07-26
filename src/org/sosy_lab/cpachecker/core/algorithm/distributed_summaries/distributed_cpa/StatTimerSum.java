@@ -43,19 +43,25 @@ public class StatTimerSum extends StatTimer {
 
   @Override
   public String toString() {
-    return getConsumedTime().formatAs(TimeUnit.MINUTES) + " (" + getConsumedTime().formatAs(TimeUnit.SECONDS) + ")";
+    return getConsumedTime().formatAs(TimeUnit.MINUTES)
+        + " ("
+        + getConsumedTime().formatAs(TimeUnit.SECONDS)
+        + ")";
   }
 
   @Override
   public TimeSpan getConsumedTime() {
-    return timers.stream().map(t -> t.getConsumedTime()).reduce(TimeSpan::sum).orElse(super.getConsumedTime());
+    return timers.stream()
+        .map(t -> t.getConsumedTime())
+        .reduce(TimeSpan::sum)
+        .orElse(super.getConsumedTime());
   }
 
   @Override
   public TimeSpan getMaxTime() {
-    return timers.stream().map(t -> t.getMaxTime()).max(Comparator.naturalOrder()).orElse(super.getMaxTime());
+    return timers.stream()
+        .map(t -> t.getMaxTime())
+        .max(Comparator.naturalOrder())
+        .orElse(super.getMaxTime());
   }
-
-
-
 }
