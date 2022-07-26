@@ -8,6 +8,9 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition;
 
+import static com.google.common.base.Preconditions.checkState;
+import static org.sosy_lab.common.collect.Collections3.transformedImmutableSetCopy;
+
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.FluentIterable;
@@ -57,16 +60,7 @@ public class BlockNode {
       @NonNull Supplier<Set<BlockNode>> pPredecessors,
       @NonNull Supplier<Set<BlockNode>> pSuccessors,
       @NonNull Map<Integer, CFANode> pIdToNodeMap) {
-    Preconditions.checkState(
-        pMetaData.getNodesInBlock().contains(pMetaData.getStartNode())
-            && pMetaData.getNodesInBlock().contains(pMetaData.getLastNode()),
-        "pNodesInBlock ("
-            + pMetaData.getNodesInBlock()
-            + ") must list all nodes but misses either the root node ("
-            + pMetaData.getStartNode()
-            + ") or the last node ("
-            + pMetaData.getLastNode()
-            + ").");
+    checkState(pMetaData.getNodesInBlock().contains(pMetaData.getStartNode()) && pMetaData.getNodesInBlock().contains(pMetaData.getLastNode()), /* TODO make lazy */ "pNodesInBlock (" + pMetaData.getNodesInBlock() + ") must list all nodes but misses either the root node (" + pMetaData.getStartNode() + ") or the last node (" + pMetaData.getLastNode() + ").");
 
     metaData = pMetaData;
     predecessors = pPredecessors;
@@ -319,8 +313,8 @@ public class BlockNode {
         BlockNode blockNode =
             new BlockNode(
                 data,
-                () -> FluentIterable.from(predecessors.get(data)).transform(nodes::get).toSet(),
-                () -> FluentIterable.from(successors.get(data)).transform(nodes::get).toSet(),
+                () -> transformedImmutableSetCopy(predecessors.get(data), nodes::get),
+                () -> transformedImmutableSetCopy(successors.get(data), nodes::get),
                 idToNodeMap);
         nodes.put(data, blockNode);
       }

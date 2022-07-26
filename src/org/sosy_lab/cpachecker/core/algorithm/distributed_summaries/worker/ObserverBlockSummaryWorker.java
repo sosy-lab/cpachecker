@@ -62,6 +62,7 @@ public class ObserverBlockSummaryWorker extends BlockSummaryWorker {
       case ERROR:
         errorMessage = Optional.of(((ErrorMessage) pMessage).getErrorMessage());
         shutdown = true;
+        break;
       default:
         throw new AssertionError("Unknown message type: " + pMessage.getType());
     }

@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.memory;
 
+import static org.sosy_lab.common.collect.Collections3.transformedImmutableListCopy;
+
 import com.google.common.collect.FluentIterable;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -38,6 +40,6 @@ public class InMemoryConnectionProvider implements ConnectionProvider<InMemoryCo
     for (int i = 0; i < connections; i++) {
       outs.add(new CleverMessageQueue());
     }
-    return FluentIterable.from(outs).transform(out -> new InMemoryConnection(out, outs)).toList();
+    return transformedImmutableListCopy(outs, out -> new InMemoryConnection(out, outs));
   }
 }

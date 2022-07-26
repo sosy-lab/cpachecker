@@ -19,7 +19,6 @@ import java.util.logging.Level;
 import org.sosy_lab.common.collect.PersistentMap;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -56,11 +55,6 @@ public class PredicatePrecisionAdjustment implements PrecisionAdjustment {
   private final PredicateStatistics statistics;
   private final TimerWrapper totalPrecTime;
   private final TimerWrapper computingAbstractionTime;
-
-  @Option(
-      description = "Whether the predicate precision adjustment should abstract at target states",
-      secure = true)
-  private boolean abstractAtTargetState = true;
 
   public PredicatePrecisionAdjustment(
       LogManager pLogger,
@@ -124,9 +118,6 @@ public class PredicatePrecisionAdjustment implements PrecisionAdjustment {
 
   private boolean shouldComputeAbstraction(
       AbstractState fullState, CFANode location, PredicateAbstractState predicateState) {
-    if (!abstractAtTargetState) {
-      return false;
-    }
     if (predicateState.isAbstractionState()) {
       return false;
     }
