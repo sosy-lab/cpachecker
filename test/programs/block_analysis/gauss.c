@@ -9,23 +9,24 @@
 extern unsigned int __VERIFIER_nondet_uint();
 
 int main() {
-  unsigned int i, n=__VERIFIER_nondet_uint();
-  unsigned long long sn=0;
+  unsigned int i, n = __VERIFIER_nondet_uint();
+  unsigned long long sn = 0;
   // n needs to be less than 2^32 such that the multiplication part
   // of the Gauss sum does not exceed the range of unsigned long long
   if (n >= 4294967296U)
-      goto EXIT;
+    goto EXIT;
 
-  for(i=0; i<=n; i++) {
+  for (i = 0; i <= n; i++) {
     sn = sn + i;
   }
   // Compute Gauss sum without overflow
-  unsigned long long gauss = (n*(n+1U))/2U;
-  if(sn==gauss || sn == 0) {
+  unsigned long long gauss = (n * (n + 1U)) / 2U;
+  if (sn == gauss || sn == 0) {
     goto EXIT;
   } else {
-    ERROR: return 1;
+  ERROR:
+    return 1;
   }
-  EXIT: return 0;
+EXIT:
+  return 0;
 }
-

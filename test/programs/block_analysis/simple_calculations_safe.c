@@ -9,13 +9,14 @@
 extern int __VERIFIER_nondet_int();
 
 int main() {
-    int y = __VERIFIER_nondet_int();
-    if (y < 0) {
-        y = y * (-1);
-    }
-    if (y < 0) {
-        goto ERROR;
-    }
-    return 0;
-ERROR: return 1;
+  int y = __VERIFIER_nondet_int();
+  if (y < 0) {
+    y = y * (-1);
+  }
+  if (y < 0) {
+    goto ERROR;
+  }
+  return 0;
+ERROR:
+  return 1;
 }

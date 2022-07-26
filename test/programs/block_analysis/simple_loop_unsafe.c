@@ -7,13 +7,14 @@
 // SPDX-License-Identifier: Apache-2.0
 
 int main() {
-    int x = 0;
-    int y = 5;
-    while (x != y) {
-        x++;
-    }
-    if (x == y)
-        goto ERROR;
-    return 0;
-ERROR: return 1;
+  int x = 0;
+  int y = 5;
+  while (x != y) {
+    x++;
+  }
+  if (x == y)
+    goto ERROR;
+  return 0;
+ERROR:
+  return 1;
 }
