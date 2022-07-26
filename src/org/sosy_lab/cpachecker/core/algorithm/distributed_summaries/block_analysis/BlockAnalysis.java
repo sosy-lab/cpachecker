@@ -12,7 +12,6 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.common.collect.Collections3.transformedImmutableListCopy;
 
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import java.util.ArrayList;
@@ -394,9 +393,10 @@ public abstract class BlockAnalysis {
         Collection<ActorMessage> messages, Set<ARGState> blockEntries)
         throws CPAException, InterruptedException {
       List<AbstractState> compositeStates =
-          transformedImmutableListCopy(blockEntries, state ->
-                      (AbstractState)
-                          AbstractStates.extractStateByType(state, CompositeState.class));
+          transformedImmutableListCopy(
+              blockEntries,
+              state ->
+                  (AbstractState) AbstractStates.extractStateByType(state, CompositeState.class));
       ImmutableSet.Builder<ActorMessage> answers = ImmutableSet.builder();
       if (!compositeStates.isEmpty()) {
         boolean fullPath =
@@ -488,7 +488,9 @@ public abstract class BlockAnalysis {
       ARGState startState = getStartState(messages);
       Set<ARGState> targetStates = findReachableTargetStatesInBlock(startState, relation);
       List<AbstractState> states =
-          transformedImmutableListCopy(targetStates, state->AbstractStates.extractStateByType(state, CompositeState.class));
+          transformedImmutableListCopy(
+              targetStates,
+              state -> AbstractStates.extractStateByType(state, CompositeState.class));
       if (states.isEmpty()) {
         // should only happen if abstraction is activated
         logger.log(Level.ALL, "Cannot reach block start?", reachedSet);

@@ -12,7 +12,6 @@ import java.util.Map;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DistributedConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.SerializeOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.Payload;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.Payload.Builder;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeState;
@@ -31,7 +30,7 @@ public class SerializeCompositeStateOperator implements SerializeOperator {
 
   @Override
   public Payload serialize(AbstractState pState) {
-    Builder payload = new Builder();
+    Payload.Builder payload = new Payload.Builder();
     for (AbstractState wrappedState : ((CompositeState) pState).getWrappedStates()) {
       for (DistributedConfigurableProgramAnalysis value : registered.values()) {
         if (value.doesOperateOn(wrappedState.getClass())) {

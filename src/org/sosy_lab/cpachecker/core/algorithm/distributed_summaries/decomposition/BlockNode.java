@@ -11,9 +11,7 @@ package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decompositi
 import static com.google.common.base.Preconditions.checkState;
 import static org.sosy_lab.common.collect.Collections3.transformedImmutableSetCopy;
 
-import com.google.common.base.Preconditions;
 import com.google.common.collect.ArrayListMultimap;
-import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
@@ -60,7 +58,16 @@ public class BlockNode {
       @NonNull Supplier<Set<BlockNode>> pPredecessors,
       @NonNull Supplier<Set<BlockNode>> pSuccessors,
       @NonNull Map<Integer, CFANode> pIdToNodeMap) {
-    checkState(pMetaData.getNodesInBlock().contains(pMetaData.getStartNode()) && pMetaData.getNodesInBlock().contains(pMetaData.getLastNode()), /* TODO make lazy */ "pNodesInBlock (" + pMetaData.getNodesInBlock() + ") must list all nodes but misses either the root node (" + pMetaData.getStartNode() + ") or the last node (" + pMetaData.getLastNode() + ").");
+    checkState(
+        pMetaData.getNodesInBlock().contains(pMetaData.getStartNode())
+            && pMetaData.getNodesInBlock().contains(pMetaData.getLastNode()), /* TODO make lazy */
+        "pNodesInBlock ("
+            + pMetaData.getNodesInBlock()
+            + ") must list all nodes but misses either the root node ("
+            + pMetaData.getStartNode()
+            + ") or the last node ("
+            + pMetaData.getLastNode()
+            + ").");
 
     metaData = pMetaData;
     predecessors = pPredecessors;

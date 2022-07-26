@@ -17,9 +17,6 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.logging.Level;
 import org.sosy_lab.common.collect.PersistentMap;
-import org.sosy_lab.common.configuration.Configuration;
-import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -41,7 +38,6 @@ import org.sosy_lab.cpachecker.util.statistics.ThreadSafeTimerContainer.TimerWra
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.SolverException;
 
-@Options(prefix = "cpa.predicate")
 public class PredicatePrecisionAdjustment implements PrecisionAdjustment {
 
   private final LogManager logger;
@@ -58,16 +54,13 @@ public class PredicatePrecisionAdjustment implements PrecisionAdjustment {
 
   public PredicatePrecisionAdjustment(
       LogManager pLogger,
-      Configuration pConfig,
       FormulaManagerView pFmgr,
       PathFormulaManager pPfmgr,
       BlockOperator pBlk,
       PredicateAbstractionManager pPredAbsManager,
       PredicateCPAInvariantsManager pInvariantSupplier,
       PredicateProvider pPredicateProvider,
-      PredicateStatistics pPredicateStatistics)
-      throws InvalidConfigurationException {
-    pConfig.inject(this);
+      PredicateStatistics pPredicateStatistics) {
     logger = pLogger;
     fmgr = pFmgr;
     pathFormulaManager = pPfmgr;

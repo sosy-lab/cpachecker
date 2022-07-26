@@ -38,7 +38,6 @@ import java.util.zip.GZIPOutputStream;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.Payload;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.Payload.Builder;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.ObserverBlockSummaryWorker.StatusObserver;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 
@@ -81,13 +80,16 @@ public abstract class ActorMessage implements Comparable<ActorMessage> {
 
   public static ActorMessage addEntry(ActorMessage message, String key, String value) {
     return message.replacePayload(
-        new Builder().addAllEntries(message.getPayload()).addEntry(key, value).buildPayload());
+        new Payload.Builder()
+            .addAllEntries(message.getPayload())
+            .addEntry(key, value)
+            .buildPayload());
   }
 
   public static ActorMessage removeEntry(ActorMessage message, String key) {
     Map<String, String> copy = new HashMap<>(message.getPayload());
     copy.remove(key);
-    return message.replacePayload(new Builder().addAllEntries(copy).buildPayload());
+    return message.replacePayload(new Payload.Builder().addAllEntries(copy).buildPayload());
   }
 
   public final String getPayloadJSON() throws IOException {
@@ -151,7 +153,7 @@ public abstract class ActorMessage implements Comparable<ActorMessage> {
       boolean pReachable,
       Set<String> pVisited) {
     Payload newPayload =
-        new Builder()
+        new Payload.Builder()
             .addAllEntries(pPayload)
             .addEntry(Payload.FULL_PATH, Boolean.toString(pFull))
             .addEntry(Payload.VISITED, Joiner.on(",").join(pVisited))
@@ -168,7 +170,7 @@ public abstract class ActorMessage implements Comparable<ActorMessage> {
       boolean pFirst,
       Set<String> pVisited) {
     Payload newPayload =
-        new Builder()
+        new Payload.Builder()
             .addAllEntries(pPayload)
             .addEntry(Payload.FIRST, Boolean.toString(pFirst))
             .addEntry(Payload.VISITED, Joiner.on(",").join(pVisited))
@@ -181,14 +183,14 @@ public abstract class ActorMessage implements Comparable<ActorMessage> {
     return new ErrorConditionUnreachableMessage(
         pUniqueBlockId,
         0,
-        new Builder().addEntry(Payload.REASON, denied).buildPayload(),
+        new Payload.Builder().addEntry(Payload.REASON, denied).buildPayload(),
         Instant.now());
   }
 
   public static ActorMessage newResultMessage(
       String pUniqueBlockId, int pTargetNodeNumber, Result pResult, Set<String> pVisited) {
     Payload payload =
-        new Builder()
+        new Payload.Builder()
             .addEntry(Payload.RESULT, pResult.name())
             .addEntry(Payload.VISITED, Joiner.on(",").join(pVisited))
             .buildPayload();
@@ -199,7 +201,7 @@ public abstract class ActorMessage implements Comparable<ActorMessage> {
     return new ErrorMessage(
         pUniqueBlockId,
         0,
-        new Builder()
+        new Payload.Builder()
             .addEntry(Payload.EXCEPTION, Throwables.getStackTraceAsString(pException))
             .buildPayload(),
         Instant.now());
@@ -356,7 +358,7 @@ public abstract class ActorMessage implements Comparable<ActorMessage> {
       int nodeNumber = node.get("targetNodeNumber").asInt();
       MessageType type = MessageType.valueOf(node.get("type").asText());
       Payload payload =
-          new Builder().addEntriesFromJSON(node.get("payload").asText()).buildPayload();
+          new Payload.Builder().addEntriesFromJSON(node.get("payload").asText()).buildPayload();
       Instant timestamp = Instant.parse(node.get("timestamp").asText());
 
       switch (type) {
