@@ -25,5 +25,9 @@ public interface DistributedConfigurableProgramAnalysis extends ConfigurableProg
 
   ProceedOperator getProceedOperator();
 
-  boolean doesOperateOn(Class<? extends AbstractState> pClass);
+  Class<? extends AbstractState> getAbstractStateClass();
+
+  default boolean doesOperateOn(Class<? extends AbstractState> pClass) {
+    return getAbstractStateClass().isAssignableFrom(pClass);
+  }
 }

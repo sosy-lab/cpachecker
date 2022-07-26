@@ -87,8 +87,8 @@ public class DistributedPredicateCPA implements DistributedConfigurableProgramAn
   }
 
   @Override
-  public boolean doesOperateOn(Class<? extends AbstractState> pClass) {
-    return PredicateAbstractState.class.isAssignableFrom(pClass);
+  public Class<? extends AbstractState> getAbstractStateClass() {
+    return PredicateAbstractState.class;
   }
 
   @Override

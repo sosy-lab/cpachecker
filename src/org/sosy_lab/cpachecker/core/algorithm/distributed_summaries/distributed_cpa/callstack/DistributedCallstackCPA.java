@@ -69,8 +69,8 @@ public class DistributedCallstackCPA implements DistributedConfigurableProgramAn
   }
 
   @Override
-  public boolean doesOperateOn(Class<? extends AbstractState> pClass) {
-    return CallstackState.class.isAssignableFrom(pClass);
+  public Class<? extends AbstractState> getAbstractStateClass() {
+    return CallstackState.class;
   }
 
   @Override

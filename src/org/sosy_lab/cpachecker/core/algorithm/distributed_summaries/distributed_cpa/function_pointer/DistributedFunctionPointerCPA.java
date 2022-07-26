@@ -66,9 +66,10 @@ public class DistributedFunctionPointerCPA implements DistributedConfigurablePro
   }
 
   @Override
-  public boolean doesOperateOn(Class<? extends AbstractState> pClass) {
-    return FunctionPointerState.class.isAssignableFrom(pClass);
+  public Class<? extends AbstractState> getAbstractStateClass() {
+    return FunctionPointerState.class;
   }
+
 
   @Override
   public AbstractDomain getAbstractDomain() {

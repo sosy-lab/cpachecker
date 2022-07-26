@@ -71,8 +71,8 @@ public class DistributedCompositeCPA implements DistributedConfigurableProgramAn
   }
 
   @Override
-  public boolean doesOperateOn(Class<? extends AbstractState> pClass) {
-    return CompositeState.class.isAssignableFrom(pClass);
+  public Class<? extends AbstractState> getAbstractStateClass() {
+    return CompositeState.class;
   }
 
   @Override
