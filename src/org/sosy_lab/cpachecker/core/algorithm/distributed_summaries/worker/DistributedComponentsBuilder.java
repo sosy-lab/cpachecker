@@ -18,6 +18,7 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.BlockNode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.BlockTree;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.CleverMessageQueue;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.Connection;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.ConnectionProvider;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.UpdatedTypeMap;
@@ -45,7 +46,7 @@ public class DistributedComponentsBuilder {
     shutdownManager = pShutdownManager;
     specification = pSpecification;
     // only one available for now
-    connectionProvider = new InMemoryConnectionProvider();
+    connectionProvider = new InMemoryConnectionProvider(() -> new CleverMessageQueue());
     workerGenerators = new ArrayList<>();
   }
 
