@@ -21,7 +21,6 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decompositio
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.BlockTree;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.Connection;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.ConnectionProvider;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.UpdatedTypeMap;
 import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
@@ -59,13 +58,11 @@ public class DistributedComponentsBuilder {
     return this;
   }
 
-  public DistributedComponentsBuilder addAnalysisWorker(
-      BlockNode pNode, AnalysisOptions pOptions, UpdatedTypeMap pTypeMap) {
+  public DistributedComponentsBuilder addAnalysisWorker(BlockNode pNode, AnalysisOptions pOptions) {
     workerGenerators.add(
         connection ->
             new AnalysisBlockSummaryWorker(
                 nextId(pNode.getId()),
-                pTypeMap,
                 pOptions,
                 connection,
                 pNode,
@@ -76,12 +73,11 @@ public class DistributedComponentsBuilder {
   }
 
   public DistributedComponentsBuilder addSmartAnalysisWorker(
-      BlockNode pNode, AnalysisOptions pOptions, UpdatedTypeMap pTypeMap) {
+      BlockNode pNode, AnalysisOptions pOptions) {
     workerGenerators.add(
         connection ->
             new SmartAnalysisBlockSummaryWorker(
                 nextId(pNode.getId()),
-                pTypeMap,
                 pOptions,
                 connection,
                 pNode,
@@ -105,13 +101,11 @@ public class DistributedComponentsBuilder {
     return this;
   }
 
-  public DistributedComponentsBuilder addRootWorker(
-      BlockNode pNode, AnalysisOptions pOptions, UpdatedTypeMap pTypeMap) {
+  public DistributedComponentsBuilder addRootWorker(BlockNode pNode, AnalysisOptions pOptions) {
     workerGenerators.add(
         connection ->
             new RootBlockSummaryWorker(
                 nextId(pNode.getId()),
-                pTypeMap,
                 connection,
                 pOptions,
                 pNode,

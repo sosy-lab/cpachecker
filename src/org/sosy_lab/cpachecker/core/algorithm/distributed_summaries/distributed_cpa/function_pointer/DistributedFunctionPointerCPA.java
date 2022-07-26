@@ -70,7 +70,6 @@ public class DistributedFunctionPointerCPA implements DistributedConfigurablePro
     return FunctionPointerState.class;
   }
 
-
   @Override
   public AbstractDomain getAbstractDomain() {
     return functionPointerCPA.getAbstractDomain();

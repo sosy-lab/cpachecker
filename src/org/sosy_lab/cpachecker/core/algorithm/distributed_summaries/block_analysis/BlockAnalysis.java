@@ -11,7 +11,6 @@ package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.block_analy
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.collect.FluentIterable.from;
 
-import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
@@ -35,9 +34,11 @@ import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.BlockNode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DCPABuilder;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.composite.DistributedCompositeCPA;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.ActorMessage;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.Payload;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.UpdatedTypeMap;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.ActorMessage;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.ActorMessage.MessageType;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockPostConditionMessage;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.ErrorConditionMessage;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.AnalysisOptions;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.ObserverBlockSummaryWorker.StatusObserver.StatusPrecise;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.ObserverBlockSummaryWorker.StatusObserver.StatusPropertyChecked;
@@ -86,7 +87,6 @@ public abstract class BlockAnalysis {
    * Analyze a subgraph of the CFA (block node) with an arbitrary CPA.
    *
    * @param pLogger logger to log information
-   * @param pTypeMap map containing metadata for types
    * @param pBlock coherent subgraph of the CFA
    * @param pCFA CFA where the subgraph pBlock is built from
    * @param pDirection analysis direction (forward or backward)
@@ -100,7 +100,6 @@ public abstract class BlockAnalysis {
    */
   public BlockAnalysis(
       LogManager pLogger,
-      UpdatedTypeMap pTypeMap,
       BlockNode pBlock,
       CFA pCFA,
       AnalysisDirection pDirection,
@@ -111,12 +110,7 @@ public abstract class BlockAnalysis {
       throws CPAException, InterruptedException, InvalidConfigurationException {
     Triple<Algorithm, ConfigurableProgramAnalysis, ReachedSet> parts =
         AlgorithmFactory.createAlgorithm(
-            pLogger,
-            pSpecification,
-            pCFA,
-            pConfiguration,
-            pShutdownManager,
-            pBlock);
+            pLogger, pSpecification, pCFA, pConfiguration, pShutdownManager, pBlock);
     algorithm = parts.getFirst();
     cpa = parts.getSecond();
     reachedSet = parts.getThird();
@@ -130,7 +124,7 @@ public abstract class BlockAnalysis {
     block = pBlock;
     logger = pLogger;
 
-    DCPABuilder builder = new DCPABuilder(pTypeMap, pOptions);
+    DCPABuilder builder = new DCPABuilder(pOptions);
     CompositeCPA compositeCPA =
         CPAs.retrieveCPAOrFail(cpa, CompositeCPA.class, BlockAnalysis.class);
     for (ConfigurableProgramAnalysis wrappedCPA : compositeCPA.getWrappedCPAs()) {
@@ -200,8 +194,13 @@ public abstract class BlockAnalysis {
   public Set<String> visitedBlocks(Collection<ActorMessage> pMessages) {
     ImmutableSet.Builder<String> visitedBlocks = ImmutableSet.builder();
     for (ActorMessage message : pMessages) {
-      for (String part :
-          Splitter.on(",").split(message.getPayload().getOrDefault(Payload.VISITED, ""))) {
+      Set<String> visited = ImmutableSet.of();
+      if (message.getType() == MessageType.BLOCK_POSTCONDITION) {
+        visited = ((BlockPostConditionMessage) message).visitedBlockIds();
+      } else if (message.getType() == MessageType.ERROR_CONDITION) {
+        visited = ((ErrorConditionMessage) message).visitedBlockIds();
+      }
+      for (String part : visited) {
         if (!part.isBlank()) {
           visitedBlocks.add(part);
         }
@@ -312,7 +311,6 @@ public abstract class BlockAnalysis {
 
     public ForwardAnalysis(
         LogManager pLogger,
-        UpdatedTypeMap pTypeMap,
         BlockNode pBlock,
         CFA pCFA,
         Specification pSpecification,
@@ -322,7 +320,6 @@ public abstract class BlockAnalysis {
         throws CPAException, InterruptedException, InvalidConfigurationException {
       super(
           pLogger,
-          pTypeMap,
           pBlock,
           pCFA,
           AnalysisDirection.FORWARD,
@@ -407,7 +404,7 @@ public abstract class BlockAnalysis {
         boolean fullPath =
             messages.size() == block.getPredecessors().size()
                 && messages.stream()
-                    .allMatch(m -> Boolean.parseBoolean(m.getPayload().get(Payload.FULL_PATH)));
+                    .allMatch(m -> ((BlockPostConditionMessage) m).representsFullPath());
         Set<String> visited = visitedBlocks(messages);
         AbstractState combined =
             Iterables.getOnlyElement(
@@ -416,14 +413,15 @@ public abstract class BlockAnalysis {
                     .combine(compositeStates, top, initialPrecision));
         Payload result = distributedCompositeCPA.getSerializeOperator().serialize(combined);
         result = appendStatus(status, result);
-        ActorMessage response =
-            ActorMessage.newBlockPostCondition(
-                block.getId(),
-                block.getLastNode().getNodeNumber(),
-                result,
-                fullPath,
-                true,
-                visited);
+        BlockPostConditionMessage response =
+            (BlockPostConditionMessage)
+                ActorMessage.newBlockPostCondition(
+                    block.getId(),
+                    block.getLastNode().getNodeNumber(),
+                    result,
+                    fullPath,
+                    true,
+                    visited);
         distributedCompositeCPA.getProceedOperator().update(response);
         answers.add(response);
       }
@@ -464,7 +462,6 @@ public abstract class BlockAnalysis {
 
     public BackwardAnalysis(
         LogManager pLogger,
-        UpdatedTypeMap pTypeMap,
         BlockNode pBlock,
         CFA pCFA,
         Specification pSpecification,
@@ -474,7 +471,6 @@ public abstract class BlockAnalysis {
         throws CPAException, InterruptedException, InvalidConfigurationException {
       super(
           pLogger,
-          pTypeMap,
           pBlock,
           pCFA,
           AnalysisDirection.BACKWARD,
@@ -531,7 +527,6 @@ public abstract class BlockAnalysis {
 
     public NoopAnalysis(
         LogManager pLogger,
-        UpdatedTypeMap pTypeMap,
         BlockNode pBlock,
         CFA pCFA,
         AnalysisDirection pDirection,
@@ -542,7 +537,6 @@ public abstract class BlockAnalysis {
         throws CPAException, InterruptedException, InvalidConfigurationException {
       super(
           pLogger,
-          pTypeMap,
           pBlock,
           pCFA,
           pDirection,

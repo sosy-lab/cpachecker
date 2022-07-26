@@ -18,11 +18,11 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.BlockNode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.MessageProcessing;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.ActorMessage;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.ActorMessage.MessageType;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.Connection;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.Payload;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.UpdatedTypeMap;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.ActorMessage;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.ActorMessage.MessageType;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockPostConditionMessage;
 import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.java_smt.api.SolverException;
@@ -34,7 +34,6 @@ public class SmartAnalysisBlockSummaryWorker extends AnalysisBlockSummaryWorker 
 
   SmartAnalysisBlockSummaryWorker(
       String pId,
-      UpdatedTypeMap pTypeMap,
       AnalysisOptions pOptions,
       Connection pConnection,
       BlockNode pBlock,
@@ -44,7 +43,6 @@ public class SmartAnalysisBlockSummaryWorker extends AnalysisBlockSummaryWorker 
       throws CPAException, IOException, InterruptedException, InvalidConfigurationException {
     super(
         "smart-worker-" + pId,
-        pTypeMap,
         pOptions,
         pConnection,
         pBlock,
@@ -73,17 +71,12 @@ public class SmartAnalysisBlockSummaryWorker extends AnalysisBlockSummaryWorker 
       if (m.getType() == MessageType.BLOCK_POSTCONDITION) {
         if (m.getTargetNodeNumber() == block.getStartNode().getNodeNumber()) {
           MessageProcessing mp =
-              getForwardAnalysis().getDistributedCPA().getProceedOperator().proceedForward(m);
+              getForwardAnalysis()
+                  .getDistributedCPA()
+                  .getProceedOperator()
+                  .proceedForward((BlockPostConditionMessage) m);
           if (!mp.end()) {
-            Payload payload = m.getPayload();
-            // proceedForward stores already processed messages and won't continue with a plain
-            // copy of this message. We add "smart": "true" to it to avoid equality.
-            payload =
-                new Payload.Builder()
-                    .addAllEntries(payload)
-                    .addEntry(Payload.SMART, "true")
-                    .buildPayload();
-            postcondMessage = ActorMessage.replacePayload(m, payload);
+            postcondMessage = ActorMessage.addEntry(m, Payload.SMART, "true");
           }
         }
       } else {

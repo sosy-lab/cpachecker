@@ -8,15 +8,12 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa;
 
-import static org.sosy_lab.common.collect.Collections3.transformedImmutableListCopy;
-
 import com.google.common.collect.ForwardingCollection;
 import com.google.common.collect.ImmutableList;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.ActorMessage;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.Payload;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.ActorMessage;
 
 /**
  * Proceed operators need to return a collection of messages and a boolean indicating whether the
@@ -64,10 +61,6 @@ public class MessageProcessing extends ForwardingCollection<ActorMessage> {
 
   public boolean end() {
     return end;
-  }
-
-  public Collection<Payload> toPayloadCollection() {
-    return transformedImmutableListCopy(messages, m -> m.getPayload());
   }
 
   public MessageProcessing merge(MessageProcessing pProcessing, boolean removeDuplicates) {

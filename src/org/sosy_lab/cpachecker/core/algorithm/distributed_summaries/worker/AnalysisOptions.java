@@ -30,8 +30,9 @@ public class AnalysisOptions {
 
   @Option(
       description =
-          "Whether loop free programs have to deny all possible error messages. "
-              + "Enable this option to eagerly process every possible error message that occurs after an precondition update.")
+          "Whether loop free programs have to deny all possible error messages. Enable this option"
+              + " to eagerly process every possible error message that occurs after an precondition"
+              + " update.")
   private boolean sendEveryErrorMessage = false;
 
   @Option(

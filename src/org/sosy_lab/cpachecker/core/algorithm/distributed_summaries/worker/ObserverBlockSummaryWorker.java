@@ -17,9 +17,10 @@ import java.util.Optional;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.ActorMessage;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.Connection;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.Payload;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.ActorMessage;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.ErrorMessage;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.ResultMessage;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.java_smt.api.SolverException;
@@ -43,13 +44,12 @@ public class ObserverBlockSummaryWorker extends BlockSummaryWorker {
   }
 
   @Override
-  public Collection<ActorMessage> processMessage(
-      ActorMessage pMessage)
+  public Collection<ActorMessage> processMessage(ActorMessage pMessage)
       throws InterruptedException, IOException, SolverException, CPAException {
     switch (pMessage.getType()) {
       case FOUND_RESULT:
         shutdown = true;
-        result = Optional.of(Result.valueOf(pMessage.getPayload().get(Payload.RESULT)));
+        result = Optional.of(((ResultMessage) pMessage).getResult());
         statusObserver.updateStatus(pMessage);
         break;
       case ERROR_CONDITION_UNREACHABLE:
@@ -60,10 +60,7 @@ public class ObserverBlockSummaryWorker extends BlockSummaryWorker {
         statusObserver.updateStatus(pMessage);
         break;
       case ERROR:
-        errorMessage = Optional.of(pMessage
-            .getPayload()
-            .getOrDefault(
-                Payload.EXCEPTION, "Error message received without exception message."));
+        errorMessage = Optional.of(((ErrorMessage) pMessage).getErrorMessage());
         shutdown = true;
       default:
         throw new AssertionError("Unknown message type: " + pMessage.getType());
@@ -116,46 +113,15 @@ public class ObserverBlockSummaryWorker extends BlockSummaryWorker {
     }
 
     private void updateStatus(ActorMessage pMessage) {
-      Payload payload = pMessage.getPayload();
-      if (!(payload.containsKey(Payload.PRECISE)
-          && payload.containsKey(Payload.PROPERTY)
-          && payload.containsKey(Payload.SOUND))) {
-        return;
-      }
-      StatusObserver.StatusPrecise isPrecise =
-          StatusObserver.StatusPrecise.valueOf(payload.get(Payload.PRECISE));
-      StatusObserver.StatusPropertyChecked isPropertyChecked =
-          StatusObserver.StatusPropertyChecked.valueOf(payload.get(Payload.PROPERTY));
-      StatusObserver.StatusSoundness isSound =
-          StatusObserver.StatusSoundness.valueOf(payload.get(Payload.SOUND));
-      statusMap.put(pMessage.getUniqueBlockId(), statusOf(isPropertyChecked, isSound, isPrecise));
-    }
-
-    private AlgorithmStatus statusOf(
-        StatusObserver.StatusPropertyChecked pPropertyChecked,
-        StatusObserver.StatusSoundness pIsSound,
-        StatusObserver.StatusPrecise pIsPrecise) {
-      if (pPropertyChecked == StatusObserver.StatusPropertyChecked.UNCHECKED) {
-        return AlgorithmStatus.NO_PROPERTY_CHECKED;
-      }
-      if (pIsSound == StatusObserver.StatusSoundness.SOUND) {
-        if (pIsPrecise == StatusObserver.StatusPrecise.PRECISE) {
-          return AlgorithmStatus.SOUND_AND_PRECISE;
-        }
-        return AlgorithmStatus.SOUND_AND_IMPRECISE;
-      } else {
-        if (pIsPrecise == StatusObserver.StatusPrecise.PRECISE) {
-          return AlgorithmStatus.UNSOUND_AND_PRECISE;
-        }
-        return AlgorithmStatus.UNSOUND_AND_IMPRECISE;
-      }
+      pMessage
+          .getStatusIfPresent()
+          .ifPresent(status -> statusMap.put(pMessage.getUniqueBlockId(), status));
     }
 
     private AlgorithmStatus finish() {
-      return
-          statusMap.values().stream()
-              .reduce(AlgorithmStatus::update)
-              .orElse(AlgorithmStatus.NO_PROPERTY_CHECKED);
+      return statusMap.values().stream()
+          .reduce(AlgorithmStatus::update)
+          .orElse(AlgorithmStatus.NO_PROPERTY_CHECKED);
     }
   }
 }

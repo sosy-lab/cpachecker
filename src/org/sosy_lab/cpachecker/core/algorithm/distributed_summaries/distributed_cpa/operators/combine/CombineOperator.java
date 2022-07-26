@@ -21,14 +21,14 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
  * org.sosy_lab.cpachecker.core.interfaces.MergeOperator}, but it aggregates each abstract state
  * that is deserialized from a precondition (with {@link
  * org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.DeserializeOperator})
- * into a single abstract state.
+ * into a single abstract state. Contrary, to {@link
+ * org.sosy_lab.cpachecker.core.interfaces.MergeOperator} combine should be associative.
  *
  * @see org.sosy_lab.cpachecker.core.interfaces.MergeOperator
  * @see org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.block_analysis.BlockAnalysis
  */
 public interface CombineOperator {
 
-  // TODO: JavaDoc for Combine
   List<AbstractState> combine(AbstractState pState1, AbstractState pState2, Precision pPrecision)
       throws CPAException, InterruptedException;
 

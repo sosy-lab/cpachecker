@@ -8,7 +8,6 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker;
 
-import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Maps;
 import java.io.IOException;
@@ -22,10 +21,11 @@ import java.util.logging.Level;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.BlockNode;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.ActorMessage;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.ActorMessage.MessageType;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.Connection;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.Payload;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.ActorMessage;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.ActorMessage.MessageType;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockPostConditionMessage;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.ErrorConditionMessage;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.java_smt.api.SolverException;
 
@@ -66,7 +66,7 @@ public class ResultBlockSummaryWorker extends BlockSummaryWorker {
 
     switch (type) {
       case ERROR_CONDITION:
-        boolean newPostCondition = Boolean.parseBoolean(pMessage.getPayload().get("first"));
+        boolean newPostCondition = ((ErrorConditionMessage) pMessage).isFirst();
         if (newPostCondition) {
           // we need a block to first send an own error condition or the first BLOCKPOSTCONDITION
           expectAnswer.merge(senderId, 1, Integer::sum);
@@ -121,14 +121,14 @@ public class ResultBlockSummaryWorker extends BlockSummaryWorker {
     if (messageReceived.size() == numWorkers
         && expectAnswer.values().stream().allMatch(i -> i == 0)) {
       shutdown = true;
+      Set<String> visited = ImmutableSet.of();
+      if (pMessage.getType() == MessageType.BLOCK_POSTCONDITION) {
+        visited = ((BlockPostConditionMessage) pMessage).visitedBlockIds();
+      } else if (pMessage.getType() == MessageType.ERROR_CONDITION) {
+        visited = ((ErrorConditionMessage) pMessage).visitedBlockIds();
+      }
       return ImmutableSet.of(
-          ActorMessage.newResultMessage(
-              pMessage.getUniqueBlockId(),
-              0,
-              Result.TRUE,
-              ImmutableSet.copyOf(
-                  Splitter.on(",")
-                      .split(pMessage.getPayload().getOrDefault(Payload.VISITED, "")))));
+          ActorMessage.newResultMessage(pMessage.getUniqueBlockId(), 0, Result.TRUE, visited));
     }
     return ImmutableSet.of();
   }

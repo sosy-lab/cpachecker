@@ -16,7 +16,6 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.SerializeOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.combine.CombineOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.proceed.ProceedOperator;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.UpdatedTypeMap;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.AnalysisOptions;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -41,7 +40,6 @@ public class DistributedPredicateCPA implements DistributedConfigurableProgramAn
   public DistributedPredicateCPA(
       PredicateCPA pPredicateCPA,
       BlockNode pNode,
-      UpdatedTypeMap pTypeMap,
       AnalysisDirection pDirection,
       AnalysisOptions pOptions)
       throws CPAException {
@@ -54,7 +52,6 @@ public class DistributedPredicateCPA implements DistributedConfigurableProgramAn
             predicateCPA,
             predicateCPA.getSolver().getFormulaManager(),
             predicateCPA.getPathFormulaManager(),
-            pTypeMap,
             pNode);
     proceed =
         new ProceedPredicateStateOperator(

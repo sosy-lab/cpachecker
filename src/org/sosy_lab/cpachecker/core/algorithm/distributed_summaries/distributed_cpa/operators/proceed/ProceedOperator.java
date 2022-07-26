@@ -10,20 +10,22 @@ package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed
 
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DistributedConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.MessageProcessing;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.ActorMessage;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.ActorMessage;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockPostConditionMessage;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.ErrorConditionMessage;
 import org.sosy_lab.java_smt.api.SolverException;
 
 public interface ProceedOperator {
 
-  MessageProcessing proceedForward(ActorMessage pMessage)
+  MessageProcessing proceedForward(BlockPostConditionMessage pMessage)
       throws InterruptedException, SolverException;
 
-  MessageProcessing proceedBackward(ActorMessage pMessage)
+  MessageProcessing proceedBackward(ErrorConditionMessage pMessage)
       throws InterruptedException, SolverException;
 
   MessageProcessing proceed(ActorMessage pMessage) throws InterruptedException, SolverException;
 
   void synchronizeKnowledge(DistributedConfigurableProgramAnalysis pAnalysis);
 
-  void update(ActorMessage pLatestOwnPreconditionMessage);
+  void update(BlockPostConditionMessage pLatestOwnPreconditionMessage);
 }

@@ -43,5 +43,4 @@ public class GivenSizeDecomposer implements CFADecomposer {
     }
     return tree;
   }
-
 }

@@ -8,8 +8,6 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries;
 
-import static com.google.common.collect.FluentIterable.from;
-
 import java.io.IOException;
 import java.io.PrintStream;
 import java.util.ArrayList;
@@ -23,7 +21,6 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.BlockNode;
@@ -34,7 +31,6 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decompositio
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.SingleBlockDecomposer;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.CleverMessageQueue;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.Connection;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.UpdatedTypeMap;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.memory.InMemoryConnectionProvider;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.AnalysisOptions;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.BlockSummaryActor;
@@ -52,11 +48,7 @@ import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
-import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.Pair;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManagerImpl;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
-import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.cpachecker.util.statistics.StatInt;
 import org.sosy_lab.cpachecker.util.statistics.StatKind;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
@@ -108,8 +100,7 @@ public class DistributedSummaryAnalysis implements Algorithm, StatisticsProvider
 
   private enum WorkerType {
     DEFAULT,
-    SMART,
-    FAULT_LOCALIZATION
+    SMART
   }
 
   public DistributedSummaryAnalysis(
@@ -126,30 +117,6 @@ public class DistributedSummaryAnalysis implements Algorithm, StatisticsProvider
     shutdownManager = pShutdownManager;
     specification = pSpecification;
     options = new AnalysisOptions(configuration);
-    checkConfig();
-  }
-
-  /**
-   * Currently, fault localization worker require linear blocks
-   *
-   * @throws InvalidConfigurationException if configuration for block analysis is invalid
-   */
-  private void checkConfig() throws InvalidConfigurationException {
-    if (workerType == WorkerType.FAULT_LOCALIZATION) {
-      if (decompositionType != DecompositionType.BLOCK_OPERATOR) {
-        throw new InvalidConfigurationException(
-            "FaultLocalizationWorker needs decomposition with type "
-                + DecompositionType.BLOCK_OPERATOR
-                + " but got "
-                + decompositionType);
-      }
-    } else {
-      if (options.isFlPreconditionAlwaysTrue()) {
-        throw new InvalidConfigurationException(
-            "Unused option: faultLocalizationPreconditionAlwaysTrue. Fault localization is"
-                + " deactivated");
-      }
-    }
   }
 
   private CFADecomposer getDecomposer() throws InvalidConfigurationException {
@@ -167,15 +134,12 @@ public class DistributedSummaryAnalysis implements Algorithm, StatisticsProvider
   }
 
   private DistributedComponentsBuilder analysisWorker(
-      DistributedComponentsBuilder pBuilder, BlockNode pNode, UpdatedTypeMap pMap) {
+      DistributedComponentsBuilder pBuilder, BlockNode pNode) {
     switch (workerType) {
       case DEFAULT:
-        return pBuilder.addAnalysisWorker(pNode, options, pMap);
+        return pBuilder.addAnalysisWorker(pNode, options);
       case SMART:
-        return pBuilder.addSmartAnalysisWorker(pNode, options, pMap);
-      case FAULT_LOCALIZATION:
-        throw new AssertionError("Fault localization is not supported");
-        // return pBuilder.addFaultLocalizationWorker(pNode, pMap, options);
+        return pBuilder.addSmartAnalysisWorker(pNode, options);
       default:
         throw new AssertionError("Unknown WorkerType: " + workerType);
     }
@@ -194,10 +158,6 @@ public class DistributedSummaryAnalysis implements Algorithm, StatisticsProvider
           tree.getDistinctNodes().size(),
           decomposer.getClass().getCanonicalName());
 
-      // create type map (maps variables to their type)
-      SSAMap ssaMap = getTypeMap(tree);
-      UpdatedTypeMap map = new UpdatedTypeMap(ssaMap);
-
       // create workers
       Collection<BlockNode> blocks = tree.getDistinctNodes();
       DistributedComponentsBuilder builder =
@@ -210,9 +170,9 @@ public class DistributedSummaryAnalysis implements Algorithm, StatisticsProvider
       builder = builder.createAdditionalConnections(1);
       for (BlockNode distinctNode : blocks) {
         if (distinctNode.isRoot()) {
-          builder = builder.addRootWorker(distinctNode, options, map);
+          builder = builder.addRootWorker(distinctNode, options);
         } else {
-          builder = analysisWorker(builder, distinctNode, map);
+          builder = analysisWorker(builder, distinctNode);
         }
       }
       builder = builder.addResultCollectorWorker(blocks, options);
@@ -259,23 +219,6 @@ public class DistributedSummaryAnalysis implements Algorithm, StatisticsProvider
     } finally {
       logger.log(Level.INFO, "Block analysis finished.");
     }
-  }
-
-  private SSAMap getTypeMap(BlockTree pTree)
-      throws InvalidConfigurationException, CPATransferException, InterruptedException {
-    Solver solver = Solver.create(configuration, logger, shutdownManager.getNotifier());
-    PathFormulaManagerImpl manager =
-        new PathFormulaManagerImpl(
-            solver.getFormulaManager(),
-            configuration,
-            logger,
-            shutdownManager.getNotifier(),
-            cfa,
-            AnalysisDirection.FORWARD);
-    return manager
-        .makeFormulaForPath(
-            from(pTree.getDistinctNodes()).transformAndConcat(b -> b.getEdgesInBlock()).toList())
-        .getSsa();
   }
 
   @Override

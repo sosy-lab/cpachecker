@@ -21,21 +21,16 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import org.sosy_lab.common.JSON;
-import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.FileOption.Type;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
-import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.BlockNode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.BlockTree;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.ActorMessage;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.Payload;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.ActorMessage;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
-import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
-import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 
 @Options
 public class MessageLogger {
@@ -50,7 +45,6 @@ public class MessageLogger {
 
   private final Map<String, Multimap<String, Object>> entries;
   private final BlockTree tree;
-  private FormulaManagerView fmgr;
 
   public MessageLogger(BlockTree pTree, Configuration pConfiguration)
       throws InvalidConfigurationException {
@@ -59,16 +53,6 @@ public class MessageLogger {
     entries = new HashMap<>();
     tree = pTree;
     pTree.getDistinctNodes().forEach(n -> entries.put(n.getId(), createInitialMap(n)));
-    try {
-      fmgr =
-          Solver.create(
-                  Configuration.defaultConfiguration(),
-                  LogManager.createNullLogManager(),
-                  ShutdownNotifier.createDummy())
-              .getFormulaManager();
-    } catch (InvalidConfigurationException pE) {
-      fmgr = null;
-    }
   }
 
   private Multimap<String, Object> createInitialMap(BlockNode pNode) {
@@ -105,18 +89,10 @@ public class MessageLogger {
     messageToJSON.put("type", pMessage.getType().name());
     messageToJSON.put("timestamp", pMessage.getTimestamp().toString());
     messageToJSON.put("from", pMessage.getUniqueBlockId());
-    Payload p = pMessage.getPayload();
-    String message = p.get(PredicateCPA.class.getName());
-    if (message != null) {
-      p =
-          new Payload.Builder()
-              .addAllEntries(p)
-              .addEntry(
-                  PredicateCPA.class.getName(),
-                  fmgr == null ? message : fmgr.parse(message).toString())
-              .buildPayload();
+    if (pMessage.getAbstractStateString(PredicateCPA.class).isEmpty()) {
+      pMessage = ActorMessage.addEntry(pMessage, PredicateCPA.class.getName(), "true");
     }
-    messageToJSON.put("payload", p.toJSONString());
+    messageToJSON.put("payload", pMessage.getPayloadJSON());
     entries.get(pMessage.getUniqueBlockId()).put("messages", messageToJSON);
     Map<String, Map<String, Collection<Object>>> converted = new HashMap<>();
     entries.forEach((k, v) -> converted.put(k, v.asMap()));

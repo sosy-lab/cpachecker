@@ -8,7 +8,6 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker;
 
-import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableSet;
 import java.io.IOException;
 import java.util.Collection;
@@ -23,10 +22,10 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.block_analys
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.block_analysis.BlockAnalysis.NoopAnalysis;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.BlockNode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.MessageProcessing;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.ActorMessage;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.Connection;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.Payload;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.UpdatedTypeMap;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.ActorMessage;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockPostConditionMessage;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.ErrorConditionMessage;
 import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.java_smt.api.SolverException;
@@ -40,7 +39,6 @@ public class RootBlockSummaryWorker extends BlockSummaryWorker {
 
   public RootBlockSummaryWorker(
       String pId,
-      UpdatedTypeMap pTypeMap,
       Connection pConnection,
       AnalysisOptions pOptions,
       BlockNode pNode,
@@ -59,7 +57,6 @@ public class RootBlockSummaryWorker extends BlockSummaryWorker {
     analysis =
         new NoopAnalysis(
             getLogger(),
-            pTypeMap,
             pNode,
             pCfa,
             AnalysisDirection.FORWARD,
@@ -78,7 +75,10 @@ public class RootBlockSummaryWorker extends BlockSummaryWorker {
             && root.getSuccessors().stream()
                 .anyMatch(block -> block.getId().equals(pMessage.getUniqueBlockId()))) {
           MessageProcessing processing =
-              analysis.getDistributedCPA().getProceedOperator().proceedBackward(pMessage);
+              analysis
+                  .getDistributedCPA()
+                  .getProceedOperator()
+                  .proceedBackward((ErrorConditionMessage) pMessage);
           if (processing.end()) {
             return processing;
           }
@@ -87,9 +87,7 @@ public class RootBlockSummaryWorker extends BlockSummaryWorker {
                   root.getId(),
                   root.getLastNode().getNodeNumber(),
                   Result.FALSE,
-                  ImmutableSet.copyOf(
-                      Splitter.on(",")
-                          .split(pMessage.getPayload().getOrDefault(Payload.VISITED, "")))));
+                  ((ErrorConditionMessage) pMessage).visitedBlockIds()));
         }
         return ImmutableSet.of();
       case FOUND_RESULT:
@@ -123,7 +121,7 @@ public class RootBlockSummaryWorker extends BlockSummaryWorker {
       analysis
           .getDistributedCPA()
           .getProceedOperator()
-          .update(initialMessage.stream().findAny().orElseThrow());
+          .update((BlockPostConditionMessage) initialMessage.stream().findAny().orElseThrow());
       broadcast(initialMessage);
       super.run();
     } catch (InterruptedException | CPAException pE) {

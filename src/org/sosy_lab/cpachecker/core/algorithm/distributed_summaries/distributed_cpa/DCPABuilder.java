@@ -16,7 +16,6 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decompositio
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.callstack.DistributedCallstackCPA;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.function_pointer.DistributedFunctionPointerCPA;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.predicate.DistributedPredicateCPA;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.UpdatedTypeMap;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.AnalysisOptions;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.cpa.callstack.CallstackCPA;
@@ -29,12 +28,10 @@ public class DCPABuilder {
   private final Map<
           Class<? extends ConfigurableProgramAnalysis>, DistributedConfigurableProgramAnalysis>
       analyses;
-  private final UpdatedTypeMap typeMap;
   private final AnalysisOptions options;
 
-  public DCPABuilder(UpdatedTypeMap pTypeMap, AnalysisOptions pOptions) {
+  public DCPABuilder(AnalysisOptions pOptions) {
     analyses = new HashMap<>();
-    typeMap = pTypeMap;
     options = pOptions;
   }
 
@@ -59,7 +56,7 @@ public class DCPABuilder {
       throws CPAException {
     analyses.put(
         pPredicateCPA.getClass(),
-        new DistributedPredicateCPA(pPredicateCPA, pBlockNode, typeMap, pDirection, options));
+        new DistributedPredicateCPA(pPredicateCPA, pBlockNode, pDirection, options));
   }
 
   private void addCPA(

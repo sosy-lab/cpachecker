@@ -8,8 +8,9 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.predicate;
 
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.Payload;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.ActorMessage;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
+import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
@@ -21,16 +22,15 @@ import org.sosy_lab.java_smt.api.BooleanFormula;
 public class PredicateOperatorUtil {
 
   public static String extractFormulaString(
-      Payload pPayload,
+      ActorMessage pMessage,
       Class<? extends ConfigurableProgramAnalysis> pKey,
       FormulaManagerView pFormulaManagerView) {
-    String formula = pPayload.get(pKey.getName());
-    if (formula == null) {
-      return pFormulaManagerView
-          .dumpFormula(pFormulaManagerView.getBooleanFormulaManager().makeTrue())
-          .toString();
-    }
-    return formula;
+    return pMessage
+        .getAbstractStateString(PredicateCPA.class)
+        .orElse(
+            pFormulaManagerView
+                .dumpFormula(pFormulaManagerView.getBooleanFormulaManager().makeTrue())
+                .toString());
   }
 
   public static PathFormula getPathFormula(

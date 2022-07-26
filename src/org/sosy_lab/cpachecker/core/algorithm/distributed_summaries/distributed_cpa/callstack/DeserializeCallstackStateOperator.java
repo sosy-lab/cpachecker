@@ -10,10 +10,10 @@ package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed
 
 import com.google.common.base.Splitter;
 import java.util.List;
+import java.util.Optional;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.BlockNode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.DeserializeOperator;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.ActorMessage;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.Payload;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.ActorMessage;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.cpa.callstack.CallstackCPA;
@@ -31,13 +31,13 @@ public class DeserializeCallstackStateOperator implements DeserializeOperator {
 
   @Override
   public AbstractState deserialize(ActorMessage pMessage) {
-    Payload payload = pMessage.getPayload();
-    if (!payload.containsKey(parentCPA.getClass().getName())) {
+    Optional<String> state = pMessage.getAbstractStateString(parentCPA.getClass());
+    if (state.isEmpty()) {
       return parentCPA.getInitialState(
           block.getNodeWithNumber(pMessage.getTargetNodeNumber()),
           StateSpacePartition.getDefaultPartition());
     }
-    String callstackJSON = payload.getOrDefault(parentCPA.getClass().getName(), "");
+    String callstackJSON = state.orElse("");
     if (callstackJSON.isBlank()) {
       return parentCPA.getInitialState(
           block.getNodeWithNumber(pMessage.getTargetNodeNumber()),

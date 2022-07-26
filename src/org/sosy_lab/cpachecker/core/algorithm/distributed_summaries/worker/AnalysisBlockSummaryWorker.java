@@ -23,9 +23,8 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.block_analys
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.BlockNode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.MessageProcessing;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.composite.DistributedCompositeCPA;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.ActorMessage;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.Connection;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.UpdatedTypeMap;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.ActorMessage;
 import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.statistics.StatTimer;
@@ -45,9 +44,21 @@ public class AnalysisBlockSummaryWorker extends BlockSummaryWorker {
   private final StatTimer forwardAnalysisTime = new StatTimer("Forward Analysis");
   private final StatTimer backwardAnalysisTime = new StatTimer("Backward Analysis");
 
+  /**
+   * @param pId unique id of worker
+   * @param pOptions analysis options for distributed analysis
+   * @param pConnection unique connection to other actors
+   * @param pBlock block where this analysis works on
+   * @param pCFA complete CFA of which pBlock is a subgraph
+   * @param pSpecification specification that should not be violated
+   * @param pShutdownManager handler for unexpected shutdowns
+   * @throws CPAException exceptions that are logged
+   * @throws InterruptedException thrown if user exits program
+   * @throws InvalidConfigurationException thrown if configuration contains unexpected values
+   * @throws IOException thrown if socket and/or files are not readable
+   */
   AnalysisBlockSummaryWorker(
       String pId,
-      UpdatedTypeMap pTypeMap,
       AnalysisOptions pOptions,
       Connection pConnection,
       BlockNode pBlock,
@@ -77,7 +88,6 @@ public class AnalysisBlockSummaryWorker extends BlockSummaryWorker {
     forwardAnalysis =
         new ForwardAnalysis(
             getLogger(),
-            pTypeMap,
             pBlock,
             pCFA,
             pSpecification,
@@ -88,7 +98,6 @@ public class AnalysisBlockSummaryWorker extends BlockSummaryWorker {
     backwardAnalysis =
         new BackwardAnalysis(
             getLogger(),
-            pTypeMap,
             pBlock,
             pCFA,
             backwardSpecification,

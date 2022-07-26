@@ -10,19 +10,21 @@ package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed
 
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DistributedConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.MessageProcessing;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.ActorMessage;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.ActorMessage;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockPostConditionMessage;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.ErrorConditionMessage;
 import org.sosy_lab.java_smt.api.SolverException;
 
 public class NeverProceed implements ProceedOperator {
 
   @Override
-  public MessageProcessing proceedForward(ActorMessage pMessage)
+  public MessageProcessing proceedForward(BlockPostConditionMessage pMessage)
       throws InterruptedException, SolverException {
     return proceed(pMessage);
   }
 
   @Override
-  public MessageProcessing proceedBackward(ActorMessage pMessage)
+  public MessageProcessing proceedBackward(ErrorConditionMessage pMessage)
       throws InterruptedException, SolverException {
     return proceed(pMessage);
   }
@@ -36,5 +38,5 @@ public class NeverProceed implements ProceedOperator {
   public void synchronizeKnowledge(DistributedConfigurableProgramAnalysis pAnalysis) {}
 
   @Override
-  public void update(ActorMessage pLatestOwnPreconditionMessage) {}
+  public void update(BlockPostConditionMessage pLatestOwnPreconditionMessage) {}
 }
