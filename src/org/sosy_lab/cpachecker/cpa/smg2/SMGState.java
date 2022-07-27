@@ -364,6 +364,27 @@ public class SMGState implements LatticeAbstractState<SMGState>, AbstractQueryab
   }
 
   /**
+   * Copy SMGState with a newly created {@link SMGObject} and returns the new state + the new {@link
+   * SMGObject} with the size specified in bits. Make sure that you reuse the {@link SMGObject}
+   * right away to create a points-to-edge and not just use SMGObjects in the code.
+   *
+   * @param pTypeSizeInBits Size of the type of the new global variable.
+   * @return Newly created object + state with it.
+   */
+  public SMGObjectAndSMGState copyAndAddStackObject(BigInteger pTypeSizeInBits) {
+    SMGObject newObject = SMGObject.of(0, pTypeSizeInBits, BigInteger.ZERO);
+    return SMGObjectAndSMGState.of(
+        newObject,
+        of(
+            machineModel,
+            memoryModel.copyAndAddStackObject(newObject),
+            logger,
+            options,
+            errorInfo,
+            variableBlacklist));
+  }
+
+  /**
    * Checks if a global variable exists for the name given.
    *
    * @param pVarName Name of the global variable.
