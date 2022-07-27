@@ -91,7 +91,6 @@ import org.sosy_lab.cpachecker.cpa.smg2.util.value.ValueAndSMGState;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.AddressExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.ConstantSymbolicExpression;
 import org.sosy_lab.cpachecker.cpa.value.type.BooleanValue;
-import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.cpa.value.type.Value.UnknownValue;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
@@ -433,10 +432,8 @@ public class SMGTransferRelation
       CAssumeEdge cfaEdge, CExpression expression, boolean truthAssumption)
       throws CPATransferException, InterruptedException {
     // Assumptions are essentially all value analysis in nature. We might get the values from the
-    // SMGs
-    // though.
-    // Assumptions are for example all comparisons like ==, !=, <.... and should always be a
-    // CBinaryExpression
+    // SMGs though.  Assumptions are for example all comparisons like ==, !=, <.... and should
+    // always be a CBinaryExpression.
     // We also might learn something by assuming symbolic or unknown values based on known values
     return handleAssumption(expression, cfaEdge, truthAssumption);
   }
@@ -496,10 +493,8 @@ public class SMGTransferRelation
 
       } else if (representsBoolean(value, truthValue)) {
         // We do not know more than before, and the assumption is fulfilled, so return the state
-        // from
-        // the value visitor (we don't need a copy as every state operation generates a new state
-        // and
-        // never modifies the old state)
+        // from the value visitor (we don't need a copy as every state operation generates a new
+        // state and never modifies the old state)
         resultStateBuilder.add(currentState);
 
       } else {
@@ -529,7 +524,11 @@ public class SMGTransferRelation
       return ((BooleanValue) value).isTrue() == bool;
 
     } else if (value.isNumericValue()) {
-      return value.equals(new NumericValue(bool ? 1L : 0L));
+      if (bool) {
+        return value.asNumericValue().longValue() == 1L;
+      } else {
+        return value.asNumericValue().longValue() == 0L;
+      }
 
     } else {
       return false;
