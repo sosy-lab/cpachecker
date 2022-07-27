@@ -50,6 +50,7 @@ import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
 import org.sosy_lab.cpachecker.cfa.types.c.CBitFieldType;
+import org.sosy_lab.cpachecker.cfa.types.c.CElaboratedType;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
@@ -164,12 +165,37 @@ public class SMGCPAValueVisitor
           continue;
         }
         // Calculate the offset out of the subscript value and the type
+        CType properTypeRead = e.getExpressionType();
         BigInteger typeSizeInBits = evaluator.getBitSizeof(newState, e.getExpressionType());
+        if (properTypeRead instanceof CArrayType) {
+          // We read an array type. This means this is a nested array and we need to read a pointer
+          // actually
+          properTypeRead =
+              new CPointerType(
+                  properTypeRead.isConst(),
+                  properTypeRead.isVolatile(),
+                  ((CArrayType) properTypeRead).getType());
+          typeSizeInBits = evaluator.getBitSizeof(newState, properTypeRead);
+        } else if (properTypeRead instanceof CElaboratedType) {
+          // We read an struct/union type. This means this is a nested array and we need to read a
+          // pointer actually
+          properTypeRead =
+              new CPointerType(
+                  properTypeRead.isConst(),
+                  properTypeRead.isVolatile(),
+                  ((CElaboratedType) properTypeRead).getRealType());
+          typeSizeInBits = evaluator.getBitSizeof(newState, properTypeRead);
+        }
+
         BigInteger subscriptOffset =
             typeSizeInBits.multiply(subscriptValue.asNumericValue().bigInteger());
 
         // Get the value from the array and return the value + state
-        if (arrayExpr.getExpressionType() instanceof CPointerType) {
+        if (arrayExpr.getExpressionType() instanceof CPointerType
+            || evaluator.isPointerValue(arrayValue, newState)) {
+          if (!(arrayValue instanceof AddressExpression)) {
+            arrayValue = AddressExpression.withZeroOffset(arrayValue, properTypeRead);
+          }
           // In the pointer case, the Value needs to be a AddressExpression
           Preconditions.checkArgument(arrayValue instanceof AddressExpression);
           AddressExpression addressValue = (AddressExpression) arrayValue;
@@ -188,10 +214,9 @@ public class SMGCPAValueVisitor
           resultBuilder.add(
               evaluator.readValueWithPointerDereference(
                   newState, addressValue.getMemoryAddress(), subscriptOffset, typeSizeInBits));
-        } else {
+        } else if (arrayValue instanceof SymbolicValue
+            && ((SymbolicValue) arrayValue).getRepresentedLocation().isPresent()) {
           // Here our arrayValue holds the name of our variable
-          Preconditions.checkArgument(arrayValue instanceof SymbolicValue);
-
           MemoryLocation maybeVariableIdent =
               ((SymbolicValue) arrayValue).getRepresentedLocation().orElseThrow();
 
@@ -205,6 +230,10 @@ public class SMGCPAValueVisitor
           resultBuilder.add(
               evaluator.readStackOrGlobalVariable(
                   newState, maybeVariableIdent.getIdentifier(), subscriptOffset, typeSizeInBits));
+
+        } else {
+          throw new SMG2Exception(
+              "Error: could not determine CArraySubscript access in the SMGCPAValueVisitor.");
         }
       }
     }
