@@ -563,6 +563,16 @@ public class SymbolicProgramConfiguration {
   }
 
   /**
+   * Adds a SMGObject to the list of known SMGObject, but nothing else.
+   *
+   * @param newObject the new {@link SMGObject}.
+   * @return a copy of the SPC + the object added.
+   */
+  public SymbolicProgramConfiguration copyAndAddStackObject(SMGObject newObject) {
+    return copyAndReplaceSMG(getSmg().copyAndAddObject(newObject));
+  }
+
+  /**
    * Tries to search for a variable that is currently visible in the current {@link StackFrame} and
    * in the global variables and returns the variable if found. If it is not found, the {@link
    * Optional} will be empty. Note: this returns the SMGObject in which the value for the variable
