@@ -267,6 +267,8 @@ public class SMGTransferRelation
       ImmutableList.Builder<SMGState> prunedSuccessors = ImmutableList.builder();
       for (SMGState successor : successors) {
         // Pruning checks for memory leaks and updates the error state if one is found!
+        // TODO: check that stack memory that is not directly referenced in variables is pruned
+        // correctly. I.e nested subscript arrays.
         prunedSuccessors.add(successor.copyAndPruneUnreachable());
       }
       successors = prunedSuccessors.build();
@@ -679,7 +681,111 @@ public class SMGTransferRelation
       }
     }
 
-    return handleInitializerForDeclaration(newState, varName, pVarDecl, cType, pEdge);
+    // Populate nested arrays/structs etc. if they are stack created
+    List<SMGState> newStates =
+        populateNestedStackStructures(
+            cType,
+            newState,
+            pEdge,
+            newState.getMemoryModel().getObjectForVisibleVariable(varName).orElseThrow());
+
+    ImmutableList.Builder<SMGState> finalStates = ImmutableList.builder();
+    for (SMGState pupulatedState : newStates) {
+      finalStates.addAll(
+          handleInitializerForDeclaration(pupulatedState, varName, pVarDecl, cType, pEdge));
+    }
+
+    return finalStates.build();
+  }
+
+  private List<SMGState> populateNestedStackStructures(
+      CType cType, SMGState pState, CFAEdge pEdge, SMGObject memoryRegion)
+      throws CPATransferException {
+
+    ImmutableList.Builder<SMGState> resultStatesBuilder = ImmutableList.builder();
+    if (cType instanceof CArrayType) {
+      CType nestedType = ((CArrayType) cType).getType();
+      if (nestedType instanceof CArrayType) {
+        // The nested type is a array, so populate the current array with pointers to arrays
+        CExpression lengthExprOfTopArray = ((CArrayType) cType).getLength();
+        SMGCPAValueVisitor valueVisitor = new SMGCPAValueVisitor(evaluator, pState, pEdge, logger);
+        for (ValueAndSMGState lengthAndState : lengthExprOfTopArray.accept(valueVisitor)) {
+          Value lengthValueOfTop = lengthAndState.getValue();
+          SMGState currentState = lengthAndState.getState();
+          if (!lengthValueOfTop.isExplicitlyKnown()) {
+            throw new SMG2Exception(
+                "The SMG2 analysis can't handle symbolic array length. Try the option guessSizeOfUnknownMemorySize.");
+          }
+
+          for (ValueAndSMGState nestedLengthAndState :
+              ((CArrayType) nestedType).getLength().accept(valueVisitor)) {
+            currentState = nestedLengthAndState.getState();
+            Value nestedLength = nestedLengthAndState.getValue();
+            if (!nestedLength.isExplicitlyKnown()) {
+              throw new SMG2Exception(
+                  "The SMG2 analysis can't handle symbolic array length. Try the option guessSizeOfUnknownMemorySize.");
+            }
+            BigInteger lengthOfNestedArray = nestedLength.asNumericValue().bigInteger();
+            BigInteger sizeOfNestedInBits =
+                evaluator.getBitSizeof(currentState, nestedType).multiply(lengthOfNestedArray);
+            for (long len = 0; len < lengthValueOfTop.asNumericValue().longValue(); len++) {
+              // Create a memory area with the appropriate size +
+              // Create a pointer to the new memory
+              ValueAndSMGState newPointerAndState =
+                  evaluator.createStackMemoryAndPointer(currentState, sizeOfNestedInBits);
+              currentState = newPointerAndState.getState();
+              Value pointerValue = newPointerAndState.getValue();
+              // Save the pointer at the correct position in the already existing array
+              // To do this we need the pointer version of the current type
+              CType pointerOfArray =
+                  new CPointerType(nestedType.isConst(), nestedType.isVolatile(), nestedType);
+              BigInteger sizeOfType = evaluator.getBitSizeof(currentState, pointerOfArray);
+              currentState =
+                  currentState.writeValueTo(
+                      memoryRegion,
+                      sizeOfType.multiply(BigInteger.valueOf(len)),
+                      sizeOfType,
+                      pointerValue,
+                      pointerOfArray);
+              // Recursively try to fill the just created memory
+              Optional<SMGObjectAndOffset> maybeTargetObjectAndOffset =
+                  currentState.getMemoryModel().dereferencePointer(pointerValue);
+              // We know its offset is = 0 as we just created it
+              Preconditions.checkArgument(maybeTargetObjectAndOffset.isPresent());
+              Preconditions.checkArgument(
+                  maybeTargetObjectAndOffset
+                          .orElseThrow()
+                          .getOffsetForObject()
+                          .compareTo(BigInteger.ZERO)
+                      == 0);
+              // Since the nesting is stack only, there can't be any failures, so we can assume
+              // there is only 1 return state
+              List<SMGState> handledNestedStates =
+                  populateNestedStackStructures(
+                      nestedType,
+                      currentState,
+                      pEdge,
+                      maybeTargetObjectAndOffset.orElseThrow().getSMGObject());
+              Preconditions.checkArgument(handledNestedStates.size() == 1);
+              currentState = handledNestedStates.get(0);
+            }
+            resultStatesBuilder.add(currentState);
+          }
+          return resultStatesBuilder.build();
+        }
+
+      } else if (nestedType instanceof CElaboratedType) {
+        // TODO:
+      }
+
+
+    } else if (cType instanceof CElaboratedType) {
+      ((CElaboratedType) cType).getRealType();
+      // TODO:
+      return resultStatesBuilder.build();
+    }
+
+    return ImmutableList.of(pState);
   }
 
   /**
