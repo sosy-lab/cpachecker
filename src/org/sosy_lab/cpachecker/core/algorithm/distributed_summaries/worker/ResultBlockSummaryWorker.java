@@ -18,7 +18,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Level;
-import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.BlockNode;
@@ -39,8 +38,8 @@ public class ResultBlockSummaryWorker extends BlockSummaryWorker {
   private final Connection connection;
   private boolean shutdown;
 
-  ResultBlockSummaryWorker(Collection<BlockNode> pNodes, Connection pConnection, LogManager pLogger)
-      throws InvalidConfigurationException {
+  ResultBlockSummaryWorker(
+      Collection<BlockNode> pNodes, Connection pConnection, LogManager pLogger) {
     super("result-worker", pLogger);
     nodeMap = new HashMap<>();
     connection = pConnection;

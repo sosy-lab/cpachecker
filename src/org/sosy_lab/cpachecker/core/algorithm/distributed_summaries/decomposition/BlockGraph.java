@@ -26,8 +26,8 @@ public class BlockGraph {
   /**
    * Represents the CFA but partitioned into multiple connected blocks.
    *
-   * @param pRoot the root node of the
-   * @param pFactory
+   * @param pRoot The root node of the
+   * @param pFactory The factory that created this block graph.
    */
   public BlockGraph(BlockNode pRoot, BlockGraphBuilder pFactory) {
     root = pRoot;
