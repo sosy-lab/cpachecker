@@ -46,7 +46,10 @@ public class AnalysisBlockSummaryWorker extends BlockSummaryWorker {
   private final StatTimer backwardAnalysisTime = new StatTimer("Backward Analysis");
 
   /**
-   * @param pId unique id of worker
+   * {@link AnalysisBlockSummaryWorker}s trigger forward and backward analyses to find a
+   * verification verdict.
+   *
+   * @param pId unique id of worker that will be prefixed with 'analysis-worker-'
    * @param pOptions analysis options for distributed analysis
    * @param pConnection unique connection to other actors
    * @param pBlock block where this analysis works on
