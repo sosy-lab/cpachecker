@@ -298,6 +298,28 @@ public class SMGCPAValueExpressionEvaluator {
   }
 
   /**
+   * Create a new stack object with the size in bits and then create a pointer to its beginning and
+   * return the state with the pointer and object + the pointer Value (address to the objects
+   * beginning).
+   *
+   * @param pInitialSmgState initial {@link SMGState}.
+   * @param sizeInBits size in bits as {@link BigInteger}.
+   * @return the {@link Value} that is the address for the new stack memory region created with the
+   *     size and the {@link SMGState} with the region (SMGObject) pointer and address Value added.
+   */
+  public ValueAndSMGState createStackMemoryAndPointer(
+      SMGState pInitialSmgState, BigInteger sizeInBits) {
+    SMGObjectAndSMGState newObjectAndState = pInitialSmgState.copyAndAddStackObject(sizeInBits);
+    SMGObject newObject = newObjectAndState.getSMGObject();
+    SMGState newState = newObjectAndState.getState();
+
+    Value addressValue = SymbolicValueFactory.getInstance().newIdentifier(null);
+    // New regions always have offset 0
+    SMGState finalState = newState.createAndAddPointer(addressValue, newObject, BigInteger.ZERO);
+    return ValueAndSMGState.of(addressValue, finalState);
+  }
+
+  /**
    * This creates or finds and returns the address Value for the underyling expression. This also
    * creates the pointers in the SMG if not yet created. Throws the exception only if either there
    * is no object or if nonsensical addresses are requested; i.e. &3; Used with the & operator for
