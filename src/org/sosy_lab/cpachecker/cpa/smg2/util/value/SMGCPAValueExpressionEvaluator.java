@@ -30,6 +30,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CElaboratedType;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
+import org.sosy_lab.cpachecker.cfa.types.c.CFunctionTypeWithNames;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.smg.TypeUtils;
@@ -340,6 +341,11 @@ public class SMGCPAValueExpressionEvaluator {
     ImmutableList.Builder<ValueAndSMGState> resultBuilder = ImmutableList.builder();
     for (Optional<SMGObjectAndOffset> maybeObjectAndOffset : operand.accept(addressVisitor)) {
       if (maybeObjectAndOffset.isEmpty()) {
+        if (operand.getExpressionType() instanceof CFunctionCallExpression
+            || operand.getExpressionType() instanceof CFunctionTypeWithNames) {
+          throw new SMG2Exception(
+              "No address could be created for the function call expression: " + operand);
+        }
         // TODO: improve error handling and add more specific exceptions to the visitor!
         // No address could be found
         throw new SMG2Exception("No address could be created for the expression: " + operand);
