@@ -300,14 +300,16 @@ public class SMGCPAValueVisitor
             // address == address or address == not address
             resultBuilder.add(
                 ValueAndSMGState.of(
-                    evaluator.checkEqualityForAddresses(leftValue, rightValue, currentState),
+                    evaluator.checkEqualityForAddresses(
+                        leftValue, rightValue, currentState, cfaEdge),
                     currentState));
             continue;
           } else if (binaryOperator == BinaryOperator.NOT_EQUALS) {
             // address != address or address != not address
             resultBuilder.add(
                 ValueAndSMGState.of(
-                    evaluator.checkNonEqualityForAddresses(leftValue, rightValue, currentState),
+                    evaluator.checkNonEqualityForAddresses(
+                        leftValue, rightValue, currentState, cfaEdge),
                     currentState));
             continue;
           } else {
@@ -694,6 +696,7 @@ public class SMGCPAValueVisitor
       if (unaryOperator == UnaryOperator.AMPER) {
         // Check if a pointer already exits, if not create a pointer (points-to-edge), map it to a
         // unique value and return it.
+        // Note: this returns AddressExpressions! Unwrap before saving!
         return evaluator.createAddress(unaryOperand, currentState, cfaEdge);
       }
 

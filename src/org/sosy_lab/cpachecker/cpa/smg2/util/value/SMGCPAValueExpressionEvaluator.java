@@ -19,6 +19,7 @@ import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
@@ -30,7 +31,6 @@ import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CElaboratedType;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
-import org.sosy_lab.cpachecker.cfa.types.c.CFunctionTypeWithNames;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.smg.TypeUtils;
@@ -153,10 +153,14 @@ public class SMGCPAValueExpressionEvaluator {
    * @param rightValue the right hand side address of the equality.
    * @param state the current state in which the 2 values are address values.
    * @return a {@link Value} that is either 1 or 0 as true and false result of the equality.
+   * @throws SMG2Exception in case of critical errors
    */
-  public Value checkEqualityForAddresses(Value leftValue, Value rightValue, SMGState state) {
-    boolean isNotEqual = state.areNonEqualAddresses(leftValue, rightValue);
-    return isNotEqual ? new NumericValue(0) : new NumericValue(1);
+  public Value checkEqualityForAddresses(
+      Value leftValue, Value rightValue, SMGState state, CFAEdge cfaEdge) throws SMG2Exception {
+    Value isNotEqual = checkNonEqualityForAddresses(leftValue, rightValue, state, cfaEdge);
+    return isNotEqual.asNumericValue().bigInteger().compareTo(BigInteger.ZERO) == 0
+        ? new NumericValue(1)
+        : new NumericValue(0);
   }
 
   /**
@@ -169,53 +173,46 @@ public class SMGCPAValueExpressionEvaluator {
    * @param state the current state in which the 2 values are address values.
    * @return a {@link Value} that is 1 (true) if the 2 addresses are not equal, 0 (false) if they
    *     are equal.
+   * @throws SMG2Exception in case of critical errors
    */
-  public Value checkNonEqualityForAddresses(Value leftValue, Value rightValue, SMGState state) {
-    if (leftValue instanceof AddressExpression && rightValue instanceof AddressExpression) {
-      // AddressExpressions are basically (pointer + offset). We can compare the base pointer, if
-      // those are not equal, no offset will make them equal!
-      Value leftMemoryBaseAddress = ((AddressExpression) leftValue).getMemoryAddress();
-      Value rightMemoryBaseAddress = ((AddressExpression) rightValue).getMemoryAddress();
-      boolean baseIsNotEqual =
-          state.areNonEqualAddresses(leftMemoryBaseAddress, rightMemoryBaseAddress);
-      if (!baseIsNotEqual) {
-        // the base is  equal
-        Value leftOffset = ((AddressExpression) leftValue).getOffset();
-        Value rightOffset = ((AddressExpression) rightValue).getOffset();
-        if (leftOffset.isNumericValue() && rightValue.isNumericValue()) {
-          NumericValue leftOffsetNum = leftOffset.asNumericValue();
-          NumericValue rightOffsetNum = rightOffset.asNumericValue();
-          if (leftOffsetNum.getNumber().equals(rightOffsetNum.getNumber())) {
-            // they are truly equal (so they are not not-equal)
-            return new NumericValue(0);
-          }
-        } else if (leftOffset.isUnknown()) {
-          if (rightOffset.isUnknown()) {
-            // Both offsets are unknown, meaning that if the base address is the same, we can check
-            // both cases that they are equal and that they are not.
-            // If the base address is not equal, they can never be equal.
-            // TODO: cover all cases if an option is on
-            return UnknownValue.getInstance();
-          }
-          // left is unknown, right is concrete. We can assume 2 cases here, 1 where the addresses
-          // are equal and the unknown value is == the known, and one where they are not.
-          // TODO: cover all cases if an option is on
-          return UnknownValue.getInstance();
+  public Value checkNonEqualityForAddresses(
+      Value leftValue, Value rightValue, SMGState state, CFAEdge cfaEdge) throws SMG2Exception {
+    ValueAndSMGState leftValueAndState = unpackAddressExpression(leftValue, state, cfaEdge);
+    leftValue = leftValueAndState.getValue();
+    ValueAndSMGState rightValueAndState =
+        unpackAddressExpression(rightValue, leftValueAndState.getState(), cfaEdge);
+    rightValue = rightValueAndState.getValue();
+    SMGState currentState = rightValueAndState.getState();
 
-        } else if (rightOffset.isUnknown()) {
-          // Only 1 offset is unknown, this could indicate that the 2 addresses may be the same if
-          // they point to the same SMGObject. However they might never be equal if they don't.
-          // TODO: cover all cases if an option is on
-          return UnknownValue.getInstance();
-        }
-      }
-      // They are not equal
-      return new NumericValue(1);
-    }
     Preconditions.checkArgument(
         !(leftValue instanceof AddressExpression) && !(rightValue instanceof AddressExpression));
-    boolean isNotEqual = state.areNonEqualAddresses(leftValue, rightValue);
+    boolean isNotEqual = currentState.areNonEqualAddresses(leftValue, rightValue);
     return isNotEqual ? new NumericValue(1) : new NumericValue(0);
+  }
+
+  private ValueAndSMGState unpackAddressExpression(Value value, SMGState state, CFAEdge cfaEdge)
+      throws SMG2Exception {
+    if (!(value instanceof AddressExpression)) {
+      return ValueAndSMGState.of(value, state);
+    }
+    AddressExpression address1 = (AddressExpression) value;
+    Value offsetValue = address1.getOffset();
+    if (offsetValue.isNumericValue()
+        && offsetValue.asNumericValue().bigInteger().compareTo(BigInteger.ZERO) == 0) {
+      return ValueAndSMGState.of(address1.getMemoryAddress(), state);
+    } else {
+      // Get the correct address with its offset in the SMGPointsToEdge
+      SMGObjectAndOffset targetAndOffset = state.getPointsToTarget(address1.getMemoryAddress());
+      SMGObject target = targetAndOffset.getSMGObject();
+      if (!offsetValue.isNumericValue()) {
+        throw new SMG2Exception(
+            "Comparison of non numeric offset values not possible when comparing addresses.");
+      }
+      BigInteger offset =
+          offsetValue.asNumericValue().bigInteger().add(targetAndOffset.getOffsetForObject());
+
+      return searchOrCreatePointer(target, offset, state);
+    }
   }
 
   /**
@@ -329,8 +326,7 @@ public class SMGCPAValueExpressionEvaluator {
    * @param operand the {@link CExpression} that is the operand of the & expression.
    * @param pState current {@link SMGState}
    * @param cfaEdge debug/logging edge.
-   * @return a list of either unknown or a {@link Value} representing the address. This is not a
-   *     {@link AddressExpression}!
+   * @return a list of either unknown or a {@link AddressExpression} representing the address.
    * @throws CPATransferException if the & operator is used on a invalid expression.
    */
   public List<ValueAndSMGState> createAddress(CExpression operand, SMGState pState, CFAEdge cfaEdge)
@@ -340,21 +336,39 @@ public class SMGCPAValueExpressionEvaluator {
     SMGCPAAddressVisitor addressVisitor = new SMGCPAAddressVisitor(this, pState, cfaEdge, logger);
     ImmutableList.Builder<ValueAndSMGState> resultBuilder = ImmutableList.builder();
     for (Optional<SMGObjectAndOffset> maybeObjectAndOffset : operand.accept(addressVisitor)) {
+      SMGState currentState = pState;
       if (maybeObjectAndOffset.isEmpty()) {
-        if (operand.getExpressionType() instanceof CFunctionCallExpression
-            || operand.getExpressionType() instanceof CFunctionTypeWithNames) {
-          throw new SMG2Exception(
-              "No address could be created for the function call expression: " + operand);
-        }
+        // Functions are not declared, but the address might be requested anyway, so we have to
+        // create the address
+        if (operand instanceof CIdExpression
+            && SMGCPAValueExpressionEvaluator.getCanonicalType(operand.getExpressionType())
+                instanceof CFunctionType) {
+          CFunctionDeclaration functionDcl =
+              (CFunctionDeclaration) ((CIdExpression) operand).getDeclaration();
+          Optional<SMGObject> functionObject = currentState.getObjectForFunction(functionDcl);
+
+          if (functionObject.isEmpty()) {
+            currentState = currentState.copyAndAddFunctionVariable(functionDcl);
+            functionObject = currentState.getObjectForFunction(functionDcl);
+          }
+          maybeObjectAndOffset =
+              Optional.of(SMGObjectAndOffset.withZeroOffset(functionObject.orElseThrow()));
+        } else {
         // TODO: improve error handling and add more specific exceptions to the visitor!
         // No address could be found
         throw new SMG2Exception("No address could be created for the expression: " + operand);
+        }
       }
       SMGObjectAndOffset targetAndOffset = maybeObjectAndOffset.orElseThrow();
       SMGObject target = targetAndOffset.getSMGObject();
       BigInteger offset = targetAndOffset.getOffsetForObject();
       // search for existing pointer first and return if found; else make a new one
-      resultBuilder.add(searchOrCreatePointer(target, offset, pState));
+      ValueAndSMGState addressAndState = searchOrCreatePointer(target, offset, currentState);
+      resultBuilder.add(
+          ValueAndSMGState.of(
+              AddressExpression.withZeroOffset(
+                  addressAndState.getValue(), operand.getExpressionType()),
+              addressAndState.getState()));
     }
     return resultBuilder.build();
   }

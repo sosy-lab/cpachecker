@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.cpa.smg2;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
+import com.google.common.base.CharMatcher;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
@@ -25,6 +26,7 @@ import java.util.stream.Collectors;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
@@ -550,6 +552,7 @@ public class SMGState implements LatticeAbstractState<SMGState>, AbstractQueryab
    * Check non-equality of the 2 entered potential addresses. Never use == or equals on addresses!
    * Tries to prove the not equality of two given addresses. Returns true if the prove of
    * not equality succeeded, returns false if both are potentially equal.
+   * This method expects the Values to be the actual addresses and NOT AddressExpressions!
    */
   public boolean areNonEqualAddresses(Value pValue1, Value pValue2) {
     Optional<SMGValue> smgValue1 = memoryModel.getSMGValueFromValue(pValue1);
@@ -1100,16 +1103,18 @@ public class SMGState implements LatticeAbstractState<SMGState>, AbstractQueryab
    * @return the SMGObject which the address points to, or SMGObject.nullInstance() if there is no
    *     such.
    */
-  public SMGObject getPointsToTarget(Value pValue) {
+  public SMGObjectAndOffset getPointsToTarget(Value pValue) {
     Optional<SMGValue> addressOptional = memoryModel.getSMGValueFromValue(pValue);
     if (addressOptional.isPresent()) {
       Optional<SMGPointsToEdge> pointerEdgeOptional =
           memoryModel.getSmg().getPTEdge(addressOptional.orElseThrow());
       if (pointerEdgeOptional.isPresent()) {
-        return pointerEdgeOptional.orElseThrow().pointsTo();
+        return SMGObjectAndOffset.of(
+            pointerEdgeOptional.orElseThrow().pointsTo(),
+            pointerEdgeOptional.orElseThrow().getOffset());
       }
     }
-    return SMGObject.nullInstance();
+    return SMGObjectAndOffset.withZeroOffset(SMGObject.nullInstance());
   }
 
   /**
@@ -1137,6 +1142,7 @@ public class SMGState implements LatticeAbstractState<SMGState>, AbstractQueryab
     Optional<Value> maybeValue = newState.getMemoryModel().getValueFromSMGValue(readSMGValue);
     if (maybeValue.isPresent()) {
       // The Value to the SMGValue is already known, use it
+      Preconditions.checkArgument(!(maybeValue.orElseThrow() instanceof AddressExpression));
       return ValueAndSMGState.of(maybeValue.orElseThrow(), newState);
     }
     // If there is no Value for the SMGValue, we need to create it as an unknown, map it and return
@@ -1276,6 +1282,7 @@ public class SMGState implements LatticeAbstractState<SMGState>, AbstractQueryab
       // Write to 0
       return withInvalidWriteToZeroObject(object);
     }
+    Preconditions.checkArgument(!(valueToWrite instanceof AddressExpression));
     SMGValueAndSMGState valueAndState = copyAndAddValue(valueToWrite);
     SMGValue smgValue = valueAndState.getSMGValue();
     SMGState currentState = valueAndState.getSMGState();
@@ -1498,6 +1505,17 @@ public class SMGState implements LatticeAbstractState<SMGState>, AbstractQueryab
       throw new SMG2Exception(withWriteToUnknownVariable(variableName));
     }
 
+    if (valueToWrite instanceof AddressExpression) {
+      Preconditions.checkArgument(
+          ((AddressExpression) valueToWrite)
+                  .getOffset()
+                  .asNumericValue()
+                  .bigInteger()
+                  .compareTo(BigInteger.ZERO)
+              == 0);
+      valueToWrite = ((AddressExpression) valueToWrite).getMemoryAddress();
+    }
+
     if (valueToWrite.isUnknown()) {
       valueToWrite = getNewSymbolicValueForType(valueType);
     }
@@ -1578,5 +1596,45 @@ public class SMGState implements LatticeAbstractState<SMGState>, AbstractQueryab
     // handled by the SMGs
     SymbolicValueFactory factory = SymbolicValueFactory.getInstance();
     return factory.asConstant(factory.newIdentifier(null), valueType);
+  }
+
+  /**
+   * Searches for an existing SMGObject holding the address to a function. We treat function
+   * addresses as global variables.
+   *
+   * @param pDeclaration the {@link CFunctionDeclaration} of the function you are searching for.
+   *     Doubles as name in an encoded form similar to qualified name.
+   * @return Either a {@link SMGObject} for the function, or empty.
+   */
+  public Optional<SMGObject> getObjectForFunction(CFunctionDeclaration pDeclaration) {
+    String functionQualifiedSMGName = getUniqueFunctionName(pDeclaration);
+    return memoryModel.getObjectForVisibleVariable(functionQualifiedSMGName);
+  }
+
+  /**
+   * Generates a (global) variable for the entered function.
+   *
+   * @param pDeclaration {@link CFunctionDeclaration} of the function that should be put into a
+   *     variable.
+   * @return a copy of the SMGState with the variable for the function added.
+   */
+  public SMGState copyAndAddFunctionVariable(CFunctionDeclaration pDeclaration) {
+    String functionQualifiedSMGName = getUniqueFunctionName(pDeclaration);
+    return copyAndAddGlobalVariable(0, functionQualifiedSMGName);
+  }
+
+  /*
+   * Generates a unique String based on the entered function declaration. Can be used as variable name.
+   */
+  private String getUniqueFunctionName(CFunctionDeclaration pDeclaration) {
+
+    StringBuilder functionName = new StringBuilder(pDeclaration.getQualifiedName());
+
+    for (CParameterDeclaration parameterDcl : pDeclaration.getParameters()) {
+      functionName.append("_");
+      functionName.append(CharMatcher.anyOf("* ").replaceFrom(parameterDcl.toASTString(), "_"));
+    }
+
+    return "__" + functionName;
   }
 }
