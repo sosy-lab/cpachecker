@@ -698,6 +698,18 @@ public class SMGTransferRelation
     return finalStates.build();
   }
 
+  /**
+   * Populates nested stack structures that should be initialized without initializer. I.e. int
+   * array[1][1]; needs a pointer to a 1 large int array in the first array. Same goes for structs
+   * etc.
+   *
+   * @param cType current {@link CType}.
+   * @param pState current {@link SMGState}.
+   * @param pEdge current {@link CFAEdge}.
+   * @param memoryRegion the {@link SMGObject} for the current memory. Should be empty.
+   * @return The populated memory.
+   * @throws CPATransferException in case of critical errors.
+   */
   private List<SMGState> populateNestedStackStructures(
       CType cType, SMGState pState, CFAEdge pEdge, SMGObject memoryRegion)
       throws CPATransferException {
@@ -725,6 +737,7 @@ public class SMGTransferRelation
               throw new SMG2Exception(
                   "The SMG2 analysis can't handle symbolic array length. Try the option guessSizeOfUnknownMemorySize.");
             }
+
             BigInteger lengthOfNestedArray = nestedLength.asNumericValue().bigInteger();
             BigInteger sizeOfNestedInBits =
                 evaluator.getBitSizeof(currentState, nestedType).multiply(lengthOfNestedArray);
@@ -776,13 +789,18 @@ public class SMGTransferRelation
 
       } else if (nestedType instanceof CElaboratedType) {
         // TODO:
+        throw new SMG2Exception(
+            "populateNestedStackStructures can't handle nested elaborated types.");
       }
 
 
     } else if (cType instanceof CElaboratedType) {
       ((CElaboratedType) cType).getRealType();
+      // Loop through the real type and search for elaborated/array types
       // TODO:
-      return resultStatesBuilder.build();
+      throw new SMG2Exception(
+          "populateNestedStackStructures can't handle elaborated types with nested types.");
+      // return resultStatesBuilder.build();
     }
 
     return ImmutableList.of(pState);
