@@ -14,7 +14,7 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 public interface SerializeOperator {
 
   /**
-   * Serialize an abstract state to a transportable string
+   * Serialize an abstract state to the content of a message
    *
    * @param pState this state will be serialized
    * @return payload

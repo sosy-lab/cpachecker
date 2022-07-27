@@ -44,7 +44,9 @@ import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 /**
  * Immutable communication entity for the actor model. Messages cannot be created with the
  * constructor as they have to contain different information depending on their type. Therefore,
- * this class provides static methods to create messages of a certain type.
+ * this class provides static methods to create messages of a certain type. {@link ActorMessage}s
+ * are the interface for communication for {@link
+ * org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.BlockSummaryActor}s
  */
 public abstract class ActorMessage implements Comparable<ActorMessage> {
 
@@ -56,8 +58,15 @@ public abstract class ActorMessage implements Comparable<ActorMessage> {
   private final Instant timestamp;
 
   /**
-   * A message is the interface of communication of {@link
-   * org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.BlockSummaryActor}
+   * Messages transports information between different {@link
+   * org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DistributedConfigurableProgramAnalysis}.
+   * Messages consist of four parts. The type decide which information is guaranteed to be part of
+   * the payload. The unique block id {@code pUniqueBlockId} stores the block id from which this
+   * message originates from. The target node number {@code pTargetNodeNumber} provides the unique
+   * id of a {@link org.sosy_lab.cpachecker.cfa.model.CFANode}. This id is only relevant for
+   * messages that actually trigger an analysis: {@link BlockPostConditionMessage}, {@link
+   * ErrorConditionMessage}. Finally, the payload contains a map of key-value pairs that transport
+   * arbitrary information.
    *
    * @param pType the type of the message
    * @param pUniqueBlockId the id of the worker/block that sends this message
@@ -273,12 +282,34 @@ public abstract class ActorMessage implements Comparable<ActorMessage> {
     return Objects.hash(targetNodeNumber, uniqueBlockId, type, payload);
   }
 
-  // ORDER BY PRIORITY:
+  // ORDERED BY PRIORITY:
   public enum MessageType {
+    /**
+     * Messages of this type contain a final verification result verdict. See {@link ResultMessage}.
+     */
     FOUND_RESULT,
+
+    /**
+     * Messages of this type transport the stack trace of an exception. See {@link ErrorMessage}.
+     */
     ERROR,
+
+    /**
+     * Messages of this type deny a previously received {@link ErrorConditionMessage}. See {@link
+     * ErrorConditionUnreachableMessage}.
+     */
     ERROR_CONDITION_UNREACHABLE,
+
+    /**
+     * Messages of this type transport results of a backward analysis. See {@link
+     * ErrorConditionMessage}.
+     */
     ERROR_CONDITION,
+
+    /**
+     * Messages of this type transport results of a forward analysis. See {@link
+     * BlockPostConditionMessage}.
+     */
     BLOCK_POSTCONDITION
   }
 

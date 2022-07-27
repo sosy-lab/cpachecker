@@ -14,11 +14,11 @@ import java.util.List;
 public interface ConnectionProvider<T extends Connection> {
 
   /**
-   * Create {@code connections} different Connections
+   * Creates multiple distinct {@link Connection Connections}.
    *
-   * @param connections number of connections to generate
-   * @return List with {@code connections} Connections
-   * @throws IOException if creating the connections fails
+   * @param connections number of connections to create
+   * @return list of created Connections
+   * @throws IOException if an IOException occurs during Connection creation
    */
   List<T> createConnections(int connections) throws IOException;
 }

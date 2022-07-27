@@ -8,7 +8,8 @@
 
 /**
  * Defines four operators for distributed CPAs. Proceed decides whether to start an analysis for a
- * block. Combine connects the information of all predecessors/successors. Serialize transforms
- * abstract states to messages and adds metadata. Deserialize reverses the serialize operation.
+ * block. Combine connects the information of all predecessors/successors (associative). Serialize
+ * transforms abstract states to messages and adds metadata. Deserialize reverses the serialize
+ * operation.
  */
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators;

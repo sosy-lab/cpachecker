@@ -32,7 +32,7 @@ import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.BlockNode;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DCPABuilder;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DCPAHandler;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.composite.DistributedCompositeCPA;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.Payload;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.ActorMessage;
@@ -124,14 +124,15 @@ public abstract class BlockAnalysis {
     block = pBlock;
     logger = pLogger;
 
-    DCPABuilder builder = new DCPABuilder(pOptions);
+    DCPAHandler builder = new DCPAHandler(pOptions);
     CompositeCPA compositeCPA =
         CPAs.retrieveCPAOrFail(cpa, CompositeCPA.class, BlockAnalysis.class);
     for (ConfigurableProgramAnalysis wrappedCPA : compositeCPA.getWrappedCPAs()) {
-      builder.addCPA(wrappedCPA, block, direction);
+      builder.registerDCPA(wrappedCPA, block, direction);
     }
     distributedCompositeCPA =
-        new DistributedCompositeCPA(compositeCPA, block, pDirection, builder.getAnalyses());
+        new DistributedCompositeCPA(
+            compositeCPA, block, pDirection, builder.getRegisteredAnalyses());
     containsLoops = pCFA.getAllLoopHeads().isPresent() || pOptions.sendEveryErrorMessage();
 
     top =

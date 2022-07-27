@@ -17,14 +17,50 @@ import org.sosy_lab.java_smt.api.SolverException;
 
 public interface ProceedOperator {
 
+  /**
+   * Decide whether to start a forward analysis based on the contents of the {@link
+   * BlockPostConditionMessage}.
+   *
+   * @param pMessage Incoming message
+   * @return A potentially empty set of responses to {@code pMessage}
+   * @throws InterruptedException thrown if program is interrupted unexpectedly.
+   */
   MessageProcessing proceedForward(BlockPostConditionMessage pMessage) throws InterruptedException;
 
+  /**
+   * Decide whether to start a backward analysis based on the contents of the {@link
+   * BlockPostConditionMessage}.
+   *
+   * @param pMessage Incoming message
+   * @return A potentially empty set of responses to {@code pMessage}
+   * @throws InterruptedException thrown if program is interrupted unexpectedly.
+   * @throws SolverException thrown if backwards analysis is infeasible
+   */
   MessageProcessing proceedBackward(ErrorConditionMessage pMessage)
       throws InterruptedException, SolverException;
 
+  /**
+   * Decide whether to respond to the incoming message {@code pMessage}
+   *
+   * @param pMessage Incoming message
+   * @return A potentially empty set of responses to {@code pMessage}
+   * @throws InterruptedException thrown if program is interrupted unexpectedly.
+   * @throws SolverException thrown if backwards analysis is infeasible
+   */
   MessageProcessing proceed(ActorMessage pMessage) throws InterruptedException, SolverException;
 
+  /**
+   * Synchronize the knowledge of the forward analysis with the knowledge of the backward analysis
+   * for later infeasible checks.
+   *
+   * @param pAnalysis Synchronize the knowledge of {@code pAnalysis} with this proceed operator
+   */
   void synchronizeKnowledge(DistributedConfigurableProgramAnalysis pAnalysis);
 
+  /**
+   * Set the latest own {@link BlockPostConditionMessage}
+   *
+   * @param pLatestOwnPreconditionMessage latest {@link BlockPostConditionMessage}
+   */
   void update(BlockPostConditionMessage pLatestOwnPreconditionMessage);
 }

@@ -13,5 +13,12 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 
 public interface DeserializeOperator {
 
+  /**
+   * Deserialize a message to an abstract state
+   *
+   * @param pMessage The message that is converted to an abstract state {@link AbstractState}
+   * @return An abstract state described by {@code pMessage}
+   * @throws InterruptedException thrown if program is interrupted from the outside.
+   */
   AbstractState deserialize(ActorMessage pMessage) throws InterruptedException;
 }

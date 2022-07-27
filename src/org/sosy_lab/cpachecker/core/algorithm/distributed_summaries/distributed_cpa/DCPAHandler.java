@@ -22,55 +22,55 @@ import org.sosy_lab.cpachecker.cpa.callstack.CallstackCPA;
 import org.sosy_lab.cpachecker.cpa.functionpointer.FunctionPointerCPA;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
 
-public class DCPABuilder {
+public class DCPAHandler {
 
   private final Map<
           Class<? extends ConfigurableProgramAnalysis>, DistributedConfigurableProgramAnalysis>
       analyses;
   private final AnalysisOptions options;
 
-  public DCPABuilder(AnalysisOptions pOptions) {
+  public DCPAHandler(AnalysisOptions pOptions) {
     analyses = new HashMap<>();
     options = pOptions;
   }
 
-  public void addCPA(
+  public void registerDCPA(
       ConfigurableProgramAnalysis pCPA, BlockNode pBlockNode, AnalysisDirection pDirection) {
     if (pCPA instanceof PredicateCPA) {
-      addCPA((PredicateCPA) pCPA, pBlockNode, pDirection);
+      registerDCPA((PredicateCPA) pCPA, pBlockNode, pDirection);
       return;
     }
     if (pCPA instanceof CallstackCPA) {
-      addCPA((CallstackCPA) pCPA, pBlockNode, pDirection);
+      registerDCPA((CallstackCPA) pCPA, pBlockNode, pDirection);
       return;
     }
     if (pCPA instanceof FunctionPointerCPA) {
-      addCPA((FunctionPointerCPA) pCPA, pBlockNode);
+      registerDCPA((FunctionPointerCPA) pCPA, pBlockNode);
     }
   }
 
-  private void addCPA(
+  private void registerDCPA(
       PredicateCPA pPredicateCPA, BlockNode pBlockNode, AnalysisDirection pDirection) {
     analyses.put(
         pPredicateCPA.getClass(),
         new DistributedPredicateCPA(pPredicateCPA, pBlockNode, pDirection, options));
   }
 
-  private void addCPA(
+  private void registerDCPA(
       CallstackCPA pCallstackCPA, BlockNode pBlockNode, AnalysisDirection pDirection) {
     analyses.put(
         pCallstackCPA.getClass(),
         new DistributedCallstackCPA(pCallstackCPA, pBlockNode, pDirection));
   }
 
-  private void addCPA(FunctionPointerCPA pFunctionPointerCPA, BlockNode pBlockNode) {
+  private void registerDCPA(FunctionPointerCPA pFunctionPointerCPA, BlockNode pBlockNode) {
     analyses.put(
         pFunctionPointerCPA.getClass(),
         new DistributedFunctionPointerCPA(pFunctionPointerCPA, pBlockNode));
   }
 
   public Map<Class<? extends ConfigurableProgramAnalysis>, DistributedConfigurableProgramAnalysis>
-      getAnalyses() {
+      getRegisteredAnalyses() {
     assert FluentIterable.from(analyses.values()).transform(a -> a.getAbstractStateClass()).size()
             == analyses.size()
         : "Some distributed CPAs seem to work on the same abstract states.";

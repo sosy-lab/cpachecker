@@ -16,6 +16,10 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.Con
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.ActorMessage;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 
+/**
+ * The {@link InMemoryConnection} provides a queue for incoming messages and knows about all
+ * outgoing connections (that are the queues for incoming messages of other workers).
+ */
 public class InMemoryConnection implements Connection, StatisticsProvider {
 
   private final BlockingQueue<ActorMessage> in;

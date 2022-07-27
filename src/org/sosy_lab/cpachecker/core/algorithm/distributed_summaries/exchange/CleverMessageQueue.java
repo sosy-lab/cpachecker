@@ -26,7 +26,7 @@ public class CleverMessageQueue extends ForwardingBlockingQueue<ActorMessage> {
 
   /**
    * Mimics a blocking queue but changes the blocking method <code>take</code> to prioritize
-   * messages
+   * messages according to the enum {@link MessageType}.
    *
    * @param pQueue the queue to forward
    */
