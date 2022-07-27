@@ -34,6 +34,7 @@ import org.sosy_lab.cpachecker.util.Triple;
 import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
 import org.sosy_lab.cpachecker.util.resources.ResourceLimitChecker;
 
+/** Factory for new independent CPA algorithms. */
 public class AlgorithmFactory {
 
   public static Triple<Algorithm, ConfigurableProgramAnalysis, ReachedSet> createAlgorithm(

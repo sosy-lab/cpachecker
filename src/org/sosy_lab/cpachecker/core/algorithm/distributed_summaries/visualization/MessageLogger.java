@@ -27,8 +27,8 @@ import org.sosy_lab.common.configuration.FileOption.Type;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.BlockGraph;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.BlockNode;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.BlockTree;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.ActorMessage;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
 
@@ -44,9 +44,9 @@ public class MessageLogger {
   private Path blockCFAFile = Path.of("block_analysis/blocks.json");
 
   private final Map<String, Multimap<String, Object>> entries;
-  private final BlockTree tree;
+  private final BlockGraph tree;
 
-  public MessageLogger(BlockTree pTree, Configuration pConfiguration)
+  public MessageLogger(BlockGraph pTree, Configuration pConfiguration)
       throws InvalidConfigurationException {
     pConfiguration.inject(this);
     // IO.openOutputFile(reportFile, StandardCharsets.US_ASCII, StandardOpenOption.CREATE);

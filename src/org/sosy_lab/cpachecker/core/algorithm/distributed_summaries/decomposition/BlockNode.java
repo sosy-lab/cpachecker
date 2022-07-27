@@ -189,7 +189,8 @@ public class BlockNode {
     return predecessors.get().isEmpty();
   }
 
-  public static class BlockTreeBuilder {
+  /** Builder for {@link BlockGraph}. */
+  public static class BlockGraphBuilder {
 
     private int blockCount;
     private final Map<Integer, CFANode> idToNodeMap;
@@ -199,7 +200,12 @@ public class BlockNode {
 
     private BlockNodeMetaData root;
 
-    public BlockTreeBuilder(CFA pCfa) {
+    /**
+     * Build a block graph for a given CFA
+     *
+     * @param pCfa CFA that will be partitioned into a graph of {@link BlockNode}s
+     */
+    public BlockGraphBuilder(CFA pCfa) {
       idToNodeMap = Maps.uniqueIndex(pCfa.getAllNodes(), CFANode::getNodeNumber);
       successors = ArrayListMultimap.create();
       predecessors = ArrayListMultimap.create();
@@ -247,11 +253,6 @@ public class BlockNode {
       for (BlockNodeMetaData key : keys) {
         pMultimap.remove(key, pNode);
       }
-    }
-
-    public BlockNode copy(BlockNode pNode) {
-      return new BlockNode(
-          pNode.metaData, pNode.predecessors, pNode.successors, ImmutableMap.copyOf(idToNodeMap));
     }
 
     public BlockNodeMetaData mergeSameStartAndEnd(
@@ -312,7 +313,7 @@ public class BlockNode {
       }
     }
 
-    public BlockTree build() {
+    public BlockGraph build() {
       Objects.requireNonNull(root, "Root has to be set manually in advance");
       removeEmptyBlocks();
       Map<BlockNodeMetaData, BlockNode> nodes = new HashMap<>();
@@ -325,10 +326,10 @@ public class BlockNode {
                 idToNodeMap);
         nodes.put(data, blockNode);
       }
-      return new BlockTree(nodes.get(root), this);
+      return new BlockGraph(nodes.get(root), this);
     }
 
-    public BlockTree merge(int desiredNumberOfBlocks) {
+    public BlockGraph merge(int desiredNumberOfBlocks) {
       Set<BlockNodeMetaData> nodes = new LinkedHashSet<>(blocks);
       nodes.remove(root);
       Multimap<String, BlockNodeMetaData> compatibleBlocks = ArrayListMultimap.create();

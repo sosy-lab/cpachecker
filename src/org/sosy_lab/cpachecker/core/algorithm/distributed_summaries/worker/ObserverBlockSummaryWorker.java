@@ -15,6 +15,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.Connection;
@@ -33,9 +34,9 @@ public class ObserverBlockSummaryWorker extends BlockSummaryWorker {
   private Optional<Result> result;
   private Optional<String> errorMessage;
 
-  public ObserverBlockSummaryWorker(String pId, Connection pConnection, AnalysisOptions pOptions)
+  public ObserverBlockSummaryWorker(String pId, Connection pConnection, LogManager pLogger)
       throws InvalidConfigurationException {
-    super(pId, pOptions);
+    super(pId, pLogger);
     shutdown = false;
     connection = pConnection;
     statusObserver = new StatusObserver();

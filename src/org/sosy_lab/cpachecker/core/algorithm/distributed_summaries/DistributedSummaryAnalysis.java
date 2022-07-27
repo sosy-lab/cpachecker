@@ -23,9 +23,9 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.BlockGraph;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.BlockNode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.BlockOperatorDecomposer;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.BlockTree;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.CFADecomposer;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.GivenSizeDecomposer;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.SingleBlockDecomposer;
@@ -151,7 +151,7 @@ public class DistributedSummaryAnalysis implements Algorithm, StatisticsProvider
     try {
       // create block tree and reduce to relevant parts
       CFADecomposer decomposer = getDecomposer();
-      BlockTree tree = decomposer.cut(cfa);
+      BlockGraph tree = decomposer.cut(cfa);
       logger.logf(
           Level.INFO,
           "Decomposed CFA in %d blocks using the %s.",
@@ -163,6 +163,7 @@ public class DistributedSummaryAnalysis implements Algorithm, StatisticsProvider
       DistributedComponentsBuilder builder =
           new DistributedComponentsBuilder(
               cfa,
+              logger,
               new InMemoryConnectionProvider(() -> new CleverMessageQueue()),
               specification,
               configuration,
@@ -175,10 +176,10 @@ public class DistributedSummaryAnalysis implements Algorithm, StatisticsProvider
           builder = analysisWorker(builder, distinctNode);
         }
       }
-      builder = builder.addResultCollectorWorker(blocks, options);
+      builder = builder.addResultCollectorWorker(blocks);
 
       if (spawnUtilWorkers) {
-        builder = builder.addVisualizationWorker(tree, options, configuration);
+        builder = builder.addVisualizationWorker(tree, configuration);
       }
 
       Components components = builder.build();
@@ -196,7 +197,7 @@ public class DistributedSummaryAnalysis implements Algorithm, StatisticsProvider
       try (Connection mainThreadConnection = components.getAdditionalConnections().get(0)) {
         mainThreadConnection.collectStatistics(statsCollection);
         ObserverBlockSummaryWorker observer =
-            new ObserverBlockSummaryWorker("observer", mainThreadConnection, options);
+            new ObserverBlockSummaryWorker("observer", mainThreadConnection, logger);
         Pair<AlgorithmStatus, Result> resultPair = observer.observe();
         Result result = resultPair.getSecond();
         if (result == Result.FALSE) {

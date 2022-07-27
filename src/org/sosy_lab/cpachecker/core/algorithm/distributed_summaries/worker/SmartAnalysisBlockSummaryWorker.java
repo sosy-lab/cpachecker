@@ -15,6 +15,7 @@ import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.PriorityBlockingQueue;
 import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.BlockNode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.MessageProcessing;
@@ -33,6 +34,7 @@ public class SmartAnalysisBlockSummaryWorker extends AnalysisBlockSummaryWorker 
 
   SmartAnalysisBlockSummaryWorker(
       String pId,
+      LogManager pLogManager,
       AnalysisOptions pOptions,
       Connection pConnection,
       BlockNode pBlock,
@@ -47,7 +49,8 @@ public class SmartAnalysisBlockSummaryWorker extends AnalysisBlockSummaryWorker 
         pBlock,
         pCFA,
         pSpecification,
-        pShutdownManager);
+        pShutdownManager,
+        pLogManager);
     smartQueue = new PriorityBlockingQueue<>();
     block = pBlock;
   }

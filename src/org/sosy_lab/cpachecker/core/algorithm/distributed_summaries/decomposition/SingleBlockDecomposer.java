@@ -14,15 +14,16 @@ import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.BlockNode.BlockGraphBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.BlockNode.BlockNodeMetaData;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.BlockNode.BlockTreeBuilder;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 
+/** Decompose a CFA into a single block containing the complete CFA */
 public class SingleBlockDecomposer implements CFADecomposer {
 
   @Override
-  public BlockTree cut(CFA cfa) {
-    BlockTreeBuilder builder = new BlockTreeBuilder(cfa);
+  public BlockGraph cut(CFA cfa) {
+    BlockGraphBuilder builder = new BlockGraphBuilder(cfa);
     CFANode startNode = cfa.getMainFunction();
     // we do not get error conditions
     CFANode lastNode = CFANode.newDummyCFANode();

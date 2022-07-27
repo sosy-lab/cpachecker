@@ -12,14 +12,24 @@ import com.google.common.collect.ImmutableSet;
 import java.util.ArrayDeque;
 import java.util.HashSet;
 import java.util.Set;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.BlockNode.BlockTreeBuilder;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.BlockNode.BlockGraphBuilder;
 
-public class BlockTree {
+/**
+ * Represents a partitioning of a CFA. The blocks contain coherent subgraphs of a CFA. The
+ * successors of a block are the blocks that contain successive subgraphs of the same CFA.
+ */
+public class BlockGraph {
 
   private final BlockNode root;
-  private final BlockTreeBuilder factory;
+  private final BlockGraphBuilder factory;
 
-  public BlockTree(BlockNode pRoot, BlockTreeBuilder pFactory) {
+  /**
+   * Represents the CFA but partitioned into multiple connected blocks.
+   *
+   * @param pRoot the root node of the
+   * @param pFactory
+   */
+  public BlockGraph(BlockNode pRoot, BlockGraphBuilder pFactory) {
     root = pRoot;
     factory = pFactory;
   }
@@ -41,7 +51,7 @@ public class BlockTree {
     return ImmutableSet.copyOf(nodes);
   }
 
-  public BlockTree merge(int pDesiredNumberOfBlocks) {
+  public BlockGraph merge(int pDesiredNumberOfBlocks) {
     return factory.merge(pDesiredNumberOfBlocks);
   }
 }

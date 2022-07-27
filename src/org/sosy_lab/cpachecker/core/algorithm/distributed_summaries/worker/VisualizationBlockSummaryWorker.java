@@ -14,7 +14,8 @@ import java.util.Collection;
 import java.util.logging.Level;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.BlockTree;
+import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.BlockGraph;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.Connection;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.ActorMessage;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.ActorMessage.MessageType;
@@ -29,12 +30,9 @@ public class VisualizationBlockSummaryWorker extends BlockSummaryWorker {
   private boolean shutdown = false;
 
   protected VisualizationBlockSummaryWorker(
-      BlockTree pTree,
-      Connection pConnection,
-      AnalysisOptions pOptions,
-      Configuration pConfiguration)
+      BlockGraph pTree, Connection pConnection, LogManager pLogger, Configuration pConfiguration)
       throws InvalidConfigurationException {
-    super("visualization-worker", pOptions);
+    super("visualization-worker", pLogger);
     connection = pConnection;
     messageLogger = new MessageLogger(pTree, pConfiguration);
     try {

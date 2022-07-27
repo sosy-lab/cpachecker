@@ -16,6 +16,7 @@ import java.util.logging.Level;
 import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.block_analysis.BlockAnalysis;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.block_analysis.BlockAnalysis.BackwardAnalysis;
@@ -64,9 +65,10 @@ public class AnalysisBlockSummaryWorker extends BlockSummaryWorker {
       BlockNode pBlock,
       CFA pCFA,
       Specification pSpecification,
-      ShutdownManager pShutdownManager)
+      ShutdownManager pShutdownManager,
+      LogManager pLogManager)
       throws CPAException, InterruptedException, InvalidConfigurationException, IOException {
-    super("analysis-worker-" + pId, pOptions);
+    super("analysis-worker-" + pId, pLogManager);
     block = pBlock;
     connection = pConnection;
 

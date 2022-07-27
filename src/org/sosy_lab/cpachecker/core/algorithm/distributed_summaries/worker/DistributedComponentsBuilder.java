@@ -16,9 +16,10 @@ import java.util.List;
 import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.BlockGraph;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.BlockNode;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.BlockTree;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.Connection;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.ConnectionProvider;
 import org.sosy_lab.cpachecker.core.specification.Specification;
@@ -32,10 +33,12 @@ public class DistributedComponentsBuilder {
   private final Specification specification;
   private final List<WorkerGenerator> workerGenerators;
   private final ConnectionProvider<?> connectionProvider;
+  private final LogManager logger;
   private int additionalConnections;
 
   public DistributedComponentsBuilder(
       CFA pCFA,
+      LogManager pLogManager,
       ConnectionProvider<?> pConnectionProvider,
       Specification pSpecification,
       Configuration pConfiguration,
@@ -47,6 +50,7 @@ public class DistributedComponentsBuilder {
     // only one available for now
     connectionProvider = pConnectionProvider;
     workerGenerators = new ArrayList<>();
+    logger = pLogManager;
   }
 
   private String nextId(String pAdditionalIdentifier) {
@@ -68,7 +72,8 @@ public class DistributedComponentsBuilder {
                 pNode,
                 cfa,
                 specification,
-                shutdownManager));
+                shutdownManager,
+                logger));
     return this;
   }
 
@@ -78,6 +83,7 @@ public class DistributedComponentsBuilder {
         connection ->
             new SmartAnalysisBlockSummaryWorker(
                 nextId(pNode.getId()),
+                logger,
                 pOptions,
                 connection,
                 pNode,
@@ -87,17 +93,16 @@ public class DistributedComponentsBuilder {
     return this;
   }
 
-  public DistributedComponentsBuilder addResultCollectorWorker(
-      Collection<BlockNode> nodes, AnalysisOptions pOptions) {
-    workerGenerators.add(connection -> new ResultBlockSummaryWorker(nodes, connection, pOptions));
+  public DistributedComponentsBuilder addResultCollectorWorker(Collection<BlockNode> nodes) {
+    workerGenerators.add(connection -> new ResultBlockSummaryWorker(nodes, connection, logger));
     return this;
   }
 
   public DistributedComponentsBuilder addVisualizationWorker(
-      BlockTree pBlockTree, AnalysisOptions pOptions, Configuration pConfiguration) {
+      BlockGraph pBlockTree, Configuration pConfiguration) {
     workerGenerators.add(
         connection ->
-            new VisualizationBlockSummaryWorker(pBlockTree, connection, pOptions, pConfiguration));
+            new VisualizationBlockSummaryWorker(pBlockTree, connection, logger, pConfiguration));
     return this;
   }
 
@@ -108,6 +113,7 @@ public class DistributedComponentsBuilder {
                 nextId(pNode.getId()),
                 connection,
                 pOptions,
+                logger,
                 pNode,
                 cfa,
                 specification,

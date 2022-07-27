@@ -13,5 +13,11 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 /** Decomposes the CFA in coherent blocks */
 public interface CFADecomposer {
 
-  BlockTree cut(CFA cfa);
+  /**
+   * Decompose a CFA into coherent subgraphs of the given CFA.
+   *
+   * @param cfa this CFA will be decomposed into a block graph
+   * @return a block graph that represents the CFA.
+   */
+  BlockGraph cut(CFA cfa);
 }

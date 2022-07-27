@@ -30,8 +30,8 @@ public class GivenSizeDecomposer implements CFADecomposer {
   }
 
   @Override
-  public BlockTree cut(CFA cfa) {
-    BlockTree tree = decomposer.cut(cfa);
+  public BlockGraph cut(CFA cfa) {
+    BlockGraph tree = decomposer.cut(cfa);
     int oldSize = tree.getDistinctNodes().size();
     while (oldSize >= desiredNumberOfBlocks) {
       tree = tree.merge(desiredNumberOfBlocks);

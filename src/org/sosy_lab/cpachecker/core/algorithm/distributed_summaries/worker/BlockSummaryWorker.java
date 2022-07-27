@@ -13,7 +13,6 @@ import java.io.IOException;
 import java.util.Collection;
 import java.util.logging.Level;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.common.log.BasicLogManager;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.Connection;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.ActorMessage;
@@ -31,10 +30,10 @@ public abstract class BlockSummaryWorker implements BlockSummaryActor {
    *
    * @param pId the id of the worker
    */
-  protected BlockSummaryWorker(String pId, AnalysisOptions pOptions)
+  protected BlockSummaryWorker(String pId, LogManager pLogger)
       throws InvalidConfigurationException {
     id = pId;
-    logger = BasicLogManager.create(pOptions.getParentConfig()).withComponentName(pId);
+    logger = pLogger.withComponentName(pId);
   }
 
   @Override

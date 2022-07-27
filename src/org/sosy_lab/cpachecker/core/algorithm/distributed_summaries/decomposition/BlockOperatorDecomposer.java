@@ -22,15 +22,23 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.BlockNode.BlockGraphBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.BlockNode.BlockNodeMetaData;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.BlockNode.BlockTreeBuilder;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.predicates.BlockOperator;
 
+/** Decomposer for linear coherent subgraphs of a given CFA. */
 public class BlockOperatorDecomposer implements CFADecomposer {
 
   private final BlockOperator operator;
 
+  /**
+   * Partitions the complete CFA into small linear subgraphs. The union of the subgraphs equals the
+   * initial CFA.
+   *
+   * @param pConfiguration user-provided configuration
+   * @throws InvalidConfigurationException thrown if config contains wrong values
+   */
   public BlockOperatorDecomposer(Configuration pConfiguration)
       throws InvalidConfigurationException {
     operator = new BlockOperator();
@@ -38,12 +46,12 @@ public class BlockOperatorDecomposer implements CFADecomposer {
   }
 
   @Override
-  public BlockTree cut(CFA cfa) {
+  public BlockGraph cut(CFA cfa) {
     operator.setCFA(cfa);
     // start with the first node of the CFA
     CFANode startNode = cfa.getMainFunction();
 
-    BlockTreeBuilder builder = new BlockTreeBuilder(cfa);
+    BlockGraphBuilder builder = new BlockGraphBuilder(cfa);
 
     // create the root node of the tree consisting of the entry node only
     BlockNodeMetaData root =
