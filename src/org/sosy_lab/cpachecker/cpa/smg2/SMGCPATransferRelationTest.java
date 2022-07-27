@@ -220,7 +220,7 @@ public class SMGCPATransferRelationTest {
       ValueAndSMGState readValueAndState = state.readValue(memoryObject, offsetInBits, sizeInBits);
       // The read state should not have any errors
       // TODO: error check
-      assertThat(readValueAndState.getValue().isUnknown()).isTrue();
+      assertThat(readValueAndState.getValue().isExplicitlyKnown()).isFalse();
     }
   }
 
@@ -340,7 +340,7 @@ public class SMGCPATransferRelationTest {
       ValueAndSMGState readValueAndState = state.readValue(memoryObject, offsetInBits, sizeInBits);
       // The read state should not have any errors
       // TODO: error check
-      assertThat(readValueAndState.getValue().isUnknown()).isTrue();
+      assertThat(readValueAndState.getValue().isExplicitlyKnown()).isFalse();
     }
 
     // Read the nested struct. We can simply assume the offsets of the simple types from above + the
@@ -360,7 +360,7 @@ public class SMGCPATransferRelationTest {
       ValueAndSMGState readValueAndState = state.readValue(memoryObject, offsetInBits, sizeInBits);
       // The read state should not have any errors
       // TODO: error check
-      assertThat(readValueAndState.getValue().isUnknown()).isTrue();
+      assertThat(readValueAndState.getValue().isExplicitlyKnown()).isFalse();
     }
 
     // Now we repeat this for an array (they behave the same, so if one is empty, we can assume that
@@ -375,7 +375,7 @@ public class SMGCPATransferRelationTest {
           state.readValue(memoryObject, offsetOfArrayInBits, sizeOfArrayInBits);
       // The read state should not have any errors
       // TODO: error check
-      assertThat(readValueAndState.getValue().isUnknown()).isTrue();
+      assertThat(readValueAndState.getValue().isExplicitlyKnown()).isFalse();
       // increment the size onto the offset for the next element
       offsetOfArrayInBits = offsetOfArrayInBits.add(sizeOfArrayInBits);
     }
@@ -391,7 +391,7 @@ public class SMGCPATransferRelationTest {
         state.readValue(memoryObject, offsetOfPointerInBits, sizeOfPointerInBits);
     // The read state should not have any errors
     // TODO: error check
-    assertThat(readValueAndState.getValue().isUnknown()).isTrue();
+    assertThat(readValueAndState.getValue().isExplicitlyKnown()).isFalse();
   }
 
   /*
@@ -562,7 +562,7 @@ public class SMGCPATransferRelationTest {
         ValueAndSMGState readValueAndState = state.readValue(memoryObject, offset, typeSize);
         // The read state should not have any errors
         // TODO: error check
-        assertThat(readValueAndState.getValue().isUnknown()).isTrue();
+        assertThat(readValueAndState.getValue().isExplicitlyKnown()).isFalse();
       }
     }
   }
@@ -650,7 +650,7 @@ public class SMGCPATransferRelationTest {
           state.readValue(memoryObject, BigInteger.ZERO, expectedSize);
       // The read state should not have any errors
       // TODO: error check
-      assertThat(readValueAndState.getValue().isUnknown()).isTrue();
+      assertThat(readValueAndState.getValue().isExplicitlyKnown()).isFalse();
     }
   }
 

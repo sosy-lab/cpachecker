@@ -57,6 +57,7 @@ import org.sosy_lab.cpachecker.cpa.smg2.util.value.SMGCPAValueExpressionEvaluato
 import org.sosy_lab.cpachecker.cpa.smg2.util.value.ValueAndSMGState;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.AddressExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.ConstantSymbolicExpression;
+import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicIdentifier;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValueFactory;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
@@ -677,7 +678,8 @@ public class SMGCPAValueVisitorTest {
             assertThat(resultValue.asNumericValue().bigInteger())
                 .isEqualTo(BigInteger.valueOf(k + 1));
           } else {
-            assertThat(resultValue).isInstanceOf(UnknownValue.class);
+            // Unknowns are tranlated into symbolic identifiers
+            assertThat(resultValue).isInstanceOf(SymbolicIdentifier.class);
           }
         }
       }
