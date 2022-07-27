@@ -987,10 +987,8 @@ public class SMGTransferRelation
     Map<CCompositeType.CCompositeTypeMemberDeclaration, BigInteger> offsetAndPosition =
         machineModel.getAllFieldOffsetsInBits(pLValueType);
 
-    // ImmutableList.Builder<SMGState> finalStates = ImmutableList.builder();
     SMGState currentState = pState;
-    // Just to be sure, should never trigger
-    Preconditions.checkArgument(pNewInitializer.getInitializers().size() == memberTypes.size());
+
     for (CInitializer initializer : pNewInitializer.getInitializers()) {
       // TODO: this has to be checked with a test!!!!
       if (initializer instanceof CDesignatedInitializer) {
@@ -1014,7 +1012,46 @@ public class SMGTransferRelation
     return ImmutableList.of(currentState);
     // return finalStates.build();
   }
+  /*
+    private int selectUnionType(CCompositeType unionType, CInitializer initializerForUnion)
+        throws SMG2Exception {
+      for (int i = 0; i < unionType.getMembers().size(); i++) {
+        if (checkInitializerForUnionType(
+            unionType.getMembers().get(i).getType(), initializerForUnion)) {
+          return i;
+        }
+      }
+      throw new SMG2Exception("Error: could not detect the correct union type for an initializer.");
+    }
 
+    private boolean checkInitializerForUnionType(
+        CType unionSubType, CInitializer initializerForUnion) {
+      if (initializerForUnion instanceof CInitializerList) {
+        CInitializerList initList = (CInitializerList) initializerForUnion;
+        List<CInitializer> listOfInits = initList.getInitializers();
+        for (CInitializer init : listOfInits) {
+          // TODO:unionSubType is wrong!!!
+          if (!checkInitializerForUnionType(unionSubType, init)) {
+            return false;
+          }
+        }
+      } else if (initializerForUnion instanceof CInitializerExpression) {
+        CInitializerExpression initExpr = (CInitializerExpression) initializerForUnion;
+        CType typeOfInit = initExpr.getExpression().getExpressionType();
+        if (unionSubType.equals(typeOfInit)) {
+          return true;
+        } else {
+          return false;
+        }
+      }
+      if (unionSubType instanceof CElaboratedType) {
+        CElaboratedType elabType = (CElaboratedType) unionSubType;
+
+      } else {
+
+      }
+    }
+  */
   /*
    * Handles and inits, to the variable given, the given CInitializerList initializers. In this case arrays.
    */
