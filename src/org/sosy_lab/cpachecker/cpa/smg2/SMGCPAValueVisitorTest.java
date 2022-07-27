@@ -1945,6 +1945,10 @@ public class SMGCPAValueVisitorTest {
       // Assert the correct returns
       assertThat(resultList).hasSize(1);
       Value resultValue = resultList.get(0).getValue();
+      assertThat(((AddressExpression) resultValue).getOffset().isNumericValue()).isTrue();
+      assertThat(((AddressExpression) resultValue).getOffset().asNumericValue().longValue() == 0)
+          .isTrue();
+      resultValue = ((AddressExpression) resultValue).getMemoryAddress();
       // & actually changes the state!
       currentState = resultList.get(0).getState();
 
@@ -1979,7 +1983,8 @@ public class SMGCPAValueVisitorTest {
       // memory location and never to the 0 object
       assertThat(currentState.getPointsToTarget(resultValue))
           .isNotEqualTo(SMGObject.nullInstance());
-      assertThat(currentState.getPointsToTarget(resultValue)).isEqualTo(expectedTarget);
+      assertThat(currentState.getPointsToTarget(resultValue).getSMGObject())
+          .isEqualTo(expectedTarget);
 
       // The reverse applies as well
       assertThat(
@@ -2022,6 +2027,10 @@ public class SMGCPAValueVisitorTest {
       // Assert the correct returns
       assertThat(resultList).hasSize(1);
       Value resultValue = resultList.get(0).getValue();
+      assertThat(((AddressExpression) resultValue).getOffset().isNumericValue()).isTrue();
+      assertThat(((AddressExpression) resultValue).getOffset().asNumericValue().longValue() == 0)
+          .isTrue();
+      resultValue = ((AddressExpression) resultValue).getMemoryAddress();
       // & actually changes the state!
       currentState = resultList.get(0).getState();
 
@@ -2054,7 +2063,8 @@ public class SMGCPAValueVisitorTest {
       // memory location and never to the 0 object
       assertThat(currentState.getPointsToTarget(resultValue))
           .isNotEqualTo(SMGObject.nullInstance());
-      assertThat(currentState.getPointsToTarget(resultValue)).isEqualTo(expectedTarget);
+      assertThat(currentState.getPointsToTarget(resultValue).getSMGObject())
+          .isEqualTo(expectedTarget);
 
       // The reverse applies as well
       assertThat(
@@ -2107,6 +2117,10 @@ public class SMGCPAValueVisitorTest {
         // Assert the correct returns
         assertThat(resultList).hasSize(1);
         Value resultValue = resultList.get(0).getValue();
+        assertThat(((AddressExpression) resultValue).getOffset().isNumericValue()).isTrue();
+        assertThat(((AddressExpression) resultValue).getOffset().asNumericValue().longValue() == 0)
+            .isTrue();
+        resultValue = ((AddressExpression) resultValue).getMemoryAddress();
         // & actually changes the state!
         currentState = resultList.get(0).getState();
 
@@ -2141,7 +2155,8 @@ public class SMGCPAValueVisitorTest {
         // memory location and never to the 0 object
         assertThat(currentState.getPointsToTarget(resultValue))
             .isNotEqualTo(SMGObject.nullInstance());
-        assertThat(currentState.getPointsToTarget(resultValue)).isEqualTo(expectedTarget);
+        assertThat(currentState.getPointsToTarget(resultValue).getSMGObject())
+            .isEqualTo(expectedTarget);
 
         // The reverse applies as well
         assertThat(
@@ -2191,6 +2206,10 @@ public class SMGCPAValueVisitorTest {
         // Assert the correct returns
         assertThat(resultList).hasSize(1);
         Value resultValue = resultList.get(0).getValue();
+        assertThat(((AddressExpression) resultValue).getOffset().isNumericValue()).isTrue();
+        assertThat(((AddressExpression) resultValue).getOffset().asNumericValue().longValue() == 0)
+            .isTrue();
+        resultValue = ((AddressExpression) resultValue).getMemoryAddress();
         // & actually changes the state!
         currentState = resultList.get(0).getState();
 
@@ -2225,7 +2244,8 @@ public class SMGCPAValueVisitorTest {
         // memory location and never to the 0 object
         assertThat(currentState.getPointsToTarget(resultValue))
             .isNotEqualTo(SMGObject.nullInstance());
-        assertThat(currentState.getPointsToTarget(resultValue)).isEqualTo(expectedTarget);
+        assertThat(currentState.getPointsToTarget(resultValue).getSMGObject())
+            .isEqualTo(expectedTarget);
 
         // The reverse applies as well
         assertThat(
@@ -2274,6 +2294,10 @@ public class SMGCPAValueVisitorTest {
       // Assert the correct returns
       assertThat(resultList).hasSize(1);
       Value resultValue = resultList.get(0).getValue();
+      assertThat(((AddressExpression) resultValue).getOffset().isNumericValue()).isTrue();
+      assertThat(((AddressExpression) resultValue).getOffset().asNumericValue().longValue() == 0)
+          .isTrue();
+      resultValue = ((AddressExpression) resultValue).getMemoryAddress();
       // & actually changes the state!
       currentState = resultList.get(0).getState();
 
@@ -2306,7 +2330,8 @@ public class SMGCPAValueVisitorTest {
       // memory location and never to the 0 object
       assertThat(currentState.getPointsToTarget(resultValue))
           .isNotEqualTo(SMGObject.nullInstance());
-      assertThat(currentState.getPointsToTarget(resultValue)).isEqualTo(expectedTarget);
+      assertThat(currentState.getPointsToTarget(resultValue).getSMGObject())
+          .isEqualTo(expectedTarget);
 
       // The reverse applies as well
       assertThat(
@@ -2351,6 +2376,10 @@ public class SMGCPAValueVisitorTest {
       // Assert the correct returns
       assertThat(resultList).hasSize(1);
       Value resultValue = resultList.get(0).getValue();
+      assertThat(((AddressExpression) resultValue).getOffset().isNumericValue()).isTrue();
+      assertThat(((AddressExpression) resultValue).getOffset().asNumericValue().longValue() == 0)
+          .isTrue();
+      resultValue = ((AddressExpression) resultValue).getMemoryAddress();
       // & actually changes the state!
       currentState = resultList.get(0).getState();
 
@@ -2373,7 +2402,8 @@ public class SMGCPAValueVisitorTest {
       // memory location and never to the 0 object
       assertThat(currentState.getPointsToTarget(resultValue))
           .isNotEqualTo(SMGObject.nullInstance());
-      assertThat(currentState.getPointsToTarget(resultValue)).isEqualTo(expectedTarget);
+      assertThat(currentState.getPointsToTarget(resultValue).getSMGObject())
+          .isEqualTo(expectedTarget);
 
       // The reverse applies as well
       assertThat(
@@ -2424,6 +2454,10 @@ public class SMGCPAValueVisitorTest {
         // Assert the correct returns
         assertThat(resultList).hasSize(1);
         Value resultValue = resultList.get(0).getValue();
+        assertThat(((AddressExpression) resultValue).getOffset().isNumericValue()).isTrue();
+        assertThat(((AddressExpression) resultValue).getOffset().asNumericValue().longValue() == 0)
+            .isTrue();
+        resultValue = ((AddressExpression) resultValue).getMemoryAddress();
         // & actually changes the state!
         currentState = resultList.get(0).getState();
 
@@ -2458,7 +2492,8 @@ public class SMGCPAValueVisitorTest {
         // memory location and never to the 0 object
         assertThat(currentState.getPointsToTarget(resultValue))
             .isNotEqualTo(SMGObject.nullInstance());
-        assertThat(currentState.getPointsToTarget(resultValue)).isEqualTo(expectedTarget);
+        assertThat(currentState.getPointsToTarget(resultValue).getSMGObject())
+            .isEqualTo(expectedTarget);
 
         // The reverse applies as well
         assertThat(
@@ -2508,6 +2543,10 @@ public class SMGCPAValueVisitorTest {
         // Assert the correct returns
         assertThat(resultList).hasSize(1);
         Value resultValue = resultList.get(0).getValue();
+        assertThat(((AddressExpression) resultValue).getOffset().isNumericValue()).isTrue();
+        assertThat(((AddressExpression) resultValue).getOffset().asNumericValue().longValue() == 0)
+            .isTrue();
+        resultValue = ((AddressExpression) resultValue).getMemoryAddress();
         // & actually changes the state!
         currentState = resultList.get(0).getState();
 
@@ -2541,7 +2580,8 @@ public class SMGCPAValueVisitorTest {
         // memory location and never to the 0 object
         assertThat(currentState.getPointsToTarget(resultValue))
             .isNotEqualTo(SMGObject.nullInstance());
-        assertThat(currentState.getPointsToTarget(resultValue)).isEqualTo(expectedTarget);
+        assertThat(currentState.getPointsToTarget(resultValue).getSMGObject())
+            .isEqualTo(expectedTarget);
 
         // The reverse applies as well
         assertThat(
