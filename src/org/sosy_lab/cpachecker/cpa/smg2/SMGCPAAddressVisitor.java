@@ -141,7 +141,20 @@ public class SMGCPAAddressVisitor
             typeSizeInBits.multiply(subscriptValue.asNumericValue().bigInteger());
 
         // Get the value from the array and return the value + state
-        if (arrayExpr.getExpressionType() instanceof CPointerType) {
+        // (the is pointer check is needed because of nested subscript; i.e. array[1][1]; as if we
+        // access array[1] first, we can see that the next type is CArray which makes only sense for
+        // nested arrays -> it reads a pointer and returns it even if the type is not a pointer
+        // expr)
+        boolean isPointer = evaluator.isPointerValue(arrayValue, currentState);
+        if (arrayExpr.getExpressionType() instanceof CPointerType || isPointer) {
+          if (isPointer) {
+            CType exprType = e.getExpressionType();
+            arrayValue =
+                AddressExpression.withZeroOffset(
+                    arrayValue,
+                    new CPointerType(exprType.isConst(), exprType.isVolatile(), exprType));
+          }
+
           // In the pointer case, the Value needs to be a AddressExpression
           if (!(arrayValue instanceof AddressExpression)) {
             throw new SMG2Exception(
@@ -167,8 +180,7 @@ public class SMGCPAAddressVisitor
               evaluator.getTargetObjectAndOffset(
                   currentState, addressValue.getMemoryAddress(), subscriptOffset));
         } else if (arrayValue instanceof SymbolicValue) {
-          // Here our arrayValue holds the name of our variable
-
+       // Here our arrayValue holds the name of our variable
           MemoryLocation maybeVariableIdent =
               ((SymbolicValue) arrayValue).getRepresentedLocation().orElseThrow();
 
