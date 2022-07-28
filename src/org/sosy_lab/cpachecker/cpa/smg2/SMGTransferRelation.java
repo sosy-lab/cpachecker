@@ -565,8 +565,7 @@ public class SMGTransferRelation
     } else {
       // Fallthrough for unhandled cases
       // TODO: log
-      throw new SMG2Exception("Fallthrough handleStatementEdge");
-      // return ImmutableList.of(state);
+      return ImmutableList.of(state);
     }
   }
 
