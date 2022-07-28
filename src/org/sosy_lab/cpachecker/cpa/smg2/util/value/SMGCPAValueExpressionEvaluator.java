@@ -184,7 +184,7 @@ public class SMGCPAValueExpressionEvaluator {
     rightValue = rightValueAndState.getValue();
     SMGState currentState = rightValueAndState.getState();
     // Check that both Values are truly addresses
-    if (!isPointerValue(rightValue, currentState) || !isPointerValue(rightValue, currentState)) {
+    if (!isPointerValue(rightValue, currentState) || !isPointerValue(leftValue, currentState)) {
       return new NumericValue(1);
     }
 
@@ -358,9 +358,10 @@ public class SMGCPAValueExpressionEvaluator {
           maybeObjectAndOffset =
               Optional.of(SMGObjectAndOffset.withZeroOffset(functionObject.orElseThrow()));
         } else {
-        // TODO: improve error handling and add more specific exceptions to the visitor!
-        // No address could be found
-        throw new SMG2Exception("No address could be created for the expression: " + operand);
+          // This is not necassarly an error! If we can't get a address because a lookup is based on
+          // an unknown value for example. We create a dummy pointer in such cases that points
+          // nowhere
+          throw new SMG2Exception("No address could be created for the expression: " + operand);
         }
       }
       SMGObjectAndOffset targetAndOffset = maybeObjectAndOffset.orElseThrow();
