@@ -451,6 +451,20 @@ public class SMGCPAValueVisitor
     CExpression ownerExpression = explicitReference.getFieldOwner();
     CType fieldType =
         SMGCPAValueExpressionEvaluator.getCanonicalType(explicitReference.getExpressionType());
+    BigInteger upperFieldOffset = BigInteger.ZERO;
+    while (ownerExpression instanceof CFieldReference
+        && !explicitReference.isPointerDereference()) {
+      // Nested reference, i.e. struct->field1.field2. The field owner is struct->field1 in such a
+      // case, so we need to get the owners target and add the offsets to the later read
+      upperFieldOffset =
+          evaluator
+              .getFieldOffsetInBits(
+                  SMGCPAValueExpressionEvaluator.getCanonicalType(ownerExpression),
+                  explicitReference.getFieldName())
+              .add(upperFieldOffset);
+      explicitReference = ((CFieldReference) ownerExpression).withExplicitPointerDereference();
+      ownerExpression = explicitReference.getFieldOwner();
+    }
     // For (*pointer).field case or struct.field case the visitor returns the Value for the
     // correct SMGObject (if it exists)
     ImmutableList.Builder<ValueAndSMGState> builder = new ImmutableList.Builder<>();
@@ -462,9 +476,11 @@ public class SMGCPAValueVisitor
 
       // Now get the offset of the current field
       BigInteger fieldOffset =
-          evaluator.getFieldOffsetInBits(
-              SMGCPAValueExpressionEvaluator.getCanonicalType(ownerExpression),
-              explicitReference.getFieldName());
+          evaluator
+              .getFieldOffsetInBits(
+                  SMGCPAValueExpressionEvaluator.getCanonicalType(ownerExpression),
+                  explicitReference.getFieldName())
+              .add(upperFieldOffset);
 
       // Get the size of the current field depending on its type; in the case of Strings however we
       // want to use Chars

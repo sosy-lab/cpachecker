@@ -226,6 +226,28 @@ public class SMGCPAAddressVisitor
     CExpression ownerExpression = explicitReference.getFieldOwner();
     ImmutableList.Builder<Optional<SMGObjectAndOffset>> resultBuilder = ImmutableList.builder();
 
+    if (ownerExpression instanceof CFieldReference && !explicitReference.isPointerDereference()) {
+      // Nested reference, i.e. struct->field1.field2. The field owner is struct->field1 in such a
+      // case, so we need to get the owners SMGObjectAndOffset and then, depending on if its
+      // a reference or not, add the offset of field2#
+      for (Optional<SMGObjectAndOffset> maybeOwnerObjectAndOffset : ownerExpression.accept(this)) {
+        if (maybeOwnerObjectAndOffset.isEmpty()) {
+          resultBuilder.add(maybeOwnerObjectAndOffset);
+          continue;
+        }
+        SMGObjectAndOffset ownerObjectAndOffset = maybeOwnerObjectAndOffset.orElseThrow();
+        BigInteger fieldOffsetWithoutOwner =
+            evaluator.getFieldOffsetInBits(
+                SMGCPAValueExpressionEvaluator.getCanonicalType(ownerExpression),
+                explicitReference.getFieldName());
+        BigInteger fieldOffset =
+            ownerObjectAndOffset.getOffsetForObject().add(fieldOffsetWithoutOwner);
+        resultBuilder.add(
+            Optional.of(SMGObjectAndOffset.of(ownerObjectAndOffset.getSMGObject(), fieldOffset)));
+      }
+      return resultBuilder.build();
+    }
+
     // For (*pointer).field case or struct.field case the visitor returns the Value for the
     // correct SMGObject (if it exists)
     for (ValueAndSMGState structValuesAndState :
