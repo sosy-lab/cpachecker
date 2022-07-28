@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.cpa.smg2;
 
+import com.google.common.base.Equivalence;
+import com.google.common.base.Equivalence.Wrapper;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.FluentIterable;
@@ -31,12 +33,11 @@ import org.sosy_lab.cpachecker.cpa.smg2.util.SMGObjectsAndValues;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGValueAndSPC;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SPCAndSMGObjects;
 import org.sosy_lab.cpachecker.cpa.smg2.util.value.CValue;
+import org.sosy_lab.cpachecker.cpa.smg2.util.value.ValueWrapper;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
-import org.sosy_lab.cpachecker.cpa.value.type.Value.UnknownValue;
 import org.sosy_lab.cpachecker.util.smg.SMG;
 import org.sosy_lab.cpachecker.util.smg.SMGProveNequality;
-import org.sosy_lab.cpachecker.util.smg.graph.SMGHasValueEdge;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGObject;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGPointsToEdge;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGTargetSpecifier;
@@ -80,7 +81,9 @@ public class SymbolicProgramConfiguration {
    * the SPC! TODO: use SymbolicRegionManager or smth like it in a changed implementation of the
    * value. TODO: map the SMGValues using the SPC mapping or decide on a new mapping idea
    */
-  private final ImmutableBiMap<Value, SMGValue> valueMapping;
+  private final ImmutableBiMap<Equivalence.Wrapper<Value>, SMGValue> valueMapping;
+
+  private static final ValueWrapper valueWrapper = new ValueWrapper();
 
   private SymbolicProgramConfiguration(
       SMG pSmg,
@@ -88,7 +91,7 @@ public class SymbolicProgramConfiguration {
       PersistentStack<StackFrame> pStackVariableMapping,
       PersistentSet<SMGObject> pHeapObjects,
       PersistentMap<SMGObject, Boolean> pExternalObjectAllocation,
-      ImmutableBiMap<Value, SMGValue> pValueMapping) {
+      ImmutableBiMap<Equivalence.Wrapper<Value>, SMGValue> pValueMapping) {
     globalVariableMapping = pGlobalVariableMapping;
     stackVariableMapping = pStackVariableMapping;
     smg = pSmg;
@@ -117,7 +120,7 @@ public class SymbolicProgramConfiguration {
       PersistentStack<StackFrame> pStackVariableMapping,
       PersistentSet<SMGObject> pHeapObjects,
       PersistentMap<SMGObject, Boolean> pExternalObjectAllocation,
-      ImmutableBiMap<Value, SMGValue> pValueMapping) {
+      ImmutableBiMap<Equivalence.Wrapper<Value>, SMGValue> pValueMapping) {
     return new SymbolicProgramConfiguration(
         pSmg,
         pGlobalVariableMapping,
@@ -140,7 +143,7 @@ public class SymbolicProgramConfiguration {
         PersistentStack.of(),
         PersistentSet.of(SMGObject.nullInstance()),
         PathCopyingPersistentTreeMap.of(),
-        ImmutableBiMap.of(new NumericValue(0), SMGValue.zeroValue()));
+        ImmutableBiMap.of(valueWrapper.wrap(new NumericValue(0)), SMGValue.zeroValue()));
   }
 
   /**
@@ -239,10 +242,10 @@ public class SymbolicProgramConfiguration {
    */
   public SymbolicProgramConfiguration copyAndReplaceValueMapping(
       Value oldValue, Value newValueToBeAssigned) {
-    ImmutableBiMap.Builder<Value, SMGValue> builder = ImmutableBiMap.builder();
-    for (Entry<Value, SMGValue> entry : valueMapping.entrySet()) {
-      if (entry.getKey() == oldValue) {
-        builder.put(newValueToBeAssigned, entry.getValue());
+    ImmutableBiMap.Builder<Equivalence.Wrapper<Value>, SMGValue> builder = ImmutableBiMap.builder();
+    for (Entry<Equivalence.Wrapper<Value>, SMGValue> entry : valueMapping.entrySet()) {
+      if (entry.getKey().equals(valueWrapper.wrap(oldValue))) {
+        builder.put(valueWrapper.wrap(newValueToBeAssigned), entry.getValue());
       } else {
         builder.put(entry);
       }
@@ -456,14 +459,14 @@ public class SymbolicProgramConfiguration {
    * @return A copy of this SPC with the value mapping added.
    */
   public SymbolicProgramConfiguration copyAndPutValue(Value cValue, SMGValue smgValue) {
-    ImmutableBiMap.Builder<Value, SMGValue> builder = ImmutableBiMap.builder();
+    ImmutableBiMap.Builder<Equivalence.Wrapper<Value>, SMGValue> builder = ImmutableBiMap.builder();
     return of(
         smg,
         globalVariableMapping,
         stackVariableMapping,
         heapObjects,
         externalObjectAllocation,
-        builder.putAll(valueMapping).put(cValue, smgValue).buildOrThrow());
+        builder.putAll(valueMapping).put(valueWrapper.wrap(cValue), smgValue).buildOrThrow());
   }
 
   /**
@@ -495,7 +498,7 @@ public class SymbolicProgramConfiguration {
    */
   public Optional<SMGValue> getSMGValueFromValue(Value cValue) {
     // TODO: map the returned value using the SPC mapping!
-    return Optional.ofNullable(valueMapping.get(cValue));
+    return Optional.ofNullable(valueMapping.get(valueWrapper.wrap(cValue)));
   }
 
   /**
@@ -508,7 +511,11 @@ public class SymbolicProgramConfiguration {
    *     exists, empty else.
    */
   public Optional<Value> getValueFromSMGValue(SMGValue smgValue) {
-    return Optional.ofNullable(valueMapping.inverse().get(smgValue));
+    Wrapper<Value> gettet = valueMapping.inverse().get(smgValue);
+    if (gettet == null) {
+      return Optional.empty();
+    }
+    return Optional.ofNullable(gettet.get());
   }
 
   /**
@@ -522,7 +529,7 @@ public class SymbolicProgramConfiguration {
    *     Value} to the new {@link SMGValue}.
    */
   public SymbolicProgramConfiguration copyAndCreateValue(Value cValue) {
-    if (valueMapping.containsKey(cValue)) {
+    if (valueMapping.containsKey(valueWrapper.wrap(cValue))) {
       return this;
     }
     return copyAndPutValue(cValue, SMGValue.of());
@@ -636,118 +643,6 @@ public class SymbolicProgramConfiguration {
   }
 
   /**
-   * Reads the explicit value written in a memory chunk represented as SMGRegion object at a certain
-   * offset with a given size. This memory chunk can ever be a covered by exactly one
-   * SMGHasValueEdge or multiple of them. If the memory chunk to be read does not fit a single edge,
-   * the resulting value is computed bitwise. TODO: this most likely will fail the second we use
-   * abstraction and SMGs are joined.
-   *
-   * @param pObject - the SMGRegion
-   * @param pFieldOffset - the offset
-   * @param pSizeofInBits - the size of the chunk
-   * @return the explicit value written in the defined memory chunk
-   */
-  public Value readValuePrecise(
-      SMGObject pObject, BigInteger pFieldOffset, BigInteger pSizeofInBits) {
-    if (!isObjectValid(pObject) && !isObjectExternallyAllocated(pObject)) {
-      return new UnknownValue();
-    }
-    // This call to readValue might create a new SMGValue, but here we are only interested in
-    // existing values, that exactly matches offset and size.
-    // ReadValue already covers the check for nullified blocks.
-    SMGandValue newSMGAndValue = smg.readValue(pObject, pFieldOffset, pSizeofInBits);
-    SMGValue smgValue = newSMGAndValue.getValue();
-    if (valueMapping.containsValue(smgValue)) {
-      return valueMapping.inverse().get(smgValue);
-    }
-    // A memory chunk might by covered by one or more has value edges
-    Collection<SMGHasValueEdge> overlappingEdges =
-        smg.getOverlappingEdges(pObject, pFieldOffset, pSizeofInBits);
-    Value returnValue = new NumericValue(0);
-
-    // smg.getOverlappingEdges is already sorted by offset
-    for (SMGHasValueEdge edge : overlappingEdges) {
-      smgValue = edge.hasValue();
-      // if one block is unknown explicit value computations fails
-      if (!valueMapping.containsValue(smgValue)) {
-        return new UnknownValue();
-      }
-      // bitwise computation of the return value
-      returnValue =
-          bitwiseReadValue(
-              pFieldOffset,
-              edge.getOffset(),
-              pSizeofInBits,
-              edge.getSizeInBits(),
-              valueMapping.inverse().get(smgValue),
-              returnValue);
-      // reached block end
-      if (reachedBlockEnd(edge, pFieldOffset, pSizeofInBits)) {
-        return returnValue;
-      }
-    }
-    // if there are no overlapping edges or if the chunk is not fully covered
-    return new UnknownValue();
-  }
-
-  /**
-   * Checks if a edge covers the end of a memory chunk given by an offset and size tuple.
-   *
-   * @param pEdge - the edge to be checked
-   * @param pFieldOffset - the chunks offset
-   * @param pSizeofInBits - the chunks size
-   * @return edgeOffset + edgeSize >= pFieldOffset + pSizeofInBits
-   */
-  private boolean reachedBlockEnd(
-      SMGHasValueEdge pEdge, BigInteger pFieldOffset, BigInteger pSizeofInBits) {
-    return pEdge.getOffset().add(pEdge.getSizeInBits()).compareTo(pSizeofInBits.add(pFieldOffset))
-        >= 0;
-  }
-
-  /**
-   * Utility function to read a certain bit range of a value and bitwise concatenate the return
-   * values.
-   *
-   * @param fieldOffset - the offset of the memory chunk to be read
-   * @param edgeOffset - the offset of the edge covering the chunk
-   * @param fieldSize - the size of the memory chunk to be read
-   * @param edgeSize - the size of the edge covering the chunk
-   * @param readValue - the value which is represented by the edge
-   * @param returnValue - the Value bits which were already read with previous edges
-   * @return the concatenation of returnValue with the bits of readValue which are in the memory
-   *     chunk
-   */
-  @SuppressWarnings("unused")
-  private Value bitwiseReadValue(
-      BigInteger fieldOffset,
-      BigInteger edgeOffset,
-      BigInteger fieldSize,
-      BigInteger edgeSize,
-      Value readValue,
-      Value returnValue) {
-    // TODO handle little and big endian here
-
-    return null;
-    // TODO: decide if i want to repair this or throw it out. I doubt this works after joins
-    /*
-    // Edge may start "before" the chunk to be read. Cut off the bits to left of the chunk.
-    int leftBitsToBeCutOff = fieldOffset.subtract(edgeOffset).intValue();
-    readValue = readValue.shiftRight(leftBitsToBeCutOff);
-
-    // Edge may end "after" the chunk to be read. Cut off the bits to right of the chunk.
-    int cutOffCounter =
-        fieldOffset.add(fieldSize).subtract(edgeSize.add(edgeOffset)).intValue();
-
-    while (cutOffCounter > 0) {
-      readValue = readValue.clearBit(edgeSize.intValue() - cutOffCounter--);
-    }
-
-    // concatenate the resulting bits with the already computed bit value
-    // return returnCValue.concat(readValue);
-    */
-  }
-
-  /**
    * Copy SPC and add a pointer to an object at a specified offset. The target needs to be a region
    * (not a LIST)! If the mapping Value <-> SMGValue does not exists it is created, else the old
    * SMGValue is used. If there was a pointer from this SMGValue to an SMGObject it is replaced with
@@ -809,7 +704,8 @@ public class SymbolicProgramConfiguration {
       // Not known or not known as a pointer, return nothing
       return Optional.empty();
     }
-    SMGPointsToEdge ptEdge = smg.getPTEdge(valueMapping.get(pointer)).orElseThrow();
+    SMGPointsToEdge ptEdge =
+        smg.getPTEdge(valueMapping.get(valueWrapper.wrap(pointer))).orElseThrow();
     return Optional.of(SMGObjectAndOffset.of(ptEdge.pointsTo(), ptEdge.getOffset()));
   }
 
@@ -822,8 +718,8 @@ public class SymbolicProgramConfiguration {
    *     else.
    */
   public boolean isPointer(Value maybePointer) {
-    if (valueMapping.containsKey(maybePointer)) {
-      return smg.isPointer(valueMapping.get(maybePointer));
+    if (valueMapping.containsKey(valueWrapper.wrap(maybePointer))) {
+      return smg.isPointer(valueMapping.get(valueWrapper.wrap(maybePointer)));
     }
     return false;
   }
