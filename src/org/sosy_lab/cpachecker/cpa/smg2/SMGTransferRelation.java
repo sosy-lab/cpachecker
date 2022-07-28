@@ -236,11 +236,14 @@ public class SMGTransferRelation
       for (ValueAndSMGState returnValueAndState : returnExp.accept(valueVisitor)) {
         // We get the size per state as it could theoretically change per state (abstraction)
         BigInteger sizeInBits = evaluator.getBitSizeof(state, retType);
+        ValueAndSMGState valueAndStateToWrite =
+            evaluator.unpackAddressExpression(
+                returnValueAndState.getValue(), returnValueAndState.getState(), returnEdge);
         successorsBuilder.add(
-            returnValueAndState
+            valueAndStateToWrite
                 .getState()
                 .writeToReturn(
-                    sizeInBits, returnValueAndState.getValue(), returnExp.getExpressionType()));
+                    sizeInBits, valueAndStateToWrite.getValue(), returnExp.getExpressionType()));
       }
     } else {
       successorsBuilder.add(state);
@@ -1291,8 +1294,11 @@ public class SMGTransferRelation
     SMGCPAValueVisitor valueVisitor = new SMGCPAValueVisitor(evaluator, pState, cfaEdge, logger);
     ImmutableList.Builder<SMGState> resultStatesBuilder = ImmutableList.builder();
     for (ValueAndSMGState valueAndState : exprToWrite.accept(valueVisitor)) {
-      Value valueToAssign = valueAndState.getValue();
-      SMGState currentState = valueAndState.getState();
+      ValueAndSMGState valueAndStateToAssign =
+          evaluator.unpackAddressExpression(
+              valueAndState.getValue(), valueAndState.getState(), cfaEdge);
+      Value valueToAssign = valueAndStateToAssign.getValue();
+      SMGState currentState = valueAndStateToAssign.getState();
 
       resultStatesBuilder.add(
           currentState.writeToStackOrGlobalVariable(
