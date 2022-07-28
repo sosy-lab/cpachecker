@@ -183,6 +183,10 @@ public class SMGCPAValueExpressionEvaluator {
         unpackAddressExpression(rightValue, leftValueAndState.getState(), cfaEdge);
     rightValue = rightValueAndState.getValue();
     SMGState currentState = rightValueAndState.getState();
+    // Check that both Values are truly addresses
+    if (!isPointerValue(rightValue, currentState) || !isPointerValue(rightValue, currentState)) {
+      return new NumericValue(1);
+    }
 
     Preconditions.checkArgument(
         !(leftValue instanceof AddressExpression) && !(rightValue instanceof AddressExpression));
