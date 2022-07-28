@@ -271,10 +271,21 @@ public class SymbolicProgramConfiguration {
    */
   public SymbolicProgramConfiguration copyAndAddStackFrame(
       CFunctionDeclaration pFunctionDefinition, MachineModel model) {
+    StackFrame newStackFrame = new StackFrame(pFunctionDefinition, model);
+    Optional<SMGObject> returnObj = newStackFrame.getReturnObject();
+    if (returnObj.isEmpty()) {
+      return of(
+          smg,
+          globalVariableMapping,
+          stackVariableMapping.pushAndCopy(newStackFrame),
+          heapObjects,
+          externalObjectAllocation,
+          valueMapping);
+    }
     return of(
-        smg,
+        smg.copyAndAddObject(returnObj.orElseThrow()),
         globalVariableMapping,
-        stackVariableMapping.pushAndCopy(new StackFrame(pFunctionDefinition, model)),
+        stackVariableMapping.pushAndCopy(newStackFrame),
         heapObjects,
         externalObjectAllocation,
         valueMapping);
