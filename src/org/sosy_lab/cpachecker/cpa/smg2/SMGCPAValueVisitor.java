@@ -408,7 +408,7 @@ public class SMGCPAValueVisitor
     return builder.build();
   }
 
-  private ValueAndSMGState castCValue(Value value, CType targetType, SMGState currentState) {
+  public ValueAndSMGState castCValue(Value value, CType targetType, SMGState currentState) {
     MachineModel machineModel = evaluator.getMachineModel();
     if (!value.isExplicitlyKnown()) {
       return ValueAndSMGState.of(

@@ -37,6 +37,7 @@ import org.sosy_lab.cpachecker.cpa.smg.TypeUtils;
 import org.sosy_lab.cpachecker.cpa.smg2.SMGCPAAddressVisitor;
 import org.sosy_lab.cpachecker.cpa.smg2.SMGCPABuiltins;
 import org.sosy_lab.cpachecker.cpa.smg2.SMGCPAExportOptions;
+import org.sosy_lab.cpachecker.cpa.smg2.SMGCPAValueVisitor;
 import org.sosy_lab.cpachecker.cpa.smg2.SMGOptions;
 import org.sosy_lab.cpachecker.cpa.smg2.SMGSizeOfVisitor;
 import org.sosy_lab.cpachecker.cpa.smg2.SMGState;
@@ -194,7 +195,18 @@ public class SMGCPAValueExpressionEvaluator {
     return isNotEqual ? new NumericValue(1) : new NumericValue(0);
   }
 
-  private ValueAndSMGState unpackAddressExpression(Value value, SMGState state, CFAEdge cfaEdge)
+  /**
+   * Unpacks the {@link Value} iff it is a {@link AddressExpression}. Else returns the original. If
+   * the value is a AddressExpression with offset, a new pointer is created and mapped to a new
+   * value that is returned.
+   *
+   * @param value a {@link Value} that may be a {@link AddressExpression}.
+   * @param state current {@link SMGState}.
+   * @param cfaEdge current {@link CFAEdge} for debugging.
+   * @return {@link ValueAndSMGState}
+   * @throws SMG2Exception in case of critical errors.
+   */
+  public ValueAndSMGState unpackAddressExpression(Value value, SMGState state, CFAEdge cfaEdge)
       throws SMG2Exception {
     if (!(value instanceof AddressExpression)) {
       return ValueAndSMGState.of(value, state);
@@ -742,8 +754,11 @@ public class SMGCPAValueExpressionEvaluator {
           maybeVariableMemoryAndOffset.orElseThrow().getSMGObject();
       BigInteger offsetInBits = maybeVariableMemoryAndOffset.orElseThrow().getOffsetForObject();
       if (leftHandSideValue.getExpressionType() != valueType) {
-        throw new SMG2Exception(
-            "TODO: cut/cast values assigning to different types without explicit cast.");
+        ValueAndSMGState castedValueAndState =
+            new SMGCPAValueVisitor(this, currentState, edge, logger)
+                .castCValue(valueToWrite, leftHandSideValue.getExpressionType(), currentState);
+        valueToWrite = castedValueAndState.getValue();
+        currentState = castedValueAndState.getState();
       }
       successorsBuilder.add(
           currentState.writeValueTo(
