@@ -241,7 +241,7 @@ public class DataRaceTransferRelation extends SingleEdgeTransferRelation {
       strengthenedStates.add(
           new DataRaceState(
               memoryAccessBuilder.addAll(newMemoryAccesses).build(),
-              subsequentWritesBuilder.build(),
+              subsequentWritesBuilder.buildOrThrow(),
               newThreadEpochs,
               newThreadSynchronizations,
               newHeldLocks.build(),
