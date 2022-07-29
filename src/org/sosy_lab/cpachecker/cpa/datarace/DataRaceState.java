@@ -10,8 +10,11 @@ package org.sosy_lab.cpachecker.cpa.datarace;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.ImmutableSetMultimap;
+import com.google.common.collect.SetMultimap;
 import java.util.Map;
 import java.util.Set;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
 import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
 
@@ -23,6 +26,8 @@ public class DataRaceState implements AbstractQueryableState {
   private final ImmutableMap<MemoryAccess, MemoryAccess> subsequentWrites;
   private final ImmutableMap<String, Integer> threadEpochs;
   private final ImmutableSet<ThreadSynchronization> threadSynchronizations;
+  private final ImmutableSetMultimap<String, String> heldLocks;
+  private final ImmutableSet<LockRelease> lastReleases;
   private final boolean hasDataRace;
 
   DataRaceState(
@@ -30,11 +35,15 @@ public class DataRaceState implements AbstractQueryableState {
       Map<MemoryAccess, MemoryAccess> pSubsequentWrites,
       Map<String, Integer> pThreadEpochs,
       Set<ThreadSynchronization> pThreadSynchronizations,
+      SetMultimap<String, String> pHeldLocks,
+      Set<LockRelease> pLastReleases,
       boolean pHasDataRace) {
     memoryAccesses = ImmutableSet.copyOf(pMemoryAccesses);
     subsequentWrites = ImmutableMap.copyOf(pSubsequentWrites);
     threadEpochs = ImmutableMap.copyOf(pThreadEpochs);
     threadSynchronizations = ImmutableSet.copyOf(pThreadSynchronizations);
+    heldLocks = ImmutableSetMultimap.copyOf(pHeldLocks);
+    lastReleases = ImmutableSet.copyOf(pLastReleases);
     hasDataRace = pHasDataRace;
   }
 
@@ -52,6 +61,27 @@ public class DataRaceState implements AbstractQueryableState {
 
   Set<ThreadSynchronization> getThreadSynchronizations() {
     return threadSynchronizations;
+  }
+
+  public ImmutableSetMultimap<String, String> getHeldLocks() {
+    return heldLocks;
+  }
+
+  public Set<LockRelease> getLastReleases() {
+    return lastReleases;
+  }
+
+  Set<String> getLocksForThread(String threadId) {
+    return heldLocks.get(threadId);
+  }
+
+  @Nullable LockRelease getLastReleaseForLock(String lock) {
+    for (LockRelease release : lastReleases) {
+      if (release.getLockId().equals(lock)) {
+        return release;
+      }
+    }
+    return null;
   }
 
   boolean hasDataRace() {

@@ -10,9 +10,11 @@ package org.sosy_lab.cpachecker.cpa.datarace;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
@@ -143,6 +145,8 @@ public class DataRaceTransferRelation extends SingleEdgeTransferRelation {
                 ImmutableMap.of(),
                 newThreadEpochs,
                 ImmutableSet.of(),
+                ImmutableSetMultimap.of(),
+                ImmutableSet.of(),
                 state.hasDataRace()));
         continue;
       }
@@ -150,9 +154,46 @@ public class DataRaceTransferRelation extends SingleEdgeTransferRelation {
       ImmutableSet.Builder<MemoryAccess> memoryAccessBuilder = ImmutableSet.builder();
       ImmutableMap.Builder<MemoryAccess, MemoryAccess> subsequentWritesBuilder =
           prepareSubsequentWritesBuilder(state, threadIds);
+      Set<String> locks = threadingState.getLocksForThread(activeThread);
       Set<MemoryAccess> newMemoryAccesses =
-          getNewAccesses(
-              threadEpochs, activeThread, cfaEdge, threadingState.getLocksForThread(activeThread));
+          getNewAccesses(threadEpochs, activeThread, cfaEdge, locks);
+
+      ImmutableSetMultimap.Builder<String, String> newHeldLocks = ImmutableSetMultimap.builder();
+      for (Entry<String, String> entry : state.getHeldLocks().entries()) {
+        if (!entry.getKey().equals(activeThread)) {
+          newHeldLocks.put(entry);
+        }
+      }
+      ImmutableSet.Builder<LockRelease> newReleases = ImmutableSet.builder();
+      Set<String> updated = new HashSet<>();
+
+      for (String lock : Sets.union(state.getLocksForThread(activeThread), locks)) {
+        if (Sets.difference(locks, state.getLocksForThread(activeThread)).contains(lock)) {
+          //  Lock was acquired
+          LockRelease lastRelease = state.getLastReleaseForLock(lock);
+          if (lastRelease != null && !lastRelease.getThreadId().equals(activeThread)) {
+            newThreadSynchronizationsBuilder.add(
+                new ThreadSynchronization(
+                    lastRelease.getThreadId(),
+                    activeThread,
+                    lastRelease.getAccessEpoch(),
+                    threadEpochs.get(activeThread)));
+          }
+          updated.add(lock);
+        } else if (Sets.difference(state.getLocksForThread(activeThread), locks).contains(lock)) {
+          // Lock was released
+          newReleases.add(new LockRelease(lock, activeThread, threadEpochs.get(activeThread)));
+          updated.add(lock);
+          continue;
+        }
+        newHeldLocks.put(activeThread, lock);
+      }
+
+      for (LockRelease release : state.getLastReleases()) {
+        if (!updated.contains(release.getLockId())) {
+          newReleases.add(release);
+        }
+      }
 
       for (MemoryAccess access : state.getMemoryAccesses()) {
         if (threadIds.contains(access.getThreadId())) {
@@ -165,6 +206,11 @@ public class DataRaceTransferRelation extends SingleEdgeTransferRelation {
                 } else if (!access.getThreadId().equals(newAccess.getThreadId())) {
                   // Unnecessary if both accesses were made by the same thread, because then
                   // happens-before is established even without synchronizes-with
+                  // TODO: Throwing away synchronizes-with edges when a tread is terminated will
+                  //       likely cause problems due to transitivity, so either "rewire" edges
+                  //       or simply do not delete thread info, i.e. should a new thread with the
+                  //       same id be created, let it continue with the next access epoch.
+                  //       Memory accesses can (and should) still be deleted on thread termination.
                   newThreadSynchronizationsBuilder.add(
                       new ThreadSynchronization(
                           access.getThreadId(),
@@ -206,6 +252,8 @@ public class DataRaceTransferRelation extends SingleEdgeTransferRelation {
               subsequentWritesBuilder.build(),
               newThreadEpochs,
               newThreadSynchronizations,
+              newHeldLocks.build(),
+              newReleases.build(),
               hasDataRace));
     }
 

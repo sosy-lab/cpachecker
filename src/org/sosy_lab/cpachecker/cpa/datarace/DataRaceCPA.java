@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.cpa.datarace;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.ImmutableSetMultimap;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.defaults.AbstractCPA;
@@ -52,6 +53,12 @@ public class DataRaceCPA extends AbstractCPA {
   public AbstractState getInitialState(CFANode node, StateSpacePartition partition)
       throws InterruptedException {
     return new DataRaceState(
-        ImmutableSet.of(), ImmutableMap.of(), ImmutableMap.of("main", 0), ImmutableSet.of(), false);
+        ImmutableSet.of(),
+        ImmutableMap.of(),
+        ImmutableMap.of("main", 0),
+        ImmutableSet.of(),
+        ImmutableSetMultimap.of(),
+        ImmutableSet.of(),
+        false);
   }
 }
