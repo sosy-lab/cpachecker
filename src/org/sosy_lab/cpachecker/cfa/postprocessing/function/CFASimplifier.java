@@ -204,9 +204,16 @@ public class CFASimplifier {
       }
 
       // If there is an outgoing blank edge chain from the merge point of the two branches, remove
-      // it as well.
-      final CFANode endpoint2 = findEndOfBlankEdgeChain(endpoint);
-      removeChainOfNodes(endpoint, endpoint2, cfa, removedFileLocations);
+      // it as well. We only do this if the merge point has no entering edges (the two branches were
+      // just removed, but it's possible that the merge point has other entering edges that prevent
+      // us from removing the merge point).
+      final CFANode endpoint2;
+      if (endpoint.getNumEnteringEdges() == 0) {
+        endpoint2 = findEndOfBlankEdgeChain(endpoint);
+        removeChainOfNodes(endpoint, endpoint2, cfa, removedFileLocations);
+      } else {
+        endpoint2 = endpoint;
+      }
 
       CFAEdge blankEdge =
           new BlankEdge(

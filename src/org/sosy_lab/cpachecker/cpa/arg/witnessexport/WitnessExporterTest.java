@@ -25,6 +25,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.ConfigurationBuilder;
@@ -102,6 +103,7 @@ public class WitnessExporterTest {
   }
 
   @Test(timeout = 90000)
+  @Ignore // TODO takes too long and needs replacement, cf. #926
   public void concurrency_false_fib_bench() throws Exception {
     new WitnessTester(
             "fib_bench-2.i", ExpectedVerdict.FALSE, WitnessGenerationConfig.BDD_CONCURRENCY)
@@ -109,6 +111,7 @@ public class WitnessExporterTest {
   }
 
   @Test(timeout = 200000)
+  @Ignore // TODO takes too long and needs replacement, cf. #926
   public void concurrency_false_mix000_power() throws Exception {
     new WitnessTester(
             "mix000_power.oepc.i", ExpectedVerdict.FALSE, WitnessGenerationConfig.BDD_CONCURRENCY)
