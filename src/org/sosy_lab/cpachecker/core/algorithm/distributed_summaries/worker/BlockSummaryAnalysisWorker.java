@@ -18,9 +18,9 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.block_analysis.BackwardBlockAnalysis;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.block_analysis.BlockAnalysis;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.block_analysis.BlockAnalysis.BackwardAnalysis;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.block_analysis.BlockAnalysis.ForwardAnalysis;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.block_analysis.ForwardBlockAnalysis;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.BlockNode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.MessageProcessing;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.composite.DistributedCompositeCPA;
@@ -31,7 +31,7 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.statistics.StatTimer;
 import org.sosy_lab.java_smt.api.SolverException;
 
-public class AnalysisBlockSummaryWorker extends BlockSummaryWorker {
+public class BlockSummaryAnalysisWorker extends BlockSummaryWorker {
 
   private final BlockNode block;
 
@@ -46,7 +46,7 @@ public class AnalysisBlockSummaryWorker extends BlockSummaryWorker {
   private final StatTimer backwardAnalysisTime = new StatTimer("Backward Analysis");
 
   /**
-   * {@link AnalysisBlockSummaryWorker}s trigger forward and backward analyses to find a
+   * {@link BlockSummaryAnalysisWorker}s trigger forward and backward analyses to find a
    * verification verdict.
    *
    * @param pId unique id of worker that will be prefixed with 'analysis-worker-'
@@ -61,7 +61,7 @@ public class AnalysisBlockSummaryWorker extends BlockSummaryWorker {
    * @throws InvalidConfigurationException thrown if configuration contains unexpected values
    * @throws IOException thrown if socket and/or files are not readable
    */
-  AnalysisBlockSummaryWorker(
+  BlockSummaryAnalysisWorker(
       String pId,
       AnalysisOptions pOptions,
       Connection pConnection,
@@ -91,7 +91,7 @@ public class AnalysisBlockSummaryWorker extends BlockSummaryWorker {
             pShutdownManager.getNotifier());
 
     forwardAnalysis =
-        new ForwardAnalysis(
+        new ForwardBlockAnalysis(
             getLogger(),
             pBlock,
             pCFA,
@@ -101,7 +101,7 @@ public class AnalysisBlockSummaryWorker extends BlockSummaryWorker {
             pOptions);
 
     backwardAnalysis =
-        new BackwardAnalysis(
+        new BackwardBlockAnalysis(
             getLogger(),
             pBlock,
             pCFA,

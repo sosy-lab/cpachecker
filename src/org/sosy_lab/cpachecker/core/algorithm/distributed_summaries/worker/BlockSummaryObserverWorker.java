@@ -19,13 +19,13 @@ import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.Connection;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.ActorMessage;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.ErrorMessage;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.ErrorActorMessage;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.ResultMessage;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.java_smt.api.SolverException;
 
-public class ObserverBlockSummaryWorker extends BlockSummaryWorker {
+public class BlockSummaryObserverWorker extends BlockSummaryWorker {
 
   private final Connection connection;
   private final StatusObserver statusObserver;
@@ -33,7 +33,7 @@ public class ObserverBlockSummaryWorker extends BlockSummaryWorker {
   private Optional<Result> result;
   private Optional<String> errorMessage;
 
-  public ObserverBlockSummaryWorker(String pId, Connection pConnection, LogManager pLogger) {
+  public BlockSummaryObserverWorker(String pId, Connection pConnection, LogManager pLogger) {
     super(pId, pLogger);
     shutdown = false;
     connection = pConnection;
@@ -59,7 +59,7 @@ public class ObserverBlockSummaryWorker extends BlockSummaryWorker {
         statusObserver.updateStatus(pMessage);
         break;
       case ERROR:
-        errorMessage = Optional.of(((ErrorMessage) pMessage).getErrorMessage());
+        errorMessage = Optional.of(((ErrorActorMessage) pMessage).getErrorMessage());
         shutdown = true;
         break;
       default:

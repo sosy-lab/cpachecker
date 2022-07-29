@@ -11,19 +11,19 @@ package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DistributedConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.MessageProcessing;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.ActorMessage;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockPostConditionMessage;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.ErrorConditionMessage;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockPostConditionActorMessage;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.ErrorConditionActorMessage;
 import org.sosy_lab.java_smt.api.SolverException;
 
 public class AlwaysProceed implements ProceedOperator {
   @Override
-  public MessageProcessing proceedForward(BlockPostConditionMessage pMessage)
+  public MessageProcessing proceedForward(BlockPostConditionActorMessage pMessage)
       throws InterruptedException {
     return proceed(pMessage);
   }
 
   @Override
-  public MessageProcessing proceedBackward(ErrorConditionMessage pMessage)
+  public MessageProcessing proceedBackward(ErrorConditionActorMessage pMessage)
       throws InterruptedException, SolverException {
     return proceed(pMessage);
   }
@@ -37,5 +37,5 @@ public class AlwaysProceed implements ProceedOperator {
   public void synchronizeKnowledge(DistributedConfigurableProgramAnalysis pAnalysis) {}
 
   @Override
-  public void update(BlockPostConditionMessage pLatestOwnPreconditionMessage) {}
+  public void update(BlockPostConditionActorMessage pLatestOwnPreconditionMessage) {}
 }

@@ -15,8 +15,8 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.MessageProcessing;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.proceed.ProceedOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.ActorMessage;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockPostConditionMessage;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.ErrorConditionMessage;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockPostConditionActorMessage;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.ErrorConditionActorMessage;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.java_smt.api.SolverException;
 
@@ -27,7 +27,7 @@ public class ProceedCompositeStateOperator implements ProceedOperator {
       registered;
   private final AnalysisDirection direction;
 
-  private BlockPostConditionMessage latestOwnPostConditionMessage;
+  private BlockPostConditionActorMessage latestOwnPostConditionMessage;
 
   public ProceedCompositeStateOperator(
       Map<Class<? extends ConfigurableProgramAnalysis>, DistributedConfigurableProgramAnalysis>
@@ -38,7 +38,7 @@ public class ProceedCompositeStateOperator implements ProceedOperator {
   }
 
   @Override
-  public MessageProcessing proceedForward(BlockPostConditionMessage pMessage)
+  public MessageProcessing proceedForward(BlockPostConditionActorMessage pMessage)
       throws InterruptedException {
     MessageProcessing processing = MessageProcessing.proceed();
     for (DistributedConfigurableProgramAnalysis value : registered.values()) {
@@ -48,7 +48,7 @@ public class ProceedCompositeStateOperator implements ProceedOperator {
   }
 
   @Override
-  public MessageProcessing proceedBackward(ErrorConditionMessage pMessage)
+  public MessageProcessing proceedBackward(ErrorConditionActorMessage pMessage)
       throws InterruptedException, SolverException {
     MessageProcessing processing = MessageProcessing.proceed();
     for (DistributedConfigurableProgramAnalysis value : registered.values()) {
@@ -61,8 +61,8 @@ public class ProceedCompositeStateOperator implements ProceedOperator {
   public MessageProcessing proceed(ActorMessage pMessage)
       throws InterruptedException, SolverException {
     return direction == AnalysisDirection.FORWARD
-        ? proceedForward((BlockPostConditionMessage) pMessage)
-        : proceedBackward((ErrorConditionMessage) pMessage);
+        ? proceedForward((BlockPostConditionActorMessage) pMessage)
+        : proceedBackward((ErrorConditionActorMessage) pMessage);
   }
 
   @Override
@@ -84,7 +84,7 @@ public class ProceedCompositeStateOperator implements ProceedOperator {
   }
 
   @Override
-  public void update(BlockPostConditionMessage pLatestOwnPreconditionMessage) {
+  public void update(BlockPostConditionActorMessage pLatestOwnPreconditionMessage) {
     latestOwnPostConditionMessage = pLatestOwnPreconditionMessage;
     registered
         .values()

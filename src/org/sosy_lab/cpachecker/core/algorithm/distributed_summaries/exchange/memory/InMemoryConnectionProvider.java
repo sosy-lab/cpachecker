@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.me
 
 import static org.sosy_lab.common.collect.Collections3.transformedImmutableListCopy;
 
+import com.google.common.collect.ImmutableList;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
@@ -23,17 +24,16 @@ public class InMemoryConnectionProvider implements ConnectionProvider<InMemoryCo
   private final Supplier<BlockingQueue<ActorMessage>> queueFactory;
 
   /**
-   * Create a new InMemoryConnectionProvider. The given supplier is used as factory for
-   * BlockingQueue. It has to supply a <b>new</b> BlockingQueue object on each invocation, and must
-   * allow an arbitray number of invocations. (probably better to create a separate factory
-   * interface for this)
+   * Create a new {@link InMemoryConnectionProvider}. The given supplier is used as factory for
+   * {@link BlockingQueue}s. It has to supply a <b>new</b> {@link BlockingQueue} object on each
+   * invocation, and must allow an arbitrary number of invocations.
    */
   public InMemoryConnectionProvider(Supplier<BlockingQueue<ActorMessage>> pQueueFactory) {
     queueFactory = pQueueFactory;
   }
 
   @Override
-  public List<InMemoryConnection> createConnections(int connections) throws IOException {
+  public ImmutableList<InMemoryConnection> createConnections(int connections) throws IOException {
     List<BlockingQueue<ActorMessage>> outs = new ArrayList<>();
     for (int i = 0; i < connections; i++) {
       outs.add(queueFactory.get());

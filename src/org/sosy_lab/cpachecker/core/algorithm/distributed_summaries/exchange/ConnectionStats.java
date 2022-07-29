@@ -9,7 +9,6 @@
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange;
 
 import java.io.PrintStream;
-import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
@@ -27,7 +26,7 @@ public class ConnectionStats implements Statistics {
   }
 
   @Override
-  public @Nullable String getName() {
+  public String getName() {
     return "Connection Statistics";
   }
 }

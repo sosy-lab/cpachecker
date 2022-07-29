@@ -34,9 +34,9 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.Con
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.memory.InMemoryConnectionProvider;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.AnalysisOptions;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.BlockSummaryActor;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.DistributedComponentsBuilder;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.DistributedComponentsBuilder.Components;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.ObserverBlockSummaryWorker;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.BlockSummaryObserverWorker;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.BlockSummaryWorkerBuilder;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.BlockSummaryWorkerBuilder.Components;
 import org.sosy_lab.cpachecker.core.defaults.DummyTargetState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -122,19 +122,20 @@ public class DistributedSummaryAnalysis implements Algorithm, StatisticsProvider
   private CFADecomposer getDecomposer() throws InvalidConfigurationException {
     switch (decompositionType) {
       case BLOCK_OPERATOR:
-        return new BlockOperatorDecomposer(configuration);
+        return new BlockOperatorDecomposer(configuration, shutdownManager.getNotifier());
       case GIVEN_SIZE:
         return new GivenSizeDecomposer(
-            new BlockOperatorDecomposer(configuration), desiredNumberOfBlocks);
+            new BlockOperatorDecomposer(configuration, shutdownManager.getNotifier()),
+            desiredNumberOfBlocks);
       case SINGLE_BLOCK:
-        return new SingleBlockDecomposer();
+        return new SingleBlockDecomposer(shutdownManager.getNotifier());
       default:
         throw new AssertionError("Unknown DecompositionType: " + decompositionType);
     }
   }
 
-  private DistributedComponentsBuilder analysisWorker(
-      DistributedComponentsBuilder pBuilder, BlockNode pNode) {
+  private BlockSummaryWorkerBuilder analysisWorker(
+      BlockSummaryWorkerBuilder pBuilder, BlockNode pNode) {
     switch (workerType) {
       case DEFAULT:
         return pBuilder.addAnalysisWorker(pNode, options);
@@ -160,8 +161,8 @@ public class DistributedSummaryAnalysis implements Algorithm, StatisticsProvider
 
       // create workers
       Collection<BlockNode> blocks = tree.getDistinctNodes();
-      DistributedComponentsBuilder builder =
-          new DistributedComponentsBuilder(
+      BlockSummaryWorkerBuilder builder =
+          new BlockSummaryWorkerBuilder(
               cfa,
               logger,
               new InMemoryConnectionProvider(() -> new CleverMessageQueue()),
@@ -196,8 +197,8 @@ public class DistributedSummaryAnalysis implements Algorithm, StatisticsProvider
       // listen to messages
       try (Connection mainThreadConnection = components.getAdditionalConnections().get(0)) {
         mainThreadConnection.collectStatistics(statsCollection);
-        ObserverBlockSummaryWorker observer =
-            new ObserverBlockSummaryWorker("observer", mainThreadConnection, logger);
+        BlockSummaryObserverWorker observer =
+            new BlockSummaryObserverWorker("observer", mainThreadConnection, logger);
         Pair<AlgorithmStatus, Result> resultPair = observer.observe();
         Result result = resultPair.getSecond();
         if (result == Result.FALSE) {

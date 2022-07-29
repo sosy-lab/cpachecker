@@ -8,7 +8,6 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa;
 
-import com.google.common.collect.FluentIterable;
 import java.util.HashMap;
 import java.util.Map;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
@@ -71,9 +70,6 @@ public class DCPAHandler {
 
   public Map<Class<? extends ConfigurableProgramAnalysis>, DistributedConfigurableProgramAnalysis>
       getRegisteredAnalyses() {
-    assert FluentIterable.from(analyses.values()).transform(a -> a.getAbstractStateClass()).size()
-            == analyses.size()
-        : "Some distributed CPAs seem to work on the same abstract states.";
     return analyses;
   }
 }

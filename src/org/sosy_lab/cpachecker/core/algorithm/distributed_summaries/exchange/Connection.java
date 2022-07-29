@@ -17,22 +17,25 @@ import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 public interface Connection extends Closeable, StatisticsProvider {
 
   /**
-   * Wait for an incoming Message and return it.
+   * Wait for an incoming {@link ActorMessage} and return it.
    *
-   * @return current Message to process
-   * @throws InterruptedException if thread is interrupted.
+   * @return current {@link ActorMessage} to process
+   * @throws InterruptedException thrown if thread is interrupted.
    */
   ActorMessage read() throws InterruptedException;
 
   /**
-   * Returns the size of pending messages
+   * Returns the size of pending messages. Calculating the number of pending messages should never
+   * be expensive. This method only guarantees to count the messages that have already been parsed
+   * to {@link ActorMessage}s.
    *
    * @return size of pending messages
    */
   int size();
 
   /**
-   * Indicates if pending messages exist
+   * Indicates if pending messages exist. This method only guarantees to count the messages that
+   * have already been parsed to {@link ActorMessage}s.
    *
    * @return true, if no pending messages exist, false otherwise
    */
@@ -41,7 +44,7 @@ public interface Connection extends Closeable, StatisticsProvider {
   }
 
   /**
-   * Write and broadcast a message to all connections including itself
+   * Write and broadcast a message to all connections including itself.
    *
    * @param message Message to broadcast
    */

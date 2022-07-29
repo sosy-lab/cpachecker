@@ -9,30 +9,32 @@
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages;
 
 import java.time.Instant;
+import java.util.Set;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.Payload;
 
-public class ErrorConditionUnreachableMessage extends ActorMessage {
+public class ErrorConditionActorMessage extends ActorMessage {
 
-  private final String reason;
+  private final Set<String> visited;
+  private final boolean first;
 
-  protected ErrorConditionUnreachableMessage(
-      String pUniqueBlockId, int pTargetNodeNumber, Payload pPayload, Instant pTimeStamp) {
-    super(
-        MessageType.ERROR_CONDITION_UNREACHABLE,
-        pUniqueBlockId,
-        pTargetNodeNumber,
-        pPayload,
-        pTimeStamp);
-    reason = getPayload().getOrDefault(Payload.REASON, "");
+  ErrorConditionActorMessage(
+      String pUniqueBlockId, int pTargetNodeNumber, Payload pPayload, Instant pInstant) {
+    super(MessageType.ERROR_CONDITION, pUniqueBlockId, pTargetNodeNumber, pPayload, pInstant);
+    visited = extractVisited();
+    first = extractFlag(Payload.FIRST, false);
   }
 
-  public String getReason() {
-    return reason;
+  public Set<String> visitedBlockIds() {
+    return visited;
+  }
+
+  public boolean isFirst() {
+    return first;
   }
 
   @Override
   protected ActorMessage replacePayload(Payload pPayload) {
-    return new ErrorConditionUnreachableMessage(
+    return new ErrorConditionActorMessage(
         getUniqueBlockId(), getTargetNodeNumber(), pPayload, getTimestamp());
   }
 }

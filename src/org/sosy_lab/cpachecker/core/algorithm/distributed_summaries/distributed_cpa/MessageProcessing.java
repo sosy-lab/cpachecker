@@ -19,6 +19,9 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.act
  * Proceed operators need to return a collection of messages and a boolean indicating whether the
  * analysis should proceed. This class combines these two return types by forwarding a collection
  * and having an unmodifiable boolean attribute {@code end}.
+ *
+ * @see
+ *     org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.proceed.ProceedOperator
  */
 public class MessageProcessing extends ForwardingCollection<ActorMessage> {
 

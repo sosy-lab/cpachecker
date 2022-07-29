@@ -21,8 +21,8 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.proceed.ProceedOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.Payload;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.ActorMessage;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockPostConditionMessage;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.ErrorConditionMessage;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockPostConditionActorMessage;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.ErrorConditionActorMessage;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.AnalysisOptions;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
@@ -42,7 +42,7 @@ public class ProceedPredicateStateOperator implements ProceedOperator {
   private final Set<String> unsatPredecessors;
   private final Map<String, ActorMessage> receivedPostConditions;
 
-  private BlockPostConditionMessage latestOwnPostConditionMessage;
+  private BlockPostConditionActorMessage latestOwnPostConditionMessage;
 
   public ProceedPredicateStateOperator(
       AnalysisOptions pOptions,
@@ -64,12 +64,12 @@ public class ProceedPredicateStateOperator implements ProceedOperator {
   public MessageProcessing proceed(ActorMessage pMessage)
       throws InterruptedException, SolverException {
     return direction == AnalysisDirection.FORWARD
-        ? proceedForward((BlockPostConditionMessage) pMessage)
-        : proceedBackward((ErrorConditionMessage) pMessage);
+        ? proceedForward((BlockPostConditionActorMessage) pMessage)
+        : proceedBackward((ErrorConditionActorMessage) pMessage);
   }
 
   @Override
-  public MessageProcessing proceedBackward(ErrorConditionMessage message)
+  public MessageProcessing proceedBackward(ErrorConditionActorMessage message)
       throws SolverException, InterruptedException {
     CFANode node = block.getNodeWithNumber(message.getTargetNodeNumber());
     if (!(node.equals(block.getLastNode())
@@ -115,7 +115,7 @@ public class ProceedPredicateStateOperator implements ProceedOperator {
   }
 
   @Override
-  public MessageProcessing proceedForward(BlockPostConditionMessage message)
+  public MessageProcessing proceedForward(BlockPostConditionActorMessage message)
       throws InterruptedException {
     CFANode node = block.getNodeWithNumber(message.getTargetNodeNumber());
     if (!block.getStartNode().equals(node)) {
@@ -147,7 +147,7 @@ public class ProceedPredicateStateOperator implements ProceedOperator {
     }
   }
 
-  private void storePostCondition(BlockPostConditionMessage pMessage) {
+  private void storePostCondition(BlockPostConditionActorMessage pMessage) {
     ActorMessage toStore = ActorMessage.removeEntry(pMessage, Payload.SMART);
     if (analysisOptions.storeCircularPostConditions()
         && pMessage.visitedBlockIds().stream().anyMatch(s -> s.equals(block.getId()))) {
@@ -175,7 +175,7 @@ public class ProceedPredicateStateOperator implements ProceedOperator {
   }
 
   @Override
-  public void update(BlockPostConditionMessage pLatestOwnPreconditionMessage) {
+  public void update(BlockPostConditionActorMessage pLatestOwnPreconditionMessage) {
     latestOwnPostConditionMessage = pLatestOwnPreconditionMessage;
   }
 }

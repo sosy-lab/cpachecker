@@ -12,29 +12,35 @@ import java.time.Instant;
 import java.util.Set;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.Payload;
 
-public class ErrorConditionMessage extends ActorMessage {
+public class BlockPostConditionActorMessage extends ActorMessage {
 
+  private final boolean fullPath;
+  private final boolean reachable;
   private final Set<String> visited;
-  private final boolean first;
 
-  ErrorConditionMessage(
+  BlockPostConditionActorMessage(
       String pUniqueBlockId, int pTargetNodeNumber, Payload pPayload, Instant pInstant) {
-    super(MessageType.ERROR_CONDITION, pUniqueBlockId, pTargetNodeNumber, pPayload, pInstant);
+    super(MessageType.BLOCK_POSTCONDITION, pUniqueBlockId, pTargetNodeNumber, pPayload, pInstant);
+    fullPath = extractFlag(Payload.FULL_PATH, false);
+    reachable = extractFlag(Payload.REACHABLE, true);
     visited = extractVisited();
-    first = extractFlag(Payload.FIRST, false);
+  }
+
+  public boolean representsFullPath() {
+    return fullPath;
   }
 
   public Set<String> visitedBlockIds() {
     return visited;
   }
 
-  public boolean isFirst() {
-    return first;
+  public boolean isReachable() {
+    return reachable;
   }
 
   @Override
   protected ActorMessage replacePayload(Payload pPayload) {
-    return new ErrorConditionMessage(
+    return new BlockPostConditionActorMessage(
         getUniqueBlockId(), getTargetNodeNumber(), pPayload, getTimestamp());
   }
 }

@@ -32,24 +32,24 @@ public abstract class BlockTransferRelation implements TransferRelation {
   protected ImmutableSet<CFANode> nodes;
   protected CFANode targetNode;
   protected BlockNode bNode;
-  private boolean firstLoopHeadEncounter;
+  private boolean wasAtLeastOneLoopHeadEncountered;
 
   public void init(BlockNode pBlockNode) {
     edges = ImmutableSet.copyOf(pBlockNode.getEdgesInBlock());
     nodes = ImmutableSet.copyOf(pBlockNode.getNodesInBlock());
     targetNode = pBlockNode.getLastNode();
-    firstLoopHeadEncounter = false;
+    wasAtLeastOneLoopHeadEncountered = false;
     bNode = pBlockNode;
   }
 
   protected boolean shouldComputeSuccessor(BlockState pBlockState) {
     boolean isTargetLoopHead = pBlockState.getLocationNode().equals(targetNode);
     if (isTargetLoopHead) {
-      if (firstLoopHeadEncounter) {
-        firstLoopHeadEncounter = false;
+      if (wasAtLeastOneLoopHeadEncountered) {
+        wasAtLeastOneLoopHeadEncountered = false;
         return false;
       }
-      firstLoopHeadEncounter = true;
+      wasAtLeastOneLoopHeadEncountered = true;
     }
     return true;
   }

@@ -23,16 +23,16 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.Con
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.Payload;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.ActorMessage;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.ActorMessage.MessageType;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockPostConditionMessage;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockPostConditionActorMessage;
 import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
-public class SmartAnalysisBlockSummaryWorker extends AnalysisBlockSummaryWorker {
+public class BlockSummarySmartAnalysisWorker extends BlockSummaryAnalysisWorker {
 
   private final BlockingQueue<ActorMessage> smartQueue;
   private final BlockNode block;
 
-  SmartAnalysisBlockSummaryWorker(
+  BlockSummarySmartAnalysisWorker(
       String pId,
       LogManager pLogManager,
       AnalysisOptions pOptions,
@@ -76,7 +76,7 @@ public class SmartAnalysisBlockSummaryWorker extends AnalysisBlockSummaryWorker 
               getForwardAnalysis()
                   .getDistributedCPA()
                   .getProceedOperator()
-                  .proceedForward((BlockPostConditionMessage) m);
+                  .proceedForward((BlockPostConditionActorMessage) m);
           if (!mp.end()) {
             postcondMessage = ActorMessage.addEntry(m, Payload.SMART, "true");
           }

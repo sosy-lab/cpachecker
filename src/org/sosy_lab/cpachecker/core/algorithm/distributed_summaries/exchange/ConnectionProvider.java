@@ -8,8 +8,8 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange;
 
+import com.google.common.collect.ImmutableList;
 import java.io.IOException;
-import java.util.List;
 
 public interface ConnectionProvider<T extends Connection> {
 
@@ -20,5 +20,5 @@ public interface ConnectionProvider<T extends Connection> {
    * @return list of created Connections
    * @throws IOException if an IOException occurs during Connection creation
    */
-  List<T> createConnections(int connections) throws IOException;
+  ImmutableList<T> createConnections(int connections) throws IOException;
 }

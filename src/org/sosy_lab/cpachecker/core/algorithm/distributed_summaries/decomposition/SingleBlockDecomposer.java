@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decompositi
 import com.google.common.collect.ImmutableSet;
 import java.util.HashSet;
 import java.util.Set;
+import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -21,9 +22,15 @@ import org.sosy_lab.cpachecker.util.CFAUtils;
 /** Decompose a CFA into a single block containing the complete CFA */
 public class SingleBlockDecomposer implements CFADecomposer {
 
+  private final ShutdownNotifier shutdownNotifier;
+
+  public SingleBlockDecomposer(ShutdownNotifier pShutdownNotifier) {
+    shutdownNotifier = pShutdownNotifier;
+  }
+
   @Override
-  public BlockGraph cut(CFA cfa) {
-    BlockGraphBuilder builder = new BlockGraphBuilder(cfa);
+  public BlockGraph cut(CFA cfa) throws InterruptedException {
+    BlockGraphBuilder builder = new BlockGraphBuilder(cfa, shutdownNotifier);
     CFANode startNode = cfa.getMainFunction();
     // we do not get error conditions
     CFANode lastNode = CFANode.newDummyCFANode();

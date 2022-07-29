@@ -10,7 +10,6 @@ package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.block_analy
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.collect.FluentIterable.from;
-import static org.sosy_lab.common.collect.Collections3.transformedImmutableListCopy;
 
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
@@ -21,7 +20,6 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
-import java.util.logging.Level;
 import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -37,12 +35,12 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.Payload;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.ActorMessage;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.ActorMessage.MessageType;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockPostConditionMessage;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.ErrorConditionMessage;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockPostConditionActorMessage;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.ErrorConditionActorMessage;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.AnalysisOptions;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.ObserverBlockSummaryWorker.StatusObserver.StatusPrecise;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.ObserverBlockSummaryWorker.StatusObserver.StatusPropertyChecked;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.ObserverBlockSummaryWorker.StatusObserver.StatusSoundness;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.BlockSummaryObserverWorker.StatusObserver.StatusPrecise;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.BlockSummaryObserverWorker.StatusObserver.StatusPropertyChecked;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.BlockSummaryObserverWorker.StatusObserver.StatusSoundness;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -51,37 +49,29 @@ import org.sosy_lab.cpachecker.core.interfaces.Targetable.TargetInformation;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
-import org.sosy_lab.cpachecker.cpa.block.BlockCPA;
-import org.sosy_lab.cpachecker.cpa.block.BlockCPABackward;
 import org.sosy_lab.cpachecker.cpa.block.BlockEntryReachedTargetInformation;
 import org.sosy_lab.cpachecker.cpa.block.BlockState;
 import org.sosy_lab.cpachecker.cpa.block.BlockTransferRelation;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeCPA;
-import org.sosy_lab.cpachecker.cpa.composite.CompositeState;
 import org.sosy_lab.cpachecker.cpa.location.LocationState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.Triple;
-import org.sosy_lab.java_smt.api.SolverException;
 
-public abstract class BlockAnalysis {
+public abstract class BlockAnalysis implements BlockAnalyzer {
 
-  protected final Algorithm algorithm;
-  protected final ReachedSet reachedSet;
-  protected final ConfigurableProgramAnalysis cpa;
-  protected final DistributedCompositeCPA distributedCompositeCPA;
+  private final Algorithm algorithm;
+  private final ReachedSet reachedSet;
+  private final DistributedCompositeCPA distributedCompositeCPA;
 
-  protected Precision precision;
-  protected final AnalysisDirection direction;
-  protected final AbstractState top;
+  private final Precision initialPrecision;
+  private final AbstractState top;
+  private final ConfigurableProgramAnalysis cpa;
 
-  protected final BlockNode block;
-  protected final LogManager logger;
+  private final BlockNode block;
 
-  protected final boolean containsLoops;
-
-  protected AlgorithmStatus status;
+  private AlgorithmStatus status;
 
   /**
    * Analyze a subgraph of the CFA (block node) with an arbitrary CPA.
@@ -114,30 +104,27 @@ public abstract class BlockAnalysis {
     algorithm = parts.getFirst();
     cpa = parts.getSecond();
     reachedSet = parts.getThird();
-    direction = pDirection;
 
     status = AlgorithmStatus.SOUND_AND_PRECISE;
 
     checkNotNull(reachedSet, "BlockAnalysis requires the initial reachedSet");
-    precision = reachedSet.getPrecision(Objects.requireNonNull(reachedSet.getFirstState()));
+    initialPrecision = reachedSet.getPrecision(Objects.requireNonNull(reachedSet.getFirstState()));
 
     block = pBlock;
-    logger = pLogger;
 
     DCPAHandler builder = new DCPAHandler(pOptions);
     CompositeCPA compositeCPA =
         CPAs.retrieveCPAOrFail(cpa, CompositeCPA.class, BlockAnalysis.class);
     for (ConfigurableProgramAnalysis wrappedCPA : compositeCPA.getWrappedCPAs()) {
-      builder.registerDCPA(wrappedCPA, block, direction);
+      builder.registerDCPA(wrappedCPA, block, pDirection);
     }
     distributedCompositeCPA =
         new DistributedCompositeCPA(
             compositeCPA, block, pDirection, builder.getRegisteredAnalyses());
-    containsLoops = pCFA.getAllLoopHeads().isPresent() || pOptions.sendEveryErrorMessage();
 
     top =
         cpa.getInitialState(
-            direction == AnalysisDirection.FORWARD ? block.getStartNode() : block.getLastNode(),
+            pDirection == AnalysisDirection.FORWARD ? block.getStartNode() : block.getLastNode(),
             StateSpacePartition.getDefaultPartition());
   }
 
@@ -170,7 +157,7 @@ public abstract class BlockAnalysis {
     }
     return new ARGState(
         Iterables.getOnlyElement(
-            distributedCompositeCPA.getCombineOperator().combine(states, top, precision)),
+            distributedCompositeCPA.getCombineOperator().combine(states, top, initialPrecision)),
         null);
   }
 
@@ -184,14 +171,14 @@ public abstract class BlockAnalysis {
    * @param pMessages all messages at block entry or exit
    * @return visited block ids as set of strings
    */
-  public Set<String> visitedBlocks(Collection<ActorMessage> pMessages) {
+  protected ImmutableSet<String> visitedBlocks(Collection<ActorMessage> pMessages) {
     ImmutableSet.Builder<String> visitedBlocks = ImmutableSet.builder();
     for (ActorMessage message : pMessages) {
       Set<String> visited = ImmutableSet.of();
       if (message.getType() == MessageType.BLOCK_POSTCONDITION) {
-        visited = ((BlockPostConditionMessage) message).visitedBlockIds();
+        visited = ((BlockPostConditionActorMessage) message).visitedBlockIds();
       } else if (message.getType() == MessageType.ERROR_CONDITION) {
-        visited = ((ErrorConditionMessage) message).visitedBlockIds();
+        visited = ((ErrorConditionActorMessage) message).visitedBlockIds();
       }
       for (String part : visited) {
         if (!part.isBlank()) {
@@ -202,12 +189,6 @@ public abstract class BlockAnalysis {
     visitedBlocks.add(block.getId());
     return visitedBlocks.build();
   }
-
-  public abstract Collection<ActorMessage> analyze(Collection<ActorMessage> messages)
-      throws CPAException, InterruptedException, SolverException;
-
-  public abstract Collection<ActorMessage> performInitialAnalysis()
-      throws InterruptedException, CPAException;
 
   /**
    * Analyze the code block until all target states in this block are found. Block entry points
@@ -224,7 +205,7 @@ public abstract class BlockAnalysis {
       throws CPAException, InterruptedException {
     relation.init(block);
     reachedSet.clear();
-    reachedSet.add(startState, precision);
+    reachedSet.add(startState, initialPrecision);
 
     // find all target states in block, except target states that are only reachable from another
     // target state
@@ -233,11 +214,18 @@ public abstract class BlockAnalysis {
       AbstractStates.getTargetStates(reachedSet).forEach(reachedSet::removeOnlyFromWaitlist);
     }
 
-    return from(reachedSet)
-        .filter(AbstractStates::isTargetState)
-        .filter(ARGState.class)
-        .filter(s -> !startState.equals(s))
-        .toSet();
+    ImmutableSet<ARGState> targets =
+        from(reachedSet)
+            .filter(AbstractStates::isTargetState)
+            .filter(ARGState.class)
+            .filter(s -> !startState.equals(s))
+            .toSet();
+    if (targets.isEmpty()) {
+      throw new AssertionError(
+          "Targets cannot be empty since the entry and exit nodes of each block are target"
+              + " locations");
+    }
+    return targets;
   }
 
   /**
@@ -297,280 +285,27 @@ public abstract class BlockAnalysis {
         .buildPayload();
   }
 
-  public static class ForwardAnalysis extends BlockAnalysis {
-
-    private final BlockTransferRelation relation;
-    private boolean alreadyReportedError;
-
-    public ForwardAnalysis(
-        LogManager pLogger,
-        BlockNode pBlock,
-        CFA pCFA,
-        Specification pSpecification,
-        Configuration pConfiguration,
-        ShutdownManager pShutdownManager,
-        AnalysisOptions pOptions)
-        throws CPAException, InterruptedException, InvalidConfigurationException {
-      super(
-          pLogger,
-          pBlock,
-          pCFA,
-          AnalysisDirection.FORWARD,
-          pSpecification,
-          pConfiguration,
-          pShutdownManager,
-          pOptions);
-      relation =
-          (BlockTransferRelation)
-              CPAs.retrieveCPAOrFail(cpa, BlockCPA.class, BlockAnalysis.class)
-                  .getTransferRelation();
-      alreadyReportedError = containsLoops;
-    }
-
-    @Override
-    public Collection<ActorMessage> analyze(Collection<ActorMessage> messages)
-        throws CPAException, InterruptedException {
-      ARGState startState = getStartState(messages);
-      Set<ARGState> targetStates = findReachableTargetStatesInBlock(startState, relation);
-      if (targetStates.isEmpty()) {
-        // if final node is not reachable, do not broadcast anything.
-        // in case abstraction is enabled, this might occur since we abstract at block end
-        // TODO: Maybe even shutdown workers only listening to this worker??
-        return ImmutableSet.of();
-      }
-
-      ImmutableSet.Builder<ActorMessage> answers = ImmutableSet.builder();
-      Set<ARGState> violations = extractViolations(targetStates);
-      if (!violations.isEmpty() && (!alreadyReportedError || containsLoops)) {
-        // we only need to report error locations once
-        // since every new report of an already found location would only cause redundant work
-        answers.addAll(createErrorConditionMessages(violations));
-        alreadyReportedError = true;
-      }
-
-      Set<ARGState> blockEntries = extractBlockTargetStates(targetStates);
-      answers.addAll(createBlockPostConditionMessage(messages, blockEntries));
-      // find all states with location at the end, make formula
-      return answers.build();
-    }
-
-    @Override
-    public Collection<ActorMessage> performInitialAnalysis()
-        throws InterruptedException, CPAException {
-      ActorMessage initial =
-          ActorMessage.newBlockPostCondition(
-              block.getId(),
-              block.getStartNode().getNodeNumber(),
-              Payload.empty(),
-              false,
-              true,
-              ImmutableSet.of());
-      Collection<ActorMessage> result = analyze(ImmutableSet.of(initial));
-      if (reachedSet.getLastState() != null) {
-        precision = reachedSet.getPrecision(reachedSet.getLastState());
-      }
-      if (result.isEmpty()) {
-        // full path = true as no predecessor can ever change unreachability of block exit
-        return ImmutableSet.of(
-            ActorMessage.newBlockPostCondition(
-                block.getId(),
-                block.getStartNode().getNodeNumber(),
-                Payload.empty(),
-                true,
-                false,
-                ImmutableSet.of()));
-      }
-      return result;
-    }
-
-    private Collection<ActorMessage> createBlockPostConditionMessage(
-        Collection<ActorMessage> messages, Set<ARGState> blockEntries)
-        throws CPAException, InterruptedException {
-      List<AbstractState> compositeStates =
-          transformedImmutableListCopy(
-              blockEntries,
-              state -> AbstractStates.extractStateByType(state, CompositeState.class));
-      if (reachedSet.getLastState() != null) {
-        precision = reachedSet.getPrecision(reachedSet.getLastState());
-      }
-      ImmutableSet.Builder<ActorMessage> answers = ImmutableSet.builder();
-      if (!compositeStates.isEmpty()) {
-        boolean fullPath =
-            messages.size() == block.getPredecessors().size()
-                && messages.stream()
-                    .allMatch(m -> ((BlockPostConditionMessage) m).representsFullPath());
-        Set<String> visited = visitedBlocks(messages);
-        AbstractState combined =
-            Iterables.getOnlyElement(
-                distributedCompositeCPA
-                    .getCombineOperator()
-                    .combine(compositeStates, top, precision));
-        Payload result = distributedCompositeCPA.getSerializeOperator().serialize(combined);
-        result = appendStatus(status, result);
-        BlockPostConditionMessage response =
-            (BlockPostConditionMessage)
-                ActorMessage.newBlockPostCondition(
-                    block.getId(),
-                    block.getLastNode().getNodeNumber(),
-                    result,
-                    fullPath,
-                    true,
-                    visited);
-        distributedCompositeCPA.getProceedOperator().update(response);
-        answers.add(response);
-      }
-      return answers.build();
-    }
-
-    private Collection<ActorMessage> createErrorConditionMessages(Set<ARGState> violations)
-        throws InterruptedException {
-      ImmutableSet.Builder<ActorMessage> answers = ImmutableSet.builder();
-      for (ARGState targetState : violations) {
-        Optional<CFANode> targetNode = abstractStateToLocation(targetState);
-        if (targetNode.isEmpty()) {
-          throw new AssertionError(
-              "States need to have a location but this one does not:" + targetState);
-        }
-        Payload initial =
-            distributedCompositeCPA
-                .getSerializeOperator()
-                .serialize(
-                    distributedCompositeCPA.getInitialState(
-                        targetNode.orElseThrow(), StateSpacePartition.getDefaultPartition()));
-        initial = appendStatus(status, initial);
-        answers.add(
-            ActorMessage.newErrorConditionMessage(
-                block.getId(),
-                targetNode.orElseThrow().getNodeNumber(),
-                initial,
-                true,
-                ImmutableSet.of(block.getId())));
-      }
-      return answers.build();
-    }
+  protected ReachedSet getReachedSet() {
+    return reachedSet;
   }
 
-  public static class BackwardAnalysis extends BlockAnalysis {
-
-    private final BlockTransferRelation relation;
-
-    public BackwardAnalysis(
-        LogManager pLogger,
-        BlockNode pBlock,
-        CFA pCFA,
-        Specification pSpecification,
-        Configuration pConfiguration,
-        ShutdownManager pShutdownManager,
-        AnalysisOptions pOptions)
-        throws CPAException, InterruptedException, InvalidConfigurationException {
-      super(
-          pLogger,
-          pBlock,
-          pCFA,
-          AnalysisDirection.BACKWARD,
-          pSpecification,
-          pConfiguration,
-          pShutdownManager,
-          pOptions);
-      relation =
-          (BlockTransferRelation)
-              Objects.requireNonNull(CPAs.retrieveCPA(cpa, BlockCPABackward.class))
-                  .getTransferRelation();
-    }
-
-    @Override
-    public Collection<ActorMessage> analyze(Collection<ActorMessage> messages)
-        throws CPAException, InterruptedException, SolverException {
-      ARGState startState = getStartState(messages);
-      Set<ARGState> targetStates = findReachableTargetStatesInBlock(startState, relation);
-      List<AbstractState> states =
-          transformedImmutableListCopy(
-              targetStates,
-              state -> AbstractStates.extractStateByType(state, CompositeState.class));
-      if (reachedSet.getLastState() != null) {
-        precision = reachedSet.getPrecision(reachedSet.getLastState());
-      }
-      if (states.isEmpty()) {
-        // should only happen if abstraction is activated
-        logger.log(Level.ALL, "Cannot reach block start?", reachedSet);
-        return ImmutableSet.of(
-            ActorMessage.newErrorConditionUnreachableMessage(
-                block.getId(), "backwards analysis cannot reach target at block entry"));
-      }
-      ImmutableSet.Builder<ActorMessage> responses = ImmutableSet.builder();
-      for (AbstractState state : states) {
-        Payload payload = distributedCompositeCPA.getSerializeOperator().serialize(state);
-        payload = appendStatus(status, payload);
-        responses.add(
-            ActorMessage.newErrorConditionMessage(
-                block.getId(),
-                block.getStartNode().getNodeNumber(),
-                payload,
-                false,
-                visitedBlocks(messages)));
-      }
-      return responses.build();
-    }
-
-    @Override
-    public Collection<ActorMessage> performInitialAnalysis()
-        throws InterruptedException, CPAException {
-      // current approach does not need an initial backward analysis.
-      throw new AssertionError("Initial backward analysis is not implemented yet.");
-    }
+  protected AbstractState getTop() {
+    return top;
   }
 
-  public static class NoopAnalysis extends BlockAnalysis {
+  protected Precision getInitialPrecision() {
+    return initialPrecision;
+  }
 
-    public NoopAnalysis(
-        LogManager pLogger,
-        BlockNode pBlock,
-        CFA pCFA,
-        AnalysisDirection pDirection,
-        Specification pSpecification,
-        Configuration pConfiguration,
-        ShutdownManager pShutdownManager,
-        AnalysisOptions pOptions)
-        throws CPAException, InterruptedException, InvalidConfigurationException {
-      super(
-          pLogger,
-          pBlock,
-          pCFA,
-          pDirection,
-          pSpecification,
-          pConfiguration,
-          pShutdownManager,
-          pOptions);
-    }
+  protected AlgorithmStatus getStatus() {
+    return status;
+  }
 
-    @Override
-    public Collection<ActorMessage> analyze(Collection<ActorMessage> condition)
-        throws CPAException, InterruptedException, SolverException {
-      return ImmutableSet.of();
-    }
+  protected DistributedCompositeCPA getDistributedCompositeCPA() {
+    return distributedCompositeCPA;
+  }
 
-    /**
-     * Broadcast one initial message such that successors know that they are connected to the root
-     *
-     * @return Message containing the T-element of the underlying composite CPA
-     * @throws InterruptedException thread interrupted
-     * @throws CPAException forwarded exception (wraps internal errors)
-     */
-    @Override
-    public Collection<ActorMessage> performInitialAnalysis()
-        throws InterruptedException, CPAException {
-      return ImmutableSet.of(
-          ActorMessage.newBlockPostCondition(
-              block.getId(),
-              block.getLastNode().getNodeNumber(),
-              distributedCompositeCPA
-                  .getSerializeOperator()
-                  .serialize(
-                      distributedCompositeCPA.getInitialState(
-                          block.getStartNode(), StateSpacePartition.getDefaultPartition())),
-              true,
-              true,
-              ImmutableSet.of(block.getId())));
-    }
+  protected ConfigurableProgramAnalysis getCPA() {
+    return cpa;
   }
 }

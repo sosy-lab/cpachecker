@@ -24,12 +24,12 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decompositio
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.Connection;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.ActorMessage;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.ActorMessage.MessageType;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockPostConditionMessage;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.ErrorConditionMessage;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockPostConditionActorMessage;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.ErrorConditionActorMessage;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.java_smt.api.SolverException;
 
-public class ResultBlockSummaryWorker extends BlockSummaryWorker {
+public class BlockSummaryResultWorker extends BlockSummaryWorker {
 
   private final Map<String, BlockNode> nodeMap;
   private final Set<String> messageReceived;
@@ -38,7 +38,7 @@ public class ResultBlockSummaryWorker extends BlockSummaryWorker {
   private final Connection connection;
   private boolean shutdown;
 
-  ResultBlockSummaryWorker(
+  BlockSummaryResultWorker(
       Collection<BlockNode> pNodes, Connection pConnection, LogManager pLogger) {
     super("result-worker", pLogger);
     nodeMap = new HashMap<>();
@@ -65,7 +65,7 @@ public class ResultBlockSummaryWorker extends BlockSummaryWorker {
 
     switch (type) {
       case ERROR_CONDITION:
-        boolean newPostCondition = ((ErrorConditionMessage) pMessage).isFirst();
+        boolean newPostCondition = ((ErrorConditionActorMessage) pMessage).isFirst();
         if (newPostCondition) {
           // we need a block to first send an own error condition or the first BLOCKPOSTCONDITION
           expectAnswer.merge(senderId, 1, Integer::sum);
@@ -122,9 +122,9 @@ public class ResultBlockSummaryWorker extends BlockSummaryWorker {
       shutdown = true;
       Set<String> visited = ImmutableSet.of();
       if (pMessage.getType() == MessageType.BLOCK_POSTCONDITION) {
-        visited = ((BlockPostConditionMessage) pMessage).visitedBlockIds();
+        visited = ((BlockPostConditionActorMessage) pMessage).visitedBlockIds();
       } else if (pMessage.getType() == MessageType.ERROR_CONDITION) {
-        visited = ((ErrorConditionMessage) pMessage).visitedBlockIds();
+        visited = ((ErrorConditionActorMessage) pMessage).visitedBlockIds();
       }
       return ImmutableSet.of(
           ActorMessage.newResultMessage(pMessage.getUniqueBlockId(), 0, Result.TRUE, visited));

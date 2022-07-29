@@ -20,25 +20,25 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.block_analysis.BlockAnalysis;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.block_analysis.BlockAnalysis.NoopAnalysis;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.block_analysis.NoopBlockAnalysis;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.BlockNode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.MessageProcessing;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.Connection;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.ActorMessage;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockPostConditionMessage;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.ErrorConditionMessage;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockPostConditionActorMessage;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.ErrorConditionActorMessage;
 import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.java_smt.api.SolverException;
 
-public class RootBlockSummaryWorker extends BlockSummaryWorker {
+public class BlockSummaryRootWorker extends BlockSummaryWorker {
 
   private final BlockNode root;
   private final BlockAnalysis analysis;
   private final Connection connection;
   private boolean shutdown;
 
-  public RootBlockSummaryWorker(
+  BlockSummaryRootWorker(
       String pId,
       Connection pConnection,
       AnalysisOptions pOptions,
@@ -57,7 +57,7 @@ public class RootBlockSummaryWorker extends BlockSummaryWorker {
       throw new AssertionError("Root node must be empty and cannot have predecessors: " + pNode);
     }
     analysis =
-        new NoopAnalysis(
+        new NoopBlockAnalysis(
             getLogger(),
             pNode,
             pCfa,
@@ -80,7 +80,7 @@ public class RootBlockSummaryWorker extends BlockSummaryWorker {
               analysis
                   .getDistributedCPA()
                   .getProceedOperator()
-                  .proceedBackward((ErrorConditionMessage) pMessage);
+                  .proceedBackward((ErrorConditionActorMessage) pMessage);
           if (processing.end()) {
             return processing;
           }
@@ -89,7 +89,7 @@ public class RootBlockSummaryWorker extends BlockSummaryWorker {
                   root.getId(),
                   root.getLastNode().getNodeNumber(),
                   Result.FALSE,
-                  ((ErrorConditionMessage) pMessage).visitedBlockIds()));
+                  ((ErrorConditionActorMessage) pMessage).visitedBlockIds()));
         }
         return ImmutableSet.of();
       case FOUND_RESULT:
@@ -123,7 +123,7 @@ public class RootBlockSummaryWorker extends BlockSummaryWorker {
       analysis
           .getDistributedCPA()
           .getProceedOperator()
-          .update((BlockPostConditionMessage) initialMessage.stream().findAny().orElseThrow());
+          .update((BlockPostConditionActorMessage) initialMessage.stream().findAny().orElseThrow());
       broadcast(initialMessage);
       super.run();
     } catch (InterruptedException | CPAException pE) {

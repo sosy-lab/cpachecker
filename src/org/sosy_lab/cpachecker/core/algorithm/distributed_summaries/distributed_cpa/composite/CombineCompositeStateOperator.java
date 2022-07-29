@@ -48,11 +48,17 @@ public class CombineCompositeStateOperator implements CombineOperator {
       boolean found = false;
       AbstractState state1I = compositeState1.get(i);
       AbstractState state2I = compositeState2.get(i);
+      if (!state1I.getClass().equals(state2I.getClass())) {
+        throw new AssertionError(
+            "All states have to work on equally structured composite states. Mismatch for classes "
+                + state1I.getClass()
+                + " and "
+                + state2I.getClass());
+      }
       for (DistributedConfigurableProgramAnalysis value : registered.values()) {
         if (value.doesOperateOn(state1I.getClass()) && value.doesOperateOn(state2I.getClass())) {
           combined.addAll(value.getCombineOperator().combine(state1I, state2I, pPrecision));
           found = true;
-          break;
         }
       }
       // merge sep

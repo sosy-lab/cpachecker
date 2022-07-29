@@ -17,6 +17,7 @@ import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.Objects;
 import java.util.Set;
+import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.CFA;
@@ -31,6 +32,7 @@ import org.sosy_lab.cpachecker.util.predicates.BlockOperator;
 public class BlockOperatorDecomposer implements CFADecomposer {
 
   private final BlockOperator operator;
+  private final ShutdownNotifier shutdownNotifier;
 
   /**
    * Partitions the complete CFA into small linear subgraphs. The union of the subgraphs equals the
@@ -39,19 +41,20 @@ public class BlockOperatorDecomposer implements CFADecomposer {
    * @param pConfiguration user-provided configuration
    * @throws InvalidConfigurationException thrown if config contains wrong values
    */
-  public BlockOperatorDecomposer(Configuration pConfiguration)
+  public BlockOperatorDecomposer(Configuration pConfiguration, ShutdownNotifier pShutdownNotifier)
       throws InvalidConfigurationException {
     operator = new BlockOperator();
     pConfiguration.inject(operator);
+    shutdownNotifier = pShutdownNotifier;
   }
 
   @Override
-  public BlockGraph cut(CFA cfa) {
+  public BlockGraph cut(CFA cfa) throws InterruptedException {
     operator.setCFA(cfa);
     // start with the first node of the CFA
     CFANode startNode = cfa.getMainFunction();
 
-    BlockGraphBuilder builder = new BlockGraphBuilder(cfa);
+    BlockGraphBuilder builder = new BlockGraphBuilder(cfa, shutdownNotifier);
 
     // create the root node of the tree consisting of the entry node only
     BlockNodeMetaData root =

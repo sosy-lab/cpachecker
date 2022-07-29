@@ -38,7 +38,7 @@ import java.util.zip.GZIPOutputStream;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.Payload;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.ObserverBlockSummaryWorker.StatusObserver;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.BlockSummaryObserverWorker.StatusObserver;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 
 /**
@@ -64,9 +64,9 @@ public abstract class ActorMessage implements Comparable<ActorMessage> {
    * the payload. The unique block id {@code pUniqueBlockId} stores the block id from which this
    * message originates from. The target node number {@code pTargetNodeNumber} provides the unique
    * id of a {@link org.sosy_lab.cpachecker.cfa.model.CFANode}. This id is only relevant for
-   * messages that actually trigger an analysis: {@link BlockPostConditionMessage}, {@link
-   * ErrorConditionMessage}. Finally, the payload contains a map of key-value pairs that transport
-   * arbitrary information.
+   * messages that actually trigger an analysis: {@link BlockPostConditionActorMessage}, {@link
+   * ErrorConditionActorMessage}. Finally, the payload contains a map of key-value pairs that
+   * transport arbitrary information.
    *
    * @param pType the type of the message
    * @param pUniqueBlockId the id of the worker/block that sends this message
@@ -168,7 +168,7 @@ public abstract class ActorMessage implements Comparable<ActorMessage> {
             .addEntry(Payload.VISITED, Joiner.on(",").join(pVisited))
             .addEntry(Payload.REACHABLE, Boolean.toString(pReachable))
             .buildPayload();
-    return new BlockPostConditionMessage(
+    return new BlockPostConditionActorMessage(
         pUniqueBlockId, pTargetNodeNumber, newPayload, Instant.now());
   }
 
@@ -184,12 +184,13 @@ public abstract class ActorMessage implements Comparable<ActorMessage> {
             .addEntry(Payload.FIRST, Boolean.toString(pFirst))
             .addEntry(Payload.VISITED, Joiner.on(",").join(pVisited))
             .buildPayload();
-    return new ErrorConditionMessage(pUniqueBlockId, pTargetNodeNumber, newPayload, Instant.now());
+    return new ErrorConditionActorMessage(
+        pUniqueBlockId, pTargetNodeNumber, newPayload, Instant.now());
   }
 
   public static ActorMessage newErrorConditionUnreachableMessage(
       String pUniqueBlockId, String denied) {
-    return new ErrorConditionUnreachableMessage(
+    return new ErrorConditionUnreachableActorMessage(
         pUniqueBlockId,
         0,
         new Payload.Builder().addEntry(Payload.REASON, denied).buildPayload(),
@@ -207,7 +208,7 @@ public abstract class ActorMessage implements Comparable<ActorMessage> {
   }
 
   public static ActorMessage newErrorMessage(String pUniqueBlockId, Throwable pException) {
-    return new ErrorMessage(
+    return new ErrorActorMessage(
         pUniqueBlockId,
         0,
         new Payload.Builder()
@@ -290,25 +291,26 @@ public abstract class ActorMessage implements Comparable<ActorMessage> {
     FOUND_RESULT,
 
     /**
-     * Messages of this type transport the stack trace of an exception. See {@link ErrorMessage}.
+     * Messages of this type transport the stack trace of an exception. See {@link
+     * ErrorActorMessage}.
      */
     ERROR,
 
     /**
-     * Messages of this type deny a previously received {@link ErrorConditionMessage}. See {@link
-     * ErrorConditionUnreachableMessage}.
+     * Messages of this type deny a previously received {@link ErrorConditionActorMessage}. See
+     * {@link ErrorConditionUnreachableActorMessage}.
      */
     ERROR_CONDITION_UNREACHABLE,
 
     /**
      * Messages of this type transport results of a backward analysis. See {@link
-     * ErrorConditionMessage}.
+     * ErrorConditionActorMessage}.
      */
     ERROR_CONDITION,
 
     /**
      * Messages of this type transport results of a forward analysis. See {@link
-     * BlockPostConditionMessage}.
+     * BlockPostConditionActorMessage}.
      */
     BLOCK_POSTCONDITION
   }
@@ -396,14 +398,14 @@ public abstract class ActorMessage implements Comparable<ActorMessage> {
         case FOUND_RESULT:
           return new ResultMessage(uniqueBlockId, nodeNumber, payload, timestamp);
         case ERROR:
-          return new ErrorMessage(uniqueBlockId, nodeNumber, payload, timestamp);
+          return new ErrorActorMessage(uniqueBlockId, nodeNumber, payload, timestamp);
         case ERROR_CONDITION_UNREACHABLE:
-          return new ErrorConditionUnreachableMessage(
+          return new ErrorConditionUnreachableActorMessage(
               uniqueBlockId, nodeNumber, payload, timestamp);
         case ERROR_CONDITION:
-          return new ErrorConditionMessage(uniqueBlockId, nodeNumber, payload, timestamp);
+          return new ErrorConditionActorMessage(uniqueBlockId, nodeNumber, payload, timestamp);
         case BLOCK_POSTCONDITION:
-          return new BlockPostConditionMessage(uniqueBlockId, nodeNumber, payload, timestamp);
+          return new BlockPostConditionActorMessage(uniqueBlockId, nodeNumber, payload, timestamp);
         default:
           throw new AssertionError("Unknown MessageType " + type);
       }

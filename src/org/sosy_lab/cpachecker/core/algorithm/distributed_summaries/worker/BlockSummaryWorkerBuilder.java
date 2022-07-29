@@ -8,7 +8,6 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker;
 
-import com.google.common.collect.ImmutableList;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -25,7 +24,7 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.Con
 import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
-public class DistributedComponentsBuilder {
+public class BlockSummaryWorkerBuilder {
 
   private final CFA cfa;
   private final Configuration configuration;
@@ -36,7 +35,7 @@ public class DistributedComponentsBuilder {
   private final LogManager logger;
   private int additionalConnections;
 
-  public DistributedComponentsBuilder(
+  public BlockSummaryWorkerBuilder(
       CFA pCFA,
       LogManager pLogManager,
       ConnectionProvider<?> pConnectionProvider,
@@ -57,15 +56,15 @@ public class DistributedComponentsBuilder {
     return "W" + workerGenerators.size() + pAdditionalIdentifier;
   }
 
-  public DistributedComponentsBuilder createAdditionalConnections(int numberConnections) {
+  public BlockSummaryWorkerBuilder createAdditionalConnections(int numberConnections) {
     additionalConnections = numberConnections;
     return this;
   }
 
-  public DistributedComponentsBuilder addAnalysisWorker(BlockNode pNode, AnalysisOptions pOptions) {
+  public BlockSummaryWorkerBuilder addAnalysisWorker(BlockNode pNode, AnalysisOptions pOptions) {
     workerGenerators.add(
         connection ->
-            new AnalysisBlockSummaryWorker(
+            new BlockSummaryAnalysisWorker(
                 nextId(pNode.getId()),
                 pOptions,
                 connection,
@@ -77,11 +76,11 @@ public class DistributedComponentsBuilder {
     return this;
   }
 
-  public DistributedComponentsBuilder addSmartAnalysisWorker(
+  public BlockSummaryWorkerBuilder addSmartAnalysisWorker(
       BlockNode pNode, AnalysisOptions pOptions) {
     workerGenerators.add(
         connection ->
-            new SmartAnalysisBlockSummaryWorker(
+            new BlockSummarySmartAnalysisWorker(
                 nextId(pNode.getId()),
                 logger,
                 pOptions,
@@ -93,23 +92,23 @@ public class DistributedComponentsBuilder {
     return this;
   }
 
-  public DistributedComponentsBuilder addResultCollectorWorker(Collection<BlockNode> nodes) {
-    workerGenerators.add(connection -> new ResultBlockSummaryWorker(nodes, connection, logger));
+  public BlockSummaryWorkerBuilder addResultCollectorWorker(Collection<BlockNode> nodes) {
+    workerGenerators.add(connection -> new BlockSummaryResultWorker(nodes, connection, logger));
     return this;
   }
 
-  public DistributedComponentsBuilder addVisualizationWorker(
+  public BlockSummaryWorkerBuilder addVisualizationWorker(
       BlockGraph pBlockTree, Configuration pConfiguration) {
     workerGenerators.add(
         connection ->
-            new VisualizationBlockSummaryWorker(pBlockTree, connection, logger, pConfiguration));
+            new BlockSummaryVisualizationWorker(pBlockTree, connection, logger, pConfiguration));
     return this;
   }
 
-  public DistributedComponentsBuilder addRootWorker(BlockNode pNode, AnalysisOptions pOptions) {
+  public BlockSummaryWorkerBuilder addRootWorker(BlockNode pNode, AnalysisOptions pOptions) {
     workerGenerators.add(
         connection ->
-            new RootBlockSummaryWorker(
+            new BlockSummaryRootWorker(
                 nextId(pNode.getId()),
                 connection,
                 pOptions,
@@ -125,8 +124,7 @@ public class DistributedComponentsBuilder {
   public Components build()
       throws IOException, CPAException, InterruptedException, InvalidConfigurationException {
     List<? extends Connection> connections =
-        ImmutableList.copyOf(
-            connectionProvider.createConnections(workerGenerators.size() + additionalConnections));
+        connectionProvider.createConnections(workerGenerators.size() + additionalConnections);
     List<BlockSummaryWorker> worker = new ArrayList<>(workerGenerators.size());
     for (int i = 0; i < workerGenerators.size(); i++) {
       worker.add(workerGenerators.get(i).apply(connections.get(i)));

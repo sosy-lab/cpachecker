@@ -51,7 +51,8 @@ public class BlockGraph {
     return ImmutableSet.copyOf(nodes);
   }
 
-  public BlockGraph merge(int pDesiredNumberOfBlocks) {
-    return factory.merge(pDesiredNumberOfBlocks);
+  public static BlockGraph merge(BlockGraph pBlockGraph, int pDesiredNumberOfBlocks)
+      throws InterruptedException {
+    return pBlockGraph.factory.merge(pDesiredNumberOfBlocks);
   }
 }

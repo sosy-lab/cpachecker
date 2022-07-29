@@ -8,7 +8,6 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition;
 
-import static com.google.common.base.Preconditions.checkState;
 import static org.sosy_lab.common.collect.Collections3.transformedImmutableSetCopy;
 
 import com.google.common.collect.ArrayListMultimap;
@@ -28,10 +27,12 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.function.Supplier;
 import org.checkerframework.checker.nullness.qual.NonNull;
+import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.util.CFAUtils;
 
 /** BlockNodes are coherent subgraphs of CFAs with exactly one entry and exit node. */
 public class BlockNode {
@@ -57,17 +58,21 @@ public class BlockNode {
       @NonNull BlockNodeMetaData pMetaData,
       @NonNull Supplier<Set<BlockNode>> pPredecessors,
       @NonNull Supplier<Set<BlockNode>> pSuccessors,
-      @NonNull Map<Integer, CFANode> pIdToNodeMap) {
-    checkState(
-        pMetaData.getNodesInBlock().contains(pMetaData.getStartNode())
-            && pMetaData.getNodesInBlock().contains(pMetaData.getLastNode()), /* TODO make lazy */
-        "pNodesInBlock ("
+      @NonNull Map<Integer, CFANode> pIdToNodeMap,
+      @NonNull ShutdownNotifier pShutdownNotifier)
+      throws InterruptedException {
+    assert CFAUtils.existsPath(
+            pMetaData.getStartNode(),
+            pMetaData.getLastNode(),
+            node -> CFAUtils.leavingEdges(node).toSet(),
+            pShutdownNotifier)
+        : "pNodesInBlock ("
             + pMetaData.getNodesInBlock()
             + ") must list all nodes but misses either the root node ("
             + pMetaData.getStartNode()
             + ") or the last node ("
             + pMetaData.getLastNode()
-            + ").");
+            + ").";
 
     metaData = pMetaData;
     predecessors = pPredecessors;
@@ -75,7 +80,7 @@ public class BlockNode {
 
     idToNodeMap = pIdToNodeMap;
 
-    code = blockToPseudoCode();
+    code = getCodeRepresentation();
   }
 
   /**
@@ -93,7 +98,7 @@ public class BlockNode {
    *
    * @return code represented by this block
    */
-  private String blockToPseudoCode() {
+  private String getCodeRepresentation() {
     StringBuilder codeLines = new StringBuilder();
     for (CFAEdge leavingEdge : metaData.getEdgesInBlock()) {
       if (leavingEdge.getCode().isBlank()) {
@@ -197,6 +202,7 @@ public class BlockNode {
     private final Multimap<BlockNodeMetaData, BlockNodeMetaData> successors;
     private final Multimap<BlockNodeMetaData, BlockNodeMetaData> predecessors;
     private final Set<BlockNodeMetaData> blocks;
+    private final ShutdownNotifier shutdownNotifier;
 
     private BlockNodeMetaData root;
 
@@ -205,11 +211,12 @@ public class BlockNode {
      *
      * @param pCfa CFA that will be partitioned into a graph of {@link BlockNode}s
      */
-    public BlockGraphBuilder(CFA pCfa) {
+    public BlockGraphBuilder(CFA pCfa, ShutdownNotifier pShutdownNotifier) {
       idToNodeMap = Maps.uniqueIndex(pCfa.getAllNodes(), CFANode::getNodeNumber);
       successors = ArrayListMultimap.create();
       predecessors = ArrayListMultimap.create();
       blocks = new LinkedHashSet<>();
+      shutdownNotifier = pShutdownNotifier;
     }
 
     public void setRoot(BlockNodeMetaData pRoot) {
@@ -313,7 +320,7 @@ public class BlockNode {
       }
     }
 
-    public BlockGraph build() {
+    public BlockGraph build() throws InterruptedException {
       Objects.requireNonNull(root, "Root has to be set manually in advance");
       removeEmptyBlocks();
       Map<BlockNodeMetaData, BlockNode> nodes = new HashMap<>();
@@ -323,13 +330,14 @@ public class BlockNode {
                 data,
                 () -> transformedImmutableSetCopy(predecessors.get(data), nodes::get),
                 () -> transformedImmutableSetCopy(successors.get(data), nodes::get),
-                idToNodeMap);
+                idToNodeMap,
+                shutdownNotifier);
         nodes.put(data, blockNode);
       }
       return new BlockGraph(nodes.get(root), this);
     }
 
-    public BlockGraph merge(int desiredNumberOfBlocks) {
+    public BlockGraph merge(int desiredNumberOfBlocks) throws InterruptedException {
       Set<BlockNodeMetaData> nodes = new LinkedHashSet<>(blocks);
       nodes.remove(root);
       Multimap<String, BlockNodeMetaData> compatibleBlocks = ArrayListMultimap.create();

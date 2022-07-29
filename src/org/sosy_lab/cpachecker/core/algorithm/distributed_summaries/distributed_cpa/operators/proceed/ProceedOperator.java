@@ -11,32 +11,33 @@ package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DistributedConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.MessageProcessing;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.ActorMessage;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockPostConditionMessage;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.ErrorConditionMessage;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockPostConditionActorMessage;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.ErrorConditionActorMessage;
 import org.sosy_lab.java_smt.api.SolverException;
 
 public interface ProceedOperator {
 
   /**
    * Decide whether to start a forward analysis based on the contents of the {@link
-   * BlockPostConditionMessage}.
+   * BlockPostConditionActorMessage}.
    *
    * @param pMessage Incoming message
    * @return A potentially empty set of responses to {@code pMessage}
    * @throws InterruptedException thrown if program is interrupted unexpectedly.
    */
-  MessageProcessing proceedForward(BlockPostConditionMessage pMessage) throws InterruptedException;
+  MessageProcessing proceedForward(BlockPostConditionActorMessage pMessage)
+      throws InterruptedException;
 
   /**
    * Decide whether to start a backward analysis based on the contents of the {@link
-   * BlockPostConditionMessage}.
+   * BlockPostConditionActorMessage}.
    *
    * @param pMessage Incoming message
    * @return A potentially empty set of responses to {@code pMessage}
    * @throws InterruptedException thrown if program is interrupted unexpectedly.
    * @throws SolverException thrown if backwards analysis is infeasible
    */
-  MessageProcessing proceedBackward(ErrorConditionMessage pMessage)
+  MessageProcessing proceedBackward(ErrorConditionActorMessage pMessage)
       throws InterruptedException, SolverException;
 
   /**
@@ -58,9 +59,9 @@ public interface ProceedOperator {
   void synchronizeKnowledge(DistributedConfigurableProgramAnalysis pAnalysis);
 
   /**
-   * Set the latest own {@link BlockPostConditionMessage}
+   * Set the latest own {@link BlockPostConditionActorMessage}
    *
-   * @param pLatestOwnPreconditionMessage latest {@link BlockPostConditionMessage}
+   * @param pLatestOwnPreconditionMessage latest {@link BlockPostConditionActorMessage}
    */
-  void update(BlockPostConditionMessage pLatestOwnPreconditionMessage);
+  void update(BlockPostConditionActorMessage pLatestOwnPreconditionMessage);
 }

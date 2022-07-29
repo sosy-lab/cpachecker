@@ -23,13 +23,13 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.visualizatio
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.java_smt.api.SolverException;
 
-public class VisualizationBlockSummaryWorker extends BlockSummaryWorker {
+public class BlockSummaryVisualizationWorker extends BlockSummaryWorker {
 
   private final MessageLogger messageLogger;
   private final Connection connection;
   private boolean shutdown = false;
 
-  protected VisualizationBlockSummaryWorker(
+  BlockSummaryVisualizationWorker(
       BlockGraph pTree, Connection pConnection, LogManager pLogger, Configuration pConfiguration)
       throws InvalidConfigurationException {
     super("visualization-worker", pLogger);

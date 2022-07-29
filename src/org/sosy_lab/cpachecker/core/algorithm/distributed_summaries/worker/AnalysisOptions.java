@@ -19,9 +19,6 @@ import org.sosy_lab.common.configuration.Options;
 @Options(prefix = "distributedSummaries.worker")
 public class AnalysisOptions {
 
-  @Option(description = "forces the precondition of fault localization workers to be true")
-  private boolean flPreconditionAlwaysTrue = false;
-
   @Option(description = "whether analysis worker store circular post conditions")
   private boolean storeCircularPostConditions = false;
 
@@ -52,10 +49,6 @@ public class AnalysisOptions {
   public AnalysisOptions(Configuration pConfig) throws InvalidConfigurationException {
     pConfig.inject(this);
     parentConfig = pConfig;
-  }
-
-  public boolean isFlPreconditionAlwaysTrue() {
-    return flPreconditionAlwaysTrue;
   }
 
   public boolean storeCircularPostConditions() {
