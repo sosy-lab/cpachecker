@@ -30,6 +30,17 @@ public class DataRaceState implements AbstractQueryableState {
   private final ImmutableSet<LockRelease> lastReleases;
   private final boolean hasDataRace;
 
+  DataRaceState(Map<String, Integer> pThreadEpochs, boolean pHasDataRace) {
+    this(
+        ImmutableSet.of(),
+        ImmutableMap.of(),
+        pThreadEpochs,
+        ImmutableSet.of(),
+        ImmutableSetMultimap.of(),
+        ImmutableSet.of(),
+        pHasDataRace);
+  }
+
   DataRaceState(
       Set<MemoryAccess> pMemoryAccesses,
       Map<MemoryAccess, MemoryAccess> pSubsequentWrites,

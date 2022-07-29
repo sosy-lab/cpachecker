@@ -139,15 +139,7 @@ public class DataRaceTransferRelation extends SingleEdgeTransferRelation {
 
       if (newThreadEpochs.size() == 1) {
         // No data race possible in sequential part
-        strengthenedStates.add(
-            new DataRaceState(
-                ImmutableSet.of(),
-                ImmutableMap.of(),
-                newThreadEpochs,
-                ImmutableSet.of(),
-                ImmutableSetMultimap.of(),
-                ImmutableSet.of(),
-                state.hasDataRace()));
+        strengthenedStates.add(new DataRaceState(newThreadEpochs, state.hasDataRace()));
         continue;
       }
 

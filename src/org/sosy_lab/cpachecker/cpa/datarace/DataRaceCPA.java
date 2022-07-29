@@ -52,13 +52,6 @@ public class DataRaceCPA extends AbstractCPA {
   @Override
   public AbstractState getInitialState(CFANode node, StateSpacePartition partition)
       throws InterruptedException {
-    return new DataRaceState(
-        ImmutableSet.of(),
-        ImmutableMap.of(),
-        ImmutableMap.of("main", 0),
-        ImmutableSet.of(),
-        ImmutableSetMultimap.of(),
-        ImmutableSet.of(),
-        false);
+    return new DataRaceState(ImmutableMap.of("main", 0), false);
   }
 }
