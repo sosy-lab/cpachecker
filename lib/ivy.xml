@@ -115,9 +115,6 @@ SPDX-License-Identifier: Apache-2.0
              Library for parsing strings and files in 'Hanoi Omega-Automata' (HOA) format. -->
         <dependency org="jhoafparser" name="jhoafparser" rev="1.1.1" conf="runtime->runtime"/>
 
-        <!-- YAML parser -->
-        <dependency org="com.fasterxml.jackson.dataformat" name="jackson-dataformat-yaml" rev="2.12.3" conf="runtime->default"/>
-
         <!-- Truth
              Library for writing literal assertions. -->
         <dependency org="com.google.truth" name="truth" rev="1.1.3"
