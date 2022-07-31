@@ -885,7 +885,7 @@ public class SMGTransferRelation
         }
       } else {
         // Global variables (but not extern) without initializer are nullified in C
-        currentState = currentState.writeToStackOrGlobalVariableToZero(pVarName);
+        currentState = currentState.writeToStackOrGlobalVariableToZero(pVarName, cType);
       }
     }
 

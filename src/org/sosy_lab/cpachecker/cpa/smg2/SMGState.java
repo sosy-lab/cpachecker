@@ -1128,6 +1128,65 @@ public class SMGState implements LatticeAbstractState<SMGState>, AbstractQueryab
     return SMGObjectAndOffset.withZeroOffset(SMGObject.nullInstance());
   }
 
+  /*
+   * Transforms any AddressExpression into a new AddressExpression but with offset 0 and
+   * a potentially new memory location (pointer) with the offset incorporated. Reuses
+   * existing pointers before creating new ones. Always returns the entered value for
+   * offset == 0. But unknown for unknown offsets.
+   */
+  private ValueAndSMGState searchOrCreateAddressForAddressExpr(Value pValue) {
+    if (pValue instanceof AddressExpression) {
+      AddressExpression addressExprValue = (AddressExpression) pValue;
+      Value offsetAddr = addressExprValue.getOffset();
+      if (offsetAddr.isNumericValue()) {
+        BigInteger offsetAddrBI = offsetAddr.asNumericValue().bigInteger();
+        if (offsetAddrBI.compareTo(BigInteger.ZERO) != 0) {
+          SMGObjectAndOffset targetAndOffset =
+              getPointsToTarget(addressExprValue.getMemoryAddress());
+          SMGObject target = targetAndOffset.getSMGObject();
+          BigInteger offsetPointer = targetAndOffset.getOffsetForObject();
+          BigInteger offsetOverall = offsetPointer.add(offsetAddrBI);
+          // search for existing pointer first and return if found; else make a new one
+          ValueAndSMGState addressAndState = searchOrCreateAddress(target, offsetOverall);
+          return ValueAndSMGState.of(
+              AddressExpression.withZeroOffset(
+                  addressAndState.getValue(), addressExprValue.getType()),
+              addressAndState.getState());
+        }
+      } else {
+        return ValueAndSMGState.ofUnknownValue(this);
+      }
+    }
+    return ValueAndSMGState.of(pValue, this);
+  }
+
+  /**
+   * Takes a target and offset and tries to find a address (not AddressExpression) that fits them.
+   * If none can be found a new address (SMGPointsToEdge) is created and returned as Value (Not
+   * AddressExpression).
+   *
+   * @param targetObject {@link SMGObject} target.
+   * @param offsetInBits Offset as BigInt.
+   * @return a {@link Value} (NOT AddressExpression) and state with the address/address added.
+   */
+  public ValueAndSMGState searchOrCreateAddress(SMGObject targetObject, BigInteger offsetInBits) {
+    // search for existing pointer first and return if found
+    Optional<SMGValue> maybeAddressValue =
+        getMemoryModel().getAddressValueForPointsToTarget(targetObject, offsetInBits);
+
+    if (maybeAddressValue.isPresent()) {
+      Optional<Value> valueForSMGValue =
+          getMemoryModel().getValueFromSMGValue(maybeAddressValue.orElseThrow());
+      // Reuse pointer; there should never be a SMGValue without counterpart!
+      // TODO: this might actually be expensive, check once this runs!
+      return ValueAndSMGState.of(valueForSMGValue.orElseThrow(), this);
+    }
+
+    Value addressValue = SymbolicValueFactory.getInstance().newIdentifier(null);
+    SMGState newState = createAndAddPointer(addressValue, targetObject, offsetInBits);
+    return ValueAndSMGState.of(addressValue, newState);
+  }
+
   /**
    * Read the value in the {@link SMGObject} at the position specified by the offset and size.
    * Checks for validity of the object and if its externally allocated and may fail because of that.
@@ -1288,15 +1347,28 @@ public class SMGState implements LatticeAbstractState<SMGState>, AbstractQueryab
    * @return a new SMGState with the value written.
    */
   protected SMGState writeValue(
-      SMGObject object, BigInteger writeOffsetInBits, BigInteger sizeInBits, Value valueToWrite) {
+      SMGObject object,
+      BigInteger writeOffsetInBits,
+      BigInteger sizeInBits,
+      Value valueToWrite,
+      CType type) {
     if (object.isZero()) {
       // Write to 0
       return withInvalidWriteToZeroObject(object);
     }
+    SMGState currentState;
+    if (valueToWrite instanceof AddressExpression) {
+      ValueAndSMGState valueToWriteAndState = transformAddressExpression(valueToWrite);
+      valueToWrite = valueToWriteAndState.getValue();
+      currentState = valueToWriteAndState.getState();
+    }
+    if (valueToWrite.isUnknown()) {
+      valueToWrite = getNewSymbolicValueForType(type);
+    }
     Preconditions.checkArgument(!(valueToWrite instanceof AddressExpression));
     SMGValueAndSMGState valueAndState = copyAndAddValue(valueToWrite);
     SMGValue smgValue = valueAndState.getSMGValue();
-    SMGState currentState = valueAndState.getSMGState();
+    currentState = valueAndState.getSMGState();
     return currentState.writeValue(object, writeOffsetInBits, sizeInBits, smgValue);
   }
 
@@ -1337,7 +1409,7 @@ public class SMGState implements LatticeAbstractState<SMGState>, AbstractQueryab
       // Out of range write
       return withOutOfRangeWrite(returnObject, BigInteger.ZERO, sizeInBits, valueToWrite);
     }
-    return writeValue(returnObject, BigInteger.ZERO, sizeInBits, valueToWrite);
+    return writeValue(returnObject, BigInteger.ZERO, sizeInBits, valueToWrite, returnValueType);
   }
 
   /**
@@ -1377,7 +1449,7 @@ public class SMGState implements LatticeAbstractState<SMGState>, AbstractQueryab
           withOutOfRangeWrite(object, writeOffsetInBits, sizeInBits, valueToWrite));
     }
 
-    return writeValue(object, writeOffsetInBits, sizeInBits, valueToWrite);
+    return writeValue(object, writeOffsetInBits, sizeInBits, valueToWrite, valueType);
   }
 
   /**
@@ -1426,7 +1498,7 @@ public class SMGState implements LatticeAbstractState<SMGState>, AbstractQueryab
    *     completely.
    * @throws SMG2Exception if there is no memory/or pointer for the given Value.
    */
-  public SMGState writeToZero(Value addressToMemory) throws SMG2Exception {
+  public SMGState writeToZero(Value addressToMemory, CType type) throws SMG2Exception {
     Optional<SMGObjectAndOffset> maybeRegion = memoryModel.dereferencePointer(addressToMemory);
     if (maybeRegion.isEmpty()) {
       // Can't write to non existing memory
@@ -1438,7 +1510,8 @@ public class SMGState implements LatticeAbstractState<SMGState>, AbstractQueryab
         memoryRegion,
         memoryRegionAndOffset.getOffsetForObject(),
         memoryRegion.getSize(),
-        new NumericValue(0));
+        new NumericValue(0),
+        type);
   }
 
   /**
@@ -1496,7 +1569,7 @@ public class SMGState implements LatticeAbstractState<SMGState>, AbstractQueryab
    * @param writeSizeInBits in bits.
    * @param valueToWrite {@link Value} to write. If its not yet known as a {@link SMGValue} then the
    *     mapping will be added.
-   * @return a {@link SMGState} with the {@link Value} wirrten at the given position in the variable
+   * @return a {@link SMGState} with the {@link Value} written at the given position in the variable
    *     given.
    * @throws SMG2Exception if the write is out of range or invalid due to the variable being
    *     unknown.
@@ -1516,21 +1589,6 @@ public class SMGState implements LatticeAbstractState<SMGState>, AbstractQueryab
       throw new SMG2Exception(withWriteToUnknownVariable(variableName));
     }
 
-    if (valueToWrite instanceof AddressExpression) {
-      Preconditions.checkArgument(
-          ((AddressExpression) valueToWrite)
-                  .getOffset()
-                  .asNumericValue()
-                  .bigInteger()
-                  .compareTo(BigInteger.ZERO)
-              == 0);
-      valueToWrite = ((AddressExpression) valueToWrite).getMemoryAddress();
-    }
-
-    if (valueToWrite.isUnknown()) {
-      valueToWrite = getNewSymbolicValueForType(valueType);
-    }
-
     SMGObject variableMemory = maybeVariableMemory.orElseThrow();
     if (variableMemory.getOffset().compareTo(writeOffsetInBits) > 0
         && variableMemory.getSize().compareTo(writeSizeInBits) < 0) {
@@ -1539,7 +1597,39 @@ public class SMGState implements LatticeAbstractState<SMGState>, AbstractQueryab
           withOutOfRangeWrite(variableMemory, writeOffsetInBits, writeSizeInBits, valueToWrite));
     }
 
-    return writeValue(variableMemory, writeOffsetInBits, writeSizeInBits, valueToWrite);
+    return writeValue(variableMemory, writeOffsetInBits, writeSizeInBits, valueToWrite, valueType);
+  }
+
+  /**
+   * Transforms the entered Value into a non AddressExpression. If the entered Value is none, the
+   * entered Value is returned. If the entered Value is a AddressExpression it is transformed into a
+   * single Value representing the complete address (with offset). If the offset is non numeric, a
+   * unknown value is returned.
+   *
+   * @param value might be AddressExpression.
+   * @return a non AddressExpression Value.
+   */
+  ValueAndSMGState transformAddressExpression(Value value) {
+    if (value instanceof AddressExpression) {
+      ValueAndSMGState valueToWriteAndState = searchOrCreateAddressForAddressExpr(value);
+      // The returned Value might be a non AddressExpression
+      Value valueToWrite = valueToWriteAndState.getValue();
+        SMGState currentState = valueToWriteAndState.getState();
+      if (valueToWrite instanceof AddressExpression) {
+        Preconditions.checkArgument(
+            ((AddressExpression) valueToWrite)
+                    .getOffset()
+                    .asNumericValue()
+                    .bigInteger()
+                    .compareTo(BigInteger.ZERO)
+                == 0);
+        valueToWrite = ((AddressExpression) valueToWrite).getMemoryAddress();
+        return ValueAndSMGState.of(valueToWrite, currentState);
+      } else {
+        return ValueAndSMGState.of(valueToWrite, currentState);
+      }
+    }
+    return ValueAndSMGState.of(value, this);
   }
 
   /**
@@ -1550,7 +1640,8 @@ public class SMGState implements LatticeAbstractState<SMGState>, AbstractQueryab
    *     given.
    * @throws SMG2Exception in case of errors like write to not declared variable.
    */
-  public SMGState writeToStackOrGlobalVariableToZero(String variableName) throws SMG2Exception {
+  public SMGState writeToStackOrGlobalVariableToZero(String variableName, CType type)
+      throws SMG2Exception {
     Optional<SMGObject> maybeVariableMemory =
         getMemoryModel().getObjectForVisibleVariable(variableName);
 
@@ -1561,7 +1652,11 @@ public class SMGState implements LatticeAbstractState<SMGState>, AbstractQueryab
 
     SMGObject variableMemory = maybeVariableMemory.orElseThrow();
     return writeValue(
-        variableMemory, variableMemory.getOffset(), variableMemory.getSize(), new NumericValue(0));
+        variableMemory,
+        variableMemory.getOffset(),
+        variableMemory.getSize(),
+        new NumericValue(0),
+        type);
   }
 
   /**

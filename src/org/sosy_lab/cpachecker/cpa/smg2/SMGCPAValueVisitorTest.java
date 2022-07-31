@@ -3362,6 +3362,12 @@ public class SMGCPAValueVisitorTest {
    */
   private void writeToStackVariableInMemoryModel(
       String stackVariableName, int writeOffsetInBits, int writeSizeInBits, Value valueToWrite) {
+    if (valueToWrite instanceof AddressExpression) {
+      ValueAndSMGState valueToWriteAndState = currentState.transformAddressExpression(valueToWrite);
+      valueToWrite = valueToWriteAndState.getValue();
+      currentState = valueToWriteAndState.getState();
+    }
+    Preconditions.checkArgument(!(valueToWrite instanceof AddressExpression));
     SMGValueAndSMGState valueAndState = currentState.copyAndAddValue(valueToWrite);
     SMGValue smgValue = valueAndState.getSMGValue();
     currentState = valueAndState.getSMGState();

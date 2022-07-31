@@ -323,6 +323,9 @@ public class SymbolicProgramConfiguration {
   public SymbolicProgramConfiguration copyAndRemoveStackVariable(String pIdentifier) {
     // If a stack variable becomes out of scope, there are not more than one frames which could
     // contain the variable
+    if (stackVariableMapping.isEmpty()) {
+      return this;
+    }
     StackFrame frame = stackVariableMapping.peek();
     if (!frame.containsVariable(pIdentifier)) {
       return this;

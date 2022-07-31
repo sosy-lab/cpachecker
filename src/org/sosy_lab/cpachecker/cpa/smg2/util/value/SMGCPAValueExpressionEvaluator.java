@@ -433,21 +433,7 @@ public class SMGCPAValueExpressionEvaluator {
 
   private ValueAndSMGState searchOrCreatePointer(
       SMGObject targetObject, BigInteger offsetInBits, SMGState pState) {
-    // search for existing pointer first and return if found
-    Optional<SMGValue> maybeAddressValue =
-        pState.getMemoryModel().getAddressValueForPointsToTarget(targetObject, offsetInBits);
-
-    if (maybeAddressValue.isPresent()) {
-      Optional<Value> valueForSMGValue =
-          pState.getMemoryModel().getValueFromSMGValue(maybeAddressValue.orElseThrow());
-      // Reuse pointer; there should never be a SMGValue without counterpart!
-      // TODO: this might actually be expensive, check once this runs!
-      return ValueAndSMGState.of(valueForSMGValue.orElseThrow(), pState);
-    }
-
-    Value addressValue = SymbolicValueFactory.getInstance().newIdentifier(null);
-    SMGState newState = pState.createAndAddPointer(addressValue, targetObject, offsetInBits);
-    return ValueAndSMGState.of(addressValue, newState);
+    return pState.searchOrCreateAddress(targetObject, offsetInBits);
   }
 
   /**
@@ -568,7 +554,9 @@ public class SMGCPAValueExpressionEvaluator {
     if (maybeTargetAndOffset.isEmpty()) {
       // The value is unknown and therefore does not point to a valid memory location
       SMGState errorState = pState.withUnknownPointerDereferenceWhenReading(value);
-      throw new SMG2Exception(errorState);
+
+      // throw new SMG2Exception(errorState);
+      return ValueAndSMGState.ofUnknownValue(errorState);
     }
     SMGObject object = maybeTargetAndOffset.orElseThrow().getSMGObject();
 

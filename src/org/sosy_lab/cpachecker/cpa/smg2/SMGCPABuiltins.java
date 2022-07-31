@@ -637,7 +637,8 @@ public class SMGCPABuiltins {
       SMGState stateWithNewHeap = addressAndState.getState();
 
       if (options.getZeroingMemoryAllocation().contains(functionName)) {
-        stateWithNewHeap = stateWithNewHeap.writeToZero(addressToNewRegion);
+        stateWithNewHeap =
+            stateWithNewHeap.writeToZero(addressToNewRegion, functionCall.getExpressionType());
       }
       resultBuilder.add(ValueAndSMGState.of(addressToNewRegion, stateWithNewHeap));
 
