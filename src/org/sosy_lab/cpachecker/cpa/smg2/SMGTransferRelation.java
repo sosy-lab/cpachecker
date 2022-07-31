@@ -1380,14 +1380,15 @@ public class SMGTransferRelation
     List<Optional<SMGObjectAndOffset>> maybeAddresses = lValue.accept(leftHandSidevisitor);
     for (Optional<SMGObjectAndOffset> maybeAddress : maybeAddresses) {
       if (maybeAddress.isEmpty()) {
-        // No memory for the left hand side -> can't write
-        // TODO: move the exception into the visitor! Then we can actually see more details as to
-        // what
-        // kind of variable we tried to find the memory for.
-        throw new SMG2Exception(
-            "Invalid write to variable: "
-                + lValue.toASTString()
-                + " as this variable does not exist.");
+        // No memory for the left hand side found -> UNKNOWN
+        // We still evaluate the right hand side to find errors though
+        List<ValueAndSMGState> listOfStates = rValue.accept(rightHandSideVisitor);
+        returnStateBuilder.addAll(
+            listOfStates
+                .stream()
+                .map(vas -> vas.getState())
+                .collect(ImmutableList.toImmutableList()));
+        continue;
       }
       SMGObjectAndOffset addressAndOffsetToWriteTo = maybeAddress.orElseThrow();
       SMGObject addressToWriteTo = addressAndOffsetToWriteTo.getSMGObject();
