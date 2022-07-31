@@ -245,6 +245,7 @@ public class SMGCPABuiltins {
   /*
    * function va_end for variable function parameters.
    */
+  @SuppressWarnings("unused")
   private List<ValueAndSMGState> evaluateVaEnd(
       CFunctionCallExpression cFCExpression, CFAEdge pCfaEdge, SMGState pState) {
     Preconditions.checkArgument(cFCExpression.getParameterExpressions().size() == 1);
@@ -260,6 +261,7 @@ public class SMGCPABuiltins {
   /*
    * function va_copy for variable function parameters.
    */
+  @SuppressWarnings("unused")
   private List<ValueAndSMGState> evaluateVaCopy(
       CFunctionCallExpression cFCExpression, CFAEdge pCfaEdge, SMGState pState)
       throws CPATransferException {
@@ -298,8 +300,10 @@ public class SMGCPABuiltins {
   /*
    * Function va_arg for variable arguments in functions.
    */
+  @SuppressWarnings("unused")
   private List<ValueAndSMGState> evaluateVaArg(
-      CFunctionCallExpression cFCExpression, CFAEdge pCfaEdge, SMGState pState) {
+      CFunctionCallExpression cFCExpression, CFAEdge pCfaEdge, SMGState pState)
+      throws SMG2Exception {
     Preconditions.checkArgument(cFCExpression.getParameterExpressions().size() == 2);
     // The first argument is the va_list pointer CidExpression
     CExpression srcArg = cFCExpression.getParameterExpressions().get(0);
@@ -310,13 +314,16 @@ public class SMGCPABuiltins {
     // Preconditions.checkArgument(srcArg instanceof CIdExpression);
     // CIdExpression srcIdArg = (CIdExpression) srcArg;
     // If the type is not compatible with the types saved in the array, behavior is undefined
+    throw new SMG2Exception(
+        "Feature va_arg() not finished because the parser does not like the function.");
 
-    return null;
+    // return null;
   }
 
   /*
    * function va_start for variable arguments in functions.
    */
+  @SuppressWarnings("unused")
   private List<ValueAndSMGState> evaluateVaStart(
       CFunctionCallExpression cFCExpression, CFAEdge pCfaEdge, SMGState pState)
       throws CPATransferException {
