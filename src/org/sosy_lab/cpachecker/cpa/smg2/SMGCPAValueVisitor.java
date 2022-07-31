@@ -702,19 +702,19 @@ public class SMGCPAValueVisitor
         break;
     }
 
+    // & operator is seperate as the value returned leads to the underlying memory location
+    if (unaryOperator == UnaryOperator.AMPER) {
+      // Check if a pointer already exits, if not create a pointer (points-to-edge), map it to a
+      // unique value and return it.
+      // Note: this returns AddressExpressions! Unwrap before saving!
+      return evaluator.createAddress(unaryOperand, state, cfaEdge);
+    }
+
     ImmutableList.Builder<ValueAndSMGState> builder = new ImmutableList.Builder<>();
     loop:
     for (ValueAndSMGState valueAndState : unaryOperand.accept(this)) {
       SMGState currentState = valueAndState.getState();
       Value value = valueAndState.getValue();
-
-      // & operator is seperate as the value returned leads to the underlying memory location
-      if (unaryOperator == UnaryOperator.AMPER) {
-        // Check if a pointer already exits, if not create a pointer (points-to-edge), map it to a
-        // unique value and return it.
-        // Note: this returns AddressExpressions! Unwrap before saving!
-        return evaluator.createAddress(unaryOperand, currentState, cfaEdge);
-      }
 
       if (value instanceof SymbolicValue) {
         builder.add(
