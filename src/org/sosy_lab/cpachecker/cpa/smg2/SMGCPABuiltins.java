@@ -21,6 +21,8 @@ import org.sosy_lab.common.collect.Collections3;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -79,7 +81,11 @@ public class SMGCPABuiltins {
           "__builtin_alloca",
           "printf",
           "strcmp",
-          "realloc");
+          "realloc",
+          "__builtin_va_start",
+          "__builtin_va_arg",
+          "__builtin_va_end",
+          "__builtin_va_copy");
 
   /**
    * Returns true if the functionName equals a built in function handleable by this class. This
@@ -216,6 +222,15 @@ public class SMGCPABuiltins {
       case "realloc":
         return evaluateRealloc();
 
+      case "__builtin_va_start":
+        return evaluateVaStart(cFCExpression, pCfaEdge, pState);
+      case "__builtin_va_arg":
+        return evaluateVaArg(cFCExpression, pCfaEdge, pState);
+      case "__builtin_va_copy":
+        return evaluateVaCopy(cFCExpression, pCfaEdge, pState);
+      case "__builtin_va_end":
+        return evaluateVaEnd(cFCExpression, pCfaEdge, pState);
+
       default:
         if (isNondetBuiltin(calledFunctionName)) {
           // TODO:
@@ -225,6 +240,122 @@ public class SMGCPABuiltins {
               "Unexpected function handled as a builtin: " + calledFunctionName);
         }
     }
+  }
+
+  /*
+   * function va_end for variable function parameters.
+   */
+  private List<ValueAndSMGState> evaluateVaEnd(
+      CFunctionCallExpression cFCExpression, CFAEdge pCfaEdge, SMGState pState) {
+    Preconditions.checkArgument(cFCExpression.getParameterExpressions().size() == 1);
+    // The first argument is the variable to be deleted
+    CExpression firstArg = cFCExpression.getParameterExpressions().get(0);
+    Preconditions.checkArgument(firstArg instanceof CIdExpression);
+    CIdExpression firstIdArg = (CIdExpression) firstArg;
+    SMGState currentState =
+        pState.copyAndPruneFunctionStackVariable(firstIdArg.getDeclaration().getQualifiedName());
+    return ImmutableList.of(ValueAndSMGState.ofUnknownValue(currentState));
+  }
+
+  /*
+   * function va_copy for variable function parameters.
+   */
+  private List<ValueAndSMGState> evaluateVaCopy(
+      CFunctionCallExpression cFCExpression, CFAEdge pCfaEdge, SMGState pState)
+      throws CPATransferException {
+    Preconditions.checkArgument(cFCExpression.getParameterExpressions().size() == 2);
+    // The first argument is the destination
+    CExpression destArg = cFCExpression.getParameterExpressions().get(0);
+    Preconditions.checkArgument(destArg instanceof CIdExpression);
+    CIdExpression destIdArg = (CIdExpression) destArg;
+    // The second argument is the source
+    CExpression srcArg = cFCExpression.getParameterExpressions().get(1);
+    Preconditions.checkArgument(srcArg instanceof CIdExpression);
+    CIdExpression srcIdArg = (CIdExpression) srcArg;
+    // Check the types lazy
+    Preconditions.checkArgument(destIdArg.getExpressionType().equals(srcIdArg.getExpressionType()));
+    // The size should be equal as the types are
+    BigInteger sizeInBits = evaluator.getBitSizeof(pState, srcIdArg);
+    ValueAndSMGState addressAndState =
+        evaluator.readStackOrGlobalVariable(
+            pState, srcIdArg.getName(), BigInteger.ZERO, sizeInBits);
+    SMGState currentState = addressAndState.getState();
+    if (addressAndState.getValue().isUnknown()) {
+      // Critical error, should never happen
+      throw new SMG2Exception(
+          "Critical error in builtin function va_copy. The source does not reflect a valid value when read.");
+    }
+    currentState =
+        currentState.writeToStackOrGlobalVariable(
+            destIdArg.getDeclaration().getQualifiedName(),
+            BigInteger.ZERO,
+            sizeInBits,
+            addressAndState.getValue(),
+            destIdArg.getExpressionType());
+    return ImmutableList.of(ValueAndSMGState.ofUnknownValue(currentState));
+  }
+
+  /*
+   * Function va_arg for variable arguments in functions.
+   */
+  private List<ValueAndSMGState> evaluateVaArg(
+      CFunctionCallExpression cFCExpression, CFAEdge pCfaEdge, SMGState pState) {
+    Preconditions.checkArgument(cFCExpression.getParameterExpressions().size() == 2);
+    // The first argument is the va_list pointer CidExpression
+    CExpression srcArg = cFCExpression.getParameterExpressions().get(0);
+    Preconditions.checkArgument(srcArg instanceof CIdExpression);
+    CIdExpression srcIdArg = (CIdExpression) srcArg;
+    // The second argument is the type to be read
+    CExpression typeArg = cFCExpression.getParameterExpressions().get(1);
+    // Preconditions.checkArgument(srcArg instanceof CIdExpression);
+    // CIdExpression srcIdArg = (CIdExpression) srcArg;
+    // If the type is not compatible with the types saved in the array, behavior is undefined
+
+    return null;
+  }
+
+  /*
+   * function va_start for variable arguments in functions.
+   */
+  private List<ValueAndSMGState> evaluateVaStart(
+      CFunctionCallExpression cFCExpression, CFAEdge pCfaEdge, SMGState pState)
+      throws CPATransferException {
+    Preconditions.checkArgument(cFCExpression.getParameterExpressions().size() == 2);
+    // The first argument is the target for the pointer to the array of values
+    CExpression firstArg = cFCExpression.getParameterExpressions().get(0);
+    Preconditions.checkArgument(firstArg instanceof CIdExpression);
+    CIdExpression firstIdArg = (CIdExpression) firstArg;
+    // The second argument is the type of the argument before the variable args start
+    CExpression secondArg = cFCExpression.getParameterExpressions().get(1);
+    StackFrame currentStack = pState.getMemoryModel().getStackFrames().peek();
+    CParameterDeclaration paramDecl =
+        currentStack
+            .getFunctionDefinition()
+            .getParameters()
+            .get(currentStack.getFunctionDefinition().getParameters().size() - 1);
+    if (!paramDecl.getType().equals(secondArg.getExpressionType())) {
+      // Log warning (gcc only throws a warning and it works anyway)
+      // TODO:
+    }
+    // Create a new variable with the name of the first argument and copy the
+    // starting pointer for the variable arguments
+    BigInteger sizeInBits = evaluator.getBitSizeof(pState, firstIdArg);
+    SMGState currentState = pState.copyAndAddLocalVariable(sizeInBits, firstIdArg.getName());
+    String nameOfArray =
+        currentState.getUniqueFunctionBasedNameForVarArgs(currentStack.getFunctionDefinition());
+    ValueAndSMGState addressAndState =
+        evaluator.createAddressForLocalOrGlobalVariable(nameOfArray, currentState);
+    currentState = addressAndState.getState();
+    Value address = addressAndState.getValue();
+    currentState =
+        currentState.writeToStackOrGlobalVariable(
+            firstIdArg.getDeclaration().getQualifiedName(),
+            BigInteger.ZERO,
+            sizeInBits,
+            address,
+            firstIdArg.getExpressionType());
+
+    return ImmutableList.of(ValueAndSMGState.ofUnknownValue(currentState));
   }
 
   /**

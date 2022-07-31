@@ -331,9 +331,6 @@ public class SMGTransferRelation
                 + callEdge.getDescription()
                 + ".");
       }
-    } else {
-      // TODO Parameter with varArgs
-      throw new SMG2Exception("TODO: handle this correctly with the example just run!");
     }
 
     return ImmutableList.of(handleFunctionCall(state, callEdge, arguments, paramDecl));
@@ -342,7 +339,8 @@ public class SMGTransferRelation
   /**
    * Creates a new stack frame for the function call, then creates the local variables for the
    * parameters and fills them using the value visitor with the values given. This should only be
-   * called if the number of arguments and paramDecls entered match.
+   * called if the number of arguments and paramDecls entered match. This function also checks for
+   * variable arguments and saves them in a array in the order they appear.
    *
    * @param initialState the current state.
    * @param callEdge the edge of the function call.
@@ -363,11 +361,19 @@ public class SMGTransferRelation
     // TODO: check if the FunctionPointerCPA would be a better option instead of doing it myself
     SMGState currentState = initialState;
     Builder<Value> readValuesInOrderBuilder = ImmutableList.builder();
+    BigInteger overallVarArgsSizeInBits = BigInteger.ZERO;
     for (int i = 0; i < arguments.size(); i++) {
-      String varName = paramDecl.get(i).getQualifiedName();
       CExpression cParamExp = arguments.get(i);
 
-      currentState = checkAndAddParameterToBlacklist(cParamExp, varName, currentState);
+      if (paramDecl.size() > i) {
+        // We can't get names for variable arguments
+        String varName = paramDecl.get(i).getQualifiedName();
+        currentState = checkAndAddParameterToBlacklist(cParamExp, varName, currentState);
+      } else {
+        // Remember overall size of varArgs
+        overallVarArgsSizeInBits =
+            overallVarArgsSizeInBits.add(evaluator.getBitSizeof(currentState, cParamExp));
+      }
 
       // Evaluator the CExpr into a Value
       SMGCPAValueVisitor valueVisitor =
@@ -385,22 +391,58 @@ public class SMGTransferRelation
 
     // Add the new stack frame based on the function def, but only after we read the values from the
     // old stack frame
-    currentState =
-        currentState.copyAndAddStackFrame(callEdge.getSuccessor().getFunctionDefinition());
+    CFunctionDeclaration funcDecl = callEdge.getSuccessor().getFunctionDefinition();
+    currentState = currentState.copyAndAddStackFrame(funcDecl);
+
+    // If there are variable arguments (i.e. func(int i, ...);
+    // get where they start, then save them in an array with the type right before the ...
+    // in a local variable encoded with the function definition and a identifier
+    // This variable should then only be read by the va_... methods
+    Value addressToVarArgsAtOffsetZero = null;
+    if (callEdge.getSuccessor().getFunctionDefinition().getType().takesVarArgs()) {
+      // Make a new stack object (gets deleted after dropping the stack frame)
+      int numOfVarArgs = arguments.size() - paramDecl.size();
+      // There don't have to be varArgs used just because they are declared
+      if (numOfVarArgs != 0) {
+        String uniqueName = currentState.getUniqueFunctionBasedNameForVarArgs(funcDecl);
+        ValueAndSMGState addressOfVarArgsAndState =
+            evaluator.createStackAllocation(uniqueName, overallVarArgsSizeInBits, currentState);
+        currentState = addressOfVarArgsAndState.getState();
+        addressToVarArgsAtOffsetZero = addressOfVarArgsAndState.getValue();
+      }
+    }
 
     ImmutableList<Value> readValuesInOrder = readValuesInOrderBuilder.build();
+    BigInteger offsetForVarArgsInBits = BigInteger.ZERO;
     for (int i = 0; i < arguments.size(); i++) {
       Value paramValue = readValuesInOrder.get(i);
-      String varName = paramDecl.get(i).getQualifiedName();
-      CType cParamType = SMGCPAValueExpressionEvaluator.getCanonicalType(paramDecl.get(i));
-      BigInteger paramSizeInBits = evaluator.getBitSizeof(currentState, cParamType);
 
-      // Create the new local variable
-      currentState = currentState.copyAndAddLocalVariable(paramSizeInBits, varName);
-      // Write the value into it
-      currentState =
-          currentState.writeToStackOrGlobalVariable(
-              varName, BigInteger.ZERO, paramSizeInBits, paramValue, cParamType);
+      if (paramDecl.size() > i) {
+        // Normal variable with a name
+        String varName = paramDecl.get(i).getQualifiedName();
+        CType cParamType = SMGCPAValueExpressionEvaluator.getCanonicalType(paramDecl.get(i));
+        BigInteger paramSizeInBits = evaluator.getBitSizeof(currentState, cParamType);
+
+        // Create the new local variable
+        currentState = currentState.copyAndAddLocalVariable(paramSizeInBits, varName);
+        // Write the value into it
+        currentState =
+            currentState.writeToStackOrGlobalVariable(
+                varName, BigInteger.ZERO, paramSizeInBits, paramValue, cParamType);
+      } else {
+        // Variable args argument
+        // Save in the array from above
+        CType cParamType = SMGCPAValueExpressionEvaluator.getCanonicalType(arguments.get(i));
+        BigInteger paramSizeInBits = evaluator.getBitSizeof(currentState, cParamType);
+        currentState =
+            currentState.writeValueTo(
+                addressToVarArgsAtOffsetZero,
+                offsetForVarArgsInBits,
+                paramSizeInBits,
+                paramValue,
+                cParamType);
+        offsetForVarArgsInBits = offsetForVarArgsInBits.add(paramSizeInBits);
+      }
     }
 
     return currentState;
@@ -1409,7 +1451,9 @@ public class SMGTransferRelation
             // Offset unknown/symbolic. This is not usable!
             valueToWrite = UnknownValue.getInstance();
           }
+
           BigInteger sizeInBits = evaluator.getBitSizeof(currentState, rValue);
+
           currentState =
               currentState.writeValueTo(
                   addressToWriteTo,
@@ -1422,14 +1466,21 @@ public class SMGTransferRelation
         } else {
           // All other cases should return such that the value can be written directly to the left
           // hand side!
-          BigInteger sizeInBits = evaluator.getBitSizeof(currentState, rValue);
+          if (lValue.getExpressionType() != rValue.getExpressionType()) {
+            ValueAndSMGState castedValueAndState =
+                rightHandSideVisitor.castCValue(
+                    valueToWrite, lValue.getExpressionType(), currentState);
+            currentState = castedValueAndState.getState();
+            valueToWrite = castedValueAndState.getValue();
+          }
+          BigInteger sizeInBits = evaluator.getBitSizeof(currentState, lValue);
           currentState =
               currentState.writeValueTo(
                   addressToWriteTo,
                   offsetToWriteTo,
                   sizeInBits,
                   valueToWrite,
-                  rValue.getExpressionType());
+                  lValue.getExpressionType());
           returnStateBuilder.add(currentState);
         }
       }
