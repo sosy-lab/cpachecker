@@ -119,6 +119,11 @@ public class SMGCPAAddressVisitor
         arrayExpr.accept(new SMGCPAValueVisitor(evaluator, state, cfaEdge, logger))) {
       Value arrayValue = arrayValueAndState.getValue();
 
+      if (arrayValue.isUnknown()) {
+        resultBuilder.add(Optional.empty());
+        continue;
+      }
+
       // Evaluate the subscript as far as possible
       for (ValueAndSMGState subscriptValueAndState :
           subscriptExpr.accept(
@@ -180,7 +185,12 @@ public class SMGCPAAddressVisitor
               evaluator.getTargetObjectAndOffset(
                   currentState, addressValue.getMemoryAddress(), subscriptOffset));
         } else if (arrayValue instanceof SymbolicValue) {
-       // Here our arrayValue holds the name of our variable
+          if (((SymbolicValue) arrayValue).getRepresentedLocation().isEmpty()) {
+            // No location = a real symbolic value
+            resultBuilder.add(Optional.empty());
+            continue;
+          }
+          // Here our arrayValue holds the name of our variable if there is a location
           MemoryLocation maybeVariableIdent =
               ((SymbolicValue) arrayValue).getRepresentedLocation().orElseThrow();
 
