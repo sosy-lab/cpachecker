@@ -494,6 +494,13 @@ public class SMGCPAValueVisitor
       // (*structP).field. The later needs a pointer deref
       if (ownerExpression instanceof CPointerExpression) {
         // In the pointer case, the Value needs to be a AddressExpression
+        if (structValue.isUnknown()) {
+          builder.add(ValueAndSMGState.ofUnknownValue(currentState));
+          continue;
+        }
+        // else if (!(structValue instanceof AddressExpression)
+        //    && (!evaluator.isPointerValue(structValue, currentState))) {}
+
         Preconditions.checkArgument(structValue instanceof AddressExpression);
         AddressExpression addressAndOffsetValue = (AddressExpression) structValue;
         // This AddressExpr theoretically can have a offset
@@ -764,6 +771,10 @@ public class SMGCPAValueVisitor
       SMGState currentState = valueAndState.getState();
       // Try to disassemble the values (AddressExpression)
       Value value = valueAndState.getValue();
+      if (value.isUnknown()) {
+        builder.add(ValueAndSMGState.ofUnknownValue(currentState));
+        continue;
+      }
       Preconditions.checkArgument(value instanceof AddressExpression);
       AddressExpression pointerValue = (AddressExpression) value;
 
