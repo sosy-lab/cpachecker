@@ -42,7 +42,9 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CCharLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CComplexTypeDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDesignatedInitializer;
+import org.sosy_lab.cpachecker.cfa.ast.c.CDesignator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFieldDesignator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
@@ -73,6 +75,7 @@ import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
+import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CElaboratedType;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
@@ -901,7 +904,6 @@ public class SMGTransferRelation
         CArrayType arrayType = (CArrayType) realCType;
         return handleInitializerList(
             pNewState, pVarDecl, pEdge, variableName, pOffset, arrayType, pNewInitializer);
-
       } else if (realCType instanceof CCompositeType) {
         CCompositeType structType = (CCompositeType) realCType;
         return handleInitializerList(
@@ -969,7 +971,8 @@ public class SMGTransferRelation
   }
 
   /*
-   * Handles and inits, to the variable given, the given CInitializerList initializers. In this case composite types like structs and unions.
+   * Handles and inits, to the variable given, the given CInitializerList initializers.
+   * In this case composite types like structs and unions.
    */
   private List<SMGState> handleInitializerList(
       SMGState pState,
@@ -992,11 +995,22 @@ public class SMGTransferRelation
 
     for (CInitializer initializer : pNewInitializer.getInitializers()) {
       // TODO: this has to be checked with a test!!!!
+      CType memberType = memberTypes.get(0).getType();
       if (initializer instanceof CDesignatedInitializer) {
+        List<CDesignator> designators = ((CDesignatedInitializer) initializer).getDesignators();
         initializer = ((CDesignatedInitializer) initializer).getRightHandSide();
+        Preconditions.checkArgument(designators.size() == 1);
+
+        for (CCompositeTypeMemberDeclaration memTypes : memberTypes) {
+          if (memTypes.getName().equals(((CFieldDesignator) designators.get(0)).getFieldName())) {
+            memberType = memTypes.getType();
+            break;
+          }
+        }
+      } else {
+        memberType = memberTypes.get(listCounter).getType();
       }
 
-      CType memberType = memberTypes.get(listCounter).getType();
       // The offset is the base offset given + the current offset
       BigInteger offset = pOffset.add(offsetAndPosition.get(memberTypes.get(listCounter)));
 
