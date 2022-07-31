@@ -323,21 +323,14 @@ public class SymbolicProgramConfiguration {
   public SymbolicProgramConfiguration copyAndRemoveStackVariable(String pIdentifier) {
     // If a stack variable becomes out of scope, there are not more than one frames which could
     // contain the variable
-    Optional<StackFrame> frameOptional = Optional.empty();
-    for (StackFrame frame : stackVariableMapping) {
-      if (frame.containsVariable(pIdentifier)) {
-        frameOptional = Optional.of(frame);
-      }
-    }
-    if (frameOptional.isEmpty()) {
+    StackFrame frame = stackVariableMapping.peek();
+    if (!frame.containsVariable(pIdentifier)) {
       return this;
     }
-    StackFrame oldFrame = frameOptional.orElseThrow();
-    // ensured by frameOptional.isPresent()
-    SMGObject objToRemove = frameOptional.orElseThrow().getVariable(pIdentifier);
-    StackFrame newFrame = frameOptional.orElseThrow().copyAndRemoveVariable(pIdentifier);
-    PersistentStack<StackFrame> newStack =
-        stackVariableMapping.replace(frame -> frame == oldFrame, newFrame);
+
+    SMGObject objToRemove = frame.getVariable(pIdentifier);
+    StackFrame newFrame = frame.copyAndRemoveVariable(pIdentifier);
+    PersistentStack<StackFrame> newStack = stackVariableMapping.replace(f -> f == frame, newFrame);
     SMG newSmg = smg.copyAndInvalidateObject(objToRemove);
     return of(
         newSmg,

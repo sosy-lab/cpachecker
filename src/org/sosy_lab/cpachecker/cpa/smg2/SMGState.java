@@ -629,6 +629,17 @@ public class SMGState implements LatticeAbstractState<SMGState>, AbstractQueryab
         variableBlacklist);
   }
 
+  // Only public for builtin functions
+  public SMGState copyAndPruneFunctionStackVariable(String variableName) {
+    return of(
+        machineModel,
+        memoryModel.copyAndRemoveStackVariable(variableName),
+        logger,
+        options,
+        errorInfo,
+        variableBlacklist);
+  }
+
   public SMGState dropStackFrame() {
     return of(
         machineModel,
@@ -1626,7 +1637,7 @@ public class SMGState implements LatticeAbstractState<SMGState>, AbstractQueryab
   /*
    * Generates a unique String based on the entered function declaration. Can be used as variable name.
    */
-  private String getUniqueFunctionName(CFunctionDeclaration pDeclaration) {
+  public String getUniqueFunctionName(CFunctionDeclaration pDeclaration) {
 
     StringBuilder functionName = new StringBuilder(pDeclaration.getQualifiedName());
 
@@ -1636,5 +1647,13 @@ public class SMGState implements LatticeAbstractState<SMGState>, AbstractQueryab
     }
 
     return "__" + functionName;
+  }
+
+  /*
+   * Generates a unique String based on the entered function declaration for variable arguments.
+   * Can be used as variable name.
+   */
+  public String getUniqueFunctionBasedNameForVarArgs(CFunctionDeclaration pDeclaration) {
+    return getUniqueFunctionName(pDeclaration) + "_varArgs";
   }
 }
