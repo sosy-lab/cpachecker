@@ -15,7 +15,6 @@ import java.util.List;
 import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.BlockGraph;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.BlockNode;
@@ -32,12 +31,10 @@ public class BlockSummaryWorkerBuilder {
   private final Specification specification;
   private final List<WorkerGenerator> workerGenerators;
   private final ConnectionProvider<?> connectionProvider;
-  private final LogManager logger;
   private int additionalConnections;
 
   public BlockSummaryWorkerBuilder(
       CFA pCFA,
-      LogManager pLogManager,
       ConnectionProvider<?> pConnectionProvider,
       Specification pSpecification,
       Configuration pConfiguration,
@@ -49,7 +46,6 @@ public class BlockSummaryWorkerBuilder {
     // only one available for now
     connectionProvider = pConnectionProvider;
     workerGenerators = new ArrayList<>();
-    logger = pLogManager;
   }
 
   private String nextId(String pAdditionalIdentifier) {
@@ -71,8 +67,7 @@ public class BlockSummaryWorkerBuilder {
                 pNode,
                 cfa,
                 specification,
-                shutdownManager,
-                logger));
+                shutdownManager));
     return this;
   }
 
@@ -82,7 +77,6 @@ public class BlockSummaryWorkerBuilder {
         connection ->
             new BlockSummarySmartAnalysisWorker(
                 nextId(pNode.getId()),
-                logger,
                 pOptions,
                 connection,
                 pNode,
@@ -92,16 +86,16 @@ public class BlockSummaryWorkerBuilder {
     return this;
   }
 
-  public BlockSummaryWorkerBuilder addResultCollectorWorker(Collection<BlockNode> nodes) {
-    workerGenerators.add(connection -> new BlockSummaryResultWorker(nodes, connection, logger));
+  public BlockSummaryWorkerBuilder addResultCollectorWorker(
+      Collection<BlockNode> nodes, AnalysisOptions pOptions) {
+    workerGenerators.add(connection -> new BlockSummaryResultWorker(nodes, connection, pOptions));
     return this;
   }
 
   public BlockSummaryWorkerBuilder addVisualizationWorker(
-      BlockGraph pBlockTree, Configuration pConfiguration) {
+      BlockGraph pBlockTree, AnalysisOptions pOptions) {
     workerGenerators.add(
-        connection ->
-            new BlockSummaryVisualizationWorker(pBlockTree, connection, logger, pConfiguration));
+        connection -> new BlockSummaryVisualizationWorker(pBlockTree, connection, pOptions));
     return this;
   }
 
@@ -112,7 +106,6 @@ public class BlockSummaryWorkerBuilder {
                 nextId(pNode.getId()),
                 connection,
                 pOptions,
-                logger,
                 pNode,
                 cfa,
                 specification,

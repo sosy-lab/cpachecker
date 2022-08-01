@@ -18,7 +18,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Level;
-import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.BlockNode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.Connection;
@@ -39,8 +38,8 @@ public class BlockSummaryResultWorker extends BlockSummaryWorker {
   private boolean shutdown;
 
   BlockSummaryResultWorker(
-      Collection<BlockNode> pNodes, Connection pConnection, LogManager pLogger) {
-    super("result-worker", pLogger);
+      Collection<BlockNode> pNodes, Connection pConnection, AnalysisOptions pOptions) {
+    super("result-worker", pOptions);
     nodeMap = new HashMap<>();
     connection = pConnection;
     pNodes.forEach(node -> nodeMap.put(node.getId(), node));

@@ -12,9 +12,7 @@ import com.google.common.collect.ImmutableSet;
 import java.io.IOException;
 import java.util.Collection;
 import java.util.logging.Level;
-import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.BlockGraph;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.Connection;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryMessage;
@@ -30,11 +28,11 @@ public class BlockSummaryVisualizationWorker extends BlockSummaryWorker {
   private boolean shutdown = false;
 
   BlockSummaryVisualizationWorker(
-      BlockGraph pTree, Connection pConnection, LogManager pLogger, Configuration pConfiguration)
+      BlockGraph pTree, Connection pConnection, AnalysisOptions pOptions)
       throws InvalidConfigurationException {
-    super("visualization-worker", pLogger);
+    super("visualization-worker", pOptions);
     connection = pConnection;
-    messageLogger = new MessageLogger(pTree, pConfiguration);
+    messageLogger = new MessageLogger(pTree, pOptions.getParentConfig());
     try {
       messageLogger.logTree();
     } catch (IOException pE) {

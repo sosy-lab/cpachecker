@@ -15,7 +15,6 @@ import java.util.logging.Level;
 import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
@@ -42,14 +41,13 @@ public class BlockSummaryRootWorker extends BlockSummaryWorker {
       String pId,
       Connection pConnection,
       AnalysisOptions pOptions,
-      LogManager pLogManager,
       BlockNode pNode,
       CFA pCfa,
       Specification pSpecification,
       Configuration pConfiguration,
       ShutdownManager pShutdownManager)
       throws CPAException, InterruptedException, InvalidConfigurationException {
-    super("root-worker-" + pId, pLogManager);
+    super("root-worker-" + pId, pOptions);
     connection = pConnection;
     shutdown = false;
     root = pNode;

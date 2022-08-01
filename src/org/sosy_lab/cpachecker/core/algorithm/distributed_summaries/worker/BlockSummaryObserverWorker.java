@@ -14,7 +14,6 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
-import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.Connection;
@@ -33,8 +32,8 @@ public class BlockSummaryObserverWorker extends BlockSummaryWorker {
   private Optional<Result> result;
   private Optional<String> errorMessage;
 
-  public BlockSummaryObserverWorker(String pId, Connection pConnection, LogManager pLogger) {
-    super(pId, pLogger);
+  public BlockSummaryObserverWorker(String pId, Connection pConnection, AnalysisOptions pOptions) {
+    super(pId, pOptions);
     shutdown = false;
     connection = pConnection;
     statusObserver = new StatusObserver();

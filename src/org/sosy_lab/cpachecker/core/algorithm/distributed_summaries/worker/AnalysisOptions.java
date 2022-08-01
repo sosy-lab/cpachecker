@@ -44,6 +44,10 @@ public class AnalysisOptions {
   private Path backwardConfiguration =
       Path.of("config/distributed-block-summaries/predicateAnalysis-block-backward.properties");
 
+  @Option(description = "Where the logfiles are stored")
+  @FileOption(Type.OUTPUT_DIRECTORY)
+  private Path logDirectory = Path.of("output/block_summary/logfiles");
+
   private final Configuration parentConfig;
 
   public AnalysisOptions(Configuration pConfig) throws InvalidConfigurationException {
@@ -73,5 +77,9 @@ public class AnalysisOptions {
 
   public Configuration getParentConfig() {
     return parentConfig;
+  }
+
+  public Path getLogDirectory() {
+    return logDirectory;
   }
 }

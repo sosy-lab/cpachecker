@@ -164,7 +164,6 @@ public class DistributedSummaryAnalysis implements Algorithm, StatisticsProvider
       BlockSummaryWorkerBuilder builder =
           new BlockSummaryWorkerBuilder(
               cfa,
-              logger,
               new InMemoryConnectionProvider(() -> new CleverMessageQueue()),
               specification,
               configuration,
@@ -177,10 +176,10 @@ public class DistributedSummaryAnalysis implements Algorithm, StatisticsProvider
           builder = analysisWorker(builder, distinctNode);
         }
       }
-      builder = builder.addResultCollectorWorker(blocks);
+      builder = builder.addResultCollectorWorker(blocks, options);
 
       if (spawnUtilWorkers) {
-        builder = builder.addVisualizationWorker(tree, configuration);
+        builder = builder.addVisualizationWorker(tree, options);
       }
 
       Components components = builder.build();
@@ -198,7 +197,7 @@ public class DistributedSummaryAnalysis implements Algorithm, StatisticsProvider
       try (Connection mainThreadConnection = components.getAdditionalConnections().get(0)) {
         mainThreadConnection.collectStatistics(statsCollection);
         BlockSummaryObserverWorker observer =
-            new BlockSummaryObserverWorker("observer", mainThreadConnection, logger);
+            new BlockSummaryObserverWorker("observer", mainThreadConnection, options);
         Pair<AlgorithmStatus, Result> resultPair = observer.observe();
         Result result = resultPair.getSecond();
         if (result == Result.FALSE) {
