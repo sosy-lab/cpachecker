@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed
 import java.io.IOException;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.SerializeOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.Payload;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.SerializeUtil;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
@@ -50,7 +51,7 @@ public class SerializePredicateStateOperator implements SerializeOperator {
     String formula = formulaManagerView.dumpFormula(pathFormula.getFormula()).toString();
     String ssa;
     try {
-      ssa = SerializeSSAMap.serialize(pathFormula.getSsa());
+      ssa = SerializeUtil.serialize(pathFormula.getSsa());
     } catch (IOException pE) {
       throw new AssertionError("Unable to serialize SSAMap " + pathFormula.getSsa());
     }

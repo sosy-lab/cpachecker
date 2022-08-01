@@ -11,8 +11,8 @@ package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.ac
 import java.time.Instant;
 import java.util.Objects;
 import java.util.Set;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.predicate.SerializeSSAMap;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.Payload;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.SerializeUtil;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 
 public class BlockSummaryErrorConditionMessage extends BlockSummaryMessage {
@@ -29,8 +29,8 @@ public class BlockSummaryErrorConditionMessage extends BlockSummaryMessage {
 
   public SSAMap getSSAMap() {
     if (getPayload().containsKey(Payload.SSA)) {
-      return SerializeSSAMap.deserialize(
-          (String) Objects.requireNonNull(getPayload().get(Payload.SSA)));
+      return SerializeUtil.deserialize(
+          (String) Objects.requireNonNull(getPayload().get(Payload.SSA)), SSAMap.class);
     }
     return SSAMap.emptySSAMap();
   }
