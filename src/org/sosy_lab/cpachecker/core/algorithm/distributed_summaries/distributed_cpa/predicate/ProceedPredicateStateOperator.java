@@ -23,7 +23,7 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.Pay
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryErrorConditionMessage;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryMessage;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryPostConditionMessage;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.AnalysisOptions;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.BlockSummaryAnalysisOptions;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
@@ -34,7 +34,7 @@ import org.sosy_lab.java_smt.api.SolverException;
 public class ProceedPredicateStateOperator implements ProceedOperator {
 
   private final AnalysisDirection direction;
-  private final AnalysisOptions analysisOptions;
+  private final BlockSummaryAnalysisOptions analysisOptions;
   private final BlockNode block;
   private final Solver solver;
   private final DeserializeOperator deserialize;
@@ -49,7 +49,7 @@ public class ProceedPredicateStateOperator implements ProceedOperator {
   private BooleanFormula latestOwnPostCondition;
 
   public ProceedPredicateStateOperator(
-      AnalysisOptions pOptions,
+      BlockSummaryAnalysisOptions pOptions,
       AnalysisDirection pDirection,
       BlockNode pBlockNode,
       Solver pSolver,

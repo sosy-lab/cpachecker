@@ -32,7 +32,8 @@ public class BlockSummaryObserverWorker extends BlockSummaryWorker {
   private Optional<Result> result;
   private Optional<String> errorMessage;
 
-  public BlockSummaryObserverWorker(String pId, Connection pConnection, AnalysisOptions pOptions) {
+  public BlockSummaryObserverWorker(
+      String pId, Connection pConnection, BlockSummaryAnalysisOptions pOptions) {
     super(pId, pOptions);
     shutdown = false;
     connection = pConnection;

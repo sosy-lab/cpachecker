@@ -38,7 +38,7 @@ public class BlockSummaryResultWorker extends BlockSummaryWorker {
   private boolean shutdown;
 
   BlockSummaryResultWorker(
-      Collection<BlockNode> pNodes, Connection pConnection, AnalysisOptions pOptions) {
+      Collection<BlockNode> pNodes, Connection pConnection, BlockSummaryAnalysisOptions pOptions) {
     super("result-worker", pOptions);
     nodeMap = new HashMap<>();
     connection = pConnection;

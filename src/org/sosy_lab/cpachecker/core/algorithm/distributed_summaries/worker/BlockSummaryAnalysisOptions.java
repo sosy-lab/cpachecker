@@ -17,7 +17,7 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 
 @Options(prefix = "distributedSummaries.worker")
-public class AnalysisOptions {
+public class BlockSummaryAnalysisOptions {
 
   @Option(description = "whether analysis worker store circular post conditions")
   private boolean storeCircularPostConditions = false;
@@ -44,13 +44,16 @@ public class AnalysisOptions {
   private Path backwardConfiguration =
       Path.of("config/distributed-block-summaries/predicateAnalysis-block-backward.properties");
 
-  @Option(description = "Where the logfiles are stored")
+  @Option(
+      description =
+          "Destination directory for the logfiles of all BlockSummaryWorkers. The logfiles have the"
+              + " same name as the ID of the worker.")
   @FileOption(Type.OUTPUT_DIRECTORY)
-  private Path logDirectory = Path.of("output/block_summary/logfiles");
+  private Path logDirectory = Path.of("block_summary/logfiles");
 
   private final Configuration parentConfig;
 
-  public AnalysisOptions(Configuration pConfig) throws InvalidConfigurationException {
+  public BlockSummaryAnalysisOptions(Configuration pConfig) throws InvalidConfigurationException {
     pConfig.inject(this);
     parentConfig = pConfig;
   }

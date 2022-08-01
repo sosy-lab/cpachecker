@@ -62,7 +62,7 @@ public class BlockSummaryAnalysisWorker extends BlockSummaryWorker {
    */
   BlockSummaryAnalysisWorker(
       String pId,
-      AnalysisOptions pOptions,
+      BlockSummaryAnalysisOptions pOptions,
       Connection pConnection,
       BlockNode pBlock,
       CFA pCFA,

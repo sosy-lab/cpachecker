@@ -19,7 +19,7 @@ import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.BlockNode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.composite.DistributedCompositeCPA;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryMessage;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.AnalysisOptions;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.BlockSummaryAnalysisOptions;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
@@ -38,7 +38,7 @@ public class NoopBlockAnalysis extends BlockAnalysis {
       Specification pSpecification,
       Configuration pConfiguration,
       ShutdownManager pShutdownManager,
-      AnalysisOptions pOptions)
+      BlockSummaryAnalysisOptions pOptions)
       throws CPAException, InterruptedException, InvalidConfigurationException {
     super(
         pLogger,

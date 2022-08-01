@@ -40,7 +40,7 @@ public class BlockSummaryRootWorker extends BlockSummaryWorker {
   BlockSummaryRootWorker(
       String pId,
       Connection pConnection,
-      AnalysisOptions pOptions,
+      BlockSummaryAnalysisOptions pOptions,
       BlockNode pNode,
       CFA pCfa,
       Specification pSpecification,

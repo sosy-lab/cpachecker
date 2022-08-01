@@ -32,8 +32,8 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decompositio
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.CleverMessageQueue;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.Connection;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.memory.InMemoryConnectionProvider;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.AnalysisOptions;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.BlockSummaryActor;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.BlockSummaryAnalysisOptions;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.BlockSummaryObserverWorker;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.BlockSummaryWorkerBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.BlockSummaryWorkerBuilder.Components;
@@ -61,7 +61,7 @@ public class DistributedSummaryAnalysis implements Algorithm, StatisticsProvider
   private final CFA cfa;
   private final ShutdownManager shutdownManager;
   private final Specification specification;
-  private final AnalysisOptions options;
+  private final BlockSummaryAnalysisOptions options;
 
   private Collection<Statistics> statsCollection;
 
@@ -116,7 +116,7 @@ public class DistributedSummaryAnalysis implements Algorithm, StatisticsProvider
     cfa = pCfa;
     shutdownManager = pShutdownManager;
     specification = pSpecification;
-    options = new AnalysisOptions(configuration);
+    options = new BlockSummaryAnalysisOptions(configuration);
   }
 
   private CFADecomposer getDecomposer() throws InvalidConfigurationException {

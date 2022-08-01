@@ -16,7 +16,7 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.SerializeOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.combine.CombineOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.proceed.ProceedOperator;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.AnalysisOptions;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.BlockSummaryAnalysisOptions;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
@@ -40,7 +40,7 @@ public class DistributedPredicateCPA implements DistributedConfigurableProgramAn
       PredicateCPA pPredicateCPA,
       BlockNode pNode,
       AnalysisDirection pDirection,
-      AnalysisOptions pOptions) {
+      BlockSummaryAnalysisOptions pOptions) {
     predicateCPA = pPredicateCPA;
     serialize =
         new SerializePredicateStateOperator(

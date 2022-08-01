@@ -57,7 +57,8 @@ public class BlockSummaryWorkerBuilder {
     return this;
   }
 
-  public BlockSummaryWorkerBuilder addAnalysisWorker(BlockNode pNode, AnalysisOptions pOptions) {
+  public BlockSummaryWorkerBuilder addAnalysisWorker(
+      BlockNode pNode, BlockSummaryAnalysisOptions pOptions) {
     workerGenerators.add(
         connection ->
             new BlockSummaryAnalysisWorker(
@@ -72,7 +73,7 @@ public class BlockSummaryWorkerBuilder {
   }
 
   public BlockSummaryWorkerBuilder addSmartAnalysisWorker(
-      BlockNode pNode, AnalysisOptions pOptions) {
+      BlockNode pNode, BlockSummaryAnalysisOptions pOptions) {
     workerGenerators.add(
         connection ->
             new BlockSummarySmartAnalysisWorker(
@@ -87,19 +88,20 @@ public class BlockSummaryWorkerBuilder {
   }
 
   public BlockSummaryWorkerBuilder addResultCollectorWorker(
-      Collection<BlockNode> nodes, AnalysisOptions pOptions) {
+      Collection<BlockNode> nodes, BlockSummaryAnalysisOptions pOptions) {
     workerGenerators.add(connection -> new BlockSummaryResultWorker(nodes, connection, pOptions));
     return this;
   }
 
   public BlockSummaryWorkerBuilder addVisualizationWorker(
-      BlockGraph pBlockTree, AnalysisOptions pOptions) {
+      BlockGraph pBlockTree, BlockSummaryAnalysisOptions pOptions) {
     workerGenerators.add(
         connection -> new BlockSummaryVisualizationWorker(pBlockTree, connection, pOptions));
     return this;
   }
 
-  public BlockSummaryWorkerBuilder addRootWorker(BlockNode pNode, AnalysisOptions pOptions) {
+  public BlockSummaryWorkerBuilder addRootWorker(
+      BlockNode pNode, BlockSummaryAnalysisOptions pOptions) {
     workerGenerators.add(
         connection ->
             new BlockSummaryRootWorker(

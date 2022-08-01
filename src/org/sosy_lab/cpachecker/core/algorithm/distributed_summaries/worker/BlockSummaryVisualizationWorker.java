@@ -28,7 +28,7 @@ public class BlockSummaryVisualizationWorker extends BlockSummaryWorker {
   private boolean shutdown = false;
 
   BlockSummaryVisualizationWorker(
-      BlockGraph pTree, Connection pConnection, AnalysisOptions pOptions)
+      BlockGraph pTree, Connection pConnection, BlockSummaryAnalysisOptions pOptions)
       throws InvalidConfigurationException {
     super("visualization-worker", pOptions);
     connection = pConnection;

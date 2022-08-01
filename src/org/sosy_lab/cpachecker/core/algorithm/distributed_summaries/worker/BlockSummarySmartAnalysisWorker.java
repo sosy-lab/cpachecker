@@ -33,7 +33,7 @@ public class BlockSummarySmartAnalysisWorker extends BlockSummaryAnalysisWorker 
 
   BlockSummarySmartAnalysisWorker(
       String pId,
-      AnalysisOptions pOptions,
+      BlockSummaryAnalysisOptions pOptions,
       Connection pConnection,
       BlockNode pBlock,
       CFA pCFA,
