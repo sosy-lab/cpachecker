@@ -36,6 +36,5 @@ public class SerializeUtil {
       // in no scenario deserializing a message should cause exceptions
       throw new AssertionError(pE);
     }
-
   }
 }
