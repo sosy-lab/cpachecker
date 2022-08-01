@@ -33,10 +33,10 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decompositio
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DCPAHandler;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.composite.DistributedCompositeCPA;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.Payload;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.ActorMessage;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.ActorMessage.MessageType;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockPostConditionActorMessage;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.ErrorConditionActorMessage;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryErrorConditionMessage;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryMessage;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryMessage.MessageType;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryPostConditionMessage;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.AnalysisOptions;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.BlockSummaryObserverWorker.StatusObserver.StatusPrecise;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.BlockSummaryObserverWorker.StatusObserver.StatusPropertyChecked;
@@ -148,10 +148,10 @@ public abstract class BlockAnalysis implements BlockAnalyzer {
    * @throws InterruptedException thread interrupted
    * @throws CPAException wrapper exception
    */
-  ARGState getStartState(Collection<ActorMessage> receivedPostConditions)
+  ARGState getStartState(Collection<BlockSummaryMessage> receivedPostConditions)
       throws InterruptedException, CPAException {
     List<AbstractState> states = new ArrayList<>();
-    for (ActorMessage receivedPostCondition : receivedPostConditions) {
+    for (BlockSummaryMessage receivedPostCondition : receivedPostConditions) {
       states.add(
           distributedCompositeCPA.getDeserializeOperator().deserialize(receivedPostCondition));
     }
@@ -171,14 +171,14 @@ public abstract class BlockAnalysis implements BlockAnalyzer {
    * @param pMessages all messages at block entry or exit
    * @return visited block ids as set of strings
    */
-  ImmutableSet<String> visitedBlocks(Collection<ActorMessage> pMessages) {
+  ImmutableSet<String> visitedBlocks(Collection<BlockSummaryMessage> pMessages) {
     ImmutableSet.Builder<String> visitedBlocks = ImmutableSet.builder();
-    for (ActorMessage message : pMessages) {
+    for (BlockSummaryMessage message : pMessages) {
       Set<String> visited = ImmutableSet.of();
       if (message.getType() == MessageType.BLOCK_POSTCONDITION) {
-        visited = ((BlockPostConditionActorMessage) message).visitedBlockIds();
+        visited = ((BlockSummaryPostConditionMessage) message).visitedBlockIds();
       } else if (message.getType() == MessageType.ERROR_CONDITION) {
-        visited = ((ErrorConditionActorMessage) message).visitedBlockIds();
+        visited = ((BlockSummaryErrorConditionMessage) message).visitedBlockIds();
       }
       for (String part : visited) {
         if (!part.isBlank()) {

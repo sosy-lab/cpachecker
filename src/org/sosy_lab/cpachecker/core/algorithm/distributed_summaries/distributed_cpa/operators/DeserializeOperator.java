@@ -8,7 +8,7 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators;
 
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.ActorMessage;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryMessage;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 
 public interface DeserializeOperator {
@@ -20,5 +20,5 @@ public interface DeserializeOperator {
    * @return An abstract state described by {@code pMessage}
    * @throws InterruptedException thrown if program is interrupted from the outside.
    */
-  AbstractState deserialize(ActorMessage pMessage) throws InterruptedException;
+  AbstractState deserialize(BlockSummaryMessage pMessage) throws InterruptedException;
 }

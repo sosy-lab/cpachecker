@@ -21,15 +21,15 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decompositio
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.ActorMessageProcessing;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.Connection;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.Payload;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.ActorMessage;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.ActorMessage.MessageType;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockPostConditionActorMessage;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryMessage;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryMessage.MessageType;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryPostConditionMessage;
 import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 public class BlockSummarySmartAnalysisWorker extends BlockSummaryAnalysisWorker {
 
-  private final BlockingQueue<ActorMessage> smartQueue;
+  private final BlockingQueue<BlockSummaryMessage> smartQueue;
   private final BlockNode block;
 
   BlockSummarySmartAnalysisWorker(
@@ -56,7 +56,7 @@ public class BlockSummarySmartAnalysisWorker extends BlockSummaryAnalysisWorker 
   }
 
   @Override
-  public ActorMessage nextMessage() throws InterruptedException {
+  public BlockSummaryMessage nextMessage() throws InterruptedException {
     final Connection connection = getConnection();
     if (!smartQueue.isEmpty()) {
       return smartQueue.take();
@@ -64,21 +64,21 @@ public class BlockSummarySmartAnalysisWorker extends BlockSummaryAnalysisWorker 
     if (!connection.hasPendingMessages()) {
       return connection.read();
     }
-    Set<ActorMessage> newMessages = new LinkedHashSet<>();
+    Set<BlockSummaryMessage> newMessages = new LinkedHashSet<>();
     while (connection.hasPendingMessages()) {
       newMessages.add(connection.read());
     }
-    ActorMessage postcondMessage = null;
-    for (ActorMessage m : newMessages) {
+    BlockSummaryMessage postcondMessage = null;
+    for (BlockSummaryMessage m : newMessages) {
       if (m.getType() == MessageType.BLOCK_POSTCONDITION) {
         if (m.getTargetNodeNumber() == block.getStartNode().getNodeNumber()) {
           ActorMessageProcessing mp =
               getForwardAnalysis()
                   .getDistributedCPA()
                   .getProceedOperator()
-                  .proceedForward((BlockPostConditionActorMessage) m);
+                  .proceedForward((BlockSummaryPostConditionMessage) m);
           if (!mp.end()) {
-            postcondMessage = ActorMessage.addEntry(m, Payload.SMART, "true");
+            postcondMessage = BlockSummaryMessage.addEntry(m, Payload.SMART, "true");
           }
         }
       } else {

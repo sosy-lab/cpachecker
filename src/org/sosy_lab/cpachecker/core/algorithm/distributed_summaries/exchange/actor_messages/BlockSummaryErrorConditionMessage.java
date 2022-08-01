@@ -15,12 +15,12 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.Payload;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 
-public class ErrorConditionActorMessage extends ActorMessage {
+public class BlockSummaryErrorConditionMessage extends BlockSummaryMessage {
 
   private final Set<String> visited;
   private final boolean first;
 
-  ErrorConditionActorMessage(
+  BlockSummaryErrorConditionMessage(
       String pUniqueBlockId, int pTargetNodeNumber, Payload pPayload, Instant pInstant) {
     super(MessageType.ERROR_CONDITION, pUniqueBlockId, pTargetNodeNumber, pPayload, pInstant);
     visited = extractVisited();
@@ -44,8 +44,8 @@ public class ErrorConditionActorMessage extends ActorMessage {
   }
 
   @Override
-  protected ActorMessage replacePayload(Payload pPayload) {
-    return new ErrorConditionActorMessage(
+  protected BlockSummaryMessage replacePayload(Payload pPayload) {
+    return new BlockSummaryErrorConditionMessage(
         getUniqueBlockId(), getTargetNodeNumber(), pPayload, getTimestamp());
   }
 }

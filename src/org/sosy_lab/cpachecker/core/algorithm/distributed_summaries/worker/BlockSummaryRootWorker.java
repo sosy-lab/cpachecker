@@ -24,9 +24,9 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.block_analys
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.BlockNode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.ActorMessageProcessing;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.Connection;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.ActorMessage;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockPostConditionActorMessage;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.ErrorConditionActorMessage;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryErrorConditionMessage;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryMessage;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryPostConditionMessage;
 import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.java_smt.api.SolverException;
@@ -69,7 +69,7 @@ public class BlockSummaryRootWorker extends BlockSummaryWorker {
   }
 
   @Override
-  public Collection<ActorMessage> processMessage(ActorMessage pMessage)
+  public Collection<BlockSummaryMessage> processMessage(BlockSummaryMessage pMessage)
       throws InterruptedException, SolverException, CPAException, IOException {
     switch (pMessage.getType()) {
       case ERROR_CONDITION:
@@ -80,16 +80,16 @@ public class BlockSummaryRootWorker extends BlockSummaryWorker {
               analysis
                   .getDistributedCPA()
                   .getProceedOperator()
-                  .proceedBackward((ErrorConditionActorMessage) pMessage);
+                  .proceedBackward((BlockSummaryErrorConditionMessage) pMessage);
           if (processing.end()) {
             return processing;
           }
           return ImmutableSet.of(
-              ActorMessage.newResultMessage(
+              BlockSummaryMessage.newResultMessage(
                   root.getId(),
                   root.getLastNode().getNodeNumber(),
                   Result.FALSE,
-                  ((ErrorConditionActorMessage) pMessage).visitedBlockIds()));
+                  ((BlockSummaryErrorConditionMessage) pMessage).visitedBlockIds()));
         }
         return ImmutableSet.of();
       case FOUND_RESULT:
@@ -119,16 +119,17 @@ public class BlockSummaryRootWorker extends BlockSummaryWorker {
   @Override
   public void run() {
     try {
-      Collection<ActorMessage> initialMessage = analysis.performInitialAnalysis();
+      Collection<BlockSummaryMessage> initialMessage = analysis.performInitialAnalysis();
       analysis
           .getDistributedCPA()
           .getProceedOperator()
-          .update((BlockPostConditionActorMessage) initialMessage.stream().findAny().orElseThrow());
+          .update(
+              (BlockSummaryPostConditionMessage) initialMessage.stream().findAny().orElseThrow());
       broadcast(initialMessage);
       super.run();
     } catch (InterruptedException | CPAException pE) {
       getLogger().logException(Level.SEVERE, pE, "Root worker stopped unexpectedly.");
-      broadcastOrLogException(ImmutableSet.of(ActorMessage.newErrorMessage(getId(), pE)));
+      broadcastOrLogException(ImmutableSet.of(BlockSummaryMessage.newErrorMessage(getId(), pE)));
     }
   }
 }

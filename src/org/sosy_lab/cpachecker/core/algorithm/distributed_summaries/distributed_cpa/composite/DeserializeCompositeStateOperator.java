@@ -15,7 +15,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.BlockNode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DistributedConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.DeserializeOperator;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.ActorMessage;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryMessage;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
@@ -41,7 +41,7 @@ public class DeserializeCompositeStateOperator implements DeserializeOperator {
   }
 
   @Override
-  public CompositeState deserialize(ActorMessage pMessage) throws InterruptedException {
+  public CompositeState deserialize(BlockSummaryMessage pMessage) throws InterruptedException {
     CFANode location = block.getNodeWithNumber(pMessage.getTargetNodeNumber());
     List<AbstractState> states = new ArrayList<>();
     for (ConfigurableProgramAnalysis wrappedCPA : compositeCPA.getWrappedCPAs()) {

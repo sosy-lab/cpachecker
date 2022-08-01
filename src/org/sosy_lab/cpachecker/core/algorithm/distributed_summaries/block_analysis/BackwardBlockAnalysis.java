@@ -25,7 +25,7 @@ import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.BlockNode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.composite.DistributedCompositeCPA;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.Payload;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.ActorMessage;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryMessage;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.AnalysisOptions;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
@@ -76,7 +76,7 @@ public class BackwardBlockAnalysis extends BlockAnalysis {
   }
 
   @Override
-  public Collection<ActorMessage> analyze(Collection<ActorMessage> messages)
+  public Collection<BlockSummaryMessage> analyze(Collection<BlockSummaryMessage> messages)
       throws CPAException, InterruptedException, SolverException {
     ARGState startState = getStartState(messages);
     Set<ARGState> targetStates = findReachableTargetStatesInBlock(startState, relation);
@@ -87,15 +87,15 @@ public class BackwardBlockAnalysis extends BlockAnalysis {
       // should only happen if abstraction is activated
       logger.log(Level.ALL, "Cannot reach block start?", reachedSet);
       return ImmutableSet.of(
-          ActorMessage.newErrorConditionUnreachableMessage(
+          BlockSummaryMessage.newErrorConditionUnreachableMessage(
               block.getId(), "backwards analysis cannot reach target at block entry"));
     }
-    ImmutableSet.Builder<ActorMessage> responses = ImmutableSet.builder();
+    ImmutableSet.Builder<BlockSummaryMessage> responses = ImmutableSet.builder();
     for (AbstractState state : states) {
       Payload payload = distributedCompositeCPA.getSerializeOperator().serialize(state);
       payload = appendStatus(getStatus(), payload);
       responses.add(
-          ActorMessage.newErrorConditionMessage(
+          BlockSummaryMessage.newErrorConditionMessage(
               block.getId(),
               block.getStartNode().getNodeNumber(),
               payload,
@@ -106,7 +106,7 @@ public class BackwardBlockAnalysis extends BlockAnalysis {
   }
 
   @Override
-  public Collection<ActorMessage> performInitialAnalysis()
+  public Collection<BlockSummaryMessage> performInitialAnalysis()
       throws InterruptedException, CPAException {
     // current approach does not need an initial backward analysis.
     throw new AssertionError("Initial backward analysis is not implemented yet.");

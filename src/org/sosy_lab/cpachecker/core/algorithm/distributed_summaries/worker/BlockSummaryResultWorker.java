@@ -22,10 +22,10 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.BlockNode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.Connection;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.ActorMessage;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.ActorMessage.MessageType;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockPostConditionActorMessage;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.ErrorConditionActorMessage;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryErrorConditionMessage;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryMessage;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryMessage.MessageType;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryPostConditionMessage;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.java_smt.api.SolverException;
 
@@ -51,7 +51,7 @@ public class BlockSummaryResultWorker extends BlockSummaryWorker {
   }
 
   @Override
-  public Collection<ActorMessage> processMessage(ActorMessage pMessage)
+  public Collection<BlockSummaryMessage> processMessage(BlockSummaryMessage pMessage)
       throws InterruptedException, CPAException, IOException, SolverException {
     String senderId = pMessage.getUniqueBlockId();
     MessageType type = pMessage.getType();
@@ -65,7 +65,7 @@ public class BlockSummaryResultWorker extends BlockSummaryWorker {
 
     switch (type) {
       case ERROR_CONDITION:
-        boolean newPostCondition = ((ErrorConditionActorMessage) pMessage).isFirst();
+        boolean newPostCondition = ((BlockSummaryErrorConditionMessage) pMessage).isFirst();
         if (newPostCondition) {
           // we need a block to first send an own error condition or the first BLOCKPOSTCONDITION
           expectAnswer.merge(senderId, 1, Integer::sum);
@@ -103,7 +103,7 @@ public class BlockSummaryResultWorker extends BlockSummaryWorker {
     return shutdown;
   }
 
-  private Collection<ActorMessage> response(ActorMessage pMessage) {
+  private Collection<BlockSummaryMessage> response(BlockSummaryMessage pMessage) {
     // negative values can occur as it is not guaranteed
     // that messages are processed in the same way on all workers
     // that's why we use allMatch
@@ -122,12 +122,13 @@ public class BlockSummaryResultWorker extends BlockSummaryWorker {
       shutdown = true;
       Set<String> visited = ImmutableSet.of();
       if (pMessage.getType() == MessageType.BLOCK_POSTCONDITION) {
-        visited = ((BlockPostConditionActorMessage) pMessage).visitedBlockIds();
+        visited = ((BlockSummaryPostConditionMessage) pMessage).visitedBlockIds();
       } else if (pMessage.getType() == MessageType.ERROR_CONDITION) {
-        visited = ((ErrorConditionActorMessage) pMessage).visitedBlockIds();
+        visited = ((BlockSummaryErrorConditionMessage) pMessage).visitedBlockIds();
       }
       return ImmutableSet.of(
-          ActorMessage.newResultMessage(pMessage.getUniqueBlockId(), 0, Result.TRUE, visited));
+          BlockSummaryMessage.newResultMessage(
+              pMessage.getUniqueBlockId(), 0, Result.TRUE, visited));
     }
     return ImmutableSet.of();
   }

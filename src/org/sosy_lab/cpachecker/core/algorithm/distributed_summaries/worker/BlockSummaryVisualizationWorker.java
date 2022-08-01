@@ -17,8 +17,8 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.BlockGraph;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.Connection;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.ActorMessage;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.ActorMessage.MessageType;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryMessage;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryMessage.MessageType;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.visualization.MessageLogger;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.java_smt.api.SolverException;
@@ -49,12 +49,12 @@ public class BlockSummaryVisualizationWorker extends BlockSummaryWorker {
   }
 
   @Override
-  public Collection<ActorMessage> processMessage(ActorMessage pMessage)
+  public Collection<BlockSummaryMessage> processMessage(BlockSummaryMessage pMessage)
       throws InterruptedException, IOException, SolverException, CPAException {
     messageLogger.log(pMessage);
     boolean stop = false;
     while (connection.hasPendingMessages()) {
-      ActorMessage m = connection.read();
+      BlockSummaryMessage m = connection.read();
       messageLogger.log(m);
       stop |= m.getType() == MessageType.ERROR || m.getType() == MessageType.FOUND_RESULT;
     }

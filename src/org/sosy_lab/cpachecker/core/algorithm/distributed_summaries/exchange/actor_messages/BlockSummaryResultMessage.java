@@ -13,12 +13,12 @@ import java.util.Set;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.Payload;
 
-public class ResultMessage extends ActorMessage {
+public class BlockSummaryResultMessage extends BlockSummaryMessage {
 
   private final Result result;
   private final Set<String> visited;
 
-  protected ResultMessage(
+  protected BlockSummaryResultMessage(
       String pUniqueBlockId, int pTargetNodeNumber, Payload pPayload, Instant pTimeStamp) {
     super(MessageType.FOUND_RESULT, pUniqueBlockId, pTargetNodeNumber, pPayload, pTimeStamp);
     result = Result.valueOf((String) getPayload().get(Payload.RESULT));
@@ -34,7 +34,8 @@ public class ResultMessage extends ActorMessage {
   }
 
   @Override
-  protected ActorMessage replacePayload(Payload pPayload) {
-    return new ResultMessage(getUniqueBlockId(), getTargetNodeNumber(), pPayload, getTimestamp());
+  protected BlockSummaryMessage replacePayload(Payload pPayload) {
+    return new BlockSummaryResultMessage(
+        getUniqueBlockId(), getTargetNodeNumber(), pPayload, getTimestamp());
   }
 }

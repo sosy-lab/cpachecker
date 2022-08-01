@@ -14,7 +14,7 @@ import java.util.Collection;
 import java.util.logging.Level;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.Connection;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.ActorMessage;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryMessage;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.java_smt.api.SolverException;
 
@@ -35,14 +35,14 @@ public abstract class BlockSummaryWorker implements BlockSummaryActor {
   }
 
   @Override
-  public void broadcast(Collection<ActorMessage> pMessage) throws InterruptedException {
+  public void broadcast(Collection<BlockSummaryMessage> pMessage) throws InterruptedException {
     pMessage.forEach(m -> logger.log(Level.INFO, m));
-    for (ActorMessage message : pMessage) {
+    for (BlockSummaryMessage message : pMessage) {
       getConnection().write(message);
     }
   }
 
-  protected void broadcastOrLogException(Collection<ActorMessage> pMessage) {
+  protected void broadcastOrLogException(Collection<BlockSummaryMessage> pMessage) {
     try {
       broadcast(pMessage);
     } catch (InterruptedException pE) {
@@ -64,7 +64,7 @@ public abstract class BlockSummaryWorker implements BlockSummaryActor {
     } catch (CPAException | InterruptedException | IOException | SolverException pE) {
       logger.logfException(
           Level.SEVERE, pE, "%s faced a problem while processing messages.", getId());
-      broadcastOrLogException(ImmutableList.of(ActorMessage.newErrorMessage(getId(), pE)));
+      broadcastOrLogException(ImmutableList.of(BlockSummaryMessage.newErrorMessage(getId(), pE)));
     } finally {
       logger.logf(Level.INFO, "Worker %s finished and shuts down.", id);
     }

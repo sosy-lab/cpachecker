@@ -25,7 +25,7 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decompositio
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.ActorMessageProcessing;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.composite.DistributedCompositeCPA;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.Connection;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.ActorMessage;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryMessage;
 import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.statistics.StatTimer;
@@ -118,7 +118,7 @@ public class BlockSummaryAnalysisWorker extends BlockSummaryWorker {
   }
 
   @Override
-  public Collection<ActorMessage> processMessage(ActorMessage message)
+  public Collection<BlockSummaryMessage> processMessage(BlockSummaryMessage message)
       throws InterruptedException, CPAException, IOException, SolverException {
     switch (message.getType()) {
       case ERROR_CONDITION:
@@ -147,7 +147,7 @@ public class BlockSummaryAnalysisWorker extends BlockSummaryWorker {
     return shutdown;
   }
 
-  private Collection<ActorMessage> processBlockPostCondition(ActorMessage message)
+  private Collection<BlockSummaryMessage> processBlockPostCondition(BlockSummaryMessage message)
       throws CPAException, InterruptedException, SolverException {
     ActorMessageProcessing processing =
         forwardAnalysis.getDistributedCPA().getProceedOperator().proceed(message);
@@ -157,7 +157,7 @@ public class BlockSummaryAnalysisWorker extends BlockSummaryWorker {
     return forwardAnalysis(processing);
   }
 
-  private Collection<ActorMessage> processErrorCondition(ActorMessage message)
+  private Collection<BlockSummaryMessage> processErrorCondition(BlockSummaryMessage message)
       throws SolverException, InterruptedException, CPAException {
     DistributedCompositeCPA distributed = backwardAnalysis.getDistributedCPA();
     ActorMessageProcessing processing = distributed.getProceedOperator().proceed(message);
@@ -168,7 +168,8 @@ public class BlockSummaryAnalysisWorker extends BlockSummaryWorker {
   }
 
   // return post condition
-  private Collection<ActorMessage> forwardAnalysis(Collection<ActorMessage> pPostConditionMessages)
+  private Collection<BlockSummaryMessage> forwardAnalysis(
+      Collection<BlockSummaryMessage> pPostConditionMessages)
       throws CPAException, InterruptedException, SolverException {
     forwardAnalysisTime.start();
     forwardAnalysis
@@ -176,13 +177,14 @@ public class BlockSummaryAnalysisWorker extends BlockSummaryWorker {
         .getProceedOperator()
         .synchronizeKnowledge(backwardAnalysis.getDistributedCPA());
     // stats.forwardAnalysis.inc();
-    Collection<ActorMessage> response = forwardAnalysis.analyze(pPostConditionMessages);
+    Collection<BlockSummaryMessage> response = forwardAnalysis.analyze(pPostConditionMessages);
     forwardAnalysisTime.stop();
     return response;
   }
 
   // return pre-condition
-  protected Collection<ActorMessage> backwardAnalysis(ActorMessageProcessing pMessageProcessing)
+  protected Collection<BlockSummaryMessage> backwardAnalysis(
+      ActorMessageProcessing pMessageProcessing)
       throws CPAException, InterruptedException, SolverException {
     assert pMessageProcessing.size() == 1 : "BackwardAnalysis can only be based on one message";
     backwardAnalysisTime.start();
@@ -191,7 +193,7 @@ public class BlockSummaryAnalysisWorker extends BlockSummaryWorker {
         .getProceedOperator()
         .synchronizeKnowledge(forwardAnalysis.getDistributedCPA());
     // stats.backwardAnalysis.inc();
-    Collection<ActorMessage> response = backwardAnalysis.analyze(pMessageProcessing);
+    Collection<BlockSummaryMessage> response = backwardAnalysis.analyze(pMessageProcessing);
     backwardAnalysisTime.stop();
     return response;
   }
@@ -203,7 +205,8 @@ public class BlockSummaryAnalysisWorker extends BlockSummaryWorker {
       super.run();
     } catch (CPAException pE) {
       getLogger().logException(Level.SEVERE, pE, "Worker stopped working...");
-      broadcastOrLogException(ImmutableSet.of(ActorMessage.newErrorMessage(getBlockId(), pE)));
+      broadcastOrLogException(
+          ImmutableSet.of(BlockSummaryMessage.newErrorMessage(getBlockId(), pE)));
     } catch (InterruptedException pE) {
       getLogger().logException(Level.SEVERE, pE, "Thread interrupted unexpectedly.");
     }

@@ -26,8 +26,8 @@ import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.BlockNode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.composite.DistributedCompositeCPA;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.Payload;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.ActorMessage;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockPostConditionActorMessage;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryMessage;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryPostConditionMessage;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.AnalysisOptions;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -87,7 +87,7 @@ public class ForwardBlockAnalysis extends BlockAnalysis {
   }
 
   @Override
-  public Collection<ActorMessage> analyze(Collection<ActorMessage> messages)
+  public Collection<BlockSummaryMessage> analyze(Collection<BlockSummaryMessage> messages)
       throws CPAException, InterruptedException {
     ARGState startState = getStartState(messages);
     Set<ARGState> targetStates = findReachableTargetStatesInBlock(startState, relation);
@@ -98,7 +98,7 @@ public class ForwardBlockAnalysis extends BlockAnalysis {
       return ImmutableSet.of();
     }
 
-    ImmutableSet.Builder<ActorMessage> answers = ImmutableSet.builder();
+    ImmutableSet.Builder<BlockSummaryMessage> answers = ImmutableSet.builder();
     Set<ARGState> violations = extractViolations(targetStates);
     if (!violations.isEmpty() && (!alreadyReportedError || containsLoops)) {
       // we only need to report error locations once
@@ -114,24 +114,24 @@ public class ForwardBlockAnalysis extends BlockAnalysis {
   }
 
   @Override
-  public Collection<ActorMessage> performInitialAnalysis()
+  public Collection<BlockSummaryMessage> performInitialAnalysis()
       throws InterruptedException, CPAException {
-    ActorMessage initial =
-        ActorMessage.newBlockPostCondition(
+    BlockSummaryMessage initial =
+        BlockSummaryMessage.newBlockPostCondition(
             block.getId(),
             block.getStartNode().getNodeNumber(),
             Payload.empty(),
             false,
             true,
             ImmutableSet.of());
-    Collection<ActorMessage> result = analyze(ImmutableSet.of(initial));
+    Collection<BlockSummaryMessage> result = analyze(ImmutableSet.of(initial));
     if (reachedSet.getLastState() != null) {
       precision = reachedSet.getPrecision(reachedSet.getLastState());
     }
     if (result.isEmpty()) {
       // full path = true as no predecessor can ever change unreachability of block exit
       return ImmutableSet.of(
-          ActorMessage.newBlockPostCondition(
+          BlockSummaryMessage.newBlockPostCondition(
               block.getId(),
               block.getStartNode().getNodeNumber(),
               Payload.empty(),
@@ -142,8 +142,8 @@ public class ForwardBlockAnalysis extends BlockAnalysis {
     return result;
   }
 
-  private Collection<ActorMessage> createBlockPostConditionMessage(
-      Collection<ActorMessage> messages, Set<ARGState> blockEntries)
+  private Collection<BlockSummaryMessage> createBlockPostConditionMessage(
+      Collection<BlockSummaryMessage> messages, Set<ARGState> blockEntries)
       throws CPAException, InterruptedException {
     List<AbstractState> compositeStates =
         transformedImmutableListCopy(
@@ -151,12 +151,12 @@ public class ForwardBlockAnalysis extends BlockAnalysis {
     if (reachedSet.getLastState() != null) {
       precision = reachedSet.getPrecision(reachedSet.getLastState());
     }
-    ImmutableSet.Builder<ActorMessage> answers = ImmutableSet.builder();
+    ImmutableSet.Builder<BlockSummaryMessage> answers = ImmutableSet.builder();
     if (!compositeStates.isEmpty()) {
       boolean fullPath =
           messages.size() == block.getPredecessors().size()
               && messages.stream()
-                  .allMatch(m -> ((BlockPostConditionActorMessage) m).representsFullPath());
+                  .allMatch(m -> ((BlockSummaryPostConditionMessage) m).representsFullPath());
       Set<String> visited = visitedBlocks(messages);
       AbstractState combined =
           Iterables.getOnlyElement(
@@ -165,9 +165,9 @@ public class ForwardBlockAnalysis extends BlockAnalysis {
                   .combine(compositeStates, top, precision));
       Payload result = distributedCompositeCPA.getSerializeOperator().serialize(combined);
       result = appendStatus(getStatus(), result);
-      BlockPostConditionActorMessage response =
-          (BlockPostConditionActorMessage)
-              ActorMessage.newBlockPostCondition(
+      BlockSummaryPostConditionMessage response =
+          (BlockSummaryPostConditionMessage)
+              BlockSummaryMessage.newBlockPostCondition(
                   block.getId(),
                   block.getLastNode().getNodeNumber(),
                   result,
@@ -180,9 +180,9 @@ public class ForwardBlockAnalysis extends BlockAnalysis {
     return answers.build();
   }
 
-  private Collection<ActorMessage> createErrorConditionMessages(Set<ARGState> violations)
+  private Collection<BlockSummaryMessage> createErrorConditionMessages(Set<ARGState> violations)
       throws InterruptedException {
-    ImmutableSet.Builder<ActorMessage> answers = ImmutableSet.builder();
+    ImmutableSet.Builder<BlockSummaryMessage> answers = ImmutableSet.builder();
     for (ARGState targetState : violations) {
       Optional<CFANode> targetNode = abstractStateToLocation(targetState);
       if (targetNode.isEmpty()) {
@@ -197,7 +197,7 @@ public class ForwardBlockAnalysis extends BlockAnalysis {
                       targetNode.orElseThrow(), StateSpacePartition.getDefaultPartition()));
       initial = appendStatus(getStatus(), initial);
       answers.add(
-          ActorMessage.newErrorConditionMessage(
+          BlockSummaryMessage.newErrorConditionMessage(
               block.getId(),
               targetNode.orElseThrow().getNodeNumber(),
               initial,

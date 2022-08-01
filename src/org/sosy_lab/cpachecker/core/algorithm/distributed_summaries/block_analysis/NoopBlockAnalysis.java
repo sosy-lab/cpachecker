@@ -18,7 +18,7 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.BlockNode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.composite.DistributedCompositeCPA;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.ActorMessage;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryMessage;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.AnalysisOptions;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.specification.Specification;
@@ -54,7 +54,7 @@ public class NoopBlockAnalysis extends BlockAnalysis {
   }
 
   @Override
-  public Collection<ActorMessage> analyze(Collection<ActorMessage> condition)
+  public Collection<BlockSummaryMessage> analyze(Collection<BlockSummaryMessage> condition)
       throws CPAException, InterruptedException, SolverException {
     return ImmutableSet.of();
   }
@@ -67,10 +67,10 @@ public class NoopBlockAnalysis extends BlockAnalysis {
    * @throws CPAException forwarded exception (wraps internal errors)
    */
   @Override
-  public Collection<ActorMessage> performInitialAnalysis()
+  public Collection<BlockSummaryMessage> performInitialAnalysis()
       throws InterruptedException, CPAException {
     return ImmutableSet.of(
-        ActorMessage.newBlockPostCondition(
+        BlockSummaryMessage.newBlockPostCondition(
             block.getId(),
             block.getLastNode().getNodeNumber(),
             distributedCompositeCPA

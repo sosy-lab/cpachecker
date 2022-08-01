@@ -20,9 +20,9 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.DeserializeOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.proceed.ProceedOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.Payload;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.ActorMessage;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockPostConditionActorMessage;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.ErrorConditionActorMessage;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryErrorConditionMessage;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryMessage;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryPostConditionMessage;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.AnalysisOptions;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
@@ -40,12 +40,12 @@ public class ProceedPredicateStateOperator implements ProceedOperator {
   private final DeserializeOperator deserialize;
 
   private final Set<String> unsatPredecessors;
-  private final Map<String, ActorMessage> receivedPostConditions;
+  private final Map<String, BlockSummaryMessage> receivedPostConditions;
 
   private final FormulaManagerView fmgr;
   private final String trueString;
 
-  private BlockPostConditionActorMessage latestOwnPostConditionMessage;
+  private BlockSummaryPostConditionMessage latestOwnPostConditionMessage;
   private BooleanFormula latestOwnPostCondition;
 
   public ProceedPredicateStateOperator(
@@ -67,15 +67,15 @@ public class ProceedPredicateStateOperator implements ProceedOperator {
   }
 
   @Override
-  public ActorMessageProcessing proceed(ActorMessage pMessage)
+  public ActorMessageProcessing proceed(BlockSummaryMessage pMessage)
       throws InterruptedException, SolverException {
     return direction == AnalysisDirection.FORWARD
-        ? proceedForward((BlockPostConditionActorMessage) pMessage)
-        : proceedBackward((ErrorConditionActorMessage) pMessage);
+        ? proceedForward((BlockSummaryPostConditionMessage) pMessage)
+        : proceedBackward((BlockSummaryErrorConditionMessage) pMessage);
   }
 
   @Override
-  public ActorMessageProcessing proceedBackward(ErrorConditionActorMessage message)
+  public ActorMessageProcessing proceedBackward(BlockSummaryErrorConditionMessage message)
       throws SolverException, InterruptedException {
     CFANode node = block.getNodeWithNumber(message.getTargetNodeNumber());
     if (!(node.equals(block.getLastNode())
@@ -90,7 +90,7 @@ public class ProceedPredicateStateOperator implements ProceedOperator {
           fmgr.parse(message.getAbstractStateString(PredicateCPA.class).orElse(trueString));
       if (solver.isUnsat(messageFormula)) {
         return ActorMessageProcessing.stopWith(
-            ActorMessage.newErrorConditionUnreachableMessage(
+            BlockSummaryMessage.newErrorConditionUnreachableMessage(
                 block.getId(), "unsat-formula: " + messageFormula));
       }
     }
@@ -105,7 +105,7 @@ public class ProceedPredicateStateOperator implements ProceedOperator {
           fmgr.getBooleanFormulaManager().and(messageFormula, latestOwnPostCondition);
       if (solver.isUnsat(check)) {
         return ActorMessageProcessing.stopWith(
-            ActorMessage.newErrorConditionUnreachableMessage(
+            BlockSummaryMessage.newErrorConditionUnreachableMessage(
                 block.getId(), "unsat-with-last-post: " + check));
       }
     }
@@ -113,7 +113,7 @@ public class ProceedPredicateStateOperator implements ProceedOperator {
   }
 
   @Override
-  public ActorMessageProcessing proceedForward(BlockPostConditionActorMessage message)
+  public ActorMessageProcessing proceedForward(BlockSummaryPostConditionMessage message)
       throws InterruptedException {
     CFANode node = block.getNodeWithNumber(message.getTargetNodeNumber());
     if (!block.getStartNode().equals(node)) {
@@ -131,7 +131,8 @@ public class ProceedPredicateStateOperator implements ProceedOperator {
         return ActorMessageProcessing.stop();
       }
     } catch (SolverException pE) {
-      return ActorMessageProcessing.stopWith(ActorMessage.newErrorMessage(block.getId(), pE));
+      return ActorMessageProcessing.stopWith(
+          BlockSummaryMessage.newErrorMessage(block.getId(), pE));
     }
     unsatPredecessors.remove(message.getUniqueBlockId());
     storePostCondition(message);
@@ -145,8 +146,8 @@ public class ProceedPredicateStateOperator implements ProceedOperator {
     }
   }
 
-  private void storePostCondition(BlockPostConditionActorMessage pMessage) {
-    ActorMessage toStore = ActorMessage.removeEntry(pMessage, Payload.SMART);
+  private void storePostCondition(BlockSummaryPostConditionMessage pMessage) {
+    BlockSummaryMessage toStore = BlockSummaryMessage.removeEntry(pMessage, Payload.SMART);
     if (analysisOptions.storeCircularPostConditions()
         && pMessage.visitedBlockIds().stream().anyMatch(s -> s.equals(block.getId()))) {
       if (pMessage.representsFullPath()) {
@@ -175,7 +176,7 @@ public class ProceedPredicateStateOperator implements ProceedOperator {
   }
 
   @Override
-  public void update(BlockPostConditionActorMessage pLatestOwnPreconditionMessage) {
+  public void update(BlockSummaryPostConditionMessage pLatestOwnPreconditionMessage) {
     latestOwnPostConditionMessage = pLatestOwnPreconditionMessage;
     latestOwnPostCondition =
         fmgr.parse(

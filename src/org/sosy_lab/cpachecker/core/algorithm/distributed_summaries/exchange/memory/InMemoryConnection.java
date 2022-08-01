@@ -13,7 +13,7 @@ import java.util.List;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.Connection;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.ActorMessage;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryMessage;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 
 /**
@@ -22,18 +22,19 @@ import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
  */
 public class InMemoryConnection implements Connection, StatisticsProvider {
 
-  private final BlockingQueue<ActorMessage> in;
-  private final ConcurrentLinkedQueue<BlockingQueue<ActorMessage>> out;
+  private final BlockingQueue<BlockSummaryMessage> in;
+  private final ConcurrentLinkedQueue<BlockingQueue<BlockSummaryMessage>> out;
   private boolean closed;
 
-  InMemoryConnection(BlockingQueue<ActorMessage> pIn, List<BlockingQueue<ActorMessage>> pOut) {
+  InMemoryConnection(
+      BlockingQueue<BlockSummaryMessage> pIn, List<BlockingQueue<BlockSummaryMessage>> pOut) {
     in = pIn;
     out = new ConcurrentLinkedQueue<>(pOut);
     closed = false;
   }
 
   @Override
-  public ActorMessage read() throws InterruptedException {
+  public BlockSummaryMessage read() throws InterruptedException {
     if (closed) {
       throw new IllegalStateException(
           "Cannot read from an already closed " + InMemoryConnection.class);
@@ -47,12 +48,12 @@ public class InMemoryConnection implements Connection, StatisticsProvider {
   }
 
   @Override
-  public void write(ActorMessage message) throws InterruptedException {
+  public void write(BlockSummaryMessage message) throws InterruptedException {
     if (closed) {
       throw new IllegalStateException(
           "Cannot write to an already closed " + InMemoryConnection.class);
     }
-    for (BlockingQueue<ActorMessage> messages : out) {
+    for (BlockingQueue<BlockSummaryMessage> messages : out) {
       messages.add(message);
     }
   }

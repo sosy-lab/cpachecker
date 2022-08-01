@@ -8,36 +8,36 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.proceed;
 
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DistributedConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.ActorMessageProcessing;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.ActorMessage;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockPostConditionActorMessage;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.ErrorConditionActorMessage;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DistributedConfigurableProgramAnalysis;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryErrorConditionMessage;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryMessage;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryPostConditionMessage;
 import org.sosy_lab.java_smt.api.SolverException;
 
 public interface ProceedOperator {
 
   /**
    * Decide whether to start a forward analysis based on the contents of the {@link
-   * BlockPostConditionActorMessage}.
+   * BlockSummaryPostConditionMessage}.
    *
    * @param pMessage Incoming message
    * @return A potentially empty set of responses to {@code pMessage}
    * @throws InterruptedException thrown if program is interrupted unexpectedly.
    */
-  ActorMessageProcessing proceedForward(BlockPostConditionActorMessage pMessage)
+  ActorMessageProcessing proceedForward(BlockSummaryPostConditionMessage pMessage)
       throws InterruptedException;
 
   /**
    * Decide whether to start a backward analysis based on the contents of the {@link
-   * BlockPostConditionActorMessage}.
+   * BlockSummaryPostConditionMessage}.
    *
    * @param pMessage Incoming message
    * @return A potentially empty set of responses to {@code pMessage}
    * @throws InterruptedException thrown if program is interrupted unexpectedly.
    * @throws SolverException thrown if backwards analysis is infeasible
    */
-  ActorMessageProcessing proceedBackward(ErrorConditionActorMessage pMessage)
+  ActorMessageProcessing proceedBackward(BlockSummaryErrorConditionMessage pMessage)
       throws InterruptedException, SolverException;
 
   /**
@@ -48,7 +48,8 @@ public interface ProceedOperator {
    * @throws InterruptedException thrown if program is interrupted unexpectedly.
    * @throws SolverException thrown if backwards analysis is infeasible
    */
-  ActorMessageProcessing proceed(ActorMessage pMessage) throws InterruptedException, SolverException;
+  ActorMessageProcessing proceed(BlockSummaryMessage pMessage)
+      throws InterruptedException, SolverException;
 
   /**
    * Synchronize the knowledge of the forward analysis with the knowledge of the backward analysis
@@ -59,9 +60,9 @@ public interface ProceedOperator {
   void synchronizeKnowledge(DistributedConfigurableProgramAnalysis pAnalysis);
 
   /**
-   * Set the latest own {@link BlockPostConditionActorMessage}
+   * Set the latest own {@link BlockSummaryPostConditionMessage}
    *
-   * @param pLatestOwnPreconditionMessage latest {@link BlockPostConditionActorMessage}
+   * @param pLatestOwnPreconditionMessage latest {@link BlockSummaryPostConditionMessage}
    */
-  void update(BlockPostConditionActorMessage pLatestOwnPreconditionMessage);
+  void update(BlockSummaryPostConditionMessage pLatestOwnPreconditionMessage);
 }

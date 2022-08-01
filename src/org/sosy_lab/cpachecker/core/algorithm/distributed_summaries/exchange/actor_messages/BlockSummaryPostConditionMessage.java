@@ -15,13 +15,13 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.Payload;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 
-public class BlockPostConditionActorMessage extends ActorMessage {
+public class BlockSummaryPostConditionMessage extends BlockSummaryMessage {
 
   private final boolean fullPath;
   private final boolean reachable;
   private final Set<String> visited;
 
-  BlockPostConditionActorMessage(
+  BlockSummaryPostConditionMessage(
       String pUniqueBlockId, int pTargetNodeNumber, Payload pPayload, Instant pInstant) {
     super(MessageType.BLOCK_POSTCONDITION, pUniqueBlockId, pTargetNodeNumber, pPayload, pInstant);
     fullPath = extractFlag(Payload.FULL_PATH, false);
@@ -50,8 +50,8 @@ public class BlockPostConditionActorMessage extends ActorMessage {
   }
 
   @Override
-  protected ActorMessage replacePayload(Payload pPayload) {
-    return new BlockPostConditionActorMessage(
+  protected BlockSummaryMessage replacePayload(Payload pPayload) {
+    return new BlockSummaryPostConditionMessage(
         getUniqueBlockId(), getTargetNodeNumber(), pPayload, getTimestamp());
   }
 }

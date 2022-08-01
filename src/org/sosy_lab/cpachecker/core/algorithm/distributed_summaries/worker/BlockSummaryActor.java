@@ -11,7 +11,7 @@ package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker;
 import java.io.IOException;
 import java.util.Collection;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.Connection;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.ActorMessage;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryMessage;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.java_smt.api.SolverException;
 
@@ -32,17 +32,17 @@ public interface BlockSummaryActor extends Runnable {
    * @throws SolverException thrown if SMT based calculations face problems.
    * @throws CPAException thrown it the analysis should end with crashing.
    */
-  Collection<ActorMessage> processMessage(ActorMessage pMessage)
+  Collection<BlockSummaryMessage> processMessage(BlockSummaryMessage pMessage)
       throws InterruptedException, IOException, SolverException, CPAException;
 
   /**
-   * Broadcast a collection of {@link ActorMessage}s to all other actors that implement this
+   * Broadcast a collection of {@link BlockSummaryMessage}s to all other actors that implement this
    * interface.
    *
    * @param pMessages A collection of messages that all actors should receive
    * @throws InterruptedException thrown if system is interrupted unexpectedly
    */
-  void broadcast(Collection<ActorMessage> pMessages) throws InterruptedException;
+  void broadcast(Collection<BlockSummaryMessage> pMessages) throws InterruptedException;
 
   /**
    * Returns a connection to all other available actors.
@@ -71,11 +71,11 @@ public interface BlockSummaryActor extends Runnable {
   /**
    * Get the next received message.
    *
-   * @return Next {@link ActorMessage} to process with {@link
-   *     BlockSummaryActor#processMessage(ActorMessage)}
+   * @return Next {@link BlockSummaryMessage} to process with {@link
+   *     BlockSummaryActor#processMessage(BlockSummaryMessage)}
    * @throws InterruptedException thrown if system is interrupted unexpectedly
    */
-  default ActorMessage nextMessage() throws InterruptedException {
+  default BlockSummaryMessage nextMessage() throws InterruptedException {
     return getConnection().read();
   }
 }

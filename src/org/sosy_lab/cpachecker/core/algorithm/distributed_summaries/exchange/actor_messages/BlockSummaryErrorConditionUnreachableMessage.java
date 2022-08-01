@@ -11,11 +11,11 @@ package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.ac
 import java.time.Instant;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.Payload;
 
-public class ErrorConditionUnreachableActorMessage extends ActorMessage {
+public class BlockSummaryErrorConditionUnreachableMessage extends BlockSummaryMessage {
 
   private final String reason;
 
-  protected ErrorConditionUnreachableActorMessage(
+  protected BlockSummaryErrorConditionUnreachableMessage(
       String pUniqueBlockId, int pTargetNodeNumber, Payload pPayload, Instant pTimeStamp) {
     super(
         MessageType.ERROR_CONDITION_UNREACHABLE,
@@ -31,8 +31,8 @@ public class ErrorConditionUnreachableActorMessage extends ActorMessage {
   }
 
   @Override
-  protected ActorMessage replacePayload(Payload pPayload) {
-    return new ErrorConditionUnreachableActorMessage(
+  protected BlockSummaryMessage replacePayload(Payload pPayload) {
+    return new BlockSummaryErrorConditionUnreachableMessage(
         getUniqueBlockId(), getTargetNodeNumber(), pPayload, getTimestamp());
   }
 }

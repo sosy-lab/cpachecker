@@ -10,24 +10,24 @@ package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange;
 
 import java.io.Closeable;
 import java.util.Collection;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.ActorMessage;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryMessage;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 
 public interface Connection extends Closeable, StatisticsProvider {
 
   /**
-   * Wait for an incoming {@link ActorMessage} and return it.
+   * Wait for an incoming {@link BlockSummaryMessage} and return it.
    *
-   * @return current {@link ActorMessage} to process
+   * @return current {@link BlockSummaryMessage} to process
    * @throws InterruptedException thrown if thread is interrupted.
    */
-  ActorMessage read() throws InterruptedException;
+  BlockSummaryMessage read() throws InterruptedException;
 
   /**
    * Indicates if pending messages exist. This method should only relay on the number of messages
-   * that have already been parsed to {@link ActorMessage}s. Since the method is probably used
-   * frequently, the calculation should be cheap.
+   * that have already been parsed to {@link BlockSummaryMessage}s. Since the method is probably
+   * used frequently, the calculation should be cheap.
    *
    * @return true, if no pending messages exist, false otherwise
    */
@@ -38,7 +38,7 @@ public interface Connection extends Closeable, StatisticsProvider {
    *
    * @param message Message to broadcast
    */
-  void write(ActorMessage message) throws InterruptedException;
+  void write(BlockSummaryMessage message) throws InterruptedException;
 
   @Override
   default void collectStatistics(Collection<Statistics> statsCollection) {}

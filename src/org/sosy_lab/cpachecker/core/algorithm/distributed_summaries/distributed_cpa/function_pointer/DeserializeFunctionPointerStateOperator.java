@@ -12,7 +12,7 @@ import com.google.common.base.Splitter;
 import java.util.List;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.BlockNode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.DeserializeOperator;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.ActorMessage;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryMessage;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.cpa.functionpointer.FunctionPointerCPA;
@@ -31,7 +31,7 @@ public class DeserializeFunctionPointerStateOperator implements DeserializeOpera
   }
 
   @Override
-  public AbstractState deserialize(ActorMessage pMessage) {
+  public AbstractState deserialize(BlockSummaryMessage pMessage) {
     String serialized = pMessage.getAbstractStateString(functionPointerCPA.getClass()).orElse("");
     if (serialized.isBlank()) {
       return functionPointerCPA.getInitialState(

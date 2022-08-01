@@ -8,29 +8,29 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.proceed;
 
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DistributedConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.ActorMessageProcessing;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.ActorMessage;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockPostConditionActorMessage;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.ErrorConditionActorMessage;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DistributedConfigurableProgramAnalysis;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryErrorConditionMessage;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryMessage;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryPostConditionMessage;
 import org.sosy_lab.java_smt.api.SolverException;
 
 public class NeverProceed implements ProceedOperator {
 
   @Override
-  public ActorMessageProcessing proceedForward(BlockPostConditionActorMessage pMessage)
+  public ActorMessageProcessing proceedForward(BlockSummaryPostConditionMessage pMessage)
       throws InterruptedException {
     return proceed(pMessage);
   }
 
   @Override
-  public ActorMessageProcessing proceedBackward(ErrorConditionActorMessage pMessage)
+  public ActorMessageProcessing proceedBackward(BlockSummaryErrorConditionMessage pMessage)
       throws InterruptedException, SolverException {
     return proceed(pMessage);
   }
 
   @Override
-  public ActorMessageProcessing proceed(ActorMessage pMessage) {
+  public ActorMessageProcessing proceed(BlockSummaryMessage pMessage) {
     return ActorMessageProcessing.stop();
   }
 
@@ -38,5 +38,5 @@ public class NeverProceed implements ProceedOperator {
   public void synchronizeKnowledge(DistributedConfigurableProgramAnalysis pAnalysis) {}
 
   @Override
-  public void update(BlockPostConditionActorMessage pLatestOwnPreconditionMessage) {}
+  public void update(BlockSummaryPostConditionMessage pLatestOwnPreconditionMessage) {}
 }

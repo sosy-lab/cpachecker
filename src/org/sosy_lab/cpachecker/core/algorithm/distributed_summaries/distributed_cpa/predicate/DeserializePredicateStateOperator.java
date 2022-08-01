@@ -10,9 +10,9 @@ package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed
 
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.BlockNode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.DeserializeOperator;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.ActorMessage;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockPostConditionActorMessage;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.ErrorConditionActorMessage;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryErrorConditionMessage;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryMessage;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryPostConditionMessage;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
@@ -40,15 +40,15 @@ public class DeserializePredicateStateOperator implements DeserializeOperator {
   }
 
   @Override
-  public AbstractState deserialize(ActorMessage pMessage) {
+  public AbstractState deserialize(BlockSummaryMessage pMessage) {
     String formula =
         PredicateOperatorUtil.extractFormulaString(
             pMessage, predicateCPA.getClass(), formulaManagerView);
     SSAMap map = SSAMap.emptySSAMap();
-    if (pMessage instanceof BlockPostConditionActorMessage) {
-      map = ((BlockPostConditionActorMessage) pMessage).getSSAMap();
-    } else if (pMessage instanceof ErrorConditionActorMessage) {
-      map = ((ErrorConditionActorMessage) pMessage).getSSAMap();
+    if (pMessage instanceof BlockSummaryPostConditionMessage) {
+      map = ((BlockSummaryPostConditionMessage) pMessage).getSSAMap();
+    } else if (pMessage instanceof BlockSummaryErrorConditionMessage) {
+      map = ((BlockSummaryErrorConditionMessage) pMessage).getSSAMap();
     }
     return PredicateAbstractState.mkNonAbstractionStateWithNewPathFormula(
         PredicateOperatorUtil.getPathFormula(formula, pathFormulaManager, formulaManagerView, map),

@@ -8,7 +8,7 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.predicate;
 
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.ActorMessage;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryMessage;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
@@ -20,7 +20,7 @@ import org.sosy_lab.java_smt.api.BooleanFormula;
 public class PredicateOperatorUtil {
 
   public static String extractFormulaString(
-      ActorMessage pMessage,
+      BlockSummaryMessage pMessage,
       Class<? extends ConfigurableProgramAnalysis> pKey,
       FormulaManagerView pFormulaManagerView) {
     return pMessage

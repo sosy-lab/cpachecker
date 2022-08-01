@@ -29,7 +29,7 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.BlockGraph;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.BlockNode;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.ActorMessage;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryMessage;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
 
 @Options
@@ -81,7 +81,7 @@ public class MessageLogger {
     JSON.writeJSONString(treeMap, blockCFAFile);
   }
 
-  public synchronized void log(ActorMessage pMessage) throws IOException {
+  public synchronized void log(BlockSummaryMessage pMessage) throws IOException {
     if (entries.get(pMessage.getUniqueBlockId()) == null) {
       return;
     }
@@ -90,7 +90,7 @@ public class MessageLogger {
     messageToJSON.put("timestamp", pMessage.getTimestamp().toString());
     messageToJSON.put("from", pMessage.getUniqueBlockId());
     if (pMessage.getAbstractStateString(PredicateCPA.class).isEmpty()) {
-      pMessage = ActorMessage.addEntry(pMessage, PredicateCPA.class.getName(), "true");
+      pMessage = BlockSummaryMessage.addEntry(pMessage, PredicateCPA.class.getName(), "true");
     }
     messageToJSON.put("payload", pMessage.getPayloadJSON());
     entries.get(pMessage.getUniqueBlockId()).put("messages", messageToJSON);

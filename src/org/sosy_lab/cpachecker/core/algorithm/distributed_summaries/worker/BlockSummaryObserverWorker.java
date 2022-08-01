@@ -18,9 +18,9 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.Connection;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.ActorMessage;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.ErrorActorMessage;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.ResultMessage;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryErrorMessage;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryMessage;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryResultMessage;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.java_smt.api.SolverException;
@@ -43,12 +43,12 @@ public class BlockSummaryObserverWorker extends BlockSummaryWorker {
   }
 
   @Override
-  public Collection<ActorMessage> processMessage(ActorMessage pMessage)
+  public Collection<BlockSummaryMessage> processMessage(BlockSummaryMessage pMessage)
       throws InterruptedException, IOException, SolverException, CPAException {
     switch (pMessage.getType()) {
       case FOUND_RESULT:
         shutdown = true;
-        result = Optional.of(((ResultMessage) pMessage).getResult());
+        result = Optional.of(((BlockSummaryResultMessage) pMessage).getResult());
         statusObserver.updateStatus(pMessage);
         break;
       case ERROR_CONDITION_UNREACHABLE:
@@ -59,7 +59,7 @@ public class BlockSummaryObserverWorker extends BlockSummaryWorker {
         statusObserver.updateStatus(pMessage);
         break;
       case ERROR:
-        errorMessage = Optional.of(((ErrorActorMessage) pMessage).getErrorMessage());
+        errorMessage = Optional.of(((BlockSummaryErrorMessage) pMessage).getErrorMessage());
         shutdown = true;
         break;
       default:
@@ -112,7 +112,7 @@ public class BlockSummaryObserverWorker extends BlockSummaryWorker {
       statusMap = new HashMap<>();
     }
 
-    private void updateStatus(ActorMessage pMessage) {
+    private void updateStatus(BlockSummaryMessage pMessage) {
       pMessage
           .getOptionalStatus()
           .ifPresent(status -> statusMap.put(pMessage.getUniqueBlockId(), status));

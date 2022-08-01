@@ -9,14 +9,15 @@
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.block_analysis;
 
 import java.util.Collection;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.ActorMessage;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryMessage;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.java_smt.api.SolverException;
 
 public interface BlockAnalyzer {
 
-  Collection<ActorMessage> analyze(Collection<ActorMessage> messages)
+  Collection<BlockSummaryMessage> analyze(Collection<BlockSummaryMessage> messages)
       throws CPAException, InterruptedException, SolverException;
 
-  Collection<ActorMessage> performInitialAnalysis() throws InterruptedException, CPAException;
+  Collection<BlockSummaryMessage> performInitialAnalysis()
+      throws InterruptedException, CPAException;
 }

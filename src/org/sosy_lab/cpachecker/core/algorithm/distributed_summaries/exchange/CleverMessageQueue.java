@@ -14,13 +14,13 @@ import com.google.common.util.concurrent.ForwardingBlockingQueue;
 import java.util.Optional;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.ActorMessage;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.ActorMessage.MessageType;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryMessage;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryMessage.MessageType;
 
-public class CleverMessageQueue extends ForwardingBlockingQueue<ActorMessage> {
+public class CleverMessageQueue extends ForwardingBlockingQueue<BlockSummaryMessage> {
 
-  private final BlockingQueue<ActorMessage> queue;
-  private final Multimap<MessageType, ActorMessage> messages;
+  private final BlockingQueue<BlockSummaryMessage> queue;
+  private final Multimap<MessageType, BlockSummaryMessage> messages;
 
   private final MessageType[] ordering;
 
@@ -30,7 +30,7 @@ public class CleverMessageQueue extends ForwardingBlockingQueue<ActorMessage> {
    *
    * @param pQueue the queue to forward
    */
-  private CleverMessageQueue(BlockingQueue<ActorMessage> pQueue) {
+  private CleverMessageQueue(BlockingQueue<BlockSummaryMessage> pQueue) {
     queue = pQueue;
     messages = ArrayListMultimap.create();
     ordering =
@@ -48,7 +48,7 @@ public class CleverMessageQueue extends ForwardingBlockingQueue<ActorMessage> {
   }
 
   @Override
-  protected BlockingQueue<ActorMessage> delegate() {
+  protected BlockingQueue<BlockSummaryMessage> delegate() {
     return queue;
   }
 
@@ -57,13 +57,13 @@ public class CleverMessageQueue extends ForwardingBlockingQueue<ActorMessage> {
     System.arraycopy(pOrdering, 0, ordering, 0, pOrdering.length);
   }
 
-  private void moveToMap(ActorMessage pMessage) {
+  private void moveToMap(BlockSummaryMessage pMessage) {
     messages.put(pMessage.getType(), pMessage);
   }
 
-  private Optional<ActorMessage> firstOfType(MessageType pType) {
+  private Optional<BlockSummaryMessage> firstOfType(MessageType pType) {
     if (!messages.get(pType).isEmpty()) {
-      Optional<ActorMessage> optionalMessage = messages.get(pType).stream().findFirst();
+      Optional<BlockSummaryMessage> optionalMessage = messages.get(pType).stream().findFirst();
       messages.remove(pType, optionalMessage.orElseThrow());
       return optionalMessage;
     }
@@ -77,14 +77,14 @@ public class CleverMessageQueue extends ForwardingBlockingQueue<ActorMessage> {
    * @throws InterruptedException thrown if the process is interrupted
    */
   @Override
-  public ActorMessage take() throws InterruptedException {
+  public BlockSummaryMessage take() throws InterruptedException {
     // empty pending messages (non blocking)
     // return queue.take();
     while (!queue.isEmpty()) {
       moveToMap(queue.take());
     }
     for (MessageType messageType : ordering) {
-      Optional<ActorMessage> m = firstOfType(messageType);
+      Optional<BlockSummaryMessage> m = firstOfType(messageType);
       if (m.isPresent()) {
         return m.orElseThrow();
       }

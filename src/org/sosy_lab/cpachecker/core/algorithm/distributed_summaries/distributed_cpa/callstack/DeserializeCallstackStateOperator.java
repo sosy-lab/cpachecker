@@ -13,7 +13,7 @@ import java.util.List;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.BlockNode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.DeserializeOperator;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.ActorMessage;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryMessage;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.cpa.callstack.CallstackCPA;
@@ -30,7 +30,7 @@ public class DeserializeCallstackStateOperator implements DeserializeOperator {
   }
 
   @Override
-  public AbstractState deserialize(ActorMessage pMessage) {
+  public AbstractState deserialize(BlockSummaryMessage pMessage) {
     Optional<String> state = pMessage.getAbstractStateString(parentCPA.getClass());
     if (state.isEmpty()) {
       return parentCPA.getInitialState(

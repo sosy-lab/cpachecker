@@ -11,11 +11,11 @@ package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.ac
 import java.time.Instant;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.Payload;
 
-public class ErrorActorMessage extends ActorMessage {
+public class BlockSummaryErrorMessage extends BlockSummaryMessage {
 
   private final String errorMessage;
 
-  protected ErrorActorMessage(
+  protected BlockSummaryErrorMessage(
       String pUniqueBlockId, int pTargetNodeNumber, Payload pPayload, Instant pTimeStamp) {
     super(MessageType.ERROR, pUniqueBlockId, pTargetNodeNumber, pPayload, pTimeStamp);
     if (!getPayload().containsKey(Payload.EXCEPTION)) {
@@ -30,8 +30,8 @@ public class ErrorActorMessage extends ActorMessage {
   }
 
   @Override
-  protected ActorMessage replacePayload(Payload pPayload) {
-    return new ErrorActorMessage(
+  protected BlockSummaryMessage replacePayload(Payload pPayload) {
+    return new BlockSummaryErrorMessage(
         getUniqueBlockId(), getTargetNodeNumber(), pPayload, getTimestamp());
   }
 }

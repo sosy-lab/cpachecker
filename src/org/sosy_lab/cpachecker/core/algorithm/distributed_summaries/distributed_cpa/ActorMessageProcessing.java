@@ -13,7 +13,7 @@ import com.google.common.collect.ImmutableList;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.ActorMessage;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryMessage;
 
 /**
  * Proceed operators need to return a collection of messages and a boolean indicating whether the
@@ -23,9 +23,9 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.act
  * @see
  *     org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.proceed.ProceedOperator
  */
-public class ActorMessageProcessing extends ForwardingCollection<ActorMessage> {
+public class ActorMessageProcessing extends ForwardingCollection<BlockSummaryMessage> {
 
-  private final Collection<ActorMessage> messages;
+  private final Collection<BlockSummaryMessage> messages;
   private final boolean end;
 
   private static final ActorMessageProcessing EMPTY_PROCEED =
@@ -33,7 +33,7 @@ public class ActorMessageProcessing extends ForwardingCollection<ActorMessage> {
   private static final ActorMessageProcessing EMPTY_STOP =
       new ActorMessageProcessing(ImmutableList.of(), true);
 
-  private ActorMessageProcessing(Collection<ActorMessage> pMessages, boolean pEnd) {
+  private ActorMessageProcessing(Collection<BlockSummaryMessage> pMessages, boolean pEnd) {
     messages = pMessages;
     end = pEnd;
   }
@@ -46,19 +46,19 @@ public class ActorMessageProcessing extends ForwardingCollection<ActorMessage> {
     return EMPTY_STOP;
   }
 
-  public static ActorMessageProcessing proceedWith(Collection<ActorMessage> pMessages) {
+  public static ActorMessageProcessing proceedWith(Collection<BlockSummaryMessage> pMessages) {
     return new ActorMessageProcessing(pMessages, false);
   }
 
-  public static ActorMessageProcessing stopWith(Collection<ActorMessage> pMessages) {
+  public static ActorMessageProcessing stopWith(Collection<BlockSummaryMessage> pMessages) {
     return new ActorMessageProcessing(pMessages, true);
   }
 
-  public static ActorMessageProcessing proceedWith(ActorMessage... pMessages) {
+  public static ActorMessageProcessing proceedWith(BlockSummaryMessage... pMessages) {
     return new ActorMessageProcessing(ImmutableList.copyOf(pMessages), false);
   }
 
-  public static ActorMessageProcessing stopWith(ActorMessage... pMessages) {
+  public static ActorMessageProcessing stopWith(BlockSummaryMessage... pMessages) {
     return new ActorMessageProcessing(ImmutableList.copyOf(pMessages), true);
   }
 
@@ -68,14 +68,14 @@ public class ActorMessageProcessing extends ForwardingCollection<ActorMessage> {
 
   public ActorMessageProcessing merge(
       ActorMessageProcessing pProcessing, boolean removeDuplicates) {
-    Collection<ActorMessage> copy =
+    Collection<BlockSummaryMessage> copy =
         removeDuplicates ? new HashSet<>(messages) : new ArrayList<>(messages);
     copy.addAll(pProcessing);
     return new ActorMessageProcessing(copy, end || pProcessing.end);
   }
 
   @Override
-  protected Collection<ActorMessage> delegate() {
+  protected Collection<BlockSummaryMessage> delegate() {
     return messages;
   }
 }

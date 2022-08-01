@@ -43,11 +43,11 @@ import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 /**
  * Immutable communication entity for the actor model. Messages cannot be created with the
  * constructor as they have to contain different information depending on their type. Therefore,
- * this class provides static methods to create messages of a certain type. {@link ActorMessage}s
- * are the interface for communication for {@link
+ * this class provides static methods to create messages of a certain type. {@link
+ * BlockSummaryMessage}s are the interface for communication for {@link
  * org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.BlockSummaryActor}s
  */
-public abstract class ActorMessage implements Comparable<ActorMessage> {
+public abstract class BlockSummaryMessage implements Comparable<BlockSummaryMessage> {
 
   private final int targetNodeNumber;
   private final String uniqueBlockId;
@@ -64,8 +64,8 @@ public abstract class ActorMessage implements Comparable<ActorMessage> {
    * the payload. The unique block id {@code pUniqueBlockId} stores the block id from which this
    * message originates from. The target node number {@code pTargetNodeNumber} provides the unique
    * id of a {@link org.sosy_lab.cpachecker.cfa.model.CFANode}. This id is only relevant for
-   * messages that actually trigger an analysis: {@link BlockPostConditionActorMessage}, {@link
-   * ErrorConditionActorMessage}. Finally, the payload contains a map of key-value pairs that
+   * messages that actually trigger an analysis: {@link BlockSummaryPostConditionMessage}, {@link
+   * BlockSummaryErrorConditionMessage}. Finally, the payload contains a map of key-value pairs that
    * transport arbitrary information.
    *
    * @param pType the type of the message
@@ -73,7 +73,7 @@ public abstract class ActorMessage implements Comparable<ActorMessage> {
    * @param pTargetNodeNumber the location from which this message originated from
    * @param pPayload a map that will be transformed into JSON.
    */
-  protected ActorMessage(
+  protected BlockSummaryMessage(
       MessageType pType,
       String pUniqueBlockId,
       int pTargetNodeNumber,
@@ -87,7 +87,8 @@ public abstract class ActorMessage implements Comparable<ActorMessage> {
     // when the message was created
   }
 
-  public static ActorMessage addEntry(ActorMessage message, String key, String value) {
+  public static BlockSummaryMessage addEntry(
+      BlockSummaryMessage message, String key, String value) {
     return message.replacePayload(
         new Payload.Builder()
             .addAllEntries(message.getPayload())
@@ -95,7 +96,7 @@ public abstract class ActorMessage implements Comparable<ActorMessage> {
             .buildPayload());
   }
 
-  public static ActorMessage removeEntry(ActorMessage message, String key) {
+  public static BlockSummaryMessage removeEntry(BlockSummaryMessage message, String key) {
     Map<String, Object> copy = new HashMap<>(message.getPayload());
     copy.remove(key);
     return message.replacePayload(new Payload.Builder().addAllEntries(copy).buildPayload());
@@ -156,9 +157,9 @@ public abstract class ActorMessage implements Comparable<ActorMessage> {
    * @param pPayload new payload
    * @return new message that is a copy of this message with a new payload {@code pPayload}
    */
-  protected abstract ActorMessage replacePayload(Payload pPayload);
+  protected abstract BlockSummaryMessage replacePayload(Payload pPayload);
 
-  public static ActorMessage newBlockPostCondition(
+  public static BlockSummaryMessage newBlockPostCondition(
       String pUniqueBlockId,
       int pTargetNodeNumber,
       Payload pPayload,
@@ -172,11 +173,11 @@ public abstract class ActorMessage implements Comparable<ActorMessage> {
             .addEntry(Payload.VISITED, Joiner.on(",").join(pVisited))
             .addEntry(Payload.REACHABLE, Boolean.toString(pReachable))
             .buildPayload();
-    return new BlockPostConditionActorMessage(
+    return new BlockSummaryPostConditionMessage(
         pUniqueBlockId, pTargetNodeNumber, newPayload, Instant.now());
   }
 
-  public static ActorMessage newErrorConditionMessage(
+  public static BlockSummaryMessage newErrorConditionMessage(
       String pUniqueBlockId,
       int pTargetNodeNumber,
       Payload pPayload,
@@ -188,31 +189,31 @@ public abstract class ActorMessage implements Comparable<ActorMessage> {
             .addEntry(Payload.FIRST, Boolean.toString(pFirst))
             .addEntry(Payload.VISITED, pVisited)
             .buildPayload();
-    return new ErrorConditionActorMessage(
+    return new BlockSummaryErrorConditionMessage(
         pUniqueBlockId, pTargetNodeNumber, newPayload, Instant.now());
   }
 
-  public static ActorMessage newErrorConditionUnreachableMessage(
+  public static BlockSummaryMessage newErrorConditionUnreachableMessage(
       String pUniqueBlockId, String denied) {
-    return new ErrorConditionUnreachableActorMessage(
+    return new BlockSummaryErrorConditionUnreachableMessage(
         pUniqueBlockId,
         0,
         new Payload.Builder().addEntry(Payload.REASON, denied).buildPayload(),
         Instant.now());
   }
 
-  public static ActorMessage newResultMessage(
+  public static BlockSummaryMessage newResultMessage(
       String pUniqueBlockId, int pTargetNodeNumber, Result pResult, Set<String> pVisited) {
     Payload payload =
         new Payload.Builder()
             .addEntry(Payload.RESULT, pResult.name())
             .addEntry(Payload.VISITED, pVisited)
             .buildPayload();
-    return new ResultMessage(pUniqueBlockId, pTargetNodeNumber, payload, Instant.now());
+    return new BlockSummaryResultMessage(pUniqueBlockId, pTargetNodeNumber, payload, Instant.now());
   }
 
-  public static ActorMessage newErrorMessage(String pUniqueBlockId, Throwable pException) {
-    return new ErrorActorMessage(
+  public static BlockSummaryMessage newErrorMessage(String pUniqueBlockId, Throwable pException) {
+    return new BlockSummaryErrorMessage(
         pUniqueBlockId,
         0,
         new Payload.Builder()
@@ -222,7 +223,7 @@ public abstract class ActorMessage implements Comparable<ActorMessage> {
   }
 
   @Override
-  public int compareTo(ActorMessage o) {
+  public int compareTo(BlockSummaryMessage o) {
     return getType().compareTo(o.getType());
   }
 
@@ -274,10 +275,10 @@ public abstract class ActorMessage implements Comparable<ActorMessage> {
 
   @Override
   public boolean equals(Object pO) {
-    if (!(pO instanceof ActorMessage)) {
+    if (!(pO instanceof BlockSummaryMessage)) {
       return false;
     }
-    ActorMessage message = (ActorMessage) pO;
+    BlockSummaryMessage message = (BlockSummaryMessage) pO;
     return targetNodeNumber == message.targetNodeNumber
         && Objects.equals(uniqueBlockId, message.uniqueBlockId)
         && type == message.type
@@ -292,31 +293,32 @@ public abstract class ActorMessage implements Comparable<ActorMessage> {
   // ORDERED BY PRIORITY:
   public enum MessageType {
     /**
-     * Messages of this type contain a final verification result verdict. See {@link ResultMessage}.
+     * Messages of this type contain a final verification result verdict. See {@link
+     * BlockSummaryResultMessage}.
      */
     FOUND_RESULT,
 
     /**
      * Messages of this type transport the stack trace of an exception. See {@link
-     * ErrorActorMessage}.
+     * BlockSummaryErrorMessage}.
      */
     ERROR,
 
     /**
-     * Messages of this type deny a previously received {@link ErrorConditionActorMessage}. See
-     * {@link ErrorConditionUnreachableActorMessage}.
+     * Messages of this type deny a previously received {@link BlockSummaryErrorConditionMessage}.
+     * See {@link BlockSummaryErrorConditionUnreachableMessage}.
      */
     ERROR_CONDITION_UNREACHABLE,
 
     /**
      * Messages of this type transport results of a backward analysis. See {@link
-     * ErrorConditionActorMessage}.
+     * BlockSummaryErrorConditionMessage}.
      */
     ERROR_CONDITION,
 
     /**
      * Messages of this type transport results of a forward analysis. See {@link
-     * BlockPostConditionActorMessage}.
+     * BlockSummaryPostConditionMessage}.
      */
     BLOCK_POSTCONDITION
   }
@@ -329,29 +331,31 @@ public abstract class ActorMessage implements Comparable<ActorMessage> {
       mapper = new ObjectMapper();
       SimpleModule serializer =
           new SimpleModule("MessageSerializer", new Version(1, 0, 0, null, null, null));
-      serializer.addSerializer(ActorMessage.class, new MessageSerializer(ActorMessage.class));
+      serializer.addSerializer(
+          BlockSummaryMessage.class, new MessageSerializer(BlockSummaryMessage.class));
       mapper.registerModule(serializer);
       SimpleModule deserializer =
           new SimpleModule("MessageDeserializer", new Version(1, 0, 0, null, null, null));
-      deserializer.addDeserializer(ActorMessage.class, new MessageDeserializer(ActorMessage.class));
+      deserializer.addDeserializer(
+          BlockSummaryMessage.class, new MessageDeserializer(BlockSummaryMessage.class));
       mapper.registerModule(deserializer);
     }
 
-    public byte[] messageToJson(ActorMessage pMessage) throws IOException {
+    public byte[] messageToJson(BlockSummaryMessage pMessage) throws IOException {
       // return mapper.writeValueAsBytes(pMessage);
       return mapper.writeValueAsBytes(pMessage);
     }
 
-    public ActorMessage jsonToMessage(byte[] pBytes) throws IOException {
+    public BlockSummaryMessage jsonToMessage(byte[] pBytes) throws IOException {
       // return mapper.readValue(pBytes, Message.class);
-      return mapper.readValue(pBytes, ActorMessage.class);
+      return mapper.readValue(pBytes, BlockSummaryMessage.class);
     }
   }
   /** Mimics a MessageConverter but it zips messages. */
   public static class CompressedMessageConverter extends MessageConverter {
 
     @Override
-    public byte[] messageToJson(ActorMessage pMessage) throws IOException {
+    public byte[] messageToJson(BlockSummaryMessage pMessage) throws IOException {
       try (ByteArrayOutputStream output = new ByteArrayOutputStream();
           GZIPOutputStream writer = new GZIPOutputStream(output)) {
         byte[] message = super.messageToJson(pMessage);
@@ -361,7 +365,7 @@ public abstract class ActorMessage implements Comparable<ActorMessage> {
     }
 
     @Override
-    public ActorMessage jsonToMessage(byte[] pBytes) throws IOException {
+    public BlockSummaryMessage jsonToMessage(byte[] pBytes) throws IOException {
       try (GZIPInputStream reader = new GZIPInputStream(new ByteArrayInputStream(pBytes));
           ByteArrayOutputStream output = new ByteArrayOutputStream()) {
 
@@ -379,16 +383,16 @@ public abstract class ActorMessage implements Comparable<ActorMessage> {
     }
   }
 
-  private static class MessageDeserializer extends StdDeserializer<ActorMessage> {
+  private static class MessageDeserializer extends StdDeserializer<BlockSummaryMessage> {
 
     private static final long serialVersionUID = 196344175L;
 
-    public MessageDeserializer(Class<ActorMessage> vc) {
+    public MessageDeserializer(Class<BlockSummaryMessage> vc) {
       super(vc);
     }
 
     @Override
-    public ActorMessage deserialize(JsonParser parser, DeserializationContext deserializer)
+    public BlockSummaryMessage deserialize(JsonParser parser, DeserializationContext deserializer)
         throws IOException {
       ObjectCodec codec = parser.getCodec();
       JsonNode node = codec.readTree(parser);
@@ -402,33 +406,37 @@ public abstract class ActorMessage implements Comparable<ActorMessage> {
 
       switch (type) {
         case FOUND_RESULT:
-          return new ResultMessage(uniqueBlockId, nodeNumber, payload, timestamp);
+          return new BlockSummaryResultMessage(uniqueBlockId, nodeNumber, payload, timestamp);
         case ERROR:
-          return new ErrorActorMessage(uniqueBlockId, nodeNumber, payload, timestamp);
+          return new BlockSummaryErrorMessage(uniqueBlockId, nodeNumber, payload, timestamp);
         case ERROR_CONDITION_UNREACHABLE:
-          return new ErrorConditionUnreachableActorMessage(
+          return new BlockSummaryErrorConditionUnreachableMessage(
               uniqueBlockId, nodeNumber, payload, timestamp);
         case ERROR_CONDITION:
-          return new ErrorConditionActorMessage(uniqueBlockId, nodeNumber, payload, timestamp);
+          return new BlockSummaryErrorConditionMessage(
+              uniqueBlockId, nodeNumber, payload, timestamp);
         case BLOCK_POSTCONDITION:
-          return new BlockPostConditionActorMessage(uniqueBlockId, nodeNumber, payload, timestamp);
+          return new BlockSummaryPostConditionMessage(
+              uniqueBlockId, nodeNumber, payload, timestamp);
         default:
           throw new AssertionError("Unknown MessageType " + type);
       }
     }
   }
 
-  private static class MessageSerializer extends StdSerializer<ActorMessage> {
+  private static class MessageSerializer extends StdSerializer<BlockSummaryMessage> {
 
     private static final long serialVersionUID = 1324289L;
 
-    private MessageSerializer(Class<ActorMessage> t) {
+    private MessageSerializer(Class<BlockSummaryMessage> t) {
       super(t);
     }
 
     @Override
     public void serialize(
-        ActorMessage pMessage, JsonGenerator pJsonGenerator, SerializerProvider pSerializerProvider)
+        BlockSummaryMessage pMessage,
+        JsonGenerator pJsonGenerator,
+        SerializerProvider pSerializerProvider)
         throws IOException {
       pJsonGenerator.writeStartObject();
       pJsonGenerator.writeStringField("uniqueBlockId", pMessage.getUniqueBlockId());
