@@ -3578,9 +3578,6 @@ distributedSummaries.worker.backwardConfiguration = "config/distributed-block-su
 # whether error conditions are always checked for unsatisfiability
 distributedSummaries.worker.checkEveryErrorCondition = true
 
-# forces the precondition of fault localization workers to be true
-distributedSummaries.worker.flPreconditionAlwaysTrue = false
-
 # Configuration for forward analysis in computation of distributed summaries
 distributedSummaries.worker.forwardConfiguration = "config/distributed-block-summaries/predicateAnalysis-block-forward.properties"
 
