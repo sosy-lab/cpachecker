@@ -9,7 +9,7 @@
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.predicate;
 
 import java.util.HashMap;
-import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -62,7 +62,7 @@ public class ProceedPredicateStateOperator implements ProceedOperator {
     trueString = fmgr.dumpFormula(fmgr.getBooleanFormulaManager().makeTrue()).toString();
     deserialize = pDeserializeOperator;
 
-    unsatPredecessors = new HashSet<>();
+    unsatPredecessors = new LinkedHashSet<>();
     receivedPostConditions = new HashMap<>();
   }
 

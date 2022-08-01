@@ -15,7 +15,6 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -255,8 +254,8 @@ public abstract class BlockAnalysis implements BlockAnalyzer {
    * @return subset of targetStates where the target information is some kind of specification
    *     violation
    */
-  Set<ARGState> extractViolations(Set<ARGState> targetStates) {
-    Set<ARGState> violationStates = new HashSet<>();
+  ImmutableSet<ARGState> extractViolations(Set<ARGState> targetStates) {
+    ImmutableSet.Builder<ARGState> violationStates = ImmutableSet.builder();
     for (ARGState targetState : targetStates) {
       for (TargetInformation targetInformation : targetState.getTargetInformation()) {
         if (!(targetInformation instanceof BlockEntryReachedTargetInformation)) {
@@ -265,7 +264,7 @@ public abstract class BlockAnalysis implements BlockAnalyzer {
         }
       }
     }
-    return violationStates;
+    return violationStates.build();
   }
 
   Payload appendStatus(AlgorithmStatus pStatus, Payload pCurrentPayload) {

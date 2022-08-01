@@ -9,7 +9,7 @@
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition;
 
 import com.google.common.collect.ImmutableSet;
-import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.Set;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.cpachecker.cfa.CFA;
@@ -34,12 +34,12 @@ public class SingleBlockDecomposer implements CFADecomposer {
     CFANode startNode = cfa.getMainFunction();
     // we do not get error conditions
     CFANode lastNode = CFANode.newDummyCFANode();
-    Set<CFAEdge> edges = new HashSet<>();
+    Set<CFAEdge> edges = new LinkedHashSet<>();
     for (CFANode allNode : cfa.getAllNodes()) {
       CFAUtils.leavingEdges(allNode).copyInto(edges);
       CFAUtils.enteringEdges(allNode).copyInto(edges);
     }
-    Set<CFANode> nodes = new HashSet<>(cfa.getAllNodes());
+    Set<CFANode> nodes = new LinkedHashSet<>(cfa.getAllNodes());
     nodes.add(lastNode);
     BlockNodeMetaData root =
         builder.makeBlock(startNode, startNode, ImmutableSet.of(startNode), ImmutableSet.of());

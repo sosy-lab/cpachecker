@@ -13,7 +13,7 @@ import com.google.common.collect.Maps;
 import java.io.IOException;
 import java.util.Collection;
 import java.util.HashMap;
-import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -44,7 +44,7 @@ public class BlockSummaryResultWorker extends BlockSummaryWorker {
     nodeMap = new HashMap<>();
     connection = pConnection;
     pNodes.forEach(node -> nodeMap.put(node.getId(), node));
-    messageReceived = new HashSet<>();
+    messageReceived = new LinkedHashSet<>();
     expectAnswer = new ConcurrentHashMap<>();
     nodeMap.keySet().forEach(nodeId -> expectAnswer.put(nodeId, 0));
     numWorkers = pNodes.size();

@@ -13,7 +13,6 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Multimap;
 import java.util.ArrayDeque;
-import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.Objects;
 import java.util.Set;
@@ -79,7 +78,7 @@ public class BlockOperatorDecomposer implements CFADecomposer {
     // the first entry node maps to the root node of the BlockTree
     startNodeMap.put(startNode, root);
 
-    Set<CFANode> coveredBlockEnds = new HashSet<>();
+    Set<CFANode> coveredBlockEnds = new LinkedHashSet<>();
     // stores the currently popped node (blockEnds.pop())
     CFANode lastCFANode;
     // contains nodes that are successors of lastCFANode AND belong to the same block

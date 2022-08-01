@@ -12,7 +12,7 @@ import com.google.common.collect.ForwardingCollection;
 import com.google.common.collect.ImmutableList;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.HashSet;
+import java.util.LinkedHashSet;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryMessage;
 
 /**
@@ -70,7 +70,7 @@ public class BlockSummaryMessageProcessing extends ForwardingCollection<BlockSum
   public BlockSummaryMessageProcessing merge(
       BlockSummaryMessageProcessing pProcessing, boolean removeDuplicates) {
     Collection<BlockSummaryMessage> copy =
-        removeDuplicates ? new HashSet<>(messages) : new ArrayList<>(messages);
+        removeDuplicates ? new LinkedHashSet<>(messages) : new ArrayList<>(messages);
     copy.addAll(pProcessing);
     return new BlockSummaryMessageProcessing(copy, end || pProcessing.end);
   }

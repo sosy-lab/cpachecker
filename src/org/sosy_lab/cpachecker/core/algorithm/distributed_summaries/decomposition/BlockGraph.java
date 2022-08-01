@@ -19,7 +19,6 @@ import com.google.common.collect.Multimap;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -58,7 +57,7 @@ public class BlockGraph {
   }
 
   public ImmutableSet<BlockNode> getDistinctNodes() {
-    Set<BlockNode> nodes = new HashSet<>();
+    Set<BlockNode> nodes = new LinkedHashSet<>();
     ArrayDeque<BlockNode> waiting = new ArrayDeque<>();
     waiting.add(root);
     while (!waiting.isEmpty()) {
@@ -241,7 +240,7 @@ public class BlockGraph {
           compatibleBlocks.put(key, current);
         }
       }
-      Set<BlockNodeMetaData> alreadyFound = new HashSet<>();
+      Set<BlockNodeMetaData> alreadyFound = new LinkedHashSet<>();
       while (desiredNumberOfBlocks < nodes.size()) {
         Optional<BlockNodeMetaData> potentialNode =
             nodes.stream()
