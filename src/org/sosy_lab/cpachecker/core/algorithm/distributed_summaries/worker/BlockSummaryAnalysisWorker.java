@@ -22,7 +22,7 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.block_analys
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.block_analysis.BlockAnalysis;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.block_analysis.ForwardBlockAnalysis;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.BlockNode;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.ActorMessageProcessing;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.BlockSummaryMessageProcessing;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.composite.DistributedCompositeCPA;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.Connection;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryMessage;
@@ -149,7 +149,7 @@ public class BlockSummaryAnalysisWorker extends BlockSummaryWorker {
 
   private Collection<BlockSummaryMessage> processBlockPostCondition(BlockSummaryMessage message)
       throws CPAException, InterruptedException, SolverException {
-    ActorMessageProcessing processing =
+    BlockSummaryMessageProcessing processing =
         forwardAnalysis.getDistributedCPA().getProceedOperator().proceed(message);
     if (processing.end()) {
       return processing;
@@ -160,7 +160,7 @@ public class BlockSummaryAnalysisWorker extends BlockSummaryWorker {
   private Collection<BlockSummaryMessage> processErrorCondition(BlockSummaryMessage message)
       throws SolverException, InterruptedException, CPAException {
     DistributedCompositeCPA distributed = backwardAnalysis.getDistributedCPA();
-    ActorMessageProcessing processing = distributed.getProceedOperator().proceed(message);
+    BlockSummaryMessageProcessing processing = distributed.getProceedOperator().proceed(message);
     if (processing.end()) {
       return processing;
     }
@@ -184,7 +184,7 @@ public class BlockSummaryAnalysisWorker extends BlockSummaryWorker {
 
   // return pre-condition
   protected Collection<BlockSummaryMessage> backwardAnalysis(
-      ActorMessageProcessing pMessageProcessing)
+      BlockSummaryMessageProcessing pMessageProcessing)
       throws CPAException, InterruptedException, SolverException {
     assert pMessageProcessing.size() == 1 : "BackwardAnalysis can only be based on one message";
     backwardAnalysisTime.start();

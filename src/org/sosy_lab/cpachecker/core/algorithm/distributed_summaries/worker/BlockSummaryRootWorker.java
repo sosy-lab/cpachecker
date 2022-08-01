@@ -22,7 +22,7 @@ import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.block_analysis.BlockAnalysis;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.block_analysis.NoopBlockAnalysis;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.BlockNode;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.ActorMessageProcessing;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.BlockSummaryMessageProcessing;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.Connection;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryErrorConditionMessage;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryMessage;
@@ -76,7 +76,7 @@ public class BlockSummaryRootWorker extends BlockSummaryWorker {
         if (pMessage.getTargetNodeNumber() == root.getLastNode().getNodeNumber()
             && root.getSuccessors().stream()
                 .anyMatch(block -> block.getId().equals(pMessage.getUniqueBlockId()))) {
-          ActorMessageProcessing processing =
+          BlockSummaryMessageProcessing processing =
               analysis
                   .getDistributedCPA()
                   .getProceedOperator()

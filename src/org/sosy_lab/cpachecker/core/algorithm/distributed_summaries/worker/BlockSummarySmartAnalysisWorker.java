@@ -18,7 +18,7 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.BlockNode;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.ActorMessageProcessing;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.BlockSummaryMessageProcessing;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.Connection;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.Payload;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryMessage;
@@ -72,7 +72,7 @@ public class BlockSummarySmartAnalysisWorker extends BlockSummaryAnalysisWorker 
     for (BlockSummaryMessage m : newMessages) {
       if (m.getType() == MessageType.BLOCK_POSTCONDITION) {
         if (m.getTargetNodeNumber() == block.getStartNode().getNodeNumber()) {
-          ActorMessageProcessing mp =
+          BlockSummaryMessageProcessing mp =
               getForwardAnalysis()
                   .getDistributedCPA()
                   .getProceedOperator()

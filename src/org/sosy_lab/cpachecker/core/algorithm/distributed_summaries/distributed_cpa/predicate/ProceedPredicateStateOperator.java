@@ -15,7 +15,7 @@ import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.BlockNode;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.ActorMessageProcessing;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.BlockSummaryMessageProcessing;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DistributedConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.DeserializeOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.proceed.ProceedOperator;
@@ -67,7 +67,7 @@ public class ProceedPredicateStateOperator implements ProceedOperator {
   }
 
   @Override
-  public ActorMessageProcessing proceed(BlockSummaryMessage pMessage)
+  public BlockSummaryMessageProcessing proceed(BlockSummaryMessage pMessage)
       throws InterruptedException, SolverException {
     return direction == AnalysisDirection.FORWARD
         ? proceedForward((BlockSummaryPostConditionMessage) pMessage)
@@ -75,21 +75,21 @@ public class ProceedPredicateStateOperator implements ProceedOperator {
   }
 
   @Override
-  public ActorMessageProcessing proceedBackward(BlockSummaryErrorConditionMessage message)
+  public BlockSummaryMessageProcessing proceedBackward(BlockSummaryErrorConditionMessage message)
       throws SolverException, InterruptedException {
     CFANode node = block.getNodeWithNumber(message.getTargetNodeNumber());
     if (!(node.equals(block.getLastNode())
         || (!node.equals(block.getLastNode())
             && !node.equals(block.getStartNode())
             && block.getNodesInBlock().contains(node)))) {
-      return ActorMessageProcessing.stop();
+      return BlockSummaryMessageProcessing.stop();
     }
     if (analysisOptions.checkEveryErrorConditionForUnsatisfiability()) {
       // can the error condition be denied?
       BooleanFormula messageFormula =
           fmgr.parse(message.getAbstractStateString(PredicateCPA.class).orElse(trueString));
       if (solver.isUnsat(messageFormula)) {
-        return ActorMessageProcessing.stopWith(
+        return BlockSummaryMessageProcessing.stopWith(
             BlockSummaryMessage.newErrorConditionUnreachableMessage(
                 block.getId(), "unsat-formula: " + messageFormula));
       }
@@ -104,34 +104,34 @@ public class ProceedPredicateStateOperator implements ProceedOperator {
       BooleanFormula check =
           fmgr.getBooleanFormulaManager().and(messageFormula, latestOwnPostCondition);
       if (solver.isUnsat(check)) {
-        return ActorMessageProcessing.stopWith(
+        return BlockSummaryMessageProcessing.stopWith(
             BlockSummaryMessage.newErrorConditionUnreachableMessage(
                 block.getId(), "unsat-with-last-post: " + check));
       }
     }
-    return ActorMessageProcessing.proceedWith(message);
+    return BlockSummaryMessageProcessing.proceedWith(message);
   }
 
   @Override
-  public ActorMessageProcessing proceedForward(BlockSummaryPostConditionMessage message)
+  public BlockSummaryMessageProcessing proceedForward(BlockSummaryPostConditionMessage message)
       throws InterruptedException {
     CFANode node = block.getNodeWithNumber(message.getTargetNodeNumber());
     if (!block.getStartNode().equals(node)) {
-      return ActorMessageProcessing.stop();
+      return BlockSummaryMessageProcessing.stop();
     }
     if (!message.isReachable()) {
       unsatPredecessors.add(message.getUniqueBlockId());
-      return ActorMessageProcessing.stop();
+      return BlockSummaryMessageProcessing.stop();
     }
     PredicateAbstractState state = (PredicateAbstractState) deserialize.deserialize(message);
     try {
       if (solver.isUnsat(state.getPathFormula().getFormula())) {
         receivedPostConditions.remove(message.getUniqueBlockId());
         unsatPredecessors.add(message.getUniqueBlockId());
-        return ActorMessageProcessing.stop();
+        return BlockSummaryMessageProcessing.stop();
       }
     } catch (SolverException pE) {
-      return ActorMessageProcessing.stopWith(
+      return BlockSummaryMessageProcessing.stopWith(
           BlockSummaryMessage.newErrorMessage(block.getId(), pE));
     }
     unsatPredecessors.remove(message.getUniqueBlockId());
@@ -139,10 +139,10 @@ public class ProceedPredicateStateOperator implements ProceedOperator {
     // check if every predecessor contains the full path (root node)
     if (receivedPostConditions.size() + unsatPredecessors.size()
         == block.getPredecessors().size()) {
-      return ActorMessageProcessing.proceedWith(receivedPostConditions.values());
+      return BlockSummaryMessageProcessing.proceedWith(receivedPostConditions.values());
     } else {
       // would equal initial message that has already been or will be processed by other workers
-      return ActorMessageProcessing.stop();
+      return BlockSummaryMessageProcessing.stop();
     }
   }
 

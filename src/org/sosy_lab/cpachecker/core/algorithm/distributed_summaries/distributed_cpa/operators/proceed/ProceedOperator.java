@@ -8,7 +8,7 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.proceed;
 
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.ActorMessageProcessing;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.BlockSummaryMessageProcessing;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DistributedConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryErrorConditionMessage;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryMessage;
@@ -25,7 +25,7 @@ public interface ProceedOperator {
    * @return A potentially empty set of responses to {@code pMessage}
    * @throws InterruptedException thrown if program is interrupted unexpectedly.
    */
-  ActorMessageProcessing proceedForward(BlockSummaryPostConditionMessage pMessage)
+  BlockSummaryMessageProcessing proceedForward(BlockSummaryPostConditionMessage pMessage)
       throws InterruptedException;
 
   /**
@@ -37,7 +37,7 @@ public interface ProceedOperator {
    * @throws InterruptedException thrown if program is interrupted unexpectedly.
    * @throws SolverException thrown if backwards analysis is infeasible
    */
-  ActorMessageProcessing proceedBackward(BlockSummaryErrorConditionMessage pMessage)
+  BlockSummaryMessageProcessing proceedBackward(BlockSummaryErrorConditionMessage pMessage)
       throws InterruptedException, SolverException;
 
   /**
@@ -48,7 +48,7 @@ public interface ProceedOperator {
    * @throws InterruptedException thrown if program is interrupted unexpectedly.
    * @throws SolverException thrown if backwards analysis is infeasible
    */
-  ActorMessageProcessing proceed(BlockSummaryMessage pMessage)
+  BlockSummaryMessageProcessing proceed(BlockSummaryMessage pMessage)
       throws InterruptedException, SolverException;
 
   /**
