@@ -20,7 +20,7 @@ public class SerializeSSAMap {
 
   public static String serialize(SSAMap pSSAMap) throws IOException {
     try (ByteArrayOutputStream bos = new ByteArrayOutputStream();
-         ObjectOutputStream out = new ObjectOutputStream(bos)) {
+        ObjectOutputStream out = new ObjectOutputStream(bos)) {
       out.writeObject(pSSAMap);
       out.flush();
       return Base64.getEncoder().encodeToString(bos.toByteArray());
@@ -28,7 +28,9 @@ public class SerializeSSAMap {
   }
 
   public static SSAMap deserialize(String pSerialize) {
-    try (ByteArrayInputStream bis = new ByteArrayInputStream(Base64.getDecoder().decode(pSerialize)); ObjectInputStream in = new ObjectInputStream(bis)) {
+    try (ByteArrayInputStream bis =
+            new ByteArrayInputStream(Base64.getDecoder().decode(pSerialize));
+        ObjectInputStream in = new ObjectInputStream(bis)) {
       return (SSAMap) in.readObject();
     } catch (IOException pE) {
       // don't fail as next message might correct the map
@@ -38,5 +40,4 @@ public class SerializeSSAMap {
       throw new AssertionError(pE);
     }
   }
-
 }
