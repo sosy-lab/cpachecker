@@ -84,7 +84,7 @@ public class Payload extends ForwardingMap<String, Object> {
     }
 
     public Payload buildPayload() {
-      return new Payload(buildKeepingLast());
+      return new Payload(buildOrThrow());
     }
   }
 }
