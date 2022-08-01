@@ -10,7 +10,6 @@ package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker;
 
 import com.google.common.collect.ImmutableList;
 import java.io.IOException;
-import java.nio.file.Paths;
 import java.util.Collection;
 import java.util.logging.FileHandler;
 import java.util.logging.Level;
@@ -38,8 +37,7 @@ public abstract class BlockSummaryWorker implements BlockSummaryActor {
     try {
       logManager =
           BasicLogManager.createWithHandler(
-              new FileHandler(
-                  Paths.get(pOptions.getLogDirectory().toString(), id + ".log").toString()));
+              new FileHandler(pOptions.getLogDirectory().toString() + "/" + id + ".log"));
     } catch (IOException pE) {
       logManager = LogManager.createNullLogManager();
     }

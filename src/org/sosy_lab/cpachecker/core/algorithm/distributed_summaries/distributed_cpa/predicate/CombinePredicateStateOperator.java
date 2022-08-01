@@ -17,6 +17,8 @@ import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
 
 public class CombinePredicateStateOperator implements CombineOperator {
 
@@ -32,6 +34,30 @@ public class CombinePredicateStateOperator implements CombineOperator {
       throws CPAException, InterruptedException {
     PredicateAbstractState state1 = (PredicateAbstractState) pState1;
     PredicateAbstractState state2 = (PredicateAbstractState) pState2;
+
+    SSAMap ssa1 = state1.getPathFormula().getSsa();
+    SSAMap ssa2 = state2.getPathFormula().getSsa();
+
+    SSAMapBuilder merged = SSAMap.emptySSAMap().builder();
+
+    for (String variable : ssa1.allVariables()) {
+      if (ssa2.containsVariable(variable)) {
+        merged =
+            merged.setIndex(
+                variable,
+                ssa1.getType(variable),
+                Integer.max(ssa1.getIndex(variable), ssa2.getIndex(variable)));
+      } else {
+        merged = merged.setIndex(variable, ssa1.getType(variable), ssa1.getIndex(variable));
+      }
+    }
+
+    for (String variable : ssa2.allVariables()) {
+      if (ssa1.allVariables().contains(variable)) {
+        continue;
+      }
+      merged = merged.setIndex(variable, ssa2.getType(variable), ssa2.getIndex(variable));
+    }
 
     PathFormula newFormula = manager.makeOr(state1.getPathFormula(), state2.getPathFormula());
     return ImmutableList.of(

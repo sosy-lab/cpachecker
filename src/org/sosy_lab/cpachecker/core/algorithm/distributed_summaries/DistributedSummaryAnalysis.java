@@ -150,17 +150,17 @@ public class DistributedSummaryAnalysis implements Algorithm, StatisticsProvider
   public AlgorithmStatus run(ReachedSet reachedSet) throws CPAException, InterruptedException {
     logger.log(Level.INFO, "Starting block analysis...");
     try {
-      // create block tree and reduce to relevant parts
+      // create blockGraph and reduce to relevant parts
       CFADecomposer decomposer = getDecomposer();
-      BlockGraph tree = decomposer.cut(cfa);
+      BlockGraph blockGraph = decomposer.cut(cfa);
       logger.logf(
           Level.INFO,
           "Decomposed CFA in %d blocks using the %s.",
-          tree.getDistinctNodes().size(),
+          blockGraph.getDistinctNodes().size(),
           decomposer.getClass().getCanonicalName());
 
       // create workers
-      Collection<BlockNode> blocks = tree.getDistinctNodes();
+      Collection<BlockNode> blocks = blockGraph.getDistinctNodes();
       BlockSummaryWorkerBuilder builder =
           new BlockSummaryWorkerBuilder(
               cfa,
@@ -179,7 +179,7 @@ public class DistributedSummaryAnalysis implements Algorithm, StatisticsProvider
       builder = builder.addResultCollectorWorker(blocks, options);
 
       if (spawnUtilWorkers) {
-        builder = builder.addVisualizationWorker(tree, options);
+        builder = builder.addVisualizationWorker(blockGraph, options);
       }
 
       Components components = builder.build();
