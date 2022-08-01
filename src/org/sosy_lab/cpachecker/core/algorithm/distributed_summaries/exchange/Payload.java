@@ -19,7 +19,7 @@ import java.util.HashMap;
 import java.util.Map;
 import org.sosy_lab.common.JSON;
 
-public class Payload extends ForwardingMap<String, String> {
+public class Payload extends ForwardingMap<String, Object> {
 
   // distributed analysis
   public static final String FULL_PATH = "full";
@@ -39,10 +39,11 @@ public class Payload extends ForwardingMap<String, String> {
   public static final String SOUND = "sound";
   public static final String PRECISE = "precise";
   public static final String PROPERTY = "property";
+  public static final String SSA = "ssa";
 
-  private final Map<String, String> delegate;
+  private final Map<String, Object> delegate;
 
-  private Payload(Map<String, String> pDelegate) {
+  private Payload(Map<String, Object> pDelegate) {
     delegate = ImmutableMap.copyOf(pDelegate);
   }
 
@@ -57,27 +58,27 @@ public class Payload extends ForwardingMap<String, String> {
   }
 
   @Override
-  protected Map<String, String> delegate() {
+  protected Map<String, Object> delegate() {
     return delegate;
   }
 
-  public static class Builder extends ImmutableMap.Builder<String, String> {
+  public static class Builder extends ImmutableMap.Builder<String, Object> {
 
     public Builder addEntriesFromJSON(String json) throws JsonProcessingException {
       TypeFactory factory = TypeFactory.defaultInstance();
-      MapType type = factory.constructMapType(HashMap.class, String.class, String.class);
+      MapType type = factory.constructMapType(HashMap.class, String.class, Object.class);
       ObjectMapper mapper = new ObjectMapper();
-      Map<String, String> result = mapper.readValue(json, type);
+      Map<String, Object> result = mapper.readValue(json, type);
       putAll(result);
       return this;
     }
 
-    public Builder addEntry(String key, String value) {
+    public Builder addEntry(String key, Object value) {
       put(key, value);
       return this;
     }
 
-    public Builder addAllEntries(Map<String, String> entries) {
+    public Builder addAllEntries(Map<String, Object> entries) {
       putAll(entries);
       return this;
     }

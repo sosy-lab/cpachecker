@@ -42,10 +42,7 @@ public class CombineCompositeStateOperator implements CombineOperator {
     if (compositeState1.getWrappedStates().size() != compositeState2.getWrappedStates().size()) {
       throw new AssertionError("CompositeStates have to have the same size");
     }
-
-    List<AbstractState> combined = new ArrayList<>();
     for (int i = 0; i < compositeState1.getWrappedStates().size(); i++) {
-      boolean found = false;
       AbstractState state1I = compositeState1.get(i);
       AbstractState state2I = compositeState2.get(i);
       if (!state1I.getClass().equals(state2I.getClass())) {
@@ -55,6 +52,13 @@ public class CombineCompositeStateOperator implements CombineOperator {
                 + " and "
                 + state2I.getClass());
       }
+    }
+
+    List<AbstractState> combined = new ArrayList<>();
+    for (int i = 0; i < compositeState1.getWrappedStates().size(); i++) {
+      boolean found = false;
+      AbstractState state1I = compositeState1.get(i);
+      AbstractState state2I = compositeState2.get(i);
       for (DistributedConfigurableProgramAnalysis value : registered.values()) {
         if (value.doesOperateOn(state1I.getClass()) && value.doesOperateOn(state2I.getClass())) {
           combined.addAll(value.getCombineOperator().combine(state1I, state2I, pPrecision));

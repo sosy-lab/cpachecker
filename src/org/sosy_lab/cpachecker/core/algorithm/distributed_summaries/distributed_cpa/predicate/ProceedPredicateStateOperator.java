@@ -15,8 +15,8 @@ import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.BlockNode;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.ActorMessageProcessing;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DistributedConfigurableProgramAnalysis;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.MessageProcessing;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.DeserializeOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.proceed.ProceedOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.Payload;
@@ -42,7 +42,11 @@ public class ProceedPredicateStateOperator implements ProceedOperator {
   private final Set<String> unsatPredecessors;
   private final Map<String, ActorMessage> receivedPostConditions;
 
+  private final FormulaManagerView fmgr;
+  private final String trueString;
+
   private BlockPostConditionActorMessage latestOwnPostConditionMessage;
+  private BooleanFormula latestOwnPostCondition;
 
   public ProceedPredicateStateOperator(
       AnalysisOptions pOptions,
@@ -54,6 +58,8 @@ public class ProceedPredicateStateOperator implements ProceedOperator {
     analysisOptions = pOptions;
     block = pBlockNode;
     solver = pSolver;
+    fmgr = solver.getFormulaManager();
+    trueString = fmgr.dumpFormula(fmgr.getBooleanFormulaManager().makeTrue()).toString();
     deserialize = pDeserializeOperator;
 
     unsatPredecessors = new HashSet<>();
@@ -61,7 +67,7 @@ public class ProceedPredicateStateOperator implements ProceedOperator {
   }
 
   @Override
-  public MessageProcessing proceed(ActorMessage pMessage)
+  public ActorMessageProcessing proceed(ActorMessage pMessage)
       throws InterruptedException, SolverException {
     return direction == AnalysisDirection.FORWARD
         ? proceedForward((BlockPostConditionActorMessage) pMessage)
@@ -69,23 +75,21 @@ public class ProceedPredicateStateOperator implements ProceedOperator {
   }
 
   @Override
-  public MessageProcessing proceedBackward(ErrorConditionActorMessage message)
+  public ActorMessageProcessing proceedBackward(ErrorConditionActorMessage message)
       throws SolverException, InterruptedException {
     CFANode node = block.getNodeWithNumber(message.getTargetNodeNumber());
     if (!(node.equals(block.getLastNode())
         || (!node.equals(block.getLastNode())
             && !node.equals(block.getStartNode())
             && block.getNodesInBlock().contains(node)))) {
-      return MessageProcessing.stop();
+      return ActorMessageProcessing.stop();
     }
-    FormulaManagerView fmgr = solver.getFormulaManager();
-    String trueString = fmgr.dumpFormula(fmgr.getBooleanFormulaManager().makeTrue()).toString();
     if (analysisOptions.checkEveryErrorConditionForUnsatisfiability()) {
       // can the error condition be denied?
       BooleanFormula messageFormula =
           fmgr.parse(message.getAbstractStateString(PredicateCPA.class).orElse(trueString));
       if (solver.isUnsat(messageFormula)) {
-        return MessageProcessing.stopWith(
+        return ActorMessageProcessing.stopWith(
             ActorMessage.newErrorConditionUnreachableMessage(
                 block.getId(), "unsat-formula: " + messageFormula));
       }
@@ -98,52 +102,46 @@ public class ProceedPredicateStateOperator implements ProceedOperator {
       BooleanFormula messageFormula =
           fmgr.parse(message.getAbstractStateString(PredicateCPA.class).orElse(trueString));
       BooleanFormula check =
-          fmgr.getBooleanFormulaManager()
-              .and(
-                  messageFormula,
-                  fmgr.parse(
-                      latestOwnPostConditionMessage
-                          .getAbstractStateString(PredicateCPA.class)
-                          .orElse(trueString)));
+          fmgr.getBooleanFormulaManager().and(messageFormula, latestOwnPostCondition);
       if (solver.isUnsat(check)) {
-        return MessageProcessing.stopWith(
+        return ActorMessageProcessing.stopWith(
             ActorMessage.newErrorConditionUnreachableMessage(
                 block.getId(), "unsat-with-last-post: " + check));
       }
     }
-    return MessageProcessing.proceedWith(message);
+    return ActorMessageProcessing.proceedWith(message);
   }
 
   @Override
-  public MessageProcessing proceedForward(BlockPostConditionActorMessage message)
+  public ActorMessageProcessing proceedForward(BlockPostConditionActorMessage message)
       throws InterruptedException {
     CFANode node = block.getNodeWithNumber(message.getTargetNodeNumber());
     if (!block.getStartNode().equals(node)) {
-      return MessageProcessing.stop();
+      return ActorMessageProcessing.stop();
     }
     if (!message.isReachable()) {
       unsatPredecessors.add(message.getUniqueBlockId());
-      return MessageProcessing.stop();
+      return ActorMessageProcessing.stop();
     }
     PredicateAbstractState state = (PredicateAbstractState) deserialize.deserialize(message);
     try {
       if (solver.isUnsat(state.getPathFormula().getFormula())) {
         receivedPostConditions.remove(message.getUniqueBlockId());
         unsatPredecessors.add(message.getUniqueBlockId());
-        return MessageProcessing.stop();
+        return ActorMessageProcessing.stop();
       }
     } catch (SolverException pE) {
-      return MessageProcessing.stopWith(ActorMessage.newErrorMessage(block.getId(), pE));
+      return ActorMessageProcessing.stopWith(ActorMessage.newErrorMessage(block.getId(), pE));
     }
     unsatPredecessors.remove(message.getUniqueBlockId());
     storePostCondition(message);
     // check if every predecessor contains the full path (root node)
     if (receivedPostConditions.size() + unsatPredecessors.size()
         == block.getPredecessors().size()) {
-      return MessageProcessing.proceedWith(receivedPostConditions.values());
+      return ActorMessageProcessing.proceedWith(receivedPostConditions.values());
     } else {
       // would equal initial message that has already been or will be processed by other workers
-      return MessageProcessing.stop();
+      return ActorMessageProcessing.stop();
     }
   }
 
@@ -166,7 +164,9 @@ public class ProceedPredicateStateOperator implements ProceedOperator {
     ProceedPredicateStateOperator proceed =
         ((ProceedPredicateStateOperator) pDCPA.getProceedOperator());
     if (direction == AnalysisDirection.BACKWARD) {
-      latestOwnPostConditionMessage = proceed.latestOwnPostConditionMessage;
+      if (proceed.latestOwnPostConditionMessage != null) {
+        update(proceed.latestOwnPostConditionMessage);
+      }
       unsatPredecessors.clear();
       unsatPredecessors.addAll(proceed.unsatPredecessors);
       receivedPostConditions.clear();
@@ -177,5 +177,10 @@ public class ProceedPredicateStateOperator implements ProceedOperator {
   @Override
   public void update(BlockPostConditionActorMessage pLatestOwnPreconditionMessage) {
     latestOwnPostConditionMessage = pLatestOwnPreconditionMessage;
+    latestOwnPostCondition =
+        fmgr.parse(
+            latestOwnPostConditionMessage
+                .getAbstractStateString(PredicateCPA.class)
+                .orElse(trueString));
   }
 }

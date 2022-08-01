@@ -25,23 +25,13 @@ public interface Connection extends Closeable, StatisticsProvider {
   ActorMessage read() throws InterruptedException;
 
   /**
-   * Returns the size of pending messages. Calculating the number of pending messages should never
-   * be expensive. This method only guarantees to count the messages that have already been parsed
-   * to {@link ActorMessage}s.
-   *
-   * @return size of pending messages
-   */
-  int size();
-
-  /**
-   * Indicates if pending messages exist. This method only guarantees to count the messages that
-   * have already been parsed to {@link ActorMessage}s.
+   * Indicates if pending messages exist. This method should only relay on the number of messages
+   * that have already been parsed to {@link ActorMessage}s. Since the method is probably used
+   * frequently, the calculation should be cheap.
    *
    * @return true, if no pending messages exist, false otherwise
    */
-  default boolean isEmpty() {
-    return size() == 0;
-  }
+  boolean hasPendingMessages();
 
   /**
    * Write and broadcast a message to all connections including itself.

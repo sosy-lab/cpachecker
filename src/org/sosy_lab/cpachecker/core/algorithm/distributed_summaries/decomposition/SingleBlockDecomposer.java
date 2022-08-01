@@ -15,7 +15,7 @@ import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.BlockNode.BlockGraphBuilder;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.BlockGraph.BlockGraphFactory;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.BlockNode.BlockNodeMetaData;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 
@@ -30,7 +30,7 @@ public class SingleBlockDecomposer implements CFADecomposer {
 
   @Override
   public BlockGraph cut(CFA cfa) throws InterruptedException {
-    BlockGraphBuilder builder = new BlockGraphBuilder(cfa, shutdownNotifier);
+    BlockGraphFactory builder = new BlockGraphFactory(cfa, shutdownNotifier);
     CFANode startNode = cfa.getMainFunction();
     // we do not get error conditions
     CFANode lastNode = CFANode.newDummyCFANode();

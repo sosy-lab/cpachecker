@@ -22,7 +22,7 @@ public class ErrorActorMessage extends ActorMessage {
       throw new AssertionError(
           "ErrorMessages are always required to contain the key " + MessageType.ERROR);
     }
-    errorMessage = getPayload().get(Payload.EXCEPTION);
+    errorMessage = (String) getPayload().get(Payload.EXCEPTION);
   }
 
   public String getErrorMessage() {

@@ -9,8 +9,11 @@
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages;
 
 import java.time.Instant;
+import java.util.Objects;
 import java.util.Set;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.predicate.SerializeSSAMap;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.Payload;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 
 public class BlockPostConditionActorMessage extends ActorMessage {
 
@@ -32,6 +35,14 @@ public class BlockPostConditionActorMessage extends ActorMessage {
 
   public Set<String> visitedBlockIds() {
     return visited;
+  }
+
+  public SSAMap getSSAMap() {
+    if (getPayload().containsKey(Payload.SSA)) {
+      return SerializeSSAMap.deserialize(
+          (String) Objects.requireNonNull(getPayload().get(Payload.SSA)));
+    }
+    return SSAMap.emptySSAMap();
   }
 
   public boolean isReachable() {

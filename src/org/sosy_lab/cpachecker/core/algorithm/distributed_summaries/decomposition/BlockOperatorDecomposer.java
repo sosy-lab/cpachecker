@@ -23,7 +23,7 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.BlockNode.BlockGraphBuilder;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.BlockGraph.BlockGraphFactory;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.BlockNode.BlockNodeMetaData;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.predicates.BlockOperator;
@@ -54,7 +54,7 @@ public class BlockOperatorDecomposer implements CFADecomposer {
     // start with the first node of the CFA
     CFANode startNode = cfa.getMainFunction();
 
-    BlockGraphBuilder builder = new BlockGraphBuilder(cfa, shutdownNotifier);
+    BlockGraphFactory builder = new BlockGraphFactory(cfa, shutdownNotifier);
 
     // create the root node of the tree consisting of the entry node only
     BlockNodeMetaData root =

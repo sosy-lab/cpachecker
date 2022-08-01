@@ -128,7 +128,7 @@ public abstract class BlockAnalysis implements BlockAnalyzer {
             StateSpacePartition.getDefaultPartition());
   }
 
-  protected Optional<CFANode> abstractStateToLocation(AbstractState state) {
+  Optional<CFANode> abstractStateToLocation(AbstractState state) {
     LocationState locState = AbstractStates.extractStateByType(state, LocationState.class);
     if (locState != null) {
       return Optional.of(locState.getLocationNode());
@@ -148,7 +148,7 @@ public abstract class BlockAnalysis implements BlockAnalyzer {
    * @throws InterruptedException thread interrupted
    * @throws CPAException wrapper exception
    */
-  protected ARGState getStartState(Collection<ActorMessage> receivedPostConditions)
+  ARGState getStartState(Collection<ActorMessage> receivedPostConditions)
       throws InterruptedException, CPAException {
     List<AbstractState> states = new ArrayList<>();
     for (ActorMessage receivedPostCondition : receivedPostConditions) {
@@ -171,7 +171,7 @@ public abstract class BlockAnalysis implements BlockAnalyzer {
    * @param pMessages all messages at block entry or exit
    * @return visited block ids as set of strings
    */
-  protected ImmutableSet<String> visitedBlocks(Collection<ActorMessage> pMessages) {
+  ImmutableSet<String> visitedBlocks(Collection<ActorMessage> pMessages) {
     ImmutableSet.Builder<String> visitedBlocks = ImmutableSet.builder();
     for (ActorMessage message : pMessages) {
       Set<String> visited = ImmutableSet.of();
@@ -200,7 +200,7 @@ public abstract class BlockAnalysis implements BlockAnalyzer {
    * @throws CPAException wrapper exception
    * @throws InterruptedException thread interrupted
    */
-  protected ImmutableSet<ARGState> findReachableTargetStatesInBlock(
+  ImmutableSet<ARGState> findReachableTargetStatesInBlock(
       AbstractState startState, BlockTransferRelation relation)
       throws CPAException, InterruptedException {
     relation.init(block);
@@ -216,15 +216,15 @@ public abstract class BlockAnalysis implements BlockAnalyzer {
 
     ImmutableSet<ARGState> targets =
         from(reachedSet)
+            .transform(s -> AbstractStates.extractStateByType(s, ARGState.class))
             .filter(AbstractStates::isTargetState)
-            .filter(ARGState.class)
             .filter(s -> !startState.equals(s))
             .toSet();
-    if (targets.isEmpty()) {
+    /*    if (targets.isEmpty()) {
       throw new AssertionError(
           "Targets cannot be empty since the entry and exit nodes of each block are target"
               + " locations");
-    }
+    }*/
     return targets;
   }
 
@@ -235,7 +235,7 @@ public abstract class BlockAnalysis implements BlockAnalyzer {
    * @return subset of targetStates where the target information equals {@link
    *     BlockEntryReachedTargetInformation}
    */
-  protected ImmutableSet<ARGState> extractBlockTargetStates(Set<ARGState> targetStates) {
+  ImmutableSet<ARGState> extractBlockTargetStates(Set<ARGState> targetStates) {
     ImmutableSet.Builder<ARGState> blockTargetStates = ImmutableSet.builder();
     for (ARGState targetState : targetStates) {
       for (TargetInformation targetInformation : targetState.getTargetInformation()) {
@@ -255,7 +255,7 @@ public abstract class BlockAnalysis implements BlockAnalyzer {
    * @return subset of targetStates where the target information is some kind of specification
    *     violation
    */
-  protected Set<ARGState> extractViolations(Set<ARGState> targetStates) {
+  Set<ARGState> extractViolations(Set<ARGState> targetStates) {
     Set<ARGState> violationStates = new HashSet<>();
     for (ARGState targetState : targetStates) {
       for (TargetInformation targetInformation : targetState.getTargetInformation()) {
@@ -268,7 +268,7 @@ public abstract class BlockAnalysis implements BlockAnalyzer {
     return violationStates;
   }
 
-  protected Payload appendStatus(AlgorithmStatus pStatus, Payload pCurrentPayload) {
+  Payload appendStatus(AlgorithmStatus pStatus, Payload pCurrentPayload) {
     return new Payload.Builder()
         .addAllEntries(pCurrentPayload)
         .addEntry(
@@ -285,27 +285,27 @@ public abstract class BlockAnalysis implements BlockAnalyzer {
         .buildPayload();
   }
 
-  protected ReachedSet getReachedSet() {
+  ReachedSet getReachedSet() {
     return reachedSet;
   }
 
-  protected AbstractState getTop() {
+  AbstractState getTop() {
     return top;
   }
 
-  protected Precision getInitialPrecision() {
+  Precision getInitialPrecision() {
     return initialPrecision;
   }
 
-  protected AlgorithmStatus getStatus() {
+  AlgorithmStatus getStatus() {
     return status;
   }
 
-  protected DistributedCompositeCPA getDistributedCompositeCPA() {
+  DistributedCompositeCPA getDistributedCompositeCPA() {
     return distributedCompositeCPA;
   }
 
-  protected ConfigurableProgramAnalysis getCPA() {
+  ConfigurableProgramAnalysis getCPA() {
     return cpa;
   }
 }

@@ -53,7 +53,7 @@ public class BlockSummaryVisualizationWorker extends BlockSummaryWorker {
       throws InterruptedException, IOException, SolverException, CPAException {
     messageLogger.log(pMessage);
     boolean stop = false;
-    while (!connection.isEmpty()) {
+    while (connection.hasPendingMessages()) {
       ActorMessage m = connection.read();
       messageLogger.log(m);
       stop |= m.getType() == MessageType.ERROR || m.getType() == MessageType.FOUND_RESULT;

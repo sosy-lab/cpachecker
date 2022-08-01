@@ -13,7 +13,6 @@ import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSet;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormula;
@@ -35,16 +34,14 @@ public class PredicateOperatorUtil {
   public static PathFormula getPathFormula(
       String formula,
       PathFormulaManager pPathFormulaManager,
-      FormulaManagerView pFormulaManagerView) {
+      FormulaManagerView pFormulaManagerView,
+      SSAMap pSSAMap) {
     if (formula.isEmpty()) {
       return pPathFormulaManager.makeEmptyPathFormula();
     }
-    SSAMapBuilder mapBuilder = SSAMap.emptySSAMap().builder();
     BooleanFormula parsed = pFormulaManagerView.parse(formula);
-    parsed = pFormulaManagerView.uninstantiate(parsed);
-    return pPathFormulaManager.makeAnd(
-        pPathFormulaManager.makeEmptyPathFormulaWithContext(
-            mapBuilder.build(), PointerTargetSet.emptyPointerTargetSet()),
-        parsed);
+    return pPathFormulaManager
+        .makeEmptyPathFormulaWithContext(pSSAMap, PointerTargetSet.emptyPointerTargetSet())
+        .withFormula(parsed);
   }
 }

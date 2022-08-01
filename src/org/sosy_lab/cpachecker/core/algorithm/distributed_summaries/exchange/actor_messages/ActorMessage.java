@@ -21,7 +21,6 @@ import com.fasterxml.jackson.databind.module.SimpleModule;
 import com.fasterxml.jackson.databind.ser.std.StdSerializer;
 import com.google.common.base.Joiner;
 import com.google.common.base.MoreObjects;
-import com.google.common.base.Splitter;
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableSet;
 import java.io.ByteArrayInputStream;
@@ -53,6 +52,7 @@ public abstract class ActorMessage implements Comparable<ActorMessage> {
   private final int targetNodeNumber;
   private final String uniqueBlockId;
   private final MessageType type;
+
   // forwards an immutable hashmap
   private final Payload payload;
   private final Instant timestamp;
@@ -96,7 +96,7 @@ public abstract class ActorMessage implements Comparable<ActorMessage> {
   }
 
   public static ActorMessage removeEntry(ActorMessage message, String key) {
-    Map<String, String> copy = new HashMap<>(message.getPayload());
+    Map<String, Object> copy = new HashMap<>(message.getPayload());
     copy.remove(key);
     return message.replacePayload(new Payload.Builder().addAllEntries(copy).buildPayload());
   }
@@ -107,7 +107,11 @@ public abstract class ActorMessage implements Comparable<ActorMessage> {
 
   public Optional<String> getAbstractStateString(
       Class<? extends ConfigurableProgramAnalysis> pKey) {
-    return Optional.ofNullable(getPayload().get(pKey.getName()));
+    Object value = getPayload().get(pKey.getName());
+    if (value == null) {
+      return Optional.empty();
+    }
+    return Optional.ofNullable(value.toString());
   }
 
   public Optional<AlgorithmStatus> getOptionalStatus() {
@@ -117,11 +121,11 @@ public abstract class ActorMessage implements Comparable<ActorMessage> {
       return Optional.empty();
     }
     StatusObserver.StatusPrecise isPrecise =
-        StatusObserver.StatusPrecise.valueOf(payload.get(Payload.PRECISE));
+        StatusObserver.StatusPrecise.valueOf((String) payload.get(Payload.PRECISE));
     StatusObserver.StatusPropertyChecked isPropertyChecked =
-        StatusObserver.StatusPropertyChecked.valueOf(payload.get(Payload.PROPERTY));
+        StatusObserver.StatusPropertyChecked.valueOf((String) payload.get(Payload.PROPERTY));
     StatusObserver.StatusSoundness isSound =
-        StatusObserver.StatusSoundness.valueOf(payload.get(Payload.SOUND));
+        StatusObserver.StatusSoundness.valueOf((String) payload.get(Payload.SOUND));
     return Optional.of(statusOf(isPropertyChecked, isSound, isPrecise));
   }
 
@@ -182,7 +186,7 @@ public abstract class ActorMessage implements Comparable<ActorMessage> {
         new Payload.Builder()
             .addAllEntries(pPayload)
             .addEntry(Payload.FIRST, Boolean.toString(pFirst))
-            .addEntry(Payload.VISITED, Joiner.on(",").join(pVisited))
+            .addEntry(Payload.VISITED, pVisited)
             .buildPayload();
     return new ErrorConditionActorMessage(
         pUniqueBlockId, pTargetNodeNumber, newPayload, Instant.now());
@@ -202,7 +206,7 @@ public abstract class ActorMessage implements Comparable<ActorMessage> {
     Payload payload =
         new Payload.Builder()
             .addEntry(Payload.RESULT, pResult.name())
-            .addEntry(Payload.VISITED, Joiner.on(",").join(pVisited))
+            .addEntry(Payload.VISITED, pVisited)
             .buildPayload();
     return new ResultMessage(pUniqueBlockId, pTargetNodeNumber, payload, Instant.now());
   }
@@ -222,18 +226,20 @@ public abstract class ActorMessage implements Comparable<ActorMessage> {
     return getType().compareTo(o.getType());
   }
 
-  protected Set<String> extractVisited() {
+  protected ImmutableSet<String> extractVisited() {
+    if (!getPayload().containsKey(Payload.VISITED)) {
+      return ImmutableSet.of();
+    }
+    Object visited = getPayload().get(Payload.VISITED);
     ImmutableSet.Builder<String> builder = ImmutableSet.builder();
-    for (String s : Splitter.on(",").split(getPayload().getOrDefault(Payload.VISITED, ""))) {
-      if (!s.isBlank()) {
-        builder.add(s);
-      }
+    if (visited instanceof Iterable) {
+      ((Iterable<?>) visited).forEach(item -> builder.add((String) item));
     }
     return builder.build();
   }
 
   protected boolean extractFlag(String key, boolean defaultValue) {
-    return Boolean.parseBoolean(getPayload().getOrDefault(key, Boolean.toString(defaultValue)));
+    return Boolean.parseBoolean(getPayload().getOrDefault(key, defaultValue).toString());
   }
 
   public int getTargetNodeNumber() {

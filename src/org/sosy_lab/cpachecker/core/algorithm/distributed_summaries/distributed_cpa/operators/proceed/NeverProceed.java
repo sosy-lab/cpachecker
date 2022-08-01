@@ -9,7 +9,7 @@
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.proceed;
 
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DistributedConfigurableProgramAnalysis;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.MessageProcessing;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.ActorMessageProcessing;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.ActorMessage;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockPostConditionActorMessage;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.ErrorConditionActorMessage;
@@ -18,20 +18,20 @@ import org.sosy_lab.java_smt.api.SolverException;
 public class NeverProceed implements ProceedOperator {
 
   @Override
-  public MessageProcessing proceedForward(BlockPostConditionActorMessage pMessage)
+  public ActorMessageProcessing proceedForward(BlockPostConditionActorMessage pMessage)
       throws InterruptedException {
     return proceed(pMessage);
   }
 
   @Override
-  public MessageProcessing proceedBackward(ErrorConditionActorMessage pMessage)
+  public ActorMessageProcessing proceedBackward(ErrorConditionActorMessage pMessage)
       throws InterruptedException, SolverException {
     return proceed(pMessage);
   }
 
   @Override
-  public MessageProcessing proceed(ActorMessage pMessage) {
-    return MessageProcessing.stop();
+  public ActorMessageProcessing proceed(ActorMessage pMessage) {
+    return ActorMessageProcessing.stop();
   }
 
   @Override

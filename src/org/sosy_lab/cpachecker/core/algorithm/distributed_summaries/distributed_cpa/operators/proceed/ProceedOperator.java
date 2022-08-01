@@ -9,7 +9,7 @@
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.proceed;
 
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DistributedConfigurableProgramAnalysis;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.MessageProcessing;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.ActorMessageProcessing;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.ActorMessage;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockPostConditionActorMessage;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.ErrorConditionActorMessage;
@@ -25,7 +25,7 @@ public interface ProceedOperator {
    * @return A potentially empty set of responses to {@code pMessage}
    * @throws InterruptedException thrown if program is interrupted unexpectedly.
    */
-  MessageProcessing proceedForward(BlockPostConditionActorMessage pMessage)
+  ActorMessageProcessing proceedForward(BlockPostConditionActorMessage pMessage)
       throws InterruptedException;
 
   /**
@@ -37,7 +37,7 @@ public interface ProceedOperator {
    * @throws InterruptedException thrown if program is interrupted unexpectedly.
    * @throws SolverException thrown if backwards analysis is infeasible
    */
-  MessageProcessing proceedBackward(ErrorConditionActorMessage pMessage)
+  ActorMessageProcessing proceedBackward(ErrorConditionActorMessage pMessage)
       throws InterruptedException, SolverException;
 
   /**
@@ -48,7 +48,7 @@ public interface ProceedOperator {
    * @throws InterruptedException thrown if program is interrupted unexpectedly.
    * @throws SolverException thrown if backwards analysis is infeasible
    */
-  MessageProcessing proceed(ActorMessage pMessage) throws InterruptedException, SolverException;
+  ActorMessageProcessing proceed(ActorMessage pMessage) throws InterruptedException, SolverException;
 
   /**
    * Synchronize the knowledge of the forward analysis with the knowledge of the backward analysis

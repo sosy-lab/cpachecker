@@ -12,7 +12,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DistributedConfigurableProgramAnalysis;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.MessageProcessing;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.ActorMessageProcessing;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.proceed.ProceedOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.ActorMessage;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockPostConditionActorMessage;
@@ -38,9 +38,9 @@ public class ProceedCompositeStateOperator implements ProceedOperator {
   }
 
   @Override
-  public MessageProcessing proceedForward(BlockPostConditionActorMessage pMessage)
+  public ActorMessageProcessing proceedForward(BlockPostConditionActorMessage pMessage)
       throws InterruptedException {
-    MessageProcessing processing = MessageProcessing.proceed();
+    ActorMessageProcessing processing = ActorMessageProcessing.proceed();
     for (DistributedConfigurableProgramAnalysis value : registered.values()) {
       processing = processing.merge(value.getProceedOperator().proceedForward(pMessage), true);
     }
@@ -48,9 +48,9 @@ public class ProceedCompositeStateOperator implements ProceedOperator {
   }
 
   @Override
-  public MessageProcessing proceedBackward(ErrorConditionActorMessage pMessage)
+  public ActorMessageProcessing proceedBackward(ErrorConditionActorMessage pMessage)
       throws InterruptedException, SolverException {
-    MessageProcessing processing = MessageProcessing.proceed();
+    ActorMessageProcessing processing = ActorMessageProcessing.proceed();
     for (DistributedConfigurableProgramAnalysis value : registered.values()) {
       processing = processing.merge(value.getProceedOperator().proceedBackward(pMessage), true);
     }
@@ -58,7 +58,7 @@ public class ProceedCompositeStateOperator implements ProceedOperator {
   }
 
   @Override
-  public MessageProcessing proceed(ActorMessage pMessage)
+  public ActorMessageProcessing proceed(ActorMessage pMessage)
       throws InterruptedException, SolverException {
     return direction == AnalysisDirection.FORWARD
         ? proceedForward((BlockPostConditionActorMessage) pMessage)

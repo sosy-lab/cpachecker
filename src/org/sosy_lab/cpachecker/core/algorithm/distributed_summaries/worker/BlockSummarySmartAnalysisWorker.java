@@ -18,7 +18,7 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.BlockNode;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.MessageProcessing;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.ActorMessageProcessing;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.Connection;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.Payload;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.ActorMessage;
@@ -61,18 +61,18 @@ public class BlockSummarySmartAnalysisWorker extends BlockSummaryAnalysisWorker 
     if (!smartQueue.isEmpty()) {
       return smartQueue.take();
     }
-    if (connection.isEmpty()) {
+    if (!connection.hasPendingMessages()) {
       return connection.read();
     }
     Set<ActorMessage> newMessages = new LinkedHashSet<>();
-    while (!connection.isEmpty()) {
+    while (connection.hasPendingMessages()) {
       newMessages.add(connection.read());
     }
     ActorMessage postcondMessage = null;
     for (ActorMessage m : newMessages) {
       if (m.getType() == MessageType.BLOCK_POSTCONDITION) {
         if (m.getTargetNodeNumber() == block.getStartNode().getNodeNumber()) {
-          MessageProcessing mp =
+          ActorMessageProcessing mp =
               getForwardAnalysis()
                   .getDistributedCPA()
                   .getProceedOperator()

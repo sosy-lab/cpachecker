@@ -71,7 +71,7 @@ public abstract class BlockSummaryWorker implements BlockSummaryActor {
   }
 
   public boolean hasPendingMessages() {
-    return !getConnection().isEmpty();
+    return getConnection().hasPendingMessages();
   }
 
   @Override

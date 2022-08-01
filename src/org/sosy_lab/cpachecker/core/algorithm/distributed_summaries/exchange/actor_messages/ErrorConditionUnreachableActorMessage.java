@@ -23,7 +23,7 @@ public class ErrorConditionUnreachableActorMessage extends ActorMessage {
         pTargetNodeNumber,
         pPayload,
         pTimeStamp);
-    reason = getPayload().getOrDefault(Payload.REASON, "");
+    reason = (String) getPayload().getOrDefault(Payload.REASON, "");
   }
 
   public String getReason() {

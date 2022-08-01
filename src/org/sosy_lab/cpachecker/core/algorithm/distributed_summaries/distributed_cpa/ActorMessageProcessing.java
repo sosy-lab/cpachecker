@@ -23,54 +23,55 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.act
  * @see
  *     org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.proceed.ProceedOperator
  */
-public class MessageProcessing extends ForwardingCollection<ActorMessage> {
+public class ActorMessageProcessing extends ForwardingCollection<ActorMessage> {
 
   private final Collection<ActorMessage> messages;
   private final boolean end;
 
-  private static final MessageProcessing EMPTY_PROCEED =
-      new MessageProcessing(ImmutableList.of(), false);
-  private static final MessageProcessing EMPTY_STOP =
-      new MessageProcessing(ImmutableList.of(), true);
+  private static final ActorMessageProcessing EMPTY_PROCEED =
+      new ActorMessageProcessing(ImmutableList.of(), false);
+  private static final ActorMessageProcessing EMPTY_STOP =
+      new ActorMessageProcessing(ImmutableList.of(), true);
 
-  private MessageProcessing(Collection<ActorMessage> pMessages, boolean pEnd) {
+  private ActorMessageProcessing(Collection<ActorMessage> pMessages, boolean pEnd) {
     messages = pMessages;
     end = pEnd;
   }
 
-  public static MessageProcessing proceed() {
+  public static ActorMessageProcessing proceed() {
     return EMPTY_PROCEED;
   }
 
-  public static MessageProcessing stop() {
+  public static ActorMessageProcessing stop() {
     return EMPTY_STOP;
   }
 
-  public static MessageProcessing proceedWith(Collection<ActorMessage> pMessages) {
-    return new MessageProcessing(pMessages, false);
+  public static ActorMessageProcessing proceedWith(Collection<ActorMessage> pMessages) {
+    return new ActorMessageProcessing(pMessages, false);
   }
 
-  public static MessageProcessing stopWith(Collection<ActorMessage> pMessages) {
-    return new MessageProcessing(pMessages, true);
+  public static ActorMessageProcessing stopWith(Collection<ActorMessage> pMessages) {
+    return new ActorMessageProcessing(pMessages, true);
   }
 
-  public static MessageProcessing proceedWith(ActorMessage... pMessages) {
-    return new MessageProcessing(ImmutableList.copyOf(pMessages), false);
+  public static ActorMessageProcessing proceedWith(ActorMessage... pMessages) {
+    return new ActorMessageProcessing(ImmutableList.copyOf(pMessages), false);
   }
 
-  public static MessageProcessing stopWith(ActorMessage... pMessages) {
-    return new MessageProcessing(ImmutableList.copyOf(pMessages), true);
+  public static ActorMessageProcessing stopWith(ActorMessage... pMessages) {
+    return new ActorMessageProcessing(ImmutableList.copyOf(pMessages), true);
   }
 
   public boolean end() {
     return end;
   }
 
-  public MessageProcessing merge(MessageProcessing pProcessing, boolean removeDuplicates) {
+  public ActorMessageProcessing merge(
+      ActorMessageProcessing pProcessing, boolean removeDuplicates) {
     Collection<ActorMessage> copy =
         removeDuplicates ? new HashSet<>(messages) : new ArrayList<>(messages);
     copy.addAll(pProcessing);
-    return new MessageProcessing(copy, end || pProcessing.end);
+    return new ActorMessageProcessing(copy, end || pProcessing.end);
   }
 
   @Override

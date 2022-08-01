@@ -11,11 +11,14 @@ package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.BlockNode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.DeserializeOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.ActorMessage;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockPostConditionActorMessage;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.ErrorConditionActorMessage;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 
 public class DeserializePredicateStateOperator implements DeserializeOperator {
@@ -41,8 +44,14 @@ public class DeserializePredicateStateOperator implements DeserializeOperator {
     String formula =
         PredicateOperatorUtil.extractFormulaString(
             pMessage, predicateCPA.getClass(), formulaManagerView);
+    SSAMap map = SSAMap.emptySSAMap();
+    if (pMessage instanceof BlockPostConditionActorMessage) {
+      map = ((BlockPostConditionActorMessage) pMessage).getSSAMap();
+    } else if (pMessage instanceof ErrorConditionActorMessage) {
+      map = ((ErrorConditionActorMessage) pMessage).getSSAMap();
+    }
     return PredicateAbstractState.mkNonAbstractionStateWithNewPathFormula(
-        PredicateOperatorUtil.getPathFormula(formula, pathFormulaManager, formulaManagerView),
+        PredicateOperatorUtil.getPathFormula(formula, pathFormulaManager, formulaManagerView, map),
         (PredicateAbstractState)
             predicateCPA.getInitialState(
                 block.getNodeWithNumber(pMessage.getTargetNodeNumber()),

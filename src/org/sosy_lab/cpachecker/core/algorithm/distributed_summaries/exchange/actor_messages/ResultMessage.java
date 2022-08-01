@@ -21,7 +21,7 @@ public class ResultMessage extends ActorMessage {
   protected ResultMessage(
       String pUniqueBlockId, int pTargetNodeNumber, Payload pPayload, Instant pTimeStamp) {
     super(MessageType.FOUND_RESULT, pUniqueBlockId, pTargetNodeNumber, pPayload, pTimeStamp);
-    result = Result.valueOf(getPayload().get(Payload.RESULT));
+    result = Result.valueOf((String) getPayload().get(Payload.RESULT));
     visited = extractVisited();
   }
 

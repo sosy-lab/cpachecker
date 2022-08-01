@@ -42,13 +42,8 @@ public class InMemoryConnection implements Connection, StatisticsProvider {
   }
 
   @Override
-  public int size() {
-    return in.size();
-  }
-
-  @Override
-  public boolean isEmpty() {
-    return in.isEmpty();
+  public boolean hasPendingMessages() {
+    return !in.isEmpty();
   }
 
   @Override
