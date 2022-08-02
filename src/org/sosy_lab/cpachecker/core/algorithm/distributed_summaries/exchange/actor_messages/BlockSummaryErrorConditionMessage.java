@@ -14,6 +14,7 @@ import java.util.Set;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.Payload;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.SerializeUtil;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSet;
 
 public class BlockSummaryErrorConditionMessage extends BlockSummaryMessage {
 
@@ -33,6 +34,14 @@ public class BlockSummaryErrorConditionMessage extends BlockSummaryMessage {
           (String) Objects.requireNonNull(getPayload().get(Payload.SSA)), SSAMap.class);
     }
     return SSAMap.emptySSAMap();
+  }
+
+  public PointerTargetSet getPointerTargetSet() {
+    if (getPayload().containsKey(Payload.PTS)) {
+      return SerializeUtil.deserialize(
+          (String) Objects.requireNonNull(getPayload().get(Payload.PTS)), PointerTargetSet.class);
+    }
+    return PointerTargetSet.emptyPointerTargetSet();
   }
 
   public Set<String> visitedBlockIds() {

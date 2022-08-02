@@ -19,6 +19,7 @@ import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSet;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 
 public class DeserializePredicateStateOperator implements DeserializeOperator {
@@ -45,13 +46,17 @@ public class DeserializePredicateStateOperator implements DeserializeOperator {
         PredicateOperatorUtil.extractFormulaString(
             pMessage, predicateCPA.getClass(), formulaManagerView);
     SSAMap map = SSAMap.emptySSAMap();
+    PointerTargetSet pts = PointerTargetSet.emptyPointerTargetSet();
     if (pMessage instanceof BlockSummaryPostConditionMessage) {
       map = ((BlockSummaryPostConditionMessage) pMessage).getSSAMap();
+      pts = ((BlockSummaryPostConditionMessage) pMessage).getPointerTargetSet();
     } else if (pMessage instanceof BlockSummaryErrorConditionMessage) {
       map = ((BlockSummaryErrorConditionMessage) pMessage).getSSAMap();
+      pts = ((BlockSummaryErrorConditionMessage) pMessage).getPointerTargetSet();
     }
     return PredicateAbstractState.mkNonAbstractionStateWithNewPathFormula(
-        PredicateOperatorUtil.getPathFormula(formula, pathFormulaManager, formulaManagerView, map),
+        PredicateOperatorUtil.getPathFormula(
+            formula, pathFormulaManager, formulaManagerView, pts, map),
         (PredicateAbstractState)
             predicateCPA.getInitialState(
                 block.getNodeWithNumber(pMessage.getTargetNodeNumber()),

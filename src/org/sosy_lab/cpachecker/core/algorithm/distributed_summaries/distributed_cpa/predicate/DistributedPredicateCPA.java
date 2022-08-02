@@ -54,7 +54,9 @@ public class DistributedPredicateCPA implements DistributedConfigurableProgramAn
     proceed =
         new ProceedPredicateStateOperator(
             pOptions, pDirection, pNode, predicateCPA.getSolver(), deserialize);
-    combine = new CombinePredicateStateOperator(predicateCPA.getPathFormulaManager());
+    combine =
+        new CombinePredicateStateOperator(
+            predicateCPA.getPathFormulaManager(), predicateCPA.getSolver().getFormulaManager());
   }
 
   public Solver getSolver() {

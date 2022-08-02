@@ -57,12 +57,14 @@ public interface ProceedOperator {
    *
    * @param pAnalysis Synchronize the knowledge of {@code pAnalysis} with this proceed operator
    */
-  void synchronizeKnowledge(DistributedConfigurableProgramAnalysis pAnalysis);
+  void synchronizeKnowledge(DistributedConfigurableProgramAnalysis pAnalysis)
+      throws InterruptedException;
 
   /**
    * Set the latest own {@link BlockSummaryPostConditionMessage}
    *
    * @param pLatestOwnPreconditionMessage latest {@link BlockSummaryPostConditionMessage}
    */
-  void update(BlockSummaryPostConditionMessage pLatestOwnPreconditionMessage);
+  void update(BlockSummaryPostConditionMessage pLatestOwnPreconditionMessage)
+      throws InterruptedException;
 }

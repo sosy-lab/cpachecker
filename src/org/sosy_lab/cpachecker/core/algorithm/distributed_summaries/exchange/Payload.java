@@ -40,6 +40,7 @@ public class Payload extends ForwardingMap<String, Object> {
   public static final String PRECISE = "precise";
   public static final String PROPERTY = "property";
   public static final String SSA = "ssa";
+  public static final String PTS = "pts";
 
   private final Map<String, Object> delegate;
 

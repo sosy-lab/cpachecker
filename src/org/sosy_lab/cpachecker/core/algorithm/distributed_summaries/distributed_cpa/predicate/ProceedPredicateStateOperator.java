@@ -11,6 +11,8 @@ package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed
 import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.Map;
+import java.util.Map.Entry;
+import java.util.OptionalInt;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
@@ -25,10 +27,14 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.act
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryPostConditionMessage;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.BlockSummaryAnalysisOptions;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
-import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
+import org.sosy_lab.cpachecker.util.Pair;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.java_smt.api.BooleanFormula;
+import org.sosy_lab.java_smt.api.Formula;
 import org.sosy_lab.java_smt.api.SolverException;
 
 public class ProceedPredicateStateOperator implements ProceedOperator {
@@ -46,7 +52,7 @@ public class ProceedPredicateStateOperator implements ProceedOperator {
   private final String trueString;
 
   private BlockSummaryPostConditionMessage latestOwnPostConditionMessage;
-  private BooleanFormula latestOwnPostCondition;
+  private PathFormula latestOwnPostCondition;
 
   public ProceedPredicateStateOperator(
       BlockSummaryAnalysisOptions pOptions,
@@ -84,11 +90,11 @@ public class ProceedPredicateStateOperator implements ProceedOperator {
             && block.getNodesInBlock().contains(node)))) {
       return BlockSummaryMessageProcessing.stop();
     }
+    PredicateAbstractState deserialized = (PredicateAbstractState) deserialize.deserialize(message);
+    PathFormula messageFormula = deserialized.getPathFormula();
     if (analysisOptions.checkEveryErrorConditionForUnsatisfiability()) {
       // can the error condition be denied?
-      BooleanFormula messageFormula =
-          fmgr.parse(message.getAbstractStateString(PredicateCPA.class).orElse(trueString));
-      if (solver.isUnsat(messageFormula)) {
+      if (solver.isUnsat(messageFormula.getFormula())) {
         return BlockSummaryMessageProcessing.stopWith(
             BlockSummaryMessage.newErrorConditionUnreachableMessage(
                 block.getId(), "unsat-formula: " + messageFormula));
@@ -99,10 +105,7 @@ public class ProceedPredicateStateOperator implements ProceedOperator {
             || analysisOptions.checkEveryErrorConditionForUnsatisfiability())
         && receivedPostConditions.size() + unsatPredecessors.size()
             == block.getPredecessors().size()) {
-      BooleanFormula messageFormula =
-          fmgr.parse(message.getAbstractStateString(PredicateCPA.class).orElse(trueString));
-      BooleanFormula check =
-          fmgr.getBooleanFormulaManager().and(messageFormula, latestOwnPostCondition);
+      BooleanFormula check = concatenate(latestOwnPostCondition, messageFormula);
       if (solver.isUnsat(check)) {
         return BlockSummaryMessageProcessing.stopWith(
             BlockSummaryMessage.newErrorConditionUnreachableMessage(
@@ -160,8 +163,38 @@ public class ProceedPredicateStateOperator implements ProceedOperator {
     }
   }
 
+  private BooleanFormula concatenate(
+      PathFormula pLatestPostCondition, PathFormula pErrorCondition) {
+    SSAMap ssaMap = pLatestPostCondition.getSsa();
+    SSAMap formulaMap = pErrorCondition.getSsa();
+    Map<Formula, Formula> substitution = new HashMap<>();
+    for (Entry<String, Formula> stringFormulaEntry :
+        fmgr.extractVariables(pErrorCondition.getFormula()).entrySet()) {
+      Pair<String, OptionalInt> parsed = FormulaManagerView.parseName(stringFormulaEntry.getKey());
+      String varName = parsed.getFirstNotNull();
+      if (ssaMap.containsVariable(varName)) {
+        int index = parsed.getSecondNotNull().orElseThrow();
+        SSAMapBuilder curr = SSAMap.emptySSAMap().builder();
+        curr =
+            curr.setIndex(
+                varName,
+                formulaMap.getType(varName),
+                Math.abs(index - pErrorCondition.getSsa().getIndex(varName))
+                    + ssaMap.getIndex(varName));
+        substitution.put(
+            stringFormulaEntry.getValue(),
+            fmgr.instantiate(fmgr.uninstantiate(stringFormulaEntry.getValue()), curr.build()));
+      }
+    }
+    return fmgr.getBooleanFormulaManager()
+        .and(
+            pLatestPostCondition.getFormula(),
+            fmgr.substitute(pErrorCondition.getFormula(), substitution));
+  }
+
   @Override
-  public void synchronizeKnowledge(DistributedConfigurableProgramAnalysis pDCPA) {
+  public void synchronizeKnowledge(DistributedConfigurableProgramAnalysis pDCPA)
+      throws InterruptedException {
     ProceedPredicateStateOperator proceed =
         ((ProceedPredicateStateOperator) pDCPA.getProceedOperator());
     if (direction == AnalysisDirection.BACKWARD) {
@@ -176,12 +209,11 @@ public class ProceedPredicateStateOperator implements ProceedOperator {
   }
 
   @Override
-  public void update(BlockSummaryPostConditionMessage pLatestOwnPreconditionMessage) {
+  public void update(BlockSummaryPostConditionMessage pLatestOwnPreconditionMessage)
+      throws InterruptedException {
     latestOwnPostConditionMessage = pLatestOwnPreconditionMessage;
     latestOwnPostCondition =
-        fmgr.parse(
-            latestOwnPostConditionMessage
-                .getAbstractStateString(PredicateCPA.class)
-                .orElse(trueString));
+        ((PredicateAbstractState) deserialize.deserialize(latestOwnPostConditionMessage))
+            .getPathFormula();
   }
 }

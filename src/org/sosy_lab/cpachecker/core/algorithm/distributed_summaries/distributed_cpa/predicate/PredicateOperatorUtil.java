@@ -35,13 +35,14 @@ public class PredicateOperatorUtil {
       String formula,
       PathFormulaManager pPathFormulaManager,
       FormulaManagerView pFormulaManagerView,
+      PointerTargetSet pPointerTargetSet,
       SSAMap pSSAMap) {
     if (formula.isEmpty()) {
       return pPathFormulaManager.makeEmptyPathFormula();
     }
     BooleanFormula parsed = pFormulaManagerView.parse(formula);
     return pPathFormulaManager
-        .makeEmptyPathFormulaWithContext(pSSAMap, PointerTargetSet.emptyPointerTargetSet())
+        .makeEmptyPathFormulaWithContext(pSSAMap, pPointerTargetSet)
         .withFormula(parsed);
   }
 }

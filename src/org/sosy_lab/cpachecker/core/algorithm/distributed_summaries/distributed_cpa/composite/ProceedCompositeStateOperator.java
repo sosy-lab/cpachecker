@@ -66,7 +66,8 @@ public class ProceedCompositeStateOperator implements ProceedOperator {
   }
 
   @Override
-  public void synchronizeKnowledge(DistributedConfigurableProgramAnalysis pAnalysis) {
+  public void synchronizeKnowledge(DistributedConfigurableProgramAnalysis pAnalysis)
+      throws InterruptedException {
     ProceedCompositeStateOperator distributed =
         (ProceedCompositeStateOperator) pAnalysis.getProceedOperator();
     if (direction == AnalysisDirection.BACKWARD) {
@@ -84,10 +85,11 @@ public class ProceedCompositeStateOperator implements ProceedOperator {
   }
 
   @Override
-  public void update(BlockSummaryPostConditionMessage pLatestOwnPreconditionMessage) {
+  public void update(BlockSummaryPostConditionMessage pLatestOwnPreconditionMessage)
+      throws InterruptedException {
     latestOwnPostConditionMessage = pLatestOwnPreconditionMessage;
-    registered
-        .values()
-        .forEach(analysis -> analysis.getProceedOperator().update(pLatestOwnPreconditionMessage));
+    for (DistributedConfigurableProgramAnalysis analysis : registered.values()) {
+      analysis.getProceedOperator().update(pLatestOwnPreconditionMessage);
+    }
   }
 }
