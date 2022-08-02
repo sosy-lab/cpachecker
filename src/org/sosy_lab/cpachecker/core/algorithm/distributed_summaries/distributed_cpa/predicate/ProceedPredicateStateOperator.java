@@ -49,7 +49,6 @@ public class ProceedPredicateStateOperator implements ProceedOperator {
   private final Map<String, BlockSummaryMessage> receivedPostConditions;
 
   private final FormulaManagerView fmgr;
-  private final String trueString;
 
   private BlockSummaryPostConditionMessage latestOwnPostConditionMessage;
   private PathFormula latestOwnPostCondition;
@@ -65,7 +64,6 @@ public class ProceedPredicateStateOperator implements ProceedOperator {
     block = pBlockNode;
     solver = pSolver;
     fmgr = solver.getFormulaManager();
-    trueString = fmgr.dumpFormula(fmgr.getBooleanFormulaManager().makeTrue()).toString();
     deserialize = pDeserializeOperator;
 
     unsatPredecessors = new LinkedHashSet<>();
