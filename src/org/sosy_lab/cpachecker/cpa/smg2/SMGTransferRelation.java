@@ -1377,7 +1377,16 @@ public class SMGTransferRelation
     SMGCPAValueVisitor rightHandSideVisitor =
         new SMGCPAValueVisitor(evaluator, pState, cfaEdge, logger);
 
-    List<Optional<SMGObjectAndOffset>> maybeAddresses = lValue.accept(leftHandSidevisitor);
+    List<Optional<SMGObjectAndOffset>> maybeAddresses;
+    try {
+      maybeAddresses = lValue.accept(leftHandSidevisitor);
+    } catch (SMG2Exception e) {
+      if (e.hasState()) {
+        return ImmutableList.of(e.getErrorState());
+      } else {
+        throw e;
+      }
+    }
     for (Optional<SMGObjectAndOffset> maybeAddress : maybeAddresses) {
       if (maybeAddress.isEmpty()) {
         // No memory for the left hand side found -> UNKNOWN

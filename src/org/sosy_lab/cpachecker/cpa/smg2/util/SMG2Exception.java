@@ -15,11 +15,26 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 public class SMG2Exception extends CPATransferException {
   private static final long serialVersionUID = -1677699207895867889L;
 
-  public SMG2Exception(SMGState errorState) {
-    super(errorState.getErrorInfo().toString());
+  SMGState errorState;
+
+  public SMG2Exception(SMGState pErrorState) {
+    super(pErrorState.getErrorInfo().toString());
+    this.errorState = pErrorState;
   }
 
   public SMG2Exception(String errorMsg) {
     super(errorMsg);
+  }
+
+  public boolean hasState() {
+    return errorState != null;
+  }
+
+  /**
+   * @return the {@link SMGState} that is the error state. Careful, might be null! Check with
+   *     hasState().
+   */
+  public SMGState getErrorState() {
+    return errorState;
   }
 }

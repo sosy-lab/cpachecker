@@ -348,10 +348,20 @@ public class SMGCPAValueExpressionEvaluator {
   public List<ValueAndSMGState> createAddress(CExpression operand, SMGState pState, CFAEdge cfaEdge)
       throws CPATransferException {
     // SMGCPAAddressVisitor may have side effects! But they should not effect anything as they are
-    // only interesing in a failure case in which the analysis stops!
+    // only interesting in a failure case in which the analysis stops!
     SMGCPAAddressVisitor addressVisitor = new SMGCPAAddressVisitor(this, pState, cfaEdge, logger);
     ImmutableList.Builder<ValueAndSMGState> resultBuilder = ImmutableList.builder();
-    for (Optional<SMGObjectAndOffset> maybeObjectAndOffset : operand.accept(addressVisitor)) {
+    List<Optional<SMGObjectAndOffset>> variableMemorysAndOffsets;
+    try {
+      variableMemorysAndOffsets = operand.accept(addressVisitor);
+    } catch (SMG2Exception e) {
+      if (e.hasState()) {
+        return ImmutableList.of(ValueAndSMGState.ofUnknownValue(e.getErrorState()));
+      } else {
+        throw e;
+      }
+    }
+    for (Optional<SMGObjectAndOffset> maybeObjectAndOffset : variableMemorysAndOffsets) {
       SMGState currentState = pState;
       if (maybeObjectAndOffset.isEmpty()) {
         // Functions are not declared, but the address might be requested anyway, so we have to
@@ -370,10 +380,14 @@ public class SMGCPAValueExpressionEvaluator {
           maybeObjectAndOffset =
               Optional.of(SMGObjectAndOffset.withZeroOffset(functionObject.orElseThrow()));
         } else {
-          // This is not necassarly an error! If we can't get a address because a lookup is based on
+          // This is not necessarily an error! If we can't get a address because a lookup is based
+          // on
           // an unknown value for example. We create a dummy pointer in such cases that points
           // nowhere
-          throw new SMG2Exception("No address could be created for the expression: " + operand);
+          // throw new SMG2Exception("No address could be created for the expression: " + operand);
+          // Try unknown first, wrapped in AddressExpr and see what happens
+          resultBuilder.add(ValueAndSMGState.ofUnknownValue(currentState));
+          continue;
         }
       }
       SMGObjectAndOffset targetAndOffset = maybeObjectAndOffset.orElseThrow();
@@ -729,8 +743,17 @@ public class SMGCPAValueExpressionEvaluator {
       throws CPATransferException {
     BigInteger sizeInBits = getBitSizeof(currentState, leftHandSideValue);
     // Get the memory for the left hand side variable
-    List<Optional<SMGObjectAndOffset>> variableMemorysAndOffsets =
-        leftHandSideValue.accept(new SMGCPAAddressVisitor(this, currentState, edge, logger));
+    List<Optional<SMGObjectAndOffset>> variableMemorysAndOffsets;
+    try {
+      variableMemorysAndOffsets =
+          leftHandSideValue.accept(new SMGCPAAddressVisitor(this, currentState, edge, logger));
+    } catch (SMG2Exception e) {
+      if (e.hasState()) {
+        return ImmutableList.of(e.getErrorState());
+      } else {
+        throw e;
+      }
+    }
     ImmutableList.Builder<SMGState> successorsBuilder = ImmutableList.builder();
     // Write the return value into the left hand side variable
     for (Optional<SMGObjectAndOffset> maybeVariableMemoryAndOffset : variableMemorysAndOffsets) {

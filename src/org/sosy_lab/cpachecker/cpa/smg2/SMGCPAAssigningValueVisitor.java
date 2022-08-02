@@ -73,10 +73,19 @@ public class SMGCPAAssigningValueVisitor extends SMGCPAValueVisitor {
     // First get possible assignables from the left and right hand expressions
     // Those will not change and there is no side effect. We only want to know if the right/left
     // hand side values are assignable later on
-    List<Optional<SMGObjectAndOffset>> leftHandSideAssignments =
-        getAssignable(lVarInBinaryExp, initialState);
-    List<Optional<SMGObjectAndOffset>> rightHandSideAssignments =
-        getAssignable(rVarInBinaryExp, initialState);
+    List<Optional<SMGObjectAndOffset>> leftHandSideAssignments;
+    List<Optional<SMGObjectAndOffset>> rightHandSideAssignments;
+
+    try {
+      leftHandSideAssignments = getAssignable(lVarInBinaryExp, initialState);
+      rightHandSideAssignments = getAssignable(rVarInBinaryExp, initialState);
+    } catch (SMG2Exception e) {
+      if (e.hasState()) {
+        return ImmutableList.of(ValueAndSMGState.ofUnknownValue(e.getErrorState()));
+      } else {
+        throw e;
+      }
+    }
 
     ImmutableList.Builder<ValueAndSMGState> finalValueAndStateBuilder = ImmutableList.builder();
 
