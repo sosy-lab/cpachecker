@@ -412,22 +412,41 @@ public class PredicateAbstractionManager {
       // return as new abstraction formula
       logger.log(Level.FINEST, "Abstraction", currentAbstractionId, "using SUBSTITUTION");
       stats.numSymbolicAbstractions.incrementAndGet();
-      logger.log(Level.ALL, "Before subsituion   ", f);
-      BooleanFormula substituted = syntacticSubstitution(f, ssa, pathFormula);
+      logger.log(Level.ALL, "Before subsituion", f);
+      SubstituteMap substituteMap = new SubstituteMap(f, ssa,pathFormula,fmgr,logger);
+      BooleanFormula substituted = substituteMap.syntacticSubstitution(options.useSubstitutionCheckSSA());
       if (solver.isUnsat(substituted)) {
+        logger.log(Level.FINEST, "Substituted formula unsat ", substituted);
         abs = amgr.makeFalsePredicate().getAbstractVariable();
       }
       else {
         if(options.useSubstitutionCEGAR()){
-        logger.log(Level.ALL, "Before abstraction ", substituted);
-        logger.log(Level.ALL, "Before predicates  ", remainingPredicates);
+          if (options.useSubstitutionCartesian()) {
+            abs = rmgr.makeAnd(abs, computeAbstraction(substituted, remainingPredicates, instantiator));
+          }
+          else {
+            substituted = abstractConjunctionParts(substituted, remainingPredicates);
+            result = new AbstractionFormula(fmgr, amgr.convertFormulaToRegion(fmgr.uninstantiate(substituted)), fmgr.uninstantiate(substituted), substituted, pathFormula, noAbstractionReuse);
+            logger.log(Level.ALL, "After abstraction ", result.asFormula());
+            logger.log(Level.ALL, "Unsat ", solver.isUnsat(result.asFormula()));
+            if (solver.isUnsat(result.asFormula())){
+              logger.log(Level.ALL, "UnsatCore ", solver.unsatCore(result.asFormula()));
+            }
+            logger.log(Level.ALL, "False ", result.isFalse());
 
-        substituted = abstractionConjucntionParts(substituted, remainingPredicates);
-//        abs = rmgr.makeAnd(abs, computeAbstraction(substituted, remainingPredicates, instantiator));
+//        if (solver.isUnsat(result.asFormula())){
+//          result = makeAbstractionFormula(amgr.makeFalsePredicate().getAbstractVariable(), ssa, pathFormula);
+//        }
+          }
+        } else {
+          result = new AbstractionFormula(fmgr, amgr.convertFormulaToRegion(fmgr.uninstantiate(substituted)), fmgr.uninstantiate(substituted), substituted, pathFormula, noAbstractionReuse);
+          logger.log(Level.ALL, "After abstraction ", result.asFormula());
+          logger.log(Level.ALL, "Unsat ", solver.isUnsat(result.asFormula()));
+          if (solver.isUnsat(result.asFormula())){
+            logger.log(Level.ALL, "UnsatCore ", solver.unsatCore(result.asFormula()));
+          }
+          logger.log(Level.ALL, "False ", result.isFalse());
         }
-        result = new AbstractionFormula(fmgr, amgr.convertFormulaToRegion(fmgr.uninstantiate(substituted)), fmgr.uninstantiate(substituted), substituted, pathFormula, noAbstractionReuse);
-        logger.log(Level.ALL, "After abstraction ", result.asFormula());
-
       }
     } else {
       abs = rmgr.makeAnd(abs, computeAbstraction(f, remainingPredicates, instantiator));
@@ -461,7 +480,7 @@ public class PredicateAbstractionManager {
     return result;
   }
 
-  private BooleanFormula abstractionConjucntionParts(BooleanFormula pBooleanFormula, Collection<AbstractionPredicate> pPredicates){
+  private BooleanFormula abstractConjunctionParts(BooleanFormula pBooleanFormula, Collection<AbstractionPredicate> pPredicates){
     HashSet<String> predicateVars = new HashSet<>();
     for(AbstractionPredicate p : pPredicates){
       predicateVars.addAll(fmgr.extractVariableNames(p.getSymbolicAtom()));
@@ -471,10 +490,10 @@ public class PredicateAbstractionManager {
           @Override
           public BooleanFormula visitAnd(List<BooleanFormula> processedOperands) {
             List<BooleanFormula> containgPredicateVars = new ArrayList<>();
-            logger.log(Level.ALL, "PredicateNames", predicateVars);
-            logger.log(Level.ALL, "Processed Operands", processedOperands);
+//            logger.log(Level.ALL, "PredicateNames", predicateVars);
+//            logger.log(Level.ALL, "Processed Operands", processedOperands);
             for(BooleanFormula operand : processedOperands) {
-              logger.log(Level.ALL, "Processed Operand", fmgr.extractVariableNames(operand));
+//              logger.log(Level.ALL, "Processed Operand", fmgr.extractVariableNames(operand));
               if(predicateVars.containsAll(fmgr.extractVariableNames(fmgr.uninstantiate(operand)))){
                 containgPredicateVars.add(operand);
               }
@@ -484,84 +503,6 @@ public class PredicateAbstractionManager {
         });
   }
 
-  /**
-   * Syntactic Substitution
-   * TODO Martin Possibly move to JavaSMT when finished
-   * Todo Martin Logging levels
-   * @param bf Input BooleanFormula
-   * @param pSSAMap Corresponding SSAMap
-   * @return Another BooleanFormula, where syntactic substition has taken place
-   */
-  private BooleanFormula syntacticSubstitution(BooleanFormula bf, SSAMap pSSAMap, PathFormula pPathFormula){
-    SubstituteVisitor stvisitorBf = new SubstituteVisitor(fmgr.manager);
-    bfmgr.visitRecursively(bf, stvisitorBf);
-    HashMap<Formula, Formula> substituteMap = stvisitorBf.fmap;
-    logger.log(Level.ALL, "substituion map", substituteMap);
-    SubstituteVisitor stvisitorBfnew = new SubstituteVisitor(fmgr.manager);
-    bfmgr.visitRecursively(pPathFormula.getFormula(), stvisitorBfnew);
-    HashMap<Formula, Formula> substituteMapnew = stvisitorBfnew.fmap;
-    substituteMap.putAll(substituteMapnew);
-    logger.log(Level.ALL, "Updated substituion map with path formula", substituteMap);
-    HashMap<Formula, Formula> substituteMapUpdated = new HashMap<>();
-    for (Formula key : substituteMap.keySet()) {
-      HashMap<Formula, Formula> localMap = new HashMap<>(substituteMap);
-      localMap.remove(key);
-      if (!localMap.isEmpty()){
-        substituteMapUpdated.put(key, fmgr.manager.substitute(substituteMap.get(key), localMap));
-      } else {
-        substituteMapUpdated.put(key, substituteMap.get(key));
-      }
-    }
-    substituteMap = substituteMapUpdated;
-    logger.log(Level.ALL, "Updated substituion map with simplifications", substituteMap);
-    logger.log(Level.ALL, "Before substituion          ", bf);
-    if (!substituteMap.isEmpty()) {
-      SubstituteAssumptionTransformationVisitor
-          stAssume = new SubstituteAssumptionTransformationVisitor(fmgr.manager, substituteMap);
-      bf = bfmgr.transformRecursively(bf, stAssume);
-      logger.log(Level.ALL, "After Assumption substituion", bf);
-      SubstituteAssignmentTransformationVisitor stAssign;
-      stAssign =
-          new SubstituteAssignmentTransformationVisitor(fmgr.manager, substituteMap, pSSAMap);
-      bf = bfmgr.transformRecursively(bf, stAssign);
-      logger.log(Level.ALL, "After Assignment substituion", bf, "\n");
-      BooleanFormula substitionFormula = bfmgr.makeBoolean(true);
-      for (Formula key : substituteMapUpdated.keySet()) {
-        if (formulaInSsaMap(key, pSSAMap)) {
-          substitionFormula = fmgr.makeAnd(substitionFormula, fmgr.makeEqual(key, substituteMapUpdated.get(key)));
-        }
-      }
-      bf = fmgr.makeAnd(bf,substitionFormula);
-      logger.log(Level.ALL, "After adding formulas       ", bf, "\n");
-    }
-
-    return bf;
-  }
-
-  /**
-   * Checks if a variable along with it's index is in the SSAMap
-   * @param f Formula consisting of only one variable in the form `name@index`
-   * @return the result of this check
-   */
-  private boolean formulaInSsaMap(Formula f, SSAMap pSSAMap){
-    Map<String, Formula> vars = fmgr.extractVariables(f);
-    if (vars.size()!=1) {
-      // TODO Martin reenable error
-      return false;
-//      throw new IllegalArgumentException("Error checking if variable index in SSAMAP: " + f.toString() +
-//          "\nNot exactly one variable in f");
-    }
-    Pair<String, OptionalInt> stringOptionalIntPair = FormulaManagerView.parseName(vars.keySet().iterator().next());
-    assert stringOptionalIntPair.getFirst() != null;
-    if (stringOptionalIntPair.getFirst().isEmpty() || stringOptionalIntPair.getSecond().isEmpty()) {
-      // TODO Martin Does javasmt have a unified logging system?
-      // TODO Martin reenable error
-      return false;
-//      throw new IllegalArgumentException("Error checking if variable index in SSAMAP: " + f.toString());
-    }
-//    String[] parts = f.toString().split("@");
-    return pSSAMap.containsVariable(stringOptionalIntPair.getFirst()) && (pSSAMap.getIndex(stringOptionalIntPair.getFirst()) == stringOptionalIntPair.getSecond().getAsInt());
-  }
 
   /**
    * Compute an abstraction of a formula. This is a low-level version of {@link
@@ -896,7 +837,7 @@ public class PredicateAbstractionManager {
         }
 
       } else {
-        if (options.getAbstractionType() != AbstractionType.BOOLEAN  && options.getAbstractionType() != AbstractionType.SUBSTITUTION ) {
+        if ((options.getAbstractionType() != AbstractionType.BOOLEAN  && options.getAbstractionType() != AbstractionType.SUBSTITUTION ) || options.useSubstitutionCartesian()) {
           // First do cartesian abstraction if desired
           cartesianAbstractionTimer.start();
           try {

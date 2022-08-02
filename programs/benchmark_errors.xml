@@ -1,0 +1,175 @@
+<?xml version="1.0"?>
+
+<!-- This file is part of CPAchecker, -->
+<!-- a tool for configurable software verification: -->
+<!-- https://cpachecker.sosy-lab.org -->
+<!-- -->
+<!-- SPDX-FileCopyrightText: 2022 Dirk Beyer <https://www.sosy-lab.org> -->
+<!-- -->
+<!-- SPDX-License-Identifier: Apache-2.0 -->
+
+<!DOCTYPE benchmark PUBLIC "+//IDN sosy-lab.org//DTD BenchExec benchmark 1.18//EN" "https://www.sosy-lab.org/benchexec/benchmark-1.18.dtd">
+    <benchmark tool="cpachecker" timelimit="60s" hardtimelimit="90s" memlimit="1000 MB" cpuCores="1">
+
+    <!-- Note that all paths to ../../test/programs need to be changed if you move this file. -->
+    <!--  <rundefinition name="with-output-files">-->
+    <!--    &lt;!&ndash; Variables can appear in option values, too. &ndash;&gt;-->
+    <!--    <option name="-setprop">output.path=test/results/name.${benchmark_date}.output/input/</option>-->
+    <!--  </rundefinition>-->
+
+<!--    <rundefinition name="PredicateAnalysis">-->
+<!--        <option name="-predicateAnalysis"/>-->
+<!--    </rundefinition>-->
+
+<!--    <rundefinition name="SymbolicExecution">-->
+<!--        <option name="-symbolicExecution"/>-->
+<!--    </rundefinition>-->
+
+    <rundefinition name="PredicateSymEx">
+        <option name="-predicateSymEx"/>
+    </rundefinition>
+
+    <rundefinition name="PredicateSymEx-SSAcheck">
+        <option name="-predicateSymEx"/>
+        <option name="-setprop">cpa.predicate.abstraction.substitutionenableSSAcheck=true</option>
+    </rundefinition>
+
+    <rundefinition name="PredicateSymEx-l">
+        <option name="-predicateSymEx"/>
+        <option name="-setprop">cpa.predicate.blk.threshold=0</option>
+        <option name="-setprop">cpa.predicate.blk.alwaysAtFunctions=false</option>
+        <option name="-setprop">cpa.predicate.blk.alwaysAtLoops=true</option>
+    </rundefinition>
+
+    <rundefinition name="PredicateSymEx-lf">
+        <option name="-setprop">cpa.predicate.blk.threshold=0</option>
+        <option name="-setprop">cpa.predicate.blk.alwaysAtFunctions=true</option>
+        <option name="-setprop">cpa.predicate.blk.alwaysAtLoops=true</option>
+        <option name="-predicateSymEx"/>
+    </rundefinition>
+
+
+
+    <rundefinition name="PredicateSymEx-CEGAR-filtering">
+        <option name="-predicateSymEx-CEGAR"/>
+    </rundefinition>
+
+    <rundefinition name="PredicateSymEx-CEGAR-filtering-Sharing">
+        <option name="-predicateSymEx-CEGAR"/>
+        <option name="-setprop">cpa.predicate.precision.sharing=GLOBAL</option>
+    </rundefinition>
+
+    <rundefinition name="PredicateSymEx-CEGAR-Cartesian">
+        <option name="-predicateSymEx-CEGAR"/>
+        <option name="-setprop">cpa.predicate.abstraction.substitutionCartesian=true</option>
+    </rundefinition>
+
+    <rundefinition name="PredicateSymEx-CEGAR-Cartesian-Sharing">
+        <option name="-predicateSymEx-CEGAR"/>
+        <option name="-setprop">cpa.predicate.abstraction.substitutionCartesian=true</option>
+        <option name="-setprop">cpa.predicate.precision.sharing=GLOBAL</option>
+    </rundefinition>
+
+
+
+    <rundefinition name="PredicateSymEx-CEGAR-UCB-filtering">
+        <option name="-predicateSymEx-CEGAR-UCB"/>
+    </rundefinition>
+
+    <rundefinition name="PredicateSymEx-CEGAR-UCB-filtering-Sharing">
+        <option name="-predicateSymEx-CEGAR-UCB"/>
+        <option name="-setprop">cpa.predicate.precision.sharing=GLOBAL</option>
+    </rundefinition>
+
+    <rundefinition name="PredicateSymEx-CEGAR-UCB-Cartesian">
+        <option name="-predicateSymEx-CEGAR-UCB"/>
+        <option name="-setprop">cpa.predicate.abstraction.substitutionCartesian=true</option>
+    </rundefinition>
+
+    <rundefinition name="PredicateSymEx-CEGAR-UCB-Cartesian-Sharing">
+        <option name="-predicateSymEx-CEGAR-UCB"/>
+        <option name="-setprop">cpa.predicate.abstraction.substitutionCartesian=true</option>
+        <option name="-setprop">cpa.predicate.precision.sharing=GLOBAL</option>
+    </rundefinition>
+
+    <!-- Global sourcefiles are used in every run definition. -->
+    <tasks name="errors">
+        <include>../../sv-benchmarks/c/bitvector-loops/verisec_sendmail_tTflag_arr_one_loop.yml</include>
+        <include>../../sv-benchmarks/c/eca-rers2018/Problem11.yml</include>
+        <include>../../sv-benchmarks/c/float-benchs/nan_double.yml</include>
+        <include>../../sv-benchmarks/c/float-benchs/nan_float.yml</include>
+        <include>../../sv-benchmarks/c/floats-esbmc-regression/Float_div_bad.i.p+cfa-reducer.yml</include>
+        <include>../../sv-benchmarks/c/float-newlib/double_req_bl_0870a.yml</include>
+        <include>../../sv-benchmarks/c/float-newlib/double_req_bl_1210.yml</include>
+        <include>../../sv-benchmarks/c/float-newlib/float_req_bl_0870a.yml</include>
+        <include>../../sv-benchmarks/c/float-newlib/float_req_bl_1210.yml</include>
+        <include>../../sv-benchmarks/c/heap-manipulation/bubble_sort_linux-2.yml</include>
+        <include>../../sv-benchmarks/c/ldv-regression/mutex_lock_int.yml</include>
+        <include>../../sv-benchmarks/c/ldv-regression/mutex_lock_struct.yml</include>
+        <include>../../sv-benchmarks/c/ldv-regression/test06.yml</include>
+        <include>../../sv-benchmarks/c/ldv-regression/test08.yml</include>
+        <include>../../sv-benchmarks/c/list-ext3-properties/dll_nullified-1.yml</include>
+        <include>../../sv-benchmarks/c/list-ext3-properties/sll_of_sll_nondet_append-2.yml</include>
+        <include>../../sv-benchmarks/c/nla-digbench-scaling/dijkstra-u_unwindbound10.yml</include>
+        <include>../../sv-benchmarks/c/nla-digbench-scaling/dijkstra-u_unwindbound100.yml</include>
+        <include>../../sv-benchmarks/c/nla-digbench-scaling/dijkstra-u_unwindbound20.yml</include>
+        <include>../../sv-benchmarks/c/nla-digbench-scaling/dijkstra-u_unwindbound5.yml</include>
+        <include>../../sv-benchmarks/c/nla-digbench-scaling/dijkstra-u_unwindbound50.yml</include>
+        <include>../../sv-benchmarks/c/nla-digbench-scaling/ps4-ll_unwindbound10.yml</include>
+        <include>../../sv-benchmarks/c/nla-digbench-scaling/ps4-ll_unwindbound100.yml</include>
+        <include>../../sv-benchmarks/c/nla-digbench-scaling/ps4-ll_unwindbound2.yml</include>
+        <include>../../sv-benchmarks/c/nla-digbench-scaling/ps4-ll_unwindbound20.yml</include>
+        <include>../../sv-benchmarks/c/nla-digbench-scaling/ps4-ll_unwindbound5.yml</include>
+        <include>../../sv-benchmarks/c/nla-digbench-scaling/ps4-ll_unwindbound50.yml</include>
+        <include>../../sv-benchmarks/c/nla-digbench-scaling/ps5-ll_unwindbound1.yml</include>
+        <include>../../sv-benchmarks/c/nla-digbench-scaling/ps5-ll_unwindbound10.yml</include>
+        <include>../../sv-benchmarks/c/nla-digbench-scaling/ps5-ll_unwindbound100.yml</include>
+        <include>../../sv-benchmarks/c/nla-digbench-scaling/ps5-ll_unwindbound2.yml</include>
+        <include>../../sv-benchmarks/c/nla-digbench-scaling/ps5-ll_unwindbound20.yml</include>
+        <include>../../sv-benchmarks/c/nla-digbench-scaling/ps5-ll_unwindbound5.yml</include>
+        <include>../../sv-benchmarks/c/nla-digbench-scaling/ps5-ll_unwindbound50.yml</include>
+        <include>../../sv-benchmarks/c/nla-digbench-scaling/ps6-ll_unwindbound1.yml</include>
+        <include>../../sv-benchmarks/c/nla-digbench-scaling/ps6-ll_unwindbound10.yml</include>
+        <include>../../sv-benchmarks/c/nla-digbench-scaling/ps6-ll_unwindbound100.yml</include>
+        <include>../../sv-benchmarks/c/nla-digbench-scaling/ps6-ll_unwindbound2.yml</include>
+        <include>../../sv-benchmarks/c/nla-digbench-scaling/ps6-ll_unwindbound20.yml</include>
+        <include>../../sv-benchmarks/c/nla-digbench-scaling/ps6-ll_unwindbound5.yml</include>
+        <include>../../sv-benchmarks/c/nla-digbench-scaling/ps6-ll_unwindbound50.yml</include>
+        <include>../../sv-benchmarks/c/systemc/token_ring.01.cil-2.yml</include>
+        <include>../../sv-benchmarks/c/systemc/token_ring.02.cil-2.yml</include>
+        <include>../../sv-benchmarks/c/systemc/token_ring.03.cil-1.yml</include>
+        <include>../../sv-benchmarks/c/seq-mthreaded/rekcba_ctm.2-1.yml</include>
+        <include>../../sv-benchmarks/c/seq-mthreaded/rekcba_ctm.3-2.yml</include>
+        <include>../../sv-benchmarks/c/seq-mthreaded/rekcba_nxt.1.M1-1.yml</include>
+        <include>../../sv-benchmarks/c/seq-mthreaded/rekh_aso.1.M1-2.yml</include>
+        <include>../../sv-benchmarks/c/seq-mthreaded/rekh_aso.1.M4-2.yml</include>
+        <include>../../sv-benchmarks/c/seq-mthreaded/rekh_aso.2.M1-2.yml</include>
+        <include>../../sv-benchmarks/c/seq-mthreaded/rekh_aso.2.M4-1.yml</include>
+        <include>../../sv-benchmarks/c/seq-mthreaded/rekh_aso.3.M1.yml</include>
+        <include>../../sv-benchmarks/c/seq-mthreaded/rekh_ctm.2-1.yml</include>
+        <include>../../sv-benchmarks/c/seq-mthreaded/rekh_ctm.3-2.yml</include>
+        <include>../../sv-benchmarks/c/seq-mthreaded/rekh_nxt.1.M1-1.yml</include>
+        <include>../../sv-benchmarks/c/seq-mthreaded/rekh_nxt.1.M4-1.yml</include>
+        <include>../../sv-benchmarks/c/seq-pthread/cs_lazy.yml</include>
+        <include>../../sv-benchmarks/c/seq-pthread/cs_read_write_lock-2.yml</include>
+        <include>../../sv-benchmarks/c/seq-pthread/cs_stack-2.yml</include>
+        <include>../../sv-benchmarks/c/seq-pthread/cs_stateful-1.yml</include>
+        <include>../../sv-benchmarks/c/ldv-linux-3.4-simple/32_7_cilled_const_ok_linux-32_1-drivers--media--video--cpia2--cpia2.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.yml</include>
+        <include>../../sv-benchmarks/c/ldv-linux-3.16-rc1/43_2a_bitvector_linux-3.16-rc1.tar.xz-43_2a-drivers--scsi--megaraid--megaraid_mm.ko-entry_point.cil.out.yml</include>
+        <include>../../sv-benchmarks/c/ldv-validator-v0.8/linux-stable-4ee267b-1-130_7a-drivers--hwmon--ibmaem.ko-entry_point_ldv-val-v0.8.cil.out.yml</include>
+        <include>../../sv-benchmarks/c/ldv-linux-4.2-rc1/linux-4.2-rc1.tar.xz-08_1a-drivers--char--raw.ko-entry_point.cil.out.yml</include>
+        <include>../../sv-benchmarks/c/ldv-linux-4.2-rc1/linux-4.2-rc1.tar.xz-08_1a-drivers--md--dm-cache.ko-entry_point.cil.out.yml</include>
+        <include>../../sv-benchmarks/c/ldv-linux-4.2-rc1/linux-4.2-rc1.tar.xz-08_1a-drivers--md--dm-multipath.ko-entry_point.cil.out.yml</include>
+        <include>../../sv-benchmarks/c/ldv-linux-4.2-rc1/linux-4.2-rc1.tar.xz-08_1a-drivers--net--team--team.ko-entry_point.cil.out.yml</include>
+        <include>../../sv-benchmarks/c/ldv-linux-4.2-rc1/linux-4.2-rc1.tar.xz-08_1a-drivers--scsi--fcoe--fcoe.ko-entry_point.cil.out.yml</include>
+        <include>../../sv-benchmarks/c/ldv-linux-4.2-rc1/linux-4.2-rc1.tar.xz-08_1a-drivers--staging--lustre--lustre--llite--llite_lloop.ko-entry_point.cil.out.yml</include>
+        <include>../../sv-benchmarks/c/ldv-linux-4.2-rc1/linux-4.2-rc1.tar.xz-08_1a-drivers--usb--serial--usbserial.ko-entry_point.cil.out.yml</include>
+        <include>../../sv-benchmarks/c/ldv-linux-4.2-rc1/linux-4.2-rc1.tar.xz-08_1a-drivers--vfio--vfio.ko-entry_point.cil.out.yml</include>
+        <include>../../sv-benchmarks/c/ldv-linux-4.2-rc1/linux-4.2-rc1.tar.xz-08_1a-drivers--watchdog--it87_wdt.ko-entry_point.cil.out.yml</include>
+        <include>../../sv-benchmarks/c/ldv-linux-4.2-rc1/linux-4.2-rc1.tar.xz-32_7a-drivers--input--mousedev.ko-entry_point.cil.out.yml</include>
+        <include>../../sv-benchmarks/c/ldv-linux-4.2-rc1/linux-4.2-rc1.tar.xz-32_7a-drivers--md--raid456.ko-entry_point.cil.out.yml</include>
+        <include>../../sv-benchmarks/c/ldv-linux-4.2-rc1/linux-4.2-rc1.tar.xz-43_2a-drivers--scsi--megaraid--megaraid_mm.ko-entry_point.cil.out.yml</include>
+    </tasks>
+
+    <propertyfile>../../sv-benchmarks/c/properties/unreach-call.prp</propertyfile>
+</benchmark>

@@ -84,6 +84,20 @@ public class PredicateAbstractionManagerOptions {
           "Use CEGAR with along Substituion precision adjustment")
   private boolean substitutionCEGAR = false;
 
+  @Option(
+      secure = true,
+      name = "abstraction.substitutionCartesian",
+      description =
+          "Use CEGAR with along substitution + Cartesian precision adjustment")
+  private boolean substitutionCartesian = false;
+
+  @Option(
+      secure = true,
+      name = "abstraction.substitutionenableSSAcheck",
+      description =
+          "Check for formulas with obsolete SSA Indices")
+  private boolean substitutioncheckSSA = false;
+
   public PredicateAbstractionManagerOptions(Configuration config)
       throws InvalidConfigurationException {
     config.inject(this);
@@ -130,4 +144,8 @@ public class PredicateAbstractionManagerOptions {
   }
 
   boolean useSubstitutionCEGAR() { return substitutionCEGAR; }
+
+  boolean useSubstitutionCartesian() { return substitutionCartesian; }
+
+  boolean useSubstitutionCheckSSA() { return substitutioncheckSSA; }
 }

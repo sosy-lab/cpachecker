@@ -2037,6 +2037,15 @@ cpa.predicate.abstraction.reuseAbstractionsFrom = no default value
 # space. Helpful when debugging (formulas get smaller).
 cpa.predicate.abstraction.simplify = false
 
+# Use CEGAR with along Substituion precision adjustment
+cpa.predicate.abstraction.substitutionCEGAR = false
+
+# Use CEGAR with along substitution + Cartesian precision adjustment
+cpa.predicate.abstraction.substitutionCartesian = false
+
+# Check for formulas with obsolete SSA Indices
+cpa.predicate.abstraction.substitutionenableSSAcheck = false
+
 # What to use for storing abstractions
 cpa.predicate.abstraction.type = "BDD"
   allowed values: [BDD, FORMULA]

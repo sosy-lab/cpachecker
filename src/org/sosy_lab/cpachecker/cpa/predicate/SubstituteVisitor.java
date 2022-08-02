@@ -69,15 +69,17 @@ public class SubstituteVisitor extends DefaultBooleanFormulaVisitor<TraversalPro
           }
         }
       });
-      assert parts.size()==2 ;
-      // Todo Martin: Think about
-      // a) when should a Equals Formula be added to the substitutiontable (this is done here)
-      // b) when should a substitution actually take place (cf. SubstituteAssignmentTransformationVisitor)
-      Map<String, Formula> allvariables = fmgr.extractVariables(atom);
-      if (allvariables.containsKey(parts.get(0).toString())) {
-        fmap.put(parts.get(0), parts.get(1));
-      } else if (allvariables.containsKey(parts.get(1).toString())){
-        fmap.put(parts.get(1), parts.get(0));
+//      assert parts.size()==2 ;
+      if (parts.size()==2){
+        // Todo Martin: Think about
+        // a) when should a Equals Formula be added to the substitutiontable (this is done here)
+        // b) when should a substitution actually take place (cf. SubstituteAssignmentTransformationVisitor)
+        Map<String, Formula> allvariables = fmgr.extractVariables(atom);
+        if (allvariables.containsKey(parts.get(0).toString())) {
+          fmap.put(parts.get(0), parts.get(1));
+        } else if (allvariables.containsKey(parts.get(1).toString())){
+          fmap.put(parts.get(1), parts.get(0));
+        }
       }
     }
     return TraversalProcess.CONTINUE;
