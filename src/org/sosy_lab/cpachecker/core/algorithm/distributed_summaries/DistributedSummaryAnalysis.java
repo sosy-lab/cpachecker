@@ -9,7 +9,6 @@
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries;
 
 import java.io.IOException;
-import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -40,10 +39,7 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.Block
 import org.sosy_lab.cpachecker.core.defaults.DummyTargetState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
-import org.sosy_lab.cpachecker.core.interfaces.Statistics;
-import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
-import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeState;
@@ -51,10 +47,9 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.statistics.StatInt;
 import org.sosy_lab.cpachecker.util.statistics.StatKind;
-import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 
 @Options(prefix = "distributedSummaries")
-public class DistributedSummaryAnalysis implements Algorithm, StatisticsProvider, Statistics {
+public class DistributedSummaryAnalysis implements Algorithm {
 
   private final Configuration configuration;
   private final LogManager logger;
@@ -62,8 +57,6 @@ public class DistributedSummaryAnalysis implements Algorithm, StatisticsProvider
   private final ShutdownManager shutdownManager;
   private final Specification specification;
   private final BlockSummaryAnalysisOptions options;
-
-  private Collection<Statistics> statsCollection;
 
   private final StatInt numberWorkers = new StatInt(StatKind.MAX, "number of workers");
 
@@ -197,7 +190,6 @@ public class DistributedSummaryAnalysis implements Algorithm, StatisticsProvider
       // listen to messages
       try (BlockSummaryConnection mainThreadConnection =
           components.getAdditionalConnections().get(0)) {
-        mainThreadConnection.collectStatistics(statsCollection);
         BlockSummaryObserverWorker observer =
             new BlockSummaryObserverWorker("observer", mainThreadConnection, options);
         Pair<AlgorithmStatus, Result> resultPair = observer.observe();
@@ -222,21 +214,5 @@ public class DistributedSummaryAnalysis implements Algorithm, StatisticsProvider
     } finally {
       logger.log(Level.INFO, "Block analysis finished.");
     }
-  }
-
-  @Override
-  public void collectStatistics(Collection<Statistics> pStatisticsCollection) {
-    statsCollection = pStatisticsCollection;
-    pStatisticsCollection.add(this);
-  }
-
-  @Override
-  public void printStatistics(PrintStream out, Result result, UnmodifiableReachedSet reached) {
-    StatisticsWriter.writingStatisticsTo(out).put(numberWorkers);
-  }
-
-  @Override
-  public String getName() {
-    return "DistributedSummaryAnalysis";
   }
 }
