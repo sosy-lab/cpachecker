@@ -32,24 +32,28 @@ public abstract class BlockTransferRelation implements TransferRelation {
   protected ImmutableSet<CFANode> nodes;
   protected CFANode targetNode;
   protected BlockNode bNode;
-  private boolean wasAtLeastOneLoopHeadEncountered;
 
   public void init(BlockNode pBlockNode) {
+    assert edges == null;
+    assert nodes == null;
+    assert targetNode == null;
+    assert bNode == null;
+    assert pBlockNode != null;
     edges = ImmutableSet.copyOf(pBlockNode.getEdgesInBlock());
     nodes = ImmutableSet.copyOf(pBlockNode.getNodesInBlock());
     targetNode = pBlockNode.getLastNode();
-    wasAtLeastOneLoopHeadEncountered = false;
     bNode = pBlockNode;
   }
 
-  protected boolean shouldComputeSuccessor(BlockState pBlockState) {
-    boolean isTargetLoopHead = pBlockState.getLocationNode().equals(targetNode);
-    if (isTargetLoopHead) {
-      if (wasAtLeastOneLoopHeadEncountered) {
-        wasAtLeastOneLoopHeadEncountered = false;
+  boolean isTargetLoopHead(BlockState pBlockState) {
+    return pBlockState.getLocationNode().equals(targetNode);
+  }
+
+  boolean shouldComputeSuccessor(BlockState pBlockState) {
+    if (isTargetLoopHead(pBlockState)) {
+      if (pBlockState.hasEncounteredAtLeastOneLoopHead()) {
         return false;
       }
-      wasAtLeastOneLoopHeadEncountered = true;
     }
     return true;
   }
@@ -65,7 +69,7 @@ public abstract class BlockTransferRelation implements TransferRelation {
   static class ForwardBlockTransferRelation extends BlockTransferRelation {
 
     /**
-     * This transfer relation produces successors iff an edge between two nodes exists in the CFA
+     * This transfer relation produces successors iff an edge between two nodes exists in the CFA,
      * and it is part of the block
      */
     public ForwardBlockTransferRelation() {}
@@ -92,7 +96,8 @@ public abstract class BlockTransferRelation implements TransferRelation {
                 cfaEdge.getSuccessor(),
                 bNode,
                 AnalysisDirection.FORWARD,
-                getType(cfaEdge.getSuccessor()));
+                getType(cfaEdge.getSuccessor()),
+                blockState.hasEncounteredAtLeastOneLoopHead() || isTargetLoopHead(blockState));
         return ImmutableList.of(successor);
       }
 
@@ -113,7 +118,15 @@ public abstract class BlockTransferRelation implements TransferRelation {
       CFANode node = blockState.getLocationNode();
       return CFAUtils.successorsOf(node)
           .filter(n -> nodes.contains(n))
-          .transform(n -> new BlockState(n, bNode, AnalysisDirection.FORWARD, getType(n)))
+          .transform(
+              n ->
+                  new BlockState(
+                      n,
+                      bNode,
+                      AnalysisDirection.FORWARD,
+                      getType(n),
+                      blockState.hasEncounteredAtLeastOneLoopHead()
+                          || isTargetLoopHead(blockState)))
           .toList();
     }
   }
@@ -149,7 +162,8 @@ public abstract class BlockTransferRelation implements TransferRelation {
                 cfaEdge.getPredecessor(),
                 bNode,
                 AnalysisDirection.BACKWARD,
-                getType(cfaEdge.getPredecessor()));
+                getType(cfaEdge.getPredecessor()),
+                blockState.hasEncounteredAtLeastOneLoopHead() || isTargetLoopHead(blockState));
         return ImmutableList.of(successor);
       }
 
@@ -172,7 +186,15 @@ public abstract class BlockTransferRelation implements TransferRelation {
       FluentIterable<CFANode> predecessors = CFAUtils.predecessorsOf(node);
       return predecessors
           .filter(n -> nodes.contains(n))
-          .transform(n -> new BlockState(n, bNode, AnalysisDirection.BACKWARD, getType(n)))
+          .transform(
+              n ->
+                  new BlockState(
+                      n,
+                      bNode,
+                      AnalysisDirection.BACKWARD,
+                      getType(n),
+                      blockState.hasEncounteredAtLeastOneLoopHead()
+                          || isTargetLoopHead(blockState)))
           .toList();
     }
   }

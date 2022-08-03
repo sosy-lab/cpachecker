@@ -222,6 +222,10 @@ public abstract class BlockSummaryMessage implements Comparable<BlockSummaryMess
         Instant.now());
   }
 
+  public String getBlockId() {
+    return uniqueBlockId;
+  }
+
   @Override
   public int compareTo(BlockSummaryMessage o) {
     return getType().compareTo(o.getType());
