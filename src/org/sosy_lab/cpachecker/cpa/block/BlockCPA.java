@@ -50,8 +50,7 @@ public class BlockCPA extends AbstractCPA {
   @Override
   public AbstractState getInitialState(CFANode node, StateSpacePartition partition)
       throws InterruptedException {
-    return new BlockState(
-        node, blockNode, AnalysisDirection.FORWARD, BlockStateType.INITIAL, false);
+    return new BlockState(node, blockNode, AnalysisDirection.FORWARD, BlockStateType.INITIAL);
   }
 
   public static BlockCPA create() {

@@ -36,14 +36,9 @@ public class BlockState implements AbstractQueryableState, Partitionable, Serial
   private final CFANode node;
   private final AnalysisDirection direction;
   private final BlockStateType type;
-  private final boolean wasAtLeastOneLoopHeadEncountered;
 
   public BlockState(
-      CFANode pNode,
-      BlockNode pTargetNode,
-      AnalysisDirection pDirection,
-      BlockStateType pType,
-      boolean pWasAtLeastOneLoopHeadEncountered) {
+      CFANode pNode, BlockNode pTargetNode, AnalysisDirection pDirection, BlockStateType pType) {
     node = pNode;
     direction = pDirection;
     type = pType;
@@ -55,7 +50,6 @@ public class BlockState implements AbstractQueryableState, Partitionable, Serial
               ? pTargetNode.getLastNode()
               : pTargetNode.getStartNode();
     }
-    wasAtLeastOneLoopHeadEncountered = pWasAtLeastOneLoopHeadEncountered;
   }
 
   public CFANode getLocationNode() {
@@ -98,10 +92,6 @@ public class BlockState implements AbstractQueryableState, Partitionable, Serial
         && Objects.equals(targetCFANode, that.targetCFANode)
         && Objects.equals(node, that.node)
         && type == that.type;
-  }
-
-  public boolean hasEncounteredAtLeastOneLoopHead() {
-    return wasAtLeastOneLoopHeadEncountered;
   }
 
   @Override

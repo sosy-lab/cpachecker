@@ -32,6 +32,7 @@ public abstract class BlockTransferRelation implements TransferRelation {
   protected ImmutableSet<CFANode> nodes;
   protected CFANode targetNode;
   protected BlockNode bNode;
+  private boolean wasAtLeastOneLoopHeadEncountered;
 
   public void init(BlockNode pBlockNode) {
     assert edges == null;
@@ -43,29 +44,19 @@ public abstract class BlockTransferRelation implements TransferRelation {
     nodes = ImmutableSet.copyOf(pBlockNode.getNodesInBlock());
     targetNode = pBlockNode.getLastNode();
     bNode = pBlockNode;
+    wasAtLeastOneLoopHeadEncountered = false;
   }
 
-  boolean isTargetLoopHead(BlockState pBlockState) {
-    return pBlockState.getLocationNode().equals(targetNode);
-  }
-
-  boolean shouldComputeSuccessor(BlockState pBlockState) {
-    if (isTargetLoopHead(pBlockState)) {
-      if (pBlockState.hasEncounteredAtLeastOneLoopHead()) {
+  protected boolean shouldComputeSuccessor(BlockState pBlockState) {
+    boolean isTargetLoopHead = pBlockState.getLocationNode().equals(targetNode);
+    if (isTargetLoopHead) {
+      if (wasAtLeastOneLoopHeadEncountered) {
+        wasAtLeastOneLoopHeadEncountered = false;
         return false;
       }
+      wasAtLeastOneLoopHeadEncountered = true;
     }
     return true;
-  }
-
-  boolean newEncounteredValue(BlockState pBlockState) {
-    if (isTargetLoopHead(pBlockState)) {
-      if (pBlockState.hasEncounteredAtLeastOneLoopHead()) {
-        return false;
-      }
-      return true;
-    }
-    return pBlockState.hasEncounteredAtLeastOneLoopHead();
   }
 
   @Override
@@ -106,8 +97,7 @@ public abstract class BlockTransferRelation implements TransferRelation {
                 cfaEdge.getSuccessor(),
                 bNode,
                 AnalysisDirection.FORWARD,
-                getType(cfaEdge.getSuccessor()),
-                newEncounteredValue(blockState));
+                getType(cfaEdge.getSuccessor()));
         return ImmutableList.of(successor);
       }
 
@@ -128,14 +118,7 @@ public abstract class BlockTransferRelation implements TransferRelation {
       CFANode node = blockState.getLocationNode();
       return CFAUtils.successorsOf(node)
           .filter(n -> nodes.contains(n))
-          .transform(
-              n ->
-                  new BlockState(
-                      n,
-                      bNode,
-                      AnalysisDirection.FORWARD,
-                      getType(n),
-                      newEncounteredValue(blockState)))
+          .transform(n -> new BlockState(n, bNode, AnalysisDirection.FORWARD, getType(n)))
           .toList();
     }
   }
@@ -171,8 +154,7 @@ public abstract class BlockTransferRelation implements TransferRelation {
                 cfaEdge.getPredecessor(),
                 bNode,
                 AnalysisDirection.BACKWARD,
-                getType(cfaEdge.getPredecessor()),
-                newEncounteredValue(blockState));
+                getType(cfaEdge.getPredecessor()));
         return ImmutableList.of(successor);
       }
 
@@ -195,14 +177,7 @@ public abstract class BlockTransferRelation implements TransferRelation {
       FluentIterable<CFANode> predecessors = CFAUtils.predecessorsOf(node);
       return predecessors
           .filter(n -> nodes.contains(n))
-          .transform(
-              n ->
-                  new BlockState(
-                      n,
-                      bNode,
-                      AnalysisDirection.BACKWARD,
-                      getType(n),
-                      newEncounteredValue(blockState)))
+          .transform(n -> new BlockState(n, bNode, AnalysisDirection.BACKWARD, getType(n)))
           .toList();
     }
   }
