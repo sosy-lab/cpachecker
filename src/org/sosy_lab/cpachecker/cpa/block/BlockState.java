@@ -68,7 +68,7 @@ public class BlockState implements AbstractQueryableState, Partitionable, Serial
 
   @Override
   public String getCPAName() {
-    return "block";
+    return BlockCPA.class.getSimpleName();
   }
 
   @Override

@@ -58,6 +58,16 @@ public abstract class BlockTransferRelation implements TransferRelation {
     return true;
   }
 
+  boolean newEncounteredValue(BlockState pBlockState) {
+    if (isTargetLoopHead(pBlockState)) {
+      if (pBlockState.hasEncounteredAtLeastOneLoopHead()) {
+        return false;
+      }
+      return true;
+    }
+    return pBlockState.hasEncounteredAtLeastOneLoopHead();
+  }
+
   @Override
   public abstract Collection<BlockState> getAbstractSuccessorsForEdge(
       AbstractState element, Precision prec, CFAEdge cfaEdge);
@@ -97,7 +107,7 @@ public abstract class BlockTransferRelation implements TransferRelation {
                 bNode,
                 AnalysisDirection.FORWARD,
                 getType(cfaEdge.getSuccessor()),
-                blockState.hasEncounteredAtLeastOneLoopHead() || isTargetLoopHead(blockState));
+                newEncounteredValue(blockState));
         return ImmutableList.of(successor);
       }
 
@@ -125,8 +135,7 @@ public abstract class BlockTransferRelation implements TransferRelation {
                       bNode,
                       AnalysisDirection.FORWARD,
                       getType(n),
-                      blockState.hasEncounteredAtLeastOneLoopHead()
-                          || isTargetLoopHead(blockState)))
+                      newEncounteredValue(blockState)))
           .toList();
     }
   }
@@ -163,7 +172,7 @@ public abstract class BlockTransferRelation implements TransferRelation {
                 bNode,
                 AnalysisDirection.BACKWARD,
                 getType(cfaEdge.getPredecessor()),
-                blockState.hasEncounteredAtLeastOneLoopHead() || isTargetLoopHead(blockState));
+                newEncounteredValue(blockState));
         return ImmutableList.of(successor);
       }
 
@@ -193,8 +202,7 @@ public abstract class BlockTransferRelation implements TransferRelation {
                       bNode,
                       AnalysisDirection.BACKWARD,
                       getType(n),
-                      blockState.hasEncounteredAtLeastOneLoopHead()
-                          || isTargetLoopHead(blockState)))
+                      newEncounteredValue(blockState)))
           .toList();
     }
   }
