@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition;
 
+import static com.google.common.base.Preconditions.checkArgument;
+
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSet;
 import java.util.ArrayDeque;
@@ -50,12 +52,12 @@ public class BlockNode {
       @NonNull Map<Integer, CFANode> pIdToNodeMap,
       @NonNull ShutdownNotifier pShutdownNotifier)
       throws InterruptedException {
-    Preconditions.checkArgument(
+    checkArgument(
         CFAUtils.existsPath(
             pMetaData.getStartNode(),
             pMetaData.getLastNode(),
             node -> CFAUtils.leavingEdges(node).toSet(),
-            pShutdownNotifier),
+            pShutdownNotifier), /* TODO make lazy */
         "pNodesInBlock ("
             + pMetaData.getNodesInBlock()
             + ") must list all nodes but misses either the root node ("
