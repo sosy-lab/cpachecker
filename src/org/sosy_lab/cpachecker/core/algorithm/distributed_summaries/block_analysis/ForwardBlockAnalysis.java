@@ -77,7 +77,7 @@ public class ForwardBlockAnalysis extends BlockAnalysis {
         (BlockTransferRelation)
             CPAs.retrieveCPAOrFail(getCPA(), BlockCPA.class, BlockAnalysis.class)
                 .getTransferRelation();
-    containsLoops = pCFA.getAllLoopHeads().isPresent() || pOptions.sendEveryErrorMessage();
+    containsLoops = pCFA.getAllLoopHeads().isPresent() || pOptions.shouldSendEveryErrorMessage();
     alreadyReportedError = containsLoops;
     reachedSet = getReachedSet();
     precision = getInitialPrecision();

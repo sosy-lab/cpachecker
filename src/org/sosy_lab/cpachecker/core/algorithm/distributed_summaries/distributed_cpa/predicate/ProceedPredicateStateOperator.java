@@ -90,7 +90,7 @@ public class ProceedPredicateStateOperator implements ProceedOperator {
     }
     PredicateAbstractState deserialized = (PredicateAbstractState) deserialize.deserialize(message);
     PathFormula messageFormula = deserialized.getPathFormula();
-    if (analysisOptions.checkEveryErrorConditionForUnsatisfiability()) {
+    if (analysisOptions.shouldCheckEveryErrorConditionForUnsatisfiability()) {
       // can the error condition be denied?
       if (solver.isUnsat(messageFormula.getFormula())) {
         return BlockSummaryMessageProcessing.stopWith(
@@ -100,7 +100,7 @@ public class ProceedPredicateStateOperator implements ProceedOperator {
     }
     if (latestOwnPostConditionMessage != null
         && (receivedPostConditions.size() <= 3
-            || analysisOptions.checkEveryErrorConditionForUnsatisfiability())
+            || analysisOptions.shouldCheckEveryErrorConditionForUnsatisfiability())
         && receivedPostConditions.size() + unsatPredecessors.size()
             == block.getPredecessors().size()) {
       BooleanFormula check = concatenate(latestOwnPostCondition, messageFormula);
@@ -149,7 +149,7 @@ public class ProceedPredicateStateOperator implements ProceedOperator {
 
   private void storePostCondition(BlockSummaryPostConditionMessage pMessage) {
     BlockSummaryMessage toStore = BlockSummaryMessage.removeEntry(pMessage, Payload.SMART);
-    if (analysisOptions.storeCircularPostConditions()
+    if (analysisOptions.shouldAlwaysStoreCircularPostConditions()
         && pMessage.visitedBlockIds().stream().anyMatch(s -> s.equals(block.getId()))) {
       if (pMessage.representsFullPath()) {
         receivedPostConditions.put(pMessage.getUniqueBlockId(), toStore);

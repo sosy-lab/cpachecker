@@ -58,15 +58,15 @@ public class BlockSummaryAnalysisOptions {
     parentConfig = pConfig;
   }
 
-  public boolean storeCircularPostConditions() {
+  public boolean shouldAlwaysStoreCircularPostConditions() {
     return storeCircularPostConditions;
   }
 
-  public boolean checkEveryErrorConditionForUnsatisfiability() {
+  public boolean shouldCheckEveryErrorConditionForUnsatisfiability() {
     return checkEveryErrorCondition;
   }
 
-  public boolean sendEveryErrorMessage() {
+  public boolean shouldSendEveryErrorMessage() {
     return sendEveryErrorMessage;
   }
 
