@@ -25,9 +25,11 @@ public interface BlockSummaryConnection extends Closeable, StatisticsProvider {
   BlockSummaryMessage read() throws InterruptedException;
 
   /**
-   * Indicates if pending messages exist. This method should only relay on the number of messages
-   * that have already been parsed to {@link BlockSummaryMessage}s. Since the method is probably
-   * used frequently, the calculation should be cheap.
+   * Indicates if pending messages exist. A pending message is a message that has already been fully
+   * read by the Connection, and waits on the {@link
+   * org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.BlockSummaryActor} for
+   * processing. Since the method is probably used frequently, the calculation should be cheap
+   * (preferably in O(1)).
    *
    * @return true, if no pending messages exist, false otherwise
    */
