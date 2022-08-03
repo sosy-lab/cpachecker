@@ -8,7 +8,10 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSet;
+import java.util.ArrayDeque;
+import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
@@ -47,18 +50,22 @@ public class BlockNode {
       @NonNull Map<Integer, CFANode> pIdToNodeMap,
       @NonNull ShutdownNotifier pShutdownNotifier)
       throws InterruptedException {
-    assert CFAUtils.existsPath(
+    Preconditions.checkArgument(
+        CFAUtils.existsPath(
             pMetaData.getStartNode(),
             pMetaData.getLastNode(),
             node -> CFAUtils.leavingEdges(node).toSet(),
-            pShutdownNotifier)
-        : "pNodesInBlock ("
+            pShutdownNotifier),
+        "pNodesInBlock ("
             + pMetaData.getNodesInBlock()
             + ") must list all nodes but misses either the root node ("
             + pMetaData.getStartNode()
             + ") or the last node ("
             + pMetaData.getLastNode()
-            + ").";
+            + ").");
+    Preconditions.checkArgument(
+        isBlockNodeValid(pMetaData.getStartNode(), pMetaData.getEdgesInBlock()),
+        "BlockNodes require to have exactly one exit node.");
 
     metaData = pMetaData;
     predecessors = pPredecessors;
@@ -67,6 +74,30 @@ public class BlockNode {
     idToNodeMap = pIdToNodeMap;
 
     code = getCodeRepresentation();
+  }
+
+  private boolean isBlockNodeValid(CFANode pStartNode, Set<CFAEdge> pEdgesInBlock) {
+    ArrayDeque<CFANode> waiting = new ArrayDeque<>();
+    waiting.push(pStartNode);
+    Set<CFANode> covered = new LinkedHashSet<>();
+    int count = 0;
+    while (!waiting.isEmpty()) {
+      CFANode curr = waiting.pop();
+      boolean hasSuccessor = false;
+      for (CFAEdge leavingEdge : CFAUtils.leavingEdges(curr)) {
+        if (pEdgesInBlock.contains(leavingEdge)) {
+          if (covered.contains(leavingEdge.getSuccessor())) {
+            waiting.push(leavingEdge.getSuccessor());
+          }
+          hasSuccessor = true;
+        }
+      }
+      if (!hasSuccessor) {
+        count++;
+      }
+      covered.add(curr);
+    }
+    return count <= 1;
   }
 
   /**

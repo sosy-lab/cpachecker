@@ -53,13 +53,13 @@ public class BlockOperatorDecomposer implements CFADecomposer {
     // start with the first node of the CFA
     CFANode startNode = cfa.getMainFunction();
 
-    BlockGraphFactory builder = new BlockGraphFactory(cfa, shutdownNotifier);
+    BlockGraphFactory factory = new BlockGraphFactory(cfa, shutdownNotifier);
 
     // create the root node of the tree consisting of the entry node only
     BlockNodeMetaData root =
-        builder.makeBlock(startNode, startNode, ImmutableSet.of(startNode), ImmutableSet.of());
+        factory.makeBlock(startNode, startNode, ImmutableSet.of(startNode), ImmutableSet.of());
 
-    builder.setRoot(root);
+    factory.setRoot(root);
 
     // the stack stores all block ends (i.e., operator.isBlockEnd(node) == true)
     ArrayDeque<CFANode> blockEnds = new ArrayDeque<>();
@@ -101,7 +101,8 @@ public class BlockOperatorDecomposer implements CFADecomposer {
                   new Entry(
                       edge.getSuccessor(),
                       new LinkedHashSet<>(ImmutableList.of(currentRootNode, edge.getSuccessor())),
-                      new LinkedHashSet<>(ImmutableList.of(edge))))
+                      new LinkedHashSet<>(ImmutableList.of(edge)),
+                      0))
           .copyInto(toSearch);
 
       // if toSearch is empty, all successor nodes of lastCFANode have reached the block end
@@ -110,7 +111,7 @@ public class BlockOperatorDecomposer implements CFADecomposer {
         Entry nodeEntry = toSearch.pop();
         // successorOfCurrNode is a successor of lastCFANode
         CFANode successorOfCurrNode = nodeEntry.node;
-        if (operator.isBlockEnd(successorOfCurrNode, 0)) {
+        if (operator.isBlockEnd(successorOfCurrNode, nodeEntry.threshold)) {
           // alternative: if (successorOfCurrNode.getNumEnteringEdges() > 1 ||
           // successorOfCurrNode.getNumLeavingEdges() > 1) {
           // if successorOfCurrNode is a block end, create a new BlockNode that starts with
@@ -119,23 +120,23 @@ public class BlockOperatorDecomposer implements CFADecomposer {
           // block.
           blockEnds.push(successorOfCurrNode);
           BlockNodeMetaData childBlockNode =
-              builder.makeBlock(
+              factory.makeBlock(
                   lastCFANode, successorOfCurrNode, nodeEntry.seen, nodeEntry.seenEdges);
 
           // every previous block that ends with lastCFANode is now linked to the new BlockNode that
           // starts with lastCFANode.
           lastNodeMap
               .get(lastCFANode)
-              .forEach(contained -> builder.linkSuccessor(contained, childBlockNode));
+              .forEach(contained -> factory.linkSuccessor(contained, childBlockNode));
           // every previous block that starts with the current end node is now linked to the new
           // BlockNode
           startNodeMap
               .get(successorOfCurrNode)
-              .forEach(contained -> builder.linkSuccessor(childBlockNode, contained));
+              .forEach(contained -> factory.linkSuccessor(childBlockNode, contained));
 
           // current BlockNode is stored nowhere -> link to self if start and end are equal.
           if (childBlockNode.getStartNode().equals(childBlockNode.getLastNode())) {
-            builder.linkSuccessor(childBlockNode, childBlockNode);
+            factory.linkSuccessor(childBlockNode, childBlockNode);
           }
           // successorOfCurrNode is the lastNode of childBlockNode
           // note that other BlockNodes can have successorOfCurrNode as their last nodes.
@@ -153,23 +154,25 @@ public class BlockOperatorDecomposer implements CFADecomposer {
                 break;
               }
             }
-            toSearch.add(new Entry(successor, seen, seenEdge));
+            toSearch.add(new Entry(successor, seen, seenEdge, nodeEntry.threshold + 1));
           }
         }
       }
     }
-    return builder.build();
+    return factory.build();
   }
 
   private static class Entry {
     private final CFANode node;
     private final Set<CFANode> seen;
     private final Set<CFAEdge> seenEdges;
+    private final int threshold;
 
-    public Entry(CFANode pNode, Set<CFANode> pSeen, Set<CFAEdge> pSeenEdges) {
+    public Entry(CFANode pNode, Set<CFANode> pSeen, Set<CFAEdge> pSeenEdges, int pThreshold) {
       node = pNode;
       seen = new LinkedHashSet<>(pSeen);
       seenEdges = new LinkedHashSet<>(pSeenEdges);
+      threshold = pThreshold;
     }
 
     @Override
