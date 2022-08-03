@@ -12,21 +12,21 @@ import java.io.IOException;
 import java.util.List;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ConcurrentLinkedQueue;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.Connection;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.BlockSummaryConnection;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryMessage;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 
 /**
- * The {@link InMemoryConnection} provides a queue for incoming messages and knows about all
- * outgoing connections (that are the queues for incoming messages of other workers).
+ * The {@link InMemoryBlockSummaryConnection} provides a queue for incoming messages and knows about
+ * all outgoing connections (that are the queues for incoming messages of other workers).
  */
-public class InMemoryConnection implements Connection, StatisticsProvider {
+public class InMemoryBlockSummaryConnection implements BlockSummaryConnection, StatisticsProvider {
 
   private final BlockingQueue<BlockSummaryMessage> in;
   private final ConcurrentLinkedQueue<BlockingQueue<BlockSummaryMessage>> out;
   private boolean closed;
 
-  InMemoryConnection(
+  InMemoryBlockSummaryConnection(
       BlockingQueue<BlockSummaryMessage> pIn, List<BlockingQueue<BlockSummaryMessage>> pOut) {
     in = pIn;
     out = new ConcurrentLinkedQueue<>(pOut);
@@ -37,7 +37,7 @@ public class InMemoryConnection implements Connection, StatisticsProvider {
   public BlockSummaryMessage read() throws InterruptedException {
     if (closed) {
       throw new IllegalStateException(
-          "Cannot read from an already closed " + InMemoryConnection.class);
+          "Cannot read from an already closed " + InMemoryBlockSummaryConnection.class);
     }
     return in.take();
   }
@@ -51,7 +51,7 @@ public class InMemoryConnection implements Connection, StatisticsProvider {
   public void write(BlockSummaryMessage message) throws InterruptedException {
     if (closed) {
       throw new IllegalStateException(
-          "Cannot write to an already closed " + InMemoryConnection.class);
+          "Cannot write to an already closed " + InMemoryBlockSummaryConnection.class);
     }
     for (BlockingQueue<BlockSummaryMessage> messages : out) {
       messages.add(message);

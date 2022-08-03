@@ -11,10 +11,10 @@ package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange;
 import com.google.common.collect.ImmutableList;
 import java.io.IOException;
 
-public interface ConnectionProvider<T extends Connection> {
+public interface BlockSummaryConnectionProvider<T extends BlockSummaryConnection> {
 
   /**
-   * Creates multiple distinct {@link Connection Connections}.
+   * Creates multiple distinct {@link BlockSummaryConnection Connections}.
    *
    * @param connections number of connections to create
    * @return list of created Connections

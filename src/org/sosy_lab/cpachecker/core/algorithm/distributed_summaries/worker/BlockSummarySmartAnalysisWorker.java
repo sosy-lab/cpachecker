@@ -18,8 +18,8 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.BlockNode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.BlockSummaryMessageProcessing;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.Connection;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.Payload;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.BlockSummaryConnection;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.BlockSummaryMessagePayload;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryMessage;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryMessage.MessageType;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryPostConditionMessage;
@@ -34,7 +34,7 @@ public class BlockSummarySmartAnalysisWorker extends BlockSummaryAnalysisWorker 
   BlockSummarySmartAnalysisWorker(
       String pId,
       BlockSummaryAnalysisOptions pOptions,
-      Connection pConnection,
+      BlockSummaryConnection pConnection,
       BlockNode pBlock,
       CFA pCFA,
       Specification pSpecification,
@@ -54,7 +54,7 @@ public class BlockSummarySmartAnalysisWorker extends BlockSummaryAnalysisWorker 
 
   @Override
   public BlockSummaryMessage nextMessage() throws InterruptedException {
-    final Connection connection = getConnection();
+    final BlockSummaryConnection connection = getConnection();
     if (!smartQueue.isEmpty()) {
       return smartQueue.take();
     }
@@ -75,7 +75,8 @@ public class BlockSummarySmartAnalysisWorker extends BlockSummaryAnalysisWorker 
                   .getProceedOperator()
                   .proceedForward((BlockSummaryPostConditionMessage) m);
           if (!mp.end()) {
-            postcondMessage = BlockSummaryMessage.addEntry(m, Payload.SMART, "true");
+            postcondMessage =
+                BlockSummaryMessage.addEntry(m, BlockSummaryMessagePayload.SMART, "true");
           }
         }
       } else {

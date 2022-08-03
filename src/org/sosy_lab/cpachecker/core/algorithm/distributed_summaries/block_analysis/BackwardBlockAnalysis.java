@@ -24,7 +24,7 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.BlockNode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.composite.DistributedCompositeCPA;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.Payload;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.BlockSummaryMessagePayload;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryMessage;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.BlockSummaryAnalysisOptions;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -92,7 +92,8 @@ public class BackwardBlockAnalysis extends BlockAnalysis {
     }
     ImmutableSet.Builder<BlockSummaryMessage> responses = ImmutableSet.builder();
     for (AbstractState state : states) {
-      Payload payload = distributedCompositeCPA.getSerializeOperator().serialize(state);
+      BlockSummaryMessagePayload payload =
+          distributedCompositeCPA.getSerializeOperator().serialize(state);
       payload = appendStatus(getStatus(), payload);
       responses.add(
           BlockSummaryMessage.newErrorConditionMessage(

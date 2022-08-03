@@ -16,7 +16,7 @@ import java.util.Map;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.Connection;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.BlockSummaryConnection;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryErrorMessage;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryMessage;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryResultMessage;
@@ -26,14 +26,14 @@ import org.sosy_lab.java_smt.api.SolverException;
 
 public class BlockSummaryObserverWorker extends BlockSummaryWorker {
 
-  private final Connection connection;
+  private final BlockSummaryConnection connection;
   private final StatusObserver statusObserver;
   private boolean shutdown;
   private Optional<Result> result;
   private Optional<String> errorMessage;
 
   public BlockSummaryObserverWorker(
-      String pId, Connection pConnection, BlockSummaryAnalysisOptions pOptions) {
+      String pId, BlockSummaryConnection pConnection, BlockSummaryAnalysisOptions pOptions) {
     super(pId, pOptions);
     shutdown = false;
     connection = pConnection;
@@ -80,7 +80,7 @@ public class BlockSummaryObserverWorker extends BlockSummaryWorker {
   }
 
   @Override
-  public Connection getConnection() {
+  public BlockSummaryConnection getConnection() {
     return connection;
   }
 

@@ -16,7 +16,7 @@ import org.sosy_lab.cpachecker.util.statistics.StatInt;
 import org.sosy_lab.cpachecker.util.statistics.StatKind;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 
-public class ConnectionStats implements Statistics {
+public class BlockSummaryConnectionStats implements Statistics {
 
   public final StatInt averageMessageSize = new StatInt(StatKind.AVG, "average message size");
 

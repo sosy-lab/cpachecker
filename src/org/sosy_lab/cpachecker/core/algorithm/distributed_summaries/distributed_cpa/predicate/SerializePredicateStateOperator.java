@@ -10,7 +10,7 @@ package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed
 
 import java.io.IOException;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.SerializeOperator;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.Payload;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.BlockSummaryMessagePayload;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.SerializeUtil;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
@@ -31,7 +31,7 @@ public class SerializePredicateStateOperator implements SerializeOperator {
   }
 
   @Override
-  public Payload serialize(AbstractState pState) {
+  public BlockSummaryMessagePayload serialize(AbstractState pState) {
     PredicateAbstractState state = (PredicateAbstractState) pState;
     PathFormula pathFormula;
     if (state.isAbstractionState()) {
@@ -57,10 +57,10 @@ public class SerializePredicateStateOperator implements SerializeOperator {
     } catch (IOException pE) {
       throw new AssertionError("Unable to serialize SSAMap " + pathFormula.getSsa());
     }
-    return new Payload.Builder()
+    return new BlockSummaryMessagePayload.Builder()
         .addEntry(PredicateCPA.class.getName(), formula)
-        .addEntry(Payload.SSA, ssa)
-        .addEntry(Payload.PTS, pts)
+        .addEntry(BlockSummaryMessagePayload.SSA, ssa)
+        .addEntry(BlockSummaryMessagePayload.PTS, pts)
         .buildPayload();
   }
 }

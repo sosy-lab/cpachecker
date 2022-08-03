@@ -31,7 +31,7 @@ import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.BlockNode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DCPAHandler;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.composite.DistributedCompositeCPA;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.Payload;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.BlockSummaryMessagePayload;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryErrorConditionMessage;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryMessage;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryMessage.MessageType;
@@ -267,19 +267,20 @@ public abstract class BlockAnalysis implements BlockAnalyzer {
     return violationStates.build();
   }
 
-  Payload appendStatus(AlgorithmStatus pStatus, Payload pCurrentPayload) {
-    return new Payload.Builder()
+  BlockSummaryMessagePayload appendStatus(
+      AlgorithmStatus pStatus, BlockSummaryMessagePayload pCurrentPayload) {
+    return new BlockSummaryMessagePayload.Builder()
         .addAllEntries(pCurrentPayload)
         .addEntry(
-            Payload.PROPERTY,
+            BlockSummaryMessagePayload.PROPERTY,
             pStatus.wasPropertyChecked()
                 ? StatusPropertyChecked.CHECKED.name()
                 : StatusPropertyChecked.UNCHECKED.name())
         .addEntry(
-            Payload.SOUND,
+            BlockSummaryMessagePayload.SOUND,
             pStatus.isSound() ? StatusSoundness.SOUND.name() : StatusSoundness.UNSOUND.name())
         .addEntry(
-            Payload.PRECISE,
+            BlockSummaryMessagePayload.PRECISE,
             pStatus.isPrecise() ? StatusPrecise.PRECISE.name() : StatusPrecise.IMPRECISE.name())
         .buildPayload();
   }

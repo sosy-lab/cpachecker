@@ -19,7 +19,7 @@ import java.util.HashMap;
 import java.util.Map;
 import org.sosy_lab.common.JSON;
 
-public class Payload extends ForwardingMap<String, Object> {
+public class BlockSummaryMessagePayload extends ForwardingMap<String, Object> {
 
   // distributed analysis
   public static final String FULL_PATH = "full";
@@ -44,12 +44,12 @@ public class Payload extends ForwardingMap<String, Object> {
 
   private final Map<String, Object> delegate;
 
-  private Payload(Map<String, Object> pDelegate) {
+  private BlockSummaryMessagePayload(Map<String, Object> pDelegate) {
     delegate = ImmutableMap.copyOf(pDelegate);
   }
 
-  public static Payload empty() {
-    return new Payload(ImmutableMap.of());
+  public static BlockSummaryMessagePayload empty() {
+    return new BlockSummaryMessagePayload(ImmutableMap.of());
   }
 
   public String toJSONString() throws IOException {
@@ -84,8 +84,8 @@ public class Payload extends ForwardingMap<String, Object> {
       return this;
     }
 
-    public Payload buildPayload() {
-      return new Payload(buildOrThrow());
+    public BlockSummaryMessagePayload buildPayload() {
+      return new BlockSummaryMessagePayload(buildOrThrow());
     }
   }
 }

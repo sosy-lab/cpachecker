@@ -8,7 +8,7 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators;
 
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.Payload;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.BlockSummaryMessagePayload;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 
 public interface SerializeOperator {
@@ -19,5 +19,5 @@ public interface SerializeOperator {
    * @param pState this state will be serialized
    * @return payload
    */
-  Payload serialize(AbstractState pState);
+  BlockSummaryMessagePayload serialize(AbstractState pState);
 }

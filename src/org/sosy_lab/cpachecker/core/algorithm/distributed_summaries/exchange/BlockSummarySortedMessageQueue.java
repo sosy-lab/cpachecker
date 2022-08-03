@@ -17,7 +17,7 @@ import java.util.concurrent.LinkedBlockingQueue;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryMessage;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryMessage.MessageType;
 
-public class CleverMessageQueue extends ForwardingBlockingQueue<BlockSummaryMessage> {
+public class BlockSummarySortedMessageQueue extends ForwardingBlockingQueue<BlockSummaryMessage> {
 
   private final BlockingQueue<BlockSummaryMessage> queue;
   private final Multimap<MessageType, BlockSummaryMessage> messages;
@@ -30,7 +30,7 @@ public class CleverMessageQueue extends ForwardingBlockingQueue<BlockSummaryMess
    *
    * @param pQueue the queue to forward
    */
-  private CleverMessageQueue(BlockingQueue<BlockSummaryMessage> pQueue) {
+  private BlockSummarySortedMessageQueue(BlockingQueue<BlockSummaryMessage> pQueue) {
     queue = pQueue;
     messages = ArrayListMultimap.create();
     ordering =
@@ -43,7 +43,7 @@ public class CleverMessageQueue extends ForwardingBlockingQueue<BlockSummaryMess
         };
   }
 
-  public CleverMessageQueue() {
+  public BlockSummarySortedMessageQueue() {
     this(new LinkedBlockingQueue<>());
   }
 

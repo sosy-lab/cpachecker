@@ -10,7 +10,7 @@ package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker;
 
 import java.io.IOException;
 import java.util.Collection;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.Connection;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.BlockSummaryConnection;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryMessage;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.java_smt.api.SolverException;
@@ -48,9 +48,9 @@ public interface BlockSummaryActor extends Runnable {
    * Returns a connection to all other available actors.
    *
    * @return Connection to all other available actors.
-   * @see Connection
+   * @see BlockSummaryConnection
    */
-  Connection getConnection();
+  BlockSummaryConnection getConnection();
 
   /**
    * Returns false as long as this worker should run. Once it returns true it should never switch

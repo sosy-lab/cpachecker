@@ -9,21 +9,24 @@
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages;
 
 import java.time.Instant;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.Payload;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.BlockSummaryMessagePayload;
 
 public class BlockSummaryErrorConditionUnreachableMessage extends BlockSummaryMessage {
 
   private final String reason;
 
   protected BlockSummaryErrorConditionUnreachableMessage(
-      String pUniqueBlockId, int pTargetNodeNumber, Payload pPayload, Instant pTimeStamp) {
+      String pUniqueBlockId,
+      int pTargetNodeNumber,
+      BlockSummaryMessagePayload pPayload,
+      Instant pTimeStamp) {
     super(
         MessageType.ERROR_CONDITION_UNREACHABLE,
         pUniqueBlockId,
         pTargetNodeNumber,
         pPayload,
         pTimeStamp);
-    reason = (String) getPayload().getOrDefault(Payload.REASON, "");
+    reason = (String) getPayload().getOrDefault(BlockSummaryMessagePayload.REASON, "");
   }
 
   public String getReason() {
@@ -31,7 +34,7 @@ public class BlockSummaryErrorConditionUnreachableMessage extends BlockSummaryMe
   }
 
   @Override
-  protected BlockSummaryMessage replacePayload(Payload pPayload) {
+  protected BlockSummaryMessage replacePayload(BlockSummaryMessagePayload pPayload) {
     return new BlockSummaryErrorConditionUnreachableMessage(
         getUniqueBlockId(), getTargetNodeNumber(), pPayload, getTimestamp());
   }

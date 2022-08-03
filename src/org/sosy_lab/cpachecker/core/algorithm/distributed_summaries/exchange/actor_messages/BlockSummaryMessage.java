@@ -36,7 +36,7 @@ import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.Payload;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.BlockSummaryMessagePayload;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.BlockSummaryObserverWorker.StatusObserver;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 
@@ -54,7 +54,7 @@ public abstract class BlockSummaryMessage implements Comparable<BlockSummaryMess
   private final MessageType type;
 
   // forwards an immutable hashmap
-  private final Payload payload;
+  private final BlockSummaryMessagePayload payload;
   private final Instant timestamp;
 
   /**
@@ -77,7 +77,7 @@ public abstract class BlockSummaryMessage implements Comparable<BlockSummaryMess
       MessageType pType,
       String pUniqueBlockId,
       int pTargetNodeNumber,
-      Payload pPayload,
+      BlockSummaryMessagePayload pPayload,
       Instant pTimeStamp) {
     targetNodeNumber = pTargetNodeNumber;
     type = pType;
@@ -90,7 +90,7 @@ public abstract class BlockSummaryMessage implements Comparable<BlockSummaryMess
   public static BlockSummaryMessage addEntry(
       BlockSummaryMessage message, String key, String value) {
     return message.replacePayload(
-        new Payload.Builder()
+        new BlockSummaryMessagePayload.Builder()
             .addAllEntries(message.getPayload())
             .addEntry(key, value)
             .buildPayload());
@@ -99,7 +99,8 @@ public abstract class BlockSummaryMessage implements Comparable<BlockSummaryMess
   public static BlockSummaryMessage removeEntry(BlockSummaryMessage message, String key) {
     Map<String, Object> copy = new HashMap<>(message.getPayload());
     copy.remove(key);
-    return message.replacePayload(new Payload.Builder().addAllEntries(copy).buildPayload());
+    return message.replacePayload(
+        new BlockSummaryMessagePayload.Builder().addAllEntries(copy).buildPayload());
   }
 
   public final String getPayloadJSON() throws IOException {
@@ -116,17 +117,20 @@ public abstract class BlockSummaryMessage implements Comparable<BlockSummaryMess
   }
 
   public Optional<AlgorithmStatus> getOptionalStatus() {
-    if (!(payload.containsKey(Payload.PRECISE)
-        && payload.containsKey(Payload.PROPERTY)
-        && payload.containsKey(Payload.SOUND))) {
+    if (!(payload.containsKey(BlockSummaryMessagePayload.PRECISE)
+        && payload.containsKey(BlockSummaryMessagePayload.PROPERTY)
+        && payload.containsKey(BlockSummaryMessagePayload.SOUND))) {
       return Optional.empty();
     }
     StatusObserver.StatusPrecise isPrecise =
-        StatusObserver.StatusPrecise.valueOf((String) payload.get(Payload.PRECISE));
+        StatusObserver.StatusPrecise.valueOf(
+            (String) payload.get(BlockSummaryMessagePayload.PRECISE));
     StatusObserver.StatusPropertyChecked isPropertyChecked =
-        StatusObserver.StatusPropertyChecked.valueOf((String) payload.get(Payload.PROPERTY));
+        StatusObserver.StatusPropertyChecked.valueOf(
+            (String) payload.get(BlockSummaryMessagePayload.PROPERTY));
     StatusObserver.StatusSoundness isSound =
-        StatusObserver.StatusSoundness.valueOf((String) payload.get(Payload.SOUND));
+        StatusObserver.StatusSoundness.valueOf(
+            (String) payload.get(BlockSummaryMessagePayload.SOUND));
     return Optional.of(statusOf(isPropertyChecked, isSound, isPrecise));
   }
 
@@ -157,21 +161,21 @@ public abstract class BlockSummaryMessage implements Comparable<BlockSummaryMess
    * @param pPayload new payload
    * @return new message that is a copy of this message with a new payload {@code pPayload}
    */
-  protected abstract BlockSummaryMessage replacePayload(Payload pPayload);
+  protected abstract BlockSummaryMessage replacePayload(BlockSummaryMessagePayload pPayload);
 
   public static BlockSummaryMessage newBlockPostCondition(
       String pUniqueBlockId,
       int pTargetNodeNumber,
-      Payload pPayload,
+      BlockSummaryMessagePayload pPayload,
       boolean pFull,
       boolean pReachable,
       Set<String> pVisited) {
-    Payload newPayload =
-        new Payload.Builder()
+    BlockSummaryMessagePayload newPayload =
+        new BlockSummaryMessagePayload.Builder()
             .addAllEntries(pPayload)
-            .addEntry(Payload.FULL_PATH, Boolean.toString(pFull))
-            .addEntry(Payload.VISITED, Joiner.on(",").join(pVisited))
-            .addEntry(Payload.REACHABLE, Boolean.toString(pReachable))
+            .addEntry(BlockSummaryMessagePayload.FULL_PATH, Boolean.toString(pFull))
+            .addEntry(BlockSummaryMessagePayload.VISITED, Joiner.on(",").join(pVisited))
+            .addEntry(BlockSummaryMessagePayload.REACHABLE, Boolean.toString(pReachable))
             .buildPayload();
     return new BlockSummaryPostConditionMessage(
         pUniqueBlockId, pTargetNodeNumber, newPayload, Instant.now());
@@ -180,14 +184,14 @@ public abstract class BlockSummaryMessage implements Comparable<BlockSummaryMess
   public static BlockSummaryMessage newErrorConditionMessage(
       String pUniqueBlockId,
       int pTargetNodeNumber,
-      Payload pPayload,
+      BlockSummaryMessagePayload pPayload,
       boolean pFirst,
       Set<String> pVisited) {
-    Payload newPayload =
-        new Payload.Builder()
+    BlockSummaryMessagePayload newPayload =
+        new BlockSummaryMessagePayload.Builder()
             .addAllEntries(pPayload)
-            .addEntry(Payload.FIRST, Boolean.toString(pFirst))
-            .addEntry(Payload.VISITED, pVisited)
+            .addEntry(BlockSummaryMessagePayload.FIRST, Boolean.toString(pFirst))
+            .addEntry(BlockSummaryMessagePayload.VISITED, pVisited)
             .buildPayload();
     return new BlockSummaryErrorConditionMessage(
         pUniqueBlockId, pTargetNodeNumber, newPayload, Instant.now());
@@ -198,16 +202,18 @@ public abstract class BlockSummaryMessage implements Comparable<BlockSummaryMess
     return new BlockSummaryErrorConditionUnreachableMessage(
         pUniqueBlockId,
         0,
-        new Payload.Builder().addEntry(Payload.REASON, denied).buildPayload(),
+        new BlockSummaryMessagePayload.Builder()
+            .addEntry(BlockSummaryMessagePayload.REASON, denied)
+            .buildPayload(),
         Instant.now());
   }
 
   public static BlockSummaryMessage newResultMessage(
       String pUniqueBlockId, int pTargetNodeNumber, Result pResult, Set<String> pVisited) {
-    Payload payload =
-        new Payload.Builder()
-            .addEntry(Payload.RESULT, pResult.name())
-            .addEntry(Payload.VISITED, pVisited)
+    BlockSummaryMessagePayload payload =
+        new BlockSummaryMessagePayload.Builder()
+            .addEntry(BlockSummaryMessagePayload.RESULT, pResult.name())
+            .addEntry(BlockSummaryMessagePayload.VISITED, pVisited)
             .buildPayload();
     return new BlockSummaryResultMessage(pUniqueBlockId, pTargetNodeNumber, payload, Instant.now());
   }
@@ -216,8 +222,9 @@ public abstract class BlockSummaryMessage implements Comparable<BlockSummaryMess
     return new BlockSummaryErrorMessage(
         pUniqueBlockId,
         0,
-        new Payload.Builder()
-            .addEntry(Payload.EXCEPTION, Throwables.getStackTraceAsString(pException))
+        new BlockSummaryMessagePayload.Builder()
+            .addEntry(
+                BlockSummaryMessagePayload.EXCEPTION, Throwables.getStackTraceAsString(pException))
             .buildPayload(),
         Instant.now());
   }
@@ -232,10 +239,10 @@ public abstract class BlockSummaryMessage implements Comparable<BlockSummaryMess
   }
 
   protected ImmutableSet<String> extractVisited() {
-    if (!getPayload().containsKey(Payload.VISITED)) {
+    if (!getPayload().containsKey(BlockSummaryMessagePayload.VISITED)) {
       return ImmutableSet.of();
     }
-    Object visited = getPayload().get(Payload.VISITED);
+    Object visited = getPayload().get(BlockSummaryMessagePayload.VISITED);
     ImmutableSet.Builder<String> builder = ImmutableSet.builder();
     if (visited instanceof Iterable) {
       ((Iterable<?>) visited).forEach(item -> builder.add((String) item));
@@ -251,7 +258,7 @@ public abstract class BlockSummaryMessage implements Comparable<BlockSummaryMess
     return targetNodeNumber;
   }
 
-  protected Payload getPayload() {
+  protected BlockSummaryMessagePayload getPayload() {
     return payload;
   }
 
@@ -404,8 +411,10 @@ public abstract class BlockSummaryMessage implements Comparable<BlockSummaryMess
       String uniqueBlockId = node.get("uniqueBlockId").asText();
       int nodeNumber = node.get("targetNodeNumber").asInt();
       MessageType type = MessageType.valueOf(node.get("type").asText());
-      Payload payload =
-          new Payload.Builder().addEntriesFromJSON(node.get("payload").asText()).buildPayload();
+      BlockSummaryMessagePayload payload =
+          new BlockSummaryMessagePayload.Builder()
+              .addEntriesFromJSON(node.get("payload").asText())
+              .buildPayload();
       Instant timestamp = Instant.parse(node.get("timestamp").asText());
 
       switch (type) {

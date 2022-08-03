@@ -22,7 +22,7 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.block_analys
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.block_analysis.NoopBlockAnalysis;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.BlockNode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.BlockSummaryMessageProcessing;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.Connection;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.BlockSummaryConnection;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryErrorConditionMessage;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryMessage;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryPostConditionMessage;
@@ -34,12 +34,12 @@ public class BlockSummaryRootWorker extends BlockSummaryWorker {
 
   private final BlockNode root;
   private final BlockAnalysis analysis;
-  private final Connection connection;
+  private final BlockSummaryConnection connection;
   private boolean shutdown;
 
   BlockSummaryRootWorker(
       String pId,
-      Connection pConnection,
+      BlockSummaryConnection pConnection,
       BlockSummaryAnalysisOptions pOptions,
       BlockNode pNode,
       CFA pCfa,
@@ -105,7 +105,7 @@ public class BlockSummaryRootWorker extends BlockSummaryWorker {
   }
 
   @Override
-  public Connection getConnection() {
+  public BlockSummaryConnection getConnection() {
     return connection;
   }
 

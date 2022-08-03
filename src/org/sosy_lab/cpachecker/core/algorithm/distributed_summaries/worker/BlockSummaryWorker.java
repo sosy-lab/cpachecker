@@ -15,7 +15,7 @@ import java.util.logging.FileHandler;
 import java.util.logging.Level;
 import org.sosy_lab.common.log.BasicLogManager;
 import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.Connection;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.BlockSummaryConnection;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryMessage;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.java_smt.api.SolverException;
@@ -63,7 +63,7 @@ public abstract class BlockSummaryWorker implements BlockSummaryActor {
 
   @Override
   public void run() {
-    final Connection connection = getConnection();
+    final BlockSummaryConnection connection = getConnection();
     try (connection) {
       while (!shutdownRequested()) {
         broadcast(processMessage(nextMessage()));
@@ -78,10 +78,6 @@ public abstract class BlockSummaryWorker implements BlockSummaryActor {
     } finally {
       logger.logf(Level.INFO, "Worker %s finished and shuts down.", id);
     }
-  }
-
-  public boolean hasPendingMessages() {
-    return getConnection().hasPendingMessages();
   }
 
   @Override

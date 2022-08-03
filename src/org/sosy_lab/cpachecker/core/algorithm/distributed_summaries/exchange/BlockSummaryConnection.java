@@ -14,7 +14,7 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.act
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 
-public interface Connection extends Closeable, StatisticsProvider {
+public interface BlockSummaryConnection extends Closeable, StatisticsProvider {
 
   /**
    * Wait for an incoming {@link BlockSummaryMessage} and return it.

@@ -29,9 +29,9 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decompositio
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.CFADecomposer;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.GivenSizeDecomposer;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.SingleBlockDecomposer;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.CleverMessageQueue;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.Connection;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.memory.InMemoryConnectionProvider;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.BlockSummaryConnection;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.BlockSummarySortedMessageQueue;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.memory.InMemoryBlockSummaryConnectionProvider;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.BlockSummaryActor;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.BlockSummaryAnalysisOptions;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.BlockSummaryObserverWorker;
@@ -164,7 +164,8 @@ public class DistributedSummaryAnalysis implements Algorithm, StatisticsProvider
       BlockSummaryWorkerBuilder builder =
           new BlockSummaryWorkerBuilder(
               cfa,
-              new InMemoryConnectionProvider(() -> new CleverMessageQueue()),
+              new InMemoryBlockSummaryConnectionProvider(
+                  () -> new BlockSummarySortedMessageQueue()),
               specification,
               configuration,
               shutdownManager);
@@ -194,7 +195,8 @@ public class DistributedSummaryAnalysis implements Algorithm, StatisticsProvider
       }
 
       // listen to messages
-      try (Connection mainThreadConnection = components.getAdditionalConnections().get(0)) {
+      try (BlockSummaryConnection mainThreadConnection =
+          components.getAdditionalConnections().get(0)) {
         mainThreadConnection.collectStatistics(statsCollection);
         BlockSummaryObserverWorker observer =
             new BlockSummaryObserverWorker("observer", mainThreadConnection, options);

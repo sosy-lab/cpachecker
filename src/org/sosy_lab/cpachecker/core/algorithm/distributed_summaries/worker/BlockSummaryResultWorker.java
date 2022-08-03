@@ -20,7 +20,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Level;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.BlockNode;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.Connection;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.BlockSummaryConnection;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryErrorConditionMessage;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryMessage;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryMessage.MessageType;
@@ -34,11 +34,13 @@ public class BlockSummaryResultWorker extends BlockSummaryWorker {
   private final Set<String> messageReceived;
   private final Map<String, Integer> expectAnswer;
   private final int numWorkers;
-  private final Connection connection;
+  private final BlockSummaryConnection connection;
   private boolean shutdown;
 
   BlockSummaryResultWorker(
-      Collection<BlockNode> pNodes, Connection pConnection, BlockSummaryAnalysisOptions pOptions) {
+      Collection<BlockNode> pNodes,
+      BlockSummaryConnection pConnection,
+      BlockSummaryAnalysisOptions pOptions) {
     super("result-worker", pOptions);
     nodeMap = new HashMap<>();
     connection = pConnection;
@@ -93,7 +95,7 @@ public class BlockSummaryResultWorker extends BlockSummaryWorker {
   }
 
   @Override
-  public Connection getConnection() {
+  public BlockSummaryConnection getConnection() {
     return connection;
   }
 

@@ -11,7 +11,7 @@ package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.ac
 import java.time.Instant;
 import java.util.Set;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.Payload;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.BlockSummaryMessagePayload;
 
 public class BlockSummaryResultMessage extends BlockSummaryMessage {
 
@@ -19,9 +19,12 @@ public class BlockSummaryResultMessage extends BlockSummaryMessage {
   private final Set<String> visited;
 
   protected BlockSummaryResultMessage(
-      String pUniqueBlockId, int pTargetNodeNumber, Payload pPayload, Instant pTimeStamp) {
+      String pUniqueBlockId,
+      int pTargetNodeNumber,
+      BlockSummaryMessagePayload pPayload,
+      Instant pTimeStamp) {
     super(MessageType.FOUND_RESULT, pUniqueBlockId, pTargetNodeNumber, pPayload, pTimeStamp);
-    result = Result.valueOf((String) getPayload().get(Payload.RESULT));
+    result = Result.valueOf((String) getPayload().get(BlockSummaryMessagePayload.RESULT));
     visited = extractVisited();
   }
 
@@ -34,7 +37,7 @@ public class BlockSummaryResultMessage extends BlockSummaryMessage {
   }
 
   @Override
-  protected BlockSummaryMessage replacePayload(Payload pPayload) {
+  protected BlockSummaryMessage replacePayload(BlockSummaryMessagePayload pPayload) {
     return new BlockSummaryResultMessage(
         getUniqueBlockId(), getTargetNodeNumber(), pPayload, getTimestamp());
   }

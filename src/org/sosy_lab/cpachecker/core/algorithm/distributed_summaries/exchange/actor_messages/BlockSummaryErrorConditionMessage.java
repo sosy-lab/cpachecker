@@ -11,7 +11,7 @@ package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.ac
 import java.time.Instant;
 import java.util.Objects;
 import java.util.Set;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.Payload;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.BlockSummaryMessagePayload;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.SerializeUtil;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSet;
@@ -22,24 +22,29 @@ public class BlockSummaryErrorConditionMessage extends BlockSummaryMessage {
   private final boolean first;
 
   BlockSummaryErrorConditionMessage(
-      String pUniqueBlockId, int pTargetNodeNumber, Payload pPayload, Instant pInstant) {
+      String pUniqueBlockId,
+      int pTargetNodeNumber,
+      BlockSummaryMessagePayload pPayload,
+      Instant pInstant) {
     super(MessageType.ERROR_CONDITION, pUniqueBlockId, pTargetNodeNumber, pPayload, pInstant);
     visited = extractVisited();
-    first = extractFlag(Payload.FIRST, false);
+    first = extractFlag(BlockSummaryMessagePayload.FIRST, false);
   }
 
   public SSAMap getSSAMap() {
-    if (getPayload().containsKey(Payload.SSA)) {
+    if (getPayload().containsKey(BlockSummaryMessagePayload.SSA)) {
       return SerializeUtil.deserialize(
-          (String) Objects.requireNonNull(getPayload().get(Payload.SSA)), SSAMap.class);
+          (String) Objects.requireNonNull(getPayload().get(BlockSummaryMessagePayload.SSA)),
+          SSAMap.class);
     }
     return SSAMap.emptySSAMap();
   }
 
   public PointerTargetSet getPointerTargetSet() {
-    if (getPayload().containsKey(Payload.PTS)) {
+    if (getPayload().containsKey(BlockSummaryMessagePayload.PTS)) {
       return SerializeUtil.deserialize(
-          (String) Objects.requireNonNull(getPayload().get(Payload.PTS)), PointerTargetSet.class);
+          (String) Objects.requireNonNull(getPayload().get(BlockSummaryMessagePayload.PTS)),
+          PointerTargetSet.class);
     }
     return PointerTargetSet.emptyPointerTargetSet();
   }
@@ -53,7 +58,7 @@ public class BlockSummaryErrorConditionMessage extends BlockSummaryMessage {
   }
 
   @Override
-  protected BlockSummaryMessage replacePayload(Payload pPayload) {
+  protected BlockSummaryMessage replacePayload(BlockSummaryMessagePayload pPayload) {
     return new BlockSummaryErrorConditionMessage(
         getUniqueBlockId(), getTargetNodeNumber(), pPayload, getTimestamp());
   }

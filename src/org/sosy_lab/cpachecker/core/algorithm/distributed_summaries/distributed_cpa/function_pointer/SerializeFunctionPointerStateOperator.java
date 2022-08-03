@@ -9,7 +9,7 @@
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.function_pointer;
 
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.SerializeOperator;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.Payload;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.BlockSummaryMessagePayload;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.functionpointer.FunctionPointerState;
 import org.sosy_lab.cpachecker.cpa.functionpointer.FunctionPointerState.NamedFunctionTarget;
@@ -17,7 +17,7 @@ import org.sosy_lab.cpachecker.cpa.functionpointer.FunctionPointerState.NamedFun
 public class SerializeFunctionPointerStateOperator implements SerializeOperator {
 
   @Override
-  public Payload serialize(AbstractState pState) {
+  public BlockSummaryMessagePayload serialize(AbstractState pState) {
     FunctionPointerState state = (FunctionPointerState) pState;
     FunctionPointerState.Builder builder = state.createBuilder();
     StringBuilder serialized = new StringBuilder();
@@ -37,7 +37,7 @@ public class SerializeFunctionPointerStateOperator implements SerializeOperator 
             .append(", ");
       }
     }
-    return new Payload.Builder()
+    return new BlockSummaryMessagePayload.Builder()
         .addEntry(FunctionPointerState.class.getName(), serialized.toString())
         .buildPayload();
   }

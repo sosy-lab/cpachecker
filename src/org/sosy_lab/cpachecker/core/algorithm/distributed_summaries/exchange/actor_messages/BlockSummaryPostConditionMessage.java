@@ -11,7 +11,7 @@ package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.ac
 import java.time.Instant;
 import java.util.Objects;
 import java.util.Set;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.Payload;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.BlockSummaryMessagePayload;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.SerializeUtil;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSet;
@@ -23,10 +23,13 @@ public class BlockSummaryPostConditionMessage extends BlockSummaryMessage {
   private final Set<String> visited;
 
   BlockSummaryPostConditionMessage(
-      String pUniqueBlockId, int pTargetNodeNumber, Payload pPayload, Instant pInstant) {
+      String pUniqueBlockId,
+      int pTargetNodeNumber,
+      BlockSummaryMessagePayload pPayload,
+      Instant pInstant) {
     super(MessageType.BLOCK_POSTCONDITION, pUniqueBlockId, pTargetNodeNumber, pPayload, pInstant);
-    fullPath = extractFlag(Payload.FULL_PATH, false);
-    reachable = extractFlag(Payload.REACHABLE, true);
+    fullPath = extractFlag(BlockSummaryMessagePayload.FULL_PATH, false);
+    reachable = extractFlag(BlockSummaryMessagePayload.REACHABLE, true);
     visited = extractVisited();
   }
 
@@ -39,17 +42,19 @@ public class BlockSummaryPostConditionMessage extends BlockSummaryMessage {
   }
 
   public SSAMap getSSAMap() {
-    if (getPayload().containsKey(Payload.SSA)) {
+    if (getPayload().containsKey(BlockSummaryMessagePayload.SSA)) {
       return SerializeUtil.deserialize(
-          (String) Objects.requireNonNull(getPayload().get(Payload.SSA)), SSAMap.class);
+          (String) Objects.requireNonNull(getPayload().get(BlockSummaryMessagePayload.SSA)),
+          SSAMap.class);
     }
     return SSAMap.emptySSAMap();
   }
 
   public PointerTargetSet getPointerTargetSet() {
-    if (getPayload().containsKey(Payload.PTS)) {
+    if (getPayload().containsKey(BlockSummaryMessagePayload.PTS)) {
       return SerializeUtil.deserialize(
-          (String) Objects.requireNonNull(getPayload().get(Payload.PTS)), PointerTargetSet.class);
+          (String) Objects.requireNonNull(getPayload().get(BlockSummaryMessagePayload.PTS)),
+          PointerTargetSet.class);
     }
     return PointerTargetSet.emptyPointerTargetSet();
   }
@@ -59,7 +64,7 @@ public class BlockSummaryPostConditionMessage extends BlockSummaryMessage {
   }
 
   @Override
-  protected BlockSummaryMessage replacePayload(Payload pPayload) {
+  protected BlockSummaryMessage replacePayload(BlockSummaryMessagePayload pPayload) {
     return new BlockSummaryPostConditionMessage(
         getUniqueBlockId(), getTargetNodeNumber(), pPayload, getTimestamp());
   }

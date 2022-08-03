@@ -21,7 +21,7 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DistributedConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.DeserializeOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.proceed.ProceedOperator;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.Payload;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.BlockSummaryMessagePayload;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryErrorConditionMessage;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryMessage;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryPostConditionMessage;
@@ -148,7 +148,8 @@ public class ProceedPredicateStateOperator implements ProceedOperator {
   }
 
   private void storePostCondition(BlockSummaryPostConditionMessage pMessage) {
-    BlockSummaryMessage toStore = BlockSummaryMessage.removeEntry(pMessage, Payload.SMART);
+    BlockSummaryMessage toStore =
+        BlockSummaryMessage.removeEntry(pMessage, BlockSummaryMessagePayload.SMART);
     if (analysisOptions.shouldAlwaysStoreCircularPostConditions()
         && pMessage.visitedBlockIds().stream().anyMatch(s -> s.equals(block.getId()))) {
       if (pMessage.representsFullPath()) {

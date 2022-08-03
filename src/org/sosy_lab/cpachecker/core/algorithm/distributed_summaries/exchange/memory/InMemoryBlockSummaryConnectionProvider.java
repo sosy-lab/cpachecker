@@ -16,28 +16,31 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.BlockingQueue;
 import java.util.function.Supplier;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.ConnectionProvider;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.BlockSummaryConnectionProvider;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryMessage;
 
-public class InMemoryConnectionProvider implements ConnectionProvider<InMemoryConnection> {
+public class InMemoryBlockSummaryConnectionProvider
+    implements BlockSummaryConnectionProvider<InMemoryBlockSummaryConnection> {
 
   private final Supplier<BlockingQueue<BlockSummaryMessage>> queueFactory;
 
   /**
-   * Create a new {@link InMemoryConnectionProvider}. The given supplier is used as factory for
-   * {@link BlockingQueue}s. It has to supply a <b>new</b> {@link BlockingQueue} object on each
-   * invocation, and must allow an arbitrary number of invocations.
+   * Create a new {@link InMemoryBlockSummaryConnectionProvider}. The given supplier is used as
+   * factory for {@link BlockingQueue}s. It has to supply a <b>new</b> {@link BlockingQueue} object
+   * on each invocation, and must allow an arbitrary number of invocations.
    */
-  public InMemoryConnectionProvider(Supplier<BlockingQueue<BlockSummaryMessage>> pQueueFactory) {
+  public InMemoryBlockSummaryConnectionProvider(
+      Supplier<BlockingQueue<BlockSummaryMessage>> pQueueFactory) {
     queueFactory = pQueueFactory;
   }
 
   @Override
-  public ImmutableList<InMemoryConnection> createConnections(int connections) throws IOException {
+  public ImmutableList<InMemoryBlockSummaryConnection> createConnections(int connections)
+      throws IOException {
     List<BlockingQueue<BlockSummaryMessage>> outs = new ArrayList<>();
     for (int i = 0; i < connections; i++) {
       outs.add(queueFactory.get());
     }
-    return transformedImmutableListCopy(outs, out -> new InMemoryConnection(out, outs));
+    return transformedImmutableListCopy(outs, out -> new InMemoryBlockSummaryConnection(out, outs));
   }
 }

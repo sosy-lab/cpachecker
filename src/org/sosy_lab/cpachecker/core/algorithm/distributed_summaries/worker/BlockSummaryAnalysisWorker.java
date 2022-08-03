@@ -23,7 +23,7 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.block_analys
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.BlockNode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.BlockSummaryMessageProcessing;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.composite.DistributedCompositeCPA;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.Connection;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.BlockSummaryConnection;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryMessage;
 import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
@@ -39,7 +39,7 @@ public class BlockSummaryAnalysisWorker extends BlockSummaryWorker {
 
   private boolean shutdown;
 
-  private final Connection connection;
+  private final BlockSummaryConnection connection;
 
   private final StatTimer forwardAnalysisTime = new StatTimer("Forward Analysis");
   private final StatTimer backwardAnalysisTime = new StatTimer("Backward Analysis");
@@ -63,7 +63,7 @@ public class BlockSummaryAnalysisWorker extends BlockSummaryWorker {
   BlockSummaryAnalysisWorker(
       String pId,
       BlockSummaryAnalysisOptions pOptions,
-      Connection pConnection,
+      BlockSummaryConnection pConnection,
       BlockNode pBlock,
       CFA pCFA,
       Specification pSpecification,
@@ -136,7 +136,7 @@ public class BlockSummaryAnalysisWorker extends BlockSummaryWorker {
   }
 
   @Override
-  public Connection getConnection() {
+  public BlockSummaryConnection getConnection() {
     return connection;
   }
 

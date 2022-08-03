@@ -25,7 +25,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.BlockNode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.composite.DistributedCompositeCPA;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.Payload;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.BlockSummaryMessagePayload;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryMessage;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryPostConditionMessage;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.BlockSummaryAnalysisOptions;
@@ -120,7 +120,7 @@ public class ForwardBlockAnalysis extends BlockAnalysis {
         BlockSummaryMessage.newBlockPostCondition(
             block.getId(),
             block.getStartNode().getNodeNumber(),
-            Payload.empty(),
+            BlockSummaryMessagePayload.empty(),
             false,
             true,
             ImmutableSet.of());
@@ -134,7 +134,7 @@ public class ForwardBlockAnalysis extends BlockAnalysis {
           BlockSummaryMessage.newBlockPostCondition(
               block.getId(),
               block.getStartNode().getNodeNumber(),
-              Payload.empty(),
+              BlockSummaryMessagePayload.empty(),
               true,
               false,
               ImmutableSet.of()));
@@ -163,7 +163,8 @@ public class ForwardBlockAnalysis extends BlockAnalysis {
               distributedCompositeCPA
                   .getCombineOperator()
                   .combine(compositeStates, top, precision));
-      Payload result = distributedCompositeCPA.getSerializeOperator().serialize(combined);
+      BlockSummaryMessagePayload result =
+          distributedCompositeCPA.getSerializeOperator().serialize(combined);
       result = appendStatus(getStatus(), result);
       BlockSummaryPostConditionMessage response =
           (BlockSummaryPostConditionMessage)
@@ -189,7 +190,7 @@ public class ForwardBlockAnalysis extends BlockAnalysis {
         throw new AssertionError(
             "States need to have a location but this one does not:" + targetState);
       }
-      Payload initial =
+      BlockSummaryMessagePayload initial =
           distributedCompositeCPA
               .getSerializeOperator()
               .serialize(

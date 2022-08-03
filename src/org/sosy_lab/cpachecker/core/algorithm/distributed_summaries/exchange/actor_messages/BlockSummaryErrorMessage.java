@@ -9,20 +9,23 @@
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages;
 
 import java.time.Instant;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.Payload;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.BlockSummaryMessagePayload;
 
 public class BlockSummaryErrorMessage extends BlockSummaryMessage {
 
   private final String errorMessage;
 
   protected BlockSummaryErrorMessage(
-      String pUniqueBlockId, int pTargetNodeNumber, Payload pPayload, Instant pTimeStamp) {
+      String pUniqueBlockId,
+      int pTargetNodeNumber,
+      BlockSummaryMessagePayload pPayload,
+      Instant pTimeStamp) {
     super(MessageType.ERROR, pUniqueBlockId, pTargetNodeNumber, pPayload, pTimeStamp);
-    if (!getPayload().containsKey(Payload.EXCEPTION)) {
+    if (!getPayload().containsKey(BlockSummaryMessagePayload.EXCEPTION)) {
       throw new AssertionError(
           "ErrorMessages are always required to contain the key " + MessageType.ERROR);
     }
-    errorMessage = (String) getPayload().get(Payload.EXCEPTION);
+    errorMessage = (String) getPayload().get(BlockSummaryMessagePayload.EXCEPTION);
   }
 
   public String getErrorMessage() {
@@ -30,7 +33,7 @@ public class BlockSummaryErrorMessage extends BlockSummaryMessage {
   }
 
   @Override
-  protected BlockSummaryMessage replacePayload(Payload pPayload) {
+  protected BlockSummaryMessage replacePayload(BlockSummaryMessagePayload pPayload) {
     return new BlockSummaryErrorMessage(
         getUniqueBlockId(), getTargetNodeNumber(), pPayload, getTimestamp());
   }

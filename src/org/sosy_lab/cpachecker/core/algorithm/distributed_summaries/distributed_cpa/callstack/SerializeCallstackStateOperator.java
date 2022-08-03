@@ -13,7 +13,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.SerializeOperator;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.Payload;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.BlockSummaryMessagePayload;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.callstack.CallstackCPA;
 import org.sosy_lab.cpachecker.cpa.callstack.CallstackState;
@@ -21,7 +21,7 @@ import org.sosy_lab.cpachecker.cpa.callstack.CallstackState;
 public class SerializeCallstackStateOperator implements SerializeOperator {
 
   @Override
-  public Payload serialize(AbstractState pCallstackState) {
+  public BlockSummaryMessagePayload serialize(AbstractState pCallstackState) {
     List<String> states = new ArrayList<>();
     CallstackState callstackState = (CallstackState) pCallstackState;
     while (callstackState != null) {
@@ -31,6 +31,8 @@ public class SerializeCallstackStateOperator implements SerializeOperator {
     }
     Collections.reverse(states);
     String result = Joiner.on(DistributedCallstackCPA.DELIMITER).join(states);
-    return new Payload.Builder().addEntry(CallstackCPA.class.getName(), result).buildPayload();
+    return new BlockSummaryMessagePayload.Builder()
+        .addEntry(CallstackCPA.class.getName(), result)
+        .buildPayload();
   }
 }
