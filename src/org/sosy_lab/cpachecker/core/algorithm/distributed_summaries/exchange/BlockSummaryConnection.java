@@ -9,12 +9,9 @@
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange;
 
 import java.io.Closeable;
-import java.util.Collection;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryMessage;
-import org.sosy_lab.cpachecker.core.interfaces.Statistics;
-import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 
-public interface BlockSummaryConnection extends Closeable, StatisticsProvider {
+public interface BlockSummaryConnection extends Closeable {
 
   /**
    * Wait for an incoming {@link BlockSummaryMessage} and return it.
@@ -41,7 +38,4 @@ public interface BlockSummaryConnection extends Closeable, StatisticsProvider {
    * @param message Message to broadcast
    */
   void write(BlockSummaryMessage message) throws InterruptedException;
-
-  @Override
-  default void collectStatistics(Collection<Statistics> statsCollection) {}
 }

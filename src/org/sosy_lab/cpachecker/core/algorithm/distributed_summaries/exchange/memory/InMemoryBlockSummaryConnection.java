@@ -14,13 +14,12 @@ import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.BlockSummaryConnection;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryMessage;
-import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 
 /**
  * The {@link InMemoryBlockSummaryConnection} provides a queue for incoming messages and knows about
  * all outgoing connections (that are the queues for incoming messages of other workers).
  */
-public class InMemoryBlockSummaryConnection implements BlockSummaryConnection, StatisticsProvider {
+public class InMemoryBlockSummaryConnection implements BlockSummaryConnection {
 
   private final BlockingQueue<BlockSummaryMessage> in;
   private final ConcurrentLinkedQueue<BlockingQueue<BlockSummaryMessage>> out;
