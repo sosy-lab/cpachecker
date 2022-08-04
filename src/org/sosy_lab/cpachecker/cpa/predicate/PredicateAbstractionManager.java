@@ -406,10 +406,6 @@ public class PredicateAbstractionManager {
     } else if (options.getAbstractionType() == AbstractionType.CARTESIAN_BY_WEAKENING) {
       abs = rmgr.makeAnd(abs, buildCartesianAbstractionUsingWeakening(f, ssa, remainingPredicates));
     } else if (options.getAbstractionType() == AbstractionType.SUBSTITUTION) {
-      // TODO Martin Implement substitution here
-      // combine abstractionformula -> instantiatedFormula and pathFormula => f,
-      // do substitutuion step using transformRecursivly,
-      // return as new abstraction formula
       logger.log(Level.FINEST, "Abstraction", currentAbstractionId, "using SUBSTITUTION");
       stats.numSymbolicAbstractions.incrementAndGet();
       logger.log(Level.ALL, "Before subsituion", f);
@@ -424,27 +420,15 @@ public class PredicateAbstractionManager {
           if (options.useSubstitutionCartesian()) {
             abs = rmgr.makeAnd(abs, computeAbstraction(substituted, remainingPredicates, instantiator));
           }
-          else {
-            substituted = abstractConjunctionParts(substituted, remainingPredicates);
-            result = new AbstractionFormula(fmgr, amgr.convertFormulaToRegion(fmgr.uninstantiate(substituted)), fmgr.uninstantiate(substituted), substituted, pathFormula, noAbstractionReuse);
-            logger.log(Level.ALL, "After abstraction ", result.asFormula());
-            logger.log(Level.ALL, "Unsat ", solver.isUnsat(result.asFormula()));
-            if (solver.isUnsat(result.asFormula())){
-              logger.log(Level.ALL, "UnsatCore ", solver.unsatCore(result.asFormula()));
-            }
-            logger.log(Level.ALL, "False ", result.isFalse());
-
-//        if (solver.isUnsat(result.asFormula())){
-//          result = makeAbstractionFormula(amgr.makeFalsePredicate().getAbstractVariable(), ssa, pathFormula);
-//        }
-          }
-        } else {
+          else { substituted = abstractConjunctionParts(substituted, remainingPredicates); }
+        }
+        if (!options.useSubstitutionCEGAR() || (options.useSubstitutionCEGAR() && !options.useSubstitutionCartesian())) {
           result = new AbstractionFormula(fmgr, amgr.convertFormulaToRegion(fmgr.uninstantiate(substituted)), fmgr.uninstantiate(substituted), substituted, pathFormula, noAbstractionReuse);
           logger.log(Level.ALL, "After abstraction ", result.asFormula());
           logger.log(Level.ALL, "Unsat ", solver.isUnsat(result.asFormula()));
-          if (solver.isUnsat(result.asFormula())){
-            logger.log(Level.ALL, "UnsatCore ", solver.unsatCore(result.asFormula()));
-          }
+//          if (solver.isUnsat(result.asFormula())){
+//            logger.log(Level.ALL, "UnsatCore ", solver.unsatCore(result.asFormula()));
+//          }
           logger.log(Level.ALL, "False ", result.isFalse());
         }
       }

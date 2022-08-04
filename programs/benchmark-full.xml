@@ -1,8 +1,11 @@
 <?xml version="1.0"?>
 <!DOCTYPE benchmark PUBLIC "+//IDN sosy-lab.org//DTD BenchExec benchmark 1.9//EN" "https://www.sosy-lab.org/benchexec/benchmark-2.3.dtd">
-<benchmark tool="cpachecker" timelimit="300s" hardtimelimit="360s" memlimit="8 GB" cpuCores="2">
+<benchmark tool="cpachecker" timelimit="15 min" hardtimelimit="16 min" memlimit="15 GB" cpuCores="2">
 
     <require cpuModel="Intel Xeon E3-1230 v5 @ 3.40 GHz"/>
+    <option name="-heap">10000M</option>
+    <option name="-benchmark"/>
+    <option name="-timelimit">900 s</option>
 
 <!--    <resultfiles>**/*.graphml</resultfiles>-->
 
