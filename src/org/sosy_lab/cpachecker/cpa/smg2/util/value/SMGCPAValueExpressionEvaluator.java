@@ -927,6 +927,20 @@ public class SMGCPAValueExpressionEvaluator {
     return false;
   }
 
+  public static boolean isEnumType(CType pType) {
+    if (pType instanceof CElaboratedType) {
+      CElaboratedType type = (CElaboratedType) pType;
+      return type.getKind() == CComplexType.ComplexTypeKind.ENUM;
+    }
+
+    if (pType instanceof CCompositeType) {
+      CCompositeType type = (CCompositeType) pType;
+      return type.getKind() == CComplexType.ComplexTypeKind.ENUM;
+    }
+
+    return false;
+  }
+
   private BigInteger getBitSizeofType(
       CFAEdge edge, CType pType, SMGState pState, Optional<CExpression> pExpression)
       throws UnrecognizedCodeException {
