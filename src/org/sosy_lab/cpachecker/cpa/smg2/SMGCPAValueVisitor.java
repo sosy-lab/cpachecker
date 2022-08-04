@@ -50,18 +50,20 @@ import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
 import org.sosy_lab.cpachecker.cfa.types.c.CBitFieldType;
+import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CElaboratedType;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.cfa.types.c.CTypedefType;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMG2Exception;
 import org.sosy_lab.cpachecker.cpa.smg2.util.value.SMGCPAValueExpressionEvaluator;
 import org.sosy_lab.cpachecker.cpa.smg2.util.value.ValueAndSMGState;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.AddressExpression;
-import org.sosy_lab.cpachecker.cpa.value.symbolic.type.ConstantSymbolicExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicExpression;
+import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicIdentifier;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValue;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValueFactory;
 import org.sosy_lab.cpachecker.cpa.value.type.FunctionValue;
@@ -144,9 +146,17 @@ public class SMGCPAValueVisitor
     // Use the array expression in the visitor again to get the array address
     // The type of the arrayExpr may be pointer or array, depending on stack/heap
     CExpression arrayExpr = e.getArrayExpression();
+
+    // Return type is either a structure/array in which we simply add the offset
+    // Or a CPointerType in which we read and wrap in AddressExpression
+    // Or in all other cases just read and return
+    CType returnType = SMGCPAValueExpressionEvaluator.getCanonicalType(e.getExpressionType());
     List<ValueAndSMGState> arrayValueAndStates = arrayExpr.accept(this);
     ImmutableList.Builder<ValueAndSMGState> resultBuilder = ImmutableList.builder();
     for (ValueAndSMGState arrayValueAndState : arrayValueAndStates) {
+      // The arrayValue is either AddressExpression for pointer + offset
+      // SymbolicIdentifier with MemoryLocation for variable name + offset
+      // Or a invalid value
       Value arrayValue = arrayValueAndState.getValue();
 
       // Evaluate the subscript as far as possible
@@ -164,80 +174,115 @@ public class SMGCPAValueVisitor
           resultBuilder.add(ValueAndSMGState.ofUnknownValue(newState));
           continue;
         }
-        // Calculate the offset out of the subscript value and the type
-        CType properTypeRead = e.getExpressionType();
-        BigInteger typeSizeInBits = evaluator.getBitSizeof(newState, e.getExpressionType());
-        if (properTypeRead instanceof CArrayType) {
-          // We read an array type. This means this is a nested array and we need to read a pointer
-          // actually
-          properTypeRead =
-              new CPointerType(
-                  properTypeRead.isConst(),
-                  properTypeRead.isVolatile(),
-                  ((CArrayType) properTypeRead).getType());
-          typeSizeInBits = evaluator.getBitSizeof(newState, properTypeRead);
-        } else if (properTypeRead instanceof CElaboratedType) {
-          // We read an struct/union type. This means this is a nested array and we need to read a
-          // pointer actually
-          properTypeRead =
-              new CPointerType(
-                  properTypeRead.isConst(),
-                  properTypeRead.isVolatile(),
-                  ((CElaboratedType) properTypeRead).getRealType());
-          typeSizeInBits = evaluator.getBitSizeof(newState, properTypeRead);
-        }
 
+        // Calculate the offset out of the subscript value and the type
+        BigInteger typeSizeInBits = evaluator.getBitSizeof(newState, returnType);
         BigInteger subscriptOffset =
             typeSizeInBits.multiply(subscriptValue.asNumericValue().bigInteger());
 
-        // Get the value from the array and return the value + state
-        if (arrayExpr.getExpressionType() instanceof CPointerType
-            || evaluator.isPointerValue(arrayValue, newState)) {
-          if (!(arrayValue instanceof AddressExpression)) {
-            arrayValue = AddressExpression.withZeroOffset(arrayValue, properTypeRead);
-          }
-          // In the pointer case, the Value needs to be a AddressExpression
+        if (arrayExpr.getExpressionType() instanceof CPointerType) {
           Preconditions.checkArgument(arrayValue instanceof AddressExpression);
-          AddressExpression addressValue = (AddressExpression) arrayValue;
-          // The pointer might actually point inside of the array, take the offset of that into
-          // account!
-          Value arrayPointerOffsetExpr = addressValue.getOffset();
-          if (!arrayPointerOffsetExpr.isNumericValue()) {
-            // The offset is some non numeric Value and therefore not useable!
-            // TODO: log
-            resultBuilder.add(ValueAndSMGState.ofUnknownValue(newState));
-            continue;
-          }
-          subscriptOffset =
-              arrayPointerOffsetExpr.asNumericValue().bigInteger().add(subscriptOffset);
-
-          resultBuilder.add(
-              evaluator.readValueWithPointerDereference(
-                  newState, addressValue.getMemoryAddress(), subscriptOffset, typeSizeInBits));
-        } else if (arrayValue instanceof SymbolicValue
-            && ((SymbolicValue) arrayValue).getRepresentedLocation().isPresent()) {
-          // Here our arrayValue holds the name of our variable
-          MemoryLocation maybeVariableIdent =
-              ((SymbolicValue) arrayValue).getRepresentedLocation().orElseThrow();
-
-          // This might actually point inside the array, add the offset
-          if (maybeVariableIdent.isReference()) {
-            // TODO: is it possible for this offset to be unknown?
-            subscriptOffset =
-                subscriptOffset.add(BigInteger.valueOf(maybeVariableIdent.getOffset()));
-          }
-
-          resultBuilder.add(
-              evaluator.readStackOrGlobalVariable(
-                  newState, maybeVariableIdent.getIdentifier(), subscriptOffset, typeSizeInBits));
-
+        } else if (arrayExpr.getExpressionType() instanceof CCompositeType
+            || arrayExpr.getExpressionType() instanceof CElaboratedType
+            || arrayExpr.getExpressionType() instanceof CArrayType
+            || arrayExpr.getExpressionType() instanceof CTypedefType) {
+          Preconditions.checkArgument(arrayValue instanceof SymbolicIdentifier);
+          Preconditions.checkArgument(
+              ((SymbolicIdentifier) arrayValue).getRepresentedLocation().isPresent());
         } else {
-          throw new SMG2Exception(
-              "Error: could not determine CArraySubscript access in the SMGCPAValueVisitor.");
+          if (arrayValue instanceof SymbolicIdentifier) {
+            Preconditions.checkArgument(
+                ((SymbolicIdentifier) arrayValue).getRepresentedLocation().isEmpty());
+          }
+          Preconditions.checkArgument(!(arrayValue instanceof AddressExpression));
         }
+
+        resultBuilder.add(
+            evaluateReadOfValueAndOffset(arrayValue, subscriptOffset, returnType, newState));
       }
     }
     return resultBuilder.build();
+  }
+
+  private ValueAndSMGState evaluateReadOfValueAndOffset(
+      Value arrayValue, BigInteger additionalOffset, CType returnType, SMGState pCurrentState)
+      throws CPATransferException {
+    SMGState newState = pCurrentState;
+    BigInteger typeSizeInBits =
+        evaluator.getBitSizeof(
+            newState, SMGCPAValueExpressionEvaluator.getCanonicalType(returnType));
+    if (arrayValue instanceof AddressExpression) {
+      AddressExpression arrayAddr = (AddressExpression) arrayValue;
+      Value addrOffsetValue = arrayAddr.getOffset();
+      if (!addrOffsetValue.isNumericValue()) {
+        return ValueAndSMGState.ofUnknownValue(newState);
+      }
+      BigInteger finalOffset = addrOffsetValue.asNumericValue().bigInteger().add(additionalOffset);
+      if (SMGCPAValueExpressionEvaluator.isStructOrUnionType(returnType)
+          || returnType instanceof CArrayType
+          || returnType instanceof CFunctionType) {
+        return ValueAndSMGState.of(
+            arrayAddr.copyWithNewOffset(new NumericValue(finalOffset)), newState);
+
+      } else if (returnType instanceof CPointerType) {
+        // This of course does not need to be a pointer value! If this is a unknown we just
+        // return unknown.
+        // All else gets wrapped and the final read/deref will throw an error
+        ValueAndSMGState readPointerAndState =
+            evaluator.readValueWithPointerDereference(
+                newState, arrayAddr.getMemoryAddress(), finalOffset, typeSizeInBits);
+        if (readPointerAndState.getValue().isUnknown()) {
+          return ValueAndSMGState.ofUnknownValue(readPointerAndState.getState());
+        } else {
+          return ValueAndSMGState.of(
+              AddressExpression.withZeroOffset(readPointerAndState.getValue(), returnType),
+              readPointerAndState.getState());
+        }
+
+      } else {
+        return evaluator.readValueWithPointerDereference(
+            newState, arrayAddr.getMemoryAddress(), finalOffset, typeSizeInBits);
+      }
+    } else if (arrayValue instanceof SymbolicIdentifier
+        && ((SymbolicIdentifier) arrayValue).getRepresentedLocation().isPresent()) {
+      MemoryLocation memloc =
+          ((SymbolicIdentifier) arrayValue).getRepresentedLocation().orElseThrow();
+      String qualifiedVarName = memloc.getIdentifier();
+      BigInteger finalOffset = BigInteger.valueOf(memloc.getOffset()).add(additionalOffset);
+
+      if (SMGCPAValueExpressionEvaluator.isStructOrUnionType(returnType)
+          || returnType instanceof CArrayType
+          || returnType instanceof CFunctionType) {
+
+        return ValueAndSMGState.of(
+            SymbolicValueFactory.getInstance()
+                .newIdentifier(memloc.withAddedOffset(additionalOffset.longValueExact())),
+            newState);
+
+      } else if (returnType instanceof CPointerType) {
+        // This of course does not need to be a pointer value! If this is a unknown we just
+        // return unknown.
+        // All else gets wrapped and the final read/deref will throw an error
+        ValueAndSMGState readPointerAndState =
+            evaluator.readStackOrGlobalVariable(
+                newState, qualifiedVarName, finalOffset, typeSizeInBits);
+        if (readPointerAndState.getValue().isUnknown()) {
+          return ValueAndSMGState.ofUnknownValue(readPointerAndState.getState());
+        } else {
+          return ValueAndSMGState.of(
+              AddressExpression.withZeroOffset(readPointerAndState.getValue(), returnType),
+              readPointerAndState.getState());
+        }
+
+      } else {
+        // TODO: check that the return types match what we return!!!!
+        return evaluator.readStackOrGlobalVariable(
+            newState, qualifiedVarName, finalOffset, typeSizeInBits);
+        }
+
+    } else {
+      return ValueAndSMGState.ofUnknownValue(newState);
+    }
   }
 
   @Override
@@ -251,26 +296,29 @@ public class SMGCPAValueVisitor
     final CType calculationType = e.getCalculationType();
     final CExpression lVarInBinaryExp = e.getOperand1();
     final CExpression rVarInBinaryExp = e.getOperand2();
+    final CType returnType = SMGCPAValueExpressionEvaluator.getCanonicalType(e.getExpressionType());
     ImmutableList.Builder<ValueAndSMGState> resultBuilder = ImmutableList.builder();
 
     for (ValueAndSMGState leftValueAndState : lVarInBinaryExp.accept(this)) {
       Value leftValue = leftValueAndState.getValue();
+      SMGState currentState = leftValueAndState.getState();
       // We can't work with unknowns
       // Return the unknown value directly and not a new one! The mapping to the Value
       // object is important!
       if (leftValue.isUnknown()) {
-        resultBuilder.add(ValueAndSMGState.of(leftValue, leftValueAndState.getState()));
+        resultBuilder.add(ValueAndSMGState.ofUnknownValue(currentState));
         continue;
       }
+
       for (ValueAndSMGState rightValueAndState :
           rVarInBinaryExp.accept(
               new SMGCPAValueVisitor(evaluator, leftValueAndState.getState(), cfaEdge, logger))) {
 
-        SMGState currentState = rightValueAndState.getState();
+        currentState = rightValueAndState.getState();
 
         Value rightValue = rightValueAndState.getValue();
         if (rightValue.isUnknown()) {
-          resultBuilder.add(ValueAndSMGState.of(rightValue, currentState));
+          resultBuilder.add(ValueAndSMGState.ofUnknownValue(currentState));
           continue;
         }
 
@@ -297,6 +345,7 @@ public class SMGCPAValueVisitor
 
         if (leftValue instanceof AddressExpression || rightValue instanceof AddressExpression) {
           if (binaryOperator == BinaryOperator.EQUALS) {
+            Preconditions.checkArgument(returnType instanceof CSimpleType);
             // address == address or address == not address
             resultBuilder.add(
                 ValueAndSMGState.of(
@@ -305,6 +354,7 @@ public class SMGCPAValueVisitor
                     currentState));
             continue;
           } else if (binaryOperator == BinaryOperator.NOT_EQUALS) {
+            Preconditions.checkArgument(returnType instanceof CSimpleType);
             // address != address or address != not address
             resultBuilder.add(
                 ValueAndSMGState.of(
@@ -336,6 +386,13 @@ public class SMGCPAValueVisitor
         }
 
         if (leftValue instanceof SymbolicValue || rightValue instanceof SymbolicValue) {
+          if (leftValue instanceof SymbolicIdentifier) {
+            Preconditions.checkArgument(
+                ((SymbolicIdentifier) leftValue).getRepresentedLocation().isEmpty());
+          } else if (rightValue instanceof SymbolicIdentifier) {
+            Preconditions.checkArgument(
+                ((SymbolicIdentifier) rightValue).getRepresentedLocation().isEmpty());
+          }
           resultBuilder.add(
               ValueAndSMGState.of(
                   calculateSymbolicBinaryExpression(leftValue, rightValue, e), currentState));
@@ -443,122 +500,53 @@ public class SMGCPAValueVisitor
     // In the later case its a pointer dereference.
     // Read the value of the field from the object.
 
-    // First we transform x->f into (*x).f per default
+    // First we transform x->f into (*x).f per default. This might fail for non pointer x.
+    // In such a case we get a SymbolicIdentifier with the variable name and offset of x.
     CFieldReference explicitReference = e.withExplicitPointerDereference();
 
     // Owner expression; the struct/union with this field. Use this to get the address of the
     // general object.
     CExpression ownerExpression = explicitReference.getFieldOwner();
-    CType fieldType =
+    CType returnType =
         SMGCPAValueExpressionEvaluator.getCanonicalType(explicitReference.getExpressionType());
-    BigInteger upperFieldOffset = BigInteger.ZERO;
-    while (ownerExpression instanceof CFieldReference
-        && !explicitReference.isPointerDereference()) {
-      // Nested reference, i.e. struct->field1.field2. The field owner is struct->field1 in such a
-      // case, so we need to get the owners target and add the offsets to the later read
-      upperFieldOffset =
-          evaluator
-              .getFieldOffsetInBits(
-                  SMGCPAValueExpressionEvaluator.getCanonicalType(ownerExpression),
-                  explicitReference.getFieldName())
-              .add(upperFieldOffset);
-      explicitReference = ((CFieldReference) ownerExpression).withExplicitPointerDereference();
-      ownerExpression = explicitReference.getFieldOwner();
-    }
-    // For (*pointer).field case or struct.field case the visitor returns the Value for the
-    // correct SMGObject (if it exists)
+
+    // For (*pointer).field case or struct.field case the visitor returns the Value as
+    // AddressExpression. For struct.field its a SymbolicIdentifier with MemoryLocation
     ImmutableList.Builder<ValueAndSMGState> builder = new ImmutableList.Builder<>();
     for (ValueAndSMGState valueAndState : ownerExpression.accept(this)) {
       SMGState currentState = valueAndState.getState();
       // This value is either a AddressValue for pointers i.e. (*struct).field or a general
       // SymbolicValue
       Value structValue = valueAndState.getValue();
+      if (structValue.isUnknown()) {
+        builder.add(ValueAndSMGState.ofUnknownValue(currentState));
+        continue;
+      }
 
       // Now get the offset of the current field
       BigInteger fieldOffset =
-          evaluator
-              .getFieldOffsetInBits(
-                  SMGCPAValueExpressionEvaluator.getCanonicalType(ownerExpression),
-                  explicitReference.getFieldName())
-              .add(upperFieldOffset);
+          evaluator.getFieldOffsetInBits(
+              SMGCPAValueExpressionEvaluator.getCanonicalType(ownerExpression),
+              explicitReference.getFieldName());
 
-      // Get the size of the current field depending on its type; in the case of Strings however we
-      // want to use Chars
-      // if (fieldType instanceof CSimpleType) {
-      // TODO: Strings
-      // }
-
-      BigInteger sizeOfField = evaluator.getBitSizeof(currentState, fieldType);
-
-      // This is either a stack/global variable of the form struct.field or a pointer of the form
-      // (*structP).field. The later needs a pointer deref
-      if (ownerExpression instanceof CPointerExpression) {
-        // In the pointer case, the Value needs to be a AddressExpression
-        if (structValue.isUnknown()) {
-          builder.add(ValueAndSMGState.ofUnknownValue(currentState));
-          continue;
-        }
-        // else if (!(structValue instanceof AddressExpression)
-        //    && (!evaluator.isPointerValue(structValue, currentState))) {}
-
+      if (ownerExpression.getExpressionType() instanceof CPointerType) {
         Preconditions.checkArgument(structValue instanceof AddressExpression);
-        AddressExpression addressAndOffsetValue = (AddressExpression) structValue;
-        // This AddressExpr theoretically can have a offset
-        Value structPointerOffsetExpr = addressAndOffsetValue.getOffset();
-        if (!structPointerOffsetExpr.isNumericValue()) {
-          // The offset is some non numeric Value and therefore not usable!
-          builder.add(ValueAndSMGState.ofUnknownValue(currentState));
-          continue;
+      } else if (ownerExpression.getExpressionType() instanceof CCompositeType
+          || ownerExpression.getExpressionType() instanceof CElaboratedType
+          || ownerExpression.getExpressionType() instanceof CArrayType
+          || ownerExpression.getExpressionType() instanceof CTypedefType) {
+        if (structValue instanceof SymbolicIdentifier) {
+        Preconditions.checkArgument(
+            ((SymbolicIdentifier) structValue).getRepresentedLocation().isPresent());
+        } else {
+          Preconditions.checkArgument(structValue instanceof AddressExpression);
         }
-        BigInteger finalFieldOffset =
-            structPointerOffsetExpr.asNumericValue().bigInteger().add(fieldOffset);
-
-        ValueAndSMGState readValueAndState =
-            evaluator.readValueWithPointerDereference(
-                currentState,
-                addressAndOffsetValue.getMemoryAddress(),
-                finalFieldOffset,
-                sizeOfField);
-
-        if (fieldType instanceof CPointerType) {
-          readValueAndState =
-              ValueAndSMGState.of(
-                  AddressExpression.withZeroOffset(readValueAndState.getValue(), fieldType),
-                  readValueAndState.getState());
-        }
-
-        builder.add(readValueAndState);
-
-      } else if (ownerExpression instanceof CBinaryExpression
-          || ownerExpression instanceof CIdExpression) {
-        // In the non pointer case the Value is some SymbolicValue with the correct variable
-        // identifier String inside its MemoryLocation
-        Preconditions.checkArgument(structValue instanceof SymbolicValue);
-        MemoryLocation maybeVariableIdent =
-            ((SymbolicValue) structValue).getRepresentedLocation().orElseThrow();
-
-        BigInteger finalFieldOffset = fieldOffset;
-        if (maybeVariableIdent.isReference()) {
-          finalFieldOffset = fieldOffset.add(BigInteger.valueOf(maybeVariableIdent.getOffset()));
-        }
-
-        ValueAndSMGState readValueAndState =
-            evaluator.readStackOrGlobalVariable(
-                currentState, maybeVariableIdent.getIdentifier(), finalFieldOffset, sizeOfField);
-
-        if (fieldType instanceof CPointerType) {
-          readValueAndState =
-              ValueAndSMGState.of(
-                  AddressExpression.withZeroOffset(readValueAndState.getValue(), fieldType),
-                  readValueAndState.getState());
-        }
-
-        builder.add(readValueAndState);
-
       } else {
-        throw new SMG2Exception(
-            "Unknown field type in field expression when trying to retrieve a value.");
+        Preconditions.checkArgument(!(structValue instanceof SymbolicIdentifier));
+        Preconditions.checkArgument(!(structValue instanceof AddressExpression));
       }
+
+      builder.add(evaluateReadOfValueAndOffset(structValue, fieldOffset, returnType, currentState));
     }
     return builder.build();
   }
@@ -573,7 +561,7 @@ public class SMGCPAValueVisitor
     // or SymbolicValue with a memory location and the name of the variable inside of that.
 
     CSimpleDeclaration varDecl = e.getDeclaration();
-    CType type = SMGCPAValueExpressionEvaluator.getCanonicalType(e.getExpressionType());
+    CType returnType = SMGCPAValueExpressionEvaluator.getCanonicalType(e.getExpressionType());
     if (varDecl == null) {
       // The variable was not declared
       throw new SMG2Exception("Usage of undeclared variable: " + e.getName() + ".");
@@ -581,18 +569,19 @@ public class SMGCPAValueVisitor
 
     String variableName = varDecl.getQualifiedName();
 
-    if (SMGCPAValueExpressionEvaluator.isStructOrUnionType(type) || type instanceof CArrayType) {
-      // Struct/Unions/arrays on the stack/global; return the memory location in a symbolic value
-      // but make the symbolic "Value" null. This is then used as interpretation such that the Value
-      // of the memory location (on the stack) is used. This is used by assignments only as far as i
-      // know, i.e. when assigning a complete array/struct to a new variable.
+    if (SMGCPAValueExpressionEvaluator.isStructOrUnionType(returnType)
+        || returnType instanceof CArrayType) {
+      // Struct/Unions/arrays on the stack/global; return the memory location in a
+      // SymbolicIdentifier. This is then used as interpretation such that the Value
+      // of the memory location (on the stack) is used. This is used by assignments only as far as
+      // i know, i.e. when assigning a complete array/struct to a new variable.
       return ImmutableList.of(
           ValueAndSMGState.of(
-              new ConstantSymbolicExpression(
-                  null, type, MemoryLocation.forIdentifier(variableName)),
+              SymbolicValueFactory.getInstance()
+                  .newIdentifier(MemoryLocation.forIdentifier(variableName).withOffset(0)),
               state));
 
-    } else if (SMGCPAValueExpressionEvaluator.isAddressType(type)) {
+    } else if (returnType instanceof CPointerType || returnType instanceof CFunctionType) {
       // Pointer/Array/Function types should return a Value that internally can be translated into a
       // SMGValue that leads to a SMGPointsToEdge that leads to the correct object (with potential
       // offsets inside of the points to edge). These have to be packaged into a AddressExpression
@@ -604,7 +593,8 @@ public class SMGCPAValueVisitor
           evaluator.readStackOrGlobalVariable(
               state, varDecl.getQualifiedName(), BigInteger.ZERO, sizeInBits);
 
-      Value addressValue = AddressExpression.withZeroOffset(readValueAndState.getValue(), type);
+      Value addressValue =
+          AddressExpression.withZeroOffset(readValueAndState.getValue(), returnType);
 
       return ImmutableList.of(ValueAndSMGState.of(addressValue, readValueAndState.getState()));
 
@@ -612,9 +602,15 @@ public class SMGCPAValueVisitor
       // Everything else should be readable and returnable directly; just return the Value
       BigInteger sizeInBits = evaluator.getBitSizeof(state, e.getExpressionType());
       // Now use the qualified name to get the actual global/stack memory location
-      return ImmutableList.of(
+      ValueAndSMGState readValueAndState =
           evaluator.readStackOrGlobalVariable(
-              state, varDecl.getQualifiedName(), BigInteger.ZERO, sizeInBits));
+              state, varDecl.getQualifiedName(), BigInteger.ZERO, sizeInBits);
+
+      Preconditions.checkArgument(
+          readValueAndState.getValue().isNumericValue()
+              || !evaluator.isPointerValue(
+                  readValueAndState.getValue(), readValueAndState.getState()));
+      return ImmutableList.of(readValueAndState);
     }
   }
 
@@ -678,7 +674,7 @@ public class SMGCPAValueVisitor
       case TYPEOF: // This can't really be solved here as we can only return Values
 
       default:
-        return ImmutableList.of(ValueAndSMGState.of(UnknownValue.getInstance(), state));
+        return ImmutableList.of(ValueAndSMGState.ofUnknownValue(state));
     }
   }
 
@@ -689,8 +685,9 @@ public class SMGCPAValueVisitor
 
     UnaryOperator unaryOperator = e.getOperator();
     CExpression unaryOperand = e.getOperand();
-    CType expressionType = e.getExpressionType();
-    CType operandType = unaryOperand.getExpressionType();
+    CType returnType = SMGCPAValueExpressionEvaluator.getCanonicalType(e.getExpressionType());
+    CType operandType =
+        SMGCPAValueExpressionEvaluator.getCanonicalType(unaryOperand.getExpressionType());
 
     switch (unaryOperator) {
       case SIZEOF:
@@ -726,7 +723,7 @@ public class SMGCPAValueVisitor
       if (value instanceof SymbolicValue) {
         builder.add(
             ValueAndSMGState.of(
-                createSymbolicExpression(value, operandType, unaryOperator, expressionType),
+                createSymbolicExpression(value, operandType, unaryOperator, returnType),
                 currentState));
         continue;
       } else if (!value.isNumericValue()) {
@@ -757,11 +754,11 @@ public class SMGCPAValueVisitor
   public List<ValueAndSMGState> visit(CPointerExpression e) throws CPATransferException {
     // This should subevaluate to a AddressExpression in the visit call in the beginning as we
     // always evaluate to the address, but only
-    // dereference and read it if its not a struct/union as those will be dereferenced by the field
-    // expression
+    // dereference and read it if its not a struct/union as those will be dereferenced
+    // by the field expression
 
     // Get the type of the target
-    CType type = SMGCPAValueExpressionEvaluator.getCanonicalType(e.getExpressionType());
+    CType returnType = SMGCPAValueExpressionEvaluator.getCanonicalType(e.getExpressionType());
     // Get the expression that is dereferenced
     CExpression expr = e.getOperand();
     // Evaluate the expression to a Value; this should return a Symbolic Value with the address of
@@ -786,19 +783,16 @@ public class SMGCPAValueVisitor
         continue;
       }
 
-      if (SMGCPAValueExpressionEvaluator.isStructOrUnionType(type)) {
+      BigInteger sizeInBits = evaluator.getBitSizeof(currentState, returnType);
+      BigInteger offsetInBits = offset.asNumericValue().bigInteger();
+
+      if (SMGCPAValueExpressionEvaluator.isStructOrUnionType(returnType)) {
         // We don't want to read struct/union! In those cases we return the AddressExpression
         // such that the following visitor methods can dereference the fields correctly
         builder.add(ValueAndSMGState.of(value, currentState));
 
-      } else if (type instanceof CArrayType) {
+      } else if (returnType instanceof CArrayType) {
         // For arrays we want to actually read the values at the addresses
-
-        // TODO: if String type, use char and eval each on its own for the size of the String
-        // For Strings the offset changes obviously
-        BigInteger sizeInBits = evaluator.getBitSizeof(currentState, type);
-        BigInteger offsetInBits = offset.asNumericValue().bigInteger();
-
         // Dereference the Value and return it. The read checks for validity etc.
         ValueAndSMGState readArray =
             evaluator.readValueWithPointerDereference(
@@ -806,43 +800,26 @@ public class SMGCPAValueVisitor
         currentState = readArray.getState();
         builder.add(readArray);
 
-      } else if (type instanceof CPointerType) {
-        // Default case either *pointer or *(pointer + smth), but both get transformed into a
-        // AddressExpression Value type with the correct offset build in
-        // Just dereference the pointer with the correct type
-        BigInteger sizeInBits = evaluator.getBitSizeof(currentState, type);
-        BigInteger offsetInBits = offset.asNumericValue().bigInteger();
-
-        // Dereference the Value and return it. The read checks for validity etc.
-        ValueAndSMGState readValueAndState =
-            evaluator.readValueWithPointerDereference(
-                currentState, pointerValue.getMemoryAddress(), offsetInBits, sizeInBits);
-        currentState = readValueAndState.getState();
-        // In the pointer case we would need to encapsulate it again
-        builder.add(
-            ValueAndSMGState.of(
-                AddressExpression.withZeroOffset(readValueAndState.getValue(), type),
-                currentState));
-
-      } else if ((type instanceof CFunctionType
-          && expr instanceof CUnaryExpression
-          && ((CUnaryExpression) expr).getOperator() == CUnaryExpression.UnaryOperator.AMPER)) {
-        // Special cases
-        // TODO:
       } else {
         // "Normal" return types
         // Default case either *pointer or *(pointer + smth), but both get transformed into a
         // AddressExpression Value type with the correct offset build in, so
         // just dereference the pointer with the correct type
-        BigInteger sizeInBits = evaluator.getBitSizeof(currentState, type);
-        BigInteger offsetInBits = offset.asNumericValue().bigInteger();
 
         // Dereference the Value and return it. The read checks for validity etc.
-        ValueAndSMGState readValue =
+        ValueAndSMGState readValueAndState =
             evaluator.readValueWithPointerDereference(
                 currentState, pointerValue.getMemoryAddress(), offsetInBits, sizeInBits);
-        currentState = readValue.getState();
-        builder.add(readValue);
+
+        if (returnType instanceof CPointerType) {
+          // In the pointer case we would need to encapsulate it again
+          builder.add(
+              ValueAndSMGState.of(
+                  AddressExpression.withZeroOffset(readValueAndState.getValue(), returnType),
+                  currentState));
+        } else {
+          builder.add(readValueAndState);
+        }
       }
     }
     return builder.build();
