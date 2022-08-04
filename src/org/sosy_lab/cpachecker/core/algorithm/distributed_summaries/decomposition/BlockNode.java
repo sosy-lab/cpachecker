@@ -19,7 +19,6 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.function.Supplier;
 import org.checkerframework.checker.nullness.qual.NonNull;
-import org.sosy_lab.common.MoreStrings;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
@@ -59,15 +58,12 @@ public class BlockNode {
             pMetaData.getLastNode(),
             node -> CFAUtils.leavingEdges(node).toSet(),
             pShutdownNotifier),
-        MoreStrings.lazyString(
-            () ->
-                "pNodesInBlock ("
-                    + pMetaData.getNodesInBlock()
-                    + ") must list all nodes but misses either the root node ("
-                    + pMetaData.getStartNode()
-                    + ") or the last node ("
-                    + pMetaData.getLastNode()
-                    + ")."));
+        "pNodesInBlock (%s) "
+            + "must list all nodes but misses either the root node (%s) "
+            + "or the last node (%s).",
+        pMetaData.getNodesInBlock(),
+        pMetaData.getStartNode(),
+        pMetaData.getLastNode());
     Preconditions.checkArgument(
         isBlockNodeValid(pMetaData.getStartNode(), pMetaData.getEdgesInBlock()),
         "BlockNodes require to have exactly one exit node.");
