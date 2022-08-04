@@ -110,8 +110,8 @@ public class BlockOperatorDecomposer implements CFADecomposer {
         // look at the top entry
         Entry nodeEntry = toSearch.pop();
         // successorOfCurrNode is a successor of lastCFANode
-        CFANode successorOfCurrNode = nodeEntry.node;
-        if (operator.isBlockEnd(successorOfCurrNode, nodeEntry.threshold)) {
+        CFANode successorOfCurrNode = nodeEntry.getNode();
+        if (operator.isBlockEnd(successorOfCurrNode, nodeEntry.getThreshold())) {
           // alternative: if (successorOfCurrNode.getNumEnteringEdges() > 1 ||
           // successorOfCurrNode.getNumLeavingEdges() > 1) {
           // if successorOfCurrNode is a block end, create a new BlockNode that starts with
@@ -121,7 +121,7 @@ public class BlockOperatorDecomposer implements CFADecomposer {
           blockEnds.push(successorOfCurrNode);
           BlockNodeMetaData childBlockNode =
               factory.makeBlock(
-                  lastCFANode, successorOfCurrNode, nodeEntry.seen, nodeEntry.seenEdges);
+                  lastCFANode, successorOfCurrNode, nodeEntry.getSeen(), nodeEntry.getSeenEdges());
 
           // every previous block that ends with lastCFANode is now linked to the new BlockNode that
           // starts with lastCFANode.
@@ -145,8 +145,8 @@ public class BlockOperatorDecomposer implements CFADecomposer {
         } else {
           // if successorOfCurrNode is not a block end, all successors must be added to the block
           for (CFANode successor : CFAUtils.successorsOf(successorOfCurrNode)) {
-            Set<CFANode> seen = new LinkedHashSet<>(nodeEntry.seen);
-            Set<CFAEdge> seenEdge = new LinkedHashSet<>(nodeEntry.seenEdges);
+            Set<CFANode> seen = new LinkedHashSet<>(nodeEntry.getSeen());
+            Set<CFAEdge> seenEdge = new LinkedHashSet<>(nodeEntry.getSeenEdges());
             seen.add(successor);
             for (CFAEdge leavingEdge : CFAUtils.leavingEdges(successorOfCurrNode)) {
               if (leavingEdge.getSuccessor().equals(successor)) {
@@ -154,7 +154,7 @@ public class BlockOperatorDecomposer implements CFADecomposer {
                 break;
               }
             }
-            toSearch.add(new Entry(successor, seen, seenEdge, nodeEntry.threshold + 1));
+            toSearch.add(new Entry(successor, seen, seenEdge, nodeEntry.getThreshold() + 1));
           }
         }
       }
@@ -179,9 +179,25 @@ public class BlockOperatorDecomposer implements CFADecomposer {
     public boolean equals(Object pO) {
       if (pO instanceof Entry) {
         Entry entry = (Entry) pO;
-        return Objects.equals(node, entry.node) && Objects.equals(seen, entry.seen);
+        return Objects.equals(node, entry.getNode()) && Objects.equals(seen, entry.getSeen());
       }
       return false;
+    }
+
+    public Set<CFANode> getSeen() {
+      return seen;
+    }
+
+    public CFANode getNode() {
+      return node;
+    }
+
+    public int getThreshold() {
+      return threshold;
+    }
+
+    public Set<CFAEdge> getSeenEdges() {
+      return seenEdges;
     }
 
     @Override
