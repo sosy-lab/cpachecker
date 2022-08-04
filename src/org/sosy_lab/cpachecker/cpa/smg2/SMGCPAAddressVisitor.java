@@ -16,7 +16,6 @@ import java.util.Optional;
 import java.util.logging.Level;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
@@ -28,16 +27,16 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.DefaultCExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
-import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMG2Exception;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGObjectAndOffset;
 import org.sosy_lab.cpachecker.cpa.smg2.util.value.SMGCPAValueExpressionEvaluator;
 import org.sosy_lab.cpachecker.cpa.smg2.util.value.ValueAndSMGState;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.AddressExpression;
-import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValue;
+import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicIdentifier;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
+import org.sosy_lab.cpachecker.util.smg.graph.SMGObject;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGValue;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
@@ -150,70 +149,45 @@ public class SMGCPAAddressVisitor
         // access array[1] first, we can see that the next type is CArray which makes only sense for
         // nested arrays -> it reads a pointer and returns it even if the type is not a pointer
         // expr)
-        boolean isPointer = evaluator.isPointerValue(arrayValue, currentState);
-        if (arrayExpr.getExpressionType() instanceof CPointerType || isPointer) {
-          if (isPointer) {
-            CType exprType = e.getExpressionType();
-            arrayValue =
-                AddressExpression.withZeroOffset(
-                    arrayValue,
-                    new CPointerType(exprType.isConst(), exprType.isVolatile(), exprType));
-          }
-
-          // In the pointer case, the Value needs to be a AddressExpression
-          if (!(arrayValue instanceof AddressExpression)) {
-            throw new SMG2Exception(
-                "A pointer expression was found to be not of the type AddressExpression and is"
-                    + " therefore invalid.");
-          }
-          AddressExpression addressValue = (AddressExpression) arrayValue;
-          // The pointer might actually point inside of the array, take the offset of that into
-          // account!
-          Value arrayPointerOffsetExpr = addressValue.getOffset();
-          if (!arrayPointerOffsetExpr.isNumericValue()) {
-            // The offset is some non numeric Value and therefore not usable!
+        if ((arrayValue instanceof AddressExpression)) {
+          AddressExpression arrayAddr = (AddressExpression) arrayValue;
+          Value addrOffset = arrayAddr.getOffset();
+          if (!addrOffset.isNumericValue()) {
             logger.log(
                 Level.FINE,
-                "A subscript value was found to be non concrete when trying to find a memory"
+                "A offset value was found to be non concrete when trying to find a memory"
                     + " location in an array. No memory region could be returned.");
             resultBuilder.add(Optional.empty());
           }
-          subscriptOffset =
-              arrayPointerOffsetExpr.asNumericValue().bigInteger().add(subscriptOffset);
+          BigInteger baseOffset = addrOffset.asNumericValue().bigInteger();
+          BigInteger finalOffset = baseOffset.add(subscriptOffset);
 
           resultBuilder.add(
               evaluator.getTargetObjectAndOffset(
-                  currentState, addressValue.getMemoryAddress(), subscriptOffset));
-        } else if (arrayValue instanceof SymbolicValue) {
-          if (((SymbolicValue) arrayValue).getRepresentedLocation().isEmpty()) {
-            // No location = a real symbolic value
-            resultBuilder.add(Optional.empty());
-            continue;
-          }
-          // Here our arrayValue holds the name of our variable if there is a location
-          MemoryLocation maybeVariableIdent =
-              ((SymbolicValue) arrayValue).getRepresentedLocation().orElseThrow();
+                  currentState, arrayAddr.getMemoryAddress(), finalOffset));
 
-          // This might actually point inside the array, add the offset
-          if (maybeVariableIdent.isReference()) {
-            // TODO: is it possible for this offset to be unknown?
-            subscriptOffset =
-                subscriptOffset.add(BigInteger.valueOf(maybeVariableIdent.getOffset()));
-          }
-          resultBuilder.add(
-              evaluator.getTargetObjectAndOffset(
-                  currentState, maybeVariableIdent.getIdentifier(), subscriptOffset));
+        } else if (arrayValue instanceof SymbolicIdentifier
+            && ((SymbolicIdentifier) arrayValue).getRepresentedLocation().isPresent()) {
+          MemoryLocation variableAndOffset =
+              ((SymbolicIdentifier) arrayValue).getRepresentedLocation().orElseThrow();
+          String varName = variableAndOffset.getIdentifier();
+          BigInteger baseOffset = BigInteger.valueOf(variableAndOffset.getOffset());
+          BigInteger finalOffset = baseOffset.add(subscriptOffset);
+
+          resultBuilder.add(evaluator.getTargetObjectAndOffset(currentState, varName, finalOffset));
+
         } else {
-          // Unknown case etc.
-          logger.log(
-              Level.FINE,
-              "Unknown subscript value when trying to find a memory location of an array. No memory"
-                  + " region could be returned.");
-          resultBuilder.add(Optional.empty());
+          // Might be numeric 0 (0 object). All else cases are basically invalid requests.
+          if (arrayValue.isNumericValue()
+              && arrayValue.asNumericValue().bigInteger().compareTo(BigInteger.ZERO) == 0) {
+            resultBuilder.add(
+                Optional.of(SMGObjectAndOffset.of(SMGObject.nullInstance(), subscriptOffset)));
+          } else {
+            resultBuilder.add(Optional.empty());
+          }
         }
       }
     }
-
     return resultBuilder.build();
   }
 
@@ -235,37 +209,16 @@ public class SMGCPAAddressVisitor
     // general object.
     CExpression ownerExpression = explicitReference.getFieldOwner();
     ImmutableList.Builder<Optional<SMGObjectAndOffset>> resultBuilder = ImmutableList.builder();
-
-    if (ownerExpression instanceof CFieldReference && !explicitReference.isPointerDereference()) {
-      // Nested reference, i.e. struct->field1.field2. The field owner is struct->field1 in such a
-      // case, so we need to get the owners SMGObjectAndOffset and then, depending on if its
-      // a reference or not, add the offset of field2#
-      for (Optional<SMGObjectAndOffset> maybeOwnerObjectAndOffset : ownerExpression.accept(this)) {
-        if (maybeOwnerObjectAndOffset.isEmpty()) {
-          resultBuilder.add(maybeOwnerObjectAndOffset);
-          continue;
-        }
-        SMGObjectAndOffset ownerObjectAndOffset = maybeOwnerObjectAndOffset.orElseThrow();
-        BigInteger fieldOffsetWithoutOwner =
-            evaluator.getFieldOffsetInBits(
-                SMGCPAValueExpressionEvaluator.getCanonicalType(ownerExpression),
-                explicitReference.getFieldName());
-        BigInteger fieldOffset =
-            ownerObjectAndOffset.getOffsetForObject().add(fieldOffsetWithoutOwner);
-        resultBuilder.add(
-            Optional.of(SMGObjectAndOffset.of(ownerObjectAndOffset.getSMGObject(), fieldOffset)));
-      }
-      return resultBuilder.build();
-    }
-
-    // For (*pointer).field case or struct.field case the visitor returns the Value for the
-    // correct SMGObject (if it exists)
     for (ValueAndSMGState structValuesAndState :
         ownerExpression.accept(new SMGCPAValueVisitor(evaluator, state, cfaEdge, logger))) {
       // This value is either a AddressValue for pointers i.e. (*struct).field or a general
       // SymbolicValue
       Value structValue = structValuesAndState.getValue();
       SMGState currentState = structValuesAndState.getState();
+      if (structValue.isUnknown()) {
+        resultBuilder.add(Optional.empty());
+        continue;
+      }
 
       // Now get the offset of the current field
       BigInteger fieldOffset =
@@ -273,49 +226,40 @@ public class SMGCPAAddressVisitor
               SMGCPAValueExpressionEvaluator.getCanonicalType(ownerExpression),
               explicitReference.getFieldName());
 
-      // This is either a stack/global variable of the form struct.field or a pointer of the form
-      // (*structP).field. The later needs a pointer deref
-      if (ownerExpression instanceof CPointerExpression) {
-        // In the pointer case, the Value needs to be a AddressExpression
-        Preconditions.checkArgument(structValue instanceof AddressExpression);
-        AddressExpression addressAndOffsetValue = (AddressExpression) structValue;
-        // This AddressExpr theoretically can have a offset
-        Value structPointerOffsetExpr = addressAndOffsetValue.getOffset();
-        if (!structPointerOffsetExpr.isNumericValue()) {
-          // The offset is some non numeric Value and therefore not usable!
-          logger.log(
-              Level.FINE,
-              "A field reference could not be resolved to a concrete offset when trying to find the"
-                  + " memory location of a composite field. No memory region could be returned.");
+      if (structValue instanceof AddressExpression) {
+        AddressExpression structAddr = (AddressExpression) structValue;
+        Value addrOffset = structAddr.getOffset();
+        if (!addrOffset.isNumericValue()) {
+          // Non numeric offset -> not usable
           resultBuilder.add(Optional.empty());
         }
-        BigInteger finalFieldOffset =
-            structPointerOffsetExpr.asNumericValue().bigInteger().add(fieldOffset);
+        BigInteger baseOffset = addrOffset.asNumericValue().bigInteger();
+        BigInteger finalFieldOffset = baseOffset.add(fieldOffset);
 
         resultBuilder.add(
             evaluator.getTargetObjectAndOffset(
-                currentState, addressAndOffsetValue.getMemoryAddress(), finalFieldOffset));
+                currentState, structAddr.getMemoryAddress(), finalFieldOffset));
 
-      } else if (ownerExpression instanceof CBinaryExpression
-          || ownerExpression instanceof CIdExpression) {
-        // In the non pointer case the Value is some SymbolicValue with the correct variable
-        // identifier String inside its MemoryLocation
-        Preconditions.checkArgument(structValue instanceof SymbolicValue);
-        MemoryLocation maybeVariableIdent =
-            ((SymbolicValue) structValue).getRepresentedLocation().orElseThrow();
-
-        BigInteger finalFieldOffset = fieldOffset;
-        if (maybeVariableIdent.isReference()) {
-          finalFieldOffset = fieldOffset.add(BigInteger.valueOf(maybeVariableIdent.getOffset()));
-        }
+      } else if (structValue instanceof SymbolicIdentifier
+          && ((SymbolicIdentifier) structValue).getRepresentedLocation().isPresent()) {
+        MemoryLocation variableAndOffset =
+            ((SymbolicIdentifier) structValue).getRepresentedLocation().orElseThrow();
+        String varName = variableAndOffset.getIdentifier();
+        BigInteger baseOffset = BigInteger.valueOf(variableAndOffset.getOffset());
+        BigInteger finalFieldOffset = baseOffset.add(fieldOffset);
 
         resultBuilder.add(
-            evaluator.getTargetObjectAndOffset(
-                currentState, maybeVariableIdent.getIdentifier(), finalFieldOffset));
+            evaluator.getTargetObjectAndOffset(currentState, varName, finalFieldOffset));
 
       } else {
-        throw new SMG2Exception(
-            "Unknown field type in field expression in the search for memory addresses.");
+        // Might be numeric 0 (0 object). All else cases are basically invalid requests.
+        if (structValue.isNumericValue()
+            && structValue.asNumericValue().bigInteger().compareTo(BigInteger.ZERO) == 0) {
+          resultBuilder.add(
+              Optional.of(SMGObjectAndOffset.of(SMGObject.nullInstance(), fieldOffset)));
+        } else {
+          resultBuilder.add(Optional.empty());
+        }
       }
     }
     return resultBuilder.build();
