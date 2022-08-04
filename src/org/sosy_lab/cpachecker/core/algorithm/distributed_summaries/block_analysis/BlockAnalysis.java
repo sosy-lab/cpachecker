@@ -193,7 +193,6 @@ public abstract class BlockAnalysis implements BlockAnalyzer {
    * (initial and final location) are target states, too.
    *
    * @param startState initial state from a message
-   * @param relation the block transfer relation (has to be resetted if it contains loops)
    * @return all target states in this code block
    * @throws CPAException wrapper exception
    * @throws InterruptedException thread interrupted
