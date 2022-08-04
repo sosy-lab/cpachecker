@@ -1546,7 +1546,7 @@ public class SMGState implements LatticeAbstractState<SMGState>, AbstractQueryab
       // We only write edges that are >= the beginning offset of the source and edgeOffsetInBits +
       // edgeSizeInBits < sourceStartOffset + copySizeInBits
       if (sourceStartOffset.compareTo(edgeOffsetInBits) <= 0
-          && edgeOffsetInBits.add(edgeSizeInBits).compareTo(maxReadOffsetPlusSize) < 0) {
+          && edgeOffsetInBits.add(edgeSizeInBits).compareTo(maxReadOffsetPlusSize) <= 0) {
         // We need to take the targetOffset to source offset difference into account
         BigInteger finalWriteOffsetInBits =
             edgeOffsetInBits.subtract(sourceStartOffset).add(targetStartOffset);
