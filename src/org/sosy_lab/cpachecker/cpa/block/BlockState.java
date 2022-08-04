@@ -36,9 +36,14 @@ public class BlockState implements AbstractQueryableState, Partitionable, Serial
   private final CFANode node;
   private final AnalysisDirection direction;
   private final BlockStateType type;
+  private final boolean wasLoopHeadEncountered;
 
   public BlockState(
-      CFANode pNode, BlockNode pTargetNode, AnalysisDirection pDirection, BlockStateType pType) {
+      CFANode pNode,
+      BlockNode pTargetNode,
+      AnalysisDirection pDirection,
+      BlockStateType pType,
+      boolean pWasLoopHeadEncountered) {
     node = pNode;
     direction = pDirection;
     type = pType;
@@ -50,6 +55,11 @@ public class BlockState implements AbstractQueryableState, Partitionable, Serial
               ? pTargetNode.getLastNode()
               : pTargetNode.getStartNode();
     }
+    wasLoopHeadEncountered = pWasLoopHeadEncountered;
+  }
+
+  public boolean hasLoopHeadEncountered() {
+    return wasLoopHeadEncountered;
   }
 
   public CFANode getLocationNode() {

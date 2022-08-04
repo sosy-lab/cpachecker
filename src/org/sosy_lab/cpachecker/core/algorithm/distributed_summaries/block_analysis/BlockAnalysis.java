@@ -50,7 +50,6 @@ import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.block.BlockEntryReachedTargetInformation;
 import org.sosy_lab.cpachecker.cpa.block.BlockState;
-import org.sosy_lab.cpachecker.cpa.block.BlockTransferRelation;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeCPA;
 import org.sosy_lab.cpachecker.cpa.location.LocationState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
@@ -199,10 +198,8 @@ public abstract class BlockAnalysis implements BlockAnalyzer {
    * @throws CPAException wrapper exception
    * @throws InterruptedException thread interrupted
    */
-  ImmutableSet<ARGState> findReachableTargetStatesInBlock(
-      AbstractState startState, BlockTransferRelation relation)
+  ImmutableSet<ARGState> findReachableTargetStatesInBlock(AbstractState startState)
       throws CPAException, InterruptedException {
-    relation.init(block);
     reachedSet.clear();
     reachedSet.add(startState, initialPrecision);
 

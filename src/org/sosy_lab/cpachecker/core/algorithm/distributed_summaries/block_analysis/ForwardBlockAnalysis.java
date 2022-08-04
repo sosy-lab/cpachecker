@@ -35,16 +35,12 @@ import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
-import org.sosy_lab.cpachecker.cpa.block.BlockCPA;
-import org.sosy_lab.cpachecker.cpa.block.BlockTransferRelation;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
-import org.sosy_lab.cpachecker.util.CPAs;
 
 public class ForwardBlockAnalysis extends BlockAnalysis {
 
-  private final BlockTransferRelation relation;
   private final DistributedCompositeCPA distributedCompositeCPA;
   private final BlockNode block;
   private final ReachedSet reachedSet;
@@ -73,10 +69,6 @@ public class ForwardBlockAnalysis extends BlockAnalysis {
         pConfiguration,
         pShutdownManager,
         pOptions);
-    relation =
-        (BlockTransferRelation)
-            CPAs.retrieveCPAOrFail(getCPA(), BlockCPA.class, BlockAnalysis.class)
-                .getTransferRelation();
     containsLoops = pCFA.getAllLoopHeads().isPresent() || pOptions.shouldSendEveryErrorMessage();
     alreadyReportedError = containsLoops;
     reachedSet = getReachedSet();
@@ -90,7 +82,7 @@ public class ForwardBlockAnalysis extends BlockAnalysis {
   public Collection<BlockSummaryMessage> analyze(Collection<BlockSummaryMessage> messages)
       throws CPAException, InterruptedException {
     ARGState startState = getStartState(messages);
-    Set<ARGState> targetStates = findReachableTargetStatesInBlock(startState, relation);
+    Set<ARGState> targetStates = findReachableTargetStatesInBlock(startState);
     if (targetStates.isEmpty()) {
       // if final node is not reachable, do not broadcast anything.
       // in case abstraction is enabled, this might occur since we abstract at block end

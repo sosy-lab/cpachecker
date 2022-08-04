@@ -13,7 +13,6 @@ import static org.sosy_lab.common.collect.Collections3.transformedImmutableListC
 import com.google.common.collect.ImmutableSet;
 import java.util.Collection;
 import java.util.List;
-import java.util.Objects;
 import java.util.Set;
 import java.util.logging.Level;
 import org.sosy_lab.common.ShutdownManager;
@@ -31,17 +30,13 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
-import org.sosy_lab.cpachecker.cpa.block.BlockCPABackward;
-import org.sosy_lab.cpachecker.cpa.block.BlockTransferRelation;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
-import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.java_smt.api.SolverException;
 
 public class BackwardBlockAnalysis extends BlockAnalysis {
 
-  private final BlockTransferRelation relation;
   private final ReachedSet reachedSet;
   private final BlockNode block;
   private final LogManager logger;
@@ -65,10 +60,6 @@ public class BackwardBlockAnalysis extends BlockAnalysis {
         pConfiguration,
         pShutdownManager,
         pOptions);
-    relation =
-        (BlockTransferRelation)
-            Objects.requireNonNull(CPAs.retrieveCPA(getCPA(), BlockCPABackward.class))
-                .getTransferRelation();
     reachedSet = getReachedSet();
     block = pBlock;
     logger = pLogger;
@@ -79,7 +70,7 @@ public class BackwardBlockAnalysis extends BlockAnalysis {
   public Collection<BlockSummaryMessage> analyze(Collection<BlockSummaryMessage> messages)
       throws CPAException, InterruptedException, SolverException {
     ARGState startState = getStartState(messages);
-    Set<ARGState> targetStates = findReachableTargetStatesInBlock(startState, relation);
+    Set<ARGState> targetStates = findReachableTargetStatesInBlock(startState);
     List<AbstractState> states =
         transformedImmutableListCopy(
             targetStates, state -> AbstractStates.extractStateByType(state, CompositeState.class));
