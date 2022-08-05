@@ -50,6 +50,7 @@ import org.sosy_lab.cpachecker.cpa.smg2.util.SMG2Exception;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGObjectAndOffset;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGObjectAndSMGState;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.AddressExpression;
+import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicIdentifier;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValueFactory;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
@@ -59,6 +60,7 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGObject;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGPointsToEdge;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGValue;
+import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 @SuppressWarnings("unused")
 public class SMGCPAValueExpressionEvaluator {
@@ -1241,6 +1243,20 @@ public class SMGCPAValueExpressionEvaluator {
 
   public MachineModel getMachineModel() {
     return machineModel;
+  }
+
+  /**
+   * @param value {@link Value} to be checked.
+   * @return true if the entered value is a {@link AddressExpression} or a {@link
+   *     SymbolicIdentifier} with a {@link MemoryLocation}.
+   */
+  public static boolean valueIsAddressExprOrVariableOffset(Value value) {
+    if (value == null) {
+      return false;
+    }
+    return value instanceof AddressExpression
+        || (value instanceof SymbolicIdentifier)
+            && ((SymbolicIdentifier) value).getRepresentedLocation().isPresent();
   }
 
   // Get canonical type information
