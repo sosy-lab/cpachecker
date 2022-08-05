@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.cfa;
 
+import com.google.common.graph.Traverser;
 import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.HashSet;
@@ -19,56 +20,41 @@ import org.sosy_lab.cpachecker.util.CFAUtils;
 
 public class CFAReversePostorder {
 
-  // for assignSorting
-  private int reversePostorderId = 0;
+  private CFAReversePostorder() {}
 
-  // for checkIds
-  private final Set<CFANode> visited = new HashSet<>();
-  private int reversePostorderId2 = 0;
+  private static boolean checkIds(CFANode pStartNode) {
 
-  @SuppressWarnings("unused")
-  private boolean checkIds(CFANode node) {
-    // This is the (original) recursive algorithm.
-    // We keep this implementation as an assertion check
-    // to check that the non-recursive algorithm assigns exactly(!) the same ids.
-    // Even slight variations have been found to cause performance differences,
-    // although we are not sure why.
+    // This is the old iterative algorithm. We keep this implementation to check that the new
+    // Guava-based algorithm assigns exactly(!) the same IDs. Even slight variations have been found
+    // to cause performance differences, although we are not sure why.
 
-    if (!visited.add(node)) {
-      // already handled, do nothing
-      return true;
-    }
+    // The original recursive algorithm this iterative algorithm is based on (it should assign the
+    // exact same IDs as the iterative implementation):
+    // ---------------------------------------------------------------------------------------------
+    // private final Set<CFANode> visited = new HashSet<>();
+    // private int reversePostorderId = 0;
+    //
+    // private void assignIds(CFANode pNode) {
+    //   if (!visited.add(pNode)) return;
+    //   for (CFANode successor : CFAUtils.successorsOf(pNode)) assignIds(successor);
+    //   pNode.setReversePostorderId(reversePostOrderId++);
+    // }
+    // ---------------------------------------------------------------------------------------------
 
-    for (CFANode successor : CFAUtils.successorsOf(node)) {
-      checkIds(successor);
-    }
-
-    // node.setReversePostorderId(reversePostorderId2++);
-    assert node.getReversePostorderId() == reversePostorderId2++
-        : "Node "
-            + node
-            + " got "
-            + node.getReversePostorderId()
-            + ", but should get "
-            + (reversePostorderId2 - 1);
-    return true;
-  }
-
-  public void assignSorting(final CFANode start) {
-    // This is an iterative version of the original algorithm that is now in checkIds().
     // We store the state of the function in two stacks:
-    // - the current node (variable "node" in checkIds())
+    // - the current node (parameter `pNode` in the recursive algorithm)
     // - the iterator over the current node's successors (this is state hidden in the for-each loop
-    // in checkIds())
+    //   of the recursive algorithm)
     // Together, these two items form a "stack frame".
 
     final Set<CFANode> finished = new HashSet<>();
+    int reversePostorderId = 0;
 
     final Deque<CFANode> nodeStack = new ArrayDeque<>();
     @SuppressWarnings("JdkObsolete") // ArrayDeque doesn't work here because we store nulls
     final Deque<Iterator<CFANode>> iteratorStack = new LinkedList<>();
 
-    nodeStack.push(start);
+    nodeStack.push(pStartNode);
     iteratorStack.push(null);
 
     while (!nodeStack.isEmpty()) {
@@ -79,8 +65,7 @@ public class CFAReversePostorder {
 
       if (successors == null) {
         // Entering this stack frame.
-        // This part of the code corresponds to the code in checkIds()
-        // before the for loop.
+        // This part of the code corresponds to the code in the recursive algorithm before the loop.
 
         if (!finished.add(node)) {
           // already handled, do nothing
@@ -99,8 +84,8 @@ public class CFAReversePostorder {
 
       if (successors.hasNext()) {
         // "recursive call"
-        // This part of the code corresponds to the code in checkIds()
-        // during the loop.
+        // This part of the code corresponds to the code in the recursive algorithm during the loop.
+
         CFANode successor = successors.next();
 
         // Do a simulated "function call" by pushing something on the stacks,
@@ -110,9 +95,11 @@ public class CFAReversePostorder {
 
       } else {
         // All children handled.
-        // This part of the code corresponds to the code in checkIds()
-        // after the loop.
-        node.setReversePostorderId(reversePostorderId++);
+        // This part of the code corresponds to the code in the recursive algorithm after the loop.
+
+        if (node.getReversePostorderId() != reversePostorderId++) {
+          return false; // IDs are not the same
+        }
 
         // Do a simulated "return".
         nodeStack.pop();
@@ -120,8 +107,20 @@ public class CFAReversePostorder {
       }
     }
 
-    // Disabled because the recursive algorithm throws StackOverflowError
-    // for large files.
-    // assert checkIds(start);
+    return true; // all IDs are exactly the same
+  }
+
+  public static void assignIds(CFANode pStartNode) {
+
+    int reversePostOrderId = 0;
+    Iterable<CFANode> nodesInPostOrder =
+        Traverser.forGraph(CFAUtils::successorsOf).depthFirstPostOrder(pStartNode);
+
+    for (CFANode node : nodesInPostOrder) {
+      node.setReversePostorderId(reversePostOrderId++);
+    }
+
+    // check whether the new implementation assigns exactly the same IDs as the old implementation
+    assert checkIds(pStartNode);
   }
 }

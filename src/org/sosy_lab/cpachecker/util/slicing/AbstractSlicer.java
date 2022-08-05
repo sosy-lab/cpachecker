@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.util.slicing;
 
 import java.util.Collection;
 import java.util.Set;
+import java.util.logging.Level;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -50,6 +51,10 @@ public abstract class AbstractSlicer implements Slicer {
 
     Set<CFAEdge> slicingCriteria =
         extractor.getSlicingCriteria(pCfa, pSpecification, shutdownNotifier, logger);
+
+    if (slicingCriteria.isEmpty()) {
+      logger.log(Level.WARNING, "No slicing criteria extracted");
+    }
 
     return getSlice(pCfa, slicingCriteria);
   }

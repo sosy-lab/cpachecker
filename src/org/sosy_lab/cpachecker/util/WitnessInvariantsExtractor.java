@@ -131,7 +131,7 @@ public class WitnessInvariantsExtractor {
       LogManager pLogger,
       CFA pCFA,
       ShutdownNotifier pShutdownNotifier)
-      throws InvalidConfigurationException, CPAException {
+      throws InvalidConfigurationException, CPAException, InterruptedException {
     config = pConfig;
     logger = pLogger;
     cfa = pCFA;
@@ -164,7 +164,8 @@ public class WitnessInvariantsExtractor {
         ImmutableList.of(pathToWitnessFile), cfa, config, logger, shutdownNotifier);
   }
 
-  private void analyzeWitness() throws InvalidConfigurationException, CPAException {
+  private void analyzeWitness()
+      throws InvalidConfigurationException, CPAException, InterruptedException {
     Configuration localConfig = generateLocalConfiguration(config);
     ReachedSetFactory reachedSetFactory = new ReachedSetFactory(localConfig, logger);
     CPABuilder builder = new CPABuilder(localConfig, logger, shutdownNotifier, reachedSetFactory);
