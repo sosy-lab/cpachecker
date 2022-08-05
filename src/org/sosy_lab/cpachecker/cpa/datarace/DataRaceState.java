@@ -24,17 +24,17 @@ public class DataRaceState implements AbstractQueryableState {
 
   private final ImmutableSet<MemoryAccess> memoryAccesses;
   private final ImmutableMap<MemoryAccess, MemoryAccess> subsequentWrites;
-  private final ImmutableMap<String, Integer> threadEpochs;
+  private final ImmutableMap<String, ThreadInfo> threadInfo;
   private final ImmutableSet<ThreadSynchronization> threadSynchronizations;
   private final ImmutableSetMultimap<String, String> heldLocks;
   private final ImmutableSet<LockRelease> lastReleases;
   private final boolean hasDataRace;
 
-  DataRaceState(Map<String, Integer> pThreadEpochs, boolean pHasDataRace) {
+  DataRaceState(Map<String, ThreadInfo> pThreadInfo, boolean pHasDataRace) {
     this(
         ImmutableSet.of(),
         ImmutableMap.of(),
-        pThreadEpochs,
+        pThreadInfo,
         ImmutableSet.of(),
         ImmutableSetMultimap.of(),
         ImmutableSet.of(),
@@ -44,14 +44,14 @@ public class DataRaceState implements AbstractQueryableState {
   DataRaceState(
       Set<MemoryAccess> pMemoryAccesses,
       Map<MemoryAccess, MemoryAccess> pSubsequentWrites,
-      Map<String, Integer> pThreadEpochs,
+      Map<String, ThreadInfo> pThreadInfo,
       Set<ThreadSynchronization> pThreadSynchronizations,
       SetMultimap<String, String> pHeldLocks,
       Set<LockRelease> pLastReleases,
       boolean pHasDataRace) {
     memoryAccesses = ImmutableSet.copyOf(pMemoryAccesses);
     subsequentWrites = ImmutableMap.copyOf(pSubsequentWrites);
-    threadEpochs = ImmutableMap.copyOf(pThreadEpochs);
+    threadInfo = ImmutableMap.copyOf(pThreadInfo);
     threadSynchronizations = ImmutableSet.copyOf(pThreadSynchronizations);
     heldLocks = ImmutableSetMultimap.copyOf(pHeldLocks);
     lastReleases = ImmutableSet.copyOf(pLastReleases);
@@ -66,8 +66,8 @@ public class DataRaceState implements AbstractQueryableState {
     return subsequentWrites;
   }
 
-  Map<String, Integer> getThreadEpochs() {
-    return threadEpochs;
+  Map<String, ThreadInfo> getThreadInfo() {
+    return threadInfo;
   }
 
   Set<ThreadSynchronization> getThreadSynchronizations() {
