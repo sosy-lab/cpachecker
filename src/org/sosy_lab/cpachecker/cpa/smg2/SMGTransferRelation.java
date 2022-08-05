@@ -366,7 +366,7 @@ public class SMGTransferRelation
     CType parameterType = null;
     for (int i = 0; i < arguments.size(); i++) {
       CExpression cParamExp = arguments.get(i);
-      CType paramterType =
+      CType argumentType =
           SMGCPAValueExpressionEvaluator.getCanonicalType(cParamExp.getExpressionType());
 
       if (paramDecl.size() > i) {
@@ -382,7 +382,7 @@ public class SMGTransferRelation
       }
 
       ValueAndSMGState valueAndState;
-      if (parameterType instanceof CPointerType && paramterType instanceof CArrayType) {
+      if (parameterType instanceof CPointerType && argumentType instanceof CArrayType) {
         // Implicit & on the array expr
         List<ValueAndSMGState> addressesAndStates =
             evaluator.createAddress(cParamExp, currentState, callEdge);
@@ -437,6 +437,10 @@ public class SMGTransferRelation
         // Normal variable with a name
         String varName = paramDecl.get(i).getQualifiedName();
         CType cParamType = SMGCPAValueExpressionEvaluator.getCanonicalType(paramDecl.get(i));
+        if (cParamType instanceof CArrayType && ((CArrayType) cParamType).getLength() == null) {
+          // If its declared as array[] we use the size of the old array
+          cParamType = valueType;
+        }
         BigInteger paramSizeInBits = evaluator.getBitSizeof(currentState, cParamType);
 
         // Create the new local variable
@@ -915,18 +919,18 @@ public class SMGTransferRelation
     SMGState newState = pState;
     if (!newState.checkVariableExists(newState, varName)
         && (!isExtern || options.getAllocateExternalVariables())) {
-      int typeSize = evaluator.getBitSizeof(newState, cType).intValueExact();
+      BigInteger typeSizeInBits = evaluator.getBitSizeof(newState, cType);
 
       // Handle incomplete type of external variables as externally allocated
       if (options.isHandleIncompleteExternalVariableAsExternalAllocation()
           && cType.isIncomplete()
           && isExtern) {
-        typeSize = options.getExternalAllocationSize();
+        typeSizeInBits = BigInteger.valueOf(options.getExternalAllocationSize());
       }
       if (pVarDecl.isGlobal()) {
-        newState = pState.copyAndAddGlobalVariable(typeSize, varName);
+        newState = pState.copyAndAddGlobalVariable(typeSizeInBits, varName);
       } else {
-        newState = pState.copyAndAddLocalVariable(typeSize, varName);
+        newState = pState.copyAndAddLocalVariable(typeSizeInBits, varName);
       }
     }
 
