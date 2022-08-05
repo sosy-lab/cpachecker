@@ -1281,6 +1281,10 @@ public class SMGCPAValueExpressionEvaluator {
         return length.multiply(sizeOfType);
       }
 
+      if (arrayLength == null) {
+        return super.visit(pArrayType);
+      }
+
       // Try get the length variable for arrays with variable length
       try {
         for (ValueAndSMGState lengthValueAndState :
