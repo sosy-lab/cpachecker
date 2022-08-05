@@ -363,12 +363,17 @@ public class SMGTransferRelation
     SMGState currentState = initialState;
     Builder<Value> readValuesInOrderBuilder = ImmutableList.builder();
     BigInteger overallVarArgsSizeInBits = BigInteger.ZERO;
+    CType parameterType = null;
     for (int i = 0; i < arguments.size(); i++) {
       CExpression cParamExp = arguments.get(i);
+      CType paramterType =
+          SMGCPAValueExpressionEvaluator.getCanonicalType(cParamExp.getExpressionType());
 
       if (paramDecl.size() > i) {
         // We can't get names for variable arguments
         String varName = paramDecl.get(i).getQualifiedName();
+        // The last type is the type for the following arguments
+        parameterType = SMGCPAValueExpressionEvaluator.getCanonicalType(paramDecl.get(i));
         currentState = checkAndAddParameterToBlacklist(cParamExp, varName, currentState);
       } else {
         // Remember overall size of varArgs
@@ -376,14 +381,24 @@ public class SMGTransferRelation
             overallVarArgsSizeInBits.add(evaluator.getBitSizeof(currentState, cParamExp));
       }
 
-      // Evaluator the CExpr into a Value
-      List<ValueAndSMGState> valuesAndStates =
-          cParamExp.accept(new SMGCPAValueVisitor(evaluator, currentState, callEdge, logger));
+      ValueAndSMGState valueAndState;
+      if (parameterType instanceof CPointerType && paramterType instanceof CArrayType) {
+        // Implicit & on the array expr
+        List<ValueAndSMGState> addressesAndStates =
+            evaluator.createAddress(cParamExp, currentState, callEdge);
 
-      // If this ever fails; we need to take all states/values into account, meaning we would need
-      // to proceed from this point onwards with all of them with all following operations
-      Preconditions.checkArgument(valuesAndStates.size() == 1);
-      ValueAndSMGState valueAndState = valuesAndStates.get(0);
+        Preconditions.checkArgument(addressesAndStates.size() == 1);
+        valueAndState = addressesAndStates.get(0);
+      } else {
+        // Evaluator the CExpr into a Value
+        List<ValueAndSMGState> valuesAndStates =
+            cParamExp.accept(new SMGCPAValueVisitor(evaluator, currentState, callEdge, logger));
+
+        // If this ever fails; we need to take all states/values into account, meaning we would need
+        // to proceed from this point onwards with all of them with all following operations
+        Preconditions.checkArgument(valuesAndStates.size() == 1);
+        valueAndState = valuesAndStates.get(0);
+      }
 
       readValuesInOrderBuilder.add(valueAndState.getValue());
       currentState = valueAndState.getState();
@@ -1405,15 +1420,18 @@ public class SMGTransferRelation
       String variableName,
       BigInteger pOffsetInBits,
       CType pLFieldType,
-      CRightHandSide exprToWrite)
+      CExpression exprToWrite)
       throws CPATransferException {
     Preconditions.checkArgument(!(exprToWrite instanceof CStringLiteralExpression));
-    CType typeOfWrite = SMGCPAValueExpressionEvaluator.getCanonicalType(exprToWrite);
+    CType typeOfValueToWrite = SMGCPAValueExpressionEvaluator.getCanonicalType(exprToWrite);
+    CType typeOfWrite = SMGCPAValueExpressionEvaluator.getCanonicalType(pLFieldType);
+    BigInteger sizeOfTypeLeft = evaluator.getBitSizeof(pState, typeOfWrite);
     ImmutableList.Builder<SMGState> resultStatesBuilder = ImmutableList.builder();
     SMGState currentState = pState;
 
     if (SMGCPAValueExpressionEvaluator.isStructOrUnionType(typeOfWrite)) {
       // Copy of the entire structure instead of just a write
+      // Source == right hand side
       for (Optional<SMGObjectAndOffset> maybeSourceObjectAndOffset :
           exprToWrite.accept(new SMGCPAAddressVisitor(evaluator, pState, cfaEdge, logger))) {
         Preconditions.checkArgument(maybeSourceObjectAndOffset.isPresent());
@@ -1438,16 +1456,28 @@ public class SMGTransferRelation
                 addressToWriteTo.getSize().subtract(offsetToWriteTo)));
       }
 
+    } else if (typeOfWrite instanceof CPointerType && typeOfValueToWrite instanceof CArrayType) {
+      // Implicit & on the array expr
+      for (ValueAndSMGState addressAndState :
+          evaluator.createAddress(exprToWrite, currentState, cfaEdge)) {
+        Value addressToAssign = addressAndState.getValue();
+        currentState = addressAndState.getState();
+        resultStatesBuilder.add(
+            currentState.writeToStackOrGlobalVariable(
+                variableName, pOffsetInBits, sizeOfTypeLeft, addressToAssign, typeOfWrite));
+      }
+
     } else {
       // Just a normal write
-      BigInteger sizeOfType = evaluator.getBitSizeof(pState, pLFieldType);
       for (ValueAndSMGState valueAndState :
           exprToWrite.accept(new SMGCPAValueVisitor(evaluator, pState, cfaEdge, logger))) {
+
         ValueAndSMGState valueAndStateToAssign =
             evaluator.unpackAddressExpression(
                 valueAndState.getValue(), valueAndState.getState(), cfaEdge);
         Value valueToAssign = valueAndStateToAssign.getValue();
         currentState = valueAndStateToAssign.getState();
+
         if (valueToAssign instanceof SymbolicIdentifier) {
           Preconditions.checkArgument(
               ((SymbolicIdentifier) valueToAssign).getRepresentedLocation().isEmpty());
@@ -1455,7 +1485,7 @@ public class SMGTransferRelation
 
         resultStatesBuilder.add(
             currentState.writeToStackOrGlobalVariable(
-                variableName, pOffsetInBits, sizeOfType, valueToAssign, pLFieldType));
+                variableName, pOffsetInBits, sizeOfTypeLeft, valueToAssign, typeOfWrite));
       }
     }
     return resultStatesBuilder.build();
@@ -1478,6 +1508,7 @@ public class SMGTransferRelation
     SMGCPAValueVisitor rightHandSideVisitor =
         new SMGCPAValueVisitor(evaluator, pState, cfaEdge, logger);
 
+    SMGState currentState = pState;
     List<Optional<SMGObjectAndOffset>> maybeAddresses;
     try {
       maybeAddresses = lValue.accept(leftHandSidevisitor);
@@ -1504,18 +1535,32 @@ public class SMGTransferRelation
       SMGObject addressToWriteTo = addressAndOffsetToWriteTo.getSMGObject();
       BigInteger offsetToWriteTo = addressAndOffsetToWriteTo.getOffsetForObject();
 
+      if (leftHandSideType instanceof CPointerType && rightHandSideType instanceof CArrayType) {
+        // Implicit & on the array expr
+        for (ValueAndSMGState addressAndState :
+            evaluator.createAddress(rValue, currentState, cfaEdge)) {
+
+          BigInteger sizeOfTypeLeft = evaluator.getBitSizeof(currentState, leftHandSideType);
+          Value addressToAssign = addressAndState.getValue();
+          currentState = addressAndState.getState();
+
+          returnStateBuilder.add(
+              currentState.writeValueTo(
+                  addressToWriteTo, offsetToWriteTo, sizeOfTypeLeft, addressToAssign, leftHandSideType));
+          continue;
+        }
+      }
+
       // The right hand side either returns Values representing values or a AddressExpression. In
-      // the
-      // later case this means the entire structure behind it needs to be copied as C is
+      // the later case this means the entire structure behind it needs to be copied as C is
       // pass-by-value.
-      for (ValueAndSMGState valueAndState : rValue.accept(rightHandSideVisitor)) {
+      for (ValueAndSMGState valueAndState : rValue.accept(new SMGCPAValueVisitor(evaluator, pState, cfaEdge, logger))) {
         Value valueToWrite = valueAndState.getValue();
-        SMGState currentState = valueAndState.getState();
+        currentState = valueAndState.getState();
         BigInteger sizeInBits = evaluator.getBitSizeof(currentState, rightHandSideType);
 
         if (valueToWrite instanceof SymbolicIdentifier
             && ((SymbolicIdentifier) valueToWrite).getRepresentedLocation().isPresent()) {
-          Preconditions.checkArgument(rightHandSideType.equals(leftHandSideType));
           Preconditions.checkArgument(
               SMGCPAValueExpressionEvaluator.isStructOrUnionType(rightHandSideType));
           // A SymbolicIdentifier with location is used to copy entire variable structures (i.e.
