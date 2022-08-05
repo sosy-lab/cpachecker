@@ -1553,7 +1553,7 @@ public class SMGTransferRelation
                   currentState.writeValueTo(
                       addressToWriteTo,
                       offsetToWriteTo,
-                      sizeInBits,
+                      evaluator.getBitSizeof(currentState, leftHandSideType),
                       UnknownValue.getInstance(),
                       leftHandSideType));
             }
@@ -1608,6 +1608,8 @@ public class SMGTransferRelation
               // Offset unknown/symbolic. This is not usable!
               valueToWrite = UnknownValue.getInstance();
             }
+            Preconditions.checkArgument(
+                sizeInBits.compareTo(evaluator.getBitSizeof(currentState, leftHandSideType)) == 0);
 
             returnStateBuilder.add(
                 currentState.writeValueTo(
@@ -1624,6 +1626,7 @@ public class SMGTransferRelation
                     valueToWrite, lValue.getExpressionType(), currentState);
             currentState = castedValueAndState.getState();
             valueToWrite = castedValueAndState.getValue();
+            sizeInBits = evaluator.getBitSizeof(currentState, leftHandSideType);
           }
 
           currentState =
