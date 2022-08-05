@@ -437,7 +437,8 @@ public class SMGCPAValueExpressionEvaluator {
 
   public List<ValueAndSMGState> createAddress(
       CRightHandSide operand, SMGState pState, CFAEdge cfaEdge) throws CPATransferException {
-    return createAddress(operand, pState, cfaEdge);
+    Preconditions.checkArgument(!(operand instanceof CFunctionCallExpression));
+    return createAddress((CExpression) operand, pState, cfaEdge);
   }
 
   /**
