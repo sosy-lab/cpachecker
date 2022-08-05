@@ -509,7 +509,9 @@ public class SMGTransferRelation
           Preconditions.checkArgument(
               SMGCPAValueExpressionEvaluator.isStructOrUnionType(cParamType)
                   || cParamType instanceof CArrayType);
-          Preconditions.checkArgument(cParamType.equals(valueType));
+          // TODO: remove or rething this check. Arrays may be array[] == array [1000] which is the
+          // same but fails
+          // Preconditions.checkArgument(cParamType.equals(valueType));
 
           MemoryLocation memLocRight =
               ((SymbolicIdentifier) paramValue).getRepresentedLocation().orElseThrow();
