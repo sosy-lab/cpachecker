@@ -1591,7 +1591,7 @@ public class SMGState implements LatticeAbstractState<SMGState>, AbstractQueryab
 
     SMGObject variableMemory = maybeVariableMemory.orElseThrow();
     if (variableMemory.getOffset().compareTo(writeOffsetInBits) > 0
-        && variableMemory.getSize().compareTo(writeSizeInBits) < 0) {
+        && variableMemory.getSize().compareTo(writeSizeInBits.add(writeOffsetInBits)) < 0) {
       // Out of range write
       throw new SMG2Exception(
           withOutOfRangeWrite(variableMemory, writeOffsetInBits, writeSizeInBits, valueToWrite));
