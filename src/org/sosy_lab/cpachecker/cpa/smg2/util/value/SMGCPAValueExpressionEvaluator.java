@@ -435,6 +435,11 @@ public class SMGCPAValueExpressionEvaluator {
     return resultBuilder.build();
   }
 
+  public List<ValueAndSMGState> createAddress(
+      CRightHandSide operand, SMGState pState, CFAEdge cfaEdge) throws CPATransferException {
+    return createAddress(operand, pState, cfaEdge);
+  }
+
   /**
    * Creates a new pointer (address) pointing to the result of *(targetAddress + offset). First
    * searches for an existing pointer and only creates one if none is found. May return a unknown
