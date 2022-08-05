@@ -412,7 +412,7 @@ public class PredicateAbstractionManager {
       SubstituteMap substituteMap = new SubstituteMap(f, ssa,pathFormula,fmgr,logger);
       BooleanFormula substituted = substituteMap.syntacticSubstitution(options.useSubstitutionCheckSSA());
       if (solver.isUnsat(substituted)) {
-        logger.log(Level.FINEST, "Substituted formula unsat ", substituted);
+        logger.log(Level.ALL, "Substituted formula unsat ", substituted);
         abs = amgr.makeFalsePredicate().getAbstractVariable();
       }
       else {
@@ -1066,9 +1066,9 @@ public class PredicateAbstractionManager {
     // the formula is (abstractionFormula & pathFormula & predDef)
     thmProver.push(predDef);
     AllSatCallbackImpl callback = new AllSatCallbackImpl();
-    logger.log(Level.INFO, "Issuing SAT Call");
+    logger.log(Level.ALL, "Issuing SAT Call");
     Region result = thmProver.allSat(callback, predVars);
-    logger.log(Level.INFO, "Finished SAT Call");
+    logger.log(Level.ALL, "Finished SAT Call");
 
     // pop() is actually costly sometimes, and we delete the environment anyway
     // thmProver.pop();
