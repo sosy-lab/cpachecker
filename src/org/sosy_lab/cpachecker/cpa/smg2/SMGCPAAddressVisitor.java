@@ -294,6 +294,11 @@ public class SMGCPAAddressVisitor
       SMGState currentState = evaluatedSubExpr.getState();
       // Try to disassemble the values (AddressExpression)
       Value value = evaluatedSubExpr.getValue();
+      if (!(value instanceof AddressExpression)) {
+        resultBuilder.add(Optional.empty());
+        continue;
+      }
+
       Preconditions.checkArgument(value instanceof AddressExpression);
       AddressExpression pointerValue = (AddressExpression) value;
 
