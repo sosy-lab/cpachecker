@@ -1549,6 +1549,7 @@ public class SMGTransferRelation
                   addressToWriteTo, offsetToWriteTo, sizeOfTypeLeft, addressToAssign, leftHandSideType));
           continue;
         }
+        continue;
       }
 
       // The right hand side either returns Values representing values or a AddressExpression. In
