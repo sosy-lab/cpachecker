@@ -1255,8 +1255,8 @@ public class SMGCPAValueExpressionEvaluator {
       return false;
     }
     return value instanceof AddressExpression
-        || (value instanceof SymbolicIdentifier)
-            && ((SymbolicIdentifier) value).getRepresentedLocation().isPresent();
+        || ((value instanceof SymbolicIdentifier)
+            && ((SymbolicIdentifier) value).getRepresentedLocation().isPresent());
   }
 
   // Get canonical type information
