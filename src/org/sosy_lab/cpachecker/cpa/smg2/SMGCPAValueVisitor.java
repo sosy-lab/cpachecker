@@ -793,10 +793,12 @@ public class SMGCPAValueVisitor
       SMGState currentState = valueAndState.getState();
       // Try to disassemble the values (AddressExpression)
       Value value = valueAndState.getValue();
-      if (value.isUnknown()) {
+      if (!(value instanceof AddressExpression)) {
+        Preconditions.checkArgument(!evaluator.isPointerValue(value, currentState));
         builder.add(ValueAndSMGState.ofUnknownValue(currentState));
         continue;
       }
+
       Preconditions.checkArgument(value instanceof AddressExpression);
       AddressExpression pointerValue = (AddressExpression) value;
 
