@@ -23,7 +23,7 @@ public class DataRaceState implements AbstractQueryableState {
   private static final String PROPERTY_DATA_RACE = "data-race";
 
   private final ImmutableSet<MemoryAccess> memoryAccesses;
-  private final ImmutableMap<MemoryAccess, MemoryAccess> subsequentWrites;
+  private final ImmutableSet<MemoryAccess> accessesWithSubsequentWrites;
   private final ImmutableMap<String, ThreadInfo> threadInfo;
   private final ImmutableSet<ThreadSynchronization> threadSynchronizations;
   private final ImmutableSetMultimap<String, String> heldLocks;
@@ -33,7 +33,7 @@ public class DataRaceState implements AbstractQueryableState {
   DataRaceState(Map<String, ThreadInfo> pThreadInfo, boolean pHasDataRace) {
     this(
         ImmutableSet.of(),
-        ImmutableMap.of(),
+        ImmutableSet.of(),
         pThreadInfo,
         ImmutableSet.of(),
         ImmutableSetMultimap.of(),
@@ -43,14 +43,14 @@ public class DataRaceState implements AbstractQueryableState {
 
   DataRaceState(
       Set<MemoryAccess> pMemoryAccesses,
-      Map<MemoryAccess, MemoryAccess> pSubsequentWrites,
+      Set<MemoryAccess> pAccessesWithSubsequentWrites,
       Map<String, ThreadInfo> pThreadInfo,
       Set<ThreadSynchronization> pThreadSynchronizations,
       SetMultimap<String, String> pHeldLocks,
       Set<LockRelease> pLastReleases,
       boolean pHasDataRace) {
     memoryAccesses = ImmutableSet.copyOf(pMemoryAccesses);
-    subsequentWrites = ImmutableMap.copyOf(pSubsequentWrites);
+    accessesWithSubsequentWrites = ImmutableSet.copyOf(pAccessesWithSubsequentWrites);
     threadInfo = ImmutableMap.copyOf(pThreadInfo);
     threadSynchronizations = ImmutableSet.copyOf(pThreadSynchronizations);
     heldLocks = ImmutableSetMultimap.copyOf(pHeldLocks);
@@ -62,8 +62,8 @@ public class DataRaceState implements AbstractQueryableState {
     return memoryAccesses;
   }
 
-  Map<MemoryAccess, MemoryAccess> getSubsequentWrites() {
-    return subsequentWrites;
+  Set<MemoryAccess> getAccessesWithSubsequentWrites() {
+    return accessesWithSubsequentWrites;
   }
 
   Map<String, ThreadInfo> getThreadInfo() {

@@ -153,7 +153,7 @@ public class DataRaceTransferRelation extends SingleEdgeTransferRelation {
           synchronizationBuilder);
 
       ImmutableSet.Builder<MemoryAccess> memoryAccessBuilder = ImmutableSet.builder();
-      ImmutableMap.Builder<MemoryAccess, MemoryAccess> subsequentWritesBuilder =
+      ImmutableSet.Builder<MemoryAccess> subsequentWritesBuilder =
           prepareSubsequentWritesBuilder(state, threadIds);
       Set<MemoryAccess> newMemoryAccesses =
           getNewAccesses(threadInfo.get(activeThread), cfaEdge, locks);
@@ -161,11 +161,11 @@ public class DataRaceTransferRelation extends SingleEdgeTransferRelation {
       for (MemoryAccess access : state.getMemoryAccesses()) {
         if (threadIds.contains(access.getThreadId())) {
           memoryAccessBuilder.add(access);
-          if (access.isWrite() && !state.getSubsequentWrites().containsKey(access)) {
+          if (access.isWrite() && !state.getAccessesWithSubsequentWrites().contains(access)) {
             for (MemoryAccess newAccess : newMemoryAccesses) {
               if (access.getMemoryLocation().equals(newAccess.getMemoryLocation())) {
                 if (newAccess.isWrite()) {
-                  subsequentWritesBuilder.put(access, newAccess);
+                  subsequentWritesBuilder.add(access);
                 } else if (!access.getThreadId().equals(newAccess.getThreadId())) {
                   // Unnecessary if both accesses were made by the same thread, because then
                   // happens-before is established even without synchronizes-with
@@ -206,7 +206,7 @@ public class DataRaceTransferRelation extends SingleEdgeTransferRelation {
       strengthenedStates.add(
           new DataRaceState(
               memoryAccessBuilder.addAll(newMemoryAccesses).build(),
-              subsequentWritesBuilder.buildOrThrow(),
+              subsequentWritesBuilder.build(),
               newThreadInfo,
               threadSynchronizations,
               newHeldLocks.build(),
@@ -217,16 +217,12 @@ public class DataRaceTransferRelation extends SingleEdgeTransferRelation {
     return strengthenedStates.build();
   }
 
-  private ImmutableMap.Builder<MemoryAccess, MemoryAccess> prepareSubsequentWritesBuilder(
+  private ImmutableSet.Builder<MemoryAccess> prepareSubsequentWritesBuilder(
       DataRaceState current, Set<String> threadIds) {
-    ImmutableMap.Builder<MemoryAccess, MemoryAccess> subsequentWritesBuilder =
-        ImmutableMap.builder();
-    // TODO: So far the value is never used. Can it lead to wrong results if an entry is removed
-    //       because the thread doing the subsequent write is terminated?
-    for (Entry<MemoryAccess, MemoryAccess> entry : current.getSubsequentWrites().entrySet()) {
-      if (threadIds.contains(entry.getKey().getThreadId())
-          && threadIds.contains(entry.getValue().getThreadId())) {
-        subsequentWritesBuilder.put(entry);
+    ImmutableSet.Builder<MemoryAccess> subsequentWritesBuilder = ImmutableSet.builder();
+    for (MemoryAccess access : current.getAccessesWithSubsequentWrites()) {
+      if (threadIds.contains(access.getThreadId())) {
+        subsequentWritesBuilder.add(access);
       }
     }
     return subsequentWritesBuilder;
@@ -509,7 +505,7 @@ public class DataRaceTransferRelation extends SingleEdgeTransferRelation {
         threadsBuilder.put(entry);
       }
     }
-    return threadsBuilder.build();
+    return threadsBuilder.buildOrThrow();
   }
 
   /**
