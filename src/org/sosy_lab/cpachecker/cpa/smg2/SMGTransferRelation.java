@@ -416,6 +416,7 @@ public class SMGTransferRelation
     BigInteger offsetForVarArgsInBits = BigInteger.ZERO;
     for (int i = 0; i < arguments.size(); i++) {
       Value paramValue = readValuesInOrder.get(i);
+      CType valueType = SMGCPAValueExpressionEvaluator.getCanonicalType(arguments.get(i));
 
       if (paramDecl.size() > i) {
         // Normal variable with a name
@@ -425,22 +426,208 @@ public class SMGTransferRelation
 
         // Create the new local variable
         currentState = currentState.copyAndAddLocalVariable(paramSizeInBits, varName);
+        SMGObject newVariableMemory =
+            currentState.getMemoryModel().getObjectForVisibleVariable(varName).orElseThrow();
+        BigInteger writeToOffset = BigInteger.ZERO;
+
+        if (paramValue instanceof AddressExpression) {
+          // This is either a pointer to be written or this points to a memory region
+          // to be copied depending on the type
+          AddressExpression paramAddrExpr = (AddressExpression) paramValue;
+          Value paramAddrOffsetValue = paramAddrExpr.getOffset();
+
+          if (cParamType instanceof CPointerType) {
+            if (!paramAddrOffsetValue.isNumericValue()) {
+              currentState =
+                  currentState.writeToStackOrGlobalVariable(
+                      varName,
+                      BigInteger.ZERO,
+                      paramSizeInBits,
+                      UnknownValue.getInstance(),
+                      cParamType);
+              continue;
+            }
+
+            ValueAndSMGState properPointerAndState =
+                evaluator.transformAddressExpressionIntoPointerValue(paramAddrExpr, currentState);
+
+            currentState =
+                properPointerAndState
+                    .getState()
+                    .writeToStackOrGlobalVariable(
+                        varName,
+                        BigInteger.ZERO,
+                        paramSizeInBits,
+                        properPointerAndState.getValue(),
+                        cParamType);
+
+          } else {
+            Preconditions.checkArgument(
+                SMGCPAValueExpressionEvaluator.isStructOrUnionType(cParamType)
+                    || cParamType instanceof CArrayType);
+            if (!paramAddrOffsetValue.isNumericValue()) {
+              // Just continue for now. Reading not inited memory is unknown anyway.
+              continue;
+            }
+
+            // We need a true pointer without AddressExpr
+            ValueAndSMGState properPointerAndState =
+                evaluator.transformAddressExpressionIntoPointerValue(paramAddrExpr, currentState);
+            currentState = properPointerAndState.getState();
+
+            SMGObjectAndOffset paramMemoryAndOffset =
+                currentState.getPointsToTarget(properPointerAndState.getValue());
+
+            // copySMGObjectContentToSMGObject checks for sizes etc.
+            currentState.copySMGObjectContentToSMGObject(
+                paramMemoryAndOffset.getSMGObject(),
+                paramMemoryAndOffset.getOffsetForObject(),
+                newVariableMemory,
+                writeToOffset,
+                newVariableMemory.getSize().subtract(writeToOffset));
+          }
+
+        } else if (paramValue instanceof SymbolicIdentifier
+            && ((SymbolicIdentifier) paramValue).getRepresentedLocation().isPresent()) {
+          // A SymbolicIdentifier with location is used to copy entire variable structures (i.e.
+          // arrays/structs etc.)
+          Preconditions.checkArgument(
+              SMGCPAValueExpressionEvaluator.isStructOrUnionType(cParamType)
+                  || cParamType instanceof CArrayType);
+          Preconditions.checkArgument(cParamType.equals(valueType));
+
+          MemoryLocation memLocRight =
+              ((SymbolicIdentifier) paramValue).getRepresentedLocation().orElseThrow();
+          String paramIdentifier = memLocRight.getIdentifier();
+          BigInteger paramBaseOffset = BigInteger.valueOf(memLocRight.getOffset());
+
+          // Get the SMGObject for the memory region on the right hand side and copy the entire
+          // region  into the left hand side
+          Optional<SMGObject> maybeRightHandSideMemory =
+              currentState
+                  .getMemoryModel()
+                  .getObjectForVisibleVariableFromPreviousStackframe(paramIdentifier);
+
+          Preconditions.checkArgument(maybeRightHandSideMemory.isPresent());
+          SMGObject paramMemory = maybeRightHandSideMemory.orElseThrow();
+          // copySMGObjectContentToSMGObject checks for sizes etc.
+          currentState.copySMGObjectContentToSMGObject(
+              paramMemory,
+              paramBaseOffset,
+              newVariableMemory,
+              writeToOffset,
+              newVariableMemory.getSize().subtract(writeToOffset));
+
+        } else {
         // Write the value into it
         currentState =
             currentState.writeToStackOrGlobalVariable(
                 varName, BigInteger.ZERO, paramSizeInBits, paramValue, cParamType);
+        }
       } else {
         // Variable args argument
         // Save in the array from above
         CType cParamType = SMGCPAValueExpressionEvaluator.getCanonicalType(arguments.get(i));
         BigInteger paramSizeInBits = evaluator.getBitSizeof(currentState, cParamType);
-        currentState =
-            currentState.writeValueTo(
-                addressToVarArgsAtOffsetZero,
+        // The offset is known 0 for addressToVarArgsAtOffsetZero
+        SMGObject varArgsObject =
+            currentState.getPointsToTarget(addressToVarArgsAtOffsetZero).getSMGObject();
+
+        if (paramValue instanceof AddressExpression) {
+          // This is either a pointer to be written or this points to a memory region
+          // to be copied depending on the type
+          AddressExpression paramAddrExpr = (AddressExpression) paramValue;
+          Value paramAddrOffsetValue = paramAddrExpr.getOffset();
+
+          if (cParamType instanceof CPointerType) {
+            if (!paramAddrOffsetValue.isNumericValue()) {
+              currentState =
+                  currentState.writeValueTo(
+                      addressToVarArgsAtOffsetZero,
+                      offsetForVarArgsInBits,
+                      paramSizeInBits,
+                      UnknownValue.getInstance(),
+                      cParamType);
+              continue;
+            }
+
+            ValueAndSMGState properPointerAndState =
+                evaluator.transformAddressExpressionIntoPointerValue(paramAddrExpr, currentState);
+
+            currentState =
+                properPointerAndState
+                    .getState()
+                    .writeValueTo(
+                        addressToVarArgsAtOffsetZero,
+                        offsetForVarArgsInBits,
+                        paramSizeInBits,
+                        properPointerAndState.getValue(),
+                        cParamType);
+
+          } else {
+            Preconditions.checkArgument(
+                SMGCPAValueExpressionEvaluator.isStructOrUnionType(cParamType)
+                    || cParamType instanceof CArrayType);
+            if (!paramAddrOffsetValue.isNumericValue()) {
+              // Just continue for now. Reading not inited memory is unknown anyway.
+              continue;
+            }
+
+            // We need a true pointer without AddressExpr
+            ValueAndSMGState properPointerAndState =
+                evaluator.transformAddressExpressionIntoPointerValue(paramAddrExpr, currentState);
+            currentState = properPointerAndState.getState();
+
+            SMGObjectAndOffset paramMemoryAndOffset =
+                currentState.getPointsToTarget(properPointerAndState.getValue());
+
+            // copySMGObjectContentToSMGObject checks for sizes etc.
+            currentState.copySMGObjectContentToSMGObject(
+                paramMemoryAndOffset.getSMGObject(),
+                paramMemoryAndOffset.getOffsetForObject(),
+                varArgsObject,
                 offsetForVarArgsInBits,
-                paramSizeInBits,
-                paramValue,
-                cParamType);
+                paramSizeInBits);
+          }
+
+        } else if (paramValue instanceof SymbolicIdentifier
+            && ((SymbolicIdentifier) paramValue).getRepresentedLocation().isPresent()) {
+          // A SymbolicIdentifier with location is used to copy entire variable structures (i.e.
+          // arrays/structs etc.)
+          Preconditions.checkArgument(
+              SMGCPAValueExpressionEvaluator.isStructOrUnionType(cParamType)
+                  || cParamType instanceof CArrayType);
+          Preconditions.checkArgument(cParamType.equals(valueType));
+
+          MemoryLocation memLocRight =
+              ((SymbolicIdentifier) paramValue).getRepresentedLocation().orElseThrow();
+          String paramIdentifier = memLocRight.getIdentifier();
+          BigInteger paramBaseOffset = BigInteger.valueOf(memLocRight.getOffset());
+
+          // Get the SMGObject for the memory region on the right hand side and copy the entire
+          // region  into the left hand side
+          Optional<SMGObject> maybeRightHandSideMemory =
+              currentState
+                  .getMemoryModel()
+                  .getObjectForVisibleVariableFromPreviousStackframe(paramIdentifier);
+
+          Preconditions.checkArgument(maybeRightHandSideMemory.isPresent());
+          SMGObject paramMemory = maybeRightHandSideMemory.orElseThrow();
+          // copySMGObjectContentToSMGObject checks for sizes etc.
+          currentState.copySMGObjectContentToSMGObject(
+              paramMemory, paramBaseOffset, varArgsObject, offsetForVarArgsInBits, paramSizeInBits);
+
+        } else {
+          // Write the value into the array from above
+          currentState =
+              currentState.writeValueTo(
+                  addressToVarArgsAtOffsetZero,
+                  offsetForVarArgsInBits,
+                  paramSizeInBits,
+                  paramValue,
+                  cParamType);
+        }
+
         offsetForVarArgsInBits = offsetForVarArgsInBits.add(paramSizeInBits);
       }
     }
