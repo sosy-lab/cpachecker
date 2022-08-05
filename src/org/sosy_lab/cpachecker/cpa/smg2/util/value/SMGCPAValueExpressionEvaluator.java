@@ -16,15 +16,19 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
+import org.sosy_lab.cpachecker.cfa.DummyCFAEdge;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
+import org.sosy_lab.cpachecker.cfa.types.MachineModel.BaseSizeofVisitor;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CComplexType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
@@ -925,7 +929,8 @@ public class SMGCPAValueExpressionEvaluator {
     // TODO check why old implementation did not use machineModel
     // Because in abstracted SMGs we might need the current SMG to get the correct type info.
     // TODO: rework because of that.
-    return machineModel.getSizeofInBits(pType);
+    return machineModel.getSizeofInBits(
+        pType, new SMG2SizeofVisitor(machineModel, this, pInitialSmgState, logger));
   }
 
   public BigInteger getAlignOf(SMGState pInitialSmgState, CType pType) {
@@ -1243,5 +1248,63 @@ public class SMGCPAValueExpressionEvaluator {
 
   public static CType getCanonicalType(CRightHandSide exp) {
     return getCanonicalType(exp.getExpressionType());
+  }
+
+  public static class SMG2SizeofVisitor extends BaseSizeofVisitor {
+
+    private final MachineModel model;
+    private final SMGState state;
+    private final LogManagerWithoutDuplicates logger;
+    private final SMGCPAValueExpressionEvaluator evaluator;
+
+    protected SMG2SizeofVisitor(
+        MachineModel model,
+        SMGCPAValueExpressionEvaluator evaluator,
+        SMGState state,
+        LogManagerWithoutDuplicates logger) {
+      super(model);
+      this.model = model;
+      this.state = state;
+      this.logger = logger;
+      this.evaluator = evaluator;
+    }
+
+    @Override
+    public BigInteger visit(CArrayType pArrayType) throws IllegalArgumentException {
+      // TODO: Take possible padding into account
+
+      CExpression arrayLength = pArrayType.getLength();
+      BigInteger sizeOfType = model.getSizeof(pArrayType.getType());
+
+      if (arrayLength instanceof CIntegerLiteralExpression) {
+        BigInteger length = ((CIntegerLiteralExpression) arrayLength).getValue();
+        return length.multiply(sizeOfType);
+      }
+
+      // Try get the length variable for arrays with variable length
+      try {
+        for (ValueAndSMGState lengthValueAndState :
+            arrayLength.accept(
+                new SMGCPAValueVisitor(
+                    evaluator,
+                    state,
+                    new DummyCFAEdge(CFANode.newDummyCFANode(), CFANode.newDummyCFANode()),
+                    logger))) {
+          Value lengthValue = lengthValueAndState.getValue();
+          // We simply ignore the State for this
+          // Thats theoretically not sound as the read might fail!
+          if (lengthValue.isNumericValue()) {
+            return lengthValue.asNumericValue().bigInteger().multiply(sizeOfType);
+          }
+        }
+      } catch (CPATransferException e) {
+        // Just stop the analysis for critical errors
+      }
+      throw new AssertionError(
+          "Could not determine variable array length for length "
+              + arrayLength.toASTString()
+              + " and array type "
+              + pArrayType.getType());
+    }
   }
 }
