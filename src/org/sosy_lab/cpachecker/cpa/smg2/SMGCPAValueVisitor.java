@@ -467,6 +467,17 @@ public class SMGCPAValueVisitor
 
   public ValueAndSMGState castCValue(Value value, CType targetType, SMGState currentState) {
     MachineModel machineModel = evaluator.getMachineModel();
+    if (targetType instanceof CPointerType) {
+      if (value instanceof AddressExpression) {
+        return ValueAndSMGState.of(value, currentState);
+      } else if (evaluator.isPointerValue(value, currentState)) {
+        return ValueAndSMGState.of(
+            AddressExpression.withZeroOffset(value, targetType), currentState);
+      } else {
+        return ValueAndSMGState.of(UnknownValue.getInstance(), currentState);
+      }
+    }
+
     if (!value.isExplicitlyKnown()) {
       return ValueAndSMGState.of(
           castSymbolicValue(value, targetType, Optional.of(machineModel)), currentState);
@@ -476,7 +487,7 @@ public class SMGCPAValueVisitor
     if (!value.isNumericValue()) {
       logger.logf(
           Level.FINE, "Can not cast C value %s to %s", value.toString(), targetType.toString());
-      return ValueAndSMGState.of(value, state);
+      return ValueAndSMGState.of(value, currentState);
     }
     NumericValue numericValue = (NumericValue) value;
 
@@ -488,7 +499,7 @@ public class SMGCPAValueVisitor
       size = ((CBitFieldType) type).getBitFieldSize();
       type = ((CBitFieldType) type).getType();
     } else {
-      return ValueAndSMGState.of(value, state);
+      return ValueAndSMGState.of(value, currentState);
     }
 
     return ValueAndSMGState.of(castNumeric(numericValue, type, machineModel, size), currentState);
@@ -606,10 +617,6 @@ public class SMGCPAValueVisitor
           evaluator.readStackOrGlobalVariable(
               state, varDecl.getQualifiedName(), BigInteger.ZERO, sizeInBits);
 
-      Preconditions.checkArgument(
-          readValueAndState.getValue().isNumericValue()
-              || !evaluator.isPointerValue(
-                  readValueAndState.getValue(), readValueAndState.getState()));
       return ImmutableList.of(readValueAndState);
     }
   }
