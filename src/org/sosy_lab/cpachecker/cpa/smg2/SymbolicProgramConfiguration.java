@@ -612,6 +612,31 @@ public class SymbolicProgramConfiguration {
   }
 
   /**
+   * Tries to search for a variable that is currently visible in the {@link StackFrame} above the
+   * current one and in the global variables and returns the variable if found. If it is not found,
+   * the {@link Optional} will be empty. Note: this returns the SMGObject in which the value for the
+   * variable is written. Read with the correct type!
+   *
+   * @param pName Name of the variable you want to search for as a {@link String}.
+   * @return {@link Optional} that contains the variable if found, but is empty if not found.
+   */
+  public Optional<SMGObject> getObjectForVisibleVariableFromPreviousStackframe(String pName) {
+
+    // Only look in the current stack frame
+    StackFrame currentFrame = stackVariableMapping.popAndCopy().peek();
+    if (currentFrame.containsVariable(pName)) {
+      return Optional.of(currentFrame.getVariable(pName));
+    }
+
+    // Second check global
+    if (globalVariableMapping.containsKey(pName)) {
+      return Optional.of(globalVariableMapping.get(pName));
+    }
+    // no variable found
+    return Optional.empty();
+  }
+
+  /**
    * Returns <code>true</code> if the entered {@link SMGObject} is externally allocated. This does
    * not check the validity of the external object.
    *
