@@ -90,6 +90,33 @@ public class SMGCPAValueExpressionEvaluator {
     return currentState.getMemoryModel().isPointer(maybeAddress);
   }
 
+  /**
+   * Transforms the entered {@link AddressExpression} into a non {@link AddressExpression} that is
+   * either a UNKNOWN {@link Value} or a valid pointer with the offset of the {@link
+   * AddressExpression}.
+   *
+   * @param addressExpression {@link AddressExpression} to be transformed.
+   * @param currentState current {@link SMGState}.
+   * @return a {@link Value} that is not longer a {@link AddressExpression} and either is a pointer
+   *     or UNKNOWN.
+   */
+  public ValueAndSMGState transformAddressExpressionIntoPointerValue(
+      AddressExpression addressExpression, SMGState currentState) {
+    Value offset = addressExpression.getOffset();
+    if (!offset.isNumericValue()) {
+      return ValueAndSMGState.ofUnknownValue(currentState);
+    }
+
+    if (offset.asNumericValue().bigInteger().compareTo(BigInteger.ZERO) == 0) {
+      // offset == 0 -> known pointer
+      return ValueAndSMGState.of(addressExpression.getMemoryAddress(), currentState);
+    } else {
+      // Offset known but not 0, search for/create the correct address
+      return this.findOrcreateNewPointer(
+          addressExpression.getMemoryAddress(), offset.asNumericValue().bigInteger(), currentState);
+    }
+  }
+
   public List<ValueAndSMGState> handleSafeExternFunction(
       CFunctionCallExpression pFunctionCallExpression, SMGState pSmgState, CFAEdge pCfaEdge)
       throws CPATransferException {
