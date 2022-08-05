@@ -158,12 +158,18 @@ public class SMGCPAValueVisitor
       // SymbolicIdentifier with MemoryLocation for variable name + offset
       // Or a invalid value
       Value arrayValue = arrayValueAndState.getValue();
+      SMGState currentState = arrayValueAndState.getState();
+      if (!SMGCPAValueExpressionEvaluator.valueIsAddressExprOrVariableOffset(arrayValue)) {
+        // Not a valid pointer/address
+        // TODO: log this!
+        resultBuilder.add(ValueAndSMGState.ofUnknownValue(currentState));
+        continue;
+      }
 
       // Evaluate the subscript as far as possible
       CExpression subscriptExpr = e.getSubscriptExpression();
       List<ValueAndSMGState> subscriptValueAndStates =
-          subscriptExpr.accept(
-              new SMGCPAValueVisitor(evaluator, arrayValueAndState.getState(), cfaEdge, logger));
+          subscriptExpr.accept(new SMGCPAValueVisitor(evaluator, currentState, cfaEdge, logger));
 
       for (ValueAndSMGState subscriptValueAndState : subscriptValueAndStates) {
         Value subscriptValue = subscriptValueAndState.getValue();
@@ -180,15 +186,20 @@ public class SMGCPAValueVisitor
         BigInteger subscriptOffset =
             typeSizeInBits.multiply(subscriptValue.asNumericValue().bigInteger());
 
+
         if (arrayExpr.getExpressionType() instanceof CPointerType) {
           Preconditions.checkArgument(arrayValue instanceof AddressExpression);
         } else if (arrayExpr.getExpressionType() instanceof CCompositeType
             || arrayExpr.getExpressionType() instanceof CElaboratedType
             || arrayExpr.getExpressionType() instanceof CArrayType
             || arrayExpr.getExpressionType() instanceof CTypedefType) {
-          Preconditions.checkArgument(arrayValue instanceof SymbolicIdentifier);
-          Preconditions.checkArgument(
-              ((SymbolicIdentifier) arrayValue).getRepresentedLocation().isPresent());
+          if (arrayValue instanceof SymbolicIdentifier) {
+            Preconditions.checkArgument(
+                ((SymbolicIdentifier) arrayValue).getRepresentedLocation().isPresent());
+          } else {
+            Preconditions.checkArgument(arrayValue instanceof AddressExpression);
+          }
+
         } else {
           if (arrayValue instanceof SymbolicIdentifier) {
             Preconditions.checkArgument(
@@ -603,11 +614,18 @@ public class SMGCPAValueVisitor
       ValueAndSMGState readValueAndState =
           evaluator.readStackOrGlobalVariable(
               state, varDecl.getQualifiedName(), BigInteger.ZERO, sizeInBits);
+      Value readValue = readValueAndState.getValue();
+      SMGState currentState = readValueAndState.getState();
 
-      Value addressValue =
-          AddressExpression.withZeroOffset(readValueAndState.getValue(), returnType);
+      Value addressValue;
+      if (evaluator.isPointerValue(readValue, currentState)) {
+        addressValue = AddressExpression.withZeroOffset(readValue, returnType);
+      } else {
+        // Not a known pointer value, most likely a unknown value as symbolic identifier
+        addressValue = readValue;
+      }
 
-      return ImmutableList.of(ValueAndSMGState.of(addressValue, readValueAndState.getState()));
+      return ImmutableList.of(ValueAndSMGState.of(addressValue, currentState));
 
     } else {
       // Everything else should be readable and returnable directly; just return the Value
