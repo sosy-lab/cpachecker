@@ -1278,17 +1278,19 @@ public class SMGCPAValueExpressionEvaluator {
     private final SMGState state;
     private final LogManagerWithoutDuplicates logger;
     private final SMGCPAValueExpressionEvaluator evaluator;
+    private final SMGOptions options;
 
     protected SMG2SizeofVisitor(
         MachineModel model,
         SMGCPAValueExpressionEvaluator evaluator,
         SMGState state,
-        LogManagerWithoutDuplicates logger) {
+        LogManagerWithoutDuplicates logger, SMGOptions options) {
       super(model);
       this.model = model;
       this.state = state;
       this.logger = logger;
       this.evaluator = evaluator;
+      this.options = options;
     }
 
     @Override
@@ -1321,6 +1323,8 @@ public class SMGCPAValueExpressionEvaluator {
           // Thats theoretically not sound as the read might fail!
           if (lengthValue.isNumericValue()) {
             return lengthValue.asNumericValue().bigInteger().multiply(sizeOfType);
+          } else if (options.isGuessSizeOfUnknownMemorySize()) {
+            return options.getGuessSize().multiply(sizeOfType);
           }
         }
       } catch (CPATransferException e) {
@@ -1330,7 +1334,8 @@ public class SMGCPAValueExpressionEvaluator {
           "Could not determine variable array length for length "
               + arrayLength.toASTString()
               + " and array type "
-              + pArrayType.getType());
+              + pArrayType.getType()
+              + ". Try the options GuessSizeOfUnknownMemory.");
     }
   }
 }
