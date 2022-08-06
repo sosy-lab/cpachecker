@@ -868,8 +868,21 @@ public class SMGTransferRelation
   @Override
   protected List<SMGState> handleDeclarationEdge(CDeclarationEdge edge, CDeclaration cDecl)
       throws CPATransferException {
+    SMGState currentState = state;
     if (cDecl instanceof CFunctionDeclaration) {
-      // TODO:
+      CFunctionDeclaration cFuncDecl = (CFunctionDeclaration) cDecl;
+      if (cFuncDecl.getQualifiedName().equals("main")) {
+        if (cFuncDecl.getParameters() != null) {
+          // Init main parameters of there are any
+          for (CParameterDeclaration parameters : cFuncDecl.getParameters()) {
+            CType paramType = SMGCPAValueExpressionEvaluator.getCanonicalType(parameters.getType());
+            BigInteger paramSizeInBits = evaluator.getBitSizeof(currentState, paramType);
+            currentState =
+                currentState.copyAndAddLocalVariable(
+                    paramSizeInBits, parameters.getQualifiedName());
+          }
+        }
+      }
     } else if (cDecl instanceof CComplexTypeDeclaration) {
       // TODO:
     } else if (cDecl instanceof CTypeDefDeclaration) {
@@ -884,7 +897,7 @@ public class SMGTransferRelation
     }
     // Fall through
     // TODO: log that declaration failed
-    return ImmutableList.of(state);
+    return ImmutableList.of(currentState);
   }
 
   /**
