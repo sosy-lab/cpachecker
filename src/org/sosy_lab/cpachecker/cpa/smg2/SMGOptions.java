@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.cpa.smg2;
 
 import com.google.common.collect.ImmutableSet;
+import java.math.BigInteger;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.FileOption.Type;
@@ -85,7 +86,7 @@ public class SMGOptions {
       secure = true,
       name = "guessSize",
       description = "Allocation size of memory that cannot be calculated.")
-  private int guessSize = 2;
+  private BigInteger guessSize = BigInteger.valueOf(2);
 
   @Option(
       secure = true,
@@ -281,7 +282,7 @@ public class SMGOptions {
     return guessSizeOfUnknownMemorySize;
   }
 
-  public int getGuessSize() {
+  public BigInteger getGuessSize() {
     return guessSize;
   }
 
