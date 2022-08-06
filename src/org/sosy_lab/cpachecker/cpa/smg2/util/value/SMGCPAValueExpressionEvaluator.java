@@ -938,7 +938,7 @@ public class SMGCPAValueExpressionEvaluator {
     // Because in abstracted SMGs we might need the current SMG to get the correct type info.
     // TODO: rework because of that.
     return machineModel.getSizeofInBits(
-        pType, new SMG2SizeofVisitor(machineModel, this, pInitialSmgState, logger));
+        pType, new SMG2SizeofVisitor(machineModel, this, pInitialSmgState, logger, options));
   }
 
   public BigInteger getAlignOf(SMGState pInitialSmgState, CType pType) {
