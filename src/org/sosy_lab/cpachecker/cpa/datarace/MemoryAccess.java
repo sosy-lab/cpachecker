@@ -78,7 +78,7 @@ class MemoryAccess {
 
     for (ThreadSynchronization synchronization : relevantSynchronizations) {
       if (synchronization.getReadThread().equals(other.threadId)
-          && synchronization.getReadThreadIndex() <= other.accessEpoch) {
+          && synchronization.getReadEpoch() <= other.accessEpoch) {
         return true;
       }
     }
@@ -89,12 +89,12 @@ class MemoryAccess {
       ThreadSynchronization threadSynchronization,
       Set<ThreadSynchronization> relevantSynchronizations) {
     if (threadSynchronization.getWriteThread().equals(threadId)) {
-      return threadSynchronization.getWriteThreadIndex() >= accessEpoch;
+      return threadSynchronization.getWriteEpoch() >= accessEpoch;
     }
     for (ThreadSynchronization relevantSynchronization : relevantSynchronizations) {
       if (relevantSynchronization.getReadThread().equals(threadSynchronization.getWriteThread())
-          && relevantSynchronization.getReadThreadIndex()
-              <= threadSynchronization.getWriteThreadIndex()) {
+          && relevantSynchronization.getReadEpoch()
+              <= threadSynchronization.getWriteEpoch()) {
         return true;
       }
     }

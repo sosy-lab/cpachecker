@@ -12,15 +12,15 @@ public class ThreadSynchronization {
 
   private final String writeThread;
   private final String readThread;
-  private final int writeThreadIndex;
-  private final int readThreadIndex;
+  private final int writeEpoch;
+  private final int readEpoch;
 
   ThreadSynchronization(
-      String pWriteThread, String pReadThread, int pWriteThreadIndex, int pReadThreadIndex) {
+      String pWriteThread, String pReadThread, int pWriteEpoch, int pReadEpoch) {
     writeThread = pWriteThread;
     readThread = pReadThread;
-    writeThreadIndex = pWriteThreadIndex;
-    readThreadIndex = pReadThreadIndex;
+    writeEpoch = pWriteEpoch;
+    readEpoch = pReadEpoch;
   }
 
   public String getWriteThread() {
@@ -31,11 +31,11 @@ public class ThreadSynchronization {
     return readThread;
   }
 
-  public int getWriteThreadIndex() {
-    return writeThreadIndex;
+  public int getWriteEpoch() {
+    return writeEpoch;
   }
 
-  public int getReadThreadIndex() {
-    return readThreadIndex;
+  public int getReadEpoch() {
+    return readEpoch;
   }
 }
