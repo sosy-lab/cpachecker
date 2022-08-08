@@ -182,9 +182,9 @@ public class TestcaseGenUtils {
     logger.logf(Level.INFO, "Storing the testcase at %s", testcaseName.toAbsolutePath().toString());
     List<String> content = new ArrayList<>();
     content.add("<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"no\"?>");
-    content.add(
-        "<!DOCTYPE testcase PUBLIC \"+//IDN sosy-lab.org//DTD test-format testcase 1.1//EN\""
-            + " \"https://sosy-lab.org/test-format/testcase-1.1.dtd\">");
+//    content.add(
+//        "<!DOCTYPE testcase PUBLIC \"+//IDN sosy-lab.org//DTD test-format testcase 1.1//EN\""
+//            + " \"https://sosy-lab.org/test-format/testcase-1.1.dtd\">");
     content.add("<testcase>");
     for (Pair<CIdExpression, Integer> pair : pInputs) {
 
