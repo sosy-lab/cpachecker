@@ -2733,7 +2733,7 @@ cpa.randomWalk.probForLeftBranchForAssign = 50
 
 # If there is an if and else branch for a loophead, take first with this
 # probability in % 
-cpa.randomWalk.probForLeftBranchForLoop = 60
+cpa.randomWalk.probForLeftBranchForLoop = 50
 
 # If no path is given for the path2InputFile, try to load it automatically
 cpa.rangedAnalysis.autoLoadPath2Input = false

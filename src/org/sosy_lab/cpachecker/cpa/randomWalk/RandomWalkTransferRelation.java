@@ -45,7 +45,7 @@ public class RandomWalkTransferRelation extends SingleEdgeTransferRelation {
       description =
           "If there is an if and else branch for a loophead, take first with this probability in %"
               + " ")
-  private int probForLeftBranchForLoop = 60;
+  private int probForLeftBranchForLoop = 50;
 
   @Option(
       secure = true,
