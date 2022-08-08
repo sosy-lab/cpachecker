@@ -109,14 +109,15 @@ public class RangedExecutionInputComputation implements Algorithm {
     // Check, if there is any random call in the program or any loop.
     // if not, exit directly
     if (!hasLoop() || !hasRandom()) {
-      return AlgorithmStatus.NO_PROPERTY_CHECKED;
+      throw new CPAException(
+          "Cannot generate a testcase, because there is no random call or no loop in the program");
     }
 
     PartitionedReachedSet reached = (PartitionedReachedSet) pReached;
-    AlgorithmStatus status = AlgorithmStatus.NO_PROPERTY_CHECKED;
+
 
     // run algorithm
-    algorithm.run(reached);
+    AlgorithmStatus status = algorithm.run(reached);
     if (reached.hasWaitingState()) {
       // Nested algortihm is not finished, hence do another round by returning to loop in calling
       // class
@@ -139,10 +140,10 @@ public class RangedExecutionInputComputation implements Algorithm {
         List<Pair<CIdExpression, Integer>> inputs =
             utils.computeInputForLoopbound(paths.stream().findFirst().get());
         utils.printFileToPutput(inputs, testcaseName);
+        return AlgorithmStatus.NO_PROPERTY_CHECKED;
       } catch (SolverException | IOException pE) {
         throw new CPAException(Throwables.getStackTraceAsString(pE));
       }
-      return status;
     }
   }
 
