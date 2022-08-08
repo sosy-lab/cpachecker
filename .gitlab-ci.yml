@@ -235,7 +235,7 @@ check-format-python:
   before_script:
     - pip install black
   script:
-    - black . --check --diff
+    - black . --check --diff --include='contrib/.*\.py'
   <<: *pip-cache
 
 flake8:
