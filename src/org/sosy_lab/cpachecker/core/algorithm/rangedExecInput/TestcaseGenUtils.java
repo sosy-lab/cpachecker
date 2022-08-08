@@ -25,6 +25,7 @@ import java.util.Optional;
 import java.util.logging.Level;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
+import org.sosy_lab.common.io.IO;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
@@ -196,10 +197,7 @@ public class TestcaseGenUtils {
     }
 
     content.add("</testcase>");
-    try (BufferedWriter writer =
-        new BufferedWriter(new FileWriter(testcaseName.toFile(), Charset.defaultCharset()))) {
-      writer.write(Joiner.on("\n").join(content));
-    }
+    IO.writeFile(testcaseName, Charset.defaultCharset(), Joiner.on("\n").join(content));
   }
 
   private List<Pair<CIdExpression, Integer>> matchInputsOnPath(ARGPath pARGPath, Model pM)
