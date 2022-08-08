@@ -74,16 +74,13 @@ public class TestcaseGenUtils {
     fmgr = pFmgr;
   }
 
-  public List<Pair<CIdExpression, Integer>> computeInputForRandomWalkPath(ARGPath path)
-      throws InterruptedException, SolverException, CPAException {
+
+  public List<Pair<CIdExpression, Integer>> computeInputForRandomWalkPathNonIterative(
+      RandomWalkState pState, ARGPath path) throws InterruptedException, SolverException, CPAException {
     {
       // Check, if the given path is sat by conjoining the path formulae of the abstraction
       // locations.
       // If not, cut off the last part and recursively continue.
-
-      RandomWalkState firstState =
-          AbstractStates.extractStateByType(path.getLastState(), RandomWalkState.class);
-      RandomWalkState pState = firstState;
 
       try (ProverEnvironment prover = solver.newProverEnvironment(ProverOptions.GENERATE_MODELS)) {
 
@@ -92,24 +89,18 @@ public class TestcaseGenUtils {
           prover.addConstraint(pState.getCurrentPathFormula().getFormula());
           boolean unsat = prover.isUnsat();
           if (unsat) {
-            while (unsat) {
-              logger.log(
-                  Level.INFO,
+            logger.log(
+                Level.INFO,
+                String.format(
+                    "The formul'%s' is unsat, continuing with a shorter one",
+                    pState.getCurrentPathFormula().getFormula()));
+            if (pState.getLastBranchingPoint() != null) {
+              return computeInputForRandomWalkPathNonIterative(pState.getLastBranchingPoint(), path);
+            } else {
+              throw new CPAException(
                   String.format(
-                      "The formul'%s' is unsat, continuing with a shorter one",
-                      pState.getCurrentPathFormula().getFormula()));
-
-              if (pState.getLastBranchingPoint() != null) {
-                prover.pop();
-                pState = pState.getLastBranchingPoint();
-                prover.addConstraint(pState.getCurrentPathFormula().getFormula());
-                unsat = prover.isUnsat();
-              } else {
-                throw new CPAException(
-                    String.format(
-                        "Failed to compute a path formula for %s, as no predecessor is given ",
-                        firstState));
-              }
+                      "Failed to compute a path formula for %s, as no predecessor is given ",
+                      pState));
             }
           }
         } catch (InterruptedException | SolverException e) {
@@ -182,9 +173,9 @@ public class TestcaseGenUtils {
     logger.logf(Level.INFO, "Storing the testcase at %s", testcaseName.toAbsolutePath().toString());
     List<String> content = new ArrayList<>();
     content.add("<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"no\"?>");
-//    content.add(
-//        "<!DOCTYPE testcase PUBLIC \"+//IDN sosy-lab.org//DTD test-format testcase 1.1//EN\""
-//            + " \"https://sosy-lab.org/test-format/testcase-1.1.dtd\">");
+    //    content.add(
+    //        "<!DOCTYPE testcase PUBLIC \"+//IDN sosy-lab.org//DTD test-format testcase 1.1//EN\""
+    //            + " \"https://sosy-lab.org/test-format/testcase-1.1.dtd\">");
     content.add("<testcase>");
     for (Pair<CIdExpression, Integer> pair : pInputs) {
 

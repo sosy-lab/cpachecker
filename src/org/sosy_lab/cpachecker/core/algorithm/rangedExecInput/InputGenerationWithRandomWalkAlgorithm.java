@@ -145,7 +145,10 @@ public class InputGenerationWithRandomWalkAlgorithm implements Algorithm {
     for (int i = 0; i < pComputedPath.size(); i++) {
       ARGPath path = pComputedPath.get(i);
       try {
-        List<Pair<CIdExpression, Integer>> inputs = utils.computeInputForRandomWalkPath(path);
+        List<Pair<CIdExpression, Integer>> inputs =
+            utils.computeInputForRandomWalkPathNonIterative(
+                AbstractStates.extractStateByType(path.getLastState(), RandomWalkState.class),
+                path);
         utils.printFileToPutput(inputs, testcaseName.getPath(i));
       } catch (SolverException | IOException | InterruptedException pE) {
         throw new CPAException(Throwables.getStackTraceAsString(pE));
