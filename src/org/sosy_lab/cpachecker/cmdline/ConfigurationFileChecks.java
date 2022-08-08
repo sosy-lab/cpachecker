@@ -454,8 +454,7 @@ public class ConfigurationFileChecks {
               Path.of("pcc"),
               Path.of("witnessValidation.properties"),
               Path.of("craigInterpolation-violationWitness.properties"),
-              Path.of("wacsl.properties"),
-              Path.of("distributed-block-summaries"));
+              Path.of("wacsl.properties"));
     }
 
     final OptionsWithSpecialHandlingInTest options = new OptionsWithSpecialHandlingInTest();

@@ -267,15 +267,12 @@ public class ARGUtils {
       Iterator<ARGState> parents = currentARGState.getParents().iterator();
 
       ARGState parentElement = parents.next();
-
-      while (!pIsStart.apply(parentElement)
-          && seenElements.contains(parentElement)
-          && parents.hasNext()) {
+      while (seenElements.contains(parentElement) && parents.hasNext()) {
         // while seenElements already contained parentElement, try next parent
         parentElement = parents.next();
       }
 
-      if (!pIsStart.apply(parentElement) && seenElements.contains(parentElement)) {
+      if (seenElements.contains(parentElement)) {
         // Backtrack
         checkArgument(
             !backTrackPoints.isEmpty(), "No ARG path from the target state to a root state.");

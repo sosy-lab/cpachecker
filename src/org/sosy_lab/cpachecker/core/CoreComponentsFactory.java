@@ -53,7 +53,6 @@ import org.sosy_lab.cpachecker.core.algorithm.bmc.ISMCAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.pdr.PdrAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.composition.CompositionAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.counterexamplecheck.CounterexampleCheckAlgorithm;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.DistributedSummaryAnalysis;
 import org.sosy_lab.cpachecker.core.algorithm.explainer.Explainer;
 import org.sosy_lab.cpachecker.core.algorithm.impact.ImpactAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.mpv.MPVAlgorithm;
@@ -385,12 +384,6 @@ public class CoreComponentsFactory {
       name = "algorithm.faultLocalization.by_distance",
       description = "Use fault localization with distance metrics")
   private boolean useFaultLocalizationWithDistanceMetrics = false;
-
-  @Option(
-      secure = true,
-      name = "algorithm.configurableComponents",
-      description = "Distribute predicate analysis to multiple workers")
-  private boolean useConfigurableComponents = false;
 
   @Option(secure = true, description = "Enable converting test goals to conditions.")
   private boolean testGoalConverter;
@@ -728,16 +721,6 @@ public class CoreComponentsFactory {
 
       if (useMPV) {
         algorithm = new MPVAlgorithm(cpa, config, logger, shutdownNotifier, specification, cfa);
-      }
-
-      if (useConfigurableComponents) {
-        algorithm =
-            new DistributedSummaryAnalysis(
-                config,
-                logger,
-                cfa,
-                ShutdownManager.createWithParent(shutdownNotifier),
-                specification);
       }
 
       if (useFaultLocalizationWithCoverage) {

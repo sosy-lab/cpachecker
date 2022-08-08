@@ -1130,7 +1130,7 @@ public class FormulaManagerView {
   }
 
   // the character for separating name and index of a value
-  public static final char INDEX_SEPARATOR = '@';
+  private static final char INDEX_SEPARATOR = '@';
   private static final Splitter INDEX_SPLITTER = Splitter.on(INDEX_SEPARATOR);
 
   static String makeName(String name, int idx) {
