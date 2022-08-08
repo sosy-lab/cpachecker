@@ -3311,6 +3311,10 @@ cpa.value.allowedUnsupportedFunctions = {}
 # Use equality assumptions to assign values (e.g., (x == 0) => x = 0)
 cpa.value.assignEqualityAssumptions = true
 
+# Instead of aborting the computation, if no sucessor state is known, the
+# state is cleard (all values are forgotten) and the analysis continues.
+cpa.value.forgetValuesInsteadOfAbort = false
+
 # Fixed set of values for function calls to VERIFIER_nondet_*. Does only
 # work, if ignoreFunctionValueExceptRandom is enabled 
 cpa.value.functionValuesForRandom = no default value

@@ -31,7 +31,7 @@ public interface MemoryLocationValueHandler {
    * @param pState the {@link ValueAnalysisState} to use. Value assignments will happen in this
    *     state
    * @param pValueVisitor a value visitor for possibly needed evaluations or computations
-   * @return true if the analysis shuld stop here and false otherwise (which is the default case)
+   * @return true if the analysis should stop here and false otherwise (which is the default case)
    * @throws UnrecognizedCodeException thrown if the given parameters do not fit. Other causes for
    *     this exception may be implementation-dependent
    */

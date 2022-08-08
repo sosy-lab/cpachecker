@@ -257,6 +257,13 @@ public final class ValueAnalysisState
     return new ValueAnalysisInformation(valueAssignment);
   }
 
+  /** This method removes all memory location from the underlying map */
+  public void forgetAll() {
+    for (MemoryLocation value : constantsMap.keySet()) {
+      this.forget(value);
+    }
+  }
+
   @Override
   public void remember(
       final MemoryLocation pLocation, final ValueAnalysisInformation pValueAndType) {

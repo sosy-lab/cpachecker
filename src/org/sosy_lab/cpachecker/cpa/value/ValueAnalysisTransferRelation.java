@@ -172,6 +172,11 @@ public class ValueAnalysisTransferRelation
                 + " and this can produce wrong results.")
     private Set<String> allowedUnsupportedFunctions = ImmutableSet.of();
 
+    @Option(
+        secure = true,
+        description = "Instead of aborting the computation, if no sucessor state is known, the state is cleard (all values are forgotten) and the analysis continues.")
+    private boolean forgetValuesInsteadOfAbort = false;
+
     public ValueTransferOptions(Configuration config) throws InvalidConfigurationException {
       config.inject(this);
     }
@@ -194,6 +199,10 @@ public class ValueAnalysisTransferRelation
 
     boolean isAllowedUnsupportedOption(String func) {
       return allowedUnsupportedFunctions.contains(func);
+    }
+
+    public boolean isForgetValuesInsteadOfAbort() {
+      return forgetValuesInsteadOfAbort;
     }
   }
 
@@ -329,7 +338,10 @@ public class ValueAnalysisTransferRelation
         boolean shouldStop =
             unknownValueHandler.handle(formalParamName, paramType, newElement, visitor, exp);
         if (shouldStop) {
-          return null;
+          if (options.isForgetValuesInsteadOfAbort()){
+            newElement.forgetAll();
+          }else{
+          return null;}
         }
 
       } else {
@@ -492,7 +504,10 @@ public class ValueAnalysisTransferRelation
                     v,
                     null); // TODO:  check if  nullthis is correct
             if (shouldStop) {
-              return null;
+              if (options.isForgetValuesInsteadOfAbort()){
+                newElement.forgetAll();
+              }else{
+                return null;}
             }
 
           } else {
@@ -752,7 +767,10 @@ public class ValueAnalysisTransferRelation
           unknownValueHandler.handle(
               memoryLocation, declarationType, newElement, getVisitor(), null);
       if (shouldStop) {
-        return null;
+        if (options.isForgetValuesInsteadOfAbort()){
+          newElement.forgetAll();
+        }else{
+          return null;}
       }
 
     } else {
@@ -880,7 +898,10 @@ public class ValueAnalysisTransferRelation
             unknownValueHandler.handle(
                 memLoc.orElseThrow(), leftSideType, newElement, evv, functionCallExp);
         if (shouldStop) {
-          return null;
+          if (options.isForgetValuesInsteadOfAbort()){
+            newElement.forgetAll();
+          }else{
+            return null;}
         }
       }
     }
@@ -1103,7 +1124,10 @@ public class ValueAnalysisTransferRelation
         boolean shouldStop =
             unknownValueHandler.handle(assignedVar, lType, newElement, visitor, exp);
         if (shouldStop) {
-          return null;
+          if (options.isForgetValuesInsteadOfAbort()){
+            newElement.forgetAll();
+          }else{
+            return null;}
         }
 
       } else {
