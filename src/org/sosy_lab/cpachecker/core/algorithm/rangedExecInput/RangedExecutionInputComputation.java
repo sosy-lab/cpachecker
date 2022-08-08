@@ -95,6 +95,9 @@ public class RangedExecutionInputComputation implements Algorithm {
     fmgr = solver.getFormulaManager();
     PathFormulaManager pfManager = predCPA.getPathFormulaManager();
     utils = new TestcaseGenUtils(namesOfRandomFunctions, solver, logger, pfManager, fmgr);
+    if (testcaseName == null) {
+      testcaseName = Path.of("output/testcase.0.xml");
+    }
   }
 
   @Override
