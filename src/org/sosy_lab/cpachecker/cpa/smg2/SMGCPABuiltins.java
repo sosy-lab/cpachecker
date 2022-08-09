@@ -473,6 +473,7 @@ public class SMGCPABuiltins {
         if (!value1.isNumericValue()) {
           // TODO: improve symbolic handling
           resultBuilder.add(ValueAndSMGState.ofUnknownValue(state1));
+          continue;
         }
 
         for (ValueAndSMGState value2AndState :
@@ -486,14 +487,11 @@ public class SMGCPABuiltins {
           SMGState state2 = value2AndState.getState();
           if (!value2.isNumericValue()) {
             // TODO: improve symbolic handling
-            resultBuilder.add(ValueAndSMGState.ofUnknownValue(state1));
+            resultBuilder.add(ValueAndSMGState.ofUnknownValue(state2));
+            continue;
           } else {
             BigInteger size =
-                value1AndState
-                    .getValue()
-                    .asNumericValue()
-                    .bigInteger()
-                    .multiply(value2AndState.getValue().asNumericValue().bigInteger());
+                value1.asNumericValue().bigInteger().multiply(value2.asNumericValue().bigInteger());
             resultBuilder.add(ValueAndSMGState.of(new NumericValue(size), state2));
           }
         }
