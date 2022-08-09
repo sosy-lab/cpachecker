@@ -1019,7 +1019,7 @@ public class SMGCPABuiltins {
       // If the Value is no AddressExpression we can't work with it
       // The buffer is type * and has to be a AddressExpression with a not unknown value and a
       // concrete offset to be used correctly
-      if (targetAddress.isUnknown()) {
+      if (SMGCPAValueExpressionEvaluator.valueIsAddressExprOrVariableOffset(targetAddress)) {
         // Unknown addresses happen only of we don't have a memory associated
         // TODO: decide what to do here and when this happens
         resultBuilder.add(ValueAndSMGState.ofUnknownValue(destAndState.getState()));
@@ -1042,7 +1042,7 @@ public class SMGCPABuiltins {
               MEMCPY_SOURCE_PARAMETER, functionCall, destAndState.getState(), cfaEdge)) {
 
         Value sourceAddress = sourceAndState.getValue();
-        if (sourceAddress.isUnknown()) {
+        if (SMGCPAValueExpressionEvaluator.valueIsAddressExprOrVariableOffset(sourceAddress)) {
           // Unknown addresses happen only of we don't have a memory associated
           // Write the target region to unknown depending on the size
           // TODO:
@@ -1184,7 +1184,7 @@ public class SMGCPABuiltins {
       // If the Value is no AddressExpression we can't work with it
       // The buffer is type * and has to be a AddressExpression with a not unknown value and a
       // concrete offset to be used correctly
-      if (firstAddress.isUnknown()) {
+      if (SMGCPAValueExpressionEvaluator.valueIsAddressExprOrVariableOffset(firstAddress)) {
         // Unknown addresses happen only of we don't have a memory associated
         // TODO: decide what to do here and when this happens
         resultBuilder.add(ValueAndSMGState.ofUnknownValue(firstValueAndSMGState.getState()));
@@ -1208,7 +1208,7 @@ public class SMGCPABuiltins {
         // If the Value is no AddressExpression we can't work with it
         // The buffer is type * and has to be a AddressExpression with a not unknown value and a
         // concrete offset to be used correctly
-        if (secondAddress.isUnknown()) {
+        if (SMGCPAValueExpressionEvaluator.valueIsAddressExprOrVariableOffset(secondAddress)) {
           // Unknown addresses happen only of we don't have a memory associated
           // TODO: decide what to do here and when this happens
           resultBuilder.add(ValueAndSMGState.ofUnknownValue(secondValueAndSMGState.getState()));
