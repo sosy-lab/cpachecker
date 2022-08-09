@@ -1890,14 +1890,27 @@ public class SMGCPAValueVisitor
         return ValueAndSMGState.ofUnknownValue(currentState);
       }
 
-      // We need the correct types here; the types of the returned value after the pointer
-      // expression!
-      Value correctlyTypedOffset =
-          arithmeticOperation(
-              new NumericValue(evaluator.getBitSizeof(currentState, canonicalReturnType)),
-              (NumericValue) rightValue,
-              BinaryOperator.MULTIPLY,
-              calculationType);
+      Value correctlyTypedOffset;
+      if (calculationType instanceof CPointerType) {
+        // This is the pointer++; case for example.
+        // We need the correct types here; the types of the returned value after the pointer
+        // expression!
+        correctlyTypedOffset =
+            arithmeticOperation(
+                new NumericValue(evaluator.getBitSizeof(currentState, canonicalReturnType)),
+                (NumericValue) rightValue,
+                BinaryOperator.MULTIPLY,
+                evaluator.getMachineModel().getPointerEquivalentSimpleType());
+      } else {
+        // If its a casted pointer, i.e. ((unsigned int) pointer) + 8;
+        // then this is just the numeric value * 8 and then the operation.
+        correctlyTypedOffset =
+            arithmeticOperation(
+                new NumericValue(BigInteger.valueOf(8)),
+                (NumericValue) rightValue,
+                BinaryOperator.MULTIPLY,
+                calculationType);
+      }
 
       Value finalOffset =
           arithmeticOperation(
@@ -1918,12 +1931,24 @@ public class SMGCPAValueVisitor
         // TODO: symbolic values if possible
         return ValueAndSMGState.ofUnknownValue(currentState);
       }
-      Value correctlyTypedOffset =
-          arithmeticOperation(
-              new NumericValue(evaluator.getBitSizeof(currentState, canonicalReturnType)),
-              (NumericValue) leftValue,
-              BinaryOperator.MULTIPLY,
-              evaluator.getMachineModel().getPointerEquivalentSimpleType());
+      Value correctlyTypedOffset;
+      if (calculationType instanceof CPointerType) {
+        correctlyTypedOffset =
+            arithmeticOperation(
+                new NumericValue(evaluator.getBitSizeof(currentState, canonicalReturnType)),
+                (NumericValue) leftValue,
+                BinaryOperator.MULTIPLY,
+                evaluator.getMachineModel().getPointerEquivalentSimpleType());
+      } else {
+        // If its a casted pointer, i.e. ((unsigned int) pointer) + 8;
+        // then this is just the numeric value * 8 and then the operation.
+        correctlyTypedOffset =
+            arithmeticOperation(
+                new NumericValue(BigInteger.valueOf(8)),
+                (NumericValue) rightValue,
+                BinaryOperator.MULTIPLY,
+                calculationType);
+      }
 
       Value finalOffset =
           arithmeticOperation(
