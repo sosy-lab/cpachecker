@@ -945,8 +945,11 @@ public class SMGTransferRelation
           CExpression initExpr = ((CInitializerExpression) init).getExpression();
           if (initExpr instanceof CStringLiteralExpression) {
             typeSizeInBits =
-                BigInteger.valueOf(
-                    8 * (((CStringLiteralExpression) initExpr).getContentString().length() + 1));
+                BigInteger.valueOf(8)
+                    .multiply(
+                        BigInteger.valueOf(
+                            (((CStringLiteralExpression) initExpr).getContentString().length()
+                                + 1)));
           } else {
             throw new SMG2Exception("Could not determine correct type size for an array.");
           }
