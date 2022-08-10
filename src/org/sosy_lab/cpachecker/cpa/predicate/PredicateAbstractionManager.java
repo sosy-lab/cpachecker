@@ -34,7 +34,6 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.OptionalInt;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.function.Function;
@@ -70,7 +69,6 @@ import org.sosy_lab.cpachecker.util.predicates.weakening.WeakeningOptions;
 import org.sosy_lab.cpachecker.util.statistics.ThreadSafeTimerContainer.TimerWrapper;
 import org.sosy_lab.java_smt.api.BasicProverEnvironment.AllSatCallback;
 import org.sosy_lab.java_smt.api.BooleanFormula;
-import org.sosy_lab.java_smt.api.Formula;
 import org.sosy_lab.java_smt.api.ProverEnvironment;
 import org.sosy_lab.java_smt.api.SolverContext.ProverOptions;
 import org.sosy_lab.java_smt.api.SolverException;
@@ -420,16 +418,11 @@ public class PredicateAbstractionManager {
           if (options.useSubstitutionCartesian()) {
             abs = rmgr.makeAnd(abs, computeAbstraction(substituted, remainingPredicates, instantiator));
           }
-          else { substituted = abstractConjunctionParts(substituted, remainingPredicates); }
+          else { substituted = abstractFilterByVariableName(substituted, remainingPredicates); }
         }
         if (!options.useSubstitutionCEGAR() || (options.useSubstitutionCEGAR() && !options.useSubstitutionCartesian())) {
           result = new AbstractionFormula(fmgr, amgr.convertFormulaToRegion(fmgr.uninstantiate(substituted)), fmgr.uninstantiate(substituted), substituted, pathFormula, noAbstractionReuse);
           logger.log(Level.ALL, "After abstraction ", result.asFormula());
-          logger.log(Level.ALL, "Unsat ", solver.isUnsat(result.asFormula()));
-//          if (solver.isUnsat(result.asFormula())){
-//            logger.log(Level.ALL, "UnsatCore ", solver.unsatCore(result.asFormula()));
-//          }
-          logger.log(Level.ALL, "False ", result.isFalse());
         }
       }
     } else {
@@ -464,7 +457,20 @@ public class PredicateAbstractionManager {
     return result;
   }
 
-  private BooleanFormula abstractConjunctionParts(BooleanFormula pBooleanFormula, Collection<AbstractionPredicate> pPredicates){
+  /**
+   * Compute an abstraction of formula by filtering by variable names.
+   * The formula is split up i conjunction parts, if a conjunct contains at least one variable which
+   * is present in the precision, this conjunct is kept.
+   * Otherwise it is replaced by true.
+   *
+   * Since this condition is fullfilled relatively easily, this function often computes a quite
+   * detailed formula.
+   *
+   * @param pBooleanFormula The formula to be abstracted.
+   * @param pPredicates The set of predicates to use for abstraction.
+   * @return An over-approximation of pF using the predicates from pPredicates.
+   */
+  private BooleanFormula abstractFilterByVariableName(BooleanFormula pBooleanFormula, Collection<AbstractionPredicate> pPredicates){
     HashSet<String> predicateVars = new HashSet<>();
     for(AbstractionPredicate p : pPredicates){
       predicateVars.addAll(fmgr.extractVariableNames(p.getSymbolicAtom()));
