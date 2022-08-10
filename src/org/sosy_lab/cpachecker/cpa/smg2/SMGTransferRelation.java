@@ -933,6 +933,27 @@ public class SMGTransferRelation
     if (!newState.checkVariableExists(newState, varName)
         && (!isExtern || options.getAllocateExternalVariables())) {
       BigInteger typeSizeInBits = evaluator.getBitSizeof(newState, cType);
+      if (cType instanceof CArrayType
+          && ((CArrayType) cType).getLength() == null
+          && pVarDecl.getInitializer() != null) {
+        // For some reason the type size is not always correct.
+        // in the case: static const char array[] = "blablabla"; for example the cType
+        // is just const char[] and returns pointer size. We try to get it from the
+        // initializer
+        CInitializer init = pVarDecl.getInitializer();
+        if (init instanceof CInitializerExpression) {
+          CExpression initExpr = ((CInitializerExpression) init).getExpression();
+          if (initExpr instanceof CStringLiteralExpression) {
+            typeSizeInBits =
+                BigInteger.valueOf(
+                    8 * (((CStringLiteralExpression) initExpr).getContentString().length() + 1));
+          } else {
+            throw new SMG2Exception("Could not determine correct type size for an array.");
+          }
+        } else {
+          throw new SMG2Exception("Could not determine correct type size for an array.");
+        }
+      }
 
       // Handle incomplete type of external variables as externally allocated
       if (options.isHandleIncompleteExternalVariableAsExternalAllocation()
