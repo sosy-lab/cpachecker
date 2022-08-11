@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.cpa.predicate;
 
 import java.util.HashMap;
+import java.util.Map;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.Formula;
 import org.sosy_lab.java_smt.api.FormulaManager;
@@ -18,7 +19,7 @@ import org.sosy_lab.java_smt.api.FunctionDeclarationKind;
 public class SubstituteAssignmentTransformationVisitor extends org.sosy_lab.java_smt.api.visitors.BooleanFormulaTransformationVisitor {
 
   private final FormulaManager fmgr;
-  private final HashMap<Formula,Formula> fmap;
+  private final Map<Formula,Formula> fmap;
 
   /**
    * Transform a formula using a map of substitutions constructed by SubstituteVisitor
@@ -27,7 +28,7 @@ public class SubstituteAssignmentTransformationVisitor extends org.sosy_lab.java
    * @param pFmgr {@link FormulaManager}
    * @param pFmap map of substitutions as constructed by {@link SubstituteVisitor}
    */
-  public SubstituteAssignmentTransformationVisitor(FormulaManager pFmgr, HashMap<Formula,Formula> pFmap) {
+  public SubstituteAssignmentTransformationVisitor(FormulaManager pFmgr, Map<Formula,Formula> pFmap) {
     super(pFmgr);
     fmgr = pFmgr;
     fmap = pFmap;

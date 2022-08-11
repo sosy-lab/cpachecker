@@ -471,7 +471,7 @@ public class PredicateAbstractionManager {
    * @return An over-approximation of pF using the predicates from pPredicates.
    */
   private BooleanFormula abstractFilterByVariableName(BooleanFormula pBooleanFormula, Collection<AbstractionPredicate> pPredicates){
-    HashSet<String> predicateVars = new HashSet<>();
+    Set<String> predicateVars = new HashSet<>();
     for(AbstractionPredicate p : pPredicates){
       predicateVars.addAll(fmgr.extractVariableNames(p.getSymbolicAtom()));
     }

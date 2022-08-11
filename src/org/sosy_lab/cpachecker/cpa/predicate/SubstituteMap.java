@@ -31,7 +31,7 @@ import org.sosy_lab.java_smt.api.visitors.BooleanFormulaTransformationVisitor;
 public class SubstituteMap {
 
   private final FormulaManagerView fmgr;
-  private HashMap<Formula, Formula> map;
+  private Map<Formula, Formula> map;
   private BooleanFormula f;
   private final SSAMap ssa;
   private final PathFormula pathFormula;
@@ -136,10 +136,10 @@ public class SubstituteMap {
     });
   }
 
-  private HashMap<Formula, Formula> buildMap(){
+  private Map<Formula, Formula> buildMap(){
     SubstituteVisitor stvisitorF = new SubstituteVisitor(fmgr.manager);
     bfmgr.visitRecursively(f, stvisitorF);
-    HashMap<Formula, Formula> substituteMap = stvisitorF.fmap;
+    Map<Formula, Formula> substituteMap = stvisitorF.fmap;
     logger.log(Level.ALL, "Initial substituion map", substituteMap);
     logger.log(Level.FINEST, "Updating substitution map with pathFormula");
     // for example
@@ -148,7 +148,7 @@ public class SubstituteMap {
     // we want to make sure x=5 is the entry for x in the map
     SubstituteVisitor stvisitorPF = new SubstituteVisitor(fmgr.manager);
     bfmgr.visitRecursively(pathFormula.getFormula(), stvisitorPF);
-    HashMap<Formula, Formula> substituteMapPF = stvisitorPF.fmap;
+    Map<Formula, Formula> substituteMapPF = stvisitorPF.fmap;
     substituteMap.putAll(substituteMapPF);
     logger.log(Level.ALL, "Updated substituion map with pathFormula: ", substituteMap);
     logger.log(Level.FINEST, "Simplifying substitution map by internal replacements");
@@ -164,15 +164,15 @@ public class SubstituteMap {
    * @param pMap Substitution Map in form of a HashMap
    * @return Simplified substitution Map in form of a HashMap
    */
-  private HashMap<Formula, Formula> simplifySubstituteMap(HashMap<Formula, Formula> pMap){
+  private Map<Formula, Formula> simplifySubstituteMap(Map<Formula, Formula> pMap){
     boolean changed = true;
-    HashMap<Formula, Formula> m = new HashMap<>(pMap);
+    Map<Formula, Formula> m = new HashMap<>(pMap);
     while(changed){
       logger.log(Level.ALL, "Simplifying Map: ", m, "\n");
-      HashMap<Formula, Formula> mapOld = new HashMap<>(m);
-      HashMap<Formula, Formula> mapNew = new HashMap<>();
+      Map<Formula, Formula> mapOld = new HashMap<>(m);
+      Map<Formula, Formula> mapNew = new HashMap<>();
       for (Formula key : m.keySet()) {
-        HashMap<Formula, Formula> localMap = new HashMap<>(m);
+        Map<Formula, Formula> localMap = new HashMap<>(m);
         localMap.remove(key);
         if (!localMap.isEmpty()){
           mapNew.put(key, fmgr.manager.substitute(m.get(key), localMap));

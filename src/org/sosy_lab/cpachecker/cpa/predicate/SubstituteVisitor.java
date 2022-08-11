@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.cpa.predicate;
 
 import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.HashMap;
@@ -25,7 +26,7 @@ import org.sosy_lab.java_smt.api.visitors.TraversalProcess;
 public class SubstituteVisitor extends DefaultBooleanFormulaVisitor<TraversalProcess> {
 
   private final FormulaManager fmgr;
-  public java.util.HashMap<Formula, Formula> fmap;
+  public java.util.Map<Formula, Formula> fmap;
 
 
   public SubstituteVisitor(FormulaManager pFmgr) {
@@ -48,7 +49,7 @@ public class SubstituteVisitor extends DefaultBooleanFormulaVisitor<TraversalPro
     if (decl.getKind() == FunctionDeclarationKind.EQ) {
       // filter assignments
       // we can add a new entry to the hashmap
-      ArrayList<Formula> parts = new ArrayList<Formula>();
+      List<Formula> parts = new ArrayList<Formula>();
       AtomicBoolean end = new AtomicBoolean(); // skip the first iteration, then do exactly two iterations. @TODO Very clusmy, beautify this
       AtomicBoolean end2 = new AtomicBoolean();
       fmgr.visitRecursively(atom, new DefaultFormulaVisitor<TraversalProcess>() {

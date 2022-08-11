@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.cpa.predicate;
 
+import java.util.Map;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.Formula;
 import org.sosy_lab.java_smt.api.FormulaManager;
@@ -18,9 +19,9 @@ import java.util.HashMap;
 public class SubstituteAssumptionTransformationVisitor extends org.sosy_lab.java_smt.api.visitors.BooleanFormulaTransformationVisitor {
 
   private final FormulaManager fmgr;
-  private final HashMap<Formula,Formula> fmap;
+  private final Map<Formula,Formula> fmap;
 
-  public SubstituteAssumptionTransformationVisitor(FormulaManager pFmgr, HashMap<Formula,Formula> pFmap) {
+  public SubstituteAssumptionTransformationVisitor(FormulaManager pFmgr, Map<Formula,Formula> pFmap) {
     super(pFmgr);
     fmgr = pFmgr;
     fmap = pFmap;
