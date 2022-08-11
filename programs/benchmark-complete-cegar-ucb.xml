@@ -1,0 +1,182 @@
+<?xml version="1.0"?>
+<!DOCTYPE benchmark PUBLIC "+//IDN sosy-lab.org//DTD BenchExec benchmark 1.9//EN" "https://www.sosy-lab.org/benchexec/benchmark-2.3.dtd">
+<benchmark tool="cpachecker" timelimit="15 min" hardtimelimit="16 min" memlimit="15 GB" cpuCores="2">
+
+    <require cpuModel="Intel Xeon E3-1230 v5 @ 3.40 GHz"/>
+    <option name="-heap">10000M</option>
+    <option name="-benchmark"/>
+    <option name="-timelimit">900 s</option>
+
+<!--    <resultfiles>**/*.graphml</resultfiles>-->
+<!--    Use with caution! -->
+<!--    This runs the every combination of the options developed during the development of PredicateSymEx -->
+<!--    To be seen as a draft, from which rundefinitions should be commented before running it -->
+
+    <rundefinition name="PredicateSymEx-CEGAR-UCB-filtering">
+        <option name="-predicateSymEx-CEGAR-UCB"/>
+    </rundefinition>
+
+    <rundefinition name="PredicateSymEx-CEGAR-UCB-filtering-l">
+        <option name="-predicateSymEx-CEGAR-UCB"/>
+        <option name="-setprop">cpa.predicate.blk.threshold=0</option>
+        <option name="-setprop">cpa.predicate.blk.alwaysAtFunctions=false</option>
+        <option name="-setprop">cpa.predicate.blk.alwaysAtLoops=true</option>
+    </rundefinition>
+
+    <rundefinition name="PredicateSymEx-CEGAR-UCB-filtering-lf">
+        <option name="-predicateSymEx-CEGAR-UCB"/>
+        <option name="-setprop">cpa.predicate.blk.threshold=0</option>
+        <option name="-setprop">cpa.predicate.blk.alwaysAtFunctions=true</option>
+        <option name="-setprop">cpa.predicate.blk.alwaysAtLoops=true</option>
+    </rundefinition>
+
+
+    <rundefinition name="PredicateSymEx-CEGAR-UCB-filtering-Sharing">
+        <option name="-predicateSymEx-CEGAR-UCB"/>
+        <option name="-setprop">cpa.predicate.precision.sharing=GLOBAL</option>
+    </rundefinition>
+
+    <rundefinition name="PredicateSymEx-CEGAR-UCB-filtering-Sharing-l">
+        <option name="-predicateSymEx-CEGAR-UCB"/>
+        <option name="-setprop">cpa.predicate.precision.sharing=GLOBAL</option>
+        <option name="-setprop">cpa.predicate.blk.threshold=0</option>
+        <option name="-setprop">cpa.predicate.blk.alwaysAtFunctions=false</option>
+        <option name="-setprop">cpa.predicate.blk.alwaysAtLoops=true</option>
+    </rundefinition>
+
+    <rundefinition name="PredicateSymEx-CEGAR-UCB-filtering-Sharing-lf">
+        <option name="-predicateSymEx-CEGAR-UCB"/>
+        <option name="-setprop">cpa.predicate.precision.sharing=GLOBAL</option>
+        <option name="-setprop">cpa.predicate.blk.threshold=0</option>
+        <option name="-setprop">cpa.predicate.blk.alwaysAtFunctions=true</option>
+        <option name="-setprop">cpa.predicate.blk.alwaysAtLoops=true</option>
+    </rundefinition>
+
+
+
+    <rundefinition name="PredicateSymEx-CEGAR-UCB-Cartesian">
+        <option name="-predicateSymEx-CEGAR-UCB"/>
+        <option name="-setprop">cpa.predicate.abstraction.substitutionCartesian=true</option>
+    </rundefinition>
+
+    <rundefinition name="PredicateSymEx-CEGAR-UCB-Cartesian-l">
+        <option name="-predicateSymEx-CEGAR-UCB"/>
+        <option name="-setprop">cpa.predicate.abstraction.substitutionCartesian=true</option>
+        <option name="-setprop">cpa.predicate.blk.threshold=0</option>
+        <option name="-setprop">cpa.predicate.blk.alwaysAtFunctions=false</option>
+        <option name="-setprop">cpa.predicate.blk.alwaysAtLoops=true</option>
+    </rundefinition>
+
+    <rundefinition name="PredicateSymEx-CEGAR-UCB-Cartesian-lf">
+        <option name="-predicateSymEx-CEGAR-UCB"/>
+        <option name="-setprop">cpa.predicate.abstraction.substitutionCartesian=true</option>
+        <option name="-setprop">cpa.predicate.blk.threshold=0</option>
+        <option name="-setprop">cpa.predicate.blk.alwaysAtFunctions=true</option>
+        <option name="-setprop">cpa.predicate.blk.alwaysAtLoops=true</option>
+    </rundefinition>
+
+
+    <rundefinition name="PredicateSymEx-CEGAR-UCB-Cartesian-Sharing">
+        <option name="-predicateSymEx-CEGAR-UCB"/>
+        <option name="-setprop">cpa.predicate.abstraction.substitutionCartesian=true</option>
+        <option name="-setprop">cpa.predicate.precision.sharing=GLOBAL</option>
+    </rundefinition>
+
+    <rundefinition name="PredicateSymEx-CEGAR-UCB-Cartesian-Sharing-l">
+        <option name="-predicateSymEx-CEGAR-UCB"/>
+        <option name="-setprop">cpa.predicate.abstraction.substitutionCartesian=true</option>
+        <option name="-setprop">cpa.predicate.precision.sharing=GLOBAL</option>
+        <option name="-setprop">cpa.predicate.blk.threshold=0</option>
+        <option name="-setprop">cpa.predicate.blk.alwaysAtFunctions=false</option>
+        <option name="-setprop">cpa.predicate.blk.alwaysAtLoops=true</option>
+    </rundefinition>
+
+    <rundefinition name="PredicateSymEx-CEGAR-UCB-Cartesian-Sharing-lf">
+        <option name="-predicateSymEx-CEGAR-UCB"/>
+        <option name="-setprop">cpa.predicate.abstraction.substitutionCartesian=true</option>
+        <option name="-setprop">cpa.predicate.precision.sharing=GLOBAL</option>
+        <option name="-setprop">cpa.predicate.blk.threshold=0</option>
+        <option name="-setprop">cpa.predicate.blk.alwaysAtFunctions=true</option>
+        <option name="-setprop">cpa.predicate.blk.alwaysAtLoops=true</option>
+    </rundefinition>
+
+    <tasks name="ReachSafety-Arrays">
+        <includesfile>../../sv-benchmarks/c/ReachSafety-Arrays.set</includesfile>
+        <propertyfile>../../sv-benchmarks/c/properties/unreach-call.prp</propertyfile>
+    </tasks>
+    <tasks name="ReachSafety-BitVectors">
+        <includesfile>../../sv-benchmarks/c/ReachSafety-BitVectors.set</includesfile>
+        <propertyfile>../../sv-benchmarks/c/properties/unreach-call.prp</propertyfile>
+    </tasks>
+    <tasks name="ReachSafety-ControlFlow">
+        <includesfile>../../sv-benchmarks/c/ReachSafety-ControlFlow.set</includesfile>
+        <propertyfile>../../sv-benchmarks/c/properties/unreach-call.prp</propertyfile>
+    </tasks>
+    <tasks name="ReachSafety-ECA">
+        <includesfile>../../sv-benchmarks/c/ReachSafety-ECA.set</includesfile>
+        <propertyfile>../../sv-benchmarks/c/properties/unreach-call.prp</propertyfile>
+    </tasks>
+    <tasks name="ReachSafety-Floats">
+        <includesfile>../../sv-benchmarks/c/ReachSafety-Floats.set</includesfile>
+        <propertyfile>../../sv-benchmarks/c/properties/unreach-call.prp</propertyfile>
+    </tasks>
+    <tasks name="ReachSafety-Heap">
+        <includesfile>../../sv-benchmarks/c/ReachSafety-Heap.set</includesfile>
+        <propertyfile>../../sv-benchmarks/c/properties/unreach-call.prp</propertyfile>
+    </tasks>
+    <tasks name="ReachSafety-Loops">
+        <includesfile>../../sv-benchmarks/c/ReachSafety-Loops.set</includesfile>
+        <propertyfile>../../sv-benchmarks/c/properties/unreach-call.prp</propertyfile>
+    </tasks>
+    <tasks name="ReachSafety-ProductLines">
+        <includesfile>../../sv-benchmarks/c/ReachSafety-ProductLines.set</includesfile>
+        <propertyfile>../../sv-benchmarks/c/properties/unreach-call.prp</propertyfile>
+    </tasks>
+<!--    <tasks name="ReachSafety-Recursive"> Reason: Recursive programs not in scope of thesis-->
+<!--        <includesfile>../../sv-benchmarks/c/ReachSafety-Recursive.set</includesfile>-->
+<!--        <propertyfile>../../sv-benchmarks/c/properties/unreach-call.prp</propertyfile>-->
+<!--    </tasks>-->
+    <tasks name="ReachSafety-Sequentialized">
+        <includesfile>../../sv-benchmarks/c/ReachSafety-Sequentialized.set</includesfile>
+        <propertyfile>../../sv-benchmarks/c/properties/unreach-call.prp</propertyfile>
+    </tasks>
+    <tasks name="ReachSafety-XCSP">
+        <includesfile>../../sv-benchmarks/c/ReachSafety-XCSP.set</includesfile>
+        <propertyfile>../../sv-benchmarks/c/properties/unreach-call.prp</propertyfile>
+    </tasks>
+    <tasks name="ReachSafety-Combinations">
+        <includesfile>../../sv-benchmarks/c/ReachSafety-Combinations.set</includesfile>
+        <propertyfile>../../sv-benchmarks/c/properties/unreach-call.prp</propertyfile>
+    </tasks>
+
+<!--    <tasks name="ConcurrencySafety-Main"> Reason: Concurrent programs not in scope of thesis-->
+<!--        <includesfile>../../sv-benchmarks/c/ConcurrencySafety-Main.set</includesfile>-->
+<!--        <propertyfile>../../sv-benchmarks/c/properties/unreach-call.prp</propertyfile>-->
+<!--    </tasks>-->
+
+    <tasks name="SoftwareSystems-AWS-C-Common-ReachSafety">
+        <includesfile>../../sv-benchmarks/c/SoftwareSystems-AWS-C-Common-ReachSafety.set</includesfile>
+        <propertyfile>../../sv-benchmarks/c/properties/unreach-call.prp</propertyfile>
+    </tasks>
+    <tasks name="SoftwareSystems-BusyBox-ReachSafety">
+        <includesfile>../../sv-benchmarks/c/SoftwareSystems-BusyBox-ReachSafety.set</includesfile>
+        <propertyfile>../../sv-benchmarks/c/properties/unreach-call.prp</propertyfile>
+    </tasks>
+    <tasks name="SoftwareSystems-DeviceDriversLinux64-ReachSafety">
+        <includesfile>../../sv-benchmarks/c/SoftwareSystems-DeviceDriversLinux64-ReachSafety.set</includesfile>
+        <excludesfile>../../sv-benchmarks/c/SoftwareSystems-DeviceDriversLinux64Large-ReachSafety.set</excludesfile>
+        <propertyfile>../../sv-benchmarks/c/properties/unreach-call.prp</propertyfile>
+    </tasks>
+    <tasks name="SoftwareSystems-DeviceDriversLinux64Large-ReachSafety">
+        <includesfile>../../sv-benchmarks/c/SoftwareSystems-DeviceDriversLinux64Large-ReachSafety.set</includesfile>
+        <propertyfile>../../sv-benchmarks/c/properties/unreach-call.prp</propertyfile>
+    </tasks>
+    <tasks name="SoftwareSystems-uthash-ReachSafety">
+        <includesfile>../../sv-benchmarks/c/SoftwareSystems-uthash-ReachSafety.set</includesfile>
+        <propertyfile>../../sv-benchmarks/c/properties/unreach-call.prp</propertyfile>
+    </tasks>
+
+    <columns>
+        <column title="UsedConfig">Used algorithm property</column>
+    </columns>
+</benchmark>

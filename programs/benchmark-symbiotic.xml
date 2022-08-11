@@ -9,10 +9,19 @@
 <!-- SPDX-License-Identifier: Apache-2.0 -->
 
 <!DOCTYPE benchmark PUBLIC "+//IDN sosy-lab.org//DTD BenchExec benchmark 1.18//EN" "https://www.sosy-lab.org/benchexec/benchmark-1.18.dtd">
-<benchmark tool="klee" timelimit="60s" hardtimelimit="66s" memlimit="1000 MB" cpuCores="2">
+    <benchmark tool="symbiotic" timelimit="60s" hardtimelimit="66s" memlimit="1000 MB" cpuCores="2">
 
-    <require cpuModel="Intel Xeon E3-1230 v5 @ 3.40 GHz"/>
+    <!-- Note that all paths to ../test/programs need to be changed if you move this file. -->
+    <!--  <rundefinition name="with-output-files">-->
+    <!--    &lt;!&ndash; Variables can appear in option values, too. &ndash;&gt;-->
+    <!--    <option name="-setprop">output.path=test/results/name.${benchmark_date}.output/input/</option>-->
+    <!--  </rundefinition>-->
+
+    <option name="--witness">witness.graphml</option>
+    <option name="--sv-comp"/>
+    
     <rundefinition/>
+				
 
     <!-- Global sourcefiles are used in every run definition. -->
     <tasks name="array">
