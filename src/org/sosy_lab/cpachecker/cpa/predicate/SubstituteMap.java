@@ -48,7 +48,7 @@ public class SubstituteMap {
     logger = pLogger;
 
     bfmgr = fmgr.getBooleanFormulaManager();
-    map = new HashMap<Formula, Formula>();
+    map = new HashMap<>();
   }
 
   /**

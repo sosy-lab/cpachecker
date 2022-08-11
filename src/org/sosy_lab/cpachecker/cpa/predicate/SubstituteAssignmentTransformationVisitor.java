@@ -8,7 +8,6 @@
 
 package org.sosy_lab.cpachecker.cpa.predicate;
 
-import java.util.HashMap;
 import java.util.Map;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.Formula;

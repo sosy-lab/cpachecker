@@ -31,7 +31,7 @@ public class SubstituteVisitor extends DefaultBooleanFormulaVisitor<TraversalPro
 
   public SubstituteVisitor(FormulaManager pFmgr) {
     fmgr = pFmgr;
-    fmap = new HashMap<Formula, Formula>();
+    fmap = new HashMap<>();
   }
 
   @Override
@@ -49,7 +49,7 @@ public class SubstituteVisitor extends DefaultBooleanFormulaVisitor<TraversalPro
     if (decl.getKind() == FunctionDeclarationKind.EQ) {
       // filter assignments
       // we can add a new entry to the hashmap
-      List<Formula> parts = new ArrayList<Formula>();
+      List<Formula> parts = new ArrayList<>();
       AtomicBoolean end = new AtomicBoolean(); // skip the first iteration, then do exactly two iterations. @TODO Very clusmy, beautify this
       AtomicBoolean end2 = new AtomicBoolean();
       fmgr.visitRecursively(atom, new DefaultFormulaVisitor<TraversalProcess>() {
