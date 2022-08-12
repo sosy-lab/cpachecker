@@ -25,15 +25,17 @@ import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
+import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
+import org.sosy_lab.java_smt.api.BooleanFormula;
 
 public class DistributedPredicateCPA implements DistributedConfigurableProgramAnalysis {
 
   private final PredicateCPA predicateCPA;
 
   private final SerializeOperator serialize;
-  private final DeserializeOperator deserialize;
-  private final ProceedOperator proceed;
+  private final DeserializePredicateStateOperator deserialize;
+  private final ProceedPredicateStateOperator proceed;
   private final CombineOperator combine;
 
   public DistributedPredicateCPA(
@@ -44,7 +46,9 @@ public class DistributedPredicateCPA implements DistributedConfigurableProgramAn
     predicateCPA = pPredicateCPA;
     serialize =
         new SerializePredicateStateOperator(
-            predicateCPA.getPathFormulaManager(), predicateCPA.getSolver().getFormulaManager());
+            predicateCPA.getPathFormulaManager(),
+            predicateCPA.getSolver().getFormulaManager(),
+            pDirection);
     deserialize =
         new DeserializePredicateStateOperator(
             predicateCPA,
@@ -86,6 +90,20 @@ public class DistributedPredicateCPA implements DistributedConfigurableProgramAn
   @Override
   public Class<? extends AbstractState> getAbstractStateClass() {
     return PredicateAbstractState.class;
+  }
+
+  @Override
+  public BooleanFormula getErrorCondition(FormulaManagerView pFormulaManagerView) {
+    return deserialize.getErrorCondition(pFormulaManagerView);
+  }
+
+  @Override
+  public void synchronizeKnowledge(DistributedConfigurableProgramAnalysis pAnalysis)
+      throws InterruptedException {
+    DistributedPredicateCPA dcpa = (DistributedPredicateCPA) pAnalysis;
+    proceed.synchronizeKnowledge(pAnalysis);
+    ((DeserializePredicateStateOperator) pAnalysis.getDeserializeOperator())
+        .setErrorCondition(deserialize.getErrorCondition(dcpa.getSolver().getFormulaManager()));
   }
 
   @Override

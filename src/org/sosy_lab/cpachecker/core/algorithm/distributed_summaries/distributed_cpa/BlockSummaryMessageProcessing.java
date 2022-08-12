@@ -70,8 +70,20 @@ public class BlockSummaryMessageProcessing extends ForwardingCollection<BlockSum
   public BlockSummaryMessageProcessing merge(
       BlockSummaryMessageProcessing pProcessing, boolean removeDuplicates) {
     Collection<BlockSummaryMessage> copy =
-        removeDuplicates ? new LinkedHashSet<>(messages) : new ArrayList<>(messages);
-    copy.addAll(pProcessing);
+        removeDuplicates ? new LinkedHashSet<>() : new ArrayList<>();
+
+    // never merge messages of different proceed types
+    // proceed messages of one DCPA may corrupt the analysis, if another DCPA wants to stop
+    if (end() == pProcessing.end()) {
+      copy.addAll(messages);
+      copy.addAll(pProcessing);
+    } else {
+      if (end()) {
+        copy.addAll(messages);
+      } else {
+        copy.addAll(pProcessing);
+      }
+    }
     return new BlockSummaryMessageProcessing(copy, end || pProcessing.end);
   }
 

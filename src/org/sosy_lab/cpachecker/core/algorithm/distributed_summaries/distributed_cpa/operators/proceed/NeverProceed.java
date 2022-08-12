@@ -9,10 +9,10 @@
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.proceed;
 
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.BlockSummaryMessageProcessing;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DistributedConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryErrorConditionMessage;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryMessage;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryPostConditionMessage;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.java_smt.api.SolverException;
 
 public class NeverProceed implements ProceedOperator {
@@ -35,7 +35,9 @@ public class NeverProceed implements ProceedOperator {
   }
 
   @Override
-  public void synchronizeKnowledge(DistributedConfigurableProgramAnalysis pAnalysis) {}
+  public boolean isFeasible(AbstractState pState) {
+    return true;
+  }
 
   @Override
   public void update(BlockSummaryPostConditionMessage pLatestOwnPreconditionMessage) {}

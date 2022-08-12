@@ -18,7 +18,6 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.block_analysis.BlockAnalysis;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.block_analysis.NoopBlockAnalysis;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.BlockNode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.BlockSummaryMessageProcessing;
@@ -33,7 +32,7 @@ import org.sosy_lab.java_smt.api.SolverException;
 public class BlockSummaryRootWorker extends BlockSummaryWorker {
 
   private final BlockNode root;
-  private final BlockAnalysis analysis;
+  private final NoopBlockAnalysis analysis;
   private final BlockSummaryConnection connection;
   private boolean shutdown;
 

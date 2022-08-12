@@ -8,19 +8,23 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.predicate;
 
+import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.BlockNode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.DeserializeOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryErrorConditionMessage;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryMessage;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryMessage.MessageType;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryPostConditionMessage;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSet;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
+import org.sosy_lab.java_smt.api.BooleanFormula;
 
 public class DeserializePredicateStateOperator implements DeserializeOperator {
 
@@ -28,6 +32,7 @@ public class DeserializePredicateStateOperator implements DeserializeOperator {
   private final FormulaManagerView formulaManagerView;
   private final PathFormulaManager pathFormulaManager;
   private final BlockNode block;
+  private BooleanFormula errorCondition;
 
   public DeserializePredicateStateOperator(
       PredicateCPA pPredicateCPA,
@@ -38,10 +43,11 @@ public class DeserializePredicateStateOperator implements DeserializeOperator {
     formulaManagerView = pFormulaManagerView;
     pathFormulaManager = pPathFormulaManager;
     block = pBlockNode;
+    errorCondition = pFormulaManagerView.getBooleanFormulaManager().makeTrue();
   }
 
   @Override
-  public AbstractState deserialize(BlockSummaryMessage pMessage) {
+  public AbstractState deserialize(BlockSummaryMessage pMessage) throws InterruptedException {
     String formula =
         PredicateOperatorUtil.extractFormulaString(
             pMessage, predicateCPA.getClass(), formulaManagerView);
@@ -54,12 +60,50 @@ public class DeserializePredicateStateOperator implements DeserializeOperator {
       map = ((BlockSummaryErrorConditionMessage) pMessage).getSSAMap();
       pts = ((BlockSummaryErrorConditionMessage) pMessage).getPointerTargetSet();
     }
-    return PredicateAbstractState.mkNonAbstractionStateWithNewPathFormula(
+
+    PathFormula abstraction =
         PredicateOperatorUtil.getPathFormula(
-            formula, pathFormulaManager, formulaManagerView, pts, map),
+            formula, pathFormulaManager, formulaManagerView, pts, map);
+
+    PredicateAbstractState previousState =
         (PredicateAbstractState)
             predicateCPA.getInitialState(
                 block.getNodeWithNumber(pMessage.getTargetNodeNumber()),
-                StateSpacePartition.getDefaultPartition()));
+                StateSpacePartition.getDefaultPartition());
+
+    PredicateAbstractState deserialized;
+    if (pMessage.getType() == MessageType.ERROR_CONDITION || true) {
+      deserialized =
+          PredicateAbstractState.mkNonAbstractionStateWithNewPathFormula(
+              abstraction, previousState);
+    } else {
+      deserialized =
+          PredicateAbstractState.mkAbstractionState(
+              abstraction,
+              predicateCPA
+                  .getPredicateManager()
+                  .asAbstraction(abstraction.getFormula(), abstraction),
+              PathCopyingPersistentTreeMap.of(),
+              previousState);
+    }
+
+    if (pMessage instanceof BlockSummaryErrorConditionMessage) {
+      errorCondition =
+          formulaManagerView.uninstantiate(
+              PredicateOperatorUtil.uninstantiate(
+                      abstraction, formulaManagerView, pathFormulaManager)
+                  .getFormula());
+    }
+    return deserialized;
+  }
+
+  public BooleanFormula getErrorCondition(FormulaManagerView pFormulaManagerView) {
+    return pFormulaManagerView.translateFrom(errorCondition, formulaManagerView);
+  }
+
+  public void setErrorCondition(BooleanFormula pErrorCondition) {
+    if (pErrorCondition != null) {
+      errorCondition = pErrorCondition;
+    }
   }
 }

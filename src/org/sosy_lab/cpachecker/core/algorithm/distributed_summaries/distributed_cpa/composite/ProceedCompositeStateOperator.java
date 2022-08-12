@@ -17,7 +17,9 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryErrorConditionMessage;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryMessage;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryPostConditionMessage;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
+import org.sosy_lab.cpachecker.cpa.composite.CompositeState;
 import org.sosy_lab.java_smt.api.SolverException;
 
 public class ProceedCompositeStateOperator implements ProceedOperator {
@@ -66,6 +68,20 @@ public class ProceedCompositeStateOperator implements ProceedOperator {
   }
 
   @Override
+  public boolean isFeasible(AbstractState pState) {
+    CompositeState compositeState = (CompositeState) pState;
+    for (AbstractState wrappedState : compositeState.getWrappedStates()) {
+      for (DistributedConfigurableProgramAnalysis value : registered.values()) {
+        if (value.doesOperateOn(wrappedState.getClass())) {
+          if (!value.getProceedOperator().isFeasible(wrappedState)) {
+            return false;
+          }
+        }
+      }
+    }
+    return true;
+  }
+
   public void synchronizeKnowledge(DistributedConfigurableProgramAnalysis pAnalysis)
       throws InterruptedException {
     ProceedCompositeStateOperator distributed =
@@ -78,7 +94,6 @@ public class ProceedCompositeStateOperator implements ProceedOperator {
       if (distributed.registered.containsKey(entry.getKey())) {
         entry
             .getValue()
-            .getProceedOperator()
             .synchronizeKnowledge(distributed.registered.get(entry.getKey()));
       }
     }

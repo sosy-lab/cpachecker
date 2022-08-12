@@ -8,16 +8,24 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa;
 
+import com.google.common.base.Preconditions;
+import com.google.errorprone.annotations.CanIgnoreReturnValue;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.BlockNode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.callstack.DistributedCallstackCPA;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.distributed_block_cpa.DistributedBlockCPA;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.function_pointer.DistributedFunctionPointerCPA;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.predicate.DistributedPredicateCPA;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.BlockSummaryAnalysisOptions;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
+import org.sosy_lab.cpachecker.cpa.block.BlockCPA;
+import org.sosy_lab.cpachecker.cpa.block.BlockCPABackward;
 import org.sosy_lab.cpachecker.cpa.callstack.CallstackCPA;
+import org.sosy_lab.cpachecker.cpa.composite.CompositeCPA;
 import org.sosy_lab.cpachecker.cpa.functionpointer.FunctionPointerCPA;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
 
@@ -33,37 +41,65 @@ public class DCPAHandler {
     options = pOptions;
   }
 
-  public void registerDCPA(
-      ConfigurableProgramAnalysis pCPA, BlockNode pBlockNode, AnalysisDirection pDirection) {
+  @CanIgnoreReturnValue
+  public Optional<DistributedConfigurableProgramAnalysis> registerDCPA(
+      ConfigurableProgramAnalysis pCPA, BlockNode pBlockNode, AnalysisDirection pDirection)
+      throws InvalidConfigurationException {
+    Preconditions.checkArgument(
+        !(pCPA instanceof CompositeCPA), "Cannot register DCPA for type " + pCPA.getClass());
     if (pCPA instanceof PredicateCPA) {
-      registerDCPA((PredicateCPA) pCPA, pBlockNode, pDirection);
-      return;
+      return Optional.ofNullable(registerDCPA((PredicateCPA) pCPA, pBlockNode, pDirection));
     }
     if (pCPA instanceof CallstackCPA) {
-      registerDCPA((CallstackCPA) pCPA, pBlockNode, pDirection);
-      return;
+      return Optional.ofNullable(registerDCPA((CallstackCPA) pCPA, pBlockNode, pDirection));
     }
     if (pCPA instanceof FunctionPointerCPA) {
-      registerDCPA((FunctionPointerCPA) pCPA, pBlockNode);
+      return Optional.ofNullable(registerDCPA((FunctionPointerCPA) pCPA, pBlockNode));
     }
+    if (pCPA instanceof BlockCPA) {
+      return Optional.ofNullable(registerDCPA((BlockCPA) pCPA, pBlockNode, pDirection));
+    }
+    if (pCPA instanceof BlockCPABackward) {
+      return Optional.ofNullable(registerDCPA((BlockCPABackward) pCPA, pBlockNode, pDirection));
+    }
+    return Optional.empty();
   }
 
-  private void registerDCPA(
+  private DistributedConfigurableProgramAnalysis registerDCPA(
+      BlockCPA pBlockCPA, BlockNode pBlockNode, AnalysisDirection pDirection)
+      throws InvalidConfigurationException {
+    return analyses.put(
+        pBlockCPA.getClass(),
+        new DistributedBlockCPA(
+            pBlockCPA, pBlockNode, pDirection, () -> analyses.values(), options));
+  }
+
+  private DistributedConfigurableProgramAnalysis registerDCPA(
+      BlockCPABackward pBlockCPA, BlockNode pBlockNode, AnalysisDirection pDirection)
+      throws InvalidConfigurationException {
+    return analyses.put(
+        pBlockCPA.getClass(),
+        new DistributedBlockCPA(
+            pBlockCPA, pBlockNode, pDirection, () -> analyses.values(), options));
+  }
+
+  private DistributedConfigurableProgramAnalysis registerDCPA(
       PredicateCPA pPredicateCPA, BlockNode pBlockNode, AnalysisDirection pDirection) {
-    analyses.put(
+    return analyses.put(
         pPredicateCPA.getClass(),
         new DistributedPredicateCPA(pPredicateCPA, pBlockNode, pDirection, options));
   }
 
-  private void registerDCPA(
+  private DistributedConfigurableProgramAnalysis registerDCPA(
       CallstackCPA pCallstackCPA, BlockNode pBlockNode, AnalysisDirection pDirection) {
-    analyses.put(
+    return analyses.put(
         pCallstackCPA.getClass(),
         new DistributedCallstackCPA(pCallstackCPA, pBlockNode, pDirection));
   }
 
-  private void registerDCPA(FunctionPointerCPA pFunctionPointerCPA, BlockNode pBlockNode) {
-    analyses.put(
+  private DistributedConfigurableProgramAnalysis registerDCPA(
+      FunctionPointerCPA pFunctionPointerCPA, BlockNode pBlockNode) {
+    return analyses.put(
         pFunctionPointerCPA.getClass(),
         new DistributedFunctionPointerCPA(pFunctionPointerCPA, pBlockNode));
   }

@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.cpa.block;
 
 import static com.google.common.base.Preconditions.checkState;
 
+import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.BlockNode;
@@ -38,7 +39,6 @@ public class BlockCPABackward extends AbstractCPA {
         "Expected %s but got %s",
         BackwardBlockTransferRelation.class,
         relation.getClass());
-    ((BackwardBlockTransferRelation) relation).init(pBlockNode);
   }
 
   public static CPAFactory factory() {
@@ -49,7 +49,12 @@ public class BlockCPABackward extends AbstractCPA {
   public AbstractState getInitialState(CFANode node, StateSpacePartition partition)
       throws InterruptedException {
     return new BlockState(
-        node, blockNode, AnalysisDirection.BACKWARD, BlockStateType.INITIAL, false);
+        node,
+        blockNode,
+        AnalysisDirection.BACKWARD,
+        BlockStateType.INITIAL,
+        false,
+        Optional.empty());
   }
 
   public static BlockCPABackward create() {

@@ -9,10 +9,10 @@
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.proceed;
 
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.BlockSummaryMessageProcessing;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DistributedConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryErrorConditionMessage;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryMessage;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryPostConditionMessage;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.java_smt.api.SolverException;
 
 public interface ProceedOperator {
@@ -52,13 +52,12 @@ public interface ProceedOperator {
       throws InterruptedException, SolverException;
 
   /**
-   * Synchronize the knowledge of the forward analysis with the knowledge of the backward analysis
-   * for later infeasible checks.
+   * Checks whether a given abstract state represents a feasible state.
    *
-   * @param pAnalysis Synchronize the knowledge of {@code pAnalysis} with this proceed operator
+   * @param pState abstract state
+   * @return true iff abstract state represents a feasible abstract state
    */
-  void synchronizeKnowledge(DistributedConfigurableProgramAnalysis pAnalysis)
-      throws InterruptedException;
+  boolean isFeasible(AbstractState pState);
 
   /**
    * Set the latest own {@link BlockSummaryPostConditionMessage}

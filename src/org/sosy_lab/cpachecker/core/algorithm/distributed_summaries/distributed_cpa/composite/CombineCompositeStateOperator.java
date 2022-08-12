@@ -43,31 +43,31 @@ public class CombineCompositeStateOperator implements CombineOperator {
       throw new AssertionError("CompositeStates have to have the same size");
     }
     for (int i = 0; i < compositeState1.getWrappedStates().size(); i++) {
-      AbstractState state1I = compositeState1.get(i);
-      AbstractState state2I = compositeState2.get(i);
-      if (!state1I.getClass().equals(state2I.getClass())) {
+      AbstractState state1 = compositeState1.get(i);
+      AbstractState state2 = compositeState2.get(i);
+      if (!state1.getClass().equals(state2.getClass())) {
         throw new AssertionError(
             "All states have to work on equally structured composite states. Mismatch for classes "
-                + state1I.getClass()
+                + state1.getClass()
                 + " and "
-                + state2I.getClass());
+                + state2.getClass());
       }
     }
 
     List<AbstractState> combined = new ArrayList<>();
     for (int i = 0; i < compositeState1.getWrappedStates().size(); i++) {
       boolean found = false;
-      AbstractState state1I = compositeState1.get(i);
-      AbstractState state2I = compositeState2.get(i);
+      AbstractState state1 = compositeState1.get(i);
+      AbstractState state2 = compositeState2.get(i);
       for (DistributedConfigurableProgramAnalysis value : registered.values()) {
-        if (value.doesOperateOn(state1I.getClass()) && value.doesOperateOn(state2I.getClass())) {
-          combined.addAll(value.getCombineOperator().combine(state1I, state2I, pPrecision));
+        if (value.doesOperateOn(state1.getClass()) && value.doesOperateOn(state2.getClass())) {
+          combined.addAll(value.getCombineOperator().combine(state1, state2, pPrecision));
           found = true;
         }
       }
       // merge sep
       if (!found) {
-        combined.add(state2I);
+        combined.add(state2);
       }
     }
     return ImmutableList.of(new CompositeState(combined));

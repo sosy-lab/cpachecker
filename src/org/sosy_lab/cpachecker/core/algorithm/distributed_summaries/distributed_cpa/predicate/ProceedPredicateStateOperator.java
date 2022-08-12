@@ -14,7 +14,6 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.OptionalInt;
 import java.util.Set;
-import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.BlockNode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.BlockSummaryMessageProcessing;
@@ -26,6 +25,7 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.act
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryMessage;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryPostConditionMessage;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.BlockSummaryAnalysisOptions;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
@@ -79,15 +79,17 @@ public class ProceedPredicateStateOperator implements ProceedOperator {
   }
 
   @Override
+  public boolean isFeasible(AbstractState pState) {
+    PredicateAbstractState predicateAbstractState = (PredicateAbstractState) pState;
+    if (predicateAbstractState.isAbstractionState()) {
+      return predicateAbstractState.getAbstractionFormula().isTrue();
+    }
+    return true;
+  }
+
+  @Override
   public BlockSummaryMessageProcessing proceedBackward(BlockSummaryErrorConditionMessage message)
       throws SolverException, InterruptedException {
-    CFANode node = block.getNodeWithNumber(message.getTargetNodeNumber());
-    if (!(node.equals(block.getLastNode())
-        || (!node.equals(block.getLastNode())
-            && !node.equals(block.getStartNode())
-            && block.getNodesInBlock().contains(node)))) {
-      return BlockSummaryMessageProcessing.stop();
-    }
     PredicateAbstractState deserialized = (PredicateAbstractState) deserialize.deserialize(message);
     PathFormula messageFormula = deserialized.getPathFormula();
     if (analysisOptions.shouldCheckEveryErrorConditionForUnsatisfiability()) {
@@ -116,10 +118,6 @@ public class ProceedPredicateStateOperator implements ProceedOperator {
   @Override
   public BlockSummaryMessageProcessing proceedForward(BlockSummaryPostConditionMessage message)
       throws InterruptedException {
-    CFANode node = block.getNodeWithNumber(message.getTargetNodeNumber());
-    if (!block.getStartNode().equals(node)) {
-      return BlockSummaryMessageProcessing.stop();
-    }
     if (!message.isReachable()) {
       unsatPredecessors.add(message.getUniqueBlockId());
       return BlockSummaryMessageProcessing.stop();
@@ -148,6 +146,9 @@ public class ProceedPredicateStateOperator implements ProceedOperator {
   }
 
   private void storePostCondition(BlockSummaryPostConditionMessage pMessage) {
+    if (pMessage.getTargetNodeNumber() != block.getStartNode().getNodeNumber()) {
+      return;
+    }
     BlockSummaryMessage toStore =
         BlockSummaryMessage.removeEntry(pMessage, BlockSummaryMessagePayload.SMART);
     if (analysisOptions.shouldAlwaysStoreCircularPostConditions()
@@ -191,19 +192,30 @@ public class ProceedPredicateStateOperator implements ProceedOperator {
             fmgr.substitute(pErrorCondition.getFormula(), substitution));
   }
 
-  @Override
+  private Set<String> getUnsatPredecessors() {
+    return unsatPredecessors;
+  }
+
+  private Map<String, BlockSummaryMessage> getReceivedPostConditions() {
+    return receivedPostConditions;
+  }
+
+  private BlockSummaryPostConditionMessage getLatestOwnPostConditionMessage() {
+    return latestOwnPostConditionMessage;
+  }
+
   public void synchronizeKnowledge(DistributedConfigurableProgramAnalysis pDCPA)
       throws InterruptedException {
     ProceedPredicateStateOperator proceed =
         ((ProceedPredicateStateOperator) pDCPA.getProceedOperator());
     if (direction == AnalysisDirection.BACKWARD) {
-      if (proceed.latestOwnPostConditionMessage != null) {
-        update(proceed.latestOwnPostConditionMessage);
+      if (proceed.getLatestOwnPostConditionMessage() != null) {
+        update(proceed.getLatestOwnPostConditionMessage());
       }
       unsatPredecessors.clear();
-      unsatPredecessors.addAll(proceed.unsatPredecessors);
+      unsatPredecessors.addAll(proceed.getUnsatPredecessors());
       receivedPostConditions.clear();
-      receivedPostConditions.putAll(proceed.receivedPostConditions);
+      receivedPostConditions.putAll(proceed.getReceivedPostConditions());
     }
   }
 

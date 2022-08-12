@@ -25,6 +25,8 @@ import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.cpa.functionpointer.FunctionPointerCPA;
 import org.sosy_lab.cpachecker.cpa.functionpointer.FunctionPointerState;
+import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
+import org.sosy_lab.java_smt.api.BooleanFormula;
 
 public class DistributedFunctionPointerCPA implements DistributedConfigurableProgramAnalysis {
 
@@ -67,6 +69,15 @@ public class DistributedFunctionPointerCPA implements DistributedConfigurablePro
   public Class<? extends AbstractState> getAbstractStateClass() {
     return FunctionPointerState.class;
   }
+
+  @Override
+  public BooleanFormula getErrorCondition(FormulaManagerView pFormulaManagerView) {
+    return pFormulaManagerView.getBooleanFormulaManager().makeTrue();
+  }
+
+  @Override
+  public void synchronizeKnowledge(DistributedConfigurableProgramAnalysis pAnalysis)
+      throws InterruptedException {}
 
   @Override
   public AbstractDomain getAbstractDomain() {

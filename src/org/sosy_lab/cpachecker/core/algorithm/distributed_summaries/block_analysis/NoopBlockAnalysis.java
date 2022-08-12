@@ -16,20 +16,38 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
+import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.BlockNode;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DistributedConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.composite.DistributedCompositeCPA;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryMessage;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.BlockSummaryAnalysisOptions;
+import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
+import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
-import org.sosy_lab.java_smt.api.SolverException;
+import org.sosy_lab.cpachecker.util.Triple;
 
-public class NoopBlockAnalysis extends BlockAnalysis {
+public class NoopBlockAnalysis implements InitialBlockAnalyzer {
 
   private final BlockNode block;
   private final DistributedCompositeCPA distributedCompositeCPA;
 
+  /**
+   * Analyzes a subgraph of the CFA (block node) with an arbitrary CPA.
+   *
+   * @param pLogger logger to log information
+   * @param pBlock coherent subgraph of the CFA
+   * @param pCFA CFA where the subgraph pBlock is built from
+   * @param pSpecification the specification that the analysis should prove correct/wrong
+   * @param pConfiguration user defined configurations
+   * @param pShutdownManager shutdown manager for unexpected shutdown requests
+   * @param pOptions user defined options for block analyses
+   * @throws CPAException if the misbehaviour should be logged instead of causing a crash
+   * @throws InterruptedException if the analysis is interrupted by the user
+   * @throws InvalidConfigurationException if the configurations contain wrong values
+   */
   public NoopBlockAnalysis(
       LogManager pLogger,
       BlockNode pBlock,
@@ -40,23 +58,13 @@ public class NoopBlockAnalysis extends BlockAnalysis {
       ShutdownManager pShutdownManager,
       BlockSummaryAnalysisOptions pOptions)
       throws CPAException, InterruptedException, InvalidConfigurationException {
-    super(
-        pLogger,
-        pBlock,
-        pCFA,
-        pDirection,
-        pSpecification,
-        pConfiguration,
-        pShutdownManager,
-        pOptions);
+    Triple<Algorithm, ConfigurableProgramAnalysis, ReachedSet> parts =
+        AlgorithmFactory.createAlgorithm(
+            pLogger, pSpecification, pCFA, pConfiguration, pShutdownManager, pBlock);
     block = pBlock;
-    distributedCompositeCPA = getDistributedCompositeCPA();
-  }
-
-  @Override
-  public Collection<BlockSummaryMessage> analyze(Collection<BlockSummaryMessage> condition)
-      throws CPAException, InterruptedException, SolverException {
-    return ImmutableSet.of();
+    distributedCompositeCPA =
+        DistributedConfigurableProgramAnalysis.distribute(
+            parts.getSecond(), pBlock, pDirection, pOptions);
   }
 
   /**
@@ -81,5 +89,9 @@ public class NoopBlockAnalysis extends BlockAnalysis {
             true,
             true,
             ImmutableSet.of(block.getId())));
+  }
+
+  public DistributedCompositeCPA getDistributedCPA() {
+    return distributedCompositeCPA;
   }
 }

@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.composite;
 
+import java.util.Collection;
 import java.util.Map;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
@@ -26,6 +27,8 @@ import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeCPA;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeState;
+import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
+import org.sosy_lab.java_smt.api.BooleanFormula;
 
 public class DistributedCompositeCPA implements DistributedConfigurableProgramAnalysis {
 
@@ -33,7 +36,9 @@ public class DistributedCompositeCPA implements DistributedConfigurableProgramAn
   private final SerializeOperator serialize;
   private final DeserializeOperator deserialize;
   private final CombineOperator combine;
-  private final ProceedOperator proceed;
+  private final ProceedCompositeStateOperator proceed;
+
+  private final Collection<DistributedConfigurableProgramAnalysis> analyses;
 
   public DistributedCompositeCPA(
       CompositeCPA pCompositeCPA,
@@ -46,6 +51,7 @@ public class DistributedCompositeCPA implements DistributedConfigurableProgramAn
     deserialize = new DeserializeCompositeStateOperator(compositeCPA, pNode, registered);
     combine = new CombineCompositeStateOperator(registered);
     proceed = new ProceedCompositeStateOperator(registered, pDirection);
+    analyses = registered.values();
   }
 
   @Override
@@ -71,6 +77,19 @@ public class DistributedCompositeCPA implements DistributedConfigurableProgramAn
   @Override
   public Class<? extends AbstractState> getAbstractStateClass() {
     return CompositeState.class;
+  }
+
+  @Override
+  public BooleanFormula getErrorCondition(FormulaManagerView pFormulaManagerView) {
+    return analyses.stream()
+        .map(a -> a.getErrorCondition(pFormulaManagerView))
+        .collect(pFormulaManagerView.getBooleanFormulaManager().toConjunction());
+  }
+
+  @Override
+  public void synchronizeKnowledge(DistributedConfigurableProgramAnalysis pAnalysis)
+      throws InterruptedException {
+    proceed.synchronizeKnowledge(pAnalysis);
   }
 
   @Override

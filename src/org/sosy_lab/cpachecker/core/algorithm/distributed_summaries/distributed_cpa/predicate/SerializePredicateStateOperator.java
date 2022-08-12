@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.predicate;
 
 import java.io.IOException;
+import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.SerializeOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.BlockSummaryMessagePayload;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.SerializeUtil;
@@ -23,11 +24,15 @@ public class SerializePredicateStateOperator implements SerializeOperator {
 
   private final PathFormulaManager pathFormulaManager;
   private final FormulaManagerView formulaManagerView;
+  private final AnalysisDirection direction;
 
   public SerializePredicateStateOperator(
-      PathFormulaManager pPathFormulaManager, FormulaManagerView pFormulaManagerView) {
+      PathFormulaManager pPathFormulaManager,
+      FormulaManagerView pFormulaManagerView,
+      AnalysisDirection pDirection) {
     pathFormulaManager = pPathFormulaManager;
     formulaManagerView = pFormulaManagerView;
+    direction = pDirection;
   }
 
   @Override
@@ -35,16 +40,15 @@ public class SerializePredicateStateOperator implements SerializeOperator {
     PredicateAbstractState state = (PredicateAbstractState) pState;
     PathFormula pathFormula;
     if (state.isAbstractionState()) {
-      if (state.getAbstractionFormula().isTrue()) {
-        // fall-back
+      /*if (state.getAbstractionFormula().isTrue() && direction == AnalysisDirection.BACKWARD) {
         pathFormula = state.getAbstractionFormula().getBlockFormula();
       } else {
         pathFormula =
-            pathFormulaManager.makeEmptyPathFormulaWithContextFrom(
-                state.getAbstractionFormula().getBlockFormula());
-        pathFormula =
-            pathFormulaManager.makeAnd(pathFormula, state.getAbstractionFormula().asFormula());
-      }
+            pathFormulaManager
+                .makeEmptyPathFormula()
+                .withFormula(state.getAbstractionFormula().asFormula());
+      }*/
+      pathFormula = state.getAbstractionFormula().getBlockFormula();
     } else {
       pathFormula = state.getPathFormula();
     }
@@ -52,10 +56,10 @@ public class SerializePredicateStateOperator implements SerializeOperator {
     String ssa;
     String pts;
     try {
-      ssa = SerializeUtil.serialize(pathFormula.getSsa());
+      ssa = SerializeUtil.serialize(state.getPathFormula().getSsa());
       pts = SerializeUtil.serialize(state.getPathFormula().getPointerTargetSet());
     } catch (IOException pE) {
-      throw new AssertionError("Unable to serialize SSAMap " + pathFormula.getSsa());
+      throw new AssertionError("Unable to serialize SSAMap " + state.getPathFormula().getSsa());
     }
     return new BlockSummaryMessagePayload.Builder()
         .addEntry(PredicateCPA.class.getName(), formula)

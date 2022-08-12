@@ -66,7 +66,8 @@ public abstract class BlockSummaryWorker implements BlockSummaryActor {
     final BlockSummaryConnection connection = getConnection();
     try (connection) {
       while (!shutdownRequested()) {
-        broadcast(processMessage(nextMessage()));
+        Collection<BlockSummaryMessage> response = processMessage(nextMessage());
+        broadcast(response);
         if (Thread.currentThread().isInterrupted()) {
           break;
         }

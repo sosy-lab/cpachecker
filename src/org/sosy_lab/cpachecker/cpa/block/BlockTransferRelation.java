@@ -8,8 +8,6 @@
 
 package org.sosy_lab.cpachecker.cpa.block;
 
-import static com.google.common.base.Preconditions.checkNotNull;
-
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
@@ -28,29 +26,8 @@ import org.sosy_lab.cpachecker.util.CFAUtils;
 
 public abstract class BlockTransferRelation implements TransferRelation {
 
-  protected ImmutableSet<CFAEdge> edges;
-  protected ImmutableSet<CFANode> nodes;
-  protected CFANode targetNode;
-  protected BlockNode bNode;
-
-  public void init(BlockNode pBlockNode) {
-    assert edges == null;
-    assert nodes == null;
-    assert targetNode == null;
-    assert bNode == null;
-    assert pBlockNode != null;
-    edges = ImmutableSet.copyOf(pBlockNode.getEdgesInBlock());
-    nodes = ImmutableSet.copyOf(pBlockNode.getNodesInBlock());
-    targetNode = pBlockNode.getLastNode();
-    bNode = pBlockNode;
-  }
-
-  private boolean isTargetLoopHead(BlockState pBlockState) {
-    return pBlockState.getLocationNode().equals(targetNode);
-  }
-
   protected boolean shouldComputeSuccessor(BlockState pBlockState) {
-    if (isTargetLoopHead(pBlockState)) {
+    if (pBlockState.isTargetLoopHead()) {
       if (pBlockState.hasLoopHeadEncountered()) {
         return false;
       }
@@ -59,7 +36,7 @@ public abstract class BlockTransferRelation implements TransferRelation {
   }
 
   protected boolean hasLoopHeadEncountered(BlockState pBlockState) {
-    if (isTargetLoopHead(pBlockState)) {
+    if (pBlockState.isTargetLoopHead()) {
       return !pBlockState.hasLoopHeadEncountered();
     }
     return pBlockState.hasLoopHeadEncountered();
@@ -81,19 +58,19 @@ public abstract class BlockTransferRelation implements TransferRelation {
      */
     public ForwardBlockTransferRelation() {}
 
-    private BlockStateType getType(CFANode pNode) {
-      return pNode.equals(bNode.getLastNode()) ? BlockStateType.MID : BlockStateType.FINAL;
+    private BlockStateType getType(BlockNode pBlockNode, CFANode pNode) {
+      return pNode.equals(pBlockNode.getLastNode()) ? BlockStateType.MID : BlockStateType.FINAL;
     }
 
     @Override
     public Collection<BlockState> getAbstractSuccessorsForEdge(
         AbstractState element, Precision prec, CFAEdge cfaEdge) {
-      checkNotNull(
-          edges, "init method must be called before starting the analysis (edges == null)");
       BlockState blockState = (BlockState) element;
 
       CFANode node = blockState.getLocationNode();
-      if (Sets.intersection(ImmutableSet.copyOf(CFAUtils.allLeavingEdges(node)), edges)
+      if (Sets.intersection(
+              ImmutableSet.copyOf(CFAUtils.allLeavingEdges(node)),
+              blockState.getBlockNode().getEdgesInBlock())
           .contains(cfaEdge)) {
         if (!shouldComputeSuccessor(blockState)) {
           return ImmutableSet.of();
@@ -101,10 +78,11 @@ public abstract class BlockTransferRelation implements TransferRelation {
         BlockState successor =
             new BlockState(
                 cfaEdge.getSuccessor(),
-                bNode,
+                blockState.getBlockNode(),
                 AnalysisDirection.FORWARD,
-                getType(cfaEdge.getSuccessor()),
-                hasLoopHeadEncountered(blockState));
+                getType(blockState.getBlockNode(), cfaEdge.getSuccessor()),
+                hasLoopHeadEncountered(blockState),
+                blockState.getErrorCondition());
         return ImmutableList.of(successor);
       }
 
@@ -114,8 +92,6 @@ public abstract class BlockTransferRelation implements TransferRelation {
     @Override
     public Collection<BlockState> getAbstractSuccessors(AbstractState element, Precision prec)
         throws CPATransferException {
-      checkNotNull(
-          nodes, "init method must be called before starting the analysis (nodes == null)");
       BlockState blockState = (BlockState) element;
 
       if (!shouldComputeSuccessor(blockState)) {
@@ -124,41 +100,35 @@ public abstract class BlockTransferRelation implements TransferRelation {
 
       CFANode node = blockState.getLocationNode();
       return CFAUtils.successorsOf(node)
-          .filter(n -> nodes.contains(n))
+          .filter(n -> blockState.getBlockNode().getNodesInBlock().contains(n))
           .transform(
               n ->
                   new BlockState(
                       n,
-                      bNode,
+                      blockState.getBlockNode(),
                       AnalysisDirection.FORWARD,
-                      getType(n),
-                      hasLoopHeadEncountered(blockState)))
+                      getType(blockState.getBlockNode(), n),
+                      hasLoopHeadEncountered(blockState),
+                      blockState.getErrorCondition()))
           .toList();
     }
   }
 
   static class BackwardBlockTransferRelation extends BlockTransferRelation {
 
-    @Override
-    public void init(BlockNode pBlockNode) {
-      super.init(pBlockNode);
-      targetNode = pBlockNode.getStartNode();
-    }
-
-    private BlockStateType getType(CFANode pNode) {
-      return pNode.equals(bNode.getStartNode()) ? BlockStateType.MID : BlockStateType.FINAL;
+    private BlockStateType getType(BlockNode pBlockNode, CFANode pNode) {
+      return pNode.equals(pBlockNode.getStartNode()) ? BlockStateType.MID : BlockStateType.FINAL;
     }
 
     @Override
     public Collection<BlockState> getAbstractSuccessorsForEdge(
         AbstractState element, Precision prec, CFAEdge cfaEdge) {
-
-      checkNotNull(
-          edges, "init method must be called before starting the analysis (edges == null)");
       BlockState blockState = (BlockState) element;
 
       CFANode node = blockState.getLocationNode();
-      if (Sets.intersection(ImmutableSet.copyOf(CFAUtils.allEnteringEdges(node)), edges)
+      if (Sets.intersection(
+              ImmutableSet.copyOf(CFAUtils.allEnteringEdges(node)),
+              blockState.getBlockNode().getEdgesInBlock())
           .contains(cfaEdge)) {
         if (!shouldComputeSuccessor(blockState)) {
           return ImmutableSet.of();
@@ -166,10 +136,11 @@ public abstract class BlockTransferRelation implements TransferRelation {
         BlockState successor =
             new BlockState(
                 cfaEdge.getPredecessor(),
-                bNode,
+                blockState.getBlockNode(),
                 AnalysisDirection.BACKWARD,
-                getType(cfaEdge.getPredecessor()),
-                hasLoopHeadEncountered(blockState));
+                getType(blockState.getBlockNode(), cfaEdge.getPredecessor()),
+                hasLoopHeadEncountered(blockState),
+                blockState.getErrorCondition());
         return ImmutableList.of(successor);
       }
 
@@ -179,9 +150,6 @@ public abstract class BlockTransferRelation implements TransferRelation {
     @Override
     public Collection<BlockState> getAbstractSuccessors(AbstractState element, Precision prec)
         throws CPATransferException {
-
-      checkNotNull(
-          nodes, "init method must be called before starting the analysis (nodes == null)");
       BlockState blockState = (BlockState) element;
 
       if (!shouldComputeSuccessor(blockState)) {
@@ -191,15 +159,16 @@ public abstract class BlockTransferRelation implements TransferRelation {
       CFANode node = blockState.getLocationNode();
       FluentIterable<CFANode> predecessors = CFAUtils.predecessorsOf(node);
       return predecessors
-          .filter(n -> nodes.contains(n))
+          .filter(n -> blockState.getBlockNode().getNodesInBlock().contains(n))
           .transform(
               n ->
                   new BlockState(
                       n,
-                      bNode,
+                      blockState.getBlockNode(),
                       AnalysisDirection.BACKWARD,
-                      getType(n),
-                      hasLoopHeadEncountered(blockState)))
+                      getType(blockState.getBlockNode(), n),
+                      hasLoopHeadEncountered(blockState),
+                      blockState.getErrorCondition()))
           .toList();
     }
   }

@@ -25,6 +25,8 @@ import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.cpa.callstack.CallstackCPA;
 import org.sosy_lab.cpachecker.cpa.callstack.CallstackState;
+import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
+import org.sosy_lab.java_smt.api.BooleanFormula;
 
 public class DistributedCallstackCPA implements DistributedConfigurableProgramAnalysis {
 
@@ -70,6 +72,15 @@ public class DistributedCallstackCPA implements DistributedConfigurableProgramAn
   public Class<? extends AbstractState> getAbstractStateClass() {
     return CallstackState.class;
   }
+
+  @Override
+  public BooleanFormula getErrorCondition(FormulaManagerView pFormulaManagerView) {
+    return pFormulaManagerView.getBooleanFormulaManager().makeTrue();
+  }
+
+  @Override
+  public void synchronizeKnowledge(DistributedConfigurableProgramAnalysis pAnalysis)
+      throws InterruptedException {}
 
   @Override
   public AbstractDomain getAbstractDomain() {

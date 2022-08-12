@@ -13,11 +13,10 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.act
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.java_smt.api.SolverException;
 
-public interface BlockAnalyzer {
+@FunctionalInterface
+public interface ContinuousBlockAnalyzer {
 
   Collection<BlockSummaryMessage> analyze(Collection<BlockSummaryMessage> messages)
       throws CPAException, InterruptedException, SolverException;
 
-  Collection<BlockSummaryMessage> performInitialAnalysis()
-      throws InterruptedException, CPAException;
 }
