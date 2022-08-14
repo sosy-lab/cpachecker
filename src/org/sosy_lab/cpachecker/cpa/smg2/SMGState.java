@@ -18,11 +18,15 @@ import java.math.BigInteger;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
+import org.checkerframework.checker.nullness.qual.Nullable;
+import org.sosy_lab.common.collect.PersistentMap;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
@@ -43,6 +47,7 @@ import org.sosy_lab.cpachecker.cpa.smg2.util.SMGObjectAndSMGState;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGValueAndSMGState;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGValueAndSPC;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SPCAndSMGObjects;
+import org.sosy_lab.cpachecker.cpa.smg2.util.ValueAndValueSize;
 import org.sosy_lab.cpachecker.cpa.smg2.util.value.ValueAndSMGState;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.AddressExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValueFactory;
@@ -51,6 +56,7 @@ import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.cpa.value.type.Value.UnknownValue;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
+import org.sosy_lab.cpachecker.util.refinement.ForgetfulState;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGHasValueEdge;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGObject;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGPointsToEdge;
@@ -66,7 +72,11 @@ import org.sosy_lab.cpachecker.util.states.MemoryLocation;
  * write/read and other memory operations. It is expected that in the SPC no CPA specific stuff is
  * handled.
  */
-public class SMGState implements LatticeAbstractState<SMGState>, AbstractQueryableState, Graphable {
+public class SMGState
+    implements ForgetfulState<SMG2Information>,
+        LatticeAbstractState<SMGState>,
+        AbstractQueryableState,
+        Graphable {
 
   // Properties:
   private static final String HAS_INVALID_FREES = "has-invalid-frees";
@@ -291,6 +301,118 @@ public class SMGState implements LatticeAbstractState<SMGState>, AbstractQueryab
   }
 
   /**
+   * Checks the presence of a {@link MemoryLocation} (excluding the offset) as a global or local
+   * variable anywhere (not only the current stack frame).
+   *
+   * @param memLoc this method will only extract the qualified name!
+   * @return true if it exists as a variable.
+   */
+  public boolean isLocalOrGlobalVariablePresent(MemoryLocation memLoc) {
+    String qualifiedName = memLoc.getQualifiedName();
+    return isGlobalVariablePresent(qualifiedName) || isLocalVariablePresentAnywhere(qualifiedName);
+  }
+
+  /**
+   * Writes the Value given to the variable (local or global) given.
+   *
+   * @param memLoc Name and offset in bits for the variables to write.
+   * @param valueAndSize new Value and size of the type in bits.
+   * @param variableNameToMemorySizeInBits the size of the variable in total in bits.
+   * @return a new state with given values written to the variable given at the position given.
+   * @throws SMG2Exception should never happen in this case as the writes are copies and therefore
+   *     save.
+   */
+  public SMGState assignNonHeapConstant(
+      MemoryLocation memLoc,
+      ValueAndValueSize valueAndSize,
+      Map<String, BigInteger> variableNameToMemorySizeInBits)
+      throws SMG2Exception {
+    // Deconstruct MemoryLocation to get the qualified name of global/local vars
+    // And remember the offset. Offset + size from ValueAndValueSize are the
+    // SMGHasValueEdge information besides the mapping, which is either a new mapping
+    // or an old one found in the current mapping
+    SMGState currentState = this;
+    String qualifiedName = memLoc.getQualifiedName();
+    if (!isLocalOrGlobalVariablePresent(memLoc)) {
+      // Create the variable first
+      BigInteger sizeInBits = variableNameToMemorySizeInBits.get(qualifiedName);
+      if (memLoc.isOnFunctionStack()) {
+
+      } else {
+        currentState = currentState.copyAndAddGlobalVariable(sizeInBits, qualifiedName);
+      }
+    }
+    BigInteger offsetToWriteToInBits = BigInteger.valueOf(memLoc.getOffset());
+    BigInteger sizeOfWriteInBits = valueAndSize.getSizeInBits();
+    Value valueToWrite = valueAndSize.getValue();
+    Preconditions.checkArgument(!valueToWrite.isUnknown());
+    // Null is fine because that would only be needed for the unknown case which can't happen
+    CType typeOfUnknown = null;
+    // Write (easier then inserting everything on its own, and guaranteed to succeed as its a copy
+    // from the original state)
+    return writeToAnyStackOrGlobalVariable(
+        qualifiedName, offsetToWriteToInBits, sizeOfWriteInBits, valueToWrite, typeOfUnknown);
+  }
+
+  /**
+   * Verifies that the given {@link MemoryLocation} has the given {@link Value} (with respect to
+   * their numerical value only). Used as sanity check for interpolants.
+   *
+   * @param variableAndOffset Variable name and offset to read in bits.
+   * @param valueAndSize expected Value and read size in bits.
+   * @return true if the Values match with respect to their numeric interpretation without types.
+   *     False else.
+   */
+  public boolean verifyVariableEqualityWithValueAt(
+      MemoryLocation variableAndOffset, ValueAndValueSize valueAndSize) {
+    Value expectedValue = valueAndSize.getValue();
+    Value readValue = getValueToVerify(variableAndOffset, valueAndSize);
+    // Note: asNumericValue() returns null for non numerics
+    return expectedValue.asNumericValue().longValue() == readValue.asNumericValue().longValue();
+  }
+
+  /* public for debugging purposes in interpolation only! */
+  public Value getValueToVerify(MemoryLocation variableAndOffset, ValueAndValueSize valueAndSize) {
+    String variableName = variableAndOffset.getQualifiedName();
+    BigInteger offsetInBits = BigInteger.valueOf(variableAndOffset.getOffset());
+    BigInteger sizeOfReadInBits = valueAndSize.getSizeInBits();
+
+    SMGObject memoryToRead = memoryModel.getObjectForVariable(variableName).orElseThrow();
+    return readValue(memoryToRead, offsetInBits, sizeOfReadInBits).getValue();
+  }
+
+  /**
+   * Removes ALL {@link MemoryLocation}s given from the state and then adds them back in with the
+   * values given. The given Values should never represent any heap related Values (pointers).
+   *
+   * @param nonHeapAssignments {@link MemoryLocation}s and matching {@link ValueAndValueSize} for
+   *     each variable to be changed.
+   * @param variableNameToMemorySizeInBits the overall size of the variables.
+   * @return a new SMGState with all entered variables (MemoryLocations) removed and then
+   * @throws SMG2Exception should never be thrown! If it is thrown, then there is a bug.
+   */
+  public SMGState reconstructSMGStateFromNonHeapAssignments(
+      @Nullable PersistentMap<MemoryLocation, ValueAndValueSize> nonHeapAssignments,
+      Map<String, BigInteger> variableNameToMemorySizeInBits)
+      throws SMG2Exception {
+    if (nonHeapAssignments == null) {
+      return this;
+    }
+    SMGState currentState = this;
+    // flush all global/local variables NOT related to heap, then rebuild from the given maps
+    for (Entry<MemoryLocation, ValueAndValueSize> entry : nonHeapAssignments.entrySet()) {
+      currentState = currentState.copyAndPruneVariable(entry.getKey());
+    }
+
+    for (Entry<MemoryLocation, ValueAndValueSize> entry : nonHeapAssignments.entrySet()) {
+      currentState =
+          currentState.assignNonHeapConstant(
+              entry.getKey(), entry.getValue(), variableNameToMemorySizeInBits);
+    }
+    return currentState;
+  }
+
+  /**
    * Merge the error info of pOther into this {@link SMGState}.
    *
    * @param pOther the state you want the error info from.
@@ -394,6 +516,21 @@ public class SMGState implements LatticeAbstractState<SMGState>, AbstractQueryab
    */
   public boolean isGlobalVariablePresent(String pVarName) {
     return memoryModel.getGlobalVariableToSmgObjectMap().containsKey(pVarName);
+  }
+
+  /**
+   * Checks if a local variable exists for the name given. Note: this checks ALL stack frames.
+   *
+   * @param pVarName Name of the local variable.
+   * @return true if the var exists, false else.
+   */
+  private boolean isLocalVariablePresentAnywhere(String pVarName) {
+    for (StackFrame stackframe : memoryModel.getStackFrames()) {
+      if (stackframe.getVariables().containsKey(pVarName)) {
+        return true;
+      }
+    }
+    return false;
   }
 
   /**
@@ -622,7 +759,7 @@ public class SMGState implements LatticeAbstractState<SMGState>, AbstractQueryab
   private SMGState copyAndPruneFunctionStackVariable(MemoryLocation pMemoryLocation) {
     return of(
         machineModel,
-        memoryModel.copyAndRemoveStackVariable(pMemoryLocation.getIdentifier()),
+        memoryModel.copyAndRemoveStackVariable(pMemoryLocation.getQualifiedName()),
         logger,
         options,
         errorInfo,
@@ -1600,6 +1737,21 @@ public class SMGState implements LatticeAbstractState<SMGState>, AbstractQueryab
     return writeValue(variableMemory, writeOffsetInBits, writeSizeInBits, valueToWrite, valueType);
   }
 
+  /* Helper method to reconstruct the state after interpolation. This writes to ANY local variable, independent of stack frame */
+  private SMGState writeToAnyStackOrGlobalVariable(
+      String variableName,
+      BigInteger writeOffsetInBits,
+      BigInteger writeSizeInBits,
+      Value valueToWrite,
+      @Nullable CType valueType) {
+    // expected to never be empty!
+    Optional<SMGObject> maybeVariableMemory = getMemoryModel().getObjectForVariable(variableName);
+
+    SMGObject variableMemory = maybeVariableMemory.orElseThrow();
+    // Expected to be always in range
+    return writeValue(variableMemory, writeOffsetInBits, writeSizeInBits, valueToWrite, valueType);
+  }
+
   /**
    * Transforms the entered Value into a non AddressExpression. If the entered Value is none, the
    * entered Value is returned. If the entered Value is a AddressExpression it is transformed into a
@@ -1750,5 +1902,29 @@ public class SMGState implements LatticeAbstractState<SMGState>, AbstractQueryab
    */
   public String getUniqueFunctionBasedNameForVarArgs(CFunctionDeclaration pDeclaration) {
     return getUniqueFunctionName(pDeclaration) + "_varArgs";
+  }
+
+  @Override
+  public SMG2Information forget(MemoryLocation pLocation) {
+    // TODO Auto-generated method stub
+    return null;
+  }
+
+  @Override
+  public void remember(MemoryLocation pLocation, SMG2Information pForgottenInformation) {
+    // TODO Auto-generated method stub
+
+  }
+
+  @Override
+  public Set<MemoryLocation> getTrackedMemoryLocations() {
+    // TODO Auto-generated method stub
+    return null;
+  }
+
+  @Override
+  public int getSize() {
+    // TODO Auto-generated method stub
+    return 0;
   }
 }
