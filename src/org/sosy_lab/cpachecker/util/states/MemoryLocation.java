@@ -164,6 +164,12 @@ public final class MemoryLocation implements Comparable<MemoryLocation>, Seriali
     return variableName + "/" + offset;
   }
 
+  /**
+   * Returns the qualified name consisting of the function name if present and the identifier. Note:
+   * MemoryLocation consists of more than just those Strings!
+   *
+   * @return a String representing the qualified name consisting of function name and identifier.
+   */
   public String getQualifiedName() {
     return isOnFunctionStack() ? (functionName + "::" + identifier) : identifier;
   }
