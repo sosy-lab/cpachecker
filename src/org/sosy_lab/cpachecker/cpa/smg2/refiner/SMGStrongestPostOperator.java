@@ -12,7 +12,6 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import java.util.Collection;
 import java.util.Deque;
-import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Set;
 import org.sosy_lab.common.configuration.Configuration;
@@ -30,7 +29,6 @@ import org.sosy_lab.cpachecker.cpa.smg2.SMGCPAExportOptions;
 import org.sosy_lab.cpachecker.cpa.smg2.SMGOptions;
 import org.sosy_lab.cpachecker.cpa.smg2.SMGState;
 import org.sosy_lab.cpachecker.cpa.smg2.SMGTransferRelation;
-import org.sosy_lab.cpachecker.cpa.smg2.util.ValueAndValueSize;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.refinement.StrongestPostOperator;
@@ -99,9 +97,8 @@ public class SMGStrongestPostOperator implements StrongestPostOperator<SMGState>
         obtainExceedingMemoryLocations(pErrorPath);
 
     if (performAbstraction) {
-      for (Entry<MemoryLocation, ValueAndValueSize> e :
-          pNext.getMemoryModel().getMemoryLocationsAndValuesForSPCWithoutHeap().entrySet()) {
-        MemoryLocation memoryLocation = e.getKey();
+      for (MemoryLocation memoryLocation :
+          pNext.getMemoryModel().getMemoryLocationsAndValuesForSPCWithoutHeap().keySet()) {
         CType trackedType = pNext.getMemoryModel().getTypeOfVariable(memoryLocation);
         if (!precision.isTracking(memoryLocation, trackedType, pCurrNode)) {
           pNext.forget(memoryLocation);
