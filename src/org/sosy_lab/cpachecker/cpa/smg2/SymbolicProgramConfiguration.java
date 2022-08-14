@@ -17,7 +17,9 @@ import com.google.common.collect.ImmutableBiMap;
 import com.google.common.collect.Sets;
 import java.math.BigInteger;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Set;
@@ -32,17 +34,20 @@ import org.sosy_lab.cpachecker.cpa.smg2.util.SMGObjectAndOffset;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGObjectsAndValues;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGValueAndSPC;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SPCAndSMGObjects;
+import org.sosy_lab.cpachecker.cpa.smg2.util.ValueAndValueSize;
 import org.sosy_lab.cpachecker.cpa.smg2.util.value.CValue;
 import org.sosy_lab.cpachecker.cpa.smg2.util.value.ValueWrapper;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.util.smg.SMG;
 import org.sosy_lab.cpachecker.util.smg.SMGProveNequality;
+import org.sosy_lab.cpachecker.util.smg.graph.SMGHasValueEdge;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGObject;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGPointsToEdge;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGTargetSpecifier;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGValue;
 import org.sosy_lab.cpachecker.util.smg.util.SMGandValue;
+import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 /**
  * This class models the memory with its global/heap/stack variables. Its idea is that we handle
@@ -326,22 +331,24 @@ public class SymbolicProgramConfiguration {
     if (stackVariableMapping.isEmpty()) {
       return this;
     }
-    StackFrame frame = stackVariableMapping.peek();
-    if (!frame.containsVariable(pIdentifier)) {
-      return this;
-    }
 
-    SMGObject objToRemove = frame.getVariable(pIdentifier);
-    StackFrame newFrame = frame.copyAndRemoveVariable(pIdentifier);
-    PersistentStack<StackFrame> newStack = stackVariableMapping.replace(f -> f == frame, newFrame);
-    SMG newSmg = smg.copyAndInvalidateObject(objToRemove);
-    return of(
-        newSmg,
-        globalVariableMapping,
-        newStack,
-        heapObjects,
-        externalObjectAllocation,
-        valueMapping);
+    for (StackFrame frame : stackVariableMapping) {
+      if (frame.containsVariable(pIdentifier)) {
+        SMGObject objToRemove = frame.getVariable(pIdentifier);
+        StackFrame newFrame = frame.copyAndRemoveVariable(pIdentifier);
+        PersistentStack<StackFrame> newStack =
+            stackVariableMapping.replace(f -> f == frame, newFrame);
+        SMG newSmg = smg.copyAndInvalidateObject(objToRemove);
+        return of(
+            newSmg,
+            globalVariableMapping,
+            newStack,
+            heapObjects,
+            externalObjectAllocation,
+            valueMapping);
+    }
+  }
+    return this;
   }
 
   /**
@@ -611,6 +618,24 @@ public class SymbolicProgramConfiguration {
     return Optional.empty();
   }
 
+  /* Only used to reconstruct the state after interpolation! */
+  Optional<SMGObject> getObjectForVariable(String pName) {
+    // globals
+    if (globalVariableMapping.containsKey(pName)) {
+      return Optional.of(globalVariableMapping.get(pName));
+    }
+
+    // all locals
+    for (StackFrame frame : stackVariableMapping) {
+      if (frame.containsVariable(pName)) {
+        return Optional.of(frame.getVariable(pName));
+      }
+    }
+
+    // no variable found
+    return Optional.empty();
+  }
+
   /**
    * Tries to search for a variable that is currently visible in the {@link StackFrame} above the
    * current one and in the global variables and returns the variable if found. If it is not found,
@@ -781,5 +806,62 @@ public class SymbolicProgramConfiguration {
     }
     SMG newSMG = newSPC.getSmg().copyAndInvalidateObject(pObject);
     return newSPC.copyAndReplaceSMG(newSMG);
+  }
+
+  /**
+   * Returns local and global variables as {@link MemoryLocation}s and their respective Values and
+   * type sizes (SMGs allow reads from different types, just the size has to match). This does not
+   * return any heap related variables. (no pointers)
+   *
+   * @return a mapping of global/local program variables to their values and sizes.
+   */
+  private PersistentMap<MemoryLocation, ValueAndValueSize>
+      getMemoryLocationsAndValuesForSPCWithoutHeap() {
+    PersistentMap<MemoryLocation, ValueAndValueSize> map = PathCopyingPersistentTreeMap.of();
+    Map<String, BigInteger> variableNameToMemorySizeInBits = new HashMap<>();
+
+    for (Entry<String, SMGObject> globalEntry : globalVariableMapping.entrySet()) {
+      String qualifiedName = globalEntry.getKey();
+      SMGObject memory = globalEntry.getValue();
+      Preconditions.checkArgument(smg.isValid(memory));
+      for (SMGHasValueEdge valueEdge : smg.getEdges(memory)) {
+        MemoryLocation memLoc =
+            MemoryLocation.fromQualifiedName(qualifiedName, valueEdge.getOffset().longValueExact());
+        SMGValue smgValue = valueEdge.hasValue();
+        BigInteger typeSize = valueEdge.getSizeInBits();
+        Preconditions.checkArgument(valueMapping.containsValue(smgValue));
+        Value value = valueMapping.inverse().get(smgValue).get();
+        if (isPointer(value)) {
+          continue;
+        }
+        variableNameToMemorySizeInBits.put(qualifiedName, memory.getSize());
+        ValueAndValueSize valueAndValueSize = ValueAndValueSize.of(value, typeSize);
+        map = map.putAndCopy(memLoc, valueAndValueSize);
+      }
+    }
+
+    for (StackFrame stackframe : stackVariableMapping) {
+      for (Entry<String, SMGObject> localVariable : stackframe.getVariables().entrySet()) {
+        String qualifiedName = localVariable.getKey();
+        SMGObject memory = localVariable.getValue();
+        Preconditions.checkArgument(smg.isValid(memory));
+        for (SMGHasValueEdge valueEdge : smg.getEdges(memory)) {
+          MemoryLocation memLoc =
+              MemoryLocation.fromQualifiedName(
+                  qualifiedName, valueEdge.getOffset().longValueExact());
+          SMGValue smgValue = valueEdge.hasValue();
+          BigInteger typeSize = valueEdge.getSizeInBits();
+          Preconditions.checkArgument(valueMapping.containsValue(smgValue));
+          Value value = valueMapping.inverse().get(smgValue).get();
+          if (isPointer(value)) {
+            continue;
+          }
+          variableNameToMemorySizeInBits.put(qualifiedName, memory.getSize());
+          ValueAndValueSize valueAndValueSize = ValueAndValueSize.of(value, typeSize);
+          map = map.putAndCopy(memLoc, valueAndValueSize);
+        }
+      }
+    }
+    return map;
   }
 }
