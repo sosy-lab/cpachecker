@@ -157,11 +157,15 @@ public final class MemoryLocation implements Comparable<MemoryLocation>, Seriali
    * as an opaque identifier and only be passed to {@link #parseExtendedQualifiedName(String)}.
    */
   public String getExtendedQualifiedName() {
-    String variableName = isOnFunctionStack() ? (functionName + "::" + identifier) : identifier;
+    String variableName = getQualifiedName();
     if (offset == null) {
       return variableName;
     }
     return variableName + "/" + offset;
+  }
+
+  public String getQualifiedName() {
+    return isOnFunctionStack() ? (functionName + "::" + identifier) : identifier;
   }
 
   public boolean isOnFunctionStack() {
