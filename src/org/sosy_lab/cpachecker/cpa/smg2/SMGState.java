@@ -41,6 +41,7 @@ import org.sosy_lab.cpachecker.core.interfaces.Graphable;
 import org.sosy_lab.cpachecker.cpa.smg.join.SMGJoinStatus;
 import org.sosy_lab.cpachecker.cpa.smg.util.PersistentSet;
 import org.sosy_lab.cpachecker.cpa.smg2.SMGErrorInfo.Property;
+import org.sosy_lab.cpachecker.cpa.smg2.refiner.SMGInterpolant;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMG2Exception;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGObjectAndOffset;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGObjectAndSMGState;
@@ -1965,5 +1966,13 @@ public class SMGState
   public int getSize() {
     // Note: this might be inaccurate! We track Strings and functions as encoded variables!
     return memoryModel.getNumberOfVariables();
+  }
+
+  public SMGInterpolant createInterpolant() {
+    return new SMGInterpolant(
+        memoryModel.getMemoryLocationsAndValuesForSPCWithoutHeap(),
+        memoryModel.getSizeObMemoryForSPCWithoutHeap(),
+        memoryModel.getVariableTypeMap(),
+        this);
   }
 }
