@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.cpa.smg2;
 
 import java.nio.file.Path;
 import java.util.Collection;
+import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -29,6 +30,7 @@ import org.sosy_lab.cpachecker.core.defaults.MergeJoinOperator;
 import org.sosy_lab.cpachecker.core.defaults.MergeSepOperator;
 import org.sosy_lab.cpachecker.core.defaults.StopNeverOperator;
 import org.sosy_lab.cpachecker.core.defaults.StopSepOperator;
+import org.sosy_lab.cpachecker.core.defaults.precision.VariableTrackingPrecision;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
@@ -89,10 +91,15 @@ public class SMGCPA
   private final AssumptionToEdgeAllocator assumptionToEdgeAllocator;
   private final SMGOptions options;
   private final SMGCPAExportOptions exportOptions;
+  private final ShutdownNotifier shutdownNotifier;
+
+  private VariableTrackingPrecision precision;
+  private boolean refineablePrecisionSet = false;
 
   private final SMGStatistics stats = new SMGStatistics();
 
-  private SMGCPA(Configuration pConfig, LogManager pLogger, CFA pCfa)
+  private SMGCPA(
+      Configuration pConfig, LogManager pLogger, ShutdownNotifier pShutdownNotifier, CFA pCfa)
       throws InvalidConfigurationException {
     pConfig.inject(this);
     options = new SMGOptions(pConfig);
@@ -101,6 +108,7 @@ public class SMGCPA
     cfa = pCfa;
     machineModel = cfa.getMachineModel();
     logger = pLogger;
+    shutdownNotifier = pShutdownNotifier;
     assumptionToEdgeAllocator = AssumptionToEdgeAllocator.create(config, logger, machineModel);
 
     blockOperator = new BlockOperator();
@@ -193,5 +201,32 @@ public class SMGCPA
     }
 
     return initState;
+  }
+
+  public LogManager getLogger() {
+    return logger;
+  }
+
+  public void injectRefinablePrecision() throws InvalidConfigurationException {
+
+    // replace the full precision with an empty, refinable precision
+    if (initialPrecisionFile == null
+        && initialPredicatePrecisionFile == null
+        && !refineablePrecisionSet) {
+      precision = VariableTrackingPrecision.createRefineablePrecision(config, precision);
+      refineablePrecisionSet = true;
+    }
+  }
+
+  public Configuration getConfiguration() {
+    return config;
+  }
+
+  public CFA getCFA() {
+    return cfa;
+  }
+
+  public ShutdownNotifier getShutdownNotifier() {
+    return shutdownNotifier;
   }
 }
