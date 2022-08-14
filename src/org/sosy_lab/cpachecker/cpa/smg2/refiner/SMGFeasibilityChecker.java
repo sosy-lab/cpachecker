@@ -30,7 +30,7 @@ import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.refinement.GenericFeasibilityChecker;
 import org.sosy_lab.cpachecker.util.refinement.StrongestPostOperator;
 
-public class SMGFeasabilityChecker extends GenericFeasibilityChecker<SMGState> {
+public class SMGFeasibilityChecker extends GenericFeasibilityChecker<SMGState> {
 
   private final StrongestPostOperator<SMGState> strongestPostOp;
   private final VariableTrackingPrecision precision;
@@ -44,7 +44,7 @@ public class SMGFeasabilityChecker extends GenericFeasibilityChecker<SMGState> {
    * @param pLogger the logger to use
    * @param pCfa the cfa in use
    */
-  public SMGFeasabilityChecker(
+  public SMGFeasibilityChecker(
       final StrongestPostOperator<SMGState> pStrongestPostOp,
       final LogManager pLogger,
       final CFA pCfa,
