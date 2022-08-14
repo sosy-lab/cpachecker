@@ -1570,9 +1570,7 @@ public class SMGTransferRelation
         // We still evaluate the right hand side to find errors though
         List<ValueAndSMGState> listOfStates = rValue.accept(rightHandSideVisitor);
         returnStateBuilder.addAll(
-            listOfStates.stream()
-                .map(vas -> vas.getState())
-                .collect(ImmutableList.toImmutableList()));
+            Collections3.transformedImmutableListCopy(listOfStates, vas -> vas.getState()));
         continue;
       }
       SMGObjectAndOffset addressAndOffsetToWriteTo = maybeAddress.orElseThrow();
