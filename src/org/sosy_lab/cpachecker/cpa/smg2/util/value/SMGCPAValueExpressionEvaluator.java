@@ -549,11 +549,12 @@ public class SMGCPAValueExpressionEvaluator {
    *     not found (should never be possible).
    */
   public ValueAndSMGState createStackAllocation(
-      String internalName, BigInteger sizeInBits, SMGState pState) throws CPATransferException {
+      String internalName, BigInteger sizeInBits, CType type, SMGState pState)
+      throws CPATransferException {
     Preconditions.checkArgument(
         !pState.getMemoryModel().getStackFrames().peek().containsVariable(internalName));
     return createAddressForLocalOrGlobalVariable(
-        internalName, pState.copyAndAddLocalVariable(sizeInBits, internalName));
+        internalName, pState.copyAndAddLocalVariable(sizeInBits, internalName, type));
   }
 
   /**

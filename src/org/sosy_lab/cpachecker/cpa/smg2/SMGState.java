@@ -325,7 +325,8 @@ public class SMGState
   public SMGState assignNonHeapConstant(
       MemoryLocation memLoc,
       ValueAndValueSize valueAndSize,
-      Map<String, BigInteger> variableNameToMemorySizeInBits)
+      Map<String, BigInteger> variableNameToMemorySizeInBits,
+      Map<String, CType> variableTypeMap)
       throws SMG2Exception {
     // Deconstruct MemoryLocation to get the qualified name of global/local vars
     // And remember the offset. Offset + size from ValueAndValueSize are the
@@ -339,7 +340,9 @@ public class SMGState
       if (memLoc.isOnFunctionStack()) {
 
       } else {
-        currentState = currentState.copyAndAddGlobalVariable(sizeInBits, qualifiedName);
+        currentState =
+            currentState.copyAndAddGlobalVariable(
+                sizeInBits, qualifiedName, variableTypeMap.get(qualifiedName));
       }
     }
     BigInteger offsetToWriteToInBits = BigInteger.valueOf(memLoc.getOffset());
@@ -393,7 +396,8 @@ public class SMGState
    */
   public SMGState reconstructSMGStateFromNonHeapAssignments(
       @Nullable PersistentMap<MemoryLocation, ValueAndValueSize> nonHeapAssignments,
-      Map<String, BigInteger> variableNameToMemorySizeInBits)
+      Map<String, BigInteger> variableNameToMemorySizeInBits,
+      Map<String, CType> variableTypeMap)
       throws SMG2Exception {
     if (nonHeapAssignments == null) {
       return this;
@@ -407,7 +411,7 @@ public class SMGState
     for (Entry<MemoryLocation, ValueAndValueSize> entry : nonHeapAssignments.entrySet()) {
       currentState =
           currentState.assignNonHeapConstant(
-              entry.getKey(), entry.getValue(), variableNameToMemorySizeInBits);
+              entry.getKey(), entry.getValue(), variableNameToMemorySizeInBits, variableTypeMap);
     }
     return currentState;
   }
@@ -442,9 +446,9 @@ public class SMGState
    * @param pVarName Name of the global variable.
    * @return Newly created {@link SMGState} with the object added for the name specified.
    */
-  public SMGState copyAndAddGlobalVariable(int pTypeSizeInBits, String pVarName) {
+  public SMGState copyAndAddGlobalVariable(int pTypeSizeInBits, String pVarName, CType type) {
     // TODO: do we really need this for ints?
-    return copyAndAddGlobalVariable(BigInteger.valueOf(pTypeSizeInBits), pVarName);
+    return copyAndAddGlobalVariable(BigInteger.valueOf(pTypeSizeInBits), pVarName, type);
   }
 
   /**
@@ -455,11 +459,12 @@ public class SMGState
    * @param pVarName Name of the global variable.
    * @return Newly created {@link SMGState} with the object added for the name specified.
    */
-  public SMGState copyAndAddGlobalVariable(BigInteger pTypeSizeInBits, String pVarName) {
+  public SMGState copyAndAddGlobalVariable(
+      BigInteger pTypeSizeInBits, String pVarName, CType type) {
     SMGObject newObject = SMGObject.of(0, pTypeSizeInBits, BigInteger.ZERO);
     return of(
         machineModel,
-        memoryModel.copyAndAddGlobalObject(newObject, pVarName),
+        memoryModel.copyAndAddGlobalObject(newObject, pVarName, type),
         logger,
         options,
         errorInfo,
@@ -544,7 +549,8 @@ public class SMGState
    * @return {@link SMGState} with the new variables searchable by the name given.
    * @throws SMG2Exception thrown if the stack frame is empty.
    */
-  public SMGState copyAndAddLocalVariable(int pTypeSize, String pVarName) throws SMG2Exception {
+  public SMGState copyAndAddLocalVariable(int pTypeSize, String pVarName, CType type)
+      throws SMG2Exception {
     if (memoryModel.getStackFrames().isEmpty()) {
       throw new SMG2Exception(
           "Can't add a variable named "
@@ -554,7 +560,7 @@ public class SMGState
     SMGObject newObject = SMGObject.of(0, BigInteger.valueOf(pTypeSize), BigInteger.ZERO);
     return of(
         machineModel,
-        memoryModel.copyAndAddStackObject(newObject, pVarName),
+        memoryModel.copyAndAddStackObject(newObject, pVarName, type),
         logger,
         options,
         errorInfo,
@@ -572,7 +578,7 @@ public class SMGState
    * @return {@link SMGState} with the new variables searchable by the name given.
    * @throws SMG2Exception thrown if the stack frame is empty.
    */
-  public SMGState copyAndAddLocalVariable(BigInteger pTypeSize, String pVarName)
+  public SMGState copyAndAddLocalVariable(BigInteger pTypeSize, String pVarName, CType type)
       throws SMG2Exception {
     if (memoryModel.getStackFrames().isEmpty()) {
       throw new SMG2Exception(
@@ -583,7 +589,7 @@ public class SMGState
     SMGObject newObject = SMGObject.of(0, pTypeSize, BigInteger.ZERO);
     return of(
         machineModel,
-        memoryModel.copyAndAddStackObject(newObject, pVarName),
+        memoryModel.copyAndAddStackObject(newObject, pVarName, type),
         logger,
         options,
         errorInfo,
@@ -600,8 +606,8 @@ public class SMGState
    * @return Newly created object
    * @throws SMG2Exception thrown if there is no stack frame to add the var to.
    */
-  public SMGState copyAndAddAnonymousVariable(int pTypeSize) throws SMG2Exception {
-    return copyAndAddLocalVariable(pTypeSize, makeAnonymousVariableName());
+  public SMGState copyAndAddAnonymousVariable(int pTypeSize, CType type) throws SMG2Exception {
+    return copyAndAddLocalVariable(pTypeSize, makeAnonymousVariableName(), type);
   }
 
   /**
@@ -1878,7 +1884,7 @@ public class SMGState
    */
   public SMGState copyAndAddFunctionVariable(CFunctionDeclaration pDeclaration) {
     String functionQualifiedSMGName = getUniqueFunctionName(pDeclaration);
-    return copyAndAddGlobalVariable(0, functionQualifiedSMGName);
+    return copyAndAddGlobalVariable(0, functionQualifiedSMGName, pDeclaration.getType());
   }
 
   /*
@@ -1904,27 +1910,60 @@ public class SMGState
     return getUniqueFunctionName(pDeclaration) + "_varArgs";
   }
 
+  /*
+   * Remove the has value edge associated with this MemoryLocation.
+   * This will result in UNKNOWN values in the next read for not pruned variables.
+   */
   @Override
   public SMG2Information forget(MemoryLocation pLocation) {
-    // TODO Auto-generated method stub
-    return null;
+    String qualifiedName = pLocation.getQualifiedName();
+    BigInteger offsetInBits = BigInteger.valueOf(pLocation.getOffset());
+    // This is expected to succeed
+    SMGObject memory = getMemoryModel().getObjectForVariable(qualifiedName).orElseThrow();
+
+    SMGHasValueEdge edgeToRemove =
+        memoryModel
+            .getSmg()
+            .getHasValueEdgeByPredicate(memory, o -> o.getOffset().compareTo(offsetInBits) == 0)
+            .orElseThrow();
+
+    SymbolicProgramConfiguration newSPC =
+        memoryModel.copyAndRemoveHasValueEdges(memory, ImmutableList.of(edgeToRemove));
+    SMGState newState = this.copyAndReplaceMemoryModel(newSPC);
+
+    return new SMG2Information(
+        newState.memoryModel.getMemoryLocationsAndValuesForSPCWithoutHeap(), newState);
   }
 
   @Override
-  public void remember(MemoryLocation pLocation, SMG2Information pForgottenInformation) {
-    // TODO Auto-generated method stub
-
+  public SMG2Information remember(MemoryLocation pLocation, SMG2Information pForgottenInformation) {
+    ValueAndValueSize valueAndSize = pForgottenInformation.getAssignments().get(pLocation);
+    SMGState newState;
+    try {
+      newState =
+          assignNonHeapConstant(
+              pLocation,
+              valueAndSize,
+              pForgottenInformation
+                  .getSMGState()
+                  .getMemoryModel()
+                  .getSizeObMemoryForSPCWithoutHeap(),
+              pForgottenInformation.getSMGState().memoryModel.getVariableTypeMap());
+    } catch (SMG2Exception e) {
+      // Should never happen
+      throw new RuntimeException(e);
+    }
+    return SMG2Information.getEmptySMG2Information(newState);
   }
 
   @Override
   public Set<MemoryLocation> getTrackedMemoryLocations() {
-    // TODO Auto-generated method stub
-    return null;
+    return memoryModel.getMemoryLocationsAndValuesForSPCWithoutHeap().keySet();
   }
 
   @Override
   public int getSize() {
-    // TODO Auto-generated method stub
-    return 0;
+    // Note: this might be inaccurate! We track Strings and functions as encoded variables!
+    return memoryModel.getNumberOfVariables();
   }
 }

@@ -28,6 +28,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
+import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMG2Exception;
 import org.sosy_lab.cpachecker.cpa.smg2.util.value.SMGCPAValueExpressionEvaluator;
 import org.sosy_lab.cpachecker.cpa.smg2.util.value.ValueAndSMGState;
@@ -347,7 +348,11 @@ public class SMGCPABuiltins {
     // Create a new variable with the name of the first argument and copy the
     // starting pointer for the variable arguments
     BigInteger sizeInBits = evaluator.getBitSizeof(pState, firstIdArg);
-    SMGState currentState = pState.copyAndAddLocalVariable(sizeInBits, firstIdArg.getName());
+    SMGState currentState =
+        pState.copyAndAddLocalVariable(
+            sizeInBits,
+            firstIdArg.getName(),
+            SMGCPAValueExpressionEvaluator.getCanonicalType(firstIdArg));
     String nameOfArray =
         currentState.getUniqueFunctionBasedNameForVarArgs(currentStack.getFunctionDefinition());
     ValueAndSMGState addressAndState =
@@ -897,7 +902,11 @@ public class SMGCPABuiltins {
     for (ValueAndSMGState argumentAndState :
         getAllocateFunctionParameter(MALLOC_PARAMETER, functionCall, pState, cfaEdge)) {
       resultBuilder.addAll(
-          evaluateAlloca(argumentAndState.getState(), argumentAndState.getValue(), cfaEdge));
+          evaluateAlloca(
+              argumentAndState.getState(),
+              argumentAndState.getValue(),
+              SMGCPAValueExpressionEvaluator.getCanonicalType(functionCall.getExpressionType()),
+              cfaEdge));
     }
 
     return resultBuilder.build();
@@ -916,7 +925,7 @@ public class SMGCPABuiltins {
    * @throws CPATransferException if a critical error is encountered that the SMGCPA can't handle.
    */
   private List<ValueAndSMGState> evaluateAlloca(
-      SMGState pState, Value pSizeValue, @SuppressWarnings("unused") CFAEdge cfaEdge)
+      SMGState pState, Value pSizeValue, CType type, @SuppressWarnings("unused") CFAEdge cfaEdge)
       throws CPATransferException {
     // Since the size comes from getAllocateFunctionParameter we know that unknown values may be
     // replaces by guesses if enabled
@@ -930,7 +939,7 @@ public class SMGCPABuiltins {
       String allocationLabel = "_ALLOCA_ID_" + U_ID_GENERATOR.getFreshId();
       ValueAndSMGState addressValueAndState =
           evaluator.createStackAllocation(
-              allocationLabel, pSizeValue.asNumericValue().bigInteger(), pState);
+              allocationLabel, pSizeValue.asNumericValue().bigInteger(), type, pState);
 
       currentState = addressValueAndState.getState();
 

@@ -420,8 +420,10 @@ public class SMGTransferRelation
       // There don't have to be varArgs used just because they are declared
       if (numOfVarArgs != 0) {
         String uniqueName = currentState.getUniqueFunctionBasedNameForVarArgs(funcDecl);
+        CType type = SMGCPAValueExpressionEvaluator.getCanonicalType(funcDecl);
         ValueAndSMGState addressOfVarArgsAndState =
-            evaluator.createStackAllocation(uniqueName, overallVarArgsSizeInBits, currentState);
+            evaluator.createStackAllocation(
+                uniqueName, overallVarArgsSizeInBits, type, currentState);
         currentState = addressOfVarArgsAndState.getState();
         addressToVarArgsAtOffsetZero = addressOfVarArgsAndState.getValue();
       }
@@ -444,7 +446,7 @@ public class SMGTransferRelation
         BigInteger paramSizeInBits = evaluator.getBitSizeof(currentState, cParamType);
 
         // Create the new local variable
-        currentState = currentState.copyAndAddLocalVariable(paramSizeInBits, varName);
+        currentState = currentState.copyAndAddLocalVariable(paramSizeInBits, varName, cParamType);
         SMGObject newVariableMemory =
             currentState.getMemoryModel().getObjectForVisibleVariable(varName).orElseThrow();
         BigInteger writeToOffset = BigInteger.ZERO;
@@ -879,7 +881,7 @@ public class SMGTransferRelation
             BigInteger paramSizeInBits = evaluator.getBitSizeof(currentState, paramType);
             currentState =
                 currentState.copyAndAddLocalVariable(
-                    paramSizeInBits, parameters.getQualifiedName());
+                    paramSizeInBits, parameters.getQualifiedName(), paramType);
           }
         }
       }
@@ -965,9 +967,9 @@ public class SMGTransferRelation
         typeSizeInBits = BigInteger.valueOf(options.getExternalAllocationSize());
       }
       if (pVarDecl.isGlobal()) {
-        newState = pState.copyAndAddGlobalVariable(typeSizeInBits, varName);
+        newState = pState.copyAndAddGlobalVariable(typeSizeInBits, varName, cType);
       } else {
-        newState = pState.copyAndAddLocalVariable(typeSizeInBits, varName);
+        newState = pState.copyAndAddLocalVariable(typeSizeInBits, varName, cType);
       }
     }
 
@@ -1267,7 +1269,8 @@ public class SMGTransferRelation
       stringVarName += num;
 
       BigInteger sizeOfString = evaluator.getBitSizeof(pState, stringArrayType);
-      SMGState currentState = pState.copyAndAddGlobalVariable(sizeOfString, stringVarName);
+      SMGState currentState =
+          pState.copyAndAddGlobalVariable(sizeOfString, stringVarName, stringArrayType);
       List<SMGState> initedStates =
           transformStringToArrayAndInitialize(
               currentState,
