@@ -872,6 +872,7 @@ public class SymbolicProgramConfiguration {
    */
   public PersistentMap<MemoryLocation, ValueAndValueSize>
       getMemoryLocationsAndValuesForSPCWithoutHeap() {
+
     PersistentMap<MemoryLocation, ValueAndValueSize> map = PathCopyingPersistentTreeMap.of();
 
     for (Entry<String, SMGObject> globalEntry : globalVariableMapping.entrySet()) {
@@ -885,9 +886,6 @@ public class SymbolicProgramConfiguration {
         BigInteger typeSize = valueEdge.getSizeInBits();
         Preconditions.checkArgument(valueMapping.containsValue(smgValue));
         Value value = valueMapping.inverse().get(smgValue).get();
-        if (isPointer(value)) {
-          continue;
-        }
         ValueAndValueSize valueAndValueSize = ValueAndValueSize.of(value, typeSize);
         map = map.putAndCopy(memLoc, valueAndValueSize);
       }
@@ -906,9 +904,6 @@ public class SymbolicProgramConfiguration {
           BigInteger typeSize = valueEdge.getSizeInBits();
           Preconditions.checkArgument(valueMapping.containsValue(smgValue));
           Value value = valueMapping.inverse().get(smgValue).get();
-          if (isPointer(value)) {
-            continue;
-          }
           ValueAndValueSize valueAndValueSize = ValueAndValueSize.of(value, typeSize);
           map = map.putAndCopy(memLoc, valueAndValueSize);
         }
