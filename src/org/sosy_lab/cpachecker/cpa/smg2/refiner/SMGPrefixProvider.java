@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.cpa.smg2.refiner;
 
+import org.checkerframework.checker.nullness.qual.NonNull;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -17,7 +18,6 @@ import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.cpa.smg2.SMGCPA;
 import org.sosy_lab.cpachecker.cpa.smg2.SMGOptions;
 import org.sosy_lab.cpachecker.cpa.smg2.SMGState;
-import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisCPA;
 import org.sosy_lab.cpachecker.cpa.value.refiner.ValueAnalysisDelegatingRefiner;
 import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.refinement.GenericPrefixProvider;
@@ -46,7 +46,8 @@ public class SMGPrefixProvider extends GenericPrefixProvider<SMGState> {
 
   public static SMGPrefixProvider create(ConfigurableProgramAnalysis pCpa)
       throws InvalidConfigurationException {
-    ValueAnalysisCPA smgCpa =
+    @NonNull
+    SMGCPA smgCpa =
         CPAs.retrieveCPAOrFail(pCpa, SMGCPA.class, ValueAnalysisDelegatingRefiner.class);
     return new SMGPrefixProvider(
         smgCpa.getLogger(),
