@@ -17,20 +17,31 @@ import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 /** Information about value assignments needed for symbolic interpolation. */
 public final class SMG2Information {
 
-  public static final SMG2Information EMPTY = new SMG2Information();
-
+  // SMGs need to keep track of the state
+  private final SMGState state;
   private final PersistentMap<MemoryLocation, ValueAndValueSize> nonHeapAssignments;
 
-  SMG2Information(final PersistentMap<MemoryLocation, ValueAndValueSize> pAssignments) {
+  SMG2Information(
+      final PersistentMap<MemoryLocation, ValueAndValueSize> pAssignments, SMGState pState) {
     nonHeapAssignments = pAssignments;
+    state = pState;
   }
 
-  private SMG2Information() {
+  private SMG2Information(SMGState pState) {
     nonHeapAssignments = PathCopyingPersistentTreeMap.of();
+    state = pState;
+  }
+
+  public static SMG2Information getEmptySMG2Information(SMGState pState) {
+    return new SMG2Information(pState);
   }
 
   public PersistentMap<MemoryLocation, ValueAndValueSize> getAssignments() {
     return nonHeapAssignments;
+  }
+
+  public SMGState getSMGState() {
+    return state;
   }
 
   @Override
@@ -48,7 +59,7 @@ public final class SMG2Information {
 
   @Override
   public int hashCode() {
-    return Objects.hash(nonHeapAssignments);
+    return Objects.hash(nonHeapAssignments) + 31 * state.hashCode();
   }
 
   @Override
