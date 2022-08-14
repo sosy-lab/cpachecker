@@ -2945,7 +2945,7 @@ cpa.smg2.externalAllocationSize = Integer.MAX_VALUE
 cpa.smg2.functionValuesForRandom = no default value
 
 # Allocation size of memory that cannot be calculated.
-cpa.smg2.guessSize = 2
+cpa.smg2.guessSize = BigInteger.valueOf(2)
 
 # Size of memory that cannot be calculated will be guessed.
 cpa.smg2.guessSizeOfUnknownMemorySize = false
@@ -3011,6 +3011,28 @@ cpa.smg2.merge = "SEP"
 # Assume that variables used only in a boolean context are either zero or
 # one.
 cpa.smg2.optimizeBooleanVariables = true
+
+# whether or not to use heuristic to avoid similar, repeated refinements
+cpa.smg2.refinement.avoidSimilarRepeatedRefinement = false
+
+# Which base precision should be used for a new precision? ALL: During
+# refinement, collect precisions from the complete ARG. SUBGRAPH: During
+# refinement, keep precision from all removed parts (subgraph) of the ARG.
+# CUTPOINT: Only the cut-point's precision is kept. TARGET: Only the target
+# state's precision is kept.
+cpa.smg2.refinement.basisStrategy = SUBGRAPH
+  enum:     [ALL, SUBGRAPH, TARGET, CUTPOINT]
+
+# whether or not to do lazy-abstraction
+cpa.smg2.refinement.doLazyAbstraction = true
+
+# whether to perform (more precise) edge-based interpolation or (more
+# efficient) path-based interpolation
+cpa.smg2.refinement.performEdgeBasedInterpolation = true
+
+# whether or not to do lazy-abstraction
+cpa.smg2.refinement.restart = PIVOT
+  enum:     [ROOT, PIVOT, COMMON]
 
 # Sets the level of runtime checking: NONE, HALF, FULL
 cpa.smg2.runtimeCheck = NONE
