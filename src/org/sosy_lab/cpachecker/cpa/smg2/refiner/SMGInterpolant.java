@@ -21,6 +21,7 @@ import java.util.Set;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.collect.PersistentMap;
+import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.smg2.SMGState;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMG2Exception;
@@ -32,8 +33,8 @@ import org.sosy_lab.cpachecker.util.states.MemoryLocation;
  * This class represents a SMG-Value-Analysis interpolant, itself, just a mere wrapper around a map from
  * memory locations to values, representing a variable assignment.
  */
-public final class SMG2Interpolant
-    implements Interpolant<SMGState, SMG2Interpolant> {
+public final class SMGInterpolant
+    implements Interpolant<SMGState, SMGInterpolant> {
 
   /** State information * */
   private final SMGState originalState;
@@ -43,11 +44,14 @@ public final class SMG2Interpolant
 
   private final @Nullable Map<String, BigInteger> variableNameToMemorySizeInBits;
 
+  private final @Nullable Map<String, CType> variableToTypeMap;
+
   /** Constructor for a new, empty interpolant, i.e. the interpolant representing "true" */
-  private SMG2Interpolant(SMGState originalState) {
+  private SMGInterpolant(SMGState originalState) {
     this.originalState = originalState;
     nonHeapAssignments = PathCopyingPersistentTreeMap.of();
     variableNameToMemorySizeInBits = new HashMap<>();
+    variableToTypeMap = new HashMap<>();
   }
 
   /**
@@ -55,30 +59,32 @@ public final class SMG2Interpolant
    *
    * @param pNonHeapAssignments the variable assignment to be represented by the interpolant
    */
-  public SMG2Interpolant(
+  public SMGInterpolant(
       PersistentMap<MemoryLocation, ValueAndValueSize> pNonHeapAssignments,
       Map<String, BigInteger> pVariableNameToMemorySizeInBits,
+      Map<String, CType> pVariableToTypeMap,
       SMGState pOriginalState) {
     originalState = pOriginalState;
     nonHeapAssignments = pNonHeapAssignments;
     variableNameToMemorySizeInBits = pVariableNameToMemorySizeInBits;
+    variableToTypeMap = pVariableToTypeMap;
   }
 
   /**
    * This method serves as factory method for an initial, i.e. an interpolant representing "true"
    */
-  public static SMG2Interpolant createInitial(SMGState state) {
-    return new SMG2Interpolant(state);
+  public static SMGInterpolant createInitial(SMGState state) {
+    return new SMGInterpolant(state);
   }
 
   /** the interpolant representing "true" */
-  public static SMG2Interpolant createTRUE(SMGState state) {
-    return new SMG2Interpolant(state);
+  public static SMGInterpolant createTRUE(SMGState state) {
+    return new SMGInterpolant(state);
   }
 
   /** the interpolant representing "false" */
-  public static SMG2Interpolant createFALSE(SMGState state) {
-    return new SMG2Interpolant(null, null, state);
+  public static SMGInterpolant createFALSE(SMGState state) {
+    return new SMGInterpolant(null, null, null, state);
   }
 
   @Override
@@ -95,7 +101,7 @@ public final class SMG2Interpolant
    *     value-analysis interpolant
    */
   @Override
-  public SMG2Interpolant join(final SMG2Interpolant other) {
+  public SMGInterpolant join(final SMGInterpolant other) {
     if (nonHeapAssignments == null || other.nonHeapAssignments == null) {
       return createFALSE(originalState);
     }
@@ -109,9 +115,10 @@ public final class SMG2Interpolant
             : "interpolants mismatch in " + entry.getKey();
       }
       newAssignment = newAssignment.putAndCopy(entry.getKey(), entry.getValue());
+      String thisEntryQualName = entry.getKey().getQualifiedName();
       variableNameToMemorySizeInBits.put(
-          entry.getKey().getQualifiedName(),
-          other.variableNameToMemorySizeInBits.get(entry.getKey().getQualifiedName()));
+          thisEntryQualName, other.variableNameToMemorySizeInBits.get(thisEntryQualName));
+      variableToTypeMap.put(thisEntryQualName, other.variableToTypeMap.get(thisEntryQualName));
 
       assert Objects.equals(
               entry.getValue().getSizeInBits(),
@@ -119,7 +126,8 @@ public final class SMG2Interpolant
           : "interpolants mismatch in " + entry.getKey();
     }
 
-    return new SMG2Interpolant(newAssignment, variableNameToMemorySizeInBits, originalState);
+    return new SMGInterpolant(
+        newAssignment, variableNameToMemorySizeInBits, variableToTypeMap, originalState);
   }
 
   @Override
@@ -141,7 +149,7 @@ public final class SMG2Interpolant
       return false;
     }
 
-    SMG2Interpolant other = (SMG2Interpolant) obj;
+    SMGInterpolant other = (SMGInterpolant) obj;
     return Objects.equals(nonHeapAssignments, other.nonHeapAssignments);
   }
 
@@ -177,7 +185,7 @@ public final class SMG2Interpolant
     } else {
       try {
         return originalState.reconstructSMGStateFromNonHeapAssignments(
-            nonHeapAssignments, variableNameToMemorySizeInBits);
+            nonHeapAssignments, variableNameToMemorySizeInBits, variableToTypeMap);
       } catch (SMG2Exception e) {
         // Should actually never happen. This exception gets thrown for over/underwrites
         // But since we copy legit values 1:1 this does not happen.
@@ -212,7 +220,7 @@ public final class SMG2Interpolant
         try {
           currentState =
               currentState.assignNonHeapConstant(
-                  itp.getKey(), itp.getValue(), variableNameToMemorySizeInBits);
+                  itp.getKey(), itp.getValue(), variableNameToMemorySizeInBits, variableToTypeMap);
         } catch (SMG2Exception e) {
           // Critical error
           throw new RuntimeException(e);
@@ -245,7 +253,7 @@ public final class SMG2Interpolant
    * @return the weakened interpolant
    */
   @SuppressWarnings("ConstantConditions") // isTrivial() checks for FALSE-interpolants
-  public SMG2Interpolant weaken(Set<String> toRetain) {
+  public SMGInterpolant weaken(Set<String> toRetain) {
     if (isTrivial()) {
       return this;
     }
@@ -255,10 +263,14 @@ public final class SMG2Interpolant
       if (!toRetain.contains(current.getExtendedQualifiedName())) {
         weakenedAssignments = weakenedAssignments.removeAndCopy(current);
         variableNameToMemorySizeInBits.remove(current.getQualifiedName());
+        // We don't delete types out of variableToTypeMap because in for example arrays we have
+        // multiple entries, one for each offset. We don't want to delete the type because of that.
+        // If it were to change it would be overridden.
       }
     }
 
-    return new SMG2Interpolant(weakenedAssignments, variableNameToMemorySizeInBits, originalState);
+    return new SMGInterpolant(
+        weakenedAssignments, variableNameToMemorySizeInBits, variableToTypeMap, originalState);
   }
 
   @SuppressWarnings("ConstantConditions") // isTrivial() asserts that assignment != null
