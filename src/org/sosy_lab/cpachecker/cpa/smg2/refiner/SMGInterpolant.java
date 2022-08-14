@@ -36,8 +36,8 @@ import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 public final class SMGInterpolant
     implements Interpolant<SMGState, SMGInterpolant> {
 
-  /** State information * */
-  private final SMGState originalState;
+  /** State information. Null for true and false! * */
+  private final @Nullable SMGState originalState;
 
   /** the variable assignment of the interpolant */
   private final @Nullable PersistentMap<MemoryLocation, ValueAndValueSize> nonHeapAssignments;
@@ -47,8 +47,8 @@ public final class SMGInterpolant
   private final @Nullable Map<String, CType> variableToTypeMap;
 
   /** Constructor for a new, empty interpolant, i.e. the interpolant representing "true" */
-  private SMGInterpolant(SMGState originalState) {
-    this.originalState = originalState;
+  private SMGInterpolant() {
+    this.originalState = null;
     nonHeapAssignments = PathCopyingPersistentTreeMap.of();
     variableNameToMemorySizeInBits = new HashMap<>();
     variableToTypeMap = new HashMap<>();
@@ -73,18 +73,18 @@ public final class SMGInterpolant
   /**
    * This method serves as factory method for an initial, i.e. an interpolant representing "true"
    */
-  public static SMGInterpolant createInitial(SMGState state) {
-    return new SMGInterpolant(state);
+  public static SMGInterpolant createInitial() {
+    return new SMGInterpolant();
   }
 
   /** the interpolant representing "true" */
-  public static SMGInterpolant createTRUE(SMGState state) {
-    return new SMGInterpolant(state);
+  public static SMGInterpolant createTRUE() {
+    return createInitial();
   }
 
   /** the interpolant representing "false" */
-  public static SMGInterpolant createFALSE(SMGState state) {
-    return new SMGInterpolant(null, null, null, state);
+  public static SMGInterpolant createFALSE() {
+    return new SMGInterpolant(null, null, null, null);
   }
 
   @Override
@@ -102,8 +102,10 @@ public final class SMGInterpolant
    */
   @Override
   public SMGInterpolant join(final SMGInterpolant other) {
+    // We expect that if nonHeapAssignments != null all other nullables are not null also except for
+    // maybe the state!
     if (nonHeapAssignments == null || other.nonHeapAssignments == null) {
-      return createFALSE(originalState);
+      return createFALSE();
     }
 
     // add other itp mapping - one by one for now, to check for correctness
@@ -125,9 +127,13 @@ public final class SMGInterpolant
               other.nonHeapAssignments.get(entry.getKey()).getSizeInBits())
           : "interpolants mismatch in " + entry.getKey();
     }
-
+    if (originalState != null) {
     return new SMGInterpolant(
         newAssignment, variableNameToMemorySizeInBits, variableToTypeMap, originalState);
+    } else {
+      return new SMGInterpolant(
+          newAssignment, variableNameToMemorySizeInBits, variableToTypeMap, other.originalState);
+    }
   }
 
   @Override
@@ -150,6 +156,7 @@ public final class SMGInterpolant
     }
 
     SMGInterpolant other = (SMGInterpolant) obj;
+    // technically this is not correct as we leave out the heap. But thats ok for now.
     return Objects.equals(nonHeapAssignments, other.nonHeapAssignments);
   }
 
