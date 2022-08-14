@@ -14,6 +14,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableBiMap;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 import java.math.BigInteger;
 import java.util.Collection;
@@ -23,7 +24,6 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Set;
-import java.util.stream.Collectors;
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.collect.PersistentMap;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
@@ -509,9 +509,9 @@ public class SymbolicProgramConfiguration {
         new HashSet<>(Sets.difference(smg.getValues(), reachable.getValues()));
     // Remove 0 Value and object
     unreachableObjects =
-        unreachableObjects.stream().filter(o -> !o.isZero()).collect(Collectors.toSet());
+        unreachableObjects.stream().filter(o -> !o.isZero()).collect(ImmutableSet.toImmutableSet());
     unreachableValues =
-        unreachableValues.stream().filter(v -> !v.isZero()).collect(Collectors.toSet());
+        unreachableValues.stream().filter(v -> !v.isZero()).collect(ImmutableSet.toImmutableSet());
     SMG newSmg =
         smg.copyAndRemoveObjects(unreachableObjects).copyAndRemoveValues(unreachableValues);
     // copy into return collection
