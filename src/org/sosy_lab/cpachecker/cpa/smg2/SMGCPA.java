@@ -21,7 +21,6 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
-import org.sosy_lab.cpachecker.core.counterexample.AssumptionToEdgeAllocator;
 import org.sosy_lab.cpachecker.core.counterexample.CFAPathWithAdditionalInfo;
 import org.sosy_lab.cpachecker.core.counterexample.ConcreteStatePath;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
@@ -46,6 +45,7 @@ import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.witnessexport.AdditionalInfoConverter;
 import org.sosy_lab.cpachecker.cpa.smg.SMGStatistics;
+import org.sosy_lab.cpachecker.cpa.smg2.refiner.SMGConcreteErrorPathAllocator;
 import org.sosy_lab.cpachecker.util.predicates.BlockOperator;
 import org.sosy_lab.cpachecker.util.smg.exception.SMGInconsistencyException;
 
@@ -88,7 +88,6 @@ public class SMGCPA
   private final LogManager logger;
   private final Configuration config;
   private final CFA cfa;
-  private final AssumptionToEdgeAllocator assumptionToEdgeAllocator;
   private final SMGOptions options;
   private final SMGCPAExportOptions exportOptions;
   private final ShutdownNotifier shutdownNotifier;
@@ -109,7 +108,6 @@ public class SMGCPA
     machineModel = cfa.getMachineModel();
     logger = pLogger;
     shutdownNotifier = pShutdownNotifier;
-    assumptionToEdgeAllocator = AssumptionToEdgeAllocator.create(config, logger, machineModel);
 
     blockOperator = new BlockOperator();
     pConfig.inject(blockOperator);
@@ -140,8 +138,12 @@ public class SMGCPA
 
   @Override
   public ConcreteStatePath createConcreteStatePath(ARGPath pPath) {
-    return new SMGConcreteErrorPathAllocator(assumptionToEdgeAllocator)
-        .allocateAssignmentsToPath(pPath);
+    try {
+      return new SMGConcreteErrorPathAllocator(config, logger, machineModel)
+          .allocateAssignmentsToPath(pPath);
+    } catch (InvalidConfigurationException e) {
+      throw new RuntimeException(e);
+    }
   }
 
   @Override
