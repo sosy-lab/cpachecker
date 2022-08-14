@@ -30,11 +30,10 @@ import org.sosy_lab.cpachecker.util.refinement.Interpolant;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 /**
- * This class represents a SMG-Value-Analysis interpolant, itself, just a mere wrapper around a map from
- * memory locations to values, representing a variable assignment.
+ * This class represents a SMG-Value-Analysis interpolant, itself, just a mere wrapper around a map
+ * from memory locations to values, representing a variable assignment.
  */
-public final class SMGInterpolant
-    implements Interpolant<SMGState, SMGInterpolant> {
+public final class SMGInterpolant implements Interpolant<SMGState, SMGInterpolant> {
 
   /** State information. Null for true and false! * */
   private final @Nullable SMGState originalState;
@@ -128,8 +127,8 @@ public final class SMGInterpolant
           : "interpolants mismatch in " + entry.getKey();
     }
     if (originalState != null) {
-    return new SMGInterpolant(
-        newAssignment, variableNameToMemorySizeInBits, variableToTypeMap, originalState);
+      return new SMGInterpolant(
+          newAssignment, variableNameToMemorySizeInBits, variableToTypeMap, originalState);
     } else {
       return new SMGInterpolant(
           newAssignment, variableNameToMemorySizeInBits, variableToTypeMap, other.originalState);

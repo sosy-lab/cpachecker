@@ -8,7 +8,6 @@
 
 package org.sosy_lab.cpachecker.cpa.smg2;
 
-import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import java.math.BigInteger;
 import java.util.List;
@@ -299,7 +298,6 @@ public class SMGCPAAddressVisitor
         continue;
       }
 
-      Preconditions.checkArgument(value instanceof AddressExpression);
       AddressExpression pointerValue = (AddressExpression) value;
 
       // The offset part of the pointer; its either numeric or we can't get a concrete value

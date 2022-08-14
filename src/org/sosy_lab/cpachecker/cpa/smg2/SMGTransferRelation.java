@@ -12,7 +12,6 @@ import static org.sosy_lab.common.collect.Collections3.transformedImmutableSetCo
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableList.Builder;
 import com.google.common.collect.ImmutableSet;
 import java.math.BigInteger;
 import java.nio.file.Path;
@@ -361,7 +360,7 @@ public class SMGTransferRelation
     // their variables
     // TODO: check if the FunctionPointerCPA would be a better option instead of doing it myself
     SMGState currentState = initialState;
-    Builder<Value> readValuesInOrderBuilder = ImmutableList.builder();
+    ImmutableList.Builder<Value> readValuesInOrderBuilder = ImmutableList.builder();
     BigInteger overallVarArgsSizeInBits = BigInteger.ZERO;
     CType parameterType = null;
     for (int i = 0; i < arguments.size(); i++) {
@@ -542,10 +541,10 @@ public class SMGTransferRelation
               newVariableMemory.getSize().subtract(writeToOffset));
 
         } else {
-        // Write the value into it
-        currentState =
-            currentState.writeToStackOrGlobalVariable(
-                varName, BigInteger.ZERO, paramSizeInBits, paramValue, cParamType);
+          // Write the value into it
+          currentState =
+              currentState.writeToStackOrGlobalVariable(
+                  varName, BigInteger.ZERO, paramSizeInBits, paramValue, cParamType);
         }
       } else {
         // Variable args argument
@@ -1571,8 +1570,7 @@ public class SMGTransferRelation
         // We still evaluate the right hand side to find errors though
         List<ValueAndSMGState> listOfStates = rValue.accept(rightHandSideVisitor);
         returnStateBuilder.addAll(
-            listOfStates
-                .stream()
+            listOfStates.stream()
                 .map(vas -> vas.getState())
                 .collect(ImmutableList.toImmutableList()));
         continue;
@@ -1592,7 +1590,11 @@ public class SMGTransferRelation
 
           returnStateBuilder.add(
               currentState.writeValueTo(
-                  addressToWriteTo, offsetToWriteTo, sizeOfTypeLeft, addressToAssign, leftHandSideType));
+                  addressToWriteTo,
+                  offsetToWriteTo,
+                  sizeOfTypeLeft,
+                  addressToAssign,
+                  leftHandSideType));
           continue;
         }
         continue;
@@ -1601,7 +1603,8 @@ public class SMGTransferRelation
       // The right hand side either returns Values representing values or a AddressExpression. In
       // the later case this means the entire structure behind it needs to be copied as C is
       // pass-by-value.
-      for (ValueAndSMGState valueAndState : rValue.accept(new SMGCPAValueVisitor(evaluator, pState, cfaEdge, logger))) {
+      for (ValueAndSMGState valueAndState :
+          rValue.accept(new SMGCPAValueVisitor(evaluator, pState, cfaEdge, logger))) {
         Value valueToWrite = valueAndState.getValue();
         currentState = valueAndState.getState();
         BigInteger sizeInBits = evaluator.getBitSizeof(currentState, rightHandSideType);

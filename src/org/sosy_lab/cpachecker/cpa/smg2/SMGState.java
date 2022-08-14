@@ -339,7 +339,13 @@ public class SMGState
       // Create the variable first
       BigInteger sizeInBits = variableNameToMemorySizeInBits.get(qualifiedName);
       if (memLoc.isOnFunctionStack()) {
-
+        // Add depending on function stack!
+        currentState =
+            currentState.copyAndAddLocalVariableToSpecificStackframe(
+                memLoc.getFunctionName(),
+                sizeInBits,
+                qualifiedName,
+                variableTypeMap.get(qualifiedName));
       } else {
         currentState =
             currentState.copyAndAddGlobalVariable(
@@ -355,7 +361,7 @@ public class SMGState
     CType typeOfUnknown = null;
     // Write (easier then inserting everything on its own, and guaranteed to succeed as its a copy
     // from the original state)
-    return writeToAnyStackOrGlobalVariable(
+    return currentState.writeToAnyStackOrGlobalVariable(
         qualifiedName, offsetToWriteToInBits, sizeOfWriteInBits, valueToWrite, typeOfUnknown);
   }
 
@@ -596,6 +602,26 @@ public class SMGState
     return of(
         machineModel,
         memoryModel.copyAndAddStackObject(newObject, pVarName, type),
+        logger,
+        options,
+        errorInfo,
+        variableBlacklist);
+  }
+
+  private SMGState copyAndAddLocalVariableToSpecificStackframe(
+      String functionNameForStackFrame, BigInteger pTypeSize, String pVarName, CType type)
+      throws SMG2Exception {
+    if (memoryModel.getStackFrames().isEmpty()) {
+      throw new SMG2Exception(
+          "Can't add a variable named "
+              + pVarName
+              + " to the memory model because there is no stack frame.");
+    }
+    SMGObject newObject = SMGObject.of(0, pTypeSize, BigInteger.ZERO);
+    return of(
+        machineModel,
+        memoryModel.copyAndAddStackObjectToSpecificStackFrame(
+            functionNameForStackFrame, newObject, pVarName, type),
         logger,
         options,
         errorInfo,
@@ -1778,7 +1804,7 @@ public class SMGState
       ValueAndSMGState valueToWriteAndState = searchOrCreateAddressForAddressExpr(value);
       // The returned Value might be a non AddressExpression
       Value valueToWrite = valueToWriteAndState.getValue();
-        SMGState currentState = valueToWriteAndState.getState();
+      SMGState currentState = valueToWriteAndState.getState();
       if (valueToWrite instanceof AddressExpression) {
         Preconditions.checkArgument(
             ((AddressExpression) valueToWrite)

@@ -286,7 +286,8 @@ public class SMGCPABuiltins {
     if (addressAndState.getValue().isUnknown()) {
       // Critical error, should never happen
       throw new SMG2Exception(
-          "Critical error in builtin function va_copy. The source does not reflect a valid value when read.");
+          "Critical error in builtin function va_copy. The source does not reflect a valid value"
+              + " when read.");
     }
     currentState =
         currentState.writeToStackOrGlobalVariable(
@@ -305,18 +306,18 @@ public class SMGCPABuiltins {
   private List<ValueAndSMGState> evaluateVaArg(
       CFunctionCallExpression cFCExpression, CFAEdge pCfaEdge, SMGState pState)
       throws SMG2Exception {
-    Preconditions.checkArgument(cFCExpression.getParameterExpressions().size() == 2);
+    // Preconditions.checkArgument(cFCExpression.getParameterExpressions().size() == 2);
     // The first argument is the va_list pointer CidExpression
-    CExpression srcArg = cFCExpression.getParameterExpressions().get(0);
-    Preconditions.checkArgument(srcArg instanceof CIdExpression);
-    CIdExpression srcIdArg = (CIdExpression) srcArg;
+    // CExpression srcArg = cFCExpression.getParameterExpressions().get(0);
+    // Preconditions.checkArgument(srcArg instanceof CIdExpression);
+    // CIdExpression srcIdArg = (CIdExpression) srcArg;
     // The second argument is the type to be read
-    CExpression typeArg = cFCExpression.getParameterExpressions().get(1);
+    // CExpression typeArg = cFCExpression.getParameterExpressions().get(1);
     // Preconditions.checkArgument(srcArg instanceof CIdExpression);
     // CIdExpression srcIdArg = (CIdExpression) srcArg;
     // If the type is not compatible with the types saved in the array, behavior is undefined
     throw new SMG2Exception(
-        "Feature va_arg() not finished because the parser does not like the function.");
+        "Feature va_arg() not finished because our parser does not like the function.");
 
     // return null;
   }

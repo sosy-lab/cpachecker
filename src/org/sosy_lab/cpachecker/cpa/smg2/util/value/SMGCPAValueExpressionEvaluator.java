@@ -1285,7 +1285,8 @@ public class SMGCPAValueExpressionEvaluator {
         MachineModel model,
         SMGCPAValueExpressionEvaluator evaluator,
         SMGState state,
-        LogManagerWithoutDuplicates logger, SMGOptions options) {
+        LogManagerWithoutDuplicates logger,
+        SMGOptions options) {
       super(model);
       this.model = model;
       this.state = state;

@@ -275,6 +275,37 @@ public class SymbolicProgramConfiguration {
         variableToTypeMap.putAndCopy(pVarName, type));
   }
 
+  /* Adds the local variable given to the stack with the function name given */
+  SymbolicProgramConfiguration copyAndAddStackObjectToSpecificStackFrame(
+      String functionName, SMGObject pNewObject, String pVarName, CType type) {
+
+    PersistentStack<StackFrame> topStack = PersistentStack.of();
+    StackFrame currentFrame = stackVariableMapping.peek();
+    PersistentStack<StackFrame> tmpStack = stackVariableMapping.popAndCopy();
+    while (!currentFrame.getFunctionDefinition().getQualifiedName().equals(functionName)) {
+      topStack = topStack.pushAndCopy(currentFrame);
+      currentFrame = tmpStack.peek();
+      tmpStack = tmpStack.popAndCopy();
+    }
+
+    currentFrame = currentFrame.copyAndAddStackVariable(pVarName, pNewObject);
+    tmpStack = tmpStack.pushAndCopy(currentFrame);
+
+    while (topStack.size() > 0) {
+      tmpStack = tmpStack.pushAndCopy(topStack.peek());
+      topStack = topStack.popAndCopy();
+    }
+
+    return of(
+        smg.copyAndAddObject(pNewObject),
+        globalVariableMapping,
+        tmpStack,
+        heapObjects,
+        externalObjectAllocation,
+        valueMapping,
+        variableToTypeMap.putAndCopy(pVarName, type));
+  }
+
   /**
    * Replaces the Value mapping of the oldValue <-> SMGValue to the newValueToBeAssigned for the
    * same SMGValue. (Represents a change of Value without a write operation)
@@ -390,8 +421,8 @@ public class SymbolicProgramConfiguration {
             externalObjectAllocation,
             valueMapping,
             variableToTypeMap.removeAndCopy(pIdentifier));
+      }
     }
-  }
     return this;
   }
 

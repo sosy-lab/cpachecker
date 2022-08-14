@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.cpa.smg2.util;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cpa.smg2.SMGState;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
@@ -15,7 +16,8 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 public class SMG2Exception extends CPATransferException {
   private static final long serialVersionUID = -1677699207895867889L;
 
-  SMGState errorState;
+  // Null for String msgs only
+  private final @Nullable SMGState errorState;
 
   public SMG2Exception(SMGState pErrorState) {
     super(pErrorState.getErrorInfo().toString());
@@ -24,6 +26,7 @@ public class SMG2Exception extends CPATransferException {
 
   public SMG2Exception(String errorMsg) {
     super(errorMsg);
+    errorState = null;
   }
 
   public boolean hasState() {

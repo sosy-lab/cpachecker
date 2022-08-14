@@ -145,7 +145,6 @@ public class SMGUseDefBasedInterpolator {
         useDefInterpolant =
             useDefInterpolant.putAndCopy(
                 memoryLocation, ValueAndValueSize.of(UnknownValue.getInstance(), null));
-
       }
     }
 

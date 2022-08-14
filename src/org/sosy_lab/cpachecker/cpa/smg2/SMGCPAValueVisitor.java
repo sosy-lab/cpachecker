@@ -186,7 +186,6 @@ public class SMGCPAValueVisitor
         BigInteger subscriptOffset =
             typeSizeInBits.multiply(subscriptValue.asNumericValue().bigInteger());
 
-
         if (arrayExpr.getExpressionType() instanceof CPointerType) {
           Preconditions.checkArgument(arrayValue instanceof AddressExpression);
         } else if (arrayExpr.getExpressionType() instanceof CCompositeType
@@ -289,7 +288,7 @@ public class SMGCPAValueVisitor
         // TODO: check that the return types match what we return!!!!
         return evaluator.readStackOrGlobalVariable(
             newState, qualifiedVarName, finalOffset, typeSizeInBits);
-        }
+      }
 
     } else {
       return ValueAndSMGState.ofUnknownValue(newState);
@@ -558,8 +557,8 @@ public class SMGCPAValueVisitor
           || ownerExpression.getExpressionType() instanceof CArrayType
           || ownerExpression.getExpressionType() instanceof CTypedefType) {
         if (structValue instanceof SymbolicIdentifier) {
-        Preconditions.checkArgument(
-            ((SymbolicIdentifier) structValue).getRepresentedLocation().isPresent());
+          Preconditions.checkArgument(
+              ((SymbolicIdentifier) structValue).getRepresentedLocation().isPresent());
         } else {
           Preconditions.checkArgument(structValue instanceof AddressExpression);
         }
@@ -795,7 +794,6 @@ public class SMGCPAValueVisitor
         continue;
       }
 
-      Preconditions.checkArgument(value instanceof AddressExpression);
       AddressExpression pointerValue = (AddressExpression) value;
 
       // The offset part of the pointer; its either numeric or we can't get a concrete value
@@ -1941,7 +1939,7 @@ public class SMGCPAValueVisitor
         correctlyTypedOffset =
             arithmeticOperation(
                 new NumericValue(BigInteger.valueOf(8)),
-                (NumericValue) rightValue,
+                (NumericValue) leftValue,
                 BinaryOperator.MULTIPLY,
                 calculationType);
       }

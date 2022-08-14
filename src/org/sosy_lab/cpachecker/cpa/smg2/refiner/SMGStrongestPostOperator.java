@@ -79,8 +79,7 @@ public class SMGStrongestPostOperator implements StrongestPostOperator<SMGState>
     // Are old variables already pruned?
     // SMGs restore the old variables on their own, but we keep changes in heap (and stack through
     // pointers)!
-    @SuppressWarnings("unused")
-    final SMGState callState = callstack.pop();
+    callstack.pop();
     return next;
   }
 
