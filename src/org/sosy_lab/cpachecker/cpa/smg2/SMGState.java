@@ -416,8 +416,8 @@ public class SMGState
     }
     SMGState currentState = this;
     // flush all global/local variables NOT related to heap, then rebuild from the given maps
-    for (Entry<MemoryLocation, ValueAndValueSize> entry : nonHeapAssignments.entrySet()) {
-      currentState = currentState.copyAndPruneVariable(entry.getKey());
+    for (MemoryLocation memLoc : nonHeapAssignments.keySet()) {
+      currentState = currentState.copyAndPruneVariable(memLoc);
     }
 
     for (Entry<MemoryLocation, ValueAndValueSize> entry : nonHeapAssignments.entrySet()) {
