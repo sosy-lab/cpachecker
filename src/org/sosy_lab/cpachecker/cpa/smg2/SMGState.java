@@ -347,7 +347,8 @@ public class SMGState
       }
     }
     BigInteger offsetToWriteToInBits = BigInteger.valueOf(memLoc.getOffset());
-    BigInteger sizeOfWriteInBits = valueAndSize.getSizeInBits();
+    @Nullable BigInteger sizeOfWriteInBits = valueAndSize.getSizeInBits();
+    Preconditions.checkArgument(sizeOfWriteInBits != null);
     Value valueToWrite = valueAndSize.getValue();
     Preconditions.checkArgument(!valueToWrite.isUnknown());
     // Null is fine because that would only be needed for the unknown case which can't happen
@@ -379,7 +380,11 @@ public class SMGState
   public Value getValueToVerify(MemoryLocation variableAndOffset, ValueAndValueSize valueAndSize) {
     String variableName = variableAndOffset.getQualifiedName();
     BigInteger offsetInBits = BigInteger.valueOf(variableAndOffset.getOffset());
-    BigInteger sizeOfReadInBits = valueAndSize.getSizeInBits();
+    // Null for new interpolants, return unknown
+    @Nullable BigInteger sizeOfReadInBits = valueAndSize.getSizeInBits();
+    if (sizeOfReadInBits == null) {
+      return UnknownValue.getInstance();
+    }
 
     SMGObject memoryToRead = memoryModel.getObjectForVariable(variableName).orElseThrow();
     return readValue(memoryToRead, offsetInBits, sizeOfReadInBits).getValue();

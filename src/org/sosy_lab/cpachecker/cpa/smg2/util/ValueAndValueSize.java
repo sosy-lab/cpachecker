@@ -10,13 +10,15 @@ package org.sosy_lab.cpachecker.cpa.smg2.util;
 
 import com.google.common.base.Preconditions;
 import java.math.BigInteger;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 
 public class ValueAndValueSize {
 
   private final Value value;
 
-  private final BigInteger sizeOfValueInBits;
+  // null for new interpolants
+  private final @Nullable BigInteger sizeOfValueInBits;
 
   private ValueAndValueSize(Value pValue, BigInteger pSizeOfValueInBits) {
     value = pValue;
@@ -25,7 +27,7 @@ public class ValueAndValueSize {
 
   public static ValueAndValueSize of(Value pValue, BigInteger pSizeOfValueInBits) {
     Preconditions.checkNotNull(pValue);
-    Preconditions.checkNotNull(pSizeOfValueInBits);
+    // Size can be null for new interpolants
     return new ValueAndValueSize(pValue, pSizeOfValueInBits);
   }
 
@@ -33,7 +35,7 @@ public class ValueAndValueSize {
     return value;
   }
 
-  public BigInteger getSizeInBits() {
+  public @Nullable BigInteger getSizeInBits() {
     return sizeOfValueInBits;
   }
 
@@ -43,11 +45,17 @@ public class ValueAndValueSize {
       return false;
     }
     ValueAndValueSize otherVAS = (ValueAndValueSize) other;
+    if (sizeOfValueInBits == null) {
+      return value.equals(otherVAS.value);
+    }
     return value.equals(otherVAS.value) && sizeOfValueInBits.equals(otherVAS.sizeOfValueInBits);
   }
 
   @Override
   public int hashCode() {
+    if (sizeOfValueInBits == null) {
+      return value.hashCode();
+    }
     return value.hashCode() + sizeOfValueInBits.hashCode();
   }
 }
