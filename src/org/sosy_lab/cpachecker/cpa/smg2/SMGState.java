@@ -74,7 +74,7 @@ import org.sosy_lab.cpachecker.util.states.MemoryLocation;
  * handled.
  */
 public class SMGState
-    implements ForgetfulState<SMG2Information>,
+    implements ForgetfulState<SMGInformation>,
         LatticeAbstractState<SMGState>,
         AbstractQueryableState,
         Graphable {
@@ -1916,7 +1916,7 @@ public class SMGState
    * This will result in UNKNOWN values in the next read for not pruned variables.
    */
   @Override
-  public SMG2Information forget(MemoryLocation pLocation) {
+  public SMGInformation forget(MemoryLocation pLocation) {
     String qualifiedName = pLocation.getQualifiedName();
     BigInteger offsetInBits = BigInteger.valueOf(pLocation.getOffset());
     // This is expected to succeed
@@ -1932,12 +1932,12 @@ public class SMGState
         memoryModel.copyAndRemoveHasValueEdges(memory, ImmutableList.of(edgeToRemove));
     SMGState newState = this.copyAndReplaceMemoryModel(newSPC);
 
-    return new SMG2Information(
+    return new SMGInformation(
         newState.memoryModel.getMemoryLocationsAndValuesForSPCWithoutHeap(), newState);
   }
 
   @Override
-  public SMG2Information remember(MemoryLocation pLocation, SMG2Information pForgottenInformation) {
+  public SMGInformation remember(MemoryLocation pLocation, SMGInformation pForgottenInformation) {
     ValueAndValueSize valueAndSize = pForgottenInformation.getAssignments().get(pLocation);
     SMGState newState;
     try {
@@ -1954,7 +1954,7 @@ public class SMGState
       // Should never happen
       throw new RuntimeException(e);
     }
-    return SMG2Information.getEmptySMG2Information(newState);
+    return SMGInformation.getEmptySMGInformation(newState);
   }
 
   @Override

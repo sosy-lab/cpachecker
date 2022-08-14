@@ -15,25 +15,25 @@ import org.sosy_lab.cpachecker.cpa.smg2.util.ValueAndValueSize;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 /** Information about value assignments needed for symbolic interpolation. */
-public final class SMG2Information {
+public final class SMGInformation {
 
   // SMGs need to keep track of the state
   private final SMGState state;
   private final PersistentMap<MemoryLocation, ValueAndValueSize> nonHeapAssignments;
 
-  SMG2Information(
+  SMGInformation(
       final PersistentMap<MemoryLocation, ValueAndValueSize> pAssignments, SMGState pState) {
     nonHeapAssignments = pAssignments;
     state = pState;
   }
 
-  private SMG2Information(SMGState pState) {
+  private SMGInformation(SMGState pState) {
     nonHeapAssignments = PathCopyingPersistentTreeMap.of();
     state = pState;
   }
 
-  public static SMG2Information getEmptySMG2Information(SMGState pState) {
-    return new SMG2Information(pState);
+  public static SMGInformation getEmptySMGInformation(SMGState pState) {
+    return new SMGInformation(pState);
   }
 
   public PersistentMap<MemoryLocation, ValueAndValueSize> getAssignments() {
@@ -53,7 +53,7 @@ public final class SMG2Information {
       return false;
     }
 
-    SMG2Information that = (SMG2Information) o;
+    SMGInformation that = (SMGInformation) o;
     return nonHeapAssignments.equals(that.nonHeapAssignments);
   }
 
