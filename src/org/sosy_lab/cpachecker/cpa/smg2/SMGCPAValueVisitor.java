@@ -479,7 +479,7 @@ public class SMGCPAValueVisitor
   public ValueAndSMGState castCValue(Value value, CType targetType, SMGState currentState) {
     MachineModel machineModel = evaluator.getMachineModel();
     if (targetType instanceof CPointerType) {
-      if (value instanceof AddressExpression) {
+      if (value instanceof AddressExpression || value instanceof NumericValue) {
         return ValueAndSMGState.of(value, currentState);
       } else if (evaluator.isPointerValue(value, currentState)) {
         return ValueAndSMGState.of(
@@ -727,16 +727,12 @@ public class SMGCPAValueVisitor
                     evaluator.getMachineModel().getAlignof(unaryOperand.getExpressionType())),
                 state));
 
+      case AMPER:
+        // Note: this returns AddressExpressions! Unwrap before saving!
+        return evaluator.createAddress(unaryOperand, state, cfaEdge);
+
       default:
         break;
-    }
-
-    // & operator is seperate as the value returned leads to the underlying memory location
-    if (unaryOperator == UnaryOperator.AMPER) {
-      // Check if a pointer already exits, if not create a pointer (points-to-edge), map it to a
-      // unique value and return it.
-      // Note: this returns AddressExpressions! Unwrap before saving!
-      return evaluator.createAddress(unaryOperand, state, cfaEdge);
     }
 
     ImmutableList.Builder<ValueAndSMGState> builder = new ImmutableList.Builder<>();

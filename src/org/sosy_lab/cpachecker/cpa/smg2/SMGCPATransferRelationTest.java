@@ -2134,7 +2134,7 @@ public class SMGCPATransferRelationTest {
               FileLocation.DUMMY,
               new CFieldReference(
                   FileLocation.DUMMY,
-                  pointerType,
+                  memberType,
                   memberName,
                   new CIdExpression(
                       FileLocation.DUMMY,

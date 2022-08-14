@@ -3351,7 +3351,7 @@ public class SMGCPAValueVisitorTest {
       currentState = currentState.copyAndAddStackFrame(CFunctionDeclaration.DUMMY);
     }
 
-    currentState = currentState.copyAndAddLocalVariable(sizeInBits, variableName);
+    currentState = currentState.copyAndAddLocalVariable(sizeInBits, variableName, null);
 
     visitor = new SMGCPAValueVisitor(evaluator, currentState, new DummyCFAEdge(null, null), logger);
   }
