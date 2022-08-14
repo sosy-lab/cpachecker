@@ -18,7 +18,6 @@ import org.sosy_lab.cpachecker.cpa.arg.AbstractARGBasedRefiner;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateBasedPrefixProvider;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateRefiner;
-import org.sosy_lab.cpachecker.cpa.smg.refiner.SMGRefiner;
 import org.sosy_lab.cpachecker.cpa.smg2.SMGCPA;
 import org.sosy_lab.cpachecker.cpa.value.refiner.utils.ValueAnalysisPrefixProvider;
 import org.sosy_lab.cpachecker.util.CPAs;
