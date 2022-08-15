@@ -733,10 +733,10 @@ public class SymbolicProgramConfiguration {
    */
   public Optional<SMGObject> getObjectForVisibleVariableFromPreviousStackframe(String pName) {
 
-    // Only look in the current stack frame
-    StackFrame currentFrame = stackVariableMapping.popAndCopy().peek();
-    if (currentFrame.containsVariable(pName)) {
-      return Optional.of(currentFrame.getVariable(pName));
+    // Only look in the stack frame below the current
+    StackFrame lowerFrame = stackVariableMapping.popAndCopy().peek();
+    if (lowerFrame.containsVariable(pName)) {
+      return Optional.of(lowerFrame.getVariable(pName));
     }
 
     // Second check global
