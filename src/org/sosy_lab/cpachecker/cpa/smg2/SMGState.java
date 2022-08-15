@@ -8,8 +8,6 @@
 
 package org.sosy_lab.cpachecker.cpa.smg2;
 
-import static com.google.common.base.Preconditions.checkNotNull;
-
 import com.google.common.base.CharMatcher;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
@@ -102,9 +100,6 @@ public class SMGState
   private final List<SMGErrorInfo> errorInfo;
   private final SMGOptions options;
 
-  // Blacklisted variable names. Not to be used while on this list!
-  private final ImmutableSet<String> variableBlacklist;
-
   // Constructor only for NEW/EMPTY SMGStates!
   private SMGState(
       MachineModel pMachineModel,
@@ -116,7 +111,6 @@ public class SMGState
     logger = logManager;
     options = opts;
     errorInfo = ImmutableList.of();
-    variableBlacklist = ImmutableSet.of();
   }
 
   private SMGState(
@@ -124,31 +118,25 @@ public class SMGState
       SymbolicProgramConfiguration spc,
       LogManager logManager,
       SMGOptions opts,
-      List<SMGErrorInfo> errorInf,
-      ImmutableSet<String> pVariableBlacklist) {
+      List<SMGErrorInfo> errorInf) {
     memoryModel = spc;
     machineModel = pMachineModel;
     logger = logManager;
     options = opts;
     errorInfo = errorInf;
-    variableBlacklist = pVariableBlacklist;
   }
 
   public SMGState addToVariableBlacklist(String variableName) {
     return of(
         machineModel,
-        memoryModel,
+        memoryModel.copyAndAddToVariableBlacklist(variableName),
         logger,
         options,
-        errorInfo,
-        new ImmutableSet.Builder<String>()
-            .addAll(variableBlacklist)
-            .add(checkNotNull(variableName))
-            .build());
+        errorInfo);
   }
 
   public ImmutableSet<String> getVariableBlackList() {
-    return variableBlacklist;
+    return memoryModel.getVariableBlacklist();
   }
 
   @Override
@@ -296,9 +284,23 @@ public class SMGState
       SymbolicProgramConfiguration pSPC,
       LogManager logManager,
       SMGOptions opts,
+      List<SMGErrorInfo> pErrorInfo) {
+    return new SMGState(pMachineModel, pSPC, logManager, opts, pErrorInfo);
+  }
+
+  public static SMGState of(
+      MachineModel pMachineModel,
+      SymbolicProgramConfiguration pSPC,
+      LogManager logManager,
+      SMGOptions opts,
       List<SMGErrorInfo> pErrorInfo,
       ImmutableSet<String> pVariableBlacklist) {
-    return new SMGState(pMachineModel, pSPC, logManager, opts, pErrorInfo, pVariableBlacklist);
+    return new SMGState(
+        pMachineModel,
+        pSPC.copyAndReplaceVariableBlacklist(pVariableBlacklist),
+        logManager,
+        opts,
+        pErrorInfo);
   }
 
   /**
@@ -446,8 +448,7 @@ public class SMGState
         new ImmutableList.Builder<SMGErrorInfo>()
             .addAll(errorInfo)
             .addAll(pOther.errorInfo)
-            .build(),
-        variableBlacklist);
+            .build());
   }
 
   /**
@@ -479,8 +480,7 @@ public class SMGState
         memoryModel.copyAndAddGlobalObject(newObject, pVarName, type),
         logger,
         options,
-        errorInfo,
-        variableBlacklist);
+        errorInfo);
   }
 
   /**
@@ -495,13 +495,7 @@ public class SMGState
     SMGObject newObject = SMGObject.of(0, pTypeSizeInBits, BigInteger.ZERO);
     return SMGObjectAndSMGState.of(
         newObject,
-        of(
-            machineModel,
-            memoryModel.copyAndAddHeapObject(newObject),
-            logger,
-            options,
-            errorInfo,
-            variableBlacklist));
+        of(machineModel, memoryModel.copyAndAddHeapObject(newObject), logger, options, errorInfo));
   }
 
   /**
@@ -516,13 +510,7 @@ public class SMGState
     SMGObject newObject = SMGObject.of(0, pTypeSizeInBits, BigInteger.ZERO);
     return SMGObjectAndSMGState.of(
         newObject,
-        of(
-            machineModel,
-            memoryModel.copyAndAddStackObject(newObject),
-            logger,
-            options,
-            errorInfo,
-            variableBlacklist));
+        of(machineModel, memoryModel.copyAndAddStackObject(newObject), logger, options, errorInfo));
   }
 
   /**
@@ -575,8 +563,7 @@ public class SMGState
         memoryModel.copyAndAddStackObject(newObject, pVarName, type),
         logger,
         options,
-        errorInfo,
-        variableBlacklist);
+        errorInfo);
   }
 
   /**
@@ -604,8 +591,7 @@ public class SMGState
         memoryModel.copyAndAddStackObject(newObject, pVarName, type),
         logger,
         options,
-        errorInfo,
-        variableBlacklist);
+        errorInfo);
   }
 
   private SMGState copyAndAddLocalVariableToSpecificStackframe(
@@ -624,8 +610,7 @@ public class SMGState
             functionNameForStackFrame, newObject, pVarName, type),
         logger,
         options,
-        errorInfo,
-        variableBlacklist);
+        errorInfo);
   }
 
   /**
@@ -666,8 +651,7 @@ public class SMGState
         memoryModel.copyAndAddStackFrame(pFunctionDefinition, machineModel),
         logger,
         options,
-        errorInfo,
-        variableBlacklist);
+        errorInfo);
   }
 
   @Override
@@ -766,7 +750,7 @@ public class SMGState
   }
 
   public SMGState copyAndReplaceMemoryModel(SymbolicProgramConfiguration newSPC) {
-    return of(machineModel, newSPC, logger, options, errorInfo, variableBlacklist);
+    return of(machineModel, newSPC, logger, options, errorInfo);
   }
 
   public SMGState copyAndReplaceValueMapping(Value oldValue, Value newValue) {
@@ -790,8 +774,7 @@ public class SMGState
         memoryModel.copyAndRemoveGlobalVariable(pMemoryLocation.getIdentifier()),
         logger,
         options,
-        errorInfo,
-        variableBlacklist);
+        errorInfo);
   }
 
   private SMGState copyAndPruneFunctionStackVariable(MemoryLocation pMemoryLocation) {
@@ -800,8 +783,7 @@ public class SMGState
         memoryModel.copyAndRemoveStackVariable(pMemoryLocation.getQualifiedName()),
         logger,
         options,
-        errorInfo,
-        variableBlacklist);
+        errorInfo);
   }
 
   // Only public for builtin functions
@@ -811,18 +793,11 @@ public class SMGState
         memoryModel.copyAndRemoveStackVariable(variableName),
         logger,
         options,
-        errorInfo,
-        variableBlacklist);
+        errorInfo);
   }
 
   public SMGState dropStackFrame() {
-    return of(
-        machineModel,
-        memoryModel.copyAndDropStackFrame(),
-        logger,
-        options,
-        errorInfo,
-        variableBlacklist);
+    return of(machineModel, memoryModel.copyAndDropStackFrame(), logger, options, errorInfo);
   }
 
   /*
@@ -1225,8 +1200,7 @@ public class SMGState
         memoryModel,
         logger,
         options,
-        new ImmutableList.Builder<SMGErrorInfo>().addAll(errorInfo).add(pErrorInfo).build(),
-        variableBlacklist);
+        new ImmutableList.Builder<SMGErrorInfo>().addAll(errorInfo).add(pErrorInfo).build());
   }
 
   /**
@@ -1258,8 +1232,7 @@ public class SMGState
               memoryModel.copyAndPutValue(pValue, newSMGValue),
               logger,
               options,
-              errorInfo,
-              variableBlacklist),
+              errorInfo),
           newSMGValue);
     }
   }
