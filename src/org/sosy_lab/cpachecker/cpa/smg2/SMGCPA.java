@@ -8,8 +8,17 @@
 
 package org.sosy_lab.cpachecker.cpa.smg2;
 
+import com.google.common.collect.HashMultimap;
+import com.google.common.collect.Multimap;
+import java.io.IOException;
+import java.nio.charset.Charset;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Collection;
+import java.util.List;
+import java.util.Map;
+import java.util.logging.Level;
+import java.util.regex.Matcher;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
@@ -37,6 +46,7 @@ import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysisWithAdditionalInfo;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysisWithConcreteCex;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
+import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
@@ -46,8 +56,12 @@ import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.witnessexport.AdditionalInfoConverter;
 import org.sosy_lab.cpachecker.cpa.smg.SMGStatistics;
 import org.sosy_lab.cpachecker.cpa.smg2.refiner.SMGConcreteErrorPathAllocator;
+import org.sosy_lab.cpachecker.cpa.value.PredicateToValuePrecisionConverter;
+import org.sosy_lab.cpachecker.cpa.value.symbolic.ConstraintsStrengthenOperator;
+import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.predicates.BlockOperator;
 import org.sosy_lab.cpachecker.util.smg.exception.SMGInconsistencyException;
+import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 @Options(prefix = "cpa.smg2")
 public class SMGCPA
@@ -96,6 +110,8 @@ public class SMGCPA
   private boolean refineablePrecisionSet = false;
 
   private final SMGStatistics stats = new SMGStatistics();
+  private final PredicateToValuePrecisionConverter predToValPrec;
+  private final ConstraintsStrengthenOperator constraintsStrengthenOperator;
 
   private SMGCPA(
       Configuration pConfig, LogManager pLogger, ShutdownNotifier pShutdownNotifier, CFA pCfa)
@@ -108,6 +124,9 @@ public class SMGCPA
     machineModel = cfa.getMachineModel();
     logger = pLogger;
     shutdownNotifier = pShutdownNotifier;
+    precision = initializePrecision(config, cfa);
+    predToValPrec = new PredicateToValuePrecisionConverter(config, logger, pShutdownNotifier, cfa);
+    constraintsStrengthenOperator = new ConstraintsStrengthenOperator(config, logger);
 
     blockOperator = new BlockOperator();
     pConfig.inject(blockOperator);
@@ -153,7 +172,8 @@ public class SMGCPA
 
   @Override
   public TransferRelation getTransferRelation() {
-    return new SMGTransferRelation(logger, options, exportOptions, cfa);
+    return new SMGTransferRelation(
+        logger, options, exportOptions, cfa, constraintsStrengthenOperator);
   }
 
   @Override
@@ -205,6 +225,11 @@ public class SMGCPA
     return initState;
   }
 
+  @Override
+  public Precision getInitialPrecision(CFANode pNode, StateSpacePartition pPartition) {
+    return precision;
+  }
+
   public LogManager getLogger() {
     return logger;
   }
@@ -218,6 +243,76 @@ public class SMGCPA
       precision = VariableTrackingPrecision.createRefineablePrecision(config, precision);
       refineablePrecisionSet = true;
     }
+  }
+
+  private VariableTrackingPrecision initializePrecision(Configuration pConfig, CFA pCfa)
+      throws InvalidConfigurationException {
+    if (initialPrecisionFile == null && initialPredicatePrecisionFile == null) {
+      return VariableTrackingPrecision.createStaticPrecision(
+          pConfig, pCfa.getVarClassification(), getClass());
+    }
+
+    // Initialize precision
+    VariableTrackingPrecision initialPrecision =
+        VariableTrackingPrecision.createRefineablePrecision(
+            pConfig,
+            VariableTrackingPrecision.createStaticPrecision(
+                pConfig, pCfa.getVarClassification(), getClass()));
+
+    if (initialPredicatePrecisionFile != null) {
+
+      // convert the predicate precision to variable tracking precision and
+      // refine precision with increment from the newly gained variable tracking precision
+      // otherwise return empty precision if given predicate precision is empty
+
+      initialPrecision =
+          initialPrecision.withIncrement(
+              predToValPrec.convertPredPrecToVariableTrackingPrec(initialPredicatePrecisionFile));
+    }
+    if (initialPrecisionFile != null) {
+      // create precision with empty, refinable component precision
+      // refine the refinable component precision with increment from file
+      initialPrecision = initialPrecision.withIncrement(restoreMappingFromFile(pCfa));
+    }
+
+    return initialPrecision;
+  }
+
+  private Multimap<CFANode, MemoryLocation> restoreMappingFromFile(CFA pCfa) {
+    Multimap<CFANode, MemoryLocation> mapping = HashMultimap.create();
+    List<String> contents = null;
+    try {
+      contents = Files.readAllLines(initialPrecisionFile, Charset.defaultCharset());
+    } catch (IOException e) {
+      logger.logUserException(
+          Level.WARNING, e, "Could not read precision from file named " + initialPrecisionFile);
+      return mapping;
+    }
+
+    Map<Integer, CFANode> idToCfaNode = CFAUtils.getMappingFromNodeIDsToCFANodes(pCfa);
+
+    CFANode location = getDefaultLocation(idToCfaNode);
+    for (String currentLine : contents) {
+      if (currentLine.trim().isEmpty()) {
+        continue;
+
+      } else if (currentLine.endsWith(":")) {
+        String scopeSelectors = currentLine.substring(0, currentLine.indexOf(":"));
+        Matcher matcher = CFAUtils.CFA_NODE_NAME_PATTERN.matcher(scopeSelectors);
+        if (matcher.matches()) {
+          location = idToCfaNode.get(Integer.parseInt(matcher.group(1)));
+        }
+
+      } else {
+        mapping.put(location, MemoryLocation.parseExtendedQualifiedName(currentLine));
+      }
+    }
+
+    return mapping;
+  }
+
+  private CFANode getDefaultLocation(Map<Integer, CFANode> idToCfaNode) {
+    return idToCfaNode.values().iterator().next();
   }
 
   public Configuration getConfiguration() {

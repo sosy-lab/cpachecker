@@ -166,6 +166,7 @@ public class SMGCPATransferRelationTest {
         SMGState.of(MACHINE_MODEL, logManager, smgOptions)
             .copyAndAddStackFrame(CFunctionDeclaration.DUMMY);
 
+    // null for the constraintsStrengthenOperator is fine as long as we don't use it in tests!
     transferRelation =
         new SMGTransferRelation(
             logManager,
@@ -173,7 +174,8 @@ public class SMGCPATransferRelationTest {
             SMGCPAExportOptions.getNoExportInstance(),
             MACHINE_MODEL,
             ImmutableList.of(),
-            ImmutableList.of());
+            ImmutableList.of(),
+            null);
 
     transferRelation.setInfo(
         initialState,

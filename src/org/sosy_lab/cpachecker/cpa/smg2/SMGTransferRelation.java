@@ -90,6 +90,7 @@ import org.sosy_lab.cpachecker.cpa.smg2.util.SMG2Exception;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGObjectAndOffset;
 import org.sosy_lab.cpachecker.cpa.smg2.util.value.SMGCPAValueExpressionEvaluator;
 import org.sosy_lab.cpachecker.cpa.smg2.util.value.ValueAndSMGState;
+import org.sosy_lab.cpachecker.cpa.value.symbolic.ConstraintsStrengthenOperator;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.AddressExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicIdentifier;
 import org.sosy_lab.cpachecker.cpa.value.type.BooleanValue;
@@ -112,6 +113,7 @@ public class SMGTransferRelation
   private final LogManagerWithoutDuplicates logger;
 
   private final SMGCPAValueExpressionEvaluator evaluator;
+  private final ConstraintsStrengthenOperator constraintsStrengthenOperator;
 
   // Collection of tracked symbolic boolean variables that get used when learning assumptions
   // (see SMGCPAAssigningValueVisitor)
@@ -123,12 +125,17 @@ public class SMGTransferRelation
   private final Collection<String> addressedVariables;
 
   public SMGTransferRelation(
-      LogManager pLogger, SMGOptions pOptions, SMGCPAExportOptions pExportSMGOptions, CFA pCfa) {
+      LogManager pLogger,
+      SMGOptions pOptions,
+      SMGCPAExportOptions pExportSMGOptions,
+      CFA pCfa,
+      ConstraintsStrengthenOperator pConstraintsStrengthenOperator) {
     logger = new LogManagerWithoutDuplicates(pLogger);
     options = pOptions;
     exportSMGOptions = pExportSMGOptions;
     machineModel = pCfa.getMachineModel();
     evaluator = new SMGCPAValueExpressionEvaluator(machineModel, logger, exportSMGOptions, options);
+    constraintsStrengthenOperator = pConstraintsStrengthenOperator;
 
     if (pCfa.getVarClassification().isPresent()) {
       addressedVariables = pCfa.getVarClassification().orElseThrow().getAddressedVariables();
@@ -146,7 +153,8 @@ public class SMGTransferRelation
       SMGCPAExportOptions pExportSMGOptions,
       MachineModel pMachineModel,
       Collection<String> pAddressedVariables,
-      Collection<String> pBooleanVariables) {
+      Collection<String> pBooleanVariables,
+      ConstraintsStrengthenOperator pConstraintsStrengthenOperator) {
     logger = new LogManagerWithoutDuplicates(pLogger);
     options = pOptions;
     exportSMGOptions = pExportSMGOptions;
@@ -154,6 +162,7 @@ public class SMGTransferRelation
     evaluator = new SMGCPAValueExpressionEvaluator(machineModel, logger, exportSMGOptions, options);
     addressedVariables = pAddressedVariables;
     booleanVariables = pBooleanVariables;
+    constraintsStrengthenOperator = pConstraintsStrengthenOperator;
   }
 
   @Override
