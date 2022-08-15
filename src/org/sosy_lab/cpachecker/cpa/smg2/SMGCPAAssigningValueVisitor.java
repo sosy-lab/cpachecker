@@ -41,7 +41,8 @@ public class SMGCPAAssigningValueVisitor extends SMGCPAValueVisitor {
 
   boolean truthValue;
 
-  // We might need those later for optimization
+  // Tracked boolean variables for non-equal assumptions where we assume these tracked variables as
+  // true if the other compared variable is already known as false
   Collection<String> booleans;
 
   public SMGCPAAssigningValueVisitor(

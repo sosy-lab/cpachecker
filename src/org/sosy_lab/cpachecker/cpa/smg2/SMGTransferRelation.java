@@ -113,6 +113,8 @@ public class SMGTransferRelation
   private final LogManagerWithoutDuplicates logger;
 
   private final SMGCPAValueExpressionEvaluator evaluator;
+
+  @SuppressWarnings("unused")
   private final ConstraintsStrengthenOperator constraintsStrengthenOperator;
 
   // Collection of tracked symbolic boolean variables that get used when learning assumptions
@@ -120,8 +122,6 @@ public class SMGTransferRelation
   private final Collection<String> booleanVariables;
 
   // Ignored variables (declarations)
-  // TODO: ignore the declarations using these variables
-  @SuppressWarnings("unused")
   private final Collection<String> addressedVariables;
 
   public SMGTransferRelation(
@@ -879,6 +879,11 @@ public class SMGTransferRelation
   protected List<SMGState> handleDeclarationEdge(CDeclarationEdge edge, CDeclaration cDecl)
       throws CPATransferException {
     SMGState currentState = state;
+    // CEGAR
+    if (addressedVariables.contains(cDecl.getQualifiedName())) {
+      return ImmutableList.of(currentState.addToVariableBlacklist(cDecl.getQualifiedName()));
+    }
+
     if (cDecl instanceof CFunctionDeclaration) {
       CFunctionDeclaration cFuncDecl = (CFunctionDeclaration) cDecl;
       if (cFuncDecl.getQualifiedName().equals("main")) {
@@ -898,12 +903,7 @@ public class SMGTransferRelation
     } else if (cDecl instanceof CTypeDefDeclaration) {
       // TODO:
     } else if (cDecl instanceof CVariableDeclaration) {
-      // TODO: re enable CEGAR
-      // if (addressedVariables.contains(cDecl.getQualifiedName())) {
-      // return ImmutableList.of(state.addToVariableBlacklist(cDecl.getQualifiedName()));
-      // } else {
-      return handleVariableDeclaration(state, (CVariableDeclaration) cDecl, edge);
-      // }
+      return handleVariableDeclaration(currentState, (CVariableDeclaration) cDecl, edge);
     }
     // Fall through
     // TODO: log that declaration failed

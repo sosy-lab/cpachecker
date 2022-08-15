@@ -29,6 +29,7 @@ import org.sosy_lab.cpachecker.cpa.smg2.SMGCPAExportOptions;
 import org.sosy_lab.cpachecker.cpa.smg2.SMGOptions;
 import org.sosy_lab.cpachecker.cpa.smg2.SMGState;
 import org.sosy_lab.cpachecker.cpa.smg2.SMGTransferRelation;
+import org.sosy_lab.cpachecker.cpa.value.symbolic.ConstraintsStrengthenOperator;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.refinement.StrongestPostOperator;
@@ -46,7 +47,13 @@ public class SMGStrongestPostOperator implements StrongestPostOperator<SMGState>
     SMGOptions options = new SMGOptions(pConfig);
     SMGCPAExportOptions exportOptions =
         new SMGCPAExportOptions(options.getExportSMGFilePattern(), options.getExportSMGLevel());
-    transfer = new SMGTransferRelation(pLogger, options, exportOptions, pCfa);
+    transfer =
+        new SMGTransferRelation(
+            pLogger,
+            options,
+            exportOptions,
+            pCfa,
+            new ConstraintsStrengthenOperator(pConfig, pLogger));
   }
 
   @Override
