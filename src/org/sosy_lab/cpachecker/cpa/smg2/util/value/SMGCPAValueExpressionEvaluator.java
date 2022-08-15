@@ -18,7 +18,6 @@ import java.util.Optional;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.DummyCFAEdge;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
@@ -798,8 +797,9 @@ public class SMGCPAValueExpressionEvaluator {
     // Write the return value into the left hand side variable
     for (Optional<SMGObjectAndOffset> maybeVariableMemoryAndOffset : variableMemorysAndOffsets) {
       if (maybeVariableMemoryAndOffset.isEmpty()) {
-        // TODO: improve error msg
-        throw new SMG2Exception("No memory found to assign the value to.");
+        // throw new SMG2Exception("No memory found to assign the value to.");
+        successorsBuilder.add(currentState);
+        continue;
       }
       SMGObject leftHandSideVariableMemory =
           maybeVariableMemoryAndOffset.orElseThrow().getSMGObject();
@@ -821,41 +821,6 @@ public class SMGCPAValueExpressionEvaluator {
     }
 
     return successorsBuilder.build();
-  }
-
-  /*
-   * Get the address value of the entered field.
-   */
-  public Collection<ValueAndSMGState> getAddressOfField(
-      SMGState pInitialSmgState, CFieldReference pExpression) {
-    // CExpression fieldOwner = pExpression.getFieldOwner();
-    // CType ownerType = TypeUtils.getRealExpressionType(fieldOwner);
-    // TODO: rework this method because of 2 reasons: 1. its not understandable and documented and
-    // 2. because fields are linked by pointsToEdges, meaning we need only the address fo the
-    // general field (SMGObject) and the PointsToEdge holds the offsets, meaning we have to check
-    // those! Calculating the address + offset as a numeric value is pointless.
-    /*
-    return evaluateAddress(pInitialSmgState, fieldOwner)
-        .stream()
-        .map(
-            addressAndState -> {
-              Value addressValue = addressAndState.getValue();
-              SMGState state = addressAndState.getState();
-              String fieldName = pExpression.getFieldName();
-              CTypeAndValue field = getField(ownerType, fieldName);
-              if (field.getValue().isUnknown() || addressValue.isUnknown()) {
-                if (pExpression.isPointerDereference()) {
-                  state = handleUnknownDereference(state).getState();
-                }
-                Value fieldOffset = field.getValue().add(addressValue);
-                return ValueAndSMGState.of(fieldOffset, state);
-              }
-
-              return ValueAndSMGState.ofUnknownValue(state);
-            })
-        .collect(ImmutableSet.toImmutableSet());
-        */
-    return null;
   }
 
   private CTypeAndValue getField(CType pType, String pFieldName) {
