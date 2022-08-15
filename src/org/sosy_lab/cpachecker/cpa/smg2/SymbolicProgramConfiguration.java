@@ -754,6 +754,11 @@ public class SymbolicProgramConfiguration {
       return Optional.of(globalVariableMapping.get(pName));
     }
 
+    // Needed because of CEGAR
+    // TODO: track stack frames when creating states in CEGAR!
+    if (stackVariableMapping.isEmpty()) {
+      return Optional.empty();
+    }
     // Only look in the current stack frame
     StackFrame currentFrame = stackVariableMapping.peek();
     if (currentFrame.containsVariable(pName)) {
