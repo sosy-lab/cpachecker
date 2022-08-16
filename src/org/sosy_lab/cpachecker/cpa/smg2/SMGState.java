@@ -10,11 +10,13 @@ package org.sosy_lab.cpachecker.cpa.smg2;
 
 import com.google.common.base.CharMatcher;
 import com.google.common.base.Preconditions;
+import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import java.math.BigInteger;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -50,6 +52,7 @@ import org.sosy_lab.cpachecker.cpa.smg2.util.SPCAndSMGObjects;
 import org.sosy_lab.cpachecker.cpa.smg2.util.ValueAndValueSize;
 import org.sosy_lab.cpachecker.cpa.smg2.util.value.ValueAndSMGState;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.AddressExpression;
+import org.sosy_lab.cpachecker.cpa.value.symbolic.type.ConstantSymbolicExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValueFactory;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
@@ -663,7 +666,6 @@ public class SMGState
 
   @Override
   public boolean shouldBeHighlighted() {
-    // TODO Auto-generated method stub
     return false;
   }
 
@@ -686,7 +688,132 @@ public class SMGState
 
   @Override
   public boolean isLessOrEqual(SMGState pOther) throws CPAException, InterruptedException {
-    // TODO Auto-generated method stub
+    // also, this element is not less or equal than the other element, if it contains less elements
+    if (getSize() < pOther.getSize()) {
+      return false;
+    }
+
+    // also, this element is not less or equal than the other element,
+    // if any one constant's value of the other element differs from the constant's value in this
+    // element
+
+    // the tolerant way: ignore all type information.
+    PersistentMap<MemoryLocation, ValueAndValueSize> memLocAndValues =
+        memoryModel.getMemoryLocationsAndValuesForSPCWithoutHeap();
+    for (Entry<MemoryLocation, ValueAndValueSize> otherEntry :
+        pOther.memoryModel.getMemoryLocationsAndValuesForSPCWithoutHeap().entrySet()) {
+      MemoryLocation key = otherEntry.getKey();
+      Value otherValue = otherEntry.getValue().getValue();
+      ValueAndValueSize thisValueAndType = memLocAndValues.get(key);
+      if (thisValueAndType == null) {
+        return false;
+      }
+      if (!areValuesEqual(this, thisValueAndType.getValue(), pOther, otherValue)) {
+        return false;
+      }
+    }
+
+    return true;
+  }
+
+  private boolean areValuesEqual(
+      SMGState thisState, @Nullable Value thisValue, SMGState otherState, @Nullable Value otherValue) {
+    if (thisValue == otherValue) {
+      return true;
+    }
+    if (otherValue == null || thisValue == null) {
+      return false;
+    }
+
+    if (thisValue.isNumericValue() && otherValue.isNumericValue()) {
+      return thisValue.asNumericValue().bigInteger().compareTo(otherValue.asNumericValue().bigInteger()) == 0;
+    }
+
+      // Unknowns in this current CPA implementation are not comparable in different states!
+      // Each state generates a unique ConstantSymbolicExpression id (as its statically generated)
+      // Comparable is only that both are ConstantSymbolicExpressions and the type matches and
+      // that they do represent the same location
+      if (thisValue instanceof ConstantSymbolicExpression
+          && otherValue instanceof ConstantSymbolicExpression
+          && ((ConstantSymbolicExpression) thisValue)
+              .getType()
+              .equals(((ConstantSymbolicExpression) otherValue).getType())) {
+        return true;
+      }
+
+    // Pointers are more difficult, they are represented by a SymbolicIdentifier, again unique
+    // id. We need to use the CPA method
+    return memoryModel.isPointer(thisValue) && otherState.memoryModel.isPointer(otherValue) && isHeapEqualForTwoPointersWithTwoStates(thisState, thisValue, otherState, otherValue);
+  }
+
+  /* Check heap equality as far as possible. This has some limitations. We just check the shape and known values/pointers. */
+  private boolean isHeapEqualForTwoPointersWithTwoStates(
+      SMGState thisState, Value thisAddress, SMGState otherState, Value otherAddress) {
+    Optional<SMGObjectAndOffset> thisDeref = thisState.memoryModel.dereferencePointer(thisAddress);
+    Optional<SMGObjectAndOffset> otherDeref =
+        otherState.memoryModel.dereferencePointer(otherAddress);
+    if (thisDeref.equals(otherDeref)) {
+      // Empty, zero object or truly the same. We generate Objects with unique ids statically, so
+      // they are only equal if they are truly equal.
+      return true;
+    }
+    if (thisDeref.isPresent() && otherDeref.isPresent()) {
+      SMGObjectAndOffset thisDerefObjAndOffset = thisDeref.orElseThrow();
+      SMGObjectAndOffset otherDerefObjAndOffset = otherDeref.orElseThrow();
+      SMGObject thisObj = thisDerefObjAndOffset.getSMGObject();
+      SMGObject otherObj = otherDerefObjAndOffset.getSMGObject();
+      if (thisDerefObjAndOffset
+              .getOffsetForObject()
+              .compareTo(otherDerefObjAndOffset.getOffsetForObject())
+          != 0) {
+        return false;
+      } else if (!thisState
+          .memoryModel
+          .getPointerSpecifier(thisAddress)
+          .equals(otherState.memoryModel.getPointerSpecifier(otherAddress))) {
+        return false;
+      } else if (!(thisObj.getSize().compareTo(otherObj.getSize()) == 0
+          && thisObj.getNestingLevel() == otherObj.getNestingLevel()
+          && thisObj.getOffset().compareTo(otherObj.getOffset()) == 0)) {
+        return false;
+      }
+      // Offsets, sizes and target specifier match, check the edges
+      FluentIterable<SMGHasValueEdge> otherHVEs =
+          otherState
+              .memoryModel
+              .getSmg()
+              .getHasValueEdgesByPredicate(
+                  otherObj, e -> e.getOffset().compareTo(otherObj.getOffset()) >= 0);
+      FluentIterable<SMGHasValueEdge> thisHVEs =
+          thisState
+              .memoryModel
+              .getSmg()
+              .getHasValueEdgesByPredicate(
+                  thisObj, e -> e.getOffset().compareTo(thisObj.getOffset()) >= 0);
+      if (otherHVEs.size() > thisHVEs.size()) {
+        return false;
+      }
+
+      Map<BigInteger, SMGHasValueEdge> thisOffsetToHVEdgeMap = new HashMap<>();
+      for (SMGHasValueEdge hve : thisHVEs) {
+        thisOffsetToHVEdgeMap.put(hve.getOffset(), hve);
+      }
+      for (SMGHasValueEdge otherHVE : otherHVEs) {
+        BigInteger otherOffset = otherHVE.getOffset();
+        SMGHasValueEdge thisHVE = thisOffsetToHVEdgeMap.get(otherOffset);
+        if (thisHVE == null || thisHVE.getSizeInBits().compareTo(otherHVE.getSizeInBits()) != 0) {
+          return false;
+        }
+        // Check the Value (not the SMGValue!). If a SMGValue exists, a Value mapping exists.
+        Value otherHVEValue = otherState.memoryModel.getValueFromSMGValue(otherHVE.hasValue()).orElseThrow();
+        Value thisHVEValue = thisState.memoryModel.getValueFromSMGValue(thisHVE.hasValue()).orElseThrow();
+        // These values are either numeric, pointer or unknown
+        if (!areValuesEqual(thisState, thisHVEValue, otherState, otherHVEValue)) {
+          return false;
+        }
+      }
+      return true;
+    }
     return false;
   }
 

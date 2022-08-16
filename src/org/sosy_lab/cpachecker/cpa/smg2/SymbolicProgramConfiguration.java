@@ -920,6 +920,13 @@ public class SymbolicProgramConfiguration {
     return Optional.of(SMGObjectAndOffset.of(ptEdge.pointsTo(), ptEdge.getOffset()));
   }
 
+  /* This expects the Value to be a valid pointer! */
+  SMGTargetSpecifier getPointerSpecifier(Value pointer) {
+    SMGValue smgValueAddress = valueMapping.get(valueWrapper.wrap(pointer));
+    SMGPointsToEdge ptEdge = smg.getPTEdge(smgValueAddress).orElseThrow();
+    return ptEdge.targetSpecifier();
+  }
+
   /**
    * Returns true if the value entered is a pointer in the current SPC. This checks for the
    * existence of a known mapping from Value to SMGValue to a SMGPointsToEdge.
