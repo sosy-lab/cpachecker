@@ -14,7 +14,6 @@ import com.google.common.collect.ImmutableList;
 import java.math.BigInteger;
 import java.util.Collection;
 import java.util.List;
-import java.util.Optional;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
@@ -27,7 +26,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMG2Exception;
-import org.sosy_lab.cpachecker.cpa.smg2.util.SMGObjectAndOffset;
+import org.sosy_lab.cpachecker.cpa.smg2.util.SMGObjectAndOffsetOrSMGState;
 import org.sosy_lab.cpachecker.cpa.smg2.util.value.SMGCPAValueExpressionEvaluator;
 import org.sosy_lab.cpachecker.cpa.smg2.util.value.ValueAndSMGState;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValue;
@@ -72,21 +71,13 @@ public class SMGCPAAssigningValueVisitor extends SMGCPAValueVisitor {
     SMGState initialState = super.getInitialVisitorState();
 
     // First get possible assignables from the left and right hand expressions
-    // Those will not change and there is no side effect. We only want to know if the right/left
-    // hand side values are assignable later on
-    List<Optional<SMGObjectAndOffset>> leftHandSideAssignments;
-    List<Optional<SMGObjectAndOffset>> rightHandSideAssignments;
-
-    try {
-      leftHandSideAssignments = getAssignable(lVarInBinaryExp, initialState);
-      rightHandSideAssignments = getAssignable(rVarInBinaryExp, initialState);
-    } catch (SMG2Exception e) {
-      if (e.hasState()) {
-        return ImmutableList.of(ValueAndSMGState.ofUnknownValue(e.getErrorState()));
-      } else {
-        throw e;
-      }
-    }
+    // Those will not change, but there could be side effects (thats when they return a state).
+    // We only want to know if the right/left hand side values are assignable later on, so we ignore
+    // the side effects and assume that the value visitor would find the same!
+    List<SMGObjectAndOffsetOrSMGState> leftHandSideAssignments =
+        getAssignable(lVarInBinaryExp, initialState);
+    List<SMGObjectAndOffsetOrSMGState> rightHandSideAssignments =
+        getAssignable(rVarInBinaryExp, initialState);
 
     ImmutableList.Builder<ValueAndSMGState> finalValueAndStateBuilder = ImmutableList.builder();
 
@@ -136,13 +127,13 @@ public class SMGCPAAssigningValueVisitor extends SMGCPAValueVisitor {
             if (isEligibleForAssignment(leftValue)
                 && rightValue.isExplicitlyKnown()
                 && !evaluator.isPointerValue(leftValue, updatedState)
-                && isAssignable(leftHandSideAssignments)) {
+                && isAssignable(leftHandSideAssignments, lVarInBinaryExp)) {
               updatedState = replaceValue(leftValue, rightValue, updatedState);
 
             } else if (isEligibleForAssignment(rightValue)
                 && leftValue.isExplicitlyKnown()
                 && !evaluator.isPointerValue(rightValue, updatedState)
-                && isAssignable(rightHandSideAssignments)) {
+                && isAssignable(rightHandSideAssignments, rVarInBinaryExp)) {
               updatedState = replaceValue(rightValue, leftValue, updatedState);
             }
           }
@@ -158,7 +149,7 @@ public class SMGCPAAssigningValueVisitor extends SMGCPAValueVisitor {
         // !(a == b) case
         if (isNonEqualityAssumption(binaryOperator)) {
           if (assumingUnknownToBeZero(leftValue, rightValue)
-              && isAssignable(leftHandSideAssignments)) {
+              && isAssignable(leftHandSideAssignments, lVarInBinaryExp)) {
             String leftMemLocName = getExtendedQualifiedName((CExpression) unwrap(lVarInBinaryExp));
 
             if (options.isOptimizeBooleanVariables()
@@ -169,7 +160,7 @@ public class SMGCPAAssigningValueVisitor extends SMGCPAValueVisitor {
 
           } else if (options.isOptimizeBooleanVariables()
               && (assumingUnknownToBeZero(rightValue, leftValue)
-                  && isAssignable(rightHandSideAssignments))) {
+                  && isAssignable(rightHandSideAssignments, rVarInBinaryExp))) {
             String rightMemLocName =
                 getExtendedQualifiedName((CExpression) unwrap(rVarInBinaryExp));
 
@@ -221,7 +212,7 @@ public class SMGCPAAssigningValueVisitor extends SMGCPAValueVisitor {
    * @return a list of non-empty Optionals in the case of a assignable expression.
    * @throws CPATransferException in case of a critical error i.e. uninitialized variable used.
    */
-  private List<Optional<SMGObjectAndOffset>> getAssignable(
+  private List<SMGObjectAndOffsetOrSMGState> getAssignable(
       CExpression expression, SMGState currentState) throws CPATransferException {
     if (expression instanceof CFieldReference
         || expression instanceof CArraySubscriptExpression
@@ -238,17 +229,31 @@ public class SMGCPAAssigningValueVisitor extends SMGCPAValueVisitor {
       return expression.accept(av);
     }
 
-    return ImmutableList.of(Optional.empty());
+    return ImmutableList.of(SMGObjectAndOffsetOrSMGState.of(currentState));
   }
 
-  private boolean isAssignable(List<Optional<SMGObjectAndOffset>> possibleAssignables) {
-    for (Optional<SMGObjectAndOffset> possibleAssignable : possibleAssignables) {
-      if (possibleAssignable.isPresent()) {
-        // If there is a optional present the object and offset exist!
-        return true;
+  private boolean isAssignable(
+      List<SMGObjectAndOffsetOrSMGState> possibleAssignables, CExpression expression) {
+    for (SMGObjectAndOffsetOrSMGState possibleAssignable : possibleAssignables) {
+      if (possibleAssignable.hasSMGState()) {
+        // If there is a state, its either a error or a non existing memory. However, due to CEGAR
+        // its possible to not have a memory location while not being blacklisted, so check that.
+        if (expression instanceof CIdExpression) {
+          CIdExpression cidExpr = (CIdExpression) expression;
+          if (cidExpr.getDeclaration() == null) {
+            return false;
+          }
+          String qualName = cidExpr.getDeclaration().getQualifiedName();
+          // Initial state is fine! Blacklists don't change in visitor calls
+          if (super.getInitialVisitorState().getVariableBlackList().contains(qualName)) {
+            throw new RuntimeException(
+                "Not handled case of variable declaration in the assigning value visitor.");
+          }
+        }
+        return false;
       }
     }
-    return false;
+    return true;
   }
 
   private boolean isEligibleForAssignment(final Value pValue) {

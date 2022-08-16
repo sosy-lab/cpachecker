@@ -47,6 +47,7 @@ import org.sosy_lab.cpachecker.cpa.smg2.SMGState;
 import org.sosy_lab.cpachecker.cpa.smg2.SymbolicProgramConfiguration;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMG2Exception;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGObjectAndOffset;
+import org.sosy_lab.cpachecker.cpa.smg2.util.SMGObjectAndOffsetOrSMGState;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGObjectAndSMGState;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.AddressExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicIdentifier;
@@ -383,24 +384,16 @@ public class SMGCPAValueExpressionEvaluator {
     // only interesting in a failure case in which the analysis stops!
     SMGCPAAddressVisitor addressVisitor = new SMGCPAAddressVisitor(this, pState, cfaEdge, logger);
     ImmutableList.Builder<ValueAndSMGState> resultBuilder = ImmutableList.builder();
-    List<Optional<SMGObjectAndOffset>> variableMemorysAndOffsets;
-    try {
-      variableMemorysAndOffsets = operand.accept(addressVisitor);
-    } catch (SMG2Exception e) {
-      if (e.hasState()) {
-        return ImmutableList.of(ValueAndSMGState.ofUnknownValue(e.getErrorState()));
-      } else {
-        throw e;
-      }
-    }
-    for (Optional<SMGObjectAndOffset> maybeObjectAndOffset : variableMemorysAndOffsets) {
-      SMGState currentState = pState;
-      if (maybeObjectAndOffset.isEmpty()) {
+    SMGState currentState = pState;
+    for (SMGObjectAndOffsetOrSMGState objectAndOffsetOrState : operand.accept(addressVisitor)) {
+
+      if (objectAndOffsetOrState.hasSMGState()) {
         // Functions are not declared, but the address might be requested anyway, so we have to
         // create the address
         if (operand instanceof CIdExpression
             && SMGCPAValueExpressionEvaluator.getCanonicalType(operand.getExpressionType())
                 instanceof CFunctionType) {
+          currentState = objectAndOffsetOrState.getSMGState();
           CFunctionDeclaration functionDcl =
               (CFunctionDeclaration) ((CIdExpression) operand).getDeclaration();
           Optional<SMGObject> functionObject = currentState.getObjectForFunction(functionDcl);
@@ -409,8 +402,8 @@ public class SMGCPAValueExpressionEvaluator {
             currentState = currentState.copyAndAddFunctionVariable(functionDcl);
             functionObject = currentState.getObjectForFunction(functionDcl);
           }
-          maybeObjectAndOffset =
-              Optional.of(SMGObjectAndOffset.withZeroOffset(functionObject.orElseThrow()));
+          objectAndOffsetOrState =
+              SMGObjectAndOffsetOrSMGState.withZeroOffset(functionObject.orElseThrow());
         } else {
           // This is not necessarily an error! If we can't get a address because a lookup is based
           // on
@@ -422,9 +415,8 @@ public class SMGCPAValueExpressionEvaluator {
           continue;
         }
       }
-      SMGObjectAndOffset targetAndOffset = maybeObjectAndOffset.orElseThrow();
-      SMGObject target = targetAndOffset.getSMGObject();
-      BigInteger offset = targetAndOffset.getOffsetForObject();
+      SMGObject target = objectAndOffsetOrState.getSMGObject();
+      BigInteger offset = objectAndOffsetOrState.getOffsetForObject();
       // search for existing pointer first and return if found; else make a new one
       ValueAndSMGState addressAndState = searchOrCreatePointer(target, offset, currentState);
       resultBuilder.add(
@@ -629,16 +621,14 @@ public class SMGCPAValueExpressionEvaluator {
 
   /**
    * Returns the {@link SMGObjectAndOffset} pair for the entered address {@link Value} and
-   * additional offset on the entered state. This does not really dereference the address {@link
-   * Value}, think of it like &*pointer.
+   * additional offset on the entered state. This does dereference the address {@link Value}.
    *
    * @param pState current {@link SMGState}.
    * @param value {@link Value} pointer to be dereferenced leading to the {@link SMGObject} desired.
    * @param pOffsetInBits used offset when dereferencing.
-   * @return the desired {@link SMGObject} and its offset or an empty optional.
-   * @throws SMG2Exception thrown if the dereference encounters a problem.
+   * @return the desired {@link SMGObject} and its offset or an State with potentially an error.
    */
-  public Optional<SMGObjectAndOffset> getTargetObjectAndOffset(
+  public SMGObjectAndOffsetOrSMGState getTargetObjectAndOffset(
       SMGState pState, Value value, BigInteger pOffsetInBits) throws SMG2Exception {
     // TODO: maybe use this in readValueWithPointerDereference?
     Optional<SMGObjectAndOffset> maybeTargetAndOffset =
@@ -646,13 +636,14 @@ public class SMGCPAValueExpressionEvaluator {
     if (maybeTargetAndOffset.isEmpty()) {
       // The value is unknown and therefore does not point to a valid memory location
       SMGState errorState = pState.withUnknownPointerDereferenceWhenReading(value);
-      throw new SMG2Exception(errorState);
+      // TODO: the analysis is not precise from this point onwards
+      return SMGObjectAndOffsetOrSMGState.ofErrorState(errorState);
     }
     SMGObjectAndOffset targetAndOffset = maybeTargetAndOffset.orElseThrow();
     BigInteger baseOffset = targetAndOffset.getOffsetForObject();
     BigInteger finalOffset = baseOffset.add(pOffsetInBits);
 
-    return Optional.of(SMGObjectAndOffset.of(targetAndOffset.getSMGObject(), finalOffset));
+    return SMGObjectAndOffsetOrSMGState.of(targetAndOffset.getSMGObject(), finalOffset);
   }
 
   /**
@@ -781,29 +772,18 @@ public class SMGCPAValueExpressionEvaluator {
       CType valueType)
       throws CPATransferException {
     BigInteger sizeInBits = getBitSizeof(currentState, leftHandSideValue);
-    // Get the memory for the left hand side variable
-    List<Optional<SMGObjectAndOffset>> variableMemorysAndOffsets;
-    try {
-      variableMemorysAndOffsets =
-          leftHandSideValue.accept(new SMGCPAAddressVisitor(this, currentState, edge, logger));
-    } catch (SMG2Exception e) {
-      if (e.hasState()) {
-        return ImmutableList.of(e.getErrorState());
-      } else {
-        throw e;
-      }
-    }
     ImmutableList.Builder<SMGState> successorsBuilder = ImmutableList.builder();
+    // Get the memory for the left hand side variable
     // Write the return value into the left hand side variable
-    for (Optional<SMGObjectAndOffset> maybeVariableMemoryAndOffset : variableMemorysAndOffsets) {
-      if (maybeVariableMemoryAndOffset.isEmpty()) {
+    for (SMGObjectAndOffsetOrSMGState variableMemoryAndOffsetOrState :
+        leftHandSideValue.accept(new SMGCPAAddressVisitor(this, currentState, edge, logger))) {
+      if (variableMemoryAndOffsetOrState.hasSMGState()) {
         // throw new SMG2Exception("No memory found to assign the value to.");
-        successorsBuilder.add(currentState);
+        successorsBuilder.add(variableMemoryAndOffsetOrState.getSMGState());
         continue;
       }
-      SMGObject leftHandSideVariableMemory =
-          maybeVariableMemoryAndOffset.orElseThrow().getSMGObject();
-      BigInteger offsetInBits = maybeVariableMemoryAndOffset.orElseThrow().getOffsetForObject();
+      SMGObject leftHandSideVariableMemory = variableMemoryAndOffsetOrState.getSMGObject();
+      BigInteger offsetInBits = variableMemoryAndOffsetOrState.getOffsetForObject();
       if (leftHandSideValue.getExpressionType() != valueType) {
         ValueAndSMGState castedValueAndState =
             new SMGCPAValueVisitor(this, currentState, edge, logger)

@@ -915,8 +915,8 @@ public class SymbolicProgramConfiguration {
       // Not known or not known as a pointer, return nothing
       return Optional.empty();
     }
-    SMGPointsToEdge ptEdge =
-        smg.getPTEdge(valueMapping.get(valueWrapper.wrap(pointer))).orElseThrow();
+    SMGValue smgValueAddress = valueMapping.get(valueWrapper.wrap(pointer));
+    SMGPointsToEdge ptEdge = smg.getPTEdge(smgValueAddress).orElseThrow();
     return Optional.of(SMGObjectAndOffset.of(ptEdge.pointsTo(), ptEdge.getOffset()));
   }
 

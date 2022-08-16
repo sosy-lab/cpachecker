@@ -89,6 +89,7 @@ import org.sosy_lab.cpachecker.cpa.pointer2.PointerState;
 import org.sosy_lab.cpachecker.cpa.rtt.RTTState;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMG2Exception;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGObjectAndOffset;
+import org.sosy_lab.cpachecker.cpa.smg2.util.SMGObjectAndOffsetOrSMGState;
 import org.sosy_lab.cpachecker.cpa.smg2.util.value.SMGCPAValueExpressionEvaluator;
 import org.sosy_lab.cpachecker.cpa.smg2.util.value.ValueAndSMGState;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.ConstraintsStrengthenOperator;
@@ -1487,11 +1488,13 @@ public class SMGTransferRelation
     if (SMGCPAValueExpressionEvaluator.isStructOrUnionType(typeOfWrite)) {
       // Copy of the entire structure instead of just a write
       // Source == right hand side
-      for (Optional<SMGObjectAndOffset> maybeSourceObjectAndOffset :
+      for (SMGObjectAndOffsetOrSMGState sourceObjectAndOffsetOrState :
           exprToWrite.accept(new SMGCPAAddressVisitor(evaluator, pState, cfaEdge, logger))) {
-        Preconditions.checkArgument(maybeSourceObjectAndOffset.isPresent());
+        if (sourceObjectAndOffsetOrState.hasSMGState()) {
+          resultStatesBuilder.add(sourceObjectAndOffsetOrState.getSMGState());
+          continue;
+        }
         Preconditions.checkArgument(pOffsetInBits.intValueExact() == 0);
-        SMGObjectAndOffset sourceObjectAndOffset = maybeSourceObjectAndOffset.orElseThrow();
 
         Optional<SMGObjectAndOffset> maybeLeftHandSideVariableObject =
             evaluator.getTargetObjectAndOffset(currentState, variableName);
@@ -1504,8 +1507,8 @@ public class SMGTransferRelation
 
         resultStatesBuilder.add(
             currentState.copySMGObjectContentToSMGObject(
-                sourceObjectAndOffset.getSMGObject(),
-                sourceObjectAndOffset.getOffsetForObject(),
+                sourceObjectAndOffsetOrState.getSMGObject(),
+                sourceObjectAndOffsetOrState.getOffsetForObject(),
                 addressToWriteTo,
                 offsetToWriteTo,
                 addressToWriteTo.getSize().subtract(offsetToWriteTo)));
@@ -1558,33 +1561,24 @@ public class SMGTransferRelation
     CType leftHandSideType = SMGCPAValueExpressionEvaluator.getCanonicalType(lValue);
 
     ImmutableList.Builder<SMGState> returnStateBuilder = ImmutableList.builder();
-    SMGCPAAddressVisitor leftHandSidevisitor =
-        new SMGCPAAddressVisitor(evaluator, pState, cfaEdge, logger);
-    SMGCPAValueVisitor rightHandSideVisitor =
-        new SMGCPAValueVisitor(evaluator, pState, cfaEdge, logger);
-
     SMGState currentState = pState;
-    List<Optional<SMGObjectAndOffset>> maybeAddresses;
-    try {
-      maybeAddresses = lValue.accept(leftHandSidevisitor);
-    } catch (SMG2Exception e) {
-      if (e.hasState()) {
-        return ImmutableList.of(e.getErrorState());
-      } else {
-        throw e;
-      }
-    }
-    for (Optional<SMGObjectAndOffset> maybeAddress : maybeAddresses) {
-      if (maybeAddress.isEmpty()) {
+    for (SMGObjectAndOffsetOrSMGState targetAndOffsetOrState :
+        lValue.accept(new SMGCPAAddressVisitor(evaluator, pState, cfaEdge, logger))) {
+
+      if (targetAndOffsetOrState.hasSMGState()) {
         // No memory for the left hand side found -> UNKNOWN
         // We still evaluate the right hand side to find errors though
-        List<ValueAndSMGState> listOfStates = rValue.accept(rightHandSideVisitor);
+        List<ValueAndSMGState> listOfStates =
+            rValue.accept(
+                new SMGCPAValueVisitor(
+                    evaluator, targetAndOffsetOrState.getSMGState(), cfaEdge, logger));
         returnStateBuilder.addAll(Lists.transform(listOfStates, ValueAndSMGState::getState));
         continue;
       }
-      SMGObjectAndOffset addressAndOffsetToWriteTo = maybeAddress.orElseThrow();
-      SMGObject addressToWriteTo = addressAndOffsetToWriteTo.getSMGObject();
-      BigInteger offsetToWriteTo = addressAndOffsetToWriteTo.getOffsetForObject();
+      SMGCPAValueVisitor rightHandSideVisitor =
+          new SMGCPAValueVisitor(evaluator, pState, cfaEdge, logger);
+      SMGObject addressToWriteTo = targetAndOffsetOrState.getSMGObject();
+      BigInteger offsetToWriteTo = targetAndOffsetOrState.getOffsetForObject();
 
       if (leftHandSideType instanceof CPointerType && rightHandSideType instanceof CArrayType) {
         // Implicit & on the array expr

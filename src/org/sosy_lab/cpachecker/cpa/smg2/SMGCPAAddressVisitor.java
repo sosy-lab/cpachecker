@@ -29,6 +29,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMG2Exception;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGObjectAndOffset;
+import org.sosy_lab.cpachecker.cpa.smg2.util.SMGObjectAndOffsetOrSMGState;
 import org.sosy_lab.cpachecker.cpa.smg2.util.value.SMGCPAValueExpressionEvaluator;
 import org.sosy_lab.cpachecker.cpa.smg2.util.value.ValueAndSMGState;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.AddressExpression;
@@ -36,7 +37,6 @@ import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicIdentifier;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGObject;
-import org.sosy_lab.cpachecker.util.smg.graph.SMGValue;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 /**
@@ -48,8 +48,8 @@ import org.sosy_lab.cpachecker.util.states.MemoryLocation;
  * a dedicated error without exception catching).
  */
 public class SMGCPAAddressVisitor
-    extends DefaultCExpressionVisitor<List<Optional<SMGObjectAndOffset>>, CPATransferException>
-    implements CRightHandSideVisitor<List<Optional<SMGObjectAndOffset>>, CPATransferException> {
+    extends DefaultCExpressionVisitor<List<SMGObjectAndOffsetOrSMGState>, CPATransferException>
+    implements CRightHandSideVisitor<List<SMGObjectAndOffsetOrSMGState>, CPATransferException> {
 
   private final SMGCPAValueExpressionEvaluator evaluator;
 
@@ -72,7 +72,7 @@ public class SMGCPAAddressVisitor
   }
 
   @Override
-  public List<Optional<SMGObjectAndOffset>> visit(
+  public List<SMGObjectAndOffsetOrSMGState> visit(
       CFunctionCallExpression pIastFunctionCallExpression) throws CPATransferException {
     // Evaluate the expression to a Value; this should return a Symbolic Value with the address of
     // the target and a offset if it really has a address. If this fails this returns a different
@@ -82,11 +82,11 @@ public class SMGCPAAddressVisitor
         new SMGCPAValueVisitor(evaluator, state, cfaEdge, logger));
         */
     // TODO handle possible returns
-    return ImmutableList.of(Optional.empty());
+    return ImmutableList.of(SMGObjectAndOffsetOrSMGState.of(state));
   }
 
   @Override
-  protected List<Optional<SMGObjectAndOffset>> visitDefault(CExpression pExp)
+  protected List<SMGObjectAndOffsetOrSMGState> visitDefault(CExpression pExp)
       throws CPATransferException {
     // Just get a default value and log
     logger.logf(
@@ -94,13 +94,13 @@ public class SMGCPAAddressVisitor
         "%s, Default value: CExpression %s could not find a address for %s. Related CFAEdge: %s",
         cfaEdge.getFileLocation(),
         pExp,
-        SMGValue.zeroValue(),
+        state,
         cfaEdge.getRawStatement());
-    return ImmutableList.of(Optional.empty());
+    return ImmutableList.of(SMGObjectAndOffsetOrSMGState.of(state));
   }
 
   @Override
-  public List<Optional<SMGObjectAndOffset>> visit(CArraySubscriptExpression e)
+  public List<SMGObjectAndOffsetOrSMGState> visit(CArraySubscriptExpression e)
       throws CPATransferException {
     // Array subscript is default Java array usage. Example: array[5]
     // In C this can be translated to *(array + 5), but the array may be on the stack/heap (or
@@ -111,31 +111,31 @@ public class SMGCPAAddressVisitor
     // The type of the arrayExpr may be pointer or array, depending on stack/heap
     CExpression arrayExpr = e.getArrayExpression();
     CExpression subscriptExpr = e.getSubscriptExpression();
-    ImmutableList.Builder<Optional<SMGObjectAndOffset>> resultBuilder = ImmutableList.builder();
+    ImmutableList.Builder<SMGObjectAndOffsetOrSMGState> resultBuilder = ImmutableList.builder();
 
     for (ValueAndSMGState arrayValueAndState :
         arrayExpr.accept(new SMGCPAValueVisitor(evaluator, state, cfaEdge, logger))) {
       Value arrayValue = arrayValueAndState.getValue();
+      SMGState currentState = arrayValueAndState.getState();
 
       if (arrayValue.isUnknown()) {
-        resultBuilder.add(Optional.empty());
+        resultBuilder.add(SMGObjectAndOffsetOrSMGState.of(currentState));
         continue;
       }
 
       // Evaluate the subscript as far as possible
       for (ValueAndSMGState subscriptValueAndState :
-          subscriptExpr.accept(
-              new SMGCPAValueVisitor(evaluator, arrayValueAndState.getState(), cfaEdge, logger))) {
+          subscriptExpr.accept(new SMGCPAValueVisitor(evaluator, currentState, cfaEdge, logger))) {
 
         Value subscriptValue = subscriptValueAndState.getValue();
-        SMGState currentState = subscriptValueAndState.getState();
+        currentState = subscriptValueAndState.getState();
         // If the subscript is a unknown value, we can't read anything and return unknown
         if (!subscriptValue.isNumericValue()) {
           logger.log(
               Level.FINE,
               "A subscript value was found to be non concrete when trying to find a memory location"
                   + " of an array. No memory region could be returned.");
-          resultBuilder.add(Optional.empty());
+          resultBuilder.add(SMGObjectAndOffsetOrSMGState.of(currentState));
           continue;
         }
         // Calculate the offset out of the subscript value and the type
@@ -156,7 +156,7 @@ public class SMGCPAAddressVisitor
                 Level.FINE,
                 "A offset value was found to be non concrete when trying to find a memory"
                     + " location in an array. No memory region could be returned.");
-            resultBuilder.add(Optional.empty());
+            resultBuilder.add(SMGObjectAndOffsetOrSMGState.of(currentState));
           }
           BigInteger baseOffset = addrOffset.asNumericValue().bigInteger();
           BigInteger finalOffset = baseOffset.add(subscriptOffset);
@@ -173,16 +173,22 @@ public class SMGCPAAddressVisitor
           BigInteger baseOffset = BigInteger.valueOf(variableAndOffset.getOffset());
           BigInteger finalOffset = baseOffset.add(subscriptOffset);
 
-          resultBuilder.add(evaluator.getTargetObjectAndOffset(currentState, varName, finalOffset));
+          Optional<SMGObjectAndOffset> maybeTarget =
+              evaluator.getTargetObjectAndOffset(currentState, varName, finalOffset);
+          if (maybeTarget.isPresent()) {
+            resultBuilder.add(SMGObjectAndOffsetOrSMGState.of(maybeTarget.orElseThrow()));
+          } else {
+            resultBuilder.add(SMGObjectAndOffsetOrSMGState.of(currentState));
+          }
 
         } else {
           // Might be numeric 0 (0 object). All else cases are basically invalid requests.
           if (arrayValue.isNumericValue()
               && arrayValue.asNumericValue().bigInteger().compareTo(BigInteger.ZERO) == 0) {
             resultBuilder.add(
-                Optional.of(SMGObjectAndOffset.of(SMGObject.nullInstance(), subscriptOffset)));
+                SMGObjectAndOffsetOrSMGState.of(SMGObject.nullInstance(), subscriptOffset));
           } else {
-            resultBuilder.add(Optional.empty());
+            resultBuilder.add(SMGObjectAndOffsetOrSMGState.of(currentState));
           }
         }
       }
@@ -191,12 +197,12 @@ public class SMGCPAAddressVisitor
   }
 
   @Override
-  public List<Optional<SMGObjectAndOffset>> visit(CCastExpression e) throws CPATransferException {
+  public List<SMGObjectAndOffsetOrSMGState> visit(CCastExpression e) throws CPATransferException {
     return e.getOperand().accept(this);
   }
 
   @Override
-  public List<Optional<SMGObjectAndOffset>> visit(CFieldReference e) throws CPATransferException {
+  public List<SMGObjectAndOffsetOrSMGState> visit(CFieldReference e) throws CPATransferException {
     // This is the field of a struct/union, so smth like struct.field or struct->field.
     // In the later case its a pointer dereference.
     // Get the object of the field with its offset
@@ -207,7 +213,7 @@ public class SMGCPAAddressVisitor
     // Owner expression; the struct/union with this field. Use this to get the address of the
     // general object.
     CExpression ownerExpression = explicitReference.getFieldOwner();
-    ImmutableList.Builder<Optional<SMGObjectAndOffset>> resultBuilder = ImmutableList.builder();
+    ImmutableList.Builder<SMGObjectAndOffsetOrSMGState> resultBuilder = ImmutableList.builder();
     for (ValueAndSMGState structValuesAndState :
         ownerExpression.accept(new SMGCPAValueVisitor(evaluator, state, cfaEdge, logger))) {
       // This value is either a AddressValue for pointers i.e. (*struct).field or a general
@@ -215,7 +221,7 @@ public class SMGCPAAddressVisitor
       Value structValue = structValuesAndState.getValue();
       SMGState currentState = structValuesAndState.getState();
       if (structValue.isUnknown()) {
-        resultBuilder.add(Optional.empty());
+        resultBuilder.add(SMGObjectAndOffsetOrSMGState.of(currentState));
         continue;
       }
 
@@ -230,7 +236,7 @@ public class SMGCPAAddressVisitor
         Value addrOffset = structAddr.getOffset();
         if (!addrOffset.isNumericValue()) {
           // Non numeric offset -> not usable
-          resultBuilder.add(Optional.empty());
+          resultBuilder.add(SMGObjectAndOffsetOrSMGState.of(currentState));
         }
         BigInteger baseOffset = addrOffset.asNumericValue().bigInteger();
         BigInteger finalFieldOffset = baseOffset.add(fieldOffset);
@@ -247,17 +253,22 @@ public class SMGCPAAddressVisitor
         BigInteger baseOffset = BigInteger.valueOf(variableAndOffset.getOffset());
         BigInteger finalFieldOffset = baseOffset.add(fieldOffset);
 
-        resultBuilder.add(
-            evaluator.getTargetObjectAndOffset(currentState, varName, finalFieldOffset));
+        Optional<SMGObjectAndOffset> maybeTarget =
+            evaluator.getTargetObjectAndOffset(currentState, varName, finalFieldOffset);
+        if (maybeTarget.isPresent()) {
+          resultBuilder.add(SMGObjectAndOffsetOrSMGState.of(maybeTarget.orElseThrow()));
+        } else {
+          resultBuilder.add(SMGObjectAndOffsetOrSMGState.of(currentState));
+        }
 
       } else {
         // Might be numeric 0 (0 object). All else cases are basically invalid requests.
         if (structValue.isNumericValue()
             && structValue.asNumericValue().bigInteger().compareTo(BigInteger.ZERO) == 0) {
-          resultBuilder.add(
-              Optional.of(SMGObjectAndOffset.of(SMGObject.nullInstance(), fieldOffset)));
+          SMGObjectAndOffsetOrSMGState.of(currentState);
+          resultBuilder.add(SMGObjectAndOffsetOrSMGState.of(SMGObject.nullInstance(), fieldOffset));
         } else {
-          resultBuilder.add(Optional.empty());
+          resultBuilder.add(SMGObjectAndOffsetOrSMGState.of(currentState));
         }
       }
     }
@@ -265,17 +276,23 @@ public class SMGCPAAddressVisitor
   }
 
   @Override
-  public List<Optional<SMGObjectAndOffset>> visit(CIdExpression e) throws CPATransferException {
+  public List<SMGObjectAndOffsetOrSMGState> visit(CIdExpression e) throws CPATransferException {
     CSimpleDeclaration varDecl = e.getDeclaration();
     if (varDecl == null) {
       // The var was not declared
       throw new SMG2Exception("Usage of undeclared variable: " + e.getName() + ".");
     }
-    return ImmutableList.of(evaluator.getTargetObjectAndOffset(state, varDecl.getQualifiedName()));
+    Optional<SMGObjectAndOffset> maybeTarget =
+        evaluator.getTargetObjectAndOffset(state, varDecl.getQualifiedName());
+    if (maybeTarget.isPresent()) {
+      return ImmutableList.of(SMGObjectAndOffsetOrSMGState.of(maybeTarget.orElseThrow()));
+    } else {
+      return ImmutableList.of(SMGObjectAndOffsetOrSMGState.of(state));
+    }
   }
 
   @Override
-  public List<Optional<SMGObjectAndOffset>> visit(CPointerExpression e)
+  public List<SMGObjectAndOffsetOrSMGState> visit(CPointerExpression e)
       throws CPATransferException {
     // This should subavaluate to a AddressExpression in the visit call in the beginning as we
     // always evaluate to the address
@@ -287,14 +304,14 @@ public class SMGCPAAddressVisitor
     // Evaluate the expression to a Value; this should return a Symbolic Value with the address of
     // the target and a offset. If this fails this returns a UnknownValue.
 
-    ImmutableList.Builder<Optional<SMGObjectAndOffset>> resultBuilder = ImmutableList.builder();
+    ImmutableList.Builder<SMGObjectAndOffsetOrSMGState> resultBuilder = ImmutableList.builder();
     for (ValueAndSMGState evaluatedSubExpr :
         expr.accept(new SMGCPAValueVisitor(evaluator, state, cfaEdge, logger))) {
       SMGState currentState = evaluatedSubExpr.getState();
       // Try to disassemble the values (AddressExpression)
       Value value = evaluatedSubExpr.getValue();
       if (!(value instanceof AddressExpression)) {
-        resultBuilder.add(Optional.empty());
+        resultBuilder.add(SMGObjectAndOffsetOrSMGState.of(currentState));
         continue;
       }
 
@@ -304,7 +321,7 @@ public class SMGCPAAddressVisitor
       Value offset = pointerValue.getOffset();
       if (!offset.isNumericValue()) {
         // If the offset is not numericly known we can't read a value, return
-        resultBuilder.add(Optional.empty());
+        resultBuilder.add(SMGObjectAndOffsetOrSMGState.of(currentState));
         continue;
       }
 
