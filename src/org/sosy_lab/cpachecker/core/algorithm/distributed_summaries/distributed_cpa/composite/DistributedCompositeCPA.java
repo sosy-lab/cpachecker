@@ -8,7 +8,8 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.composite;
 
-import java.util.Collection;
+import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableList;
 import java.util.Map;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
@@ -18,6 +19,7 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.SerializeOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.combine.CombineOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.proceed.ProceedOperator;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryErrorConditionMessage;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
@@ -38,7 +40,9 @@ public class DistributedCompositeCPA implements DistributedConfigurableProgramAn
   private final CombineOperator combine;
   private final ProceedCompositeStateOperator proceed;
 
-  private final Collection<DistributedConfigurableProgramAnalysis> analyses;
+  private final Map<
+          Class<? extends ConfigurableProgramAnalysis>, DistributedConfigurableProgramAnalysis>
+      analyses;
 
   public DistributedCompositeCPA(
       CompositeCPA pCompositeCPA,
@@ -51,7 +55,7 @@ public class DistributedCompositeCPA implements DistributedConfigurableProgramAn
     deserialize = new DeserializeCompositeStateOperator(compositeCPA, pNode, registered);
     combine = new CombineCompositeStateOperator(registered);
     proceed = new ProceedCompositeStateOperator(registered, pDirection);
-    analyses = registered.values();
+    analyses = registered;
   }
 
   @Override
@@ -81,9 +85,17 @@ public class DistributedCompositeCPA implements DistributedConfigurableProgramAn
 
   @Override
   public BooleanFormula getErrorCondition(FormulaManagerView pFormulaManagerView) {
-    return analyses.stream()
+    return analyses.values().stream()
         .map(a -> a.getErrorCondition(pFormulaManagerView))
         .collect(pFormulaManagerView.getBooleanFormulaManager().toConjunction());
+  }
+
+  @Override
+  public void updateErrorCondition(BlockSummaryErrorConditionMessage pMessage)
+      throws InterruptedException {
+    for (DistributedConfigurableProgramAnalysis value : analyses.values()) {
+      value.updateErrorCondition(pMessage);
+    }
   }
 
   @Override
@@ -115,6 +127,15 @@ public class DistributedCompositeCPA implements DistributedConfigurableProgramAn
   @Override
   public AbstractState getInitialState(CFANode node, StateSpacePartition partition)
       throws InterruptedException {
-    return compositeCPA.getInitialState(node, partition);
+    Preconditions.checkNotNull(node);
+    ImmutableList.Builder<AbstractState> initialStates = ImmutableList.builder();
+    for (ConfigurableProgramAnalysis sp : compositeCPA.getWrappedCPAs()) {
+      if (analyses.containsKey(sp.getClass())) {
+        initialStates.add(analyses.get(sp.getClass()).getInitialState(node, partition));
+      } else {
+        initialStates.add(sp.getInitialState(node, partition));
+      }
+    }
+    return new CompositeState(initialStates.build());
   }
 }

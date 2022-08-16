@@ -40,15 +40,15 @@ public class SerializePredicateStateOperator implements SerializeOperator {
     PredicateAbstractState state = (PredicateAbstractState) pState;
     PathFormula pathFormula;
     if (state.isAbstractionState()) {
-      /*if (state.getAbstractionFormula().isTrue() && direction == AnalysisDirection.BACKWARD) {
+      if (state.getAbstractionFormula().isTrue() && direction == AnalysisDirection.BACKWARD) {
         pathFormula = state.getAbstractionFormula().getBlockFormula();
       } else {
         pathFormula =
             pathFormulaManager
                 .makeEmptyPathFormula()
                 .withFormula(state.getAbstractionFormula().asFormula());
-      }*/
-      pathFormula = state.getAbstractionFormula().getBlockFormula();
+      }
+      // pathFormula = state.getAbstractionFormula().getBlockFormula();
     } else {
       pathFormula = state.getPathFormula();
     }

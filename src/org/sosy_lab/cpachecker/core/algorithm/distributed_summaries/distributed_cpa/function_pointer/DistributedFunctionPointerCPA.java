@@ -17,6 +17,7 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.combine.CombineWithMerge;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.proceed.AlwaysProceed;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.proceed.ProceedOperator;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryErrorConditionMessage;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
@@ -73,6 +74,12 @@ public class DistributedFunctionPointerCPA implements DistributedConfigurablePro
   @Override
   public BooleanFormula getErrorCondition(FormulaManagerView pFormulaManagerView) {
     return pFormulaManagerView.getBooleanFormulaManager().makeTrue();
+  }
+
+  @Override
+  public void updateErrorCondition(BlockSummaryErrorConditionMessage pMessage)
+      throws InterruptedException {
+
   }
 
   @Override

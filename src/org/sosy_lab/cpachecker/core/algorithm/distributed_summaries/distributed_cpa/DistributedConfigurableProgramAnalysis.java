@@ -8,15 +8,16 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa;
 
+import com.google.common.collect.Iterables;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.block_analysis.BlockAnalysisUtil;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.BlockNode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.composite.DistributedCompositeCPA;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.DeserializeOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.SerializeOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.combine.CombineOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.proceed.ProceedOperator;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryErrorConditionMessage;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.BlockSummaryAnalysisOptions;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
@@ -75,6 +76,8 @@ public interface DistributedConfigurableProgramAnalysis extends ConfigurableProg
    */
   BooleanFormula getErrorCondition(FormulaManagerView pFormulaManagerView);
 
+  void updateErrorCondition(BlockSummaryErrorConditionMessage pMessage) throws InterruptedException;
+
   /**
    * Check whether this distributed CPA can work with {@code pClass}.
    *
@@ -94,15 +97,18 @@ public interface DistributedConfigurableProgramAnalysis extends ConfigurableProg
   void synchronizeKnowledge(DistributedConfigurableProgramAnalysis pAnalysis)
       throws InterruptedException;
 
-  static DistributedCompositeCPA distribute(
+  static DistributedConfigurableProgramAnalysis distribute(
       ConfigurableProgramAnalysis pCPA,
       BlockNode pBlock,
       AnalysisDirection pDirection,
       BlockSummaryAnalysisOptions pOptions)
       throws InvalidConfigurationException {
     DCPAHandler builder = new DCPAHandler(pOptions);
-    CompositeCPA compositeCPA =
-        CPAs.retrieveCPAOrFail(pCPA, CompositeCPA.class, BlockAnalysisUtil.class);
+    CompositeCPA compositeCPA = CPAs.retrieveCPA(pCPA, CompositeCPA.class);
+    if (compositeCPA == null) {
+      builder.registerDCPA(pCPA, pBlock, pDirection);
+      return Iterables.getOnlyElement(builder.getRegisteredAnalyses().values());
+    }
     for (ConfigurableProgramAnalysis wrappedCPA : compositeCPA.getWrappedCPAs()) {
       builder.registerDCPA(wrappedCPA, pBlock, pDirection);
     }

@@ -14,6 +14,7 @@ import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
+import com.google.common.collect.LinkedHashMultimap;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 import java.util.ArrayDeque;
@@ -93,8 +94,8 @@ public class BlockGraph {
      */
     public BlockGraphFactory(CFA pCfa, ShutdownNotifier pShutdownNotifier) {
       idToNodeMap = Maps.uniqueIndex(pCfa.getAllNodes(), CFANode::getNodeNumber);
-      successors = ArrayListMultimap.create();
-      predecessors = ArrayListMultimap.create();
+      successors = LinkedHashMultimap.create();
+      predecessors = LinkedHashMultimap.create();
       blocks = new LinkedHashSet<>();
       shutdownNotifier = pShutdownNotifier;
     }
@@ -136,7 +137,7 @@ public class BlockGraph {
     private void removeFromMultimap(
         Multimap<BlockNodeMetaData, BlockNodeMetaData> pMultimap, BlockNodeMetaData pNode) {
       pMultimap.removeAll(pNode);
-      Set<BlockNodeMetaData> keys = pMultimap.keySet();
+      Set<BlockNodeMetaData> keys = ImmutableSet.copyOf(pMultimap.keySet());
       for (BlockNodeMetaData key : keys) {
         pMultimap.remove(key, pNode);
       }

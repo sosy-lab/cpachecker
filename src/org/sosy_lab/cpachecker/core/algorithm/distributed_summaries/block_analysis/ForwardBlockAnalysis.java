@@ -61,8 +61,6 @@ public class ForwardBlockAnalysis implements InitialBlockAnalyzer, ContinuousBlo
   private boolean alreadyReportedError;
 
   private final boolean containsLoops;
-
-  private final BackwardBlockAnalysis backwardBlockAnalysis;
   /**
    * Analyzes a subgraph of the CFA (block node) with an arbitrary CPA.
    *
@@ -73,7 +71,6 @@ public class ForwardBlockAnalysis implements InitialBlockAnalyzer, ContinuousBlo
    * @param pConfiguration user defined configurations
    * @param pShutdownManager shutdown manager for unexpected shutdown requests
    * @param pOptions user defined options for block analyses
-   * @param pBackwardBlockAnalysis backwards analysis
    * @throws CPAException if the misbehaviour should be logged instead of causing a crash
    * @throws InterruptedException if the analysis is interrupted by the user
    * @throws InvalidConfigurationException if the configurations contain wrong values
@@ -85,8 +82,7 @@ public class ForwardBlockAnalysis implements InitialBlockAnalyzer, ContinuousBlo
       Specification pSpecification,
       Configuration pConfiguration,
       ShutdownManager pShutdownManager,
-      BlockSummaryAnalysisOptions pOptions,
-      BackwardBlockAnalysis pBackwardBlockAnalysis)
+      BlockSummaryAnalysisOptions pOptions)
       throws CPAException, InterruptedException, InvalidConfigurationException {
     containsLoops = pCFA.getAllLoopHeads().isPresent() || pOptions.shouldSendEveryErrorMessage();
     alreadyReportedError = containsLoops;
@@ -105,9 +101,9 @@ public class ForwardBlockAnalysis implements InitialBlockAnalyzer, ContinuousBlo
     top = cpa.getInitialState(pBlock.getStartNode(), StateSpacePartition.getDefaultPartition());
     block = pBlock;
     distributedCompositeCPA =
-        DistributedConfigurableProgramAnalysis.distribute(
-            cpa, pBlock, AnalysisDirection.FORWARD, pOptions);
-    backwardBlockAnalysis = pBackwardBlockAnalysis;
+        (DistributedCompositeCPA)
+            DistributedConfigurableProgramAnalysis.distribute(
+                cpa, pBlock, AnalysisDirection.FORWARD, pOptions);
   }
 
   @Override

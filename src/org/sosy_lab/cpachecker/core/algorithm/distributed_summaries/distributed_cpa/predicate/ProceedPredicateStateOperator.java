@@ -123,6 +123,9 @@ public class ProceedPredicateStateOperator implements ProceedOperator {
       return BlockSummaryMessageProcessing.stop();
     }
     PredicateAbstractState state = (PredicateAbstractState) deserialize.deserialize(message);
+    if (state.getAbstractionFormula().isTrue()) {
+      return BlockSummaryMessageProcessing.stop();
+    }
     try {
       if (solver.isUnsat(state.getPathFormula().getFormula())) {
         receivedPostConditions.remove(message.getUniqueBlockId());

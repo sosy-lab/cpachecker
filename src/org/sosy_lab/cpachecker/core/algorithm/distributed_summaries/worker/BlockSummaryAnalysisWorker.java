@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import java.io.IOException;
@@ -28,6 +29,7 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.BlockSummaryConnection;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryErrorConditionMessage;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryMessage;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryPostConditionMessage;
 import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.statistics.StatTimer;
@@ -112,8 +114,7 @@ public class BlockSummaryAnalysisWorker extends BlockSummaryWorker {
             pSpecification,
             forwardConfiguration,
             pShutdownManager,
-            pOptions,
-            backwardAnalysis);
+            pOptions);
     /*
     addTimer(forwardAnalysis);
     addTimer(backwardAnalysis);
@@ -170,16 +171,17 @@ public class BlockSummaryAnalysisWorker extends BlockSummaryWorker {
     if (processing.end()) {
       return processing;
     }
-    return performBackwardAnalysis(processing);
+    return performBackwardAnalysisWithAbstraction(processing);
   }
 
   private Collection<BlockSummaryMessage> performForwardAnalysis(
       Collection<BlockSummaryMessage> pPostConditionMessages)
       throws CPAException, InterruptedException, SolverException {
+    latestPreconditions.clear();
+    latestPreconditions.addAll(pPostConditionMessages);
     forwardAnalysis
         .getDistributedCPA()
         .synchronizeKnowledge(backwardAnalysis.getDistributedCPA());
-    // stats.forwardAnalysis.inc();
     forwardAnalysisTime.start();
     Collection<BlockSummaryMessage> response = forwardAnalysis.analyze(pPostConditionMessages);
     forwardAnalysisTime.stop();
@@ -200,6 +202,34 @@ public class BlockSummaryAnalysisWorker extends BlockSummaryWorker {
     Collection<BlockSummaryMessage> result = backwardAnalysis.analyze(pMessageProcessing);
     backwardAnalysisTime.stop();
     return result;
+  }
+
+  private Collection<BlockSummaryMessage> performBackwardAnalysisWithAbstraction(
+      BlockSummaryMessageProcessing pMessageProcessing)
+      throws InterruptedException, CPAException, SolverException {
+    Preconditions.checkArgument(pMessageProcessing.size() == 1);
+    BlockSummaryErrorConditionMessage msg =
+        (BlockSummaryErrorConditionMessage) Iterables.getOnlyElement(pMessageProcessing);
+    if (msg.getBlockId().equals(getBlockId())
+        && msg.getTargetNodeNumber() != block.getLastNode().getNodeNumber()) {
+      return performBackwardAnalysis(pMessageProcessing);
+    }
+    backwardAnalysis.getDistributedCPA().updateErrorCondition(msg);
+    backwardAnalysis.getDistributedCPA().synchronizeKnowledge(forwardAnalysis.getDistributedCPA());
+    latestErrorCondition = msg;
+    Collection<BlockSummaryMessage> result = forwardAnalysis.analyze(latestPreconditions);
+    ImmutableSet<? extends BlockSummaryMessage> answer =
+        FluentIterable.from(result).filter(BlockSummaryPostConditionMessage.class).toSet();
+    // TODO: if abstraction -> broadcast. If not -> don't.
+    if (!answer.isEmpty()) {
+      Collection<BlockSummaryMessage> backwardResult = performBackwardAnalysis(pMessageProcessing);
+      return ImmutableSet.<BlockSummaryMessage>builder()
+          .addAll(answer)
+          .addAll(backwardResult)
+          .build();
+    }
+    return ImmutableSet.of(
+        BlockSummaryMessage.newErrorConditionUnreachableMessage(block.getId(), "forward failed"));
   }
 
   @Override

@@ -16,6 +16,7 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.SerializeOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.combine.CombineOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.proceed.ProceedOperator;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryErrorConditionMessage;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.BlockSummaryAnalysisOptions;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -95,6 +96,12 @@ public class DistributedPredicateCPA implements DistributedConfigurableProgramAn
   @Override
   public BooleanFormula getErrorCondition(FormulaManagerView pFormulaManagerView) {
     return deserialize.getErrorCondition(pFormulaManagerView);
+  }
+
+  @Override
+  public void updateErrorCondition(BlockSummaryErrorConditionMessage pMessage)
+      throws InterruptedException {
+    deserialize.updateErrorCondition(pMessage);
   }
 
   @Override

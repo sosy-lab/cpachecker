@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.distributed_block_cpa;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableSet;
 import java.util.Collection;
 import java.util.function.Supplier;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -21,6 +22,9 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.combine.CombineOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.proceed.ProceedOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.predicate.DistributedPredicateCPA;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.BlockSummaryMessagePayload;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryErrorConditionMessage;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryMessage;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.BlockSummaryAnalysisOptions;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -43,6 +47,7 @@ public class DistributedBlockCPA implements DistributedConfigurableProgramAnalys
   private final CombineOperator combineOperator;
 
   private final ConfigurableProgramAnalysis blockCPA;
+  private final BlockSummaryMessage topMessage;
 
   private FormulaManagerView fmgr;
 
@@ -61,6 +66,16 @@ public class DistributedBlockCPA implements DistributedConfigurableProgramAnalys
             .collect(obtainFormulaMangerWithCorrectContext(pFutureErrorCondition).getBooleanFormulaManager().toConjunction()));
     combineOperator = new CombineBlockStateOperator();
     proceedOperator = new ProceedBlockStateOperator(pNode, pDirection);
+    topMessage =
+        BlockSummaryMessage.newBlockPostCondition(
+            pNode.getId(),
+            pDirection == AnalysisDirection.FORWARD
+                ? pNode.getStartNode().getNodeNumber()
+                : pNode.getLastNode().getNodeNumber(),
+            BlockSummaryMessagePayload.empty(),
+            false,
+            true,
+            ImmutableSet.of());
   }
 
   private FormulaManagerView obtainFormulaMangerWithCorrectContext(Supplier<Collection<DistributedConfigurableProgramAnalysis>> pFutureErrorCondition) {
@@ -105,6 +120,10 @@ public class DistributedBlockCPA implements DistributedConfigurableProgramAnalys
   }
 
   @Override
+  public void updateErrorCondition(BlockSummaryErrorConditionMessage pMessage)
+      throws InterruptedException {}
+
+  @Override
   public void synchronizeKnowledge(DistributedConfigurableProgramAnalysis pAnalysis)
       throws InterruptedException {
 
@@ -133,6 +152,6 @@ public class DistributedBlockCPA implements DistributedConfigurableProgramAnalys
   @Override
   public AbstractState getInitialState(CFANode node, StateSpacePartition partition)
       throws InterruptedException {
-    return blockCPA.getInitialState(node, partition);
+    return deserializeOperator.deserialize(topMessage);
   }
 }

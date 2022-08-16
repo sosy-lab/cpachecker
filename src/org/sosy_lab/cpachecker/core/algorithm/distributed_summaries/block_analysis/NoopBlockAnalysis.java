@@ -63,8 +63,9 @@ public class NoopBlockAnalysis implements InitialBlockAnalyzer {
             pLogger, pSpecification, pCFA, pConfiguration, pShutdownManager, pBlock);
     block = pBlock;
     distributedCompositeCPA =
-        DistributedConfigurableProgramAnalysis.distribute(
-            parts.getSecond(), pBlock, pDirection, pOptions);
+        (DistributedCompositeCPA)
+            DistributedConfigurableProgramAnalysis.distribute(
+                parts.getSecond(), pBlock, pDirection, pOptions);
   }
 
   /**

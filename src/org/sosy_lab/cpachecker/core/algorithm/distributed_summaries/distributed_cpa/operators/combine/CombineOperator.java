@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
+import java.util.ArrayList;
 import java.util.List;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -25,27 +26,47 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
  * org.sosy_lab.cpachecker.core.interfaces.MergeOperator} combine should be associative.
  *
  * @see org.sosy_lab.cpachecker.core.interfaces.MergeOperator
- * @see org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.block_analysis.BlockAnalysis
+ * @see
+ *     org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.block_analysis.ForwardBlockAnalysis
+ * @see
+ *     org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.block_analysis.BackwardBlockAnalysis
  */
 public interface CombineOperator {
 
   List<AbstractState> combine(AbstractState pState1, AbstractState pState2, Precision pPrecision)
       throws CPAException, InterruptedException;
 
+  /**
+   * Combine a list of states to a list of states that over-approximates all elements of the list.
+   * Since combination should be associative, the order does not matter.
+   *
+   * <p>Combined states are commonly used as the initial {@link AbstractState} for a {@link
+   * org.sosy_lab.cpachecker.core.reachedset.ReachedSet}.
+   *
+   * <p>By convention, the number of {@link AbstractState}s in the returned list is less than or
+   * equal to the number of abstract states in {@code pStates}.
+   *
+   * @param pStates list of abstract states that will be over-approximated by the returned states
+   * @param pTopElement top element that over-approximates all states by definition (supremum of
+   *     lattice). Can be null and will be ignored if pStates is not empty.
+   * @param pPrecision Initial precision for returned abstract states
+   * @return List of abstract states that over-approximate {@code pStates}.
+   */
   default List<AbstractState> combine(
-      List<AbstractState> pStates, AbstractState pTopElement, Precision pPrecision)
+      ImmutableList<AbstractState> pStates, AbstractState pTopElement, Precision pPrecision)
       throws InterruptedException, CPAException {
-    if (pStates.isEmpty()) {
+    List<AbstractState> states = new ArrayList<>(pStates);
+    if (states.isEmpty()) {
       return ImmutableList.of(pTopElement);
     }
 
-    if (pStates.size() == 1) {
-      return pStates;
+    if (states.size() == 1) {
+      return states;
     }
 
-    AbstractState first = pStates.remove(0);
+    AbstractState first = states.remove(0);
 
-    for (AbstractState state : pStates) {
+    for (AbstractState state : states) {
       first = Iterables.getOnlyElement(combine(first, state, pPrecision));
     }
 

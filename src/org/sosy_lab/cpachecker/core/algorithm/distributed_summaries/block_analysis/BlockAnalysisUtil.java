@@ -10,11 +10,10 @@ package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.block_analy
 
 import static com.google.common.collect.FluentIterable.from;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
-import java.util.ArrayList;
 import java.util.Collection;
-import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
@@ -54,14 +53,19 @@ public class BlockAnalysisUtil {
    */
   static ARGState getStartState(CFANode pStart, Precision pPrecision, DistributedConfigurableProgramAnalysis pAnalysis, Collection<BlockSummaryMessage> startMessages)
       throws InterruptedException, CPAException {
-    List<AbstractState> states = new ArrayList<>();
+    ImmutableList.Builder<AbstractState> states = ImmutableList.builder();
     for (BlockSummaryMessage receivedPostCondition : startMessages) {
       states.add(
           pAnalysis.getDeserializeOperator().deserialize(receivedPostCondition));
     }
     return new ARGState(
         Iterables.getOnlyElement(
-            pAnalysis.getCombineOperator().combine(states, pAnalysis.getInitialState(pStart, StateSpacePartition.getDefaultPartition()), pPrecision)),
+            pAnalysis
+                .getCombineOperator()
+                .combine(
+                    states.build(),
+                    pAnalysis.getInitialState(pStart, StateSpacePartition.getDefaultPartition()),
+                    pPrecision)),
         null);
   }
 

@@ -120,7 +120,7 @@ public class BlockState
 
   @Override
   public BooleanFormula getFormulaApproximation(FormulaManagerView manager) {
-    return isTarget() && false
+    return isTarget() && direction == AnalysisDirection.FORWARD
         ? errorCondition.orElse(manager.getBooleanFormulaManager().makeTrue())
         : manager.getBooleanFormulaManager().makeTrue();
   }

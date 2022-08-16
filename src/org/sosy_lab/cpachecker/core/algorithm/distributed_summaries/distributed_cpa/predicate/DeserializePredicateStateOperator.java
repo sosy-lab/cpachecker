@@ -72,7 +72,7 @@ public class DeserializePredicateStateOperator implements DeserializeOperator {
                 StateSpacePartition.getDefaultPartition());
 
     PredicateAbstractState deserialized;
-    if (pMessage.getType() == MessageType.ERROR_CONDITION || true) {
+    if (pMessage.getType() == MessageType.ERROR_CONDITION) {
       deserialized =
           PredicateAbstractState.mkNonAbstractionStateWithNewPathFormula(
               abstraction, previousState);
@@ -95,6 +95,21 @@ public class DeserializePredicateStateOperator implements DeserializeOperator {
                   .getFormula());
     }
     return deserialized;
+  }
+
+  void updateErrorCondition(BlockSummaryErrorConditionMessage pMessage) {
+    String formula =
+        PredicateOperatorUtil.extractFormulaString(
+            pMessage, predicateCPA.getClass(), formulaManagerView);
+    SSAMap map = pMessage.getSSAMap();
+    PointerTargetSet pts = pMessage.getPointerTargetSet();
+    PathFormula abstraction =
+        PredicateOperatorUtil.getPathFormula(
+            formula, pathFormulaManager, formulaManagerView, pts, map);
+    errorCondition =
+        formulaManagerView.uninstantiate(
+            PredicateOperatorUtil.uninstantiate(abstraction, formulaManagerView, pathFormulaManager)
+                .getFormula());
   }
 
   public BooleanFormula getErrorCondition(FormulaManagerView pFormulaManagerView) {

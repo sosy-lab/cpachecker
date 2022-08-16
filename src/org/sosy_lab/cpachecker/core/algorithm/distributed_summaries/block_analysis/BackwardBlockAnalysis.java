@@ -92,8 +92,9 @@ public class BackwardBlockAnalysis implements ContinuousBlockAnalyzer {
 
     block = pBlock;
     distributedCompositeCPA =
-        DistributedConfigurableProgramAnalysis.distribute(
-            cpa, pBlock, AnalysisDirection.BACKWARD, pOptions);
+        (DistributedCompositeCPA)
+            DistributedConfigurableProgramAnalysis.distribute(
+                cpa, pBlock, AnalysisDirection.BACKWARD, pOptions);
   }
 
   @Override
