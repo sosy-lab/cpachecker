@@ -14,7 +14,8 @@ import org.sosy_lab.cpachecker.cpa.smg2.SMGInformation;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 /**
- * State that allows forgetting values of {@link MemoryLocation}s and re-adding them.
+ * Immutable state that allows forgetting values of {@link MemoryLocation}s and re-adding them via
+ * copy operations.
  *
  * @param <T> arbitrary type containing all information necessary for the implementation to recreate
  *     the previous state after a delete
