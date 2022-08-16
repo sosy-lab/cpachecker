@@ -53,7 +53,8 @@ public class SMGStrongestPostOperator implements StrongestPostOperator<SMGState>
             options,
             exportOptions,
             pCfa,
-            new ConstraintsStrengthenOperator(pConfig, pLogger));
+            new ConstraintsStrengthenOperator(pConfig, pLogger),
+            null);
   }
 
   @Override

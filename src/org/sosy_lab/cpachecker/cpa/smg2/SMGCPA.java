@@ -56,6 +56,8 @@ import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.witnessexport.AdditionalInfoConverter;
 import org.sosy_lab.cpachecker.cpa.smg.SMGStatistics;
+import org.sosy_lab.cpachecker.cpa.smg2.SMGPrecisionAdjustment.PrecAdjustmentOptions;
+import org.sosy_lab.cpachecker.cpa.smg2.SMGPrecisionAdjustment.PrecAdjustmentStatistics;
 import org.sosy_lab.cpachecker.cpa.smg2.refiner.SMGConcreteErrorPathAllocator;
 import org.sosy_lab.cpachecker.cpa.value.PredicateToValuePrecisionConverter;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.ConstraintsStrengthenOperator;
@@ -105,6 +107,8 @@ public class SMGCPA
   private final CFA cfa;
   private final SMGOptions options;
   private final SMGCPAExportOptions exportOptions;
+  private final PrecAdjustmentOptions precisionAdjustmentOptions;
+  private final PrecAdjustmentStatistics precisionAdjustmentStatistics;
   private final ShutdownNotifier shutdownNotifier;
 
   private VariableTrackingPrecision precision;
@@ -132,6 +136,8 @@ public class SMGCPA
     constraintsStrengthenOperator = new ConstraintsStrengthenOperator(config, logger);
 
     statistics = new SMGCPAStatistics(this, config);
+    precisionAdjustmentOptions = new PrecAdjustmentOptions(config, cfa);
+    precisionAdjustmentStatistics = new PrecAdjustmentStatistics();
 
     blockOperator = new BlockOperator();
     pConfig.inject(blockOperator);
@@ -178,7 +184,7 @@ public class SMGCPA
   @Override
   public TransferRelation getTransferRelation() {
     return new SMGTransferRelation(
-        logger, options, exportOptions, cfa, constraintsStrengthenOperator, stats);
+        logger, options, exportOptions, cfa, constraintsStrengthenOperator, statistics);
   }
 
   @Override
@@ -247,7 +253,8 @@ public class SMGCPA
           precisionAdjustmentStatistics,
           Preconditions.checkNotNull(symbolicStats));
     } else {*/
-    return new SMGPrecisionAdjustment(cfa, precisionAdjustmentOptions);
+    return new SMGPrecisionAdjustment(
+        statistics, cfa, precisionAdjustmentOptions, precisionAdjustmentStatistics);
   }
 
   public LogManager getLogger() {
