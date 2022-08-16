@@ -1995,4 +1995,8 @@ public class SMGState
     }
     return newState;
   }
+
+  public int getNumberOfGlobalVariables() {
+    return memoryModel.getGlobalVariableToSmgObjectMap().size();
+  }
 }

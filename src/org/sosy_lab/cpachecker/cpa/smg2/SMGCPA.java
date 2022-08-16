@@ -47,6 +47,7 @@ import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysisWithAd
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysisWithConcreteCex;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
+import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
@@ -113,6 +114,8 @@ public class SMGCPA
   private final PredicateToValuePrecisionConverter predToValPrec;
   private final ConstraintsStrengthenOperator constraintsStrengthenOperator;
 
+  private final SMGCPAStatistics statistics;
+
   private SMGCPA(
       Configuration pConfig, LogManager pLogger, ShutdownNotifier pShutdownNotifier, CFA pCfa)
       throws InvalidConfigurationException {
@@ -127,6 +130,8 @@ public class SMGCPA
     precision = initializePrecision(config, cfa);
     predToValPrec = new PredicateToValuePrecisionConverter(config, logger, pShutdownNotifier, cfa);
     constraintsStrengthenOperator = new ConstraintsStrengthenOperator(config, logger);
+
+    statistics = new SMGCPAStatistics(this, config);
 
     blockOperator = new BlockOperator();
     pConfig.inject(blockOperator);
@@ -173,7 +178,7 @@ public class SMGCPA
   @Override
   public TransferRelation getTransferRelation() {
     return new SMGTransferRelation(
-        logger, options, exportOptions, cfa, constraintsStrengthenOperator);
+        logger, options, exportOptions, cfa, constraintsStrengthenOperator, stats);
   }
 
   @Override
@@ -228,6 +233,21 @@ public class SMGCPA
   @Override
   public Precision getInitialPrecision(CFANode pNode, StateSpacePartition pPartition) {
     return precision;
+  }
+
+  @Override
+  public PrecisionAdjustment getPrecisionAdjustment() {
+    /*
+    if (unknownValueStrategy.equals(UnknownValueStrategy.INTRODUCE_SYMBOLIC)) {
+      symbolicStats = new SymbolicStatistics();
+      return new SymbolicValueAnalysisPrecisionAdjustment(
+          statistics,
+          cfa,
+          precisionAdjustmentOptions,
+          precisionAdjustmentStatistics,
+          Preconditions.checkNotNull(symbolicStats));
+    } else {*/
+    return new SMGPrecisionAdjustment(cfa, precisionAdjustmentOptions);
   }
 
   public LogManager getLogger() {

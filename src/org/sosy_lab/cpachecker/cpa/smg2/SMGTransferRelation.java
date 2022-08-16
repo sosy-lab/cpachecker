@@ -25,6 +25,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.logging.Level;
 import org.checkerframework.checker.nullness.qual.NonNull;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.collect.Collections3;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
@@ -126,18 +127,22 @@ public class SMGTransferRelation
   // Ignored variables (declarations)
   private final Collection<String> addressedVariables;
 
+  private final @Nullable SMGCPAStatistics stats;
+
   public SMGTransferRelation(
       LogManager pLogger,
       SMGOptions pOptions,
       SMGCPAExportOptions pExportSMGOptions,
       CFA pCfa,
-      ConstraintsStrengthenOperator pConstraintsStrengthenOperator) {
+      ConstraintsStrengthenOperator pConstraintsStrengthenOperator,
+      SMGCPAStatistics pStats) {
     logger = new LogManagerWithoutDuplicates(pLogger);
     options = pOptions;
     exportSMGOptions = pExportSMGOptions;
     machineModel = pCfa.getMachineModel();
     evaluator = new SMGCPAValueExpressionEvaluator(machineModel, logger, exportSMGOptions, options);
     constraintsStrengthenOperator = pConstraintsStrengthenOperator;
+    stats = pStats;
 
     if (pCfa.getVarClassification().isPresent()) {
       addressedVariables = pCfa.getVarClassification().orElseThrow().getAddressedVariables();
@@ -165,6 +170,7 @@ public class SMGTransferRelation
     addressedVariables = pAddressedVariables;
     booleanVariables = pBooleanVariables;
     constraintsStrengthenOperator = pConstraintsStrengthenOperator;
+    stats = null;
   }
 
   @Override
@@ -693,6 +699,9 @@ public class SMGTransferRelation
   protected void setInfo(
       AbstractState abstractState, Precision abstractPrecision, CFAEdge cfaEdge) {
     super.setInfo(abstractState, abstractPrecision, cfaEdge);
+    if (stats != null) {
+      stats.incrementIterations();
+    }
   }
 
   @Override
@@ -709,12 +718,9 @@ public class SMGTransferRelation
   private Collection<SMGState> handleAssumption(
       AExpression expression, CFAEdge cfaEdge, boolean truthValue) throws CPATransferException {
 
-    // TODO: statistics
-    /*
     if (stats != null) {
       stats.incrementAssumptions();
     }
-    */
 
     // We know it has to be a CExpression as this analysis only supports C
     Pair<AExpression, Boolean> simplifiedExpression = simplifyAssumption(expression, truthValue);
@@ -729,12 +735,9 @@ public class SMGTransferRelation
       Value value = valueAndState.getValue();
       SMGState currentState = valueAndState.getState();
 
-      // TODO: statistics
-      /*
       if (value.isExplicitlyKnown() && stats != null) {
         stats.incrementDeterministicAssumptions();
       }
-      */
 
       if (!value.isExplicitlyKnown()) {
         SMGCPAAssigningValueVisitor avv =
@@ -744,17 +747,6 @@ public class SMGTransferRelation
         for (ValueAndSMGState newValueAndUpdatedState : cExpression.accept(avv)) {
           SMGState updatedState = newValueAndUpdatedState.getState();
 
-          // TODO: track missing information needed to succeed with the analysis
-          /*
-          if (isMissingCExpressionInformation(vv, cExpression)) {
-            missingInformationList.add(new MissingInformation(truthValue, cExpression));
-          }
-          */
-
-          // If we now learned something from the SMGCPAAssigningValueVisitor the branch we are in
-          // (either if(expression) or the else which is !expression) condition is fulfilled.
-          // TODO: is it possible to learn something in such a way that the assumption is NOT
-          // fulfilled?
           resultStateBuilder.add(updatedState);
         }
 
