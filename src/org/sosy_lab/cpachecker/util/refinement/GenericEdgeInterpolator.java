@@ -25,6 +25,7 @@ import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.path.PathIterator;
 import org.sosy_lab.cpachecker.cpa.arg.path.PathPosition;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.util.refinement.ImmutableForgetfulState.StateAndInfo;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 /**
@@ -117,6 +118,7 @@ public class GenericEdgeInterpolator<S extends ForgetfulState<T>, T, I extends I
    * @param pOffset offset of the state at where to start the current interpolation
    * @param pInputInterpolant the input interpolant
    */
+  @SuppressWarnings("unchecked")
   @Override
   public I deriveInterpolant(
       final ARGPath pErrorPath,
@@ -190,11 +192,31 @@ public class GenericEdgeInterpolator<S extends ForgetfulState<T>, T, I extends I
 
       // temporarily remove the value of the current memory location from the candidate
       // interpolant
-      T forgottenInformation = initialSuccessor.forget(currentMemoryLocation);
+      if (initialSuccessor instanceof ImmutableForgetfulState<?>) {
+        // Immutable copyOnOperation case
+        StateAndInfo<? extends ImmutableForgetfulState<T>, T> forgottenInformationAndNewState =
+            (StateAndInfo<? extends ImmutableForgetfulState<T>, T>)
+                ((ImmutableForgetfulState<T>) initialSuccessor)
+                    .copyAndForget(currentMemoryLocation);
+        initialSuccessor = (S) forgottenInformationAndNewState.getState();
 
-      // check if the remaining path now becomes feasible
-      if (isRemainingPathFeasible(remainingErrorPath, initialSuccessor)) {
-        initialSuccessor.remember(currentMemoryLocation, forgottenInformation);
+        // check if the remaining path now becomes feasible
+        if (isRemainingPathFeasible(remainingErrorPath, initialSuccessor)) {
+          initialSuccessor =
+              (S)
+                  ((ImmutableForgetfulState<T>) initialSuccessor)
+                      .copyAndRemember(
+                          currentMemoryLocation, forgottenInformationAndNewState.getInfo());
+        }
+      } else {
+        // temporarily remove the value of the current memory location from the candidate
+        // interpolant
+        T forgottenInformation = initialSuccessor.forget(currentMemoryLocation);
+
+        // check if the remaining path now becomes feasible
+        if (isRemainingPathFeasible(remainingErrorPath, initialSuccessor)) {
+          initialSuccessor.remember(currentMemoryLocation, forgottenInformation);
+        }
       }
     }
 
