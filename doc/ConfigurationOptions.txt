@@ -2897,6 +2897,34 @@ cpa.smg.zeroingMemoryAllocation = {"calloc", "kzalloc"}
 # Enable GCC extension 'Arrays of Length Zero'.
 cpa.smg2.GCCZeroLengthArray = false
 
+# restrict abstraction computations to branching points
+cpa.smg2.abstraction.alwaysAtBranch = false
+
+# restrict abstraction computations to function calls/returns
+cpa.smg2.abstraction.alwaysAtFunction = false
+
+# restrict abstraction computations to join points
+cpa.smg2.abstraction.alwaysAtJoin = false
+
+# restrict abstraction computations to loop heads
+cpa.smg2.abstraction.alwaysAtLoop = false
+
+# threshold for level of determinism, in percent, up-to which abstraction
+# computations are performed (and iteration threshold was reached)
+cpa.smg2.abstraction.determinismThreshold = 85
+
+# toggle liveness abstraction
+cpa.smg2.abstraction.doLivenessAbstraction = false
+
+# skip abstraction computations until the given number of iterations are
+# reached, after that decision is based on then current level of determinism,
+# setting the option to -1 always performs abstraction computations
+cpa.smg2.abstraction.iterationThreshold = -1
+
+# restrict liveness abstractions to nodes with more than one entering and/or
+# leaving edge
+cpa.smg2.abstraction.onlyAtNonLinearCFA = false
+
 # Allocate memory on declaration of external variable
 cpa.smg2.allocateExternalVariables = true
 
@@ -3011,6 +3039,9 @@ cpa.smg2.merge = "SEP"
 # Assume that variables used only in a boolean context are either zero or
 # one.
 cpa.smg2.optimizeBooleanVariables = true
+
+# target file to hold the exported precision
+cpa.smg2.precisionFile = no default value
 
 # whether or not to use heuristic to avoid similar, repeated refinements
 cpa.smg2.refinement.avoidSimilarRepeatedRefinement = false
