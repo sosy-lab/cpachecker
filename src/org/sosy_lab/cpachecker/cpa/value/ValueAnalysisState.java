@@ -252,11 +252,10 @@ public final class ValueAnalysisState
   }
 
   @Override
-  public ValueAnalysisInformation remember(
+  public void remember(
       final MemoryLocation pLocation, final ValueAnalysisInformation pValueAndType) {
     final ValueAndType value = pValueAndType.getAssignments().get(pLocation);
     assignConstant(pLocation, value.getValue(), value.getType());
-    return null;
   }
 
   /**

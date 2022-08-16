@@ -34,7 +34,7 @@ public interface ForgetfulState<T> extends AbstractState {
    * @param location memory location associated with removed data.
    * @param forgottenInformation data which was removed.
    */
-  T remember(MemoryLocation location, T forgottenInformation);
+  void remember(MemoryLocation location, T forgottenInformation);
 
   /** Return the set of all tracked memory locations. */
   Set<MemoryLocation> getTrackedMemoryLocations();

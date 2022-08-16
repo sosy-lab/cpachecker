@@ -67,10 +67,9 @@ public final class ForgettingCompositeState implements ForgetfulState<ValueAnaly
   }
 
   @Override
-  public ValueAnalysisInformation remember(
+  public void remember(
       final MemoryLocation pLocation, final ValueAnalysisInformation pValueInformation) {
-
-    return values.remember(pLocation, pValueInformation);
+    values.remember(pLocation, pValueInformation);
   }
 
   @Override
