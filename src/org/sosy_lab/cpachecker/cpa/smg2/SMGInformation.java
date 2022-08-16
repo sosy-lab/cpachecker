@@ -8,40 +8,54 @@
 
 package org.sosy_lab.cpachecker.cpa.smg2;
 
+import java.math.BigInteger;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Objects;
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.collect.PersistentMap;
+import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.smg2.util.ValueAndValueSize;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 /** Information about value assignments needed for symbolic interpolation. */
 public final class SMGInformation {
 
-  // SMGs need to keep track of the state
-  private final SMGState state;
+  private final PersistentMap<String, CType> variableToTypeMap;
+  private final Map<String, BigInteger> variableNameAndSizeInBits;
   private final PersistentMap<MemoryLocation, ValueAndValueSize> nonHeapAssignments;
 
   SMGInformation(
-      final PersistentMap<MemoryLocation, ValueAndValueSize> pAssignments, SMGState pState) {
+      final PersistentMap<MemoryLocation, ValueAndValueSize> pAssignments,
+      final Map<String, BigInteger> pVariableNameAndSizeInBits,
+      final PersistentMap<String, CType> pVariableToTypeMap) {
     nonHeapAssignments = pAssignments;
-    state = pState;
+    variableNameAndSizeInBits = pVariableNameAndSizeInBits;
+    variableToTypeMap = pVariableToTypeMap;
   }
 
-  private SMGInformation(SMGState pState) {
+  private SMGInformation() {
     nonHeapAssignments = PathCopyingPersistentTreeMap.of();
-    state = pState;
+    variableNameAndSizeInBits = new HashMap<>();
+    variableToTypeMap = PathCopyingPersistentTreeMap.of();
   }
 
-  public static SMGInformation getEmptySMGInformation(SMGState pState) {
-    return new SMGInformation(pState);
+  public static SMGInformation getEmptySMGInformation() {
+    return new SMGInformation();
   }
 
   public PersistentMap<MemoryLocation, ValueAndValueSize> getAssignments() {
     return nonHeapAssignments;
   }
 
-  public SMGState getSMGState() {
-    return state;
+  /** @return a map from qualified variable names to their types. */
+  public PersistentMap<String, CType> getTypeOfVariablesMap() {
+    return variableToTypeMap;
+  }
+
+  /** @return map from qualified variable name to their sizes in bits. */
+  public Map<String, BigInteger> getSizeInformationForVariablesMap() {
+    return variableNameAndSizeInBits;
   }
 
   @Override
@@ -54,12 +68,16 @@ public final class SMGInformation {
     }
 
     SMGInformation that = (SMGInformation) o;
+    // Under the general assumption that variable names are unique (they aren't really) this should
+    // suffice as long as heap is not tracked
     return nonHeapAssignments.equals(that.nonHeapAssignments);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(nonHeapAssignments) + 31 * state.hashCode();
+    return Objects.hash(nonHeapAssignments)
+        + 31 * Objects.hash(variableToTypeMap)
+        + 17 * Objects.hash(variableNameAndSizeInBits);
   }
 
   @Override

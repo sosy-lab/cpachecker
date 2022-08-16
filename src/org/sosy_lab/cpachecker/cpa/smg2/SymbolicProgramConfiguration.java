@@ -1040,7 +1040,7 @@ public class SymbolicProgramConfiguration {
     return variableToTypeMap.get(memLoc.getQualifiedName());
   }
 
-  public Map<String, CType> getVariableTypeMap() {
+  public PersistentMap<String, CType> getVariableTypeMap() {
     return variableToTypeMap;
   }
 }

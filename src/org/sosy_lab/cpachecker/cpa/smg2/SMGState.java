@@ -24,6 +24,7 @@ import java.util.logging.Level;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import org.checkerframework.checker.nullness.qual.Nullable;
+import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.collect.PersistentMap;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
@@ -55,7 +56,7 @@ import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.cpa.value.type.Value.UnknownValue;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
-import org.sosy_lab.cpachecker.util.refinement.ForgetfulState;
+import org.sosy_lab.cpachecker.util.refinement.ImmutableForgetfulState;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGHasValueEdge;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGObject;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGPointsToEdge;
@@ -72,7 +73,7 @@ import org.sosy_lab.cpachecker.util.states.MemoryLocation;
  * handled.
  */
 public class SMGState
-    implements ForgetfulState<SMGInformation>,
+    implements ImmutableForgetfulState<SMGInformation>,
         LatticeAbstractState<SMGState>,
         AbstractQueryableState,
         Graphable {
@@ -1915,52 +1916,6 @@ public class SMGState
     return getUniqueFunctionName(pDeclaration) + "_varArgs";
   }
 
-  /*
-   * Remove the has value edge associated with this MemoryLocation.
-   * This will result in UNKNOWN values in the next read for not pruned variables.
-   */
-  @Override
-  public SMGInformation forget(MemoryLocation pLocation) {
-    String qualifiedName = pLocation.getQualifiedName();
-    BigInteger offsetInBits = BigInteger.valueOf(pLocation.getOffset());
-    // This is expected to succeed
-    SMGObject memory = getMemoryModel().getObjectForVariable(qualifiedName).orElseThrow();
-
-    SMGHasValueEdge edgeToRemove =
-        memoryModel
-            .getSmg()
-            .getHasValueEdgeByPredicate(memory, o -> o.getOffset().compareTo(offsetInBits) == 0)
-            .orElseThrow();
-
-    SymbolicProgramConfiguration newSPC =
-        memoryModel.copyAndRemoveHasValueEdges(memory, ImmutableList.of(edgeToRemove));
-    SMGState newState = this.copyAndReplaceMemoryModel(newSPC);
-
-    return new SMGInformation(
-        newState.memoryModel.getMemoryLocationsAndValuesForSPCWithoutHeap(), newState);
-  }
-
-  @Override
-  public SMGInformation remember(MemoryLocation pLocation, SMGInformation pForgottenInformation) {
-    ValueAndValueSize valueAndSize = pForgottenInformation.getAssignments().get(pLocation);
-    SMGState newState;
-    try {
-      newState =
-          assignNonHeapConstant(
-              pLocation,
-              valueAndSize,
-              pForgottenInformation
-                  .getSMGState()
-                  .getMemoryModel()
-                  .getSizeObMemoryForSPCWithoutHeap(),
-              pForgottenInformation.getSMGState().memoryModel.getVariableTypeMap());
-    } catch (SMG2Exception e) {
-      // Should never happen
-      throw new RuntimeException(e);
-    }
-    return SMGInformation.getEmptySMGInformation(newState);
-  }
-
   @Override
   public Set<MemoryLocation> getTrackedMemoryLocations() {
     return memoryModel.getMemoryLocationsAndValuesForSPCWithoutHeap().keySet();
@@ -1978,5 +1933,66 @@ public class SMGState
         memoryModel.getSizeObMemoryForSPCWithoutHeap(),
         memoryModel.getVariableTypeMap(),
         this);
+  }
+
+  @Deprecated
+  @Override
+  public void remember(MemoryLocation pLocation, SMGInformation pForgottenInformation) {
+    throw new UnsupportedOperationException();
+  }
+
+  @Deprecated
+  @Override
+  public SMGInformation forget(MemoryLocation pLocation) {
+    throw new UnsupportedOperationException();
+  }
+
+  @Override
+  public StateAndInfo<SMGState, SMGInformation> copyAndForget(MemoryLocation pLocation) {
+    String qualifiedName = pLocation.getQualifiedName();
+    BigInteger offsetInBits = BigInteger.valueOf(pLocation.getOffset());
+    // This is expected to succeed
+    SMGObject memory = getMemoryModel().getObjectForVariable(qualifiedName).orElseThrow();
+
+    SMGHasValueEdge edgeToRemove =
+        memoryModel
+            .getSmg()
+            .getHasValueEdgeByPredicate(memory, o -> o.getOffset().compareTo(offsetInBits) == 0)
+            .orElseThrow();
+
+    Value removedValue = memoryModel.getValueFromSMGValue(edgeToRemove.hasValue()).orElseThrow();
+
+    SymbolicProgramConfiguration newSPC =
+        memoryModel.copyAndRemoveHasValueEdges(memory, ImmutableList.of(edgeToRemove));
+    // We don't need to remove the entire variable! We just need to return unknown for it, which is
+    // fulfilled by removing the value edge.
+    SMGState newState = this.copyAndReplaceMemoryModel(newSPC);
+
+    return new StateAndInfo<>(
+        newState,
+        new SMGInformation(
+            PathCopyingPersistentTreeMap.<MemoryLocation, ValueAndValueSize>of()
+                .putAndCopy(
+                    pLocation, ValueAndValueSize.of(removedValue, edgeToRemove.getSizeInBits())),
+            getMemoryModel().getSizeObMemoryForSPCWithoutHeap(),
+            memoryModel.getVariableTypeMap()));
+  }
+
+  @Override
+  public SMGState copyAndRemember(MemoryLocation pLocation, SMGInformation pForgottenInformation) {
+    ValueAndValueSize valueAndSize = pForgottenInformation.getAssignments().get(pLocation);
+    SMGState newState;
+    try {
+      newState =
+          assignNonHeapConstant(
+              pLocation,
+              valueAndSize,
+              pForgottenInformation.getSizeInformationForVariablesMap(),
+              pForgottenInformation.getTypeOfVariablesMap());
+    } catch (SMG2Exception e) {
+      // Should never happen
+      throw new RuntimeException(e);
+    }
+    return newState;
   }
 }

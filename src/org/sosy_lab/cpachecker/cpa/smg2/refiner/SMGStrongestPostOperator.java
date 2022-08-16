@@ -97,6 +97,7 @@ public class SMGStrongestPostOperator implements StrongestPostOperator<SMGState>
 
     assert pPrecision instanceof VariableTrackingPrecision;
 
+    SMGState nextState = pNext;
     VariableTrackingPrecision precision = (VariableTrackingPrecision) pPrecision;
 
     final boolean performAbstraction = precision.allowsAbstraction();
@@ -105,19 +106,19 @@ public class SMGStrongestPostOperator implements StrongestPostOperator<SMGState>
 
     if (performAbstraction) {
       for (MemoryLocation memoryLocation :
-          pNext.getMemoryModel().getMemoryLocationsAndValuesForSPCWithoutHeap().keySet()) {
-        CType trackedType = pNext.getMemoryModel().getTypeOfVariable(memoryLocation);
+          nextState.getMemoryModel().getMemoryLocationsAndValuesForSPCWithoutHeap().keySet()) {
+        CType trackedType = nextState.getMemoryModel().getTypeOfVariable(memoryLocation);
         if (!precision.isTracking(memoryLocation, trackedType, pCurrNode)) {
-          pNext.forget(memoryLocation);
+          nextState = nextState.copyAndForget(memoryLocation).getState();
         }
       }
     }
 
     for (MemoryLocation exceedingMemoryLocation : exceedingMemoryLocations) {
-      pNext.forget(exceedingMemoryLocation);
+      nextState = nextState.copyAndForget(exceedingMemoryLocation).getState();
     }
 
-    return pNext;
+    return nextState;
   }
 
   protected Set<MemoryLocation> obtainExceedingMemoryLocations(final ARGPath pPath) {
