@@ -321,7 +321,7 @@ public class SMGPrecisionAdjustment implements PrecisionAdjustment {
         CType type = currentState.getMemoryModel().getTypeOfVariable(memoryLocation);
         if (location != null
             && !precision.isTracking(memoryLocation, type, location.getLocationNode())) {
-          currentState.copyAndForget(memoryLocation).getState();
+          currentState = currentState.copyAndForget(memoryLocation).getState();
         }
       }
 
@@ -348,7 +348,7 @@ public class SMGPrecisionAdjustment implements PrecisionAdjustment {
       assignments.updateAssignmentInformation(memoryLocation, e.getValue().getValue());
 
       if (assignments.exceedsThreshold(memoryLocation)) {
-        currentState.copyAndForget(memoryLocation).getState();
+        currentState = currentState.copyAndForget(memoryLocation).getState();
       }
     }
     return currentState;
