@@ -13,6 +13,7 @@ import static org.sosy_lab.common.collect.Collections3.transformedImmutableSetCo
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Lists;
 import java.math.BigInteger;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -1578,8 +1579,7 @@ public class SMGTransferRelation
         // No memory for the left hand side found -> UNKNOWN
         // We still evaluate the right hand side to find errors though
         List<ValueAndSMGState> listOfStates = rValue.accept(rightHandSideVisitor);
-        returnStateBuilder.addAll(
-            Collections3.transformedImmutableListCopy(listOfStates, vas -> vas.getState()));
+        returnStateBuilder.addAll(Lists.transform(listOfStates, ValueAndSMGState::getState));
         continue;
       }
       SMGObjectAndOffset addressAndOffsetToWriteTo = maybeAddress.orElseThrow();
