@@ -37,8 +37,8 @@ public interface CombineOperator {
       throws CPAException, InterruptedException;
 
   /**
-   * Combine a list of states to a list of states that over-approximates all elements of the list.
-   * Since combination should be associative, the order does not matter.
+   * Combine a list of states to a list of states that over-approximates all elements of {@code
+   * pStates}. Since combination should be associative, the order does not matter.
    *
    * <p>Combined states are commonly used as the initial {@link AbstractState} for a {@link
    * org.sosy_lab.cpachecker.core.reachedset.ReachedSet}.
