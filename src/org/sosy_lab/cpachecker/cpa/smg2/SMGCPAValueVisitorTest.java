@@ -1981,9 +1981,9 @@ public class SMGCPAValueVisitorTest {
           .isEqualTo(expectedOffset);
       // Check that the other methods return the correct points-to-edge leading to the correct
       // memory location and never to the 0 object
-      assertThat(currentState.getPointsToTarget(resultValue).getSMGObject())
+      assertThat(currentState.getPointsToTarget(resultValue).orElseThrow().getSMGObject())
           .isNotEqualTo(SMGObject.nullInstance());
-      assertThat(currentState.getPointsToTarget(resultValue).getSMGObject())
+      assertThat(currentState.getPointsToTarget(resultValue).orElseThrow().getSMGObject())
           .isEqualTo(expectedTarget);
 
       // The reverse applies as well
@@ -2061,9 +2061,9 @@ public class SMGCPAValueVisitorTest {
           .isEqualTo(expectedOffset);
       // Check that the other methods return the correct points-to-edge leading to the correct
       // memory location and never to the 0 object
-      assertThat(currentState.getPointsToTarget(resultValue).getSMGObject())
+      assertThat(currentState.getPointsToTarget(resultValue).orElseThrow().getSMGObject())
           .isNotEqualTo(SMGObject.nullInstance());
-      assertThat(currentState.getPointsToTarget(resultValue).getSMGObject())
+      assertThat(currentState.getPointsToTarget(resultValue).orElseThrow().getSMGObject())
           .isEqualTo(expectedTarget);
 
       // The reverse applies as well
@@ -2153,9 +2153,9 @@ public class SMGCPAValueVisitorTest {
             .isEqualTo(expectedOffset);
         // Check that the other methods return the correct points-to-edge leading to the correct
         // memory location and never to the 0 object
-        assertThat(currentState.getPointsToTarget(resultValue).getSMGObject())
+        assertThat(currentState.getPointsToTarget(resultValue).orElseThrow().getSMGObject())
             .isNotEqualTo(SMGObject.nullInstance());
-        assertThat(currentState.getPointsToTarget(resultValue).getSMGObject())
+        assertThat(currentState.getPointsToTarget(resultValue).orElseThrow().getSMGObject())
             .isEqualTo(expectedTarget);
 
         // The reverse applies as well
@@ -2242,9 +2242,9 @@ public class SMGCPAValueVisitorTest {
             .isEqualTo(expectedOffset);
         // Check that the other methods return the correct points-to-edge leading to the correct
         // memory location and never to the 0 object
-        assertThat(currentState.getPointsToTarget(resultValue).getSMGObject())
+        assertThat(currentState.getPointsToTarget(resultValue).orElseThrow().getSMGObject())
             .isNotEqualTo(SMGObject.nullInstance());
-        assertThat(currentState.getPointsToTarget(resultValue).getSMGObject())
+        assertThat(currentState.getPointsToTarget(resultValue).orElseThrow().getSMGObject())
             .isEqualTo(expectedTarget);
 
         // The reverse applies as well
@@ -2328,9 +2328,9 @@ public class SMGCPAValueVisitorTest {
           .isEqualTo(expectedOffset);
       // Check that the other methods return the correct points-to-edge leading to the correct
       // memory location and never to the 0 object
-      assertThat(currentState.getPointsToTarget(resultValue).getSMGObject())
+      assertThat(currentState.getPointsToTarget(resultValue).orElseThrow().getSMGObject())
           .isNotEqualTo(SMGObject.nullInstance());
-      assertThat(currentState.getPointsToTarget(resultValue).getSMGObject())
+      assertThat(currentState.getPointsToTarget(resultValue).orElseThrow().getSMGObject())
           .isEqualTo(expectedTarget);
 
       // The reverse applies as well
@@ -2400,9 +2400,9 @@ public class SMGCPAValueVisitorTest {
       assertThat(resultMaybeTarget.orElseThrow().getOffsetForObject()).isEqualTo(expectedOffset);
       // Check that the other methods return the correct points-to-edge leading to the correct
       // memory location and never to the 0 object
-      assertThat(currentState.getPointsToTarget(resultValue).getSMGObject())
+      assertThat(currentState.getPointsToTarget(resultValue).orElseThrow().getSMGObject())
           .isNotEqualTo(SMGObject.nullInstance());
-      assertThat(currentState.getPointsToTarget(resultValue).getSMGObject())
+      assertThat(currentState.getPointsToTarget(resultValue).orElseThrow().getSMGObject())
           .isEqualTo(expectedTarget);
 
       // The reverse applies as well
@@ -2490,9 +2490,9 @@ public class SMGCPAValueVisitorTest {
             .isEqualTo(expectedOffset);
         // Check that the other methods return the correct points-to-edge leading to the correct
         // memory location and never to the 0 object
-        assertThat(currentState.getPointsToTarget(resultValue).getSMGObject())
+        assertThat(currentState.getPointsToTarget(resultValue).orElseThrow().getSMGObject())
             .isNotEqualTo(SMGObject.nullInstance());
-        assertThat(currentState.getPointsToTarget(resultValue).getSMGObject())
+        assertThat(currentState.getPointsToTarget(resultValue).orElseThrow().getSMGObject())
             .isEqualTo(expectedTarget);
 
         // The reverse applies as well
@@ -2578,9 +2578,9 @@ public class SMGCPAValueVisitorTest {
             .isEqualTo(expectedOffset);
         // Check that the other methods return the correct points-to-edge leading to the correct
         // memory location and never to the 0 object
-        assertThat(currentState.getPointsToTarget(resultValue).getSMGObject())
+        assertThat(currentState.getPointsToTarget(resultValue).orElseThrow().getSMGObject())
             .isNotEqualTo(SMGObject.nullInstance());
-        assertThat(currentState.getPointsToTarget(resultValue).getSMGObject())
+        assertThat(currentState.getPointsToTarget(resultValue).orElseThrow().getSMGObject())
             .isEqualTo(expectedTarget);
 
         // The reverse applies as well
