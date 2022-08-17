@@ -380,12 +380,13 @@ public class SMGCPABuiltins {
     currentState = pointerAndState.getState();
     Value address = pointerAndState.getValue();
 
-    ImmutableList.Builder<ValueAndSMGState> listBuilder = ImmutableList.builder();
-    for (SMGObjectAndOffsetOrSMGState target :
-        firstArg.accept(new SMGCPAAddressVisitor(evaluator, currentState, pCfaEdge, logger))) {
+    List<SMGObjectAndOffsetOrSMGState> targets =
+        firstArg.accept(new SMGCPAAddressVisitor(evaluator, currentState, pCfaEdge, logger));
+    Preconditions.checkArgument(targets.size() == 1);
+    for (SMGObjectAndOffsetOrSMGState target : targets) {
+      // We assume that there is only 1 valid returned target
       if (target.hasSMGState()) {
-        listBuilder.add(ValueAndSMGState.ofUnknownValue(target.getSMGState()));
-        continue;
+        return ImmutableList.of(ValueAndSMGState.ofUnknownValue(currentState));
       }
       SMGObject targetObj = target.getSMGObject();
       BigInteger offset = target.getOffsetForObject();
