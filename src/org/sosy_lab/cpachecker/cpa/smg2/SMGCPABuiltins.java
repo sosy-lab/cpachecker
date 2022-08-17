@@ -19,17 +19,20 @@ import java.util.regex.Pattern;
 import org.sosy_lab.common.UniqueIdGenerator;
 import org.sosy_lab.common.collect.Collections3;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
+import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
+import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMG2Exception;
+import org.sosy_lab.cpachecker.cpa.smg2.util.SMGObjectAndOffsetOrSMGState;
 import org.sosy_lab.cpachecker.cpa.smg2.util.value.SMGCPAValueExpressionEvaluator;
 import org.sosy_lab.cpachecker.cpa.smg2.util.value.ValueAndSMGState;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.AddressExpression;
@@ -37,6 +40,7 @@ import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
+import org.sosy_lab.cpachecker.util.smg.graph.SMGObject;
 
 public class SMGCPABuiltins {
 
@@ -252,6 +256,12 @@ public class SMGCPABuiltins {
     Preconditions.checkArgument(cFCExpression.getParameterExpressions().size() == 1);
     // The first argument is the variable to be deleted
     CExpression firstArg = cFCExpression.getParameterExpressions().get(0);
+    while (firstArg instanceof CCastExpression) {
+      firstArg = ((CCastExpression) firstArg).getOperand();
+    }
+    if (firstArg instanceof CUnaryExpression) {
+      firstArg = ((CUnaryExpression) firstArg).getOperand();
+    }
     Preconditions.checkArgument(firstArg instanceof CIdExpression);
     CIdExpression firstIdArg = (CIdExpression) firstArg;
     SMGState currentState =
@@ -324,16 +334,28 @@ public class SMGCPABuiltins {
 
   /*
    * function va_start for variable arguments in functions.
+   * We assume that the given argument 1 will be the variable holding the current pointer, while the second arg gives us the type of the elements.
    */
   @SuppressWarnings("unused")
   private List<ValueAndSMGState> evaluateVaStart(
       CFunctionCallExpression cFCExpression, CFAEdge pCfaEdge, SMGState pState)
       throws CPATransferException {
+
+    SMGState currentState = pState;
     Preconditions.checkArgument(cFCExpression.getParameterExpressions().size() == 2);
     // The first argument is the target for the pointer to the array of values
     CExpression firstArg = cFCExpression.getParameterExpressions().get(0);
+    // The first arg is usually either a & onto the args or the args itself, it might be casted
+    // though
+    while (firstArg instanceof CCastExpression) {
+      firstArg = ((CCastExpression) firstArg).getOperand();
+    }
+    if (firstArg instanceof CUnaryExpression) {
+      firstArg = ((CUnaryExpression) firstArg).getOperand();
+    }
+
     Preconditions.checkArgument(firstArg instanceof CIdExpression);
-    CIdExpression firstIdArg = (CIdExpression) firstArg;
+
     // The second argument is the type of the argument before the variable args start
     CExpression secondArg = cFCExpression.getParameterExpressions().get(1);
     StackFrame currentStack = pState.getMemoryModel().getStackFrames().peek();
@@ -346,27 +368,45 @@ public class SMGCPABuiltins {
       // Log warning (gcc only throws a warning and it works anyway)
       // TODO:
     }
-    // Create a new variable with the name of the first argument and copy the
-    // starting pointer for the variable arguments
-    BigInteger sizeInBits = evaluator.getBitSizeof(pState, firstIdArg);
-    SMGState currentState =
-        pState.copyAndAddLocalVariable(
-            sizeInBits,
-            firstIdArg.getName(),
-            SMGCPAValueExpressionEvaluator.getCanonicalType(firstIdArg));
-    String nameOfArray =
-        currentState.getUniqueFunctionBasedNameForVarArgs(currentStack.getFunctionDefinition());
-    ValueAndSMGState addressAndState =
-        evaluator.createAddressForLocalOrGlobalVariable(nameOfArray, currentState);
-    currentState = addressAndState.getState();
-    Value address = addressAndState.getValue();
-    currentState =
-        currentState.writeToStackOrGlobalVariable(
-            firstIdArg.getDeclaration().getQualifiedName(),
-            BigInteger.ZERO,
-            sizeInBits,
-            address,
-            firstIdArg.getExpressionType());
+    BigInteger sizeInBitsPointer = evaluator.getBitSizeof(pState, firstArg);
+
+    BigInteger sizeInBitsVarArg = evaluator.getBitSizeof(pState, secondArg);
+    BigInteger overallSizeOfVarArgs =
+        BigInteger.valueOf(currentStack.getVariableArguments().size()).multiply(sizeInBitsVarArg);
+
+    ValueAndSMGState pointerAndState =
+        evaluator.createHeapMemoryAndPointer(currentState, overallSizeOfVarArgs);
+
+    currentState = pointerAndState.getState();
+    Value address = pointerAndState.getValue();
+
+    ImmutableList.Builder<ValueAndSMGState> listBuilder = ImmutableList.builder();
+    for (SMGObjectAndOffsetOrSMGState target :
+        firstArg.accept(new SMGCPAAddressVisitor(evaluator, currentState, pCfaEdge, logger))) {
+      if (target.hasSMGState()) {
+        listBuilder.add(ValueAndSMGState.ofUnknownValue(target.getSMGState()));
+        continue;
+      }
+      SMGObject targetObj = target.getSMGObject();
+      BigInteger offset = target.getOffsetForObject();
+
+      currentState =
+          currentState.writeValueTo(
+              targetObj, offset, sizeInBitsPointer, address, firstArg.getExpressionType());
+    }
+
+    BigInteger offset = BigInteger.ZERO;
+    for (Value varArg : currentStack.getVariableArguments()) {
+      // Fill the arra with var args
+      currentState =
+          currentState.writeValueTo(
+              address,
+              offset,
+              sizeInBitsVarArg,
+              varArg,
+              SMGCPAValueExpressionEvaluator.getCanonicalType(secondArg));
+      offset = offset.add(sizeInBitsVarArg);
+    }
 
     return ImmutableList.of(ValueAndSMGState.ofUnknownValue(currentState));
   }
@@ -1033,9 +1073,12 @@ public class SMGCPABuiltins {
         resultBuilder.add(ValueAndSMGState.ofUnknownValue(destAndState.getState()));
         continue;
       } else if (!(targetAddress instanceof AddressExpression)) {
-        throw new SMG2Exception(
-            "Internal error: wrong Value returned where AddressExpression expected when evaluating"
-                + " memcpy.");
+        // The value can be unknown
+        resultBuilder.add(ValueAndSMGState.ofUnknownValue(destAndState.getState()));
+        continue;
+        /*throw new SMG2Exception(
+        "Internal error: wrong Value returned where AddressExpression expected when evaluating"
+            + " memcpy.");*/
       }
       AddressExpression targetAddressExpr = (AddressExpression) targetAddress;
       if (!targetAddressExpr.getOffset().isNumericValue()) {
@@ -1057,15 +1100,19 @@ public class SMGCPABuiltins {
           resultBuilder.add(ValueAndSMGState.ofUnknownValue(sourceAndState.getState()));
           continue;
         } else if (!(sourceAddress instanceof AddressExpression)) {
-          throw new SMG2Exception(
-              "Internal error: wrong Value returned where AddressExpression expected when"
-                  + " evaluating memcpy.");
+          // The value can be unknown
+          resultBuilder.add(ValueAndSMGState.ofUnknownValue(sourceAndState.getState()));
+          continue;
+          /*throw new SMG2Exception(
+          "Internal error: wrong Value returned where AddressExpression expected when"
+              + " evaluating memcpy.");*/
         }
         AddressExpression sourceAddressExpr = (AddressExpression) sourceAddress;
         if (!sourceAddressExpr.getOffset().isNumericValue()) {
           // Write the target region to unknown
           // TODO:
           resultBuilder.add(ValueAndSMGState.ofUnknownValue(sourceAndState.getState()));
+          continue;
         }
 
         for (ValueAndSMGState sizeAndState :
@@ -1075,27 +1122,15 @@ public class SMGCPABuiltins {
           SMGState currentState = sizeAndState.getState();
           Value sizeValue = sizeAndState.getValue();
 
-          if (sizeValue.isUnknown()) {
+          if (!sizeValue.isNumericValue()) {
             // TODO: log instead of error? This is a limitation of the analysis that is not a
             // critical C problem.
-            currentState =
-                currentState.withInvalidWrite(
-                    "Invalid (Unknown) size (third argument) for memcpy() function call.",
-                    sizeValue);
             resultBuilder.add(ValueAndSMGState.ofUnknownValue(currentState));
+            continue;
           }
-          // TODO: improve symbolic size handling
-          if (!sizeValue.isNumericValue()) {
-            // TODO: log instead of error?
-            currentState =
-                currentState.withInvalidWrite(
-                    "Symbolic count (second argument) for memcpy() function call not supported.",
-                    sizeValue);
-            resultBuilder.add(ValueAndSMGState.ofUnknownValue(currentState));
-          } else {
+
             resultBuilder.add(
                 evaluateMemcpy(currentState, targetAddressExpr, sourceAddressExpr, sizeValue));
-          }
         }
       }
     }
