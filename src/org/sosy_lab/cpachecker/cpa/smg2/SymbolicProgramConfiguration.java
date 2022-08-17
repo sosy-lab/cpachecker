@@ -14,6 +14,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableBiMap;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 import java.math.BigInteger;
@@ -24,6 +25,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Set;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.collect.PersistentMap;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
@@ -356,11 +358,15 @@ public class SymbolicProgramConfiguration {
    * @param pFunctionDefinition - The {@link CFunctionDeclaration} that the {@link StackFrame} will
    *     be based upon.
    * @param model - The {@link MachineModel} the new {@link StackFrame} be based upon.
+   * @param variableArguments null for no variable arguments, else a ImmutableList (that may be
+   *     EMPTY!) of the Values in order.
    * @return The SPC copy with the new {@link StackFrame}.
    */
   public SymbolicProgramConfiguration copyAndAddStackFrame(
-      CFunctionDeclaration pFunctionDefinition, MachineModel model) {
-    StackFrame newStackFrame = new StackFrame(pFunctionDefinition, model);
+      CFunctionDeclaration pFunctionDefinition,
+      MachineModel model,
+      @Nullable ImmutableList<Value> variableArguments) {
+    StackFrame newStackFrame = new StackFrame(pFunctionDefinition, model, variableArguments);
     Optional<SMGObject> returnObj = newStackFrame.getReturnObject();
     if (returnObj.isEmpty()) {
       return of(
@@ -382,6 +388,21 @@ public class SymbolicProgramConfiguration {
         valueMapping,
         variableToTypeMap,
         variableBlacklist);
+  }
+
+  /**
+   * Copies this {@link SymbolicProgramConfiguration} and adds a {@link StackFrame} based on the
+   * entered model and function definition. More information on StackFrames can be found in the
+   * Stackframe class.
+   *
+   * @param pFunctionDefinition - The {@link CFunctionDeclaration} that the {@link StackFrame} will
+   *     be based upon.
+   * @param model - The {@link MachineModel} the new {@link StackFrame} be based upon.
+   * @return The SPC copy with the new {@link StackFrame}.
+   */
+  public SymbolicProgramConfiguration copyAndAddStackFrame(
+      CFunctionDeclaration pFunctionDefinition, MachineModel model) {
+    return copyAndAddStackFrame(pFunctionDefinition, model, null);
   }
 
   public SymbolicProgramConfiguration copyAndReplaceVariableBlacklist(

@@ -692,9 +692,23 @@ public class SMGState
    * @param pFunctionDefinition A function for which to create a new stack frame
    */
   public SMGState copyAndAddStackFrame(CFunctionDeclaration pFunctionDefinition) {
+    return copyAndAddStackFrame(pFunctionDefinition, null);
+  }
+
+  /**
+   * Copy SMGState and adds a new frame for the function. Also saves the variable arguments of this
+   * function. Null as argument means no variable arguments. The list of variable arguments may be
+   * empty if var args are possible but not used.
+   *
+   * @param pFunctionDefinition A function for which to create a new stack frame
+   */
+  public SMGState copyAndAddStackFrame(
+      CFunctionDeclaration pFunctionDefinition,
+      @Nullable ImmutableList<Value> variableArgumentsInOrder) {
     return of(
         machineModel,
-        memoryModel.copyAndAddStackFrame(pFunctionDefinition, machineModel),
+        memoryModel.copyAndAddStackFrame(
+            pFunctionDefinition, machineModel, variableArgumentsInOrder),
         logger,
         options,
         errorInfo);
@@ -1429,21 +1443,21 @@ public class SMGState
    * TODO: do we need unknown derefs here?
    *
    * @param pValue - the given Value representation of the address.
-   * @return the SMGObject which the address points to, or SMGObject.nullInstance() if there is no
-   *     such.
+   * @return the SMGObject which the address points to, or empty if none is found.
    */
-  public SMGObjectAndOffset getPointsToTarget(Value pValue) {
+  public Optional<SMGObjectAndOffset> getPointsToTarget(Value pValue) {
     Optional<SMGValue> addressOptional = memoryModel.getSMGValueFromValue(pValue);
     if (addressOptional.isPresent()) {
       Optional<SMGPointsToEdge> pointerEdgeOptional =
           memoryModel.getSmg().getPTEdge(addressOptional.orElseThrow());
       if (pointerEdgeOptional.isPresent()) {
-        return SMGObjectAndOffset.of(
-            pointerEdgeOptional.orElseThrow().pointsTo(),
-            pointerEdgeOptional.orElseThrow().getOffset());
+        return Optional.of(
+            SMGObjectAndOffset.of(
+                pointerEdgeOptional.orElseThrow().pointsTo(),
+                pointerEdgeOptional.orElseThrow().getOffset()));
       }
     }
-    return SMGObjectAndOffset.withZeroOffset(SMGObject.nullInstance());
+    return Optional.empty();
   }
 
   /*
@@ -1459,8 +1473,13 @@ public class SMGState
       if (offsetAddr.isNumericValue()) {
         BigInteger offsetAddrBI = offsetAddr.asNumericValue().bigInteger();
         if (offsetAddrBI.compareTo(BigInteger.ZERO) != 0) {
-          SMGObjectAndOffset targetAndOffset =
+          Optional<SMGObjectAndOffset> maybeTargetAndOffset =
               getPointsToTarget(addressExprValue.getMemoryAddress());
+          if (maybeTargetAndOffset.isEmpty()) {
+            return ValueAndSMGState.ofUnknownValue(this);
+          }
+          SMGObjectAndOffset targetAndOffset = maybeTargetAndOffset.orElseThrow();
+
           SMGObject target = targetAndOffset.getSMGObject();
           BigInteger offsetPointer = targetAndOffset.getOffsetForObject();
           BigInteger offsetOverall = offsetPointer.add(offsetAddrBI);
