@@ -165,7 +165,8 @@ public class SMGUseDefBasedInterpolator {
     }
 
     // The value analysis refinement does not need anything besides the MemoryLocs
-    return new SMGInterpolant(useDefInterpolant, null, null, null, options, machineModel, logger);
+    return new SMGInterpolant(
+        useDefInterpolant, null, null, null, null, options, machineModel, logger);
   }
 
   /**
@@ -261,6 +262,7 @@ public class SMGUseDefBasedInterpolator {
     @Override
     public ImmutableList<MemoryLocation> visit(final CFunctionType pFunctionType) {
       // a function does not really have a size, but references to functions can be used as pointers
+      // TODO: insert my scheme
       return createSingleMemoryLocation(model.getSizeofPtr());
     }
 

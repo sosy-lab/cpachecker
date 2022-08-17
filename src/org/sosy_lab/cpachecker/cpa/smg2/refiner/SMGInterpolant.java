@@ -22,9 +22,11 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.collect.PersistentMap;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
+import org.sosy_lab.cpachecker.cpa.smg.util.PersistentStack;
 import org.sosy_lab.cpachecker.cpa.smg2.SMGOptions;
 import org.sosy_lab.cpachecker.cpa.smg2.SMGState;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMG2Exception;
@@ -48,6 +50,8 @@ public final class SMGInterpolant implements Interpolant<SMGState, SMGInterpolan
 
   private final @Nullable Map<String, CType> variableToTypeMap;
 
+  private final @Nullable PersistentStack<CFunctionDeclaration> reversedStackFrameDeclarations;
+
   private final SMGOptions options;
   private final MachineModel machineModel;
   private final LogManager logger;
@@ -61,6 +65,7 @@ public final class SMGInterpolant implements Interpolant<SMGState, SMGInterpolan
     nonHeapAssignments = PathCopyingPersistentTreeMap.of();
     variableNameToMemorySizeInBits = new HashMap<>();
     variableToTypeMap = new HashMap<>();
+    reversedStackFrameDeclarations = PersistentStack.of();
   }
 
   /**
@@ -71,7 +76,7 @@ public final class SMGInterpolant implements Interpolant<SMGState, SMGInterpolan
   public SMGInterpolant(
       PersistentMap<MemoryLocation, ValueAndValueSize> pNonHeapAssignments,
       Map<String, BigInteger> pVariableNameToMemorySizeInBits,
-      Map<String, CType> pVariableToTypeMap,
+      Map<String, CType> pVariableToTypeMap, PersistentStack<CFunctionDeclaration> pReversedStackFrameDeclarations,
       SMGState pOriginalState,
       SMGOptions pOptions,
       MachineModel pMachineModel,
@@ -83,6 +88,7 @@ public final class SMGInterpolant implements Interpolant<SMGState, SMGInterpolan
     nonHeapAssignments = pNonHeapAssignments;
     variableNameToMemorySizeInBits = pVariableNameToMemorySizeInBits;
     variableToTypeMap = pVariableToTypeMap;
+    reversedStackFrameDeclarations = pReversedStackFrameDeclarations;
   }
 
   /**
@@ -102,7 +108,7 @@ public final class SMGInterpolant implements Interpolant<SMGState, SMGInterpolan
   /** the interpolant representing "false" */
   public static SMGInterpolant createFALSE(
       SMGOptions pOptions, MachineModel pMachineModel, LogManager pLogger) {
-    return new SMGInterpolant(null, null, null, null, pOptions, pMachineModel, pLogger);
+    return new SMGInterpolant(null, null, null, null, null, pOptions, pMachineModel, pLogger);
   }
 
   @Override
@@ -145,25 +151,28 @@ public final class SMGInterpolant implements Interpolant<SMGState, SMGInterpolan
               other.nonHeapAssignments.get(entry.getKey()).getSizeInBits())
           : "interpolants mismatch in " + entry.getKey();
     }
-    if (originalState != null) {
-      return new SMGInterpolant(
-          newAssignment,
-          variableNameToMemorySizeInBits,
-          variableToTypeMap,
-          originalState,
-          options,
-          machineModel,
-          logger);
-    } else {
-      return new SMGInterpolant(
-          newAssignment,
-          variableNameToMemorySizeInBits,
-          variableToTypeMap,
-          other.originalState,
-          options,
-          machineModel,
-          logger);
+
+    @Nullable PersistentStack<CFunctionDeclaration> stackFrameDecl = reversedStackFrameDeclarations;
+    if (stackFrameDecl == null
+        || (other.reversedStackFrameDeclarations != null
+            && other.reversedStackFrameDeclarations.size() > stackFrameDecl.size())) {
+      stackFrameDecl = other.reversedStackFrameDeclarations;
     }
+
+    SMGState state = originalState;
+    if (originalState == null) {
+      state = other.originalState;
+    }
+
+    return new SMGInterpolant(
+        newAssignment,
+        variableNameToMemorySizeInBits,
+        variableToTypeMap,
+        stackFrameDecl,
+        state,
+        options,
+        machineModel,
+        logger);
   }
 
   @Override
@@ -223,7 +232,10 @@ public final class SMGInterpolant implements Interpolant<SMGState, SMGInterpolan
       try {
         return SMGState.of(machineModel, logger, options)
             .reconstructSMGStateFromNonHeapAssignments(
-                nonHeapAssignments, variableNameToMemorySizeInBits, variableToTypeMap);
+                nonHeapAssignments,
+                variableNameToMemorySizeInBits,
+                variableToTypeMap,
+                reversedStackFrameDeclarations);
       } catch (SMG2Exception e) {
         // Should actually never happen. This SMG2Exception gets thrown for over/underwrites
         // But since we copy legit values 1:1 this does not happen.
@@ -245,6 +257,8 @@ public final class SMGInterpolant implements Interpolant<SMGState, SMGInterpolan
     return nonHeapAssignments.toString();
   }
 
+  // TODO: currently not used. Originally used in IMPACT refinement. Would need to be edited to be
+  // immutable, that it returns the new state.
   public boolean strengthen(SMGState state, ARGState argState) {
     if (isTrivial()) {
       return false;
@@ -256,9 +270,13 @@ public final class SMGInterpolant implements Interpolant<SMGState, SMGInterpolan
     for (Entry<MemoryLocation, ValueAndValueSize> itp : nonHeapAssignments.entrySet()) {
       if (!currentState.isLocalOrGlobalVariablePresent(itp.getKey())) {
         try {
-          currentState =
-              currentState.assignNonHeapConstant(
-                  itp.getKey(), itp.getValue(), variableNameToMemorySizeInBits, variableToTypeMap);
+          SMGState.of(machineModel, logger, options)
+              .assignNonHeapConstant(
+                  itp.getKey(),
+                  itp.getValue(),
+                  variableNameToMemorySizeInBits,
+                  variableToTypeMap,
+                  reversedStackFrameDeclarations);
         } catch (SMG2Exception e) {
           // Critical error
           throw new RuntimeException(e);
@@ -311,6 +329,7 @@ public final class SMGInterpolant implements Interpolant<SMGState, SMGInterpolan
         weakenedAssignments,
         variableNameToMemorySizeInBits,
         variableToTypeMap,
+        reversedStackFrameDeclarations,
         originalState,
         options,
         machineModel,

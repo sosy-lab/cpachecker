@@ -1039,6 +1039,15 @@ public class SymbolicProgramConfiguration {
     return variableNameToMemorySizeInBits;
   }
 
+  /* We need the stack frames with their definitions as copies to rebuild the state. */
+  public PersistentStack<CFunctionDeclaration> getFunctionDeclarationsFromStackFrames() {
+    PersistentStack<CFunctionDeclaration> decls = PersistentStack.of();
+    for (StackFrame frame : stackVariableMapping) {
+      decls = decls.pushAndCopy(frame.getFunctionDefinition());
+    }
+    return decls;
+  }
+
   public CType getTypeOfVariable(String variableName) {
     return variableToTypeMap.get(variableName);
   }

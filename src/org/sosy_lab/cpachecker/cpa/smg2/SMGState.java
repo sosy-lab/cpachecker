@@ -41,6 +41,7 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
 import org.sosy_lab.cpachecker.core.interfaces.Graphable;
 import org.sosy_lab.cpachecker.cpa.smg.join.SMGJoinStatus;
 import org.sosy_lab.cpachecker.cpa.smg.util.PersistentSet;
+import org.sosy_lab.cpachecker.cpa.smg.util.PersistentStack;
 import org.sosy_lab.cpachecker.cpa.smg2.SMGErrorInfo.Property;
 import org.sosy_lab.cpachecker.cpa.smg2.refiner.SMGInterpolant;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMG2Exception;
@@ -333,7 +334,8 @@ public class SMGState
       MemoryLocation memLoc,
       ValueAndValueSize valueAndSize,
       Map<String, BigInteger> variableNameToMemorySizeInBits,
-      Map<String, CType> variableTypeMap)
+      Map<String, CType> variableTypeMap,
+      PersistentStack<CFunctionDeclaration> pStackDeclarations)
       throws SMG2Exception {
     // Deconstruct MemoryLocation to get the qualified name of global/local vars
     // And remember the offset. Offset + size from ValueAndValueSize are the
@@ -345,6 +347,8 @@ public class SMGState
       // Create the variable first
       BigInteger sizeInBits = variableNameToMemorySizeInBits.get(qualifiedName);
       if (memLoc.isOnFunctionStack()) {
+        currentState =
+            currentState.rebuildStackFrameUntilMemoryLocation(memLoc, pStackDeclarations);
         // Add depending on function stack!
         currentState =
             currentState.copyAndAddLocalVariableToSpecificStackframe(
@@ -369,6 +373,35 @@ public class SMGState
     // from the original state)
     return currentState.writeToAnyStackOrGlobalVariable(
         qualifiedName, offsetToWriteToInBits, sizeOfWriteInBits, valueToWrite, typeOfUnknown);
+  }
+
+  private SMGState rebuildStackFrameUntilMemoryLocation(
+      MemoryLocation memLoc, PersistentStack<CFunctionDeclaration> pStackDeclarations) {
+    SMGState currentState = this;
+    String functionName = memLoc.getFunctionName();
+
+    // The order of the decl stack is reversed, i.e. main is on top
+    PersistentStack<CFunctionDeclaration> stackDeclarations = pStackDeclarations;
+    while (!stackDeclarations.peek().getQualifiedName().equals(functionName)) {
+      CFunctionDeclaration temp = stackDeclarations.peek();
+      stackDeclarations = stackDeclarations.popAndCopy();
+      if (currentState.isDeclarationOnStackFrame(temp)) {
+      currentState = currentState.copyAndAddStackFrame(temp);
+    }
+    }
+    return currentState;
+  }
+
+  private boolean isDeclarationOnStackFrame(CFunctionDeclaration def) {
+    PersistentStack<StackFrame> frames = memoryModel.getStackFrames();
+    if (frames != null) {
+      for (StackFrame frame : frames) {
+        if (frame.getFunctionDefinition().equals(def)) {
+          return true;
+        }
+      }
+    }
+    return false;
   }
 
   /**
@@ -415,7 +448,8 @@ public class SMGState
   public SMGState reconstructSMGStateFromNonHeapAssignments(
       @Nullable PersistentMap<MemoryLocation, ValueAndValueSize> nonHeapAssignments,
       Map<String, BigInteger> variableNameToMemorySizeInBits,
-      Map<String, CType> variableTypeMap)
+      Map<String, CType> variableTypeMap,
+      PersistentStack<CFunctionDeclaration> pStackDeclarations)
       throws SMG2Exception {
     if (nonHeapAssignments == null) {
       return this;
@@ -429,7 +463,11 @@ public class SMGState
     for (Entry<MemoryLocation, ValueAndValueSize> entry : nonHeapAssignments.entrySet()) {
       currentState =
           currentState.assignNonHeapConstant(
-              entry.getKey(), entry.getValue(), variableNameToMemorySizeInBits, variableTypeMap);
+              entry.getKey(),
+              entry.getValue(),
+              variableNameToMemorySizeInBits,
+              variableTypeMap,
+              pStackDeclarations);
     }
     return currentState;
   }
@@ -534,7 +572,11 @@ public class SMGState
    * @return true if the var exists, false else.
    */
   private boolean isLocalVariablePresentAnywhere(String pVarName) {
-    for (StackFrame stackframe : memoryModel.getStackFrames()) {
+    PersistentStack<StackFrame> frames = memoryModel.getStackFrames();
+    if (frames == null) {
+      return false;
+    }
+    for (StackFrame stackframe : frames) {
       if (stackframe.getVariables().containsKey(pVarName)) {
         return true;
       }
@@ -2059,6 +2101,7 @@ public class SMGState
         memoryModel.getMemoryLocationsAndValuesForSPCWithoutHeap(),
         memoryModel.getSizeObMemoryForSPCWithoutHeap(),
         memoryModel.getVariableTypeMap(),
+        memoryModel.getFunctionDeclarationsFromStackFrames(),
         this,
         options,
         machineModel,
@@ -2105,7 +2148,8 @@ public class SMGState
                 .putAndCopy(
                     pLocation, ValueAndValueSize.of(removedValue, edgeToRemove.getSizeInBits())),
             getMemoryModel().getSizeObMemoryForSPCWithoutHeap(),
-            memoryModel.getVariableTypeMap()));
+            memoryModel.getVariableTypeMap(),
+            memoryModel.getFunctionDeclarationsFromStackFrames()));
   }
 
   @Override
@@ -2118,7 +2162,8 @@ public class SMGState
               pLocation,
               valueAndSize,
               pForgottenInformation.getSizeInformationForVariablesMap(),
-              pForgottenInformation.getTypeOfVariablesMap());
+              pForgottenInformation.getTypeOfVariablesMap(),
+              pForgottenInformation.getDeclarationsForStackframesReversed());
     } catch (SMG2Exception e) {
       // Should never happen
       throw new RuntimeException(e);

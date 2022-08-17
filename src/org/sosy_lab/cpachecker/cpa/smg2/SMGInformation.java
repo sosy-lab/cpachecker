@@ -14,7 +14,9 @@ import java.util.Map;
 import java.util.Objects;
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.collect.PersistentMap;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.cpa.smg.util.PersistentStack;
 import org.sosy_lab.cpachecker.cpa.smg2.util.ValueAndValueSize;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
@@ -24,20 +26,24 @@ public final class SMGInformation {
   private final PersistentMap<String, CType> variableToTypeMap;
   private final Map<String, BigInteger> variableNameAndSizeInBits;
   private final PersistentMap<MemoryLocation, ValueAndValueSize> nonHeapAssignments;
+  private final PersistentStack<CFunctionDeclaration> stackDeclarations;
 
   SMGInformation(
       final PersistentMap<MemoryLocation, ValueAndValueSize> pAssignments,
       final Map<String, BigInteger> pVariableNameAndSizeInBits,
-      final PersistentMap<String, CType> pVariableToTypeMap) {
+      final PersistentMap<String, CType> pVariableToTypeMap,
+      final PersistentStack<CFunctionDeclaration> pStackDeclarations) {
     nonHeapAssignments = pAssignments;
     variableNameAndSizeInBits = pVariableNameAndSizeInBits;
     variableToTypeMap = pVariableToTypeMap;
+    stackDeclarations = pStackDeclarations;
   }
 
   private SMGInformation() {
     nonHeapAssignments = PathCopyingPersistentTreeMap.of();
     variableNameAndSizeInBits = new HashMap<>();
     variableToTypeMap = PathCopyingPersistentTreeMap.of();
+    stackDeclarations = PersistentStack.of();
   }
 
   public static SMGInformation getEmptySMGInformation() {
@@ -56,6 +62,11 @@ public final class SMGInformation {
   /** @return map from qualified variable name to their sizes in bits. */
   public Map<String, BigInteger> getSizeInformationForVariablesMap() {
     return variableNameAndSizeInBits;
+  }
+
+  /* Reversed stack of declarations for the stack frames used. i.e. main is on the very top. */
+  public PersistentStack<CFunctionDeclaration> getDeclarationsForStackframesReversed() {
+    return stackDeclarations;
   }
 
   @Override
