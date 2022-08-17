@@ -21,8 +21,11 @@ import java.util.Set;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.collect.PersistentMap;
+import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
+import org.sosy_lab.cpachecker.cpa.smg2.SMGOptions;
 import org.sosy_lab.cpachecker.cpa.smg2.SMGState;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMG2Exception;
 import org.sosy_lab.cpachecker.cpa.smg2.util.ValueAndValueSize;
@@ -45,8 +48,15 @@ public final class SMGInterpolant implements Interpolant<SMGState, SMGInterpolan
 
   private final @Nullable Map<String, CType> variableToTypeMap;
 
+  private final SMGOptions options;
+  private final MachineModel machineModel;
+  private final LogManager logger;
+
   /** Constructor for a new, empty interpolant, i.e. the interpolant representing "true" */
-  private SMGInterpolant() {
+  private SMGInterpolant(SMGOptions pOptions, MachineModel pMachineModel, LogManager pLogger) {
+    options = pOptions;
+    machineModel = pMachineModel;
+    logger = pLogger;
     this.originalState = null;
     nonHeapAssignments = PathCopyingPersistentTreeMap.of();
     variableNameToMemorySizeInBits = new HashMap<>();
@@ -62,7 +72,13 @@ public final class SMGInterpolant implements Interpolant<SMGState, SMGInterpolan
       PersistentMap<MemoryLocation, ValueAndValueSize> pNonHeapAssignments,
       Map<String, BigInteger> pVariableNameToMemorySizeInBits,
       Map<String, CType> pVariableToTypeMap,
-      SMGState pOriginalState) {
+      SMGState pOriginalState,
+      SMGOptions pOptions,
+      MachineModel pMachineModel,
+      LogManager pLogger) {
+    options = pOptions;
+    machineModel = pMachineModel;
+    logger = pLogger;
     originalState = pOriginalState;
     nonHeapAssignments = pNonHeapAssignments;
     variableNameToMemorySizeInBits = pVariableNameToMemorySizeInBits;
@@ -72,18 +88,21 @@ public final class SMGInterpolant implements Interpolant<SMGState, SMGInterpolan
   /**
    * This method serves as factory method for an initial, i.e. an interpolant representing "true"
    */
-  public static SMGInterpolant createInitial() {
-    return new SMGInterpolant();
+  public static SMGInterpolant createInitial(
+      SMGOptions pOptions, MachineModel pMachineModel, LogManager pLogger) {
+    return new SMGInterpolant(pOptions, pMachineModel, pLogger);
   }
 
   /** the interpolant representing "true" */
-  public static SMGInterpolant createTRUE() {
-    return createInitial();
+  public static SMGInterpolant createTRUE(
+      SMGOptions pOptions, MachineModel pMachineModel, LogManager pLogger) {
+    return createInitial(pOptions, pMachineModel, pLogger);
   }
 
   /** the interpolant representing "false" */
-  public static SMGInterpolant createFALSE() {
-    return new SMGInterpolant(null, null, null, null);
+  public static SMGInterpolant createFALSE(
+      SMGOptions pOptions, MachineModel pMachineModel, LogManager pLogger) {
+    return new SMGInterpolant(null, null, null, null, pOptions, pMachineModel, pLogger);
   }
 
   @Override
@@ -104,7 +123,7 @@ public final class SMGInterpolant implements Interpolant<SMGState, SMGInterpolan
     // We expect that if nonHeapAssignments != null all other nullables are not null also except for
     // maybe the state!
     if (nonHeapAssignments == null || other.nonHeapAssignments == null) {
-      return createFALSE();
+      return createFALSE(options, machineModel, logger);
     }
 
     // add other itp mapping - one by one for now, to check for correctness
@@ -128,10 +147,22 @@ public final class SMGInterpolant implements Interpolant<SMGState, SMGInterpolan
     }
     if (originalState != null) {
       return new SMGInterpolant(
-          newAssignment, variableNameToMemorySizeInBits, variableToTypeMap, originalState);
+          newAssignment,
+          variableNameToMemorySizeInBits,
+          variableToTypeMap,
+          originalState,
+          options,
+          machineModel,
+          logger);
     } else {
       return new SMGInterpolant(
-          newAssignment, variableNameToMemorySizeInBits, variableToTypeMap, other.originalState);
+          newAssignment,
+          variableNameToMemorySizeInBits,
+          variableToTypeMap,
+          other.originalState,
+          options,
+          machineModel,
+          logger);
     }
   }
 
@@ -190,10 +221,11 @@ public final class SMGInterpolant implements Interpolant<SMGState, SMGInterpolan
       throw new IllegalStateException("Can't reconstruct state from FALSE-interpolant");
     } else {
       try {
-        return originalState.reconstructSMGStateFromNonHeapAssignments(
-            nonHeapAssignments, variableNameToMemorySizeInBits, variableToTypeMap);
+        return SMGState.of(machineModel, logger, options)
+            .reconstructSMGStateFromNonHeapAssignments(
+                nonHeapAssignments, variableNameToMemorySizeInBits, variableToTypeMap);
       } catch (SMG2Exception e) {
-        // Should actually never happen. This exception gets thrown for over/underwrites
+        // Should actually never happen. This SMG2Exception gets thrown for over/underwrites
         // But since we copy legit values 1:1 this does not happen.
         return originalState;
       }
@@ -276,7 +308,13 @@ public final class SMGInterpolant implements Interpolant<SMGState, SMGInterpolan
     }
 
     return new SMGInterpolant(
-        weakenedAssignments, variableNameToMemorySizeInBits, variableToTypeMap, originalState);
+        weakenedAssignments,
+        variableNameToMemorySizeInBits,
+        variableToTypeMap,
+        originalState,
+        options,
+        machineModel,
+        logger);
   }
 
   @SuppressWarnings("ConstantConditions") // isTrivial() asserts that assignment != null

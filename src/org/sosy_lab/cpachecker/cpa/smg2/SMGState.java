@@ -2059,7 +2059,10 @@ public class SMGState
         memoryModel.getMemoryLocationsAndValuesForSPCWithoutHeap(),
         memoryModel.getSizeObMemoryForSPCWithoutHeap(),
         memoryModel.getVariableTypeMap(),
-        this);
+        this,
+        options,
+        machineModel,
+        logger);
   }
 
   @Deprecated

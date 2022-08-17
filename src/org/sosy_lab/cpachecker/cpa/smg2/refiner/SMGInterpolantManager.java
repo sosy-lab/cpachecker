@@ -8,25 +8,34 @@
 
 package org.sosy_lab.cpachecker.cpa.smg2.refiner;
 
+import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.cfa.types.MachineModel;
+import org.sosy_lab.cpachecker.cpa.smg2.SMGOptions;
 import org.sosy_lab.cpachecker.cpa.smg2.SMGState;
 import org.sosy_lab.cpachecker.util.refinement.InterpolantManager;
 
 /** InterpolantManager for interpolants of {@link SMGState}. */
 public class SMGInterpolantManager implements InterpolantManager<SMGState, SMGInterpolant> {
 
-  private static final SMGInterpolantManager SINGLETON = new SMGInterpolantManager();
+  private final SMGOptions options;
+  private final MachineModel machineModel;
+  private final LogManager logger;
 
-  private SMGInterpolantManager() {
-    // DO NOTHING
+  private SMGInterpolantManager(
+      SMGOptions pOptions, MachineModel pMachineModel, LogManager pLogger) {
+    options = pOptions;
+    machineModel = pMachineModel;
+    logger = pLogger;
   }
 
-  public static SMGInterpolantManager getInstance() {
-    return SINGLETON;
+  public static SMGInterpolantManager getInstance(
+      SMGOptions pOptions, MachineModel pMachineModel, LogManager pLogger) {
+    return new SMGInterpolantManager(pOptions, pMachineModel, pLogger);
   }
 
   @Override
   public SMGInterpolant createInitialInterpolant() {
-    return SMGInterpolant.createInitial();
+    return SMGInterpolant.createInitial(options, machineModel, logger);
   }
 
   @Override
@@ -36,11 +45,11 @@ public class SMGInterpolantManager implements InterpolantManager<SMGState, SMGIn
 
   @Override
   public SMGInterpolant getTrueInterpolant() {
-    return SMGInterpolant.createTRUE();
+    return SMGInterpolant.createTRUE(options, machineModel, logger);
   }
 
   @Override
   public SMGInterpolant getFalseInterpolant() {
-    return SMGInterpolant.createFALSE();
+    return SMGInterpolant.createFALSE(options, machineModel, logger);
   }
 }

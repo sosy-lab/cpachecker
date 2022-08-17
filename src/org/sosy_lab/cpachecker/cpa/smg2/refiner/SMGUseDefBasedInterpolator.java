@@ -17,6 +17,9 @@ import java.util.List;
 import java.util.Map;
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.collect.PersistentMap;
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.ASimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
@@ -38,6 +41,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.path.PathIterator;
+import org.sosy_lab.cpachecker.cpa.smg2.SMGOptions;
 import org.sosy_lab.cpachecker.cpa.smg2.util.ValueAndValueSize;
 import org.sosy_lab.cpachecker.cpa.value.refiner.ValueAnalysisInterpolant;
 import org.sosy_lab.cpachecker.cpa.value.type.Value.UnknownValue;
@@ -58,6 +62,9 @@ public class SMGUseDefBasedInterpolator {
   /** the machine model in use */
   private final MachineModel machineModel;
 
+  private final SMGOptions options;
+  private final LogManager logger;
+
   /**
    * This class allows the creation of (fake) interpolants by using the use-def-relation. This
    * interpolation approach only works if the given path is a sliced prefix, obtained via {@link
@@ -66,10 +73,19 @@ public class SMGUseDefBasedInterpolator {
   public SMGUseDefBasedInterpolator(
       final ARGPath pSlicedPrefix,
       final UseDefRelation pUseDefRelation,
-      final MachineModel pMachineModel) {
+      final MachineModel pMachineModel,
+      final Configuration pConfig,
+      final LogManager pLogger) {
     slicedPrefix = pSlicedPrefix;
     useDefRelation = pUseDefRelation;
     machineModel = pMachineModel;
+    try {
+      options = new SMGOptions(pConfig);
+    } catch (InvalidConfigurationException e) {
+      // This is never supposed to happen as the config is used before
+      throw new RuntimeException(e);
+    }
+    logger = pLogger;
   }
 
   /**
@@ -82,7 +98,7 @@ public class SMGUseDefBasedInterpolator {
   public List<Pair<ARGState, SMGInterpolant>> obtainInterpolants() {
     Map<ARGState, Collection<ASimpleDeclaration>> useDefSequence =
         useDefRelation.getExpandedUses(slicedPrefix);
-    SMGInterpolant trivialItp = SMGInterpolant.createFALSE();
+    SMGInterpolant trivialItp = SMGInterpolant.createFALSE(options, machineModel, logger);
 
     // reverse order!
     List<Pair<ARGState, SMGInterpolant>> interpolants = new ArrayList<>();
@@ -100,7 +116,7 @@ public class SMGUseDefBasedInterpolator {
       // as the traversal goes backwards, once the interpolant was non-trivial once,
       // the next time it is trivial, it has to be TRUE, and no longer FALSE
       if (interpolant != trivialItp) {
-        trivialItp = SMGInterpolant.createTRUE();
+        trivialItp = SMGInterpolant.createTRUE(options, machineModel, logger);
       }
     }
 
@@ -149,7 +165,7 @@ public class SMGUseDefBasedInterpolator {
     }
 
     // The value analysis refinement does not need anything besides the MemoryLocs
-    return new SMGInterpolant(useDefInterpolant, null, null, null);
+    return new SMGInterpolant(useDefInterpolant, null, null, null, options, machineModel, logger);
   }
 
   /**

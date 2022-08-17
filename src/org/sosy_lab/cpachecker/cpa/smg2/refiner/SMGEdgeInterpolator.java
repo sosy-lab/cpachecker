@@ -39,7 +39,7 @@ public class SMGEdgeInterpolator
     super(
         pStrongestPostOperator,
         pFeasibilityChecker,
-        SMGInterpolantManager.getInstance(),
+        SMGInterpolantManager.getInstance(new SMGOptions(pConfig), pCfa.getMachineModel(), pLogger),
         SMGState.of(pCfa.getMachineModel(), pLogger, new SMGOptions(pConfig)),
         ValueAnalysisCPA.class,
         pConfig,

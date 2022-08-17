@@ -26,6 +26,7 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.path.PathIterator;
 import org.sosy_lab.cpachecker.cpa.conditions.path.AssignmentsInPathCondition.UniqueAssignmentsInPathConditionState;
+import org.sosy_lab.cpachecker.cpa.smg2.SMGOptions;
 import org.sosy_lab.cpachecker.cpa.smg2.SMGState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
@@ -67,6 +68,9 @@ public class SMGPathInterpolator extends GenericPathInterpolator<SMGState, SMGIn
 
   private final SMGInterpolantManager interpolantManager;
 
+  private final Configuration config;
+  private final LogManager logger;
+
   public SMGPathInterpolator(
       final FeasibilityChecker<SMGState> pFeasibilityChecker,
       final StrongestPostOperator<SMGState> pStrongestPostOperator,
@@ -82,7 +86,7 @@ public class SMGPathInterpolator extends GenericPathInterpolator<SMGState, SMGIn
             pFeasibilityChecker, pStrongestPostOperator, pConfig, pShutdownNotifier, pCfa, pLogger),
         pFeasibilityChecker,
         pPrefixProvider,
-        SMGInterpolantManager.getInstance(),
+        SMGInterpolantManager.getInstance(new SMGOptions(pConfig), pCfa.getMachineModel(), pLogger),
         pConfig,
         pLogger,
         pShutdownNotifier,
@@ -90,7 +94,10 @@ public class SMGPathInterpolator extends GenericPathInterpolator<SMGState, SMGIn
 
     pConfig.inject(this);
     cfa = pCfa;
-    interpolantManager = SMGInterpolantManager.getInstance();
+    interpolantManager =
+        SMGInterpolantManager.getInstance(new SMGOptions(pConfig), pCfa.getMachineModel(), pLogger);
+    config = pConfig;
+    logger = pLogger;
   }
 
   @Override
@@ -135,7 +142,8 @@ public class SMGPathInterpolator extends GenericPathInterpolator<SMGState, SMGIn
         new UseDefRelation(errorPathPrefix, booleanVariables, !isRefinementSelectionEnabled());
 
     Map<ARGState, SMGInterpolant> interpolants =
-        new SMGUseDefBasedInterpolator(errorPathPrefix, useDefRelation, cfa.getMachineModel())
+        new SMGUseDefBasedInterpolator(
+                errorPathPrefix, useDefRelation, cfa.getMachineModel(), config, logger)
             .obtainInterpolantsAsMap();
 
     totalInterpolationQueries.setNextValue(1);
