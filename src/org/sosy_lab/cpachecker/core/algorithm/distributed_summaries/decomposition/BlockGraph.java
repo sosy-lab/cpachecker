@@ -8,30 +8,20 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition;
 
-import static org.sosy_lab.common.collect.Collections3.transformedImmutableSetCopy;
-
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ArrayListMultimap;
+import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Iterables;
-import com.google.common.collect.LinkedHashMultimap;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
-import java.util.ArrayDeque;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.LinkedHashSet;
-import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.Set;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.BlockNode.BlockNodeMetaData;
-import org.sosy_lab.cpachecker.util.Pair;
 
 /**
  * Represents a partitioning of a CFA. The blocks contain coherent subgraphs of a CFA. The
@@ -40,17 +30,19 @@ import org.sosy_lab.cpachecker.util.Pair;
 public class BlockGraph {
 
   private final BlockNode root;
-  private final BlockGraphFactory factory;
+  private final ImmutableSet<BlockNode> allNodes;
+  private final ImmutableMap<BlockNodeMetaData, BlockNode> metaDataToBlockNode;
 
   /**
    * Represents the CFA but partitioned into multiple connected blocks.
    *
    * @param pRoot The root node of the
-   * @param pFactory The factory that created this block graph.
+   * @param pAllNodes All distinct nodes of the graph
    */
-  public BlockGraph(BlockNode pRoot, BlockGraphFactory pFactory) {
-    root = pRoot;
-    factory = pFactory;
+  private BlockGraph(BlockNode pRoot, ImmutableSet<BlockNode> pAllNodes) {
+    root = Objects.requireNonNull(pRoot);
+    allNodes = pAllNodes;
+    metaDataToBlockNode = Maps.uniqueIndex(allNodes, node -> node.getMetaData());
   }
 
   public BlockNode getRoot() {
@@ -58,212 +50,88 @@ public class BlockGraph {
   }
 
   public ImmutableSet<BlockNode> getDistinctNodes() {
-    Set<BlockNode> nodes = new LinkedHashSet<>();
-    ArrayDeque<BlockNode> waiting = new ArrayDeque<>();
-    waiting.add(root);
-    while (!waiting.isEmpty()) {
-      BlockNode top = waiting.pop();
-      if (nodes.add(top)) {
-        waiting.addAll(top.getSuccessors());
-      }
-    }
-    return ImmutableSet.copyOf(nodes);
+    return allNodes;
   }
 
-  public static BlockGraph merge(BlockGraph pBlockGraph, int pDesiredNumberOfBlocks)
+  public ImmutableSet<BlockNode> successorsOf(BlockNode pBlockNode) {
+    return FluentIterable.from(pBlockNode.getSuccessors())
+        .transform(metaDataToBlockNode::get)
+        .toSet();
+  }
+
+  public ImmutableSet<BlockNode> predecessorsOf(BlockNode pBlockNode) {
+    return FluentIterable.from(pBlockNode.getPredecessors())
+        .transform(metaDataToBlockNode::get)
+        .toSet();
+  }
+
+  public static BlockGraph fromMetaData(
+      Set<BlockNodeMetaData> pMetaDataSet, CFA pCFA, ShutdownNotifier pNotifier)
       throws InterruptedException {
-    return pBlockGraph.factory.merge(pDesiredNumberOfBlocks);
+    return fromMetaData(pMetaDataSet, pCFA, pNotifier, false);
   }
 
-  /** Builder for {@link BlockGraph}. */
-  public static class BlockGraphFactory {
-
-    private int blockCount;
-    private final Map<Integer, CFANode> idToNodeMap;
-    private final Multimap<BlockNodeMetaData, BlockNodeMetaData> successors;
-    private final Multimap<BlockNodeMetaData, BlockNodeMetaData> predecessors;
-    private final Set<BlockNodeMetaData> blocks;
-    private final ShutdownNotifier shutdownNotifier;
-
-    private BlockNodeMetaData root;
-
-    /**
-     * Build a block graph for a given CFA
-     *
-     * @param pCfa CFA that will be partitioned into a graph of {@link BlockNode}s
-     */
-    public BlockGraphFactory(CFA pCfa, ShutdownNotifier pShutdownNotifier) {
-      idToNodeMap = Maps.uniqueIndex(pCfa.getAllNodes(), CFANode::getNodeNumber);
-      successors = LinkedHashMultimap.create();
-      predecessors = LinkedHashMultimap.create();
-      blocks = new LinkedHashSet<>();
-      shutdownNotifier = pShutdownNotifier;
-    }
-
-    public void setRoot(BlockNodeMetaData pRoot) {
-      root = pRoot;
-    }
-
-    public BlockNodeMetaData makeBlock(
-        CFANode pStartNode, CFANode pEndNode, Set<CFANode> pNodesInBlock, Set<CFAEdge> pEdges) {
-      BlockNodeMetaData blockNodeMetaData =
+  private static BlockGraph fromMetaData(
+      Set<BlockNodeMetaData> pMetaDataSet,
+      CFA pCFA,
+      ShutdownNotifier pNotifier,
+      boolean pPrependRoot)
+      throws InterruptedException {
+    Preconditions.checkArgument(
+        pMetaDataSet.stream().map(m -> m.getId()).distinct().count() == pMetaDataSet.size());
+    Multimap<CFANode, BlockNodeMetaData> startingPoints = ArrayListMultimap.create();
+    Multimap<CFANode, BlockNodeMetaData> endingPoints = ArrayListMultimap.create();
+    Map<Integer, CFANode> idToNode = Maps.uniqueIndex(pCFA.getAllNodes(), CFANode::getNodeNumber);
+    pMetaDataSet.forEach(n -> startingPoints.put(n.getStartNode(), n));
+    pMetaDataSet.forEach(n -> endingPoints.put(n.getLastNode(), n));
+    ImmutableSet.Builder<BlockNode> nodes = ImmutableSet.builder();
+    BlockNode root = null;
+    if (pPrependRoot) {
+      BlockNodeMetaData rootMetaData =
           new BlockNodeMetaData(
-              "B" + blockCount++,
-              pStartNode,
-              pEndNode,
-              pNodesInBlock,
-              pEdges,
-              ImmutableMap.copyOf(idToNodeMap));
-      blocks.add(blockNodeMetaData);
-      return blockNodeMetaData;
+              "root",
+              pCFA.getMainFunction(),
+              pCFA.getMainFunction(),
+              ImmutableSet.of(pCFA.getMainFunction()),
+              ImmutableSet.of(),
+              idToNode);
+      root =
+          new BlockNode(
+              rootMetaData,
+              ImmutableSet.of(),
+              ImmutableSet.copyOf(startingPoints.get(pCFA.getMainFunction())),
+              pNotifier,
+              idToNode);
+      nodes.add(root);
     }
-
-    public void linkSuccessor(BlockNodeMetaData pNode, BlockNodeMetaData pNodeSuccessor) {
-      successors.put(pNode, pNodeSuccessor);
-      predecessors.put(pNodeSuccessor, pNode);
-    }
-
-    public void unlinkSuccessor(BlockNodeMetaData pNode, BlockNodeMetaData pNodeSuccessor) {
-      successors.remove(pNode, pNodeSuccessor);
-      predecessors.remove(pNodeSuccessor, pNode);
-    }
-
-    public void removeNode(BlockNodeMetaData pNode) {
-      removeFromMultimap(successors, pNode);
-      removeFromMultimap(predecessors, pNode);
-      blocks.remove(pNode);
-    }
-
-    private void removeFromMultimap(
-        Multimap<BlockNodeMetaData, BlockNodeMetaData> pMultimap, BlockNodeMetaData pNode) {
-      pMultimap.removeAll(pNode);
-      Set<BlockNodeMetaData> keys = ImmutableSet.copyOf(pMultimap.keySet());
-      for (BlockNodeMetaData key : keys) {
-        pMultimap.remove(key, pNode);
+    for (BlockNodeMetaData blockNode : pMetaDataSet) {
+      ImmutableSet.Builder<BlockNodeMetaData> predecessors =
+          ImmutableSet.<BlockNodeMetaData>builder()
+              .addAll(endingPoints.get(blockNode.getStartNode()));
+      if (pPrependRoot && blockNode.getStartNode().equals(root.getLastNode())) {
+        predecessors.add(root.getMetaData());
+      }
+      BlockNode curr =
+          new BlockNode(
+              blockNode,
+              predecessors.build(),
+              ImmutableSet.copyOf(startingPoints.get(blockNode.getLastNode())),
+              pNotifier,
+              idToNode);
+      nodes.add(curr);
+      if (root == null && curr.getStartNode().equals(pCFA.getMainFunction())) {
+        root = curr;
       }
     }
+    return new BlockGraph(root, nodes.build());
+  }
 
-    public BlockNodeMetaData mergeSameStartAndEnd(
-        BlockNodeMetaData pNode1, BlockNodeMetaData pNode2) {
-      if (!(pNode1.getStartNode().equals(pNode2.getStartNode())
-          && pNode1.getLastNode().equals(pNode2.getLastNode()))) {
-        throw new AssertionError(
-            "Nodes must start and end on the same CFANode: " + pNode1 + " " + pNode2);
-      }
-      Set<CFANode> nodesInBlock = new LinkedHashSet<>(pNode1.getNodesInBlock());
-      nodesInBlock.addAll(pNode2.getNodesInBlock());
-      Set<CFAEdge> edgesInBlock = new LinkedHashSet<>(pNode1.getEdgesInBlock());
-      edgesInBlock.addAll(pNode2.getEdgesInBlock());
-      BlockNodeMetaData merged =
-          makeBlock(pNode1.getStartNode(), pNode2.getLastNode(), nodesInBlock, edgesInBlock);
-      predecessors.get(pNode1).forEach(n -> linkSuccessor(n, merged));
-      predecessors.get(pNode2).forEach(n -> linkSuccessor(n, merged));
-      successors.get(pNode1).forEach(n -> linkSuccessor(merged, n));
-      successors.get(pNode2).forEach(n -> linkSuccessor(merged, n));
-      removeNode(pNode1);
-      removeNode(pNode2);
-      return merged;
-    }
-
-    public BlockNodeMetaData mergeSingleSuccessors(
-        BlockNodeMetaData pNode1, BlockNodeMetaData pNode2) {
-      if (successors.get(pNode1).size() == 1 && predecessors.get(pNode2).size() == 1) {
-        if (predecessors.get(pNode2).contains(pNode1)) {
-          Set<CFANode> nodesInBlock = new LinkedHashSet<>(pNode1.getNodesInBlock());
-          nodesInBlock.addAll(pNode2.getNodesInBlock());
-          Set<CFAEdge> edgesInBlock = new LinkedHashSet<>(pNode1.getEdgesInBlock());
-          edgesInBlock.addAll(pNode2.getEdgesInBlock());
-          BlockNodeMetaData merged =
-              makeBlock(pNode1.getStartNode(), pNode2.getLastNode(), nodesInBlock, edgesInBlock);
-          predecessors.get(pNode1).forEach(n -> linkSuccessor(n, merged));
-          predecessors.get(pNode2).forEach(n -> linkSuccessor(merged, n));
-          removeNode(pNode1);
-          removeNode(pNode2);
-          return merged;
-        }
-      }
-      throw new AssertionError("Blocks must be in one line to be merged");
-    }
-
-    public void removeEmptyBlocks() {
-      for (BlockNodeMetaData node : blocks) {
-        if (predecessors.get(node).isEmpty() || !node.getEdgesInBlock().isEmpty()) {
-          continue;
-        }
-        Set<BlockNodeMetaData> pred = ImmutableSet.copyOf(predecessors.get(node));
-        Set<BlockNodeMetaData> succ = ImmutableSet.copyOf(successors.get(node));
-        for (BlockNodeMetaData predecessor : pred) {
-          for (BlockNodeMetaData successor : succ) {
-            linkSuccessor(predecessor, successor);
-          }
-        }
-        removeNode(node);
-      }
-    }
-
-    public BlockGraph build() throws InterruptedException {
-      Objects.requireNonNull(root, "Root has to be set manually in advance");
-      removeEmptyBlocks();
-      Map<BlockNodeMetaData, BlockNode> nodes = new HashMap<>();
-      for (BlockNodeMetaData data : blocks) {
-        BlockNode blockNode =
-            new BlockNode(
-                data,
-                () -> transformedImmutableSetCopy(predecessors.get(data), nodes::get),
-                () -> transformedImmutableSetCopy(successors.get(data), nodes::get),
-                idToNodeMap,
-                shutdownNotifier);
-        nodes.put(data, blockNode);
-      }
-      return new BlockGraph(nodes.get(root), this);
-    }
-
-    public BlockGraph merge(int desiredNumberOfBlocks) throws InterruptedException {
-      Set<BlockNodeMetaData> nodes = new LinkedHashSet<>(blocks);
-      nodes.remove(root);
-      Multimap<Pair<CFANode, CFANode>, BlockNodeMetaData> compatibleBlocks =
-          ArrayListMultimap.create();
-      nodes.forEach(n -> compatibleBlocks.put(Pair.of(n.getStartNode(), n.getLastNode()), n));
-      for (Pair<CFANode, CFANode> key : ImmutableSet.copyOf(compatibleBlocks.keySet())) {
-        List<BlockNodeMetaData> mergeNodes = new ArrayList<>(compatibleBlocks.removeAll(key));
-        if (nodes.size() <= desiredNumberOfBlocks) {
-          break;
-        }
-        if (mergeNodes.size() > 1) {
-          BlockNodeMetaData current = mergeNodes.remove(0);
-          nodes.remove(current);
-          for (int i = mergeNodes.size() - 1; i >= 0; i--) {
-            BlockNodeMetaData remove = mergeNodes.remove(i);
-            nodes.remove(remove);
-            current = mergeSameStartAndEnd(current, remove);
-          }
-          nodes.add(current);
-          compatibleBlocks.put(key, current);
-        }
-      }
-      Set<BlockNodeMetaData> alreadyFound = new LinkedHashSet<>();
-      while (desiredNumberOfBlocks < nodes.size()) {
-        Optional<BlockNodeMetaData> potentialNode =
-            nodes.stream()
-                .filter(n -> successors.get(n).size() == 1 && !alreadyFound.contains(n))
-                .findAny();
-        if (potentialNode.isEmpty()) {
-          break;
-        }
-        BlockNodeMetaData node = potentialNode.orElseThrow();
-        alreadyFound.add(node);
-        if (node.equals(root)) {
-          continue;
-        }
-        BlockNodeMetaData singleSuccessor = Iterables.getOnlyElement(successors.get(node));
-        if (predecessors.get(singleSuccessor).size() == 1) {
-          BlockNodeMetaData merged = mergeSingleSuccessors(node, singleSuccessor);
-          nodes.remove(node);
-          nodes.remove(singleSuccessor);
-          nodes.add(merged);
-        }
-      }
-      return build();
-    }
+  public BlockGraph prependDummyRoot(CFA pCFA, ShutdownNotifier pShutdownNotifier)
+      throws InterruptedException {
+    return fromMetaData(
+        FluentIterable.from(allNodes).transform(n -> n.getMetaData()).toSet(),
+        pCFA,
+        pShutdownNotifier,
+        true);
   }
 }

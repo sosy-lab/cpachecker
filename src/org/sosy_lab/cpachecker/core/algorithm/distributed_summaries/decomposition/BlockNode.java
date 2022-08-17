@@ -17,7 +17,6 @@ import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
-import java.util.function.Supplier;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -30,8 +29,8 @@ public class BlockNode {
 
   private final BlockNodeMetaData metaData;
 
-  private final Supplier<Set<BlockNode>> predecessors;
-  private final Supplier<Set<BlockNode>> successors;
+  private final Set<BlockNodeMetaData> predecessors;
+  private final Set<BlockNodeMetaData> successors;
 
   private final Map<Integer, CFANode> idToNodeMap;
 
@@ -45,12 +44,12 @@ public class BlockNode {
    * @param pPredecessors supplier for all predecessors
    * @param pSuccessors supplier for all successors
    */
-  BlockNode(
+  public BlockNode(
       @NonNull BlockNodeMetaData pMetaData,
-      @NonNull Supplier<Set<BlockNode>> pPredecessors,
-      @NonNull Supplier<Set<BlockNode>> pSuccessors,
-      @NonNull Map<Integer, CFANode> pIdToNodeMap,
-      @NonNull ShutdownNotifier pShutdownNotifier)
+      @NonNull Set<BlockNodeMetaData> pPredecessors,
+      @NonNull Set<BlockNodeMetaData> pSuccessors,
+      @NonNull ShutdownNotifier pShutdownNotifier,
+      @NonNull Map<Integer, CFANode> pIdToNodeMap)
       throws InterruptedException {
     checkArgument(
         CFAUtils.existsPath(
@@ -71,7 +70,6 @@ public class BlockNode {
     metaData = pMetaData;
     predecessors = pPredecessors;
     successors = pSuccessors;
-
     idToNodeMap = pIdToNodeMap;
 
     code = getCodeRepresentation();
@@ -131,6 +129,10 @@ public class BlockNode {
     return codeLines.toString();
   }
 
+  BlockNodeMetaData getMetaData() {
+    return metaData;
+  }
+
   /**
    * Check whether this block is self-circular. Self-circular blocks are their own predecessor.
    *
@@ -144,12 +146,12 @@ public class BlockNode {
     return metaData.getEdgesInBlock().isEmpty();
   }
 
-  public Set<BlockNode> getPredecessors() {
-    return ImmutableSet.copyOf(predecessors.get());
+  public Set<BlockNodeMetaData> getPredecessors() {
+    return ImmutableSet.copyOf(predecessors);
   }
 
-  public Set<BlockNode> getSuccessors() {
-    return ImmutableSet.copyOf(successors.get());
+  public Set<BlockNodeMetaData> getSuccessors() {
+    return ImmutableSet.copyOf(successors);
   }
 
   public CFANode getStartNode() {
@@ -209,10 +211,10 @@ public class BlockNode {
   }
 
   public boolean isRoot() {
-    return predecessors.get().isEmpty();
+    return predecessors.isEmpty();
   }
 
-  static class BlockNodeMetaData {
+  public static class BlockNodeMetaData {
 
     private final String id;
     private final CFANode startNode;
@@ -221,7 +223,7 @@ public class BlockNode {
     private final Set<CFAEdge> edgesInBlock;
     private final Map<Integer, CFANode> idToNodeMap;
 
-    BlockNodeMetaData(
+    public BlockNodeMetaData(
         String pId,
         CFANode pStartNode,
         CFANode pLastNode,
@@ -258,6 +260,19 @@ public class BlockNode {
 
     public String getId() {
       return id;
+    }
+
+    @Override
+    public String toString() {
+      return "BlockNodeMetaData{"
+          + "id='"
+          + id
+          + '\''
+          + ", startNode="
+          + startNode
+          + ", lastNode="
+          + lastNode
+          + '}';
     }
 
     @Override

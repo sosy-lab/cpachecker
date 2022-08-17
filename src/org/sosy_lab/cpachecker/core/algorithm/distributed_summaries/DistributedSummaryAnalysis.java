@@ -24,10 +24,10 @@ import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.BlockGraph;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.BlockNode;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.BlockOperatorDecomposer;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.CFADecomposer;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.GivenSizeDecomposer;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.SingleBlockDecomposer;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.LinearDecomposition;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.MergeDecomposition;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.SingleBlockDecomposition;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.BlockSummaryConnection;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.BlockSummarySortedMessageQueue;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.memory.InMemoryBlockSummaryConnectionProvider;
@@ -115,13 +115,14 @@ public class DistributedSummaryAnalysis implements Algorithm {
   private CFADecomposer getDecomposer() throws InvalidConfigurationException {
     switch (decompositionType) {
       case BLOCK_OPERATOR:
-        return new BlockOperatorDecomposer(configuration, shutdownManager.getNotifier());
+        return new LinearDecomposition(configuration, shutdownManager.getNotifier());
       case GIVEN_SIZE:
-        return new GivenSizeDecomposer(
-            new BlockOperatorDecomposer(configuration, shutdownManager.getNotifier()),
-            desiredNumberOfBlocks);
+        return new MergeDecomposition(
+            new LinearDecomposition(configuration, shutdownManager.getNotifier()),
+            desiredNumberOfBlocks,
+            shutdownManager.getNotifier());
       case SINGLE_BLOCK:
-        return new SingleBlockDecomposer(shutdownManager.getNotifier());
+        return new SingleBlockDecomposition(shutdownManager.getNotifier());
       default:
         throw new AssertionError("Unknown DecompositionType: " + decompositionType);
     }
@@ -145,7 +146,8 @@ public class DistributedSummaryAnalysis implements Algorithm {
     try {
       // create blockGraph and reduce to relevant parts
       CFADecomposer decomposer = getDecomposer();
-      BlockGraph blockGraph = decomposer.cut(cfa);
+      BlockGraph blockGraph = decomposer.decompose(cfa);
+      blockGraph = blockGraph.prependDummyRoot(cfa, shutdownManager.getNotifier());
       logger.logf(
           Level.INFO,
           "Decomposed CFA in %d blocks using the %s.",

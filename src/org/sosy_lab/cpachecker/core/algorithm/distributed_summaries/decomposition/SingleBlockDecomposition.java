@@ -9,43 +9,40 @@
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition;
 
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Maps;
 import java.util.LinkedHashSet;
+import java.util.Map;
 import java.util.Set;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.BlockGraph.BlockGraphFactory;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.BlockNode.BlockNodeMetaData;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 
 /** Decompose a CFA into a single block containing the complete CFA */
-public class SingleBlockDecomposer implements CFADecomposer {
+public class SingleBlockDecomposition implements CFADecomposer {
 
   private final ShutdownNotifier shutdownNotifier;
 
-  public SingleBlockDecomposer(ShutdownNotifier pShutdownNotifier) {
+  public SingleBlockDecomposition(ShutdownNotifier pShutdownNotifier) {
     shutdownNotifier = pShutdownNotifier;
   }
 
   @Override
-  public BlockGraph cut(CFA cfa) throws InterruptedException {
-    BlockGraphFactory builder = new BlockGraphFactory(cfa, shutdownNotifier);
+  public BlockGraph decompose(CFA cfa) throws InterruptedException {
     CFANode startNode = cfa.getMainFunction();
     // we do not get error conditions
     CFANode lastNode = CFANode.newDummyCFANode();
     Set<CFAEdge> edges = new LinkedHashSet<>();
+    Map<Integer, CFANode> idToNode = Maps.uniqueIndex(cfa.getAllNodes(), CFANode::getNodeNumber);
     for (CFANode allNode : cfa.getAllNodes()) {
       CFAUtils.leavingEdges(allNode).copyInto(edges);
       CFAUtils.enteringEdges(allNode).copyInto(edges);
     }
     Set<CFANode> nodes = new LinkedHashSet<>(cfa.getAllNodes());
     nodes.add(lastNode);
-    BlockNodeMetaData root =
-        builder.makeBlock(startNode, startNode, ImmutableSet.of(startNode), ImmutableSet.of());
-    BlockNodeMetaData workerBlock = builder.makeBlock(startNode, lastNode, nodes, edges);
-    builder.setRoot(root);
-    builder.linkSuccessor(root, workerBlock);
-    return builder.build();
+    BlockNodeMetaData metaData = new BlockNodeMetaData("SB1", startNode, lastNode, nodes, edges, idToNode);
+    return BlockGraph.fromMetaData(ImmutableSet.of(metaData), cfa, shutdownNotifier);
   }
 }

@@ -19,5 +19,5 @@ public interface CFADecomposer {
    * @param cfa this CFA will be decomposed into a block graph
    * @return a block graph that represents the CFA.
    */
-  BlockGraph cut(CFA cfa) throws InterruptedException;
+  BlockGraph decompose(CFA cfa) throws InterruptedException;
 }

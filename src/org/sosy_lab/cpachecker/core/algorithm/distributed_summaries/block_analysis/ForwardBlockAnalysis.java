@@ -11,10 +11,10 @@ package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.block_analy
 import static com.google.common.base.Preconditions.checkNotNull;
 import static org.sosy_lab.common.collect.Collections3.transformedImmutableListCopy;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import java.util.Collection;
-import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
@@ -170,8 +170,8 @@ public class ForwardBlockAnalysis implements InitialBlockAnalyzer, ContinuousBlo
 
   private Collection<BlockSummaryMessage> createBlockPostConditionMessage(
       Collection<BlockSummaryMessage> messages, Set<ARGState> blockEntries)
-      throws CPAException, InterruptedException {
-    List<AbstractState> compositeStates =
+      throws InterruptedException, CPAException {
+    ImmutableList<AbstractState> compositeStates =
         transformedImmutableListCopy(
             blockEntries, state -> AbstractStates.extractStateByType(state, CompositeState.class));
     if (reachedSet.getLastState() != null) {
