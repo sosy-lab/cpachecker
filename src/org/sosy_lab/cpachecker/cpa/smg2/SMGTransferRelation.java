@@ -648,12 +648,12 @@ public class SMGTransferRelation
   protected List<SMGState> handleDeclarationEdge(CDeclarationEdge edge, CDeclaration cDecl)
       throws CPATransferException {
     SMGState currentState = state;
-    // CEGAR
-    if (addressedVariables.contains(cDecl.getQualifiedName())) {
-      return ImmutableList.of(currentState.addToVariableBlacklist(cDecl.getQualifiedName()));
-    }
+    // CEGAR checks inside of the ifs! Else we check every typedef!
 
     if (cDecl instanceof CFunctionDeclaration) {
+      if (addressedVariables.contains(cDecl.getQualifiedName())) {
+        return ImmutableList.of(currentState.addToVariableBlacklist(cDecl.getQualifiedName()));
+      }
       CFunctionDeclaration cFuncDecl = (CFunctionDeclaration) cDecl;
       if (cFuncDecl.getQualifiedName().equals("main")) {
         if (cFuncDecl.getParameters() != null) {
@@ -672,6 +672,9 @@ public class SMGTransferRelation
     } else if (cDecl instanceof CTypeDefDeclaration) {
       // TODO:
     } else if (cDecl instanceof CVariableDeclaration) {
+      if (addressedVariables.contains(cDecl.getQualifiedName())) {
+        return ImmutableList.of(currentState.addToVariableBlacklist(cDecl.getQualifiedName()));
+      }
       return handleVariableDeclaration(currentState, (CVariableDeclaration) cDecl, edge);
     }
     // Fall through
