@@ -251,7 +251,12 @@ public class SMGCPAValueExpressionEvaluator {
       return ValueAndSMGState.of(address1.getMemoryAddress(), state);
     } else {
       // Get the correct address with its offset in the SMGPointsToEdge
-      SMGObjectAndOffset targetAndOffset = state.getPointsToTarget(address1.getMemoryAddress());
+      Optional<SMGObjectAndOffset> maybeTargetAndOffset =
+          state.getPointsToTarget(address1.getMemoryAddress());
+      if (maybeTargetAndOffset.isEmpty()) {
+        return ValueAndSMGState.ofUnknownValue(state);
+      }
+      SMGObjectAndOffset targetAndOffset = maybeTargetAndOffset.orElseThrow();
       SMGObject target = targetAndOffset.getSMGObject();
       if (!offsetValue.isNumericValue()) {
         throw new SMG2Exception(
@@ -1284,5 +1289,175 @@ public class SMGCPAValueExpressionEvaluator {
               + pArrayType.getType()
               + ". Try the options GuessSizeOfUnknownMemory.");
     }
+  }
+
+  /**
+   * Write the valueToWrite Value into the newly created variable (by this method) with the name
+   * qualifiedVarName. Might return the given state for blacklisted variables or errors.
+   *
+   * @param valueToWrite the Value you want to write. Might be AddressExpression for pointers or
+   *     SymbolicIdentifier with MemoryLocation for structure copies.
+   * @param leftHandSideType the type of the left side memory.
+   * @param rightHandSideType the type of the right hand side value.
+   * @param qualifiedVarName qualified variable name.
+   * @param pState current state.
+   * @return a new state with either the value written, or an error state or just a state for writes
+   *     that can't be completed.
+   * @throws SMG2Exception in case of critical errors.
+   */
+  public SMGState writeValueToNewVariableBasedOnTypes(
+      Value valueToWrite,
+      CType leftHandSideType,
+      CType rightHandSideType,
+      String qualifiedVarName,
+      SMGState pState)
+      throws SMG2Exception {
+    SMGState currentState = pState;
+    // Parameter type is left hand side type
+    CType parameterType = SMGCPAValueExpressionEvaluator.getCanonicalType(leftHandSideType);
+    CType valueType = SMGCPAValueExpressionEvaluator.getCanonicalType(rightHandSideType);
+    if (parameterType instanceof CArrayType && ((CArrayType) parameterType).getLength() == null) {
+      // TODO: it is a bug actually. The size should be returned correctly. Check if its fixed
+      // from time to time.
+      // If its declared as array[] we use the size of the old array
+      parameterType = valueType;
+    }
+    BigInteger paramSizeInBits = getBitSizeof(currentState, parameterType);
+
+    // Create the new local variable
+    currentState =
+        currentState.copyAndAddLocalVariable(paramSizeInBits, qualifiedVarName, parameterType);
+    Optional<SMGObject> maybeObject =
+        currentState.getMemoryModel().getObjectForVisibleVariable(qualifiedVarName);
+    if (maybeObject.isEmpty()) {
+      // If this is empty it means that the variable is on the blacklist, skip
+      return currentState;
+    }
+    SMGObject newVariableMemory = maybeObject.orElseThrow();
+    BigInteger ZeroOffsetInBits = BigInteger.ZERO;
+
+    if (valueToWrite instanceof AddressExpression) {
+      // This is either a pointer to be written or this points to a memory region
+      // to be copied depending on the type
+      AddressExpression paramAddrExpr = (AddressExpression) valueToWrite;
+      Value paramAddrOffsetValue = paramAddrExpr.getOffset();
+
+      if (parameterType instanceof CPointerType) {
+        if (!paramAddrOffsetValue.isNumericValue()) {
+          // Write unknown for unknown offset
+          return currentState.writeToStackOrGlobalVariable(
+              qualifiedVarName,
+              ZeroOffsetInBits,
+              paramSizeInBits,
+              UnknownValue.getInstance(),
+              parameterType);
+        }
+
+        ValueAndSMGState properPointerAndState =
+            transformAddressExpressionIntoPointerValue(paramAddrExpr, currentState);
+
+        return properPointerAndState
+            .getState()
+            .writeToStackOrGlobalVariable(
+                qualifiedVarName,
+                ZeroOffsetInBits,
+                paramSizeInBits,
+                properPointerAndState.getValue(),
+                parameterType);
+
+      } else {
+        Preconditions.checkArgument(
+            SMGCPAValueExpressionEvaluator.isStructOrUnionType(parameterType)
+                || parameterType instanceof CArrayType);
+
+        if (!paramAddrOffsetValue.isNumericValue()) {
+          // Just continue for now. Reading not inited memory is unknown anyway.
+          return currentState;
+        }
+
+        // We need a true pointer without AddressExpr
+        ValueAndSMGState properPointerAndState =
+            transformAddressExpressionIntoPointerValue(paramAddrExpr, currentState);
+        currentState = properPointerAndState.getState();
+
+        Optional<SMGObjectAndOffset> maybeParamMemoryAndOffset =
+            currentState.getPointsToTarget(properPointerAndState.getValue());
+
+        if (maybeParamMemoryAndOffset.isEmpty()) {
+          return currentState;
+        }
+        SMGObjectAndOffset paramMemoryAndOffset = maybeParamMemoryAndOffset.orElseThrow();
+
+        // copySMGObjectContentToSMGObject checks for sizes etc.
+        return currentState.copySMGObjectContentToSMGObject(
+            paramMemoryAndOffset.getSMGObject(),
+            paramMemoryAndOffset.getOffsetForObject(),
+            newVariableMemory,
+            ZeroOffsetInBits,
+            newVariableMemory.getSize());
+      }
+
+    } else if (valueToWrite instanceof SymbolicIdentifier
+        && ((SymbolicIdentifier) valueToWrite).getRepresentedLocation().isPresent()) {
+      return copyStructOrArrayFromValueTo(
+          valueToWrite, parameterType, newVariableMemory, ZeroOffsetInBits, currentState);
+
+    } else {
+      // Just write the value
+      return currentState.writeToStackOrGlobalVariable(
+          qualifiedVarName, ZeroOffsetInBits, paramSizeInBits, valueToWrite, parameterType);
+    }
+  }
+
+  /**
+   * Copies the memory behind the rightHandSideValue Value into the given left hand side memory.
+   *
+   * @param rightHandSideValue a Value that is a SymbolicIdentifier with location present. Source of
+   *     the copy.
+   * @param leftHandSideType left hand side type used to check the operation.
+   * @param leftHandSideMemory the memory that the source is to be copied to.
+   * @param leftHandSideOffset the offset where to begin to copy to on the left hand side.
+   * @param pState current state.
+   * @return a new state with the copy performed. Or the current one for errors.
+   */
+  public SMGState copyStructOrArrayFromValueTo(
+      Value rightHandSideValue,
+      CType leftHandSideType,
+      SMGObject leftHandSideMemory,
+      BigInteger leftHandSideOffset,
+      SMGState pState) {
+    // A SymbolicIdentifier with location is used to copy entire variable structures (i.e.
+    // arrays/structs etc.). We allow arrays here for function parameters.
+    SMGState currentState = pState;
+    Preconditions.checkArgument(
+        rightHandSideValue instanceof SymbolicIdentifier
+            && ((SymbolicIdentifier) rightHandSideValue).getRepresentedLocation().isPresent());
+    Preconditions.checkArgument(
+        SMGCPAValueExpressionEvaluator.isStructOrUnionType(leftHandSideType)
+            || leftHandSideType instanceof CArrayType);
+
+    MemoryLocation memLocRight =
+        ((SymbolicIdentifier) rightHandSideValue).getRepresentedLocation().orElseThrow();
+    String paramIdentifier = memLocRight.getIdentifier();
+    BigInteger paramBaseOffset = BigInteger.valueOf(memLocRight.getOffset());
+
+    // Get the SMGObject for the memory region on the right hand side and copy the entire
+    // region  into the left hand side
+    Optional<SMGObject> maybeRightHandSideMemory =
+        currentState
+            .getMemoryModel()
+            .getObjectForVisibleVariableFromPreviousStackframe(paramIdentifier);
+
+    if (maybeRightHandSideMemory.isEmpty()) {
+      return currentState;
+    }
+    SMGObject paramMemory = maybeRightHandSideMemory.orElseThrow();
+    // copySMGObjectContentToSMGObject checks for sizes etc.
+    return currentState.copySMGObjectContentToSMGObject(
+        paramMemory,
+        paramBaseOffset,
+        leftHandSideMemory,
+        leftHandSideOffset,
+        leftHandSideMemory.getSize().subtract(leftHandSideOffset));
   }
 }
