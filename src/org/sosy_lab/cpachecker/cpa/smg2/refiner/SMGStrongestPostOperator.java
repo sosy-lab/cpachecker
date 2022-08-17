@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.cpa.smg2.refiner;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import java.util.Collection;
@@ -20,6 +21,8 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.defaults.precision.VariableTrackingPrecision;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -31,6 +34,7 @@ import org.sosy_lab.cpachecker.cpa.smg2.SMGState;
 import org.sosy_lab.cpachecker.cpa.smg2.SMGTransferRelation;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.ConstraintsStrengthenOperator;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.refinement.StrongestPostOperator;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
@@ -75,18 +79,43 @@ public class SMGStrongestPostOperator implements StrongestPostOperator<SMGState>
 
   @Override
   public SMGState handleFunctionCall(SMGState state, CFAEdge edge, Deque<SMGState> callstack) {
-    callstack.push(state);
-    return state;
+    if (edge instanceof CFunctionCallEdge) {
+      CFunctionCallEdge callEdge = (CFunctionCallEdge) edge;
+      try {
+        Collection<SMGState> successors =
+            transfer.getAbstractSuccessorsForEdge(state, null, callEdge);
+        Preconditions.checkArgument(successors.size() == 1);
+        SMGState successor = successors.iterator().next();
+        callstack.push(successor);
+        return successor;
+      } catch (CPATransferException | InterruptedException e) {
+        callstack.push(state);
+        return state;
+      }
+    } else {
+      callstack.push(state);
+      return state;
+    }
   }
 
   @Override
   public SMGState handleFunctionReturn(SMGState next, CFAEdge edge, Deque<SMGState> callstack) {
-
-    // Are old variables already pruned?
-    // SMGs restore the old variables on their own, but we keep changes in heap (and stack through
-    // pointers)!
-    callstack.pop();
-    return next;
+    if (edge instanceof CFunctionReturnEdge) {
+      CFunctionReturnEdge returnEdge = (CFunctionReturnEdge) edge;
+      callstack.pop();
+      try {
+        Collection<SMGState> successors =
+            transfer.getAbstractSuccessorsForEdge(next, null, returnEdge);
+        Preconditions.checkArgument(successors.size() == 1);
+        SMGState successor = successors.iterator().next();
+        return successor;
+      } catch (CPATransferException | InterruptedException e) {
+        return next;
+      }
+    } else {
+      callstack.pop();
+      return next;
+    }
   }
 
   @Override
