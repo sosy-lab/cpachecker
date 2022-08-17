@@ -16,6 +16,7 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CFunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.core.defaults.precision.VariableTrackingPrecision;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
@@ -37,6 +38,7 @@ public class SMGFeasibilityChecker extends GenericFeasibilityChecker<SMGState> {
   private final MachineModel machineModel;
   private final LogManager logger;
   private final Configuration config;
+  private final CFA cfa;
 
   /**
    * This method acts as the constructor of the class.
@@ -53,12 +55,15 @@ public class SMGFeasibilityChecker extends GenericFeasibilityChecker<SMGState> {
 
     super(
         pStrongestPostOp,
-        SMGState.of(pCfa.getMachineModel(), pLogger, new SMGOptions(pConfig)),
+        SMGState.of(pCfa.getMachineModel(), pLogger, new SMGOptions(pConfig))
+            .copyAndAddStackFrame(
+                ((CFunctionEntryNode) pCfa.getMainFunction()).getFunctionDefinition()),
         SMGCPA.class,
         pLogger,
         pConfig,
         pCfa);
 
+    cfa = pCfa;
     strongestPostOp = pStrongestPostOp;
     config = pConfig;
     precision =
@@ -74,6 +79,12 @@ public class SMGFeasibilityChecker extends GenericFeasibilityChecker<SMGState> {
     try {
       List<Pair<SMGState, List<CFAEdge>>> reevaluatedPath = new ArrayList<>();
       SMGState next = SMGState.of(machineModel, logger, new SMGOptions(config));
+
+      if (cfa.getMainFunction() instanceof CFunctionEntryNode) {
+        // Init main
+        CFunctionEntryNode functionNode = (CFunctionEntryNode) cfa.getMainFunction();
+        next = next.copyAndAddStackFrame(functionNode.getFunctionDefinition());
+      }
 
       PathIterator iterator = path.fullPathIterator();
       while (iterator.hasNext()) {
