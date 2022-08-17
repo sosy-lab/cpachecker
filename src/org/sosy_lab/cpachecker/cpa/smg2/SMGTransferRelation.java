@@ -463,8 +463,13 @@ public class SMGTransferRelation
 
         // Create the new local variable
         currentState = currentState.copyAndAddLocalVariable(paramSizeInBits, varName, cParamType);
-        SMGObject newVariableMemory =
-            currentState.getMemoryModel().getObjectForVisibleVariable(varName).orElseThrow();
+        Optional<SMGObject> maybeObject =
+            currentState.getMemoryModel().getObjectForVisibleVariable(varName);
+        if (maybeObject.isEmpty()) {
+          // If this is empty it means that the variable is on the blacklist, skip
+          continue;
+        }
+        SMGObject newVariableMemory = maybeObject.orElseThrow();
         BigInteger writeToOffset = BigInteger.ZERO;
 
         if (paramValue instanceof AddressExpression) {
