@@ -789,7 +789,11 @@ public class SMGCPAValueVisitor
       // Try to disassemble the values (AddressExpression)
       Value value = valueAndState.getValue();
       if (!(value instanceof AddressExpression)) {
-        Preconditions.checkArgument(!evaluator.isPointerValue(value, currentState));
+        // The only valid pointer is numeric 0
+        Preconditions.checkArgument(
+            (value.isNumericValue()
+                    && value.asNumericValue().bigInteger().compareTo(BigInteger.ZERO) == 0)
+                || !evaluator.isPointerValue(value, currentState));
         builder.add(ValueAndSMGState.ofUnknownValue(currentState));
         continue;
       }
