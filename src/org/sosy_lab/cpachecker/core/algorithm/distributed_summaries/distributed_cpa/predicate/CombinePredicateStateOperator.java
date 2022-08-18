@@ -66,13 +66,19 @@ public class CombinePredicateStateOperator implements CombineOperator {
         int index1 = ssa1.getIndex(variable);
         int index2 = ssa2.getIndex(variable);
         if (index2 > index1) {
-          substitution1.put(
-              extracted1.get(variable + sep + index1), extracted2.get(variable + sep + index2));
-          builder1 = builder1.setIndex(variable, ssa1.getType(variable), index2);
+          Formula from = extracted1.get(variable + sep + index1);
+          Formula to = extracted2.get(variable + sep + index2);
+          if (from != null && to != null) {
+            substitution1.put(from, to);
+            builder1 = builder1.setIndex(variable, ssa1.getType(variable), index2);
+          }
         } else {
-          substitution2.put(
-              extracted2.get(variable + sep + index2), extracted1.get(variable + sep + index1));
-          builder2 = builder2.setIndex(variable, ssa2.getType(variable), index1);
+          Formula from = extracted2.get(variable + sep + index2);
+          Formula to = extracted1.get(variable + sep + index1);
+          if (from != null && to != null) {
+            substitution2.put(from, to);
+            builder2 = builder2.setIndex(variable, ssa2.getType(variable), index1);
+          }
         }
       }
     }
