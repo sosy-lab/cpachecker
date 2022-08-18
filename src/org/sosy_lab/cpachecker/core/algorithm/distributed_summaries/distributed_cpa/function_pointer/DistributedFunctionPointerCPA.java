@@ -78,9 +78,7 @@ public class DistributedFunctionPointerCPA implements DistributedConfigurablePro
 
   @Override
   public void updateErrorCondition(BlockSummaryErrorConditionMessage pMessage)
-      throws InterruptedException {
-
-  }
+      throws InterruptedException {}
 
   @Override
   public void synchronizeKnowledge(DistributedConfigurableProgramAnalysis pAnalysis)

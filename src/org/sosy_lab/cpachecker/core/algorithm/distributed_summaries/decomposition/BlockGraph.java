@@ -12,7 +12,6 @@ import static org.sosy_lab.common.collect.Collections3.transformedImmutableSetCo
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ArrayListMultimap;
-import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Maps;
@@ -127,9 +126,6 @@ public class BlockGraph {
   public BlockGraph prependDummyRoot(CFA pCFA, ShutdownNotifier pShutdownNotifier)
       throws InterruptedException {
     return fromMetaData(
-        transformedImmutableSetCopy(allNodes, n -> n.getMetaData()),
-        pCFA,
-        pShutdownNotifier,
-        true);
+        transformedImmutableSetCopy(allNodes, n -> n.getMetaData()), pCFA, pShutdownNotifier, true);
   }
 }

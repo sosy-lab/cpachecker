@@ -45,8 +45,8 @@ public class ProceedBlockStateOperator implements ProceedOperator {
     CFANode node = block.getNodeWithNumber(pMessage.getTargetNodeNumber());
     if (!(node.equals(block.getLastNode())
         || (!node.equals(block.getLastNode())
-        && !node.equals(block.getStartNode())
-        && block.getNodesInBlock().contains(node)))) {
+            && !node.equals(block.getStartNode())
+            && block.getNodesInBlock().contains(node)))) {
       return BlockSummaryMessageProcessing.stop();
     }
     return BlockSummaryMessageProcessing.proceed();
@@ -55,7 +55,9 @@ public class ProceedBlockStateOperator implements ProceedOperator {
   @Override
   public BlockSummaryMessageProcessing proceed(BlockSummaryMessage pMessage)
       throws InterruptedException, SolverException {
-    return direction == AnalysisDirection.FORWARD ? proceedForward((BlockSummaryPostConditionMessage) pMessage) : proceedBackward((BlockSummaryErrorConditionMessage) pMessage);
+    return direction == AnalysisDirection.FORWARD
+        ? proceedForward((BlockSummaryPostConditionMessage) pMessage)
+        : proceedBackward((BlockSummaryErrorConditionMessage) pMessage);
   }
 
   @Override

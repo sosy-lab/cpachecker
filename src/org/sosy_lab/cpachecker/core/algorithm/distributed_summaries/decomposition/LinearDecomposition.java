@@ -71,11 +71,12 @@ public class LinearDecomposition implements CFADecomposer {
     List<List<CFANode>> nodes = new ArrayList<>();
     List<ImmutableList<CFANode>> finished = new ArrayList<>();
     nodes.add(new ArrayList<>(ImmutableList.of(pNode)));
-    while(!nodes.isEmpty()) {
+    while (!nodes.isEmpty()) {
       List<CFANode> currentPath = nodes.remove(0);
       CFANode last = getLastNodeFromPath(currentPath);
       for (CFANode cfaNode : CFAUtils.allSuccessorsOf(last)) {
-        ImmutableList<CFANode> extendedPath = ImmutableList.<CFANode>builder().addAll(currentPath).add(cfaNode).build();
+        ImmutableList<CFANode> extendedPath =
+            ImmutableList.<CFANode>builder().addAll(currentPath).add(cfaNode).build();
         if (blockOperator.isBlockEnd(cfaNode, currentPath.size() - 1)) {
           finished.add(extendedPath);
         } else {
@@ -102,7 +103,9 @@ public class LinearDecomposition implements CFADecomposer {
   }
 
   private CFAEdge findEdge(CFANode from, CFANode to) {
-    return CFAUtils.leavingEdges(from).firstMatch(edge -> edge.getSuccessor().equals(to)).toJavaUtil().orElseThrow();
+    return CFAUtils.leavingEdges(from)
+        .firstMatch(edge -> edge.getSuccessor().equals(to))
+        .toJavaUtil()
+        .orElseThrow();
   }
-
 }

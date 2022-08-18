@@ -10,7 +10,6 @@ package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed
 
 import static com.google.common.base.Preconditions.checkArgument;
 
-import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import java.util.List;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.combine.CombineOperator;
@@ -27,7 +26,11 @@ public class CombineBlockStateOperator implements CombineOperator {
       throws CPAException, InterruptedException {
     BlockState state1 = (BlockState) pState1;
     BlockState state2 = (BlockState) pState2;
-    checkArgument(state1.equals(state2), "Cannot combine different BlockStates: " + "%s" + " and " + "%s", state1, state2);
+    checkArgument(
+        state1.equals(state2),
+        "Cannot combine different BlockStates: " + "%s" + " and " + "%s",
+        state1,
+        state2);
     return ImmutableList.of(state2);
   }
 }

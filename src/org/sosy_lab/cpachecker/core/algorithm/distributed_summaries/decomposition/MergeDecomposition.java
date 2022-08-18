@@ -34,7 +34,8 @@ public class MergeDecomposition implements CFADecomposer {
   private final CFADecomposer decomposer;
   private final ShutdownNotifier notifier;
 
-  public MergeDecomposition(CFADecomposer pDecomposer, int pDesiredNumberOfBlocks, ShutdownNotifier pShutdownNotifier) {
+  public MergeDecomposition(
+      CFADecomposer pDecomposer, int pDesiredNumberOfBlocks, ShutdownNotifier pShutdownNotifier) {
     decomposer = pDecomposer;
     numberOfBlocks = pDesiredNumberOfBlocks;
     notifier = pShutdownNotifier;
@@ -55,18 +56,22 @@ public class MergeDecomposition implements CFADecomposer {
     return merged;
   }
 
-  private BlockGraph mergeVertically(BlockGraph pGraph, CFA pCFA, Map<Integer, CFANode> pIntegerCFANodeMap)
+  private BlockGraph mergeVertically(
+      BlockGraph pGraph, CFA pCFA, Map<Integer, CFANode> pIntegerCFANodeMap)
       throws InterruptedException {
     if (pGraph.getDistinctNodes().size() <= numberOfBlocks) {
       return pGraph;
     }
 
-    Set<BlockNodeMetaData> nodesMetaData = pGraph.getDistinctNodes().stream().map(BlockNode::getMetaData)
-        .collect(Collectors.toCollection(LinkedHashSet::new));
+    Set<BlockNodeMetaData> nodesMetaData =
+        pGraph.getDistinctNodes().stream()
+            .map(BlockNode::getMetaData)
+            .collect(Collectors.toCollection(LinkedHashSet::new));
 
     Predicate<BlockNode> hasOnlyOneSuccessor = n -> n.getSuccessors().size() == 1;
     Predicate<BlockNode> hasOnlyOnePredecessor = n -> n.getPredecessors().size() == 1;
-    Map<BlockNodeMetaData, BlockNode> lookup = Maps.uniqueIndex(pGraph.getDistinctNodes(), n -> n.getMetaData());
+    Map<BlockNodeMetaData, BlockNode> lookup =
+        Maps.uniqueIndex(pGraph.getDistinctNodes(), n -> n.getMetaData());
 
     for (BlockNode distinctNode : pGraph.getDistinctNodes()) {
       if (hasOnlyOneSuccessor.test(distinctNode)) {
@@ -74,22 +79,42 @@ public class MergeDecomposition implements CFADecomposer {
         if (lookup.containsKey(successor) && hasOnlyOnePredecessor.test(lookup.get(successor))) {
           nodesMetaData.remove(distinctNode.getMetaData());
           nodesMetaData.remove(successor);
-          Set<CFANode> allNodes = ImmutableSet.<CFANode>builder().addAll(distinctNode.getNodesInBlock()).addAll(successor.getNodesInBlock()).build();
-          Set<CFAEdge> allEdges = ImmutableSet.<CFAEdge>builder().addAll(distinctNode.getEdgesInBlock()).addAll(successor.getEdgesInBlock()).build();
-          BlockNodeMetaData mergedMetaData = new BlockNodeMetaData("M" + distinctNode.getId() + successor.getId(), distinctNode.getStartNode(), successor.getLastNode(), allNodes, allEdges, pIntegerCFANodeMap);
+          Set<CFANode> allNodes =
+              ImmutableSet.<CFANode>builder()
+                  .addAll(distinctNode.getNodesInBlock())
+                  .addAll(successor.getNodesInBlock())
+                  .build();
+          Set<CFAEdge> allEdges =
+              ImmutableSet.<CFAEdge>builder()
+                  .addAll(distinctNode.getEdgesInBlock())
+                  .addAll(successor.getEdgesInBlock())
+                  .build();
+          BlockNodeMetaData mergedMetaData =
+              new BlockNodeMetaData(
+                  "M" + distinctNode.getId() + successor.getId(),
+                  distinctNode.getStartNode(),
+                  successor.getLastNode(),
+                  allNodes,
+                  allEdges,
+                  pIntegerCFANodeMap);
           nodesMetaData.add(mergedMetaData);
-          return mergeVertically(BlockGraph.fromMetaData(nodesMetaData, pCFA, notifier), pCFA, pIntegerCFANodeMap);
+          return mergeVertically(
+              BlockGraph.fromMetaData(nodesMetaData, pCFA, notifier), pCFA, pIntegerCFANodeMap);
         }
       }
     }
     return pGraph;
   }
 
-  private BlockGraph mergeHorizontally(BlockGraph pGraph, CFA pCFA, Map<Integer, CFANode> pIntegerCFANodeMap)
+  private BlockGraph mergeHorizontally(
+      BlockGraph pGraph, CFA pCFA, Map<Integer, CFANode> pIntegerCFANodeMap)
       throws InterruptedException {
-    Set<BlockNodeMetaData> nodesMetaData = pGraph.getDistinctNodes().stream().map(BlockNode::getMetaData)
-        .collect(Collectors.toCollection(LinkedHashSet::new));
-    ImmutableListMultimap.Builder<Pair<CFANode, CFANode>, BlockNodeMetaData> entriesBuilder = ImmutableListMultimap.builder();
+    Set<BlockNodeMetaData> nodesMetaData =
+        pGraph.getDistinctNodes().stream()
+            .map(BlockNode::getMetaData)
+            .collect(Collectors.toCollection(LinkedHashSet::new));
+    ImmutableListMultimap.Builder<Pair<CFANode, CFANode>, BlockNodeMetaData> entriesBuilder =
+        ImmutableListMultimap.builder();
     for (BlockNodeMetaData node : nodesMetaData) {
       entriesBuilder.put(Pair.of(node.getStartNode(), node.getLastNode()), node);
     }
@@ -104,12 +129,14 @@ public class MergeDecomposition implements CFADecomposer {
       }
       CFANode startNode = key.getFirstNotNull();
       CFANode lastNode = key.getSecondNotNull();
-      ImmutableSet<CFANode>
-          nodesInBlock = FluentIterable.from(blocks).transformAndConcat(b -> b.getNodesInBlock()).toSet();
-      ImmutableSet<CFAEdge>
-          edgesInBlock = FluentIterable.from(blocks).transformAndConcat(b -> b.getEdgesInBlock()).toSet();
+      ImmutableSet<CFANode> nodesInBlock =
+          FluentIterable.from(blocks).transformAndConcat(b -> b.getNodesInBlock()).toSet();
+      ImmutableSet<CFAEdge> edgesInBlock =
+          FluentIterable.from(blocks).transformAndConcat(b -> b.getEdgesInBlock()).toSet();
       String id = "M" + Joiner.on("").join(FluentIterable.from(blocks).transform(b -> b.getId()));
-      nodesMetaData.add(new BlockNodeMetaData(id, startNode, lastNode, nodesInBlock, edgesInBlock, pIntegerCFANodeMap));
+      nodesMetaData.add(
+          new BlockNodeMetaData(
+              id, startNode, lastNode, nodesInBlock, edgesInBlock, pIntegerCFANodeMap));
       nodesMetaData.removeAll(blocks);
     }
     return BlockGraph.fromMetaData(nodesMetaData, pCFA, notifier);

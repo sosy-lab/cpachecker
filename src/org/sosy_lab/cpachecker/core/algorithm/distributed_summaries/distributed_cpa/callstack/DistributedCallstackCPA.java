@@ -81,9 +81,7 @@ public class DistributedCallstackCPA implements DistributedConfigurableProgramAn
 
   @Override
   public void updateErrorCondition(BlockSummaryErrorConditionMessage pMessage)
-      throws InterruptedException {
-
-  }
+      throws InterruptedException {}
 
   @Override
   public void synchronizeKnowledge(DistributedConfigurableProgramAnalysis pAnalysis)

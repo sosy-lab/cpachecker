@@ -179,9 +179,7 @@ public class BlockSummaryAnalysisWorker extends BlockSummaryWorker {
       throws CPAException, InterruptedException, SolverException {
     latestPreconditions.clear();
     latestPreconditions.addAll(pPostConditionMessages);
-    forwardAnalysis
-        .getDistributedCPA()
-        .synchronizeKnowledge(backwardAnalysis.getDistributedCPA());
+    forwardAnalysis.getDistributedCPA().synchronizeKnowledge(backwardAnalysis.getDistributedCPA());
     forwardAnalysisTime.start();
     Collection<BlockSummaryMessage> response = forwardAnalysis.analyze(pPostConditionMessages);
     forwardAnalysisTime.stop();
@@ -193,9 +191,7 @@ public class BlockSummaryAnalysisWorker extends BlockSummaryWorker {
       throws CPAException, InterruptedException, SolverException {
     Preconditions.checkArgument(
         pMessageProcessing.size() == 1, "BackwardAnalysis can only be based on one message");
-    backwardAnalysis
-        .getDistributedCPA()
-        .synchronizeKnowledge(forwardAnalysis.getDistributedCPA());
+    backwardAnalysis.getDistributedCPA().synchronizeKnowledge(forwardAnalysis.getDistributedCPA());
     latestErrorCondition =
         (BlockSummaryErrorConditionMessage) Iterables.getOnlyElement(pMessageProcessing);
     backwardAnalysisTime.start();

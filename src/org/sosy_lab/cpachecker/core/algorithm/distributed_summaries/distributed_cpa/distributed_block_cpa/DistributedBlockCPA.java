@@ -10,7 +10,6 @@ package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed
 
 import static com.google.common.base.Preconditions.checkArgument;
 
-import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSet;
 import java.util.Collection;
 import java.util.function.Supplier;
@@ -53,19 +52,35 @@ public class DistributedBlockCPA implements DistributedConfigurableProgramAnalys
 
   private FormulaManagerView fmgr;
 
-  public DistributedBlockCPA(ConfigurableProgramAnalysis pBlockCPA, BlockNode pNode, AnalysisDirection pDirection, Supplier<Collection<DistributedConfigurableProgramAnalysis>> pFutureErrorCondition, BlockSummaryAnalysisOptions pOptions)
+  public DistributedBlockCPA(
+      ConfigurableProgramAnalysis pBlockCPA,
+      BlockNode pNode,
+      AnalysisDirection pDirection,
+      Supplier<Collection<DistributedConfigurableProgramAnalysis>> pFutureErrorCondition,
+      BlockSummaryAnalysisOptions pOptions)
       throws InvalidConfigurationException {
-    checkArgument(pBlockCPA instanceof BlockCPA || pBlockCPA instanceof BlockCPABackward, /* TODO make lazy */ pBlockCPA.getClass() + " is no block CPA.");
+    checkArgument(
+        pBlockCPA instanceof BlockCPA || pBlockCPA instanceof BlockCPABackward, /* TODO make lazy */
+        pBlockCPA.getClass() + " is no block CPA.");
     blockCPA = pBlockCPA;
-    // FormulaManager is only used for calculating conjunctions -> dummy is fine (this formula manager needs to be independent)
+    // FormulaManager is only used for calculating conjunctions -> dummy is fine (this formula
+    // manager needs to be independent)
 
     serializeOperator = new SerializeBlockStateOperator();
-    deserializeOperator = new DeserializeBlockStateOperator(pNode,
-        pDirection,
-        () -> pFutureErrorCondition.get()
-            .stream()
-            .map(analysis -> analysis.getErrorCondition(obtainFormulaMangerWithCorrectContext(pFutureErrorCondition)))
-            .collect(obtainFormulaMangerWithCorrectContext(pFutureErrorCondition).getBooleanFormulaManager().toConjunction()));
+    deserializeOperator =
+        new DeserializeBlockStateOperator(
+            pNode,
+            pDirection,
+            () ->
+                pFutureErrorCondition.get().stream()
+                    .map(
+                        analysis ->
+                            analysis.getErrorCondition(
+                                obtainFormulaMangerWithCorrectContext(pFutureErrorCondition)))
+                    .collect(
+                        obtainFormulaMangerWithCorrectContext(pFutureErrorCondition)
+                            .getBooleanFormulaManager()
+                            .toConjunction()));
     combineOperator = new CombineBlockStateOperator();
     proceedOperator = new ProceedBlockStateOperator(pNode, pDirection);
     topMessage =
@@ -80,7 +95,8 @@ public class DistributedBlockCPA implements DistributedConfigurableProgramAnalys
             ImmutableSet.of());
   }
 
-  private FormulaManagerView obtainFormulaMangerWithCorrectContext(Supplier<Collection<DistributedConfigurableProgramAnalysis>> pFutureErrorCondition) {
+  private FormulaManagerView obtainFormulaMangerWithCorrectContext(
+      Supplier<Collection<DistributedConfigurableProgramAnalysis>> pFutureErrorCondition) {
     if (fmgr == null) {
       for (DistributedConfigurableProgramAnalysis analysis : pFutureErrorCondition.get()) {
         if (analysis instanceof DistributedPredicateCPA) {
@@ -127,9 +143,7 @@ public class DistributedBlockCPA implements DistributedConfigurableProgramAnalys
 
   @Override
   public void synchronizeKnowledge(DistributedConfigurableProgramAnalysis pAnalysis)
-      throws InterruptedException {
-
-  }
+      throws InterruptedException {}
 
   @Override
   public AbstractDomain getAbstractDomain() {

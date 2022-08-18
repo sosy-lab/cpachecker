@@ -42,7 +42,8 @@ public class SingleBlockDecomposition implements CFADecomposer {
     }
     Set<CFANode> nodes = new LinkedHashSet<>(cfa.getAllNodes());
     nodes.add(lastNode);
-    BlockNodeMetaData metaData = new BlockNodeMetaData("SB1", startNode, lastNode, nodes, edges, idToNode);
+    BlockNodeMetaData metaData =
+        new BlockNodeMetaData("SB1", startNode, lastNode, nodes, edges, idToNode);
     return BlockGraph.fromMetaData(ImmutableSet.of(metaData), cfa, shutdownNotifier);
   }
 }

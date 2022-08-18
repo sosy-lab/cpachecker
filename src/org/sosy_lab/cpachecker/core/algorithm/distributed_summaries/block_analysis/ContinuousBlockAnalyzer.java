@@ -18,5 +18,4 @@ public interface ContinuousBlockAnalyzer {
 
   Collection<BlockSummaryMessage> analyze(Collection<BlockSummaryMessage> messages)
       throws CPAException, InterruptedException, SolverException;
-
 }

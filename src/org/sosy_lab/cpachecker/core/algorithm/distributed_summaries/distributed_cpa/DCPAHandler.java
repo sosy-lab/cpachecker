@@ -10,7 +10,6 @@ package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed
 
 import static com.google.common.base.Preconditions.checkArgument;
 
-import com.google.common.base.Preconditions;
 import com.google.errorprone.annotations.CanIgnoreReturnValue;
 import java.util.HashMap;
 import java.util.Map;
@@ -47,7 +46,8 @@ public class DCPAHandler {
   public Optional<DistributedConfigurableProgramAnalysis> registerDCPA(
       ConfigurableProgramAnalysis pCPA, BlockNode pBlockNode, AnalysisDirection pDirection)
       throws InvalidConfigurationException {
-    checkArgument(!(pCPA instanceof CompositeCPA), "Cannot register DCPA for type " + "%s", pCPA.getClass());
+    checkArgument(
+        !(pCPA instanceof CompositeCPA), "Cannot register DCPA for type " + "%s", pCPA.getClass());
     if (pCPA instanceof PredicateCPA) {
       return Optional.ofNullable(registerDCPA((PredicateCPA) pCPA, pBlockNode, pDirection));
     }

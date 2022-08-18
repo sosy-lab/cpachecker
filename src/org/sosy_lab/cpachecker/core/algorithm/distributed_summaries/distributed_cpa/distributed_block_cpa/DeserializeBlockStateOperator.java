@@ -29,7 +29,10 @@ public class DeserializeBlockStateOperator implements DeserializeOperator {
   private final Supplier<BooleanFormula> currentErrorConditionSupplier;
   private final Map<Integer, CFANode> nodeMap;
 
-  public DeserializeBlockStateOperator(BlockNode pBlockNode, AnalysisDirection pDirection, Supplier<BooleanFormula> pFutureErrorCondition) {
+  public DeserializeBlockStateOperator(
+      BlockNode pBlockNode,
+      AnalysisDirection pDirection,
+      Supplier<BooleanFormula> pFutureErrorCondition) {
     blockNode = pBlockNode;
     direction = pDirection;
     currentErrorConditionSupplier = pFutureErrorCondition;
@@ -39,6 +42,12 @@ public class DeserializeBlockStateOperator implements DeserializeOperator {
 
   @Override
   public AbstractState deserialize(BlockSummaryMessage pMessage) throws InterruptedException {
-    return new BlockState(nodeMap.get(pMessage.getTargetNodeNumber()), blockNode, direction, BlockStateType.INITIAL, false, Optional.of(currentErrorConditionSupplier.get()));
+    return new BlockState(
+        nodeMap.get(pMessage.getTargetNodeNumber()),
+        blockNode,
+        direction,
+        BlockStateType.INITIAL,
+        false,
+        Optional.of(currentErrorConditionSupplier.get()));
   }
 }

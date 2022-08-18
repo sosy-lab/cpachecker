@@ -15,7 +15,6 @@ import org.sosy_lab.java_smt.api.SolverException;
 
 public interface InitialBlockAnalyzer {
 
-    Collection<BlockSummaryMessage> performInitialAnalysis()
-        throws InterruptedException, CPAException, SolverException;
-
+  Collection<BlockSummaryMessage> performInitialAnalysis()
+      throws InterruptedException, CPAException, SolverException;
 }

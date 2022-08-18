@@ -92,9 +92,7 @@ public class ProceedCompositeStateOperator implements ProceedOperator {
     for (Entry<Class<? extends ConfigurableProgramAnalysis>, DistributedConfigurableProgramAnalysis>
         entry : registered.entrySet()) {
       if (distributed.registered.containsKey(entry.getKey())) {
-        entry
-            .getValue()
-            .synchronizeKnowledge(distributed.registered.get(entry.getKey()));
+        entry.getValue().synchronizeKnowledge(distributed.registered.get(entry.getKey()));
       }
     }
   }

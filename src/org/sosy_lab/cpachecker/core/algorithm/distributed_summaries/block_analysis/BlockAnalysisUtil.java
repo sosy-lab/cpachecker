@@ -51,12 +51,15 @@ public class BlockAnalysisUtil {
    * @throws InterruptedException thread interrupted
    * @throws CPAException wrapper exception
    */
-  static ARGState getStartState(CFANode pStart, Precision pPrecision, DistributedConfigurableProgramAnalysis pAnalysis, Collection<BlockSummaryMessage> startMessages)
+  static ARGState getStartState(
+      CFANode pStart,
+      Precision pPrecision,
+      DistributedConfigurableProgramAnalysis pAnalysis,
+      Collection<BlockSummaryMessage> startMessages)
       throws InterruptedException, CPAException {
     ImmutableList.Builder<AbstractState> states = ImmutableList.builder();
     for (BlockSummaryMessage receivedPostCondition : startMessages) {
-      states.add(
-          pAnalysis.getDeserializeOperator().deserialize(receivedPostCondition));
+      states.add(pAnalysis.getDeserializeOperator().deserialize(receivedPostCondition));
     }
     return new ARGState(
         Iterables.getOnlyElement(
@@ -153,8 +156,8 @@ public class BlockAnalysisUtil {
         .addEntry(
             BlockSummaryMessagePayload.PROPERTY,
             pStatus.wasPropertyChecked()
-            ? StatusPropertyChecked.CHECKED.name()
-            : StatusPropertyChecked.UNCHECKED.name())
+                ? StatusPropertyChecked.CHECKED.name()
+                : StatusPropertyChecked.UNCHECKED.name())
         .addEntry(
             BlockSummaryMessagePayload.SOUND,
             pStatus.isSound() ? StatusSoundness.SOUND.name() : StatusSoundness.UNSOUND.name())
@@ -173,9 +176,7 @@ public class BlockAnalysisUtil {
    * @throws InterruptedException thread interrupted
    */
   static BlockAnalysisIntermediateResult findReachableTargetStatesInBlock(
-      Algorithm pAlgorithm,
-      ReachedSet pReachedSet)
-      throws CPAException, InterruptedException {
+      Algorithm pAlgorithm, ReachedSet pReachedSet) throws CPAException, InterruptedException {
 
     AbstractState startState = pReachedSet.getFirstState();
     AlgorithmStatus status = AlgorithmStatus.SOUND_AND_PRECISE;
@@ -186,11 +187,13 @@ public class BlockAnalysisUtil {
       AbstractStates.getTargetStates(pReachedSet).forEach(pReachedSet::removeOnlyFromWaitlist);
     }
 
-    return BlockAnalysisIntermediateResult.of(from(pReachedSet)
-        .transform(s -> AbstractStates.extractStateByType(s, ARGState.class))
-        .filter(AbstractStates::isTargetState)
-        .filter(s -> !Objects.equals(startState, s))
-        .toSet(), status);
+    return BlockAnalysisIntermediateResult.of(
+        from(pReachedSet)
+            .transform(s -> AbstractStates.extractStateByType(s, ARGState.class))
+            .filter(AbstractStates::isTargetState)
+            .filter(s -> !Objects.equals(startState, s))
+            .toSet(),
+        status);
   }
 
   public static class BlockAnalysisIntermediateResult {
@@ -199,16 +202,15 @@ public class BlockAnalysisUtil {
     private final ImmutableSet<ARGState> blockTargets;
     private final AlgorithmStatus status;
 
-
     private BlockAnalysisIntermediateResult(
-        ImmutableSet<ARGState> pTargets,
-        AlgorithmStatus pStatus) {
+        ImmutableSet<ARGState> pTargets, AlgorithmStatus pStatus) {
       blockTargets = extractBlockTargetStates(pTargets);
       targets = extractViolations(pTargets);
       status = pStatus;
     }
 
-    public static BlockAnalysisIntermediateResult of(ImmutableSet<ARGState> pTargets, AlgorithmStatus pStatus) {
+    public static BlockAnalysisIntermediateResult of(
+        ImmutableSet<ARGState> pTargets, AlgorithmStatus pStatus) {
       return new BlockAnalysisIntermediateResult(pTargets, pStatus);
     }
 
@@ -228,5 +230,4 @@ public class BlockAnalysisUtil {
       return targets.isEmpty() && blockTargets.isEmpty();
     }
   }
-
 }
