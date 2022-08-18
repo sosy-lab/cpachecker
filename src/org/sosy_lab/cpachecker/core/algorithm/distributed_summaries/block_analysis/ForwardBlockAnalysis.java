@@ -117,6 +117,8 @@ public class ForwardBlockAnalysis implements InitialBlockAnalyzer, ContinuousBlo
     BlockAnalysisIntermediateResult result =
         BlockAnalysisUtil.findReachableTargetStatesInBlock(algorithm, reachedSet);
     status = status.update(result.getStatus());
+    // update precision for start state
+    precision = reachedSet.getPrecision(startState);
     if (result.isEmpty()) {
       // if final node is not reachable, do not broadcast anything.
       // in case abstraction is enabled, this might occur since we abstract at block end
@@ -151,9 +153,6 @@ public class ForwardBlockAnalysis implements InitialBlockAnalyzer, ContinuousBlo
             true,
             ImmutableSet.of());
     Collection<BlockSummaryMessage> result = analyze(ImmutableSet.of(initial));
-    if (reachedSet.getLastState() != null) {
-      precision = reachedSet.getPrecision(reachedSet.getLastState());
-    }
     if (result.isEmpty()) {
       // full path = true as no predecessor can ever change unreachability of block exit
       return ImmutableSet.of(
@@ -174,9 +173,6 @@ public class ForwardBlockAnalysis implements InitialBlockAnalyzer, ContinuousBlo
     ImmutableList<AbstractState> compositeStates =
         transformedImmutableListCopy(
             blockEntries, state -> AbstractStates.extractStateByType(state, CompositeState.class));
-    if (reachedSet.getLastState() != null) {
-      precision = reachedSet.getPrecision(reachedSet.getLastState());
-    }
     if (!compositeStates.isEmpty()) {
       boolean fullPath =
           messages.size() == block.getPredecessors().size()
@@ -217,7 +213,7 @@ public class ForwardBlockAnalysis implements InitialBlockAnalyzer, ContinuousBlo
       Optional<CFANode> targetNode = BlockAnalysisUtil.abstractStateToLocation(targetState);
       if (targetNode.isEmpty()) {
         throw new AssertionError(
-            "States need to have a location but this one does not:" + targetState);
+            "States need to have a location but this one does not: " + targetState);
       }
       BlockSummaryMessagePayload initial =
           distributedCompositeCPA

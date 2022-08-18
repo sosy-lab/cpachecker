@@ -48,6 +48,7 @@ public class LinearDecomposition implements CFADecomposer {
     while (!meetNodes.isEmpty()) {
       meetNodes.removeAll(coveredMeetNodes);
       coveredMeetNodes.addAll(meetNodes);
+      Set<CFANode> toAdd = new LinkedHashSet<>();
       for (CFANode meetNode : meetNodes) {
         for (ImmutableList<CFANode> cfaNodes : findPathsToNextMergeNode(meetNode)) {
           BlockNodeMetaData currentNode =
@@ -59,10 +60,11 @@ public class LinearDecomposition implements CFADecomposer {
                   findEdgesOnPath(cfaNodes),
                   ImmutableMap.of());
           blockNodes.add(currentNode);
-          meetNodes.add(getLastNodeFromPath(cfaNodes));
+          toAdd.add(getLastNodeFromPath(cfaNodes));
           idCounter++;
         }
       }
+      meetNodes.addAll(toAdd);
     }
     return BlockGraph.fromMetaData(blockNodes, cfa, shutdownNotifier);
   }

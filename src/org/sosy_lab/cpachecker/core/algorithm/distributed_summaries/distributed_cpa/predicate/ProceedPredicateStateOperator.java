@@ -123,7 +123,7 @@ public class ProceedPredicateStateOperator implements ProceedOperator {
       return BlockSummaryMessageProcessing.stop();
     }
     PredicateAbstractState state = (PredicateAbstractState) deserialize.deserialize(message);
-    if (state.getAbstractionFormula().isTrue()) {
+    if (state.getAbstractionFormula().isTrue() || state.getAbstractionFormula().isFalse()) {
       return BlockSummaryMessageProcessing.stop();
     }
     try {
