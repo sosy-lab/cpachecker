@@ -52,7 +52,7 @@ public interface CombineOperator {
    * @param pPrecision Initial precision for returned abstract states
    * @return List of abstract states that over-approximate {@code pStates}.
    */
-  default List<AbstractState> combine(
+  default ImmutableList<AbstractState> combine(
       ImmutableList<AbstractState> pStates, AbstractState pTopElement, Precision pPrecision)
       throws InterruptedException, CPAException {
     List<AbstractState> states = new ArrayList<>(pStates);
@@ -61,7 +61,7 @@ public interface CombineOperator {
     }
 
     if (states.size() == 1) {
-      return states;
+      return ImmutableList.copyOf(states);
     }
 
     AbstractState first = states.remove(0);

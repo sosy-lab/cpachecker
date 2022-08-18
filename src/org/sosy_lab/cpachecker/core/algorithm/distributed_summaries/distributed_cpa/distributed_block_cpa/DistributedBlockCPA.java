@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.distributed_block_cpa;
 
+import static com.google.common.base.Preconditions.checkArgument;
+
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSet;
 import java.util.Collection;
@@ -53,7 +55,7 @@ public class DistributedBlockCPA implements DistributedConfigurableProgramAnalys
 
   public DistributedBlockCPA(ConfigurableProgramAnalysis pBlockCPA, BlockNode pNode, AnalysisDirection pDirection, Supplier<Collection<DistributedConfigurableProgramAnalysis>> pFutureErrorCondition, BlockSummaryAnalysisOptions pOptions)
       throws InvalidConfigurationException {
-    Preconditions.checkArgument(pBlockCPA instanceof BlockCPA || pBlockCPA instanceof BlockCPABackward, pBlockCPA.getClass() + " is no block CPA.");
+    checkArgument(pBlockCPA instanceof BlockCPA || pBlockCPA instanceof BlockCPABackward, /* TODO make lazy */ pBlockCPA.getClass() + " is no block CPA.");
     blockCPA = pBlockCPA;
     // FormulaManager is only used for calculating conjunctions -> dummy is fine (this formula manager needs to be independent)
 

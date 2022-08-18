@@ -12,6 +12,7 @@ import com.google.common.base.Joiner;
 import com.google.common.base.Predicate;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableCollection;
+import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
@@ -88,7 +89,7 @@ public class MergeDecomposition implements CFADecomposer {
       throws InterruptedException {
     Set<BlockNodeMetaData> nodesMetaData = pGraph.getDistinctNodes().stream().map(BlockNode::getMetaData)
         .collect(Collectors.toCollection(LinkedHashSet::new));
-    ImmutableMultimap.Builder<Pair<CFANode, CFANode>, BlockNodeMetaData> entriesBuilder = ImmutableMultimap.builder();
+    ImmutableListMultimap.Builder<Pair<CFANode, CFANode>, BlockNodeMetaData> entriesBuilder = ImmutableListMultimap.builder();
     for (BlockNodeMetaData node : nodesMetaData) {
       entriesBuilder.put(Pair.of(node.getStartNode(), node.getLastNode()), node);
     }

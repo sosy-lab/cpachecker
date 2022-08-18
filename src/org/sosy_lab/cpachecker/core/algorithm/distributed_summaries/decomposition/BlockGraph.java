@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition;
 
+import static org.sosy_lab.common.collect.Collections3.transformedImmutableSetCopy;
+
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.FluentIterable;
@@ -54,15 +56,11 @@ public class BlockGraph {
   }
 
   public ImmutableSet<BlockNode> successorsOf(BlockNode pBlockNode) {
-    return FluentIterable.from(pBlockNode.getSuccessors())
-        .transform(metaDataToBlockNode::get)
-        .toSet();
+    return transformedImmutableSetCopy(pBlockNode.getSuccessors(), metaDataToBlockNode::get);
   }
 
   public ImmutableSet<BlockNode> predecessorsOf(BlockNode pBlockNode) {
-    return FluentIterable.from(pBlockNode.getPredecessors())
-        .transform(metaDataToBlockNode::get)
-        .toSet();
+    return transformedImmutableSetCopy(pBlockNode.getPredecessors(), metaDataToBlockNode::get);
   }
 
   public static BlockGraph fromMetaData(
@@ -129,7 +127,7 @@ public class BlockGraph {
   public BlockGraph prependDummyRoot(CFA pCFA, ShutdownNotifier pShutdownNotifier)
       throws InterruptedException {
     return fromMetaData(
-        FluentIterable.from(allNodes).transform(n -> n.getMetaData()).toSet(),
+        transformedImmutableSetCopy(allNodes, n -> n.getMetaData()),
         pCFA,
         pShutdownNotifier,
         true);
