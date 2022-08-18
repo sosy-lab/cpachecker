@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.cpa.datarace;
 
+import com.google.common.base.Objects;
 import com.google.common.collect.ImmutableSet;
 import java.util.HashSet;
 import java.util.Set;
@@ -93,8 +94,7 @@ class MemoryAccess {
     }
     for (ThreadSynchronization relevantSynchronization : relevantSynchronizations) {
       if (relevantSynchronization.getReadThread().equals(threadSynchronization.getWriteThread())
-          && relevantSynchronization.getReadEpoch()
-              <= threadSynchronization.getWriteEpoch()) {
+          && relevantSynchronization.getReadEpoch() <= threadSynchronization.getWriteEpoch()) {
         return true;
       }
     }
@@ -112,5 +112,27 @@ class MemoryAccess {
         + ", edge="
         + edge
         + '}';
+  }
+
+  @Override
+  public boolean equals(Object pO) {
+    if (this == pO) {
+      return true;
+    }
+    if (pO == null || getClass() != pO.getClass()) {
+      return false;
+    }
+    MemoryAccess access = (MemoryAccess) pO;
+    return isWrite == access.isWrite
+        && accessEpoch == access.accessEpoch
+        && Objects.equal(threadId, access.threadId)
+        && Objects.equal(memoryLocation, access.memoryLocation)
+        && Objects.equal(locks, access.locks)
+        && Objects.equal(edge, access.edge);
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hashCode(threadId, memoryLocation, isWrite, locks, edge, accessEpoch);
   }
 }

@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.cpa.datarace;
 
+import com.google.common.base.Objects;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSetMultimap;
@@ -110,5 +111,35 @@ public class DataRaceState implements AbstractQueryableState {
       return hasDataRace();
     }
     throw new InvalidQueryException("Invalid query: " + property);
+  }
+
+  @Override
+  public boolean equals(Object pO) {
+    if (this == pO) {
+      return true;
+    }
+    if (pO == null || getClass() != pO.getClass()) {
+      return false;
+    }
+    DataRaceState that = (DataRaceState) pO;
+    return hasDataRace == that.hasDataRace
+        && Objects.equal(memoryAccesses, that.memoryAccesses)
+        && Objects.equal(accessesWithSubsequentWrites, that.accessesWithSubsequentWrites)
+        && Objects.equal(threadInfo, that.threadInfo)
+        && Objects.equal(threadSynchronizations, that.threadSynchronizations)
+        && Objects.equal(heldLocks, that.heldLocks)
+        && Objects.equal(lastReleases, that.lastReleases);
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hashCode(
+        memoryAccesses,
+        accessesWithSubsequentWrites,
+        threadInfo,
+        threadSynchronizations,
+        heldLocks,
+        lastReleases,
+        hasDataRace);
   }
 }

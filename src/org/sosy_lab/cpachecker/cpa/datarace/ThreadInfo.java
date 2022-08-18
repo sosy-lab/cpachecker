@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.cpa.datarace;
 
+import com.google.common.base.Objects;
+
 public class ThreadInfo {
 
   private final String threadId;
@@ -35,5 +37,22 @@ public class ThreadInfo {
   @Override
   public String toString() {
     return "ThreadInfo{threadId='" + threadId + "', epoch=" + epoch + ", running=" + running + '}';
+  }
+
+  @Override
+  public boolean equals(Object pO) {
+    if (this == pO) {
+      return true;
+    }
+    if (pO == null || getClass() != pO.getClass()) {
+      return false;
+    }
+    ThreadInfo that = (ThreadInfo) pO;
+    return epoch == that.epoch && running == that.running && Objects.equal(threadId, that.threadId);
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hashCode(threadId, epoch, running);
   }
 }
