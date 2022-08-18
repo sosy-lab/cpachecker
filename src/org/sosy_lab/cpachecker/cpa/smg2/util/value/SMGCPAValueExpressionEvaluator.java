@@ -1444,12 +1444,15 @@ public class SMGCPAValueExpressionEvaluator {
     // Get the SMGObject for the memory region on the right hand side and copy the entire
     // region  into the left hand side
     Optional<SMGObject> maybeRightHandSideMemory =
-        currentState
-            .getMemoryModel()
-            .getObjectForVisibleVariableFromPreviousStackframe(paramIdentifier);
+        currentState.getMemoryModel().getObjectForVisibleVariable(paramIdentifier);
 
     if (maybeRightHandSideMemory.isEmpty()) {
+      // This might be called from the the function call handler which just created a stack frame
+      maybeRightHandSideMemory =
+          currentState.getMemoryModel().getObjectForVisibleVariable(paramIdentifier);
+      if (maybeRightHandSideMemory.isEmpty()) {
       return currentState;
+    }
     }
     SMGObject paramMemory = maybeRightHandSideMemory.orElseThrow();
     // copySMGObjectContentToSMGObject checks for sizes etc.
