@@ -637,8 +637,8 @@ public class SMGTransferRelation
             builtins.handleBuiltinFunctionCall(pCfaEdge, cFCExpression, calledFunctionName, pState);
       }
     } else {
-      uselessValuesAndStates =
-          builtins.handleUnknownFunction(pCfaEdge, cFCExpression, calledFunctionName, pState);
+      // Don't handle unknown functions without body
+      return ImmutableList.of(pState);
     }
     return Collections3.transformedImmutableListCopy(
         uselessValuesAndStates, valAndState -> valAndState.getState());
