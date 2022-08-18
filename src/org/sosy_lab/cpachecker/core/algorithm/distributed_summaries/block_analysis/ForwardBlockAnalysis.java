@@ -59,8 +59,6 @@ public class ForwardBlockAnalysis implements InitialBlockAnalyzer, ContinuousBlo
 
   private Precision precision;
   private boolean alreadyReportedError;
-
-  private final boolean containsLoops;
   /**
    * Analyzes a subgraph of the CFA (block node) with an arbitrary CPA.
    *
@@ -84,8 +82,7 @@ public class ForwardBlockAnalysis implements InitialBlockAnalyzer, ContinuousBlo
       ShutdownManager pShutdownManager,
       BlockSummaryAnalysisOptions pOptions)
       throws CPAException, InterruptedException, InvalidConfigurationException {
-    containsLoops = pCFA.getAllLoopHeads().isPresent() || pOptions.shouldSendEveryErrorMessage();
-    alreadyReportedError = containsLoops;
+    alreadyReportedError = false;
     Triple<Algorithm, ConfigurableProgramAnalysis, ReachedSet> parts =
         AlgorithmFactory.createAlgorithm(
             pLogger, pSpecification, pCFA, pConfiguration, pShutdownManager, pBlock);
@@ -128,7 +125,7 @@ public class ForwardBlockAnalysis implements InitialBlockAnalyzer, ContinuousBlo
 
     ImmutableSet.Builder<BlockSummaryMessage> answers = ImmutableSet.builder();
     Set<ARGState> violations = result.getTargets();
-    if (!violations.isEmpty() && (!alreadyReportedError || containsLoops)) {
+    if (!violations.isEmpty() && !alreadyReportedError) {
       // we only need to report error locations once
       // since every new report of an already found location would only cause redundant work
       answers.addAll(createErrorConditionMessages(violations));

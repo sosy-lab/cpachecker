@@ -36,8 +36,10 @@ public abstract class BlockSummaryWorker implements BlockSummaryActor {
     LogManager logManager;
     try {
       logManager =
-          BasicLogManager.createWithHandler(
-              new FileHandler(pOptions.getLogDirectory().toString() + "/" + id + ".log"));
+          pOptions.getLogDirectory() != null
+              ? BasicLogManager.createWithHandler(
+                  new FileHandler(pOptions.getLogDirectory().toString() + "/" + id + ".log"))
+              : LogManager.createNullLogManager();
     } catch (IOException pE) {
       logManager = LogManager.createNullLogManager();
     }

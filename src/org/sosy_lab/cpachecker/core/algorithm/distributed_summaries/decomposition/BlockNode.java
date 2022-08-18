@@ -55,7 +55,7 @@ public class BlockNode {
         CFAUtils.existsPath(
             pMetaData.getStartNode(),
             pMetaData.getLastNode(),
-            node -> CFAUtils.leavingEdges(node).toSet(),
+            node -> CFAUtils.allLeavingEdges(node).toSet(),
             pShutdownNotifier),
         "pNodesInBlock (%s) "
             + "must list all nodes but misses either the root node (%s) "
@@ -83,7 +83,7 @@ public class BlockNode {
     while (!waiting.isEmpty()) {
       CFANode curr = waiting.pop();
       boolean hasSuccessor = false;
-      for (CFAEdge leavingEdge : CFAUtils.leavingEdges(curr)) {
+      for (CFAEdge leavingEdge : CFAUtils.allLeavingEdges(curr)) {
         if (pEdgesInBlock.contains(leavingEdge)) {
           if (covered.contains(leavingEdge.getSuccessor())) {
             waiting.push(leavingEdge.getSuccessor());

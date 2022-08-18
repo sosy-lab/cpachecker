@@ -71,8 +71,7 @@ public class DCPAHandler {
       throws InvalidConfigurationException {
     return analyses.put(
         pBlockCPA.getClass(),
-        new DistributedBlockCPA(
-            pBlockCPA, pBlockNode, pDirection, () -> analyses.values(), options));
+        new DistributedBlockCPA(pBlockCPA, pBlockNode, pDirection, () -> analyses.values()));
   }
 
   private DistributedConfigurableProgramAnalysis registerDCPA(
@@ -80,8 +79,7 @@ public class DCPAHandler {
       throws InvalidConfigurationException {
     return analyses.put(
         pBlockCPA.getClass(),
-        new DistributedBlockCPA(
-            pBlockCPA, pBlockNode, pDirection, () -> analyses.values(), options));
+        new DistributedBlockCPA(pBlockCPA, pBlockNode, pDirection, () -> analyses.values()));
   }
 
   private DistributedConfigurableProgramAnalysis registerDCPA(

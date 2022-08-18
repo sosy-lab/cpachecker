@@ -44,7 +44,6 @@ public class BlockSummaryAnalysisWorker extends BlockSummaryWorker {
 
   private final Collection<BlockSummaryMessage> latestPreconditions;
 
-  private BlockSummaryErrorConditionMessage latestErrorCondition;
   private boolean shutdown;
 
   private final BlockSummaryConnection connection;
@@ -169,7 +168,17 @@ public class BlockSummaryAnalysisWorker extends BlockSummaryWorker {
     DistributedCompositeCPA distributed = backwardAnalysis.getDistributedCPA();
     BlockSummaryMessageProcessing processing = distributed.getProceedOperator().proceed(message);
     if (processing.end()) {
-      return processing;
+      forwardAnalysis
+          .getDistributedCPA()
+          .updateErrorCondition((BlockSummaryErrorConditionMessage) message);
+      Collection<? extends BlockSummaryMessage> forwardUpdates =
+          FluentIterable.from(performForwardAnalysis(latestPreconditions))
+              .filter(BlockSummaryPostConditionMessage.class)
+              .toSet();
+      return ImmutableSet.<BlockSummaryMessage>builder()
+          .addAll(processing)
+          .addAll(forwardUpdates)
+          .build();
     }
     return performBackwardAnalysisWithAbstraction(processing);
   }
@@ -192,8 +201,6 @@ public class BlockSummaryAnalysisWorker extends BlockSummaryWorker {
     Preconditions.checkArgument(
         pMessageProcessing.size() == 1, "BackwardAnalysis can only be based on one message");
     backwardAnalysis.getDistributedCPA().synchronizeKnowledge(forwardAnalysis.getDistributedCPA());
-    latestErrorCondition =
-        (BlockSummaryErrorConditionMessage) Iterables.getOnlyElement(pMessageProcessing);
     backwardAnalysisTime.start();
     Collection<BlockSummaryMessage> result = backwardAnalysis.analyze(pMessageProcessing);
     backwardAnalysisTime.stop();
@@ -212,7 +219,6 @@ public class BlockSummaryAnalysisWorker extends BlockSummaryWorker {
     }
     backwardAnalysis.getDistributedCPA().updateErrorCondition(msg);
     backwardAnalysis.getDistributedCPA().synchronizeKnowledge(forwardAnalysis.getDistributedCPA());
-    latestErrorCondition = msg;
     Collection<BlockSummaryMessage> result = forwardAnalysis.analyze(latestPreconditions);
     ImmutableSet<? extends BlockSummaryMessage> answer =
         FluentIterable.from(result).filter(BlockSummaryPostConditionMessage.class).toSet();

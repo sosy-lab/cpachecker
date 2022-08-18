@@ -26,7 +26,6 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.BlockSummaryMessagePayload;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryErrorConditionMessage;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryMessage;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.BlockSummaryAnalysisOptions;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
@@ -56,8 +55,7 @@ public class DistributedBlockCPA implements DistributedConfigurableProgramAnalys
       ConfigurableProgramAnalysis pBlockCPA,
       BlockNode pNode,
       AnalysisDirection pDirection,
-      Supplier<Collection<DistributedConfigurableProgramAnalysis>> pFutureErrorCondition,
-      BlockSummaryAnalysisOptions pOptions)
+      Supplier<Collection<DistributedConfigurableProgramAnalysis>> pFutureErrorCondition)
       throws InvalidConfigurationException {
     checkArgument(
         pBlockCPA instanceof BlockCPA || pBlockCPA instanceof BlockCPABackward, /* TODO make lazy */

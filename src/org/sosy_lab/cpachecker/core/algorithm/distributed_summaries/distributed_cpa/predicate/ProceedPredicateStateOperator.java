@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.predicate;
 
+import com.google.common.collect.ImmutableSet;
 import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.Map;
@@ -15,6 +16,7 @@ import java.util.Map.Entry;
 import java.util.OptionalInt;
 import java.util.Set;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
+import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.BlockNode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.BlockSummaryMessageProcessing;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DistributedConfigurableProgramAnalysis;
@@ -110,6 +112,10 @@ public class ProceedPredicateStateOperator implements ProceedOperator {
         return BlockSummaryMessageProcessing.stopWith(
             BlockSummaryMessage.newErrorConditionUnreachableMessage(
                 block.getId(), "unsat-with-last-post: " + check));
+      } else if (latestOwnPostConditionMessage.representsFullPath()) {
+        return BlockSummaryMessageProcessing.stopWith(
+            BlockSummaryMessage.newResultMessage(
+                block.getId(), 0, Result.FALSE, ImmutableSet.of()));
       }
     }
     return BlockSummaryMessageProcessing.proceedWith(message);

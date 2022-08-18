@@ -104,7 +104,7 @@ public class BlockState
 
   @Override
   public String toString() {
-    return "Location: " + node;
+    return "BlockState{" + "node=" + node + ", type=" + type + '}';
   }
 
   @Override

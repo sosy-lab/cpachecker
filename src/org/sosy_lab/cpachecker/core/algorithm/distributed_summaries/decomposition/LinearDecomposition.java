@@ -105,7 +105,7 @@ public class LinearDecomposition implements CFADecomposer {
   }
 
   private CFAEdge findEdge(CFANode from, CFANode to) {
-    return CFAUtils.leavingEdges(from)
+    return CFAUtils.allLeavingEdges(from)
         .firstMatch(edge -> edge.getSuccessor().equals(to))
         .toJavaUtil()
         .orElseThrow();
