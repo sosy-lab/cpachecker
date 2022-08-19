@@ -156,7 +156,7 @@ public class BlockSummaryAnalysisWorker extends BlockSummaryWorker {
   private Collection<BlockSummaryMessage> processBlockPostCondition(BlockSummaryMessage message)
       throws CPAException, InterruptedException, SolverException {
     BlockSummaryMessageProcessing processing =
-        forwardAnalysis.getDistributedCPA().getProceedOperator().proceed(message);
+        forwardAnalysis.getDistributedCompositeCPA().getProceedOperator().proceed(message);
     if (processing.end()) {
       return processing;
     }
@@ -165,11 +165,11 @@ public class BlockSummaryAnalysisWorker extends BlockSummaryWorker {
 
   private Collection<BlockSummaryMessage> processErrorCondition(BlockSummaryMessage message)
       throws SolverException, InterruptedException, CPAException {
-    DistributedCompositeCPA distributed = backwardAnalysis.getDistributedCPA();
+    DistributedCompositeCPA distributed = backwardAnalysis.getDistributedCompositeCPA();
     BlockSummaryMessageProcessing processing = distributed.getProceedOperator().proceed(message);
     if (processing.end()) {
       forwardAnalysis
-          .getDistributedCPA()
+          .getDistributedCompositeCPA()
           .updateErrorCondition((BlockSummaryErrorConditionMessage) message);
       Collection<? extends BlockSummaryMessage> forwardUpdates =
           FluentIterable.from(performForwardAnalysis(latestPreconditions))
@@ -188,7 +188,9 @@ public class BlockSummaryAnalysisWorker extends BlockSummaryWorker {
       throws CPAException, InterruptedException, SolverException {
     latestPreconditions.clear();
     latestPreconditions.addAll(pPostConditionMessages);
-    forwardAnalysis.getDistributedCPA().synchronizeKnowledge(backwardAnalysis.getDistributedCPA());
+    forwardAnalysis
+        .getDistributedCompositeCPA()
+        .synchronizeKnowledge(backwardAnalysis.getDistributedCompositeCPA());
     forwardAnalysisTime.start();
     Collection<BlockSummaryMessage> response = forwardAnalysis.analyze(pPostConditionMessages);
     forwardAnalysisTime.stop();
@@ -200,7 +202,9 @@ public class BlockSummaryAnalysisWorker extends BlockSummaryWorker {
       throws CPAException, InterruptedException, SolverException {
     Preconditions.checkArgument(
         pMessageProcessing.size() == 1, "BackwardAnalysis can only be based on one message");
-    backwardAnalysis.getDistributedCPA().synchronizeKnowledge(forwardAnalysis.getDistributedCPA());
+    backwardAnalysis
+        .getDistributedCompositeCPA()
+        .synchronizeKnowledge(forwardAnalysis.getDistributedCompositeCPA());
     backwardAnalysisTime.start();
     Collection<BlockSummaryMessage> result = backwardAnalysis.analyze(pMessageProcessing);
     backwardAnalysisTime.stop();
@@ -217,8 +221,10 @@ public class BlockSummaryAnalysisWorker extends BlockSummaryWorker {
         && msg.getTargetNodeNumber() != block.getLastNode().getNodeNumber()) {
       return performBackwardAnalysis(pMessageProcessing);
     }
-    backwardAnalysis.getDistributedCPA().updateErrorCondition(msg);
-    backwardAnalysis.getDistributedCPA().synchronizeKnowledge(forwardAnalysis.getDistributedCPA());
+    backwardAnalysis.getDistributedCompositeCPA().updateErrorCondition(msg);
+    backwardAnalysis
+        .getDistributedCompositeCPA()
+        .synchronizeKnowledge(forwardAnalysis.getDistributedCompositeCPA());
     Collection<BlockSummaryMessage> result = forwardAnalysis.analyze(latestPreconditions);
     ImmutableSet<? extends BlockSummaryMessage> answer =
         FluentIterable.from(result).filter(BlockSummaryPostConditionMessage.class).toSet();

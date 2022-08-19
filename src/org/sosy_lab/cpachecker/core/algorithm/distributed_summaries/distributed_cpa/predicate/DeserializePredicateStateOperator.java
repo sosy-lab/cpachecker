@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed
 
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.BlockNode;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.BlockSummaryErrorConditionTracker;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.DeserializeOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryErrorConditionMessage;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryMessage;
@@ -26,7 +27,8 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Point
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 
-public class DeserializePredicateStateOperator implements DeserializeOperator {
+public class DeserializePredicateStateOperator
+    implements DeserializeOperator, BlockSummaryErrorConditionTracker {
 
   private final PredicateCPA predicateCPA;
   private final FormulaManagerView formulaManagerView;
@@ -97,7 +99,8 @@ public class DeserializePredicateStateOperator implements DeserializeOperator {
     return deserialized;
   }
 
-  void updateErrorCondition(BlockSummaryErrorConditionMessage pMessage) {
+  @Override
+  public void updateErrorCondition(BlockSummaryErrorConditionMessage pMessage) {
     String formula =
         PredicateOperatorUtil.extractFormulaString(
             pMessage, predicateCPA.getClass(), formulaManagerView);
@@ -112,10 +115,19 @@ public class DeserializePredicateStateOperator implements DeserializeOperator {
                 .getFormula());
   }
 
+  @Override
+  public BooleanFormula resetErrorCondition(FormulaManagerView pFormulaManagerView) {
+    BooleanFormula copy = errorCondition;
+    errorCondition = formulaManagerView.getBooleanFormulaManager().makeTrue();
+    return pFormulaManagerView.translateFrom(copy, formulaManagerView);
+  }
+
+  @Override
   public BooleanFormula getErrorCondition(FormulaManagerView pFormulaManagerView) {
     return pFormulaManagerView.translateFrom(errorCondition, formulaManagerView);
   }
 
+  @Override
   public void setErrorCondition(BooleanFormula pErrorCondition) {
     if (pErrorCondition != null) {
       errorCondition = pErrorCondition;

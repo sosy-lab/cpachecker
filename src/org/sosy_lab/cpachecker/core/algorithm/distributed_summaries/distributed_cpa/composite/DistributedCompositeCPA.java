@@ -11,14 +11,17 @@ package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import java.util.Map;
+import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.BlockNode;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.BlockSummaryErrorConditionTracker;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DistributedConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.DeserializeOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.SerializeOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.combine.CombineOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.proceed.ProceedOperator;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.predicate.DistributedPredicateCPA;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryErrorConditionMessage;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -29,10 +32,12 @@ import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeCPA;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeState;
+import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 
-public class DistributedCompositeCPA implements DistributedConfigurableProgramAnalysis {
+public class DistributedCompositeCPA
+    implements DistributedConfigurableProgramAnalysis, BlockSummaryErrorConditionTracker {
 
   private final CompositeCPA compositeCPA;
   private final SerializeOperator serialize;
@@ -85,17 +90,28 @@ public class DistributedCompositeCPA implements DistributedConfigurableProgramAn
 
   @Override
   public BooleanFormula getErrorCondition(FormulaManagerView pFormulaManagerView) {
-    return analyses.values().stream()
+    return BlockSummaryErrorConditionTracker.trackersFrom(analyses.values())
         .map(a -> a.getErrorCondition(pFormulaManagerView))
         .collect(pFormulaManagerView.getBooleanFormulaManager().toConjunction());
   }
 
   @Override
-  public void updateErrorCondition(BlockSummaryErrorConditionMessage pMessage)
-      throws InterruptedException {
-    for (DistributedConfigurableProgramAnalysis value : analyses.values()) {
-      value.updateErrorCondition(pMessage);
-    }
+  public void setErrorCondition(BooleanFormula pFormula) {
+    BlockSummaryErrorConditionTracker.trackersFrom(analyses.values())
+        .forEach(t -> t.setErrorCondition(pFormula));
+  }
+
+  @Override
+  public void updateErrorCondition(BlockSummaryErrorConditionMessage pMessage) {
+    BlockSummaryErrorConditionTracker.trackersFrom(analyses.values())
+        .forEach(a -> a.updateErrorCondition(pMessage));
+  }
+
+  @Override
+  public BooleanFormula resetErrorCondition(FormulaManagerView pFormulaManagerView) {
+    return BlockSummaryErrorConditionTracker.trackersFrom(analyses.values())
+        .map(errorTracker -> errorTracker.resetErrorCondition(pFormulaManagerView))
+        .collect(pFormulaManagerView.getBooleanFormulaManager().toConjunction());
   }
 
   @Override
@@ -137,5 +153,15 @@ public class DistributedCompositeCPA implements DistributedConfigurableProgramAn
       }
     }
     return new CompositeState(initialStates.build());
+  }
+
+  public Optional<FormulaManagerView> getFormulaManagerIfAvailable() {
+    if (analyses.containsKey(PredicateCPA.class)) {
+      return Optional.of(
+          ((DistributedPredicateCPA) analyses.get(PredicateCPA.class))
+              .getSolver()
+              .getFormulaManager());
+    }
+    return Optional.empty();
   }
 }

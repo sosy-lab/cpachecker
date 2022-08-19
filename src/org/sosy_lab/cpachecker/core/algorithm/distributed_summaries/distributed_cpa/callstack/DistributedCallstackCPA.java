@@ -17,7 +17,6 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.combine.CombineOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.proceed.AlwaysProceed;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.proceed.ProceedOperator;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryErrorConditionMessage;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
@@ -26,8 +25,6 @@ import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.cpa.callstack.CallstackCPA;
 import org.sosy_lab.cpachecker.cpa.callstack.CallstackState;
-import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
-import org.sosy_lab.java_smt.api.BooleanFormula;
 
 public class DistributedCallstackCPA implements DistributedConfigurableProgramAnalysis {
 
@@ -73,15 +70,6 @@ public class DistributedCallstackCPA implements DistributedConfigurableProgramAn
   public Class<? extends AbstractState> getAbstractStateClass() {
     return CallstackState.class;
   }
-
-  @Override
-  public BooleanFormula getErrorCondition(FormulaManagerView pFormulaManagerView) {
-    return pFormulaManagerView.getBooleanFormulaManager().makeTrue();
-  }
-
-  @Override
-  public void updateErrorCondition(BlockSummaryErrorConditionMessage pMessage)
-      throws InterruptedException {}
 
   @Override
   public void synchronizeKnowledge(DistributedConfigurableProgramAnalysis pAnalysis)

@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.BlockNode;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.BlockSummaryErrorConditionTracker;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DistributedConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.DeserializeOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.SerializeOperator;
@@ -30,7 +31,8 @@ import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 
-public class DistributedPredicateCPA implements DistributedConfigurableProgramAnalysis {
+public class DistributedPredicateCPA
+    implements DistributedConfigurableProgramAnalysis, BlockSummaryErrorConditionTracker {
 
   private final PredicateCPA predicateCPA;
 
@@ -99,9 +101,18 @@ public class DistributedPredicateCPA implements DistributedConfigurableProgramAn
   }
 
   @Override
-  public void updateErrorCondition(BlockSummaryErrorConditionMessage pMessage)
-      throws InterruptedException {
+  public void setErrorCondition(BooleanFormula pFormula) {
+    deserialize.setErrorCondition(pFormula);
+  }
+
+  @Override
+  public void updateErrorCondition(BlockSummaryErrorConditionMessage pMessage) {
     deserialize.updateErrorCondition(pMessage);
+  }
+
+  @Override
+  public BooleanFormula resetErrorCondition(FormulaManagerView pFormulaManagerView) {
+    return deserialize.resetErrorCondition(pFormulaManagerView);
   }
 
   @Override

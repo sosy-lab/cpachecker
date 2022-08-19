@@ -17,14 +17,11 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.SerializeOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.combine.CombineOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.proceed.ProceedOperator;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryErrorConditionMessage;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.BlockSummaryAnalysisOptions;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeCPA;
 import org.sosy_lab.cpachecker.util.CPAs;
-import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
-import org.sosy_lab.java_smt.api.BooleanFormula;
 
 public interface DistributedConfigurableProgramAnalysis extends ConfigurableProgramAnalysis {
 
@@ -65,18 +62,6 @@ public interface DistributedConfigurableProgramAnalysis extends ConfigurableProg
    * @return Parent class of all abstract states that this distributed CPA can handle.
    */
   Class<? extends AbstractState> getAbstractStateClass();
-
-  /**
-   * Returns the closest approximation of the latest {@link
-   * org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryErrorConditionMessage}
-   * This method guarantees to return a {@link BooleanFormula} where the highest SSA index of every
-   * single variable is at most 1.
-   *
-   * @return A {@link BooleanFormula}
-   */
-  BooleanFormula getErrorCondition(FormulaManagerView pFormulaManagerView);
-
-  void updateErrorCondition(BlockSummaryErrorConditionMessage pMessage) throws InterruptedException;
 
   /**
    * Check whether this distributed CPA can work with {@code pClass}.

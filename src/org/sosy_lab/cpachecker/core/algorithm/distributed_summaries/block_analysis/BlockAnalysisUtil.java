@@ -58,8 +58,8 @@ public class BlockAnalysisUtil {
       Collection<BlockSummaryMessage> startMessages)
       throws InterruptedException, CPAException {
     ImmutableList.Builder<AbstractState> states = ImmutableList.builder();
-    for (BlockSummaryMessage receivedPostCondition : startMessages) {
-      states.add(pAnalysis.getDeserializeOperator().deserialize(receivedPostCondition));
+    for (BlockSummaryMessage startMessage : startMessages) {
+      states.add(pAnalysis.getDeserializeOperator().deserialize(startMessage));
     }
     return new ARGState(
         Iterables.getOnlyElement(
@@ -209,7 +209,7 @@ public class BlockAnalysisUtil {
       status = pStatus;
     }
 
-    public static BlockAnalysisIntermediateResult of(
+    private static BlockAnalysisIntermediateResult of(
         ImmutableSet<ARGState> pTargets, AlgorithmStatus pStatus) {
       return new BlockAnalysisIntermediateResult(pTargets, pStatus);
     }

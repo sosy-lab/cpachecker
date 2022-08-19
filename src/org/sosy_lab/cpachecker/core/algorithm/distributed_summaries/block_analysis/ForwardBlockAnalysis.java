@@ -46,6 +46,7 @@ import org.sosy_lab.cpachecker.cpa.composite.CompositeState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.Triple;
+import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.SolverException;
 
 public class ForwardBlockAnalysis implements InitialBlockAnalyzer, ContinuousBlockAnalyzer {
@@ -117,6 +118,18 @@ public class ForwardBlockAnalysis implements InitialBlockAnalyzer, ContinuousBlo
     // update precision for start state
     precision = reachedSet.getPrecision(startState);
     if (result.isEmpty()) {
+      BooleanFormula errorCondition =
+          distributedCompositeCPA.resetErrorCondition(
+              distributedCompositeCPA.getFormulaManagerIfAvailable().orElseThrow());
+      if (!distributedCompositeCPA
+          .getFormulaManagerIfAvailable()
+          .orElseThrow()
+          .getBooleanFormulaManager()
+          .isTrue(errorCondition)) {
+        Collection<BlockSummaryMessage> newAnalysis = analyze(messages);
+        distributedCompositeCPA.setErrorCondition(errorCondition);
+        return newAnalysis;
+      }
       // if final node is not reachable, do not broadcast anything.
       // in case abstraction is enabled, this might occur since we abstract at block end
       // TODO: Maybe even shutdown workers only listening to this worker??
@@ -230,7 +243,7 @@ public class ForwardBlockAnalysis implements InitialBlockAnalyzer, ContinuousBlo
     return answers.build();
   }
 
-  public DistributedCompositeCPA getDistributedCPA() {
+  public DistributedCompositeCPA getDistributedCompositeCPA() {
     return distributedCompositeCPA;
   }
 }

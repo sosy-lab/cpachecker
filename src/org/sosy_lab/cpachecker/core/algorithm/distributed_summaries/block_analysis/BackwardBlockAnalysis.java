@@ -136,7 +136,7 @@ public class BackwardBlockAnalysis implements ContinuousBlockAnalyzer {
     return responses.build();
   }
 
-  public DistributedCompositeCPA getDistributedCPA() {
+  public DistributedCompositeCPA getDistributedCompositeCPA() {
     return distributedCompositeCPA;
   }
 }

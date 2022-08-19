@@ -17,6 +17,7 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.BlockNode;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.BlockSummaryErrorConditionTracker;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DistributedConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.DeserializeOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.SerializeOperator;
@@ -24,7 +25,6 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.proceed.ProceedOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.predicate.DistributedPredicateCPA;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.BlockSummaryMessagePayload;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryErrorConditionMessage;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryMessage;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -37,7 +37,6 @@ import org.sosy_lab.cpachecker.cpa.block.BlockCPA;
 import org.sosy_lab.cpachecker.cpa.block.BlockCPABackward;
 import org.sosy_lab.cpachecker.cpa.block.BlockState;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
-import org.sosy_lab.java_smt.api.BooleanFormula;
 
 public class DistributedBlockCPA implements DistributedConfigurableProgramAnalysis {
 
@@ -55,7 +54,7 @@ public class DistributedBlockCPA implements DistributedConfigurableProgramAnalys
       ConfigurableProgramAnalysis pBlockCPA,
       BlockNode pNode,
       AnalysisDirection pDirection,
-      Supplier<Collection<DistributedConfigurableProgramAnalysis>> pFutureErrorCondition)
+      Supplier<Collection<DistributedConfigurableProgramAnalysis>> pFutureAnalyses)
       throws InvalidConfigurationException {
     checkArgument(
         pBlockCPA instanceof BlockCPA || pBlockCPA instanceof BlockCPABackward, /* TODO make lazy */
@@ -70,13 +69,15 @@ public class DistributedBlockCPA implements DistributedConfigurableProgramAnalys
             pNode,
             pDirection,
             () ->
-                pFutureErrorCondition.get().stream()
+                // find all error-condition suppliers from future analyses
+                BlockSummaryErrorConditionTracker.trackersFrom(pFutureAnalyses.get())
                     .map(
                         analysis ->
                             analysis.getErrorCondition(
-                                obtainFormulaMangerWithCorrectContext(pFutureErrorCondition)))
+                                obtainFormulaMangerWithCorrectContext(pFutureAnalyses)))
+                    // conjunct all error conditions
                     .collect(
-                        obtainFormulaMangerWithCorrectContext(pFutureErrorCondition)
+                        obtainFormulaMangerWithCorrectContext(pFutureAnalyses)
                             .getBooleanFormulaManager()
                             .toConjunction()));
     combineOperator = new CombineBlockStateOperator();
@@ -129,15 +130,6 @@ public class DistributedBlockCPA implements DistributedConfigurableProgramAnalys
   public Class<? extends AbstractState> getAbstractStateClass() {
     return BlockState.class;
   }
-
-  @Override
-  public BooleanFormula getErrorCondition(FormulaManagerView pFormulaManagerView) {
-    return pFormulaManagerView.getBooleanFormulaManager().makeTrue();
-  }
-
-  @Override
-  public void updateErrorCondition(BlockSummaryErrorConditionMessage pMessage)
-      throws InterruptedException {}
 
   @Override
   public void synchronizeKnowledge(DistributedConfigurableProgramAnalysis pAnalysis)

@@ -71,7 +71,7 @@ public class BlockSummarySmartAnalysisWorker extends BlockSummaryAnalysisWorker 
         if (m.getTargetNodeNumber() == block.getStartNode().getNodeNumber()) {
           BlockSummaryMessageProcessing mp =
               getForwardAnalysis()
-                  .getDistributedCPA()
+                  .getDistributedCompositeCPA()
                   .getProceedOperator()
                   .proceedForward((BlockSummaryPostConditionMessage) m);
           if (!mp.end()) {
