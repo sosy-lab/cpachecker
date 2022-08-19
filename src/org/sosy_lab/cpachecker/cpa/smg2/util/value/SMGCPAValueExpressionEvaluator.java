@@ -613,7 +613,7 @@ public class SMGCPAValueExpressionEvaluator {
     // The object may be null if no such object exists, check and log if 0
     if (object.isZero()) {
       SMGState errorState = pState.withNullPointerDereferenceWhenReading(object);
-      throw new SMG2Exception(errorState);
+      return ValueAndSMGState.ofUnknownValue(errorState);
     }
 
     // The offset of the pointer used. (the pointer might point to a offset != 0, the other offset
