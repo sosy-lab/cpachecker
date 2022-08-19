@@ -8,7 +8,7 @@
 
 package org.sosy_lab.cpachecker.cpa.datarace;
 
-import com.google.common.base.Objects;
+import java.util.Objects;
 
 public class LockRelease {
 
@@ -39,17 +39,17 @@ public class LockRelease {
     if (this == pO) {
       return true;
     }
-    if (pO == null || getClass() != pO.getClass()) {
+    if (!(pO instanceof LockRelease)) {
       return false;
     }
     LockRelease release = (LockRelease) pO;
-    return accessEpoch == release.accessEpoch
-        && Objects.equal(lockId, release.lockId)
-        && Objects.equal(threadId, release.threadId);
+    return getAccessEpoch() == release.getAccessEpoch()
+        && getLockId().equals(release.getLockId())
+        && getThreadId().equals(release.getThreadId());
   }
 
   @Override
   public int hashCode() {
-    return Objects.hashCode(lockId, threadId, accessEpoch);
+    return Objects.hash(getLockId(), getThreadId(), getAccessEpoch());
   }
 }

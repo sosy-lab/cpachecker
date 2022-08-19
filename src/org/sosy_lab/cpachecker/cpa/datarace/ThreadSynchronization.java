@@ -8,7 +8,7 @@
 
 package org.sosy_lab.cpachecker.cpa.datarace;
 
-import com.google.common.base.Objects;
+import java.util.Objects;
 
 public class ThreadSynchronization {
 
@@ -45,18 +45,18 @@ public class ThreadSynchronization {
     if (this == pO) {
       return true;
     }
-    if (pO == null || getClass() != pO.getClass()) {
+    if (!(pO instanceof ThreadSynchronization)) {
       return false;
     }
     ThreadSynchronization that = (ThreadSynchronization) pO;
-    return writeEpoch == that.writeEpoch
-        && readEpoch == that.readEpoch
-        && Objects.equal(writeThread, that.writeThread)
-        && Objects.equal(readThread, that.readThread);
+    return getWriteEpoch() == that.getWriteEpoch()
+        && getReadEpoch() == that.getReadEpoch()
+        && getWriteThread().equals(that.getWriteThread())
+        && getReadThread().equals(that.getReadThread());
   }
 
   @Override
   public int hashCode() {
-    return Objects.hashCode(writeThread, readThread, writeEpoch, readEpoch);
+    return Objects.hash(getWriteThread(), getReadThread(), getWriteEpoch(), getReadEpoch());
   }
 }

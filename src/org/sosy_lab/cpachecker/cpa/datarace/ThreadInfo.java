@@ -8,7 +8,7 @@
 
 package org.sosy_lab.cpachecker.cpa.datarace;
 
-import com.google.common.base.Objects;
+import java.util.Objects;
 
 public class ThreadInfo {
 
@@ -44,15 +44,17 @@ public class ThreadInfo {
     if (this == pO) {
       return true;
     }
-    if (pO == null || getClass() != pO.getClass()) {
+    if (!(pO instanceof ThreadInfo)) {
       return false;
     }
     ThreadInfo that = (ThreadInfo) pO;
-    return epoch == that.epoch && running == that.running && Objects.equal(threadId, that.threadId);
+    return getEpoch() == that.getEpoch()
+        && isRunning() == that.isRunning()
+        && getThreadId().equals(that.getThreadId());
   }
 
   @Override
   public int hashCode() {
-    return Objects.hashCode(threadId, epoch, running);
+    return Objects.hash(getThreadId(), getEpoch(), isRunning());
   }
 }

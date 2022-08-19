@@ -8,9 +8,9 @@
 
 package org.sosy_lab.cpachecker.cpa.datarace;
 
-import com.google.common.base.Objects;
 import com.google.common.collect.ImmutableSet;
 import java.util.HashSet;
+import java.util.Objects;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
@@ -119,20 +119,21 @@ class MemoryAccess {
     if (this == pO) {
       return true;
     }
-    if (pO == null || getClass() != pO.getClass()) {
+    if (!(pO instanceof MemoryAccess)) {
       return false;
     }
     MemoryAccess access = (MemoryAccess) pO;
-    return isWrite == access.isWrite
-        && accessEpoch == access.accessEpoch
-        && Objects.equal(threadId, access.threadId)
-        && Objects.equal(memoryLocation, access.memoryLocation)
-        && Objects.equal(locks, access.locks)
-        && Objects.equal(edge, access.edge);
+    return isWrite() == access.isWrite()
+        && getAccessEpoch() == access.getAccessEpoch()
+        && getThreadId().equals(access.getThreadId())
+        && getMemoryLocation().equals(access.getMemoryLocation())
+        && getLocks().equals(access.getLocks())
+        && edge.equals(access.edge);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hashCode(threadId, memoryLocation, isWrite, locks, edge, accessEpoch);
+    return Objects.hash(
+        getThreadId(), getMemoryLocation(), isWrite(), getLocks(), edge, getAccessEpoch());
   }
 }

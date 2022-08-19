@@ -8,12 +8,12 @@
 
 package org.sosy_lab.cpachecker.cpa.datarace;
 
-import com.google.common.base.Objects;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.SetMultimap;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
@@ -118,28 +118,28 @@ public class DataRaceState implements AbstractQueryableState {
     if (this == pO) {
       return true;
     }
-    if (pO == null || getClass() != pO.getClass()) {
+    if (!(pO instanceof DataRaceState)) {
       return false;
     }
     DataRaceState that = (DataRaceState) pO;
     return hasDataRace == that.hasDataRace
-        && Objects.equal(memoryAccesses, that.memoryAccesses)
-        && Objects.equal(accessesWithSubsequentWrites, that.accessesWithSubsequentWrites)
-        && Objects.equal(threadInfo, that.threadInfo)
-        && Objects.equal(threadSynchronizations, that.threadSynchronizations)
-        && Objects.equal(heldLocks, that.heldLocks)
-        && Objects.equal(lastReleases, that.lastReleases);
+        && getMemoryAccesses().equals(that.getMemoryAccesses())
+        && getAccessesWithSubsequentWrites().equals(that.getAccessesWithSubsequentWrites())
+        && getThreadInfo().equals(that.getThreadInfo())
+        && getThreadSynchronizations().equals(that.getThreadSynchronizations())
+        && getHeldLocks().equals(that.getHeldLocks())
+        && getLastReleases().equals(that.getLastReleases());
   }
 
   @Override
   public int hashCode() {
-    return Objects.hashCode(
-        memoryAccesses,
-        accessesWithSubsequentWrites,
-        threadInfo,
-        threadSynchronizations,
-        heldLocks,
-        lastReleases,
+    return Objects.hash(
+        getMemoryAccesses(),
+        getAccessesWithSubsequentWrites(),
+        getThreadInfo(),
+        getThreadSynchronizations(),
+        getHeldLocks(),
+        getLastReleases(),
         hasDataRace);
   }
 }
