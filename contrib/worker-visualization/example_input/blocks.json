@@ -1,0 +1,52 @@
+{
+    "B2": {
+        "predecessors": [
+            "B1"
+        ],
+        "code": [
+            "[__CPAchecker_TMP_0 == 0]",
+            "return 0;",
+            ""
+        ],
+        "successors": []
+    },
+    "B3": {
+        "predecessors": [
+            "B1"
+        ],
+        "code": [
+            "[!(__CPAchecker_TMP_0 == 0)]",
+            "reach_error();",
+            "return 1;",
+            ""
+        ],
+        "successors": []
+    },
+    "B0": {
+        "predecessors": [],
+        "code": [
+            ""
+        ],
+        "successors": [
+            "B1"
+        ]
+    },
+    "B1": {
+        "predecessors": [
+            "B0"
+        ],
+        "code": [
+            "int isnan_float(float x);",
+            "int main();",
+            "float iptr = 0.0 \/ 0.0;",
+            "int __CPAchecker_TMP_0;",
+            "isnan_float(iptr)",
+            "return x != x;",
+            ""
+        ],
+        "successors": [
+            "B3",
+            "B2"
+        ]
+    }
+}
