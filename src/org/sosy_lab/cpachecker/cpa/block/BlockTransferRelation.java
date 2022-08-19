@@ -59,7 +59,7 @@ public abstract class BlockTransferRelation implements TransferRelation {
     public ForwardBlockTransferRelation() {}
 
     private BlockStateType getType(BlockNode pBlockNode, CFANode pNode) {
-      return pNode.equals(pBlockNode.getLastNode()) ? BlockStateType.MID : BlockStateType.FINAL;
+      return pNode.equals(pBlockNode.getLastNode()) ? BlockStateType.FINAL : BlockStateType.MID;
     }
 
     @Override
@@ -117,7 +117,7 @@ public abstract class BlockTransferRelation implements TransferRelation {
   static class BackwardBlockTransferRelation extends BlockTransferRelation {
 
     private BlockStateType getType(BlockNode pBlockNode, CFANode pNode) {
-      return pNode.equals(pBlockNode.getStartNode()) ? BlockStateType.MID : BlockStateType.FINAL;
+      return pNode.equals(pBlockNode.getStartNode()) ? BlockStateType.FINAL : BlockStateType.MID;
     }
 
     @Override
