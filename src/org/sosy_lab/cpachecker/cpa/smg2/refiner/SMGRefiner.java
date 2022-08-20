@@ -58,7 +58,6 @@ import org.sosy_lab.cpachecker.cpa.predicate.PredicatePrecision;
 import org.sosy_lab.cpachecker.cpa.smg2.SMGCPA;
 import org.sosy_lab.cpachecker.cpa.smg2.SMGOptions;
 import org.sosy_lab.cpachecker.cpa.smg2.SMGState;
-import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CPAs;
@@ -291,7 +290,7 @@ public class SMGRefiner extends GenericRefiner<SMGState, SMGInterpolant> {
   private VariableTrackingPrecision extractValuePrecision(Precision precision) {
     return (VariableTrackingPrecision)
         Precisions.asIterable(precision)
-            .firstMatch(VariableTrackingPrecision.isMatchingCPAClass(ValueAnalysisCPA.class))
+            .firstMatch(VariableTrackingPrecision.isMatchingCPAClass(SMGCPA.class))
             .get();
   }
 
