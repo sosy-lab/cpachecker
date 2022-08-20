@@ -17,6 +17,7 @@ import java.math.BigInteger;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -407,21 +408,19 @@ public class SMGState
       MemoryLocation memLoc,
       ValueAndValueSize valueAndSize,
       Map<String, BigInteger> variableNameToMemorySizeInBits,
-      Map<String, CType> variableTypeMap,
-      PersistentStack<CFunctionDeclaration> pStackDeclarations)
+      Map<String, CType> variableTypeMap)
       throws SMG2Exception {
+
+    SMGState currentState = this;
     // Deconstruct MemoryLocation to get the qualified name of global/local vars
     // And remember the offset. Offset + size from ValueAndValueSize are the
     // SMGHasValueEdge information besides the mapping, which is either a new mapping
     // or an old one found in the current mapping
-    SMGState currentState = this;
     String qualifiedName = memLoc.getQualifiedName();
     if (!isLocalOrGlobalVariablePresent(memLoc)) {
       // Create the variable first
       BigInteger sizeInBits = variableNameToMemorySizeInBits.get(qualifiedName);
       if (memLoc.isOnFunctionStack()) {
-        currentState =
-            currentState.rebuildStackFrameUntilMemoryLocation(memLoc, pStackDeclarations);
         // Add depending on function stack!
         currentState =
             currentState.copyAndAddLocalVariableToSpecificStackframe(
@@ -448,33 +447,27 @@ public class SMGState
         qualifiedName, offsetToWriteToInBits, sizeOfWriteInBits, valueToWrite, typeOfUnknown);
   }
 
-  private SMGState rebuildStackFrameUntilMemoryLocation(
-      MemoryLocation memLoc, PersistentStack<CFunctionDeclaration> pStackDeclarations) {
+  private SMGState reconstructStackFrames(PersistentStack<CFunctionDeclaration> pStackDeclarations) {
     SMGState currentState = this;
-    String functionName = memLoc.getFunctionName();
-
-    // The order of the decl stack is reversed, i.e. main is on top
-    PersistentStack<CFunctionDeclaration> stackDeclarations = pStackDeclarations;
-    while (!stackDeclarations.peek().getQualifiedName().equals(functionName)) {
-      CFunctionDeclaration temp = stackDeclarations.peek();
-      stackDeclarations = stackDeclarations.popAndCopy();
-      if (currentState.isDeclarationOnStackFrame(temp)) {
-        currentState = currentState.copyAndAddStackFrame(temp);
+    // the given stack is reversed! We can
+    Iterator<StackFrame> existingFrames = currentState.memoryModel.getStackFrames().iterator();
+    Iterator<CFunctionDeclaration> shouldBeFrames = pStackDeclarations.iterator();
+    // The current should have the main!
+    // The other can be empty for the false/true interpolants
+    Preconditions.checkArgument(existingFrames.hasNext());
+    while (shouldBeFrames.hasNext()) {
+      if (existingFrames.hasNext()) {
+        // As long as there are frames on both, they should match
+        StackFrame thisFrame = existingFrames.next();
+        CFunctionDeclaration otherFunDef = shouldBeFrames.next();
+        Preconditions.checkArgument(thisFrame.getFunctionDefinition().equals(otherFunDef));
+      } else {
+        // Start adding to the current
+        currentState = currentState.copyAndAddStackFrame(shouldBeFrames.next());
       }
     }
+
     return currentState;
-  }
-
-  private boolean isDeclarationOnStackFrame(CFunctionDeclaration def) {
-    PersistentStack<StackFrame> frames = memoryModel.getStackFrames();
-    if (frames != null) {
-      for (StackFrame frame : frames) {
-        if (frame.getFunctionDefinition().equals(def)) {
-          return true;
-        }
-      }
-    }
-    return false;
   }
 
   /**
@@ -528,19 +521,13 @@ public class SMGState
       return this;
     }
     SMGState currentState = this;
-    // flush all global/local variables NOT related to heap, then rebuild from the given maps
-    for (MemoryLocation memLoc : nonHeapAssignments.keySet()) {
-      currentState = currentState.copyAndPruneVariable(memLoc);
-    }
+    // Reconstruct the stack frames first
+    currentState = currentState.reconstructStackFrames(pStackDeclarations);
 
     for (Entry<MemoryLocation, ValueAndValueSize> entry : nonHeapAssignments.entrySet()) {
       currentState =
           currentState.assignNonHeapConstant(
-              entry.getKey(),
-              entry.getValue(),
-              variableNameToMemorySizeInBits,
-              variableTypeMap,
-              pStackDeclarations);
+              entry.getKey(), entry.getValue(), variableNameToMemorySizeInBits, variableTypeMap);
     }
     return currentState;
   }
@@ -2203,6 +2190,9 @@ public class SMGState
   public SMGInterpolant createInterpolant() {
     PersistentStack<CFunctionDeclaration> funDecls =
         memoryModel.getFunctionDeclarationsFromStackFrames();
+    Iterator<CFunctionDeclaration> funDeclsIter = funDecls.iterator();
+    Preconditions.checkArgument(funDeclsIter.hasNext());
+
     return new SMGInterpolant(
         options,
         machineModel,
@@ -2211,7 +2201,7 @@ public class SMGState
         memoryModel.getSizeObMemoryForSPCWithoutHeap(),
         memoryModel.getVariableTypeMap(),
         funDecls,
-        funDecls.peek());
+        funDeclsIter.next());
   }
 
   @Deprecated
@@ -2268,8 +2258,7 @@ public class SMGState
               pLocation,
               valueAndSize,
               pForgottenInformation.getSizeInformationForVariablesMap(),
-              pForgottenInformation.getTypeOfVariablesMap(),
-              pForgottenInformation.getDeclarationsForStackframesReversed());
+              pForgottenInformation.getTypeOfVariablesMap());
     } catch (SMG2Exception e) {
       // Should never happen
       throw new RuntimeException(e);
