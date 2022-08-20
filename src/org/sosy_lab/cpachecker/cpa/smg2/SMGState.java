@@ -459,8 +459,8 @@ public class SMGState
       CFunctionDeclaration temp = stackDeclarations.peek();
       stackDeclarations = stackDeclarations.popAndCopy();
       if (currentState.isDeclarationOnStackFrame(temp)) {
-      currentState = currentState.copyAndAddStackFrame(temp);
-    }
+        currentState = currentState.copyAndAddStackFrame(temp);
+      }
     }
     return currentState;
   }
@@ -846,7 +846,10 @@ public class SMGState
   }
 
   private boolean areValuesEqual(
-      SMGState thisState, @Nullable Value thisValue, SMGState otherState, @Nullable Value otherValue) {
+      SMGState thisState,
+      @Nullable Value thisValue,
+      SMGState otherState,
+      @Nullable Value otherValue) {
     if (thisValue == otherValue) {
       return true;
     }
@@ -855,24 +858,30 @@ public class SMGState
     }
 
     if (thisValue.isNumericValue() && otherValue.isNumericValue()) {
-      return thisValue.asNumericValue().bigInteger().compareTo(otherValue.asNumericValue().bigInteger()) == 0;
+      return thisValue
+              .asNumericValue()
+              .bigInteger()
+              .compareTo(otherValue.asNumericValue().bigInteger())
+          == 0;
     }
 
-      // Unknowns in this current CPA implementation are not comparable in different states!
-      // Each state generates a unique ConstantSymbolicExpression id (as its statically generated)
-      // Comparable is only that both are ConstantSymbolicExpressions and the type matches and
-      // that they do represent the same location
-      if (thisValue instanceof ConstantSymbolicExpression
-          && otherValue instanceof ConstantSymbolicExpression
-          && ((ConstantSymbolicExpression) thisValue)
-              .getType()
-              .equals(((ConstantSymbolicExpression) otherValue).getType())) {
-        return true;
-      }
+    // Unknowns in this current CPA implementation are not comparable in different states!
+    // Each state generates a unique ConstantSymbolicExpression id (as its statically generated)
+    // Comparable is only that both are ConstantSymbolicExpressions and the type matches and
+    // that they do represent the same location
+    if (thisValue instanceof ConstantSymbolicExpression
+        && otherValue instanceof ConstantSymbolicExpression
+        && ((ConstantSymbolicExpression) thisValue)
+            .getType()
+            .equals(((ConstantSymbolicExpression) otherValue).getType())) {
+      return true;
+    }
 
     // Pointers are more difficult, they are represented by a SymbolicIdentifier, again unique
     // id. We need to use the CPA method
-    return memoryModel.isPointer(thisValue) && otherState.memoryModel.isPointer(otherValue) && isHeapEqualForTwoPointersWithTwoStates(thisState, thisValue, otherState, otherValue);
+    return memoryModel.isPointer(thisValue)
+        && otherState.memoryModel.isPointer(otherValue)
+        && isHeapEqualForTwoPointersWithTwoStates(thisState, thisValue, otherState, otherValue);
   }
 
   /* Check heap equality as far as possible. This has some limitations. We just check the shape and known values/pointers. */
@@ -934,8 +943,10 @@ public class SMGState
           return false;
         }
         // Check the Value (not the SMGValue!). If a SMGValue exists, a Value mapping exists.
-        Value otherHVEValue = otherState.memoryModel.getValueFromSMGValue(otherHVE.hasValue()).orElseThrow();
-        Value thisHVEValue = thisState.memoryModel.getValueFromSMGValue(thisHVE.hasValue()).orElseThrow();
+        Value otherHVEValue =
+            otherState.memoryModel.getValueFromSMGValue(otherHVE.hasValue()).orElseThrow();
+        Value thisHVEValue =
+            thisState.memoryModel.getValueFromSMGValue(thisHVE.hasValue()).orElseThrow();
         // These values are either numeric, pointer or unknown
         if (!areValuesEqual(thisState, thisHVEValue, otherState, otherHVEValue)) {
           return false;

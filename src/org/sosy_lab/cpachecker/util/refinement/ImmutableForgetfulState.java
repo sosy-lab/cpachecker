@@ -22,12 +22,16 @@ import org.sosy_lab.cpachecker.util.states.MemoryLocation;
  */
 public interface ImmutableForgetfulState<T> extends ForgetfulState<T> {
 
-  /** @deprecated do not use this method. */
+  /**
+   * @deprecated do not use this method.
+   */
   @Deprecated
   @Override
   T forget(MemoryLocation location);
 
-  /** @deprecated do not use this method. */
+  /**
+   * @deprecated do not use this method.
+   */
   @Deprecated
   @Override
   void remember(MemoryLocation location, T forgottenInformation);

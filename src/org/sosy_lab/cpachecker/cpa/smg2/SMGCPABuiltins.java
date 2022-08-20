@@ -1130,8 +1130,8 @@ public class SMGCPABuiltins {
             continue;
           }
 
-            resultBuilder.add(
-                evaluateMemcpy(currentState, targetAddressExpr, sourceAddressExpr, sizeValue));
+          resultBuilder.add(
+              evaluateMemcpy(currentState, targetAddressExpr, sourceAddressExpr, sizeValue));
         }
       }
     }

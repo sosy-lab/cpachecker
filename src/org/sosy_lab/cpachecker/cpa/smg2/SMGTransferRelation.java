@@ -438,9 +438,9 @@ public class SMGTransferRelation
       Value paramValue = readValuesInOrder.get(i);
       CType valueType = SMGCPAValueExpressionEvaluator.getCanonicalType(arguments.get(i));
 
-        // Normal variable with a name
-        String varName = paramDecl.get(i).getQualifiedName();
-        CType cParamType = SMGCPAValueExpressionEvaluator.getCanonicalType(paramDecl.get(i));
+      // Normal variable with a name
+      String varName = paramDecl.get(i).getQualifiedName();
+      CType cParamType = SMGCPAValueExpressionEvaluator.getCanonicalType(paramDecl.get(i));
 
       currentState =
           evaluator.writeValueToNewVariableBasedOnTypes(

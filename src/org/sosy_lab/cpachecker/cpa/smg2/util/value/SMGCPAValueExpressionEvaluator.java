@@ -1451,8 +1451,8 @@ public class SMGCPAValueExpressionEvaluator {
       maybeRightHandSideMemory =
           currentState.getMemoryModel().getObjectForVisibleVariable(paramIdentifier);
       if (maybeRightHandSideMemory.isEmpty()) {
-      return currentState;
-    }
+        return currentState;
+      }
     }
     SMGObject paramMemory = maybeRightHandSideMemory.orElseThrow();
     // copySMGObjectContentToSMGObject checks for sizes etc.
