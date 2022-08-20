@@ -990,9 +990,16 @@ public class SMGCPAValueVisitor
 
           if (isNan(numericValue) || isInfinity(numericValue)) {
             result = numericValue;
+          } else if (size == machineModel.getSizeofFloat() * 8) {
+            // 32 bit means Java float
+            result = new NumericValue(numericValue.floatValue());
+          } else if (size == machineModel.getSizeofDouble() * 8) {
+            // 64 bit means Java double
+            result = new NumericValue(numericValue.doubleValue());
           } else if (size == machineModel.getSizeofFloat128() * 8) {
             result = new NumericValue(numericValue.bigDecimalValue());
-          } else if (size == machineModel.getSizeofLongDouble() * bitPerByte) {
+          } else if (size == machineModel.getSizeofLongDouble() * bitPerByte
+              || size == machineModel.getSizeofDouble()) {
 
             if (numericValue.bigDecimalValue().doubleValue() == numericValue.doubleValue()) {
               result = new NumericValue(numericValue.doubleValue());
