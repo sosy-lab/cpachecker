@@ -99,8 +99,8 @@ public final class SMGInterpolant implements Interpolant<SMGState, SMGInterpolan
     variableToTypeMap = pVariableToTypeMap;
     Preconditions.checkArgument(
         pStackFrameDeclarations == null
-            || (pStackFrameDeclarations.size() >= 1)
-                && hasEntryFunDef(pStackFrameDeclarations, pCfaEntryFunDecl));
+            || ((pStackFrameDeclarations.size() >= 1)
+                && hasEntryFunDef(pStackFrameDeclarations, pCfaEntryFunDecl)));
     stackFrameDeclarations = pStackFrameDeclarations;
     Preconditions.checkNotNull(pCfaEntryFunDecl);
     cfaEntryFunctionDeclaration = pCfaEntryFunDecl;
