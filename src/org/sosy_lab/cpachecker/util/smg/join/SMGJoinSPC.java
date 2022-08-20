@@ -15,6 +15,7 @@ package org.sosy_lab.cpachecker.util.smg.join;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableBiMap;
 import com.google.common.collect.ImmutableSet;
 import java.util.Iterator;
@@ -150,6 +151,7 @@ public class SMGJoinSPC extends SMGAbstractJoin {
   }
 
   public SymbolicProgramConfiguration getResult() {
+    Preconditions.checkNotNull(resultSPC);
     return resultSPC;
   }
 }
