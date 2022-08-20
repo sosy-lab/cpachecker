@@ -215,7 +215,7 @@ public class SMGCPA
   @Override
   public AbstractState getInitialState(CFANode pNode, StateSpacePartition pPartition)
       throws InterruptedException {
-    SMGState initState = SMGState.of(machineModel, logger, options);
+    SMGState initState = SMGState.of(machineModel, logger, options, cfa);
 
     try {
       // initState.performConsistencyCheck(SMGRuntimeCheck.FULL);

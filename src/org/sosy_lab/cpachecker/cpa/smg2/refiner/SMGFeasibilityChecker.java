@@ -55,9 +55,7 @@ public class SMGFeasibilityChecker extends GenericFeasibilityChecker<SMGState> {
 
     super(
         pStrongestPostOp,
-        SMGState.of(pCfa.getMachineModel(), pLogger, new SMGOptions(pConfig))
-            .copyAndAddStackFrame(
-                ((CFunctionEntryNode) pCfa.getMainFunction()).getFunctionDefinition()),
+        SMGState.of(pCfa.getMachineModel(), pLogger, new SMGOptions(pConfig), pCfa),
         SMGCPA.class,
         pLogger,
         pConfig,
@@ -78,7 +76,7 @@ public class SMGFeasibilityChecker extends GenericFeasibilityChecker<SMGState> {
 
     try {
       List<Pair<SMGState, List<CFAEdge>>> reevaluatedPath = new ArrayList<>();
-      SMGState next = SMGState.of(machineModel, logger, new SMGOptions(config));
+      SMGState next = SMGState.of(machineModel, logger, new SMGOptions(config), cfa);
 
       if (cfa.getMainFunction() instanceof CFunctionEntryNode) {
         // Init main

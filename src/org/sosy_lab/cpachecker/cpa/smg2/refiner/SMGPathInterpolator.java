@@ -86,7 +86,8 @@ public class SMGPathInterpolator extends GenericPathInterpolator<SMGState, SMGIn
             pFeasibilityChecker, pStrongestPostOperator, pConfig, pShutdownNotifier, pCfa, pLogger),
         pFeasibilityChecker,
         pPrefixProvider,
-        SMGInterpolantManager.getInstance(new SMGOptions(pConfig), pCfa.getMachineModel(), pLogger),
+        SMGInterpolantManager.getInstance(
+            new SMGOptions(pConfig), pCfa.getMachineModel(), pLogger, pCfa),
         pConfig,
         pLogger,
         pShutdownNotifier,
@@ -95,7 +96,8 @@ public class SMGPathInterpolator extends GenericPathInterpolator<SMGState, SMGIn
     pConfig.inject(this);
     cfa = pCfa;
     interpolantManager =
-        SMGInterpolantManager.getInstance(new SMGOptions(pConfig), pCfa.getMachineModel(), pLogger);
+        SMGInterpolantManager.getInstance(
+            new SMGOptions(pConfig), pCfa.getMachineModel(), pLogger, pCfa);
     config = pConfig;
     logger = pLogger;
   }
@@ -143,7 +145,7 @@ public class SMGPathInterpolator extends GenericPathInterpolator<SMGState, SMGIn
 
     Map<ARGState, SMGInterpolant> interpolants =
         new SMGUseDefBasedInterpolator(
-                errorPathPrefix, useDefRelation, cfa.getMachineModel(), config, logger)
+                errorPathPrefix, useDefRelation, cfa.getMachineModel(), config, logger, cfa)
             .obtainInterpolantsAsMap();
 
     totalInterpolationQueries.setNextValue(1);

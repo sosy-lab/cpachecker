@@ -36,7 +36,7 @@ public class SMGPrefixProvider extends GenericPrefixProvider<SMGState> {
 
     super(
         new SMGStrongestPostOperator(pLogger, config, pCfa),
-        SMGState.of(pCfa.getMachineModel(), pLogger, new SMGOptions(config)),
+        SMGState.of(pCfa.getMachineModel(), pLogger, new SMGOptions(config), pCfa),
         pLogger,
         pCfa,
         config,

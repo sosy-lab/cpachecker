@@ -23,6 +23,7 @@ import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.collect.PersistentMap;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
+import org.sosy_lab.cpachecker.cfa.model.c.CFunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
@@ -40,9 +41,6 @@ import org.sosy_lab.cpachecker.util.states.MemoryLocation;
  */
 public final class SMGInterpolant implements Interpolant<SMGState, SMGInterpolant> {
 
-  /** State information. Null for true and false! * */
-  private final @Nullable SMGState originalState;
-
   /** the variable assignment of the interpolant */
   private final @Nullable PersistentMap<MemoryLocation, ValueAndValueSize> nonHeapAssignments;
 
@@ -55,60 +53,79 @@ public final class SMGInterpolant implements Interpolant<SMGState, SMGInterpolan
   private final SMGOptions options;
   private final MachineModel machineModel;
   private final LogManager logger;
+  private final CFunctionDeclaration cfaEntryFunctionDeclaration;
 
   /** Constructor for a new, empty interpolant, i.e. the interpolant representing "true" */
-  private SMGInterpolant(SMGOptions pOptions, MachineModel pMachineModel, LogManager pLogger) {
+  private SMGInterpolant(
+      SMGOptions pOptions,
+      MachineModel pMachineModel,
+      LogManager pLogger,
+      CFunctionDeclaration pCFAEntryFunctionDef) {
     options = pOptions;
     machineModel = pMachineModel;
     logger = pLogger;
-    this.originalState = null;
     nonHeapAssignments = PathCopyingPersistentTreeMap.of();
     variableNameToMemorySizeInBits = new HashMap<>();
     variableToTypeMap = new HashMap<>();
     reversedStackFrameDeclarations = PersistentStack.of();
+    cfaEntryFunctionDeclaration = pCFAEntryFunctionDef;
   }
 
   /**
-   * Constructor for a new interpolant representing the given variable assignment
+   * Constructor for a new interpolant representing the given non heap variable assignment, the var
+   * name to type and name maps and the stack frame stack. Note the stack frame stack is expected to
+   * be reversed, that the main function is on top.
    *
    * @param pNonHeapAssignments the variable assignment to be represented by the interpolant
    */
   public SMGInterpolant(
-      PersistentMap<MemoryLocation, ValueAndValueSize> pNonHeapAssignments,
-      Map<String, BigInteger> pVariableNameToMemorySizeInBits,
-      Map<String, CType> pVariableToTypeMap, PersistentStack<CFunctionDeclaration> pReversedStackFrameDeclarations,
-      SMGState pOriginalState,
       SMGOptions pOptions,
       MachineModel pMachineModel,
-      LogManager pLogger) {
+      LogManager pLogger,
+      PersistentMap<MemoryLocation, ValueAndValueSize> pNonHeapAssignments,
+      Map<String, BigInteger> pVariableNameToMemorySizeInBits,
+      Map<String, CType> pVariableToTypeMap,
+      PersistentStack<CFunctionDeclaration> pReversedStackFrameDeclarations,
+      CFunctionDeclaration pCfaEntryFunDecl) {
     options = pOptions;
     machineModel = pMachineModel;
     logger = pLogger;
-    originalState = pOriginalState;
     nonHeapAssignments = pNonHeapAssignments;
     variableNameToMemorySizeInBits = pVariableNameToMemorySizeInBits;
     variableToTypeMap = pVariableToTypeMap;
     reversedStackFrameDeclarations = pReversedStackFrameDeclarations;
+    cfaEntryFunctionDeclaration = pCfaEntryFunDecl;
   }
 
   /**
    * This method serves as factory method for an initial, i.e. an interpolant representing "true"
    */
   public static SMGInterpolant createInitial(
-      SMGOptions pOptions, MachineModel pMachineModel, LogManager pLogger) {
-    return new SMGInterpolant(pOptions, pMachineModel, pLogger);
+      SMGOptions pOptions,
+      MachineModel pMachineModel,
+      LogManager pLogger,
+      CFunctionEntryNode cfaFuncEntryNode) {
+    return new SMGInterpolant(
+        pOptions, pMachineModel, pLogger, cfaFuncEntryNode.getFunctionDefinition());
   }
 
   /** the interpolant representing "true" */
   public static SMGInterpolant createTRUE(
-      SMGOptions pOptions, MachineModel pMachineModel, LogManager pLogger) {
-    return createInitial(pOptions, pMachineModel, pLogger);
+      SMGOptions pOptions,
+      MachineModel pMachineModel,
+      LogManager pLogger,
+      CFunctionEntryNode cfaFuncEntryNode) {
+    return createInitial(pOptions, pMachineModel, pLogger, cfaFuncEntryNode);
   }
 
   /** the interpolant representing "false" */
   public static SMGInterpolant createFALSE(
-      SMGOptions pOptions, MachineModel pMachineModel, LogManager pLogger) {
-    return new SMGInterpolant(null, null, null, null, null, pOptions, pMachineModel, pLogger);
+      SMGOptions pOptions,
+      MachineModel pMachineModel,
+      LogManager pLogger,
+      CFunctionDeclaration cfaEntryFuncDef) {
+    return new SMGInterpolant(
+        pOptions, pMachineModel, pLogger, null, null, null, null, cfaEntryFuncDef);
   }
 
   @Override
@@ -129,7 +146,7 @@ public final class SMGInterpolant implements Interpolant<SMGState, SMGInterpolan
     // We expect that if nonHeapAssignments != null all other nullables are not null also except for
     // maybe the state!
     if (nonHeapAssignments == null || other.nonHeapAssignments == null) {
-      return createFALSE(options, machineModel, logger);
+      return createFALSE(options, machineModel, logger, cfaEntryFunctionDeclaration);
     }
 
     // add other itp mapping - one by one for now, to check for correctness
@@ -159,20 +176,15 @@ public final class SMGInterpolant implements Interpolant<SMGState, SMGInterpolan
       stackFrameDecl = other.reversedStackFrameDeclarations;
     }
 
-    SMGState state = originalState;
-    if (originalState == null) {
-      state = other.originalState;
-    }
-
     return new SMGInterpolant(
+        options,
+        machineModel,
+        logger,
         newAssignment,
         variableNameToMemorySizeInBits,
         variableToTypeMap,
         stackFrameDecl,
-        state,
-        options,
-        machineModel,
-        logger);
+        cfaEntryFunctionDeclaration);
   }
 
   @Override
@@ -230,7 +242,7 @@ public final class SMGInterpolant implements Interpolant<SMGState, SMGInterpolan
       throw new IllegalStateException("Can't reconstruct state from FALSE-interpolant");
     } else {
       try {
-        return SMGState.of(machineModel, logger, options)
+        return SMGState.of(machineModel, logger, options, cfaEntryFunctionDeclaration)
             .reconstructSMGStateFromNonHeapAssignments(
                 nonHeapAssignments,
                 variableNameToMemorySizeInBits,
@@ -239,7 +251,8 @@ public final class SMGInterpolant implements Interpolant<SMGState, SMGInterpolan
       } catch (SMG2Exception e) {
         // Should actually never happen. This SMG2Exception gets thrown for over/underwrites
         // But since we copy legit values 1:1 this does not happen.
-        return originalState;
+        throw new AssertionError(
+            "Critical error: reconstruction of SMG2 state in interpolation failed.");
       }
     }
   }
@@ -270,7 +283,7 @@ public final class SMGInterpolant implements Interpolant<SMGState, SMGInterpolan
     for (Entry<MemoryLocation, ValueAndValueSize> itp : nonHeapAssignments.entrySet()) {
       if (!currentState.isLocalOrGlobalVariablePresent(itp.getKey())) {
         try {
-          SMGState.of(machineModel, logger, options)
+          SMGState.of(machineModel, logger, options, cfaEntryFunctionDeclaration)
               .assignNonHeapConstant(
                   itp.getKey(),
                   itp.getValue(),
@@ -326,14 +339,14 @@ public final class SMGInterpolant implements Interpolant<SMGState, SMGInterpolan
     }
 
     return new SMGInterpolant(
+        options,
+        machineModel,
+        logger,
         weakenedAssignments,
         variableNameToMemorySizeInBits,
         variableToTypeMap,
         reversedStackFrameDeclarations,
-        originalState,
-        options,
-        machineModel,
-        logger);
+        cfaEntryFunctionDeclaration);
   }
 
   @SuppressWarnings("ConstantConditions") // isTrivial() asserts that assignment != null

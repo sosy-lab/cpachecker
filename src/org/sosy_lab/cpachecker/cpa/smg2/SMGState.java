@@ -29,11 +29,14 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.collect.PersistentMap;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
+import org.sosy_lab.cpachecker.cfa.model.c.CFunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.defaults.LatticeAbstractState;
@@ -257,7 +260,8 @@ public class SMGState
 
   /**
    * Creates a new, empty {@link SMGState} with the {@link SMGOptions} given. The {@link
-   * SymbolicProgramConfiguration} and {@link SMGErrorInfo} inside are new and empty as well.
+   * SymbolicProgramConfiguration} and {@link SMGErrorInfo} inside are new and empty as well. This
+   * does not create a stack frame and should only be used for testing!
    *
    * @param pMachineModel the {@link MachineModel} used to determine the size of types.
    * @param logManager {@link LogManager} to log important information.
@@ -271,6 +275,75 @@ public class SMGState
         SymbolicProgramConfiguration.of(BigInteger.valueOf(pMachineModel.getSizeofPtrInBits())),
         logManager,
         opts);
+  }
+
+  /**
+   * Creates a new, empty {@link SMGState} with the {@link SMGOptions} given. The {@link
+   * SymbolicProgramConfiguration} and {@link SMGErrorInfo} inside are new and empty as well. The
+   * given CPA is used to extract the main function if possible and create the inital stack frame
+   * automatically.
+   *
+   * @param pMachineModel the {@link MachineModel} used to determine the size of types.
+   * @param logManager {@link LogManager} to log important information.
+   * @param opts {@link SMGOptions} to be used.
+   * @param pCfa used to extract the main function.
+   * @return a newly created {@link SMGState} with a new and empty {@link
+   *     SymbolicProgramConfiguration} inside. The only thing added is the inital stack frame if
+   *     possible.
+   */
+  public static SMGState of(
+      MachineModel pMachineModel, LogManager logManager, SMGOptions opts, CFA pCfa) {
+    FunctionEntryNode pNode = pCfa.getMainFunction();
+    return of(pMachineModel, logManager, opts, pNode);
+  }
+
+  /**
+   * Creates a new, empty {@link SMGState} with the {@link SMGOptions} given. The {@link
+   * SymbolicProgramConfiguration} and {@link SMGErrorInfo} inside are new and empty as well. The
+   * given CPA is used to extract the main function if possible and create the inital stack frame
+   * automatically.
+   *
+   * @param pMachineModel the {@link MachineModel} used to determine the size of types.
+   * @param logManager {@link LogManager} to log important information.
+   * @param opts {@link SMGOptions} to be used.
+   * @param cfaFunEntryNode main function node from the CFA!
+   * @return a newly created {@link SMGState} with a new and empty {@link
+   *     SymbolicProgramConfiguration} inside. The only thing added is the inital stack frame if
+   *     possible.
+   */
+  public static SMGState of(
+      MachineModel pMachineModel,
+      LogManager logManager,
+      SMGOptions opts,
+      FunctionEntryNode cfaFunEntryNode) {
+    SMGState newState = of(pMachineModel, logManager, opts);
+    if (cfaFunEntryNode instanceof CFunctionEntryNode) {
+      CFunctionEntryNode functionNode = (CFunctionEntryNode) cfaFunEntryNode;
+      return newState.copyAndAddStackFrame(functionNode.getFunctionDefinition());
+    }
+    return newState;
+  }
+
+  /**
+   * Creates a new, empty {@link SMGState} with the {@link SMGOptions} given. The {@link
+   * SymbolicProgramConfiguration} and {@link SMGErrorInfo} inside are new and empty as well. The
+   * given CPA is used to extract the main function if possible and create the inital stack frame
+   * automatically.
+   *
+   * @param pMachineModel the {@link MachineModel} used to determine the size of types.
+   * @param logManager {@link LogManager} to log important information.
+   * @param opts {@link SMGOptions} to be used.
+   * @param cfaEntryFunDecl main function declaration from the CFA!
+   * @return a newly created {@link SMGState} with a new and empty {@link
+   *     SymbolicProgramConfiguration} inside. The only thing added is the inital stack frame if
+   *     possible.
+   */
+  public static SMGState of(
+      MachineModel pMachineModel,
+      LogManager logManager,
+      SMGOptions opts,
+      CFunctionDeclaration cfaEntryFunDecl) {
+    return of(pMachineModel, logManager, opts).copyAndAddStackFrame(cfaEntryFunDecl);
   }
 
   /**
@@ -2116,15 +2189,17 @@ public class SMGState
   }
 
   public SMGInterpolant createInterpolant() {
+    PersistentStack<CFunctionDeclaration> funDecls =
+        memoryModel.getFunctionDeclarationsFromStackFrames();
     return new SMGInterpolant(
+        options,
+        machineModel,
+        logger,
         memoryModel.getMemoryLocationsAndValuesForSPCWithoutHeap(),
         memoryModel.getSizeObMemoryForSPCWithoutHeap(),
         memoryModel.getVariableTypeMap(),
-        memoryModel.getFunctionDeclarationsFromStackFrames(),
-        this,
-        options,
-        machineModel,
-        logger);
+        funDecls,
+        funDecls.peek());
   }
 
   @Deprecated

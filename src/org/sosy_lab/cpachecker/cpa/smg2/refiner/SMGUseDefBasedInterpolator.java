@@ -20,9 +20,12 @@ import org.sosy_lab.common.collect.PersistentMap;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.ASimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.model.c.CFunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CBitFieldType;
@@ -62,6 +65,9 @@ public class SMGUseDefBasedInterpolator {
   /** the machine model in use */
   private final MachineModel machineModel;
 
+  /** The cfa of this analysis * */
+  private final CFA cfa;
+
   private final SMGOptions options;
   private final LogManager logger;
 
@@ -75,7 +81,8 @@ public class SMGUseDefBasedInterpolator {
       final UseDefRelation pUseDefRelation,
       final MachineModel pMachineModel,
       final Configuration pConfig,
-      final LogManager pLogger) {
+      final LogManager pLogger,
+      CFA pCfa) {
     slicedPrefix = pSlicedPrefix;
     useDefRelation = pUseDefRelation;
     machineModel = pMachineModel;
@@ -86,6 +93,7 @@ public class SMGUseDefBasedInterpolator {
       throw new RuntimeException(e);
     }
     logger = pLogger;
+    cfa = pCfa;
   }
 
   /**
@@ -98,7 +106,12 @@ public class SMGUseDefBasedInterpolator {
   public List<Pair<ARGState, SMGInterpolant>> obtainInterpolants() {
     Map<ARGState, Collection<ASimpleDeclaration>> useDefSequence =
         useDefRelation.getExpandedUses(slicedPrefix);
-    SMGInterpolant trivialItp = SMGInterpolant.createFALSE(options, machineModel, logger);
+    SMGInterpolant trivialItp =
+        SMGInterpolant.createFALSE(
+            options,
+            machineModel,
+            logger,
+            (CFunctionDeclaration) cfa.getMainFunction().getFunctionDefinition());
 
     // reverse order!
     List<Pair<ARGState, SMGInterpolant>> interpolants = new ArrayList<>();
@@ -116,7 +129,9 @@ public class SMGUseDefBasedInterpolator {
       // as the traversal goes backwards, once the interpolant was non-trivial once,
       // the next time it is trivial, it has to be TRUE, and no longer FALSE
       if (interpolant != trivialItp) {
-        trivialItp = SMGInterpolant.createTRUE(options, machineModel, logger);
+        trivialItp =
+            SMGInterpolant.createTRUE(
+                options, machineModel, logger, (CFunctionEntryNode) cfa.getMainFunction());
       }
     }
 
@@ -166,7 +181,14 @@ public class SMGUseDefBasedInterpolator {
 
     // The value analysis refinement does not need anything besides the MemoryLocs
     return new SMGInterpolant(
-        useDefInterpolant, null, null, null, null, options, machineModel, logger);
+        options,
+        machineModel,
+        logger,
+        useDefInterpolant,
+        null,
+        null,
+        null,
+        (CFunctionDeclaration) cfa.getMainFunction().getFunctionDefinition());
   }
 
   /**
