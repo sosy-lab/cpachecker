@@ -812,7 +812,8 @@ public class SMGState
     if (!(joinSPC.getStatus() == SMGJoinStatus.INCOMPARABLE && joinSPC.isDefined())) {
       return pOther;
     }
-    return new SMGState(machineModel, joinSPC.getResult(), logger, options);
+    // return new SMGState(machineModel, joinSPC.getResult(), logger, options);
+    return this;
   }
 
   @Override
