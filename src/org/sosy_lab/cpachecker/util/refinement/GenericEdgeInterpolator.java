@@ -25,7 +25,6 @@ import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.path.PathIterator;
 import org.sosy_lab.cpachecker.cpa.arg.path.PathPosition;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
-import org.sosy_lab.cpachecker.util.refinement.ImmutableForgetfulState.StateAndInfo;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 /**
@@ -192,31 +191,11 @@ public class GenericEdgeInterpolator<S extends ForgetfulState<T>, T, I extends I
 
       // temporarily remove the value of the current memory location from the candidate
       // interpolant
-      if (initialSuccessor instanceof ImmutableForgetfulState<?>) {
-        // Immutable copyOnOperation case
-        StateAndInfo<? extends ImmutableForgetfulState<T>, T> forgottenInformationAndNewState =
-            (StateAndInfo<? extends ImmutableForgetfulState<T>, T>)
-                ((ImmutableForgetfulState<T>) initialSuccessor)
-                    .copyAndForget(currentMemoryLocation);
-        initialSuccessor = (S) forgottenInformationAndNewState.getState();
+      T forgottenInformation = initialSuccessor.forget(currentMemoryLocation);
 
-        // check if the remaining path now becomes feasible
-        if (isRemainingPathFeasible(remainingErrorPath, initialSuccessor)) {
-          initialSuccessor =
-              (S)
-                  ((ImmutableForgetfulState<T>) initialSuccessor)
-                      .copyAndRemember(
-                          currentMemoryLocation, forgottenInformationAndNewState.getInfo());
-        }
-      } else {
-        // temporarily remove the value of the current memory location from the candidate
-        // interpolant
-        T forgottenInformation = initialSuccessor.forget(currentMemoryLocation);
-
-        // check if the remaining path now becomes feasible
-        if (isRemainingPathFeasible(remainingErrorPath, initialSuccessor)) {
-          initialSuccessor.remember(currentMemoryLocation, forgottenInformation);
-        }
+      // check if the remaining path now becomes feasible
+      if (isRemainingPathFeasible(remainingErrorPath, initialSuccessor)) {
+        initialSuccessor.remember(currentMemoryLocation, forgottenInformation);
       }
     }
 
@@ -239,8 +218,10 @@ public class GenericEdgeInterpolator<S extends ForgetfulState<T>, T, I extends I
    * current edge would also end up in the final interpolant. This optimization was removed again in
    * commit r16007 because the payoff did not justify maintaining the code, esp. as other
    * optimizations work equally well with less code.
+   *
+   * <p>Protected for subclass access only!
    */
-  private Set<MemoryLocation> determineMemoryLocationsToInterpolateOn(
+  protected Set<MemoryLocation> determineMemoryLocationsToInterpolateOn(
       final S candidateInterpolant) {
     return candidateInterpolant.getTrackedMemoryLocations();
   }
@@ -248,10 +229,12 @@ public class GenericEdgeInterpolator<S extends ForgetfulState<T>, T, I extends I
   /**
    * This method checks, if the given error path is contradicting in itself.
    *
+   * <p>Protected for subclass access only.
+   *
    * @param errorPath the error path to check.
    * @return true, if the given error path is contradicting in itself, else false
    */
-  private boolean isSuffixContradicting(ARGPath errorPath)
+  protected boolean isSuffixContradicting(ARGPath errorPath)
       throws CPAException, InterruptedException {
     return !isRemainingPathFeasible(errorPath, initialState);
   }
@@ -266,14 +249,33 @@ public class GenericEdgeInterpolator<S extends ForgetfulState<T>, T, I extends I
     return numberOfInterpolationQueries;
   }
 
+  /** Resets numberOfInterpolationQueries to 0. Protected for subclass access only. */
+  protected void resetNumberOfInterpolationQueries() {
+    numberOfInterpolationQueries = 0;
+  }
+
+  protected ShutdownNotifier getShutdownNotifier() {
+    return shutdownNotifier;
+  }
+
   /**
-   * This method gets the initial successor, i.e. the state following the initial state.
+   * Protected for subclass access only.
+   *
+   * @return the current interpolation manager.
+   */
+  protected InterpolantManager<S, I> getInterpolationManager() {
+    return interpolantManager;
+  }
+
+  /**
+   * This method gets the initial successor, i.e. the state following the initial state. Protected
+   * for subclass access.
    *
    * @param pInitialState the initial state, i.e. the state represented by the input interpolant.
    * @param pInitialEdge the initial edge of the error path
    * @return the initial successor
    */
-  private Optional<S> getInitialSuccessor(
+  protected Optional<S> getInitialSuccessor(
       final S pInitialState, final CFAEdge pInitialEdge, final Deque<S> pCallstack)
       throws CPAException, InterruptedException {
 
@@ -309,12 +311,13 @@ public class GenericEdgeInterpolator<S extends ForgetfulState<T>, T, I extends I
   }
 
   /**
-   * This method checks, if the given edge is only renaming variables.
+   * This method checks, if the given edge is only renaming variables. Protected for subclasses
+   * only.
    *
    * @param cfaEdge the CFA edge to check
    * @return true, if the given edge is only renaming variables
    */
-  private boolean isOnlyVariableRenamingEdge(CFAEdge cfaEdge) {
+  protected boolean isOnlyVariableRenamingEdge(CFAEdge cfaEdge) {
     return
     // if the edge is null this is a dynamic multi edge
     cfaEdge != null
@@ -331,5 +334,20 @@ public class GenericEdgeInterpolator<S extends ForgetfulState<T>, T, I extends I
     // || cfaEdge.getEdgeType() == CFAEdgeType.FunctionCallEdge
     // || cfaEdge.getEdgeType() == CFAEdgeType.ReturnStatementEdge
     ;
+  }
+
+  /** @return option applyItpEqualityOptimization */
+  protected boolean getApplyItpEqualityOptimization() {
+    return applyItpEqualityOptimization;
+  }
+
+  /** @return option applyRenamingOptimization */
+  protected boolean getApplyRenamingOptimization() {
+    return applyRenamingOptimization;
+  }
+
+  /** @return option applyUnsatSuffixOptimization */
+  protected boolean getApplyUnsatSuffixOptimization() {
+    return applyUnsatSuffixOptimization;
   }
 }
