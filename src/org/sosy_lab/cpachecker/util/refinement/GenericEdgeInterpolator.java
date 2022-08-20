@@ -281,18 +281,6 @@ public class GenericEdgeInterpolator<S extends ForgetfulState<T>, T, I extends I
 
     S oldState = pInitialState;
 
-    // we enter a function, so lets add the previous state to the stack
-    if (manageCallstack && pInitialEdge.getEdgeType() == CFAEdgeType.FunctionCallEdge) {
-      oldState = postOperator.handleFunctionCall(oldState, pInitialEdge, pCallstack);
-    }
-
-    // we leave a function, so rebuild return-state before assigning the return-value.
-    if (manageCallstack
-        && !pCallstack.isEmpty()
-        && pInitialEdge.getEdgeType() == CFAEdgeType.FunctionReturnEdge) {
-      oldState = postOperator.handleFunctionReturn(oldState, pInitialEdge, pCallstack);
-    }
-
     return postOperator.getStrongestPost(oldState, precision, pInitialEdge);
   }
 

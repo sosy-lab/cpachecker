@@ -11,7 +11,6 @@ package org.sosy_lab.cpachecker.util.refinement;
 import java.util.Deque;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
@@ -76,14 +75,6 @@ public interface StrongestPostOperator<S extends ForgetfulState<?>> {
       S state, CFAEdge edge, Precision precision, Deque<S> callstack, ARGPath argPath)
       throws CPAException, InterruptedException {
     S next = state;
-    if (edge.getEdgeType() == CFAEdgeType.FunctionCallEdge) {
-      next = handleFunctionCall(next, edge, callstack);
-    }
-
-    // we leave a function, so rebuild return-state before assigning the return-value.
-    if (!callstack.isEmpty() && edge.getEdgeType() == CFAEdgeType.FunctionReturnEdge) {
-      next = handleFunctionReturn(next, edge, callstack);
-    }
 
     Optional<S> successors = getStrongestPost(next, precision, edge);
 

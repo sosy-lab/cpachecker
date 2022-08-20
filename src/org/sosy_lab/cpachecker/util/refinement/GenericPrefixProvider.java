@@ -26,7 +26,6 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.core.defaults.precision.VariableTrackingPrecision;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
@@ -188,14 +187,6 @@ public class GenericPrefixProvider<S extends ForgetfulState<?>> implements Prefi
       throws CPAException, InterruptedException {
 
     S next = pNext;
-
-    if (pEdge.getEdgeType() == CFAEdgeType.FunctionCallEdge) {
-      next = strongestPost.handleFunctionCall(next, pEdge, pCallstack);
-    }
-
-    if (!pCallstack.isEmpty() && pEdge.getEdgeType() == CFAEdgeType.FunctionReturnEdge) {
-      next = strongestPost.handleFunctionReturn(next, pEdge, pCallstack);
-    }
 
     return strongestPost.getStrongestPost(next, precision, pEdge);
   }
