@@ -28,7 +28,6 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.cfa.model.c.CFunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.core.counterexample.CFAPathWithAdditionalInfo;
 import org.sosy_lab.cpachecker.core.counterexample.ConcreteStatePath;
@@ -63,7 +62,6 @@ import org.sosy_lab.cpachecker.cpa.value.PredicateToValuePrecisionConverter;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.ConstraintsStrengthenOperator;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.predicates.BlockOperator;
-import org.sosy_lab.cpachecker.util.smg.exception.SMGInconsistencyException;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 @Options(prefix = "cpa.smg2")
@@ -216,23 +214,6 @@ public class SMGCPA
   public AbstractState getInitialState(CFANode pNode, StateSpacePartition pPartition)
       throws InterruptedException {
     SMGState initState = SMGState.of(machineModel, logger, options, cfa);
-
-    try {
-      // initState.performConsistencyCheck(SMGRuntimeCheck.FULL);
-    } catch (SMGInconsistencyException exc) {
-      throw new AssertionError(exc);
-    }
-
-    if (pNode instanceof CFunctionEntryNode) {
-      CFunctionEntryNode functionNode = (CFunctionEntryNode) pNode;
-      try {
-        initState = initState.copyAndAddStackFrame(functionNode.getFunctionDefinition());
-        // initState.performConsistencyCheck(SMGRuntimeCheck.FULL);
-      } catch (SMGInconsistencyException exc) {
-        throw new AssertionError(exc);
-      }
-    }
-
     return initState;
   }
 
