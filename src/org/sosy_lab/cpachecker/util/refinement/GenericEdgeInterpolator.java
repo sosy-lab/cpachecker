@@ -229,14 +229,21 @@ public class GenericEdgeInterpolator<S extends ForgetfulState<T>, T, I extends I
   /**
    * This method checks, if the given error path is contradicting in itself.
    *
-   * <p>Protected for subclass access only.
-   *
    * @param errorPath the error path to check.
    * @return true, if the given error path is contradicting in itself, else false
    */
-  protected boolean isSuffixContradicting(ARGPath errorPath)
+  private boolean isSuffixContradicting(ARGPath errorPath)
       throws CPAException, InterruptedException {
     return !isRemainingPathFeasible(errorPath, initialState);
+  }
+
+  /**
+   * Protected for subclass access.
+   *
+   * @return the initial state.
+   */
+  protected S getInitalState() {
+    return initialState;
   }
 
   /**
