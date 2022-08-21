@@ -15,6 +15,7 @@ import com.google.common.collect.ImmutableSet;
 import java.math.BigInteger;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
@@ -138,6 +139,19 @@ public final class SMGInterpolant implements Interpolant<SMGState, SMGInterpolan
       LogManager pLogger,
       CFunctionEntryNode cfaFuncEntryNode) {
     return createInitial(pOptions, pMachineModel, pLogger, cfaFuncEntryNode);
+  }
+
+  /** Keeps interpolant information (i.e. "true") but copies and adds stack frame information. */
+  public SMGInterpolant addStackFrameInformationAndCopy(SMGState stateForFrameInfo) {
+    return new SMGInterpolant(
+        options,
+        machineModel,
+        logger,
+        nonHeapAssignments,
+        variableNameToMemorySizeInBits,
+        variableToTypeMap,
+        stateForFrameInfo.getMemoryModel().getFunctionDeclarationsFromStackFrames(),
+        cfaEntryFunctionDeclaration);
   }
 
   /** the interpolant representing "false" */
@@ -371,5 +385,25 @@ public final class SMGInterpolant implements Interpolant<SMGState, SMGInterpolan
   @Override
   public int getSize() {
     return isTrivial() ? 0 : nonHeapAssignments.size();
+  }
+
+  /**
+   * Interal sanity check for the interpolant.
+   *
+   * @return true if the interpolant makes sense.
+   */
+  public boolean isSanityIntact() {
+    HashSet<String> availableFunctions = new HashSet<>();
+    for (CFunctionDeclaration fundef : stackFrameDeclarations) {
+      availableFunctions.add(fundef.getQualifiedName());
+    }
+    for (MemoryLocation assignment : nonHeapAssignments.keySet()) {
+      if (assignment.isOnFunctionStack()) {
+        if (!availableFunctions.contains(assignment.getFunctionName())) {
+          return false;
+        }
+      }
+    }
+    return true;
   }
 }
