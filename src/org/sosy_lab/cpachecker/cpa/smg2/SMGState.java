@@ -1847,6 +1847,13 @@ public class SMGState
       Value valueToWrite,
       CType valueType)
       throws SMG2Exception {
+    if (object.isZero()) {
+      // Write to 0
+      return this.withInvalidWriteToZeroObject(object);
+    } else if (!memoryModel.isObjectValid(object)) {
+      // Write to an object that is invalidated (already freed)
+      return this.withInvalidWrite(object);
+    }
     if (valueToWrite.isUnknown()) {
       valueToWrite = getNewSymbolicValueForType(valueType);
     }
@@ -1854,8 +1861,9 @@ public class SMGState
     if (object.getOffset().compareTo(writeOffsetInBits) > 0
         || object.getSize().compareTo(sizeInBits.add(writeOffsetInBits)) < 0) {
       // Out of range write
-      throw new SMG2Exception(
-          withOutOfRangeWrite(object, writeOffsetInBits, sizeInBits, valueToWrite));
+      // throw new SMG2Exception(
+      //     withOutOfRangeWrite(object, writeOffsetInBits, sizeInBits, valueToWrite));
+      return withOutOfRangeWrite(object, writeOffsetInBits, sizeInBits, valueToWrite);
     }
 
     return writeValue(object, writeOffsetInBits, sizeInBits, valueToWrite, valueType);
@@ -1910,8 +1918,9 @@ public class SMGState
   public SMGState writeToZero(Value addressToMemory, CType type) throws SMG2Exception {
     Optional<SMGObjectAndOffset> maybeRegion = memoryModel.dereferencePointer(addressToMemory);
     if (maybeRegion.isEmpty()) {
-      // Can't write to non existing memory
-      throw new SMG2Exception(withInvalidWrite(addressToMemory));
+      // Can't write to non existing memory. However, we might not track that memory at the moment!
+      // TODO: log
+      return this;
     }
     SMGObjectAndOffset memoryRegionAndOffset = maybeRegion.orElseThrow();
     SMGObject memoryRegion = memoryRegionAndOffset.getSMGObject();
@@ -2268,5 +2277,15 @@ public class SMGState
 
   public int getNumberOfGlobalVariables() {
     return memoryModel.getGlobalVariableToSmgObjectMap().size();
+  }
+
+  public boolean hasStackFrameForFunctionDef(CFunctionDeclaration edgeToCheck) {
+    for (StackFrame frame : memoryModel.getStackFrames()) {
+      // Yes == !
+      if (frame.getFunctionDefinition() == edgeToCheck) {
+        return true;
+      }
+    }
+    return false;
   }
 }
