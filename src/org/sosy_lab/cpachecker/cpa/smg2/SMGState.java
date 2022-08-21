@@ -518,7 +518,10 @@ public class SMGState
       PersistentStack<CFunctionDeclaration> pStackDeclarations)
       throws SMG2Exception {
     if (nonHeapAssignments == null) {
-      return this;
+      if (pStackDeclarations == null) {
+        return this;
+      }
+      return this.reconstructStackFrames(pStackDeclarations);
     }
     SMGState currentState = this;
     // Reconstruct the stack frames first
