@@ -1889,8 +1889,8 @@ public class SMGState
       throws SMG2Exception {
     Optional<SMGObjectAndOffset> maybeRegion = memoryModel.dereferencePointer(addressToMemory);
     if (maybeRegion.isEmpty()) {
-      // Can't write to non existing memory
-      throw new SMG2Exception(withInvalidWrite(addressToMemory));
+      // Can't write to non existing memory. However, we might not track that memory at the moment!
+      return this;
     }
     SMGObjectAndOffset memoryRegionAndOffset = maybeRegion.orElseThrow();
     SMGObject memoryRegion = memoryRegionAndOffset.getSMGObject();
