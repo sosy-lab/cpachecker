@@ -157,7 +157,7 @@ public class SMGEdgeInterpolator
     }
     SMGInterpolant newInterpolant = interpolantMgr.createInterpolant(initialSuccessor);
     // Check that no variable was added to a wrong stack frame
-    assert (newInterpolant.isSanityIntact());
+    assert newInterpolant.isSanityIntact();
 
     return newInterpolant;
   }
