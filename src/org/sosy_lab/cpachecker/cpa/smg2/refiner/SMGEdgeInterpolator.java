@@ -132,8 +132,9 @@ public class SMGEdgeInterpolator
     if (getApplyUnsatSuffixOptimization()
         && pInputInterpolant.isTrue()
         && initialSuccessor.getSize() > 1
-        && isSuffixContradicting(remainingErrorPath)) {
-      return interpolantMgr.getTrueInterpolant();
+        && isSuffixContradicting(remainingErrorPath, initialSuccessor)) {
+      // Remember stack frame information!
+      return interpolantMgr.getTrueInterpolant().addStackFrameInformationAndCopy(initialSuccessor);
     }
 
     for (MemoryLocation currentMemoryLocation :
@@ -154,7 +155,29 @@ public class SMGEdgeInterpolator
                 currentMemoryLocation, forgottenInformationAndNewState.getInfo());
       }
     }
+    SMGInterpolant newInterpolant = interpolantMgr.createInterpolant(initialSuccessor);
+    // Check that no variable was added to a wrong stack frame
+    assert (newInterpolant.isSanityIntact());
 
-    return interpolantMgr.createInterpolant(initialSuccessor);
+    return newInterpolant;
+  }
+
+  /**
+   * This method checks, if the given error path is contradicting in itself. This NEEDS the function
+   * stack to work properly! (not the values, just the definition to create the stack)
+   *
+   * @param errorPath the error path to check.
+   * @return true, if the given error path is contradicting in itself, else false
+   */
+  private boolean isSuffixContradicting(ARGPath errorPath, SMGState stateForFrameInfo)
+      throws CPAException, InterruptedException {
+    return !isRemainingPathFeasible(
+        errorPath,
+        getInitalState()
+            .reconstructSMGStateFromNonHeapAssignments(
+                null,
+                null,
+                null,
+                stateForFrameInfo.getMemoryModel().getFunctionDeclarationsFromStackFrames()));
   }
 }
