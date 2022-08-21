@@ -11,6 +11,9 @@ package org.sosy_lab.cpachecker.cpa.smg2.refiner;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Multimap;
+import java.util.ArrayDeque;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import org.sosy_lab.common.ShutdownNotifier;
@@ -20,8 +23,12 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.path.PathIterator;
@@ -33,6 +40,7 @@ import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException.Reason;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.Pair;
+import org.sosy_lab.cpachecker.util.Triple;
 import org.sosy_lab.cpachecker.util.refinement.FeasibilityChecker;
 import org.sosy_lab.cpachecker.util.refinement.GenericPathInterpolator;
 import org.sosy_lab.cpachecker.util.refinement.GenericPrefixProvider;
@@ -235,5 +243,110 @@ public class SMGPathInterpolator extends GenericPathInterpolator<SMGState, SMGIn
       firstElem.advance();
       return Pair.of(firstElem.getAbstractState(), firstElem.getOutgoingEdge());
     }
+  }
+
+  /**
+   * This method returns a sliced error path (prefix). In case the sliced error path becomes
+   * feasible, i.e., because slicing is not fully precise in presence of, e.g., structs or arrays,
+   * the original error path (prefix) that was given as input is returned.
+   */
+  @Override
+  protected ARGPath sliceErrorPath(final ARGPath pErrorPathPrefix)
+      throws CPAException, InterruptedException {
+
+    if (!isPathSlicingPossible(pErrorPathPrefix)) {
+      return pErrorPathPrefix;
+    }
+
+    Set<ARGState> useDefStates =
+        new UseDefRelation(
+                pErrorPathPrefix,
+                cfa.getVarClassification().isPresent()
+                    ? cfa.getVarClassification().orElseThrow().getIntBoolVars()
+                    : ImmutableSet.of(),
+                false)
+            .getUseDefStates();
+
+    ArrayDeque<Triple<FunctionCallEdge, Boolean, Integer>> functionCalls = new ArrayDeque<>();
+    List<CFAEdge> abstractEdges = new ArrayList<>(pErrorPathPrefix.getInnerEdges());
+
+    PathIterator iterator = pErrorPathPrefix.pathIterator();
+    while (iterator.hasNext()) {
+      CFAEdge originalEdge = iterator.getOutgoingEdge();
+
+      // slice edge if there is neither a use nor a definition at the current state
+      if (!useDefStates.contains(iterator.getAbstractState())) {
+        CFANode startNode;
+        CFANode endNode;
+        if (originalEdge == null) {
+          startNode = AbstractStates.extractLocation(iterator.getAbstractState());
+          endNode = AbstractStates.extractLocation(iterator.getNextAbstractState());
+        } else {
+          startNode = originalEdge.getPredecessor();
+          endNode = originalEdge.getSuccessor();
+        }
+        abstractEdges.set(
+            iterator.getIndex(),
+            new BlankEdge(
+                originalEdge == null ? "" : originalEdge.getRawStatement(),
+                originalEdge == null ? FileLocation.DUMMY : originalEdge.getFileLocation(),
+                startNode,
+                endNode,
+                "sliced edge"));
+      }
+
+      if (originalEdge != null) {
+        CFAEdgeType typeOfOriginalEdge = originalEdge.getEdgeType();
+        /** ********************************** */
+        /** assure that call stack is valid * */
+        /** ********************************** */
+        // when entering into a function, remember if call is relevant or not
+        if (typeOfOriginalEdge == CFAEdgeType.FunctionCallEdge) {
+          boolean isAbstractEdgeFunctionCall =
+              abstractEdges.get(iterator.getIndex()).getEdgeType() == CFAEdgeType.FunctionCallEdge;
+
+          functionCalls.push(
+              Triple.of(
+                  (FunctionCallEdge) originalEdge,
+                  isAbstractEdgeFunctionCall,
+                  iterator.getIndex()));
+        }
+
+        // when returning from a function, ...
+        if (typeOfOriginalEdge == CFAEdgeType.FunctionReturnEdge) {
+          // The original call edge, importance in relation to slicing, position in abstractEdges
+          Triple<FunctionCallEdge, Boolean, Integer> functionCallInfo = functionCalls.pop();
+          // ... if call is relevant and return edge is now a blank edge, restore the original
+          // return edge
+          if (functionCallInfo.getSecond()
+              && abstractEdges.get(iterator.getIndex()).getEdgeType() == CFAEdgeType.BlankEdge) {
+            abstractEdges.set(iterator.getIndex(), originalEdge);
+          }
+
+          // ... if call is irrelevant and return edge is not sliced, restore the call edge
+          else if (!functionCallInfo.getSecond()
+              && abstractEdges.get(iterator.getIndex()).getEdgeType()
+                  == CFAEdgeType.FunctionReturnEdge) {
+            for (int j = iterator.getIndex(); j >= 0; j--) {
+              if (functionCallInfo.getFirst() == abstractEdges.get(j)) {
+                abstractEdges.set(j, functionCallInfo.getFirst());
+                break;
+              }
+            }
+          }
+        }
+      }
+
+      iterator.advance();
+    }
+    
+    // SMGs NEED the correct function calls, we need to restore ALL function calls not yet restored but that are relevant (not returned)
+    for (Triple<FunctionCallEdge, Boolean, Integer> functionCallInfo : functionCalls) {
+      abstractEdges.set(functionCallInfo.getThird(), functionCallInfo.getFirst());
+    }
+
+    ARGPath slicedErrorPathPrefix = new ARGPath(pErrorPathPrefix.asStatesList(), abstractEdges);
+
+    return isFeasible(slicedErrorPathPrefix) ? pErrorPathPrefix : slicedErrorPathPrefix;
   }
 }
