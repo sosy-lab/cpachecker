@@ -134,9 +134,6 @@ public class SMGCPAValueVisitor
     List<ValueAndSMGState> uncastedValuesAndStates = pExp.accept(this);
     ImmutableList.Builder<ValueAndSMGState> result = ImmutableList.builder();
     for (ValueAndSMGState uncastedValueAndState : uncastedValuesAndStates) {
-      Preconditions.checkArgument(
-          !evaluator.isPointerValue(
-              uncastedValueAndState.getValue(), uncastedValueAndState.getState()));
       Value castedValue =
           castCValue(
               uncastedValueAndState.getValue(),
