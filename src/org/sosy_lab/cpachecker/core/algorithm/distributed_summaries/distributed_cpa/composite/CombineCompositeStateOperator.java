@@ -44,8 +44,8 @@ public class CombineCompositeStateOperator implements CombineOperator {
     try {
       stats.getCombineCount().inc();
       stats.getCombineTime().start();
-    CompositeState compositeState1 = (CompositeState) pState1;
-    CompositeState compositeState2 = (CompositeState) pState2;
+      CompositeState compositeState1 = (CompositeState) pState1;
+      CompositeState compositeState2 = (CompositeState) pState2;
       if (compositeState1.getWrappedStates().size() != compositeState2.getWrappedStates().size()) {
         throw new AssertionError("CompositeStates have to have the same size");
       }
@@ -54,7 +54,8 @@ public class CombineCompositeStateOperator implements CombineOperator {
         AbstractState state2 = compositeState2.get(i);
         if (!state1.getClass().equals(state2.getClass())) {
           throw new AssertionError(
-              "All states have to work on equally structured composite states. Mismatch for classes "
+              "All states have to work on equally structured composite states. Mismatch for classes"
+                  + " "
                   + state1.getClass()
                   + " and "
                   + state2.getClass());

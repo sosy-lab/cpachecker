@@ -9,7 +9,6 @@
 package org.sosy_lab.cpachecker.cpa.block;
 
 import com.google.common.collect.ImmutableSet;
-import java.io.Serializable;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
@@ -29,11 +28,8 @@ import org.sosy_lab.java_smt.api.BooleanFormula;
 public class BlockState
     implements AbstractQueryableState,
         Partitionable,
-        Serializable,
         Targetable,
         FormulaReportingState {
-
-  private static final long serialVersionUID = 3805801L;
 
   public enum BlockStateType {
     INITIAL,

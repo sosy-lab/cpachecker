@@ -82,14 +82,14 @@ public class BlockSummaryResultWorker extends BlockSummaryWorker {
         expectAnswer.merge(senderId, -1, Integer::sum);
         return response(pMessage);
       case FOUND_RESULT:
-        // fall through
+        // $FALL-THROUGH$
       case ERROR:
         shutdown = true;
-        // fall through
+        // $FALL-THROUGH$
       case STATISTICS:
         return ImmutableSet.of();
       case BLOCK_POSTCONDITION:
-        // we need a block to first send an own error condition or the first BLOCKPOSTCONDITION
+        // we need a block to first send an own error condition or the first BLOCK_POSTCONDITION
         return response(pMessage);
 
       default:

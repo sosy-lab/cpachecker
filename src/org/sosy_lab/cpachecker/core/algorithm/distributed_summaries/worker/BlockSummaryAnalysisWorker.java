@@ -307,6 +307,6 @@ public class BlockSummaryAnalysisWorker extends BlockSummaryWorker {
         .put(
             StatisticsTypes.BACKWARD_ANALYSIS_STATS.name(),
             backwardAnalysis.getDistributedCompositeCPA().getStatistics().getStatistics())
-        .build();
+        .buildOrThrow();
   }
 }

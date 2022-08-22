@@ -44,15 +44,18 @@ public class BlockSummaryStatisticsMessage extends BlockSummaryMessage {
     }
   }
 
-
-  protected BlockSummaryStatisticsMessage(String pUniqueBlockId, int pTargetNodeNumber,
-      BlockSummaryMessagePayload pPayload, Instant pTimeStamp) {
+  protected BlockSummaryStatisticsMessage(
+      String pUniqueBlockId,
+      int pTargetNodeNumber,
+      BlockSummaryMessagePayload pPayload,
+      Instant pTimeStamp) {
     super(MessageType.STATISTICS, pUniqueBlockId, pTargetNodeNumber, pPayload, pTimeStamp);
   }
 
   @Override
   protected BlockSummaryMessage replacePayload(BlockSummaryMessagePayload pPayload) {
-    return new BlockSummaryStatisticsMessage(getUniqueBlockId(), getTargetNodeNumber(), pPayload, getTimestamp());
+    return new BlockSummaryStatisticsMessage(
+        getUniqueBlockId(), getTargetNodeNumber(), pPayload, getTimestamp());
   }
 
   public Map<String, Object> getStats() {
@@ -66,6 +69,6 @@ public class BlockSummaryStatisticsMessage extends BlockSummaryMessage {
       assert entry.getKey() instanceof String;
       converted.put((String) entry.getKey(), entry.getValue());
     }
-    return converted.build();
+    return converted.buildOrThrow();
   }
 }

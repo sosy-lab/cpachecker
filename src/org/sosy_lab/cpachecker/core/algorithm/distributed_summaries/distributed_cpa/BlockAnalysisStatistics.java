@@ -72,14 +72,22 @@ public class BlockAnalysisStatistics {
 
   public Map<String, Object> getStatistics() {
     return ImmutableMap.<String, Object>builder()
-        .put(StatisticsTypes.SERIALIZATION_COUNT.name(), Integer.toString(serializationCount.getUpdateCount()))
-        .put(StatisticsTypes.DESERIALIZATION_COUNT.name(), Integer.toString(deserializationCount.getUpdateCount()))
+        .put(
+            StatisticsTypes.SERIALIZATION_COUNT.name(),
+            Integer.toString(serializationCount.getUpdateCount()))
+        .put(
+            StatisticsTypes.DESERIALIZATION_COUNT.name(),
+            Integer.toString(deserializationCount.getUpdateCount()))
         .put(StatisticsTypes.PROCEED_COUNT.name(), Integer.toString(proceedCount.getUpdateCount()))
         .put(StatisticsTypes.COMBINE_COUNT.name(), Integer.toString(combineCount.getUpdateCount()))
-        .put(StatisticsTypes.SERIALIZATION_TIME.name(), serializationTime.getConsumedTime().asNanos())
-        .put(StatisticsTypes.DESERIALIZATION_TIME.name(), deserializationTime.getConsumedTime().asNanos())
+        .put(
+            StatisticsTypes.SERIALIZATION_TIME.name(),
+            serializationTime.getConsumedTime().asNanos())
+        .put(
+            StatisticsTypes.DESERIALIZATION_TIME.name(),
+            deserializationTime.getConsumedTime().asNanos())
         .put(StatisticsTypes.PROCEED_TIME.name(), proceedTime.getConsumedTime().asNanos())
         .put(StatisticsTypes.COMBINE_TIME.name(), combineTime.getConsumedTime().asNanos())
-        .build();
+        .buildOrThrow();
   }
 }

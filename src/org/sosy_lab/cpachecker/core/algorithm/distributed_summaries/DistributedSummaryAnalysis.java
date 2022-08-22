@@ -147,7 +147,7 @@ public class DistributedSummaryAnalysis implements Algorithm, StatisticsProvider
         writer = writer.put(stringObjectEntry.getKey(), stringObjectEntry.getValue());
       }
     }
-    writer.endLevel();
+    writer = writer.endLevel();
   }
 
   private void mergeInto(Map<String, Object> pOverall, String pKey, Object pValue) {
