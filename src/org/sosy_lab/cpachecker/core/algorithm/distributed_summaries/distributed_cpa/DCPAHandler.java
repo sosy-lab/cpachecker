@@ -14,7 +14,6 @@ import com.google.errorprone.annotations.CanIgnoreReturnValue;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
-import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.BlockNode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.callstack.DistributedCallstackCPA;
@@ -44,8 +43,7 @@ public class DCPAHandler {
 
   @CanIgnoreReturnValue
   public Optional<DistributedConfigurableProgramAnalysis> registerDCPA(
-      ConfigurableProgramAnalysis pCPA, BlockNode pBlockNode, AnalysisDirection pDirection)
-      throws InvalidConfigurationException {
+      ConfigurableProgramAnalysis pCPA, BlockNode pBlockNode, AnalysisDirection pDirection) {
     checkArgument(
         !(pCPA instanceof CompositeCPA), "Cannot register DCPA for type " + "%s", pCPA.getClass());
     if (pCPA instanceof PredicateCPA) {

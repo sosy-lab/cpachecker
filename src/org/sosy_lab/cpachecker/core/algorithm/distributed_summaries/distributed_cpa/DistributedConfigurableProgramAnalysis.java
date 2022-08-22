@@ -9,7 +9,6 @@
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa;
 
 import com.google.common.collect.Iterables;
-import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.BlockNode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.composite.DistributedCompositeCPA;
@@ -86,8 +85,7 @@ public interface DistributedConfigurableProgramAnalysis extends ConfigurableProg
       ConfigurableProgramAnalysis pCPA,
       BlockNode pBlock,
       AnalysisDirection pDirection,
-      BlockSummaryAnalysisOptions pOptions)
-      throws InvalidConfigurationException {
+      BlockSummaryAnalysisOptions pOptions) {
     DCPAHandler builder = new DCPAHandler(pOptions);
     CompositeCPA compositeCPA = CPAs.retrieveCPA(pCPA, CompositeCPA.class);
     if (compositeCPA == null) {
