@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries;
 
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSortedMap;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.util.ArrayList;
@@ -103,51 +105,54 @@ public class DistributedSummaryAnalysis implements Algorithm, StatisticsProvider
   @Override
   public void printStatistics(PrintStream out, Result result, UnmodifiableReachedSet reached) {
     StatisticsWriter writer = StatisticsWriter.writingStatisticsTo(out);
-    Map<String, Object> overall = new LinkedHashMap<>();
-    for (Entry<String, Object> stringObjectEntry : stats.entrySet()) {
-      writer =
-          writer
-              .put("BlockID " + stringObjectEntry.getKey(), stringObjectEntry.getKey())
-              .beginLevel();
-      Object mapObject = stringObjectEntry.getValue();
-      Map<?, ?> map = new HashMap<>((Map<?, ?>) mapObject);
-      Map<?, ?> forwardMap = (Map<?, ?>) map.remove(StatisticsTypes.FORWARD_ANALYSIS_STATS.name());
+    Map<String, Object> overall = new HashMap<>();
+    for (String blockID : ImmutableList.sortedCopyOf(stats.keySet())) {
+      writer = writer.put("BlockID " + blockID, blockID).beginLevel();
+      Object mapObject = stats.get(blockID);
+      Map<?, ?> map = new LinkedHashMap<>((Map<?, ?>) mapObject);
+      Map<?, ?> forwardMap =
+          ImmutableSortedMap.copyOf(
+              (Map<?, ?>) map.remove(StatisticsTypes.FORWARD_ANALYSIS_STATS.name()));
       Map<?, ?> backwardMap =
-          (Map<?, ?>) map.remove(StatisticsTypes.BACKWARD_ANALYSIS_STATS.name());
+          ImmutableSortedMap.copyOf(
+              (Map<?, ?>) map.remove(StatisticsTypes.BACKWARD_ANALYSIS_STATS.name()));
       for (Entry<?, ?> entry : map.entrySet()) {
         writer =
             writer.put(
-                StatisticsTypes.valueOf(entry.getKey().toString()).getName(), entry.getValue());
+                StatisticsTypes.valueOf(entry.getKey().toString()).getName(),
+                convert(entry.getKey().toString(), entry.getValue().toString()));
         mergeInto(overall, entry.getKey().toString(), entry.getValue());
       }
       for (Entry<?, ?> entry : forwardMap.entrySet()) {
         writer =
             writer.put(
                 StatisticsTypes.valueOf(entry.getKey().toString()).getName() + " (forward)",
-                entry.getValue());
+                convert(entry.getKey().toString(), entry.getValue().toString()));
         mergeInto(overall, entry.getKey().toString(), entry.getValue());
       }
       for (Entry<?, ?> entry : backwardMap.entrySet()) {
         writer =
             writer.put(
                 StatisticsTypes.valueOf(entry.getKey().toString()).getName() + " (backward)",
-                entry.getValue());
+                convert(entry.getKey().toString(), entry.getValue().toString()));
         mergeInto(overall, entry.getKey().toString(), entry.getValue());
       }
       writer = writer.endLevel();
     }
     writer = writer.put("Overall", "").beginLevel();
     for (Entry<String, Object> stringObjectEntry : overall.entrySet()) {
-      if (stringObjectEntry.getKey().contains("TIME")) {
-        writer =
-            writer.put(
-                stringObjectEntry.getKey(),
-                TimeSpan.ofNanos((long) stringObjectEntry.getValue()).formatAs(TimeUnit.SECONDS));
-      } else {
-        writer = writer.put(stringObjectEntry.getKey(), stringObjectEntry.getValue());
-      }
+      writer =
+          writer.put(
+              StatisticsTypes.valueOf(stringObjectEntry.getKey()).getName(),
+              convert(stringObjectEntry.getKey(), stringObjectEntry.getValue().toString()));
     }
-    writer = writer.endLevel();
+  }
+
+  private String convert(String pKey, String pNumber) {
+    if (pKey.contains("TIME")) {
+      return TimeSpan.ofNanos(Long.parseLong(pNumber)).formatAs(TimeUnit.SECONDS);
+    }
+    return pNumber;
   }
 
   private void mergeInto(Map<String, Object> pOverall, String pKey, Object pValue) {

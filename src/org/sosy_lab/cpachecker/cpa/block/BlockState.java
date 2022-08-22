@@ -26,10 +26,7 @@ import org.sosy_lab.java_smt.api.BooleanFormula;
 
 // cannot be an AbstractStateWithLocation as initialization corrupts analysis
 public class BlockState
-    implements AbstractQueryableState,
-        Partitionable,
-        Targetable,
-        FormulaReportingState {
+    implements AbstractQueryableState, Partitionable, Targetable, FormulaReportingState {
 
   public enum BlockStateType {
     INITIAL,
