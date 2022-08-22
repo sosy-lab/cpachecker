@@ -41,6 +41,7 @@ public class BlockSummaryMessagePayload extends ForwardingMap<String, Object> {
   public static final String PROPERTY = "property";
   public static final String SSA = "ssa";
   public static final String PTS = "pts";
+  public static final String STATS = "stats";
 
   private final Map<String, Object> delegate;
 
@@ -63,7 +64,13 @@ public class BlockSummaryMessagePayload extends ForwardingMap<String, Object> {
     return delegate;
   }
 
+  public static Builder builder() {
+    return new Builder();
+  }
+
   public static class Builder extends ImmutableMap.Builder<String, Object> {
+
+    private Builder() {}
 
     public Builder addEntriesFromJSON(String json) throws JsonProcessingException {
       TypeFactory factory = TypeFactory.defaultInstance();

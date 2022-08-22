@@ -85,10 +85,13 @@ public class BlockSummaryResultWorker extends BlockSummaryWorker {
         // fall through
       case ERROR:
         shutdown = true;
+        // fall through
+      case STATISTICS:
         return ImmutableSet.of();
       case BLOCK_POSTCONDITION:
         // we need a block to first send an own error condition or the first BLOCKPOSTCONDITION
         return response(pMessage);
+
       default:
         throw new AssertionError(type + " does not exist");
     }

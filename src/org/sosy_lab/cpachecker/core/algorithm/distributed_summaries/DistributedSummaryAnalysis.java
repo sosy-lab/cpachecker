@@ -9,16 +9,24 @@
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries;
 
 import java.io.IOException;
+import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.common.time.TimeSpan;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
@@ -30,6 +38,7 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decompositio
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.SingleBlockDecomposition;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.BlockSummaryConnection;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.BlockSummarySortedMessageQueue;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryStatisticsMessage.StatisticsTypes;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.memory.InMemoryBlockSummaryConnectionProvider;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.BlockSummaryActor;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.BlockSummaryAnalysisOptions;
@@ -39,7 +48,10 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.Block
 import org.sosy_lab.cpachecker.core.defaults.DummyTargetState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
+import org.sosy_lab.cpachecker.core.interfaces.Statistics;
+import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeState;
@@ -47,9 +59,10 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.statistics.StatInt;
 import org.sosy_lab.cpachecker.util.statistics.StatKind;
+import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 
 @Options(prefix = "distributedSummaries")
-public class DistributedSummaryAnalysis implements Algorithm {
+public class DistributedSummaryAnalysis implements Algorithm, StatisticsProvider, Statistics {
 
   private final Configuration configuration;
   private final LogManager logger;
@@ -57,6 +70,8 @@ public class DistributedSummaryAnalysis implements Algorithm {
   private final ShutdownManager shutdownManager;
   private final Specification specification;
   private final BlockSummaryAnalysisOptions options;
+
+  private final Map<String, Object> stats;
 
   private final StatInt numberWorkers = new StatInt(StatKind.MAX, "number of workers");
 
@@ -85,6 +100,71 @@ public class DistributedSummaryAnalysis implements Algorithm {
               + "Workers consume resources and should not be used for benchmarks.")
   private boolean spawnUtilWorkers = true;
 
+  @Override
+  public void printStatistics(PrintStream out, Result result, UnmodifiableReachedSet reached) {
+    StatisticsWriter writer = StatisticsWriter.writingStatisticsTo(out);
+    Map<String, Object> overall = new LinkedHashMap<>();
+    for (Entry<String, Object> stringObjectEntry : stats.entrySet()) {
+      writer =
+          writer
+              .put("BlockID " + stringObjectEntry.getKey(), stringObjectEntry.getKey())
+              .beginLevel();
+      Object mapObject = stringObjectEntry.getValue();
+      Map<?, ?> map = new HashMap<>((Map<?, ?>) mapObject);
+      Map<?, ?> forwardMap = (Map<?, ?>) map.remove(StatisticsTypes.FORWARD_ANALYSIS_STATS.name());
+      Map<?, ?> backwardMap =
+          (Map<?, ?>) map.remove(StatisticsTypes.BACKWARD_ANALYSIS_STATS.name());
+      for (Entry<?, ?> entry : map.entrySet()) {
+        writer =
+            writer.put(
+                StatisticsTypes.valueOf(entry.getKey().toString()).getName(), entry.getValue());
+        mergeInto(overall, entry.getKey().toString(), entry.getValue());
+      }
+      for (Entry<?, ?> entry : forwardMap.entrySet()) {
+        writer =
+            writer.put(
+                StatisticsTypes.valueOf(entry.getKey().toString()).getName() + " (forward)",
+                entry.getValue());
+        mergeInto(overall, entry.getKey().toString(), entry.getValue());
+      }
+      for (Entry<?, ?> entry : backwardMap.entrySet()) {
+        writer =
+            writer.put(
+                StatisticsTypes.valueOf(entry.getKey().toString()).getName() + " (backward)",
+                entry.getValue());
+        mergeInto(overall, entry.getKey().toString(), entry.getValue());
+      }
+      writer = writer.endLevel();
+    }
+    writer = writer.put("Overall", "").beginLevel();
+    for (Entry<String, Object> stringObjectEntry : overall.entrySet()) {
+      if (stringObjectEntry.getKey().contains("TIME")) {
+        writer =
+            writer.put(
+                stringObjectEntry.getKey(),
+                TimeSpan.ofNanos((long) stringObjectEntry.getValue()).formatAs(TimeUnit.SECONDS));
+      } else {
+        writer = writer.put(stringObjectEntry.getKey(), stringObjectEntry.getValue());
+      }
+    }
+    writer.endLevel();
+  }
+
+  private void mergeInto(Map<String, Object> pOverall, String pKey, Object pValue) {
+    pOverall.merge(
+        pKey, pValue, (v1, v2) -> Long.parseLong(v1.toString()) + Long.parseLong(v2.toString()));
+  }
+
+  @Override
+  public @Nullable String getName() {
+    return "Distributed Summary Analysis";
+  }
+
+  @Override
+  public void collectStatistics(Collection<Statistics> statsCollection) {
+    statsCollection.add(this);
+  }
+
   private enum DecompositionType {
     BLOCK_OPERATOR,
     GIVEN_SIZE,
@@ -110,6 +190,7 @@ public class DistributedSummaryAnalysis implements Algorithm {
     shutdownManager = pShutdownManager;
     specification = pSpecification;
     options = new BlockSummaryAnalysisOptions(configuration);
+    stats = new HashMap<>();
   }
 
   private CFADecomposer getDecomposer() throws InvalidConfigurationException {
@@ -193,9 +274,11 @@ public class DistributedSummaryAnalysis implements Algorithm {
       try (BlockSummaryConnection mainThreadConnection =
           components.getAdditionalConnections().get(0)) {
         BlockSummaryObserverWorker observer =
-            new BlockSummaryObserverWorker("observer", mainThreadConnection, options);
+            new BlockSummaryObserverWorker(
+                "observer", mainThreadConnection, options, blocks.size());
         Pair<AlgorithmStatus, Result> resultPair = observer.observe();
         Result result = resultPair.getSecond();
+        stats.putAll(observer.getStats());
         if (result == Result.FALSE) {
           ARGState state = (ARGState) reachedSet.getFirstState();
           assert state != null;

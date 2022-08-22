@@ -61,7 +61,7 @@ public class SerializePredicateStateOperator implements SerializeOperator {
     } catch (IOException pE) {
       throw new AssertionError("Unable to serialize SSAMap " + state.getPathFormula().getSsa());
     }
-    return new BlockSummaryMessagePayload.Builder()
+    return BlockSummaryMessagePayload.builder()
         .addEntry(PredicateCPA.class.getName(), formula)
         .addEntry(BlockSummaryMessagePayload.SSA, ssa)
         .addEntry(BlockSummaryMessagePayload.PTS, pts)

@@ -37,7 +37,7 @@ public class SerializeFunctionPointerStateOperator implements SerializeOperator 
             .append(", ");
       }
     }
-    return new BlockSummaryMessagePayload.Builder()
+    return BlockSummaryMessagePayload.builder()
         .addEntry(FunctionPointerState.class.getName(), serialized.toString())
         .buildPayload();
   }

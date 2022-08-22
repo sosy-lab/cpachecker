@@ -15,6 +15,7 @@ import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.BlockNode;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.BlockAnalysisStatistics;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.BlockSummaryErrorConditionTracker;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DistributedConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.DeserializeOperator;
@@ -45,6 +46,8 @@ public class DistributedCompositeCPA
   private final CombineOperator combine;
   private final ProceedCompositeStateOperator proceed;
 
+  private final BlockAnalysisStatistics statistics;
+
   private final Map<
           Class<? extends ConfigurableProgramAnalysis>, DistributedConfigurableProgramAnalysis>
       analyses;
@@ -55,11 +58,14 @@ public class DistributedCompositeCPA
       AnalysisDirection pDirection,
       Map<Class<? extends ConfigurableProgramAnalysis>, DistributedConfigurableProgramAnalysis>
           registered) {
+    statistics =
+        new BlockAnalysisStatistics("DCPA-" + pDirection.name().charAt(0) + "-" + pNode.getId());
     compositeCPA = pCompositeCPA;
-    serialize = new SerializeCompositeStateOperator(registered);
-    deserialize = new DeserializeCompositeStateOperator(compositeCPA, pNode, registered);
-    combine = new CombineCompositeStateOperator(registered);
-    proceed = new ProceedCompositeStateOperator(registered, pDirection);
+    serialize = new SerializeCompositeStateOperator(registered, statistics);
+    deserialize =
+        new DeserializeCompositeStateOperator(compositeCPA, pNode, registered, statistics);
+    combine = new CombineCompositeStateOperator(registered, statistics);
+    proceed = new ProceedCompositeStateOperator(registered, pDirection, statistics);
     analyses = registered;
   }
 
@@ -163,5 +169,9 @@ public class DistributedCompositeCPA
               .getFormulaManager());
     }
     return Optional.empty();
+  }
+
+  public BlockAnalysisStatistics getStatistics() {
+    return statistics;
   }
 }

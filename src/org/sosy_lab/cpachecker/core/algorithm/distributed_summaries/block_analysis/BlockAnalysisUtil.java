@@ -151,7 +151,7 @@ public class BlockAnalysisUtil {
 
   static BlockSummaryMessagePayload appendStatus(
       AlgorithmStatus pStatus, BlockSummaryMessagePayload pCurrentPayload) {
-    return new BlockSummaryMessagePayload.Builder()
+    return BlockSummaryMessagePayload.builder()
         .addAllEntries(pCurrentPayload)
         .addEntry(
             BlockSummaryMessagePayload.PROPERTY,

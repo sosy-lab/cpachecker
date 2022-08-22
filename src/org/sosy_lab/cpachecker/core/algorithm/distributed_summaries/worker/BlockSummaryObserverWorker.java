@@ -20,6 +20,7 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.Blo
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryErrorMessage;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryMessage;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryResultMessage;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryStatisticsMessage;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.java_smt.api.SolverException;
@@ -32,14 +33,22 @@ public class BlockSummaryObserverWorker extends BlockSummaryWorker {
   private Optional<Result> result;
   private Optional<String> errorMessage;
 
+  private final Map<String, Map<String, Object>> stats = new HashMap<>();
+
+  private final int numberOfBlocks;
+
   public BlockSummaryObserverWorker(
-      String pId, BlockSummaryConnection pConnection, BlockSummaryAnalysisOptions pOptions) {
+      String pId,
+      BlockSummaryConnection pConnection,
+      BlockSummaryAnalysisOptions pOptions,
+      int pNumberOfBlocks) {
     super(pId, pOptions);
     shutdown = false;
     connection = pConnection;
     statusObserver = new StatusObserver();
     errorMessage = Optional.empty();
     result = Optional.empty();
+    numberOfBlocks = pNumberOfBlocks;
   }
 
   @Override
@@ -47,7 +56,6 @@ public class BlockSummaryObserverWorker extends BlockSummaryWorker {
       throws InterruptedException, IOException, SolverException, CPAException {
     switch (pMessage.getType()) {
       case FOUND_RESULT:
-        shutdown = true;
         result = Optional.of(((BlockSummaryResultMessage) pMessage).getResult());
         statusObserver.updateStatus(pMessage);
         break;
@@ -59,8 +67,12 @@ public class BlockSummaryObserverWorker extends BlockSummaryWorker {
         statusObserver.updateStatus(pMessage);
         break;
       case ERROR:
-        errorMessage = Optional.of(((BlockSummaryErrorMessage) pMessage).getErrorMessage());
         shutdown = true;
+        errorMessage = Optional.of(((BlockSummaryErrorMessage) pMessage).getErrorMessage());
+        break;
+      case STATISTICS:
+        stats.put(pMessage.getBlockId(), ((BlockSummaryStatisticsMessage) pMessage).getStats());
+        shutdown = stats.keySet().size() == numberOfBlocks - 1;
         break;
       default:
         throw new AssertionError("Unknown message type: " + pMessage.getType());
@@ -77,6 +89,10 @@ public class BlockSummaryObserverWorker extends BlockSummaryWorker {
       throw new CPAException("Analysis finished but no result is present...");
     }
     return Pair.of(statusObserver.finish(), result.orElseThrow());
+  }
+
+  public Map<String, Map<String, Object>> getStats() {
+    return stats;
   }
 
   @Override

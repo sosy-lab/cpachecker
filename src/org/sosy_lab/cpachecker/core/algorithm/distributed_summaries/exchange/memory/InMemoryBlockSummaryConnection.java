@@ -49,8 +49,7 @@ public class InMemoryBlockSummaryConnection implements BlockSummaryConnection {
   @Override
   public void write(BlockSummaryMessage message) throws InterruptedException {
     if (closed) {
-      throw new IllegalStateException(
-          "Cannot write to an already closed " + InMemoryBlockSummaryConnection.class);
+      return;
     }
     for (BlockingQueue<BlockSummaryMessage> messages : out) {
       messages.add(message);

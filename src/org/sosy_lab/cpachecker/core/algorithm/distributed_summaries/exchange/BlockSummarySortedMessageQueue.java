@@ -33,14 +33,7 @@ public class BlockSummarySortedMessageQueue extends ForwardingBlockingQueue<Bloc
   private BlockSummarySortedMessageQueue(BlockingQueue<BlockSummaryMessage> pQueue) {
     queue = pQueue;
     messages = ArrayListMultimap.create();
-    ordering =
-        new MessageType[] {
-          MessageType.FOUND_RESULT,
-          MessageType.ERROR,
-          MessageType.ERROR_CONDITION,
-          MessageType.ERROR_CONDITION_UNREACHABLE,
-          MessageType.BLOCK_POSTCONDITION
-        };
+    ordering = MessageType.values();
   }
 
   public BlockSummarySortedMessageQueue() {

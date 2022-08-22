@@ -94,6 +94,8 @@ public class BlockSummaryRootWorker extends BlockSummaryWorker {
       case ERROR:
         shutdown = true;
         return ImmutableSet.of();
+      case STATISTICS:
+        // fall through
       case BLOCK_POSTCONDITION:
         // fall through
       case ERROR_CONDITION_UNREACHABLE:

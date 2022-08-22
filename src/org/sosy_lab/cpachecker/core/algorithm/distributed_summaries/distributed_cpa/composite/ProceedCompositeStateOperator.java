@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed
 import java.util.Map;
 import java.util.Map.Entry;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.BlockAnalysisStatistics;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.BlockSummaryMessageProcessing;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DistributedConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.proceed.ProceedOperator;
@@ -31,12 +32,16 @@ public class ProceedCompositeStateOperator implements ProceedOperator {
 
   private BlockSummaryPostConditionMessage latestOwnPostConditionMessage;
 
+  private final BlockAnalysisStatistics stats;
+
   public ProceedCompositeStateOperator(
       Map<Class<? extends ConfigurableProgramAnalysis>, DistributedConfigurableProgramAnalysis>
           pRegistered,
-      AnalysisDirection pDirection) {
+      AnalysisDirection pDirection,
+      BlockAnalysisStatistics pStats) {
     direction = pDirection;
     registered = pRegistered;
+    stats = pStats;
   }
 
   @Override
@@ -62,9 +67,15 @@ public class ProceedCompositeStateOperator implements ProceedOperator {
   @Override
   public BlockSummaryMessageProcessing proceed(BlockSummaryMessage pMessage)
       throws InterruptedException, SolverException {
-    return direction == AnalysisDirection.FORWARD
-        ? proceedForward((BlockSummaryPostConditionMessage) pMessage)
-        : proceedBackward((BlockSummaryErrorConditionMessage) pMessage);
+    try {
+      stats.getProceedCount().inc();
+      stats.getProceedTime().start();
+      return direction == AnalysisDirection.FORWARD
+          ? proceedForward((BlockSummaryPostConditionMessage) pMessage)
+          : proceedBackward((BlockSummaryErrorConditionMessage) pMessage);
+    } finally {
+      stats.getProceedTime().stop();
+    }
   }
 
   @Override

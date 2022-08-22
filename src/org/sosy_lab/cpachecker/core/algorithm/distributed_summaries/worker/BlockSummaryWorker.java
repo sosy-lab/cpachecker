@@ -18,12 +18,16 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.BlockSummaryConnection;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryMessage;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.util.statistics.StatCounter;
 import org.sosy_lab.java_smt.api.SolverException;
 
 public abstract class BlockSummaryWorker implements BlockSummaryActor {
 
   private final LogManager logger;
   private final String id;
+
+  private final StatCounter receivedMessages;
+  private final StatCounter sentMessages;
 
   /**
    * Abstract definition of a Worker. All workers enter the same routine of receiving and producing
@@ -33,6 +37,8 @@ public abstract class BlockSummaryWorker implements BlockSummaryActor {
    */
   protected BlockSummaryWorker(String pId, BlockSummaryAnalysisOptions pOptions) {
     id = pId;
+    receivedMessages = new StatCounter(pId + " received messages");
+    sentMessages = new StatCounter(pId + " sent messages");
     LogManager logManager;
     try {
       logManager =
@@ -50,6 +56,7 @@ public abstract class BlockSummaryWorker implements BlockSummaryActor {
   public void broadcast(Collection<BlockSummaryMessage> pMessage) throws InterruptedException {
     pMessage.forEach(m -> logger.log(Level.INFO, m));
     for (BlockSummaryMessage message : pMessage) {
+      sentMessages.inc();
       getConnection().write(message);
     }
   }
@@ -68,8 +75,8 @@ public abstract class BlockSummaryWorker implements BlockSummaryActor {
     final BlockSummaryConnection connection = getConnection();
     try (connection) {
       while (!shutdownRequested()) {
-        Collection<BlockSummaryMessage> response = processMessage(nextMessage());
-        broadcast(response);
+        broadcast(processMessage(nextMessage()));
+        receivedMessages.inc();
         if (Thread.currentThread().isInterrupted()) {
           break;
         }
@@ -90,5 +97,13 @@ public abstract class BlockSummaryWorker implements BlockSummaryActor {
 
   public LogManager getLogger() {
     return logger;
+  }
+
+  int getReceivedMessages() {
+    return receivedMessages.getUpdateCount();
+  }
+
+  int getSentMessages() {
+    return sentMessages.getUpdateCount();
   }
 }

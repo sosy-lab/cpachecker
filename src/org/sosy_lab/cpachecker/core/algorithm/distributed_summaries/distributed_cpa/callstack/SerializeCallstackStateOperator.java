@@ -31,7 +31,7 @@ public class SerializeCallstackStateOperator implements SerializeOperator {
     }
     Collections.reverse(states);
     String result = Joiner.on(DistributedCallstackCPA.DELIMITER).join(states);
-    return new BlockSummaryMessagePayload.Builder()
+    return BlockSummaryMessagePayload.builder()
         .addEntry(CallstackCPA.class.getName(), result)
         .buildPayload();
   }

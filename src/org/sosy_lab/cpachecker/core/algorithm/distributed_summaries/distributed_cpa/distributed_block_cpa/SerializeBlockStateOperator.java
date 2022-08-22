@@ -19,6 +19,6 @@ public class SerializeBlockStateOperator implements SerializeOperator {
   @Override
   public BlockSummaryMessagePayload serialize(AbstractState pState) {
     Preconditions.checkArgument(pState instanceof BlockState);
-    return new BlockSummaryMessagePayload.Builder().buildPayload();
+    return BlockSummaryMessagePayload.builder().buildPayload();
   }
 }

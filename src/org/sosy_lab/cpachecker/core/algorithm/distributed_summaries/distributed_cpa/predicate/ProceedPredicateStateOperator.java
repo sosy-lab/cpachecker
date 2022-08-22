@@ -15,6 +15,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.OptionalInt;
 import java.util.Set;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.BlockNode;
@@ -92,6 +93,14 @@ public class ProceedPredicateStateOperator implements ProceedOperator {
   @Override
   public BlockSummaryMessageProcessing proceedBackward(BlockSummaryErrorConditionMessage message)
       throws SolverException, InterruptedException {
+    // safe computation time if not correct location
+    CFANode node = block.getNodeWithNumber(message.getTargetNodeNumber());
+    if (!(node.equals(block.getLastNode())
+        || (!node.equals(block.getLastNode())
+            && !node.equals(block.getStartNode())
+            && block.getNodesInBlock().contains(node)))) {
+      return BlockSummaryMessageProcessing.stop();
+    }
     PredicateAbstractState deserialized = (PredicateAbstractState) deserialize.deserialize(message);
     PathFormula messageFormula = deserialized.getPathFormula();
     if (analysisOptions.shouldCheckEveryErrorConditionForUnsatisfiability()) {
@@ -124,6 +133,9 @@ public class ProceedPredicateStateOperator implements ProceedOperator {
   @Override
   public BlockSummaryMessageProcessing proceedForward(BlockSummaryPostConditionMessage message)
       throws InterruptedException {
+    if (message.getTargetNodeNumber() != block.getStartNode().getNodeNumber()) {
+      return BlockSummaryMessageProcessing.stop();
+    }
     if (!message.isReachable()) {
       unsatPredecessors.add(message.getUniqueBlockId());
       return BlockSummaryMessageProcessing.stop();
@@ -155,9 +167,6 @@ public class ProceedPredicateStateOperator implements ProceedOperator {
   }
 
   private void storePostCondition(BlockSummaryPostConditionMessage pMessage) {
-    if (pMessage.getTargetNodeNumber() != block.getStartNode().getNodeNumber()) {
-      return;
-    }
     BlockSummaryMessage toStore =
         BlockSummaryMessage.removeEntry(pMessage, BlockSummaryMessagePayload.SMART);
     if (analysisOptions.shouldAlwaysStoreCircularPostConditions()

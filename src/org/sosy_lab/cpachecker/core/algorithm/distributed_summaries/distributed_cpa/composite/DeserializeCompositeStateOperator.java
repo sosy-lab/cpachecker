@@ -13,6 +13,7 @@ import java.util.List;
 import java.util.Map;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.BlockNode;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.BlockAnalysisStatistics;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DistributedConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.DeserializeOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryMessage;
@@ -29,29 +30,39 @@ public class DeserializeCompositeStateOperator implements DeserializeOperator {
       registered;
   private final CompositeCPA compositeCPA;
   private final BlockNode block;
+  private final BlockAnalysisStatistics stats;
 
   public DeserializeCompositeStateOperator(
       CompositeCPA pCompositeCPA,
       BlockNode pBlockNode,
       Map<Class<? extends ConfigurableProgramAnalysis>, DistributedConfigurableProgramAnalysis>
-          pRegistered) {
+          pRegistered,
+      BlockAnalysisStatistics pStats) {
     compositeCPA = pCompositeCPA;
     block = pBlockNode;
     registered = pRegistered;
+    stats = pStats;
   }
 
   @Override
   public CompositeState deserialize(BlockSummaryMessage pMessage) throws InterruptedException {
-    CFANode location = block.getNodeWithNumber(pMessage.getTargetNodeNumber());
-    List<AbstractState> states = new ArrayList<>();
-    for (ConfigurableProgramAnalysis wrappedCPA : compositeCPA.getWrappedCPAs()) {
-      if (registered.containsKey(wrappedCPA.getClass())) {
-        DistributedConfigurableProgramAnalysis entry = registered.get(wrappedCPA.getClass());
-        states.add(entry.getDeserializeOperator().deserialize(pMessage));
-      } else {
-        states.add(wrappedCPA.getInitialState(location, StateSpacePartition.getDefaultPartition()));
+    try {
+      stats.getDeserializationCount().inc();
+      stats.getDeserializationTime().start();
+      CFANode location = block.getNodeWithNumber(pMessage.getTargetNodeNumber());
+      List<AbstractState> states = new ArrayList<>();
+      for (ConfigurableProgramAnalysis wrappedCPA : compositeCPA.getWrappedCPAs()) {
+        if (registered.containsKey(wrappedCPA.getClass())) {
+          DistributedConfigurableProgramAnalysis entry = registered.get(wrappedCPA.getClass());
+          states.add(entry.getDeserializeOperator().deserialize(pMessage));
+        } else {
+          states.add(
+              wrappedCPA.getInitialState(location, StateSpacePartition.getDefaultPartition()));
+        }
       }
+      return new CompositeState(states);
+    } finally {
+      stats.getDeserializationTime().stop();
     }
-    return new CompositeState(states);
   }
 }
