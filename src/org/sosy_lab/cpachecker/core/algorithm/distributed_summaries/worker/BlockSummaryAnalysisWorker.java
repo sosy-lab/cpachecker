@@ -265,24 +265,6 @@ public class BlockSummaryAnalysisWorker extends BlockSummaryWorker {
     return block.getId();
   }
 
-  /*  private void addTimer(BlockAnalysis pBlockAnalysis) {
-    pBlockAnalysis
-        .getDistributedCPA()
-        .registerTimer(stats.proceedSerializeTime, StatTimerType.SERIALIZE);
-    pBlockAnalysis
-        .getDistributedCPA()
-        .registerTimer(stats.proceedDeserializeTime, StatTimerType.DESERIALIZE);
-    pBlockAnalysis
-        .getDistributedCPA()
-        .registerTimer(stats.proceedForwardTime, StatTimerType.PROCEED_F);
-    pBlockAnalysis
-        .getDistributedCPA()
-        .registerTimer(stats.proceedBackwardTime, StatTimerType.PROCEED_B);
-    pBlockAnalysis
-        .getDistributedCPA()
-        .registerTimer(stats.proceedCombineTime, StatTimerType.COMBINE);
-  }*/
-
   @Override
   public String toString() {
     return "Worker{" + "block=" + block + ", finished=" + shutdownRequested() + '}';

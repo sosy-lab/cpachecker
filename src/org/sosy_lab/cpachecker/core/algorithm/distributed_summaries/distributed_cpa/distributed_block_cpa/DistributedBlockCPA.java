@@ -56,7 +56,8 @@ public class DistributedBlockCPA implements DistributedConfigurableProgramAnalys
       Supplier<Collection<DistributedConfigurableProgramAnalysis>> pFutureAnalyses) {
     checkArgument(
         pBlockCPA instanceof BlockCPA || pBlockCPA instanceof BlockCPABackward, /* TODO make lazy */
-        pBlockCPA.getClass() + " is no block CPA.");
+        "%s is no block CPA.",
+        pBlockCPA.getClass());
     blockCPA = pBlockCPA;
     // FormulaManager is only used for calculating conjunctions -> dummy is fine (this formula
     // manager needs to be independent)
