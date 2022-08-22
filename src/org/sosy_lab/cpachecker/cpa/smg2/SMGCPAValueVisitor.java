@@ -21,6 +21,7 @@ import java.util.Optional;
 import java.util.logging.Level;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAddressOfLabelExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
@@ -36,6 +37,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CImaginaryLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSideVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStringLiteralExpression;
@@ -58,6 +60,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypedefType;
+import org.sosy_lab.cpachecker.cfa.types.java.JSimpleType;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMG2Exception;
 import org.sosy_lab.cpachecker.cpa.smg2.util.value.SMGCPAValueExpressionEvaluator;
 import org.sosy_lab.cpachecker.cpa.smg2.util.value.ValueAndSMGState;
@@ -113,6 +116,36 @@ public class SMGCPAValueVisitor
     state = currentState;
     cfaEdge = edge;
     logger = pLogger;
+  }
+
+  /**
+   * This method returns the value of an expression, reduced to match the type. This method handles
+   * overflows and casts. If necessary warnings for the user are printed. This method does not touch
+   * {@link AddressExpression}s or {@link SymbolicIdentifier}s with {@link MemoryLocation}s, as they
+   * carry location information for further evaluation.
+   *
+   * @param pExp expression to evaluate
+   * @param pTargetType the type of the left side of an assignment
+   * @return if evaluation successful, then value, else null
+   * @throws CPATransferException in case of critical visitor or SMG error
+   */
+  public List<ValueAndSMGState> evaluate(final CRightHandSide pExp, final CType pTargetType)
+      throws CPATransferException {
+    List<ValueAndSMGState> uncastedValuesAndStates = pExp.accept(this);
+    ImmutableList.Builder<ValueAndSMGState> result = ImmutableList.builder();
+    for (ValueAndSMGState uncastedValueAndState : uncastedValuesAndStates) {
+      Preconditions.checkArgument(
+          !evaluator.isPointerValue(
+              uncastedValueAndState.getValue(), uncastedValueAndState.getState()));
+      Value castedValue =
+          castCValue(
+              uncastedValueAndState.getValue(),
+              pTargetType,
+              evaluator.getMachineModel(),
+              pExp.getFileLocation());
+      result.add(ValueAndSMGState.of(castedValue, uncastedValueAndState.getState()));
+    }
+    return result.build();
   }
 
   @Override
@@ -2483,6 +2516,73 @@ public class SMGCPAValueVisitor
 
     // return 1 if expression holds, 0 otherwise
     return new NumericValue(matchBooleanOperation(op, cmp) ? 1L : 0L);
+  }
+
+  /**
+   * This method returns the input-value, casted to match the type. If the value matches the type,
+   * it is returned unchanged. This method handles overflows and print warnings for the user.
+   * Example: This method is called, when an value of type 'integer' is assigned to a variable of
+   * type 'char'.
+   *
+   * @param value will be casted.
+   * @param targetType value will be casted to targetType.
+   * @param machineModel contains information about types
+   * @param fileLocation the location of the corresponding code in the source file
+   * @return the casted Value
+   */
+  public Value castCValue(
+      @NonNull final Value value,
+      final CType targetType,
+      final MachineModel machineModel,
+      final FileLocation fileLocation) {
+
+    if (!value.isExplicitlyKnown()) {
+      if (value instanceof AddressExpression
+          || (value instanceof SymbolicIdentifier
+              && ((SymbolicIdentifier) value).getRepresentedLocation().isPresent())) {
+        // Don't cast pointers or values carrying location information
+        return value;
+      } else {
+        return castIfSymbolic(value, targetType, Optional.of(machineModel));
+      }
+    }
+
+    // For now can only cast numeric value's
+    if (!value.isNumericValue()) {
+      logger.logf(
+          Level.FINE, "Can not cast C value %s to %s", value.toString(), targetType.toString());
+      return value;
+    }
+    NumericValue numericValue = (NumericValue) value;
+
+    CType type = targetType.getCanonicalType();
+    final int size;
+    if (type instanceof CSimpleType) {
+      final CSimpleType st = (CSimpleType) type;
+      size = machineModel.getSizeofInBits(st);
+    } else if (type instanceof CBitFieldType) {
+      size = ((CBitFieldType) type).getBitFieldSize();
+      type = ((CBitFieldType) type).getType();
+
+    } else {
+      return value;
+    }
+
+    return castNumeric(numericValue, type, machineModel, size);
+  }
+
+  private static Value castIfSymbolic(
+      Value pValue, Type pTargetType, Optional<MachineModel> pMachineModel) {
+    final SymbolicValueFactory factory = SymbolicValueFactory.getInstance();
+
+    if (pValue instanceof SymbolicValue
+        && (pTargetType instanceof JSimpleType || pTargetType instanceof CSimpleType)) {
+
+      return factory.cast((SymbolicValue) pValue, pTargetType, pMachineModel);
+    }
+
+    // If the value is not symbolic, just return it.
+    return pValue;
   }
 
   /** returns True, iff cmp fulfills the boolean operation. */
