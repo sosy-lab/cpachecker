@@ -16,6 +16,8 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
+import org.sosy_lab.cpachecker.cpa.predicate.PredicateMergeOperator;
+import org.sosy_lab.cpachecker.cpa.predicate.PredicatePrecision;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
@@ -30,11 +32,15 @@ public class CombinePredicateStateOperator implements CombineOperator {
 
   private final PathFormulaManager manager;
   private final FormulaManagerView formulaManager;
+  private final PredicateMergeOperator predicateMergeOperator;
 
   public CombinePredicateStateOperator(
-      PathFormulaManager pPathFormulaManager, FormulaManagerView pFormulaManagerView) {
+      PathFormulaManager pPathFormulaManager,
+      FormulaManagerView pFormulaManagerView,
+      PredicateMergeOperator pMergeOperator) {
     manager = pPathFormulaManager;
     formulaManager = pFormulaManagerView;
+    predicateMergeOperator = pMergeOperator;
   }
 
   @Override
@@ -43,7 +49,24 @@ public class CombinePredicateStateOperator implements CombineOperator {
       throws CPAException, InterruptedException {
     PredicateAbstractState state1 = (PredicateAbstractState) pState1;
     PredicateAbstractState state2 = (PredicateAbstractState) pState2;
+    if (!state1.isAbstractionState() && !state2.isAbstractionState()) {
+      return combineNonAbstractionStates(state1, state2);
+    }
+    if (state1.isAbstractionState() && state2.isAbstractionState()) {
+      return combineAbstractionStates(state1, state2);
+    }
+    throw new AssertionError("Combine Operator cannot combine states of different kind");
+  }
 
+  private List<AbstractState> combineAbstractionStates(
+      PredicateAbstractState state1, PredicateAbstractState state2) throws InterruptedException {
+    // note: precision is unused in the merge operator
+    return ImmutableList.of(
+        predicateMergeOperator.merge(state1, state2, PredicatePrecision.empty()));
+  }
+
+  private List<AbstractState> combineNonAbstractionStates(
+      PredicateAbstractState state1, PredicateAbstractState state2) throws InterruptedException {
     SSAMap ssa1 = state1.getPathFormula().getSsa();
     SSAMap ssa2 = state2.getPathFormula().getSsa();
 

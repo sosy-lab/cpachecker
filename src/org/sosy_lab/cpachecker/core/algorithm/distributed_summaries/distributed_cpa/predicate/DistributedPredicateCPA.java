@@ -27,6 +27,7 @@ import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
+import org.sosy_lab.cpachecker.cpa.predicate.PredicateMergeOperator;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.java_smt.api.BooleanFormula;
@@ -63,7 +64,9 @@ public class DistributedPredicateCPA
             pOptions, pDirection, pNode, predicateCPA.getSolver(), deserialize);
     combine =
         new CombinePredicateStateOperator(
-            predicateCPA.getPathFormulaManager(), predicateCPA.getSolver().getFormulaManager());
+            predicateCPA.getPathFormulaManager(),
+            predicateCPA.getSolver().getFormulaManager(),
+            (PredicateMergeOperator) predicateCPA.getMergeOperator());
   }
 
   public Solver getSolver() {
