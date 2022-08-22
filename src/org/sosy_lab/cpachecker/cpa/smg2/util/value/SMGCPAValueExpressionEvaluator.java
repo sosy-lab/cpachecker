@@ -789,13 +789,13 @@ public class SMGCPAValueExpressionEvaluator {
       }
       SMGObject leftHandSideVariableMemory = variableMemoryAndOffsetOrState.getSMGObject();
       BigInteger offsetInBits = variableMemoryAndOffsetOrState.getOffsetForObject();
-      if (leftHandSideValue.getExpressionType() != valueType) {
-        ValueAndSMGState castedValueAndState =
-            new SMGCPAValueVisitor(this, currentState, edge, logger)
-                .castCValue(valueToWrite, leftHandSideValue.getExpressionType(), currentState);
-        valueToWrite = castedValueAndState.getValue();
-        currentState = castedValueAndState.getState();
-      }
+
+      ValueAndSMGState castedValueAndState =
+          new SMGCPAValueVisitor(this, currentState, edge, logger)
+              .castCValue(valueToWrite, leftHandSideValue.getExpressionType(), currentState);
+      valueToWrite = castedValueAndState.getValue();
+      currentState = castedValueAndState.getState();
+
       successorsBuilder.add(
           currentState.writeValueTo(
               leftHandSideVariableMemory,

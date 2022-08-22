@@ -1280,9 +1280,10 @@ public class SMGCPAValueVisitor
         SMGState currentState = state;
         for (CExpression currParamExp : parameterExpressions) {
           // Here we expect only 1 result value
+          SMGCPAValueVisitor vv = new SMGCPAValueVisitor(evaluator, currentState, cfaEdge, logger);
           List<ValueAndSMGState> newValuesAndStates =
-              currParamExp.accept(new SMGCPAValueVisitor(evaluator, currentState, cfaEdge, logger));
-          // TODO: this holds for everything except Strings; what to do with Strings?
+              vv.evaluate(
+                  currParamExp, SMGCPAValueExpressionEvaluator.getCanonicalType(currParamExp));
           Preconditions.checkArgument(newValuesAndStates.size() == 1);
           Value newValue = newValuesAndStates.get(0).getValue();
           // CPA access has side effects! Always take the newest state!

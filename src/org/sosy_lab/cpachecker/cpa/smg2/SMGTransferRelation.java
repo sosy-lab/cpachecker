@@ -251,8 +251,8 @@ public class SMGTransferRelation
         retType = returnAssignment.orElseThrow().getLeftHandSide().getExpressionType();
       }
 
-      for (ValueAndSMGState returnValueAndState :
-          returnExp.accept(new SMGCPAValueVisitor(evaluator, state, returnEdge, logger))) {
+      SMGCPAValueVisitor vv = new SMGCPAValueVisitor(evaluator, state, returnEdge, logger);
+      for (ValueAndSMGState returnValueAndState : vv.evaluate(returnExp, retType)) {
         // We get the size per state as it could theoretically change per state (abstraction)
         BigInteger sizeInBits = evaluator.getBitSizeof(state, retType);
         ValueAndSMGState valueAndStateToWrite =
@@ -504,9 +504,11 @@ public class SMGTransferRelation
 
     ImmutableList.Builder<SMGState> resultStateBuilder = ImmutableList.builder();
     // Get the value of the expression (either true[1L], false[0L], or unknown[null])
-    List<ValueAndSMGState> valuesAndStates =
-        cExpression.accept(new SMGCPAValueVisitor(evaluator, state, cfaEdge, logger));
-    for (ValueAndSMGState valueAndState : valuesAndStates) {
+    SMGCPAValueVisitor vv = new SMGCPAValueVisitor(evaluator, state, cfaEdge, logger);
+    for (ValueAndSMGState valueAndState :
+        vv.evaluate(
+            cExpression,
+            SMGCPAValueExpressionEvaluator.getCanonicalType((CExpression) expression))) {
       Value value = valueAndState.getValue();
       SMGState currentState = valueAndState.getState();
 
@@ -533,7 +535,6 @@ public class SMGTransferRelation
 
       } else {
         // Assumption not fulfilled
-        Preconditions.checkArgument(valuesAndStates.size() == 1);
         return null;
       }
     }
@@ -1245,12 +1246,12 @@ public class SMGTransferRelation
       CFAEdge cfaEdge,
       String variableName,
       BigInteger pOffsetInBits,
-      CType pLFieldType,
+      CType pWriteType,
       CExpression exprToWrite)
       throws CPATransferException {
     Preconditions.checkArgument(!(exprToWrite instanceof CStringLiteralExpression));
     CType typeOfValueToWrite = SMGCPAValueExpressionEvaluator.getCanonicalType(exprToWrite);
-    CType typeOfWrite = SMGCPAValueExpressionEvaluator.getCanonicalType(pLFieldType);
+    CType typeOfWrite = SMGCPAValueExpressionEvaluator.getCanonicalType(pWriteType);
     BigInteger sizeOfTypeLeft = evaluator.getBitSizeof(pState, typeOfWrite);
     ImmutableList.Builder<SMGState> resultStatesBuilder = ImmutableList.builder();
     SMGState currentState = pState;
@@ -1297,8 +1298,8 @@ public class SMGTransferRelation
 
     } else {
       // Just a normal write
-      for (ValueAndSMGState valueAndState :
-          exprToWrite.accept(new SMGCPAValueVisitor(evaluator, pState, cfaEdge, logger))) {
+      SMGCPAValueVisitor vv = new SMGCPAValueVisitor(evaluator, pState, cfaEdge, logger);
+      for (ValueAndSMGState valueAndState : vv.evaluate(exprToWrite, typeOfWrite)) {
 
         ValueAndSMGState valueAndStateToAssign =
             evaluator.unpackAddressExpression(
@@ -1346,8 +1347,7 @@ public class SMGTransferRelation
         returnStateBuilder.addAll(Lists.transform(listOfStates, ValueAndSMGState::getState));
         continue;
       }
-      SMGCPAValueVisitor rightHandSideVisitor =
-          new SMGCPAValueVisitor(evaluator, pState, cfaEdge, logger);
+
       SMGObject addressToWriteTo = targetAndOffsetOrState.getSMGObject();
       BigInteger offsetToWriteTo = targetAndOffsetOrState.getOffsetForObject();
 
@@ -1375,8 +1375,8 @@ public class SMGTransferRelation
       // The right hand side either returns Values representing values or a AddressExpression. In
       // the later case this means the entire structure behind it needs to be copied as C is
       // pass-by-value.
-      for (ValueAndSMGState valueAndState :
-          rValue.accept(new SMGCPAValueVisitor(evaluator, pState, cfaEdge, logger))) {
+      SMGCPAValueVisitor vv = new SMGCPAValueVisitor(evaluator, pState, cfaEdge, logger);
+      for (ValueAndSMGState valueAndState : vv.evaluate(rValue, leftHandSideType)) {
         Value valueToWrite = valueAndState.getValue();
         currentState = valueAndState.getState();
         BigInteger sizeInBits = evaluator.getBitSizeof(currentState, rightHandSideType);
@@ -1475,16 +1475,6 @@ public class SMGTransferRelation
         } else {
           // All other cases should return such that the value can be written directly to the left
           // hand side!
-          if (leftHandSideType != rightHandSideType) {
-            // Cast if the types don't match
-            ValueAndSMGState castedValueAndState =
-                rightHandSideVisitor.castCValue(
-                    valueToWrite, lValue.getExpressionType(), currentState);
-            currentState = castedValueAndState.getState();
-            valueToWrite = castedValueAndState.getValue();
-            sizeInBits = evaluator.getBitSizeof(currentState, leftHandSideType);
-          }
-
           currentState =
               currentState.writeValueTo(
                   addressToWriteTo, offsetToWriteTo, sizeInBits, valueToWrite, leftHandSideType);

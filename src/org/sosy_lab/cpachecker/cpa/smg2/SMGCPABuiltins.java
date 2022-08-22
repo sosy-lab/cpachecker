@@ -622,7 +622,8 @@ public class SMGCPABuiltins {
           functionName + " argument #" + pParameterNumber + " not found.", cfaEdge, functionCall);
     }
 
-    return expr.accept(new SMGCPAValueVisitor(evaluator, pState, cfaEdge, logger));
+    SMGCPAValueVisitor vv = new SMGCPAValueVisitor(evaluator, pState, cfaEdge, logger);
+    return vv.evaluate(expr, SMGCPAValueExpressionEvaluator.getCanonicalType(functionCall));
   }
 
   /**
