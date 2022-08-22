@@ -509,14 +509,14 @@ public class SMG {
         toRemoveEdgesSet = toRemoveEdgesSet.addAndCopy(hvEdge);
 
         if (hvEdge.getOffset().compareTo(offset) < 0) {
-          final BigInteger newSize = calculateBytePreciseSize(offset, hvEdge.getOffset());
+          final BigInteger newSize = calculateBitPreciseSize(offset, hvEdge.getOffset());
           SMGHasValueEdge newLowerEdge =
               new SMGHasValueEdge(SMGValue.zeroValue(), hvEdge.getOffset(), newSize);
           toAddEdgesSet = toAddEdgesSet.addAndCopy(newLowerEdge);
         }
 
         if (offsetPlusSize.compareTo(hvEdgeOffsetPlusSize) < 0) {
-          final BigInteger newSize = calculateBytePreciseSize(hvEdgeOffsetPlusSize, offsetPlusSize);
+          final BigInteger newSize = calculateBitPreciseSize(hvEdgeOffsetPlusSize, offsetPlusSize);
           SMGHasValueEdge newUpperEdge =
               new SMGHasValueEdge(SMGValue.zeroValue(), offsetPlusSize, newSize);
           toAddEdgesSet = toAddEdgesSet.addAndCopy(newUpperEdge);
@@ -528,21 +528,15 @@ public class SMG {
   }
 
   /**
-   * Calculates Byte precise the size of new SMGHasValueEdges. This is needed as sizes used by us
-   * are bit precise and we need it only byte precise. It works by subtracting the second from the
-   * first and then rounding it up to match byte sizes. This works under the assumption that the
-   * beginning and ends of each field are byte precise!
+   * Calculates bit precise the size of new SMGHasValueEdges. This is needed as sizes used by us are
+   * bit precise and we need bit precision! Bit fields exist! This is only ok for 0 values!
    *
    * @param first The precision in bits that will be subtracted upon.
    * @param second The precision that will be subtracted from first.
-   * @return (first - second) rounded up to byte precision.
+   * @return (first - second) bit precise.
    */
-  private BigInteger calculateBytePreciseSize(BigInteger first, BigInteger second) {
+  private BigInteger calculateBitPreciseSize(BigInteger first, BigInteger second) {
     BigInteger subtracted = first.subtract(second);
-    BigInteger modulo = subtracted.mod(BigInteger.valueOf(8));
-    if (modulo.compareTo(BigInteger.ZERO) != 0) {
-      subtracted = subtracted.add(BigInteger.valueOf(8).subtract(modulo));
-    }
     return subtracted;
   }
 
