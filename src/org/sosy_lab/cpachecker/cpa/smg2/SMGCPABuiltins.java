@@ -291,7 +291,11 @@ public class SMGCPABuiltins {
     BigInteger sizeInBits = evaluator.getBitSizeof(pState, srcIdArg);
     ValueAndSMGState addressAndState =
         evaluator.readStackOrGlobalVariable(
-            pState, srcIdArg.getName(), BigInteger.ZERO, sizeInBits);
+            pState,
+            srcIdArg.getName(),
+            BigInteger.ZERO,
+            sizeInBits,
+            SMGCPAValueExpressionEvaluator.getCanonicalType(srcIdArg));
     SMGState currentState = addressAndState.getState();
     if (addressAndState.getValue().isUnknown()) {
       // Critical error, should never happen

@@ -248,12 +248,11 @@ public class SMGCPAValueVisitor
   }
 
   private ValueAndSMGState evaluateReadOfValueAndOffset(
-      Value arrayValue, BigInteger additionalOffset, CType returnType, SMGState pCurrentState)
+      Value arrayValue, BigInteger additionalOffset, CType pReturnType, SMGState pCurrentState)
       throws CPATransferException {
     SMGState newState = pCurrentState;
-    BigInteger typeSizeInBits =
-        evaluator.getBitSizeof(
-            newState, SMGCPAValueExpressionEvaluator.getCanonicalType(returnType));
+    CType returnType = SMGCPAValueExpressionEvaluator.getCanonicalType(pReturnType);
+    BigInteger typeSizeInBits = evaluator.getBitSizeof(newState, returnType);
     if (arrayValue instanceof AddressExpression) {
       AddressExpression arrayAddr = (AddressExpression) arrayValue;
       Value addrOffsetValue = arrayAddr.getOffset();
@@ -273,7 +272,7 @@ public class SMGCPAValueVisitor
         // All else gets wrapped and the final read/deref will throw an error
         ValueAndSMGState readPointerAndState =
             evaluator.readValueWithPointerDereference(
-                newState, arrayAddr.getMemoryAddress(), finalOffset, typeSizeInBits);
+                newState, arrayAddr.getMemoryAddress(), finalOffset, typeSizeInBits, returnType);
         if (readPointerAndState.getValue().isUnknown()) {
           return ValueAndSMGState.ofUnknownValue(readPointerAndState.getState());
         } else {
@@ -284,7 +283,7 @@ public class SMGCPAValueVisitor
 
       } else {
         return evaluator.readValueWithPointerDereference(
-            newState, arrayAddr.getMemoryAddress(), finalOffset, typeSizeInBits);
+            newState, arrayAddr.getMemoryAddress(), finalOffset, typeSizeInBits, returnType);
       }
     } else if (arrayValue instanceof SymbolicIdentifier
         && ((SymbolicIdentifier) arrayValue).getRepresentedLocation().isPresent()) {
@@ -308,7 +307,7 @@ public class SMGCPAValueVisitor
         // All else gets wrapped and the final read/deref will throw an error
         ValueAndSMGState readPointerAndState =
             evaluator.readStackOrGlobalVariable(
-                newState, qualifiedVarName, finalOffset, typeSizeInBits);
+                newState, qualifiedVarName, finalOffset, typeSizeInBits, returnType);
         if (readPointerAndState.getValue().isUnknown()) {
           return ValueAndSMGState.ofUnknownValue(readPointerAndState.getState());
         } else {
@@ -320,7 +319,7 @@ public class SMGCPAValueVisitor
       } else {
         // TODO: check that the return types match what we return!!!!
         return evaluator.readStackOrGlobalVariable(
-            newState, qualifiedVarName, finalOffset, typeSizeInBits);
+            newState, qualifiedVarName, finalOffset, typeSizeInBits, returnType);
       }
 
     } else {
@@ -645,7 +644,11 @@ public class SMGCPAValueVisitor
       // Now use the qualified name to get the actual global/stack memory location
       ValueAndSMGState readValueAndState =
           evaluator.readStackOrGlobalVariable(
-              state, varDecl.getQualifiedName(), BigInteger.ZERO, sizeInBits);
+              state,
+              varDecl.getQualifiedName(),
+              BigInteger.ZERO,
+              sizeInBits,
+              SMGCPAValueExpressionEvaluator.getCanonicalType(e));
       Value readValue = readValueAndState.getValue();
       SMGState currentState = readValueAndState.getState();
 
@@ -665,7 +668,11 @@ public class SMGCPAValueVisitor
       // Now use the qualified name to get the actual global/stack memory location
       ValueAndSMGState readValueAndState =
           evaluator.readStackOrGlobalVariable(
-              state, varDecl.getQualifiedName(), BigInteger.ZERO, sizeInBits);
+              state,
+              varDecl.getQualifiedName(),
+              BigInteger.ZERO,
+              sizeInBits,
+              SMGCPAValueExpressionEvaluator.getCanonicalType(e));
 
       return ImmutableList.of(readValueAndState);
     }
@@ -854,7 +861,11 @@ public class SMGCPAValueVisitor
         // Dereference the Value and return it. The read checks for validity etc.
         ValueAndSMGState readArray =
             evaluator.readValueWithPointerDereference(
-                currentState, pointerValue.getMemoryAddress(), offsetInBits, sizeInBits);
+                currentState,
+                pointerValue.getMemoryAddress(),
+                offsetInBits,
+                sizeInBits,
+                returnType);
         currentState = readArray.getState();
         builder.add(readArray);
 
@@ -867,7 +878,11 @@ public class SMGCPAValueVisitor
         // Dereference the Value and return it. The read checks for validity etc.
         ValueAndSMGState readValueAndState =
             evaluator.readValueWithPointerDereference(
-                currentState, pointerValue.getMemoryAddress(), offsetInBits, sizeInBits);
+                currentState,
+                pointerValue.getMemoryAddress(),
+                offsetInBits,
+                sizeInBits,
+                returnType);
 
         if (returnType instanceof CPointerType) {
           // In the pointer case we would need to encapsulate it again

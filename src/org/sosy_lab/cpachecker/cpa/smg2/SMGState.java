@@ -39,6 +39,8 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
+import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
+import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.defaults.LatticeAbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
@@ -498,7 +500,7 @@ public class SMGState
     }
 
     SMGObject memoryToRead = memoryModel.getObjectForVariable(variableName).orElseThrow();
-    return readValue(memoryToRead, offsetInBits, sizeOfReadInBits).getValue();
+    return readValue(memoryToRead, offsetInBits, sizeOfReadInBits, null).getValue();
   }
 
   /**
@@ -1608,10 +1610,14 @@ public class SMGState
    * @param pObject {@link SMGObject} where to read. May not be 0.
    * @param pFieldOffset {@link BigInteger} offset.
    * @param pSizeofInBits {@link BigInteger} sizeInBits.
+   * @param readType the {@link CType} of the read. Not casted! Null for irrelevant types.
    * @return The {@link Value} read and the {@link SMGState} after the read.
    */
   public ValueAndSMGState readValue(
-      SMGObject pObject, BigInteger pFieldOffset, BigInteger pSizeofInBits) {
+      SMGObject pObject,
+      BigInteger pFieldOffset,
+      BigInteger pSizeofInBits,
+      @Nullable CType readType) {
     if (!memoryModel.isObjectValid(pObject) && !memoryModel.isObjectExternallyAllocated(pObject)) {
       return ValueAndSMGState.of(UnknownValue.getInstance(), withInvalidRead(pObject));
     }
@@ -1625,7 +1631,13 @@ public class SMGState
     if (maybeValue.isPresent()) {
       // The Value to the SMGValue is already known, use it
       Preconditions.checkArgument(!(maybeValue.orElseThrow() instanceof AddressExpression));
-      return ValueAndSMGState.of(maybeValue.orElseThrow(), newState);
+      Value valueRead = maybeValue.orElseThrow();
+      if (readType != null && doesRequireUnionFloatConversion(valueRead, readType)) {
+        // Float conversion is limited to the Java float types at the moment.
+        // Larger float types are almost always unknown
+        valueRead = castValueForUnionFloatConversion(valueRead, readType);
+      }
+      return ValueAndSMGState.of(valueRead, newState);
     }
     // If there is no Value for the SMGValue, we need to create it as an unknown, map it and return
     Value unknownValue = SymbolicValueFactory.getInstance().newIdentifier(null);
@@ -1633,6 +1645,84 @@ public class SMGState
         unknownValue,
         copyAndReplaceMemoryModel(
             newState.getMemoryModel().copyAndPutValue(unknownValue, readSMGValue)));
+  }
+
+  private boolean doesRequireUnionFloatConversion(Value valueRead, CType readType) {
+    if (!valueRead.isNumericValue()) {
+      return false;
+    }
+    if (readType instanceof CSimpleType) {
+      // if only one of them is no integer type, a conversion is necessary
+      return isFloatingPointType(valueRead) != isFloatingPointType(readType);
+    } else {
+      return false;
+    }
+  }
+
+  private boolean isFloatingPointType(CType pType) {
+    if (pType instanceof CSimpleType) {
+      return ((CSimpleType) pType).getType().isFloatingPointType();
+    }
+    return false;
+  }
+
+  private boolean isFloatingPointType(Value value) {
+    if (!value.isNumericValue()) {
+      return false;
+    }
+    Number num = value.asNumericValue().getNumber();
+    return num instanceof Float || num instanceof Double;
+  }
+
+  /** The only important thing is that the expectedType is NOT the left hand side type or any cast type, but the type of the read before any casts etc.! **/
+  private Value castValueForUnionFloatConversion(Value readValue, CType expectedType) {
+    if (readValue.isNumericValue()) {
+      if (isFloatingPointType(readValue)) {
+        return extractFloatingPointValueAsIntegralValue(readValue);
+      } else if (isFloatingPointType(expectedType.getCanonicalType())) {
+        return extractIntegralValueAsFloatingPointValue(expectedType.getCanonicalType(), readValue);
+        }
+      }
+
+      return UnknownValue.getInstance();
+  }
+
+  private Value extractFloatingPointValueAsIntegralValue(Value readValue) {
+    Number numberValue = readValue.asNumericValue().getNumber();
+
+    if (numberValue instanceof Float) {
+      float floatValue = numberValue.floatValue();
+      int intBits = Float.floatToIntBits(floatValue);
+
+      return new NumericValue(BigInteger.valueOf(intBits));
+    } else if (numberValue instanceof Double) {
+      double doubleValue = numberValue.doubleValue();
+      long longBits = Double.doubleToLongBits(doubleValue);
+
+      return new NumericValue(BigInteger.valueOf(longBits));
+    }
+
+    return UnknownValue.getInstance();
+  }
+
+  private Value extractIntegralValueAsFloatingPointValue(CType pReadType, Value readValue) {
+    if (pReadType instanceof CSimpleType) {
+      CBasicType basicReadType = ((CSimpleType) pReadType.getCanonicalType()).getType();
+      NumericValue numericValue = readValue.asNumericValue();
+
+      if (basicReadType.equals(CBasicType.FLOAT)) {
+        int bits = numericValue.bigInteger().intValue();
+        float floatValue = Float.intBitsToFloat(bits);
+
+        return new NumericValue(floatValue);
+      } else if (basicReadType.equals(CBasicType.DOUBLE)) {
+        long bits = numericValue.bigInteger().longValue();
+        double doubleValue = Double.longBitsToDouble(bits);
+
+        return new NumericValue(doubleValue);
+      }
+    }
+    return UnknownValue.getInstance();
   }
 
   /**

@@ -15,6 +15,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.DummyCFAEdge;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
@@ -563,13 +564,19 @@ public class SMGCPAValueExpressionEvaluator {
    *     the variable should be read from.
    * @param varName name of the global or stack variable to be read.
    * @param sizeInBits size of the type to be read.
+   * @param readType the type of the read value before casts etc. Used to determine union float
+   *     conversion.
    * @return {@link ValueAndSMGState} with the updated {@link SMGState} and the read {@link Value}.
    *     The Value might be unknown either because it was read as unknown or because the variable
    *     was not initialized.
    * @throws CPATransferException if the variable is not known in the memory model (SPC)
    */
   public ValueAndSMGState readStackOrGlobalVariable(
-      SMGState initialState, String varName, BigInteger offsetInBits, BigInteger sizeInBits)
+      SMGState initialState,
+      String varName,
+      BigInteger offsetInBits,
+      BigInteger sizeInBits,
+      CType readType)
       throws CPATransferException {
 
     Optional<SMGObject> maybeObject =
@@ -581,7 +588,7 @@ public class SMGCPAValueExpressionEvaluator {
       // The Value does not matter here as the error state should always end the analysis
       return ValueAndSMGState.ofUnknownValue(errorState);
     }
-    return readValue(initialState, maybeObject.orElseThrow(), offsetInBits, sizeInBits);
+    return readValue(initialState, maybeObject.orElseThrow(), offsetInBits, sizeInBits, readType);
   }
 
   /**
@@ -593,10 +600,12 @@ public class SMGCPAValueExpressionEvaluator {
    *     known {@link SMGObject} or a {@link SMGPointsToEdge}.
    * @param pOffset the offset as {@link BigInteger} in bits where to start reading in the object.
    * @param pSizeInBits the size of the type to read in bits as {@link BigInteger}.
+   * @param readType the type of the read value before casts etc. Used to determine union float
+   *     conversion.
    * @return {@link ValueAndSMGState} tuple for the read {@link Value} and the new {@link SMGState}.
    */
   public ValueAndSMGState readValueWithPointerDereference(
-      SMGState pState, Value value, BigInteger pOffset, BigInteger pSizeInBits)
+      SMGState pState, Value value, BigInteger pOffset, BigInteger pSizeInBits, CType readType)
       throws SMG2Exception {
     // Get the SMGObject for the value
     Optional<SMGObjectAndOffset> maybeTargetAndOffset =
@@ -621,7 +630,7 @@ public class SMGCPAValueExpressionEvaluator {
     BigInteger baseOffset = maybeTargetAndOffset.orElseThrow().getOffsetForObject();
     BigInteger offset = baseOffset.add(pOffset);
 
-    return readValue(pState, object, offset, pSizeInBits);
+    return readValue(pState, object, offset, pSizeInBits, readType);
   }
 
   /**
@@ -737,10 +746,16 @@ public class SMGCPAValueExpressionEvaluator {
    * @param object the {@link SMGObject} to be read from.
    * @param offsetInBits the offset in bits as {@link BigInteger}.
    * @param sizeInBits size of the read value in bits as {@link BigInteger}.
+   * @param readType the uncasted type of the read (right hand side innermost type). Null only if
+   *     its certain that implicit union casts are not possible.
    * @return {@link ValueAndSMGState} bundeling the most up to date state and the read value.
    */
   private ValueAndSMGState readValue(
-      SMGState currentState, SMGObject object, BigInteger offsetInBits, BigInteger sizeInBits)
+      SMGState currentState,
+      SMGObject object,
+      BigInteger offsetInBits,
+      BigInteger sizeInBits,
+      @Nullable CType readType)
       throws SMG2Exception {
     // Check that the offset and offset + size actually fit into the SMGObject
     boolean doesNotFitIntoObject =
@@ -754,7 +769,7 @@ public class SMGCPAValueExpressionEvaluator {
       return ValueAndSMGState.ofUnknownValue(errorState);
     }
     // The read in SMGState checks for validity and external allocation
-    return currentState.readValue(object, offsetInBits, sizeInBits);
+    return currentState.readValue(object, offsetInBits, sizeInBits, readType);
   }
 
   /**
@@ -1150,7 +1165,7 @@ public class SMGCPAValueExpressionEvaluator {
     boolean foundNoStringTerminationChar = true;
     while (foundNoStringTerminationChar) {
       ValueAndSMGState valueAndState1 =
-          readValue(currentState, firstObject, firstOffsetInBits, sizeOfCharInBits);
+          readValue(currentState, firstObject, firstOffsetInBits, sizeOfCharInBits, null);
       Value value1 = valueAndState1.getValue();
       currentState = valueAndState1.getState();
 
@@ -1159,7 +1174,7 @@ public class SMGCPAValueExpressionEvaluator {
       }
 
       ValueAndSMGState valueAndState2 =
-          readValue(currentState, secondObject, secondOffsetInBits, sizeOfCharInBits);
+          readValue(currentState, secondObject, secondOffsetInBits, sizeOfCharInBits, null);
       Value value2 = valueAndState2.getValue();
       currentState = valueAndState2.getState();
 

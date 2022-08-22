@@ -320,7 +320,7 @@ public class SMGTransferRelation
       Preconditions.checkArgument(returnObject.isPresent());
       // Read the return object with its type
       ValueAndSMGState readValueAndState =
-          state.readValue(returnObject.orElseThrow(), BigInteger.ZERO, sizeInBits);
+          state.readValue(returnObject.orElseThrow(), BigInteger.ZERO, sizeInBits, rightValueType);
 
       // Now we can drop the stack frame as we left the function and have the return value
       SMGState currentState = readValueAndState.getState().dropStackFrame();
