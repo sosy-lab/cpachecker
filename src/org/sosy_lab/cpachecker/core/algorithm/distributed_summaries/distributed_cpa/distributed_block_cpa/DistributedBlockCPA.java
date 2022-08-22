@@ -13,7 +13,6 @@ import static com.google.common.base.Preconditions.checkArgument;
 import com.google.common.collect.ImmutableSet;
 import java.util.Collection;
 import java.util.function.Supplier;
-import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.BlockNode;
@@ -54,8 +53,7 @@ public class DistributedBlockCPA implements DistributedConfigurableProgramAnalys
       ConfigurableProgramAnalysis pBlockCPA,
       BlockNode pNode,
       AnalysisDirection pDirection,
-      Supplier<Collection<DistributedConfigurableProgramAnalysis>> pFutureAnalyses)
-      throws InvalidConfigurationException {
+      Supplier<Collection<DistributedConfigurableProgramAnalysis>> pFutureAnalyses) {
     checkArgument(
         pBlockCPA instanceof BlockCPA || pBlockCPA instanceof BlockCPABackward, /* TODO make lazy */
         pBlockCPA.getClass() + " is no block CPA.");

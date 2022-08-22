@@ -105,7 +105,8 @@ public class BlockGraph {
       ImmutableSet.Builder<BlockNodeMetaData> predecessors =
           ImmutableSet.<BlockNodeMetaData>builder()
               .addAll(endingPoints.get(blockNode.getStartNode()));
-      if (pPrependRoot && blockNode.getStartNode().equals(root.getLastNode())) {
+      // check for root != null unnecessary but SpotBugs complained.
+      if (pPrependRoot && root != null && blockNode.getStartNode().equals(root.getLastNode())) {
         predecessors.add(root.getMetaData());
       }
       BlockNode curr =
