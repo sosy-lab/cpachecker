@@ -429,21 +429,20 @@ public class SMGCPABuiltins {
   private List<SMGState> checkAllParametersForValidity(
       SMGState pState, CFAEdge pCfaEdge, CFunctionCallExpression cFCExpression)
       throws CPATransferException {
-    ImmutableList.Builder<SMGState> stateBuilder = ImmutableList.builder();
     // check that we can safely read all args,
     // to avoid invalid-derefs like   int * p; printf("%d", *p);
+    SMGState currentState = pState;
     for (CExpression param : cFCExpression.getParameterExpressions()) {
       if (param instanceof CPointerExpression) {
         SMGCPAValueVisitor valueVisitor =
-            new SMGCPAValueVisitor(evaluator, pState, pCfaEdge, logger);
+            new SMGCPAValueVisitor(evaluator, currentState, pCfaEdge, logger);
         for (ValueAndSMGState valueAndState : param.accept(valueVisitor)) {
-          // We are only interested in the error info, hence why we don't change the inital state
-          // here
-          stateBuilder.add(valueAndState.getState());
+          // We only want error states
+          currentState = valueAndState.getState();
         }
       }
     }
-    return stateBuilder.build();
+    return ImmutableList.of(currentState);
   }
 
   /**
