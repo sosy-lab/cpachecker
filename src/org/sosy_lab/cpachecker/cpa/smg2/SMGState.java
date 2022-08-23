@@ -851,11 +851,18 @@ public class SMGState
     }
 
     if (thisValue.isNumericValue() && otherValue.isNumericValue()) {
-      return thisValue
-              .asNumericValue()
-              .bigInteger()
-              .compareTo(otherValue.asNumericValue().bigInteger())
-          == 0;
+      Number thisNum = thisValue.asNumericValue().getNumber();
+      Number otherNum = otherValue.asNumericValue().getNumber();
+      if (thisNum.getClass() != otherNum.getClass()) {
+        return false;
+      } else if (thisNum instanceof Float
+          && (((Float) thisNum).isNaN() || ((Float) otherNum).isNaN())) {
+        return false;
+      } else if (thisNum instanceof Double
+          && (((Double) thisNum).isNaN() || ((Double) otherNum).isNaN())) {
+        return false;
+      }
+      return thisNum.equals(otherNum);
     }
 
     // Unknowns in this current CPA implementation are not comparable in different states!
@@ -2380,5 +2387,18 @@ public class SMGState
       }
     }
     return false;
+  }
+
+  @Override
+  public String toString() {
+    StringBuilder builder = new StringBuilder();
+
+    for (Entry<MemoryLocation, ValueAndValueSize> memLoc :
+        memoryModel.getMemoryLocationsAndValuesForSPCWithoutHeap().entrySet()) {
+      builder.append(memLoc.getKey() + ": " + memLoc.getValue().getValue());
+      builder.append("\n");
+    }
+
+    return builder.toString();
   }
 }
