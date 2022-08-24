@@ -327,6 +327,7 @@ public class SMGPathInterpolator extends GenericPathInterpolator<SMGState, SMGIn
           else if (!functionCallInfo.getSecond()
               && abstractEdges.get(iterator.getIndex()).getEdgeType()
                   == CFAEdgeType.FunctionReturnEdge) {
+            abstractEdges.set(functionCallInfo.getThird(), functionCallInfo.getFirst());
             for (int j = iterator.getIndex(); j >= 0; j--) {
               if (functionCallInfo.getFirst() == abstractEdges.get(j)) {
                 abstractEdges.set(j, functionCallInfo.getFirst());
@@ -339,7 +340,7 @@ public class SMGPathInterpolator extends GenericPathInterpolator<SMGState, SMGIn
 
       iterator.advance();
     }
-    
+
     // SMGs NEED the correct function calls, we need to restore ALL function calls not yet restored but that are relevant (not returned)
     for (Triple<FunctionCallEdge, Boolean, Integer> functionCallInfo : functionCalls) {
       abstractEdges.set(functionCallInfo.getThird(), functionCallInfo.getFirst());
