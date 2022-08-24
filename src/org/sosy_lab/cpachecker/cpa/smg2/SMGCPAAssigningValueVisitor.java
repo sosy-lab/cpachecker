@@ -8,8 +8,6 @@
 
 package org.sosy_lab.cpachecker.cpa.smg2;
 
-import static com.google.common.base.Preconditions.checkState;
-
 import com.google.common.collect.ImmutableList;
 import java.math.BigInteger;
 import java.util.Collection;
@@ -29,6 +27,8 @@ import org.sosy_lab.cpachecker.cpa.smg2.util.SMG2Exception;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGObjectAndOffsetOrSMGState;
 import org.sosy_lab.cpachecker.cpa.smg2.util.value.SMGCPAValueExpressionEvaluator;
 import org.sosy_lab.cpachecker.cpa.smg2.util.value.ValueAndSMGState;
+import org.sosy_lab.cpachecker.cpa.value.symbolic.type.AddressExpression;
+import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicIdentifier;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValue;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
@@ -87,7 +87,7 @@ public class SMGCPAAssigningValueVisitor extends SMGCPAValueVisitor {
       for (ValueAndSMGState rightValueAndState :
           rVarInBinaryExp.accept(
               new SMGCPAValueVisitor(evaluator, leftValueAndState.getState(), edge, logger))) {
-        Value rightValue = leftValueAndState.getValue();
+        Value rightValue = rightValueAndState.getValue();
         SMGState currentState = rightValueAndState.getState();
 
         // (a == b) case
@@ -97,7 +97,7 @@ public class SMGCPAAssigningValueVisitor extends SMGCPAValueVisitor {
               ImmutableList.of(ValueAndSMGState.ofUnknownValue(currentState));
           // if (true == (unknown == concrete_value)) we set the value (for true left and right)
           if (leftValue.isExplicitlyKnown()) {
-            Number lNum = leftValue.asNumericValue().bigInteger();
+            Number lNum = leftValue.asNumericValue().getNumber();
             if (BigInteger.ONE.equals(lNum)) {
               updatedStates =
                   rVarInBinaryExp.accept(
@@ -136,13 +136,14 @@ public class SMGCPAAssigningValueVisitor extends SMGCPAValueVisitor {
                 && isAssignable(rightHandSideAssignments, rVarInBinaryExp)) {
               updatedState = replaceValue(rightValue, leftValue, updatedState);
             }
+
+            finalValueAndStateBuilder.addAll(
+                pE.accept(new SMGCPAValueVisitor(evaluator, updatedState, edge, logger)));
           }
 
           // We know that if we are in this (equality) case, the inequality case can't be chosen
           // later on
           // The states are set such that now we get the values we want in the value visitor
-          finalValueAndStateBuilder.addAll(
-              pE.accept(new SMGCPAValueVisitor(evaluator, updatedState, edge, logger)));
           continue;
         }
 
@@ -257,7 +258,13 @@ public class SMGCPAAssigningValueVisitor extends SMGCPAValueVisitor {
   }
 
   private boolean isEligibleForAssignment(final Value pValue) {
-    return !pValue.isExplicitlyKnown() && options.isAssignEqualityAssumptions();
+    // We can't assign memory location carriers. They are indicators for pointers, which are treated
+    // like concrete values!
+    return !pValue.isExplicitlyKnown()
+        && options.isAssignEqualityAssumptions()
+        && !(pValue instanceof AddressExpression)
+        && !(pValue instanceof SymbolicIdentifier
+            && ((SymbolicIdentifier) pValue).getRepresentedLocation().isPresent());
   }
 
   // TODO: option?
@@ -266,12 +273,13 @@ public class SMGCPAAssigningValueVisitor extends SMGCPAValueVisitor {
   }
 
   private SMGState replaceValue(Value oldValue, Value newValue, SMGState state) {
-    // TODO: check types of the new old values!
-    checkState(
-        !(oldValue instanceof SymbolicValue),
-        "Symbolic values should never be replaced by a concrete value");
-
-    return state.copyAndReplaceValueMapping(oldValue, newValue);
+    if (options.isAssignEqualityAssumptions()) {
+      return state.copyAndReplaceValueMapping(oldValue, newValue);
+    } else if (!(oldValue instanceof SymbolicValue)) {
+      // Symbolic values should never be replaced by a concrete values
+      return state.copyAndReplaceValueMapping(oldValue, newValue);
+    }
+    return state;
   }
 
   /**

@@ -332,15 +332,31 @@ public class SymbolicProgramConfiguration {
   public SymbolicProgramConfiguration copyAndReplaceValueMapping(
       Value oldValue, Value newValueToBeAssigned) {
     ImmutableBiMap.Builder<Equivalence.Wrapper<Value>, SMGValue> builder = ImmutableBiMap.builder();
+    SMGValue oldSMGValue = null;
+    SMGValue newSMGValue = null;
     for (Entry<Equivalence.Wrapper<Value>, SMGValue> entry : valueMapping.entrySet()) {
+      if (entry.getKey().equals(valueWrapper.wrap(newValueToBeAssigned))) {
+        newSMGValue = entry.getValue();
+      }
       if (entry.getKey().equals(valueWrapper.wrap(oldValue))) {
-        builder.put(valueWrapper.wrap(newValueToBeAssigned), entry.getValue());
+        oldSMGValue = entry.getValue();
       } else {
         builder.put(entry);
       }
     }
+    Preconditions.checkNotNull(oldSMGValue);
+    SMG newSMG = smg;
+    if (newSMGValue == null) {
+      // if newSMGValue is null, there is no mapping known, we can change it freely
+      builder.put(valueWrapper.wrap(newValueToBeAssigned), oldSMGValue);
+    } else {
+      // If there is a mapping known, we need to remove oldSMGValue from the Value list in the SMG
+      // and replace it everywhere with newSMGValue
+      newSMG = smg.copyAndRemoveValue(oldSMGValue);
+      newSMG = smg.copyAndReplaceValueForHVEdges(oldSMGValue, newSMGValue);
+    }
     return of(
-        smg,
+        newSMG,
         globalVariableMapping,
         stackVariableMapping,
         heapObjects,
