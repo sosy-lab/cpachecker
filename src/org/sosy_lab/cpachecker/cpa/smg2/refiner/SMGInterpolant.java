@@ -19,6 +19,7 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
@@ -32,6 +33,7 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.smg.util.PersistentStack;
 import org.sosy_lab.cpachecker.cpa.smg2.SMGOptions;
 import org.sosy_lab.cpachecker.cpa.smg2.SMGState;
+import org.sosy_lab.cpachecker.cpa.smg2.util.CFunctionDeclarationAndOptionalValue;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMG2Exception;
 import org.sosy_lab.cpachecker.cpa.smg2.util.ValueAndValueSize;
 import org.sosy_lab.cpachecker.util.refinement.Interpolant;
@@ -50,7 +52,8 @@ public final class SMGInterpolant implements Interpolant<SMGState, SMGInterpolan
 
   private final @Nullable Map<String, CType> variableToTypeMap;
 
-  private final @Nullable PersistentStack<CFunctionDeclaration> stackFrameDeclarations;
+  private final @Nullable PersistentStack<CFunctionDeclarationAndOptionalValue>
+      stackFrameDeclarations;
 
   private final SMGOptions options;
   private final MachineModel machineModel;
@@ -72,7 +75,9 @@ public final class SMGInterpolant implements Interpolant<SMGState, SMGInterpolan
     variableNameToMemorySizeInBits = new HashMap<>();
     variableToTypeMap = new HashMap<>();
     stackFrameDeclarations =
-        PersistentStack.<CFunctionDeclaration>of().pushAndCopy(pCFAEntryFunctionDef);
+        PersistentStack.<CFunctionDeclarationAndOptionalValue>of()
+            .pushAndCopy(
+                CFunctionDeclarationAndOptionalValue.of(pCFAEntryFunctionDef, Optional.empty()));
     cfaEntryFunctionDeclaration = pCFAEntryFunctionDef;
   }
 
@@ -90,7 +95,7 @@ public final class SMGInterpolant implements Interpolant<SMGState, SMGInterpolan
       PersistentMap<MemoryLocation, ValueAndValueSize> pNonHeapAssignments,
       Map<String, BigInteger> pVariableNameToMemorySizeInBits,
       Map<String, CType> pVariableToTypeMap,
-      PersistentStack<CFunctionDeclaration> pStackFrameDeclarations,
+      PersistentStack<CFunctionDeclarationAndOptionalValue> pStackFrameDeclarations,
       CFunctionDeclaration pCfaEntryFunDecl) {
     options = pOptions;
     machineModel = pMachineModel;
@@ -109,11 +114,11 @@ public final class SMGInterpolant implements Interpolant<SMGState, SMGInterpolan
 
   // Precondition
   private boolean hasEntryFunDef(
-      PersistentStack<CFunctionDeclaration> pStackFrameDeclarations,
+      PersistentStack<CFunctionDeclarationAndOptionalValue> pStackFrameDeclarations,
       CFunctionDeclaration pCfaEntryFunDecl) {
     CFunctionDeclaration firstDef = null;
-    for (CFunctionDeclaration fundef : pStackFrameDeclarations) {
-      firstDef = fundef;
+    for (CFunctionDeclarationAndOptionalValue fundef : pStackFrameDeclarations) {
+      firstDef = fundef.getCFunctionDeclaration();
       break;
     }
     Preconditions.checkNotNull(firstDef);
@@ -205,7 +210,8 @@ public final class SMGInterpolant implements Interpolant<SMGState, SMGInterpolan
           : "interpolants mismatch in " + entry.getKey();
     }
 
-    @Nullable PersistentStack<CFunctionDeclaration> stackFrameDecl = stackFrameDeclarations;
+    @Nullable
+    PersistentStack<CFunctionDeclarationAndOptionalValue> stackFrameDecl = stackFrameDeclarations;
     if (stackFrameDecl == null
         || (other.stackFrameDeclarations != null
             && other.stackFrameDeclarations.size() > stackFrameDecl.size())) {
@@ -394,8 +400,8 @@ public final class SMGInterpolant implements Interpolant<SMGState, SMGInterpolan
    */
   public boolean isSanityIntact() {
     HashSet<String> availableFunctions = new HashSet<>();
-    for (CFunctionDeclaration fundef : stackFrameDeclarations) {
-      availableFunctions.add(fundef.getQualifiedName());
+    for (CFunctionDeclarationAndOptionalValue fundef : stackFrameDeclarations) {
+      availableFunctions.add(fundef.getCFunctionDeclaration().getQualifiedName());
     }
     for (MemoryLocation assignment : nonHeapAssignments.keySet()) {
       if (assignment.isOnFunctionStack()) {

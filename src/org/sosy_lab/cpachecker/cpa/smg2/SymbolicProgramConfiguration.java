@@ -33,6 +33,7 @@ import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.smg.util.PersistentSet;
 import org.sosy_lab.cpachecker.cpa.smg.util.PersistentStack;
+import org.sosy_lab.cpachecker.cpa.smg2.util.CFunctionDeclarationAndOptionalValue;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGObjectAndOffset;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGObjectsAndValues;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGValueAndSPC;
@@ -1009,7 +1010,8 @@ public class SymbolicProgramConfiguration {
   /**
    * Returns local and global variables as {@link MemoryLocation}s and their respective Values and
    * type sizes (SMGs allow reads from different types, just the size has to match). This does not
-   * return any heap related variables. (no pointers)
+   * return any heap related memory. This does return pointers, but not the structure behind the
+   * pointers. Nor the return value in a stack frame.
    *
    * @return a mapping of global/local program variables to their values and sizes.
    */
@@ -1035,6 +1037,10 @@ public class SymbolicProgramConfiguration {
     }
 
     for (StackFrame stackframe : stackVariableMapping) {
+      if (stackframe.getReturnObject().isPresent()) {
+        // There is a return object!
+
+      }
       for (Entry<String, SMGObject> localVariable : stackframe.getVariables().entrySet()) {
         String qualifiedName = localVariable.getKey();
         SMGObject memory = localVariable.getValue();
@@ -1077,10 +1083,33 @@ public class SymbolicProgramConfiguration {
   }
 
   /* We need the stack frames with their definitions as copies to rebuild the state. */
-  public PersistentStack<CFunctionDeclaration> getFunctionDeclarationsFromStackFrames() {
-    PersistentStack<CFunctionDeclaration> decls = PersistentStack.of();
+  public PersistentStack<CFunctionDeclarationAndOptionalValue>
+      getFunctionDeclarationsFromStackFrames() {
+    PersistentStack<CFunctionDeclarationAndOptionalValue> decls = PersistentStack.of();
     for (StackFrame frame : stackVariableMapping) {
-      decls = decls.pushAndCopy(frame.getFunctionDefinition());
+      if (frame.getReturnObject().isEmpty()) {
+        decls =
+            decls.pushAndCopy(
+                CFunctionDeclarationAndOptionalValue.of(
+                    frame.getFunctionDefinition(), Optional.empty()));
+      } else {
+        // Search for the return Value, there might be none if we are not on the return edge
+        FluentIterable<SMGHasValueEdge> edges =
+            smg.getHasValueEdgesByPredicate(frame.getReturnObject().orElseThrow(), n -> true);
+        if (edges.size() == 0) {
+          decls =
+              decls.pushAndCopy(
+                  CFunctionDeclarationAndOptionalValue.of(
+                      frame.getFunctionDefinition(), Optional.empty()));
+          continue;
+        }
+        Preconditions.checkArgument(edges.size() == 1);
+        Value returnValue = getValueFromSMGValue(edges.get(0).hasValue()).orElseThrow();
+        decls =
+            decls.pushAndCopy(
+                CFunctionDeclarationAndOptionalValue.of(
+                    frame.getFunctionDefinition(), Optional.of(returnValue)));
+      }
     }
     return decls;
   }
