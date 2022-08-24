@@ -460,18 +460,12 @@ public class SMGCPAValueExpressionEvaluator {
     Optional<SMGObjectAndOffset> maybeTargetAndOffset =
         pState.getMemoryModel().dereferencePointer(targetAddress);
     if (maybeTargetAndOffset.isEmpty()) {
-      // The value is unknown and therefore does not point to a valid memory location
-      SMGState errorState = pState.withUnknownPointerDereferenceWhenReading(targetAddress);
-      return ValueAndSMGState.ofUnknownValue(errorState);
+      // The value is unknown and therefore does not point to a known memory location
+      return ValueAndSMGState.ofUnknownValue(pState);
     }
     SMGObject object = maybeTargetAndOffset.orElseThrow().getSMGObject();
 
-    // The object may be null if no such object exists, check and log if 0
-    if (object.isZero()) {
-      SMGState errorState = pState.withNullPointerDereferenceWhenReading(object);
-      return ValueAndSMGState.ofUnknownValue(errorState);
-    }
-
+    // The object may be null, which is fine, the deref is the problem
     // The offset of the pointer used. (the pointer might point to a offset != 0, the other offset
     // needs to the added to that!)
     BigInteger baseOffset = maybeTargetAndOffset.orElseThrow().getOffsetForObject();
