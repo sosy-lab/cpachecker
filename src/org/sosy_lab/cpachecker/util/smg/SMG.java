@@ -12,7 +12,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.FluentIterable;
-import com.google.common.collect.HashBiMap;
+import com.google.common.collect.ImmutableBiMap;
 import com.google.common.collect.ImmutableSortedMap;
 import java.math.BigInteger;
 import java.util.ArrayDeque;
@@ -21,6 +21,7 @@ import java.util.Comparator;
 import java.util.Deque;
 import java.util.HashSet;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.NavigableMap;
 import java.util.Objects;
 import java.util.Optional;
@@ -53,7 +54,7 @@ public class SMG {
   private final PersistentMap<SMGObject, Boolean> smgObjects;
   private final PersistentSet<SMGValue> smgValues;
   private final PersistentMap<SMGObject, PersistentSet<SMGHasValueEdge>> hasValueEdges;
-  private final BiMap<SMGValue, SMGPointsToEdge> pointsToEdges;
+  private final ImmutableBiMap<SMGValue, SMGPointsToEdge> pointsToEdges;
   private final BigInteger sizeOfPointer;
 
   /** Creates a new, empty SMG */
@@ -64,9 +65,9 @@ public class SMG {
     smgObjects = smgObjectsTmp.putAndCopy(SMGObject.nullInstance(), false);
     SMGPointsToEdge nullPointer =
         new SMGPointsToEdge(getNullObject(), BigInteger.ZERO, SMGTargetSpecifier.IS_REGION);
-    BiMap<SMGValue, SMGPointsToEdge> pointsToEdgesTmpMap = HashBiMap.create();
-    pointsToEdgesTmpMap.put(SMGValue.zeroValue(), nullPointer);
-    pointsToEdges = pointsToEdgesTmpMap;
+    ImmutableBiMap.Builder<SMGValue, SMGPointsToEdge> pointsToEdgesBuilder = ImmutableBiMap.builder();
+    pointsToEdgesBuilder.put(SMGValue.zeroValue(), nullPointer);
+    pointsToEdges = pointsToEdgesBuilder.build();
     sizeOfPointer = pSizeOfPointer;
   }
 
@@ -74,7 +75,7 @@ public class SMG {
       PersistentMap<SMGObject, Boolean> pSmgObjects,
       PersistentSet<SMGValue> pSmgValues,
       PersistentMap<SMGObject, PersistentSet<SMGHasValueEdge>> pHasValueEdges,
-      BiMap<SMGValue, SMGPointsToEdge> pPointsToEdges,
+      ImmutableBiMap<SMGValue, SMGPointsToEdge> pPointsToEdges,
       BigInteger pSizeOfPointer) {
     smgObjects = pSmgObjects;
     smgValues = pSmgValues;
@@ -128,6 +129,32 @@ public class SMG {
     return returnSmg;
   }
 
+  public SMG copyAndReplaceValueForHVEdges(SMGValue oldSMGValue, SMGValue newSMGValue) {
+    PersistentMap<SMGObject, PersistentSet<SMGHasValueEdge>> newHasValueEdges =
+        PathCopyingPersistentTreeMap.of();
+    for (Entry<SMGObject, PersistentSet<SMGHasValueEdge>> entry : hasValueEdges.entrySet()) {
+      boolean contains = false;
+      for (SMGHasValueEdge hvEdge : entry.getValue()) {
+        if (hvEdge.hasValue().equals(oldSMGValue)) {
+          contains = true;
+          PersistentSet<SMGHasValueEdge> newSet =
+              entry
+                  .getValue()
+                  .removeAndCopy(hvEdge)
+                  .addAndCopy(
+                      new SMGHasValueEdge(newSMGValue, hvEdge.getOffset(), hvEdge.getSizeInBits()));
+          newHasValueEdges = newHasValueEdges.putAndCopy(entry.getKey(), newSet);
+        }
+      }
+      if (!contains) {
+        // Save to copy the entire entry
+        newHasValueEdges = newHasValueEdges.putAndCopy(entry.getKey(), entry.getValue());
+      }
+    }
+
+    return new SMG(smgObjects, smgValues, newHasValueEdges, pointsToEdges, sizeOfPointer);
+  }
+
   /**
    * Creates a copy of the SMG an adds the given has value edge.
    *
@@ -164,9 +191,10 @@ public class SMG {
       return this;
     }
 
-    BiMap<SMGValue, SMGPointsToEdge> newBiMap = HashBiMap.create(pointsToEdges);
-    newBiMap.put(source, edge);
-    return new SMG(smgObjects, smgValues, hasValueEdges, newBiMap, sizeOfPointer);
+    ImmutableBiMap.Builder<SMGValue, SMGPointsToEdge> pointsToEdgesBuilder = ImmutableBiMap.builder();
+    pointsToEdgesBuilder.putAll(pointsToEdges);
+    pointsToEdgesBuilder.put(source, edge);
+    return new SMG(smgObjects, smgValues, hasValueEdges, pointsToEdgesBuilder.build(), sizeOfPointer);
   }
 
   /**
@@ -230,9 +258,10 @@ public class SMG {
    * @return A modified copy of the SMG.
    */
   public SMG copyAndSetPTEdges(SMGPointsToEdge edge, SMGValue source) {
-    BiMap<SMGValue, SMGPointsToEdge> newBiMap = HashBiMap.create(pointsToEdges);
-    newBiMap.put(source, edge);
-    return new SMG(smgObjects, smgValues, hasValueEdges, newBiMap, sizeOfPointer);
+    ImmutableBiMap.Builder<SMGValue, SMGPointsToEdge> pointsToEdgesBuilder = ImmutableBiMap.builder();
+    pointsToEdgesBuilder.putAll(pointsToEdges);
+    pointsToEdgesBuilder.put(source, edge);
+    return new SMG(smgObjects, smgValues, hasValueEdges, pointsToEdgesBuilder.build(), sizeOfPointer);
   }
 
   /**
@@ -263,14 +292,15 @@ public class SMG {
     PersistentMap<SMGObject, PersistentSet<SMGHasValueEdge>> newHVEdges =
         hasValueEdges.removeAndCopy(pOldObject).putAndCopy(pNewObject, edges);
     // replace points to edges
-    BiMap<SMGValue, SMGPointsToEdge> newPointsToEdges = HashBiMap.create(pointsToEdges);
+    ImmutableBiMap.Builder<SMGValue, SMGPointsToEdge> pointsToEdgesBuilder = ImmutableBiMap.builder();
+    pointsToEdgesBuilder.putAll(pointsToEdges);
 
     for (Map.Entry<SMGValue, SMGPointsToEdge> oldEntry : pointsToEdges.entrySet()) {
       if (pOldObject.equals(oldEntry.getValue().pointsTo())) {
         SMGPointsToEdge newEdge =
             new SMGPointsToEdge(
                 pNewObject, oldEntry.getValue().getOffset(), oldEntry.getValue().targetSpecifier());
-        newPointsToEdges.put(oldEntry.getKey(), newEdge);
+        pointsToEdgesBuilder.put(oldEntry.getKey(), newEdge);
       }
     }
 
@@ -278,7 +308,7 @@ public class SMG {
     PersistentMap<SMGObject, Boolean> newObjects =
         smgObjects.removeAndCopy(pOldObject).putAndCopy(pNewObject, true);
 
-    return new SMG(newObjects, smgValues, newHVEdges, newPointsToEdges, sizeOfPointer);
+    return new SMG(newObjects, smgValues, newHVEdges, pointsToEdgesBuilder.build(), sizeOfPointer);
   }
 
   /**
