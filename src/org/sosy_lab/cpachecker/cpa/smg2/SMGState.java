@@ -50,6 +50,7 @@ import org.sosy_lab.cpachecker.cpa.smg.util.PersistentSet;
 import org.sosy_lab.cpachecker.cpa.smg.util.PersistentStack;
 import org.sosy_lab.cpachecker.cpa.smg2.SMGErrorInfo.Property;
 import org.sosy_lab.cpachecker.cpa.smg2.refiner.SMGInterpolant;
+import org.sosy_lab.cpachecker.cpa.smg2.util.CFunctionDeclarationAndOptionalValue;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMG2Exception;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGObjectAndOffset;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGObjectAndSMGState;
@@ -449,11 +450,11 @@ public class SMGState
         qualifiedName, offsetToWriteToInBits, sizeOfWriteInBits, valueToWrite, typeOfUnknown);
   }
 
-  private SMGState reconstructStackFrames(PersistentStack<CFunctionDeclaration> pStackDeclarations) {
+  private SMGState reconstructStackFrames(PersistentStack<CFunctionDeclarationAndOptionalValue> pStackDeclarations) {
     SMGState currentState = this;
     // the given stack is reversed! We can
     Iterator<StackFrame> existingFrames = currentState.memoryModel.getStackFrames().iterator();
-    Iterator<CFunctionDeclaration> shouldBeFrames = pStackDeclarations.iterator();
+    Iterator<CFunctionDeclarationAndOptionalValue> shouldBeFrames = pStackDeclarations.iterator();
     // The current should have the main!
     // The other can be empty for the false/true interpolants
     Preconditions.checkArgument(existingFrames.hasNext());
@@ -461,11 +462,17 @@ public class SMGState
       if (existingFrames.hasNext()) {
         // As long as there are frames on both, they should match
         StackFrame thisFrame = existingFrames.next();
-        CFunctionDeclaration otherFunDef = shouldBeFrames.next();
+        CFunctionDeclarationAndOptionalValue otherFunDefAndReturnValue = shouldBeFrames.next();
+        CFunctionDeclaration otherFunDef = otherFunDefAndReturnValue.getCFunctionDeclaration();
         Preconditions.checkArgument(thisFrame.getFunctionDefinition().equals(otherFunDef));
       } else {
         // Start adding to the current
-        currentState = currentState.copyAndAddStackFrame(shouldBeFrames.next());
+        CFunctionDeclarationAndOptionalValue otherFunDefAndReturnValue = shouldBeFrames.next();
+        CFunctionDeclaration otherFunDef = otherFunDefAndReturnValue.getCFunctionDeclaration();
+        currentState = currentState.copyAndAddStackFrame(otherFunDef);
+        if (otherFunDefAndReturnValue.hasReturnValue()) {
+          currentState = currentState.writeToReturn(otherFunDefAndReturnValue.getReturnValue());
+        }
       }
     }
 
@@ -517,7 +524,7 @@ public class SMGState
       @Nullable PersistentMap<MemoryLocation, ValueAndValueSize> nonHeapAssignments,
       Map<String, BigInteger> variableNameToMemorySizeInBits,
       Map<String, CType> variableTypeMap,
-      PersistentStack<CFunctionDeclaration> pStackDeclarations)
+      PersistentStack<CFunctionDeclarationAndOptionalValue> pStackDeclarations)
       throws SMG2Exception {
     if (nonHeapAssignments == null) {
       if (pStackDeclarations == null) {
@@ -818,6 +825,31 @@ public class SMGState
     // also, this element is not less or equal than the other element,
     // if any one constant's value of the other element differs from the constant's value in this
     // element
+    Iterator<CFunctionDeclarationAndOptionalValue> thisStackFrames =
+        this.memoryModel.getFunctionDeclarationsFromStackFrames().iterator();
+    Iterator<CFunctionDeclarationAndOptionalValue> otherStackFrames =
+        pOther.memoryModel.getFunctionDeclarationsFromStackFrames().iterator();
+    while (otherStackFrames.hasNext()) {
+      if (!thisStackFrames.hasNext()) {
+        return false;
+      }
+      CFunctionDeclarationAndOptionalValue thisFrame = thisStackFrames.next();
+      CFunctionDeclarationAndOptionalValue otherFrame = otherStackFrames.next();
+      if (otherFrame.hasReturnValue()) {
+        Value otherRetVal = otherFrame.getReturnValue();
+        if (!thisFrame.hasReturnValue()) {
+          return false;
+        }
+        Value thisRetVal = thisFrame.getReturnValue();
+        if (!areValuesEqual(this, thisRetVal, pOther, otherRetVal)) {
+          return false;
+        }
+      } else {
+        if (thisFrame.hasReturnValue()) {
+          return false;
+        }
+      }
+    }
 
     // the tolerant way: ignore all type information.
     PersistentMap<MemoryLocation, ValueAndValueSize> memLocAndValues =
@@ -1523,8 +1555,8 @@ public class SMGState
 
   /**
    * Determines the SMGRegion object which is pointed by a given Value address representation.
-   * Return Null SMGObject if there is no such existing address. (will result in null deref later)
-   * TODO: do we need unknown derefs here?
+   * Return Null SMGObject if there is no such existing address. (will result in null deref later,
+   * but not here!) TODO: do we need unknown derefs here?
    *
    * @param pValue - the given Value representation of the address.
    * @return the SMGObject which the address points to, or empty if none is found.
@@ -1921,6 +1953,12 @@ public class SMGState
     return writeValue(returnObject, BigInteger.ZERO, sizeInBits, valueToWrite, returnValueType);
   }
 
+  /** Writes the value exactly to the size of the return of the current stack frame. **/
+  private SMGState writeToReturn(Value valueToWrite) {
+    SMGObject returnObject = memoryModel.getReturnObjectForCurrentStackFrame().orElseThrow();
+    return writeValue(returnObject, BigInteger.ZERO, returnObject.getSize(), valueToWrite, null);
+  }
+
   /**
    * Writes the entered {@link Value} to the {@link SMGObject} at the specified offset with the
    * specified size both in bits. It can be used for heap and stack, it jsut assumes that the {@link
@@ -2297,9 +2335,9 @@ public class SMGState
   }
 
   public SMGInterpolant createInterpolant() {
-    PersistentStack<CFunctionDeclaration> funDecls =
+    PersistentStack<CFunctionDeclarationAndOptionalValue> funDecls =
         memoryModel.getFunctionDeclarationsFromStackFrames();
-    Iterator<CFunctionDeclaration> funDeclsIter = funDecls.iterator();
+    Iterator<CFunctionDeclarationAndOptionalValue> funDeclsIter = funDecls.iterator();
     Preconditions.checkArgument(funDeclsIter.hasNext());
 
     return new SMGInterpolant(
@@ -2310,7 +2348,7 @@ public class SMGState
         memoryModel.getSizeObMemoryForSPCWithoutHeap(),
         memoryModel.getVariableTypeMap(),
         funDecls,
-        funDeclsIter.next());
+        funDeclsIter.next().getCFunctionDeclaration());
   }
 
   @Deprecated
