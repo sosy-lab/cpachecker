@@ -58,4 +58,9 @@ public class ValueAndValueSize {
     }
     return value.hashCode() + sizeOfValueInBits.hashCode();
   }
+
+  @Override
+  public String toString() {
+    return value.toString() + " (" + sizeOfValueInBits + ")";
+  }
 }
