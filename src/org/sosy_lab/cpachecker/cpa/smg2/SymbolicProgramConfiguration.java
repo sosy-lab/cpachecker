@@ -30,10 +30,14 @@ import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.collect.PersistentMap;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
+import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
+import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
 import org.sosy_lab.cpachecker.cpa.smg.util.PersistentSet;
 import org.sosy_lab.cpachecker.cpa.smg.util.PersistentStack;
 import org.sosy_lab.cpachecker.cpa.smg2.util.CFunctionDeclarationAndOptionalValue;
+import org.sosy_lab.cpachecker.cpa.smg2.util.SMG2Exception;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGObjectAndOffset;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGObjectsAndValues;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGValueAndSPC;
@@ -75,7 +79,7 @@ public class SymbolicProgramConfiguration {
    */
   private final PersistentStack<StackFrame> stackVariableMapping;
 
-  /* Remember the types of variables for CEGAR */
+  /* Remember the types of variables for precision adjustments */
   private final PersistentMap<String, CType> variableToTypeMap;
 
   /* (SMG)Objects on the heap. */
@@ -384,6 +388,11 @@ public class SymbolicProgramConfiguration {
       MachineModel model,
       @Nullable ImmutableList<Value> variableArguments) {
     StackFrame newStackFrame = new StackFrame(pFunctionDefinition, model, variableArguments);
+    CType returnType = pFunctionDefinition.getType().getReturnType().getCanonicalType();
+    if (returnType instanceof CVoidType) {
+      // use a plain int as return type for void functions
+      returnType = CNumericTypes.INT;
+    }
     Optional<SMGObject> returnObj = newStackFrame.getReturnObject();
     if (returnObj.isEmpty()) {
       return of(
@@ -403,7 +412,8 @@ public class SymbolicProgramConfiguration {
         heapObjects,
         externalObjectAllocation,
         valueMapping,
-        variableToTypeMap,
+        variableToTypeMap.putAndCopy(
+            pFunctionDefinition.getQualifiedName() + "::__retval__", returnType),
         variableBlacklist);
   }
 
@@ -1038,8 +1048,19 @@ public class SymbolicProgramConfiguration {
 
     for (StackFrame stackframe : stackVariableMapping) {
       if (stackframe.getReturnObject().isPresent()) {
+        String funName = stackframe.getFunctionDefinition().getQualifiedName();
         // There is a return object!
-
+        for (SMGHasValueEdge valueEdge : smg.getEdges(stackframe.getReturnObject().orElseThrow())) {
+          MemoryLocation memLoc =
+              MemoryLocation.fromQualifiedName(
+                  funName + "::__retval__", valueEdge.getOffset().longValueExact());
+          SMGValue smgValue = valueEdge.hasValue();
+          BigInteger typeSize = valueEdge.getSizeInBits();
+          Preconditions.checkArgument(valueMapping.containsValue(smgValue));
+          Value value = valueMapping.inverse().get(smgValue).get();
+          ValueAndValueSize valueAndValueSize = ValueAndValueSize.of(value, typeSize);
+          map = map.putAndCopy(memLoc, valueAndValueSize);
+        }
       }
       for (Entry<String, SMGObject> localVariable : stackframe.getVariables().entrySet()) {
         String qualifiedName = localVariable.getKey();
@@ -1119,7 +1140,9 @@ public class SymbolicProgramConfiguration {
   }
 
   public CType getTypeOfVariable(MemoryLocation memLoc) {
-    return variableToTypeMap.get(memLoc.getQualifiedName());
+    CType type = variableToTypeMap.get(memLoc.getQualifiedName());
+    Preconditions.checkNotNull(type);
+    return type;
   }
 
   public PersistentMap<String, CType> getVariableTypeMap() {
