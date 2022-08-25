@@ -247,8 +247,8 @@ public class SMGCPAAssigningValueVisitor extends SMGCPAValueVisitor {
           String qualName = cidExpr.getDeclaration().getQualifiedName();
           // Initial state is fine! Blacklists don't change in visitor calls
           if (super.getInitialVisitorState().getVariableBlackList().contains(qualName)) {
-            throw new RuntimeException(
-                "Not handled case of variable declaration in the assigning value visitor.");
+            // Blacklisted variable, don't assign anything
+            return false;
           }
         }
         return false;
