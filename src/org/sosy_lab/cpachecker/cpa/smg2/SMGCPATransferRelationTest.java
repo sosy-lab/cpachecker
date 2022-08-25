@@ -507,11 +507,24 @@ public class SMGCPATransferRelationTest {
       for (int j = 0; j < TEST_ARRAY_LENGTH.intValue(); j++) {
         ValueAndSMGState readValueAndState =
             state.readValue(memoryObject, offsetOfArrayInBits, sizeOfArrayInBits, null);
-        // The read state should not have any errors
+        // There is a overflow happening here! a char is filled with a too large value
         // TODO: error check
         assertThat(readValueAndState.getValue().isNumericValue()).isTrue();
-        assertThat(readValueAndState.getValue().asNumericValue().bigInteger())
-            .isEquivalentAccordingToCompareTo(expectedValue);
+
+        if (readValueAndState.getValue().asNumericValue().bigInteger().compareTo(expectedValue)
+            != 0) {
+          // Overflow for char
+          assertThat(
+                  readValueAndState
+                      .getValue()
+                      .asNumericValue()
+                      .bigInteger()
+                      .add(BigInteger.valueOf(256)))
+              .isEquivalentAccordingToCompareTo(expectedValue);
+        } else {
+          assertThat(readValueAndState.getValue().asNumericValue().bigInteger())
+              .isEquivalentAccordingToCompareTo(expectedValue);
+        }
         expectedValue = expectedValue.add(BigInteger.ONE);
         // increment the size onto the offset for the next element
         offsetOfArrayInBits = offsetOfArrayInBits.add(sizeOfArrayInBits);
