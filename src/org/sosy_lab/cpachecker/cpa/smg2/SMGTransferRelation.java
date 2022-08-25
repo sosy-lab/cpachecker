@@ -65,6 +65,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStringLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeDefDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -370,6 +371,9 @@ public class SMGTransferRelation
      CExpression operand = ((CPointerExpression) leftHandSideExpr).getOperand();
       return createVariableOnTheSpot(operand, cfaEdge, pState);
 
+    } else if (leftHandSideExpr instanceof CUnaryExpression) {
+      CExpression operand = ((CUnaryExpression) leftHandSideExpr).getOperand();
+      return createVariableOnTheSpot(operand, cfaEdge, pState);
     }
     throw new SMG2Exception("Missing type in on-the-fly variable creation.");
   }
