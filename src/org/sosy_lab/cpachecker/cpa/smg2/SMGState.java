@@ -37,6 +37,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
+import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
@@ -397,6 +398,48 @@ public class SMGState
     return isGlobalVariablePresent(qualifiedName) || isLocalVariablePresentAnywhere(qualifiedName);
   }
 
+  public boolean isLocalOrGlobalVariablePresent(String qualifiedName) {
+    return isGlobalVariablePresent(qualifiedName) || isLocalVariablePresentAnywhere(qualifiedName);
+  }
+
+  @SuppressWarnings("unused")
+  private SMGState assignReturnValue(
+      MemoryLocation memLoc,
+      ValueAndValueSize valueAndSize,
+      Map<String, BigInteger> variableNameToMemorySizeInBits,
+      Map<String, CType> variableTypeMap) {
+    SMGState currentState = this;
+    SMGObject obj = getReturnObjectForMemoryLocation(memLoc);
+    BigInteger offsetToWriteToInBits = BigInteger.valueOf(memLoc.getOffset());
+    @Nullable BigInteger sizeOfWriteInBits = valueAndSize.getSizeInBits();
+    Preconditions.checkArgument(sizeOfWriteInBits != null);
+    Value valueToWrite = valueAndSize.getValue();
+    Preconditions.checkArgument(!valueToWrite.isUnknown());
+    CType typeOfUnknown = null;
+    CType simpleType = variableTypeMap.get(memLoc.getQualifiedName());
+    if (simpleType != null && simpleType.getCanonicalType() instanceof CSimpleType) {
+      typeOfUnknown = simpleType;
+    }
+    // TODO: use variableTypeMap and deconstruct struct and array types to the correct ones
+    // This is only needed for floats nested in these types btw.
+    return currentState.writeValue(
+        obj, offsetToWriteToInBits, sizeOfWriteInBits, valueToWrite, typeOfUnknown);
+  }
+
+  /*
+   *  Checks the existing of the return variable with the entered memLoc.
+   *  False if the memloc is no function return.
+   *  Our CEGAR algorithm has forced my hand on this.
+   */
+  private boolean isFunctionReturnVariableAndPresent(MemoryLocation memLoc) {
+    if (memLoc.getIdentifier().equals("__retval__")) {
+      if (getReturnObjectForMemoryLocation(memLoc) != null) {
+        return true;
+      }
+    }
+    return false;
+  }
+
   /**
    * Writes the Value given to the variable (local or global) given.
    *
@@ -414,6 +457,10 @@ public class SMGState
       Map<String, CType> variableTypeMap)
       throws SMG2Exception {
 
+    if (isFunctionReturnVariableAndPresent(memLoc)) {
+      return assignReturnValue(
+          memLoc, valueAndSize, variableNameToMemorySizeInBits, variableTypeMap);
+    }
     SMGState currentState = this;
     // Deconstruct MemoryLocation to get the qualified name of global/local vars
     // And remember the offset. Offset + size from ValueAndValueSize are the
@@ -446,6 +493,12 @@ public class SMGState
     CType typeOfUnknown = null;
     // Write (easier then inserting everything on its own, and guaranteed to succeed as its a copy
     // from the original state)
+    CType simpleType = variableTypeMap.get(memLoc.getQualifiedName());
+    if (simpleType != null && simpleType.getCanonicalType() instanceof CSimpleType) {
+      typeOfUnknown = simpleType;
+    }
+    // TODO: use variableTypeMap and deconstruct struct and array types to the correct ones
+    // This is only needed for floats nested in these types btw.
     return currentState.writeToAnyStackOrGlobalVariable(
         qualifiedName, offsetToWriteToInBits, sizeOfWriteInBits, valueToWrite, typeOfUnknown);
   }
@@ -2371,8 +2424,14 @@ public class SMGState
   public StateAndInfo<SMGState, SMGInformation> copyAndForget(MemoryLocation pLocation) {
     String qualifiedName = pLocation.getQualifiedName();
     BigInteger offsetInBits = BigInteger.valueOf(pLocation.getOffset());
-    // This is expected to succeed
-    SMGObject memory = getMemoryModel().getObjectForVariable(qualifiedName).orElseThrow();
+    SMGObject memory;
+    if (qualifiedName.contains("::__retval__")) {
+      // Return obj
+      memory = getReturnObjectForMemoryLocation(pLocation);
+    } else {
+      // This is expected to succeed for global and local vars
+      memory = getMemoryModel().getObjectForVariable(qualifiedName).orElseThrow();
+    }
 
     SMGHasValueEdge edgeToRemove =
         memoryModel
@@ -2397,6 +2456,17 @@ public class SMGState
             getMemoryModel().getSizeObMemoryForSPCWithoutHeap(),
             memoryModel.getVariableTypeMap(),
             memoryModel.getFunctionDeclarationsFromStackFrames()));
+  }
+
+  private SMGObject getReturnObjectForMemoryLocation(MemoryLocation memLoc) {
+    String funcName = memLoc.getFunctionName();
+    for (StackFrame stack : memoryModel.getStackFrames()) {
+      if (stack.getFunctionDefinition().getQualifiedName().equals(funcName)) {
+        return stack.getReturnObject().orElseThrow();
+      }
+    }
+    // I can't throw a good exception because of the ValueAnalysis interface, forgive me
+    return null;
   }
 
   @Override
