@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.cpa.smg2;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import java.math.BigInteger;
 import java.util.Collection;
@@ -23,13 +24,13 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMG2Exception;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGObjectAndOffsetOrSMGState;
 import org.sosy_lab.cpachecker.cpa.smg2.util.value.SMGCPAValueExpressionEvaluator;
 import org.sosy_lab.cpachecker.cpa.smg2.util.value.ValueAndSMGState;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.AddressExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicIdentifier;
-import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValue;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
@@ -127,14 +128,37 @@ public class SMGCPAAssigningValueVisitor extends SMGCPAValueVisitor {
             if (isEligibleForAssignment(leftValue)
                 && rightValue.isExplicitlyKnown()
                 && !evaluator.isPointerValue(leftValue, updatedState)
-                && isAssignable(leftHandSideAssignments, lVarInBinaryExp)) {
-              updatedState = replaceValue(leftValue, rightValue, updatedState);
+                && isAssignable(leftHandSideAssignments)) {
+
+              Preconditions.checkArgument(leftHandSideAssignments.size() == 1);
+              SMGObjectAndOffsetOrSMGState leftHandSideAssignment = leftHandSideAssignments.get(0);
+              CType type = SMGCPAValueExpressionEvaluator.getCanonicalType(rVarInBinaryExp);
+              BigInteger size = evaluator.getBitSizeof(updatedState, type);
+              updatedState =
+                  updatedState.writeValueTo(
+                      leftHandSideAssignment.getSMGObject(),
+                      leftHandSideAssignment.getOffsetForObject(),
+                      size,
+                      rightValue,
+                      type);
 
             } else if (isEligibleForAssignment(rightValue)
                 && leftValue.isExplicitlyKnown()
                 && !evaluator.isPointerValue(rightValue, updatedState)
-                && isAssignable(rightHandSideAssignments, rVarInBinaryExp)) {
-              updatedState = replaceValue(rightValue, leftValue, updatedState);
+                && isAssignable(rightHandSideAssignments)) {
+
+              Preconditions.checkArgument(rightHandSideAssignments.size() == 1);
+              SMGObjectAndOffsetOrSMGState rightHandSideAssignment =
+                  rightHandSideAssignments.get(0);
+              CType type = SMGCPAValueExpressionEvaluator.getCanonicalType(lVarInBinaryExp);
+              BigInteger size = evaluator.getBitSizeof(updatedState, type);
+              updatedState =
+                  updatedState.writeValueTo(
+                      rightHandSideAssignment.getSMGObject(),
+                      rightHandSideAssignment.getOffsetForObject(),
+                      size,
+                      leftValue,
+                      type);
             }
 
             finalValueAndStateBuilder.addAll(
@@ -150,24 +174,43 @@ public class SMGCPAAssigningValueVisitor extends SMGCPAValueVisitor {
         // !(a == b) case
         if (isNonEqualityAssumption(binaryOperator)) {
           if (assumingUnknownToBeZero(leftValue, rightValue)
-              && isAssignable(leftHandSideAssignments, lVarInBinaryExp)) {
+              && isAssignable(leftHandSideAssignments)) {
             String leftMemLocName = getExtendedQualifiedName((CExpression) unwrap(lVarInBinaryExp));
 
             if (options.isOptimizeBooleanVariables()
                 && (booleans.contains(leftMemLocName) || options.isInitAssumptionVars())) {
+              Preconditions.checkArgument(leftHandSideAssignments.size() == 1);
+              SMGObjectAndOffsetOrSMGState leftHandSideAssignment = leftHandSideAssignments.get(0);
+              CType type = SMGCPAValueExpressionEvaluator.getCanonicalType(rVarInBinaryExp);
+              BigInteger size = evaluator.getBitSizeof(currentState, type);
               currentState =
-                  currentState.copyAndReplaceValueMapping(leftValue, new NumericValue(1L));
+                  currentState.writeValueTo(
+                      leftHandSideAssignment.getSMGObject(),
+                      leftHandSideAssignment.getOffsetForObject(),
+                      size,
+                      new NumericValue(1L),
+                      type);
             }
 
           } else if (options.isOptimizeBooleanVariables()
               && (assumingUnknownToBeZero(rightValue, leftValue)
-                  && isAssignable(rightHandSideAssignments, rVarInBinaryExp))) {
+                  && isAssignable(rightHandSideAssignments))) {
             String rightMemLocName =
                 getExtendedQualifiedName((CExpression) unwrap(rVarInBinaryExp));
 
             if (booleans.contains(rightMemLocName) || options.isInitAssumptionVars()) {
+              Preconditions.checkArgument(rightHandSideAssignments.size() == 1);
+              SMGObjectAndOffsetOrSMGState rightHandSideAssignment =
+                  rightHandSideAssignments.get(0);
+              CType type = SMGCPAValueExpressionEvaluator.getCanonicalType(lVarInBinaryExp);
+              BigInteger size = evaluator.getBitSizeof(currentState, type);
               currentState =
-                  currentState.copyAndReplaceValueMapping(rightValue, new NumericValue(1L));
+                  currentState.writeValueTo(
+                      rightHandSideAssignment.getSMGObject(),
+                      rightHandSideAssignment.getOffsetForObject(),
+                      size,
+                      new NumericValue(1L),
+                      type);
             }
           }
         }
@@ -233,24 +276,9 @@ public class SMGCPAAssigningValueVisitor extends SMGCPAValueVisitor {
     return ImmutableList.of(SMGObjectAndOffsetOrSMGState.of(currentState));
   }
 
-  private boolean isAssignable(
-      List<SMGObjectAndOffsetOrSMGState> possibleAssignables, CExpression expression) {
+  private boolean isAssignable(List<SMGObjectAndOffsetOrSMGState> possibleAssignables) {
     for (SMGObjectAndOffsetOrSMGState possibleAssignable : possibleAssignables) {
       if (possibleAssignable.hasSMGState()) {
-        // If there is a state, its either a error or a non existing memory. However, due to CEGAR
-        // its possible to not have a memory location while not being blacklisted, so check that.
-        if (expression instanceof CIdExpression) {
-          CIdExpression cidExpr = (CIdExpression) expression;
-          if (cidExpr.getDeclaration() == null) {
-            return false;
-          }
-          String qualName = cidExpr.getDeclaration().getQualifiedName();
-          // Initial state is fine! Blacklists don't change in visitor calls
-          if (super.getInitialVisitorState().getVariableBlackList().contains(qualName)) {
-            // Blacklisted variable, don't assign anything
-            return false;
-          }
-        }
         return false;
       }
     }
@@ -269,17 +297,8 @@ public class SMGCPAAssigningValueVisitor extends SMGCPAValueVisitor {
 
   // TODO: option?
   private static boolean assumingUnknownToBeZero(Value value1, Value value2) {
+    // TODO: assume symbolic as 0 as well if we are not tracking them?
     return value1.isUnknown() && value2.equals(new NumericValue(BigInteger.ZERO));
-  }
-
-  private SMGState replaceValue(Value oldValue, Value newValue, SMGState state) {
-    if (options.isAssignEqualityAssumptions()) {
-      return state.copyAndReplaceValueMapping(oldValue, newValue);
-    } else if (!(oldValue instanceof SymbolicValue)) {
-      // Symbolic values should never be replaced by a concrete values
-      return state.copyAndReplaceValueMapping(oldValue, newValue);
-    }
-    return state;
   }
 
   /**
