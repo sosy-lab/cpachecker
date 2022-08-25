@@ -60,7 +60,7 @@ import org.sosy_lab.cpachecker.cpa.smg2.util.SPCAndSMGObjects;
 import org.sosy_lab.cpachecker.cpa.smg2.util.ValueAndValueSize;
 import org.sosy_lab.cpachecker.cpa.smg2.util.value.ValueAndSMGState;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.AddressExpression;
-import org.sosy_lab.cpachecker.cpa.value.symbolic.type.ConstantSymbolicExpression;
+import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValueFactory;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
@@ -859,10 +859,8 @@ public class SMGState
       MemoryLocation key = otherEntry.getKey();
       Value otherValue = otherEntry.getValue().getValue();
       ValueAndValueSize thisValueAndType = memLocAndValues.get(key);
-      if (thisValueAndType == null) {
-        return false;
-      }
-      if (!areValuesEqual(this, thisValueAndType.getValue(), pOther, otherValue)) {
+      if (thisValueAndType == null
+          || !areValuesEqual(this, thisValueAndType.getValue(), pOther, otherValue)) {
         return false;
       }
     }
@@ -897,23 +895,29 @@ public class SMGState
       return thisNum.equals(otherNum);
     }
 
+    // Pointers are more difficult, they are represented by a SymbolicIdentifier, again unique
+    // id. We need to use the CPA method
+    if (memoryModel.isPointer(thisValue) && otherState.memoryModel.isPointer(otherValue)) {
+      isHeapEqualForTwoPointersWithTwoStates(thisState, thisValue, otherState, otherValue);
+    }
+
     // Unknowns in this current CPA implementation are not comparable in different states!
     // Each state generates a unique ConstantSymbolicExpression id (as its statically generated)
     // Comparable is only that both are ConstantSymbolicExpressions and the type matches and
     // that they do represent the same location
-    if (thisValue instanceof ConstantSymbolicExpression
-        && otherValue instanceof ConstantSymbolicExpression
-        && ((ConstantSymbolicExpression) thisValue)
+    if (thisValue instanceof SymbolicExpression
+        && otherValue instanceof SymbolicExpression
+        && ((SymbolicExpression) thisValue)
             .getType()
-            .equals(((ConstantSymbolicExpression) otherValue).getType())) {
-      return true;
+            .equals(((SymbolicExpression) otherValue).getType())) {
+      if (options.isAssignSymbolicValues()) {
+        return true;
+      } else {
+        return thisValue.equals(otherValue);
+      }
     }
 
-    // Pointers are more difficult, they are represented by a SymbolicIdentifier, again unique
-    // id. We need to use the CPA method
-    return memoryModel.isPointer(thisValue)
-        && otherState.memoryModel.isPointer(otherValue)
-        && isHeapEqualForTwoPointersWithTwoStates(thisState, thisValue, otherState, otherValue);
+    return thisValue.equals(otherValue);
   }
 
   /* Check heap equality as far as possible. This has some limitations. We just check the shape and known values/pointers. */
@@ -1679,7 +1683,7 @@ public class SMGState
       return ValueAndSMGState.of(valueRead, newState);
     }
     // If there is no Value for the SMGValue, we need to create it as an unknown, map it and return
-    Value unknownValue = SymbolicValueFactory.getInstance().newIdentifier(null);
+    Value unknownValue = getNewSymbolicValueForType(readType);
     return ValueAndSMGState.of(
         unknownValue,
         copyAndReplaceMemoryModel(
