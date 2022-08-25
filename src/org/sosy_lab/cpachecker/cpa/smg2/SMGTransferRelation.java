@@ -37,6 +37,7 @@ import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCharLiteralExpression;
@@ -46,6 +47,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CDesignatedInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDesignator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldDesignator;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
@@ -57,6 +59,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerList;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
@@ -283,7 +286,7 @@ public class SMGTransferRelation
       String callerFunctionName)
       throws CPATransferException {
 
-    Collection<SMGState> successors = handleFunctionReturn(functionReturnEdge);
+    Collection<SMGState> successors = handleFunctionReturn(functionReturnEdge, fnkCall);
     if (options.isCheckForMemLeaksAtEveryFrameDrop()) {
       ImmutableList.Builder<SMGState> prunedSuccessors = ImmutableList.builder();
       for (SMGState successor : successors) {
@@ -297,8 +300,8 @@ public class SMGTransferRelation
     return successors;
   }
 
-  private List<SMGState> handleFunctionReturn(CFunctionReturnEdge functionReturnEdge)
-      throws CPATransferException {
+  private List<SMGState> handleFunctionReturn(
+      CFunctionReturnEdge functionReturnEdge, CFAEdge cfaEdge) throws CPATransferException {
     CFunctionSummaryEdge summaryEdge = functionReturnEdge.getSummaryEdge();
     CFunctionCall summaryExpr = summaryEdge.getExpression();
 
@@ -324,12 +327,51 @@ public class SMGTransferRelation
 
       // Now we can drop the stack frame as we left the function and have the return value
       SMGState currentState = readValueAndState.getState().dropStackFrame();
-      // Get the memory for the left hand side variable
+      // The memory on the left hand side might not exist because of CEGAR
+      currentState = createVariableOnTheSpot(leftValue, cfaEdge, currentState);
       return evaluator.writeValueToExpression(
           summaryEdge, leftValue, readValueAndState.getValue(), currentState, rightValueType);
     } else {
       return ImmutableList.of(state.dropStackFrame());
     }
+  }
+
+  /**
+   * Creates the variable used in leftHandSideExpr in the returned {@link SMGState}. This does check
+   * if the variable already exists and does not add it if it does.
+   *
+   * @param leftHandSideExpr some left hand side {@link CExpression}.
+   * @param cfaEdge the {@link CFAEdge}
+   * @param pState current {@link SMGState}
+   * @return a new SMGState with the variable added.
+   * @throws CPATransferException for errors and unhandled cases
+   */
+  private SMGState createVariableOnTheSpot(
+      CExpression leftHandSideExpr, CFAEdge cfaEdge, SMGState pState) throws CPATransferException {
+    if (leftHandSideExpr instanceof CIdExpression) {
+      CIdExpression leftCIdExpr = (CIdExpression) leftHandSideExpr;
+      String varName = leftCIdExpr.getDeclaration().getQualifiedName();
+      if (!pState.isLocalOrGlobalVariablePresent(varName)) {
+        return handleVariableDeclaration(
+                pState, (CVariableDeclaration) leftCIdExpr.getDeclaration(), cfaEdge)
+            .get(0);
+      }
+      return pState;
+
+    } else if (leftHandSideExpr instanceof CArraySubscriptExpression) {
+      CExpression arrayExpr = ((CArraySubscriptExpression) leftHandSideExpr).getArrayExpression();
+      return createVariableOnTheSpot(arrayExpr, cfaEdge, pState);
+
+    } else if (leftHandSideExpr instanceof CFieldReference) {
+      CExpression fieldOwn = ((CFieldReference) leftHandSideExpr).getFieldOwner();
+      return createVariableOnTheSpot(fieldOwn, cfaEdge, pState);
+
+    } else if (leftHandSideExpr instanceof CPointerExpression) {
+     CExpression operand = ((CPointerExpression) leftHandSideExpr).getOperand();
+      return createVariableOnTheSpot(operand, cfaEdge, pState);
+
+    }
+    throw new SMG2Exception("Missing type in on-the-fly variable creation.");
   }
 
   @Override
@@ -580,8 +622,9 @@ public class SMGTransferRelation
       CAssignment cAssignment = (CAssignment) cStmt;
       CExpression lValue = cAssignment.getLeftHandSide();
       CRightHandSide rValue = cAssignment.getRightHandSide();
+      SMGState currentState = createVariableOnTheSpot(lValue, pCfaEdge, state);
 
-      return handleAssignment(state, pCfaEdge, lValue, rValue);
+      return handleAssignment(currentState, pCfaEdge, lValue, rValue);
 
     } else if (cStmt instanceof CFunctionCallStatement) {
       // Check the arguments for the function, then simply execute the function
@@ -673,9 +716,6 @@ public class SMGTransferRelation
     } else if (cDecl instanceof CTypeDefDeclaration) {
       // TODO:
     } else if (cDecl instanceof CVariableDeclaration) {
-      if (addressedVariables.contains(cDecl.getQualifiedName())) {
-        return ImmutableList.of(currentState.addToVariableBlacklist(cDecl.getQualifiedName()));
-      }
       return handleVariableDeclaration(currentState, (CVariableDeclaration) cDecl, edge);
     }
     // Fall through
@@ -691,12 +731,20 @@ public class SMGTransferRelation
    * @param pVarDecl declaration of the variable declared.
    * @param pEdge current CFAEdge
    * @return a new state with the variable declared and initialized.
-   * @throws CPATransferException TODO
+   * @throws CPATransferException in case of critical errors.
    */
   private List<SMGState> handleVariableDeclaration(
-      SMGState pState, CVariableDeclaration pVarDecl, CDeclarationEdge pEdge)
-      throws CPATransferException {
+      SMGState pState, CVariableDeclaration pVarDecl, CFAEdge pEdge) throws CPATransferException {
+
     String varName = pVarDecl.getQualifiedName();
+    if (pState.isLocalOrGlobalVariablePresent(varName)) {
+      return ImmutableList.of(pState);
+    }
+
+    if (addressedVariables.contains(pVarDecl.getQualifiedName())) {
+      return ImmutableList.of(pState.addToVariableBlacklist(pVarDecl.getQualifiedName()));
+    }
+
     CType cType = SMGCPAValueExpressionEvaluator.getCanonicalType(pVarDecl);
     boolean isExtern = pVarDecl.getCStorageClass().equals(CStorageClass.EXTERN);
 
@@ -772,11 +820,7 @@ public class SMGTransferRelation
    * @throws CPATransferException if something goes wrong
    */
   private List<SMGState> handleInitializerForDeclaration(
-      SMGState pState,
-      String pVarName,
-      CVariableDeclaration pVarDecl,
-      CType cType,
-      CDeclarationEdge pEdge)
+      SMGState pState, String pVarName, CVariableDeclaration pVarDecl, CType cType, CFAEdge pEdge)
       throws CPATransferException {
     CInitializer newInitializer = pVarDecl.getInitializer();
     SMGState currentState = pState;
