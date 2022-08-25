@@ -375,7 +375,7 @@ public class SMGTransferRelation
       CExpression operand = ((CUnaryExpression) leftHandSideExpr).getOperand();
       return createVariableOnTheSpot(operand, cfaEdge, pState);
     }
-    throw new SMG2Exception("Missing type in on-the-fly variable creation.");
+    return pState;
   }
 
   @Override
