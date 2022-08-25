@@ -13,7 +13,6 @@ import com.google.common.collect.ImmutableSet;
 import java.math.BigInteger;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
@@ -398,10 +397,11 @@ public final class SMGInterpolant implements Interpolant<SMGState, SMGInterpolan
    * @return true if the interpolant makes sense.
    */
   public boolean isSanityIntact() {
-    HashSet<String> availableFunctions = new HashSet<>();
+    ImmutableSet.Builder<String> availableFunctionsBuilder = ImmutableSet.builder();
     for (CFunctionDeclarationAndOptionalValue fundef : stackFrameDeclarations) {
-      availableFunctions.add(fundef.getCFunctionDeclaration().getQualifiedName());
+      availableFunctionsBuilder.add(fundef.getCFunctionDeclaration().getQualifiedName());
     }
+    ImmutableSet<String> availableFunctions = availableFunctionsBuilder.build();
     for (MemoryLocation assignment : nonHeapAssignments.keySet()) {
       if (assignment.isOnFunctionStack()) {
         if (!availableFunctions.contains(assignment.getFunctionName())) {
