@@ -341,7 +341,8 @@ public class SMGPathInterpolator extends GenericPathInterpolator<SMGState, SMGIn
       iterator.advance();
     }
 
-    // SMGs NEED the correct function calls, we need to restore ALL function calls not yet restored but that are relevant (not returned)
+    // SMGs NEED the correct function calls, we need to restore ALL function calls not yet restored
+    // but that are relevant (not returned)
     for (Triple<FunctionCallEdge, Boolean, Integer> functionCallInfo : functionCalls) {
       abstractEdges.set(functionCallInfo.getThird(), functionCallInfo.getFirst());
     }

@@ -8,8 +8,6 @@
 
 package org.sosy_lab.cpachecker.cpa.smg2.refiner;
 
-import static com.google.common.base.Verify.verify;
-
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSet;
 import java.math.BigInteger;
@@ -29,7 +27,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
-import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.smg.util.PersistentStack;
 import org.sosy_lab.cpachecker.cpa.smg2.SMGOptions;
 import org.sosy_lab.cpachecker.cpa.smg2.SMGState;
@@ -210,8 +207,8 @@ public final class SMGInterpolant implements Interpolant<SMGState, SMGInterpolan
           : "interpolants mismatch in " + entry.getKey();
     }
 
-    @Nullable
-    PersistentStack<CFunctionDeclarationAndOptionalValue> stackFrameDecl = stackFrameDeclarations;
+    @Nullable PersistentStack<CFunctionDeclarationAndOptionalValue> stackFrameDecl =
+        stackFrameDeclarations;
     if (stackFrameDecl == null
         || (other.stackFrameDeclarations != null
             && other.stackFrameDeclarations.size() > stackFrameDecl.size())) {
@@ -314,40 +311,42 @@ public final class SMGInterpolant implements Interpolant<SMGState, SMGInterpolan
 
   // TODO: currently not used. Originally used in IMPACT refinement. Would need to be edited to be
   // immutable, that it returns the new state. We would also need to reconstruct the stack frames!
-  public boolean strengthen(SMGState state, ARGState argState) {
-    if (isTrivial()) {
-      return false;
-    }
-
-    boolean strengthened = false;
-    SMGState currentState = state;
-
-    for (Entry<MemoryLocation, ValueAndValueSize> itp : nonHeapAssignments.entrySet()) {
-      if (!currentState.isLocalOrGlobalVariablePresent(itp.getKey())) {
-        try {
-          SMGState.of(machineModel, logger, options, cfaEntryFunctionDeclaration)
-              .assignNonHeapConstant(
-                  itp.getKey(), itp.getValue(), variableNameToMemorySizeInBits, variableToTypeMap);
-        } catch (SMG2Exception e) {
-          // Critical error
-          throw new RuntimeException(e);
-        }
-        strengthened = true;
-
-      } else {
-        verify(
-            currentState.verifyVariableEqualityWithValueAt(itp.getKey(), itp.getValue()),
-            "state and interpolant do not match in value for variable %s [state = %s != %s = itp]"
-                + " for state %s",
-            itp.getKey(),
-            currentState.getValueToVerify(itp.getKey(), itp.getValue()),
-            itp.getValue(),
-            argState.getStateId());
+  /*
+    public boolean strengthen(SMGState state, ARGState argState) {
+      if (isTrivial()) {
+        return false;
       }
-    }
 
-    return strengthened;
-  }
+      boolean strengthened = false;
+      SMGState currentState = state;
+
+      for (Entry<MemoryLocation, ValueAndValueSize> itp : nonHeapAssignments.entrySet()) {
+        if (!currentState.isLocalOrGlobalVariablePresent(itp.getKey())) {
+          try {
+            SMGState.of(machineModel, logger, options, cfaEntryFunctionDeclaration)
+                .assignNonHeapConstant(
+                    itp.getKey(), itp.getValue(), variableNameToMemorySizeInBits, variableToTypeMap);
+          } catch (SMG2Exception e) {
+            // Critical error
+            throw new RuntimeException(e);
+          }
+          strengthened = true;
+
+        } else {
+          verify(
+              currentState.verifyVariableEqualityWithValueAt(itp.getKey(), itp.getValue()),
+              "state and interpolant do not match in value for variable %s [state = %s != %s = itp]"
+                  + " for state %s",
+              itp.getKey(),
+              currentState.getValueToVerify(itp.getKey(), itp.getValue()),
+              itp.getValue(),
+              argState.getStateId());
+        }
+      }
+
+      return strengthened;
+    }
+  */
 
   /**
    * This method weakens the interpolant to the given set of memory location identifiers.

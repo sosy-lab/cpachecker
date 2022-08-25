@@ -65,7 +65,8 @@ public class SMG {
     smgObjects = smgObjectsTmp.putAndCopy(SMGObject.nullInstance(), false);
     SMGPointsToEdge nullPointer =
         new SMGPointsToEdge(getNullObject(), BigInteger.ZERO, SMGTargetSpecifier.IS_REGION);
-    ImmutableBiMap.Builder<SMGValue, SMGPointsToEdge> pointsToEdgesBuilder = ImmutableBiMap.builder();
+    ImmutableBiMap.Builder<SMGValue, SMGPointsToEdge> pointsToEdgesBuilder =
+        ImmutableBiMap.builder();
     pointsToEdgesBuilder.put(SMGValue.zeroValue(), nullPointer);
     pointsToEdges = pointsToEdgesBuilder.build();
     sizeOfPointer = pSizeOfPointer;
@@ -191,10 +192,12 @@ public class SMG {
       return this;
     }
 
-    ImmutableBiMap.Builder<SMGValue, SMGPointsToEdge> pointsToEdgesBuilder = ImmutableBiMap.builder();
+    ImmutableBiMap.Builder<SMGValue, SMGPointsToEdge> pointsToEdgesBuilder =
+        ImmutableBiMap.builder();
     pointsToEdgesBuilder.putAll(pointsToEdges);
     pointsToEdgesBuilder.put(source, edge);
-    return new SMG(smgObjects, smgValues, hasValueEdges, pointsToEdgesBuilder.build(), sizeOfPointer);
+    return new SMG(
+        smgObjects, smgValues, hasValueEdges, pointsToEdgesBuilder.build(), sizeOfPointer);
   }
 
   /**
@@ -258,10 +261,12 @@ public class SMG {
    * @return A modified copy of the SMG.
    */
   public SMG copyAndSetPTEdges(SMGPointsToEdge edge, SMGValue source) {
-    ImmutableBiMap.Builder<SMGValue, SMGPointsToEdge> pointsToEdgesBuilder = ImmutableBiMap.builder();
+    ImmutableBiMap.Builder<SMGValue, SMGPointsToEdge> pointsToEdgesBuilder =
+        ImmutableBiMap.builder();
     pointsToEdgesBuilder.putAll(pointsToEdges);
     pointsToEdgesBuilder.put(source, edge);
-    return new SMG(smgObjects, smgValues, hasValueEdges, pointsToEdgesBuilder.build(), sizeOfPointer);
+    return new SMG(
+        smgObjects, smgValues, hasValueEdges, pointsToEdgesBuilder.build(), sizeOfPointer);
   }
 
   /**
@@ -292,7 +297,8 @@ public class SMG {
     PersistentMap<SMGObject, PersistentSet<SMGHasValueEdge>> newHVEdges =
         hasValueEdges.removeAndCopy(pOldObject).putAndCopy(pNewObject, edges);
     // replace points to edges
-    ImmutableBiMap.Builder<SMGValue, SMGPointsToEdge> pointsToEdgesBuilder = ImmutableBiMap.builder();
+    ImmutableBiMap.Builder<SMGValue, SMGPointsToEdge> pointsToEdgesBuilder =
+        ImmutableBiMap.builder();
     pointsToEdgesBuilder.putAll(pointsToEdges);
 
     for (Map.Entry<SMGValue, SMGPointsToEdge> oldEntry : pointsToEdges.entrySet()) {

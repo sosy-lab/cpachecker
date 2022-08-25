@@ -36,7 +36,9 @@ public class CFunctionDeclarationAndOptionalValue {
     return stackFrameFunctionDecl;
   }
 
-  /** @return the Value if hasReturnValue() is true, else Exception. */
+  /**
+   * @return the Value if hasReturnValue() is true, else Exception.
+   */
   public Value getReturnValue() {
     return returnValue.orElseThrow();
   }

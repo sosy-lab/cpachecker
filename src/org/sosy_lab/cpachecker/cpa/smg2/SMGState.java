@@ -502,7 +502,8 @@ public class SMGState
         qualifiedName, offsetToWriteToInBits, sizeOfWriteInBits, valueToWrite, typeOfUnknown);
   }
 
-  private SMGState reconstructStackFrames(PersistentStack<CFunctionDeclarationAndOptionalValue> pStackDeclarations) {
+  private SMGState reconstructStackFrames(
+      PersistentStack<CFunctionDeclarationAndOptionalValue> pStackDeclarations) {
     SMGState currentState = this;
     // the given stack is reversed! We can
     Iterator<StackFrame> existingFrames = currentState.memoryModel.getStackFrames().iterator();
@@ -1762,17 +1763,20 @@ public class SMGState
     return num instanceof Float || num instanceof Double;
   }
 
-  /** The only important thing is that the expectedType is NOT the left hand side type or any cast type, but the type of the read before any casts etc.! **/
+  /**
+   * The only important thing is that the expectedType is NOT the left hand side type or any cast
+   * type, but the type of the read before any casts etc.! *
+   */
   private Value castValueForUnionFloatConversion(Value readValue, CType expectedType) {
     if (readValue.isNumericValue()) {
       if (isFloatingPointType(readValue)) {
         return extractFloatingPointValueAsIntegralValue(readValue);
       } else if (isFloatingPointType(expectedType.getCanonicalType())) {
         return extractIntegralValueAsFloatingPointValue(expectedType.getCanonicalType(), readValue);
-        }
       }
+    }
 
-      return UnknownValue.getInstance();
+    return UnknownValue.getInstance();
   }
 
   private Value extractFloatingPointValueAsIntegralValue(Value readValue) {
@@ -2002,7 +2006,7 @@ public class SMGState
     return writeValue(returnObject, BigInteger.ZERO, sizeInBits, valueToWrite, returnValueType);
   }
 
-  /** Writes the value exactly to the size of the return of the current stack frame. **/
+  /** Writes the value exactly to the size of the return of the current stack frame. * */
   private SMGState writeToReturn(Value valueToWrite) {
     SMGObject returnObject = memoryModel.getReturnObjectForCurrentStackFrame().orElseThrow();
     return writeValue(returnObject, BigInteger.ZERO, returnObject.getSize(), valueToWrite, null);

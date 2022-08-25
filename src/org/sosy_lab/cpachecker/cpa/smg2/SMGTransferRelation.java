@@ -368,7 +368,7 @@ public class SMGTransferRelation
       return createVariableOnTheSpot(fieldOwn, cfaEdge, pState);
 
     } else if (leftHandSideExpr instanceof CPointerExpression) {
-     CExpression operand = ((CPointerExpression) leftHandSideExpr).getOperand();
+      CExpression operand = ((CPointerExpression) leftHandSideExpr).getOperand();
       return createVariableOnTheSpot(operand, cfaEdge, pState);
 
     } else if (leftHandSideExpr instanceof CUnaryExpression) {

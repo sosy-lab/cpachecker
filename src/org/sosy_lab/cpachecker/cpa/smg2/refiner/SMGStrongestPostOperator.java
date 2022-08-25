@@ -75,14 +75,14 @@ public class SMGStrongestPostOperator implements StrongestPostOperator<SMGState>
 
   @Override
   public SMGState handleFunctionCall(SMGState state, CFAEdge edge, Deque<SMGState> callstack) {
-      callstack.push(state);
-      return state;
+    callstack.push(state);
+    return state;
   }
 
   @Override
   public SMGState handleFunctionReturn(SMGState next, CFAEdge edge, Deque<SMGState> callstack) {
-      callstack.pop();
-      return next;
+    callstack.pop();
+    return next;
   }
 
   @Override
