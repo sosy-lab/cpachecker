@@ -31,13 +31,11 @@ import org.sosy_lab.common.collect.PersistentMap;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
-import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
 import org.sosy_lab.cpachecker.cpa.smg.util.PersistentSet;
 import org.sosy_lab.cpachecker.cpa.smg.util.PersistentStack;
 import org.sosy_lab.cpachecker.cpa.smg2.util.CFunctionDeclarationAndOptionalValue;
-import org.sosy_lab.cpachecker.cpa.smg2.util.SMG2Exception;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGObjectAndOffset;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGObjectsAndValues;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGValueAndSPC;
@@ -322,52 +320,6 @@ public class SymbolicProgramConfiguration {
         externalObjectAllocation,
         valueMapping,
         variableToTypeMap.putAndCopy(pVarName, type),
-        variableBlacklist);
-  }
-
-  /**
-   * Replaces the Value mapping of the oldValue <-> SMGValue to the newValueToBeAssigned for the
-   * same SMGValue. (Represents a change of Value without a write operation)
-   *
-   * @param oldValue The {@link Value} currently mapped to a {@link SMGValue} that should be
-   *     replaced.
-   * @param newValueToBeAssigned the new {@link Value} that should replace the old Value.
-   * @return a SPC with the mapping of the Value replaced with the new one.
-   */
-  public SymbolicProgramConfiguration copyAndReplaceValueMapping(
-      Value oldValue, Value newValueToBeAssigned) {
-    ImmutableBiMap.Builder<Equivalence.Wrapper<Value>, SMGValue> builder = ImmutableBiMap.builder();
-    SMGValue oldSMGValue = null;
-    SMGValue newSMGValue = null;
-    for (Entry<Equivalence.Wrapper<Value>, SMGValue> entry : valueMapping.entrySet()) {
-      if (entry.getKey().equals(valueWrapper.wrap(newValueToBeAssigned))) {
-        newSMGValue = entry.getValue();
-      }
-      if (entry.getKey().equals(valueWrapper.wrap(oldValue))) {
-        oldSMGValue = entry.getValue();
-      } else {
-        builder.put(entry);
-      }
-    }
-    Preconditions.checkNotNull(oldSMGValue);
-    SMG newSMG = smg;
-    if (newSMGValue == null) {
-      // if newSMGValue is null, there is no mapping known, we can change it freely
-      builder.put(valueWrapper.wrap(newValueToBeAssigned), oldSMGValue);
-    } else {
-      // If there is a mapping known, we need to remove oldSMGValue from the Value list in the SMG
-      // and replace it everywhere with newSMGValue
-      newSMG = smg.copyAndRemoveValue(oldSMGValue);
-      newSMG = smg.copyAndReplaceValueForHVEdges(oldSMGValue, newSMGValue);
-    }
-    return of(
-        newSMG,
-        globalVariableMapping,
-        stackVariableMapping,
-        heapObjects,
-        externalObjectAllocation,
-        builder.buildOrThrow(),
-        variableToTypeMap,
         variableBlacklist);
   }
 

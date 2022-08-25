@@ -37,7 +37,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
-import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
@@ -1108,13 +1107,6 @@ public class SMGState
 
   public SMGState copyAndReplaceMemoryModel(SymbolicProgramConfiguration newSPC) {
     return of(machineModel, newSPC, logger, options, errorInfo);
-  }
-
-  public SMGState copyAndReplaceValueMapping(Value oldValue, Value newValue) {
-    // Get the SMGValue counterpart that we know exists because we have read it before getting the
-    // oldValue mapping
-    return copyAndReplaceMemoryModel(
-        getMemoryModel().copyAndReplaceValueMapping(oldValue, newValue));
   }
 
   private SMGState copyAndPruneVariable(MemoryLocation pMemoryLocation) {
