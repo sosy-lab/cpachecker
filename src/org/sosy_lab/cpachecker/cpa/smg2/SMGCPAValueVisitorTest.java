@@ -57,7 +57,6 @@ import org.sosy_lab.cpachecker.cpa.smg2.util.value.SMGCPAValueExpressionEvaluato
 import org.sosy_lab.cpachecker.cpa.smg2.util.value.ValueAndSMGState;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.AddressExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.ConstantSymbolicExpression;
-import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicIdentifier;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValueFactory;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
@@ -678,8 +677,8 @@ public class SMGCPAValueVisitorTest {
             assertThat(resultValue.asNumericValue().bigInteger())
                 .isEqualTo(BigInteger.valueOf(k + 1));
           } else {
-            // Unknowns are tranlated into symbolic identifiers
-            assertThat(resultValue).isInstanceOf(SymbolicIdentifier.class);
+            // Unknowns are tranlated into ConstantSymbolicExpression
+            assertThat(resultValue).isInstanceOf(ConstantSymbolicExpression.class);
           }
         }
       }
@@ -1201,7 +1200,7 @@ public class SMGCPAValueVisitorTest {
 
       // Pointers
       for (int j = 0; j < TEST_ARRAY_LENGTH; j++) {
-        Value newPointer = new ConstantSymbolicExpression(new UnknownValue(), null);
+        Value newPointer = SymbolicValueFactory.getInstance().newIdentifier(null);
         addStackVariableToMemoryModel(arrayVariableName + j, POINTER_SIZE_IN_BITS);
         writeToStackVariableInMemoryModel(
             arrayVariableName + j, 0, POINTER_SIZE_IN_BITS, newPointer);
@@ -1432,7 +1431,7 @@ public class SMGCPAValueVisitorTest {
 
       // Pointers
       for (int j = 0; j < TEST_ARRAY_LENGTH; j++) {
-        Value newPointer = new ConstantSymbolicExpression(new UnknownValue(), null);
+        Value newPointer = SymbolicValueFactory.getInstance().newIdentifier(null);
         addStackVariableToMemoryModel(arrayVariableName + j, POINTER_SIZE_IN_BITS);
         writeToStackVariableInMemoryModel(
             arrayVariableName + j, 0, POINTER_SIZE_IN_BITS, newPointer);
@@ -1572,7 +1571,7 @@ public class SMGCPAValueVisitorTest {
 
       // Now create a lot of pointers pointing to the same structure but different offsets
       for (int k = 0; k < TEST_ARRAY_LENGTH; k++) {
-        Value newPointer = new ConstantSymbolicExpression(new UnknownValue(), null);
+        Value newPointer = SymbolicValueFactory.getInstance().newIdentifier(null);
         addStackVariableToMemoryModel(arrayVariableName + k, POINTER_SIZE_IN_BITS);
         writeToStackVariableInMemoryModel(
             arrayVariableName + k, 0, POINTER_SIZE_IN_BITS, newPointer);

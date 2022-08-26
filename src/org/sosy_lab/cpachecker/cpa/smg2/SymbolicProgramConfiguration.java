@@ -889,7 +889,7 @@ public class SymbolicProgramConfiguration {
    *     within if there is such a points-to-edge.
    */
   public Optional<SMGValue> getAddressValueForPointsToTarget(SMGObject target, BigInteger offset) {
-    BiMap<SMGValue, SMGPointsToEdge> pteMapping = getSmg().getPTEdgeMapping();
+    Map<SMGValue, SMGPointsToEdge> pteMapping = getSmg().getPTEdgeMapping();
     SMGPointsToEdge searchedForEdge =
         new SMGPointsToEdge(target, offset, SMGTargetSpecifier.IS_REGION);
 
@@ -1069,7 +1069,7 @@ public class SymbolicProgramConfiguration {
         // Search for the return Value, there might be none if we are not on the return edge
         FluentIterable<SMGHasValueEdge> edges =
             smg.getHasValueEdgesByPredicate(frame.getReturnObject().orElseThrow(), n -> true);
-        if (edges.size() == 0) {
+        if (edges.isEmpty()) {
           decls =
               decls.pushAndCopy(
                   CFunctionDeclarationAndOptionalValue.of(
