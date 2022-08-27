@@ -20,6 +20,10 @@ public class SMGValue implements SMGNode, Comparable<SMGValue> {
 
   /** The static value 0 */
   private static final SMGValue ZERO_VALUE = new SMGValue(0);
+  // Floats and doubles can have all bits as 0. We need to save them as different values though to
+  // not lose track of their types
+  private static final SMGValue ZERO_FLOAT_VALUE = new SMGValue(0);
+  private static final SMGValue ZERO_DOUBLE_VALUE = new SMGValue(0);
 
   /* Unique id to idendify this value. This is better than hashCodes as it does not clash. */
   private final int id;
@@ -60,11 +64,21 @@ public class SMGValue implements SMGNode, Comparable<SMGValue> {
     return ZERO_VALUE;
   }
 
+  /** @return The static SMGValue = 0f */
+  public static SMGValue zeroFloatValue() {
+    return ZERO_FLOAT_VALUE;
+  }
+
+  /** @return The static SMGValue = 0 as Double */
+  public static SMGValue zeroDoubleValue() {
+    return ZERO_DOUBLE_VALUE;
+  }
+
   /**
    * @return True if this SMGValue is equal to 0.
    */
   public boolean isZero() {
-    return equals(ZERO_VALUE);
+    return equals(ZERO_VALUE) || equals(ZERO_FLOAT_VALUE) || equals(ZERO_DOUBLE_VALUE);
   }
 
   @Override

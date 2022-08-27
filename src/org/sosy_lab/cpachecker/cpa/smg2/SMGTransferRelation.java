@@ -425,6 +425,7 @@ public class SMGTransferRelation
     ImmutableList.Builder<Value> readValuesInOrderBuilder = ImmutableList.builder();
     BigInteger overallVarArgsSizeInBits = BigInteger.ZERO;
     CType parameterType = null;
+
     for (int i = 0; i < arguments.size(); i++) {
       CExpression cParamExp = arguments.get(i);
       CType argumentType =
@@ -469,7 +470,7 @@ public class SMGTransferRelation
     // Add the new stack frame based on the function def, but only after we read the values from the
     // old stack frame
     CFunctionDeclaration funcDecl = callEdge.getSuccessor().getFunctionDefinition();
-    if (callEdge.getSuccessor().getFunctionDefinition().getType().takesVarArgs()) {
+    if (funcDecl.getType().takesVarArgs()) {
       // Get the var args and save them in the stack frame
       ImmutableList.Builder<Value> varArgsBuilder = ImmutableList.builder();
       for (int i = paramDecl.size(); i < arguments.size(); i++) {
@@ -1427,7 +1428,8 @@ public class SMGTransferRelation
       for (ValueAndSMGState valueAndState : vv.evaluate(rValue, leftHandSideType)) {
         Value valueToWrite = valueAndState.getValue();
         currentState = valueAndState.getState();
-        BigInteger sizeInBits = evaluator.getBitSizeof(currentState, rightHandSideType);
+        // Size of the left hand side as vv.evaluate() casts automatically to this type
+        BigInteger sizeInBits = evaluator.getBitSizeof(currentState, leftHandSideType);
 
         if (valueToWrite instanceof SymbolicIdentifier
             && ((SymbolicIdentifier) valueToWrite).getRepresentedLocation().isPresent()) {
@@ -1451,7 +1453,7 @@ public class SMGTransferRelation
                   currentState.writeValueTo(
                       addressToWriteTo,
                       offsetToWriteTo,
-                      evaluator.getBitSizeof(currentState, leftHandSideType),
+                      sizeInBits,
                       UnknownValue.getInstance(),
                       leftHandSideType));
             }

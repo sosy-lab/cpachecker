@@ -169,7 +169,13 @@ public class SymbolicProgramConfiguration {
         PersistentStack.of(),
         PersistentSet.of(SMGObject.nullInstance()),
         PathCopyingPersistentTreeMap.of(),
-        ImmutableBiMap.of(valueWrapper.wrap(new NumericValue(0)), SMGValue.zeroValue()),
+        ImmutableBiMap.of(
+            valueWrapper.wrap(new NumericValue(0)),
+            SMGValue.zeroValue(),
+            valueWrapper.wrap(new NumericValue(0.0f)),
+            SMGValue.zeroFloatValue(),
+            valueWrapper.wrap(new NumericValue(Double.valueOf(0.0f))),
+            SMGValue.zeroDoubleValue()),
         PathCopyingPersistentTreeMap.of(),
         ImmutableSet.of());
   }

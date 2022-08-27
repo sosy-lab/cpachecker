@@ -59,12 +59,21 @@ public class SMG {
   /** Creates a new, empty SMG */
   public SMG(BigInteger pSizeOfPointer) {
     hasValueEdges = PathCopyingPersistentTreeMap.of();
-    smgValues = PersistentSet.of(SMGValue.zeroValue());
+    PersistentSet<SMGValue> newSMGValues = PersistentSet.of(SMGValue.zeroValue());
+    newSMGValues = newSMGValues.addAndCopy(SMGValue.zeroFloatValue());
+    smgValues = newSMGValues.addAndCopy(SMGValue.zeroDoubleValue());
     PersistentMap<SMGObject, Boolean> smgObjectsTmp = PathCopyingPersistentTreeMap.of();
     smgObjects = smgObjectsTmp.putAndCopy(SMGObject.nullInstance(), false);
     SMGPointsToEdge nullPointer =
         new SMGPointsToEdge(getNullObject(), BigInteger.ZERO, SMGTargetSpecifier.IS_REGION);
-    pointsToEdges = ImmutableMap.of(SMGValue.zeroValue(), nullPointer);
+    pointsToEdges =
+        ImmutableMap.of(
+            SMGValue.zeroValue(),
+            nullPointer,
+            SMGValue.zeroFloatValue(),
+            nullPointer,
+            SMGValue.zeroDoubleValue(),
+            nullPointer);
     sizeOfPointer = pSizeOfPointer;
   }
 
@@ -482,6 +491,9 @@ public class SMG {
     // Check that our field is inside the object: offset + sizeInBits <= size(object)
     BigInteger offsetPlusSize = offset.add(sizeInBits);
     Preconditions.checkArgument(offsetPlusSize.compareTo(object.getSize()) <= 0);
+    if (value.isZero() && isCoveredByNullifiedBlocks(object, offset, sizeInBits)) {
+      return this;
+    }
 
     // If there exists a hasValueEdge in the specified object, with the specified field that equals
     // the specified value, simply return the original SMG
@@ -515,7 +527,9 @@ public class SMG {
     // Add the SMGHasValueEdge leading from the object to the field given with the value given to
     // the new SMG and return it.
     SMGHasValueEdge newHVEdge = new SMGHasValueEdge(value, offset, sizeInBits);
-    return newSMG.copyAndAddHVEdge(newHVEdge, object);
+    newSMG = newSMG.copyAndAddHVEdge(newHVEdge, object);
+    // newSMG.sanityCheck();
+    return newSMG;
   }
 
   /**
@@ -860,5 +874,21 @@ public class SMG {
   public PersistentMap<SMGObject, PersistentSet<SMGHasValueEdge>>
       getSMGObjectsWithSMGHasValueEdges() {
     return hasValueEdges;
+  }
+
+  @SuppressWarnings("unused")
+  public boolean sanityCheck() {
+    for (Entry<SMGObject, PersistentSet<SMGHasValueEdge>> entry : hasValueEdges.entrySet()) {
+      SMGObject obj = entry.getKey(); // For debugging
+      PersistentSet<SMGHasValueEdge> hvEdges = entry.getValue();
+      for (SMGHasValueEdge edge1 : hvEdges) {
+        for (SMGHasValueEdge edge2 : hvEdges) {
+          if (edge1 != edge2 && edge1.getOffset().compareTo(edge2.getOffset()) == 0) {
+            return false;
+          }
+        }
+      }
+    }
+    return true;
   }
 }
