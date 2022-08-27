@@ -2503,7 +2503,14 @@ public class SMGState
 
     for (Entry<MemoryLocation, ValueAndValueSize> memLoc :
         memoryModel.getMemoryLocationsAndValuesForSPCWithoutHeap().entrySet()) {
-      builder.append(memLoc.getKey() + ": " + memLoc.getValue().getValue());
+      CType readType = memoryModel.getTypeOfVariable(memLoc.getKey());
+      Value valueRead = memLoc.getValue().getValue();
+      if (readType != null && doesRequireUnionFloatConversion(valueRead, readType)) {
+        // Float conversion is limited to the Java float types at the moment.
+        // Larger float types are almost always unknown
+        valueRead = castValueForUnionFloatConversion(valueRead, readType);
+      }
+      builder.append(memLoc.getKey() + ": " + valueRead);
       builder.append("\n");
     }
 
