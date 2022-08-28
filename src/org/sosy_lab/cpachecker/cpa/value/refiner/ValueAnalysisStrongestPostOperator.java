@@ -43,7 +43,9 @@ public class ValueAnalysisStrongestPostOperator
   private final ValueAnalysisTransferRelation transfer;
 
   public ValueAnalysisStrongestPostOperator(
-      final LogManager pLogger, final Configuration pConfig, final CFA pCfa)
+      final LogManager pLogger,
+      final Configuration pConfig,
+      final CFA pCfa)
       throws InvalidConfigurationException {
 
     transfer =
@@ -56,9 +58,15 @@ public class ValueAnalysisStrongestPostOperator
             null);
   }
 
+  protected ValueAnalysisStrongestPostOperator(final ValueAnalysisTransferRelation pTransfer) {
+    transfer = pTransfer;
+  }
+
   @Override
   public Optional<ValueAnalysisState> getStrongestPost(
-      final ValueAnalysisState pOrigin, final Precision pPrecision, final CFAEdge pOperation)
+      final ValueAnalysisState pOrigin,
+      final Precision pPrecision,
+      final CFAEdge pOperation)
       throws CPAException, InterruptedException {
 
     final Collection<ValueAnalysisState> successors =
@@ -74,14 +82,18 @@ public class ValueAnalysisStrongestPostOperator
 
   @Override
   public ValueAnalysisState handleFunctionCall(
-      ValueAnalysisState state, CFAEdge edge, Deque<ValueAnalysisState> callstack) {
+      ValueAnalysisState state,
+      CFAEdge edge,
+      Deque<ValueAnalysisState> callstack) {
     callstack.push(state);
     return state;
   }
 
   @Override
   public ValueAnalysisState handleFunctionReturn(
-      ValueAnalysisState next, CFAEdge edge, Deque<ValueAnalysisState> callstack) {
+      ValueAnalysisState next,
+      CFAEdge edge,
+      Deque<ValueAnalysisState> callstack) {
 
     final ValueAnalysisState callState = callstack.pop();
     return next.rebuildStateAfterFunctionCall(callState, (FunctionExitNode) edge.getPredecessor());
@@ -120,8 +132,8 @@ public class ValueAnalysisStrongestPostOperator
 
   protected Set<MemoryLocation> obtainExceedingMemoryLocations(final ARGPath pPath) {
     UniqueAssignmentsInPathConditionState assignments =
-        AbstractStates.extractStateByType(
-            pPath.getLastState(), UniqueAssignmentsInPathConditionState.class);
+        AbstractStates
+            .extractStateByType(pPath.getLastState(), UniqueAssignmentsInPathConditionState.class);
 
     if (assignments == null) {
       return ImmutableSet.of();

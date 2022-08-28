@@ -47,8 +47,8 @@ public class GenericFeasibilityChecker<S extends ForgetfulState<?>>
     initialState = pInitialState;
     logger = pLogger;
     precision =
-        VariableTrackingPrecision.createStaticPrecision(
-            pConfig, pCfa.getVarClassification(), pCpaToRefine);
+        VariableTrackingPrecision
+            .createStaticPrecision(pConfig, pCfa.getVarClassification(), pCpaToRefine);
   }
 
   @Override
@@ -63,8 +63,7 @@ public class GenericFeasibilityChecker<S extends ForgetfulState<?>>
   }
 
   @Override
-  public final boolean isFeasible(
-      final ARGPath pPath, final S pStartingPoint, final Deque<S> pCallstack)
+  public boolean isFeasible(final ARGPath pPath, final S pStartingPoint, final Deque<S> pCallstack)
       throws CPAException, InterruptedException {
 
     try {
@@ -76,8 +75,8 @@ public class GenericFeasibilityChecker<S extends ForgetfulState<?>>
         Optional<S> maybeNext = strongestPostOp.step(next, edge, precision, pCallstack, pPath);
 
         if (!maybeNext.isPresent()) {
-          logger.log(
-              Level.FINE, "found path to be infeasible: ", edge, " did not yield a successor");
+          logger
+              .log(Level.FINE, "found path to be infeasible: ", edge, " did not yield a successor");
           return false;
         } else {
           next = maybeNext.orElseThrow();
@@ -89,7 +88,8 @@ public class GenericFeasibilityChecker<S extends ForgetfulState<?>>
       return true;
     } catch (CPATransferException e) {
       throw new CPAException(
-          "Computation of successor failed for checking path: " + e.getMessage(), e);
+          "Computation of successor failed for checking path: " + e.getMessage(),
+          e);
     }
   }
 }

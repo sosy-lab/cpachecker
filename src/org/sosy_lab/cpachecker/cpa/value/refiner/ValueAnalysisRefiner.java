@@ -79,37 +79,35 @@ public class ValueAnalysisRefiner
     extends GenericRefiner<ValueAnalysisState, ValueAnalysisInterpolant> {
 
   @Option(
-      secure = true,
-      description = "whether or not to do lazy-abstraction",
-      name = "restart",
-      toUppercase = true)
+    secure = true,
+    description = "whether or not to do lazy-abstraction",
+    name = "restart",
+    toUppercase = true)
   private RestartStrategy restartStrategy = RestartStrategy.PIVOT;
 
   @Option(
-      secure = true,
-      description = "whether or not to use heuristic to avoid similar, repeated refinements")
+    secure = true,
+    description = "whether or not to use heuristic to avoid similar, repeated refinements")
   private boolean avoidSimilarRepeatedRefinement = false;
 
   @Option(
-      secure = true, // name="refinement.basisStrategy",
-      description =
-          "Which base precision should be used for a new precision? ALL: During refinement, collect"
-              + " precisions from the complete ARG. SUBGRAPH: During refinement, keep precision"
-              + " from all removed parts (subgraph) of the ARG. CUTPOINT: Only the cut-point's"
-              + " precision is kept. TARGET: Only the target state's precision is kept.")
+    secure = true, // name="refinement.basisStrategy",
+    description = "Which base precision should be used for a new precision? ALL: During refinement, collect"
+        + " precisions from the complete ARG. SUBGRAPH: During refinement, keep precision"
+        + " from all removed parts (subgraph) of the ARG. CUTPOINT: Only the cut-point's"
+        + " precision is kept. TARGET: Only the target state's precision is kept.")
   /* see also: {@link PredicateAbstractionRefinementStrategy} */
-  /* There are usually more tracked variables at the target location that at the cut-point.
-   * 05/2017: An evaluation on sv-benchmark files for ALL, SUBGRAPH, TARGET, and CUTPOINT showed:
-   * - overall: SUBGRAPH >= ALL >> CUTPOINT > TARGET
-   * - SUBGRAPH and ALL are nearly identical
-   * - CUTPOINT has smallest number of solved files,
-   *   especially there are many timeouts (900s) on the source files product-lines/email_spec*,
-   *   and many solved tasks in ldv-linux-3.14/linux-3.14__complex_emg*
-   * - TARGET is slowest and has less score
+  /*
+   * There are usually more tracked variables at the target location that at the cut-point. 05/2017:
+   * An evaluation on sv-benchmark files for ALL, SUBGRAPH, TARGET, and CUTPOINT showed: - overall:
+   * SUBGRAPH >= ALL >> CUTPOINT > TARGET - SUBGRAPH and ALL are nearly identical - CUTPOINT has
+   * smallest number of solved files, especially there are many timeouts (900s) on the source files
+   * product-lines/email_spec*, and many solved tasks in ldv-linux-3.14/linux-3.14__complex_emg* -
+   * TARGET is slowest and has less score
    */
-  private BasisStrategy basisStrategy = BasisStrategy.SUBGRAPH;
+  protected BasisStrategy basisStrategy = BasisStrategy.SUBGRAPH;
 
-  private enum BasisStrategy {
+  protected enum BasisStrategy {
     ALL,
     SUBGRAPH,
     TARGET,
@@ -154,7 +152,10 @@ public class ValueAnalysisRefiner
 
     final GenericPrefixProvider<ValueAnalysisState> prefixProvider =
         new ValueAnalysisPrefixProvider(
-            logger, cfa, config, valueAnalysisCpa.getShutdownNotifier());
+            logger,
+            cfa,
+            config,
+            valueAnalysisCpa.getShutdownNotifier());
 
     return new ValueAnalysisRefiner(
         checker,
@@ -167,7 +168,7 @@ public class ValueAnalysisRefiner
         cfa);
   }
 
-  ValueAnalysisRefiner(
+  protected ValueAnalysisRefiner(
       final ValueAnalysisFeasibilityChecker pFeasibilityChecker,
       final StrongestPostOperator<ValueAnalysisState> pStrongestPostOperator,
       final PathExtractor pPathExtractor,
@@ -244,8 +245,8 @@ public class ValueAnalysisRefiner
       }
 
       // merge the value precisions of the subtree, and refine it
-      precisions.add(
-          basePrecision.withIncrement(pInterpolationTree.extractPrecisionIncrement(root)));
+      precisions
+          .add(basePrecision.withIncrement(pInterpolationTree.extractPrecisionIncrement(root)));
 
       // merge the predicate precisions of the subtree, if available
       if (predicatePrecisionIsAvailable) {
@@ -268,14 +269,15 @@ public class ValueAnalysisRefiner
     }
   }
 
-  private boolean isPredicatePrecisionAvailable(final UnmodifiableReachedSet pReached) {
+  protected boolean isPredicatePrecisionAvailable(final UnmodifiableReachedSet pReached) {
     return Precisions.extractPrecisionByType(
-            pReached.getPrecision(pReached.getFirstState()), PredicatePrecision.class)
-        != null;
+        pReached.getPrecision(pReached.getFirstState()),
+        PredicatePrecision.class) != null;
   }
 
-  private VariableTrackingPrecision mergeValuePrecisionsForSubgraph(
-      final ARGState pRefinementRoot, final UnmodifiableReachedSet pReached) {
+  protected VariableTrackingPrecision mergeValuePrecisionsForSubgraph(
+      final ARGState pRefinementRoot,
+      final UnmodifiableReachedSet pReached) {
     // get all unique precisions from the subtree
     Set<VariableTrackingPrecision> uniquePrecisions = Sets.newIdentityHashSet();
     for (ARGState descendant : ARGUtils.getNonCoveredStatesInSubgraph(pRefinementRoot)) {
@@ -291,15 +293,14 @@ public class ValueAnalysisRefiner
     return mergedPrecision;
   }
 
-  private VariableTrackingPrecision extractValuePrecision(Precision precision) {
-    return (VariableTrackingPrecision)
-        Precisions.asIterable(precision)
-            .firstMatch(VariableTrackingPrecision.isMatchingCPAClass(ValueAnalysisCPA.class))
-            .get();
+  protected VariableTrackingPrecision extractValuePrecision(Precision precision) {
+    return (VariableTrackingPrecision) Precisions.asIterable(precision)
+        .firstMatch(VariableTrackingPrecision.isMatchingCPAClass(ValueAnalysisCPA.class))
+        .get();
   }
 
   /** A simple heuristic to detect similar repeated refinements. */
-  private boolean isSimilarRepeatedRefinement(Collection<MemoryLocation> currentIncrement) {
+  protected boolean isSimilarRepeatedRefinement(Collection<MemoryLocation> currentIncrement) {
 
     boolean isSimilar = false;
     int currentRefinementId = new TreeSet<>(currentIncrement).hashCode();
@@ -323,7 +324,7 @@ public class ValueAnalysisRefiner
    * @param currentRoot the current refinement root
    * @return the relocated refinement root
    */
-  private ARGState relocateRepeatedRefinementRoot(final ARGState currentRoot) {
+  protected ARGState relocateRepeatedRefinementRoot(final ARGState currentRoot) {
     repeatedRefinements.inc();
     int currentRootNumber = AbstractStates.extractLocation(currentRoot).getNodeNumber();
 
@@ -342,8 +343,9 @@ public class ValueAnalysisRefiner
     return Iterables.getOnlyElement(path.getFirstState().getChildren());
   }
 
-  private ARGState relocateRefinementRoot(
-      final ARGState pRefinementRoot, final boolean predicatePrecisionIsAvailable)
+  protected ARGState relocateRefinementRoot(
+      final ARGState pRefinementRoot,
+      final boolean predicatePrecisionIsAvailable)
       throws InterruptedException {
 
     // no relocation needed if only running value analysis,
@@ -367,8 +369,7 @@ public class ValueAnalysisRefiner
 
     final ImmutableList<ARGState> descendants = pRefinementRoot.getSubgraph().toList();
     final ImmutableSet<ARGState> coveredStates =
-        from(descendants)
-            .transformAndConcat(ARGState::getCoveredByThis)
+        from(descendants).transformAndConcat(ARGState::getCoveredByThis)
             .append(pRefinementRoot)
             .toSet();
     shutdownNotifier.shutdownIfNecessary();
@@ -437,12 +438,11 @@ public class ValueAnalysisRefiner
   }
 
   @Override
-  protected void printAdditionalStatistics(
-      PrintStream pOut, Result pResult, UnmodifiableReachedSet pReached) {
+  protected void
+      printAdditionalStatistics(PrintStream pOut, Result pResult, UnmodifiableReachedSet pReached) {
     StatisticsWriter writer = StatisticsWriter.writingStatisticsTo(pOut);
 
-    writer
-        .put(rootRelocations)
+    writer.put(rootRelocations)
         .put(repeatedRefinements)
         .put("Number of unique precision increments", previousRefinementIds.size());
   }

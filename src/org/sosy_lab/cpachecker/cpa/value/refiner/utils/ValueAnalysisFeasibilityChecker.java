@@ -30,9 +30,9 @@ import org.sosy_lab.cpachecker.util.refinement.StrongestPostOperator;
 
 public class ValueAnalysisFeasibilityChecker extends GenericFeasibilityChecker<ValueAnalysisState> {
 
-  private final StrongestPostOperator<ValueAnalysisState> strongestPostOp;
-  private final VariableTrackingPrecision precision;
-  private final MachineModel machineModel;
+  protected final StrongestPostOperator<ValueAnalysisState> strongestPostOp;
+  protected final VariableTrackingPrecision precision;
+  protected final MachineModel machineModel;
 
   /**
    * This method acts as the constructor of the class.
@@ -57,8 +57,8 @@ public class ValueAnalysisFeasibilityChecker extends GenericFeasibilityChecker<V
 
     strongestPostOp = pStrongestPostOp;
     precision =
-        VariableTrackingPrecision.createStaticPrecision(
-            config, pCfa.getVarClassification(), ValueAnalysisCPA.class);
+        VariableTrackingPrecision
+            .createStaticPrecision(config, pCfa.getVarClassification(), ValueAnalysisCPA.class);
     machineModel = pCfa.getMachineModel();
   }
 
@@ -94,7 +94,8 @@ public class ValueAnalysisFeasibilityChecker extends GenericFeasibilityChecker<V
       return reevaluatedPath;
     } catch (CPATransferException e) {
       throw new CPAException(
-          "Computation of successor failed for checking path: " + e.getMessage(), e);
+          "Computation of successor failed for checking path: " + e.getMessage(),
+          e);
     }
   }
 }
