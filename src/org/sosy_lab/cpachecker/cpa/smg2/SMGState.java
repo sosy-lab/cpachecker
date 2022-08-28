@@ -63,6 +63,7 @@ import org.sosy_lab.cpachecker.cpa.value.symbolic.type.AddressExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValueFactory;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
+import org.sosy_lab.cpachecker.cpa.value.type.NumericValue.NegativeNaN;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.cpa.value.type.Value.UnknownValue;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
@@ -1777,7 +1778,7 @@ public class SMGState
       return false;
     }
     Number num = value.asNumericValue().getNumber();
-    return num instanceof Float || num instanceof Double;
+    return num instanceof Float || num instanceof Double || num == NegativeNaN.VALUE;
   }
 
   /**
@@ -1788,8 +1789,11 @@ public class SMGState
     if (readValue.isNumericValue()) {
       if (isFloatingPointType(readValue)) {
         return extractFloatingPointValueAsIntegralValue(readValue);
-      } else if (isFloatingPointType(expectedType.getCanonicalType())) {
+      } else if (isFloatingPointType(expectedType.getCanonicalType())
+          && !isFloatingPointType(readValue)) {
         return extractIntegralValueAsFloatingPointValue(expectedType.getCanonicalType(), readValue);
+      } else {
+        return readValue;
       }
     }
 
