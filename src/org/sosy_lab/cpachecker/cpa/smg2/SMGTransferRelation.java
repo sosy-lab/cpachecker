@@ -329,9 +329,17 @@ public class SMGTransferRelation
       // Now we can drop the stack frame as we left the function and have the return value
       SMGState currentState = readValueAndState.getState().dropStackFrame();
       // The memory on the left hand side might not exist because of CEGAR
-      currentState = createVariableOnTheSpot(leftValue, cfaEdge, currentState);
-      return evaluator.writeValueToExpression(
-          summaryEdge, leftValue, readValueAndState.getValue(), currentState, rightValueType);
+      ImmutableList.Builder<SMGState> stateBuilder = ImmutableList.builder();
+      for (SMGState stateWithNewVar : createVariableOnTheSpot(leftValue, cfaEdge, currentState)) {
+        stateBuilder.addAll(
+            evaluator.writeValueToExpression(
+                summaryEdge,
+                leftValue,
+                readValueAndState.getValue(),
+                stateWithNewVar,
+                rightValueType));
+      }
+      return stateBuilder.build();
     } else {
       return ImmutableList.of(state.dropStackFrame());
     }
@@ -347,17 +355,21 @@ public class SMGTransferRelation
    * @return a new SMGState with the variable added.
    * @throws CPATransferException for errors and unhandled cases
    */
-  private SMGState createVariableOnTheSpot(
+  private List<SMGState> createVariableOnTheSpot(
       CExpression leftHandSideExpr, CFAEdge cfaEdge, SMGState pState) throws CPATransferException {
     if (leftHandSideExpr instanceof CIdExpression) {
       CIdExpression leftCIdExpr = (CIdExpression) leftHandSideExpr;
-      String varName = leftCIdExpr.getDeclaration().getQualifiedName();
+      CSimpleDeclaration decl = leftCIdExpr.getDeclaration();
+      String varName = decl.getQualifiedName();
       if (!pState.isLocalOrGlobalVariablePresent(varName)) {
-        return handleVariableDeclaration(
-                pState, (CVariableDeclaration) leftCIdExpr.getDeclaration(), cfaEdge)
-            .get(0);
+        if (decl instanceof CVariableDeclaration) {
+          return handleVariableDeclaration(pState, (CVariableDeclaration) decl, cfaEdge);
+        } else if (decl instanceof CParameterDeclaration) {
+          return handleVariableDeclaration(
+              pState, ((CParameterDeclaration) decl).asVariableDeclaration(), cfaEdge);
+        }
       }
-      return pState;
+      return ImmutableList.of(pState);
 
     } else if (leftHandSideExpr instanceof CArraySubscriptExpression) {
       CExpression arrayExpr = ((CArraySubscriptExpression) leftHandSideExpr).getArrayExpression();
@@ -374,8 +386,10 @@ public class SMGTransferRelation
     } else if (leftHandSideExpr instanceof CUnaryExpression) {
       CExpression operand = ((CUnaryExpression) leftHandSideExpr).getOperand();
       return createVariableOnTheSpot(operand, cfaEdge, pState);
+    } else {
+      throw new SMG2Exception("Could not determine type of on-the-fly variable creation.");
     }
-    return pState;
+    // return ImmutableList.of(pState);
   }
 
   @Override
@@ -627,9 +641,11 @@ public class SMGTransferRelation
       CAssignment cAssignment = (CAssignment) cStmt;
       CExpression lValue = cAssignment.getLeftHandSide();
       CRightHandSide rValue = cAssignment.getRightHandSide();
-      SMGState currentState = createVariableOnTheSpot(lValue, pCfaEdge, state);
-
-      return handleAssignment(currentState, pCfaEdge, lValue, rValue);
+      ImmutableList.Builder<SMGState> stateBuilder = ImmutableList.builder();
+      for (SMGState currentState : createVariableOnTheSpot(lValue, pCfaEdge, state)) {
+        stateBuilder.addAll(handleAssignment(currentState, pCfaEdge, lValue, rValue));
+      }
+      return stateBuilder.build();
 
     } else if (cStmt instanceof CFunctionCallStatement) {
       // Check the arguments for the function, then simply execute the function
