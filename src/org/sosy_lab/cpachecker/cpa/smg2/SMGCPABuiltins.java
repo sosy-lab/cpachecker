@@ -1072,7 +1072,7 @@ public class SMGCPABuiltins {
       // If the Value is no AddressExpression we can't work with it
       // The buffer is type * and has to be a AddressExpression with a not unknown value and a
       // concrete offset to be used correctly
-      if (SMGCPAValueExpressionEvaluator.valueIsAddressExprOrVariableOffset(targetAddress)) {
+      if (!SMGCPAValueExpressionEvaluator.valueIsAddressExprOrVariableOffset(targetAddress)) {
         // Unknown addresses happen only of we don't have a memory associated
         // TODO: decide what to do here and when this happens
         resultBuilder.add(ValueAndSMGState.ofUnknownValue(destAndState.getState()));
@@ -1081,9 +1081,6 @@ public class SMGCPABuiltins {
         // The value can be unknown
         resultBuilder.add(ValueAndSMGState.ofUnknownValue(destAndState.getState()));
         continue;
-        /*throw new SMG2Exception(
-        "Internal error: wrong Value returned where AddressExpression expected when evaluating"
-            + " memcpy.");*/
       }
       AddressExpression targetAddressExpr = (AddressExpression) targetAddress;
       if (!targetAddressExpr.getOffset().isNumericValue()) {
@@ -1108,9 +1105,6 @@ public class SMGCPABuiltins {
           // The value can be unknown
           resultBuilder.add(ValueAndSMGState.ofUnknownValue(sourceAndState.getState()));
           continue;
-          /*throw new SMG2Exception(
-          "Internal error: wrong Value returned where AddressExpression expected when"
-              + " evaluating memcpy.");*/
         }
         AddressExpression sourceAddressExpr = (AddressExpression) sourceAddress;
         if (!sourceAddressExpr.getOffset().isNumericValue()) {
@@ -1238,9 +1232,9 @@ public class SMGCPABuiltins {
         resultBuilder.add(ValueAndSMGState.ofUnknownValue(firstValueAndSMGState.getState()));
         continue;
       } else if (!(firstAddress instanceof AddressExpression)) {
-        throw new SMG2Exception(
-            "Internal error: wrong Value returned where AddressExpression expected when evaluating"
-                + " strcmp.");
+        // The value can be unknown
+        resultBuilder.add(ValueAndSMGState.ofUnknownValue(firstValueAndSMGState.getState()));
+        continue;
       }
       AddressExpression firstAddressExpr = (AddressExpression) firstAddress;
       if (!firstAddressExpr.getOffset().isNumericValue()) {
@@ -1256,15 +1250,15 @@ public class SMGCPABuiltins {
         // If the Value is no AddressExpression we can't work with it
         // The buffer is type * and has to be a AddressExpression with a not unknown value and a
         // concrete offset to be used correctly
-        if (SMGCPAValueExpressionEvaluator.valueIsAddressExprOrVariableOffset(secondAddress)) {
+        if (!SMGCPAValueExpressionEvaluator.valueIsAddressExprOrVariableOffset(secondAddress)) {
           // Unknown addresses happen only of we don't have a memory associated
           // TODO: decide what to do here and when this happens
           resultBuilder.add(ValueAndSMGState.ofUnknownValue(secondValueAndSMGState.getState()));
           continue;
         } else if (!(secondAddress instanceof AddressExpression)) {
-          throw new SMG2Exception(
-              "Internal error: wrong Value returned where AddressExpression expected when"
-                  + " evaluating strcmp.");
+          // The value can be unknown
+          resultBuilder.add(ValueAndSMGState.ofUnknownValue(secondValueAndSMGState.getState()));
+          continue;
         }
         AddressExpression secondAddressExpr = (AddressExpression) secondAddress;
         if (!secondAddressExpr.getOffset().isNumericValue()) {
