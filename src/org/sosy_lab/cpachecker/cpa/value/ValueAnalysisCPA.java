@@ -63,11 +63,8 @@ import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 import org.sosy_lab.cpachecker.util.states.MemoryLocationValueHandler;
 
 @Options(prefix = "cpa.value")
-public class ValueAnalysisCPA extends AbstractCPA
-    implements ConfigurableProgramAnalysisWithBAM,
-        StatisticsProvider,
-        ProofCheckerCPA,
-        ConfigurableProgramAnalysisWithConcreteCex {
+public class ValueAnalysisCPA extends AbstractCPA implements ConfigurableProgramAnalysisWithBAM,
+    StatisticsProvider, ProofCheckerCPA, ConfigurableProgramAnalysisWithConcreteCex {
 
   private enum UnknownValueStrategy {
     /** This strategy discards all unknown values from the value analysis state */
@@ -81,19 +78,19 @@ public class ValueAnalysisCPA extends AbstractCPA
   }
 
   @Option(
-      secure = true,
-      name = "merge",
-      toUppercase = true,
-      values = {"SEP", "JOIN"},
-      description = "which merge operator to use for ValueAnalysisCPA")
+    secure = true,
+    name = "merge",
+    toUppercase = true,
+    values = {"SEP", "JOIN"},
+    description = "which merge operator to use for ValueAnalysisCPA")
   private String mergeType = "SEP";
 
   @Option(
-      secure = true,
-      name = "stop",
-      toUppercase = true,
-      values = {"SEP", "JOIN", "NEVER", "EQUALS"},
-      description = "which stop operator to use for ValueAnalysisCPA")
+    secure = true,
+    name = "stop",
+    toUppercase = true,
+    values = {"SEP", "JOIN", "NEVER", "EQUALS"},
+    description = "which stop operator to use for ValueAnalysisCPA")
   private String stopType = "SEP";
 
   @Option(secure = true, description = "get an initial precision from file")
@@ -105,9 +102,9 @@ public class ValueAnalysisCPA extends AbstractCPA
   private Path initialPredicatePrecisionFile = null;
 
   @Option(
-      secure = true,
-      name = "unknownValueHandling",
-      description = "Tells the value analysis how to handle unknown values.")
+    secure = true,
+    name = "unknownValueHandling",
+    description = "Tells the value analysis how to handle unknown values.")
   private UnknownValueStrategy unknownValueStrategy = UnknownValueStrategy.DISCARD;
 
   public static CPAFactory factory() {
@@ -135,8 +132,11 @@ public class ValueAnalysisCPA extends AbstractCPA
 
   private SymbolicStatistics symbolicStats;
 
-  private ValueAnalysisCPA(
-      Configuration config, LogManager logger, ShutdownNotifier pShutdownNotifier, CFA cfa)
+  protected ValueAnalysisCPA(
+      Configuration config,
+      LogManager logger,
+      ShutdownNotifier pShutdownNotifier,
+      CFA cfa)
       throws InvalidConfigurationException {
     super(DelegateAbstractDomain.<ValueAnalysisState>getInstance(), null);
     this.config = config;
@@ -177,16 +177,16 @@ public class ValueAnalysisCPA extends AbstractCPA
   private VariableTrackingPrecision initializePrecision(Configuration pConfig, CFA pCfa)
       throws InvalidConfigurationException {
     if (initialPrecisionFile == null && initialPredicatePrecisionFile == null) {
-      return VariableTrackingPrecision.createStaticPrecision(
-          pConfig, pCfa.getVarClassification(), getClass());
+      return VariableTrackingPrecision
+          .createStaticPrecision(pConfig, pCfa.getVarClassification(), getClass());
     }
 
     // Initialize precision
     VariableTrackingPrecision initialPrecision =
         VariableTrackingPrecision.createRefineablePrecision(
             pConfig,
-            VariableTrackingPrecision.createStaticPrecision(
-                pConfig, pCfa.getVarClassification(), getClass()));
+            VariableTrackingPrecision
+                .createStaticPrecision(pConfig, pCfa.getVarClassification(), getClass()));
 
     if (initialPredicatePrecisionFile != null) {
 
@@ -214,7 +214,9 @@ public class ValueAnalysisCPA extends AbstractCPA
       contents = Files.readAllLines(initialPrecisionFile, Charset.defaultCharset());
     } catch (IOException e) {
       logger.logUserException(
-          Level.WARNING, e, "Could not read precision from file named " + initialPrecisionFile);
+          Level.WARNING,
+          e,
+          "Could not read precision from file named " + initialPrecisionFile);
       return mapping;
     }
 
@@ -298,7 +300,10 @@ public class ValueAnalysisCPA extends AbstractCPA
           Preconditions.checkNotNull(symbolicStats));
     } else {
       return new ValueAnalysisPrecisionAdjustment(
-          statistics, cfa, precisionAdjustmentOptions, precisionAdjustmentStatistics);
+          statistics,
+          cfa,
+          precisionAdjustmentOptions,
+          precisionAdjustmentStatistics);
     }
   }
 

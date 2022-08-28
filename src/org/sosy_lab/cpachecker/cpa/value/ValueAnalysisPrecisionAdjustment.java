@@ -16,6 +16,8 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.io.PrintStream;
 import java.util.Map.Entry;
 import java.util.Optional;
+import java.util.Set;
+
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.IntegerOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -34,6 +36,7 @@ import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustmentResult;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustmentResult.Action;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
+import org.sosy_lab.cpachecker.cpa.cer.CERState;
 import org.sosy_lab.cpachecker.cpa.conditions.path.AssignmentsInPathCondition.UniqueAssignmentsInPathConditionState;
 import org.sosy_lab.cpachecker.cpa.location.LocationState;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState.ValueAndType;
@@ -58,8 +61,8 @@ public class ValueAnalysisPrecisionAdjustment implements PrecisionAdjustment {
     private boolean alwaysAtJoin = false;
 
     @Option(
-        secure = true,
-        description = "restrict abstraction computations to function calls/returns")
+      secure = true,
+      description = "restrict abstraction computations to function calls/returns")
     private boolean alwaysAtFunction = false;
 
     @Option(secure = true, description = "restrict abstraction computations to loop heads")
@@ -69,26 +72,23 @@ public class ValueAnalysisPrecisionAdjustment implements PrecisionAdjustment {
     private boolean doLivenessAbstraction = false;
 
     @Option(
-        secure = true,
-        description =
-            "restrict liveness abstractions to nodes with more than one entering and/or leaving"
-                + " edge")
+      secure = true,
+      description = "restrict liveness abstractions to nodes with more than one entering and/or leaving"
+          + " edge")
     private boolean onlyAtNonLinearCFA = false;
 
     @Option(
-        secure = true,
-        description =
-            "skip abstraction computations until the given number of iterations are reached,"
-                + " after that decision is based on then current level of determinism,"
-                + " setting the option to -1 always performs abstraction computations")
+      secure = true,
+      description = "skip abstraction computations until the given number of iterations are reached,"
+          + " after that decision is based on then current level of determinism,"
+          + " setting the option to -1 always performs abstraction computations")
     @IntegerOption(min = -1)
     private int iterationThreshold = -1;
 
     @Option(
-        secure = true,
-        description =
-            "threshold for level of determinism, in percent, up-to which abstraction computations "
-                + "are performed (and iteration threshold was reached)")
+      secure = true,
+      description = "threshold for level of determinism, in percent, up-to which abstraction computations "
+          + "are performed (and iteration threshold was reached)")
     @IntegerOption(min = 0, max = 100)
     @SuppressFBWarnings(value = "URF_UNREAD_FIELD", justification = "false alarm")
     private int determinismThreshold = 85;
@@ -162,14 +162,14 @@ public class ValueAnalysisPrecisionAdjustment implements PrecisionAdjustment {
   }
 
   private final ValueAnalysisCPAStatistics stats;
-  private final PrecAdjustmentOptions options;
-  private final Optional<LiveVariables> liveVariables;
+  protected final PrecAdjustmentOptions options;
+  protected final Optional<LiveVariables> liveVariables;
 
   // for statistics
-  private final StatCounter abstractions;
-  private final TimerWrapper totalLiveness;
-  private final TimerWrapper totalAbstraction;
-  private final TimerWrapper totalEnforcePath;
+  protected final StatCounter abstractions;
+  protected final TimerWrapper totalLiveness;
+  protected final TimerWrapper totalAbstraction;
+  protected final TimerWrapper totalEnforcePath;
 
   @SuppressFBWarnings(value = "URF_UNREAD_FIELD", justification = "false alarm")
   private boolean performPrecisionBasedAbstraction = false;
@@ -203,14 +203,16 @@ public class ValueAnalysisPrecisionAdjustment implements PrecisionAdjustment {
         (ValueAnalysisState) pState,
         (VariableTrackingPrecision) pPrecision,
         AbstractStates.extractStateByType(fullState, LocationState.class),
-        AbstractStates.extractStateByType(fullState, UniqueAssignmentsInPathConditionState.class));
+        AbstractStates.extractStateByType(fullState, UniqueAssignmentsInPathConditionState.class),
+        AbstractStates.extractStateByType(fullState, CERState.class));
   }
 
   private Optional<PrecisionAdjustmentResult> prec(
       ValueAnalysisState pState,
       VariableTrackingPrecision pPrecision,
       LocationState location,
-      UniqueAssignmentsInPathConditionState assignments) {
+      UniqueAssignmentsInPathConditionState assignments,
+      CERState cexInfo) {
     ValueAnalysisState resultState = ValueAnalysisState.copyOf(pState);
 
     if (options.doLivenessAbstraction && liveVariables.isPresent()) {
@@ -222,7 +224,7 @@ public class ValueAnalysisPrecisionAdjustment implements PrecisionAdjustment {
     // compute the abstraction based on the value-analysis precision
     totalAbstraction.start();
     if (performPrecisionBasedAbstraction()) {
-      enforcePrecision(resultState, location, pPrecision);
+      enforcePrecision(resultState, location, cexInfo, pPrecision);
     }
     totalAbstraction.stop();
 
@@ -245,7 +247,7 @@ public class ValueAnalysisPrecisionAdjustment implements PrecisionAdjustment {
    *
    * @return true, if abstractions should be computed, else false
    */
-  private boolean performPrecisionBasedAbstraction() {
+  protected boolean performPrecisionBasedAbstraction() {
     // always compute abstraction if option is disabled
     if (options.iterationThreshold == -1) {
       return true;
@@ -268,8 +270,10 @@ public class ValueAnalysisPrecisionAdjustment implements PrecisionAdjustment {
     return performPrecisionBasedAbstraction;
   }
 
-  private void enforceLiveness(
-      ValueAnalysisState pState, LocationState location, ValueAnalysisState resultState) {
+  protected void enforceLiveness(
+      ValueAnalysisState pState,
+      LocationState location,
+      ValueAnalysisState resultState) {
     CFANode actNode = location.getLocationNode();
 
     boolean hasMoreThanOneEnteringLeavingEdge =
@@ -286,8 +290,7 @@ public class ValueAnalysisPrecisionAdjustment implements PrecisionAdjustment {
       // less live
       if (!onlyBlankEdgesEntering) {
         for (MemoryLocation variable : pState.getTrackedMemoryLocations()) {
-          if (!liveVariables
-              .orElseThrow()
+          if (!liveVariables.orElseThrow()
               .isVariableLive(variable.getExtendedQualifiedName(), location.getLocationNode())) {
             resultState.forget(variable);
           }
@@ -303,8 +306,11 @@ public class ValueAnalysisPrecisionAdjustment implements PrecisionAdjustment {
    * @param state the current state
    * @param precision the current precision
    */
-  private void enforcePrecision(
-      ValueAnalysisState state, LocationState location, VariableTrackingPrecision precision) {
+  protected void enforcePrecision(
+      ValueAnalysisState state,
+      LocationState location,
+      CERState cexInfo,
+      VariableTrackingPrecision precision) {
     if (options.abstractAtEachLocation()
         || options.abstractAtBranch(location)
         || options.abstractAtJoin(location)
@@ -314,14 +320,22 @@ public class ValueAnalysisPrecisionAdjustment implements PrecisionAdjustment {
       for (Entry<MemoryLocation, ValueAndType> e : state.getConstants()) {
         MemoryLocation memoryLocation = e.getKey();
         if (location != null
-            && !precision.isTracking(
-                memoryLocation, e.getValue().getType(), location.getLocationNode())) {
-          state.forget(memoryLocation);
+            && !precision
+                .isTracking(memoryLocation, e.getValue().getType(), location.getLocationNode())) {
+
+          if (cexInfo != null) {
+            Set<MemoryLocation> cexPrecision = cexInfo.getPrecisionInfo().getValuePrecison();
+            if (!cexPrecision.contains(memoryLocation)) {
+              state.forget(memoryLocation);
+            }
+          } else {
+            state.forget(memoryLocation);
+          }
+
         }
       }
-
-      abstractions.inc();
     }
+    abstractions.inc();
   }
 
   /**
@@ -331,8 +345,9 @@ public class ValueAnalysisPrecisionAdjustment implements PrecisionAdjustment {
    * @param state the state to abstract
    * @param assignments the assignment information
    */
-  private void enforcePathThreshold(
-      ValueAnalysisState state, UniqueAssignmentsInPathConditionState assignments) {
+  protected void enforcePathThreshold(
+      ValueAnalysisState state,
+      UniqueAssignmentsInPathConditionState assignments) {
 
     // forget the value for all variables that exceed their threshold
     for (Entry<MemoryLocation, ValueAndType> e : state.getConstants()) {
