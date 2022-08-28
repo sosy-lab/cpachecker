@@ -659,7 +659,7 @@ public class SMGCPABuiltins {
           sizeValue = new NumericValue(options.getGuessSize());
         } else {
 
-          throw new SMG2Exception(
+          throw new AssertionError(
               "An allocation function was called with a symbolic size. This is not supported"
                   + " currently by the SMG2 analysis. Try GuessSizeOfUnknownMemorySize.");
         }
