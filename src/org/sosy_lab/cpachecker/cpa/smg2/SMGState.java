@@ -894,7 +894,7 @@ public class SMGState
           return false;
         }
         Value thisRetVal = thisFrame.getReturnValue();
-        if (!areValuesEqual(this, thisRetVal, pOther, otherRetVal)) {
+        if (!areValuesEqual(this, thisRetVal, pOther, otherRetVal, ImmutableSet.of())) {
           return false;
         }
       } else {
@@ -913,7 +913,8 @@ public class SMGState
       Value otherValue = otherEntry.getValue().getValue();
       ValueAndValueSize thisValueAndType = memLocAndValues.get(key);
       if (thisValueAndType == null
-          || !areValuesEqual(this, thisValueAndType.getValue(), pOther, otherValue)) {
+          || !areValuesEqual(
+              this, thisValueAndType.getValue(), pOther, otherValue, ImmutableSet.of())) {
         return false;
       }
     }
@@ -925,7 +926,8 @@ public class SMGState
       SMGState thisState,
       @Nullable Value thisValue,
       SMGState otherState,
-      @Nullable Value otherValue) {
+      @Nullable Value otherValue,
+      Set<Value> thisAlreadyChecked) {
     if (thisValue == otherValue) {
       return true;
     }
@@ -951,7 +953,17 @@ public class SMGState
     // Pointers are more difficult, they are represented by a SymbolicIdentifier, again unique
     // id. We need to use the CPA method
     if (memoryModel.isPointer(thisValue) && otherState.memoryModel.isPointer(otherValue)) {
-      isHeapEqualForTwoPointersWithTwoStates(thisState, thisValue, otherState, otherValue);
+      // Pointers can be cyclic! We remember already checked values.
+      if (thisAlreadyChecked.contains(thisValue)) {
+        return true;
+      } else {
+        isHeapEqualForTwoPointersWithTwoStates(
+            thisState,
+            thisValue,
+            otherState,
+            otherValue,
+            ImmutableSet.<Value>builder().addAll(thisAlreadyChecked).add(thisValue).build());
+      }
     }
 
     // Unknowns in this current CPA implementation are not comparable in different states!
@@ -975,7 +987,11 @@ public class SMGState
 
   /* Check heap equality as far as possible. This has some limitations. We just check the shape and known values/pointers. */
   private boolean isHeapEqualForTwoPointersWithTwoStates(
-      SMGState thisState, Value thisAddress, SMGState otherState, Value otherAddress) {
+      SMGState thisState,
+      Value thisAddress,
+      SMGState otherState,
+      Value otherAddress,
+      Set<Value> thisAlreadyChecked) {
     Optional<SMGObjectAndOffset> thisDeref = thisState.memoryModel.dereferencePointer(thisAddress);
     Optional<SMGObjectAndOffset> otherDeref =
         otherState.memoryModel.dereferencePointer(otherAddress);
@@ -1037,7 +1053,8 @@ public class SMGState
         Value thisHVEValue =
             thisState.memoryModel.getValueFromSMGValue(thisHVE.hasValue()).orElseThrow();
         // These values are either numeric, pointer or unknown
-        if (!areValuesEqual(thisState, thisHVEValue, otherState, otherHVEValue)) {
+        if (!areValuesEqual(
+            thisState, thisHVEValue, otherState, otherHVEValue, thisAlreadyChecked)) {
           return false;
         }
       }
@@ -2496,6 +2513,15 @@ public class SMGState
     }
     return false;
   }
+  /*
+  public boolean executeHeapAbstraction(Set<SMGAbstractionBlock> blocks)
+      throws SMGInconsistentException {
+
+    final SMGCPAAbstractionManager manager;
+    manager = new SMGCPAAbstractionManager(logger, this, blocks, 2, 2, 3);
+
+    return manager.abstractHeap();
+  }*/
 
   @Override
   public String toString() {
