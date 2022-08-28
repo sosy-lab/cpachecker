@@ -386,10 +386,11 @@ public class SMGTransferRelation
     } else if (leftHandSideExpr instanceof CUnaryExpression) {
       CExpression operand = ((CUnaryExpression) leftHandSideExpr).getOperand();
       return createVariableOnTheSpot(operand, cfaEdge, pState);
-    } else {
-      throw new SMG2Exception("Could not determine type of on-the-fly variable creation.");
+    } else if (leftHandSideExpr instanceof CCastExpression) {
+      CExpression operand = ((CCastExpression) leftHandSideExpr).getOperand();
+      return createVariableOnTheSpot(operand, cfaEdge, pState);
     }
-    // return ImmutableList.of(pState);
+    return ImmutableList.of(pState);
   }
 
   @Override
