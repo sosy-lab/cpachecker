@@ -36,6 +36,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDe
 import org.sosy_lab.cpachecker.cfa.types.c.CElaboratedType;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
+import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.smg.TypeUtils;
 import org.sosy_lab.cpachecker.cpa.smg2.SMGCPAAddressVisitor;
@@ -1351,33 +1352,8 @@ public class SMGCPAValueExpressionEvaluator {
       AddressExpression paramAddrExpr = (AddressExpression) valueToWrite;
       Value paramAddrOffsetValue = paramAddrExpr.getOffset();
 
-      if (parameterType instanceof CPointerType) {
-        if (!paramAddrOffsetValue.isNumericValue()) {
-          // Write unknown for unknown offset
-          return currentState.writeToStackOrGlobalVariable(
-              qualifiedVarName,
-              ZeroOffsetInBits,
-              paramSizeInBits,
-              UnknownValue.getInstance(),
-              parameterType);
-        }
-
-        ValueAndSMGState properPointerAndState =
-            transformAddressExpressionIntoPointerValue(paramAddrExpr, currentState);
-
-        return properPointerAndState
-            .getState()
-            .writeToStackOrGlobalVariable(
-                qualifiedVarName,
-                ZeroOffsetInBits,
-                paramSizeInBits,
-                properPointerAndState.getValue(),
-                parameterType);
-
-      } else {
-        Preconditions.checkArgument(
-            SMGCPAValueExpressionEvaluator.isStructOrUnionType(parameterType)
-                || parameterType instanceof CArrayType);
+      if (SMGCPAValueExpressionEvaluator.isStructOrUnionType(parameterType)
+          || parameterType instanceof CArrayType) {
 
         if (!paramAddrOffsetValue.isNumericValue()) {
           // Just continue for now. Reading not inited memory is unknown anyway.
@@ -1404,6 +1380,32 @@ public class SMGCPAValueExpressionEvaluator {
             newVariableMemory,
             ZeroOffsetInBits,
             newVariableMemory.getSize());
+      } else if (parameterType instanceof CPointerType || parameterType instanceof CSimpleType) {
+        // Sometimes a pointer is casted to a long or smth
+        if (!paramAddrOffsetValue.isNumericValue()) {
+          // Write unknown for unknown offset
+          return currentState.writeToStackOrGlobalVariable(
+              qualifiedVarName,
+              ZeroOffsetInBits,
+              paramSizeInBits,
+              UnknownValue.getInstance(),
+              parameterType);
+        }
+
+        ValueAndSMGState properPointerAndState =
+            transformAddressExpressionIntoPointerValue(paramAddrExpr, currentState);
+
+        return properPointerAndState
+            .getState()
+            .writeToStackOrGlobalVariable(
+                qualifiedVarName,
+                ZeroOffsetInBits,
+                paramSizeInBits,
+                properPointerAndState.getValue(),
+                parameterType);
+      } else {
+        throw new SMG2Exception(
+            "Missing type handling when writing a pointer to a " + parameterType + ".");
       }
 
     } else if (valueToWrite instanceof SymbolicIdentifier
