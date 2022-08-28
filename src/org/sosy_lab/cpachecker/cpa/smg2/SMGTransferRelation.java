@@ -1460,7 +1460,9 @@ public class SMGTransferRelation
 
         } else if (valueToWrite instanceof AddressExpression) {
           if (SMGCPAValueExpressionEvaluator.isStructOrUnionType(rightHandSideType)) {
-            Preconditions.checkArgument(rightHandSideType.equals(leftHandSideType));
+            Preconditions.checkArgument(
+                rightHandSideType.equals(leftHandSideType)
+                    || rightHandSideType.canBeAssignedFrom(leftHandSideType));
             // This is a copy based on a pointer
             AddressExpression addressInValue = (AddressExpression) valueToWrite;
             Value pointerOffset = addressInValue.getOffset();
