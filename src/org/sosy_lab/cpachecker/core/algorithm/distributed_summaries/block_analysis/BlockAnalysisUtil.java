@@ -116,14 +116,12 @@ public class BlockAnalysisUtil {
    * @return subset of targetStates where the target information equals {@link
    *     BlockEntryReachedTargetInformation}
    */
-  static ImmutableSet<ARGState> extractBlockTargetStates(Set<ARGState> targetStates) {
+  static ImmutableSet<ARGState> extractBlockTargetStates(
+      Set<ARGState> targetStates, CFANode target) {
     ImmutableSet.Builder<ARGState> blockTargetStates = ImmutableSet.builder();
     for (ARGState targetState : targetStates) {
-      for (TargetInformation targetInformation : targetState.getTargetInformation()) {
-        if (targetInformation instanceof BlockEntryReachedTargetInformation) {
-          blockTargetStates.add(targetState);
-          break;
-        }
+      if (Objects.equals(AbstractStates.extractLocation(targetState), target)) {
+        blockTargetStates.add(targetState);
       }
     }
     return blockTargetStates.build();
@@ -176,7 +174,8 @@ public class BlockAnalysisUtil {
    * @throws InterruptedException thread interrupted
    */
   static BlockAnalysisIntermediateResult findReachableTargetStatesInBlock(
-      Algorithm pAlgorithm, ReachedSet pReachedSet) throws CPAException, InterruptedException {
+      Algorithm pAlgorithm, ReachedSet pReachedSet, CFANode pBlockEnd)
+      throws CPAException, InterruptedException {
 
     AbstractState startState = pReachedSet.getFirstState();
     AlgorithmStatus status = AlgorithmStatus.SOUND_AND_PRECISE;
@@ -193,7 +192,8 @@ public class BlockAnalysisUtil {
             .filter(AbstractStates::isTargetState)
             .filter(s -> !Objects.equals(startState, s))
             .toSet(),
-        status);
+        status,
+        pBlockEnd);
   }
 
   public static class BlockAnalysisIntermediateResult {
@@ -203,15 +203,15 @@ public class BlockAnalysisUtil {
     private final AlgorithmStatus status;
 
     private BlockAnalysisIntermediateResult(
-        ImmutableSet<ARGState> pTargets, AlgorithmStatus pStatus) {
-      blockTargets = extractBlockTargetStates(pTargets);
+        ImmutableSet<ARGState> pTargets, AlgorithmStatus pStatus, CFANode pTarget) {
+      blockTargets = extractBlockTargetStates(pTargets, pTarget);
       targets = extractViolations(pTargets);
       status = pStatus;
     }
 
     private static BlockAnalysisIntermediateResult of(
-        ImmutableSet<ARGState> pTargets, AlgorithmStatus pStatus) {
-      return new BlockAnalysisIntermediateResult(pTargets, pStatus);
+        ImmutableSet<ARGState> pTargets, AlgorithmStatus pStatus, CFANode pTarget) {
+      return new BlockAnalysisIntermediateResult(pTargets, pStatus, pTarget);
     }
 
     public AlgorithmStatus getStatus() {

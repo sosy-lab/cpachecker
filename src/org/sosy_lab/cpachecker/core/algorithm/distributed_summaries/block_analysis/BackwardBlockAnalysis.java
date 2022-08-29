@@ -106,7 +106,8 @@ public class BackwardBlockAnalysis implements ContinuousBlockAnalyzer<Distribute
     reachedSet.clear();
     reachedSet.add(startState, precision);
     BlockAnalysisIntermediateResult result =
-        BlockAnalysisUtil.findReachableTargetStatesInBlock(algorithm, reachedSet);
+        BlockAnalysisUtil.findReachableTargetStatesInBlock(
+            algorithm, reachedSet, block.getStartNode());
     Set<ARGState> targetStates = result.getBlockTargets();
     status = status.update(result.getStatus());
     List<AbstractState> states =

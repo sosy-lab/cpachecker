@@ -48,7 +48,6 @@ public class SerializePredicateStateOperator implements SerializeOperator {
                 .makeEmptyPathFormula()
                 .withFormula(state.getAbstractionFormula().asFormula());
       }
-      // pathFormula = state.getAbstractionFormula().getBlockFormula();
     } else {
       pathFormula = state.getPathFormula();
     }

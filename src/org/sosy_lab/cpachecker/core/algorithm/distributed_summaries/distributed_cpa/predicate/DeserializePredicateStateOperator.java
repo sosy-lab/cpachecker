@@ -20,6 +20,7 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
+import org.sosy_lab.cpachecker.util.predicates.AbstractionFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
@@ -79,12 +80,17 @@ public class DeserializePredicateStateOperator
           PredicateAbstractState.mkNonAbstractionStateWithNewPathFormula(
               abstraction, previousState);
     } else {
+      AbstractionFormula abstractionFormula =
+          predicateCPA
+              .getPredicateManager()
+              .asAbstraction(
+                  formulaManagerView.uninstantiate(abstraction.getFormula()), abstraction);
       deserialized =
           PredicateAbstractState.mkAbstractionState(
-              abstraction,
-              predicateCPA
-                  .getPredicateManager()
-                  .asAbstraction(abstraction.getFormula(), abstraction),
+              pathFormulaManager
+                  .makeEmptyPathFormulaWithContext(map, pts)
+                  .withFormula(abstractionFormula.asInstantiatedFormula()),
+              abstractionFormula,
               PathCopyingPersistentTreeMap.of(),
               previousState);
     }

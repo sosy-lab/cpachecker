@@ -15,31 +15,31 @@ import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.function.BiPredicate;
 import org.sosy_lab.common.ShutdownNotifier;
-import org.sosy_lab.common.configuration.Configuration;
-import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.BlockNode.BlockNodeMetaData;
 import org.sosy_lab.cpachecker.util.CFAUtils;
-import org.sosy_lab.cpachecker.util.predicates.BlockOperator;
 
-public class LinearDecomposition implements CFADecomposer {
+public class KnownBlockEndsDecomposition implements CFADecomposer {
 
-  private final BlockOperator blockOperator;
   private final ShutdownNotifier shutdownNotifier;
+  private final BiPredicate<CFANode, Integer> isBlockEnd;
 
-  public LinearDecomposition(Configuration pConfiguration, ShutdownNotifier pShutdownNotifier)
-      throws InvalidConfigurationException {
-    blockOperator = new BlockOperator();
-    pConfiguration.inject(blockOperator);
+  /**
+   * @param pShutdownNotifier shutdown notifier for block node preconditions
+   * @param pIsBlockEnd oracle that tells whether a node with current path length is a block end.
+   */
+  public KnownBlockEndsDecomposition(
+      ShutdownNotifier pShutdownNotifier, BiPredicate<CFANode, Integer> pIsBlockEnd) {
     shutdownNotifier = pShutdownNotifier;
+    isBlockEnd = pIsBlockEnd;
   }
 
   @Override
   public BlockGraph decompose(CFA cfa) throws InterruptedException {
-    blockOperator.setCFA(cfa);
     Set<CFANode> meetNodes = new LinkedHashSet<>();
     int idCounter = 0;
     meetNodes.add(cfa.getMainFunction());
@@ -79,7 +79,7 @@ public class LinearDecomposition implements CFADecomposer {
       for (CFANode cfaNode : CFAUtils.allSuccessorsOf(last)) {
         ImmutableList<CFANode> extendedPath =
             ImmutableList.<CFANode>builder().addAll(currentPath).add(cfaNode).build();
-        if (blockOperator.isBlockEnd(cfaNode, currentPath.size() - 1)) {
+        if (isBlockEnd.test(cfaNode, currentPath.size() - 1)) {
           finished.add(extendedPath);
         } else {
           nodes.add(new ArrayList<>(extendedPath));

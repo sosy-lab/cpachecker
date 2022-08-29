@@ -34,6 +34,8 @@ public class BlockNode {
 
   private final Map<Integer, CFANode> idToNodeMap;
 
+  private final CFANode actualLastNode;
+
   private final String code;
 
   /**
@@ -67,12 +69,31 @@ public class BlockNode {
         isBlockNodeValid(pMetaData.getStartNode(), pMetaData.getEdgesInBlock()),
         "BlockNodes require to have exactly one exit node.");
 
+    CFANode node = null;
+    for (CFAEdge cfaEdge : pMetaData.getEdgesInBlock()) {
+      if (cfaEdge.getDescription().equals(BlockGraphBuilder.DESCRIPTION)) {
+        if (node == null) {
+          node = cfaEdge.getPredecessor();
+        } else {
+          throw new AssertionError("There can only be one block end edge");
+        }
+      }
+    }
+    if (node == null) {
+      node = pMetaData.getLastNode();
+    }
+    actualLastNode = node;
+
     metaData = pMetaData;
     predecessors = pPredecessors;
     successors = pSuccessors;
     idToNodeMap = pIdToNodeMap;
 
     code = getCodeRepresentation();
+  }
+
+  public CFANode getActualLastNode() {
+    return actualLastNode;
   }
 
   private boolean isBlockNodeValid(CFANode pStartNode, Set<CFAEdge> pEdgesInBlock) {
@@ -117,6 +138,10 @@ public class BlockNode {
   private String getCodeRepresentation() {
     StringBuilder codeLines = new StringBuilder();
     for (CFAEdge leavingEdge : metaData.getEdgesInBlock()) {
+      if (BlockGraphBuilder.isBlockEnd(leavingEdge.getSuccessor())) {
+        codeLines.append("[END]\n");
+        continue;
+      }
       if (leavingEdge.getCode().isBlank()) {
         continue;
       }
