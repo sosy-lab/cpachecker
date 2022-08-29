@@ -24,7 +24,9 @@ import org.sosy_lab.cpachecker.util.variableclassification.VariableClassificatio
 
 public interface CFA {
 
-  MachineModel getMachineModel();
+  default MachineModel getMachineModel() {
+    return getMetadata().getMachineModel();
+  }
 
   boolean isEmpty();
 
@@ -40,19 +42,33 @@ public interface CFA {
 
   Collection<CFANode> getAllNodes();
 
-  FunctionEntryNode getMainFunction();
+  default FunctionEntryNode getMainFunction() {
+    return getMetadata().getMainFunctionEntry();
+  }
 
-  Optional<LoopStructure> getLoopStructure();
+  default Optional<LoopStructure> getLoopStructure() {
+    return getMetadata().getLoopStructure();
+  }
 
-  Optional<ImmutableSet<CFANode>> getAllLoopHeads();
+  default Optional<ImmutableSet<CFANode>> getAllLoopHeads() {
+    return getLoopStructure().map(loopStructure -> loopStructure.getAllLoopHeads());
+  }
 
-  Optional<VariableClassification> getVarClassification();
+  default Optional<VariableClassification> getVarClassification() {
+    return getMetadata().getVariableClassification();
+  }
 
-  Optional<LiveVariables> getLiveVariables();
+  default Optional<LiveVariables> getLiveVariables() {
+    return getMetadata().getLiveVariables();
+  }
 
-  Language getLanguage();
+  default Language getLanguage() {
+    return getMetadata().getLanguage();
+  }
 
-  List<Path> getFileNames();
+  default List<Path> getFileNames() {
+    return getMetadata().getFileNames();
+  }
 
   CfaMetadata getMetadata();
 }

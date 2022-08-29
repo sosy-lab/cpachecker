@@ -11,26 +11,18 @@ package org.sosy_lab.cpachecker.cfa;
 import static com.google.common.base.Preconditions.checkArgument;
 
 import com.google.common.collect.ImmutableCollection;
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSortedMap;
 import com.google.common.collect.ImmutableSortedSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.SetMultimap;
 import java.io.Serializable;
-import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
-import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.util.CFAUtils;
-import org.sosy_lab.cpachecker.util.LiveVariables;
-import org.sosy_lab.cpachecker.util.LoopStructure;
-import org.sosy_lab.cpachecker.util.variableclassification.VariableClassification;
 
 /**
  * This class represents a CFA after it has been fully created (parsing, linking of functions,
@@ -57,11 +49,6 @@ class ImmutableCFA implements CFA, Serializable {
 
     FunctionEntryNode mainFunctionEntry = pCfaMetadata.getMainFunctionEntry();
     checkArgument(mainFunctionEntry.equals(functions.get(mainFunctionEntry.getFunctionName())));
-  }
-
-  @Override
-  public MachineModel getMachineModel() {
-    return metadata.getMachineModel();
   }
 
   @Override
@@ -97,41 +84,6 @@ class ImmutableCFA implements CFA, Serializable {
   @Override
   public ImmutableSortedSet<CFANode> getAllNodes() {
     return allNodes;
-  }
-
-  @Override
-  public FunctionEntryNode getMainFunction() {
-    return metadata.getMainFunctionEntry();
-  }
-
-  @Override
-  public Optional<LoopStructure> getLoopStructure() {
-    return metadata.getLoopStructure();
-  }
-
-  @Override
-  public Optional<ImmutableSet<CFANode>> getAllLoopHeads() {
-    return getLoopStructure().map(loopStructure -> loopStructure.getAllLoopHeads());
-  }
-
-  @Override
-  public Optional<VariableClassification> getVarClassification() {
-    return metadata.getVariableClassification();
-  }
-
-  @Override
-  public Optional<LiveVariables> getLiveVariables() {
-    return metadata.getLiveVariables();
-  }
-
-  @Override
-  public Language getLanguage() {
-    return metadata.getLanguage();
-  }
-
-  @Override
-  public ImmutableList<Path> getFileNames() {
-    return metadata.getFileNames();
   }
 
   @Override

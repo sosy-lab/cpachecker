@@ -10,20 +10,16 @@ package org.sosy_lab.cpachecker.cfa;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
-import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.TreeMultimap;
 import com.google.errorprone.annotations.CanIgnoreReturnValue;
-import java.nio.file.Path;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.List;
 import java.util.NavigableMap;
 import java.util.NavigableSet;
 import java.util.Optional;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
-import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.util.LiveVariables;
 import org.sosy_lab.cpachecker.util.LoopStructure;
 import org.sosy_lab.cpachecker.util.variableclassification.VariableClassification;
@@ -79,11 +75,6 @@ public class MutableCFA implements CFA {
   }
 
   @Override
-  public MachineModel getMachineModel() {
-    return metadata.getMachineModel();
-  }
-
-  @Override
   public boolean isEmpty() {
     return functions.isEmpty();
   }
@@ -122,23 +113,8 @@ public class MutableCFA implements CFA {
     return Collections.unmodifiableCollection(allNodes.values());
   }
 
-  @Override
-  public FunctionEntryNode getMainFunction() {
-    return metadata.getMainFunctionEntry();
-  }
-
-  @Override
-  public Optional<LoopStructure> getLoopStructure() {
-    return metadata.getLoopStructure();
-  }
-
   public void setLoopStructure(LoopStructure pLoopStructure) {
     metadata = metadata.withLoopStructure(pLoopStructure);
-  }
-
-  @Override
-  public Optional<ImmutableSet<CFANode>> getAllLoopHeads() {
-    return getLoopStructure().map(loopStructure -> loopStructure.getAllLoopHeads());
   }
 
   public ImmutableCFA makeImmutableCFA(Optional<VariableClassification> pVarClassification) {
@@ -146,32 +122,12 @@ public class MutableCFA implements CFA {
         functions, allNodes, metadata.withVariableClassification(pVarClassification.orElse(null)));
   }
 
-  @Override
-  public Optional<VariableClassification> getVarClassification() {
-    return metadata.getVariableClassification();
-  }
-
   public void setVariableClassification(@Nullable VariableClassification pVariableClassification) {
     metadata = metadata.withVariableClassification(pVariableClassification);
   }
 
-  @Override
-  public Optional<LiveVariables> getLiveVariables() {
-    return metadata.getLiveVariables();
-  }
-
   public void setLiveVariables(LiveVariables pLiveVariables) {
     metadata = metadata.withLiveVariables(pLiveVariables);
-  }
-
-  @Override
-  public Language getLanguage() {
-    return metadata.getLanguage();
-  }
-
-  @Override
-  public List<Path> getFileNames() {
-    return metadata.getFileNames();
   }
 
   @Override
