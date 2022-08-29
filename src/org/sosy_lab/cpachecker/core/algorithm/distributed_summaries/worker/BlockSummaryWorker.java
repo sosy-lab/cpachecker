@@ -61,7 +61,7 @@ public abstract class BlockSummaryWorker implements BlockSummaryActor {
     }
   }
 
-  protected void broadcastOrLogException(Collection<BlockSummaryMessage> pMessage) {
+  void broadcastOrLogException(Collection<BlockSummaryMessage> pMessage) {
     try {
       broadcast(pMessage);
     } catch (InterruptedException pE) {

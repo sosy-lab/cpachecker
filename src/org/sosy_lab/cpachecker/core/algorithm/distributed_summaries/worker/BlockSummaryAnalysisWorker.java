@@ -29,7 +29,6 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decompositio
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.BlockSummaryMessageProcessing;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.composite.DistributedCompositeCPA;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.BlockSummaryConnection;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.BlockSummaryMessagePayload;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryErrorConditionMessage;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryMessage;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryPostConditionMessage;
@@ -168,10 +167,24 @@ public class BlockSummaryAnalysisWorker extends BlockSummaryWorker {
 
   private Collection<BlockSummaryMessage> processErrorCondition(BlockSummaryMessage message)
       throws SolverException, InterruptedException, CPAException {
+    Preconditions.checkArgument(
+        message instanceof BlockSummaryErrorConditionMessage,
+        "Method processErrorCondition can only process messages of type  %s",
+        BlockSummaryErrorConditionMessage.class);
     DistributedCompositeCPA distributed = backwardAnalysis.getAnalysis();
     BlockSummaryMessageProcessing processing = distributed.getProceedOperator().proceed(message);
     if (processing.end()) {
-      return processing;
+      forwardAnalysis
+          .getAnalysis()
+          .updateErrorCondition((BlockSummaryErrorConditionMessage) message);
+      Collection<BlockSummaryPostConditionMessage> filteredForward =
+          FluentIterable.from(forwardAnalysis.analyze(latestPreconditions))
+              .filter(BlockSummaryPostConditionMessage.class)
+              .toSet();
+      return ImmutableSet.<BlockSummaryMessage>builder()
+          .addAll(processing)
+          .addAll(filteredForward)
+          .build();
     }
     return performBackwardAnalysisWithAbstraction(processing);
   }
@@ -207,9 +220,9 @@ public class BlockSummaryAnalysisWorker extends BlockSummaryWorker {
   private Collection<BlockSummaryMessage> performBackwardAnalysisWithAbstraction(
       BlockSummaryMessageProcessing pMessageProcessing)
       throws InterruptedException, CPAException, SolverException {
+    Preconditions.checkArgument(pMessageProcessing.size() == 1);
     try {
       backwardAnalysisAbstractionTime.start();
-      Preconditions.checkArgument(pMessageProcessing.size() == 1);
       BlockSummaryErrorConditionMessage msg =
           (BlockSummaryErrorConditionMessage) Iterables.getOnlyElement(pMessageProcessing);
       if (msg.getBlockId().equals(getBlockId())
@@ -234,25 +247,7 @@ public class BlockSummaryAnalysisWorker extends BlockSummaryWorker {
             .addAll(backwardResult)
             .build();
       }
-      ImmutableSet.Builder<String> visited = ImmutableSet.builder();
-      boolean full = true;
-      for (BlockSummaryMessage blockSummaryMessage : latestPreconditions) {
-        BlockSummaryPostConditionMessage bMsg =
-            (BlockSummaryPostConditionMessage) blockSummaryMessage;
-        visited.addAll(bMsg.visitedBlockIds());
-        full &= bMsg.representsFullPath();
-      }
-      BlockSummaryMessagePayload payload =
-          forwardBlockDCPA.getSerializeOperator().serialize(forwardBlockDCPA.getInfeasibleState());
-      return ImmutableSet.of(
-          BlockSummaryMessage.newBlockPostCondition(
-              getBlockId(),
-              block.getLastNode().getNodeNumber(),
-              payload,
-              full,
-              false,
-              visited.build()),
-          BlockSummaryMessage.newErrorConditionUnreachableMessage(block.getId(), "forward failed"));
+      return ImmutableSet.of();
     } finally {
       backwardAnalysisAbstractionTime.stop();
     }
