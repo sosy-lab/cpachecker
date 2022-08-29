@@ -99,7 +99,7 @@ final class FunctionFilteringCfaNetwork extends AbstractCfaNetwork {
               return node;
             }
 
-            return null;
+            return endOfData();
           }
         };
       }

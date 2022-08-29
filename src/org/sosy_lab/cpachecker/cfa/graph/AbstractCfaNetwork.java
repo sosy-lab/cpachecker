@@ -139,7 +139,7 @@ abstract class AbstractCfaNetwork extends AbstractNetwork<CFANode, CFAEdge> impl
                 CFANode node = nodeIterator.next();
                 outEdges = outEdges(node).iterator();
               } else {
-                return null;
+                return endOfData();
               }
             }
 
