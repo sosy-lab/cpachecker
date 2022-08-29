@@ -32,7 +32,7 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.Blo
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryErrorConditionMessage;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryMessage;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryPostConditionMessage;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryStatisticsMessage.StatisticsTypes;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryStatisticsMessage.BlockSummaryStatisticType;
 import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.statistics.StatTimer;
@@ -276,18 +276,24 @@ public class BlockSummaryAnalysisWorker extends BlockSummaryWorker {
 
   private Map<String, Object> getStats() {
     return ImmutableMap.<String, Object>builder()
-        .put(StatisticsTypes.FORWARD_TIME.name(), forwardAnalysisTime.getConsumedTime().asNanos())
-        .put(StatisticsTypes.BACKWARD_TIME.name(), backwardAnalysisTime.getConsumedTime().asNanos())
         .put(
-            StatisticsTypes.BACKWARD_ABSTRACTION_TIME.name(),
+            BlockSummaryStatisticType.FORWARD_TIME.name(),
+            forwardAnalysisTime.getConsumedTime().asNanos())
+        .put(
+            BlockSummaryStatisticType.BACKWARD_TIME.name(),
+            backwardAnalysisTime.getConsumedTime().asNanos())
+        .put(
+            BlockSummaryStatisticType.BACKWARD_ABSTRACTION_TIME.name(),
             backwardAnalysisAbstractionTime.getConsumedTime().asNanos())
-        .put(StatisticsTypes.MESSAGES_SENT.name(), Integer.toString(getSentMessages()))
-        .put(StatisticsTypes.MESSAGES_RECEIVED.name(), Integer.toString(getReceivedMessages()))
+        .put(BlockSummaryStatisticType.MESSAGES_SENT.name(), Integer.toString(getSentMessages()))
         .put(
-            StatisticsTypes.FORWARD_ANALYSIS_STATS.name(),
+            BlockSummaryStatisticType.MESSAGES_RECEIVED.name(),
+            Integer.toString(getReceivedMessages()))
+        .put(
+            BlockSummaryStatisticType.FORWARD_ANALYSIS_STATS.name(),
             forwardAnalysis.getDistributedCompositeCPA().getStatistics().getStatistics())
         .put(
-            StatisticsTypes.BACKWARD_ANALYSIS_STATS.name(),
+            BlockSummaryStatisticType.BACKWARD_ANALYSIS_STATS.name(),
             backwardAnalysis.getDistributedCompositeCPA().getStatistics().getStatistics())
         .buildOrThrow();
   }

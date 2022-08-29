@@ -10,7 +10,7 @@ package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed
 
 import com.google.common.collect.ImmutableMap;
 import java.util.Map;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryStatisticsMessage.StatisticsTypes;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryStatisticsMessage.BlockSummaryStatisticType;
 import org.sosy_lab.cpachecker.util.statistics.StatCounter;
 import org.sosy_lab.cpachecker.util.statistics.StatTimer;
 
@@ -73,21 +73,25 @@ public class BlockAnalysisStatistics {
   public Map<String, Object> getStatistics() {
     return ImmutableMap.<String, Object>builder()
         .put(
-            StatisticsTypes.SERIALIZATION_COUNT.name(),
+            BlockSummaryStatisticType.SERIALIZATION_COUNT.name(),
             Integer.toString(serializationCount.getUpdateCount()))
         .put(
-            StatisticsTypes.DESERIALIZATION_COUNT.name(),
+            BlockSummaryStatisticType.DESERIALIZATION_COUNT.name(),
             Integer.toString(deserializationCount.getUpdateCount()))
-        .put(StatisticsTypes.PROCEED_COUNT.name(), Integer.toString(proceedCount.getUpdateCount()))
-        .put(StatisticsTypes.COMBINE_COUNT.name(), Integer.toString(combineCount.getUpdateCount()))
         .put(
-            StatisticsTypes.SERIALIZATION_TIME.name(),
+            BlockSummaryStatisticType.PROCEED_COUNT.name(),
+            Integer.toString(proceedCount.getUpdateCount()))
+        .put(
+            BlockSummaryStatisticType.COMBINE_COUNT.name(),
+            Integer.toString(combineCount.getUpdateCount()))
+        .put(
+            BlockSummaryStatisticType.SERIALIZATION_TIME.name(),
             serializationTime.getConsumedTime().asNanos())
         .put(
-            StatisticsTypes.DESERIALIZATION_TIME.name(),
+            BlockSummaryStatisticType.DESERIALIZATION_TIME.name(),
             deserializationTime.getConsumedTime().asNanos())
-        .put(StatisticsTypes.PROCEED_TIME.name(), proceedTime.getConsumedTime().asNanos())
-        .put(StatisticsTypes.COMBINE_TIME.name(), combineTime.getConsumedTime().asNanos())
+        .put(BlockSummaryStatisticType.PROCEED_TIME.name(), proceedTime.getConsumedTime().asNanos())
+        .put(BlockSummaryStatisticType.COMBINE_TIME.name(), combineTime.getConsumedTime().asNanos())
         .buildOrThrow();
   }
 }

@@ -40,7 +40,7 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decompositio
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.SingleBlockDecomposition;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.BlockSummaryConnection;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.BlockSummarySortedMessageQueue;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryStatisticsMessage.StatisticsTypes;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryStatisticsMessage.BlockSummaryStatisticType;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.memory.InMemoryBlockSummaryConnectionProvider;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.BlockSummaryActor;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.BlockSummaryAnalysisOptions;
@@ -64,7 +64,7 @@ import org.sosy_lab.cpachecker.util.statistics.StatKind;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 
 @Options(prefix = "distributedSummaries")
-public class DistributedSummaryAnalysis implements Algorithm, StatisticsProvider, Statistics {
+public class BlockSummaryAnalysis implements Algorithm, StatisticsProvider, Statistics {
 
   private final Configuration configuration;
   private final LogManager logger;
@@ -102,74 +102,6 @@ public class DistributedSummaryAnalysis implements Algorithm, StatisticsProvider
               + "Workers consume resources and should not be used for benchmarks.")
   private boolean spawnUtilWorkers = true;
 
-  @Override
-  public void printStatistics(PrintStream out, Result result, UnmodifiableReachedSet reached) {
-    StatisticsWriter writer = StatisticsWriter.writingStatisticsTo(out);
-    Map<String, Object> overall = new HashMap<>();
-    for (String blockID : ImmutableList.sortedCopyOf(stats.keySet())) {
-      writer = writer.put("BlockID " + blockID, blockID).beginLevel();
-      Object mapObject = stats.get(blockID);
-      Map<?, ?> map = new LinkedHashMap<>((Map<?, ?>) mapObject);
-      Map<?, ?> forwardMap =
-          ImmutableSortedMap.copyOf(
-              (Map<?, ?>) map.remove(StatisticsTypes.FORWARD_ANALYSIS_STATS.name()));
-      Map<?, ?> backwardMap =
-          ImmutableSortedMap.copyOf(
-              (Map<?, ?>) map.remove(StatisticsTypes.BACKWARD_ANALYSIS_STATS.name()));
-      for (Entry<?, ?> entry : map.entrySet()) {
-        writer =
-            writer.put(
-                StatisticsTypes.valueOf(entry.getKey().toString()).getName(),
-                convert(entry.getKey().toString(), entry.getValue().toString()));
-        mergeInto(overall, entry.getKey().toString(), entry.getValue());
-      }
-      for (Entry<?, ?> entry : forwardMap.entrySet()) {
-        writer =
-            writer.put(
-                StatisticsTypes.valueOf(entry.getKey().toString()).getName() + " (forward)",
-                convert(entry.getKey().toString(), entry.getValue().toString()));
-        mergeInto(overall, entry.getKey().toString(), entry.getValue());
-      }
-      for (Entry<?, ?> entry : backwardMap.entrySet()) {
-        writer =
-            writer.put(
-                StatisticsTypes.valueOf(entry.getKey().toString()).getName() + " (backward)",
-                convert(entry.getKey().toString(), entry.getValue().toString()));
-        mergeInto(overall, entry.getKey().toString(), entry.getValue());
-      }
-      writer = writer.endLevel();
-    }
-    writer = writer.put("Overall", "").beginLevel();
-    for (Entry<String, Object> stringObjectEntry : overall.entrySet()) {
-      writer =
-          writer.put(
-              StatisticsTypes.valueOf(stringObjectEntry.getKey()).getName(),
-              convert(stringObjectEntry.getKey(), stringObjectEntry.getValue().toString()));
-    }
-  }
-
-  private String convert(String pKey, String pNumber) {
-    if (pKey.contains("TIME")) {
-      return TimeSpan.ofNanos(Long.parseLong(pNumber)).formatAs(TimeUnit.SECONDS);
-    }
-    return pNumber;
-  }
-
-  private void mergeInto(Map<String, Object> pOverall, String pKey, Object pValue) {
-    pOverall.merge(
-        pKey, pValue, (v1, v2) -> Long.parseLong(v1.toString()) + Long.parseLong(v2.toString()));
-  }
-
-  @Override
-  public @Nullable String getName() {
-    return "Distributed Summary Analysis";
-  }
-
-  @Override
-  public void collectStatistics(Collection<Statistics> statsCollection) {
-    statsCollection.add(this);
-  }
-
   private enum DecompositionType {
     BLOCK_OPERATOR,
     GIVEN_SIZE,
@@ -181,7 +113,7 @@ public class DistributedSummaryAnalysis implements Algorithm, StatisticsProvider
     SMART
   }
 
-  public DistributedSummaryAnalysis(
+  public BlockSummaryAnalysis(
       Configuration pConfig,
       LogManager pLogger,
       CFA pCfa,
@@ -304,5 +236,75 @@ public class DistributedSummaryAnalysis implements Algorithm, StatisticsProvider
     } finally {
       logger.log(Level.INFO, "Block analysis finished.");
     }
+  }
+
+  @Override
+  public void printStatistics(PrintStream out, Result result, UnmodifiableReachedSet reached) {
+    StatisticsWriter writer = StatisticsWriter.writingStatisticsTo(out);
+    Map<String, Object> overall = new HashMap<>();
+    for (String blockID : ImmutableList.sortedCopyOf(stats.keySet())) {
+      writer = writer.put("BlockID " + blockID, blockID).beginLevel();
+      Object mapObject = stats.get(blockID);
+      Map<?, ?> map = new LinkedHashMap<>((Map<?, ?>) mapObject);
+      Map<?, ?> forwardMap =
+          ImmutableSortedMap.copyOf(
+              (Map<?, ?>) map.remove(BlockSummaryStatisticType.FORWARD_ANALYSIS_STATS.name()));
+      Map<?, ?> backwardMap =
+          ImmutableSortedMap.copyOf(
+              (Map<?, ?>) map.remove(BlockSummaryStatisticType.BACKWARD_ANALYSIS_STATS.name()));
+      for (Entry<?, ?> entry : map.entrySet()) {
+        writer =
+            writer.put(
+                BlockSummaryStatisticType.valueOf(entry.getKey().toString()).getName(),
+                convert(entry.getKey().toString(), entry.getValue().toString()));
+        mergeInto(overall, entry.getKey().toString(), entry.getValue());
+      }
+      for (Entry<?, ?> entry : forwardMap.entrySet()) {
+        writer =
+            writer.put(
+                BlockSummaryStatisticType.valueOf(entry.getKey().toString()).getName()
+                    + " (forward)",
+                convert(entry.getKey().toString(), entry.getValue().toString()));
+        mergeInto(overall, entry.getKey().toString(), entry.getValue());
+      }
+      for (Entry<?, ?> entry : backwardMap.entrySet()) {
+        writer =
+            writer.put(
+                BlockSummaryStatisticType.valueOf(entry.getKey().toString()).getName()
+                    + " (backward)",
+                convert(entry.getKey().toString(), entry.getValue().toString()));
+        mergeInto(overall, entry.getKey().toString(), entry.getValue());
+      }
+      writer = writer.endLevel();
+    }
+    writer = writer.put("Overall", "Sum of all blocks").beginLevel();
+    for (Entry<String, Object> stringObjectEntry : overall.entrySet()) {
+      writer =
+          writer.put(
+              BlockSummaryStatisticType.valueOf(stringObjectEntry.getKey()).getName(),
+              convert(stringObjectEntry.getKey(), stringObjectEntry.getValue().toString()));
+    }
+  }
+
+  private String convert(String pKey, String pNumber) {
+    if (BlockSummaryStatisticType.valueOf(pKey).isFormatAsTime()) {
+      return TimeSpan.ofNanos(Long.parseLong(pNumber)).formatAs(TimeUnit.SECONDS);
+    }
+    return pNumber;
+  }
+
+  private void mergeInto(Map<String, Object> pOverall, String pKey, Object pValue) {
+    pOverall.merge(
+        pKey, pValue, (v1, v2) -> Long.parseLong(v1.toString()) + Long.parseLong(v2.toString()));
+  }
+
+  @Override
+  public @Nullable String getName() {
+    return "Distributed Summary Analysis";
+  }
+
+  @Override
+  public void collectStatistics(Collection<Statistics> statsCollection) {
+    statsCollection.add(this);
   }
 }

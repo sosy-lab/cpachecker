@@ -16,27 +16,33 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.Blo
 
 public class BlockSummaryStatisticsMessage extends BlockSummaryMessage {
 
-  public enum StatisticsTypes {
-    SERIALIZATION_COUNT("number of serializations"),
-    SERIALIZATION_TIME("time for serialization"),
-    DESERIALIZATION_COUNT("number of deserializations"),
-    DESERIALIZATION_TIME("time for deserialization"),
-    PROCEED_COUNT("number of calls to proceed"),
-    PROCEED_TIME("time to decide whether to proceed"),
-    COMBINE_COUNT("number of combines"),
-    COMBINE_TIME("time for combining"),
-    FORWARD_TIME("time for forward analysis"),
-    BACKWARD_TIME("time for backward analysis"),
-    BACKWARD_ABSTRACTION_TIME("time for backward analysis with abstraction"),
-    MESSAGES_SENT("number of messages sent"),
-    MESSAGES_RECEIVED("number of messages received"),
-    FORWARD_ANALYSIS_STATS("forward"),
-    BACKWARD_ANALYSIS_STATS("backward");
+  public enum BlockSummaryStatisticType {
+    SERIALIZATION_COUNT("number of serializations", false),
+    SERIALIZATION_TIME("time for serialization", true),
+    DESERIALIZATION_COUNT("number of deserializations", false),
+    DESERIALIZATION_TIME("time for deserialization", true),
+    PROCEED_COUNT("number of calls to proceed", false),
+    PROCEED_TIME("time to decide whether to proceed", true),
+    COMBINE_COUNT("number of combines", false),
+    COMBINE_TIME("time for combining", true),
+    FORWARD_TIME("time for forward analysis", true),
+    BACKWARD_TIME("time for backward analysis", true),
+    BACKWARD_ABSTRACTION_TIME("time for backward analysis with abstraction", true),
+    MESSAGES_SENT("number of messages sent", false),
+    MESSAGES_RECEIVED("number of messages received", false),
+    FORWARD_ANALYSIS_STATS("forward", false),
+    BACKWARD_ANALYSIS_STATS("backward", false);
 
     private final String name;
+    private final boolean formatAsTime;
 
-    StatisticsTypes(String pName) {
+    BlockSummaryStatisticType(String pName, boolean pFormatAsTime) {
       name = pName;
+      formatAsTime = pFormatAsTime;
+    }
+
+    public boolean isFormatAsTime() {
+      return formatAsTime;
     }
 
     public String getName() {
