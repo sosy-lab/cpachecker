@@ -29,7 +29,7 @@ import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.Triple;
 
-public class NoopBlockAnalysis implements InitialBlockAnalyzer {
+public class NoopBlockAnalysis implements InitialBlockAnalyzer<DistributedCompositeCPA> {
 
   private final BlockNode block;
   private final DistributedCompositeCPA distributedCompositeCPA;
@@ -92,7 +92,8 @@ public class NoopBlockAnalysis implements InitialBlockAnalyzer {
             ImmutableSet.of(block.getId())));
   }
 
-  public DistributedCompositeCPA getDistributedCPA() {
+  @Override
+  public DistributedCompositeCPA getAnalysis() {
     return distributedCompositeCPA;
   }
 }

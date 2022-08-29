@@ -44,7 +44,7 @@ import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.Triple;
 import org.sosy_lab.java_smt.api.SolverException;
 
-public class BackwardBlockAnalysis implements ContinuousBlockAnalyzer {
+public class BackwardBlockAnalysis implements ContinuousBlockAnalyzer<DistributedCompositeCPA> {
 
   private final ReachedSet reachedSet;
   private final BlockNode block;
@@ -136,7 +136,8 @@ public class BackwardBlockAnalysis implements ContinuousBlockAnalyzer {
     return responses.build();
   }
 
-  public DistributedCompositeCPA getDistributedCompositeCPA() {
+  @Override
+  public DistributedCompositeCPA getAnalysis() {
     return distributedCompositeCPA;
   }
 }

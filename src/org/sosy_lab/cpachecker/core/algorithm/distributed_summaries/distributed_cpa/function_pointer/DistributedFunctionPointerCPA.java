@@ -69,6 +69,11 @@ public class DistributedFunctionPointerCPA implements DistributedConfigurablePro
   }
 
   @Override
+  public AbstractState getInfeasibleState() throws InterruptedException {
+    return getInitialState(CFANode.newDummyCFANode(), StateSpacePartition.getDefaultPartition());
+  }
+
+  @Override
   public void synchronizeKnowledge(DistributedConfigurableProgramAnalysis pAnalysis)
       throws InterruptedException {}
 

@@ -45,7 +45,7 @@ public class DeserializePredicateStateOperator
     formulaManagerView = pFormulaManagerView;
     pathFormulaManager = pPathFormulaManager;
     block = pBlockNode;
-    errorCondition = pFormulaManagerView.getBooleanFormulaManager().makeFalse();
+    errorCondition = pFormulaManagerView.getBooleanFormulaManager().makeTrue();
   }
 
   @Override

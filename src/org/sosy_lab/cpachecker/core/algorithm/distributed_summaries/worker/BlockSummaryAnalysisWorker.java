@@ -29,6 +29,7 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decompositio
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.BlockSummaryMessageProcessing;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.composite.DistributedCompositeCPA;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.BlockSummaryConnection;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.BlockSummaryMessagePayload;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryErrorConditionMessage;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryMessage;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryPostConditionMessage;
@@ -158,7 +159,7 @@ public class BlockSummaryAnalysisWorker extends BlockSummaryWorker {
   private Collection<BlockSummaryMessage> processBlockPostCondition(BlockSummaryMessage message)
       throws CPAException, InterruptedException, SolverException {
     BlockSummaryMessageProcessing processing =
-        forwardAnalysis.getDistributedCompositeCPA().getProceedOperator().proceed(message);
+        forwardAnalysis.getAnalysis().getProceedOperator().proceed(message);
     if (processing.end()) {
       return processing;
     }
@@ -167,7 +168,7 @@ public class BlockSummaryAnalysisWorker extends BlockSummaryWorker {
 
   private Collection<BlockSummaryMessage> processErrorCondition(BlockSummaryMessage message)
       throws SolverException, InterruptedException, CPAException {
-    DistributedCompositeCPA distributed = backwardAnalysis.getDistributedCompositeCPA();
+    DistributedCompositeCPA distributed = backwardAnalysis.getAnalysis();
     BlockSummaryMessageProcessing processing = distributed.getProceedOperator().proceed(message);
     if (processing.end()) {
       return processing;
@@ -182,9 +183,7 @@ public class BlockSummaryAnalysisWorker extends BlockSummaryWorker {
       forwardAnalysisTime.start();
       latestPreconditions.clear();
       latestPreconditions.addAll(pPostConditionMessages);
-      forwardAnalysis
-          .getDistributedCompositeCPA()
-          .synchronizeKnowledge(backwardAnalysis.getDistributedCompositeCPA());
+      forwardAnalysis.getAnalysis().synchronizeKnowledge(backwardAnalysis.getAnalysis());
       return forwardAnalysis.analyze(pPostConditionMessages);
     } finally {
       forwardAnalysisTime.stop();
@@ -198,9 +197,7 @@ public class BlockSummaryAnalysisWorker extends BlockSummaryWorker {
       backwardAnalysisTime.start();
       Preconditions.checkArgument(
           pMessageProcessing.size() == 1, "BackwardAnalysis can only be based on one message");
-      backwardAnalysis
-          .getDistributedCompositeCPA()
-          .synchronizeKnowledge(forwardAnalysis.getDistributedCompositeCPA());
+      backwardAnalysis.getAnalysis().synchronizeKnowledge(forwardAnalysis.getAnalysis());
       return backwardAnalysis.analyze(pMessageProcessing);
     } finally {
       backwardAnalysisTime.stop();
@@ -220,17 +217,16 @@ public class BlockSummaryAnalysisWorker extends BlockSummaryWorker {
         return performBackwardAnalysis(pMessageProcessing);
       }
 
-      forwardAnalysis.getDistributedCompositeCPA().updateErrorCondition(msg);
+      DistributedCompositeCPA forwardBlockDCPA = forwardAnalysis.getAnalysis();
+      forwardBlockDCPA.updateErrorCondition(msg);
       Collection<? extends BlockSummaryMessage> forwardUpdates =
           FluentIterable.from(performForwardAnalysis(latestPreconditions))
               .filter(BlockSummaryPostConditionMessage.class)
               .toSet();
 
       if (!forwardUpdates.isEmpty()) {
-        backwardAnalysis.getDistributedCompositeCPA().updateErrorCondition(msg);
-        backwardAnalysis
-            .getDistributedCompositeCPA()
-            .synchronizeKnowledge(forwardAnalysis.getDistributedCompositeCPA());
+        backwardAnalysis.getAnalysis().updateErrorCondition(msg);
+        backwardAnalysis.getAnalysis().synchronizeKnowledge(forwardAnalysis.getAnalysis());
         Collection<BlockSummaryMessage> backwardResult =
             performBackwardAnalysis(pMessageProcessing);
         return ImmutableSet.<BlockSummaryMessage>builder()
@@ -238,7 +234,24 @@ public class BlockSummaryAnalysisWorker extends BlockSummaryWorker {
             .addAll(backwardResult)
             .build();
       }
+      ImmutableSet.Builder<String> visited = ImmutableSet.builder();
+      boolean full = true;
+      for (BlockSummaryMessage blockSummaryMessage : latestPreconditions) {
+        BlockSummaryPostConditionMessage bMsg =
+            (BlockSummaryPostConditionMessage) blockSummaryMessage;
+        visited.addAll(bMsg.visitedBlockIds());
+        full &= bMsg.representsFullPath();
+      }
+      BlockSummaryMessagePayload payload =
+          forwardBlockDCPA.getSerializeOperator().serialize(forwardBlockDCPA.getInfeasibleState());
       return ImmutableSet.of(
+          BlockSummaryMessage.newBlockPostCondition(
+              getBlockId(),
+              block.getLastNode().getNodeNumber(),
+              payload,
+              full,
+              false,
+              visited.build()),
           BlockSummaryMessage.newErrorConditionUnreachableMessage(block.getId(), "forward failed"));
     } finally {
       backwardAnalysisAbstractionTime.stop();
@@ -291,10 +304,10 @@ public class BlockSummaryAnalysisWorker extends BlockSummaryWorker {
             Integer.toString(getReceivedMessages()))
         .put(
             BlockSummaryStatisticType.FORWARD_ANALYSIS_STATS.name(),
-            forwardAnalysis.getDistributedCompositeCPA().getStatistics().getStatistics())
+            forwardAnalysis.getAnalysis().getStatistics().getStatistics())
         .put(
             BlockSummaryStatisticType.BACKWARD_ANALYSIS_STATS.name(),
-            backwardAnalysis.getDistributedCompositeCPA().getStatistics().getStatistics())
+            backwardAnalysis.getAnalysis().getStatistics().getStatistics())
         .buildOrThrow();
   }
 }

@@ -93,7 +93,7 @@ public class BlockSummaryAnalysis implements Algorithm, StatisticsProvider, Stat
   private WorkerType workerType = WorkerType.DEFAULT;
 
   @Option(description = "desired number of BlockNodes")
-  private int desiredNumberOfBlocks = 5;
+  private int desiredNumberOfBlocks = 0;
 
   @Option(
       description =
@@ -180,8 +180,7 @@ public class BlockSummaryAnalysis implements Algorithm, StatisticsProvider, Stat
               new InMemoryBlockSummaryConnectionProvider(
                   () -> new BlockSummarySortedMessageQueue()),
               specification,
-              configuration,
-              shutdownManager);
+              configuration);
       builder = builder.createAdditionalConnections(1);
       for (BlockNode distinctNode : blocks) {
         if (distinctNode.isRoot()) {

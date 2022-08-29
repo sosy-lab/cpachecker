@@ -75,7 +75,7 @@ public class BlockSummaryRootWorker extends BlockSummaryWorker {
                 .anyMatch(block -> block.getId().equals(pMessage.getUniqueBlockId()))) {
           BlockSummaryMessageProcessing processing =
               analysis
-                  .getDistributedCPA()
+                  .getAnalysis()
                   .getProceedOperator()
                   .proceedBackward((BlockSummaryErrorConditionMessage) pMessage);
           if (processing.end()) {
@@ -120,7 +120,7 @@ public class BlockSummaryRootWorker extends BlockSummaryWorker {
     try {
       Collection<BlockSummaryMessage> initialMessage = analysis.performInitialAnalysis();
       analysis
-          .getDistributedCPA()
+          .getAnalysis()
           .getProceedOperator()
           .update(
               (BlockSummaryPostConditionMessage) initialMessage.stream().findAny().orElseThrow());

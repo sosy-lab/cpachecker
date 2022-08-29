@@ -10,6 +10,8 @@ package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -92,6 +94,15 @@ public class DistributedCompositeCPA
   @Override
   public Class<? extends AbstractState> getAbstractStateClass() {
     return CompositeState.class;
+  }
+
+  @Override
+  public AbstractState getInfeasibleState() throws InterruptedException {
+    List<AbstractState> states = new ArrayList<>(analyses.size());
+    for (DistributedConfigurableProgramAnalysis analysis : analyses.values()) {
+      states.add(analysis.getInfeasibleState());
+    }
+    return new CompositeState(states);
   }
 
   @Override

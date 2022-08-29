@@ -72,6 +72,11 @@ public class DistributedCallstackCPA implements DistributedConfigurableProgramAn
   }
 
   @Override
+  public AbstractState getInfeasibleState() throws InterruptedException {
+    return getInitialState(CFANode.newDummyCFANode(), StateSpacePartition.getDefaultPartition());
+  }
+
+  @Override
   public void synchronizeKnowledge(DistributedConfigurableProgramAnalysis pAnalysis)
       throws InterruptedException {}
 

@@ -62,6 +62,8 @@ public interface DistributedConfigurableProgramAnalysis extends ConfigurableProg
    */
   Class<? extends AbstractState> getAbstractStateClass();
 
+  AbstractState getInfeasibleState() throws InterruptedException;
+
   /**
    * Check whether this distributed CPA can work with {@code pClass}.
    *

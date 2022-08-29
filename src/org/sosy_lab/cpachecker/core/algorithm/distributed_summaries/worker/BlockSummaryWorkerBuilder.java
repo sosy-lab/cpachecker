@@ -27,7 +27,6 @@ public class BlockSummaryWorkerBuilder {
 
   private final CFA cfa;
   private final Configuration configuration;
-  private final ShutdownManager shutdownManager;
   private final Specification specification;
   private final List<WorkerGenerator> workerGenerators;
   private final BlockSummaryConnectionProvider<?> connectionProvider;
@@ -37,11 +36,9 @@ public class BlockSummaryWorkerBuilder {
       CFA pCFA,
       BlockSummaryConnectionProvider<?> pConnectionProvider,
       Specification pSpecification,
-      Configuration pConfiguration,
-      ShutdownManager pShutdownManager) {
+      Configuration pConfiguration) {
     cfa = pCFA;
     configuration = pConfiguration;
-    shutdownManager = pShutdownManager;
     specification = pSpecification;
     // only one available for now
     connectionProvider = pConnectionProvider;
@@ -68,7 +65,7 @@ public class BlockSummaryWorkerBuilder {
                 pNode,
                 cfa,
                 specification,
-                shutdownManager));
+                ShutdownManager.create()));
     return this;
   }
 
@@ -83,7 +80,7 @@ public class BlockSummaryWorkerBuilder {
                 pNode,
                 cfa,
                 specification,
-                shutdownManager));
+                ShutdownManager.create()));
     return this;
   }
 
@@ -112,7 +109,7 @@ public class BlockSummaryWorkerBuilder {
                 cfa,
                 specification,
                 configuration,
-                shutdownManager));
+                ShutdownManager.create()));
     return this;
   }
 

@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.predicate;
 
+import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.BlockNode;
@@ -28,9 +29,12 @@ import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateMergeOperator;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.java_smt.api.BooleanFormula;
+import org.sosy_lab.java_smt.api.BooleanFormulaManager;
 
 public class DistributedPredicateCPA
     implements DistributedConfigurableProgramAnalysis, BlockSummaryErrorConditionTracker {
@@ -96,6 +100,18 @@ public class DistributedPredicateCPA
   @Override
   public Class<? extends AbstractState> getAbstractStateClass() {
     return PredicateAbstractState.class;
+  }
+
+  @Override
+  public AbstractState getInfeasibleState() throws InterruptedException {
+    PathFormulaManager manager = predicateCPA.getPathFormulaManager();
+    BooleanFormulaManager fmgr =
+        predicateCPA.getSolver().getFormulaManager().getBooleanFormulaManager();
+    PathFormula falseFormula = manager.makeAnd(manager.makeEmptyPathFormula(), fmgr.makeFalse());
+    return PredicateAbstractState.mkAbstractionState(
+        falseFormula,
+        predicateCPA.getPredicateManager().asAbstraction(fmgr.makeFalse(), falseFormula),
+        PathCopyingPersistentTreeMap.of());
   }
 
   @Override
