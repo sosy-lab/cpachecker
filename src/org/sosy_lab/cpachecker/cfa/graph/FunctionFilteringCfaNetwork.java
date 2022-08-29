@@ -25,7 +25,6 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.PrepareNextIterator;
-import org.sosy_lab.cpachecker.util.UnmodifiableSetView;
 
 final class FunctionFilteringCfaNetwork extends AbstractCfaNetwork {
 

@@ -6,7 +6,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.util;
+package org.sosy_lab.cpachecker.cfa.graph;
 
 import com.google.common.collect.Iterators;
 import java.util.AbstractCollection;
@@ -28,7 +28,7 @@ import java.util.Set;
  * most one {@code null} element ({@link Objects#equals(Object, Object)} must never return {@code
  * true} for any two elements returned during a single iteration of elements).
  */
-public abstract class UnmodifiableSetView<E> extends AbstractCollection<E> implements Set<E> {
+abstract class UnmodifiableSetView<E> extends AbstractCollection<E> implements Set<E> {
 
   @Override
   public int size() {

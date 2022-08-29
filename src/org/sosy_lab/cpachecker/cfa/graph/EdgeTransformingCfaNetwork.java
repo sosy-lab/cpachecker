@@ -17,7 +17,6 @@ import java.util.Set;
 import java.util.function.Function;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.util.UnmodifiableSetView;
 
 final class EdgeTransformingCfaNetwork extends AbstractCfaNetwork {
 
