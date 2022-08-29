@@ -187,4 +187,15 @@ public class Fault extends ForwardingSet<FaultContribution> implements Comparabl
     errorSet.clear();
     errorSet.addAll(pContributions);
   }
+
+  public static Fault merge(Fault f1, Fault f2) {
+    Set<FaultContribution> contributions = new LinkedHashSet<>(f1);
+    contributions.addAll(f2);
+    List<FaultInfo> infos = new ArrayList<>(f1.infos);
+    infos.addAll(f2.infos);
+    Fault newFault = new Fault(contributions);
+    infos.forEach(newFault::addInfo);
+    newFault.intendedIndex = Integer.min(f1.intendedIndex, f2.intendedIndex);
+    return newFault;
+  }
 }

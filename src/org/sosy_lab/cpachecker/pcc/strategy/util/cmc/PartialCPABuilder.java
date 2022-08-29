@@ -58,7 +58,7 @@ public class PartialCPABuilder {
 
   public ConfigurableProgramAnalysis buildPartialCPA(
       int iterationNumber, ReachedSetFactory pFactory)
-      throws InvalidConfigurationException, CPAException {
+      throws InvalidConfigurationException, CPAException, InterruptedException {
     // create configuration for current partial ARG checking
     logger.log(Level.FINEST, "Build CPA configuration");
     ConfigurationBuilder singleConfigBuilder = Configuration.builder();

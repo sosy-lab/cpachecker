@@ -61,7 +61,6 @@ public class PredicatePrecisionAdjustment implements PrecisionAdjustment {
       PredicateCPAInvariantsManager pInvariantSupplier,
       PredicateProvider pPredicateProvider,
       PredicateStatistics pPredicateStatistics) {
-
     logger = pLogger;
     fmgr = pFmgr;
     pathFormulaManager = pPfmgr;

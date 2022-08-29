@@ -210,6 +210,9 @@ analysis.algorithm.analysisWithEnabler = false
 # use adjustable conditions algorithm
 analysis.algorithm.conditionAdjustment = false
 
+# Distribute predicate analysis to multiple workers
+analysis.algorithm.configurableComponents = false
+
 # for found property violation, perform fault localization with coverage
 analysis.algorithm.faultLocalization.by_coverage = false
 
@@ -671,6 +674,9 @@ bdd.sylvan.threads = 0
 # sequentialize all accesses to the BDD library.
 bdd.synchronizeLibraryAccess = false
 
+# output file for visualizing the block graph
+blockCFAFile = "block_analysis/blocks.json"
+
 # Allow reduction of function entries; calculate abstractions always at
 # function entries?
 blockreducer.allowReduceFunctionEntries = true
@@ -764,15 +770,6 @@ cegar.refiner = no default value
 # whether or not to use refinement selection to decide which domain to refine
 cegar.useRefinementSelection = false
 
-# Add custom labels to the CFA
-cfa.addLabels = false
-
-# Add a unique label for each basic block
-cfa.addLabels.atBlocks = true
-
-# Add a unique label before each program exit
-cfa.addLabels.atProgramExit = false
-
 # Which functions should be interpreted as encoding assumptions
 cfa.assumeFunctions = {"__VERIFIER_assume"}
 
@@ -807,6 +804,10 @@ cfa.exportPerFunction = true
 # export CFA as C file
 cfa.exportToC = false
 cfa.exportToC.file = "cfa.c"
+
+# produce C programs more similar to the input program
+# (only possible for a single input file)
+cfa.exportToC.stayCloserToInput = false
 
 # export CFA as .dot file
 cfa.file = "cfa.dot"
@@ -1290,6 +1291,17 @@ cpa.arg.inCPAEnabledAnalysis = false
 # whether to keep covered states in the reached set as addition to keeping
 # them in the ARG
 cpa.arg.keepCoveredStatesInReached = false
+
+# What do to on a late merge, i.e., if the second parameter of the merge
+# already has child states (cf. issue #991):
+# - ALLOW: Just merge as usual.
+# - ALLOW_WARN: Log a warning the first time this happens, then ALLOW.
+# - PREVENT: Do not merge, i.e., enforce merge-sep for such situations.
+# - PREVENT_WARN: Log a warning the first time this happens, then PREVENT.
+# - CRASH: Crash CPAchecker as soon as this happens
+#   (useful for cases where a late merge should never happen).
+cpa.arg.lateMerge = ALLOW
+  enum:     [ALLOW, ALLOW_WARN, PREVENT, PREVENT_WARN, CRASH]
 
 # write the ARG at various stages during execution into dot files whose name
 # is specified by this option. Only works if 'cpa.arg.logARGs=true'
@@ -3544,6 +3556,48 @@ differential.stopOnPointers = false
 # pairs. Set cpa.automaton.deleteDoubleEdges as well!
 differential.variableSetMerge = false
 
+# Allows to set the algorithm for decomposing the CFA. BLOCK_OPERATOR creates
+# blocks from each merge/branching point to the next merge/branching point.
+# GIVEN_SIZE merges blocks obtained by BLOCK_OPERATOR until
+# distributedSummaries.desiredNumberOfBlocks blocks are present. SINGLE_BLOCK
+# creates one block around the complete CFA.
+distributedSummaries.decompositionType = BLOCK_OPERATOR
+  enum:     [BLOCK_OPERATOR, GIVEN_SIZE, SINGLE_BLOCK]
+
+# desired number of BlockNodes
+distributedSummaries.desiredNumberOfBlocks = 5
+
+# Whether to spawn util workers. Util workers listen to every message and
+# create visual output for debugging. Workers consume resources and should
+# not be used for benchmarks.
+distributedSummaries.spawnUtilWorkers = true
+
+# Configuration for backward analysis in computation of distributed summaries
+distributedSummaries.worker.backwardConfiguration = "config/distributed-block-summaries/predicateAnalysis-block-backward.properties"
+
+# whether error conditions are always checked for unsatisfiability
+distributedSummaries.worker.checkEveryErrorCondition = true
+
+# Configuration for forward analysis in computation of distributed summaries
+distributedSummaries.worker.forwardConfiguration = "config/distributed-block-summaries/predicateAnalysis-block-forward.properties"
+
+# Destination directory for the logfiles of all BlockSummaryWorkers. The
+# logfiles have the same name as the ID of the worker.
+distributedSummaries.worker.logDirectory = "block_summary/logfiles"
+
+# Whether loop free programs have to deny all possible error messages. Enable
+# this option to eagerly process every possible error message that occurs
+# after an precondition update.
+distributedSummaries.worker.sendEveryErrorMessage = false
+
+# whether analysis worker store circular post conditions
+distributedSummaries.worker.storeCircularPostConditions = false
+
+# Choose the workers that are spawned for each block. Contrary to DEFAULT
+# workers, SMART workers consume multiple messages at once.
+distributedSummaries.workerType = DEFAULT
+  enum:     [DEFAULT, SMART]
+
 # Enable to use lazy refinement in current analysis instead of restarting
 # from root after each refinement.
 enabledanalysis.allowLazyRefinement = false
@@ -4212,6 +4266,9 @@ report.export = true
 
 # File name for analysis report in case no counterexample was found.
 report.file = "Report.html"
+
+# output file for visualizing message exchange
+reportFile = "block_analysis/block_analysis.json"
 
 # set path to file which contains the condition
 residualprogram.assumptionFile = no default value

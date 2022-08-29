@@ -197,7 +197,7 @@ public class CPAsTest {
       CPAFactory factory,
       AggregatedReachedSets aggregatedReachedSets,
       ReachedSetFactory reachedSetFactory)
-      throws InvalidConfigurationException, CPAException {
+      throws InvalidConfigurationException, CPAException, InterruptedException {
     return factory
         .setLogger(logManager)
         .setConfiguration(config)

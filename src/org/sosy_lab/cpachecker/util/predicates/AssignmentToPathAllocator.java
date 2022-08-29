@@ -424,39 +424,9 @@ public class AssignmentToPathAllocator {
       Map<String, Map<Address, Object>> memory) {
 
     for (final ValueAssignment term : terms) {
-      String fullName = term.getName();
-      Pair<String, OptionalInt> pair = FormulaManagerView.parseName(fullName);
-      if (pair.getSecond().isPresent()) {
-        String canonicalName = pair.getFirst();
-        int newIndex = pair.getSecond().orElseThrow();
+      String name = term.getName();
 
-        if (variableEnvironment.containsKey(canonicalName)) {
-          ValueAssignment oldVariable = variableEnvironment.get(canonicalName);
-
-          int oldIndex =
-              FormulaManagerView.parseName(oldVariable.getName()).getSecond().orElseThrow();
-
-          if (oldIndex < newIndex) {
-
-            // update variableEnvironment for subsequent calculation
-            variableEnvironment.put(canonicalName, term);
-
-            LeftHandSide lhs = createLeftHandSide(canonicalName);
-            pVariables.put(lhs, term.getValue());
-          }
-        } else {
-          // update variableEnvironment for subsequent calculation
-          variableEnvironment.put(canonicalName, term);
-
-          LeftHandSide lhs = createLeftHandSide(canonicalName);
-          pVariables.put(lhs, term.getValue());
-        }
-      }
-
-      if (!term.getArgumentsInterpretation().isEmpty()) {
-
-        String name = term.getName();
-
+      if (term.isFunction()) {
         if (functionEnvironment.containsKey(name)) {
           boolean replaced = false;
           Set<ValueAssignment> assignments = new HashSet<>(functionEnvironment.get(name));
@@ -479,6 +449,35 @@ public class AssignmentToPathAllocator {
         } else {
           functionEnvironment.put(name, term);
           addHeapValue(memory, term);
+        }
+
+      } else {
+        Pair<String, OptionalInt> pair = FormulaManagerView.parseName(name);
+        if (pair.getSecond().isPresent()) {
+          String canonicalName = pair.getFirst();
+          int newIndex = pair.getSecond().orElseThrow();
+
+          if (variableEnvironment.containsKey(canonicalName)) {
+            ValueAssignment oldVariable = variableEnvironment.get(canonicalName);
+
+            int oldIndex =
+                FormulaManagerView.parseName(oldVariable.getName()).getSecond().orElseThrow();
+
+            if (oldIndex < newIndex) {
+
+              // update variableEnvironment for subsequent calculation
+              variableEnvironment.put(canonicalName, term);
+
+              LeftHandSide lhs = createLeftHandSide(canonicalName);
+              pVariables.put(lhs, term.getValue());
+            }
+          } else {
+            // update variableEnvironment for subsequent calculation
+            variableEnvironment.put(canonicalName, term);
+
+            LeftHandSide lhs = createLeftHandSide(canonicalName);
+            pVariables.put(lhs, term.getValue());
+          }
         }
       }
     }
@@ -507,15 +506,17 @@ public class AssignmentToPathAllocator {
     ImmutableMap.Builder<LeftHandSide, Address> addressOfVariables = ImmutableMap.builder();
 
     for (ValueAssignment constant : assignableTerms.getConstants()) {
-      String name = constant.getName();
+      String name = FormulaManagerView.parseName(constant.getName()).getFirst();
       if (PointerTargetSet.isBaseName(name)) {
-        Address address = Address.valueOf(constant.getValue());
+        assert FormulaManagerView.parseName(constant.getName()).getSecond().isEmpty();
+        if (!PointerTargetSet.isMallocBase(name)) {
+          Address address = Address.valueOf(constant.getValue());
 
-        // TODO ugly, refactor?
-        String constantName =
-            PointerTargetSet.getBase(FormulaManagerView.parseName(name).getFirst());
-        LeftHandSide leftHandSide = createLeftHandSide(constantName);
-        addressOfVariables.put(leftHandSide, address);
+          // TODO ugly, refactor?
+          String constantName = PointerTargetSet.getBase(name);
+          LeftHandSide leftHandSide = createLeftHandSide(constantName);
+          addressOfVariables.put(leftHandSide, address);
+        }
       }
     }
 
