@@ -8,7 +8,6 @@
 
 package org.sosy_lab.cpachecker.cfa.graph;
 
-
 import com.google.common.graph.Network;
 import java.util.Optional;
 import java.util.Set;
