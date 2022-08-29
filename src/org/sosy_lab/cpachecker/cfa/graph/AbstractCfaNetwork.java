@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.cfa.graph;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
+import com.google.common.collect.AbstractIterator;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Sets;
@@ -30,7 +31,6 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
-import org.sosy_lab.cpachecker.util.PrepareNextIterator;
 
 abstract class AbstractCfaNetwork extends AbstractNetwork<CFANode, CFAEdge> implements CfaNetwork {
 
@@ -125,14 +125,14 @@ abstract class AbstractCfaNetwork extends AbstractNetwork<CFANode, CFAEdge> impl
 
       @Override
       public Iterator<CFAEdge> iterator() {
-        return new PrepareNextIterator<>() {
+        return new AbstractIterator<>() {
 
           private final Iterator<CFANode> nodeIterator = nodes().iterator();
 
           private Iterator<CFAEdge> outEdges = Collections.emptyIterator();
 
           @Override
-          protected @Nullable CFAEdge prepareNext() {
+          protected @Nullable CFAEdge computeNext() {
 
             while (!outEdges.hasNext()) {
               if (nodeIterator.hasNext()) {

@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.cfa.graph;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
+import com.google.common.collect.AbstractIterator;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.graph.EndpointPair;
 import java.util.ArrayDeque;
@@ -24,7 +25,6 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
 import org.sosy_lab.cpachecker.util.CFAUtils;
-import org.sosy_lab.cpachecker.util.PrepareNextIterator;
 
 final class SingleFunctionCfaNetwork extends AbstractCfaNetwork {
 
@@ -71,13 +71,13 @@ final class SingleFunctionCfaNetwork extends AbstractCfaNetwork {
 
       @Override
       public Iterator<CFANode> iterator() {
-        return new PrepareNextIterator<>() {
+        return new AbstractIterator<>() {
 
           private final Set<CFANode> waitlisted = new HashSet<>(ImmutableSet.of(functionEntryNode));
           private final Deque<CFANode> waitlist = new ArrayDeque<>(waitlisted);
 
           @Override
-          protected @Nullable CFANode prepareNext() {
+          protected @Nullable CFANode computeNext() {
 
             while (!waitlist.isEmpty()) {
 
@@ -93,7 +93,7 @@ final class SingleFunctionCfaNetwork extends AbstractCfaNetwork {
               return node;
             }
 
-            return null;
+            return endOfData();
           }
         };
       }
