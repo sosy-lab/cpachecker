@@ -10,9 +10,9 @@ package org.sosy_lab.cpachecker.cfa.graph;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
-import com.google.common.collect.Iterators;
+import com.google.common.collect.Sets;
 import com.google.common.graph.EndpointPair;
-import java.util.Iterator;
+import java.util.Collections;
 import java.util.Set;
 import java.util.function.Predicate;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -31,24 +31,12 @@ final class EdgeFilteringCfaNetwork extends AbstractCfaNetwork {
 
   @Override
   public Set<CFAEdge> inEdges(CFANode pNode) {
-    return new UnmodifiableSetView<>() {
-
-      @Override
-      public Iterator<CFAEdge> iterator() {
-        return Iterators.filter(delegate.inEdges(pNode).iterator(), filter::test);
-      }
-    };
+    return Collections.unmodifiableSet(Sets.filter(delegate.inEdges(pNode), filter::test));
   }
 
   @Override
   public Set<CFAEdge> outEdges(CFANode pNode) {
-    return new UnmodifiableSetView<>() {
-
-      @Override
-      public Iterator<CFAEdge> iterator() {
-        return Iterators.filter(delegate.outEdges(pNode).iterator(), filter::test);
-      }
-    };
+    return Collections.unmodifiableSet(Sets.filter(delegate.outEdges(pNode), filter::test));
   }
 
   @Override

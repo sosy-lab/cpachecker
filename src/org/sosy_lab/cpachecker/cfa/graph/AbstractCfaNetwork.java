@@ -12,6 +12,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterators;
+import com.google.common.collect.Sets;
 import com.google.common.graph.AbstractNetwork;
 import com.google.common.graph.ElementOrder;
 import java.util.ArrayDeque;
@@ -35,81 +36,12 @@ abstract class AbstractCfaNetwork extends AbstractNetwork<CFANode, CFAEdge> impl
 
   @Override
   public Set<CFANode> adjacentNodes(CFANode pNode) {
-
-    checkNotNull(pNode);
-
-    return new UnmodifiableSetView<>() {
-
-      @Override
-      public Iterator<CFANode> iterator() {
-        return new PrepareNextIterator<>() {
-
-          private final Iterator<CFAEdge> inEdges = inEdges(pNode).iterator();
-          private final Iterator<CFAEdge> outEdges = outEdges(pNode).iterator();
-
-          @Override
-          protected @Nullable CFANode prepareNext() {
-
-            // predecessor iteration
-            if (inEdges.hasNext()) {
-              return predecessor(inEdges.next());
-            }
-
-            // successor iteration
-            while (outEdges.hasNext()) {
-
-              CFAEdge edge = outEdges.next();
-              CFANode successor = successor(edge);
-
-              // ignore nodes that were already iterated during predecessor iteration
-              if (!successor.equals(pNode) && !successors(successor).contains(pNode)) {
-                return successor;
-              }
-            }
-
-            return null;
-          }
-        };
-      }
-    };
+    return Collections.unmodifiableSet(Sets.union(predecessors(pNode), successors(pNode)));
   }
 
   @Override
   public Set<CFAEdge> incidentEdges(CFANode pNode) {
-
-    checkNotNull(pNode);
-
-    return new UnmodifiableSetView<>() {
-
-      @Override
-      public Iterator<CFAEdge> iterator() {
-        return new PrepareNextIterator<>() {
-
-          private final Iterator<CFAEdge> inEdges = inEdges(pNode).iterator();
-          private final Iterator<CFAEdge> outEdges = outEdges(pNode).iterator();
-
-          @Override
-          protected @Nullable CFAEdge prepareNext() {
-
-            if (inEdges.hasNext()) {
-              return inEdges.next();
-            }
-
-            while (outEdges.hasNext()) {
-
-              CFAEdge edge = outEdges.next();
-
-              // don't iterate over self-loop edges twice
-              if (!predecessor(edge).equals(successor(edge))) {
-                return edge;
-              }
-            }
-
-            return null;
-          }
-        };
-      }
-    };
+    return Collections.unmodifiableSet(Sets.union(inEdges(pNode), outEdges(pNode)));
   }
 
   @Override
