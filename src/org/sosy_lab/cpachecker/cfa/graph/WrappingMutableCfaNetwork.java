@@ -19,7 +19,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 
-final class WrappingMutableCfaNetwork implements MutableCfaNetwork {
+final class WrappingMutableCfaNetwork extends AbstractCfaNetwork implements MutableCfaNetwork {
 
   private final MutableCFA mutableCfa;
   private final CfaNetwork mutableCfaView;

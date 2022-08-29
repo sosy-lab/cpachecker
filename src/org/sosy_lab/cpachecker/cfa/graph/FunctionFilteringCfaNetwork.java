@@ -27,7 +27,7 @@ import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.PrepareNextIterator;
 import org.sosy_lab.cpachecker.util.UnmodifiableSetView;
 
-final class FunctionFilteringCfaNetwork implements CfaNetwork {
+final class FunctionFilteringCfaNetwork extends AbstractCfaNetwork {
 
   private final CFA cfa;
   private final ImmutableSet<String> functions;

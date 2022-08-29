@@ -27,7 +27,7 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.UnmodifiableSetView;
 
-final class WrappingCfaNetwork implements CfaNetwork {
+final class WrappingCfaNetwork extends AbstractCfaNetwork {
 
   private final CFA cfa;
 

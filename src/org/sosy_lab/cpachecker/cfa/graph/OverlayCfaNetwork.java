@@ -8,10 +8,19 @@
 
 package org.sosy_lab.cpachecker.cfa.graph;
 
+import com.google.common.graph.EndpointPair;
 import com.google.common.graph.MutableNetwork;
+import com.google.common.graph.Network;
 import com.google.common.graph.NetworkBuilder;
+import java.util.Optional;
+import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
+import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
+import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
 import org.sosy_lab.cpachecker.util.graph.ForwardingMutableNetwork;
 
 /**
@@ -25,8 +34,11 @@ import org.sosy_lab.cpachecker.util.graph.ForwardingMutableNetwork;
 final class OverlayCfaNetwork extends ForwardingMutableNetwork<CFANode, CFAEdge>
     implements MutableCfaNetwork {
 
+  private final CfaNetwork delegate;
+
   private OverlayCfaNetwork(MutableNetwork<CFANode, CFAEdge> pDelegate) {
     super(pDelegate);
+    delegate = new DelegateCfaNetwork(pDelegate);
   }
 
   /**
@@ -51,5 +63,64 @@ final class OverlayCfaNetwork extends ForwardingMutableNetwork<CFANode, CFAEdge>
     }
 
     return new OverlayCfaNetwork(mutableNetwork);
+  }
+
+  @Override
+  public CFANode predecessor(CFAEdge pEdge) {
+    return delegate.predecessor(pEdge);
+  }
+
+  @Override
+  public CFANode successor(CFAEdge pEdge) {
+    return delegate.successor(pEdge);
+  }
+
+  @Override
+  public Optional<FunctionExitNode> getFunctionExitNode(FunctionEntryNode pFunctionEntryNode) {
+    return delegate.getFunctionExitNode(pFunctionEntryNode);
+  }
+
+  @Override
+  public FunctionSummaryEdge getFunctionSummaryEdge(FunctionCallEdge pFunctionCallEdge) {
+    return delegate.getFunctionSummaryEdge(pFunctionCallEdge);
+  }
+
+  @Override
+  public FunctionSummaryEdge getFunctionSummaryEdge(FunctionReturnEdge pFunctionReturnEdge) {
+    return delegate.getFunctionSummaryEdge(pFunctionReturnEdge);
+  }
+
+  @Override
+  public FunctionEntryNode getFunctionEntryNode(FunctionSummaryEdge pFunctionSummaryEdge) {
+    return delegate.getFunctionEntryNode(pFunctionSummaryEdge);
+  }
+
+  private static final class DelegateCfaNetwork extends AbstractCfaNetwork {
+
+    private Network<CFANode, CFAEdge> delegate;
+
+    private DelegateCfaNetwork(Network<CFANode, CFAEdge> pDelegate) {
+      delegate = pDelegate;
+    }
+
+    @Override
+    public Set<CFAEdge> inEdges(CFANode pNode) {
+      return delegate.inEdges(pNode);
+    }
+
+    @Override
+    public Set<CFAEdge> outEdges(CFANode pNode) {
+      return delegate.outEdges(pNode);
+    }
+
+    @Override
+    public EndpointPair<CFANode> incidentNodes(CFAEdge pEdge) {
+      return delegate.incidentNodes(pEdge);
+    }
+
+    @Override
+    public Set<CFANode> nodes() {
+      return delegate.nodes();
+    }
   }
 }

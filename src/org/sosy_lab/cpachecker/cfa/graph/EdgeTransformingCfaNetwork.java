@@ -19,7 +19,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.util.UnmodifiableSetView;
 
-final class EdgeTransformingCfaNetwork implements CfaNetwork {
+final class EdgeTransformingCfaNetwork extends AbstractCfaNetwork {
 
   private final CfaNetwork delegate;
   private final Function<CFAEdge, CFAEdge> transformer;

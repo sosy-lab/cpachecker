@@ -27,7 +27,7 @@ import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.PrepareNextIterator;
 import org.sosy_lab.cpachecker.util.UnmodifiableSetView;
 
-final class SingleFunctionCfaNetwork implements CfaNetwork {
+final class SingleFunctionCfaNetwork extends AbstractCfaNetwork {
 
   private final FunctionEntryNode functionEntryNode;
 

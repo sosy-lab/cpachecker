@@ -19,7 +19,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.util.UnmodifiableSetView;
 
-final class EdgeFilteringCfaNetwork implements CfaNetwork {
+final class EdgeFilteringCfaNetwork extends AbstractCfaNetwork {
 
   private final CfaNetwork delegate;
   private final Predicate<CFAEdge> filter;
