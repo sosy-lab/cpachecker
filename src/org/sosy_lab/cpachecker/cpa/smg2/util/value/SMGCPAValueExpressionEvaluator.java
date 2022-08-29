@@ -194,6 +194,9 @@ public class SMGCPAValueExpressionEvaluator {
   public Value checkEqualityForAddresses(
       Value leftValue, Value rightValue, SMGState state, CFAEdge cfaEdge) throws SMG2Exception {
     Value isNotEqual = checkNonEqualityForAddresses(leftValue, rightValue, state, cfaEdge);
+    if (isNotEqual.isUnknown()) {
+      return isNotEqual;
+    }
     return isNotEqual.asNumericValue().bigInteger().compareTo(BigInteger.ZERO) == 0
         ? new NumericValue(1)
         : new NumericValue(0);
@@ -221,7 +224,7 @@ public class SMGCPAValueExpressionEvaluator {
     SMGState currentState = rightValueAndState.getState();
     // Check that both Values are truly addresses
     if (!isPointerValue(rightValue, currentState) || !isPointerValue(leftValue, currentState)) {
-      return new NumericValue(1);
+      return UnknownValue.getInstance();
     }
 
     Preconditions.checkArgument(

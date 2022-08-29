@@ -1092,6 +1092,7 @@ public class SMGState
     Optional<SMGValue> smgValue1 = memoryModel.getSMGValueFromValue(pValue1);
     Optional<SMGValue> smgValue2 = memoryModel.getSMGValueFromValue(pValue2);
     if (smgValue1.isEmpty() || smgValue2.isEmpty()) {
+      // The return value should not matter here as this is checked before
       return true;
     }
     return memoryModel.proveInequality(smgValue1.orElseThrow(), smgValue2.orElseThrow());
