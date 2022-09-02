@@ -178,7 +178,10 @@ public class CERCPA implements ConfigurableProgramAnalysis, StatisticsProvider {
             return;
         }
 
-        if (!cexsChanged && importFilePath.equals(exportFilePath)) {
+        if (!cexsChanged
+                && importFilePath != null
+                && exportFilePath != null
+                && importFilePath.equals(exportFilePath)) {
             return;
         }
 
