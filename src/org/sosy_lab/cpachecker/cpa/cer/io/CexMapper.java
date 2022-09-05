@@ -9,16 +9,13 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cpa.cer.CERCPAStatistics;
 import org.sosy_lab.cpachecker.cpa.cer.cex.Cex;
 import org.sosy_lab.cpachecker.cpa.cer.cex.CexPathTransition;
-import org.sosy_lab.cpachecker.cpa.cer.cex.CexNode;
+import org.sosy_lab.cpachecker.cpa.cer.cex.CexState;
 import org.sosy_lab.cpachecker.cpa.cer.cex.CexRootTransition;
 import org.sosy_lab.cpachecker.cpa.cer.cex.CexTransition;
+import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.statistics.StatCounter;
 
 public class CexMapper {
-
-    private CexNode currentCexNode;
-    private CexTransition currentTransition;
-    private CFANode currentCfaNode;
 
     private final CFA cfa;
     private final CERCPAStatistics statistics;
@@ -38,95 +35,63 @@ public class CexMapper {
         CexMapperReport report = new CexMapperReport();
 
         for (Cex cex : cexs) {
-            currentCexNode = cex.getRootNode();
-            currentTransition = currentCexNode.getLeavingTransition().get();
-            currentCfaNode = null;
+            CexState currentCexState = cex.getRootState();
+            CFANode currentCfaNode = cfa.getMainFunction();
 
-            // Retrieve the mapping root
-            if (currentTransition instanceof CexRootTransition) {
-                boolean hasNoRoot = handleCexRootTransition();
-                if (hasNoRoot) {
-                    unmappedCounter.inc();
-                    continue;
-                }
-            } else {
-                // No root found.
-                unmappedCounter.inc();
-                continue;
-            }
-
-            // Map the other transitions
-            boolean mappingFailed = false;
-
-            while (currentCexNode.getLeavingTransition().isPresent()) {
-                currentTransition = currentCexNode.getLeavingTransition().get();
-
-                if (currentTransition instanceof CexPathTransition) {
-                    mappingFailed = handleForwardTransition();
-                } else if (currentTransition instanceof CexRootTransition) {
-                    mappingFailed = handleCexRootTransition();
+            boolean cexUnmapped = false;
+            while (currentCexState.getLeavingTransition().isPresent()) {
+                CexTransition currentTransition = currentCexState.getLeavingTransition().get();
+                boolean transitionMapped = false;
+                for (int i = 0; i < currentCfaNode.getNumLeavingEdges(); ++i) {
+                    CFAEdge edge = currentCfaNode.getLeavingEdge(i);
+                    Pair<CexState, CFANode> res = evaluate(currentTransition, edge);
+                    if (!res.getFirst().equals(currentCexState)) {
+                        transitionMapped = true;
+                        currentCexState = res.getFirst();
+                        currentCfaNode = res.getSecond();
+                        currentCexState.setMappedNode(currentCfaNode);
+                        break;
+                    }
                 }
 
-                if (mappingFailed) {
-                    break;
+                if (!transitionMapped) {
+                    if (currentCfaNode.getLeavingSummaryEdge() != null) {
+                        currentCfaNode = currentCfaNode.getLeavingSummaryEdge().getSuccessor();
+                    } else if (currentCfaNode.getNumLeavingEdges() == 1) {
+                        currentCfaNode = currentCfaNode.getLeavingEdge(0).getSuccessor();
+                    } else {
+                        cexUnmapped = true;
+                        break;
+                    }
                 }
             }
 
-            if (mappingFailed) {
+            if (cexUnmapped) {
                 unmappedCounter.inc();
             } else {
-                // Fill the report
                 report.putCex(cex);
                 mappedCounter.inc();
             }
         }
 
-        currentCexNode = null;
-        currentCfaNode = null;
-        currentTransition = null;
         return report;
     }
 
-    private boolean handleForwardTransition() {
-        CexPathTransition transition = (CexPathTransition) currentTransition;
-        if (currentCfaNode.getNumLeavingEdges() == 1) {
-            CFAEdge cfaEdge = currentCfaNode.getLeavingEdge(0);
-            CexNode edgeResultNode = transition.evaluate(currentCexNode, cfaEdge);
-            currentCfaNode = cfaEdge.getSuccessor();
-            if (!edgeResultNode.equals(currentCexNode)) {
-                currentCexNode = edgeResultNode;
-                currentCexNode.setMappedNode(currentCfaNode);
+    private Pair<CexState, CFANode> evaluate(CexTransition pTransition, CFAEdge pEdge) {
+        if (pTransition instanceof CexRootTransition) {
+            CexRootTransition transition = (CexRootTransition) pTransition;
+            Optional<CFANode> node = transition.getRootFromCFA(cfa);
+            if (node.isPresent()) {
+                return Pair.of(pTransition.getEndState(), node.get());
             }
-            return false;
-        } else if (currentCfaNode.getNumLeavingEdges() > 1) {
-            for (int i = 0; i < currentCfaNode.getNumLeavingEdges(); ++i) {
-                CFAEdge cfaEdge = currentCfaNode.getLeavingEdge(i);
-                CexNode edgeResultNode = transition.evaluate(currentCexNode, cfaEdge);
-                if (!edgeResultNode.equals(currentCexNode)) {
-                    currentCfaNode = cfaEdge.getSuccessor();
-                    currentCexNode = edgeResultNode;
-                    currentCexNode.setMappedNode(currentCfaNode);
-                    return false;
-                }
+        } else if (pTransition instanceof CexPathTransition) {
+            CexPathTransition transition = (CexPathTransition) pTransition;
+            CexState newState = transition.evaluate(transition.getStartState(), pEdge);
+            if (newState.equals(transition.getEndState())) {
+                return Pair.of(pTransition.getEndState(), pEdge.getSuccessor());
             }
-            // Stop mapping if no leaving edge matches
-            return true;
-
-        } else {
-            // No leaving edge but still remaining transitions
-            return true;
         }
-    }
 
-    private boolean handleCexRootTransition() {
-        CexRootTransition transition = (CexRootTransition) currentTransition;
-        Optional<CFANode> nextNode = transition.getRootFromCFA(cfa);
-        if (nextNode.isPresent()) {
-            currentCfaNode = nextNode.get();
-            currentCexNode = currentTransition.getEndNode();
-            currentCexNode.setMappedNode(currentCfaNode);
-            return false;
-        }
-        return true;
+        return Pair.of(pTransition.getStartState(), pEdge.getPredecessor());
     }
 }

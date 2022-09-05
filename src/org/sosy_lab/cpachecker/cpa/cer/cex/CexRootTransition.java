@@ -7,7 +7,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 
 public abstract class CexRootTransition extends CexTransition {
 
-    public CexRootTransition(CexNode pstartNode, CexNode pEndNode) {
+    public CexRootTransition(CexState pstartNode, CexState pEndNode) {
         super(pstartNode, pEndNode);
     }
 

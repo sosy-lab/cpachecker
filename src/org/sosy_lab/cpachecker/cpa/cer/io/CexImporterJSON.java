@@ -23,7 +23,7 @@ import org.sosy_lab.cpachecker.cpa.cer.CERUtils;
 import org.sosy_lab.cpachecker.cpa.cer.cex.Cex;
 import org.sosy_lab.cpachecker.cpa.cer.cex.CexFunctionHeadTransition;
 import org.sosy_lab.cpachecker.cpa.cer.cex.CexFunctionReturnTransition;
-import org.sosy_lab.cpachecker.cpa.cer.cex.CexNode;
+import org.sosy_lab.cpachecker.cpa.cer.cex.CexState;
 import org.sosy_lab.cpachecker.cpa.cer.cex.CexStatementTransition;
 import org.sosy_lab.cpachecker.cpa.cer.cex.CexTransition;
 import org.sosy_lab.cpachecker.cpa.cer.cexInfos.CounterexampleInformation;
@@ -73,7 +73,7 @@ public class CexImporterJSON {
         ArrayNode transitionsJsonNode = (ArrayNode) cexJsonNode.get("Transitions");
 
         // call importCexNode before importTransitions to fill the cexNodeIdentifier
-        Map<Integer, CexNode> cexNodeIdentifier = new HashMap<>();
+        Map<Integer, CexState> cexNodeIdentifier = new HashMap<>();
         for (int i = 0; i < nodesJsonNode.size(); ++i) {
             importCexNode((ObjectNode) nodesJsonNode.get(i), cexNodeIdentifier);
         }
@@ -89,19 +89,19 @@ public class CexImporterJSON {
             return null;
         }
 
-        CexNode currentNode = transitions.get(0).getStartNode();
+        CexState currentNode = transitions.get(0).getStartState();
         Cex cex = new Cex(currentNode);
         for (CexTransition transition : transitions) {
             currentNode.setLeavingTransition(transition);
-            currentNode = transition.getEndNode();
+            currentNode = transition.getEndState();
         }
         return cex;
     }
 
-    private static CexNode
-            importCexNode(ObjectNode cexNodeJsonNode, Map<Integer, CexNode> cexNodeIdentifier) {
+    private static CexState
+            importCexNode(ObjectNode cexNodeJsonNode, Map<Integer, CexState> cexNodeIdentifier) {
         int id = cexNodeJsonNode.get("ID").asInt();
-        CexNode resultNode = new CexNode();
+        CexState resultNode = new CexState();
         cexNodeIdentifier.put(id, resultNode);
 
         Set<CounterexampleInformation> cexInfos = new HashSet<>();
@@ -127,13 +127,13 @@ public class CexImporterJSON {
 
     private static CexTransition importCexTransition(
             ObjectNode cexTransitionJsonNode,
-            Map<Integer, CexNode> cexNodeIdentifier)
+            Map<Integer, CexState> cexNodeIdentifier)
             throws InvalidInputException {
         String type = cexTransitionJsonNode.get("Type").asText();
         int startNodeId = cexTransitionJsonNode.get("Start").asInt();
-        CexNode startNode = cexNodeIdentifier.get(startNodeId);
+        CexState startNode = cexNodeIdentifier.get(startNodeId);
         int endNodeId = cexTransitionJsonNode.get("End").asInt();
-        CexNode endNode = cexNodeIdentifier.get(endNodeId);
+        CexState endNode = cexNodeIdentifier.get(endNodeId);
         if (startNode == null || endNode == null) {
             throw new InvalidInputException("The nodes of this transition are unknown.");
         }

@@ -6,7 +6,7 @@ import java.util.Map;
 
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cpa.cer.cex.Cex;
-import org.sosy_lab.cpachecker.cpa.cer.cex.CexNode;
+import org.sosy_lab.cpachecker.cpa.cer.cex.CexState;
 
 public class PrecisionStore {
 
@@ -23,7 +23,7 @@ public class PrecisionStore {
 
     public void updateWithCexs(Collection<Cex> pCexs) {
         for (Cex cex : pCexs) {
-            CexNode currentNode = cex.getRootNode();
+            CexState currentNode = cex.getRootState();
 
             while (true) {
                 if (currentNode.getMappedNode().isPresent()) {
@@ -37,7 +37,7 @@ public class PrecisionStore {
                     }
                 }
                 if (currentNode.getLeavingTransition().isPresent()) {
-                    currentNode = currentNode.getLeavingTransition().get().getEndNode();
+                    currentNode = currentNode.getLeavingTransition().get().getEndState();
                 } else {
                     break;
                 }

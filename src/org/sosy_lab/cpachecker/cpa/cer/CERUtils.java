@@ -1,8 +1,8 @@
 package org.sosy_lab.cpachecker.cpa.cer;
 
-import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.Map.Entry;
 
@@ -16,10 +16,12 @@ import org.sosy_lab.cpachecker.cfa.ast.AParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.AStatement;
 import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.ADeclarationEdge;
+import org.sosy_lab.cpachecker.cfa.model.AReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.AStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
+import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
 import org.sosy_lab.cpachecker.core.counterexample.CFAEdgeWithAdditionalInfo;
 import org.sosy_lab.cpachecker.cpa.arg.witnessexport.ConvertingTags;
@@ -27,6 +29,7 @@ import org.sosy_lab.cpachecker.cpa.cer.reducer.CERConvertingTags;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 import com.fasterxml.jackson.databind.json.JsonMapper;
+import com.google.common.collect.ImmutableSet;
 
 public class CERUtils {
 
@@ -64,6 +67,12 @@ public class CERUtils {
             FunctionReturnEdge returnEdge = (FunctionReturnEdge) edge;
             AFunctionCall expression = returnEdge.getSummaryEdge().getExpression();
             return getAssignedMemoryLocation(expression);
+        } else if (edge instanceof AReturnStatementEdge) {
+            AReturnStatementEdge fcReturn = (AReturnStatementEdge) edge;
+            Optional<? extends AAssignment> var = fcReturn.getReturnStatement().asAssignment();
+            if (var.isPresent()) {
+                return MemoryLocation.fromQualifiedName(getVarName(var.get().getLeftHandSide()));
+            }
         }
         return null;
     }
@@ -74,9 +83,21 @@ public class CERUtils {
             List<? extends AParameterDeclaration> params =
                     edge.getSummaryEdge().getFunctionEntry().getFunctionParameters();
             if (params.size() == 0) {
-                return Collections.emptySet();
+                return ImmutableSet.of();
             } else {
                 Set<MemoryLocation> result = new HashSet<>(edge.getArguments().size());
+                for (AParameterDeclaration param : params) {
+                    result.add(MemoryLocation.fromQualifiedName(getVarName(param)));
+                }
+                return result;
+            }
+        } else if (pEdge.getPredecessor() instanceof FunctionEntryNode) {
+            FunctionEntryNode node = (FunctionEntryNode) pEdge.getPredecessor();
+            List<? extends AParameterDeclaration> params = node.getFunctionParameters();
+            if (params.size() == 0) {
+                return ImmutableSet.of();
+            } else {
+                Set<MemoryLocation> result = new HashSet<>(params.size());
                 for (AParameterDeclaration param : params) {
                     result.add(MemoryLocation.fromQualifiedName(getVarName(param)));
                 }
@@ -118,10 +139,10 @@ public class CERUtils {
                 try {
                     return (Set<MemoryLocation>) e.getValue();
                 } catch (Exception exc) {
-                    return Collections.emptySet();
+                    return ImmutableSet.of();
                 }
             }
         }
-        return Collections.emptySet();
+        return ImmutableSet.of();
     }
 }

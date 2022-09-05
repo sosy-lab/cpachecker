@@ -2,6 +2,7 @@ package org.sosy_lab.cpachecker.cpa.cer.io;
 
 import java.io.IOException;
 import java.io.Writer;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.util.Collection;
 import java.util.Optional;
@@ -21,7 +22,7 @@ import org.sosy_lab.cpachecker.cpa.cer.CERCPAStatistics;
 import org.sosy_lab.cpachecker.cpa.cer.cex.Cex;
 import org.sosy_lab.cpachecker.cpa.cer.cex.CexFunctionHeadTransition;
 import org.sosy_lab.cpachecker.cpa.cer.cex.CexFunctionReturnTransition;
-import org.sosy_lab.cpachecker.cpa.cer.cex.CexNode;
+import org.sosy_lab.cpachecker.cpa.cer.cex.CexState;
 import org.sosy_lab.cpachecker.cpa.cer.cex.CexStatementTransition;
 import org.sosy_lab.cpachecker.cpa.cer.cex.CexTransition;
 import org.sosy_lab.cpachecker.cpa.cer.cexInfos.CounterexampleInformation;
@@ -31,8 +32,6 @@ import org.sosy_lab.cpachecker.util.statistics.StatCounter;
 import org.sosy_lab.cpachecker.util.statistics.ThreadSafeTimerContainer.TimerWrapper;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
-
-import com.google.common.base.Charsets;
 
 public class CexExporterXML {
 
@@ -71,7 +70,7 @@ public class CexExporterXML {
                 Element cexTransitionsElem = doc.createElement("Transitions");
                 cexElem.appendChild(cexTransitionsElem);
 
-                CexNode currentCexNode = cex.getRootNode();
+                CexState currentCexNode = cex.getRootState();
                 while (true) {
                     Element cexNodeElem = doc.createElement("Node");
                     cexNodesElem.appendChild(cexNodeElem);
@@ -87,7 +86,7 @@ public class CexExporterXML {
                     cexTransitionsElem.appendChild(cexTransitionElem);
                     exportCexTransition(cexTransitionElem, currentCexTransition.get());
 
-                    currentCexNode = currentCexTransition.get().getEndNode();
+                    currentCexNode = currentCexTransition.get().getEndState();
                 }
 
                 exportedCexCounter.inc();
@@ -101,7 +100,7 @@ public class CexExporterXML {
         }
     }
 
-    private static void exportCexNode(Document doc, Element cexNodeElem, CexNode currentNode) {
+    private static void exportCexNode(Document doc, Element cexNodeElem, CexState currentNode) {
         cexNodeElem.setAttribute("ID", String.valueOf(currentNode.getId()));
 
         for (CounterexampleInformation cexInfo : currentNode.getCexInfos()) {
@@ -135,8 +134,9 @@ public class CexExporterXML {
             cexTransitionElem.setAttribute("Statement", transition.getStatement());
         }
 
-        cexTransitionElem.setAttribute("Start", String.valueOf(pTransition.getStartNode().getId()));
-        cexTransitionElem.setAttribute("End", String.valueOf(pTransition.getEndNode().getId()));
+        cexTransitionElem
+                .setAttribute("Start", String.valueOf(pTransition.getStartState().getId()));
+        cexTransitionElem.setAttribute("End", String.valueOf(pTransition.getEndState().getId()));
     }
 
     private void transformAndWrite(Document doc, Path pPath)
@@ -145,8 +145,8 @@ public class CexExporterXML {
         if (prettyString) {
             transformer.setOutputProperty(OutputKeys.INDENT, "yes");
         }
-        transformer.setOutputProperty(OutputKeys.ENCODING, Charsets.UTF_8.name());
-        try (Writer w = IO.openOutputFile(pPath, Charsets.UTF_8)) {
+        transformer.setOutputProperty(OutputKeys.ENCODING, StandardCharsets.UTF_8.name());
+        try (Writer w = IO.openOutputFile(pPath, StandardCharsets.UTF_8)) {
             transformer.transform(new DOMSource(doc), new StreamResult(w));
         }
     }

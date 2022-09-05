@@ -1,16 +1,19 @@
 package org.sosy_lab.cpachecker.cpa.cer.cexInfos;
 
-import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 
+import org.sosy_lab.cpachecker.cfa.ast.ASimpleDeclaration;
+import org.sosy_lab.cpachecker.cfa.model.AReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.AStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
 import org.sosy_lab.cpachecker.cpa.cer.CERUtils;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableSet;
 
 public class PrecisionInformation implements CounterexampleInformation {
     private final Set<MemoryLocation> valuePrecison;
@@ -57,7 +60,7 @@ public class PrecisionInformation implements CounterexampleInformation {
      */
     public static PrecisionInformation step(PrecisionInformation oldPrecInfo, CFAEdge pCfaEdge) {
         if (oldPrecInfo == null) {
-            oldPrecInfo = new PrecisionInformation(Collections.emptySet());
+            oldPrecInfo = new PrecisionInformation(ImmutableSet.of());
         }
         Set<MemoryLocation> oldValuePrec = oldPrecInfo.getValuePrecison();
         Set<MemoryLocation> newValuePrec = computeValuePrecision(oldValuePrec, pCfaEdge);
@@ -84,6 +87,15 @@ public class PrecisionInformation implements CounterexampleInformation {
             MemoryLocation var = CERUtils.getAssignedMemoryLocation(edge);
             if (var != null) {
                 modifiablePrecision.remove(var);
+            }
+        } else if (edge instanceof AReturnStatementEdge) {
+            AReturnStatementEdge retEdge = (AReturnStatementEdge) edge;
+            FunctionExitNode retNode = retEdge.getSuccessor();
+            for (ASimpleDeclaration decl : retNode.getOutOfScopeVariables()) {
+                MemoryLocation var = MemoryLocation.fromQualifiedName(decl.getQualifiedName());
+                if (modifiablePrecision.contains(var)) {
+                    modifiablePrecision.remove(var);
+                }
             }
         }
     }

@@ -12,7 +12,7 @@ import org.sosy_lab.cpachecker.cpa.cer.CERUtils;
 import org.sosy_lab.cpachecker.cpa.cer.cex.Cex;
 import org.sosy_lab.cpachecker.cpa.cer.cex.CexFunctionHeadTransition;
 import org.sosy_lab.cpachecker.cpa.cer.cex.CexFunctionReturnTransition;
-import org.sosy_lab.cpachecker.cpa.cer.cex.CexNode;
+import org.sosy_lab.cpachecker.cpa.cer.cex.CexState;
 import org.sosy_lab.cpachecker.cpa.cer.cex.CexStatementTransition;
 import org.sosy_lab.cpachecker.cpa.cer.cex.CexTransition;
 import org.sosy_lab.cpachecker.cpa.cer.cexInfos.CounterexampleInformation;
@@ -65,7 +65,7 @@ public class CexExporterJSON {
             ObjectNode cexJsonNode = cexsJsonNode.addObject();
             ArrayNode nodesJsonNode = cexJsonNode.putArray("Nodes");
             ArrayNode transitionsJsonNode = cexJsonNode.putArray("Transitions");
-            CexNode currentCexNode = cex.getRootNode();
+            CexState currentCexNode = cex.getRootState();
 
             while (true) {
                 ObjectNode nodeJsonNode = nodesJsonNode.addObject();
@@ -77,14 +77,14 @@ public class CexExporterJSON {
                 }
                 ObjectNode transitionJsonNode = transitionsJsonNode.addObject();
                 exportCexTransition(transitionJsonNode, currentCexTransition.get());
-                currentCexNode = currentCexTransition.get().getEndNode();
+                currentCexNode = currentCexTransition.get().getEndState();
             }
 
             exportedCexCounter.inc();
         }
     }
 
-    private static void exportCexNode(ObjectNode cexNodeJsonNode, CexNode currentNode) {
+    private static void exportCexNode(ObjectNode cexNodeJsonNode, CexState currentNode) {
         cexNodeJsonNode.put("ID", currentNode.getId());
         for (CounterexampleInformation cexInfo : currentNode.getCexInfos()) {
             if (cexInfo instanceof PrecisionInformation) {
@@ -114,7 +114,7 @@ public class CexExporterJSON {
             cexTransitionJsonNode.put("Function", transition.getFunctionName());
         }
 
-        cexTransitionJsonNode.put("Start", pTransition.getStartNode().getId());
-        cexTransitionJsonNode.put("End", pTransition.getEndNode().getId());
+        cexTransitionJsonNode.put("Start", pTransition.getStartState().getId());
+        cexTransitionJsonNode.put("End", pTransition.getEndState().getId());
     }
 }

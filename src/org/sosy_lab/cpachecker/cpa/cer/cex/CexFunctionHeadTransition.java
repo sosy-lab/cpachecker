@@ -9,20 +9,23 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 public class CexFunctionHeadTransition extends CexRootTransition {
     private final String functionName;
 
-    private CexFunctionHeadTransition(CexNode pstartNode, String pFunctionName, CexNode pEndNode) {
-        super(pstartNode, pEndNode);
+    private CexFunctionHeadTransition(
+            CexState pStartState,
+            String pFunctionName,
+            CexState pEndState) {
+        super(pStartState, pEndState);
         functionName = pFunctionName;
     }
 
     public static CexFunctionHeadTransition
-            create(CexNode pstartNode, String pFunctionName, CexNode pEndNode) {
-        return new CexFunctionHeadTransition(pstartNode, pFunctionName, pEndNode);
+            create(CexState pstartState, String pFunctionName, CexState pEndState) {
+        return new CexFunctionHeadTransition(pstartState, pFunctionName, pEndState);
     }
 
     public static CexFunctionHeadTransition
-            create(CexNode pstartNode, FunctionEntryNode pFunctionNode, CexNode pEndNode) {
+            create(CexState pStartState, FunctionEntryNode pFunctionNode, CexState pEndState) {
         String functionName = pFunctionNode.getFunction().getQualifiedName();
-        return new CexFunctionHeadTransition(pstartNode, functionName, pEndNode);
+        return new CexFunctionHeadTransition(pStartState, functionName, pEndState);
     }
 
     public String getFunctionName() {

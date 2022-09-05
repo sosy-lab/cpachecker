@@ -1,19 +1,19 @@
 package org.sosy_lab.cpachecker.cpa.cer.cex;
 
 public abstract class CexTransition {
-    protected final CexNode startNode;
-    protected final CexNode endNode;
+    private final CexState startState;
+    private final CexState endState;
 
-    protected CexTransition(CexNode pstartNode, CexNode pEndNode) {
-        startNode = pstartNode;
-        endNode = pEndNode;
+    protected CexTransition(CexState pstartNode, CexState pEndNode) {
+        startState = pstartNode;
+        endState = pEndNode;
     }
 
-    public CexNode getStartNode() {
-        return startNode;
+    public CexState getStartState() {
+        return startState;
     }
 
-    public CexNode getEndNode() {
-        return endNode;
+    public CexState getEndState() {
+        return endState;
     }
 }

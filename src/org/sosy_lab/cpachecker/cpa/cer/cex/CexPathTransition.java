@@ -4,9 +4,9 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 
 public abstract class CexPathTransition extends CexTransition {
 
-    public CexPathTransition(CexNode pstartNode, CexNode pEndNode) {
-        super(pstartNode, pEndNode);
+    public CexPathTransition(CexState pStartState, CexState pEndState) {
+        super(pStartState, pEndState);
     }
 
-    public abstract CexNode evaluate(CexNode node, CFAEdge edge);
+    public abstract CexState evaluate(CexState pState, CFAEdge edge);
 }

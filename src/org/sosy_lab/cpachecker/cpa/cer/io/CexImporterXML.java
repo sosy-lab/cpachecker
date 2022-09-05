@@ -21,7 +21,7 @@ import org.sosy_lab.cpachecker.cpa.cer.CERCPAStatistics;
 import org.sosy_lab.cpachecker.cpa.cer.cex.Cex;
 import org.sosy_lab.cpachecker.cpa.cer.cex.CexFunctionHeadTransition;
 import org.sosy_lab.cpachecker.cpa.cer.cex.CexFunctionReturnTransition;
-import org.sosy_lab.cpachecker.cpa.cer.cex.CexNode;
+import org.sosy_lab.cpachecker.cpa.cer.cex.CexState;
 import org.sosy_lab.cpachecker.cpa.cer.cex.CexStatementTransition;
 import org.sosy_lab.cpachecker.cpa.cer.cex.CexTransition;
 import org.sosy_lab.cpachecker.cpa.cer.cexInfos.CounterexampleInformation;
@@ -84,7 +84,7 @@ public class CexImporterXML {
         }
 
         // call importCexNode before importTransitions to fill the cexNodeIdentifier
-        Map<Integer, CexNode> cexNodeIdentifier = new HashMap<>();
+        Map<Integer, CexState> cexNodeIdentifier = new HashMap<>();
         NodeList nodeList = nodesElem.getElementsByTagName("Node");
         for (int i = 0; i < nodeList.getLength(); ++i) {
             importCexNode((Element) nodeList.item(i), cexNodeIdentifier);
@@ -100,19 +100,19 @@ public class CexImporterXML {
             return null;
         }
 
-        CexNode currentNode = transitions.get(0).getStartNode();
+        CexState currentNode = transitions.get(0).getStartState();
         Cex cex = new Cex(currentNode);
         for (CexTransition transition : transitions) {
             currentNode.setLeavingTransition(transition);
-            currentNode = transition.getEndNode();
+            currentNode = transition.getEndState();
         }
         return cex;
     }
 
-    private static CexNode
-            importCexNode(Element cexNodeElem, Map<Integer, CexNode> cexNodeIdentifier) {
+    private static CexState
+            importCexNode(Element cexNodeElem, Map<Integer, CexState> cexNodeIdentifier) {
         int id = Integer.valueOf(cexNodeElem.getAttribute("ID"));
-        CexNode resultNode = new CexNode();
+        CexState resultNode = new CexState();
         cexNodeIdentifier.put(id, resultNode);
 
         NodeList valuePrecNodes = cexNodeElem.getElementsByTagName("ValuePrecision");
@@ -141,13 +141,13 @@ public class CexImporterXML {
     }
 
     private static CexTransition
-            importCexTransition(Element cexTransitionElem, Map<Integer, CexNode> cexNodeIdentifier)
+            importCexTransition(Element cexTransitionElem, Map<Integer, CexState> cexNodeIdentifier)
                     throws InvalidInputException {
         String type = cexTransitionElem.getAttribute("Type");
         int startNodeId = Integer.valueOf(cexTransitionElem.getAttribute("Start"));
-        CexNode startNode = cexNodeIdentifier.get(startNodeId);
+        CexState startNode = cexNodeIdentifier.get(startNodeId);
         int endNodeId = Integer.valueOf(cexTransitionElem.getAttribute("End"));
-        CexNode endNode = cexNodeIdentifier.get(endNodeId);
+        CexState endNode = cexNodeIdentifier.get(endNodeId);
         if (startNode == null || endNode == null) {
             throw new InvalidInputException("The nodes of this transition are unknown.");
         }

@@ -4,7 +4,7 @@ import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
+import java.util.Deque;
 import java.util.List;
 import java.util.Optional;
 import java.util.logging.Level;
@@ -155,14 +155,16 @@ public class CERCPA implements ConfigurableProgramAnalysis, StatisticsProvider {
     public void update(CERRefinerReport pReport) {
         cexCreationTimer.start();
         CexReducer reducer = new CexReducer();
-        List<CFAEdgeWithAdditionalInfo> reducedPath =
-                reducer.reduce(
+        Deque<CFAEdgeWithAdditionalInfo> pathWithInfos =
+                CexReducer.getPathWithPrecisionInfos(
                         pReport.getErrorPath(),
-                        Optional.ofNullable(pReport.getPrecisionInc()),
-                        Optional.ofNullable(pReport.getInterpolationTree()),
-                        pReport.getCutOffRoots());
+                        pReport.getCutOffRoots(),
+                        pReport.getInterpolationTree());
+
+        List<CFAEdgeWithAdditionalInfo> reducedPath = reducer.reduce(pathWithInfos);
+
         Cex resultCex = new Cex(reducedPath);
-        precStore.updateWithCexs(Collections.singleton(resultCex));
+        precStore.updateWithCexs(ImmutableSet.of(resultCex));
         cexs.add(resultCex);
         cexsChanged = true;
         cexCreationTimer.stop();

@@ -18,9 +18,9 @@ import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 import com.google.common.base.Preconditions;
 
 public class Cex {
-    private final CexNode rootNode;
+    private final CexState rootNode;
 
-    public Cex(@Nonnull CexNode pRootNode) {
+    public Cex(@Nonnull CexState pRootNode) {
         Preconditions.checkNotNull(pRootNode, "The given root node is null");
         rootNode = pRootNode;
     }
@@ -30,12 +30,12 @@ public class Cex {
                 edgeWithInfos,
                 "Can not create a counterexample for an empty edge list");
 
-        CexNode lastNode = new CexNode();
+        CexState lastNode = new CexState();
         this.rootNode = lastNode;
 
         for (CFAEdgeWithAdditionalInfo edgeWithInfo : edgeWithInfos) {
             CFAEdge edge = edgeWithInfo.getCFAEdge();
-            CexNode nextNode = new CexNode();
+            CexState nextNode = new CexState();
             nextNode.setMappedNode(edge.getSuccessor());
 
             CexTransition transition;
@@ -67,18 +67,18 @@ public class Cex {
         }
     }
 
-    public CexNode getRootNode() {
+    public CexState getRootState() {
         return rootNode;
     }
 
     @Override
     public String toString() {
         StringBuilder builder = new StringBuilder();
-        CexNode currentNode = rootNode;
+        CexState currentNode = rootNode;
         while (currentNode.getLeavingTransition().isPresent()) {
             builder.append(" -> ");
             builder.append(currentNode.getLeavingTransition().get().toString());
-            currentNode = currentNode.getLeavingTransition().get().getEndNode();
+            currentNode = currentNode.getLeavingTransition().get().getEndState();
         }
         return builder.toString();
     }

@@ -10,40 +10,43 @@ public class CexFunctionReturnTransition extends CexPathTransition {
     private final String functionName;
 
     private CexFunctionReturnTransition(
-            CexNode pstartNode,
+            CexState pstartState,
             String pStatement,
             String pFunctionName,
-            CexNode pEndNode) {
-        super(pstartNode, pEndNode);
+            CexState pEndState) {
+        super(pstartState, pEndState);
         statement = pStatement;
         functionName = pFunctionName;
     }
 
-    public static CexFunctionReturnTransition
-            create(CexNode pstartNode, String pStatement, String pFunctionName, CexNode pEndNode) {
-        return new CexFunctionReturnTransition(pstartNode, pStatement, pFunctionName, pEndNode);
+    public static CexFunctionReturnTransition create(
+            CexState pStartState,
+            String pStatement,
+            String pFunctionName,
+            CexState pEndState) {
+        return new CexFunctionReturnTransition(pStartState, pStatement, pFunctionName, pEndState);
     }
 
     public static CexFunctionReturnTransition
-            create(CexNode pstartNode, FunctionReturnEdge pEdge, CexNode pEndNode) {
+            create(CexState pStartState, FunctionReturnEdge pEdge, CexState pEndState) {
         String statement = CERUtils.CFAEdgeToString(pEdge);
         String functionName = pEdge.getSuccessor().getFunction().getQualifiedName();
-        return new CexFunctionReturnTransition(pstartNode, statement, functionName, pEndNode);
+        return new CexFunctionReturnTransition(pStartState, statement, functionName, pEndState);
     }
 
     @Override
-    public CexNode evaluate(CexNode pNode, CFAEdge pEdge) {
-        if (!pNode.equals(startNode) || !(pEdge instanceof FunctionReturnEdge)) {
-            return pNode;
+    public CexState evaluate(CexState pState, CFAEdge pEdge) {
+        if (!pState.equals(getStartState()) || !(pEdge instanceof FunctionReturnEdge)) {
+            return pState;
         }
 
         FunctionReturnEdge edge = (FunctionReturnEdge) pEdge;
         String nodeFName = pEdge.getSuccessor().getFunction().getQualifiedName();
         if (CERUtils.CFAEdgeToString(edge).equals(statement) && nodeFName.equals(functionName)) {
-            return endNode;
+            return getEndState();
         }
 
-        return pNode;
+        return pState;
     }
 
     public String getStatement() {
@@ -52,5 +55,10 @@ public class CexFunctionReturnTransition extends CexPathTransition {
 
     public String getFunctionName() {
         return functionName;
+    }
+
+    @Override
+    public String toString() {
+        return getStatement() + "@" + getFunctionName();
     }
 }
