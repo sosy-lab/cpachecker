@@ -633,8 +633,7 @@ public class SMG {
       if (currentMax.compareTo(offsetPlusSize) >= 0) {
         // This value is guaranteed to exists because of the map
         return Optional.of(
-            getHasValueEdgeByPredicate(
-                    object, hv -> hv.getOffset().compareTo(entry.getValue()) == 0)
+            getHasValueEdgeByPredicate(object, hv -> hv.getOffset().compareTo(entry.getKey()) == 0)
                 .orElseThrow()
                 .hasValue());
       }
