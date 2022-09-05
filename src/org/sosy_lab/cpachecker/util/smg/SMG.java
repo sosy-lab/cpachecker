@@ -472,6 +472,7 @@ public class SMG {
     // the newly obtained SMG.
     SMGHasValueEdge newHVEdge = new SMGHasValueEdge(newValue, offset, sizeInBits);
     newSMG = newSMG.copyAndAddHVEdge(newHVEdge, object);
+    assert newSMG.sanityCheck();
     return new SMGandValue(newSMG, newValue);
   }
 
@@ -529,10 +530,7 @@ public class SMG {
     // the new SMG and return it.
     SMGHasValueEdge newHVEdge = new SMGHasValueEdge(value, offset, sizeInBits);
     newSMG = newSMG.copyAndAddHVEdge(newHVEdge, object);
-    if (!newSMG.sanityCheck()) {
-      Preconditions.checkArgument(newSMG.sanityCheck());
-    }
-    Preconditions.checkArgument(newSMG.sanityCheck());
+    assert newSMG.sanityCheck();
     return newSMG;
   }
 
@@ -879,6 +877,7 @@ public class SMG {
     return hasValueEdges;
   }
 
+  /* Checks that there is only 1 value at all offsets. */
   @SuppressWarnings("unused")
   public boolean sanityCheck() {
     for (Entry<SMGObject, PersistentSet<SMGHasValueEdge>> entry : hasValueEdges.entrySet()) {
