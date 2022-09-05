@@ -461,8 +461,9 @@ public class SMG {
     // if the field to be read is covered by nullified blocks, i.e. if
     // forall . of <= i < of +  size(t) exists . e element H(o, of, t): i element I(e),
     // let v := 0. Otherwise extend V by a fresh value node v.
-    if (isCoveredByNullifiedBlocks(object, offset, sizeInBits)) {
-      return new SMGandValue(this, SMGValue.zeroValue());
+    Optional<SMGValue> isCoveredBy = isCoveredByNullifiedBlocks(object, offset, sizeInBits);
+    if (isCoveredBy.isPresent()) {
+      return new SMGandValue(this, isCoveredBy.orElseThrow());
     }
     int nestingLevel = object.getNestingLevel();
     SMGValue newValue = SMGValue.of(nestingLevel);
@@ -491,7 +492,7 @@ public class SMG {
     // Check that our field is inside the object: offset + sizeInBits <= size(object)
     BigInteger offsetPlusSize = offset.add(sizeInBits);
     Preconditions.checkArgument(offsetPlusSize.compareTo(object.getSize()) <= 0);
-    if (value.isZero() && isCoveredByNullifiedBlocks(object, offset, sizeInBits)) {
+    if (value.isZero() && isCoveredByNullifiedBlocks(object, offset, sizeInBits).isPresent()) {
       return this;
     }
 
@@ -528,7 +529,10 @@ public class SMG {
     // the new SMG and return it.
     SMGHasValueEdge newHVEdge = new SMGHasValueEdge(value, offset, sizeInBits);
     newSMG = newSMG.copyAndAddHVEdge(newHVEdge, object);
-    // newSMG.sanityCheck();
+    if (!newSMG.sanityCheck()) {
+      Preconditions.checkArgument(newSMG.sanityCheck());
+    }
+    Preconditions.checkArgument(newSMG.sanityCheck());
     return newSMG;
   }
 
@@ -550,7 +554,7 @@ public class SMG {
     for (SMGHasValueEdge hvEdge : hasValueEdges.get(object)) {
       final BigInteger hvEdgeOffsetPlusSize = hvEdge.getOffset().add(hvEdge.getSizeInBits());
       // Overlapping zero value edges
-      if (hvEdge.hasValue().equals(SMGValue.zeroValue())
+      if (hvEdge.hasValue().isZero()
           && hvEdge.getOffset().compareTo(offsetPlusSize) < 0
           && hvEdgeOffsetPlusSize.compareTo(offset) > 0) {
         toRemoveEdgesSet = toRemoveEdgesSet.addAndCopy(hvEdge);
@@ -588,13 +592,7 @@ public class SMG {
   }
 
   /**
-   * TODO: Check this method again once we can test the entire system! Why? Because in my opinion
-   * one can interpret the specification of this method in 2 ways: 1. The field to be checked
-   * (offset + size) has to be covered by a SINGLE nullObject. 2. The field to be checked has to be
-   * covered by nullObjects (1 or multiple), such that it is covered entirely. (2. is the current
-   * implementation)
-   *
-   * <p>This Method checks for the entered SMGObject if there exists SMGHasValueEdges such that the
+   * This Method checks for the entered SMGObject if there exists SMGHasValueEdges such that the
    * field [offset; offset + size) is covered by nullObjects. Important: One may not take
    * SMGHasValueEdges into account which lay outside of the SMGObject! Else it would be possible to
    * read potentially invalid memory!
@@ -603,13 +601,14 @@ public class SMG {
    * @param offset The offset (=start) of the field. Has to be inside of the object.
    * @param size The size in bits of the field. Has to be larger than the offset but still inside
    *     the field.
-   * @return True if the field is indeed covered by nullified blocks. False else.
+   * @return An optional with the correct zero edge, empty if not covered.
    */
-  private boolean isCoveredByNullifiedBlocks(SMGObject object, BigInteger offset, BigInteger size) {
+  private Optional<SMGValue> isCoveredByNullifiedBlocks(
+      SMGObject object, BigInteger offset, BigInteger size) {
     NavigableMap<BigInteger, BigInteger> nullEdgesRangeMap =
         getZeroValueEdgesForObject(object, offset, size);
     if (nullEdgesRangeMap.isEmpty()) {
-      return false;
+      return Optional.empty();
     }
     // We start at the first value equalling zero in the object itself. To not read potentially
     // invalid memory, the first SMGHasValueEdge has to equal the offset, while only a single offset
@@ -617,7 +616,7 @@ public class SMG {
     BigInteger currentMax = nullEdgesRangeMap.firstKey();
     // The first edge offset can't cover the entire field if it begins after the obj offset!
     if (currentMax.compareTo(offset) > 0) {
-      return false;
+      return Optional.empty();
     }
     BigInteger offsetPlusSize = offset.add(size);
     currentMax = nullEdgesRangeMap.get(currentMax).add(currentMax);
@@ -626,17 +625,22 @@ public class SMG {
       // The max encountered yet has to be bigger to the next key.
       // ( < because the size begins with the offset and does not include the offset + size bit!)
       if (currentMax.compareTo(entry.getKey()) < 0) {
-        return false;
+        return Optional.empty();
       }
       currentMax = currentMax.max(entry.getValue().add(entry.getKey()));
       // If there are no gaps,
       // the max encountered has to be == offset + size at some point.
       if (currentMax.compareTo(offsetPlusSize) >= 0) {
-        return true;
+        // This value is guaranteed to exists because of the map
+        return Optional.of(
+            getHasValueEdgeByPredicate(
+                    object, hv -> hv.getOffset().compareTo(entry.getValue()) == 0)
+                .orElseThrow()
+                .hasValue());
       }
     }
     // The max encountered did not cover the entire field.
-    return false;
+    return Optional.empty();
   }
 
   /**
