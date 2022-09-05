@@ -36,6 +36,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CImaginaryLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSideVisitor;
@@ -45,6 +46,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdExpression.TypeIdOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
+import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.DefaultCExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
@@ -626,60 +628,84 @@ public class SMGCPAValueVisitor
 
     String variableName = varDecl.getQualifiedName();
 
-    if (SMGCPAValueExpressionEvaluator.isStructOrUnionType(returnType)
-        || returnType instanceof CArrayType) {
-      // Struct/Unions/arrays on the stack/global; return the memory location in a
-      // SymbolicIdentifier. This is then used as interpretation such that the Value
-      // of the memory location (on the stack) is used. This is used by assignments only as far as
-      // i know, i.e. when assigning a complete array/struct to a new variable.
-      return ImmutableList.of(
-          ValueAndSMGState.of(
-              SymbolicValueFactory.getInstance()
-                  .newIdentifier(MemoryLocation.forIdentifier(variableName).withOffset(0)),
-              state));
-
-    } else if (returnType instanceof CPointerType || returnType instanceof CFunctionType) {
-      // Pointer/Array/Function types should return a Value that internally can be translated into a
-      // SMGValue that leads to a SMGPointsToEdge that leads to the correct object (with potential
-      // offsets inside of the points to edge). These have to be packaged into a AddressExpression
-      // with an 0 offset. Modifications of the offset of the address can be done by subsequent
-      // methods. (The check is fine because we already filtered out structs/unions)
-      BigInteger sizeInBits = evaluator.getBitSizeof(state, e.getExpressionType());
-      // Now use the qualified name to get the actual global/stack memory location
-      ValueAndSMGState readValueAndState =
-          evaluator.readStackOrGlobalVariable(
-              state,
-              varDecl.getQualifiedName(),
-              BigInteger.ZERO,
-              sizeInBits,
-              SMGCPAValueExpressionEvaluator.getCanonicalType(e));
-      Value readValue = readValueAndState.getValue();
-      SMGState currentState = readValueAndState.getState();
-
-      Value addressValue;
-      if (evaluator.isPointerValue(readValue, currentState)) {
-        addressValue = AddressExpression.withZeroOffset(readValue, returnType);
+    ImmutableList.Builder<SMGState> creationBuilder = ImmutableList.builder();
+    if (!state.isLocalOrGlobalVariablePresent(variableName)) {
+      if (varDecl instanceof CVariableDeclaration) {
+        creationBuilder.addAll(
+            evaluator.handleVariableDeclaration(state, (CVariableDeclaration) varDecl, cfaEdge));
+      } else if (varDecl instanceof CParameterDeclaration) {
+        creationBuilder.addAll(
+            evaluator.handleVariableDeclaration(
+                state, ((CParameterDeclaration) varDecl).asVariableDeclaration(), cfaEdge));
       } else {
-        // Not a known pointer value, most likely a unknown value as symbolic identifier
-        addressValue = readValue;
+        throw new SMG2Exception("Unhandled on-the-fly variable creation type: " + varDecl);
       }
-
-      return ImmutableList.of(ValueAndSMGState.of(addressValue, currentState));
-
     } else {
-      // Everything else should be readable and returnable directly; just return the Value
-      BigInteger sizeInBits = evaluator.getBitSizeof(state, e.getExpressionType());
-      // Now use the qualified name to get the actual global/stack memory location
-      ValueAndSMGState readValueAndState =
-          evaluator.readStackOrGlobalVariable(
-              state,
-              varDecl.getQualifiedName(),
-              BigInteger.ZERO,
-              sizeInBits,
-              SMGCPAValueExpressionEvaluator.getCanonicalType(e));
-
-      return ImmutableList.of(readValueAndState);
+      creationBuilder.add(state);
     }
+
+    ImmutableList.Builder<ValueAndSMGState> finalStatesBuilder = ImmutableList.builder();
+    for (SMGState currentState : creationBuilder.build()) {
+      if (SMGCPAValueExpressionEvaluator.isStructOrUnionType(returnType)
+          || returnType instanceof CArrayType) {
+        // Struct/Unions/arrays on the stack/global; return the memory location in a
+        // SymbolicIdentifier. This is then used as interpretation such that the Value
+        // of the memory location (on the stack) is used. This is used by assignments only as far as
+        // i know, i.e. when assigning a complete array/struct to a new variable.
+        finalStatesBuilder.add(
+            ValueAndSMGState.of(
+                SymbolicValueFactory.getInstance()
+                    .newIdentifier(MemoryLocation.forIdentifier(variableName).withOffset(0)),
+                currentState));
+        continue;
+
+      } else if (returnType instanceof CPointerType || returnType instanceof CFunctionType) {
+        // Pointer/Array/Function types should return a Value that internally can be translated into
+        // a
+        // SMGValue that leads to a SMGPointsToEdge that leads to the correct object (with potential
+        // offsets inside of the points to edge). These have to be packaged into a AddressExpression
+        // with an 0 offset. Modifications of the offset of the address can be done by subsequent
+        // methods. (The check is fine because we already filtered out structs/unions)
+        BigInteger sizeInBits = evaluator.getBitSizeof(currentState, e.getExpressionType());
+        // Now use the qualified name to get the actual global/stack memory location
+        ValueAndSMGState readValueAndState =
+            evaluator.readStackOrGlobalVariable(
+                currentState,
+                varDecl.getQualifiedName(),
+                BigInteger.ZERO,
+                sizeInBits,
+                SMGCPAValueExpressionEvaluator.getCanonicalType(e));
+        Value readValue = readValueAndState.getValue();
+        SMGState newState = readValueAndState.getState();
+
+        Value addressValue;
+        if (evaluator.isPointerValue(readValue, newState)) {
+          addressValue = AddressExpression.withZeroOffset(readValue, returnType);
+        } else {
+          // Not a known pointer value, most likely a unknown value as symbolic identifier
+          addressValue = readValue;
+        }
+
+        finalStatesBuilder.add(ValueAndSMGState.of(addressValue, newState));
+        continue;
+
+      } else {
+        // Everything else should be readable and returnable directly; just return the Value
+        BigInteger sizeInBits = evaluator.getBitSizeof(currentState, e.getExpressionType());
+        // Now use the qualified name to get the actual global/stack memory location
+        ValueAndSMGState readValueAndState =
+            evaluator.readStackOrGlobalVariable(
+                currentState,
+                varDecl.getQualifiedName(),
+                BigInteger.ZERO,
+                sizeInBits,
+                SMGCPAValueExpressionEvaluator.getCanonicalType(e));
+
+        finalStatesBuilder.add(readValueAndState);
+        continue;
+      }
+    }
+    return finalStatesBuilder.build();
   }
 
   @Override
