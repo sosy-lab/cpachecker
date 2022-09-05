@@ -64,12 +64,16 @@ public class SMGValue implements SMGNode, Comparable<SMGValue> {
     return ZERO_VALUE;
   }
 
-  /** @return The static SMGValue = 0f */
+  /**
+   * @return The static SMGValue = 0f
+   */
   public static SMGValue zeroFloatValue() {
     return ZERO_FLOAT_VALUE;
   }
 
-  /** @return The static SMGValue = 0 as Double */
+  /**
+   * @return The static SMGValue = 0 as Double
+   */
   public static SMGValue zeroDoubleValue() {
     return ZERO_DOUBLE_VALUE;
   }

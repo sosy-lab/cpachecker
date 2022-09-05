@@ -143,7 +143,8 @@ public class SMGCPAValueVisitorTest {
     logger = new LogManagerWithoutDuplicates(LogManager.createTestLogManager());
 
     // null null is fine as long as builtin functions are not used!
-    evaluator = new SMGCPAValueExpressionEvaluator(MACHINE_MODEL, logger, null, null);
+    evaluator =
+        new SMGCPAValueExpressionEvaluator(MACHINE_MODEL, logger, null, null, ImmutableList.of());
 
     currentState =
         SMGState.of(MACHINE_MODEL, logger, new SMGOptions(Configuration.defaultConfiguration()));
