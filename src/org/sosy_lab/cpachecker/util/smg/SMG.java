@@ -472,7 +472,6 @@ public class SMG {
     // the newly obtained SMG.
     SMGHasValueEdge newHVEdge = new SMGHasValueEdge(newValue, offset, sizeInBits);
     newSMG = newSMG.copyAndAddHVEdge(newHVEdge, object);
-    assert newSMG.sanityCheck();
     return new SMGandValue(newSMG, newValue);
   }
 
@@ -530,7 +529,6 @@ public class SMG {
     // the new SMG and return it.
     SMGHasValueEdge newHVEdge = new SMGHasValueEdge(value, offset, sizeInBits);
     newSMG = newSMG.copyAndAddHVEdge(newHVEdge, object);
-    assert newSMG.sanityCheck();
     return newSMG;
   }
 
