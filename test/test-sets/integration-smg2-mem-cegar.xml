@@ -1,0 +1,72 @@
+<?xml version="1.0"?>
+
+<!--
+This file is part of CPAchecker,
+a tool for configurable software verification:
+https://cpachecker.sosy-lab.org
+
+SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+
+SPDX-License-Identifier: Apache-2.0
+-->
+
+<!DOCTYPE benchmark PUBLIC "+//IDN sosy-lab.org//DTD BenchExec benchmark 1.9//EN" "https://www.sosy-lab.org/benchexec/benchmark-1.9.dtd">
+<benchmark tool="cpachecker" timelimit="150 s" hardtimelimit="200 s" memlimit="7 GB" cpuCores="2">
+
+  <option name="-noout"/>
+  <option name="-heap">6000M</option>
+
+  <rundefinition>
+    <option name="-smg2-mem-CEGAR"/>
+  </rundefinition>
+
+
+  <tasks name="MemSafety-Arrays">
+    <includesfile>../programs/benchmarks/MemSafety-Arrays.set</includesfile>
+    <propertyfile>../programs/benchmarks/properties/valid-memsafety.prp</propertyfile>
+  </tasks>
+  <tasks name="MemSafety-Heap">
+    <includesfile>../programs/benchmarks/MemSafety-Heap.set</includesfile>
+    <propertyfile>../programs/benchmarks/properties/valid-memsafety.prp</propertyfile>
+  </tasks>
+  <tasks name="MemSafety-LinkedLists">
+    <includesfile>../programs/benchmarks/MemSafety-LinkedLists.set</includesfile>
+    <propertyfile>../programs/benchmarks/properties/valid-memsafety.prp</propertyfile>
+  </tasks>
+  <tasks name="MemSafety-Other">
+    <includesfile>../programs/benchmarks/MemSafety-Other.set</includesfile>
+    <propertyfile>../programs/benchmarks/properties/valid-memsafety.prp</propertyfile>
+  </tasks>
+  <!-- 
+    Benchmark client is currently not able to benchmark duplicate files, even
+    with different properties. This leads to Buildbot constantly failing the 
+    build for this test-set.
+    c.f. verifiercloud issue 597; buildbot issue 26
+  -->
+  <!--
+  <tasks name="MemSafety-MemCleanup">
+    <includesfile>../programs/benchmarks/MemSafety-MemCleanup.set</includesfile>
+    <propertyfile>../programs/benchmarks/properties/valid-memcleanup.prp</propertyfile>
+  </tasks>
+  -->
+  <tasks name="MemSafety-Juliet">
+    <includesfile>../programs/benchmarks/MemSafety-Juliet.set</includesfile>
+    <propertyfile>../programs/benchmarks/properties/valid-memsafety.prp</propertyfile>
+    <!-- Juliet tasks call external functions like "time" which are irrelevant for the task itself -->
+    <option name="-setprop">cpa.smg.handleUnknownFunctions=ASSUME_SAFE</option>
+  </tasks>
+
+  <tasks name="SoftwareSystems-BusyBox-MemSafety">
+    <includesfile>../programs/benchmarks/SoftwareSystems-BusyBox-MemSafety.set</includesfile>
+    <propertyfile>../programs/benchmarks/properties/valid-memsafety.prp</propertyfile>
+  </tasks>
+  <tasks name="SoftwareSystems-OpenBSD-MemSafety">
+    <includesfile>../programs/benchmarks/SoftwareSystems-OpenBSD-MemSafety.set</includesfile>
+    <propertyfile>../programs/benchmarks/properties/valid-memsafety.prp</propertyfile>
+  </tasks>
+  <tasks name="SoftwareSystems-uthash-MemSafety">
+    <includesfile>../programs/benchmarks/SoftwareSystems-uthash-MemSafety.set</includesfile>
+    <propertyfile>../programs/benchmarks/properties/valid-memsafety.prp</propertyfile>
+  </tasks>
+</benchmark>
+
