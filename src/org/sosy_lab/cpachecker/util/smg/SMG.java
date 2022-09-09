@@ -26,6 +26,7 @@ import java.util.NavigableMap;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.collect.PersistentMap;
 import org.sosy_lab.cpachecker.cpa.smg.util.PersistentSet;
@@ -216,7 +217,6 @@ public class SMG {
    * @return a modified copy of the SMG.
    */
   public SMG copyAndSetHVEdges(PersistentSet<SMGHasValueEdge> edges, SMGObject source) {
-
     return new SMG(
         smgObjects,
         smgValues,
@@ -270,8 +270,18 @@ public class SMG {
    */
   public SMG copyAndSetPTEdges(SMGPointsToEdge edge, SMGValue source) {
     ImmutableMap.Builder<SMGValue, SMGPointsToEdge> pointsToEdgesBuilder = ImmutableMap.builder();
-    pointsToEdgesBuilder.putAll(pointsToEdges);
-    pointsToEdgesBuilder.put(source, edge);
+    if (pointsToEdges.containsKey(source)) {
+      for (Entry<SMGValue, SMGPointsToEdge> entry : pointsToEdges.entrySet()) {
+        if (!entry.getKey().equals(source)) {
+          pointsToEdgesBuilder.put(entry);
+        } else {
+          pointsToEdgesBuilder.put(source, edge);
+        }
+      }
+    } else {
+      pointsToEdgesBuilder.putAll(pointsToEdges);
+      pointsToEdgesBuilder.put(source, edge);
+    }
     return new SMG(
         smgObjects, smgValues, hasValueEdges, pointsToEdgesBuilder.buildOrThrow(), sizeOfPointer);
   }
@@ -344,6 +354,169 @@ public class SMG {
       returnSmg = returnSmg.copyAndInvalidateObject(smgObject);
     }
     return returnSmg;
+  }
+
+  /*
+   * Imagine a list a -> b -> c
+   * This removes the object b and sets the pointers from a -> b to a -> c
+   * and all others towards b to a.
+   * Also prunes all unneeded values etc.
+   * This replaces the pointer association instead of values. Thats faster.
+   */
+  public SMG copyAndRemoveDLLObjectAndReplacePointers(
+      SMGObject object,
+      SMGValue valueForPointerToWardsThis,
+      SMGPointsToEdge pointerToNext,
+      SMGPointsToEdge pointerToPrevious) {
+    ImmutableMap.Builder<SMGValue, SMGPointsToEdge> newPointers = ImmutableMap.builder();
+    // HashSet<SMGValue> toRemove = new HashSet<>();
+    PersistentMap<SMGObject, PersistentSet<SMGHasValueEdge>> newHVEdges = hasValueEdges;
+    for (Entry<SMGValue, SMGPointsToEdge> pointsToEdgesAndValues : pointsToEdges.entrySet()) {
+      SMGPointsToEdge pointer = pointsToEdgesAndValues.getValue();
+      SMGValue value = pointsToEdgesAndValues.getKey();
+      // All pointers towards this object are changed to the previous object except the one pointer
+      // that goes to the next segment
+      if (pointer.pointsTo().equals(object) && !value.equals(valueForPointerToWardsThis)) {
+        if (pointerToPrevious.pointsTo().isZero()) {
+          // Change the actual value
+          newHVEdges = replaceValueByZero(value, newHVEdges);
+
+        } else {
+          newPointers.put(value, pointerToPrevious);
+        }
+      } else if (pointer.pointsTo().equals(object) && value.equals(valueForPointerToWardsThis)) {
+        if (pointerToNext.pointsTo().isZero()) {
+          // change the actual value
+          newHVEdges = replaceValueByZero(value, newHVEdges);
+        } else {
+          newPointers.put(value, pointerToNext);
+        }
+        // toRemove.add(value);
+      } else if (pointer.equals(pointerToNext) || pointer.equals(pointerToPrevious)) {
+        // Remember the values for the pointers located in this object
+        newPointers.put(value, pointer);
+      } else {
+        newPointers.put(value, pointer);
+      }
+    }
+
+    return new SMG(
+        smgObjects.removeAndCopy(object),
+        smgValues,
+        newHVEdges.removeAndCopy(object),
+        newPointers.build(),
+        sizeOfPointer);
+  }
+
+  private PersistentMap<SMGObject, PersistentSet<SMGHasValueEdge>> replaceValueByZero(
+      SMGValue old, PersistentMap<SMGObject, PersistentSet<SMGHasValueEdge>> newHVEdges) {
+    PersistentMap<SMGObject, PersistentSet<SMGHasValueEdge>> newHVE = newHVEdges;
+    for (Entry<SMGObject, Boolean> entry : smgObjects.entrySet()) {
+      if (entry.getValue()) {
+        for (SMGHasValueEdge hve : newHVE.get(entry.getKey())) {
+          if (hve.hasValue().equals(old)) {
+            // Replace
+            PersistentSet<SMGHasValueEdge> newhves =
+                newHVE
+                    .get(entry.getKey())
+                    .removeAndCopy(hve)
+                    .addAndCopy(
+                        new SMGHasValueEdge(
+                            SMGValue.zeroValue(), hve.getOffset(), hve.getSizeInBits()));
+            newHVE = newHVE.removeAndCopy(entry.getKey()).putAndCopy(entry.getKey(), newhves);
+          }
+        }
+      }
+    }
+    return newHVE;
+  }
+
+  /*
+   * Imagine a list a -> b -> c
+   * This removes the object b and sets the pointers from a -> b to a -> c
+   * and all others towards b to a.
+   * Also prunes all unneeded values etc.
+   * pointerToNext is the next pointer of the list segment(=object) deleted.
+   * This replaces the pointer association instead of values. Thats faster.
+   */
+  public SMG copyAndRemoveSLLObjectAndReplacePointers(
+      SMGObject object,
+      SMGValue valueForPointerToWardsThis,
+      SMGPointsToEdge pointerToNext,
+      @Nullable SMGObject prevObj) {
+    ImmutableMap.Builder<SMGValue, SMGPointsToEdge> newPointers = ImmutableMap.builder();
+    // HashSet<SMGValue> toRemove = new HashSet<>();
+    PersistentMap<SMGObject, PersistentSet<SMGHasValueEdge>> newHVEdges = hasValueEdges;
+    if (prevObj == null) {
+      // It is unlikely that this does not hold
+      Set<SMGObject> possiblePrevObj = getObjectsWithValue(valueForPointerToWardsThis);
+      Preconditions.checkArgument(possiblePrevObj.size() == 1);
+      prevObj = possiblePrevObj.iterator().next();
+    }
+    for (Entry<SMGValue, SMGPointsToEdge> pointsToEdgesAndValues : pointsToEdges.entrySet()) {
+      SMGPointsToEdge pointer = pointsToEdgesAndValues.getValue();
+      SMGValue value = pointsToEdgesAndValues.getKey();
+      // All pointers towards this object are changed to the previous object except the one pointer
+      // that goes to the next segment
+      if (pointer.pointsTo().equals(object) && !value.equals(valueForPointerToWardsThis)) {
+        // SLL has no back pointer
+        // Since we remove a segment, we assume the next segment is the target of all pointers
+        // towards this
+        newPointers.put(
+            value, new SMGPointsToEdge(prevObj, BigInteger.ZERO, SMGTargetSpecifier.IS_REGION));
+      } else if (value.equals(valueForPointerToWardsThis)) {
+        // Set the pointer of the previous segment to the next of the deleted list
+        if (pointerToNext.pointsTo().isZero()) {
+          // change the actual value
+          newHVEdges = replaceValueByZero(value, newHVEdges);
+        } else {
+          newPointers.put(value, pointerToNext);
+        }
+      } else {
+        newPointers.put(value, pointer);
+      }
+    }
+    // Remove every value that now is no longer present, but replace the has value edges with edges
+    // at the correct nfo with edges leading to the next segment
+    /*
+    for (Entry<SMGObject, PersistentSet<SMGHasValueEdge>> entry : hasValueEdges.entrySet()) {
+      if (!entry.getKey().equals(object)) {
+        for (SMGHasValueEdge value : entry.getValue()) {
+          toRemove.remove(value.hasValue());
+        }
+      }
+    }
+    PersistentSet<SMGValue> values = smgValues;
+    for (SMGValue valueToRem : toRemove) {
+      // TODO: check if this is correct!
+      if (!valueToRem.isZero()) {
+        values = values.removeAndCopy(valueToRem);
+      }
+    }*/
+    Preconditions.checkArgument(newPointers.build().containsKey(SMGValue.zeroValue()));
+    return new SMG(
+        smgObjects.removeAndCopy(object),
+        smgValues,
+        newHVEdges.removeAndCopy(object),
+        newPointers.build(),
+        sizeOfPointer);
+  }
+
+  private ImmutableSet<SMGObject> getObjectsWithValue(SMGValue valueForPointerToWardsThis) {
+    ImmutableSet.Builder<SMGObject> builder = ImmutableSet.builder();
+    // Search for all object with the value valueForPointerToWardsThis in them that are
+    for (Entry<SMGObject, Boolean> entry : smgObjects.entrySet()) {
+      SMGObject searchObj = entry.getKey();
+      if (searchObj.isZero() || !entry.getValue()) {
+        break;
+      }
+      for (SMGHasValueEdge hve : hasValueEdges.getOrDefault(searchObj, PersistentSet.of())) {
+        if (hve.hasValue().equals(valueForPointerToWardsThis)) {
+          builder.add(searchObj);
+        }
+      }
+    }
+    return builder.build();
   }
 
   /**
@@ -816,7 +989,10 @@ public class SMG {
       if (targetObject.equals(entry.getValue().pointsTo())) {
         SMGValue pointerValue = entry.getKey();
         for (SMGObject heapObj : heapObjects) {
-          for (SMGHasValueEdge hve : hasValueEdges.get(heapObj)) {
+          if (!isValid(heapObj)) {
+            continue;
+          }
+          for (SMGHasValueEdge hve : hasValueEdges.getOrDefault(heapObj, PersistentSet.of())) {
             if (hve.hasValue() == pointerValue) {
               ret.add(heapObj);
             }
@@ -909,5 +1085,49 @@ public class SMG {
       }
     }
     return true;
+  }
+
+  public SMG copyHVEdgesFromTo(SMGObject source, SMGObject target) {
+    PersistentSet<SMGHasValueEdge> setOfValues = hasValueEdges.get(source);
+    if (setOfValues == null) {
+      setOfValues = PersistentSet.of();
+    }
+    return copyAndSetHVEdges(setOfValues, target);
+  }
+
+  // Replace the pointer behind value with a new pointer with the new SMGObject target
+  public SMG replaceAllPointersTowardsWith(SMGValue pointerValue, SMGObject newTarget) {
+    SMGPointsToEdge oldEdge = getPTEdge(pointerValue).orElseThrow();
+    return copyAndSetPTEdges(
+        new SMGPointsToEdge(newTarget, oldEdge.getOffset(), oldEdge.targetSpecifier()),
+        pointerValue);
+  }
+
+  /**
+   * Search for all pointers towards the object old and replaces them with pointers pointing towards
+   * the new object.
+   *
+   * @param oldObj old object.
+   * @param newTarget new target object.
+   * @return a new SMG with the replacement.
+   */
+  public SMG replaceAllPointersTowardsWith(SMGObject oldObj, SMGObject newTarget) {
+    SMG newSMG = this;
+    if (newTarget.isZero() || oldObj.isZero()) {
+      throw new AssertionError("Can't replace a 0 value!");
+    }
+    for (Entry<SMGValue, SMGPointsToEdge> pointsToEntry : pointsToEdges.entrySet()) {
+      if (pointsToEntry.getValue().pointsTo().equals(oldObj)) {
+        SMGValue value = pointsToEntry.getKey();
+        newSMG =
+            newSMG.copyAndSetPTEdges(
+                new SMGPointsToEdge(
+                    newTarget,
+                    pointsToEntry.getValue().getOffset(),
+                    pointsToEntry.getValue().targetSpecifier()),
+                value);
+      }
+    }
+    return newSMG;
   }
 }
