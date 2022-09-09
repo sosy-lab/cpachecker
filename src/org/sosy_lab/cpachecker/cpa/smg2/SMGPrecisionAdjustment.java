@@ -37,6 +37,7 @@ import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.conditions.path.AssignmentsInPathCondition.UniqueAssignmentsInPathConditionState;
 import org.sosy_lab.cpachecker.cpa.location.LocationState;
+import org.sosy_lab.cpachecker.cpa.smg2.abstraction.SMGCPAAbstractionFinder;
 import org.sosy_lab.cpachecker.cpa.smg2.util.ValueAndValueSize;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
@@ -167,6 +168,7 @@ public class SMGPrecisionAdjustment implements PrecisionAdjustment {
   private final SMGCPAStatistics stats;
   private final PrecAdjustmentOptions options;
   private final Optional<LiveVariables> liveVariables;
+  private final Optional<ImmutableSet<CFANode>> maybeLoops;
 
   // for statistics
   private final StatCounter abstractions;
@@ -186,6 +188,7 @@ public class SMGPrecisionAdjustment implements PrecisionAdjustment {
     options = pOptions;
     stats = pStats;
     liveVariables = pCfa.getLiveVariables();
+    maybeLoops = pCfa.getAllLoopHeads();
 
     abstractions = pStatistics.abstractions;
     pStatistics.renewTimers();
@@ -237,7 +240,19 @@ public class SMGPrecisionAdjustment implements PrecisionAdjustment {
       totalEnforcePath.stop();
     }
 
+    if (isLoopHead(location)) {
+      // Abstract Lists at loop heads
+      resultState = new SMGCPAAbstractionFinder(resultState).abstractLists();
+    }
+
     return Optional.of(PrecisionAdjustmentResult.create(resultState, pPrecision, Action.CONTINUE));
+  }
+
+  private boolean isLoopHead(LocationState location) {
+    if (maybeLoops.isPresent() && maybeLoops.orElseThrow().contains(location.getLocationNode())) {
+      return true;
+    }
+    return false;
   }
 
   /**
