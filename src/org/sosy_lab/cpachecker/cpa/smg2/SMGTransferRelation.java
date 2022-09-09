@@ -80,7 +80,7 @@ import org.sosy_lab.cpachecker.cpa.pointer2.PointerState;
 import org.sosy_lab.cpachecker.cpa.rtt.RTTState;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMG2Exception;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGObjectAndOffset;
-import org.sosy_lab.cpachecker.cpa.smg2.util.SMGObjectAndOffsetOrSMGState;
+import org.sosy_lab.cpachecker.cpa.smg2.util.SMGStateAndOptionalSMGObjectAndOffset;
 import org.sosy_lab.cpachecker.cpa.smg2.util.value.SMGCPAValueExpressionEvaluator;
 import org.sosy_lab.cpachecker.cpa.smg2.util.value.ValueAndSMGState;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.ConstraintsStrengthenOperator;
@@ -879,22 +879,21 @@ public class SMGTransferRelation
 
     ImmutableList.Builder<SMGState> returnStateBuilder = ImmutableList.builder();
     SMGState currentState = pState;
-    for (SMGObjectAndOffsetOrSMGState targetAndOffsetOrState :
+    for (SMGStateAndOptionalSMGObjectAndOffset targetAndOffsetAndState :
         lValue.accept(new SMGCPAAddressVisitor(evaluator, pState, cfaEdge, logger))) {
+      currentState = targetAndOffsetAndState.getSMGState();
 
-      if (targetAndOffsetOrState.hasSMGState()) {
+      if (!targetAndOffsetAndState.hasSMGObjectAndOffset()) {
         // No memory for the left hand side found -> UNKNOWN
         // We still evaluate the right hand side to find errors though
         List<ValueAndSMGState> listOfStates =
-            rValue.accept(
-                new SMGCPAValueVisitor(
-                    evaluator, targetAndOffsetOrState.getSMGState(), cfaEdge, logger));
+            rValue.accept(new SMGCPAValueVisitor(evaluator, currentState, cfaEdge, logger));
         returnStateBuilder.addAll(Lists.transform(listOfStates, ValueAndSMGState::getState));
         continue;
       }
 
-      SMGObject addressToWriteTo = targetAndOffsetOrState.getSMGObject();
-      BigInteger offsetToWriteTo = targetAndOffsetOrState.getOffsetForObject();
+      SMGObject addressToWriteTo = targetAndOffsetAndState.getSMGObject();
+      BigInteger offsetToWriteTo = targetAndOffsetAndState.getOffsetForObject();
 
       if (leftHandSideType instanceof CPointerType && rightHandSideType instanceof CArrayType) {
         // Implicit & on the array expr

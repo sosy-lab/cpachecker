@@ -1945,6 +1945,7 @@ public class SMGCPAValueVisitor
    * @return {@link ValueAndSMGState} with the result Value that may be {@link AddressExpression} /
    *     {@link UnknownValue} or a symbolic/numeric one depending on input + the new up to date
    *     state.
+   * @throws SMG2Exception in case of critical errors when materilizing abstract memory.
    */
   private ValueAndSMGState calculatePointerArithmetics(
       Value leftValue,
@@ -1952,7 +1953,8 @@ public class SMGCPAValueVisitor
       BinaryOperator binaryOperator,
       CType expressionType,
       CType calculationType,
-      SMGState currentState) {
+      SMGState currentState)
+      throws SMG2Exception {
     // Find the address, check that the other is a numeric value and use as offset, else if both
     // are addresses we allow the distance, else unknown (we can't dereference symbolics)
     // TODO: stop for illegal pointer arith?
@@ -2061,10 +2063,12 @@ public class SMGCPAValueVisitor
       }
 
       // Our offsets are in bits here! This also checks that its the same underlying memory object.
-      Value distanceInBits =
+      ValueAndSMGState distanceInBitsAndState =
           evaluator.calculateAddressDistance(
               currentState, addressLeft.getMemoryAddress(), addressRight.getMemoryAddress());
 
+      Value distanceInBits = distanceInBitsAndState.getValue();
+      currentState = distanceInBitsAndState.getState();
       if (!distanceInBits.isNumericValue()) {
         return ValueAndSMGState.of(distanceInBits, currentState);
       }

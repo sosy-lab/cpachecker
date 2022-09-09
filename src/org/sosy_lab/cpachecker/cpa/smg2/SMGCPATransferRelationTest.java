@@ -59,7 +59,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
-import org.sosy_lab.cpachecker.cpa.smg2.util.SMGObjectAndOffset;
+import org.sosy_lab.cpachecker.cpa.smg2.util.SMGStateAndOptionalSMGObjectAndOffset;
 import org.sosy_lab.cpachecker.cpa.smg2.util.value.ValueAndSMGState;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
@@ -824,8 +824,8 @@ public class SMGCPATransferRelationTest {
         // The read state should not have any errors
         // TODO: error check
         assertThat(memoryModel.isPointer(readValueAndState.getValue())).isTrue();
-        Optional<SMGObjectAndOffset> mallocObjectAndOffset =
-            memoryModel.dereferencePointer(readValueAndState.getValue());
+        Optional<SMGStateAndOptionalSMGObjectAndOffset> mallocObjectAndOffset =
+            stateAfterMallocAssignSuccess.dereferencePointer(readValueAndState.getValue());
         assertThat(mallocObjectAndOffset.isPresent()).isTrue();
         assertThat(
                 mallocObjectAndOffset
@@ -986,8 +986,8 @@ public class SMGCPATransferRelationTest {
           // The read state should not have any errors
           // TODO: error check
           assertThat(memoryModel.isPointer(readValueAndState.getValue())).isTrue();
-          Optional<SMGObjectAndOffset> mallocObjectAndOffset =
-              memoryModel.dereferencePointer(readValueAndState.getValue());
+          Optional<SMGStateAndOptionalSMGObjectAndOffset> mallocObjectAndOffset =
+              stateAfterMallocAssignSuccess.dereferencePointer(readValueAndState.getValue());
           assertThat(mallocObjectAndOffset.isPresent()).isTrue();
           BigInteger expectedMemorySizeInBits =
               sizeMultiplikator
@@ -1160,9 +1160,10 @@ public class SMGCPATransferRelationTest {
       Value address = readAddressValueAndState.getValue();
       // TODO: address this type thing
       // assertThat(address instanceof ConstantSymbolicExpression).isTrue();
-      Optional<SMGObjectAndOffset> maybeTargetOfPointer = memoryModel.dereferencePointer(address);
+      Optional<SMGStateAndOptionalSMGObjectAndOffset> maybeTargetOfPointer =
+          stateWithArray.dereferencePointer(address);
       assertThat(maybeTargetOfPointer.isPresent()).isTrue();
-      SMGObjectAndOffset targetOfPointer = maybeTargetOfPointer.orElseThrow();
+      SMGStateAndOptionalSMGObjectAndOffset targetOfPointer = maybeTargetOfPointer.orElseThrow();
       // The offset of the address should be 0
       assertThat(targetOfPointer.getOffsetForObject().compareTo(BigInteger.ZERO)).isEqualTo(0);
       SMGObject arrayMemoryObject = targetOfPointer.getSMGObject();
@@ -1308,9 +1309,10 @@ public class SMGCPATransferRelationTest {
               memoryObject, BigInteger.ZERO, BigInteger.valueOf(POINTER_SIZE_IN_BITS), null);
       Value address = readAddressValueAndState.getValue();
       // assertThat(address instanceof ConstantSymbolicExpression).isTrue();
-      Optional<SMGObjectAndOffset> maybeTargetOfPointer = memoryModel.dereferencePointer(address);
+      Optional<SMGStateAndOptionalSMGObjectAndOffset> maybeTargetOfPointer =
+          stateWithStruct.dereferencePointer(address);
       assertThat(maybeTargetOfPointer.isPresent()).isTrue();
-      SMGObjectAndOffset targetOfPointer = maybeTargetOfPointer.orElseThrow();
+      SMGStateAndOptionalSMGObjectAndOffset targetOfPointer = maybeTargetOfPointer.orElseThrow();
       // The offset of the address should be 0
       assertThat(targetOfPointer.getOffsetForObject().compareTo(BigInteger.ZERO)).isEqualTo(0);
       SMGObject arrayMemoryObject = targetOfPointer.getSMGObject();

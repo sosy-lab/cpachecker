@@ -32,7 +32,7 @@ import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMG2Exception;
-import org.sosy_lab.cpachecker.cpa.smg2.util.SMGObjectAndOffsetOrSMGState;
+import org.sosy_lab.cpachecker.cpa.smg2.util.SMGStateAndOptionalSMGObjectAndOffset;
 import org.sosy_lab.cpachecker.cpa.smg2.util.value.SMGCPAValueExpressionEvaluator;
 import org.sosy_lab.cpachecker.cpa.smg2.util.value.ValueAndSMGState;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.AddressExpression;
@@ -384,12 +384,13 @@ public class SMGCPABuiltins {
     currentState = pointerAndState.getState();
     Value address = pointerAndState.getValue();
 
-    List<SMGObjectAndOffsetOrSMGState> targets =
+    List<SMGStateAndOptionalSMGObjectAndOffset> targets =
         firstArg.accept(new SMGCPAAddressVisitor(evaluator, currentState, pCfaEdge, logger));
     Preconditions.checkArgument(targets.size() == 1);
-    for (SMGObjectAndOffsetOrSMGState target : targets) {
+    for (SMGStateAndOptionalSMGObjectAndOffset target : targets) {
       // We assume that there is only 1 valid returned target
-      if (target.hasSMGState()) {
+      currentState = target.getSMGState();
+      if (!target.hasSMGObjectAndOffset()) {
         return ImmutableList.of(ValueAndSMGState.ofUnknownValue(currentState));
       }
       SMGObject targetObj = target.getSMGObject();
@@ -1148,14 +1149,16 @@ public class SMGCPABuiltins {
    * @param numOfBytesValue {@link Value} that should be a {@link NumericValue} holding the number
    *     of bytes copied.
    * @return {@link ValueAndSMGState} with either the targetAddress pointer expression and the state
-   *     in which the copy was successfull, or a unknown value and maybe a error state if something
+   *     in which the copy was successful, or a unknown value and maybe a error state if something
    *     went wrong, i.e. invalid/read/write.
+   * @throws SMG2Exception in case of critical errors when materilizing memory
    */
   private ValueAndSMGState evaluateMemcpy(
       SMGState pState,
       AddressExpression targetAddress,
       AddressExpression sourceAddress,
-      Value numOfBytesValue) {
+      Value numOfBytesValue)
+      throws SMG2Exception {
 
     Preconditions.checkArgument(numOfBytesValue instanceof NumericValue);
     long numOfBytes = numOfBytesValue.asNumericValue().bigInteger().longValue();
