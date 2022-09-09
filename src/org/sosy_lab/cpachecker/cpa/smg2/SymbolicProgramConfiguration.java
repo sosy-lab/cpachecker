@@ -36,7 +36,6 @@ import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
 import org.sosy_lab.cpachecker.cpa.smg.util.PersistentSet;
 import org.sosy_lab.cpachecker.cpa.smg.util.PersistentStack;
 import org.sosy_lab.cpachecker.cpa.smg2.util.CFunctionDeclarationAndOptionalValue;
-import org.sosy_lab.cpachecker.cpa.smg2.util.SMGObjectAndOffset;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGObjectsAndValues;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGValueAndSPC;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SPCAndSMGObjects;
@@ -502,6 +501,34 @@ public class SymbolicProgramConfiguration {
         variableBlacklist);
   }
 
+  // Only to be used by materilization to copy a SMGObject
+  public SymbolicProgramConfiguration copyAllValuesFromObjToObj(
+      SMGObject source, SMGObject target) {
+    return of(
+        smg.copyHVEdgesFromTo(source, target),
+        globalVariableMapping,
+        stackVariableMapping,
+        heapObjects,
+        externalObjectAllocation,
+        valueMapping,
+        variableToTypeMap,
+        variableBlacklist);
+  }
+
+  // Replace the pointer behind value with a new pointer with the new SMGObject target
+  public SymbolicProgramConfiguration replaceAllPointersTowardsWith(
+      SMGValue pointerValue, SMGObject newTarget) {
+    return of(
+        smg.replaceAllPointersTowardsWith(pointerValue, newTarget),
+        globalVariableMapping,
+        stackVariableMapping,
+        heapObjects,
+        externalObjectAllocation,
+        valueMapping,
+        variableToTypeMap,
+        variableBlacklist);
+  }
+
   /**
    * Checks if the entered {@link SMGObject} is part of the heap.
    *
@@ -587,6 +614,51 @@ public class SymbolicProgramConfiguration {
             variableToTypeMap,
             variableBlacklist),
         unreachableObjects);
+  }
+
+  /*
+   * Imagine a list a -> b -> c
+   * This removes the object b and sets the pointers from a -> b to a -> c
+   * and all others towards b to a.
+   * Also prunes all unneeded values etc.
+   */
+  public SymbolicProgramConfiguration copyAndRemoveDLLObjectAndReplacePointers(
+      SMGObject object,
+      SMGValue valueForPointerToWardsThis,
+      SMGPointsToEdge pointerToNext,
+      SMGPointsToEdge pointerToPrevious) {
+    return of(
+        smg.copyAndRemoveDLLObjectAndReplacePointers(
+            object, valueForPointerToWardsThis, pointerToNext, pointerToPrevious),
+        globalVariableMapping,
+        stackVariableMapping,
+        heapObjects.removeAndCopy(object),
+        externalObjectAllocation,
+        valueMapping,
+        variableToTypeMap,
+        variableBlacklist);
+  }
+
+  /*
+   * Imagine a list a -> b -> c
+   * This removes the object b and sets the pointers from a -> b to a -> c
+   * Also prunes all unneeded values etc.
+   */
+  public SymbolicProgramConfiguration copyAndRemoveSLLObjectAndReplacePointers(
+      SMGObject object,
+      SMGValue valueForPointerToWardsThis,
+      SMGPointsToEdge pointerToNext,
+      @Nullable SMGObject prevObj) {
+    return of(
+        smg.copyAndRemoveSLLObjectAndReplacePointers(
+            object, valueForPointerToWardsThis, pointerToNext, prevObj),
+        globalVariableMapping,
+        stackVariableMapping,
+        heapObjects.removeAndCopy(object),
+        externalObjectAllocation,
+        valueMapping,
+        variableToTypeMap,
+        variableBlacklist);
   }
 
   /**
@@ -907,25 +979,6 @@ public class SymbolicProgramConfiguration {
     return Optional.empty();
   }
 
-  /**
-   * Tries to dereference the pointer given by the argument {@link Value}. Returns a empty Optional
-   * if the dereference fails because the entered {@link Value} is not known as a pointer. This does
-   * not check validity of the Value!
-   *
-   * @param pointer the {@link Value} to dereference.
-   * @return Optional filled with the {@link SMGObjectAndOffset} of the target of the pointer. Empty
-   *     if its not a pointer in the current {@link SymbolicProgramConfiguration}.
-   */
-  public Optional<SMGObjectAndOffset> dereferencePointer(Value pointer) {
-    if (!isPointer(pointer)) {
-      // Not known or not known as a pointer, return nothing
-      return Optional.empty();
-    }
-    SMGValue smgValueAddress = valueMapping.get(valueWrapper.wrap(pointer));
-    SMGPointsToEdge ptEdge = smg.getPTEdge(smgValueAddress).orElseThrow();
-    return Optional.of(SMGObjectAndOffset.of(ptEdge.pointsTo(), ptEdge.getOffset()));
-  }
-
   /* This expects the Value to be a valid pointer! */
   SMGTargetSpecifier getPointerSpecifier(Value pointer) {
     SMGValue smgValueAddress = valueMapping.get(valueWrapper.wrap(pointer));
@@ -1105,5 +1158,42 @@ public class SymbolicProgramConfiguration {
 
   public PersistentMap<String, CType> getVariableTypeMap() {
     return variableToTypeMap;
+  }
+
+  /*
+   * Remove the entered object from the heap and general memory mappings.
+   * Also all has-value-edges are pruned. Nothing else.
+   */
+  public SymbolicProgramConfiguration copyAndRemoveObjectFromHeap(SMGObject obj) {
+    return new SymbolicProgramConfiguration(
+        smg.copyAndRemoveObjects(ImmutableSet.of(obj)),
+        globalVariableMapping,
+        stackVariableMapping,
+        heapObjects.removeAndCopy(obj),
+        externalObjectAllocation,
+        valueMapping,
+        variableToTypeMap,
+        variableBlacklist);
+  }
+
+  /**
+   * Search for all pointers towards the object old and replaces them with pointers pointing towards
+   * the new object.
+   *
+   * @param oldObj old object.
+   * @param newObject new target object.
+   * @return a new SPC with the replacement.
+   */
+  public SymbolicProgramConfiguration replaceAllPointersTowardsWith(
+      SMGObject oldObj, SMGObject newObject) {
+    return new SymbolicProgramConfiguration(
+        smg.replaceAllPointersTowardsWith(oldObj, newObject),
+        globalVariableMapping,
+        stackVariableMapping,
+        heapObjects,
+        externalObjectAllocation,
+        valueMapping,
+        variableToTypeMap,
+        variableBlacklist);
   }
 }
