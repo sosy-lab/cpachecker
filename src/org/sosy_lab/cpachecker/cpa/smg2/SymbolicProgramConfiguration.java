@@ -557,7 +557,7 @@ public class SymbolicProgramConfiguration {
     SMG newSmg = smg;
     PersistentMap<String, CType> newVariableToTypeMap = variableToTypeMap;
     for (SMGObject object : frame.getAllObjects()) {
-      newSmg = smg.copyAndInvalidateObject(object);
+      newSmg = newSmg.copyAndInvalidateObject(object);
     }
     for (String varName : frame.getVariables().keySet()) {
       newVariableToTypeMap = newVariableToTypeMap.removeAndCopy(varName);
@@ -593,7 +593,10 @@ public class SymbolicProgramConfiguration {
         new HashSet<>(Sets.difference(smg.getValues(), reachable.getValues()));
     // Remove 0 Value and object
     unreachableObjects =
-        unreachableObjects.stream().filter(o -> !o.isZero()).collect(ImmutableSet.toImmutableSet());
+        unreachableObjects
+            .stream()
+            .filter(o -> isObjectValid(o))
+            .collect(ImmutableSet.toImmutableSet());
     unreachableValues =
         unreachableValues.stream().filter(v -> !v.isZero()).collect(ImmutableSet.toImmutableSet());
     SMG newSmg =

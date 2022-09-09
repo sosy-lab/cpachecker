@@ -335,7 +335,7 @@ public class SMG {
   }
 
   /**
-   * Invalidates the entered SMGObject (that is assumed to be in the SMG!). This also deltes all
+   * Invalidates the entered SMGObject (that is assumed to be in the SMG!). This also deletes all
    * {@link SMGHasValueEdge}s associated with the object.
    *
    * @param pObject the {@link SMGObject} to be invalidated.

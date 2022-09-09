@@ -2358,7 +2358,7 @@ public class SMGState
 
     if (maybeVariableMemory.isEmpty()) {
       // Write to unknown variable
-      throw new SMG2Exception(withWriteToUnknownVariable(variableName));
+      return withWriteToUnknownVariable(variableName);
     }
 
     SMGObject variableMemory = maybeVariableMemory.orElseThrow();

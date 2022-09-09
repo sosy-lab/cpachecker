@@ -130,7 +130,8 @@ public class SMGTransferRelation
     machineModel = pCfa.getMachineModel();
 
     if (pCfa.getVarClassification().isPresent()) {
-      addressedVariables = pCfa.getVarClassification().orElseThrow().getAddressedVariables();
+      // addressedVariables = pCfa.getVarClassification().orElseThrow().getAddressedVariables();
+      addressedVariables = ImmutableSet.of();
       booleanVariables = pCfa.getVarClassification().orElseThrow().getIntBoolVars();
     } else {
       addressedVariables = ImmutableSet.of();
@@ -139,7 +140,7 @@ public class SMGTransferRelation
 
     evaluator =
         new SMGCPAValueExpressionEvaluator(
-            machineModel, logger, exportSMGOptions, options, addressedVariables);
+            machineModel, logger, exportSMGOptions, options, ImmutableSet.of());
     constraintsStrengthenOperator = pConstraintsStrengthenOperator;
     stats = pStats;
   }
