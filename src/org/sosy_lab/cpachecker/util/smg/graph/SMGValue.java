@@ -111,4 +111,13 @@ public class SMGValue implements SMGNode, Comparable<SMGValue> {
   public void increaseLevelBy(int pByX) {
     nestingLevel += pByX;
   }
+
+  @Override
+  public String toString() {
+    if (isZero()) {
+      return "ZERO";
+    } else {
+      return "Value" + id;
+    }
+  }
 }

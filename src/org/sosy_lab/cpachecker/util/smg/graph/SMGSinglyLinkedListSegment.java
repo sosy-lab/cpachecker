@@ -57,9 +57,24 @@ public class SMGSinglyLinkedListSegment extends SMGObject {
         newLevel, getSize(), getOffset(), headOffset, nextOffset, minLength);
   }
 
+  public SMGObject decrementLengthAndCopy() {
+    return new SMGSinglyLinkedListSegment(
+        getNestingLevel(), getSize(), getOffset(), headOffset, nextOffset, minLength - 1);
+  }
+
   @Override
   public SMGObject freshCopy() {
     return new SMGSinglyLinkedListSegment(
         getNestingLevel(), getSize(), getOffset(), headOffset, nextOffset, minLength);
+  }
+
+  @Override
+  public String toString() {
+    return minLength + "+SLL " + super.hashCode();
+  }
+
+  @Override
+  public boolean isSLL() {
+    return true;
   }
 }

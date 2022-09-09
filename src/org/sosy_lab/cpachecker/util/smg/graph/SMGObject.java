@@ -80,6 +80,11 @@ public class SMGObject implements SMGNode, Comparable<SMGObject> {
     return id;
   }
 
+  @Override
+  public String toString() {
+    return "SMGObject" + id;
+  }
+
   /**
    * @return true if the checked {@link SMGObject} is the null instance.
    */
@@ -98,5 +103,9 @@ public class SMGObject implements SMGNode, Comparable<SMGObject> {
   @Override
   public void increaseLevelBy(int pByX) {
     nestingLevel += pByX;
+  }
+
+  public boolean isSLL() {
+    return false;
   }
 }

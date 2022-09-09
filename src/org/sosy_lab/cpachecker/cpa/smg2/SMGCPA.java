@@ -83,7 +83,7 @@ public class SMGCPA
       secure = true,
       name = "merge",
       toUppercase = true,
-      values = {"SEP"},
+      values = "SEP",
       description = "which merge operator to use for the SMGCPA")
   private String mergeType = "SEP";
 

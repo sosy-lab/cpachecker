@@ -63,4 +63,26 @@ public class SMGDoublyLinkedListSegment extends SMGSinglyLinkedListSegment {
         prevOffset,
         getMinLength());
   }
+
+  @Override
+  public SMGObject decrementLengthAndCopy() {
+    return new SMGDoublyLinkedListSegment(
+        getNestingLevel(),
+        getSize(),
+        getOffset(),
+        getHeadOffset(),
+        getNextOffset(),
+        prevOffset,
+        getMinLength() - 1);
+  }
+
+  @Override
+  public String toString() {
+    return getMinLength() + "+DLL " + super.hashCode();
+  }
+
+  @Override
+  public boolean isSLL() {
+    return false;
+  }
 }
