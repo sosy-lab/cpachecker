@@ -2921,6 +2921,10 @@ cpa.smg2.abstraction.doLivenessAbstraction = false
 # setting the option to -1 always performs abstraction computations
 cpa.smg2.abstraction.iterationThreshold = -1
 
+# The minimum list segments directly following each other with the same value
+# needed to abstract them.Minimum is 2.
+cpa.smg2.abstraction.listAbstractionMinimumLengthThreshhold = 3
+
 # restrict liveness abstractions to nodes with more than one entering and/or
 # leaving edge
 cpa.smg2.abstraction.onlyAtNonLinearCFA = false
@@ -3037,7 +3041,7 @@ cpa.smg2.memoryErrors = true
 
 # which merge operator to use for the SMGCPA
 cpa.smg2.merge = "SEP"
-  allowed values: [SEP, JOIN]
+  allowed values: [SEP]
 
 # Assume that variables used only in a boolean context are either zero or
 # one.

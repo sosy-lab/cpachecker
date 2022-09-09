@@ -37,7 +37,8 @@ import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.conditions.path.AssignmentsInPathCondition.UniqueAssignmentsInPathConditionState;
 import org.sosy_lab.cpachecker.cpa.location.LocationState;
-import org.sosy_lab.cpachecker.cpa.smg2.abstraction.SMGCPAAbstractionFinder;
+import org.sosy_lab.cpachecker.cpa.smg2.abstraction.SMGCPAAbstractionManager;
+import org.sosy_lab.cpachecker.cpa.smg2.util.SMG2Exception;
 import org.sosy_lab.cpachecker.cpa.smg2.util.ValueAndValueSize;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
@@ -94,6 +95,14 @@ public class SMGPrecisionAdjustment implements PrecisionAdjustment {
     @SuppressFBWarnings(value = "URF_UNREAD_FIELD", justification = "false alarm")
     private int determinismThreshold = 85;
 
+    @Option(
+        secure = true,
+        name = "listAbstractionMinimumLengthThreshhold",
+        description =
+            "The minimum list segments directly following each other with the same value needed to"
+                + " abstract them.Minimum is 2.")
+    private int listAbstractionMinimumLengthThreshhold = 3;
+
     private final ImmutableSet<CFANode> loopHeads;
 
     public PrecAdjustmentOptions(Configuration config, CFA pCfa)
@@ -105,6 +114,10 @@ public class SMGPrecisionAdjustment implements PrecisionAdjustment {
       } else {
         loopHeads = null;
       }
+    }
+
+    public int getListAbstractionMinimumLengthThreshhold() {
+      return listAbstractionMinimumLengthThreshhold;
     }
 
     /**
@@ -242,7 +255,14 @@ public class SMGPrecisionAdjustment implements PrecisionAdjustment {
 
     if (isLoopHead(location)) {
       // Abstract Lists at loop heads
-      resultState = new SMGCPAAbstractionFinder(resultState).abstractLists();
+      try {
+        resultState =
+            new SMGCPAAbstractionManager(
+                    resultState, options.getListAbstractionMinimumLengthThreshhold())
+                .findAndAbstractLists();
+      } catch (SMG2Exception e) {
+        // Do nothing. This should never happen anyway
+      }
     }
 
     return Optional.of(PrecisionAdjustmentResult.create(resultState, pPrecision, Action.CONTINUE));
