@@ -2518,15 +2518,6 @@ public class SMGState
     }
     return false;
   }
-  /*
-  public boolean executeHeapAbstraction(Set<SMGAbstractionBlock> blocks)
-      throws SMGInconsistentException {
-
-    final SMGCPAAbstractionManager manager;
-    manager = new SMGCPAAbstractionManager(logger, this, blocks, 2, 2, 3);
-
-    return manager.abstractHeap();
-  }*/
 
   @Override
   public String toString() {
@@ -2546,5 +2537,15 @@ public class SMGState
     }
 
     return builder.toString();
+  }
+
+  public SMGState abstractIntoDLL() {
+    // TODO Auto-generated method stub
+    return null;
+  }
+
+  public SMGState abstractIntoSLL() {
+    // TODO Auto-generated method stub
+    return null;
   }
 }
