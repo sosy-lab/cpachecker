@@ -12,6 +12,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSortedMap;
 import java.math.BigInteger;
 import java.util.ArrayDeque;
@@ -806,6 +807,24 @@ public class SMG {
             })
         .findAny()
         .map(entry -> entry.getKey());
+  }
+
+  public ImmutableSet<SMGObject> findAllAddressesForTargetObject(
+      SMGObject targetObject, Collection<SMGObject> heapObjects) {
+    ImmutableSet.Builder<SMGObject> ret = ImmutableSet.builder();
+    for (Entry<SMGValue, SMGPointsToEdge> entry : pointsToEdges.entrySet()) {
+      if (targetObject.equals(entry.getValue().pointsTo())) {
+        SMGValue pointerValue = entry.getKey();
+        for (SMGObject heapObj : heapObjects) {
+          for (SMGHasValueEdge hve : hasValueEdges.get(heapObj)) {
+            if (hve.hasValue() == pointerValue) {
+              ret.add(heapObj);
+            }
+          }
+        }
+      }
+    }
+    return ret.build();
   }
 
   /**
