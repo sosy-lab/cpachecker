@@ -101,7 +101,7 @@ public class SMGPrecisionAdjustment implements PrecisionAdjustment {
         description =
             "The minimum list segments directly following each other with the same value needed to"
                 + " abstract them.Minimum is 2.")
-    private int listAbstractionMinimumLengthThreshhold = 3;
+    private int listAbstractionMinimumLengthThreshhold = 5;
 
     private final ImmutableSet<CFANode> loopHeads;
 
