@@ -385,15 +385,16 @@ public class SMGCPAValueVisitor
         }
 
         if (leftValue instanceof AddressExpression || rightValue instanceof AddressExpression) {
-          if ((!(leftValue instanceof AddressExpression)
-                  && !evaluator.isPointerValue(leftValue, currentState))
-              || (!(rightValue instanceof AddressExpression)
-                  && !evaluator.isPointerValue(rightValue, currentState))) {
-            resultBuilder.add(ValueAndSMGState.ofUnknownValue(currentState));
-            continue;
-          }
+
           if (binaryOperator == BinaryOperator.EQUALS) {
             Preconditions.checkArgument(returnType instanceof CSimpleType);
+            if ((!(leftValue instanceof AddressExpression)
+                    && !evaluator.isPointerValue(leftValue, currentState))
+                || (!(rightValue instanceof AddressExpression)
+                    && !evaluator.isPointerValue(rightValue, currentState))) {
+              resultBuilder.add(ValueAndSMGState.ofUnknownValue(currentState));
+              continue;
+            }
             // address == address or address == not address
             resultBuilder.add(
                 ValueAndSMGState.of(
