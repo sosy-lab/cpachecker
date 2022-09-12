@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.cpa.smg2.refiner;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -188,7 +189,8 @@ public class SMGUseDefBasedInterpolator {
         null,
         null,
         null,
-        (CFunctionDeclaration) cfa.getMainFunction().getFunctionDefinition());
+        (CFunctionDeclaration) cfa.getMainFunction().getFunctionDefinition(),
+        ImmutableSet.of());
   }
 
   /**
