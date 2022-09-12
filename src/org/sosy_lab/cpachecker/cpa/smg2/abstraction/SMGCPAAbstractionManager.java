@@ -33,8 +33,6 @@ public class SMGCPAAbstractionManager {
 
   private SMGState state;
 
-  @SuppressWarnings("unused")
-  // TODO:
   private int minimumLengthForListsForAbstraction;
 
   public SMGCPAAbstractionManager(SMGState pState, int pMinimumLengthForListsForAbstraction) {
@@ -44,11 +42,7 @@ public class SMGCPAAbstractionManager {
 
   public SMGState findAndAbstractLists() throws SMG2Exception {
     SMGState currentState = state;
-    ImmutableList<SMGCandidate> sortedCandiList =
-        ImmutableList.sortedCopyOf(
-            Comparator.comparing(SMGCandidate::getSuspectedNfo),
-            refineCandidates(getLinkedCandidates(), currentState));
-    for (SMGCandidate candidate : sortedCandiList) {
+    for (SMGCandidate candidate : getRefinedLinkedCandidates()) {
       // Not valid means kicked out by abstraction
       if (!currentState.getMemoryModel().isObjectValid(candidate.getObject())) {
         continue;
@@ -67,8 +61,38 @@ public class SMGCPAAbstractionManager {
     return currentState;
   }
 
+  private int getLinkedCandidateLength(SMGObject root, BigInteger nfo) {
+    SMG smg = state.getMemoryModel().getSmg();
+    if (!smg.isValid(root)) {
+      return 0;
+    }
+    for (SMGHasValueEdge hve : smg.getEdges(root)) {
+      SMGValue value = hve.hasValue();
+
+      if (hve.getOffset().compareTo(nfo) == 0 && smg.isPointer(value)) {
+        SMGPointsToEdge pointsToEdge = smg.getPTEdge(value).orElseThrow();
+        return 1 + getLinkedCandidateLength(pointsToEdge.pointsTo(), nfo);
+      }
+    }
+    return 0;
+  }
+
+  ImmutableList<SMGCandidate> getRefinedLinkedCandidates() {
+    ImmutableList<SMGCandidate> sortedCandiList =
+        ImmutableList.sortedCopyOf(
+            Comparator.comparing(SMGCandidate::getSuspectedNfo),
+            refineCandidates(getLinkedCandidates(), state));
+    return sortedCandiList
+        .stream()
+        .filter(
+            c ->
+                minimumLengthForListsForAbstraction
+                    <= getLinkedCandidateLength(c.getObject(), c.getSuspectedNfo()))
+        .collect(ImmutableList.toImmutableList());
+  }
+
   // Protected for tests
-  protected Set<SMGCandidate> getLinkedCandidates() {
+  private Set<SMGCandidate> getLinkedCandidates() {
     SMG smg = state.getMemoryModel().getSmg();
     Set<SMGCandidate> candidates = new HashSet<>();
     Set<SMGObject> alreadyVisited = new HashSet<>();
@@ -86,7 +110,6 @@ public class SMGCPAAbstractionManager {
     // Refine candidates (DLL tend to produce both ends as candidates,
     // we chose the smallest offset and traverse the list and if we git another list,
     // we kick it out)
-
     return candidates;
   }
 

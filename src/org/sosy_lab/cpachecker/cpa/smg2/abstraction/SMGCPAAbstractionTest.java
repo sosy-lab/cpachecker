@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.cpa.smg2.abstraction;
 import static com.google.common.truth.Truth.assertThat;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableList;
 import java.math.BigInteger;
 import java.util.Optional;
 import java.util.Set;
@@ -303,7 +304,7 @@ public class SMGCPAAbstractionTest {
       resetSMGStateAndVisitor();
       SMGState state = createXLongExplicitSLLOnHeap(i);
       SMGCPAAbstractionManager absFinder = new SMGCPAAbstractionManager(state, 3);
-      Set<SMGCandidate> candidates = absFinder.getLinkedCandidates();
+      ImmutableList<SMGCandidate> candidates = absFinder.getRefinedLinkedCandidates();
 
       if (i > 2) {
         assertThat(candidates).hasSize(1);
@@ -324,8 +325,7 @@ public class SMGCPAAbstractionTest {
       resetSMGStateAndVisitor();
       SMGState state = createXLongExplicitDLLOnHeap(i);
       SMGCPAAbstractionManager absFinder = new SMGCPAAbstractionManager(state, 3);
-      Set<SMGCandidate> candidates =
-          absFinder.refineCandidates(absFinder.getLinkedCandidates(), state);
+      ImmutableList<SMGCandidate> candidates = absFinder.getRefinedLinkedCandidates();
       if (i > 2) {
         assertThat(candidates).hasSize(1);
         SMGCandidate candidate = candidates.iterator().next();
@@ -350,7 +350,7 @@ public class SMGCPAAbstractionTest {
       resetSMGStateAndVisitor();
       SMGState state = createXLongExplicitSLLOnHeap(i);
       SMGCPAAbstractionManager absFinder = new SMGCPAAbstractionManager(state, 3);
-      Set<SMGCandidate> candidates = absFinder.getLinkedCandidates();
+      ImmutableList<SMGCandidate> candidates = absFinder.getRefinedLinkedCandidates();
       if (i < 3) {
         continue;
       }
@@ -387,8 +387,7 @@ public class SMGCPAAbstractionTest {
       resetSMGStateAndVisitor();
       SMGState state = createXLongExplicitDLLOnHeap(i);
       SMGCPAAbstractionManager absFinder = new SMGCPAAbstractionManager(state, 3);
-      Set<SMGCandidate> candidates =
-          absFinder.refineCandidates(absFinder.getLinkedCandidates(), state);
+      ImmutableList<SMGCandidate> candidates = absFinder.getRefinedLinkedCandidates();
       if (i < 3) {
         continue;
       }
@@ -414,6 +413,48 @@ public class SMGCPAAbstractionTest {
       assertThat(dll.getSize().compareTo(sizeInBits) == 0).isTrue();
       assertThat(state.readSMGValue(dll, pfo, pointerSizeInBits).getSMGValue().isZero()).isTrue();
       assertThat(state.readSMGValue(dll, nfo, pointerSizeInBits).getSMGValue().isZero()).isTrue();
+    }
+  }
+
+  // Test the minimum length needed for abstraction
+  public void abstractDLLLimitTest() throws InvalidConfigurationException, SMG2Exception {
+    BigInteger nfo = pointerSizeInBits;
+    BigInteger pfo = pointerSizeInBits.add(pointerSizeInBits);
+    BigInteger sizeInBits = pointerSizeInBits.add(pointerSizeInBits).add(pointerSizeInBits);
+
+    for (int minLength = 3; minLength < 100; minLength++) {
+      for (int i = 1; i < 100; i++) {
+        resetSMGStateAndVisitor();
+        SMGState state = createXLongExplicitDLLOnHeap(i);
+        SMGCPAAbstractionManager absFinder = new SMGCPAAbstractionManager(state, minLength);
+        ImmutableList<SMGCandidate> candidates = absFinder.getRefinedLinkedCandidates();
+        if (i < minLength) {
+          assertThat(candidates.size() == 0).isTrue();
+          continue;
+        }
+        SMGCandidate firstObj = candidates.iterator().next();
+        assertThat(firstObj.getSuspectedNfo()).isEquivalentAccordingToCompareTo(nfo);
+        state = state.abstractIntoDLL(firstObj.getObject(), nfo, pfo);
+
+        Set<SMGObject> objects = state.getMemoryModel().getSmg().getObjects();
+        // All should be invalid except our SLL here
+        SMGDoublyLinkedListSegment dll = null;
+        for (SMGObject object : objects) {
+          if (object instanceof SMGDoublyLinkedListSegment
+              && state.getMemoryModel().isObjectValid(object)) {
+            Preconditions.checkArgument(dll == null);
+            dll = (SMGDoublyLinkedListSegment) object;
+          } else {
+            assertThat(!state.getMemoryModel().isObjectValid(object)).isTrue();
+          }
+        }
+        assertThat(dll.getMinLength() == i).isTrue();
+        assertThat(dll.getNextOffset().compareTo(nfo) == 0).isTrue();
+        assertThat(dll.getPrevOffset().compareTo(pfo) == 0).isTrue();
+        assertThat(dll.getSize().compareTo(sizeInBits) == 0).isTrue();
+        assertThat(state.readSMGValue(dll, pfo, pointerSizeInBits).getSMGValue().isZero()).isTrue();
+        assertThat(state.readSMGValue(dll, nfo, pointerSizeInBits).getSMGValue().isZero()).isTrue();
+      }
     }
   }
 
