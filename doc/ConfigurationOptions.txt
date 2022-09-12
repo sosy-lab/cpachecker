@@ -2923,7 +2923,7 @@ cpa.smg2.abstraction.iterationThreshold = -1
 
 # The minimum list segments directly following each other with the same value
 # needed to abstract them.Minimum is 2.
-cpa.smg2.abstraction.listAbstractionMinimumLengthThreshhold = 3
+cpa.smg2.abstraction.listAbstractionMinimumLengthThreshhold = 5
 
 # restrict liveness abstractions to nodes with more than one entering and/or
 # leaving edge

@@ -17,7 +17,7 @@ SPDX-License-Identifier: Apache-2.0
   <option name="-heap">6000M</option>
 
   <rundefinition>
-    <option name="-smg2-mem-CEGAR"/>
+    <option name="-smg2-CEGAR"/>
   </rundefinition>
 
 
