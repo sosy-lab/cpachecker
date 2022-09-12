@@ -20,11 +20,17 @@ typedef struct node {
 void main() {
 
   DLL list = malloc(sizeof(struct node));
+  if (!list) {
+    return 0;
+  }
   DLL beginning = list;
 
   while (__VERIFIER_nondet_int()) {
     list->data = 1;
     list->next = malloc(sizeof(struct node));
+    if (!(list->next)) {
+        return 0;
+    }
     list->next->prev = list;
     list = list->next;
   }
@@ -40,7 +46,7 @@ void main() {
 
   while (list->data == 1) {
 	if (list->prev == 0) {
-      break;
+      // break;
 	}
     list = list->prev;
   }
