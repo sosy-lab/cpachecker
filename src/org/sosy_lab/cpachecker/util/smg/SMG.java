@@ -411,9 +411,9 @@ public class SMG {
           newPointers.put(value, pointerToNext);
         }
         // toRemove.add(value);
-      } else if (pointer.equals(pointerToNext) || pointer.equals(pointerToPrevious)) {
+        // } else if (pointer.equals(pointerToNext) || pointer.equals(pointerToPrevious)) {
         // Remember the values for the pointers located in this object
-        newPointers.put(value, pointer);
+        //  newPointers.put(value, pointer);
       } else {
         newPointers.put(value, pointer);
       }
