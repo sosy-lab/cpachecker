@@ -12,6 +12,7 @@ import com.google.common.base.CharMatcher;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import java.math.BigInteger;
 import java.util.Collection;
@@ -145,19 +146,6 @@ public class SMGState
     options = opts;
     errorInfo = errorInf;
     materializer = new SMGCPAMaterializer(logger);
-  }
-
-  public SMGState addToVariableBlacklist(String variableName) {
-    return of(
-        machineModel,
-        memoryModel.copyAndAddToVariableBlacklist(variableName),
-        logger,
-        options,
-        errorInfo);
-  }
-
-  public ImmutableSet<String> getVariableBlackList() {
-    return memoryModel.getVariableBlacklist();
   }
 
   @Override
@@ -379,21 +367,6 @@ public class SMGState
     return new SMGState(pMachineModel, pSPC, logManager, opts, pErrorInfo);
   }
 
-  public static SMGState of(
-      MachineModel pMachineModel,
-      SymbolicProgramConfiguration pSPC,
-      LogManager logManager,
-      SMGOptions opts,
-      List<SMGErrorInfo> pErrorInfo,
-      ImmutableSet<String> pVariableBlacklist) {
-    return new SMGState(
-        pMachineModel,
-        pSPC.copyAndReplaceVariableBlacklist(pVariableBlacklist),
-        logManager,
-        opts,
-        pErrorInfo);
-  }
-
   /**
    * Checks the presence of a {@link MemoryLocation} (excluding the offset) as a global or local
    * variable anywhere (not only the current stack frame).
@@ -572,6 +545,16 @@ public class SMGState
     return readValue(memoryToRead, offsetInBits, sizeOfReadInBits, null).getValue();
   }
 
+  public SMGState reconstructWhitelistedHeapValues(Set<Value> allowedHeapValues) {
+    SMGState currentState = this;
+    for (Value heapValue : allowedHeapValues) {
+      currentState =
+          currentState.copyAndReplaceMemoryModel(
+              currentState.getMemoryModel().copyAndAddToheapValueWhitelist(heapValue));
+    }
+    return currentState;
+  }
+
   /**
    * Removes ALL {@link MemoryLocation}s given from the state and then adds them back in with the
    * values given. The given Values should never represent any heap related Values (pointers).
@@ -586,13 +569,15 @@ public class SMGState
       @Nullable PersistentMap<MemoryLocation, ValueAndValueSize> nonHeapAssignments,
       Map<String, BigInteger> variableNameToMemorySizeInBits,
       Map<String, CType> variableTypeMap,
-      PersistentStack<CFunctionDeclarationAndOptionalValue> pStackDeclarations)
+      PersistentStack<CFunctionDeclarationAndOptionalValue> pStackDeclarations,
+      Set<Value> allowedHeapValues)
       throws SMG2Exception {
     if (nonHeapAssignments == null) {
-      if (pStackDeclarations == null) {
+      if (pStackDeclarations == null && allowedHeapValues == null) {
         return this;
       }
-      return this.reconstructStackFrames(pStackDeclarations);
+      return this.reconstructStackFrames(pStackDeclarations)
+          .reconstructWhitelistedHeapValues(allowedHeapValues);
     }
     SMGState currentState = this;
     // Reconstruct the stack frames first
@@ -603,7 +588,7 @@ public class SMGState
           currentState.assignNonHeapConstant(
               entry.getKey(), entry.getValue(), variableNameToMemorySizeInBits, variableTypeMap);
     }
-    return currentState;
+    return currentState.reconstructWhitelistedHeapValues(allowedHeapValues);
   }
 
   /**
@@ -2544,6 +2529,34 @@ public class SMGState
     return memoryModel.getMemoryLocationsAndValuesForSPCWithoutHeap().keySet();
   }
 
+  /**
+   * A Map of Values in the heap with explicit values and their SMGValue counterparts.
+   *
+   * @return A Map of Values with explicit values and their SMGValue counterparts.
+   */
+  public Map<Value, SMGValue> getTrackedHeapValues() {
+    ImmutableMap.Builder<Value, SMGValue> trackedHeapValues = ImmutableMap.builder();
+    PersistentMap<SMGObject, PersistentSet<SMGHasValueEdge>> valuesOfObj =
+        memoryModel.getSmg().getSMGObjectsWithSMGHasValueEdges();
+    ImmutableSet.Builder<SMGValue> smgValues = ImmutableSet.builder();
+    for (SMGObject heapObj : memoryModel.getHeapObjects()) {
+      if (memoryModel.isObjectValid(heapObj) && valuesOfObj.containsKey(heapObj)) {
+        for (SMGHasValueEdge hve : valuesOfObj.get(heapObj)) {
+          smgValues.add(hve.hasValue());
+        }
+      }
+    }
+    for (SMGValue smgValue : smgValues.build()) {
+      // We expect all SMGValues to always be known as Values
+      Value value = memoryModel.getValueFromSMGValue(smgValue).orElseThrow();
+      // filter out unknowns and pointers
+      if (value.isExplicitlyKnown()) {
+        trackedHeapValues.put(value, smgValue);
+      }
+    }
+    return trackedHeapValues.build();
+  }
+
   @Override
   public int getSize() {
     // Note: this might be inaccurate! We track Strings and functions as encoded variables!
@@ -2564,7 +2577,8 @@ public class SMGState
         memoryModel.getSizeObMemoryForSPCWithoutHeap(),
         memoryModel.getVariableTypeMap(),
         funDecls,
-        funDeclsIter.next().getCFunctionDeclaration());
+        funDeclsIter.next().getCFunctionDeclaration(),
+        memoryModel.getheapValueWhitelist());
   }
 
   @Deprecated
@@ -2577,6 +2591,89 @@ public class SMGState
   @Override
   public SMGInformation forget(MemoryLocation pLocation) {
     throw new UnsupportedOperationException();
+  }
+
+  /**
+   * Takes a Value that should be removed from the Heap and replaced by a unknown value. Also takes
+   * the SMGValue mapping for it.
+   *
+   * @param value the (concrete) {@link Value} to remove from all of the heap.
+   * @param smgValueForValue the {@link SMGValue} mapping to the {@link Value}.
+   * @return StateAndInfo with the new {@link SMGState} with the removed heap values and {@link
+   *     SMGInformation} with the info to return the state to its previous state.
+   */
+  public StateAndInfo<SMGState, SMGInformation> copyAndForget(
+      Value value, SMGValue smgValueForValue) {
+    // Changing the value mappings would not work, as we would change existing values in local and
+    // global variables as well
+    // We search for the SMGValues in the Has-Value-Edges and replace them by a new unique symbolic
+    // value == unknown
+    // We remember the mapping however. It suffices to remember Object -> old Has-Value-Edge
+
+    ImmutableMap.Builder<SMGObject, Set<SMGHasValueEdge>> removedHVEdgesBuilder =
+        ImmutableMap.builder();
+    for (SMGObject heapObject : memoryModel.getHeapObjects()) {
+      if (memoryModel.isObjectValid(heapObject)) {
+        FluentIterable<SMGHasValueEdge> iterable =
+            memoryModel
+                .getSmg()
+                .getHasValueEdgesByPredicate(
+                    heapObject, n -> n.hasValue().equals(smgValueForValue));
+        if (!iterable.isEmpty()) {
+          removedHVEdgesBuilder.put(heapObject, iterable.toSet());
+        }
+      }
+    }
+    ImmutableMap<SMGObject, Set<SMGHasValueEdge>> removedHVEdges = removedHVEdgesBuilder.build();
+
+    // TODO: can we get the type somehow?
+    SymbolicValueFactory factory = SymbolicValueFactory.getInstance();
+    // Value newUnknownValue =  factory.asConstant(factory.newIdentifier(null), null);
+    // This is technically not good. We should use ConstantSymbolicExpression but we don't know the
+    // type
+    Value newUnknownValue = factory.newIdentifier(null);
+    SMGValueAndSMGState newSMGValueAndState = this.copyAndAddValue(newUnknownValue);
+    SMGState currentState = newSMGValueAndState.getSMGState();
+    for (Entry<SMGObject, Set<SMGHasValueEdge>> objAndEdges : removedHVEdges.entrySet()) {
+      SMGObject object = objAndEdges.getKey();
+      for (SMGHasValueEdge hVEdge : objAndEdges.getValue()) {
+        currentState =
+            currentState.copyAndReplaceMemoryModel(
+                currentState
+                    .getMemoryModel()
+                    .replaceValueAtWithAndCopy(
+                        object,
+                        hVEdge.getOffset(),
+                        hVEdge.getSizeInBits(),
+                        new SMGHasValueEdge(
+                            newSMGValueAndState.getSMGValue(),
+                            hVEdge.getOffset(),
+                            hVEdge.getSizeInBits())));
+      }
+    }
+
+    return new StateAndInfo<>(currentState, new SMGInformation(removedHVEdges));
+  }
+
+  public SMGState copyAndRemember(SMGInformation pForgottenInformation) {
+    SMGState currentState = this;
+    Value valueAgainIntroduced = null;
+    for (Entry<SMGObject, Set<SMGHasValueEdge>> entry :
+        pForgottenInformation.getHeapValuesPerObjectMap().entrySet()) {
+      SMGObject object = entry.getKey();
+
+      for (SMGHasValueEdge edgeToInsert : entry.getValue()) {
+        valueAgainIntroduced =
+            currentState.memoryModel.getValueFromSMGValue(edgeToInsert.hasValue()).orElseThrow();
+        currentState =
+            currentState.copyAndReplaceMemoryModel(
+                currentState.memoryModel.replaceValueAtWithAndCopy(
+                    object, edgeToInsert.getOffset(), edgeToInsert.getSizeInBits(), edgeToInsert));
+      }
+    }
+
+    return currentState.copyAndReplaceMemoryModel(
+        currentState.memoryModel.copyAndAddToheapValueWhitelist(valueAgainIntroduced));
   }
 
   @Override
