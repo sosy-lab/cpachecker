@@ -423,7 +423,7 @@ public class SMG {
         smgObjects.removeAndCopy(object),
         smgValues,
         newHVEdges.removeAndCopy(object),
-        newPointers.build(),
+        newPointers.buildOrThrow(),
         sizeOfPointer);
   }
 
@@ -512,12 +512,11 @@ public class SMG {
         values = values.removeAndCopy(valueToRem);
       }
     }*/
-    Preconditions.checkArgument(newPointers.build().containsKey(SMGValue.zeroValue()));
     return new SMG(
         smgObjects.removeAndCopy(object),
         smgValues,
         newHVEdges.removeAndCopy(object),
-        newPointers.build(),
+        newPointers.buildOrThrow(),
         sizeOfPointer);
   }
 
