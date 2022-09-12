@@ -314,10 +314,7 @@ public class SMGCPAAbstractionManager {
       SMG pInputSmg,
       Set<SMGObject> pAlreadyVisited,
       Collection<SMGObject> heapObjects) {
-    // thisAlreadyVisited != pAlreadyVisited!!!!
-    // pAlreadyVisited is global, thisAlreadyVisited is this sequence
-    Set<SMGObject> thisAlreadyVisited = new HashSet<>();
-    thisAlreadyVisited.addAll(pAlreadyVisited);
+    Set<SMGObject> thisAlreadyVisited = new HashSet<>(pAlreadyVisited);
     if (thisAlreadyVisited.contains(potentialRoot) || !pInputSmg.isValid(potentialRoot)) {
       return Optional.empty();
     }
