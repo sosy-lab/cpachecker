@@ -315,12 +315,14 @@ public class SMGCPAAbstractionManager {
       SMG pInputSmg,
       Set<SMGObject> pAlreadyVisited,
       Collection<SMGObject> heapObjects) {
-    Set<SMGObject> alreadyVisited = new HashSet<>();
-    alreadyVisited.addAll(pAlreadyVisited);
-    if (alreadyVisited.contains(potentialRoot) || !pInputSmg.isValid(potentialRoot)) {
+    // thisAlreadyVisited != pAlreadyVisited!!!!
+    // pAlreadyVisited is global, thisAlreadyVisited is this sequence
+    Set<SMGObject> thisAlreadyVisited = new HashSet<>();
+    thisAlreadyVisited.addAll(pAlreadyVisited);
+    if (thisAlreadyVisited.contains(potentialRoot) || !pInputSmg.isValid(potentialRoot)) {
       return Optional.empty();
     }
-    alreadyVisited.add(potentialRoot);
+    thisAlreadyVisited.add(potentialRoot);
     if (potentialRoot instanceof SMGSinglyLinkedListSegment) {
       pAlreadyVisited.add(potentialRoot);
       SMGSinglyLinkedListSegment sll = (SMGSinglyLinkedListSegment) potentialRoot;
@@ -328,7 +330,7 @@ public class SMGCPAAbstractionManager {
     }
 
     ImmutableSet<SMGHasValueEdge> setOfPointers =
-        getPointersToSameSizeObjects(potentialRoot, pInputSmg, alreadyVisited);
+        getPointersToSameSizeObjects(potentialRoot, pInputSmg, thisAlreadyVisited);
     // Sort by offset of pointers and beginn with the smallest
     // Lists usually have smth like a next, then prev pointer ordering
     // We abort after we find 1 valid pointer for the candidate
@@ -352,7 +354,7 @@ public class SMGCPAAbstractionManager {
       }
 
       // Check that reached object has a pointer at the same offset
-      if (followupHasNextPointerToValid(reachedObject, nfo, pInputSmg, alreadyVisited)) {
+      if (followupHasNextPointerToValid(reachedObject, nfo, pInputSmg, thisAlreadyVisited)) {
         // Valid candidate found!
         // Make sure its a "root" by checking all pointers towards this root
         // The only valid pointers towards this root are from the followup or non heap objects
