@@ -73,7 +73,6 @@ public class SMGCPAAssigningValueVisitor extends SMGCPAValueVisitor {
 
     ImmutableList.Builder<ValueAndSMGState> finalValueAndStateBuilder = ImmutableList.builder();
 
-
     for (ValueAndSMGState leftValueAndState :
         lVarInBinaryExp.accept(new SMGCPAValueVisitor(evaluator, initialState, edge, logger))) {
       Value leftValue = leftValueAndState.getValue();
@@ -109,7 +108,6 @@ public class SMGCPAAssigningValueVisitor extends SMGCPAValueVisitor {
             // branch and if that does not update the other branch we can do that branch as well.
             // This is difficult because of different possible equivalence classes.
           }
-
 
           // Now we need to use all updated states from the assumptions (or the base case if none
           // was chosen)
@@ -169,23 +167,22 @@ public class SMGCPAAssigningValueVisitor extends SMGCPAValueVisitor {
           }
         }
 
-          // !(a == b) case
-          if (isNonEqualityAssumption(binaryOperator)) {
-            if (assumingUnknownToBeZero(leftValue, rightValue)) {
-              String leftMemLocName =
-                  getExtendedQualifiedName((CExpression) unwrap(lVarInBinaryExp));
+        // !(a == b) case
+        if (isNonEqualityAssumption(binaryOperator)) {
+          if (assumingUnknownToBeZero(leftValue, rightValue)) {
+            String leftMemLocName = getExtendedQualifiedName((CExpression) unwrap(lVarInBinaryExp));
 
-              if (options.isOptimizeBooleanVariables()
-                  && (booleans.contains(leftMemLocName) || options.isInitAssumptionVars())) {
+            if (options.isOptimizeBooleanVariables()
+                && (booleans.contains(leftMemLocName) || options.isInitAssumptionVars())) {
               List<SMGStateAndOptionalSMGObjectAndOffset> leftHandSideAssignments =
                   getAssignable(lVarInBinaryExp, currentState);
-                Preconditions.checkArgument(leftHandSideAssignments.size() == 1);
-                SMGStateAndOptionalSMGObjectAndOffset leftHandSideAssignment =
-                    leftHandSideAssignments.get(0);
+              Preconditions.checkArgument(leftHandSideAssignments.size() == 1);
+              SMGStateAndOptionalSMGObjectAndOffset leftHandSideAssignment =
+                  leftHandSideAssignments.get(0);
               currentState = leftHandSideAssignment.getSMGState();
-                if (isAssignable(leftHandSideAssignments)) {
+              if (isAssignable(leftHandSideAssignments)) {
 
-                  CType type = SMGCPAValueExpressionEvaluator.getCanonicalType(rVarInBinaryExp);
+                CType type = SMGCPAValueExpressionEvaluator.getCanonicalType(rVarInBinaryExp);
                 BigInteger size = evaluator.getBitSizeof(currentState, type);
                 currentState =
                     currentState.writeValueTo(
@@ -194,9 +191,9 @@ public class SMGCPAAssigningValueVisitor extends SMGCPAValueVisitor {
                         size,
                         new NumericValue(1L),
                         type);
-                }
               }
             }
+          }
 
           if (options.isOptimizeBooleanVariables()
               && assumingUnknownToBeZero(rightValue, leftValue)) {
