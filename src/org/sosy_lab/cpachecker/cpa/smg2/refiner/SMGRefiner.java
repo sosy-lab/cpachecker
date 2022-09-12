@@ -17,6 +17,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.LinkedHashMultimap;
+import com.google.common.collect.Multimap;
 import com.google.common.collect.SetMultimap;
 import com.google.common.collect.Sets;
 import java.io.PrintStream;
@@ -41,6 +42,7 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.counterexample.CFAPathWithAssumptions;
 import org.sosy_lab.cpachecker.core.defaults.precision.VariableTrackingPrecision;
@@ -57,7 +59,9 @@ import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicatePrecision;
 import org.sosy_lab.cpachecker.cpa.smg2.SMGCPA;
 import org.sosy_lab.cpachecker.cpa.smg2.SMGOptions;
+import org.sosy_lab.cpachecker.cpa.smg2.SMGPrecision;
 import org.sosy_lab.cpachecker.cpa.smg2.SMGState;
+import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CPAs;
@@ -115,6 +119,8 @@ public class SMGRefiner extends GenericRefiner<SMGState, SMGInterpolant> {
 
   /** keep log of previous refinements to identify repeated one */
   private final Set<Integer> previousRefinementIds = new HashSet<>();
+
+  private final Set<Integer> previousValueRefinementIds = new HashSet<>();
 
   private final SMGFeasibilityChecker checker;
 
@@ -215,7 +221,8 @@ public class SMGRefiner extends GenericRefiner<SMGState, SMGInterpolant> {
 
       if (refinementRoots.size() == 1
           && isSimilarRepeatedRefinement(
-              pInterpolationTree.extractPrecisionIncrement(root).values())) {
+              pInterpolationTree.extractPrecisionIncrement(root).values(),
+              extractPrecisionIncrement(root, pInterpolationTree).values())) {
         root = relocateRepeatedRefinementRoot(root);
       }
 
@@ -241,7 +248,9 @@ public class SMGRefiner extends GenericRefiner<SMGState, SMGInterpolant> {
 
       // merge the value precisions of the subtree, and refine it
       precisions.add(
-          basePrecision.withIncrement(pInterpolationTree.extractPrecisionIncrement(root)));
+          ((SMGPrecision) basePrecision)
+              .withIncrement(pInterpolationTree.extractPrecisionIncrement(root))
+              .withValueIncrement(extractPrecisionIncrement(root, pInterpolationTree)));
 
       // merge the predicate precisions of the subtree, if available
       if (predicatePrecisionIsAvailable) {
@@ -262,6 +271,32 @@ public class SMGRefiner extends GenericRefiner<SMGState, SMGInterpolant> {
 
       pReached.removeSubtree(info.getKey(), info.getValue(), precisionTypes);
     }
+  }
+
+  // TODO: incorporate this into a generic version
+  private Multimap<CFANode, Value> extractPrecisionIncrement(
+      ARGState root, InterpolationTree<SMGState, SMGInterpolant> pInterpolationTree) {
+    Multimap<CFANode, Value> increment = LinkedHashMultimap.create();
+
+    Deque<ARGState> todo = new ArrayDeque<>();
+    todo.add(pInterpolationTree.getPredecessor(root));
+    while (!todo.isEmpty()) {
+      final ARGState currentState = todo.removeFirst();
+
+      if (pInterpolationTree.stateHasNonTrivialInterpolant(currentState)
+          && !currentState.isTarget()) {
+        SMGInterpolant itp = pInterpolationTree.getInterpolantForState(currentState);
+        for (Value heapValue : itp.getAllowedHeapValues()) {
+          increment.put(AbstractStates.extractLocation(currentState), heapValue);
+        }
+      }
+
+      if (!pInterpolationTree.stateHasFalseInterpolant(currentState)) {
+        todo.addAll(pInterpolationTree.getSuccessors(currentState));
+      }
+    }
+
+    return increment;
   }
 
   private boolean isPredicatePrecisionAvailable(final UnmodifiableReachedSet pReached) {
@@ -295,18 +330,24 @@ public class SMGRefiner extends GenericRefiner<SMGState, SMGInterpolant> {
   }
 
   /** A simple heuristic to detect similar repeated refinements. */
-  private boolean isSimilarRepeatedRefinement(Collection<MemoryLocation> currentIncrement) {
+  private boolean isSimilarRepeatedRefinement(
+      Collection<MemoryLocation> currentIncrement, Collection<Value> currentValueIncrement) {
 
     boolean isSimilar = false;
     int currentRefinementId = new TreeSet<>(currentIncrement).hashCode();
+    // This .hashChode() might be trouble!
+    int currentHeapRefinementId = currentValueIncrement.hashCode();
 
     // a refinement is considered a similar, repeated refinement
     // if the current increment was added in a previous refinement, already
     if (avoidSimilarRepeatedRefinement) {
-      isSimilar = previousRefinementIds.contains(currentRefinementId);
+      isSimilar =
+          previousRefinementIds.contains(currentRefinementId)
+              && previousValueRefinementIds.contains(currentHeapRefinementId);
     }
 
     previousRefinementIds.add(currentRefinementId);
+    previousValueRefinementIds.add(currentHeapRefinementId);
 
     return isSimilar;
   }
@@ -440,6 +481,10 @@ public class SMGRefiner extends GenericRefiner<SMGState, SMGInterpolant> {
     writer
         .put(rootRelocations)
         .put(repeatedRefinements)
-        .put("Number of unique precision increments", previousRefinementIds.size());
+        .put(
+            "Number of unique precision increments: ",
+            previousRefinementIds.size()
+                + " and number of heap value precision increments: "
+                + previousValueRefinementIds.size());
   }
 }

@@ -9,8 +9,11 @@
 package org.sosy_lab.cpachecker.cpa.smg2.refiner;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableSet;
 import java.util.Deque;
+import java.util.Map.Entry;
 import java.util.Optional;
+import java.util.Set;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -25,12 +28,14 @@ import org.sosy_lab.cpachecker.cpa.smg2.SMGInformation;
 import org.sosy_lab.cpachecker.cpa.smg2.SMGOptions;
 import org.sosy_lab.cpachecker.cpa.smg2.SMGState;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisCPA;
+import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.refinement.FeasibilityChecker;
 import org.sosy_lab.cpachecker.util.refinement.GenericEdgeInterpolator;
 import org.sosy_lab.cpachecker.util.refinement.ImmutableForgetfulState.StateAndInfo;
 import org.sosy_lab.cpachecker.util.refinement.InterpolantManager;
 import org.sosy_lab.cpachecker.util.refinement.StrongestPostOperator;
+import org.sosy_lab.cpachecker.util.smg.graph.SMGValue;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 @Options(prefix = "cpa.smg2.interpolation")
@@ -156,6 +161,24 @@ public class SMGEdgeInterpolator
                 currentMemoryLocation, forgottenInformationAndNewState.getInfo());
       }
     }
+    // TODO: make this generic
+    Set<Entry<Value, SMGValue>> heapValues = initialSuccessor.getTrackedHeapValues().entrySet();
+    for (Entry<Value, SMGValue> currentConcreteHeapValueAssignments : heapValues) {
+      getShutdownNotifier().shutdownIfNecessary();
+
+      // temporarily remove a value from the heap and readd only if it is needed
+      StateAndInfo<SMGState, SMGInformation> forgottenInformationAndNewState =
+          initialSuccessor.copyAndForget(
+              currentConcreteHeapValueAssignments.getKey(),
+              currentConcreteHeapValueAssignments.getValue());
+      initialSuccessor = forgottenInformationAndNewState.getState();
+
+      // check if the remaining path now becomes feasible
+      if (isRemainingPathFeasible(remainingErrorPath, initialSuccessor)) {
+        initialSuccessor =
+            initialSuccessor.copyAndRemember(forgottenInformationAndNewState.getInfo());
+      }
+    }
     SMGInterpolant newInterpolant = interpolantMgr.createInterpolant(initialSuccessor);
     // Check that no variable was added to a wrong stack frame
     assert newInterpolant.isSanityIntact();
@@ -181,6 +204,7 @@ public class SMGEdgeInterpolator
                 null,
                 null,
                 null,
-                stateForFrameInfo.getMemoryModel().getFunctionDeclarationsFromStackFrames()));
+                stateForFrameInfo.getMemoryModel().getFunctionDeclarationsFromStackFrames(),
+                ImmutableSet.of()));
   }
 }
