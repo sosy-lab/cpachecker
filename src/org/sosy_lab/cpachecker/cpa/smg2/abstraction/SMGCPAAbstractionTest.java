@@ -417,13 +417,14 @@ public class SMGCPAAbstractionTest {
   }
 
   // Test the minimum length needed for abstraction
+  @Test
   public void abstractDLLLimitTest() throws InvalidConfigurationException, SMG2Exception {
     BigInteger nfo = pointerSizeInBits;
     BigInteger pfo = pointerSizeInBits.add(pointerSizeInBits);
     BigInteger sizeInBits = pointerSizeInBits.add(pointerSizeInBits).add(pointerSizeInBits);
 
-    for (int minLength = 3; minLength < 100; minLength++) {
-      for (int i = 1; i < 100; i++) {
+    for (int minLength = 3; minLength < 50; minLength = minLength + 10) {
+      for (int i = 1; i < 50; i++) {
         resetSMGStateAndVisitor();
         SMGState state = createXLongExplicitDLLOnHeap(i);
         SMGCPAAbstractionManager absFinder = new SMGCPAAbstractionManager(state, minLength);
