@@ -85,8 +85,8 @@ public class SymbolicProgramConfiguration {
   /* Map of (SMG)Objects externaly allocated. The bool denotes validity, true = valid, false = invalid i.e. after free() */
   private final PersistentMap<SMGObject, Boolean> externalObjectAllocation;
 
-  // Blacklisted variable names. Not to be used while on this list!
-  private final ImmutableSet<String> variableBlacklist;
+  // Whitelisted heap values. This remembers heap values needed for the analysis. Needed for CEGAR.
+  private final ImmutableSet<Value> heapValueWhitelist;
 
   /**
    * Maps the symbolic value ranges to their abstract SMG counterparts. (SMGs use only abstract, but
@@ -109,7 +109,7 @@ public class SymbolicProgramConfiguration {
       PersistentMap<SMGObject, Boolean> pExternalObjectAllocation,
       ImmutableBiMap<Equivalence.Wrapper<Value>, SMGValue> pValueMapping,
       PersistentMap<String, CType> pVariableToTypeMap,
-      ImmutableSet<String> pVariableBlacklist) {
+      ImmutableSet<Value> pheapValueWhitelist) {
     globalVariableMapping = pGlobalVariableMapping;
     stackVariableMapping = pStackVariableMapping;
     smg = pSmg;
@@ -117,7 +117,7 @@ public class SymbolicProgramConfiguration {
     heapObjects = pHeapObjects;
     valueMapping = pValueMapping;
     variableToTypeMap = pVariableToTypeMap;
-    variableBlacklist = pVariableBlacklist;
+    heapValueWhitelist = pheapValueWhitelist;
   }
 
   /**
@@ -143,7 +143,7 @@ public class SymbolicProgramConfiguration {
       PersistentMap<SMGObject, Boolean> pExternalObjectAllocation,
       ImmutableBiMap<Equivalence.Wrapper<Value>, SMGValue> pValueMapping,
       PersistentMap<String, CType> pVariableToTypeMap,
-      ImmutableSet<String> pVariableBlacklist) {
+      ImmutableSet<Value> pheapValueWhitelist) {
     return new SymbolicProgramConfiguration(
         pSmg,
         pGlobalVariableMapping,
@@ -152,7 +152,7 @@ public class SymbolicProgramConfiguration {
         pExternalObjectAllocation,
         pValueMapping,
         pVariableToTypeMap,
-        pVariableBlacklist);
+        pheapValueWhitelist);
   }
 
   /**
@@ -190,7 +190,7 @@ public class SymbolicProgramConfiguration {
         externalObjectAllocation,
         valueMapping,
         variableToTypeMap,
-        variableBlacklist);
+        heapValueWhitelist);
   }
 
   /**
@@ -261,7 +261,7 @@ public class SymbolicProgramConfiguration {
         externalObjectAllocation,
         valueMapping,
         variableToTypeMap.putAndCopy(pVarName, type),
-        variableBlacklist);
+        heapValueWhitelist);
   }
 
   /**
@@ -293,7 +293,7 @@ public class SymbolicProgramConfiguration {
         externalObjectAllocation,
         valueMapping,
         variableToTypeMap.putAndCopy(pVarName, type),
-        variableBlacklist);
+        heapValueWhitelist);
   }
 
   /* Adds the local variable given to the stack with the function name given */
@@ -325,7 +325,7 @@ public class SymbolicProgramConfiguration {
         externalObjectAllocation,
         valueMapping,
         variableToTypeMap.putAndCopy(pVarName, type),
-        variableBlacklist);
+        heapValueWhitelist);
   }
 
   /**
@@ -360,7 +360,7 @@ public class SymbolicProgramConfiguration {
           externalObjectAllocation,
           valueMapping,
           variableToTypeMap,
-          variableBlacklist);
+          heapValueWhitelist);
     }
     return of(
         smg.copyAndAddObject(returnObj.orElseThrow()),
@@ -371,7 +371,7 @@ public class SymbolicProgramConfiguration {
         valueMapping,
         variableToTypeMap.putAndCopy(
             pFunctionDefinition.getQualifiedName() + "::__retval__", returnType),
-        variableBlacklist);
+        heapValueWhitelist);
   }
 
   /**
@@ -389,8 +389,10 @@ public class SymbolicProgramConfiguration {
     return copyAndAddStackFrame(pFunctionDefinition, model, null);
   }
 
-  public SymbolicProgramConfiguration copyAndReplaceVariableBlacklist(
-      ImmutableSet<String> newVarBlacklist) {
+  SymbolicProgramConfiguration copyAndAddToheapValueWhitelist(@Nullable Value newBlacklistedValue) {
+    if (newBlacklistedValue == null) {
+      return this;
+    }
     return of(
         smg,
         globalVariableMapping,
@@ -399,26 +401,33 @@ public class SymbolicProgramConfiguration {
         externalObjectAllocation,
         valueMapping,
         variableToTypeMap,
-        newVarBlacklist);
-  }
-
-  SymbolicProgramConfiguration copyAndAddToVariableBlacklist(String newBlacklistedVar) {
-    return of(
-        smg,
-        globalVariableMapping,
-        stackVariableMapping,
-        heapObjects,
-        externalObjectAllocation,
-        valueMapping,
-        variableToTypeMap,
-        new ImmutableSet.Builder<String>()
-            .addAll(variableBlacklist)
-            .add(newBlacklistedVar)
+        new ImmutableSet.Builder<Value>()
+            .addAll(heapValueWhitelist)
+            .add(newBlacklistedValue)
             .build());
   }
 
-  public ImmutableSet<String> getVariableBlacklist() {
-    return variableBlacklist;
+  SymbolicProgramConfiguration copyAndRemoveFromheapValueWhitelist(
+      @Nullable Value blacklistedValueToRemove) {
+    if (blacklistedValueToRemove == null) {
+      return this;
+    }
+    return of(
+        smg,
+        globalVariableMapping,
+        stackVariableMapping,
+        heapObjects,
+        externalObjectAllocation,
+        valueMapping,
+        variableToTypeMap,
+        new ImmutableSet.Builder<Value>()
+            .addAll(heapValueWhitelist)
+            .add(blacklistedValueToRemove)
+            .build());
+  }
+
+  public ImmutableSet<Value> getheapValueWhitelist() {
+    return heapValueWhitelist;
   }
 
   /**
@@ -443,7 +452,7 @@ public class SymbolicProgramConfiguration {
         externalObjectAllocation,
         valueMapping,
         variableToTypeMap.removeAndCopy(pIdentifier),
-        variableBlacklist);
+        heapValueWhitelist);
   }
 
   /**
@@ -474,7 +483,7 @@ public class SymbolicProgramConfiguration {
             externalObjectAllocation,
             valueMapping,
             variableToTypeMap.removeAndCopy(pIdentifier),
-            variableBlacklist);
+            heapValueWhitelist);
       }
     }
     return this;
@@ -498,7 +507,7 @@ public class SymbolicProgramConfiguration {
         externalObjectAllocation,
         valueMapping,
         variableToTypeMap,
-        variableBlacklist);
+        heapValueWhitelist);
   }
 
   // Only to be used by materilization to copy a SMGObject
@@ -512,7 +521,7 @@ public class SymbolicProgramConfiguration {
         externalObjectAllocation,
         valueMapping,
         variableToTypeMap,
-        variableBlacklist);
+        heapValueWhitelist);
   }
 
   // Replace the pointer behind value with a new pointer with the new SMGObject target
@@ -526,7 +535,20 @@ public class SymbolicProgramConfiguration {
         externalObjectAllocation,
         valueMapping,
         variableToTypeMap,
-        variableBlacklist);
+        heapValueWhitelist);
+  }
+
+  public SymbolicProgramConfiguration copyAndReplaceValueWith(
+      SMGValue oldValue, SMGValue newValue) {
+    return of(
+        smg.copyAndReplaceValueForHVEdges(oldValue, newValue),
+        globalVariableMapping,
+        stackVariableMapping,
+        heapObjects,
+        externalObjectAllocation,
+        valueMapping,
+        variableToTypeMap,
+        heapValueWhitelist);
   }
 
   /**
@@ -570,7 +592,7 @@ public class SymbolicProgramConfiguration {
         externalObjectAllocation,
         valueMapping,
         newVariableToTypeMap,
-        variableBlacklist);
+        heapValueWhitelist);
   }
 
   /**
@@ -593,8 +615,7 @@ public class SymbolicProgramConfiguration {
         new HashSet<>(Sets.difference(smg.getValues(), reachable.getValues()));
     // Remove 0 Value and object
     unreachableObjects =
-        unreachableObjects
-            .stream()
+        unreachableObjects.stream()
             .filter(o -> isObjectValid(o))
             .collect(ImmutableSet.toImmutableSet());
     unreachableValues =
@@ -615,7 +636,7 @@ public class SymbolicProgramConfiguration {
             externalObjectAllocation,
             valueMapping,
             variableToTypeMap,
-            variableBlacklist),
+            heapValueWhitelist),
         unreachableObjects);
   }
 
@@ -639,7 +660,7 @@ public class SymbolicProgramConfiguration {
         externalObjectAllocation,
         valueMapping,
         variableToTypeMap,
-        variableBlacklist);
+        heapValueWhitelist);
   }
 
   /*
@@ -661,7 +682,7 @@ public class SymbolicProgramConfiguration {
         externalObjectAllocation,
         valueMapping,
         variableToTypeMap,
-        variableBlacklist);
+        heapValueWhitelist);
   }
 
   /**
@@ -697,7 +718,7 @@ public class SymbolicProgramConfiguration {
         externalObjectAllocation,
         builder.putAll(valueMapping).put(valueWrapper.wrap(cValue), smgValue).buildOrThrow(),
         variableToTypeMap,
-        variableBlacklist);
+        heapValueWhitelist);
   }
 
   /**
@@ -717,7 +738,7 @@ public class SymbolicProgramConfiguration {
         externalObjectAllocation.putAndCopy(pObject, false),
         valueMapping,
         variableToTypeMap,
-        variableBlacklist);
+        heapValueWhitelist);
   }
 
   /**
@@ -784,7 +805,7 @@ public class SymbolicProgramConfiguration {
         externalObjectAllocation.putAndCopy(pObject, true),
         valueMapping,
         variableToTypeMap,
-        variableBlacklist);
+        heapValueWhitelist);
   }
 
   /**
@@ -803,7 +824,7 @@ public class SymbolicProgramConfiguration {
         externalObjectAllocation,
         valueMapping,
         variableToTypeMap,
-        variableBlacklist);
+        heapValueWhitelist);
   }
 
   /**
@@ -826,10 +847,6 @@ public class SymbolicProgramConfiguration {
    * @return {@link Optional} that contains the variable if found, but is empty if not found.
    */
   public Optional<SMGObject> getObjectForVisibleVariable(String pName) {
-    if (variableBlacklist.contains(pName)) {
-      return Optional.empty();
-    }
-
     // globals
     if (globalVariableMapping.containsKey(pName)) {
       return Optional.of(globalVariableMapping.get(pName));
@@ -878,10 +895,6 @@ public class SymbolicProgramConfiguration {
    * @return {@link Optional} that contains the variable if found, but is empty if not found.
    */
   public Optional<SMGObject> getObjectForVisibleVariableFromPreviousStackframe(String pName) {
-    if (variableBlacklist.contains(pName)) {
-      return Optional.empty();
-    }
-
     // Only look in the stack frame below the current
     StackFrame lowerFrame = stackVariableMapping.popAndCopy().peek();
     if (lowerFrame.containsVariable(pName)) {
@@ -1176,7 +1189,7 @@ public class SymbolicProgramConfiguration {
         externalObjectAllocation,
         valueMapping,
         variableToTypeMap,
-        variableBlacklist);
+        heapValueWhitelist);
   }
 
   /**
@@ -1197,6 +1210,19 @@ public class SymbolicProgramConfiguration {
         externalObjectAllocation,
         valueMapping,
         variableToTypeMap,
-        variableBlacklist);
+        heapValueWhitelist);
+  }
+
+  public SymbolicProgramConfiguration replaceValueAtWithAndCopy(
+      SMGObject object, BigInteger offsetInBits, BigInteger sizeInBits, SMGHasValueEdge newHVEdge) {
+    return new SymbolicProgramConfiguration(
+        smg.copyAndReplaceHVEdgeAt(object, offsetInBits, sizeInBits, newHVEdge),
+        globalVariableMapping,
+        stackVariableMapping,
+        heapObjects,
+        externalObjectAllocation,
+        valueMapping,
+        variableToTypeMap,
+        heapValueWhitelist);
   }
 }
