@@ -1540,10 +1540,6 @@ public class SMGCPAValueExpressionEvaluator {
       return ImmutableList.of(pState);
     }
 
-    if (addressedVariables.contains(pVarDecl.getQualifiedName())) {
-      return ImmutableList.of(pState.addToVariableBlacklist(pVarDecl.getQualifiedName()));
-    }
-
     CType cType = SMGCPAValueExpressionEvaluator.getCanonicalType(pVarDecl);
     boolean isExtern = pVarDecl.getCStorageClass().equals(CStorageClass.EXTERN);
 

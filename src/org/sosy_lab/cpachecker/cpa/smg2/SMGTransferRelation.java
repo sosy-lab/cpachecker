@@ -112,9 +112,6 @@ public class SMGTransferRelation
   // (see SMGCPAAssigningValueVisitor)
   private final Collection<String> booleanVariables;
 
-  // Ignored variables (declarations)
-  private final Collection<String> addressedVariables;
-
   private final @Nullable SMGCPAStatistics stats;
 
   public SMGTransferRelation(
@@ -130,11 +127,8 @@ public class SMGTransferRelation
     machineModel = pCfa.getMachineModel();
 
     if (pCfa.getVarClassification().isPresent()) {
-      // addressedVariables = pCfa.getVarClassification().orElseThrow().getAddressedVariables();
-      addressedVariables = ImmutableSet.of();
       booleanVariables = pCfa.getVarClassification().orElseThrow().getIntBoolVars();
     } else {
-      addressedVariables = ImmutableSet.of();
       booleanVariables = ImmutableSet.of();
     }
 
@@ -151,7 +145,6 @@ public class SMGTransferRelation
       SMGOptions pOptions,
       SMGCPAExportOptions pExportSMGOptions,
       MachineModel pMachineModel,
-      Collection<String> pAddressedVariables,
       Collection<String> pBooleanVariables,
       ConstraintsStrengthenOperator pConstraintsStrengthenOperator) {
     logger = new LogManagerWithoutDuplicates(pLogger);
@@ -161,7 +154,6 @@ public class SMGTransferRelation
     evaluator =
         new SMGCPAValueExpressionEvaluator(
             machineModel, logger, exportSMGOptions, options, ImmutableList.of());
-    addressedVariables = pAddressedVariables;
     booleanVariables = pBooleanVariables;
     constraintsStrengthenOperator = pConstraintsStrengthenOperator;
     stats = null;
@@ -439,11 +431,8 @@ public class SMGTransferRelation
           SMGCPAValueExpressionEvaluator.getCanonicalType(cParamExp.getExpressionType());
 
       if (paramDecl.size() > i) {
-        // We can't get names for variable arguments
-        String varName = paramDecl.get(i).getQualifiedName();
         // The last type is the type for the following arguments
         parameterType = SMGCPAValueExpressionEvaluator.getCanonicalType(paramDecl.get(i));
-        currentState = checkAndAddParameterToBlacklist(cParamExp, varName, currentState);
       } else {
         // Remember overall size of varArgs
         overallVarArgsSizeInBits =
@@ -499,27 +488,6 @@ public class SMGTransferRelation
       currentState =
           evaluator.writeValueToNewVariableBasedOnTypes(
               paramValue, cParamType, valueType, varName, currentState);
-    }
-    return currentState;
-  }
-
-  private SMGState checkAndAddParameterToBlacklist(
-      CExpression cParamExp, String functionVariableName, SMGState currentState) {
-    CExpression parameterExpr = cParamExp;
-    if (parameterExpr instanceof CCastExpression) {
-      // Unwrap casts
-      while (parameterExpr instanceof CCastExpression) {
-        parameterExpr = ((CCastExpression) parameterExpr).getOperand();
-      }
-    }
-    // If the value we entered is a variable, we have to check that its not on the blacklist, or
-    // enter the new variable to the blacklist as well
-    if (parameterExpr instanceof CIdExpression) {
-      String paramteterVariableName =
-          ((CIdExpression) parameterExpr).getDeclaration().getQualifiedName();
-      if (currentState.getVariableBlackList().contains(paramteterVariableName)) {
-        return currentState.addToVariableBlacklist(functionVariableName);
-      }
     }
     return currentState;
   }
@@ -709,9 +677,6 @@ public class SMGTransferRelation
     // CEGAR checks inside of the ifs! Else we check every typedef!
 
     if (cDecl instanceof CFunctionDeclaration) {
-      if (addressedVariables.contains(cDecl.getQualifiedName())) {
-        return ImmutableList.of(currentState.addToVariableBlacklist(cDecl.getQualifiedName()));
-      }
       CFunctionDeclaration cFuncDecl = (CFunctionDeclaration) cDecl;
       if (cFuncDecl.getQualifiedName().equals("main")) {
         if (cFuncDecl.getParameters() != null) {

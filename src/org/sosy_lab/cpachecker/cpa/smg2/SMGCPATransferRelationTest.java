@@ -174,7 +174,6 @@ public class SMGCPATransferRelationTest {
             SMGCPAExportOptions.getNoExportInstance(),
             MACHINE_MODEL,
             ImmutableList.of(),
-            ImmutableList.of(),
             null);
 
     transferRelation.setInfo(
