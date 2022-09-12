@@ -179,8 +179,7 @@ public class SMGCPAAbstractionManager {
     if (maybeNext.isPresent()) {
       SMGObject nextObject = maybeNext.orElseThrow();
       Set<SMGCandidate> newCandidates =
-          candidates
-              .stream()
+          candidates.stream()
               .filter(can -> !can.getObject().equals(nextObject))
               .collect(ImmutableSet.toImmutableSet());
       return traverseAndKickEqual(nextObject, nfo, newCandidates, pState, alreadyVisited);
