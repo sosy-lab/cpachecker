@@ -2897,6 +2897,9 @@ cpa.smg.zeroingMemoryAllocation = {"calloc", "kzalloc"}
 # Enable GCC extension 'Arrays of Length Zero'.
 cpa.smg2.GCCZeroLengthArray = false
 
+# If heap values are to be abstracted based on CEGAR.
+cpa.smg2.abstraction.abstractHeapValues = false
+
 # restrict abstraction computations to branching points
 cpa.smg2.abstraction.alwaysAtBranch = false
 
@@ -2923,7 +2926,7 @@ cpa.smg2.abstraction.iterationThreshold = -1
 
 # The minimum list segments directly following each other with the same value
 # needed to abstract them.Minimum is 2.
-cpa.smg2.abstraction.listAbstractionMinimumLengthThreshhold = 5
+cpa.smg2.abstraction.listAbstractionMinimumLengthThreshhold = 3
 
 # restrict liveness abstractions to nodes with more than one entering and/or
 # leaving edge
