@@ -2555,7 +2555,7 @@ public class SMGState
         trackedHeapValues.put(value, smgValue);
       }
     }
-    return trackedHeapValues.build();
+    return trackedHeapValues.buildOrThrow();
   }
 
   @Override
@@ -2625,7 +2625,8 @@ public class SMGState
         }
       }
     }
-    ImmutableMap<SMGObject, Set<SMGHasValueEdge>> removedHVEdges = removedHVEdgesBuilder.build();
+    ImmutableMap<SMGObject, Set<SMGHasValueEdge>> removedHVEdges =
+        removedHVEdgesBuilder.buildOrThrow();
 
     // TODO: can we get the type somehow?
     SymbolicValueFactory factory = SymbolicValueFactory.getInstance();

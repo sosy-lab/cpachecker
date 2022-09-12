@@ -16,7 +16,6 @@ import java.util.Comparator;
 import java.util.HashSet;
 import java.util.Optional;
 import java.util.Set;
-import java.util.stream.Collectors;
 import org.sosy_lab.cpachecker.cpa.smg2.SMGState;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMG2Exception;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGValueAndSMGState;
@@ -180,9 +179,10 @@ public class SMGCPAAbstractionManager {
     if (maybeNext.isPresent()) {
       SMGObject nextObject = maybeNext.orElseThrow();
       Set<SMGCandidate> newCandidates =
-          candidates.stream()
+          candidates
+              .stream()
               .filter(can -> !can.getObject().equals(nextObject))
-              .collect(Collectors.toSet());
+              .collect(ImmutableSet.toImmutableSet());
       return traverseAndKickEqual(nextObject, nfo, newCandidates, pState, alreadyVisited);
     } else {
       return candidates;
