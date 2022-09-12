@@ -371,7 +371,7 @@ public class SMGPrecisionAdjustment implements PrecisionAdjustment {
         SMGPrecision smgPrecision = (SMGPrecision) precision;
         for (Value trackedValue : smgPrecision.getTrackedHeapValues()) {
           SMGValue smgValueForValue =
-              currentState.getMemoryModel().getSMGValueFromValue(trackedValue).get();
+              currentState.getMemoryModel().getSMGValueFromValue(trackedValue).orElseThrow();
           currentState = currentState.copyAndForget(trackedValue, smgValueForValue).getState();
         }
       }
