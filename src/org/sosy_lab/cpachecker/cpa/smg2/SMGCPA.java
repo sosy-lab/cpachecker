@@ -224,16 +224,6 @@ public class SMGCPA
 
   @Override
   public PrecisionAdjustment getPrecisionAdjustment() {
-    /*
-    if (unknownValueStrategy.equals(UnknownValueStrategy.INTRODUCE_SYMBOLIC)) {
-      symbolicStats = new SymbolicStatistics();
-      return new SymbolicValueAnalysisPrecisionAdjustment(
-          statistics,
-          cfa,
-          precisionAdjustmentOptions,
-          precisionAdjustmentStatistics,
-          Preconditions.checkNotNull(symbolicStats));
-    } else {*/
     return new SMGPrecisionAdjustment(
         statistics, cfa, precisionAdjustmentOptions, precisionAdjustmentStatistics);
   }
@@ -242,13 +232,12 @@ public class SMGCPA
     return logger;
   }
 
-  public void injectRefinablePrecision() throws InvalidConfigurationException {
-
+  public void injectRefinablePrecision() {
     // replace the full precision with an empty, refinable precision
     if (initialPrecisionFile == null
         && initialPredicatePrecisionFile == null
         && !refineablePrecisionSet) {
-      precision = VariableTrackingPrecision.createRefineablePrecision(config, precision);
+      precision = new SMGPrecision(precision);
       refineablePrecisionSet = true;
     }
   }
@@ -262,8 +251,7 @@ public class SMGCPA
 
     // Initialize precision
     VariableTrackingPrecision initialPrecision =
-        VariableTrackingPrecision.createRefineablePrecision(
-            pConfig,
+        new SMGPrecision(
             VariableTrackingPrecision.createStaticPrecision(
                 pConfig, pCfa.getVarClassification(), getClass()));
 
