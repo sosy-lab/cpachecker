@@ -31,6 +31,7 @@ public class SMGPrecision extends RefinablePrecision {
 
   /** the collection that determines which variables are tracked within a specific scope */
   private final ImmutableSortedSet<MemoryLocation> rawPrecision;
+
   private final ImmutableSet<Value> trackedHeapValues;
 
   SMGPrecision(VariableTrackingPrecision pBaseline) {
@@ -103,7 +104,17 @@ public class SMGPrecision extends RefinablePrecision {
 
     Iterable<MemoryLocation> joinedPrec =
         Iterables.concat(rawPrecision, consolidatedPrecision.rawPrecision);
-    return new SMGPrecision(super.getBaseline(), joinedPrec, trackedHeapValues);
+    return new SMGPrecision(
+        super.getBaseline(),
+        joinedPrec,
+        ImmutableSet.<Value>builder()
+            .addAll(trackedHeapValues)
+            .addAll(consolidatedPrecision.trackedHeapValues)
+            .build());
+  }
+
+  public ImmutableSet<Value> getTrackedHeapValues() {
+    return trackedHeapValues;
   }
 
   @Override
