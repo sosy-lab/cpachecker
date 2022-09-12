@@ -557,7 +557,8 @@ public class SMGState
 
   /**
    * Removes ALL {@link MemoryLocation}s given from the state and then adds them back in with the
-   * values given. The given Values should never represent any heap related Values (pointers).
+   * values given. The given Values should never represent any heap related Values (pointers). It is
+   * expected that only if nonHeapAssignments is null, the other 2 nullables are null as well.
    *
    * @param nonHeapAssignments {@link MemoryLocation}s and matching {@link ValueAndValueSize} for
    *     each variable to be changed.
@@ -567,8 +568,8 @@ public class SMGState
    */
   public SMGState reconstructSMGStateFromNonHeapAssignments(
       @Nullable PersistentMap<MemoryLocation, ValueAndValueSize> nonHeapAssignments,
-      Map<String, BigInteger> variableNameToMemorySizeInBits,
-      Map<String, CType> variableTypeMap,
+      @Nullable Map<String, BigInteger> variableNameToMemorySizeInBits,
+      @Nullable Map<String, CType> variableTypeMap,
       PersistentStack<CFunctionDeclarationAndOptionalValue> pStackDeclarations,
       Set<Value> allowedHeapValues)
       throws SMG2Exception {
