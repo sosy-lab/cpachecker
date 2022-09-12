@@ -117,7 +117,7 @@ public final class SMGInformation {
     return Objects.hash(nonHeapAssignments)
         + 31 * Objects.hash(variableToTypeMap)
         + 17 * Objects.hash(variableNameAndSizeInBits)
-        + 23 * (Objects.hash(heapValuesRemoved));
+        + 23 * Objects.hash(heapValuesRemoved);
   }
 
   @Override
