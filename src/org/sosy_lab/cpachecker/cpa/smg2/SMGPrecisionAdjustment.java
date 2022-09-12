@@ -40,9 +40,11 @@ import org.sosy_lab.cpachecker.cpa.location.LocationState;
 import org.sosy_lab.cpachecker.cpa.smg2.abstraction.SMGCPAAbstractionManager;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMG2Exception;
 import org.sosy_lab.cpachecker.cpa.smg2.util.ValueAndValueSize;
+import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.LiveVariables;
+import org.sosy_lab.cpachecker.util.smg.graph.SMGValue;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 import org.sosy_lab.cpachecker.util.statistics.StatCounter;
 import org.sosy_lab.cpachecker.util.statistics.StatTimer;
@@ -101,7 +103,13 @@ public class SMGPrecisionAdjustment implements PrecisionAdjustment {
         description =
             "The minimum list segments directly following each other with the same value needed to"
                 + " abstract them.Minimum is 2.")
-    private int listAbstractionMinimumLengthThreshhold = 5;
+    private int listAbstractionMinimumLengthThreshhold = 3;
+
+    @Option(
+        secure = true,
+        name = "abstractHeapValues",
+        description = "If heap values are to be abstracted based on CEGAR.")
+    private boolean abstractHeapValues = false;
 
     private final ImmutableSet<CFANode> loopHeads;
 
@@ -357,6 +365,14 @@ public class SMGPrecisionAdjustment implements PrecisionAdjustment {
         if (location != null
             && !precision.isTracking(memoryLocation, type, location.getLocationNode())) {
           currentState = currentState.copyAndForget(memoryLocation).getState();
+        }
+      }
+      if (precision instanceof SMGPrecision && options.abstractHeapValues) {
+        SMGPrecision smgPrecision = (SMGPrecision) precision;
+        for (Value trackedValue : smgPrecision.getTrackedHeapValues()) {
+          SMGValue smgValueForValue =
+              currentState.getMemoryModel().getSMGValueFromValue(trackedValue).get();
+          currentState = currentState.copyAndForget(trackedValue, smgValueForValue).getState();
         }
       }
 
