@@ -417,6 +417,7 @@ public class SMGCPAAbstractionTest {
   }
 
   // Test the minimum length needed for abstraction
+  @SuppressWarnings("null")
   @Test
   public void abstractDLLLimitTest() throws InvalidConfigurationException, SMG2Exception {
     BigInteger nfo = pointerSizeInBits;
@@ -430,7 +431,7 @@ public class SMGCPAAbstractionTest {
         SMGCPAAbstractionManager absFinder = new SMGCPAAbstractionManager(state, minLength);
         ImmutableList<SMGCandidate> candidates = absFinder.getRefinedLinkedCandidates();
         if (i < minLength) {
-          assertThat(candidates.size() == 0).isTrue();
+          assertThat(candidates.isEmpty()).isTrue();
           continue;
         }
         SMGCandidate firstObj = candidates.iterator().next();
