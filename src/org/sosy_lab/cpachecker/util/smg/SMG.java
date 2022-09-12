@@ -301,6 +301,25 @@ public class SMG {
     return copyAndSetHVEdges(objEdges, pSmgObject);
   }
 
+  /** Replaces all HVedges at the offset + size with the new HVEdge in the given objects. */
+  public SMG copyAndReplaceHVEdgeAt(
+      SMGObject pSmgObject,
+      BigInteger offsetInBits,
+      BigInteger sizeInBits,
+      SMGHasValueEdge pNewEdge) {
+    FluentIterable<SMGHasValueEdge> currentEdges =
+        getHasValueEdgesByPredicate(
+            pSmgObject,
+            n ->
+                n.getOffset().compareTo(offsetInBits) == 0
+                    && n.getSizeInBits().compareTo(sizeInBits) == 0);
+    PersistentSet<SMGHasValueEdge> objEdges = hasValueEdges.get(pSmgObject);
+    for (SMGHasValueEdge oldEdge : currentEdges) {
+      objEdges = objEdges.removeAndCopy(oldEdge).addAndCopy(pNewEdge);
+    }
+    return copyAndSetHVEdges(objEdges, pSmgObject);
+  }
+
   /**
    * Creates a copy of the SMG and replaces given object by a given new.
    *
