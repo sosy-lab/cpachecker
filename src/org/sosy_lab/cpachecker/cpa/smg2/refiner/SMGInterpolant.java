@@ -32,6 +32,7 @@ import org.sosy_lab.cpachecker.cpa.smg2.SMGOptions;
 import org.sosy_lab.cpachecker.cpa.smg2.SMGState;
 import org.sosy_lab.cpachecker.cpa.smg2.SymbolicProgramConfiguration;
 import org.sosy_lab.cpachecker.cpa.smg2.util.CFunctionDeclarationAndOptionalValue;
+import org.sosy_lab.cpachecker.cpa.smg2.util.SMG2Exception;
 import org.sosy_lab.cpachecker.cpa.smg2.util.ValueAndValueSize;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.util.refinement.Interpolant;
@@ -55,7 +56,7 @@ public final class SMGInterpolant implements Interpolant<SMGState, SMGInterpolan
 
   private final @Nullable Set<Value> allowedHeapValues;
 
-  private final @Nullable SymbolicProgramConfiguration memoryModel;
+  private @Nullable SymbolicProgramConfiguration memoryModel;
 
   private final SMGOptions options;
   private final MachineModel machineModel;
@@ -119,6 +120,55 @@ public final class SMGInterpolant implements Interpolant<SMGState, SMGInterpolan
     cfaEntryFunctionDeclaration = pCfaEntryFunDecl;
     allowedHeapValues = pAllowedHeapValues;
     memoryModel = memMod;
+  }
+
+  // For UseDefInterpolation
+  // No mem model, -> use pNonHeapAssignments to build a mem model
+  public SMGInterpolant(
+      SMGOptions pOptions,
+      MachineModel pMachineModel,
+      LogManager pLogger,
+      PersistentMap<MemoryLocation, ValueAndValueSize> pNonHeapAssignments,
+      Map<String, BigInteger> pVariableNameToMemorySizeInBits,
+      Map<String, CType> pVariableToTypeMap,
+      PersistentStack<CFunctionDeclarationAndOptionalValue> pStackFrameDeclarations,
+      CFunctionDeclaration pCfaEntryFunDecl,
+      Set<Value> pAllowedHeapValues) {
+    options = pOptions;
+    machineModel = pMachineModel;
+    logger = pLogger;
+    nonHeapAssignments = pNonHeapAssignments;
+    variableNameToMemorySizeInBits = pVariableNameToMemorySizeInBits;
+    variableToTypeMap = pVariableToTypeMap;
+    Preconditions.checkArgument(
+        pStackFrameDeclarations == null
+            || ((pStackFrameDeclarations.size() >= 1)
+                && hasEntryFunDef(pStackFrameDeclarations, pCfaEntryFunDecl)));
+    stackFrameDeclarations = pStackFrameDeclarations;
+    Preconditions.checkNotNull(pCfaEntryFunDecl);
+    cfaEntryFunctionDeclaration = pCfaEntryFunDecl;
+    allowedHeapValues = pAllowedHeapValues;
+    try {
+      memoryModel =
+          SMGState.of(
+                  machineModel,
+                  SymbolicProgramConfiguration.of(
+                      BigInteger.valueOf(pMachineModel.getSizeofPtrInBits())),
+                  logger,
+                  options,
+                  ImmutableList.of())
+              .reconstructStackFrames(stackFrameDeclarations)
+              .reconstructSMGStateFromNonHeapAssignments(
+                  nonHeapAssignments,
+                  variableNameToMemorySizeInBits,
+                  variableToTypeMap,
+                  stackFrameDeclarations,
+                  allowedHeapValues)
+              .getMemoryModel();
+    } catch (SMG2Exception e) {
+      memoryModel =
+          SymbolicProgramConfiguration.of(BigInteger.valueOf(pMachineModel.getSizeofPtrInBits()));
+    }
   }
 
   // Precondition
