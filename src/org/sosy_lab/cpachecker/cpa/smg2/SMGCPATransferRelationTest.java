@@ -832,12 +832,7 @@ public class SMGCPATransferRelationTest {
                         .compareTo(sizeInBytes.multiply(BigInteger.valueOf(8)))
                     == 0)
             .isTrue();
-        assertThat(
-                mallocObjectAndOffset
-                        .getSMGObject()
-                        .getOffset()
-                        .compareTo(BigInteger.ZERO)
-                    == 0)
+        assertThat(mallocObjectAndOffset.getSMGObject().getOffset().compareTo(BigInteger.ZERO) == 0)
             .isTrue();
         assertThat(mallocObjectAndOffset.getOffsetForObject().compareTo(BigInteger.ZERO) == 0)
             .isTrue();
@@ -988,24 +983,13 @@ public class SMGCPATransferRelationTest {
                   .multiply(BigInteger.valueOf(8))
                   .multiply(MACHINE_MODEL.getSizeof(sizeofType));
           assertThat(
-                  mallocObjectAndOffset
-                          .getSMGObject()
-                          .getSize()
-                          .compareTo(expectedMemorySizeInBits)
+                  mallocObjectAndOffset.getSMGObject().getSize().compareTo(expectedMemorySizeInBits)
                       == 0)
               .isTrue();
           assertThat(
-                  mallocObjectAndOffset
-                          .getSMGObject()
-                          .getOffset()
-                          .compareTo(BigInteger.ZERO)
-                      == 0)
+                  mallocObjectAndOffset.getSMGObject().getOffset().compareTo(BigInteger.ZERO) == 0)
               .isTrue();
-          assertThat(
-                  mallocObjectAndOffset
-                          .getOffsetForObject()
-                          .compareTo(BigInteger.ZERO)
-                      == 0)
+          assertThat(mallocObjectAndOffset.getOffsetForObject().compareTo(BigInteger.ZERO) == 0)
               .isTrue();
           // Read the SMGObject to make sure that there is no value written
           // TODO:
