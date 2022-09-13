@@ -29,6 +29,7 @@ import org.sosy_lab.cpachecker.cpa.smg2.abstraction.SMGCPAAbstractionManager.SMG
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMG2Exception;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGStateAndOptionalSMGObjectAndOffset;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGValueAndSMGState;
+import org.sosy_lab.cpachecker.cpa.smg2.util.value.ValueAndSMGState;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValueFactory;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
@@ -124,9 +125,18 @@ public class SMGCPAAbstractionTest {
               .getValueFromSMGValue(resultValueAndState.getSMGValue())
               .orElseThrow();
       if (i == size - 1) {
-        Preconditions.checkArgument(currentPointer.isNumericValue());
+        Optional<SMGStateAndOptionalSMGObjectAndOffset> object =
+            currentState.dereferencePointerWithoutMaterilization(currentPointer);
+        assertThat(object.isPresent()).isTrue();
+        assertThat(object.orElseThrow().getSMGObject().getSize().compareTo(sizeInBits) == 0)
+            .isTrue();
+
+        ValueAndSMGState nextPointer =
+            currentState.readValue(
+                object.orElseThrow().getSMGObject(), nfo, pointerSizeInBits, null);
+        Preconditions.checkArgument(nextPointer.getValue().isNumericValue());
         Preconditions.checkArgument(
-            currentPointer.asNumericValue().bigInteger().compareTo(BigInteger.ZERO) == 0);
+            nextPointer.getValue().asNumericValue().bigInteger().compareTo(BigInteger.ZERO) == 0);
         break;
       } else if (i == 0) {
         Preconditions.checkArgument(currentPointer.equals(pointer));
@@ -236,15 +246,25 @@ public class SMGCPAAbstractionTest {
       currentState = resultValueAndState.getSMGState();
       Preconditions.checkArgument(
           currentState.getMemoryModel().getHeapObjects().size() == (i != 9 ? i + 3 : i + 2));
+      // currentPointer == pointer to just materilized list segment
       Value currentPointer =
           currentState
               .getMemoryModel()
               .getValueFromSMGValue(resultValueAndState.getSMGValue())
               .orElseThrow();
       if (i == size - 1) {
-        Preconditions.checkArgument(currentPointer.isNumericValue());
+        Optional<SMGStateAndOptionalSMGObjectAndOffset> object =
+            currentState.dereferencePointerWithoutMaterilization(currentPointer);
+        assertThat(object.isPresent()).isTrue();
+        assertThat(object.orElseThrow().getSMGObject().getSize().compareTo(sizeInBits) == 0)
+            .isTrue();
+
+        ValueAndSMGState nextPointer =
+            currentState.readValue(
+                object.orElseThrow().getSMGObject(), nfo, pointerSizeInBits, null);
+        Preconditions.checkArgument(nextPointer.getValue().isNumericValue());
         Preconditions.checkArgument(
-            currentPointer.asNumericValue().bigInteger().compareTo(BigInteger.ZERO) == 0);
+            nextPointer.getValue().asNumericValue().bigInteger().compareTo(BigInteger.ZERO) == 0);
         break;
       } else if (i == 0) {
         Preconditions.checkArgument(currentPointer.equals(pointer));
