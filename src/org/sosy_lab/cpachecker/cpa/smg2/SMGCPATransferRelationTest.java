@@ -1332,9 +1332,8 @@ public class SMGCPATransferRelationTest {
    */
   @Test
   public void checkStackVariablesWithSimpleTypesAndValues() throws CPATransferException {
-    String variableName = "testVariable";
-
     for (CType type : TEST_TYPES) {
+      String variableName = "testVariable";
       StringBuilder stringBuilder = new StringBuilder(100);
       for (int i = 0; i < 2; i++) {
         stringBuilder.append(variableName);
