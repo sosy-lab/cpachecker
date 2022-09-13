@@ -150,15 +150,17 @@ public class SMGEdgeInterpolator
       // temporarily remove the value of the current memory location from the candidate
       // interpolant
       // Immutable copyOnOperation case
-      StateAndInfo<SMGState, SMGInformation> forgottenInformationAndNewState =
-          initialSuccessor.copyAndForget(currentMemoryLocation);
-      initialSuccessor = forgottenInformationAndNewState.getState();
+      SMGState oldSuccessor = initialSuccessor;
+      initialSuccessor =
+          initialSuccessor
+              .copyAndForget(currentMemoryLocation)
+              .getState()
+              .copyAndPruneUnreachable();
 
       // check if the remaining path now becomes feasible
       if (isRemainingPathFeasible(remainingErrorPath, initialSuccessor)) {
-        initialSuccessor =
-            initialSuccessor.copyAndRemember(
-                currentMemoryLocation, forgottenInformationAndNewState.getInfo());
+        // Since we use immutable states, we can just use the old state
+        initialSuccessor = oldSuccessor;
       }
     }
     // TODO: make this generic
