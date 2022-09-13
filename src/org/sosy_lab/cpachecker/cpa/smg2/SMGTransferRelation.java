@@ -347,10 +347,15 @@ public class SMGTransferRelation
       String varName = decl.getQualifiedName();
       if (!pState.isLocalOrGlobalVariablePresent(varName)) {
         if (decl instanceof CVariableDeclaration) {
-          return evaluator.handleVariableDeclaration(pState, (CVariableDeclaration) decl, cfaEdge);
+          List<SMGState> statesWithVar =
+              evaluator.handleVariableDeclarationWithoutInizializer(
+                  pState, (CVariableDeclaration) decl, cfaEdge);
+          return statesWithVar;
         } else if (decl instanceof CParameterDeclaration) {
-          return evaluator.handleVariableDeclaration(
-              pState, ((CParameterDeclaration) decl).asVariableDeclaration(), cfaEdge);
+          List<SMGState> statesWithVar =
+              evaluator.handleVariableDeclarationWithoutInizializer(
+                  pState, ((CParameterDeclaration) decl).asVariableDeclaration(), cfaEdge);
+          return statesWithVar;
         }
       }
       return ImmutableList.of(pState);

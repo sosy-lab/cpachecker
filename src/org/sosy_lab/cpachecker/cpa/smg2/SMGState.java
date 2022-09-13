@@ -484,7 +484,7 @@ public class SMGState
         qualifiedName, offsetToWriteToInBits, sizeOfWriteInBits, valueToWrite, typeOfUnknown);
   }
 
-  private SMGState reconstructStackFrames(
+  public SMGState reconstructStackFrames(
       PersistentStack<CFunctionDeclarationAndOptionalValue> pStackDeclarations) {
     SMGState currentState = this;
     // the given stack is reversed! We can
@@ -492,7 +492,6 @@ public class SMGState
     Iterator<CFunctionDeclarationAndOptionalValue> shouldBeFrames = pStackDeclarations.iterator();
     // The current should have the main!
     // The other can be empty for the false/true interpolants
-    Preconditions.checkArgument(existingFrames.hasNext());
     while (shouldBeFrames.hasNext()) {
       if (existingFrames.hasNext()) {
         // As long as there are frames on both, they should match
@@ -1998,27 +1997,28 @@ public class SMGState
       return this;
     }
 
-    Optional<SMGStateAndOptionalSMGObjectAndOffset> maybeRegion =
-        dereferencePointer(sanitizedAddressToFree);
-    // If there is no region, the Optional is empty
-    if (maybeRegion.isEmpty()) {
+    SMGStateAndOptionalSMGObjectAndOffset maybeRegion = dereferencePointer(sanitizedAddressToFree);
+    // If there is no region the deref failed
+    if (!maybeRegion.hasSMGObjectAndOffset()) {
       logger.log(
           Level.INFO,
           "Free on expression ",
           pFunctionCall.getParameterExpressions().get(0).toASTString(),
           " is invalid, because the target of the address could not be calculated.");
       SMGState invalidFreeState =
-          withInvalidFree(
-              "Free on expression "
-                  + pFunctionCall.getParameterExpressions().get(0).toASTString()
-                  + " is invalid, because the target of the address could not be"
-                  + " calculated.",
-              addressToFree);
+          maybeRegion
+              .getSMGState()
+              .withInvalidFree(
+                  "Free on expression "
+                      + pFunctionCall.getParameterExpressions().get(0).toASTString()
+                      + " is invalid, because the target of the address could not be"
+                      + " calculated.",
+                  addressToFree);
       return invalidFreeState;
     }
-    SMGState currentState = maybeRegion.orElseThrow().getSMGState();
-    SMGObject regionToFree = maybeRegion.orElseThrow().getSMGObject();
-    BigInteger offsetInBits = baseOffset.add(maybeRegion.orElseThrow().getOffsetForObject());
+    SMGState currentState = maybeRegion.getSMGState();
+    SMGObject regionToFree = maybeRegion.getSMGObject();
+    BigInteger offsetInBits = baseOffset.add(maybeRegion.getOffsetForObject());
 
     // free(0) is a nop in C
     if (regionToFree.isZero()) {
@@ -2225,18 +2225,15 @@ public class SMGState
       Value valueToWrite,
       CType valueType)
       throws SMG2Exception {
-    Optional<SMGStateAndOptionalSMGObjectAndOffset> maybeRegion =
-        dereferencePointer(addressToMemory);
-    if (maybeRegion.isEmpty()) {
+    SMGStateAndOptionalSMGObjectAndOffset maybeRegion = dereferencePointer(addressToMemory);
+    if (!maybeRegion.hasSMGObjectAndOffset()) {
       // Can't write to non existing memory. However, we might not track that memory at the moment!
-      return this;
+      return maybeRegion.getSMGState();
     }
 
-    SMGStateAndOptionalSMGObjectAndOffset memoryRegionAndOffset = maybeRegion.orElseThrow();
-    SMGState currentState = memoryRegionAndOffset.getSMGState();
-    SMGObject memoryRegion = memoryRegionAndOffset.getSMGObject();
-    Preconditions.checkArgument(
-        memoryRegionAndOffset.getOffsetForObject().compareTo(BigInteger.ZERO) == 0);
+    SMGState currentState = maybeRegion.getSMGState();
+    SMGObject memoryRegion = maybeRegion.getSMGObject();
+    Preconditions.checkArgument(maybeRegion.getOffsetForObject().compareTo(BigInteger.ZERO) == 0);
 
     return currentState.writeValueTo(
         memoryRegion, writeOffsetInBits, sizeInBits, valueToWrite, valueType);
@@ -2252,21 +2249,19 @@ public class SMGState
    * @throws SMG2Exception if there is no memory/or pointer for the given Value.
    */
   public SMGState writeToZero(Value addressToMemory, CType type) throws SMG2Exception {
-    Optional<SMGStateAndOptionalSMGObjectAndOffset> maybeRegion =
-        dereferencePointer(addressToMemory);
-    if (maybeRegion.isEmpty()) {
+    SMGStateAndOptionalSMGObjectAndOffset maybeRegion = dereferencePointer(addressToMemory);
+    if (!maybeRegion.hasSMGObjectAndOffset()) {
       // Can't write to non existing memory. However, we might not track that memory at the moment!
       // TODO: log
-      return this;
+      return maybeRegion.getSMGState();
     }
-    SMGStateAndOptionalSMGObjectAndOffset memoryRegionAndOffset = maybeRegion.orElseThrow();
-    SMGState currentState = memoryRegionAndOffset.getSMGState();
-    SMGObject memoryRegion = memoryRegionAndOffset.getSMGObject();
-    Preconditions.checkArgument(
-        memoryRegionAndOffset.getOffsetForObject().compareTo(BigInteger.ZERO) == 0);
+
+    SMGState currentState = maybeRegion.getSMGState();
+    SMGObject memoryRegion = maybeRegion.getSMGObject();
+    Preconditions.checkArgument(maybeRegion.getOffsetForObject().compareTo(BigInteger.ZERO) == 0);
     return currentState.writeValue(
         memoryRegion,
-        memoryRegionAndOffset.getOffsetForObject(),
+        maybeRegion.getOffsetForObject(),
         memoryRegion.getSize(),
         new NumericValue(0),
         type);
@@ -2579,7 +2574,8 @@ public class SMGState
         memoryModel.getVariableTypeMap(),
         funDecls,
         funDeclsIter.next().getCFunctionDeclaration(),
-        memoryModel.getheapValueWhitelist());
+        memoryModel.getheapValueWhitelist(),
+        memoryModel);
   }
 
   @Deprecated
@@ -2949,8 +2945,9 @@ public class SMGState
   }
 
   /**
-   * Tries to dereference the pointer given by the argument {@link Value}. Returns a empty Optional
-   * if the dereference fails because the entered {@link Value} is not known as a pointer. This does
+   * Tries to dereference the pointer given by the argument {@link Value}. Returns a
+   * SMGStateAndOptionalSMGObjectAndOffset without object and offset but maybe a updated state if
+   * the dereference fails because the entered {@link Value} is not known as a pointer. This does
    * not check validity of the Value!
    *
    * @param pointer the {@link Value} to dereference.
@@ -2958,11 +2955,11 @@ public class SMGState
    *     if its not a pointer in the current {@link SymbolicProgramConfiguration}.
    * @throws SMG2Exception in case of critical errors in the materialization of abstract memory.
    */
-  public Optional<SMGStateAndOptionalSMGObjectAndOffset> dereferencePointer(Value pointer)
+  public SMGStateAndOptionalSMGObjectAndOffset dereferencePointer(Value pointer)
       throws SMG2Exception {
     if (!memoryModel.isPointer(pointer)) {
       // Not known or not known as a pointer, return nothing
-      return Optional.empty();
+      return SMGStateAndOptionalSMGObjectAndOffset.of(this);
     }
     SMGState currentState = this;
     SMGValue smgValueAddress = memoryModel.getSMGValueFromValue(pointer).orElseThrow();
@@ -2972,17 +2969,16 @@ public class SMGState
       SMGValueAndSMGState NewPointerValueAndState =
           materializeReturnPointerValueAndCopy(smgValueAddress);
       currentState = NewPointerValueAndState.getSMGState();
-      ptEdge =
-          currentState
-              .memoryModel
-              .getSmg()
-              .getPTEdge(NewPointerValueAndState.getSMGValue())
-              .orElseThrow();
+      Optional<SMGPointsToEdge> maybePtEdge =
+          currentState.memoryModel.getSmg().getPTEdge(NewPointerValueAndState.getSMGValue());
+      if (maybePtEdge.isEmpty()) {
+        return SMGStateAndOptionalSMGObjectAndOffset.of(currentState);
+      }
+      ptEdge = maybePtEdge.orElseThrow();
       Preconditions.checkArgument(!(ptEdge.pointsTo() instanceof SMGSinglyLinkedListSegment));
     }
-    return Optional.of(
-        SMGStateAndOptionalSMGObjectAndOffset.of(
-            ptEdge.pointsTo(), ptEdge.getOffset(), currentState));
+    return SMGStateAndOptionalSMGObjectAndOffset.of(
+        ptEdge.pointsTo(), ptEdge.getOffset(), currentState);
   }
 
   public Optional<SMGStateAndOptionalSMGObjectAndOffset> dereferencePointerWithoutMaterilization(

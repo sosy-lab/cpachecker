@@ -18,7 +18,6 @@ import java.math.BigInteger;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
-import java.util.Optional;
 import org.junit.Before;
 import org.junit.Test;
 import org.sosy_lab.common.configuration.Configuration;
@@ -823,12 +822,11 @@ public class SMGCPATransferRelationTest {
         // The read state should not have any errors
         // TODO: error check
         assertThat(memoryModel.isPointer(readValueAndState.getValue())).isTrue();
-        Optional<SMGStateAndOptionalSMGObjectAndOffset> mallocObjectAndOffset =
+        SMGStateAndOptionalSMGObjectAndOffset mallocObjectAndOffset =
             stateAfterMallocAssignSuccess.dereferencePointer(readValueAndState.getValue());
-        assertThat(mallocObjectAndOffset.isPresent()).isTrue();
+        assertThat(mallocObjectAndOffset.hasSMGObjectAndOffset()).isTrue();
         assertThat(
                 mallocObjectAndOffset
-                        .orElseThrow()
                         .getSMGObject()
                         .getSize()
                         .compareTo(sizeInBytes.multiply(BigInteger.valueOf(8)))
@@ -836,15 +834,12 @@ public class SMGCPATransferRelationTest {
             .isTrue();
         assertThat(
                 mallocObjectAndOffset
-                        .orElseThrow()
                         .getSMGObject()
                         .getOffset()
                         .compareTo(BigInteger.ZERO)
                     == 0)
             .isTrue();
-        assertThat(
-                mallocObjectAndOffset.orElseThrow().getOffsetForObject().compareTo(BigInteger.ZERO)
-                    == 0)
+        assertThat(mallocObjectAndOffset.getOffsetForObject().compareTo(BigInteger.ZERO) == 0)
             .isTrue();
         // Read the SMGObject to make sure that there is no value written
         // TODO:
@@ -985,16 +980,15 @@ public class SMGCPATransferRelationTest {
           // The read state should not have any errors
           // TODO: error check
           assertThat(memoryModel.isPointer(readValueAndState.getValue())).isTrue();
-          Optional<SMGStateAndOptionalSMGObjectAndOffset> mallocObjectAndOffset =
+          SMGStateAndOptionalSMGObjectAndOffset mallocObjectAndOffset =
               stateAfterMallocAssignSuccess.dereferencePointer(readValueAndState.getValue());
-          assertThat(mallocObjectAndOffset.isPresent()).isTrue();
+          assertThat(mallocObjectAndOffset.hasSMGObjectAndOffset()).isTrue();
           BigInteger expectedMemorySizeInBits =
               sizeMultiplikator
                   .multiply(BigInteger.valueOf(8))
                   .multiply(MACHINE_MODEL.getSizeof(sizeofType));
           assertThat(
                   mallocObjectAndOffset
-                          .orElseThrow()
                           .getSMGObject()
                           .getSize()
                           .compareTo(expectedMemorySizeInBits)
@@ -1002,7 +996,6 @@ public class SMGCPATransferRelationTest {
               .isTrue();
           assertThat(
                   mallocObjectAndOffset
-                          .orElseThrow()
                           .getSMGObject()
                           .getOffset()
                           .compareTo(BigInteger.ZERO)
@@ -1010,7 +1003,6 @@ public class SMGCPATransferRelationTest {
               .isTrue();
           assertThat(
                   mallocObjectAndOffset
-                          .orElseThrow()
                           .getOffsetForObject()
                           .compareTo(BigInteger.ZERO)
                       == 0)
@@ -1159,10 +1151,10 @@ public class SMGCPATransferRelationTest {
       Value address = readAddressValueAndState.getValue();
       // TODO: address this type thing
       // assertThat(address instanceof ConstantSymbolicExpression).isTrue();
-      Optional<SMGStateAndOptionalSMGObjectAndOffset> maybeTargetOfPointer =
+      SMGStateAndOptionalSMGObjectAndOffset maybeTargetOfPointer =
           stateWithArray.dereferencePointer(address);
-      assertThat(maybeTargetOfPointer.isPresent()).isTrue();
-      SMGStateAndOptionalSMGObjectAndOffset targetOfPointer = maybeTargetOfPointer.orElseThrow();
+      assertThat(maybeTargetOfPointer.hasSMGObjectAndOffset()).isTrue();
+      SMGStateAndOptionalSMGObjectAndOffset targetOfPointer = maybeTargetOfPointer;
       // The offset of the address should be 0
       assertThat(targetOfPointer.getOffsetForObject().compareTo(BigInteger.ZERO)).isEqualTo(0);
       SMGObject arrayMemoryObject = targetOfPointer.getSMGObject();
@@ -1308,10 +1300,10 @@ public class SMGCPATransferRelationTest {
               memoryObject, BigInteger.ZERO, BigInteger.valueOf(POINTER_SIZE_IN_BITS), null);
       Value address = readAddressValueAndState.getValue();
       // assertThat(address instanceof ConstantSymbolicExpression).isTrue();
-      Optional<SMGStateAndOptionalSMGObjectAndOffset> maybeTargetOfPointer =
+      SMGStateAndOptionalSMGObjectAndOffset maybeTargetOfPointer =
           stateWithStruct.dereferencePointer(address);
-      assertThat(maybeTargetOfPointer.isPresent()).isTrue();
-      SMGStateAndOptionalSMGObjectAndOffset targetOfPointer = maybeTargetOfPointer.orElseThrow();
+      assertThat(maybeTargetOfPointer.hasSMGObjectAndOffset()).isTrue();
+      SMGStateAndOptionalSMGObjectAndOffset targetOfPointer = maybeTargetOfPointer;
       // The offset of the address should be 0
       assertThat(targetOfPointer.getOffsetForObject().compareTo(BigInteger.ZERO)).isEqualTo(0);
       SMGObject arrayMemoryObject = targetOfPointer.getSMGObject();

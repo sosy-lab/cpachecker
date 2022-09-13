@@ -633,10 +633,11 @@ public class SMGCPAValueVisitor
     if (!state.isLocalOrGlobalVariablePresent(variableName)) {
       if (varDecl instanceof CVariableDeclaration) {
         creationBuilder.addAll(
-            evaluator.handleVariableDeclaration(state, (CVariableDeclaration) varDecl, cfaEdge));
+            evaluator.handleVariableDeclarationWithoutInizializer(
+                state, (CVariableDeclaration) varDecl, cfaEdge));
       } else if (varDecl instanceof CParameterDeclaration) {
         creationBuilder.addAll(
-            evaluator.handleVariableDeclaration(
+            evaluator.handleVariableDeclarationWithoutInizializer(
                 state, ((CParameterDeclaration) varDecl).asVariableDeclaration(), cfaEdge));
       } else {
         throw new SMG2Exception("Unhandled on-the-fly variable creation type: " + varDecl);
