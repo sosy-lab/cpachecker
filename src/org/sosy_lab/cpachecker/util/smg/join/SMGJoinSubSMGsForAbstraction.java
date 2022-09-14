@@ -172,7 +172,8 @@ public class SMGJoinSubSMGsForAbstraction extends SMGAbstractJoin {
     mappedNodes.addAll(mapping2.getMappedObjects());
     mappedNodes.addAll(mapping2.getMappedValues());
     // TODO this modifies nodes, maybe it would be better to replace existing with modified copy
-    mappedNodes.forEach(node -> node.increaseLevelBy(1));
+    // TODO: now they are immutable and need to be replaced ;D
+    // mappedNodes.forEach(node -> node.withNestingLevelAndCopy(node.getNestingLevel() + 1));
   }
 
   /**

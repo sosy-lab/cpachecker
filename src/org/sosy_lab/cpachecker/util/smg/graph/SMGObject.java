@@ -100,12 +100,12 @@ public class SMGObject implements SMGNode, Comparable<SMGObject> {
     return of(nestingLevel, size, offset);
   }
 
-  @Override
-  public void increaseLevelBy(int pByX) {
-    nestingLevel += pByX;
-  }
-
   public boolean isSLL() {
     return false;
+  }
+
+  @Override
+  public SMGNode withNestingLevelAndCopy(int pNewLevel) {
+    return new SMGObject(pNewLevel, size, offset);
   }
 }
