@@ -60,9 +60,9 @@ public class SMGCPAAbstractionManager {
     return currentState;
   }
 
-  private int getLinkedCandidateLength(SMGObject root, BigInteger nfo) {
+  private int getLinkedCandidateLength(SMGObject root, BigInteger nfo, Set<SMGObject> alreadySeen) {
     SMG smg = state.getMemoryModel().getSmg();
-    if (!smg.isValid(root)) {
+    if (!smg.isValid(root) || alreadySeen.contains(root)) {
       return 0;
     }
     for (SMGHasValueEdge hve : smg.getEdges(root)) {
@@ -70,7 +70,8 @@ public class SMGCPAAbstractionManager {
 
       if (hve.getOffset().compareTo(nfo) == 0 && smg.isPointer(value)) {
         SMGPointsToEdge pointsToEdge = smg.getPTEdge(value).orElseThrow();
-        return 1 + getLinkedCandidateLength(pointsToEdge.pointsTo(), nfo);
+        alreadySeen.add(root);
+        return 1 + getLinkedCandidateLength(pointsToEdge.pointsTo(), nfo, alreadySeen);
       }
     }
     return 0;
@@ -81,11 +82,13 @@ public class SMGCPAAbstractionManager {
         ImmutableList.sortedCopyOf(
             Comparator.comparing(SMGCandidate::getSuspectedNfo),
             refineCandidates(getLinkedCandidates(), state));
-    return sortedCandiList.stream()
+    return sortedCandiList
+        .stream()
         .filter(
             c ->
                 minimumLengthForListsForAbstraction
-                    <= getLinkedCandidateLength(c.getObject(), c.getSuspectedNfo()))
+                    <= getLinkedCandidateLength(
+                        c.getObject(), c.getSuspectedNfo(), new HashSet<>()))
         .collect(ImmutableList.toImmutableList());
   }
 
