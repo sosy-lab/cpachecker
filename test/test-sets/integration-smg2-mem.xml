@@ -20,6 +20,8 @@ SPDX-License-Identifier: Apache-2.0
     <option name="-smg2"/>
   </rundefinition>
 
+  <!-- SV-Comp files assume that malloc always succeeds -->
+  <option name="-setprop">cpa.smg2.enableMallocFail=false</option>
 
   <tasks name="MemSafety-Arrays">
     <includesfile>../programs/benchmarks/MemSafety-Arrays.set</includesfile>
