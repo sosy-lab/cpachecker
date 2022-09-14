@@ -2444,6 +2444,16 @@ public class SMGState
         memoryModel.copyAndAddPointerFromAddressToRegion(addressValue, target, offsetInBits));
   }
 
+  /*
+   * Same as createAndAddPointer but with a specific nesting level in the SMGObject
+   */
+  public SMGState createAndAddPointerWithNestingLevel(
+      Value addressValue, SMGObject target, BigInteger offsetInBits, int nestingLevel) {
+    return copyAndReplaceMemoryModel(
+        memoryModel.copyAndAddPointerFromAddressToRegionWithNestingLevel(
+            addressValue, target, offsetInBits, nestingLevel));
+  }
+
   /**
    * Sets the entered variable to extern. The variable has to exist in the current memory model or
    * an exception is thrown. This keeps the former association of the variable intact! So if its
@@ -2849,7 +2859,8 @@ public class SMGState
             currentState.memoryModel.replaceAllPointersTowardsWith(nextObj, newDLL));
     currentState =
         currentState.copyAndReplaceMemoryModel(
-            currentState.memoryModel.replaceAllPointersTowardsWith(root, newDLL));
+            currentState.memoryModel.replaceAllPointersTowardsWithAndIncrementNestingLevel(
+                root, newDLL));
 
     // Remove the 2 old objects and continue
     currentState =
@@ -2906,15 +2917,17 @@ public class SMGState
     currentState = currentState.copyAllValuesFromObjToObj(nextObj, newSLL);
 
     // Replace ALL pointers that previously pointed to the root or the next object to the SLL
-    // This currently simply changes where the pointers point to, the values are the same
-    // TODO: increment the nesting level of all of those by 1
+    // We increment their nesting level by 1
+    // We don´t change the nesting level of the pointers that were pointed towards the concrete
+    // segment as this is the current bottom with 0
     // Careful as to not introduce a loop! As root does point to next,
     currentState =
         currentState.copyAndReplaceMemoryModel(
             currentState.memoryModel.replaceAllPointersTowardsWith(nextObj, newSLL));
     currentState =
         currentState.copyAndReplaceMemoryModel(
-            currentState.memoryModel.replaceAllPointersTowardsWith(root, newSLL));
+            currentState.memoryModel.replaceAllPointersTowardsWithAndIncrementNestingLevel(
+                root, newSLL));
 
     // Remove the 2 old objects and continue
     currentState =

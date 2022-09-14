@@ -44,6 +44,11 @@ public class SMGValue implements SMGNode, Comparable<SMGValue> {
     id = U_ID_GENERATOR.getFreshId();
   }
 
+  private SMGValue(int pId, int pNestingLevel) {
+    nestingLevel = pNestingLevel;
+    id = pId;
+  }
+
   public static SMGValue of(int pNestingLevel) {
     return new SMGValue(pNestingLevel);
   }
@@ -108,8 +113,8 @@ public class SMGValue implements SMGNode, Comparable<SMGValue> {
   }
 
   @Override
-  public void increaseLevelBy(int pByX) {
-    nestingLevel += pByX;
+  public SMGValue withNestingLevelAndCopy(int newLevel) {
+    return new SMGValue(id, newLevel);
   }
 
   @Override

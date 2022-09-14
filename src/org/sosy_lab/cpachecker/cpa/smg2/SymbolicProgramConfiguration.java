@@ -663,6 +663,19 @@ public class SymbolicProgramConfiguration {
         heapValueWhitelist);
   }
 
+  // For tests
+  public SymbolicProgramConfiguration replaceSMGValueNestingLevel(SMGValue value, int newLevel) {
+    return of(
+        smg.replaceSMGValueNestingLevel(value, newLevel),
+        globalVariableMapping,
+        stackVariableMapping,
+        heapObjects,
+        externalObjectAllocation,
+        valueMapping,
+        variableToTypeMap,
+        heapValueWhitelist);
+  }
+
   /*
    * Imagine a list a -> b -> c
    * This removes the object b and sets the pointers from a -> b to a -> c
@@ -972,6 +985,23 @@ public class SymbolicProgramConfiguration {
     return spc.copyAndReplaceSMG(spc.getSmg().copyAndAddPTEdge(pointsToEdge, smgAddress));
   }
 
+  /*
+   * Same as copyAndAddPointerFromAddressToRegion but with a specific nesting level in the value.
+   */
+  public SymbolicProgramConfiguration copyAndAddPointerFromAddressToRegionWithNestingLevel(
+      Value address, SMGObject target, BigInteger offsetInBits, int nestingLevel) {
+    // If there is no SMGValue for this address we create it, else we use the existing
+    SymbolicProgramConfiguration spc = this.copyAndCreateValue(address);
+    SMGValue smgAddress = spc.getSMGValueFromValue(address).orElseThrow();
+    // Now we create a points-to-edge from this value to the target object at the
+    // specified offset, overriding any existing from this value
+    SMGPointsToEdge pointsToEdge =
+        new SMGPointsToEdge(target, offsetInBits, SMGTargetSpecifier.IS_REGION);
+    return spc.copyAndReplaceSMG(
+        spc.getSmg()
+            .copyAndAddPTEdge(pointsToEdge, smgAddress.withNestingLevelAndCopy(nestingLevel)));
+  }
+
   /**
    * Checks if a {@link SMGPointsToEdge} exists for the entered target object and offset and returns
    * a {@link Optional} that is filled with the SMGValue leading to the points-to-edge, empty if
@@ -1204,6 +1234,52 @@ public class SymbolicProgramConfiguration {
       SMGObject oldObj, SMGObject newObject) {
     return new SymbolicProgramConfiguration(
         smg.replaceAllPointersTowardsWith(oldObj, newObject),
+        globalVariableMapping,
+        stackVariableMapping,
+        heapObjects,
+        externalObjectAllocation,
+        valueMapping,
+        variableToTypeMap,
+        heapValueWhitelist);
+  }
+
+  /**
+   * Search for all pointers towards the oldObj and switch them to newTarget. Then increments the
+   * nesting level of the values of the changed pointers by 1. We expect that the newTarget does not
+   * have any pointers towards it.
+   *
+   * @param oldObj old object.
+   * @param newObject new target object.
+   * @return a new SMG with the replacement.
+   */
+  public SymbolicProgramConfiguration replaceAllPointersTowardsWithAndIncrementNestingLevel(
+      SMGObject oldObj, SMGObject newObject) {
+    return new SymbolicProgramConfiguration(
+        smg.replaceAllPointersTowardsWithAndIncrementNestingLevel(oldObj, newObject),
+        globalVariableMapping,
+        stackVariableMapping,
+        heapObjects,
+        externalObjectAllocation,
+        valueMapping,
+        variableToTypeMap,
+        heapValueWhitelist);
+  }
+
+  /**
+   * Search for all pointers towards the object old and replaces them with pointers pointing towards
+   * the new object only if their nesting level is equal to the given. Then switches the nesting
+   * level of the switched to 0.
+   *
+   * @param oldObj old object.
+   * @param newObject new target object.
+   * @param replacementLevel the level to switch
+   * @return a new SMG with the replacement.
+   */
+  public SymbolicProgramConfiguration replaceSpecificPointersTowardsWithAndSetNestingLevelZero(
+      SMGObject oldObj, SMGObject newObject, int replacementLevel) {
+    return new SymbolicProgramConfiguration(
+        smg.replaceSpecificPointersTowardsWithAndSetNestingLevelZero(
+            oldObj, newObject, replacementLevel),
         globalVariableMapping,
         stackVariableMapping,
         heapObjects,

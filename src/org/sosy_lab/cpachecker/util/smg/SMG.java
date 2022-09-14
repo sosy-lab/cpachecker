@@ -1148,4 +1148,177 @@ public class SMG {
     }
     return newSMG;
   }
+
+  /**
+   * Search for all pointers towards the oldObj and switch them to newTarget. Then increments the
+   * nesting level of the values of the changed pointers by 1. We expect that the newTarget does not
+   * have any pointers towards it.
+   *
+   * @param oldObj old object.
+   * @param newTarget new target object.
+   * @return a new SMG with the replacement.
+   */
+  public SMG replaceAllPointersTowardsWithAndIncrementNestingLevel(
+      SMGObject oldObj, SMGObject newTarget) {
+    SMG newSMG = this;
+    if (newTarget.isZero() || oldObj.isZero()) {
+      throw new AssertionError("Can't replace a 0 value!");
+    }
+    ImmutableSet.Builder<SMGValue> valuesToDecrementBuilder = ImmutableSet.builder();
+    for (Entry<SMGValue, SMGPointsToEdge> pointsToEntry : pointsToEdges.entrySet()) {
+      if (pointsToEntry.getValue().pointsTo().equals(oldObj)) {
+        SMGValue value = pointsToEntry.getKey();
+        // Since we decrement the nesting level afterwards, we check for 1 instead of 0
+        // The equals for values checks only the ID not the nesting level!!!
+        newSMG =
+            newSMG.copyAndSetPTEdges(
+                new SMGPointsToEdge(
+                    newTarget,
+                    pointsToEntry.getValue().getOffset(),
+                    pointsToEntry.getValue().targetSpecifier()),
+                value.withNestingLevelAndCopy(value.getNestingLevel() + 1));
+
+        // Remember the values to decrement the nesting level
+        valuesToDecrementBuilder.add(value);
+      }
+    }
+    ImmutableSet<SMGValue> valuesToDecrement = valuesToDecrementBuilder.build();
+    PersistentMap<SMGObject, PersistentSet<SMGHasValueEdge>> newHasValueEdges = hasValueEdges;
+    // Update the nesting level
+    for (Entry<SMGObject, PersistentSet<SMGHasValueEdge>> objToHvEntry : hasValueEdges.entrySet()) {
+      SMGObject currentObject = objToHvEntry.getKey();
+      boolean contains = false;
+      PersistentSet<SMGHasValueEdge> hvEdges = objToHvEntry.getValue();
+      for (SMGHasValueEdge hvEdge : objToHvEntry.getValue()) {
+        if (valuesToDecrement.contains(hvEdge.hasValue())) {
+          contains = true;
+          hvEdges = hvEdges.removeAndCopy(hvEdge);
+          hvEdges =
+              hvEdges.addAndCopy(
+                  new SMGHasValueEdge(
+                      hvEdge
+                          .hasValue()
+                          .withNestingLevelAndCopy(hvEdge.hasValue().getNestingLevel() + 1),
+                      hvEdge.getOffset(),
+                      hvEdge.getSizeInBits()));
+        }
+      }
+      if (contains) {
+        // Save to copy the entire entry
+        newHasValueEdges = newHasValueEdges.removeAndCopy(currentObject);
+        newHasValueEdges = newHasValueEdges.putAndCopy(currentObject, hvEdges);
+      }
+    }
+    return newSMG.replaceHasValueEdgesAndCopy(newHasValueEdges);
+  }
+
+  /**
+   * Search for all pointers towards the object old and replaces them with pointers pointing towards
+   * the new object only if their nesting level is equal to the given. Then switches the nesting
+   * level of the switched to 0.
+   *
+   * @param oldObj old object.
+   * @param newTarget new target object.
+   * @return a new SMG with the replacement.
+   */
+  public SMG replaceSpecificPointersTowardsWithAndSetNestingLevelZero(
+      SMGObject oldObj, SMGObject newTarget, int replacementLevel) {
+    SMG newSMG = this;
+    if (newTarget.isZero() || oldObj.isZero()) {
+      throw new AssertionError("Can't replace a 0 value!");
+    }
+    ImmutableSet.Builder<SMGValue> valuesToDecrementBuilder = ImmutableSet.builder();
+    for (Entry<SMGValue, SMGPointsToEdge> pointsToEntry : pointsToEdges.entrySet()) {
+      if (pointsToEntry.getValue().pointsTo().equals(oldObj)) {
+        SMGValue value = pointsToEntry.getKey();
+        // Since we decrement the nesting level afterwards, we check for 1 instead of 0
+        if (value.getNestingLevel() == replacementLevel) {
+          // The equals for values checks only the ID not the nesting level!!!
+          newSMG =
+              newSMG.copyAndSetPTEdges(
+                  new SMGPointsToEdge(
+                      newTarget,
+                      pointsToEntry.getValue().getOffset(),
+                      pointsToEntry.getValue().targetSpecifier()),
+                  value.withNestingLevelAndCopy(0));
+        }
+        // Remember the values to change the nesting level
+        valuesToDecrementBuilder.add(value);
+      }
+    }
+    ImmutableSet<SMGValue> valuesToDecrement = valuesToDecrementBuilder.build();
+    PersistentMap<SMGObject, PersistentSet<SMGHasValueEdge>> newHasValueEdges = hasValueEdges;
+    // Update the nesting level
+    for (Entry<SMGObject, PersistentSet<SMGHasValueEdge>> objToHvEntry : hasValueEdges.entrySet()) {
+      SMGObject currentObject = objToHvEntry.getKey();
+      boolean contains = false;
+      PersistentSet<SMGHasValueEdge> hvEdges = objToHvEntry.getValue();
+      for (SMGHasValueEdge hvEdge : objToHvEntry.getValue()) {
+        if (valuesToDecrement.contains(hvEdge.hasValue())) {
+          contains = true;
+          hvEdges = hvEdges.removeAndCopy(hvEdge);
+          hvEdges =
+              hvEdges.addAndCopy(
+                  new SMGHasValueEdge(
+                      hvEdge.hasValue().withNestingLevelAndCopy(0),
+                      hvEdge.getOffset(),
+                      hvEdge.getSizeInBits()));
+        }
+      }
+      if (contains) {
+        // Save to copy the entire entry
+        newHasValueEdges = newHasValueEdges.removeAndCopy(currentObject);
+        newHasValueEdges = newHasValueEdges.putAndCopy(currentObject, hvEdges);
+      }
+    }
+    return newSMG.replaceHasValueEdgesAndCopy(newHasValueEdges);
+  }
+
+  // Needed for tests
+  public SMG replaceSMGValueNestingLevel(SMGValue value, int replacementLevel) {
+    SMG newSMG = this;
+    for (Entry<SMGValue, SMGPointsToEdge> pointsToEntry : pointsToEdges.entrySet()) {
+      if (pointsToEntry.getKey().equals(value)) {
+        // Since we decrement the nesting level afterwards, we check for 1 instead of 0
+        // The equals for values checks only the ID not the nesting level!!!
+        newSMG =
+            newSMG.copyAndSetPTEdges(
+                new SMGPointsToEdge(
+                    pointsToEntry.getValue().pointsTo(),
+                    pointsToEntry.getValue().getOffset(),
+                    pointsToEntry.getValue().targetSpecifier()),
+                value.withNestingLevelAndCopy(replacementLevel));
+      }
+    }
+    PersistentMap<SMGObject, PersistentSet<SMGHasValueEdge>> newHasValueEdges = hasValueEdges;
+    // Update the nesting level
+    for (Entry<SMGObject, PersistentSet<SMGHasValueEdge>> objToHvEntry : hasValueEdges.entrySet()) {
+      SMGObject currentObject = objToHvEntry.getKey();
+      boolean contains = false;
+      PersistentSet<SMGHasValueEdge> hvEdges = objToHvEntry.getValue();
+      for (SMGHasValueEdge hvEdge : objToHvEntry.getValue()) {
+        if (value.equals(hvEdge.hasValue())) {
+          contains = true;
+          hvEdges = hvEdges.removeAndCopy(hvEdge);
+          hvEdges =
+              hvEdges.addAndCopy(
+                  new SMGHasValueEdge(
+                      hvEdge.hasValue().withNestingLevelAndCopy(replacementLevel),
+                      hvEdge.getOffset(),
+                      hvEdge.getSizeInBits()));
+        }
+      }
+      if (contains) {
+        // Save to copy the entire entry
+        newHasValueEdges = newHasValueEdges.removeAndCopy(currentObject);
+        newHasValueEdges = newHasValueEdges.putAndCopy(currentObject, hvEdges);
+      }
+    }
+    return newSMG.replaceHasValueEdgesAndCopy(newHasValueEdges);
+  }
+
+  private SMG replaceHasValueEdgesAndCopy(
+      PersistentMap<SMGObject, PersistentSet<SMGHasValueEdge>> newHasValueEdges) {
+    return new SMG(smgObjects, smgValues, newHasValueEdges, pointsToEdges, sizeOfPointer);
+  }
 }
