@@ -82,8 +82,7 @@ public class SMGCPAAbstractionManager {
         ImmutableList.sortedCopyOf(
             Comparator.comparing(SMGCandidate::getSuspectedNfo),
             refineCandidates(getLinkedCandidates(), state));
-    return sortedCandiList
-        .stream()
+    return sortedCandiList.stream()
         .filter(
             c ->
                 minimumLengthForListsForAbstraction

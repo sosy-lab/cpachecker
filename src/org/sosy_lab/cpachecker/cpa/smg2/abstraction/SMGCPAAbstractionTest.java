@@ -96,9 +96,9 @@ public class SMGCPAAbstractionTest {
         buildConcreteList(false, pointerSizeInBits.multiply(BigInteger.valueOf(2)), listSize);
 
     {
-    SMGStateAndOptionalSMGObjectAndOffset stateAndObject =
-        currentState.dereferencePointerWithoutMaterilization(pointers[0]).orElseThrow();
-    currentState = stateAndObject.getSMGState();
+      SMGStateAndOptionalSMGObjectAndOffset stateAndObject =
+          currentState.dereferencePointerWithoutMaterilization(pointers[0]).orElseThrow();
+      currentState = stateAndObject.getSMGState();
       assertThat(stateAndObject.getSMGObject().isSLL()).isFalse();
       assertThat(stateAndObject.getSMGObject() instanceof SMGSinglyLinkedListSegment).isFalse();
     }
