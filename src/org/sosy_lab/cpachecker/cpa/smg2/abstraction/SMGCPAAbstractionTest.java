@@ -1147,7 +1147,7 @@ public class SMGCPAAbstractionTest {
         currentState =
             currentState.writeValueTo(
                 listSegment,
-                BigInteger.valueOf(j * 32),
+                BigInteger.valueOf(j).multiply(BigInteger.valueOf(32)),
                 pointerSizeInBits,
                 new NumericValue(j),
                 null);
