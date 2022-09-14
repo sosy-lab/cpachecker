@@ -105,7 +105,7 @@ public class SMGObject implements SMGNode, Comparable<SMGObject> {
   }
 
   @Override
-  public SMGNode withNestingLevelAndCopy(int pNewLevel) {
+  public SMGObject withNestingLevelAndCopy(int pNewLevel) {
     return new SMGObject(pNewLevel, size, offset);
   }
 }

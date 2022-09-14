@@ -15,7 +15,6 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
-import java.util.stream.Collectors;
 import org.sosy_lab.cpachecker.cpa.smg.join.SMGJoinStatus;
 import org.sosy_lab.cpachecker.cpa.smg.util.PersistentSet;
 import org.sosy_lab.cpachecker.util.Pair;
@@ -168,15 +167,22 @@ public class SMGJoinSubSMGsForAbstraction extends SMGAbstractJoin {
 
   /** Utility function for step 7. Increase the level of all mapped nodes by 1. */
   private void increaseLevelOfMapped() {
-    Set<SMGNode> mappedNodes = new HashSet<>(mapping1.getMappedObjects());
-    mappedNodes.addAll(mapping1.getMappedValues());
-    mappedNodes.addAll(mapping2.getMappedObjects());
-    mappedNodes.addAll(mapping2.getMappedValues());
-    mappedNodes =
-        mappedNodes
-            .stream()
-            .map(node -> node.withNestingLevelAndCopy(node.getNestingLevel() + 1))
-            .collect(Collectors.toSet());
+    for (SMGObject mappedObj : mapping1.getMappedObjects()) {
+      mapping1.replaceObjectMapping(
+          mappedObj, mappedObj.withNestingLevelAndCopy(mappedObj.getNestingLevel() + 1));
+    }
+    for (SMGValue mappedVal : mapping1.getMappedValues()) {
+      mapping1.replaceValueMapping(
+          mappedVal, mappedVal.withNestingLevelAndCopy(mappedVal.getNestingLevel() + 1));
+    }
+    for (SMGObject mappedObj : mapping2.getMappedObjects()) {
+      mapping2.replaceObjectMapping(
+          mappedObj, mappedObj.withNestingLevelAndCopy(mappedObj.getNestingLevel() + 1));
+    }
+    for (SMGValue mappedVal : mapping2.getMappedValues()) {
+      mapping2.replaceValueMapping(
+          mappedVal, mappedVal.withNestingLevelAndCopy(mappedVal.getNestingLevel() + 1));
+    }
   }
 
   /**
