@@ -366,6 +366,208 @@ public class SMGCPAAbstractionTest {
     }
   }
 
+  /*
+   * Build a concrete list by hand that has pointers from the outside on it and then use the abstraction algorithm on it and check the result.
+   * Then materialize the list back and check every pointer.
+   */
+  @Test
+  public void basicDLLFullAbstractionWithExternalPointerMaterializationTest() throws SMG2Exception {
+    int listSize = 100;
+    Value[] pointers =
+        buildConcreteList(true, pointerSizeInBits.multiply(BigInteger.valueOf(3)), listSize);
+
+    {
+      SMGStateAndOptionalSMGObjectAndOffset stateAndObject =
+          currentState.dereferencePointerWithoutMaterilization(pointers[0]).orElseThrow();
+      currentState = stateAndObject.getSMGState();
+      assertThat(stateAndObject.getSMGObject().isSLL()).isFalse();
+      assertThat(stateAndObject.getSMGObject() instanceof SMGSinglyLinkedListSegment).isFalse();
+    }
+
+    SMGCPAAbstractionManager absFinder = new SMGCPAAbstractionManager(currentState, 3);
+    currentState = absFinder.findAndAbstractLists();
+
+    for (int i = 0; i < listSize; i++) {
+      SMGStateAndOptionalSMGObjectAndOffset returnedObjAndState =
+          currentState.dereferencePointer(pointers[i]);
+      currentState = returnedObjAndState.getSMGState();
+      SMGObject newObj = returnedObjAndState.getSMGObject();
+      assertThat(!(newObj instanceof SMGSinglyLinkedListSegment)).isTrue();
+      assertThat(currentState.getMemoryModel().isObjectValid(newObj)).isTrue();
+      ValueAndSMGState nextPointerAndState =
+          currentState.readValue(newObj, pointerSizeInBits, pointerSizeInBits, null);
+      currentState = nextPointerAndState.getState();
+      for (Entry<SMGValue, SMGPointsToEdge> entry :
+          currentState.getMemoryModel().getSmg().getPTEdgeMapping().entrySet()) {
+        if (entry.getValue().pointsTo().equals(newObj)) {
+          assertThat(entry.getKey().getNestingLevel()).isEqualTo(0);
+        }
+      }
+
+      // Next pointer check equal pointers[i + 1]
+      Value nextPointer = nextPointerAndState.getValue();
+      assertThat(currentState.getMemoryModel().isPointer(nextPointer)).isTrue();
+      if (i == listSize - 1) {
+        assertThat(nextPointer.asNumericValue().bigInteger().compareTo(BigInteger.ZERO) == 0)
+            .isTrue();
+        // Check the nesting level
+        // We only change the nesting level for the values mappings to pointers and in the objects
+        // but not the mapping to Values
+        for (Entry<SMGValue, SMGPointsToEdge> entry :
+            currentState.getMemoryModel().getSmg().getPTEdgeMapping().entrySet()) {
+          if (entry.getValue().pointsTo().equals(SMGObject.nullInstance())) {
+            assertThat(entry.getKey().getNestingLevel()).isEqualTo(0);
+          }
+        }
+      } else {
+        Optional<SMGStateAndOptionalSMGObjectAndOffset> maybeNextObj =
+            currentState.dereferencePointerWithoutMaterilization(nextPointer);
+        assertThat(maybeNextObj.isPresent()).isTrue();
+        SMGStateAndOptionalSMGObjectAndOffset nextObjAndState = maybeNextObj.orElseThrow();
+        currentState = nextObjAndState.getSMGState();
+        SMGObject nextObj = nextObjAndState.getSMGObject();
+        assertThat((nextObj instanceof SMGDoublyLinkedListSegment)).isTrue();
+        assertThat(currentState.getMemoryModel().isObjectValid(nextObj)).isTrue();
+        assertThat(((SMGDoublyLinkedListSegment) nextObj).getMinLength())
+            .isEqualTo(listSize - i - 1);
+        // Check the nesting level
+        // We only change the nesting level for the values mappings to pointers and in the objects
+        // but not the mapping to Values
+        for (Entry<SMGValue, SMGPointsToEdge> entry :
+            currentState.getMemoryModel().getSmg().getPTEdgeMapping().entrySet()) {
+          if (entry.getValue().pointsTo().equals(nextObj)) {
+            assertThat(entry.getKey().getNestingLevel()).isLessThan(listSize - i - 1);
+          }
+        }
+
+        // Now get the next obj from the next pointer in the array. It should be the same obj
+        SMGStateAndOptionalSMGObjectAndOffset nextObjAndStateFromExternalPointer =
+            currentState.dereferencePointerWithoutMaterilization(pointers[i + 1]).orElseThrow();
+        currentState = nextObjAndStateFromExternalPointer.getSMGState();
+        SMGObject newObjFromExternalPointer = nextObjAndStateFromExternalPointer.getSMGObject();
+        assertThat((newObjFromExternalPointer instanceof SMGDoublyLinkedListSegment)).isTrue();
+        assertThat(currentState.getMemoryModel().isObjectValid(newObjFromExternalPointer)).isTrue();
+        assertThat(((SMGDoublyLinkedListSegment) newObjFromExternalPointer).getMinLength())
+            .isEqualTo(listSize - (i + 1));
+        // Check the nesting level
+        // We only change the nesting level for the values mappings to pointers and in the objects
+        // but not the mapping to Values
+        for (Entry<SMGValue, SMGPointsToEdge> entry :
+            currentState.getMemoryModel().getSmg().getPTEdgeMapping().entrySet()) {
+          if (entry.getValue().pointsTo().equals(newObjFromExternalPointer)) {
+            assertThat(entry.getKey().getNestingLevel()).isLessThan(listSize - i - 1);
+          }
+        }
+
+        assertThat(nextObj).isEqualTo(newObjFromExternalPointer);
+      }
+
+      // Back pointer equals pointers [i - 1]
+      // TODO: back pointer
+    }
+  }
+
+  /*
+   * Build a concrete list by hand that has pointers from the outside on it and then use the abstraction algorithm on it and check the result.
+   * Then materialize the list back and check every pointer.
+   */
+  @Test
+  public void basicSLLFullAbstractionWithExternalPointerMaterializationTest() throws SMG2Exception {
+    int listSize = 100;
+    Value[] pointers =
+        buildConcreteList(false, pointerSizeInBits.multiply(BigInteger.valueOf(2)), listSize);
+
+    {
+      SMGStateAndOptionalSMGObjectAndOffset stateAndObject =
+          currentState.dereferencePointerWithoutMaterilization(pointers[0]).orElseThrow();
+      currentState = stateAndObject.getSMGState();
+      assertThat(stateAndObject.getSMGObject().isSLL()).isFalse();
+      assertThat(stateAndObject.getSMGObject() instanceof SMGSinglyLinkedListSegment).isFalse();
+    }
+
+    SMGCPAAbstractionManager absFinder = new SMGCPAAbstractionManager(currentState, 3);
+    currentState = absFinder.findAndAbstractLists();
+
+    for (int i = 0; i < listSize; i++) {
+      SMGStateAndOptionalSMGObjectAndOffset returnedObjAndState =
+          currentState.dereferencePointer(pointers[i]);
+      currentState = returnedObjAndState.getSMGState();
+      SMGObject newObj = returnedObjAndState.getSMGObject();
+      assertThat(!(newObj instanceof SMGSinglyLinkedListSegment)).isTrue();
+      assertThat(currentState.getMemoryModel().isObjectValid(newObj)).isTrue();
+      ValueAndSMGState nextPointerAndState =
+          currentState.readValue(newObj, pointerSizeInBits, pointerSizeInBits, null);
+      currentState = nextPointerAndState.getState();
+      for (Entry<SMGValue, SMGPointsToEdge> entry :
+          currentState.getMemoryModel().getSmg().getPTEdgeMapping().entrySet()) {
+        if (entry.getValue().pointsTo().equals(newObj)) {
+          assertThat(entry.getKey().getNestingLevel()).isEqualTo(0);
+        }
+      }
+
+      // Next pointer check equal pointers[i + 1]
+      Value nextPointer = nextPointerAndState.getValue();
+      assertThat(currentState.getMemoryModel().isPointer(nextPointer)).isTrue();
+      if (i == listSize - 1) {
+        assertThat(nextPointer.asNumericValue().bigInteger().compareTo(BigInteger.ZERO) == 0)
+            .isTrue();
+        // Check the nesting level
+        // We only change the nesting level for the values mappings to pointers and in the objects
+        // but not the mapping to Values
+        for (Entry<SMGValue, SMGPointsToEdge> entry :
+            currentState.getMemoryModel().getSmg().getPTEdgeMapping().entrySet()) {
+          if (entry.getValue().pointsTo().equals(SMGObject.nullInstance())) {
+            assertThat(entry.getKey().getNestingLevel()).isEqualTo(0);
+          }
+        }
+      } else {
+        Optional<SMGStateAndOptionalSMGObjectAndOffset> maybeNextObj =
+            currentState.dereferencePointerWithoutMaterilization(nextPointer);
+        assertThat(maybeNextObj.isPresent()).isTrue();
+        SMGStateAndOptionalSMGObjectAndOffset nextObjAndState = maybeNextObj.orElseThrow();
+        currentState = nextObjAndState.getSMGState();
+        SMGObject nextObj = nextObjAndState.getSMGObject();
+        assertThat((nextObj instanceof SMGSinglyLinkedListSegment)).isTrue();
+        assertThat(currentState.getMemoryModel().isObjectValid(nextObj)).isTrue();
+        assertThat(((SMGSinglyLinkedListSegment) nextObj).getMinLength())
+            .isEqualTo(listSize - i - 1);
+        // Check the nesting level
+        // We only change the nesting level for the values mappings to pointers and in the objects
+        // but not the mapping to Values
+        for (Entry<SMGValue, SMGPointsToEdge> entry :
+            currentState.getMemoryModel().getSmg().getPTEdgeMapping().entrySet()) {
+          if (entry.getValue().pointsTo().equals(nextObj)) {
+            assertThat(entry.getKey().getNestingLevel()).isLessThan(listSize - i);
+          }
+        }
+
+        // Now get the next obj from the next pointer in the array. It should be the same obj
+        SMGStateAndOptionalSMGObjectAndOffset nextObjAndStateFromExternalPointer =
+            currentState.dereferencePointerWithoutMaterilization(pointers[i + 1]).orElseThrow();
+        currentState = nextObjAndStateFromExternalPointer.getSMGState();
+        SMGObject newObjFromExternalPointer = nextObjAndStateFromExternalPointer.getSMGObject();
+        assertThat((newObjFromExternalPointer instanceof SMGSinglyLinkedListSegment)).isTrue();
+        assertThat(currentState.getMemoryModel().isObjectValid(newObjFromExternalPointer)).isTrue();
+        assertThat(((SMGSinglyLinkedListSegment) newObjFromExternalPointer).getMinLength())
+            .isEqualTo(listSize - (i + 1));
+        // Check the nesting level
+        // We only change the nesting level for the values mappings to pointers and in the objects
+        // but not the mapping to Values
+        for (Entry<SMGValue, SMGPointsToEdge> entry :
+            currentState.getMemoryModel().getSmg().getPTEdgeMapping().entrySet()) {
+          if (entry.getValue().pointsTo().equals(newObjFromExternalPointer)) {
+            assertThat(entry.getKey().getNestingLevel()).isLessThan(listSize - i - 1);
+          }
+        }
+
+        assertThat(nextObj).isEqualTo(newObjFromExternalPointer);
+      }
+
+      // Back pointer equals pointers [i - 1]
+      // TODO: back pointer
+    }
+  }
+
   @Test
   public void basicDLLMaterializationTest() throws SMG2Exception {
     BigInteger sizeInBits = pointerSizeInBits.add(pointerSizeInBits).add(pointerSizeInBits);
