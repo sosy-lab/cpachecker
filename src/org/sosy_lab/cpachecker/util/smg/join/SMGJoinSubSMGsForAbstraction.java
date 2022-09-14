@@ -15,6 +15,7 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.stream.Collectors;
 import org.sosy_lab.cpachecker.cpa.smg.join.SMGJoinStatus;
 import org.sosy_lab.cpachecker.cpa.smg.util.PersistentSet;
 import org.sosy_lab.cpachecker.util.Pair;
@@ -171,9 +172,11 @@ public class SMGJoinSubSMGsForAbstraction extends SMGAbstractJoin {
     mappedNodes.addAll(mapping1.getMappedValues());
     mappedNodes.addAll(mapping2.getMappedObjects());
     mappedNodes.addAll(mapping2.getMappedValues());
-    // TODO this modifies nodes, maybe it would be better to replace existing with modified copy
-    // TODO: now they are immutable and need to be replaced ;D
-    // mappedNodes.forEach(node -> node.withNestingLevelAndCopy(node.getNestingLevel() + 1));
+    mappedNodes =
+        mappedNodes
+            .stream()
+            .map(node -> node.withNestingLevelAndCopy(node.getNestingLevel() + 1))
+            .collect(Collectors.toSet());
   }
 
   /**
