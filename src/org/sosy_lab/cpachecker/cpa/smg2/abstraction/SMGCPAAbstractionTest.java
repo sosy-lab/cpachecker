@@ -1132,7 +1132,7 @@ public class SMGCPAAbstractionTest {
             ? sizeOfSegment.subtract(pointerSizeInBits).subtract(pointerSizeInBits)
             : sizeOfSegment.subtract(pointerSizeInBits);
     BigInteger pfo = sizeOfSegment.subtract(pointerSizeInBits);
-    Value pointerArray[] = new Value[listLength];
+    Value[] pointerArray = new Value[listLength];
     Value prevNextPointer = null;
     SMGObject prevObject = null;
 
