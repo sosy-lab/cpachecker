@@ -275,10 +275,10 @@ public class SMGCPAAbstractionTest {
       SMGValue smgValue = currentState.getMemoryModel().getSMGValueFromValue(pointer).orElseThrow();
       assertThat(currentState.getMemoryModel().getSmg().getPTEdge(smgValue).isPresent()).isTrue();
 
-      for (Entry<SMGValue, SMGPointsToEdge> pteMapping :
-          currentState.getMemoryModel().getSmg().getPTEdgeMapping().entrySet()) {
-        if (pteMapping.getKey().equals(smgValue)) {
-          assertThat(pteMapping.getKey().getNestingLevel()).isEqualTo(level);
+      for (SMGValue pteMapping :
+          currentState.getMemoryModel().getSmg().getPTEdgeMapping().keySet()) {
+        if (pteMapping.equals(smgValue)) {
+          assertThat(pteMapping.getNestingLevel()).isEqualTo(level);
         }
       }
       level--;
@@ -352,10 +352,10 @@ public class SMGCPAAbstractionTest {
       SMGValue smgValue = currentState.getMemoryModel().getSMGValueFromValue(pointer).orElseThrow();
       assertThat(currentState.getMemoryModel().getSmg().getPTEdge(smgValue).isPresent()).isTrue();
 
-      for (Entry<SMGValue, SMGPointsToEdge> pteMapping :
-          currentState.getMemoryModel().getSmg().getPTEdgeMapping().entrySet()) {
-        if (pteMapping.getKey().equals(smgValue)) {
-          assertThat(pteMapping.getKey().getNestingLevel()).isEqualTo(level);
+      for (SMGValue pteMapping :
+          currentState.getMemoryModel().getSmg().getPTEdgeMapping().keySet()) {
+        if (pteMapping.equals(smgValue)) {
+          assertThat(pteMapping.getNestingLevel()).isEqualTo(level);
         }
       }
       level--;
