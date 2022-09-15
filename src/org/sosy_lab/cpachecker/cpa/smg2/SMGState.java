@@ -2979,11 +2979,11 @@ public class SMGState
     SMGPointsToEdge ptEdge = memoryModel.getSmg().getPTEdge(smgValueAddress).orElseThrow();
     // Every DLL is also a SLL
     if (ptEdge.pointsTo() instanceof SMGSinglyLinkedListSegment) {
-      SMGValueAndSMGState NewPointerValueAndState =
-          materializeReturnPointerValueAndCopy(smgValueAddress);
-      currentState = NewPointerValueAndState.getSMGState();
+      SMGValueAndSMGState newPointerValueAndState =
+          currentState.materializeReturnPointerValueAndCopy(smgValueAddress);
+      currentState = newPointerValueAndState.getSMGState();
       Optional<SMGPointsToEdge> maybePtEdge =
-          currentState.memoryModel.getSmg().getPTEdge(NewPointerValueAndState.getSMGValue());
+          currentState.memoryModel.getSmg().getPTEdge(newPointerValueAndState.getSMGValue());
       if (maybePtEdge.isEmpty()) {
         return SMGStateAndOptionalSMGObjectAndOffset.of(currentState);
       }
@@ -3010,8 +3010,9 @@ public class SMGState
 
   /**
    * Takes the value leading to a pointer that points towards abstracted heap (lists). The
-   * abstracted heap is then materialized into a concrete list segment and the new pointer is
-   * returned. (Technically the old value is equal to the new. This might change in the future)
+   * abstracted heap is then materialized into a concrete list up to that and including the segment
+   * pointed to and the old pointer is returned with the state of the materialization. (Technically
+   * the old value is equal to the new. This might change in the future)
    *
    * @param valueToPointerToAbstractObject a SMGValue that has a points to edge leading to
    *     abstracted memory.
@@ -3022,12 +3023,25 @@ public class SMGState
       SMGValue valueToPointerToAbstractObject) throws SMG2Exception {
     SMGPointsToEdge ptEdge =
         memoryModel.getSmg().getPTEdge(valueToPointerToAbstractObject).orElseThrow();
-    SMGObject obj = ptEdge.pointsTo();
-    if (obj.isZero() || !memoryModel.isObjectValid(obj)) {
-      throw new SMG2Exception("");
+    SMGState currentState = this;
+    SMGValueAndSMGState materializationAndState = null;
+
+    while (ptEdge.pointsTo() instanceof SMGSinglyLinkedListSegment) {
+      SMGObject obj = ptEdge.pointsTo();
+      if (obj.isZero() || !currentState.memoryModel.isObjectValid(obj)) {
+        throw new SMG2Exception("");
+      }
+      // DLLs are also SLLs
+      Preconditions.checkArgument(obj instanceof SMGSinglyLinkedListSegment);
+      materializationAndState =
+          currentState.materializer.handleMaterilisation(
+              valueToPointerToAbstractObject, obj, currentState);
+      currentState = materializationAndState.getSMGState();
+      ptEdge =
+          currentState.memoryModel.getSmg().getPTEdge(valueToPointerToAbstractObject).orElseThrow();
     }
-    // DLLs are also SLLs
-    Preconditions.checkArgument(obj instanceof SMGSinglyLinkedListSegment);
-    return materializer.handleMaterilisation(valueToPointerToAbstractObject, obj, this);
+
+    Preconditions.checkNotNull(materializationAndState);
+    return materializationAndState;
   }
 }
