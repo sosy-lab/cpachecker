@@ -16,7 +16,6 @@ import java.math.BigInteger;
 import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Set;
-import junit.framework.AssertionFailedError;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -139,7 +138,7 @@ public class SMGCPAAbstractionTest {
       } else if (!(object instanceof SMGSinglyLinkedListSegment)) {
         normalObjectCounter++;
         assertThat(currentState.getMemoryModel().getSmg().isValid(object)).isFalse();
-      } else if (object instanceof SMGSinglyLinkedListSegment) {
+      } else {
         assertThat(found[((SMGSinglyLinkedListSegment) object).getMinLength() - 2]).isNull();
         // We always start with at least element 2+
         found[((SMGSinglyLinkedListSegment) object).getMinLength() - 2] = true;
@@ -148,9 +147,6 @@ public class SMGCPAAbstractionTest {
         } else {
           assertThat(currentState.getMemoryModel().getSmg().isValid(object)).isFalse();
         }
-      } else {
-        // Not expected obj
-        throw new AssertionFailedError();
       }
     }
     assertThat(normalObjectCounter).isEqualTo(listSize);
