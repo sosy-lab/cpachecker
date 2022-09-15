@@ -17,7 +17,7 @@ SPDX-License-Identifier: Apache-2.0
   <option name="-heap">6000M</option>
 
   <rundefinition>
-    <option name="-smg2"/>
+    <option name="-smg2-MemSafety"/>
   </rundefinition>
 
   <!-- SV-Comp files assume that malloc always succeeds -->
@@ -25,19 +25,15 @@ SPDX-License-Identifier: Apache-2.0
 
   <tasks name="MemSafety-Arrays">
     <includesfile>../programs/benchmarks/MemSafety-Arrays.set</includesfile>
-    <propertyfile>../programs/benchmarks/properties/valid-memsafety.prp</propertyfile>
   </tasks>
   <tasks name="MemSafety-Heap">
     <includesfile>../programs/benchmarks/MemSafety-Heap.set</includesfile>
-    <propertyfile>../programs/benchmarks/properties/valid-memsafety.prp</propertyfile>
   </tasks>
   <tasks name="MemSafety-LinkedLists">
     <includesfile>../programs/benchmarks/MemSafety-LinkedLists.set</includesfile>
-    <propertyfile>../programs/benchmarks/properties/valid-memsafety.prp</propertyfile>
   </tasks>
   <tasks name="MemSafety-Other">
     <includesfile>../programs/benchmarks/MemSafety-Other.set</includesfile>
-    <propertyfile>../programs/benchmarks/properties/valid-memsafety.prp</propertyfile>
   </tasks>
   <!-- 
     Benchmark client is currently not able to benchmark duplicate files, even
@@ -53,22 +49,18 @@ SPDX-License-Identifier: Apache-2.0
   -->
   <tasks name="MemSafety-Juliet">
     <includesfile>../programs/benchmarks/MemSafety-Juliet.set</includesfile>
-    <propertyfile>../programs/benchmarks/properties/valid-memsafety.prp</propertyfile>
     <!-- Juliet tasks call external functions like "time" which are irrelevant for the task itself -->
     <option name="-setprop">cpa.smg.handleUnknownFunctions=ASSUME_SAFE</option>
   </tasks>
 
   <tasks name="SoftwareSystems-BusyBox-MemSafety">
     <includesfile>../programs/benchmarks/SoftwareSystems-BusyBox-MemSafety.set</includesfile>
-    <propertyfile>../programs/benchmarks/properties/valid-memsafety.prp</propertyfile>
   </tasks>
   <tasks name="SoftwareSystems-OpenBSD-MemSafety">
     <includesfile>../programs/benchmarks/SoftwareSystems-OpenBSD-MemSafety.set</includesfile>
-    <propertyfile>../programs/benchmarks/properties/valid-memsafety.prp</propertyfile>
   </tasks>
   <tasks name="SoftwareSystems-uthash-MemSafety">
     <includesfile>../programs/benchmarks/SoftwareSystems-uthash-MemSafety.set</includesfile>
-    <propertyfile>../programs/benchmarks/properties/valid-memsafety.prp</propertyfile>
   </tasks>
 </benchmark>
 
