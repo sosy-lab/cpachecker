@@ -57,12 +57,23 @@ public class AssumptionStorageCPA
 
   private final Solver solver;
 
-  private AssumptionStorageCPA(Configuration config, LogManager logger, ShutdownNotifier pShutdownNotifier, CFA cfa) throws InvalidConfigurationException {
+  private AssumptionStorageCPA(
+      Configuration config, LogManager logger, ShutdownNotifier pShutdownNotifier, CFA cfa)
+      throws InvalidConfigurationException {
     solver = Solver.create(config, logger, pShutdownNotifier);
     formulaManager = solver.getFormulaManager();
     FormulaEncodingOptions options = new FormulaEncodingOptions(config);
     CtoFormulaTypeHandler typeHandler = new CtoFormulaTypeHandler(logger, cfa.getMachineModel());
-    CtoFormulaConverter converter = new CtoFormulaConverter(options, formulaManager, cfa.getMachineModel(), cfa.getVarClassification(), logger, pShutdownNotifier, typeHandler, AnalysisDirection.FORWARD);
+    CtoFormulaConverter converter =
+        new CtoFormulaConverter(
+            options,
+            formulaManager,
+            cfa.getMachineModel(),
+            cfa.getVarClassification(),
+            logger,
+            pShutdownNotifier,
+            typeHandler,
+            AnalysisDirection.FORWARD);
     BooleanFormulaManagerView bfmgr = formulaManager.getBooleanFormulaManager();
     topState = new AssumptionStorageState(formulaManager, bfmgr.makeTrue(), bfmgr.makeTrue());
     transferRelation = new AssumptionStorageTransferRelation(converter, formulaManager, topState);
@@ -103,15 +114,19 @@ public class AssumptionStorageCPA
   }
 
   @Override
-  public boolean areAbstractSuccessors(AbstractState pState, CFAEdge pCfaEdge,
-      Collection<? extends AbstractState> pSuccessors) throws CPATransferException, InterruptedException {
-    // always assume is successor, only write and read states that have true assumptions, stop formulae
+  public boolean areAbstractSuccessors(
+      AbstractState pState, CFAEdge pCfaEdge, Collection<? extends AbstractState> pSuccessors)
+      throws CPATransferException, InterruptedException {
+    // always assume is successor, only write and read states that have true assumptions, stop
+    // formulae
     return true;
   }
 
   @Override
-  public boolean isCoveredBy(AbstractState pState, AbstractState pOtherState) throws CPAException, InterruptedException {
-    // always assume is covered, only write and read states that have true assumptions, stop formulae
+  public boolean isCoveredBy(AbstractState pState, AbstractState pOtherState)
+      throws CPAException, InterruptedException {
+    // always assume is covered, only write and read states that have true assumptions, stop
+    // formulae
     return true;
   }
 

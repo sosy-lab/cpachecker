@@ -13,7 +13,9 @@
 # In most cases a more detailed description of why an API is unwanted
 # can be found in doc/StyleGuide.md
 
+com.google.common.base.Charsets @ use java.nio.charsets.StandardCharsets instead
 com.google.common.base.Objects @ use java.util.Objects instead
+com.google.common.collect.ImmutableMap$Builder#build() @ use buildOrThrow() or buildKeepingLast() depending on whether duplicate keys are expected or not
 com.google.common.io.Files#createTempDir() @ Uses inappropriate permissions, cf. JavaDoc
 java.lang.InternalError @ This refers to JVM-internal errors, throw AssertionError instead
 java.nio.file.Paths @ use Path.of() instead (can be applied automatically with Refaster)
@@ -114,3 +116,14 @@ java.util.stream.Collectors#toList()
 java.util.stream.Collectors#toSet()
 java.util.stream.Collectors#toMap(java.util.function.Function, java.util.function.Function)
 java.util.stream.Collectors#toMap(java.util.function.Function, java.util.function.Function, java.util.function.BinaryOperator)
+
+@defaultMessage replace with ImmutableListMultimap for additional clarity (but check whether you actually want an ImmutableSetMultimap instead)
+com.google.common.collect.ImmutableMultimap#builder()
+com.google.common.collect.ImmutableMultimap#copyOf(com.google.common.collect.Multimap)
+com.google.common.collect.ImmutableMultimap#copyOf(java.lang.Iterable)
+com.google.common.collect.ImmutableMultimap#of()
+com.google.common.collect.ImmutableMultimap#of(java.lang.Object, java.lang.Object)
+com.google.common.collect.ImmutableMultimap#of(java.lang.Object, java.lang.Object, java.lang.Object, java.lang.Object)
+com.google.common.collect.ImmutableMultimap#of(java.lang.Object, java.lang.Object, java.lang.Object, java.lang.Object, java.lang.Object, java.lang.Object)
+com.google.common.collect.ImmutableMultimap#of(java.lang.Object, java.lang.Object, java.lang.Object, java.lang.Object, java.lang.Object, java.lang.Object, java.lang.Object, java.lang.Object)
+com.google.common.collect.ImmutableMultimap#of(java.lang.Object, java.lang.Object, java.lang.Object, java.lang.Object, java.lang.Object, java.lang.Object, java.lang.Object, java.lang.Object, java.lang.Object, java.lang.Object)

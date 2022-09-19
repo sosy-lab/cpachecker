@@ -14,13 +14,11 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
 public class CPointerExpression extends APointerExpression implements CLeftHandSide {
 
-
   private static final long serialVersionUID = -3958623972429247982L;
 
-  public CPointerExpression(final FileLocation pFileLocation,
-                            final CType pType, final CExpression pOperand) {
+  public CPointerExpression(
+      final FileLocation pFileLocation, final CType pType, final CExpression pOperand) {
     super(pFileLocation, pType, pOperand);
-
   }
 
   @Override

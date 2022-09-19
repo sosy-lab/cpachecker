@@ -14,17 +14,20 @@ import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
 /**
- * This class represent typedef declarations.
- * Example code:
+ * This class represent typedef declarations. Example code:
  *
- * typedef int my_int;
+ * <p>typedef int my_int;
  */
 public final class CTypeDefDeclaration extends CTypeDeclaration {
 
   private static final long serialVersionUID = -8939387997205706731L;
 
-  public CTypeDefDeclaration(FileLocation pFileLocation, boolean pIsGlobal,
-      CType pType, String pName, String pQualifiedName) {
+  public CTypeDefDeclaration(
+      FileLocation pFileLocation,
+      boolean pIsGlobal,
+      CType pType,
+      String pName,
+      String pQualifiedName) {
     super(pFileLocation, pIsGlobal, pType, checkNotNull(pName), checkNotNull(pQualifiedName));
   }
 

@@ -28,20 +28,23 @@ import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 
 /**
- * The StatisticsCPAStatistics implements the Statistics interface and takes care of printing out the analysis results.
- * With the cpa.statistics.statisticsCPAFile you can print out results to a target file in the json format.
- * With the cpa.statistics.printOut option you can print out the results to the standard output in a human readable format.
+ * The StatisticsCPAStatistics implements the Statistics interface and takes care of printing out
+ * the analysis results. With the cpa.statistics.statisticsCPAFile you can print out results to a
+ * target file in the json format. With the cpa.statistics.printOut option you can print out the
+ * results to the standard output in a human readable format.
  */
-@Options(prefix="cpa.statistics")
-public class StatisticsCPAStatistics implements Statistics  {
+@Options(prefix = "cpa.statistics")
+public class StatisticsCPAStatistics implements Statistics {
 
-  @Option(secure=true, description="target file to hold the statistics")
+  @Option(secure = true, description = "target file to hold the statistics")
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private Path statisticsCPAFile = null;
+
   private final StatisticsCPA cpa;
   private final LogManager logger;
 
-  public StatisticsCPAStatistics(Configuration config, LogManager logger, StatisticsCPA cpa) throws InvalidConfigurationException {
+  public StatisticsCPAStatistics(Configuration config, LogManager logger, StatisticsCPA cpa)
+      throws InvalidConfigurationException {
     config.inject(this);
     this.cpa = cpa;
     this.logger = logger;
@@ -54,9 +57,9 @@ public class StatisticsCPAStatistics implements Statistics  {
     if (cpa.isAnalysis()) {
       statistics = cpa.getFactory().getGlobalAnalysis();
     } else {
-      StatisticsState lastState = (StatisticsState)reached.getLastState();
+      StatisticsState lastState = (StatisticsState) reached.getLastState();
       if (lastState == null) {
-        lastState = (StatisticsState)Iterables.getLast(reached);
+        lastState = (StatisticsState) Iterables.getLast(reached);
       }
 
       statistics = lastState.getStatistics();
@@ -75,7 +78,7 @@ public class StatisticsCPAStatistics implements Statistics  {
         // Save in json with merge type
         Map<String, Object> innerJsonMap;
         if (jsonMap.containsKey(propName)) {
-          innerJsonMap = (Map<String, Object>)jsonMap.get(propName);
+          innerJsonMap = (Map<String, Object>) jsonMap.get(propName);
         } else {
           innerJsonMap = new HashMap<>();
           jsonMap.put(propName, innerJsonMap);
@@ -101,5 +104,4 @@ public class StatisticsCPAStatistics implements Statistics  {
   public String getName() {
     return "StatisticsCPA";
   }
-
 }

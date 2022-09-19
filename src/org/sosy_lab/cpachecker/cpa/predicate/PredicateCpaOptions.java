@@ -21,14 +21,16 @@ class PredicateCpaOptions {
       name = "satCheck",
       description =
           "maximum blocksize before a satisfiability check is done\n"
-              + "(non-negative number, 0 means never, if positive should be smaller than blocksize)")
+              + "(non-negative number, 0 means never, if positive should be smaller than"
+              + " blocksize)")
   private int satCheckBlockSize = 0;
 
   @Option(
       secure = true,
       description =
           "Enables sat checks at abstraction location.\n"
-              + "Infeasible paths are already excluded by transfer relation and not later by precision adjustment. This property is required in proof checking.")
+              + "Infeasible paths are already excluded by transfer relation and not later by"
+              + " precision adjustment. This property is required in proof checking.")
   private boolean satCheckAtAbstraction = false;
 
   @Option(secure = true, description = "check satisfiability when a target state has been found")

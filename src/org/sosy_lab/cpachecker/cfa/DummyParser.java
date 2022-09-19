@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.cfa;
 
+import java.nio.file.Path;
 import java.util.List;
 import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
@@ -15,8 +16,8 @@ import org.sosy_lab.cpachecker.cfa.parser.Scope;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonParser;
 
 /**
- * For all languages, where parsing of single or blocks of statements is not yet implemented,
- * use this dummy scope when parsing an automaton {@link AutomatonParser}.
+ * For all languages, where parsing of single or blocks of statements is not yet implemented, use
+ * this dummy scope when parsing an automaton {@link AutomatonParser}.
  */
 public class DummyParser implements CParser {
 
@@ -30,7 +31,7 @@ public class DummyParser implements CParser {
 
   @Override
   public ParseResult parseString(
-      String pFileName, String pCode, CSourceOriginMapping pSourceOriginMapping, Scope pScope) {
+      Path pFileName, String pCode, CSourceOriginMapping pSourceOriginMapping, Scope pScope) {
     throw new UnsupportedOperationException();
   }
 

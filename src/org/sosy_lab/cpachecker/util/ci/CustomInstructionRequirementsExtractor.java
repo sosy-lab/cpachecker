@@ -37,17 +37,17 @@ import org.sosy_lab.cpachecker.util.ci.redundancyremover.RedundantRequirementsRe
 public class CustomInstructionRequirementsExtractor {
 
   @Option(
-    secure = true,
-    description =
-        "Try to remove requirements that are covered by another requirment and are, thus, irrelevant for custom instruction behavior"
-  )
+      secure = true,
+      description =
+          "Try to remove requirements that are covered by another requirment and are, thus,"
+              + " irrelevant for custom instruction behavior")
   private boolean removeCoveredRequirements = false;
 
   @Option(
-    secure = true,
-    description =
-        "Try to remove parts of requirements that are not related to custom instruction and are, thus, irrelevant for custom instruction behavior"
-  )
+      secure = true,
+      description =
+          "Try to remove parts of requirements that are not related to custom instruction and are,"
+              + " thus, irrelevant for custom instruction behavior")
   private boolean enableRequirementsSlicing = false;
 
   @Option(
@@ -58,7 +58,9 @@ public class CustomInstructionRequirementsExtractor {
 
   @Option(
       secure = true,
-      description = "Qualified name of class for abstract state which provides custom instruction requirements.")
+      description =
+          "Qualified name of class for abstract state which provides custom instruction"
+              + " requirements.")
   private String requirementsStateClassName;
 
   private final Class<? extends AbstractState> requirementsStateClass;
@@ -68,9 +70,12 @@ public class CustomInstructionRequirementsExtractor {
   private final ConfigurableProgramAnalysis cpa;
 
   @SuppressWarnings("unchecked")
-  public CustomInstructionRequirementsExtractor(final Configuration pConfig,
-      final LogManager pLogger, final ShutdownNotifier pShutdownNotifier,
-      final ConfigurableProgramAnalysis pCpa) throws InvalidConfigurationException {
+  public CustomInstructionRequirementsExtractor(
+      final Configuration pConfig,
+      final LogManager pLogger,
+      final ShutdownNotifier pShutdownNotifier,
+      final ConfigurableProgramAnalysis pCpa)
+      throws InvalidConfigurationException {
     pConfig.inject(this);
     try {
       requirementsStateClass =
@@ -90,6 +95,7 @@ public class CustomInstructionRequirementsExtractor {
   /**
    * Extracts all start and end nodes of the ARGState root and writes them via
    * CustomInstrucionRequirementsWriter.
+   *
    * @param root ARGState
    * @param cia CustomInstructionApplications
    * @throws InterruptedException if a shutdown was requested
@@ -112,25 +118,30 @@ public class CustomInstructionRequirementsExtractor {
     for (ARGState start : ciStartNodes) {
       shutdownNotifier.shutdownIfNecessary();
       requirements.add(Pair.of(start, findEndStatesFor(start, cia)));
-      signatures.add(Pair.of(cia.getAppliedCustomInstructionFor(start)
-          .getInputVariablesAndConstants(), cia.getAppliedCustomInstructionFor(start)
-              .getOutputVariables()));
+      signatures.add(
+          Pair.of(
+              cia.getAppliedCustomInstructionFor(start).getInputVariablesAndConstants(),
+              cia.getAppliedCustomInstructionFor(start).getOutputVariables()));
     }
 
     if (removeCoveredRequirements) {
       requirements =
-          RedundantRequirementsRemover.removeRedundantRequirements(requirements, signatures,
-              requirementsStateClass);
+          RedundantRequirementsRemover.removeRedundantRequirements(
+              requirements, signatures, requirementsStateClass);
     }
 
     for (Pair<ARGState, Collection<ARGState>> requirement : requirements) {
       shutdownNotifier.shutdownIfNecessary();
       try {
-        writer.writeCIRequirement(requirement.getFirst(), requirement.getSecond(),
+        writer.writeCIRequirement(
+            requirement.getFirst(),
+            requirement.getSecond(),
             cia.getAppliedCustomInstructionFor(requirement.getFirst()));
       } catch (IOException e) {
-        logger.log(Level.SEVERE,
-            "Writing  the CIRequirement failed at node " + requirement.getFirst() + ".", e);
+        logger.log(
+            Level.SEVERE,
+            "Writing  the CIRequirement failed at node " + requirement.getFirst() + ".",
+            e);
       }
     }
   }
@@ -140,14 +151,15 @@ public class CustomInstructionRequirementsExtractor {
   }
 
   /**
-   * Returns a Set of ARGState with all states of the root-tree which are startStates
-   * of the given CustomInstructionApplications
+   * Returns a Set of ARGState with all states of the root-tree which are startStates of the given
+   * CustomInstructionApplications
+   *
    * @param root ARGState
    * @param pCustomIA CustomInstructionApplication
    * @return ImmutableSet of ARGState
    */
-  private Collection<ARGState> getCustomInstructionStartNodes(final ARGState root,
-      final CustomInstructionApplications pCustomIA)
+  private Collection<ARGState> getCustomInstructionStartNodes(
+      final ARGState root, final CustomInstructionApplications pCustomIA)
       throws InterruptedException, CPAException {
 
     ImmutableSet.Builder<ARGState> set = new ImmutableSet.Builder<>();
@@ -182,12 +194,13 @@ public class CustomInstructionRequirementsExtractor {
 
   /**
    * Returns a Collection of ARGState of all EndStates which are in the tree of ciStart
+   *
    * @param ciStart ARGState
    * @return Collection of ARGState
    * @throws InterruptedException if a shutdown was requested
    */
-  private Collection<ARGState> findEndStatesFor(final ARGState ciStart,
-      final CustomInstructionApplications pCustomIA)
+  private Collection<ARGState> findEndStatesFor(
+      final ARGState ciStart, final CustomInstructionApplications pCustomIA)
       throws InterruptedException, CPAException {
     List<ARGState> list = new ArrayList<>();
     Queue<ARGState> queue = new ArrayDeque<>();
@@ -219,9 +232,9 @@ public class CustomInstructionRequirementsExtractor {
   }
 
   private ARGState uncover(final ARGState state) {
-    if (state.isCovered()) { return uncover(state.getCoveringState()); }
+    if (state.isCovered()) {
+      return uncover(state.getCoveringState());
+    }
     return state;
   }
-
-
 }

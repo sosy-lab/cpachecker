@@ -53,9 +53,10 @@ public class ARGPath extends AbstractAppender {
   private final List<CFAEdge> edges; // immutable, but may contain null
 
   @SuppressFBWarnings(
-      value="JCIP_FIELD_ISNT_FINAL_IN_IMMUTABLE_CLASS",
-      justification="This variable is only used for caching the full path for later use"
-          + " without having to compute it again.")
+      value = "JCIP_FIELD_ISNT_FINAL_IN_IMMUTABLE_CLASS",
+      justification =
+          "This variable is only used for caching the full path for later use"
+              + " without having to compute it again.")
   private List<CFAEdge> fullPath = null;
 
   protected ARGPath(ARGPath pArgPath) {
@@ -67,10 +68,10 @@ public class ARGPath extends AbstractAppender {
     checkArgument(!pStates.isEmpty(), "ARGPaths may not be empty");
     states = ImmutableList.copyOf(pStates);
 
-    List<CFAEdge> edgesBuilder = new ArrayList<>(states.size()-1);
+    List<CFAEdge> edgesBuilder = new ArrayList<>(states.size() - 1);
     for (int i = 0; i < states.size() - 1; i++) {
       ARGState parent = states.get(i);
-      ARGState child = states.get(i+1);
+      ARGState child = states.get(i + 1);
       edgesBuilder.add(parent.getEdgeToChild(child)); // may return null
     }
 
@@ -80,7 +81,8 @@ public class ARGPath extends AbstractAppender {
 
   public ARGPath(List<ARGState> pStates, List<CFAEdge> pEdges) {
     checkArgument(!pStates.isEmpty(), "ARGPaths may not be empty");
-    checkArgument(pStates.size() - 1 == pEdges.size(), "ARGPaths must have one state more than edges");
+    checkArgument(
+        pStates.size() - 1 == pEdges.size(), "ARGPaths must have one state more than edges");
 
     states = ImmutableList.copyOf(pStates);
     edges = Collections.unmodifiableList(new ArrayList<>(pEdges));
@@ -91,22 +93,21 @@ public class ARGPath extends AbstractAppender {
   }
 
   /**
-   * Return the list of edges between the states.
-   * The result of this method is always one element shorter
-   * than {@link #asStatesList()}.
+   * Return the list of edges between the states. The result of this method is always one element
+   * shorter than {@link #asStatesList()}.
    */
   public List<CFAEdge> getInnerEdges() {
     return edges;
   }
 
   /**
-   * Returns the full path contained in this {@link ARGPath}. This means, edges
-   * which are null while using getInnerEdges or the pathIterator will be resolved
-   * and the complete path from the first {@link ARGState} to the last ARGState
-   * is created. This is done by filling up the wholes in the path.
+   * Returns the full path contained in this {@link ARGPath}. This means, edges which are null while
+   * using getInnerEdges or the pathIterator will be resolved and the complete path from the first
+   * {@link ARGState} to the last ARGState is created. This is done by filling up the wholes in the
+   * path.
    *
-   * If there is no path (null edges can not be filled up, may be happening when
-   * using bam) we return an empty list instead.
+   * <p>If there is no path (null edges can not be filled up, may be happening when using bam) we
+   * return an empty list instead.
    */
   public List<CFAEdge> getFullPath() {
     if (fullPath == null) {
@@ -142,7 +143,7 @@ public class ARGPath extends AbstractAppender {
         }
         newFullPath.addAll(intermediateEdges);
 
-      // we have a normal connection without hole in the edges
+        // we have a normal connection without hole in the edges
       } else {
         newFullPath.add(curOutgoingEdge);
       }
@@ -155,15 +156,13 @@ public class ARGPath extends AbstractAppender {
     return ImmutableSet.copyOf(states);
   }
 
-  /**
-   * Return (predecessor,successor) pairs of ARGStates for every edge in the path.
-   */
+  /** Return (predecessor,successor) pairs of ARGStates for every edge in the path. */
   public List<Pair<ARGState, ARGState>> getStatePairs() {
     return new AbstractList<>() {
 
       @Override
       public Pair<ARGState, ARGState> get(int pIndex) {
-        return Pair.of(states.get(pIndex), states.get(pIndex+1));
+        return Pair.of(states.get(pIndex), states.get(pIndex + 1));
       }
 
       @Override
@@ -174,65 +173,61 @@ public class ARGPath extends AbstractAppender {
   }
 
   /**
-   * Create a fresh {@link PathIterator} for this path,
-   * with its position at the first state.
-   * Note that you cannot call {@link PathIterator#getIncomingEdge()} before calling
-   * {@link PathIterator#advance()} at least once.
+   * Create a fresh {@link PathIterator} for this path, with its position at the first state. Note
+   * that you cannot call {@link PathIterator#getIncomingEdge()} before calling {@link
+   * PathIterator#advance()} at least once.
    */
   public PathIterator pathIterator() {
     return new DefaultPathIterator(this);
   }
 
   /**
-   * Create a fresh {@link PathIterator} for this path,
-   * with its position at the last state and iterating backwards.
-   * Note that you cannot call {@link PathIterator#getOutgoingEdge()} before calling
-   * {@link PathIterator#advance()} at least once.
+   * Create a fresh {@link PathIterator} for this path, with its position at the last state and
+   * iterating backwards. Note that you cannot call {@link PathIterator#getOutgoingEdge()} before
+   * calling {@link PathIterator#advance()} at least once.
    */
   public PathIterator reversePathIterator() {
     return new ReversePathIterator(this);
   }
 
   /**
-   * Create a fresh {@link PathIterator} for this path, with its position at the
-   * first state. Holes in the path are filled up by inserting more {@link CFAEdge}.
-   * Note that you cannot call {@link PathIterator#getIncomingEdge()} before calling
-   * {@link PathIterator#advance()} at least once.
+   * Create a fresh {@link PathIterator} for this path, with its position at the first state. Holes
+   * in the path are filled up by inserting more {@link CFAEdge}. Note that you cannot call {@link
+   * PathIterator#getIncomingEdge()} before calling {@link PathIterator#advance()} at least once.
    */
   public PathIterator fullPathIterator() {
     return new DefaultFullPathIterator(this);
   }
 
   /**
-   * Create a fresh {@link PathIterator} for this path, with its position at the
-   * last state and iterating backwards. Holes in the path are filled up by inserting
-   * more {@link CFAEdge}.
-   * Note that you cannot call {@link PathIterator#getOutgoingEdge()} before calling
-   * {@link PathIterator#advance()} at least once.
+   * Create a fresh {@link PathIterator} for this path, with its position at the last state and
+   * iterating backwards. Holes in the path are filled up by inserting more {@link CFAEdge}. Note
+   * that you cannot call {@link PathIterator#getOutgoingEdge()} before calling {@link
+   * PathIterator#advance()} at least once.
    */
   public PathIterator reverseFullPathIterator() {
     return new ReverseFullPathIterator(this);
   }
 
   /**
-   * A forward directed {@link ARGPathBuilder} with no initial states and edges
-   * added. (States and edges are always appended to the end of the current path)
+   * A forward directed {@link ARGPathBuilder} with no initial states and edges added. (States and
+   * edges are always appended to the end of the current path)
    */
   public static ARGPathBuilder builder() {
     return new DefaultARGPathBuilder();
   }
 
   /**
-   * A backward directed {@link ARGPathBuilder} with no initial states and edges
-   * added. (States and edges are always appended to the beginning of the current path)
+   * A backward directed {@link ARGPathBuilder} with no initial states and edges added. (States and
+   * edges are always appended to the beginning of the current path)
    */
   public static ARGPathBuilder reverseBuilder() {
     return new ReverseARGPathBuilder();
   }
 
   /**
-   * The length of the path, i.e., the number of states
-   * (this is different from the number of edges).
+   * The length of the path, i.e., the number of states (this is different from the number of
+   * edges).
    */
   public int size() {
     return states.size();
@@ -253,8 +248,12 @@ public class ARGPath extends AbstractAppender {
 
   @Override
   public boolean equals(Object pOther) {
-    if (this == pOther) { return true; }
-    if (!(pOther instanceof ARGPath)) { return false; }
+    if (this == pOther) {
+      return true;
+    }
+    if (!(pOther instanceof ARGPath)) {
+      return false;
+    }
     // We do not compare the states because they are different from iteration to iteration!
     return Objects.equals(edges, ((ARGPath) pOther).edges);
   }

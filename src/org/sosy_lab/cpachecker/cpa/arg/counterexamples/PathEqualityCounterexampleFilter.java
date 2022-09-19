@@ -19,13 +19,14 @@ import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 
 /**
- * A {@link CounterexampleFilter} that defines paths as similar
- * if their representation as a list of {@link CFAEdge}s is equal.
+ * A {@link CounterexampleFilter} that defines paths as similar if their representation as a list of
+ * {@link CFAEdge}s is equal.
  */
 public class PathEqualityCounterexampleFilter
     extends AbstractSetBasedCounterexampleFilter<List<CFAEdge>> {
 
-  public PathEqualityCounterexampleFilter(Configuration pConfig, LogManager pLogger, ConfigurableProgramAnalysis pCpa) {
+  public PathEqualityCounterexampleFilter(
+      Configuration pConfig, LogManager pLogger, ConfigurableProgramAnalysis pCpa) {
     super(pConfig, pLogger, pCpa);
   }
 

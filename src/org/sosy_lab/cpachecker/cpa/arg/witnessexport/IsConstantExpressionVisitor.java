@@ -26,8 +26,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.exceptions.NoException;
 
-enum IsConstantExpressionVisitor
-    implements CExpressionVisitor<Boolean, NoException> {
+enum IsConstantExpressionVisitor implements CExpressionVisitor<Boolean, NoException> {
   INSTANCE;
 
   @Override

@@ -52,7 +52,7 @@ public class SMGEdgeHasValue extends SMGEdge implements Comparable<SMGEdgeHasVal
 
   @Override
   public boolean isConsistentWith(SMGEdge other) {
-    if (! (other instanceof SMGEdgeHasValue)) {
+    if (!(other instanceof SMGEdgeHasValue)) {
       return false;
     }
 
@@ -82,10 +82,10 @@ public class SMGEdgeHasValue extends SMGEdge implements Comparable<SMGEdgeHasVal
     long myEnd = myStart + getSizeInBits();
 
     if (myStart < pOtStart) {
-      return (myEnd > pOtStart);
+      return myEnd > pOtStart;
 
     } else if (pOtStart < myStart) {
-      return (pOtEnd > myStart);
+      return pOtEnd > myStart;
     }
 
     // Start offsets are equal, always overlap

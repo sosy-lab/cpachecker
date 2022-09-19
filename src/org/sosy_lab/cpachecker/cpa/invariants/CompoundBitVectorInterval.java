@@ -30,9 +30,7 @@ public class CompoundBitVectorInterval implements CompoundIntegralInterval, BitV
 
   private final BitVectorInfo info;
 
-  /**
-   * The list of intervals this state is composed from.
-   */
+  /** The list of intervals this state is composed from. */
   private final BitVectorInterval[] intervals;
 
   /**
@@ -42,45 +40,41 @@ public class CompoundBitVectorInterval implements CompoundIntegralInterval, BitV
    */
   private CompoundBitVectorInterval(BitVectorInfo pInfo) {
     Preconditions.checkNotNull(pInfo);
-    this.info = pInfo;
-    this.intervals = new BitVectorInterval[0];
+    info = pInfo;
+    intervals = new BitVectorInterval[0];
   }
 
   /**
-   * Creates a new compound state from the given interval. This should only be
-   * invoked via the {@link CompoundBitVectorInterval#getInternal} functions.
+   * Creates a new compound state from the given interval. This should only be invoked via the
+   * {@link CompoundBitVectorInterval#getInternal} functions.
    *
-   * @param pInterval the interval to compose this state from. Must not be
-   * {@code null}.
+   * @param pInterval the interval to compose this state from. Must not be {@code null}.
    */
   private CompoundBitVectorInterval(BitVectorInterval pInterval) {
-    this.info = pInterval.getTypeInfo();
-    this.intervals = new BitVectorInterval[] {pInterval};
+    info = pInterval.getTypeInfo();
+    intervals = new BitVectorInterval[] {pInterval};
   }
 
   /**
-   * Creates a new compound state from the given intervals. This should only be
-   * invoked via the {@link CompoundBitVectorInterval#getInternal} functions.
+   * Creates a new compound state from the given intervals. This should only be invoked via the
+   * {@link CompoundBitVectorInterval#getInternal} functions.
    *
    * @param pInfo the bit vector information.
-   * @param pIntervals the intervals to compose this state from. None of the
-   * intervals must be {@code null}. All intervals must have the same bit
-   * vector information as the parameter.
+   * @param pIntervals the intervals to compose this state from. None of the intervals must be
+   *     {@code null}. All intervals must have the same bit vector information as the parameter.
    */
   private CompoundBitVectorInterval(BitVectorInfo pInfo, BitVectorInterval[] pIntervals) {
     Preconditions.checkNotNull(pInfo);
     Preconditions.checkNotNull(pIntervals);
-    this.info = pInfo;
-    this.intervals = pIntervals;
+    info = pInfo;
+    intervals = pIntervals;
   }
 
   /**
-   * Gets a compound interval represented by the given interval. Use this
-   * factory method over the constructor.
+   * Gets a compound interval represented by the given interval. Use this factory method over the
+   * constructor.
    *
-   * @param pInterval the interval to compose this state from. Must not be
-   * {@code null}.
-   *
+   * @param pInterval the interval to compose this state from. Must not be {@code null}.
    * @return a compound interval as represented by the given interval.
    */
   private static CompoundBitVectorInterval getInternal(BitVectorInterval pInterval) {
@@ -88,17 +82,16 @@ public class CompoundBitVectorInterval implements CompoundIntegralInterval, BitV
   }
 
   /**
-   * Gets a compound interval represented by the given intervals. Use this
-   * factory method over the constructor.
+   * Gets a compound interval represented by the given intervals. Use this factory method over the
+   * constructor.
    *
    * @param pInfo the bit vector information.
-   * @param pIntervals the intervals to compose this state from. None of the
-   * intervals must be {@code null}. All intervals must have the same bit
-   * vector information as the parameter.
-   *
+   * @param pIntervals the intervals to compose this state from. None of the intervals must be
+   *     {@code null}. All intervals must have the same bit vector information as the parameter.
    * @return a compound interval as represented by the given intervals.
    */
-  private static CompoundBitVectorInterval getInternal(BitVectorInfo pInfo, BitVectorInterval[] pIntervals) {
+  private static CompoundBitVectorInterval getInternal(
+      BitVectorInfo pInfo, BitVectorInterval[] pIntervals) {
     if (pIntervals.length == 0) {
       return bottom(pInfo);
     }
@@ -116,53 +109,56 @@ public class CompoundBitVectorInterval implements CompoundIntegralInterval, BitV
    * @return the number of intervals.
    */
   public int getNumberOfIntervals() {
-    return this.intervals.length;
+    return intervals.length;
   }
 
   /**
-   * Gets an unmodifiable list containing the intervals this compound
-   * state consists of.
+   * Gets an unmodifiable list containing the intervals this compound state consists of.
    *
-   * @return an unmodifiable list containing the intervals this compound
-   * state consists of.
+   * @return an unmodifiable list containing the intervals this compound state consists of.
    */
   public List<BitVectorInterval> getBitVectorIntervals() {
-    return Collections.unmodifiableList(Arrays.asList(this.intervals));
+    return Collections.unmodifiableList(Arrays.asList(intervals));
   }
 
   /**
-   * Gets an unmodifiable list containing the intervals this compound
-   * state consists of.
+   * Gets an unmodifiable list containing the intervals this compound state consists of.
    *
-   * @return an unmodifiable list containing the intervals this compound
-   * state consists of.
+   * @return an unmodifiable list containing the intervals this compound state consists of.
    */
   @Override
   public List<SimpleInterval> getIntervals() {
-    return Lists.transform(getBitVectorIntervals(), pBitVectorInterval ->
-        SimpleInterval.of(pBitVectorInterval.getLowerBound(), pBitVectorInterval.getUpperBound()));
+    return Lists.transform(
+        getBitVectorIntervals(),
+        pBitVectorInterval ->
+            SimpleInterval.of(
+                pBitVectorInterval.getLowerBound(), pBitVectorInterval.getUpperBound()));
   }
 
   @Override
   public List<CompoundBitVectorInterval> splitIntoIntervals() {
-    return Lists.transform(Arrays.asList(this.intervals), CompoundBitVectorInterval::of);
+    return Lists.transform(Arrays.asList(intervals), CompoundBitVectorInterval::of);
   }
 
   public void checkBitVectorCompatibilityWith(BitVectorInfo pOtherInfo) {
-    Preconditions.checkArgument(info.equals(pOtherInfo),
-        "bit vectors are incompatible in size or signedness");
+    Preconditions.checkArgument(
+        info.equals(pOtherInfo), "bit vectors are incompatible in size or signedness");
   }
 
   /**
    * Computes the union of this compound state with the given compound state.
-   * @param pOther the state to unite this state with.
    *
+   * @param pOther the state to unite this state with.
    * @return the union of this compound state with the given compound state.
    */
   public CompoundBitVectorInterval unionWith(CompoundBitVectorInterval pOther) {
     checkBitVectorCompatibilityWith(pOther.info);
-    if (pOther == this || containsAllPossibleValues() || pOther.isBottom()) { return this; }
-    if (pOther.containsAllPossibleValues() || isBottom()) { return pOther; }
+    if (pOther == this || containsAllPossibleValues() || pOther.isBottom()) {
+      return this;
+    }
+    if (pOther.containsAllPossibleValues() || isBottom()) {
+      return pOther;
+    }
     CompoundBitVectorInterval current = this;
     for (BitVectorInterval interval : pOther.intervals) {
       current = current.unionWith(interval);
@@ -172,31 +168,35 @@ public class CompoundBitVectorInterval implements CompoundIntegralInterval, BitV
 
   /**
    * Computes the union of this compound state with the given simple interval.
-   * @param pOther the interval to unite this state with.
    *
+   * @param pOther the interval to unite this state with.
    * @return the union of this compound state with the given simple interval.
    */
   public CompoundBitVectorInterval unionWith(BitVectorInterval pOther) {
     checkBitVectorCompatibilityWith(pOther.getTypeInfo());
-    if (contains(pOther)) { return this; }
-    if (isBottom() || pOther.isTop()) { return getInternal(pOther); }
+    if (contains(pOther)) {
+      return this;
+    }
+    if (isBottom() || pOther.isTop()) {
+      return getInternal(pOther);
+    }
     List<BitVectorInterval> resultIntervals = new ArrayList<>();
     int start = 0;
     BitVectorInterval lastInterval = null;
     if (pOther.hasLowerBound() && hasUpperBound()) {
       BigInteger pOtherLB = pOther.getLowerBound();
-      BitVectorInterval currentLocal = this.intervals[start];
+      BitVectorInterval currentLocal = intervals[start];
       while (currentLocal != null && pOtherLB.compareTo(currentLocal.getUpperBound()) > 0) {
         resultIntervals.add(currentLocal);
         ++start;
         lastInterval = currentLocal;
-        currentLocal = start < this.intervals.length ? this.intervals[start] : null;
+        currentLocal = start < intervals.length ? intervals[start] : null;
         assert currentLocal == null || currentLocal.hasUpperBound() : toString();
       }
     }
     boolean inserted = false;
-    for (int index = start; index < this.intervals.length; ++index) {
-      BitVectorInterval interval = this.intervals[index];
+    for (int index = start; index < intervals.length; ++index) {
+      BitVectorInterval interval = intervals[index];
       boolean currentInserted = false;
       if (interval.touches(lastInterval)) {
         lastInterval = union(interval, lastInterval);
@@ -219,7 +219,8 @@ public class CompoundBitVectorInterval implements CompoundIntegralInterval, BitV
           currentInserted = true;
         } else {
           if (!pOther.hasLowerBound()
-              || (interval.hasLowerBound() && less(pOther.getLowerBound(), interval.getLowerBound()))) {
+              || (interval.hasLowerBound()
+                  && less(pOther.getLowerBound(), interval.getLowerBound()))) {
             resultIntervals.add(pOther);
             inserted = true;
           }
@@ -247,15 +248,21 @@ public class CompoundBitVectorInterval implements CompoundIntegralInterval, BitV
   }
 
   /**
-   * Computes the compound state resulting from the intersection of this compound state with the given state.
-   * @param pOther the state to intersect this state with.
+   * Computes the compound state resulting from the intersection of this compound state with the
+   * given state.
    *
-   * @return the compound state resulting from the intersection of this compound state with the given state.
+   * @param pOther the state to intersect this state with.
+   * @return the compound state resulting from the intersection of this compound state with the
+   *     given state.
    */
   public CompoundBitVectorInterval intersectWith(CompoundBitVectorInterval pOther) {
     checkBitVectorCompatibilityWith(pOther.info);
-    if (isBottom() || pOther.containsAllPossibleValues() || this == pOther) { return this; }
-    if (containsAllPossibleValues() || pOther.isBottom()) { return pOther; }
+    if (isBottom() || pOther.containsAllPossibleValues() || this == pOther) {
+      return this;
+    }
+    if (containsAllPossibleValues() || pOther.isBottom()) {
+      return pOther;
+    }
     if (pOther.contains(this)) {
       return this;
     }
@@ -267,16 +274,24 @@ public class CompoundBitVectorInterval implements CompoundIntegralInterval, BitV
   }
 
   /**
-   * Computes the compound state resulting from the intersection of this compound state with the given interval.
-   * @param pOther the interval to intersect this state with.
+   * Computes the compound state resulting from the intersection of this compound state with the
+   * given interval.
    *
-   * @return the compound state resulting from the intersection of this compound state with the given interval.
+   * @param pOther the interval to intersect this state with.
+   * @return the compound state resulting from the intersection of this compound state with the
+   *     given interval.
    */
   public CompoundBitVectorInterval intersectWith(BitVectorInterval pOther) {
     checkBitVectorCompatibilityWith(pOther.getTypeInfo());
-    if (isBottom() || pOther.isTop()) { return this; }
-    if (contains(pOther)) { return CompoundBitVectorInterval.of(pOther); }
-    if (this.intervals.length == 1 && pOther.contains(this.intervals[0])) { return this; }
+    if (isBottom() || pOther.isTop()) {
+      return this;
+    }
+    if (contains(pOther)) {
+      return CompoundBitVectorInterval.of(pOther);
+    }
+    if (intervals.length == 1 && pOther.contains(intervals[0])) {
+      return this;
+    }
     CompoundBitVectorInterval result = bottom(info);
     final int lbIndex;
     if (pOther.hasLowerBound()) {
@@ -290,7 +305,7 @@ public class CompoundBitVectorInterval implements CompoundIntegralInterval, BitV
       int intervalIndex = intervalIndexOf(pOther.getUpperBound());
       ubIndex = intervalIndex >= 0 ? intervalIndex : (-intervalIndex - 1);
     } else {
-      ubIndex = this.intervals.length - 1;
+      ubIndex = intervals.length - 1;
     }
     for (int i = lbIndex; i <= ubIndex; ++i) {
       BitVectorInterval interval = intervals[i];
@@ -303,9 +318,10 @@ public class CompoundBitVectorInterval implements CompoundIntegralInterval, BitV
 
   /**
    * Checks if the given state intersects with this state.
-   * @param pOther the state to check for intersection with this state.
    *
-   * @return <code>true</code> if this state intersects with the given state, <code>false</code> otherwise.
+   * @param pOther the state to check for intersection with this state.
+   * @return <code>true</code> if this state intersects with the given state, <code>false</code>
+   *     otherwise.
    */
   public boolean intersectsWith(CompoundBitVectorInterval pOther) {
     if (contains(pOther)) {
@@ -319,9 +335,10 @@ public class CompoundBitVectorInterval implements CompoundIntegralInterval, BitV
 
   /**
    * Checks if the given interval intersects with this state.
-   * @param pOther the interval to check for intersection with this state.
    *
-   * @return <code>true</code> if this state intersects with the given interval, <code>false</code> otherwise.
+   * @param pOther the interval to check for intersection with this state.
+   * @return <code>true</code> if this state intersects with the given interval, <code>false</code>
+   *     otherwise.
    */
   public boolean intersectsWith(BitVectorInterval pOther) {
     if (contains(pOther)) {
@@ -332,9 +349,10 @@ public class CompoundBitVectorInterval implements CompoundIntegralInterval, BitV
 
   /**
    * Checks if the given state is contained in this state.
-   * @param pState the state to check for.
    *
-   * @return <code>true</code> if the given state is contained in this compound state, <code>false</code> otherwise.
+   * @param pState the state to check for.
+   * @return <code>true</code> if the given state is contained in this compound state, <code>false
+   *     </code> otherwise.
    */
   public boolean contains(CompoundBitVectorInterval pState) {
     if (this == pState) {
@@ -350,12 +368,15 @@ public class CompoundBitVectorInterval implements CompoundIntegralInterval, BitV
 
   /**
    * Checks if the given interval is contained in this state.
-   * @param pInterval the interval to check for.
    *
-   * @return <code>true</code> if the given interval is contained in the state, <code>false</code> otherwise.
+   * @param pInterval the interval to check for.
+   * @return <code>true</code> if the given interval is contained in the state, <code>false</code>
+   *     otherwise.
    */
   public boolean contains(BitVectorInterval pInterval) {
-    if (isBottom() || pInterval.isTop()) { return false; }
+    if (isBottom() || pInterval.isTop()) {
+      return false;
+    }
     if (!pInterval.hasLowerBound() && hasLowerBound()) {
       return false;
     }
@@ -367,10 +388,10 @@ public class CompoundBitVectorInterval implements CompoundIntegralInterval, BitV
     BigInteger lb = hasLowerBound ? pInterval.getLowerBound() : null;
     BigInteger ub = hasUpperBound ? pInterval.getUpperBound() : null;
     int leftInclusive = 0;
-    int rightExclusive = this.intervals.length;
+    int rightExclusive = intervals.length;
     while (leftInclusive < rightExclusive) {
       int index = IntMath.mean(leftInclusive, rightExclusive);
-      BitVectorInterval intervalAtIndex = this.intervals[index];
+      BitVectorInterval intervalAtIndex = intervals[index];
       boolean lbIndexLeqLb =
           !intervalAtIndex.hasLowerBound()
               || (hasLowerBound && intervalAtIndex.getLowerBound().compareTo(lb) <= 0);
@@ -397,12 +418,14 @@ public class CompoundBitVectorInterval implements CompoundIntegralInterval, BitV
       return 0;
     }
     int leftInclusive = 0;
-    int rightExclusive = this.intervals.length;
+    int rightExclusive = intervals.length;
     int index = rightExclusive / 2;
     while (leftInclusive < rightExclusive) {
-      BitVectorInterval intervalAtIndex = this.intervals[index];
-      boolean lbIndexLeqValue = !intervalAtIndex.hasLowerBound() || intervalAtIndex.getLowerBound().compareTo(value) <= 0;
-      boolean ubIndexGeqValue = !intervalAtIndex.hasUpperBound() || intervalAtIndex.getUpperBound().compareTo(value) >= 0;
+      BitVectorInterval intervalAtIndex = intervals[index];
+      boolean lbIndexLeqValue =
+          !intervalAtIndex.hasLowerBound() || intervalAtIndex.getLowerBound().compareTo(value) <= 0;
+      boolean ubIndexGeqValue =
+          !intervalAtIndex.hasUpperBound() || intervalAtIndex.getUpperBound().compareTo(value) >= 0;
       if (lbIndexLeqValue) { // Interval at index starts before the value
         if (ubIndexGeqValue) { // Interval at index ends after the value
           return index;
@@ -419,13 +442,16 @@ public class CompoundBitVectorInterval implements CompoundIntegralInterval, BitV
 
   /**
    * Checks if the given big integer value is contained in this state.
-   * @param pValue the value to check for.
    *
-   * @return <code>true</code> if the given value is contained in the state, <code>false</code> otherwise.
+   * @param pValue the value to check for.
+   * @return <code>true</code> if the given value is contained in the state, <code>false</code>
+   *     otherwise.
    */
   @Override
   public boolean contains(BigInteger pValue) {
-    if (isBottom()) { return false; }
+    if (isBottom()) {
+      return false;
+    }
     if (pValue.compareTo(info.getMinValue()) < 0) {
       return false;
     }
@@ -437,33 +463,33 @@ public class CompoundBitVectorInterval implements CompoundIntegralInterval, BitV
 
   /**
    * Checks if the given long value is contained in this state.
-   * @param pValue the value to check for.
    *
-   * @return <code>true</code> if the given value is contained in the state,
-   * <code>false</code> otherwise.
+   * @param pValue the value to check for.
+   * @return <code>true</code> if the given value is contained in the state, <code>false</code>
+   *     otherwise.
    */
   public boolean contains(long pValue) {
-    if (isBottom()) { return false; }
+    if (isBottom()) {
+      return false;
+    }
     BigInteger value = BigInteger.valueOf(pValue);
     return intervalIndexOf(value) >= 0;
   }
 
   /**
-   * Checks if this compound state is the bottom state,
-   * which usually represents a contradiction.
+   * Checks if this compound state is the bottom state, which usually represents a contradiction.
    *
    * @return <code>true</code> if this is the bottom state, <code>false</code> otherwise.
    */
   @Override
   public boolean isBottom() {
-    return this.intervals.length == 0;
+    return intervals.length == 0;
   }
 
   /**
    * Checks if this compound state contains every possible value.
    *
-   * @return {@code true} if this state contains every possible value,
-   * {@code false} otherwise.
+   * @return {@code true} if this state contains every possible value, {@code false} otherwise.
    */
   @Override
   public boolean containsAllPossibleValues() {
@@ -478,7 +504,7 @@ public class CompoundBitVectorInterval implements CompoundIntegralInterval, BitV
     StringBuilder sb = new StringBuilder();
     sb.append('{');
     if (!isBottom()) {
-      Iterator<BitVectorInterval> intervalIterator = Arrays.asList(this.intervals).iterator();
+      Iterator<BitVectorInterval> intervalIterator = Arrays.asList(intervals).iterator();
       sb.append(intervalIterator.next());
       while (intervalIterator.hasNext()) {
         sb.append(", ");
@@ -492,7 +518,8 @@ public class CompoundBitVectorInterval implements CompoundIntegralInterval, BitV
   /**
    * Checks if there is a lower bound to this compound state.
    *
-   * @return <code>true</code> if there is an lower bound to this compound state, <code>false</code> otherwise.
+   * @return <code>true</code> if there is an lower bound to this compound state, <code>false</code>
+   *     otherwise.
    */
   @Override
   public boolean hasLowerBound() {
@@ -502,7 +529,8 @@ public class CompoundBitVectorInterval implements CompoundIntegralInterval, BitV
   /**
    * Checks if there is an upper bound to this compound state.
    *
-   * @return <code>true</code> if there is an upper bound to this compound state, <code>false</code> otherwise.
+   * @return <code>true</code> if there is an upper bound to this compound state, <code>false</code>
+   *     otherwise.
    */
   @Override
   public boolean hasUpperBound() {
@@ -516,7 +544,7 @@ public class CompoundBitVectorInterval implements CompoundIntegralInterval, BitV
    */
   @Override
   public BigInteger getLowerBound() {
-    return this.intervals[0].getLowerBound();
+    return intervals[0].getLowerBound();
   }
 
   /**
@@ -526,56 +554,70 @@ public class CompoundBitVectorInterval implements CompoundIntegralInterval, BitV
    */
   @Override
   public BigInteger getUpperBound() {
-    return this.intervals[this.intervals.length - 1].getUpperBound();
+    return intervals[intervals.length - 1].getUpperBound();
   }
 
   /**
    * Checks if this state represents a single value.
    *
-   * @return <code>true</code> if this state represents a single value, <code>false</code> otherwise.
+   * @return <code>true</code> if this state represents a single value, <code>false</code>
+   *     otherwise.
    */
   @Override
   public boolean isSingleton() {
-    return !isBottom() && this.intervals.length == 1 && this.intervals[0].isSingleton();
+    return !isBottom() && intervals.length == 1 && intervals[0].isSingleton();
   }
 
   /**
-   * Returns SOME value that is contained in the state or <code>null</code>
-   * if the state is the "bottom" state.
+   * Returns SOME value that is contained in the state or <code>null</code> if the state is the
+   * "bottom" state.
    *
-   * @return some value that is contained in the state or <code>null</code>
-   * if the state is the "bottom" state.
+   * @return some value that is contained in the state or <code>null</code> if the state is the
+   *     "bottom" state.
    */
   @Override
   public @Nullable BigInteger getValue() {
-    if (isBottom()) { return null; }
-    if (containsAllPossibleValues()) { return BigInteger.ZERO; }
-    for (BitVectorInterval interval : this.intervals) {
-      if (interval.hasLowerBound()) { return interval.getLowerBound(); }
-      if (interval.hasUpperBound()) { return interval.getUpperBound(); }
+    if (isBottom()) {
+      return null;
+    }
+    if (containsAllPossibleValues()) {
+      return BigInteger.ZERO;
+    }
+    for (BitVectorInterval interval : intervals) {
+      if (interval.hasLowerBound()) {
+        return interval.getLowerBound();
+      }
+      if (interval.hasUpperBound()) {
+        return interval.getUpperBound();
+      }
     }
     return null;
   }
 
   @Override
   public boolean equals(Object pOther) {
-    if (this == pOther) { return true; }
-    if (pOther == null) { return false; }
+    if (this == pOther) {
+      return true;
+    }
+    if (pOther == null) {
+      return false;
+    }
     if (pOther instanceof CompoundBitVectorInterval) {
       CompoundBitVectorInterval other = (CompoundBitVectorInterval) pOther;
-      return info.equals(other.info)
-          && Arrays.equals(this.intervals, other.intervals);
+      return info.equals(other.info) && Arrays.equals(intervals, other.intervals);
     }
     return false;
-
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(info, Arrays.hashCode(this.intervals));
+    return Objects.hash(info, Arrays.hashCode(intervals));
   }
 
-  public CompoundBitVectorInterval cast(final BitVectorInfo pBitVectorInfo, boolean pAllowSignedWrapAround, final OverflowEventHandler pOverflowEventHandler) {
+  public CompoundBitVectorInterval cast(
+      final BitVectorInfo pBitVectorInfo,
+      boolean pAllowSignedWrapAround,
+      final OverflowEventHandler pOverflowEventHandler) {
     // Cast to the same type has no effect
     if (info.equals(pBitVectorInfo)) {
       return this;
@@ -583,30 +625,38 @@ public class CompoundBitVectorInterval implements CompoundIntegralInterval, BitV
     // If the value fits in, the cast is easy
     if (pBitVectorInfo.getRange().contains(info.getRange())) {
       BitVectorInterval[] castedIntervals = new BitVectorInterval[intervals.length];
-      Lists.transform(getBitVectorIntervals(), pInterval -> BitVectorInterval.of(
-          pBitVectorInfo,
-          pInterval.getLowerBound(),
-          pInterval.getUpperBound())).toArray(castedIntervals);
-      return new CompoundBitVectorInterval(
-          pBitVectorInfo,
-          castedIntervals);
+      Lists.transform(
+              getBitVectorIntervals(),
+              pInterval ->
+                  BitVectorInterval.of(
+                      pBitVectorInfo, pInterval.getLowerBound(), pInterval.getUpperBound()))
+          .toArray(castedIntervals);
+      return new CompoundBitVectorInterval(pBitVectorInfo, castedIntervals);
     }
     CompoundBitVectorInterval result = bottom(pBitVectorInfo);
     for (BitVectorInterval interval : intervals) {
-      result = result.unionWith(
-          cast(
-              pBitVectorInfo,
-              interval.getLowerBound(),
-              interval.getUpperBound(),
-              pAllowSignedWrapAround,
-              pOverflowEventHandler));
+      result =
+          result.unionWith(
+              cast(
+                  pBitVectorInfo,
+                  interval.getLowerBound(),
+                  interval.getUpperBound(),
+                  pAllowSignedWrapAround,
+                  pOverflowEventHandler));
     }
     return result;
   }
 
-  public static CompoundBitVectorInterval cast(BitVectorInfo pInfo, BigInteger pLowerBound, BigInteger pUpperBound, boolean pAllowSignedWrapAround, final OverflowEventHandler pOverflowEventHandler) {
+  public static CompoundBitVectorInterval cast(
+      BitVectorInfo pInfo,
+      BigInteger pLowerBound,
+      BigInteger pUpperBound,
+      boolean pAllowSignedWrapAround,
+      final OverflowEventHandler pOverflowEventHandler) {
     if (pLowerBound.equals(pUpperBound)) {
-      return of(BitVectorInterval.cast(pInfo, pLowerBound, pAllowSignedWrapAround, pOverflowEventHandler));
+      return of(
+          BitVectorInterval.cast(
+              pInfo, pLowerBound, pAllowSignedWrapAround, pOverflowEventHandler));
     }
     BigInteger lowerBound = pLowerBound;
     BigInteger upperBound = pUpperBound;
@@ -649,7 +699,12 @@ public class CompoundBitVectorInterval implements CompoundIntegralInterval, BitV
       if (upperBound.compareTo(pInfo.getMaxValue()) > 0) {
         return union(
             singleton(pInfo, lowerBound).extendToMaxValue(),
-            cast(pInfo, pInfo.getMaxValue().add(BigInteger.ONE), upperBound, pAllowSignedWrapAround, pOverflowEventHandler));
+            cast(
+                pInfo,
+                pInfo.getMaxValue().add(BigInteger.ONE),
+                upperBound,
+                pAllowSignedWrapAround,
+                pOverflowEventHandler));
       }
     } else if (lbExceedsAbove) { // Full interval is above the maximum value
       upperBound = pUpperBound.remainder(rangeLength);
@@ -663,18 +718,41 @@ public class CompoundBitVectorInterval implements CompoundIntegralInterval, BitV
       if (lowerBound.compareTo(pInfo.getMinValue()) < 0) {
         return union(
             singleton(pInfo, upperBound).extendToMinValue(),
-            cast(pInfo, lowerBound, pInfo.getMinValue().subtract(BigInteger.ONE), pAllowSignedWrapAround, pOverflowEventHandler));
+            cast(
+                pInfo,
+                lowerBound,
+                pInfo.getMinValue().subtract(BigInteger.ONE),
+                pAllowSignedWrapAround,
+                pOverflowEventHandler));
       }
     } else if (lbExceedsBelow) { // Part of the interval is below the minimum value
       return union(
-          cast(pInfo, pLowerBound, pInfo.getMinValue().subtract(BigInteger.ONE), pAllowSignedWrapAround, pOverflowEventHandler),
-          cast(pInfo, pInfo.getMinValue(), pUpperBound, pAllowSignedWrapAround, pOverflowEventHandler)
-          );
+          cast(
+              pInfo,
+              pLowerBound,
+              pInfo.getMinValue().subtract(BigInteger.ONE),
+              pAllowSignedWrapAround,
+              pOverflowEventHandler),
+          cast(
+              pInfo,
+              pInfo.getMinValue(),
+              pUpperBound,
+              pAllowSignedWrapAround,
+              pOverflowEventHandler));
     } else if (ubExceedsAbove) { // Part of the interval is above the minimum value
       return union(
-          cast(pInfo, pLowerBound, pInfo.getMaxValue(), pAllowSignedWrapAround, pOverflowEventHandler),
-          cast(pInfo, pInfo.getMaxValue().add(BigInteger.ONE), pUpperBound, pAllowSignedWrapAround, pOverflowEventHandler)
-          );
+          cast(
+              pInfo,
+              pLowerBound,
+              pInfo.getMaxValue(),
+              pAllowSignedWrapAround,
+              pOverflowEventHandler),
+          cast(
+              pInfo,
+              pInfo.getMaxValue().add(BigInteger.ONE),
+              pUpperBound,
+              pAllowSignedWrapAround,
+              pOverflowEventHandler));
     }
 
     return of(BitVectorInterval.of(pInfo, lowerBound, upperBound));
@@ -713,57 +791,82 @@ public class CompoundBitVectorInterval implements CompoundIntegralInterval, BitV
   }
 
   /**
-   * Inverts the state so that all values previously contained are no longer contained and vice versa.
-   * Do not confuse this with negating ({@link #negate(boolean, OverflowEventHandler)}) the state.
+   * Inverts the state so that all values previously contained are no longer contained and vice
+   * versa. Do not confuse this with negating ({@link #negate(boolean, OverflowEventHandler)}) the
+   * state.
    *
    * @return the inverted state.
    */
   @Override
   public CompoundBitVectorInterval invert() {
-    if (contains(info.getRange())) { return bottom(info); }
-    if (isBottom()) { return getInternal(info.getRange()); }
+    if (contains(info.getRange())) {
+      return bottom(info);
+    }
+    if (isBottom()) {
+      return getInternal(info.getRange());
+    }
     CompoundBitVectorInterval result = bottom(info);
     int index = 0;
 
-    BitVectorInterval current = this.intervals[index++];
+    BitVectorInterval current = intervals[index++];
 
     // Add the interval before the first of the contained intervals
     if (!current.getLowerBound().equals(info.getMinValue())) {
-      result = result.unionWith(BitVectorInterval.of(info, info.getMinValue(), current.getLowerBound().subtract(BigInteger.ONE)));
+      result =
+          result.unionWith(
+              BitVectorInterval.of(
+                  info, info.getMinValue(), current.getLowerBound().subtract(BigInteger.ONE)));
     }
 
     BigInteger lastUpperBound = current.getUpperBound();
 
-    while (index < this.intervals.length) {
-      current = this.intervals[index++];
+    while (index < intervals.length) {
+      current = intervals[index++];
 
       // Add the interval between the last and the current contained interval
-      result = result.unionWith(BitVectorInterval.of(info, lastUpperBound.add(BigInteger.ONE), current.getLowerBound().subtract(BigInteger.ONE)));
+      result =
+          result.unionWith(
+              BitVectorInterval.of(
+                  info,
+                  lastUpperBound.add(BigInteger.ONE),
+                  current.getLowerBound().subtract(BigInteger.ONE)));
 
       lastUpperBound = current.getUpperBound();
     }
 
     // Add the interval after the last of the contained intervals
     if (!lastUpperBound.equals(info.getMaxValue())) {
-      result = result.unionWith(BitVectorInterval.of(info, lastUpperBound.add(BigInteger.ONE), info.getMaxValue()));
+      result =
+          result.unionWith(
+              BitVectorInterval.of(info, lastUpperBound.add(BigInteger.ONE), info.getMaxValue()));
     }
     return result;
   }
 
   /**
    * Negates the state. Do not confuse this with inverting ({@link #invert()}) the state.
+   *
    * @return the negated state.
    */
-  public CompoundBitVectorInterval negate(boolean pAllowSignedWrapAround, final OverflowEventHandler pOverflowEventHandler) {
-    if (containsAllPossibleValues() || isBottom()) { return this; }
+  public CompoundBitVectorInterval negate(
+      boolean pAllowSignedWrapAround, final OverflowEventHandler pOverflowEventHandler) {
+    if (containsAllPossibleValues() || isBottom()) {
+      return this;
+    }
     CompoundBitVectorInterval result = bottom(info);
-    for (BitVectorInterval simpleInterval : this.intervals) {
-      result = result.unionWith(negate(info, simpleInterval, pAllowSignedWrapAround, pOverflowEventHandler));
+    for (BitVectorInterval simpleInterval : intervals) {
+      result =
+          result.unionWith(
+              negate(info, simpleInterval, pAllowSignedWrapAround, pOverflowEventHandler));
     }
     return result;
   }
 
-  private static CompoundBitVectorInterval negate(BitVectorInfo pInfo, BitVectorInterval pInterval, boolean pAllowSignedWrapAround, final OverflowEventHandler pOverflowEventHandler) {
+  private static CompoundBitVectorInterval negate(
+      BitVectorInfo pInfo,
+      BitVectorInterval pInterval,
+      boolean pAllowSignedWrapAround,
+      final OverflowEventHandler pOverflowEventHandler) {
     BigInteger newLowerBound = pInterval.getUpperBound().negate();
     BigInteger newUpperBound = pInterval.getLowerBound().negate();
 
@@ -812,33 +915,43 @@ public class CompoundBitVectorInterval implements CompoundIntegralInterval, BitV
 
   /**
    * Checks if positive values are contained in the state.
+   *
    * @return <code>true</code> if this state contains positive values.
    */
   @Override
   public boolean containsPositive() {
-    if (isBottom()) { return false; }
-    for (BitVectorInterval interval : this.intervals) {
-      if (interval.containsPositive()) { return true; }
+    if (isBottom()) {
+      return false;
+    }
+    for (BitVectorInterval interval : intervals) {
+      if (interval.containsPositive()) {
+        return true;
+      }
     }
     return false;
   }
 
-
   /**
    * Checks if negative values are contained in the state.
+   *
    * @return <code>true</code> if this state contains negative values.
    */
   @Override
   public boolean containsNegative() {
-    if (isBottom()) { return false; }
-    for (BitVectorInterval interval : this.intervals) {
-      if (interval.containsNegative()) { return true; }
+    if (isBottom()) {
+      return false;
+    }
+    for (BitVectorInterval interval : intervals) {
+      if (interval.containsNegative()) {
+        return true;
+      }
     }
     return false;
   }
 
   /**
    * Checks if zero is contained in the state.
+   *
    * @return <code>true</code> if this state contains the zero value.
    */
   public boolean containsZero() {
@@ -846,105 +959,113 @@ public class CompoundBitVectorInterval implements CompoundIntegralInterval, BitV
   }
 
   /**
-   * Creates a compound state similar to this state but with the minimum lower
-   * bound of the bit vector or bottom if this state is bottom.
+   * Creates a compound state similar to this state but with the minimum lower bound of the bit
+   * vector or bottom if this state is bottom.
    *
-   * @return a compound state similar to this state but with the minimum lower
-   * bound of the bit vector or bottom if this state is bottom.
+   * @return a compound state similar to this state but with the minimum lower bound of the bit
+   *     vector or bottom if this state is bottom.
    */
   @Override
   public CompoundBitVectorInterval extendToMinValue() {
-    if (!hasLowerBound()) { return this; }
-    BitVectorInterval[] resultIntervals = new BitVectorInterval[this.intervals.length];
-    resultIntervals[0] = this.intervals[0].extendToMinValue();
-    System.arraycopy(this.intervals, 1, resultIntervals, 1, this.intervals.length - 1);
+    if (!hasLowerBound()) {
+      return this;
+    }
+    BitVectorInterval[] resultIntervals = new BitVectorInterval[intervals.length];
+    resultIntervals[0] = intervals[0].extendToMinValue();
+    System.arraycopy(intervals, 1, resultIntervals, 1, intervals.length - 1);
     return getInternal(info, resultIntervals);
   }
 
   /**
-   * Creates a compound state similar to this state but with the maximum lower
-   * bound of the bit vector or bottom if this state is bottom.
+   * Creates a compound state similar to this state but with the maximum lower bound of the bit
+   * vector or bottom if this state is bottom.
    *
-   * @return a compound state similar to this state but with the maximum lower
-   * bound of the bit vector or bottom if this state is bottom.
+   * @return a compound state similar to this state but with the maximum lower bound of the bit
+   *     vector or bottom if this state is bottom.
    */
   @Override
   public CompoundBitVectorInterval extendToMaxValue() {
-    if (!hasUpperBound()) { return this; }
-    BitVectorInterval[] resultIntervals = new BitVectorInterval[this.intervals.length];
-    int index = this.intervals.length - 1;
-    System.arraycopy(this.intervals, 0, resultIntervals, 0, index);
-    resultIntervals[index] = this.intervals[index].extendToMaxValue();
+    if (!hasUpperBound()) {
+      return this;
+    }
+    BitVectorInterval[] resultIntervals = new BitVectorInterval[intervals.length];
+    int index = intervals.length - 1;
+    System.arraycopy(intervals, 0, resultIntervals, 0, index);
+    resultIntervals[index] = intervals[index].extendToMaxValue();
     return getInternal(info, resultIntervals);
   }
 
   /**
-   * Computes the state resulting from adding the given value to this
-   * state.
+   * Computes the state resulting from adding the given value to this state.
    *
    * @param pValue the value to add to this state.
-   *
-   * @return the state resulting from adding the given value to this
-   * state.
+   * @return the state resulting from adding the given value to this state.
    */
-  public CompoundBitVectorInterval add(final BigInteger pValue, boolean pAllowSignedWrapAround, final OverflowEventHandler pOverflowEventHandler) {
-    return applyOperationToAllAndUnite(ISCOperatorFactory.INSTANCE.getAdd(pAllowSignedWrapAround, pOverflowEventHandler), pValue);
+  public CompoundBitVectorInterval add(
+      final BigInteger pValue,
+      boolean pAllowSignedWrapAround,
+      final OverflowEventHandler pOverflowEventHandler) {
+    return applyOperationToAllAndUnite(
+        ISCOperatorFactory.INSTANCE.getAdd(pAllowSignedWrapAround, pOverflowEventHandler), pValue);
   }
 
   /**
-   * Computes the state resulting from adding the given value to this
-   * state.
+   * Computes the state resulting from adding the given value to this state.
    *
    * @param pValue the value to add to this state.
    * @param pAllowSignedWrapAround whether or not signed wrap-around is allowed.
-   *
-   * @return the state resulting from adding the given value to this
-   * state.
+   * @return the state resulting from adding the given value to this state.
    */
-  public CompoundBitVectorInterval add(final long pValue, boolean pAllowSignedWrapAround, final OverflowEventHandler pOverflowEventHandler) {
+  public CompoundBitVectorInterval add(
+      final long pValue,
+      boolean pAllowSignedWrapAround,
+      final OverflowEventHandler pOverflowEventHandler) {
     return add(BigInteger.valueOf(pValue), pAllowSignedWrapAround, pOverflowEventHandler);
   }
 
   /**
-   * Computes the state resulting from adding the given interval to this
-   * state.
+   * Computes the state resulting from adding the given interval to this state.
    *
    * @param pInterval the interval to add to this state.
    * @param pAllowSignedWrapAround whether or not signed wrap-around is allowed.
    * @param pOverflowEventHandler the handle for overflows
-   *
-   * @return the state resulting from adding the given interval to this
-   * state.
+   * @return the state resulting from adding the given interval to this state.
    */
-  public CompoundBitVectorInterval add(final BitVectorInterval pInterval, boolean pAllowSignedWrapAround, OverflowEventHandler pOverflowEventHandler) {
-    return applyOperationToAllAndUnite(IICOperatorFactory.INSTANCE.getAdd(pAllowSignedWrapAround, pOverflowEventHandler), pInterval);
+  public CompoundBitVectorInterval add(
+      final BitVectorInterval pInterval,
+      boolean pAllowSignedWrapAround,
+      OverflowEventHandler pOverflowEventHandler) {
+    return applyOperationToAllAndUnite(
+        IICOperatorFactory.INSTANCE.getAdd(pAllowSignedWrapAround, pOverflowEventHandler),
+        pInterval);
   }
 
   /**
-   * Computes the state resulting from adding the given state to this
-   * state.
+   * Computes the state resulting from adding the given state to this state.
    *
    * @param pState the state to add to this state.
    * @param pAllowSignedWrapAround whether or not signed wrap-around is allowed.
-   *
-   * @return the state resulting from adding the given state to this
-   * state.
+   * @return the state resulting from adding the given state to this state.
    */
-  public CompoundBitVectorInterval add(final CompoundBitVectorInterval pState, boolean pAllowSignedWrapAround, final OverflowEventHandler pOverflowEventHandler) {
-    return applyOperationToAllAndUnite(ICCOperatorFactory.INSTANCE.getAdd(pAllowSignedWrapAround, pOverflowEventHandler), pState);
+  public CompoundBitVectorInterval add(
+      final CompoundBitVectorInterval pState,
+      boolean pAllowSignedWrapAround,
+      final OverflowEventHandler pOverflowEventHandler) {
+    return applyOperationToAllAndUnite(
+        ICCOperatorFactory.INSTANCE.getAdd(pAllowSignedWrapAround, pOverflowEventHandler), pState);
   }
 
   /**
-   * Computes the state resulting from multiplying this state with the
-   * given value.
+   * Computes the state resulting from multiplying this state with the given value.
    *
    * @param pValue the value to multiply this state with.
    * @param pAllowSignedWrapAround whether or not signed wrap-around is allowed.
-   *
-   * @return the state resulting from multiplying this state with the
-   * given value.
+   * @return the state resulting from multiplying this state with the given value.
    */
-  public CompoundBitVectorInterval multiply(final BigInteger pValue, boolean pAllowSignedWrapAround, final OverflowEventHandler pOverflowEventHandler) {
+  public CompoundBitVectorInterval multiply(
+      final BigInteger pValue,
+      boolean pAllowSignedWrapAround,
+      final OverflowEventHandler pOverflowEventHandler) {
     if (pValue.equals(BigInteger.ZERO)) {
       return CompoundBitVectorInterval.singleton(info, pValue);
     }
@@ -957,243 +1078,270 @@ public class CompoundBitVectorInterval implements CompoundIntegralInterval, BitV
   }
 
   /**
-   * Computes the state resulting from multiplying this state with the
-   * given interval.
+   * Computes the state resulting from multiplying this state with the given interval.
    *
    * @param pInterval the interval to multiply this state with.
    * @param pAllowSignedWrapAround whether or not signed wrap-around is allowed.
-   *
-   * @return the state resulting from multiplying this state with the
-   * given interval.
+   * @return the state resulting from multiplying this state with the given interval.
    */
-  public CompoundBitVectorInterval multiply(final BitVectorInterval pInterval, boolean pAllowSignedWrapAround, final OverflowEventHandler pOverflowEventHandler) {
+  public CompoundBitVectorInterval multiply(
+      final BitVectorInterval pInterval,
+      boolean pAllowSignedWrapAround,
+      final OverflowEventHandler pOverflowEventHandler) {
     if (pInterval.isSingleton()) {
       return multiply(pInterval.getLowerBound(), pAllowSignedWrapAround, pOverflowEventHandler);
     }
-    return applyOperationToAllAndUnite(IICOperatorFactory.INSTANCE.getMultiply(pAllowSignedWrapAround, pOverflowEventHandler), pInterval);
+    return applyOperationToAllAndUnite(
+        IICOperatorFactory.INSTANCE.getMultiply(pAllowSignedWrapAround, pOverflowEventHandler),
+        pInterval);
   }
 
   /**
-   * Computes the state resulting from multiplying this state with the
-   * given state.
+   * Computes the state resulting from multiplying this state with the given state.
    *
    * @param pState the state to multiply this state with.
    * @param pAllowSignedWrapAround whether or not signed wrap-around is allowed.
-   *
-   * @return the state resulting from multiplying this state with the
-   * given state.
+   * @return the state resulting from multiplying this state with the given state.
    */
-  public CompoundBitVectorInterval multiply(final CompoundBitVectorInterval pState, boolean pAllowSignedWrapAround, final OverflowEventHandler pOverflowEventHandler) {
+  public CompoundBitVectorInterval multiply(
+      final CompoundBitVectorInterval pState,
+      boolean pAllowSignedWrapAround,
+      final OverflowEventHandler pOverflowEventHandler) {
     if (pState.intervals.length == 1) {
       return multiply(pState.intervals[0], pAllowSignedWrapAround, pOverflowEventHandler);
     }
-    return applyOperationToAllAndUnite(ICCOperatorFactory.INSTANCE.getMultiply(pAllowSignedWrapAround, pOverflowEventHandler), pState);
+    return applyOperationToAllAndUnite(
+        ICCOperatorFactory.INSTANCE.getMultiply(pAllowSignedWrapAround, pOverflowEventHandler),
+        pState);
   }
 
   /**
-   * Computes the state resulting from dividing this state by the given
-   * value.
+   * Computes the state resulting from dividing this state by the given value.
    *
    * @param pValue the value to divide this state by.
    * @param pAllowSignedWrapAround whether or not signed wrap-around is allowed.
-   *
-   * @return the state resulting from dividing this state by the given
-   * value.
+   * @return the state resulting from dividing this state by the given value.
    */
-  public CompoundBitVectorInterval divide(final BigInteger pValue, boolean pAllowSignedWrapAround, final OverflowEventHandler pOverflowEventHandler) {
-    return applyOperationToAllAndUnite(ISCOperatorFactory.INSTANCE.getDivide(pAllowSignedWrapAround, pOverflowEventHandler), pValue);
+  public CompoundBitVectorInterval divide(
+      final BigInteger pValue,
+      boolean pAllowSignedWrapAround,
+      final OverflowEventHandler pOverflowEventHandler) {
+    return applyOperationToAllAndUnite(
+        ISCOperatorFactory.INSTANCE.getDivide(pAllowSignedWrapAround, pOverflowEventHandler),
+        pValue);
   }
 
   /**
-   * Computes the state resulting from dividing this state by the given
-   * interval.
+   * Computes the state resulting from dividing this state by the given interval.
    *
    * @param pInterval the interval to divide this state by.
    * @param pAllowSignedWrapAround whether or not signed wrap-around is allowed.
-   *
-   * @return the state resulting from dividing this state by the given
-   * interval.
+   * @return the state resulting from dividing this state by the given interval.
    */
-  public CompoundBitVectorInterval divide(final BitVectorInterval pInterval, boolean pAllowSignedWrapAround, final OverflowEventHandler pOverflowEventHandler) {
-    return applyOperationToAllAndUnite(IICOperatorFactory.INSTANCE.getDivide(pAllowSignedWrapAround, pOverflowEventHandler), pInterval);
+  public CompoundBitVectorInterval divide(
+      final BitVectorInterval pInterval,
+      boolean pAllowSignedWrapAround,
+      final OverflowEventHandler pOverflowEventHandler) {
+    return applyOperationToAllAndUnite(
+        IICOperatorFactory.INSTANCE.getDivide(pAllowSignedWrapAround, pOverflowEventHandler),
+        pInterval);
   }
 
   /**
-   * Computes the state resulting from dividing this state by the given
-   * state.
+   * Computes the state resulting from dividing this state by the given state.
    *
    * @param pState the state to divide this state by.
    * @param pAllowSignedWrapAround whether or not signed wrap-around is allowed.
-   *
-   * @return the state resulting from dividing this state by the given
-   * state.
+   * @return the state resulting from dividing this state by the given state.
    */
-  public CompoundBitVectorInterval divide(final CompoundBitVectorInterval pState, boolean pAllowSignedWrapAround, final OverflowEventHandler pOverflowEventHandler) {
-    return applyOperationToAllAndUnite(ICCOperatorFactory.INSTANCE.getDivide(pAllowSignedWrapAround, pOverflowEventHandler), pState);
+  public CompoundBitVectorInterval divide(
+      final CompoundBitVectorInterval pState,
+      boolean pAllowSignedWrapAround,
+      final OverflowEventHandler pOverflowEventHandler) {
+    return applyOperationToAllAndUnite(
+        ICCOperatorFactory.INSTANCE.getDivide(pAllowSignedWrapAround, pOverflowEventHandler),
+        pState);
   }
 
   /**
-   * Computes the state representing the remainder of dividing this state
-   * by the given value.
+   * Computes the state representing the remainder of dividing this state by the given value.
    *
    * @param pValue the value to divide this state by.
    * @param pAllowSignedWrapAround whether or not signed wrap-around is allowed.
-   *
-   * @return the state representing the remainder of dividing this state
-   * by the given value.
+   * @return the state representing the remainder of dividing this state by the given value.
    */
-  public CompoundBitVectorInterval modulo(final BigInteger pValue, boolean pAllowSignedWrapAround, final OverflowEventHandler pOverflowEventHandler) {
-    return applyOperationToAllAndUnite(ISCOperatorFactory.INSTANCE.getModulo(pAllowSignedWrapAround, pOverflowEventHandler), pValue);
+  public CompoundBitVectorInterval modulo(
+      final BigInteger pValue,
+      boolean pAllowSignedWrapAround,
+      final OverflowEventHandler pOverflowEventHandler) {
+    return applyOperationToAllAndUnite(
+        ISCOperatorFactory.INSTANCE.getModulo(pAllowSignedWrapAround, pOverflowEventHandler),
+        pValue);
   }
 
-
   /**
-   * Computes the state representing the remainder of dividing this state
-   * by the given interval.
+   * Computes the state representing the remainder of dividing this state by the given interval.
    *
    * @param pInterval the interval to divide this state by.
    * @param pAllowSignedWrapAround whether or not signed wrap-around is allowed.
-   *
-   * @return the state representing the remainder of dividing this state
-   * by the given interval.
+   * @return the state representing the remainder of dividing this state by the given interval.
    */
-  public CompoundBitVectorInterval modulo(final BitVectorInterval pInterval, boolean pAllowSignedWrapAround, final OverflowEventHandler pOverflowEventHandler) {
-    return applyOperationToAllAndUnite(IICOperatorFactory.INSTANCE.getModulo(pAllowSignedWrapAround, pOverflowEventHandler), pInterval);
+  public CompoundBitVectorInterval modulo(
+      final BitVectorInterval pInterval,
+      boolean pAllowSignedWrapAround,
+      final OverflowEventHandler pOverflowEventHandler) {
+    return applyOperationToAllAndUnite(
+        IICOperatorFactory.INSTANCE.getModulo(pAllowSignedWrapAround, pOverflowEventHandler),
+        pInterval);
   }
 
   /**
-   * Computes the state representing the remainder of dividing this state
-   * by the given state.
+   * Computes the state representing the remainder of dividing this state by the given state.
    *
    * @param pState the state to divide this state by.
    * @param pAllowSignedWrapAround whether or not signed wrap-around is allowed.
-   *
-   * @return the state representing the remainder of dividing this state
-   * by the given state.
+   * @return the state representing the remainder of dividing this state by the given state.
    */
-  public CompoundBitVectorInterval modulo(final CompoundBitVectorInterval pState, boolean pAllowSignedWrapAround, final OverflowEventHandler pOverflowEventHandler) {
-    return applyOperationToAllAndUnite(ICCOperatorFactory.INSTANCE.getModulo(pAllowSignedWrapAround, pOverflowEventHandler), pState);
+  public CompoundBitVectorInterval modulo(
+      final CompoundBitVectorInterval pState,
+      boolean pAllowSignedWrapAround,
+      final OverflowEventHandler pOverflowEventHandler) {
+    return applyOperationToAllAndUnite(
+        ICCOperatorFactory.INSTANCE.getModulo(pAllowSignedWrapAround, pOverflowEventHandler),
+        pState);
   }
 
   /**
-   * Computes the state resulting from left shifting this state by the
-   * given value.
+   * Computes the state resulting from left shifting this state by the given value.
    *
    * @param pValue the value to shift this state by.
    * @param pAllowSignedWrapAround whether or not signed wrap-around is allowed.
-   *
-   * @return the state resulting from left shifting this state by the
-   * given value.
+   * @return the state resulting from left shifting this state by the given value.
    */
-  public CompoundBitVectorInterval shiftLeft(final BigInteger pValue, boolean pAllowSignedWrapAround, final OverflowEventHandler pOverflowEventHandler) {
-    return applyOperationToAllAndUnite(ISCOperatorFactory.INSTANCE.getShiftLeft(pAllowSignedWrapAround, pOverflowEventHandler), pValue);
+  public CompoundBitVectorInterval shiftLeft(
+      final BigInteger pValue,
+      boolean pAllowSignedWrapAround,
+      final OverflowEventHandler pOverflowEventHandler) {
+    return applyOperationToAllAndUnite(
+        ISCOperatorFactory.INSTANCE.getShiftLeft(pAllowSignedWrapAround, pOverflowEventHandler),
+        pValue);
   }
 
   /**
-   * Computes the state resulting from left shifting this state by the
-   * given interval.
+   * Computes the state resulting from left shifting this state by the given interval.
    *
    * @param pInterval the interval to shift this state by.
    * @param pAllowSignedWrapAround whether or not signed wrap-around is allowed.
-   *
-   * @return the state resulting from left shifting this state by the
-   * given interval.
+   * @return the state resulting from left shifting this state by the given interval.
    */
-  public CompoundBitVectorInterval shiftLeft(final BitVectorInterval pInterval, boolean pAllowSignedWrapAround, final OverflowEventHandler pOverflowEventHandler) {
-    return applyOperationToAllAndUnite(IICOperatorFactory.INSTANCE.getShiftLeft(pAllowSignedWrapAround, pOverflowEventHandler), pInterval);
+  public CompoundBitVectorInterval shiftLeft(
+      final BitVectorInterval pInterval,
+      boolean pAllowSignedWrapAround,
+      final OverflowEventHandler pOverflowEventHandler) {
+    return applyOperationToAllAndUnite(
+        IICOperatorFactory.INSTANCE.getShiftLeft(pAllowSignedWrapAround, pOverflowEventHandler),
+        pInterval);
   }
 
   /**
-   * Computes the state resulting from left shifting this state by the
-   * given state.
+   * Computes the state resulting from left shifting this state by the given state.
    *
    * @param pState the state to shift this state by.
    * @param pAllowSignedWrapAround whether or not signed wrap-around is allowed.
-   *
-   * @return the state resulting from left shifting this state by the
-   * given state.
+   * @return the state resulting from left shifting this state by the given state.
    */
-  public CompoundBitVectorInterval shiftLeft(final CompoundBitVectorInterval pState, boolean pAllowSignedWrapAround, final OverflowEventHandler pOverflowEventHandler) {
-    return applyOperationToAllAndUnite(ICCOperatorFactory.INSTANCE.getShiftLeft(pAllowSignedWrapAround, pOverflowEventHandler), pState);
+  public CompoundBitVectorInterval shiftLeft(
+      final CompoundBitVectorInterval pState,
+      boolean pAllowSignedWrapAround,
+      final OverflowEventHandler pOverflowEventHandler) {
+    return applyOperationToAllAndUnite(
+        ICCOperatorFactory.INSTANCE.getShiftLeft(pAllowSignedWrapAround, pOverflowEventHandler),
+        pState);
   }
 
   /**
-   * Computes the state resulting from right shifting this state by the
-   * given value.
+   * Computes the state resulting from right shifting this state by the given value.
    *
    * @param pValue the value to shift this state by.
    * @param pAllowSignedWrapAround whether or not signed wrap-around is allowed.
-   *
-   * @return the state resulting from right shifting this state by the
-   * given value.
+   * @return the state resulting from right shifting this state by the given value.
    */
-  public CompoundBitVectorInterval shiftRight(final BigInteger pValue, boolean pAllowSignedWrapAround, final OverflowEventHandler pOverflowEventHandler) {
-    return applyOperationToAllAndUnite(ISCOperatorFactory.INSTANCE.getShiftRight(pAllowSignedWrapAround, pOverflowEventHandler), pValue);
+  public CompoundBitVectorInterval shiftRight(
+      final BigInteger pValue,
+      boolean pAllowSignedWrapAround,
+      final OverflowEventHandler pOverflowEventHandler) {
+    return applyOperationToAllAndUnite(
+        ISCOperatorFactory.INSTANCE.getShiftRight(pAllowSignedWrapAround, pOverflowEventHandler),
+        pValue);
   }
 
   /**
-   * Computes the state resulting from right shifting this state by the
-   * given interval.
+   * Computes the state resulting from right shifting this state by the given interval.
    *
    * @param pInterval the interval to shift this state by.
    * @param pAllowSignedWrapAround whether or not signed wrap-around is allowed.
-   *
-   * @return the state resulting from right shifting this state by the
-   * given interval.
+   * @return the state resulting from right shifting this state by the given interval.
    */
-  public CompoundBitVectorInterval shiftRight(final BitVectorInterval pInterval, boolean pAllowSignedWrapAround, final OverflowEventHandler pOverflowEventHandler) {
-    return applyOperationToAllAndUnite(IICOperatorFactory.INSTANCE.getShiftRight(pAllowSignedWrapAround, pOverflowEventHandler), pInterval);
+  public CompoundBitVectorInterval shiftRight(
+      final BitVectorInterval pInterval,
+      boolean pAllowSignedWrapAround,
+      final OverflowEventHandler pOverflowEventHandler) {
+    return applyOperationToAllAndUnite(
+        IICOperatorFactory.INSTANCE.getShiftRight(pAllowSignedWrapAround, pOverflowEventHandler),
+        pInterval);
   }
 
   /**
-   * Computes the state resulting from right shifting this state by the
-   * given state.
+   * Computes the state resulting from right shifting this state by the given state.
    *
    * @param pState the state to shift this state by.
    * @param pAllowSignedWrapAround whether or not signed wrap-around is allowed.
-   *
-   * @return the state resulting from right shifting this state by the
-   * given state.
+   * @return the state resulting from right shifting this state by the given state.
    */
-  public CompoundBitVectorInterval shiftRight(final CompoundBitVectorInterval pState, boolean pAllowSignedWrapAround, final OverflowEventHandler pOverflowEventHandler) {
-    return applyOperationToAllAndUnite(ICCOperatorFactory.INSTANCE.getShiftRight(pAllowSignedWrapAround, pOverflowEventHandler), pState);
+  public CompoundBitVectorInterval shiftRight(
+      final CompoundBitVectorInterval pState,
+      boolean pAllowSignedWrapAround,
+      final OverflowEventHandler pOverflowEventHandler) {
+    return applyOperationToAllAndUnite(
+        ICCOperatorFactory.INSTANCE.getShiftRight(pAllowSignedWrapAround, pOverflowEventHandler),
+        pState);
   }
 
   /**
-   * Computes the state resulting from the logical "==" comparison
-   * of the expressions represented by this state and the given state,
-   * which is
-   * a state representing true if both states are equal singleton states,
-   * a state representing false if both states do not intersect,
-   * top if they do intersect but are not equal singletons and
-   * bottom if one of the states is bottom.
+   * Computes the state resulting from the logical "==" comparison of the expressions represented by
+   * this state and the given state, which is a state representing true if both states are equal
+   * singleton states, a state representing false if both states do not intersect, top if they do
+   * intersect but are not equal singletons and bottom if one of the states is bottom.
    *
-   * Do not confuse this method with {@link #equals(Object)} which tests two
-   * states for equality; while the states [0,1] and [0,1] are equal
-   * states, they do not guarantee that two different concrete states
-   * abstracted by those states are equal: one might be 0 while the other
-   * could be 1.
+   * <p>Do not confuse this method with {@link #equals(Object)} which tests two states for equality;
+   * while the states [0,1] and [0,1] are equal states, they do not guarantee that two different
+   * concrete states abstracted by those states are equal: one might be 0 while the other could be
+   * 1.
    *
    * @param pState the comparison state.
-   * @return a state representing true if both states are equal singleton
-   * states, a state representing false if both states do not intersect,
-   * top if they do intersect but are not equal singletons and bottom
-   * if one of the states is bottom.
+   * @return a state representing true if both states are equal singleton states, a state
+   *     representing false if both states do not intersect, top if they do intersect but are not
+   *     equal singletons and bottom if one of the states is bottom.
    */
   public CompoundBitVectorInterval logicalEquals(final CompoundBitVectorInterval pState) {
     checkBitVectorCompatibilityWith(pState.info);
-    if (isBottom() || pState.isBottom()) { return bottom(info); }
-    if (isSingleton() && equals(pState)) { return CompoundBitVectorInterval.logicalTrue(info); }
-    if (!intersectsWith(pState)) { return CompoundBitVectorInterval.logicalFalse(info); }
+    if (isBottom() || pState.isBottom()) {
+      return bottom(info);
+    }
+    if (isSingleton() && equals(pState)) {
+      return CompoundBitVectorInterval.logicalTrue(info);
+    }
+    if (!intersectsWith(pState)) {
+      return CompoundBitVectorInterval.logicalFalse(info);
+    }
     return getInternal(info.getRange());
   }
 
   /**
-   * Checks whether this state definitely evaluates to <code>false</code>
-   * or not.
+   * Checks whether this state definitely evaluates to <code>false</code> or not.
    *
-   * @return <code>true</code> if this state definitely evaluates to
-   * <code>false</code>, <code>false</code> otherwise.
+   * @return <code>true</code> if this state definitely evaluates to <code>false</code>, <code>false
+   *     </code> otherwise.
    */
   @Override
   public boolean isDefinitelyFalse() {
@@ -1201,11 +1349,10 @@ public class CompoundBitVectorInterval implements CompoundIntegralInterval, BitV
   }
 
   /**
-   * Checks whether this state definitely evaluates to <code>true</code>
-   * or not.
+   * Checks whether this state definitely evaluates to <code>true</code> or not.
    *
-   * @return <code>true</code> if this state definitely evaluates to
-   * <code>true</code>, <code>false</code> otherwise.
+   * @return <code>true</code> if this state definitely evaluates to <code>true</code>, <code>false
+   *     </code> otherwise.
    */
   @Override
   public boolean isDefinitelyTrue() {
@@ -1213,78 +1360,83 @@ public class CompoundBitVectorInterval implements CompoundIntegralInterval, BitV
   }
 
   /**
-   * Computes the boolean state representing the result of checking if
-   * this state is greater than the given state. There are four
-   * possible outcomes: Either all values of this state are greater
-   * than all values contained in the given state, resulting in true
-   * being returned, or all values of this state are less than or equal
-   * to all values contained in the given state, resulting in false being
-   * returned, or there are values in this state which are greater than,
-   * but also values that are less than or equal to some values in the
-   * given state, which results in top being returned, or one of the
-   * states is bottom, which results in bottom being returned.
+   * Computes the boolean state representing the result of checking if this state is greater than
+   * the given state. There are four possible outcomes: Either all values of this state are greater
+   * than all values contained in the given state, resulting in true being returned, or all values
+   * of this state are less than or equal to all values contained in the given state, resulting in
+   * false being returned, or there are values in this state which are greater than, but also values
+   * that are less than or equal to some values in the given state, which results in top being
+   * returned, or one of the states is bottom, which results in bottom being returned.
    *
    * @param pState the state to compare this state to.
-   *
-   * @return true if all values contained in this state are greater than
-   * all values in the given state, false if all values contained in this
-   * state are less than or equal to all values in the given state,
-   * bottom if one of the states is bottom, top otherwise.
+   * @return true if all values contained in this state are greater than all values in the given
+   *     state, false if all values contained in this state are less than or equal to all values in
+   *     the given state, bottom if one of the states is bottom, top otherwise.
    */
   public CompoundBitVectorInterval greaterThan(final CompoundBitVectorInterval pState) {
     checkBitVectorCompatibilityWith(pState.info);
-    if (isBottom() || pState.isBottom()) { return bottom(info); }
-    if (hasLowerBound() && pState.hasUpperBound() && getLowerBound().compareTo(pState.getUpperBound()) > 0) { return logicalTrue(info); }
-    if (hasUpperBound() && pState.hasLowerBound() && getUpperBound().compareTo(pState.getLowerBound()) <= 0) { return logicalFalse(info); }
+    if (isBottom() || pState.isBottom()) {
+      return bottom(info);
+    }
+    if (hasLowerBound()
+        && pState.hasUpperBound()
+        && getLowerBound().compareTo(pState.getUpperBound()) > 0) {
+      return logicalTrue(info);
+    }
+    if (hasUpperBound()
+        && pState.hasLowerBound()
+        && getUpperBound().compareTo(pState.getLowerBound()) <= 0) {
+      return logicalFalse(info);
+    }
     return getInternal(info.getRange());
   }
 
   /**
-   * Computes the boolean state representing the result of checking if
-   * this state is greater than or equal to the given state. There are
-   * basically four possible outcomes: Either all values of this state
-   * are greater than or equal to all values contained in the given
-   * state, resulting in true being returned, or all values of this state
-   * are less than all values contained in the given state, resulting in
-   * false being returned, or there are values in this state which are
-   * greater than or equal to, but also values that are less than some
-   * values in the given state, which results in top being returned,
-   * or one of the states is bottom, which results in bottom being
+   * Computes the boolean state representing the result of checking if this state is greater than or
+   * equal to the given state. There are basically four possible outcomes: Either all values of this
+   * state are greater than or equal to all values contained in the given state, resulting in true
+   * being returned, or all values of this state are less than all values contained in the given
+   * state, resulting in false being returned, or there are values in this state which are greater
+   * than or equal to, but also values that are less than some values in the given state, which
+   * results in top being returned, or one of the states is bottom, which results in bottom being
    * returned.
    *
    * @param pState the state to compare this state to.
-   *
-   * @return true if all values contained in this state are greater
-   * than or equal to all values in the given state, false if all
-   * values contained in this state are less than all values in the
-   * given state, bottom if one of the states is bottom, top otherwise.
+   * @return true if all values contained in this state are greater than or equal to all values in
+   *     the given state, false if all values contained in this state are less than all values in
+   *     the given state, bottom if one of the states is bottom, top otherwise.
    */
   public CompoundBitVectorInterval greaterEqual(final CompoundBitVectorInterval pState) {
     checkBitVectorCompatibilityWith(pState.info);
-    if (isBottom() || pState.isBottom()) { return bottom(info); }
-    if (hasLowerBound() && pState.hasUpperBound() && getLowerBound().compareTo(pState.getUpperBound()) >= 0) { return logicalTrue(info); }
-    if (hasUpperBound() && pState.hasLowerBound() && getUpperBound().compareTo(pState.getLowerBound()) < 0) { return logicalFalse(info); }
+    if (isBottom() || pState.isBottom()) {
+      return bottom(info);
+    }
+    if (hasLowerBound()
+        && pState.hasUpperBound()
+        && getLowerBound().compareTo(pState.getUpperBound()) >= 0) {
+      return logicalTrue(info);
+    }
+    if (hasUpperBound()
+        && pState.hasLowerBound()
+        && getUpperBound().compareTo(pState.getLowerBound()) < 0) {
+      return logicalFalse(info);
+    }
     return getInternal(info.getRange());
   }
 
   /**
-   * Computes the boolean state representing the result of checking if
-   * this state is less than the given state. There are four possible
-   * outcomes: Either all values of this state are less than all values
-   * contained in the given state, resulting in true being returned, or
-   * all values of this state are greater than or equal to all values
-   * contained in the given state, resulting in false being returned,
-   * or there are values in this state which are less than, but also
-   * values that are greater than or equal to some values in the given
-   * state, which results in top being returned, or one of the states
-   * is bottom, which results in bottom being returned.
+   * Computes the boolean state representing the result of checking if this state is less than the
+   * given state. There are four possible outcomes: Either all values of this state are less than
+   * all values contained in the given state, resulting in true being returned, or all values of
+   * this state are greater than or equal to all values contained in the given state, resulting in
+   * false being returned, or there are values in this state which are less than, but also values
+   * that are greater than or equal to some values in the given state, which results in top being
+   * returned, or one of the states is bottom, which results in bottom being returned.
    *
    * @param pState the state to compare this state to.
-   *
-   * @return true if all values contained in this state are less than
-   * all values in the given state, false if all values contained in
-   * this state are greater than or equal to all values in the given
-   * state, bottom if one of the states is bottom, top otherwise.
+   * @return true if all values contained in this state are less than all values in the given state,
+   *     false if all values contained in this state are greater than or equal to all values in the
+   *     given state, bottom if one of the states is bottom, top otherwise.
    */
   public CompoundBitVectorInterval lessThan(final CompoundBitVectorInterval pState) {
     checkBitVectorCompatibilityWith(pState.info);
@@ -1292,24 +1444,18 @@ public class CompoundBitVectorInterval implements CompoundIntegralInterval, BitV
   }
 
   /**
-   * Computes the boolean state representing the result of checking if
-   * this state is less than or equal to the given state. There are
-   * four possible outcomes: Either all values of this state are less
-   * than or equal to all values contained in the given state,
-   * resulting in true being returned, or all values of this state are
-   * greater than all values contained in the given state, resulting in
-   * false being returned, or there are values in this state which are
-   * less than or equal to, but also values that are greater than some
-   * values in the given state, which results in top being returned,
-   * or one of the states is bottom, which results in bottom being
-   * returned.
+   * Computes the boolean state representing the result of checking if this state is less than or
+   * equal to the given state. There are four possible outcomes: Either all values of this state are
+   * less than or equal to all values contained in the given state, resulting in true being
+   * returned, or all values of this state are greater than all values contained in the given state,
+   * resulting in false being returned, or there are values in this state which are less than or
+   * equal to, but also values that are greater than some values in the given state, which results
+   * in top being returned, or one of the states is bottom, which results in bottom being returned.
    *
    * @param pState the state to compare this state to.
-   *
-   * @return true if all values contained in this state are less than
-   * or equal to all values in the given state, false if all values
-   * contained in this state are greater than all values in the given
-   * state, bottom if one of the states is bottom, top otherwise.
+   * @return true if all values contained in this state are less than or equal to all values in the
+   *     given state, false if all values contained in this state are greater than all values in the
+   *     given state, bottom if one of the states is bottom, top otherwise.
    */
   public CompoundBitVectorInterval lessEqual(final CompoundBitVectorInterval pState) {
     checkBitVectorCompatibilityWith(pState.info);
@@ -1317,92 +1463,94 @@ public class CompoundBitVectorInterval implements CompoundIntegralInterval, BitV
   }
 
   /**
-   * Computes the logical and over this state and the given state. If
-   * both these states represent true, a state representing true is
-   * returned. If one of the states represents false, a state
+   * Computes the logical and over this state and the given state. If both these states represent
+   * true, a state representing true is returned. If one of the states represents false, a state
    * representing false is returned. Otherwise, top is returned.
    *
-   * @param pState the state to connect to this state with a
-   * conjunction.
-   *
-   * @return a state representing true if this state or the given state
-   * represents true, a state representing false if one of these states
-   * represents false, top otherwise.
+   * @param pState the state to connect to this state with a conjunction.
+   * @return a state representing true if this state or the given state represents true, a state
+   *     representing false if one of these states represents false, top otherwise.
    */
   public CompoundBitVectorInterval logicalAnd(final CompoundBitVectorInterval pState) {
     checkBitVectorCompatibilityWith(pState.info);
-    if (isBottom() || pState.isBottom()) { return bottom(info); }
+    if (isBottom() || pState.isBottom()) {
+      return bottom(info);
+    }
     if ((isSingleton() && containsZero()) || (pState.isSingleton() && pState.containsZero())) {
       return logicalFalse(info);
     }
-    if (!containsZero() && !pState.containsZero()) { return logicalTrue(info); }
+    if (!containsZero() && !pState.containsZero()) {
+      return logicalTrue(info);
+    }
     return getInternal(info.getRange());
   }
 
   /**
-   * Computes the logical or over this state and the given state. If
-   * one of these states represents true, a state representing true is
-   * returned. If neither of the states represents true, a state
+   * Computes the logical or over this state and the given state. If one of these states represents
+   * true, a state representing true is returned. If neither of the states represents true, a state
    * representing false is returned. Otherwise, top is returned.
    *
-   * @param pState the state to connect to this state with a
-   * disjunction.
-   *
-   * @return a state representing true if one of this state or the
-   * given state represents true, a state representing false if none of
-   * these states represents true, top otherwise.
+   * @param pState the state to connect to this state with a disjunction.
+   * @return a state representing true if one of this state or the given state represents true, a
+   *     state representing false if none of these states represents true, top otherwise.
    */
   public CompoundBitVectorInterval logicalOr(final CompoundBitVectorInterval pState) {
     checkBitVectorCompatibilityWith(pState.info);
-    if (isBottom() || pState.isBottom()) { return bottom(info); }
-    if (isSingleton() && containsZero() && pState.isSingleton() && pState.containsZero()) { return logicalFalse(info); }
-    if (!containsZero() || !pState.containsZero()) { return logicalTrue(info); }
+    if (isBottom() || pState.isBottom()) {
+      return bottom(info);
+    }
+    if (isSingleton() && containsZero() && pState.isSingleton() && pState.containsZero()) {
+      return logicalFalse(info);
+    }
+    if (!containsZero() || !pState.containsZero()) {
+      return logicalTrue(info);
+    }
     return getInternal(info.getRange());
   }
 
   /**
-   * Computes the logical negation of this state. If this state
-   * represents false, a state representing true is returned. If this
-   * state does not contain false, a state representing false is
-   * returned. If this state is bottom, bottom is returned. Otherwise,
-   * a state representing top is returned.
+   * Computes the logical negation of this state. If this state represents false, a state
+   * representing true is returned. If this state does not contain false, a state representing false
+   * is returned. If this state is bottom, bottom is returned. Otherwise, a state representing top
+   * is returned.
    *
-   * Do not confuse this method with mathematical negation or state
-   * inversion. For mathematical negation, see {@link #negate(boolean, OverflowEventHandler)}.
-   * For state inversion, see {@link #invert()}.
+   * <p>Do not confuse this method with mathematical negation or state inversion. For mathematical
+   * negation, see {@link #negate(boolean, OverflowEventHandler)}. For state inversion, see {@link
+   * #invert()}.
    *
-   * @return a state representing true if this state represents false,
-   * a state representing false if this state does not contain the
-   * false state and a state representing top if the this state
-   * contains both true and false.
+   * @return a state representing true if this state represents false, a state representing false if
+   *     this state does not contain the false state and a state representing top if the this state
+   *     contains both true and false.
    */
   public CompoundBitVectorInterval logicalNot() {
-    if (isBottom()) { return this; }
+    if (isBottom()) {
+      return this;
+    }
     if (isSingleton() && containsZero()) {
       return logicalTrue(info);
-    } else if (!containsZero()) { return logicalFalse(info); }
+    } else if (!containsZero()) {
+      return logicalFalse(info);
+    }
     return getInternal(info.getRange());
   }
 
   /**
-   * Computes the state resulting from performing the bitwise
-   * and-operation on this state and the given state. If one of the
-   * states is bottom, bottom is returned. If both states represent
-   * single values, a state representing the value obtained by the
-   * bit-wise and-operation on the states' values is returned.
-   * Otherwise, top is returned.
+   * Computes the state resulting from performing the bitwise and-operation on this state and the
+   * given state. If one of the states is bottom, bottom is returned. If both states represent
+   * single values, a state representing the value obtained by the bit-wise and-operation on the
+   * states' values is returned. Otherwise, top is returned.
    *
    * @param pState the state to bit-wise-and with this state.
    * @param pAllowSignedWrapAround whether or not signed wrap-around is allowed.
-   *
-   * @return the state resulting from performing the bitwise
-   * and-operation on this state and the given state. If one of the
-   * states is bottom, bottom is returned. If both states represent
-   * single values, a state representing the value obtained by the
-   * bit-wise and-operation on the states' values is returned.
-   * Otherwise, top is returned.
+   * @return the state resulting from performing the bitwise and-operation on this state and the
+   *     given state. If one of the states is bottom, bottom is returned. If both states represent
+   *     single values, a state representing the value obtained by the bit-wise and-operation on the
+   *     states' values is returned. Otherwise, top is returned.
    */
-  public CompoundBitVectorInterval binaryAnd(CompoundBitVectorInterval pState, boolean pAllowSignedWrapAround, final OverflowEventHandler pOverflowEventHandler) {
+  public CompoundBitVectorInterval binaryAnd(
+      CompoundBitVectorInterval pState,
+      boolean pAllowSignedWrapAround,
+      final OverflowEventHandler pOverflowEventHandler) {
     checkBitVectorCompatibilityWith(pState.info);
     if (isBottom() || pState.isBottom()) {
       return bottom(info);
@@ -1416,14 +1564,14 @@ public class CompoundBitVectorInterval implements CompoundIntegralInterval, BitV
     CompoundBitVectorInterval result;
     if (pState.isSingleton()) {
       result = bottom(info);
-      for (BitVectorInterval interval : this.intervals) {
+      for (BitVectorInterval interval : intervals) {
         if (!interval.isSingleton()) {
           // x & 1 always yields either 0 or 1
-          return pState.contains(1)
-              ? getZeroToOne(info)
-              : getInternal(pState.info.getRange());
+          return pState.contains(1) ? getZeroToOne(info) : getInternal(pState.info.getRange());
         }
-        result = result.unionWith(BitVectorInterval.singleton(info, interval.getLowerBound().and(pState.getValue())));
+        result =
+            result.unionWith(
+                BitVectorInterval.singleton(info, interval.getLowerBound().and(pState.getValue())));
       }
     } else if (isSingleton()) {
       return pState.binaryAnd(this, pAllowSignedWrapAround, pOverflowEventHandler);
@@ -1432,22 +1580,26 @@ public class CompoundBitVectorInterval implements CompoundIntegralInterval, BitV
     }
     if (!result.isSingleton()) {
       CompoundBitVectorInterval absThis = absolute(pAllowSignedWrapAround, pOverflowEventHandler);
-      CompoundBitVectorInterval absOther = pState.absolute(pAllowSignedWrapAround, pOverflowEventHandler);
+      CompoundBitVectorInterval absOther =
+          pState.absolute(pAllowSignedWrapAround, pOverflowEventHandler);
       BigInteger smallestUpperBound = null;
       if (absThis.hasUpperBound()) {
         smallestUpperBound = absThis.getUpperBound();
       }
       if (absOther.hasUpperBound()) {
-        smallestUpperBound = smallestUpperBound == null
-            ? absOther.getUpperBound()
-            : smallestUpperBound.min(absOther.getUpperBound());
+        smallestUpperBound =
+            smallestUpperBound == null
+                ? absOther.getUpperBound()
+                : smallestUpperBound.min(absOther.getUpperBound());
       }
       assert smallestUpperBound == null || smallestUpperBound.signum() >= 0;
       CompoundBitVectorInterval range;
       if (smallestUpperBound == null) {
         range = zero(info).extendToMaxValue();
       } else {
-        range = CompoundBitVectorInterval.of(BitVectorInterval.of(info, BigInteger.ZERO, smallestUpperBound));
+        range =
+            CompoundBitVectorInterval.of(
+                BitVectorInterval.of(info, BigInteger.ZERO, smallestUpperBound));
       }
       if (containsNegative() && pState.containsNegative()) {
         range = range.unionWith(range.negate(pAllowSignedWrapAround, pOverflowEventHandler));
@@ -1458,46 +1610,50 @@ public class CompoundBitVectorInterval implements CompoundIntegralInterval, BitV
   }
 
   /**
-   * Computes the state resulting from computing the absolute values of this
-   * state.
+   * Computes the state resulting from computing the absolute values of this state.
    *
    * @param pAllowSignedWrapAround whether or not signed wrap-around is allowed.
-   *
-   * @return the state resulting from computing the absolute values of this
-   * state.
+   * @return the state resulting from computing the absolute values of this state.
    */
-  public CompoundBitVectorInterval absolute(boolean pAllowSignedWrapAround, final OverflowEventHandler pOverflowEventHandler) {
+  public CompoundBitVectorInterval absolute(
+      boolean pAllowSignedWrapAround, final OverflowEventHandler pOverflowEventHandler) {
     if (!containsNegative()) {
       return this;
     }
-    return intersectWith(one(info).negate(pAllowSignedWrapAround, pOverflowEventHandler).extendToMinValue()).negate(pAllowSignedWrapAround, pOverflowEventHandler).unionWith(intersectWith(zero(info).extendToMaxValue())).intersectWith(zero(info).extendToMaxValue());
+    return intersectWith(
+            one(info).negate(pAllowSignedWrapAround, pOverflowEventHandler).extendToMinValue())
+        .negate(pAllowSignedWrapAround, pOverflowEventHandler)
+        .unionWith(intersectWith(zero(info).extendToMaxValue()))
+        .intersectWith(zero(info).extendToMaxValue());
   }
 
   /**
-   * Computes the state resulting from performing the bitwise
-   * xor-operation on this state and the given state. If one of the
-   * states is bottom, bottom is returned. If both states represent
-   * single values, a state representing the value obtained by the
-   * bit-wise xor-operation on the states' values is returned.
-   * Otherwise, top is returned.
+   * Computes the state resulting from performing the bitwise xor-operation on this state and the
+   * given state. If one of the states is bottom, bottom is returned. If both states represent
+   * single values, a state representing the value obtained by the bit-wise xor-operation on the
+   * states' values is returned. Otherwise, top is returned.
    *
    * @param pState the state to bit-wise-xor with this state.
-   * @return the state resulting from performing the bitwise
-   * xor-operation on this state and the given state. If one of the
-   * states is bottom, bottom is returned. If both states represent
-   * single values, a state representing the value obtained by the
-   * bit-wise xor-operation on the states' values is returned.
-   * Otherwise, top is returned.
+   * @return the state resulting from performing the bitwise xor-operation on this state and the
+   *     given state. If one of the states is bottom, bottom is returned. If both states represent
+   *     single values, a state representing the value obtained by the bit-wise xor-operation on the
+   *     states' values is returned. Otherwise, top is returned.
    */
-  public CompoundBitVectorInterval binaryXor(CompoundBitVectorInterval pState, boolean pAllowSignedWrapAround, final OverflowEventHandler pOverflowEventHandler) {
+  public CompoundBitVectorInterval binaryXor(
+      CompoundBitVectorInterval pState,
+      boolean pAllowSignedWrapAround,
+      final OverflowEventHandler pOverflowEventHandler) {
     checkBitVectorCompatibilityWith(pState.info);
-    if (isBottom() || pState.isBottom()) { return bottom(info); }
+    if (isBottom() || pState.isBottom()) {
+      return bottom(info);
+    }
     if (isSingleton() && pState.isSingleton()) {
-      return of(BitVectorInterval.cast(
-          info,
-          getValue().xor(pState.getValue()),
-          pAllowSignedWrapAround,
-          pOverflowEventHandler));
+      return of(
+          BitVectorInterval.cast(
+              info,
+              getValue().xor(pState.getValue()),
+              pAllowSignedWrapAround,
+              pOverflowEventHandler));
     }
     if (pState.isSingleton() && pState.containsZero()) {
       return this;
@@ -1515,15 +1671,17 @@ public class CompoundBitVectorInterval implements CompoundIntegralInterval, BitV
     }
     if (pState.isSingleton()) {
       CompoundBitVectorInterval result = bottom(info);
-      for (BitVectorInterval interval : this.intervals) {
+      for (BitVectorInterval interval : intervals) {
         if (!interval.isSingleton()) {
           return getInternal(info.getRange());
         }
-        result = result.unionWith(BitVectorInterval.cast(
-            info,
-            interval.getLowerBound().xor(pState.getValue()),
-            pAllowSignedWrapAround,
-            pOverflowEventHandler));
+        result =
+            result.unionWith(
+                BitVectorInterval.cast(
+                    info,
+                    interval.getLowerBound().xor(pState.getValue()),
+                    pAllowSignedWrapAround,
+                    pOverflowEventHandler));
       }
       return result;
     } else if (isSingleton()) {
@@ -1534,33 +1692,36 @@ public class CompoundBitVectorInterval implements CompoundIntegralInterval, BitV
   }
 
   /**
-   * Computes the state resulting from flipping the bits of the
-   * values represented by this state.
+   * Computes the state resulting from flipping the bits of the values represented by this state.
    *
-   * @return the state resulting from flipping the bits of the
-   * values represented by this state.
+   * @return the state resulting from flipping the bits of the values represented by this state.
    */
-  public CompoundBitVectorInterval binaryNot(boolean pAllowSignedWrapAround, final OverflowEventHandler pOverflowEventHandler) {
-    if (isBottom()) { return bottom(info); }
+  public CompoundBitVectorInterval binaryNot(
+      boolean pAllowSignedWrapAround, final OverflowEventHandler pOverflowEventHandler) {
+    if (isBottom()) {
+      return bottom(info);
+    }
     CompoundBitVectorInterval result = bottom(info);
-    for (BitVectorInterval interval : this.intervals) {
+    for (BitVectorInterval interval : intervals) {
       if (!interval.isSingleton()) {
         // TODO maybe a more exact implementation is possible?
         return getInternal(info.getRange());
       }
       final BitVectorInterval partialResult;
       if (info.isSigned()) {
-        partialResult = BitVectorInterval.cast(
-            info,
-            interval.getLowerBound().not(),
-            pAllowSignedWrapAround,
-            pOverflowEventHandler);
+        partialResult =
+            BitVectorInterval.cast(
+                info,
+                interval.getLowerBound().not(),
+                pAllowSignedWrapAround,
+                pOverflowEventHandler);
       } else {
-        partialResult = BitVectorInterval.cast(
-            info,
-            new BigInteger(1, interval.getLowerBound().not().toByteArray()),
-            pAllowSignedWrapAround,
-            pOverflowEventHandler);
+        partialResult =
+            BitVectorInterval.cast(
+                info,
+                new BigInteger(1, interval.getLowerBound().not().toByteArray()),
+                pAllowSignedWrapAround,
+                pOverflowEventHandler);
       }
       result = result.unionWith(partialResult);
     }
@@ -1568,25 +1729,25 @@ public class CompoundBitVectorInterval implements CompoundIntegralInterval, BitV
   }
 
   /**
-   * Computes the state resulting from performing the bitwise
-   * or-operation on this state and the given state. If one of the
-   * states is bottom, bottom is returned. If both states represent
-   * single values, a state representing the value obtained by the
-   * bit-wise or-operation on the states' values is returned.
-   * Otherwise, top is returned.
+   * Computes the state resulting from performing the bitwise or-operation on this state and the
+   * given state. If one of the states is bottom, bottom is returned. If both states represent
+   * single values, a state representing the value obtained by the bit-wise or-operation on the
+   * states' values is returned. Otherwise, top is returned.
    *
    * @param pState the state to bit-wise-or with this state.
-   *
-   * @return the state resulting from performing the bitwise
-   * or-operation on this state and the given state. If one of the
-   * states is bottom, bottom is returned. If both states represent
-   * single values, a state representing the value obtained by the
-   * bit-wise or-operation on the states' values is returned.
-   * Otherwise, top is returned.
+   * @return the state resulting from performing the bitwise or-operation on this state and the
+   *     given state. If one of the states is bottom, bottom is returned. If both states represent
+   *     single values, a state representing the value obtained by the bit-wise or-operation on the
+   *     states' values is returned. Otherwise, top is returned.
    */
-  public CompoundBitVectorInterval binaryOr(CompoundBitVectorInterval pState, boolean pAllowSignedWrapAround, final OverflowEventHandler pOverflowEventHandler) {
+  public CompoundBitVectorInterval binaryOr(
+      CompoundBitVectorInterval pState,
+      boolean pAllowSignedWrapAround,
+      final OverflowEventHandler pOverflowEventHandler) {
     checkBitVectorCompatibilityWith(pState.info);
-    if (isBottom() || pState.isBottom()) { return bottom(info); }
+    if (isBottom() || pState.isBottom()) {
+      return bottom(info);
+    }
     if (isSingleton() && containsZero()) {
       return pState;
     }
@@ -1595,15 +1756,17 @@ public class CompoundBitVectorInterval implements CompoundIntegralInterval, BitV
     }
     if (pState.isSingleton()) {
       CompoundBitVectorInterval result = bottom(info);
-      for (BitVectorInterval interval : this.intervals) {
+      for (BitVectorInterval interval : intervals) {
         if (!interval.isSingleton()) {
           return getInternal(info.getRange());
         }
-        result = result.unionWith(BitVectorInterval.cast(
-            info,
-            interval.getLowerBound().or(pState.getValue()),
-            pAllowSignedWrapAround,
-            pOverflowEventHandler));
+        result =
+            result.unionWith(
+                BitVectorInterval.cast(
+                    info,
+                    interval.getLowerBound().or(pState.getValue()),
+                    pAllowSignedWrapAround,
+                    pOverflowEventHandler));
       }
       return result;
     } else if (isSingleton()) {
@@ -1614,122 +1777,104 @@ public class CompoundBitVectorInterval implements CompoundIntegralInterval, BitV
   }
 
   /**
-   * Computes the logical exclusive or over this state and the given
-   * state. If one of these states represents the false state while the
-   * other does not contain the false state, a state representing true is
-   * returned. If either both of the states represent the false state or
-   * neither of them represents false, a state representing false is
-   * returned. If one of the states is bottom, bottom is returned.
-   * Otherwise top is returned.
+   * Computes the logical exclusive or over this state and the given state. If one of these states
+   * represents the false state while the other does not contain the false state, a state
+   * representing true is returned. If either both of the states represent the false state or
+   * neither of them represents false, a state representing false is returned. If one of the states
+   * is bottom, bottom is returned. Otherwise top is returned.
    *
    * @param pState the state to XOR with this state.
-   *
-   * @return a state representing true if either this state or the given
-   * state represents false while the other represents true, a state
-   * representing false if either both these states represent true or
-   * both represent false, bottom if one of the states is bottom, top
-   * otherwise.
+   * @return a state representing true if either this state or the given state represents false
+   *     while the other represents true, a state representing false if either both these states
+   *     represent true or both represent false, bottom if one of the states is bottom, top
+   *     otherwise.
    */
   public CompoundBitVectorInterval logicalXor(CompoundBitVectorInterval pState) {
     return logicalAnd(logicalOr(this, pState), logicalNot(logicalAnd(this, pState)));
   }
 
   /**
-   * Computes the logical and over the given states. If both given states
-   * represent true, a state representing true is returned. If one of
-   * the states represents false, a state representing false is returned.
-   * If one of the states is bottom, bottom is returned. Otherwise, top
-   * is returned.
+   * Computes the logical and over the given states. If both given states represent true, a state
+   * representing true is returned. If one of the states represents false, a state representing
+   * false is returned. If one of the states is bottom, bottom is returned. Otherwise, top is
+   * returned.
    *
    * @param p1 one of the states to apply the and operation on.
    * @param p2 one of the states to apply the and operation on.
-   *
-   * @return a state representing true if both given states represent
-   * true, a state representing false if one of the given states
-   * represents false, bottom if one of the states is bottom, top
-   * otherwise.
+   * @return a state representing true if both given states represent true, a state representing
+   *     false if one of the given states represents false, bottom if one of the states is bottom,
+   *     top otherwise.
    */
-  public static CompoundBitVectorInterval logicalAnd(CompoundBitVectorInterval p1, CompoundBitVectorInterval p2) {
+  public static CompoundBitVectorInterval logicalAnd(
+      CompoundBitVectorInterval p1, CompoundBitVectorInterval p2) {
     return p1.logicalAnd(p2);
   }
 
   /**
-   * Computes the logical or over the given states. If one of the given
-   * states represents true, a state representing true is returned. If
-   * neither of the states represents true, a state representing false
-   * is returned. If one of the states is bottom, bottom is returned.
-   * Otherwise, top is returned.
+   * Computes the logical or over the given states. If one of the given states represents true, a
+   * state representing true is returned. If neither of the states represents true, a state
+   * representing false is returned. If one of the states is bottom, bottom is returned. Otherwise,
+   * top is returned.
    *
    * @param p1 one of the states to apply the or operation on.
    * @param p2 one of the states to apply the or operation on.
-   *
-   * @return a state representing true if one of the given states
-   * represents true, a state representing false if none of the given
-   * states represents true, bottom if one of the states is bottom, top
-   * otherwise.
+   * @return a state representing true if one of the given states represents true, a state
+   *     representing false if none of the given states represents true, bottom if one of the states
+   *     is bottom, top otherwise.
    */
-  public static CompoundBitVectorInterval logicalOr(CompoundBitVectorInterval p1, CompoundBitVectorInterval p2) {
+  public static CompoundBitVectorInterval logicalOr(
+      CompoundBitVectorInterval p1, CompoundBitVectorInterval p2) {
     return p1.logicalOr(p2);
   }
 
   /**
-   * Computes the logical exclusive or over the given states. If one of
-   * the given states represents the false state while the other does not
-   * contain the false state, a state representing true is returned. If
-   * either both of the states represent the false state or neither of
-   * them represents false, a state representing false is returned. If
-   * one of the states is bottom, bottom is returned. Otherwise top is
-   * returned.
+   * Computes the logical exclusive or over the given states. If one of the given states represents
+   * the false state while the other does not contain the false state, a state representing true is
+   * returned. If either both of the states represent the false state or neither of them represents
+   * false, a state representing false is returned. If one of the states is bottom, bottom is
+   * returned. Otherwise top is returned.
    *
    * @param p1 one of the states to apply the exclusive or operation on.
    * @param p2 one of the states to apply the exclusive or operation on.
-   *
-   * @return a state representing true if one of the given states
-   * represents false while the other represents true, a state
-   * representing false if either both given states represent true or
-   * both represent false, bottom if one of the states is bottom, top
-   * otherwise.
+   * @return a state representing true if one of the given states represents false while the other
+   *     represents true, a state representing false if either both given states represent true or
+   *     both represent false, bottom if one of the states is bottom, top otherwise.
    */
-  public static CompoundBitVectorInterval logicalXor(CompoundBitVectorInterval p1, CompoundBitVectorInterval p2) {
+  public static CompoundBitVectorInterval logicalXor(
+      CompoundBitVectorInterval p1, CompoundBitVectorInterval p2) {
     return p1.logicalXor(p2);
   }
 
   /**
-   * Logically negates the given state. If the state represents false,
-   * a state representing true is returned. If the state does not contain
-   * false, a state representing false is returned. If the state is
-   * bottom, bottom is returned. Otherwise, a state representing top is
-   * returned.
+   * Logically negates the given state. If the state represents false, a state representing true is
+   * returned. If the state does not contain false, a state representing false is returned. If the
+   * state is bottom, bottom is returned. Otherwise, a state representing top is returned.
    *
-   * Do not confuse this method with mathematical negation or state
-   * inversion. For mathematical negation, see {@link #negate(boolean, OverflowEventHandler)}.
-   * For state inversion, see {@link #invert()}.
+   * <p>Do not confuse this method with mathematical negation or state inversion. For mathematical
+   * negation, see {@link #negate(boolean, OverflowEventHandler)}. For state inversion, see {@link
+   * #invert()}.
    *
    * @param pState the state to logically negate.
-   *
-   * @return a state representing true if the given state represents
-   * false, a state representing false if the given state does not
-   * contain the false state, bottom if the given state is bottom and a
-   * top if the given state contains both true and false.
+   * @return a state representing true if the given state represents false, a state representing
+   *     false if the given state does not contain the false state, bottom if the given state is
+   *     bottom and a top if the given state contains both true and false.
    */
   public static CompoundBitVectorInterval logicalNot(CompoundBitVectorInterval pState) {
     return pState.logicalNot();
   }
 
   /**
-   * Applies the given operator and operand to every interval in this
-   * state and unites the results.
+   * Applies the given operator and operand to every interval in this state and unites the results.
    *
    * @param pOperator the interval operator to apply to the intervals.
    * @param pOperand the second operand of each operator application.
-   *
-   * @return the state resulting from applying the given operator to
-   * each interval of this state and the given value and uniting the
-   * results.
+   * @return the state resulting from applying the given operator to each interval of this state and
+   *     the given value and uniting the results.
    */
-  private <T> CompoundBitVectorInterval applyOperationToAllAndUnite(Operator<BitVectorInterval, T, CompoundBitVectorInterval> pOperator, T pOperand) {
+  private <T> CompoundBitVectorInterval applyOperationToAllAndUnite(
+      Operator<BitVectorInterval, T, CompoundBitVectorInterval> pOperator, T pOperand) {
     CompoundBitVectorInterval result = bottom(info);
-    for (BitVectorInterval interval : this.intervals) {
+    for (BitVectorInterval interval : intervals) {
       CompoundBitVectorInterval current = pOperator.apply(interval, pOperand);
       if (current != null) {
         result = result.unionWith(current);
@@ -1742,12 +1887,10 @@ public class CompoundBitVectorInterval implements CompoundIntegralInterval, BitV
   }
 
   /**
-   * Union of two intervals. The intervals must touch each other for this
-   * operation to be possible.
+   * Union of two intervals. The intervals must touch each other for this operation to be possible.
    *
    * @param pA one of the intervals to be united.
    * @param pB one of the intervals to be united.
-   *
    * @return the union of the two intervals.
    */
   private static BitVectorInterval union(BitVectorInterval pA, BitVectorInterval pB) {
@@ -1761,7 +1904,6 @@ public class CompoundBitVectorInterval implements CompoundIntegralInterval, BitV
    *
    * @param pA one if the intervals to get the lowest lower bound from.
    * @param pB one if the intervals to get the lowest lower bound from.
-   *
    * @return the lowest bound of the two given intervals.
    */
   private static BigInteger lowestBound(BitVectorInterval pA, BitVectorInterval pB) {
@@ -1775,7 +1917,6 @@ public class CompoundBitVectorInterval implements CompoundIntegralInterval, BitV
    *
    * @param pA one if the intervals to get the highest upper bound from.
    * @param pB one if the intervals to get the highest upper bound from.
-   *
    * @return the highest bound of the two given intervals.
    */
   private static BigInteger highestBound(BitVectorInterval pA, BitVectorInterval pB) {
@@ -1785,25 +1926,26 @@ public class CompoundBitVectorInterval implements CompoundIntegralInterval, BitV
   }
 
   /**
-   * Checks if the first given big integer is less than the second given big integer,
-   * none of which may be <code>null</code>.
+   * Checks if the first given big integer is less than the second given big integer, none of which
+   * may be <code>null</code>.
    *
    * @param pFirst the value being compared to the reference value.
    * @param pSecond the reference value.
-   *
-   * @return <code>true</code> if <code>pFirst</code> is less than <code>pSecond</code>, <code>false</code> otherwise.
+   * @return <code>true</code> if <code>pFirst</code> is less than <code>pSecond</code>, <code>false
+   *     </code> otherwise.
    */
   private static boolean less(BigInteger pFirst, BigInteger pSecond) {
     return pFirst.compareTo(pSecond) < 0;
   }
 
   /**
-   * Checks if the first given big integer is less than or equal to the second given big integer, none of which may be <code>null</code>.
+   * Checks if the first given big integer is less than or equal to the second given big integer,
+   * none of which may be <code>null</code>.
    *
    * @param pFirst the value being compared to the reference value.
    * @param pSecond the reference value.
-   *
-   * @return <code>true</code> if <code>pFirst</code> is less than or equal to <code>pSecond</code>, <code>false</code> otherwise.
+   * @return <code>true</code> if <code>pFirst</code> is less than or equal to <code>pSecond</code>,
+   *     <code>false</code> otherwise.
    */
   private static boolean lessOrEqual(BigInteger pFirst, BigInteger pSecond) {
     return pFirst.compareTo(pSecond) <= 0;
@@ -1812,9 +1954,8 @@ public class CompoundBitVectorInterval implements CompoundIntegralInterval, BitV
   /**
    * Creates a new compound state from the given simple interval.
    *
-   * @param interval the interval to base this compound state on. If the
-   * interval is {@code null}, bottom is returned.
-   *
+   * @param interval the interval to base this compound state on. If the interval is {@code null},
+   *     bottom is returned.
    * @return a new compound state representation of the given simple interval.
    */
   public static CompoundBitVectorInterval of(BitVectorInterval interval) {
@@ -1826,7 +1967,6 @@ public class CompoundBitVectorInterval implements CompoundIntegralInterval, BitV
    *
    * @param pInfo the bit vector information.
    * @param pValue the value to be represented by the state.
-   *
    * @return a compound state representing the given big integer value.
    */
   public static CompoundBitVectorInterval singleton(BitVectorInfo pInfo, BigInteger pValue) {
@@ -1839,7 +1979,6 @@ public class CompoundBitVectorInterval implements CompoundIntegralInterval, BitV
    *
    * @param pInfo the bit vector information.
    * @param pValue the value to be represented by the state.
-   *
    * @return a compound state representing the given long value.
    */
   public static CompoundBitVectorInterval singleton(BitVectorInfo pInfo, long pValue) {
@@ -1850,7 +1989,6 @@ public class CompoundBitVectorInterval implements CompoundIntegralInterval, BitV
    * Gets a compound state representing "bottom".
    *
    * @param pInfo the bit vector information.
-   *
    * @return a compound state representing "bottom".
    */
   public static CompoundBitVectorInterval bottom(BitVectorInfo pInfo) {
@@ -1861,7 +1999,6 @@ public class CompoundBitVectorInterval implements CompoundIntegralInterval, BitV
    * Gets a compound state representing "false".
    *
    * @param pInfo the bit vector information.
-   *
    * @return a compound state representing "false".
    */
   public static CompoundBitVectorInterval logicalFalse(BitVectorInfo pInfo) {
@@ -1872,7 +2009,6 @@ public class CompoundBitVectorInterval implements CompoundIntegralInterval, BitV
    * Gets a compound state representing "true".
    *
    * @param pInfo the bit vector information.
-   *
    * @return a compound state representing "true".
    */
   public static CompoundBitVectorInterval logicalTrue(BitVectorInfo pInfo) {
@@ -1883,7 +2019,6 @@ public class CompoundBitVectorInterval implements CompoundIntegralInterval, BitV
    * Gets a compound state representing "zero".
    *
    * @param pInfo the bit vector information.
-   *
    * @return a compound state representing "zero".
    */
   public static CompoundBitVectorInterval zero(BitVectorInfo pInfo) {
@@ -1894,7 +2029,6 @@ public class CompoundBitVectorInterval implements CompoundIntegralInterval, BitV
    * Gets a compound state representing "1".
    *
    * @param pInfo the bit vector information.
-   *
    * @return a compound state representing "1".
    */
   public static CompoundBitVectorInterval one(BitVectorInfo pInfo) {
@@ -1905,7 +2039,6 @@ public class CompoundBitVectorInterval implements CompoundIntegralInterval, BitV
    * Gets a compound state representing "-1".
    *
    * @param pInfo the bit vector information.
-   *
    * @return a compound state representing "-1".
    */
   public static CompoundBitVectorInterval minusOne(BitVectorInfo pInfo) {
@@ -1913,14 +2046,16 @@ public class CompoundBitVectorInterval implements CompoundIntegralInterval, BitV
   }
 
   /**
-   * Computes the compound state spanning from the lowest of the two given states' lower bounds to their highest upper bound.
+   * Computes the compound state spanning from the lowest of the two given states' lower bounds to
+   * their highest upper bound.
    *
    * @param pLeftValue one of the states to span over.
    * @param pRightValue one of the states to span over.
-   *
-   * @return the compound state spanning from the lowest of the two given states' lower bounds to their highest upper bound.
+   * @return the compound state spanning from the lowest of the two given states' lower bounds to
+   *     their highest upper bound.
    */
-  public static CompoundBitVectorInterval span(CompoundBitVectorInterval pLeftValue, CompoundBitVectorInterval pRightValue) {
+  public static CompoundBitVectorInterval span(
+      CompoundBitVectorInterval pLeftValue, CompoundBitVectorInterval pRightValue) {
     return pLeftValue.span().unionWith(pRightValue.span()).span();
   }
 
@@ -1929,10 +2064,10 @@ public class CompoundBitVectorInterval implements CompoundIntegralInterval, BitV
    *
    * @param pLeftValue one of the states to be united.
    * @param pRightValue one of the states to be united.
-   *
    * @return the union of the given states.
    */
-  public static CompoundBitVectorInterval union(CompoundBitVectorInterval pLeftValue, CompoundBitVectorInterval pRightValue) {
+  public static CompoundBitVectorInterval union(
+      CompoundBitVectorInterval pLeftValue, CompoundBitVectorInterval pRightValue) {
     return pLeftValue.unionWith(pRightValue);
   }
 
@@ -1941,7 +2076,6 @@ public class CompoundBitVectorInterval implements CompoundIntegralInterval, BitV
    *
    * @param pInfo the bit vector information.
    * @param value the boolean value to represent as compound state.
-   *
    * @return the state representing the given boolean value.
    */
   public static CompoundBitVectorInterval fromBoolean(BitVectorInfo pInfo, boolean value) {
@@ -1949,7 +2083,7 @@ public class CompoundBitVectorInterval implements CompoundIntegralInterval, BitV
   }
 
   private static CompoundBitVectorInterval getZeroToOne(BitVectorInfo pInfo) {
-    return CompoundBitVectorInterval.of(BitVectorInterval.of(pInfo, BigInteger.ZERO, BigInteger.ONE));
+    return CompoundBitVectorInterval.of(
+        BitVectorInterval.of(pInfo, BigInteger.ZERO, BigInteger.ONE));
   }
-
 }

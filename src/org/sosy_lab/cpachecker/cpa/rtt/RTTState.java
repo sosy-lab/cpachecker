@@ -332,7 +332,7 @@ public class RTTState extends AbstractAppender implements LatticeAbstractState<R
   }
 
   void deleteValue(String varName) {
-    this.constantsMap.remove(varName);
+    constantsMap.remove(varName);
   }
 
   Set<String> getTrackedVariableNames() {

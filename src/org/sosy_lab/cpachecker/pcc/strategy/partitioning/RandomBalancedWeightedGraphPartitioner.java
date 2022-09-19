@@ -27,18 +27,18 @@ public class RandomBalancedWeightedGraphPartitioner extends RandomBalancedGraphP
     checkArgument(
         pNumPartitions > 0 && wGraph != null,
         "Partitioniong must contain at most 1 partition. Graph may not be null.");
-    if (pNumPartitions == 1) { //1-partitioning easy special case (all nodes in one partition)
-      //No expensive computations to do
+    if (pNumPartitions == 1) { // 1-partitioning easy special case (all nodes in one partition)
+      // No expensive computations to do
       return wGraph.getGraphAsOnePartition();
     }
-    if (pNumPartitions >= wGraph.getNumNodes()) {//Each Node has its own partition
+    if (pNumPartitions >= wGraph.getNumNodes()) { // Each Node has its own partition
       return wGraph.getNodesSeperatelyPartitioned(pNumPartitions);
     }
 
-    //There is more than one partition, and at least one partition contains more than 1 node
+    // There is more than one partition, and at least one partition contains more than 1 node
 
-    List<Set<Integer>> partitioning =  new ArrayList<>(pNumPartitions);
-    for (int i=0;i<pNumPartitions;i++) {
+    List<Set<Integer>> partitioning = new ArrayList<>(pNumPartitions);
+    for (int i = 0; i < pNumPartitions; i++) {
       partitioning.add(new HashSet<>());
     }
 
@@ -50,5 +50,4 @@ public class RandomBalancedWeightedGraphPartitioner extends RandomBalancedGraphP
 
     return partitioning;
   }
-
 }

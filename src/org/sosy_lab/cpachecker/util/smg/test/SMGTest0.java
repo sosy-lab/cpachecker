@@ -40,13 +40,13 @@ public class SMGTest0 {
     return createRegion(BigInteger.valueOf(withSize));
   }
 
-  protected SMGDoublyLinkedListSegment
-      createDLLS(int withSize, int offset, int prevOffset, int next) {
+  protected SMGDoublyLinkedListSegment createDLLS(
+      int withSize, int offset, int prevOffset, int next) {
     return createDLLS(0, withSize, offset, prevOffset, next, 0);
   }
 
-  protected SMGDoublyLinkedListSegment
-      createDLLS(int pLevel, int withSize, int offset, int prevOffset, int next, int mLength) {
+  protected SMGDoublyLinkedListSegment createDLLS(
+      int pLevel, int withSize, int offset, int prevOffset, int next, int mLength) {
     return new SMGDoublyLinkedListSegment(
         pLevel,
         BigInteger.valueOf(withSize),
@@ -97,8 +97,8 @@ public class SMGTest0 {
     return createPTEdge(withOffset, SMGTargetSpecifier.IS_ALL_POINTER, andObject);
   }
 
-  protected SMGPointsToEdge
-      createPTEdge(int withOffset, SMGTargetSpecifier targetSpecifier, SMGObject andObject) {
+  protected SMGPointsToEdge createPTEdge(
+      int withOffset, SMGTargetSpecifier targetSpecifier, SMGObject andObject) {
     return new SMGPointsToEdge(andObject, BigInteger.valueOf(withOffset), targetSpecifier);
   }
 
@@ -122,19 +122,13 @@ public class SMGTest0 {
     return createRegion(BigInteger.valueOf(withSize), label);
   }
 
-  protected SMGDoublyLinkedListSegment
-      createDLLS(int withSize, int offset, int prevOffset, int next, String label) {
+  protected SMGDoublyLinkedListSegment createDLLS(
+      int withSize, int offset, int prevOffset, int next, String label) {
     return createDLLS(0, withSize, offset, prevOffset, next, 0, label);
   }
 
   protected SMGDoublyLinkedListSegment createDLLS(
-      int pLevel,
-      int withSize,
-      int offset,
-      int prevOffset,
-      int next,
-      int mLength,
-      String label) {
+      int pLevel, int withSize, int offset, int prevOffset, int next, int mLength, String label) {
     return new LabeledDLLS(
         pLevel,
         BigInteger.valueOf(withSize),
@@ -153,5 +147,4 @@ public class SMGTest0 {
   protected SMGValue createValue(String label) {
     return new LabeledValue(0, label);
   }
-
 }

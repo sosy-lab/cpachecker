@@ -49,13 +49,12 @@ import org.sosy_lab.cpachecker.util.predicates.weakening.InductiveWeakeningManag
 import org.sosy_lab.cpachecker.util.predicates.weakening.WeakeningOptions;
 
 public class FormulaSlicingCPA extends SingleEdgeTransferRelation
-  implements
-    ConfigurableProgramAnalysis,
-    AbstractDomain,
-    PrecisionAdjustment,
-    StatisticsProvider,
-    MergeOperator,
-    AutoCloseable {
+    implements ConfigurableProgramAnalysis,
+        AbstractDomain,
+        PrecisionAdjustment,
+        StatisticsProvider,
+        MergeOperator,
+        AutoCloseable {
 
   private final StopOperator stopOperator;
   private final FormulaSlicingManager manager;
@@ -65,33 +64,36 @@ public class FormulaSlicingCPA extends SingleEdgeTransferRelation
   private final Solver solver;
 
   private FormulaSlicingCPA(
-      Configuration pConfiguration,
-      LogManager pLogger,
-      ShutdownNotifier pShutdownNotifier,
-      CFA cfa
-  ) throws InvalidConfigurationException {
+      Configuration pConfiguration, LogManager pLogger, ShutdownNotifier pShutdownNotifier, CFA cfa)
+      throws InvalidConfigurationException {
     solver = Solver.create(pConfiguration, pLogger, pShutdownNotifier);
     FormulaManagerView formulaManager = solver.getFormulaManager();
-    PathFormulaManager origPathFormulaManager = new PathFormulaManagerImpl(
-        formulaManager, pConfiguration, pLogger, pShutdownNotifier, cfa,
-        AnalysisDirection.FORWARD);
+    PathFormulaManager origPathFormulaManager =
+        new PathFormulaManagerImpl(
+            formulaManager,
+            pConfiguration,
+            pLogger,
+            pShutdownNotifier,
+            cfa,
+            AnalysisDirection.FORWARD);
 
-    CachingPathFormulaManager pathFormulaManager = new CachingPathFormulaManager
-        (origPathFormulaManager);
+    CachingPathFormulaManager pathFormulaManager =
+        new CachingPathFormulaManager(origPathFormulaManager);
 
     inductiveWeakeningManager =
         new InductiveWeakeningManager(
             new WeakeningOptions(pConfiguration), solver, pLogger, pShutdownNotifier);
     rcnfManager = new RCNFManager(pConfiguration);
-    manager = new FormulaSlicingManager(
-        pConfiguration,
-        pathFormulaManager,
-        formulaManager,
-        cfa,
-        inductiveWeakeningManager,
-        rcnfManager,
-        solver,
-        pLogger);
+    manager =
+        new FormulaSlicingManager(
+            pConfiguration,
+            pathFormulaManager,
+            formulaManager,
+            cfa,
+            inductiveWeakeningManager,
+            rcnfManager,
+            solver,
+            pLogger);
     stopOperator = new StopSepOperator(this);
     mergeOperator = this;
   }
@@ -126,8 +128,7 @@ public class FormulaSlicingCPA extends SingleEdgeTransferRelation
   }
 
   @Override
-  public AbstractState getInitialState(CFANode node,
-      StateSpacePartition partition) {
+  public AbstractState getInitialState(CFANode node, StateSpacePartition partition) {
     return manager.getInitialState(node);
   }
 
@@ -135,29 +136,31 @@ public class FormulaSlicingCPA extends SingleEdgeTransferRelation
   public Collection<? extends AbstractState> getAbstractSuccessorsForEdge(
       AbstractState state, Precision precision, CFAEdge cfaEdge)
       throws CPATransferException, InterruptedException {
-    return manager.getAbstractSuccessors((SlicingState)state, cfaEdge);
+    return manager.getAbstractSuccessors((SlicingState) state, cfaEdge);
   }
 
   @Override
   public AbstractState join(AbstractState state1, AbstractState state2)
       throws CPAException, InterruptedException {
-    throw new UnsupportedOperationException("FormulaSlicingCPA should be used" +
-     " with its own merge operator");
+    throw new UnsupportedOperationException(
+        "FormulaSlicingCPA should be used" + " with its own merge operator");
   }
 
   @Override
   public boolean isLessOrEqual(AbstractState state1, AbstractState state2)
       throws CPAException, InterruptedException {
-    return manager.isLessOrEqual((SlicingState)state1,
-        (SlicingState)state2);
+    return manager.isLessOrEqual((SlicingState) state1, (SlicingState) state2);
   }
 
   @Override
-  public Optional<PrecisionAdjustmentResult> prec(AbstractState state,
-      Precision precision, UnmodifiableReachedSet states,
+  public Optional<PrecisionAdjustmentResult> prec(
+      AbstractState state,
+      Precision precision,
+      UnmodifiableReachedSet states,
       Function<AbstractState, AbstractState> stateProjection,
-      AbstractState fullState) throws CPAException, InterruptedException {
-    return manager.prec((SlicingState) state,  states, fullState);
+      AbstractState fullState)
+      throws CPAException, InterruptedException {
+    return manager.prec((SlicingState) state, states, fullState);
   }
 
   @Override
@@ -168,8 +171,8 @@ public class FormulaSlicingCPA extends SingleEdgeTransferRelation
   }
 
   @Override
-  public AbstractState merge(AbstractState state1, AbstractState state2,
-      Precision precision) throws CPAException, InterruptedException {
+  public AbstractState merge(AbstractState state1, AbstractState state2, Precision precision)
+      throws CPAException, InterruptedException {
     return manager.merge((SlicingState) state1, (SlicingState) state2);
   }
 

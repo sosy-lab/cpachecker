@@ -81,7 +81,7 @@ final class ForeignDefUseData {
       mapBuilder.put(entry.getKey(), ImmutableSet.copyOf(entry.getValue()));
     }
 
-    return mapBuilder.build();
+    return mapBuilder.buildOrThrow();
   }
 
   private static boolean isForeignMemoryLocation(

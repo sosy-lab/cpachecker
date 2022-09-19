@@ -25,15 +25,14 @@ public class CFAPathTransferRelation extends SingleEdgeTransferRelation {
 
   @Override
   public Collection<? extends AbstractState> getAbstractSuccessorsForEdge(
-      AbstractState pElement, Precision pPrecision, CFAEdge pCfaEdge)
-      throws CPATransferException {
+      AbstractState pElement, Precision pPrecision, CFAEdge pCfaEdge) throws CPATransferException {
     if (pElement.equals(CFAPathTopState.getInstance())) {
       return topStateSingleton;
     }
 
     checkArgument((pElement instanceof CFAPathStandardState));
 
-    CFAPathStandardState lCurrentElement = (CFAPathStandardState)pElement;
+    CFAPathStandardState lCurrentElement = (CFAPathStandardState) pElement;
 
     CFAPathStandardState lSuccessor = new CFAPathStandardState(lCurrentElement, pCfaEdge);
 

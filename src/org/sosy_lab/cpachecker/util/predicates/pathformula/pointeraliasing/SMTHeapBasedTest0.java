@@ -45,21 +45,21 @@ public abstract class SMTHeapBasedTest0 extends SolverViewBasedTest0 {
 
   protected void requireSingleByteArrayHeap() {
     TruthJUnit.assume()
-        .withMessage("SMT Heap %s does not use Single Byte Array", this.heapToUse())
+        .withMessage("SMT Heap %s does not use Single Byte Array", heapToUse())
         .that(heapToUse())
         .isEqualTo(HeapOptions.SINGLE_BYTE_ARRAY);
   }
 
   protected void requireArraysHeap() {
     TruthJUnit.assume()
-        .withMessage("SMT Heap %s  does not use Arrays", this.heapToUse())
+        .withMessage("SMT Heap %s  does not use Arrays", heapToUse())
         .that(heapToUse())
         .isEqualTo(HeapOptions.ARRAYS);
   }
 
   protected void requireUFHeap() {
     TruthJUnit.assume()
-        .withMessage("SMT Heap %s does not use UF", this.heapToUse())
+        .withMessage("SMT Heap %s does not use UF", heapToUse())
         .that(heapToUse())
         .isEqualTo(HeapOptions.UF);
   }

@@ -85,9 +85,7 @@ public class SymbolicValueAnalysisPrecisionAdjustment implements PrecisionAdjust
   private int getSymbolicValueCount(ValueAnalysisState pState) {
     // it's safe to cast to int here because we will never have that many program variables
     return (int)
-        pState
-            .getConstants()
-            .stream()
+        pState.getConstants().stream()
             .filter(e -> e.getValue().getValue() instanceof SymbolicValue)
             .count();
   }

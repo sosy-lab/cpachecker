@@ -12,17 +12,14 @@ import static com.google.common.collect.FluentIterable.from;
 
 import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
-
+import java.util.List;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.conditions.AssumptionReportingState;
 
-import java.util.List;
-
 /**
- * Abstract state for the generic assumption generator CPA;
- * encapsulate a symbolic formula that represents the
- * assumption.
+ * Abstract state for the generic assumption generator CPA; encapsulate a symbolic formula that
+ * represents the assumption.
  */
 public class GenericAssumptionsState implements AbstractState, AssumptionReportingState {
 
@@ -41,7 +38,7 @@ public class GenericAssumptionsState implements AbstractState, AssumptionReporti
   @Override
   public boolean equals(Object pObj) {
     if (pObj instanceof GenericAssumptionsState) {
-      return assumptions.equals(((GenericAssumptionsState)pObj).assumptions);
+      return assumptions.equals(((GenericAssumptionsState) pObj).assumptions);
     } else {
       return false;
     }

@@ -36,7 +36,7 @@ public class CFAPathStandardState implements CFAPathState, Iterable<CFAEdge> {
 
     @Override
     public boolean hasNext() {
-      return (crrentState != sEmptyPath);
+      return crrentState != sEmptyPath;
     }
 
     @Override
@@ -55,7 +55,6 @@ public class CFAPathStandardState implements CFAPathState, Iterable<CFAEdge> {
     public void remove() {
       throw new UnsupportedOperationException();
     }
-
   }
 
   private CFAPathStandardState() {
@@ -121,5 +120,4 @@ public class CFAPathStandardState implements CFAPathState, Iterable<CFAEdge> {
       }
     }
   }
-
 }

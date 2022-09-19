@@ -11,9 +11,7 @@ package org.sosy_lab.cpachecker.util.predicates.pathformula;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 
-/**
- * This class tracks conditions under which a memory-related error would occur in the program.
- */
+/** This class tracks conditions under which a memory-related error would occur in the program. */
 public class ErrorConditions {
 
   private final BooleanFormulaManagerView bfmgr;

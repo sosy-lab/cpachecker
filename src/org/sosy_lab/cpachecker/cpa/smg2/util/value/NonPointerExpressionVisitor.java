@@ -67,8 +67,7 @@ public class NonPointerExpressionVisitor
   public List<CValueAndSMGState> visit(CArraySubscriptExpression exp) throws CPATransferException {
     // Cyclic call to evaluate addresses
     return readAddressValueAndState(
-        evaluator.evaluateArraySubscriptAddress(initialSmgState, exp),
-        exp);
+        evaluator.evaluateArraySubscriptAddress(initialSmgState, exp), exp);
   }
 
   @Override
@@ -82,16 +81,13 @@ public class NonPointerExpressionVisitor
     // Cyclic calls to evaluate addresses
     if (operandType instanceof CPointerType) {
       return dereference(
-          operand,
-          expType,
-          evaluator.evaluateArrayAddress(initialSmgState, operand));
+          operand, expType, evaluator.evaluateArrayAddress(initialSmgState, operand));
     } else if (operandType instanceof CArrayType) {
       return dereference(operand, expType, evaluator.evaluateAddress(initialSmgState, operand));
     } else {
       throw new UnrecognizedCodeException("on pointer expression", pointerExpression);
     }
   }
-
 
   /**
    * Utility function for pointer and array dereferencing. Handles dereference for a Collection of
@@ -102,30 +98,31 @@ public class NonPointerExpressionVisitor
    * @param addresses - the collection of addresses
    * @return List of CValue and SMGState mapping for dereferenced addresses.
    */
-  private List<CValueAndSMGState>
-      dereference(CExpression pOperand, CType pExpType, Collection<CValueAndSMGState> addresses) {
-    return addresses.stream().flatMap(addressAndState -> {
-      CValue address = addressAndState.getValue();
-      SMGState newState = addressAndState.getState();
-      if (address.isUnknown()) {
-        return Stream.of(evaluator.handleUnknownDereference(newState));
-      }
-      if (pExpType instanceof CArrayType) {
-        // Cyclic call to evaluate addresses
-        return evaluator.createAddress(newState, address).stream();
-      }
-      // Cyclic call to evaluate addresses
-      return Stream.of(evaluator.readValue(newState, address, pOperand));
-    }).collect(ImmutableList.toImmutableList());
+  private List<CValueAndSMGState> dereference(
+      CExpression pOperand, CType pExpType, Collection<CValueAndSMGState> addresses) {
+    return addresses.stream()
+        .flatMap(
+            addressAndState -> {
+              CValue address = addressAndState.getValue();
+              SMGState newState = addressAndState.getState();
+              if (address.isUnknown()) {
+                return Stream.of(evaluator.handleUnknownDereference(newState));
+              }
+              if (pExpType instanceof CArrayType) {
+                // Cyclic call to evaluate addresses
+                return evaluator.createAddress(newState, address).stream();
+              }
+              // Cyclic call to evaluate addresses
+              return Stream.of(evaluator.readValue(newState, address, pOperand));
+            })
+        .collect(ImmutableList.toImmutableList());
   }
 
   @Override
-  public List<CValueAndSMGState> visit(CFieldReference fieldReference)
-      throws CPATransferException {
+  public List<CValueAndSMGState> visit(CFieldReference fieldReference) throws CPATransferException {
     // Cyclic call to evaluate addresses
     return readAddressValueAndState(
-        evaluator.getAddressOfField(initialSmgState, fieldReference),
-        fieldReference);
+        evaluator.getAddressOfField(initialSmgState, fieldReference), fieldReference);
   }
 
   /**
@@ -136,31 +133,31 @@ public class NonPointerExpressionVisitor
    * @param addresses - the collection of addresses
    * @return List of CValue and SMGState mapping for subscribed addresses.
    */
-  private List<CValueAndSMGState>
-      readAddressValueAndState(Collection<CValueAndSMGState> addresses, CExpression expression) {
-    return addresses.stream().map(addressAndState -> {
-      CValue address = addressAndState.getValue();
-      SMGState newState = addressAndState.getState();
-      if (address.isUnknown()) {
-        return CValueAndSMGState.ofUnknown(newState);
-      }
-      // Cyclic call to evaluate addresses
-      return evaluator.readValue(newState, address, expression);
-    }).collect(ImmutableList.toImmutableList());
+  private List<CValueAndSMGState> readAddressValueAndState(
+      Collection<CValueAndSMGState> addresses, CExpression expression) {
+    return addresses.stream()
+        .map(
+            addressAndState -> {
+              CValue address = addressAndState.getValue();
+              SMGState newState = addressAndState.getState();
+              if (address.isUnknown()) {
+                return CValueAndSMGState.ofUnknown(newState);
+              }
+              // Cyclic call to evaluate addresses
+              return evaluator.readValue(newState, address, expression);
+            })
+        .collect(ImmutableList.toImmutableList());
   }
 
   @Override
-  public List<CValueAndSMGState> visit(CCharLiteralExpression pE)
-      throws CPATransferException {
+  public List<CValueAndSMGState> visit(CCharLiteralExpression pE) throws CPATransferException {
     // TODO The old implementation only checks for zero and returns unknown else.
     // It needs to be checked whether chars can be handled as ints here
     return valueAndStatesForIntValue(BigInteger.valueOf(pE.getCharacter()));
   }
 
-
   @Override
-  public List<CValueAndSMGState> visit(CFloatLiteralExpression pE)
-      throws CPATransferException {
+  public List<CValueAndSMGState> visit(CFloatLiteralExpression pE) throws CPATransferException {
     BigDecimal floatValue = pE.getValue();
     BigDecimal floatValueRounded =
         BigDecimal.valueOf(pE.getValue().toBigIntegerExact().longValueExact());
@@ -174,8 +171,7 @@ public class NonPointerExpressionVisitor
   }
 
   @Override
-  public List<CValueAndSMGState> visit(CIntegerLiteralExpression pE)
-      throws CPATransferException {
+  public List<CValueAndSMGState> visit(CIntegerLiteralExpression pE) throws CPATransferException {
     return valueAndStatesForIntValue(pE.getValue());
   }
 
@@ -201,14 +197,11 @@ public class NonPointerExpressionVisitor
         // Then the variableObject can be NULL. TODO when exactly does this happen?
         smgState = smgState.addElementToCurrentChain(variableObjectOptional.orElseThrow());
         CValueAndSMGState result =
-            evaluator.readValue(
-                smgState,
-                variableObjectOptional.orElseThrow(),
-                idExpression);
+            evaluator.readValue(smgState, variableObjectOptional.orElseThrow(), idExpression);
 
         return singletonList(
-            CValueAndSMGState
-                .of(result.getValue(), result.getState().addElementToCurrentChain(result)));
+            CValueAndSMGState.of(
+                result.getValue(), result.getState().addElementToCurrentChain(result)));
       }
     }
 
@@ -223,26 +216,28 @@ public class NonPointerExpressionVisitor
     CExpression unaryOperand = unaryExpression.getOperand();
 
     switch (unaryOperator) {
-
-    case AMPER:
+      case AMPER:
         throw new UnrecognizedCodeException(
             "Can't use & of expression " + unaryOperand.toASTString(), unaryExpression);
 
-    case MINUS:
+      case MINUS:
+        return unaryOperand.accept(this).stream()
+            .map(
+                valueAndState -> {
+                  CValue val =
+                      valueAndState.getValue().isZero() ? CValue.zero() : CValue.getUnknownValue();
+                  return CValueAndSMGState.of(val, valueAndState.getState());
+                })
+            .collect(ImmutableList.toImmutableList());
 
-     return unaryOperand.accept(this).stream().map(valueAndState -> {
-       CValue val = valueAndState.getValue().isZero() ? CValue.zero() : CValue.getUnknownValue();
-       return CValueAndSMGState.of(val, valueAndState.getState());
-     }).collect(ImmutableList.toImmutableList());
+      case SIZEOF:
+        BigInteger size = evaluator.getBitSizeof(initialSmgState, unaryOperand);
+        CValue val = size.equals(BigInteger.ZERO) ? CValue.zero() : CValue.getUnknownValue();
+        return singletonList(CValueAndSMGState.of(val, initialSmgState));
+      case TILDE:
 
-    case SIZEOF:
-      BigInteger size = evaluator.getBitSizeof(initialSmgState, unaryOperand);
-      CValue val = size.equals(BigInteger.ZERO) ? CValue.zero() : CValue.getUnknownValue();
-      return singletonList(CValueAndSMGState.of(val, initialSmgState));
-    case TILDE:
-
-    default:
-      return singletonList(CValueAndSMGState.ofUnknown(initialSmgState));
+      default:
+        return singletonList(CValueAndSMGState.ofUnknown(initialSmgState));
     }
   }
 
@@ -259,13 +254,10 @@ public class NonPointerExpressionVisitor
     SMGValue smgValueRep = smgValueRepresenationOptional.orElseGet(SMGValue::of);
     return Collections.singletonList(
         CValueAndSMGState.of(value, initialSmgState.copyAndAddValue(value, smgValueRep)));
-
   }
 
-
   @Override
-  protected List<CValueAndSMGState> visitDefault(CExpression pExp)
-      throws CPATransferException {
+  protected List<CValueAndSMGState> visitDefault(CExpression pExp) throws CPATransferException {
     return singletonList(CValueAndSMGState.ofUnknown(initialSmgState));
   }
 
@@ -274,5 +266,4 @@ public class NonPointerExpressionVisitor
       throws CPATransferException {
     return Collections.singletonList(CValueAndSMGState.ofUnknown(initialSmgState));
   }
-
 }

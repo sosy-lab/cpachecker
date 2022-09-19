@@ -45,34 +45,31 @@ import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 
 /**
- * This is a parser for files which contain initial predicates for the analysis.
- * The file format is based on SMTLIB2 and defines a map from location to
- * sets of predicates.
- * The keys of the map (the locations) may either be CFA nodes (N1 etc.),
- * function names of the analyzed program (which stand for all locations in the respective function),
- * or the special identifier "*" (which stands for all locations in the program).
+ * This is a parser for files which contain initial predicates for the analysis. The file format is
+ * based on SMTLIB2 and defines a map from location to sets of predicates. The keys of the map (the
+ * locations) may either be CFA nodes (N1 etc.), function names of the analyzed program (which stand
+ * for all locations in the respective function), or the special identifier "*" (which stands for
+ * all locations in the program).
  *
- * Detailed format description:
+ * <p>Detailed format description:
  *
- * - Lines starting with "//" are comments.
- * - Blank lines separates sections in the file.
- * - The first section (starting in the first line) consists of an arbitrary
- *   number of lines of the format "(declare-fun ...)" or "(define-fun ...)"
- *   with definitions in SMTLIB2 format.
- * - Every section except the first one starts with a line of the format "key:",
- *   where key is either "*", "<FUNC>", or "<FUNC> {@code N<ID>}", with
- *   <FUNC> being a function name of the program,
- *   and <ID> being a CFA node id.
- *   This line defines where the following predicates are to be used.
- * - The following lines of the section contain SMTLIB2 statements of the form
- *   "(assert ...)". Each asserted term will be used as one predicate.
+ * <p>- Lines starting with "//" are comments. - Blank lines separates sections in the file. - The
+ * first section (starting in the first line) consists of an arbitrary number of lines of the format
+ * "(declare-fun ...)" or "(define-fun ...)" with definitions in SMTLIB2 format. - Every section
+ * except the first one starts with a line of the format "key:", where key is either "*", "<FUNC>",
+ * or "<FUNC> {@code N<ID>}", with <FUNC> being a function name of the program, and <ID> being a CFA
+ * node id. This line defines where the following predicates are to be used. - The following lines
+ * of the section contain SMTLIB2 statements of the form "(assert ...)". Each asserted term will be
+ * used as one predicate.
  */
 public class PredicateMapParser {
 
   private static final String FUNCTION_NAME_REGEX = "([_a-zA-Z][_a-zA-Z0-9]*)";
-  private static final String CFA_NODE_REGEX      = "N([0-9][0-9]*)";
-  private static final Pattern FUNCTION_NAME_PATTERN = Pattern.compile("^" + FUNCTION_NAME_REGEX + "$");
-  private static final Pattern CFA_NODE_PATTERN = Pattern.compile("^" + FUNCTION_NAME_REGEX + " " + CFA_NODE_REGEX + "$");
+  private static final String CFA_NODE_REGEX = "N([0-9][0-9]*)";
+  private static final Pattern FUNCTION_NAME_PATTERN =
+      Pattern.compile("^" + FUNCTION_NAME_REGEX + "$");
+  private static final Pattern CFA_NODE_PATTERN =
+      Pattern.compile("^" + FUNCTION_NAME_REGEX + " " + CFA_NODE_REGEX + "$");
 
   private final CFA cfa;
 
@@ -98,8 +95,9 @@ public class PredicateMapParser {
   }
 
   /**
-   * Parse a file in the format described above and create a PredicatePrecision
-   * object with all the predicates.
+   * Parse a file in the format described above and create a PredicatePrecision object with all the
+   * predicates.
+   *
    * @param file The file to parse.
    * @return A PredicatePrecision containing all the predicates from the file.
    * @throws IOException If the file cannot be read.
@@ -107,22 +105,22 @@ public class PredicateMapParser {
    */
   @SuppressFBWarnings("NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE")
   public PredicatePrecision parsePredicates(Path file)
-          throws IOException, PredicateParsingFailedException {
+      throws IOException, PredicateParsingFailedException {
     try (BufferedReader reader = Files.newBufferedReader(file, StandardCharsets.US_ASCII)) {
       return parsePredicates(reader, file.getFileName().toString());
     }
   }
 
   /**
-   * @see #parsePredicates(Path)
-   * Instead of reading from a file, this method reads from a BufferedReader
-   * (available primarily for testing).
+   * @see #parsePredicates(Path) Instead of reading from a file, this method reads from a
+   *     BufferedReader (available primarily for testing).
    */
   PredicatePrecision parsePredicates(BufferedReader reader, String source)
-          throws IOException, PredicateParsingFailedException {
+      throws IOException, PredicateParsingFailedException {
 
     // first, read first section with initial set of function definitions
-    Pair<Integer, String> defParsingResult = PredicatePersistenceUtils.parseCommonDefinitions(reader, source);
+    Pair<Integer, String> defParsingResult =
+        PredicatePersistenceUtils.parseCommonDefinitions(reader, source);
     int lineNo = defParsingResult.getFirst();
     String commonDefinitions = defParsingResult.getSecond();
 
@@ -163,9 +161,10 @@ public class PredicateMapParser {
       if (currentSet == null) {
         // we expect a new section header
         if (!currentLine.endsWith(":")) {
-          throw new PredicateParsingFailedException(currentLine + " is not a valid section header", source, lineNo);
+          throw new PredicateParsingFailedException(
+              currentLine + " is not a valid section header", source, lineNo);
         }
-        currentLine = currentLine.substring(0, currentLine.length()-1).trim(); // strip off ":"
+        currentLine = currentLine.substring(0, currentLine.length() - 1).trim(); // strip off ":"
         if (currentLine.isEmpty()) {
           throw new PredicateParsingFailedException("empty key is not allowed", source, lineNo);
         }
@@ -178,7 +177,10 @@ public class PredicateMapParser {
           // a section with a function name
 
           if (!cfa.getAllFunctionNames().contains(currentLine)) {
-            logger.log(Level.WARNING, "Cannot use predicates for function", currentLine + ", this function does not exist.");
+            logger.log(
+                Level.WARNING,
+                "Cannot use predicates for function",
+                currentLine + ", this function does not exist.");
             currentSet = new ArrayList<>(); // temporary list which will be thrown away and ignored
 
           } else {
@@ -191,12 +193,17 @@ public class PredicateMapParser {
             // a section with a CFA node
 
             String function = matcher.group(1);
-            int nodeId = Integer.parseInt(matcher.group(2)); // does not fail, we checked with regexp
+            int nodeId =
+                Integer.parseInt(matcher.group(2)); // does not fail, we checked with regexp
 
             if (options.applyFunctionWide()) {
               if (!cfa.getAllFunctionNames().contains(function)) {
-                logger.log(Level.WARNING, "Cannot use predicates for function", function + ", this function does not exist.");
-                currentSet = new ArrayList<>(); // temporary list which will be thrown away and ignored
+                logger.log(
+                    Level.WARNING,
+                    "Cannot use predicates for function",
+                    function + ", this function does not exist.");
+                currentSet =
+                    new ArrayList<>(); // temporary list which will be thrown away and ignored
               } else {
                 currentSet = functionPredicates.get(function);
               }
@@ -204,15 +211,20 @@ public class PredicateMapParser {
             } else {
               CFANode node = getCFANodeWithId(nodeId);
               if (node == null) {
-                logger.log(Level.WARNING, "Cannot use predicates for CFANode", nodeId + ", this node does not exist.");
-                currentSet = new ArrayList<>(); // temporary list which will be thrown away and ignored
+                logger.log(
+                    Level.WARNING,
+                    "Cannot use predicates for CFANode",
+                    nodeId + ", this node does not exist.");
+                currentSet =
+                    new ArrayList<>(); // temporary list which will be thrown away and ignored
               } else {
                 currentSet = localPredicates.get(node);
               }
             }
 
           } else {
-            throw new PredicateParsingFailedException(currentLine + " is not a valid key", source, lineNo);
+            throw new PredicateParsingFailedException(
+                currentLine + " is not a valid key", source, lineNo);
           }
         }
 
@@ -240,7 +252,8 @@ public class PredicateMapParser {
           currentSet.add(amgr.makePredicate(f));
 
         } else {
-          throw new PredicateParsingFailedException("unexpected line " + currentLine, source, lineNo);
+          throw new PredicateParsingFailedException(
+              "unexpected line " + currentLine, source, lineNo);
         }
       }
     }

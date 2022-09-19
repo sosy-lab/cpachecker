@@ -142,8 +142,7 @@ public interface UnmodifiableSMGState extends LatticeAbstractState<UnmodifiableS
    * @param offset get address with this offset relative to the beginning of the memory.
    * @return Address of the given field, or NULL, if such an address does not yet exist in the SMG.
    */
-  @Nullable
-  SMGSymbolicValue getAddress(SMGObject memory, long offset, SMGTargetSpecifier tg);
+  @Nullable SMGSymbolicValue getAddress(SMGObject memory, long offset, SMGTargetSpecifier tg);
 
   Collection<Object> getInvalidChain();
 

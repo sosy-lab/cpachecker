@@ -9,7 +9,6 @@
 package org.sosy_lab.cpachecker.cpa.termination;
 
 import com.google.common.base.Preconditions;
-
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;

@@ -106,6 +106,6 @@ public class LockIdentifier implements Comparable<LockIdentifier> {
 
   @Override
   public int compareTo(LockIdentifier pO) {
-    return this.name.compareTo(pO.name);
+    return name.compareTo(pO.name);
   }
 }

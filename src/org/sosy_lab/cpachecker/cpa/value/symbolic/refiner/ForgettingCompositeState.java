@@ -19,11 +19,10 @@ import org.sosy_lab.cpachecker.util.refinement.ForgetfulState;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 /**
- * A composite state of {@link ValueAnalysisState} and {@link ConstraintsState}
- * that allows to remove and re-add values.
+ * A composite state of {@link ValueAnalysisState} and {@link ConstraintsState} that allows to
+ * remove and re-add values.
  */
-public final class ForgettingCompositeState
-    implements ForgetfulState<ValueAnalysisInformation> {
+public final class ForgettingCompositeState implements ForgetfulState<ValueAnalysisInformation> {
 
   private final ValueAnalysisState values;
   private final ConstraintsState constraints;
@@ -40,9 +39,7 @@ public final class ForgettingCompositeState
    * @param pConstraints the constraints state to use
    */
   public ForgettingCompositeState(
-      final ValueAnalysisState pValues,
-      final ConstraintsState pConstraints
-  ) {
+      final ValueAnalysisState pValues, final ConstraintsState pConstraints) {
     values = ValueAnalysisState.copyOf(pValues);
     constraints = pConstraints.copyOf();
   }
@@ -71,9 +68,7 @@ public final class ForgettingCompositeState
 
   @Override
   public void remember(
-      final MemoryLocation pLocation,
-      final ValueAnalysisInformation pValueInformation
-  ) {
+      final MemoryLocation pLocation, final ValueAnalysisInformation pValueInformation) {
 
     values.remember(pLocation, pValueInformation);
   }
@@ -87,17 +82,13 @@ public final class ForgettingCompositeState
     return new HashSet<>(constraints);
   }
 
-  /**
-   * Returns the size of the wrapped {@link ValueAnalysisState}.
-   */
+  /** Returns the size of the wrapped {@link ValueAnalysisState}. */
   @Override
   public int getSize() {
     return values.getSize();
   }
 
-  /**
-   * Returns the size of the wrapped {@link ConstraintsState}.
-   */
+  /** Returns the size of the wrapped {@link ConstraintsState}. */
   public int getConstraintsSize() {
     return constraints.size();
   }
@@ -111,7 +102,7 @@ public final class ForgettingCompositeState
       return false;
     }
 
-    ForgettingCompositeState that = (ForgettingCompositeState)o;
+    ForgettingCompositeState that = (ForgettingCompositeState) o;
 
     if (!constraints.equals(that.constraints)) {
       return false;
@@ -132,9 +123,6 @@ public final class ForgettingCompositeState
 
   @Override
   public String toString() {
-    return "ForgettingCompositeState[" +
-        values +
-        ", " + constraints +
-        ']';
+    return "ForgettingCompositeState[" + values + ", " + constraints + ']';
   }
 }

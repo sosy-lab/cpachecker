@@ -19,7 +19,8 @@ import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 /**
- * Checks if a certain variable has a specific value at a specific location marked by a label in the program.
+ * Checks if a certain variable has a specific value at a specific location marked by a label in the
+ * program.
  */
 public class SingleValueChecker extends PerElementPropertyChecker {
 
@@ -28,7 +29,9 @@ public class SingleValueChecker extends PerElementPropertyChecker {
   private final Value varValLong;
   private final String labelLocVarVal;
 
-  public SingleValueChecker(final String varWithSingleValue, final String varValue,
+  public SingleValueChecker(
+      final String varWithSingleValue,
+      final String varValue,
       final String labelForLocationWithSingleValue) {
     varValRep = MemoryLocation.parseExtendedQualifiedName(varWithSingleValue);
     labelLocVarVal = labelForLocationWithSingleValue;
@@ -37,7 +40,8 @@ public class SingleValueChecker extends PerElementPropertyChecker {
   }
 
   @Override
-  public boolean satisfiesProperty(final AbstractState pElemToCheck) throws UnsupportedOperationException {
+  public boolean satisfiesProperty(final AbstractState pElemToCheck)
+      throws UnsupportedOperationException {
     // check if value correctly specified at location
     CFANode node = AbstractStates.extractLocation(pElemToCheck);
     if (node instanceof CFALabelNode && ((CFALabelNode) node).getLabel().equals(labelLocVarVal)) {
@@ -51,5 +55,4 @@ public class SingleValueChecker extends PerElementPropertyChecker {
     }
     return true;
   }
-
 }

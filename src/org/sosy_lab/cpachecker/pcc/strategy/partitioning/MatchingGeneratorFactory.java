@@ -20,12 +20,13 @@ public class MatchingGeneratorFactory {
     HEAVY_EDGE
   }
 
-  public static MatchingGenerator createMatchingGenerator( final LogManager pLogger, MatchingGenerators generator){
-    switch(generator){
+  public static MatchingGenerator createMatchingGenerator(
+      final LogManager pLogger, MatchingGenerators generator) {
+    switch (generator) {
       case HEAVY_EDGE:
         return new HeavyEdgeMatchingGenerator(pLogger);
-        default:
-          return new RandomMatchingGenerator(pLogger);
+      default:
+        return new RandomMatchingGenerator(pLogger);
     }
   }
 }

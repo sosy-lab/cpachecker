@@ -13,23 +13,23 @@ import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 
 /**
- * This interface represents the core components that occur in each declaration:
- * a type and an (optional) name.
+ * This interface represents the core components that occur in each declaration: a type and an
+ * (optional) name.
  *
- * This class is only SuperClass of all abstract Classes and their Subclasses.
- * The Interface {@link ASimpleDeclaration} contains all language specific
- * AST Nodes as well.
+ * <p>This class is only SuperClass of all abstract Classes and their Subclasses. The Interface
+ * {@link ASimpleDeclaration} contains all language specific AST Nodes as well.
  */
-public abstract class AbstractSimpleDeclaration extends AbstractAstNode implements ASimpleDeclaration {
+public abstract class AbstractSimpleDeclaration extends AbstractAstNode
+    implements ASimpleDeclaration {
 
   private static final long serialVersionUID = 1078153969461542233L;
-  private  Type type;
+  private Type type;
 
   /**
    * The name of the declared item as it should be used by analyses in CPAchecker. This is a
    * (possibly unique) name that might, but does not have to match the {@link #origName}.
    *
-   * We should use this name in all cases where conflicting names could cause problems in
+   * <p>We should use this name in all cases where conflicting names could cause problems in
    * CPAchecker, e.g., when decoding variables in an abstract state.
    */
   private final String name;
@@ -37,8 +37,7 @@ public abstract class AbstractSimpleDeclaration extends AbstractAstNode implemen
   /**
    * The name of the declared item as written in the source code of the analyzed task.
    *
-   * <p>
-   * We should use this name in all cases where data is imported or exported, e.g., for automaton
+   * <p>We should use this name in all cases where data is imported or exported, e.g., for automaton
    * transition matching and counterexample export.
    */
   private final String origName;
@@ -60,6 +59,7 @@ public abstract class AbstractSimpleDeclaration extends AbstractAstNode implemen
   public String getName() {
     return name;
   }
+
   @Override
   public String getOrigName() {
     return origName;
@@ -96,16 +96,14 @@ public abstract class AbstractSimpleDeclaration extends AbstractAstNode implemen
       return true;
     }
 
-    if (!(obj instanceof AbstractSimpleDeclaration)
-        || !super.equals(obj)) {
+    if (!(obj instanceof AbstractSimpleDeclaration) || !super.equals(obj)) {
       return false;
     }
 
     AbstractSimpleDeclaration other = (AbstractSimpleDeclaration) obj;
 
     return Objects.equals(other.type, type)
-            && Objects.equals(other.name, name)
-            && Objects.equals(other.origName, origName);
+        && Objects.equals(other.name, name)
+        && Objects.equals(other.origName, origName);
   }
-
 }

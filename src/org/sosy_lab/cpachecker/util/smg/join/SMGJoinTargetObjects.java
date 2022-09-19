@@ -19,9 +19,7 @@ import org.sosy_lab.cpachecker.util.smg.graph.SMGObject;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGPointsToEdge;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGValue;
 
-/**
- * Class implementing join algorithm from FIT-TR-2013-4 (Appendix C.4)
- */
+/** Class implementing join algorithm from FIT-TR-2013-4 (Appendix C.4) */
 public class SMGJoinTargetObjects extends SMGAbstractJoin {
 
   public SMGJoinTargetObjects(
@@ -45,9 +43,7 @@ public class SMGJoinTargetObjects extends SMGAbstractJoin {
    * @param pValue2 - the second value of inputSMG2
    * @param pNestingLevelDiff - nesting level difference
    */
-  public void joinTargetObjects(SMGValue pValue1,
-      SMGValue pValue2,
-      int pNestingLevelDiff) {
+  public void joinTargetObjects(SMGValue pValue1, SMGValue pValue2, int pNestingLevelDiff) {
     Optional<SMGPointsToEdge> edgeOptionalV1 = inputSMG1.getPTEdge(pValue1);
     Optional<SMGPointsToEdge> edgeOptionalV2 = inputSMG2.getPTEdge(pValue2);
 
@@ -67,14 +63,7 @@ public class SMGJoinTargetObjects extends SMGAbstractJoin {
     if (checkForJoinedTargetObjects(pToEdge1.pointsTo(), pToEdge2.pointsTo())) {
       SMGMapTargetAddress mapTargetAddress =
           new SMGMapTargetAddress(
-              status,
-              inputSMG1,
-              inputSMG2,
-              destSMG,
-              mapping1,
-              mapping2,
-              pValue1,
-              pValue2);
+              status, inputSMG1, inputSMG2, destSMG, mapping1, mapping2, pValue1, pValue2);
       copyJoinState(mapTargetAddress);
       return;
     }
@@ -99,14 +88,7 @@ public class SMGJoinTargetObjects extends SMGAbstractJoin {
     // create new target address step 13
     SMGMapTargetAddress targetAddress =
         new SMGMapTargetAddress(
-            status,
-            inputSMG1,
-            inputSMG2,
-            destSMG,
-            mapping1,
-            mapping2,
-            pValue1,
-            pValue2);
+            status, inputSMG1, inputSMG2, destSMG, mapping1, mapping2, pValue1, pValue2);
     // step 14
     SMGJoinSubSMGs joinSubSMGs =
         new SMGJoinSubSMGs(
@@ -160,7 +142,8 @@ public class SMGJoinTargetObjects extends SMGAbstractJoin {
    * @param pNestingLevel - the new level
    * @return new SMGDoublyLinkedListSegment with copied labels
    */
-  private SMGDoublyLinkedListSegment createDLLSCopyLabeling(SMGObject obj1, SMGObject obj2, int pNestingLevel) {
+  private SMGDoublyLinkedListSegment createDLLSCopyLabeling(
+      SMGObject obj1, SMGObject obj2, int pNestingLevel) {
     int length1 = 0;
     int length2 = 0;
     BigInteger headOffset = null;
@@ -196,8 +179,6 @@ public class SMGJoinTargetObjects extends SMGAbstractJoin {
         headOffset);
   }
 
-
-
   /**
    * Delayed join implementation Algorithm 6 steps 11.
    *
@@ -229,7 +210,8 @@ public class SMGJoinTargetObjects extends SMGAbstractJoin {
     }
     // step 5
     if (!targetObject1.getClass().equals(targetObject2.getClass())
-        && mapping1.getMappedObject(targetObject1)
+        && mapping1
+            .getMappedObject(targetObject1)
             .equals(mapping2.getMappedObject(targetObject1))) {
       return true;
     }
@@ -246,7 +228,6 @@ public class SMGJoinTargetObjects extends SMGAbstractJoin {
             targetObject2);
     return matchObjects.getStatus().equals(SMGJoinStatus.INCOMPARABLE);
   }
-
 
   /**
    * Check for already joined target objects Algorithm 6 step 3.
@@ -289,5 +270,4 @@ public class SMGJoinTargetObjects extends SMGAbstractJoin {
         && pToEdge2 != null
         && pToEdge1.getOffset().equals(pToEdge2.getOffset());
   }
-
 }

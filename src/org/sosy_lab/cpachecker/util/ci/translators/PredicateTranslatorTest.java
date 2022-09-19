@@ -202,7 +202,8 @@ public class PredicateTranslatorTest extends SolverViewBasedTest0 {
     assertFormulaIsExpected(
         convertedRequirements.getSecond(),
         "post",
-        "(or (and (or (> var1@1 0) (= var3@1 0)) (< |fun::var1| 0))(and (> var2 |fun::varB@1|) (< |fun::varC| 0)))");
+        "(or (and (or (> var1@1 0) (= var3@1 0)) (< |fun::var1| 0))(and (> var2 |fun::varB@1|) (<"
+            + " |fun::varC| 0)))");
   }
 
   private void assertFormulaIsExpected(

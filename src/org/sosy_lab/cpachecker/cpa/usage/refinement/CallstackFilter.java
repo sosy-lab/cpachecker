@@ -21,35 +21,41 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.util.Pair;
 
-/** This filter is used for filtering races by callstacks
- *  For instance, there can not be a race, if the two usages starts with the same interrupt handler -
- *  it can not be executed in parallel with itself.
- *  There also can be functions, which can be executed only in one thread.
+/**
+ * This filter is used for filtering races by callstacks For instance, there can not be a race, if
+ * the two usages starts with the same interrupt handler - it can not be executed in parallel with
+ * itself. There also can be functions, which can be executed only in one thread.
  */
-
-@Options(prefix="cpa.usage")
+@Options(prefix = "cpa.usage")
 public class CallstackFilter extends GenericFilter<String> {
 
-  @Option(name = "notSelfParallelFunctions",
+  @Option(
+      name = "notSelfParallelFunctions",
       description = "The functions, which cannot be executed in parallel with themselves",
       secure = true)
   protected Set<String> notSelfParallelFunctions = new HashSet<>();
 
-  @Option(name = "singleThreadFunctions", description = "The functions, which are executed in one thread",
+  @Option(
+      name = "singleThreadFunctions",
+      description = "The functions, which are executed in one thread",
       secure = true)
   protected Set<String> singleThreadFunctions = new HashSet<>();
 
-  public CallstackFilter(ConfigurableRefinementBlock<Pair<ExtendedARGPath, ExtendedARGPath>> pWrapper,
-      Configuration pConfig) throws InvalidConfigurationException {
+  public CallstackFilter(
+      ConfigurableRefinementBlock<Pair<ExtendedARGPath, ExtendedARGPath>> pWrapper,
+      Configuration pConfig)
+      throws InvalidConfigurationException {
     super(pWrapper, pConfig);
     pConfig.inject(this, CallstackFilter.class);
   }
 
   @Override
   protected Boolean filter(String pFirstPathCore, String pSecondPathCore) {
-    if (notSelfParallelFunctions.contains(pFirstPathCore) && pFirstPathCore.equals(pSecondPathCore)) {
+    if (notSelfParallelFunctions.contains(pFirstPathCore)
+        && pFirstPathCore.equals(pSecondPathCore)) {
       return false;
-    } else if (singleThreadFunctions.contains(pFirstPathCore) || singleThreadFunctions.contains(pSecondPathCore)) {
+    } else if (singleThreadFunctions.contains(pFirstPathCore)
+        || singleThreadFunctions.contains(pSecondPathCore)) {
       return false;
     } else {
       return true;
@@ -61,13 +67,13 @@ public class CallstackFilter extends GenericFilter<String> {
     List<ARGState> firstCalls = from(pPath.getStateSet()).filter(isFirstCall).toList();
     List<String> callerFunctions = transformedImmutableListCopy(firstCalls, getFunctionName);
 
-    //TODO Now I believe, it is enough to check the last function called from main - this is related to the call stack
+    // TODO Now I believe, it is enough to check the last function called from main - this is
+    // related to the call stack
     if (callerFunctions.size() >= 1) {
       return callerFunctions.get(callerFunctions.size() - 1);
     } else {
-      //Usage in main
+      // Usage in main
       return null;
     }
   }
-
 }

@@ -28,19 +28,17 @@ import org.sosy_lab.cpachecker.core.interfaces.PseudoPartitionable;
 import org.sosy_lab.cpachecker.core.waitlist.Waitlist.WaitlistFactory;
 
 /**
- * Special implementation of the partitioned reached set {@link PartitionedReachedSet}.
- * By default, this implementation needs abstract states which implement
- * {@link PseudoPartitionable} and uses the return value of
- * {@link PseudoPartitionable#getPseudoPartitionKey()} as the key.
+ * Special implementation of the partitioned reached set {@link PartitionedReachedSet}. By default,
+ * this implementation needs abstract states which implement {@link PseudoPartitionable} and uses
+ * the return value of {@link PseudoPartitionable#getPseudoPartitionKey()} as the key.
  *
- * Whenever the method {@link PseudoPartitionedReachedSet#getReached(AbstractState)}
- * is called (which is usually done by the CPAAlgorithm to get the candidates
- * for merging and coverage checks), it will return a subset of the set of all
- * reached states. This subset contains exactly those states,
- * where the given state might be 'lessOrEqual'.
+ * <p>Whenever the method {@link PseudoPartitionedReachedSet#getReached(AbstractState)} is called
+ * (which is usually done by the CPAAlgorithm to get the candidates for merging and coverage
+ * checks), it will return a subset of the set of all reached states. This subset contains exactly
+ * those states, where the given state might be 'lessOrEqual'.
  *
- * This type of reached-set might work best in combination with an analysis
- * that uses the operators merge_sep and stop_sep.
+ * <p>This type of reached-set might work best in combination with an analysis that uses the
+ * operators merge_sep and stop_sep.
  */
 public class PseudoPartitionedReachedSet extends DefaultReachedSet {
 
@@ -48,8 +46,8 @@ public class PseudoPartitionedReachedSet extends DefaultReachedSet {
    * the main storage: row/first key: the partition key, same as in {@link PartitionedReachedSet},
    * column/second key: the pseudo-partition, see {@link PseudoPartitionable}.
    *
-   * Since a partition key may be null, but HashBasedTable does not support null keys,
-   * we use Optionals.
+   * <p>Since a partition key may be null, but HashBasedTable does not support null keys, we use
+   * Optionals.
    */
   private final HashBasedTable<Optional<Object>, Comparable<?>, SetMultimap<Object, AbstractState>>
       partitionedReached = HashBasedTable.create(1, 1);
@@ -82,8 +80,7 @@ public class PseudoPartitionedReachedSet extends DefaultReachedSet {
     Optional<Object> key = getPartitionKey(pState);
     Comparable<?> pseudoKey = getPseudoPartitionKey(pState);
     Object pseudoHash = getPseudoHashCode(pState);
-    SetMultimap<Object, AbstractState> states =
-        partitionedReached.get(key, pseudoKey);
+    SetMultimap<Object, AbstractState> states = partitionedReached.get(key, pseudoKey);
     if (states != null) {
       states.remove(pseudoHash, pState);
       if (states.isEmpty()) {
@@ -115,7 +112,8 @@ public class PseudoPartitionedReachedSet extends DefaultReachedSet {
     Set<AbstractState> states;
 
     // here happens the trick, if the comparable is "equal" (matching pseudoKey):
-    // if the state is also "equal", we use the state, otherwise state is definitely not "lessOrEqual".
+    // if the state is also "equal", we use the state, otherwise state is definitely not
+    // "lessOrEqual".
     if (partition.containsKey(pseudoKey)) {
       states = partition.get(pseudoKey).get(pseudoHash);
     } else {

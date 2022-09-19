@@ -11,11 +11,8 @@ package org.sosy_lab.cpachecker.cfa.ast;
 import com.google.errorprone.annotations.InlineMe;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 
-/**
- * This is the abstract Class for Character Literals.
- */
+/** This is the abstract Class for Character Literals. */
 public abstract class ACharLiteralExpression extends ALiteralExpression {
-
 
   private static final long serialVersionUID = 6806494425621157804L;
   private final char character;
@@ -38,6 +35,9 @@ public abstract class ACharLiteralExpression extends ALiteralExpression {
 
   @Override
   public String toASTString() {
+    if (character == '\'') {
+      return "'\\" + "''";
+    }
     if (character >= ' ' && character < 128) {
       return "'" + character + "'";
     } else {
@@ -60,8 +60,7 @@ public abstract class ACharLiteralExpression extends ALiteralExpression {
       return true;
     }
 
-    if (!(obj instanceof ACharLiteralExpression)
-        || !super.equals(obj)) {
+    if (!(obj instanceof ACharLiteralExpression) || !super.equals(obj)) {
       return false;
     }
 
@@ -69,5 +68,4 @@ public abstract class ACharLiteralExpression extends ALiteralExpression {
 
     return other.character == character;
   }
-
 }

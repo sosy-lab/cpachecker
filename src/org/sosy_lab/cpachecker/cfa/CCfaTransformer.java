@@ -8,8 +8,11 @@
 
 package org.sosy_lab.cpachecker.cfa;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.TreeMultimap;
+import com.google.common.graph.EndpointPair;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Deque;
@@ -18,12 +21,12 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.NavigableMap;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.function.BiFunction;
 import java.util.logging.Level;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
@@ -32,8 +35,10 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CReturnStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFALabelNode;
@@ -44,7 +49,6 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CCfaEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CCfaEdgeVisitor;
-import org.sosy_lab.cpachecker.cfa.model.c.CCfaNodeTransformer;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionEntryNode;
@@ -58,7 +62,6 @@ import org.sosy_lab.cpachecker.exceptions.ParserException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.LoopStructure;
-import org.sosy_lab.cpachecker.util.MutableGraph;
 import org.sosy_lab.cpachecker.util.variableclassification.VariableClassification;
 import org.sosy_lab.cpachecker.util.variableclassification.VariableClassificationBuilder;
 
@@ -66,49 +69,41 @@ public final class CCfaTransformer {
 
   private CCfaTransformer() {}
 
-  public static MutableGraph<CFANode, CFAEdge> createMutableGraph(CFA pCfa) {
+  public static CFA createCfa(
+      Configuration pConfiguration,
+      LogManager pLogger,
+      CFA pOriginalCfa,
+      CfaMutableNetwork pCfaMutableNetwork,
+      BiFunction<CFAEdge, CAstNode, CAstNode> pCfaEdgeAstNodeSubstitution,
+      BiFunction<CFANode, CAstNode, CAstNode> pCfaNodeAstNodeSubstitution) {
 
-    Objects.requireNonNull(pCfa, "pCfa must not be null");
+    checkNotNull(pConfiguration);
+    checkNotNull(pLogger);
+    checkNotNull(pOriginalCfa);
+    checkNotNull(pCfaMutableNetwork);
+    checkNotNull(pCfaEdgeAstNodeSubstitution);
+    checkNotNull(pCfaNodeAstNodeSubstitution);
 
-    MutableGraph<CFANode, CFAEdge> mutableGraph = new CfaMutableGraph();
+    CfaBuilder cfaBuilder =
+        new CfaBuilder(
+            pCfaMutableNetwork, pCfaEdgeAstNodeSubstitution, pCfaNodeAstNodeSubstitution);
 
-    for (CFANode cfaNode : pCfa.getAllNodes()) {
-      mutableGraph.wrapNode(cfaNode);
-      if (cfaNode instanceof FunctionEntryNode) {
-        FunctionExitNode functionExitNode = ((FunctionEntryNode) cfaNode).getExitNode();
-        mutableGraph.wrapNode(functionExitNode);
-      }
-    }
-    
-    for (CFANode cfaNode : pCfa.getAllNodes()) {
-      MutableGraph.Node<CFANode, CFAEdge> predecessor = mutableGraph.getNode(cfaNode).orElseThrow();
-      for (CFAEdge cfaEdge : CFAUtils.allLeavingEdges(cfaNode)) {
-        MutableGraph.Node<CFANode, CFAEdge> successor =
-            mutableGraph.getNode(cfaEdge.getSuccessor()).orElseThrow();
-        mutableGraph.wrapEdge(cfaEdge, predecessor, successor);
-      }
-    }
-
-    return mutableGraph;
+    return cfaBuilder.createCfa(pConfiguration, pLogger, pOriginalCfa);
   }
 
   public static CFA createCfa(
       Configuration pConfiguration,
       LogManager pLogger,
       CFA pOriginalCfa,
-      MutableGraph<CFANode, CFAEdge> pMutableGraph,
-      BiFunction<CFAEdge, CAstNode, CAstNode> pAstNodeSubstitution) {
-
-    Objects.requireNonNull(pConfiguration, "pConfiguration must not be null");
-    Objects.requireNonNull(pLogger, "pLogger must not be null");
-    Objects.requireNonNull(pOriginalCfa, "pOriginalCfa must not be null");
-    Objects.requireNonNull(pMutableGraph, "pMutableGraph must not be null");
-    Objects.requireNonNull(pAstNodeSubstitution, "pAstNodeSubstitution must not be null");
-
-    CfaBuilder cfaBuilder =
-        new CfaBuilder(pMutableGraph, CCfaNodeTransformer.DEFAULT, pAstNodeSubstitution);
-
-    return cfaBuilder.createCfa(pConfiguration, pLogger, pOriginalCfa);
+      CfaMutableNetwork pCfaMutableNetwork,
+      BiFunction<CFAEdge, CAstNode, CAstNode> pCfaEdgeAstNodeSubstitution) {
+    return createCfa(
+        pConfiguration,
+        pLogger,
+        pOriginalCfa,
+        pCfaMutableNetwork,
+        pCfaEdgeAstNodeSubstitution,
+        (cfaNode, astNode) -> astNode);
   }
 
   /**
@@ -132,187 +127,204 @@ public final class CCfaTransformer {
       CFA pCfa,
       BiFunction<CFAEdge, CAstNode, CAstNode> pSubstitutionFunction) {
 
-    Objects.requireNonNull(pConfiguration, "pConfiguration must not be null");
-    Objects.requireNonNull(pLogger, "pLogger must not be null");
-    Objects.requireNonNull(pCfa, "pCfa must not be null");
-    Objects.requireNonNull(pSubstitutionFunction, "pSubstitutionFunction must not be null");
+    checkNotNull(pConfiguration);
+    checkNotNull(pLogger);
+    checkNotNull(pCfa);
+    checkNotNull(pSubstitutionFunction);
 
-    MutableGraph<CFANode, CFAEdge> mutableGraph = createMutableGraph(pCfa);
+    CfaMutableNetwork mutableGraph = CfaMutableNetwork.of(pCfa);
 
     return createCfa(pConfiguration, pLogger, pCfa, mutableGraph, pSubstitutionFunction);
   }
 
-  private static final class CfaMutableGraph extends MutableGraph<CFANode, CFAEdge> {
-
-    private final Map<CFANode, Node<CFANode, CFAEdge>> cfaNodeToMutableNodeMap;
-
-    private CfaMutableGraph() {
-      cfaNodeToMutableNodeMap = new HashMap<>();
-    }
-
-    @Override
-    public Optional<Node<CFANode, CFAEdge>> getNode(CFANode pCfaNode) {
-
-      Objects.requireNonNull(pCfaNode, "pCfaNode must not be null");
-
-      return Optional.ofNullable(cfaNodeToMutableNodeMap.get(pCfaNode));
-    }
-
-    @Override
-    public Node<CFANode, CFAEdge> wrapNode(CFANode pCfaNode) {
-
-      Objects.requireNonNull(pCfaNode, "pCfaNode must not be null");
-
-      Node<CFANode, CFAEdge> mutableNode = super.wrapNode(pCfaNode);
-      cfaNodeToMutableNodeMap.put(pCfaNode, mutableNode);
-
-      return mutableNode;
-    }
-  }
-  
   private static final class CfaBuilder {
 
-    private final MutableGraph<CFANode, CFAEdge> mutableGraph;
+    private final CfaMutableNetwork graph;
 
-    private final CCfaNodeTransformer nodeTransformer;
-    private final BiFunction<CFAEdge, CAstNode, CAstNode> astNodeSubstitutionFunction;
+    private final BiFunction<CFAEdge, CAstNode, CAstNode> cfaEdgeAstNodeSubstitution;
+    private final BiFunction<CFANode, CAstNode, CAstNode> cfaNodeAstNodeSubstitution;
 
-    private final Map<MutableGraph.Node<CFANode, CFAEdge>, CFANode> nodeToNewCfaNode;
-    private final Map<MutableGraph.Edge<CFANode, CFAEdge>, CFAEdge> edgeToNewCfaEdge;
+    private final Map<CFANode, CFANode> oldNodeToNewNode;
+    private final Map<CFAEdge, CFAEdge> oldEdgeToNewEdge;
 
     private CfaBuilder(
-        MutableGraph<CFANode, CFAEdge> pMutableGraph,
-        CCfaNodeTransformer pNodeTransformer,
-        BiFunction<CFAEdge, CAstNode, CAstNode> pAstNodeSubstitutionFunction) {
+        CfaMutableNetwork pCfaMutableNetwork,
+        BiFunction<CFAEdge, CAstNode, CAstNode> pCfaEdgeAstNodeSubstitution,
+        BiFunction<CFANode, CAstNode, CAstNode> pCfaNodeAstNodeSubstitution) {
 
-      mutableGraph = pMutableGraph;
+      graph = pCfaMutableNetwork;
 
-      nodeTransformer = pNodeTransformer;
-      astNodeSubstitutionFunction = pAstNodeSubstitutionFunction;
+      cfaEdgeAstNodeSubstitution = pCfaEdgeAstNodeSubstitution;
+      cfaNodeAstNodeSubstitution = pCfaNodeAstNodeSubstitution;
 
-      nodeToNewCfaNode = new HashMap<>();
-      edgeToNewCfaEdge = new HashMap<>();
+      oldNodeToNewNode = new HashMap<>();
+      oldEdgeToNewEdge = new HashMap<>();
     }
 
-    private CFANode newCfaNodeIfAbsent(MutableGraph.Node<CFANode, CFAEdge> pNode) {
+    private CFunctionDeclaration newFunctionDeclaration(CFANode pOldNode) {
+      return (CFunctionDeclaration)
+          cfaNodeAstNodeSubstitution.apply(pOldNode, (CFunctionDeclaration) pOldNode.getFunction());
+    }
 
-      CFANode newCfaNode = nodeToNewCfaNode.get(pNode);
-      if (newCfaNode != null) {
-        return newCfaNode;
-      }
+    private CFALabelNode newCfaLabelNode(CFALabelNode pOldNode) {
+      return new CFALabelNode(newFunctionDeclaration(pOldNode), pOldNode.getLabel());
+    }
 
-      CFANode originalCfaNode = pNode.getWrappedNode();
+    private CFunctionEntryNode newCFunctionEntryNode(CFunctionEntryNode pOldNode) {
 
-      if (originalCfaNode instanceof CFALabelNode) {
-        newCfaNode = nodeTransformer.transformCfaLabelNode((CFALabelNode) originalCfaNode);
-      } else if (originalCfaNode instanceof CFunctionEntryNode) {
-        CFunctionEntryNode originalCfaEntryNode = (CFunctionEntryNode) originalCfaNode;
-        MutableGraph.Node<CFANode, CFAEdge> exitNode =
-            mutableGraph.getNode(originalCfaEntryNode.getExitNode()).orElseThrow();
-        FunctionExitNode newCfaExitNode = (FunctionExitNode) newCfaNodeIfAbsent(exitNode);
-        newCfaNode =
-            nodeTransformer.transformCFunctionEntryNode(
-                (CFunctionEntryNode) originalCfaNode, newCfaExitNode);
-        newCfaExitNode.setEntryNode((CFunctionEntryNode) newCfaNode);
-      } else if (originalCfaNode instanceof FunctionExitNode) {
-        newCfaNode = nodeTransformer.transformFunctionExitNode((FunctionExitNode) originalCfaNode);
-      } else if (originalCfaNode instanceof CFATerminationNode) {
-        newCfaNode =
-            nodeTransformer.transformCfaTerminationNode((CFATerminationNode) originalCfaNode);
+      // FIXME: don't rely on FunctionEntryNode#getExitNode
+      // all connections between CFANodes/CFAEdges should be easily modifiable via CfaMutableNetwork
+      CFANode oldExitNode = pOldNode.getExitNode();
+      FunctionExitNode newExitNode = (FunctionExitNode) toNew(oldExitNode);
+
+      Optional<CVariableDeclaration> oldReturnVariable = pOldNode.getReturnVariable();
+      Optional<CVariableDeclaration> newReturnVariable;
+      if (oldReturnVariable.isPresent()) {
+        newReturnVariable =
+            Optional.ofNullable(
+                (CVariableDeclaration)
+                    cfaNodeAstNodeSubstitution.apply(pOldNode, oldReturnVariable.orElseThrow()));
       } else {
-        newCfaNode = nodeTransformer.transformCfaNode(originalCfaNode);
+        newReturnVariable = Optional.empty();
       }
 
-      nodeToNewCfaNode.put(pNode, newCfaNode);
+      CFunctionEntryNode newEntryNode =
+          new CFunctionEntryNode(
+              pOldNode.getFileLocation(),
+              newFunctionDeclaration(pOldNode),
+              newExitNode,
+              newReturnVariable);
+      newExitNode.setEntryNode(newEntryNode);
 
-      return newCfaNode;
+      return newEntryNode;
+    }
+
+    private FunctionExitNode newFunctionExitNode(FunctionExitNode pOldNode) {
+      return new FunctionExitNode(newFunctionDeclaration(pOldNode));
+    }
+
+    private CFATerminationNode newCfaTerminationNode(CFATerminationNode pOldNode) {
+      return new CFATerminationNode(newFunctionDeclaration(pOldNode));
+    }
+
+    private CFANode newCfaNode(CFANode pOldNode) {
+      return new CFANode(newFunctionDeclaration(pOldNode));
+    }
+
+    private CFANode toNew(CFANode pOldNode) {
+
+      CFANode newNode = oldNodeToNewNode.get(pOldNode);
+      if (newNode != null) {
+        return newNode;
+      }
+
+      if (pOldNode instanceof CFALabelNode) {
+        newNode = newCfaLabelNode((CFALabelNode) pOldNode);
+      } else if (pOldNode instanceof CFunctionEntryNode) {
+        newNode = newCFunctionEntryNode((CFunctionEntryNode) pOldNode);
+      } else if (pOldNode instanceof FunctionExitNode) {
+        newNode = newFunctionExitNode((FunctionExitNode) pOldNode);
+      } else if (pOldNode instanceof CFATerminationNode) {
+        newNode = newCfaTerminationNode((CFATerminationNode) pOldNode);
+      } else {
+        newNode = newCfaNode(pOldNode);
+      }
+
+      oldNodeToNewNode.put(pOldNode, newNode);
+
+      return newNode;
+    }
+
+    private CAstNode substituteAst(CFAEdge pCfaEdge, CAstNode pCAstNode) {
+      return cfaEdgeAstNodeSubstitution.apply(pCfaEdge, pCAstNode);
     }
 
     private CFunctionSummaryEdge newCFunctionSummaryEdge(
-        MutableGraph.Edge<CFANode, CFAEdge> pEdge,
-        CFANode pNewCfaPredecessorNode,
-        CFANode pNewCfaSuccessorNode) {
+        CFunctionSummaryEdge pOldSummaryEdge, CFANode pNewNodeU, CFANode pNewNodeV) {
 
-      for (MutableGraph.Edge<CFANode, CFAEdge> leavingEdge :
-          mutableGraph.iterateLeaving(pEdge.getPredecessorOrElseThrow())) {
-        if (leavingEdge.getWrappedEdge() instanceof CFunctionCallEdge) {
-          CFunctionEntryNode cfaEntryNode =
-              (CFunctionEntryNode) nodeToNewCfaNode.get(leavingEdge.getSuccessorOrElseThrow());
+      CFANode oldSummaryEdgeNodeU = graph.incidentNodes(pOldSummaryEdge).nodeU();
 
-          CFunctionSummaryEdge summaryEdge = (CFunctionSummaryEdge) pEdge.getWrappedEdge();
+      for (CFAEdge outEdge : graph.outEdges(oldSummaryEdgeNodeU)) {
+        if (outEdge instanceof CFunctionCallEdge) {
+
+          CFANode oldEntryNode = graph.incidentNodes(outEdge).nodeV();
+          CFunctionEntryNode newEntryNode = (CFunctionEntryNode) toNew(oldEntryNode);
+
           CFunctionCall newFunctionCall =
-              (CFunctionCall)
-                  astNodeSubstitutionFunction.apply(summaryEdge, summaryEdge.getExpression());
+              (CFunctionCall) substituteAst(pOldSummaryEdge, pOldSummaryEdge.getExpression());
 
           return new CFunctionSummaryEdge(
-              summaryEdge.getRawStatement(),
-              summaryEdge.getFileLocation(),
-              pNewCfaPredecessorNode,
-              pNewCfaSuccessorNode,
+              pOldSummaryEdge.getRawStatement(),
+              pOldSummaryEdge.getFileLocation(),
+              pNewNodeU,
+              pNewNodeV,
               newFunctionCall,
-              cfaEntryNode);
+              newEntryNode);
         }
       }
 
-      throw new IllegalStateException("Missing function call edge for summary edge: " + pEdge);
+      throw new IllegalStateException(
+          "Missing function call edge for summary edge: " + pOldSummaryEdge);
     }
 
     private CFunctionCallEdge newCFunctionCallEdge(
-        MutableGraph.Edge<CFANode, CFAEdge> pEdge,
-        CFANode pNewCfaPredecessorNode,
-        CFANode pNewCfaSuccessorNode) {
-      for (MutableGraph.Edge<CFANode, CFAEdge> summaryEdge :
-          mutableGraph.iterateLeaving(pEdge.getPredecessorOrElseThrow())) {
-        if (summaryEdge.getWrappedEdge() instanceof CFunctionSummaryEdge) {
-          CFunctionSummaryEdge cfaSummaryEdge =
-              (CFunctionSummaryEdge) newCfaEdgeIfAbsent(summaryEdge, true);
-          CFunctionCallEdge functionCallEdge = (CFunctionCallEdge) pEdge.getWrappedEdge();
+        CFunctionCallEdge pOldCallEdge, CFANode pNewNodeU, CFANode pNewNodeV) {
+
+      CFANode oldCallEdgeNodeU = graph.incidentNodes(pOldCallEdge).nodeU();
+
+      for (CFAEdge outEdge : graph.outEdges(oldCallEdgeNodeU)) {
+        if (outEdge instanceof CFunctionSummaryEdge) {
+
+          CFunctionSummaryEdge newSummaryEdge = (CFunctionSummaryEdge) toNew(outEdge, true);
 
           return new CFunctionCallEdge(
-              functionCallEdge.getRawStatement(),
-              functionCallEdge.getFileLocation(),
-              pNewCfaPredecessorNode,
-              (CFunctionEntryNode) pNewCfaSuccessorNode,
-              cfaSummaryEdge.getExpression(),
-              cfaSummaryEdge);
+              pOldCallEdge.getRawStatement(),
+              pOldCallEdge.getFileLocation(),
+              pNewNodeU,
+              (CFunctionEntryNode) pNewNodeV,
+              newSummaryEdge.getExpression(),
+              newSummaryEdge);
         }
       }
 
-      throw new IllegalStateException("Missing summary edge for function call edge: " + pEdge);
+      throw new IllegalStateException(
+          "Missing summary edge for function call edge: " + pOldCallEdge);
     }
 
     private CFunctionReturnEdge newCFunctionReturnEdge(
-        MutableGraph.Edge<CFANode, CFAEdge> pEdge,
-        CFANode pNewCfaPredecessorNode,
-        CFANode pNewCfaSuccessorNode) {
-      for (MutableGraph.Edge<CFANode, CFAEdge> summaryEdge :
-          mutableGraph.iterateEntering(pEdge.getSuccessorOrElseThrow())) {
-        if (summaryEdge.getWrappedEdge() instanceof CFunctionSummaryEdge) {
-          CFunctionSummaryEdge cfaSummaryEdge =
-              (CFunctionSummaryEdge) newCfaEdgeIfAbsent(summaryEdge, true);
+        CFunctionReturnEdge pOldReturnEdge, CFANode pNewNodeU, CFANode pNewNodeV) {
+
+      CFANode oldReturnEdgeNodeV = graph.incidentNodes(pOldReturnEdge).nodeV();
+
+      for (CFAEdge inEdge : graph.inEdges(oldReturnEdgeNodeV)) {
+        if (inEdge instanceof CFunctionSummaryEdge) {
+
+          CFunctionSummaryEdge newSummaryEdge = (CFunctionSummaryEdge) toNew(inEdge, true);
+
           return new CFunctionReturnEdge(
-              ((CFunctionReturnEdge) pEdge.getWrappedEdge()).getFileLocation(),
-              (FunctionExitNode) pNewCfaPredecessorNode,
-              pNewCfaSuccessorNode,
-              cfaSummaryEdge);
+              pOldReturnEdge.getFileLocation(),
+              (FunctionExitNode) pNewNodeU,
+              pNewNodeV,
+              newSummaryEdge);
         }
       }
 
-      throw new IllegalStateException("Missing summary edge for function return edge: " + pEdge);
+      throw new IllegalStateException(
+          "Missing summary edge for function return edge: " + pOldReturnEdge);
     }
 
-    private CFAEdge newCfaEdgeIfAbsent(
-        MutableGraph.Edge<CFANode, CFAEdge> pEdge, boolean pBuildSupergraph) {
+    private CFAEdge toNew(CFAEdge pOldEdge, boolean pBuildSupergraph) {
 
-      CFAEdge newCfaEdge = edgeToNewCfaEdge.get(pEdge);
-      if (newCfaEdge != null) {
-        return newCfaEdge;
+      @Nullable CFAEdge newEdge = oldEdgeToNewEdge.get(pOldEdge);
+      if (newEdge != null) {
+        return newEdge;
       }
 
-      CFANode cfaPredecessorNode = nodeToNewCfaNode.get(pEdge.getPredecessorOrElseThrow());
-      CFANode cfaSuccessorNode = nodeToNewCfaNode.get(pEdge.getSuccessorOrElseThrow());
+      EndpointPair<CFANode> oldEndpoints = graph.incidentNodes(pOldEdge);
+      CFANode newNodeU = toNew(oldEndpoints.nodeU());
+      CFANode newNodeV = toNew(oldEndpoints.nodeV());
 
-      CCfaEdgeVisitor<CFAEdge, NoException> transformingEdgeVisitor =
+      CCfaEdgeVisitor<@Nullable CFAEdge, NoException> transformingEdgeVisitor =
           new CCfaEdgeVisitor<>() {
 
             @Override
@@ -320,8 +332,8 @@ public final class CCfaTransformer {
               return new BlankEdge(
                   pBlankEdge.getRawStatement(),
                   pBlankEdge.getFileLocation(),
-                  cfaPredecessorNode,
-                  cfaSuccessorNode,
+                  newNodeU,
+                  newNodeV,
                   pBlankEdge.getDescription());
             }
 
@@ -329,14 +341,13 @@ public final class CCfaTransformer {
             public CFAEdge visit(CAssumeEdge pCAssumeEdge) {
 
               CExpression newExpression =
-                  (CExpression)
-                      astNodeSubstitutionFunction.apply(pCAssumeEdge, pCAssumeEdge.getExpression());
+                  (CExpression) substituteAst(pCAssumeEdge, pCAssumeEdge.getExpression());
 
               return new CAssumeEdge(
                   pCAssumeEdge.getRawStatement(),
                   pCAssumeEdge.getFileLocation(),
-                  cfaPredecessorNode,
-                  cfaSuccessorNode,
+                  newNodeU,
+                  newNodeV,
                   newExpression,
                   pCAssumeEdge.getTruthAssumption(),
                   pCAssumeEdge.isSwapped(),
@@ -348,14 +359,13 @@ public final class CCfaTransformer {
 
               CDeclaration newDeclaration =
                   (CDeclaration)
-                      astNodeSubstitutionFunction.apply(
-                          pCDeclarationEdge, pCDeclarationEdge.getDeclaration());
+                      substituteAst(pCDeclarationEdge, pCDeclarationEdge.getDeclaration());
 
               return new CDeclarationEdge(
                   pCDeclarationEdge.getRawStatement(),
                   pCDeclarationEdge.getFileLocation(),
-                  cfaPredecessorNode,
-                  cfaSuccessorNode,
+                  newNodeU,
+                  newNodeV,
                   newDeclaration);
             }
 
@@ -363,31 +373,29 @@ public final class CCfaTransformer {
             public CFAEdge visit(CStatementEdge pCStatementEdge) {
 
               CStatement newStatement =
-                  (CStatement)
-                      astNodeSubstitutionFunction.apply(
-                          pCStatementEdge, pCStatementEdge.getStatement());
+                  (CStatement) substituteAst(pCStatementEdge, pCStatementEdge.getStatement());
 
               return new CStatementEdge(
                   pCStatementEdge.getRawStatement(),
                   newStatement,
                   pCStatementEdge.getFileLocation(),
-                  cfaPredecessorNode,
-                  cfaSuccessorNode);
+                  newNodeU,
+                  newNodeV);
             }
 
             @Override
-            public CFAEdge visit(CFunctionCallEdge pCFunctionCallEdge) {
+            public @Nullable CFAEdge visit(CFunctionCallEdge pCFunctionCallEdge) {
               if (pBuildSupergraph) {
-                return newCFunctionCallEdge(pEdge, cfaPredecessorNode, cfaSuccessorNode);
+                return newCFunctionCallEdge(pCFunctionCallEdge, newNodeU, newNodeV);
               } else {
                 return null;
               }
             }
 
             @Override
-            public CFAEdge visit(CFunctionReturnEdge pCFunctionReturnEdge) {
+            public @Nullable CFAEdge visit(CFunctionReturnEdge pCFunctionReturnEdge) {
               if (pBuildSupergraph) {
-                return newCFunctionReturnEdge(pEdge, cfaPredecessorNode, cfaSuccessorNode);
+                return newCFunctionReturnEdge(pCFunctionReturnEdge, newNodeU, newNodeV);
               } else {
                 return null;
               }
@@ -396,13 +404,13 @@ public final class CCfaTransformer {
             @Override
             public CFAEdge visit(CFunctionSummaryEdge pCFunctionSummaryEdge) {
               if (pBuildSupergraph) {
-                return newCFunctionSummaryEdge(pEdge, cfaPredecessorNode, cfaSuccessorNode);
+                return newCFunctionSummaryEdge(pCFunctionSummaryEdge, newNodeU, newNodeV);
               } else {
                 return new SummaryPlaceholderEdge(
                     "",
                     pCFunctionSummaryEdge.getFileLocation(),
-                    cfaPredecessorNode,
-                    cfaSuccessorNode,
+                    newNodeU,
+                    newNodeV,
                     "summary-placeholder-edge");
               }
             }
@@ -412,15 +420,15 @@ public final class CCfaTransformer {
 
               CReturnStatement newReturnStatement =
                   (CReturnStatement)
-                      astNodeSubstitutionFunction.apply(
+                      substituteAst(
                           pCReturnStatementEdge, pCReturnStatementEdge.getReturnStatement());
 
               return new CReturnStatementEdge(
                   pCReturnStatementEdge.getRawStatement(),
                   newReturnStatement,
                   pCReturnStatementEdge.getFileLocation(),
-                  cfaPredecessorNode,
-                  (FunctionExitNode) cfaSuccessorNode);
+                  newNodeU,
+                  (FunctionExitNode) newNodeV);
             }
 
             @Override
@@ -429,12 +437,12 @@ public final class CCfaTransformer {
 
                 CStatement newStatement =
                     (CStatement)
-                        astNodeSubstitutionFunction.apply(
+                        substituteAst(
                             pCFunctionSummaryStatementEdge,
                             pCFunctionSummaryStatementEdge.getStatement());
                 CFunctionCall newFunctionCall =
                     (CFunctionCall)
-                        astNodeSubstitutionFunction.apply(
+                        substituteAst(
                             pCFunctionSummaryStatementEdge,
                             pCFunctionSummaryStatementEdge.getFunctionCall());
 
@@ -442,42 +450,40 @@ public final class CCfaTransformer {
                     pCFunctionSummaryStatementEdge.getRawStatement(),
                     newStatement,
                     pCFunctionSummaryStatementEdge.getFileLocation(),
-                    cfaPredecessorNode,
-                    cfaSuccessorNode,
+                    newNodeU,
+                    newNodeV,
                     newFunctionCall,
                     pCFunctionSummaryStatementEdge.getFunctionName());
               } else {
                 return new SummaryPlaceholderEdge(
                     "",
                     pCFunctionSummaryStatementEdge.getFileLocation(),
-                    cfaPredecessorNode,
-                    cfaSuccessorNode,
+                    newNodeU,
+                    newNodeV,
                     "summary-placeholder-edge");
               }
             }
           };
 
-      CFAEdge originalCfaEdge = pEdge.getWrappedEdge();
+      newEdge = ((CCfaEdge) pOldEdge).accept(transformingEdgeVisitor);
 
-      newCfaEdge = ((CCfaEdge) originalCfaEdge).accept(transformingEdgeVisitor);
+      if (newEdge != null) {
 
-      if (newCfaEdge != null) {
-
-        if (!(newCfaEdge instanceof SummaryPlaceholderEdge)) {
-          edgeToNewCfaEdge.put(pEdge, newCfaEdge);
+        if (!(newEdge instanceof SummaryPlaceholderEdge)) {
+          oldEdgeToNewEdge.put(pOldEdge, newEdge);
         }
 
-        if (newCfaEdge instanceof CFunctionSummaryEdge) {
-          CFunctionSummaryEdge cfaSummaryEdge = (CFunctionSummaryEdge) newCfaEdge;
-          cfaPredecessorNode.addLeavingSummaryEdge(cfaSummaryEdge);
-          cfaSuccessorNode.addEnteringSummaryEdge(cfaSummaryEdge);
+        if (newEdge instanceof CFunctionSummaryEdge) {
+          CFunctionSummaryEdge cfaSummaryEdge = (CFunctionSummaryEdge) newEdge;
+          newNodeU.addLeavingSummaryEdge(cfaSummaryEdge);
+          newNodeV.addEnteringSummaryEdge(cfaSummaryEdge);
         } else {
-          cfaPredecessorNode.addLeavingEdge(newCfaEdge);
-          cfaSuccessorNode.addEnteringEdge(newCfaEdge);
+          newNodeU.addLeavingEdge(newEdge);
+          newNodeV.addEnteringEdge(newEdge);
         }
       }
 
-      return newCfaEdge;
+      return newEdge;
     }
 
     private Optional<VariableClassification> createVariableClassification(
@@ -497,7 +503,7 @@ public final class CCfaTransformer {
 
       List<SummaryPlaceholderEdge> summaryPlaceholderEdges = new ArrayList<>();
 
-      for (CFANode newCfaNode : nodeToNewCfaNode.values()) {
+      for (CFANode newCfaNode : oldNodeToNewNode.values()) {
         for (CFAEdge newCfaEdge : CFAUtils.allLeavingEdges(newCfaNode)) {
           if (newCfaEdge instanceof SummaryPlaceholderEdge) {
             summaryPlaceholderEdges.add((SummaryPlaceholderEdge) newCfaEdge);
@@ -511,69 +517,86 @@ public final class CCfaTransformer {
       }
     }
 
-    private CFA createCfa(Configuration pConfiguration, LogManager pLogger, CFA pOriginalCfa) {
+    private FunctionEntryNode determineMainFunctionEntryNode() {
 
-      MutableGraph.Node<CFANode, CFAEdge> mainEntryNode =
-          mutableGraph.getNode(pOriginalCfa.getMainFunction()).orElseThrow();
+      Set<CFANode> waitlisted = new HashSet<>();
+      Deque<CFANode> waitlist = new ArrayDeque<>();
 
-      NavigableMap<String, FunctionEntryNode> newCfaFunctions = new TreeMap<>();
-      TreeMultimap<String, CFANode> newCfaNodes = TreeMultimap.create();
-
-      Set<MutableGraph.Node<CFANode, CFAEdge>> waitlisted =
-          new HashSet<>(ImmutableList.of(mainEntryNode));
-      Deque<MutableGraph.Node<CFANode, CFAEdge>> waitlist =
-          new ArrayDeque<>(ImmutableList.of(mainEntryNode));
+      for (CFANode node : graph.nodes()) {
+        if (graph.inDegree(node) == 0) {
+          waitlisted.add(node);
+          waitlist.add(node);
+        }
+      }
 
       while (!waitlist.isEmpty()) {
 
-        MutableGraph.Node<CFANode, CFAEdge> currentNode = waitlist.remove();
-        CFANode newCfaNode = newCfaNodeIfAbsent(currentNode);
-        String functionName = newCfaNode.getFunction().getQualifiedName();
+        CFANode node = waitlist.remove();
 
-        if (newCfaNode instanceof FunctionEntryNode) {
-          newCfaFunctions.put(functionName, (FunctionEntryNode) newCfaNode);
+        if (node instanceof FunctionEntryNode) {
+          return (FunctionEntryNode) node;
         }
 
-        newCfaNodes.put(functionName, newCfaNode);
-
-        for (MutableGraph.Edge<CFANode, CFAEdge> leavingEdge :
-            mutableGraph.iterateLeaving(currentNode)) {
-          MutableGraph.Node<CFANode, CFAEdge> successorNode = leavingEdge.getSuccessorOrElseThrow();
-          if (waitlisted.add(successorNode)) {
-            waitlist.add(successorNode);
-          }
-        }
-
-        for (MutableGraph.Edge<CFANode, CFAEdge> enteringEdge :
-            mutableGraph.iterateEntering(currentNode)) {
-          MutableGraph.Node<CFANode, CFAEdge> predecessorNode =
-              enteringEdge.getPredecessorOrElseThrow();
-          if (waitlisted.add(predecessorNode)) {
-            waitlist.add(predecessorNode);
+        for (CFANode adjacentNode : graph.adjacentNodes(node)) {
+          if (waitlisted.add(adjacentNode)) {
+            waitlist.add(adjacentNode);
           }
         }
       }
 
-      // don't create create function call, return and summary edges
-      for (MutableGraph.Node<CFANode, CFAEdge> currentNode : nodeToNewCfaNode.keySet()) {
-        for (MutableGraph.Edge<CFANode, CFAEdge> edge : mutableGraph.iterateLeaving(currentNode)) {
-          newCfaEdgeIfAbsent(edge, false);
+      throw new AssertionError("Unable to determine main function node");
+    }
+
+    private MutableCFA createUnconnectedFunctionCfa(CFA pOriginalCfa) {
+
+      CFANode oldMainEntryNode = determineMainFunctionEntryNode();
+
+      NavigableMap<String, FunctionEntryNode> newFunctions = new TreeMap<>();
+      TreeMultimap<String, CFANode> newNodes = TreeMultimap.create();
+
+      Set<CFANode> waitlisted = new HashSet<>(ImmutableList.of(oldMainEntryNode));
+      Deque<CFANode> waitlist = new ArrayDeque<>(ImmutableList.of(oldMainEntryNode));
+
+      while (!waitlist.isEmpty()) {
+
+        CFANode oldNode = waitlist.remove();
+        CFANode newNode = toNew(oldNode);
+        String functionName = newNode.getFunction().getQualifiedName();
+
+        if (newNode instanceof FunctionEntryNode) {
+          newFunctions.put(functionName, (FunctionEntryNode) newNode);
+        }
+
+        newNodes.put(functionName, newNode);
+
+        for (CFANode adjacentNode : graph.adjacentNodes(oldNode)) {
+          if (waitlisted.add(adjacentNode)) {
+            waitlist.add(adjacentNode);
+          }
         }
       }
 
-      MutableCFA newMutableCfa =
-          new MutableCFA(
-              pOriginalCfa.getMachineModel(),
-              newCfaFunctions,
-              newCfaNodes,
-              (FunctionEntryNode) nodeToNewCfaNode.get(mainEntryNode),
-              pOriginalCfa.getFileNames(),
-              pOriginalCfa.getLanguage());
-
-      for (FunctionEntryNode function : newMutableCfa.getAllFunctionHeads()) {
-        CFAReversePostorder sorter = new CFAReversePostorder();
-        sorter.assignSorting(function);
+      for (CFANode oldNode : oldNodeToNewNode.keySet()) {
+        for (CFAEdge outEdge : graph.outEdges(oldNode)) {
+          // pBuildSupergraph == false
+          toNew(outEdge, false);
+        }
       }
+
+      return new MutableCFA(
+          pOriginalCfa.getMachineModel(),
+          newFunctions,
+          newNodes,
+          (FunctionEntryNode) oldNodeToNewNode.get(oldMainEntryNode),
+          pOriginalCfa.getFileNames(),
+          pOriginalCfa.getLanguage());
+    }
+
+    private CFA createCfa(Configuration pConfiguration, LogManager pLogger, CFA pOriginalCfa) {
+
+      MutableCFA newMutableCfa = createUnconnectedFunctionCfa(pOriginalCfa);
+
+      newMutableCfa.getAllFunctionHeads().forEach(CFAReversePostorder::assignIds);
 
       if (pOriginalCfa.getLoopStructure().isPresent()) {
         try {
@@ -583,11 +606,12 @@ public final class CCfaTransformer {
         }
       }
 
-      // create supergraph including function call, return and summary edges
+      // create supergraph (includes call, return, and summary edges)
       removeSummaryPlaceholderEdges();
-      for (MutableGraph.Node<CFANode, CFAEdge> currentNode : nodeToNewCfaNode.keySet()) {
-        for (MutableGraph.Edge<CFANode, CFAEdge> edge : mutableGraph.iterateLeaving(currentNode)) {
-          newCfaEdgeIfAbsent(edge, true);
+      for (CFANode oldNode : oldNodeToNewNode.keySet()) {
+        for (CFAEdge outEdge : graph.outEdges(oldNode)) {
+          // pBuildSupergraph == true
+          toNew(outEdge, true);
         }
       }
 

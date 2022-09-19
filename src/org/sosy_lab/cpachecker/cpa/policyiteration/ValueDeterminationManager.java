@@ -39,16 +39,18 @@ import org.sosy_lab.cpachecker.util.templates.TemplateToFormulaConversionManager
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.Formula;
 
-@Options(prefix="cpa.lpi")
+@Options(prefix = "cpa.lpi")
 public class ValueDeterminationManager {
 
-  @Option(secure=true,
-      description="Attach extra invariant from other CPAs during the value "
-          + "determination computation")
+  @Option(
+      secure = true,
+      description =
+          "Attach extra invariant from other CPAs during the value " + "determination computation")
   private boolean attachExtraInvariantDuringValueDetermination = true;
 
   /** Dependencies */
   private final FormulaManagerView fmgr;
+
   private final BooleanFormulaManagerView bfmgr;
   private final LogManager logger;
   private final PathFormulaManager pfmgr;
@@ -64,13 +66,14 @@ public class ValueDeterminationManager {
       LogManager logger,
       PathFormulaManager pPfmgr,
       StateFormulaConversionManager pStateFormulaConversionManager,
-      TemplateToFormulaConversionManager pTemplateToFormulaConversionManager) throws InvalidConfigurationException {
+      TemplateToFormulaConversionManager pTemplateToFormulaConversionManager)
+      throws InvalidConfigurationException {
     templateToFormulaConversionManager = pTemplateToFormulaConversionManager;
     pConfiguration.inject(this);
 
     this.fmgr = fmgr;
     stateFormulaConversionManager = pStateFormulaConversionManager;
-    this.bfmgr = fmgr.getBooleanFormulaManager();
+    bfmgr = fmgr.getBooleanFormulaManager();
     this.logger = logger;
     pfmgr = pPfmgr;
   }
@@ -88,26 +91,21 @@ public class ValueDeterminationManager {
   }
 
   /**
-   * Cheaper version of value determination.
-   * May under-approximate the true result (the resulting constraint system is
-   * strictly stronger due to sharing variables).
+   * Cheaper version of value determination. May under-approximate the true result (the resulting
+   * constraint system is strictly stronger due to sharing variables).
    */
   ValueDeterminationConstraints valueDeterminationFormulaCheap(
       PolicyAbstractedState newState,
       PolicyAbstractedState stateWithUpdates,
-      Set<Template> updated
-  ) {
+      Set<Template> updated) {
     return valueDeterminationFormula(newState, stateWithUpdates, updated, false);
   }
 
-  /**
-   * Sound value determination procedure.
-   */
+  /** Sound value determination procedure. */
   ValueDeterminationConstraints valueDeterminationFormula(
       PolicyAbstractedState newState,
       PolicyAbstractedState stateWithUpdates,
-      Set<Template> updated
-  ) {
+      Set<Template> updated) {
     return valueDeterminationFormula(newState, stateWithUpdates, updated, true);
   }
 
@@ -126,8 +124,7 @@ public class ValueDeterminationManager {
       PolicyAbstractedState newState,
       PolicyAbstractedState mergedState,
       Set<Template> updated,
-      boolean useUniquePrefix
-  ) {
+      boolean useUniquePrefix) {
     Set<BooleanFormula> outConstraints = new HashSet<>();
 
     Map<Integer, PolicyAbstractedState> stronglyConnectedComponent = findScc2(newState);
@@ -153,17 +150,18 @@ public class ValueDeterminationManager {
         PolicyBound bound = incoming.getValue();
         PolicyAbstractedState backpointer = bound.getPredecessor();
 
-        boolean valueIsFixed = bound.getDependencies().isEmpty()
-            ||  (state == mergedState
+        boolean valueIsFixed =
+            bound.getDependencies().isEmpty()
+                || (state == mergedState
                     && !updated.contains(template)
                     && !bound.isComputedByValueDetermination())
 
-            // Backpointer is not in the found strongly connected component.
-            || !stronglyConnectedComponent.containsKey(backpointer.getLocationID());
+                // Backpointer is not in the found strongly connected component.
+                || !stronglyConnectedComponent.containsKey(backpointer.getLocationID());
 
         // Update the queue, check visited.
-        if (!valueIsFixed &&
-            bound.getDependencies().contains(template)
+        if (!valueIsFixed
+            && bound.getDependencies().contains(template)
 
             // todo note: it is implicitly assumed that by processing backpointers we should get
             // the latest version of the state for each location ID,
@@ -175,11 +173,13 @@ public class ValueDeterminationManager {
         }
 
         // Give the element to the constraint generator.
-        String prefix = useUniquePrefix ?
-                        String.format(VISIT_PREFIX, ++uniquePrefix) :
+        String prefix =
+            useUniquePrefix
+                ? String.format(VISIT_PREFIX, ++uniquePrefix)
+                :
 
-                        // Merge variables sharing the same policy.
-                        String.format(VISIT_PREFIX, bound.serializePolicy(state));
+                // Merge variables sharing the same policy.
+                String.format(VISIT_PREFIX, bound.serializePolicy(state));
 
         generateConstraintsFromPolicyBound(
             bound,
@@ -189,22 +189,16 @@ public class ValueDeterminationManager {
             prefix,
             valueIsFixed,
             outConstraints,
-            outVars
-        );
+            outVars);
       }
     }
 
     return new ValueDeterminationConstraints(
-        ImmutableTable.copyOf(outVars),
-        ImmutableSet.copyOf(outConstraints));
+        ImmutableTable.copyOf(outVars), ImmutableSet.copyOf(outConstraints));
   }
 
-  /**
-   * Find an SCC of dependencies.
-   */
-  private Map<Integer, PolicyAbstractedState> findScc2(
-      PolicyAbstractedState newState
-  ) {
+  /** Find an SCC of dependencies. */
+  private Map<Integer, PolicyAbstractedState> findScc2(PolicyAbstractedState newState) {
 
     int startLocId = newState.getLocationID();
 
@@ -223,12 +217,10 @@ public class ValueDeterminationManager {
 
   /**
    * Perform DFS on a given adjacency list and a starting point.
+   *
    * @return set of reachable locations.
    */
-  private Set<Integer> backwardsDfs(
-    int startLocId,
-    Multimap<Integer, Integer> backwEdges
-  ) {
+  private Set<Integer> backwardsDfs(int startLocId, Multimap<Integer, Integer> backwEdges) {
     Set<Integer> queue = new LinkedHashSet<>();
     queue.add(startLocId);
     Set<Integer> out = new HashSet<>();
@@ -247,21 +239,19 @@ public class ValueDeterminationManager {
   }
 
   /**
-   * Construct a graph representation for dependencies.
-   * Store the latest instance per each location ID.
+   * Construct a graph representation for dependencies. Store the latest instance per each location
+   * ID.
    *
    * @param newState state to start the exploration from.
    * @param stateMap write-into param, mapping from location IDs to corresponding states.
-   * @param backwDepsEdges backwards edges specifying backwards dependencies,
-   *                  transpose of the information given by backpointers
-   *                  contained in the abstraction map.
-   *                  Adjacency list graph representation.
+   * @param backwDepsEdges backwards edges specifying backwards dependencies, transpose of the
+   *     information given by backpointers contained in the abstraction map. Adjacency list graph
+   *     representation.
    */
   private void populateGraph(
       PolicyAbstractedState newState,
       Map<Integer, PolicyAbstractedState> stateMap,
-      SetMultimap<Integer, Integer> backwDepsEdges
-  ) {
+      SetMultimap<Integer, Integer> backwDepsEdges) {
     Set<PolicyAbstractedState> queue = new LinkedHashSet<>();
     queue.add(newState);
     while (!queue.isEmpty()) {
@@ -277,15 +267,15 @@ public class ValueDeterminationManager {
         stateMap.put(locId, toProcess);
         toProcess.getAbstraction().values().stream()
             .filter(b -> !b.getDependencies().isEmpty())
-            .forEach(b -> {
-              PolicyAbstractedState pred = b.getPredecessor();
-              queue.add(pred);
-              backwDepsEdges.put(pred.getLocationID(), locId);
-            });
+            .forEach(
+                b -> {
+                  PolicyAbstractedState pred = b.getPredecessor();
+                  queue.add(pred);
+                  backwDepsEdges.put(pred.getLocationID(), locId);
+                });
       }
     }
   }
-
 
   /**
    * Process and add constraints from a single policy.
@@ -295,9 +285,8 @@ public class ValueDeterminationManager {
    * @param template Template associated to {@code bound}
    * @param policyBackpointerLocationID Location ID associated to backpointer.
    * @param prefix Unique namespace for the policy
-   * @param valueFixed Flag to indicate that the policy value is fixed
-   *                   and will not change during this run of value
-   *                   determination.
+   * @param valueFixed Flag to indicate that the policy value is fixed and will not change during
+   *     this run of value determination.
    * @param outConstraints Output set to write constraints to.
    * @param outVars Output table to record generated variables.
    */
@@ -309,32 +298,31 @@ public class ValueDeterminationManager {
       String prefix,
       boolean valueFixed,
       Set<BooleanFormula> outConstraints,
-      Table<Template, Integer, Formula> outVars
-  ) {
+      Table<Template, Integer, Formula> outVars) {
     PathFormula policyFormula = bound.getFormula();
 
     PathFormula startPathFormula =
         stateFormulaConversionManager.getPathFormula(
             bound.getPredecessor(), attachExtraInvariantDuringValueDetermination);
 
-    Formula policyOutTemplate = addPrefix(
-        templateToFormulaConversionManager.toFormula(pfmgr, fmgr, template, policyFormula),
-        prefix);
+    Formula policyOutTemplate =
+        addPrefix(
+            templateToFormulaConversionManager.toFormula(pfmgr, fmgr, template, policyFormula),
+            prefix);
     Formula outVar =
-        fmgr.makeVariable(fmgr.getFormulaType(policyOutTemplate),
-            absDomainVarName(locationID, template));
+        fmgr.makeVariable(
+            fmgr.getFormulaType(policyOutTemplate), absDomainVarName(locationID, template));
     outVars.put(template, locationID, outVar);
 
     if (valueFixed) {
       logger.log(Level.FINE, "Fixed value for template", template);
-      BooleanFormula constraint = fmgr.makeLessOrEqual(outVar,
-              fmgr.makeNumber(policyOutTemplate, bound.getBound()), true);
+      BooleanFormula constraint =
+          fmgr.makeLessOrEqual(outVar, fmgr.makeNumber(policyOutTemplate, bound.getBound()), true);
       outConstraints.add(constraint);
       return;
     }
 
-    BooleanFormula outConstraint = fmgr.makeLessOrEqual(outVar,
-        policyOutTemplate, true);
+    BooleanFormula outConstraint = fmgr.makeLessOrEqual(outVar, policyOutTemplate, true);
     outConstraints.add(outConstraint);
 
     BooleanFormula namespacedPolicy = addPrefix(policyFormula.getFormula(), prefix);
@@ -345,22 +333,19 @@ public class ValueDeterminationManager {
 
     // Process incoming constraints on the policy start.
     for (Template incomingTemplate : bound.getDependencies()) {
-      String prevAbstractDomainElement = absDomainVarName(
-          policyBackpointerLocationID, incomingTemplate);
+      String prevAbstractDomainElement =
+          absDomainVarName(policyBackpointerLocationID, incomingTemplate);
 
-      Formula incomingTemplateFormula = addPrefix(
-          templateToFormulaConversionManager.toFormula(
-              pfmgr, fmgr,
-              incomingTemplate,
-              startPathFormula
-          ),
-          prefix);
+      Formula incomingTemplateFormula =
+          addPrefix(
+              templateToFormulaConversionManager.toFormula(
+                  pfmgr, fmgr, incomingTemplate, startPathFormula),
+              prefix);
 
-      Formula upperBound = fmgr.makeVariable(
-            fmgr.getFormulaType(incomingTemplateFormula),
-            prevAbstractDomainElement);
-      BooleanFormula constraint = fmgr.makeLessOrEqual(
-          incomingTemplateFormula, upperBound, true);
+      Formula upperBound =
+          fmgr.makeVariable(
+              fmgr.getFormulaType(incomingTemplateFormula), prevAbstractDomainElement);
+      BooleanFormula constraint = fmgr.makeLessOrEqual(incomingTemplateFormula, upperBound, true);
       outConstraints.add(constraint);
     }
   }
@@ -376,5 +361,4 @@ public class ValueDeterminationManager {
   private String absDomainVarName(int locId, Template template) {
     return String.format("BOUND_[%s]_[%s]", locId, template.toString());
   }
-
 }

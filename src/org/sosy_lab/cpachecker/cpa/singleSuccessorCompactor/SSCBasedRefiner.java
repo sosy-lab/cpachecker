@@ -76,7 +76,7 @@ public class SSCBasedRefiner extends AbstractARGBasedRefiner {
     assert pPath.size() > 0;
 
     // wrap the original reached-set to have a valid "view" on all reached states.
-    return super.performRefinementForPath(new SSCReachedSet(pReached, (SSCPath)pPath), pPath);
+    return super.performRefinementForPath(new SSCReachedSet(pReached, (SSCPath) pPath), pPath);
   }
 
   @Override

@@ -32,15 +32,21 @@ import org.sosy_lab.java_smt.api.Formula;
 class LvalueVisitor extends DefaultCExpressionVisitor<Formula, UnrecognizedCodeException> {
 
   private final CtoFormulaConverter conv;
-  private final CFAEdge       edge;
-  private final String        function;
+  private final CFAEdge edge;
+  private final String function;
   private final SSAMapBuilder ssa;
   private final PointerTargetSetBuilder pts;
-  private final Constraints   constraints;
+  private final Constraints constraints;
   private final ErrorConditions errorConditions;
 
-  LvalueVisitor(CtoFormulaConverter pConv, CFAEdge pEdge, String pFunction, SSAMapBuilder pSsa,
-      PointerTargetSetBuilder pPts, Constraints pConstraints, ErrorConditions pErrorConditions) {
+  LvalueVisitor(
+      CtoFormulaConverter pConv,
+      CFAEdge pEdge,
+      String pFunction,
+      SSAMapBuilder pSsa,
+      PointerTargetSetBuilder pPts,
+      Constraints pConstraints,
+      ErrorConditions pErrorConditions) {
 
     conv = pConv;
     edge = pEdge;
@@ -58,10 +64,11 @@ class LvalueVisitor extends DefaultCExpressionVisitor<Formula, UnrecognizedCodeE
 
   @Override
   public Formula visit(CIdExpression idExp) {
-    return conv.makeFreshVariable(idExp.getDeclaration().getQualifiedName(), idExp.getExpressionType(), ssa);
+    return conv.makeFreshVariable(
+        idExp.getDeclaration().getQualifiedName(), idExp.getExpressionType(), ssa);
   }
 
-  /**  This method is called when we don't know what else to do. */
+  /** This method is called when we don't know what else to do. */
   private Formula giveUpAndJustMakeVariable(CExpression exp) {
     return conv.makeVariableUnsafe(exp, function, ssa, true);
   }
@@ -91,7 +98,7 @@ class LvalueVisitor extends DefaultCExpressionVisitor<Formula, UnrecognizedCodeE
       CExpression fieldRef = fexp.getFieldOwner();
       if (fieldRef instanceof CIdExpression) {
         CSimpleDeclaration decl = ((CIdExpression) fieldRef).getDeclaration();
-        if (decl instanceof CDeclaration && ((CDeclaration)decl).isGlobal()) {
+        if (decl instanceof CDeclaration && ((CDeclaration) decl).isGlobal()) {
           // this is the reference to a global field variable
           // we don't need to scope the variable reference
           String var = CtoFormulaConverter.exprToVarNameUnscoped(fexp);
@@ -108,7 +115,8 @@ class LvalueVisitor extends DefaultCExpressionVisitor<Formula, UnrecognizedCodeE
     // as constraint add that all other fields (the rest of the bitvector) remains the same.
     CExpression owner = getRealFieldOwner(fexp);
     // This will just create the formula with the current ssa-index.
-    Formula oldStructure = conv.buildTerm(owner, edge, function, ssa, pts, constraints, errorConditions);
+    Formula oldStructure =
+        conv.buildTerm(owner, edge, function, ssa, pts, constraints, errorConditions);
     // This will eventually increment the ssa-index and return the new formula.
     Formula newStructure = owner.accept(this);
 

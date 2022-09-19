@@ -23,9 +23,7 @@ import static org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes.UNSIGNED_SHORT_I
 import org.junit.Test;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 
-/**
- * Unit tests for {@link Types}.
- */
+/** Unit tests for {@link Types}. */
 public class TypesTest {
 
   MachineModel machineModel = MachineModel.LINUX32;

@@ -56,7 +56,8 @@ class SMGJoinDllProgress
       int length,
       SMGJoinStatus status,
       UnmodifiableCLangSMG pSMG) {
-    return new SMGDoublyLinkedListCandidateSequence(pCandidate, length, status, isDllPartOfSequence(pCandidate, length, pSMG));
+    return new SMGDoublyLinkedListCandidateSequence(
+        pCandidate, length, status, isDllPartOfSequence(pCandidate, length, pSMG));
   }
 
   private boolean isDllPartOfSequence(

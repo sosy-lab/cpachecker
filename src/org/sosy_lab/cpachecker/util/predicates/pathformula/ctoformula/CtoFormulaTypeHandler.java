@@ -32,9 +32,9 @@ public class CtoFormulaTypeHandler {
   }
 
   /**
-   * Returns the size in bytes of the given type.
-   * Always use this method instead of machineModel.getSizeOf,
-   * because this method can handle dereference-types.
+   * Returns the size in bytes of the given type. Always use this method instead of
+   * machineModel.getSizeOf, because this method can handle dereference-types.
+   *
    * @param pType the type to calculate the size of.
    * @return the size in bytes of the given type.
    */
@@ -46,7 +46,8 @@ public class CtoFormulaTypeHandler {
         // C11 §6.7.6.2 (1)
         logger.logOnce(Level.WARNING, "Type", pType, "is a zero-length array, this is undefined.");
       } else if (type instanceof CCompositeType) {
-        // UNDEFINED: http://stackoverflow.com/questions/1626446/what-is-the-size-of-an-empty-struct-in-c
+        // UNDEFINED:
+        // http://stackoverflow.com/questions/1626446/what-is-the-size-of-an-empty-struct-in-c
         logger.logOnce(Level.WARNING, "Type", pType, "has no fields, this is undefined.");
       } else {
         logger.logOnce(Level.WARNING, "Type", pType, "has size 0 bytes.");
@@ -56,9 +57,9 @@ public class CtoFormulaTypeHandler {
   }
 
   /**
-   * Returns the size in bits of the given type.
-   * Always use this method instead of machineModel.getSizeOf,
-   * because this method can handle dereference-types.
+   * Returns the size in bits of the given type. Always use this method instead of
+   * machineModel.getSizeOf, because this method can handle dereference-types.
+   *
    * @param pType the type to calculate the size of.
    * @return the size in bits of the given type.
    */

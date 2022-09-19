@@ -107,19 +107,15 @@ import org.sosy_lab.cpachecker.util.BuiltinFunctions;
 import org.sosy_lab.cpachecker.util.BuiltinOverflowFunctions;
 
 /**
- * This Visitor implements an evaluation strategy
- * of simply typed expressions. An expression is
- * defined as simply typed iff it is not an
- * array type (vgl {@link CArrayType}), a struct or
- * union type (vgl {@link CComplexType}),
- * an imaginary type (vgl {@link CImaginaryLiteralExpression}),
- * or a pointer type (vgl {@link CPointerType}).
- * The key distinction between these types and simply typed types is,
- * that a value of simply typed types can be represented as a numerical
- * value without losing information.
+ * This Visitor implements an evaluation strategy of simply typed expressions. An expression is
+ * defined as simply typed iff it is not an array type (vgl {@link CArrayType}), a struct or union
+ * type (vgl {@link CComplexType}), an imaginary type (vgl {@link CImaginaryLiteralExpression}), or
+ * a pointer type (vgl {@link CPointerType}). The key distinction between these types and simply
+ * typed types is, that a value of simply typed types can be represented as a numerical value
+ * without losing information.
  *
- * Furthermore, the visitor abstracts from using abstract states
- * to get values stored in the memory of a program.
+ * <p>Furthermore, the visitor abstracts from using abstract states to get values stored in the
+ * memory of a program.
  */
 public abstract class AbstractExpressionValueVisitor
     extends DefaultCExpressionVisitor<Value, UnrecognizedCodeException>
@@ -128,7 +124,7 @@ public abstract class AbstractExpressionValueVisitor
         JExpressionVisitor<Value, NoException> {
 
   /** length of type LONG in Java (in bit). */
-  private final static int SIZE_OF_JAVA_LONG = 64;
+  private static final int SIZE_OF_JAVA_LONG = 64;
 
   /** Length of type FLOAT in Java (in bit). */
   private static final int SIZE_OF_JAVA_FLOAT = 32;
@@ -136,10 +132,9 @@ public abstract class AbstractExpressionValueVisitor
   /** Length of type DOUBLE in Java (in bit). */
   private static final int SIZE_OF_JAVA_DOUBLE = 64;
 
-  //private final ValueAnalysisState state;
+  // private final ValueAnalysisState state;
   private final String functionName;
   private final MachineModel machineModel;
-
 
   // for logging
   private final LogManagerWithoutDuplicates logger;
@@ -156,7 +151,7 @@ public abstract class AbstractExpressionValueVisitor
   protected AbstractExpressionValueVisitor(
       String pFunctionName, MachineModel pMachineModel, LogManagerWithoutDuplicates pLogger) {
 
-    //this.state = pState;
+    // this.state = pState;
     functionName = pFunctionName;
     machineModel = pMachineModel;
     logger = pLogger;
@@ -199,9 +194,12 @@ public abstract class AbstractExpressionValueVisitor
    * @param machineModel information about types
    * @param logger for logging
    */
-  public static Value calculateBinaryOperation(Value lVal, Value rVal,
+  public static Value calculateBinaryOperation(
+      Value lVal,
+      Value rVal,
       final CBinaryExpression binaryExpr,
-      final MachineModel machineModel, final LogManagerWithoutDuplicates logger) {
+      final MachineModel machineModel,
+      final LogManagerWithoutDuplicates logger) {
 
     final BinaryOperator binaryOperator = binaryExpr.getOperator();
     final CType calculationType = binaryExpr.getCalculationType();
@@ -220,8 +218,7 @@ public abstract class AbstractExpressionValueVisitor
        * or equal to the width of the promoted left operand,
        * the behavior is undefined.
        */
-      rVal =
-          castCValue(rVal, calculationType, machineModel, logger, binaryExpr.getFileLocation());
+      rVal = castCValue(rVal, calculationType, machineModel, logger, binaryExpr.getFileLocation());
     }
 
     if (lVal instanceof FunctionValue || rVal instanceof FunctionValue) {
@@ -233,48 +230,70 @@ public abstract class AbstractExpressionValueVisitor
     }
 
     if (!lVal.isNumericValue() || !rVal.isNumericValue()) {
-      logger.logf(Level.FINE, "Parameters to binary operation '%s %s %s' are no numeric values.", lVal, binaryOperator, rVal);
+      logger.logf(
+          Level.FINE,
+          "Parameters to binary operation '%s %s %s' are no numeric values.",
+          lVal,
+          binaryOperator,
+          rVal);
       return Value.UnknownValue.getInstance();
     }
 
     Value result;
 
     switch (binaryOperator) {
-    case PLUS:
-    case MINUS:
-    case DIVIDE:
-    case MODULO:
-    case MULTIPLY:
-    case SHIFT_LEFT:
-    case SHIFT_RIGHT:
-    case BINARY_AND:
-    case BINARY_OR:
-    case BINARY_XOR: {
-      result = arithmeticOperation((NumericValue)lVal, (NumericValue)rVal, binaryOperator, calculationType, machineModel, logger);
-      result = castCValue(result, binaryExpr.getExpressionType(), machineModel, logger, binaryExpr.getFileLocation());
+      case PLUS:
+      case MINUS:
+      case DIVIDE:
+      case MODULO:
+      case MULTIPLY:
+      case SHIFT_LEFT:
+      case SHIFT_RIGHT:
+      case BINARY_AND:
+      case BINARY_OR:
+      case BINARY_XOR:
+        {
+          result =
+              arithmeticOperation(
+                  (NumericValue) lVal,
+                  (NumericValue) rVal,
+                  binaryOperator,
+                  calculationType,
+                  machineModel,
+                  logger);
+          result =
+              castCValue(
+                  result,
+                  binaryExpr.getExpressionType(),
+                  machineModel,
+                  logger,
+                  binaryExpr.getFileLocation());
 
-      break;
-    }
+          break;
+        }
 
-    case EQUALS:
-    case NOT_EQUALS:
-    case GREATER_THAN:
-    case GREATER_EQUAL:
-    case LESS_THAN:
-    case LESS_EQUAL: {
-        result = booleanOperation((NumericValue) lVal,
-                (NumericValue) rVal,
-                binaryOperator,
-                calculationType,
-                machineModel,
-                logger);
-      // we do not cast here, because 0 and 1 should be small enough for every type.
+      case EQUALS:
+      case NOT_EQUALS:
+      case GREATER_THAN:
+      case GREATER_EQUAL:
+      case LESS_THAN:
+      case LESS_EQUAL:
+        {
+          result =
+              booleanOperation(
+                  (NumericValue) lVal,
+                  (NumericValue) rVal,
+                  binaryOperator,
+                  calculationType,
+                  machineModel,
+                  logger);
+          // we do not cast here, because 0 and 1 should be small enough for every type.
 
-      break;
-    }
+          break;
+        }
 
-    default:
-      throw new AssertionError("unhandled binary operator");
+      default:
+        throw new AssertionError("unhandled binary operator");
     }
 
     return result;
@@ -283,15 +302,15 @@ public abstract class AbstractExpressionValueVisitor
   /**
    * Join a symbolic expression with something else using a binary expression.
    *
-   * e.g. joining `a` and `5` with `+` will produce `a + 5`
+   * <p>e.g. joining `a` and `5` with `+` will produce `a + 5`
    *
    * @param pLValue left hand side value
    * @param pRValue right hand side value
    * @param pExpression the binary expression with the operator
    * @return the calculated Value
    */
-  public static Value calculateSymbolicBinaryExpression(Value pLValue, Value pRValue,
-      final CBinaryExpression pExpression) {
+  public static Value calculateSymbolicBinaryExpression(
+      Value pLValue, Value pRValue, final CBinaryExpression pExpression) {
 
     final BinaryOperator operator = pExpression.getOperator();
 
@@ -300,11 +319,18 @@ public abstract class AbstractExpressionValueVisitor
     final CType expressionType = pExpression.getExpressionType();
     final CType calculationType = pExpression.getCalculationType();
 
-    return createSymbolicExpression(pLValue, leftOperandType, pRValue, rightOperandType, operator,
-        expressionType, calculationType);
+    return createSymbolicExpression(
+        pLValue,
+        leftOperandType,
+        pRValue,
+        rightOperandType,
+        operator,
+        expressionType,
+        calculationType);
   }
 
-  public static Value calculateExpressionWithFunctionValue(BinaryOperator binaryOperator, Value val1, Value val2) {
+  public static Value calculateExpressionWithFunctionValue(
+      BinaryOperator binaryOperator, Value val1, Value val2) {
     if (val1 instanceof FunctionValue) {
       return calculateOperationWithFunctionValue(binaryOperator, (FunctionValue) val1, val2);
     } else if (val2 instanceof FunctionValue) {
@@ -314,21 +340,29 @@ public abstract class AbstractExpressionValueVisitor
     }
   }
 
-  private static NumericValue calculateOperationWithFunctionValue(BinaryOperator binaryOperator, FunctionValue val1, Value val2) {
+  private static NumericValue calculateOperationWithFunctionValue(
+      BinaryOperator binaryOperator, FunctionValue val1, Value val2) {
     switch (binaryOperator) {
-    case EQUALS:
-      return new NumericValue(val1.equals(val2) ? 1 : 0);
+      case EQUALS:
+        return new NumericValue(val1.equals(val2) ? 1 : 0);
 
-    case NOT_EQUALS:
-      return new NumericValue(val1.equals(val2) ? 0 : 1);
+      case NOT_EQUALS:
+        return new NumericValue(val1.equals(val2) ? 0 : 1);
 
-    default:
-      throw new AssertionError("Operation " + binaryOperator + " is not supported for function values");
+      default:
+        throw new AssertionError(
+            "Operation " + binaryOperator + " is not supported for function values");
     }
   }
 
-  private static SymbolicValue createSymbolicExpression(Value pLeftValue, CType pLeftType, Value pRightValue,
-      CType pRightType, CBinaryExpression.BinaryOperator pOperator, CType pExpressionType, CType pCalculationType) {
+  private static SymbolicValue createSymbolicExpression(
+      Value pLeftValue,
+      CType pLeftType,
+      Value pRightValue,
+      CType pRightType,
+      CBinaryExpression.BinaryOperator pOperator,
+      CType pExpressionType,
+      CType pCalculationType) {
 
     final SymbolicValueFactory factory = SymbolicValueFactory.getInstance();
     SymbolicExpression leftOperand;
@@ -336,7 +370,6 @@ public abstract class AbstractExpressionValueVisitor
 
     leftOperand = factory.asConstant(pLeftValue, pLeftType);
     rightOperand = factory.asConstant(pRightValue, pRightType);
-
 
     switch (pOperator) {
       case PLUS:
@@ -352,7 +385,8 @@ public abstract class AbstractExpressionValueVisitor
       case SHIFT_LEFT:
         return factory.shiftLeft(leftOperand, rightOperand, pExpressionType, pCalculationType);
       case SHIFT_RIGHT:
-        return factory.shiftRightSigned(leftOperand, rightOperand, pExpressionType, pCalculationType);
+        return factory.shiftRightSigned(
+            leftOperand, rightOperand, pExpressionType, pCalculationType);
       case BINARY_AND:
         return factory.binaryAnd(leftOperand, rightOperand, pExpressionType, pCalculationType);
       case BINARY_OR:
@@ -366,11 +400,13 @@ public abstract class AbstractExpressionValueVisitor
       case LESS_THAN:
         return factory.lessThan(leftOperand, rightOperand, pExpressionType, pCalculationType);
       case LESS_EQUAL:
-        return factory.lessThanOrEqual(leftOperand, rightOperand, pExpressionType, pCalculationType);
+        return factory.lessThanOrEqual(
+            leftOperand, rightOperand, pExpressionType, pCalculationType);
       case GREATER_THAN:
         return factory.greaterThan(leftOperand, rightOperand, pExpressionType, pCalculationType);
       case GREATER_EQUAL:
-        return factory.greaterThanOrEqual(leftOperand, rightOperand, pExpressionType, pCalculationType);
+        return factory.greaterThanOrEqual(
+            leftOperand, rightOperand, pExpressionType, pCalculationType);
       default:
         throw new AssertionError("Unhandled binary operation " + pOperator);
     }
@@ -387,81 +423,83 @@ public abstract class AbstractExpressionValueVisitor
    * @param logger logging
    * @return the resulting value
    */
-  private static long arithmeticOperation(final long l, final long r,
-      final BinaryOperator op, final CType calculationType,
-      final MachineModel machineModel, final LogManager logger) {
+  private static long arithmeticOperation(
+      final long l,
+      final long r,
+      final BinaryOperator op,
+      final CType calculationType,
+      final MachineModel machineModel,
+      final LogManager logger) {
 
     // special handling for UNSIGNED_LONGLONG (32 and 64bit), UNSIGNED_LONG (64bit)
     // because Java only has SIGNED_LONGLONG
     CSimpleType st = getArithmeticType(calculationType);
     if (st != null) {
-      if (machineModel.getSizeofInBits(st) >= SIZE_OF_JAVA_LONG
-          && st.isUnsigned()) {
+      if (machineModel.getSizeofInBits(st) >= SIZE_OF_JAVA_LONG && st.isUnsigned()) {
         switch (op) {
-        case DIVIDE:
-          if (r == 0) {
-            logger.logf(Level.SEVERE, "Division by Zero (%d / %d)", l, r);
-            return 0;
-          }
-          return UnsignedLongs.divide(l, r);
-        case MODULO:
-          return UnsignedLongs.remainder(l, r);
-        case SHIFT_RIGHT:
-          /*
-           * from http://docs.oracle.com/javase/tutorial/java/nutsandbolts/op3.html
-           *
-           * The unsigned right shift operator ">>>" shifts a zero
-           * into the leftmost position, while the leftmost position
-           * after ">>" depends on sign extension.
-           */
-          return l >>> r;
-        default:
-          // fall-through, calculation is done correct as SINGED_LONG_LONG
+          case DIVIDE:
+            if (r == 0) {
+              logger.logf(Level.SEVERE, "Division by Zero (%d / %d)", l, r);
+              return 0;
+            }
+            return UnsignedLongs.divide(l, r);
+          case MODULO:
+            return UnsignedLongs.remainder(l, r);
+          case SHIFT_RIGHT:
+            /*
+             * from http://docs.oracle.com/javase/tutorial/java/nutsandbolts/op3.html
+             *
+             * The unsigned right shift operator ">>>" shifts a zero
+             * into the leftmost position, while the leftmost position
+             * after ">>" depends on sign extension.
+             */
+            return l >>> r;
+          default:
+            // fall-through, calculation is done correct as SINGED_LONG_LONG
         }
       }
     }
 
     switch (op) {
-    case PLUS:
-      return l + r;
-    case MINUS:
-      return l - r;
-    case DIVIDE:
-      if (r == 0) {
-        logger.logf(Level.SEVERE, "Division by Zero (%d / %d)", l, r);
-        return 0;
-      }
-      return l / r;
-    case MODULO:
-      return l % r;
-    case MULTIPLY:
-      return l * r;
-    case SHIFT_LEFT:
-      /* There is a difference in the SHIFT-operation in Java and C.
-       * In C a SHIFT is a normal SHIFT, in Java the rVal is used as (r%64).
-       *
-       * http://docs.oracle.com/javase/specs/jls/se7/html/jls-15.html#jls-15.19
-       *
-       * If the promoted type of the left-hand operand is long, then only the
-       * six lowest-order bits of the right-hand operand are used as the
-       * shift distance. It is as if the right-hand operand were subjected to
-       * a bitwise logical AND operator & (§15.22.1) with the mask value 0x3f.
-       * The shift distance actually used is therefore always in the range 0 to 63.
-       */
-      return (r >= SIZE_OF_JAVA_LONG) ? 0 : l << r;
-    case SHIFT_RIGHT:
-      return l >> r;
-    case BINARY_AND:
-      return l & r;
-    case BINARY_OR:
-      return l | r;
-    case BINARY_XOR:
-      return l ^ r;
+      case PLUS:
+        return l + r;
+      case MINUS:
+        return l - r;
+      case DIVIDE:
+        if (r == 0) {
+          logger.logf(Level.SEVERE, "Division by Zero (%d / %d)", l, r);
+          return 0;
+        }
+        return l / r;
+      case MODULO:
+        return l % r;
+      case MULTIPLY:
+        return l * r;
+      case SHIFT_LEFT:
+        /* There is a difference in the SHIFT-operation in Java and C.
+         * In C a SHIFT is a normal SHIFT, in Java the rVal is used as (r%64).
+         *
+         * http://docs.oracle.com/javase/specs/jls/se7/html/jls-15.html#jls-15.19
+         *
+         * If the promoted type of the left-hand operand is long, then only the
+         * six lowest-order bits of the right-hand operand are used as the
+         * shift distance. It is as if the right-hand operand were subjected to
+         * a bitwise logical AND operator & (§15.22.1) with the mask value 0x3f.
+         * The shift distance actually used is therefore always in the range 0 to 63.
+         */
+        return (r >= SIZE_OF_JAVA_LONG) ? 0 : l << r;
+      case SHIFT_RIGHT:
+        return l >> r;
+      case BINARY_AND:
+        return l & r;
+      case BINARY_OR:
+        return l | r;
+      case BINARY_XOR:
+        return l ^ r;
 
-    default:
-      throw new AssertionError("unknown binary operation: " + op);
+      default:
+        throw new AssertionError("unknown binary operation: " + op);
     }
-
   }
 
   /**
@@ -476,31 +514,31 @@ public abstract class AbstractExpressionValueVisitor
   private static double arithmeticOperation(
       final double l, final double r, final BinaryOperator op, final CType calculationType) {
 
-    checkArgument(calculationType.getCanonicalType() instanceof CSimpleType
+    checkArgument(
+        calculationType.getCanonicalType() instanceof CSimpleType
             && !((CSimpleType) calculationType.getCanonicalType()).isLong(),
         "Value analysis can't compute long double values in a precise manner");
 
     switch (op) {
-    case PLUS:
-      return l + r;
-    case MINUS:
-      return l - r;
-    case DIVIDE:
-      return l / r;
-    case MODULO:
-      return l % r;
-    case MULTIPLY:
-      return l * r;
-    case SHIFT_LEFT:
-    case SHIFT_RIGHT:
-    case BINARY_AND:
-    case BINARY_OR:
-    case BINARY_XOR:
-      throw new AssertionError("trying to perform " + op + " on floating point operands");
-    default:
-      throw new AssertionError("unknown binary operation: " + op);
+      case PLUS:
+        return l + r;
+      case MINUS:
+        return l - r;
+      case DIVIDE:
+        return l / r;
+      case MODULO:
+        return l % r;
+      case MULTIPLY:
+        return l * r;
+      case SHIFT_LEFT:
+      case SHIFT_RIGHT:
+      case BINARY_AND:
+      case BINARY_OR:
+      case BINARY_XOR:
+        throw new AssertionError("trying to perform " + op + " on floating point operands");
+      default:
+        throw new AssertionError("unknown binary operation: " + op);
     }
-
   }
 
   /**
@@ -513,10 +551,7 @@ public abstract class AbstractExpressionValueVisitor
    * @return the resulting value
    */
   private static BigInteger arithmeticOperation(
-      final BigInteger l,
-      final BigInteger r,
-      final BinaryOperator op,
-      final LogManager logger) {
+      final BigInteger l, final BigInteger r, final BinaryOperator op, final LogManager logger) {
 
     switch (op) {
       case PLUS:
@@ -562,7 +597,6 @@ public abstract class AbstractExpressionValueVisitor
       default:
         throw new AssertionError("unknown binary operation: " + op);
     }
-
   }
 
   /**
@@ -575,26 +609,25 @@ public abstract class AbstractExpressionValueVisitor
   private static float arithmeticOperation(final float l, final float r, final BinaryOperator op) {
 
     switch (op) {
-    case PLUS:
-      return l + r;
-    case MINUS:
-      return l - r;
-    case DIVIDE:
-      return l / r;
-    case MODULO:
-      return l % r;
-    case MULTIPLY:
-      return l * r;
-    case SHIFT_LEFT:
-    case SHIFT_RIGHT:
-    case BINARY_AND:
-    case BINARY_OR:
-    case BINARY_XOR:
-      throw new AssertionError("trying to perform " + op + " on floating point operands");
-    default:
-      throw new AssertionError("unknown binary operation: " + op);
+      case PLUS:
+        return l + r;
+      case MINUS:
+        return l - r;
+      case DIVIDE:
+        return l / r;
+      case MODULO:
+        return l % r;
+      case MULTIPLY:
+        return l * r;
+      case SHIFT_LEFT:
+      case SHIFT_RIGHT:
+      case BINARY_AND:
+      case BINARY_OR:
+      case BINARY_XOR:
+        throw new AssertionError("trying to perform " + op + " on floating point operands");
+      default:
+        throw new AssertionError("unknown binary operation: " + op);
     }
-
   }
 
   /**
@@ -608,56 +641,67 @@ public abstract class AbstractExpressionValueVisitor
    * @param logger logging
    * @return the resulting values
    */
-  private static Value arithmeticOperation(final NumericValue lNum, final NumericValue rNum,
-      final BinaryOperator op, final CType calculationType,
-      final MachineModel machineModel, final LogManager logger) {
+  private static Value arithmeticOperation(
+      final NumericValue lNum,
+      final NumericValue rNum,
+      final BinaryOperator op,
+      final CType calculationType,
+      final MachineModel machineModel,
+      final LogManager logger) {
 
     // At this point we're only handling values of simple types.
     final CSimpleType type = getArithmeticType(calculationType);
     if (type == null) {
-      logger.logf(Level.FINE, "unsupported type %s for result of binary operation %s", calculationType, op);
+      logger.logf(
+          Level.FINE, "unsupported type %s for result of binary operation %s", calculationType, op);
       return Value.UnknownValue.getInstance();
     }
 
     try {
-    switch (type.getType()) {
-      case INT: {
-        // Both l and r must be of the same type, which in this case is INT, so we can cast to long.
-        long lVal = lNum.getNumber().longValue();
-        long rVal = rNum.getNumber().longValue();
-        long result = arithmeticOperation(lVal, rVal, op, calculationType, machineModel, logger);
-        return new NumericValue(result);
+      switch (type.getType()) {
+        case INT:
+          {
+            // Both l and r must be of the same type, which in this case is INT, so we can cast to
+            // long.
+            long lVal = lNum.getNumber().longValue();
+            long rVal = rNum.getNumber().longValue();
+            long result =
+                arithmeticOperation(lVal, rVal, op, calculationType, machineModel, logger);
+            return new NumericValue(result);
+          }
+        case INT128:
+          {
+            BigInteger lVal = lNum.bigInteger();
+            BigInteger rVal = rNum.bigInteger();
+            BigInteger result = arithmeticOperation(lVal, rVal, op, logger);
+            return new NumericValue(result);
+          }
+        case DOUBLE:
+          {
+            if (type.isLong()) {
+              return arithmeticOperationForLongDouble(
+                  lNum, rNum, op, calculationType, machineModel, logger);
+            } else {
+              double lVal = lNum.doubleValue();
+              double rVal = rNum.doubleValue();
+              double result = arithmeticOperation(lVal, rVal, op, calculationType);
+              return new NumericValue(result);
+            }
+          }
+        case FLOAT:
+          {
+            float lVal = lNum.floatValue();
+            float rVal = rNum.floatValue();
+            float result = arithmeticOperation(lVal, rVal, op);
+            return new NumericValue(result);
+          }
+        default:
+          {
+            logger.logf(
+                Level.FINE, "unsupported type for result of binary operation %s", type.toString());
+            return Value.UnknownValue.getInstance();
+          }
       }
-        case INT128: {
-          BigInteger lVal = lNum.bigInteger();
-          BigInteger rVal = rNum.bigInteger();
-          BigInteger result =
-              arithmeticOperation(lVal, rVal, op, logger);
-          return new NumericValue(result);
-        }
-      case DOUBLE: {
-        if (type.isLong()) {
-          return arithmeticOperationForLongDouble(lNum, rNum, op, calculationType, machineModel,
-              logger);
-        } else {
-          double lVal = lNum.doubleValue();
-          double rVal = rNum.doubleValue();
-          double result =
-              arithmeticOperation(lVal, rVal, op, calculationType);
-          return new NumericValue(result);
-        }
-      }
-      case FLOAT: {
-        float lVal = lNum.floatValue();
-        float rVal = rNum.floatValue();
-        float result = arithmeticOperation(lVal, rVal, op);
-        return new NumericValue(result);
-      }
-      default: {
-        logger.logf(Level.FINE, "unsupported type for result of binary operation %s", type.toString());
-        return Value.UnknownValue.getInstance();
-      }
-    }
     } catch (ArithmeticException ae) { // log warning and ignore expression
       logger.logf(
           Level.WARNING,
@@ -675,19 +719,26 @@ public abstract class AbstractExpressionValueVisitor
       NumericValue pLNum,
       NumericValue pRNum,
       BinaryOperator pOp,
-      CType pCalculationType, MachineModel pMachineModel, LogManager pLogger) {
+      CType pCalculationType,
+      MachineModel pMachineModel,
+      LogManager pLogger) {
     // TODO: cf. https://gitlab.com/sosy-lab/software/cpachecker/issues/507
     return Value.UnknownValue.getInstance();
   }
 
-  private static Value booleanOperation(final NumericValue l, final NumericValue r,
-      final BinaryOperator op, final CType calculationType,
-      final MachineModel machineModel, final LogManager logger) {
+  private static Value booleanOperation(
+      final NumericValue l,
+      final NumericValue r,
+      final BinaryOperator op,
+      final CType calculationType,
+      final MachineModel machineModel,
+      final LogManager logger) {
 
     // At this point we're only handling values of simple types.
     final CSimpleType type = getArithmeticType(calculationType);
     if (type == null) {
-      logger.logf(Level.FINE, "unsupported type %s for result of binary operation %s", calculationType, op);
+      logger.logf(
+          Level.FINE, "unsupported type %s for result of binary operation %s", calculationType, op);
       return Value.UnknownValue.getInstance();
     }
 
@@ -695,52 +746,67 @@ public abstract class AbstractExpressionValueVisitor
     switch (type.getType()) {
       case INT128:
       case CHAR:
-      case INT: {
-        CSimpleType canonicalType = type.getCanonicalType();
-        int sizeInBits = machineModel.getSizeof(canonicalType) * machineModel.getSizeofCharInBits();
-        if ((!machineModel.isSigned(canonicalType) && sizeInBits == SIZE_OF_JAVA_LONG)
-            || sizeInBits > SIZE_OF_JAVA_LONG) {
-          BigInteger leftBigInt = l.getNumber() instanceof BigInteger ? (BigInteger) l.getNumber() : BigInteger.valueOf(l.longValue());
-          BigInteger rightBigInt = r.getNumber() instanceof BigInteger ? (BigInteger) r.getNumber() : BigInteger.valueOf(r.longValue());
-          cmp = leftBigInt.compareTo(rightBigInt);
+      case INT:
+        {
+          CSimpleType canonicalType = type.getCanonicalType();
+          int sizeInBits =
+              machineModel.getSizeof(canonicalType) * machineModel.getSizeofCharInBits();
+          if ((!machineModel.isSigned(canonicalType) && sizeInBits == SIZE_OF_JAVA_LONG)
+              || sizeInBits > SIZE_OF_JAVA_LONG) {
+            BigInteger leftBigInt =
+                l.getNumber() instanceof BigInteger
+                    ? (BigInteger) l.getNumber()
+                    : BigInteger.valueOf(l.longValue());
+            BigInteger rightBigInt =
+                r.getNumber() instanceof BigInteger
+                    ? (BigInteger) r.getNumber()
+                    : BigInteger.valueOf(r.longValue());
+            cmp = leftBigInt.compareTo(rightBigInt);
+            break;
+          }
+          cmp = Long.compare(l.longValue(), r.longValue());
           break;
         }
-        cmp = Long.compare(l.longValue(), r.longValue());
-        break;
-      }
-      case FLOAT: {
-        float lVal = l.floatValue();
-        float rVal = r.floatValue();
+      case FLOAT:
+        {
+          float lVal = l.floatValue();
+          float rVal = r.floatValue();
 
-        if (Float.isNaN(lVal) || Float.isNaN(rVal)) {
-          return new NumericValue(op == BinaryOperator.NOT_EQUALS ? 1L : 0L);
+          if (Float.isNaN(lVal) || Float.isNaN(rVal)) {
+            return new NumericValue(op == BinaryOperator.NOT_EQUALS ? 1L : 0L);
+          }
+          if (lVal == 0 && rVal == 0) {
+            cmp = 0;
+          } else {
+            cmp = Float.compare(lVal, rVal);
+          }
+          break;
         }
-        if (lVal == 0 && rVal == 0) {
-          cmp = 0;
-        } else {
-          cmp = Float.compare(lVal, rVal);
-        }
-        break;
-      }
-      case DOUBLE: {
-        double lVal = l.doubleValue();
-        double rVal = r.doubleValue();
+      case DOUBLE:
+        {
+          double lVal = l.doubleValue();
+          double rVal = r.doubleValue();
 
-        if (Double.isNaN(lVal) || Double.isNaN(rVal)) {
-          return new NumericValue(op == BinaryOperator.NOT_EQUALS ? 1L : 0L);
-        }
+          if (Double.isNaN(lVal) || Double.isNaN(rVal)) {
+            return new NumericValue(op == BinaryOperator.NOT_EQUALS ? 1L : 0L);
+          }
 
-        if (lVal == 0 && rVal == 0) {
-          cmp = 0;
-        } else {
-          cmp = Double.compare(lVal, rVal);
+          if (lVal == 0 && rVal == 0) {
+            cmp = 0;
+          } else {
+            cmp = Double.compare(lVal, rVal);
+          }
+          break;
         }
-        break;
-      }
-      default: {
-        logger.logf(Level.FINE, "unsupported type %s for result of binary operation %s", type.toString(), op);
-        return Value.UnknownValue.getInstance();
-      }
+      default:
+        {
+          logger.logf(
+              Level.FINE,
+              "unsupported type %s for result of binary operation %s",
+              type.toString(),
+              op);
+          return Value.UnknownValue.getInstance();
+        }
     }
 
     // return 1 if expression holds, 0 otherwise
@@ -750,27 +816,31 @@ public abstract class AbstractExpressionValueVisitor
   /** returns True, iff cmp fulfills the boolean operation. */
   private static boolean matchBooleanOperation(final BinaryOperator op, final int cmp) {
     switch (op) {
-    case GREATER_THAN:
-      return cmp > 0;
-    case GREATER_EQUAL:
-      return cmp >= 0;
-    case LESS_THAN:
-      return cmp < 0;
-    case LESS_EQUAL:
-      return cmp <= 0;
-    case EQUALS:
-      return cmp == 0;
-    case NOT_EQUALS:
-      return cmp != 0;
-    default:
-      throw new AssertionError("unknown binary operation: " + op);
+      case GREATER_THAN:
+        return cmp > 0;
+      case GREATER_EQUAL:
+        return cmp >= 0;
+      case LESS_THAN:
+        return cmp < 0;
+      case LESS_EQUAL:
+        return cmp <= 0;
+      case EQUALS:
+        return cmp == 0;
+      case NOT_EQUALS:
+        return cmp != 0;
+      default:
+        throw new AssertionError("unknown binary operation: " + op);
     }
   }
 
   @Override
   public Value visit(CCastExpression pE) throws UnrecognizedCodeException {
-    return castCValue(pE.getOperand().accept(this), pE.getExpressionType(), machineModel,
-        logger, pE.getFileLocation());
+    return castCValue(
+        pE.getOperand().accept(this),
+        pE.getExpressionType(),
+        machineModel,
+        logger,
+        pE.getFileLocation());
   }
 
   @Override
@@ -796,7 +866,8 @@ public abstract class AbstractExpressionValueVisitor
           return Value.UnknownValue.getInstance();
         }
 
-        List<CExpression> parameterExpressions = pIastFunctionCallExpression.getParameterExpressions();
+        List<CExpression> parameterExpressions =
+            pIastFunctionCallExpression.getParameterExpressions();
         List<Value> parameterValues = new ArrayList<>(parameterExpressions.size());
 
         for (CExpression currParamExp : parameterExpressions) {
@@ -805,7 +876,7 @@ public abstract class AbstractExpressionValueVisitor
           parameterValues.add(newValue);
         }
 
-        if(BuiltinOverflowFunctions.isBuiltinOverflowFunction(calledFunctionName)) {
+        if (BuiltinOverflowFunctions.isBuiltinOverflowFunction(calledFunctionName)) {
           return BuiltinOverflowFunctions.evaluateFunctionCall(
               pIastFunctionCallExpression, this, machineModel, logger);
         } else if (BuiltinFloatFunctions.matchesAbsolute(calledFunctionName)) {
@@ -837,9 +908,9 @@ public abstract class AbstractExpressionValueVisitor
 
           } else {
             assert BuiltinFloatFunctions.matchesInfinityDouble(calledFunctionName)
-                || BuiltinFloatFunctions.matchesInfinityLongDouble(calledFunctionName)
-                || BuiltinFloatFunctions.matchesHugeValDouble(calledFunctionName)
-                || BuiltinFloatFunctions.matchesHugeValLongDouble(calledFunctionName)
+                    || BuiltinFloatFunctions.matchesInfinityLongDouble(calledFunctionName)
+                    || BuiltinFloatFunctions.matchesHugeValDouble(calledFunctionName)
+                    || BuiltinFloatFunctions.matchesHugeValLongDouble(calledFunctionName)
                 : " Unhandled builtin function for infinity: " + calledFunctionName;
 
             return new NumericValue(Double.POSITIVE_INFINITY);
@@ -852,7 +923,7 @@ public abstract class AbstractExpressionValueVisitor
             return new NumericValue(Float.NaN);
           } else {
             assert BuiltinFloatFunctions.matchesNaNDouble(calledFunctionName)
-                || BuiltinFloatFunctions.matchesNaNLongDouble(calledFunctionName)
+                    || BuiltinFloatFunctions.matchesNaNLongDouble(calledFunctionName)
                 : "Unhandled builtin function for NaN: " + calledFunctionName;
 
             return new NumericValue(Double.NaN);
@@ -862,14 +933,19 @@ public abstract class AbstractExpressionValueVisitor
             Value value = parameterValues.get(0);
             if (value.isExplicitlyKnown()) {
               NumericValue numericValue = value.asNumericValue();
-              CSimpleType paramType = BuiltinFloatFunctions.getTypeOfBuiltinFloatFunction(calledFunctionName);
+              CSimpleType paramType =
+                  BuiltinFloatFunctions.getTypeOfBuiltinFloatFunction(calledFunctionName);
               switch (paramType.getType()) {
-              case FLOAT:
-                return Float.isNaN(numericValue.floatValue()) ? new NumericValue(1) : new NumericValue(0);
-              case DOUBLE:
-                return Double.isNaN(numericValue.doubleValue()) ? new NumericValue(1) : new NumericValue(0);
-              default:
-                break;
+                case FLOAT:
+                  return Float.isNaN(numericValue.floatValue())
+                      ? new NumericValue(1)
+                      : new NumericValue(0);
+                case DOUBLE:
+                  return Double.isNaN(numericValue.doubleValue())
+                      ? new NumericValue(1)
+                      : new NumericValue(0);
+                default:
+                  break;
               }
             }
           }
@@ -878,14 +954,19 @@ public abstract class AbstractExpressionValueVisitor
             Value value = parameterValues.get(0);
             if (value.isExplicitlyKnown()) {
               NumericValue numericValue = value.asNumericValue();
-              CSimpleType paramType = BuiltinFloatFunctions.getTypeOfBuiltinFloatFunction(calledFunctionName);
+              CSimpleType paramType =
+                  BuiltinFloatFunctions.getTypeOfBuiltinFloatFunction(calledFunctionName);
               switch (paramType.getType()) {
-              case FLOAT:
-                return Float.isInfinite(numericValue.floatValue()) ? new NumericValue(1) : new NumericValue(0);
-              case DOUBLE:
-                return Double.isInfinite(numericValue.doubleValue()) ? new NumericValue(1) : new NumericValue(0);
-              default:
-                break;
+                case FLOAT:
+                  return Float.isInfinite(numericValue.floatValue())
+                      ? new NumericValue(1)
+                      : new NumericValue(0);
+                case DOUBLE:
+                  return Double.isInfinite(numericValue.doubleValue())
+                      ? new NumericValue(1)
+                      : new NumericValue(0);
+                default:
+                  break;
               }
             }
           }
@@ -894,12 +975,17 @@ public abstract class AbstractExpressionValueVisitor
             Value value = parameterValues.get(0);
             if (value.isExplicitlyKnown()) {
               NumericValue numericValue = value.asNumericValue();
-              CSimpleType paramType = BuiltinFloatFunctions.getTypeOfBuiltinFloatFunction(calledFunctionName);
+              CSimpleType paramType =
+                  BuiltinFloatFunctions.getTypeOfBuiltinFloatFunction(calledFunctionName);
               switch (paramType.getType()) {
-              case FLOAT:
-                return Float.isInfinite(numericValue.floatValue()) ? new NumericValue(0) : new NumericValue(1);
-              case DOUBLE:
-                return Double.isInfinite(numericValue.doubleValue()) ? new NumericValue(0) : new NumericValue(1);
+                case FLOAT:
+                  return Float.isInfinite(numericValue.floatValue())
+                      ? new NumericValue(0)
+                      : new NumericValue(1);
+                case DOUBLE:
+                  return Double.isInfinite(numericValue.doubleValue())
+                      ? new NumericValue(0)
+                      : new NumericValue(1);
                 default:
                   break;
               }
@@ -1087,42 +1173,45 @@ public abstract class AbstractExpressionValueVisitor
             Value value = parameterValues.get(0);
             if (value.isExplicitlyKnown()) {
               NumericValue numericValue = value.asNumericValue();
-              CSimpleType paramType = BuiltinFloatFunctions.getTypeOfBuiltinFloatFunction(calledFunctionName);
+              CSimpleType paramType =
+                  BuiltinFloatFunctions.getTypeOfBuiltinFloatFunction(calledFunctionName);
               switch (paramType.getType()) {
-              case FLOAT: {
-                float v = numericValue.floatValue();
-                if (Float.isNaN(v)) {
-                  return new NumericValue(0);
-                }
-                if (Float.isInfinite(v)) {
-                  return new NumericValue(1);
-                }
-                if (v == 0.0) {
-                  return new NumericValue(2);
-                }
-                if (Float.toHexString(v).startsWith("0x0.")) {
-                  return new NumericValue(3);
-                }
-                return new NumericValue(4);
-              }
-              case DOUBLE: {
-                double v = numericValue.doubleValue();
-                if (Double.isNaN(v)) {
-                  return new NumericValue(0);
-                }
-                if (Double.isInfinite(v)) {
-                  return new NumericValue(1);
-                }
-                if (v == 0.0) {
-                  return new NumericValue(2);
-                }
-                if (Double.toHexString(v).startsWith("0x0.")) {
-                  return new NumericValue(3);
-                }
-                return new NumericValue(4);
-              }
-              default:
-                break;
+                case FLOAT:
+                  {
+                    float v = numericValue.floatValue();
+                    if (Float.isNaN(v)) {
+                      return new NumericValue(0);
+                    }
+                    if (Float.isInfinite(v)) {
+                      return new NumericValue(1);
+                    }
+                    if (v == 0.0) {
+                      return new NumericValue(2);
+                    }
+                    if (Float.toHexString(v).startsWith("0x0.")) {
+                      return new NumericValue(3);
+                    }
+                    return new NumericValue(4);
+                  }
+                case DOUBLE:
+                  {
+                    double v = numericValue.doubleValue();
+                    if (Double.isNaN(v)) {
+                      return new NumericValue(0);
+                    }
+                    if (Double.isInfinite(v)) {
+                      return new NumericValue(1);
+                    }
+                    if (v == 0.0) {
+                      return new NumericValue(2);
+                    }
+                    if (Double.toHexString(v).startsWith("0x0.")) {
+                      return new NumericValue(3);
+                    }
+                    return new NumericValue(4);
+                  }
+                default:
+                  break;
               }
             }
           }
@@ -1158,7 +1247,8 @@ public abstract class AbstractExpressionValueVisitor
             if (numer.isExplicitlyKnown() && denom.isExplicitlyKnown()) {
               NumericValue numerValue = numer.asNumericValue();
               NumericValue denomValue = denom.asNumericValue();
-              switch (BuiltinFloatFunctions.getTypeOfBuiltinFloatFunction(calledFunctionName).getType()) {
+              switch (BuiltinFloatFunctions.getTypeOfBuiltinFloatFunction(calledFunctionName)
+                  .getType()) {
                 case FLOAT:
                   {
                     float num = numerValue.floatValue();
@@ -1166,7 +1256,7 @@ public abstract class AbstractExpressionValueVisitor
                     if (Float.isNaN(num) || Float.isNaN(den) || Float.isInfinite(num) || den == 0) {
                       return new NumericValue(Float.NaN);
                     }
-                    return new NumericValue((float) Math.IEEEremainder(num,  den));
+                    return new NumericValue((float) Math.IEEEremainder(num, den));
                   }
                 case DOUBLE:
                   {
@@ -1178,7 +1268,7 @@ public abstract class AbstractExpressionValueVisitor
                         || den == 0) {
                       return new NumericValue(Double.NaN);
                     }
-                    return new NumericValue(Math.IEEEremainder(num,  den));
+                    return new NumericValue(Math.IEEEremainder(num, den));
                   }
                 default:
                   break;
@@ -1192,7 +1282,8 @@ public abstract class AbstractExpressionValueVisitor
             if (numer.isExplicitlyKnown() && denom.isExplicitlyKnown()) {
               NumericValue numerValue = numer.asNumericValue();
               NumericValue denomValue = denom.asNumericValue();
-              switch (BuiltinFloatFunctions.getTypeOfBuiltinFloatFunction(calledFunctionName).getType()) {
+              switch (BuiltinFloatFunctions.getTypeOfBuiltinFloatFunction(calledFunctionName)
+                  .getType()) {
                 case FLOAT:
                   {
                     float num = numerValue.floatValue();
@@ -1465,12 +1556,12 @@ public abstract class AbstractExpressionValueVisitor
     final CType innerType = pE.getType();
 
     switch (idOperator) {
-    case SIZEOF:
+      case SIZEOF:
         BigInteger size = machineModel.getSizeof(innerType);
-      return new NumericValue(size);
+        return new NumericValue(size);
 
-    default: // TODO support more operators
-      return Value.UnknownValue.getInstance();
+      default: // TODO support more operators
+        return Value.UnknownValue.getInstance();
     }
   }
 
@@ -1523,19 +1614,19 @@ public abstract class AbstractExpressionValueVisitor
 
     final NumericValue numericValue = (NumericValue) value;
     switch (unaryOperator) {
-    case MINUS:
-      return numericValue.negate();
+      case MINUS:
+        return numericValue.negate();
 
-    case TILDE:
+      case TILDE:
         return new NumericValue(~numericValue.longValue());
 
-    default:
-      throw new AssertionError("unknown operator: " + unaryOperator);
+      default:
+        throw new AssertionError("unknown operator: " + unaryOperator);
     }
   }
 
-  private Value createSymbolicExpression(Value pValue, CType pOperandType, UnaryOperator pUnaryOperator,
-      CType pExpressionType) {
+  private Value createSymbolicExpression(
+      Value pValue, CType pOperandType, UnaryOperator pUnaryOperator, CType pExpressionType) {
     final SymbolicValueFactory factory = SymbolicValueFactory.getInstance();
     SymbolicExpression operand = factory.asConstant(pValue, pOperandType);
 
@@ -1590,8 +1681,8 @@ public abstract class AbstractExpressionValueVisitor
     }
 
     try {
-      return calculateBinaryOperation(binaryOperator, lValue, lValType, rValue, rValType,
-          expressionType, pE);
+      return calculateBinaryOperation(
+          binaryOperator, lValue, lValType, rValue, rValType, expressionType, pE);
 
     } catch (IllegalOperationException e) {
       logger.logUserException(Level.SEVERE, e, pE.getFileLocation().toString());
@@ -1599,8 +1690,14 @@ public abstract class AbstractExpressionValueVisitor
     }
   }
 
-  private Value calculateBinaryOperation(JBinaryExpression.BinaryOperator pOperator,
-      Value pLValue, JType pLType, Value pRValue, JType pRType, JType pExpType, JBinaryExpression pExpression)
+  private Value calculateBinaryOperation(
+      JBinaryExpression.BinaryOperator pOperator,
+      Value pLValue,
+      JType pLType,
+      Value pRValue,
+      JType pRType,
+      JType pExpType,
+      JBinaryExpression pExpression)
       throws IllegalOperationException {
 
     assert !pLValue.isUnknown() && !pRValue.isUnknown();
@@ -1608,7 +1705,8 @@ public abstract class AbstractExpressionValueVisitor
     if (pLValue instanceof SymbolicValue || pRValue instanceof SymbolicValue) {
       final JType expressionType = pExpression.getExpressionType();
 
-      return createSymbolicExpression(pLValue, pLType, pRValue, pRType, pOperator, expressionType, expressionType);
+      return createSymbolicExpression(
+          pLValue, pLType, pRValue, pRType, pOperator, expressionType, expressionType);
 
     } else if (pLValue instanceof NumericValue) {
 
@@ -1617,12 +1715,20 @@ public abstract class AbstractExpressionValueVisitor
       assert pExpType instanceof JSimpleType;
 
       if (isFloatType(pLType) || isFloatType(pRType)) {
-        return calculateFloatOperation((NumericValue) pLValue, (NumericValue) pRValue,
-            pOperator, ((JSimpleType) pLType).getType(), ((JSimpleType) pRType).getType());
+        return calculateFloatOperation(
+            (NumericValue) pLValue,
+            (NumericValue) pRValue,
+            pOperator,
+            ((JSimpleType) pLType).getType(),
+            ((JSimpleType) pRType).getType());
 
       } else {
-        return calculateIntegerOperation((NumericValue) pLValue, (NumericValue )pRValue,
-            pOperator, ((JSimpleType) pLType).getType(), ((JSimpleType) pRType).getType());
+        return calculateIntegerOperation(
+            (NumericValue) pLValue,
+            (NumericValue) pRValue,
+            pOperator,
+            ((JSimpleType) pLType).getType(),
+            ((JSimpleType) pRType).getType());
       }
 
     } else if (pLValue instanceof BooleanValue) {
@@ -1643,8 +1749,14 @@ public abstract class AbstractExpressionValueVisitor
     return UnknownValue.getInstance();
   }
 
-  private Value createSymbolicExpression(Value pLeftValue, JType pLeftType, Value pRightValue,
-      JType pRightType, JBinaryExpression.BinaryOperator pOperator, JType pExpressionType, JType pCalculationType) {
+  private Value createSymbolicExpression(
+      Value pLeftValue,
+      JType pLeftType,
+      Value pRightValue,
+      JType pRightType,
+      JBinaryExpression.BinaryOperator pOperator,
+      JType pExpressionType,
+      JType pCalculationType) {
     assert pLeftValue instanceof SymbolicValue || pRightValue instanceof SymbolicValue;
 
     final SymbolicValueFactory factory = SymbolicValueFactory.getInstance();
@@ -1665,9 +1777,11 @@ public abstract class AbstractExpressionValueVisitor
       case SHIFT_LEFT:
         return factory.shiftLeft(leftOperand, rightOperand, pExpressionType, pCalculationType);
       case SHIFT_RIGHT_SIGNED:
-        return factory.shiftRightSigned(leftOperand, rightOperand, pExpressionType, pCalculationType);
+        return factory.shiftRightSigned(
+            leftOperand, rightOperand, pExpressionType, pCalculationType);
       case SHIFT_RIGHT_UNSIGNED:
-        return factory.shiftRightUnsigned(leftOperand, rightOperand, pExpressionType, pCalculationType);
+        return factory.shiftRightUnsigned(
+            leftOperand, rightOperand, pExpressionType, pCalculationType);
       case BINARY_AND:
         return factory.binaryAnd(leftOperand, rightOperand, pExpressionType, pCalculationType);
       case LOGICAL_AND:
@@ -1686,11 +1800,13 @@ public abstract class AbstractExpressionValueVisitor
       case LESS_THAN:
         return factory.lessThan(leftOperand, rightOperand, pExpressionType, pCalculationType);
       case LESS_EQUAL:
-        return factory.lessThanOrEqual(leftOperand, rightOperand, pExpressionType, pCalculationType);
+        return factory.lessThanOrEqual(
+            leftOperand, rightOperand, pExpressionType, pCalculationType);
       case GREATER_THAN:
         return factory.greaterThan(leftOperand, rightOperand, pExpressionType, pCalculationType);
       case GREATER_EQUAL:
-        return factory.greaterThanOrEqual(leftOperand, rightOperand, pExpressionType, pCalculationType);
+        return factory.greaterThanOrEqual(
+            leftOperand, rightOperand, pExpressionType, pCalculationType);
       default:
         throw new AssertionError("Unhandled binary operation " + pOperator);
     }
@@ -1700,9 +1816,13 @@ public abstract class AbstractExpressionValueVisitor
    * Calculates the result of the given operation for the given integer values.
    * The given values have to be of a Java integer type, that is long, int, short, or byte.
    */
-  private Value calculateIntegerOperation(NumericValue pLeftValue, NumericValue pRightValue,
-      JBinaryExpression.BinaryOperator pBinaryOperator, JBasicType pLeftType,
-      JBasicType pRightType) throws IllegalOperationException {
+  private Value calculateIntegerOperation(
+      NumericValue pLeftValue,
+      NumericValue pRightValue,
+      JBinaryExpression.BinaryOperator pBinaryOperator,
+      JBasicType pLeftType,
+      JBasicType pRightType)
+      throws IllegalOperationException {
 
     checkNotNull(pLeftType);
     checkNotNull(pRightType);
@@ -1712,133 +1832,134 @@ public abstract class AbstractExpressionValueVisitor
     long numResult;
 
     switch (pBinaryOperator) {
-    case PLUS:
-    case MINUS:
-    case DIVIDE:
-    case MULTIPLY:
-    case SHIFT_LEFT:
-    case BINARY_AND:
-    case BINARY_OR:
-    case BINARY_XOR:
-    case MODULO:
-    case SHIFT_RIGHT_SIGNED:
-    case SHIFT_RIGHT_UNSIGNED: {
-
-      switch (pBinaryOperator) {
       case PLUS:
-        numResult = lVal + rVal;
-        break;
-
       case MINUS:
-        numResult = lVal - rVal;
-        break;
-
       case DIVIDE:
-        if (rVal == 0) {
-          throw new IllegalOperationException("Division by zero: " + lVal + " / " + rVal);
-        }
-
-        numResult = lVal / rVal;
-        break;
-
       case MULTIPLY:
-        numResult = lVal * rVal;
-        break;
-
-      case BINARY_AND:
-        numResult = lVal & rVal;
-        break;
-
-      case BINARY_OR:
-        numResult = lVal | rVal;
-        break;
-
-      case BINARY_XOR:
-        numResult = lVal ^ rVal;
-        break;
-
-      case MODULO:
-        numResult = lVal % rVal;
-        break;
-
-      // shift operations' behaviour is determined by whether the left hand side value is of type
-      // int or long, so we have to cast if the actual type is int.
       case SHIFT_LEFT:
-        if (pLeftType != JBasicType.LONG && pRightType != JBasicType.LONG) {
-          final int intResult = ((int) lVal) << rVal;
-          numResult = intResult;
-        } else {
-          numResult = lVal << rVal;
-        }
-        break;
-
+      case BINARY_AND:
+      case BINARY_OR:
+      case BINARY_XOR:
+      case MODULO:
       case SHIFT_RIGHT_SIGNED:
-        if (pLeftType != JBasicType.LONG && pRightType != JBasicType.LONG) {
-          final int intResult = ((int) lVal) >> rVal;
-          numResult = intResult;
-        } else {
-          numResult = lVal >> rVal;
-        }
-        break;
-
       case SHIFT_RIGHT_UNSIGNED:
-        if (pLeftType != JBasicType.LONG && pRightType != JBasicType.LONG) {
-          final int intResult = ((int) lVal) >>> rVal;
-          numResult = intResult;
-        } else {
-          numResult = lVal >>> rVal;
+        {
+          switch (pBinaryOperator) {
+            case PLUS:
+              numResult = lVal + rVal;
+              break;
+
+            case MINUS:
+              numResult = lVal - rVal;
+              break;
+
+            case DIVIDE:
+              if (rVal == 0) {
+                throw new IllegalOperationException("Division by zero: " + lVal + " / " + rVal);
+              }
+
+              numResult = lVal / rVal;
+              break;
+
+            case MULTIPLY:
+              numResult = lVal * rVal;
+              break;
+
+            case BINARY_AND:
+              numResult = lVal & rVal;
+              break;
+
+            case BINARY_OR:
+              numResult = lVal | rVal;
+              break;
+
+            case BINARY_XOR:
+              numResult = lVal ^ rVal;
+              break;
+
+            case MODULO:
+              numResult = lVal % rVal;
+              break;
+
+              // shift operations' behaviour is determined by whether the left hand side value is of
+              // type
+              // int or long, so we have to cast if the actual type is int.
+            case SHIFT_LEFT:
+              if (pLeftType != JBasicType.LONG && pRightType != JBasicType.LONG) {
+                final int intResult = ((int) lVal) << rVal;
+                numResult = intResult;
+              } else {
+                numResult = lVal << rVal;
+              }
+              break;
+
+            case SHIFT_RIGHT_SIGNED:
+              if (pLeftType != JBasicType.LONG && pRightType != JBasicType.LONG) {
+                final int intResult = ((int) lVal) >> rVal;
+                numResult = intResult;
+              } else {
+                numResult = lVal >> rVal;
+              }
+              break;
+
+            case SHIFT_RIGHT_UNSIGNED:
+              if (pLeftType != JBasicType.LONG && pRightType != JBasicType.LONG) {
+                final int intResult = ((int) lVal) >>> rVal;
+                numResult = intResult;
+              } else {
+                numResult = lVal >>> rVal;
+              }
+              break;
+
+            default:
+              throw new AssertionError("Unhandled operator " + pBinaryOperator);
+          }
+
+          if (pLeftType != JBasicType.LONG && pRightType != JBasicType.LONG) {
+            int intNumResult = (int) numResult;
+            numResult = intNumResult;
+          }
+
+          return new NumericValue(numResult);
         }
-        break;
 
-      default:
-        throw new AssertionError("Unhandled operator " + pBinaryOperator);
-      }
-
-      if (pLeftType != JBasicType.LONG && pRightType != JBasicType.LONG) {
-        int intNumResult = (int) numResult;
-        numResult = intNumResult;
-      }
-
-      return new NumericValue(numResult);
-    }
-
-    case EQUALS:
-    case NOT_EQUALS:
-    case GREATER_THAN:
-    case GREATER_EQUAL:
-    case LESS_THAN:
-    case LESS_EQUAL: {
-
-      final boolean result;
-      switch (pBinaryOperator) {
       case EQUALS:
-        result = (lVal == rVal);
-        break;
       case NOT_EQUALS:
-        result = (lVal != rVal);
-        break;
       case GREATER_THAN:
-        result = (lVal > rVal);
-        break;
       case GREATER_EQUAL:
-        result = (lVal >= rVal);
-        break;
       case LESS_THAN:
-        result = (lVal < rVal);
-        break;
       case LESS_EQUAL:
-        result = (lVal <= rVal);
-        break;
+        {
+          final boolean result;
+          switch (pBinaryOperator) {
+            case EQUALS:
+              result = (lVal == rVal);
+              break;
+            case NOT_EQUALS:
+              result = (lVal != rVal);
+              break;
+            case GREATER_THAN:
+              result = (lVal > rVal);
+              break;
+            case GREATER_EQUAL:
+              result = (lVal >= rVal);
+              break;
+            case LESS_THAN:
+              result = (lVal < rVal);
+              break;
+            case LESS_EQUAL:
+              result = (lVal <= rVal);
+              break;
 
+            default:
+              throw new AssertionError("Unhandled operation " + pBinaryOperator);
+          }
+
+          return BooleanValue.valueOf(result);
+        }
       default:
-        throw new AssertionError("Unhandled operation " + pBinaryOperator);
-      }
-
-      return BooleanValue.valueOf(result);
-    }
-    default:
-      // TODO check which cases can be handled
-      return UnknownValue.getInstance();
+        // TODO check which cases can be handled
+        return UnknownValue.getInstance();
     }
   }
 
@@ -1846,9 +1967,13 @@ public abstract class AbstractExpressionValueVisitor
    * Calculates the result of the given operation for the given floating point values.
    * The given values have to be of Java types float or double.
    */
-  private Value calculateFloatOperation(NumericValue pLeftValue, NumericValue pRightValue,
+  private Value calculateFloatOperation(
+      NumericValue pLeftValue,
+      NumericValue pRightValue,
       JBinaryExpression.BinaryOperator pBinaryOperator,
-      JBasicType pLeftOperand, JBasicType pRightOperand) throws IllegalOperationException {
+      JBasicType pLeftOperand,
+      JBasicType pRightOperand)
+      throws IllegalOperationException {
 
     final double lVal;
     final double rVal;
@@ -1862,126 +1987,127 @@ public abstract class AbstractExpressionValueVisitor
     }
 
     switch (pBinaryOperator) {
-    case PLUS:
-    case MINUS:
-    case DIVIDE:
-    case MULTIPLY:
-    case MODULO: {
-
-      switch (pBinaryOperator) {
       case PLUS:
-        return new NumericValue(lVal + rVal);
-
       case MINUS:
-        return new NumericValue(lVal - rVal);
-
       case DIVIDE:
-        if (rVal == 0) {
-          throw new IllegalOperationException("Division by zero: " + lVal + " / " + rVal);
-        }
-        return new NumericValue(lVal / rVal);
-
       case MULTIPLY:
-        return new NumericValue(lVal * rVal);
-
       case MODULO:
-        return new NumericValue(lVal % rVal);
+        {
+          switch (pBinaryOperator) {
+            case PLUS:
+              return new NumericValue(lVal + rVal);
 
-      default:
+            case MINUS:
+              return new NumericValue(lVal - rVal);
+
+            case DIVIDE:
+              if (rVal == 0) {
+                throw new IllegalOperationException("Division by zero: " + lVal + " / " + rVal);
+              }
+              return new NumericValue(lVal / rVal);
+
+            case MULTIPLY:
+              return new NumericValue(lVal * rVal);
+
+            case MODULO:
+              return new NumericValue(lVal % rVal);
+
+            default:
               throw new AssertionError(
                   "Unsupported binary operation " + pBinaryOperator + " on double values");
           }
-    }
+        }
 
-    case EQUALS:
-    case NOT_EQUALS:
-    case GREATER_THAN:
-    case GREATER_EQUAL:
-    case LESS_THAN:
-    case LESS_EQUAL: {
-
-      final boolean result;
-      switch (pBinaryOperator) {
       case EQUALS:
-        result = (lVal == rVal);
-        break;
       case NOT_EQUALS:
-        result = (lVal != rVal);
-        break;
       case GREATER_THAN:
-        result = (lVal > rVal);
-        break;
       case GREATER_EQUAL:
-        result = (lVal >= rVal);
-        break;
       case LESS_THAN:
-        result = (lVal < rVal);
-        break;
       case LESS_EQUAL:
-        result = (lVal <= rVal);
-        break;
+        {
+          final boolean result;
+          switch (pBinaryOperator) {
+            case EQUALS:
+              result = (lVal == rVal);
+              break;
+            case NOT_EQUALS:
+              result = (lVal != rVal);
+              break;
+            case GREATER_THAN:
+              result = (lVal > rVal);
+              break;
+            case GREATER_EQUAL:
+              result = (lVal >= rVal);
+              break;
+            case LESS_THAN:
+              result = (lVal < rVal);
+              break;
+            case LESS_EQUAL:
+              result = (lVal <= rVal);
+              break;
 
+            default:
+              throw new AssertionError(
+                  "Unsupported binary operation " + pBinaryOperator + " on floating point values");
+          }
+
+          // return 1 if expression holds, 0 otherwise
+          return BooleanValue.valueOf(result);
+        }
       default:
-        throw new AssertionError("Unsupported binary operation " + pBinaryOperator
-            + " on floating point values");
-      }
-
-      // return 1 if expression holds, 0 otherwise
-      return BooleanValue.valueOf(result);
-    }
-    default:
-      // TODO check which cases can be handled
-      return UnknownValue.getInstance();
+        // TODO check which cases can be handled
+        return UnknownValue.getInstance();
     }
   }
 
-  private Value calculateBooleanOperation(boolean lVal, boolean rVal,
-      JBinaryExpression.BinaryOperator operator) {
+  private Value calculateBooleanOperation(
+      boolean lVal, boolean rVal, JBinaryExpression.BinaryOperator operator) {
 
     switch (operator) {
-    case CONDITIONAL_AND:
-    case LOGICAL_AND:
-      // we do not care about sideeffects through evaluation of the righthandside at this point - this must be handled
-      // earlier
-      return BooleanValue.valueOf(lVal && rVal);
+      case CONDITIONAL_AND:
+      case LOGICAL_AND:
+        // we do not care about sideeffects through evaluation of the righthandside at this point -
+        // this must be handled
+        // earlier
+        return BooleanValue.valueOf(lVal && rVal);
 
-    case CONDITIONAL_OR:
-    case LOGICAL_OR:
-      // we do not care about sideeffects through evaluation of the righthandside at this point
-      return BooleanValue.valueOf(lVal || rVal);
+      case CONDITIONAL_OR:
+      case LOGICAL_OR:
+        // we do not care about sideeffects through evaluation of the righthandside at this point
+        return BooleanValue.valueOf(lVal || rVal);
 
-    case LOGICAL_XOR:
-      return BooleanValue.valueOf(lVal ^ rVal);
+      case LOGICAL_XOR:
+        return BooleanValue.valueOf(lVal ^ rVal);
 
-    case EQUALS:
-      return BooleanValue.valueOf(lVal == rVal);
-    case NOT_EQUALS:
-      return BooleanValue.valueOf(lVal != rVal);
-    default:
-      throw new AssertionError("Unhandled operator " + operator + " for boolean expression");
+      case EQUALS:
+        return BooleanValue.valueOf(lVal == rVal);
+      case NOT_EQUALS:
+        return BooleanValue.valueOf(lVal != rVal);
+      default:
+        throw new AssertionError("Unhandled operator " + operator + " for boolean expression");
     }
   }
 
-  private Value calculateComparison(Value pLeftValue, Value pRightValue,
-      JBinaryExpression.BinaryOperator pOperator) {
+  private Value calculateComparison(
+      Value pLeftValue, Value pRightValue, JBinaryExpression.BinaryOperator pOperator) {
     assert pOperator == JBinaryExpression.BinaryOperator.NOT_EQUALS
         || pOperator == JBinaryExpression.BinaryOperator.EQUALS;
 
-    return BooleanValue.valueOf(pOperator != JBinaryExpression.BinaryOperator.EQUALS
-        ^ pLeftValue.equals(pRightValue));
+    return BooleanValue.valueOf(
+        pOperator != JBinaryExpression.BinaryOperator.EQUALS ^ pLeftValue.equals(pRightValue));
   }
 
   @Override
   public Value visit(JIdExpression idExp) {
 
-
     ASimpleDeclaration decl = idExp.getDeclaration();
 
     // Java IdExpression could not be resolved
-    if (decl == null) { return UnknownValue.getInstance(); }
+    if (decl == null) {
+      return UnknownValue.getInstance();
+    }
 
-    if (decl instanceof JFieldDeclaration
-        && !((JFieldDeclaration) decl).isStatic()) {
+    if (decl instanceof JFieldDeclaration && !((JFieldDeclaration) decl).isStatic()) {
       missingFieldAccessInformation = true;
 
       return UnknownValue.getInstance();
@@ -1998,14 +2124,14 @@ public abstract class AbstractExpressionValueVisitor
     final Value valueObject = unaryOperand.accept(this);
 
     // possible error msg if no case fits
-    final String errorMsg
-      = "Invalid argument [" + valueObject + "] for unary operator [" + unaryOperator + "].";
+    final String errorMsg =
+        "Invalid argument [" + valueObject + "] for unary operator [" + unaryOperator + "].";
 
     if (valueObject.isUnknown()) {
       return UnknownValue.getInstance();
 
     } else if (valueObject.isNumericValue()) {
-      NumericValue value = (NumericValue)valueObject;
+      NumericValue value = (NumericValue) valueObject;
 
       switch (unaryOperator) {
         case MINUS:
@@ -2024,7 +2150,7 @@ public abstract class AbstractExpressionValueVisitor
 
     } else if (valueObject instanceof BooleanValue
         && unaryOperator == JUnaryExpression.UnaryOperator.NOT) {
-      return ((BooleanValue)valueObject).negate();
+      return ((BooleanValue) valueObject).negate();
 
     } else if (valueObject instanceof SymbolicValue) {
       final JType expressionType = unaryExpression.getExpressionType();
@@ -2038,8 +2164,11 @@ public abstract class AbstractExpressionValueVisitor
     }
   }
 
-  private Value createSymbolicExpression(Value pValue, JType pOperandType,
-      JUnaryExpression.UnaryOperator pUnaryOperator, JType pExpressionType) {
+  private Value createSymbolicExpression(
+      Value pValue,
+      JType pOperandType,
+      JUnaryExpression.UnaryOperator pUnaryOperator,
+      JType pExpressionType) {
 
     final SymbolicValueFactory factory = SymbolicValueFactory.getInstance();
     SymbolicExpression operand = factory.asConstant(pValue, pOperandType);
@@ -2062,7 +2191,7 @@ public abstract class AbstractExpressionValueVisitor
     JType type = pExpression.getExpressionType();
 
     if (isIntegerType(type)) {
-        return new NumericValue(~value.longValue());
+      return new NumericValue(~value.longValue());
 
     } else {
       logger.logf(Level.FINE, "Invalid argument %s for unary operator ~.", value);
@@ -2072,7 +2201,6 @@ public abstract class AbstractExpressionValueVisitor
 
   private static boolean isIntegerType(JType type) {
     return type instanceof JSimpleType && ((JSimpleType) type).getType().isIntegerType();
-
   }
 
   private static boolean isFloatType(JType type) {
@@ -2133,7 +2261,11 @@ public abstract class AbstractExpressionValueVisitor
     JExpression operand = pJCastExpression.getOperand();
     JType castType = pJCastExpression.getCastType();
 
-    return castJValue(operand.accept(this), operand.getExpressionType(), castType, logger,
+    return castJValue(
+        operand.accept(this),
+        operand.getExpressionType(),
+        castType,
+        logger,
         pJCastExpression.getFileLocation());
   }
 
@@ -2175,7 +2307,8 @@ public abstract class AbstractExpressionValueVisitor
 
       } else {
         concreteArraySize = ((NumericValue) sizeValue).longValue();
-        currentArrayValue = createArrayValue(new JArrayType(elementType, currentDimension), concreteArraySize);
+        currentArrayValue =
+            createArrayValue(new JArrayType(elementType, currentDimension), concreteArraySize);
 
         if (lastArrayValue != null) {
           Value newValue = lastArrayValue;
@@ -2199,8 +2332,10 @@ public abstract class AbstractExpressionValueVisitor
   private ArrayValue createArrayValue(JArrayType pType, long pArraySize) {
 
     if (pArraySize < 0 || pArraySize > Integer.MAX_VALUE) {
-      throw new AssertionError("Trying to create array of size " + pArraySize
-          + ". Java arrays can't be smaller than 0 or bigger than the max int value.");
+      throw new AssertionError(
+          "Trying to create array of size "
+              + pArraySize
+              + ". Java arrays can't be smaller than 0 or bigger than the max int value.");
     }
 
     return new ArrayValue(pType, (int) pArraySize);
@@ -2272,9 +2407,8 @@ public abstract class AbstractExpressionValueVisitor
   }
 
   /**
-   * This method returns the value of an expression, reduced to match the type.
-   * This method handles overflows and casts.
-   * If necessary warnings for the user are printed.
+   * This method returns the value of an expression, reduced to match the type. This method handles
+   * overflows and casts. If necessary warnings for the user are printed.
    *
    * @param pExp expression to evaluate
    * @param pTargetType the type of the left side of an assignment
@@ -2282,32 +2416,33 @@ public abstract class AbstractExpressionValueVisitor
    */
   public Value evaluate(final CRightHandSide pExp, final CType pTargetType)
       throws UnrecognizedCodeException {
-    return castCValue(pExp.accept(this), pTargetType, machineModel, logger,
-        pExp.getFileLocation());
+    return castCValue(pExp.accept(this), pTargetType, machineModel, logger, pExp.getFileLocation());
   }
 
   /**
-   * This method returns the value of an expression, reduced to match the given target type.
-   * This method handles overflows and casts.
-   * If necessary warnings for the user are printed.
+   * This method returns the value of an expression, reduced to match the given target type. This
+   * method handles overflows and casts. If necessary warnings for the user are printed.
    *
    * @param pExp the expression to evaluate
-   * @param pTargetType the target type of the assignment (the type of the left side of the assignment)
+   * @param pTargetType the target type of the assignment (the type of the left side of the
+   *     assignment)
    * @return the corresponding value of the given expression, if the evaluation was successful.
-   *        <code>Null</code>, otherwise
+   *     <code>Null</code>, otherwise
    */
   public Value evaluate(final JRightHandSide pExp, final JType pTargetType) {
-    return castJValue(pExp.accept(this), (JType) pExp.getExpressionType(), pTargetType, logger,
+    return castJValue(
+        pExp.accept(this),
+        (JType) pExp.getExpressionType(),
+        pTargetType,
+        logger,
         pExp.getFileLocation());
   }
 
   /**
-   * This method returns the input-value, casted to match the type.
-   * If the value matches the type, it is returned unchanged.
-   * This method handles overflows and print warnings for the user.
-   * Example:
-   * This method is called, when an value of type 'integer'
-   * is assigned to a variable of type 'char'.
+   * This method returns the input-value, casted to match the type. If the value matches the type,
+   * it is returned unchanged. This method handles overflows and print warnings for the user.
+   * Example: This method is called, when an value of type 'integer' is assigned to a variable of
+   * type 'char'.
    *
    * @param value will be casted.
    * @param targetType value will be casted to targetType.
@@ -2316,8 +2451,11 @@ public abstract class AbstractExpressionValueVisitor
    * @param fileLocation the location of the corresponding code in the source file
    * @return the casted Value
    */
-  public static Value castCValue(@NonNull final Value value, final CType targetType,
-      final MachineModel machineModel, final LogManagerWithoutDuplicates logger,
+  public static Value castCValue(
+      @NonNull final Value value,
+      final CType targetType,
+      final MachineModel machineModel,
+      final LogManagerWithoutDuplicates logger,
       final FileLocation fileLocation) {
 
     if (!value.isExplicitlyKnown()) {
@@ -2326,7 +2464,8 @@ public abstract class AbstractExpressionValueVisitor
 
     // For now can only cast numeric value's
     if (!value.isNumericValue()) {
-      logger.logf(Level.FINE, "Can not cast C value %s to %s", value.toString(), targetType.toString());
+      logger.logf(
+          Level.FINE, "Can not cast C value %s to %s", value.toString(), targetType.toString());
       return value;
     }
     NumericValue numericValue = (NumericValue) value;
@@ -2376,16 +2515,16 @@ public abstract class AbstractExpressionValueVisitor
             // if number is a float and float can not be exactly represented as integer, the
             // result of the conversion of float to integer is undefined
             return UnknownValue.getInstance();
-        }
+          }
 
-        final BigInteger valueToCastAsInt;
-        if (numericValue.getNumber() instanceof BigInteger) {
-          valueToCastAsInt = numericValue.bigInteger();
-        } else if (numericValue.getNumber() instanceof BigDecimal) {
-          valueToCastAsInt = numericValue.bigDecimalValue().toBigInteger();
-        } else {
-          valueToCastAsInt = BigInteger.valueOf(numericValue.longValue());
-        }
+          final BigInteger valueToCastAsInt;
+          if (numericValue.getNumber() instanceof BigInteger) {
+            valueToCastAsInt = numericValue.bigInteger();
+          } else if (numericValue.getNumber() instanceof BigDecimal) {
+            valueToCastAsInt = numericValue.bigDecimalValue().toBigInteger();
+          } else {
+            valueToCastAsInt = BigInteger.valueOf(numericValue.longValue());
+          }
           final boolean targetIsSigned = machineModel.isSigned(st);
 
           final BigInteger maxValue = BigInteger.ONE.shiftLeft(size); // 2^size
@@ -2416,8 +2555,8 @@ public abstract class AbstractExpressionValueVisitor
             return new NumericValue(result.longValueExact());
 
           } else {
-          return new NumericValue(result);
-        }
+            return new NumericValue(result);
+          }
         }
 
       case FLOAT:
@@ -2443,9 +2582,9 @@ public abstract class AbstractExpressionValueVisitor
             // 64 bit means Java double
             result = new NumericValue(numericValue.doubleValue());
 
-        } else if (size == machineModel.getSizeofFloat128() * 8) {
-          result = new NumericValue(numericValue.bigDecimalValue());
-        } else if (size == machineModel.getSizeofLongDouble() * bitPerByte) {
+          } else if (size == machineModel.getSizeofFloat128() * 8) {
+            result = new NumericValue(numericValue.bigDecimalValue());
+          } else if (size == machineModel.getSizeofLongDouble() * bitPerByte) {
 
             if (numericValue.bigDecimalValue().doubleValue() == numericValue.doubleValue()) {
               result = new NumericValue(numericValue.doubleValue());
@@ -2457,7 +2596,7 @@ public abstract class AbstractExpressionValueVisitor
           } else {
             throw new AssertionError("Unhandled floating point type: " + type);
           }
-        return result;
+          return result;
         }
 
       default:
@@ -2504,7 +2643,8 @@ public abstract class AbstractExpressionValueVisitor
     return i1.compareTo(i2) < 0;
   }
 
-  private static Value castIfSymbolic(Value pValue, Type pTargetType, Optional<MachineModel> pMachineModel) {
+  private static Value castIfSymbolic(
+      Value pValue, Type pTargetType, Optional<MachineModel> pMachineModel) {
     final SymbolicValueFactory factory = SymbolicValueFactory.getInstance();
 
     if (pValue instanceof SymbolicValue
@@ -2518,13 +2658,11 @@ public abstract class AbstractExpressionValueVisitor
   }
 
   /**
-   * <p>Casts the given value to the specified Java type. This also handles overflows.</p>
+   * Casts the given value to the specified Java type. This also handles overflows.
    *
-   * <p>
-   * In Java, numeric values are the only primitive types that can be cast. In consequence, all
-   * values of other primitive types (and not explicitly known values) will simply be returned
-   * in their original form.
-   * </p>
+   * <p>In Java, numeric values are the only primitive types that can be cast. In consequence, all
+   * values of other primitive types (and not explicitly known values) will simply be returned in
+   * their original form.
    *
    * @param value the value to cast
    * @param sourceType the original type of the given value
@@ -2532,10 +2670,14 @@ public abstract class AbstractExpressionValueVisitor
    * @param logger the logger error and warning messages will be logged to
    * @param fileLocation the location of the corresponding code in the source file
    * @return the cast value, if a cast from the source to the target type is possible. Otherwise,
-   *         the given value will be returned without a change
+   *     the given value will be returned without a change
    */
-  public static Value castJValue(@NonNull final Value value, JType sourceType,
-      JType targetType, final LogManagerWithoutDuplicates logger, final FileLocation fileLocation) {
+  public static Value castJValue(
+      @NonNull final Value value,
+      JType sourceType,
+      JType targetType,
+      final LogManagerWithoutDuplicates logger,
+      final FileLocation fileLocation) {
 
     if (!value.isExplicitlyKnown()) {
       return castIfSymbolic(value, targetType, Optional.empty());
@@ -2543,7 +2685,8 @@ public abstract class AbstractExpressionValueVisitor
 
     // Other than symbolic values, we can only cast numeric values, for now.
     if (!value.isNumericValue()) {
-      logger.logf(Level.FINE, "Can not cast Java value %s to %s", value.toString(), targetType.toString());
+      logger.logf(
+          Level.FINE, "Can not cast Java value %s to %s", value.toString(), targetType.toString());
       return value;
     }
 
@@ -2573,55 +2716,55 @@ public abstract class AbstractExpressionValueVisitor
 
   private static Value createValue(long value, JBasicType targetType) {
     switch (targetType) {
-    case BYTE:
-      return new NumericValue((byte) value);
+      case BYTE:
+        return new NumericValue((byte) value);
 
-    case CHAR:
-      char castedValue = (char) value;
-      return new NumericValue((int) castedValue);
-    case SHORT:
-      return new NumericValue((short) value);
+      case CHAR:
+        char castedValue = (char) value;
+        return new NumericValue((int) castedValue);
+      case SHORT:
+        return new NumericValue((short) value);
 
-    case INT:
-      return new NumericValue((int) value);
+      case INT:
+        return new NumericValue((int) value);
 
-    case LONG:
-      return new NumericValue(value);
+      case LONG:
+        return new NumericValue(value);
 
-    case FLOAT:
-      return new NumericValue((float) value);
+      case FLOAT:
+        return new NumericValue((float) value);
 
-    case DOUBLE:
-      return new NumericValue((double) value);
+      case DOUBLE:
+        return new NumericValue((double) value);
 
-    default:
-      throw new AssertionError("Trying to cast to unsupported type " + targetType);
+      default:
+        throw new AssertionError("Trying to cast to unsupported type " + targetType);
     }
   }
 
   private static Value createValue(double value, JBasicType targetType) {
     switch (targetType) {
-    case BYTE:
-      return new NumericValue((byte) value);
+      case BYTE:
+        return new NumericValue((byte) value);
 
-    case CHAR:
-    case SHORT:
-      return new NumericValue((short) value);
+      case CHAR:
+      case SHORT:
+        return new NumericValue((short) value);
 
-    case INT:
-      return new NumericValue((int) value);
+      case INT:
+        return new NumericValue((int) value);
 
-    case LONG:
-      return new NumericValue(value);
+      case LONG:
+        return new NumericValue(value);
 
-    case FLOAT:
-      return new NumericValue((float) value);
+      case FLOAT:
+        return new NumericValue((float) value);
 
-    case DOUBLE:
-      return new NumericValue(value);
+      case DOUBLE:
+        return new NumericValue(value);
 
-    default:
-      throw new AssertionError("Trying to cast to unsupported type " + targetType);
+      default:
+        throw new AssertionError("Trying to cast to unsupported type " + targetType);
     }
   }
 

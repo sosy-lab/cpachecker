@@ -6,9 +6,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-/**
- * Construction of {@link de.uni_freiburg.informatik.ultimate.lassoranker.Lasso}s.
- */
+/** Construction of {@link de.uni_freiburg.informatik.ultimate.lassoranker.Lasso}s. */
 @javax.annotation.ParametersAreNonnullByDefault
 @org.sosy_lab.common.annotations.FieldsAreNonnullByDefault
 @org.sosy_lab.common.annotations.ReturnValuesAreNonnullByDefault

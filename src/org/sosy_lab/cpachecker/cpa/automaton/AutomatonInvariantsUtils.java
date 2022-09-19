@@ -38,8 +38,7 @@ public enum AutomatonInvariantsUtils {
     // fill automatonStatesWithInvariants with all internal automaton states that we find in the
     // automata:
     for (Automaton aut : pAutomataAsSpec.getSpecificationAutomata()) {
-      aut.getStates()
-          .stream()
+      aut.getStates().stream()
           .map(AutomatonInternalState::getTransitions)
           .flatMap(Collection::stream)
           .forEach(
@@ -63,9 +62,9 @@ public enum AutomatonInvariantsUtils {
     if (!automatonStatesWithInvariants.isEmpty()) {
       throw new CPAException(
           String.format(
-              "There are unaccounted invariants in the witness(es)!(Invariants of the following states: %s)",
+              "There are unaccounted invariants in the witness(es)!(Invariants of the following"
+                  + " states: %s)",
               automatonStatesWithInvariants.toString()));
     }
   }
-
 }

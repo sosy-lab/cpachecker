@@ -64,9 +64,9 @@ public class TargetFunctionsProvider {
       Collection<FunctionEntryNode> candidateFunctions,
       Multimap<String, String> candidateFunctionsForField,
       Multimap<String, String> globalsMatching) {
-    this.machine = pMachine;
-    this.logger = pLogger;
-    this.matchingFunctionCall = getFunctionSetPredicate(functionSets);
+    machine = pMachine;
+    logger = pLogger;
+    matchingFunctionCall = getFunctionSetPredicate(functionSets);
     this.candidateFunctions = candidateFunctions;
     this.candidateFunctionsForField = ImmutableSetMultimap.copyOf(candidateFunctionsForField);
     this.globalsMatching = ImmutableSetMultimap.copyOf(globalsMatching);

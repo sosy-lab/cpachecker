@@ -13,11 +13,10 @@ import org.sosy_lab.cpachecker.cpa.threading.ThreadingState;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 
 /**
- * Waitlist implementation that sorts the abstract states depending
- * on the number of running threads (if there are any).
- * States with fewer running threads are considered first.
- * These states are expected to avoid state explosion,
- * as they have fewer successors due to the interleaving of threads.
+ * Waitlist implementation that sorts the abstract states depending on the number of running threads
+ * (if there are any). States with fewer running threads are considered first. These states are
+ * expected to avoid state explosion, as they have fewer successors due to the interleaving of
+ * threads.
  */
 public class ThreadingSortedWaitlist extends AbstractSortedWaitlist<Integer> {
 
@@ -27,8 +26,7 @@ public class ThreadingSortedWaitlist extends AbstractSortedWaitlist<Integer> {
 
   @Override
   protected Integer getSortKey(AbstractState pState) {
-    ThreadingState state =
-      AbstractStates.extractStateByType(pState, ThreadingState.class);
+    ThreadingState state = AbstractStates.extractStateByType(pState, ThreadingState.class);
 
     // negate size so that the highest key corresponds to the smallest map
     return (state == null) ? 0 : -state.getThreadIds().size();

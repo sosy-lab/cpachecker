@@ -2,19 +2,19 @@
 # a tool for configurable software verification:
 # https://cpachecker.sosy-lab.org
 #
-# SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+# SPDX-FileCopyrightText: 2007-2022 Dirk Beyer <https://www.sosy-lab.org>
 #
 # SPDX-License-Identifier: Apache-2.0
 
 # This is a Docker image for running the latest release of CPAchecker.
 # It is built weekly using GitLab CI and pushed to
-# registry.gitlab.com/sosy-lab/software/cpachecker (:latest and :2.0).
+# registry.gitlab.com/sosy-lab/software/cpachecker (:latest and :2.1.1).
 # The version number of latest release of CPAchecker needs to be updated here
 # and in .gitlab-ci.yml
 #
 # Commands for building the image manually:
-# docker build --pull -t registry.gitlab.com/sosy-lab/software/cpachecker:2.0 -t registry.gitlab.com/sosy-lab/software/cpachecker:latest - < build/Dockerfile.release
-# docker push registry.gitlab.com/sosy-lab/software/cpachecker:2.0
+# docker build --pull -t registry.gitlab.com/sosy-lab/software/cpachecker:2.1.1 -t registry.gitlab.com/sosy-lab/software/cpachecker:latest - < build/Dockerfile.release
+# docker push registry.gitlab.com/sosy-lab/software/cpachecker:2.1.1
 # docker push registry.gitlab.com/sosy-lab/software/cpachecker:latest
 
 FROM ubuntu:20.04
@@ -22,7 +22,7 @@ FROM ubuntu:20.04
 RUN apt-get update && apt-get install -y --no-install-recommends \
   unzip
 
-ADD https://cpachecker.sosy-lab.org/CPAchecker-2.0-unix.zip /
+ADD https://cpachecker.sosy-lab.org/CPAchecker-2.1.1-unix.zip /
 RUN unzip -q /CPAchecker*-unix.zip -d / && mv /CPAchecker*-unix /cpachecker
 
 FROM ubuntu:20.04

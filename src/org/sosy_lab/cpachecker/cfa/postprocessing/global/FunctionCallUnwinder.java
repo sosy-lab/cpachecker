@@ -44,18 +44,21 @@ import org.sosy_lab.cpachecker.util.Pair;
 @Options(prefix = "cfa.functionCalls")
 public class FunctionCallUnwinder {
 
-  @Option(secure=true, description = "how often can a function appear in the callstack as a clone of the original function?")
+  @Option(
+      secure = true,
+      description =
+          "how often can a function appear in the callstack as a clone of the original function?")
   private int recursionDepth = 5;
 
   // TODO find better name, it is not always recursive
-  private final static String RECURSION_SEPARATOR = "__recursive_call__";
+  private static final String RECURSION_SEPARATOR = "__recursive_call__";
 
   private final MutableCFA cfa;
 
   public FunctionCallUnwinder(final MutableCFA pCfa, final Configuration config)
-          throws InvalidConfigurationException {
+      throws InvalidConfigurationException {
     config.inject(this);
-    this.cfa = pCfa;
+    cfa = pCfa;
 
     if (cfa.getLanguage() != Language.C) {
       throw new InvalidConfigurationException(
@@ -86,7 +89,8 @@ public class FunctionCallUnwinder {
       }
 
       // get CFA for functionname
-      Preconditions.checkArgument(functions.containsKey(functionname), "function %s not available", functionname);
+      Preconditions.checkArgument(
+          functions.containsKey(functionname), "function %s not available", functionname);
       FunctionEntryNode entryNode = functions.get(functionname);
 
       // get functioncalls from the CFA
@@ -136,16 +140,18 @@ public class FunctionCallUnwinder {
         cfa.getLanguage());
   }
 
-  static void replaceFunctionCall(final AStatementEdge functionCallEdge, final String newFunctionName) {
+  static void replaceFunctionCall(
+      final AStatementEdge functionCallEdge, final String newFunctionName) {
     final CFANode pred = functionCallEdge.getPredecessor();
     final CFANode succ = functionCallEdge.getSuccessor();
-    final AFunctionCall call = (AFunctionCall)functionCallEdge.getStatement();
+    final AFunctionCall call = (AFunctionCall) functionCallEdge.getStatement();
 
     final AStatementEdge newEdge;
     if (call instanceof CFunctionCall) {
 
       // get old values
-      final CDeclaration declaration = ((CFunctionCall) call).getFunctionCallExpression().getDeclaration();
+      final CDeclaration declaration =
+          ((CFunctionCall) call).getFunctionCallExpression().getDeclaration();
       Preconditions.checkNotNull(declaration);
       final String oldFunctionName = declaration.getQualifiedName();
 
@@ -163,13 +169,18 @@ public class FunctionCallUnwinder {
   }
 
   /** clones a function and adds it to the maps. */
-  private static void cloneFunction(final String oldFunctionname, final String newFunctionname,
-      final Map<String, FunctionEntryNode> functions, final SortedSetMultimap<String, CFANode> nodes) {
-    Preconditions.checkArgument(!functions.containsKey(newFunctionname), "function exists, cloning is not allowed.");
+  private static void cloneFunction(
+      final String oldFunctionname,
+      final String newFunctionname,
+      final Map<String, FunctionEntryNode> functions,
+      final SortedSetMultimap<String, CFANode> nodes) {
+    Preconditions.checkArgument(
+        !functions.containsKey(newFunctionname), "function exists, cloning is not allowed.");
 
     // clone
     final FunctionEntryNode entryNode = functions.get(oldFunctionname);
-    final Pair<FunctionEntryNode, Collection<CFANode>> newFunction = FunctionCloner.cloneCFA(entryNode, newFunctionname);
+    final Pair<FunctionEntryNode, Collection<CFANode>> newFunction =
+        FunctionCloner.cloneCFA(entryNode, newFunctionname);
 
     // add new function to CFA
     functions.put(newFunctionname, newFunction.getFirst());
@@ -184,7 +195,8 @@ public class FunctionCallUnwinder {
     if (!(statement instanceof CFunctionCall)) {
       return null;
     }
-    final CDeclaration declaration = ((CFunctionCall) statement).getFunctionCallExpression().getDeclaration();
+    final CDeclaration declaration =
+        ((CFunctionCall) statement).getFunctionCallExpression().getDeclaration();
     if (declaration == null) {
       return null;
     }
@@ -201,11 +213,15 @@ public class FunctionCallUnwinder {
     return functionname != null && cfaFunctions.contains(functionname);
   }
 
-  /** checks, iff there is an call-stack from father to child.
-   * In the graph this would be a way from father to child.
-   * It should be more efficient to search backwards,
-   * because children have only one father in most cases. */
-  private static boolean isFatherOf(final String child, final String possibleFather, final Multimap<String, String> reverseGraph) {
+  /**
+   * checks, iff there is an call-stack from father to child. In the graph this would be a way from
+   * father to child. It should be more efficient to search backwards, because children have only
+   * one father in most cases.
+   */
+  private static boolean isFatherOf(
+      final String child,
+      final String possibleFather,
+      final Multimap<String, String> reverseGraph) {
     final Set<String> finished = new HashSet<>();
     final Deque<String> waitlist = new ArrayDeque<>();
     waitlist.add(child);
@@ -222,9 +238,9 @@ public class FunctionCallUnwinder {
     return false;
   }
 
-  /** checks maximum size of callstack.
-   * TODO implement better user-defined limits */
-  private boolean isCallStackSizeReached(final String calledFunction, final Multimap<String, String> reverseGraph) {
+  /** checks maximum size of callstack. TODO implement better user-defined limits */
+  private boolean isCallStackSizeReached(
+      final String calledFunction, final Multimap<String, String> reverseGraph) {
     final Collection<String> functions = reverseGraph.keySet();
     int maxDepth = 0;
     for (String function : functions) {
@@ -232,7 +248,7 @@ public class FunctionCallUnwinder {
         int index = function.indexOf(RECURSION_SEPARATOR);
         if (index != -1) {
           int depth = Integer.parseInt(function.substring(index + RECURSION_SEPARATOR.length()));
-          maxDepth = Math.max(maxDepth,depth);
+          maxDepth = Math.max(maxDepth, depth);
         }
       }
     }

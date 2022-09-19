@@ -36,9 +36,9 @@ public final class DeadLockState extends AbstractLockState {
     }
 
     @Override
-    public int compareTo(CompatibleState pArg0) {
-      Preconditions.checkArgument(pArg0 instanceof DeadLockTreeNode);
-      DeadLockTreeNode o = (DeadLockTreeNode) pArg0;
+    public int compareTo(CompatibleState pOther) {
+      Preconditions.checkArgument(pOther instanceof DeadLockTreeNode);
+      DeadLockTreeNode o = (DeadLockTreeNode) pOther;
       int result = size() - o.size();
       if (result != 0) {
         return result;
@@ -57,7 +57,7 @@ public final class DeadLockState extends AbstractLockState {
     @Override
     public boolean cover(CompatibleNode pNode) {
       Preconditions.checkArgument(pNode instanceof DeadLockTreeNode);
-      return this.compareTo(pNode) == 0;
+      return compareTo(pNode) == 0;
     }
 
     @Override
@@ -205,7 +205,7 @@ public final class DeadLockState extends AbstractLockState {
   @SuppressWarnings("JdkObsolete") // TODO consider replacing this with ArrayList or ArrayDeque
   DeadLockState(List<LockIdentifier> gLocks, DeadLockState state) {
     super(state);
-    this.lockList = new LinkedList<>(gLocks);
+    lockList = new LinkedList<>(gLocks);
   }
 
   @Override
@@ -243,8 +243,7 @@ public final class DeadLockState extends AbstractLockState {
       return false;
     }
     DeadLockState other = (DeadLockState) obj;
-    return Objects.equals(toRestore, other.toRestore)
-        && Objects.equals(lockList, other.lockList);
+    return Objects.equals(toRestore, other.toRestore) && Objects.equals(lockList, other.lockList);
   }
 
   /**
@@ -258,7 +257,7 @@ public final class DeadLockState extends AbstractLockState {
   public int compareTo(CompatibleState pOther) {
     DeadLockState other = (DeadLockState) pOther;
 
-    int result = other.getSize() - this.getSize(); // decreasing queue
+    int result = other.getSize() - getSize(); // decreasing queue
 
     if (result != 0) {
       return result;

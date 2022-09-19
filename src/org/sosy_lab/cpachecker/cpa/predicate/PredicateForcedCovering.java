@@ -20,6 +20,7 @@ import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.logging.Level;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -39,12 +40,10 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
-import org.sosy_lab.cpachecker.cpa.predicate.BlockFormulaStrategy.BlockFormulas;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionFormula;
-import org.sosy_lab.cpachecker.util.predicates.interpolation.CounterexampleTraceInfo;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.InterpolationManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
@@ -53,9 +52,8 @@ import org.sosy_lab.java_smt.api.BooleanFormulaManager;
 import org.sosy_lab.java_smt.api.SolverException;
 
 /**
- * An implementation of {@link ForcedCovering} which works with
- * {@link PredicateAbstractState}s and tries to strengthen them the
- * necessary amount by using interpolation.
+ * An implementation of {@link ForcedCovering} which works with {@link PredicateAbstractState}s and
+ * tries to strengthen them the necessary amount by using interpolation.
  */
 public class PredicateForcedCovering implements ForcedCovering, StatisticsProvider {
 
@@ -74,7 +72,12 @@ public class PredicateForcedCovering implements ForcedCovering, StatisticsProvid
     public void printStatistics(PrintStream out, Result pResult, UnmodifiableReachedSet pReached) {
       out.println("Attempted forced coverings:             " + attemptedForcedCoverings);
       if (attemptedForcedCoverings > 0) {
-        out.println("Successful forced coverings:            " + successfulForcedCoverings + " (" + toPercent(successfulForcedCoverings, attemptedForcedCoverings) + ")");
+        out.println(
+            "Successful forced coverings:            "
+                + successfulForcedCoverings
+                + " ("
+                + toPercent(successfulForcedCoverings, attemptedForcedCoverings)
+                + ")");
       }
       out.println("No of times elment was already covered: " + wasAlreadyCovered);
     }
@@ -91,37 +94,40 @@ public class PredicateForcedCovering implements ForcedCovering, StatisticsProvid
   private final PredicateAbstractionManager predAbsMgr;
   private final ImpactUtility impact;
 
-  public PredicateForcedCovering(Configuration config, LogManager pLogger,
-      ConfigurableProgramAnalysis pCpa) throws InvalidConfigurationException {
+  public PredicateForcedCovering(
+      Configuration config, LogManager pLogger, ConfigurableProgramAnalysis pCpa)
+      throws InvalidConfigurationException {
     logger = pLogger;
 
     if (!(pCpa instanceof ARGCPA)) {
-      throw new InvalidConfigurationException(PredicateForcedCovering.class.getSimpleName() + " needs an ARGCPA");
+      throw new InvalidConfigurationException(
+          PredicateForcedCovering.class.getSimpleName() + " needs an ARGCPA");
     }
-    argCpa = (ARGCPA)pCpa;
+    argCpa = (ARGCPA) pCpa;
     stop = argCpa.getStopOperator();
 
     @SuppressWarnings("resource")
     PredicateCPA predicateCpa =
         CPAs.retrieveCPAOrFail(pCpa, PredicateCPA.class, PredicateForcedCovering.class);
-    imgr = new InterpolationManager(
-                                                   predicateCpa.getPathFormulaManager(),
-                                                   predicateCpa.getSolver(),
-                                                   predicateCpa.getCfa().getLoopStructure(),
-                                                   predicateCpa.getCfa().getVarClassification(),
-                                                   config,
-                                                   predicateCpa.getShutdownNotifier(),
-                                                   pLogger);
+    imgr =
+        new InterpolationManager(
+            predicateCpa.getPathFormulaManager(),
+            predicateCpa.getSolver(),
+            predicateCpa.getCfa().getLoopStructure(),
+            predicateCpa.getCfa().getVarClassification(),
+            config,
+            predicateCpa.getShutdownNotifier(),
+            pLogger);
     fmgr = predicateCpa.getSolver().getFormulaManager();
     predAbsMgr = predicateCpa.getPredicateManager();
     impact = new ImpactUtility(config, fmgr, predAbsMgr);
   }
 
   @Override
-  public boolean tryForcedCovering(final AbstractState pState,
-      final Precision pPrecision, final ReachedSet pReached)
+  public boolean tryForcedCovering(
+      final AbstractState pState, final Precision pPrecision, final ReachedSet pReached)
       throws CPAException, InterruptedException {
-    final ARGState argState = (ARGState)pState;
+    final ARGState argState = (ARGState) pState;
     if (argState.isCovered()) {
       return false;
     }
@@ -159,15 +165,16 @@ public class PredicateForcedCovering implements ForcedCovering, StatisticsProvid
         logger.log(Level.ALL, "Candidate for forced-covering is", coveringCandidate);
 
         // A) find common parent of argState and coveringCandidate
-        List<ARGState> candidateParentList = getAbstractionPathTo((ARGState)coveringCandidate);
-        final int commonParentIdx =
-            findLengthOfCommonPrefix(parentList, candidateParentList) - 1;
+        List<ARGState> candidateParentList = getAbstractionPathTo((ARGState) coveringCandidate);
+        final int commonParentIdx = findLengthOfCommonPrefix(parentList, candidateParentList) - 1;
 
-        assert commonParentIdx >= 0 : "States do not have common parent, but are in the same reached set";
-        assert parentList.get(commonParentIdx).equals(candidateParentList.get(commonParentIdx)) : "Common prefix does not end with same element";
+        assert commonParentIdx >= 0
+            : "States do not have common parent, but are in the same reached set";
+        assert parentList.get(commonParentIdx).equals(candidateParentList.get(commonParentIdx))
+            : "Common prefix does not end with same element";
 
         final ARGState commonParent = parentList.get(commonParentIdx);
-        final List<ARGState> path = parentList.subList(commonParentIdx+1, parentList.size());
+        final List<ARGState> path = parentList.subList(commonParentIdx + 1, parentList.size());
 
         // path is now the list of abstraction elements from the common ancestor
         // of coveringCandidate and argState (excluding) to argState (including):
@@ -177,35 +184,41 @@ public class PredicateForcedCovering implements ForcedCovering, StatisticsProvid
         // 1) state formula of commonParent instantiated with indices of commonParent
         // 2) block formulas between commonParent and argState
         // 3) negated state formula of reachedState instantiated with indices of argState
-        List<BooleanFormula> formulas = new ArrayList<>(path.size()+1);
+        List<BooleanFormula> formulas = new ArrayList<>(path.size() + 1);
         {
-          formulas.add(getPredicateState(commonParent).getAbstractionFormula().asInstantiatedFormula());
+          formulas.add(
+              getPredicateState(commonParent).getAbstractionFormula().asInstantiatedFormula());
 
           for (AbstractState pathElement : path) {
-            formulas.add(getPredicateState(pathElement).getAbstractionFormula().getBlockFormula().getFormula());
+            formulas.add(
+                getPredicateState(pathElement)
+                    .getAbstractionFormula()
+                    .getBlockFormula()
+                    .getFormula());
           }
 
           SSAMap ssaMap = getPredicateState(argState).getPathFormula().getSsa().withDefault(1);
-          BooleanFormula stateFormula = getPredicateState(coveringCandidate).getAbstractionFormula().asFormula();
-          assert !bfmgr.isTrue(stateFormula) : "Existing state with abstraction true would cover anyway, no forced covering needed";
+          BooleanFormula stateFormula =
+              getPredicateState(coveringCandidate).getAbstractionFormula().asFormula();
+          assert !bfmgr.isTrue(stateFormula)
+              : "Existing state with abstraction true would cover anyway, no forced covering"
+                  + " needed";
           formulas.add(bfmgr.not(fmgr.instantiate(stateFormula, ssaMap)));
         }
         assert formulas.size() == path.size() + 2;
 
         // C) Compute interpolants
-        CounterexampleTraceInfo interpolantInfo =
-            imgr.buildCounterexampleTrace(new BlockFormulas(formulas));
+        Optional<ImmutableList<BooleanFormula>> interpolantInfo = imgr.interpolate(formulas);
 
-        if (!interpolantInfo.isSpurious()) {
+        if (interpolantInfo.isEmpty()) {
           logger.log(Level.FINER, "Forced covering unsuccessful.");
           continue; // forced covering not possible
         }
 
-
         stats.successfulForcedCoverings++;
         logger.log(Level.FINER, "Forced covering successful.");
 
-        List<BooleanFormula> interpolants = interpolantInfo.getInterpolants();
+        List<BooleanFormula> interpolants = interpolantInfo.orElseThrow();
         assert interpolants.size() == formulas.size() - 1 : "Number of interpolants is wrong";
 
         // As the first interpolant is implied by the first formula,
@@ -214,7 +227,8 @@ public class PredicateForcedCovering implements ForcedCovering, StatisticsProvid
         interpolants = interpolants.subList(1, interpolants.size());
 
         // This is always the abstraction of the abstraction state before the "current" one.
-        AbstractionFormula lastAbstraction = getPredicateState(commonParent).getAbstractionFormula();
+        AbstractionFormula lastAbstraction =
+            getPredicateState(commonParent).getAbstractionFormula();
 
         // D) update ARG
         for (Pair<BooleanFormula, ARGState> interpolationPoint : Pair.zipList(interpolants, path)) {
@@ -223,8 +237,7 @@ public class PredicateForcedCovering implements ForcedCovering, StatisticsProvid
 
           boolean stateChanged;
           try {
-            stateChanged = impact.strengthenStateWithInterpolant(
-                                                  itp, element, lastAbstraction);
+            stateChanged = impact.strengthenStateWithInterpolant(itp, element, lastAbstraction);
           } catch (SolverException e) {
             throw new CPAException("Solver failure", e);
           }
@@ -239,11 +252,11 @@ public class PredicateForcedCovering implements ForcedCovering, StatisticsProvid
         // However, ARGStopSep may return false although it is covered,
         // thus the second check.
         assert stop.stop(argState, Collections.singleton(coveringCandidate), pPrecision)
-            || argState.isCovered()
+                || argState.isCovered()
             : "Forced covering did not cover element\n" + argState + "\nwith\n" + coveringCandidate;
 
         if (!argState.isCovered()) {
-          argState.setCovered((ARGState)coveringCandidate);
+          argState.setCovered((ARGState) coveringCandidate);
         } else {
           assert argState.getCoveringState() == coveringCandidate;
         }
@@ -256,8 +269,7 @@ public class PredicateForcedCovering implements ForcedCovering, StatisticsProvid
   }
 
   /**
-   * Return a list with all abstraction states on the path from the ARG root
-   * to the given element.
+   * Return a list with all abstraction states on the path from the ARG root to the given element.
    */
   private ImmutableList<ARGState> getAbstractionPathTo(ARGState argState) {
     ARGPath pathFromRoot = ARGUtils.getOnePathTo(argState);
@@ -268,11 +280,10 @@ public class PredicateForcedCovering implements ForcedCovering, StatisticsProvid
   }
 
   /**
-   * Given two Iterables, return the length of the common prefix of both Iterables.
-   * If there are no common elements in the beginning of the Iterables,
-   * 0 is returned.
-   * If one of the Iterables is fully contained in the other,
-   * the length of the shorter element is returned.
+   * Given two Iterables, return the length of the common prefix of both Iterables. If there are no
+   * common elements in the beginning of the Iterables, 0 is returned. If one of the Iterables is
+   * fully contained in the other, the length of the shorter element is returned.
+   *
    * @param i1 An Iterable.
    * @param i2 An Iterable.
    * @return A non-negative int giving a length.

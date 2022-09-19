@@ -21,40 +21,34 @@ import org.sosy_lab.common.UniqueIdGenerator;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
-import org.sosy_lab.cpachecker.util.expressions.LeafExpression;
 import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.regions.Region;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
-import org.sosy_lab.cpachecker.util.predicates.smt.FormulaToCVisitor;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 
 /**
- * Instances of this class should hold a state formula (the result of an
- * abstraction computation) in several representations:
- * First, as an abstract region (usually this would be a BDD).
- * Second, as a symbolic formula.
- * Third, again as a symbolic formula, but this time all variables have names
+ * Instances of this class should hold a state formula (the result of an abstraction computation) in
+ * several representations: First, as an abstract region (usually this would be a BDD). Second, as a
+ * symbolic formula. Third, again as a symbolic formula, but this time all variables have names
  * which include their SSA index at the time of the abstraction computation.
  *
- * Additionally the formula for the block immediately before the abstraction
- * computation is stored (this also has SSA indices as it is a path formula,
- * even if it is not of the type PathFormula).
+ * <p>Additionally the formula for the block immediately before the abstraction computation is
+ * stored (this also has SSA indices as it is a path formula, even if it is not of the type
+ * PathFormula).
  *
- * Abstractions are not considered equal even if they have the same formula.
+ * <p>Abstractions are not considered equal even if they have the same formula.
  */
 public class AbstractionFormula implements Serializable {
 
   private static final long serialVersionUID = -7756517128231447937L;
-  private @Nullable transient final Region region; // Null after de-serializing from proof
-  private transient final BooleanFormula formula;
+  private @Nullable final transient Region region; // Null after de-serializing from proof
+  private final transient BooleanFormula formula;
   private final BooleanFormula instantiatedFormula;
 
-  private static final String FUNCTION_DELIMITER = "::";
-
   /**
-   * The formula of the block directly before this abstraction.
-   * (This formula was used to create this abstraction).
+   * The formula of the block directly before this abstraction. (This formula was used to create
+   * this abstraction).
    */
   private final PathFormula blockFormula;
 
@@ -65,15 +59,17 @@ public class AbstractionFormula implements Serializable {
 
   public AbstractionFormula(
       FormulaManagerView mgr,
-      Region pRegion, BooleanFormula pFormula,
-      BooleanFormula pInstantiatedFormula, PathFormula pBlockFormula,
+      Region pRegion,
+      BooleanFormula pFormula,
+      BooleanFormula pInstantiatedFormula,
+      PathFormula pBlockFormula,
       Set<Integer> pIdOfStoredAbstractionReused) {
-    this.fMgr = checkNotNull(mgr);
-    this.region = checkNotNull(pRegion);
-    this.formula = checkNotNull(pFormula);
-    this.instantiatedFormula = checkNotNull(pInstantiatedFormula);
-    this.blockFormula = checkNotNull(pBlockFormula);
-    this.idsOfStoredAbstractionReused = ImmutableSet.copyOf(pIdOfStoredAbstractionReused);
+    fMgr = checkNotNull(mgr);
+    region = checkNotNull(pRegion);
+    formula = checkNotNull(pFormula);
+    instantiatedFormula = checkNotNull(pInstantiatedFormula);
+    blockFormula = checkNotNull(pBlockFormula);
+    idsOfStoredAbstractionReused = ImmutableSet.copyOf(pIdOfStoredAbstractionReused);
   }
 
   /**
@@ -103,9 +99,7 @@ public class AbstractionFormula implements Serializable {
     return region;
   }
 
-  /**
-   * Returns the formula representation where all variables do not have SSA indices.
-   */
+  /** Returns the formula representation where all variables do not have SSA indices. */
   public BooleanFormula asFormula() {
     return formula;
   }
@@ -118,33 +112,10 @@ public class AbstractionFormula implements Serializable {
   }
 
   public ExpressionTree<Object> asExpressionTree(CFANode pLocation) throws InterruptedException {
-    BooleanFormula inv = formula;
-    // filter out variables that are not global and
-    // not local in the current function
-    String prefix = pLocation.getFunctionName() + FUNCTION_DELIMITER;
-    inv =
-        fMgr.filterLiterals(
-            inv,
-            e -> {
-              for (String name : fMgr.extractVariableNames(e)) {
-                if (name.contains(FUNCTION_DELIMITER) && !name.startsWith(prefix)) {
-                  return false;
-                }
-              }
-              return true;
-            });
-
-    FormulaToCVisitor v = new FormulaToCVisitor(fMgr);
-    boolean isValid = fMgr.visit(inv, v);
-    if (isValid) {
-      return LeafExpression.of(v.getString());
-    }
-    return ExpressionTrees.getTrue(); // no new invariant
+    return ExpressionTrees.fromFormula(asFormula(), fMgr, pLocation);
   }
 
-  /**
-   * Returns the formula representation where all variables DO have SSA indices.
-   */
+  /** Returns the formula representation where all variables DO have SSA indices. */
   public BooleanFormula asInstantiatedFormula() {
     return instantiatedFormula;
   }
@@ -194,8 +165,8 @@ public class AbstractionFormula implements Serializable {
 
     public SerializationProxy(AbstractionFormula pAbstractionFormula) {
       FormulaManagerView mgr = GlobalInfo.getInstance().getPredicateFormulaManagerView();
-      instantiatedFormulaDump = mgr.dumpFormula(
-          pAbstractionFormula.asInstantiatedFormula()).toString();
+      instantiatedFormulaDump =
+          mgr.dumpFormula(pAbstractionFormula.asInstantiatedFormula()).toString();
       blockFormula = pAbstractionFormula.getBlockFormula();
     }
 

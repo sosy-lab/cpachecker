@@ -50,8 +50,7 @@ public abstract class AExpressionStatement extends AbstractStatement {
       return true;
     }
 
-    if (!(obj instanceof AExpressionStatement)
-        || !super.equals(obj)) {
+    if (!(obj instanceof AExpressionStatement) || !super.equals(obj)) {
       return false;
     }
 
@@ -59,5 +58,4 @@ public abstract class AExpressionStatement extends AbstractStatement {
 
     return Objects.equals(other.expression, expression);
   }
-
 }

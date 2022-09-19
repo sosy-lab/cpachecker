@@ -20,9 +20,14 @@ public class CFunctionSummaryStatementEdge extends CStatementEdge implements CCf
   private final String functionName;
   private final CFunctionCall fcall;
 
-  public CFunctionSummaryStatementEdge(String pRawStatement,
-      CStatement pStatement, FileLocation pFileLocation, CFANode pPredecessor,
-      CFANode pSuccessor, CFunctionCall fcall, String functionName) {
+  public CFunctionSummaryStatementEdge(
+      String pRawStatement,
+      CStatement pStatement,
+      FileLocation pFileLocation,
+      CFANode pPredecessor,
+      CFANode pSuccessor,
+      CFunctionCall fcall,
+      String functionName) {
     super(pRawStatement, pStatement, pFileLocation, pPredecessor, pSuccessor);
     this.functionName = checkNotNull(functionName);
     this.fcall = checkNotNull(fcall);

@@ -117,9 +117,9 @@ public final class CEXExportOptions {
   @Option(
       secure = true,
       name = "exportTestCase",
-      description = "export test case that represents the counterexample. Further options can be"
-          + " set with options 'testcase.*'"
-  )
+      description =
+          "export test case that represents the counterexample. Further options can be"
+              + " set with options 'testcase.*'")
   private boolean exportTest = false;
 
   @Option(
@@ -156,80 +156,70 @@ public final class CEXExportOptions {
         && !exportTest;
   }
 
-  @Nullable
-  PathTemplate getAutomatonFile() {
+  @Nullable PathTemplate getAutomatonFile() {
     if (!exportErrorPath) {
       return null;
     }
     return errorPathAutomatonFile;
   }
 
-  @Nullable
-  PathTemplate getCoreFile() {
+  @Nullable PathTemplate getCoreFile() {
     if (!exportErrorPath) {
       return null;
     }
     return errorPathCoreFile;
   }
 
-  @Nullable
-  PathTemplate getCoveragePrefix() {
+  @Nullable PathTemplate getCoveragePrefix() {
     if (!exportErrorPath) {
       return null;
     }
     return exportCounterexampleCoverage ? coveragePrefixTemplate : null;
   }
 
-  @Nullable
-  PathTemplate getErrorPathFile() {
+  @Nullable PathTemplate getErrorPathFile() {
     if (!exportErrorPath) {
       return null;
     }
     return errorPathFile;
   }
 
-  @Nullable
-  PathTemplate getDotFile() {
+  @Nullable PathTemplate getDotFile() {
     if (!exportErrorPath) {
       return null;
     }
     return errorPathDotFile;
   }
 
-  @Nullable
-  PathTemplate getSourceFile() {
+  @Nullable PathTemplate getSourceFile() {
     if (!exportErrorPath) {
       return null;
     }
     return exportSource ? errorPathSourceFile : null;
   }
 
-  @Nullable
-  PathTemplate getTestHarnessFile() {
+  @Nullable PathTemplate getTestHarnessFile() {
     if (!exportErrorPath) {
       return null;
     }
     return exportHarness ? testHarnessFile : null;
   }
 
-  @Nullable
-  PathTemplate getWitnessFile() {
+  @Nullable PathTemplate getWitnessFile() {
     if (!exportErrorPath) {
       return null;
     }
     return exportWitness ? errorPathWitnessFile : null;
   }
 
-  @Nullable
-  PathTemplate getWitnessDotFile() {
+  @Nullable PathTemplate getWitnessDotFile() {
     if (!exportErrorPath) {
       return null;
     }
     return exportWitness ? errorPathWitnessDotFile : null;
   }
 
-  @Nullable
-  PathTemplate getExtendedWitnessFile() {
+  @Nullable PathTemplate getExtendedWitnessFile() {
     if (!exportErrorPath) {
       return null;
     }

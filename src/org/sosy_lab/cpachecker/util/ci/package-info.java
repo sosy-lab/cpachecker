@@ -9,14 +9,13 @@
 /**
  * Package for management of custom instructions.
  *
- * It is assumed that these custom instructions will execute parts of the program's
- * statements as special purpose instructions i.e. implemented on special HW like FPGAs.
+ * <p>It is assumed that these custom instructions will execute parts of the program's statements as
+ * special purpose instructions i.e. implemented on special HW like FPGAs.
  *
- * Used to support the extraction of requirements for the custom instructions from
- * the software analysis result as explained in approach #3 of paper
+ * <p>Used to support the extraction of requirements for the custom instructions from the software
+ * analysis result as explained in approach #3 of paper
  *
- * M.-C. Jakobs, M. Platzner, T. Wiersema, H. Wehrheim:
- * Integrating Softwaren and Hardware Verification
- * Integrated Formal Methods, LNCS, Springer, 2014
+ * <p>M.-C. Jakobs, M. Platzner, T. Wiersema, H. Wehrheim: Integrating Softwaren and Hardware
+ * Verification Integrated Formal Methods, LNCS, Springer, 2014
  */
 package org.sosy_lab.cpachecker.util.ci;

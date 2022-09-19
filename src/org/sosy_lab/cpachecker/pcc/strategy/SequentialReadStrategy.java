@@ -33,7 +33,8 @@ public abstract class SequentialReadStrategy extends AbstractStrategy {
   }
 
   @Override
-  protected void readProofFromStream(ObjectInputStream in) throws ClassNotFoundException, InvalidConfigurationException, IOException{
+  protected void readProofFromStream(ObjectInputStream in)
+      throws ClassNotFoundException, InvalidConfigurationException, IOException {
     prepareForChecking(in.readObject());
   }
 
@@ -41,5 +42,6 @@ public abstract class SequentialReadStrategy extends AbstractStrategy {
       UnmodifiableReachedSet pReached, ConfigurableProgramAnalysis pCpa)
       throws InvalidConfigurationException;
 
-  protected abstract void prepareForChecking(Object pReadObject) throws InvalidConfigurationException;
+  protected abstract void prepareForChecking(Object pReadObject)
+      throws InvalidConfigurationException;
 }

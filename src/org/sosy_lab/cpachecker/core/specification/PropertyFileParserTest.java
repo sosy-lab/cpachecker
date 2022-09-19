@@ -86,7 +86,7 @@ public class PropertyFileParserTest {
           .put(
               "CHECK( init(main()), LTL( F G (x = 1) ) )",
               new OtherLtlProperty(" F G (x = 1) ")) // TODO should trim
-          .build();
+          .buildOrThrow();
 
   private static final String VALID_ASSERT_PROPERTY = "CHECK( init(main()), LTL(G assert) )";
 

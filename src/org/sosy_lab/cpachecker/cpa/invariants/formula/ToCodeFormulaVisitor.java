@@ -28,13 +28,14 @@ import org.sosy_lab.cpachecker.util.expressions.Or;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 /**
- * Instances of this class are compound state invariants visitors used to
- * convert the visited invariants formulae into bit vector formulae.
+ * Instances of this class are compound state invariants visitors used to convert the visited
+ * invariants formulae into bit vector formulae.
  */
 public class ToCodeFormulaVisitor
     implements ParameterizedNumeralFormulaVisitor<
             CompoundInterval,
-            Map<? extends MemoryLocation, ? extends NumeralFormula<CompoundInterval>>, String>,
+            Map<? extends MemoryLocation, ? extends NumeralFormula<CompoundInterval>>,
+            String>,
         ParameterizedBooleanFormulaVisitor<
             CompoundInterval,
             Map<? extends MemoryLocation, ? extends NumeralFormula<CompoundInterval>>,
@@ -55,24 +56,25 @@ public class ToCodeFormulaVisitor
   };
 
   /**
-   * The formula evaluation visitor used to evaluate compound state invariants
-   * formulae to compound states.
+   * The formula evaluation visitor used to evaluate compound state invariants formulae to compound
+   * states.
    */
   private final FormulaEvaluationVisitor<CompoundInterval> evaluationVisitor;
 
   private final MachineModel machineModel;
 
   /**
-   * Creates a new visitor for converting compound state invariants formulae to
-   * bit vector formulae by using the given formula manager, and evaluation visitor.
+   * Creates a new visitor for converting compound state invariants formulae to bit vector formulae
+   * by using the given formula manager, and evaluation visitor.
    *
-   * @param pEvaluationVisitor the formula evaluation visitor used to evaluate
-   * compound state invariants formulae to compound states.
+   * @param pEvaluationVisitor the formula evaluation visitor used to evaluate compound state
+   *     invariants formulae to compound states.
    * @param pMachineModel the machine model used to find the cast types.
    */
-  public ToCodeFormulaVisitor(FormulaEvaluationVisitor<CompoundInterval> pEvaluationVisitor, MachineModel pMachineModel) {
-    this.evaluationVisitor = pEvaluationVisitor;
-    this.machineModel = pMachineModel;
+  public ToCodeFormulaVisitor(
+      FormulaEvaluationVisitor<CompoundInterval> pEvaluationVisitor, MachineModel pMachineModel) {
+    evaluationVisitor = pEvaluationVisitor;
+    machineModel = pMachineModel;
   }
 
   private CSimpleType determineType(TypeInfo pTypeInfo) {
@@ -104,18 +106,19 @@ public class ToCodeFormulaVisitor
   }
 
   /**
-   * Evaluates the given compound state invariants formula and tries to convert
-   * the resulting value into a bit vector formula.
+   * Evaluates the given compound state invariants formula and tries to convert the resulting value
+   * into a bit vector formula.
    *
    * @param pFormula the formula to evaluate.
    * @param pEnvironment the environment to evaluate the formula in.
-   *
-   * @return a bit vector formula representing the evaluation of the given
-   * formula or <code>null</code> if the evaluation of the given formula could
-   * not be represented as a bit vector formula.
+   * @return a bit vector formula representing the evaluation of the given formula or <code>null
+   *     </code> if the evaluation of the given formula could not be represented as a bit vector
+   *     formula.
    */
-  private @Nullable String evaluate(NumeralFormula<CompoundInterval> pFormula, Map<? extends MemoryLocation, ? extends NumeralFormula<CompoundInterval>> pEnvironment) {
-    CompoundInterval intervals = pFormula.accept(this.evaluationVisitor, pEnvironment);
+  private @Nullable String evaluate(
+      NumeralFormula<CompoundInterval> pFormula,
+      Map<? extends MemoryLocation, ? extends NumeralFormula<CompoundInterval>> pEnvironment) {
+    CompoundInterval intervals = pFormula.accept(evaluationVisitor, pEnvironment);
     if (intervals.isSingleton()) {
       TypeInfo info = pFormula.getTypeInfo();
       if (info instanceof BitVectorInfo) {
@@ -126,14 +129,11 @@ public class ToCodeFormulaVisitor
   }
 
   /**
-   * Encodes the given value as a bit vector formula using the given bit vector
-   * information.
+   * Encodes the given value as a bit vector formula using the given bit vector information.
    *
    * @param pInfo the bit vector information.
    * @param pValue the value.
-   *
-   * @return a bit vector formula representing the given value as a bit vector
-   * with the given size.
+   * @return a bit vector formula representing the given value as a bit vector with the given size.
    */
   private String asFormulaString(TypeInfo pInfo, Number pValue) {
     if (pInfo instanceof BitVectorInfo && pValue instanceof BigInteger) {
@@ -170,7 +170,9 @@ public class ToCodeFormulaVisitor
   }
 
   @Override
-  public String visit(Add<CompoundInterval> pAdd, Map<? extends MemoryLocation, ? extends NumeralFormula<CompoundInterval>> pEnvironment) {
+  public String visit(
+      Add<CompoundInterval> pAdd,
+      Map<? extends MemoryLocation, ? extends NumeralFormula<CompoundInterval>> pEnvironment) {
     NumeralFormula<CompoundInterval> summand1 = pAdd.getSummand1();
     NumeralFormula<CompoundInterval> summand2 = pAdd.getSummand2();
     String summand1Str = summand1.accept(this, pEnvironment);
@@ -214,32 +216,44 @@ public class ToCodeFormulaVisitor
   }
 
   @Override
-  public String visit(BinaryAnd<CompoundInterval> pAnd, Map<? extends MemoryLocation, ? extends NumeralFormula<CompoundInterval>> pEnvironment) {
+  public String visit(
+      BinaryAnd<CompoundInterval> pAnd,
+      Map<? extends MemoryLocation, ? extends NumeralFormula<CompoundInterval>> pEnvironment) {
     return evaluate(pAnd, pEnvironment);
   }
 
   @Override
-  public String visit(BinaryNot<CompoundInterval> pNot, Map<? extends MemoryLocation, ? extends NumeralFormula<CompoundInterval>> pEnvironment) {
+  public String visit(
+      BinaryNot<CompoundInterval> pNot,
+      Map<? extends MemoryLocation, ? extends NumeralFormula<CompoundInterval>> pEnvironment) {
     return evaluate(pNot, pEnvironment);
   }
 
   @Override
-  public String visit(BinaryOr<CompoundInterval> pOr, Map<? extends MemoryLocation, ? extends NumeralFormula<CompoundInterval>> pEnvironment) {
+  public String visit(
+      BinaryOr<CompoundInterval> pOr,
+      Map<? extends MemoryLocation, ? extends NumeralFormula<CompoundInterval>> pEnvironment) {
     return evaluate(pOr, pEnvironment);
   }
 
   @Override
-  public String visit(BinaryXor<CompoundInterval> pXor, Map<? extends MemoryLocation, ? extends NumeralFormula<CompoundInterval>> pEnvironment) {
+  public String visit(
+      BinaryXor<CompoundInterval> pXor,
+      Map<? extends MemoryLocation, ? extends NumeralFormula<CompoundInterval>> pEnvironment) {
     return evaluate(pXor, pEnvironment);
   }
 
   @Override
-  public String visit(Constant<CompoundInterval> pConstant, Map<? extends MemoryLocation, ? extends NumeralFormula<CompoundInterval>> pEnvironment) {
+  public String visit(
+      Constant<CompoundInterval> pConstant,
+      Map<? extends MemoryLocation, ? extends NumeralFormula<CompoundInterval>> pEnvironment) {
     return evaluate(pConstant, pEnvironment);
   }
 
   @Override
-  public String visit(Divide<CompoundInterval> pDivide, Map<? extends MemoryLocation, ? extends NumeralFormula<CompoundInterval>> pEnvironment) {
+  public String visit(
+      Divide<CompoundInterval> pDivide,
+      Map<? extends MemoryLocation, ? extends NumeralFormula<CompoundInterval>> pEnvironment) {
     String numerator = pDivide.getNumerator().accept(this, pEnvironment);
     String denominator = pDivide.getDenominator().accept(this, pEnvironment);
     if (numerator == null || denominator == null) {
@@ -249,13 +263,16 @@ public class ToCodeFormulaVisitor
   }
 
   @Override
-  public String visit(Exclusion<CompoundInterval> pExclusion,
+  public String visit(
+      Exclusion<CompoundInterval> pExclusion,
       Map<? extends MemoryLocation, ? extends NumeralFormula<CompoundInterval>> pEnvironment) {
     return evaluate(pExclusion, pEnvironment);
   }
 
   @Override
-  public String visit(Modulo<CompoundInterval> pModulo, Map<? extends MemoryLocation, ? extends NumeralFormula<CompoundInterval>> pEnvironment) {
+  public String visit(
+      Modulo<CompoundInterval> pModulo,
+      Map<? extends MemoryLocation, ? extends NumeralFormula<CompoundInterval>> pEnvironment) {
     String numerator = pModulo.getNumerator().accept(this, pEnvironment);
     String denominator = pModulo.getDenominator().accept(this, pEnvironment);
     if (numerator == null || denominator == null) {
@@ -265,7 +282,9 @@ public class ToCodeFormulaVisitor
   }
 
   @Override
-  public String visit(Multiply<CompoundInterval> pMultiply, Map<? extends MemoryLocation, ? extends NumeralFormula<CompoundInterval>> pEnvironment) {
+  public String visit(
+      Multiply<CompoundInterval> pMultiply,
+      Map<? extends MemoryLocation, ? extends NumeralFormula<CompoundInterval>> pEnvironment) {
     String factor1 = pMultiply.getFactor1().accept(this, pEnvironment);
     String factor2 = pMultiply.getFactor2().accept(this, pEnvironment);
     if (factor1 == null || factor2 == null) {
@@ -280,27 +299,36 @@ public class ToCodeFormulaVisitor
   }
 
   @Override
-  public String visit(ShiftLeft<CompoundInterval> pShiftLeft, Map<? extends MemoryLocation, ? extends NumeralFormula<CompoundInterval>> pEnvironment) {
+  public String visit(
+      ShiftLeft<CompoundInterval> pShiftLeft,
+      Map<? extends MemoryLocation, ? extends NumeralFormula<CompoundInterval>> pEnvironment) {
     return evaluate(pShiftLeft, pEnvironment);
   }
 
   @Override
-  public String visit(ShiftRight<CompoundInterval> pShiftRight, Map<? extends MemoryLocation, ? extends NumeralFormula<CompoundInterval>> pEnvironment) {
+  public String visit(
+      ShiftRight<CompoundInterval> pShiftRight,
+      Map<? extends MemoryLocation, ? extends NumeralFormula<CompoundInterval>> pEnvironment) {
     return evaluate(pShiftRight, pEnvironment);
   }
 
   @Override
-  public String visit(Union<CompoundInterval> pUnion, Map<? extends MemoryLocation, ? extends NumeralFormula<CompoundInterval>> pEnvironment) {
+  public String visit(
+      Union<CompoundInterval> pUnion,
+      Map<? extends MemoryLocation, ? extends NumeralFormula<CompoundInterval>> pEnvironment) {
     return evaluate(pUnion, pEnvironment);
   }
 
   @Override
-  public String visit(Variable<CompoundInterval> pVariable, Map<? extends MemoryLocation, ? extends NumeralFormula<CompoundInterval>> pEnvironment) {
+  public String visit(
+      Variable<CompoundInterval> pVariable,
+      Map<? extends MemoryLocation, ? extends NumeralFormula<CompoundInterval>> pEnvironment) {
     return pVariable.getMemoryLocation().getIdentifier();
   }
 
   @Override
-  public String visit(Cast<CompoundInterval> pCast,
+  public String visit(
+      Cast<CompoundInterval> pCast,
       Map<? extends MemoryLocation, ? extends NumeralFormula<CompoundInterval>> pEnvironment) {
     TypeInfo targetInfo = pCast.getTypeInfo();
     String sourceFormula = pCast.getCasted().accept(this, pEnvironment);
@@ -319,9 +347,11 @@ public class ToCodeFormulaVisitor
   }
 
   @Override
-  public String visit(IfThenElse<CompoundInterval> pIfThenElse,
+  public String visit(
+      IfThenElse<CompoundInterval> pIfThenElse,
       Map<? extends MemoryLocation, ? extends NumeralFormula<CompoundInterval>> pEnvironment) {
-    BooleanConstant<CompoundInterval> conditionEval = pIfThenElse.getCondition().accept(evaluationVisitor, pEnvironment);
+    BooleanConstant<CompoundInterval> conditionEval =
+        pIfThenElse.getCondition().accept(evaluationVisitor, pEnvironment);
     if (BooleanConstant.isTrue(conditionEval)) {
       return pIfThenElse.getPositiveCase().accept(this, pEnvironment);
     }
@@ -331,7 +361,9 @@ public class ToCodeFormulaVisitor
 
     ExpressionTree<String> conditionFormula = pIfThenElse.getCondition().accept(this, pEnvironment);
     if (conditionFormula == null) {
-      return InvariantsFormulaManager.INSTANCE.union(pIfThenElse.getPositiveCase(), pIfThenElse.getNegativeCase()).accept(this, pEnvironment);
+      return InvariantsFormulaManager.INSTANCE
+          .union(pIfThenElse.getPositiveCase(), pIfThenElse.getNegativeCase())
+          .accept(this, pEnvironment);
     }
 
     String positiveCaseFormula = pIfThenElse.getPositiveCase().accept(this, pEnvironment);
@@ -342,12 +374,7 @@ public class ToCodeFormulaVisitor
     if (negativeCaseFormula == null) {
       return null;
     }
-    return "("
-         + conditionFormula
-         + " ? "
-         + positiveCaseFormula
-         + " : "
-         + negativeCaseFormula + ")";
+    return "(" + conditionFormula + " ? " + positiveCaseFormula + " : " + negativeCaseFormula + ")";
   }
 
   @Override
@@ -358,20 +385,20 @@ public class ToCodeFormulaVisitor
 
     // Check not equals
     ExpressionTree<String> inversion = ExpressionTrees.getTrue();
-    CompoundInterval op1EvalInvert = pEqual.getOperand1().accept(evaluationVisitor, pEnvironment).invert();
+    CompoundInterval op1EvalInvert =
+        pEqual.getOperand1().accept(evaluationVisitor, pEnvironment).invert();
     // TODO check changes, possibly have to be reverted
     if (op1EvalInvert.isSingleton() && pEqual.getOperand2() instanceof Variable) {
-      return
-              not(
-                  Equal.of(Constant.of(typeInfo, op1EvalInvert), pEqual.getOperand2())
-                      .accept(this, pEnvironment));
+      return not(
+          Equal.of(Constant.of(typeInfo, op1EvalInvert), pEqual.getOperand2())
+              .accept(this, pEnvironment));
     }
-    CompoundInterval op2EvalInvert = pEqual.getOperand2().accept(evaluationVisitor, pEnvironment).invert();
+    CompoundInterval op2EvalInvert =
+        pEqual.getOperand2().accept(evaluationVisitor, pEnvironment).invert();
     if (op2EvalInvert.isSingleton() && pEqual.getOperand1() instanceof Variable) {
-      return
-              not(
-                  Equal.of(pEqual.getOperand1(), Constant.of(typeInfo, op2EvalInvert))
-                      .accept(this, pEnvironment));
+      return not(
+          Equal.of(pEqual.getOperand1(), Constant.of(typeInfo, op2EvalInvert))
+              .accept(this, pEnvironment));
     }
 
     // General case
@@ -518,5 +545,4 @@ public class ToCodeFormulaVisitor
       Map<? extends MemoryLocation, ? extends NumeralFormula<CompoundInterval>> pEnvironment) {
     return ExpressionTrees.getTrue();
   }
-
 }

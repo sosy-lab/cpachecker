@@ -119,7 +119,8 @@ public class PredicateToValuePrecisionConverter implements Statistics {
       secure = true,
       name = "includeControlNonEquiv",
       description =
-          "also consider other binary operators then ==, !== when considering control dependencies while adapting predicate precision")
+          "also consider other binary operators then ==, !== when considering control dependencies"
+              + " while adapting predicate precision")
   private boolean nonEquivalenceInControl = false;
 
   @Option(
@@ -196,7 +197,8 @@ public class PredicateToValuePrecisionConverter implements Statistics {
           try {
             logger.log(
                 Level.FINE,
-                "Enhance value precision converted from predicate precision with additional relevant variables");
+                "Enhance value precision converted from predicate precision with additional"
+                    + " relevant variables");
             // TODO disable option dependencegraph.controldeps.considerPointees?
             Configuration depGraphConfig =
                 Configuration.builder()
@@ -313,7 +315,7 @@ public class PredicateToValuePrecisionConverter implements Statistics {
 
     PredicateMapParser mapParser =
         new PredicateMapParser(
-            cfa, this.logger, pFMgr, abstractionManager, new InitialPredicatesOptions());
+            cfa, logger, pFMgr, abstractionManager, new InitialPredicatesOptions());
 
     try {
       return mapParser.parsePredicates(pPredPrecFile);
@@ -495,7 +497,8 @@ public class PredicateToValuePrecisionConverter implements Statistics {
     }
 
     @Override
-    public VisitResult visitEdge(final EdgeType pType, final Node pPredecessor, final Node pSuccessor) {
+    public VisitResult visitEdge(
+        final EdgeType pType, final Node pPredecessor, final Node pSuccessor) {
       if (pType == EdgeType.CONTROL_DEPENDENCY) {
         CFAEdge edge = pSuccessor.getStatement().orElse(null);
         if (edge instanceof CAssumeEdge) {
@@ -572,7 +575,5 @@ public class PredicateToValuePrecisionConverter implements Statistics {
       }
       return Optional.empty();
     }
-
-
   }
 }

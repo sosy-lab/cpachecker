@@ -24,7 +24,6 @@ import org.sosy_lab.cpachecker.pcc.strategy.AbstractStrategy.PCStrategyStatistic
 import org.sosy_lab.cpachecker.pcc.strategy.partitioning.PartitioningIOHelper;
 import org.sosy_lab.cpachecker.util.Triple;
 
-
 public class ParallelPartitionReader implements Runnable {
 
   private final AtomicBoolean success;
@@ -41,10 +40,14 @@ public class ParallelPartitionReader implements Runnable {
 
   private static final Lock lock = new ReentrantLock();
 
-
-  public ParallelPartitionReader(final AtomicBoolean isSuccess, final Semaphore partitionsRead,
-      final Semaphore pPartitionChecked, final AtomicInteger nextPartitionId, final AbstractStrategy proofReader,
-      final PartitioningIOHelper pIOHelper, final PCStrategyStatistics pStats,
+  public ParallelPartitionReader(
+      final AtomicBoolean isSuccess,
+      final Semaphore partitionsRead,
+      final Semaphore pPartitionChecked,
+      final AtomicInteger nextPartitionId,
+      final AbstractStrategy proofReader,
+      final PartitioningIOHelper pIOHelper,
+      final PCStrategyStatistics pStats,
       final LogManager pLogger) {
     success = isSuccess;
     waitRead = partitionsRead;
@@ -56,18 +59,21 @@ public class ParallelPartitionReader implements Runnable {
     logger = pLogger;
   }
 
-  public ParallelPartitionReader(final AtomicBoolean isSuccess, final Semaphore partitionsRead,
-      final AtomicInteger nextPartitionId, final AbstractStrategy proofReader,
-      final PartitioningIOHelper pIOHelper, final PCStrategyStatistics pStats,
+  public ParallelPartitionReader(
+      final AtomicBoolean isSuccess,
+      final Semaphore partitionsRead,
+      final AtomicInteger nextPartitionId,
+      final AbstractStrategy proofReader,
+      final PartitioningIOHelper pIOHelper,
+      final PCStrategyStatistics pStats,
       final LogManager pLogger) {
     this(isSuccess, partitionsRead, null, nextPartitionId, proofReader, pIOHelper, pStats, pLogger);
   }
 
-
   private void prepareAbortion() {
     success.set(false);
     waitRead.release(ioHelper.getNumPartitions());
-    if(partitionChecked!=null){
+    if (partitionChecked != null) {
       partitionChecked.release(ioHelper.getNumPartitions());
     }
   }

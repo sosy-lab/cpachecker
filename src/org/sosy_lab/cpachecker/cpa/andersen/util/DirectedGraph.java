@@ -19,15 +19,12 @@ import java.util.Set;
 
 /**
  * This class represents a directed graph.<br>
- * A new {@link DirectedGraph.Node} for the variable <code>var</code> is inserted by calling
- * {@link DirectedGraph#getNode(String var)} if <code>var</code> is not already mapped to another
- * node.
+ * A new {@link DirectedGraph.Node} for the variable <code>var</code> is inserted by calling {@link
+ * DirectedGraph#getNode(String var)} if <code>var</code> is not already mapped to another node.
  */
 public class DirectedGraph {
 
-  /**
-   * This class represents a <code>Node</code> in a {@link DirectedGraph}.
-   */
+  /** This class represents a <code>Node</code> in a {@link DirectedGraph}. */
   public class Node {
 
     /** The Node this one was merged into, or <code>null</code> if this node is still valid. */
@@ -60,7 +57,6 @@ public class DirectedGraph {
     /** This {@link DirectedGraph.Node}s successors. */
     private final Set<DirectedGraph.Node> successors = new HashSet<>();
 
-
     private Node() {}
 
     /**
@@ -68,7 +64,6 @@ public class DirectedGraph {
      * <i>Note:</i> A {@link DirectedGraph.Node} gets invalid, if it is merged into another one.
      *
      * @return <code>true</code> if this {@link DirectedGraph.Node} is still valid.
-     *
      * @see DirectedGraph.Node#getReplacement()
      */
     public boolean isValid() {
@@ -81,7 +76,6 @@ public class DirectedGraph {
      * this {@link DirectedGraph.Node} is still vaild.
      *
      * @return the {@link DirectedGraph.Node} this one was merged into.
-     *
      * @see DirectedGraph.Node#isValid()
      */
     public DirectedGraph.Node getReplacement() {
@@ -93,8 +87,7 @@ public class DirectedGraph {
      * Tests if the given {@link DirectedGraph.Node} is a successor of this one. In other words,
      * tests if there is an edge from this {@link DirectedGraph.Node} to the passed one.
      *
-     * @param succ
-     *        The other {@link DirectedGraph.Node}.
+     * @param succ The other {@link DirectedGraph.Node}.
      * @return <code>true</code> if the given {@link DirectedGraph.Node} is a successor of this one.
      */
     public boolean isSuccessor(DirectedGraph.Node succ) {
@@ -116,19 +109,18 @@ public class DirectedGraph {
      * Propagates all points-to information from this {@link DirectedGraph.Node} to the given one.
      *
      * @return <code>true</code> if the points-to set of the given {@link DirectedGraph.Node}
-     *         changed as a result of this call.
+     *     changed as a result of this call.
      */
     public boolean propagatePointerTargetsTo(DirectedGraph.Node other) {
 
-      return other.pointsToSet.addAll(this.pointsToSet);
+      return other.pointsToSet.addAll(pointsToSet);
     }
 
     /**
      * Adds a variable to this {@link DirectedGraph.Node}s points-to set.
      *
-     * @param var
-     *        Name of the variable that should be added to this {@link DirectedGraph.Node}s
-     *        points-to set.
+     * @param var Name of the variable that should be added to this {@link DirectedGraph.Node}s
+     *     points-to set.
      */
     public void addPointerTarget(String var) {
 
@@ -178,10 +170,8 @@ public class DirectedGraph {
      * Creates a new {@link DirectedGraph.Edge} with the given {@link DirectedGraph.Node}s as source
      * and destination.
      *
-     * @param src
-     *        The source {@link DirectedGraph.Node} of this {@link DirectedGraph.Edge}.
-     * @param dest
-     *        The destination {@link DirectedGraph.Node} of this {@link DirectedGraph.Edge}.
+     * @param src The source {@link DirectedGraph.Node} of this {@link DirectedGraph.Edge}.
+     * @param dest The destination {@link DirectedGraph.Node} of this {@link DirectedGraph.Edge}.
      */
     public Edge(DirectedGraph.Node src, DirectedGraph.Node dest) {
       this.src = src;
@@ -197,7 +187,7 @@ public class DirectedGraph {
         return false;
       }
       DirectedGraph.Edge o = (DirectedGraph.Edge) other;
-      return this.src.equals(o.src) && this.dest.equals(o.dest);
+      return src.equals(o.src) && dest.equals(o.dest);
     }
 
     @Override
@@ -211,8 +201,9 @@ public class DirectedGraph {
 
   /**
    * Detects a cycle in this graph that contains the edge from <code>src</code> to <code>dest</code>
-   * and merges all nodes in it. Returns the new, merged node, if a cycle is found, else
-   * <code>null</code>.
+   * and merges all nodes in it. Returns the new, merged node, if a cycle is found, else <code>null
+   * </code>.
+   *
    * @return The merged node, if a cylce was found, else <code>null</code>.
    */
   public DirectedGraph.Node detectAndCollapseCycleContainingEdge(DirectedGraph.Edge edge) {
@@ -230,7 +221,8 @@ public class DirectedGraph {
     reached.add(edge.dest);
 
     // use dfs to find cylces containing n
-    dfs: while (!stack.isEmpty()) {
+    dfs:
+    while (!stack.isEmpty()) {
 
       // get new path to check
       path = stack.poll();
@@ -263,7 +255,6 @@ public class DirectedGraph {
         Deque<DirectedGraph.Node> extPath = new ArrayDeque<>(path);
         extPath.add(succ);
         stack.push(extPath);
-
       } // for (DirectedGraph.Node succ : cur.getSuccessors())
 
       // all successors of current path checked and no cycle... try next path from stack
@@ -284,11 +275,11 @@ public class DirectedGraph {
   /**
    * Merges all given in one node and updates the graph appropriately.
    *
-   * @param nodes
-   *        List of nodes that should be merged.
+   * @param nodes List of nodes that should be merged.
    * @return The node, that replaces all given.
    */
-  public DirectedGraph.Node mergeNodes(DirectedGraph.Node merged, Collection<DirectedGraph.Node> nodes) {
+  public DirectedGraph.Node mergeNodes(
+      DirectedGraph.Node merged, Collection<DirectedGraph.Node> nodes) {
 
     if (nodes != null) {
       for (DirectedGraph.Node n : nodes) {
@@ -300,13 +291,11 @@ public class DirectedGraph {
   }
 
   /**
-   * Merges the node <code>old</code> into <code>merged</code> and returns <code>merged</code>.
-   * The graph is also updated appropriately.
+   * Merges the node <code>old</code> into <code>merged</code> and returns <code>merged</code>. The
+   * graph is also updated appropriately.
    *
-   * @param merged
-   *        First node.
-   * @param old
-   *        Second node.
+   * @param merged First node.
+   * @param old Second node.
    * @return the first, updated node <code>merged</code>.
    */
   public DirectedGraph.Node mergeNodes(DirectedGraph.Node merged, DirectedGraph.Node old) {
@@ -333,9 +322,7 @@ public class DirectedGraph {
    * variable. If there is no node associated with the given variable, a new one is created and
    * returned.
    *
-   * @param var
-   *        Variable name for the requested {@link DirectedGraph.Node}.
-   *
+   * @param var Variable name for the requested {@link DirectedGraph.Node}.
    * @return the {@link DirectedGraph.Node} associated witht he given variable.
    */
   public DirectedGraph.Node getNode(String var) {
@@ -355,8 +342,8 @@ public class DirectedGraph {
   }
 
   /**
-   * Returns the name mappings for this graph. Modifications of the elements of the returned
-   * {@link Collection} are reflected in this graphs name mapping.
+   * Returns the name mappings for this graph. Modifications of the elements of the returned {@link
+   * Collection} are reflected in this graphs name mapping.
    *
    * @return a {@link Collection} of name mappings.
    */
@@ -377,10 +364,8 @@ public class DirectedGraph {
   /**
    * Adds an edge to this graph.
    *
-   * @param src
-   *        Source node of the new edge.
-   * @param dest
-   *        Destination node of the new edge.
+   * @param src Source node of the new edge.
+   * @param dest Destination node of the new edge.
    */
   public void addEdge(DirectedGraph.Node src, DirectedGraph.Node dest) {
 

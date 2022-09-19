@@ -21,20 +21,19 @@ import org.sosy_lab.cpachecker.util.refinement.FeasibilityChecker;
 import org.sosy_lab.cpachecker.util.refinement.GenericEdgeInterpolator;
 import org.sosy_lab.cpachecker.util.refinement.StrongestPostOperator;
 
-@Options(prefix="cpa.value.interpolation")
+@Options(prefix = "cpa.value.interpolation")
 public class ValueAnalysisEdgeInterpolator
-    extends GenericEdgeInterpolator<ValueAnalysisState, ValueAnalysisInformation, ValueAnalysisInterpolant> {
+    extends GenericEdgeInterpolator<
+        ValueAnalysisState, ValueAnalysisInformation, ValueAnalysisInterpolant> {
 
-  /**
-   * This method acts as the constructor of the class.
-   */
+  /** This method acts as the constructor of the class. */
   public ValueAnalysisEdgeInterpolator(
       final FeasibilityChecker<ValueAnalysisState> pFeasibilityChecker,
       final StrongestPostOperator<ValueAnalysisState> pStrongestPostOperator,
       final Configuration pConfig,
       final ShutdownNotifier pShutdownNotifier,
-      final CFA pCfa
-  ) throws InvalidConfigurationException {
+      final CFA pCfa)
+      throws InvalidConfigurationException {
 
     super(
         pStrongestPostOperator,

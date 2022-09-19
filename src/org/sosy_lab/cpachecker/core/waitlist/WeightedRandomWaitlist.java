@@ -120,8 +120,7 @@ public class WeightedRandomWaitlist implements Waitlist {
         states.remove(state);
       }
       return removed;
-    }
-     else {
+    } else {
       return false;
     }
   }
@@ -137,7 +136,7 @@ public class WeightedRandomWaitlist implements Waitlist {
 
   @Override
   public Iterator<AbstractState> iterator() {
-    if(states.isEmpty()) {
+    if (states.isEmpty()) {
       return new Iterator<>() {
 
         @Override
@@ -178,4 +177,3 @@ public class WeightedRandomWaitlist implements Waitlist {
     };
   }
 }
-

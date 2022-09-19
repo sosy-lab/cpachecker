@@ -41,20 +41,17 @@ public class BDDExistsTest {
   @Test
   public void existsTest() throws InvalidConfigurationException {
     config = Configuration.builder().setOption("bdd.package", bddPackage).build();
-    nrm =
-        new NamedRegionManager(new BDDManagerFactory(config, logger).createRegionManager());
+    nrm = new NamedRegionManager(new BDDManagerFactory(config, logger).createRegionManager());
 
-    Region r0  = nrm.createPredicate("r0");
-    Region r1  = nrm.createPredicate("r1");
-    Region r2  = nrm.createPredicate("r2");
+    Region r0 = nrm.createPredicate("r0");
+    Region r1 = nrm.createPredicate("r1");
+    Region r2 = nrm.createPredicate("r2");
 
     Region complete = r2;
     complete = nrm.makeAnd(complete, r1);
     complete = nrm.makeAnd(complete, r0);
 
     Region reduced = nrm.makeExists(complete, r1, r2);
-    assertWithMessage(nrm.dumpRegion(reduced).toString())
-        .that(reduced)
-        .isEqualTo(r0);
+    assertWithMessage(nrm.dumpRegion(reduced).toString()).that(reduced).isEqualTo(r0);
   }
 }

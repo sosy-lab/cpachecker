@@ -22,16 +22,16 @@ import org.sosy_lab.cpachecker.core.specification.Specification;
 public class AlgorithmCompositionStrategyBuilder {
 
   @Option(
-    secure = true,
-    description = "Qualified name for class which implements strategy that decides how to compose given analyses")
+      secure = true,
+      description =
+          "Qualified name for class which implements strategy that decides how to compose given"
+              + " analyses")
   @ClassOption(packagePrefix = "org.sosy_lab.cpachecker.core.algorithm.composition")
   private AlgorithmCompositionStrategy.Factory strategy =
-      (config, logger, shutdownNotifier, cfa, spec) -> new CircularCompositionStrategy(
-          config,
-          logger);
+      (config, logger, shutdownNotifier, cfa, spec) ->
+          new CircularCompositionStrategy(config, logger);
 
-  private AlgorithmCompositionStrategyBuilder() {
-  }
+  private AlgorithmCompositionStrategyBuilder() {}
 
   public static AlgorithmCompositionStrategy buildStrategy(
       Configuration pConfig,
@@ -46,5 +46,4 @@ public class AlgorithmCompositionStrategyBuilder {
 
     return builder.strategy.create(pConfig, pLogger, pShutdownNotifier, pCfa, pSpecification);
   }
-
 }

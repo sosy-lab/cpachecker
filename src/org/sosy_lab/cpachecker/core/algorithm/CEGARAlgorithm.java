@@ -53,9 +53,11 @@ public class CEGARAlgorithm
     private final Timer totalTimer = new Timer();
     private final Timer refinementTimer = new Timer();
 
-    @SuppressFBWarnings(value = "VO_VOLATILE_INCREMENT",
+    @SuppressFBWarnings(
+        value = "VO_VOLATILE_INCREMENT",
         justification = "only one thread writes, others read")
     private volatile int countRefinements = 0;
+
     private int countSuccessfulRefinements = 0;
     private int countFailedRefinements = 0;
 
@@ -79,13 +81,21 @@ public class CEGARAlgorithm
         out.println("Number of failed refinements:         " + countFailedRefinements);
         out.println("Max. size of reached set before ref.: " + maxReachedSizeBeforeRefinement);
         out.println("Max. size of reached set after ref.:  " + maxReachedSizeAfterRefinement);
-        out.println("Avg. size of reached set before ref.: " + div(totalReachedSizeBeforeRefinement, countRefinements));
-        out.println("Avg. size of reached set after ref.:  " + div(totalReachedSizeAfterRefinement, countSuccessfulRefinements));
+        out.println(
+            "Avg. size of reached set before ref.: "
+                + div(totalReachedSizeBeforeRefinement, countRefinements));
+        out.println(
+            "Avg. size of reached set after ref.:  "
+                + div(totalReachedSizeAfterRefinement, countSuccessfulRefinements));
         out.println("");
         out.println("Total time for CEGAR algorithm:   " + totalTimer);
         out.println("Time for refinements:             " + refinementTimer);
-        out.println("Average time for refinement:      " + refinementTimer.getAvgTime().formatAs(TimeUnit.SECONDS));
-        out.println("Max time for refinement:          " + refinementTimer.getMaxTime().formatAs(TimeUnit.SECONDS));
+        out.println(
+            "Average time for refinement:      "
+                + refinementTimer.getAvgTime().formatAs(TimeUnit.SECONDS));
+        out.println(
+            "Max time for refinement:          "
+                + refinementTimer.getMaxTime().formatAs(TimeUnit.SECONDS));
       }
     }
   }
@@ -97,7 +107,9 @@ public class CEGARAlgorithm
 
   public interface CEGARMXBean {
     int getNumberOfRefinements();
+
     int getSizeOfReachedSetBeforeLastRefinement();
+
     boolean isRefinementActive();
   }
 
@@ -126,23 +138,22 @@ public class CEGARAlgorithm
   public static class CEGARAlgorithmFactory implements AlgorithmFactory {
 
     @Option(
-      secure = true,
-      name = "refiner",
-      required = true,
-      description =
-          "Which refinement algorithm to use? "
-              + "(give class name, required for CEGAR) If the package name starts with "
-              + "'org.sosy_lab.cpachecker.', this prefix can be omitted."
-    )
+        secure = true,
+        name = "refiner",
+        required = true,
+        description =
+            "Which refinement algorithm to use? "
+                + "(give class name, required for CEGAR) If the package name starts with "
+                + "'org.sosy_lab.cpachecker.', this prefix can be omitted.")
     @ClassOption(packagePrefix = "org.sosy_lab.cpachecker")
     private Refiner.Factory refinerFactory;
 
     @Option(
-      secure = true,
-      name = "globalRefinement",
-      description =
-          "Whether to do refinement immediately after finding an error state, or globally after the ARG has been unrolled completely."
-    )
+        secure = true,
+        name = "globalRefinement",
+        description =
+            "Whether to do refinement immediately after finding an error state, or globally after"
+                + " the ARG has been unrolled completely.")
     private boolean globalRefinement = false;
 
     /*
@@ -150,9 +161,8 @@ public class CEGARAlgorithm
      * too much time, so, limit refinement iterations and remove at least some infeasible paths
      */
     @Option(
-      name = "maxIterations",
-      description = "Max number of refinement iterations, -1 for no limit"
-    )
+        name = "maxIterations",
+        description = "Max number of refinement iterations, -1 for no limit")
     private int maxRefinementNum = -1;
 
     private final AlgorithmFactory algorithmFactory;
@@ -232,7 +242,11 @@ public class CEGARAlgorithm
         notifyReachedSetUpdateListeners(reached);
 
         if (stats.countRefinements == maxRefinementNum) {
-          logger.log(Level.WARNING, "Aborting analysis because maximum number of refinements " + maxRefinementNum + " used");
+          logger.log(
+              Level.WARNING,
+              "Aborting analysis because maximum number of refinements "
+                  + maxRefinementNum
+                  + " used");
           status = status.withPrecise(false);
           break;
         }
@@ -252,9 +266,9 @@ public class CEGARAlgorithm
             break;
           }
 
-          ((UnsoundRefiner)mRefiner).forceRestart(reached);
-          refinementSuccessful        = true;
-          refinedInPreviousIteration  = false;
+          ((UnsoundRefiner) mRefiner).forceRestart(reached);
+          refinementSuccessful = true;
+          refinedInPreviousIteration = false;
         }
 
       } while (refinementSuccessful);
@@ -287,7 +301,8 @@ public class CEGARAlgorithm
     logger.log(Level.FINE, "Error found, performing CEGAR");
     stats.countRefinements++;
     stats.totalReachedSizeBeforeRefinement += reached.size();
-    stats.maxReachedSizeBeforeRefinement = Math.max(stats.maxReachedSizeBeforeRefinement, reached.size());
+    stats.maxReachedSizeBeforeRefinement =
+        Math.max(stats.maxReachedSizeBeforeRefinement, reached.size());
     sizeOfReachedSetBeforeRefinement = reached.size();
 
     stats.refinementTimer.start();
@@ -307,7 +322,8 @@ public class CEGARAlgorithm
     if (refinementResult) {
       stats.countSuccessfulRefinements++;
       stats.totalReachedSizeAfterRefinement += reached.size();
-      stats.maxReachedSizeAfterRefinement = Math.max(stats.maxReachedSizeAfterRefinement, reached.size());
+      stats.maxReachedSizeAfterRefinement =
+          Math.max(stats.maxReachedSizeAfterRefinement, reached.size());
     }
 
     return refinementResult;
@@ -316,10 +332,10 @@ public class CEGARAlgorithm
   @Override
   public void collectStatistics(Collection<Statistics> pStatsCollection) {
     if (algorithm instanceof StatisticsProvider) {
-      ((StatisticsProvider)algorithm).collectStatistics(pStatsCollection);
+      ((StatisticsProvider) algorithm).collectStatistics(pStatsCollection);
     }
     if (mRefiner instanceof StatisticsProvider) {
-      ((StatisticsProvider)mRefiner).collectStatistics(pStatsCollection);
+      ((StatisticsProvider) mRefiner).collectStatistics(pStatsCollection);
     }
     pStatsCollection.add(stats);
   }
@@ -350,5 +366,4 @@ public class CEGARAlgorithm
   public void close() {
     CPAs.closeIfPossible(mRefiner, logger);
   }
-
 }

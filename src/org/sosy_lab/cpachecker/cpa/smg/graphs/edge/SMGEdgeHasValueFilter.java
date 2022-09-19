@@ -145,7 +145,7 @@ public class SMGEdgeHasValueFilter {
   }
 
   public boolean holdsFor(SMGEdgeHasValue pEdge) {
-    assert (sizeInBits >= 0 || sizeNotRequired || overlapsWith != null);
+    assert sizeInBits >= 0 || sizeNotRequired || overlapsWith != null;
     if (object != null && object != pEdge.getObject()) {
       return false;
     }

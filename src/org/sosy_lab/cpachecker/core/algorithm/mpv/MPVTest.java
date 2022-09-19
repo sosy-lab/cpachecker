@@ -169,7 +169,7 @@ public class MPVTest {
     builder.put("mpv.propertySeparator", propertySeparator);
     builder.put("mpv.partitionOperator", partitioningOperator);
     builder.put("mpv.findAllViolations", String.valueOf(findAllViolations));
-    return builder.build();
+    return builder.buildOrThrow();
   }
 
   private List<AbstractSingleProperty> parseResult(CPAcheckerResult result) {

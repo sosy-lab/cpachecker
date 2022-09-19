@@ -22,8 +22,7 @@ public final class Union<ConstantType> extends AbstractBinaryFormula<ConstantTyp
    * @param pOperand1 the first operand of the union.
    * @param pOperand2 the second operand of the union.
    */
-  private Union(NumeralFormula<ConstantType> pOperand1,
-      NumeralFormula<ConstantType> pOperand2) {
+  private Union(NumeralFormula<ConstantType> pOperand1, NumeralFormula<ConstantType> pOperand2) {
     super("u", true, pOperand1, pOperand2);
   }
 
@@ -34,23 +33,20 @@ public final class Union<ConstantType> extends AbstractBinaryFormula<ConstantTyp
 
   @Override
   public <ReturnType, ParamType> ReturnType accept(
-      ParameterizedNumeralFormulaVisitor<ConstantType, ParamType, ReturnType> pVisitor, ParamType pParameter) {
+      ParameterizedNumeralFormulaVisitor<ConstantType, ParamType, ReturnType> pVisitor,
+      ParamType pParameter) {
     return pVisitor.visit(this, pParameter);
   }
 
   /**
-   * Gets an invariants formula representing the union of the given invariants
-   * formulae.
+   * Gets an invariants formula representing the union of the given invariants formulae.
    *
    * @param pOperand1 the first operand.
    * @param pOperand2 the second operand.
-   *
-   * @return an invariants formula representing the union of the given invariants
-   * formulae.
+   * @return an invariants formula representing the union of the given invariants formulae.
    */
-  public static <ConstantType> Union<ConstantType> of(NumeralFormula<ConstantType> pOperand1,
-      NumeralFormula<ConstantType> pOperand2) {
+  public static <ConstantType> Union<ConstantType> of(
+      NumeralFormula<ConstantType> pOperand1, NumeralFormula<ConstantType> pOperand2) {
     return new Union<>(pOperand1, pOperand2);
   }
-
 }

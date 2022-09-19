@@ -22,11 +22,10 @@ import org.sosy_lab.cpachecker.cpa.bam.cache.BAMCache.BAMCacheEntry;
 public interface BAMDataManager {
 
   /**
-   * Associate the value previously associated with {@code oldState} with
-   * {@code newState}.
+   * Associate the value previously associated with {@code oldState} with {@code newState}.
    *
-   * @param oldStateMustExist If set, assumes that {@code oldState} is in the
-   *                          cache, otherwise, fails silently if it isn't.
+   * @param oldStateMustExist If set, assumes that {@code oldState} is in the cache, otherwise,
+   *     fails silently if it isn't.
    */
   void replaceStateInCaches(
       AbstractState oldState, AbstractState newState, boolean oldStateMustExist);
@@ -38,11 +37,14 @@ public interface BAMDataManager {
   ReachedSetFactory getReachedSetFactory();
 
   /**
-   * Register an expanded state in our data-manager,
-   * such that we know later, which state in which block was expanded to the state.
-   * */
-  void registerExpandedState(AbstractState expandedState, Precision expandedPrecision,
-      AbstractState reducedState, Block innerBlock);
+   * Register an expanded state in our data-manager, such that we know later, which state in which
+   * block was expanded to the state.
+   */
+  void registerExpandedState(
+      AbstractState expandedState,
+      Precision expandedPrecision,
+      AbstractState reducedState,
+      Block innerBlock);
 
   /**
    * Returns whether the current state is at a node, where several block-exits are available and one
@@ -62,9 +64,9 @@ public interface BAMDataManager {
   AbstractState getInnermostState(AbstractState state);
 
   /**
-   * Get a list of states {@code [s2,s3...]},
-   * such that {@code expand(s1)=s2}, {@code expand(s2)=s3},...
-   * The state {@code s1} is the state given as argument and is not contained in the list.
+   * Get a list of states {@code [s2,s3...]}, such that {@code expand(s1)=s2}, {@code
+   * expand(s2)=s3},... The state {@code s1} is the state given as argument and is not contained in
+   * the list.
    */
   List<AbstractState> getExpandedStatesList(AbstractState state);
 
@@ -101,17 +103,19 @@ public interface BAMDataManager {
 
   BAMCache getCache();
 
-  /** Some benchmarks are complicated and
-   *  all intermediate cache entries can not be stored due to large memory consumption,
-   *  then there is a way to clear all caches and to restore ARG completely. */
+  /**
+   * Some benchmarks are complicated and all intermediate cache entries can not be stored due to
+   * large memory consumption, then there is a way to clear all caches and to restore ARG
+   * completely.
+   */
   void clear();
 
   /** return a matching precision for the given expanded state, or Null if state is not found. */
-  @Nullable
-  Precision getExpandedPrecisionForState(AbstractState pState);
+  @Nullable Precision getExpandedPrecisionForState(AbstractState pState);
 
   /**
    * The results from cache will never be used for corresponding block entry
+   *
    * @param node The block entry
    * @return success
    */
@@ -119,6 +123,7 @@ public interface BAMDataManager {
 
   /**
    * If the corresponding block is 'uncached' the recursive analysis will not start
+   *
    * @param node Block entry to check
    * @return true if the block entry was added as 'uncached'
    */

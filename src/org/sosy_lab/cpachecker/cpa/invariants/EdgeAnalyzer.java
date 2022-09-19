@@ -63,17 +63,17 @@ import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 class EdgeAnalyzer {
 
-  private static final CollectVarsVisitor<CompoundInterval> COLLECT_VARS_VISITOR = new CollectVarsVisitor<>();
+  private static final CollectVarsVisitor<CompoundInterval> COLLECT_VARS_VISITOR =
+      new CollectVarsVisitor<>();
 
   private final CompoundIntervalManagerFactory compoundIntervalManagerFactory;
 
   private final MachineModel machineModel;
 
   public EdgeAnalyzer(
-      CompoundIntervalManagerFactory pCompoundIntervalManagerFactory,
-      MachineModel pMachineModel) {
-    this.compoundIntervalManagerFactory = pCompoundIntervalManagerFactory;
-    this.machineModel = pMachineModel;
+      CompoundIntervalManagerFactory pCompoundIntervalManagerFactory, MachineModel pMachineModel) {
+    compoundIntervalManagerFactory = pCompoundIntervalManagerFactory;
+    machineModel = pMachineModel;
   }
 
   /**
@@ -86,22 +86,24 @@ class EdgeAnalyzer {
       "MixedMutabilityReturnType") // would need lots of copying, result for short-term use only
   Map<MemoryLocation, CType> getInvolvedVariableTypes(CFAEdge pCfaEdge) {
     switch (pCfaEdge.getEdgeType()) {
-    case AssumeEdge: {
-      AssumeEdge assumeEdge = (AssumeEdge) pCfaEdge;
-      AExpression expression = assumeEdge.getExpression();
-      return getInvolvedVariableTypes(expression, pCfaEdge);
-    }
-    case DeclarationEdge: {
-      ADeclarationEdge declarationEdge = (ADeclarationEdge) pCfaEdge;
-      ADeclaration declaration = declarationEdge.getDeclaration();
-      if (declaration instanceof CVariableDeclaration) {
-        CVariableDeclaration variableDeclaration = (CVariableDeclaration) declaration;
-        MemoryLocation declaredVariable = MemoryLocation.forDeclaration(variableDeclaration);
-        CType type = variableDeclaration.getType();
-        CInitializer initializer = variableDeclaration.getInitializer();
-        if (initializer == null) {
-          return ImmutableMap.of(declaredVariable, type);
+      case AssumeEdge:
+        {
+          AssumeEdge assumeEdge = (AssumeEdge) pCfaEdge;
+          AExpression expression = assumeEdge.getExpression();
+          return getInvolvedVariableTypes(expression, pCfaEdge);
         }
+      case DeclarationEdge:
+        {
+          ADeclarationEdge declarationEdge = (ADeclarationEdge) pCfaEdge;
+          ADeclaration declaration = declarationEdge.getDeclaration();
+          if (declaration instanceof CVariableDeclaration) {
+            CVariableDeclaration variableDeclaration = (CVariableDeclaration) declaration;
+            MemoryLocation declaredVariable = MemoryLocation.forDeclaration(variableDeclaration);
+            CType type = variableDeclaration.getType();
+            CInitializer initializer = variableDeclaration.getInitializer();
+            if (initializer == null) {
+              return ImmutableMap.of(declaredVariable, type);
+            }
 
             final Map<MemoryLocation, CType> initializerVariableTypes =
                 getInvolvedVariableTypes(initializer, pCfaEdge);
@@ -114,21 +116,22 @@ class EdgeAnalyzer {
                     initializerVariableTypes.size() + 1)
                 .put(declaredVariable, type)
                 .putAll(initializerVariableTypes)
-                .build();
+                .buildOrThrow();
 
-      } else if (declaration instanceof AVariableDeclaration) {
-        throw new UnsupportedOperationException("Only C expressions are supported");
-      } else {
+          } else if (declaration instanceof AVariableDeclaration) {
+            throw new UnsupportedOperationException("Only C expressions are supported");
+          } else {
             return ImmutableMap.of();
-      }
-    }
-    case FunctionCallEdge: {
-      FunctionCallEdge functionCallEdge = (FunctionCallEdge) pCfaEdge;
-        Map<MemoryLocation, CType> result = new HashMap<>();
+          }
+        }
+      case FunctionCallEdge:
+        {
+          FunctionCallEdge functionCallEdge = (FunctionCallEdge) pCfaEdge;
+          Map<MemoryLocation, CType> result = new HashMap<>();
 
-      // Extract arguments
-      String callerFunctionName = pCfaEdge.getPredecessor().getFunctionName();
-      for (AExpression argument : functionCallEdge.getArguments()) {
+          // Extract arguments
+          String callerFunctionName = pCfaEdge.getPredecessor().getFunctionName();
+          for (AExpression argument : functionCallEdge.getArguments()) {
             result.putAll(
                 getInvolvedVariableTypes(
                     argument,
@@ -137,20 +140,22 @@ class EdgeAnalyzer {
                         machineModel,
                         callerFunctionName,
                         ImmutableMap.of())));
-      }
+          }
 
-      // Extract formal parameters
-      for (AParameterDeclaration parameter : functionCallEdge.getSuccessor().getFunctionParameters()) {
-        result.putAll(getInvolvedVariableTypes(parameter, pCfaEdge));
-      }
+          // Extract formal parameters
+          for (AParameterDeclaration parameter :
+              functionCallEdge.getSuccessor().getFunctionParameters()) {
+            result.putAll(getInvolvedVariableTypes(parameter, pCfaEdge));
+          }
 
-        return result;
-    }
-    case ReturnStatementEdge: {
-      AReturnStatementEdge returnStatementEdge = (AReturnStatementEdge) pCfaEdge;
-      if (returnStatementEdge.getExpression().isPresent()) {
-        AExpression returnExpression = returnStatementEdge.getExpression().get();
-          Map<MemoryLocation, CType> result = new HashMap<>();
+          return result;
+        }
+      case ReturnStatementEdge:
+        {
+          AReturnStatementEdge returnStatementEdge = (AReturnStatementEdge) pCfaEdge;
+          if (returnStatementEdge.getExpression().isPresent()) {
+            AExpression returnExpression = returnStatementEdge.getExpression().get();
+            Map<MemoryLocation, CType> result = new HashMap<>();
             Optional<? extends AAssignment> returnAssignment = returnStatementEdge.asAssignment();
             if (returnAssignment.isPresent()) {
               result.putAll(getInvolvedVariableTypes(returnAssignment.get(), pCfaEdge));
@@ -163,43 +168,47 @@ class EdgeAnalyzer {
                         returnStatementEdge.getFileLocation(), (CSimpleDeclaration) retVar.get());
                 result.putAll(getInvolvedVariableTypes(idExpression, pCfaEdge));
               }
-        }
-        result.putAll(getInvolvedVariableTypes(returnExpression, pCfaEdge));
-          return result;
-      }
+            }
+            result.putAll(getInvolvedVariableTypes(returnExpression, pCfaEdge));
+            return result;
+          }
           return ImmutableMap.of();
-    }
-    case StatementEdge: {
-      AStatementEdge statementEdge = (AStatementEdge) pCfaEdge;
-      AStatement statement = statementEdge.getStatement();
-      if (statement instanceof AExpressionAssignmentStatement) {
-            return getInvolvedVariableTypes((AExpressionAssignmentStatement) statement, pCfaEdge);
-      } else if (statement instanceof AExpressionStatement) {
-        return getInvolvedVariableTypes(((AExpressionStatement) statement).getExpression(), pCfaEdge);
-      } else if (statement instanceof AFunctionCallAssignmentStatement) {
-            return getInvolvedVariableTypes((AFunctionCallAssignmentStatement) statement, pCfaEdge);
-      } else if (statement instanceof AFunctionCallStatement) {
-        AFunctionCallStatement functionCallStatement = (AFunctionCallStatement) statement;
-          Map<MemoryLocation, CType> result = new HashMap<>();
-        for (AExpression expression : functionCallStatement.getFunctionCallExpression().getParameterExpressions()) {
-          result.putAll(getInvolvedVariableTypes(expression, pCfaEdge));
         }
-          return result;
-      } else {
-            return ImmutableMap.of();
-      }
-    }
-    case FunctionReturnEdge:
-      FunctionReturnEdge functionReturnEdge = (FunctionReturnEdge) pCfaEdge;
-      AFunctionCall functionCall = functionReturnEdge.getSummaryEdge().getExpression();
-      if (functionCall instanceof AFunctionCallAssignmentStatement) {
-        AFunctionCallAssignmentStatement functionCallAssignmentStatement =
-            (AFunctionCallAssignmentStatement) functionCall;
-        AFunctionCallExpression functionCallExpression = functionCall.getFunctionCallExpression();
-        if (functionCallExpression != null) {
+      case StatementEdge:
+        {
+          AStatementEdge statementEdge = (AStatementEdge) pCfaEdge;
+          AStatement statement = statementEdge.getStatement();
+          if (statement instanceof AExpressionAssignmentStatement) {
+            return getInvolvedVariableTypes((AExpressionAssignmentStatement) statement, pCfaEdge);
+          } else if (statement instanceof AExpressionStatement) {
+            return getInvolvedVariableTypes(
+                ((AExpressionStatement) statement).getExpression(), pCfaEdge);
+          } else if (statement instanceof AFunctionCallAssignmentStatement) {
+            return getInvolvedVariableTypes((AFunctionCallAssignmentStatement) statement, pCfaEdge);
+          } else if (statement instanceof AFunctionCallStatement) {
+            AFunctionCallStatement functionCallStatement = (AFunctionCallStatement) statement;
             Map<MemoryLocation, CType> result = new HashMap<>();
-          Optional<? extends AVariableDeclaration> retVar = functionReturnEdge.getFunctionEntry().getReturnVariable();
-          if (retVar.isPresent()) {
+            for (AExpression expression :
+                functionCallStatement.getFunctionCallExpression().getParameterExpressions()) {
+              result.putAll(getInvolvedVariableTypes(expression, pCfaEdge));
+            }
+            return result;
+          } else {
+            return ImmutableMap.of();
+          }
+        }
+      case FunctionReturnEdge:
+        FunctionReturnEdge functionReturnEdge = (FunctionReturnEdge) pCfaEdge;
+        AFunctionCall functionCall = functionReturnEdge.getSummaryEdge().getExpression();
+        if (functionCall instanceof AFunctionCallAssignmentStatement) {
+          AFunctionCallAssignmentStatement functionCallAssignmentStatement =
+              (AFunctionCallAssignmentStatement) functionCall;
+          AFunctionCallExpression functionCallExpression = functionCall.getFunctionCallExpression();
+          if (functionCallExpression != null) {
+            Map<MemoryLocation, CType> result = new HashMap<>();
+            Optional<? extends AVariableDeclaration> retVar =
+                functionReturnEdge.getFunctionEntry().getReturnVariable();
+            if (retVar.isPresent()) {
               AExpression idExpression =
                   new CIdExpression(
                       functionReturnEdge.getFileLocation(), (CSimpleDeclaration) retVar.get());
@@ -215,15 +224,17 @@ class EdgeAnalyzer {
                           machineModel,
                           functionReturnEdge.getPredecessor().getFunctionName(),
                           ImmutableMap.of())));
-          }
-          result.putAll(getInvolvedVariableTypes(functionCallAssignmentStatement.getLeftHandSide(), pCfaEdge));
+            }
+            result.putAll(
+                getInvolvedVariableTypes(
+                    functionCallAssignmentStatement.getLeftHandSide(), pCfaEdge));
             return result;
+          }
         }
-      }
         return ImmutableMap.of();
-    case BlankEdge:
-    case CallToReturnEdge:
-    default:
+      case BlankEdge:
+      case CallToReturnEdge:
+      default:
         return ImmutableMap.of();
     }
   }
@@ -265,8 +276,8 @@ class EdgeAnalyzer {
     return ImmutableMap.of();
   }
 
-  private Map<? extends MemoryLocation, ? extends CType> getInvolvedVariableTypes(AParameterDeclaration pParameter,
-      CFAEdge pCFAEdge) {
+  private Map<? extends MemoryLocation, ? extends CType> getInvolvedVariableTypes(
+      AParameterDeclaration pParameter, CFAEdge pCFAEdge) {
     if (pParameter.getType() instanceof CType) {
       return ImmutableMap.of(
           new MemoryLocationExtractor(compoundIntervalManagerFactory, machineModel, pCFAEdge)
@@ -285,9 +296,11 @@ class EdgeAnalyzer {
   private ImmutableMap<MemoryLocation, CType> getInvolvedVariableTypes(
       CInitializer pCInitializer, CFAEdge pCfaEdge) {
     if (pCInitializer instanceof CDesignatedInitializer) {
-      return getInvolvedVariableTypes(((CDesignatedInitializer) pCInitializer).getRightHandSide(), pCfaEdge);
+      return getInvolvedVariableTypes(
+          ((CDesignatedInitializer) pCInitializer).getRightHandSide(), pCfaEdge);
     } else if (pCInitializer instanceof CInitializerExpression) {
-      return getInvolvedVariableTypes(((CInitializerExpression) pCInitializer).getExpression(), pCfaEdge);
+      return getInvolvedVariableTypes(
+          ((CInitializerExpression) pCInitializer).getExpression(), pCfaEdge);
     } else if (pCInitializer instanceof CInitializerList) {
       CInitializerList initializerList = (CInitializerList) pCInitializer;
       Map<MemoryLocation, CType> result = new HashMap<>();
@@ -351,12 +364,12 @@ class EdgeAnalyzer {
     }
   }
 
-
   private static class LHSVisitor
       extends DefaultCExpressionVisitor<Iterable<ALeftHandSide>, NoException> {
 
-    // we have no inner state, so we can use the same instance several times and avoid re-creating it.
-    private final static LHSVisitor INSTANCE = new LHSVisitor();
+    // we have no inner state, so we can use the same instance several times and avoid re-creating
+    // it.
+    private static final LHSVisitor INSTANCE = new LHSVisitor();
 
     @Override
     protected Iterable<ALeftHandSide> visitDefault(CExpression pExp) {
@@ -365,22 +378,22 @@ class EdgeAnalyzer {
 
     @Override
     public Iterable<ALeftHandSide> visit(CArraySubscriptExpression pIastArraySubscriptExpression) {
-      return Collections.<ALeftHandSide> singleton(pIastArraySubscriptExpression);
+      return Collections.<ALeftHandSide>singleton(pIastArraySubscriptExpression);
     }
 
     @Override
     public Iterable<ALeftHandSide> visit(CFieldReference pIastFieldReference) {
-      return Collections.<ALeftHandSide> singleton(pIastFieldReference);
+      return Collections.<ALeftHandSide>singleton(pIastFieldReference);
     }
 
     @Override
     public Iterable<ALeftHandSide> visit(CIdExpression pIastIdExpression) {
-      return Collections.<ALeftHandSide> singleton(pIastIdExpression);
+      return Collections.<ALeftHandSide>singleton(pIastIdExpression);
     }
 
     @Override
     public Iterable<ALeftHandSide> visit(CPointerExpression pPointerExpression) {
-      return Collections.<ALeftHandSide> singleton(pPointerExpression);
+      return Collections.<ALeftHandSide>singleton(pPointerExpression);
     }
 
     @Override

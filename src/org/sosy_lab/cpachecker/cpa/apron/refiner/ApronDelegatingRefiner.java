@@ -28,8 +28,8 @@ import org.sosy_lab.cpachecker.util.refinement.FeasibilityChecker;
 import org.sosy_lab.cpachecker.util.refinement.StrongestPostOperator;
 
 /**
- * Refiner implementation that delegates to {@link ValueAnalysisPathInterpolator},
- * and if this fails, optionally delegates also to {@link PredicateCPARefiner}.
+ * Refiner implementation that delegates to {@link ValueAnalysisPathInterpolator}, and if this
+ * fails, optionally delegates also to {@link PredicateCPARefiner}.
  */
 public abstract class ApronDelegatingRefiner implements Refiner {
 

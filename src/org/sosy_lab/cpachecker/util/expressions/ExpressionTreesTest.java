@@ -138,5 +138,4 @@ public class ExpressionTreesTest {
 
     assertThat(ExpressionTrees.isInCNF(ExpressionTrees.toCNF(COMPLEX_DNF))).isTrue();
   }
-
 }

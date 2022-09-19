@@ -46,8 +46,7 @@ public final class AssumeEdgesInPathConditionState
 
   @Override
   public String toString() {
-    return "path length: " + assumeEdgesInPath
-        + (thresholdReached ? " (threshold reached)" : "");
+    return "path length: " + assumeEdgesInPath + (thresholdReached ? " (threshold reached)" : "");
   }
 
   @Override
@@ -59,8 +58,7 @@ public final class AssumeEdgesInPathConditionState
       return false;
     }
     AssumeEdgesInPathConditionState that = (AssumeEdgesInPathConditionState) pO;
-    return assumeEdgesInPath == that.assumeEdgesInPath &&
-        thresholdReached == that.thresholdReached;
+    return assumeEdgesInPath == that.assumeEdgesInPath && thresholdReached == that.thresholdReached;
   }
 
   @Override

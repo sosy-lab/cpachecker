@@ -33,9 +33,14 @@ class MonitorStatistics implements Statistics {
 
     MonitorTransferRelation trans = mCpa.getTransferRelation();
 
-    out.println("Max. Post Time:            " + trans.totalTimeOfTransfer.getMaxTime().formatAs(TimeUnit.SECONDS));
-    out.println("Avg. Post Time:            " + trans.totalTimeOfTransfer.getAvgTime().formatAs(TimeUnit.SECONDS));
-    out.println("Max Post time on a path:   " + TimeSpan.ofMillis(trans.maxTotalTimeForPath).formatAs(TimeUnit.SECONDS));
+    out.println(
+        "Max. Post Time:            "
+            + trans.totalTimeOfTransfer.getMaxTime().formatAs(TimeUnit.SECONDS));
+    out.println(
+        "Avg. Post Time:            "
+            + trans.totalTimeOfTransfer.getAvgTime().formatAs(TimeUnit.SECONDS));
+    out.println(
+        "Max Post time on a path:   "
+            + TimeSpan.ofMillis(trans.maxTotalTimeForPath).formatAs(TimeUnit.SECONDS));
   }
-
 }

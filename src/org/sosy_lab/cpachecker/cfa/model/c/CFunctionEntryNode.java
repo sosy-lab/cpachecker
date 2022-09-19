@@ -21,21 +21,18 @@ public class CFunctionEntryNode extends FunctionEntryNode {
 
   private static final long serialVersionUID = -730687961628864953L;
 
-  public CFunctionEntryNode(final FileLocation pFileLocation,
+  public CFunctionEntryNode(
+      final FileLocation pFileLocation,
       final CFunctionDeclaration pFunctionDefinition,
       final FunctionExitNode pExitNode,
       final Optional<CVariableDeclaration> pReturnVariable) {
 
-    super(
-        pFileLocation,
-        pExitNode,
-        pFunctionDefinition,
-        pReturnVariable);
+    super(pFileLocation, pExitNode, pFunctionDefinition, pReturnVariable);
   }
 
   @Override
   public CFunctionDeclaration getFunctionDefinition() {
-    return  (CFunctionDeclaration)super.getFunctionDefinition();
+    return (CFunctionDeclaration) super.getFunctionDefinition();
   }
 
   @Override
@@ -46,6 +43,6 @@ public class CFunctionEntryNode extends FunctionEntryNode {
   @SuppressWarnings("unchecked") // safe because Optional is covariant
   @Override
   public Optional<CVariableDeclaration> getReturnVariable() {
-    return (Optional<CVariableDeclaration>)super.getReturnVariable();
+    return (Optional<CVariableDeclaration>) super.getReturnVariable();
   }
 }

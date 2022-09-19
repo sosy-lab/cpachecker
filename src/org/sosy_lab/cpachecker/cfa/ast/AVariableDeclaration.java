@@ -8,7 +8,6 @@
 
 package org.sosy_lab.cpachecker.cfa.ast;
 
-
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
 
@@ -38,10 +37,7 @@ public abstract class AVariableDeclaration extends AbstractDeclaration {
     return qualifiedName;
   }
 
-  /**
-   * The initial value of the variable
-   * (only if present, null otherwise).
-   */
+  /** The initial value of the variable (only if present, null otherwise). */
   public AInitializer getInitializer() {
     return initializer;
   }
@@ -86,8 +82,7 @@ public abstract class AVariableDeclaration extends AbstractDeclaration {
       return true;
     }
 
-    if (!(obj instanceof AVariableDeclaration)
-        || !super.equals(obj)) {
+    if (!(obj instanceof AVariableDeclaration) || !super.equals(obj)) {
       return false;
     }
 
@@ -95,5 +90,4 @@ public abstract class AVariableDeclaration extends AbstractDeclaration {
 
     return qualifiedName.equals(other.qualifiedName);
   }
-
 }

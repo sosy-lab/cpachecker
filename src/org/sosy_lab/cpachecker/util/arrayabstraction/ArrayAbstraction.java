@@ -8,536 +8,829 @@
 
 package org.sosy_lab.cpachecker.util.arrayabstraction;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
+import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Iterables;
+import com.google.common.collect.ImmutableSetMultimap;
 import java.math.BigInteger;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Objects;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CCfaTransformer;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.CfaMutableNetwork;
+import org.sosy_lab.cpachecker.cfa.ast.AFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
-import org.sosy_lab.cpachecker.cfa.ast.c.AbstractTransformingCAstNodeVisitor;
-import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
+import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
-import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.c.TransformingCAstNodeVisitor;
+import org.sosy_lab.cpachecker.cfa.ast.c.SubstitutingCAstNodeVisitor;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.CFATerminationNode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
+import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
-import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
-import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
-import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
-import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
+import org.sosy_lab.cpachecker.cfa.types.MachineModel;
+import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
-import org.sosy_lab.cpachecker.exceptions.NoException;
-import org.sosy_lab.cpachecker.util.MutableGraph;
+import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
+import org.sosy_lab.cpachecker.util.arrayabstraction.ArrayAbstractionResult.Status;
+import org.sosy_lab.cpachecker.util.dependencegraph.EdgeDefUseData;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
+/** Array abstraction algorithm. */
 public class ArrayAbstraction {
 
   private ArrayAbstraction() {}
 
-  private static CIdExpression createCIdExpression(CType pType, MemoryLocation pMemoryLocation) {
-
-    String variableName = pMemoryLocation.getIdentifier();
-    String qualifiedName = pMemoryLocation.getExtendedQualifiedName();
-
-    CVariableDeclaration variableDeclaration =
-        new CVariableDeclaration(
-            FileLocation.DUMMY,
-            true,
-            CStorageClass.AUTO,
-            pType,
-            variableName,
-            variableName,
-            qualifiedName,
-            null);
-
-    return new CIdExpression(FileLocation.DUMMY, variableDeclaration);
-  }
-
-  private static CIdExpression createVariableCIdExpression(TransformableArray pTransformableArray) {
-
-    CType type = pTransformableArray.getArrayType().getType();
-    String arrayName = pTransformableArray.getMemoryLocation().getIdentifier();
-    String name = "__array_witness_variable_" + arrayName;
-
-    return createCIdExpression(type, MemoryLocation.forIdentifier(name));
-  }
-
-  private static CIdExpression createIndexCIdExpression(TransformableArray pTransformableArray) {
-
-    CType type =
-        new CSimpleType(
-            true, false, CBasicType.UNSPECIFIED, false, false, false, true, false, false, true);
-    String arrayName = pTransformableArray.getMemoryLocation().getIdentifier();
-    String name = "__array_witness_index_" + arrayName;
-
-    return createCIdExpression(type, MemoryLocation.forIdentifier(name));
-  }
-
-  private static ImmutableSet<CExpression> getConditionExpressions(
-      ImmutableSet<TransformableArray> pTransformableArrays, TransformableLoop pTransformableLoop) {
-
-    CBinaryExpression loopCondition =
-        (CBinaryExpression) pTransformableLoop.getEnterLoopCfaEdge().getExpression();
-
-    CExpressionAssignmentStatement updateStatement =
-        (CExpressionAssignmentStatement)
-            pTransformableLoop.getUpdateLoopIndexCfaEdge().getStatement();
-    CBinaryExpression.BinaryOperator updateOperator =
-        ((CBinaryExpression) updateStatement.getRightHandSide()).getOperator();
-    CBinaryExpression.BinaryOperator initConditionOperator =
-        updateOperator == CBinaryExpression.BinaryOperator.PLUS
-            ? CBinaryExpression.BinaryOperator.GREATER_EQUAL
-            : CBinaryExpression.BinaryOperator.LESS_EQUAL;
-    CExpression initCondition =
-        new CBinaryExpression(
-            FileLocation.DUMMY,
-            loopCondition.getExpressionType(),
-            loopCondition.getCalculationType(),
-            pTransformableLoop.getLoopIndexExpression(),
-            pTransformableLoop.getLoopIndexInitExpression(),
-            initConditionOperator);
-
-    CIntegerLiteralExpression zeroLiteral =
-        new CIntegerLiteralExpression(
-            FileLocation.DUMMY,
-            pTransformableLoop.getLoopIndexExpression().getExpressionType(),
-            BigInteger.ZERO);
-    CExpression indexGreaterEqualZeroCondition =
-        new CBinaryExpression(
-            FileLocation.DUMMY,
-            zeroLiteral.getExpressionType(),
-            zeroLiteral.getExpressionType(),
-            pTransformableLoop.getLoopIndexExpression(),
-            zeroLiteral,
-            CBinaryExpression.BinaryOperator.GREATER_EQUAL);
-
-    ImmutableSet.Builder<CExpression> conditionsBuilder = ImmutableSet.builder();
-
-    for (TransformableArray transformableArray : pTransformableArrays) {
-      TransformingCAstNodeVisitor<NoException> astTransformer =
-          new ReplaceLoopIndexAstTransformingVisitor(transformableArray, pTransformableLoop);
-      conditionsBuilder.add((CExpression) indexGreaterEqualZeroCondition.accept(astTransformer));
-      conditionsBuilder.add((CExpression) initCondition.accept(astTransformer));
-      conditionsBuilder.add((CExpression) loopCondition.accept(astTransformer));
-    }
-
-    return conditionsBuilder.build();
-  }
-
-  private static CFANode createDummyPredecessor() {
-    return CFANode.newDummyCFANode("dummy-predecessor");
-  }
-
-  private static CFANode createDummySuccessor() {
-    return CFANode.newDummyCFANode("dummy-successor");
-  }
-
-  private static BlankEdge createBlankEdge(String pDescription) {
+  private static BlankEdge createBlankEdge(AFunctionDeclaration pFunction, String pDescription) {
     return new BlankEdge(
-        "", FileLocation.DUMMY, createDummyPredecessor(), createDummySuccessor(), pDescription);
+        "", FileLocation.DUMMY, new CFANode(pFunction), new CFANode(pFunction), pDescription);
   }
 
-  private static CAssumeEdge createAssumeEdge(CExpression pCondition, boolean pTruthAssumption) {
+  private static CAssumeEdge createAssumeEdge(
+      AFunctionDeclaration pFunction, CExpression pCondition, boolean pTruthAssumption) {
     return new CAssumeEdge(
         "",
-        FileLocation.DUMMY,
-        createDummyPredecessor(),
-        createDummySuccessor(),
+        pCondition.getFileLocation(),
+        new CFANode(pFunction),
+        new CFANode(pFunction),
         pCondition,
         pTruthAssumption);
   }
 
-  private static CStatementEdge createAssignEdge(CLeftHandSide pLhs, CIdExpression pRhs) {
+  private static ImmutableSet<TransformableArray> getLoopTransformableArrays(
+      TransformableLoop pLoop,
+      ImmutableMap<CSimpleDeclaration, TransformableArray> pTransformableArrayMap) {
 
-    CExpressionAssignmentStatement assignmentStatement =
-        new CExpressionAssignmentStatement(FileLocation.DUMMY, pLhs, pRhs);
-
-    return new CStatementEdge(
-        "",
-        assignmentStatement,
-        FileLocation.DUMMY,
-        createDummyPredecessor(),
-        createDummySuccessor());
+    return pLoop.getInnerLoopEdges().stream()
+        .flatMap(edge -> ArrayAccess.findArrayAccesses(edge).stream())
+        .map(arrayAccess -> getTransformableArray(arrayAccess, pTransformableArrayMap))
+        .flatMap(Optional::stream)
+        .collect(ImmutableSet.toImmutableSet());
   }
 
-  private static void replaceLoopWithBranching(
-      MutableGraph<CFANode, CFAEdge> pMutableGraph,
-      ImmutableSet<TransformableArray> pTransformableArrays,
-      TransformableLoop pTransformableLoop) {
+  private static ImmutableSet<CFAEdge> getTransformableEdges(
+      CfaMutableNetwork pGraph, TransformableLoop pLoop) {
 
-    MutableGraph.Node<CFANode, CFAEdge> loopNode =
-        pMutableGraph.getNode(pTransformableLoop.getLoopCfaNode()).orElseThrow();
+    ImmutableSet.Builder<CFAEdge> builder = ImmutableSet.builder();
 
-    MutableGraph.Edge<CFANode, CFAEdge> initEdge = null;
-    MutableGraph.Edge<CFANode, CFAEdge> updateEdge = null;
-    MutableGraph.Edge<CFANode, CFAEdge> continueEdge = null;
-    MutableGraph.Edge<CFANode, CFAEdge> breakEdge = null;
-
-    for (MutableGraph.Edge<CFANode, CFAEdge> edge :
-        Iterables.concat(
-            pMutableGraph.iterateEntering(loopNode), pMutableGraph.iterateLeaving(loopNode))) {
-      CFAEdge oldCfaEdge = edge.getWrappedEdge();
-
-      // skip blank edges, required for while loops
-      if (oldCfaEdge.getEdgeType() == CFAEdgeType.BlankEdge
-          && oldCfaEdge.getPredecessor().getNumEnteringEdges() == 1) {
-        oldCfaEdge = oldCfaEdge.getPredecessor().getEnteringEdge(0);
-      }
-
-      if (oldCfaEdge.equals(pTransformableLoop.getInitLoopIndexCfaEdge())) {
-        initEdge = edge;
-      } else if (oldCfaEdge.equals(pTransformableLoop.getUpdateLoopIndexCfaEdge())) {
-        updateEdge = edge;
-      } else if (oldCfaEdge.equals(pTransformableLoop.getEnterLoopCfaEdge())) {
-        continueEdge = edge;
-      } else if (oldCfaEdge.equals(pTransformableLoop.getExitLoopCfaEdge())) {
-        breakEdge = edge;
-      }
-    }
-
-    assert initEdge != null && breakEdge != null && continueEdge != null && updateEdge != null;
-
-    MutableGraph.Node<CFANode, CFAEdge> outerBeforeLoop = initEdge.getPredecessorOrElseThrow();
-    MutableGraph.Node<CFANode, CFAEdge> outerAfterLoop = breakEdge.getSuccessorOrElseThrow();
-    MutableGraph.Node<CFANode, CFAEdge> loopBodyFirst = continueEdge.getSuccessorOrElseThrow();
-    MutableGraph.Node<CFANode, CFAEdge> loopBodyLast = updateEdge.getPredecessorOrElseThrow();
-
-    pMutableGraph.detachBoth(initEdge);
-    pMutableGraph.detachBoth(updateEdge);
-    pMutableGraph.detachBoth(continueEdge);
-    pMutableGraph.detachBoth(breakEdge);
-
-    MutableGraph.Edge<CFANode, CFAEdge> enterUnrolledLoopEdge =
-        pMutableGraph.wrapEdge(createBlankEdge("enter-loop-body"));
-    pMutableGraph.attachLeaving(outerBeforeLoop, enterUnrolledLoopEdge);
-    pMutableGraph.attachEntering(loopBodyFirst, enterUnrolledLoopEdge);
-
-    MutableGraph.Edge<CFANode, CFAEdge> exitUnrolledLoopEdge =
-        pMutableGraph.wrapEdge(createBlankEdge("exit-loop-body"));
-    pMutableGraph.attachLeaving(loopBodyLast, exitUnrolledLoopEdge);
-    pMutableGraph.attachEntering(outerAfterLoop, exitUnrolledLoopEdge);
-
-    for (CExpression conditionExpression :
-        getConditionExpressions(pTransformableArrays, pTransformableLoop)) {
-
-      pMutableGraph.insertSuccessor(
-          outerBeforeLoop,
-          pMutableGraph.wrapEdge(createAssumeEdge(conditionExpression, true)),
-          pMutableGraph.wrapNode(outerBeforeLoop.getWrappedNode()));
-
-      MutableGraph.Edge<CFANode, CFAEdge> skipLoopBody =
-          pMutableGraph.wrapEdge(createAssumeEdge(conditionExpression, false));
-
-      pMutableGraph.attachLeaving(outerBeforeLoop, skipLoopBody);
-      pMutableGraph.attachEntering(outerAfterLoop, skipLoopBody);
-    }
-  }
-
-  private static ImmutableSet<CIdExpression> getLoopDefs(TransformableLoop pTransformableLoop) {
-
-    ImmutableSet.Builder<CIdExpression> loopDefsBuilder = ImmutableSet.builder();
-
-    for (CFAEdge edge : pTransformableLoop.getLoopEdges()) {
-      if (edge instanceof CStatementEdge
-          && !edge.equals(pTransformableLoop.getUpdateLoopIndexCfaEdge())) {
-        CStatement statement = ((CStatementEdge) edge).getStatement();
-        if (statement instanceof CExpressionAssignmentStatement) {
-          CLeftHandSide lhs = ((CExpressionAssignmentStatement) statement).getLeftHandSide();
-          if (lhs instanceof CIdExpression) {
-            loopDefsBuilder.add((CIdExpression) lhs);
+    for (CFAEdge edge : pLoop.getInnerLoopEdges()) {
+      builder.add(edge);
+      if (edge instanceof FunctionSummaryEdge) {
+        CFANode summaryEdgeNodeU = pGraph.incidentNodes(edge).nodeU();
+        for (CFAEdge callEdge : pGraph.outEdges(summaryEdgeNodeU)) {
+          if (callEdge instanceof FunctionCallEdge) {
+            builder.add(callEdge);
           }
         }
       }
     }
 
-    return loopDefsBuilder.build();
+    return builder.build();
   }
 
-  public static CFA transformCfa(Configuration pConfiguration, LogManager pLogger, CFA pCfa) {
+  // Index step condition is required to only allow loop body access, if:
+  //   ((index) % (index step value)) == ((index initial value) % (index step value))
+  private static Optional<CExpression> createIndexStepCondition(TransformableLoop.Index pIndex) {
 
-    Objects.requireNonNull(pConfiguration, "pConfiguration must not be null");
-    Objects.requireNonNull(pLogger, "pLogger must not be null");
-    Objects.requireNonNull(pCfa, "pCfa must not be null");
+    BigInteger updateStepValue = pIndex.getUpdateOperation().getStepValue();
+    if (!updateStepValue.equals(BigInteger.ONE)) {
+
+      CType indexType = pIndex.getVariableDeclaration().getType();
+
+      CExpression indexExpression =
+          new CIdExpression(FileLocation.DUMMY, pIndex.getVariableDeclaration());
+
+      CExpression updateStepExpression =
+          new CIntegerLiteralExpression(FileLocation.DUMMY, indexType, updateStepValue);
+
+      CExpression indexRemainderExpression =
+          new CBinaryExpression(
+              FileLocation.DUMMY,
+              indexType,
+              indexType,
+              indexExpression,
+              updateStepExpression,
+              CBinaryExpression.BinaryOperator.MODULO);
+
+      BigInteger startValue = pIndex.getInitializeOperation().getValue();
+      BigInteger remainder = startValue.remainder(updateStepValue);
+      CExpression remainderExpression =
+          new CIntegerLiteralExpression(FileLocation.DUMMY, indexType, remainder);
+
+      CExpression condition =
+          new CBinaryExpression(
+              FileLocation.DUMMY,
+              CNumericTypes.INT,
+              indexType,
+              indexRemainderExpression,
+              remainderExpression,
+              CBinaryExpression.BinaryOperator.EQUALS);
+
+      return Optional.of(condition);
+    } else {
+      return Optional.empty();
+    }
+  }
+
+  // Result: transformable array -> set of subscript expressions for all accesses of the array in
+  // the specified loop
+  private static ImmutableMultimap<TransformableArray, CExpression>
+      getTransformableArraySubscriptExpressions(
+          ImmutableMap<CSimpleDeclaration, TransformableArray> pTransformableArrayMap,
+          TransformableLoop pLoop) {
+
+    ImmutableMultimap.Builder<TransformableArray, CExpression> builder =
+        ImmutableSetMultimap.builder();
+
+    for (CFAEdge edge : pLoop.getInnerLoopEdges()) {
+      for (ArrayAccess arrayAccess : ArrayAccess.findArrayAccesses(edge)) {
+        Optional<TransformableArray> optTransformableArray =
+            getTransformableArray(arrayAccess, pTransformableArrayMap);
+        if (optTransformableArray.isPresent()) {
+          builder.put(optTransformableArray.orElseThrow(), arrayAccess.getSubscriptExpression());
+        }
+      }
+    }
+
+    return builder.build();
+  }
+
+  private static boolean onlySingleUseNothingElse(EdgeDefUseData pEdgeDefUseData) {
+    return pEdgeDefUseData.getUses().size() == 1
+        && pEdgeDefUseData.getPointeeUses().isEmpty()
+        && pEdgeDefUseData.getDefs().isEmpty()
+        && pEdgeDefUseData.getPointeeDefs().isEmpty();
+  }
+
+  // In order to enter the loop body, the indices of the transformed arrays must fullfil certain
+  // conditions that relate the array indices to the loop index (e.g., array_index == loop_index).
+  // Assumptions (fullfil -> continue, otherwise -> abort) are inserted for these conditions.
+  // Assumptions are used to prevent analyses from skipping some loops by letting these conditions
+  // fail which can cause invalid analyses results.
+  private static ImmutableMap<TransformableArray, CExpression> insertTransformableArrayAssumes(
+      CfaMutableNetwork pGraph,
+      ImmutableMap<CSimpleDeclaration, TransformableArray> pTransformableArrayMap,
+      TransformableLoop pLoop,
+      ImmutableSet<TransformableArray> pLoopTransformableArrays,
+      CFANode pLoopBodyEntryNode) {
+
+    ImmutableMap.Builder<TransformableArray, CExpression> arrayPreciseSubscriptExpressionBuilder =
+        ImmutableMap.builder();
+
+    TransformableLoop.Index index = pLoop.getIndex();
+    ImmutableMultimap<TransformableArray, CExpression> transformableArraySubscriptExpressions =
+        getTransformableArraySubscriptExpressions(pTransformableArrayMap, pLoop);
+    EdgeDefUseData.Extractor extractor = EdgeDefUseData.createExtractor(true);
+
+    List<CExpression> conditions = new ArrayList<>();
+    for (TransformableArray transformableArray : pLoopTransformableArrays) {
+
+      CIdExpression arrayIndexIdExpression =
+          new CIdExpression(FileLocation.DUMMY, transformableArray.getIndexDeclaration());
+
+      // If the array is always accessed by the same subscript expression, we try to use it as the
+      // condition operand.
+      ImmutableCollection<CExpression> subscriptExpressions =
+          transformableArraySubscriptExpressions.get(transformableArray);
+      CExpression conditionOperand = null;
+      if (subscriptExpressions.size() == 1) {
+        CExpression subscriptExpression = subscriptExpressions.stream().findFirst().orElseThrow();
+        EdgeDefUseData subscriptDefUseData = extractor.extract(subscriptExpression);
+        if (onlySingleUseNothingElse(subscriptDefUseData)) {
+          MemoryLocation subscriptUse =
+              subscriptDefUseData.getUses().stream().findFirst().orElseThrow();
+          if (subscriptUse.equals(MemoryLocation.forDeclaration(index.getVariableDeclaration()))) {
+            conditionOperand = subscriptExpression;
+          }
+        }
+      }
+
+      if (conditionOperand == null) {
+        conditionOperand = new CIdExpression(FileLocation.DUMMY, index.getVariableDeclaration());
+      }
+
+      arrayPreciseSubscriptExpressionBuilder.put(transformableArray, conditionOperand);
+
+      CExpression conditionExpression =
+          new CBinaryExpression(
+              FileLocation.DUMMY,
+              CNumericTypes.INT,
+              index.getVariableDeclaration().getType(),
+              arrayIndexIdExpression,
+              conditionOperand,
+              CBinaryExpression.BinaryOperator.EQUALS);
+
+      conditions.add(conditionExpression);
+    }
+
+    AFunctionDeclaration function = pLoopBodyEntryNode.getFunction();
+
+    for (CExpression condition : conditions) {
+
+      CAssumeEdge enterBodyEdge = createAssumeEdge(function, condition, true);
+      pGraph.insertSuccessor(pLoopBodyEntryNode, new CFANode(function), enterBodyEdge);
+
+      CAssumeEdge falseEdge = createAssumeEdge(function, condition, false);
+      pGraph.addEdge(pLoopBodyEntryNode, new CFATerminationNode(function), falseEdge);
+    }
+
+    return arrayPreciseSubscriptExpressionBuilder.buildOrThrow();
+  }
+
+  // Is this loop even transformable? Yes -> Status.PRECISE, No -> Status.UNCHANGED
+  private static Status loopTransformable(
+      ImmutableMap<CSimpleDeclaration, TransformableArray> pTransformableArrayMap,
+      TransformableLoop pLoop) {
+
+    ImmutableSet<MemoryLocation> innerLoopDeclarations =
+        pLoop.getInnerLoopDeclarations().stream()
+            .map(MemoryLocation::forDeclaration)
+            .collect(ImmutableSet.toImmutableSet());
+    MemoryLocation loopIndexMemLoc =
+        MemoryLocation.forDeclaration(pLoop.getIndex().getVariableDeclaration());
+
+    EdgeDefUseData.Extractor defUseDataExtractor = EdgeDefUseData.createExtractor(true);
+    for (CFAEdge edge : pLoop.getInnerLoopEdges()) {
+
+      Set<MemoryLocation> arrayMemoryLocations = new HashSet<>();
+
+      // non-transformable arrays in a transformable loop make the loop non-transformable
+      for (CSimpleDeclaration arrayDeclaration : ArrayAccess.findArrayOccurences(edge)) {
+        if (!pTransformableArrayMap.containsKey(arrayDeclaration)) {
+          return Status.UNCHANGED;
+        }
+
+        arrayMemoryLocations.add(MemoryLocation.forDeclaration(arrayDeclaration));
+      }
+
+      EdgeDefUseData edgeDefUseData = defUseDataExtractor.extract(edge);
+      for (MemoryLocation def : edgeDefUseData.getDefs()) {
+        if (!innerLoopDeclarations.contains(def)
+            && !arrayMemoryLocations.contains(def)
+            && !def.equals(loopIndexMemLoc)) {
+          return Status.UNCHANGED;
+        }
+      }
+
+      // any pointee def make a loop non-transformable
+      if (!edgeDefUseData.getPointeeDefs().isEmpty()) {
+        return Status.UNCHANGED;
+      }
+    }
+
+    return Status.PRECISE;
+  }
+
+  private static void insertLoopConditions(
+      CfaMutableNetwork pGraph,
+      ImmutableSet<TransformableArray> pLoopTransformableArrays,
+      TransformableLoop pLoop,
+      CFANode pBodyEntryNode,
+      CFANode pBodyExitNode) {
+
+    AFunctionDeclaration function = pLoop.getLoopNode().getFunction();
+    TransformableLoop.Index index = pLoop.getIndex();
+
+    TransformableArray anyTransformableArray =
+        pLoopTransformableArrays.stream().findFirst().orElseThrow();
+
+    CIdExpression loopIndexIdExpression =
+        new CIdExpression(FileLocation.DUMMY, index.getVariableDeclaration());
+    CIdExpression anyTransformableArrayIndex =
+        new CIdExpression(FileLocation.DUMMY, anyTransformableArray.getIndexDeclaration());
+    CStatement indexInitStatement =
+        new CExpressionAssignmentStatement(
+            FileLocation.DUMMY, loopIndexIdExpression, anyTransformableArrayIndex);
+    CStatementEdge indexInitStatementEdge =
+        new CStatementEdge(
+            "",
+            indexInitStatement,
+            FileLocation.DUMMY,
+            new CFANode(function),
+            new CFANode(function));
+    pGraph.insertPredecessor(new CFANode(function), pBodyEntryNode, indexInitStatementEdge);
+
+    List<CExpression> conditions = new ArrayList<>();
+    CExpression indexStartValueExpression =
+        new CIntegerLiteralExpression(
+            FileLocation.DUMMY,
+            index.getVariableDeclaration().getType(),
+            index.getInitializeOperation().getValue());
+    CExpression indexEndValueExpression =
+        new CIntegerLiteralExpression(
+            FileLocation.DUMMY,
+            index.getVariableDeclaration().getType(),
+            index.getComparisonOperation().getValue());
+
+    CBinaryExpression.BinaryOperator startBinaryOperator;
+    CBinaryExpression.BinaryOperator endBinaryOperator;
+
+    if (index.isIncreasing()) {
+      assert index.getComparisonOperation().getOperator()
+          == SpecialOperation.ConstantComparison.Operator.LESS_EQUAL;
+      startBinaryOperator = CBinaryExpression.BinaryOperator.GREATER_EQUAL;
+      endBinaryOperator = CBinaryExpression.BinaryOperator.LESS_EQUAL;
+    } else {
+      assert index.isDecreasing();
+      assert index.getComparisonOperation().getOperator()
+          == SpecialOperation.ConstantComparison.Operator.GREATER_EQUAL;
+      startBinaryOperator = CBinaryExpression.BinaryOperator.LESS_EQUAL;
+      endBinaryOperator = CBinaryExpression.BinaryOperator.GREATER_EQUAL;
+    }
+
+    conditions.add(
+        new CBinaryExpression(
+            FileLocation.DUMMY,
+            CNumericTypes.INT,
+            index.getVariableDeclaration().getType(),
+            loopIndexIdExpression,
+            indexStartValueExpression,
+            startBinaryOperator));
+    conditions.add(
+        new CBinaryExpression(
+            FileLocation.DUMMY,
+            CNumericTypes.INT,
+            index.getVariableDeclaration().getType(),
+            loopIndexIdExpression,
+            indexEndValueExpression,
+            endBinaryOperator));
+
+    createIndexStepCondition(index).ifPresent(conditions::add);
+
+    // reverse list, because the last edge inserted with insertSuccessor is the first condition edge
+    Collections.reverse(conditions);
+    for (CExpression condition : conditions) {
+
+      CAssumeEdge enterBodyEdge = createAssumeEdge(function, condition, true);
+      pGraph.insertSuccessor(pBodyEntryNode, new CFANode(function), enterBodyEdge);
+
+      CAssumeEdge skipBodyEdge = createAssumeEdge(function, condition, false);
+      pGraph.addEdge(pBodyEntryNode, pBodyExitNode, skipBodyEdge);
+    }
+  }
+
+  private static Status transformLoop(
+      CfaMutableNetwork pGraph,
+      ImmutableMap<CSimpleDeclaration, TransformableArray> pTransformableArrayMap,
+      CFA pCfa,
+      LogManager pLogger,
+      TransformableLoop pLoop) {
+
+    Status status = loopTransformable(pTransformableArrayMap, pLoop);
+
+    if (status == Status.UNCHANGED) {
+      return status;
+    }
+
+    // transform loop into branching
+    CFANode loopNode = pLoop.getLoopNode();
+    CFAEdge loopIncomingEdge = pLoop.getIncomingEdge();
+    CFAEdge loopOutgoingEdge = pLoop.getOutgoingEdge();
+
+    CFAEdge loopBodyFirstEdge = null;
+    CFAEdge loopBodyLastEdge = null;
+    for (CFAEdge edge : pGraph.incidentEdges(loopNode)) {
+      if (pGraph.incidentNodes(edge).nodeU().equals(loopNode) && !edge.equals(loopOutgoingEdge)) {
+        loopBodyFirstEdge = edge;
+      }
+      if (pGraph.incidentNodes(edge).nodeV().equals(loopNode) && !edge.equals(loopIncomingEdge)) {
+        loopBodyLastEdge = edge;
+      }
+    }
+
+    CFANode loopBodyFirstEdgeNodeV = pGraph.incidentNodes(loopBodyFirstEdge).nodeV();
+    CFANode loopOutgoingEdgeNodeV = pGraph.incidentNodes(loopOutgoingEdge).nodeV();
+
+    pGraph.removeEdge(loopBodyFirstEdge);
+    pGraph.removeEdge(loopOutgoingEdge);
+
+    CFANode loopIncomingEdgeNodeU = pGraph.incidentNodes(loopIncomingEdge).nodeU();
+    pGraph.removeEdge(loopIncomingEdge);
+    pGraph.addEdge(loopIncomingEdgeNodeU, loopBodyFirstEdgeNodeV, loopIncomingEdge);
+
+    CFANode loopBodyLastEdgeNodeU = pGraph.incidentNodes(loopBodyLastEdge).nodeU();
+    pGraph.removeEdge(loopBodyLastEdge);
+    pGraph.addEdge(loopBodyLastEdgeNodeU, loopOutgoingEdgeNodeV, loopBodyLastEdge);
+
+    ImmutableSet<TransformableArray> loopTransformableArrays =
+        getLoopTransformableArrays(pLoop, pTransformableArrayMap);
+    assert loopTransformableArrays.size() >= 1;
+
+    CFANode bodyEntryNode = loopBodyFirstEdgeNodeV;
+    CFANode bodyExitNode = loopOutgoingEdgeNodeV;
+
+    ImmutableMap<TransformableArray, CExpression> preciseArraySubscriptExpressions =
+        insertTransformableArrayAssumes(
+            pGraph, pTransformableArrayMap, pLoop, loopTransformableArrays, bodyEntryNode);
+
+    // transform inner loop edges
+    for (CFAEdge edge : getTransformableEdges(pGraph, pLoop)) {
+      Status edgeTransformationStatus =
+          transformEdge(
+              pGraph,
+              pTransformableArrayMap,
+              pCfa,
+              pLogger,
+              edge,
+              Optional.of(pLoop),
+              Optional.of(preciseArraySubscriptExpressions));
+      if (edgeTransformationStatus == Status.UNCHANGED) {
+        return Status.UNCHANGED;
+      } else if (edgeTransformationStatus == Status.IMPRECISE) {
+        status = Status.IMPRECISE;
+      }
+    }
+
+    insertLoopConditions(pGraph, loopTransformableArrays, pLoop, bodyEntryNode, bodyExitNode);
+
+    // replace index update edge with blank placeholder edge
+    TransformableLoop.Index index = pLoop.getIndex();
+    var indexUpdateEdgeEndpoints = pGraph.incidentNodes(index.getUpdateEdge());
+    pGraph.removeEdge(index.getUpdateEdge());
+    pGraph.addEdge(
+        indexUpdateEdgeEndpoints,
+        createBlankEdge(indexUpdateEdgeEndpoints.nodeU().getFunction(), ""));
+
+    return status;
+  }
+
+  private static ImmutableMap<CSimpleDeclaration, TransformableArray> createTransformableArrayMap(
+      ImmutableSet<TransformableArray> pTransformableArrays) {
+
+    ImmutableMap.Builder<CSimpleDeclaration, TransformableArray> builder =
+        ImmutableMap.builderWithExpectedSize(pTransformableArrays.size());
+
+    for (TransformableArray transformableArray : pTransformableArrays) {
+      builder.put(transformableArray.getArrayDeclaration(), transformableArray);
+    }
+
+    return builder.buildOrThrow();
+  }
+
+  private static ImmutableSet<CFAEdge> createInnerLoopEdgeSet(
+      ImmutableSet<TransformableLoop> pTransformableLoops) {
+
+    ImmutableSet.Builder<CFAEdge> builder = ImmutableSet.builder();
+
+    for (TransformableLoop transformableLoop : pTransformableLoops) {
+      builder.addAll(transformableLoop.getInnerLoopEdges());
+    }
+
+    return builder.build();
+  }
+
+  private static Optional<TransformableArray> getTransformableArray(
+      ArrayAccess pArrayAccess,
+      ImmutableMap<CSimpleDeclaration, TransformableArray> pTransformableArrayMap) {
+
+    CExpression arrayExpression = pArrayAccess.getArrayExpression();
+
+    if (arrayExpression instanceof CIdExpression) {
+      CSimpleDeclaration declaration = ((CIdExpression) arrayExpression).getDeclaration();
+      TransformableArray transformableArray = pTransformableArrayMap.get(declaration);
+      return Optional.ofNullable(transformableArray);
+    }
+
+    throw new AssertionError("Unknown array expression: " + arrayExpression);
+  }
+
+  private static ImmutableSet<TransformableLoop> findRelevantTransformableLoops(
+      CFA pCfa, LogManager pLogger) {
+
+    ImmutableMap<CSimpleDeclaration, TransformableArray> transformableArrayMap =
+        createTransformableArrayMap(TransformableArray.findTransformableArrays(pCfa));
+
+    return TransformableLoop.findTransformableLoops(pCfa, pLogger).stream()
+        .filter(loop -> !getLoopTransformableArrays(loop, transformableArrayMap).isEmpty())
+        .collect(ImmutableSet.toImmutableSet());
+  }
+
+  private static ImmutableSet<TransformableArray> findRelevantTransformableArrays(
+      CFA pCfa, ImmutableSet<TransformableLoop> pTransformableLoops) {
 
     ImmutableSet<TransformableArray> transformableArrays =
-        TransformableArray.getTransformableArrays(pCfa);
-    Map<MemoryLocation, TransformableArray> arrayMemoryLocationToTransformableArray =
-        new HashMap<>();
-    for (TransformableArray transformableArray : transformableArrays) {
-      arrayMemoryLocationToTransformableArray.put(
-          transformableArray.getMemoryLocation(), transformableArray);
+        TransformableArray.findTransformableArrays(pCfa);
+    ImmutableMap<CSimpleDeclaration, TransformableArray> transformableArrayMap =
+        createTransformableArrayMap(transformableArrays);
+
+    ImmutableSet.Builder<TransformableArray> relevantTransformableArraysBuilder =
+        ImmutableSet.builder();
+
+    for (CFAEdge edge : createInnerLoopEdgeSet(pTransformableLoops)) {
+      for (ArrayAccess arrayAccess : ArrayAccess.findArrayAccesses(edge)) {
+        Optional<TransformableArray> optTransformableArray =
+            getTransformableArray(arrayAccess, transformableArrayMap);
+        if (optTransformableArray.isPresent()) {
+          relevantTransformableArraysBuilder.add(optTransformableArray.orElseThrow());
+        }
+      }
     }
+
+    return relevantTransformableArraysBuilder.build();
+  }
+
+  private static Status transformEdge(
+      CfaMutableNetwork pGraph,
+      ImmutableMap<CSimpleDeclaration, TransformableArray> pTransformableArrayMap,
+      CFA pCfa,
+      LogManager pLogger,
+      CFAEdge pEdge,
+      Optional<TransformableLoop> pLoop,
+      Optional<ImmutableMap<TransformableArray, CExpression>> pPreciseArraySubscriptExpressions) {
+
+    ImmutableSet<ArrayAccess> arrayAccesses = ArrayAccess.findArrayAccesses(pEdge);
+
+    // We can only handle CFAs with a single array access per edge.
+    // Prior simplification should already guarantee that.
+    assert arrayAccesses.size() <= 1;
+
+    Optional<ArrayAccess> optArrayAccess = arrayAccesses.stream().findFirst();
+    if (optArrayAccess.isPresent()) {
+
+      ArrayAccess arrayAccess = optArrayAccess.orElseThrow();
+
+      Optional<TransformableArray> optTransformableArray =
+          getTransformableArray(arrayAccess, pTransformableArrayMap);
+      if (optTransformableArray.isEmpty()) {
+        return pLoop.isEmpty() ? Status.PRECISE : Status.UNCHANGED;
+      }
+
+      TransformableArray transformableArray = optTransformableArray.orElseThrow();
+
+      CExpression subscriptExpression = arrayAccess.getSubscriptExpression();
+
+      // check whether access is at a precise subscript expression
+      if (pPreciseArraySubscriptExpressions.isPresent() && pLoop.isPresent()) {
+
+        CExpression preciseSubscriptExpression =
+            pPreciseArraySubscriptExpressions.orElseThrow().get(transformableArray);
+
+        TransformableLoop loop = pLoop.orElseThrow();
+        CFAEdge updateIndexEdge = loop.getIndex().getUpdateEdge();
+
+        CFAEdge postDominatedEdge = pEdge;
+        if (pEdge instanceof CFunctionCallEdge) {
+          postDominatedEdge = ((CFunctionCallEdge) pEdge).getSummaryEdge();
+        }
+
+        if (subscriptExpression.equals(preciseSubscriptExpression)
+            && loop.getPostDominatedInnerLoopEdges(updateIndexEdge).contains(postDominatedEdge)) {
+          return Status.PRECISE;
+        }
+      }
+
+      String functionName = pEdge.getSuccessor().getFunctionName();
+      MachineModel machineModel = pCfa.getMachineModel();
+      Optional<BigInteger> optSubscriptValue =
+          SpecialOperation.eval(
+              subscriptExpression,
+              functionName,
+              machineModel,
+              pLogger,
+              new ValueAnalysisState(machineModel));
+
+      if (arrayAccess.isRead()) {
+        if (optSubscriptValue.isPresent()) {
+          // TODO: better implementation that does not return Status.UNCHANGED
+          return Status.UNCHANGED;
+        } else {
+          // TODO: better implementation that does not return Status.UNCHANGED
+          return Status.UNCHANGED;
+        }
+      } else {
+        assert arrayAccess.isWrite();
+
+        var edgeEndpoints = pGraph.incidentNodes(pEdge);
+
+        if (optSubscriptValue.isPresent()) {
+
+          CIdExpression indexIdExpression =
+              new CIdExpression(
+                  subscriptExpression.getFileLocation(), transformableArray.getIndexDeclaration());
+          CExpression accessCondition =
+              new CBinaryExpression(
+                  subscriptExpression.getFileLocation(),
+                  subscriptExpression.getExpressionType(),
+                  subscriptExpression.getExpressionType(),
+                  subscriptExpression,
+                  indexIdExpression,
+                  CBinaryExpression.BinaryOperator.EQUALS);
+          AFunctionDeclaration function = edgeEndpoints.nodeU().getFunction();
+          CFANode newPredecessor = new CFANode(function);
+
+          pGraph.insertPredecessor(
+              newPredecessor,
+              edgeEndpoints.nodeU(),
+              createAssumeEdge(function, accessCondition, true));
+          pGraph.addEdge(
+              newPredecessor,
+              edgeEndpoints.nodeV(),
+              createAssumeEdge(function, accessCondition, false));
+
+          return Status.PRECISE;
+        } else {
+
+          pGraph.removeEdge(pEdge);
+          pGraph.addEdge(
+              edgeEndpoints,
+              createBlankEdge(
+                  edgeEndpoints.nodeU().getFunction(), "removed: " + pEdge.getRawStatement()));
+
+          return Status.IMPRECISE;
+        }
+      }
+    } else {
+      return Status.PRECISE;
+    }
+  }
+
+  private static CFA createSimplifiedCfa(
+      Configuration pConfiguration, LogManager pLogger, CFA pCfa) {
+
+    CFA fstCfa =
+        CfaSimplifications.simplifyArrayAccesses(
+            pConfiguration, pLogger, pCfa, new VariableGenerator("__array_access_variable_"));
+
+    CFA sndCfa = CfaSimplifications.simplifyIncDecLoopEdges(pConfiguration, pLogger, fstCfa);
+
+    return sndCfa;
+  }
+
+  private static void transformArrayDeclarations(
+      CfaMutableNetwork pGraph, ImmutableSet<TransformableArray> pTransformableArrays) {
+
+    for (TransformableArray transformableArray : pTransformableArrays) {
+
+      CDeclarationEdge arrayDeclarationEdge = transformableArray.getArrayDeclarationEdge();
+      var arrayDeclarationEdgeEndpoints = pGraph.incidentNodes(arrayDeclarationEdge);
+      CFANode arrayDeclarationEdgeNodeV = arrayDeclarationEdgeEndpoints.nodeV();
+      pGraph.removeEdge(arrayDeclarationEdge);
+      pGraph.addEdge(
+          arrayDeclarationEdgeEndpoints,
+          createBlankEdge(arrayDeclarationEdgeNodeV.getFunction(), ""));
+
+      AFunctionDeclaration function = arrayDeclarationEdgeNodeV.getFunction();
+      pGraph.insertPredecessor(
+          new CFANode(function),
+          arrayDeclarationEdgeNodeV,
+          transformableArray.getValueDeclarationEdge());
+      pGraph.insertPredecessor(
+          new CFANode(function),
+          arrayDeclarationEdgeNodeV,
+          transformableArray.getIndexDeclarationEdge());
+
+      CType arrayIndexType = transformableArray.getIndexDeclaration().getType();
+      CIdExpression arrayIndexExpression =
+          new CIdExpression(
+              arrayDeclarationEdge.getFileLocation(), transformableArray.getIndexDeclaration());
+
+      CExpression minIndexCondition =
+          new CBinaryExpression(
+              arrayDeclarationEdge.getFileLocation(),
+              CNumericTypes.INT,
+              arrayIndexType,
+              arrayIndexExpression,
+              CIntegerLiteralExpression.ZERO,
+              CBinaryExpression.BinaryOperator.GREATER_EQUAL);
+
+      pGraph.insertSuccessor(
+          arrayDeclarationEdgeNodeV,
+          new CFANode(function),
+          createAssumeEdge(function, minIndexCondition, true));
+      pGraph.addEdge(
+          arrayDeclarationEdgeNodeV,
+          new CFATerminationNode(function),
+          createAssumeEdge(function, minIndexCondition, false));
+
+      CExpression maxIndexCondition =
+          new CBinaryExpression(
+              arrayDeclarationEdge.getFileLocation(),
+              CNumericTypes.INT,
+              arrayIndexType,
+              arrayIndexExpression,
+              transformableArray.getLengthExpression(),
+              CBinaryExpression.BinaryOperator.LESS_THAN);
+
+      pGraph.insertSuccessor(
+          arrayDeclarationEdgeNodeV,
+          new CFANode(function),
+          createAssumeEdge(function, maxIndexCondition, true));
+      pGraph.addEdge(
+          arrayDeclarationEdgeNodeV,
+          new CFATerminationNode(function),
+          createAssumeEdge(function, maxIndexCondition, false));
+    }
+  }
+
+  public static ArrayAbstractionResult transformCfa(
+      Configuration pConfiguration, LogManager pLogger, CFA pCfa) {
+
+    checkNotNull(pConfiguration);
+    checkNotNull(pLogger);
+    checkNotNull(pCfa);
+
+    CFA simplifiedCfa = createSimplifiedCfa(pConfiguration, pLogger, pCfa);
 
     ImmutableSet<TransformableLoop> transformableLoops =
-        TransformableLoop.getTransformableLoops(pCfa);
-    MutableGraph<CFANode, CFAEdge> mutableGraph = CCfaTransformer.createMutableGraph(pCfa);
-    VariableGenerator variableGenerator = new VariableGenerator("__nondet_variable_");
-    ArrayOperationReplacementMap arrayOperationReplacementMap = new ArrayOperationReplacementMap();
+        findRelevantTransformableLoops(simplifiedCfa, pLogger);
+    ImmutableSet<TransformableArray> transformableArrays =
+        findRelevantTransformableArrays(simplifiedCfa, transformableLoops);
+    ImmutableMap<CSimpleDeclaration, TransformableArray> transformableArrayMap =
+        createTransformableArrayMap(transformableArrays);
 
+    if (transformableLoops.isEmpty() || transformableArrays.isEmpty()) {
+      return ArrayAbstractionResult.createUnchanged(pCfa);
+    }
+
+    CfaMutableNetwork graph = CfaMutableNetwork.of(simplifiedCfa);
+
+    Status status = Status.PRECISE;
+
+    // transform loops
     for (TransformableLoop transformableLoop : transformableLoops) {
-      if (!transformableLoop.areLoopIterationsIndependent()) {
-        return pCfa;
+      Status loopTransformationStatus =
+          transformLoop(graph, transformableArrayMap, simplifiedCfa, pLogger, transformableLoop);
+      if (loopTransformationStatus == Status.UNCHANGED) {
+        return ArrayAbstractionResult.createUnchanged(pCfa);
+      } else if (loopTransformationStatus == Status.IMPRECISE) {
+        status = Status.IMPRECISE;
       }
     }
 
-    for (TransformableLoop transformableLoop : transformableLoops) {
-      ImmutableSet<CIdExpression> loopDefs = getLoopDefs(transformableLoop);
-
-      String functionName = transformableLoop.getLoopCfaNode().getFunctionName();
-
-      MutableGraph.Node<CFANode, CFAEdge> firstLoopBodyNode =
-          mutableGraph
-              .getNode(transformableLoop.getEnterLoopCfaEdge().getSuccessor())
-              .orElseThrow();
-      MutableGraph.Node<CFANode, CFAEdge> lastLoopBodyNode =
-          mutableGraph
-              .getNode(transformableLoop.getUpdateLoopIndexCfaEdge().getPredecessor())
-              .orElseThrow();
-
-      for (CIdExpression loopDef : loopDefs) {
-
-        Optional<TransformableArray> someTransformableArray =
-            transformableArrays.stream().findAny();
-        if (someTransformableArray.isPresent()) {
-          TransformableArray transformableArray = someTransformableArray.orElseThrow();
-          CIdExpression loopIndexIdExpression = transformableLoop.getLoopIndexExpression();
-          CIdExpression arrayIndexWitnessIdExpression =
-              createIndexCIdExpression(transformableArray);
-          CFAEdge indexAssignCfaEdge =
-              createAssignEdge(loopIndexIdExpression, arrayIndexWitnessIdExpression);
-          MutableGraph.Edge<CFANode, CFAEdge> indexAssignEdge =
-              mutableGraph.wrapEdge(indexAssignCfaEdge);
-
-          mutableGraph.insertSuccessor(
-              firstLoopBodyNode,
-              indexAssignEdge,
-              mutableGraph.wrapNode(firstLoopBodyNode.getWrappedNode()));
-        }
-
-        CType type = loopDef.getExpressionType();
-        String nondetVariableName = variableGenerator.createNewVariableName();
-        CFAEdge nondetVariableCfaEdge =
-            VariableGenerator.createNondetVariableEdge(
-                type, nondetVariableName, Optional.of(functionName));
-        CIdExpression nondetVariableIdExpression =
-            createCIdExpression(
-                type, MemoryLocation.forLocalVariable(functionName, nondetVariableName));
-        CFAEdge assignNondetVariableCfaEdge = createAssignEdge(loopDef, nondetVariableIdExpression);
-
-        MutableGraph.Edge<CFANode, CFAEdge> assignNondetVariableEdgeStart =
-            mutableGraph.wrapEdge(assignNondetVariableCfaEdge);
-        mutableGraph.insertSuccessor(
-            firstLoopBodyNode,
-            assignNondetVariableEdgeStart,
-            mutableGraph.wrapNode(firstLoopBodyNode.getWrappedNode()));
-        MutableGraph.Edge<CFANode, CFAEdge> nondetVariableEdgeStart =
-            mutableGraph.wrapEdge(nondetVariableCfaEdge);
-        mutableGraph.insertSuccessor(
-            firstLoopBodyNode,
-            nondetVariableEdgeStart,
-            mutableGraph.wrapNode(firstLoopBodyNode.getWrappedNode()));
-
-        MutableGraph.Edge<CFANode, CFAEdge> assignNondetVariableEdgeEnd =
-            mutableGraph.wrapEdge(assignNondetVariableCfaEdge);
-        mutableGraph.insertSuccessor(
-            lastLoopBodyNode,
-            assignNondetVariableEdgeEnd,
-            mutableGraph.wrapNode(lastLoopBodyNode.getWrappedNode()));
-        MutableGraph.Edge<CFANode, CFAEdge> nondetVariableEdgeEnd =
-            mutableGraph.wrapEdge(nondetVariableCfaEdge);
-        mutableGraph.insertSuccessor(
-            lastLoopBodyNode,
-            nondetVariableEdgeEnd,
-            mutableGraph.wrapNode(lastLoopBodyNode.getWrappedNode()));
-      }
-
-      for (CFAEdge edge : transformableLoop.getLoopEdges()) {
-        ImmutableSet<TransformableArray.ArrayOperation> arrayOperations =
-            TransformableArray.getArrayOperations(edge);
-        for (TransformableArray.ArrayOperation arrayOperation : arrayOperations) {
-
-          TransformableArray transformableArray =
-              arrayMemoryLocationToTransformableArray.get(arrayOperation.getArrayMemoryLocation());
-          assert transformableArray != null
-              : "Missing TransformableArray for ArrayOperation: " + arrayOperation;
-
-          CExpression arrayIndexExpression = arrayOperation.getIndexExpression();
-          MemoryLocation replacement = null;
-
-          if (arrayIndexExpression instanceof CIdExpression) {
-
-            CIdExpression loopIndexIdExpression = transformableLoop.getLoopIndexExpression();
-            CIdExpression arrayIndexIdExpression = (CIdExpression) arrayIndexExpression;
-
-            MemoryLocation loopIndexMemoryLocation =
-                MemoryLocation.forDeclaration(loopIndexIdExpression.getDeclaration());
-            MemoryLocation arrayIndexMemoryLocation =
-                MemoryLocation.forDeclaration(arrayIndexIdExpression.getDeclaration());
-
-            if (loopIndexMemoryLocation.equals(arrayIndexMemoryLocation)) {
-              CIdExpression arrayVariableWitnessIdExpression =
-                  createVariableCIdExpression(transformableArray);
-              replacement =
-                  MemoryLocation.forDeclaration(arrayVariableWitnessIdExpression.getDeclaration());
-            }
-          }
-
-          if (replacement == null) {
-            String newVariableName = variableGenerator.createNewVariableName();
-            replacement = MemoryLocation.forIdentifier(newVariableName);
-          }
-
-          arrayOperationReplacementMap.insertReplacement(edge, arrayOperation, replacement);
+    // handle array access edges outside transformable loops
+    ImmutableSet<CFAEdge> transformedEdges =
+        transformableLoops.stream()
+            .flatMap(loop -> getTransformableEdges(graph, loop).stream())
+            .collect(ImmutableSet.toImmutableSet());
+    for (CFAEdge edge : ImmutableSet.copyOf(graph.edges())) {
+      if (!transformedEdges.contains(edge)) {
+        Status edgeTransformationStatus =
+            transformEdge(
+                graph,
+                transformableArrayMap,
+                simplifiedCfa,
+                pLogger,
+                edge,
+                Optional.empty(),
+                Optional.empty());
+        if (edgeTransformationStatus == Status.UNCHANGED) {
+          return ArrayAbstractionResult.createUnchanged(pCfa);
+        } else if (edgeTransformationStatus == Status.IMPRECISE) {
+          status = Status.IMPRECISE;
         }
       }
-
-      replaceLoopWithBranching(mutableGraph, transformableArrays, transformableLoop);
     }
 
-    return CCfaTransformer.createCfa(
-        pConfiguration,
-        pLogger,
-        pCfa,
-        mutableGraph,
-        (originalCfaEdge, originalAstNode) ->
-            originalAstNode.accept(
-                arrayOperationReplacementMap.getAstTransformer(originalCfaEdge)));
-  }
+    transformArrayDeclarations(graph, transformableArrays);
 
-  private static final class ArrayOperationReplacementMap {
-
-    private final Map<CFAEdge, Map<TransformableArray.ArrayOperation, MemoryLocation>>
-        replacementsPerEdge;
-
-    private ArrayOperationReplacementMap() {
-      replacementsPerEdge = new HashMap<>();
-    }
-
-    private void insertReplacement(
-        CFAEdge pEdge,
-        TransformableArray.ArrayOperation pArrayOperation,
-        MemoryLocation pReplacementVariableMemoryLocation) {
-
-      Map<TransformableArray.ArrayOperation, MemoryLocation> replacements =
-          replacementsPerEdge.computeIfAbsent(pEdge, key -> new HashMap<>());
-      replacements.put(pArrayOperation, pReplacementVariableMemoryLocation);
-    }
-
-    private TransformingCAstNodeVisitor<NoException> getAstTransformer(CFAEdge pEdge) {
-
-      Map<TransformableArray.ArrayOperation, MemoryLocation> replacements =
-          replacementsPerEdge.computeIfAbsent(pEdge, key -> ImmutableMap.of());
-      return new AstTransformingVisitor(replacements);
-    }
-  }
-
-  private static final class ReplaceLoopIndexAstTransformingVisitor
-      extends AbstractTransformingCAstNodeVisitor<NoException> {
-
-    private final TransformableArray transformableArray;
-    private final TransformableLoop transformableLoop;
-
-    private ReplaceLoopIndexAstTransformingVisitor(
-        TransformableArray pTransformableArray, TransformableLoop pTransformableLoop) {
-
-      transformableArray = pTransformableArray;
-      transformableLoop = pTransformableLoop;
-    }
-
-    @Override
-    public CAstNode visit(CIdExpression pCIdExpression) {
-
-      if (MemoryLocation.forDeclaration(pCIdExpression.getDeclaration())
-          .equals(transformableLoop.getLoopIndexMemoryLocation())) {
-        return createIndexCIdExpression(transformableArray);
-      }
-
-      return super.visit(pCIdExpression);
-    }
-  }
-
-  private static final class AstTransformingVisitor
-      extends AbstractTransformingCAstNodeVisitor<NoException> {
-
-    private final Map<TransformableArray.ArrayOperation, MemoryLocation> arrayOperationReplacements;
-
-    private AstTransformingVisitor(
-        Map<TransformableArray.ArrayOperation, MemoryLocation> pArrayOperationToNondetVariable) {
-      arrayOperationReplacements = pArrayOperationToNondetVariable;
-    }
-
-    @Override
-    public CAstNode visit(CArraySubscriptExpression pCArraySubscriptExpression) {
-
-      if (!arrayOperationReplacements.isEmpty()) {
-
-        ImmutableSet<TransformableArray.ArrayOperation> arrayOperations =
-            TransformableArray.getArrayOperations(pCArraySubscriptExpression);
-
-        // TODO: the current array abstraction implementation can only handle edges that contain
-        // at most one array operation
-        if (arrayOperations.size() == 1) {
-
-          TransformableArray.ArrayOperation arrayOperation =
-              arrayOperations.stream().findAny().orElseThrow();
-          MemoryLocation nondetVariableMemoryLocation =
-              arrayOperationReplacements.get(arrayOperation);
-
-          if (nondetVariableMemoryLocation == null) {
-            // an isolated CArraySubscriptExpression is always seen as a read, so the array
-            // operation is transformed into a write if the map doesn't contain the read operation
-            TransformableArray.ArrayOperation writeArrayOperation =
-                arrayOperation.toWriteOperation();
-            nondetVariableMemoryLocation = arrayOperationReplacements.get(writeArrayOperation);
-          }
-
-          if (nondetVariableMemoryLocation != null) {
-            CType type = pCArraySubscriptExpression.getExpressionType();
-            return createCIdExpression(type, nondetVariableMemoryLocation);
-          }
+    // initialize array access substitution
+    CAstNodeSubstitution substitution = new CAstNodeSubstitution();
+    for (CFAEdge edge : graph.edges()) {
+      for (ArrayAccess arrayAccess : ArrayAccess.findArrayAccesses(edge)) {
+        Optional<TransformableArray> optTransformableArray =
+            getTransformableArray(arrayAccess, transformableArrayMap);
+        if (optTransformableArray.isPresent()) {
+          TransformableArray transformableArray = optTransformableArray.orElseThrow();
+          CExpression arrayAccessExpression = arrayAccess.getExpression();
+          CSimpleDeclaration valueDeclaration = transformableArray.getValueDeclaration();
+          CIdExpression valueIdExpression =
+              new CIdExpression(arrayAccessExpression.getFileLocation(), valueDeclaration);
+          substitution.insertSubstitute(edge, arrayAccessExpression, valueIdExpression);
         }
       }
-
-      return super.visit(pCArraySubscriptExpression);
     }
 
-    @Override
-    public CAstNode visit(CVariableDeclaration pCVariableDeclaration) {
+    CFA transformedCfa =
+        CCfaTransformer.createCfa(
+            pConfiguration,
+            pLogger,
+            simplifiedCfa,
+            graph,
+            (edge, originalAstNode) ->
+                originalAstNode.accept(
+                    new SubstitutingCAstNodeVisitor(
+                        node -> substitution.getSubstitute(edge, node))));
 
-      CType type = pCVariableDeclaration.getType();
-
-      if (type instanceof CArrayType) {
-        CType newType = ((CArrayType) type).getType();
-        return new CVariableDeclaration(
-            pCVariableDeclaration.getFileLocation(),
-            pCVariableDeclaration.isGlobal(),
-            pCVariableDeclaration.getCStorageClass(),
-            newType,
-            pCVariableDeclaration.getName(),
-            pCVariableDeclaration.getOrigName(),
-            pCVariableDeclaration.getQualifiedName(),
-            null);
-      }
-
-      return super.visit(pCVariableDeclaration);
-    }
+    return new ArrayAbstractionResult(
+        status, transformedCfa, transformableArrays, transformableLoops);
   }
 }

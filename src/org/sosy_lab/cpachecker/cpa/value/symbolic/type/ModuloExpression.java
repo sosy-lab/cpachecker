@@ -35,8 +35,8 @@ public final class ModuloExpression extends BinarySymbolicExpression {
 
   @Override
   public ModuloExpression copyForLocation(final MemoryLocation pRepresentedLocation) {
-    return new ModuloExpression(getOperand1(), getOperand2(), getType(), getCalculationType(),
-        pRepresentedLocation);
+    return new ModuloExpression(
+        getOperand1(), getOperand2(), getType(), getCalculationType(), pRepresentedLocation);
   }
 
   @Override

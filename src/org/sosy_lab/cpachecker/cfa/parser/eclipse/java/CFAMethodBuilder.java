@@ -257,7 +257,7 @@ class CFAMethodBuilder extends ASTVisitor {
   @Override
   public boolean visit(final VariableDeclarationStatement sd) {
 
-    assert (!locStack.isEmpty()) : "not in a methods's scope";
+    assert !locStack.isEmpty() : "not in a methods's scope";
 
     CFANode prevNode = locStack.pop();
 
@@ -272,7 +272,7 @@ class CFAMethodBuilder extends ASTVisitor {
   @Override
   public boolean visit(final SingleVariableDeclaration sd) {
 
-    assert (!locStack.isEmpty()) : "not in a methods's scope";
+    assert !locStack.isEmpty() : "not in a methods's scope";
 
     CFANode prevNode = locStack.pop();
 

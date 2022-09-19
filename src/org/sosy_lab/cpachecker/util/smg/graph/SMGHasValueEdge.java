@@ -36,7 +36,9 @@ public class SMGHasValueEdge implements SMGEdge, Comparable<SMGHasValueEdge> {
     offset = pOffset;
   }
 
-  /** @return the SMGValue this edge points to. */
+  /**
+   * @return the SMGValue this edge points to.
+   */
   public SMGValue hasValue() {
     return value;
   }
@@ -51,17 +53,17 @@ public class SMGHasValueEdge implements SMGEdge, Comparable<SMGHasValueEdge> {
   }
 
   @Override
-  public int compareTo(SMGHasValueEdge pArg0) {
-    int valueCompare = value.compareTo(pArg0.value);
+  public int compareTo(SMGHasValueEdge pOther) {
+    int valueCompare = value.compareTo(pOther.value);
     if (valueCompare == 0) {
-      if (offset.compareTo(pArg0.offset) == 0) {
-        if (sizeInBits.compareTo(pArg0.sizeInBits) == 0) {
+      if (offset.compareTo(pOther.offset) == 0) {
+        if (sizeInBits.compareTo(pOther.sizeInBits) == 0) {
           return 0;
         } else {
-          return sizeInBits.compareTo(pArg0.sizeInBits);
+          return sizeInBits.compareTo(pOther.sizeInBits);
         }
       } else {
-        return offset.compareTo(pArg0.offset);
+        return offset.compareTo(pOther.offset);
       }
     } else {
       return valueCompare;

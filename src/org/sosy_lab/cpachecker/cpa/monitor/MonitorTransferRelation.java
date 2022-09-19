@@ -39,30 +39,42 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.assumptions.PreventingHeuristic;
 
-@Options(prefix="cpa.monitor")
+@Options(prefix = "cpa.monitor")
 public class MonitorTransferRelation extends SingleEdgeTransferRelation {
 
   long maxTotalTimeForPath = 0;
   final Timer totalTimeOfTransfer = new Timer();
 
-  @Option(secure=true, name="limit", description="time limit for a single post computation (use milliseconds or specify a unit; 0 for infinite)")
-  @TimeSpanOption(codeUnit=TimeUnit.MILLISECONDS,
-      defaultUserUnit=TimeUnit.MILLISECONDS,
-      min=0)
+  @Option(
+      secure = true,
+      name = "limit",
+      description =
+          "time limit for a single post computation (use milliseconds or specify a unit; 0 for"
+              + " infinite)")
+  @TimeSpanOption(
+      codeUnit = TimeUnit.MILLISECONDS,
+      defaultUserUnit = TimeUnit.MILLISECONDS,
+      min = 0)
   private long timeLimit = 0; // given in milliseconds
 
-  @Option(secure=true, name="pathcomputationlimit", description="time limit for all computations on a path in milliseconds (use milliseconds or specify a unit; 0 for infinite)")
-  @TimeSpanOption(codeUnit=TimeUnit.MILLISECONDS,
-      defaultUserUnit=TimeUnit.MILLISECONDS,
-      min=0)
+  @Option(
+      secure = true,
+      name = "pathcomputationlimit",
+      description =
+          "time limit for all computations on a path in milliseconds (use milliseconds or specify a"
+              + " unit; 0 for infinite)")
+  @TimeSpanOption(
+      codeUnit = TimeUnit.MILLISECONDS,
+      defaultUserUnit = TimeUnit.MILLISECONDS,
+      min = 0)
   private long timeLimitForPath = 0;
 
   private final TransferRelation transferRelation;
 
   private final ExecutorService executor;
 
-  public MonitorTransferRelation(ConfigurableProgramAnalysis pWrappedCPA,
-      Configuration config) throws InvalidConfigurationException {
+  public MonitorTransferRelation(ConfigurableProgramAnalysis pWrappedCPA, Configuration config)
+      throws InvalidConfigurationException {
     config.inject(this);
 
     transferRelation = pWrappedCPA.getTransferRelation();
@@ -80,7 +92,7 @@ public class MonitorTransferRelation extends SingleEdgeTransferRelation {
   public Collection<MonitorState> getAbstractSuccessorsForEdge(
       AbstractState pElement, final Precision pPrecision, final CFAEdge pCfaEdge)
       throws CPATransferException, InterruptedException {
-    final MonitorState element = (MonitorState)pElement;
+    final MonitorState element = (MonitorState) pElement;
 
     if (element.getWrappedState() == TimeoutState.INSTANCE) {
       // cannot compute a successor
@@ -89,13 +101,16 @@ public class MonitorTransferRelation extends SingleEdgeTransferRelation {
 
     totalTimeOfTransfer.start();
 
-    TransferCallable tc = new TransferCallable() {
-      @Override
-      public Collection<? extends AbstractState> call() throws CPATransferException, InterruptedException {
-        assert !(element.getWrappedState() instanceof MonitorState) : element;
-        return transferRelation.getAbstractSuccessorsForEdge(element.getWrappedState(), pPrecision, pCfaEdge);
-      }
-    };
+    TransferCallable tc =
+        new TransferCallable() {
+          @Override
+          public Collection<? extends AbstractState> call()
+              throws CPATransferException, InterruptedException {
+            assert !(element.getWrappedState() instanceof MonitorState) : element;
+            return transferRelation.getAbstractSuccessorsForEdge(
+                element.getWrappedState(), pPrecision, pCfaEdge);
+          }
+        };
 
     Pair<PreventingHeuristic, Long> preventingCondition = null;
 
@@ -146,14 +161,15 @@ public class MonitorTransferRelation extends SingleEdgeTransferRelation {
 
     // check for violation of limits
     if (preventingCondition == null && timeLimitForPath > 0 && totalTimeOnPath > timeLimitForPath) {
-        preventingCondition = Pair.of(PreventingHeuristic.PATHCOMPTIME, timeLimitForPath);
+      preventingCondition = Pair.of(PreventingHeuristic.PATHCOMPTIME, timeLimitForPath);
     }
 
     // wrap elements
     ImmutableList.Builder<MonitorState> wrappedSuccessors =
         ImmutableList.builderWithExpectedSize(successors.size());
     for (AbstractState absElement : successors) {
-      MonitorState successorElem = new MonitorState(absElement, totalTimeOnPath, preventingCondition);
+      MonitorState successorElem =
+          new MonitorState(absElement, totalTimeOnPath, preventingCondition);
 
       wrappedSuccessors.add(successorElem);
     }
@@ -167,7 +183,7 @@ public class MonitorTransferRelation extends SingleEdgeTransferRelation {
       final CFAEdge cfaEdge,
       final Precision precision)
       throws CPATransferException, InterruptedException {
-    final MonitorState element = (MonitorState)pElement;
+    final MonitorState element = (MonitorState) pElement;
 
     if (element.getWrappedState() == TimeoutState.INSTANCE) {
       // ignore strengthen
@@ -176,12 +192,15 @@ public class MonitorTransferRelation extends SingleEdgeTransferRelation {
 
     totalTimeOfTransfer.start();
 
-    TransferCallable sc = new TransferCallable() {
-      @Override
-      public Collection<? extends AbstractState> call() throws CPATransferException, InterruptedException {
-        return transferRelation.strengthen(element.getWrappedState(), otherElements, cfaEdge, precision);
-      }
-    };
+    TransferCallable sc =
+        new TransferCallable() {
+          @Override
+          public Collection<? extends AbstractState> call()
+              throws CPATransferException, InterruptedException {
+            return transferRelation.strengthen(
+                element.getWrappedState(), otherElements, cfaEdge, precision);
+          }
+        };
 
     Pair<PreventingHeuristic, Long> preventingCondition = null;
 
@@ -248,8 +267,8 @@ public class MonitorTransferRelation extends SingleEdgeTransferRelation {
     ImmutableList.Builder<MonitorState> wrappedSuccessors =
         ImmutableList.builderWithExpectedSize(successors.size());
     for (AbstractState absElement : successors) {
-      MonitorState successorElem = new MonitorState(
-          absElement, totalTimeOnPath, preventingCondition);
+      MonitorState successorElem =
+          new MonitorState(absElement, totalTimeOnPath, preventingCondition);
 
       wrappedSuccessors.add(successorElem);
     }

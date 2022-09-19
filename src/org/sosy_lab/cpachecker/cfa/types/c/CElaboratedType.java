@@ -28,8 +28,12 @@ public final class CElaboratedType implements CComplexType {
 
   private @Nullable CComplexType realType = null;
 
-  public CElaboratedType(boolean pConst, final boolean pVolatile,
-      final ComplexTypeKind pKind, final String pName, final String pOrigName,
+  public CElaboratedType(
+      boolean pConst,
+      final boolean pVolatile,
+      final ComplexTypeKind pKind,
+      final String pName,
+      final String pOrigName,
       final @Nullable CComplexType pRealType) {
     isConst = pConst;
     isVolatile = pVolatile;
@@ -66,20 +70,18 @@ public final class CElaboratedType implements CComplexType {
   }
 
   /**
-   * Get the real type which this type references
-   * (either a CCompositeType or a CEnumType, or null if unknown).
+   * Get the real type which this type references (either a CCompositeType or a CEnumType, or null
+   * if unknown).
    */
   public @Nullable CComplexType getRealType() {
     if (realType instanceof CElaboratedType) {
       // resolve chains of elaborated types
-      return ((CElaboratedType)realType).getRealType();
+      return ((CElaboratedType) realType).getRealType();
     }
     return realType;
   }
 
-  /**
-   * This method should be called only during parsing.
-   */
+  /** This method should be called only during parsing. */
   public void setRealType(CComplexType pRealType) {
     checkState(getRealType() == null);
     checkNotNull(pRealType);
@@ -114,6 +116,7 @@ public final class CElaboratedType implements CComplexType {
 
     return lASTString.toString();
   }
+
   @Override
   public String toString() {
     return getKind().toASTString() + " " + getName();
@@ -152,9 +155,9 @@ public final class CElaboratedType implements CComplexType {
   }
 
   /**
-   * Be careful, this method compares the CType as it is to the given object,
-   * typedefs won't be resolved. If you want to compare the type without having
-   * typedefs in it use #getCanonicalType().equals()
+   * Be careful, this method compares the CType as it is to the given object, typedefs won't be
+   * resolved. If you want to compare the type without having typedefs in it use
+   * #getCanonicalType().equals()
    */
   @Override
   public boolean equals(@Nullable Object obj) {
@@ -168,9 +171,11 @@ public final class CElaboratedType implements CComplexType {
 
     CElaboratedType other = (CElaboratedType) obj;
 
-    return isConst == other.isConst && isVolatile == other.isVolatile
-           && kind == other.kind && Objects.equals(name, other.name)
-           && Objects.equals(realType, other.realType);
+    return isConst == other.isConst
+        && isVolatile == other.isVolatile
+        && kind == other.kind
+        && Objects.equals(name, other.name)
+        && Objects.equals(realType, other.realType);
   }
 
   @Override
@@ -186,10 +191,10 @@ public final class CElaboratedType implements CComplexType {
     CElaboratedType other = (CElaboratedType) obj;
 
     return isConst == other.isConst
-           && isVolatile == other.isVolatile
-           && kind == other.kind
-           && (Objects.equals(name, other.name) || (origName.isEmpty() && other.origName.isEmpty()))
-           && Objects.equals(realType, other.realType);
+        && isVolatile == other.isVolatile
+        && kind == other.kind
+        && (Objects.equals(name, other.name) || (origName.isEmpty() && other.origName.isEmpty()))
+        && Objects.equals(realType, other.realType);
   }
 
   @Override
@@ -203,7 +208,8 @@ public final class CElaboratedType implements CComplexType {
       if ((isConst == pForceConst) && (isVolatile == pForceVolatile)) {
         return this;
       }
-      return new CElaboratedType(isConst || pForceConst, isVolatile || pForceVolatile, kind, name, origName, null);
+      return new CElaboratedType(
+          isConst || pForceConst, isVolatile || pForceVolatile, kind, name, origName, null);
     } else {
       return realType.getCanonicalType(isConst || pForceConst, isVolatile || pForceVolatile);
     }

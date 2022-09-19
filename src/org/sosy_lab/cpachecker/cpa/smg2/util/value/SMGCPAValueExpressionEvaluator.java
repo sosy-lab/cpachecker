@@ -34,36 +34,28 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGObject;
 
 @SuppressWarnings("unused")
-public class SMGCPAValueExpressionEvaluator
-    implements AddressEvaluator {
+public class SMGCPAValueExpressionEvaluator implements AddressEvaluator {
 
   private final LogManagerWithoutDuplicates logger;
   private final MachineModel machineModel;
 
   public SMGCPAValueExpressionEvaluator(
-      MachineModel pMachineModel,
-      LogManagerWithoutDuplicates pLogger) {
+      MachineModel pMachineModel, LogManagerWithoutDuplicates pLogger) {
     logger = pLogger;
     machineModel = pMachineModel;
   }
-
-
 
   private Value throwUnsupportedOperationException(String methodNameString) {
     throw new AssertionError("The operation " + methodNameString + " is not yet supported.");
   }
 
   public Collection<SMGState> evaluateValues(
-      SMGState pState,
-      CFAEdge cfaEdge,
-      CRightHandSide rValue)
-      throws CPATransferException {
+      SMGState pState, CFAEdge cfaEdge, CRightHandSide rValue) throws CPATransferException {
     return null;
   }
 
-  public Collection<CValueAndSMGState>
-      evaluateExpressionValue(SMGState smgState, CFAEdge cfaEdge, CRightHandSide rValue)
-          throws CPATransferException {
+  public Collection<CValueAndSMGState> evaluateExpressionValue(
+      SMGState smgState, CFAEdge cfaEdge, CRightHandSide rValue) throws CPATransferException {
     if (isAddressType(rValue.getExpressionType())) {
       /*
        * expressions with Array Types as result are transformed. a = &(a[0])
@@ -80,8 +72,8 @@ public class SMGCPAValueExpressionEvaluator
     }
   }
 
-  private Collection<CValueAndSMGState>
-      evaluateAddress(SMGState pSmgState, CFAEdge pCfaEdge, CRightHandSide pRValue) {
+  private Collection<CValueAndSMGState> evaluateAddress(
+      SMGState pSmgState, CFAEdge pCfaEdge, CRightHandSide pRValue) {
     // TODO Auto-generated method stub
     return null;
   }
@@ -102,41 +94,39 @@ public class SMGCPAValueExpressionEvaluator
   }
 
   @Override
-  public Collection<CValueAndSMGState>
-      evaluateArraySubscriptAddress(SMGState pInitialSmgState, CExpression pExp) {
+  public Collection<CValueAndSMGState> evaluateArraySubscriptAddress(
+      SMGState pInitialSmgState, CExpression pExp) {
     // TODO Auto-generated method stub
     return null;
   }
 
   @Override
-  public Collection<CValueAndSMGState>
-      evaluateAddress(SMGState pInitialSmgState, CExpression pOperand) {
+  public Collection<CValueAndSMGState> evaluateAddress(
+      SMGState pInitialSmgState, CExpression pOperand) {
     // TODO Auto-generated method stub
     return null;
   }
 
   @Override
-  public Collection<CValueAndSMGState>
-      evaluateArrayAddress(SMGState pInitialSmgState, CExpression pOperand) {
+  public Collection<CValueAndSMGState> evaluateArrayAddress(
+      SMGState pInitialSmgState, CExpression pOperand) {
     // TODO Auto-generated method stub
     return null;
   }
 
   @Override
-  public Collection<CValueAndSMGState>
-      createAddress(SMGState pState, CValue pValue) {
+  public Collection<CValueAndSMGState> createAddress(SMGState pState, CValue pValue) {
     // TODO Auto-generated method stub
     return null;
   }
-
 
   @Override
   public CValueAndSMGState readValue(SMGState pState, CValue value, CExpression pExp) {
     return readValue(pState, pState.getPointsToTarget(value), value, pExp);
   }
 
-  public CValueAndSMGState
-      readValue(SMGState pState, SMGObject object, CValue value, CExpression pExpression) {
+  public CValueAndSMGState readValue(
+      SMGState pState, SMGObject object, CValue value, CExpression pExpression) {
     if (value.isUnknown() || object.isZero()) {
       return CValueAndSMGState.ofUnknown(pState);
     }
@@ -167,32 +157,32 @@ public class SMGCPAValueExpressionEvaluator
     }
     CType type = TypeUtils.getRealExpressionType(pExpression);
 
-    return pState.readValue(
-            object,
-            fieldOffset,
-        machineModel.getSizeofInBits(type));
+    return pState.readValue(object, fieldOffset, machineModel.getSizeofInBits(type));
   }
 
   @Override
-  public Collection<CValueAndSMGState>
-      getAddressOfField(SMGState pInitialSmgState, CFieldReference pExpression) {
+  public Collection<CValueAndSMGState> getAddressOfField(
+      SMGState pInitialSmgState, CFieldReference pExpression) {
     CExpression fieldOwner = pExpression.getFieldOwner();
     CType ownerType = TypeUtils.getRealExpressionType(fieldOwner);
-    return evaluateAddress(pInitialSmgState, fieldOwner).stream().map(addressAndState -> {
-      CValue addressCValue = addressAndState.getValue();
-      SMGState state = addressAndState.getState();
-      String fieldName = pExpression.getFieldName();
-      CTypeAndCValue field = getField(ownerType, fieldName);
-      if (field.getValue().isUnknown() || addressCValue.isUnknown()) {
-        if (pExpression.isPointerDereference()) {
-          state = handleUnknownDereference(state).getState();
-        }
-        CValue fieldOffset = field.getValue().add(addressCValue);
-        return CValueAndSMGState.of(fieldOffset, state);
-      }
+    return evaluateAddress(pInitialSmgState, fieldOwner).stream()
+        .map(
+            addressAndState -> {
+              CValue addressCValue = addressAndState.getValue();
+              SMGState state = addressAndState.getState();
+              String fieldName = pExpression.getFieldName();
+              CTypeAndCValue field = getField(ownerType, fieldName);
+              if (field.getValue().isUnknown() || addressCValue.isUnknown()) {
+                if (pExpression.isPointerDereference()) {
+                  state = handleUnknownDereference(state).getState();
+                }
+                CValue fieldOffset = field.getValue().add(addressCValue);
+                return CValueAndSMGState.of(fieldOffset, state);
+              }
 
-      return CValueAndSMGState.ofUnknown(state);
-    }).collect(ImmutableSet.toImmutableSet());
+              return CValueAndSMGState.ofUnknown(state);
+            })
+        .collect(ImmutableSet.toImmutableSet());
   }
 
   private CTypeAndCValue getField(CType pType, String pFieldName) {
@@ -252,8 +242,8 @@ public class SMGCPAValueExpressionEvaluator
   }
 
   @Override
-  public CValueAndSMGState
-      readValue(SMGState pSmgState, SMGObject pVariableObject, CExpression pExpression) {
+  public CValueAndSMGState readValue(
+      SMGState pSmgState, SMGObject pVariableObject, CExpression pExpression) {
     return readValue(pSmgState, pVariableObject, CValue.zero(), pExpression);
   }
 
@@ -262,6 +252,4 @@ public class SMGCPAValueExpressionEvaluator
     // TODO check why old implementation did not use machineModel
     return machineModel.getSizeofInBits(pExpression.getExpressionType());
   }
-
-
 }

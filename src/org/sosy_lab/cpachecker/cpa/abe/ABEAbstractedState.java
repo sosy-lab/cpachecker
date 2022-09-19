@@ -16,9 +16,9 @@ import org.sosy_lab.java_smt.api.BooleanFormula;
 
 /**
  * Abstracted state of ABE-based analysis.
- * @param <A> Should be parameterized by its own class, e.g.
- *           {@code class CongruenceClass implements
- *           ABEAbstractedState<CongruenceClass>}.
+ *
+ * @param <A> Should be parameterized by its own class, e.g. {@code class CongruenceClass implements
+ *     ABEAbstractedState<CongruenceClass>}.
  */
 public interface ABEAbstractedState<A extends ABEAbstractedState<A>>
     extends ABEState<A>, FormulaReportingState {

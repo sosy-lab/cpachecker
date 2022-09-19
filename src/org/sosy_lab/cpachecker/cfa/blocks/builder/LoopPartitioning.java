@@ -28,9 +28,7 @@ import org.sosy_lab.cpachecker.util.CFATraversal;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 
-/**
- * <code>PartitioningHeuristic</code> that creates blocks for each loop-body.
- */
+/** <code>PartitioningHeuristic</code> that creates blocks for each loop-body. */
 public class LoopPartitioning extends PartitioningHeuristic {
 
   private Map<CFANode, Set<CFANode>> loopHeaderToLoopBody = null;
@@ -44,8 +42,9 @@ public class LoopPartitioning extends PartitioningHeuristic {
     if (cfa.getLoopStructure().isPresent()) {
       for (Loop loop : cfa.getLoopStructure().orElseThrow().getAllLoops()) {
         if (loop.getLoopHeads().size() == 1) {
-          //currently only loops with single loop heads supported
-          loopHeaderToLoopBody.put(Iterables.getOnlyElement(loop.getLoopHeads()), loop.getLoopNodes());
+          // currently only loops with single loop heads supported
+          loopHeaderToLoopBody.put(
+              Iterables.getOnlyElement(loop.getLoopHeads()), loop.getLoopNodes());
         }
       }
     }
@@ -110,18 +109,23 @@ public class LoopPartitioning extends PartitioningHeuristic {
     List<CFANode> addNodes = new ArrayList<>();
     for (CFANode node : pLoopBody) {
       for (CFAEdge edge : CFAUtils.leavingEdges(node)) {
-        if (!pLoopBody.contains(edge.getSuccessor()) && !(edge.getEdgeType() == CFAEdgeType.FunctionCallEdge))  {
+        if (!pLoopBody.contains(edge.getSuccessor())
+            && !(edge.getEdgeType() == CFAEdgeType.FunctionCallEdge)) {
           addNodes.add(edge.getSuccessor());
         }
       }
     }
 
-    // Normally pLoopBody.addAll(addNodes) would be enough. In special cases we have to add more nodes,
+    // Normally pLoopBody.addAll(addNodes) would be enough. In special cases we have to add more
+    // nodes,
     // because they are reachable from the loop and the loopReturnNodes are reachable from them.
-    // This happens with break-statement-branches, that do not only skip the loop, but do some calculations.
-    // Then all calculation-Nodes are outside the block, but the loopReturnNode is after them and in the block.
+    // This happens with break-statement-branches, that do not only skip the loop, but do some
+    // calculations.
+    // Then all calculation-Nodes are outside the block, but the loopReturnNode is after them and in
+    // the block.
     // Example: for(..) { if (..) { calc ..; break; } .. }
-    // So we also add their predecessors to the block, so that the loop-block has only one entry-node.
+    // So we also add their predecessors to the block, so that the loop-block has only one
+    // entry-node.
     // We assume, that the node direct after the loop is _only_ reachable
     // either through the loopstart or with a break-statement.
     final List<CFANode> waitlist = new ArrayList<>(addNodes);

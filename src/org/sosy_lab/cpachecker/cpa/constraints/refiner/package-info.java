@@ -6,7 +6,5 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-/**
- * This package contains classes for the refinement of the ConstraintsCPA.
- */
+/** This package contains classes for the refinement of the ConstraintsCPA. */
 package org.sosy_lab.cpachecker.cpa.constraints.refiner;

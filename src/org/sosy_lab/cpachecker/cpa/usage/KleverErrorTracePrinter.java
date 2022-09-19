@@ -54,11 +54,13 @@ import org.sosy_lab.cpachecker.util.identifiers.SingleIdentifier;
 import org.w3c.dom.DOMException;
 import org.w3c.dom.Element;
 
-@Options(prefix="cpa.usage.export")
+@Options(prefix = "cpa.usage.export")
 public class KleverErrorTracePrinter extends ErrorTracePrinter {
 
-  @Option(secure=true, name="witnessTemplate",
-      description="export counterexample core as text file")
+  @Option(
+      secure = true,
+      name = "witnessTemplate",
+      description = "export counterexample core as text file")
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private PathTemplate errorPathFile = PathTemplate.ofFormatString("witness.%s.graphml");
 
@@ -277,7 +279,7 @@ public class KleverErrorTracePrinter extends ErrorTracePrinter {
     }
 
     FileLocation location = pEdge.getFileLocation();
-    assert (location != null) : "should be filtered";
+    assert location != null : "should be filtered";
     builder.addDataElementChild(result, KeyDef.ORIGINFILE, location.getFileName().toString());
     builder.addDataElementChild(
         result, KeyDef.STARTLINE, Integer.toString(location.getStartingLineInOrigin()));

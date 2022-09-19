@@ -48,23 +48,29 @@ public class ARGInPlaceSubtreeRemover extends ARGSubtreeRemover {
   }
 
   @Override
-  void removeSubtree(ARGReachedSet mainReachedSet, ARGPath pPath,
-                     ARGState element, List<Precision> pNewPrecisions,
-                     List<Predicate<? super Precision>> pNewPrecisionTypes)
+  void removeSubtree(
+      ARGReachedSet mainReachedSet,
+      ARGPath pPath,
+      ARGState element,
+      List<Precision> pNewPrecisions,
+      List<Predicate<? super Precision>> pNewPrecisionTypes)
       throws InterruptedException {
 
     final BackwardARGState cutPoint = (BackwardARGState) element;
     final ARGState cutPointAsArgState = getReachedState(cutPoint);
-    final ARGState firstState = (ARGState)mainReachedSet.asReachedSet().getFirstState();
-    final ARGState lastState = (ARGState)mainReachedSet.asReachedSet().getLastState();
+    final ARGState firstState = (ARGState) mainReachedSet.asReachedSet().getFirstState();
+    final ARGState lastState = (ARGState) mainReachedSet.asReachedSet().getLastState();
 
-    assert pPath.asStatesList().get(0).getWrappedState() == firstState : "path should start with root state";
-    assert Iterables.getLast(pPath.asStatesList()).getWrappedState() == lastState : "path should end with target state";
+    assert pPath.asStatesList().get(0).getWrappedState() == firstState
+        : "path should start with root state";
+    assert Iterables.getLast(pPath.asStatesList()).getWrappedState() == lastState
+        : "path should end with target state";
     assert lastState.isTarget();
 
     final Map<BackwardARGState, ARGState> blockInitAndExitStates =
         getBlockInitAndExitStates(pPath.asStatesList());
-    final List<BackwardARGState> relevantCallStates = getRelevantCallStates(pPath.asStatesList(), cutPoint);
+    final List<BackwardARGState> relevantCallStates =
+        getRelevantCallStates(pPath.asStatesList(), cutPoint);
     // assert relevantCallStates.get(0).getWrappedState() == firstState : "root should be relevant";
     // assert relevantCallStates.size() >= 1 : "at least the main-function should be open at the
     // target-state";
@@ -72,7 +78,7 @@ public class ARGInPlaceSubtreeRemover extends ARGSubtreeRemover {
     Multimap<BackwardARGState, ARGState> neededRemoveCachedSubtreeCalls =
         LinkedHashMultimap.create();
 
-    //iterate from root to element and remove all subtrees for subgraph calls
+    // iterate from root to element and remove all subtrees for subgraph calls
     for (int i = 0; i < relevantCallStates.size() - 1; i++) { // ignore root and the last element
       final BackwardARGState pathElement = relevantCallStates.get(i);
       final BackwardARGState nextElement = relevantCallStates.get(i + 1);
@@ -176,9 +182,10 @@ public class ARGInPlaceSubtreeRemover extends ARGSubtreeRemover {
   static void removeSubtree(ARGReachedSet reachedSet, ARGState argElement)
       throws InterruptedException {
     if (AbstractBAMTransferRelation.isHeadOfMainFunction(extractLocation(argElement))) {
-      assert ((ARGState)reachedSet.asReachedSet().getFirstState()).getChildren().contains(
-          reachedSet.asReachedSet().getLastState());
-      reachedSet.removeSubtree((ARGState)reachedSet.asReachedSet().getLastState());
+      assert ((ARGState) reachedSet.asReachedSet().getFirstState())
+          .getChildren()
+          .contains(reachedSet.asReachedSet().getLastState());
+      reachedSet.removeSubtree((ARGState) reachedSet.asReachedSet().getLastState());
     } else {
       reachedSet.removeSubtree(argElement);
     }
@@ -193,7 +200,7 @@ public class ARGInPlaceSubtreeRemover extends ARGSubtreeRemover {
       throws InterruptedException {
     if (removeElement.isDestroyed()) {
       logger.log(Level.FINER, "state was destroyed before");
-      //apparently, removeElement was removed due to prior deletions
+      // apparently, removeElement was removed due to prior deletions
     } else {
       removeCachedSubtree(rootState, exitState, removeElement, pNewPrecisions, pPrecisionTypes);
     }
@@ -212,15 +219,22 @@ public class ARGInPlaceSubtreeRemover extends ARGSubtreeRemover {
       throws InterruptedException {
     assert pNewPrecisions.size() == pPrecisionTypes.size();
     removeCachedSubtreeTimer.start();
-    logger.log(Level.FINER, "Remove cached subtree for", removeElement, " issued with precision", pNewPrecisions);
+    logger.log(
+        Level.FINER,
+        "Remove cached subtree for",
+        removeElement,
+        " issued with precision",
+        pNewPrecisions);
 
     CFANode rootNode = extractLocation(rootState);
     Block rootSubtree = partitioning.getBlockForCallNode(rootNode);
     ReachedSet reachedSet = data.getReachedSetForInitialState(rootState, exitState);
-    assert reachedSet.contains(removeElement) : "removing state from wrong reachedSet: " + removeElement;
+    assert reachedSet.contains(removeElement)
+        : "removing state from wrong reachedSet: " + removeElement;
     assert !removeElement.getParents().isEmpty();
 
-    AbstractState reducedRootState = wrappedReducer.getVariableReducedState(rootState, rootSubtree, rootNode);
+    AbstractState reducedRootState =
+        wrappedReducer.getVariableReducedState(rootState, rootSubtree, rootNode);
     Precision reducedRootPrecision = reachedSet.getPrecision(reachedSet.getFirstState());
     BAMCacheEntry entry = bamCache.get(reducedRootState, reducedRootPrecision, rootSubtree);
     if (entry != null) {
@@ -247,7 +261,8 @@ public class ARGInPlaceSubtreeRemover extends ARGSubtreeRemover {
             wrappedReducer.getVariableReducedPrecision(newPrecision.getFirst(), rootSubtree);
         data.createAndRegisterNewReachedSet(reducedRootState, reducedPrecision, rootSubtree);
       } else {
-        argReachedSet.removeSubtree(removeElement, newPrecision.getFirst(), newPrecision.getSecond());
+        argReachedSet.removeSubtree(
+            removeElement, newPrecision.getFirst(), newPrecision.getSecond());
       }
     }
 
@@ -261,7 +276,8 @@ public class ARGInPlaceSubtreeRemover extends ARGSubtreeRemover {
       final List<Predicate<? super Precision>> precisionTypes) {
     assert precisions.size() == precisionTypes.size() && !precisions.isEmpty();
     for (int i = 0; i < precisions.size(); i++) {
-      removePrecision = Precisions.replaceByType(removePrecision, precisions.get(i), precisionTypes.get(i));
+      removePrecision =
+          Precisions.replaceByType(removePrecision, precisions.get(i), precisionTypes.get(i));
     }
     return Pair.of(removePrecision, Predicates.instanceOf(removePrecision.getClass()));
   }
@@ -287,7 +303,7 @@ public class ARGInPlaceSubtreeRemover extends ARGSubtreeRemover {
     // add root from main-reached-set
     needsNewPrecisionEntries.add(false);
     foundInnerUnpreciseEntries.add(false);
-    rootStates.add((BackwardARGState)pPath.getFirstState());
+    rootStates.add((BackwardARGState) pPath.getFirstState());
 
     for (final ARGState pathState : pPath.asStatesList()) {
       final BackwardARGState bamState = (BackwardARGState) pathState;
@@ -306,7 +322,9 @@ public class ARGInPlaceSubtreeRemover extends ARGSubtreeRemover {
         boolean foundInnerUnpreciseEntry = foundInnerUnpreciseEntries.getLast();
 
         BackwardARGState rootState = rootStates.removeLast();
-        if ((removedUnpreciseInnerBlock || isNewPrecisionEntry) && !isNewPrecisionEntryForOuterBlock && !foundInnerUnpreciseEntry) {
+        if ((removedUnpreciseInnerBlock || isNewPrecisionEntry)
+            && !isNewPrecisionEntryForOuterBlock
+            && !foundInnerUnpreciseEntry) {
 
           if (cutStateFound) {
             // we indeed found an inner block that was imprecise,
@@ -371,7 +389,9 @@ public class ARGInPlaceSubtreeRemover extends ARGSubtreeRemover {
     ARGState initialState = rootState.getARGState();
     Precision rootPrecision = outerReachedSet.getPrecision(initialState);
     for (Precision pNewPrecision : pNewPrecisions) {
-      Precision tmp = Precisions.replaceByType(rootPrecision, pNewPrecision, Predicates.instanceOf(pNewPrecision.getClass()));
+      Precision tmp =
+          Precisions.replaceByType(
+              rootPrecision, pNewPrecision, Predicates.instanceOf(pNewPrecision.getClass()));
       if (tmp != null) { // precision changed
         rootPrecision = tmp;
       }
@@ -381,8 +401,10 @@ public class ARGInPlaceSubtreeRemover extends ARGSubtreeRemover {
     // reduce the new precision and add a precise key for the new precision if needed
     CFANode node = extractLocation(rootState);
     Block context = partitioning.getBlockForCallNode(node);
-    AbstractState reducedRootState = wrappedReducer.getVariableReducedState(getReachedState(rootState), context, node);
-    Precision reducedNewPrecision = wrappedReducer.getVariableReducedPrecision(rootPrecision, context);
+    AbstractState reducedRootState =
+        wrappedReducer.getVariableReducedState(getReachedState(rootState), context, node);
+    Precision reducedNewPrecision =
+        wrappedReducer.getVariableReducedPrecision(rootPrecision, context);
     if (!bamCache.containsPreciseKey(reducedRootState, reducedNewPrecision, context)) {
       data.createAndRegisterNewReachedSet(reducedRootState, reducedNewPrecision, context);
     }

@@ -9,12 +9,14 @@
 package org.sosy_lab.cpachecker.cpa.octagon.values;
 
 @SuppressWarnings("rawtypes")
-public abstract class OctagonNumericValue<T extends Number> implements Comparable<OctagonNumericValue> {
+public abstract class OctagonNumericValue<T extends Number>
+    implements Comparable<OctagonNumericValue> {
 
   protected T value;
 
-  protected OctagonNumericValue (T val) {
-    assert (val instanceof Double || val instanceof Long) : "currently only doubles and longs are supported";
+  protected OctagonNumericValue(T val) {
+    assert val instanceof Double || val instanceof Long
+        : "currently only doubles and longs are supported";
     value = val;
   }
 
@@ -23,8 +25,11 @@ public abstract class OctagonNumericValue<T extends Number> implements Comparabl
   }
 
   public abstract OctagonNumericValue min(OctagonNumericValue val1);
+
   public abstract OctagonNumericValue max(OctagonNumericValue val1);
+
   public abstract int signum();
+
   public abstract boolean isInfinite();
 
   public abstract boolean isInInterval(double lower, double upper);
@@ -82,5 +87,4 @@ public abstract class OctagonNumericValue<T extends Number> implements Comparabl
   public abstract boolean isEqual(long pVal);
 
   public abstract boolean isEqual(double pVal);
-
 }

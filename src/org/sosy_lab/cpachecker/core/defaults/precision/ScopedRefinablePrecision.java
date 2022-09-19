@@ -24,9 +24,7 @@ import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 public class ScopedRefinablePrecision extends RefinablePrecision {
-  /**
-   * the collection that determines which variables are tracked within a specific scope
-   */
+  /** the collection that determines which variables are tracked within a specific scope */
   private final ImmutableSortedSet<MemoryLocation> rawPrecision;
 
   ScopedRefinablePrecision(VariableTrackingPrecision pBaseline) {
@@ -42,7 +40,7 @@ public class ScopedRefinablePrecision extends RefinablePrecision {
 
   @Override
   public ScopedRefinablePrecision withIncrement(Multimap<CFANode, MemoryLocation> increment) {
-    if (this.rawPrecision.containsAll(increment.values())) {
+    if (rawPrecision.containsAll(increment.values())) {
       return this;
     } else {
       Iterable<MemoryLocation> refinedPrec = Iterables.concat(rawPrecision, increment.values());

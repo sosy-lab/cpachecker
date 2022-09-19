@@ -13,8 +13,8 @@ import org.sosy_lab.cpachecker.cfa.ast.AAstNode;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 
 /**
- * Exception thrown when a CPA cannot handle some code attached to a CFAEdge
- * because it uses features that are unsupported.
+ * Exception thrown when a CPA cannot handle some code attached to a CFAEdge because it uses
+ * features that are unsupported.
  */
 public class UnsupportedCodeException extends UnrecognizedCodeException {
 

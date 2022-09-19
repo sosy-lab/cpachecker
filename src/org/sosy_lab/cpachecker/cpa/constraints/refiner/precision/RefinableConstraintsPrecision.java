@@ -15,16 +15,20 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.Constraint;
 
-/**
- * Refinable {@link ConstraintsPrecision}.
- */
+/** Refinable {@link ConstraintsPrecision}. */
 @Options(prefix = "cpa.constraints.refinement")
 public class RefinableConstraintsPrecision implements ConstraintsPrecision {
 
-  public enum PrecisionType { CONSTRAINTS, LOCATION }
+  public enum PrecisionType {
+    CONSTRAINTS,
+    LOCATION
+  }
 
-  @Option(description = "Type of precision to use. Has to be LOCATION if"
-      + " PredicateExtractionRefiner is used.", toUppercase = true)
+  @Option(
+      description =
+          "Type of precision to use. Has to be LOCATION if"
+              + " PredicateExtractionRefiner is used.",
+      toUppercase = true)
   private PrecisionType precisionType = PrecisionType.CONSTRAINTS;
 
   private final ConstraintsPrecision delegate;

@@ -18,5 +18,4 @@ public class AdditionalInfoExtractor {
     // TODO Auto-generated method stub
     return null;
   }
-
 }

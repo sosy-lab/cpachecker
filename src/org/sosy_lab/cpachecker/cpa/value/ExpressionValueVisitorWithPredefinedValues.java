@@ -37,7 +37,7 @@ public class ExpressionValueVisitorWithPredefinedValues extends ExpressionValueV
       MachineModel pMachineModel,
       LogManagerWithoutDuplicates pLogger) {
     super(pState, pFunctionName, pMachineModel, pLogger);
-    this.logger = pLogger;
+    logger = pLogger;
   }
 
   /**
@@ -62,8 +62,8 @@ public class ExpressionValueVisitorWithPredefinedValues extends ExpressionValueV
       LogManagerWithoutDuplicates pLogger,
       Map<Integer, String> pValuesFromFile) {
     super(pState, pFunctionName, pMachineModel, pLogger);
-    this.logger = pLogger;
-    this.numReturnedValues = pAtomicInteger;
+    logger = pLogger;
+    numReturnedValues = pAtomicInteger;
 
     valuesFromFile = pValuesFromFile;
   }
@@ -80,10 +80,10 @@ public class ExpressionValueVisitorWithPredefinedValues extends ExpressionValueV
         // We found a call to random. If available, return a new value from the predefined inputs.
         // Otherwise, delegate to super
         int counter = numReturnedValues.getAndIncrement();
-        if (this.valuesFromFile.containsKey(counter)) {
+        if (valuesFromFile.containsKey(counter)) {
           Value value = computeNumericalValue(call, valuesFromFile.get(counter));
 
-          this.logger.log(
+          logger.log(
               Level.FINER,
               "Returning value at position %d, for statement " + pExp.toASTString() + " that is: ",
               value);
@@ -123,7 +123,7 @@ public class ExpressionValueVisitorWithPredefinedValues extends ExpressionValueV
       // }
 
     } else {
-      this.logger.log(Level.WARNING, "Cannot parse complex types, hence returning unknown");
+      logger.log(Level.WARNING, "Cannot parse complex types, hence returning unknown");
     }
     return new Value.UnknownValue();
   }

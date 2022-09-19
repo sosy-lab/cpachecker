@@ -39,10 +39,7 @@ public final class CLangStackFrame {
   /** A mapping from variable names to a set of SMG objects, representing local variables. */
   private final PersistentMap<String, SMGRegion> stack_variables;
 
-  /**
-   * An object to store function return value.
-   * The Object is Null if function has Void-type.
-   */
+  /** An object to store function return value. The Object is Null if function has Void-type. */
   @Nullable private final SMGRegion returnValueObject;
 
   private CLangStackFrame(
@@ -58,8 +55,7 @@ public final class CLangStackFrame {
    * Constructor. Creates an empty frame.
    *
    * @param pDeclaration Function for which the frame is created
-   *
-   * TODO: [PARAMETERS] Create objects for function parameters
+   *     <p>TODO: [PARAMETERS] Create objects for function parameters
    */
   public CLangStackFrame(CFunctionDeclaration pDeclaration, MachineModel pMachineModel) {
     stack_variables = PathCopyingPersistentTreeMap.of();
@@ -84,9 +80,11 @@ public final class CLangStackFrame {
    * @param pObject An object to put into the stack frame
    */
   public CLangStackFrame addStackVariable(String pVariableName, SMGRegion pObject) {
-    Preconditions.checkArgument(!stack_variables.containsKey(pVariableName),
+    Preconditions.checkArgument(
+        !stack_variables.containsKey(pVariableName),
         "Stack frame for function '%s' already contains a variable '%s'",
-        stack_function.toASTString(), pVariableName);
+        stack_function.toASTString(),
+        pVariableName);
 
     return new CLangStackFrame(
         stack_function, stack_variables.putAndCopy(pVariableName, pObject), returnValueObject);
@@ -119,7 +117,7 @@ public final class CLangStackFrame {
   /**
    * Getter for obtaining an object corresponding to a variable name
    *
-   * Throws {@link NoSuchElementException} when passed a name not present
+   * <p>Throws {@link NoSuchElementException} when passed a name not present
    *
    * @param pName Variable name
    * @return SMG object corresponding to pName in the frame
@@ -132,9 +130,10 @@ public final class CLangStackFrame {
 
     SMGRegion to_return = stack_variables.get(pName);
     if (to_return == null) {
-      throw new NoSuchElementException(String.format(
-          "No variable with name '%s' in stack frame for function '%s'",
-          pName, stack_function.toASTString()));
+      throw new NoSuchElementException(
+          String.format(
+              "No variable with name '%s' in stack frame for function '%s'",
+              pName, stack_function.toASTString()));
     }
     return to_return;
   }
@@ -177,9 +176,7 @@ public final class CLangStackFrame {
     return returnValueObject;
   }
 
-  /**
-   * returns true if stack contains the given variable, else false.
-   */
+  /** returns true if stack contains the given variable, else false. */
   public boolean hasVariable(String var) {
     return stack_variables.containsKey(var);
   }
@@ -192,7 +189,7 @@ public final class CLangStackFrame {
     if (!(o instanceof CLangStackFrame)) {
       return false;
     }
-    CLangStackFrame other = (CLangStackFrame)o;
+    CLangStackFrame other = (CLangStackFrame) o;
     return Objects.equals(stack_variables, other.stack_variables)
         && Objects.equals(stack_function, other.stack_function)
         && Objects.equals(returnValueObject, other.returnValueObject);

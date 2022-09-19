@@ -8,6 +8,46 @@ SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
 SPDX-License-Identifier: Apache-2.0
 -->
 
+Changes since CPAchecker 2.1.1
+------------------------------
+* Preparation for Java 18  
+  CPAchecker before revision 39743 might not work correctly if
+  - Java 18 or newer is used,
+  - the system's default encoding is different from UTF-8
+    (this is usually the case on Windows, but uncommon on Linux and Mac), and
+  - non-ASCII characters appear in input files or are otherwise relevant during the analysis.
+  This is due to a change in Java, for full details cf. [JEP 400](https://openjdk.java.net/jeps/400).
+  Note that due to the same change, textual output files of CPAchecker
+  on non-UTF-8 machines will be in the system encoding if Java 17 or older is used
+  and in UTF-8 if Java 18 or newer is used
+  (this behavior is the same for all versions of CPAchecker).
+
+
+Changes from CPAchecker 2.1 to CPAchecker 2.1.1
+-----------------------------------------------
+* CPAchecker can be used as abstract model explorer
+  and precision refiner for component-based CEGAR
+  (cf. "Decomposing Software Verification into Off-the-Shelf Components:
+  An Application to CEGAR", Proc. ICSE, 2022, to be released).
+
+
+Changes from CPAchecker 2.0 to CPAchecker 2.1
+---------------------------------------------
+* Interpolation-Sequence based Model Checking (ISMC)  
+  A new reachability-safety analysis (config `-bmc-interpolationSequence`),
+  which adopts a verification algorithm for hardware
+  proposed by Yakir Vizel and Orna Grumberg
+  (cf. ["Interpolation-sequence based model checking", Proc. FMCAD, 2009](https://doi.org/10.1109/FMCAD.2009.5351148))
+  to software, has been added to CPAchecker.
+
+* Self-contained HTML reports  
+  The [HTML report](https://cpachecker.sosy-lab.org/counterexample-report/ErrorPath.0.html)
+  that CPAchecker creates for the analysis result
+  (for example showing the counterexample)
+  now is a fully self contained file with all dependencies bundled.
+  This means one does no longer need Internet access to open one.
+
+
 Changes from CPAchecker 1.9.1 to CPAchecker 2.0
 -----------------------------------------------
 * Better support for Windows  
@@ -28,9 +68,8 @@ Changes from CPAchecker 1.9.1 to CPAchecker 2.0
 * Interpolation-based Model Checking (IMC)  
   A new reachability-safety analysis (config `-bmc-interpolation`),
   which adopts a state-of-the-art verification algorithm
-  for hardware proposed by McMillan
-  (cf. "Interpolation and SAT-Based Model Checking".
-  K. L. McMillan. In Proc. CAV, Springer, 2003)
+  for hardware proposed by K. L. McMillan
+  (cf. ["Interpolation and SAT-Based Model Checking", Proc. CAV, 2003](https://doi.org/10.1007/978-3-540-45069-6_1))
   to software, has been added to CPAchecker.
 
 * Automated Fault Localization  

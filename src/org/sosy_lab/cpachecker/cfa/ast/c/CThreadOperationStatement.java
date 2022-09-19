@@ -22,8 +22,11 @@ public class CThreadOperationStatement extends CFunctionCallStatement {
 
     private static final long serialVersionUID = -1211707394397959801L;
 
-    public CThreadCreateStatement(FileLocation pFileLocation, CFunctionCallExpression pFunctionCall,
-        boolean pSelfParallel, String pVarName) {
+    public CThreadCreateStatement(
+        FileLocation pFileLocation,
+        CFunctionCallExpression pFunctionCall,
+        boolean pSelfParallel,
+        String pVarName) {
       super(pFileLocation, pFunctionCall, pSelfParallel, pVarName);
     }
   }
@@ -32,8 +35,11 @@ public class CThreadOperationStatement extends CFunctionCallStatement {
 
     private static final long serialVersionUID = -2328781305617198230L;
 
-    public CThreadJoinStatement(FileLocation pFileLocation, CFunctionCallExpression pFunctionCall,
-        boolean pSelfParallel, String pVarName) {
+    public CThreadJoinStatement(
+        FileLocation pFileLocation,
+        CFunctionCallExpression pFunctionCall,
+        boolean pSelfParallel,
+        String pVarName) {
       super(pFileLocation, pFunctionCall, pSelfParallel, pVarName);
     }
   }
@@ -41,8 +47,11 @@ public class CThreadOperationStatement extends CFunctionCallStatement {
   private final boolean isSelfParallel;
   private final String assosiatedVariable;
 
-  public CThreadOperationStatement(FileLocation pFileLocation, CFunctionCallExpression pFunctionCall
-      , boolean selfParallel, String varName) {
+  public CThreadOperationStatement(
+      FileLocation pFileLocation,
+      CFunctionCallExpression pFunctionCall,
+      boolean selfParallel,
+      String varName) {
     super(pFileLocation, pFunctionCall);
     isSelfParallel = selfParallel;
     assosiatedVariable = varName;

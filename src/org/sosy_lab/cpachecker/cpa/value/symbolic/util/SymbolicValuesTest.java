@@ -19,9 +19,7 @@ import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValueFactory;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
-/**
- * Unit tests for {@link SymbolicValues}.
- */
+/** Unit tests for {@link SymbolicValues}. */
 public class SymbolicValuesTest {
 
   private final MemoryLocation memLoc1 = MemoryLocation.forIdentifier("a");
@@ -33,10 +31,8 @@ public class SymbolicValuesTest {
   private final SymbolicIdentifier id1 = factory.newIdentifier(memLoc1);
   private final SymbolicIdentifier id2 = factory.newIdentifier(memLoc2);
 
-  private final SymbolicExpression idExp1 = factory.asConstant(id1,
-      defType);
-  private final SymbolicExpression idExp2 = factory.asConstant(id2,
-      defType);
+  private final SymbolicExpression idExp1 = factory.asConstant(id1, defType);
+  private final SymbolicExpression idExp2 = factory.asConstant(id2, defType);
 
   private final NumericValue num1 = new NumericValue(5);
   private final SymbolicExpression numExp1 = factory.asConstant(num1, defType);

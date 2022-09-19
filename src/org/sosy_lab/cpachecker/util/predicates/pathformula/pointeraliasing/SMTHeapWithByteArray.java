@@ -109,7 +109,7 @@ class SMTHeapWithByteArray implements SMTHeap {
   public <I extends Formula, V extends Formula> V makePointerDereference(
       String targetName, FormulaType<V> targetType, int ssaIndex, I address) {
     if (targetType.isFloatingPointType()) {
-      FloatingPointType floatType = (FloatingPointType)targetType;
+      FloatingPointType floatType = (FloatingPointType) targetType;
       BitvectorType bvType = FormulaType.getBitvectorTypeWithSize(floatType.getTotalSize());
       BitvectorFormula bvFormula = makePointerDereference(targetName, bvType, ssaIndex, address);
       FloatingPointFormulaManagerView floatMgr = formulaManager.getFloatingPointFormulaManager();

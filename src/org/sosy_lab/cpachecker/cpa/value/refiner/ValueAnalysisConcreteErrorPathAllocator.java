@@ -150,7 +150,8 @@ public class ValueAnalysisConcreteErrorPathAllocator
     return state;
   }
 
-  public static ConcreteState createConcreteState(ValueAnalysisState pValueState, MachineModel pMachineModel) {
+  public static ConcreteState createConcreteState(
+      ValueAnalysisState pValueState, MachineModel pMachineModel) {
     Map<LeftHandSide, Address> variableAddresses =
         generateVariableAddresses(Collections.singleton(pValueState));
     // We assign every variable to the heap, thats why the variable map is empty.
@@ -158,7 +159,8 @@ public class ValueAnalysisConcreteErrorPathAllocator
         ImmutableMap.of(),
         allocateAddresses(pValueState, variableAddresses),
         variableAddresses,
-        exp -> MEMORY_NAME, pMachineModel);
+        exp -> MEMORY_NAME,
+        pMachineModel);
   }
 
   private boolean allValuesForLeftHandSideKnown(
@@ -172,7 +174,8 @@ public class ValueAnalysisConcreteErrorPathAllocator
     return false;
   }
 
-  private boolean isStatementValueKnown(CStatementEdge pCfaEdge, Set<CLeftHandSide> pAlreadyAssigned) {
+  private boolean isStatementValueKnown(
+      CStatementEdge pCfaEdge, Set<CLeftHandSide> pAlreadyAssigned) {
 
     CStatement stmt = pCfaEdge.getStatement();
 
@@ -186,7 +189,8 @@ public class ValueAnalysisConcreteErrorPathAllocator
     return true;
   }
 
-  private static Map<LeftHandSide, Address> generateVariableAddresses(Iterable<ValueAnalysisState> pPath) {
+  private static Map<LeftHandSide, Address> generateVariableAddresses(
+      Iterable<ValueAnalysisState> pPath) {
 
     // Get all base IdExpressions for memory locations, ignoring the offset
     Multimap<IDExpression, MemoryLocation> memoryLocationsInPath =
@@ -196,9 +200,11 @@ public class ValueAnalysisConcreteErrorPathAllocator
     return generateVariableAddresses(memoryLocationsInPath);
   }
 
-  private static Map<LeftHandSide, Address> generateVariableAddresses(Multimap<IDExpression, MemoryLocation> pMemoryLocationsInPath) {
+  private static Map<LeftHandSide, Address> generateVariableAddresses(
+      Multimap<IDExpression, MemoryLocation> pMemoryLocationsInPath) {
 
-    Map<LeftHandSide, Address> result = Maps.newHashMapWithExpectedSize(pMemoryLocationsInPath.size());
+    Map<LeftHandSide, Address> result =
+        Maps.newHashMapWithExpectedSize(pMemoryLocationsInPath.size());
 
     // Start with Address 0
     Address nextAddressToBeAssigned = Address.valueOf(BigInteger.ZERO);
@@ -209,13 +215,13 @@ public class ValueAnalysisConcreteErrorPathAllocator
       // leave enough space for values between addresses
       nextAddressToBeAssigned =
           generateNextAddresses(pMemoryLocationsInPath.get(variable), nextAddressToBeAssigned);
-
     }
 
     return result;
   }
 
-  private static Address generateNextAddresses(Collection<MemoryLocation> pCollection, Address pNextAddressToBeAssigned) {
+  private static Address generateNextAddresses(
+      Collection<MemoryLocation> pCollection, Address pNextAddressToBeAssigned) {
 
     long biggestStoredOffsetInPath = 0;
 

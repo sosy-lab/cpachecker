@@ -10,7 +10,7 @@ package org.sosy_lab.cpachecker.util.ci;
 
 public class CIUtils {
 
-  private CIUtils(){}
+  private CIUtils() {}
 
   public static String getSMTName(final String varName) {
     if (varName.contains(":")) {

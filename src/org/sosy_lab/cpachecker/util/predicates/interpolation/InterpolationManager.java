@@ -15,7 +15,6 @@ import static org.sosy_lab.cpachecker.util.statistics.StatisticsUtils.div;
 
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMultiset;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Lists;
@@ -29,6 +28,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.ListIterator;
 import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
@@ -38,6 +38,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.logging.Level;
 import java.util.stream.IntStream;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.Classes.UnexpectedCheckedException;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
@@ -49,8 +50,12 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.TimeSpan;
 import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.cpa.arg.ARGState;
+import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
+import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.cpa.predicate.BlockFormulaStrategy.BlockFormulas;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException.Reason;
 import org.sosy_lab.cpachecker.util.LoopStructure;
@@ -72,12 +77,12 @@ import org.sosy_lab.cpachecker.util.variableclassification.VariableClassificatio
 import org.sosy_lab.java_smt.api.BasicProverEnvironment;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.InterpolatingProverEnvironment;
-import org.sosy_lab.java_smt.api.Model.ValueAssignment;
+import org.sosy_lab.java_smt.api.Model;
 import org.sosy_lab.java_smt.api.ProverEnvironment;
 import org.sosy_lab.java_smt.api.SolverContext.ProverOptions;
 import org.sosy_lab.java_smt.api.SolverException;
 
-@Options(prefix="cpa.predicate.refinement")
+@Options(prefix = "cpa.predicate.refinement")
 public final class InterpolationManager {
 
   private final Timer cexAnalysisTimer = new Timer();
@@ -85,24 +90,44 @@ public final class InterpolationManager {
   private final Timer getInterpolantTimer = new Timer();
   private final Timer cexAnalysisGetUsefulBlocksTimer = new Timer();
   private final Timer interpolantVerificationTimer = new Timer();
+  private final Timer errorPathCreationTimer = new Timer();
   private int reusedFormulasOnSolverStack = 0;
 
   public void printStatistics(StatisticsWriter w0) {
-    w0.put("Counterexample analysis", cexAnalysisTimer + " (Max: " + cexAnalysisTimer.getMaxTime().formatAs(TimeUnit.SECONDS) + ", Calls: " + cexAnalysisTimer.getNumberOfIntervals() + ")");
+    w0.put(
+        "Counterexample analysis",
+        cexAnalysisTimer
+            + " (Max: "
+            + cexAnalysisTimer.getMaxTime().formatAs(TimeUnit.SECONDS)
+            + ", Calls: "
+            + cexAnalysisTimer.getNumberOfIntervals()
+            + ")");
     StatisticsWriter w1 = w0.beginLevel();
     if (cexAnalysisGetUsefulBlocksTimer.getNumberOfIntervals() > 0) {
-      w1.put("Cex.focusing", cexAnalysisGetUsefulBlocksTimer + " (Max: " + cexAnalysisGetUsefulBlocksTimer.getMaxTime().formatAs(TimeUnit.SECONDS) + ")");
+      w1.put(
+          "Cex.focusing",
+          cexAnalysisGetUsefulBlocksTimer
+              + " (Max: "
+              + cexAnalysisGetUsefulBlocksTimer.getMaxTime().formatAs(TimeUnit.SECONDS)
+              + ")");
     }
     w1.put("Refinement sat check", satCheckTimer);
     if (reuseInterpolationEnvironment && satCheckTimer.getNumberOfIntervals() > 0) {
-      w1.put("Reused formulas on solver stack", reusedFormulasOnSolverStack + " (Avg: " + div(reusedFormulasOnSolverStack, satCheckTimer.getNumberOfIntervals()) + ")");
+      w1.put(
+          "Reused formulas on solver stack",
+          reusedFormulasOnSolverStack
+              + " (Avg: "
+              + div(reusedFormulasOnSolverStack, satCheckTimer.getNumberOfIntervals())
+              + ")");
     }
     w1.put("Interpolant computation", getInterpolantTimer);
     if (interpolantVerificationTimer.getNumberOfIntervals() > 0) {
       w1.put("Interpolant verification", interpolantVerificationTimer);
     }
+    if (errorPathCreationTimer.getNumberOfIntervals() > 0) {
+      w1.put("Error-path creation", errorPathCreationTimer);
+    }
   }
-
 
   private final LogManager logger;
   private final ShutdownNotifier shutdownNotifier;
@@ -113,8 +138,11 @@ public final class InterpolationManager {
 
   private final Interpolator<?> interpolator;
 
-  @Option(secure=true, description="apply deletion-filter to the abstract counterexample, to get "
-    + "a minimal set of blocks, before applying interpolation-based refinement")
+  @Option(
+      secure = true,
+      description =
+          "apply deletion-filter to the abstract counterexample, to get "
+              + "a minimal set of blocks, before applying interpolation-based refinement")
   private boolean getUsefulBlocks = false;
 
   @Option(
@@ -159,28 +187,38 @@ public final class InterpolationManager {
   private InterpolationStrategy strategy = InterpolationStrategy.SEQ_CPACHECKER;
 
   private enum InterpolationStrategy {
-    SEQ, SEQ_CPACHECKER,
+    SEQ,
+    SEQ_CPACHECKER,
     TREE,
     TREE_WELLSCOPED,
     TREE_NESTED,
     TREE_CPACHECKER,
   }
 
-  @Option(secure=true, description="dump all interpolation problems")
+  @Option(secure = true, description = "dump all interpolation problems")
   private boolean dumpInterpolationProblems = false;
 
-  @Option(secure=true, description="verify if the interpolants fulfill the interpolant properties")
+  @Option(
+      secure = true,
+      description = "verify if the interpolants fulfill the interpolant properties")
   private boolean verifyInterpolants = false;
 
-  @Option(secure=true, name="timelimit",
-      description="time limit for refinement (use milliseconds or specify a unit; 0 for infinite)")
-  @TimeSpanOption(codeUnit=TimeUnit.MILLISECONDS,
-      defaultUserUnit=TimeUnit.MILLISECONDS,
-      min=0)
+  @Option(
+      secure = true,
+      name = "timelimit",
+      description =
+          "time limit for refinement (use milliseconds or specify a unit; 0 for infinite)")
+  @TimeSpanOption(
+      codeUnit = TimeUnit.MILLISECONDS,
+      defaultUserUnit = TimeUnit.MILLISECONDS,
+      min = 0)
   private TimeSpan itpTimeLimit = TimeSpan.ofMillis(0);
 
-  @Option(secure=true, description="skip refinement if input formula is larger than "
-    + "this amount of bytes (ignored if 0)")
+  @Option(
+      secure = true,
+      description =
+          "skip refinement if input formula is larger than "
+              + "this amount of bytes (ignored if 0)")
   private int maxRefinementSize = 0;
 
   @Option(
@@ -211,7 +249,8 @@ public final class InterpolationManager {
       Optional<VariableClassification> pVarClassification,
       Configuration config,
       ShutdownNotifier pShutdownNotifier,
-      LogManager pLogger) throws InvalidConfigurationException {
+      LogManager pLogger)
+      throws InvalidConfigurationException {
     config.inject(this, InterpolationManager.class);
 
     logger = pLogger;
@@ -262,22 +301,32 @@ public final class InterpolationManager {
   }
 
   /**
-   * Counterexample analysis. This method is just an helper to delegate the actual work This is used
-   * to detect timeouts for interpolation
+   * Perform counterexample analysis: solve block formulas and either compute an inductive sequence
+   * of interpolants or a precise counterexample depending on whether the formulas are satisfiable.
+   * This is the main public method of this class, but one of the other methods can be used if only
+   * a part of the features is required.
+   *
+   * <p>Note that if solving the formulas fails or if interpolants cannot be computed, an exception
+   * will be thrown, but if only computing a precise counterexample fails, an imprecise
+   * counterexample is returned (no exception is thrown).
    *
    * @param pFormulas the formulas for the path
    * @param pAbstractionStates the abstraction states between the formulas and the last state of the
-   *     path. The first state (root) of the path is missing, because it is always TRUE. (can be
-   *     empty, if well-scoped interpolation is disabled or not required)
+   *     path. The first state (root) of the path is missing, because it is always TRUE. This is
+   *     optionally used for heuristics for getting better interpolants by reordering formulas.
+   * @param pImprecisePath A (potentially wrong) ARG path that ends in the target state and is used
+   *     as base for computing the precise path. If no path is passed, no attempt at computing a
+   *     precise path is made and one can likely call {@link #interpolate(List, List)} instead.
    */
   public CounterexampleTraceInfo buildCounterexampleTrace(
       final BlockFormulas pFormulas,
-      final List<AbstractState> pAbstractionStates)
+      final List<AbstractState> pAbstractionStates,
+      final Optional<ARGPath> pImprecisePath)
       throws CPAException, InterruptedException {
     assert pAbstractionStates.isEmpty() || pFormulas.getSize() == pAbstractionStates.size();
 
     return callWithTimelimit(
-        () -> buildCounterexampleTrace0(pFormulas, pAbstractionStates));
+        () -> buildCounterexampleTrace0(pFormulas, pAbstractionStates, pImprecisePath));
   }
 
   private CounterexampleTraceInfo callWithTimelimit(Callable<CounterexampleTraceInfo> callable)
@@ -314,14 +363,56 @@ public final class InterpolationManager {
     }
   }
 
-  public CounterexampleTraceInfo buildCounterexampleTrace(
-          final BlockFormulas pFormulas) throws CPAException, InterruptedException {
-    return buildCounterexampleTrace(pFormulas, ImmutableList.of());
+  /**
+   * Compute an inductive sequence of interpolants for a given list of formulas. The conjunction of
+   * the formulas is first checked for satisfiability, it is not necessary to do this before calling
+   * this method. Note that if the formulas represent a potential error path, calling {@link
+   * #buildCounterexampleTrace(BlockFormulas, List, Optional)} instead and passing an {@link
+   * ARGPath} instance would give additional information in case the path is feasible. If
+   * abstraction states are available, please call {@link #interpolate(List, List)} to enable more
+   * heuristics.
+   *
+   * @return <code>Optional.empty()</code> if the conjunction of the given formulas is satisfiable,
+   *     interpolants otherwise (as list with n-1 elements)
+   * @throws CPAException If solving or computing interpolants fails.
+   */
+  public Optional<ImmutableList<BooleanFormula>> interpolate(final List<BooleanFormula> pFormulas)
+      throws CPAException, InterruptedException {
+    return interpolate(pFormulas, ImmutableList.of());
+  }
+
+  /**
+   * Compute an inductive sequence of interpolants for a given list of formulas. The conjunction of
+   * the formulas is first checked for satisfiability, it is not necessary to do this before calling
+   * this method. Note that if the formulas represent a potential error path, calling {@link
+   * #buildCounterexampleTrace(BlockFormulas, List, Optional)} instead and passing an {@link
+   * ARGPath} instance would give additional information in case the path is feasible.
+   *
+   * @param pAbstractionStates the abstraction states between the formulas and the last state of the
+   *     path. The first state (root) of the path is missing, because it is always TRUE. This is
+   *     optionally used for heuristics for getting better interpolants by reordering formulas.
+   * @return <code>Optional.empty()</code> if the conjunction of the given formulas is satisfiable,
+   *     interpolants otherwise (as list with n-1 elements)
+   * @throws CPAException If solving or computing interpolants fails.
+   */
+  public Optional<ImmutableList<BooleanFormula>> interpolate(
+      final List<BooleanFormula> pFormulas, final List<AbstractState> pAbstractionStates)
+      throws CPAException, InterruptedException {
+    CounterexampleTraceInfo cexInfo =
+        buildCounterexampleTrace(
+            new BlockFormulas(pFormulas), pAbstractionStates, Optional.empty());
+    if (cexInfo.isSpurious()) {
+      return Optional.of(cexInfo.getInterpolants());
+    } else {
+      return Optional.empty();
+    }
   }
 
   private CounterexampleTraceInfo buildCounterexampleTrace0(
-      final BlockFormulas pFormulas, final List<AbstractState> pAbstractionStates)
-      throws CPAException, InterruptedException {
+      final BlockFormulas pFormulas,
+      final List<AbstractState> pAbstractionStates,
+      final Optional<ARGPath> imprecisePath)
+      throws RefinementFailedException, InterruptedException {
 
     cexAnalysisTimer.start();
     try {
@@ -336,8 +427,7 @@ public final class InterpolationManager {
 
       try {
         try {
-          return currentInterpolator.buildCounterexampleTrace(
-              f, pAbstractionStates);
+          return currentInterpolator.buildCounterexampleTrace(f, pAbstractionStates, imprecisePath);
         } finally {
           if (!reuseInterpolationEnvironment) {
             currentInterpolator.close();
@@ -348,7 +438,7 @@ public final class InterpolationManager {
             Level.FINEST,
             itpException,
             "Interpolation failed, attempting to solve without interpolation");
-        return fallbackWithoutInterpolation(f, itpException);
+        return fallbackWithoutInterpolation(f, imprecisePath, itpException);
       }
 
     } finally {
@@ -357,22 +447,32 @@ public final class InterpolationManager {
   }
 
   /**
-   * Counterexample analysis without interpolation. Use this method if you want to check a
-   * counterexample for feasibility and in case of a feasible counterexample want the proper path
-   * information, but in case of an infeasible counterexample you do not need interpolants.
+   * Perform counterexample analysis: solve block formulas and compute a precise counterexample if
+   * possible, but do not bother computing interpolants. This method exists even though it does not
+   * really fit into a class named {@link InterpolationManager} because it is useful for refiners
+   * that want the same kind of counterexample analysis as {@link
+   * #buildCounterexampleTrace(BlockFormulas, List, Optional)} provides, but do not need
+   * interpolants, and it is easy to reuse the code here because we need it anyway as fallback if
+   * interpolation fails.
+   *
+   * <p>Note that if solving the formulas fails, an exception will be thrown, but if only computing
+   * a precise counterexample fails, an imprecise counterexample is returned (no exception is
+   * thrown).
    *
    * @param pFormulas the formulas for the path
+   * @param imprecisePath A (potentially wrong) ARG path that ends in the target state and is used
+   *     as base for computing the precise path.
    */
   public CounterexampleTraceInfo buildCounterexampleTraceWithoutInterpolation(
-      final BlockFormulas pFormulas)
+      final BlockFormulas pFormulas, Optional<ARGPath> imprecisePath)
       throws CPAException, InterruptedException {
 
     return callWithTimelimit(
-        () -> buildCounterexampleTraceWithoutInterpolation0(pFormulas));
+        () -> buildCounterexampleTraceWithoutInterpolation0(pFormulas, imprecisePath));
   }
 
   private CounterexampleTraceInfo buildCounterexampleTraceWithoutInterpolation0(
-      final BlockFormulas pFormulas)
+      final BlockFormulas pFormulas, Optional<ARGPath> imprecisePath)
       throws CPAException, InterruptedException {
 
     cexAnalysisTimer.start();
@@ -380,7 +480,7 @@ public final class InterpolationManager {
       final BlockFormulas f = prepareCounterexampleFormulas(pFormulas);
 
       try {
-        return solveCounterexample(f);
+        return solveCounterexample(f, imprecisePath);
       } catch (SolverException e) {
         throw new RefinementFailedException(Reason.InterpolationFailed, null, e);
       }
@@ -396,13 +496,12 @@ public final class InterpolationManager {
     logger.log(Level.FINEST, "Building counterexample trace");
 
     // Final adjustments to the list of formulas
-    List<BooleanFormula> f = new ArrayList<>(pFormulas.getFormulas()); // copy because we will change the list
+    ImmutableList<BooleanFormula> f = pFormulas.getFormulas();
 
     if (fmgr.useBitwiseAxioms()) {
-      addBitwiseAxioms(f);
+      f = addBitwiseAxioms(f);
     }
 
-    f = Collections.unmodifiableList(f);
     logger.log(Level.ALL, "Counterexample trace formulas:", f);
 
     // now f is the DAG formula which is satisfiable iff there is a
@@ -417,22 +516,19 @@ public final class InterpolationManager {
         throw new RefinementFailedException(Reason.TooMuchUnrolling, null);
       }
     }
-    return new BlockFormulas(f, pFormulas.getBranchingFormula());
+    return new BlockFormulas(f, pFormulas.getBranchingFormulas());
   }
 
   /**
-   * Attempt to check feasibility of the current counterexample without interpolation
-   * in case of a failure with interpolation.
-   * Maybe the solver can handle the formulas if we do not attempt to interpolate
-   * (this happens for example for MathSAT).
-   * If solving works but creating the model for the error path not,
-   * we at least return an empty model.
+   * Attempt to check feasibility of the current counterexample without interpolation in case of a
+   * failure with interpolation. Maybe the solver can handle the formulas if we do not attempt to
+   * interpolate (this happens for example for MathSAT).
    */
   private CounterexampleTraceInfo fallbackWithoutInterpolation(
-      BlockFormulas f, SolverException itpException)
+      BlockFormulas f, Optional<ARGPath> imprecisePath, SolverException itpException)
       throws InterruptedException, RefinementFailedException {
     try {
-      CounterexampleTraceInfo counterexample = solveCounterexample(f);
+      CounterexampleTraceInfo counterexample = solveCounterexample(f, imprecisePath);
       if (!counterexample.isSpurious()) {
         return counterexample;
       }
@@ -443,24 +539,36 @@ public final class InterpolationManager {
     throw new RefinementFailedException(Reason.InterpolationFailed, null, itpException);
   }
 
-  /** Analyze a counterexample for feasibility without computing interpolants. */
+  /**
+   * Analyze a counterexample for feasibility without computing interpolants.
+   *
+   * @throws SolverException If the solver fails to solve the formulas. (If it solves successfully
+   *     but fails to compute a model, an imprecise counterexample is returned instead.)
+   */
   private CounterexampleTraceInfo solveCounterexample(
-      BlockFormulas f)
+      BlockFormulas f, Optional<ARGPath> imprecisePath)
       throws SolverException, InterruptedException {
+
     try (ProverEnvironment prover = solver.newProverEnvironment(ProverOptions.GENERATE_MODELS)) {
-      for (BooleanFormula block : f.getFormulas()) {
-        prover.push(block);
+      final boolean isSat;
+
+      satCheckTimer.start();
+      try {
+        for (BooleanFormula block : f.getFormulas()) {
+          prover.push(block);
+        }
+        isSat = !prover.isUnsat();
+      } finally {
+        satCheckTimer.stop();
       }
-      if (!prover.isUnsat()) {
+
+      if (isSat) {
         try {
-          return getErrorPath(f, prover);
+          return getErrorPath(f, prover, imprecisePath);
         } catch (SolverException modelException) {
-          logger.log(
-              Level.WARNING,
-              "Solver could not produce model, variable assignment of error path can not be dumped.");
-          logger.logDebugException(modelException);
-          return CounterexampleTraceInfo.feasible(
-              f.getFormulas(), ImmutableList.of(), ImmutableMap.of());
+          logger.logUserException(
+              Level.WARNING, modelException, "Could not create model for error path!");
+          return CounterexampleTraceInfo.feasibleImprecise(f.getFormulas());
         }
       } else {
         return CounterexampleTraceInfo.infeasibleNoItp();
@@ -469,41 +577,45 @@ public final class InterpolationManager {
   }
 
   /**
-   * Add axioms about bitwise operations to a list of formulas, if such operations
-   * are used. This is probably not that helpful currently, we would have to the
-   * tell the solver that these are axioms.
+   * Add axioms about bitwise operations to a list of formulas, if such operations are used. This is
+   * probably not that helpful currently, we would have to the tell the solver that these are
+   * axioms.
    *
-   * The axioms are added to the last part of the list of formulas.
+   * <p>The axioms are added to the last part of the list of formulas.
    *
    * @param f The list of formulas to scan for bitwise operations.
    */
-  private void addBitwiseAxioms(List<BooleanFormula> f) {
+  private ImmutableList<BooleanFormula> addBitwiseAxioms(ImmutableList<BooleanFormula> f) {
     BooleanFormula bitwiseAxioms = bfmgr.makeTrue();
 
     for (BooleanFormula fm : f) {
       BooleanFormula a = fmgr.getBitwiseAxioms(fm);
       if (!bfmgr.isTrue(a)) {
-        bitwiseAxioms =  fmgr.getBooleanFormulaManager().and(bitwiseAxioms, a);
+        bitwiseAxioms = fmgr.getBooleanFormulaManager().and(bitwiseAxioms, a);
       }
     }
 
     if (!bfmgr.isTrue(bitwiseAxioms)) {
-      logger.log(Level.ALL, "DEBUG_3", "ADDING BITWISE AXIOMS TO THE",
-          "LAST GROUP: ", bitwiseAxioms);
-      int lastIndex = f.size()-1;
-      f.set(lastIndex, bfmgr.and(f.get(lastIndex), bitwiseAxioms));
+      logger.log(
+          Level.ALL, "DEBUG_3", "ADDING BITWISE AXIOMS TO THE", "LAST GROUP: ", bitwiseAxioms);
+      return ImmutableList.<BooleanFormula>builderWithExpectedSize(f.size())
+          .addAll(f.subList(0, f.size() - 1))
+          .add(bfmgr.and(f.get(f.size() - 1), bitwiseAxioms))
+          .build();
     }
+
+    return f;
   }
 
   /**
-   * Try to find out which formulas out of a list of formulas are relevant for
-   * making the conjunction unsatisfiable.
-   * This method honors the {@link #direction} configuration option.
+   * Try to find out which formulas out of a list of formulas are relevant for making the
+   * conjunction unsatisfiable. This method honors the {@link #direction} configuration option.
    *
    * @param f The list of formulas to check.
    * @return A sublist of f that contains the useful formulas.
    */
-  private List<BooleanFormula> getUsefulBlocks(List<BooleanFormula> f) throws SolverException, InterruptedException {
+  private List<BooleanFormula> getUsefulBlocks(List<BooleanFormula> f)
+      throws SolverException, InterruptedException {
 
     cexAnalysisGetUsefulBlocksTimer.start();
 
@@ -511,99 +623,93 @@ public final class InterpolationManager {
 
     try (ProverEnvironment thmProver = solver.newProverEnvironment()) {
 
-    logger.log(Level.ALL, "DEBUG_1", "Calling getUsefulBlocks on path",
-            "of length:", f.size());
+      logger.log(Level.ALL, "DEBUG_1", "Calling getUsefulBlocks on path", "of length:", f.size());
 
-    final BooleanFormula[] needed = new BooleanFormula[f.size()];
-    for (int i = 0; i < needed.length; ++i) {
-      needed[i] =  bfmgr.makeTrue();
-    }
-    final boolean backwards = direction == CexTraceAnalysisDirection.BACKWARDS;
-    final int start = backwards ? f.size()-1 : 0;
-    final int increment = backwards ? -1 : 1;
-    int toPop = 0;
+      final BooleanFormula[] needed = new BooleanFormula[f.size()];
+      for (int i = 0; i < needed.length; ++i) {
+        needed[i] = bfmgr.makeTrue();
+      }
+      final boolean backwards = direction == CexTraceAnalysisDirection.BACKWARDS;
+      final int start = backwards ? f.size() - 1 : 0;
+      final int increment = backwards ? -1 : 1;
+      int toPop = 0;
 
-    while (true) {
-      boolean consistent = true;
-      // 1. assert all the needed constraints
-      for (BooleanFormula aNeeded : needed) {
-        if (!bfmgr.isTrue(aNeeded)) {
-          thmProver.push(aNeeded);
-          ++toPop;
+      while (true) {
+        boolean consistent = true;
+        // 1. assert all the needed constraints
+        for (BooleanFormula aNeeded : needed) {
+          if (!bfmgr.isTrue(aNeeded)) {
+            thmProver.push(aNeeded);
+            ++toPop;
+          }
         }
-      }
-      // 2. if needed is inconsistent, then return it
-      if (thmProver.isUnsat()) {
-        f = Arrays.asList(needed);
-        break;
-      }
-      // 3. otherwise, assert one block at a time, until we get an
-      // inconsistency
-      if (direction == CexTraceAnalysisDirection.ZIGZAG) {
-        int s = 0;
-        int e = f.size()-1;
-        boolean fromStart = false;
-        while (true) {
-          int i = fromStart ? s++ : e--;
-          fromStart = !fromStart;
+        // 2. if needed is inconsistent, then return it
+        if (thmProver.isUnsat()) {
+          f = Arrays.asList(needed);
+          break;
+        }
+        // 3. otherwise, assert one block at a time, until we get an
+        // inconsistency
+        if (direction == CexTraceAnalysisDirection.ZIGZAG) {
+          int s = 0;
+          int e = f.size() - 1;
+          boolean fromStart = false;
+          while (true) {
+            int i = fromStart ? s++ : e--;
+            fromStart = !fromStart;
 
-          BooleanFormula t = f.get(i);
-          thmProver.push(t);
-          ++toPop;
-          if (thmProver.isUnsat()) {
-            // add this block to the needed ones, and repeat
-            needed[i] = t;
-            logger.log(Level.ALL, "DEBUG_1",
-                "Found needed block: ", i, ", term: ", t);
-            // pop all
-            while (toPop > 0) {
-              --toPop;
-              thmProver.pop();
+            BooleanFormula t = f.get(i);
+            thmProver.push(t);
+            ++toPop;
+            if (thmProver.isUnsat()) {
+              // add this block to the needed ones, and repeat
+              needed[i] = t;
+              logger.log(Level.ALL, "DEBUG_1", "Found needed block: ", i, ", term: ", t);
+              // pop all
+              while (toPop > 0) {
+                --toPop;
+                thmProver.pop();
+              }
+              // and go to the next iteration of the while loop
+              consistent = false;
+              break;
             }
-            // and go to the next iteration of the while loop
-            consistent = false;
-            break;
-          }
 
-          if (e < s) {
-            break;
-          }
-        }
-      } else {
-        for (int i = start;
-             backwards ? i >= 0 : i < f.size();
-             i += increment) {
-          BooleanFormula t = f.get(i);
-          thmProver.push(t);
-          ++toPop;
-          if (thmProver.isUnsat()) {
-            // add this block to the needed ones, and repeat
-            needed[i] = t;
-            logger.log(Level.ALL, "DEBUG_1",
-                "Found needed block: ", i, ", term: ", t);
-            // pop all
-            while (toPop > 0) {
-              --toPop;
-              thmProver.pop();
+            if (e < s) {
+              break;
             }
-            // and go to the next iteration of the while loop
-            consistent = false;
-            break;
+          }
+        } else {
+          for (int i = start; backwards ? i >= 0 : i < f.size(); i += increment) {
+            BooleanFormula t = f.get(i);
+            thmProver.push(t);
+            ++toPop;
+            if (thmProver.isUnsat()) {
+              // add this block to the needed ones, and repeat
+              needed[i] = t;
+              logger.log(Level.ALL, "DEBUG_1", "Found needed block: ", i, ", term: ", t);
+              // pop all
+              while (toPop > 0) {
+                --toPop;
+                thmProver.pop();
+              }
+              // and go to the next iteration of the while loop
+              consistent = false;
+              break;
+            }
           }
         }
+        if (consistent) {
+          // if we get here, the trace is consistent:
+          // this is a real counterexample!
+          break;
+        }
       }
-      if (consistent) {
-        // if we get here, the trace is consistent:
-        // this is a real counterexample!
-        break;
+
+      while (toPop > 0) {
+        --toPop;
+        thmProver.pop();
       }
-    }
-
-    while (toPop > 0) {
-      --toPop;
-      thmProver.pop();
-    }
-
     }
 
     logger.log(Level.ALL, "DEBUG_1", "Done getUsefulBlocks");
@@ -674,55 +780,58 @@ public final class InterpolationManager {
   }
 
   /**
-   * Get information about the error path from the solver after the formulas
-   * have been proved to be satisfiable.
+   * Get information about the error path from the solver after the formulas have been proved to be
+   * satisfiable.
    *
    * @param formulas The list of formulas on the path.
    * @param pProver The solver.
+   * @param pImprecisePath A optional (potentially infeasible) path to the target state. If given,
+   *     the model of the prover environment is used to determine a feasible path through the ARG to
+   *     the same target state.
    * @return Information about the error path, including a satisfying assignment.
+   * @throws SolverException If the solver fails to produce a model.
    */
-  private CounterexampleTraceInfo getErrorPath(BlockFormulas formulas,
-      BasicProverEnvironment<?> pProver)
+  private CounterexampleTraceInfo getErrorPath(
+      BlockFormulas formulas, BasicProverEnvironment<?> pProver, Optional<ARGPath> pImprecisePath)
       throws SolverException, InterruptedException {
 
-    // get the branchingFormula
-    // this formula contains predicates for all branches we took
-    // this way we can figure out which branches make a feasible path
-    BooleanFormula branchingFormula = formulas.getBranchingFormula();
-
-    List<BooleanFormula> f = formulas.getFormulas();
-
-    if (!formulas.hasBranchingFormula() || bfmgr.isTrue(branchingFormula)) {
-      return CounterexampleTraceInfo.feasible(f, pProver.getModelAssignments(), ImmutableMap.of());
+    if (pImprecisePath.isEmpty()) {
+      return CounterexampleTraceInfo.feasibleImprecise(formulas.getFormulas());
     }
 
-    // add formula to solver environment
-    pProver.push(branchingFormula);
+    errorPathCreationTimer.start();
+    try {
+      ARGPath imprecisePath = pImprecisePath.orElseThrow();
+      Set<ARGState> pathElements = ARGUtils.getAllStatesOnPathsTo(imprecisePath.getLastState());
+      try (Model model = pProver.getModel()) {
+        ARGPath precisePath =
+            pmgr.getARGPathFromModel(
+                model,
+                imprecisePath.getFirstState(),
+                pathElements::contains,
+                formulas.getBranchingFormulas());
 
-    // need to ask solver for satisfiability again,
-    // otherwise model doesn't contain new predicates
-    boolean stillSatisfiable = !pProver.isUnsat();
+        if (!precisePath.getLastState().equals(imprecisePath.getLastState())) {
+          logger.log(
+              Level.WARNING,
+              "Could not create error path: ARG target path reached the wrong state!");
+          return CounterexampleTraceInfo.feasibleImprecise(formulas.getFormulas());
+        }
 
-    if (stillSatisfiable) {
-      List<ValueAssignment> model = pProver.getModelAssignments();
-      return CounterexampleTraceInfo.feasible(
-          f, model, pmgr.getBranchingPredicateValuesFromModel(model));
-
-    } else {
-      // this should not happen
-      logger.log(Level.WARNING, "Could not get precise error path information because of inconsistent reachingPathsFormula!");
-
-      dumpInterpolationProblem(f);
-      dumpFormulaToFile("formula", branchingFormula, f.size());
-
-      return CounterexampleTraceInfo.feasible(f, ImmutableList.of(), ImmutableMap.of());
+        return CounterexampleTraceInfo.feasible(formulas.getFormulas(), precisePath);
+      } catch (IllegalArgumentException | CPATransferException e) {
+        // Note that we do not catch SolverException here, although we could in principle also
+        // return an imprecise counterexample in this case. Instead we let the exception propagate
+        // because the caller might want to fall back to fallbackWithoutInterpolation().
+        logger.logUserException(Level.WARNING, e, "Could not create error path");
+        return CounterexampleTraceInfo.feasibleImprecise(formulas.getFormulas());
+      }
+    } finally {
+      errorPathCreationTimer.stop();
     }
   }
 
-
-  /**
-   * Helper method to dump a list of formulas to files.
-   */
+  /** Helper method to dump a list of formulas to files. */
   private void dumpInterpolationProblem(List<BooleanFormula> f) {
     int k = 0;
     for (BooleanFormula formula : f) {
@@ -731,25 +840,25 @@ public final class InterpolationManager {
   }
 
   private void dumpFormulaToFile(String name, BooleanFormula f, int i) {
-    Path dumpFile = formatFormulaOutputFile(name, i);
+    @Nullable Path dumpFile = formatFormulaOutputFile(name, i);
     fmgr.dumpFormulaToFile(f, dumpFile);
   }
 
-  private Path formatFormulaOutputFile(String formula, int index) {
-    return fmgr.formatFormulaOutputFile("interpolation", cexAnalysisTimer.getNumberOfIntervals(), formula, index);
+  private @Nullable Path formatFormulaOutputFile(String formula, int index) {
+    return fmgr.formatFormulaOutputFile(
+        "interpolation", cexAnalysisTimer.getNumberOfIntervals(), formula, index);
   }
 
   /**
-   * This class encapsulates the used SMT solver for interpolation,
-   * and keeps track of the formulas that are currently on the solver stack.
+   * This class encapsulates the used SMT solver for interpolation, and keeps track of the formulas
+   * that are currently on the solver stack.
    *
-   * An instance of this class can be used for several interpolation queries
-   * in a row, and it will try to keep as many formulas as possible in the
-   * SMT solver between those queries (so that the solver may reuse information
-   * from previous queries, and hopefully might even return similar interpolants).
+   * <p>An instance of this class can be used for several interpolation queries in a row, and it
+   * will try to keep as many formulas as possible in the SMT solver between those queries (so that
+   * the solver may reuse information from previous queries, and hopefully might even return similar
+   * interpolants).
    *
-   * When an instance won't be used anymore, call {@link #close()}.
-   *
+   * <p>When an instance won't be used anymore, call {@link #close()}.
    */
   public class Interpolator<T> {
 
@@ -775,7 +884,9 @@ public final class InterpolationManager {
      * @return counterexample info with predicated information
      */
     private CounterexampleTraceInfo buildCounterexampleTrace(
-        BlockFormulas formulas, List<AbstractState> pAbstractionStates)
+        BlockFormulas formulas,
+        List<AbstractState> pAbstractionStates,
+        Optional<ARGPath> imprecisePath)
         throws SolverException, InterruptedException {
 
       // Check feasibility of counterexample
@@ -787,10 +898,6 @@ public final class InterpolationManager {
 
       if (pAbstractionStates.isEmpty()) {
         pAbstractionStates = new ArrayList<>(Collections.nCopies(formulas.getSize(), null));
-      } else {
-        assert formulas.hasBranchingFormula();
-        //should be constructed in PredicateCPA refiner or in BAM predicate refiner strategy
-        //impact algorithm, predicate forced covering pass empty pAbstractionStates
       }
       assert pAbstractionStates.size() == formulas.getSize()
           : "each pathFormula must end with an abstract State";
@@ -808,7 +915,7 @@ public final class InterpolationManager {
         if (getUsefulBlocks) {
           formulas =
               new BlockFormulas(
-                  getUsefulBlocks(formulas.getFormulas()), formulas.getBranchingFormula());
+                  getUsefulBlocks(formulas.getFormulas()), formulas.getBranchingFormulas());
         }
 
         if (dumpInterpolationProblems) {
@@ -834,7 +941,6 @@ public final class InterpolationManager {
       }
 
       logger.log(Level.FINEST, "Counterexample trace is", (spurious ? "infeasible" : "feasible"));
-
 
       // Get either interpolants or error path information
       CounterexampleTraceInfo info;
@@ -897,7 +1003,7 @@ public final class InterpolationManager {
 
       } else {
         // this is a real bug
-        info = getErrorPath(formulas, itpProver);
+        info = getErrorPath(formulas, itpProver, imprecisePath);
       }
 
       logger.log(Level.ALL, "Counterexample information:", info);

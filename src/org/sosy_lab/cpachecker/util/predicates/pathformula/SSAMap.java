@@ -75,17 +75,17 @@ public final class SSAMap implements Serializable {
       };
 
   /**
-   * Builder for SSAMaps. Its state starts with an existing SSAMap, but may be
-   * changed later. It supports read access, but it is not recommended to use
-   * instances of this class except for the short period of time
-   * while creating a new SSAMap.
+   * Builder for SSAMaps. Its state starts with an existing SSAMap, but may be changed later. It
+   * supports read access, but it is not recommended to use instances of this class except for the
+   * short period of time while creating a new SSAMap.
    *
-   * This class is not thread-safe.
+   * <p>This class is not thread-safe.
    */
   public static class SSAMapBuilder {
 
     private SSAMap ssa;
-    private PersistentSortedMap<String, Integer> vars; // Do not update without updating varsHashCode!
+    private PersistentSortedMap<String, Integer>
+        vars; // Do not update without updating varsHashCode!
     private FreshValueProvider freshValueProvider;
     private PersistentSortedMap<String, CType> varTypes;
 
@@ -96,11 +96,11 @@ public final class SSAMap implements Serializable {
 
     private SSAMapBuilder(SSAMap ssa) {
       this.ssa = ssa;
-      this.vars = ssa.vars;
-      this.freshValueProvider = ssa.freshValueProvider;
+      vars = ssa.vars;
+      freshValueProvider = ssa.freshValueProvider;
 
-      this.varTypes = ssa.varTypes;
-      this.varsHashCode = ssa.varsHashCode;
+      varTypes = ssa.varTypes;
+      varsHashCode = ssa.varsHashCode;
     }
 
     public int getIndex(String variable) {
@@ -108,8 +108,8 @@ public final class SSAMap implements Serializable {
     }
 
     public int getFreshIndex(String variable) {
-      return freshValueProvider.getFreshValue(variable,
-          SSAMap.getIndex(variable, vars, ssa.defaultValue));
+      return freshValueProvider.getFreshValue(
+          variable, SSAMap.getIndex(variable, vars, ssa.defaultValue));
     }
 
     public CType getType(String name) {
@@ -118,9 +118,11 @@ public final class SSAMap implements Serializable {
 
     @SuppressWarnings("CheckReturnValue")
     public SSAMapBuilder setIndex(String name, CType type, int idx) {
-      Preconditions.checkArgument(idx > 0, "Indices need to be positive for this SSAMap implementation:", name, type, idx);
+      Preconditions.checkArgument(
+          idx > 0, "Indices need to be positive for this SSAMap implementation:", name, type, idx);
       int oldIdx = getIndex(name);
-      Preconditions.checkArgument(idx >= oldIdx, "SSAMap updates need to be strictly monotone:", name, type, idx);
+      Preconditions.checkArgument(
+          idx >= oldIdx, "SSAMap updates need to be strictly monotone:", name, type, idx);
 
       type = type.getCanonicalType();
       assert !(type instanceof CFunctionType) : "Variable " + name + " has function type " + type;
@@ -148,7 +150,7 @@ public final class SSAMap implements Serializable {
     }
 
     public void mergeFreshValueProviderWith(final FreshValueProvider fvp) {
-      this.freshValueProvider = freshValueProvider.merge(fvp);
+      freshValueProvider = freshValueProvider.merge(fvp);
     }
 
     public SSAMapBuilder deleteVariable(String variable) {
@@ -167,9 +169,7 @@ public final class SSAMap implements Serializable {
       return varTypes.keySet();
     }
 
-    /**
-     * Returns an immutable SSAMap with all the changes made to the builder.
-     */
+    /** Returns an immutable SSAMap with all the changes made to the builder. */
     public SSAMap build() {
       if (vars == ssa.vars && freshValueProvider == ssa.freshValueProvider) {
         return ssa;
@@ -179,37 +179,32 @@ public final class SSAMap implements Serializable {
       return ssa;
     }
 
-    /**
-     * Not-null safe copy of {@link SimpleImmutableEntry#hashCode()}
-     * for Object-to-int maps.
-     */
+    /** Not-null safe copy of {@link SimpleImmutableEntry#hashCode()} for Object-to-int maps. */
     private static int mapEntryHashCode(Object key, int value) {
       return key.hashCode() ^ value;
     }
   }
 
-  private static final SSAMap EMPTY_SSA_MAP = new SSAMap(
-      PathCopyingPersistentTreeMap.of(),
-      new FreshValueProvider(),
-      0,
-      PathCopyingPersistentTreeMap.of());
+  private static final SSAMap EMPTY_SSA_MAP =
+      new SSAMap(
+          PathCopyingPersistentTreeMap.of(),
+          new FreshValueProvider(),
+          0,
+          PathCopyingPersistentTreeMap.of());
 
-  /**
-   * Returns an empty immutable SSAMap.
-   */
+  /** Returns an empty immutable SSAMap. */
   public static SSAMap emptySSAMap() {
     return EMPTY_SSA_MAP;
   }
 
   public SSAMap withDefault(final int pDefaultValue) {
-    return new SSAMap(this.vars, this.freshValueProvider, this.varsHashCode, this.varTypes, pDefaultValue);
+    return new SSAMap(vars, freshValueProvider, varsHashCode, varTypes, pDefaultValue);
   }
 
   /**
-   * Creates an unmodifiable SSAMap that contains all indices from two SSAMaps.
-   * If there are conflicting indices, the maximum of both is used.
-   * Further returns a list with all variables for which different indices
-   * were found, together with the two conflicting indices.
+   * Creates an unmodifiable SSAMap that contains all indices from two SSAMaps. If there are
+   * conflicting indices, the maximum of both is used. Further returns a list with all variables for
+   * which different indices were found, together with the two conflicting indices.
    */
   public static SSAMap merge(
       SSAMap s1, SSAMap s2, MapsDifference.Visitor<String, Integer> collectDifferences) {
@@ -258,11 +253,12 @@ public final class SSAMap implements Serializable {
   // Cache hashCode of potentially big map
   private final int varsHashCode;
 
-  private SSAMap(PersistentSortedMap<String, Integer> vars,
-                 FreshValueProvider freshValueProvider,
-                 int varsHashCode,
-                 PersistentSortedMap<String, CType> varTypes,
-                 int defaultSSAIdx) {
+  private SSAMap(
+      PersistentSortedMap<String, Integer> vars,
+      FreshValueProvider freshValueProvider,
+      int varsHashCode,
+      PersistentSortedMap<String, CType> varTypes,
+      int defaultSSAIdx) {
     this.vars = vars;
     this.freshValueProvider = freshValueProvider;
     this.varTypes = varTypes;
@@ -277,16 +273,15 @@ public final class SSAMap implements Serializable {
     defaultValue = defaultSSAIdx;
   }
 
-  private SSAMap(PersistentSortedMap<String, Integer> vars,
-                 FreshValueProvider freshValueProvider,
-                 int varsHashCode,
-                 PersistentSortedMap<String, CType> varTypes) {
+  private SSAMap(
+      PersistentSortedMap<String, Integer> vars,
+      FreshValueProvider freshValueProvider,
+      int varsHashCode,
+      PersistentSortedMap<String, CType> varTypes) {
     this(vars, freshValueProvider, varsHashCode, varTypes, DEFAULT_DEFAULT_IDX);
   }
 
-  /**
-   * Returns a SSAMapBuilder that is initialized with the current SSAMap.
-   */
+  /** Returns a SSAMapBuilder that is initialized with the current SSAMap. */
   public SSAMapBuilder builder() {
     return new SSAMapBuilder(this);
   }
@@ -335,7 +330,7 @@ public final class SSAMap implements Serializable {
     } else if (!(obj instanceof SSAMap)) {
       return false;
     } else {
-      SSAMap other = (SSAMap)obj;
+      SSAMap other = (SSAMap) obj;
       // Do a few cheap checks before the expensive ones.
       return varsHashCode == other.varsHashCode
           && vars.equals(other.vars)

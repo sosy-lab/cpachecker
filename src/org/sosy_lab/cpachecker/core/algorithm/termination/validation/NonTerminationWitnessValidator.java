@@ -121,24 +121,22 @@ public class NonTerminationWitnessValidator implements Algorithm, StatisticsProv
   private static final String BREAKSTATENAME = "_predefinedState_BREAK";
 
   @Option(
-    secure = true,
-    name = "reachCycle.config",
-    required = true,
-    description =
-        "Use this configuration when checking that recurrent set (at cycle head) is reachable."
-            + " Configuration must be precise, i.e., may only report real counterexamples"
-  )
+      secure = true,
+      name = "reachCycle.config",
+      required = true,
+      description =
+          "Use this configuration when checking that recurrent set (at cycle head) is reachable."
+              + " Configuration must be precise, i.e., may only report real counterexamples")
   @FileOption(FileOption.Type.REQUIRED_INPUT_FILE)
   private Path reachabilityConfig;
 
   @Option(
-    secure = true,
-    required = true,
-    name = "inspectCycle.config",
-    description =
-        "Use this configuration when checking that when reach recurrent set, "
-            + "execution can be extended to an infinite one"
-  )
+      secure = true,
+      required = true,
+      name = "inspectCycle.config",
+      description =
+          "Use this configuration when checking that when reach recurrent set, "
+              + "execution can be extended to an infinite one")
   @FileOption(FileOption.Type.REQUIRED_INPUT_FILE)
   private Path recurrentConfig;
 
@@ -154,12 +152,11 @@ public class NonTerminationWitnessValidator implements Algorithm, StatisticsProv
           .resolveSibling("config/specification/TerminatingStatements.spc");
 
   @Option(
-    secure = true,
-    name = "successAsViolation",
-    description =
-        "Report a successful validation of the witness, "
-            + "i.e., a confirmation of the nontermination, as termination violation."
-  )
+      secure = true,
+      name = "successAsViolation",
+      description =
+          "Report a successful validation of the witness, "
+              + "i.e., a confirmation of the nontermination, as termination violation.")
   private boolean reportSuccessfulCheckAsViolation = true;
 
   private static final String RECURSIONDEPTH = "2"; // TODO should it be configurable?
@@ -372,7 +369,8 @@ public class NonTerminationWitnessValidator implements Algorithm, StatisticsProv
       logger.logException(
           Level.FINE,
           e,
-          "Exception occurred while trying to find location which is visited infinitely in a nonterminating execution");
+          "Exception occurred while trying to find location which is visited infinitely in a"
+              + " nonterminating execution");
       return Optional.empty();
     }
   }
@@ -522,8 +520,8 @@ public class NonTerminationWitnessValidator implements Algorithm, StatisticsProv
       if (!confirmedRecurrentSet) {
         logger.log(
             Level.INFO,
-            "First check of recurrent set check failed. "
-                + "Continue with check only relying on recurrent set information, but do not stop exploration at cyclehead.");
+            "First check of recurrent set check failed. Continue with check only relying on"
+                + " recurrent set information, but do not stop exploration at cyclehead.");
         confirmedRecurrentSet =
             setUpAndRunAnalysisForRecurrentSetCheck(
                 spec2, pStemEndLoc, pNegInvCheck, pStemEndCycleStart, null);
@@ -551,70 +549,70 @@ public class NonTerminationWitnessValidator implements Algorithm, StatisticsProv
       throws InterruptedException {
     // set up
     try {
-    ReachedSet reached;
-    ConfigurableProgramAnalysis cpa;
-    Algorithm algorithm;
+      ReachedSet reached;
+      ConfigurableProgramAnalysis cpa;
+      Algorithm algorithm;
 
-    ConfigurationBuilder singleConfigBuilder = Configuration.builder();
-    singleConfigBuilder.loadFromFile(recurrentConfig);
-    singleConfigBuilder.setOption("cpa.callstack.depth", RECURSIONDEPTH);
-    singleConfigBuilder.setOption("output.disable", "true");
-    Configuration singleConfig = singleConfigBuilder.build();
+      ConfigurationBuilder singleConfigBuilder = Configuration.builder();
+      singleConfigBuilder.loadFromFile(recurrentConfig);
+      singleConfigBuilder.setOption("cpa.callstack.depth", RECURSIONDEPTH);
+      singleConfigBuilder.setOption("output.disable", "true");
+      Configuration singleConfig = singleConfigBuilder.build();
 
-    CoreComponentsFactory coreComponents =
-        new CoreComponentsFactory(singleConfig, logger, shutdown, AggregatedReachedSets.empty());
-    cpa = coreComponents.createCPA(cfa, spec);
+      CoreComponentsFactory coreComponents =
+          new CoreComponentsFactory(singleConfig, logger, shutdown, AggregatedReachedSets.empty());
+      cpa = coreComponents.createCPA(cfa, spec);
 
-    Preconditions.checkArgument(
-        cpa instanceof ARGCPA, "Require ARGCPA to check validity of recurrent set:");
+      Preconditions.checkArgument(
+          cpa instanceof ARGCPA, "Require ARGCPA to check validity of recurrent set:");
 
-    ConfigurableProgramAnalysis wrappedCPA = ((ARGCPA) cpa).getWrappedCPAs().get(0);
+      ConfigurableProgramAnalysis wrappedCPA = ((ARGCPA) cpa).getWrappedCPAs().get(0);
 
-    GlobalInfo.getInstance().setUpInfoFromCPA(cpa);
+      GlobalInfo.getInstance().setUpInfoFromCPA(cpa);
 
-    algorithm = coreComponents.createAlgorithm(cpa, cfa, spec);
+      algorithm = coreComponents.createAlgorithm(cpa, cfa, spec);
 
-    shutdown.shutdownIfNecessary();
+      shutdown.shutdownIfNecessary();
 
-    // build initial precision
-    Precision initialPrecision =
-        cpa.getInitialPrecision(cfa.getMainFunction(), StateSpacePartition.getDefaultPartition());
+      // build initial precision
+      Precision initialPrecision =
+          cpa.getInitialPrecision(cfa.getMainFunction(), StateSpacePartition.getDefaultPartition());
 
-    PredicateCPA predCPA = CPAs.retrieveCPA(cpa, PredicateCPA.class);
-    if (predCPA != null) {
-      PredicatePrecision predPrec = getPredicatePrecisionFromCandidateInvariants(predCPA);
-      // TODO unify with initial predicate precision instead of replacement?
-      initialPrecision =
-          Precisions.replaceByType(
-              initialPrecision, predPrec, precision -> precision instanceof PredicatePrecision);
-    }
+      PredicateCPA predCPA = CPAs.retrieveCPA(cpa, PredicateCPA.class);
+      if (predCPA != null) {
+        PredicatePrecision predPrec = getPredicatePrecisionFromCandidateInvariants(predCPA);
+        // TODO unify with initial predicate precision instead of replacement?
+        initialPrecision =
+            Precisions.replaceByType(
+                initialPrecision, predPrec, precision -> precision instanceof PredicatePrecision);
+      }
 
-    // build initial state which should be restricted to recurrent set
-    CAssumeEdge invCheckLoop =
-        new CAssumeEdge(
-            "!(" + pNegInvCheck.getRawStatement() + ")",
-            FileLocation.DUMMY,
-            pStemEndLoc,
-            pStemEndLoc,
-            pNegInvCheck.getExpression(),
-            true);
-    pStemEndLoc.addLeavingEdge(invCheckLoop);
-    AbstractState initialState =
-        setUpInitialAbstractStateForRecurrentSet(
-            pStemEndLoc, wrappedCPA, initialPrecision, invCheckLoop, pStemEndCycleStart);
-    pStemEndLoc.removeLeavingEdge(invCheckLoop);
+      // build initial state which should be restricted to recurrent set
+      CAssumeEdge invCheckLoop =
+          new CAssumeEdge(
+              "!(" + pNegInvCheck.getRawStatement() + ")",
+              FileLocation.DUMMY,
+              pStemEndLoc,
+              pStemEndLoc,
+              pNegInvCheck.getExpression(),
+              true);
+      pStemEndLoc.addLeavingEdge(invCheckLoop);
+      AbstractState initialState =
+          setUpInitialAbstractStateForRecurrentSet(
+              pStemEndLoc, wrappedCPA, initialPrecision, invCheckLoop, pStemEndCycleStart);
+      pStemEndLoc.removeLeavingEdge(invCheckLoop);
       // TODO okay that initial states is non-abstraction state?
 
       reached = coreComponents.createReachedSet(cpa);
-    reached.add(initialState, initialPrecision);
+      reached.add(initialState, initialPrecision);
 
-    shutdown.shutdownIfNecessary();
+      shutdown.shutdownIfNecessary();
 
-    // run analysis
-    logger.log(Level.INFO, "Start checking recurrent set");
-    AlgorithmStatus result = algorithm.run(reached);
+      // run analysis
+      logger.log(Level.INFO, "Start checking recurrent set");
+      AlgorithmStatus result = algorithm.run(reached);
 
-    if (!result.isSound()) {
+      if (!result.isSound()) {
         logger.log(
             Level.INFO,
             "Current check became unsound. Do not use its result for witness valiation.");
@@ -624,8 +622,8 @@ public class NonTerminationWitnessValidator implements Algorithm, StatisticsProv
       // check that no sink state is reachable from recurrent set
       if (reached.wasTargetReached()) {
         logger.log(Level.INFO, "May leave recurrent set in current check.");
-      return false;
-    }
+        return false;
+      }
 
       for (AbstractState stateWithoutSucc :
           from(reached)
@@ -658,7 +656,8 @@ public class NonTerminationWitnessValidator implements Algorithm, StatisticsProv
                 // know the correct successor
                 logger.log(
                     Level.INFO,
-                    "Function return without known caller found. May be unsound to continue. Abort current check.");
+                    "Function return without known caller found. May be unsound to continue. Abort"
+                        + " current check.");
                 return false;
               }
             }
@@ -783,7 +782,8 @@ public class NonTerminationWitnessValidator implements Algorithm, StatisticsProv
 
     logger.log(
         Level.WARNING,
-        "Failed to add the information of the recurrent set. Try to check witness with recurrent set TRUE");
+        "Failed to add the information of the recurrent set. Try to check witness with recurrent"
+            + " set TRUE");
 
     return new ARGState(initialDefault, null);
   }
@@ -900,7 +900,8 @@ public class NonTerminationWitnessValidator implements Algorithm, StatisticsProv
                         && !assumption.getOperand2().equals(assigned)) {
                       logger.log(
                           Level.INFO,
-                          "Cannot detect that assumption only restricts assigned variable. Assumption might be too strong.");
+                          "Cannot detect that assumption only restricts assigned variable."
+                              + " Assumption might be too strong.");
                       return false;
                     }
                   } else {
@@ -918,7 +919,8 @@ public class NonTerminationWitnessValidator implements Algorithm, StatisticsProv
                         && !decl.getName().equals(assumption.getOperand2().toASTString())) {
                       logger.log(
                           Level.INFO,
-                          "Cannot detect that declared variables refers to declared variable. Assumption might be too strong.");
+                          "Cannot detect that declared variables refers to declared variable."
+                              + " Assumption might be too strong.");
                       return false;
                     }
                   } else {
@@ -1069,7 +1071,6 @@ public class NonTerminationWitnessValidator implements Algorithm, StatisticsProv
 
     return getAutomaton(tmpSpec);
   }
-
 
   private Automaton getAutomaton(final Path automatonSpec) throws InvalidConfigurationException {
     Scope scope =

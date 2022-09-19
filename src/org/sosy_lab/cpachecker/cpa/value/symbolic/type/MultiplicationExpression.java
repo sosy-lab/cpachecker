@@ -35,8 +35,8 @@ public final class MultiplicationExpression extends BinarySymbolicExpression {
 
   @Override
   public MultiplicationExpression copyForLocation(final MemoryLocation pRepresentedLocation) {
-    return new MultiplicationExpression(getOperand1(), getOperand2(), getType(),
-        getCalculationType(), pRepresentedLocation);
+    return new MultiplicationExpression(
+        getOperand1(), getOperand2(), getType(), getCalculationType(), pRepresentedLocation);
   }
 
   @Override

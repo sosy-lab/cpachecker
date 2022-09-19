@@ -62,9 +62,9 @@ public abstract class FunctionEntryNode extends CFANode {
   public abstract List<? extends AParameterDeclaration> getFunctionParameters();
 
   /**
-   * Return a declaration for a pseudo variable that can be used to store
-   * the return value of this function (if it has one).
-   * This variable is the same as the one used by {@link AReturnStatement#asAssignment()}.
+   * Return a declaration for a pseudo variable that can be used to store the return value of this
+   * function (if it has one). This variable is the same as the one used by {@link
+   * AReturnStatement#asAssignment()}.
    */
   public Optional<? extends AVariableDeclaration> getReturnVariable() {
     return Optional.ofNullable(returnVariable);

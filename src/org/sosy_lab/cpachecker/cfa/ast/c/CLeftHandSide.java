@@ -8,7 +8,6 @@
 
 package org.sosy_lab.cpachecker.cfa.ast.c;
 
-
 import org.sosy_lab.cpachecker.cfa.ast.ALeftHandSide;
 
 public interface CLeftHandSide extends CExpression, ALeftHandSide {

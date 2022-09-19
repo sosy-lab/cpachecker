@@ -7,8 +7,8 @@
 // SPDX-License-Identifier: Apache-2.0
 
 /**
- * {@link org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis CPA} that
- * computes the list of live definitions.
+ * {@link org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis CPA} that computes the
+ * list of live definitions.
  *
  * @see org.sosy_lab.cpachecker.cpa.livevar
  */

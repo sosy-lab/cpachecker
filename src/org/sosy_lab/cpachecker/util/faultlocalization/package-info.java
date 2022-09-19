@@ -6,7 +6,5 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-/**
- * This package provides a data structure for fault localization algorithms.
- */
+/** This package provides a data structure for fault localization algorithms. */
 package org.sosy_lab.cpachecker.util.faultlocalization;

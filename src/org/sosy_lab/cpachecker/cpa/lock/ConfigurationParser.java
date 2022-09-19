@@ -39,10 +39,9 @@ public class ConfigurationParser {
   private Set<String> lockinfo = ImmutableSet.of();
 
   @Option(
-    name = "annotate",
-    description = " annotated functions, which are known to works right",
-    secure = true
-  )
+      name = "annotate",
+      description = " annotated functions, which are known to works right",
+      secure = true)
   private Set<String> annotated;
 
   ConfigurationParser(Configuration pConfig) throws InvalidConfigurationException {
@@ -128,7 +127,7 @@ public class ConfigurationParser {
             fName, new AnnotationInfo(freeLocks, restoreLocks, resetLocks, captureLocks));
       }
     }
-    return annotatedfunctions.build();
+    return annotatedfunctions.buildOrThrow();
   }
 
   @SuppressWarnings("deprecation")

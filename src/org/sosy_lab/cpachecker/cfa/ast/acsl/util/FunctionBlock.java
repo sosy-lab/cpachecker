@@ -8,12 +8,13 @@
 
 package org.sosy_lab.cpachecker.cfa.ast.acsl.util;
 
-import java.util.HashSet;
+import com.google.common.collect.FluentIterable;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.util.CFATraversal;
+import org.sosy_lab.cpachecker.util.CFAUtils;
 
 public class FunctionBlock implements SyntacticBlock {
 
@@ -44,21 +45,13 @@ public class FunctionBlock implements SyntacticBlock {
   }
 
   @Override
-  public Set<CFAEdge> getEnteringEdges() {
-    Set<CFAEdge> enteringEdges = new HashSet<>();
-    for (int i = 0; i < function.getNumEnteringEdges(); i++) {
-      enteringEdges.add(function.getEnteringEdge(i));
-    }
-    return enteringEdges;
+  public FluentIterable<CFAEdge> getEnteringEdges() {
+    return CFAUtils.enteringEdges(function);
   }
 
   @Override
-  public Set<CFAEdge> getLeavingEdges() {
-    Set<CFAEdge> leavingEdges = new HashSet<>();
-    for (int i = 0; i < function.getNumLeavingEdges(); i++) {
-      leavingEdges.add(function.getLeavingEdge(i));
-    }
-    return leavingEdges;
+  public FluentIterable<CFAEdge> getLeavingEdges() {
+    return CFAUtils.leavingEdges(function);
   }
 
   @Override
