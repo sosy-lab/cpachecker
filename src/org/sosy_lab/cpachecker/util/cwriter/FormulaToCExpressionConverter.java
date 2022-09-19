@@ -12,9 +12,7 @@ import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.Tactic;
 
-/**
- * Class for converting a formula to a C expression.
- */
+/** Class for converting a formula to a C expression. */
 public class FormulaToCExpressionConverter {
   private final FormulaManagerView fmgr;
 
