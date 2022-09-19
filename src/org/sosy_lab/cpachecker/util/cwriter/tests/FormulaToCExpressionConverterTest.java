@@ -79,6 +79,28 @@ public class FormulaToCExpressionConverterTest {
           .isNotIn(solversToSkip);
     }
 
+    private static class Observation {
+      private String observable;
+
+      private Observation(String pObservable) {
+        observable = pObservable;
+      }
+
+      private void isEquivalentTo(String reference) {
+        assertThat(observable).isNotNull();
+        assertThat(reference).isNotNull();
+        assertThat(prune(observable)).isEqualTo(prune(reference));
+      }
+
+      private static String prune(String input) {
+        return input.replaceAll("\\s+", "");
+      }
+    }
+
+    private static Observation checkThat(String formula) {
+      return new Observation(formula);
+    }
+
     // TODO: Add tests for FunctionDeclarationKind.EQ_ZERO, FunctionDeclarationKind.GTE_ZERO,
     //                     FunctionDeclarationKind.UMINUS, FunctionDeclarationKind.BV_EQ
     //  Problem: How to create Formulas containing these?
@@ -86,69 +108,69 @@ public class FormulaToCExpressionConverterTest {
     @Test
     public void convertVar() throws InterruptedException {
       BooleanFormula var = bmgrv.makeVariable("x");
-      assertThat(converter.formulaToCExpression(var)).isEqualTo("x");
+      checkThat(converter.formulaToCExpression(var)).isEquivalentTo("x");
     }
 
     @Test
     public void convertConstant() throws InterruptedException {
       BooleanFormula trueFormula = bmgrv.makeTrue();
-      assertThat(converter.formulaToCExpression(trueFormula)).isEqualTo("true");
+      checkThat(converter.formulaToCExpression(trueFormula)).isEquivalentTo("true");
       BooleanFormula falseFormula = bmgrv.makeFalse();
-      assertThat(converter.formulaToCExpression(falseFormula)).isEqualTo("false");
+      checkThat(converter.formulaToCExpression(falseFormula)).isEquivalentTo("false");
     }
 
     @Test
     public void convertNot() throws InterruptedException {
       BooleanFormula formula = bmgrv.not(bmgrv.makeVariable("x"));
-      assertThat(converter.formulaToCExpression(formula)).isEqualTo("!(x)");
+      checkThat(converter.formulaToCExpression(formula)).isEquivalentTo("!(x)");
     }
 
     @Test
     public void convertAnd() throws InterruptedException {
       BooleanFormula formula = bmgrv.and(bmgrv.makeVariable("x"), bmgrv.makeVariable("y"));
-      assertThat(converter.formulaToCExpression(formula)).isEqualTo("(x && y)");
+      checkThat(converter.formulaToCExpression(formula)).isEquivalentTo("(x && y)");
     }
 
     @Test
     public void convertNegatedAnd() throws InterruptedException {
       BooleanFormula formula =
           bmgrv.not(bmgrv.and(bmgrv.makeVariable("x"), bmgrv.makeVariable("y")));
-      assertThat(converter.formulaToCExpression(formula)).isEqualTo("(!(x)\n|| !(y))");
+      checkThat(converter.formulaToCExpression(formula)).isEquivalentTo("(!(x)\n|| !(y))");
     }
 
     @Test
     public void convertOr() throws InterruptedException {
       BooleanFormula formula = bmgrv.or(bmgrv.makeVariable("x"), bmgrv.makeVariable("y"));
-      assertThat(converter.formulaToCExpression(formula)).isEqualTo("(x\n|| y)");
+      checkThat(converter.formulaToCExpression(formula)).isEquivalentTo("(x\n|| y)");
     }
 
     @Test
     public void convertNegatedOr() throws InterruptedException {
       BooleanFormula formula =
           bmgrv.not(bmgrv.or(bmgrv.makeVariable("x"), bmgrv.makeVariable("y")));
-      assertThat(converter.formulaToCExpression(formula)).isEqualTo("(!(x) && !(y))");
+      checkThat(converter.formulaToCExpression(formula)).isEquivalentTo("(!(x) && !(y))");
     }
 
     @Test
     public void convertImplication() throws InterruptedException {
       skipTestForSolvers(ImmutableList.of(Solvers.MATHSAT5, Solvers.Z3));
       BooleanFormula formula = bmgrv.implication(bmgrv.makeVariable("x"), bmgrv.makeVariable("y"));
-      assertThat(converter.formulaToCExpression(formula)).isEqualTo("(!(x)\n|| y)");
+      checkThat(converter.formulaToCExpression(formula)).isEquivalentTo("(!(x)\n|| y)");
     }
 
     @Test
     public void convertNegatedImplication() throws InterruptedException {
       BooleanFormula formula =
           bmgrv.not(bmgrv.implication(bmgrv.makeVariable("x"), bmgrv.makeVariable("y")));
-      assertThat(converter.formulaToCExpression(formula)).isEqualTo("(x && !(y))");
+      checkThat(converter.formulaToCExpression(formula)).isEquivalentTo("(x && !(y))");
     }
 
     @Test
     public void convertEquivalence() throws InterruptedException {
       skipTestForSolvers(ImmutableList.of(Solvers.Z3));
       BooleanFormula formula = bmgrv.equivalence(bmgrv.makeVariable("x"), bmgrv.makeVariable("y"));
-      assertThat(converter.formulaToCExpression(formula))
-          .isEqualTo("((x && y)\n|| (!(x) && !(y)))");
+      checkThat(converter.formulaToCExpression(formula))
+          .isEquivalentTo("((x && y)\n|| (!(x) && !(y)))");
     }
 
     @Test
@@ -156,16 +178,16 @@ public class FormulaToCExpressionConverterTest {
       skipTestForSolvers(ImmutableList.of(Solvers.Z3));
       BooleanFormula formula =
           bmgrv.not(bmgrv.equivalence(bmgrv.makeVariable("x"), bmgrv.makeVariable("y")));
-      assertThat(converter.formulaToCExpression(formula))
-          .isEqualTo("((!(x)\n|| !(y)) && (x\n|| y))");
+      checkThat(converter.formulaToCExpression(formula))
+          .isEquivalentTo("((!(x)\n|| !(y)) && (x\n|| y))");
     }
 
     @Test
     public void convertXor() throws InterruptedException {
       skipTestForSolvers(ImmutableList.of(Solvers.MATHSAT5, Solvers.Z3, Solvers.PRINCESS));
       BooleanFormula formula = bmgrv.xor(bmgrv.makeVariable("x"), bmgrv.makeVariable("y"));
-      assertThat(converter.formulaToCExpression(formula))
-          .isEqualTo("((x && !(y))\n|| (!(x) && y))");
+      checkThat(converter.formulaToCExpression(formula))
+          .isEquivalentTo("((x && !(y))\n|| (!(x) && y))");
     }
 
     @Test
@@ -173,28 +195,28 @@ public class FormulaToCExpressionConverterTest {
       skipTestForSolvers(ImmutableList.of(Solvers.MATHSAT5, Solvers.Z3, Solvers.PRINCESS));
       BooleanFormula formula =
           bmgrv.not(bmgrv.xor(bmgrv.makeVariable("x"), bmgrv.makeVariable("y")));
-      assertThat(converter.formulaToCExpression(formula))
-          .isEqualTo("((!(x)\n|| y) && (x\n|| !(y)))");
+      checkThat(converter.formulaToCExpression(formula))
+          .isEquivalentTo("((!(x)\n|| y) && (x\n|| !(y)))");
     }
 
     @Test
     public void convertEqual() throws InterruptedException {
       BooleanFormula formula = imgrv.equal(imgrv.makeVariable("x"), imgrv.makeVariable("y"));
-      assertThat(converter.formulaToCExpression(formula)).isEqualTo("(x == y)");
+      checkThat(converter.formulaToCExpression(formula)).isEquivalentTo("(x == y)");
     }
 
     @Test
     public void convertNegatedEqual() throws InterruptedException {
       BooleanFormula formula =
           bmgrv.not(imgrv.equal(imgrv.makeVariable("x"), imgrv.makeVariable("y")));
-      assertThat(converter.formulaToCExpression(formula)).isEqualTo("!((x == y))");
+      checkThat(converter.formulaToCExpression(formula)).isEquivalentTo("!((x == y))");
     }
 
     @Test
     public void convertLessThan() throws InterruptedException {
       skipTestForSolvers(ImmutableList.of(Solvers.MATHSAT5, Solvers.Z3, Solvers.PRINCESS));
       BooleanFormula formula = imgrv.lessThan(imgrv.makeVariable("x"), imgrv.makeVariable("y"));
-      assertThat(converter.formulaToCExpression(formula)).isEqualTo("(x < y)");
+      checkThat(converter.formulaToCExpression(formula)).isEquivalentTo("(x < y)");
     }
 
     @Test
@@ -202,14 +224,14 @@ public class FormulaToCExpressionConverterTest {
       skipTestForSolvers(ImmutableList.of(Solvers.MATHSAT5, Solvers.Z3, Solvers.PRINCESS));
       BooleanFormula formula =
           bmgrv.not(imgrv.lessThan(imgrv.makeVariable("x"), imgrv.makeVariable("y")));
-      assertThat(converter.formulaToCExpression(formula)).isEqualTo("!((x < y))");
+      checkThat(converter.formulaToCExpression(formula)).isEquivalentTo("!((x < y))");
     }
 
     @Test
     public void convertLessOrEquals() throws InterruptedException {
       skipTestForSolvers(ImmutableList.of(Solvers.PRINCESS));
       BooleanFormula formula = imgrv.lessOrEquals(imgrv.makeVariable("x"), imgrv.makeVariable("y"));
-      assertThat(converter.formulaToCExpression(formula)).isEqualTo("(x <= y)");
+      checkThat(converter.formulaToCExpression(formula)).isEquivalentTo("(x <= y)");
     }
 
     @Test
@@ -217,14 +239,14 @@ public class FormulaToCExpressionConverterTest {
       skipTestForSolvers(ImmutableList.of(Solvers.PRINCESS));
       BooleanFormula formula =
           bmgrv.not(imgrv.lessOrEquals(imgrv.makeVariable("x"), imgrv.makeVariable("y")));
-      assertThat(converter.formulaToCExpression(formula)).isEqualTo("!((x <= y))");
+      checkThat(converter.formulaToCExpression(formula)).isEquivalentTo("!((x <= y))");
     }
 
     @Test
     public void convertGreaterThan() throws InterruptedException {
       skipTestForSolvers(ImmutableList.of(Solvers.MATHSAT5, Solvers.Z3, Solvers.PRINCESS));
       BooleanFormula formula = imgrv.greaterThan(imgrv.makeVariable("x"), imgrv.makeVariable("y"));
-      assertThat(converter.formulaToCExpression(formula)).isEqualTo("(x > y)");
+      checkThat(converter.formulaToCExpression(formula)).isEquivalentTo("(x > y)");
     }
 
     @Test
@@ -232,7 +254,7 @@ public class FormulaToCExpressionConverterTest {
       skipTestForSolvers(ImmutableList.of(Solvers.MATHSAT5, Solvers.Z3, Solvers.PRINCESS));
       BooleanFormula formula =
           bmgrv.not(imgrv.greaterThan(imgrv.makeVariable("x"), imgrv.makeVariable("y")));
-      assertThat(converter.formulaToCExpression(formula)).isEqualTo("!((x > y))");
+      checkThat(converter.formulaToCExpression(formula)).isEquivalentTo("!((x > y))");
     }
 
     @Test
@@ -240,7 +262,7 @@ public class FormulaToCExpressionConverterTest {
       skipTestForSolvers(ImmutableList.of(Solvers.MATHSAT5, Solvers.PRINCESS));
       BooleanFormula formula =
           imgrv.greaterOrEquals(imgrv.makeVariable("x"), imgrv.makeVariable("y"));
-      assertThat(converter.formulaToCExpression(formula)).isEqualTo("(x >= y)");
+      checkThat(converter.formulaToCExpression(formula)).isEquivalentTo("(x >= y)");
     }
 
     @Test
@@ -248,7 +270,7 @@ public class FormulaToCExpressionConverterTest {
       skipTestForSolvers(ImmutableList.of(Solvers.MATHSAT5, Solvers.PRINCESS));
       BooleanFormula formula =
           bmgrv.not(imgrv.greaterOrEquals(imgrv.makeVariable("x"), imgrv.makeVariable("y")));
-      assertThat(converter.formulaToCExpression(formula)).isEqualTo("!((x >= y))");
+      checkThat(converter.formulaToCExpression(formula)).isEquivalentTo("!((x >= y))");
     }
 
     @Test
@@ -257,7 +279,7 @@ public class FormulaToCExpressionConverterTest {
       BooleanFormula formula =
           imgrv.equal(
               imgrv.add(imgrv.makeVariable("x"), imgrv.makeVariable("y")), imgrv.makeVariable("z"));
-      assertThat(converter.formulaToCExpression(formula)).isEqualTo("((x + y) == z)");
+      checkThat(converter.formulaToCExpression(formula)).isEquivalentTo("((x + y) == z)");
     }
 
     @Test
@@ -267,7 +289,7 @@ public class FormulaToCExpressionConverterTest {
           imgrv.equal(
               imgrv.subtract(imgrv.makeVariable("x"), imgrv.makeVariable("y")),
               imgrv.makeVariable("z"));
-      assertThat(converter.formulaToCExpression(formula)).isEqualTo("((x - y) == z)");
+      checkThat(converter.formulaToCExpression(formula)).isEquivalentTo("((x - y) == z)");
     }
 
     @Test
@@ -276,7 +298,7 @@ public class FormulaToCExpressionConverterTest {
       BooleanFormula formula =
           imgrv.equal(
               imgrv.multiply(imgr.makeNumber(3), imgrv.makeVariable("x")), imgrv.makeVariable("y"));
-      assertThat(converter.formulaToCExpression(formula)).isEqualTo("((3 * x) == y)");
+      checkThat(converter.formulaToCExpression(formula)).isEquivalentTo("((3 * x) == y)");
     }
 
     @Test
@@ -286,7 +308,7 @@ public class FormulaToCExpressionConverterTest {
       BooleanFormula formula =
           imgrv.equal(
               imgrv.divide(imgrv.makeVariable("x"), imgrv.makeNumber(2)), imgrv.makeVariable("y"));
-      assertThat(converter.formulaToCExpression(formula)).isEqualTo("((x / 2) == y)");
+      checkThat(converter.formulaToCExpression(formula)).isEquivalentTo("((x / 2) == y)");
     }
 
     @Test
@@ -296,7 +318,7 @@ public class FormulaToCExpressionConverterTest {
       BooleanFormula formula =
           imgrv.equal(
               imgrv.modulo(imgrv.makeVariable("x"), imgrv.makeNumber(2)), imgrv.makeVariable("y"));
-      assertThat(converter.formulaToCExpression(formula)).isEqualTo("((x % 2) == y)");
+      checkThat(converter.formulaToCExpression(formula)).isEquivalentTo("((x % 2) == y)");
     }
 
     @Test
@@ -305,10 +327,10 @@ public class FormulaToCExpressionConverterTest {
       BitvectorFormulaManagerView bvmgrv = mgrv.getBitvectorFormulaManager();
       BooleanFormula signed =
           bvmgrv.lessThan(bvmgrv.makeVariable(5, "x"), bvmgrv.makeVariable(5, "y"), true);
-      assertThat(converter.formulaToCExpression(signed)).isEqualTo("(x < y)");
+      checkThat(converter.formulaToCExpression(signed)).isEquivalentTo("(x < y)");
       BooleanFormula unsigned =
           bvmgrv.lessThan(bvmgrv.makeVariable(5, "x"), bvmgrv.makeVariable(5, "y"), false);
-      assertThat(converter.formulaToCExpression(unsigned)).isEqualTo("(x < y)");
+      checkThat(converter.formulaToCExpression(unsigned)).isEquivalentTo("(x < y)");
     }
 
     @Test
@@ -317,10 +339,10 @@ public class FormulaToCExpressionConverterTest {
       BitvectorFormulaManagerView bvmgrv = mgrv.getBitvectorFormulaManager();
       BooleanFormula signed =
           bvmgrv.lessOrEquals(bvmgrv.makeVariable(5, "x"), bvmgrv.makeVariable(5, "y"), true);
-      assertThat(converter.formulaToCExpression(signed)).isEqualTo("(x <= y)");
+      checkThat(converter.formulaToCExpression(signed)).isEquivalentTo("(x <= y)");
       BooleanFormula unsigned =
           bvmgrv.lessOrEquals(bvmgrv.makeVariable(5, "x"), bvmgrv.makeVariable(5, "y"), false);
-      assertThat(converter.formulaToCExpression(unsigned)).isEqualTo("(x <= y)");
+      checkThat(converter.formulaToCExpression(unsigned)).isEquivalentTo("(x <= y)");
     }
 
     @Test
@@ -330,10 +352,10 @@ public class FormulaToCExpressionConverterTest {
       BitvectorFormulaManagerView bvmgrv = mgrv.getBitvectorFormulaManager();
       BooleanFormula signed =
           bvmgrv.greaterThan(bvmgrv.makeVariable(5, "x"), bvmgrv.makeVariable(5, "y"), true);
-      assertThat(converter.formulaToCExpression(signed)).isEqualTo("(x > y)");
+      checkThat(converter.formulaToCExpression(signed)).isEquivalentTo("(x > y)");
       BooleanFormula unsigned =
           bvmgrv.greaterThan(bvmgrv.makeVariable(5, "x"), bvmgrv.makeVariable(5, "y"), false);
-      assertThat(converter.formulaToCExpression(unsigned)).isEqualTo("(x > y)");
+      checkThat(converter.formulaToCExpression(unsigned)).isEquivalentTo("(x > y)");
     }
 
     @Test
@@ -343,10 +365,10 @@ public class FormulaToCExpressionConverterTest {
       BitvectorFormulaManagerView bvmgrv = mgrv.getBitvectorFormulaManager();
       BooleanFormula signed =
           bvmgrv.greaterOrEquals(bvmgrv.makeVariable(5, "x"), bvmgrv.makeVariable(5, "y"), true);
-      assertThat(converter.formulaToCExpression(signed)).isEqualTo("(x >= y)");
+      checkThat(converter.formulaToCExpression(signed)).isEquivalentTo("(x >= y)");
       BooleanFormula unsigned =
           bvmgrv.greaterOrEquals(bvmgrv.makeVariable(5, "x"), bvmgrv.makeVariable(5, "y"), false);
-      assertThat(converter.formulaToCExpression(unsigned)).isEqualTo("(x >= y)");
+      checkThat(converter.formulaToCExpression(unsigned)).isEquivalentTo("(x >= y)");
     }
 
     @Test
@@ -355,7 +377,7 @@ public class FormulaToCExpressionConverterTest {
       BitvectorFormulaManagerView bvmgrv = mgrv.getBitvectorFormulaManager();
       BooleanFormula formula =
           bvmgrv.equal(bvmgrv.not(bvmgrv.makeVariable(5, "x")), bvmgrv.makeVariable(5, "y"));
-      assertThat(converter.formulaToCExpression(formula)).isEqualTo("(~(x) == y)");
+      checkThat(converter.formulaToCExpression(formula)).isEquivalentTo("(~(x) == y)");
     }
 
     @Test
@@ -366,7 +388,7 @@ public class FormulaToCExpressionConverterTest {
           bvmgrv.equal(
               bvmgrv.and(bvmgrv.makeVariable(5, "x"), bvmgrv.makeVariable(5, "y")),
               bvmgrv.makeVariable(5, "z"));
-      assertThat(converter.formulaToCExpression(formula)).isEqualTo("((x & y) == z)");
+      checkThat(converter.formulaToCExpression(formula)).isEquivalentTo("((x & y) == z)");
     }
 
     @Test
@@ -377,7 +399,7 @@ public class FormulaToCExpressionConverterTest {
           bvmgrv.equal(
               bvmgrv.or(bvmgrv.makeVariable(5, "x"), bvmgrv.makeVariable(5, "y")),
               bvmgrv.makeVariable(5, "z"));
-      assertThat(converter.formulaToCExpression(formula)).isEqualTo("((x | y) == z)");
+      checkThat(converter.formulaToCExpression(formula)).isEquivalentTo("((x | y) == z)");
     }
 
     @Test
@@ -388,7 +410,7 @@ public class FormulaToCExpressionConverterTest {
           bvmgrv.equal(
               bvmgrv.xor(bvmgrv.makeVariable(5, "x"), bvmgrv.makeVariable(5, "y")),
               bvmgrv.makeVariable(5, "z"));
-      assertThat(converter.formulaToCExpression(formula)).isEqualTo("((x ^ y) == z)");
+      checkThat(converter.formulaToCExpression(formula)).isEquivalentTo("((x ^ y) == z)");
     }
 
     @Test
@@ -399,7 +421,7 @@ public class FormulaToCExpressionConverterTest {
           bvmgrv.equal(
               bvmgrv.add(bvmgrv.makeVariable(5, "x"), bvmgrv.makeVariable(5, "y")),
               bvmgrv.makeVariable(5, "z"));
-      assertThat(converter.formulaToCExpression(formula)).isEqualTo("((x + y) == z)");
+      checkThat(converter.formulaToCExpression(formula)).isEquivalentTo("((x + y) == z)");
     }
 
     @Test
@@ -411,7 +433,7 @@ public class FormulaToCExpressionConverterTest {
           bvmgrv.equal(
               bvmgrv.subtract(bvmgrv.makeVariable(5, "x"), bvmgrv.makeVariable(5, "y")),
               bvmgrv.makeVariable(5, "z"));
-      assertThat(converter.formulaToCExpression(formula)).isEqualTo("((x - y) == z)");
+      checkThat(converter.formulaToCExpression(formula)).isEquivalentTo("((x - y) == z)");
     }
 
     @Test
@@ -420,7 +442,7 @@ public class FormulaToCExpressionConverterTest {
       BitvectorFormulaManagerView bvmgrv = mgrv.getBitvectorFormulaManager();
       BooleanFormula formula =
           bvmgrv.equal(bvmgrv.negate(bvmgrv.makeVariable(5, "x")), bvmgrv.makeVariable(5, "y"));
-      assertThat(converter.formulaToCExpression(formula)).isEqualTo("(-(x) == y)");
+      checkThat(converter.formulaToCExpression(formula)).isEquivalentTo("(-(x) == y)");
     }
 
     @Test
@@ -431,7 +453,7 @@ public class FormulaToCExpressionConverterTest {
           bvmgrv.equal(
               bvmgrv.multiply(bvmgrv.makeVariable(5, "x"), bvmgrv.makeVariable(5, "y")),
               bvmgrv.makeVariable(5, "z"));
-      assertThat(converter.formulaToCExpression(formula)).isEqualTo("((x * y) == z)");
+      checkThat(converter.formulaToCExpression(formula)).isEquivalentTo("((x * y) == z)");
     }
 
     @Test
@@ -443,12 +465,12 @@ public class FormulaToCExpressionConverterTest {
           bvmgrv.equal(
               bvmgrv.divide(bvmgrv.makeVariable(5, "x"), bvmgrv.makeVariable(5, "y"), true),
               bvmgrv.makeVariable(5, "z"));
-      assertThat(converter.formulaToCExpression(signed)).isEqualTo("((x / y) == z)");
+      checkThat(converter.formulaToCExpression(signed)).isEquivalentTo("((x / y) == z)");
       BooleanFormula unsigned =
           bvmgrv.equal(
               bvmgrv.divide(bvmgrv.makeVariable(5, "x"), bvmgrv.makeVariable(5, "y"), false),
               bvmgrv.makeVariable(5, "z"));
-      assertThat(converter.formulaToCExpression(unsigned)).isEqualTo("((x / y) == z)");
+      checkThat(converter.formulaToCExpression(unsigned)).isEquivalentTo("((x / y) == z)");
     }
 
     @Test
@@ -460,12 +482,12 @@ public class FormulaToCExpressionConverterTest {
           bvmgrv.equal(
               bvmgrv.modulo(bvmgrv.makeVariable(5, "x"), bvmgrv.makeVariable(5, "y"), true),
               bvmgrv.makeVariable(5, "z"));
-      assertThat(converter.formulaToCExpression(signed)).isEqualTo("((x % y) == z)");
+      checkThat(converter.formulaToCExpression(signed)).isEquivalentTo("((x % y) == z)");
       BooleanFormula unsigned =
           bvmgrv.equal(
               bvmgrv.modulo(bvmgrv.makeVariable(5, "x"), bvmgrv.makeVariable(5, "y"), false),
               bvmgrv.makeVariable(5, "z"));
-      assertThat(converter.formulaToCExpression(unsigned)).isEqualTo("((x % y) == z)");
+      checkThat(converter.formulaToCExpression(unsigned)).isEquivalentTo("((x % y) == z)");
     }
 
     @Test
@@ -477,7 +499,7 @@ public class FormulaToCExpressionConverterTest {
           bvmgrv.equal(
               bvmgrv.shiftLeft(bvmgrv.makeVariable(8, "x"), bvmgrv.makeBitvector(8, 4)),
               bvmgrv.makeVariable(8, "y"));
-      assertThat(converter.formulaToCExpression(formula)).isEqualTo("((x << 4) == y)");
+      checkThat(converter.formulaToCExpression(formula)).isEquivalentTo("((x << 4) == y)");
     }
 
     @Test
@@ -488,7 +510,7 @@ public class FormulaToCExpressionConverterTest {
           fmgrv.equalWithFPSemantics(
               fmgrv.makeVariable("x", FormulaType.getSinglePrecisionFloatingPointType()),
               fmgrv.makeVariable("y", FormulaType.getSinglePrecisionFloatingPointType()));
-      assertThat(converter.formulaToCExpression(formula)).isEqualTo("(x == y)");
+      checkThat(converter.formulaToCExpression(formula)).isEquivalentTo("(x == y)");
     }
 
     @Test
@@ -499,7 +521,7 @@ public class FormulaToCExpressionConverterTest {
           fmgrv.lessThan(
               fmgrv.makeVariable("x", FormulaType.getSinglePrecisionFloatingPointType()),
               fmgrv.makeVariable("y", FormulaType.getSinglePrecisionFloatingPointType()));
-      assertThat(converter.formulaToCExpression(formula)).isEqualTo("(x < y)");
+      checkThat(converter.formulaToCExpression(formula)).isEquivalentTo("(x < y)");
     }
 
     @Test
@@ -510,7 +532,7 @@ public class FormulaToCExpressionConverterTest {
           fmgrv.lessOrEquals(
               fmgrv.makeVariable("x", FormulaType.getSinglePrecisionFloatingPointType()),
               fmgrv.makeVariable("y", FormulaType.getSinglePrecisionFloatingPointType()));
-      assertThat(converter.formulaToCExpression(formula)).isEqualTo("(x <= y)");
+      checkThat(converter.formulaToCExpression(formula)).isEquivalentTo("(x <= y)");
     }
 
     @Test
@@ -522,7 +544,7 @@ public class FormulaToCExpressionConverterTest {
           fmgrv.greaterThan(
               fmgrv.makeVariable("x", FormulaType.getSinglePrecisionFloatingPointType()),
               fmgrv.makeVariable("y", FormulaType.getSinglePrecisionFloatingPointType()));
-      assertThat(converter.formulaToCExpression(formula)).isEqualTo("(x > y)");
+      checkThat(converter.formulaToCExpression(formula)).isEquivalentTo("(x > y)");
     }
 
     @Test
@@ -534,7 +556,7 @@ public class FormulaToCExpressionConverterTest {
           fmgrv.greaterOrEquals(
               fmgrv.makeVariable("x", FormulaType.getSinglePrecisionFloatingPointType()),
               fmgrv.makeVariable("y", FormulaType.getSinglePrecisionFloatingPointType()));
-      assertThat(converter.formulaToCExpression(formula)).isEqualTo("(x >= y)");
+      checkThat(converter.formulaToCExpression(formula)).isEquivalentTo("(x >= y)");
     }
 
     @Test
@@ -548,7 +570,7 @@ public class FormulaToCExpressionConverterTest {
                   fmgrv.makeVariable("x", FormulaType.getSinglePrecisionFloatingPointType()),
                   fmgrv.makeVariable("y", FormulaType.getSinglePrecisionFloatingPointType())),
               fmgrv.makeVariable("z", FormulaType.getSinglePrecisionFloatingPointType()));
-      assertThat(converter.formulaToCExpression(formula)).isEqualTo("((x + y) == z)");
+      checkThat(converter.formulaToCExpression(formula)).isEquivalentTo("((x + y) == z)");
     }
 
     @Test
@@ -562,7 +584,7 @@ public class FormulaToCExpressionConverterTest {
                   fmgrv.makeVariable("x", FormulaType.getSinglePrecisionFloatingPointType()),
                   fmgrv.makeVariable("y", FormulaType.getSinglePrecisionFloatingPointType())),
               fmgrv.makeVariable("z", FormulaType.getSinglePrecisionFloatingPointType()));
-      assertThat(converter.formulaToCExpression(formula)).isEqualTo("((x - y) == z)");
+      checkThat(converter.formulaToCExpression(formula)).isEquivalentTo("((x - y) == z)");
     }
 
     @Test
@@ -574,7 +596,7 @@ public class FormulaToCExpressionConverterTest {
               fmgrv.negate(
                   fmgrv.makeVariable("x", FormulaType.getSinglePrecisionFloatingPointType())),
               fmgrv.makeVariable("y", FormulaType.getSinglePrecisionFloatingPointType()));
-      assertThat(converter.formulaToCExpression(formula)).isEqualTo("(-(x) == y)");
+      checkThat(converter.formulaToCExpression(formula)).isEquivalentTo("(-(x) == y)");
     }
 
     @Test
@@ -588,7 +610,7 @@ public class FormulaToCExpressionConverterTest {
                   fmgrv.makeVariable("x", FormulaType.getSinglePrecisionFloatingPointType()),
                   fmgrv.makeVariable("y", FormulaType.getSinglePrecisionFloatingPointType())),
               fmgrv.makeVariable("z", FormulaType.getSinglePrecisionFloatingPointType()));
-      assertThat(converter.formulaToCExpression(formula)).isEqualTo("((x * y) == z)");
+      checkThat(converter.formulaToCExpression(formula)).isEquivalentTo("((x * y) == z)");
     }
 
     @Test
@@ -602,7 +624,7 @@ public class FormulaToCExpressionConverterTest {
                   fmgrv.makeVariable("x", FormulaType.getSinglePrecisionFloatingPointType()),
                   fmgrv.makeVariable("y", FormulaType.getSinglePrecisionFloatingPointType())),
               fmgrv.makeVariable("z", FormulaType.getSinglePrecisionFloatingPointType()));
-      assertThat(converter.formulaToCExpression(formula)).isEqualTo("((x / y) == z)");
+      checkThat(converter.formulaToCExpression(formula)).isEquivalentTo("((x / y) == z)");
     }
   }
 
