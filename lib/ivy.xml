@@ -102,8 +102,8 @@ SPDX-License-Identifier: Apache-2.0
 
         <!-- Mockito
              Mocking framework for tests. -->
-        <dependency org="org.mockito" name="mockito-core" rev="4.7.0" conf="test->default"/>
-        <dependency org="org.mockito" name="mockito-errorprone" rev="4.7.0" conf="build->default"/>
+        <dependency org="org.mockito" name="mockito-core" rev="4.8.0" conf="test->default"/>
+        <dependency org="org.mockito" name="mockito-errorprone" rev="4.8.0" conf="build->default"/>
 
         <!-- Antlr
              Parser generator. -->
@@ -159,7 +159,7 @@ SPDX-License-Identifier: Apache-2.0
 
         <!-- Checkstyle -->
         <dependency org="com.github.sevntu-checkstyle" name="sevntu-checks" rev="1.42.0" conf="checkstyle->default"/>
-        <dependency org="com.puppycrawl.tools" name="checkstyle" rev="10.3.2" conf="checkstyle->default"/>
+        <dependency org="com.puppycrawl.tools" name="checkstyle" rev="10.3.3" conf="checkstyle->default"/>
 
         <!-- VerifierCloud -->
         <dependency org="org.sosy_lab" name="vcloud" rev="${verifiercloud.version}" conf="benchmark->runtime"/>

@@ -34,7 +34,7 @@ temp_dir = os.path.join(script_path, "temp_dir_coverage")
 
 def print_command(command, logger):
     for c in command[:-1]:
-        logger.debug(c + " \\")
+        logger.debug("%s \\", c)
     logger.debug(command[-1])
 
 
@@ -340,12 +340,12 @@ class ComputeCoverage:
                 cex, self.instance, self.aa_file, self.heap_size, self.logger
             )
             self.lines_covered.update(new_covered)
-            self.logger.info("Coverage after collecting " + str(num) + " executions:")
-            self.logger.info("Lines covered: " + str(len(self.lines_covered)))
-            self.logger.info("Total lines to cover: " + str(len(self.lines_to_cover)))
+            self.logger.info("Coverage after collecting %s executions:", num)
+            self.logger.info("Lines covered: %s", len(self.lines_covered))
+            self.logger.info("Total lines to cover: %s", len(self.lines_to_cover))
             self.logger.info("")
-        self.logger.info("Total lines covered: " + str(len(self.lines_covered)))
-        self.logger.info("Total lines to cover: " + str(len(self.lines_to_cover)))
+        self.logger.info("Total lines covered: %s", len(self.lines_covered))
+        self.logger.info("Total lines to cover: %s", len(self.lines_to_cover))
         return self.lines_covered, self.lines_to_cover
 
 
@@ -800,17 +800,16 @@ def check_args(args, logger):
     if not args.only_collect_coverage:
         if os.path.exists(args.cex_dir):
             logger.error(
-                (
-                    "Invalid option: when not using -only_collect_coverage, the "
-                    "directory -cex_dir (" + args.cex_dir + ") must not "
-                    "exist. The directory will be created by this script "
-                    "and will contain the generated executions."
-                )
+                "Invalid option: when not using -only_collect_coverage, the "
+                "directory -cex_dir (%s) must not "
+                "exist. The directory will be created by this script "
+                "and will contain the generated executions.",
+                args.cex_dir,
             )
             sys.exit(0)
         if not os.path.isfile(args.spec):
             logger.error(
-                "Invalid option: Specification file does not exist: " + args.spec
+                "Invalid option: Specification file does not exist: %s", args.spec
             )
             sys.exit(0)
     elif args.cex_count or args.timelimit:
