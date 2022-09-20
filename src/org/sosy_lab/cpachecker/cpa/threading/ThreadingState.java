@@ -18,7 +18,10 @@ import static org.sosy_lab.cpachecker.cpa.threading.ThreadingTransferRelation.is
 import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.FluentIterable;
+import com.google.common.collect.ImmutableList;
+import java.math.BigInteger;
 import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
@@ -27,15 +30,26 @@ import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.collect.PersistentMap;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCall;
+import org.sosy_lab.cpachecker.cfa.ast.AFunctionCallAssignmentStatement;
+import org.sosy_lab.cpachecker.cfa.ast.AFunctionCallExpression;
+import org.sosy_lab.cpachecker.cfa.ast.AFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.ALeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.AStatement;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.model.AStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
+import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithAssumptions;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithLocations;
 import org.sosy_lab.cpachecker.core.interfaces.Graphable;
 import org.sosy_lab.cpachecker.core.interfaces.Partitionable;
@@ -49,6 +63,7 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 public class ThreadingState
     implements AbstractState,
         AbstractStateWithLocations,
+        AbstractStateWithAssumptions,
         Graphable,
         Partitionable,
         AbstractQueryableState {
@@ -90,38 +105,70 @@ public class ThreadingState
    */
   private final PersistentMap<String, Integer> threadIdsForWitness;
 
+  /**
+   * This indicates whether the thread function that was just called was a success. This information
+   * is necessary because there is a coupling between control flow and lock acquisition for several
+   * functions.
+   *
+   * <p>It must be deleted in {@link ThreadingTransferRelation#strengthen}, e.g. set to {@code
+   * null}. It is not considered to be part of any 'full' abstract state, but serves as intermediate
+   * flag to have information for the strengthening process.
+   */
+  @Nullable private final ThreadFunctionReturnValue lastThreadFunctionResult;
+
   public ThreadingState() {
     threads = PathCopyingPersistentTreeMap.of();
     locks = PathCopyingPersistentTreeMap.of();
     activeThread = null;
     entryFunction = null;
     threadIdsForWitness = PathCopyingPersistentTreeMap.of();
+    lastThreadFunctionResult = null;
   }
 
   private ThreadingState(
       PersistentMap<String, ThreadState> pThreads,
       PersistentMap<String, String> pLocks,
       String pActiveThread,
-      FunctionCallEdge entryFunction,
-      PersistentMap<String, Integer> pThreadIdsForWitness) {
+      FunctionCallEdge pEntryFunction,
+      PersistentMap<String, Integer> pThreadIdsForWitness,
+      ThreadFunctionReturnValue pLastThreadFunctionResult) {
     threads = pThreads;
     locks = pLocks;
     activeThread = pActiveThread;
-    this.entryFunction = entryFunction;
+    entryFunction = pEntryFunction;
     threadIdsForWitness = pThreadIdsForWitness;
+    lastThreadFunctionResult = pLastThreadFunctionResult;
   }
 
   private ThreadingState withThreads(PersistentMap<String, ThreadState> pThreads) {
-    return new ThreadingState(pThreads, locks, activeThread, entryFunction, threadIdsForWitness);
+    return new ThreadingState(
+        pThreads,
+        locks,
+        activeThread,
+        entryFunction,
+        threadIdsForWitness,
+        lastThreadFunctionResult);
   }
 
   private ThreadingState withLocks(PersistentMap<String, String> pLocks) {
-    return new ThreadingState(threads, pLocks, activeThread, entryFunction, threadIdsForWitness);
+    return new ThreadingState(
+        threads,
+        pLocks,
+        activeThread,
+        entryFunction,
+        threadIdsForWitness,
+        lastThreadFunctionResult);
   }
 
   private ThreadingState withThreadIdsForWitness(
       PersistentMap<String, Integer> pThreadIdsForWitness) {
-    return new ThreadingState(threads, locks, activeThread, entryFunction, pThreadIdsForWitness);
+    return new ThreadingState(
+        threads,
+        locks,
+        activeThread,
+        entryFunction,
+        pThreadIdsForWitness,
+        lastThreadFunctionResult);
   }
 
   public ThreadingState addThreadAndCopy(
@@ -372,6 +419,78 @@ public class ThreadingState
     return false;
   }
 
+  @Override
+  public List<? extends AExpression> getAssumptions() {
+    if (lastThreadFunctionResult != null) {
+      switch (lastThreadFunctionResult.getThreadFunction().getEdgeType()) {
+        case FunctionCallEdge:
+          FunctionCallEdge functionCallEdge =
+              (FunctionCallEdge) lastThreadFunctionResult.getThreadFunction();
+          if (functionCallEdge.getFunctionCall() instanceof AFunctionCallAssignmentStatement) {
+            AFunctionCallAssignmentStatement functionCallAssignmentStatement =
+                (AFunctionCallAssignmentStatement) functionCallEdge.getFunctionCall();
+            ALeftHandSide lhs = functionCallAssignmentStatement.getLeftHandSide();
+            if (lhs instanceof CExpression) {
+              return ImmutableList.of(
+                  new CBinaryExpression(
+                      lhs.getFileLocation(),
+                      CNumericTypes.BOOL,
+                      ((CExpression) lhs).getExpressionType(),
+                      (CExpression) lhs,
+                      new CIntegerLiteralExpression(
+                          FileLocation.DUMMY, CNumericTypes.INT, BigInteger.ZERO),
+                      lastThreadFunctionResult.isSuccess()
+                          ? BinaryOperator.EQUALS
+                          : BinaryOperator.NOT_EQUALS));
+            }
+          }
+          break;
+        case StatementEdge:
+          AStatementEdge statementEdge =
+              (AStatementEdge) lastThreadFunctionResult.getThreadFunction();
+          AStatement statement = statementEdge.getStatement();
+          if (statement instanceof AFunctionCallAssignmentStatement) {
+            AFunctionCallAssignmentStatement functionCallAssignmentStatement =
+                (AFunctionCallAssignmentStatement) statement;
+            ALeftHandSide lhs = functionCallAssignmentStatement.getLeftHandSide();
+            if (lhs instanceof CExpression) {
+              return ImmutableList.of(
+                  new CBinaryExpression(
+                      lhs.getFileLocation(),
+                      CNumericTypes.BOOL,
+                      ((CExpression) lhs).getExpressionType(),
+                      (CExpression) lhs,
+                      new CIntegerLiteralExpression(
+                          FileLocation.DUMMY, CNumericTypes.INT, BigInteger.ZERO),
+                      lastThreadFunctionResult.isSuccess()
+                          ? BinaryOperator.EQUALS
+                          : BinaryOperator.NOT_EQUALS));
+            }
+          } else if (statement instanceof AFunctionCallStatement) {
+            AFunctionCallExpression functionCallExpression =
+                ((AFunctionCallStatement) statement).getFunctionCallExpression();
+            if (functionCallExpression instanceof CExpression) {
+              return ImmutableList.of(
+                  new CBinaryExpression(
+                      functionCallExpression.getFileLocation(),
+                      CNumericTypes.BOOL,
+                      ((CExpression) functionCallExpression).getExpressionType(),
+                      (CExpression) functionCallExpression,
+                      new CIntegerLiteralExpression(
+                          FileLocation.DUMMY, CNumericTypes.INT, BigInteger.ZERO),
+                      lastThreadFunctionResult.isSuccess()
+                          ? BinaryOperator.EQUALS
+                          : BinaryOperator.NOT_EQUALS));
+            }
+          }
+          break;
+        default:
+          throw new AssertionError("Unhandled edge type");
+      }
+    }
+    return ImmutableList.of();
+  }
+
   /** A ThreadState describes the state of a single thread. */
   private static class ThreadState {
 
@@ -426,7 +545,13 @@ public class ThreadingState
 
   /** See {@link #activeThread}. */
   public ThreadingState withActiveThread(@Nullable String pActiveThread) {
-    return new ThreadingState(threads, locks, pActiveThread, entryFunction, threadIdsForWitness);
+    return new ThreadingState(
+        threads,
+        locks,
+        pActiveThread,
+        entryFunction,
+        threadIdsForWitness,
+        lastThreadFunctionResult);
   }
 
   String getActiveThread() {
@@ -435,13 +560,36 @@ public class ThreadingState
 
   /** See {@link #entryFunction}. */
   public ThreadingState withEntryFunction(@Nullable FunctionCallEdge pEntryFunction) {
-    return new ThreadingState(threads, locks, activeThread, pEntryFunction, threadIdsForWitness);
+    return new ThreadingState(
+        threads,
+        locks,
+        activeThread,
+        pEntryFunction,
+        threadIdsForWitness,
+        lastThreadFunctionResult);
   }
 
   /** See {@link #entryFunction}. */
   @Nullable
   public FunctionCallEdge getEntryFunction() {
     return entryFunction;
+  }
+
+  /** See {@link #lastThreadFunctionResult}. */
+  public ThreadingState withLastThreadFunctionResult(
+      @Nullable ThreadFunctionReturnValue pLastThreadFunctionResult) {
+    return new ThreadingState(
+        threads,
+        locks,
+        activeThread,
+        entryFunction,
+        threadIdsForWitness,
+        pLastThreadFunctionResult);
+  }
+
+  /** See {@link #lastThreadFunctionResult}. */
+  public ThreadFunctionReturnValue getLastThreadFunctionResult() {
+    return lastThreadFunctionResult;
   }
 
   @Nullable Integer getThreadIdForWitness(String threadId) {

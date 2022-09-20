@@ -118,6 +118,7 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
   private static final String THREAD_EXIT = "pthread_exit";
   private static final String THREAD_MUTEX_LOCK = "pthread_mutex_lock";
   private static final String THREAD_MUTEX_UNLOCK = "pthread_mutex_unlock";
+  private static final String THREAD_MUTEX_TRYLOCK = "pthread_mutex_trylock";
   private static final String VERIFIER_ATOMIC = "__VERIFIER_atomic_";
   private static final String VERIFIER_ATOMIC_BEGIN = "__VERIFIER_atomic_begin";
   private static final String VERIFIER_ATOMIC_END = "__VERIFIER_atomic_end";
@@ -135,6 +136,7 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
           THREAD_START,
           THREAD_MUTEX_LOCK,
           THREAD_MUTEX_UNLOCK,
+          THREAD_MUTEX_TRYLOCK,
           THREAD_JOIN,
           THREAD_EXIT,
           VERIFIER_ATOMIC_BEGIN,
@@ -259,6 +261,9 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
                   return addLock(threadingState, activeThread, extractLockId(statement), results);
                 case THREAD_MUTEX_UNLOCK:
                   return removeLock(activeThread, extractLockId(statement), results);
+                case THREAD_MUTEX_TRYLOCK:
+                  return tryAddLock(
+                      threadingState, activeThread, extractLockId(statement), results, cfaEdge);
                 case THREAD_JOIN:
                   return joinThread(threadingState, statement, results);
                 case THREAD_EXIT:
@@ -620,6 +625,26 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
     return transform(results, ts -> ts.addLockAndCopy(activeThread, lockId));
   }
 
+  private Collection<ThreadingState> tryAddLock(
+      final ThreadingState threadingState,
+      final String activeThread,
+      String lockId,
+      final Collection<ThreadingState> results,
+      CFAEdge trylockEdge) {
+    if (threadingState.hasLock(lockId)) {
+      boolean success = threadingState.getLocksForThread(activeThread).contains(lockId);
+      ThreadFunctionReturnValue lastThreadFunctionResult =
+          new ThreadFunctionReturnValue(trylockEdge, success);
+      return transform(results, ts -> ts.withLastThreadFunctionResult(lastThreadFunctionResult));
+    }
+
+    return transform(
+        results,
+        ts ->
+            ts.addLockAndCopy(activeThread, lockId)
+                .withLastThreadFunctionResult(new ThreadFunctionReturnValue(trylockEdge, true)));
+  }
+
   /** get the name (lockId) of the new lock at the given edge, or NULL if no lock is required. */
   static @Nullable String getLockId(final CFAEdge cfaEdge) throws UnrecognizedCodeException {
     if (cfaEdge.getEdgeType() == CFAEdgeType.StatementEdge) {
@@ -629,7 +654,7 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
             ((AFunctionCall) statement).getFunctionCallExpression().getFunctionNameExpression();
         if (functionNameExp instanceof AIdExpression) {
           final String functionName = ((AIdExpression) functionNameExp).getName();
-          if (THREAD_MUTEX_LOCK.equals(functionName)) {
+          if (THREAD_MUTEX_LOCK.equals(functionName) || THREAD_MUTEX_TRYLOCK.equals(functionName)) {
             return extractLockId(statement);
           }
         }
@@ -753,7 +778,12 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
     }
 
     // delete temporary information from the state, cf. JavaDoc of the called methods
-    return Optionals.asSet(results.map(ts -> ts.withActiveThread(null).withEntryFunction(null)));
+    return Optionals.asSet(
+        results.map(
+            ts ->
+                ts.withActiveThread(null)
+                    .withEntryFunction(null)
+                    .withLastThreadFunctionResult(null)));
   }
 
   private @Nullable ThreadingState handleWitnessAutomaton(
