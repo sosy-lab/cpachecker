@@ -64,39 +64,6 @@ public class DataRaceTransferRelation extends SingleEdgeTransferRelation {
           "pthread_rwlock_timedwrlock",
           "pthread_rwlock_wrlock");
 
-  // These are the functions declared in <pthread.h> that are used in sv-benchmarks programs
-  private static final ImmutableSet<String> THREAD_SAFE_FUNCTIONS =
-      ImmutableSet.of(
-          "pthread_mutex_lock",
-          "pthread_mutex_unlock",
-          "pthread_create",
-          "pthread_mutexattr_init",
-          "pthread_mutexattr_settype",
-          "pthread_mutex_init",
-          "pthread_rwlock_wrlock",
-          "pthread_rwlock_unlock",
-          "pthread_rwlock_rdlock",
-          "pthread_mutex_trylock",
-          "pthread_join",
-          "pthread_cond_wait",
-          "pthread_cond_signal",
-          "pthread_mutex_destroy",
-          "pthread_attr_init",
-          "pthread_attr_setdetachstate",
-          "pthread_attr_destroy",
-          "pthread_cond_init",
-          "pthread_cond_destroy",
-          "pthread_self",
-          "pthread_cleanup_push",
-          "pthread_cleanup_pop",
-          "pthread_cond_broadcast",
-          "pthread_getspecific",
-          "pthread_setspecific",
-          "pthread_key_create",
-          "pthread_exit",
-          "pthread_equal",
-          "pthread_mutexattr_destroy");
-
   private final EdgeAnalyzer edgeAnalyzer;
 
   public DataRaceTransferRelation(EdgeAnalyzer pEdgeAnalyzer) {
@@ -331,24 +298,14 @@ public class DataRaceTransferRelation extends SingleEdgeTransferRelation {
         if (functionCallEdge.getFunctionCall() instanceof AFunctionCallAssignmentStatement) {
           AFunctionCallAssignmentStatement functionCallAssignmentStatement =
               (AFunctionCallAssignmentStatement) functionCallEdge.getFunctionCall();
-          if (THREAD_SAFE_FUNCTIONS.contains(functionName)) {
-            accessedLocationBuilder.addAll(
-                edgeAnalyzer
-                    .getInvolvedVariableTypes(
-                        functionCallAssignmentStatement.getLeftHandSide(), functionCallEdge)
-                    .keySet());
-          } else {
-            accessedLocationBuilder.addAll(
-                edgeAnalyzer
-                    .getInvolvedVariableTypes(functionCallAssignmentStatement, functionCallEdge)
-                    .keySet());
-          }
+          accessedLocationBuilder.addAll(
+              edgeAnalyzer
+                  .getInvolvedVariableTypes(functionCallAssignmentStatement, functionCallEdge)
+                  .keySet());
         } else {
-          if (!THREAD_SAFE_FUNCTIONS.contains(functionName)) {
-            for (AExpression argument : functionCallEdge.getArguments()) {
-              accessedLocationBuilder.addAll(
-                  edgeAnalyzer.getInvolvedVariableTypes(argument, functionCallEdge).keySet());
-            }
+          for (AExpression argument : functionCallEdge.getArguments()) {
+            accessedLocationBuilder.addAll(
+                edgeAnalyzer.getInvolvedVariableTypes(argument, functionCallEdge).keySet());
           }
         }
         break;
@@ -402,18 +359,10 @@ public class DataRaceTransferRelation extends SingleEdgeTransferRelation {
           if (UNSUPPORTED_FUNCTIONS.contains(functionName)) {
             throw new CPATransferException("DataRaceCPA does not support function " + functionName);
           }
-          if (THREAD_SAFE_FUNCTIONS.contains(functionName)) {
-            accessedLocationBuilder.addAll(
-                edgeAnalyzer
-                    .getInvolvedVariableTypes(
-                        functionCallAssignmentStatement.getLeftHandSide(), statementEdge)
-                    .keySet());
-          } else {
-            accessedLocationBuilder.addAll(
-                edgeAnalyzer
-                    .getInvolvedVariableTypes(functionCallAssignmentStatement, statementEdge)
-                    .keySet());
-          }
+          accessedLocationBuilder.addAll(
+              edgeAnalyzer
+                  .getInvolvedVariableTypes(functionCallAssignmentStatement, statementEdge)
+                  .keySet());
           modifiedLocationBuilder.addAll(
               edgeAnalyzer
                   .getInvolvedVariableTypes(
@@ -425,12 +374,10 @@ public class DataRaceTransferRelation extends SingleEdgeTransferRelation {
           if (UNSUPPORTED_FUNCTIONS.contains(functionName)) {
             throw new CPATransferException("DataRaceCPA does not support function " + functionName);
           }
-          if (!THREAD_SAFE_FUNCTIONS.contains(functionName)) {
-            for (AExpression expression :
-                functionCallStatement.getFunctionCallExpression().getParameterExpressions()) {
-              accessedLocationBuilder.addAll(
-                  edgeAnalyzer.getInvolvedVariableTypes(expression, statementEdge).keySet());
-            }
+          for (AExpression expression :
+              functionCallStatement.getFunctionCallExpression().getParameterExpressions()) {
+            accessedLocationBuilder.addAll(
+                edgeAnalyzer.getInvolvedVariableTypes(expression, statementEdge).keySet());
           }
         }
         break;
