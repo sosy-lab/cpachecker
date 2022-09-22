@@ -119,17 +119,17 @@ public class SMGPrecision extends RefinablePrecision {
 
   @Override
   public int getSize() {
-    return rawPrecision.size();
+    return rawPrecision.size() + trackedHeapValues.size();
   }
 
   @Override
   public String toString() {
-    return rawPrecision.toString();
+    return rawPrecision.toString() + " " + trackedHeapValues.toString();
   }
 
   @Override
   public boolean isEmpty() {
-    return rawPrecision.isEmpty();
+    return rawPrecision.isEmpty() && trackedHeapValues.isEmpty();
   }
 
   @Override
