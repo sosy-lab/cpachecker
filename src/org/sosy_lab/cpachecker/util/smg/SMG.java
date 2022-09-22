@@ -262,6 +262,21 @@ public class SMG {
   }
 
   /**
+   * @param objectToReplace the object whos edges are supposed to be changed.
+   * @param newHVEdges the new HVedges.
+   * @return a new SMG with the HVEdges replaced by the given.
+   */
+  public SMG copyAndReplaceHVEdgesAt(
+      SMGObject objectToReplace, PersistentSet<SMGHasValueEdge> newHVEdges) {
+    return new SMG(
+        smgObjects,
+        smgValues,
+        hasValueEdges.removeAndCopy(objectToReplace).putAndCopy(objectToReplace, newHVEdges),
+        pointsToEdges,
+        sizeOfPointer);
+  }
+
+  /**
    * Creates a copy of the SMG and adds/replaces the given points to edge.
    *
    * @param edge - The edge to be added/replaced.

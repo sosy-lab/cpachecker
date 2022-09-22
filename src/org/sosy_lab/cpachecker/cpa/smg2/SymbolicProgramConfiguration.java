@@ -1289,6 +1289,19 @@ public class SymbolicProgramConfiguration {
         heapValueWhitelist);
   }
 
+  public SymbolicProgramConfiguration copyAndReplaceHVEdgesAt(
+      SMGObject objectToReplace, PersistentSet<SMGHasValueEdge> newHVEdges) {
+    return new SymbolicProgramConfiguration(
+        smg.copyAndReplaceHVEdgesAt(objectToReplace, newHVEdges),
+        globalVariableMapping,
+        stackVariableMapping,
+        heapObjects,
+        externalObjectAllocation,
+        valueMapping,
+        variableToTypeMap,
+        heapValueWhitelist);
+  }
+
   public SymbolicProgramConfiguration replaceValueAtWithAndCopy(
       SMGObject object, BigInteger offsetInBits, BigInteger sizeInBits, SMGHasValueEdge newHVEdge) {
     return new SymbolicProgramConfiguration(
