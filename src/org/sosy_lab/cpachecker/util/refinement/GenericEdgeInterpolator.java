@@ -108,6 +108,11 @@ public class GenericEdgeInterpolator<S extends ForgetfulState<T>, T, I extends I
     }
   }
 
+  // For subclasses
+  protected FeasibilityChecker<S> getFeasibilityChecker() {
+    return checker;
+  }
+
   /**
    * This method derives an interpolant for the given error path and interpolation state.
    *
