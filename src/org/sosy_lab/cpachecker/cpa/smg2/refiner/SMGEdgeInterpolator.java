@@ -144,6 +144,13 @@ public class SMGEdgeInterpolator
         determineMemoryLocationsToInterpolateOn(initialSuccessor)) {
       getShutdownNotifier().shutdownIfNecessary();
 
+      if (initialSuccessor.hasPointer(currentMemoryLocation)) {
+        // We skip pointers and don't remove them for now.
+        // TODO: remove heap memory that is associated with the removed memLoc IFF it originates
+        // from that memLoc
+        continue;
+      }
+
       // temporarily remove the value of the current memory location from the candidate
       // interpolant
       // Immutable copyOnOperation case
