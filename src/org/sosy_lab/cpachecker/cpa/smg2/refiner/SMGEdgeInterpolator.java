@@ -11,7 +11,6 @@ package org.sosy_lab.cpachecker.cpa.smg2.refiner;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSet;
 import java.util.Deque;
-import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Set;
 import org.sosy_lab.common.ShutdownNotifier;
@@ -34,7 +33,6 @@ import org.sosy_lab.cpachecker.util.refinement.FeasibilityChecker;
 import org.sosy_lab.cpachecker.util.refinement.GenericEdgeInterpolator;
 import org.sosy_lab.cpachecker.util.refinement.InterpolantManager;
 import org.sosy_lab.cpachecker.util.refinement.StrongestPostOperator;
-import org.sosy_lab.cpachecker.util.smg.graph.SMGValue;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 @Options(prefix = "cpa.smg2.interpolation")
@@ -163,14 +161,13 @@ public class SMGEdgeInterpolator
       }
     }
     // TODO: make this generic
-    Set<Entry<Value, SMGValue>> heapValues = initialSuccessor.getTrackedHeapValues().entrySet();
-    for (Entry<Value, SMGValue> currentConcreteHeapValueAssignments : heapValues) {
+    Set<Value> heapValues = initialSuccessor.getTrackedHeapValues();
+    for (Value heapValue : heapValues) {
       getShutdownNotifier().shutdownIfNecessary();
 
       SMGState oldState = initialSuccessor;
       // temporarily remove a value from the heap and re-add only if it is needed
-      initialSuccessor =
-          initialSuccessor.removeHeapValue(currentConcreteHeapValueAssignments.getKey());
+      initialSuccessor = initialSuccessor.removeHeapValue(heapValue);
 
       // check if the remaining path now becomes feasible
       if (isRemainingPathFeasible(remainingErrorPath, initialSuccessor)) {

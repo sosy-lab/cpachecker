@@ -12,7 +12,6 @@ import com.google.common.base.CharMatcher;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import java.math.BigInteger;
 import java.util.Collection;
@@ -2540,31 +2539,27 @@ public class SMGState
   }
 
   /**
-   * A Map of Values in the heap with explicit values and their SMGValue counterparts.
+   * A set of Values in the heap with explicit values.
    *
-   * @return A Map of Values with explicit values and their SMGValue counterparts.
+   * @return A set of Values with explicit values.
    */
-  public Map<Value, SMGValue> getTrackedHeapValues() {
-    ImmutableMap.Builder<Value, SMGValue> trackedHeapValues = ImmutableMap.builder();
+  public Set<Value> getTrackedHeapValues() {
+    ImmutableSet.Builder<Value> trackedHeapValues = ImmutableSet.builder();
     PersistentMap<SMGObject, PersistentSet<SMGHasValueEdge>> valuesOfObj =
         memoryModel.getSmg().getSMGObjectsWithSMGHasValueEdges();
-    ImmutableSet.Builder<SMGValue> smgValues = ImmutableSet.builder();
     for (SMGObject heapObj : memoryModel.getHeapObjects()) {
       if (memoryModel.isObjectValid(heapObj) && valuesOfObj.containsKey(heapObj)) {
         for (SMGHasValueEdge hve : valuesOfObj.get(heapObj)) {
-          smgValues.add(hve.hasValue());
+          // We expect all SMGValues to always be known as Values
+          Value value = memoryModel.getValueFromSMGValue(hve.hasValue()).orElseThrow();
+          // filter out unknowns and pointers
+          if (value.isExplicitlyKnown()) {
+            trackedHeapValues.add(value);
+          }
         }
       }
     }
-    for (SMGValue smgValue : smgValues.build()) {
-      // We expect all SMGValues to always be known as Values
-      Value value = memoryModel.getValueFromSMGValue(smgValue).orElseThrow();
-      // filter out unknowns and pointers
-      if (value.isExplicitlyKnown()) {
-        trackedHeapValues.put(value, smgValue);
-      }
-    }
-    return trackedHeapValues.buildOrThrow();
+    return trackedHeapValues.build();
   }
 
   @Override
@@ -2579,32 +2574,6 @@ public class SMGState
     Iterator<CFunctionDeclarationAndOptionalValue> funDeclsIter = funDecls.iterator();
     Preconditions.checkArgument(funDeclsIter.hasNext());
 
-    SMG currentSMG = memoryModel.getSmg();
-    ImmutableSet.Builder<Value> explicitHeapValuesBuilder = ImmutableSet.builder();
-    for (SMGObject heapObject : memoryModel.getHeapObjects()) {
-      if (memoryModel.isObjectValid(heapObject)) {
-        // Get all concrete Values
-        FluentIterable<SMGHasValueEdge> explicitHeapValues =
-            memoryModel
-                .getSmg()
-                .getHasValueEdgesByPredicate(
-                    heapObject,
-                    hv ->
-                        !currentSMG.isPointer(hv.hasValue())
-                            && (memoryModel.getValueFromSMGValue(hv.hasValue()).isPresent()
-                                && memoryModel
-                                    .getValueFromSMGValue(hv.hasValue())
-                                    .orElseThrow()
-                                    .isExplicitlyKnown()));
-
-        explicitHeapValuesBuilder.addAll(
-            explicitHeapValues
-                .stream()
-                .map(hve -> memoryModel.getValueFromSMGValue(hve.hasValue()).orElseThrow())
-                .collect(ImmutableSet.toImmutableSet()));
-      }
-    }
-
     return new SMGInterpolant(
         options,
         machineModel,
@@ -2614,7 +2583,7 @@ public class SMGState
         memoryModel.getVariableTypeMap(),
         funDecls,
         funDeclsIter.next().getCFunctionDeclaration(),
-        explicitHeapValuesBuilder.build(),
+        getTrackedHeapValues(),
         memoryModel);
   }
 
