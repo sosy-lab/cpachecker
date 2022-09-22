@@ -40,11 +40,9 @@ import org.sosy_lab.cpachecker.cpa.location.LocationState;
 import org.sosy_lab.cpachecker.cpa.smg2.abstraction.SMGCPAAbstractionManager;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMG2Exception;
 import org.sosy_lab.cpachecker.cpa.smg2.util.ValueAndValueSize;
-import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.LiveVariables;
-import org.sosy_lab.cpachecker.util.smg.graph.SMGValue;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 import org.sosy_lab.cpachecker.util.statistics.StatCounter;
 import org.sosy_lab.cpachecker.util.statistics.StatTimer;
@@ -110,6 +108,18 @@ public class SMGPrecisionAdjustment implements PrecisionAdjustment {
         name = "abstractHeapValues",
         description = "If heap values are to be abstracted based on CEGAR.")
     private boolean abstractHeapValues = false;
+
+    @Option(
+        secure = true,
+        name = "abstractProgramVariables",
+        description = "Abstraction of program variables via CEGAR.")
+    private boolean abstractProgramVariables = true;
+
+    @Option(
+        secure = true,
+        name = "abstractLinkedLists",
+        description = "Abstraction of all detected linked lists at loop heads.")
+    private boolean abstractLinkedLists = true;
 
     private final ImmutableSet<CFANode> loopHeads;
 
@@ -243,7 +253,9 @@ public class SMGPrecisionAdjustment implements PrecisionAdjustment {
 
     if (options.doLivenessAbstraction && liveVariables.isPresent()) {
       totalLiveness.start();
-      resultState = enforceLiveness(pState, location, resultState);
+      if (options.abstractProgramVariables) {
+        resultState = enforceLiveness(pState, location, resultState);
+      }
       totalLiveness.stop();
     }
 
@@ -257,11 +269,13 @@ public class SMGPrecisionAdjustment implements PrecisionAdjustment {
     // compute the abstraction for assignment thresholds
     if (assignments != null) {
       totalEnforcePath.start();
-      resultState = enforcePathThreshold(resultState, assignments);
+      if (options.abstractProgramVariables) {
+        resultState = enforcePathThreshold(resultState, assignments);
+      }
       totalEnforcePath.stop();
     }
 
-    if (isLoopHead(location)) {
+    if (options.abstractLinkedLists && isLoopHead(location)) {
       // Abstract Lists at loop heads
       try {
         resultState =
@@ -359,21 +373,19 @@ public class SMGPrecisionAdjustment implements PrecisionAdjustment {
         || options.abstractAtFunction(location)
         || options.abstractAtLoop(location)) {
 
-      for (MemoryLocation memoryLocation :
-          currentState.getMemoryModel().getMemoryLocationsAndValuesForSPCWithoutHeap().keySet()) {
-        CType type = currentState.getMemoryModel().getTypeOfVariable(memoryLocation);
-        if (location != null
-            && !precision.isTracking(memoryLocation, type, location.getLocationNode())) {
-          currentState = currentState.copyAndForget(memoryLocation).getState();
+      if (options.abstractProgramVariables) {
+        for (MemoryLocation memoryLocation :
+            currentState.getMemoryModel().getMemoryLocationsAndValuesForSPCWithoutHeap().keySet()) {
+          CType type = currentState.getMemoryModel().getTypeOfVariable(memoryLocation);
+          if (location != null
+              && !precision.isTracking(memoryLocation, type, location.getLocationNode())) {
+            currentState = currentState.copyAndForget(memoryLocation).getState();
+          }
         }
       }
       if (precision instanceof SMGPrecision && options.abstractHeapValues) {
         SMGPrecision smgPrecision = (SMGPrecision) precision;
-        for (Value trackedValue : smgPrecision.getTrackedHeapValues()) {
-          SMGValue smgValueForValue =
-              currentState.getMemoryModel().getSMGValueFromValue(trackedValue).orElseThrow();
-          currentState = currentState.copyAndForget(trackedValue, smgValueForValue).getState();
-        }
+        currentState = currentState.enforceHeapValuePrecision(smgPrecision.getTrackedHeapValues());
       }
 
       abstractions.inc();
