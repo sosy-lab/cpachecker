@@ -32,7 +32,6 @@ import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.refinement.FeasibilityChecker;
 import org.sosy_lab.cpachecker.util.refinement.GenericEdgeInterpolator;
-import org.sosy_lab.cpachecker.util.refinement.ImmutableForgetfulState.StateAndInfo;
 import org.sosy_lab.cpachecker.util.refinement.InterpolantManager;
 import org.sosy_lab.cpachecker.util.refinement.StrongestPostOperator;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGValue;
@@ -168,17 +167,14 @@ public class SMGEdgeInterpolator
     for (Entry<Value, SMGValue> currentConcreteHeapValueAssignments : heapValues) {
       getShutdownNotifier().shutdownIfNecessary();
 
-      // temporarily remove a value from the heap and readd only if it is needed
-      StateAndInfo<SMGState, SMGInformation> forgottenInformationAndNewState =
-          initialSuccessor.copyAndForget(
-              currentConcreteHeapValueAssignments.getKey(),
-              currentConcreteHeapValueAssignments.getValue());
-      initialSuccessor = forgottenInformationAndNewState.getState();
+      SMGState oldState = initialSuccessor;
+      // temporarily remove a value from the heap and re-add only if it is needed
+      initialSuccessor =
+          initialSuccessor.removeHeapValue(currentConcreteHeapValueAssignments.getKey());
 
       // check if the remaining path now becomes feasible
       if (isRemainingPathFeasible(remainingErrorPath, initialSuccessor)) {
-        initialSuccessor =
-            initialSuccessor.copyAndRemember(forgottenInformationAndNewState.getInfo());
+        initialSuccessor = oldState;
       }
     }
     SMGInterpolant newInterpolant = interpolantMgr.createInterpolant(initialSuccessor);
