@@ -130,7 +130,8 @@ public class SMGCPAAbstractionManager {
             // If one or both are non equal pointers -> not equal
             notEqual = true;
 
-          } else if (!(!thisValue.isExplicitlyKnown() && !valueAtOffset.isExplicitlyKnown())) {
+          } else if (valueAtOffset == null
+              || !(!thisValue.isExplicitlyKnown() && !valueAtOffset.isExplicitlyKnown())) {
             // If none is a pointer, they can be both unknown (symbolic) to be equal, else not
             notEqual = true;
           }
