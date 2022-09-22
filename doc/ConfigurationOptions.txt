@@ -2900,6 +2900,12 @@ cpa.smg2.GCCZeroLengthArray = false
 # If heap values are to be abstracted based on CEGAR.
 cpa.smg2.abstraction.abstractHeapValues = false
 
+# Abstraction of all detected linked lists at loop heads.
+cpa.smg2.abstraction.abstractLinkedLists = true
+
+# Abstraction of program variables via CEGAR.
+cpa.smg2.abstraction.abstractProgramVariables = true
+
 # restrict abstraction computations to branching points
 cpa.smg2.abstraction.alwaysAtBranch = false
 
