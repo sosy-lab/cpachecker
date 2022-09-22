@@ -72,6 +72,7 @@ import org.sosy_lab.cpachecker.cpa.value.type.Value.UnknownValue;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
 import org.sosy_lab.cpachecker.util.refinement.ImmutableForgetfulState;
+import org.sosy_lab.cpachecker.util.smg.SMG;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGDoublyLinkedListSegment;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGHasValueEdge;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGObject;
@@ -1145,6 +1146,9 @@ public class SMGState
         return false;
       }
       // Check the Value (not the SMGValue!). If a SMGValue exists, a Value mapping exists.
+      if (otherState.memoryModel.getValueFromSMGValue(otherHVE.hasValue()).isEmpty()) {
+        int bla = 5;
+      }
       Value otherHVEValue =
           otherState.memoryModel.getValueFromSMGValue(otherHVE.hasValue()).orElseThrow();
       Value thisHVEValue =
@@ -2575,6 +2579,32 @@ public class SMGState
     Iterator<CFunctionDeclarationAndOptionalValue> funDeclsIter = funDecls.iterator();
     Preconditions.checkArgument(funDeclsIter.hasNext());
 
+    SMG currentSMG = memoryModel.getSmg();
+    ImmutableSet.Builder<Value> explicitHeapValuesBuilder = ImmutableSet.builder();
+    for (SMGObject heapObject : memoryModel.getHeapObjects()) {
+      if (memoryModel.isObjectValid(heapObject)) {
+        // Get all concrete Values
+        FluentIterable<SMGHasValueEdge> explicitHeapValues =
+            memoryModel
+                .getSmg()
+                .getHasValueEdgesByPredicate(
+                    heapObject,
+                    hv ->
+                        !currentSMG.isPointer(hv.hasValue())
+                            && (memoryModel.getValueFromSMGValue(hv.hasValue()).isPresent()
+                                && memoryModel
+                                    .getValueFromSMGValue(hv.hasValue())
+                                    .orElseThrow()
+                                    .isExplicitlyKnown()));
+
+        explicitHeapValuesBuilder.addAll(
+            explicitHeapValues
+                .stream()
+                .map(hve -> memoryModel.getValueFromSMGValue(hve.hasValue()).orElseThrow())
+                .collect(ImmutableSet.toImmutableSet()));
+      }
+    }
+
     return new SMGInterpolant(
         options,
         machineModel,
@@ -2584,7 +2614,7 @@ public class SMGState
         memoryModel.getVariableTypeMap(),
         funDecls,
         funDeclsIter.next().getCFunctionDeclaration(),
-        memoryModel.getheapValueWhitelist(),
+        explicitHeapValuesBuilder.build(),
         memoryModel);
   }
 
@@ -2601,66 +2631,96 @@ public class SMGState
   }
 
   /**
-   * Takes a Value that should be removed from the Heap and replaced by a unknown value. Also takes
-   * the SMGValue mapping for it.
+   * Takes the {@link Value}s that should be retained in the Heap and removes all other explicit
+   * Values from the heap.
    *
-   * @param value the (concrete) {@link Value} to remove from all of the heap.
-   * @param smgValueForValue the {@link SMGValue} mapping to the {@link Value}.
-   * @return StateAndInfo with the new {@link SMGState} with the removed heap values and {@link
-   *     SMGInformation} with the info to return the state to its previous state.
+   * @param valuesToRetain the (concrete) {@link Value}s to retain in all of the heap.
+   * @return the new {@link SMGState} with the removed heap values.
    */
-  public StateAndInfo<SMGState, SMGInformation> copyAndForget(
-      Value value, SMGValue smgValueForValue) {
+  public SMGState enforceHeapValuePrecision(Set<Value> valuesToRetain) {
     // Changing the value mappings would not work, as we would change existing values in local and
     // global variables as well
-    // We search for the SMGValues in the Has-Value-Edges and replace them by a new unique symbolic
-    // value == unknown
+    // We search for the SMGValues in the Has-Value-Edges and translate them to Values. We don´t
+    // want to remove pointers or unknown values, just concrete values not in the set. This triggers
+    // a read re-interpretation in the future that generates new unknowns.
     // We remember the mapping however. It suffices to remember Object -> old Has-Value-Edge
 
-    ImmutableMap.Builder<SMGObject, Set<SMGHasValueEdge>> removedHVEdgesBuilder =
-        ImmutableMap.builder();
+    SMG currentSMG = memoryModel.getSmg();
+    SMGState currentState = this;
     for (SMGObject heapObject : memoryModel.getHeapObjects()) {
       if (memoryModel.isObjectValid(heapObject)) {
-        FluentIterable<SMGHasValueEdge> iterable =
+        // Remove if all match:
+        // is not pointer
+        // is not in the given set
+        // is not unknown
+        FluentIterable<SMGHasValueEdge> retainIterable =
             memoryModel
                 .getSmg()
                 .getHasValueEdgesByPredicate(
-                    heapObject, n -> n.hasValue().equals(smgValueForValue));
-        if (!iterable.isEmpty()) {
-          removedHVEdgesBuilder.put(heapObject, iterable.toSet());
-        }
-      }
-    }
-    ImmutableMap<SMGObject, Set<SMGHasValueEdge>> removedHVEdges =
-        removedHVEdgesBuilder.buildOrThrow();
+                    heapObject,
+                    hv ->
+                        currentSMG.isPointer(hv.hasValue())
+                            || (memoryModel.getValueFromSMGValue(hv.hasValue()).isEmpty()
+                                || !memoryModel
+                                    .getValueFromSMGValue(hv.hasValue())
+                                    .orElseThrow()
+                                    .isExplicitlyKnown()
+                                || valuesToRetain.contains(
+                                    memoryModel
+                                        .getValueFromSMGValue(hv.hasValue())
+                                        .orElseThrow())));
 
-    // TODO: can we get the type somehow?
-    SymbolicValueFactory factory = SymbolicValueFactory.getInstance();
-    // Value newUnknownValue =  factory.asConstant(factory.newIdentifier(null), null);
-    // This is technically not good. We should use ConstantSymbolicExpression but we don't know the
-    // type
-    Value newUnknownValue = factory.newIdentifier(null);
-    SMGValueAndSMGState newSMGValueAndState = this.copyAndAddValue(newUnknownValue);
-    SMGState currentState = newSMGValueAndState.getSMGState();
-    for (Entry<SMGObject, Set<SMGHasValueEdge>> objAndEdges : removedHVEdges.entrySet()) {
-      SMGObject object = objAndEdges.getKey();
-      for (SMGHasValueEdge hVEdge : objAndEdges.getValue()) {
         currentState =
             currentState.copyAndReplaceMemoryModel(
                 currentState
                     .getMemoryModel()
-                    .replaceValueAtWithAndCopy(
-                        object,
-                        hVEdge.getOffset(),
-                        hVEdge.getSizeInBits(),
-                        new SMGHasValueEdge(
-                            newSMGValueAndState.getSMGValue(),
-                            hVEdge.getOffset(),
-                            hVEdge.getSizeInBits())));
+                    .copyAndReplaceHVEdgesAt(heapObject, PersistentSet.copyOf(retainIterable)));
       }
     }
 
-    return new StateAndInfo<>(currentState, new SMGInformation(removedHVEdges));
+    return currentState;
+  }
+
+  public SMGState removeHeapValue(Value valueToRemove) {
+    // Changing the value mappings would not work, as we would change existing values in local and
+    // global variables as well
+    // We search for the SMGValues in the Has-Value-Edges and translate them to Values. We don´t
+    // want to remove pointers or unknown values, just concrete values not in the set. This triggers
+    // a read re-interpretation in the future that generates new unknowns.
+    // We remember the mapping however. It suffices to remember Object -> old Has-Value-Edge
+
+    SMG currentSMG = memoryModel.getSmg();
+    SMGState currentState = this;
+    for (SMGObject heapObject : memoryModel.getHeapObjects()) {
+      if (memoryModel.isObjectValid(heapObject)) {
+        // Remove if all match:
+        // is not pointer
+        // is equal to given Value
+        // is not unknown
+        FluentIterable<SMGHasValueEdge> retainIterable =
+            memoryModel
+                .getSmg()
+                .getHasValueEdgesByPredicate(
+                    heapObject,
+                    hv ->
+                        currentSMG.isPointer(hv.hasValue())
+                            || memoryModel.getValueFromSMGValue(hv.hasValue()).isEmpty()
+                            || !memoryModel
+                                .getValueFromSMGValue(hv.hasValue())
+                                .orElseThrow()
+                                .isExplicitlyKnown()
+                            || !valueToRemove.equals(
+                                memoryModel.getValueFromSMGValue(hv.hasValue()).orElseThrow()));
+
+        currentState =
+            currentState.copyAndReplaceMemoryModel(
+                currentState
+                    .getMemoryModel()
+                    .copyAndReplaceHVEdgesAt(heapObject, PersistentSet.copyOf(retainIterable)));
+      }
+    }
+
+    return currentState;
   }
 
   public SMGState copyAndRemember(SMGInformation pForgottenInformation) {
