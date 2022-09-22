@@ -1033,9 +1033,7 @@ public class SMGState
       otherState = otherDerefObjAndOffset.getSMGState();
       SMGObject thisObj = thisDerefObjAndOffset.getSMGObject();
       SMGObject otherObj = otherDerefObjAndOffset.getSMGObject();
-      if (thisObj.equals(otherObj)) {
-        return true;
-      }
+
       if (thisDerefObjAndOffset
               .getOffsetForObject()
               .compareTo(otherDerefObjAndOffset.getOffsetForObject())
@@ -1134,9 +1132,20 @@ public class SMGState
       return false;
     }
 
+    Map<BigInteger, SMGHasValueEdge> otherOffsetToHVEdgeMap = new HashMap<>();
+    for (SMGHasValueEdge hve : otherHVEs) {
+      otherOffsetToHVEdgeMap.put(hve.getOffset(), hve);
+    }
+
     Map<BigInteger, SMGHasValueEdge> thisOffsetToHVEdgeMap = new HashMap<>();
     for (SMGHasValueEdge hve : thisHVEs) {
       thisOffsetToHVEdgeMap.put(hve.getOffset(), hve);
+      if (this.memoryModel.getSmg().isPointer(hve.hasValue())) {
+        // Pointers are necessary!!!!
+        if (otherOffsetToHVEdgeMap.get(hve.getOffset()) == null) {
+          return false;
+        }
+      }
     }
     for (SMGHasValueEdge otherHVE : otherHVEs) {
       BigInteger otherOffset = otherHVE.getOffset();
@@ -1866,7 +1875,18 @@ public class SMGState
       SMGObject pObject, BigInteger pFieldOffset, BigInteger pSizeofInBits) {
     SMGValueAndSPC valueAndNewSPC = memoryModel.readValue(pObject, pFieldOffset, pSizeofInBits);
     SMGState newState = copyAndReplaceMemoryModel(valueAndNewSPC.getSPC());
-    return SMGValueAndSMGState.of(newState, valueAndNewSPC.getSMGValue());
+    SMGValue readSMGValue = valueAndNewSPC.getSMGValue();
+    // This might create SMGValues without Value counterparts as part of this read (the abstraction
+    // might have deleted a previous value)
+    if (newState.memoryModel.getValueFromSMGValue(readSMGValue).isEmpty()) {
+      // TODO: clean this dirty fix
+      Value unknownValue = getNewSymbolicValueForType(null);
+      return SMGValueAndSMGState.of(
+          copyAndReplaceMemoryModel(
+              newState.getMemoryModel().copyAndPutValue(unknownValue, readSMGValue)),
+          readSMGValue);
+    }
+    return SMGValueAndSMGState.of(newState, readSMGValue);
   }
 
   private boolean doesRequireUnionFloatConversion(Value valueRead, CType readType) {
