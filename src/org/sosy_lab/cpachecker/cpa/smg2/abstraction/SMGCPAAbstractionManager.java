@@ -13,12 +13,15 @@ import com.google.common.collect.ImmutableSet;
 import java.math.BigInteger;
 import java.util.Collection;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cpa.smg2.SMGState;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMG2Exception;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGValueAndSMGState;
+import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.util.smg.SMG;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGDoublyLinkedListSegment;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGHasValueEdge;
@@ -48,16 +51,122 @@ public class SMGCPAAbstractionManager {
       }
       Optional<BigInteger> maybePFO = isDLL(candidate, currentState.getMemoryModel().getSmg());
       if (maybePFO.isPresent()) {
-        currentState =
-            currentState.abstractIntoDLL(
-                candidate.getObject(), candidate.getSuspectedNfo(), maybePFO.orElseThrow());
+        // We did not yet check for the values! Because we needed to know if there is a back pointer
+        // or not.  Needed for nested lists!
+        for (SMGCandidate trueDLLCandidate :
+            checkValueEquality(
+                candidate.getObject(),
+                candidate.getObject(),
+                candidate.getSuspectedNfo(),
+                maybePFO,
+                new HashSet<>(),
+                new HashSet<>(),
+                0)) {
+          currentState =
+              currentState.abstractIntoDLL(
+                  trueDLLCandidate.getObject(),
+                  trueDLLCandidate.getSuspectedNfo(),
+                  maybePFO.orElseThrow());
+        }
       } else {
-        currentState =
-            currentState.abstractIntoSLL(candidate.getObject(), candidate.getSuspectedNfo());
+        // We did not yet check for the values! Because we needed to know if there is a back pointer
+        // or not.  Needed for nested lists!
+        for (SMGCandidate trueSLLCandidate :
+            checkValueEquality(
+                candidate.getObject(),
+                candidate.getObject(),
+                candidate.getSuspectedNfo(),
+                Optional.empty(),
+                new HashSet<>(),
+                new HashSet<>(),
+                0)) {
+          currentState =
+              currentState.abstractIntoSLL(
+                  trueSLLCandidate.getObject(), trueSLLCandidate.getSuspectedNfo());
+        }
       }
     }
 
     return currentState;
+  }
+
+  private Set<SMGCandidate> checkValueEquality(
+      SMGObject root,
+      SMGObject walker,
+      BigInteger nfo,
+      Optional<BigInteger> maybePfo,
+      Set<SMGObject> alreadySeen,
+      Set<SMGCandidate> currentCandidates,
+      int currentLength) {
+    SMG smg = state.getMemoryModel().getSmg();
+    if (!smg.isValid(root) || alreadySeen.contains(walker)) {
+      return currentCandidates;
+    }
+
+    Map<BigInteger, Value> offsetToValueMap = new HashMap<>();
+    for (SMGHasValueEdge hve : smg.getEdges(root)) {
+      offsetToValueMap.put(hve.getOffset(), state.getMemoryModel().getValueFromSMGValue(hve.hasValue()).orElseThrow());
+    }
+
+    SMGPointsToEdge pointsToNext = null;
+    boolean notEqual = false;
+    for (SMGHasValueEdge hve : smg.getEdges(walker)) {
+      SMGValue value = hve.hasValue();
+
+      if (hve.getOffset().compareTo(nfo) == 0 && smg.isPointer(value)) {
+        pointsToNext = smg.getPTEdge(value).orElseThrow();
+        alreadySeen.add(walker);
+      } else if (maybePfo.isPresent() && hve.getOffset().compareTo(maybePfo.orElseThrow()) == 0) {
+        // Do nothing, we just don't want to check the back pointer
+      } else {
+        // Value equality check
+        Value valueAtOffset = offsetToValueMap.get(hve.getOffset());
+        Value thisValue = state.getMemoryModel().getValueFromSMGValue(hve.hasValue()).orElseThrow();
+        // If they are equal -> fine.
+        if (!thisValue.equals(valueAtOffset)) {
+          if (state.getMemoryModel().isPointer(thisValue)
+              || state.getMemoryModel().isPointer(valueAtOffset)) {
+            // We know they are not equal.
+            // If one or both are non equal pointers -> not equal
+            notEqual = true;
+
+          } else if (!(!thisValue.isExplicitlyKnown() && !valueAtOffset.isExplicitlyKnown())) {
+            // If none is a pointer, they can be both unknown (symbolic) to be equal, else not
+            notEqual = true;
+          }
+        }
+      }
+    }
+
+    if (pointsToNext == null) {
+      return currentCandidates;
+    }
+
+    if (notEqual) {
+      return checkValueEquality(
+          walker, pointsToNext.pointsTo(), nfo, maybePfo, alreadySeen, currentCandidates, 1);
+    }
+
+    if (currentLength + 1 >= minimumLengthForListsForAbstraction) {
+      currentCandidates.add(new SMGCandidate(root, nfo));
+      return checkValueEquality(
+          root,
+          pointsToNext.pointsTo(),
+          nfo,
+          maybePfo,
+          alreadySeen,
+          currentCandidates,
+          currentLength + 1);
+    } else {
+      return checkValueEquality(
+          root,
+          pointsToNext.pointsTo(),
+          nfo,
+          maybePfo,
+          alreadySeen,
+          currentCandidates,
+          currentLength + 1);
+    }
   }
 
   private int getLinkedCandidateLength(SMGObject root, BigInteger nfo, Set<SMGObject> alreadySeen) {
