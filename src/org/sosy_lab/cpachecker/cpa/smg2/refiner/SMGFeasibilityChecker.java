@@ -9,12 +9,15 @@
 package org.sosy_lab.cpachecker.cpa.smg2.refiner;
 
 import java.util.ArrayList;
+import java.util.Deque;
 import java.util.List;
 import java.util.Optional;
+import java.util.logging.Level;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
@@ -25,8 +28,10 @@ import org.sosy_lab.cpachecker.cpa.smg2.SMGCPA;
 import org.sosy_lab.cpachecker.cpa.smg2.SMGOptions;
 import org.sosy_lab.cpachecker.cpa.smg2.SMGState;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisCPA;
+import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
+import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.refinement.GenericFeasibilityChecker;
 import org.sosy_lab.cpachecker.util.refinement.StrongestPostOperator;
@@ -108,6 +113,67 @@ public class SMGFeasibilityChecker extends GenericFeasibilityChecker<SMGState> {
 
       return reevaluatedPath;
     } catch (CPATransferException | InvalidConfigurationException e) {
+      throw new CPAException(
+          "Computation of successor failed for checking path: " + e.getMessage(), e);
+    }
+  }
+
+  public final boolean isSpurious(
+      final ARGPath pPath,
+      final SMGState pStartingPoint,
+      final Deque<SMGState> pCallstack,
+      Optional<Value> heapValueRemoved)
+      throws CPAException, InterruptedException {
+
+    try {
+      SMGState next = pStartingPoint;
+
+      PathIterator iterator = pPath.fullPathIterator();
+      while (iterator.hasNext()) {
+
+        final CFAEdge edge = iterator.getOutgoingEdge();
+
+        iterator.advance();
+
+        if (!iterator.hasNext() && edge instanceof AssumeEdge) {
+          // last assume edge
+          AssumeEdge assumeEdge = (AssumeEdge) edge;
+          // check with complementary edge
+          Optional<SMGState> maybeNextComplimentary =
+              strongestPostOp.step(
+                  next,
+                  CFAUtils.getComplimentaryAssumeEdge(assumeEdge),
+                  precision,
+                  pCallstack,
+                  pPath);
+          if (maybeNextComplimentary.isEmpty()) {
+            return false;
+          }
+        }
+
+        Optional<SMGState> maybeNext =
+            strongestPostOp.step(next, edge, precision, pCallstack, pPath);
+
+        if (maybeNext.isEmpty()) {
+
+          logger.log(
+              Level.FINE,
+              "found path to be infeasible when checking spuriousness: ",
+              edge,
+              " did not yield a successor");
+          return false;
+
+        } else {
+          if (heapValueRemoved.isEmpty()) {
+            next = maybeNext.orElseThrow();
+          } else {
+            next = maybeNext.orElseThrow().removeHeapValue(heapValueRemoved.orElseThrow());
+          }
+        }
+      }
+
+      return true;
+    } catch (CPATransferException e) {
       throw new CPAException(
           "Computation of successor failed for checking path: " + e.getMessage(), e);
     }
