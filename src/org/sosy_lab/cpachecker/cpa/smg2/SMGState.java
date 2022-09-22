@@ -1021,11 +1021,7 @@ public class SMGState
         thisState.dereferencePointerWithoutMaterilization(thisAddress);
     Optional<SMGStateAndOptionalSMGObjectAndOffset> otherDeref =
         otherState.dereferencePointerWithoutMaterilization(otherAddress);
-    if (thisDeref.equals(otherDeref)) {
-      // Empty, zero object or truly the same. We generate Objects with unique ids statically, so
-      // they are only equal if they are truly equal.
-      return true;
-    }
+
     if (thisDeref.isPresent() && otherDeref.isPresent()) {
       SMGStateAndOptionalSMGObjectAndOffset thisDerefObjAndOffset = thisDeref.orElseThrow();
       SMGStateAndOptionalSMGObjectAndOffset otherDerefObjAndOffset = otherDeref.orElseThrow();
@@ -1154,9 +1150,6 @@ public class SMGState
         return false;
       }
       // Check the Value (not the SMGValue!). If a SMGValue exists, a Value mapping exists.
-      if (otherState.memoryModel.getValueFromSMGValue(otherHVE.hasValue()).isEmpty()) {
-        int bla = 5;
-      }
       Value otherHVEValue =
           otherState.memoryModel.getValueFromSMGValue(otherHVE.hasValue()).orElseThrow();
       Value thisHVEValue =
@@ -3092,5 +3085,32 @@ public class SMGState
 
     Preconditions.checkNotNull(materializationAndState);
     return materializationAndState;
+  }
+
+  public boolean hasPointer(MemoryLocation memLoc) {
+    String qualifiedName = memLoc.getQualifiedName();
+    BigInteger offsetInBits = BigInteger.valueOf(memLoc.getOffset());
+    SMGObject memory;
+    if (qualifiedName.contains("::__retval__")) {
+      // Return obj
+      memory = getReturnObjectForMemoryLocation(memLoc);
+    } else {
+      // This is expected to succeed for global and local vars
+      Optional<SMGObject> maybeMemory = getMemoryModel().getObjectForVariable(qualifiedName);
+      if (maybeMemory.isEmpty()) {
+        return false;
+      }
+      memory = maybeMemory.orElseThrow();
+    }
+
+    Optional<SMGHasValueEdge> maybeEdge =
+        memoryModel
+            .getSmg()
+            .getHasValueEdgeByPredicate(memory, o -> o.getOffset().compareTo(offsetInBits) == 0);
+
+    if (maybeEdge.isEmpty()) {
+      return false;
+    }
+    return memoryModel.getSmg().isPointer(maybeEdge.orElseThrow().hasValue());
   }
 }
