@@ -165,12 +165,30 @@ public class SMGEdgeInterpolator
     for (Value heapValue : heapValues) {
       getShutdownNotifier().shutdownIfNecessary();
 
+      FeasibilityChecker<SMGState> checker = getFeasibilityChecker();
+      SMGFeasibilityChecker smgFeasibilityChecker;
+      if (checker instanceof SMGFeasibilityChecker) {
+        smgFeasibilityChecker = (SMGFeasibilityChecker) checker;
+      } else {
+        break;
+      }
+
+      boolean isSpuriousBefore =
+          smgFeasibilityChecker.isSpurious(
+              remainingErrorPath, initialSuccessor, pCallstack, Optional.empty());
+
       SMGState oldState = initialSuccessor;
       // temporarily remove a value from the heap and re-add only if it is needed
       initialSuccessor = initialSuccessor.removeHeapValue(heapValue);
+      boolean isSpuriousAfter =
+          smgFeasibilityChecker.isSpurious(
+              remainingErrorPath, initialSuccessor, pCallstack, Optional.of(heapValue));
 
-      // check if the remaining path now becomes feasible
-      if (isRemainingPathFeasible(remainingErrorPath, initialSuccessor)) {
+      // check if the remaining path now becomes spurious!
+      // Removing a concrete value changes the path only in that it is spurious, but unknowns make
+      // the path feasible for both cases == and != !
+      if (!isSpuriousBefore && isSpuriousAfter) {
+        // {[!((curr->data) == 3)]} -> if 3 removed, is feasible
         initialSuccessor = oldState;
       }
     }
