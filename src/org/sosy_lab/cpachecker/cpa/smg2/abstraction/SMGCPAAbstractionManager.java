@@ -179,11 +179,15 @@ public class SMGCPAAbstractionManager {
     }
     for (SMGHasValueEdge hve : smg.getEdges(root)) {
       SMGValue value = hve.hasValue();
+      int size = 1;
+      if (root instanceof SMGSinglyLinkedListSegment) {
+        size = ((SMGSinglyLinkedListSegment) root).getMinLength();
+      }
 
       if (hve.getOffset().compareTo(nfo) == 0 && smg.isPointer(value)) {
         SMGPointsToEdge pointsToEdge = smg.getPTEdge(value).orElseThrow();
         alreadySeen.add(root);
-        return 1 + getLinkedCandidateLength(pointsToEdge.pointsTo(), nfo, alreadySeen);
+        return size + getLinkedCandidateLength(pointsToEdge.pointsTo(), nfo, alreadySeen);
       }
     }
     return 0;
