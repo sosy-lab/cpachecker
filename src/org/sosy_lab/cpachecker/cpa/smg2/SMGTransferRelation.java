@@ -195,8 +195,7 @@ public class SMGTransferRelation
    * @return a Collection of SMGStates that are processed. May include memory leak error states.
    */
   private Set<SMGState> handleReturnEntryFunction(Collection<SMGState> pSuccessors) {
-    return pSuccessors
-        .stream()
+    return pSuccessors.stream()
         .map(
             pState -> {
               if (options.isHandleNonFreedMemoryInMainAsMemLeak()) {

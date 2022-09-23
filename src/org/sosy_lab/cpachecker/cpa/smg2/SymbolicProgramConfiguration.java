@@ -1384,7 +1384,6 @@ public class SymbolicProgramConfiguration {
                   + ")"
                   + memoryString);
           builder.append("\n");
-
         }
       } else {
         builder.append("\n");

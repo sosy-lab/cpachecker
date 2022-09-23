@@ -897,13 +897,10 @@ public class SMGState
     if (!this.errorInfo.isEmpty()) {
       // As long as the other has at least once the same type of error its fine
       ImmutableSet<Property> otherSetOfPropertyViolations =
-          pOther
-              .errorInfo
-              .stream()
+          pOther.errorInfo.stream()
               .map(SMGErrorInfo::getPropertyViolated)
               .collect(ImmutableSet.toImmutableSet());
-      if (!errorInfo
-          .stream()
+      if (!errorInfo.stream()
           .map(SMGErrorInfo::getPropertyViolated)
           .allMatch(otherSetOfPropertyViolations::contains)) {
         return false;
