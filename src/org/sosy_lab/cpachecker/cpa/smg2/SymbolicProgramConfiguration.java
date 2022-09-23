@@ -1317,4 +1317,126 @@ public class SymbolicProgramConfiguration {
         variableToTypeMap,
         heapValueWhitelist);
   }
+
+  @Override
+  public String toString() {
+    StringBuilder builder = new StringBuilder();
+
+    builder.append("Global variables:");
+    builder.append("\n");
+    for (Entry<String, SMGObject> globalEntry : globalVariableMapping.entrySet()) {
+      String qualifiedName = globalEntry.getKey();
+      SMGObject memory = globalEntry.getValue();
+      String memoryString = " in ";
+      if (smg.isValid(memory)) {
+        memoryString = memoryString + memory;
+      } else {
+        memoryString = memoryString + "invalid " + memory;
+      }
+      for (SMGHasValueEdge valueEdge : smg.getEdges(memory)) {
+        SMGValue smgValue = valueEdge.hasValue();
+        Preconditions.checkArgument(valueMapping.containsValue(smgValue));
+        Value value = valueMapping.inverse().get(smgValue).get();
+        String pointerinfo = "";
+        if (smg.isPointer(smgValue)) {
+          pointerinfo = " -> " + smg.getPTEdge(smgValue);
+        }
+        builder.append(
+            qualifiedName + ": " + value + "(" + smgValue + pointerinfo + ")" + memoryString);
+        builder.append("\n");
+      }
+    }
+    builder.append("\n");
+    builder.append("Local Variables per StackFrame:");
+    builder.append("\n");
+    for (StackFrame stackframe : stackVariableMapping) {
+      if (stackframe.getReturnObject().isPresent()) {
+        String funName = stackframe.getFunctionDefinition().getQualifiedName();
+        // There is a return object!
+        for (SMGHasValueEdge valueEdge : smg.getEdges(stackframe.getReturnObject().orElseThrow())) {
+          MemoryLocation memLoc =
+              MemoryLocation.fromQualifiedName(
+                  funName + "::__retval__", valueEdge.getOffset().longValueExact());
+          SMGValue smgValue = valueEdge.hasValue();
+          Preconditions.checkArgument(valueMapping.containsValue(smgValue));
+          Value value = valueMapping.inverse().get(smgValue).get();
+          String memoryString = " in ";
+          if (smg.isValid(stackframe.getReturnObject().orElseThrow())) {
+            memoryString = memoryString + stackframe.getReturnObject().orElseThrow();
+          } else {
+            memoryString = memoryString + " invalid " + stackframe.getReturnObject().orElseThrow();
+          }
+          String pointerinfo = "";
+          if (smg.isPointer(smgValue)) {
+            pointerinfo = " -> " + smg.getPTEdge(smgValue);
+          }
+          builder.append("\n");
+          builder.append(
+              "Function "
+                  + funName
+                  + " return value "
+                  + memLoc.getQualifiedName()
+                  + ": "
+                  + value
+                  + "("
+                  + smgValue
+                  + pointerinfo
+                  + ")"
+                  + memoryString);
+          builder.append("\n");
+
+        }
+      } else {
+        builder.append("\n");
+        String funName = stackframe.getFunctionDefinition().getQualifiedName();
+        builder.append("Function " + funName);
+        builder.append("\n");
+      }
+      for (Entry<String, SMGObject> localVariable : stackframe.getVariables().entrySet()) {
+        String qualifiedName = localVariable.getKey();
+        SMGObject memory = localVariable.getValue();
+        String memoryString = " in ";
+        if (smg.isValid(memory)) {
+          memoryString = memoryString + memory;
+        } else {
+          memoryString = memoryString + " invalid " + memory;
+        }
+        for (SMGHasValueEdge valueEdge : smg.getEdges(memory)) {
+          SMGValue smgValue = valueEdge.hasValue();
+          Preconditions.checkArgument(valueMapping.containsValue(smgValue));
+          Value value = valueMapping.inverse().get(smgValue).get();
+          String pointerinfo = "";
+          if (smg.isPointer(smgValue)) {
+            pointerinfo = " -> " + smg.getPTEdge(smgValue);
+          }
+          builder.append(
+              qualifiedName + ": " + value + "(" + smgValue + pointerinfo + ")" + memoryString);
+          builder.append("\n");
+        }
+      }
+    }
+    builder.append("\n");
+    builder.append("Pointers and targets with values:");
+    builder.append("\n");
+
+    for (Entry<SMGValue, SMGPointsToEdge> entry : smg.getPTEdgeMapping().entrySet()) {
+      builder.append(
+          entry.getKey()
+              + " -> "
+              + entry.getValue()
+              + smg.getHasValueEdgesByPredicate(entry.getValue().pointsTo(), n -> true));
+      builder.append("\n");
+    }
+
+    builder.append("\n");
+    builder.append("Value mappings:");
+    builder.append("\n");
+
+    for (Entry<Wrapper<Value>, SMGValue> entry : valueMapping.entrySet()) {
+      builder.append(entry.getValue() + " -> " + entry.getKey().get());
+      builder.append("\n");
+    }
+
+    return builder.toString();
+  }
 }
