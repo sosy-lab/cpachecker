@@ -1122,7 +1122,10 @@ public class SymbolicProgramConfiguration {
       for (Entry<String, SMGObject> localVariable : stackframe.getVariables().entrySet()) {
         String qualifiedName = localVariable.getKey();
         SMGObject memory = localVariable.getValue();
-        Preconditions.checkArgument(smg.isValid(memory));
+        if (!smg.isValid(memory)) {
+          // Skip non valid memory
+          continue;
+        }
         for (SMGHasValueEdge valueEdge : smg.getEdges(memory)) {
           MemoryLocation memLoc =
               MemoryLocation.fromQualifiedName(
