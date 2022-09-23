@@ -170,6 +170,9 @@ public class SMGCPAAssigningValueVisitor extends SMGCPAValueVisitor {
         // !(a == b) case
         if (isNonEqualityAssumption(binaryOperator)) {
           if (assumingUnknownToBeZero(leftValue, rightValue)) {
+            if (!isNestingHandleable((CExpression) unwrap(lVarInBinaryExp))) {
+              continue;
+            }
             String leftMemLocName = getExtendedQualifiedName((CExpression) unwrap(lVarInBinaryExp));
 
             if (options.isOptimizeBooleanVariables()
@@ -197,6 +200,9 @@ public class SMGCPAAssigningValueVisitor extends SMGCPAValueVisitor {
 
           if (options.isOptimizeBooleanVariables()
               && assumingUnknownToBeZero(rightValue, leftValue)) {
+            if (!isNestingHandleable((CExpression) unwrap(rVarInBinaryExp))) {
+              continue;
+            }
             String rightMemLocName =
                 getExtendedQualifiedName((CExpression) unwrap(rVarInBinaryExp));
 
@@ -330,5 +336,23 @@ public class SMGCPAAssigningValueVisitor extends SMGCPAValueVisitor {
       return ((CPointerExpression) expr).toQualifiedASTString();
     }
     throw new SMG2Exception("Internal error when getting the qualified name of a CExpression.");
+  }
+
+  /**
+   * Tests if getExtendedQualifiedName() will succeed.
+   *
+   * @param expr current CExpression
+   * @return true if the expression is handleable by the assigning visitor
+   */
+  private boolean isNestingHandleable(CExpression expr) {
+    if (expr instanceof CBinaryExpression) {
+      return isNestingHandleable(((CBinaryExpression) expr).getOperand1())
+          && isNestingHandleable(((CBinaryExpression) expr).getOperand2());
+    } else {
+      return expr instanceof CIdExpression
+          || expr instanceof CArraySubscriptExpression
+          || expr instanceof CFieldReference
+          || expr instanceof CPointerExpression;
+    }
   }
 }
