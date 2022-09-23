@@ -2050,7 +2050,10 @@ public class SMGState
           "Free on expression ",
           pFunctionCall.getParameterExpressions().get(0).toASTString(),
           " is invalid, because the target of the address could not be calculated.");
-      return maybeRegion.getSMGState();
+      // return maybeRegion.getSMGState();
+      return maybeRegion
+          .getSMGState()
+          .withInvalidFree("Invalid free of unallocated object is found.", addressToFree);
     }
     SMGState currentState = maybeRegion.getSMGState();
     SMGObject regionToFree = maybeRegion.getSMGObject();
