@@ -894,6 +894,21 @@ public class SMGState
     if (getSize() < pOther.getSize()) {
       return false;
     }
+    if (!this.errorInfo.isEmpty()) {
+      // As long as the other has at least once the same type of error its fine
+      ImmutableSet<Property> otherSetOfPropertyViolations =
+          pOther
+              .errorInfo
+              .stream()
+              .map(SMGErrorInfo::getPropertyViolated)
+              .collect(ImmutableSet.toImmutableSet());
+      if (!errorInfo
+          .stream()
+          .map(SMGErrorInfo::getPropertyViolated)
+          .allMatch(otherSetOfPropertyViolations::contains)) {
+        return false;
+      }
+    }
 
     // also, this element is not less or equal than the other element,
     // if any one constant's value of the other element differs from the constant's value in this
@@ -937,7 +952,21 @@ public class SMGState
               this, thisValueAndType.getValue(), pOther, otherValue, ImmutableSet.of())) {
         return false;
       }
+      // Remove the checked values
+      memLocAndValues = memLocAndValues.removeAndCopy(key);
     }
+    // Now check the remaining values. We don't allow the merging of states if one has pointers/heap
+    for (Entry<MemoryLocation, ValueAndValueSize> remainingThisEntry : memLocAndValues.entrySet()) {
+      // MemoryLocation key = remainingThisEntry.getKey();
+      Value otherValue = remainingThisEntry.getValue().getValue();
+      if (this.memoryModel.isPointer(otherValue)) {
+        return false;
+      }
+    }
+    if (memLocAndValues.size() > 0) {
+      return false;
+    }
+    // TODO: maybe don't stop for non equal amounts of variables
 
     return true;
   }
@@ -1268,7 +1297,9 @@ public class SMGState
   }
 
   /*
-   * Copy the current state and prune all unreachable SMGObjects. Used for example after a function return to prune out of scope memory. This also detects memory leaks and updates the error state if one is found!
+   * Copy the current state and prune all unreachable SMGObjects.
+   * Used for example after a function return to prune out of scope memory.
+   * This also detects memory leaks and updates the error state if one is found!
    */
   public SMGState copyAndPruneUnreachable() {
     SPCAndSMGObjects newHeapAndUnreachables = memoryModel.copyAndPruneUnreachable();
@@ -2014,23 +2045,15 @@ public class SMGState
     }
 
     SMGStateAndOptionalSMGObjectAndOffset maybeRegion = dereferencePointer(sanitizedAddressToFree);
-    // If there is no region the deref failed
+
     if (!maybeRegion.hasSMGObjectAndOffset()) {
+      // If there is no region the deref failed, which means we can't evaluate the free
       logger.log(
           Level.INFO,
           "Free on expression ",
           pFunctionCall.getParameterExpressions().get(0).toASTString(),
           " is invalid, because the target of the address could not be calculated.");
-      SMGState invalidFreeState =
-          maybeRegion
-              .getSMGState()
-              .withInvalidFree(
-                  "Free on expression "
-                      + pFunctionCall.getParameterExpressions().get(0).toASTString()
-                      + " is invalid, because the target of the address could not be"
-                      + " calculated.",
-                  addressToFree);
-      return invalidFreeState;
+      return maybeRegion.getSMGState();
     }
     SMGState currentState = maybeRegion.getSMGState();
     SMGObject regionToFree = maybeRegion.getSMGObject();
@@ -2817,6 +2840,10 @@ public class SMGState
   public String toString() {
     StringBuilder builder = new StringBuilder();
 
+    if (!errorInfo.isEmpty()) {
+      builder.append("Latest error found: " + errorInfo.get(errorInfo.size() - 1));
+    }
+
     for (Entry<MemoryLocation, ValueAndValueSize> memLoc :
         memoryModel.getMemoryLocationsAndValuesForSPCWithoutHeap().entrySet()) {
       CType readType = memoryModel.getTypeOfVariable(memLoc.getKey());
@@ -2826,8 +2853,13 @@ public class SMGState
         // Larger float types are almost always unknown
         valueRead = castValueForUnionFloatConversion(valueRead, readType);
       }
-      builder.append(memLoc.getKey() + ": " + valueRead);
-      builder.append("\n");
+      if (memoryModel.isPointer(valueRead)) {
+        builder.append(memLoc.getKey() + ": " + " pointer: " + valueRead);
+        builder.append("\n");
+      } else {
+        builder.append(memLoc.getKey() + ": " + valueRead);
+        builder.append("\n");
+      }
     }
 
     return builder.toString();
@@ -2941,6 +2973,12 @@ public class SMGState
       return this;
     } else if (root instanceof SMGSinglyLinkedListSegment) {
       SMGSinglyLinkedListSegment oldSLL = (SMGSinglyLinkedListSegment) root;
+      int newMinLength = oldSLL.getMinLength();
+      if (nextObj instanceof SMGSinglyLinkedListSegment) {
+        newMinLength = newMinLength + ((SMGSinglyLinkedListSegment) nextObj).getMinLength();
+      } else {
+        newMinLength++;
+      }
       newSLL =
           new SMGSinglyLinkedListSegment(
               oldSLL.getNestingLevel(),
@@ -2948,11 +2986,17 @@ public class SMGState
               oldSLL.getOffset(),
               oldSLL.getHeadOffset(),
               nfo,
-              oldSLL.getMinLength() + 1);
+              newMinLength);
     } else {
       // We assume that the head is either at 0 if the nfo is not, or right behind the nfo if it is
       // not.
       // We don't care about it however
+      int newMinLength = 1;
+      if (nextObj instanceof SMGSinglyLinkedListSegment) {
+        newMinLength = newMinLength + ((SMGSinglyLinkedListSegment) nextObj).getMinLength();
+      } else {
+        newMinLength++;
+      }
       BigInteger headOffset =
           nfo.compareTo(root.getOffset()) == 0
               ? nfo.add(memoryModel.getSizeOfPointer())
