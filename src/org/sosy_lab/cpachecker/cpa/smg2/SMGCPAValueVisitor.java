@@ -2077,12 +2077,23 @@ public class SMGCPAValueVisitor
 
       // distance in bits / type size = distance
       // The type in both pointers is the same, we need the return type from one of them
+      NumericValue size;
+      if (addressRight.getType() instanceof CPointerType) {
+        size =
+            new NumericValue(
+                evaluator.getBitSizeof(
+                    currentState, ((CPointerType) addressRight.getType()).getType()));
+      } else if (addressRight.getType() instanceof CArrayType) {
+        size =
+            new NumericValue(
+                evaluator.getBitSizeof(currentState, ((CArrayType) addressRight.getType())));
+      } else {
+        return ValueAndSMGState.ofUnknownValue(currentState);
+      }
       Value distance =
           arithmeticOperation(
               (NumericValue) distanceInBits,
-              new NumericValue(
-                  evaluator.getBitSizeof(
-                      currentState, ((CPointerType) addressRight.getType()).getType())),
+              size,
               BinaryOperator.DIVIDE,
               evaluator.getMachineModel().getPointerEquivalentSimpleType());
 
