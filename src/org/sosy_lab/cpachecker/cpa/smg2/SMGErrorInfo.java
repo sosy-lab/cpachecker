@@ -224,4 +224,18 @@ public class SMGErrorInfo {
   List<Object> getInvalidChain() {
     return invalidChain;
   }
+
+  public Property getPropertyViolated() {
+    if (invalidFree) {
+      return Property.INVALID_FREE;
+    } else if (invalidWrite) {
+      return Property.INVALID_WRITE;
+    } else if (invalidRead) {
+      return Property.INVALID_READ;
+    } else if (hasMemoryLeak) {
+      return Property.INVALID_HEAP;
+    }
+    // Will not happen
+    throw new RuntimeException("Undefined memory error");
+  }
 }
