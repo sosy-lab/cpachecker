@@ -105,7 +105,9 @@ public class SMGCPAAbstractionManager {
 
     Map<BigInteger, Value> offsetToValueMap = new HashMap<>();
     for (SMGHasValueEdge hve : smg.getEdges(root)) {
-      offsetToValueMap.put(hve.getOffset(), state.getMemoryModel().getValueFromSMGValue(hve.hasValue()).orElseThrow());
+      offsetToValueMap.put(
+          hve.getOffset(),
+          state.getMemoryModel().getValueFromSMGValue(hve.hasValue()).orElseThrow());
     }
 
     SMGPointsToEdge pointsToNext = null;
