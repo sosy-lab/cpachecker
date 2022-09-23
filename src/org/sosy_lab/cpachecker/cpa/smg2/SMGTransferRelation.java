@@ -8,8 +8,6 @@
 
 package org.sosy_lab.cpachecker.cpa.smg2;
 
-import static org.sosy_lab.common.collect.Collections3.transformedImmutableSetCopy;
-
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
@@ -164,12 +162,15 @@ public class SMGTransferRelation
     if (pSuccessors == null) {
       return super.postProcessing(pSuccessors, edge);
     }
+    return pSuccessors;
+    // We don't need this? Out of scope vars are pruned by dropping the stack frame
+    /*
     Set<CSimpleDeclaration> outOfScopeVars = edge.getSuccessor().getOutOfScopeVariables();
     return transformedImmutableSetCopy(
         pSuccessors,
         successorState -> {
           return successorState.copyAndPruneOutOfScopeVariables(outOfScopeVars);
-        });
+        });*/
   }
 
   @Override
@@ -194,7 +195,8 @@ public class SMGTransferRelation
    * @return a Collection of SMGStates that are processed. May include memory leak error states.
    */
   private Set<SMGState> handleReturnEntryFunction(Collection<SMGState> pSuccessors) {
-    return pSuccessors.stream()
+    return pSuccessors
+        .stream()
         .map(
             pState -> {
               if (options.isHandleNonFreedMemoryInMainAsMemLeak()) {
