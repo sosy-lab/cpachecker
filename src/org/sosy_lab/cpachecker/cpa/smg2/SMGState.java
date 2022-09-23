@@ -2887,6 +2887,12 @@ public class SMGState
       return this;
     } else if (root instanceof SMGDoublyLinkedListSegment) {
       SMGDoublyLinkedListSegment oldDLL = (SMGDoublyLinkedListSegment) root;
+      int newMinLength = ((SMGDoublyLinkedListSegment) root).getMinLength();
+      if (nextObj instanceof SMGSinglyLinkedListSegment) {
+        newMinLength = newMinLength + ((SMGSinglyLinkedListSegment) nextObj).getMinLength();
+      } else {
+        newMinLength++;
+      }
       newDLL =
           new SMGDoublyLinkedListSegment(
               oldDLL.getNestingLevel(),
@@ -2895,7 +2901,7 @@ public class SMGState
               oldDLL.getHeadOffset(),
               oldDLL.getNextOffset(),
               oldDLL.getPrevOffset(),
-              oldDLL.getMinLength() + 1);
+              newMinLength);
     } else {
       // We assume that the head is either at 0 if the nfo is not, or right behind the nfo if it is
       // not at 0, or right behind the pfo if the pfo is right behind nfo
@@ -2915,10 +2921,21 @@ public class SMGState
       } else {
         headOffset = BigInteger.ZERO;
       }
-
+      int newMinLength = 1;
+      if (nextObj instanceof SMGSinglyLinkedListSegment) {
+        newMinLength = newMinLength + ((SMGSinglyLinkedListSegment) nextObj).getMinLength();
+      } else {
+        newMinLength++;
+      }
       newDLL =
           new SMGDoublyLinkedListSegment(
-              root.getNestingLevel(), root.getSize(), root.getOffset(), headOffset, nfo, pfo, 2);
+              root.getNestingLevel(),
+              root.getSize(),
+              root.getOffset(),
+              headOffset,
+              nfo,
+              pfo,
+              newMinLength);
     }
     SMGState currentState = this.copyAndAddObjectToHeap(newDLL);
     currentState = currentState.copyAllValuesFromObjToObj(nextObj, newDLL);
