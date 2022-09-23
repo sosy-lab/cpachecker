@@ -1538,10 +1538,9 @@ public class SMGCPAValueExpressionEvaluator {
    */
   public List<SMGState> handleVariableDeclaration(
       SMGState pState, CVariableDeclaration pVarDecl, CFAEdge pEdge) throws CPATransferException {
+    // Don't check for existing variables or else a edge that declares a existing variable is not
+    // changed!
     String varName = pVarDecl.getQualifiedName();
-    if (pState.isLocalOrGlobalVariablePresent(varName)) {
-      return ImmutableList.of(pState);
-    }
     CType cType = SMGCPAValueExpressionEvaluator.getCanonicalType(pVarDecl);
 
     // There can only be one declaration result state
