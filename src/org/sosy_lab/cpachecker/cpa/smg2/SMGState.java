@@ -2249,6 +2249,12 @@ public class SMGState
 
     SMGState currentState = maybeRegion.getSMGState();
     SMGObject memoryRegion = maybeRegion.getSMGObject();
+
+    if (!currentState.memoryModel.isObjectValid(memoryRegion)) {
+      // The dereference detected the error deref at this point, just return the state
+      return currentState;
+    }
+
     Preconditions.checkArgument(maybeRegion.getOffsetForObject().compareTo(BigInteger.ZERO) == 0);
 
     return currentState.writeValueTo(
