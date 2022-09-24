@@ -866,12 +866,24 @@ public class SymbolicProgramConfiguration {
     }
 
     // Needed because of CEGAR
-    // TODO: track stack frames when creating states in CEGAR!
     if (stackVariableMapping.isEmpty()) {
       return Optional.empty();
     }
     // Only look in the current stack frame
     StackFrame currentFrame = stackVariableMapping.peek();
+    int sizeOfVariables = currentFrame.getVariables().size();
+    if (currentFrame.hasVariableArguments()) {
+      sizeOfVariables = sizeOfVariables + currentFrame.getVariableArguments().size();
+    }
+    if (sizeOfVariables < currentFrame.getFunctionDefinition().getParameters().size()) {
+      // We are currently creating a function and may ask for a value from the old function for
+      // array size
+      StackFrame prevFrame = stackVariableMapping.popAndCopy().peek();
+      if (prevFrame.containsVariable(pName)) {
+        // This may only happen for creation of new stack frames!!!!!!
+        return Optional.of(prevFrame.getVariable(pName));
+      }
+    }
     if (currentFrame.containsVariable(pName)) {
       return Optional.of(currentFrame.getVariable(pName));
     }
