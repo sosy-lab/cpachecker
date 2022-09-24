@@ -963,7 +963,19 @@ public class SMGState
     if (memLocAndValues.size() > 0) {
       return false;
     }
-    // TODO: maybe don't stop for non equal amounts of variables
+    // Don't drop heap objects, or we can't determine mem-leaks
+    if (this.memoryModel.getHeapObjects().size() > pOther.memoryModel.getHeapObjects().size()) {
+      return false;
+    } else {
+      // Check that there are no SMGObjects that could be pruned in this, but not in other
+      SPCAndSMGObjects newHeapAndUnreachablesThis = memoryModel.copyAndPruneUnreachable();
+      SPCAndSMGObjects newHeapAndUnreachablesOther = pOther.memoryModel.copyAndPruneUnreachable();
+      if (!newHeapAndUnreachablesOther
+          .getSMGObjects()
+          .containsAll(newHeapAndUnreachablesThis.getSMGObjects())) {
+        return false;
+      }
+    }
 
     return true;
   }
