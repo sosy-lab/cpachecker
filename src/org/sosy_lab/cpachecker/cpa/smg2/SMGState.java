@@ -967,6 +967,14 @@ public class SMGState
     if (this.memoryModel.getHeapObjects().size() > pOther.memoryModel.getHeapObjects().size()) {
       return false;
     } else {
+      // Check that the heap objects are equal in validity
+      for (SMGObject heapObjThis : memoryModel.getHeapObjects()) {
+        if (pOther.memoryModel.getHeapObjects().contains(heapObjThis)
+            && (pOther.memoryModel.getSmg().isValid(heapObjThis)
+                != memoryModel.getSmg().isValid(heapObjThis))) {
+          return false;
+        }
+      }
       // Check that there are no SMGObjects that could be pruned in this, but not in other
       SPCAndSMGObjects newHeapAndUnreachablesThis = memoryModel.copyAndPruneUnreachable();
       SPCAndSMGObjects newHeapAndUnreachablesOther = pOther.memoryModel.copyAndPruneUnreachable();
