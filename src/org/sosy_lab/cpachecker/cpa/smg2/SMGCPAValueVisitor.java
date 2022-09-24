@@ -467,8 +467,8 @@ public class SMGCPAValueVisitor
                     e.getExpressionType(),
                     calculationType,
                     currentState));
+            continue;
           }
-          continue;
         }
 
         if (leftValue instanceof FunctionValue || rightValue instanceof FunctionValue) {
