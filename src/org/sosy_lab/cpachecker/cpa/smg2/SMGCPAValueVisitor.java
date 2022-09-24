@@ -67,6 +67,7 @@ import org.sosy_lab.cpachecker.cpa.smg2.util.SMG2Exception;
 import org.sosy_lab.cpachecker.cpa.smg2.util.value.SMGCPAValueExpressionEvaluator;
 import org.sosy_lab.cpachecker.cpa.smg2.util.value.ValueAndSMGState;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.AddressExpression;
+import org.sosy_lab.cpachecker.cpa.value.symbolic.type.ConstantSymbolicExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicIdentifier;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValue;
@@ -384,14 +385,40 @@ public class SMGCPAValueVisitor
           currentState = castRightValue.getState();
         }
 
-        if (leftValue instanceof AddressExpression || rightValue instanceof AddressExpression) {
+        if (leftValue instanceof AddressExpression
+            || rightValue instanceof AddressExpression
+            || evaluator.isPointerValue(rightValue, currentState)
+            || evaluator.isPointerValue(leftValue, currentState)
+            || (leftValue instanceof ConstantSymbolicExpression
+                && evaluator.isPointerValue(
+                    ((ConstantSymbolicExpression) leftValue).getValue(), currentState))
+            || (rightValue instanceof ConstantSymbolicExpression
+                && evaluator.isPointerValue(
+                    ((ConstantSymbolicExpression) rightValue).getValue(), currentState))) {
+          // It is possible that addresses get cast to int or smth like it
+          // Then the SymbolicIdentifier is returned not in a AddressExpression
+          // They might be wrapped in a ConstantSymbolicExpression
+          // We don't remove this wrapping for the rest of the analysis as they might actually get
+          // treated as ints or something
+          Value nonConstRightValue = rightValue;
+          if (rightValue instanceof ConstantSymbolicExpression
+              && evaluator.isPointerValue(
+                  ((ConstantSymbolicExpression) rightValue).getValue(), currentState)) {
+            nonConstRightValue = ((ConstantSymbolicExpression) rightValue).getValue();
+          }
+          Value nonConstLeftValue = leftValue;
+          if (leftValue instanceof ConstantSymbolicExpression
+              && evaluator.isPointerValue(
+                  ((ConstantSymbolicExpression) leftValue).getValue(), currentState)) {
+            nonConstLeftValue = ((ConstantSymbolicExpression) leftValue).getValue();
+          }
 
           if (binaryOperator == BinaryOperator.EQUALS) {
             Preconditions.checkArgument(returnType instanceof CSimpleType);
-            if ((!(leftValue instanceof AddressExpression)
-                    && !evaluator.isPointerValue(leftValue, currentState))
-                || (!(rightValue instanceof AddressExpression)
-                    && !evaluator.isPointerValue(rightValue, currentState))) {
+            if ((!(nonConstLeftValue instanceof AddressExpression)
+                    && !evaluator.isPointerValue(nonConstLeftValue, currentState))
+                || (!(nonConstRightValue instanceof AddressExpression)
+                    && !evaluator.isPointerValue(nonConstRightValue, currentState))) {
               resultBuilder.add(ValueAndSMGState.ofUnknownValue(currentState));
               continue;
             }
@@ -399,7 +426,7 @@ public class SMGCPAValueVisitor
             resultBuilder.add(
                 ValueAndSMGState.of(
                     evaluator.checkEqualityForAddresses(
-                        leftValue, rightValue, currentState, cfaEdge),
+                        nonConstLeftValue, nonConstRightValue, currentState, cfaEdge),
                     currentState));
             continue;
           } else if (binaryOperator == BinaryOperator.NOT_EQUALS) {
@@ -408,16 +435,34 @@ public class SMGCPAValueVisitor
             resultBuilder.add(
                 ValueAndSMGState.of(
                     evaluator.checkNonEqualityForAddresses(
-                        leftValue, rightValue, currentState, cfaEdge),
+                        nonConstLeftValue, nonConstRightValue, currentState, cfaEdge),
                     currentState));
             continue;
-          } else {
+          } else if (binaryOperator == BinaryOperator.PLUS
+              || binaryOperator == BinaryOperator.MINUS) {
+            Value leftAddrExpr = nonConstLeftValue;
+            if (!(nonConstLeftValue instanceof AddressExpression)
+                && evaluator.isPointerValue(nonConstLeftValue, currentState)) {
+              leftAddrExpr =
+                  AddressExpression.withZeroOffset(
+                      nonConstLeftValue,
+                      SMGCPAValueExpressionEvaluator.getCanonicalType(lVarInBinaryExp));
+            }
+            Value rightAddrExpr = nonConstRightValue;
+            if (!(nonConstRightValue instanceof AddressExpression)
+                && evaluator.isPointerValue(nonConstRightValue, currentState)) {
+              rightAddrExpr =
+                  AddressExpression.withZeroOffset(
+                      nonConstRightValue,
+                      SMGCPAValueExpressionEvaluator.getCanonicalType(rVarInBinaryExp));
+            }
+
             // Pointer arithmetics case and fall through (handled inside the method)
             // i.e. address + 3
             resultBuilder.add(
                 calculatePointerArithmetics(
-                    leftValue,
-                    rightValue,
+                    leftAddrExpr,
+                    rightAddrExpr,
                     binaryOperator,
                     e.getExpressionType(),
                     calculationType,
