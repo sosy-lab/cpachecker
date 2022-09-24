@@ -2094,6 +2094,7 @@ public class SMGState
     if (!memoryModel.isHeapObject(regionToFree)
         && !memoryModel.isObjectExternallyAllocated(regionToFree)) {
       // You may not free any objects not on the heap.
+      // It could be that the object was on the heap but was freed before!
       return currentState.withInvalidFree(
           "Invalid free of unallocated object is found.", addressToFree);
     }
