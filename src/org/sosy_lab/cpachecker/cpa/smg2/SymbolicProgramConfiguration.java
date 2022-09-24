@@ -878,10 +878,12 @@ public class SymbolicProgramConfiguration {
     if (sizeOfVariables < currentFrame.getFunctionDefinition().getParameters().size()) {
       // We are currently creating a function and may ask for a value from the old function for
       // array size
-      StackFrame prevFrame = stackVariableMapping.popAndCopy().peek();
-      if (prevFrame.containsVariable(pName)) {
-        // This may only happen for creation of new stack frames!!!!!!
-        return Optional.of(prevFrame.getVariable(pName));
+      if (stackVariableMapping.size() > 1) {
+        StackFrame prevFrame = stackVariableMapping.popAndCopy().peek();
+        if (prevFrame.containsVariable(pName)) {
+          // This may only happen for creation of new stack frames!!!!!!
+          return Optional.of(prevFrame.getVariable(pName));
+        }
       }
     }
     if (currentFrame.containsVariable(pName)) {
