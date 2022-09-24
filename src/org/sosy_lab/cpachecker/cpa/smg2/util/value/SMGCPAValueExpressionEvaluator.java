@@ -1596,11 +1596,31 @@ public class SMGCPAValueExpressionEvaluator {
                             (((CStringLiteralExpression) initExpr).getContentString().length()
                                 + 1)));
           } else {
-            throw new SMG2Exception("Could not determine correct type size for an array.");
+            throw new SMG2Exception(
+                "Could not determine correct type size for an array for initializer expression: "
+                    + init);
+          }
+        } else if (init instanceof CInitializerList) {
+          CInitializerList initList = ((CInitializerList) init);
+          CType realCType = cType.getCanonicalType();
+
+          if (realCType instanceof CArrayType) {
+            CArrayType arrayType = (CArrayType) realCType;
+            CType memberType = SMGCPAValueExpressionEvaluator.getCanonicalType(arrayType.getType());
+            BigInteger memberTypeSize = getBitSizeof(pState, memberType);
+            BigInteger numberOfMembers = BigInteger.valueOf(initList.getInitializers().size());
+            typeSizeInBits =
+                BigInteger.valueOf(8).multiply(memberTypeSize).multiply(numberOfMembers);
+
+          } else if (realCType instanceof CCompositeType) {
+            CCompositeType structType = (CCompositeType) realCType;
+            typeSizeInBits = BigInteger.valueOf(8).multiply(getBitSizeof(pState, structType));
           }
         } else {
-          throw new SMG2Exception("Could not determine correct type size for an array.");
-        }
+          throw new SMG2Exception(
+              "Could not determine correct type size for an array for initializer expression: "
+                  + init);
+          }
       }
 
       // Handle incomplete type of external variables as externally allocated
