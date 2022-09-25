@@ -184,20 +184,25 @@ public class SMGCPAValueVisitor
     // Or a CPointerType in which we read and wrap in AddressExpression
     // Or in all other cases just read and return
     CType returnType = SMGCPAValueExpressionEvaluator.getCanonicalType(e.getExpressionType());
-    List<ValueAndSMGState> arrayValueAndStates = arrayExpr.accept(this);
     ImmutableList.Builder<ValueAndSMGState> resultBuilder = ImmutableList.builder();
-    for (ValueAndSMGState arrayValueAndState : arrayValueAndStates) {
+    for (ValueAndSMGState arrayValueAndState : arrayExpr.accept(this)) {
       // The arrayValue is either AddressExpression for pointer + offset
       // SymbolicIdentifier with MemoryLocation for variable name + offset
       // Or a invalid value
       Value arrayValue = arrayValueAndState.getValue();
       SMGState currentState = arrayValueAndState.getState();
-      if (!SMGCPAValueExpressionEvaluator.valueIsAddressExprOrVariableOffset(arrayValue)) {
+
+      if (currentState.getMemoryModel().isPointer(arrayValue)) {
+        arrayValue =
+            AddressExpression.withZeroOffset(
+                arrayValue, SMGCPAValueExpressionEvaluator.getCanonicalType(arrayExpr));
+      } else if (!SMGCPAValueExpressionEvaluator.valueIsAddressExprOrVariableOffset(arrayValue)) {
         // Not a valid pointer/address
         // TODO: log this!
         resultBuilder.add(ValueAndSMGState.ofUnknownValue(currentState));
         continue;
       }
+      // Lonely pointers in arrayValue signal local array access
 
       // Evaluate the subscript as far as possible
       CExpression subscriptExpr = e.getSubscriptExpression();
@@ -694,7 +699,9 @@ public class SMGCPAValueVisitor
     ImmutableList.Builder<ValueAndSMGState> finalStatesBuilder = ImmutableList.builder();
     for (SMGState currentState : creationBuilder.build()) {
       if (returnType instanceof CArrayType) {
-        // Create/search new pointer to the array and return that
+        // If the variable is a pointer to an array, deref that and return the array
+
+        // if the variable is a array, create/search new pointer to the array and return that
         finalStatesBuilder.add(
             evaluator.createAddressForLocalOrGlobalVariable(variableName, currentState));
         continue;
