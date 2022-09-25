@@ -453,7 +453,7 @@ public class FormulaToCExpressionConverterTest {
 
     @Test
     public void convertBVDivision() throws InterruptedException {
-      skipTestForSolvers(Solvers.MATHSAT5, Solvers.SMTINTERPOL, Solvers.Z3, Solvers.PRINCESS);
+      skipTestForSolvers(Solvers.MATHSAT5, Solvers.SMTINTERPOL, Solvers.Z3, Solvers.PRINCESS, Solvers.CVC4);
       BitvectorFormulaManagerView bvmgrv = mgrv.getBitvectorFormulaManager();
       BooleanFormula signed =
           bvmgrv.equal(
@@ -469,7 +469,7 @@ public class FormulaToCExpressionConverterTest {
 
     @Test
     public void convertBVModulo() throws InterruptedException {
-      skipTestForSolvers(Solvers.MATHSAT5, Solvers.SMTINTERPOL, Solvers.Z3, Solvers.PRINCESS);
+      skipTestForSolvers(Solvers.MATHSAT5, Solvers.SMTINTERPOL, Solvers.Z3, Solvers.PRINCESS, Solvers.CVC4);
       BitvectorFormulaManagerView bvmgrv = mgrv.getBitvectorFormulaManager();
       BooleanFormula signed =
           bvmgrv.equal(
