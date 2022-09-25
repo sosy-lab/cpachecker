@@ -693,12 +693,17 @@ public class SMGCPAValueVisitor
 
     ImmutableList.Builder<ValueAndSMGState> finalStatesBuilder = ImmutableList.builder();
     for (SMGState currentState : creationBuilder.build()) {
-      if (SMGCPAValueExpressionEvaluator.isStructOrUnionType(returnType)
-          || returnType instanceof CArrayType) {
-        // Struct/Unions/arrays on the stack/global; return the memory location in a
+      if (returnType instanceof CArrayType) {
+        // Create/search new pointer to the array and return that
+        finalStatesBuilder.add(
+            evaluator.createAddressForLocalOrGlobalVariable(variableName, currentState));
+        continue;
+
+      } else if (SMGCPAValueExpressionEvaluator.isStructOrUnionType(returnType)) {
+        // Struct/Unions on the stack/global; return the memory location in a
         // SymbolicIdentifier. This is then used as interpretation such that the Value
         // of the memory location (on the stack) is used. This is used by assignments only as far as
-        // i know, i.e. when assigning a complete array/struct to a new variable.
+        // i know, i.e. when assigning a complete struct to a new variable.
         finalStatesBuilder.add(
             ValueAndSMGState.of(
                 SymbolicValueFactory.getInstance()
