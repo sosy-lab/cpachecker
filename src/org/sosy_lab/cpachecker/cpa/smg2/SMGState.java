@@ -758,6 +758,31 @@ public class SMGState
   }
 
   /**
+   * Add a local variable based on an existing SMGObject. I.e. a local array.
+   *
+   * @param object the existing memory
+   * @param pVarName variable name qualified
+   * @param type the type of the object
+   * @return the new state with the association
+   * @throws SMG2Exception in case of critical errors
+   */
+  public SMGState copyAndAddLocalVariable(SMGObject object, String pVarName, CType type)
+      throws SMG2Exception {
+    if (memoryModel.getStackFrames().isEmpty()) {
+      throw new SMG2Exception(
+          "Can't add a variable named "
+              + pVarName
+              + " to the memory model because there is no stack frame.");
+    }
+    return of(
+        machineModel,
+        memoryModel.copyAndAddStackObject(object, pVarName, type),
+        logger,
+        options,
+        errorInfo);
+  }
+
+  /**
    * Copy SMGState with a newly created object with the size given and put it into the current stack
    * frame. If there is no stack frame this throws an exception!
    *

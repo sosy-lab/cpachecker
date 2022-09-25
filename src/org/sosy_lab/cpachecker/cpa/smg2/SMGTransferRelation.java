@@ -455,6 +455,7 @@ public class SMGTransferRelation
         valueAndState = addressesAndStates.get(0);
       } else {
         // Evaluator the CExpr into a Value
+        // Note: this evaluates local arrays into pointers!!!!!
         List<ValueAndSMGState> valuesAndStates =
             cParamExp.accept(new SMGCPAValueVisitor(evaluator, currentState, callEdge, logger));
 
@@ -462,10 +463,9 @@ public class SMGTransferRelation
         // to proceed from this point onwards with all of them with all following operations
         Preconditions.checkArgument(valuesAndStates.size() == 1);
         valueAndState = valuesAndStates.get(0);
+        readValuesInOrderBuilder.add(valueAndState.getValue());
+        currentState = valueAndState.getState();
       }
-
-      readValuesInOrderBuilder.add(valueAndState.getValue());
-      currentState = valueAndState.getState();
     }
 
     ImmutableList<Value> readValuesInOrder = readValuesInOrderBuilder.build();
@@ -491,9 +491,24 @@ public class SMGTransferRelation
       String varName = paramDecl.get(i).getQualifiedName();
       CType cParamType = SMGCPAValueExpressionEvaluator.getCanonicalType(paramDecl.get(i));
 
+      if (valueType instanceof CArrayType && cParamType instanceof CArrayType) {
+        // Take the pointer to the local array and get the memory area, then associate this memory
+        // area with the variable name
+        SMGStateAndOptionalSMGObjectAndOffset knownMemoryAndState =
+            currentState.dereferencePointer(paramValue);
+        currentState = knownMemoryAndState.getSMGState();
+        if (!knownMemoryAndState.hasSMGObjectAndOffset()) {
+          throw new SMG2Exception("Could not associate a local array in a new function.");
+        } else if (knownMemoryAndState.getOffsetForObject().compareTo(BigInteger.ZERO) != 0) {
+          throw new SMG2Exception("Could not associate a local array in a new function.");
+        }
+        SMGObject knownMemory = knownMemoryAndState.getSMGObject();
+        currentState = currentState.copyAndAddLocalVariable(knownMemory, varName, cParamType);
+      } else {
       currentState =
           evaluator.writeValueToNewVariableBasedOnTypes(
               paramValue, cParamType, valueType, varName, currentState);
+      }
     }
     return currentState;
   }
