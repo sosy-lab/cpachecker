@@ -162,9 +162,24 @@ public class SMGEdgeInterpolator
               .copyAndPruneUnreachable();
 
       // check if the remaining path now becomes feasible
-      if (isRemainingPathFeasible(remainingErrorPath, initialSuccessor)) {
-        // Since we use immutable states, we can just use the old state
-        initialSuccessor = oldSuccessor;
+      // This might throw an exception because we stop the analysis for symbolic sizes in allocation
+      // functions or arrays
+      // We catch this exception and add the just removed variable back
+      // If the exception is not caused by this variable, the analysis will run into the exception
+      // in the next run anyway, stopping the analysis
+      // As far as i understand CPAchecker this is not solvable any other way, i might be wrong
+      // though, please comment and mark @baierd if you know how this can be done better
+      try {
+        if (isRemainingPathFeasible(remainingErrorPath, initialSuccessor)) {
+          // Since we use immutable states, we can just use the old state
+          initialSuccessor = oldSuccessor;
+        }
+      } catch (AssertionError e) {
+        if (e.getMessage().startsWith("An allocation function was called with a symbolic size.")) {
+          initialSuccessor = oldSuccessor;
+        } else {
+          throw e;
+        }
       }
     }
     // TODO: make this generic
