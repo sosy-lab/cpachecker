@@ -145,9 +145,7 @@ public class PredefinedValueAssinger implements MemoryLocationValueHandler {
 
       CSimpleType type = (CSimpleType) call.getExpressionType();
 
-      if (type.equals(CNumericTypes.BOOL)) {
-        return BooleanValue.valueOf(!pStringValueForNumber.equals("0"));
-      }
+
       if (type.equals(CNumericTypes.CHAR) || type.equals(CNumericTypes.SIGNED_CHAR)) {
         if (pStringValueForNumber.startsWith("'")
             && pStringValueForNumber.length() == 3
@@ -172,7 +170,8 @@ public class PredefinedValueAssinger implements MemoryLocationValueHandler {
         if (type.equals(CNumericTypes.UNSIGNED_CHAR) || type.equals(CNumericTypes.UNSIGNED_INT)) {
           return new NumericValue(Integer.parseUnsignedInt(pStringValueForNumber));
         }
-        if (type.equals(CNumericTypes.INT) || type.equals(CNumericTypes.SIGNED_INT)) {
+        if (type.equals(CNumericTypes.INT) || type.equals(CNumericTypes.SIGNED_INT) || type.equals(CNumericTypes.BOOL)) {
+          //We handle boolean as integer in c
           return new NumericValue(Integer.parseInt(pStringValueForNumber));
         }
         if (type.equals(CNumericTypes.SHORT_INT)) {
