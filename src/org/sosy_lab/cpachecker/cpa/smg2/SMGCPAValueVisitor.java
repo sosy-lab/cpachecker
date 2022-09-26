@@ -2173,8 +2173,13 @@ public class SMGCPAValueVisitor
 
     // While the offsets and even the values of the addresses may be symbolic, the addresse
     // expressions themselfs may never be handled in such a way
-    Preconditions.checkArgument(!(pLValue instanceof AddressExpression));
-    Preconditions.checkArgument(!(pRValue instanceof AddressExpression));
+    if (pLValue instanceof AddressExpression || pRValue instanceof AddressExpression) {
+      logger.logf(
+          Level.ALL,
+          "Could not determine result of %s operation on one or more memory addresses.",
+          pExpression);
+      return UnknownValue.getInstance();
+    }
 
     final BinaryOperator operator = pExpression.getOperator();
 
