@@ -12,9 +12,15 @@ import com.google.common.collect.ImmutableSet;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.logging.Level;
 import org.checkerframework.checker.nullness.qual.Nullable;
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Option;
+import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.core.defaults.SingleEdgeTransferRelation;
@@ -24,16 +30,31 @@ import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisTransferRelation;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
+import org.sosy_lab.cpachecker.util.LoopStructure;
 
+@Options(prefix = "cpa.rangedAnalysis")
 public class RangedAnalysisTransferRelation extends SingleEdgeTransferRelation {
 
   private final LogManager logger;
 
+  private final Optional<LoopStructure> loopStruct;
+
+int abortCount = 0;
   private ValueAnalysisTransferRelation leftTR;
   private ValueAnalysisTransferRelation rightTR;
 
-  public RangedAnalysisTransferRelation(LogManager pLogger) {
+
+  @Option(
+      secure = true,
+      description =
+          "If the bound reaches a node that is a loophead leading to a loop that has no outgoing edges, use the middle state instead of the lower or upper bound.")
+  protected boolean useMiddleStateAtEndlessLoopHeads = true;
+
+  public RangedAnalysisTransferRelation(LogManager pLogger, Configuration pConfig, CFA pCfa)
+      throws InvalidConfigurationException {
+    pConfig.inject(this);
     logger = pLogger;
+    loopStruct = pCfa.getLoopStructure();
   }
 
   /**
@@ -44,7 +65,6 @@ public class RangedAnalysisTransferRelation extends SingleEdgeTransferRelation {
   public Collection<RangedAnalysisState> getAbstractSuccessorsForEdge(
       final AbstractState abstractState, final Precision abstractPrecision, final CFAEdge cfaEdge)
       throws CPATransferException, InterruptedException {
-
     RangedAnalysisState state =
         AbstractStates.extractStateByType(abstractState, RangedAnalysisState.class);
 
@@ -55,7 +75,7 @@ public class RangedAnalysisTransferRelation extends SingleEdgeTransferRelation {
     ValueAnalysisState oldLeft = state.getLeftState();
     ValueAnalysisState oldRight = state.getRightState();
 
-    if (isMiddleState(oldLeft, oldRight)) {
+    if (isMiddleState(oldLeft, oldRight) || reachesEndlessLoopHead(cfaEdge)) {
       // Just for optimization
       return ImmutableSet.of(RangedAnalysisState.getMiddleState());
     }
@@ -114,6 +134,13 @@ public class RangedAnalysisTransferRelation extends SingleEdgeTransferRelation {
       }
     }
     return Collections.singleton(new RangedAnalysisState(newLeft, newRight));
+  }
+
+  private boolean reachesEndlessLoopHead(CFAEdge pCfaEdge) {
+        if (loopStruct.isPresent()) {
+          return loopStruct.orElseThrow().getAllLoops().stream().filter(l -> l.getLoopHeads().contains(pCfaEdge.getSuccessor())).anyMatch(l -> l.getOutgoingEdges().isEmpty());
+        }
+        return false;
   }
 
   private boolean isMiddleState(ValueAnalysisState pOldLeft, ValueAnalysisState pOldRight) {

@@ -2754,6 +2754,11 @@ cpa.rangedAnalysis.path2LowerInputFile = no default value
 # upper bound.
 cpa.rangedAnalysis.path2UpperInputFile = no default value
 
+# If the bound reaches a node that is a loophead leading to a loop that has
+# no outgoing edges, use the middle state instead of the lower or upper
+# bound.
+cpa.rangedAnalysis.useMiddleStateAtEndlessLoopHeads = true
+
 # List of names (or a part of the name) of functions, that return a random
 # value
 cpa.rangedExecutionInput.namesOfRandomFunctions = {"rand", "__VERIFIER_nondet_"}

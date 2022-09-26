@@ -84,7 +84,7 @@ public class RangedAnalysisCPA extends AbstractCPA implements ProofCheckerCPA {
   private RangedAnalysisCPA(
       Configuration config, LogManager pLogger, CFA pCfa, ShutdownNotifier pShutdownNotifier)
       throws InvalidConfigurationException, CPAException, InterruptedException {
-    super(DelegateAbstractDomain.getInstance(), new RangedAnalysisTransferRelation(pLogger));
+    super(DelegateAbstractDomain.getInstance(), new RangedAnalysisTransferRelation(pLogger, config, pCfa));
     config.inject(this);
     this.logger = pLogger;
     this.shutdownNotifier = pShutdownNotifier;
@@ -117,8 +117,8 @@ public class RangedAnalysisCPA extends AbstractCPA implements ProofCheckerCPA {
         path2UpperInputFile);
     RangedAnalysisTransferRelation transferRelation =
         (RangedAnalysisTransferRelation) getTransferRelation();
-    upper = getCPAForBound(path2UpperInputFile, config, path2UpperInputFile != null);
-    lower = getCPAForBound(path2LowerInputFile, config, false);
+    upper = getCPAForBound(path2UpperInputFile, config);
+    lower = getCPAForBound(path2LowerInputFile, config);
     transferRelation.setCPTRs(lower.getTransferRelation(), upper.getTransferRelation());
     this.upperBoundExists = Objects.nonNull(path2UpperInputFile);
     this.lowerBoundExists = Objects.nonNull(path2LowerInputFile);
@@ -151,13 +151,13 @@ public class RangedAnalysisCPA extends AbstractCPA implements ProofCheckerCPA {
    * @return a ValueAnalysisCPA
    * @throws InvalidConfigurationException if an error occurs
    */
-  private ValueAnalysisCPA getCPAForBound(Path pPath, Configuration config, boolean pIsUpperBound)
+  private ValueAnalysisCPA getCPAForBound(Path pPath, Configuration config)
       throws InvalidConfigurationException, CPAException, InterruptedException {
     ConfigurationBuilder builder = Configuration.builder().copyFrom(config);
 
     if (Objects.nonNull(pPath)) {
       builder.setOption("cpa.value.stopIfAllValuesForUnknownAreUsed", Boolean.toString(true));
-      builder.setOption("cpa.value.forgetValuesInsteadOfAbort", Boolean.toString(!pIsUpperBound));
+      builder.setOption("cpa.value.forgetValuesInsteadOfAbort", Boolean.toString(false));
       builder.setOption("cpa.value.unknownValueHandling", "FROM_INPUT_FOR_VERIFIER_NONDET");
       builder.setOption("cpa.value.functionValuesForRandom", pPath.toAbsolutePath().toString());
     }
