@@ -464,9 +464,9 @@ public class SMGTransferRelation
         // to proceed from this point onwards with all of them with all following operations
         Preconditions.checkArgument(valuesAndStates.size() == 1);
         valueAndState = valuesAndStates.get(0);
-        readValuesInOrderBuilder.add(valueAndState.getValue());
-        currentState = valueAndState.getState();
       }
+      readValuesInOrderBuilder.add(valueAndState.getValue());
+      currentState = valueAndState.getState();
     }
 
     ImmutableList<Value> readValuesInOrder = readValuesInOrderBuilder.build();
