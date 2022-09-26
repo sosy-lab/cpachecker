@@ -12,6 +12,7 @@ import static com.google.common.truth.Truth.assertThat;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import java.math.BigInteger;
 import java.util.Map.Entry;
 import java.util.Optional;
@@ -871,7 +872,7 @@ public class SMGCPAAbstractionTest {
       }
       SMGCandidate firstObj = candidates.iterator().next();
       assertThat(firstObj.getSuspectedNfo()).isEquivalentAccordingToCompareTo(nfo);
-      state = state.abstractIntoSLL(firstObj.getObject(), nfo);
+      state = state.abstractIntoSLL(firstObj.getObject(), nfo, ImmutableSet.of());
 
       Set<SMGObject> objects = state.getMemoryModel().getSmg().getObjects();
       // All should be invalid except our SLL here
@@ -908,7 +909,7 @@ public class SMGCPAAbstractionTest {
       }
       SMGCandidate firstObj = candidates.iterator().next();
       assertThat(firstObj.getSuspectedNfo()).isEquivalentAccordingToCompareTo(nfo);
-      state = state.abstractIntoDLL(firstObj.getObject(), nfo, pfo);
+      state = state.abstractIntoDLL(firstObj.getObject(), nfo, pfo, ImmutableSet.of());
 
       Set<SMGObject> objects = state.getMemoryModel().getSmg().getObjects();
       // All should be invalid except our SLL here
@@ -951,7 +952,7 @@ public class SMGCPAAbstractionTest {
         }
         SMGCandidate firstObj = candidates.iterator().next();
         assertThat(firstObj.getSuspectedNfo()).isEquivalentAccordingToCompareTo(nfo);
-        state = state.abstractIntoDLL(firstObj.getObject(), nfo, pfo);
+        state = state.abstractIntoDLL(firstObj.getObject(), nfo, pfo, ImmutableSet.of());
 
         Set<SMGObject> objects = state.getMemoryModel().getSmg().getObjects();
         // All should be invalid except our SLL here
