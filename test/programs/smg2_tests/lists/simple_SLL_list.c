@@ -41,9 +41,6 @@ void main() {
   while(list->data == 1) {
     list = list->next;
   }
-    /* SMGRefiner::createModel() is responsible for checking if a error path is spurious.
-     * Use a UnknownValue mit reasons? Z.b. Unknown due to missing heap -> spurious -> heap refinement
-    */
-   __VERIFIER_assert(list->data == 3);
 
+   __VERIFIER_assert(list->data == 3);
 }
