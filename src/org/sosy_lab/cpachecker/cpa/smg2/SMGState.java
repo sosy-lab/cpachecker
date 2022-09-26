@@ -2939,18 +2939,25 @@ public class SMGState
     return builder.toString();
   }
 
-  public SMGState abstractIntoDLL(SMGObject root, BigInteger nfo, BigInteger pfo)
+  public SMGState abstractIntoDLL(
+      SMGObject root, BigInteger nfo, BigInteger pfo, Set<SMGObject> alreadyVisited)
       throws SMG2Exception {
     // Check that the next object exists, is valid, has the same size and the same value in head
     Optional<SMGObject> maybeNext = getValidNextSLL(root, nfo);
-    if (maybeNext.isEmpty() || maybeNext.orElseThrow().equals(root)) {
+    if (maybeNext.isEmpty()
+        || maybeNext.orElseThrow().equals(root)
+        || alreadyVisited.contains(maybeNext.orElseThrow())) {
       return this;
     }
     SMGObject nextObj = maybeNext.orElseThrow();
     // Values not equal, continue traverse
     if (!checkEqualValuesForTwoStatesWithExcemptions(
         root, nextObj, ImmutableList.of(nfo, pfo), this, this, ImmutableSet.of())) {
-      return abstractIntoDLL(nextObj, nfo, pfo);
+      return abstractIntoDLL(
+          nextObj,
+          nfo,
+          pfo,
+          ImmutableSet.<SMGObject>builder().addAll(alreadyVisited).add(root).build());
     }
     // If it does, create a new SLL with the correct stuff
     // Copy the edges from the next object to the SLL
@@ -3040,20 +3047,28 @@ public class SMGState
     currentState =
         currentState.copyAndReplaceMemoryModel(
             currentState.memoryModel.copyAndRemoveObjectFromHeap(root));
-    return currentState.abstractIntoDLL(newDLL, nfo, pfo);
+    return currentState.abstractIntoDLL(
+        newDLL,
+        nfo,
+        pfo,
+        ImmutableSet.<SMGObject>builder().addAll(alreadyVisited).add(newDLL).build());
   }
 
-  public SMGState abstractIntoSLL(SMGObject root, BigInteger nfo) throws SMG2Exception {
+  public SMGState abstractIntoSLL(SMGObject root, BigInteger nfo, Set<SMGObject> alreadyVisited)
+      throws SMG2Exception {
     // Check that the next object exists, is valid, has the same size and the same value in head
     Optional<SMGObject> maybeNext = getValidNextSLL(root, nfo);
-    if (maybeNext.isEmpty() || maybeNext.orElseThrow().equals(root)) {
+    if (maybeNext.isEmpty()
+        || maybeNext.orElseThrow().equals(root)
+        || alreadyVisited.contains(maybeNext.orElseThrow())) {
       return this;
     }
     SMGObject nextObj = maybeNext.orElseThrow();
     // Values not equal, continue traverse
     if (!checkEqualValuesForTwoStatesWithExcemptions(
         root, nextObj, ImmutableList.of(nfo), this, this, ImmutableSet.of())) {
-      return abstractIntoSLL(nextObj, nfo);
+      return abstractIntoSLL(
+          nextObj, nfo, ImmutableSet.<SMGObject>builder().addAll(alreadyVisited).add(root).build());
     }
     // If it does, create a new SLL with the correct stuff
     // Copy the edges from the next object to the SLL
@@ -3119,7 +3134,8 @@ public class SMGState
     currentState =
         currentState.copyAndReplaceMemoryModel(
             currentState.memoryModel.copyAndRemoveObjectFromHeap(root));
-    return currentState.abstractIntoSLL(newSLL, nfo);
+    return currentState.abstractIntoSLL(
+        newSLL, nfo, ImmutableSet.<SMGObject>builder().addAll(alreadyVisited).add(newSLL).build());
   }
 
   private Optional<SMGObject> getValidNextSLL(SMGObject root, BigInteger nfo) {

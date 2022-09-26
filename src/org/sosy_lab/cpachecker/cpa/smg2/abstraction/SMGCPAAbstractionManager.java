@@ -66,7 +66,8 @@ public class SMGCPAAbstractionManager {
               currentState.abstractIntoDLL(
                   trueDLLCandidate.getObject(),
                   trueDLLCandidate.getSuspectedNfo(),
-                  maybePFO.orElseThrow());
+                  maybePFO.orElseThrow(),
+                  ImmutableSet.of());
         }
       } else {
         // We did not yet check for the values! Because we needed to know if there is a back pointer
@@ -82,7 +83,9 @@ public class SMGCPAAbstractionManager {
                 0)) {
           currentState =
               currentState.abstractIntoSLL(
-                  trueSLLCandidate.getObject(), trueSLLCandidate.getSuspectedNfo());
+                  trueSLLCandidate.getObject(),
+                  trueSLLCandidate.getSuspectedNfo(),
+                  ImmutableSet.of());
         }
       }
     }
