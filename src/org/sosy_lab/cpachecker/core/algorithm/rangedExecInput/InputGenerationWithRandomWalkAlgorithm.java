@@ -148,7 +148,7 @@ public class InputGenerationWithRandomWalkAlgorithm implements Algorithm {
     for (int i = 0; i < pComputedPath.size(); i++) {
       ARGPath path = pComputedPath.get(i);
       try {
-        List<Pair<CIdExpression, Integer>> inputs =
+        List<Pair<CIdExpression, Long>> inputs =
             utils.computeInputForRandomWalkPathNonIterative(
                 AbstractStates.extractStateByType(path.getLastState(), RandomWalkState.class),
                 path);

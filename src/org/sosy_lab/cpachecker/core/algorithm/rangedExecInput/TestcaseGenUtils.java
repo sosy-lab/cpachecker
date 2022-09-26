@@ -12,9 +12,8 @@ import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
-import java.io.BufferedWriter;
-import java.io.FileWriter;
 import java.io.IOException;
+import java.math.BigInteger;
 import java.nio.charset.Charset;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -47,6 +46,7 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
+import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.Formula;
 import org.sosy_lab.java_smt.api.Model;
 import org.sosy_lab.java_smt.api.ProverEnvironment;
@@ -54,7 +54,7 @@ import org.sosy_lab.java_smt.api.SolverContext.ProverOptions;
 import org.sosy_lab.java_smt.api.SolverException;
 
 public class TestcaseGenUtils {
-  private static final Integer DEFAULT_INT = 0;
+  private static final long DEFAULT_LONG = 0;
   private ImmutableSet<String> namesOfRandomFunctions;
   private Solver solver;
   private LogManager logger;
@@ -75,7 +75,7 @@ public class TestcaseGenUtils {
   }
 
 
-  public List<Pair<CIdExpression, Integer>> computeInputForRandomWalkPathNonIterative(
+  public List<Pair<CIdExpression, Long>> computeInputForRandomWalkPathNonIterative(
       RandomWalkState pState, ARGPath path) throws InterruptedException, SolverException, CPAException {
     {
       // Check, if the given path is sat by conjoining the path formulae of the abstraction
@@ -86,14 +86,15 @@ public class TestcaseGenUtils {
 
         try {
           prover.push();
-          prover.addConstraint(pState.getCurrentPathFormula().getFormula());
+          final BooleanFormula formula = pState.getCurrentPathFormula().getFormula();
+          prover.addConstraint(formula);
           boolean unsat = prover.isUnsat();
           if (unsat) {
             logger.log(
                 Level.INFO,
                 String.format(
                     "The formul'%s' is unsat, continuing with a shorter one",
-                    pState.getCurrentPathFormula().getFormula()));
+                    formula));
             if (pState.getLastBranchingPoint() != null) {
               return computeInputForRandomWalkPathNonIterative(pState.getLastBranchingPoint(), path);
             } else {
@@ -111,14 +112,14 @@ public class TestcaseGenUtils {
         // we now that the model is sat at this point
         logger.log(Level.FINEST, prover.isUnsat());
         Model m = prover.getModel();
-        List<Pair<CIdExpression, Integer>> inputs = matchInputsOnPath(path, m);
+        List<Pair<CIdExpression, Long>> inputs = matchInputsOnPath(path, m);
         logger.log(Level.INFO, inputs);
         return inputs;
       }
     }
   }
 
-  public List<Pair<CIdExpression, Integer>> computeInputForLoopbound(ARGPath pARGPath)
+  public List<Pair<CIdExpression, Long>> computeInputForLoopbound(ARGPath pARGPath)
       throws InterruptedException, SolverException, CPAException {
 
     // Check, if the given path is sat by conjoining the path formulae of the abstraction locations.
@@ -132,11 +133,12 @@ public class TestcaseGenUtils {
         @Nullable PredicateAbstractState predState =
             AbstractStates.extractStateByType(state, PredicateAbstractState.class);
         if (predState != null && predState.isAbstractionState()) {
+          final PathFormula blockFormula = predState.getAbstractionFormula().getBlockFormula();
           pf =
               pfManager.makeConjunction(
-                  Lists.newArrayList(pf, predState.getAbstractionFormula().getBlockFormula()));
+                  Lists.newArrayList(pf, blockFormula));
           try {
-            prover.addConstraint(predState.getAbstractionFormula().getBlockFormula().getFormula());
+            prover.addConstraint(blockFormula.getFormula());
             boolean unsat = prover.isUnsat();
             if (unsat) {
 
@@ -159,15 +161,16 @@ public class TestcaseGenUtils {
       }
       // we now that the model is sat at this point
       logger.log(Level.FINEST, prover.isUnsat());
+      logger.log(Level.INFO, pf.getFormula());
       Model m = prover.getModel();
 
-      List<Pair<CIdExpression, Integer>> inputs = matchInputsOnPath(pARGPath, m);
+      List<Pair<CIdExpression, Long>> inputs = matchInputsOnPath(pARGPath, m);
       logger.log(Level.INFO, inputs);
       return inputs;
     }
   }
 
-  public void printFileToPutput(List<Pair<CIdExpression, Integer>> pInputs, Path testcaseName)
+  public void printFileToPutput(List<Pair<CIdExpression, Long>> pInputs, Path testcaseName)
       throws IOException {
 
     logger.logf(Level.INFO, "Storing the testcase at %s", testcaseName.toAbsolutePath().toString());
@@ -177,7 +180,7 @@ public class TestcaseGenUtils {
     //        "<!DOCTYPE testcase PUBLIC \"+//IDN sosy-lab.org//DTD test-format testcase 1.1//EN\""
     //            + " \"https://sosy-lab.org/test-format/testcase-1.1.dtd\">");
     content.add("<testcase>");
-    for (Pair<CIdExpression, Integer> pair : pInputs) {
+    for (Pair<CIdExpression, Long> pair : pInputs) {
 
       CIdExpression var = pair.getFirst();
 
@@ -191,10 +194,10 @@ public class TestcaseGenUtils {
     IO.writeFile(testcaseName, Charset.defaultCharset(), Joiner.on("\n").join(content));
   }
 
-  private List<Pair<CIdExpression, Integer>> matchInputsOnPath(ARGPath pARGPath, Model pM)
+  private List<Pair<CIdExpression, Long>> matchInputsOnPath(ARGPath pARGPath, Model pM)
       throws CPAException, InterruptedException {
     PathIterator pathIterator = pARGPath.fullPathIterator();
-    List<Pair<CIdExpression, Integer>> results = new ArrayList<>();
+    List<Pair<CIdExpression, Long>> results = new ArrayList<>();
     do {
       if (pathIterator.isPositionWithState()) {
         final ARGState abstractState = pathIterator.getAbstractState();
@@ -207,7 +210,7 @@ public class TestcaseGenUtils {
               if (stmt instanceof CFunctionCallAssignmentStatement) {
                 CFunctionCallAssignmentStatement ass = (CFunctionCallAssignmentStatement) stmt;
                 if (leftIsVar(ass.getLeftHandSide()) && isRandomFctCall(ass.getRightHandSide())) {
-                  Optional<Integer> value =
+                  Optional<Long> value =
                       getIntegerValueFromModelForEdge(pM, abstractState, edge, ass);
                   if (value.isPresent()) {
                     results.add(Pair.of((CIdExpression) ass.getLeftHandSide(), value.get()));
@@ -230,7 +233,7 @@ public class TestcaseGenUtils {
     return results;
   }
 
-  private Optional<Integer> getIntegerValueFromModelForEdge(
+  private Optional<Long> getIntegerValueFromModelForEdge(
       Model pM, ARGState abstractState, @NonNull CFAEdge edge, CFunctionCallAssignmentStatement ass)
       throws InterruptedException, CPAException {
     @Nullable PredicateAbstractState predState =
@@ -259,9 +262,9 @@ public class TestcaseGenUtils {
     Formula varAsFormula = varMap.entrySet().stream().findFirst().get().getValue();
     Object evalRes = pM.evaluate(varAsFormula);
     if (evalRes instanceof Number) {
-      return Optional.of(((Number) evalRes).intValue());
+      return Optional.of(((Number) evalRes).longValue());
     } else if (evalRes == null) {
-      return Optional.of(DEFAULT_INT);
+      return Optional.of(DEFAULT_LONG);
     }
     return Optional.empty();
   }

@@ -137,7 +137,7 @@ public class RangedExecutionInputComputation implements Algorithm {
             "There are more than one path present. We cannot compute a testcase for this!");
       }
       try {
-        List<Pair<CIdExpression, Integer>> inputs =
+        List<Pair<CIdExpression, Long>> inputs =
             utils.computeInputForLoopbound(paths.stream().findFirst().get());
         utils.printFileToPutput(inputs, testcaseName);
         return AlgorithmStatus.NO_PROPERTY_CHECKED;
