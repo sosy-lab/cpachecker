@@ -1175,7 +1175,6 @@ public class SymbolicProgramConfiguration {
     for (Entry<String, SMGObject> globalEntry : globalVariableMapping.entrySet()) {
       String qualifiedName = globalEntry.getKey();
       SMGObject memory = globalEntry.getValue();
-      Preconditions.checkArgument(smg.isValid(memory));
       variableNameToMemorySizeInBits.put(qualifiedName, memory.getSize());
     }
 
@@ -1183,7 +1182,6 @@ public class SymbolicProgramConfiguration {
       for (Entry<String, SMGObject> localVariable : stackframe.getVariables().entrySet()) {
         String qualifiedName = localVariable.getKey();
         SMGObject memory = localVariable.getValue();
-        Preconditions.checkArgument(smg.isValid(memory));
         variableNameToMemorySizeInBits.put(qualifiedName, memory.getSize());
       }
     }
