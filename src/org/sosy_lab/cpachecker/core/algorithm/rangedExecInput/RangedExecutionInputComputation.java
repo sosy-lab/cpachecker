@@ -34,9 +34,11 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.reachedset.PartitionedReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.cpa.aggressiveloopbound.AggressiveLoopBoundCPA;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
+import org.sosy_lab.cpachecker.cpa.automaton.ControlAutomatonCPA;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
@@ -92,6 +94,14 @@ public class RangedExecutionInputComputation implements Algorithm {
     PredicateCPA predCPA =
         CPAs.retrieveCPAOrFail(pCpa, PredicateCPA.class, RangedExecutionInputComputation.class);
     solver = predCPA.getSolver();
+    ControlAutomatonCPA automatonCPA =
+        CPAs.retrieveCPAOrFail(pCpa, ControlAutomatonCPA.class, RangedExecutionInputComputation.class);
+
+    AggressiveLoopBoundCPA loopBoundCPA =
+        CPAs.retrieveCPAOrFail(pCpa, AggressiveLoopBoundCPA.class, RangedExecutionInputComputation.class);
+    loopBoundCPA.setAutomatonTramsferRelation(
+    automatonCPA.getTransferRelation());
+
     fmgr = solver.getFormulaManager();
     PathFormulaManager pfManager = predCPA.getPathFormulaManager();
     utils = new TestcaseGenUtils(namesOfRandomFunctions, solver, logger, pfManager, fmgr);
@@ -117,12 +127,12 @@ public class RangedExecutionInputComputation implements Algorithm {
 
     // run algorithm
     AlgorithmStatus status = algorithm.run(reached);
-    if (reached.hasWaitingState()) {
-      // Nested algortihm is not finished, hence do another round by returning to loop in calling
-      // class
-      return status;
-
-    } else {
+//    if (reached.hasWaitingState()) {
+//      // Nested algortihm is not finished, hence do another round by returning to loop in calling
+//      // class
+//      return status;
+//
+//    } else {
 
       AbstractState last = reached.getLastState();
       AbstractState first = reached.getFirstState();
@@ -144,7 +154,7 @@ public class RangedExecutionInputComputation implements Algorithm {
         throw new CPAException(Throwables.getStackTraceAsString(pE));
       }
     }
-  }
+//  }
 
   private boolean hasRandom() {
     for (CFANode node : cfa.getAllNodes()) {

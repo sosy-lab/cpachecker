@@ -137,7 +137,12 @@ public class AgressiveLoopBoundState implements AbstractState, Targetable, Graph
         .map(
             e ->
                 String.format("Loop: %s -> %s", e.getKey().getLoopHeads().toString(), e.getValue()))
-        .collect(Collectors.joining());
+        .collect(Collectors.joining()) + System.lineSeparator()+"Stack:"+
+        this.loopStack.stream()
+            .map(
+                e ->
+                   e.getLoopHeads().toString())
+            .collect(Collectors.joining());
   }
 
   @Override
@@ -149,5 +154,9 @@ public class AgressiveLoopBoundState implements AbstractState, Targetable, Graph
     this.loopStack.addFirst(pEnteredLoop);
     this.loopHeadsVisited.putIfAbsent(pEnteredLoop, 0);
     return this.copy();
+  }
+
+  public ArrayDeque<Loop> getLoopStack() {
+    return loopStack;
   }
 }

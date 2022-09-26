@@ -28,17 +28,21 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
+import org.sosy_lab.cpachecker.core.algorithm.rangedExecInput.RangedExecutionInputComputation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.reachedset.PartitionedReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.cpa.aggressiveloopbound.AggressiveLoopBoundCPA;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
+import org.sosy_lab.cpachecker.cpa.automaton.ControlAutomatonCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CFAEdgeUtils;
 import org.sosy_lab.cpachecker.util.CFAUtils;
+import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.java_smt.api.SolverException;
 
 @Options(prefix = "cpa.rangedExecutionInput")
@@ -78,6 +82,13 @@ public class RangedExecutionInputComputationSequence implements Algorithm {
     LogManager logger = Objects.requireNonNull(pLogger);
 
     utils = new SequenceGenUtils(namesOfRandomFunctions, logger);
+    ControlAutomatonCPA automatonCPA =
+        CPAs.retrieveCPAOrFail(pCpa, ControlAutomatonCPA.class, RangedExecutionInputComputation.class);
+
+    AggressiveLoopBoundCPA loopBoundCPA =
+        CPAs.retrieveCPAOrFail(pCpa, AggressiveLoopBoundCPA.class, RangedExecutionInputComputation.class);
+    loopBoundCPA.setAutomatonTramsferRelation(
+        automatonCPA.getTransferRelation());
     if (testcaseName == null) {
       testcaseName = Path.of("output/testcase.0.xml");
     }

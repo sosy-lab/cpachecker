@@ -19,7 +19,9 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
+import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.pcc.ProofChecker.ProofCheckerCPA;
+import org.sosy_lab.cpachecker.cpa.automaton.AutomatonTransferRelation;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.LoopStructure;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
@@ -52,5 +54,15 @@ public class AggressiveLoopBoundCPA extends AbstractCPA implements ProofCheckerC
       initialState = initialState.visitLoopHeadInitially(loop);
     }
     return initialState;
+  }
+
+  @Override
+  public AgressiveLoopBoundTransferRelation getTransferRelation() {
+    assert super.getTransferRelation() instanceof AgressiveLoopBoundTransferRelation;
+    return (AgressiveLoopBoundTransferRelation) super.getTransferRelation();
+  }
+
+  public void setAutomatonTramsferRelation(AutomatonTransferRelation pTransferRelation) {
+    this.getTransferRelation().setAutomatonTransferRelation(pTransferRelation);
   }
 }

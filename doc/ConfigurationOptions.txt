@@ -1178,6 +1178,9 @@ cpa.acsl.usePureExpressionsOnly = true
 # threshold for unrolling loops of the program (0 is infinite)
 cpa.aggressiveloopbound.maxLoopIterations = 0
 
+# if there is a branch not associated with a loop, only take the left branch.
+cpa.aggressiveloopbound.useLeftPathInsideLoops = true
+
 # if there is a branch not associated with a loop, only take the right
 # branch.
 cpa.aggressiveloopbound.useRigthPath = true

@@ -27,6 +27,7 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
+import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
@@ -34,8 +35,12 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
 import org.sosy_lab.cpachecker.core.defaults.SingleEdgeTransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
+import org.sosy_lab.cpachecker.cpa.alwaystop.AlwaysTopPrecision;
+import org.sosy_lab.cpachecker.cpa.automaton.AutomatonState;
+import org.sosy_lab.cpachecker.cpa.automaton.AutomatonTransferRelation;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
+import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 
 @Options(prefix = "cpa.aggressiveloopbound")
@@ -64,6 +69,13 @@ public class AgressiveLoopBoundTransferRelation extends SingleEdgeTransferRelati
       secure = true,
       description = "if there is a branch not associated with a loop, only take the right branch.")
   private boolean useRigthPath = true;
+
+  @Option(
+      secure = true,
+      description = "if there is a branch not associated with a loop, only take the left branch.")
+  private boolean useLeftPathInsideLoops = true;
+
+  private @Nullable AutomatonTransferRelation automatonTransferRelation;
 
   AgressiveLoopBoundTransferRelation(Configuration pConfig, CFA pCFA, LogManager pLogger)
       throws CPAException, InvalidConfigurationException {
@@ -168,20 +180,43 @@ public class AgressiveLoopBoundTransferRelation extends SingleEdgeTransferRelati
       }
     }
 
-    if (useRigthPath && pCfaEdge instanceof AssumeEdge) {
-      AssumeEdge assume = (AssumeEdge) pCfaEdge;
-      if ((!assume.isSwapped() && assume.getTruthAssumption())
-          || (assume.isSwapped() && !assume.getTruthAssumption())) {
-        // Abort, as not the rightmost edge
-        logger.log(
-            Level.FINE,
-            String.format(
-                "Visiting edge %s, is not the rightmost edge, hence dont proceed", pCfaEdge));
-        return ImmutableList.of();
+    return Collections.singleton(state);
+  }
+
+  private boolean otherEdgeLeadsToTargetStateOrIsBreak(
+      AssumeEdge pAssume, Iterable<AbstractState> otherStates) {
+    CFANode successor = CFAUtils.getComplimentaryAssumeEdge(pAssume).getSuccessor();
+    if (successor.getNumLeavingEdges() == 1 && this.automatonTransferRelation != null) {
+      CFAEdge successorEdge = successor.getLeavingEdge(0);
+      if (successorEdge instanceof BlankEdge && successorEdge.getDescription().contains("break")) {
+        return true;
+      }
+      if (successorEdge instanceof BlankEdge
+          && successorEdge.getDescription().contains("Label")
+          && successorEdge.getSuccessor().getNumLeavingEdges() == 1) {
+        successorEdge = successorEdge.getSuccessor().getLeavingEdge(0);
+      }
+      return edgeLeadsToTargetState(successorEdge, otherStates);
+    }
+    return false;
+  }
+
+  private boolean edgeLeadsToTargetState(
+      CFAEdge pSuccessorEdge, Iterable<AbstractState> pOtherStates) {
+    for (AbstractState otherState : pOtherStates) {
+      if (otherState instanceof AutomatonState) {
+        AutomatonState other = (AutomatonState) otherState;
+        try {
+          Collection<AutomatonState> potentialTargetState =
+              automatonTransferRelation.getAbstractSuccessorsForEdge(
+                  other, AlwaysTopPrecision.INSTANCE, pSuccessorEdge);
+          return potentialTargetState.stream().anyMatch(s -> s.isTarget());
+        } catch (CPATransferException pE) {
+          return false;
+        }
       }
     }
-
-    return Collections.singleton(state);
+    return false;
   }
 
   private boolean proceedWithLoop(AgressiveLoopBoundState pState, Loop pOldLoop) {
@@ -192,14 +227,68 @@ public class AgressiveLoopBoundTransferRelation extends SingleEdgeTransferRelati
   public Collection<? extends AbstractState> strengthen(
       AbstractState state,
       Iterable<AbstractState> otherStates,
-      @Nullable CFAEdge cfaEdge,
+      @Nullable CFAEdge pCfaEdge,
       Precision precision)
       throws CPATransferException, InterruptedException {
+    assert state instanceof AgressiveLoopBoundState;
+    AgressiveLoopBoundState loopState = (AgressiveLoopBoundState) state;
+    // Do not explore target states within the loop, hence stop if the next state would be a target
+    // state
 
+    if (!((AgressiveLoopBoundState) state).getLoopStack().isEmpty()
+        && pCfaEdge.getSuccessor().getNumLeavingEdges() == 1
+        && edgeLeadsToTargetState(pCfaEdge.getSuccessor().getLeavingEdge(0), otherStates)) {
+      logger.log(
+          Level.FINE,
+          String.format(
+              "Stoping at edge  %s, as it would lead to a target state within the loop", pCfaEdge));
+      return Collections.emptySet();
+    }
+
+    if (useLeftPathInsideLoops && pCfaEdge instanceof AssumeEdge) {
+      AssumeEdge assumeState = (AssumeEdge) pCfaEdge;
+      if (!loopState.getLoopStack().isEmpty()) {
+        if ((assumeState.isSwapped() && assumeState.getTruthAssumption())
+            || (!assumeState.isSwapped() && !assumeState.getTruthAssumption())) {
+
+          if (!otherEdgeLeadsToTargetStateOrIsBreak(assumeState, otherStates)) {
+
+            // Abort, as not the leftmost edge
+            logger.log(
+                Level.FINE,
+                String.format(
+                    "Visiting edge %s, is not the leftmost edge inside a loop, hence dont proceed",
+                    pCfaEdge));
+            return ImmutableList.of();
+          }
+        }
+      }
+    }
+
+    if (useRigthPath && pCfaEdge instanceof AssumeEdge && loopState.getLoopStack().isEmpty()) {
+      //    if (useRigthPath && pCfaEdge instanceof AssumeEdge) {
+      AssumeEdge assume = (AssumeEdge) pCfaEdge;
+      if ((!assume.isSwapped() && assume.getTruthAssumption())
+          || (assume.isSwapped() && !assume.getTruthAssumption())) {
+        if (false && !otherEdgeLeadsToTargetStateOrIsBreak(assume, otherStates)) {
+          // Abort, as not the rightmost edge
+          logger.log(
+              Level.FINE,
+              String.format(
+                  "Visiting edge %s, is not the rightmost edge, hence dont proceed", pCfaEdge));
+          return ImmutableList.of();
+        }
+      }
+    }
     if (((AgressiveLoopBoundState) state).isStop()) {
+      logger.log(Level.FINE, String.format("Stoping at edge %s, as stop is set", pCfaEdge));
       return ImmutableList.of();
     } else {
       return Collections.singleton(state);
     }
+  }
+
+  public void setAutomatonTransferRelation(AutomatonTransferRelation pTransferRelation) {
+    this.automatonTransferRelation = pTransferRelation;
   }
 }
