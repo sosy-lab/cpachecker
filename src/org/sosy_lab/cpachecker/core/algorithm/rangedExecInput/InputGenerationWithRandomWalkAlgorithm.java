@@ -107,7 +107,7 @@ public class InputGenerationWithRandomWalkAlgorithm implements Algorithm {
             pLogger,
             predicateCPA.getPathFormulaManager(),
             solver.getFormulaManager());
-    if (testcaseName == null){
+    if (testcaseName == null) {
       testcaseName = PathTemplate.ofFormatString("testcase.%d.xml");
     }
   }

@@ -45,8 +45,6 @@ import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.pcc.ProofChecker.ProofCheckerCPA;
 import org.sosy_lab.cpachecker.cpa.rangedAnalysisSequence.SequenceBoundAnalysis.SequenceCPA;
 import org.sosy_lab.cpachecker.cpa.rangedAnalysisSequence.SequenceBoundAnalysis.SequenceState;
-import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisCPA;
-import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 @Options(prefix = "cpa.rangedAnalysis")
@@ -166,7 +164,8 @@ public class RangedAnalysisCPA extends AbstractCPA implements ProofCheckerCPA {
     ConfigurationBuilder builder = Configuration.builder().copyFrom(config);
 
     if (Objects.nonNull(pPath)) {
-      builder.setOption("cpa.sequenceCPA.stopIfUnderspecifiedTestcase",Boolean.toString(pIsUpperBound));
+      builder.setOption(
+          "cpa.sequenceCPA.stopIfUnderspecifiedTestcase", Boolean.toString(pIsUpperBound));
       builder.setOption("cpa.sequenceCPA.path2Bound", pPath.toAbsolutePath().toString());
     }
     CPAFactory factory =

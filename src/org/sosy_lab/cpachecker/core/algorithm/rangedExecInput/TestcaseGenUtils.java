@@ -13,7 +13,6 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 import java.io.IOException;
-import java.math.BigInteger;
 import java.nio.charset.Charset;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -74,9 +73,9 @@ public class TestcaseGenUtils {
     fmgr = pFmgr;
   }
 
-
   public List<Pair<CIdExpression, Long>> computeInputForRandomWalkPathNonIterative(
-      RandomWalkState pState, ARGPath path) throws InterruptedException, SolverException, CPAException {
+      RandomWalkState pState, ARGPath path)
+      throws InterruptedException, SolverException, CPAException {
     {
       // Check, if the given path is sat by conjoining the path formulae of the abstraction
       // locations.
@@ -92,11 +91,10 @@ public class TestcaseGenUtils {
           if (unsat) {
             logger.log(
                 Level.INFO,
-                String.format(
-                    "The formul'%s' is unsat, continuing with a shorter one",
-                    formula));
+                String.format("The formul'%s' is unsat, continuing with a shorter one", formula));
             if (pState.getLastBranchingPoint() != null) {
-              return computeInputForRandomWalkPathNonIterative(pState.getLastBranchingPoint(), path);
+              return computeInputForRandomWalkPathNonIterative(
+                  pState.getLastBranchingPoint(), path);
             } else {
               throw new CPAException(
                   String.format(
@@ -134,9 +132,7 @@ public class TestcaseGenUtils {
             AbstractStates.extractStateByType(state, PredicateAbstractState.class);
         if (predState != null && predState.isAbstractionState()) {
           final PathFormula blockFormula = predState.getAbstractionFormula().getBlockFormula();
-          pf =
-              pfManager.makeConjunction(
-                  Lists.newArrayList(pf, blockFormula));
+          pf = pfManager.makeConjunction(Lists.newArrayList(pf, blockFormula));
           try {
             prover.addConstraint(blockFormula.getFormula());
             boolean unsat = prover.isUnsat();

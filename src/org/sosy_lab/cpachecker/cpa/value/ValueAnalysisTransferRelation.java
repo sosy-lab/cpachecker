@@ -131,7 +131,7 @@ public class ValueAnalysisTransferRelation
   // set of functions that may not appear in the source code
   // the value of the map entry is the explanation for the user
   private static final ImmutableMap<String, String> UNSUPPORTED_FUNCTIONS = ImmutableMap.of();
-  private static final Level LEVELWARN = Level.WARNING ;
+  private static final Level LEVELWARN = Level.WARNING;
 
   @Options(prefix = "cpa.value")
   public static class ValueTransferOptions {
@@ -176,7 +176,9 @@ public class ValueAnalysisTransferRelation
 
     @Option(
         secure = true,
-        description = "Instead of aborting the computation, if no sucessor state is known, the state is cleard (all values are forgotten) and the analysis continues.")
+        description =
+            "Instead of aborting the computation, if no sucessor state is known, the state is"
+                + " cleard (all values are forgotten) and the analysis continues.")
     private boolean forgetValuesInsteadOfAbort = false;
 
     public ValueTransferOptions(Configuration config) throws InvalidConfigurationException {
@@ -340,11 +342,13 @@ public class ValueAnalysisTransferRelation
         boolean shouldStop =
             unknownValueHandler.handle(formalParamName, paramType, newElement, visitor, exp);
         if (shouldStop) {
-          if (options.isForgetValuesInsteadOfAbort()){
+          if (options.isForgetValuesInsteadOfAbort()) {
             newElement.forgetAll();
-          }else{
-            logger.log(LEVELWARN, "Aborting analysis because of missing value for random function.");
-          return null;}
+          } else {
+            logger.log(
+                LEVELWARN, "Aborting analysis because of missing value for random function.");
+            return null;
+          }
         }
 
       } else {
@@ -504,10 +508,13 @@ public class ValueAnalysisTransferRelation
                     v,
                     null); // TODO:  check if  nullthis is correct
             if (shouldStop) {
-              if (options.isForgetValuesInsteadOfAbort()){
+              if (options.isForgetValuesInsteadOfAbort()) {
                 newElement.forgetAll();
-              }else{   logger.log(LEVELWARN, "Aborting analysis because of missing value for random function.");
-                return null;}
+              } else {
+                logger.log(
+                    LEVELWARN, "Aborting analysis because of missing value for random function.");
+                return null;
+              }
             }
 
           } else {
@@ -767,10 +774,12 @@ public class ValueAnalysisTransferRelation
           unknownValueHandler.handle(
               memoryLocation, declarationType, newElement, getVisitor(), null);
       if (shouldStop) {
-        if (options.isForgetValuesInsteadOfAbort()){
+        if (options.isForgetValuesInsteadOfAbort()) {
           newElement.forgetAll();
-        }else{   logger.log(LEVELWARN, "Aborting analysis because of missing value for random function.");
-          return null;}
+        } else {
+          logger.log(LEVELWARN, "Aborting analysis because of missing value for random function.");
+          return null;
+        }
       }
 
     } else {
@@ -898,10 +907,13 @@ public class ValueAnalysisTransferRelation
             unknownValueHandler.handle(
                 memLoc.orElseThrow(), leftSideType, newElement, evv, functionCallExp);
         if (shouldStop) {
-          if (options.isForgetValuesInsteadOfAbort()){
+          if (options.isForgetValuesInsteadOfAbort()) {
             newElement.forgetAll();
-          }else{   logger.log(LEVELWARN, "Aborting analysis because of missing value for random function.");
-            return null;}
+          } else {
+            logger.log(
+                LEVELWARN, "Aborting analysis because of missing value for random function.");
+            return null;
+          }
         }
       }
     }
@@ -1124,10 +1136,13 @@ public class ValueAnalysisTransferRelation
         boolean shouldStop =
             unknownValueHandler.handle(assignedVar, lType, newElement, visitor, exp);
         if (shouldStop) {
-          if (options.isForgetValuesInsteadOfAbort()){
+          if (options.isForgetValuesInsteadOfAbort()) {
             newElement.forgetAll();
-          }else{   logger.log(LEVELWARN, "Aborting analysis because of missing value for random function.");
-            return null;}
+          } else {
+            logger.log(
+                LEVELWARN, "Aborting analysis because of missing value for random function.");
+            return null;
+          }
         }
 
       } else {

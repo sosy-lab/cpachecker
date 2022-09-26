@@ -135,8 +135,7 @@ public class InputGenerationWithRandomWalkAlgorithmSequence implements Algorithm
     for (int i = 0; i < pComputedPath.size(); i++) {
       ARGPath path = pComputedPath.get(i);
       try {
-        List<Boolean> inputs =
-            utils.computeSequenceForLoopbound(path);
+        List<Boolean> inputs = utils.computeSequenceForLoopbound(path);
         utils.printFileToOutput(inputs, testcaseName.getPath(i));
       } catch (SolverException | IOException | InterruptedException pE) {
         throw new CPAException(Throwables.getStackTraceAsString(pE));

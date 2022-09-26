@@ -33,7 +33,6 @@ import org.sosy_lab.cpachecker.core.interfaces.pcc.ProofChecker.ProofCheckerCPA;
 @Options(prefix = "cpa.sequenceCPA")
 public class SequenceCPA extends AbstractCPA implements ProofCheckerCPA {
 
-
   @Option(
       secure = true,
       description =
@@ -42,40 +41,38 @@ public class SequenceCPA extends AbstractCPA implements ProofCheckerCPA {
   @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
   protected Path path2Bound = null;
 
-  @Option(
-      secure = true,
-      description = "Stop if the list of decisions taken is empty.")
+  @Option(secure = true, description = "Stop if the list of decisions taken is empty.")
   protected boolean stopIfUnderspecifiedTestcase = false;
-
 
   private List<Boolean> decisionNodes = new ArrayList<>();
 
   public static CPAFactory factory() {
     return AutomaticCPAFactory.forType(SequenceCPA.class);
-
   }
 
   SequenceCPA(Configuration pConfig, CFA pCFA, LogManager pLogger)
       throws InvalidConfigurationException {
     super("sep", "sep", new SequenceTransferRelation(pCFA, pLogger));
     pConfig.inject(this);
-        if (path2Bound != null) {
-          decisionNodes = readDecisionNodes(path2Bound);
-        }
+    if (path2Bound != null) {
+      decisionNodes = readDecisionNodes(path2Bound);
+    }
   }
 
   private List<Boolean> readDecisionNodes(Path pPath2Bound) throws InvalidConfigurationException {
     try {
-      return Files.readAllLines(pPath2Bound, Charset.defaultCharset()).stream().map(line -> line.equals("true")).collect(ArrayList::new, ArrayList::add, ArrayList::addAll);
+      return Files.readAllLines(pPath2Bound, Charset.defaultCharset()).stream()
+          .map(line -> line.equals("true"))
+          .collect(ArrayList::new, ArrayList::add, ArrayList::addAll);
     } catch (IOException pE) {
-      throw new InvalidConfigurationException("Could not read decision nodes from file " + pPath2Bound, pE);
+      throw new InvalidConfigurationException(
+          "Could not read decision nodes from file " + pPath2Bound, pE);
     }
   }
 
-
   @Override
   public SequenceTransferRelation getTransferRelation() {
-    assert  super.getTransferRelation() instanceof SequenceTransferRelation;
+    assert super.getTransferRelation() instanceof SequenceTransferRelation;
     return (SequenceTransferRelation) super.getTransferRelation();
   }
 

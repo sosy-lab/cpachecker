@@ -156,9 +156,8 @@ public class RangedAnalysisCPA extends AbstractCPA implements ProofCheckerCPA {
     ConfigurationBuilder builder = Configuration.builder().copyFrom(config);
 
     if (Objects.nonNull(pPath)) {
-      builder.setOption(
-          "cpa.value.stopIfAllValuesForUnknownAreUsed", Boolean.toString(true));
-      builder.setOption("cpa.value.forgetValuesInsteadOfAbort",Boolean.toString(!pIsUpperBound));
+      builder.setOption("cpa.value.stopIfAllValuesForUnknownAreUsed", Boolean.toString(true));
+      builder.setOption("cpa.value.forgetValuesInsteadOfAbort", Boolean.toString(!pIsUpperBound));
       builder.setOption("cpa.value.unknownValueHandling", "FROM_INPUT_FOR_VERIFIER_NONDET");
       builder.setOption("cpa.value.functionValuesForRandom", pPath.toAbsolutePath().toString());
     }

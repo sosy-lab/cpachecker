@@ -22,8 +22,6 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.cpa.rangedAnalysisSequence.SequenceBoundAnalysis.SequenceState;
 import org.sosy_lab.cpachecker.cpa.rangedAnalysisSequence.SequenceBoundAnalysis.SequenceTransferRelation;
-import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
-import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisTransferRelation;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 
@@ -138,8 +136,7 @@ public class RangedAnalysisTransferRelation extends SingleEdgeTransferRelation {
     return super.strengthen(pState, pOtherStates, pCfaEdge, pPrecision);
   }
 
-  public void setCPTRs(
-      SequenceTransferRelation pLeftTR, SequenceTransferRelation pRightTR) {
+  public void setCPTRs(SequenceTransferRelation pLeftTR, SequenceTransferRelation pRightTR) {
     this.leftTR = pLeftTR;
     this.rightTR = pRightTR;
   }

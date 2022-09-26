@@ -14,7 +14,6 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.core.defaults.LatticeAbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Graphable;
 import org.sosy_lab.cpachecker.cpa.rangedAnalysisSequence.SequenceBoundAnalysis.SequenceState;
-import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 
 public class RangedAnalysisState
     implements LatticeAbstractState<RangedAnalysisState>, Serializable, Graphable {

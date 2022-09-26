@@ -115,7 +115,6 @@ public class RangedExecutionInputComputation implements Algorithm {
 
     PartitionedReachedSet reached = (PartitionedReachedSet) pReached;
 
-
     // run algorithm
     AlgorithmStatus status = algorithm.run(reached);
     if (reached.hasWaitingState()) {

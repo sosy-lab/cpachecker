@@ -82,7 +82,8 @@ public class PredefinedValueAssinger implements MemoryLocationValueHandler {
       // Nothing to do here, as we are not able to lead the additional information, hence ignoring
       // the file
       logger.logUserException(
-          Level.WARNING,e,
+          Level.WARNING,
+          e,
           String.format(
               "Ignoring the additionally given file 'functionValuesForRandom' %s due to an error",
               functionValuesForRandom));
