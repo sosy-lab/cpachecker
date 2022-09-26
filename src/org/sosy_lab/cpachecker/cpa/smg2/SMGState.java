@@ -3120,9 +3120,16 @@ public class SMGState
    */
   public SMGState invalidateVariable(MemoryLocation variable) {
     if (isLocalOrGlobalVariablePresent(variable)) {
-      return copyAndReplaceMemoryModel(
-          memoryModel.invalidateSMGObject(
-              memoryModel.getObjectForVisibleVariable(variable.getQualifiedName()).orElseThrow()));
+      Optional<SMGObject> maybeVariableObject =
+          memoryModel.getObjectForVisibleVariable(variable.getQualifiedName());
+      if (maybeVariableObject.isPresent()) {
+        // Get objects present outside of the current scope
+        Set<SMGObject> otherPresentObjects = memoryModel.getObjectsValidInOtherStackFrames();
+        if (!otherPresentObjects.contains(maybeVariableObject.orElseThrow())) {
+          return copyAndReplaceMemoryModel(
+              memoryModel.invalidateSMGObject(maybeVariableObject.orElseThrow()));
+        }
+      }
     }
     return this;
   }
