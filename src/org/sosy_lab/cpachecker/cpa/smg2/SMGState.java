@@ -1195,9 +1195,6 @@ public class SMGState
               .getHasValueEdgesByPredicate(
                   otherObject, e -> !excemptOffsets.contains(e.getOffset()));
     }
-    if (otherHVEs.size() > thisHVEs.size()) {
-      return false;
-    }
 
     Map<BigInteger, SMGHasValueEdge> otherOffsetToHVEdgeMap = new HashMap<>();
     for (SMGHasValueEdge hve : otherHVEs) {
@@ -1226,6 +1223,26 @@ public class SMGState
       Value thisHVEValue =
           thisState.memoryModel.getValueFromSMGValue(thisHVE.hasValue()).orElseThrow();
       // These values are either numeric, pointer or unknown
+      if (!areValuesEqual(thisState, thisHVEValue, otherState, otherHVEValue, thisAlreadyChecked)) {
+        return false;
+      }
+    }
+    // At this point we know that from the perspective of other, this is equal or greater
+    // Now we need to know if it is reverse also
+    for (SMGHasValueEdge thisHVE : thisHVEs) {
+      BigInteger thisOffset = thisHVE.getOffset();
+      SMGHasValueEdge otherHVE = otherOffsetToHVEdgeMap.get(thisOffset);
+      if (otherHVE == null || thisHVE.getSizeInBits().compareTo(thisHVE.getSizeInBits()) != 0) {
+        return false;
+      }
+      // Check the Value (not the SMGValue!). If a SMGValue exists, a Value mapping exists.
+      Value otherHVEValue =
+          otherState.memoryModel.getValueFromSMGValue(otherHVE.hasValue()).orElseThrow();
+      Value thisHVEValue =
+          thisState.memoryModel.getValueFromSMGValue(thisHVE.hasValue()).orElseThrow();
+      // These values are either numeric, pointer or unknown
+      // Nothing == symbolic; symbolic != concrete and everything != pointer expect the same
+      // pointer!
       if (!areValuesEqual(thisState, thisHVEValue, otherState, otherHVEValue, thisAlreadyChecked)) {
         return false;
       }
