@@ -532,12 +532,13 @@ public class SMGTransferRelation
         SMGObject newMemory =
             currentState.getMemoryModel().getObjectForVisibleVariable(varName).orElseThrow();
 
-        currentState.copySMGObjectContentToSMGObject(
-            maybeKnownMemory.orElseThrow(),
-            offsetSource,
-            newMemory,
-            BigInteger.ZERO,
-            newMemory.getSize().subtract(offsetSource));
+        currentState =
+            currentState.copySMGObjectContentToSMGObject(
+                maybeKnownMemory.orElseThrow(),
+                offsetSource,
+                newMemory,
+                BigInteger.ZERO,
+                newMemory.getSize().subtract(offsetSource));
       } else {
       currentState =
           evaluator.writeValueToNewVariableBasedOnTypes(
