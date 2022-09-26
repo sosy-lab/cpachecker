@@ -503,8 +503,41 @@ public class SMGTransferRelation
         } else if (knownMemoryAndState.getOffsetForObject().compareTo(BigInteger.ZERO) != 0) {
           throw new SMG2Exception("Could not associate a local array in a new function.");
         }
+        // arrays don't get copied! They are handled via pointers.
         SMGObject knownMemory = knownMemoryAndState.getSMGObject();
         currentState = currentState.copyAndAddLocalVariable(knownMemory, varName, cParamType);
+      } else if (SMGCPAValueExpressionEvaluator.isStructOrUnionType(valueType)
+          && SMGCPAValueExpressionEvaluator.isStructOrUnionType(cParamType)) {
+
+        Preconditions.checkArgument(paramValue instanceof SymbolicIdentifier);
+        Preconditions.checkArgument(
+            ((SymbolicIdentifier) paramValue).getRepresentedLocation().isPresent());
+        MemoryLocation locationInPrevStackFrame =
+            ((SymbolicIdentifier) paramValue).getRepresentedLocation().orElseThrow();
+        Optional<SMGObject> maybeKnownMemory =
+            currentState
+                .getMemoryModel()
+                .getObjectForVisibleVariableFromPreviousStackframe(
+                    locationInPrevStackFrame.getQualifiedName());
+        if (maybeKnownMemory.isEmpty()) {
+          throw new SMG2Exception("Usage of unknown variable in function " + callEdge);
+        }
+        // Structs get copies
+        BigInteger offsetSource = BigInteger.valueOf(locationInPrevStackFrame.getOffset());
+        currentState =
+            currentState.copyAndAddLocalVariable(
+                maybeKnownMemory.orElseThrow().getSize().subtract(offsetSource),
+                varName,
+                cParamType);
+        SMGObject newMemory =
+            currentState.getMemoryModel().getObjectForVisibleVariable(varName).orElseThrow();
+
+        currentState.copySMGObjectContentToSMGObject(
+            maybeKnownMemory.orElseThrow(),
+            offsetSource,
+            newMemory,
+            BigInteger.ZERO,
+            newMemory.getSize().subtract(offsetSource));
       } else {
       currentState =
           evaluator.writeValueToNewVariableBasedOnTypes(
