@@ -2814,11 +2814,22 @@ public class SMGState
       memory = getMemoryModel().getObjectForVariable(qualifiedName).orElseThrow();
     }
 
-    SMGHasValueEdge edgeToRemove =
+    Optional<SMGHasValueEdge> maybeEdgeToRemove =
         memoryModel
             .getSmg()
-            .getHasValueEdgeByPredicate(memory, o -> o.getOffset().compareTo(offsetInBits) == 0)
-            .orElseThrow();
+            .getHasValueEdgeByPredicate(memory, o -> o.getOffset().compareTo(offsetInBits) == 0);
+    // It can be that the edge is already removed, i.e. through shared memory i.e. arrays
+    if (maybeEdgeToRemove.isEmpty()) {
+      return new StateAndInfo<>(
+          this,
+          new SMGInformation(
+              PathCopyingPersistentTreeMap.<MemoryLocation, ValueAndValueSize>of(),
+              getMemoryModel().getSizeObMemoryForSPCWithoutHeap(),
+              memoryModel.getVariableTypeMap(),
+              memoryModel.getFunctionDeclarationsFromStackFrames()));
+    }
+
+    SMGHasValueEdge edgeToRemove = maybeEdgeToRemove.orElseThrow();
 
     Value removedValue = memoryModel.getValueFromSMGValue(edgeToRemove.hasValue()).orElseThrow();
 
