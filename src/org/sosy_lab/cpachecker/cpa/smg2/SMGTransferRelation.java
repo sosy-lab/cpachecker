@@ -540,9 +540,9 @@ public class SMGTransferRelation
                 BigInteger.ZERO,
                 newMemory.getSize().subtract(offsetSource));
       } else {
-      currentState =
-          evaluator.writeValueToNewVariableBasedOnTypes(
-              paramValue, cParamType, valueType, varName, currentState);
+        currentState =
+            evaluator.writeValueToNewVariableBasedOnTypes(
+                paramValue, cParamType, valueType, varName, currentState);
       }
     }
     return currentState;

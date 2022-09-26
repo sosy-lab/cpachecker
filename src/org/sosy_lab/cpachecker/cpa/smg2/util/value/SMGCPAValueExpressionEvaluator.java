@@ -1620,7 +1620,7 @@ public class SMGCPAValueExpressionEvaluator {
           throw new SMG2Exception(
               "Could not determine correct type size for an array for initializer expression: "
                   + init);
-          }
+        }
       }
 
       // Handle incomplete type of external variables as externally allocated
