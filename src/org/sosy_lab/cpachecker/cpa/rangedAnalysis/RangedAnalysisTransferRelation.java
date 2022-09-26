@@ -78,7 +78,7 @@ public class RangedAnalysisTransferRelation extends SingleEdgeTransferRelation {
 
       // Middle states are already handled above
       // Check for beeing on left path and right path is empty:
-      if (oldLeft != null && oldRight == null) {
+      if (oldLeft != null ) {
         if (truthAssumption && newLeft == null) {
           // The left bounds goes right (false branch), hence the left (true) branch is not in range
           // anymore, hence stop the computation at this point
@@ -89,7 +89,7 @@ public class RangedAnalysisTransferRelation extends SingleEdgeTransferRelation {
         return Collections.singleton(new RangedAnalysisState(newLeft, newRight));
       }
       // Check for right states:
-      if (oldRight != null && oldLeft == null) {
+      if (oldRight != null ) {
         if (!truthAssumption && newRight == null) {
           // The right bound goes left (true branch), hence the right(false) branch is not in range
           // anymore, hence stop the computation at this point
