@@ -946,7 +946,7 @@ public class SMGTransferRelation
       // The right hand side either returns Values representing values or a AddressExpression. In
       // the later case this means the entire structure behind it needs to be copied as C is
       // pass-by-value.
-      SMGCPAValueVisitor vv = new SMGCPAValueVisitor(evaluator, pState, cfaEdge, logger);
+      SMGCPAValueVisitor vv = new SMGCPAValueVisitor(evaluator, currentState, cfaEdge, logger);
       for (ValueAndSMGState valueAndState : vv.evaluate(rValue, leftHandSideType)) {
         Value valueToWrite = valueAndState.getValue();
         currentState = valueAndState.getState();
