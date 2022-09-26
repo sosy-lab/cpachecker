@@ -578,8 +578,13 @@ public class SymbolicProgramConfiguration {
     PersistentStack<StackFrame> newStack = stackVariableMapping.popAndCopy();
     SMG newSmg = smg;
     PersistentMap<String, CType> newVariableToTypeMap = variableToTypeMap;
+    // Get all SMGObjects referenced by other stack frames
+    Set<SMGObject> validObjects = getObjectsValidInOtherStackFrames();
     for (SMGObject object : frame.getAllObjects()) {
-      newSmg = newSmg.copyAndInvalidateObject(object);
+      // Don't invalidate objects that are referenced by another stack frame!
+      if (!validObjects.contains(object)) {
+        newSmg = newSmg.copyAndInvalidateObject(object);
+      }
     }
     for (String varName : frame.getVariables().keySet()) {
       newVariableToTypeMap = newVariableToTypeMap.removeAndCopy(varName);
@@ -593,6 +598,15 @@ public class SymbolicProgramConfiguration {
         valueMapping,
         newVariableToTypeMap,
         heapValueWhitelist);
+  }
+
+  protected Set<SMGObject> getObjectsValidInOtherStackFrames() {
+    // Get all SMGObjects referenced by other stack frames
+    ImmutableSet.Builder<SMGObject> validObjectsBuilder = ImmutableSet.builder();
+    for (StackFrame otherFrame : stackVariableMapping.popAndCopy()) {
+      validObjectsBuilder.addAll(otherFrame.getAllObjects());
+    }
+    return validObjectsBuilder.build();
   }
 
   /**
