@@ -66,6 +66,8 @@ import org.sosy_lab.cpachecker.core.algorithm.pcc.ProofCheckAndExtractCIRequirem
 import org.sosy_lab.cpachecker.core.algorithm.pcc.ResultCheckAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.rangedExecInput.InputGenerationWithRandomWalkAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.rangedExecInput.RangedExecutionInputComputation;
+import org.sosy_lab.cpachecker.core.algorithm.rangedExecInputSequences.InputGenerationWithRandomWalkAlgorithmSequence;
+import org.sosy_lab.cpachecker.core.algorithm.rangedExecInputSequences.RangedExecutionInputComputationSequence;
 import org.sosy_lab.cpachecker.core.algorithm.residualprogram.ConditionalVerifierAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.residualprogram.ResidualProgramConstructionAfterAnalysisAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.residualprogram.ResidualProgramConstructionAlgorithm;
@@ -411,6 +413,12 @@ public class CoreComponentsFactory {
           "Generate a set of test inputs using a random exploration of the executino tree.")
   private boolean useInputGenerationWithRandomWalk = false;
 
+  @Option(
+      secure = true,
+      name = "algorithm.genSequenceForRangedExeceution",
+      description = "Generate a sequence instead of a testcase for ranged symbolic execution.")
+  private boolean genSequence = false;
+
   private final Configuration config;
   private final LogManager logger;
   private final @Nullable ShutdownManager shutdownManager;
@@ -603,11 +611,24 @@ public class CoreComponentsFactory {
                 .newInstance();
       }
       if (useInputGenerationWithRandomWalk) {
-        algorithm = new InputGenerationWithRandomWalkAlgorithm(cpa, algorithm, cfa, logger, config);
+        if (genSequence) {
+          algorithm =
+              new InputGenerationWithRandomWalkAlgorithmSequence(
+                  cpa, algorithm, cfa, logger, config);
+        } else {
+          algorithm =
+              new InputGenerationWithRandomWalkAlgorithm(cpa, algorithm, cfa, logger, config);
+        }
       }
       if (useComputeRSEInput) {
-        algorithm = new RangedExecutionInputComputation(config, algorithm, logger, cfa, cpa);
+        if (genSequence) {
+          algorithm =
+              new RangedExecutionInputComputationSequence(config, algorithm, logger, cfa, cpa);
+        } else {
+          algorithm = new RangedExecutionInputComputation(config, algorithm, logger, cfa, cpa);
+        }
       }
+
       if (usePDR) {
         algorithm =
             new PdrAlgorithm(

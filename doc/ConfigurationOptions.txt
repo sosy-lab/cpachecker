@@ -224,6 +224,9 @@ analysis.algorithm.faultLocalization.by_distance = false
 # formulas
 analysis.algorithm.faultLocalization.by_traceformula = false
 
+# Generate a sequence instead of a testcase for ranged symbolic execution.
+analysis.algorithm.genSequenceForRangedExeceution = false
+
 # Use McMillan's Impact algorithm for lazy interpolation
 analysis.algorithm.impact = false
 
