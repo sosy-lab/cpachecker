@@ -63,6 +63,11 @@ public class PredefinedValueAssinger implements MemoryLocationValueHandler {
               + " used. functionValuesForRandom ")
   private boolean stopIfAllValuesForUnknownAreUsed = false;
 
+  @Option(
+      secure = true,
+      description = "If the value could not be loaded, try to use long to load the value ")
+  private boolean tryToParseAllValues = true;
+
   private Map<Integer, String> valuesFromFile;
 
   public PredefinedValueAssinger(Configuration pConfig, LogManager pLogger)
@@ -163,43 +168,58 @@ public class PredefinedValueAssinger implements MemoryLocationValueHandler {
           return new Value.UnknownValue();
         }
       }
-      if (type.equals(CNumericTypes.UNSIGNED_CHAR) || type.equals(CNumericTypes.UNSIGNED_INT)) {
-        return new NumericValue(Integer.parseUnsignedInt(pStringValueForNumber));
-      }
-      if (type.equals(CNumericTypes.INT) || type.equals(CNumericTypes.SIGNED_INT)) {
-        return new NumericValue(Integer.parseInt(pStringValueForNumber));
-      }
-      if (type.equals(CNumericTypes.SHORT_INT)) {
-        return new NumericValue(Short.parseShort(pStringValueForNumber));
-      }
-      if (type.equals(CNumericTypes.UNSIGNED_SHORT_INT)) {
-        this.logger.log(Level.WARNING, "Cannot parse unsigned short, returning unknown");
-        return new UnknownValue();
-      }
-      if (type.equals(CNumericTypes.UNSIGNED_LONG_INT)) {
-        return new NumericValue(Long.parseUnsignedLong(pStringValueForNumber));
-      }
-      if (type.equals(CNumericTypes.LONG_INT) || type.equals(CNumericTypes.SIGNED_LONG_INT)) {
-        return new NumericValue(Long.parseLong(pStringValueForNumber));
-      }
-      if (type.equals(CNumericTypes.UNSIGNED_LONG_LONG_INT)) {
-        this.logger.log(Level.WARNING, "Cannot parse unsigned longlong, returning unknown");
-        return new UnknownValue();
-      }
-      if (type.equals(CNumericTypes.LONG_LONG_INT)
-          || type.equals(CNumericTypes.SIGNED_LONG_LONG_INT)) {
-        return new NumericValue(new BigInteger(pStringValueForNumber));
-      }
-      if (type.equals(CNumericTypes.FLOAT)) {
-        return new NumericValue(Float.valueOf(pStringValueForNumber));
-      }
-      if (type.equals(CNumericTypes.DOUBLE)) {
-        return new NumericValue(Double.valueOf(pStringValueForNumber));
-      }
-      if (type.equals(CNumericTypes.LONG_DOUBLE)) {
-        return new NumericValue(new BigDecimal(pStringValueForNumber));
-      } else {
-        this.logger.log(Level.WARNING, "Cannot parse complex types, hence returning unknown");
+      try {
+        if (type.equals(CNumericTypes.UNSIGNED_CHAR) || type.equals(CNumericTypes.UNSIGNED_INT)) {
+          return new NumericValue(Integer.parseUnsignedInt(pStringValueForNumber));
+        }
+        if (type.equals(CNumericTypes.INT) || type.equals(CNumericTypes.SIGNED_INT)) {
+          return new NumericValue(Integer.parseInt(pStringValueForNumber));
+        }
+        if (type.equals(CNumericTypes.SHORT_INT)) {
+          return new NumericValue(Integer.parseInt(pStringValueForNumber));
+        }
+        if (type.equals(CNumericTypes.UNSIGNED_SHORT_INT)) {
+          this.logger.log(Level.WARNING, "Cannot parse unsigned short, returning unknown");
+          return new UnknownValue();
+        }
+        if (type.equals(CNumericTypes.UNSIGNED_LONG_INT)) {
+          return new NumericValue(Long.parseUnsignedLong(pStringValueForNumber));
+        }
+        if (type.equals(CNumericTypes.LONG_INT) || type.equals(CNumericTypes.SIGNED_LONG_INT)) {
+          return new NumericValue(Long.parseLong(pStringValueForNumber));
+        }
+        if (type.equals(CNumericTypes.UNSIGNED_LONG_LONG_INT)) {
+          this.logger.log(Level.WARNING, "Cannot parse unsigned longlong, returning unknown");
+          return new UnknownValue();
+        }
+        if (type.equals(CNumericTypes.LONG_LONG_INT)
+            || type.equals(CNumericTypes.SIGNED_LONG_LONG_INT)) {
+          return new NumericValue(new BigInteger(pStringValueForNumber));
+        }
+        if (type.equals(CNumericTypes.FLOAT)) {
+          return new NumericValue(Float.valueOf(pStringValueForNumber));
+        }
+        if (type.equals(CNumericTypes.DOUBLE)) {
+          return new NumericValue(Double.valueOf(pStringValueForNumber));
+        }
+        if (type.equals(CNumericTypes.LONG_DOUBLE)) {
+          return new NumericValue(new BigDecimal(pStringValueForNumber));
+        } else {
+          this.logger.log(Level.WARNING, "Cannot parse complex types, hence returning unknown");
+        }
+      } catch (NumberFormatException e) {
+        this.logger.logUserException(
+            Level.WARNING,
+            e,
+            String.format(
+                "The given value does not match the number format %s ", pStringValueForNumber));
+        if (this.tryToParseAllValues) {
+          if (type.isUnsigned()) {
+            return new NumericValue(Long.parseUnsignedLong(pStringValueForNumber));
+          } else {
+            return new NumericValue(Long.parseLong(pStringValueForNumber));
+          }
+        }
       }
     }
     return new Value.UnknownValue();

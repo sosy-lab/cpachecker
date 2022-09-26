@@ -3505,6 +3505,9 @@ cpa.value.symbolic.simplifySymbolics = true
 # always be tracked, even if this value is false.
 cpa.value.trackJavaArrayValues = true
 
+# If the value could not be loaded, try to use long to load the value 
+cpa.value.tryToParseAllValues = true
+
 # Tells the value analysis how to handle unknown values.
 cpa.value.unknownValueHandling = DISCARD
   enum:     [DISCARD, INTRODUCE_SYMBOLIC, FROM_INPUT_FOR_VERIFIER_NONDET]
