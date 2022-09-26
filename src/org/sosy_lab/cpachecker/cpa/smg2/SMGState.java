@@ -3113,6 +3113,21 @@ public class SMGState
   }
 
   /**
+   * Invalidates variables. For local variables that i.e. went out of scope.
+   *
+   * @param variable {@link MemoryLocation} for the variable to be invalidated.
+   * @return a new state with the variables SMGObject invalid.
+   */
+  public SMGState invalidateVariable(MemoryLocation variable) {
+    if (isLocalOrGlobalVariablePresent(variable)) {
+      return copyAndReplaceMemoryModel(
+          memoryModel.invalidateSMGObject(
+              memoryModel.getObjectForVisibleVariable(variable.getQualifiedName()).orElseThrow()));
+    }
+    return this;
+  }
+
+  /**
    * Tries to dereference the pointer given by the argument {@link Value}. Returns a
    * SMGStateAndOptionalSMGObjectAndOffset without object and offset but maybe a updated state if
    * the dereference fails because the entered {@link Value} is not known as a pointer. This does

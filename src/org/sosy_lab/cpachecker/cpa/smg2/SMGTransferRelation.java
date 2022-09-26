@@ -90,6 +90,7 @@ import org.sosy_lab.cpachecker.cpa.value.type.Value.UnknownValue;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGObject;
+import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 public class SMGTransferRelation
     extends ForwardingTransferRelation<Collection<SMGState>, SMGState, SMGPrecision> {
@@ -159,18 +160,17 @@ public class SMGTransferRelation
 
   @Override
   protected Collection<SMGState> postProcessing(Collection<SMGState> pSuccessors, CFAEdge edge) {
+    // This handles variables that went out of scope in a function through { }
     if (pSuccessors == null) {
       return super.postProcessing(pSuccessors, edge);
     }
-    return pSuccessors;
-    // We don't need this? Out of scope vars are pruned by dropping the stack frame
-    /*
-    Set<CSimpleDeclaration> outOfScopeVars = edge.getSuccessor().getOutOfScopeVariables();
-    return transformedImmutableSetCopy(
-        pSuccessors,
-        successorState -> {
-          return successorState.copyAndPruneOutOfScopeVariables(outOfScopeVars);
-        });*/
+    ImmutableList.Builder<SMGState> successors = ImmutableList.builder();
+    for (SMGState s : pSuccessors) {
+      for (CSimpleDeclaration variable : edge.getSuccessor().getOutOfScopeVariables()) {
+        successors.add(s.invalidateVariable(MemoryLocation.forDeclaration(variable)));
+      }
+    }
+    return successors.build();
   }
 
   @Override
