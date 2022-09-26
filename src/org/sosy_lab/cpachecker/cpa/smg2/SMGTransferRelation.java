@@ -428,10 +428,6 @@ public class SMGTransferRelation
     // their variables
     // TODO: check if the FunctionPointerCPA would be a better option instead of doing it myself
     SMGState currentState = initialState;
-    if (callEdge.getFileLocation().getStartingLineInOrigin() == 842
-        || callEdge.getFileLocation().getStartingLineInOrigin() == 860) {
-      int bla = 5;
-    }
     ImmutableList.Builder<Value> readValuesInOrderBuilder = ImmutableList.builder();
     BigInteger overallVarArgsSizeInBits = BigInteger.ZERO;
     CType parameterType = null;
