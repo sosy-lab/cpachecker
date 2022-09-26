@@ -12,6 +12,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Sets;
 import java.math.BigInteger;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
@@ -1300,4 +1301,10 @@ public class SMGCPABuiltins {
   }
 
   // TODO: strlen
+
+  public Collection<SMGState> checkAllParametersForValidity(
+      CFunctionCallExpression cFCExpression, SMGState pState, CFAEdge pCfaEdge)
+      throws CPATransferException {
+    return checkAllParametersForValidity(pState, pCfaEdge, cFCExpression);
+  }
 }

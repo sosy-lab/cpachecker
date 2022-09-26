@@ -428,6 +428,10 @@ public class SMGTransferRelation
     // their variables
     // TODO: check if the FunctionPointerCPA would be a better option instead of doing it myself
     SMGState currentState = initialState;
+    if (callEdge.getFileLocation().getStartingLineInOrigin() == 842
+        || callEdge.getFileLocation().getStartingLineInOrigin() == 860) {
+      int bla = 5;
+    }
     ImmutableList.Builder<Value> readValuesInOrderBuilder = ImmutableList.builder();
     BigInteger overallVarArgsSizeInBits = BigInteger.ZERO;
     CType parameterType = null;
@@ -685,8 +689,8 @@ public class SMGTransferRelation
             builtins.handleBuiltinFunctionCall(pCfaEdge, cFCExpression, calledFunctionName, pState);
       }
     } else {
-      // Don't handle unknown functions without body
-      return ImmutableList.of(pState);
+      // Check arguments for unknown functions without body
+      return builtins.checkAllParametersForValidity(cFCExpression, pState, pCfaEdge);
     }
     return Collections3.transformedImmutableListCopy(
         uselessValuesAndStates, valAndState -> valAndState.getState());
