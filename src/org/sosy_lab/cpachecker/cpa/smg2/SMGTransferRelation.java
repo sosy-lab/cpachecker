@@ -167,8 +167,9 @@ public class SMGTransferRelation
     ImmutableList.Builder<SMGState> successors = ImmutableList.builder();
     for (SMGState s : pSuccessors) {
       for (CSimpleDeclaration variable : edge.getSuccessor().getOutOfScopeVariables()) {
-        successors.add(s.invalidateVariable(MemoryLocation.forDeclaration(variable)));
+        s = s.invalidateVariable(MemoryLocation.forDeclaration(variable));
       }
+      successors.add(s);
     }
     return successors.build();
   }
