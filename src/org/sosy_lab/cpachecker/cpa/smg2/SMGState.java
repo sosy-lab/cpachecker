@@ -383,6 +383,25 @@ public class SMGState
     return isGlobalVariablePresent(qualifiedName) || isLocalVariablePresentAnywhere(qualifiedName);
   }
 
+  /**
+   * We might have invalidated a local variable. This checks that.
+   *
+   * @param qualifiedName name of the variable.
+   * @return true if valid, flase if invalid.
+   */
+  public boolean isLocalOrGlobalVariableValid(String qualifiedName) {
+    if (isGlobalVariablePresent(qualifiedName) || isLocalVariablePresentAnywhere(qualifiedName)) {
+      return memoryModel.isObjectValid(
+          memoryModel.getObjectForVisibleVariable(qualifiedName).orElseThrow());
+    }
+    return false;
+  }
+
+  public SMGState copyAndRemoveStackVariable(String qualifiedName) {
+    return this.copyAndReplaceMemoryModel(
+        this.memoryModel.copyAndRemoveStackVariable(qualifiedName));
+  }
+
   @SuppressWarnings("unused")
   private SMGState assignReturnValue(
       MemoryLocation memLoc,

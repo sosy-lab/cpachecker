@@ -1543,9 +1543,16 @@ public class SMGCPAValueExpressionEvaluator {
     String varName = pVarDecl.getQualifiedName();
     CType cType = SMGCPAValueExpressionEvaluator.getCanonicalType(pVarDecl);
 
+    SMGState currentState = pState;
+    // Remove previously invalidated objects and create them anew
+    if (pState.isLocalOrGlobalVariablePresent(varName)
+        && !pState.isLocalOrGlobalVariableValid(varName)) {
+      currentState = pState.copyAndRemoveStackVariable(varName);
+    }
+
     // There can only be one declaration result state
     return handleInitializerForDeclaration(
-        handleVariableDeclarationWithoutInizializer(pState, pVarDecl, pEdge).get(0),
+        handleVariableDeclarationWithoutInizializer(currentState, pVarDecl, pEdge).get(0),
         varName,
         pVarDecl,
         cType,

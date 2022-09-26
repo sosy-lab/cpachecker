@@ -347,16 +347,21 @@ public class SMGTransferRelation
       CIdExpression leftCIdExpr = (CIdExpression) leftHandSideExpr;
       CSimpleDeclaration decl = leftCIdExpr.getDeclaration();
       String varName = decl.getQualifiedName();
-      if (!pState.isLocalOrGlobalVariablePresent(varName)) {
+      SMGState currentState = pState;
+      if (pState.isLocalOrGlobalVariablePresent(varName)
+          && !pState.isLocalOrGlobalVariableValid(varName)) {
+        currentState = pState.copyAndRemoveStackVariable(varName);
+      }
+      if (!currentState.isLocalOrGlobalVariablePresent(varName)) {
         if (decl instanceof CVariableDeclaration) {
           List<SMGState> statesWithVar =
               evaluator.handleVariableDeclarationWithoutInizializer(
-                  pState, (CVariableDeclaration) decl, cfaEdge);
+                  currentState, (CVariableDeclaration) decl, cfaEdge);
           return statesWithVar;
         } else if (decl instanceof CParameterDeclaration) {
           List<SMGState> statesWithVar =
               evaluator.handleVariableDeclarationWithoutInizializer(
-                  pState, ((CParameterDeclaration) decl).asVariableDeclaration(), cfaEdge);
+                  currentState, ((CParameterDeclaration) decl).asVariableDeclaration(), cfaEdge);
           return statesWithVar;
         }
       }
