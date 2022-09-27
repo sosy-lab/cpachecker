@@ -158,6 +158,8 @@ public class SMGCPAMaterializer {
       SMGSinglyLinkedListSegment pListSeg, SMGValue pValueOfPointerToAbstractObject, SMGState state)
       throws SMG2Exception {
 
+    SMGValue valueOfPointerToAbstractObject =
+        pValueOfPointerToAbstractObject.withNestingLevelAndCopy(0);
     if (!state.getMemoryModel().isObjectValid(pListSeg)) {
       throw new SMG2Exception("Error when materializing a SLL.");
     }
@@ -189,7 +191,7 @@ public class SMGCPAMaterializer {
     if (pListSeg.getMinLength() == 1) {
       // Remove the old abstract list segment
       currentState = currentState.copyAndRemoveObjectFromHeap(pListSeg);
-      return SMGValueAndSMGState.of(currentState, pValueOfPointerToAbstractObject);
+      return SMGValueAndSMGState.of(currentState, valueOfPointerToAbstractObject);
     }
     Preconditions.checkArgument(pListSeg.getMinLength() > 1);
 
@@ -227,7 +229,7 @@ public class SMGCPAMaterializer {
 
     Preconditions.checkArgument(newAbsListSeg.getMinLength() > 0);
     // Note: pValueOfPointerToAbstractObject is now pointing to the materialized object!
-    return SMGValueAndSMGState.of(currentState, pValueOfPointerToAbstractObject);
+    return SMGValueAndSMGState.of(currentState, valueOfPointerToAbstractObject);
   }
 
   /*
@@ -241,6 +243,8 @@ public class SMGCPAMaterializer {
       SMGDoublyLinkedListSegment pListSeg, SMGValue pValueOfPointerToAbstractObject, SMGState state)
       throws SMG2Exception {
 
+    SMGValue valueOfPointerToAbstractObject =
+        pValueOfPointerToAbstractObject.withNestingLevelAndCopy(0);
     if (!state.getMemoryModel().isObjectValid(pListSeg)) {
       throw new SMG2Exception("Error when materializing a DLL.");
     }
@@ -264,8 +268,7 @@ public class SMGCPAMaterializer {
     // Replace the pointer behind the value pointing to the abstract region with a pointer to the
     // new object
     // We don't change the nesting level of the pointers! We switch only those with new nesting
-    // level ==
-    // current minLength to the new concrete region and set that one to 0.
+    // level == new minLength to the new concrete region and set that one to 0.
     // This saves us a lookup compared to the SMG paper!
     currentState =
         currentState.copyAndReplaceMemoryModel(
@@ -277,7 +280,7 @@ public class SMGCPAMaterializer {
     if (pListSeg.getMinLength() == 1) {
       // Remove the old abstract list segment
       currentState = currentState.copyAndRemoveObjectFromHeap(pListSeg);
-      return SMGValueAndSMGState.of(currentState, pValueOfPointerToAbstractObject);
+      return SMGValueAndSMGState.of(currentState, valueOfPointerToAbstractObject);
     }
     Preconditions.checkArgument(pListSeg.getMinLength() > 1);
     // Make the new value a pointer to the correct location and object
@@ -308,7 +311,7 @@ public class SMGCPAMaterializer {
     currentState = currentState.copyAllValuesFromObjToObj(pListSeg, newAbsListSeg);
     // Write the value pointing to the new concrete region to the abstracted list
     currentState =
-        currentState.writeValue(newAbsListSeg, pfo, pointerSize, pValueOfPointerToAbstractObject);
+        currentState.writeValue(newAbsListSeg, pfo, pointerSize, valueOfPointerToAbstractObject);
     currentState =
         currentState.copyAndReplaceMemoryModel(
             currentState.getMemoryModel().replaceAllPointersTowardsWith(pListSeg, newAbsListSeg));
@@ -318,6 +321,6 @@ public class SMGCPAMaterializer {
 
     Preconditions.checkArgument(newAbsListSeg.getMinLength() > 0);
     // Note: pValueOfPointerToAbstractObject is now pointing to the materialized object!
-    return SMGValueAndSMGState.of(currentState, pValueOfPointerToAbstractObject);
+    return SMGValueAndSMGState.of(currentState, valueOfPointerToAbstractObject);
   }
 }

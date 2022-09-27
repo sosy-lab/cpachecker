@@ -3026,6 +3026,7 @@ public class SMGState
       int newMinLength = 1;
       if (nextObj instanceof SMGSinglyLinkedListSegment) {
         newMinLength = newMinLength + ((SMGSinglyLinkedListSegment) nextObj).getMinLength();
+        incrementAmount = ((SMGSinglyLinkedListSegment) nextObj).getMinLength();
       } else {
         newMinLength++;
       }
@@ -3104,6 +3105,7 @@ public class SMGState
       int newMinLength = oldSLL.getMinLength();
       if (nextObj instanceof SMGSinglyLinkedListSegment) {
         newMinLength = newMinLength + ((SMGSinglyLinkedListSegment) nextObj).getMinLength();
+        incrementAmount = ((SMGSinglyLinkedListSegment) nextObj).getMinLength();
       } else {
         newMinLength++;
       }

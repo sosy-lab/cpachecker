@@ -1227,7 +1227,8 @@ public class SMG {
                       hvEdge.getOffset(),
                       hvEdge.getSizeInBits()));
 
-          Preconditions.checkArgument(min > hvEdge.hasValue().getNestingLevel() + incrementAmount);
+          // Preconditions.checkArgument(min > hvEdge.hasValue().getNestingLevel() +
+          // incrementAmount);
         }
       }
       if (contains) {
@@ -1268,15 +1269,18 @@ public class SMG {
                       pointsToEntry.getValue().getOffset(),
                       pointsToEntry.getValue().targetSpecifier()),
                   value.withNestingLevelAndCopy(0));
+          // Remember the values to change the nesting level
+          valuesToDecrementBuilder.add(value);
         }
-        // Remember the values to change the nesting level
-        valuesToDecrementBuilder.add(value);
+
       }
     }
     ImmutableSet<SMGValue> valuesToDecrement = valuesToDecrementBuilder.build();
-    PersistentMap<SMGObject, PersistentSet<SMGHasValueEdge>> newHasValueEdges = hasValueEdges;
+    PersistentMap<SMGObject, PersistentSet<SMGHasValueEdge>> newHasValueEdges =
+        newSMG.hasValueEdges;
     // Update the nesting level
-    for (Entry<SMGObject, PersistentSet<SMGHasValueEdge>> objToHvEntry : hasValueEdges.entrySet()) {
+    for (Entry<SMGObject, PersistentSet<SMGHasValueEdge>> objToHvEntry :
+        newSMG.hasValueEdges.entrySet()) {
       SMGObject currentObject = objToHvEntry.getKey();
       boolean contains = false;
       PersistentSet<SMGHasValueEdge> hvEdges = objToHvEntry.getValue();
