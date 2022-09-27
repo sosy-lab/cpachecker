@@ -2981,6 +2981,7 @@ public class SMGState
     // If it does, create a new SLL with the correct stuff
     // Copy the edges from the next object to the SLL
     SMGDoublyLinkedListSegment newDLL;
+    int incrementAmount = 1;
     if (root.isSLL()) {
       // Something went wrong
       // TODO: log and decide what to do here (can this even happen?)
@@ -2990,6 +2991,7 @@ public class SMGState
       int newMinLength = ((SMGDoublyLinkedListSegment) root).getMinLength();
       if (nextObj instanceof SMGSinglyLinkedListSegment) {
         newMinLength = newMinLength + ((SMGSinglyLinkedListSegment) nextObj).getMinLength();
+        incrementAmount = ((SMGSinglyLinkedListSegment) nextObj).getMinLength();
       } else {
         newMinLength++;
       }
@@ -3057,7 +3059,7 @@ public class SMGState
     currentState =
         currentState.copyAndReplaceMemoryModel(
             currentState.memoryModel.replaceAllPointersTowardsWithAndIncrementNestingLevel(
-                root, newDLL));
+                root, newDLL, incrementAmount));
 
     // Remove the 2 old objects and continue
     currentState =
@@ -3092,6 +3094,7 @@ public class SMGState
     // If it does, create a new SLL with the correct stuff
     // Copy the edges from the next object to the SLL
     SMGSinglyLinkedListSegment newSLL;
+    int incrementAmount = 1;
     if (root instanceof SMGDoublyLinkedListSegment) {
       // Something went wrong
       // TODO: log and decide what to do here (can this even happen?)
@@ -3119,6 +3122,7 @@ public class SMGState
       int newMinLength = 1;
       if (nextObj instanceof SMGSinglyLinkedListSegment) {
         newMinLength = newMinLength + ((SMGSinglyLinkedListSegment) nextObj).getMinLength();
+        incrementAmount = ((SMGSinglyLinkedListSegment) nextObj).getMinLength();
       } else {
         newMinLength++;
       }
@@ -3128,7 +3132,12 @@ public class SMGState
               : BigInteger.ZERO;
       newSLL =
           new SMGSinglyLinkedListSegment(
-              root.getNestingLevel(), root.getSize(), root.getOffset(), headOffset, nfo, 2);
+              root.getNestingLevel(),
+              root.getSize(),
+              root.getOffset(),
+              headOffset,
+              nfo,
+              newMinLength);
     }
     SMGState currentState = this.copyAndAddObjectToHeap(newSLL);
     currentState = currentState.copyAllValuesFromObjToObj(nextObj, newSLL);
@@ -3144,7 +3153,7 @@ public class SMGState
     currentState =
         currentState.copyAndReplaceMemoryModel(
             currentState.memoryModel.replaceAllPointersTowardsWithAndIncrementNestingLevel(
-                root, newSLL));
+                root, newSLL, incrementAmount));
 
     // Remove the 2 old objects and continue
     currentState =
@@ -3261,6 +3270,8 @@ public class SMGState
    */
   public SMGValueAndSMGState materializeReturnPointerValueAndCopy(
       SMGValue valueToPointerToAbstractObject) throws SMG2Exception {
+    SMGPointsToEdge originalPTEdge =
+        memoryModel.getSmg().getPTEdge(valueToPointerToAbstractObject).orElseThrow();
     SMGPointsToEdge ptEdge =
         memoryModel.getSmg().getPTEdge(valueToPointerToAbstractObject).orElseThrow();
     SMGState currentState = this;

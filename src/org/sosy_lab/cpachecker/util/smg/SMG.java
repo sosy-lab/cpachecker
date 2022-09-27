@@ -35,6 +35,7 @@ import org.sosy_lab.cpachecker.util.smg.graph.SMGDoublyLinkedListSegment;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGHasValueEdge;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGObject;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGPointsToEdge;
+import org.sosy_lab.cpachecker.util.smg.graph.SMGSinglyLinkedListSegment;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGTargetSpecifier;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGValue;
 import org.sosy_lab.cpachecker.util.smg.util.SMGandValue;
@@ -1174,7 +1175,11 @@ public class SMG {
    * @return a new SMG with the replacement.
    */
   public SMG replaceAllPointersTowardsWithAndIncrementNestingLevel(
-      SMGObject oldObj, SMGObject newTarget) {
+      SMGObject oldObj, SMGObject newTarget, int incrementAmount) {
+    int min = 0;
+    if (newTarget instanceof SMGSinglyLinkedListSegment) {
+      min = ((SMGSinglyLinkedListSegment) newTarget).getMinLength();
+    }
     SMG newSMG = this;
     if (newTarget.isZero() || oldObj.isZero()) {
       throw new AssertionError("Can't replace a 0 value!");
@@ -1191,7 +1196,11 @@ public class SMG {
                     newTarget,
                     pointsToEntry.getValue().getOffset(),
                     pointsToEntry.getValue().targetSpecifier()),
-                value.withNestingLevelAndCopy(value.getNestingLevel() + 1));
+                value.withNestingLevelAndCopy(value.getNestingLevel() + incrementAmount));
+
+        if (min <= value.getNestingLevel() + incrementAmount) {
+          Preconditions.checkArgument(min > value.getNestingLevel() + incrementAmount);
+        }
 
         // Remember the values to decrement the nesting level
         valuesToDecrementBuilder.add(value);
@@ -1213,9 +1222,12 @@ public class SMG {
                   new SMGHasValueEdge(
                       hvEdge
                           .hasValue()
-                          .withNestingLevelAndCopy(hvEdge.hasValue().getNestingLevel() + 1),
+                          .withNestingLevelAndCopy(
+                              hvEdge.hasValue().getNestingLevel() + incrementAmount),
                       hvEdge.getOffset(),
                       hvEdge.getSizeInBits()));
+
+          Preconditions.checkArgument(min > hvEdge.hasValue().getNestingLevel() + incrementAmount);
         }
       }
       if (contains) {

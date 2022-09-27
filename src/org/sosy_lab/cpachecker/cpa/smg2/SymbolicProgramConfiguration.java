@@ -49,6 +49,7 @@ import org.sosy_lab.cpachecker.util.smg.SMGProveNequality;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGHasValueEdge;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGObject;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGPointsToEdge;
+import org.sosy_lab.cpachecker.util.smg.graph.SMGSinglyLinkedListSegment;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGTargetSpecifier;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGValue;
 import org.sosy_lab.cpachecker.util.smg.util.SMGandValue;
@@ -1025,6 +1026,10 @@ public class SymbolicProgramConfiguration {
     // specified offset, overriding any existing from this value
     SMGPointsToEdge pointsToEdge =
         new SMGPointsToEdge(target, offsetInBits, SMGTargetSpecifier.IS_REGION);
+    if (target instanceof SMGSinglyLinkedListSegment) {
+      Preconditions.checkArgument(
+          ((SMGSinglyLinkedListSegment) target).getMinLength() > nestingLevel);
+    }
     return spc.copyAndReplaceSMG(
         spc.getSmg()
             .copyAndAddPTEdge(pointsToEdge, smgAddress.withNestingLevelAndCopy(nestingLevel)));
@@ -1282,9 +1287,10 @@ public class SymbolicProgramConfiguration {
    * @return a new SMG with the replacement.
    */
   public SymbolicProgramConfiguration replaceAllPointersTowardsWithAndIncrementNestingLevel(
-      SMGObject oldObj, SMGObject newObject) {
+      SMGObject oldObj, SMGObject newObject, int incrementAmount) {
     return new SymbolicProgramConfiguration(
-        smg.replaceAllPointersTowardsWithAndIncrementNestingLevel(oldObj, newObject),
+        smg.replaceAllPointersTowardsWithAndIncrementNestingLevel(
+            oldObj, newObject, incrementAmount),
         globalVariableMapping,
         stackVariableMapping,
         heapObjects,
