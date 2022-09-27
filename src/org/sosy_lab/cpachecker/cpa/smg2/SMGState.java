@@ -3272,8 +3272,6 @@ public class SMGState
    */
   public SMGValueAndSMGState materializeReturnPointerValueAndCopy(
       SMGValue valueToPointerToAbstractObject) throws SMG2Exception {
-    SMGPointsToEdge originalPTEdge =
-        memoryModel.getSmg().getPTEdge(valueToPointerToAbstractObject).orElseThrow();
     SMGPointsToEdge ptEdge =
         memoryModel.getSmg().getPTEdge(valueToPointerToAbstractObject).orElseThrow();
     SMGState currentState = this;
