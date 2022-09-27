@@ -1,0 +1,91 @@
+<?xml version="1.0"?>
+
+<!--
+This file is part of CPAchecker,
+a tool for configurable software verification:
+https://cpachecker.sosy-lab.org
+
+SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+
+SPDX-License-Identifier: Apache-2.0
+-->
+
+<!DOCTYPE benchmark PUBLIC "+//IDN sosy-lab.org//DTD BenchExec benchmark 1.0//EN" "http://www.sosy-lab.org/benchexec/benchmark-1.0.dtd">
+<benchmark tool="cpachecker" timelimit="900 s" hardtimelimit="960 s" memlimit="15 GB" cpuCores="8">
+
+	
+  <option name="-benchmark"/>
+
+  <option name="-heap">10000M</option>
+  <option name="-timelimit">900s</option>
+
+  <rundefinition>
+    <option name="-smg2"/>
+  </rundefinition>
+
+  <tasks>
+    <includesfile>../programs/simple/simple.set</includesfile>
+    <propertyfile>../config/properties/unreach-label.prp</propertyfile>
+  </tasks>
+  <tasks>
+    <includesfile>../programs/simple/simple.set</includesfile>
+    <propertyfile>../config/properties/unreach-call.prp</propertyfile>
+  </tasks>
+  <tasks>
+    <includesfile>../programs/simple/simple.set</includesfile>
+    <propertyfile>../config/Assertion.spc</propertyfile>
+  </tasks>
+  <tasks>
+    <includesfile>../programs/benchmarks/ReachSafety-BitVectors.set</includesfile>
+    <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
+  </tasks>
+  <tasks>
+    <includesfile>../programs/benchmarks/ReachSafety-Floats.set</includesfile>
+    <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
+    <exclude>../programs/benchmarks/float-benchs/filter_iir.yml</exclude> <!-- flapping timeout -->
+    <exclude>../programs/benchmarks/floats-cbmc-regression/float4.yml</exclude> <!-- flapping timeout -->
+    <exclude>../programs/benchmarks/floats-cdfpl/newton_*</exclude> <!-- mostly timeout -->
+    <exclude>../programs/benchmarks/float-newlib/*</exclude> <!-- only timeout -->
+  </tasks>
+  <tasks>
+    <includesfile>../programs/benchmarks/ReachSafety-ControlFlow.set</includesfile>
+    <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
+    <exclude>../programs/benchmarks/ntdrivers/cdaudio.i.cil-1.yml</exclude> <!-- flapping timeout -->
+    <exclude>../programs/benchmarks/openssl/s3_srvr.*</exclude> <!-- infeasible cex can't be removed -->
+  </tasks>
+  <tasks>
+    <includesfile>../programs/benchmarks/ReachSafety-Heap.set</includesfile>
+    <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
+    <exclude>../programs/benchmarks/list-simple/*</exclude> <!-- only timeout -->
+  </tasks>
+  <tasks>
+    <includesfile>../programs/benchmarks/ReachSafety-Sequentialized.set</includesfile>
+    <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
+    <exclude>../programs/benchmarks/systemc/transmitter.*</exclude> <!-- mostly timeout -->
+    <exclude>../programs/benchmarks/systemc/token_ring.*</exclude> <!-- mostly timeout -->
+    <exclude>../programs/benchmarks/seq-mthreaded/*</exclude> <!-- only timeouts -->
+    <exclude>../programs/benchmarks/seq-mthreaded-reduced/*</exclude> <!-- only timeouts and unknowns -->
+    <exclude>../programs/benchmarks/seq-pthread/cs_s*</exclude> <!-- only timeouts and unknowns -->
+    <exclude>../programs/benchmarks/seq-pthread/cs_read_write_lock-1.yml</exclude> <!-- flapping timeout/unknown -->
+    <exclude>../programs/benchmarks/seq-pthread/cs_read_write_lock-2.yml</exclude> <!-- flapping timeout/unknown -->
+  </tasks>
+  <tasks>
+    <includesfile>../programs/benchmarks/SoftwareSystems-DeviceDriversLinux64-ReachSafety.set</includesfile>
+    <excludesfile>integration-DeviceDriversLinux64.set</excludesfile>
+    <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
+    <!-- exclude some files that are nearly identical in complexity and runtime, some of them are timeout -->
+    <exclude>../programs/benchmarks/ldv-linux-3.0/module_get_put-drivers-*</exclude>
+    <exclude>../programs/benchmarks/ldv-linux-3.4-simple/43_1a_cilled_ok_nondet_linux-43_1a-drivers--input--*</exclude>
+    <exclude>../programs/benchmarks/ldv-linux-3.4-simple/43_1a_cilled_ok_nondet_linux-43_1a-drivers--media--*</exclude>
+    <exclude>../programs/benchmarks/ldv-linux-3.4-simple/43_1a_cilled_ok_nondet_linux-43_1a-drivers--usb--*</exclude>
+    <exclude>../programs/benchmarks/ldv-linux-3.4-simple/43_1a_cilled_ok_nondet_linux-43_1a-drivers--watchdog--*</exclude>
+    <exclude>../programs/benchmarks/ldv-linux-3.4-simple/43_1a_cilled_ok_nondet_linux-43_1a-drivers--staging--*</exclude>
+    <exclude>../programs/benchmarks/ldv-linux-3.4-simple/43_1a_cilled_ok_nondet_linux-43_1a-drivers--rtc--*</exclude>
+    <exclude>../programs/benchmarks/ldv-linux-3.4-simple/43_1a_cilled_ok_nondet_linux-43_1a-drivers--hid--*</exclude>
+  </tasks>
+
+  <columns>
+    <column title="reached">Size of reached set</column>
+    <column title="time_refinements">Time for refinements</column>
+  </columns>
+</benchmark>
