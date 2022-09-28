@@ -79,6 +79,8 @@ public class ThreadingState
   // String :: lock-id  -->  String :: thread-id
   private final PersistentMap<String, String> locks;
 
+  private final PersistentMap<String, LockInfo> lockInfo;
+
   /**
    * Thread-id of last active thread that produced this exact {@link ThreadingState}. This value
    * should only be set in {@link ThreadingTransferRelation#getAbstractSuccessorsForEdge} and must
@@ -119,6 +121,7 @@ public class ThreadingState
   public ThreadingState() {
     threads = PathCopyingPersistentTreeMap.of();
     locks = PathCopyingPersistentTreeMap.of();
+    lockInfo = PathCopyingPersistentTreeMap.of();
     activeThread = null;
     entryFunction = null;
     threadIdsForWitness = PathCopyingPersistentTreeMap.of();
@@ -128,12 +131,14 @@ public class ThreadingState
   private ThreadingState(
       PersistentMap<String, ThreadState> pThreads,
       PersistentMap<String, String> pLocks,
+      PersistentMap<String, LockInfo> pLockInfo,
       String pActiveThread,
       FunctionCallEdge pEntryFunction,
       PersistentMap<String, Integer> pThreadIdsForWitness,
       ThreadFunctionReturnValue pLastThreadFunctionResult) {
     threads = pThreads;
     locks = pLocks;
+    lockInfo = pLockInfo;
     activeThread = pActiveThread;
     entryFunction = pEntryFunction;
     threadIdsForWitness = pThreadIdsForWitness;
@@ -144,6 +149,7 @@ public class ThreadingState
     return new ThreadingState(
         pThreads,
         locks,
+        lockInfo,
         activeThread,
         entryFunction,
         threadIdsForWitness,
@@ -154,6 +160,18 @@ public class ThreadingState
     return new ThreadingState(
         threads,
         pLocks,
+        lockInfo,
+        activeThread,
+        entryFunction,
+        threadIdsForWitness,
+        lastThreadFunctionResult);
+  }
+
+  private ThreadingState withLockInfo(PersistentMap<String, LockInfo> pLockInfo) {
+    return new ThreadingState(
+        threads,
+        locks,
+        pLockInfo,
         activeThread,
         entryFunction,
         threadIdsForWitness,
@@ -165,6 +183,7 @@ public class ThreadingState
     return new ThreadingState(
         threads,
         locks,
+        lockInfo,
         activeThread,
         entryFunction,
         pThreadIdsForWitness,
@@ -220,6 +239,28 @@ public class ThreadingState
       num++;
     }
     return num;
+  }
+
+  ThreadingState addLockInfo(String lockId, LockInfo pLockInfo) {
+    return withLockInfo(lockInfo.putAndCopy(lockId, pLockInfo));
+  }
+
+  ThreadingState updateLockInfo(String lockId, LockInfo pLockInfo) {
+    Preconditions.checkNotNull(lockId);
+    Preconditions.checkNotNull(pLockInfo);
+    Preconditions.checkArgument(lockInfo.containsKey(lockId));
+    return withLockInfo(lockInfo.putAndCopy(lockId, pLockInfo));
+  }
+
+  boolean hasLockInfo(String lockId) {
+    Preconditions.checkNotNull(lockId);
+    return lockInfo.containsKey(lockId);
+  }
+
+  LockInfo getLockInfo(String lockId) {
+    Preconditions.checkNotNull(lockId);
+    Preconditions.checkArgument(lockInfo.containsKey(lockId));
+    return lockInfo.get(lockId);
   }
 
   public ThreadingState addLockAndCopy(String threadId, String lockId) {
@@ -548,6 +589,7 @@ public class ThreadingState
     return new ThreadingState(
         threads,
         locks,
+        lockInfo,
         pActiveThread,
         entryFunction,
         threadIdsForWitness,
@@ -563,6 +605,7 @@ public class ThreadingState
     return new ThreadingState(
         threads,
         locks,
+        lockInfo,
         activeThread,
         pEntryFunction,
         threadIdsForWitness,
@@ -581,6 +624,7 @@ public class ThreadingState
     return new ThreadingState(
         threads,
         locks,
+        lockInfo,
         activeThread,
         entryFunction,
         threadIdsForWitness,

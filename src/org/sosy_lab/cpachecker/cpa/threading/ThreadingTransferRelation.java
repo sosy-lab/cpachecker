@@ -62,6 +62,7 @@ import org.sosy_lab.cpachecker.cpa.automaton.AutomatonState;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonVariable;
 import org.sosy_lab.cpachecker.cpa.callstack.CallstackCPA;
 import org.sosy_lab.cpachecker.cpa.location.LocationCPA;
+import org.sosy_lab.cpachecker.cpa.threading.LockInfo.LockType;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
@@ -119,6 +120,8 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
   private static final String THREAD_MUTEX_LOCK = "pthread_mutex_lock";
   private static final String THREAD_MUTEX_UNLOCK = "pthread_mutex_unlock";
   private static final String THREAD_MUTEX_TRYLOCK = "pthread_mutex_trylock";
+  private static final String RW_MUTEX_READLOCK = "pthread_rwlock_rdlock";
+  private static final String RW_MUTEX_WRITELOCK = "pthread_rwlock_wrlock";
   private static final String VERIFIER_ATOMIC = "__VERIFIER_atomic_";
   private static final String VERIFIER_ATOMIC_BEGIN = "__VERIFIER_atomic_begin";
   private static final String VERIFIER_ATOMIC_END = "__VERIFIER_atomic_end";
@@ -137,6 +140,8 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
           THREAD_MUTEX_LOCK,
           THREAD_MUTEX_UNLOCK,
           THREAD_MUTEX_TRYLOCK,
+          RW_MUTEX_READLOCK,
+          RW_MUTEX_WRITELOCK,
           THREAD_JOIN,
           THREAD_EXIT,
           VERIFIER_ATOMIC_BEGIN,
@@ -264,6 +269,12 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
                 case THREAD_MUTEX_TRYLOCK:
                   return tryAddLock(
                       threadingState, activeThread, extractLockId(statement), results, cfaEdge);
+                case RW_MUTEX_READLOCK:
+                  return addReadLock(
+                      threadingState, activeThread, extractLockId(statement), results);
+                case RW_MUTEX_WRITELOCK:
+                  return addWriteLock(
+                      threadingState, activeThread, extractLockId(statement), results);
                 case THREAD_JOIN:
                   return joinThread(threadingState, statement, results);
                 case THREAD_EXIT:
@@ -645,6 +656,50 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
                 .withLastThreadFunctionResult(new ThreadFunctionReturnValue(trylockEdge, true)));
   }
 
+  private Collection<ThreadingState> addReadLock(
+      final ThreadingState threadingState,
+      final String activeThread,
+      String lockId,
+      Collection<ThreadingState> results) {
+    RWLock lock;
+    if (threadingState.hasLockInfo(lockId)
+        && threadingState.getLockInfo(lockId).getLockType().equals(LockType.RW_MUTEX)) {
+      lock = (RWLock) threadingState.getLockInfo(lockId);
+    } else {
+      lock = new RWLock(lockId);
+      results = transform(results, ts -> ts.addLockInfo(lockId, lock));
+    }
+
+    if (lock.hasWriter()) {
+      // Reader cannot acquire lock while writer is active
+      return ImmutableSet.of();
+    }
+
+    return transform(results, ts -> ts.updateLockInfo(lockId, lock.addReader(activeThread)));
+  }
+
+  private Collection<ThreadingState> addWriteLock(
+      final ThreadingState threadingState,
+      final String activeThread,
+      String lockId,
+      Collection<ThreadingState> results) {
+    RWLock lock;
+    if (threadingState.hasLockInfo(lockId)
+        && threadingState.getLockInfo(lockId).getLockType().equals(LockType.RW_MUTEX)) {
+      lock = (RWLock) threadingState.getLockInfo(lockId);
+    } else {
+      lock = new RWLock(lockId);
+      results = transform(results, ts -> ts.addLockInfo(lockId, lock));
+    }
+
+    if (lock.hasReader() || lock.hasWriter()) {
+      // Writer cannot acquire lock while a reader or another writer is active
+      return ImmutableSet.of();
+    }
+
+    return transform(results, ts -> ts.updateLockInfo(lockId, lock.addWriter(activeThread)));
+  }
+
   /** get the name (lockId) of the new lock at the given edge, or NULL if no lock is required. */
   static @Nullable String getLockId(final CFAEdge cfaEdge) throws UnrecognizedCodeException {
     if (cfaEdge.getEdgeType() == CFAEdgeType.StatementEdge) {
@@ -654,7 +709,10 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
             ((AFunctionCall) statement).getFunctionCallExpression().getFunctionNameExpression();
         if (functionNameExp instanceof AIdExpression) {
           final String functionName = ((AIdExpression) functionNameExp).getName();
-          if (THREAD_MUTEX_LOCK.equals(functionName) || THREAD_MUTEX_TRYLOCK.equals(functionName)) {
+          if (THREAD_MUTEX_LOCK.equals(functionName)
+              || THREAD_MUTEX_TRYLOCK.equals(functionName)
+              || RW_MUTEX_READLOCK.equals(functionName)
+              || RW_MUTEX_WRITELOCK.equals(functionName)) {
             return extractLockId(statement);
           }
         }

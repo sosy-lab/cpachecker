@@ -57,11 +57,7 @@ public class DataRaceTransferRelation extends SingleEdgeTransferRelation {
   // When one of these functions is encountered we are therefore unable to tell if a data race
   // is present or not, so the analysis is terminated. TODO: Add support for these functions
   private static final ImmutableSet<String> UNSUPPORTED_FUNCTIONS =
-      ImmutableSet.of(
-          "pthread_rwlock_rdlock",
-          "pthread_rwlock_timedrdlock",
-          "pthread_rwlock_timedwrlock",
-          "pthread_rwlock_wrlock");
+      ImmutableSet.of("pthread_rwlock_timedrdlock", "pthread_rwlock_timedwrlock");
 
   // These are the functions declared in <pthread.h> that are used in sv-benchmarks programs
   private static final ImmutableSet<String> THREAD_SAFE_FUNCTIONS =
