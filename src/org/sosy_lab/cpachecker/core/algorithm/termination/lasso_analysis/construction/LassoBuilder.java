@@ -27,6 +27,7 @@ import de.uni_freiburg.informatik.ultimate.lassoranker.variables.InequalityConve
 import de.uni_freiburg.informatik.ultimate.lassoranker.variables.InequalityConverter.NlaHandling;
 import de.uni_freiburg.informatik.ultimate.lib.modelcheckerutils.cfg.variables.IProgramVar;
 import de.uni_freiburg.informatik.ultimate.logic.ApplicationTerm;
+import de.uni_freiburg.informatik.ultimate.logic.Script;
 import de.uni_freiburg.informatik.ultimate.logic.Term;
 import de.uni_freiburg.informatik.ultimate.logic.TermVariable;
 import java.util.ArrayList;
@@ -67,7 +68,6 @@ import org.sosy_lab.java_smt.api.SolverException;
 import org.sosy_lab.java_smt.api.Tactic;
 import org.sosy_lab.java_smt.api.visitors.FormulaTransformationVisitor;
 import org.sosy_lab.java_smt.basicimpl.AbstractFormulaManager;
-import org.sosy_lab.java_smt.solvers.smtinterpol.SmtInterpolEnvironment;
 import org.sosy_lab.java_smt.utils.SolverUtils;
 import org.sosy_lab.java_smt.utils.UfElimination;
 import org.sosy_lab.java_smt.utils.UfElimination.Result;
@@ -94,7 +94,7 @@ public class LassoBuilder {
   private final FormulaManagerView fmgrView;
   private final BooleanFormulaManagerView bfmrView;
   private final PathFormulaManager pathFormulaManager;
-  private final SmtInterpolEnvironment env;
+  private final Script env;
 
   private final DivAndModElimination divAndModElimination;
   private final NonLinearMultiplicationElimination nonLinearMultiplicationElimination;
@@ -121,7 +121,7 @@ public class LassoBuilder {
     logger = checkNotNull(pLogger);
     shutdownNotifier = checkNotNull(pShutdownNotifier);
     fmgr = checkNotNull(pFormulaManager);
-    env = (SmtInterpolEnvironment) fmgr.getEnvironment();
+    env = (Script) fmgr.getEnvironment();
     proverEnvironmentSupplier = checkNotNull(pProverEnvironmentSupplier);
     fmgrView = checkNotNull(pFormulaManagerView);
     bfmrView = fmgrView.getBooleanFormulaManager();
