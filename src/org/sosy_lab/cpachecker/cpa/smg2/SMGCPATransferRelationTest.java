@@ -730,7 +730,7 @@ public class SMGCPATransferRelationTest {
     String variableName = "variableName";
 
     CType sizeType = INT_TYPE;
-    for (int i = 0; i < 5000; i = i + 100) {
+    for (int i = 0; i < 5000; i = i + TEST_ARRAY_LENGTH.intValue()) {
       BigInteger sizeInBytes = BigInteger.valueOf(i);
 
       for (CType type : TEST_TYPES) {
@@ -1333,13 +1333,10 @@ public class SMGCPATransferRelationTest {
   @Test
   public void checkStackVariablesWithSimpleTypesAndValues() throws CPATransferException {
     for (CType type : TEST_TYPES) {
-      String variableName = "testVariable";
-      StringBuilder stringBuilder = new StringBuilder(100);
+      String variableName = "testVariable_" + type;
+      // 2 because we test it once for positive and once for negative arguments
       for (int i = 0; i < 2; i++) {
-        stringBuilder.append(variableName);
-        stringBuilder.append(type);
-        stringBuilder.append(i);
-        variableName = stringBuilder.toString();
+        variableName = variableName + i;
         BigInteger value;
         if (((CSimpleType) type).isSigned() && Math.floorMod(i, 2) == 1) {
           // Make every second value a negative for signed values
@@ -1380,7 +1377,7 @@ public class SMGCPATransferRelationTest {
   public void testBasicTrueAssumptionWithTrueTruthAssumption()
       throws CPATransferException, InterruptedException {
     for (CType type : STRUCT_UNION_TEST_TYPES) {
-      for (int i = -100; i < 100; i++) {
+      for (int i = -TEST_ARRAY_LENGTH.intValue(); i < TEST_ARRAY_LENGTH.intValue(); i++) {
         BigInteger testValue = BigInteger.valueOf(i);
         if (type.equals(UNSIGNED_SHORT_TYPE)
             || type.equals(UNSIGNED_INT_TYPE)
@@ -1428,7 +1425,7 @@ public class SMGCPATransferRelationTest {
   public void testBasicTrueAssumptionWithFalseTruthAssumption()
       throws CPATransferException, InterruptedException {
     for (CType type : STRUCT_UNION_TEST_TYPES) {
-      for (int i = -100; i < 100; i++) {
+      for (int i = -TEST_ARRAY_LENGTH.intValue(); i < TEST_ARRAY_LENGTH.intValue(); i++) {
         BigInteger testValue = BigInteger.valueOf(i);
         if (type.equals(UNSIGNED_SHORT_TYPE)
             || type.equals(UNSIGNED_INT_TYPE)
@@ -1612,7 +1609,7 @@ public class SMGCPATransferRelationTest {
   public void testBasicFalseAssumptionWithTrueTruthAssumption()
       throws CPATransferException, InterruptedException {
     for (CType type : STRUCT_UNION_TEST_TYPES) {
-      for (int i = -100; i < 100; i++) {
+      for (int i = -TEST_ARRAY_LENGTH.intValue(); i < TEST_ARRAY_LENGTH.intValue(); i++) {
         BigInteger testValue = BigInteger.valueOf(i);
         BigInteger secondValue = testValue.add(BigInteger.ONE);
         if (type.equals(UNSIGNED_SHORT_TYPE)
@@ -1658,7 +1655,7 @@ public class SMGCPATransferRelationTest {
   public void testBasicFalseAssumptionWithFalseTruthAssumption()
       throws CPATransferException, InterruptedException {
     for (CType type : STRUCT_UNION_TEST_TYPES) {
-      for (int i = -100; i < 100; i++) {
+      for (int i = -TEST_ARRAY_LENGTH.intValue(); i < TEST_ARRAY_LENGTH.intValue(); i++) {
         BigInteger testValue = BigInteger.valueOf(i);
         BigInteger secondValue = testValue.add(BigInteger.ONE);
         if (type.equals(UNSIGNED_SHORT_TYPE)
