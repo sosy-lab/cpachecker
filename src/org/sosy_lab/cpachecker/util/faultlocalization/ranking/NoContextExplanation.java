@@ -29,17 +29,15 @@ public class NoContextExplanation implements FaultExplanation {
   private NoContextExplanation() {}
 
   /**
-   * This method relies on singleton sets otherwise an error is thrown. Make a suggestion for a bug
-   * fix based on the EdgeType.
+   * Make a suggestion for a bug-fix based on the EdgeType.
    *
    * @param subset set of FaultLocalizationOutputs.
    * @return explanation of what might be a fix
-   * @see
-   *     org.sosy_lab.cpachecker.util.faultlocalization.appendables.FaultInfo#possibleFixFor(FaultContribution)
+   * @see org.sosy_lab.cpachecker.util.faultlocalization.appendables.FaultInfo#possibleFixFor(Fault)
    */
   @Override
   public String explanationFor(Fault subset) {
-    return Joiner.on("\n").join(FluentIterable.from(subset).transform(this::explain));
+    return Joiner.on("\n\n").join(FluentIterable.from(subset).transform(this::explain));
   }
 
   private String explain(FaultContribution faultContribution) {
