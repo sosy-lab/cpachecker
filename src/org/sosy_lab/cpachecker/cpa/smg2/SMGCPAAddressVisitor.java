@@ -80,10 +80,6 @@ public class SMGCPAAddressVisitor
     // Evaluate the expression to a Value; this should return a Symbolic Value with the address of
     // the target and a offset if it really has a address. If this fails this returns a different
     // Value class.
-    /*List<ValueAndSMGState> evaluatedExpr =
-    pIastFunctionCallExpression.accept(
-        new SMGCPAValueVisitor(evaluator, state, cfaEdge, logger));
-        */
     // TODO handle possible returns
     return ImmutableList.of(SMGStateAndOptionalSMGObjectAndOffset.of(state));
   }
@@ -107,7 +103,7 @@ public class SMGCPAAddressVisitor
       throws CPATransferException {
     // Array subscript is default Java array usage. Example: array[5]
     // In C this can be translated to *(array + 5), but the array may be on the stack/heap (or
-    // global, but be throw global and stack togehter when reading). Note: this is commutative!
+    // global, but be throw global and stack together when reading). Note: this is commutative!
 
     // The expression is split into array and subscript expression
     // Use the array expression in the visitor again to get the array address
@@ -152,54 +148,61 @@ public class SMGCPAAddressVisitor
         // access array[1] first, we can see that the next type is CArray which makes only sense for
         // nested arrays -> it reads a pointer and returns it even if the type is not a pointer
         // expr)
-        if ((arrayValue instanceof AddressExpression)) {
-          AddressExpression arrayAddr = (AddressExpression) arrayValue;
-          Value addrOffset = arrayAddr.getOffset();
-          if (!addrOffset.isNumericValue()) {
-            logger.log(
-                Level.FINE,
-                "A offset value was found to be non concrete when trying to find a memory"
-                    + " location in an array. No memory region could be returned.");
-            resultBuilder.add(SMGStateAndOptionalSMGObjectAndOffset.of(currentState));
-          }
-          BigInteger baseOffset = addrOffset.asNumericValue().bigInteger();
-          BigInteger finalOffset = baseOffset.add(subscriptOffset);
-
-          resultBuilder.add(
-              evaluator.getTargetObjectAndOffset(
-                  currentState, arrayAddr.getMemoryAddress(), finalOffset));
-
-        } else if (arrayValue instanceof SymbolicIdentifier
-            && ((SymbolicIdentifier) arrayValue).getRepresentedLocation().isPresent()) {
-          MemoryLocation variableAndOffset =
-              ((SymbolicIdentifier) arrayValue).getRepresentedLocation().orElseThrow();
-          String varName = variableAndOffset.getIdentifier();
-          BigInteger baseOffset = BigInteger.valueOf(variableAndOffset.getOffset());
-          BigInteger finalOffset = baseOffset.add(subscriptOffset);
-
-          Optional<SMGObjectAndOffset> maybeTarget =
-              evaluator.getTargetObjectAndOffset(currentState, varName, finalOffset);
-          if (maybeTarget.isPresent()) {
-            resultBuilder.add(
-                SMGStateAndOptionalSMGObjectAndOffset.of(maybeTarget.orElseThrow(), currentState));
-          } else {
-            resultBuilder.add(SMGStateAndOptionalSMGObjectAndOffset.of(currentState));
-          }
-
-        } else {
-          // Might be numeric 0 (0 object). All else cases are basically invalid requests.
-          if (arrayValue.isNumericValue()
-              && arrayValue.asNumericValue().bigInteger().compareTo(BigInteger.ZERO) == 0) {
-            resultBuilder.add(
-                SMGStateAndOptionalSMGObjectAndOffset.of(
-                    SMGObject.nullInstance(), subscriptOffset, currentState));
-          } else {
-            resultBuilder.add(SMGStateAndOptionalSMGObjectAndOffset.of(currentState));
-          }
-        }
+        resultBuilder.add(handleSubscriptExpression(arrayValue, subscriptOffset, currentState));
       }
     }
     return resultBuilder.build();
+  }
+
+  /*
+   * Get the return from the array behind arrayValue and the subscript offset in bits.
+   */
+  private SMGStateAndOptionalSMGObjectAndOffset handleSubscriptExpression(
+      Value arrayValue, BigInteger subscriptOffset, SMGState pCurrentState) throws SMG2Exception {
+
+    SMGState currentState = pCurrentState;
+    if ((arrayValue instanceof AddressExpression)) {
+      AddressExpression arrayAddr = (AddressExpression) arrayValue;
+      Value addrOffset = arrayAddr.getOffset();
+      if (!addrOffset.isNumericValue()) {
+        logger.log(
+            Level.FINE,
+            "A offset value was found to be non concrete when trying to find a memory"
+                + " location in an array. No memory region could be returned.");
+        return SMGStateAndOptionalSMGObjectAndOffset.of(currentState);
+      }
+      BigInteger baseOffset = addrOffset.asNumericValue().bigInteger();
+      BigInteger finalOffset = baseOffset.add(subscriptOffset);
+
+      return evaluator.getTargetObjectAndOffset(
+          currentState, arrayAddr.getMemoryAddress(), finalOffset);
+
+    } else if (arrayValue instanceof SymbolicIdentifier
+        && ((SymbolicIdentifier) arrayValue).getRepresentedLocation().isPresent()) {
+      MemoryLocation variableAndOffset =
+          ((SymbolicIdentifier) arrayValue).getRepresentedLocation().orElseThrow();
+      String varName = variableAndOffset.getIdentifier();
+      BigInteger baseOffset = BigInteger.valueOf(variableAndOffset.getOffset());
+      BigInteger finalOffset = baseOffset.add(subscriptOffset);
+
+      Optional<SMGObjectAndOffset> maybeTarget =
+          evaluator.getTargetObjectAndOffset(currentState, varName, finalOffset);
+      if (maybeTarget.isPresent()) {
+        return SMGStateAndOptionalSMGObjectAndOffset.of(maybeTarget.orElseThrow(), currentState);
+      } else {
+        return SMGStateAndOptionalSMGObjectAndOffset.of(currentState);
+      }
+
+    } else {
+      // Might be numeric 0 (0 object). All else cases are basically invalid requests.
+      if (arrayValue.isNumericValue()
+          && arrayValue.asNumericValue().bigInteger().compareTo(BigInteger.ZERO) == 0) {
+        return SMGStateAndOptionalSMGObjectAndOffset.of(
+            SMGObject.nullInstance(), subscriptOffset, currentState);
+      } else {
+        return SMGStateAndOptionalSMGObjectAndOffset.of(currentState);
+      }
+    }
   }
 
   @Override
