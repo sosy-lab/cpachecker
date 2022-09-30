@@ -1336,7 +1336,7 @@ public class SMGCPATransferRelationTest {
       String variableName = "testVariable_" + type;
       // 2 because we test it once for positive and once for negative arguments
       for (int i = 0; i < 2; i++) {
-        variableName = variableName + i;
+        String variableNamePlus = variableName + i;
         BigInteger value;
         if (((CSimpleType) type).isSigned() && Math.floorMod(i, 2) == 1) {
           // Make every second value a negative for signed values
@@ -1347,11 +1347,11 @@ public class SMGCPATransferRelationTest {
 
         // Declares a variable on the stack with the given name and type and value
         SMGState stateWithStruct =
-            declareSimpleTypedTestVariablesWithValues(value, variableName, type);
+            declareSimpleTypedTestVariablesWithValues(value, variableNamePlus, type);
 
         SymbolicProgramConfiguration memoryModel = stateWithStruct.getMemoryModel();
-        assertThat(memoryModel.getStackFrames().peek().containsVariable(variableName)).isTrue();
-        SMGObject memoryObject = memoryModel.getStackFrames().peek().getVariable(variableName);
+        assertThat(memoryModel.getStackFrames().peek().containsVariable(variableNamePlus)).isTrue();
+        SMGObject memoryObject = memoryModel.getStackFrames().peek().getVariable(variableNamePlus);
         // The size of the variable is the size of the type
         BigInteger expectedTypeSizeInBits = MACHINE_MODEL.getSizeofInBits(type);
         assertThat(memoryObject.getSize().compareTo(expectedTypeSizeInBits) == 0).isTrue();
