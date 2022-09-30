@@ -270,6 +270,9 @@ analysis.alwaysStoreCounterexamples = false
 # Construct a residual program from condition and verify residual program
 analysis.asConditionalVerifier = false
 
+# Enable our fault localization technique
+analysis.assumes = false
+
 # use a second model checking run (e.g., with CBMC or a different CPAchecker
 # configuration) to double-check counter-examples
 analysis.checkCounterexamples = false
