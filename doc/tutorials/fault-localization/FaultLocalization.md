@@ -11,9 +11,9 @@ SPDX-License-Identifier: Apache-2.0
 Fault Localization
 -----------------
 
-CPAchecker provides a variety of fault localization techniques.
-These techniques aim at finding error-prone statements in the program.
-Additionally, some even try to explain the results to ease debugging.
+CPAchecker provides a variety of fault localization techniques. These techniques aim at finding
+error-prone statements in the program. Additionally, they try to explain the results to ease
+debugging.
 
 Please conduct the following papers for further reading:
 - [Distance Metrics I](https://doi.org/10.1145/1029894.1029908)
@@ -38,14 +38,86 @@ The above-mentioned algorithms can be run by executing one of the following opti
 ```
 
 Here is a full example for running `ErrorInvariants`:
+
 ```
 -predicateAnalysis-faultlocalization-errinv \
 -spec config/specification/sv-comp-reachability.spc \
 <path to program>
 ```
 
-Open the report in `output/` to see more details and the hints from fault localization.
-Usually, the name of the report is similar to `output/Counterexample.2.html`.
+Open the report in `output/` to see more details and the hints from fault localization. Usually, the
+name of the report is similar to `output/Counterexample.2.html`.
+
+Interpreting Results
+------------------
+All the above-mentioned techniques and how to interpret their resuls will be explained here.
+
+### Distance Metrics
+
+The goal of this technique is to find the closest successful execution of the program given a
+counterexample. The output shows modifications of the counterexample transforming it into a
+successful run.
+
+A fault will contain statements like this:
+
+```
+    LINE 14 WAS: !(num < 1), CHANGED TO: num < 1
+    LINE 16, DELETED: int i = 2;
+    LINE 16, DELETED: i <= num
+    LINE 17, DELETED: (num % i) == 0
+    LINE 17, DELETED: int __CPAchecker_TMP_0;
+    LINE 17, DELETED: isPrime(i)
+    LINE 5, DELETED: int j = 2;
+    LINE 5, DELETED: !(j <= (n / 2))
+    LINE 8, DELETED: return 1;
+    LINE 17, DELETED:
+    LINE 17, DELETED: !(__CPAchecker_TMP_0 == 0)
+    LINE 18, DELETED: num = num / (i + 1);
+    LINE 19, DELETED: int __CPAchecker_TMP_1 = i;
+    LINE 19, DELETED: i = i - 1;
+    LINE 19, DELETED: __CPAchecker_TMP_1;
+    LINE 16, DELETED: i = i + 1;
+    LINE 16, DELETED: !(i <= num)
+    LINE 23, DELETED: num != 1
+    LINE 24, DELETED: reach_error();
+    LINE 14, WAS EXECUTED: return 0;
+```
+
+It shows how to change the presented counterexample to a feasible non-violating execution path.
+Changing line 14 to `num < 1`, suggests taking the then-branch rather than the else-branch.
+`DELETED` means that we do not travers this statement along our path anymore.
+`WAS EXECUTED` indicates that we do not change this line.
+
+### Error Invariants
+
+Error Invariants takes the counterexample and negates the last assume statement. Hence, the path is
+not feasible anymore, allowing the calculation of Craig interpolants in-between every edge. The
+authors of this work state that interpolants may be inductive on more than one position in the code
+although the interpolation engine does not provide the same interpolant on these positions. The
+algorithm finds for every interpolant, the inductive interval on the error path. Thus, we know from
+which and until which statement an interpolant is valid. Therefore, we can calculate an abstract
+error trace consisting of real statements in the counterexample and inductive interpolants. The
+abstract error trace is an alternating sequence of statements and interpolants. Whenever an
+inductive interpolant is not valid after a statement anymore, the authors assume this statement to
+be error-prone. The output of the report shows the alternating sequence of interpolants and
+statements.
+
+### MaxSat
+
+Similar to `ErrorInvariants`, this approach also takes the counterexample and negates the last
+assume statement to make the error trace infeasible. Our goal is to find a maximal set of statements
+of the counterexample that conjuncted with the negated assume statement is still satisfiable. If we
+now compute the complement of the counterexample in this set, we know which statements would lead to
+unsatisfiability of the error trace. The algorithm marks these statements and prints them in the
+report.
+
+### DStar, Tarantula, and Ochiai
+
+All of these techniques use a set of test cases to calculate a suspiciousness score for each
+operation along the counterexample. The calculation of the scores relies on the number of total test
+cases, total failed test cases, total successful test cases, test cases that fail and execute a
+certain operation, and test cases that succeed and execute a certain operation. The report shows
+every edge and the computed score.
 
 Implementing New Techniques
 ------------------
@@ -172,7 +244,7 @@ information on why we think the fault is error-prone
 (`List<Fault> ranked = rankFaults(explainFaults(faults))`), and a _Visualizer_ that transforms the
 result in, e.g., an HTML report (`visualize(info, ranked)`).
 
-Here is the full code snippet to implement our demo algorithm:
+Here is the full code snippet showing the implementation of our demo algorithm:
 ```java
 package org.sosy_lab.cpachecker.core.algorithm;
 
@@ -282,27 +354,29 @@ List<CFAEdge> edgeList = transformedImmutableListCopy(path, assumption -> assump
 
 This is the CPAchecker way of extracting a counterexample in case a violation was found. We can
 access the path of edges along the CFA that lead to the error in `edgeList`. Note that a single edge
-might be traversed more than once. Hence, it can also appear more than one time in an error path.
+might be traversed multiple times. Hence, it can also appear multiple times in an error path.
 
 A _Localizer_ promises us to return a collection of faults. In our case, the _Localizer_ can be
 inlined in the code with:
+
 ```java
-  private Collection<Fault> performFaultLocalization(List<CFAEdge> edgeList) {
-    Set<FaultContribution> assumes = FluentIterable
-        .from(edgeList)
-        .filter(e -> e.getEdgeType() == CFAEdgeType.AssumeEdge)
-        .transform(edge -> new FaultContribution(edge))
-        .toSet();
+  private Collection<Fault> performFaultLocalization(List<CFAEdge> edgeList){
+    // Filter all assume edges 
+    Set<FaultContribution> assumes=FluentIterable
+    .from(edgeList)
+    .filter(e->e.getEdgeType()==CFAEdgeType.AssumeEdge)
+    .transform(edge->new FaultContribution(edge))
+    .toSet();
     // collect all error-prone statements in a Fault
-    Fault fault = new Fault(assumes);
+    Fault fault=new Fault(assumes);
     // return a collection of faults
     return ImmutableSet.of(fault);
-  }
+    }
 ```
 
-The "_Localizer_" transforms the counterexample (list of edges) to a list of faults. Here, we only
-have one fault containing all assume edges along the path. We collect these edges in a `Fault` after
-we transformed them into `FaultContributions`.
+The "_Localizer_" transforms the counterexample (list of edges) to a collection of faults. Here, we
+only have one fault containing all assume edges along the path. We collect these edges in a `Fault`
+after we transformed them into `FaultContributions`.
 `FaultContributions` allow us to attach information to `CFAEdges`. Since the same edge might be
 traversed several times in one counterexample, it makes sense to have `FaultContributions` to add
 different information to the same edge but at different "points in time".
@@ -326,9 +400,9 @@ automatic program repair to synthesize a patch that fixes the bug.
 ```
 
 Now, we want to rank our faults. The simplest of all rankers can be implemented as seen above. We
-just use the iterator of the underlying Collection to create a list. Our framework provides a
+just use the iterator of the underlying `Collection` to create a list. Our framework provides a
 variety of `FaultScoring` techniques that sort faults with the help of heuristics (set size,
-distance to error location...).
+distance to error location,...).
 
 ```java
   private void visualize(CounterexampleInfo parent, List<Fault> faults) {
@@ -354,14 +428,24 @@ the constructor of `CoreComponentsFactory.
 ```
 Lastly, we append the following check in the very last `else` branch of the method
 `createAlgorithm`.
+
 ```java
-  if (assumes) {
-    algorithm = new FaultLocalizationAssumption(algorithm, logger);
-  }
+public Algorithm createAlgorithm(final ConfigurableProgramAnalysis cpa,final CFA cfa,final Specification specification)
+    throws InvalidConfigurationException,CPAException,InterruptedException{
+    if(...){
+    // ...
+    }else{
+    // ...
+    if(assumes){
+    algorithm=new FaultLocalizationAssumption(algorithm,logger);
+    }
+    }
+    return algorithm;
+    }
 ```
 
-Afterwards, we can execute the following snippet 
-from the root directory of CPAchecker to try our implementation:
+Afterwards, we can execute the following snippet from the root directory of CPAchecker to run our
+implementation:
 ```
 ant && \
 ./scripts/cpa.sh \
