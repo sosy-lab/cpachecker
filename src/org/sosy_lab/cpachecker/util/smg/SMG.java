@@ -1272,7 +1272,6 @@ public class SMG {
           // Remember the values to change the nesting level
           valuesToDecrementBuilder.add(value);
         }
-
       }
     }
     ImmutableSet<SMGValue> valuesToDecrement = valuesToDecrementBuilder.build();
