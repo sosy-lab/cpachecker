@@ -9,7 +9,6 @@
 package org.sosy_lab.cpachecker.cpa.smg2.refiner;
 
 import com.google.common.base.Preconditions;
-import com.google.common.collect.ImmutableSet;
 import java.util.Deque;
 import java.util.Optional;
 import java.util.Set;
@@ -239,7 +238,6 @@ public class SMGEdgeInterpolator
                 null,
                 null,
                 null,
-                stateForFrameInfo.getMemoryModel().getFunctionDeclarationsFromStackFrames(),
-                ImmutableSet.of()));
+                stateForFrameInfo.getMemoryModel().getFunctionDeclarationsFromStackFrames()));
   }
 }

@@ -86,17 +86,11 @@ public class SymbolicProgramConfiguration {
   /* Map of (SMG)Objects externaly allocated. The bool denotes validity, true = valid, false = invalid i.e. after free() */
   private final PersistentMap<SMGObject, Boolean> externalObjectAllocation;
 
-  // Whitelisted heap values. This remembers heap values needed for the analysis. Needed for CEGAR.
-  private final ImmutableSet<Value> heapValueWhitelist;
-
   /**
    * Maps the symbolic value ranges to their abstract SMG counterparts. (SMGs use only abstract, but
    * unique values. Such that a SMGValue with id 1 is always equal only with a SMGValue with id 1.
-   * We need symbolic value ranges for the values analysis. Concrete values would ruin abstraction
-   * capabilities. The only exception are addresses, hence why they are seperate) . IMportant: this
-   * mapping is only part of the total mapping! You NEED to map the SMGValue using the mapping of
-   * the SPC! TODO: use SymbolicRegionManager or smth like it in a changed implementation of the
-   * value. TODO: map the SMGValues using the SPC mapping or decide on a new mapping idea
+   * The only exception are addresses, hence why they are separate) . Important: You NEED to map the
+   * SMGValue using the mapping of the SPC!
    */
   private final ImmutableBiMap<Equivalence.Wrapper<Value>, SMGValue> valueMapping;
 
@@ -109,8 +103,7 @@ public class SymbolicProgramConfiguration {
       PersistentSet<SMGObject> pHeapObjects,
       PersistentMap<SMGObject, Boolean> pExternalObjectAllocation,
       ImmutableBiMap<Equivalence.Wrapper<Value>, SMGValue> pValueMapping,
-      PersistentMap<String, CType> pVariableToTypeMap,
-      ImmutableSet<Value> pheapValueWhitelist) {
+      PersistentMap<String, CType> pVariableToTypeMap) {
     globalVariableMapping = pGlobalVariableMapping;
     stackVariableMapping = pStackVariableMapping;
     smg = pSmg;
@@ -118,7 +111,6 @@ public class SymbolicProgramConfiguration {
     heapObjects = pHeapObjects;
     valueMapping = pValueMapping;
     variableToTypeMap = pVariableToTypeMap;
-    heapValueWhitelist = pheapValueWhitelist;
   }
 
   /**
@@ -143,8 +135,7 @@ public class SymbolicProgramConfiguration {
       PersistentSet<SMGObject> pHeapObjects,
       PersistentMap<SMGObject, Boolean> pExternalObjectAllocation,
       ImmutableBiMap<Equivalence.Wrapper<Value>, SMGValue> pValueMapping,
-      PersistentMap<String, CType> pVariableToTypeMap,
-      ImmutableSet<Value> pheapValueWhitelist) {
+      PersistentMap<String, CType> pVariableToTypeMap) {
     return new SymbolicProgramConfiguration(
         pSmg,
         pGlobalVariableMapping,
@@ -152,8 +143,7 @@ public class SymbolicProgramConfiguration {
         pHeapObjects,
         pExternalObjectAllocation,
         pValueMapping,
-        pVariableToTypeMap,
-        pheapValueWhitelist);
+        pVariableToTypeMap);
   }
 
   /**
@@ -176,8 +166,7 @@ public class SymbolicProgramConfiguration {
             SMGValue.zeroFloatValue(),
             valueWrapper.wrap(new NumericValue(Double.valueOf(0.0f))),
             SMGValue.zeroDoubleValue()),
-        PathCopyingPersistentTreeMap.of(),
-        ImmutableSet.of());
+        PathCopyingPersistentTreeMap.of());
   }
 
   public SymbolicProgramConfiguration copyAndRemoveHasValueEdges(
@@ -190,8 +179,7 @@ public class SymbolicProgramConfiguration {
         heapObjects,
         externalObjectAllocation,
         valueMapping,
-        variableToTypeMap,
-        heapValueWhitelist);
+        variableToTypeMap);
   }
 
   /**
@@ -261,8 +249,7 @@ public class SymbolicProgramConfiguration {
         heapObjects,
         externalObjectAllocation,
         valueMapping,
-        variableToTypeMap.putAndCopy(pVarName, type),
-        heapValueWhitelist);
+        variableToTypeMap.putAndCopy(pVarName, type));
   }
 
   /**
@@ -293,8 +280,7 @@ public class SymbolicProgramConfiguration {
         heapObjects,
         externalObjectAllocation,
         valueMapping,
-        variableToTypeMap.putAndCopy(pVarName, type),
-        heapValueWhitelist);
+        variableToTypeMap.putAndCopy(pVarName, type));
   }
 
   /* Adds the local variable given to the stack with the function name given */
@@ -325,8 +311,7 @@ public class SymbolicProgramConfiguration {
         heapObjects,
         externalObjectAllocation,
         valueMapping,
-        variableToTypeMap.putAndCopy(pVarName, type),
-        heapValueWhitelist);
+        variableToTypeMap.putAndCopy(pVarName, type));
   }
 
   /**
@@ -360,8 +345,7 @@ public class SymbolicProgramConfiguration {
           heapObjects,
           externalObjectAllocation,
           valueMapping,
-          variableToTypeMap,
-          heapValueWhitelist);
+          variableToTypeMap);
     }
     return of(
         smg.copyAndAddObject(returnObj.orElseThrow()),
@@ -371,8 +355,7 @@ public class SymbolicProgramConfiguration {
         externalObjectAllocation,
         valueMapping,
         variableToTypeMap.putAndCopy(
-            pFunctionDefinition.getQualifiedName() + "::__retval__", returnType),
-        heapValueWhitelist);
+            pFunctionDefinition.getQualifiedName() + "::__retval__", returnType));
   }
 
   /**
@@ -388,47 +371,6 @@ public class SymbolicProgramConfiguration {
   public SymbolicProgramConfiguration copyAndAddStackFrame(
       CFunctionDeclaration pFunctionDefinition, MachineModel model) {
     return copyAndAddStackFrame(pFunctionDefinition, model, null);
-  }
-
-  SymbolicProgramConfiguration copyAndAddToheapValueWhitelist(@Nullable Value newBlacklistedValue) {
-    if (newBlacklistedValue == null) {
-      return this;
-    }
-    return of(
-        smg,
-        globalVariableMapping,
-        stackVariableMapping,
-        heapObjects,
-        externalObjectAllocation,
-        valueMapping,
-        variableToTypeMap,
-        new ImmutableSet.Builder<Value>()
-            .addAll(heapValueWhitelist)
-            .add(newBlacklistedValue)
-            .build());
-  }
-
-  SymbolicProgramConfiguration copyAndRemoveFromheapValueWhitelist(
-      @Nullable Value blacklistedValueToRemove) {
-    if (blacklistedValueToRemove == null) {
-      return this;
-    }
-    return of(
-        smg,
-        globalVariableMapping,
-        stackVariableMapping,
-        heapObjects,
-        externalObjectAllocation,
-        valueMapping,
-        variableToTypeMap,
-        new ImmutableSet.Builder<Value>()
-            .addAll(heapValueWhitelist)
-            .add(blacklistedValueToRemove)
-            .build());
-  }
-
-  public ImmutableSet<Value> getheapValueWhitelist() {
-    return heapValueWhitelist;
   }
 
   /**
@@ -452,8 +394,7 @@ public class SymbolicProgramConfiguration {
         heapObjects,
         externalObjectAllocation,
         valueMapping,
-        variableToTypeMap.removeAndCopy(pIdentifier),
-        heapValueWhitelist);
+        variableToTypeMap.removeAndCopy(pIdentifier));
   }
 
   /**
@@ -483,8 +424,7 @@ public class SymbolicProgramConfiguration {
             heapObjects,
             externalObjectAllocation,
             valueMapping,
-            variableToTypeMap.removeAndCopy(pIdentifier),
-            heapValueWhitelist);
+            variableToTypeMap.removeAndCopy(pIdentifier));
       }
     }
     return this;
@@ -507,8 +447,7 @@ public class SymbolicProgramConfiguration {
         heapObjects.addAndCopy(pObject),
         externalObjectAllocation,
         valueMapping,
-        variableToTypeMap,
-        heapValueWhitelist);
+        variableToTypeMap);
   }
 
   // Only to be used by materilization to copy a SMGObject
@@ -521,8 +460,7 @@ public class SymbolicProgramConfiguration {
         heapObjects,
         externalObjectAllocation,
         valueMapping,
-        variableToTypeMap,
-        heapValueWhitelist);
+        variableToTypeMap);
   }
 
   // Replace the pointer behind value with a new pointer with the new SMGObject target
@@ -535,8 +473,7 @@ public class SymbolicProgramConfiguration {
         heapObjects,
         externalObjectAllocation,
         valueMapping,
-        variableToTypeMap,
-        heapValueWhitelist);
+        variableToTypeMap);
   }
 
   public SymbolicProgramConfiguration copyAndReplaceValueWith(
@@ -548,8 +485,7 @@ public class SymbolicProgramConfiguration {
         heapObjects,
         externalObjectAllocation,
         valueMapping,
-        variableToTypeMap,
-        heapValueWhitelist);
+        variableToTypeMap);
   }
 
   /**
@@ -597,8 +533,7 @@ public class SymbolicProgramConfiguration {
         heapObjects,
         externalObjectAllocation,
         valueMapping,
-        newVariableToTypeMap,
-        heapValueWhitelist);
+        newVariableToTypeMap);
   }
 
   protected Set<SMGObject> getObjectsValidInOtherStackFrames() {
@@ -650,8 +585,7 @@ public class SymbolicProgramConfiguration {
             newHeapObjects,
             externalObjectAllocation,
             valueMapping,
-            variableToTypeMap,
-            heapValueWhitelist),
+            variableToTypeMap),
         unreachableObjects);
   }
 
@@ -674,8 +608,7 @@ public class SymbolicProgramConfiguration {
         heapObjects.removeAndCopy(object),
         externalObjectAllocation,
         valueMapping,
-        variableToTypeMap,
-        heapValueWhitelist);
+        variableToTypeMap);
   }
 
   // For tests
@@ -687,8 +620,7 @@ public class SymbolicProgramConfiguration {
         heapObjects,
         externalObjectAllocation,
         valueMapping,
-        variableToTypeMap,
-        heapValueWhitelist);
+        variableToTypeMap);
   }
 
   /*
@@ -709,8 +641,7 @@ public class SymbolicProgramConfiguration {
         heapObjects.removeAndCopy(object),
         externalObjectAllocation,
         valueMapping,
-        variableToTypeMap,
-        heapValueWhitelist);
+        variableToTypeMap);
   }
 
   /**
@@ -745,8 +676,7 @@ public class SymbolicProgramConfiguration {
         heapObjects,
         externalObjectAllocation,
         builder.putAll(valueMapping).put(valueWrapper.wrap(cValue), smgValue).buildOrThrow(),
-        variableToTypeMap,
-        heapValueWhitelist);
+        variableToTypeMap);
   }
 
   /**
@@ -765,8 +695,7 @@ public class SymbolicProgramConfiguration {
         heapObjects,
         externalObjectAllocation.putAndCopy(pObject, false),
         valueMapping,
-        variableToTypeMap,
-        heapValueWhitelist);
+        variableToTypeMap);
   }
 
   /**
@@ -832,8 +761,7 @@ public class SymbolicProgramConfiguration {
         heapObjects,
         externalObjectAllocation.putAndCopy(pObject, true),
         valueMapping,
-        variableToTypeMap,
-        heapValueWhitelist);
+        variableToTypeMap);
   }
 
   /**
@@ -851,8 +779,7 @@ public class SymbolicProgramConfiguration {
         heapObjects,
         externalObjectAllocation,
         valueMapping,
-        variableToTypeMap,
-        heapValueWhitelist);
+        variableToTypeMap);
   }
 
   /**
@@ -1252,8 +1179,7 @@ public class SymbolicProgramConfiguration {
         heapObjects.removeAndCopy(obj),
         externalObjectAllocation,
         valueMapping,
-        variableToTypeMap,
-        heapValueWhitelist);
+        variableToTypeMap);
   }
 
   /**
@@ -1273,8 +1199,7 @@ public class SymbolicProgramConfiguration {
         heapObjects,
         externalObjectAllocation,
         valueMapping,
-        variableToTypeMap,
-        heapValueWhitelist);
+        variableToTypeMap);
   }
 
   /**
@@ -1296,8 +1221,7 @@ public class SymbolicProgramConfiguration {
         heapObjects,
         externalObjectAllocation,
         valueMapping,
-        variableToTypeMap,
-        heapValueWhitelist);
+        variableToTypeMap);
   }
 
   /**
@@ -1320,8 +1244,7 @@ public class SymbolicProgramConfiguration {
         heapObjects,
         externalObjectAllocation,
         valueMapping,
-        variableToTypeMap,
-        heapValueWhitelist);
+        variableToTypeMap);
   }
 
   public SymbolicProgramConfiguration copyAndReplaceHVEdgesAt(
@@ -1333,8 +1256,7 @@ public class SymbolicProgramConfiguration {
         heapObjects,
         externalObjectAllocation,
         valueMapping,
-        variableToTypeMap,
-        heapValueWhitelist);
+        variableToTypeMap);
   }
 
   public SymbolicProgramConfiguration replaceValueAtWithAndCopy(
@@ -1346,8 +1268,7 @@ public class SymbolicProgramConfiguration {
         heapObjects,
         externalObjectAllocation,
         valueMapping,
-        variableToTypeMap,
-        heapValueWhitelist);
+        variableToTypeMap);
   }
 
   @Override

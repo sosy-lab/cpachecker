@@ -162,8 +162,7 @@ public final class SMGInterpolant implements Interpolant<SMGState, SMGInterpolan
                   nonHeapAssignments,
                   variableNameToMemorySizeInBits,
                   variableToTypeMap,
-                  stackFrameDeclarations,
-                  allowedHeapValues)
+                  stackFrameDeclarations)
               .getMemoryModel();
     } catch (SMG2Exception e) {
       memoryModel =

@@ -563,16 +563,6 @@ public class SMGState
     return readValue(memoryToRead, offsetInBits, sizeOfReadInBits, null).getValue();
   }
 
-  public SMGState reconstructWhitelistedHeapValues(Set<Value> allowedHeapValues) {
-    SMGState currentState = this;
-    for (Value heapValue : allowedHeapValues) {
-      currentState =
-          currentState.copyAndReplaceMemoryModel(
-              currentState.getMemoryModel().copyAndAddToheapValueWhitelist(heapValue));
-    }
-    return currentState;
-  }
-
   /**
    * Removes ALL {@link MemoryLocation}s given from the state and then adds them back in with the
    * values given. The given Values should never represent any heap related Values (pointers). It is
@@ -588,15 +578,10 @@ public class SMGState
       @Nullable PersistentMap<MemoryLocation, ValueAndValueSize> nonHeapAssignments,
       @Nullable Map<String, BigInteger> variableNameToMemorySizeInBits,
       @Nullable Map<String, CType> variableTypeMap,
-      PersistentStack<CFunctionDeclarationAndOptionalValue> pStackDeclarations,
-      Set<Value> allowedHeapValues)
+      PersistentStack<CFunctionDeclarationAndOptionalValue> pStackDeclarations)
       throws SMG2Exception {
-    if (nonHeapAssignments == null) {
-      if (pStackDeclarations == null && allowedHeapValues == null) {
+    if (nonHeapAssignments == null || pStackDeclarations == null) {
         return this;
-      }
-      return this.reconstructStackFrames(pStackDeclarations)
-          .reconstructWhitelistedHeapValues(allowedHeapValues);
     }
     SMGState currentState = this;
     // Reconstruct the stack frames first
@@ -607,7 +592,7 @@ public class SMGState
           currentState.assignNonHeapConstant(
               entry.getKey(), entry.getValue(), variableNameToMemorySizeInBits, variableTypeMap);
     }
-    return currentState.reconstructWhitelistedHeapValues(allowedHeapValues);
+    return currentState;
   }
 
   /**
@@ -2818,14 +2803,11 @@ public class SMGState
 
   public SMGState copyAndRemember(SMGInformation pForgottenInformation) {
     SMGState currentState = this;
-    Value valueAgainIntroduced = null;
     for (Entry<SMGObject, Set<SMGHasValueEdge>> entry :
         pForgottenInformation.getHeapValuesPerObjectMap().entrySet()) {
       SMGObject object = entry.getKey();
 
       for (SMGHasValueEdge edgeToInsert : entry.getValue()) {
-        valueAgainIntroduced =
-            currentState.memoryModel.getValueFromSMGValue(edgeToInsert.hasValue()).orElseThrow();
         currentState =
             currentState.copyAndReplaceMemoryModel(
                 currentState.memoryModel.replaceValueAtWithAndCopy(
@@ -2833,8 +2815,7 @@ public class SMGState
       }
     }
 
-    return currentState.copyAndReplaceMemoryModel(
-        currentState.memoryModel.copyAndAddToheapValueWhitelist(valueAgainIntroduced));
+    return currentState;
   }
 
   @Override
