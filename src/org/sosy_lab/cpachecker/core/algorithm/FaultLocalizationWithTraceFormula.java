@@ -257,6 +257,14 @@ public class FaultLocalizationWithTraceFormula
       logger.log(Level.INFO, "Starting fault localization...");
       for (CounterexampleInfo info : counterExamples) {
         logger.log(Level.INFO, "Find explanations for fault #" + info.getUniqueId());
+        if (!info.isPreciseCounterExample() || info.isSpurious()) {
+          logger.logf(
+              Level.INFO,
+              "Algorithm found a spurious or imprecise counterexample. Cannot continue fault"
+                  + " localization on counterexample %s...",
+              info.getUniqueId());
+          continue;
+        }
         runAlgorithm(info, faultAlgorithm);
       }
       logger.log(Level.INFO, "Stopping fault localization...");
