@@ -124,7 +124,7 @@ public class SMGPrecision extends RefinablePrecision {
 
   @Override
   public String toString() {
-    return rawPrecision.toString() + " " + trackedHeapValues.toString();
+    return rawPrecision + " " + trackedHeapValues;
   }
 
   @Override
