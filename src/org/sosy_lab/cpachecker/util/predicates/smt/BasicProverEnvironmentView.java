@@ -52,6 +52,11 @@ public class BasicProverEnvironmentView<E> implements BasicProverEnvironment<E> 
   }
 
   @Override
+  public int size() {
+    return delegate.size();
+  }
+
+  @Override
   public boolean isUnsat() throws SolverException, InterruptedException {
     return delegate.isUnsat();
   }

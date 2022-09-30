@@ -99,7 +99,7 @@ public class InformationProvider {
     for (Fault faultLocalizationOutputs : result) {
       int hints = 0;
       for (FaultContribution faultContribution : faultLocalizationOutputs) {
-        FaultInfo potFix = FaultInfo.possibleFixFor(faultContribution);
+        FaultInfo potFix = FaultInfo.possibleFixFor(new Fault(faultContribution));
         if (maxNumberOfHintsNegative || hints < maxNumberOfHints) {
           faultLocalizationOutputs.addInfo(potFix);
         }

@@ -45,6 +45,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDe
 import org.sosy_lab.cpachecker.cfa.types.c.CElaboratedType;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.cfa.types.c.CTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
@@ -221,6 +222,13 @@ class PointerTargetSetManager {
       return MergeResult.trivial(PointerTargetSet.emptyPointerTargetSet(), bfmgr);
     }
 
+    final Constraints mergeConstraints1 = new Constraints(bfmgr);
+    final Constraints mergeConstraints2 = new Constraints(bfmgr);
+    PersistentList<Formula> highestAllocatedAddresses1 = pts1.getHighestAllocatedAddresses();
+    PersistentList<Formula> highestAllocatedAddresses2 = pts2.getHighestAllocatedAddresses();
+
+    // Handle bases
+
     final CopyOnWriteSortedMap<String, CType> basesOnlyPts1 =
         CopyOnWriteSortedMap.copyOf(PathCopyingPersistentTreeMap.<String, CType>of());
     final CopyOnWriteSortedMap<String, CType> basesOnlyPts2 =
@@ -255,6 +263,24 @@ class PointerTargetSetManager {
             });
     shutdownNotifier.shutdownIfNecessary();
 
+    // For all bases only in pts1, add required constraints regarding pts2 and vice-versa.
+    // basesOnlyPtsX may contain bases for with ptsY has a fake base, but for these ptsY also had
+    // constraints created already, and duplicate constraints would contradict. So we filter these.
+    highestAllocatedAddresses2 =
+        makeBaseAddressConstraintsForMergedBases(
+            basesOnlyPts1.getSnapshot(),
+            pts2.getBases().keySet(),
+            highestAllocatedAddresses2,
+            mergeConstraints2);
+    highestAllocatedAddresses1 =
+        makeBaseAddressConstraintsForMergedBases(
+            basesOnlyPts2.getSnapshot(),
+            pts1.getBases().keySet(),
+            highestAllocatedAddresses1,
+            mergeConstraints1);
+
+    // Handle fields
+
     final CopyOnWriteSortedMap<CompositeField, Boolean> fieldsOnlyPts1 =
         CopyOnWriteSortedMap.copyOf(PathCopyingPersistentTreeMap.<CompositeField, Boolean>of());
     final CopyOnWriteSortedMap<CompositeField, Boolean> fieldsOnlyPts2 =
@@ -279,6 +305,8 @@ class PointerTargetSetManager {
             });
     shutdownNotifier.shutdownIfNecessary();
 
+    // Handle targets
+
     PersistentSortedMap<String, PersistentList<PointerTarget>> mergedTargets =
         merge(
             pts1.getTargets(), pts2.getTargets(), (key, list1, list2) -> mergeLists(list1, list2));
@@ -301,8 +329,10 @@ class PointerTargetSetManager {
         mergeLists(pts1.getDeferredAllocations(), pts2.getDeferredAllocations());
     shutdownNotifier.shutdownIfNecessary();
 
+    // Handle allocation metadata
+
     final PersistentList<Formula> highestAllocatedAddresses =
-        mergeLists(pts1.getHighestAllocatedAddresses(), pts2.getHighestAllocatedAddresses());
+        mergeLists(highestAllocatedAddresses1, highestAllocatedAddresses2);
 
     int allocationCount = Math.max(pts1.getAllocationCount(), pts2.getAllocationCount());
 
@@ -315,23 +345,23 @@ class PointerTargetSetManager {
             highestAllocatedAddresses,
             allocationCount);
 
+    // Handle value-import constraints
+
     final List<CompositeField> sharedFields = new ArrayList<>();
-    final BooleanFormula mergeFormula2 =
-        makeValueImportConstraints(basesOnlyPts1.getSnapshot(), sharedFields, ssa);
-    final BooleanFormula mergeFormula1 =
-        makeValueImportConstraints(basesOnlyPts2.getSnapshot(), sharedFields, ssa);
+    makeValueImportConstraints(basesOnlyPts1.getSnapshot(), sharedFields, ssa, mergeConstraints2);
+    makeValueImportConstraints(basesOnlyPts2.getSnapshot(), sharedFields, ssa, mergeConstraints1);
 
     if (!sharedFields.isEmpty()) {
       final PointerTargetSetBuilder resultPTSBuilder =
-          new RealPointerTargetSetBuilder(
-              resultPTS, formulaManager, typeHandler, this, options, regionMgr);
+          new RealPointerTargetSetBuilder(resultPTS, typeHandler, this, options, regionMgr);
       for (final CompositeField sharedField : sharedFields) {
         resultPTSBuilder.addField(sharedField);
       }
       resultPTS = resultPTSBuilder.build();
     }
 
-    return new MergeResult<>(resultPTS, mergeFormula1, mergeFormula2, bfmgr.makeTrue());
+    return new MergeResult<>(
+        resultPTS, mergeConstraints1.get(), mergeConstraints2.get(), bfmgr.makeTrue());
   }
 
   /** A handler for merge conflicts that appear when merging bases. */
@@ -445,18 +475,151 @@ class PointerTargetSetManager {
   }
 
   /**
+   * Create base-address constraints specifically for the case where pointer-target sets are merged.
+   * At first, one would think that this is not necessary, because on paths where a base was not
+   * created, it will also not be used, and thus its address does not matter. However, this is not
+   * true for local variables: As discussed in #987, a local variable can reappear later (if we
+   * reenter the respective function) but we would never add a constraint again (because the base
+   * already exists). If we do not add the constraints on merge, there would be paths where the base
+   * is used but no constraint was added.
+   *
+   * @param pBases The bases for which to create constraints.
+   * @param pIgnoredBases Set of bases that will be ignored.
+   * @param highestAllocatedAddresses the previously highest allocated addresses as base for the new
+   *     base constraints
+   * @param pConstraints Where the constraint(s) should be added.
+   * @return The now highest allocated addresses to use for future base constraints
+   */
+  private PersistentList<Formula> makeBaseAddressConstraintsForMergedBases(
+      final Map<String, CType> pBases,
+      final Set<String> pIgnoredBases,
+      PersistentList<Formula> highestAllocatedAddresses,
+      final Constraints pConstraints) {
+
+    for (Map.Entry<String, CType> base : pBases.entrySet()) {
+      final String baseName = base.getKey();
+
+      // We do not need constraints for bases resulting from dynamic memory allocation,
+      // because these bases cannot occur later again.
+      if (!pIgnoredBases.contains(baseName)
+          && !DynamicMemoryHandler.isAllocVariableName(baseName)) {
+        highestAllocatedAddresses =
+            makeBaseAddressConstraints(
+                baseName, base.getValue(), null, highestAllocatedAddresses, pConstraints);
+      }
+    }
+
+    return highestAllocatedAddresses;
+  }
+
+  /**
+   * Create the constraints that are required for a new base:
+   *
+   * <ul>
+   *   <li>for inequality between a new base and existing bases (to prevent overlapping)
+   *   <li>for alignment
+   * </ul>
+   *
+   * @param pNewBase The name of the new base.
+   * @param pType The type of the new base.
+   * @param pAllocationSize An optional expression for the size in bytes of the new base.
+   * @param pHighestAllocatedAddresses list of addresses for which this method will ensure that the
+   *     new base does not overlap
+   * @param pConstraints Where the constraints about addresses will be added to.
+   * @return list of addresses as base for allocation of the next base, nothing should overlap with
+   *     these
+   */
+  PersistentList<Formula> makeBaseAddressConstraints(
+      final String pNewBase,
+      final CType pType,
+      final @Nullable Formula pAllocationSize,
+      final PersistentList<Formula> pHighestAllocatedAddresses,
+      final Constraints pConstraints) {
+
+    if (!options.trackFunctionPointers() && CTypes.isFunctionPointer(pType)) {
+      // Avoid adding constraints about function addresses,
+      // otherwise we might track facts about function pointers for code like "if (p == &f)".
+      return pHighestAllocatedAddresses;
+    }
+
+    final FormulaType<?> pointerType = typeHandler.getPointerType();
+    final Formula newBaseFormula =
+        formulaManager.makeVariableWithoutSSAIndex(
+            pointerType, PointerTargetSet.getBaseName(pNewBase));
+
+    // Create constraints for the new base address and store them
+    if (pHighestAllocatedAddresses.isEmpty()) {
+      pConstraints.addConstraint(makeGreaterZero(newBaseFormula));
+    } else {
+      for (Formula oldAddress : pHighestAllocatedAddresses) {
+        pConstraints.addConstraint(
+            formulaManager.makeGreaterThan(newBaseFormula, oldAddress, true));
+      }
+    }
+
+    // Add alignment constraint
+    // For incomplete types, better not add constraints (imprecise) than a wrong one (unsound).
+    if (!pType.isIncomplete()) {
+      pConstraints.addConstraint(
+          formulaManager.makeModularCongruence(
+              newBaseFormula,
+              formulaManager.makeNumber(pointerType, 0L),
+              typeHandler.getAlignof(pType),
+              false));
+    }
+
+    final int typeSize =
+        pType.isIncomplete() ? options.defaultAllocationSize() : typeHandler.getSizeof(pType);
+    final Formula typeSizeF = formulaManager.makeNumber(pointerType, typeSize);
+    final Formula newBasePlusTypeSize = formulaManager.makePlus(newBaseFormula, typeSizeF);
+
+    // Prepare highestAllocatedAddresses which we will use for the constraints of the next base.
+    // We have two ways to compute the size: sizeof(type) and the allocationSize (e.g., the
+    // argument to malloc).
+    // We need both here: Only the allocation size is correct for allocations with dynamic size,
+    // and only the size of the type takes into account the default array length that we assume
+    // elsewhere and we must thus ensure here, too.
+    // Furthermore, in case of linear approximation we need a constraint that the size is
+    // positive, and using the type size takes care of this automatically.
+    // In cases where the precise size is known and correct, we need only one of the constraints.
+    // We use the one with typeSize instead of allocationSize, because the latter would add one
+    // multiplication to the formula.
+    // We also need to ensure that the highest allocated address (both variants) is greater than
+    // zero to prevent overflows with bitvector arithmetic.
+
+    pConstraints.addConstraint(makeGreaterZero(newBasePlusTypeSize));
+    PersistentList<Formula> highestAllocatedAddresses =
+        PersistentLinkedList.of(newBasePlusTypeSize);
+
+    if (pAllocationSize != null
+        && !pAllocationSize.equals(formulaManager.makeNumber(pointerType, typeSize))) {
+      Formula basePlusAllocationSize = formulaManager.makePlus(newBaseFormula, pAllocationSize);
+      pConstraints.addConstraint(makeGreaterZero(basePlusAllocationSize));
+
+      highestAllocatedAddresses = highestAllocatedAddresses.with(basePlusAllocationSize);
+    }
+
+    return highestAllocatedAddresses;
+  }
+
+  private BooleanFormula makeGreaterZero(Formula f) {
+    return formulaManager.makeGreaterThan(
+        f, formulaManager.makeNumber(typeHandler.getPointerType(), 0L), true);
+  }
+
+  /**
    * Create constraint that imports the old value of a variable into the memory handled with UFs.
    *
    * @param newBases A map of new bases.
    * @param sharedFields A list of shared fields.
    * @param ssaBuilder The SSA map.
-   * @return A boolean formula for the import constraint.
+   * @param constraints Where the import constraint(s) should be added.
    */
-  private BooleanFormula makeValueImportConstraints(
+  private void makeValueImportConstraints(
       final PersistentSortedMap<String, CType> newBases,
       final List<CompositeField> sharedFields,
-      final SSAMapBuilder ssaBuilder) {
-    Constraints constraints = new Constraints(bfmgr);
+      final SSAMapBuilder ssaBuilder,
+      final Constraints constraints) {
     for (final Map.Entry<String, CType> base : newBases.entrySet()) {
       if (!options.isDynamicAllocVariableName(base.getKey())
           && !CTypeUtils.containsArrayOutsideFunctionParameter(base.getValue())) {
@@ -465,8 +628,6 @@ class PointerTargetSetManager {
             baseVar, base.getKey(), base.getValue(), sharedFields, ssaBuilder, constraints, null);
       }
     }
-
-    return constraints.get();
   }
 
   /**
