@@ -1470,17 +1470,12 @@ public class SMGCPAExpressionEvaluator {
         CInitializerList initList = ((CInitializerList) init);
         CType realCType = cType.getCanonicalType();
 
-        if (realCType instanceof CArrayType) {
-          CArrayType arrayType = (CArrayType) realCType;
-          CType memberType = SMGCPAExpressionEvaluator.getCanonicalType(arrayType.getType());
-          BigInteger memberTypeSize = getBitSizeof(newState, memberType);
-          BigInteger numberOfMembers = BigInteger.valueOf(initList.getInitializers().size());
-          typeSizeInBits = BigInteger.valueOf(8).multiply(memberTypeSize).multiply(numberOfMembers);
+        CArrayType arrayType = (CArrayType) realCType;
+        CType memberType = SMGCPAExpressionEvaluator.getCanonicalType(arrayType.getType());
+        BigInteger memberTypeSize = getBitSizeof(newState, memberType);
+        BigInteger numberOfMembers = BigInteger.valueOf(initList.getInitializers().size());
+        typeSizeInBits = BigInteger.valueOf(8).multiply(memberTypeSize).multiply(numberOfMembers);
 
-        } else if (realCType instanceof CCompositeType) {
-          CCompositeType structType = (CCompositeType) realCType;
-          typeSizeInBits = BigInteger.valueOf(8).multiply(getBitSizeof(newState, structType));
-        }
       } else {
         throw new SMG2Exception(
             "Could not determine correct type size for an array for initializer expression: "
