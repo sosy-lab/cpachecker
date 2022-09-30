@@ -49,14 +49,12 @@ Usually, the name of the report is similar to `output/Counterexample.2.html`.
 
 Implementing New Techniques
 ------------------
-In this tutorial we implement a new fault localization technique that marks
-all assume edges as especially error-prone.
-This technique allows users to find decision points and wrong assumptions
-in the error path that eventually lead to the error.
-The technique is solely serves demonstration purposes.
-A set of error-prone statements is called _fault_.
+In this tutorial we implement a new fault localization technique that simply marks all assume edges.
+This technique allows users to find decision points and wrong assumptions in the error path that
+eventually lead to the error. The technique solely serves demonstration purposes. A set of
+error-prone statements is called _fault_.
 
-We start the tutorial by creating a new class 
+We start the tutorial by creating a new class
 `FaultLocalizationAssumption` in `org.sosy_lab.cpachecker.core.algorithm`.
 
 Our class realizes the interface `Algorithm` and needs two inputs: 
@@ -166,15 +164,15 @@ public class FaultLocalizationAssumption implements Algorithm {
   }
 }
 ```
-In general, we need a _Localizer_ that finds a collection of faults 
-(`Collection<Fault> faults = performFaultLocalization(edgeList)`),
-an _Explainer_ that adds information on why we think the fault is error-prone 
-(`explainFaults(faults)`),
-a _Ranker_ that sorts the faults by an arbitrary measure 
-(`List<Fault> ranked = rankFaults(explainFaults(faults))`), 
-and a _Visualizer_ that transforms the result in, e.g., an HTML report (`visualize(info, ranked)`).
 
-Here is the full code snippet to implement our synthetic algorithm:
+In general, we need a _Localizer_ that finds a collection of faults
+(`Collection<Fault> faults = performFaultLocalization(edgeList)`), an _Explainer_ that adds
+information on why we think the fault is error-prone
+(`explainFaults(faults)`), a _Ranker_ that sorts the faults by an arbitrary measure
+(`List<Fault> ranked = rankFaults(explainFaults(faults))`), and a _Visualizer_ that transforms the
+result in, e.g., an HTML report (`visualize(info, ranked)`).
+
+Here is the full code snippet to implement our demo algorithm:
 ```java
 package org.sosy_lab.cpachecker.core.algorithm;
 
@@ -274,18 +272,20 @@ public class FaultLocalizationAssumption implements Algorithm {
 }
 ```
 
-We will now step through the code one by one.
+We will now step through the code.
 ```java
 // extract path from start to the error location
 CFAPathWithAssumptions path = info.getCFAPathWithAssignments();
 // transform the path to a list of edges ("statements")
 List<CFAEdge> edgeList = transformedImmutableListCopy(path, assumption -> assumption.getCFAEdge());
 ```
-This is the CPAchecker way of extracting a counterexample in case a violation was found.
-We can access the path of edges along the CFA that lead to the error in `edgeList`.
 
-A _Localizer_ promises us to return a collection of faults.
-In our case, the _Localizer_ can be inlined in the code with:
+This is the CPAchecker way of extracting a counterexample in case a violation was found. We can
+access the path of edges along the CFA that lead to the error in `edgeList`. Note that a single edge
+might be traversed more than once. Hence, it can also appear more than one time in an error path.
+
+A _Localizer_ promises us to return a collection of faults. In our case, the _Localizer_ can be
+inlined in the code with:
 ```java
   private Collection<Fault> performFaultLocalization(List<CFAEdge> edgeList) {
     Set<FaultContribution> assumes = FluentIterable
@@ -299,13 +299,13 @@ In our case, the _Localizer_ can be inlined in the code with:
     return ImmutableSet.of(fault);
   }
 ```
-Based on our example, the "_Localizer_" transforms the list of edges to a list of faults.
-Here, we only have one fault containing all assume edges along the path.
-We collect these edges in a fault after we transformed them into `FaultContributions`.
-`FaultContributions` allow us to attach information to `CFAEdges`.
-Since the same edge might be traversed several times in one counterexample,
-it makes sense to have `FaultContributions` to add different information to the same edge
-but at different "points in time".
+
+The "_Localizer_" transforms the counterexample (list of edges) to a list of faults. Here, we only
+have one fault containing all assume edges along the path. We collect these edges in a `Fault` after
+we transformed them into `FaultContributions`.
+`FaultContributions` allow us to attach information to `CFAEdges`. Since the same edge might be
+traversed several times in one counterexample, it makes sense to have `FaultContributions` to add
+different information to the same edge but at different "points in time".
 
 ```java
   private Collection<Fault> explainFaults(Collection<Fault> faults) {
@@ -324,11 +324,11 @@ automatic program repair to synthesize a patch that fixes the bug.
     return ImmutableList.copyOf(faults);
   }
 ```
-Now, we want to rank our faults.
-The simplest of all rankers can be implemented as seen above.
-We just use the iterator of the underlying Collection to create a list.
-Our framework provides a variety of `FaultScoring` techniques that
-sort faults according to more reliable heuristics.
+
+Now, we want to rank our faults. The simplest of all rankers can be implemented as seen above. We
+just use the iterator of the underlying Collection to create a list. Our framework provides a
+variety of `FaultScoring` techniques that sort faults with the help of heuristics (set size,
+distance to error location...).
 
 ```java
   private void visualize(CounterexampleInfo parent, List<Fault> faults) {
@@ -338,17 +338,16 @@ sort faults according to more reliable heuristics.
     faultLocalizationInfo.apply();
   }
 ```
-Finally, we want to visualize our findings.
-In our framework, that is as simple as the code snippet above.
-In the background, the actual `CounterexampleInfo parent` 
+
+Finally, we want to visualize our results. In our framework, we can simply call the code snippet
+above. In the background, the actual `CounterexampleInfo parent`
 is replaced by `faultLocalizationInfo` allowing the `ReportGenerator`
 to access the detailed information.
 
 To run our algorithm, we have to add it to the `CoreComponentsFactory` contained in the
-package `org.sosy_lab.cpachecker.core`.
-We add a new option called `assumes` and create our new algorithm in case
-this option is enabled.
-For this we have to add the following code right before the constructor.
+package `org.sosy_lab.cpachecker.core`. We add a new option called `assumes` and create our new
+algorithm in case this option is enabled. For this we have to add the following code right before
+the constructor of `CoreComponentsFactory.
 ```java
   @Option(secure = true, name = "assumes", description = "Enable our fault localization technique")
   private boolean assumes = false;
