@@ -1432,65 +1432,73 @@ public class SMGCPAExpressionEvaluator {
     SMGState newState = pState;
     if (!newState.checkVariableExists(newState, varName)
         && (!isExtern || options.getAllocateExternalVariables())) {
-      BigInteger typeSizeInBits = getBitSizeof(newState, cType);
-      if (cType instanceof CArrayType
-          && ((CArrayType) cType).getLength() == null
-          && pVarDecl.getInitializer() != null) {
-        // For some reason the type size is not always correct.
-        // in the case: static const char array[] = "blablabla"; for example the cType
-        // is just const char[] and returns pointer size. We try to get it from the
-        // initializer
-        CInitializer init = pVarDecl.getInitializer();
-        if (init instanceof CInitializerExpression) {
-          CExpression initExpr = ((CInitializerExpression) init).getExpression();
-          if (initExpr instanceof CStringLiteralExpression) {
-            typeSizeInBits =
-                BigInteger.valueOf(8)
-                    .multiply(
-                        BigInteger.valueOf(
-                            (((CStringLiteralExpression) initExpr).getContentString().length()
-                                + 1)));
-          } else {
-            throw new SMG2Exception(
-                "Could not determine correct type size for an array for initializer expression: "
-                    + init);
-          }
-        } else if (init instanceof CInitializerList) {
-          CInitializerList initList = ((CInitializerList) init);
-          CType realCType = cType.getCanonicalType();
+      newState = handleInitilizerExpression(varName, cType, newState, isExtern, pVarDecl);
+    }
+    return ImmutableList.of(newState);
+  }
 
-          if (realCType instanceof CArrayType) {
-            CArrayType arrayType = (CArrayType) realCType;
-            CType memberType = SMGCPAExpressionEvaluator.getCanonicalType(arrayType.getType());
-            BigInteger memberTypeSize = getBitSizeof(pState, memberType);
-            BigInteger numberOfMembers = BigInteger.valueOf(initList.getInitializers().size());
-            typeSizeInBits =
-                BigInteger.valueOf(8).multiply(memberTypeSize).multiply(numberOfMembers);
-
-          } else if (realCType instanceof CCompositeType) {
-            CCompositeType structType = (CCompositeType) realCType;
-            typeSizeInBits = BigInteger.valueOf(8).multiply(getBitSizeof(pState, structType));
-          }
+  private SMGState handleInitilizerExpression(
+      String varName,
+      CType cType,
+      SMGState newState,
+      boolean isExtern,
+      CVariableDeclaration pVarDecl)
+      throws SMG2Exception {
+    BigInteger typeSizeInBits = getBitSizeof(newState, cType);
+    if (cType instanceof CArrayType
+        && ((CArrayType) cType).getLength() == null
+        && pVarDecl.getInitializer() != null) {
+      // For some reason the type size is not always correct.
+      // in the case: static const char array[] = "blablabla"; for example the cType
+      // is just const char[] and returns pointer size. We try to get it from the
+      // initializer
+      CInitializer init = pVarDecl.getInitializer();
+      if (init instanceof CInitializerExpression) {
+        CExpression initExpr = ((CInitializerExpression) init).getExpression();
+        if (initExpr instanceof CStringLiteralExpression) {
+          typeSizeInBits =
+              BigInteger.valueOf(8)
+                  .multiply(
+                      BigInteger.valueOf(
+                          (((CStringLiteralExpression) initExpr).getContentString().length() + 1)));
         } else {
           throw new SMG2Exception(
               "Could not determine correct type size for an array for initializer expression: "
                   + init);
         }
-      }
+      } else if (init instanceof CInitializerList) {
+        CInitializerList initList = ((CInitializerList) init);
+        CType realCType = cType.getCanonicalType();
 
-      // Handle incomplete type of external variables as externally allocated
-      if (options.isHandleIncompleteExternalVariableAsExternalAllocation()
-          && cType.isIncomplete()
-          && isExtern) {
-        typeSizeInBits = BigInteger.valueOf(options.getExternalAllocationSize());
-      }
-      if (pVarDecl.isGlobal()) {
-        newState = pState.copyAndAddGlobalVariable(typeSizeInBits, varName, cType);
+        if (realCType instanceof CArrayType) {
+          CArrayType arrayType = (CArrayType) realCType;
+          CType memberType = SMGCPAExpressionEvaluator.getCanonicalType(arrayType.getType());
+          BigInteger memberTypeSize = getBitSizeof(newState, memberType);
+          BigInteger numberOfMembers = BigInteger.valueOf(initList.getInitializers().size());
+          typeSizeInBits = BigInteger.valueOf(8).multiply(memberTypeSize).multiply(numberOfMembers);
+
+        } else if (realCType instanceof CCompositeType) {
+          CCompositeType structType = (CCompositeType) realCType;
+          typeSizeInBits = BigInteger.valueOf(8).multiply(getBitSizeof(newState, structType));
+        }
       } else {
-        newState = pState.copyAndAddLocalVariable(typeSizeInBits, varName, cType);
+        throw new SMG2Exception(
+            "Could not determine correct type size for an array for initializer expression: "
+                + init);
       }
     }
-    return ImmutableList.of(newState);
+
+    // Handle incomplete type of external variables as externally allocated
+    if (options.isHandleIncompleteExternalVariableAsExternalAllocation()
+        && cType.isIncomplete()
+        && isExtern) {
+      typeSizeInBits = BigInteger.valueOf(options.getExternalAllocationSize());
+    }
+    if (pVarDecl.isGlobal()) {
+      return newState.copyAndAddGlobalVariable(typeSizeInBits, varName, cType);
+    } else {
+      return newState.copyAndAddLocalVariable(typeSizeInBits, varName, cType);
+    }
   }
 
   /**
