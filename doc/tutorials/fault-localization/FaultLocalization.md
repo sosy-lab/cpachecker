@@ -360,7 +360,7 @@ A _Localizer_ promises us to return a collection of faults. In our case, the _Lo
 inlined in the code with:
 
 ```java
-  private Collection<Fault> performFaultLocalization(List<CFAEdge> edgeList){
+private Collection<Fault> performFaultLocalization(List<CFAEdge> edgeList){
     // Filter all assume edges 
     Set<FaultContribution> assumes=FluentIterable
     .from(edgeList)
@@ -382,10 +382,10 @@ traversed several times in one counterexample, it makes sense to have `FaultCont
 different information to the same edge but at different "points in time".
 
 ```java
-  private Collection<Fault> explainFaults(Collection<Fault> faults) {
-    faults.forEach(f -> f.addInfo(FaultInfo.possibleFixFor(f)));
+private Collection<Fault> explainFaults(Collection<Fault> faults){
+    faults.forEach(f->f.addInfo(FaultInfo.possibleFixFor(f)));
     return faults;
-  }
+    }
 ```
 
 In a next step, we (optionally) explain the faults.
@@ -394,9 +394,9 @@ In the future, we could add more sophisticated techniques such as
 automatic program repair to synthesize a patch that fixes the bug.
 
 ```java
-  private List<Fault> rankFaults(Collection<Fault> faults) {
+private List<Fault> rankFaults(Collection<Fault> faults){
     return ImmutableList.copyOf(faults);
-  }
+    }
 ```
 
 Now, we want to rank our faults. The simplest of all rankers can be implemented as seen above. We
@@ -405,12 +405,11 @@ variety of `FaultScoring` techniques that sort faults with the help of heuristic
 distance to error location,...).
 
 ```java
-  private void visualize(CounterexampleInfo parent, List<Fault> faults) {
-    FaultLocalizationInfo faultLocalizationInfo =
-        new FaultLocalizationInfo(faults, parent);
+private void visualize(CounterexampleInfo parent,List<Fault> faults){
+    FaultLocalizationInfo faultLocalizationInfo=new FaultLocalizationInfo(faults,parent);
     // apply changes to counterexample `parent`
     faultLocalizationInfo.apply();
-  }
+    }
 ```
 
 Finally, we want to visualize our results. In our framework, we can simply call the code snippet
@@ -422,9 +421,10 @@ To run our algorithm, we have to add it to the `CoreComponentsFactory` contained
 package `org.sosy_lab.cpachecker.core`. We add a new option called `assumes` and create our new
 algorithm in case this option is enabled. For this we have to add the following code right before
 the constructor of `CoreComponentsFactory.
+
 ```java
-  @Option(secure = true, name = "assumes", description = "Enable our fault localization technique")
-  private boolean assumes = false;
+@Option(secure = true, name = "assumes", description = "Enable our fault localization technique")
+private boolean assumes=false;
 ```
 Lastly, we append the following check in the very last `else` branch of the method
 `createAlgorithm`.
@@ -432,7 +432,7 @@ Lastly, we append the following check in the very last `else` branch of the meth
 ```java
 public Algorithm createAlgorithm(final ConfigurableProgramAnalysis cpa,final CFA cfa,final Specification specification)
     throws InvalidConfigurationException,CPAException,InterruptedException{
-    if(...){
+    if(/*...*/){
     // ...
     }else{
     // ...
