@@ -890,7 +890,7 @@ public class SMGState
 
   @Override
   public String toDOTLabel() {
-    // TODO:
+    // Not needed
     return toString();
   }
 
@@ -1017,6 +1017,9 @@ public class SMGState
     return true;
   }
 
+  // Check the equality of values. Depending on the options symbolics are always equal or only for
+  // ids.
+  // Addresses are compared by the shape of their memory.
   private boolean areValuesEqual(
       SMGState thisState,
       @Nullable Value thisValue,
@@ -1132,7 +1135,7 @@ public class SMGState
               && thisDLL.getPrevOffset().compareTo(otherDLL.getPrevOffset()) == 0
               && thisDLL.getHeadOffset().compareTo(otherDLL.getHeadOffset()) == 0) {
             // Check that the values are equal and that the back pointer is as well
-            return checkEqualValuesForTwoStatesWithExcemptions(
+            return checkEqualValuesForTwoStatesWithExemptions(
                 thisDLL,
                 otherDLL,
                 ImmutableList.of(thisDLL.getNextOffset(), thisDLL.getPrevOffset()),
@@ -1151,7 +1154,7 @@ public class SMGState
               && thisSLL.getNextOffset().compareTo(otherSLL.getNextOffset()) == 0
               && thisSLL.getHeadOffset().compareTo(otherSLL.getHeadOffset()) == 0) {
             // Check that the values are equal and that the back pointer is as well
-            return checkEqualValuesForTwoStatesWithExcemptions(
+            return checkEqualValuesForTwoStatesWithExemptions(
                 thisSLL,
                 otherSLL,
                 ImmutableList.of(thisSLL.getNextOffset()),
@@ -1163,15 +1166,15 @@ public class SMGState
           return false;
         }
       }
-      return checkEqualValuesForTwoStatesWithExcemptions(
+      return checkEqualValuesForTwoStatesWithExemptions(
           thisObj, otherObj, ImmutableList.of(), thisState, otherState, thisAlreadyChecked);
     }
     return false;
   }
 
-  // Interpret the SMGValues as Values or else they are not comparable!!!!
-  // The nfo offset is ignored.
-  private boolean checkEqualValuesForTwoStatesWithExcemptions(
+  // Compare 2 values, but do not compare the exempt offsets. Needed for lists and their next/prev
+  // pointers.
+  private boolean checkEqualValuesForTwoStatesWithExemptions(
       SMGObject thisObject,
       SMGObject otherObject,
       ImmutableList<BigInteger> excemptOffsets,
@@ -2939,6 +2942,10 @@ public class SMGState
     return builder.toString();
   }
 
+  /*
+   * Abstracts candidates into a DLL. May abstract the chain behind the first root into more than 1 list! Depending on == values.
+   * Only abstracts lists with == values.
+   */
   public SMGState abstractIntoDLL(
       SMGObject root, BigInteger nfo, BigInteger pfo, Set<SMGObject> alreadyVisited)
       throws SMG2Exception {
@@ -2951,7 +2958,7 @@ public class SMGState
     }
     SMGObject nextObj = maybeNext.orElseThrow();
     // Values not equal, continue traverse
-    if (!checkEqualValuesForTwoStatesWithExcemptions(
+    if (!checkEqualValuesForTwoStatesWithExemptions(
         root, nextObj, ImmutableList.of(nfo, pfo), this, this, ImmutableSet.of())) {
       return abstractIntoDLL(
           nextObj,
@@ -3057,6 +3064,10 @@ public class SMGState
         ImmutableSet.<SMGObject>builder().addAll(alreadyVisited).add(newDLL).build());
   }
 
+  /*
+   * Abstracts candidates into a SLL. May abstract the chain behind the first root into more than 1 list! Depending on == values.
+   * Only abstracts lists with == values.
+   */
   public SMGState abstractIntoSLL(SMGObject root, BigInteger nfo, Set<SMGObject> alreadyVisited)
       throws SMG2Exception {
     // Check that the next object exists, is valid, has the same size and the same value in head
@@ -3068,7 +3079,7 @@ public class SMGState
     }
     SMGObject nextObj = maybeNext.orElseThrow();
     // Values not equal, continue traverse
-    if (!checkEqualValuesForTwoStatesWithExcemptions(
+    if (!checkEqualValuesForTwoStatesWithExemptions(
         root, nextObj, ImmutableList.of(nfo), this, this, ImmutableSet.of())) {
       return abstractIntoSLL(
           nextObj, nfo, ImmutableSet.<SMGObject>builder().addAll(alreadyVisited).add(root).build());
@@ -3226,6 +3237,13 @@ public class SMGState
         ptEdge.pointsTo(), ptEdge.getOffset(), currentState);
   }
 
+  /**
+   * Test/Debug method. Dereferences without materializing lists. Not to be used in regular
+   * execution.
+   *
+   * @param pointer target pointer.
+   * @return {@link SMGStateAndOptionalSMGObjectAndOffset} with the target if it exists.
+   */
   public Optional<SMGStateAndOptionalSMGObjectAndOffset> dereferencePointerWithoutMaterilization(
       Value pointer) {
     if (!memoryModel.isPointer(pointer)) {
