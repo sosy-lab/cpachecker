@@ -1494,7 +1494,7 @@ public class SMGCPAValueVisitorTest {
     for (CType currentArrayType : ARRAY_TEST_TYPES) {
       int sizeOfCurrentTypeInBits = MACHINE_MODEL.getSizeof(currentArrayType).intValue() * 8;
       // address to the heap where the array starts
-      Value addressValue = new ConstantSymbolicExpression(new UnknownValue(), null);
+      Value addressValue = SymbolicValueFactory.getInstance().newIdentifier(null);
       // Create the array on the heap; size is type size in bits * size of array
       addHeapVariableToMemoryModel(0, sizeOfCurrentTypeInBits * TEST_ARRAY_LENGTH, addressValue);
       // Stack variable holding the address (the pointer)
@@ -3860,8 +3860,8 @@ public class SMGCPAValueVisitorTest {
             false,
             CStorageClass.AUTO,
             indexVariableType,
-            indexVariableName + "NotQual",
-            indexVariableName + "NotQual",
+            indexVariableName,
+            indexVariableName,
             indexVariableName,
             null);
     return new CIdExpression(FileLocation.DUMMY, declararationIndex);

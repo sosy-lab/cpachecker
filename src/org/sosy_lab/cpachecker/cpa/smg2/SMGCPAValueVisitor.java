@@ -447,7 +447,8 @@ public class SMGCPAValueVisitor
               || binaryOperator == BinaryOperator.MINUS) {
             Value leftAddrExpr = nonConstLeftValue;
             if (!(nonConstLeftValue instanceof AddressExpression)
-                && evaluator.isPointerValue(nonConstLeftValue, currentState)) {
+                && evaluator.isPointerValue(nonConstLeftValue, currentState)
+                && !leftAddrExpr.isExplicitlyKnown()) {
               leftAddrExpr =
                   AddressExpression.withZeroOffset(
                       nonConstLeftValue,
@@ -455,7 +456,8 @@ public class SMGCPAValueVisitor
             }
             Value rightAddrExpr = nonConstRightValue;
             if (!(nonConstRightValue instanceof AddressExpression)
-                && evaluator.isPointerValue(nonConstRightValue, currentState)) {
+                && evaluator.isPointerValue(nonConstRightValue, currentState)
+                && !rightAddrExpr.isExplicitlyKnown()) {
               rightAddrExpr =
                   AddressExpression.withZeroOffset(
                       nonConstRightValue,
