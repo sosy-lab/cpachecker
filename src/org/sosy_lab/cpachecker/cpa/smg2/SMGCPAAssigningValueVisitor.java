@@ -27,7 +27,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMG2Exception;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGStateAndOptionalSMGObjectAndOffset;
-import org.sosy_lab.cpachecker.cpa.smg2.util.value.SMGCPAValueExpressionEvaluator;
+import org.sosy_lab.cpachecker.cpa.smg2.util.value.SMGCPAExpressionEvaluator;
 import org.sosy_lab.cpachecker.cpa.smg2.util.value.ValueAndSMGState;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.AddressExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicIdentifier;
@@ -37,16 +37,16 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
 public class SMGCPAAssigningValueVisitor extends SMGCPAValueVisitor {
 
-  SMGOptions options;
+  private SMGOptions options;
 
-  boolean truthValue;
+  private boolean truthValue;
 
   // Tracked boolean variables for non-equal assumptions where we assume these tracked variables as
   // true if the other compared variable is already known as false
-  Collection<String> booleans;
+  private Collection<String> booleans;
 
   public SMGCPAAssigningValueVisitor(
-      SMGCPAValueExpressionEvaluator pEvaluator,
+      SMGCPAExpressionEvaluator pEvaluator,
       SMGState currentState,
       CFAEdge edge,
       LogManagerWithoutDuplicates pLogger,
@@ -66,7 +66,7 @@ public class SMGCPAAssigningValueVisitor extends SMGCPAValueVisitor {
     CExpression rVarInBinaryExp = pE.getOperand2();
     // Array and composite type comparisons are filtered out by the parser!
 
-    SMGCPAValueExpressionEvaluator evaluator = super.getInitialVisitorEvaluator();
+    SMGCPAExpressionEvaluator evaluator = super.getInitialVisitorEvaluator();
     LogManagerWithoutDuplicates logger = super.getInitialVisitorLogger();
     CFAEdge edge = super.getInitialVisitorCFAEdge();
     SMGState initialState = super.getInitialVisitorState();
@@ -115,7 +115,7 @@ public class SMGCPAAssigningValueVisitor extends SMGCPAValueVisitor {
       Value rightValue,
       SMGState currentState)
       throws CPATransferException {
-    SMGCPAValueExpressionEvaluator evaluator = super.getInitialVisitorEvaluator();
+    SMGCPAExpressionEvaluator evaluator = super.getInitialVisitorEvaluator();
     SMGState initialState = super.getInitialVisitorState();
 
     // Now we need to use all updated states from the assumptions (or the base case if none
@@ -139,7 +139,7 @@ public class SMGCPAAssigningValueVisitor extends SMGCPAValueVisitor {
 
         if (isAssignable(leftHandSideAssignments)) {
 
-          CType type = SMGCPAValueExpressionEvaluator.getCanonicalType(rVarInBinaryExp);
+          CType type = SMGCPAExpressionEvaluator.getCanonicalType(rVarInBinaryExp);
           BigInteger size = evaluator.getBitSizeof(currentState, type);
           currentState =
               currentState.writeValueTo(
@@ -162,7 +162,7 @@ public class SMGCPAAssigningValueVisitor extends SMGCPAValueVisitor {
 
           if (isAssignable(rightHandSideAssignments)) {
 
-            CType type = SMGCPAValueExpressionEvaluator.getCanonicalType(lVarInBinaryExp);
+            CType type = SMGCPAExpressionEvaluator.getCanonicalType(lVarInBinaryExp);
             BigInteger size = evaluator.getBitSizeof(currentState, type);
             currentState =
                 currentState.writeValueTo(
@@ -189,7 +189,7 @@ public class SMGCPAAssigningValueVisitor extends SMGCPAValueVisitor {
       SMGState currentState)
       throws CPATransferException {
 
-    SMGCPAValueExpressionEvaluator evaluator = super.getInitialVisitorEvaluator();
+    SMGCPAExpressionEvaluator evaluator = super.getInitialVisitorEvaluator();
     SMGState initialState = super.getInitialVisitorState();
 
     if (assumingUnknownToBeZero(leftValue, rightValue)) {
@@ -208,7 +208,7 @@ public class SMGCPAAssigningValueVisitor extends SMGCPAValueVisitor {
         currentState = leftHandSideAssignment.getSMGState();
         if (isAssignable(leftHandSideAssignments)) {
 
-          CType type = SMGCPAValueExpressionEvaluator.getCanonicalType(rVarInBinaryExp);
+          CType type = SMGCPAExpressionEvaluator.getCanonicalType(rVarInBinaryExp);
           BigInteger size = evaluator.getBitSizeof(currentState, type);
           currentState =
               currentState.writeValueTo(
@@ -237,7 +237,7 @@ public class SMGCPAAssigningValueVisitor extends SMGCPAValueVisitor {
 
         if (isAssignable(rightHandSideAssignments)) {
 
-          CType type = SMGCPAValueExpressionEvaluator.getCanonicalType(lVarInBinaryExp);
+          CType type = SMGCPAExpressionEvaluator.getCanonicalType(lVarInBinaryExp);
           BigInteger size = evaluator.getBitSizeof(currentState, type);
           currentState =
               currentState.writeValueTo(
@@ -262,7 +262,7 @@ public class SMGCPAAssigningValueVisitor extends SMGCPAValueVisitor {
       Value rightValue,
       SMGState currentState)
       throws CPATransferException {
-    SMGCPAValueExpressionEvaluator evaluator = super.getInitialVisitorEvaluator();
+    SMGCPAExpressionEvaluator evaluator = super.getInitialVisitorEvaluator();
     LogManagerWithoutDuplicates logger = super.getInitialVisitorLogger();
     CFAEdge edge = super.getInitialVisitorCFAEdge();
     // Just use the current state as base case (with a unknown value that we wont use)

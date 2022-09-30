@@ -64,7 +64,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypedefType;
 import org.sosy_lab.cpachecker.cfa.types.java.JSimpleType;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMG2Exception;
-import org.sosy_lab.cpachecker.cpa.smg2.util.value.SMGCPAValueExpressionEvaluator;
+import org.sosy_lab.cpachecker.cpa.smg2.util.value.SMGCPAExpressionEvaluator;
 import org.sosy_lab.cpachecker.cpa.smg2.util.value.ValueAndSMGState;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.AddressExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.ConstantSymbolicExpression;
@@ -101,7 +101,7 @@ public class SMGCPAValueVisitor
   private static final int SIZE_OF_JAVA_LONG = 64;
 
   // The evaluator translates C expressions into the SMG counterparts and vice versa.
-  private final SMGCPAValueExpressionEvaluator evaluator;
+  private final SMGCPAExpressionEvaluator evaluator;
 
   private final SMGState state;
 
@@ -111,7 +111,7 @@ public class SMGCPAValueVisitor
   private final LogManagerWithoutDuplicates logger;
 
   public SMGCPAValueVisitor(
-      SMGCPAValueExpressionEvaluator pEvaluator,
+      SMGCPAExpressionEvaluator pEvaluator,
       SMGState currentState,
       CFAEdge edge,
       LogManagerWithoutDuplicates pLogger) {
@@ -183,7 +183,7 @@ public class SMGCPAValueVisitor
     // Return type is either a structure/array in which we simply add the offset
     // Or a CPointerType in which we read and wrap in AddressExpression
     // Or in all other cases just read and return
-    CType returnType = SMGCPAValueExpressionEvaluator.getCanonicalType(e.getExpressionType());
+    CType returnType = SMGCPAExpressionEvaluator.getCanonicalType(e.getExpressionType());
     ImmutableList.Builder<ValueAndSMGState> resultBuilder = ImmutableList.builder();
     for (ValueAndSMGState arrayValueAndState : arrayExpr.accept(this)) {
       // The arrayValue is either AddressExpression for pointer + offset
@@ -195,8 +195,8 @@ public class SMGCPAValueVisitor
       if (currentState.getMemoryModel().isPointer(arrayValue)) {
         arrayValue =
             AddressExpression.withZeroOffset(
-                arrayValue, SMGCPAValueExpressionEvaluator.getCanonicalType(arrayExpr));
-      } else if (!SMGCPAValueExpressionEvaluator.valueIsAddressExprOrVariableOffset(arrayValue)) {
+                arrayValue, SMGCPAExpressionEvaluator.getCanonicalType(arrayExpr));
+      } else if (!SMGCPAExpressionEvaluator.valueIsAddressExprOrVariableOffset(arrayValue)) {
         // Not a valid pointer/address
         // TODO: log this!
         resultBuilder.add(ValueAndSMGState.ofUnknownValue(currentState));
@@ -256,7 +256,7 @@ public class SMGCPAValueVisitor
       Value arrayValue, BigInteger additionalOffset, CType pReturnType, SMGState pCurrentState)
       throws CPATransferException {
     SMGState newState = pCurrentState;
-    CType returnType = SMGCPAValueExpressionEvaluator.getCanonicalType(pReturnType);
+    CType returnType = SMGCPAExpressionEvaluator.getCanonicalType(pReturnType);
     BigInteger typeSizeInBits = evaluator.getBitSizeof(newState, returnType);
     if (arrayValue instanceof AddressExpression) {
       AddressExpression arrayAddr = (AddressExpression) arrayValue;
@@ -265,7 +265,7 @@ public class SMGCPAValueVisitor
         return ValueAndSMGState.ofUnknownValue(newState);
       }
       BigInteger finalOffset = addrOffsetValue.asNumericValue().bigInteger().add(additionalOffset);
-      if (SMGCPAValueExpressionEvaluator.isStructOrUnionType(returnType)
+      if (SMGCPAExpressionEvaluator.isStructOrUnionType(returnType)
           || returnType instanceof CArrayType
           || returnType instanceof CFunctionType) {
         return ValueAndSMGState.of(
@@ -297,7 +297,7 @@ public class SMGCPAValueVisitor
       String qualifiedVarName = memloc.getIdentifier();
       BigInteger finalOffset = BigInteger.valueOf(memloc.getOffset()).add(additionalOffset);
 
-      if (SMGCPAValueExpressionEvaluator.isStructOrUnionType(returnType)
+      if (SMGCPAExpressionEvaluator.isStructOrUnionType(returnType)
           || returnType instanceof CArrayType
           || returnType instanceof CFunctionType) {
 
@@ -343,7 +343,7 @@ public class SMGCPAValueVisitor
     final CType calculationType = e.getCalculationType();
     final CExpression lVarInBinaryExp = e.getOperand1();
     final CExpression rVarInBinaryExp = e.getOperand2();
-    final CType returnType = SMGCPAValueExpressionEvaluator.getCanonicalType(e.getExpressionType());
+    final CType returnType = SMGCPAExpressionEvaluator.getCanonicalType(e.getExpressionType());
     ImmutableList.Builder<ValueAndSMGState> resultBuilder = ImmutableList.builder();
 
     for (ValueAndSMGState leftValueAndState : lVarInBinaryExp.accept(this)) {
@@ -452,7 +452,7 @@ public class SMGCPAValueVisitor
               leftAddrExpr =
                   AddressExpression.withZeroOffset(
                       nonConstLeftValue,
-                      SMGCPAValueExpressionEvaluator.getCanonicalType(lVarInBinaryExp));
+                      SMGCPAExpressionEvaluator.getCanonicalType(lVarInBinaryExp));
             }
             Value rightAddrExpr = nonConstRightValue;
             if (!(nonConstRightValue instanceof AddressExpression)
@@ -461,7 +461,7 @@ public class SMGCPAValueVisitor
               rightAddrExpr =
                   AddressExpression.withZeroOffset(
                       nonConstRightValue,
-                      SMGCPAValueExpressionEvaluator.getCanonicalType(rVarInBinaryExp));
+                      SMGCPAExpressionEvaluator.getCanonicalType(rVarInBinaryExp));
             }
 
             // Pointer arithmetics case and fall through (handled inside the method)
@@ -551,7 +551,7 @@ public class SMGCPAValueVisitor
   public List<ValueAndSMGState> visit(CCastExpression e) throws CPATransferException {
     // Casts are not trivial within SMGs as there might be type reinterpretations used inside the
     // SMGs,
-    // but this should be taken care of by the SMGCPAValueExpressionEvaluator and no longer be a
+    // but this should be taken care of by the SMGCPAExpressionEvaluator and no longer be a
     // problem here!
     // Get the type and value from the nested expression (might be SMG) and cast the value
     // Also most of this code is taken from the value analysis CPA and modified
@@ -620,7 +620,7 @@ public class SMGCPAValueVisitor
     // general object.
     CExpression ownerExpression = explicitReference.getFieldOwner();
     CType returnType =
-        SMGCPAValueExpressionEvaluator.getCanonicalType(explicitReference.getExpressionType());
+        SMGCPAExpressionEvaluator.getCanonicalType(explicitReference.getExpressionType());
 
     // For (*pointer).field case or struct.field case the visitor returns the Value as
     // AddressExpression. For struct.field its a SymbolicIdentifier with MemoryLocation
@@ -638,7 +638,7 @@ public class SMGCPAValueVisitor
       // Now get the offset of the current field
       BigInteger fieldOffset =
           evaluator.getFieldOffsetInBits(
-              SMGCPAValueExpressionEvaluator.getCanonicalType(ownerExpression),
+              SMGCPAExpressionEvaluator.getCanonicalType(ownerExpression),
               explicitReference.getFieldName());
 
       if (ownerExpression.getExpressionType() instanceof CPointerType) {
@@ -673,7 +673,7 @@ public class SMGCPAValueVisitor
     // or SymbolicValue with a memory location and the name of the variable inside of that.
 
     CSimpleDeclaration varDecl = e.getDeclaration();
-    CType returnType = SMGCPAValueExpressionEvaluator.getCanonicalType(e.getExpressionType());
+    CType returnType = SMGCPAExpressionEvaluator.getCanonicalType(e.getExpressionType());
     if (varDecl == null) {
       // The variable was not declared
       throw new SMG2Exception("Usage of undeclared variable: " + e.getName() + ".");
@@ -686,11 +686,11 @@ public class SMGCPAValueVisitor
       if (varDecl instanceof CVariableDeclaration) {
         creationBuilder.addAll(
             evaluator.handleVariableDeclarationWithoutInizializer(
-                state, (CVariableDeclaration) varDecl, cfaEdge));
+                state, (CVariableDeclaration) varDecl));
       } else if (varDecl instanceof CParameterDeclaration) {
         creationBuilder.addAll(
             evaluator.handleVariableDeclarationWithoutInizializer(
-                state, ((CParameterDeclaration) varDecl).asVariableDeclaration(), cfaEdge));
+                state, ((CParameterDeclaration) varDecl).asVariableDeclaration()));
       } else {
         throw new SMG2Exception("Unhandled on-the-fly variable creation type: " + varDecl);
       }
@@ -708,7 +708,7 @@ public class SMGCPAValueVisitor
             evaluator.createAddressForLocalOrGlobalVariable(variableName, currentState));
         continue;
 
-      } else if (SMGCPAValueExpressionEvaluator.isStructOrUnionType(returnType)) {
+      } else if (SMGCPAExpressionEvaluator.isStructOrUnionType(returnType)) {
         // Struct/Unions on the stack/global; return the memory location in a
         // SymbolicIdentifier. This is then used as interpretation such that the Value
         // of the memory location (on the stack) is used. This is used by assignments only as far as
@@ -735,7 +735,7 @@ public class SMGCPAValueVisitor
                 varDecl.getQualifiedName(),
                 BigInteger.ZERO,
                 sizeInBits,
-                SMGCPAValueExpressionEvaluator.getCanonicalType(e));
+                SMGCPAExpressionEvaluator.getCanonicalType(e));
         Value readValue = readValueAndState.getValue();
         SMGState newState = readValueAndState.getState();
 
@@ -760,7 +760,7 @@ public class SMGCPAValueVisitor
                 varDecl.getQualifiedName(),
                 BigInteger.ZERO,
                 sizeInBits,
-                SMGCPAValueExpressionEvaluator.getCanonicalType(e));
+                SMGCPAExpressionEvaluator.getCanonicalType(e));
 
         finalStatesBuilder.add(readValueAndState);
         continue;
@@ -823,7 +823,7 @@ public class SMGCPAValueVisitor
         return ImmutableList.of(ValueAndSMGState.of(new NumericValue(size), state));
 
       case ALIGNOF:
-        BigInteger align = evaluator.getAlignOf(state, innerType);
+        BigInteger align = evaluator.getAlignOf(innerType);
         return ImmutableList.of(ValueAndSMGState.of(new NumericValue(align), state));
 
       case TYPEOF: // This can't really be solved here as we can only return Values
@@ -840,9 +840,9 @@ public class SMGCPAValueVisitor
 
     UnaryOperator unaryOperator = e.getOperator();
     CExpression unaryOperand = e.getOperand();
-    CType returnType = SMGCPAValueExpressionEvaluator.getCanonicalType(e.getExpressionType());
+    CType returnType = SMGCPAExpressionEvaluator.getCanonicalType(e.getExpressionType());
     CType operandType =
-        SMGCPAValueExpressionEvaluator.getCanonicalType(unaryOperand.getExpressionType());
+        SMGCPAExpressionEvaluator.getCanonicalType(unaryOperand.getExpressionType());
 
     switch (unaryOperator) {
       case SIZEOF:
@@ -909,7 +909,7 @@ public class SMGCPAValueVisitor
     // by the field expression
 
     // Get the type of the target
-    CType returnType = SMGCPAValueExpressionEvaluator.getCanonicalType(e.getExpressionType());
+    CType returnType = SMGCPAExpressionEvaluator.getCanonicalType(e.getExpressionType());
     // Get the expression that is dereferenced
     CExpression expr = e.getOperand();
     // Evaluate the expression to a Value; this should return a Symbolic Value with the address of
@@ -942,7 +942,7 @@ public class SMGCPAValueVisitor
       BigInteger sizeInBits = evaluator.getBitSizeof(currentState, returnType);
       BigInteger offsetInBits = offset.asNumericValue().bigInteger();
 
-      if (SMGCPAValueExpressionEvaluator.isStructOrUnionType(returnType)) {
+      if (SMGCPAExpressionEvaluator.isStructOrUnionType(returnType)) {
         // We don't want to read struct/union! In those cases we return the AddressExpression
         // such that the following visitor methods can dereference the fields correctly
         builder.add(ValueAndSMGState.of(value, currentState));
@@ -1388,8 +1388,7 @@ public class SMGCPAValueVisitor
           // Here we expect only 1 result value
           SMGCPAValueVisitor vv = new SMGCPAValueVisitor(evaluator, currentState, cfaEdge, logger);
           List<ValueAndSMGState> newValuesAndStates =
-              vv.evaluate(
-                  currParamExp, SMGCPAValueExpressionEvaluator.getCanonicalType(currParamExp));
+              vv.evaluate(currParamExp, SMGCPAExpressionEvaluator.getCanonicalType(currParamExp));
           Preconditions.checkArgument(newValuesAndStates.size() == 1);
           Value newValue = newValuesAndStates.get(0).getValue();
           // CPA access has side effects! Always take the newest state!
@@ -2804,9 +2803,9 @@ public class SMGCPAValueVisitor
   /**
    * Only accessible for subclasses.
    *
-   * @return the {@link SMGCPAValueExpressionEvaluator} given to this visitor when it was created.
+   * @return the {@link SMGCPAExpressionEvaluator} given to this visitor when it was created.
    */
-  protected SMGCPAValueExpressionEvaluator getInitialVisitorEvaluator() {
+  protected SMGCPAExpressionEvaluator getInitialVisitorEvaluator() {
     return evaluator;
   }
 

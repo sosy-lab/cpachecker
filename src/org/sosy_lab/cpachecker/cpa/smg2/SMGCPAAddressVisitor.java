@@ -31,7 +31,7 @@ import org.sosy_lab.cpachecker.cpa.smg2.util.SMG2Exception;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGObjectAndOffset;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGObjectAndOffsetOrSMGState;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGStateAndOptionalSMGObjectAndOffset;
-import org.sosy_lab.cpachecker.cpa.smg2.util.value.SMGCPAValueExpressionEvaluator;
+import org.sosy_lab.cpachecker.cpa.smg2.util.value.SMGCPAExpressionEvaluator;
 import org.sosy_lab.cpachecker.cpa.smg2.util.value.ValueAndSMGState;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.AddressExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicIdentifier;
@@ -54,7 +54,7 @@ public class SMGCPAAddressVisitor
     implements CRightHandSideVisitor<
         List<SMGStateAndOptionalSMGObjectAndOffset>, CPATransferException> {
 
-  private final SMGCPAValueExpressionEvaluator evaluator;
+  private final SMGCPAExpressionEvaluator evaluator;
 
   private final SMGState state;
 
@@ -64,7 +64,7 @@ public class SMGCPAAddressVisitor
   private final CFAEdge cfaEdge;
 
   public SMGCPAAddressVisitor(
-      SMGCPAValueExpressionEvaluator pEvaluator,
+      SMGCPAExpressionEvaluator pEvaluator,
       SMGState currentState,
       CFAEdge edge,
       LogManagerWithoutDuplicates pLogger) {
@@ -240,7 +240,7 @@ public class SMGCPAAddressVisitor
       // Now get the offset of the current field
       BigInteger fieldOffset =
           evaluator.getFieldOffsetInBits(
-              SMGCPAValueExpressionEvaluator.getCanonicalType(ownerExpression),
+              SMGCPAExpressionEvaluator.getCanonicalType(ownerExpression),
               explicitReference.getFieldName());
 
       if (structValue instanceof AddressExpression) {
@@ -318,7 +318,7 @@ public class SMGCPAAddressVisitor
     // always evaluate to the address
 
     // Get the type of the target
-    CType type = SMGCPAValueExpressionEvaluator.getCanonicalType(e.getExpressionType());
+    CType type = SMGCPAExpressionEvaluator.getCanonicalType(e.getExpressionType());
     // Get the expression that is dereferenced
     CExpression expr = e.getOperand();
     // Evaluate the expression to a Value; this should return a Symbolic Value with the address of

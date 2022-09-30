@@ -14,7 +14,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel.BaseSizeofVisitor;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
-import org.sosy_lab.cpachecker.cpa.smg2.util.value.SMGCPAValueExpressionEvaluator;
+import org.sosy_lab.cpachecker.cpa.smg2.util.value.SMGCPAExpressionEvaluator;
 
 /** A dedicated SMG sizeOf visitor is needed because of variable length arrays and lists. */
 public class SMGSizeOfVisitor extends BaseSizeofVisitor {
@@ -25,19 +25,18 @@ public class SMGSizeOfVisitor extends BaseSizeofVisitor {
   private final SMGState state;
   // private final Optional<CExpression> expression;
   @SuppressWarnings("unused")
-  private final SMGCPAValueExpressionEvaluator evaluator;
+  private final SMGCPAExpressionEvaluator evaluator;
 
   @SuppressWarnings("unused")
   public SMGSizeOfVisitor(
-      SMGCPAValueExpressionEvaluator pSMGCPAValueExpressionEvaluator,
+      SMGCPAExpressionEvaluator pSMGCPAExpressionEvaluator,
       CFAEdge pEdge,
       SMGState pState,
       Optional<CExpression> pExpression) {
-    super(pSMGCPAValueExpressionEvaluator.getMachineModel());
+    super(pSMGCPAExpressionEvaluator.getMachineModel());
     edge = pEdge;
     state = pState;
-    // expression = pExpression;
-    evaluator = pSMGCPAValueExpressionEvaluator;
+    evaluator = pSMGCPAExpressionEvaluator;
   }
 
   @Override

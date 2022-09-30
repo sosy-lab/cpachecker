@@ -34,7 +34,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMG2Exception;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGStateAndOptionalSMGObjectAndOffset;
-import org.sosy_lab.cpachecker.cpa.smg2.util.value.SMGCPAValueExpressionEvaluator;
+import org.sosy_lab.cpachecker.cpa.smg2.util.value.SMGCPAExpressionEvaluator;
 import org.sosy_lab.cpachecker.cpa.smg2.util.value.ValueAndSMGState;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.AddressExpression;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
@@ -47,7 +47,7 @@ public class SMGCPABuiltins {
 
   private static final UniqueIdGenerator U_ID_GENERATOR = new UniqueIdGenerator();
 
-  private final SMGCPAValueExpressionEvaluator evaluator;
+  private final SMGCPAExpressionEvaluator evaluator;
 
   private final MachineModel machineModel;
   private final LogManagerWithoutDuplicates logger;
@@ -55,7 +55,7 @@ public class SMGCPABuiltins {
   private final SMGOptions options;
 
   public SMGCPABuiltins(
-      SMGCPAValueExpressionEvaluator pExpressionEvaluator,
+      SMGCPAExpressionEvaluator pExpressionEvaluator,
       SMGOptions pOptions,
       SMGCPAExportOptions pExportSMGOptions,
       MachineModel pMachineModel,
@@ -296,7 +296,7 @@ public class SMGCPABuiltins {
             srcIdArg.getName(),
             BigInteger.ZERO,
             sizeInBits,
-            SMGCPAValueExpressionEvaluator.getCanonicalType(srcIdArg));
+            SMGCPAExpressionEvaluator.getCanonicalType(srcIdArg));
     SMGState currentState = addressAndState.getState();
     if (addressAndState.getValue().isUnknown()) {
       // Critical error, should never happen
@@ -411,7 +411,7 @@ public class SMGCPABuiltins {
               offset,
               sizeInBitsVarArg,
               varArg,
-              SMGCPAValueExpressionEvaluator.getCanonicalType(secondArg));
+              SMGCPAExpressionEvaluator.getCanonicalType(secondArg));
       offset = offset.add(sizeInBitsVarArg);
     }
 
@@ -482,7 +482,7 @@ public class SMGCPABuiltins {
         return Collections3.transformedImmutableListCopy(
             checkedStates, state -> ValueAndSMGState.ofUnknownValue(state));
       case ASSUME_EXTERNAL_ALLOCATED:
-        return evaluator.handleSafeExternFunction(cFCExpression, pState, pCfaEdge);
+        return Collections.singletonList(ValueAndSMGState.ofUnknownValue(pState));
       default:
         throw new AssertionError(
             "Unhandled function in cpa.smg2.SMGCPABuiltins.handleUnknownFunction(): "
@@ -628,7 +628,7 @@ public class SMGCPABuiltins {
     }
 
     SMGCPAValueVisitor vv = new SMGCPAValueVisitor(evaluator, pState, cfaEdge, logger);
-    return vv.evaluate(expr, SMGCPAValueExpressionEvaluator.getCanonicalType(functionCall));
+    return vv.evaluate(expr, SMGCPAExpressionEvaluator.getCanonicalType(functionCall));
   }
 
   /**
@@ -953,7 +953,7 @@ public class SMGCPABuiltins {
           evaluateAlloca(
               argumentAndState.getState(),
               argumentAndState.getValue(),
-              SMGCPAValueExpressionEvaluator.getCanonicalType(functionCall.getExpressionType()),
+              SMGCPAExpressionEvaluator.getCanonicalType(functionCall.getExpressionType()),
               cfaEdge));
     }
 
@@ -1074,7 +1074,7 @@ public class SMGCPABuiltins {
       // If the Value is no AddressExpression we can't work with it
       // The buffer is type * and has to be a AddressExpression with a not unknown value and a
       // concrete offset to be used correctly
-      if (!SMGCPAValueExpressionEvaluator.valueIsAddressExprOrVariableOffset(targetAddress)) {
+      if (!SMGCPAExpressionEvaluator.valueIsAddressExprOrVariableOffset(targetAddress)) {
         // Unknown addresses happen only of we don't have a memory associated
         // TODO: decide what to do here and when this happens
         resultBuilder.add(ValueAndSMGState.ofUnknownValue(destAndState.getState()));
@@ -1097,7 +1097,7 @@ public class SMGCPABuiltins {
               MEMCPY_SOURCE_PARAMETER, functionCall, destAndState.getState(), cfaEdge)) {
 
         Value sourceAddress = sourceAndState.getValue();
-        if (SMGCPAValueExpressionEvaluator.valueIsAddressExprOrVariableOffset(sourceAddress)) {
+        if (SMGCPAExpressionEvaluator.valueIsAddressExprOrVariableOffset(sourceAddress)) {
           // Unknown addresses happen only of we don't have a memory associated
           // Write the target region to unknown depending on the size
           // TODO:
@@ -1230,7 +1230,7 @@ public class SMGCPABuiltins {
       // If the Value is no AddressExpression we can't work with it
       // The buffer is type * and has to be a AddressExpression with a not unknown value and a
       // concrete offset to be used correctly
-      if (SMGCPAValueExpressionEvaluator.valueIsAddressExprOrVariableOffset(firstAddress)) {
+      if (SMGCPAExpressionEvaluator.valueIsAddressExprOrVariableOffset(firstAddress)) {
         // Unknown addresses happen only of we don't have a memory associated
         // TODO: decide what to do here and when this happens
         resultBuilder.add(ValueAndSMGState.ofUnknownValue(firstValueAndSMGState.getState()));
@@ -1254,7 +1254,7 @@ public class SMGCPABuiltins {
         // If the Value is no AddressExpression we can't work with it
         // The buffer is type * and has to be a AddressExpression with a not unknown value and a
         // concrete offset to be used correctly
-        if (!SMGCPAValueExpressionEvaluator.valueIsAddressExprOrVariableOffset(secondAddress)) {
+        if (!SMGCPAExpressionEvaluator.valueIsAddressExprOrVariableOffset(secondAddress)) {
           // Unknown addresses happen only of we don't have a memory associated
           // TODO: decide what to do here and when this happens
           resultBuilder.add(ValueAndSMGState.ofUnknownValue(secondValueAndSMGState.getState()));

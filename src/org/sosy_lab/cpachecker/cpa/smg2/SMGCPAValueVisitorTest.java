@@ -52,7 +52,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMG2Exception;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGStateAndOptionalSMGObjectAndOffset;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGValueAndSMGState;
-import org.sosy_lab.cpachecker.cpa.smg2.util.value.SMGCPAValueExpressionEvaluator;
+import org.sosy_lab.cpachecker.cpa.smg2.util.value.SMGCPAExpressionEvaluator;
 import org.sosy_lab.cpachecker.cpa.smg2.util.value.ValueAndSMGState;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.AddressExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.ConstantSymbolicExpression;
@@ -131,7 +131,7 @@ public class SMGCPAValueVisitorTest {
   private static final int TEST_ARRAY_LENGTH = 40;
 
   private LogManagerWithoutDuplicates logger;
-  private SMGCPAValueExpressionEvaluator evaluator;
+  private SMGCPAExpressionEvaluator evaluator;
   private SMGState currentState;
 
   // The visitor should always use the currentState!
@@ -142,8 +142,7 @@ public class SMGCPAValueVisitorTest {
     logger = new LogManagerWithoutDuplicates(LogManager.createTestLogManager());
 
     // null null is fine as long as builtin functions are not used!
-    evaluator =
-        new SMGCPAValueExpressionEvaluator(MACHINE_MODEL, logger, null, null, ImmutableList.of());
+    evaluator = new SMGCPAExpressionEvaluator(MACHINE_MODEL, logger, null, null);
 
     currentState =
         SMGState.of(MACHINE_MODEL, logger, new SMGOptions(Configuration.defaultConfiguration()));
