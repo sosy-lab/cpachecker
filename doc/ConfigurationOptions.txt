@@ -3036,6 +3036,11 @@ cpa.smg2.ignoreFunctionValue = true
 # functionValuesForRandom 
 cpa.smg2.ignoreFunctionValueExceptRandom = false
 
+# If this option is enabled, a memory allocation (e.g. malloc or array
+# declaration) for unknown memory sizes does not abort, but also does not
+# create any memory.
+cpa.smg2.ignoreUnknownMemoryAllocation = false
+
 # if there is an assumption like (x!=0), this option sets unknown
 # (uninitialized) variables to 1L, when the true-branch is handled.
 cpa.smg2.initAssumptionVars = false
