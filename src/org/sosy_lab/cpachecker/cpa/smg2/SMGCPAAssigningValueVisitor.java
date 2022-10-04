@@ -202,10 +202,10 @@ public class SMGCPAAssigningValueVisitor extends SMGCPAValueVisitor {
       SMGStateAndOptionalSMGObjectAndOffset leftHandSideAssignment = leftHandSideAssignments.get(0);
       currentState = leftHandSideAssignment.getSMGState();
       if (isAssignable(leftHandSideAssignments)) {
-      String leftMemLocName = getExtendedQualifiedName((CExpression) unwrap(lVarInBinaryExp));
+        String leftMemLocName = getExtendedQualifiedName((CExpression) unwrap(lVarInBinaryExp));
 
-      if (options.isOptimizeBooleanVariables()
-          && (booleans.contains(leftMemLocName) || options.isInitAssumptionVars())) {
+        if (options.isOptimizeBooleanVariables()
+            && (booleans.contains(leftMemLocName) || options.isInitAssumptionVars())) {
 
           CType type = SMGCPAExpressionEvaluator.getCanonicalType(rVarInBinaryExp);
           BigInteger size = evaluator.getBitSizeof(currentState, type);
