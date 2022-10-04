@@ -89,8 +89,7 @@ public class DCPAAlgorithm {
     block = pBlock;
     dcpa =
         DistributedConfigurableProgramAnalysis.distribute(cpa, pBlock, AnalysisDirection.FORWARD);
-    predecessors =
-        transformedImmutableSetCopy(block.getPredecessors(), BlockNodeMetaData::getId);
+    predecessors = transformedImmutableSetCopy(block.getPredecessors(), BlockNodeMetaData::getId);
   }
 
   public Collection<BlockSummaryMessage> performInitialAnalysis()
