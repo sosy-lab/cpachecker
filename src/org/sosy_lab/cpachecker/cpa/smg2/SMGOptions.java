@@ -242,6 +242,13 @@ public class SMGOptions {
       description = "Assume that variables used only in a boolean context are either zero or one.")
   private boolean optimizeBooleanVariables = true;
 
+  @Option(
+      secure = true,
+      description =
+          "If this option is enabled, a memory allocation (e.g. malloc or array declaration) for "
+              + "unknown memory sizes does not abort, but also does not create any memory.")
+  private boolean ignoreUnknownMemoryAllocation = false;
+
   public enum SMGExportLevel {
     NEVER,
     LEAF,
@@ -251,6 +258,10 @@ public class SMGOptions {
 
   public SMGOptions(Configuration config) throws InvalidConfigurationException {
     config.inject(this);
+  }
+
+  boolean isIgnoreUnknownMemoryAllocation() {
+    return ignoreUnknownMemoryAllocation;
   }
 
   boolean isOptimizeBooleanVariables() {
