@@ -196,17 +196,16 @@ public class SMGCPAAssigningValueVisitor extends SMGCPAValueVisitor {
       if (!isNestingHandleable((CExpression) unwrap(lVarInBinaryExp))) {
         return currentState;
       }
+      List<SMGStateAndOptionalSMGObjectAndOffset> leftHandSideAssignments =
+          getAssignable(lVarInBinaryExp, currentState);
+      Preconditions.checkArgument(leftHandSideAssignments.size() == 1);
+      SMGStateAndOptionalSMGObjectAndOffset leftHandSideAssignment = leftHandSideAssignments.get(0);
+      currentState = leftHandSideAssignment.getSMGState();
+      if (isAssignable(leftHandSideAssignments)) {
       String leftMemLocName = getExtendedQualifiedName((CExpression) unwrap(lVarInBinaryExp));
 
       if (options.isOptimizeBooleanVariables()
           && (booleans.contains(leftMemLocName) || options.isInitAssumptionVars())) {
-        List<SMGStateAndOptionalSMGObjectAndOffset> leftHandSideAssignments =
-            getAssignable(lVarInBinaryExp, currentState);
-        Preconditions.checkArgument(leftHandSideAssignments.size() == 1);
-        SMGStateAndOptionalSMGObjectAndOffset leftHandSideAssignment =
-            leftHandSideAssignments.get(0);
-        currentState = leftHandSideAssignment.getSMGState();
-        if (isAssignable(leftHandSideAssignments)) {
 
           CType type = SMGCPAExpressionEvaluator.getCanonicalType(rVarInBinaryExp);
           BigInteger size = evaluator.getBitSizeof(currentState, type);
