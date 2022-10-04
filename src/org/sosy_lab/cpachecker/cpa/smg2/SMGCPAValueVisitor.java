@@ -2106,6 +2106,15 @@ public class SMGCPAValueVisitor
       return ValueAndSMGState.of(addressValue.copyWithNewOffset(finalOffset), currentState);
 
     } else {
+      // Either we have 2 address expressions or 2 numeric 0
+      if (rightValue.isNumericValue()
+          && leftValue.isNumericValue()
+          && rightValue
+              .asNumericValue()
+              .getNumber()
+              .equals(leftValue.asNumericValue().getNumber())) {
+        return ValueAndSMGState.of(new NumericValue(0), currentState);
+      }
       // Both are pointers, we allow minus here to get the distance
       AddressExpression addressRight = (AddressExpression) rightValue;
       AddressExpression addressLeft = (AddressExpression) leftValue;
