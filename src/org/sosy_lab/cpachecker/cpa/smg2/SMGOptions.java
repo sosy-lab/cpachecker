@@ -260,7 +260,7 @@ public class SMGOptions {
     config.inject(this);
   }
 
-  boolean isIgnoreUnknownMemoryAllocation() {
+  public boolean isIgnoreUnknownMemoryAllocation() {
     return ignoreUnknownMemoryAllocation;
   }
 
