@@ -9,7 +9,6 @@
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.callstack;
 
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.BlockNode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DistributedConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.DeserializeOperator;
@@ -35,8 +34,7 @@ public class DistributedCallstackCPA implements DistributedConfigurableProgramAn
 
   private final CallstackCPA callstackCPA;
 
-  public DistributedCallstackCPA(
-      CallstackCPA pCallstackCPA, BlockNode pNode, AnalysisDirection pDirection) {
+  public DistributedCallstackCPA(CallstackCPA pCallstackCPA, BlockNode pNode) {
     callstackCPA = pCallstackCPA;
     proceed = new AlwaysProceed();
     serialize = new SerializeCallstackStateOperator();

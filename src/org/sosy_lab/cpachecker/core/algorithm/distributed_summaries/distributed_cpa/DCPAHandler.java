@@ -47,7 +47,7 @@ public class DCPAHandler {
       return Optional.ofNullable(registerDCPA((PredicateCPA) pCPA, pBlockNode, pDirection));
     }
     if (pCPA instanceof CallstackCPA) {
-      return Optional.ofNullable(registerDCPA((CallstackCPA) pCPA, pBlockNode, pDirection));
+      return Optional.ofNullable(registerDCPA((CallstackCPA) pCPA, pBlockNode));
     }
     if (pCPA instanceof FunctionPointerCPA) {
       return Optional.ofNullable(registerDCPA((FunctionPointerCPA) pCPA, pBlockNode));
@@ -83,10 +83,9 @@ public class DCPAHandler {
   }
 
   private DistributedConfigurableProgramAnalysis registerDCPA(
-      CallstackCPA pCallstackCPA, BlockNode pBlockNode, AnalysisDirection pDirection) {
+      CallstackCPA pCallstackCPA, BlockNode pBlockNode) {
     return analyses.put(
-        pCallstackCPA.getClass(),
-        new DistributedCallstackCPA(pCallstackCPA, pBlockNode, pDirection));
+        pCallstackCPA.getClass(), new DistributedCallstackCPA(pCallstackCPA, pBlockNode));
   }
 
   private DistributedConfigurableProgramAnalysis registerDCPA(

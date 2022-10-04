@@ -60,7 +60,6 @@ public class DCPAAlgorithm {
 
   private AlgorithmStatus status;
   private boolean alreadyReportedError;
-  private int numberUnsatPredecessors;
 
   public DCPAAlgorithm(
       LogManager pLogger,
