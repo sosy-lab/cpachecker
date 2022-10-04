@@ -69,5 +69,4 @@ public class ProceedCompositeStateOperator implements ProceedOperator {
       stats.getProceedTime().stop();
     }
   }
-
 }

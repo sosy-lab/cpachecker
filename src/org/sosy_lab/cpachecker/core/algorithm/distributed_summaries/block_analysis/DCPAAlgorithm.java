@@ -87,23 +87,26 @@ public class DCPAAlgorithm {
     states = new HashMap<>();
 
     block = pBlock;
-    dcpa = DistributedConfigurableProgramAnalysis.distribute(
-                cpa, pBlock, AnalysisDirection.FORWARD);
-    predecessors = FluentIterable.from(block.getPredecessors()).transform(BlockNodeMetaData::getId).toSet();
+    dcpa =
+        DistributedConfigurableProgramAnalysis.distribute(cpa, pBlock, AnalysisDirection.FORWARD);
+    predecessors =
+        FluentIterable.from(block.getPredecessors()).transform(BlockNodeMetaData::getId).toSet();
   }
 
   public Collection<BlockSummaryMessage> performInitialAnalysis()
       throws CPAException, InterruptedException {
     reachedSet.clear();
     reachedSet.add(startState, initialPrecision);
-    Collection<BlockSummaryMessage> results = processIntermediateResult(
-        DCPAAlgorithms.findReachableTargetStatesInBlock(algorithm, reachedSet));
+    Collection<BlockSummaryMessage> results =
+        processIntermediateResult(
+            DCPAAlgorithms.findReachableTargetStatesInBlock(algorithm, reachedSet));
     if (results.isEmpty()) {
       return ImmutableSet.of(
           BlockSummaryMessage.newBlockPostCondition(
               block.getId(),
               -1,
-              DCPAAlgorithms.appendStatus(AlgorithmStatus.SOUND_AND_PRECISE, BlockSummaryMessagePayload.empty()),
+              DCPAAlgorithms.appendStatus(
+                  AlgorithmStatus.SOUND_AND_PRECISE, BlockSummaryMessagePayload.empty()),
               false,
               false,
               ImmutableSet.of()));
@@ -113,7 +116,8 @@ public class DCPAAlgorithm {
 
   public Collection<BlockSummaryMessage> analyzeMessage(BlockSummaryPostConditionMessage pReceived)
       throws SolverException, InterruptedException, CPAException {
-    AbstractState deserialized = new ARGState(dcpa.getDeserializeOperator().deserialize(pReceived), null);
+    AbstractState deserialized =
+        new ARGState(dcpa.getDeserializeOperator().deserialize(pReceived), null);
     if (predecessors.contains(pReceived.getBlockId())) {
       if (pReceived.isReachable()) {
         states.put(pReceived.getBlockId(), deserialized);
@@ -124,14 +128,15 @@ public class DCPAAlgorithm {
     BlockSummaryMessageProcessing processing = dcpa.getProceedOperator().proceed(deserialized);
     if (processing.end()) {
       if (predecessors.contains(pReceived.getBlockId())) {
-          states.put(pReceived.getBlockId(), null);
+        states.put(pReceived.getBlockId(), null);
       }
       return processing;
     }
     assert processing.isEmpty() : "Proceed is not possible with unprocessed messages";
     // TODO store from which parts messages arrived (otherwise unsat-> ignore)
     if (states.containsKey(pReceived.getUniqueBlockId())) {
-      if (cpa.getAbstractDomain().isLessOrEqual(states.get(pReceived.getUniqueBlockId()), deserialized)) {
+      if (cpa.getAbstractDomain()
+          .isLessOrEqual(states.get(pReceived.getUniqueBlockId()), deserialized)) {
         return BlockSummaryMessageProcessing.stop();
       }
     }
@@ -149,7 +154,8 @@ public class DCPAAlgorithm {
         reachedSet.add(value, initialPrecision);
       } else {
         for (AbstractState abstractState : reachedSet) {
-          AbstractState merged = cpa.getMergeOperator().merge(value, abstractState, initialPrecision);
+          AbstractState merged =
+              cpa.getMergeOperator().merge(value, abstractState, initialPrecision);
           if (!merged.equals(abstractState)) {
             reachedSet.remove(value);
           }
@@ -157,12 +163,13 @@ public class DCPAAlgorithm {
         }
       }
     }
-    BlockAnalysisIntermediateResult result = DCPAAlgorithms.findReachableTargetStatesInBlock(algorithm, reachedSet);
+    BlockAnalysisIntermediateResult result =
+        DCPAAlgorithms.findReachableTargetStatesInBlock(algorithm, reachedSet);
     return processIntermediateResult(result);
   }
 
-  private Collection<BlockSummaryMessage> processIntermediateResult(BlockAnalysisIntermediateResult result)
-      throws InterruptedException {
+  private Collection<BlockSummaryMessage> processIntermediateResult(
+      BlockAnalysisIntermediateResult result) throws InterruptedException {
     status = status.update(result.getStatus());
     if (result.isEmpty()) {
       return ImmutableSet.of();
@@ -170,7 +177,18 @@ public class DCPAAlgorithm {
     ImmutableSet.Builder<BlockSummaryMessage> answers = ImmutableSet.builder();
     if (!result.getBlockTargets().isEmpty()) {
       answers.addAll(
-          FluentIterable.from(result.getBlockTargets()).transform(dcpa.getSerializeOperator()::serialize).transform(p -> BlockSummaryMessage.newBlockPostCondition(block.getId(), block.getLastNode().getNodeNumber(), p, false, true, ImmutableSet.of())).toSet());
+          FluentIterable.from(result.getBlockTargets())
+              .transform(dcpa.getSerializeOperator()::serialize)
+              .transform(
+                  p ->
+                      BlockSummaryMessage.newBlockPostCondition(
+                          block.getId(),
+                          block.getLastNode().getNodeNumber(),
+                          p,
+                          false,
+                          true,
+                          ImmutableSet.of()))
+              .toSet());
     }
     if (!result.getTargets().isEmpty() && !alreadyReportedError) {
       alreadyReportedError = true;
@@ -178,7 +196,6 @@ public class DCPAAlgorithm {
     }
     return answers.build();
   }
-
 
   private Collection<BlockSummaryMessage> createErrorConditionMessages(Set<ARGState> violations)
       throws InterruptedException {
@@ -190,8 +207,7 @@ public class DCPAAlgorithm {
             "States need to have a location but this one does not: " + targetState);
       }
       BlockSummaryMessagePayload initial =
-          dcpa
-              .getSerializeOperator()
+          dcpa.getSerializeOperator()
               .serialize(
                   dcpa.getInitialState(
                       targetNode.orElseThrow(), StateSpacePartition.getDefaultPartition()));

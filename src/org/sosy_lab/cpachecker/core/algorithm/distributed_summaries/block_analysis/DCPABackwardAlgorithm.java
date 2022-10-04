@@ -74,7 +74,8 @@ public class DCPABackwardAlgorithm {
     initialPrecision = reachedSet.getPrecision(Objects.requireNonNull(reachedSet.getFirstState()));
 
     block = pBlock;
-    dcpa = DistributedConfigurableProgramAnalysis.distribute(cpa, pBlock, AnalysisDirection.BACKWARD);
+    dcpa =
+        DistributedConfigurableProgramAnalysis.distribute(cpa, pBlock, AnalysisDirection.BACKWARD);
     logger = pLogger;
   }
 
@@ -82,7 +83,8 @@ public class DCPABackwardAlgorithm {
 
   public Collection<BlockSummaryMessage> analyzeMessage(BlockSummaryErrorConditionMessage pReceived)
       throws SolverException, InterruptedException, CPAException {
-    AbstractState deserialized = new ARGState(dcpa.getDeserializeOperator().deserialize(pReceived), null);
+    AbstractState deserialized =
+        new ARGState(dcpa.getDeserializeOperator().deserialize(pReceived), null);
     BlockSummaryMessageProcessing processing = dcpa.getProceedOperator().proceed(deserialized);
     if (processing.end()) {
       return processing;
@@ -106,13 +108,9 @@ public class DCPABackwardAlgorithm {
     }
     ImmutableSet.Builder<BlockSummaryMessage> responses = ImmutableSet.builder();
     for (AbstractState state : states) {
-      BlockSummaryMessagePayload payload =
-          dcpa.getSerializeOperator().serialize(state);
+      BlockSummaryMessagePayload payload = dcpa.getSerializeOperator().serialize(state);
       ImmutableSet<String> visited =
-          ImmutableSet.<String>builder()
-              .addAll(ImmutableSet.of())
-              .add(block.getId())
-              .build();
+          ImmutableSet.<String>builder().addAll(ImmutableSet.of()).add(block.getId()).build();
       payload = DCPAAlgorithms.appendStatus(status, payload);
       responses.add(
           BlockSummaryMessage.newErrorConditionMessage(
