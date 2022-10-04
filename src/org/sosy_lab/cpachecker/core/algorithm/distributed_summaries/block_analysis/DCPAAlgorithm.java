@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.block_analysis;
 
 import static com.google.common.base.Preconditions.checkNotNull;
+import static org.sosy_lab.common.collect.Collections3.transformedImmutableSetCopy;
 
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableSet;
@@ -89,7 +90,7 @@ public class DCPAAlgorithm {
     dcpa =
         DistributedConfigurableProgramAnalysis.distribute(cpa, pBlock, AnalysisDirection.FORWARD);
     predecessors =
-        FluentIterable.from(block.getPredecessors()).transform(BlockNodeMetaData::getId).toSet();
+        transformedImmutableSetCopy(block.getPredecessors(), BlockNodeMetaData::getId);
   }
 
   public Collection<BlockSummaryMessage> performInitialAnalysis()

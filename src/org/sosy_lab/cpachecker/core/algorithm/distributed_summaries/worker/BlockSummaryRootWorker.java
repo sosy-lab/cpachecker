@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker;
 
+import static com.google.common.base.Preconditions.checkArgument;
+
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSet;
 import java.io.IOException;
@@ -55,9 +57,7 @@ public class BlockSummaryRootWorker extends BlockSummaryWorker {
       ShutdownManager pShutdownManager)
       throws CPAException, InterruptedException, InvalidConfigurationException {
     super("root-worker-" + pId, pOptions);
-    Preconditions.checkArgument(
-        pNode.isRoot() && pNode.isEmpty() && pNode.getLastNode().equals(pNode.getStartNode()),
-        "Root node must be empty and cannot have predecessors: " + pNode);
+    checkArgument(pNode.isRoot() && pNode.isEmpty() && pNode.getLastNode().equals(pNode.getStartNode()), "Root node must be empty and cannot have predecessors: " + "%s", pNode);
     connection = pConnection;
     shutdown = false;
     root = pNode;
