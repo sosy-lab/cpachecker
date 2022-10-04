@@ -8,15 +8,14 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.distributed_block_cpa;
 
+import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.BlockNode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.BlockSummaryMessageProcessing;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.proceed.ProceedOperator;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryErrorConditionMessage;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryMessage;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryPostConditionMessage;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.java_smt.api.SolverException;
 
 public class ProceedBlockStateOperator implements ProceedOperator {
@@ -30,42 +29,31 @@ public class ProceedBlockStateOperator implements ProceedOperator {
   }
 
   @Override
-  public BlockSummaryMessageProcessing proceedForward(BlockSummaryPostConditionMessage pMessage)
+  public BlockSummaryMessageProcessing proceedForward(AbstractState pState)
       throws InterruptedException {
-    CFANode node = block.getNodeWithNumber(pMessage.getTargetNodeNumber());
-    if (!block.getStartNode().equals(node)) {
+    if (Objects.equals(AbstractStates.extractLocation(pState), block.getStartNode())) {
+      return BlockSummaryMessageProcessing.proceed();
+    } else {
       return BlockSummaryMessageProcessing.stop();
     }
-    return BlockSummaryMessageProcessing.proceed();
   }
 
   @Override
-  public BlockSummaryMessageProcessing proceedBackward(BlockSummaryErrorConditionMessage pMessage)
+  public BlockSummaryMessageProcessing proceedBackward(AbstractState pState)
       throws InterruptedException, SolverException {
-    CFANode node = block.getNodeWithNumber(pMessage.getTargetNodeNumber());
-    if (!(node.equals(block.getLastNode())
-        || (!node.equals(block.getLastNode())
-            && !node.equals(block.getStartNode())
-            && block.getNodesInBlock().contains(node)))) {
+    CFANode location = AbstractStates.extractLocation(pState);
+    if (block.getNodesInBlock().contains(location) && !block.getStartNode().equals(location)) {
+      return BlockSummaryMessageProcessing.proceed();
+    } else {
       return BlockSummaryMessageProcessing.stop();
     }
-    return BlockSummaryMessageProcessing.proceed();
   }
 
   @Override
-  public BlockSummaryMessageProcessing proceed(BlockSummaryMessage pMessage)
+  public BlockSummaryMessageProcessing proceed(AbstractState pState)
       throws InterruptedException, SolverException {
     return direction == AnalysisDirection.FORWARD
-        ? proceedForward((BlockSummaryPostConditionMessage) pMessage)
-        : proceedBackward((BlockSummaryErrorConditionMessage) pMessage);
+        ? proceedForward(pState)
+        : proceedBackward(pState);
   }
-
-  @Override
-  public boolean isFeasible(AbstractState pState) {
-    return true;
-  }
-
-  @Override
-  public void update(BlockSummaryPostConditionMessage pLatestOwnPreconditionMessage)
-      throws InterruptedException {}
 }

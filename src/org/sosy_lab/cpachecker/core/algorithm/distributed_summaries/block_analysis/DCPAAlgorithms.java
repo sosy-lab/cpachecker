@@ -10,28 +10,18 @@ package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.block_analy
 
 import static com.google.common.collect.FluentIterable.from;
 
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Iterables;
-import java.util.Collection;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DistributedConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.BlockSummaryMessagePayload;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryErrorConditionMessage;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryMessage;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryMessage.MessageType;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryPostConditionMessage;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.BlockSummaryObserverWorker.StatusObserver.StatusPrecise;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.BlockSummaryObserverWorker.StatusObserver.StatusPropertyChecked;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.BlockSummaryObserverWorker.StatusObserver.StatusSoundness;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
-import org.sosy_lab.cpachecker.core.interfaces.Precision;
-import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.Targetable.TargetInformation;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
@@ -41,61 +31,7 @@ import org.sosy_lab.cpachecker.cpa.location.LocationState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 
-public class BlockAnalysisUtil {
-
-  /**
-   * Calculate the first state based on a collection of messages
-   *
-   * @param startMessages all messages on a block exit or entry point
-   * @return the initial abstract state for the waitlist
-   * @throws InterruptedException thread interrupted
-   * @throws CPAException wrapper exception
-   */
-  static ARGState getStartState(
-      CFANode pStart,
-      Precision pPrecision,
-      DistributedConfigurableProgramAnalysis pAnalysis,
-      Collection<BlockSummaryMessage> startMessages)
-      throws InterruptedException, CPAException {
-    ImmutableList.Builder<AbstractState> states = ImmutableList.builder();
-    for (BlockSummaryMessage startMessage : startMessages) {
-      states.add(pAnalysis.getDeserializeOperator().deserialize(startMessage));
-    }
-    return new ARGState(
-        Iterables.getOnlyElement(
-            pAnalysis
-                .getCombineOperator()
-                .combine(
-                    states.build(),
-                    pAnalysis.getInitialState(pStart, StateSpacePartition.getDefaultPartition()),
-                    pPrecision)),
-        null);
-  }
-
-  /**
-   * Find all blocks from which this message contains information
-   *
-   * @param pMessages all messages at block entry or exit
-   * @return visited block ids as set of strings
-   */
-  static ImmutableSet<String> findVisitedBlocks(Collection<BlockSummaryMessage> pMessages) {
-    ImmutableSet.Builder<String> visitedBlocks = ImmutableSet.builder();
-    for (BlockSummaryMessage message : pMessages) {
-      Set<String> visited = ImmutableSet.of();
-      if (message.getType() == MessageType.BLOCK_POSTCONDITION) {
-        visited = ((BlockSummaryPostConditionMessage) message).visitedBlockIds();
-      } else if (message.getType() == MessageType.ERROR_CONDITION) {
-        visited = ((BlockSummaryErrorConditionMessage) message).visitedBlockIds();
-      }
-      for (String part : visited) {
-        if (!part.isBlank()) {
-          visitedBlocks.add(part);
-        }
-      }
-    }
-    // TODO visitedBlocks.add(block.getId());
-    return visitedBlocks.build();
-  }
+public class DCPAAlgorithms {
 
   static Optional<CFANode> abstractStateToLocation(AbstractState state) {
     LocationState locState = AbstractStates.extractStateByType(state, LocationState.class);

@@ -2102,6 +2102,9 @@ cpa.predicate.blk.alwaysAtExplicitNodes = false
 # regardless of threshold
 cpa.predicate.blk.alwaysAtFunctionCallNodes = false
 
+# abstraction always at function exit nodes.
+cpa.predicate.blk.alwaysAtFunctionExit = false
+
 # force abstractions at each function head (first node in the body),
 # regardless of threshold
 cpa.predicate.blk.alwaysAtFunctionHeads = false
@@ -3565,7 +3568,7 @@ distributedSummaries.decompositionType = BLOCK_OPERATOR
   enum:     [BLOCK_OPERATOR, GIVEN_SIZE, SINGLE_BLOCK]
 
 # desired number of BlockNodes
-distributedSummaries.desiredNumberOfBlocks = 5
+distributedSummaries.desiredNumberOfBlocks = 0
 
 # Whether to spawn util workers. Util workers listen to every message and
 # create visual output for debugging. Workers consume resources and should
@@ -3592,11 +3595,6 @@ distributedSummaries.worker.sendEveryErrorMessage = false
 
 # whether analysis worker store circular post conditions
 distributedSummaries.worker.storeCircularPostConditions = false
-
-# Choose the workers that are spawned for each block. Contrary to DEFAULT
-# workers, SMART workers consume multiple messages at once.
-distributedSummaries.workerType = DEFAULT
-  enum:     [DEFAULT, SMART]
 
 # Enable to use lazy refinement in current analysis instead of restarting
 # from root after each refinement.

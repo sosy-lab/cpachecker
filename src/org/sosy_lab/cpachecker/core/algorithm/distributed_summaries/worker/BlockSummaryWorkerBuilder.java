@@ -69,21 +69,6 @@ public class BlockSummaryWorkerBuilder {
     return this;
   }
 
-  public BlockSummaryWorkerBuilder addSmartAnalysisWorker(
-      BlockNode pNode, BlockSummaryAnalysisOptions pOptions) {
-    workerGenerators.add(
-        connection ->
-            new BlockSummarySmartAnalysisWorker(
-                nextId(pNode.getId()),
-                pOptions,
-                connection,
-                pNode,
-                cfa,
-                specification,
-                ShutdownManager.create()));
-    return this;
-  }
-
   public BlockSummaryWorkerBuilder addResultCollectorWorker(
       Collection<BlockNode> nodes, BlockSummaryAnalysisOptions pOptions) {
     workerGenerators.add(connection -> new BlockSummaryResultWorker(nodes, connection, pOptions));

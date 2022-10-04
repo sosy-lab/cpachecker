@@ -20,7 +20,6 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DistributedConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.DeserializeOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.SerializeOperator;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.combine.CombineOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.proceed.ProceedOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.predicate.DistributedPredicateCPA;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.BlockSummaryMessagePayload;
@@ -42,7 +41,6 @@ public class DistributedBlockCPA implements DistributedConfigurableProgramAnalys
   private final DeserializeOperator deserializeOperator;
   private final SerializeOperator serializeOperator;
   private final ProceedOperator proceedOperator;
-  private final CombineOperator combineOperator;
 
   private final ConfigurableProgramAnalysis blockCPA;
   private final BlockSummaryMessage topMessage;
@@ -79,7 +77,6 @@ public class DistributedBlockCPA implements DistributedConfigurableProgramAnalys
                         obtainFormulaMangerWithCorrectContext(pFutureAnalyses)
                             .getBooleanFormulaManager()
                             .toConjunction()));
-    combineOperator = new CombineBlockStateOperator();
     proceedOperator = new ProceedBlockStateOperator(pNode, pDirection);
     topMessage =
         BlockSummaryMessage.newBlockPostCondition(
@@ -111,11 +108,6 @@ public class DistributedBlockCPA implements DistributedConfigurableProgramAnalys
   }
 
   @Override
-  public CombineOperator getCombineOperator() {
-    return combineOperator;
-  }
-
-  @Override
   public DeserializeOperator getDeserializeOperator() {
     return deserializeOperator;
   }
@@ -136,10 +128,6 @@ public class DistributedBlockCPA implements DistributedConfigurableProgramAnalys
     return blockCPA.getInitialState(
         CFANode.newDummyCFANode(), StateSpacePartition.getDefaultPartition());
   }
-
-  @Override
-  public void synchronizeKnowledge(DistributedConfigurableProgramAnalysis pAnalysis)
-      throws InterruptedException {}
 
   @Override
   public AbstractDomain getAbstractDomain() {

@@ -14,9 +14,7 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decompositio
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.composite.DistributedCompositeCPA;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.DeserializeOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.SerializeOperator;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.combine.CombineOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.proceed.ProceedOperator;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.BlockSummaryAnalysisOptions;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeCPA;
@@ -31,14 +29,6 @@ public interface DistributedConfigurableProgramAnalysis extends ConfigurableProg
    * @return Serialize operator for a distributed CPA.
    */
   SerializeOperator getSerializeOperator();
-
-  /**
-   * Operator that knows how to combine several abstract states from {@link
-   * DistributedConfigurableProgramAnalysis#getAbstractStateClass()}.
-   *
-   * @return Combine operator for a distributed CPA.
-   */
-  CombineOperator getCombineOperator();
 
   /**
    * Operator that knows how to deserialize a message to abstract states of type {@link
@@ -74,21 +64,9 @@ public interface DistributedConfigurableProgramAnalysis extends ConfigurableProg
     return getAbstractStateClass().isAssignableFrom(pClass);
   }
 
-  /**
-   * Synchronize the knowledge of the forward analysis with the knowledge of the backward analysis
-   * for later infeasibility checks.
-   *
-   * @param pAnalysis Synchronize the knowledge of {@code pAnalysis} with this proceed operator
-   */
-  void synchronizeKnowledge(DistributedConfigurableProgramAnalysis pAnalysis)
-      throws InterruptedException;
-
   static DistributedConfigurableProgramAnalysis distribute(
-      ConfigurableProgramAnalysis pCPA,
-      BlockNode pBlock,
-      AnalysisDirection pDirection,
-      BlockSummaryAnalysisOptions pOptions) {
-    DCPAHandler builder = new DCPAHandler(pOptions);
+      ConfigurableProgramAnalysis pCPA, BlockNode pBlock, AnalysisDirection pDirection) {
+    DCPAHandler builder = new DCPAHandler();
     CompositeCPA compositeCPA = CPAs.retrieveCPA(pCPA, CompositeCPA.class);
     if (compositeCPA == null) {
       builder.registerDCPA(pCPA, pBlock, pDirection);

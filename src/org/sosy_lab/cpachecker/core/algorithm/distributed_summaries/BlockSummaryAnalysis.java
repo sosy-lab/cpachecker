@@ -86,12 +86,6 @@ public class BlockSummaryAnalysis implements Algorithm, StatisticsProvider, Stat
               + " creates one block around the complete CFA.")
   private DecompositionType decompositionType = DecompositionType.BLOCK_OPERATOR;
 
-  @Option(
-      description =
-          "Choose the workers that are spawned for each block. Contrary to DEFAULT workers, SMART"
-              + " workers consume multiple messages at once.")
-  private WorkerType workerType = WorkerType.DEFAULT;
-
   @Option(description = "desired number of BlockNodes")
   private int desiredNumberOfBlocks = 0;
 
@@ -106,11 +100,6 @@ public class BlockSummaryAnalysis implements Algorithm, StatisticsProvider, Stat
     BLOCK_OPERATOR,
     GIVEN_SIZE,
     SINGLE_BLOCK
-  }
-
-  private enum WorkerType {
-    DEFAULT,
-    SMART
   }
 
   public BlockSummaryAnalysis(
@@ -146,18 +135,6 @@ public class BlockSummaryAnalysis implements Algorithm, StatisticsProvider, Stat
     }
   }
 
-  private BlockSummaryWorkerBuilder analysisWorker(
-      BlockSummaryWorkerBuilder pBuilder, BlockNode pNode) {
-    switch (workerType) {
-      case DEFAULT:
-        return pBuilder.addAnalysisWorker(pNode, options);
-      case SMART:
-        return pBuilder.addSmartAnalysisWorker(pNode, options);
-      default:
-        throw new AssertionError("Unknown WorkerType: " + workerType);
-    }
-  }
-
   @Override
   public AlgorithmStatus run(ReachedSet reachedSet) throws CPAException, InterruptedException {
     logger.log(Level.INFO, "Starting block analysis...");
@@ -186,7 +163,7 @@ public class BlockSummaryAnalysis implements Algorithm, StatisticsProvider, Stat
         if (distinctNode.isRoot()) {
           builder = builder.addRootWorker(distinctNode, options);
         } else {
-          builder = analysisWorker(builder, distinctNode);
+          builder = builder.addAnalysisWorker(distinctNode, options);
         }
       }
       builder = builder.addResultCollectorWorker(blocks, options);

@@ -9,18 +9,13 @@
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.composite;
 
 import java.util.Map;
-import java.util.Map.Entry;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.BlockAnalysisStatistics;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.BlockSummaryMessageProcessing;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DistributedConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.proceed.ProceedOperator;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryErrorConditionMessage;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryMessage;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryPostConditionMessage;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
-import org.sosy_lab.cpachecker.cpa.composite.CompositeState;
 import org.sosy_lab.java_smt.api.SolverException;
 
 public class ProceedCompositeStateOperator implements ProceedOperator {
@@ -29,9 +24,6 @@ public class ProceedCompositeStateOperator implements ProceedOperator {
           Class<? extends ConfigurableProgramAnalysis>, DistributedConfigurableProgramAnalysis>
       registered;
   private final AnalysisDirection direction;
-
-  private BlockSummaryPostConditionMessage latestOwnPostConditionMessage;
-
   private final BlockAnalysisStatistics stats;
 
   public ProceedCompositeStateOperator(
@@ -45,75 +37,37 @@ public class ProceedCompositeStateOperator implements ProceedOperator {
   }
 
   @Override
-  public BlockSummaryMessageProcessing proceedForward(BlockSummaryPostConditionMessage pMessage)
-      throws InterruptedException {
-    BlockSummaryMessageProcessing processing = BlockSummaryMessageProcessing.proceed();
-    for (DistributedConfigurableProgramAnalysis value : registered.values()) {
-      processing = processing.merge(value.getProceedOperator().proceedForward(pMessage), true);
-    }
-    return processing;
-  }
-
-  @Override
-  public BlockSummaryMessageProcessing proceedBackward(BlockSummaryErrorConditionMessage pMessage)
+  public BlockSummaryMessageProcessing proceedForward(AbstractState pState)
       throws InterruptedException, SolverException {
     BlockSummaryMessageProcessing processing = BlockSummaryMessageProcessing.proceed();
     for (DistributedConfigurableProgramAnalysis value : registered.values()) {
-      processing = processing.merge(value.getProceedOperator().proceedBackward(pMessage), true);
+      processing = processing.merge(value.getProceedOperator().proceedForward(pState), true);
     }
     return processing;
   }
 
   @Override
-  public BlockSummaryMessageProcessing proceed(BlockSummaryMessage pMessage)
+  public BlockSummaryMessageProcessing proceedBackward(AbstractState pState)
+      throws InterruptedException, SolverException {
+    BlockSummaryMessageProcessing processing = BlockSummaryMessageProcessing.proceed();
+    for (DistributedConfigurableProgramAnalysis value : registered.values()) {
+      processing = processing.merge(value.getProceedOperator().proceedBackward(pState), true);
+    }
+    return processing;
+  }
+
+  @Override
+  public BlockSummaryMessageProcessing proceed(AbstractState pState)
       throws InterruptedException, SolverException {
     try {
       stats.getProceedCount().inc();
       stats.getProceedTime().start();
       return direction == AnalysisDirection.FORWARD
-          ? proceedForward((BlockSummaryPostConditionMessage) pMessage)
-          : proceedBackward((BlockSummaryErrorConditionMessage) pMessage);
+          ? proceedForward(pState)
+          : proceedBackward(pState);
     } finally {
       stats.getProceedTime().stop();
     }
   }
 
-  @Override
-  public boolean isFeasible(AbstractState pState) {
-    CompositeState compositeState = (CompositeState) pState;
-    for (AbstractState wrappedState : compositeState.getWrappedStates()) {
-      for (DistributedConfigurableProgramAnalysis value : registered.values()) {
-        if (value.doesOperateOn(wrappedState.getClass())) {
-          if (!value.getProceedOperator().isFeasible(wrappedState)) {
-            return false;
-          }
-        }
-      }
-    }
-    return true;
-  }
-
-  public void synchronizeKnowledge(DistributedConfigurableProgramAnalysis pAnalysis)
-      throws InterruptedException {
-    ProceedCompositeStateOperator distributed =
-        (ProceedCompositeStateOperator) pAnalysis.getProceedOperator();
-    if (direction == AnalysisDirection.BACKWARD) {
-      latestOwnPostConditionMessage = distributed.latestOwnPostConditionMessage;
-    }
-    for (Entry<Class<? extends ConfigurableProgramAnalysis>, DistributedConfigurableProgramAnalysis>
-        entry : registered.entrySet()) {
-      if (distributed.registered.containsKey(entry.getKey())) {
-        entry.getValue().synchronizeKnowledge(distributed.registered.get(entry.getKey()));
-      }
-    }
-  }
-
-  @Override
-  public void update(BlockSummaryPostConditionMessage pLatestOwnPreconditionMessage)
-      throws InterruptedException {
-    latestOwnPostConditionMessage = pLatestOwnPreconditionMessage;
-    for (DistributedConfigurableProgramAnalysis analysis : registered.values()) {
-      analysis.getProceedOperator().update(pLatestOwnPreconditionMessage);
-    }
-  }
 }

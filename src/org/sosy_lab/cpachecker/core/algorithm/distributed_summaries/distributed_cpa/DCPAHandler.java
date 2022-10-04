@@ -20,7 +20,6 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.distributed_block_cpa.DistributedBlockCPA;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.function_pointer.DistributedFunctionPointerCPA;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.predicate.DistributedPredicateCPA;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.BlockSummaryAnalysisOptions;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.cpa.block.BlockCPA;
 import org.sosy_lab.cpachecker.cpa.block.BlockCPABackward;
@@ -34,11 +33,9 @@ public class DCPAHandler {
   private final Map<
           Class<? extends ConfigurableProgramAnalysis>, DistributedConfigurableProgramAnalysis>
       analyses;
-  private final BlockSummaryAnalysisOptions options;
 
-  public DCPAHandler(BlockSummaryAnalysisOptions pOptions) {
+  public DCPAHandler() {
     analyses = new HashMap<>();
-    options = pOptions;
   }
 
   @CanIgnoreReturnValue
@@ -82,7 +79,7 @@ public class DCPAHandler {
       PredicateCPA pPredicateCPA, BlockNode pBlockNode, AnalysisDirection pDirection) {
     return analyses.put(
         pPredicateCPA.getClass(),
-        new DistributedPredicateCPA(pPredicateCPA, pBlockNode, pDirection, options));
+        new DistributedPredicateCPA(pPredicateCPA, pBlockNode, pDirection));
   }
 
   private DistributedConfigurableProgramAnalysis registerDCPA(

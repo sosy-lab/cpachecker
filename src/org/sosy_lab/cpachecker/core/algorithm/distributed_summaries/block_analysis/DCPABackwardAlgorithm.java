@@ -25,13 +25,13 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.block_analysis.BlockAnalysisUtil.BlockAnalysisIntermediateResult;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.block_analysis.DCPAAlgorithms.BlockAnalysisIntermediateResult;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.BlockNode;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.BlockSummaryMessageProcessing;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DistributedConfigurableProgramAnalysis;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.composite.DistributedCompositeCPA;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.BlockSummaryMessagePayload;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryErrorConditionMessage;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryMessage;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker.BlockSummaryAnalysisOptions;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -44,69 +44,54 @@ import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.Triple;
 import org.sosy_lab.java_smt.api.SolverException;
 
-public class BackwardBlockAnalysis implements ContinuousBlockAnalyzer<DistributedCompositeCPA> {
+public class DCPABackwardAlgorithm {
 
-  private final ReachedSet reachedSet;
+  private final DistributedConfigurableProgramAnalysis dcpa;
   private final BlockNode block;
-  private final DistributedCompositeCPA distributedCompositeCPA;
+  private final ReachedSet reachedSet;
+  private final Precision initialPrecision;
   private final Algorithm algorithm;
   private final LogManager logger;
-  private final Precision precision;
-  private AlgorithmStatus status;
 
-  /**
-   * Analyzes a subgraph of the CFA (block node) with an arbitrary CPA.
-   *
-   * @param pLogger logger to log information
-   * @param pBlock coherent subgraph of the CFA
-   * @param pCFA CFA where the subgraph pBlock is built from
-   * @param pSpecification the specification that the analysis should prove correct/wrong
-   * @param pConfiguration user defined configurations
-   * @param pShutdownManager shutdown manager for unexpected shutdown requests
-   * @param pOptions user defined options for block analyses
-   * @throws CPAException if the misbehaviour should be logged instead of causing a crash
-   * @throws InterruptedException if the analysis is interrupted by the user
-   * @throws InvalidConfigurationException if the configurations contain wrong values
-   */
-  public BackwardBlockAnalysis(
+  public DCPABackwardAlgorithm(
       LogManager pLogger,
       BlockNode pBlock,
       CFA pCFA,
       Specification pSpecification,
       Configuration pConfiguration,
-      ShutdownManager pShutdownManager,
-      BlockSummaryAnalysisOptions pOptions)
+      ShutdownManager pShutdownManager)
       throws CPAException, InterruptedException, InvalidConfigurationException {
-    logger = pLogger;
     Triple<Algorithm, ConfigurableProgramAnalysis, ReachedSet> parts =
         AlgorithmFactory.createAlgorithm(
             pLogger, pSpecification, pCFA, pConfiguration, pShutdownManager, pBlock);
     algorithm = parts.getFirst();
-    ConfigurableProgramAnalysis cpa = parts.getSecond();
+    ConfigurableProgramAnalysis cpa = Objects.requireNonNull(parts.getSecond());
     reachedSet = parts.getThird();
 
     status = AlgorithmStatus.SOUND_AND_PRECISE;
 
     checkNotNull(reachedSet, "BlockAnalysis requires the initial reachedSet");
-    precision = reachedSet.getPrecision(Objects.requireNonNull(reachedSet.getFirstState()));
+    initialPrecision = reachedSet.getPrecision(Objects.requireNonNull(reachedSet.getFirstState()));
 
     block = pBlock;
-    distributedCompositeCPA =
-        (DistributedCompositeCPA)
-            DistributedConfigurableProgramAnalysis.distribute(
-                cpa, pBlock, AnalysisDirection.BACKWARD, pOptions);
+    dcpa = DistributedConfigurableProgramAnalysis.distribute(cpa, pBlock, AnalysisDirection.BACKWARD);
+    logger = pLogger;
   }
 
-  @Override
-  public Collection<BlockSummaryMessage> analyze(Collection<BlockSummaryMessage> messages)
-      throws CPAException, InterruptedException, SolverException {
-    ARGState startState =
-        BlockAnalysisUtil.getStartState(
-            block.getLastNode(), precision, distributedCompositeCPA, messages);
+  private AlgorithmStatus status;
+
+  public Collection<BlockSummaryMessage> analyzeMessage(BlockSummaryErrorConditionMessage pReceived)
+      throws SolverException, InterruptedException, CPAException {
+    AbstractState deserialized = new ARGState(dcpa.getDeserializeOperator().deserialize(pReceived), null);
+    BlockSummaryMessageProcessing processing = dcpa.getProceedOperator().proceed(deserialized);
+    if (processing.end()) {
+      return processing;
+    }
+    assert processing.isEmpty() : "Proceed is not possible with unprocessed messages";
     reachedSet.clear();
-    reachedSet.add(startState, precision);
+    reachedSet.add(deserialized, initialPrecision);
     BlockAnalysisIntermediateResult result =
-        BlockAnalysisUtil.findReachableTargetStatesInBlock(algorithm, reachedSet);
+        DCPAAlgorithms.findReachableTargetStatesInBlock(algorithm, reachedSet);
     Set<ARGState> targetStates = result.getBlockTargets();
     status = status.update(result.getStatus());
     List<AbstractState> states =
@@ -122,13 +107,13 @@ public class BackwardBlockAnalysis implements ContinuousBlockAnalyzer<Distribute
     ImmutableSet.Builder<BlockSummaryMessage> responses = ImmutableSet.builder();
     for (AbstractState state : states) {
       BlockSummaryMessagePayload payload =
-          distributedCompositeCPA.getSerializeOperator().serialize(state);
+          dcpa.getSerializeOperator().serialize(state);
       ImmutableSet<String> visited =
           ImmutableSet.<String>builder()
-              .addAll(BlockAnalysisUtil.findVisitedBlocks(messages))
+              .addAll(ImmutableSet.of())
               .add(block.getId())
               .build();
-      payload = BlockAnalysisUtil.appendStatus(status, payload);
+      payload = DCPAAlgorithms.appendStatus(status, payload);
       responses.add(
           BlockSummaryMessage.newErrorConditionMessage(
               block.getId(), block.getStartNode().getNodeNumber(), payload, false, visited));
@@ -136,8 +121,7 @@ public class BackwardBlockAnalysis implements ContinuousBlockAnalyzer<Distribute
     return responses.build();
   }
 
-  @Override
-  public DistributedCompositeCPA getAnalysis() {
-    return distributedCompositeCPA;
+  public DistributedConfigurableProgramAnalysis getDCPA() {
+    return dcpa;
   }
 }

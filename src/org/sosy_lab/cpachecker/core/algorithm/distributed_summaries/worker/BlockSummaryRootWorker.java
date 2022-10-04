@@ -8,9 +8,11 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.worker;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSet;
 import java.io.IOException;
 import java.util.Collection;
+import java.util.Objects;
 import java.util.logging.Level;
 import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.configuration.Configuration;
@@ -18,22 +20,28 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.block_analysis.NoopBlockAnalysis;
+import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.block_analysis.AlgorithmFactory;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.BlockNode;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.BlockSummaryMessageProcessing;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DistributedConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.BlockSummaryConnection;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryErrorConditionMessage;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryMessage;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryPostConditionMessage;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
+import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.util.Triple;
 import org.sosy_lab.java_smt.api.SolverException;
 
 public class BlockSummaryRootWorker extends BlockSummaryWorker {
 
   private final BlockNode root;
-  private final NoopBlockAnalysis analysis;
   private final BlockSummaryConnection connection;
+  private final DistributedConfigurableProgramAnalysis dcpa;
+  private final AbstractState topState;
   private boolean shutdown;
 
   BlockSummaryRootWorker(
@@ -47,22 +55,19 @@ public class BlockSummaryRootWorker extends BlockSummaryWorker {
       ShutdownManager pShutdownManager)
       throws CPAException, InterruptedException, InvalidConfigurationException {
     super("root-worker-" + pId, pOptions);
+    Preconditions.checkArgument(
+        pNode.isRoot() && pNode.isEmpty() && pNode.getLastNode().equals(pNode.getStartNode()),
+        "Root node must be empty and cannot have predecessors: " + pNode);
     connection = pConnection;
     shutdown = false;
     root = pNode;
-    if (!root.isRoot() || !root.isEmpty() || !root.getLastNode().equals(root.getStartNode())) {
-      throw new AssertionError("Root node must be empty and cannot have predecessors: " + pNode);
-    }
-    analysis =
-        new NoopBlockAnalysis(
-            getLogger(),
-            pNode,
-            pCfa,
-            AnalysisDirection.FORWARD,
-            pSpecification,
-            pConfiguration,
-            pShutdownManager,
-            pOptions);
+    Triple<Algorithm, ConfigurableProgramAnalysis, ReachedSet> parts =
+        AlgorithmFactory.createAlgorithm(
+            getLogger(), pSpecification, pCfa, pConfiguration, pShutdownManager, pNode);
+    dcpa =
+        DistributedConfigurableProgramAnalysis.distribute(
+            parts.getSecond(), pNode, AnalysisDirection.FORWARD);
+    topState = Objects.requireNonNull(parts.getThird()).getFirstState();
   }
 
   @Override
@@ -70,25 +75,17 @@ public class BlockSummaryRootWorker extends BlockSummaryWorker {
       throws InterruptedException, SolverException, CPAException, IOException {
     switch (pMessage.getType()) {
       case ERROR_CONDITION:
-        if (pMessage.getTargetNodeNumber() == root.getLastNode().getNodeNumber()
-            && root.getSuccessors().stream()
-                .anyMatch(block -> block.getId().equals(pMessage.getUniqueBlockId()))) {
-          BlockSummaryMessageProcessing processing =
-              analysis
-                  .getAnalysis()
-                  .getProceedOperator()
-                  .proceedBackward((BlockSummaryErrorConditionMessage) pMessage);
-          if (processing.end()) {
-            return processing;
-          }
-          return ImmutableSet.of(
-              BlockSummaryMessage.newResultMessage(
-                  root.getId(),
-                  root.getLastNode().getNodeNumber(),
-                  Result.FALSE,
-                  ((BlockSummaryErrorConditionMessage) pMessage).visitedBlockIds()));
+        AbstractState currentState = dcpa.getDeserializeOperator().deserialize(pMessage);
+        BlockSummaryMessageProcessing processing = dcpa.getProceedOperator().proceed(currentState);
+        if (processing.end()) {
+          return processing;
         }
-        return ImmutableSet.of();
+        return ImmutableSet.of(
+            BlockSummaryMessage.newResultMessage(
+                root.getId(),
+                root.getLastNode().getNodeNumber(),
+                Result.FALSE,
+                ((BlockSummaryErrorConditionMessage) pMessage).visitedBlockIds()));
       case FOUND_RESULT:
         // fall through
       case ERROR:
@@ -118,15 +115,17 @@ public class BlockSummaryRootWorker extends BlockSummaryWorker {
   @Override
   public void run() {
     try {
-      Collection<BlockSummaryMessage> initialMessage = analysis.performInitialAnalysis();
-      analysis
-          .getAnalysis()
-          .getProceedOperator()
-          .update(
-              (BlockSummaryPostConditionMessage) initialMessage.stream().findAny().orElseThrow());
-      broadcast(initialMessage);
+      broadcast(
+          ImmutableSet.of(
+              BlockSummaryMessage.newBlockPostCondition(
+                  root.getId(),
+                  root.getLastNode().getNodeNumber(),
+                  dcpa.getSerializeOperator().serialize(topState),
+                  true,
+                  true,
+                  ImmutableSet.of(root.getId()))));
       super.run();
-    } catch (InterruptedException | CPAException pE) {
+    } catch (InterruptedException pE) {
       getLogger().logException(Level.SEVERE, pE, "Root worker stopped unexpectedly.");
       broadcastOrLogException(ImmutableSet.of(BlockSummaryMessage.newErrorMessage(getId(), pE)));
     }

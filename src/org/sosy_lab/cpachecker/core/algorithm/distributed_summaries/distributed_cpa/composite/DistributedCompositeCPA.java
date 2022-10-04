@@ -22,7 +22,6 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DistributedConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.DeserializeOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.SerializeOperator;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.combine.CombineOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.proceed.ProceedOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.predicate.DistributedPredicateCPA;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryErrorConditionMessage;
@@ -45,7 +44,6 @@ public class DistributedCompositeCPA
   private final CompositeCPA compositeCPA;
   private final SerializeOperator serialize;
   private final DeserializeOperator deserialize;
-  private final CombineOperator combine;
   private final ProceedCompositeStateOperator proceed;
 
   private final BlockAnalysisStatistics statistics;
@@ -66,7 +64,6 @@ public class DistributedCompositeCPA
     serialize = new SerializeCompositeStateOperator(registered, statistics);
     deserialize =
         new DeserializeCompositeStateOperator(compositeCPA, pNode, registered, statistics);
-    combine = new CombineCompositeStateOperator(registered, statistics);
     proceed = new ProceedCompositeStateOperator(registered, pDirection, statistics);
     analyses = registered;
   }
@@ -74,11 +71,6 @@ public class DistributedCompositeCPA
   @Override
   public SerializeOperator getSerializeOperator() {
     return serialize;
-  }
-
-  @Override
-  public CombineOperator getCombineOperator() {
-    return combine;
   }
 
   @Override
@@ -129,12 +121,6 @@ public class DistributedCompositeCPA
     return BlockSummaryErrorConditionTracker.trackersFrom(analyses.values())
         .map(errorTracker -> errorTracker.resetErrorCondition(pFormulaManagerView))
         .collect(pFormulaManagerView.getBooleanFormulaManager().toConjunction());
-  }
-
-  @Override
-  public void synchronizeKnowledge(DistributedConfigurableProgramAnalysis pAnalysis)
-      throws InterruptedException {
-    proceed.synchronizeKnowledge(pAnalysis);
   }
 
   @Override
