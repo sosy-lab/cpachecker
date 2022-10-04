@@ -30,7 +30,6 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.composite.DistributedCompositeCPA;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.BlockSummaryConnection;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryErrorConditionMessage;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryErrorConditionUnreachableMessage;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryMessage;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryPostConditionMessage;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryStatisticsMessage.BlockSummaryStatisticType;
@@ -233,14 +232,22 @@ public class BlockSummaryAnalysisWorker extends BlockSummaryWorker {
 
       DistributedCompositeCPA forwardBlockDCPA = forwardAnalysis.getAnalysis();
       forwardBlockDCPA.updateErrorCondition(msg);
-      Collection<BlockSummaryMessage> forwardUpdates = performForwardAnalysis(latestPreconditions);
-      if (forwardUpdates.stream()
-          .noneMatch(m -> m instanceof BlockSummaryErrorConditionUnreachableMessage)) {
+      Collection<? extends BlockSummaryMessage> forwardUpdates =
+          FluentIterable.from(performForwardAnalysis(latestPreconditions))
+              .filter(BlockSummaryPostConditionMessage.class)
+              .toSet();
+
+      if (!forwardUpdates.isEmpty()) {
         backwardAnalysis.getAnalysis().updateErrorCondition(msg);
         backwardAnalysis.getAnalysis().synchronizeKnowledge(forwardAnalysis.getAnalysis());
-        return performBackwardAnalysis(pMessageProcessing);
+        Collection<BlockSummaryMessage> backwardResult =
+            performBackwardAnalysis(pMessageProcessing);
+        return ImmutableSet.<BlockSummaryMessage>builder()
+            .addAll(forwardUpdates)
+            .addAll(backwardResult)
+            .build();
       }
-      return forwardUpdates;
+      return ImmutableSet.of();
     } finally {
       backwardAnalysisAbstractionTime.stop();
     }

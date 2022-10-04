@@ -11,12 +11,12 @@ package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.block_analy
 import static com.google.common.base.Preconditions.checkNotNull;
 import static org.sosy_lab.common.collect.Collections3.transformedImmutableListCopy;
 
-import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import java.util.Collection;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.configuration.Configuration;
@@ -114,27 +114,12 @@ public class ForwardBlockAnalysis
     reachedSet.clear();
     reachedSet.add(startState, precision);
     BlockAnalysisIntermediateResult result =
-        BlockAnalysisUtil.findReachableTargetStatesInBlock(
-            algorithm, reachedSet, block.getActualLastNode());
+        BlockAnalysisUtil.findReachableTargetStatesInBlock(algorithm, reachedSet);
     status = status.update(result.getStatus());
     // update precision for start state
     precision = reachedSet.getPrecision(startState);
     if (result.isEmpty()) {
-      return ImmutableSet.<BlockSummaryMessage>builder()
-          .addAll(
-              createBlockPostConditionMessage(
-                  messages,
-                  FluentIterable.from(reachedSet)
-                      .filter(
-                          state ->
-                              Objects.equals(
-                                  AbstractStates.extractLocation(state), block.getActualLastNode()))
-                      .filter(ARGState.class)
-                      .toSet()))
-          .add(
-              BlockSummaryMessage.newErrorConditionUnreachableMessage(
-                  block.getId(), "Forward failed"))
-          .build();
+      return ImmutableSet.of();
     }
 
     ImmutableSet.Builder<BlockSummaryMessage> answers = ImmutableSet.builder();
@@ -226,23 +211,22 @@ public class ForwardBlockAnalysis
       throws InterruptedException {
     ImmutableSet.Builder<BlockSummaryMessage> answers = ImmutableSet.builder();
     for (ARGState targetState : violations) {
-      CFANode targetNode =
-          BlockAnalysisUtil.abstractStateToLocation(targetState)
-              .orElseThrow(
-                  () ->
-                      new AssertionError(
-                          "States need to have a location but this one does not: " + targetState));
+      Optional<CFANode> targetNode = BlockAnalysisUtil.abstractStateToLocation(targetState);
+      if (targetNode.isEmpty()) {
+        throw new AssertionError(
+            "States need to have a location but this one does not: " + targetState);
+      }
       BlockSummaryMessagePayload initial =
           distributedCompositeCPA
               .getSerializeOperator()
               .serialize(
                   distributedCompositeCPA.getInitialState(
-                      targetNode, StateSpacePartition.getDefaultPartition()));
+                      targetNode.orElseThrow(), StateSpacePartition.getDefaultPartition()));
       initial = BlockAnalysisUtil.appendStatus(status, initial);
       answers.add(
           BlockSummaryMessage.newErrorConditionMessage(
               block.getId(),
-              targetNode.getNodeNumber(),
+              targetNode.orElseThrow().getNodeNumber(),
               initial,
               true,
               ImmutableSet.of(block.getId())));
