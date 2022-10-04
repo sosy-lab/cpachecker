@@ -22,7 +22,7 @@ public abstract class LockInfo implements Comparable<LockInfo> {
   private final String lockId;
   private final LockType lockType;
 
-  public LockInfo(String pLockId, LockType pLockType) {
+  protected LockInfo(String pLockId, LockType pLockType) {
     lockId = pLockId;
     lockType = pLockType;
   }

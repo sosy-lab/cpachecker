@@ -22,7 +22,7 @@ public class MutexLock extends LockInfo {
     this(pLockId, null);
   }
 
-  MutexLock(String pLockId, String pThreadId) {
+  private MutexLock(String pLockId, String pThreadId) {
     super(pLockId, LockType.MUTEX);
     threadId = pThreadId;
   }
@@ -41,14 +41,14 @@ public class MutexLock extends LockInfo {
   @Override
   public LockInfo acquire(String pThreadId) {
     Preconditions.checkNotNull(pThreadId);
-    Preconditions.checkState(threadId == null);
+    Preconditions.checkState(!isHeldByThread());
     return new MutexLock(getLockId(), pThreadId);
   }
 
   @Override
   public LockInfo release(String pThreadId) {
     Preconditions.checkNotNull(pThreadId);
-    Preconditions.checkArgument(pThreadId.equals(threadId));
+    Preconditions.checkArgument(isHeldByThread(pThreadId));
     return new MutexLock(getLockId());
   }
 

@@ -44,7 +44,7 @@ public class RWLock extends LockInfo {
     return !readers.isEmpty();
   }
 
-  public RWLock removeReader(String pReader) {
+  private RWLock removeReader(String pReader) {
     Preconditions.checkNotNull(pReader);
     Preconditions.checkArgument(readers.contains(pReader));
     return withReaders(readers.removeAndCopy(pReader));
@@ -60,7 +60,7 @@ public class RWLock extends LockInfo {
     return writer != null;
   }
 
-  public RWLock removeWriter(String pWriter) {
+  private RWLock removeWriter(String pWriter) {
     Preconditions.checkNotNull(pWriter);
     Preconditions.checkArgument(pWriter.equals(writer));
     return withWriter(null);
@@ -79,7 +79,8 @@ public class RWLock extends LockInfo {
 
   @Override
   public LockInfo acquire(String pThreadId) {
-    throw new UnsupportedOperationException();
+    throw new UnsupportedOperationException(
+        "RWLock does not support generic acquire, use addReader/addWriter instead");
   }
 
   @Override
