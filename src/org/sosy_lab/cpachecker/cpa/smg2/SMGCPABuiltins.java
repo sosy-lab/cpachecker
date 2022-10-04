@@ -659,6 +659,10 @@ public class SMGCPABuiltins {
 
         if (options.isGuessSizeOfUnknownMemorySize()) {
           sizeValue = new NumericValue(options.getGuessSize());
+        } else if (options.isIgnoreUnknownMemoryAllocation()) {
+          // Ignore and move on
+          resultBuilder.add(ValueAndSMGState.ofUnknownValue(sizeAndState.getState()));
+          continue;
         } else {
 
           throw new AssertionError(

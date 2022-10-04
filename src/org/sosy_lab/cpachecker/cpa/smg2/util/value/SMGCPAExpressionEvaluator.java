@@ -1449,7 +1449,8 @@ public class SMGCPAExpressionEvaluator {
     try {
       typeSizeInBits = getBitSizeof(newState, cType);
     } catch (AssertionError e) {
-      if (e.getMessage().contains("Could not determine variable array length for length")) {
+      if (options.isIgnoreUnknownMemoryAllocation()
+          && e.getMessage().contains("Could not determine variable array length for length")) {
         return newState;
       }
       throw e;
