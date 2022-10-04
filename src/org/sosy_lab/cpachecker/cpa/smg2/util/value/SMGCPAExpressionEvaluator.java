@@ -454,7 +454,8 @@ public class SMGCPAExpressionEvaluator {
     if (maybeObjectAndOffset.isEmpty()) {
       // TODO: improve error handling and add more specific exceptions to the visitor!
       // No address could be found
-      throw new SMG2Exception("No address could be created for the variable: " + variableName);
+      return ValueAndSMGState.ofUnknownValue(pState);
+      // throw new SMG2Exception("No address could be created for the variable: " + variableName);
     }
     SMGObjectAndOffset targetAndOffset = maybeObjectAndOffset.orElseThrow();
     SMGObject target = targetAndOffset.getSMGObject();
@@ -1444,7 +1445,15 @@ public class SMGCPAExpressionEvaluator {
       boolean isExtern,
       CVariableDeclaration pVarDecl)
       throws SMG2Exception {
-    BigInteger typeSizeInBits = getBitSizeof(newState, cType);
+    BigInteger typeSizeInBits;
+    try {
+      typeSizeInBits = getBitSizeof(newState, cType);
+    } catch (AssertionError e) {
+      if (e.getMessage().contains("Could not determine variable array length for length")) {
+        return newState;
+      }
+      throw e;
+    }
     if (cType instanceof CArrayType
         && ((CArrayType) cType).getLength() == null
         && pVarDecl.getInitializer() != null) {
