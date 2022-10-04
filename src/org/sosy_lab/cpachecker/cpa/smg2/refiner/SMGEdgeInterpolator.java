@@ -8,7 +8,6 @@
 
 package org.sosy_lab.cpachecker.cpa.smg2.refiner;
 
-import com.google.common.base.Preconditions;
 import java.util.Deque;
 import java.util.Optional;
 import java.util.Set;
@@ -217,7 +216,7 @@ public class SMGEdgeInterpolator
     // Check that no variable was added to a wrong stack frame
     assert newInterpolant.isSanityIntact();
     // TODO: remove or make an assert after its made sure it does not trigger!
-    Preconditions.checkArgument(newInterpolant.isSanityIntact());
+    assert (newInterpolant.isSanityIntact());
 
     return newInterpolant;
   }
