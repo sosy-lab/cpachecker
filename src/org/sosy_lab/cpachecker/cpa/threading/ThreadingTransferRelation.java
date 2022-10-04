@@ -639,12 +639,12 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
 
     LockInfo lock;
     if (threadingState.hasLock(lockId)) {
-      lock = threadingState.getLockInfo(lockId);
+      lock = threadingState.getLock(lockId);
     } else {
       lock = new MutexLock(lockId);
     }
 
-    return transform(results, ts -> ts.addLockAndCopy(lock.acquire(activeThread)));
+    return transform(results, ts -> ts.updateLockAndCopy(lock.acquire(activeThread)));
   }
 
   private Collection<ThreadingState> tryAddLock(
@@ -654,7 +654,7 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
       final Collection<ThreadingState> results,
       CFAEdge trylockEdge) {
     if (threadingState.isLockHeld(lockId)) {
-      boolean success = threadingState.getLockInfo(lockId).isHeldByThread(activeThread);
+      boolean success = threadingState.getLock(lockId).isHeldByThread(activeThread);
       ThreadFunctionReturnValue lastThreadFunctionResult =
           new ThreadFunctionReturnValue(trylockEdge, success);
       return transform(results, ts -> ts.withLastThreadFunctionResult(lastThreadFunctionResult));
@@ -662,7 +662,7 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
 
     LockInfo lock;
     if (threadingState.hasLock(lockId)) {
-      lock = threadingState.getLockInfo(lockId);
+      lock = threadingState.getLock(lockId);
     } else {
       lock = new MutexLock(lockId);
     }
@@ -670,7 +670,7 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
     return transform(
         results,
         ts ->
-            ts.addLockAndCopy(lock.acquire(activeThread))
+            ts.updateLockAndCopy(lock.acquire(activeThread))
                 .withLastThreadFunctionResult(new ThreadFunctionReturnValue(trylockEdge, true)));
   }
 
@@ -681,8 +681,8 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
       final Collection<ThreadingState> results) {
     RWLock lock;
     if (threadingState.hasLock(lockId)
-        && threadingState.getLockInfo(lockId).getLockType().equals(LockType.RW_MUTEX)) {
-      lock = (RWLock) threadingState.getLockInfo(lockId);
+        && threadingState.getLock(lockId).getLockType().equals(LockType.RW_MUTEX)) {
+      lock = (RWLock) threadingState.getLock(lockId);
     } else {
       lock = new RWLock(lockId);
     }
@@ -692,7 +692,7 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
       return ImmutableSet.of();
     }
 
-    return transform(results, ts -> ts.addLockAndCopy(lock.addReader(activeThread)));
+    return transform(results, ts -> ts.updateLockAndCopy(lock.addReader(activeThread)));
   }
 
   private Collection<ThreadingState> addWriteLock(
@@ -702,8 +702,8 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
       final Collection<ThreadingState> results) {
     RWLock lock;
     if (threadingState.hasLock(lockId)
-        && threadingState.getLockInfo(lockId).getLockType().equals(LockType.RW_MUTEX)) {
-      lock = (RWLock) threadingState.getLockInfo(lockId);
+        && threadingState.getLock(lockId).getLockType().equals(LockType.RW_MUTEX)) {
+      lock = (RWLock) threadingState.getLock(lockId);
     } else {
       lock = new RWLock(lockId);
     }
@@ -713,7 +713,7 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
       return ImmutableSet.of();
     }
 
-    return transform(results, ts -> ts.addLockAndCopy(lock.addWriter(activeThread)));
+    return transform(results, ts -> ts.updateLockAndCopy(lock.addWriter(activeThread)));
   }
 
   /** get the name (lockId) of the new lock at the given edge, or NULL if no lock is required. */
@@ -806,7 +806,7 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
     if (isImporantForThreading && threadingState.isLockHeld(activeThread, LOCAL_ACCESS_LOCK)) {
       return threadingState.releaseLockAndCopy(activeThread, LOCAL_ACCESS_LOCK);
     } else {
-      return threadingState.addLockAndCopy(LockInfo.getLocalAccessLock().acquire(activeThread));
+      return threadingState.updateLockAndCopy(LockInfo.getLocalAccessLock().acquire(activeThread));
     }
   }
 

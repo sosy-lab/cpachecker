@@ -222,12 +222,12 @@ public class ThreadingState
     return num;
   }
 
-  ThreadingState addLockAndCopy(LockInfo lockInfo) {
+  ThreadingState updateLockAndCopy(LockInfo lockInfo) {
     Preconditions.checkNotNull(lockInfo);
     return withLocks(locks.putAndCopy(lockInfo.getLockId(), lockInfo));
   }
 
-  LockInfo getLockInfo(String lockId) {
+  LockInfo getLock(String lockId) {
     Preconditions.checkNotNull(lockId);
     Preconditions.checkArgument(locks.containsKey(lockId));
     return locks.get(lockId);
@@ -246,7 +246,7 @@ public class ThreadingState
         "Thread %s is trying to release unknown lock %s",
         threadId,
         lockId);
-    return addLockAndCopy(locks.get(lockId).release(threadId));
+    return updateLockAndCopy(locks.get(lockId).release(threadId));
   }
 
   /** Returns whether a lock with the given id exists. */
