@@ -126,7 +126,7 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
   private static final String VERIFIER_ATOMIC_BEGIN = "__VERIFIER_atomic_begin";
   private static final String VERIFIER_ATOMIC_END = "__VERIFIER_atomic_end";
   private static final String ATOMIC_LOCK = "__CPAchecker_atomic_lock__";
-  private static final String LOCAL_ACCESS_LOCK = "__CPAchecker_local_access_lock__";
+  static final String LOCAL_ACCESS_LOCK = "__CPAchecker_local_access_lock__";
   private static final String THREAD_ID_SEPARATOR = "__CPAchecker__";
 
   private static final ImmutableSet<String> UNSUPPORTED_THREAD_FUNCTIONS =
@@ -180,8 +180,8 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
 
     // check if atomic lock exists and is set for current thread
     if (useAtomicLocks
-        && threadingState.hasLock(ATOMIC_LOCK)
-        && !threadingState.hasLock(activeThread, ATOMIC_LOCK)) {
+        && threadingState.isLockHeld(ATOMIC_LOCK)
+        && !threadingState.isLockHeld(activeThread, ATOMIC_LOCK)) {
       return ImmutableSet.of();
     }
 
@@ -431,7 +431,7 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
   /** remove the thread-id from the state, and cleanup remaining locks of this thread. */
   private ThreadingState removeThreadId(ThreadingState ts, final String id) {
     if (useLocalAccessLocks) {
-      ts = ts.removeLockAndCopy(id, LOCAL_ACCESS_LOCK);
+      ts = ts.releaseLockAndCopy(id, LOCAL_ACCESS_LOCK);
     }
     if (ts.hasLockForThread(id)) {
       logger.log(Level.WARNING, "dying thread", id, "has remaining locks in state", ts);
@@ -628,12 +628,20 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
       final String activeThread,
       String lockId,
       final Collection<ThreadingState> results) {
-    if (threadingState.hasLock(lockId)) {
+    if (threadingState.isLockHeld(lockId)) {
       // some thread (including activeThread) has the lock, using it twice is not possible
+      // TODO: Or maybe it is? (e.g. recursive mutex) -> Check context where this function is called
       return ImmutableSet.of();
     }
 
-    return transform(results, ts -> ts.addLockAndCopy(activeThread, lockId));
+    LockInfo lock;
+    if (threadingState.hasLock(lockId)) {
+      lock = threadingState.getLockInfo(lockId);
+    } else {
+      lock = new MutexLock(lockId);
+    }
+
+    return transform(results, ts -> ts.addLockAndCopy(lock.acquire(activeThread)));
   }
 
   private Collection<ThreadingState> tryAddLock(
@@ -642,17 +650,24 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
       String lockId,
       final Collection<ThreadingState> results,
       CFAEdge trylockEdge) {
-    if (threadingState.hasLock(lockId)) {
-      boolean success = threadingState.getLocksForThread(activeThread).contains(lockId);
+    if (threadingState.isLockHeld(lockId)) {
+      boolean success = threadingState.getLockInfo(lockId).isHeldByThread(activeThread);
       ThreadFunctionReturnValue lastThreadFunctionResult =
           new ThreadFunctionReturnValue(trylockEdge, success);
       return transform(results, ts -> ts.withLastThreadFunctionResult(lastThreadFunctionResult));
     }
 
+    LockInfo lock;
+    if (threadingState.hasLock(lockId)) {
+      lock = threadingState.getLockInfo(lockId);
+    } else {
+      lock = new MutexLock(lockId);
+    }
+
     return transform(
         results,
         ts ->
-            ts.addLockAndCopy(activeThread, lockId)
+            ts.addLockAndCopy(lock.acquire(activeThread))
                 .withLastThreadFunctionResult(new ThreadFunctionReturnValue(trylockEdge, true)));
   }
 
@@ -660,14 +675,13 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
       final ThreadingState threadingState,
       final String activeThread,
       String lockId,
-      Collection<ThreadingState> results) {
+      final Collection<ThreadingState> results) {
     RWLock lock;
-    if (threadingState.hasLockInfo(lockId)
+    if (threadingState.hasLock(lockId)
         && threadingState.getLockInfo(lockId).getLockType().equals(LockType.RW_MUTEX)) {
       lock = (RWLock) threadingState.getLockInfo(lockId);
     } else {
       lock = new RWLock(lockId);
-      results = transform(results, ts -> ts.addLockInfo(lockId, lock));
     }
 
     if (lock.hasWriter()) {
@@ -675,21 +689,20 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
       return ImmutableSet.of();
     }
 
-    return transform(results, ts -> ts.updateLockInfo(lockId, lock.addReader(activeThread)));
+    return transform(results, ts -> ts.addLockAndCopy(lock.addReader(activeThread)));
   }
 
   private Collection<ThreadingState> addWriteLock(
       final ThreadingState threadingState,
       final String activeThread,
       String lockId,
-      Collection<ThreadingState> results) {
+      final Collection<ThreadingState> results) {
     RWLock lock;
-    if (threadingState.hasLockInfo(lockId)
+    if (threadingState.hasLock(lockId)
         && threadingState.getLockInfo(lockId).getLockType().equals(LockType.RW_MUTEX)) {
       lock = (RWLock) threadingState.getLockInfo(lockId);
     } else {
       lock = new RWLock(lockId);
-      results = transform(results, ts -> ts.addLockInfo(lockId, lock));
     }
 
     if (lock.hasReader() || lock.hasWriter()) {
@@ -697,7 +710,7 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
       return ImmutableSet.of();
     }
 
-    return transform(results, ts -> ts.updateLockInfo(lockId, lock.addWriter(activeThread)));
+    return transform(results, ts -> ts.addLockAndCopy(lock.addWriter(activeThread)));
   }
 
   /** get the name (lockId) of the new lock at the given edge, or NULL if no lock is required. */
@@ -741,7 +754,7 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
 
   private Collection<ThreadingState> removeLock(
       final String activeThread, final String lockId, final Collection<ThreadingState> results) {
-    return transform(results, ts -> ts.removeLockAndCopy(activeThread, lockId));
+    return transform(results, ts -> ts.releaseLockAndCopy(activeThread, lockId));
   }
 
   private Collection<ThreadingState> joinThread(
@@ -779,18 +792,18 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
       CFAEdge cfaEdge, final ThreadingState threadingState, String activeThread) {
 
     // check if local access lock exists and is set for current thread
-    if (threadingState.hasLock(LOCAL_ACCESS_LOCK)
-        && !threadingState.hasLock(activeThread, LOCAL_ACCESS_LOCK)) {
+    if (threadingState.isLockHeld(LOCAL_ACCESS_LOCK)
+        && !threadingState.isLockHeld(activeThread, LOCAL_ACCESS_LOCK)) {
       return null;
     }
 
     // add local access lock, if necessary and possible
     final boolean isImporantForThreading =
         globalAccessChecker.hasGlobalAccess(cfaEdge) || isImporantForThreading(cfaEdge);
-    if (isImporantForThreading) {
-      return threadingState.removeLockAndCopy(activeThread, LOCAL_ACCESS_LOCK);
+    if (isImporantForThreading && threadingState.isLockHeld(activeThread, LOCAL_ACCESS_LOCK)) {
+      return threadingState.releaseLockAndCopy(activeThread, LOCAL_ACCESS_LOCK);
     } else {
-      return threadingState.addLockAndCopy(activeThread, LOCAL_ACCESS_LOCK);
+      return threadingState.addLockAndCopy(LockInfo.getLocalAccessLock().acquire(activeThread));
     }
   }
 

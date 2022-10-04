@@ -22,7 +22,6 @@ import com.google.common.collect.ImmutableList;
 import java.math.BigInteger;
 import java.util.LinkedHashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -76,10 +75,8 @@ public class ThreadingState
   // CallstackState +  LocationState :: thread-position
   private final PersistentMap<String, ThreadState> threads;
 
-  // String :: lock-id  -->  String :: thread-id
-  private final PersistentMap<String, String> locks;
-
-  private final PersistentMap<String, LockInfo> lockInfo;
+  // String :: lock-id  -->  LockInfo
+  private final PersistentMap<String, LockInfo> locks;
 
   /**
    * Thread-id of last active thread that produced this exact {@link ThreadingState}. This value
@@ -121,7 +118,6 @@ public class ThreadingState
   public ThreadingState() {
     threads = PathCopyingPersistentTreeMap.of();
     locks = PathCopyingPersistentTreeMap.of();
-    lockInfo = PathCopyingPersistentTreeMap.of();
     activeThread = null;
     entryFunction = null;
     threadIdsForWitness = PathCopyingPersistentTreeMap.of();
@@ -130,15 +126,13 @@ public class ThreadingState
 
   private ThreadingState(
       PersistentMap<String, ThreadState> pThreads,
-      PersistentMap<String, String> pLocks,
-      PersistentMap<String, LockInfo> pLockInfo,
+      PersistentMap<String, LockInfo> pLocks,
       String pActiveThread,
       FunctionCallEdge pEntryFunction,
       PersistentMap<String, Integer> pThreadIdsForWitness,
       ThreadFunctionReturnValue pLastThreadFunctionResult) {
     threads = pThreads;
     locks = pLocks;
-    lockInfo = pLockInfo;
     activeThread = pActiveThread;
     entryFunction = pEntryFunction;
     threadIdsForWitness = pThreadIdsForWitness;
@@ -149,29 +143,16 @@ public class ThreadingState
     return new ThreadingState(
         pThreads,
         locks,
-        lockInfo,
         activeThread,
         entryFunction,
         threadIdsForWitness,
         lastThreadFunctionResult);
   }
 
-  private ThreadingState withLocks(PersistentMap<String, String> pLocks) {
+  private ThreadingState withLocks(PersistentMap<String, LockInfo> pLocks) {
     return new ThreadingState(
         threads,
         pLocks,
-        lockInfo,
-        activeThread,
-        entryFunction,
-        threadIdsForWitness,
-        lastThreadFunctionResult);
-  }
-
-  private ThreadingState withLockInfo(PersistentMap<String, LockInfo> pLockInfo) {
-    return new ThreadingState(
-        threads,
-        locks,
-        pLockInfo,
         activeThread,
         entryFunction,
         threadIdsForWitness,
@@ -183,7 +164,6 @@ public class ThreadingState
     return new ThreadingState(
         threads,
         locks,
-        lockInfo,
         activeThread,
         entryFunction,
         pThreadIdsForWitness,
@@ -241,40 +221,18 @@ public class ThreadingState
     return num;
   }
 
-  ThreadingState addLockInfo(String lockId, LockInfo pLockInfo) {
-    return withLockInfo(lockInfo.putAndCopy(lockId, pLockInfo));
-  }
-
-  ThreadingState updateLockInfo(String lockId, LockInfo pLockInfo) {
-    Preconditions.checkNotNull(lockId);
-    Preconditions.checkNotNull(pLockInfo);
-    Preconditions.checkArgument(lockInfo.containsKey(lockId));
-    return withLockInfo(lockInfo.putAndCopy(lockId, pLockInfo));
-  }
-
-  boolean hasLockInfo(String lockId) {
-    Preconditions.checkNotNull(lockId);
-    return lockInfo.containsKey(lockId);
+  ThreadingState addLockAndCopy(LockInfo lockInfo) {
+    Preconditions.checkNotNull(lockInfo);
+    return withLocks(locks.putAndCopy(lockInfo.getLockId(), lockInfo));
   }
 
   LockInfo getLockInfo(String lockId) {
     Preconditions.checkNotNull(lockId);
-    Preconditions.checkArgument(lockInfo.containsKey(lockId));
-    return lockInfo.get(lockId);
+    Preconditions.checkArgument(locks.containsKey(lockId));
+    return locks.get(lockId);
   }
 
-  public ThreadingState addLockAndCopy(String threadId, String lockId) {
-    Preconditions.checkNotNull(lockId);
-    Preconditions.checkNotNull(threadId);
-    checkArgument(
-        threads.containsKey(threadId),
-        "blocking non-existant thread: %s with lock: %s",
-        threadId,
-        lockId);
-    return withLocks(locks.putAndCopy(lockId, threadId));
-  }
-
-  public ThreadingState removeLockAndCopy(String threadId, String lockId) {
+  public ThreadingState releaseLockAndCopy(String threadId, String lockId) {
     Preconditions.checkNotNull(threadId);
     Preconditions.checkNotNull(lockId);
     checkArgument(
@@ -282,37 +240,54 @@ public class ThreadingState
         "unblocking non-existant thread: %s with lock: %s",
         threadId,
         lockId);
-    return withLocks(locks.removeAndCopy(lockId));
+    checkArgument(
+        locks.containsKey(lockId),
+        "Thread %s is trying to release unknown lock %s",
+        threadId,
+        lockId);
+    return addLockAndCopy(locks.get(lockId).release(threadId));
+  }
+
+  /** Returns whether a lock with the given id exists. */
+  public boolean hasLock(String lockId) {
+    return locks.containsKey(lockId);
   }
 
   /** returns whether any of the threads has the lock */
-  public boolean hasLock(String lockId) {
-    return locks.containsKey(lockId); // TODO threadId needed?
+  public boolean isLockHeld(String lockId) {
+    Preconditions.checkNotNull(lockId);
+    return locks.containsKey(lockId) && locks.get(lockId).isHeldByThread(); // TODO threadId needed?
   }
 
   /** returns whether the given thread has the lock */
-  public boolean hasLock(String threadId, String lockId) {
-    return locks.containsKey(lockId) && threadId.equals(locks.get(lockId));
+  public boolean isLockHeld(String threadId, String lockId) {
+    Preconditions.checkNotNull(threadId);
+    Preconditions.checkNotNull(lockId);
+    return locks.containsKey(lockId) && locks.get(lockId).isHeldByThread(threadId);
   }
 
   /** returns whether there is any lock registered for the thread. */
   public boolean hasLockForThread(String threadId) {
-    return locks.containsValue(threadId);
+    Preconditions.checkNotNull(threadId);
+    return !FluentIterable.from(locks.values())
+        .filter(lock -> lock.isHeldByThread(threadId))
+        .isEmpty();
   }
 
   public Set<String> getLocksForThread(String threadId) {
-    return FluentIterable.from(locks.entrySet())
-        .filter(entry -> entry.getValue().equals(threadId))
-        .transform(Map.Entry::getKey)
+    Preconditions.checkNotNull(threadId);
+    return FluentIterable.from(locks.values())
+        .filter(lock -> lock.isHeldByThread(threadId))
+        .transform(LockInfo::getLockId)
         .toSet();
   }
 
   @Override
   public String toString() {
-    return "( threads={\n"
+    return "( threads={\n "
         + Joiner.on(",\n ").withKeyValueSeparator("=").join(threads)
-        + "}\n and locks={"
-        + Joiner.on(",\n ").withKeyValueSeparator("=").join(locks)
+        + "}\n and locks={\n "
+        + Joiner.on(",\n ").join(locks.values())
         + "}"
         + (activeThread == null ? "" : ("\n produced from thread " + activeThread))
         + " \n"
@@ -321,6 +296,7 @@ public class ThreadingState
   }
 
   @Override
+  // TODO: Check this works again as intended
   public boolean equals(Object other) {
     if (!(other instanceof ThreadingState)) {
       return false;
@@ -430,7 +406,7 @@ public class ThreadingState
   /** check, if the edge required a lock, that is already used. This might cause a deadlock. */
   private boolean needsAlreadyUsedLock(CFAEdge edge) throws UnrecognizedCodeException {
     final String newLock = getLockId(edge);
-    return newLock != null && hasLock(newLock);
+    return newLock != null && isLockHeld(newLock);
   }
 
   /**
@@ -589,7 +565,6 @@ public class ThreadingState
     return new ThreadingState(
         threads,
         locks,
-        lockInfo,
         pActiveThread,
         entryFunction,
         threadIdsForWitness,
@@ -605,7 +580,6 @@ public class ThreadingState
     return new ThreadingState(
         threads,
         locks,
-        lockInfo,
         activeThread,
         pEntryFunction,
         threadIdsForWitness,
@@ -624,7 +598,6 @@ public class ThreadingState
     return new ThreadingState(
         threads,
         locks,
-        lockInfo,
         activeThread,
         entryFunction,
         threadIdsForWitness,
