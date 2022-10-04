@@ -62,7 +62,10 @@ import org.sosy_lab.cpachecker.cpa.automaton.AutomatonState;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonVariable;
 import org.sosy_lab.cpachecker.cpa.callstack.CallstackCPA;
 import org.sosy_lab.cpachecker.cpa.location.LocationCPA;
-import org.sosy_lab.cpachecker.cpa.threading.LockInfo.LockType;
+import org.sosy_lab.cpachecker.cpa.threading.locks.LockInfo;
+import org.sosy_lab.cpachecker.cpa.threading.locks.LockInfo.LockType;
+import org.sosy_lab.cpachecker.cpa.threading.locks.MutexLock;
+import org.sosy_lab.cpachecker.cpa.threading.locks.RWLock;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
@@ -126,7 +129,7 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
   private static final String VERIFIER_ATOMIC_BEGIN = "__VERIFIER_atomic_begin";
   private static final String VERIFIER_ATOMIC_END = "__VERIFIER_atomic_end";
   private static final String ATOMIC_LOCK = "__CPAchecker_atomic_lock__";
-  static final String LOCAL_ACCESS_LOCK = "__CPAchecker_local_access_lock__";
+  public static final String LOCAL_ACCESS_LOCK = "__CPAchecker_local_access_lock__";
   private static final String THREAD_ID_SEPARATOR = "__CPAchecker__";
 
   private static final ImmutableSet<String> UNSUPPORTED_THREAD_FUNCTIONS =
