@@ -522,6 +522,10 @@ public class SMGTransferRelation
     } else if (SMGCPAExpressionEvaluator.isStructOrUnionType(valueType)
         && SMGCPAExpressionEvaluator.isStructOrUnionType(cParamType)) {
 
+      if (paramValue.isUnknown()) {
+        return currentState;
+      }
+
       Preconditions.checkArgument(paramValue instanceof SymbolicIdentifier);
       Preconditions.checkArgument(
           ((SymbolicIdentifier) paramValue).getRepresentedLocation().isPresent());
