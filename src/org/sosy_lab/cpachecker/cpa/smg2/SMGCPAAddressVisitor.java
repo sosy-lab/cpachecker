@@ -177,21 +177,18 @@ public class SMGCPAAddressVisitor
       return evaluator.getTargetObjectAndOffset(
           currentState, arrayAddr.getMemoryAddress(), finalOffset);
 
-    } else if (arrayValue instanceof SymbolicIdentifier
-        && ((SymbolicIdentifier) arrayValue).getRepresentedLocation().isPresent()) {
-      MemoryLocation variableAndOffset =
-          ((SymbolicIdentifier) arrayValue).getRepresentedLocation().orElseThrow();
-      String varName = variableAndOffset.getIdentifier();
-      BigInteger baseOffset = BigInteger.valueOf(variableAndOffset.getOffset());
+    } else if (pCurrentState.getMemoryModel().isPointer(arrayValue)) {
+      // Local array
+      SMGStateAndOptionalSMGObjectAndOffset maybeTargetMemoryAndOffset =
+          pCurrentState.dereferencePointer(arrayValue);
+      if (!maybeTargetMemoryAndOffset.hasSMGObjectAndOffset()) {
+        return maybeTargetMemoryAndOffset;
+      }
+      BigInteger baseOffset = maybeTargetMemoryAndOffset.getOffsetForObject();
       BigInteger finalOffset = baseOffset.add(subscriptOffset);
 
-      Optional<SMGObjectAndOffset> maybeTarget =
-          evaluator.getTargetObjectAndOffset(currentState, varName, finalOffset);
-      if (maybeTarget.isPresent()) {
-        return SMGStateAndOptionalSMGObjectAndOffset.of(maybeTarget.orElseThrow(), currentState);
-      } else {
-        return SMGStateAndOptionalSMGObjectAndOffset.of(currentState);
-      }
+      return SMGStateAndOptionalSMGObjectAndOffset.of(
+          maybeTargetMemoryAndOffset.getSMGObject(), finalOffset, currentState);
 
     } else {
       // Might be numeric 0 (0 object). All else cases are basically invalid requests.
