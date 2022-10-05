@@ -129,7 +129,7 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
   private static final String VERIFIER_ATOMIC_BEGIN = "__VERIFIER_atomic_begin";
   private static final String VERIFIER_ATOMIC_END = "__VERIFIER_atomic_end";
   private static final String ATOMIC_LOCK = "__CPAchecker_atomic_lock__";
-  public static final String LOCAL_ACCESS_LOCK = "__CPAchecker_local_access_lock__";
+  private static final String LOCAL_ACCESS_LOCK = "__CPAchecker_local_access_lock__";
   private static final String THREAD_ID_SEPARATOR = "__CPAchecker__";
 
   private static final ImmutableSet<String> UNSUPPORTED_THREAD_FUNCTIONS =
@@ -800,17 +800,31 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
       return null;
     }
 
-    // add local access lock, if necessary and possible
-    final boolean isImporantForThreading =
-        globalAccessChecker.hasGlobalAccess(cfaEdge) || isImporantForThreading(cfaEdge);
-    if (isImporantForThreading && threadingState.isLockHeld(activeThread, LOCAL_ACCESS_LOCK)) {
-      return threadingState.releaseLockAndCopy(activeThread, LOCAL_ACCESS_LOCK);
-    } else {
-      return threadingState.updateLockAndCopy(LockInfo.getLocalAccessLock().acquire(activeThread));
+    // Release local access lock if necessary
+    if (globalAccessChecker.hasGlobalAccess(cfaEdge) || isImportantForThreading(cfaEdge)) {
+      if (threadingState.isLockHeld(activeThread, LOCAL_ACCESS_LOCK)) {
+        // Active thread is holding the local access lock, but shouldn't -> release it
+        return threadingState.releaseLockAndCopy(activeThread, LOCAL_ACCESS_LOCK);
+      }
+      // No one is holding the local access lock and no one is supposed to -> return state as-is
+      return threadingState;
     }
+
+    // Acquire local access lock
+    if (threadingState.isLockHeld(activeThread, LOCAL_ACCESS_LOCK)) {
+      // Active thread is already holding the local access lock
+      return threadingState;
+    }
+    LockInfo lock;
+    if (threadingState.hasLock(LOCAL_ACCESS_LOCK)) {
+      lock = threadingState.getLock(LOCAL_ACCESS_LOCK);
+    } else {
+      lock = new MutexLock(LOCAL_ACCESS_LOCK);
+    }
+    return threadingState.updateLockAndCopy(lock.acquire(activeThread));
   }
 
-  private static boolean isImporantForThreading(CFAEdge cfaEdge) {
+  private static boolean isImportantForThreading(CFAEdge cfaEdge) {
     switch (cfaEdge.getEdgeType()) {
       case StatementEdge:
         {

@@ -65,10 +65,6 @@ public abstract class LockInfo implements Comparable<LockInfo> {
     return Objects.hash(lockId, lockType);
   }
 
-  public static LockInfo getLocalAccessLock() {
-    return MutexLock.LOCAL_ACCESS_LOCK;
-  }
-
   /** Returns whether some thread is holding the lock. */
   public abstract boolean isHeldByThread();
 

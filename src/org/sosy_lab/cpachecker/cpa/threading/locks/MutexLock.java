@@ -9,12 +9,8 @@
 package org.sosy_lab.cpachecker.cpa.threading.locks;
 
 import com.google.common.base.Preconditions;
-import org.sosy_lab.cpachecker.cpa.threading.ThreadingTransferRelation;
 
 public class MutexLock extends LockInfo {
-
-  protected static final LockInfo LOCAL_ACCESS_LOCK =
-      new MutexLock(ThreadingTransferRelation.LOCAL_ACCESS_LOCK);
 
   private final String threadId;
 
