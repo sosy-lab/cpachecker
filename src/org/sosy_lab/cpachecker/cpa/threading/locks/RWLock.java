@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.cpa.threading.locks;
 
 import com.google.common.base.Preconditions;
+import java.util.Objects;
 import org.sosy_lab.cpachecker.cpa.smg.util.PersistentSet;
 
 public class RWLock extends LockInfo {
@@ -98,5 +99,25 @@ public class RWLock extends LockInfo {
     return super.toString()
         + (hasReader() ? " with readers " + readers : "")
         + (hasWriter() ? " with writer " + writer : "");
+  }
+
+  @Override
+  public boolean equals(Object pO) {
+    if (this == pO) {
+      return true;
+    }
+    if (!(pO instanceof RWLock)) {
+      return false;
+    }
+    if (!super.equals(pO)) {
+      return false;
+    }
+    RWLock rwLock = (RWLock) pO;
+    return readers.equals(rwLock.readers) && Objects.equals(writer, rwLock.writer);
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(super.hashCode(), readers, writer);
   }
 }

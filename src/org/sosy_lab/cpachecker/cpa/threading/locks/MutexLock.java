@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.cpa.threading.locks;
 
 import com.google.common.base.Preconditions;
+import java.util.Objects;
 
 public class MutexLock extends LockInfo {
 
@@ -51,5 +52,25 @@ public class MutexLock extends LockInfo {
   @Override
   public String toString() {
     return super.toString() + (isHeldByThread() ? " held by " + threadId : "");
+  }
+
+  @Override
+  public boolean equals(Object pO) {
+    if (this == pO) {
+      return true;
+    }
+    if (!(pO instanceof MutexLock)) {
+      return false;
+    }
+    if (!super.equals(pO)) {
+      return false;
+    }
+    MutexLock mutexLock = (MutexLock) pO;
+    return Objects.equals(threadId, mutexLock.threadId);
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(super.hashCode(), threadId);
   }
 }

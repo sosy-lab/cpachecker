@@ -297,7 +297,6 @@ public class ThreadingState
   }
 
   @Override
-  // TODO: Check this works again as intended
   public boolean equals(Object other) {
     if (!(other instanceof ThreadingState)) {
       return false;
