@@ -9,10 +9,10 @@
 package org.sosy_lab.cpachecker.cpa.smg2.abstraction;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableList;
 import java.math.BigInteger;
 import java.util.Optional;
 import java.util.logging.Level;
-import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cpa.smg2.SMGState;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMG2Exception;
@@ -48,7 +48,7 @@ public class SMGCPAMaterializer {
     } else if (pAbstractObject instanceof SMGSinglyLinkedListSegment) {
       SMGSinglyLinkedListSegment dllListSeg = (SMGSinglyLinkedListSegment) pAbstractObject;
       if (dllListSeg.getMinLength() == 0) {
-        return removeSLLS(dllListSeg, valueTopointerToAbstractObject, null, state);
+        return handleZeroPlusSLS(dllListSeg, valueTopointerToAbstractObject, state);
       } else {
         return materialiseSLLS(dllListSeg, valueTopointerToAbstractObject, state);
       }
@@ -57,21 +57,29 @@ public class SMGCPAMaterializer {
   }
 
   /*
-   * When removing SLLs, we read the next pointer, then we remove the SLL segment and write the next
+   * This generates 2 states. One where we materialize the list once more and add the 0+ back and one where the 0+ is deleted.
+   * When removing SLSs, we read the next pointer, then we remove the SLL segment and write the next
    * pointer to the previous memory as the new next pointer.
+   * We are not allowed to change the pointer in this case as it might be value 0.
    * We know the previous segment needs to be a list, so the nfo is always correct.
    */
-  private SMGValueAndSMGState removeSLLS(
-      SMGSinglyLinkedListSegment pListSeg,
-      SMGValue pointerValueTowardsThisSegment,
-      @Nullable SMGObject prevObj,
-      SMGState state) {
+  private SMGValueAndSMGState handleZeroPlusSLS(
+      SMGSinglyLinkedListSegment pListSeg, SMGValue pointerValueTowardsThisSegment, SMGState state)
+      throws SMG2Exception {
 
-    logger.log(Level.ALL, "Remove 0+ SLL ", pListSeg);
+    logger.log(Level.ALL, "Split into 2 states because of 0+ SLS materialization.", pListSeg);
+    ImmutableList.Builder<SMGValueAndSMGState> returnStates = ImmutableList.builder();
+    returnStates.add(materialiseSLLS(pListSeg, pointerValueTowardsThisSegment, state));
+
 
     SMGState currentState = state;
     BigInteger nfo = pListSeg.getNextOffset();
     BigInteger pointerSize = currentState.getMemoryModel().getSizeOfPointer();
+    SMGObject prevObj =
+        currentState
+            .getMemoryModel()
+            .getSmg()
+            .getPreviousObjectOfZeroPlusAbstraction(pointerValueTowardsThisSegment);
 
     SMGValueAndSMGState nextPointerAndState = currentState.readSMGValue(pListSeg, nfo, pointerSize);
     currentState = nextPointerAndState.getSMGState();
@@ -99,6 +107,9 @@ public class SMGCPAMaterializer {
     return SMGValueAndSMGState.of(currentState, nextPointerValue);
   }
 
+  /*
+   * This generates 2 states. One where we materialize the list once more and add the 0+ back and one where the 0+ is deleted.
+   */
   private SMGValueAndSMGState removeDLLS(
       SMGDoublyLinkedListSegment pListSeg,
       SMGValue pointerValueTowardsThisSegment,
@@ -148,10 +159,9 @@ public class SMGCPAMaterializer {
   }
 
   /*
-   * TODO: nesting level. The nesting level depicts where the rest of the memory is located in
-   * relation to the abstract list. Each time a list segment is materialized, the sub-SMG of the
-   * SLL is copied and the nesting level of the new sub-SMG (values and pointers) is
-   * decremented by 1.
+   * Materialize the SLL that pValueOfPointerToAbstractObject points towards.
+   * This ALWAYS materializes the list once, including 0+.
+   * It always adds a new abstracted list after the materialized list segment. This might be 0+.
    * We return the pointer to the segment just materialized.
    */
   private SMGValueAndSMGState materialiseSLLS(
@@ -176,10 +186,9 @@ public class SMGCPAMaterializer {
     // Add all values. next pointer is wrong here!
     currentState = currentState.copyAllValuesFromObjToObj(pListSeg, newConcreteRegion);
     // Replace the pointer behind the value pointing to the abstract region with a pointer to the
-    // new object
+    // new object.
     // We don't change the nesting level of the pointers! We switch only those with new nesting
-    // level ==
-    // current minLength to the new concrete region and set that one to 0.
+    // level == current minLength to the new concrete region and set that one to 0.
     // This saves us a lookup compared to the SMG paper!
     currentState =
         currentState.copyAndReplaceMemoryModel(
@@ -188,20 +197,23 @@ public class SMGCPAMaterializer {
                 .replaceSpecificPointersTowardsWithAndSetNestingLevelZero(
                     pListSeg, newConcreteRegion, pListSeg.getMinLength() - 1));
 
+    /*
     if (pListSeg.getMinLength() == 1) {
       // Remove the old abstract list segment
       currentState = currentState.copyAndRemoveObjectFromHeap(pListSeg);
       return SMGValueAndSMGState.of(currentState, valueOfPointerToAbstractObject);
     }
-    Preconditions.checkArgument(pListSeg.getMinLength() > 1);
+    */
+    Preconditions.checkArgument(pListSeg.getMinLength() >= 0);
 
     // Make the new value a pointer to the correct location and object
     Value newPointerValue = SymbolicValueFactory.getInstance().newIdentifier(null);
     SMGSinglyLinkedListSegment newAbsListSeg =
         (SMGSinglyLinkedListSegment) pListSeg.decrementLengthAndCopy();
+    int newMinLength = Integer.max(newAbsListSeg.getMinLength() - 1, 0);
     currentState =
         currentState.createAndAddPointerWithNestingLevel(
-            newPointerValue, newAbsListSeg, BigInteger.ZERO, newAbsListSeg.getMinLength() - 1);
+            newPointerValue, newAbsListSeg, BigInteger.ZERO, newMinLength);
     // Create a new value and map the old pointer towards the abstract region on it
     // Create a Value mapping for the new Value representing a pointer
     SMGValueAndSMGState newValuePointingToWardsAbstractListAndState =
@@ -227,8 +239,8 @@ public class SMGCPAMaterializer {
     // Remove the old abstract list segment
     currentState = currentState.copyAndRemoveObjectFromHeap(pListSeg);
 
-    Preconditions.checkArgument(newAbsListSeg.getMinLength() > 0);
-    // Note: pValueOfPointerToAbstractObject is now pointing to the materialized object!
+    Preconditions.checkArgument(newAbsListSeg.getMinLength() >= 0);
+    // Note: valueOfPointerToAbstractObject is now pointing to the materialized object!
     return SMGValueAndSMGState.of(currentState, valueOfPointerToAbstractObject);
   }
 

@@ -955,7 +955,7 @@ public class SymbolicProgramConfiguration {
         new SMGPointsToEdge(target, offsetInBits, SMGTargetSpecifier.IS_REGION);
     if (target instanceof SMGSinglyLinkedListSegment) {
       Preconditions.checkArgument(
-          ((SMGSinglyLinkedListSegment) target).getMinLength() > nestingLevel);
+          ((SMGSinglyLinkedListSegment) target).getMinLength() >= nestingLevel);
     }
     return spc.copyAndReplaceSMG(
         spc.getSmg()

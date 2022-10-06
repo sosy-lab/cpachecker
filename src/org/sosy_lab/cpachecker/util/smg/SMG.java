@@ -1351,4 +1351,21 @@ public class SMG {
       PersistentMap<SMGObject, PersistentSet<SMGHasValueEdge>> newHasValueEdges) {
     return new SMG(smgObjects, smgValues, newHasValueEdges, pointsToEdges, sizeOfPointer);
   }
+
+  /*
+   * Get the object pointing towards a 0+ list segment.
+   * We can assume that there is only 1 of those objects.
+   */
+  public SMGObject getPreviousObjectOfZeroPlusAbstraction(SMGValue ptObject) {
+    for (Entry<SMGObject, Boolean> entry : smgObjects.entrySet()) {
+      if (entry.getValue()) {
+        for (SMGHasValueEdge value : hasValueEdges.get(entry.getKey())) {
+          if (value.hasValue().equals(ptObject)) {
+            return entry.getKey();
+          }
+        }
+      }
+    }
+    throw new AssertionError("Critical error: could not find origin of points-to-edge in the SMG.");
+  }
 }
