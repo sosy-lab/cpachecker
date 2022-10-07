@@ -64,7 +64,7 @@ public class MessageLogger {
     return map;
   }
 
-  public synchronized void logTree() throws IOException {
+  public synchronized void logBlockGraph() throws IOException {
     Map<String, Map<String, List<String>>> treeMap = new HashMap<>();
     tree.getDistinctNodes()
         .forEach(

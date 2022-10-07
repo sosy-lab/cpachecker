@@ -34,7 +34,7 @@ public class BlockSummaryVisualizationWorker extends BlockSummaryWorker {
     connection = pConnection;
     messageLogger = new MessageLogger(pTree, pOptions.getParentConfig());
     try {
-      messageLogger.logTree();
+      messageLogger.logBlockGraph();
     } catch (IOException pE) {
       getLogger()
           .logException(
