@@ -31,7 +31,7 @@ public class DeserializeCallstackStateOperator implements DeserializeOperator {
 
   @Override
   public AbstractState deserialize(BlockSummaryMessage pMessage) {
-    Optional<String> state = pMessage.getAbstractStateString(parentCPA.getClass());
+    Optional<String> state = pMessage.getAbstractState(parentCPA.getClass()).map(Object::toString);
     if (state.isEmpty()) {
       return parentCPA.getInitialState(
           block.getNodeWithNumber(pMessage.getTargetNodeNumber()),

@@ -32,7 +32,8 @@ public class DeserializeFunctionPointerStateOperator implements DeserializeOpera
 
   @Override
   public AbstractState deserialize(BlockSummaryMessage pMessage) {
-    String serialized = pMessage.getAbstractStateString(functionPointerCPA.getClass()).orElse("");
+    String serialized =
+        pMessage.getAbstractState(functionPointerCPA.getClass()).map(Object::toString).orElse("");
     if (serialized.isBlank()) {
       return functionPointerCPA.getInitialState(
           block.getNodeWithNumber(pMessage.getTargetNodeNumber()),

@@ -89,7 +89,7 @@ public class MessageLogger {
     messageToJSON.put("type", pMessage.getType().name());
     messageToJSON.put("timestamp", pMessage.getTimestamp().toString());
     messageToJSON.put("from", pMessage.getUniqueBlockId());
-    if (pMessage.getAbstractStateString(PredicateCPA.class).isEmpty()) {
+    if (pMessage.getAbstractState(PredicateCPA.class).isEmpty()) {
       pMessage = BlockSummaryMessage.addEntry(pMessage, PredicateCPA.class.getName(), "true");
     }
     messageToJSON.put("payload", pMessage.getPayloadJSON());

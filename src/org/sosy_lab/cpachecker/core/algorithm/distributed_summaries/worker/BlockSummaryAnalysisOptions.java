@@ -55,9 +55,9 @@ public class BlockSummaryAnalysisOptions {
 
   @Option(
       description =
-          "Specifies which serialization type should be used. Possible values are "
-              + "IDENTITY to pass the actual abstract state objects and BYTE to serialize the abstract state to"
-              + " a byte string.")
+          "Specifies which serialization type should be used. Possible values are IDENTITY to pass"
+              + " the actual abstract state objects and BYTE to serialize the abstract state to a"
+              + " byte string.")
   private SerializationType serializationType = SerializationType.BYTE;
 
   private final Configuration parentConfig;

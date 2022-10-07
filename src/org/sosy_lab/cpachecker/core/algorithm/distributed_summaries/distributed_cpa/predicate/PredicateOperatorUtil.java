@@ -31,7 +31,8 @@ public class PredicateOperatorUtil {
       Class<? extends ConfigurableProgramAnalysis> pKey,
       FormulaManagerView pFormulaManagerView) {
     return pMessage
-        .getAbstractStateString(pKey)
+        .getAbstractState(pKey)
+        .map(Object::toString)
         .orElse(
             pFormulaManagerView
                 .dumpFormula(pFormulaManagerView.getBooleanFormulaManager().makeTrue())

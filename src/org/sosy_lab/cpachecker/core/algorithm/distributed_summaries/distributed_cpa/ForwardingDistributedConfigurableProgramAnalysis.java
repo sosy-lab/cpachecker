@@ -40,9 +40,8 @@ public interface ForwardingDistributedConfigurableProgramAnalysis
   }
 
   @Override
-  default AbstractState getInitialState(
-      CFANode node, StateSpacePartition partition) throws InterruptedException {
+  default AbstractState getInitialState(CFANode node, StateSpacePartition partition)
+      throws InterruptedException {
     return getCPA().getInitialState(node, partition);
   }
-
 }

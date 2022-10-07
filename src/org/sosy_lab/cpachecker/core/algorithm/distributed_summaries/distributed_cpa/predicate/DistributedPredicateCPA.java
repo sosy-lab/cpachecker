@@ -68,6 +68,4 @@ public class DistributedPredicateCPA implements ForwardingDistributedConfigurabl
   public ConfigurableProgramAnalysis getCPA() {
     return predicateCPA;
   }
-
-
 }

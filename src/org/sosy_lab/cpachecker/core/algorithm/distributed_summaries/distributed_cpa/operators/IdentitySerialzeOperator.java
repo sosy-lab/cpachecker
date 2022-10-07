@@ -21,8 +21,7 @@ public class IdentitySerialzeOperator implements SerializeOperator {
   }
 
   @Override
-  public BlockSummaryMessagePayload serialize(
-      AbstractState pState) {
+  public BlockSummaryMessagePayload serialize(AbstractState pState) {
     return BlockSummaryMessagePayload.builder().addEntry(key.getName(), pState).buildPayload();
   }
 }
