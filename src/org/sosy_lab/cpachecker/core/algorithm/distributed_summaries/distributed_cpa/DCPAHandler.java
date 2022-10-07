@@ -64,15 +64,13 @@ public class DCPAHandler {
   private DistributedConfigurableProgramAnalysis registerDCPA(
       BlockCPA pBlockCPA, BlockNode pBlockNode, AnalysisDirection pDirection) {
     return analyses.put(
-        pBlockCPA.getClass(),
-        new DistributedBlockCPA(pBlockCPA, pBlockNode, pDirection, () -> analyses.values()));
+        pBlockCPA.getClass(), new DistributedBlockCPA(pBlockCPA, pBlockNode, pDirection));
   }
 
   private DistributedConfigurableProgramAnalysis registerDCPA(
       BlockCPABackward pBlockCPA, BlockNode pBlockNode, AnalysisDirection pDirection) {
     return analyses.put(
-        pBlockCPA.getClass(),
-        new DistributedBlockCPA(pBlockCPA, pBlockNode, pDirection, () -> analyses.values()));
+        pBlockCPA.getClass(), new DistributedBlockCPA(pBlockCPA, pBlockNode, pDirection));
   }
 
   private DistributedConfigurableProgramAnalysis registerDCPA(

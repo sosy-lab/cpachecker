@@ -11,32 +11,23 @@ package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed
 import static com.google.common.base.Preconditions.checkArgument;
 
 import com.google.common.collect.ImmutableSet;
-import java.util.Collection;
-import java.util.function.Supplier;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.BlockNode;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.BlockSummaryErrorConditionTracker;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.DistributedConfigurableProgramAnalysis;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.ForwardingDistributedConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.DeserializeOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.SerializeOperator;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.operators.proceed.ProceedOperator;
-import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_cpa.predicate.DistributedPredicateCPA;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.BlockSummaryMessagePayload;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryMessage;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
-import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
-import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
-import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.cpa.block.BlockCPA;
 import org.sosy_lab.cpachecker.cpa.block.BlockCPABackward;
 import org.sosy_lab.cpachecker.cpa.block.BlockState;
-import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 
-public class DistributedBlockCPA implements DistributedConfigurableProgramAnalysis {
+public class DistributedBlockCPA implements ForwardingDistributedConfigurableProgramAnalysis {
 
   private final DeserializeOperator deserializeOperator;
   private final SerializeOperator serializeOperator;
@@ -45,38 +36,16 @@ public class DistributedBlockCPA implements DistributedConfigurableProgramAnalys
   private final ConfigurableProgramAnalysis blockCPA;
   private final BlockSummaryMessage topMessage;
 
-  private FormulaManagerView fmgr;
-
   public DistributedBlockCPA(
-      ConfigurableProgramAnalysis pBlockCPA,
-      BlockNode pNode,
-      AnalysisDirection pDirection,
-      Supplier<Collection<DistributedConfigurableProgramAnalysis>> pFutureAnalyses) {
+      ConfigurableProgramAnalysis pBlockCPA, BlockNode pNode, AnalysisDirection pDirection) {
     checkArgument(
-        pBlockCPA instanceof BlockCPA || pBlockCPA instanceof BlockCPABackward, /* TODO make lazy */
-        "%s is no block CPA.",
-        pBlockCPA.getClass());
+        pBlockCPA instanceof BlockCPA || pBlockCPA instanceof BlockCPABackward,
+        "%s is no %s",
+        pBlockCPA.getClass(),
+        BlockCPA.class);
     blockCPA = pBlockCPA;
-    // FormulaManager is only used for calculating conjunctions -> dummy is fine (this formula
-    // manager needs to be independent)
-
     serializeOperator = new SerializeBlockStateOperator();
-    deserializeOperator =
-        new DeserializeBlockStateOperator(
-            pNode,
-            pDirection,
-            () ->
-                // find all error-condition suppliers from future analyses
-                BlockSummaryErrorConditionTracker.trackersFrom(pFutureAnalyses.get())
-                    .map(
-                        analysis ->
-                            analysis.getErrorCondition(
-                                obtainFormulaMangerWithCorrectContext(pFutureAnalyses)))
-                    // conjunct all error conditions
-                    .collect(
-                        obtainFormulaMangerWithCorrectContext(pFutureAnalyses)
-                            .getBooleanFormulaManager()
-                            .toConjunction()));
+    deserializeOperator = new DeserializeBlockStateOperator(pNode, pDirection);
     proceedOperator = new ProceedBlockStateOperator(pNode, pDirection);
     topMessage =
         BlockSummaryMessage.newBlockPostCondition(
@@ -88,18 +57,6 @@ public class DistributedBlockCPA implements DistributedConfigurableProgramAnalys
             false,
             true,
             ImmutableSet.of());
-  }
-
-  private FormulaManagerView obtainFormulaMangerWithCorrectContext(
-      Supplier<Collection<DistributedConfigurableProgramAnalysis>> pFutureErrorCondition) {
-    if (fmgr == null) {
-      for (DistributedConfigurableProgramAnalysis analysis : pFutureErrorCondition.get()) {
-        if (analysis instanceof DistributedPredicateCPA) {
-          fmgr = ((DistributedPredicateCPA) analysis).getSolver().getFormulaManager();
-        }
-      }
-    }
-    return fmgr;
   }
 
   @Override
@@ -123,30 +80,8 @@ public class DistributedBlockCPA implements DistributedConfigurableProgramAnalys
   }
 
   @Override
-  public AbstractState getInfeasibleState() throws InterruptedException {
-    // non-existing state
-    return blockCPA.getInitialState(
-        CFANode.newDummyCFANode(), StateSpacePartition.getDefaultPartition());
-  }
-
-  @Override
-  public AbstractDomain getAbstractDomain() {
-    return blockCPA.getAbstractDomain();
-  }
-
-  @Override
-  public TransferRelation getTransferRelation() {
-    return blockCPA.getTransferRelation();
-  }
-
-  @Override
-  public MergeOperator getMergeOperator() {
-    return blockCPA.getMergeOperator();
-  }
-
-  @Override
-  public StopOperator getStopOperator() {
-    return blockCPA.getStopOperator();
+  public ConfigurableProgramAnalysis getCPA() {
+    return blockCPA;
   }
 
   @Override

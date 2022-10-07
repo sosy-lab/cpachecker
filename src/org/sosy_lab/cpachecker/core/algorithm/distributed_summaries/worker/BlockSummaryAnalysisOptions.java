@@ -19,8 +19,10 @@ import org.sosy_lab.common.configuration.Options;
 @Options(prefix = "distributedSummaries.worker")
 public class BlockSummaryAnalysisOptions {
 
-  @Option(description = "whether analysis worker store circular post conditions")
-  private boolean storeCircularPostConditions = false;
+  enum SerializationType {
+    IDENTITY,
+    BYTE
+  }
 
   @Option(description = "whether error conditions are always checked for unsatisfiability")
   private boolean checkEveryErrorCondition = true;
@@ -51,15 +53,18 @@ public class BlockSummaryAnalysisOptions {
   @FileOption(Type.OUTPUT_DIRECTORY)
   private Path logDirectory = Path.of("block_summary/logfiles");
 
+  @Option(
+      description =
+          "Specifies which serialization type should be used. Possible values are "
+              + "IDENTITY to pass the actual abstract state objects and BYTE to serialize the abstract state to"
+              + " a byte string.")
+  private SerializationType serializationType = SerializationType.BYTE;
+
   private final Configuration parentConfig;
 
   public BlockSummaryAnalysisOptions(Configuration pConfig) throws InvalidConfigurationException {
     pConfig.inject(this);
     parentConfig = pConfig;
-  }
-
-  public boolean shouldAlwaysStoreCircularPostConditions() {
-    return storeCircularPostConditions;
   }
 
   public boolean shouldCheckEveryErrorConditionForUnsatisfiability() {
@@ -84,5 +89,9 @@ public class BlockSummaryAnalysisOptions {
 
   public Path getLogDirectory() {
     return logDirectory;
+  }
+
+  public SerializationType getSerializationType() {
+    return serializationType;
   }
 }

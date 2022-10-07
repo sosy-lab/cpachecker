@@ -52,7 +52,12 @@ public interface DistributedConfigurableProgramAnalysis extends ConfigurableProg
    */
   Class<? extends AbstractState> getAbstractStateClass();
 
-  AbstractState getInfeasibleState() throws InterruptedException;
+  /**
+   * Returns the underlying {@link ConfigurableProgramAnalysis} of this distributed analysis.
+   *
+   * @return underlying CPA
+   */
+  ConfigurableProgramAnalysis getCPA();
 
   /**
    * Check whether this distributed CPA can work with {@code pClass}.

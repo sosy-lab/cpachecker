@@ -107,13 +107,12 @@ public abstract class BlockSummaryMessage implements Comparable<BlockSummaryMess
     return payload.toJSONString();
   }
 
-  public Optional<String> getAbstractStateString(
-      Class<? extends ConfigurableProgramAnalysis> pKey) {
+  public Optional<Object> getAbstractState(Class<? extends ConfigurableProgramAnalysis> pKey) {
     Object value = getPayload().get(pKey.getName());
     if (value == null) {
       return Optional.empty();
     }
-    return Optional.ofNullable(value.toString());
+    return Optional.ofNullable(value);
   }
 
   public Optional<AlgorithmStatus> getOptionalStatus() {
