@@ -12,6 +12,7 @@ import static com.google.common.base.Preconditions.checkArgument;
 
 import com.google.common.collect.ImmutableSet;
 import java.io.IOException;
+import java.nio.file.Path;
 import java.util.Collection;
 import java.util.Objects;
 import java.util.logging.Level;
@@ -31,6 +32,7 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.act
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryMessage;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
+import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
@@ -52,24 +54,42 @@ public class BlockSummaryRootWorker extends BlockSummaryWorker {
       BlockNode pNode,
       CFA pCfa,
       Specification pSpecification,
-      Configuration pConfiguration,
       ShutdownManager pShutdownManager)
-      throws CPAException, InterruptedException, InvalidConfigurationException {
+      throws CPAException, InterruptedException, InvalidConfigurationException, IOException {
     super("root-worker-" + pId, pOptions);
     checkArgument(
         pNode.isRoot() && pNode.isEmpty() && pNode.getLastNode().equals(pNode.getStartNode()),
         "Root node must be empty and cannot have predecessors: " + "%s",
         pNode);
+    Configuration backwardConfiguration =
+        Configuration.builder().loadFromFile(pOptions.getBackwardConfiguration()).build();
+
+    Specification backwardSpecification =
+        Specification.fromFiles(
+            ImmutableSet.of(
+                Path.of("config/specification/MainEntry.spc"),
+                Path.of("config/specification/TerminatingFunctions.spc")),
+            pCfa,
+            backwardConfiguration,
+            getLogger(),
+            pShutdownManager.getNotifier());
     connection = pConnection;
     shutdown = false;
     root = pNode;
     Triple<Algorithm, ConfigurableProgramAnalysis, ReachedSet> parts =
         AlgorithmFactory.createAlgorithm(
-            getLogger(), pSpecification, pCfa, pConfiguration, pShutdownManager, pNode);
+            getLogger(),
+            backwardSpecification,
+            pCfa,
+            backwardConfiguration,
+            pShutdownManager,
+            pNode);
     dcpa =
         DistributedConfigurableProgramAnalysis.distribute(
             parts.getSecond(), pNode, AnalysisDirection.FORWARD);
-    topState = Objects.requireNonNull(parts.getThird()).getFirstState();
+    topState =
+        Objects.requireNonNull(parts.getSecond())
+            .getInitialState(root.getLastNode(), StateSpacePartition.getDefaultPartition());
   }
 
   @Override

@@ -93,7 +93,6 @@ public class BlockSummaryWorkerBuilder {
                 pNode,
                 cfa,
                 specification,
-                configuration,
                 ShutdownManager.create()));
     return this;
   }

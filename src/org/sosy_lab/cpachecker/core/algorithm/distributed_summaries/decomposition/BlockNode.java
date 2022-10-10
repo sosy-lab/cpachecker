@@ -72,7 +72,7 @@ public class BlockNode {
     successors = pSuccessors;
     idToNodeMap = pIdToNodeMap;
 
-    code = getCodeRepresentation();
+    code = metaData.getCode();
   }
 
   private boolean isBlockNodeValid(CFANode pStartNode, Set<CFAEdge> pEdgesInBlock) {
@@ -107,26 +107,6 @@ public class BlockNode {
    */
   public CFANode getNodeWithNumber(int number) {
     return idToNodeMap.get(number);
-  }
-
-  /**
-   * compute the code that this block contains (for debugging only)
-   *
-   * @return code represented by this block
-   */
-  private String getCodeRepresentation() {
-    StringBuilder codeLines = new StringBuilder();
-    for (CFAEdge leavingEdge : metaData.getEdgesInBlock()) {
-      if (leavingEdge.getCode().isBlank()) {
-        continue;
-      }
-      if (leavingEdge.getEdgeType().equals(CFAEdgeType.AssumeEdge)) {
-        codeLines.append("[").append(leavingEdge.getCode()).append("]\n");
-      } else {
-        codeLines.append(leavingEdge.getCode()).append("\n");
-      }
-    }
-    return codeLines.toString();
   }
 
   BlockNodeMetaData getMetaData() {
@@ -222,6 +202,7 @@ public class BlockNode {
     private final Set<CFANode> nodesInBlock;
     private final Set<CFAEdge> edgesInBlock;
     private final Map<Integer, CFANode> idToNodeMap;
+    private final String code;
 
     public BlockNodeMetaData(
         String pId,
@@ -236,6 +217,31 @@ public class BlockNode {
       nodesInBlock = pNodesInBlock;
       edgesInBlock = pEdgesInBlock;
       idToNodeMap = pIdToNodeMap;
+      code = getCodeRepresentation();
+    }
+
+    /**
+     * Compute the code that this block contains (for debugging only).
+     *
+     * @return code represented by this block
+     */
+    private String getCodeRepresentation() {
+      StringBuilder codeLines = new StringBuilder();
+      for (CFAEdge leavingEdge : edgesInBlock) {
+        if (leavingEdge.getCode().isBlank()) {
+          continue;
+        }
+        if (leavingEdge.getEdgeType().equals(CFAEdgeType.AssumeEdge)) {
+          codeLines.append("[").append(leavingEdge.getCode()).append("]\n");
+        } else {
+          codeLines.append(leavingEdge.getCode()).append("\n");
+        }
+      }
+      return codeLines.toString();
+    }
+
+    public String getCode() {
+      return code;
     }
 
     public CFANode getLastNode() {
@@ -272,6 +278,8 @@ public class BlockNode {
           + startNode
           + ", lastNode="
           + lastNode
+          + ", code="
+          + code
           + '}';
     }
 
