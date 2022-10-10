@@ -41,12 +41,14 @@ public class ProceedBlockStateOperator implements ProceedOperator {
   @Override
   public BlockSummaryMessageProcessing proceedBackward(AbstractState pState)
       throws InterruptedException, SolverException {
-    CFANode location = AbstractStates.extractLocation(pState);
-    if (block.getNodesInBlock().contains(location) && !block.getStartNode().equals(location)) {
-      return BlockSummaryMessageProcessing.proceed();
-    } else {
+    CFANode node = Objects.requireNonNull(AbstractStates.extractLocation(pState));
+    if (!(node.equals(block.getLastNode())
+        || (!node.equals(block.getLastNode())
+            && !node.equals(block.getStartNode())
+            && block.getNodesInBlock().contains(node)))) {
       return BlockSummaryMessageProcessing.stop();
     }
+    return BlockSummaryMessageProcessing.proceed();
   }
 
   @Override

@@ -55,7 +55,6 @@ public class BlockSummaryResultWorker extends BlockSummaryWorker {
   public Collection<BlockSummaryMessage> processMessage(BlockSummaryMessage pMessage)
       throws InterruptedException, CPAException, IOException, SolverException {
     String senderId = pMessage.getUniqueBlockId();
-    MessageType type = pMessage.getType();
 
     // not an analysis-worker
     if (!nodeMap.containsKey(senderId)) {
@@ -63,7 +62,7 @@ public class BlockSummaryResultWorker extends BlockSummaryWorker {
     }
 
     messageReceived.add(senderId);
-
+    MessageType type = pMessage.getType();
     switch (type) {
       case ERROR_CONDITION:
         boolean newPostCondition = ((BlockSummaryErrorConditionMessage) pMessage).isFirst();
@@ -77,10 +76,10 @@ public class BlockSummaryResultWorker extends BlockSummaryWorker {
               .getPredecessors()
               .forEach(b -> expectAnswer.merge(b.getId(), 1, Integer::sum));
         }
-        return response(pMessage);
+        return respondTo(pMessage);
       case ERROR_CONDITION_UNREACHABLE:
         expectAnswer.merge(senderId, -1, Integer::sum);
-        return response(pMessage);
+        return respondTo(pMessage);
       case FOUND_RESULT:
         // $FALL-THROUGH$
       case ERROR:
@@ -90,7 +89,7 @@ public class BlockSummaryResultWorker extends BlockSummaryWorker {
         return ImmutableSet.of();
       case BLOCK_POSTCONDITION:
         // we need a block to first send an own error condition or the first BLOCK_POSTCONDITION
-        return response(pMessage);
+        return respondTo(pMessage);
 
       default:
         throw new AssertionError(type + " does not exist");
@@ -107,7 +106,7 @@ public class BlockSummaryResultWorker extends BlockSummaryWorker {
     return shutdown;
   }
 
-  private Collection<BlockSummaryMessage> response(BlockSummaryMessage pMessage) {
+  private Collection<BlockSummaryMessage> respondTo(BlockSummaryMessage pMessage) {
     // negative values can occur as it is not guaranteed
     // that messages are processed in the same way on all workers
     // that's why we use allMatch

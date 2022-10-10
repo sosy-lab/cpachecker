@@ -103,7 +103,7 @@ public class DCPAAlgorithm {
       return ImmutableSet.of(
           BlockSummaryMessage.newBlockPostCondition(
               block.getId(),
-              -1,
+              block.getLastNode().getNodeNumber(),
               DCPAAlgorithms.appendStatus(
                   AlgorithmStatus.SOUND_AND_PRECISE, BlockSummaryMessagePayload.empty()),
               false,
@@ -132,10 +132,9 @@ public class DCPAAlgorithm {
       return processing;
     }
     assert processing.isEmpty() : "Proceed is not possible with unprocessed messages";
-    // TODO store from which parts messages arrived (otherwise unsat-> ignore)
+    AbstractState previous = states.get(pReceived.getUniqueBlockId());
     if (states.containsKey(pReceived.getUniqueBlockId())) {
-      if (cpa.getAbstractDomain()
-          .isLessOrEqual(states.get(pReceived.getUniqueBlockId()), deserialized)) {
+      if (previous != null && cpa.getAbstractDomain().isLessOrEqual(previous, deserialized)) {
         return BlockSummaryMessageProcessing.stop();
       }
     }
