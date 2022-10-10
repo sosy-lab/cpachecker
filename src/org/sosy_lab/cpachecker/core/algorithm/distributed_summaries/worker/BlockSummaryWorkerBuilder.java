@@ -13,7 +13,6 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import org.sosy_lab.common.ShutdownManager;
-import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.BlockGraph;
@@ -26,7 +25,6 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 public class BlockSummaryWorkerBuilder {
 
   private final CFA cfa;
-  private final Configuration configuration;
   private final Specification specification;
   private final List<WorkerGenerator> workerGenerators;
   private final BlockSummaryConnectionProvider<?> connectionProvider;
@@ -35,10 +33,8 @@ public class BlockSummaryWorkerBuilder {
   public BlockSummaryWorkerBuilder(
       CFA pCFA,
       BlockSummaryConnectionProvider<?> pConnectionProvider,
-      Specification pSpecification,
-      Configuration pConfiguration) {
+      Specification pSpecification) {
     cfa = pCFA;
-    configuration = pConfiguration;
     specification = pSpecification;
     // only one available for now
     connectionProvider = pConnectionProvider;
@@ -87,13 +83,7 @@ public class BlockSummaryWorkerBuilder {
     workerGenerators.add(
         connection ->
             new BlockSummaryRootWorker(
-                nextId(pNode.getId()),
-                connection,
-                pOptions,
-                pNode,
-                cfa,
-                specification,
-                ShutdownManager.create()));
+                nextId(pNode.getId()), connection, pOptions, pNode, cfa, ShutdownManager.create()));
     return this;
   }
 

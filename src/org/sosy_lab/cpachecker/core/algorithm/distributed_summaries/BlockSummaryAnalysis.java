@@ -156,8 +156,7 @@ public class BlockSummaryAnalysis implements Algorithm, StatisticsProvider, Stat
               cfa,
               new InMemoryBlockSummaryConnectionProvider(
                   () -> new BlockSummarySortedMessageQueue()),
-              specification,
-              configuration);
+              specification);
       builder = builder.createAdditionalConnections(1);
       for (BlockNode distinctNode : blocks) {
         if (distinctNode.isRoot()) {

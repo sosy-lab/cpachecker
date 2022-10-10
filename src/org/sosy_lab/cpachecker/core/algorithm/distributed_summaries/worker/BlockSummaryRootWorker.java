@@ -53,7 +53,6 @@ public class BlockSummaryRootWorker extends BlockSummaryWorker {
       BlockSummaryAnalysisOptions pOptions,
       BlockNode pNode,
       CFA pCfa,
-      Specification pSpecification,
       ShutdownManager pShutdownManager)
       throws CPAException, InterruptedException, InvalidConfigurationException, IOException {
     super("root-worker-" + pId, pOptions);
