@@ -106,7 +106,9 @@ public class DCPAAlgorithm {
               block.getLastNode().getNodeNumber(),
               DCPAAlgorithms.appendStatus(
                   AlgorithmStatus.SOUND_AND_PRECISE, BlockSummaryMessagePayload.empty()),
-              false,
+              // we can assume full here as no precondition will ever change unsatisfiability of
+              // this block
+              true,
               false,
               ImmutableSet.of()));
     }
@@ -139,7 +141,6 @@ public class DCPAAlgorithm {
       }
     }
     states.put(pReceived.getBlockId(), deserialized);
-    //
     if (states.size() != block.getPredecessors().size()) {
       return BlockSummaryMessageProcessing.stop();
     }
