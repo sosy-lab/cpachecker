@@ -127,7 +127,7 @@ def html_for_message(message, block_log: Dict[str, str]):
 def html_dict_to_html_table(all_messages, block_logs: Dict[str, str]):
     first_timestamp = int(all_messages[0]["timestamp"])
     timestamp_to_message = {}
-    sorted_keys = sorted(block_logs.keys(), key=lambda x: int(x[1::]))
+    sorted_keys = sorted(block_logs.keys())
     index_dict = {}
     for index in enumerate(sorted_keys):
         index_dict[index[1]] = index[0]
@@ -201,9 +201,9 @@ def export_messages_table(
         message_table_css_file = Path(__file__).parent / "table.css"
 
     for message in all_messages:
-        # 2022-03-10 14:44:07.0318755
+        # 2022-03-10T14:44:07.0318755Z
         message["timestamp"] = int(
-            datetime.strptime(message["timestamp"], "%Y-%m-%d %H:%M:%S.%f").timestamp()
+            datetime.strptime(message["timestamp"], "%Y-%m-%dT%H:%M:%S.%fZ").timestamp()
         )
     all_messages = sorted(
         all_messages, key=lambda entry: (entry["timestamp"], entry["from"][1::])
