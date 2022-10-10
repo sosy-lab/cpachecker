@@ -3593,8 +3593,11 @@ distributedSummaries.worker.logDirectory = "block_summary/logfiles"
 # after an precondition update.
 distributedSummaries.worker.sendEveryErrorMessage = false
 
-# whether analysis worker store circular post conditions
-distributedSummaries.worker.storeCircularPostConditions = false
+# Specifies which serialization type should be used. Possible values are
+# IDENTITY to pass the actual abstract state objects and BYTE to serialize
+# the abstract state to a byte string.
+distributedSummaries.worker.serializationType = BYTE
+  enum:     [IDENTITY, BYTE]
 
 # Enable to use lazy refinement in current analysis instead of restarting
 # from root after each refinement.
