@@ -12,11 +12,11 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.Blo
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 
-public class IdentitySerialzeOperator implements SerializeOperator {
+public class IdentitySerializeOperator implements SerializeOperator {
 
   private final Class<? extends ConfigurableProgramAnalysis> key;
 
-  public IdentitySerialzeOperator(final Class<? extends ConfigurableProgramAnalysis> pKey) {
+  public IdentitySerializeOperator(final Class<? extends ConfigurableProgramAnalysis> pKey) {
     key = pKey;
   }
 
