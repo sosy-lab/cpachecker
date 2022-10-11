@@ -125,7 +125,7 @@ solver.smtinterpol.furtherOptions = []
 
 # Which SMT solver to use.
 solver.solver = SMTINTERPOL
-  enum:     [MATHSAT5, SMTINTERPOL, Z3, PRINCESS, BOOLECTOR, CVC4, YICES2]
+  enum:     [MATHSAT5, SMTINTERPOL, Z3, PRINCESS, BOOLECTOR, CVC4, CVC5, YICES2]
 
 # Sequentialize all solver actions to allow concurrent access!
 solver.synchronize = false
@@ -4383,11 +4383,11 @@ solver.enableLoggingInSolver = false
 # Which solver to use specifically for interpolation (default is to use the
 # main one).
 solver.interpolationSolver = no default value
-  enum:     [MATHSAT5, SMTINTERPOL, Z3, PRINCESS, BOOLECTOR, CVC4, YICES2]
+  enum:     [MATHSAT5, SMTINTERPOL, Z3, PRINCESS, BOOLECTOR, CVC4, CVC5, YICES2]
 
 # Which SMT solver to use.
 solver.solver = MATHSAT5
-  enum:     [MATHSAT5, SMTINTERPOL, Z3, PRINCESS, BOOLECTOR, CVC4, YICES2]
+  enum:     [MATHSAT5, SMTINTERPOL, Z3, PRINCESS, BOOLECTOR, CVC4, CVC5, YICES2]
 
 # Comma-separated list of files with specifications that should be checked
 # (cf. config/specification/ for examples). Property files as used in SV-COMP
