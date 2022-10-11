@@ -38,6 +38,14 @@ public class DCPAHandler {
     analyses = new HashMap<>();
   }
 
+  /**
+   * Register corresponding DCPA to a CPA
+   *
+   * @param pCPA underlying CPA
+   * @param pBlockNode block node for which the new DCPA is responsible
+   * @param pDirection analysis direction
+   * @return previous DCPA of same type if already registered
+   */
   @CanIgnoreReturnValue
   public Optional<DistributedConfigurableProgramAnalysis> registerDCPA(
       ConfigurableProgramAnalysis pCPA, BlockNode pBlockNode, AnalysisDirection pDirection) {
