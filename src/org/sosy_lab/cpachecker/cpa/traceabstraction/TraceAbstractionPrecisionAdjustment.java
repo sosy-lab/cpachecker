@@ -188,6 +188,14 @@ class TraceAbstractionPrecisionAdjustment implements PrecisionAdjustment {
         curLocation.getNodeNumber(),
         connectingCfaEdges.stream().map(CFAEdge::getDescription).collect(Collectors.joining("\n")));
 
+    if (connectingCfaEdges.stream().allMatch(x -> x.getEdgeType() == CFAEdgeType.BlankEdge)) {
+      // Shortcut: the edge(s) do not contain any assignments or assumptions, so
+      // we just return the current holding predicates
+      logger.logf(
+          Level.FINER, "Edge(s) only consist of blank edges; returning the current TAstate");
+      return pTaState;
+    }
+
     // TAStates only store predicates that actually hold in the respective states
     ImmutableMap<InterpolationSequence, IndexedAbstractionPredicate> statePredicates =
         pTaState.getActivePredicates();
