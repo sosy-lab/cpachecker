@@ -564,13 +564,14 @@ public class SMG {
 
     ImmutableSet<SMGValue> valuesToRemove = valuesToRemoveBuilder.build();
     if (!valuesToRemove.isEmpty()) {
-        for (Entry<SMGObject, PersistentSet<SMGHasValueEdge>> hasValueEntry : hasValueEdges.entrySet()) {
-          for (SMGHasValueEdge valueEdge : hasValueEntry.getValue()) {
-            if (valuesToRemove.contains(valueEdge.hasValue())) {
-              objectsToRemoveBuilder.add(object);
-            }
+      for (Entry<SMGObject, PersistentSet<SMGHasValueEdge>> hasValueEntry :
+          hasValueEdges.entrySet()) {
+        for (SMGHasValueEdge valueEdge : hasValueEntry.getValue()) {
+          if (valuesToRemove.contains(valueEdge.hasValue())) {
+            objectsToRemoveBuilder.add(object);
           }
         }
+      }
     }
 
     SMG currentSMG =
@@ -1010,6 +1011,22 @@ public class SMG {
    */
   public Optional<SMGPointsToEdge> getPTEdge(SMGValue value) {
     return Optional.ofNullable(pointsToEdges.get(value));
+  }
+
+  /**
+   * Returns true if the value is a pointer that points to a 0+ abstracted list segment. Else false.
+   *
+   * @param value some {@link SMGValue}. Does not have to be a pointer.
+   * @return true for 0+ target. false else.
+   */
+  public boolean pointsToZeroPlus(@Nullable SMGValue value) {
+    if (value == null) {
+      return false;
+    }
+    Optional<SMGPointsToEdge> maybePTEdge = getPTEdge(value);
+    return maybePTEdge.isPresent()
+        && maybePTEdge.orElseThrow().pointsTo() instanceof SMGSinglyLinkedListSegment
+        && ((SMGSinglyLinkedListSegment) maybePTEdge.orElseThrow().pointsTo()).getMinLength() == 0;
   }
 
   /**
