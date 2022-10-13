@@ -54,6 +54,7 @@ import org.sosy_lab.cpachecker.util.predicates.AbstractionManager;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
+import org.sosy_lab.cpachecker.util.predicates.regions.Region;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormula;
@@ -175,10 +176,10 @@ class TraceAbstractionPrecisionAdjustment implements PrecisionAdjustment {
 
     CFANode curLocation = verifyNotNull(AbstractStates.extractLocation(pFullState));
     verify(pFullState.getParents().size() == 1);
-    ARGState parentState = Iterables.getOnlyElement(pFullState.getParents());
-    CFANode parentLocation = verifyNotNull(AbstractStates.extractLocation(parentState));
+    ARGState parentARGState = Iterables.getOnlyElement(pFullState.getParents());
+    CFANode parentLocation = verifyNotNull(AbstractStates.extractLocation(parentARGState));
 
-    List<CFAEdge> connectingCfaEdges = parentState.getEdgesToChild(pFullState);
+    List<CFAEdge> connectingCfaEdges = parentARGState.getEdgesToChild(pFullState);
 
     logger.logf(
         Level.FINE,
@@ -209,7 +210,7 @@ class TraceAbstractionPrecisionAdjustment implements PrecisionAdjustment {
             parentLocation,
             callstackWrapper);
     if (!continueExploring) {
-      // One of the abstraction computations yielded in a <false> result,
+      // One of the abstraction computations yielded a <false> result,
       // meaning that the successor state is not feasible.
       return null;
     }
@@ -230,11 +231,13 @@ class TraceAbstractionPrecisionAdjustment implements PrecisionAdjustment {
   }
 
   /**
-   * Compute the abstraction for the predicates that have been active so far. This is done for each
-   * predicate separately. Depending on the outcome of the abstraction computation, each predicate
-   * may or may not continue to its next interpolation state.
+   * Compute the abstraction for the predicates that have already been active in the parent state.
+   * This is done for each predicate separately. Depending on the outcome of the abstraction
+   * computation, each predicate may advance to its next interpolation state, or otherwise stays in
+   * the current interpolation state. If the successor for at least one of the interpolation states
+   * is false, bottom state gets returned.
    *
-   * @return false iff bottom state is to be returned, otherwise true
+   * @return false iff bottom state is reached; true otherwise
    */
   private boolean checkTASuccessors(
       ImmutableMap.Builder<InterpolationSequence, IndexedAbstractionPredicate> pItpSequenceMapping,
@@ -320,9 +323,11 @@ class TraceAbstractionPrecisionAdjustment implements PrecisionAdjustment {
       if (nextPreds.isPresent()
           && checkPostcondEntailingPrecond(
               nextPreds.orElseThrow().getPredicate(), computedPostCondition)) {
+        // Abstraction matches the postcondition -> go into next Itp state
         pItpSequenceMapping.put(currentItpSequence, nextPreds.orElseThrow());
         continue;
       } else if (checkPostcondEntailingPrecond(curPreds.getPredicate(), computedPostCondition)) {
+        // Abstraction matches the precondition -> stay in current Itp state
         pItpSequenceMapping.put(currentItpSequence, curPreds);
         continue;
       }
@@ -465,10 +470,45 @@ class TraceAbstractionPrecisionAdjustment implements PrecisionAdjustment {
 
       logger.logf(Level.FINER, "New abstraction formula: %s\n", abstractionFormula);
       printHoareTriple(relevantPreds, abstractionResult);
+      printRegions(relevantPreds, abstractionResult);
 
       return abstractionResult;
     } catch (SolverException e) {
       throw new CPATransferException("Solver Failure: " + e.getMessage(), e);
+    }
+  }
+
+  private void printRegions(
+      ImmutableSet<AbstractionPredicate> relevantPreds, AbstractionFormula abstractionResult)
+      throws SolverException, InterruptedException {
+    Region regionPost = abstractionResult.asRegion();
+    logger.log(
+        Level.FINE,
+        MoreStrings.lazyString(
+            () ->
+                String.format(
+                    "Region Post: %s -- BF: %s\n",
+                    regionPost, abstractionManager.convertRegionToFormula(regionPost))));
+
+    for (AbstractionPredicate abstractionPredicate : relevantPreds) {
+      Region regionPre = abstractionPredicate.getAbstractVariable();
+      logger.log(
+          Level.FINE,
+          MoreStrings.lazyString(
+              () ->
+                  String.format(
+                      "Region Pre: %s -- BF: %s\n",
+                      regionPre, abstractionManager.convertRegionToFormula(regionPre))));
+
+      logger.logf(
+          Level.FINE,
+          "%s => %s (pre => post): %s\n%s => %s (post => pre): %s\n",
+          regionPre,
+          regionPost,
+          abstractionManager.entails(regionPre, regionPost),
+          regionPost,
+          regionPre,
+          abstractionManager.entails(regionPost, regionPre));
     }
   }
 

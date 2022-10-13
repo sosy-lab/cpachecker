@@ -71,6 +71,8 @@ class InterpolationSequence {
           // this specific key-value pair is now added for the first time.
           IndexedAbstractionPredicate indexedPred =
               new IndexedAbstractionPredicate(ID_GENERATOR.getFreshId(), abstractionPredicate);
+
+          // verify that the added predicate is unique and has not already been there before
           verify(navigablePredicates.add(indexedPred));
           verify(localPredicates.put(pLocInstance.getLocation(), indexedPred));
         }
@@ -83,6 +85,10 @@ class InterpolationSequence {
     }
   }
 
+  /**
+   * Set containing predicates in the order in which the solver has returned them as part of a
+   * counterexample.
+   */
   private final ImmutableSortedSet<IndexedAbstractionPredicate> orderedPredicates;
 
   private final ImmutableSetMultimap<CFANode, IndexedAbstractionPredicate> localPredicates;
