@@ -73,7 +73,7 @@ public class SMGDoublyLinkedListSegment extends SMGSinglyLinkedListSegment {
         getHeadOffset(),
         getNextOffset(),
         prevOffset,
-        getMinLength() - 1);
+        Integer.max(getMinLength() - 1, 0));
   }
 
   @Override

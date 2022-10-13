@@ -57,9 +57,19 @@ public class SMGSinglyLinkedListSegment extends SMGObject {
         newLevel, getSize(), getOffset(), headOffset, nextOffset, minLength);
   }
 
+  /**
+   * Creates a new linked list segment with the length decremented but minimal 0.
+   *
+   * @return a new linked list segment with length max(current length - 1, 0)
+   */
   public SMGObject decrementLengthAndCopy() {
     return new SMGSinglyLinkedListSegment(
-        getNestingLevel(), getSize(), getOffset(), headOffset, nextOffset, minLength - 1);
+        getNestingLevel(),
+        getSize(),
+        getOffset(),
+        headOffset,
+        nextOffset,
+        Integer.max(getMinLength() - 1, 0));
   }
 
   @Override
