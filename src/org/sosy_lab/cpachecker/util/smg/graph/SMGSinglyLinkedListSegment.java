@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.util.smg.graph;
 
+import com.google.common.base.Preconditions;
 import java.math.BigInteger;
 
 public class SMGSinglyLinkedListSegment extends SMGObject {
@@ -53,6 +54,7 @@ public class SMGSinglyLinkedListSegment extends SMGObject {
 
   @Override
   public SMGObject copyWithNewLevel(int newLevel) {
+    Preconditions.checkArgument(newLevel >= 0);
     return new SMGSinglyLinkedListSegment(
         newLevel, getSize(), getOffset(), headOffset, nextOffset, minLength);
   }

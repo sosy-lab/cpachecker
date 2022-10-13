@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.util.smg.graph;
 
+import com.google.common.base.Preconditions;
 import java.math.BigInteger;
 import org.sosy_lab.common.UniqueIdGenerator;
 
@@ -93,6 +94,7 @@ public class SMGObject implements SMGNode, Comparable<SMGObject> {
   }
 
   public SMGObject copyWithNewLevel(int pNewLevel) {
+    Preconditions.checkArgument(pNewLevel >= 0);
     return of(pNewLevel, size, offset);
   }
 
