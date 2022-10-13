@@ -8,9 +8,10 @@
 
 package org.sosy_lab.cpachecker.util.expressions;
 
+import static com.google.common.collect.FluentIterable.from;
+
 import com.google.common.base.Function;
 import com.google.common.base.Joiner;
-import com.google.common.collect.FluentIterable;
 import org.sosy_lab.cpachecker.exceptions.NoException;
 
 public class ToCodeVisitor<LeafType> extends CachingVisitor<LeafType, String, NoException> {
@@ -59,13 +60,13 @@ public class ToCodeVisitor<LeafType> extends CachingVisitor<LeafType, String, No
   @Override
   protected String cacheMissAnd(And<LeafType> pAnd) {
     assert pAnd.iterator().hasNext();
-    return Joiner.on(" && ").join(FluentIterable.from(pAnd).transform(this::toParenthesizedCode));
+    return from(pAnd).transform(this::toParenthesizedCode).join(Joiner.on(" && "));
   }
 
   @Override
   protected String cacheMissOr(Or<LeafType> pOr) {
     assert pOr.iterator().hasNext();
-    return Joiner.on(" || ").join(FluentIterable.from(pOr).transform(this::toParenthesizedCode));
+    return from(pOr).transform(this::toParenthesizedCode).join(Joiner.on(" || "));
   }
 
   @Override

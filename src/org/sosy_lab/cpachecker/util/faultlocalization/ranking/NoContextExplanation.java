@@ -8,9 +8,10 @@
 
 package org.sosy_lab.cpachecker.util.faultlocalization.ranking;
 
+import static com.google.common.collect.FluentIterable.from;
+
 import com.google.common.base.Joiner;
 import com.google.common.base.Splitter;
-import com.google.common.collect.FluentIterable;
 import com.google.common.collect.Iterables;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
@@ -37,7 +38,7 @@ public class NoContextExplanation implements FaultExplanation {
    */
   @Override
   public String explanationFor(Fault subset) {
-    return Joiner.on("\n\n").join(FluentIterable.from(subset).transform(this::explain));
+    return from(subset).transform(this::explain).join(Joiner.on("\n\n"));
   }
 
   private String explain(FaultContribution faultContribution) {

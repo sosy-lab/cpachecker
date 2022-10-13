@@ -719,10 +719,9 @@ class WitnessFactory implements EdgeAppender {
     // If there are only conjunctions, use multiple statements
     // instead of the "&&" operator that is harder to parse.
     if (ExpressionTrees.isAnd(assumption)) {
-      return Joiner.on("; ")
-          .join(
-              ExpressionTrees.getChildren(assumption)
-                  .transform(pTree -> ExpressionTrees.convert(pTree, converter)));
+      return ExpressionTrees.getChildren(assumption)
+          .transform(pTree -> ExpressionTrees.convert(pTree, converter))
+          .join(Joiner.on("; "));
     } else {
       return ExpressionTrees.convert(assumption, converter).toString();
     }
