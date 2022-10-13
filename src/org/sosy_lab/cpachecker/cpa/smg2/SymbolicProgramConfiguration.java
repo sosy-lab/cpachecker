@@ -36,6 +36,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
 import org.sosy_lab.cpachecker.cpa.smg.util.PersistentSet;
 import org.sosy_lab.cpachecker.cpa.smg.util.PersistentStack;
 import org.sosy_lab.cpachecker.cpa.smg2.util.CFunctionDeclarationAndOptionalValue;
+import org.sosy_lab.cpachecker.cpa.smg2.util.SMGAndSMGObjects;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGObjectsAndValues;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGValueAndSPC;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SPCAndSMGObjects;
@@ -639,6 +640,32 @@ public class SymbolicProgramConfiguration {
         globalVariableMapping,
         stackVariableMapping,
         heapObjects.removeAndCopy(object),
+        externalObjectAllocation,
+        valueMapping,
+        variableToTypeMap);
+  }
+
+  /**
+   * Removes the given object and all objects with pointers towards it or them recursively. (Removes
+   * the subSMG, but only for objects pointing towards removed objects)
+   *
+   * @param object {@link SMGObject} to be removed.
+   * @return a new SPC with the object and subSMG removed.
+   */
+  public SymbolicProgramConfiguration copyAndRemoveObjectAndAssociatedSubSMG(SMGObject object) {
+    Preconditions.checkArgument(object instanceof SMGSinglyLinkedListSegment);
+    Preconditions.checkArgument(((SMGSinglyLinkedListSegment) object).getMinLength() == 0);
+    SMGAndSMGObjects newSMGAndToRemoveObjects = smg.copyAndRemoveObjectAndSubSMG(object);
+    SMG newSMG = newSMGAndToRemoveObjects.getSMG();
+    PersistentSet<SMGObject> newHeapObject = heapObjects.removeAndCopy(object);
+    for (SMGObject toRemove : newSMGAndToRemoveObjects.getSMGObjects()) {
+      newHeapObject = newHeapObject.removeAndCopy(toRemove);
+    }
+    return of(
+        newSMG,
+        globalVariableMapping,
+        stackVariableMapping,
+        newHeapObject,
         externalObjectAllocation,
         valueMapping,
         variableToTypeMap);

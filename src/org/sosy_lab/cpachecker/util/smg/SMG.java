@@ -30,6 +30,7 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.collect.PersistentMap;
 import org.sosy_lab.cpachecker.cpa.smg.util.PersistentSet;
+import org.sosy_lab.cpachecker.cpa.smg2.util.SMGAndSMGObjects;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGObjectsAndValues;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGDoublyLinkedListSegment;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGHasValueEdge;
@@ -534,6 +535,63 @@ public class SMG {
         newHVEdges.removeAndCopy(object),
         newPointers.buildOrThrow(),
         sizeOfPointer);
+  }
+
+  /**
+   * Removes i.e. a 0+ object from the SMG. This assumed that no valid pointers to the object exist
+   * and removes all pointers towards the object object and all objects that are connected to those
+   * pointers (removes the subgraph). Also deleted the object object in the end. This does not check
+   * for pointers that point away from the object!
+   *
+   * @param object the object to remove and start the subgraph removal.
+   * @return a new SMG with the object and its subgraphs removed + the all removed objects.
+   */
+  public SMGAndSMGObjects copyAndRemoveObjectAndSubSMG(SMGObject object) {
+    if (!smgObjects.containsKey(object) || !isValid(object)) {
+      return SMGAndSMGObjects.ofEmptyObjects(this);
+    }
+    ImmutableMap.Builder<SMGValue, SMGPointsToEdge> newPointers = ImmutableMap.builder();
+    ImmutableSet.Builder<SMGObject> objectsToRemoveBuilder = ImmutableSet.builder();
+    ImmutableSet.Builder<SMGValue> valuesToRemoveBuilder = ImmutableSet.builder();
+    // We expect there to be very few, if any objects towards a 0+ element as we don't join
+    for (Entry<SMGValue, SMGPointsToEdge> pointsToEntry : pointsToEdges.entrySet()) {
+      if (pointsToEntry.getValue().pointsTo().equals(object)) {
+        valuesToRemoveBuilder.add(pointsToEntry.getKey());
+      } else {
+        newPointers.put(pointsToEntry);
+      }
+    }
+
+    ImmutableSet<SMGValue> valuesToRemove = valuesToRemoveBuilder.build();
+    if (!valuesToRemove.isEmpty()) {
+        for (Entry<SMGObject, PersistentSet<SMGHasValueEdge>> hasValueEntry : hasValueEdges.entrySet()) {
+          for (SMGHasValueEdge valueEdge : hasValueEntry.getValue()) {
+            if (valuesToRemove.contains(valueEdge.hasValue())) {
+              objectsToRemoveBuilder.add(object);
+            }
+          }
+        }
+    }
+
+    SMG currentSMG =
+        new SMG(
+            smgObjects.removeAndCopy(object),
+            smgValues,
+            hasValueEdges.removeAndCopy(object),
+            newPointers.buildOrThrow(),
+            sizeOfPointer);
+    ImmutableSet<SMGObject> objectsToRemove = objectsToRemoveBuilder.build();
+    ImmutableSet.Builder<SMGObject> objectsThatHaveBeenRemovedBuilder = ImmutableSet.builder();
+    objectsThatHaveBeenRemovedBuilder.add(object);
+    if (!objectsToRemove.isEmpty()) {
+      for (SMGObject toRemove : objectsToRemove) {
+        SMGAndSMGObjects newSMGAndRemoved = currentSMG.copyAndRemoveObjectAndSubSMG(toRemove);
+        objectsThatHaveBeenRemovedBuilder.addAll(newSMGAndRemoved.getSMGObjects());
+        currentSMG = newSMGAndRemoved.getSMG();
+      }
+    }
+
+    return SMGAndSMGObjects.of(currentSMG, objectsThatHaveBeenRemovedBuilder.build());
   }
 
   private ImmutableSet<SMGObject> getObjectsWithValue(SMGValue valueForPointerToWardsThis) {
