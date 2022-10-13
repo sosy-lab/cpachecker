@@ -11,6 +11,9 @@ package org.sosy_lab.cpachecker.cpa.smg2.abstraction;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import java.math.BigInteger;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 import java.util.Optional;
 import java.util.logging.Level;
 import org.sosy_lab.common.log.LogManager;
@@ -30,27 +33,46 @@ public class SMGCPAMaterializer {
 
   private final LogManager logger;
 
+  // For the 0+ segments
+  private static final int MINIMUM_LIST_LENGTH = 0;
+
   public SMGCPAMaterializer(LogManager pLogger) {
     logger = pLogger;
   }
 
-  public SMGValueAndSMGState handleMaterilisation(
+  /**
+   * Materializes lists from abstract lists into concrete lists. See the paper for more info. Note:
+   * 0+ behave differently to the others in that it generates 2 states. We order those! The first in
+   * the list is the minimal state where the 0+ is deleted, the second keeps a 0+ and grows.
+   *
+   * @param valueTopointerToAbstractObject pointer to an {@link SMGSinglyLinkedListSegment}.
+   * @param pAbstractObject the target of valueTopointerToAbstractObject.
+   * @param state current {@link SMGState}.
+   * @return list of returned {@link SMGValueAndSMGState} with the value being the updated pointers.
+   *     (In the context of the new state valueTopointerToAbstractObject behaves the same!)
+   * @throws SMG2Exception in case of critical errors.
+   */
+  public List<SMGValueAndSMGState> handleMaterilisation(
       SMGValue valueTopointerToAbstractObject, SMGObject pAbstractObject, SMGState state)
       throws SMG2Exception {
 
     if (pAbstractObject instanceof SMGDoublyLinkedListSegment) {
       SMGDoublyLinkedListSegment sllListSeg = (SMGDoublyLinkedListSegment) pAbstractObject;
-      if (sllListSeg.getMinLength() == 0) {
-        return removeDLLS(sllListSeg, valueTopointerToAbstractObject, state);
+      if (sllListSeg.getMinLength() == MINIMUM_LIST_LENGTH) {
+        // handles 0+ and splits into 2 states. One with a longer list and 0+ again, one where its
+        // gone
+        return handleZeroPlusDLS(sllListSeg, valueTopointerToAbstractObject, state);
       } else {
-        return materialiseDLLS(sllListSeg, valueTopointerToAbstractObject, state);
+        return ImmutableList.of(materialiseDLLS(sllListSeg, valueTopointerToAbstractObject, state));
       }
     } else if (pAbstractObject instanceof SMGSinglyLinkedListSegment) {
       SMGSinglyLinkedListSegment dllListSeg = (SMGSinglyLinkedListSegment) pAbstractObject;
-      if (dllListSeg.getMinLength() == 0) {
+      if (dllListSeg.getMinLength() == MINIMUM_LIST_LENGTH) {
+        // handles 0+ and splits into 2 states. One with a longer list and 0+ again, one where its
+        // gone
         return handleZeroPlusSLS(dllListSeg, valueTopointerToAbstractObject, state);
       } else {
-        return materialiseSLLS(dllListSeg, valueTopointerToAbstractObject, state);
+        return ImmutableList.of(materialiseSLLS(dllListSeg, valueTopointerToAbstractObject, state));
       }
     }
     throw new SMG2Exception("The SMG failed to materialize a abstract list.");
@@ -62,15 +84,14 @@ public class SMGCPAMaterializer {
    * pointer to the previous memory as the new next pointer.
    * We are not allowed to change the pointer in this case as it might be value 0.
    * We know the previous segment needs to be a list, so the nfo is always correct.
+   * The first state in the list is the state without 0+ in it, the second is the one where it grows.
    */
-  private SMGValueAndSMGState handleZeroPlusSLS(
+  private List<SMGValueAndSMGState> handleZeroPlusSLS(
       SMGSinglyLinkedListSegment pListSeg, SMGValue pointerValueTowardsThisSegment, SMGState state)
       throws SMG2Exception {
 
     logger.log(Level.ALL, "Split into 2 states because of 0+ SLS materialization.", pListSeg);
     ImmutableList.Builder<SMGValueAndSMGState> returnStates = ImmutableList.builder();
-    returnStates.add(materialiseSLLS(pListSeg, pointerValueTowardsThisSegment, state));
-
 
     SMGState currentState = state;
     BigInteger nfo = pListSeg.getNextOffset();
@@ -84,38 +105,30 @@ public class SMGCPAMaterializer {
     SMGValueAndSMGState nextPointerAndState = currentState.readSMGValue(pListSeg, nfo, pointerSize);
     currentState = nextPointerAndState.getSMGState();
     SMGValue nextPointerValue = nextPointerAndState.getSMGValue();
-    Optional<SMGPointsToEdge> maybeNextPointer =
-        currentState.getMemoryModel().getSmg().getPTEdge(nextPointerValue);
-    if (maybeNextPointer.isEmpty()) {
-      // There is no valid next pointer, so write the value to the nfo of the previous object
-      // We can assume that a 0+ does not have other valid pointers to it!
-      currentState = currentState.writeValue(prevObj, nfo, pointerSize, nextPointerValue);
-      currentState = currentState.copyAndRemoveObjectFromHeap(pListSeg);
-      return SMGValueAndSMGState.of(currentState, nextPointerValue);
-    }
-    SMGPointsToEdge nextPointer = maybeNextPointer.orElseThrow();
-
-    // Set the pointer of the value in the previous segment to the next pointer of the list
-    // Also set ALL pointers pointing towards the list segment to the previous object
+    // Write the value to the nfo of the previous object
+    currentState = currentState.writeValue(prevObj, nfo, pointerSize, nextPointerValue);
+    // We can assume that a 0+ does not have other valid pointers to it!
+    // Remove all other pointers/subgraphs associated with the 0+ object
+    // Also remove the object
     currentState =
         currentState.copyAndReplaceMemoryModel(
-            currentState
-                .getMemoryModel()
-                .copyAndRemoveSLLObjectAndReplacePointers(
-                    pListSeg, pointerValueTowardsThisSegment, nextPointer, prevObj));
+            currentState.getMemoryModel().copyAndRemoveObjectAndAssociatedSubSMG(pListSeg));
 
-    return SMGValueAndSMGState.of(currentState, nextPointerValue);
+    returnStates.add(SMGValueAndSMGState.of(currentState, nextPointerValue));
+    return returnStates
+        .add(materialiseSLLS(pListSeg, pointerValueTowardsThisSegment, state))
+        .build();
   }
 
   /*
    * This generates 2 states. One where we materialize the list once more and add the 0+ back and one where the 0+ is deleted.
    */
-  private SMGValueAndSMGState removeDLLS(
-      SMGDoublyLinkedListSegment pListSeg,
-      SMGValue pointerValueTowardsThisSegment,
-      SMGState state) {
+  private List<SMGValueAndSMGState> handleZeroPlusDLS(
+      SMGDoublyLinkedListSegment pListSeg, SMGValue pointerValueTowardsThisSegment, SMGState state)
+      throws SMG2Exception {
 
-    logger.log(Level.ALL, "Remove 0+ SLL ", pListSeg);
+    logger.log(Level.ALL, "Split into 2 states because of 0+ DLS materialization.", pListSeg);
+    ImmutableList.Builder<SMGValueAndSMGState> returnStates = ImmutableList.builder();
 
     SMGState currentState = state;
     BigInteger nfo = pListSeg.getNextOffset();
@@ -129,33 +142,32 @@ public class SMGCPAMaterializer {
     SMGValue nextPointerValue = nextPointerAndState.getSMGValue();
     SMGValue prevPointerValue = prevPointerAndState.getSMGValue();
 
-    Optional<SMGPointsToEdge> maybeNextPointer =
-        currentState.getMemoryModel().getSmg().getPTEdge(nextPointerValue);
-    if (maybeNextPointer.isEmpty()) {
-      // There is no valid next pointer, so write the value to the nfo of the previous object
-      // We can assume that a 0+ does not have other valid pointers to it!
-      // Since this is a DLL we get the prev obj from the prev pointer
-      SMGPointsToEdge prevPointer =
-          currentState.getMemoryModel().getSmg().getPTEdge(prevPointerValue).orElseThrow();
-      currentState =
-          currentState.writeValue(prevPointer.pointsTo(), nfo, pointerSize, nextPointerValue);
-      currentState = currentState.copyAndRemoveObjectFromHeap(pListSeg);
-      return SMGValueAndSMGState.of(currentState, nextPointerValue);
-    }
-    SMGPointsToEdge nextPointer = maybeNextPointer.orElseThrow();
     SMGPointsToEdge prevPointer =
         currentState.getMemoryModel().getSmg().getPTEdge(prevPointerValue).orElseThrow();
+    SMGObject prevObj = prevPointer.pointsTo();
 
-    // Remove the DLL object and replace the pointers.
-    // If a -> b -> c and a <- b <- c then after this a -> c and a <- c
+    Optional<SMGPointsToEdge> maybeNextPointer =
+        currentState.getMemoryModel().getSmg().getPTEdge(nextPointerValue);
+    if (maybeNextPointer.isPresent()) {
+      // Write the prev pointer of the next object to the prev object
+      currentState =
+          currentState.writeValue(
+              maybeNextPointer.orElseThrow().pointsTo(), pfo, pointerSize, prevPointerValue);
+    }
+
+    // Write the value to the nfo of the previous object
+    currentState = currentState.writeValue(prevObj, nfo, pointerSize, nextPointerValue);
+    // We can assume that a 0+ does not have other valid pointers to it!
+    // Remove all other pointers/subgraphs associated with the 0+ object
+    // Also remove the object
     currentState =
         currentState.copyAndReplaceMemoryModel(
-            currentState
-                .getMemoryModel()
-                .copyAndRemoveDLLObjectAndReplacePointers(
-                    pListSeg, pointerValueTowardsThisSegment, nextPointer, prevPointer));
+            currentState.getMemoryModel().copyAndRemoveObjectAndAssociatedSubSMG(pListSeg));
 
-    return SMGValueAndSMGState.of(currentState, nextPointerValue);
+    returnStates.add(SMGValueAndSMGState.of(currentState, nextPointerValue));
+    return returnStates
+        .add(materialiseDLLS(pListSeg, pointerValueTowardsThisSegment, state))
+        .build();
   }
 
   /*
@@ -168,11 +180,11 @@ public class SMGCPAMaterializer {
       SMGSinglyLinkedListSegment pListSeg, SMGValue pValueOfPointerToAbstractObject, SMGState state)
       throws SMG2Exception {
 
-    SMGValue valueOfPointerToAbstractObject =
-        pValueOfPointerToAbstractObject.withNestingLevelAndCopy(0);
     if (!state.getMemoryModel().isObjectValid(pListSeg)) {
       throw new SMG2Exception("Error when materializing a SLL.");
     }
+    SMGValue valueOfPointerToAbstractObject =
+        pValueOfPointerToAbstractObject.withNestingLevelAndCopy(0);
 
     logger.log(Level.ALL, "Materialise SLL ", pListSeg);
 
@@ -195,25 +207,22 @@ public class SMGCPAMaterializer {
             currentState
                 .getMemoryModel()
                 .replaceSpecificPointersTowardsWithAndSetNestingLevelZero(
-                    pListSeg, newConcreteRegion, pListSeg.getMinLength() - 1));
+                    pListSeg,
+                    newConcreteRegion,
+                    Integer.max(pListSeg.getMinLength() - 1, MINIMUM_LIST_LENGTH)));
 
-    /*
-    if (pListSeg.getMinLength() == 1) {
-      // Remove the old abstract list segment
-      currentState = currentState.copyAndRemoveObjectFromHeap(pListSeg);
-      return SMGValueAndSMGState.of(currentState, valueOfPointerToAbstractObject);
-    }
-    */
-    Preconditions.checkArgument(pListSeg.getMinLength() >= 0);
+    Preconditions.checkArgument(pListSeg.getMinLength() >= MINIMUM_LIST_LENGTH);
 
     // Make the new value a pointer to the correct location and object
     Value newPointerValue = SymbolicValueFactory.getInstance().newIdentifier(null);
     SMGSinglyLinkedListSegment newAbsListSeg =
         (SMGSinglyLinkedListSegment) pListSeg.decrementLengthAndCopy();
-    int newMinLength = Integer.max(newAbsListSeg.getMinLength() - 1, 0);
     currentState =
         currentState.createAndAddPointerWithNestingLevel(
-            newPointerValue, newAbsListSeg, BigInteger.ZERO, newMinLength);
+            newPointerValue,
+            newAbsListSeg,
+            BigInteger.ZERO,
+            Integer.max(newAbsListSeg.getMinLength() - 1, MINIMUM_LIST_LENGTH));
     // Create a new value and map the old pointer towards the abstract region on it
     // Create a Value mapping for the new Value representing a pointer
     SMGValueAndSMGState newValuePointingToWardsAbstractListAndState =
@@ -239,32 +248,30 @@ public class SMGCPAMaterializer {
     // Remove the old abstract list segment
     currentState = currentState.copyAndRemoveObjectFromHeap(pListSeg);
 
-    Preconditions.checkArgument(newAbsListSeg.getMinLength() >= 0);
+    Preconditions.checkArgument(newAbsListSeg.getMinLength() >= MINIMUM_LIST_LENGTH);
+    assert checkPointersOfMaterializedSLL(newConcreteRegion, nfo, currentState);
     // Note: valueOfPointerToAbstractObject is now pointing to the materialized object!
     return SMGValueAndSMGState.of(currentState, valueOfPointerToAbstractObject);
   }
 
   /*
-   * TODO: nesting level. The nesting level depicts where the rest of the memory is located in
+   * The nesting level depicts where the rest of the memory is located in
    * relation to the abstract list. Each time a list segment is materialized, the sub-SMG of the
-   * SLL is copied and the nesting level of the new sub-SMG (values and pointers) is
-   * decremented by 1.
+   * DLL is copied and the nesting level of the new sub-SMG (values and pointers) is
+   * decremented by 1. (according to the paper, see comment in the code for how we do it currently)
    * We return the pointer to the segment just materialized.
    */
   private SMGValueAndSMGState materialiseDLLS(
       SMGDoublyLinkedListSegment pListSeg, SMGValue pValueOfPointerToAbstractObject, SMGState state)
       throws SMG2Exception {
 
-    SMGValue valueOfPointerToAbstractObject =
-        pValueOfPointerToAbstractObject.withNestingLevelAndCopy(0);
     if (!state.getMemoryModel().isObjectValid(pListSeg)) {
       throw new SMG2Exception("Error when materializing a DLL.");
     }
+    SMGValue valueOfPointerToConcreteObject =
+        pValueOfPointerToAbstractObject.withNestingLevelAndCopy(0);
 
     logger.log(Level.ALL, "Materialise DLL ", pListSeg);
-
-    // SMGPointsToEdge pointerToAbstractObject =
-    //    state.getMemoryModel().getSmg().getPTEdge(pValueOfPointerToAbstractObject).orElseThrow();
 
     BigInteger nfo = pListSeg.getNextOffset();
     BigInteger pfo = pListSeg.getPrevOffset();
@@ -287,52 +294,197 @@ public class SMGCPAMaterializer {
             currentState
                 .getMemoryModel()
                 .replaceSpecificPointersTowardsWithAndSetNestingLevelZero(
-                    pListSeg, newConcreteRegion, pListSeg.getMinLength() - 1));
+                    pListSeg,
+                    newConcreteRegion,
+                    Integer.max(pListSeg.getMinLength() - 1, MINIMUM_LIST_LENGTH)));
 
-    if (pListSeg.getMinLength() == 1) {
-      // Remove the old abstract list segment
-      currentState = currentState.copyAndRemoveObjectFromHeap(pListSeg);
-      return SMGValueAndSMGState.of(currentState, valueOfPointerToAbstractObject);
-    }
-    Preconditions.checkArgument(pListSeg.getMinLength() > 1);
+    Preconditions.checkArgument(pListSeg.getMinLength() >= MINIMUM_LIST_LENGTH);
     // Make the new value a pointer to the correct location and object
     Value newPointerValue = SymbolicValueFactory.getInstance().newIdentifier(null);
     SMGDoublyLinkedListSegment newAbsListSeg =
         (SMGDoublyLinkedListSegment) pListSeg.decrementLengthAndCopy();
+    currentState = currentState.copyAndAddObjectToHeap(newAbsListSeg);
+    // Switch all remaining pointers from the old abstract object to the new
+    currentState =
+        currentState.copyAndReplaceMemoryModel(
+            currentState.getMemoryModel().replaceAllPointersTowardsWith(pListSeg, newAbsListSeg));
+    // Copy the values from the old abstract list element to the new abstract list segment with
+    // length - 1
+    currentState = currentState.copyAllValuesFromObjToObj(pListSeg, newAbsListSeg);
+    // Create the new pointer to the new abstract list segment with the correct nesting level
     currentState =
         currentState.createAndAddPointerWithNestingLevel(
-            newPointerValue, newAbsListSeg, BigInteger.ZERO, newAbsListSeg.getMinLength() - 1);
+            newPointerValue,
+            newAbsListSeg,
+            BigInteger.ZERO,
+            Integer.max(newAbsListSeg.getMinLength() - 1, MINIMUM_LIST_LENGTH));
 
     // Create a new value and map the old pointer towards the abstract region on it
     // Create a Value mapping for the new Value representing a pointer
     SMGValueAndSMGState newValuePointingToWardsAbstractListAndState =
         currentState.copyAndAddValue(newPointerValue);
+    // We receive the SMGValue for the new pointer here
     SMGValue newValuePointingToWardsAbstractList =
         newValuePointingToWardsAbstractListAndState
             .getSMGValue()
             .withNestingLevelAndCopy(newAbsListSeg.getMinLength() - 1);
     currentState = newValuePointingToWardsAbstractListAndState.getSMGState();
 
-    // Write the new value w pointer towards abstract region to new region
+    // Write the new value w pointer towards abstract region to new concrete region as next pointer
     currentState =
         currentState.writeValue(
             newConcreteRegion, nfo, pointerSize, newValuePointingToWardsAbstractList);
 
-    // Now replace the abstract list element with a new abstract list element with length - 1
-    currentState = currentState.copyAndAddObjectToHeap(newAbsListSeg);
-    currentState = currentState.copyAllValuesFromObjToObj(pListSeg, newAbsListSeg);
     // Write the value pointing to the new concrete region to the abstracted list
     currentState =
-        currentState.writeValue(newAbsListSeg, pfo, pointerSize, valueOfPointerToAbstractObject);
-    currentState =
-        currentState.copyAndReplaceMemoryModel(
-            currentState.getMemoryModel().replaceAllPointersTowardsWith(pListSeg, newAbsListSeg));
+        currentState.writeValue(newAbsListSeg, pfo, pointerSize, valueOfPointerToConcreteObject);
+
+    // Set the prev pointer of the new abstract segment to the new concrete segment
+    Optional<SMGPointsToEdge> maybeCorrectPointerToNewConcrete =
+        currentState.getMemoryModel().getSmg().getPTEdge(valueOfPointerToConcreteObject);
+      Preconditions.checkArgument(maybeCorrectPointerToNewConcrete.isPresent());
+      Preconditions.checkArgument(
+          maybeCorrectPointerToNewConcrete.orElseThrow().pointsTo().equals(newConcreteRegion));
+
+
+    SMGValueAndSMGState nextPointerAndState = currentState.readSMGValue(pListSeg, nfo, pointerSize);
+    currentState = nextPointerAndState.getSMGState();
+    SMGValue nextPointerValue = nextPointerAndState.getSMGValue();
+
+    Optional<SMGPointsToEdge> maybeNextPointer =
+        currentState.getMemoryModel().getSmg().getPTEdge(nextPointerValue);
+    if (maybeNextPointer.isPresent()
+        && currentState.getMemoryModel().isObjectValid(maybeNextPointer.orElseThrow().pointsTo())) {
+      // Write the prev pointer of the next object to the prev object
+      // We expect that all valid objects nfo points to are list segments
+      currentState =
+          currentState.writeValue(
+              maybeNextPointer.orElseThrow().pointsTo(),
+              pfo,
+              pointerSize,
+              newValuePointingToWardsAbstractList);
+    }
 
     // Remove the old abstract list segment
     currentState = currentState.copyAndRemoveObjectFromHeap(pListSeg);
 
-    Preconditions.checkArgument(newAbsListSeg.getMinLength() > 0);
+    Preconditions.checkArgument(newAbsListSeg.getMinLength() >= MINIMUM_LIST_LENGTH);
+    assert checkPointersOfMaterializedDLL(newConcreteRegion, nfo, pfo, currentState);
     // Note: pValueOfPointerToAbstractObject is now pointing to the materialized object!
-    return SMGValueAndSMGState.of(currentState, valueOfPointerToAbstractObject);
+    return SMGValueAndSMGState.of(currentState, valueOfPointerToConcreteObject);
+  }
+
+  // Check that the pointers of a list are correct
+  private boolean checkPointersOfMaterializedDLL(
+      SMGObject newConcreteRegion, BigInteger nfo, BigInteger pfo, SMGState state) {
+    BigInteger pointerSize = state.getMemoryModel().getSizeOfPointer();
+    SMGValueAndSMGState nextPointerAndState =
+        state.readSMGValue(newConcreteRegion, nfo, pointerSize);
+    SMGState currentState = nextPointerAndState.getSMGState();
+    SMGValueAndSMGState prevPointerAndState =
+        currentState.readSMGValue(newConcreteRegion, pfo, pointerSize);
+    currentState = prevPointerAndState.getSMGState();
+    SMGValue nextPointerValue = nextPointerAndState.getSMGValue();
+    SMGValue prevPointerValue = prevPointerAndState.getSMGValue();
+
+    Optional<SMGPointsToEdge> prevPointer =
+        currentState.getMemoryModel().getSmg().getPTEdge(prevPointerValue);
+    SMGObject start = newConcreteRegion;
+    List<SMGObject> listOfObjects = new ArrayList<>();
+    if (prevPointer.isPresent()) {
+      // There is at least 1 object before the new materialized,
+      // if it is a valid list, we start from there
+      SMGObject maybeStart = prevPointer.orElseThrow().pointsTo();
+      if (state.getMemoryModel().isObjectValid(maybeStart)
+          && maybeStart.getSize().compareTo(start.getSize()) == 0
+          && !start.equals(maybeStart)) {
+        start = maybeStart;
+        listOfObjects.add(start);
+      }
+    }
+    listOfObjects.add(newConcreteRegion);
+    Optional<SMGPointsToEdge> nextPointer =
+        currentState.getMemoryModel().getSmg().getPTEdge(nextPointerValue);
+    // There is always a next obj
+    Preconditions.checkArgument(nextPointer.isPresent());
+    SMGObject abstractObjectFollowingNewConcrete = nextPointer.orElseThrow().pointsTo();
+    listOfObjects.add(abstractObjectFollowingNewConcrete);
+    SMGValueAndSMGState nextNextPointerAndState =
+        state.readSMGValue(abstractObjectFollowingNewConcrete, nfo, pointerSize);
+    currentState = nextNextPointerAndState.getSMGState();
+    SMGValue nextNextPointerValue = nextNextPointerAndState.getSMGValue();
+    Optional<SMGPointsToEdge> nextNextPointer =
+        currentState.getMemoryModel().getSmg().getPTEdge(nextNextPointerValue);
+    // This might not exist
+    if (nextNextPointer.isPresent()) {
+      listOfObjects.add(nextNextPointer.orElseThrow().pointsTo());
+    }
+    if (!checkList(start, nfo, listOfObjects, currentState)) {
+      return false;
+    }
+    Collections.reverse(listOfObjects);
+    return checkList(listOfObjects.get(0), pfo, listOfObjects, currentState);
+  }
+
+  private boolean checkPointersOfMaterializedSLL(
+      SMGObject newConcreteRegion, BigInteger nfo, SMGState state) {
+    BigInteger pointerSize = state.getMemoryModel().getSizeOfPointer();
+    SMGValueAndSMGState nextPointerAndState =
+        state.readSMGValue(newConcreteRegion, nfo, pointerSize);
+    SMGState currentState = nextPointerAndState.getSMGState();
+    SMGValue nextPointerValue = nextPointerAndState.getSMGValue();
+
+    SMGObject start = newConcreteRegion;
+    List<SMGObject> listOfObjects = new ArrayList<>();
+    listOfObjects.add(newConcreteRegion);
+    Optional<SMGPointsToEdge> nextPointer =
+        currentState.getMemoryModel().getSmg().getPTEdge(nextPointerValue);
+    // There is always a next obj
+    Preconditions.checkArgument(nextPointer.isPresent());
+    SMGObject abstractObjectFollowingNewConcrete = nextPointer.orElseThrow().pointsTo();
+    listOfObjects.add(abstractObjectFollowingNewConcrete);
+    SMGValueAndSMGState nextNextPointerAndState =
+        state.readSMGValue(abstractObjectFollowingNewConcrete, nfo, pointerSize);
+    currentState = nextNextPointerAndState.getSMGState();
+    SMGValue nextNextPointerValue = nextNextPointerAndState.getSMGValue();
+    Optional<SMGPointsToEdge> nextNextPointer =
+        currentState.getMemoryModel().getSmg().getPTEdge(nextNextPointerValue);
+    // This might not exist
+    if (nextNextPointer.isPresent()) {
+      listOfObjects.add(nextNextPointer.orElseThrow().pointsTo());
+    }
+    return checkList(start, nfo, listOfObjects, currentState);
+  }
+
+  // Expects the list of expected objects in listOfObjects in the correct order for the offset
+  private boolean checkList(
+      SMGObject start, BigInteger pointerOffset, List<SMGObject> listOfObjects, SMGState state) {
+    SMGObject currentObj = start;
+    BigInteger pointerSize = state.getMemoryModel().getSizeOfPointer();
+
+    for (int i = 0; i < listOfObjects.size(); i++) {
+      SMGObject toCheckObj = listOfObjects.get(i);
+      if (!currentObj.equals(toCheckObj)) {
+        return false;
+      }
+      if (i == listOfObjects.size() - 1 || !state.getMemoryModel().isObjectValid(currentObj)) {
+        break;
+      }
+
+      SMGValueAndSMGState nextPointerAndState =
+          state.readSMGValue(currentObj, pointerOffset, pointerSize);
+      SMGState currentState = nextPointerAndState.getSMGState();
+      SMGValue nextPointerValue = nextPointerAndState.getSMGValue();
+
+      Optional<SMGPointsToEdge> prevPointer =
+          currentState.getMemoryModel().getSmg().getPTEdge(nextPointerValue);
+
+      if (prevPointer.isEmpty()) {
+        return false;
+      }
+
+      currentObj = prevPointer.orElseThrow().pointsTo();
+    }
+    return true;
   }
 }
