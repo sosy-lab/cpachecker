@@ -119,10 +119,15 @@ public final class SSAMap implements Serializable {
     @SuppressWarnings("CheckReturnValue")
     public SSAMapBuilder setIndex(String name, CType type, int idx) {
       Preconditions.checkArgument(
-          idx > 0, "Indices need to be positive for this SSAMap implementation:", name, type, idx);
+          idx > 0, "Non-positive index %s for variable %s with type %s", idx, name, type);
       int oldIdx = getIndex(name);
       Preconditions.checkArgument(
-          idx >= oldIdx, "SSAMap updates need to be strictly monotone:", name, type, idx);
+          idx >= oldIdx,
+          "Non-monotonic SSAMap update for variable %s with type %s from %s to %s",
+          name,
+          type,
+          oldIdx,
+          idx);
 
       type = type.getCanonicalType();
       assert !(type instanceof CFunctionType) : "Variable " + name + " has function type " + type;
