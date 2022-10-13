@@ -114,8 +114,33 @@ class InterpolationSequence {
     return getPredicates(PLocationInstance).stream().findFirst();
   }
 
-  Optional<IndexedAbstractionPredicate> getNext(IndexedAbstractionPredicate pPredicate) {
+  Optional<IndexedAbstractionPredicate> getNextIndex(IndexedAbstractionPredicate pPredicate) {
     return Optional.ofNullable(orderedPredicates.higher(pPredicate));
+  }
+
+  /**
+   * Returns the next {@link IndexedAbstractionPredicate} from this sequence that has a different
+   * {@link AbstractionPredicate} than the one passed to this method.
+   *
+   * @return An {@link Optional} containing the next such {@link IndexedAbstractionPredicate}, or
+   *     {@link Optional#empty()} if no such predicate is available.
+   */
+  Optional<IndexedAbstractionPredicate> getNextPredicate(IndexedAbstractionPredicate pPredicate) {
+    IndexedAbstractionPredicate curPred = pPredicate;
+
+    while (true) {
+      IndexedAbstractionPredicate nextPred = orderedPredicates.higher(curPred);
+      if (nextPred == null) {
+        return Optional.empty();
+      }
+
+      if (pPredicate.getPredicate().equals(nextPred.getPredicate())) {
+        curPred = nextPred;
+        continue;
+      }
+
+      return Optional.of(nextPred);
+    }
   }
 
   boolean isStrictSubsetOf(InterpolationSequence pOtherSequence) {

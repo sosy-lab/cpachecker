@@ -267,7 +267,7 @@ class TraceAbstractionPrecisionAdjustment implements PrecisionAdjustment {
 
       IndexedAbstractionPredicate curPreds = entry.getValue();
 
-      Optional<IndexedAbstractionPredicate> nextPreds = currentItpSequence.getNext(curPreds);
+      Optional<IndexedAbstractionPredicate> nextPreds = currentItpSequence.getNextPredicate(curPreds);
 
       ImmutableList<IndexedAbstractionPredicate> precondition =
           nextPreds.isEmpty()
