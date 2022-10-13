@@ -495,7 +495,7 @@ class TraceAbstractionPrecisionAdjustment implements PrecisionAdjustment {
         MoreStrings.lazyString(
             () ->
                 String.format(
-                    "Region Post: %s -- BF: %s\n",
+                    "Region Post: %s -- BF: %s%n",
                     regionPost, abstractionManager.convertRegionToFormula(regionPost))));
 
     for (AbstractionPredicate abstractionPredicate : relevantPreds) {
@@ -505,12 +505,12 @@ class TraceAbstractionPrecisionAdjustment implements PrecisionAdjustment {
           MoreStrings.lazyString(
               () ->
                   String.format(
-                      "Region Pre: %s -- BF: %s\n",
+                      "Region Pre: %s -- BF: %s%n",
                       regionPre, abstractionManager.convertRegionToFormula(regionPre))));
 
       logger.logf(
           Level.FINE,
-          "%s => %s (pre => post): %s\n%s => %s (post => pre): %s\n",
+          "%s => %s (pre => post): %s%n%s => %s (post => pre): %s%n",
           regionPre,
           regionPost,
           abstractionManager.entails(regionPre, regionPost),
