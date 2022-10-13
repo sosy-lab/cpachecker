@@ -204,6 +204,17 @@ public class SymbolicProgramConfiguration {
   }
 
   /**
+   * Returns true if the value is a pointer that points to a 0+ abstracted list segment. Else false.
+   *
+   * @param value some {@link Value}. Does not have to be a pointer.
+   * @return true for 0+ target. false else.
+   */
+  public boolean pointsToZeroPlus(Value value) {
+    Preconditions.checkNotNull(value);
+    return smg.pointsToZeroPlus(getSMGValueFromValue(value).orElse(null));
+  }
+
+  /**
    * @return number of global and local variables on all stack frames. Note: this might be
    *     surprisingly large and should only be used as comparison not face value. We use encoded
    *     variables for Strings/functions etc.
