@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.cpa.smg2;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
@@ -257,7 +258,20 @@ public class SMGConcreteErrorPathAllocator extends ConcreteErrorPathAllocator<SM
         if (state.getMemoryModel().isPointer(value.orElseThrow())) {
           SMGStateAndOptionalSMGObjectAndOffset target;
           try {
-            target = state.dereferencePointer(value.orElseThrow());
+            // We want to use the minimal state (list abstraction might split into 2 states when
+            // materializing, we use the shortest)
+            List<SMGStateAndOptionalSMGObjectAndOffset> listOfTargets =
+                state.dereferencePointer(value.orElseThrow());
+            if (listOfTargets.size() == 1) {
+              target = listOfTargets.get(0);
+            } else {
+              Preconditions.checkArgument(
+                  listOfTargets.get(0).hasSMGObjectAndOffset()
+                      && !alreadyVisited.contains(listOfTargets.get(0).getSMGObject())
+                      && !state.getMemoryModel().pointsToZeroPlus(value.orElseThrow()));
+              // the first element is the minimal list
+              target = listOfTargets.get(0);
+            }
             if (target.hasSMGObjectAndOffset() && !alreadyVisited.contains(target.getSMGObject())) {
               todo.add(target.getSMGObject());
             }

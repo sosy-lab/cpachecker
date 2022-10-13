@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.cpa.smg2;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import java.math.BigInteger;
 import java.util.List;
@@ -174,13 +175,20 @@ public class SMGCPAAddressVisitor
       BigInteger baseOffset = addrOffset.asNumericValue().bigInteger();
       BigInteger finalOffset = baseOffset.add(subscriptOffset);
 
-      return evaluator.getTargetObjectAndOffset(
-          currentState, arrayAddr.getMemoryAddress(), finalOffset);
+      List<SMGStateAndOptionalSMGObjectAndOffset> targets =
+          evaluator.getTargetObjectAndOffset(
+              currentState, arrayAddr.getMemoryAddress(), finalOffset);
+      Preconditions.checkArgument(targets.size() == 0);
+      return targets.get(0);
 
     } else if (pCurrentState.getMemoryModel().isPointer(arrayValue)) {
       // Local array
+      List<SMGStateAndOptionalSMGObjectAndOffset> maybeTargetMemorysAndOffsets =
+          currentState.dereferencePointer(arrayValue);
+      // If this ever fails, handle the list.
+      Preconditions.checkArgument(maybeTargetMemorysAndOffsets.size() == 1);
       SMGStateAndOptionalSMGObjectAndOffset maybeTargetMemoryAndOffset =
-          pCurrentState.dereferencePointer(arrayValue);
+          maybeTargetMemorysAndOffsets.get(0);
       if (!maybeTargetMemoryAndOffset.hasSMGObjectAndOffset()) {
         return maybeTargetMemoryAndOffset;
       }
@@ -250,7 +258,7 @@ public class SMGCPAAddressVisitor
         BigInteger baseOffset = addrOffset.asNumericValue().bigInteger();
         BigInteger finalFieldOffset = baseOffset.add(fieldOffset);
 
-        resultBuilder.add(
+        resultBuilder.addAll(
             evaluator.getTargetObjectAndOffset(
                 currentState, structAddr.getMemoryAddress(), finalFieldOffset));
 
@@ -353,7 +361,7 @@ public class SMGCPAAddressVisitor
         resultBuilder.addAll(visitDefault(e));
       } else {
         BigInteger offsetInBits = offset.asNumericValue().bigInteger();
-        resultBuilder.add(
+        resultBuilder.addAll(
             evaluator.getTargetObjectAndOffset(
                 currentState, pointerValue.getMemoryAddress(), offsetInBits));
       }

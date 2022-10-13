@@ -823,7 +823,7 @@ public class SMGCPATransferRelationTest {
         // TODO: error check
         assertThat(memoryModel.isPointer(readValueAndState.getValue())).isTrue();
         SMGStateAndOptionalSMGObjectAndOffset mallocObjectAndOffset =
-            stateAfterMallocAssignSuccess.dereferencePointer(readValueAndState.getValue());
+            stateAfterMallocAssignSuccess.dereferencePointer(readValueAndState.getValue()).get(0);
         assertThat(mallocObjectAndOffset.hasSMGObjectAndOffset()).isTrue();
         assertThat(
                 mallocObjectAndOffset
@@ -976,7 +976,7 @@ public class SMGCPATransferRelationTest {
           // TODO: error check
           assertThat(memoryModel.isPointer(readValueAndState.getValue())).isTrue();
           SMGStateAndOptionalSMGObjectAndOffset mallocObjectAndOffset =
-              stateAfterMallocAssignSuccess.dereferencePointer(readValueAndState.getValue());
+              stateAfterMallocAssignSuccess.dereferencePointer(readValueAndState.getValue()).get(0);
           assertThat(mallocObjectAndOffset.hasSMGObjectAndOffset()).isTrue();
           BigInteger expectedMemorySizeInBits =
               sizeMultiplikator
@@ -1136,7 +1136,7 @@ public class SMGCPATransferRelationTest {
       // TODO: address this type thing
       // assertThat(address instanceof ConstantSymbolicExpression).isTrue();
       SMGStateAndOptionalSMGObjectAndOffset maybeTargetOfPointer =
-          stateWithArray.dereferencePointer(address);
+          stateWithArray.dereferencePointer(address).get(0);
       assertThat(maybeTargetOfPointer.hasSMGObjectAndOffset()).isTrue();
       SMGStateAndOptionalSMGObjectAndOffset targetOfPointer = maybeTargetOfPointer;
       // The offset of the address should be 0
@@ -1285,7 +1285,7 @@ public class SMGCPATransferRelationTest {
       Value address = readAddressValueAndState.getValue();
       // assertThat(address instanceof ConstantSymbolicExpression).isTrue();
       SMGStateAndOptionalSMGObjectAndOffset maybeTargetOfPointer =
-          stateWithStruct.dereferencePointer(address);
+          stateWithStruct.dereferencePointer(address).get(0);
       assertThat(maybeTargetOfPointer.hasSMGObjectAndOffset()).isTrue();
       SMGStateAndOptionalSMGObjectAndOffset targetOfPointer = maybeTargetOfPointer;
       // The offset of the address should be 0

@@ -127,8 +127,14 @@ public class SMGCPAExpressionEvaluator {
       return ValueAndSMGState.of(addressExpression.getMemoryAddress(), currentState);
     } else {
       // Offset known but not 0, search for/create the correct address
-      return this.findOrcreateNewPointer(
-          addressExpression.getMemoryAddress(), offset.asNumericValue().bigInteger(), currentState);
+      List<ValueAndSMGState> pointers =
+          this.findOrcreateNewPointer(
+              addressExpression.getMemoryAddress(),
+              offset.asNumericValue().bigInteger(),
+              currentState);
+      Preconditions.checkArgument(pointers.size() == 1);
+      // It is impossible for 0+ list abstractions to happen in this context -> only 1 return value
+      return pointers.get(0);
     }
   }
 
@@ -407,28 +413,33 @@ public class SMGCPAExpressionEvaluator {
    *     representing a address to the target.
    * @throws SMG2Exception in case of critical abstract memory materilization errors.
    */
-  public ValueAndSMGState findOrcreateNewPointer(
+  public List<ValueAndSMGState> findOrcreateNewPointer(
       Value targetAddress, BigInteger offsetInBits, SMGState pState) throws SMG2Exception {
     Preconditions.checkArgument(!(targetAddress instanceof AddressExpression));
 
-    SMGStateAndOptionalSMGObjectAndOffset maybeTargetAndOffset =
-        pState.dereferencePointer(targetAddress);
-    if (!maybeTargetAndOffset.hasSMGObjectAndOffset()) {
-      // The value is unknown and therefore does not point to a known memory location
-      return ValueAndSMGState.ofUnknownValue(maybeTargetAndOffset.getSMGState());
+    ImmutableList.Builder<ValueAndSMGState> returnBuilder = ImmutableList.builder();
+    for (SMGStateAndOptionalSMGObjectAndOffset maybeTargetAndOffset :
+        pState.dereferencePointer(targetAddress)) {
+      if (!maybeTargetAndOffset.hasSMGObjectAndOffset()) {
+        // The value is unknown and therefore does not point to a known memory location
+        returnBuilder.add(ValueAndSMGState.ofUnknownValue(maybeTargetAndOffset.getSMGState()));
+        continue;
+      }
+      // We don't want to materilize memory here?
+      // pState = maybeTargetAndOffset.orElseThrow().getSMGState();
+      SMGObject object = maybeTargetAndOffset.getSMGObject();
+
+      // The object may be null, which is fine, the deref is the problem
+      // The offset of the pointer used. (the pointer might point to a offset != 0, the other offset
+      // needs to the added to that!)
+      BigInteger baseOffset = maybeTargetAndOffset.getOffsetForObject();
+      BigInteger finalOffsetInBits = baseOffset.add(offsetInBits);
+
+      // search for existing pointer first and return if found; else make a new one for the offset
+      returnBuilder.add(
+          searchOrCreatePointer(object, finalOffsetInBits, maybeTargetAndOffset.getSMGState()));
     }
-    // We don't want to materilize memory here?
-    // pState = maybeTargetAndOffset.orElseThrow().getSMGState();
-    SMGObject object = maybeTargetAndOffset.getSMGObject();
-
-    // The object may be null, which is fine, the deref is the problem
-    // The offset of the pointer used. (the pointer might point to a offset != 0, the other offset
-    // needs to the added to that!)
-    BigInteger baseOffset = maybeTargetAndOffset.getOffsetForObject();
-    BigInteger finalOffsetInBits = baseOffset.add(offsetInBits);
-
-    // search for existing pointer first and return if found; else make a new one for the offset
-    return searchOrCreatePointer(object, finalOffsetInBits, maybeTargetAndOffset.getSMGState());
+    return returnBuilder.build();
   }
 
   private ValueAndSMGState searchOrCreatePointer(
@@ -555,34 +566,41 @@ public class SMGCPAExpressionEvaluator {
    *     conversion.
    * @return {@link ValueAndSMGState} tuple for the read {@link Value} and the new {@link SMGState}.
    */
-  public ValueAndSMGState readValueWithPointerDereference(
+  public List<ValueAndSMGState> readValueWithPointerDereference(
       SMGState pState, Value value, BigInteger pOffset, BigInteger pSizeInBits, CType readType)
       throws SMG2Exception {
+
+    ImmutableList.Builder<ValueAndSMGState> returnBuilder = ImmutableList.builder();
     // Get the SMGObject for the value
-    SMGStateAndOptionalSMGObjectAndOffset maybeTargetAndOffset = pState.dereferencePointer(value);
-    if (!maybeTargetAndOffset.hasSMGObjectAndOffset()) {
-      // The value is unknown and therefore does not point to a valid memory location
-      SMGState errorState =
-          maybeTargetAndOffset.getSMGState().withUnknownPointerDereferenceWhenReading(value);
+    for (SMGStateAndOptionalSMGObjectAndOffset maybeTargetAndOffset :
+        pState.dereferencePointer(value)) {
+      if (!maybeTargetAndOffset.hasSMGObjectAndOffset()) {
+        // The value is unknown and therefore does not point to a valid memory location
+        SMGState errorState =
+            maybeTargetAndOffset.getSMGState().withUnknownPointerDereferenceWhenReading(value);
 
-      // throw new SMG2Exception(errorState);
-      return ValueAndSMGState.ofUnknownValue(errorState);
+        // throw new SMG2Exception(errorState);
+        returnBuilder.add(ValueAndSMGState.ofUnknownValue(errorState));
+        continue;
+      }
+      pState = maybeTargetAndOffset.getSMGState();
+      SMGObject object = maybeTargetAndOffset.getSMGObject();
+
+      // The object may be null if no such object exists, check and log if 0
+      if (object.isZero()) {
+        SMGState errorState = pState.withNullPointerDereferenceWhenReading(object);
+        returnBuilder.add(ValueAndSMGState.ofUnknownValue(errorState));
+        continue;
+      }
+
+      // The offset of the pointer used. (the pointer might point to a offset != 0, the other offset
+      // needs to the added to that!)
+      BigInteger baseOffset = maybeTargetAndOffset.getOffsetForObject();
+      BigInteger offset = baseOffset.add(pOffset);
+
+      returnBuilder.add(readValue(pState, object, offset, pSizeInBits, readType));
     }
-    pState = maybeTargetAndOffset.getSMGState();
-    SMGObject object = maybeTargetAndOffset.getSMGObject();
-
-    // The object may be null if no such object exists, check and log if 0
-    if (object.isZero()) {
-      SMGState errorState = pState.withNullPointerDereferenceWhenReading(object);
-      return ValueAndSMGState.ofUnknownValue(errorState);
-    }
-
-    // The offset of the pointer used. (the pointer might point to a offset != 0, the other offset
-    // needs to the added to that!)
-    BigInteger baseOffset = maybeTargetAndOffset.getOffsetForObject();
-    BigInteger offset = baseOffset.add(pOffset);
-
-    return readValue(pState, object, offset, pSizeInBits, readType);
+    return returnBuilder.build();
   }
 
   /**
@@ -594,23 +612,29 @@ public class SMGCPAExpressionEvaluator {
    * @param pOffsetInBits used offset when dereferencing.
    * @return the desired {@link SMGObject} and its offset or an State with potentially an error.
    */
-  public SMGStateAndOptionalSMGObjectAndOffset getTargetObjectAndOffset(
+  public List<SMGStateAndOptionalSMGObjectAndOffset> getTargetObjectAndOffset(
       SMGState pState, Value value, BigInteger pOffsetInBits) throws SMG2Exception {
 
-    SMGStateAndOptionalSMGObjectAndOffset targetAndOffset = pState.dereferencePointer(value);
-    if (!targetAndOffset.hasSMGObjectAndOffset()) {
-      // The value is unknown and therefore does not point to a valid memory location
-      SMGState errorState =
-          targetAndOffset.getSMGState().withUnknownPointerDereferenceWhenReading(value);
-      // TODO: the analysis is not precise from this point onwards
-      return SMGStateAndOptionalSMGObjectAndOffset.of(errorState);
+    ImmutableList.Builder<SMGStateAndOptionalSMGObjectAndOffset> returnBuilder =
+        ImmutableList.builder();
+    for (SMGStateAndOptionalSMGObjectAndOffset targetAndOffset : pState.dereferencePointer(value)) {
+      if (!targetAndOffset.hasSMGObjectAndOffset()) {
+        // The value is unknown and therefore does not point to a valid memory location
+        SMGState errorState =
+            targetAndOffset.getSMGState().withUnknownPointerDereferenceWhenReading(value);
+        // TODO: the analysis is not precise from this point onwards
+        returnBuilder.add(SMGStateAndOptionalSMGObjectAndOffset.of(errorState));
+        continue;
+      }
+
+      BigInteger baseOffset = targetAndOffset.getOffsetForObject();
+      BigInteger finalOffset = baseOffset.add(pOffsetInBits);
+
+      returnBuilder.add(
+          SMGStateAndOptionalSMGObjectAndOffset.of(
+              targetAndOffset.getSMGObject(), finalOffset, targetAndOffset.getSMGState()));
     }
-
-    BigInteger baseOffset = targetAndOffset.getOffsetForObject();
-    BigInteger finalOffset = baseOffset.add(pOffsetInBits);
-
-    return SMGStateAndOptionalSMGObjectAndOffset.of(
-        targetAndOffset.getSMGObject(), finalOffset, targetAndOffset.getSMGState());
+    return returnBuilder.build();
   }
 
   /**
@@ -658,43 +682,51 @@ public class SMGCPAExpressionEvaluator {
    * @return Either distance as {@link NumericValue} or {@link UnknownValue}.
    * @throws SMG2Exception in case of critical list materilization errors
    */
-  public ValueAndSMGState calculateAddressDistance(
+  public List<ValueAndSMGState> calculateAddressDistance(
       SMGState state, Value leftPointer, Value rightPointer) throws SMG2Exception {
     SymbolicProgramConfiguration spc = state.getMemoryModel();
     if (!spc.isPointer(leftPointer) || !spc.isPointer(rightPointer)) {
       // Not known or not known as a pointer, return nothing
-      return ValueAndSMGState.ofUnknownValue(state);
+      return ImmutableList.of(ValueAndSMGState.ofUnknownValue(state));
     }
+    ImmutableList.Builder<ValueAndSMGState> returnBuilder = ImmutableList.builder();
     // We can only compare the underlying SMGObject for equality as the Values are distinct if they
     // point to different parts of the object. We need to compare the object because we can only
     // calculate the distance in the exact same object
-    SMGStateAndOptionalSMGObjectAndOffset leftTargetAndOffset =
-        state.dereferencePointer(leftPointer);
-    if (!leftTargetAndOffset.hasSMGObjectAndOffset()) {
-      return ValueAndSMGState.ofUnknownValue(leftTargetAndOffset.getSMGState());
-    }
+    for (SMGStateAndOptionalSMGObjectAndOffset leftTargetAndOffset :
+        state.dereferencePointer(leftPointer)) {
+      if (!leftTargetAndOffset.hasSMGObjectAndOffset()) {
+        returnBuilder.add(ValueAndSMGState.ofUnknownValue(leftTargetAndOffset.getSMGState()));
+        continue;
+      }
 
-    state = leftTargetAndOffset.getSMGState();
-    SMGStateAndOptionalSMGObjectAndOffset rightTargetAndOffset =
-        state.dereferencePointer(rightPointer);
-    if (!rightTargetAndOffset.hasSMGObjectAndOffset()) {
-      return ValueAndSMGState.ofUnknownValue(rightTargetAndOffset.getSMGState());
-    }
+      state = leftTargetAndOffset.getSMGState();
+      for (SMGStateAndOptionalSMGObjectAndOffset rightTargetAndOffset :
+          state.dereferencePointer(rightPointer)) {
+        if (!rightTargetAndOffset.hasSMGObjectAndOffset()) {
+          returnBuilder.add(ValueAndSMGState.ofUnknownValue(rightTargetAndOffset.getSMGState()));
+          continue;
+        }
 
-    state = rightTargetAndOffset.getSMGState();
-    SMGObject leftTarget = leftTargetAndOffset.getSMGObject();
-    SMGObject rightTarget = rightTargetAndOffset.getSMGObject();
-    if (!leftTarget.equals(rightTarget)) {
-      return ValueAndSMGState.ofUnknownValue(state);
+        state = rightTargetAndOffset.getSMGState();
+        SMGObject leftTarget = leftTargetAndOffset.getSMGObject();
+        SMGObject rightTarget = rightTargetAndOffset.getSMGObject();
+        if (!leftTarget.equals(rightTarget)) {
+          returnBuilder.add(ValueAndSMGState.ofUnknownValue(state));
+          continue;
+        }
+        // int because this is always a int
+        returnBuilder.add(
+            ValueAndSMGState.of(
+                new NumericValue(
+                    leftTargetAndOffset
+                        .getOffsetForObject()
+                        .subtract(rightTargetAndOffset.getOffsetForObject())
+                        .intValue()),
+                state));
+      }
     }
-    // int because this is always a int
-    return ValueAndSMGState.of(
-        new NumericValue(
-            leftTargetAndOffset
-                .getOffsetForObject()
-                .subtract(rightTargetAndOffset.getOffsetForObject())
-                .intValue()),
-        state);
+    return returnBuilder.build();
   }
 
   /**
@@ -862,7 +894,7 @@ public class SMGCPAExpressionEvaluator {
    * @return either a {@link SMGState} with the contents copied or a error state.
    * @throws SMG2Exception in case of abstract memory materialization errors
    */
-  public SMGState copyFromMemoryToMemory(
+  public List<SMGState> copyFromMemoryToMemory(
       Value sourcePointer,
       BigInteger sourceOffset,
       Value targetPointer,
@@ -871,106 +903,131 @@ public class SMGCPAExpressionEvaluator {
       SMGState pState)
       throws SMG2Exception {
     if (sizeToCopy.compareTo(BigInteger.ZERO) == 0) {
-      return pState;
+      return ImmutableList.of(pState);
     }
     // TODO: this could end up weird if the types sizes don't match between source and target. If
-    // you read the target after the memcpy you don't necassarly get the correct values as read
+    // you read the target after the memcpy you don't necessarily get the correct values as read
     // depends on offset + size. Is this something we just accept?
 
+    ImmutableList.Builder<SMGState> returnBuilder = ImmutableList.builder();
     // Dereference the pointers and get the source/target memory and offset
     // Start with source
-    SMGStateAndOptionalSMGObjectAndOffset maybeSourceAndOffset =
-        pState.dereferencePointer(sourcePointer);
-    if (!maybeSourceAndOffset.hasSMGObjectAndOffset()) {
-      // The value is unknown and therefore does not point to a valid memory location
-      return maybeSourceAndOffset
-          .getSMGState()
-          .withUnknownPointerDereferenceWhenReading(sourcePointer);
-    }
-    pState = maybeSourceAndOffset.getSMGState();
-    SMGObject sourceObject = maybeSourceAndOffset.getSMGObject();
+    for (SMGStateAndOptionalSMGObjectAndOffset maybeSourceAndOffset :
+        pState.dereferencePointer(sourcePointer)) {
+      if (!maybeSourceAndOffset.hasSMGObjectAndOffset()) {
+        // The value is unknown and therefore does not point to a valid memory location
+        returnBuilder.add(
+            maybeSourceAndOffset
+                .getSMGState()
+                .withUnknownPointerDereferenceWhenReading(sourcePointer));
+        continue;
+      }
+      pState = maybeSourceAndOffset.getSMGState();
+      SMGObject sourceObject = maybeSourceAndOffset.getSMGObject();
 
-    // The object may be null if no such object exists, check and log if 0
-    if (sourceObject.isZero()) {
-      return pState.withNullPointerDereferenceWhenReading(sourceObject);
-    }
+      // The object may be null if no such object exists, check and log if 0
+      if (sourceObject.isZero()) {
+        returnBuilder.add(pState.withNullPointerDereferenceWhenReading(sourceObject));
+        continue;
+      }
 
-    // The offset of the pointer used. (the pointer might point to a offset != 0, the other offset
-    // needs to the added to that!)
-    BigInteger finalSourceOffset = maybeSourceAndOffset.getOffsetForObject().add(sourceOffset);
+      // The offset of the pointer used. (the pointer might point to a offset != 0, the other offset
+      // needs to the added to that!)
+      BigInteger finalSourceOffset = maybeSourceAndOffset.getOffsetForObject().add(sourceOffset);
 
-    // The same for the target
-    SMGStateAndOptionalSMGObjectAndOffset maybeTargetAndOffset =
-        pState.dereferencePointer(targetPointer);
-    if (!maybeTargetAndOffset.hasSMGObjectAndOffset()) {
-      // The value is unknown and therefore does not point to a valid memory location
-      return maybeTargetAndOffset
-          .getSMGState()
-          .withUnknownPointerDereferenceWhenReading(targetPointer);
-    }
-    pState = maybeTargetAndOffset.getSMGState();
-    SMGObject targetObject = maybeTargetAndOffset.getSMGObject();
-
-    // The object may be null if no such object exists, check and log if 0
-    if (targetObject.isZero()) {
-      return pState.withNullPointerDereferenceWhenWriting(targetObject);
-    }
-
-    // The offset of the pointer used. (the pointer might point to a offset != 0, the other offset
-    // needs to the added to that!)
-    BigInteger finalTargetoffset = maybeTargetAndOffset.getOffsetForObject().add(targetOffset);
-
-    // Check that the memory regions don't overlapp as this results in undefined behaviour
-    if (sourceObject.equals(targetObject)) {
-      int compareOffsets = finalTargetoffset.compareTo(finalSourceOffset);
-      if (compareOffsets == 0) {
-        // overlap
-        return pState.withUndefinedbehavior(
-            "Undefined behaviour because of overlapping memory regions in a copy function. I.e."
-                + " memcpy().",
-            ImmutableList.of(targetPointer, sourcePointer));
-      } else if (compareOffsets > 0) {
-        // finalTargetoffset > finalSourceOffset -> if the finalTargetoffset < finalSourceOffset +
-        // sizeToCopy we have an overlap
-        if (finalTargetoffset.compareTo(finalSourceOffset.add(sizeToCopy)) < 0) {
-          return pState.withUndefinedbehavior(
-              "Undefined behaviour because of overlapping memory regions in a copy function. I.e."
-                  + " memcpy().",
-              ImmutableList.of(targetPointer, sourcePointer));
+      // The same for the target
+      for (SMGStateAndOptionalSMGObjectAndOffset maybeTargetAndOffset :
+          pState.dereferencePointer(targetPointer)) {
+        if (!maybeTargetAndOffset.hasSMGObjectAndOffset()) {
+          // The value is unknown and therefore does not point to a valid memory location
+          returnBuilder.add(
+              maybeTargetAndOffset
+                  .getSMGState()
+                  .withUnknownPointerDereferenceWhenReading(targetPointer));
+          continue;
         }
-      } else {
-        // finalTargetoffset < finalSourceOffset -> if the finalSourceOffset < finalTargetoffset +
-        // sizeToCopy we have an overlap
-        if (finalSourceOffset.compareTo(finalTargetoffset.add(sizeToCopy)) < 0) {
-          return pState.withUndefinedbehavior(
-              "Undefined behaviour because of overlapping memory regions in a copy function. I.e."
-                  + " memcpy().",
-              ImmutableList.of(targetPointer, sourcePointer));
+
+        pState = maybeTargetAndOffset.getSMGState();
+        SMGObject targetObject = maybeTargetAndOffset.getSMGObject();
+
+        // The object may be null if no such object exists, check and log if 0
+        if (targetObject.isZero()) {
+          returnBuilder.add(pState.withNullPointerDereferenceWhenWriting(targetObject));
+          continue;
         }
+
+        // The offset of the pointer used. (the pointer might point to a offset != 0, the other
+        // offset
+        // needs to the added to that!)
+        BigInteger finalTargetoffset = maybeTargetAndOffset.getOffsetForObject().add(targetOffset);
+
+        // Check that the memory regions don't overlapp as this results in undefined behaviour
+        if (sourceObject.equals(targetObject)) {
+          int compareOffsets = finalTargetoffset.compareTo(finalSourceOffset);
+          if (compareOffsets == 0) {
+            // overlap
+            returnBuilder.add(
+                pState.withUndefinedbehavior(
+                    "Undefined behaviour because of overlapping memory regions in a copy function."
+                        + " I.e. memcpy().",
+                    ImmutableList.of(targetPointer, sourcePointer)));
+            continue;
+
+          } else if (compareOffsets > 0) {
+            // finalTargetoffset > finalSourceOffset -> if the finalTargetoffset < finalSourceOffset
+            // +
+            // sizeToCopy we have an overlap
+            if (finalTargetoffset.compareTo(finalSourceOffset.add(sizeToCopy)) < 0) {
+              returnBuilder.add(
+                  pState.withUndefinedbehavior(
+                      "Undefined behaviour because of overlapping memory regions in a copy"
+                          + " function. I.e. memcpy().",
+                      ImmutableList.of(targetPointer, sourcePointer)));
+              continue;
+            }
+          } else {
+            // finalTargetoffset < finalSourceOffset -> if the finalSourceOffset < finalTargetoffset
+            // +
+            // sizeToCopy we have an overlap
+            if (finalSourceOffset.compareTo(finalTargetoffset.add(sizeToCopy)) < 0) {
+              returnBuilder.add(
+                  pState.withUndefinedbehavior(
+                      "Undefined behaviour because of overlapping memory regions in a copy"
+                          + " function. I.e. memcpy().",
+                      ImmutableList.of(targetPointer, sourcePointer)));
+              continue;
+            }
+          }
+        }
+
+        // Check that we don't read beyond the source size and don't write beyonde the target size
+        // and
+        // that we don't start before the object begins
+        if (sourceObject.getSize().subtract(finalSourceOffset).compareTo(sizeToCopy) < 0
+            || finalSourceOffset.compareTo(BigInteger.ZERO) < 0) {
+          // This would be an invalid read
+          SMGState currentState = pState.withInvalidRead(sourceObject);
+          if (targetObject.getSize().subtract(finalTargetoffset).compareTo(sizeToCopy) < 0
+              || finalTargetoffset.compareTo(BigInteger.ZERO) < 0) {
+            // That would be an invalid write
+            currentState = currentState.withInvalidWrite(sourceObject);
+          }
+          returnBuilder.add(currentState);
+          continue;
+        }
+        if (targetObject.getSize().subtract(finalTargetoffset).compareTo(sizeToCopy) < 0
+            || finalTargetoffset.compareTo(BigInteger.ZERO) < 0) {
+          // That would be an invalid write
+          returnBuilder.add(pState.withInvalidWrite(sourceObject));
+          continue;
+        }
+
+        returnBuilder.add(
+            pState.copySMGObjectContentToSMGObject(
+                sourceObject, finalSourceOffset, targetObject, finalTargetoffset, sizeToCopy));
       }
     }
-
-    // Check that we don't read beyond the source size and don't write beyonde the target size and
-    // that we don't start before the object begins
-    if (sourceObject.getSize().subtract(finalSourceOffset).compareTo(sizeToCopy) < 0
-        || finalSourceOffset.compareTo(BigInteger.ZERO) < 0) {
-      // This would be an invalid read
-      SMGState currentState = pState.withInvalidRead(sourceObject);
-      if (targetObject.getSize().subtract(finalTargetoffset).compareTo(sizeToCopy) < 0
-          || finalTargetoffset.compareTo(BigInteger.ZERO) < 0) {
-        // That would be an invalid write
-        currentState = currentState.withInvalidWrite(sourceObject);
-      }
-      return currentState;
-    }
-    if (targetObject.getSize().subtract(finalTargetoffset).compareTo(sizeToCopy) < 0
-        || finalTargetoffset.compareTo(BigInteger.ZERO) < 0) {
-      // That would be an invalid write
-      return pState.withInvalidWrite(sourceObject);
-    }
-
-    return pState.copySMGObjectContentToSMGObject(
-        sourceObject, finalSourceOffset, targetObject, finalTargetoffset, sizeToCopy);
+    return returnBuilder.build();
   }
 
   /**
@@ -998,8 +1055,11 @@ public class SMGCPAExpressionEvaluator {
       throws SMG2Exception {
     // Dereference the pointers and get the first/second memory and offset
     // Start with first
-    SMGStateAndOptionalSMGObjectAndOffset maybefirstMemoryAndOffset =
+    List<SMGStateAndOptionalSMGObjectAndOffset> maybefirstMemorysAndOffsets =
         pState.dereferencePointer(firstAddress);
+    Preconditions.checkArgument(maybefirstMemorysAndOffsets.size() == 1);
+    SMGStateAndOptionalSMGObjectAndOffset maybefirstMemoryAndOffset =
+        maybefirstMemorysAndOffsets.get(0);
     if (!maybefirstMemoryAndOffset.hasSMGObjectAndOffset()) {
       // The value is unknown and therefore does not point to a valid memory location
       return ValueAndSMGState.ofUnknownValue(
@@ -1022,8 +1082,11 @@ public class SMGCPAExpressionEvaluator {
         maybefirstMemoryAndOffset.getOffsetForObject().add(pFirstOffsetInBits);
 
     // The same for the second address
-    SMGStateAndOptionalSMGObjectAndOffset maybeSecondMemoryAndOffset =
+    List<SMGStateAndOptionalSMGObjectAndOffset> maybeSecondMemorysAndOffsets =
         pState.dereferencePointer(secondAddress);
+    Preconditions.checkArgument(maybeSecondMemorysAndOffsets.size() == 1);
+    SMGStateAndOptionalSMGObjectAndOffset maybeSecondMemoryAndOffset =
+        maybeSecondMemorysAndOffsets.get(0);
     if (!maybeSecondMemoryAndOffset.hasSMGObjectAndOffset()) {
       // The value is unknown and therefore does not point to a valid memory location
       return ValueAndSMGState.ofUnknownValue(

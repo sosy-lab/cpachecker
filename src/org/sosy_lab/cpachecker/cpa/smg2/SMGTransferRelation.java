@@ -508,8 +508,10 @@ public class SMGTransferRelation
     if (valueType instanceof CArrayType && cParamType instanceof CArrayType) {
       // Take the pointer to the local array and get the memory area, then associate this memory
       // area with the variable name
-      SMGStateAndOptionalSMGObjectAndOffset knownMemoryAndState =
+      List<SMGStateAndOptionalSMGObjectAndOffset> knownMemorysAndStates =
           currentState.dereferencePointer(paramValue);
+      Preconditions.checkArgument(knownMemorysAndStates.size() == 1);
+      SMGStateAndOptionalSMGObjectAndOffset knownMemoryAndState = knownMemorysAndStates.get(0);
       currentState = knownMemoryAndState.getSMGState();
       if (!knownMemoryAndState.hasSMGObjectAndOffset()) {
         throw new SMG2Exception("Could not associate a local array in a new function.");
@@ -519,6 +521,7 @@ public class SMGTransferRelation
       // arrays don't get copied! They are handled via pointers.
       SMGObject knownMemory = knownMemoryAndState.getSMGObject();
       return currentState.copyAndAddLocalVariable(knownMemory, varName, cParamType);
+
     } else if (SMGCPAExpressionEvaluator.isStructOrUnionType(valueType)
         && SMGCPAExpressionEvaluator.isStructOrUnionType(cParamType)) {
 
@@ -971,11 +974,15 @@ public class SMGTransferRelation
           properPointer = addressInValue.getMemoryAddress();
         } else {
           // Offset known but not 0, search for/create the correct address
-          ValueAndSMGState newAddressAndState =
+          List<ValueAndSMGState> newAddressesAndStates =
               evaluator.findOrcreateNewPointer(
                   addressInValue.getMemoryAddress(),
                   addressInValue.getOffset().asNumericValue().bigInteger(),
                   currentState);
+
+          // Very unlikely that a 0+ list abstraction gets materialized here
+          Preconditions.checkArgument(newAddressesAndStates.size() == 1);
+          ValueAndSMGState newAddressAndState = newAddressesAndStates.get(0);
           currentState = newAddressAndState.getState();
           properPointer = newAddressAndState.getValue();
         }
@@ -1006,11 +1013,15 @@ public class SMGTransferRelation
           valueToWrite = addressInValue.getMemoryAddress();
         } else if (addressInValue.getOffset().isNumericValue()) {
           // Offset known but not 0, search for/create the correct address
-          ValueAndSMGState newAddressAndState =
+          List<ValueAndSMGState> newAddressesAndStates =
               evaluator.findOrcreateNewPointer(
                   addressInValue.getMemoryAddress(),
                   addressInValue.getOffset().asNumericValue().bigInteger(),
                   currentState);
+
+          // Very unlikely that a 0+ list abstraction gets materialized here
+          Preconditions.checkArgument(newAddressesAndStates.size() == 1);
+          ValueAndSMGState newAddressAndState = newAddressesAndStates.get(0);
           currentState = newAddressAndState.getState();
           valueToWrite = newAddressAndState.getValue();
         } else {

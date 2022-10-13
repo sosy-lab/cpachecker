@@ -405,13 +405,16 @@ public class SMGCPABuiltins {
     BigInteger offset = BigInteger.ZERO;
     for (Value varArg : currentStack.getVariableArguments()) {
       // Fill the arra with var args
-      currentState =
+      List<SMGState> writtenStates =
           currentState.writeValueTo(
               address,
               offset,
               sizeInBitsVarArg,
               varArg,
               SMGCPAExpressionEvaluator.getCanonicalType(secondArg));
+      // Unlikely that someone throws an abstracted list into a var args
+      Preconditions.checkArgument(writtenStates.size() == 1);
+      currentState = writtenStates.get(0);
       offset = offset.add(sizeInBitsVarArg);
     }
 
@@ -692,8 +695,11 @@ public class SMGCPABuiltins {
       SMGState stateWithNewHeap = addressAndState.getState();
 
       if (options.getZeroingMemoryAllocation().contains(functionName)) {
+        // Since this is newly created memory get(0) is fine
         stateWithNewHeap =
-            stateWithNewHeap.writeToZero(addressToNewRegion, functionCall.getExpressionType());
+            stateWithNewHeap
+                .writeToZero(addressToNewRegion, functionCall.getExpressionType())
+                .get(0);
       }
       resultBuilder.add(ValueAndSMGState.of(addressToNewRegion, stateWithNewHeap));
 
@@ -862,26 +868,33 @@ public class SMGCPABuiltins {
 
     BigInteger sizeOfCharInBits = BigInteger.valueOf(machineModel.getSizeofCharInBits());
 
+    // This precondition has to hold for the get(0) getters
+    Preconditions.checkArgument(
+        !currentState.getMemoryModel().pointsToZeroPlus(bufferMemoryAddress));
     if (charValue.isNumericValue()
         && charValue.asNumericValue().bigInteger().equals(BigInteger.ZERO)) {
       // Create one large edge for 0 (the SMG cuts 0 edges on its own)
       currentState =
-          currentState.writeValueTo(
-              bufferMemoryAddress,
-              bufferOffsetInBits,
-              sizeOfCharInBits.multiply(BigInteger.valueOf(count)),
-              charValue,
-              CNumericTypes.CHAR);
+          currentState
+              .writeValueTo(
+                  bufferMemoryAddress,
+                  bufferOffsetInBits,
+                  sizeOfCharInBits.multiply(BigInteger.valueOf(count)),
+                  charValue,
+                  CNumericTypes.CHAR)
+              .get(0);
     } else {
       // Write each char on its own
       for (int c = 0; c < count; c++) {
         currentState =
-            currentState.writeValueTo(
-                bufferMemoryAddress,
-                bufferOffsetInBits.add(BigInteger.valueOf(c).multiply(sizeOfCharInBits)),
-                sizeOfCharInBits,
-                charValue,
-                CNumericTypes.CHAR);
+            currentState
+                .writeValueTo(
+                    bufferMemoryAddress,
+                    bufferOffsetInBits.add(BigInteger.valueOf(c).multiply(sizeOfCharInBits)),
+                    sizeOfCharInBits,
+                    charValue,
+                    CNumericTypes.CHAR)
+                .get(0);
       }
     }
     // Since this returns the pointer of the buffer we check the offset of the AddressExpression, if
@@ -890,7 +903,9 @@ public class SMGCPABuiltins {
       return ValueAndSMGState.of(bufferMemoryAddress, currentState);
     } else {
       ValueAndSMGState newPointerAndState =
-          evaluator.findOrcreateNewPointer(bufferMemoryAddress, bufferOffsetInBits, currentState);
+          evaluator
+              .findOrcreateNewPointer(bufferMemoryAddress, bufferOffsetInBits, currentState)
+              .get(0);
       return ValueAndSMGState.of(newPointerAndState.getValue(), newPointerAndState.getState());
     }
   }
@@ -1038,7 +1053,7 @@ public class SMGCPABuiltins {
       Value maybeAddressValue = addressAndState.getValue();
       SMGState currentState = addressAndState.getState();
 
-      resultBuilder.add(currentState.free(maybeAddressValue, pFunctionCall, cfaEdge));
+      resultBuilder.addAll(currentState.free(maybeAddressValue, pFunctionCall, cfaEdge));
     }
 
     return resultBuilder.build();
@@ -1134,7 +1149,7 @@ public class SMGCPABuiltins {
             continue;
           }
 
-          resultBuilder.add(
+          resultBuilder.addAll(
               evaluateMemcpy(currentState, targetAddressExpr, sourceAddressExpr, sizeValue));
         }
       }
@@ -1158,7 +1173,7 @@ public class SMGCPABuiltins {
    *     went wrong, i.e. invalid/read/write.
    * @throws SMG2Exception in case of critical errors when materilizing memory
    */
-  private ValueAndSMGState evaluateMemcpy(
+  private List<ValueAndSMGState> evaluateMemcpy(
       SMGState pState,
       AddressExpression targetAddress,
       AddressExpression sourceAddress,
@@ -1181,31 +1196,43 @@ public class SMGCPABuiltins {
     BigInteger sourceOffset = sourceAddress.getOffset().asNumericValue().bigInteger();
     Value targetMemoryAddress = targetAddress.getMemoryAddress();
 
+    ImmutableList.Builder<ValueAndSMGState> resultBuilder = ImmutableList.builder();
     // Since this returns the pointer of the buffer we check the offset of the AddressExpression, if
     // its 0 we can return the known pointer, else we create a new one.
     if (targetOffset.compareTo(BigInteger.ZERO) == 0) {
-      return ValueAndSMGState.of(
-          targetMemoryAddress,
+      List<SMGState> copyResultStates =
           evaluator.copyFromMemoryToMemory(
               sourceAddress.getMemoryAddress(),
               sourceOffset,
               targetMemoryAddress,
               targetOffset,
               sizeToCopyInBits,
-              pState));
+              pState);
+
+      for (SMGState copyResultState : copyResultStates) {
+        resultBuilder.add(ValueAndSMGState.of(targetMemoryAddress, copyResultState));
+      }
+
     } else {
-      ValueAndSMGState newPointerAndState =
+      List<ValueAndSMGState> newPointersAndStates =
           evaluator.findOrcreateNewPointer(targetMemoryAddress, targetOffset, pState);
-      return ValueAndSMGState.of(
-          newPointerAndState.getValue(),
-          evaluator.copyFromMemoryToMemory(
-              sourceAddress.getMemoryAddress(),
-              sourceOffset,
-              targetMemoryAddress,
-              targetOffset,
-              sizeToCopyInBits,
-              newPointerAndState.getState()));
+      for (ValueAndSMGState newPointerAndState : newPointersAndStates) {
+        // get(0) is fine as this can't double materialize a 0+
+        resultBuilder.add(
+            ValueAndSMGState.of(
+                newPointerAndState.getValue(),
+                evaluator
+                    .copyFromMemoryToMemory(
+                        sourceAddress.getMemoryAddress(),
+                        sourceOffset,
+                        targetMemoryAddress,
+                        targetOffset,
+                        sizeToCopyInBits,
+                        newPointerAndState.getState())
+                    .get(0)));
+      }
     }
+    return resultBuilder.build();
   }
 
   /**

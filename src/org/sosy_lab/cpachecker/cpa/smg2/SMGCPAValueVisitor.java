@@ -213,9 +213,10 @@ public class SMGCPAValueVisitor
         Value subscriptValue = subscriptValueAndState.getValue();
         SMGState newState = subscriptValueAndState.getState();
         // If the subscript is a unknown value, we can't read anything and return unknown
+        // We also overapproximate the access and assume unsafe
         if (!subscriptValue.isNumericValue()) {
-          // TODO: log this!
-          resultBuilder.add(ValueAndSMGState.ofUnknownValue(newState));
+          resultBuilder.add(
+              ValueAndSMGState.ofUnknownValue(newState.withUnknownOffsetMemoryAccess()));
           continue;
         }
 
@@ -245,14 +246,14 @@ public class SMGCPAValueVisitor
           Preconditions.checkArgument(!(arrayValue instanceof AddressExpression));
         }
 
-        resultBuilder.add(
+        resultBuilder.addAll(
             evaluateReadOfValueAndOffset(arrayValue, subscriptOffset, returnType, newState));
       }
     }
     return resultBuilder.build();
   }
 
-  private ValueAndSMGState evaluateReadOfValueAndOffset(
+  private List<ValueAndSMGState> evaluateReadOfValueAndOffset(
       Value arrayValue, BigInteger additionalOffset, CType pReturnType, SMGState pCurrentState)
       throws CPATransferException {
     SMGState newState = pCurrentState;
@@ -262,29 +263,35 @@ public class SMGCPAValueVisitor
       AddressExpression arrayAddr = (AddressExpression) arrayValue;
       Value addrOffsetValue = arrayAddr.getOffset();
       if (!addrOffsetValue.isNumericValue()) {
-        return ValueAndSMGState.ofUnknownValue(newState);
+        return ImmutableList.of(ValueAndSMGState.ofUnknownValue(newState));
       }
       BigInteger finalOffset = addrOffsetValue.asNumericValue().bigInteger().add(additionalOffset);
       if (SMGCPAExpressionEvaluator.isStructOrUnionType(returnType)
           || returnType instanceof CArrayType
           || returnType instanceof CFunctionType) {
-        return ValueAndSMGState.of(
-            arrayAddr.copyWithNewOffset(new NumericValue(finalOffset)), newState);
+        return ImmutableList.of(
+            ValueAndSMGState.of(
+                arrayAddr.copyWithNewOffset(new NumericValue(finalOffset)), newState));
 
       } else if (returnType instanceof CPointerType) {
         // This of course does not need to be a pointer value! If this is a unknown we just
         // return unknown.
         // All else gets wrapped and the final read/deref will throw an error
-        ValueAndSMGState readPointerAndState =
+        ImmutableList.Builder<ValueAndSMGState> returnBuilder = ImmutableList.builder();
+        for (ValueAndSMGState readPointerAndState :
             evaluator.readValueWithPointerDereference(
-                newState, arrayAddr.getMemoryAddress(), finalOffset, typeSizeInBits, returnType);
-        if (readPointerAndState.getValue().isUnknown()) {
-          return ValueAndSMGState.ofUnknownValue(readPointerAndState.getState());
-        } else {
-          return ValueAndSMGState.of(
-              AddressExpression.withZeroOffset(readPointerAndState.getValue(), returnType),
-              readPointerAndState.getState());
+                newState, arrayAddr.getMemoryAddress(), finalOffset, typeSizeInBits, returnType)) {
+
+          if (readPointerAndState.getValue().isUnknown()) {
+            returnBuilder.add(ValueAndSMGState.ofUnknownValue(readPointerAndState.getState()));
+          } else {
+            returnBuilder.add(
+                ValueAndSMGState.of(
+                    AddressExpression.withZeroOffset(readPointerAndState.getValue(), returnType),
+                    readPointerAndState.getState()));
+          }
         }
+        return returnBuilder.build();
 
       } else {
         return evaluator.readValueWithPointerDereference(
@@ -301,10 +308,11 @@ public class SMGCPAValueVisitor
           || returnType instanceof CArrayType
           || returnType instanceof CFunctionType) {
 
-        return ValueAndSMGState.of(
-            SymbolicValueFactory.getInstance()
-                .newIdentifier(memloc.withAddedOffset(additionalOffset.longValueExact())),
-            newState);
+        return ImmutableList.of(
+            ValueAndSMGState.of(
+                SymbolicValueFactory.getInstance()
+                    .newIdentifier(memloc.withAddedOffset(additionalOffset.longValueExact())),
+                newState));
 
       } else if (returnType instanceof CPointerType) {
         // This of course does not need to be a pointer value! If this is a unknown we just
@@ -314,21 +322,23 @@ public class SMGCPAValueVisitor
             evaluator.readStackOrGlobalVariable(
                 newState, qualifiedVarName, finalOffset, typeSizeInBits, returnType);
         if (readPointerAndState.getValue().isUnknown()) {
-          return ValueAndSMGState.ofUnknownValue(readPointerAndState.getState());
+          return ImmutableList.of(ValueAndSMGState.ofUnknownValue(readPointerAndState.getState()));
         } else {
-          return ValueAndSMGState.of(
-              AddressExpression.withZeroOffset(readPointerAndState.getValue(), returnType),
-              readPointerAndState.getState());
+          return ImmutableList.of(
+              ValueAndSMGState.of(
+                  AddressExpression.withZeroOffset(readPointerAndState.getValue(), returnType),
+                  readPointerAndState.getState()));
         }
 
       } else {
         // TODO: check that the return types match what we return!!!!
-        return evaluator.readStackOrGlobalVariable(
-            newState, qualifiedVarName, finalOffset, typeSizeInBits, returnType);
+        return ImmutableList.of(
+            evaluator.readStackOrGlobalVariable(
+                newState, qualifiedVarName, finalOffset, typeSizeInBits, returnType));
       }
 
     } else {
-      return ValueAndSMGState.ofUnknownValue(newState);
+      return ImmutableList.of(ValueAndSMGState.ofUnknownValue(newState));
     }
   }
 
@@ -466,7 +476,7 @@ public class SMGCPAValueVisitor
 
             // Pointer arithmetics case and fall through (handled inside the method)
             // i.e. address + 3
-            resultBuilder.add(
+            resultBuilder.addAll(
                 calculatePointerArithmetics(
                     leftAddrExpr,
                     rightAddrExpr,
@@ -658,7 +668,8 @@ public class SMGCPAValueVisitor
         Preconditions.checkArgument(!(structValue instanceof AddressExpression));
       }
 
-      builder.add(evaluateReadOfValueAndOffset(structValue, fieldOffset, returnType, currentState));
+      builder.addAll(
+          evaluateReadOfValueAndOffset(structValue, fieldOffset, returnType, currentState));
     }
     return builder.build();
   }
@@ -935,7 +946,7 @@ public class SMGCPAValueVisitor
       Value offset = pointerValue.getOffset();
       if (!offset.isNumericValue()) {
         // If the offset is not numericly known we can't read a value, return unknown
-        builder.add(ValueAndSMGState.ofUnknownValue(currentState));
+        builder.add(ValueAndSMGState.ofUnknownValue(currentState.withUnknownOffsetMemoryAccess()));
         continue;
       }
 
@@ -950,13 +961,18 @@ public class SMGCPAValueVisitor
       } else if (returnType instanceof CArrayType) {
         // For arrays we want to actually read the values at the addresses
         // Dereference the Value and return it. The read checks for validity etc.
+        // The precondition is a precondition for get(0) because of no state split
+        Preconditions.checkArgument(
+            !currentState.getMemoryModel().pointsToZeroPlus(pointerValue.getMemoryAddress()));
         ValueAndSMGState readArray =
-            evaluator.readValueWithPointerDereference(
-                currentState,
-                pointerValue.getMemoryAddress(),
-                offsetInBits,
-                sizeInBits,
-                returnType);
+            evaluator
+                .readValueWithPointerDereference(
+                    currentState,
+                    pointerValue.getMemoryAddress(),
+                    offsetInBits,
+                    sizeInBits,
+                    returnType)
+                .get(0);
         currentState = readArray.getState();
         builder.add(readArray);
 
@@ -967,13 +983,18 @@ public class SMGCPAValueVisitor
         // just dereference the pointer with the correct type
 
         // Dereference the Value and return it. The read checks for validity etc.
+        // The precondition is a precondition for get(0) because of no state split
+        Preconditions.checkArgument(
+            !currentState.getMemoryModel().pointsToZeroPlus(pointerValue.getMemoryAddress()));
         ValueAndSMGState readValueAndState =
-            evaluator.readValueWithPointerDereference(
-                currentState,
-                pointerValue.getMemoryAddress(),
-                offsetInBits,
-                sizeInBits,
-                returnType);
+            evaluator
+                .readValueWithPointerDereference(
+                    currentState,
+                    pointerValue.getMemoryAddress(),
+                    offsetInBits,
+                    sizeInBits,
+                    returnType)
+                .get(0);
 
         if (returnType instanceof CPointerType) {
           // In the pointer case we would need to encapsulate it again
@@ -2007,7 +2028,7 @@ public class SMGCPAValueVisitor
    *     state.
    * @throws SMG2Exception in case of critical errors when materilizing abstract memory.
    */
-  private ValueAndSMGState calculatePointerArithmetics(
+  private List<ValueAndSMGState> calculatePointerArithmetics(
       Value leftValue,
       Value rightValue,
       BinaryOperator binaryOperator,
@@ -2019,7 +2040,7 @@ public class SMGCPAValueVisitor
     // are addresses we allow the distance, else unknown (we can't dereference symbolics)
     // TODO: stop for illegal pointer arith?
     if (binaryOperator != BinaryOperator.PLUS && binaryOperator != BinaryOperator.MINUS) {
-      return ValueAndSMGState.ofUnknownValue(currentState);
+      return ImmutableList.of(ValueAndSMGState.ofUnknownValue(currentState));
     }
 
     // The canonical type is the return type of the pointer expression!
@@ -2033,7 +2054,7 @@ public class SMGCPAValueVisitor
       Value addressOffset = addressValue.getOffset();
       if (!rightValue.isNumericValue() || !addressOffset.isNumericValue()) {
         // TODO: symbolic values if possible
-        return ValueAndSMGState.ofUnknownValue(currentState);
+        return ImmutableList.of(ValueAndSMGState.ofUnknownValue(currentState));
       }
 
       Value correctlyTypedOffset;
@@ -2065,7 +2086,8 @@ public class SMGCPAValueVisitor
               binaryOperator,
               calculationType);
 
-      return ValueAndSMGState.of(addressValue.copyWithNewOffset(finalOffset), currentState);
+      return ImmutableList.of(
+          ValueAndSMGState.of(addressValue.copyWithNewOffset(finalOffset), currentState));
 
     } else if (!(leftValue instanceof AddressExpression)
         && rightValue instanceof AddressExpression) {
@@ -2075,7 +2097,7 @@ public class SMGCPAValueVisitor
           || !addressOffset.isNumericValue()
           || binaryOperator == BinaryOperator.MINUS) {
         // TODO: symbolic values if possible
-        return ValueAndSMGState.ofUnknownValue(currentState);
+        return ImmutableList.of(ValueAndSMGState.ofUnknownValue(currentState));
       }
       Value correctlyTypedOffset;
       if (calculationType instanceof CPointerType) {
@@ -2103,7 +2125,8 @@ public class SMGCPAValueVisitor
               binaryOperator,
               calculationType);
 
-      return ValueAndSMGState.of(addressValue.copyWithNewOffset(finalOffset), currentState);
+      return ImmutableList.of(
+          ValueAndSMGState.of(addressValue.copyWithNewOffset(finalOffset), currentState));
 
     } else {
       // Either we have 2 address expressions or 2 numeric 0
@@ -2113,7 +2136,7 @@ public class SMGCPAValueVisitor
               .asNumericValue()
               .getNumber()
               .equals(leftValue.asNumericValue().getNumber())) {
-        return ValueAndSMGState.of(new NumericValue(0), currentState);
+        return ImmutableList.of(ValueAndSMGState.of(new NumericValue(0), currentState));
       }
       // Both are pointers, we allow minus here to get the distance
       AddressExpression addressRight = (AddressExpression) rightValue;
@@ -2128,43 +2151,49 @@ public class SMGCPAValueVisitor
           || !rightOffset.isNumericValue()
           || !leftOffset.isNumericValue()) {
         // TODO: symbolic values if possible
-        return ValueAndSMGState.ofUnknownValue(currentState);
+        return ImmutableList.of(ValueAndSMGState.ofUnknownValue(currentState));
       }
 
+      ImmutableList.Builder<ValueAndSMGState> returnBuilder = ImmutableList.builder();
       // Our offsets are in bits here! This also checks that its the same underlying memory object.
-      ValueAndSMGState distanceInBitsAndState =
+      for (ValueAndSMGState distanceInBitsAndState :
           evaluator.calculateAddressDistance(
-              currentState, addressLeft.getMemoryAddress(), addressRight.getMemoryAddress());
+              currentState, addressLeft.getMemoryAddress(), addressRight.getMemoryAddress())) {
 
-      Value distanceInBits = distanceInBitsAndState.getValue();
-      currentState = distanceInBitsAndState.getState();
-      if (!distanceInBits.isNumericValue()) {
-        return ValueAndSMGState.of(distanceInBits, currentState);
+        Value distanceInBits = distanceInBitsAndState.getValue();
+        currentState = distanceInBitsAndState.getState();
+        if (!distanceInBits.isNumericValue()) {
+          returnBuilder.add(ValueAndSMGState.of(distanceInBits, currentState));
+          continue;
+        }
+
+        // distance in bits / type size = distance
+        // The type in both pointers is the same, we need the return type from one of them
+        NumericValue size;
+        if (addressRight.getType() instanceof CPointerType) {
+          size =
+              new NumericValue(
+                  evaluator.getBitSizeof(
+                      currentState, ((CPointerType) addressRight.getType()).getType()));
+        } else if (addressRight.getType() instanceof CArrayType) {
+          size =
+              new NumericValue(
+                  evaluator.getBitSizeof(currentState, ((CArrayType) addressRight.getType())));
+        } else {
+          returnBuilder.add(ValueAndSMGState.ofUnknownValue(currentState));
+          continue;
+        }
+        Value distance =
+            arithmeticOperation(
+                (NumericValue) distanceInBits,
+                size,
+                BinaryOperator.DIVIDE,
+                evaluator.getMachineModel().getPointerEquivalentSimpleType());
+
+        returnBuilder.add(ValueAndSMGState.of(distance, currentState));
+        continue;
       }
-
-      // distance in bits / type size = distance
-      // The type in both pointers is the same, we need the return type from one of them
-      NumericValue size;
-      if (addressRight.getType() instanceof CPointerType) {
-        size =
-            new NumericValue(
-                evaluator.getBitSizeof(
-                    currentState, ((CPointerType) addressRight.getType()).getType()));
-      } else if (addressRight.getType() instanceof CArrayType) {
-        size =
-            new NumericValue(
-                evaluator.getBitSizeof(currentState, ((CArrayType) addressRight.getType())));
-      } else {
-        return ValueAndSMGState.ofUnknownValue(currentState);
-      }
-      Value distance =
-          arithmeticOperation(
-              (NumericValue) distanceInBits,
-              size,
-              BinaryOperator.DIVIDE,
-              evaluator.getMachineModel().getPointerEquivalentSimpleType());
-
-      return ValueAndSMGState.of(distance, currentState);
+      return returnBuilder.build();
     }
   }
 

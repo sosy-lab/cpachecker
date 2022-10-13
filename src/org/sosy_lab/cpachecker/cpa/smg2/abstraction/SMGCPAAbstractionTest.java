@@ -14,6 +14,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import java.math.BigInteger;
+import java.util.List;
 import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Set;
@@ -99,6 +100,41 @@ public class SMGCPAAbstractionTest {
 
     // visitor = new SMGCPAValueVisitor(evaluator, currentState, new DummyCFAEdge(null, null),
     // logger);
+  }
+
+  @Test
+  public void zeroPlusRemovalTest() throws SMG2Exception, InvalidConfigurationException {
+    // We use a small length, does not matter at all
+    int sizeOfList = 3;
+    resetSMGStateAndVisitor();
+    Value[] pointers = buildConcreteList(false, sllSize, sizeOfList);
+    SMGCPAAbstractionManager absFinder = new SMGCPAAbstractionManager(currentState, sizeOfList);
+    // Now we have a 3+SLS
+    currentState = absFinder.findAndAbstractLists();
+    // Materialize the complete list; We should have 3 concrete objects again and a fourth 0+
+    List<SMGStateAndOptionalSMGObjectAndOffset> statesAndResultingObjects =
+        currentState.dereferencePointer(pointers[sizeOfList - 1]);
+    Preconditions.checkArgument(statesAndResultingObjects.size() == 1);
+    SMGStateAndOptionalSMGObjectAndOffset stateAndResultingObject =
+        statesAndResultingObjects.get(0);
+    currentState = stateAndResultingObject.getSMGState();
+    SMGObject lastConcreteListObject = stateAndResultingObject.getSMGObject();
+    assertThat(stateAndResultingObject.getOffsetForObject())
+        .isEquivalentAccordingToCompareTo(BigInteger.ZERO);
+    SMGValueAndSMGState readValueAndState =
+        currentState.readSMGValue(lastConcreteListObject, nfo, pointerSizeInBits);
+    currentState = readValueAndState.getSMGState();
+    SMGValue readValue = readValueAndState.getSMGValue();
+    // Confirm that this is a pointer to a 0+ SLS
+    assertThat(currentState.getMemoryModel().getSmg().isPointer(readValue)).isTrue();
+    SMGPointsToEdge pointsToEdge =
+        currentState.getMemoryModel().getSmg().getPTEdge(readValue).orElseThrow();
+    assertThat(pointsToEdge.pointsTo() instanceof SMGSinglyLinkedListSegment).isTrue();
+    assertThat(((SMGSinglyLinkedListSegment) pointsToEdge.pointsTo()).getMinLength()).isEqualTo(0);
+
+    // Now deref the next pointer to the 0+ object; this results in 2 states, one where the 0+
+    // vanishes and one where we generate a new concrete list element and keep our 0+
+    // TODO: this
   }
 
   /*
@@ -400,7 +436,7 @@ public class SMGCPAAbstractionTest {
 
     for (int i = 0; i < listSize; i++) {
       SMGStateAndOptionalSMGObjectAndOffset returnedObjAndState =
-          currentState.dereferencePointer(pointers[i]);
+          currentState.dereferencePointer(pointers[i]).get(0);
       currentState = returnedObjAndState.getSMGState();
       SMGObject newObj = returnedObjAndState.getSMGObject();
       assertThat(!(newObj instanceof SMGSinglyLinkedListSegment)).isTrue();
@@ -499,7 +535,7 @@ public class SMGCPAAbstractionTest {
 
     for (int i = 0; i < TEST_LIST_LENGTH; i++) {
       SMGStateAndOptionalSMGObjectAndOffset returnedObjAndState =
-          currentState.dereferencePointer(pointers[i]);
+          currentState.dereferencePointer(pointers[i]).get(0);
       currentState = returnedObjAndState.getSMGState();
       SMGObject newObj = returnedObjAndState.getSMGObject();
       assertThat(!(newObj instanceof SMGSinglyLinkedListSegment)).isTrue();
@@ -610,8 +646,21 @@ public class SMGCPAAbstractionTest {
     SMGObject[] previous = new SMGObject[TEST_LIST_LENGTH];
     // The result value is simply the value pointer to the first concrete element
     for (int i = 0; i < TEST_LIST_LENGTH; i++) {
-      SMGValueAndSMGState resultValueAndState =
+      List<SMGValueAndSMGState> resultValuesAndStates =
           materializer.handleMaterilisation(pointerToFirst, currentAbstraction, currentState);
+      SMGValueAndSMGState resultValueAndState;
+      if (i + 1 == TEST_LIST_LENGTH) {
+        assertThat(resultValuesAndStates).hasSize(2);
+        // 2 states, one for a extended list with 0+ and one without 0+ that is not extended
+        // We don't check that in this test, but assume that the second item is the non extended
+        // version
+        // TODO: make this assumption concrete somehow
+        resultValueAndState = resultValuesAndStates.get(1);
+      } else {
+        assertThat(resultValuesAndStates).hasSize(1);
+        resultValueAndState = resultValuesAndStates.get(0);
+      }
+
       currentState = resultValueAndState.getSMGState();
       Preconditions.checkArgument(
           currentState.getMemoryModel().getHeapObjects().size()
@@ -740,8 +789,20 @@ public class SMGCPAAbstractionTest {
 
     // The result value is simply the value pointer to the first concrete element
     for (int i = 0; i < TEST_LIST_LENGTH; i++) {
-      SMGValueAndSMGState resultValueAndState =
+      List<SMGValueAndSMGState> resultValuesAndStates =
           materializer.handleMaterilisation(pointerToFirst, currentAbstraction, currentState);
+      SMGValueAndSMGState resultValueAndState;
+      if (i + 1 == TEST_LIST_LENGTH) {
+        assertThat(resultValuesAndStates).hasSize(2);
+        // 2 states, one for a extended list with 0+ and one without 0+ that is not extended
+        // We don't check that in this test, but assume that the second item is the non extended
+        // version
+        // TODO: make this assumption concrete somehow
+        resultValueAndState = resultValuesAndStates.get(1);
+      } else {
+        assertThat(resultValuesAndStates).hasSize(1);
+        resultValueAndState = resultValuesAndStates.get(0);
+      }
       currentState = resultValueAndState.getSMGState();
       Preconditions.checkArgument(
           currentState.getMemoryModel().getHeapObjects().size()
@@ -1019,8 +1080,20 @@ public class SMGCPAAbstractionTest {
 
     // The result value is simply the value pointer to the first concrete element
     for (int i = 0; i < length; i++) {
-      SMGValueAndSMGState resultValueAndState =
+      List<SMGValueAndSMGState> resultValuesAndStates =
           materializer.handleMaterilisation(pointerToFirst, currentAbstraction, currentState);
+      SMGValueAndSMGState resultValueAndState;
+      if (i + 1 == TEST_LIST_LENGTH) {
+        assertThat(resultValuesAndStates).hasSize(2);
+        // 2 states, one for a extended list with 0+ and one without 0+ that is not extended
+        // We don't check that in this test, but assume that the second item is the non extended
+        // version
+        // TODO: make this assumption concrete somehow
+        resultValueAndState = resultValuesAndStates.get(1);
+      } else {
+        assertThat(resultValuesAndStates).hasSize(1);
+        resultValueAndState = resultValuesAndStates.get(0);
+      }
       currentState = resultValueAndState.getSMGState();
       if (i + 1 == length) {
         break;
@@ -1086,8 +1159,20 @@ public class SMGCPAAbstractionTest {
 
     // The result value is simply the value pointer to the first concrete element
     for (int i = 0; i < length; i++) {
-      SMGValueAndSMGState resultValueAndState =
+      List<SMGValueAndSMGState> resultValuesAndStates =
           materializer.handleMaterilisation(pointerToFirst, currentAbstraction, currentState);
+      SMGValueAndSMGState resultValueAndState;
+      if (i + 1 == TEST_LIST_LENGTH) {
+        assertThat(resultValuesAndStates).hasSize(2);
+        // 2 states, one for a extended list with 0+ and one without 0+ that is not extended
+        // We don't check that in this test, but assume that the second item is the non extended
+        // version
+        // TODO: make this assumption concrete somehow
+        resultValueAndState = resultValuesAndStates.get(1);
+      } else {
+        assertThat(resultValuesAndStates).hasSize(1);
+        resultValueAndState = resultValuesAndStates.get(0);
+      }
       currentState = resultValueAndState.getSMGState();
       if (i + 1 == length) {
         break;
