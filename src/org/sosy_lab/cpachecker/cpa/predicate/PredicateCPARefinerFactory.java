@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.cpa.predicate;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
 
+import com.google.errorprone.annotations.CanIgnoreReturnValue;
 import java.util.Optional;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.ShutdownNotifier;
@@ -81,6 +82,7 @@ public class PredicateCPARefinerFactory {
    * @return this
    * @throws InvalidConfigurationException If static refinements are enabled by the configuration.
    */
+  @CanIgnoreReturnValue
   public PredicateCPARefinerFactory forbidStaticRefinements() throws InvalidConfigurationException {
     if (performInitialStaticRefinement) {
       throw new InvalidConfigurationException(
@@ -97,6 +99,7 @@ public class PredicateCPARefinerFactory {
    *
    * @return this
    */
+  @CanIgnoreReturnValue
   public PredicateCPARefinerFactory setBlockFormulaStrategy(
       BlockFormulaStrategy pBlockFormulaStrategy) {
     checkState(blockFormulaStrategy == null);

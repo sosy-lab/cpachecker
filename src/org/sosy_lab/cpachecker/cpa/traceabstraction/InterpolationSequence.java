@@ -18,6 +18,7 @@ import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.ImmutableSortedSet;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.MultimapBuilder;
+import com.google.errorprone.annotations.CanIgnoreReturnValue;
 import java.util.Collection;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -61,6 +62,7 @@ class InterpolationSequence {
       localPredCache = HashMultimap.create();
     }
 
+    @CanIgnoreReturnValue
     Builder addPredicates(
         LocationInstance pLocInstance, Collection<AbstractionPredicate> pPredicates) {
       for (AbstractionPredicate abstractionPredicate : pPredicates) {
