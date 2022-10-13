@@ -1721,6 +1721,21 @@ public class SMGState
     return copyWithNewErrorInfo(newErrorInfo);
   }
 
+  public SMGState withUnknownOffsetMemoryAccess() {
+    String errorMSG =
+        String.format(
+            "Memory access with an invalid or unknown offset detected. This might be the result of"
+                + " an overapproximation and might be a false positive.");
+    SMGErrorInfo newErrorInfo =
+        SMGErrorInfo.of()
+            .withProperty(Property.INVALID_READ)
+            .withErrorMessage(errorMSG)
+            .withInvalidObjects(Collections.EMPTY_SET);
+    // Log the error in the logger
+    logMemoryError(errorMSG, true);
+    return copyWithNewErrorInfo(newErrorInfo);
+  }
+
   /**
    * Log undefined behavior.
    *
@@ -2078,7 +2093,8 @@ public class SMGState
    * @return a new {@link SMGState} with the memory region behind the {@link Value} freed.
    * @throws SMG2Exception in case of critical errors in the concretization of memory.
    */
-  public SMGState free(Value addressToFree, CFunctionCallExpression pFunctionCall, CFAEdge cfaEdge)
+  public List<SMGState> free(
+      Value addressToFree, CFunctionCallExpression pFunctionCall, CFAEdge cfaEdge)
       throws SMG2Exception {
     Value sanitizedAddressToFree = addressToFree;
     BigInteger baseOffset = BigInteger.ZERO;
@@ -2092,7 +2108,7 @@ public class SMGState
 
       if (!addressExpr.getOffset().isNumericValue()) {
         // TODO: return a freed and a unfreed state?
-        return this;
+        return ImmutableList.of(this);
       }
       baseOffset = addressExpr.getOffset().asNumericValue().bigInteger();
     }
@@ -2107,71 +2123,85 @@ public class SMGState
           "The argument of a free invocation:",
           cfaEdge.getRawStatement(),
           "is 0");
-      return this;
+      return ImmutableList.of(this);
     }
 
-    SMGStateAndOptionalSMGObjectAndOffset maybeRegion = dereferencePointer(sanitizedAddressToFree);
+    ImmutableList.Builder<SMGState> returnBuilder = ImmutableList.builder();
+    for (SMGStateAndOptionalSMGObjectAndOffset maybeRegion :
+        dereferencePointer(sanitizedAddressToFree)) {
 
-    if (!maybeRegion.hasSMGObjectAndOffset()) {
-      // If there is no region the deref failed, which means we can't evaluate the free
-      logger.log(
-          Level.INFO,
-          "Free on expression ",
-          pFunctionCall.getParameterExpressions().get(0).toASTString(),
-          " is invalid, because the target of the address could not be calculated.");
-      // return maybeRegion.getSMGState();
-      return maybeRegion
-          .getSMGState()
-          .withInvalidFree("Invalid free of unallocated object is found.", addressToFree);
+      if (!maybeRegion.hasSMGObjectAndOffset()) {
+        // If there is no region the deref failed, which means we can't evaluate the free
+        logger.log(
+            Level.INFO,
+            "Free on expression ",
+            pFunctionCall.getParameterExpressions().get(0).toASTString(),
+            " is invalid, because the target of the address could not be calculated.");
+        // return maybeRegion.getSMGState();
+        returnBuilder.add(
+            maybeRegion
+                .getSMGState()
+                .withInvalidFree("Invalid free of unallocated object is found.", addressToFree));
+        continue;
+      }
+      SMGState currentState = maybeRegion.getSMGState();
+      SMGObject regionToFree = maybeRegion.getSMGObject();
+      BigInteger offsetInBits = baseOffset.add(maybeRegion.getOffsetForObject());
+
+      // free(0) is a nop in C
+      if (regionToFree.isZero()) {
+        logger.log(
+            Level.INFO,
+            pFunctionCall.getFileLocation(),
+            ":",
+            "The argument of a free invocation:",
+            cfaEdge.getRawStatement(),
+            "is 0");
+        returnBuilder.add(currentState);
+        continue;
+      }
+
+      if (!memoryModel.isHeapObject(regionToFree)
+          && !memoryModel.isObjectExternallyAllocated(regionToFree)) {
+        // You may not free any objects not on the heap.
+        // It could be that the object was on the heap but was freed before!
+        returnBuilder.add(
+            currentState.withInvalidFree(
+                "Invalid free of unallocated object is found.", addressToFree));
+        continue;
+      }
+
+      if (!memoryModel.isObjectValid(regionToFree)) {
+        // you may not invoke free multiple times on the same object
+        returnBuilder.add(
+            currentState.withInvalidFree(
+                "Free has been used on this memory before.", addressToFree));
+        continue;
+      }
+
+      if (offsetInBits.compareTo(BigInteger.ZERO) != 0
+          && !currentState.memoryModel.isObjectExternallyAllocated(regionToFree)) {
+        // you may not invoke free on any address that you
+        // didn't get through a malloc, calloc or realloc invocation.
+        // (undefined behavour, same as double free)
+
+        returnBuilder.add(
+            currentState.withInvalidFree(
+                "Invalid free as a pointer was used that was not returned by malloc, calloc or"
+                    + " realloc.",
+                addressToFree));
+        continue;
+      }
+
+      // Perform free by invalidating the object behind the address and delete all its edges.
+      SymbolicProgramConfiguration newSPC =
+          currentState.memoryModel.invalidateSMGObject(regionToFree);
+      // TODO: is a consistency check needed? As far as i understand we never enter a inconsistent
+      // state in our implementation.
+      // performConsistencyCheck(SMGRuntimeCheck.HALF);
+      returnBuilder.add(currentState.copyAndReplaceMemoryModel(newSPC));
     }
-    SMGState currentState = maybeRegion.getSMGState();
-    SMGObject regionToFree = maybeRegion.getSMGObject();
-    BigInteger offsetInBits = baseOffset.add(maybeRegion.getOffsetForObject());
-
-    // free(0) is a nop in C
-    if (regionToFree.isZero()) {
-      logger.log(
-          Level.INFO,
-          pFunctionCall.getFileLocation(),
-          ":",
-          "The argument of a free invocation:",
-          cfaEdge.getRawStatement(),
-          "is 0");
-      return currentState;
-    }
-
-    if (!memoryModel.isHeapObject(regionToFree)
-        && !memoryModel.isObjectExternallyAllocated(regionToFree)) {
-      // You may not free any objects not on the heap.
-      // It could be that the object was on the heap but was freed before!
-      return currentState.withInvalidFree(
-          "Invalid free of unallocated object is found.", addressToFree);
-    }
-
-    if (!memoryModel.isObjectValid(regionToFree)) {
-      // you may not invoke free multiple times on the same object
-      return currentState.withInvalidFree(
-          "Free has been used on this memory before.", addressToFree);
-    }
-
-    if (offsetInBits.compareTo(BigInteger.ZERO) != 0
-        && !currentState.memoryModel.isObjectExternallyAllocated(regionToFree)) {
-      // you may not invoke free on any address that you
-      // didn't get through a malloc, calloc or realloc invocation.
-      // (undefined behavour, same as double free)
-
-      return currentState.withInvalidFree(
-          "Invalid free as a pointer was used that was not returned by malloc, calloc or realloc.",
-          addressToFree);
-    }
-
-    // Perform free by invalidating the object behind the address and delete all its edges.
-    SymbolicProgramConfiguration newSPC =
-        currentState.memoryModel.invalidateSMGObject(regionToFree);
-    // TODO: is a consistency check needed? As far as i understand we never enter a inconsistent
-    // state in our implementation.
-    // performConsistencyCheck(SMGRuntimeCheck.HALF);
-    return currentState.copyAndReplaceMemoryModel(newSPC);
+    return returnBuilder.build();
   }
 
   /**
@@ -2327,31 +2357,38 @@ public class SMGState
    * @throws SMG2Exception if something goes wrong. I.e. the sizes of the write don't match with the
    *     size of the object.
    */
-  public SMGState writeValueTo(
+  public List<SMGState> writeValueTo(
       Value addressToMemory,
       BigInteger writeOffsetInBits,
       BigInteger sizeInBits,
       Value valueToWrite,
       CType valueType)
       throws SMG2Exception {
-    SMGStateAndOptionalSMGObjectAndOffset maybeRegion = dereferencePointer(addressToMemory);
-    if (!maybeRegion.hasSMGObjectAndOffset()) {
-      // Can't write to non existing memory. However, we might not track that memory at the moment!
-      return maybeRegion.getSMGState();
+    ImmutableList.Builder<SMGState> returnBuilder = ImmutableList.builder();
+    for (SMGStateAndOptionalSMGObjectAndOffset maybeRegion : dereferencePointer(addressToMemory)) {
+      if (!maybeRegion.hasSMGObjectAndOffset()) {
+        // Can't write to non existing memory. However, we might not track that memory at the
+        // moment!
+        returnBuilder.add(maybeRegion.getSMGState());
+        continue;
+      }
+
+      SMGState currentState = maybeRegion.getSMGState();
+      SMGObject memoryRegion = maybeRegion.getSMGObject();
+
+      if (!currentState.memoryModel.isObjectValid(memoryRegion)) {
+        // The dereference detected the error deref at this point, just return the state
+        returnBuilder.add(currentState);
+        continue;
+      }
+
+      Preconditions.checkArgument(maybeRegion.getOffsetForObject().compareTo(BigInteger.ZERO) == 0);
+
+      returnBuilder.add(
+          currentState.writeValueTo(
+              memoryRegion, writeOffsetInBits, sizeInBits, valueToWrite, valueType));
     }
-
-    SMGState currentState = maybeRegion.getSMGState();
-    SMGObject memoryRegion = maybeRegion.getSMGObject();
-
-    if (!currentState.memoryModel.isObjectValid(memoryRegion)) {
-      // The dereference detected the error deref at this point, just return the state
-      return currentState;
-    }
-
-    Preconditions.checkArgument(maybeRegion.getOffsetForObject().compareTo(BigInteger.ZERO) == 0);
-
-    return currentState.writeValueTo(
-        memoryRegion, writeOffsetInBits, sizeInBits, valueToWrite, valueType);
+    return returnBuilder.build();
   }
 
   /**
@@ -2363,23 +2400,29 @@ public class SMGState
    *     completely.
    * @throws SMG2Exception if there is no memory/or pointer for the given Value.
    */
-  public SMGState writeToZero(Value addressToMemory, CType type) throws SMG2Exception {
-    SMGStateAndOptionalSMGObjectAndOffset maybeRegion = dereferencePointer(addressToMemory);
-    if (!maybeRegion.hasSMGObjectAndOffset()) {
-      // Can't write to non existing memory. However, we might not track that memory at the moment!
-      // TODO: log
-      return maybeRegion.getSMGState();
-    }
+  public List<SMGState> writeToZero(Value addressToMemory, CType type) throws SMG2Exception {
+    ImmutableList.Builder<SMGState> returnBuilder = ImmutableList.builder();
+    for (SMGStateAndOptionalSMGObjectAndOffset maybeRegion : dereferencePointer(addressToMemory)) {
+      if (!maybeRegion.hasSMGObjectAndOffset()) {
+        // Can't write to non existing memory. However, we might not track that memory at the
+        // moment!
+        // TODO: log
+        returnBuilder.add(maybeRegion.getSMGState());
+        continue;
+      }
 
-    SMGState currentState = maybeRegion.getSMGState();
-    SMGObject memoryRegion = maybeRegion.getSMGObject();
-    Preconditions.checkArgument(maybeRegion.getOffsetForObject().compareTo(BigInteger.ZERO) == 0);
-    return currentState.writeValue(
-        memoryRegion,
-        maybeRegion.getOffsetForObject(),
-        memoryRegion.getSize(),
-        new NumericValue(0),
-        type);
+      SMGState currentState = maybeRegion.getSMGState();
+      SMGObject memoryRegion = maybeRegion.getSMGObject();
+      Preconditions.checkArgument(maybeRegion.getOffsetForObject().compareTo(BigInteger.ZERO) == 0);
+      returnBuilder.add(
+          currentState.writeValue(
+              memoryRegion,
+              maybeRegion.getOffsetForObject(),
+              memoryRegion.getSize(),
+              new NumericValue(0),
+              type));
+    }
+    return returnBuilder.build();
   }
 
   /**
@@ -3204,37 +3247,67 @@ public class SMGState
    * Tries to dereference the pointer given by the argument {@link Value}. Returns a
    * SMGStateAndOptionalSMGObjectAndOffset without object and offset but maybe a updated state if
    * the dereference fails because the entered {@link Value} is not known as a pointer. This does
-   * not check validity of the Value!
+   * not check validity of the Value! If a 0+ abstracted list element is materialized, 2 states are
+   * returned. The first in the list being the minimal list.
    *
    * @param pointer the {@link Value} to dereference.
    * @return Optional filled with the {@link SMGObjectAndOffset} of the target of the pointer. Empty
    *     if its not a pointer in the current {@link SymbolicProgramConfiguration}.
    * @throws SMG2Exception in case of critical errors in the materialization of abstract memory.
    */
-  public SMGStateAndOptionalSMGObjectAndOffset dereferencePointer(Value pointer)
+  public List<SMGStateAndOptionalSMGObjectAndOffset> dereferencePointer(Value pointer)
       throws SMG2Exception {
     if (!memoryModel.isPointer(pointer)) {
       // Not known or not known as a pointer, return nothing
-      return SMGStateAndOptionalSMGObjectAndOffset.of(this);
+      return ImmutableList.of(SMGStateAndOptionalSMGObjectAndOffset.of(this));
     }
     SMGState currentState = this;
     SMGValue smgValueAddress = memoryModel.getSMGValueFromValue(pointer).orElseThrow();
     SMGPointsToEdge ptEdge = memoryModel.getSmg().getPTEdge(smgValueAddress).orElseThrow();
     // Every DLL is also a SLL
     if (ptEdge.pointsTo() instanceof SMGSinglyLinkedListSegment) {
-      SMGValueAndSMGState newPointerValueAndState =
+      List<SMGValueAndSMGState> newPointersValueAndStates =
           currentState.materializeReturnPointerValueAndCopy(smgValueAddress);
+      if (newPointersValueAndStates.size() == 2) {
+        Preconditions.checkArgument(
+            ((SMGSinglyLinkedListSegment) ptEdge.pointsTo()).getMinLength() == 0);
+        ImmutableList.Builder<SMGStateAndOptionalSMGObjectAndOffset> returnBuilder =
+            ImmutableList.builder();
+        // 0+ case, this is the end of the materialization as outside pointers to this do not exist
+        // and access can only happen for one element at a time through next (and prev) pointers
+        for (SMGValueAndSMGState newPointerValueAndState : newPointersValueAndStates) {
+          currentState = newPointerValueAndState.getSMGState();
+          Optional<SMGPointsToEdge> maybePtEdge =
+              currentState.memoryModel.getSmg().getPTEdge(newPointerValueAndState.getSMGValue());
+          if (maybePtEdge.isEmpty()) {
+            returnBuilder.add(SMGStateAndOptionalSMGObjectAndOffset.of(currentState));
+            continue;
+          }
+          ptEdge = maybePtEdge.orElseThrow();
+          Preconditions.checkArgument(!(ptEdge.pointsTo() instanceof SMGSinglyLinkedListSegment));
+          returnBuilder.add(
+              SMGStateAndOptionalSMGObjectAndOffset.of(
+                  ptEdge.pointsTo(), ptEdge.getOffset(), currentState));
+        }
+        return returnBuilder.build();
+
+      } else if (newPointersValueAndStates.size() != 1) {
+        // Error
+        throw new SMG2Exception("Critical error: Unexpected return from list materialization.");
+      }
+      SMGValueAndSMGState newPointerValueAndState = newPointersValueAndStates.get(0);
       currentState = newPointerValueAndState.getSMGState();
       Optional<SMGPointsToEdge> maybePtEdge =
           currentState.memoryModel.getSmg().getPTEdge(newPointerValueAndState.getSMGValue());
       if (maybePtEdge.isEmpty()) {
-        return SMGStateAndOptionalSMGObjectAndOffset.of(currentState);
+        return ImmutableList.of(SMGStateAndOptionalSMGObjectAndOffset.of(currentState));
       }
       ptEdge = maybePtEdge.orElseThrow();
       Preconditions.checkArgument(!(ptEdge.pointsTo() instanceof SMGSinglyLinkedListSegment));
     }
-    return SMGStateAndOptionalSMGObjectAndOffset.of(
-        ptEdge.pointsTo(), ptEdge.getOffset(), currentState);
+    return ImmutableList.of(
+        SMGStateAndOptionalSMGObjectAndOffset.of(
+            ptEdge.pointsTo(), ptEdge.getOffset(), currentState));
   }
 
   /**
@@ -3261,20 +3334,22 @@ public class SMGState
   /**
    * Takes the value leading to a pointer that points towards abstracted heap (lists). The
    * abstracted heap is then materialized into a concrete list up to that and including the segment
-   * pointed to and the old pointer is returned with the state of the materialization. (Technically
-   * the old value is equal to the new. This might change in the future)
+   * pointed to and the old pointer is returned with the state of the materialization. (The old
+   * value is equivalent to the new in the context of the new state!) If more than one state is
+   * generated (see handleMaterilisation for 0+ list) the first element in the returned list is the
+   * minimal list (for witnesses etc.).
    *
    * @param valueToPointerToAbstractObject a SMGValue that has a points to edge leading to
    *     abstracted memory.
    * @return SMGValueAndSMGState with the pointer value to the concrete memory extracted.
    * @throws SMG2Exception in case of critical errors.
    */
-  public SMGValueAndSMGState materializeReturnPointerValueAndCopy(
+  public List<SMGValueAndSMGState> materializeReturnPointerValueAndCopy(
       SMGValue valueToPointerToAbstractObject) throws SMG2Exception {
     SMGPointsToEdge ptEdge =
         memoryModel.getSmg().getPTEdge(valueToPointerToAbstractObject).orElseThrow();
     SMGState currentState = this;
-    SMGValueAndSMGState materializationAndState = null;
+    List<SMGValueAndSMGState> materializationAndState = null;
 
     while (ptEdge.pointsTo() instanceof SMGSinglyLinkedListSegment) {
       SMGObject obj = ptEdge.pointsTo();
@@ -3286,9 +3361,37 @@ public class SMGState
       materializationAndState =
           currentState.materializer.handleMaterilisation(
               valueToPointerToAbstractObject, obj, currentState);
-      currentState = materializationAndState.getSMGState();
-      ptEdge =
-          currentState.memoryModel.getSmg().getPTEdge(valueToPointerToAbstractObject).orElseThrow();
+      if (materializationAndState.size() == 1) {
+        // We can assume that this is the default case
+        currentState = materializationAndState.get(0).getSMGState();
+        ptEdge =
+            currentState
+                .memoryModel
+                .getSmg()
+                .getPTEdge(valueToPointerToAbstractObject)
+                .orElseThrow();
+
+      } else {
+        // Size should be 2 in all other cases. This is the 0+ case, which is always the last
+        Preconditions.checkArgument(materializationAndState.size() == 2);
+        // None of the values points to a SMGSinglyLinkedListSegment
+        Preconditions.checkArgument(
+            !(currentState
+                    .memoryModel
+                    .getSmg()
+                    .getPTEdge(materializationAndState.get(0).getSMGValue())
+                    .orElseThrow()
+                    .pointsTo()
+                instanceof SMGSinglyLinkedListSegment));
+        Preconditions.checkArgument(
+            !(currentState
+                    .memoryModel
+                    .getSmg()
+                    .getPTEdge(materializationAndState.get(1).getSMGValue())
+                    .orElseThrow()
+                    .pointsTo()
+                instanceof SMGSinglyLinkedListSegment));
+      }
     }
 
     Preconditions.checkNotNull(materializationAndState);
