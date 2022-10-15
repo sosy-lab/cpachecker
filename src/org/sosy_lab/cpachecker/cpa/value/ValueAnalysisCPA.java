@@ -255,6 +255,10 @@ public class ValueAnalysisCPA extends AbstractCPA
     }
   }
 
+  public void incrementPrecision(Multimap<CFANode, MemoryLocation> precisionIncrement) {
+    precision = precision.withIncrement(precisionIncrement);
+  }
+
   @Override
   public MergeOperator getMergeOperator() {
     return buildMergeOperator(mergeType);

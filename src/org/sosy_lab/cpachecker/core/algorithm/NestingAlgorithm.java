@@ -71,6 +71,28 @@ public abstract class NestingAlgorithm implements Algorithm, StatisticsProvider 
       Collection<String> ignoreOptions,
       Collection<Statistics> stats)
       throws InvalidConfigurationException, CPAException, IOException, InterruptedException {
+    return createAlgorithmWithSpecification(
+        singleConfigFileName,
+        initialNode,
+        pCfa,
+        singleShutdownManager,
+        aggregateReached,
+        specification,
+        ignoreOptions,
+        stats);
+  }
+
+  protected Triple<Algorithm, ConfigurableProgramAnalysis, ReachedSet>
+      createAlgorithmWithSpecification(
+          Path singleConfigFileName,
+          CFANode initialNode,
+          CFA pCfa,
+          ShutdownManager singleShutdownManager,
+          AggregatedReachedSets aggregateReached,
+          Specification singleSpecification,
+          Collection<String> ignoreOptions,
+          Collection<Statistics> stats)
+          throws InvalidConfigurationException, CPAException, IOException, InterruptedException {
 
     Configuration singleConfig = buildSubConfig(singleConfigFileName, ignoreOptions);
     LogManager singleLogger = logger.withComponentName("Analysis " + singleConfigFileName);
@@ -82,9 +104,9 @@ public abstract class NestingAlgorithm implements Algorithm, StatisticsProvider 
     CoreComponentsFactory coreComponents =
         new CoreComponentsFactory(
             singleConfig, singleLogger, singleShutdownManager.getNotifier(), aggregateReached);
-    ConfigurableProgramAnalysis cpa = coreComponents.createCPA(pCfa, specification);
+    ConfigurableProgramAnalysis cpa = coreComponents.createCPA(pCfa, singleSpecification);
     GlobalInfo.getInstance().setUpInfoFromCPA(cpa);
-    Algorithm algorithm = coreComponents.createAlgorithm(cpa, pCfa, specification);
+    Algorithm algorithm = coreComponents.createAlgorithm(cpa, pCfa, singleSpecification);
     ReachedSet reached = createInitialReachedSet(cpa, initialNode, coreComponents, singleLogger);
 
     if (cpa instanceof StatisticsProvider) {
