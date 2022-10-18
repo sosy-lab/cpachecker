@@ -93,6 +93,10 @@ public class BlockSummaryAnalysisWorker extends BlockSummaryWorker {
             getLogger(),
             pShutdownManager.getNotifier());
 
+    dcpaAlgorithm =
+        new DCPAAlgorithm(
+            getLogger(), pBlock, pCFA, pSpecification, forwardConfiguration, pShutdownManager);
+
     dcpaBackwardAlgorithm =
         new DCPABackwardAlgorithm(
             getLogger(),
@@ -100,11 +104,8 @@ public class BlockSummaryAnalysisWorker extends BlockSummaryWorker {
             pCFA,
             backwardSpecification,
             backwardConfiguration,
+            dcpaAlgorithm,
             pShutdownManager);
-
-    dcpaAlgorithm =
-        new DCPAAlgorithm(
-            getLogger(), pBlock, pCFA, pSpecification, forwardConfiguration, pShutdownManager);
   }
 
   @Override
@@ -112,9 +113,10 @@ public class BlockSummaryAnalysisWorker extends BlockSummaryWorker {
       throws InterruptedException, CPAException, IOException, SolverException {
     switch (message.getType()) {
       case ERROR_CONDITION:
-        return dcpaBackwardAlgorithm.analyzeMessage((BlockSummaryErrorConditionMessage) message);
+        return dcpaBackwardAlgorithm.runAnalysisForMessage(
+            (BlockSummaryErrorConditionMessage) message);
       case BLOCK_POSTCONDITION:
-        return dcpaAlgorithm.analyzeMessage((BlockSummaryPostConditionMessage) message);
+        return dcpaAlgorithm.runAnalysisForMessage((BlockSummaryPostConditionMessage) message);
       case ERROR:
         // fall through
       case FOUND_RESULT:
@@ -142,7 +144,7 @@ public class BlockSummaryAnalysisWorker extends BlockSummaryWorker {
   @Override
   public void run() {
     try {
-      broadcast(dcpaAlgorithm.performInitialAnalysis());
+      broadcast(dcpaAlgorithm.runInitialAnalysis());
       super.run();
     } catch (CPAException pE) {
       getLogger().logException(Level.SEVERE, pE, "Worker stopped working...");

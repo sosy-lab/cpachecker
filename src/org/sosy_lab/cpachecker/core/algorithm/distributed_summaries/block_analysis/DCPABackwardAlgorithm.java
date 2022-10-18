@@ -11,10 +11,12 @@ package org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.block_analy
 import static com.google.common.base.Preconditions.checkNotNull;
 import static org.sosy_lab.common.collect.Collections3.transformedImmutableListCopy;
 
+import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableSet;
 import java.util.Collection;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.logging.Level;
 import org.sosy_lab.common.ShutdownManager;
@@ -32,6 +34,7 @@ import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.distributed_
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.BlockSummaryMessagePayload;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryErrorConditionMessage;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryMessage;
+import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.exchange.actor_messages.BlockSummaryPostConditionMessage;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -52,6 +55,7 @@ public class DCPABackwardAlgorithm {
   private final Precision initialPrecision;
   private final Algorithm algorithm;
   private final LogManager logger;
+  private final DCPAAlgorithm forwardAnalysis;
 
   public DCPABackwardAlgorithm(
       LogManager pLogger,
@@ -59,6 +63,7 @@ public class DCPABackwardAlgorithm {
       CFA pCFA,
       Specification pSpecification,
       Configuration pConfiguration,
+      DCPAAlgorithm pForwardAnalysis,
       ShutdownManager pShutdownManager)
       throws CPAException, InterruptedException, InvalidConfigurationException {
     Triple<Algorithm, ConfigurableProgramAnalysis, ReachedSet> parts =
@@ -77,11 +82,13 @@ public class DCPABackwardAlgorithm {
     dcpa =
         DistributedConfigurableProgramAnalysis.distribute(cpa, pBlock, AnalysisDirection.BACKWARD);
     logger = pLogger;
+    forwardAnalysis = pForwardAnalysis;
   }
 
   private AlgorithmStatus status;
 
-  public Collection<BlockSummaryMessage> analyzeMessage(BlockSummaryErrorConditionMessage pReceived)
+  public Collection<BlockSummaryMessage> runAnalysisForMessage(
+      BlockSummaryErrorConditionMessage pReceived)
       throws SolverException, InterruptedException, CPAException {
     AbstractState deserialized =
         new ARGState(dcpa.getDeserializeOperator().deserialize(pReceived), null);
@@ -90,6 +97,23 @@ public class DCPABackwardAlgorithm {
       return processing;
     }
     assert processing.isEmpty() : "Proceed is not possible with unprocessed messages";
+
+    Collection<BlockSummaryMessage> messages = ImmutableSet.of();
+    if (!pReceived.isFirst()) {
+      messages = forwardAnalysis.runAnalysisUnderCondition(Optional.of(deserialized));
+
+      if (FluentIterable.from(messages)
+          .filter(BlockSummaryPostConditionMessage.class)
+          .filter(BlockSummaryPostConditionMessage::isReachable)
+          .isEmpty()) {
+        return ImmutableSet.<BlockSummaryMessage>builder()
+            .addAll(messages)
+            .add(
+                BlockSummaryMessage.newErrorConditionUnreachableMessage(
+                    block.getId(), "forward analysis failed"))
+            .build();
+      }
+    }
     reachedSet.clear();
     reachedSet.add(deserialized, initialPrecision);
     BlockAnalysisIntermediateResult result =
@@ -116,7 +140,7 @@ public class DCPABackwardAlgorithm {
           BlockSummaryMessage.newErrorConditionMessage(
               block.getId(), block.getStartNode().getNodeNumber(), payload, false, visited));
     }
-    return responses.build();
+    return responses.addAll(messages).build();
   }
 
   public DistributedConfigurableProgramAnalysis getDCPA() {

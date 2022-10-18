@@ -18,15 +18,21 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.algorithm.distributed_summaries.decomposition.BlockNode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
-import org.sosy_lab.cpachecker.core.interfaces.FormulaReportingState;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.core.interfaces.AdditionalAssumptionReportingState;
 import org.sosy_lab.cpachecker.core.interfaces.Partitionable;
 import org.sosy_lab.cpachecker.core.interfaces.Targetable;
+import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
+import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 
 // cannot be an AbstractStateWithLocation as initialization corrupts analysis
 public class BlockState
-    implements AbstractQueryableState, Partitionable, Targetable, FormulaReportingState {
+    implements AbstractQueryableState,
+        Partitionable,
+        Targetable,
+        AdditionalAssumptionReportingState {
 
   public enum BlockStateType {
     INITIAL,
@@ -40,7 +46,7 @@ public class BlockState
   private final BlockStateType type;
   private final BlockNode blockNode;
   private final boolean wasLoopHeadEncountered;
-  private final Optional<BooleanFormula> errorCondition;
+  private Optional<AbstractState> errorCondition;
 
   public BlockState(
       CFANode pNode,
@@ -48,7 +54,7 @@ public class BlockState
       AnalysisDirection pDirection,
       BlockStateType pType,
       boolean pWasLoopHeadEncountered,
-      Optional<BooleanFormula> pErrorCondition) {
+      Optional<AbstractState> pErrorCondition) {
     node = pNode;
     direction = pDirection;
     type = pType;
@@ -61,8 +67,12 @@ public class BlockState
               : pTargetNode.getStartNode();
     }
     wasLoopHeadEncountered = pWasLoopHeadEncountered;
-    errorCondition = pErrorCondition;
     blockNode = pTargetNode;
+    errorCondition = pErrorCondition;
+  }
+
+  public void setErrorCondition(Optional<AbstractState> pErrorCondition) {
+    errorCondition = pErrorCondition;
   }
 
   public BlockNode getBlockNode() {
@@ -107,14 +117,21 @@ public class BlockState
         : ImmutableSet.of();
   }
 
-  public Optional<BooleanFormula> getErrorCondition() {
+  public Optional<AbstractState> getErrorCondition() {
     return errorCondition;
   }
 
   @Override
-  public BooleanFormula getFormulaApproximation(FormulaManagerView manager) {
+  public BooleanFormula getAdditionalAssumption(FormulaManagerView manager) {
     return isTarget() && direction == AnalysisDirection.FORWARD
-        ? errorCondition.orElse(manager.getBooleanFormulaManager().makeTrue())
+        ? errorCondition
+            .map(
+                state ->
+                    Objects.requireNonNull(
+                            AbstractStates.extractStateByType(state, PredicateAbstractState.class))
+                        .getPathFormula()
+                        .getFormula())
+            .orElse(manager.getBooleanFormulaManager().makeTrue())
         : manager.getBooleanFormulaManager().makeTrue();
   }
 

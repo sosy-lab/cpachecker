@@ -71,16 +71,16 @@ public interface DistributedConfigurableProgramAnalysis extends ConfigurableProg
 
   static DistributedConfigurableProgramAnalysis distribute(
       ConfigurableProgramAnalysis pCPA, BlockNode pBlock, AnalysisDirection pDirection) {
-    DCPAHandler builder = new DCPAHandler();
+    DCPAHandler handler = new DCPAHandler();
     CompositeCPA compositeCPA = CPAs.retrieveCPA(pCPA, CompositeCPA.class);
     if (compositeCPA == null) {
-      builder.registerDCPA(pCPA, pBlock, pDirection);
-      return Iterables.getOnlyElement(builder.getRegisteredAnalyses().values());
+      handler.registerDCPA(pCPA, pBlock, pDirection);
+      return Iterables.getOnlyElement(handler.getRegisteredAnalyses().values());
     }
     for (ConfigurableProgramAnalysis wrappedCPA : compositeCPA.getWrappedCPAs()) {
-      builder.registerDCPA(wrappedCPA, pBlock, pDirection);
+      handler.registerDCPA(wrappedCPA, pBlock, pDirection);
     }
     return new DistributedCompositeCPA(
-        compositeCPA, pBlock, pDirection, builder.getRegisteredAnalyses());
+        compositeCPA, pBlock, pDirection, handler.getRegisteredAnalyses());
   }
 }

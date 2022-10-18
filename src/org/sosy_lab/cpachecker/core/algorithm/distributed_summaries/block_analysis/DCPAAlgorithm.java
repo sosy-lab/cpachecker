@@ -43,7 +43,9 @@ import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
+import org.sosy_lab.cpachecker.cpa.block.BlockState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.Triple;
 import org.sosy_lab.java_smt.api.SolverException;
 
@@ -54,13 +56,14 @@ public class DCPAAlgorithm {
   private final ConfigurableProgramAnalysis cpa;
   private final BlockNode block;
   private final ReachedSet reachedSet;
-  private final Precision initialPrecision;
+  private Precision initialPrecision;
   private final Algorithm algorithm;
   private final AbstractState startState;
   private final Set<String> predecessors;
 
   private AlgorithmStatus status;
   private boolean alreadyReportedError;
+  private boolean alreadyReportedInfeasibility;
 
   public DCPAAlgorithm(
       LogManager pLogger,
@@ -71,6 +74,7 @@ public class DCPAAlgorithm {
       ShutdownManager pShutdownManager)
       throws CPAException, InterruptedException, InvalidConfigurationException {
     alreadyReportedError = false;
+    alreadyReportedInfeasibility = false;
     Triple<Algorithm, ConfigurableProgramAnalysis, ReachedSet> parts =
         AlgorithmFactory.createAlgorithm(
             pLogger, pSpecification, pCFA, pConfiguration, pShutdownManager, pBlock);
@@ -92,7 +96,26 @@ public class DCPAAlgorithm {
     predecessors = transformedImmutableSetCopy(block.getPredecessors(), BlockNodeMetaData::getId);
   }
 
-  public Collection<BlockSummaryMessage> performInitialAnalysis()
+  private Collection<BlockSummaryMessage> unreachableBlockEnd() {
+    // if sent once, it will never change (precondition is always most general information)
+    if (alreadyReportedInfeasibility) {
+      return ImmutableSet.of();
+    }
+    alreadyReportedInfeasibility = true;
+    return ImmutableSet.of(
+        BlockSummaryMessage.newBlockPostCondition(
+            block.getId(),
+            block.getLastNode().getNodeNumber(),
+            DCPAAlgorithms.appendStatus(
+                AlgorithmStatus.SOUND_AND_PRECISE, BlockSummaryMessagePayload.empty()),
+            // we can assume full here as no precondition will ever change unsatisfiability of
+            // this block
+            true,
+            false,
+            ImmutableSet.of()));
+  }
+
+  public Collection<BlockSummaryMessage> runInitialAnalysis()
       throws CPAException, InterruptedException {
     reachedSet.clear();
     reachedSet.add(startState, initialPrecision);
@@ -100,22 +123,13 @@ public class DCPAAlgorithm {
         processIntermediateResult(
             DCPAAlgorithms.findReachableTargetStatesInBlock(algorithm, reachedSet));
     if (results.isEmpty()) {
-      return ImmutableSet.of(
-          BlockSummaryMessage.newBlockPostCondition(
-              block.getId(),
-              block.getLastNode().getNodeNumber(),
-              DCPAAlgorithms.appendStatus(
-                  AlgorithmStatus.SOUND_AND_PRECISE, BlockSummaryMessagePayload.empty()),
-              // we can assume full here as no precondition will ever change unsatisfiability of
-              // this block
-              true,
-              false,
-              ImmutableSet.of()));
+      return unreachableBlockEnd();
     }
     return results;
   }
 
-  public Collection<BlockSummaryMessage> analyzeMessage(BlockSummaryPostConditionMessage pReceived)
+  public Collection<BlockSummaryMessage> runAnalysisForMessage(
+      BlockSummaryPostConditionMessage pReceived)
       throws SolverException, InterruptedException, CPAException {
     AbstractState deserialized =
         new ARGState(dcpa.getDeserializeOperator().deserialize(pReceived), null);
@@ -142,8 +156,13 @@ public class DCPAAlgorithm {
     }
     states.put(pReceived.getBlockId(), deserialized);
     if (states.size() != block.getPredecessors().size()) {
-      return BlockSummaryMessageProcessing.stop();
+      return ImmutableSet.of();
     }
+    return runAnalysisUnderCondition(Optional.empty());
+  }
+
+  public Collection<BlockSummaryMessage> runAnalysisUnderCondition(
+      Optional<AbstractState> errorCondition) throws CPAException, InterruptedException {
     reachedSet.clear();
     for (AbstractState value : states.values()) {
       if (value == null) {
@@ -162,6 +181,19 @@ public class DCPAAlgorithm {
         }
       }
     }
+
+    if (reachedSet.isEmpty()) {
+      reachedSet.add(
+          cpa.getInitialState(block.getStartNode(), StateSpacePartition.getDefaultPartition()),
+          initialPrecision);
+    }
+
+    for (AbstractState abstractState : reachedSet) {
+      // safe since distributed analyses cannot work without block cpa
+      Objects.requireNonNull(AbstractStates.extractStateByType(abstractState, BlockState.class))
+          .setErrorCondition(errorCondition);
+    }
+
     BlockAnalysisIntermediateResult result =
         DCPAAlgorithms.findReachableTargetStatesInBlock(algorithm, reachedSet);
     return processIntermediateResult(result);
@@ -170,8 +202,11 @@ public class DCPAAlgorithm {
   private Collection<BlockSummaryMessage> processIntermediateResult(
       BlockAnalysisIntermediateResult result) throws InterruptedException {
     status = status.update(result.getStatus());
+    if (reachedSet.getLastState() != null) {
+      initialPrecision = reachedSet.getPrecision(reachedSet.getLastState());
+    }
     if (result.isEmpty()) {
-      return ImmutableSet.of();
+      return unreachableBlockEnd();
     }
     ImmutableSet.Builder<BlockSummaryMessage> answers = ImmutableSet.builder();
     if (!result.getBlockTargets().isEmpty()) {
@@ -188,6 +223,8 @@ public class DCPAAlgorithm {
                           true,
                           ImmutableSet.of()))
               .toSet());
+    } else {
+      answers.addAll(unreachableBlockEnd());
     }
     if (!result.getTargets().isEmpty() && !alreadyReportedError) {
       alreadyReportedError = true;
