@@ -132,8 +132,7 @@ public final class CfaCreator {
     checkNotNull(pSummaryToStatementEdgeTransformer);
 
     CfaNetwork cfaWithoutSuperEdges =
-        CfaNetwork.filterEdges(
-            pCfaNetwork,
+        pCfaNetwork.filterEdges(
             edge -> !(edge instanceof FunctionCallEdge) && !(edge instanceof FunctionReturnEdge));
 
     CfaNetwork independentFunctionCfa =

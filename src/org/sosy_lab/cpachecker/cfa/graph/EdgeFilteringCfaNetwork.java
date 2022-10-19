@@ -18,25 +18,37 @@ import java.util.function.Predicate;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 
+/**
+ * A {@link CfaNetwork} that forwards all calls to another {@link CfaNetwork}, but also filters all
+ * returned edges using the specified predicate.
+ *
+ * <p>Only if the specified predicate returns {@code true}, the edge is part of the CFA represented
+ * by a {@link EdgeFilteringCfaNetwork}.
+ */
 final class EdgeFilteringCfaNetwork extends AbstractCfaNetwork {
 
   private final CfaNetwork delegate;
-  private final Predicate<CFAEdge> filter;
+  private final Predicate<CFAEdge> keepEdgePredicate;
 
-  EdgeFilteringCfaNetwork(CfaNetwork pDelegate, Predicate<CFAEdge> pFilter) {
+  private EdgeFilteringCfaNetwork(CfaNetwork pDelegate, Predicate<CFAEdge> pKeepEdgePredicate) {
+    delegate = pDelegate;
+    keepEdgePredicate = pKeepEdgePredicate;
+  }
 
-    delegate = checkNotNull(pDelegate);
-    filter = checkNotNull(pFilter);
+  static CfaNetwork of(CfaNetwork pDelegate, Predicate<CFAEdge> pKeepEdgePredicate) {
+    return new EdgeFilteringCfaNetwork(checkNotNull(pDelegate), checkNotNull(pKeepEdgePredicate));
   }
 
   @Override
   public Set<CFAEdge> inEdges(CFANode pNode) {
-    return Collections.unmodifiableSet(Sets.filter(delegate.inEdges(pNode), filter::test));
+    return Collections.unmodifiableSet(
+        Sets.filter(delegate.inEdges(pNode), keepEdgePredicate::test));
   }
 
   @Override
   public Set<CFAEdge> outEdges(CFANode pNode) {
-    return Collections.unmodifiableSet(Sets.filter(delegate.outEdges(pNode), filter::test));
+    return Collections.unmodifiableSet(
+        Sets.filter(delegate.outEdges(pNode), keepEdgePredicate::test));
   }
 
   @Override

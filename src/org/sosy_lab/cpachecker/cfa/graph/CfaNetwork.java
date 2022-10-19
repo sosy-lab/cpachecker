@@ -66,15 +66,6 @@ public interface CfaNetwork extends Network<CFANode, CFAEdge> {
     return CheckingCfaNetwork.wrapIfAssertionsEnabled(new WrappingCfaNetwork(pCfa));
   }
 
-  public static CfaNetwork filterEdges(CfaNetwork pNetwork, Predicate<CFAEdge> pFilter) {
-    return CheckingCfaNetwork.wrapIfAssertionsEnabled(
-        new EdgeFilteringCfaNetwork(pNetwork, pFilter));
-  }
-
-  public static CfaNetwork of(CFA pCfa, Predicate<CFAEdge> pFilter) {
-    return CheckingCfaNetwork.wrapIfAssertionsEnabled(filterEdges(wrap(pCfa), pFilter));
-  }
-
   public static CfaNetwork transformEdges(
       CfaNetwork pNetwork, Function<CFAEdge, CFAEdge> pTransformer) {
     return CheckingCfaNetwork.wrapIfAssertionsEnabled(
@@ -116,4 +107,9 @@ public interface CfaNetwork extends Network<CFANode, CFAEdge> {
   FunctionSummaryEdge functionSummaryEdge(FunctionReturnEdge pFunctionReturnEdge);
 
   FunctionEntryNode functionEntryNode(FunctionSummaryEdge pFunctionSummaryEdge);
+
+  default CfaNetwork filterEdges(Predicate<CFAEdge> pKeepEdgePredicate) {
+    return CheckingCfaNetwork.wrapIfAssertionsEnabled(
+        EdgeFilteringCfaNetwork.of(this, pKeepEdgePredicate));
+  }
 }
