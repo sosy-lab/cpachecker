@@ -35,9 +35,10 @@ import org.sosy_lab.cpachecker.util.CFAUtils;
  * {@link #functionSummaryEdge(FunctionCallEdge)} instead of {@link
  * FunctionCallEdge#getSummaryEdge()}.
  *
- * <p>For performance reasons, not all {@link CfaNetwork} implementations check whether CFA nodes
- * and edges given as method arguments actually belong to the CFA represented by a {@code
- * CfaNetwork}.
+ * <p>For performance reasons, some expensive checks are only performed if Java assertions are
+ * enabled. Even though this is bad practice in general, this is also the case for some
+ * preconditions. E.g., for some implementations, checking whether a CFA node or edge given as
+ * method argument belongs to the CFA represented by a {@link CfaNetwork} can be quite expensive.
  *
  * <p>All returned sets are unmodifiable views, so attempts to modify such a set will throw an
  * exception, but modifications to the CFA represented by a {@code CfaNetwork} will be reflected in
@@ -62,28 +63,32 @@ public interface CfaNetwork extends Network<CFANode, CFAEdge> {
    * @throws NullPointerException if {@code pCfa == null}
    */
   public static CfaNetwork wrap(CFA pCfa) {
-    return new WrappingCfaNetwork(pCfa);
+    return CheckingCfaNetwork.wrapIfAssertionsEnabled(new WrappingCfaNetwork(pCfa));
   }
 
   public static CfaNetwork filterEdges(CfaNetwork pNetwork, Predicate<CFAEdge> pFilter) {
-    return new EdgeFilteringCfaNetwork(pNetwork, pFilter);
+    return CheckingCfaNetwork.wrapIfAssertionsEnabled(
+        new EdgeFilteringCfaNetwork(pNetwork, pFilter));
   }
 
   public static CfaNetwork of(CFA pCfa, Predicate<CFAEdge> pFilter) {
-    return filterEdges(wrap(pCfa), pFilter);
+    return CheckingCfaNetwork.wrapIfAssertionsEnabled(filterEdges(wrap(pCfa), pFilter));
   }
 
   public static CfaNetwork transformEdges(
       CfaNetwork pNetwork, Function<CFAEdge, CFAEdge> pTransformer) {
-    return new EdgeTransformingCfaNetwork(pNetwork, pTransformer);
+    return CheckingCfaNetwork.wrapIfAssertionsEnabled(
+        new EdgeTransformingCfaNetwork(pNetwork, pTransformer));
   }
 
   public static CfaNetwork of(CFA pCfa, Set<String> pFunctions) {
-    return new FunctionFilteringCfaNetwork(pCfa, pFunctions);
+    return CheckingCfaNetwork.wrapIfAssertionsEnabled(
+        new FunctionFilteringCfaNetwork(pCfa, pFunctions));
   }
 
   public static CfaNetwork of(FunctionEntryNode pFunctionEntryNode) {
-    return new SingleFunctionCfaNetwork(pFunctionEntryNode);
+    return CheckingCfaNetwork.wrapIfAssertionsEnabled(
+        new SingleFunctionCfaNetwork(pFunctionEntryNode));
   }
 
   /**
