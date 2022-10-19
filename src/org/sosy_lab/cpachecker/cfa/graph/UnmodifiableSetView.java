@@ -8,9 +8,16 @@
 
 package org.sosy_lab.cpachecker.cfa.graph;
 
+import com.google.common.collect.ArrayListMultimap;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterators;
+import com.google.common.collect.Multimap;
 import java.util.AbstractCollection;
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 
@@ -29,6 +36,37 @@ import java.util.Set;
  * true} for any two elements returned during a single iteration of elements).
  */
 abstract class UnmodifiableSetView<E> extends AbstractCollection<E> implements Set<E> {
+
+  /**
+   * Returns a set that contains all duplicate lists in the specified iterable.
+   *
+   * <p>Elements in such a duplicate list are equal to all other elements in the same list. Each
+   * list contains at least two elements. Elements in a duplicate list are in the same order they
+   * appear in the specified iterable.
+   *
+   * @param <E> the type of elements in the iterable
+   * @param pIterable the iterable to find duplicates in
+   * @return a set that contains all lists of duplicates in the specified iterable
+   * @throws NullPointerException if {@code pIterable == null}
+   */
+  static <E> ImmutableSet<List<E>> duplicates(Iterable<E> pIterable) {
+    Set<E> set = new HashSet<>();
+    pIterable.forEach(set::add);
+    if (set.size() < Iterators.size(pIterable.iterator())) {
+      // element -> all elements the element is equal to, including itself
+      Multimap<E, E> occurrencesMap = ArrayListMultimap.create();
+      pIterable.forEach(element -> occurrencesMap.put(element, element));
+      ImmutableSet.Builder<List<E>> duplicatesBuilder = ImmutableSet.builder();
+      for (Collection<E> occurrences : occurrencesMap.asMap().values()) {
+        if (occurrences.size() > 1) {
+          // we cannot use `ImmutableList` because it doesn't allow `null` elements
+          duplicatesBuilder.add(Collections.unmodifiableList(new ArrayList<>((occurrences))));
+        }
+      }
+      return duplicatesBuilder.build();
+    }
+    return ImmutableSet.of();
+  }
 
   @Override
   public int size() {
