@@ -136,8 +136,7 @@ public final class CfaCreator {
             edge -> !(edge instanceof FunctionCallEdge) && !(edge instanceof FunctionReturnEdge));
 
     CfaNetwork independentFunctionCfa =
-        CfaNetwork.transformEdges(
-            cfaWithoutSuperEdges,
+        cfaWithoutSuperEdges.transformEdges(
             edge -> {
               if (edge instanceof FunctionSummaryEdge) {
                 return pSummaryToStatementEdgeTransformer.transform(

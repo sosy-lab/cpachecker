@@ -18,15 +18,27 @@ import java.util.function.Function;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 
+/**
+ * A {@link CfaNetwork} that forwards all calls to another {@link CfaNetwork}, but also transforms
+ * all returned edges using the specified function.
+ *
+ * <p>Before any edge is returned, the transformer function is applied. Only the edges returned by
+ * the transformer function are part of the CFA represented by a {@link EdgeTransformingCfaNetwork}.
+ */
 final class EdgeTransformingCfaNetwork extends AbstractCfaNetwork {
 
   private final CfaNetwork delegate;
-  private final Function<CFAEdge, CFAEdge> transformer;
+  private final Function<CFAEdge, CFAEdge> edgeTransformer;
 
-  EdgeTransformingCfaNetwork(CfaNetwork pDelegate, Function<CFAEdge, CFAEdge> pTransformer) {
+  private EdgeTransformingCfaNetwork(
+      CfaNetwork pDelegate, Function<CFAEdge, CFAEdge> pEdgeTransformer) {
+    delegate = pDelegate;
+    edgeTransformer = pEdgeTransformer;
+  }
 
-    delegate = checkNotNull(pDelegate);
-    transformer = checkNotNull(pTransformer);
+  static EdgeTransformingCfaNetwork of(
+      CfaNetwork pDelegate, Function<CFAEdge, CFAEdge> pEdgeTransformer) {
+    return new EdgeTransformingCfaNetwork(checkNotNull(pDelegate), checkNotNull(pEdgeTransformer));
   }
 
   @Override
@@ -35,7 +47,7 @@ final class EdgeTransformingCfaNetwork extends AbstractCfaNetwork {
 
       @Override
       public Iterator<CFAEdge> iterator() {
-        return Iterators.transform(delegate.inEdges(pNode).iterator(), transformer::apply);
+        return Iterators.transform(delegate.inEdges(pNode).iterator(), edgeTransformer::apply);
       }
     };
   }
@@ -46,7 +58,7 @@ final class EdgeTransformingCfaNetwork extends AbstractCfaNetwork {
 
       @Override
       public Iterator<CFAEdge> iterator() {
-        return Iterators.transform(delegate.outEdges(pNode).iterator(), transformer::apply);
+        return Iterators.transform(delegate.outEdges(pNode).iterator(), edgeTransformer::apply);
       }
     };
   }
