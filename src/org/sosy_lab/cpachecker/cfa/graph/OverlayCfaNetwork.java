@@ -76,23 +76,23 @@ final class OverlayCfaNetwork extends ForwardingMutableNetwork<CFANode, CFAEdge>
   }
 
   @Override
-  public Optional<FunctionExitNode> getFunctionExitNode(FunctionEntryNode pFunctionEntryNode) {
-    return delegate.getFunctionExitNode(pFunctionEntryNode);
+  public Optional<FunctionExitNode> functionExitNode(FunctionEntryNode pFunctionEntryNode) {
+    return delegate.functionExitNode(pFunctionEntryNode);
   }
 
   @Override
-  public FunctionSummaryEdge getFunctionSummaryEdge(FunctionCallEdge pFunctionCallEdge) {
-    return delegate.getFunctionSummaryEdge(pFunctionCallEdge);
+  public FunctionSummaryEdge functionSummaryEdge(FunctionCallEdge pFunctionCallEdge) {
+    return delegate.functionSummaryEdge(pFunctionCallEdge);
   }
 
   @Override
-  public FunctionSummaryEdge getFunctionSummaryEdge(FunctionReturnEdge pFunctionReturnEdge) {
-    return delegate.getFunctionSummaryEdge(pFunctionReturnEdge);
+  public FunctionSummaryEdge functionSummaryEdge(FunctionReturnEdge pFunctionReturnEdge) {
+    return delegate.functionSummaryEdge(pFunctionReturnEdge);
   }
 
   @Override
-  public FunctionEntryNode getFunctionEntryNode(FunctionSummaryEdge pFunctionSummaryEdge) {
-    return delegate.getFunctionEntryNode(pFunctionSummaryEdge);
+  public FunctionEntryNode functionEntryNode(FunctionSummaryEdge pFunctionSummaryEdge) {
+    return delegate.functionEntryNode(pFunctionSummaryEdge);
   }
 
   private static final class DelegateCfaNetwork extends AbstractCfaNetwork {

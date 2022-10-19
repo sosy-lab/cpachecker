@@ -198,7 +198,7 @@ public final class CCfaEdgeTransformer implements CfaEdgeTransformer {
     public CFAEdge visit(CFunctionCallEdge pCFunctionCallEdge) {
 
       FunctionSummaryEdge oldFunctionSummaryEdge =
-          cfaNetwork.getFunctionSummaryEdge(pCFunctionCallEdge);
+          cfaNetwork.functionSummaryEdge(pCFunctionCallEdge);
       CFunctionSummaryEdge newFunctionSummaryEdge =
           (CFunctionSummaryEdge) edgeSubstitution.get(oldFunctionSummaryEdge);
 
@@ -219,7 +219,7 @@ public final class CCfaEdgeTransformer implements CfaEdgeTransformer {
     public CFAEdge visit(CFunctionReturnEdge pCFunctionReturnEdge) {
 
       FunctionSummaryEdge oldFunctionSummaryEdge =
-          cfaNetwork.getFunctionSummaryEdge(pCFunctionReturnEdge);
+          cfaNetwork.functionSummaryEdge(pCFunctionReturnEdge);
       CFunctionSummaryEdge newFunctionSummaryEdge =
           (CFunctionSummaryEdge) edgeSubstitution.get(oldFunctionSummaryEdge);
 
@@ -238,8 +238,7 @@ public final class CCfaEdgeTransformer implements CfaEdgeTransformer {
               applyEdgeAstSubstitutions(
                   pCFunctionSummaryEdge, pCFunctionSummaryEdge.getExpression());
 
-      FunctionEntryNode oldFunctionEntryNode =
-          cfaNetwork.getFunctionEntryNode(pCFunctionSummaryEdge);
+      FunctionEntryNode oldFunctionEntryNode = cfaNetwork.functionEntryNode(pCFunctionSummaryEdge);
       CFunctionEntryNode newFunctionEntryNode =
           (CFunctionEntryNode) nodeSubstitution.get(oldFunctionEntryNode);
 

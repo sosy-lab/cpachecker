@@ -326,22 +326,22 @@ final class CheckingCfaNetwork implements CfaNetwork {
   }
 
   @Override
-  public Optional<FunctionExitNode> getFunctionExitNode(FunctionEntryNode pFunctionEntryNode) {
-    return delegate.getFunctionExitNode(checkContainsNode(pFunctionEntryNode));
+  public Optional<FunctionExitNode> functionExitNode(FunctionEntryNode pFunctionEntryNode) {
+    return delegate.functionExitNode(checkContainsNode(pFunctionEntryNode));
   }
 
   @Override
-  public FunctionSummaryEdge getFunctionSummaryEdge(FunctionCallEdge pFunctionCallEdge) {
-    return delegate.getFunctionSummaryEdge(checkContainsEdge(pFunctionCallEdge));
+  public FunctionSummaryEdge functionSummaryEdge(FunctionCallEdge pFunctionCallEdge) {
+    return delegate.functionSummaryEdge(checkContainsEdge(pFunctionCallEdge));
   }
 
   @Override
-  public FunctionSummaryEdge getFunctionSummaryEdge(FunctionReturnEdge pFunctionReturnEdge) {
-    return delegate.getFunctionSummaryEdge(checkContainsEdge(pFunctionReturnEdge));
+  public FunctionSummaryEdge functionSummaryEdge(FunctionReturnEdge pFunctionReturnEdge) {
+    return delegate.functionSummaryEdge(checkContainsEdge(pFunctionReturnEdge));
   }
 
   @Override
-  public FunctionEntryNode getFunctionEntryNode(FunctionSummaryEdge pFunctionSummaryEdge) {
-    return delegate.getFunctionEntryNode(checkContainsEdge(pFunctionSummaryEdge));
+  public FunctionEntryNode functionEntryNode(FunctionSummaryEdge pFunctionSummaryEdge) {
+    return delegate.functionEntryNode(checkContainsEdge(pFunctionSummaryEdge));
   }
 }

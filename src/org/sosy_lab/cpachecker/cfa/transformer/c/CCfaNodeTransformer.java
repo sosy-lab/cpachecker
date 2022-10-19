@@ -72,7 +72,7 @@ public final class CCfaNodeTransformer implements CfaNodeTransformer {
       CFunctionEntryNode pOldNode, CfaNetwork pCfaNetwork, CfaNodeSubstitution pNodeSubstitution) {
 
     FunctionExitNode oldExitNode =
-        pCfaNetwork.getFunctionExitNode(pOldNode).orElse(pOldNode.getExitNode());
+        pCfaNetwork.functionExitNode(pOldNode).orElse(pOldNode.getExitNode());
     FunctionExitNode newExitNode = (FunctionExitNode) pNodeSubstitution.get(oldExitNode);
 
     Optional<CVariableDeclaration> newReturnVariable =

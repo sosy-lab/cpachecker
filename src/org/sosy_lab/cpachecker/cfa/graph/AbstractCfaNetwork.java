@@ -153,7 +153,7 @@ abstract class AbstractCfaNetwork extends AbstractNetwork<CFANode, CFAEdge> impl
   // CFA specific
 
   @Override
-  public Optional<FunctionExitNode> getFunctionExitNode(FunctionEntryNode pFunctionEntryNode) {
+  public Optional<FunctionExitNode> functionExitNode(FunctionEntryNode pFunctionEntryNode) {
 
     Set<CFANode> waitlisted = new HashSet<>(ImmutableList.of(pFunctionEntryNode));
     Deque<CFANode> waitlist = new ArrayDeque<>(waitlisted);
@@ -180,7 +180,7 @@ abstract class AbstractCfaNetwork extends AbstractNetwork<CFANode, CFAEdge> impl
   }
 
   @Override
-  public FunctionSummaryEdge getFunctionSummaryEdge(FunctionCallEdge pFunctionCallEdge) {
+  public FunctionSummaryEdge functionSummaryEdge(FunctionCallEdge pFunctionCallEdge) {
 
     CFANode functionCallEdgePredecessor = incidentNodes(pFunctionCallEdge).source();
 
@@ -195,7 +195,7 @@ abstract class AbstractCfaNetwork extends AbstractNetwork<CFANode, CFAEdge> impl
   }
 
   @Override
-  public FunctionSummaryEdge getFunctionSummaryEdge(FunctionReturnEdge pFunctionReturnEdge) {
+  public FunctionSummaryEdge functionSummaryEdge(FunctionReturnEdge pFunctionReturnEdge) {
 
     CFANode functionReturnEdgeSuccessor = incidentNodes(pFunctionReturnEdge).target();
 
@@ -210,7 +210,7 @@ abstract class AbstractCfaNetwork extends AbstractNetwork<CFANode, CFAEdge> impl
   }
 
   @Override
-  public FunctionEntryNode getFunctionEntryNode(FunctionSummaryEdge pFunctionSummaryEdge) {
+  public FunctionEntryNode functionEntryNode(FunctionSummaryEdge pFunctionSummaryEdge) {
 
     CFANode functionSummaryEdgePredecessor = incidentNodes(pFunctionSummaryEdge).source();
 
