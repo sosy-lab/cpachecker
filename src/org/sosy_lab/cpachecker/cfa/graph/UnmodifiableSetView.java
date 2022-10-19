@@ -25,15 +25,17 @@ import java.util.Set;
  * A convenient way of representing iterable data structures as sets.
  *
  * <p>All modifying operations (e.g., {@link UnmodifiableSetView#add(Object)}, {@link
- * UnmodifiableSetView#remove(Object)}, etc.) throw an {@link UnsupportedOperationException}, but
- * modifications to an underlying data structure will be reflected in its unmodifiable view.
+ * UnmodifiableSetView#remove(Object)}, etc.) throw an {@link UnsupportedOperationException}.
+ * However, a set represented by a {@link UnmodifiableSetView} is not immutable, because
+ * modifications to its underlying data structure are reflected in the set.
  *
  * <p>To implement an unmodifiable set view, this class needs to be extended and {@link
- * UnmodifiableSetView#iterator()} implemented.
+ * UnmodifiableSetView#iterator()} implemented. {@link UnmodifiableSetView#size()} should be
+ * overridden if the subclass admits a more efficient implementation.
  *
  * <p>IMPORTANT: It's expected that the underlying data structure does not contain duplicates and at
- * most one {@code null} element ({@link Objects#equals(Object, Object)} must never return {@code
- * true} for any two elements returned during a single iteration of elements).
+ * most one {@code null} element. {@link Objects#equals(Object, Object)} must never return {@code
+ * true} for any two elements returned during a single iteration of elements.
  */
 abstract class UnmodifiableSetView<E> extends AbstractCollection<E> implements Set<E> {
 
