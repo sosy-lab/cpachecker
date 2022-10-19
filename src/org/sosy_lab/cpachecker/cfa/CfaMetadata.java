@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.cfa;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
+import com.google.common.base.MoreObjects;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import java.io.IOException;
@@ -254,5 +255,19 @@ public final class CfaMetadata implements Serializable {
         && Objects.equals(loopStructure, other.loopStructure)
         && Objects.equals(variableClassification, other.variableClassification)
         && Objects.equals(liveVariables, other.liveVariables);
+  }
+
+  @Override
+  public String toString() {
+    return MoreObjects.toStringHelper(this)
+        .add("machineModel", machineModel)
+        .add("language", language)
+        .add("fileNames", fileNames)
+        .add("mainFunctionEntry", mainFunctionEntry)
+        .add("connectedness", connectedness)
+        .add("loopStructure", loopStructure)
+        .add("variableClassification", variableClassification)
+        .add("liveVariables", liveVariables)
+        .toString();
   }
 }
