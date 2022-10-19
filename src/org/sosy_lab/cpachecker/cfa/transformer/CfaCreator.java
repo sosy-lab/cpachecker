@@ -142,7 +142,7 @@ public final class CfaCreator {
             edge -> {
               if (edge instanceof FunctionSummaryEdge) {
                 return pSummaryToStatementEdgeTransformer.transform(
-                    edge, cfaWithoutSuperEdges, node -> node, CfaEdgeSubstitution.DUMMY);
+                    edge, cfaWithoutSuperEdges, node -> node, CfaEdgeSubstitution.UNSUPPORTED);
               }
 
               return edge;

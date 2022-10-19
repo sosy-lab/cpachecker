@@ -38,7 +38,7 @@ public interface CfaNodeSubstitution {
    * if during node transformation only nodes are transformed that don't require other transformed
    * nodes for their construction).
    */
-  public static final CfaNodeSubstitution DUMMY =
+  public static final CfaNodeSubstitution UNSUPPORTED =
       node -> {
         throw new UnsupportedOperationException("node substitution is unsupported");
       };

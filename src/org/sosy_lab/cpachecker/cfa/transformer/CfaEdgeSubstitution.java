@@ -38,7 +38,7 @@ public interface CfaEdgeSubstitution {
    * if during edge transformation only edges are transformed that don't require other transformed
    * edges for their construction).
    */
-  public static final CfaEdgeSubstitution DUMMY =
+  public static final CfaEdgeSubstitution UNSUPPORTED =
       edge -> {
         throw new UnsupportedOperationException("edge substitution is unsupported");
       };
