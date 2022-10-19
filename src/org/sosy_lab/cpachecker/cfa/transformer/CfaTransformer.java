@@ -18,7 +18,7 @@ import org.sosy_lab.cpachecker.cfa.graph.CfaNetwork;
 
 /**
  * A CFA transformer takes a CFA, creates a copy of the CFA, applies some modifications to the copy,
- * and returns the copy as the transformed CFA.
+ * and returns the modified copy as the transformed CFA.
  *
  * <p>To implement a CFA transformer, an implementation for {@link
  * CfaTransformer#transform(CfaNetwork, CfaMetadata, LogManager)} must be provided. The
@@ -29,16 +29,16 @@ import org.sosy_lab.cpachecker.cfa.graph.CfaNetwork;
 public interface CfaTransformer {
 
   /**
-   * Returns a new CFA transformer that is the combination of the specified transformers.
+   * Returns a new CFA transformer that represents the combination of the specified transformers.
    *
    * <p>The transformers are executed in the order they are specified. The output of a transformer
-   * is the input of the next transformer. The input of the returned transformer is the input of the
-   * first specified transformer and the output of the returned transformer is the output of the
+   * is the input of the next transformer. The input of the combined transformer is the input of the
+   * first specified transformer and the output of the combined transformer is the output of the
    * last specified transformer.
    *
    * @param pTransformer the first CFA transformer
    * @param pTransformers additional CFA transformers executed after the first CFA transformer
-   * @return a new CFA transformer that is the combination of the specified transformers
+   * @return a new CFA transformer that represents the combination of the specified transformers
    * @throws NullPointerException if any parameter is {@code null}
    */
   public static CfaTransformer of(CfaTransformer pTransformer, CfaTransformer... pTransformers) {
@@ -67,7 +67,7 @@ public interface CfaTransformer {
    *
    * <p>Every time this method is called, a new transformed CFA instance is created.
    *
-   * @param pCfa the CFA (represented as a {@code CfaNetwork}) to create a transformed CFA for
+   * @param pCfa the CFA (represented as a {@link CfaNetwork}) to create a transformed CFA for
    * @param pCfaMetadata the metadata of the specified CFA
    * @param pLogger the logger to use during CFA transformation
    * @return a new transformed CFA for the specified CFA
