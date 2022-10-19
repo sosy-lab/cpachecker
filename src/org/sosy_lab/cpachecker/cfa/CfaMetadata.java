@@ -16,6 +16,7 @@ import java.io.IOException;
 import java.io.Serializable;
 import java.nio.file.Path;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
@@ -221,5 +222,37 @@ public final class CfaMetadata implements Serializable {
     @SuppressWarnings("unchecked") // paths are always serialized as a list of strings
     List<String> stringFileNames = (List<String>) pObjectInputStream.readObject();
     fileNames = ImmutableList.copyOf(Lists.transform(stringFileNames, Path::of));
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(
+        machineModel,
+        language,
+        fileNames,
+        mainFunctionEntry,
+        connectedness,
+        loopStructure,
+        variableClassification,
+        liveVariables);
+  }
+
+  @Override
+  public boolean equals(Object pObject) {
+    if (this == pObject) {
+      return true;
+    }
+    if (!(pObject instanceof CfaMetadata)) {
+      return false;
+    }
+    CfaMetadata other = (CfaMetadata) pObject;
+    return machineModel == other.machineModel
+        && language == other.language
+        && Objects.equals(fileNames, other.fileNames)
+        && Objects.equals(mainFunctionEntry, other.mainFunctionEntry)
+        && connectedness == other.connectedness
+        && Objects.equals(loopStructure, other.loopStructure)
+        && Objects.equals(variableClassification, other.variableClassification)
+        && Objects.equals(liveVariables, other.liveVariables);
   }
 }
