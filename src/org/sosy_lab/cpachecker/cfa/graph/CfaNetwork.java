@@ -111,4 +111,8 @@ public interface CfaNetwork extends Network<CFANode, CFAEdge> {
     return CheckingCfaNetwork.wrapIfAssertionsEnabled(
         EdgeTransformingCfaNetwork.of(this, pEdgeTransformer));
   }
+
+  default CfaNetwork ignoreSummaryEdges() {
+    return filterEdges(edge -> !(edge instanceof FunctionSummaryEdge));
+  }
 }
