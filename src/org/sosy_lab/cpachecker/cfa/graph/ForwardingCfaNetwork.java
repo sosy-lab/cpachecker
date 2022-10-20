@@ -16,16 +16,12 @@ import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 
-final class ForwardingCfaNetwork extends AbstractCfaNetwork {
+class ForwardingCfaNetwork extends AbstractCfaNetwork {
 
   private Network<CFANode, CFAEdge> delegate;
 
-  private ForwardingCfaNetwork(Network<CFANode, CFAEdge> pDelegate) {
-    delegate = pDelegate;
-  }
-
-  static CfaNetwork of(Network<CFANode, CFAEdge> pDelegate) {
-    return new ForwardingCfaNetwork(checkNotNull(pDelegate));
+  ForwardingCfaNetwork(Network<CFANode, CFAEdge> pDelegate) {
+    delegate = checkNotNull(pDelegate);
   }
 
   @Override
