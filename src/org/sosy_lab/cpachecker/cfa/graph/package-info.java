@@ -25,14 +25,16 @@
  *   <li>{@link org.sosy_lab.cpachecker.cfa.graph.CfaNetwork} extends {@link
  *       com.google.common.graph.Network}: All {@link com.google.common.graph.Network}
  *       implementations representing CFAs implement this interface. There are methods for {@link
- *       org.sosy_lab.cpachecker.cfa.graph.CfaNetwork#wrap(CFA) wrapping} existing CFAs and applying
- *       on-the-fly filters and transformations.
+ *       org.sosy_lab.cpachecker.cfa.graph.CfaNetwork#wrap(org.sosy_lab.cpachecker.cfa.CFA)
+ *       wrapping} existing CFAs and applying on-the-fly filters and transformations.
  *   <li>{@link org.sosy_lab.cpachecker.cfa.graph.MutableCfaNetwork} extends {@link
  *       org.sosy_lab.cpachecker.cfa.graph.CfaNetwork} and {@link
- *       org.sosy_lab.cpachecker.cfa.graph.MutableNetwork}: The mutable version of a {@link
+ *       com.google.common.graph.MutableNetwork}: The mutable version of a {@link
  *       org.sosy_lab.cpachecker.cfa.graph.CfaNetwork} that also provides basic methods for
  *       modifying CFAs. Existing {@link org.sosy_lab.cpachecker.cfa.MutableCFA} instances can be
- *       {@link org.sosy_lab.cpachecker.cfa.graph.MutableCfaNetwork#wrap(MutableCFA) wrapped}.
+ *       {@link
+ *       org.sosy_lab.cpachecker.cfa.graph.MutableCfaNetwork#wrap(org.sosy_lab.cpachecker.cfa.MutableCFA)
+ *       MutableCFA) wrapped}.
  *   <li>{@link org.sosy_lab.cpachecker.cfa.graph.FlexCfaNetwork} extends {@link
  *       org.sosy_lab.cpachecker.cfa.graph.MutableCfaNetwork}: A flexible {@link
  *       org.sosy_lab.cpachecker.cfa.graph.MutableCfaNetwork} that allows for more advanced
