@@ -62,7 +62,7 @@ abstract class UnmodifiableSetView<E> extends AbstractCollection<E> implements S
       for (Collection<E> occurrences : occurrencesMap.asMap().values()) {
         if (occurrences.size() > 1) {
           // we cannot use `ImmutableList` because it doesn't allow `null` elements
-          duplicatesBuilder.add(Collections.unmodifiableList(new ArrayList<>((occurrences))));
+          duplicatesBuilder.add(Collections.unmodifiableList(new ArrayList<>(occurrences)));
         }
       }
       return duplicatesBuilder.build();
