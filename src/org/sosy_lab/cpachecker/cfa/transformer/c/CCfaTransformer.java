@@ -101,7 +101,7 @@ public final class CCfaTransformer implements CfaTransformer {
      * @param pCfaPostProcessor the CFA post-processor to add for CFA construction
      * @return this builder instance
      */
-    public Builder add(CfaPostProcessor pCfaPostProcessor) {
+    public Builder addPostProcessor(CfaPostProcessor pCfaPostProcessor) {
 
       cfaPostProcessors.add(pCfaPostProcessor);
 
@@ -117,7 +117,7 @@ public final class CCfaTransformer implements CfaTransformer {
      * @param pNodeAstSubstitution the AST substitution to add
      * @return this builder instance
      */
-    public Builder add(CCfaNodeAstSubstitution pNodeAstSubstitution) {
+    public Builder addNodeAstSubstitution(CCfaNodeAstSubstitution pNodeAstSubstitution) {
 
       nodeAstSubstitutions.add(pNodeAstSubstitution);
 
@@ -133,7 +133,7 @@ public final class CCfaTransformer implements CfaTransformer {
      * @param pEdgeAstSubstitution the AST substitution to add
      * @return this builder instance
      */
-    public Builder add(CCfaEdgeAstSubstitution pEdgeAstSubstitution) {
+    public Builder addEdgeAstSubstitution(CCfaEdgeAstSubstitution pEdgeAstSubstitution) {
 
       edgeAstSubstitutions.add(pEdgeAstSubstitution);
 

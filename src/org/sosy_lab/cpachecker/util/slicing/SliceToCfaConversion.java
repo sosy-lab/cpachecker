@@ -201,9 +201,11 @@ final class SliceToCfaConversion {
 
     CfaTransformer cfaTransformer =
         CCfaTransformer.builder()
-            .add(new RelevantNodeAstSubstitution(pSlice, functionToEntryNodeMap::get))
-            .add(createAstNodeSubstitutionForCfaEdges(pSlice, functionToEntryNodeMap::get)::apply)
-            .add(new CFASimplifier())
+            .addNodeAstSubstitution(
+                new RelevantNodeAstSubstitution(pSlice, functionToEntryNodeMap::get))
+            .addEdgeAstSubstitution(
+                createAstNodeSubstitutionForCfaEdges(pSlice, functionToEntryNodeMap::get)::apply)
+            .addPostProcessor(new CFASimplifier())
             .build(pConfig);
 
     CFA sliceCfa = cfaTransformer.transform(graph, pSlice.getOriginalCfa().getMetadata(), pLogger);
