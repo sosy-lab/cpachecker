@@ -21,6 +21,11 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
  * <p>In order to allow for more advanced operations, a {@link FlexCfaNetwork} always operated on
  * its own copy of a CFA or {@link CfaNetwork}. The original CFA or {@link CfaNetwork} is never
  * modified by any operations on the {@link FlexCfaNetwork}.
+ *
+ * <p>The CFA represented by a {@link FlexCfaNetwork} may differ from the CFA represented by its
+ * elements (e.g., {@link CFAEdge#getSuccessor()} and {@link FlexCfaNetwork#successor(CFAEdge)} may
+ * not return the same value). It isn't necessary that endpoints of a CFA edge and endpoints given
+ * as arguments to an {@code addEdge} method match.
  */
 public interface FlexCfaNetwork extends MutableCfaNetwork {
 

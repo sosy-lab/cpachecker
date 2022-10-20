@@ -18,6 +18,16 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 
+/**
+ * A {@link MutableCfaNetwork} that forwards all calls to its wrapped {@link MutableCFA}.
+ *
+ * <p>All modifying operations change the wrapped {@link MutableCFA}.
+ *
+ * <p>The CFA represented by a {@link WrappingMutableCfaNetwork} always matches the CFA represented
+ * by its elements (e.g., {@link CFAEdge#getSuccessor()} and {@link
+ * FlexCfaNetwork#successor(CFAEdge)} always return the same value). Endpoints of a CFA edge and
+ * endpoints given as arguments to an {@code addEdge} method must match.
+ */
 final class WrappingMutableCfaNetwork extends ForwardingCfaNetwork implements MutableCfaNetwork {
 
   private final MutableCFA mutableCfa;
@@ -30,8 +40,6 @@ final class WrappingMutableCfaNetwork extends ForwardingCfaNetwork implements Mu
   static MutableCfaNetwork wrap(MutableCFA pMutableCfa) {
     return new WrappingMutableCfaNetwork(checkNotNull(pMutableCfa));
   }
-
-  // modifying operations
 
   @Override
   public boolean addNode(CFANode pNode) {
