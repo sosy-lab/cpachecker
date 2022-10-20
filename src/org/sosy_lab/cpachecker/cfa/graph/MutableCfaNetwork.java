@@ -98,8 +98,8 @@ public interface MutableCfaNetwork extends CfaNetwork, MutableNetwork<CFANode, C
    * <p>{@code pNewEdge} must be unique to this {@link MutableCfaNetwork}.
    *
    * <p>If either or both specified endpoints are not already present in this {@link
-   * MutableCfaNetwork}, this method will silently {@link #addNode(CFANode) add} each missing
-   * endpoint to the {@link MutableCfaNetwork}.
+   * MutableCfaNetwork}, this method will silently {@link MutableCfaNetwork#addNode(CFANode) add}
+   * each missing endpoint to the {@link MutableCfaNetwork}.
    *
    * <p>Depending on the implementation, the specified endpoints must match the edge's {@link
    * CFAEdge#getPredecessor() predecessor} and {@link CFAEdge#getSuccessor() successor}.
@@ -125,8 +125,8 @@ public interface MutableCfaNetwork extends CfaNetwork, MutableNetwork<CFANode, C
    * <p>{@code pNewEdge} must be unique to this {@link MutableCfaNetwork}.
    *
    * <p>If either or both specified endpoints are not already present in this {@link
-   * MutableCfaNetwork}, this method will silently {@link #addNode(CFANode) add} each missing
-   * endpoint to the {@link MutableCfaNetwork}.
+   * MutableCfaNetwork}, this method will silently {@link MutableCfaNetwork#addNode(CFANode) add}
+   * each missing endpoint to the {@link MutableCfaNetwork}.
    *
    * <p>Depending on the implementation, the specified endpoints must match the edge's {@link
    * CFAEdge#getPredecessor() predecessor} and {@link CFAEdge#getSuccessor() successor}.
@@ -151,8 +151,8 @@ public interface MutableCfaNetwork extends CfaNetwork, MutableNetwork<CFANode, C
    * <p>{@code pNewEdge} must be unique to this {@link MutableCfaNetwork}.
    *
    * <p>If either or both endpoints are not already present in this {@link MutableCfaNetwork}, this
-   * method will silently {@link #addNode(CFANode) add} each missing endpoint to the {@link
-   * MutableCfaNetwork}.
+   * method will silently {@link MutableCfaNetwork#addNode(CFANode) add} each missing endpoint to
+   * the {@link MutableCfaNetwork}.
    *
    * <p>Calling this method has the same effect as calling {@code addEdge(edge.getPredecessor(),
    * edge.getSuccessor(), edge)}.
