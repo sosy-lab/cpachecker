@@ -37,7 +37,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.TransformingCAstNodeVisitor;
 import org.sosy_lab.cpachecker.cfa.graph.CfaNetwork;
-import org.sosy_lab.cpachecker.cfa.graph.MutableCfaNetwork;
+import org.sosy_lab.cpachecker.cfa.graph.FlexCfaNetwork;
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -57,7 +57,6 @@ import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
 import org.sosy_lab.cpachecker.exceptions.NoException;
-import org.sosy_lab.cpachecker.util.graph.Graphs;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 /** Utility class for turning {@link Slice} instances into {@link CFA} instances. */
@@ -162,7 +161,7 @@ final class SliceToCfaConversion {
         Collections3.transformedImmutableSetCopy(
             relevantEdges, edge -> edge.getSuccessor().getFunction());
 
-    MutableCfaNetwork graph = MutableCfaNetwork.createOverlay(pSlice.getOriginalCfa());
+    FlexCfaNetwork graph = FlexCfaNetwork.copy(pSlice.getOriginalCfa());
 
     ImmutableList<CFAEdge> irrelevantFunctionEdges =
         graph.edges().stream()
@@ -174,7 +173,7 @@ final class SliceToCfaConversion {
         graph.edges().stream()
             .filter(edge -> !relevantEdges.contains(edge) && isReplaceableEdge(edge))
             .collect(ImmutableList.toImmutableList());
-    irrelevantEdges.forEach(edge -> Graphs.replaceEdge(graph, edge, createNoopBlankEdge(edge)));
+    irrelevantEdges.forEach(edge -> graph.replaceEdge(edge, createNoopBlankEdge(edge)));
 
     ImmutableList<CFANode> irrelevantNodes =
         graph.nodes().stream()

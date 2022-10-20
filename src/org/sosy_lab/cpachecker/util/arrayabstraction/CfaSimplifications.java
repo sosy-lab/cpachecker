@@ -38,7 +38,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.SubstitutingCAstNodeVisitor;
-import org.sosy_lab.cpachecker.cfa.graph.MutableCfaNetwork;
+import org.sosy_lab.cpachecker.cfa.graph.FlexCfaNetwork;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -56,7 +56,6 @@ import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.exceptions.NoException;
-import org.sosy_lab.cpachecker.util.graph.Graphs;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 import org.sosy_lab.cpachecker.util.variableclassification.VariableClassification;
 
@@ -79,7 +78,7 @@ final class CfaSimplifications {
       CFA pCfa,
       VariableGenerator pVariableGenerator) {
 
-    MutableCfaNetwork graph = MutableCfaNetwork.createOverlay(pCfa);
+    FlexCfaNetwork graph = FlexCfaNetwork.copy(pCfa);
     Map<CFAEdge, Map<ArrayAccess, CAstNode>> substitution = new HashMap<>();
 
     // copy of edges to prevent concurrent modification of graph
@@ -152,8 +151,8 @@ final class CfaSimplifications {
                     .put(finishedEntry.getKey(), finishedEntry.getValue());
               }
 
-              Graphs.insertPredecessor(
-                  graph, new CFANode(predecessor.getFunction()), predecessor, newDeclarationEdge);
+              graph.insertPredecessor(
+                  new CFANode(predecessor.getFunction()), newDeclarationEdge, predecessor);
 
               CIdExpression substituteExpression = new CIdExpression(fileLocation, declaration);
               substitution
@@ -246,7 +245,7 @@ final class CfaSimplifications {
    */
   static CFA simplifyIncDecLoopEdges(Configuration pConfiguration, LogManager pLogger, CFA pCfa) {
 
-    MutableCfaNetwork graph = MutableCfaNetwork.createOverlay(pCfa);
+    FlexCfaNetwork graph = FlexCfaNetwork.copy(pCfa);
     Map<CFAEdge, Map<CSimpleDeclaration, CExpression>> substitution = new HashMap<>();
 
     VariableClassification variableClassification = pCfa.getVarClassification().orElseThrow();

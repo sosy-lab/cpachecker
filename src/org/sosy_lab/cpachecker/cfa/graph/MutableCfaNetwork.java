@@ -10,7 +10,6 @@ package org.sosy_lab.cpachecker.cfa.graph;
 
 import com.google.common.graph.EndpointPair;
 import com.google.common.graph.MutableNetwork;
-import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.MutableCFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -19,14 +18,6 @@ public interface MutableCfaNetwork extends CfaNetwork, MutableNetwork<CFANode, C
 
   public static MutableCfaNetwork wrap(MutableCFA pMutableCfa) {
     return new WrappingMutableCfaNetwork(pMutableCfa);
-  }
-
-  public static MutableCfaNetwork createOverlay(CfaNetwork pCfaNetwork) {
-    return OverlayCfaNetwork.of(pCfaNetwork);
-  }
-
-  public static MutableCfaNetwork createOverlay(CFA pCfa) {
-    return OverlayCfaNetwork.of(CfaNetwork.wrap(pCfa));
   }
 
   @Override
