@@ -32,6 +32,12 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
 
+/**
+ * This class provides a skeletal implementation of {@link CfaNetwork}.
+ *
+ * <p>If this class is extended, only a small number of methods need to be implemented. These
+ * methods fully define a {@link CfaNetwork}.
+ */
 abstract class AbstractCfaNetwork extends AbstractNetwork<CFANode, CFAEdge> implements CfaNetwork {
 
   // network-level accessors

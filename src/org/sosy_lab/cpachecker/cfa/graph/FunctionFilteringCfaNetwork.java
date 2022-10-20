@@ -26,6 +26,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 
+/** A {@link CfaNetwork} representing a set of functions specified by their function names. */
 final class FunctionFilteringCfaNetwork extends AbstractCfaNetwork {
 
   private final CFA cfa;

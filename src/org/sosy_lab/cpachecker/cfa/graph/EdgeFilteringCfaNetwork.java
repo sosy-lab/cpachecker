@@ -19,11 +19,8 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 
 /**
- * A {@link CfaNetwork} that forwards all calls to another {@link CfaNetwork}, but also filters all
- * returned edges using the specified predicate.
- *
- * <p>Only if the specified predicate returns {@code true}, the edge is part of the CFA represented
- * by a {@link EdgeFilteringCfaNetwork}.
+ * A {@link CfaNetwork} that only contains those edges of the wrapped {@link CfaNetwork}, for which
+ * the specified predicate evaluates to {@code true}.
  */
 final class EdgeFilteringCfaNetwork extends AbstractCfaNetwork {
 

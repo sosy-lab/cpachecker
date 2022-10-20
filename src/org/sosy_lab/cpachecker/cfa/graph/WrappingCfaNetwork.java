@@ -26,6 +26,13 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 
+/**
+ * A {@link CfaNetwork} that represents its wrapped {@link CFA}.
+ *
+ * <p>The CFA represented by a {@link WrappingCfaNetwork} always matches the CFA represented by its
+ * elements (e.g., {@link CFAEdge#getSuccessor()} and {@link WrappingCfaNetwork#successor(CFAEdge)}
+ * always return the same value).
+ */
 final class WrappingCfaNetwork extends AbstractCfaNetwork {
 
   private final CFA cfa;

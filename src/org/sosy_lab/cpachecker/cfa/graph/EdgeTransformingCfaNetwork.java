@@ -19,11 +19,8 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 
 /**
- * A {@link CfaNetwork} that forwards all calls to another {@link CfaNetwork}, but also transforms
- * all returned edges using the specified function.
- *
- * <p>Before any edge is returned, the transformer function is applied. Only the edges returned by
- * the transformer function are part of the CFA represented by a {@link EdgeTransformingCfaNetwork}.
+ * A {@link CfaNetwork} in which all edges of the wrapped {@link CfaNetwork} are replaced by the
+ * result from applying the specified function.
  */
 final class EdgeTransformingCfaNetwork extends AbstractCfaNetwork {
 

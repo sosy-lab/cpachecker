@@ -16,6 +16,7 @@ import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 
+/** A {@link CfaNetwork} that forwards all calls to a wrapped {@link Network}. */
 class ForwardingCfaNetwork extends AbstractCfaNetwork {
 
   private Network<CFANode, CFAEdge> delegate;

@@ -26,6 +26,7 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 
+/** A {@link CfaNetwork} representing a single function specified by its function entry node. */
 final class SingleFunctionCfaNetwork extends AbstractCfaNetwork {
 
   private final FunctionEntryNode functionEntryNode;

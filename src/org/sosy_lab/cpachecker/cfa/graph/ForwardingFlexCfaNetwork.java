@@ -25,6 +25,10 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
 import org.sosy_lab.cpachecker.util.graph.ForwardingMutableNetwork;
 
+/**
+ * A {@link FlexCfaNetwork} that forwards as many calls as possible to a wrapped {@link
+ * MutableNetwork}.
+ */
 final class ForwardingFlexCfaNetwork extends ForwardingMutableNetwork<CFANode, CFAEdge>
     implements FlexCfaNetwork {
 
