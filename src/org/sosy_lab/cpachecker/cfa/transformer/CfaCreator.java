@@ -36,9 +36,7 @@ import org.sosy_lab.cpachecker.cfa.MutableCFA;
 import org.sosy_lab.cpachecker.cfa.graph.CfaNetwork;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
-import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
 
@@ -131,10 +129,7 @@ public final class CfaCreator {
     checkNotNull(pCfaNetwork);
     checkNotNull(pSummaryToStatementEdgeTransformer);
 
-    CfaNetwork cfaWithoutSuperEdges =
-        pCfaNetwork.filterEdges(
-            edge -> !(edge instanceof FunctionCallEdge) && !(edge instanceof FunctionReturnEdge));
-
+    CfaNetwork cfaWithoutSuperEdges = pCfaNetwork.withoutSuperEdges();
     CfaNetwork independentFunctionCfa =
         cfaWithoutSuperEdges.transformEdges(
             edge -> {

@@ -119,4 +119,9 @@ public interface CfaNetwork extends Network<CFANode, CFAEdge> {
   default CfaNetwork withoutSummaryEdges() {
     return filterEdges(edge -> !(edge instanceof FunctionSummaryEdge));
   }
+
+  default CfaNetwork withoutSuperEdges() {
+    return filterEdges(
+        edge -> !(edge instanceof FunctionCallEdge) && !(edge instanceof FunctionReturnEdge));
+  }
 }
