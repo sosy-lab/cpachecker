@@ -104,6 +104,11 @@ final class OverlayCfaNetwork extends ForwardingMutableNetwork<CFANode, CFAEdge>
     }
 
     @Override
+    public Set<CFANode> nodes() {
+      return delegate.nodes();
+    }
+
+    @Override
     public Set<CFAEdge> inEdges(CFANode pNode) {
       return delegate.inEdges(pNode);
     }
@@ -116,11 +121,6 @@ final class OverlayCfaNetwork extends ForwardingMutableNetwork<CFANode, CFAEdge>
     @Override
     public EndpointPair<CFANode> incidentNodes(CFAEdge pEdge) {
       return delegate.incidentNodes(pEdge);
-    }
-
-    @Override
-    public Set<CFANode> nodes() {
-      return delegate.nodes();
     }
   }
 }

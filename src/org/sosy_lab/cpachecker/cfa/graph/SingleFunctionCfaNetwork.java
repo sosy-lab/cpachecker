@@ -39,33 +39,6 @@ final class SingleFunctionCfaNetwork extends AbstractCfaNetwork {
   }
 
   @Override
-  public Set<CFAEdge> inEdges(CFANode pNode) {
-    return new UnmodifiableSetView<>() {
-
-      @Override
-      public Iterator<CFAEdge> iterator() {
-        return CFAUtils.allEnteringEdges(pNode).filter(edge -> !isSuperEdge(edge)).iterator();
-      }
-    };
-  }
-
-  @Override
-  public Set<CFAEdge> outEdges(CFANode pNode) {
-    return new UnmodifiableSetView<>() {
-
-      @Override
-      public Iterator<CFAEdge> iterator() {
-        return CFAUtils.allLeavingEdges(pNode).filter(edge -> !isSuperEdge(edge)).iterator();
-      }
-    };
-  }
-
-  @Override
-  public EndpointPair<CFANode> incidentNodes(CFAEdge pEdge) {
-    return EndpointPair.ordered(pEdge.getPredecessor(), pEdge.getSuccessor());
-  }
-
-  @Override
   public Set<CFANode> nodes() {
     return new UnmodifiableSetView<>() {
 
@@ -98,5 +71,32 @@ final class SingleFunctionCfaNetwork extends AbstractCfaNetwork {
         };
       }
     };
+  }
+
+  @Override
+  public Set<CFAEdge> inEdges(CFANode pNode) {
+    return new UnmodifiableSetView<>() {
+
+      @Override
+      public Iterator<CFAEdge> iterator() {
+        return CFAUtils.allEnteringEdges(pNode).filter(edge -> !isSuperEdge(edge)).iterator();
+      }
+    };
+  }
+
+  @Override
+  public Set<CFAEdge> outEdges(CFANode pNode) {
+    return new UnmodifiableSetView<>() {
+
+      @Override
+      public Iterator<CFAEdge> iterator() {
+        return CFAUtils.allLeavingEdges(pNode).filter(edge -> !isSuperEdge(edge)).iterator();
+      }
+    };
+  }
+
+  @Override
+  public EndpointPair<CFANode> incidentNodes(CFAEdge pEdge) {
+    return EndpointPair.ordered(pEdge.getPredecessor(), pEdge.getSuccessor());
   }
 }

@@ -30,6 +30,11 @@ final class WrappingMutableCfaNetwork extends AbstractCfaNetwork implements Muta
   }
 
   @Override
+  public Set<CFANode> nodes() {
+    return mutableCfaView.nodes();
+  }
+
+  @Override
   public Set<CFAEdge> inEdges(CFANode pNode) {
     return mutableCfaView.inEdges(pNode);
   }
@@ -44,11 +49,6 @@ final class WrappingMutableCfaNetwork extends AbstractCfaNetwork implements Muta
     return mutableCfaView.incidentNodes(pEdge);
   }
 
-  @Override
-  public Set<CFANode> nodes() {
-    return mutableCfaView.nodes();
-  }
-
   // modifying operations
 
   @Override
@@ -57,14 +57,6 @@ final class WrappingMutableCfaNetwork extends AbstractCfaNetwork implements Muta
     checkNotNull(pNode);
 
     return mutableCfa.addNode(pNode);
-  }
-
-  @Override
-  public boolean removeNode(CFANode pNode) {
-
-    checkNotNull(pNode);
-
-    return mutableCfa.removeNode(pNode);
   }
 
   @Override
@@ -120,6 +112,14 @@ final class WrappingMutableCfaNetwork extends AbstractCfaNetwork implements Muta
     checkArgument(pEndpoints.isOrdered(), "endpoints must be ordered");
 
     return addEdge(pEndpoints.source(), pEndpoints.target(), pEdge);
+  }
+
+  @Override
+  public boolean removeNode(CFANode pNode) {
+
+    checkNotNull(pNode);
+
+    return mutableCfa.removeNode(pNode);
   }
 
   @Override

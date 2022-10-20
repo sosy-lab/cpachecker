@@ -34,90 +34,7 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
 
 abstract class AbstractCfaNetwork extends AbstractNetwork<CFANode, CFAEdge> implements CfaNetwork {
 
-  @Override
-  public Set<CFANode> adjacentNodes(CFANode pNode) {
-    return Collections.unmodifiableSet(Sets.union(predecessors(pNode), successors(pNode)));
-  }
-
-  @Override
-  public Set<CFAEdge> incidentEdges(CFANode pNode) {
-    return Collections.unmodifiableSet(Sets.union(inEdges(pNode), outEdges(pNode)));
-  }
-
-  @Override
-  public CFANode predecessor(CFAEdge pEdge) {
-    return incidentNodes(pEdge).source();
-  }
-
-  @Override
-  public Set<CFANode> predecessors(CFANode pNode) {
-
-    checkNotNull(pNode);
-
-    return new UnmodifiableSetView<>() {
-
-      @Override
-      public Iterator<CFANode> iterator() {
-        return Iterators.transform(inEdges(pNode).iterator(), AbstractCfaNetwork.this::predecessor);
-      }
-
-      @Override
-      public int size() {
-        return inDegree(pNode);
-      }
-    };
-  }
-
-  @Override
-  public CFANode successor(CFAEdge pEdge) {
-    return incidentNodes(pEdge).target();
-  }
-
-  @Override
-  public Set<CFANode> successors(CFANode pNode) {
-
-    checkNotNull(pNode);
-
-    return new UnmodifiableSetView<>() {
-
-      @Override
-      public Iterator<CFANode> iterator() {
-        return Iterators.transform(outEdges(pNode).iterator(), AbstractCfaNetwork.this::successor);
-      }
-
-      @Override
-      public int size() {
-        return outDegree(pNode);
-      }
-    };
-  }
-
-  // entire network
-
-  @Override
-  public boolean isDirected() {
-    return true;
-  }
-
-  @Override
-  public boolean allowsParallelEdges() {
-    return false;
-  }
-
-  @Override
-  public boolean allowsSelfLoops() {
-    return true;
-  }
-
-  @Override
-  public ElementOrder<CFANode> nodeOrder() {
-    return ElementOrder.unordered();
-  }
-
-  @Override
-  public ElementOrder<CFAEdge> edgeOrder() {
-    return ElementOrder.unordered();
-  }
+  // network-level accessors
 
   @Override
   public Set<CFAEdge> edges() {
@@ -150,7 +67,109 @@ abstract class AbstractCfaNetwork extends AbstractNetwork<CFANode, CFAEdge> impl
     };
   }
 
-  // CFA specific
+  // network properties
+
+  @Override
+  public boolean isDirected() {
+    return true;
+  }
+
+  @Override
+  public boolean allowsParallelEdges() {
+    return false;
+  }
+
+  @Override
+  public boolean allowsSelfLoops() {
+    return true;
+  }
+
+  @Override
+  public ElementOrder<CFANode> nodeOrder() {
+    return ElementOrder.unordered();
+  }
+
+  @Override
+  public ElementOrder<CFAEdge> edgeOrder() {
+    return ElementOrder.unordered();
+  }
+
+  // element-level accessors
+
+  @Override
+  public Set<CFANode> adjacentNodes(CFANode pNode) {
+    return Collections.unmodifiableSet(Sets.union(predecessors(pNode), successors(pNode)));
+  }
+
+  @Override
+  public Set<CFANode> predecessors(CFANode pNode) {
+
+    checkNotNull(pNode);
+
+    return new UnmodifiableSetView<>() {
+
+      @Override
+      public Iterator<CFANode> iterator() {
+        return Iterators.transform(inEdges(pNode).iterator(), AbstractCfaNetwork.this::predecessor);
+      }
+
+      @Override
+      public int size() {
+        return inDegree(pNode);
+      }
+    };
+  }
+
+  @Override
+  public Set<CFANode> successors(CFANode pNode) {
+
+    checkNotNull(pNode);
+
+    return new UnmodifiableSetView<>() {
+
+      @Override
+      public Iterator<CFANode> iterator() {
+        return Iterators.transform(outEdges(pNode).iterator(), AbstractCfaNetwork.this::successor);
+      }
+
+      @Override
+      public int size() {
+        return outDegree(pNode);
+      }
+    };
+  }
+
+  @Override
+  public Set<CFAEdge> incidentEdges(CFANode pNode) {
+    return Collections.unmodifiableSet(Sets.union(inEdges(pNode), outEdges(pNode)));
+  }
+
+  // `CfaNetwork` specific
+
+  @Override
+  public CFANode predecessor(CFAEdge pEdge) {
+    return incidentNodes(pEdge).source();
+  }
+
+  @Override
+  public CFANode successor(CFAEdge pEdge) {
+    return incidentNodes(pEdge).target();
+  }
+
+  @Override
+  public FunctionEntryNode functionEntryNode(FunctionSummaryEdge pFunctionSummaryEdge) {
+
+    CFANode functionSummaryEdgePredecessor = incidentNodes(pFunctionSummaryEdge).source();
+
+    for (CFANode successor : successors(functionSummaryEdgePredecessor)) {
+      if (successor instanceof FunctionEntryNode) {
+        return (FunctionEntryNode) successor;
+      }
+    }
+
+    throw new IllegalStateException(
+        "Missing FunctionEntryNode for FunctionSummaryEdge: " + pFunctionSummaryEdge);
+  }
 
   @Override
   public Optional<FunctionExitNode> functionExitNode(FunctionEntryNode pFunctionEntryNode) {
@@ -207,20 +226,5 @@ abstract class AbstractCfaNetwork extends AbstractNetwork<CFANode, CFAEdge> impl
 
     throw new IllegalStateException(
         "Missing FunctionSummaryEdge for FunctionReturnEdge: " + pFunctionReturnEdge);
-  }
-
-  @Override
-  public FunctionEntryNode functionEntryNode(FunctionSummaryEdge pFunctionSummaryEdge) {
-
-    CFANode functionSummaryEdgePredecessor = incidentNodes(pFunctionSummaryEdge).source();
-
-    for (CFANode successor : successors(functionSummaryEdgePredecessor)) {
-      if (successor instanceof FunctionEntryNode) {
-        return (FunctionEntryNode) successor;
-      }
-    }
-
-    throw new IllegalStateException(
-        "Missing FunctionEntryNode for FunctionSummaryEdge: " + pFunctionSummaryEdge);
   }
 }

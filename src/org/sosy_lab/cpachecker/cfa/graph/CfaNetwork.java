@@ -76,6 +76,8 @@ public interface CfaNetwork extends Network<CFANode, CFAEdge> {
         new SingleFunctionCfaNetwork(pFunctionEntryNode));
   }
 
+  // `CfaNetwork` specific
+
   /**
    * Returns the predecessor of the specified CFA edge.
    *
@@ -94,13 +96,15 @@ public interface CfaNetwork extends Network<CFANode, CFAEdge> {
    */
   CFANode successor(CFAEdge pEdge);
 
+  FunctionEntryNode functionEntryNode(FunctionSummaryEdge pFunctionSummaryEdge);
+
   Optional<FunctionExitNode> functionExitNode(FunctionEntryNode pFunctionEntryNode);
 
   FunctionSummaryEdge functionSummaryEdge(FunctionCallEdge pFunctionCallEdge);
 
   FunctionSummaryEdge functionSummaryEdge(FunctionReturnEdge pFunctionReturnEdge);
 
-  FunctionEntryNode functionEntryNode(FunctionSummaryEdge pFunctionSummaryEdge);
+  // filters & transformers
 
   default CfaNetwork filterEdges(Predicate<CFAEdge> pKeepEdgePredicate) {
     return CheckingCfaNetwork.wrapIfAssertionsEnabled(

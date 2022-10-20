@@ -91,14 +91,114 @@ final class CheckingCfaNetwork implements CfaNetwork {
     return pEdge;
   }
 
+  // network-level accessors
+
   @Override
-  public Set<CFAEdge> adjacentEdges(CFAEdge pEdge) {
-    return checkNoDuplicates(delegate.adjacentEdges(checkContainsEdge(pEdge)));
+  public Set<CFANode> nodes() {
+    return checkNoDuplicates(delegate.nodes());
   }
 
   @Override
-  public Set<CFANode> adjacentNodes(CFANode pNode) {
-    return checkNoDuplicates(delegate.adjacentNodes(checkContainsNode(pNode)));
+  public Set<CFAEdge> edges() {
+    return checkNoDuplicates(delegate.edges());
+  }
+
+  @Override
+  public Graph<CFANode> asGraph() {
+    return new Graph<>() {
+
+      // graph-level accessors
+
+      @Override
+      public Set<CFANode> nodes() {
+        return checkNoDuplicates(delegate.asGraph().nodes());
+      }
+
+      @Override
+      public Set<EndpointPair<CFANode>> edges() {
+        return checkNoDuplicates(delegate.asGraph().edges());
+      }
+
+      // graph properties
+
+      @Override
+      public boolean isDirected() {
+        return delegate.asGraph().isDirected();
+      }
+
+      @Override
+      public boolean allowsSelfLoops() {
+        return delegate.asGraph().allowsSelfLoops();
+      }
+
+      @Override
+      public ElementOrder<CFANode> nodeOrder() {
+        return delegate.asGraph().nodeOrder();
+      }
+
+      @Override
+      public ElementOrder<CFANode> incidentEdgeOrder() {
+        return delegate.asGraph().incidentEdgeOrder();
+      }
+
+      // element-level accessors
+
+      @Override
+      public Set<CFANode> adjacentNodes(CFANode pNode) {
+        return checkNoDuplicates(delegate.asGraph().adjacentNodes(checkContainsNode(pNode)));
+      }
+
+      @Override
+      public Set<CFANode> predecessors(CFANode pNode) {
+        return checkNoDuplicates(delegate.asGraph().predecessors(checkContainsNode(pNode)));
+      }
+
+      @Override
+      public Set<CFANode> successors(CFANode pNode) {
+        return checkNoDuplicates(delegate.asGraph().successors(checkContainsNode(pNode)));
+      }
+
+      @Override
+      public Set<EndpointPair<CFANode>> incidentEdges(CFANode pNode) {
+        return checkNoDuplicates(delegate.asGraph().incidentEdges(checkContainsNode(pNode)));
+      }
+
+      @Override
+      public int degree(CFANode pNode) {
+        return delegate.asGraph().degree(checkContainsNode(pNode));
+      }
+
+      @Override
+      public int inDegree(CFANode pNode) {
+        return delegate.asGraph().inDegree(checkContainsNode(pNode));
+      }
+
+      @Override
+      public int outDegree(CFANode pNode) {
+        return delegate.asGraph().outDegree(checkContainsNode(pNode));
+      }
+
+      @Override
+      public boolean hasEdgeConnecting(CFANode pNodeU, CFANode pNodeV) {
+        return delegate
+            .asGraph()
+            .hasEdgeConnecting(checkContainsNode(pNodeU), checkContainsNode(pNodeV));
+      }
+
+      @Override
+      public boolean hasEdgeConnecting(EndpointPair<CFANode> pEndpoints) {
+        checkContainsNode(pEndpoints.nodeU());
+        checkContainsNode(pEndpoints.nodeV());
+        return delegate.asGraph().hasEdgeConnecting(pEndpoints);
+      }
+    };
+  }
+
+  // network properties
+
+  @Override
+  public boolean isDirected() {
+    return delegate.isDirected();
   }
 
   @Override
@@ -112,117 +212,8 @@ final class CheckingCfaNetwork implements CfaNetwork {
   }
 
   @Override
-  public Graph<CFANode> asGraph() {
-    return new Graph<>() {
-
-      @Override
-      public Set<CFANode> adjacentNodes(CFANode pNode) {
-        return checkNoDuplicates(delegate.asGraph().adjacentNodes(checkContainsNode(pNode)));
-      }
-
-      @Override
-      public boolean allowsSelfLoops() {
-        return delegate.asGraph().allowsSelfLoops();
-      }
-
-      @Override
-      public int degree(CFANode pNode) {
-        return delegate.asGraph().degree(checkContainsNode(pNode));
-      }
-
-      @Override
-      public Set<EndpointPair<CFANode>> edges() {
-        return checkNoDuplicates(delegate.asGraph().edges());
-      }
-
-      @Override
-      public boolean hasEdgeConnecting(EndpointPair<CFANode> pEndpoints) {
-        checkContainsNode(pEndpoints.nodeU());
-        checkContainsNode(pEndpoints.nodeV());
-        return delegate.asGraph().hasEdgeConnecting(pEndpoints);
-      }
-
-      @Override
-      public boolean hasEdgeConnecting(CFANode pNodeU, CFANode pNodeV) {
-        return delegate
-            .asGraph()
-            .hasEdgeConnecting(checkContainsNode(pNodeU), checkContainsNode(pNodeV));
-      }
-
-      @Override
-      public int inDegree(CFANode pNode) {
-        return delegate.asGraph().inDegree(checkContainsNode(pNode));
-      }
-
-      @Override
-      public ElementOrder<CFANode> incidentEdgeOrder() {
-        return delegate.asGraph().incidentEdgeOrder();
-      }
-
-      @Override
-      public Set<EndpointPair<CFANode>> incidentEdges(CFANode pNode) {
-        return checkNoDuplicates(delegate.asGraph().incidentEdges(checkContainsNode(pNode)));
-      }
-
-      @Override
-      public boolean isDirected() {
-        return delegate.asGraph().isDirected();
-      }
-
-      @Override
-      public ElementOrder<CFANode> nodeOrder() {
-        return delegate.asGraph().nodeOrder();
-      }
-
-      @Override
-      public Set<CFANode> nodes() {
-        return checkNoDuplicates(delegate.asGraph().nodes());
-      }
-
-      @Override
-      public int outDegree(CFANode pNode) {
-        return delegate.asGraph().outDegree(checkContainsNode(pNode));
-      }
-
-      @Override
-      public Set<CFANode> predecessors(CFANode pNode) {
-        return checkNoDuplicates(delegate.asGraph().predecessors(checkContainsNode(pNode)));
-      }
-
-      @Override
-      public Set<CFANode> successors(CFANode pNode) {
-        return checkNoDuplicates(delegate.asGraph().successors(checkContainsNode(pNode)));
-      }
-    };
-  }
-
-  @Override
-  public int degree(CFANode pNode) {
-    return delegate.degree(checkContainsNode(pNode));
-  }
-
-  @Override
-  public Optional<CFAEdge> edgeConnecting(EndpointPair<CFANode> pEndpoints) {
-    checkContainsNode(pEndpoints.nodeU());
-    checkContainsNode(pEndpoints.nodeV());
-    return delegate.edgeConnecting(pEndpoints);
-  }
-
-  @Override
-  public Optional<CFAEdge> edgeConnecting(CFANode pNodeU, CFANode pNodeV) {
-    return delegate.edgeConnecting(checkContainsNode(pNodeU), checkContainsNode(pNodeV));
-  }
-
-  @Override
-  public CFAEdge edgeConnectingOrNull(EndpointPair<CFANode> pEndpoints) {
-    checkContainsNode(pEndpoints.nodeU());
-    checkContainsNode(pEndpoints.nodeV());
-    return delegate.edgeConnectingOrNull(pEndpoints);
-  }
-
-  @Override
-  public CFAEdge edgeConnectingOrNull(CFANode pNodeU, CFANode pNodeV) {
-    return delegate.edgeConnectingOrNull(checkContainsNode(pNodeU), checkContainsNode(pNodeV));
+  public ElementOrder<CFANode> nodeOrder() {
+    return delegate.nodeOrder();
   }
 
   @Override
@@ -230,79 +221,11 @@ final class CheckingCfaNetwork implements CfaNetwork {
     return delegate.edgeOrder();
   }
 
-  @Override
-  public Set<CFAEdge> edges() {
-    return checkNoDuplicates(delegate.edges());
-  }
+  // element-level accessors
 
   @Override
-  public Set<CFAEdge> edgesConnecting(EndpointPair<CFANode> pEndpoints) {
-    checkContainsNode(pEndpoints.nodeU());
-    checkContainsNode(pEndpoints.nodeV());
-    return checkNoDuplicates(delegate.edgesConnecting(pEndpoints));
-  }
-
-  @Override
-  public Set<CFAEdge> edgesConnecting(CFANode pNodeU, CFANode pNodeV) {
-    return checkNoDuplicates(
-        delegate.edgesConnecting(checkContainsNode(pNodeU), checkContainsNode(pNodeV)));
-  }
-
-  @Override
-  public boolean hasEdgeConnecting(EndpointPair<CFANode> pEndpoints) {
-    checkContainsNode(pEndpoints.nodeU());
-    checkContainsNode(pEndpoints.nodeV());
-    return delegate.hasEdgeConnecting(pEndpoints);
-  }
-
-  @Override
-  public boolean hasEdgeConnecting(CFANode pNodeU, CFANode pNodeV) {
-    return hasEdgeConnecting(checkContainsNode(pNodeU), checkContainsNode(pNodeV));
-  }
-
-  @Override
-  public int inDegree(CFANode pNode) {
-    return delegate.inDegree(checkContainsNode(pNode));
-  }
-
-  @Override
-  public Set<CFAEdge> inEdges(CFANode pNode) {
-    return checkNoDuplicates(delegate.inEdges(checkContainsNode(pNode)));
-  }
-
-  @Override
-  public Set<CFAEdge> incidentEdges(CFANode pNode) {
-    return delegate.incidentEdges(checkContainsNode(pNode));
-  }
-
-  @Override
-  public EndpointPair<CFANode> incidentNodes(CFAEdge pEdge) {
-    return delegate.incidentNodes(checkContainsEdge(pEdge));
-  }
-
-  @Override
-  public boolean isDirected() {
-    return delegate.isDirected();
-  }
-
-  @Override
-  public ElementOrder<CFANode> nodeOrder() {
-    return delegate.nodeOrder();
-  }
-
-  @Override
-  public Set<CFANode> nodes() {
-    return checkNoDuplicates(delegate.nodes());
-  }
-
-  @Override
-  public int outDegree(CFANode pNode) {
-    return delegate.outDegree(checkContainsNode(pNode));
-  }
-
-  @Override
-  public Set<CFAEdge> outEdges(CFANode pNode) {
-    return checkNoDuplicates(delegate.outEdges(checkContainsNode(pNode)));
+  public Set<CFANode> adjacentNodes(CFANode pNode) {
+    return checkNoDuplicates(delegate.adjacentNodes(checkContainsNode(pNode)));
   }
 
   @Override
@@ -316,6 +239,97 @@ final class CheckingCfaNetwork implements CfaNetwork {
   }
 
   @Override
+  public Set<CFAEdge> incidentEdges(CFANode pNode) {
+    return delegate.incidentEdges(checkContainsNode(pNode));
+  }
+
+  @Override
+  public Set<CFAEdge> inEdges(CFANode pNode) {
+    return checkNoDuplicates(delegate.inEdges(checkContainsNode(pNode)));
+  }
+
+  @Override
+  public Set<CFAEdge> outEdges(CFANode pNode) {
+    return checkNoDuplicates(delegate.outEdges(checkContainsNode(pNode)));
+  }
+
+  @Override
+  public int degree(CFANode pNode) {
+    return delegate.degree(checkContainsNode(pNode));
+  }
+
+  @Override
+  public int inDegree(CFANode pNode) {
+    return delegate.inDegree(checkContainsNode(pNode));
+  }
+
+  @Override
+  public int outDegree(CFANode pNode) {
+    return delegate.outDegree(checkContainsNode(pNode));
+  }
+
+  @Override
+  public EndpointPair<CFANode> incidentNodes(CFAEdge pEdge) {
+    return delegate.incidentNodes(checkContainsEdge(pEdge));
+  }
+
+  @Override
+  public Set<CFAEdge> adjacentEdges(CFAEdge pEdge) {
+    return checkNoDuplicates(delegate.adjacentEdges(checkContainsEdge(pEdge)));
+  }
+
+  @Override
+  public Set<CFAEdge> edgesConnecting(CFANode pNodeU, CFANode pNodeV) {
+    return checkNoDuplicates(
+        delegate.edgesConnecting(checkContainsNode(pNodeU), checkContainsNode(pNodeV)));
+  }
+
+  @Override
+  public Set<CFAEdge> edgesConnecting(EndpointPair<CFANode> pEndpoints) {
+    checkContainsNode(pEndpoints.nodeU());
+    checkContainsNode(pEndpoints.nodeV());
+    return checkNoDuplicates(delegate.edgesConnecting(pEndpoints));
+  }
+
+  @Override
+  public Optional<CFAEdge> edgeConnecting(CFANode pNodeU, CFANode pNodeV) {
+    return delegate.edgeConnecting(checkContainsNode(pNodeU), checkContainsNode(pNodeV));
+  }
+
+  @Override
+  public Optional<CFAEdge> edgeConnecting(EndpointPair<CFANode> pEndpoints) {
+    checkContainsNode(pEndpoints.nodeU());
+    checkContainsNode(pEndpoints.nodeV());
+    return delegate.edgeConnecting(pEndpoints);
+  }
+
+  @Override
+  public CFAEdge edgeConnectingOrNull(CFANode pNodeU, CFANode pNodeV) {
+    return delegate.edgeConnectingOrNull(checkContainsNode(pNodeU), checkContainsNode(pNodeV));
+  }
+
+  @Override
+  public CFAEdge edgeConnectingOrNull(EndpointPair<CFANode> pEndpoints) {
+    checkContainsNode(pEndpoints.nodeU());
+    checkContainsNode(pEndpoints.nodeV());
+    return delegate.edgeConnectingOrNull(pEndpoints);
+  }
+
+  @Override
+  public boolean hasEdgeConnecting(CFANode pNodeU, CFANode pNodeV) {
+    return hasEdgeConnecting(checkContainsNode(pNodeU), checkContainsNode(pNodeV));
+  }
+
+  @Override
+  public boolean hasEdgeConnecting(EndpointPair<CFANode> pEndpoints) {
+    checkContainsNode(pEndpoints.nodeU());
+    checkContainsNode(pEndpoints.nodeV());
+    return delegate.hasEdgeConnecting(pEndpoints);
+  }
+
+  // `CfaNetwork` specific
+
+  @Override
   public CFANode predecessor(CFAEdge pEdge) {
     return delegate.predecessor(checkContainsEdge(pEdge));
   }
@@ -323,6 +337,11 @@ final class CheckingCfaNetwork implements CfaNetwork {
   @Override
   public CFANode successor(CFAEdge pEdge) {
     return delegate.successor(checkContainsEdge(pEdge));
+  }
+
+  @Override
+  public FunctionEntryNode functionEntryNode(FunctionSummaryEdge pFunctionSummaryEdge) {
+    return delegate.functionEntryNode(checkContainsEdge(pFunctionSummaryEdge));
   }
 
   @Override
@@ -338,10 +357,5 @@ final class CheckingCfaNetwork implements CfaNetwork {
   @Override
   public FunctionSummaryEdge functionSummaryEdge(FunctionReturnEdge pFunctionReturnEdge) {
     return delegate.functionSummaryEdge(checkContainsEdge(pFunctionReturnEdge));
-  }
-
-  @Override
-  public FunctionEntryNode functionEntryNode(FunctionSummaryEdge pFunctionSummaryEdge) {
-    return delegate.functionEntryNode(checkContainsEdge(pFunctionSummaryEdge));
   }
 }

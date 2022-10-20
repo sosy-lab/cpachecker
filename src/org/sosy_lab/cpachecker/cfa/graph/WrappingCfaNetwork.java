@@ -34,82 +34,7 @@ final class WrappingCfaNetwork extends AbstractCfaNetwork {
     cfa = checkNotNull(pCfa);
   }
 
-  @Override
-  public int inDegree(CFANode pNode) {
-
-    int inDegree = pNode.getNumEnteringEdges();
-
-    if (pNode.getEnteringSummaryEdge() != null) {
-      inDegree++;
-    }
-
-    return inDegree;
-  }
-
-  @Override
-  public Set<CFAEdge> inEdges(CFANode pNode) {
-
-    checkNotNull(pNode);
-
-    return new UnmodifiableSetView<>() {
-
-      @Override
-      public Iterator<CFAEdge> iterator() {
-        return CFAUtils.allEnteringEdges(pNode).iterator();
-      }
-
-      @Override
-      public int size() {
-        return inDegree(pNode);
-      }
-    };
-  }
-
-  @Override
-  public CFANode predecessor(CFAEdge pEdge) {
-    return pEdge.getPredecessor();
-  }
-
-  @Override
-  public int outDegree(CFANode pNode) {
-
-    int outDegree = pNode.getNumLeavingEdges();
-
-    if (pNode.getLeavingSummaryEdge() != null) {
-      outDegree++;
-    }
-
-    return outDegree;
-  }
-
-  @Override
-  public Set<CFAEdge> outEdges(CFANode pNode) {
-
-    checkNotNull(pNode);
-
-    return new UnmodifiableSetView<>() {
-
-      @Override
-      public Iterator<CFAEdge> iterator() {
-        return CFAUtils.allLeavingEdges(pNode).iterator();
-      }
-
-      @Override
-      public int size() {
-        return outDegree(pNode);
-      }
-    };
-  }
-
-  @Override
-  public CFANode successor(CFAEdge pEdge) {
-    return pEdge.getSuccessor();
-  }
-
-  @Override
-  public EndpointPair<CFANode> incidentNodes(CFAEdge pEdge) {
-    return EndpointPair.ordered(pEdge.getPredecessor(), pEdge.getSuccessor());
-  }
+  // network-level accessors
 
   @Override
   public Set<CFANode> nodes() {
@@ -137,6 +62,92 @@ final class WrappingCfaNetwork extends AbstractCfaNetwork {
     };
   }
 
+  // element-level accessors
+
+  @Override
+  public Set<CFAEdge> inEdges(CFANode pNode) {
+
+    checkNotNull(pNode);
+
+    return new UnmodifiableSetView<>() {
+
+      @Override
+      public Iterator<CFAEdge> iterator() {
+        return CFAUtils.allEnteringEdges(pNode).iterator();
+      }
+
+      @Override
+      public int size() {
+        return inDegree(pNode);
+      }
+    };
+  }
+
+  @Override
+  public Set<CFAEdge> outEdges(CFANode pNode) {
+
+    checkNotNull(pNode);
+
+    return new UnmodifiableSetView<>() {
+
+      @Override
+      public Iterator<CFAEdge> iterator() {
+        return CFAUtils.allLeavingEdges(pNode).iterator();
+      }
+
+      @Override
+      public int size() {
+        return outDegree(pNode);
+      }
+    };
+  }
+
+  @Override
+  public int inDegree(CFANode pNode) {
+
+    int inDegree = pNode.getNumEnteringEdges();
+
+    if (pNode.getEnteringSummaryEdge() != null) {
+      inDegree++;
+    }
+
+    return inDegree;
+  }
+
+  @Override
+  public int outDegree(CFANode pNode) {
+
+    int outDegree = pNode.getNumLeavingEdges();
+
+    if (pNode.getLeavingSummaryEdge() != null) {
+      outDegree++;
+    }
+
+    return outDegree;
+  }
+
+  @Override
+  public EndpointPair<CFANode> incidentNodes(CFAEdge pEdge) {
+    return EndpointPair.ordered(pEdge.getPredecessor(), pEdge.getSuccessor());
+  }
+
+  // `CfaNetwork` specific
+
+  @Override
+  public CFANode predecessor(CFAEdge pEdge) {
+    return pEdge.getPredecessor();
+  }
+
+  @Override
+  public CFANode successor(CFAEdge pEdge) {
+    return pEdge.getSuccessor();
+  }
+
+  @Override
+  public FunctionEntryNode functionEntryNode(FunctionSummaryEdge pFunctionSummaryEdge) {
+    return pFunctionSummaryEdge.getFunctionEntry();
+  }
+
   @Override
   public Optional<FunctionExitNode> functionExitNode(FunctionEntryNode pFunctionEntryNode) {
     return Optional.of(pFunctionEntryNode.getExitNode());
@@ -150,10 +161,5 @@ final class WrappingCfaNetwork extends AbstractCfaNetwork {
   @Override
   public FunctionSummaryEdge functionSummaryEdge(FunctionReturnEdge pFunctionReturnEdge) {
     return pFunctionReturnEdge.getSummaryEdge();
-  }
-
-  @Override
-  public FunctionEntryNode functionEntryNode(FunctionSummaryEdge pFunctionSummaryEdge) {
-    return pFunctionSummaryEdge.getFunctionEntry();
   }
 }

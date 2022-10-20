@@ -42,6 +42,11 @@ final class EdgeTransformingCfaNetwork extends AbstractCfaNetwork {
   }
 
   @Override
+  public Set<CFANode> nodes() {
+    return delegate.nodes();
+  }
+
+  @Override
   public Set<CFAEdge> inEdges(CFANode pNode) {
     return new UnmodifiableSetView<>() {
 
@@ -66,10 +71,5 @@ final class EdgeTransformingCfaNetwork extends AbstractCfaNetwork {
   @Override
   public EndpointPair<CFANode> incidentNodes(CFAEdge pEdge) {
     return delegate.incidentNodes(pEdge);
-  }
-
-  @Override
-  public Set<CFANode> nodes() {
-    return delegate.nodes();
   }
 }

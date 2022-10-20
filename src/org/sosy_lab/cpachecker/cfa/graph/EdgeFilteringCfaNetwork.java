@@ -40,6 +40,11 @@ final class EdgeFilteringCfaNetwork extends AbstractCfaNetwork {
   }
 
   @Override
+  public Set<CFANode> nodes() {
+    return delegate.nodes();
+  }
+
+  @Override
   public Set<CFAEdge> inEdges(CFANode pNode) {
     return Collections.unmodifiableSet(
         Sets.filter(delegate.inEdges(pNode), keepEdgePredicate::test));
@@ -54,10 +59,5 @@ final class EdgeFilteringCfaNetwork extends AbstractCfaNetwork {
   @Override
   public EndpointPair<CFANode> incidentNodes(CFAEdge pEdge) {
     return delegate.incidentNodes(pEdge);
-  }
-
-  @Override
-  public Set<CFANode> nodes() {
-    return delegate.nodes();
   }
 }
