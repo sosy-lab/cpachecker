@@ -252,7 +252,7 @@ final class CheckingCfaNetwork implements CfaNetwork {
   public boolean hasEdgeConnecting(EndpointPair<CFANode> pEndpoints) {
     checkContainsNode(pEndpoints.nodeU());
     checkContainsNode(pEndpoints.nodeV());
-    return hasEdgeConnecting(pEndpoints);
+    return delegate.hasEdgeConnecting(pEndpoints);
   }
 
   @Override
