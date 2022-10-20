@@ -36,7 +36,7 @@ final class ForwardingFlexCfaNetwork extends ForwardingMutableNetwork<CFANode, C
 
   private ForwardingFlexCfaNetwork(MutableNetwork<CFANode, CFAEdge> pDelegate) {
     super(pDelegate);
-    delegate = new ForwardingFlexCfaNetwork(pDelegate);
+    delegate = new ForwardingCfaNetwork(pDelegate);
   }
 
   static FlexCfaNetwork of(MutableNetwork<CFANode, CFAEdge> pDelegate) {
