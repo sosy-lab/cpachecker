@@ -116,7 +116,7 @@ public interface CfaNetwork extends Network<CFANode, CFAEdge> {
         EdgeTransformingCfaNetwork.of(this, pEdgeTransformer));
   }
 
-  default CfaNetwork ignoreSummaryEdges() {
+  default CfaNetwork withoutSummaryEdges() {
     return filterEdges(edge -> !(edge instanceof FunctionSummaryEdge));
   }
 }
