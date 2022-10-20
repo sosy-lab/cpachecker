@@ -10,20 +10,22 @@ package org.sosy_lab.cpachecker.cfa.postprocessing.function;
 
 import java.util.logging.Level;
 import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.cfa.CfaPostProcessor.ReadOnlyIndependentFunctionPostProcessor;
+import org.sosy_lab.cpachecker.cfa.CfaPostProcessor.FunctionPostProcessor;
 import org.sosy_lab.cpachecker.cfa.MutableCFA;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
 import org.sosy_lab.cpachecker.util.LoopStructure;
 
-public final class LoopStructurePostProcessor implements ReadOnlyIndependentFunctionPostProcessor {
+public final class LoopStructurePostProcessor implements FunctionPostProcessor {
 
   @Override
-  public void process(MutableCFA pCfa, LogManager pLogger) {
+  public MutableCFA process(MutableCFA pCfa, LogManager pLogger) {
 
     try {
       pCfa.setLoopStructure(LoopStructure.getLoopStructure(pCfa));
     } catch (ParserException ex) {
       pLogger.log(Level.WARNING, ex);
     }
+
+    return pCfa;
   }
 }

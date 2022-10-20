@@ -10,14 +10,14 @@ package org.sosy_lab.cpachecker.cfa.postprocessing.function;
 
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFAReversePostorder;
-import org.sosy_lab.cpachecker.cfa.CfaPostProcessor.ReadOnlyIndependentFunctionPostProcessor;
+import org.sosy_lab.cpachecker.cfa.CfaPostProcessor.FunctionPostProcessor;
 import org.sosy_lab.cpachecker.cfa.MutableCFA;
 
-public final class ReversePostorderPostProcessor
-    implements ReadOnlyIndependentFunctionPostProcessor {
+public final class ReversePostorderPostProcessor implements FunctionPostProcessor {
 
   @Override
-  public void process(MutableCFA pCfa, LogManager pLogger) {
+  public MutableCFA process(MutableCFA pCfa, LogManager pLogger) {
     pCfa.getAllFunctionHeads().forEach(CFAReversePostorder::assignIds);
+    return pCfa;
   }
 }

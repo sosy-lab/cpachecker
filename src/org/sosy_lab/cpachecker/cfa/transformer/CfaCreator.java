@@ -28,10 +28,8 @@ import org.sosy_lab.cpachecker.cfa.CFASecondPassBuilder;
 import org.sosy_lab.cpachecker.cfa.CfaConnectedness;
 import org.sosy_lab.cpachecker.cfa.CfaMetadata;
 import org.sosy_lab.cpachecker.cfa.CfaPostProcessor;
-import org.sosy_lab.cpachecker.cfa.CfaPostProcessor.ModifyingIndependentFunctionPostProcessor;
-import org.sosy_lab.cpachecker.cfa.CfaPostProcessor.ModifyingSupergraphPostProcessor;
-import org.sosy_lab.cpachecker.cfa.CfaPostProcessor.ReadOnlyIndependentFunctionPostProcessor;
-import org.sosy_lab.cpachecker.cfa.CfaPostProcessor.ReadOnlySupergraphPostProcessor;
+import org.sosy_lab.cpachecker.cfa.CfaPostProcessor.FunctionPostProcessor;
+import org.sosy_lab.cpachecker.cfa.CfaPostProcessor.SupergraphPostProcessor;
 import org.sosy_lab.cpachecker.cfa.MutableCFA;
 import org.sosy_lab.cpachecker.cfa.graph.CfaNetwork;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -52,7 +50,7 @@ public final class CfaCreator {
     oldEdgeToNewEdge = new HashMap<>();
   }
 
-  private static MutableCFA runModifyingIndependentFunctionPostProcessors(
+  private static MutableCFA runFunctionPostProcessors(
       ImmutableList<CfaPostProcessor> pCfaPostProcessors,
       MutableCFA pMutableCfa,
       LogManager pLogger) {
@@ -60,29 +58,15 @@ public final class CfaCreator {
     MutableCFA mutableCfa = pMutableCfa;
 
     for (CfaPostProcessor cfaPostProcessor : pCfaPostProcessors) {
-      if (cfaPostProcessor instanceof ModifyingIndependentFunctionPostProcessor) {
-        mutableCfa =
-            ((ModifyingIndependentFunctionPostProcessor) cfaPostProcessor)
-                .process(mutableCfa, pLogger);
+      if (cfaPostProcessor instanceof FunctionPostProcessor) {
+        mutableCfa = cfaPostProcessor.process(mutableCfa, pLogger);
       }
     }
 
     return mutableCfa;
   }
 
-  private static void runReadOnlyIndependentFunctionPostProcessors(
-      ImmutableList<CfaPostProcessor> pCfaPostProcessors,
-      MutableCFA pMutableCfa,
-      LogManager pLogger) {
-
-    for (CfaPostProcessor cfaPostProcessor : pCfaPostProcessors) {
-      if (cfaPostProcessor instanceof ReadOnlyIndependentFunctionPostProcessor) {
-        ((ReadOnlyIndependentFunctionPostProcessor) cfaPostProcessor).process(pMutableCfa, pLogger);
-      }
-    }
-  }
-
-  private static MutableCFA runModifyingSupergraphPostProcessors(
+  private static MutableCFA runSupergraphPostProcessors(
       ImmutableList<CfaPostProcessor> pCfaPostProcessors,
       MutableCFA pMutableCfa,
       LogManager pLogger) {
@@ -90,25 +74,12 @@ public final class CfaCreator {
     MutableCFA mutableCfa = pMutableCfa;
 
     for (CfaPostProcessor cfaPostProcessor : pCfaPostProcessors) {
-      if (cfaPostProcessor instanceof ModifyingSupergraphPostProcessor) {
-        mutableCfa =
-            ((ModifyingSupergraphPostProcessor) cfaPostProcessor).process(mutableCfa, pLogger);
+      if (cfaPostProcessor instanceof SupergraphPostProcessor) {
+        mutableCfa = cfaPostProcessor.process(mutableCfa, pLogger);
       }
     }
 
     return mutableCfa;
-  }
-
-  private static void runReadOnlySupergraphPostProcessors(
-      ImmutableList<CfaPostProcessor> pCfaPostProcessors,
-      MutableCFA pMutableCfa,
-      LogManager pLogger) {
-
-    for (CfaPostProcessor cfaPostProcessor : pCfaPostProcessors) {
-      if (cfaPostProcessor instanceof ReadOnlySupergraphPostProcessor) {
-        ((ReadOnlySupergraphPostProcessor) cfaPostProcessor).process(pMutableCfa, pLogger);
-      }
-    }
   }
 
   /**
@@ -291,9 +262,7 @@ public final class CfaCreator {
         createMutableCfa(
             pCfa, cfaMetadataWithoutOptionalAttributes, pNodeTransformer, pEdgeTransformer);
 
-    newMutableCfa =
-        runModifyingIndependentFunctionPostProcessors(pCfaPostProcessors, newMutableCfa, pLogger);
-    runReadOnlyIndependentFunctionPostProcessors(pCfaPostProcessors, newMutableCfa, pLogger);
+    newMutableCfa = runFunctionPostProcessors(pCfaPostProcessors, newMutableCfa, pLogger);
 
     try {
 
@@ -310,9 +279,7 @@ public final class CfaCreator {
           "CFA supergraph creation failed, continuing with independent function CFA");
     }
 
-    newMutableCfa =
-        runModifyingSupergraphPostProcessors(pCfaPostProcessors, newMutableCfa, pLogger);
-    runReadOnlySupergraphPostProcessors(pCfaPostProcessors, newMutableCfa, pLogger);
+    newMutableCfa = runSupergraphPostProcessors(pCfaPostProcessors, newMutableCfa, pLogger);
 
     return newMutableCfa.makeImmutableCFA(newMutableCfa.getVarClassification());
   }

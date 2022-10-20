@@ -12,13 +12,13 @@ import java.util.logging.Level;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.cfa.CfaPostProcessor.ReadOnlySupergraphPostProcessor;
+import org.sosy_lab.cpachecker.cfa.CfaPostProcessor.SupergraphPostProcessor;
 import org.sosy_lab.cpachecker.cfa.MutableCFA;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.variableclassification.VariableClassification;
 import org.sosy_lab.cpachecker.util.variableclassification.VariableClassificationBuilder;
 
-public final class VariableClassificationPostProcessor implements ReadOnlySupergraphPostProcessor {
+public final class VariableClassificationPostProcessor implements SupergraphPostProcessor {
 
   private final Configuration configuration;
 
@@ -27,7 +27,7 @@ public final class VariableClassificationPostProcessor implements ReadOnlySuperg
   }
 
   @Override
-  public void process(MutableCFA pCfa, LogManager pLogger) {
+  public MutableCFA process(MutableCFA pCfa, LogManager pLogger) {
 
     try {
       VariableClassificationBuilder builder =
@@ -37,5 +37,7 @@ public final class VariableClassificationPostProcessor implements ReadOnlySuperg
     } catch (UnrecognizedCodeException | InvalidConfigurationException ex) {
       pLogger.log(Level.WARNING, ex);
     }
+
+    return pCfa;
   }
 }
