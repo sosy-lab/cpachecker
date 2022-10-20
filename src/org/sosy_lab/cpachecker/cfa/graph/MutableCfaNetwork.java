@@ -17,7 +17,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 public interface MutableCfaNetwork extends CfaNetwork, MutableNetwork<CFANode, CFAEdge> {
 
   public static MutableCfaNetwork wrap(MutableCFA pMutableCfa) {
-    return new WrappingMutableCfaNetwork(pMutableCfa);
+    return WrappingMutableCfaNetwork.wrap(pMutableCfa);
   }
 
   @Override

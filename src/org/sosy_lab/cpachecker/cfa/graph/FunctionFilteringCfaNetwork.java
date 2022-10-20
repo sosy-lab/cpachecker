@@ -29,12 +29,15 @@ import org.sosy_lab.cpachecker.util.CFAUtils;
 final class FunctionFilteringCfaNetwork extends AbstractCfaNetwork {
 
   private final CFA cfa;
-  private final ImmutableSet<String> functions;
+  private final ImmutableSet<String> functionNames;
 
-  FunctionFilteringCfaNetwork(CFA pCfa, Set<String> pFunctions) {
+  private FunctionFilteringCfaNetwork(CFA pCfa, ImmutableSet<String> pFunctionNames) {
+    cfa = pCfa;
+    functionNames = pFunctionNames;
+  }
 
-    cfa = checkNotNull(pCfa);
-    functions = ImmutableSet.copyOf(pFunctions);
+  static CfaNetwork forFunctions(CFA pCfa, Set<String> pFunctionNames) {
+    return new FunctionFilteringCfaNetwork(checkNotNull(pCfa), ImmutableSet.copyOf(pFunctionNames));
   }
 
   @Override
@@ -46,7 +49,7 @@ final class FunctionFilteringCfaNetwork extends AbstractCfaNetwork {
         return new AbstractIterator<>() {
 
           private final Set<CFANode> waitlisted =
-              functions.stream()
+              functionNames.stream()
                   .map(function -> cfa.getAllFunctions().get(function))
                   .filter(Objects::nonNull)
                   .collect(Collectors.toCollection(HashSet::new));
@@ -60,7 +63,8 @@ final class FunctionFilteringCfaNetwork extends AbstractCfaNetwork {
               CFANode node = waitlist.remove();
 
               for (CFANode successor : CFAUtils.allSuccessorsOf(node)) {
-                if (functions.contains(successor.getFunctionName()) && waitlisted.add(successor)) {
+                if (functionNames.contains(successor.getFunctionName())
+                    && waitlisted.add(successor)) {
                   waitlist.add(successor);
                 }
               }
@@ -82,7 +86,7 @@ final class FunctionFilteringCfaNetwork extends AbstractCfaNetwork {
       @Override
       public Iterator<CFAEdge> iterator() {
         return CFAUtils.allEnteringEdges(pNode)
-            .filter(edge -> functions.contains(edge.getPredecessor().getFunctionName()))
+            .filter(edge -> functionNames.contains(edge.getPredecessor().getFunctionName()))
             .iterator();
       }
     };
@@ -95,7 +99,7 @@ final class FunctionFilteringCfaNetwork extends AbstractCfaNetwork {
       @Override
       public Iterator<CFAEdge> iterator() {
         return CFAUtils.allLeavingEdges(pNode)
-            .filter(edge -> functions.contains(edge.getSuccessor().getFunctionName()))
+            .filter(edge -> functionNames.contains(edge.getSuccessor().getFunctionName()))
             .iterator();
       }
     };

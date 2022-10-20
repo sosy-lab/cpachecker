@@ -24,7 +24,7 @@ final class ForwardingCfaNetwork extends AbstractCfaNetwork {
     delegate = pDelegate;
   }
 
-  static ForwardingCfaNetwork of(Network<CFANode, CFAEdge> pDelegate) {
+  static CfaNetwork of(Network<CFANode, CFAEdge> pDelegate) {
     return new ForwardingCfaNetwork(checkNotNull(pDelegate));
   }
 

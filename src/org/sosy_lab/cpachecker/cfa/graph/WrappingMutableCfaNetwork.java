@@ -22,31 +22,35 @@ import org.sosy_lab.cpachecker.util.CFAUtils;
 final class WrappingMutableCfaNetwork extends AbstractCfaNetwork implements MutableCfaNetwork {
 
   private final MutableCFA mutableCfa;
-  private final CfaNetwork mutableCfaView;
+  private final CfaNetwork cfaNetworkView;
 
-  WrappingMutableCfaNetwork(MutableCFA pMutableCfa) {
+  private WrappingMutableCfaNetwork(MutableCFA pMutableCfa) {
     mutableCfa = pMutableCfa;
-    mutableCfaView = CfaNetwork.wrap(pMutableCfa);
+    cfaNetworkView = CfaNetwork.wrap(pMutableCfa);
+  }
+
+  static MutableCfaNetwork wrap(MutableCFA pMutableCfa) {
+    return new WrappingMutableCfaNetwork(checkNotNull(pMutableCfa));
   }
 
   @Override
   public Set<CFANode> nodes() {
-    return mutableCfaView.nodes();
+    return cfaNetworkView.nodes();
   }
 
   @Override
   public Set<CFAEdge> inEdges(CFANode pNode) {
-    return mutableCfaView.inEdges(pNode);
+    return cfaNetworkView.inEdges(pNode);
   }
 
   @Override
   public Set<CFAEdge> outEdges(CFANode pNode) {
-    return mutableCfaView.outEdges(pNode);
+    return cfaNetworkView.outEdges(pNode);
   }
 
   @Override
   public EndpointPair<CFANode> incidentNodes(CFAEdge pEdge) {
-    return mutableCfaView.incidentNodes(pEdge);
+    return cfaNetworkView.incidentNodes(pEdge);
   }
 
   // modifying operations

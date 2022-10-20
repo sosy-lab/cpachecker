@@ -30,8 +30,12 @@ final class SingleFunctionCfaNetwork extends AbstractCfaNetwork {
 
   private final FunctionEntryNode functionEntryNode;
 
-  SingleFunctionCfaNetwork(FunctionEntryNode pFunctionEntryNode) {
-    functionEntryNode = checkNotNull(pFunctionEntryNode);
+  private SingleFunctionCfaNetwork(FunctionEntryNode pFunctionEntryNode) {
+    functionEntryNode = pFunctionEntryNode;
+  }
+
+  static CfaNetwork forFunction(FunctionEntryNode pFunctionEntryNode) {
+    return new SingleFunctionCfaNetwork(checkNotNull(pFunctionEntryNode));
   }
 
   private boolean isSuperEdge(CFAEdge pEdge) {

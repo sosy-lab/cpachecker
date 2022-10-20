@@ -36,8 +36,7 @@ final class EdgeTransformingCfaNetwork extends AbstractCfaNetwork {
     edgeTransformer = pEdgeTransformer;
   }
 
-  static EdgeTransformingCfaNetwork of(
-      CfaNetwork pDelegate, Function<CFAEdge, CFAEdge> pEdgeTransformer) {
+  static CfaNetwork of(CfaNetwork pDelegate, Function<CFAEdge, CFAEdge> pEdgeTransformer) {
     return new EdgeTransformingCfaNetwork(checkNotNull(pDelegate), checkNotNull(pEdgeTransformer));
   }
 

@@ -63,17 +63,17 @@ public interface CfaNetwork extends Network<CFANode, CFAEdge> {
    * @throws NullPointerException if {@code pCfa == null}
    */
   public static CfaNetwork wrap(CFA pCfa) {
-    return CheckingCfaNetwork.wrapIfAssertionsEnabled(new WrappingCfaNetwork(pCfa));
+    return CheckingCfaNetwork.wrapIfAssertionsEnabled(WrappingCfaNetwork.wrap(pCfa));
   }
 
-  public static CfaNetwork of(CFA pCfa, Set<String> pFunctions) {
+  public static CfaNetwork forFunctions(CFA pCfa, Set<String> pFunctionNames) {
     return CheckingCfaNetwork.wrapIfAssertionsEnabled(
-        new FunctionFilteringCfaNetwork(pCfa, pFunctions));
+        FunctionFilteringCfaNetwork.forFunctions(pCfa, pFunctionNames));
   }
 
-  public static CfaNetwork of(FunctionEntryNode pFunctionEntryNode) {
+  public static CfaNetwork forFunction(FunctionEntryNode pFunctionEntryNode) {
     return CheckingCfaNetwork.wrapIfAssertionsEnabled(
-        new SingleFunctionCfaNetwork(pFunctionEntryNode));
+        SingleFunctionCfaNetwork.forFunction(pFunctionEntryNode));
   }
 
   // `CfaNetwork` specific
