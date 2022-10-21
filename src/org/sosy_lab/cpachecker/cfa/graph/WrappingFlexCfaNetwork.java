@@ -22,20 +22,22 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.util.graph.ForwardingMutableNetwork;
 
 /**
- * A {@link FlexCfaNetwork} that forwards as many calls as possible to a wrapped {@link
- * MutableNetwork}.
+ * A {@link FlexCfaNetwork} that uses its wrapped {@link MutableNetwork} as underlying data
+ * structure for representing a CFA.
+ *
+ * <p>All modifying calls change the wrapped {@link MutableNetwork}.
  */
-final class ForwardingFlexCfaNetwork
+final class WrappingFlexCfaNetwork
     implements FlexCfaNetwork, ForwardingCfaNetwork, ForwardingMutableNetwork<CFANode, CFAEdge> {
 
   private final MutableNetwork<CFANode, CFAEdge> mutableNetwork;
 
-  private ForwardingFlexCfaNetwork(MutableNetwork<CFANode, CFAEdge> pDelegate) {
-    mutableNetwork = pDelegate;
+  private WrappingFlexCfaNetwork(MutableNetwork<CFANode, CFAEdge> pMutableNetwork) {
+    mutableNetwork = pMutableNetwork;
   }
 
-  static FlexCfaNetwork of(MutableNetwork<CFANode, CFAEdge> pDelegate) {
-    return new ForwardingFlexCfaNetwork(checkNotNull(pDelegate));
+  static FlexCfaNetwork wrap(MutableNetwork<CFANode, CFAEdge> pMutableNetwork) {
+    return new WrappingFlexCfaNetwork(checkNotNull(pMutableNetwork));
   }
 
   @Override

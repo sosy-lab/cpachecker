@@ -59,7 +59,7 @@ public interface FlexCfaNetwork extends MutableCfaNetwork {
       mutableNetwork.addEdge(predecessor, successor, edge);
     }
 
-    return ForwardingFlexCfaNetwork.of(mutableNetwork);
+    return WrappingFlexCfaNetwork.wrap(mutableNetwork);
   }
 
   /**
