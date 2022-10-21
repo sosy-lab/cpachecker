@@ -191,6 +191,26 @@ public interface CfaNetwork extends Network<CFANode, CFAEdge> {
   // filters & transformers
 
   /**
+   * Returns a view of this {@link CfaNetwork} that only contains nodes for which the specified
+   * predicate evaluates to {@code true}.
+   *
+   * <p>Only if both endpoints of an edge are part of a {@link CfaNetwork}, the edge is also part of
+   * the {@link CfaNetwork}.
+   *
+   * <p>Modifications of this {@link CfaNetwork} are reflected in the view.
+   *
+   * @param pKeepNodePredicate predicate that specifies the nodes that should be part of the
+   *     returned {@link CfaNetwork}
+   * @throws NullPointerException if {@code pKeepNodePredicate == null}
+   * @return a view of this {@link CfaNetwork} that only contains nodes for which the specified
+   *     predicate evaluates to {@code true}
+   */
+  default CfaNetwork filterNodes(Predicate<CFANode> pKeepNodePredicate) {
+    return CheckingCfaNetwork.wrapIfAssertionsEnabled(
+        NodeFilteringCfaNetwork.of(this, pKeepNodePredicate));
+  }
+
+  /**
    * Returns a view of this {@link CfaNetwork} that only contains edges for which the specified
    * predicate evaluates to {@code true}.
    *
