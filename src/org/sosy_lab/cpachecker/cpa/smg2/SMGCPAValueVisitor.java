@@ -12,6 +12,7 @@ import static com.google.common.base.Preconditions.checkArgument;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableList.Builder;
 import com.google.common.primitives.UnsignedLongs;
 import java.math.BigDecimal;
 import java.math.BigInteger;
@@ -318,23 +319,24 @@ public class SMGCPAValueVisitor
         // This of course does not need to be a pointer value! If this is a unknown we just
         // return unknown.
         // All else gets wrapped and the final read/deref will throw an error
-        ValueAndSMGState readPointerAndState =
+        Builder<ValueAndSMGState> returnBuilder = ImmutableList.builder();
+        for (ValueAndSMGState readPointerAndState :
             evaluator.readStackOrGlobalVariable(
-                newState, qualifiedVarName, finalOffset, typeSizeInBits, returnType);
-        if (readPointerAndState.getValue().isUnknown()) {
-          return ImmutableList.of(ValueAndSMGState.ofUnknownValue(readPointerAndState.getState()));
-        } else {
-          return ImmutableList.of(
-              ValueAndSMGState.of(
-                  AddressExpression.withZeroOffset(readPointerAndState.getValue(), returnType),
-                  readPointerAndState.getState()));
+                newState, qualifiedVarName, finalOffset, typeSizeInBits, returnType)) {
+          if (readPointerAndState.getValue().isUnknown()) {
+            returnBuilder.add(ValueAndSMGState.ofUnknownValue(readPointerAndState.getState()));
+          } else {
+            returnBuilder.add(
+                ValueAndSMGState.of(
+                    AddressExpression.withZeroOffset(readPointerAndState.getValue(), returnType),
+                    readPointerAndState.getState()));
+          }
         }
+        return returnBuilder.build();
 
       } else {
-        // TODO: check that the return types match what we return!!!!
-        return ImmutableList.of(
-            evaluator.readStackOrGlobalVariable(
-                newState, qualifiedVarName, finalOffset, typeSizeInBits, returnType));
+        return evaluator.readStackOrGlobalVariable(
+            newState, qualifiedVarName, finalOffset, typeSizeInBits, returnType);
       }
 
     } else {
@@ -740,40 +742,39 @@ public class SMGCPAValueVisitor
         // methods. (The check is fine because we already filtered out structs/unions)
         BigInteger sizeInBits = evaluator.getBitSizeof(currentState, e.getExpressionType());
         // Now use the qualified name to get the actual global/stack memory location
-        ValueAndSMGState readValueAndState =
+        for (ValueAndSMGState readValueAndState :
             evaluator.readStackOrGlobalVariable(
                 currentState,
                 varDecl.getQualifiedName(),
                 BigInteger.ZERO,
                 sizeInBits,
-                SMGCPAExpressionEvaluator.getCanonicalType(e));
-        Value readValue = readValueAndState.getValue();
-        SMGState newState = readValueAndState.getState();
+                SMGCPAExpressionEvaluator.getCanonicalType(e))) {
+          Value readValue = readValueAndState.getValue();
+          SMGState newState = readValueAndState.getState();
 
-        Value addressValue;
-        if (evaluator.isPointerValue(readValue, newState)) {
-          addressValue = AddressExpression.withZeroOffset(readValue, returnType);
-        } else {
-          // Not a known pointer value, most likely a unknown value as symbolic identifier
-          addressValue = readValue;
+          Value addressValue;
+          if (evaluator.isPointerValue(readValue, newState)) {
+            addressValue = AddressExpression.withZeroOffset(readValue, returnType);
+          } else {
+            // Not a known pointer value, most likely a unknown value as symbolic identifier
+            addressValue = readValue;
+          }
+
+          finalStatesBuilder.add(ValueAndSMGState.of(addressValue, newState));
         }
-
-        finalStatesBuilder.add(ValueAndSMGState.of(addressValue, newState));
         continue;
 
       } else {
         // Everything else should be readable and returnable directly; just return the Value
         BigInteger sizeInBits = evaluator.getBitSizeof(currentState, e.getExpressionType());
         // Now use the qualified name to get the actual global/stack memory location
-        ValueAndSMGState readValueAndState =
+        finalStatesBuilder.addAll(
             evaluator.readStackOrGlobalVariable(
                 currentState,
                 varDecl.getQualifiedName(),
                 BigInteger.ZERO,
                 sizeInBits,
-                SMGCPAExpressionEvaluator.getCanonicalType(e));
-
-        finalStatesBuilder.add(readValueAndState);
+                SMGCPAExpressionEvaluator.getCanonicalType(e)));
         continue;
       }
     }
