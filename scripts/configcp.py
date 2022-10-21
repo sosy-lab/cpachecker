@@ -11,7 +11,6 @@
 from argparse import ArgumentParser, Namespace
 from pathlib import Path
 import shutil
-from time import process_time_ns
 from typing import Dict, Sequence
 import os
 from logging import log
@@ -78,12 +77,12 @@ def get_parser() -> ArgumentParser:
 def exec_parser_cmd(args: Namespace, src: os.PathLike[str], dest: os.PathLike[str]):
     if args.copy:
         os.makedirs(os.path.dirname(dest), exist_ok=True)
-        return shutil.copy(src, dest)
+        shutil.copy(src, dest)
     if args.move:
         os.makedirs(os.path.dirname(dest), exist_ok=True)
-        return shutil.move(src, dest)
+        shutil.move(src, dest)
     if args.print:
-        return print(src, " -> ", dest)
+        print(src, " -> ", dest)
 
 
 class Node:
