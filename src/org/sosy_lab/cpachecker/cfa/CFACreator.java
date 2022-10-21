@@ -579,7 +579,7 @@ public class CFACreator {
             language,
             pParseResult.getFileNames(),
             mainFunction,
-            CfaConnectedness.INDEPENDENT_FUNCTIONS);
+            CfaConnectedness.UNCONNECTED_FUNCTIONS);
     MutableCFA cfa =
         new MutableCFA(pParseResult.getFunctions(), pParseResult.getCFANodes(), cfaMetadata);
 

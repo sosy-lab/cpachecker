@@ -83,25 +83,25 @@ public final class CfaCreator {
   }
 
   /**
-   * Returns an independent function {@link CfaNetwork} view for the specified (supergraph) {@link
+   * Returns an unconnected function {@link CfaNetwork} view for the specified (supergraph) {@link
    * CfaNetwork}.
    *
-   * @param pCfaNetwork the {@link CfaNetwork} to create an independent function {@link CfaNetwork}
+   * @param pCfaNetwork the {@link CfaNetwork} to create an unconnected function {@link CfaNetwork}
    *     view for
    * @param pSummaryToStatementEdgeTransformer the CFA edge transformer to use for getting statement
    *     edges for function summary edges
-   * @return an independent function {@link CfaNetwork} view for the specified (supergraph) {@link
+   * @return an unconnected function {@link CfaNetwork} view for the specified (supergraph) {@link
    *     CfaNetwork}.
    * @throws NullPointerException if any parameter is {@code null}
    */
-  public static CfaNetwork toIndependentFunctionCfaNetwork(
+  public static CfaNetwork toUnconnectedFunctionCfaNetwork(
       CfaNetwork pCfaNetwork, CfaEdgeTransformer pSummaryToStatementEdgeTransformer) {
 
     checkNotNull(pCfaNetwork);
     checkNotNull(pSummaryToStatementEdgeTransformer);
 
     CfaNetwork cfaWithoutSuperEdges = pCfaNetwork.withoutSuperEdges();
-    CfaNetwork independentFunctionCfa =
+    CfaNetwork unconnectedFunctionCfa =
         cfaWithoutSuperEdges.transformEdges(
             edge -> {
               if (edge instanceof FunctionSummaryEdge) {
@@ -112,11 +112,11 @@ public final class CfaCreator {
               return edge;
             });
 
-    return independentFunctionCfa;
+    return unconnectedFunctionCfa;
   }
 
   /**
-   * Returns a new supergraph {@link CFA} instance for the specified independent function CFA
+   * Returns a new supergraph {@link CFA} instance for the specified unconnected function CFA
    * represented as a {@link CfaNetwork}.
    *
    * @param pCfaPostProcessors the CFA post-processors to run after CFA construction
@@ -128,11 +128,11 @@ public final class CfaCreator {
    * @param pCfaMetadata the metadata of the specified CFA
    * @param pConfiguration the configuration to use during CFA construction
    * @param pLogger the logger to use during CFA construction
-   * @return a new supergraph {@link CFA} instance for the specified independent function CFA
+   * @return a new supergraph {@link CFA} instance for the specified unconnected function CFA
    *     represented as a {@link CfaNetwork}
    * @throws NullPointerException if any parameter is {@code null}
    * @throws IllegalArgumentException if the main function entry node is not part of the actual CFA
-   * @throws IllegalArgumentException if the specified CFA is not an independent function CFA, but a
+   * @throws IllegalArgumentException if the specified CFA is not an unconnected function CFA, but a
    *     supergraph CFA
    */
   public static CFA createCfa(
@@ -150,8 +150,8 @@ public final class CfaCreator {
         pCfaMetadata.getMainFunctionEntry());
 
     checkArgument(
-        pCfaMetadata.getConnectedness() == CfaConnectedness.INDEPENDENT_FUNCTIONS,
-        "Cannot use specified CFA because it does not consist of independent functions");
+        pCfaMetadata.getConnectedness() == CfaConnectedness.UNCONNECTED_FUNCTIONS,
+        "Cannot use specified CFA because it does not consist of unconnected functions");
 
     return new CfaCreator()
         .createSupergraphCfa(
@@ -238,7 +238,7 @@ public final class CfaCreator {
     CfaMetadata newCfaMetadata =
         pCfaMetadata
             .withMainFunctionEntry((FunctionEntryNode) oldNodeToNewNode.get(oldMainEntryNode))
-            .withConnectedness(CfaConnectedness.INDEPENDENT_FUNCTIONS);
+            .withConnectedness(CfaConnectedness.UNCONNECTED_FUNCTIONS);
 
     return new MutableCFA(newFunctions, newNodes, newCfaMetadata);
   }
@@ -276,7 +276,7 @@ public final class CfaCreator {
       pLogger.logException(
           Level.WARNING,
           ex,
-          "CFA supergraph creation failed, continuing with independent function CFA");
+          "CFA supergraph creation failed, continuing with unconnected function CFA");
     }
 
     newMutableCfa = runSupergraphPostProcessors(pCfaPostProcessors, newMutableCfa, pLogger);

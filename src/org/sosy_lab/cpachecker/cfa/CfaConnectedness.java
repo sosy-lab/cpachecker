@@ -13,8 +13,8 @@ package org.sosy_lab.cpachecker.cfa;
  */
 public enum CfaConnectedness {
 
-  /** Functions are independent and not connected by super-edges. */
-  INDEPENDENT_FUNCTIONS,
+  /** Functions are not connected by super-edges. */
+  UNCONNECTED_FUNCTIONS,
 
   /** Functions are connected by super-edges. */
   SUPERGRAPH

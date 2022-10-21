@@ -59,18 +59,18 @@ public final class CCfaTransformer implements CfaTransformer {
   @Override
   public CFA transform(CfaNetwork pCfaNetwork, CfaMetadata pCfaMetadata, LogManager pLogger) {
 
-    CfaNetwork independentFunctionCfa =
-        CfaCreator.toIndependentFunctionCfaNetwork(
+    CfaNetwork unconnectedFunctionCfa =
+        CfaCreator.toUnconnectedFunctionCfaNetwork(
             pCfaNetwork, CCfaEdgeTransformer.SUMMARY_TO_STATEMENT_EDGE_TRANSFORMER);
-    CfaMetadata independentFunctionCfaMetadata =
-        pCfaMetadata.withConnectedness(CfaConnectedness.INDEPENDENT_FUNCTIONS);
+    CfaMetadata unconnectedFunctionCfaMetadata =
+        pCfaMetadata.withConnectedness(CfaConnectedness.UNCONNECTED_FUNCTIONS);
 
     return CfaCreator.createCfa(
         cfaPostProcessors,
         nodeTransformer,
         edgeTransformer,
-        independentFunctionCfa,
-        independentFunctionCfaMetadata,
+        unconnectedFunctionCfa,
+        unconnectedFunctionCfaMetadata,
         config,
         pLogger);
   }
