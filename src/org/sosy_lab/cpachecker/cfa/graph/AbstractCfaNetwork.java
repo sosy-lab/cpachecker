@@ -165,16 +165,22 @@ abstract class AbstractCfaNetwork extends AbstractNetwork<CFANode, CFAEdge> impl
   @Override
   public FunctionEntryNode functionEntryNode(FunctionSummaryEdge pFunctionSummaryEdge) {
 
-    CFANode functionSummaryEdgePredecessor = incidentNodes(pFunctionSummaryEdge).source();
+    CFANode predecessor = predecessor(pFunctionSummaryEdge);
+    Set<CFAEdge> nonSummaryOutEdges = withoutSummaryEdges().outEdges(predecessor);
+    checkState(
+        nonSummaryOutEdges.size() == 1, "Single non-summary out-edge expected: %s", predecessor);
+    CFAEdge functionCallEdge = Iterables.getOnlyElement(nonSummaryOutEdges);
+    checkState(
+        functionCallEdge instanceof FunctionCallEdge,
+        "Function call edge expected: %s",
+        functionCallEdge);
+    CFANode functionEntryNode = successor(functionCallEdge);
+    checkState(
+        functionEntryNode instanceof FunctionEntryNode,
+        "Function entry node expected: %s",
+        functionEntryNode);
 
-    for (CFANode successor : successors(functionSummaryEdgePredecessor)) {
-      if (successor instanceof FunctionEntryNode) {
-        return (FunctionEntryNode) successor;
-      }
-    }
-
-    throw new IllegalStateException(
-        "Missing FunctionEntryNode for FunctionSummaryEdge: " + pFunctionSummaryEdge);
+    return (FunctionEntryNode) functionEntryNode;
   }
 
   @Override
@@ -193,7 +199,7 @@ abstract class AbstractCfaNetwork extends AbstractNetwork<CFANode, CFAEdge> impl
 
       for (CFAEdge outEdge : outEdges(node)) {
         if (!(outEdge instanceof FunctionCallEdge)) {
-          CFANode successor = incidentNodes(outEdge).target();
+          CFANode successor = successor(outEdge);
           if (waitlisted.add(successor)) {
             waitlist.add(successor);
           }
@@ -207,30 +213,30 @@ abstract class AbstractCfaNetwork extends AbstractNetwork<CFANode, CFAEdge> impl
   @Override
   public FunctionSummaryEdge functionSummaryEdge(FunctionCallEdge pFunctionCallEdge) {
 
-    CFANode functionCallEdgePredecessor = incidentNodes(pFunctionCallEdge).source();
+    CFANode predecessor = predecessor(pFunctionCallEdge);
+    Set<CFAEdge> nonSuperOutEdges = withoutSuperEdges().outEdges(predecessor);
+    checkState(nonSuperOutEdges.size() == 1, "Single non-super out-edge expected: %s", predecessor);
+    CFAEdge functionSummaryEdge = Iterables.getOnlyElement(nonSuperOutEdges);
+    checkState(
+        functionSummaryEdge instanceof FunctionSummaryEdge,
+        "Function summary edge expected: %s",
+        functionSummaryEdge);
 
-    for (CFAEdge outEdge : outEdges(functionCallEdgePredecessor)) {
-      if (outEdge instanceof FunctionSummaryEdge) {
-        return (FunctionSummaryEdge) outEdge;
-      }
-    }
-
-    throw new IllegalStateException(
-        "Missing FunctionSummaryEdge for FunctionCallEdge: " + pFunctionCallEdge);
+    return (FunctionSummaryEdge) functionSummaryEdge;
   }
 
   @Override
   public FunctionSummaryEdge functionSummaryEdge(FunctionReturnEdge pFunctionReturnEdge) {
 
-    CFANode functionReturnEdgeSuccessor = incidentNodes(pFunctionReturnEdge).target();
+    CFANode successor = successor(pFunctionReturnEdge);
+    Set<CFAEdge> nonSuperInEdges = withoutSuperEdges().inEdges(successor);
+    checkState(nonSuperInEdges.size() == 1, "Single non-super in-edge expected: %s", successor);
+    CFAEdge functionSummaryEdge = Iterables.getOnlyElement(nonSuperInEdges);
+    checkState(
+        functionSummaryEdge instanceof FunctionSummaryEdge,
+        "Function summary edge expected: %s",
+        functionSummaryEdge);
 
-    for (CFAEdge inEdge : inEdges(functionReturnEdgeSuccessor)) {
-      if (inEdge instanceof FunctionSummaryEdge) {
-        return (FunctionSummaryEdge) inEdge;
-      }
-    }
-
-    throw new IllegalStateException(
-        "Missing FunctionSummaryEdge for FunctionReturnEdge: " + pFunctionReturnEdge);
+    return (FunctionSummaryEdge) functionSummaryEdge;
   }
 }
