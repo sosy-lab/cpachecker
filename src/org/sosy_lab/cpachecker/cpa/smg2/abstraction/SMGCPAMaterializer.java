@@ -148,7 +148,7 @@ public class SMGCPAMaterializer {
 
     Optional<SMGPointsToEdge> maybeNextPointer =
         currentState.getMemoryModel().getSmg().getPTEdge(nextPointerValue);
-    if (maybeNextPointer.isPresent()) {
+    if (maybeNextPointer.isPresent() && !maybeNextPointer.orElseThrow().pointsTo().isZero()) {
       // Write the prev pointer of the next object to the prev object
       currentState =
           currentState.writeValue(
@@ -342,10 +342,9 @@ public class SMGCPAMaterializer {
     // Set the prev pointer of the new abstract segment to the new concrete segment
     Optional<SMGPointsToEdge> maybeCorrectPointerToNewConcrete =
         currentState.getMemoryModel().getSmg().getPTEdge(valueOfPointerToConcreteObject);
-      Preconditions.checkArgument(maybeCorrectPointerToNewConcrete.isPresent());
-      Preconditions.checkArgument(
-          maybeCorrectPointerToNewConcrete.orElseThrow().pointsTo().equals(newConcreteRegion));
-
+    Preconditions.checkArgument(maybeCorrectPointerToNewConcrete.isPresent());
+    Preconditions.checkArgument(
+        maybeCorrectPointerToNewConcrete.orElseThrow().pointsTo().equals(newConcreteRegion));
 
     SMGValueAndSMGState nextPointerAndState = currentState.readSMGValue(pListSeg, nfo, pointerSize);
     currentState = nextPointerAndState.getSMGState();
