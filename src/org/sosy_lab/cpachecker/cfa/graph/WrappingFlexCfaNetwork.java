@@ -76,6 +76,16 @@ final class WrappingFlexCfaNetwork
     };
   }
 
+  @Override
+  public boolean addEdge(CFANode pPredecessor, CFANode pSuccessor, CFAEdge pNewEdge) {
+    return ForwardingMutableNetwork.super.addEdge(pPredecessor, pSuccessor, pNewEdge);
+  }
+
+  @Override
+  public boolean addEdge(EndpointPair<CFANode> pEndpoints, CFAEdge pNewEdge) {
+    return ForwardingMutableNetwork.super.addEdge(pEndpoints, pNewEdge);
+  }
+
   // `FlexCfaNetwork` operations
 
   @Override
