@@ -1434,9 +1434,12 @@ public class SMG {
   public SMGObject getPreviousObjectOfZeroPlusAbstraction(SMGValue ptObject) {
     for (Entry<SMGObject, Boolean> entry : smgObjects.entrySet()) {
       if (entry.getValue()) {
-        for (SMGHasValueEdge value : hasValueEdges.get(entry.getKey())) {
-          if (value.hasValue().equals(ptObject)) {
-            return entry.getKey();
+        PersistentSet<SMGHasValueEdge> hvEdgesPerObj = hasValueEdges.get(entry.getKey());
+        if (hvEdgesPerObj != null){
+          for (SMGHasValueEdge value : hvEdgesPerObj) {
+            if (value.hasValue().equals(ptObject)) {
+              return entry.getKey();
+            }
           }
         }
       }
