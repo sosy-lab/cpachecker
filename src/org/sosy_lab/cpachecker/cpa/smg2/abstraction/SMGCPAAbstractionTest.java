@@ -441,8 +441,9 @@ public class SMGCPAAbstractionTest {
       SMGObject newObj = returnedObjAndState.getSMGObject();
       assertThat(!(newObj instanceof SMGSinglyLinkedListSegment)).isTrue();
       assertThat(currentState.getMemoryModel().isObjectValid(newObj)).isTrue();
+      // get(0) takes the list that is not extending for 0+
       ValueAndSMGState nextPointerAndState =
-          currentState.readValue(newObj, pointerSizeInBits, pointerSizeInBits, null);
+          currentState.readValue(newObj, pointerSizeInBits, pointerSizeInBits, null).get(0);
       currentState = nextPointerAndState.getState();
       for (Entry<SMGValue, SMGPointsToEdge> entry :
           currentState.getMemoryModel().getSmg().getPTEdgeMapping().entrySet()) {
@@ -540,8 +541,9 @@ public class SMGCPAAbstractionTest {
       SMGObject newObj = returnedObjAndState.getSMGObject();
       assertThat(!(newObj instanceof SMGSinglyLinkedListSegment)).isTrue();
       assertThat(currentState.getMemoryModel().isObjectValid(newObj)).isTrue();
+      // get(0) takes the list that is not extending for 0+
       ValueAndSMGState nextPointerAndState =
-          currentState.readValue(newObj, pointerSizeInBits, pointerSizeInBits, null);
+          currentState.readValue(newObj, pointerSizeInBits, pointerSizeInBits, null).get(0);
       currentState = nextPointerAndState.getState();
       for (Entry<SMGValue, SMGPointsToEdge> entry :
           currentState.getMemoryModel().getSmg().getPTEdgeMapping().entrySet()) {
@@ -649,22 +651,13 @@ public class SMGCPAAbstractionTest {
       List<SMGValueAndSMGState> resultValuesAndStates =
           materializer.handleMaterilisation(pointerToFirst, currentAbstraction, currentState);
       SMGValueAndSMGState resultValueAndState;
-      if (i + 1 == TEST_LIST_LENGTH) {
-        assertThat(resultValuesAndStates).hasSize(2);
-        // 2 states, one for a extended list with 0+ and one without 0+ that is not extended
-        // We don't check that in this test, but assume that the second item is the non extended
-        // version
-        // TODO: make this assumption concrete somehow
-        resultValueAndState = resultValuesAndStates.get(1);
-      } else {
-        assertThat(resultValuesAndStates).hasSize(1);
-        resultValueAndState = resultValuesAndStates.get(0);
-      }
+      assertThat(resultValuesAndStates).hasSize(1);
+      resultValueAndState = resultValuesAndStates.get(0);
 
       currentState = resultValueAndState.getSMGState();
-      Preconditions.checkArgument(
-          currentState.getMemoryModel().getHeapObjects().size()
-              == (i != TEST_LIST_LENGTH - 1 ? i + 3 : i + 2));
+      // i + 3 because we always have i + 1 objects as a concrete list + zero object + abstract list
+      // (0+ in the end)
+      Preconditions.checkArgument(currentState.getMemoryModel().getHeapObjects().size() == i + 3);
       Value currentPointer =
           currentState
               .getMemoryModel()
@@ -676,9 +669,11 @@ public class SMGCPAAbstractionTest {
         assertThat(object.isPresent()).isTrue();
         assertThat(object.orElseThrow().getSMGObject().getSize().compareTo(dllSize) == 0).isTrue();
 
+        // get(0) takes the list that is not extending for 0+
         ValueAndSMGState nextPointer =
-            currentState.readValue(
-                object.orElseThrow().getSMGObject(), nfo, pointerSizeInBits, null);
+            currentState
+                .readValue(object.orElseThrow().getSMGObject(), nfo, pointerSizeInBits, null)
+                .get(0);
         Preconditions.checkArgument(nextPointer.getValue().isNumericValue());
         Preconditions.checkArgument(
             nextPointer.getValue().asNumericValue().bigInteger().compareTo(BigInteger.ZERO) == 0);
@@ -792,21 +787,14 @@ public class SMGCPAAbstractionTest {
       List<SMGValueAndSMGState> resultValuesAndStates =
           materializer.handleMaterilisation(pointerToFirst, currentAbstraction, currentState);
       SMGValueAndSMGState resultValueAndState;
-      if (i + 1 == TEST_LIST_LENGTH) {
-        assertThat(resultValuesAndStates).hasSize(2);
-        // 2 states, one for a extended list with 0+ and one without 0+ that is not extended
-        // We don't check that in this test, but assume that the second item is the non extended
-        // version
-        // TODO: make this assumption concrete somehow
-        resultValueAndState = resultValuesAndStates.get(1);
-      } else {
-        assertThat(resultValuesAndStates).hasSize(1);
-        resultValueAndState = resultValuesAndStates.get(0);
-      }
+
+      assertThat(resultValuesAndStates).hasSize(1);
+      resultValueAndState = resultValuesAndStates.get(0);
+
       currentState = resultValueAndState.getSMGState();
-      Preconditions.checkArgument(
-          currentState.getMemoryModel().getHeapObjects().size()
-              == (i != TEST_LIST_LENGTH - 1 ? i + 3 : i + 2));
+      // i + 3 because we always have i + 1 objects as a concrete list + zero object + abstract list
+      // (0+ in the end)
+      Preconditions.checkArgument(currentState.getMemoryModel().getHeapObjects().size() == i + 3);
       // currentPointer == pointer to just materilized list segment
       Value currentPointer =
           currentState
@@ -819,9 +807,11 @@ public class SMGCPAAbstractionTest {
         assertThat(object.isPresent()).isTrue();
         assertThat(object.orElseThrow().getSMGObject().getSize().compareTo(sllSize) == 0).isTrue();
 
+        // get(0) takes the list that is not extending for 0+
         ValueAndSMGState nextPointer =
-            currentState.readValue(
-                object.orElseThrow().getSMGObject(), nfo, pointerSizeInBits, null);
+            currentState
+                .readValue(object.orElseThrow().getSMGObject(), nfo, pointerSizeInBits, null)
+                .get(0);
         Preconditions.checkArgument(nextPointer.getValue().isNumericValue());
         Preconditions.checkArgument(
             nextPointer.getValue().asNumericValue().bigInteger().compareTo(BigInteger.ZERO) == 0);
