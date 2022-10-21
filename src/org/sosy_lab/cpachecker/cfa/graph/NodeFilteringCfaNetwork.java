@@ -48,14 +48,14 @@ final class NodeFilteringCfaNetwork extends AbstractCfaNetwork {
   public Set<CFAEdge> inEdges(CFANode pNode) {
     return Collections.unmodifiableSet(
         Sets.filter(
-            delegate.inEdges(pNode), edge -> keepEdgePredicate.test(delegate.predecessor(edge))));
+            delegate.inEdges(pNode), edge -> keepNodePredicate.test(delegate.predecessor(edge))));
   }
 
   @Override
   public Set<CFAEdge> outEdges(CFANode pNode) {
     return Collections.unmodifiableSet(
         Sets.filter(
-            delegate.outEdges(pNode), edge -> keepEdgePredicate.test(delegate.successor(edge))));
+            delegate.outEdges(pNode), edge -> keepNodePredicate.test(delegate.successor(edge))));
   }
 
   @Override
