@@ -203,12 +203,16 @@ public interface CfaNetwork extends Network<CFANode, CFAEdge> {
   }
 
   /**
-   * Returns a view of this {@link CfaNetwork} in which all edges are replaced by the result from
-   * applying the specified function.
+   * Returns a view of this {@link CfaNetwork} in which all edges of the wrapped {@link CfaNetwork}
+   * are replaced on-the-fly with their corresponding transformed edges.
+   *
+   * <p>The specified function returns the transformed edge for a given edge. The given edge and
+   * transformed edge must have the same endpoints. The function is applied every time an edge is
+   * accessed, so the function may be called multiple times for the same given edge.
    *
    * <p>Modifications of this {@link CfaNetwork} are reflected in the view.
    *
-   * @param pEdgeTransformer a function that returns the transformed edge for a given CFA edge
+   * @param pEdgeTransformer function that returns the transformed edge for a given CFA edge
    * @throws NullPointerException if {@code pEdgeTransformer == null}
    * @return a view of this {@link CfaNetwork} in which all edges are replaced by their function
    *     result
