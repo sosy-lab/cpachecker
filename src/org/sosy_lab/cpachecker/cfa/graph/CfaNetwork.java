@@ -10,7 +10,6 @@ package org.sosy_lab.cpachecker.cfa.graph;
 
 import com.google.common.graph.Network;
 import java.util.Optional;
-import java.util.Set;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import org.sosy_lab.cpachecker.cfa.CFA;
@@ -59,30 +58,6 @@ public interface CfaNetwork extends Network<CFANode, CFAEdge> {
    */
   public static CfaNetwork wrap(CFA pCfa) {
     return CheckingCfaNetwork.wrapIfAssertionsEnabled(WrappingCfaNetwork.wrap(pCfa));
-  }
-
-  /**
-   * Returns a new {@link CfaNetwork} that represents the specified set of functions.
-   *
-   * <p>The set of functions is specified as a set of function names. The returned {@link
-   * CfaNetwork} only contains nodes whose functions are contained in the set of functions. Only if
-   * both endpoints of an edge are part of a {@link CfaNetwork}, the edge is also part of the {@link
-   * CfaNetwork}.
-   *
-   * <p>IMPORTANT: The specified functions must not contain any parallel edges (i.e., edges that
-   * connect the same nodes in the same order) and never add them in the future (if the CFA is
-   * mutable). Additionally, the set returned by {@link CFA#getAllNodes()} must not contain any
-   * duplicates and never add them in the future. Be aware that these requirements are not enforced
-   * if Java assertions are disabled.
-   *
-   * @param pCfa the CFA that contains the functions
-   * @param pFunctionNames the set of functions names that determines the set of functions in the
-   *     returned {@link CfaNetwork}
-   * @return a new {@link CfaNetwork} that represents the specified set of functions
-   */
-  public static CfaNetwork forFunctions(CFA pCfa, Set<String> pFunctionNames) {
-    return CheckingCfaNetwork.wrapIfAssertionsEnabled(
-        FunctionFilteringCfaNetwork.forFunctions(pCfa, pFunctionNames));
   }
 
   /**
