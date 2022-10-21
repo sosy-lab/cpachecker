@@ -240,7 +240,7 @@ final class CheckingCfaNetwork implements CfaNetwork {
 
   @Override
   public Set<CFAEdge> incidentEdges(CFANode pNode) {
-    return delegate.incidentEdges(checkContainsNode(pNode));
+    return checkNoDuplicates(delegate.incidentEdges(checkContainsNode(pNode)));
   }
 
   @Override
