@@ -8,8 +8,6 @@
 
 package org.sosy_lab.cpachecker.cfa.graph;
 
-import static com.google.common.base.Preconditions.checkArgument;
-
 import com.google.common.graph.EndpointPair;
 import com.google.common.graph.MutableNetwork;
 import org.sosy_lab.cpachecker.cfa.CFA;
@@ -114,10 +112,7 @@ public interface MutableCfaNetwork extends CfaNetwork, MutableNetwork<CFANode, C
    *     edge leaving or entering a node
    */
   @Override
-  default boolean addEdge(EndpointPair<CFANode> pEndpoints, CFAEdge pNewEdge) {
-    checkArgument(pEndpoints.isOrdered(), "endpoints must be ordered");
-    return addEdge(pEndpoints.nodeU(), pEndpoints.nodeV(), pNewEdge);
-  }
+  boolean addEdge(EndpointPair<CFANode> pEndpoints, CFAEdge pNewEdge);
 
   /**
    * Adds the specified CFA edge between {@code pPredecessor} and {@code pSuccessor}.

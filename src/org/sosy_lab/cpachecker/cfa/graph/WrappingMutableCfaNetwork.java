@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.cfa.graph;
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 
+import com.google.common.graph.EndpointPair;
 import java.util.Collection;
 import org.sosy_lab.cpachecker.cfa.MutableCFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -28,17 +29,23 @@ import org.sosy_lab.cpachecker.util.CFAUtils;
  * WrappingMutableCfaNetwork#successor(CFAEdge)} always return the same value). Endpoints of a CFA
  * edge and endpoints given as arguments to an {@code addEdge} method must match.
  */
-final class WrappingMutableCfaNetwork extends ForwardingCfaNetwork implements MutableCfaNetwork {
+final class WrappingMutableCfaNetwork implements MutableCfaNetwork, ForwardingCfaNetwork {
 
   private final MutableCFA mutableCfa;
+  private final CfaNetwork wrappedMutableCfa;
 
   private WrappingMutableCfaNetwork(MutableCFA pMutableCfa) {
-    super(CfaNetwork.wrap(pMutableCfa));
     mutableCfa = pMutableCfa;
+    wrappedMutableCfa = CfaNetwork.wrap(pMutableCfa);
   }
 
   static MutableCfaNetwork wrap(MutableCFA pMutableCfa) {
     return new WrappingMutableCfaNetwork(checkNotNull(pMutableCfa));
+  }
+
+  @Override
+  public CfaNetwork delegateCfaNetwork() {
+    return wrappedMutableCfa;
   }
 
   @Override
@@ -86,6 +93,14 @@ final class WrappingMutableCfaNetwork extends ForwardingCfaNetwork implements Mu
       pSuccessor.addEnteringEdge(pEdge);
     }
     return true;
+  }
+
+  @Override
+  public boolean addEdge(EndpointPair<CFANode> pEndpoints, CFAEdge pNewEdge) {
+
+    checkArgument(pEndpoints.isOrdered(), "endpoints must be ordered");
+
+    return addEdge(pEndpoints.nodeU(), pEndpoints.nodeV(), pNewEdge);
   }
 
   @Override

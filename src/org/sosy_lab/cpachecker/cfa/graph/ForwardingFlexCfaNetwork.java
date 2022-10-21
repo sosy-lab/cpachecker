@@ -13,66 +13,65 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import com.google.common.collect.ImmutableList;
 import com.google.common.graph.EndpointPair;
 import com.google.common.graph.MutableNetwork;
+import com.google.common.graph.Network;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
+import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
-import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
-import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
-import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
-import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
 import org.sosy_lab.cpachecker.util.graph.ForwardingMutableNetwork;
 
 /**
  * A {@link FlexCfaNetwork} that forwards as many calls as possible to a wrapped {@link
  * MutableNetwork}.
  */
-final class ForwardingFlexCfaNetwork extends ForwardingMutableNetwork<CFANode, CFAEdge>
-    implements FlexCfaNetwork {
+final class ForwardingFlexCfaNetwork
+    implements FlexCfaNetwork, ForwardingCfaNetwork, ForwardingMutableNetwork<CFANode, CFAEdge> {
 
-  private final CfaNetwork delegate;
+  private final MutableNetwork<CFANode, CFAEdge> mutableNetwork;
 
   private ForwardingFlexCfaNetwork(MutableNetwork<CFANode, CFAEdge> pDelegate) {
-    super(pDelegate);
-    delegate = new ForwardingCfaNetwork(pDelegate);
+    mutableNetwork = pDelegate;
   }
 
   static FlexCfaNetwork of(MutableNetwork<CFANode, CFAEdge> pDelegate) {
     return new ForwardingFlexCfaNetwork(checkNotNull(pDelegate));
   }
 
-  // `CfaNetwork` specific
-
   @Override
-  public CFANode predecessor(CFAEdge pEdge) {
-    return delegate.predecessor(pEdge);
+  public Network<CFANode, CFAEdge> delegateNetwork() {
+    return mutableNetwork;
   }
 
   @Override
-  public CFANode successor(CFAEdge pEdge) {
-    return delegate.predecessor(pEdge);
+  public MutableNetwork<CFANode, CFAEdge> delegateMutableNetwork() {
+    return mutableNetwork;
   }
 
   @Override
-  public FunctionEntryNode functionEntryNode(FunctionSummaryEdge pFunctionSummaryEdge) {
-    return delegate.functionEntryNode(pFunctionSummaryEdge);
-  }
+  public CfaNetwork delegateCfaNetwork() {
+    return new AbstractCfaNetwork() {
 
-  @Override
-  public Optional<FunctionExitNode> functionExitNode(FunctionEntryNode pFunctionEntryNode) {
-    return delegate.functionExitNode(pFunctionEntryNode);
-  }
+      @Override
+      public Set<CFANode> nodes() {
+        return mutableNetwork.nodes();
+      }
 
-  @Override
-  public FunctionSummaryEdge functionSummaryEdge(FunctionCallEdge pFunctionCallEdge) {
-    return delegate.functionSummaryEdge(pFunctionCallEdge);
-  }
+      @Override
+      public Set<CFAEdge> inEdges(CFANode pNode) {
+        return mutableNetwork.inEdges(pNode);
+      }
 
-  @Override
-  public FunctionSummaryEdge functionSummaryEdge(FunctionReturnEdge pFunctionReturnEdge) {
-    return delegate.functionSummaryEdge(pFunctionReturnEdge);
+      @Override
+      public Set<CFAEdge> outEdges(CFANode pNode) {
+        return mutableNetwork.outEdges(pNode);
+      }
+
+      @Override
+      public EndpointPair<CFANode> incidentNodes(CFAEdge pEdge) {
+        return mutableNetwork.incidentNodes(pEdge);
+      }
+    };
   }
 
   // `FlexCfaNetwork` operations
