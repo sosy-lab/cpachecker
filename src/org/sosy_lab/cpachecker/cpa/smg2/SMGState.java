@@ -3266,11 +3266,24 @@ public class SMGState
     SMGPointsToEdge ptEdge = memoryModel.getSmg().getPTEdge(smgValueAddress).orElseThrow();
     // Every DLL is also a SLL
     if (ptEdge.pointsTo() instanceof SMGSinglyLinkedListSegment) {
+      return materializeLinkedList(smgValueAddress, ptEdge, currentState);
+    }
+    Preconditions.checkArgument(!(ptEdge.pointsTo() instanceof SMGSinglyLinkedListSegment));
+    return ImmutableList.of(
+        SMGStateAndOptionalSMGObjectAndOffset.of(
+            ptEdge.pointsTo(), ptEdge.getOffset(), currentState));
+  }
+
+  private List<SMGStateAndOptionalSMGObjectAndOffset>
+      materializeLinkedList(SMGValue initialPointerValue, SMGPointsToEdge ptEdge, SMGState pState)
+          throws SMG2Exception {
+    SMGState currentState = pState;
+    if (ptEdge.pointsTo() instanceof SMGSinglyLinkedListSegment) {
       List<SMGValueAndSMGState> newPointersValueAndStates =
-          currentState.materializeReturnPointerValueAndCopy(smgValueAddress);
+          currentState.materializeReturnPointerValueAndCopy(initialPointerValue);
       if (newPointersValueAndStates.size() == 2) {
-        Preconditions.checkArgument(
-            ((SMGSinglyLinkedListSegment) ptEdge.pointsTo()).getMinLength() == 0);
+        Preconditions
+            .checkArgument(((SMGSinglyLinkedListSegment) ptEdge.pointsTo()).getMinLength() == 0);
         ImmutableList.Builder<SMGStateAndOptionalSMGObjectAndOffset> returnBuilder =
             ImmutableList.builder();
         // 0+ case, this is the end of the materialization as outside pointers to this do not exist
@@ -3286,8 +3299,8 @@ public class SMGState
           ptEdge = maybePtEdge.orElseThrow();
           Preconditions.checkArgument(!(ptEdge.pointsTo() instanceof SMGSinglyLinkedListSegment));
           returnBuilder.add(
-              SMGStateAndOptionalSMGObjectAndOffset.of(
-                  ptEdge.pointsTo(), ptEdge.getOffset(), currentState));
+              SMGStateAndOptionalSMGObjectAndOffset
+                  .of(ptEdge.pointsTo(), ptEdge.getOffset(), currentState));
         }
         return returnBuilder.build();
 
@@ -3295,6 +3308,7 @@ public class SMGState
         // Error
         throw new SMG2Exception("Critical error: Unexpected return from list materialization.");
       }
+      // Default case, only 1 returned list segment
       SMGValueAndSMGState newPointerValueAndState = newPointersValueAndStates.get(0);
       currentState = newPointerValueAndState.getSMGState();
       Optional<SMGPointsToEdge> maybePtEdge =
@@ -3303,11 +3317,12 @@ public class SMGState
         return ImmutableList.of(SMGStateAndOptionalSMGObjectAndOffset.of(currentState));
       }
       ptEdge = maybePtEdge.orElseThrow();
-      Preconditions.checkArgument(!(ptEdge.pointsTo() instanceof SMGSinglyLinkedListSegment));
     }
-    return ImmutableList.of(
-        SMGStateAndOptionalSMGObjectAndOffset.of(
-            ptEdge.pointsTo(), ptEdge.getOffset(), currentState));
+    Preconditions.checkArgument(!(ptEdge.pointsTo() instanceof SMGSinglyLinkedListSegment));
+      return ImmutableList.of(
+          SMGStateAndOptionalSMGObjectAndOffset
+              .of(ptEdge.pointsTo(), ptEdge.getOffset(), currentState));
+
   }
 
   /**
