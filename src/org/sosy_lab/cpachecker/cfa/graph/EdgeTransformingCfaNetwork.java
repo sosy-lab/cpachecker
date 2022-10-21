@@ -48,12 +48,14 @@ final class EdgeTransformingCfaNetwork extends AbstractCfaNetwork {
   }
 
   private CFAEdge transformEdge(CFAEdge pEdge) {
+
     CFAEdge transformedEdge = edgeTransformer.apply(pEdge);
     checkArgument(
         haveSameEndpoints(pEdge, transformedEdge),
-        "endpoints of original edge and transformed edge are not the same: %s and %s",
+        "Endpoints of original edge and transformed edge are not the same: %s and %s",
         pEdge,
         transformedEdge);
+
     return transformedEdge;
   }
 

@@ -50,90 +50,110 @@ final class WrappingMutableCfaNetwork implements MutableCfaNetwork, ForwardingCf
 
   @Override
   public boolean addNode(CFANode pNode) {
+
     checkNotNull(pNode);
+
     return mutableCfa.addNode(pNode);
   }
 
   @Override
   public boolean addEdge(CFANode pPredecessor, CFANode pSuccessor, CFAEdge pEdge) {
+
     checkArgument(
         pPredecessor.equals(pEdge.getPredecessor()),
-        "mismatch between specified predecessor and edge endpoint: %s not equal to %s",
+        "Mismatch between specified predecessor and edge endpoint: %s not equal to %s",
         pPredecessor,
         pEdge.getPredecessor());
     checkArgument(
         pSuccessor.equals(pEdge.getSuccessor()),
-        "mismatch between specified successor and edge endpoint: %s not equal to %s ",
+        "Mismatch between specified successor and edge endpoint: %s not equal to %s ",
         pSuccessor,
         pEdge.getSuccessor());
+
     for (CFAEdge predecessorOutEdge : CFAUtils.allLeavingEdges(pPredecessor)) {
       checkArgument(
           !predecessorOutEdge.getSuccessor().equals(pSuccessor),
-          "parallel edges are not allowed: %s is parallel to %s",
+          "Parallel edges are not allowed: %s is parallel to %s",
           predecessorOutEdge,
           pEdge);
     }
+
     addNode(pPredecessor);
     addNode(pSuccessor);
+
     if (pEdge instanceof FunctionSummaryEdge) {
+
       checkArgument(
           pPredecessor.getLeavingSummaryEdge() == null,
-          "leaving summary edge already exists: %s, cannot add: %s",
+          "Leaving summary edge already exists: %s, cannot add: %s",
           pPredecessor.getLeavingSummaryEdge(),
           pEdge);
       checkArgument(
           pSuccessor.getEnteringSummaryEdge() == null,
-          "entering summary edge already exists: %s, cannot add: %s",
+          "Entering summary edge already exists: %s, cannot add: %s",
           pSuccessor.getEnteringSummaryEdge(),
           pEdge);
+
       pPredecessor.addLeavingSummaryEdge((FunctionSummaryEdge) pEdge);
       pSuccessor.addEnteringSummaryEdge((FunctionSummaryEdge) pEdge);
+
     } else {
       pPredecessor.addLeavingEdge(pEdge);
       pSuccessor.addEnteringEdge(pEdge);
     }
+
     return true;
   }
 
   @Override
   public boolean addEdge(EndpointPair<CFANode> pEndpoints, CFAEdge pNewEdge) {
 
-    checkArgument(pEndpoints.isOrdered(), "endpoints must be ordered");
+    checkArgument(pEndpoints.isOrdered(), "Endpoints must be ordered");
 
-    return addEdge(pEndpoints.nodeU(), pEndpoints.nodeV(), pNewEdge);
+    return addEdge(pEndpoints.source(), pEndpoints.target(), pNewEdge);
   }
 
   @Override
   public boolean removeNode(CFANode pNode) {
+
     checkNotNull(pNode);
+
     if (mutableCfa.getAllNodes().contains(pNode)) {
       return mutableCfa.removeNode(pNode);
     }
+
     return false;
   }
 
   @Override
   public boolean removeEdge(CFAEdge pEdge) {
+
     CFANode predecessor = pEdge.getPredecessor();
     CFANode successor = pEdge.getSuccessor();
     Collection<CFANode> allNodes = mutableCfa.getAllNodes();
+
     if (allNodes.contains(predecessor) && allNodes.contains(successor)) {
       if (pEdge instanceof FunctionSummaryEdge) {
+        // remove summary edge, if it exists
         if (pEdge.equals(predecessor.getLeavingSummaryEdge())
             && pEdge.equals(successor.getEnteringSummaryEdge())) {
           predecessor.removeLeavingSummaryEdge((FunctionSummaryEdge) pEdge);
           successor.removeEnteringSummaryEdge((FunctionSummaryEdge) pEdge);
+
           return true;
         }
       } else {
+        // remove non-summary edge, if it exists
         if (CFAUtils.leavingEdges(predecessor).contains(pEdge)
             && CFAUtils.enteringEdges(successor).contains(pEdge)) {
           predecessor.removeLeavingEdge(pEdge);
           successor.removeEnteringEdge(pEdge);
+
           return true;
         }
       }
     }
+
     return false;
   }
 }

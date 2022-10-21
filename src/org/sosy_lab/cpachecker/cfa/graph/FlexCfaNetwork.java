@@ -47,14 +47,18 @@ public interface FlexCfaNetwork extends MutableCfaNetwork {
    * @throws NullPointerException if {@code pCfaNetwork == null}
    */
   public static FlexCfaNetwork copy(CfaNetwork pCfaNetwork) {
+
     MutableNetwork<CFANode, CFAEdge> mutableNetwork =
         NetworkBuilder.directed().allowsSelfLoops(true).build();
+
     pCfaNetwork.nodes().forEach(mutableNetwork::addNode);
-    for (CFAEdge cfaEdge : pCfaNetwork.edges()) {
-      CFANode predecessor = pCfaNetwork.predecessor(cfaEdge);
-      CFANode successor = pCfaNetwork.successor(cfaEdge);
-      mutableNetwork.addEdge(predecessor, successor, cfaEdge);
+
+    for (CFAEdge edge : pCfaNetwork.edges()) {
+      CFANode predecessor = pCfaNetwork.predecessor(edge);
+      CFANode successor = pCfaNetwork.successor(edge);
+      mutableNetwork.addEdge(predecessor, successor, edge);
     }
+
     return ForwardingFlexCfaNetwork.of(mutableNetwork);
   }
 

@@ -52,12 +52,15 @@ abstract class UnmodifiableSetView<E> extends AbstractCollection<E> implements S
    * @throws NullPointerException if {@code pIterable == null}
    */
   static <E> ImmutableSet<List<E>> duplicates(Iterable<E> pIterable) {
+
     Set<E> set = new HashSet<>();
     pIterable.forEach(set::add);
     if (set.size() < Iterators.size(pIterable.iterator())) {
+
       // element -> all elements the element is equal to, including itself
       Multimap<E, E> occurrencesMap = ArrayListMultimap.create();
       pIterable.forEach(element -> occurrencesMap.put(element, element));
+
       ImmutableSet.Builder<List<E>> duplicatesBuilder = ImmutableSet.builder();
       for (Collection<E> occurrences : occurrencesMap.asMap().values()) {
         if (occurrences.size() > 1) {
@@ -65,8 +68,10 @@ abstract class UnmodifiableSetView<E> extends AbstractCollection<E> implements S
           duplicatesBuilder.add(Collections.unmodifiableList(new ArrayList<>(occurrences)));
         }
       }
+
       return duplicatesBuilder.build();
     }
+
     return ImmutableSet.of();
   }
 

@@ -78,47 +78,61 @@ final class ForwardingFlexCfaNetwork
 
   @Override
   public void insertPredecessor(CFANode pNewPredecessor, CFAEdge pNewInEdge, CFANode pNode) {
+
     ImmutableList<CFAEdge> nodeInEdges = ImmutableList.copyOf(inEdges(pNode));
     List<CFANode> nodePredecessors = new ArrayList<>(nodeInEdges.size());
+
     for (CFAEdge nodeInEdge : nodeInEdges) {
       nodePredecessors.add(incidentNodes(nodeInEdge).source());
       removeEdge(nodeInEdge);
     }
+
     addNode(pNewPredecessor);
+
     for (int index = 0; index < nodeInEdges.size(); index++) {
       addEdge(nodePredecessors.get(index), pNewPredecessor, nodeInEdges.get(index));
     }
+
     addEdge(pNewPredecessor, pNode, pNewInEdge);
   }
 
   @Override
   public void insertSuccessor(CFANode pNode, CFAEdge pNewOutEdge, CFANode pNewSuccessor) {
+
     ImmutableList<CFAEdge> nodeOutEdges = ImmutableList.copyOf(outEdges(pNode));
     List<CFANode> nodeSuccessors = new ArrayList<>(nodeOutEdges.size());
+
     for (CFAEdge nodeOutEdge : nodeOutEdges) {
       nodeSuccessors.add(incidentNodes(nodeOutEdge).target());
       removeEdge(nodeOutEdge);
     }
+
     addNode(pNewSuccessor);
+
     for (int index = 0; index < nodeOutEdges.size(); index++) {
       addEdge(pNewSuccessor, nodeSuccessors.get(index), nodeOutEdges.get(index));
     }
+
     addEdge(pNode, pNewSuccessor, pNewOutEdge);
   }
 
   @Override
   public void replaceNode(CFANode pNode, CFANode pNewNode) {
+
     addNode(pNewNode);
+
     for (CFAEdge inEdge : ImmutableList.copyOf(inEdges(pNode))) {
       CFANode nodePredecessor = incidentNodes(inEdge).source();
       removeEdge(inEdge);
       addEdge(nodePredecessor, pNewNode, inEdge);
     }
+
     for (CFAEdge outEdge : ImmutableList.copyOf(outEdges(pNode))) {
       CFANode nodeSuccessor = incidentNodes(outEdge).target();
       removeEdge(outEdge);
       addEdge(pNewNode, nodeSuccessor, outEdge);
     }
+
     removeNode(pNode);
   }
 

@@ -9,9 +9,11 @@
 package org.sosy_lab.cpachecker.cfa.graph;
 
 import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.base.Preconditions.checkState;
 
 import com.google.common.collect.AbstractIterator;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Sets;
 import com.google.common.graph.AbstractNetwork;
@@ -51,22 +53,21 @@ abstract class AbstractCfaNetwork extends AbstractNetwork<CFANode, CFAEdge> impl
         return new AbstractIterator<>() {
 
           private final Iterator<CFANode> nodeIterator = nodes().iterator();
-
-          private Iterator<CFAEdge> outEdges = Collections.emptyIterator();
+          private Iterator<CFAEdge> currentNodeOutEdgeIterator = Collections.emptyIterator();
 
           @Override
           protected @Nullable CFAEdge computeNext() {
 
-            while (!outEdges.hasNext()) {
+            while (!currentNodeOutEdgeIterator.hasNext()) {
               if (nodeIterator.hasNext()) {
-                CFANode node = nodeIterator.next();
-                outEdges = outEdges(node).iterator();
+                CFANode currentNode = nodeIterator.next();
+                currentNodeOutEdgeIterator = outEdges(currentNode).iterator();
               } else {
                 return endOfData();
               }
             }
 
-            return outEdges.next();
+            return currentNodeOutEdgeIterator.next();
           }
         };
       }
