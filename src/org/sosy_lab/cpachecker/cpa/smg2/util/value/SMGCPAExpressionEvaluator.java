@@ -533,7 +533,7 @@ public class SMGCPAExpressionEvaluator {
    *     was not initialized.
    * @throws CPATransferException if the variable is not known in the memory model (SPC)
    */
-  public ValueAndSMGState readStackOrGlobalVariable(
+  public List<ValueAndSMGState> readStackOrGlobalVariable(
       SMGState initialState,
       String varName,
       BigInteger offsetInBits,
@@ -548,7 +548,7 @@ public class SMGCPAExpressionEvaluator {
       // If there is no object, the variable is not initialized
       SMGState errorState = initialState.withUninitializedVariableUsage(varName);
       // The Value does not matter here as the error state should always end the analysis
-      return ValueAndSMGState.ofUnknownValue(errorState);
+      return ImmutableList.of(ValueAndSMGState.ofUnknownValue(errorState));
     }
     return readValue(initialState, maybeObject.orElseThrow(), offsetInBits, sizeInBits, readType);
   }
@@ -598,7 +598,7 @@ public class SMGCPAExpressionEvaluator {
       BigInteger baseOffset = maybeTargetAndOffset.getOffsetForObject();
       BigInteger offset = baseOffset.add(pOffset);
 
-      returnBuilder.add(readValue(pState, object, offset, pSizeInBits, readType));
+      returnBuilder.addAll(readValue(pState, object, offset, pSizeInBits, readType));
     }
     return returnBuilder.build();
   }
@@ -731,7 +731,7 @@ public class SMGCPAExpressionEvaluator {
 
   /**
    * This is the most general read that should be used in the end by all read smg methods in this
-   * class!
+   * class! Might materialize a list!
    *
    * @param currentState the current {@link SMGState}.
    * @param object the {@link SMGObject} to be read from.
@@ -740,8 +740,35 @@ public class SMGCPAExpressionEvaluator {
    * @param readType the uncasted type of the read (right hand side innermost type). Null only if
    *     its certain that implicit union casts are not possible.
    * @return {@link ValueAndSMGState} bundeling the most up to date state and the read value.
+   * @throws SMG2Exception for critical errors when materializing lists.
    */
-  private ValueAndSMGState readValue(
+  private List<ValueAndSMGState> readValue(
+      SMGState currentState,
+      SMGObject object,
+      BigInteger offsetInBits,
+      BigInteger sizeInBits,
+      @Nullable CType readType)
+      throws SMG2Exception {
+    // Check that the offset and offset + size actually fit into the SMGObject
+    boolean doesNotFitIntoObject =
+        offsetInBits.compareTo(BigInteger.ZERO) < 0
+            || offsetInBits.add(sizeInBits).compareTo(object.getSize()) > 0;
+
+    if (doesNotFitIntoObject) {
+      // Field read does not fit size of declared Memory
+      SMGState errorState = currentState.withOutOfRangeRead(object, offsetInBits, sizeInBits);
+      // Unknown value that should not be used with a error state that should stop the analysis
+      return ImmutableList.of(ValueAndSMGState.ofUnknownValue(errorState));
+    }
+    // The read in SMGState checks for validity and external allocation
+    return currentState.readValue(object, offsetInBits, sizeInBits, readType);
+  }
+
+  /*
+   * Same as readValue() but without materialization. Only to be used for stuff that does 100% never
+   * encounter (useful) lists! i.e. string compare
+   */
+  private ValueAndSMGState readValueWithoutMaterialization(
       SMGState currentState,
       SMGObject object,
       BigInteger offsetInBits,
@@ -759,7 +786,7 @@ public class SMGCPAExpressionEvaluator {
       return ValueAndSMGState.ofUnknownValue(errorState);
     }
     // The read in SMGState checks for validity and external allocation
-    return currentState.readValue(object, offsetInBits, sizeInBits, readType);
+    return currentState.readValueWithoutMaterialization(object, offsetInBits, sizeInBits, readType);
   }
 
   /**
@@ -1119,7 +1146,8 @@ public class SMGCPAExpressionEvaluator {
     boolean foundNoStringTerminationChar = true;
     while (foundNoStringTerminationChar) {
       ValueAndSMGState valueAndState1 =
-          readValue(currentState, firstObject, firstOffsetInBits, sizeOfCharInBits, null);
+          readValueWithoutMaterialization(
+              currentState, firstObject, firstOffsetInBits, sizeOfCharInBits, null);
       Value value1 = valueAndState1.getValue();
       currentState = valueAndState1.getState();
 
@@ -1128,7 +1156,8 @@ public class SMGCPAExpressionEvaluator {
       }
 
       ValueAndSMGState valueAndState2 =
-          readValue(currentState, secondObject, secondOffsetInBits, sizeOfCharInBits, null);
+          readValueWithoutMaterialization(
+              currentState, secondObject, secondOffsetInBits, sizeOfCharInBits, null);
       Value value2 = valueAndState2.getValue();
       currentState = valueAndState2.getState();
 

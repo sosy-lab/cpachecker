@@ -300,17 +300,19 @@ public class SMGTransferRelation
       // CFunctionCallAssignmentStatement!
       Preconditions.checkArgument(returnObject.isPresent());
       // Read the return object with its type
-      ValueAndSMGState readValueAndState =
-          state.readValue(returnObject.orElseThrow(), BigInteger.ZERO, sizeInBits, rightValueType);
-
-      // Now we can drop the stack frame as we left the function and have the return value
-      SMGState currentState = readValueAndState.getState().dropStackFrame();
-      // The memory on the left hand side might not exist because of CEGAR
       ImmutableList.Builder<SMGState> stateBuilder = ImmutableList.builder();
-      for (SMGState stateWithNewVar : createVariableOnTheSpot(leftValue, cfaEdge, currentState)) {
-        stateBuilder.addAll(
-            evaluator.writeValueToExpression(
-                summaryEdge, leftValue, readValueAndState.getValue(), stateWithNewVar));
+      for (ValueAndSMGState readValueAndState :
+          state.readValue(
+              returnObject.orElseThrow(), BigInteger.ZERO, sizeInBits, rightValueType)) {
+
+        // Now we can drop the stack frame as we left the function and have the return value
+        SMGState currentState = readValueAndState.getState().dropStackFrame();
+        // The memory on the left hand side might not exist because of CEGAR
+        for (SMGState stateWithNewVar : createVariableOnTheSpot(leftValue, cfaEdge, currentState)) {
+          stateBuilder.addAll(
+              evaluator.writeValueToExpression(
+                  summaryEdge, leftValue, readValueAndState.getValue(), stateWithNewVar));
+        }
       }
       return stateBuilder.build();
     } else {

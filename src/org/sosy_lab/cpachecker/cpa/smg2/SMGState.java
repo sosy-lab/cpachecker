@@ -560,7 +560,9 @@ public class SMGState
     }
 
     SMGObject memoryToRead = memoryModel.getObjectForVariable(variableName).orElseThrow();
-    return readValue(memoryToRead, offsetInBits, sizeOfReadInBits, null).getValue();
+    // We don't expect materialization here
+    return readValueWithoutMaterialization(memoryToRead, offsetInBits, sizeOfReadInBits, null)
+        .getValue();
   }
 
   /**
@@ -1931,15 +1933,56 @@ public class SMGState
    * Read the value in the {@link SMGObject} at the position specified by the offset and size.
    * Checks for validity of the object and if its externally allocated and may fail because of that.
    * The read {@link SMGValue} will be translated into a {@link Value}. If the Value is known, the
-   * known value is used, unknown symbolic else.
+   * known value is used, unknown symbolic else. Might materialize a list if a abstracted 0+ list is
+   * read.
    *
    * @param pObject {@link SMGObject} where to read. May not be 0.
    * @param pFieldOffset {@link BigInteger} offset.
    * @param pSizeofInBits {@link BigInteger} sizeInBits.
    * @param readType the {@link CType} of the read. Not casted! Null for irrelevant types.
    * @return The {@link Value} read and the {@link SMGState} after the read.
+   * @throws SMG2Exception for critical errors if a list is materialized.
    */
-  public ValueAndSMGState readValue(
+  public List<ValueAndSMGState> readValue(
+      SMGObject pObject,
+      BigInteger pFieldOffset,
+      BigInteger pSizeofInBits,
+      @Nullable CType readType)
+      throws SMG2Exception {
+    if (!memoryModel.isObjectValid(pObject) && !memoryModel.isObjectExternallyAllocated(pObject)) {
+      return ImmutableList.of(
+          ValueAndSMGState.of(UnknownValue.getInstance(), withInvalidRead(pObject)));
+    }
+    SMGValueAndSPC valueAndNewSPC = memoryModel.readValue(pObject, pFieldOffset, pSizeofInBits);
+    // Try to translate the SMGValue to a Value or create a new mapping (the same read on the same
+    // object/offset/size yields the same SMGValue, so it should return the same Value)
+    SMGState currentState = copyAndReplaceMemoryModel(valueAndNewSPC.getSPC());
+    // Only use the new state for changes!
+    SMGValue readSMGValue = valueAndNewSPC.getSMGValue();
+    ImmutableList.Builder<ValueAndSMGState> returnBuilder = ImmutableList.builder();
+    if (memoryModel.getSmg().isPointer(readSMGValue)
+        && memoryModel.getSmg().pointsToZeroPlus(readSMGValue)) {
+      // 0+ needs Materialization as we generate 2 states, one of which deleted the 0+, and for this
+      // state the read value is wrong!
+      for (SMGStateAndOptionalSMGObjectAndOffset newState :
+          materializeLinkedList(
+              readSMGValue,
+              memoryModel.getSmg().getPTEdge(readSMGValue).orElseThrow(),
+              currentState)) {
+        // This is expected not to Materialize again
+        List<ValueAndSMGState> readAfterMat =
+            newState.getSMGState().readValue(pObject, pFieldOffset, pSizeofInBits, readType);
+        Preconditions.checkArgument(readAfterMat.size() == 1);
+        returnBuilder.addAll(readAfterMat);
+      }
+    } else {
+      returnBuilder.add(currentState.handleReadSMGValue(readSMGValue, readType));
+    }
+    return returnBuilder.build();
+  }
+
+  // Similar to readValue but without materialization. For internal == comparisons.
+  public ValueAndSMGState readValueWithoutMaterialization(
       SMGObject pObject,
       BigInteger pFieldOffset,
       BigInteger pSizeofInBits,
@@ -1950,10 +1993,15 @@ public class SMGState
     SMGValueAndSPC valueAndNewSPC = memoryModel.readValue(pObject, pFieldOffset, pSizeofInBits);
     // Try to translate the SMGValue to a Value or create a new mapping (the same read on the same
     // object/offset/size yields the same SMGValue, so it should return the same Value)
-    SMGState newState = copyAndReplaceMemoryModel(valueAndNewSPC.getSPC());
+    SMGState currentState = copyAndReplaceMemoryModel(valueAndNewSPC.getSPC());
     // Only use the new state for changes!
     SMGValue readSMGValue = valueAndNewSPC.getSMGValue();
-    Optional<Value> maybeValue = newState.getMemoryModel().getValueFromSMGValue(readSMGValue);
+
+    return currentState.handleReadSMGValue(readSMGValue, readType);
+  }
+
+  private ValueAndSMGState handleReadSMGValue(SMGValue readSMGValue, @Nullable CType readType) {
+    Optional<Value> maybeValue = getMemoryModel().getValueFromSMGValue(readSMGValue);
     if (maybeValue.isPresent()) {
       // The Value to the SMGValue is already known, use it
       Preconditions.checkArgument(!(maybeValue.orElseThrow() instanceof AddressExpression));
@@ -1963,18 +2011,17 @@ public class SMGState
         // Larger float types are almost always unknown
         valueRead = castValueForUnionFloatConversion(valueRead, readType);
       }
-      return ValueAndSMGState.of(valueRead, newState);
+      return ValueAndSMGState.of(valueRead, this);
     }
     // If there is no Value for the SMGValue, we need to create it as an unknown, map it and return
     Value unknownValue = getNewSymbolicValueForType(readType);
     return ValueAndSMGState.of(
         unknownValue,
-        copyAndReplaceMemoryModel(
-            newState.getMemoryModel().copyAndPutValue(unknownValue, readSMGValue)));
+        copyAndReplaceMemoryModel(getMemoryModel().copyAndPutValue(unknownValue, readSMGValue)));
   }
 
   /*
-   * Only to be used by abstraction!
+   * Only to be used by abstraction and tests! This will not materialize anything!
    */
   public SMGValueAndSMGState readSMGValue(
       SMGObject pObject, BigInteger pFieldOffset, BigInteger pSizeofInBits) {
@@ -2256,6 +2303,7 @@ public class SMGState
       BigInteger sizeInBits,
       SMGValue valueToWrite) {
 
+    Preconditions.checkArgument(memoryModel.isObjectValid(object));
     return copyAndReplaceMemoryModel(
         memoryModel.writeValue(object, writeOffsetInBits, sizeInBits, valueToWrite));
   }
@@ -3274,16 +3322,15 @@ public class SMGState
             ptEdge.pointsTo(), ptEdge.getOffset(), currentState));
   }
 
-  private List<SMGStateAndOptionalSMGObjectAndOffset>
-      materializeLinkedList(SMGValue initialPointerValue, SMGPointsToEdge ptEdge, SMGState pState)
-          throws SMG2Exception {
+  private List<SMGStateAndOptionalSMGObjectAndOffset> materializeLinkedList(
+      SMGValue initialPointerValue, SMGPointsToEdge ptEdge, SMGState pState) throws SMG2Exception {
     SMGState currentState = pState;
     if (ptEdge.pointsTo() instanceof SMGSinglyLinkedListSegment) {
       List<SMGValueAndSMGState> newPointersValueAndStates =
           currentState.materializeReturnPointerValueAndCopy(initialPointerValue);
       if (newPointersValueAndStates.size() == 2) {
-        Preconditions
-            .checkArgument(((SMGSinglyLinkedListSegment) ptEdge.pointsTo()).getMinLength() == 0);
+        Preconditions.checkArgument(
+            ((SMGSinglyLinkedListSegment) ptEdge.pointsTo()).getMinLength() == 0);
         ImmutableList.Builder<SMGStateAndOptionalSMGObjectAndOffset> returnBuilder =
             ImmutableList.builder();
         // 0+ case, this is the end of the materialization as outside pointers to this do not exist
@@ -3299,8 +3346,8 @@ public class SMGState
           ptEdge = maybePtEdge.orElseThrow();
           Preconditions.checkArgument(!(ptEdge.pointsTo() instanceof SMGSinglyLinkedListSegment));
           returnBuilder.add(
-              SMGStateAndOptionalSMGObjectAndOffset
-                  .of(ptEdge.pointsTo(), ptEdge.getOffset(), currentState));
+              SMGStateAndOptionalSMGObjectAndOffset.of(
+                  ptEdge.pointsTo(), ptEdge.getOffset(), currentState));
         }
         return returnBuilder.build();
 
@@ -3319,10 +3366,9 @@ public class SMGState
       ptEdge = maybePtEdge.orElseThrow();
     }
     Preconditions.checkArgument(!(ptEdge.pointsTo() instanceof SMGSinglyLinkedListSegment));
-      return ImmutableList.of(
-          SMGStateAndOptionalSMGObjectAndOffset
-              .of(ptEdge.pointsTo(), ptEdge.getOffset(), currentState));
-
+    return ImmutableList.of(
+        SMGStateAndOptionalSMGObjectAndOffset.of(
+            ptEdge.pointsTo(), ptEdge.getOffset(), currentState));
   }
 
   /**
@@ -3390,22 +3436,34 @@ public class SMGState
         // Size should be 2 in all other cases. This is the 0+ case, which is always the last
         Preconditions.checkArgument(materializationAndState.size() == 2);
         // None of the values points to a SMGSinglyLinkedListSegment
+        // The 0 state does not materialize anything, the 1 state does materialize one more concrete
+        // list segment and appends another 0+ segment after that
+        if (currentState
+            .memoryModel
+            .getSmg()
+            .isPointer(materializationAndState.get(0).getSMGValue())) {
+          Preconditions.checkArgument(
+              !(materializationAndState
+                      .get(0)
+                      .getSMGState()
+                      .memoryModel
+                      .getSmg()
+                      .getPTEdge(materializationAndState.get(0).getSMGValue())
+                      .orElseThrow()
+                      .pointsTo()
+                  instanceof SMGSinglyLinkedListSegment));
+        }
         Preconditions.checkArgument(
-            !(currentState
-                    .memoryModel
-                    .getSmg()
-                    .getPTEdge(materializationAndState.get(0).getSMGValue())
-                    .orElseThrow()
-                    .pointsTo()
-                instanceof SMGSinglyLinkedListSegment));
-        Preconditions.checkArgument(
-            !(currentState
+            !(materializationAndState
+                    .get(1)
+                    .getSMGState()
                     .memoryModel
                     .getSmg()
                     .getPTEdge(materializationAndState.get(1).getSMGValue())
                     .orElseThrow()
                     .pointsTo()
                 instanceof SMGSinglyLinkedListSegment));
+        break;
       }
     }
 

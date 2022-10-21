@@ -290,13 +290,15 @@ public class SMGCPABuiltins {
     Preconditions.checkArgument(destIdArg.getExpressionType().equals(srcIdArg.getExpressionType()));
     // The size should be equal as the types are
     BigInteger sizeInBits = evaluator.getBitSizeof(pState, srcIdArg);
-    ValueAndSMGState addressAndState =
+    List<ValueAndSMGState> addressesAndStates =
         evaluator.readStackOrGlobalVariable(
             pState,
             srcIdArg.getName(),
             BigInteger.ZERO,
             sizeInBits,
             SMGCPAExpressionEvaluator.getCanonicalType(srcIdArg));
+    Preconditions.checkArgument(addressesAndStates.size() == 1);
+    ValueAndSMGState addressAndState = addressesAndStates.get(0);
     SMGState currentState = addressAndState.getState();
     if (addressAndState.getValue().isUnknown()) {
       // Critical error, should never happen

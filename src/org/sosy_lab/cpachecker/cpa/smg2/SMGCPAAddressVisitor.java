@@ -178,7 +178,7 @@ public class SMGCPAAddressVisitor
       List<SMGStateAndOptionalSMGObjectAndOffset> targets =
           evaluator.getTargetObjectAndOffset(
               currentState, arrayAddr.getMemoryAddress(), finalOffset);
-      Preconditions.checkArgument(targets.size() == 0);
+      Preconditions.checkArgument(targets.size() == 1);
       return targets.get(0);
 
     } else if (pCurrentState.getMemoryModel().isPointer(arrayValue)) {
