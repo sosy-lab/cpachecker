@@ -17,6 +17,7 @@ import java.util.Optional;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 import org.checkerframework.checker.nullness.qual.Nullable;
+import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.collect.Collections3;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.log.LogManager;
@@ -148,11 +149,13 @@ final class SliceToCfaConversion {
    *
    * @param pConfig the configuration to use
    * @param pLogger the logger to use during conversion
+   * @param pShutdownNotifier the shutdown notifier to use
    * @param pSlice the slice to create a CFA for
    * @return the CFA created for the specified slice
    * @throws NullPointerException if any parameter is {@code null}
    */
-  public static CFA convert(Configuration pConfig, LogManager pLogger, Slice pSlice) {
+  public static CFA convert(
+      Configuration pConfig, LogManager pLogger, ShutdownNotifier pShutdownNotifier, Slice pSlice) {
 
     ImmutableSet<CFAEdge> relevantEdges = pSlice.getRelevantEdges();
 
@@ -196,7 +199,7 @@ final class SliceToCfaConversion {
 
       return CCfaTransformer.builder()
           .build(pConfig)
-          .transform(graph, pSlice.getOriginalCfa().getMetadata(), pLogger);
+          .transform(graph, pSlice.getOriginalCfa().getMetadata(), pLogger, pShutdownNotifier);
     }
 
     CfaTransformer cfaTransformer =
@@ -208,7 +211,9 @@ final class SliceToCfaConversion {
             .addPostProcessor(new CFASimplifier())
             .build(pConfig);
 
-    CFA sliceCfa = cfaTransformer.transform(graph, pSlice.getOriginalCfa().getMetadata(), pLogger);
+    CFA sliceCfa =
+        cfaTransformer.transform(
+            graph, pSlice.getOriginalCfa().getMetadata(), pLogger, pShutdownNotifier);
 
     return sliceCfa;
   }

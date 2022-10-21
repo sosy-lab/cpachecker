@@ -21,6 +21,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.function.BiFunction;
 import java.util.function.Function;
+import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
@@ -68,6 +69,7 @@ final class CfaSimplifications {
    *
    * @param pConfiguration the configuration to use
    * @param pLogger the logger to use
+   * @param pShutdownNotifier the shutdown notifier to use
    * @param pCfa the CFA to simplify
    * @param pVariableGenerator the variable generator to use
    * @return the simplified CFA
@@ -75,6 +77,7 @@ final class CfaSimplifications {
   static CFA simplifyArrayAccesses(
       Configuration pConfiguration,
       LogManager pLogger,
+      ShutdownNotifier pShutdownNotifier,
       CFA pCfa,
       VariableGenerator pVariableGenerator) {
 
@@ -220,7 +223,7 @@ final class CfaSimplifications {
             .addPostProcessor(new VariableClassificationPostProcessor(pConfiguration))
             .build(pConfiguration);
 
-    return cfaTransformer.transform(graph, pCfa.getMetadata(), pLogger);
+    return cfaTransformer.transform(graph, pCfa.getMetadata(), pLogger, pShutdownNotifier);
   }
 
   /**
@@ -240,10 +243,15 @@ final class CfaSimplifications {
    *
    * @param pConfiguration the configuration to use
    * @param pLogger the logger to use
+   * @param pShutdownNotifier the shutdown notifier to use
    * @param pCfa the CFA to simplify
    * @return the simplified CFA
    */
-  static CFA simplifyIncDecLoopEdges(Configuration pConfiguration, LogManager pLogger, CFA pCfa) {
+  static CFA simplifyIncDecLoopEdges(
+      Configuration pConfiguration,
+      LogManager pLogger,
+      ShutdownNotifier pShutdownNotifier,
+      CFA pCfa) {
 
     FlexCfaNetwork graph = FlexCfaNetwork.copy(pCfa);
     Map<CFAEdge, Map<CSimpleDeclaration, CExpression>> substitution = new HashMap<>();
@@ -471,7 +479,7 @@ final class CfaSimplifications {
             .addPostProcessor(new VariableClassificationPostProcessor(pConfiguration))
             .build(pConfiguration);
 
-    return cfaTransformer.transform(graph, pCfa.getMetadata(), pLogger);
+    return cfaTransformer.transform(graph, pCfa.getMetadata(), pLogger, pShutdownNotifier);
   }
 
   private static final class IdExpressionSubstitutingCAstNodeVisitor

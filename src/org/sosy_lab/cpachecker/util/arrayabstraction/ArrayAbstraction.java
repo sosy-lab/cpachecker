@@ -23,6 +23,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.BiFunction;
+import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
@@ -671,13 +672,22 @@ public class ArrayAbstraction {
   }
 
   private static CFA createSimplifiedCfa(
-      Configuration pConfiguration, LogManager pLogger, CFA pCfa) {
+      Configuration pConfiguration,
+      LogManager pLogger,
+      ShutdownNotifier pShutdownNotifier,
+      CFA pCfa) {
 
     CFA fstCfa =
         CfaSimplifications.simplifyArrayAccesses(
-            pConfiguration, pLogger, pCfa, new VariableGenerator("__array_access_variable_"));
+            pConfiguration,
+            pLogger,
+            pShutdownNotifier,
+            pCfa,
+            new VariableGenerator("__array_access_variable_"));
 
-    CFA sndCfa = CfaSimplifications.simplifyIncDecLoopEdges(pConfiguration, pLogger, fstCfa);
+    CFA sndCfa =
+        CfaSimplifications.simplifyIncDecLoopEdges(
+            pConfiguration, pLogger, pShutdownNotifier, fstCfa);
 
     return sndCfa;
   }
@@ -749,13 +759,16 @@ public class ArrayAbstraction {
   }
 
   public static ArrayAbstractionResult transformCfa(
-      Configuration pConfiguration, LogManager pLogger, CFA pCfa) {
+      Configuration pConfiguration,
+      LogManager pLogger,
+      ShutdownNotifier pShutdownNotifier,
+      CFA pCfa) {
 
     checkNotNull(pConfiguration);
     checkNotNull(pLogger);
     checkNotNull(pCfa);
 
-    CFA simplifiedCfa = createSimplifiedCfa(pConfiguration, pLogger, pCfa);
+    CFA simplifiedCfa = createSimplifiedCfa(pConfiguration, pLogger, pShutdownNotifier, pCfa);
 
     ImmutableSet<TransformableLoop> transformableLoops =
         findRelevantTransformableLoops(simplifiedCfa, pLogger);
@@ -839,7 +852,8 @@ public class ArrayAbstraction {
             .addPostProcessor(new VariableClassificationPostProcessor(pConfiguration))
             .build(pConfiguration);
 
-    CFA transformedCfa = cfaTransformer.transform(graph, simplifiedCfa.getMetadata(), pLogger);
+    CFA transformedCfa =
+        cfaTransformer.transform(graph, simplifiedCfa.getMetadata(), pLogger, pShutdownNotifier);
 
     return new ArrayAbstractionResult(
         status, transformedCfa, transformableArrays, transformableLoops);

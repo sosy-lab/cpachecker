@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.cfa.transformer;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import com.google.common.collect.ImmutableList;
+import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CfaMetadata;
@@ -21,9 +22,9 @@ import org.sosy_lab.cpachecker.cfa.graph.CfaNetwork;
  * and returns the modified copy as the transformed CFA.
  *
  * <p>To implement a CFA transformer, an implementation for {@link
- * CfaTransformer#transform(CfaNetwork, CfaMetadata, LogManager)} must be provided. The
- * implementation must guarantee that every time the method is called, a new transformed CFA
- * instance is created.
+ * CfaTransformer#transform(CfaNetwork, CfaMetadata, LogManager, ShutdownNotifier)} must be
+ * provided. The implementation must guarantee that every time the method is called, a new
+ * transformed CFA instance is created.
  */
 @FunctionalInterface
 public interface CfaTransformer {
@@ -50,11 +51,16 @@ public interface CfaTransformer {
     return new CfaTransformer() {
 
       @Override
-      public CFA transform(CfaNetwork pCfaNetwork, CfaMetadata pCfaMetadata, LogManager pLogger) {
+      public CFA transform(
+          CfaNetwork pCfaNetwork,
+          CfaMetadata pCfaMetadata,
+          LogManager pLogger,
+          ShutdownNotifier pShutdownNotifier) {
 
-        CFA transformedCfa = pTransformer.transform(pCfaNetwork, pCfaMetadata, pLogger);
+        CFA transformedCfa =
+            pTransformer.transform(pCfaNetwork, pCfaMetadata, pLogger, pShutdownNotifier);
         for (CfaTransformer transformer : transformers) {
-          transformedCfa = transformer.transform(transformedCfa, pLogger);
+          transformedCfa = transformer.transform(transformedCfa, pLogger, pShutdownNotifier);
         }
 
         return transformedCfa;
@@ -73,7 +79,11 @@ public interface CfaTransformer {
    * @return a new transformed CFA for the specified CFA
    * @throws NullPointerException if any parameter is {@code null}
    */
-  CFA transform(CfaNetwork pCfa, CfaMetadata pCfaMetadata, LogManager pLogger);
+  CFA transform(
+      CfaNetwork pCfa,
+      CfaMetadata pCfaMetadata,
+      LogManager pLogger,
+      ShutdownNotifier pShutdownNotifier);
 
   /**
    * Returns a new transformed CFA for the specified CFA.
@@ -85,7 +95,7 @@ public interface CfaTransformer {
    * @return a new transformed CFA for the specified CFA
    * @throws NullPointerException if any parameter is {@code null}
    */
-  default CFA transform(CFA pCfa, LogManager pLogger) {
-    return transform(CfaNetwork.wrap(pCfa), pCfa.getMetadata(), pLogger);
+  default CFA transform(CFA pCfa, LogManager pLogger, ShutdownNotifier pShutdownNotifier) {
+    return transform(CfaNetwork.wrap(pCfa), pCfa.getMetadata(), pLogger, pShutdownNotifier);
   }
 }

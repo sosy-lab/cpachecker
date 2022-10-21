@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.cfa.transformer.c;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import com.google.common.collect.ImmutableList;
+import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
@@ -57,7 +58,11 @@ public final class CCfaTransformer implements CfaTransformer {
   }
 
   @Override
-  public CFA transform(CfaNetwork pCfaNetwork, CfaMetadata pCfaMetadata, LogManager pLogger) {
+  public CFA transform(
+      CfaNetwork pCfaNetwork,
+      CfaMetadata pCfaMetadata,
+      LogManager pLogger,
+      ShutdownNotifier pShutdownNotifier) {
 
     CfaNetwork unconnectedFunctionCfa =
         CfaCreator.toUnconnectedFunctionCfaNetwork(
