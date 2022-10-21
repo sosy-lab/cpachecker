@@ -85,6 +85,7 @@ public class SMGCPABuiltins {
           "memcpy",
           "memset",
           "__builtin_alloca",
+          "alloca",
           "printf",
           "strcmp",
           "realloc",
@@ -204,6 +205,7 @@ public class SMGCPABuiltins {
     }
 
     switch (calledFunctionName) {
+      case "alloca":
       case "__builtin_alloca":
         return evaluateAlloca(cFCExpression, pState, pCfaEdge);
 
