@@ -170,7 +170,6 @@ public final class CCfaTransformer implements CfaTransformer {
     /**
      * Returns a new {@link CfaTransformer} instance created from the current state of this builder.
      *
-     * @param pConfig the configuration to use during CFA creation
      * @return a new {@link CfaTransformer} instance created from the current state of this builder
      */
     public CfaTransformer build() {
