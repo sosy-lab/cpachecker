@@ -43,7 +43,7 @@ import org.sosy_lab.cpachecker.exceptions.NoException;
 /** {@link CfaEdgeTransformer} for CFA edges that are contained in CFAs of C programs. */
 public final class CCfaEdgeTransformer implements CfaEdgeTransformer {
 
-  public static final CfaEdgeTransformer CLONER = new CCfaEdgeTransformer(ImmutableList.of());
+  public static final CCfaEdgeTransformer CLONER = new CCfaEdgeTransformer(ImmutableList.of());
 
   public static final CfaEdgeTransformer SUMMARY_TO_STATEMENT_EDGE_TRANSFORMER =
       new CfaEdgeTransformer() {

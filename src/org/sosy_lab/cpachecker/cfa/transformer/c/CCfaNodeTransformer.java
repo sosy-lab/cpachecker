@@ -25,7 +25,7 @@ import org.sosy_lab.cpachecker.cfa.transformer.CfaNodeTransformer;
 /** {@link CfaNodeTransformer} for CFA nodes that are contained in CFAs of C programs. */
 public final class CCfaNodeTransformer implements CfaNodeTransformer {
 
-  public static final CfaNodeTransformer CLONER = new CCfaNodeTransformer(ImmutableList.of());
+  public static final CCfaNodeTransformer CLONER = new CCfaNodeTransformer(ImmutableList.of());
 
   private final ImmutableList<CCfaNodeAstSubstitution> nodeAstSubstitutions;
 
