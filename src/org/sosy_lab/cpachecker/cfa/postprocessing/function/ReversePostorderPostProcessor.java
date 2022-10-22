@@ -10,10 +10,10 @@ package org.sosy_lab.cpachecker.cfa.postprocessing.function;
 
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFAReversePostorder;
-import org.sosy_lab.cpachecker.cfa.CfaPostProcessor.FunctionPostProcessor;
+import org.sosy_lab.cpachecker.cfa.CfaPostProcessor;
 import org.sosy_lab.cpachecker.cfa.MutableCFA;
 
-public final class ReversePostorderPostProcessor implements FunctionPostProcessor {
+public final class ReversePostorderPostProcessor implements CfaPostProcessor {
 
   @Override
   public MutableCFA process(MutableCFA pCfa, LogManager pLogger) {

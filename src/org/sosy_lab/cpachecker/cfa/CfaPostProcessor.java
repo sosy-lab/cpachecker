@@ -26,10 +26,4 @@ import org.sosy_lab.common.log.LogManager;
 public interface CfaPostProcessor {
 
   MutableCFA process(MutableCFA pCfa, LogManager pLogger);
-
-  /** Marker interface for CFA post-processors running on function CFAs. */
-  public interface FunctionPostProcessor extends CfaPostProcessor {}
-
-  /** Marker interface for CFA post-processors running on supergraph CFAs. */
-  public interface SupergraphPostProcessor extends CfaPostProcessor {}
 }
