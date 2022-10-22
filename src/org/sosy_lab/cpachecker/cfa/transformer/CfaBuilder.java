@@ -240,7 +240,7 @@ public final class CfaBuilder {
    */
   public CfaBuilder runPostProcessor(CfaPostProcessor pCfaPostProcessor) {
 
-    mutableCfa = pCfaPostProcessor.process(mutableCfa, logger);
+    mutableCfa = pCfaPostProcessor.process(mutableCfa, logger, shutdownNotifier);
 
     return this;
   }

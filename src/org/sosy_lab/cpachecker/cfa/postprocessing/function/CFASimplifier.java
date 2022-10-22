@@ -19,6 +19,7 @@ import java.util.Deque;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFACreationUtils;
 import org.sosy_lab.cpachecker.cfa.CfaPostProcessor;
@@ -272,7 +273,8 @@ public class CFASimplifier implements CfaPostProcessor {
   }
 
   @Override
-  public MutableCFA process(MutableCFA pCfa, LogManager pLogger) {
+  public MutableCFA process(
+      MutableCFA pCfa, LogManager pLogger, ShutdownNotifier pShutdownNotifier) {
 
     simplifyCFA(pCfa);
 

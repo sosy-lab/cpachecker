@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.cfa.postprocessing.function;
 
+import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFAReversePostorder;
 import org.sosy_lab.cpachecker.cfa.CfaPostProcessor;
@@ -16,7 +17,8 @@ import org.sosy_lab.cpachecker.cfa.MutableCFA;
 public final class ReversePostorderPostProcessor implements CfaPostProcessor {
 
   @Override
-  public MutableCFA process(MutableCFA pCfa, LogManager pLogger) {
+  public MutableCFA process(
+      MutableCFA pCfa, LogManager pLogger, ShutdownNotifier pShutdownNotifier) {
     pCfa.getAllFunctionHeads().forEach(CFAReversePostorder::assignIds);
     return pCfa;
   }

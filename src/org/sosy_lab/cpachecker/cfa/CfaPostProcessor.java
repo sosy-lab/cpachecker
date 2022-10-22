@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.cfa;
 
+import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.log.LogManager;
 
 /**
@@ -35,9 +36,10 @@ public interface CfaPostProcessor {
    *
    * @param pCfa the {@link MutableCFA} to post-process
    * @param pLogger the logger to use during CFA post-processing
+   * @param pShutdownNotifier the shutdown notifier to use during CFA post-processing
    * @return the post-processed CFA (can be the specified {@link MutableCFA} or a completely new
    *     {@link MutableCFA})
    * @throws NullPointerException if any parameter is {@code null}
    */
-  MutableCFA process(MutableCFA pCfa, LogManager pLogger);
+  MutableCFA process(MutableCFA pCfa, LogManager pLogger, ShutdownNotifier pShutdownNotifier);
 }

@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.cfa.postprocessing.function;
 
 import java.util.logging.Level;
+import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CfaPostProcessor;
 import org.sosy_lab.cpachecker.cfa.MutableCFA;
@@ -18,7 +19,8 @@ import org.sosy_lab.cpachecker.util.LoopStructure;
 public final class LoopStructurePostProcessor implements CfaPostProcessor {
 
   @Override
-  public MutableCFA process(MutableCFA pCfa, LogManager pLogger) {
+  public MutableCFA process(
+      MutableCFA pCfa, LogManager pLogger, ShutdownNotifier pShutdownNotifier) {
 
     try {
       pCfa.setLoopStructure(LoopStructure.getLoopStructure(pCfa));
