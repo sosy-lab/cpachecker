@@ -18,7 +18,7 @@ SPDX-License-Identifier: Apache-2.0
   <option name="-timelimit">900s</option>
 
   <rundefinition>
-    <option name="-svcomp22"/>
+    <option name="-svcomp23"/>
   </rundefinition>
 
   <!--
