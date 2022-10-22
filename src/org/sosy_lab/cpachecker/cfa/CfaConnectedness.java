@@ -9,13 +9,22 @@
 package org.sosy_lab.cpachecker.cfa;
 
 /**
- * Indicates whether functions are connected by super-edges (i.e., function call and return edges).
+ * Indicates whether a program is represented by a single supergraph CFA or by multiple unconnected
+ * CFAs - one for each function.
  */
 public enum CfaConnectedness {
 
-  /** Functions are not connected by super-edges. */
+  /**
+   * There is a CFA for each function. Functions are not connected by super-edges (i.e., function
+   * call and return edges). There are no function summary edges and function calls are represented
+   * by statement edges.
+   */
   UNCONNECTED_FUNCTIONS,
 
-  /** Functions are connected by super-edges. */
+  /**
+   * There is only a single CFA for the whole program. Functions are connected by super-edges (i.e.,
+   * function call and return edges). In a supergraph CFA, function call statement edges are
+   * replaced by function call/return/summary edges where necessary.
+   */
   SUPERGRAPH
 }
