@@ -13,17 +13,31 @@ import org.sosy_lab.common.log.LogManager;
 /**
  * Represents a CFA post-processor.
  *
- * <p>CFA post-processors are executed in a specific order. During CFA creation, the following steps
- * are executed (in this order):
+ * <p>During CFA creation, the following steps are executed (in this order):
  *
  * <ol>
- *   <li>Parse file(s) and create a CFA for each function.
- *   <li>Do post-processings on each function CFA.
- *   <li>Insert call and return edges and build the supergraph.
- *   <li>Do post-processings that change the supergraph CFA.
+ *   <li>Parse file(s) and create a {@link CfaConnectedness#UNCONNECTED_FUNCTIONS CFA for each
+ *       function}.
+ *   <li>Run CFA post-processors on each function CFA.
+ *   <li>Insert function call and return edges and build a {@link CfaConnectedness#SUPERGRAPH single
+ *       supergraph CFA}.
+ *   <li>Run CFA post-processors on the supergraph CFA.
  * </ol>
  */
 public interface CfaPostProcessor {
 
+  /**
+   * Executes this CFA post-processor on the specified {@link MutableCFA}.
+   *
+   * <p>A CFA post-processor may modify the specified {@link MutableCFA} or create a new {@link
+   * MutableCFA}. In both cases, the returned {@link MutableCFA} represents the result of the
+   * post-processor.
+   *
+   * @param pCfa the {@link MutableCFA} to post-process
+   * @param pLogger the logger to use during CFA post-processing
+   * @return the post-processed CFA (can be the specified {@link MutableCFA} or a completely new
+   *     {@link MutableCFA})
+   * @throws NullPointerException if any parameter is {@code null}
+   */
   MutableCFA process(MutableCFA pCfa, LogManager pLogger);
 }
