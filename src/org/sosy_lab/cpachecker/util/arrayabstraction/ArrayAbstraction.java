@@ -847,10 +847,10 @@ public class ArrayAbstraction {
     CfaTransformer cfaTransformer =
         CCfaTransformer.builder()
             .addEdgeAstSubstitution(edgeAstSubstitution::apply)
-            .addPostProcessor(new ReversePostorderPostProcessor())
-            .addPostProcessor(new LoopStructurePostProcessor())
-            .addPostProcessor(new VariableClassificationPostProcessor(pConfiguration))
-            .build(pConfiguration);
+            .addFunctionPostProcessor(new ReversePostorderPostProcessor())
+            .addFunctionPostProcessor(new LoopStructurePostProcessor())
+            .addSupergraphPostProcessor(new VariableClassificationPostProcessor(pConfiguration))
+            .build();
 
     CFA transformedCfa =
         cfaTransformer.transform(graph, simplifiedCfa.getMetadata(), pLogger, pShutdownNotifier);

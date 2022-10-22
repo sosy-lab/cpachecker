@@ -8,18 +8,18 @@
 
 package org.sosy_lab.cpachecker.cfa.transformer.c;
 
-import static com.google.common.base.Preconditions.checkNotNull;
 
 import com.google.common.collect.ImmutableList;
 import org.sosy_lab.common.ShutdownNotifier;
-import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CfaConnectedness;
 import org.sosy_lab.cpachecker.cfa.CfaMetadata;
 import org.sosy_lab.cpachecker.cfa.CfaPostProcessor;
 import org.sosy_lab.cpachecker.cfa.graph.CfaNetwork;
-import org.sosy_lab.cpachecker.cfa.transformer.CfaCreator;
+import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
+import org.sosy_lab.cpachecker.cfa.transformer.CfaBuilder;
+import org.sosy_lab.cpachecker.cfa.transformer.CfaEdgeSubstitution;
 import org.sosy_lab.cpachecker.cfa.transformer.CfaEdgeTransformer;
 import org.sosy_lab.cpachecker.cfa.transformer.CfaNodeTransformer;
 import org.sosy_lab.cpachecker.cfa.transformer.CfaTransformer;
@@ -27,25 +27,23 @@ import org.sosy_lab.cpachecker.cfa.transformer.CfaTransformer;
 /** A {@link CfaTransformer} for transforming CFAs of C programs. */
 public final class CCfaTransformer implements CfaTransformer {
 
-  private final ImmutableList<CfaPostProcessor> cfaPostProcessors;
+  private final ImmutableList<CfaPostProcessor> functionPostProcessors;
+  private final ImmutableList<CfaPostProcessor> supergraphPostProcessors;
 
   private final CfaNodeTransformer nodeTransformer;
   private final CfaEdgeTransformer edgeTransformer;
 
-  private final Configuration config;
-
   private CCfaTransformer(
-      ImmutableList<CfaPostProcessor> pCfaPostProcessors,
+      ImmutableList<CfaPostProcessor> pFunctionPostProcessors,
+      ImmutableList<CfaPostProcessor> pSupergraphPostProcessors,
       ImmutableList<CCfaNodeAstSubstitution> pNodeAstSubstitutions,
-      ImmutableList<CCfaEdgeAstSubstitution> pEdgeAstSubstitutions,
-      Configuration pConfig) {
+      ImmutableList<CCfaEdgeAstSubstitution> pEdgeAstSubstitutions) {
 
-    cfaPostProcessors = pCfaPostProcessors;
+    functionPostProcessors = pFunctionPostProcessors;
+    supergraphPostProcessors = pSupergraphPostProcessors;
 
     nodeTransformer = CCfaNodeTransformer.withSubstitutions(pNodeAstSubstitutions);
     edgeTransformer = CCfaEdgeTransformer.withSubstitutions(pEdgeAstSubstitutions);
-
-    config = pConfig;
   }
 
   /**
@@ -64,51 +62,76 @@ public final class CCfaTransformer implements CfaTransformer {
       LogManager pLogger,
       ShutdownNotifier pShutdownNotifier) {
 
+    CfaNetwork cfaWithoutSuperEdges = pCfaNetwork.withoutSuperEdges();
     CfaNetwork unconnectedFunctionCfa =
-        CfaCreator.toUnconnectedFunctionCfaNetwork(
-            pCfaNetwork, CCfaEdgeTransformer.SUMMARY_TO_STATEMENT_EDGE_TRANSFORMER);
+        cfaWithoutSuperEdges.transformEdges(
+            edge -> {
+              if (edge instanceof FunctionSummaryEdge) {
+                return CCfaEdgeTransformer.SUMMARY_TO_STATEMENT_EDGE_TRANSFORMER.transform(
+                    edge, cfaWithoutSuperEdges, node -> node, CfaEdgeSubstitution.UNSUPPORTED);
+              }
+
+              return edge;
+            });
     CfaMetadata unconnectedFunctionCfaMetadata =
         pCfaMetadata.withConnectedness(CfaConnectedness.UNCONNECTED_FUNCTIONS);
 
-    return CfaCreator.createCfa(
-        cfaPostProcessors,
-        nodeTransformer,
-        edgeTransformer,
-        unconnectedFunctionCfa,
-        unconnectedFunctionCfaMetadata,
-        config,
-        pLogger);
+    CfaBuilder builder =
+        CfaBuilder.builder(
+            pLogger,
+            pShutdownNotifier,
+            nodeTransformer,
+            edgeTransformer,
+            unconnectedFunctionCfa,
+            unconnectedFunctionCfaMetadata);
+    functionPostProcessors.forEach(builder::runPostProcessor);
+    builder.toSupergraph();
+    supergraphPostProcessors.forEach(builder::runPostProcessor);
+
+    return builder.createCfa();
   }
 
   public static final class Builder {
 
-    private final ImmutableList.Builder<CfaPostProcessor> cfaPostProcessors;
+    private final ImmutableList.Builder<CfaPostProcessor> functionPostProcessors;
+    private final ImmutableList.Builder<CfaPostProcessor> supergraphPostProcessors;
 
     private final ImmutableList.Builder<CCfaNodeAstSubstitution> nodeAstSubstitutions;
     private final ImmutableList.Builder<CCfaEdgeAstSubstitution> edgeAstSubstitutions;
 
     private Builder() {
 
-      cfaPostProcessors = ImmutableList.builder();
+      functionPostProcessors = ImmutableList.builder();
+      supergraphPostProcessors = ImmutableList.builder();
 
       nodeAstSubstitutions = ImmutableList.builder();
       edgeAstSubstitutions = ImmutableList.builder();
     }
 
     /**
-     * Adds a {@link CfaPostProcessor} that is executed during CFA construction.
-     *
-     * <p>Different kinds of CFA post-processors are executed in the order defined in {@link
-     * CfaPostProcessor}, even if CFA post-processors are added in a different order. CFA
-     * post-processors that are executed in the same step are executed in the order they are added
-     * to this builder.
+     * Adds a {@link CfaPostProcessor} that is executed during CFA construction on unconnected
+     * function CFAs.
      *
      * @param pCfaPostProcessor the CFA post-processor to add for CFA construction
      * @return this builder instance
      */
-    public Builder addPostProcessor(CfaPostProcessor pCfaPostProcessor) {
+    public Builder addFunctionPostProcessor(CfaPostProcessor pCfaPostProcessor) {
 
-      cfaPostProcessors.add(pCfaPostProcessor);
+      functionPostProcessors.add(pCfaPostProcessor);
+
+      return this;
+    }
+
+    /**
+     * Adds a {@link CfaPostProcessor} that is executed during CFA construction on the supergraph
+     * CFA.
+     *
+     * @param pCfaPostProcessor the CFA post-processor to add for CFA construction
+     * @return this builder instance
+     */
+    public Builder addSupergraphPostProcessor(CfaPostProcessor pCfaPostProcessor) {
+
+      supergraphPostProcessors.add(pCfaPostProcessor);
 
       return this;
     }
@@ -151,12 +174,12 @@ public final class CCfaTransformer implements CfaTransformer {
      * @param pConfig the configuration to use during CFA creation
      * @return a new {@link CfaTransformer} instance created from the current state of this builder
      */
-    public CfaTransformer build(Configuration pConfig) {
+    public CfaTransformer build() {
       return new CCfaTransformer(
-          cfaPostProcessors.build(),
+          functionPostProcessors.build(),
+          supergraphPostProcessors.build(),
           nodeAstSubstitutions.build(),
-          edgeAstSubstitutions.build(),
-          checkNotNull(pConfig));
+          edgeAstSubstitutions.build());
     }
   }
 }

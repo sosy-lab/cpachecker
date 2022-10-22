@@ -19,7 +19,6 @@ import java.util.function.Function;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.collect.Collections3;
-import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionDeclaration;
@@ -147,15 +146,13 @@ final class SliceToCfaConversion {
   /**
    * Creates a {@link CFA} that matches the specified {@link Slice} as closely as possible.
    *
-   * @param pConfig the configuration to use
    * @param pLogger the logger to use during conversion
    * @param pShutdownNotifier the shutdown notifier to use
    * @param pSlice the slice to create a CFA for
    * @return the CFA created for the specified slice
    * @throws NullPointerException if any parameter is {@code null}
    */
-  public static CFA convert(
-      Configuration pConfig, LogManager pLogger, ShutdownNotifier pShutdownNotifier, Slice pSlice) {
+  public static CFA convert(LogManager pLogger, ShutdownNotifier pShutdownNotifier, Slice pSlice) {
 
     ImmutableSet<CFAEdge> relevantEdges = pSlice.getRelevantEdges();
 
@@ -198,7 +195,7 @@ final class SliceToCfaConversion {
       graph.addNode(mainEntryNode.getExitNode());
 
       return CCfaTransformer.builder()
-          .build(pConfig)
+          .build()
           .transform(graph, pSlice.getOriginalCfa().getMetadata(), pLogger, pShutdownNotifier);
     }
 
@@ -208,8 +205,8 @@ final class SliceToCfaConversion {
                 new RelevantNodeAstSubstitution(pSlice, functionToEntryNodeMap::get))
             .addEdgeAstSubstitution(
                 createAstNodeSubstitutionForCfaEdges(pSlice, functionToEntryNodeMap::get)::apply)
-            .addPostProcessor(new CFASimplifier())
-            .build(pConfig);
+            .addFunctionPostProcessor(new CFASimplifier())
+            .build();
 
     CFA sliceCfa =
         cfaTransformer.transform(
