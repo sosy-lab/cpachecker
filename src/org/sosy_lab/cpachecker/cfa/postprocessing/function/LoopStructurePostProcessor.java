@@ -19,7 +19,7 @@ import org.sosy_lab.cpachecker.util.LoopStructure;
 public final class LoopStructurePostProcessor implements CfaPostProcessor {
 
   @Override
-  public MutableCFA process(
+  public MutableCFA execute(
       MutableCFA pCfa, LogManager pLogger, ShutdownNotifier pShutdownNotifier) {
 
     try {

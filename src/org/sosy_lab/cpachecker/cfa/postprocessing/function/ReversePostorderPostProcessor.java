@@ -17,7 +17,7 @@ import org.sosy_lab.cpachecker.cfa.MutableCFA;
 public final class ReversePostorderPostProcessor implements CfaPostProcessor {
 
   @Override
-  public MutableCFA process(
+  public MutableCFA execute(
       MutableCFA pCfa, LogManager pLogger, ShutdownNotifier pShutdownNotifier) {
     pCfa.getAllFunctionHeads().forEach(CFAReversePostorder::assignIds);
     return pCfa;

@@ -41,5 +41,5 @@ public interface CfaPostProcessor {
    *     {@link MutableCFA})
    * @throws NullPointerException if any parameter is {@code null}
    */
-  MutableCFA process(MutableCFA pCfa, LogManager pLogger, ShutdownNotifier pShutdownNotifier);
+  MutableCFA execute(MutableCFA pCfa, LogManager pLogger, ShutdownNotifier pShutdownNotifier);
 }
