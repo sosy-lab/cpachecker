@@ -72,18 +72,20 @@ class ReplaceFloatingPointWithNumeralAndFunctionTheory<T extends NumeralFormula>
   }
 
   @Override
-  public <T2 extends Formula> T2 castTo(FloatingPointFormula pNumber, FormulaType<T2> pTargetType) {
+  public <T2 extends Formula> T2 castTo(
+      FloatingPointFormula pNumber, boolean pSigned, FormulaType<T2> pTargetType) {
     // This method needs to handle only wrapping of FloatingPointFormulas,
     // wrapping of other types is handled by FloatingPointFormulaManagerView.
-    return genericCast(unwrap(pNumber), pTargetType);
+    return genericCast(unwrap(pNumber), pSigned, pTargetType);
   }
 
   @Override
   public <T2 extends Formula> T2 castTo(
       FloatingPointFormula number,
+      boolean pSigned,
       FormulaType<T2> targetType,
       FloatingPointRoundingMode pFloatingPointRoundingMode) {
-    return genericCast(unwrap(number), targetType);
+    return genericCast(unwrap(number), pSigned, targetType);
   }
 
   @Override
@@ -91,19 +93,20 @@ class ReplaceFloatingPointWithNumeralAndFunctionTheory<T extends NumeralFormula>
       Formula pNumber, boolean pSigned, FloatingPointType pTargetType) {
     // This method needs to handle only wrapping of FloatingPointFormulas,
     // wrapping of other types is handled by FloatingPointFormulaManagerView.
-    return wrap(pTargetType, genericCast(pNumber, unwrapType(pTargetType)));
+    return wrap(pTargetType, genericCast(pNumber, pSigned, unwrapType(pTargetType)));
   }
 
   @Override
   public FloatingPointFormula castFrom(
       Formula number,
-      boolean signed,
+      boolean pSigned,
       FloatingPointType targetType,
       FloatingPointRoundingMode pFloatingPointRoundingMode) {
-    return wrap(targetType, genericCast(number, unwrapType(targetType)));
+    return wrap(targetType, genericCast(number, pSigned, unwrapType(targetType)));
   }
 
-  private <T2 extends Formula> T2 genericCast(Formula pNumber, FormulaType<T2> pTargetType) {
+  private <T2 extends Formula> T2 genericCast(
+      Formula pNumber, boolean pSigned, FormulaType<T2> pTargetType) {
     // This method does not handle wrapping, it needs to be done by callers.
     checkArgument(!(pNumber instanceof WrappingFormula<?, ?>));
     FormulaType<?> type = getFormulaType(pNumber);
@@ -119,9 +122,11 @@ class ReplaceFloatingPointWithNumeralAndFunctionTheory<T extends NumeralFormula>
       T2 result = (T2) pNumber;
       return result;
     } else {
-      FunctionDeclaration<T2> castFunction =
-          functionManager.declareUF(
-              "__cast_" + type + "_to_" + pTargetType + "__", pTargetType, type);
+      final String ufName =
+          String.format(
+              "__cast_%s_to_%s%s__",
+              type, pTargetType.isBitvectorType() && !pSigned ? "unsigned_" : "", pTargetType);
+      FunctionDeclaration<T2> castFunction = functionManager.declareUF(ufName, pTargetType, type);
       return functionManager.callUF(castFunction, ImmutableList.of(pNumber));
     }
   }

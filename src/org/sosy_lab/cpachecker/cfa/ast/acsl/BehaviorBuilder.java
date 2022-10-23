@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.cfa.ast.acsl;
 
+import com.google.errorprone.annotations.CanIgnoreReturnValue;
 import java.util.Collection;
 
 public class BehaviorBuilder {
@@ -22,11 +23,13 @@ public class BehaviorBuilder {
     assumesClause = new AssumesClause(ACSLPredicate.getTrue());
   }
 
+  @CanIgnoreReturnValue
   public BehaviorBuilder setBehaviorName(String name) {
     behaviorName = name;
     return this;
   }
 
+  @CanIgnoreReturnValue
   public BehaviorBuilder add(Object o) {
     if (o instanceof RequiresClause) {
       return add((RequiresClause) o);
@@ -39,21 +42,25 @@ public class BehaviorBuilder {
     }
   }
 
+  @CanIgnoreReturnValue
   public BehaviorBuilder add(EnsuresClause ens) {
     ensuresClause = ensuresClause.and(ens);
     return this;
   }
 
+  @CanIgnoreReturnValue
   public BehaviorBuilder add(RequiresClause req) {
     requiresClause = requiresClause.and(req);
     return this;
   }
 
+  @CanIgnoreReturnValue
   public BehaviorBuilder add(AssumesClause ass) {
     assumesClause = assumesClause.and(ass);
     return this;
   }
 
+  @CanIgnoreReturnValue
   public BehaviorBuilder addAll(Collection<?> clauses) {
     for (Object clause : clauses) {
       add(clause);
