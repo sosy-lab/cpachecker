@@ -32,7 +32,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
  * enabled. Even though this is bad practice in general, this is also the case for some
  * preconditions. E.g., for some implementations, checking whether a CFA node or edge actually
  * belongs to a {@link MutableCfaNetwork} can be quite expensive, so this isn't necessarily checked
- * for method arguments.
+ * for method arguments if Java assertions are disabled.
  *
  * <p>All returned sets are unmodifiable views, so modifications attempts throw an exception.
  * However, modifications to a {@link MutableCfaNetwork} will be reflected in its returned set

@@ -34,7 +34,7 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
  * enabled. Even though this is bad practice in general, this is also the case for some
  * preconditions. E.g., for some implementations, checking whether a CFA node or edge actually
  * belongs to a {@link CfaNetwork} can be quite expensive, so this isn't necessarily checked for
- * method arguments.
+ * method arguments if Java assertions are disabled.
  *
  * <p>All returned sets are unmodifiable views, so modifications attempts throw an exception.
  * However, modifications to a {@link CfaNetwork} will be reflected in its returned set views. A

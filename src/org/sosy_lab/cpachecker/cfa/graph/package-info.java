@@ -16,7 +16,7 @@
  * CFA can be created without changing the original CFA (e.g., by applying on-the-fly filters or
  * transformations). Additionally, this makes modifying CFAs easier, because for some
  * implementations it isn't necessary to keep individual elements of a CFA in sync (e.g., depending
- * on the implementation, we don't need to create a CFA edge with specific endpoints and also
+ * on the implementation, we don't have to create a CFA edge with specific endpoints and also
  * add/register the edge at those endpoints).
  *
  * <p>There are three main interfaces:

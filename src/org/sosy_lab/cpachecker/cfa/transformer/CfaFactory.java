@@ -19,7 +19,7 @@ import org.sosy_lab.cpachecker.cfa.graph.CfaNetwork;
  * A factory that creates new {@link CFA} instances for CFAs represented by ({@link CfaNetwork},
  * {@link CfaMetadata}) pairs.
  *
- * <p>The factory can create multiple CFAs. Every time the {@link CfaFactory#createCfa(CfaNetwork,
+ * <p>A factory can create multiple CFAs. Every time the {@link CfaFactory#createCfa(CfaNetwork,
  * CfaMetadata, LogManager, ShutdownNotifier) createCfa} method is invoked, a new {@link CFA}
  * instance is created.
  *

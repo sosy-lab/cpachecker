@@ -45,8 +45,8 @@
  *         flexCfaNetwork.replaceEdge(...);
  *
  *         // there are also more advanced operations
- *         // Before: --- a ---> [node] --- b ---->
- *         // After: --- a ---> [node] --- newOutEdge ---> [newSuccessor] --- b ---->
+ *         // before: --- a ---> [node] --- b ---->
+ *         // after: --- a ---> [node] --- newOutEdge ---> [newSuccessor] --- b ---->
  *         flexCfaNetwork.insertSuccessor(...);
  *
  *         // it's also possible to change the CFA metadata (e.g., change the function entry node)

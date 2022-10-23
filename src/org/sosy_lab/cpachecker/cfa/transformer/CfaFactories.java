@@ -293,7 +293,7 @@ public final class CfaFactories {
      * @param pCfaPostProcessors the CFA post-processors to execute during CFA construction
      * @return a {@link CfaFactory} that does what this {@link CfaFactory} does and additionally
      *     executes the specified CFA post-processors
-     * @throws NullPointerException if {@code pCfaPostProcessors == null} or any of its elements are
+     * @throws NullPointerException if {@code pCfaPostProcessors == null} or any of its elements is
      *     {@code null}
      */
     public SupergraphCfaFactory<N, E> executePostProcessors(
