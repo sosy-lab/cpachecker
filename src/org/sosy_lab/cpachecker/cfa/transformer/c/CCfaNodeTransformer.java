@@ -9,7 +9,7 @@
 package org.sosy_lab.cpachecker.cfa.transformer.c;
 
 import com.google.common.collect.ImmutableList;
-import java.util.List;
+import java.util.Arrays;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
@@ -33,9 +33,16 @@ public final class CCfaNodeTransformer implements CfaNodeTransformer {
     nodeAstSubstitutions = pNodeAstSubstitutions;
   }
 
-  public static CfaNodeTransformer withSubstitutions(
-      List<CCfaNodeAstSubstitution> pNodeAstSubstitutions) {
-    return new CCfaNodeTransformer(ImmutableList.copyOf(pNodeAstSubstitutions));
+  public static CCfaNodeTransformer withSubstitutions(
+      CCfaNodeAstSubstitution pNodeAstSubstitution,
+      CCfaNodeAstSubstitution... pNodeAstSubstitutions) {
+
+    ImmutableList.Builder<CCfaNodeAstSubstitution> substitutionsBuilder =
+        ImmutableList.builderWithExpectedSize(pNodeAstSubstitutions.length + 1);
+    substitutionsBuilder.add(pNodeAstSubstitution);
+    substitutionsBuilder.addAll(Arrays.asList(pNodeAstSubstitutions));
+
+    return new CCfaNodeTransformer(substitutionsBuilder.build());
   }
 
   private CFunctionDeclaration applyNodeAstSubstitutions(

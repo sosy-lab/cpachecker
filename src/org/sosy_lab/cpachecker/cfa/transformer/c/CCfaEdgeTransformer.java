@@ -10,7 +10,7 @@ package org.sosy_lab.cpachecker.cfa.transformer.c;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.graph.EndpointPair;
-import java.util.List;
+import java.util.Arrays;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
@@ -80,9 +80,16 @@ public final class CCfaEdgeTransformer implements CfaEdgeTransformer {
     edgeAstSubstitutions = pEdgeAstSubstitutions;
   }
 
-  public static CfaEdgeTransformer withSubstitutions(
-      List<CCfaEdgeAstSubstitution> pEdgeAstSubstitutions) {
-    return new CCfaEdgeTransformer(ImmutableList.copyOf(pEdgeAstSubstitutions));
+  public static CCfaEdgeTransformer withSubstitutions(
+      CCfaEdgeAstSubstitution pEdgeAstSubstitution,
+      CCfaEdgeAstSubstitution... pEdgeAstSubstitutions) {
+
+    ImmutableList.Builder<CCfaEdgeAstSubstitution> substitutionsBuilder =
+        ImmutableList.builderWithExpectedSize(pEdgeAstSubstitutions.length + 1);
+    substitutionsBuilder.add(pEdgeAstSubstitution);
+    substitutionsBuilder.addAll(Arrays.asList(pEdgeAstSubstitutions));
+
+    return new CCfaEdgeTransformer(substitutionsBuilder.build());
   }
 
   private CAstNode applyEdgeAstSubstitutions(CFAEdge pEdge, CAstNode pAstNode) {

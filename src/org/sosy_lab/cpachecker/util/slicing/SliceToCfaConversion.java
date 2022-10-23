@@ -48,9 +48,11 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.postprocessing.function.CFASimplifier;
-import org.sosy_lab.cpachecker.cfa.transformer.CfaTransformer;
+import org.sosy_lab.cpachecker.cfa.transformer.CfaFactory;
+import org.sosy_lab.cpachecker.cfa.transformer.c.CCfaEdgeTransformer;
+import org.sosy_lab.cpachecker.cfa.transformer.c.CCfaFactory;
 import org.sosy_lab.cpachecker.cfa.transformer.c.CCfaNodeAstSubstitution;
-import org.sosy_lab.cpachecker.cfa.transformer.c.CCfaTransformer;
+import org.sosy_lab.cpachecker.cfa.transformer.c.CCfaNodeTransformer;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionTypeWithNames;
 import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
@@ -194,22 +196,24 @@ final class SliceToCfaConversion {
       graph.addNode(mainEntryNode);
       graph.addNode(mainEntryNode.getExitNode());
 
-      return CCfaTransformer.builder()
-          .build()
-          .transform(graph, pSlice.getOriginalCfa().getMetadata(), pLogger, pShutdownNotifier);
+      return CCfaFactory.DEFAULT.createCfa(
+          graph, pSlice.getOriginalCfa().getMetadata(), pLogger, pShutdownNotifier);
     }
 
-    CfaTransformer cfaTransformer =
-        CCfaTransformer.builder()
-            .addNodeAstSubstitution(
-                new RelevantNodeAstSubstitution(pSlice, functionToEntryNodeMap::get))
-            .addEdgeAstSubstitution(
-                createAstNodeSubstitutionForCfaEdges(pSlice, functionToEntryNodeMap::get)::apply)
-            .addFunctionPostProcessor(new CFASimplifier())
-            .build();
+    CfaFactory cfaFactory =
+        CCfaFactory.toUnconnectedFunctions()
+            .transformNodes(
+                CCfaNodeTransformer.withSubstitutions(
+                    new RelevantNodeAstSubstitution(pSlice, functionToEntryNodeMap::get)))
+            .transformEdges(
+                CCfaEdgeTransformer.withSubstitutions(
+                    createAstNodeSubstitutionForCfaEdges(pSlice, functionToEntryNodeMap::get)
+                        ::apply))
+            .executePostProcessor(new CFASimplifier())
+            .toSupergraph();
 
     CFA sliceCfa =
-        cfaTransformer.transform(
+        cfaFactory.createCfa(
             graph, pSlice.getOriginalCfa().getMetadata(), pLogger, pShutdownNotifier);
 
     return sliceCfa;

@@ -50,8 +50,9 @@ import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.postprocessing.function.LoopStructurePostProcessor;
 import org.sosy_lab.cpachecker.cfa.postprocessing.function.ReversePostorderPostProcessor;
 import org.sosy_lab.cpachecker.cfa.postprocessing.global.VariableClassificationPostProcessor;
-import org.sosy_lab.cpachecker.cfa.transformer.CfaTransformer;
-import org.sosy_lab.cpachecker.cfa.transformer.c.CCfaTransformer;
+import org.sosy_lab.cpachecker.cfa.transformer.CfaFactory;
+import org.sosy_lab.cpachecker.cfa.transformer.c.CCfaEdgeTransformer;
+import org.sosy_lab.cpachecker.cfa.transformer.c.CCfaFactory;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
@@ -215,15 +216,15 @@ final class CfaSimplifications {
           return originalAstNode.accept(new SubstitutingCAstNodeVisitor(astNodeSubstitution::get));
         };
 
-    CfaTransformer cfaTransformer =
-        CCfaTransformer.builder()
-            .addEdgeAstSubstitution(substitutionFunction::apply)
-            .addFunctionPostProcessor(new ReversePostorderPostProcessor())
-            .addFunctionPostProcessor(new LoopStructurePostProcessor())
-            .addSupergraphPostProcessor(new VariableClassificationPostProcessor(pConfiguration))
-            .build();
+    CfaFactory cfaFactory =
+        CCfaFactory.toUnconnectedFunctions()
+            .transformEdges(CCfaEdgeTransformer.withSubstitutions(substitutionFunction::apply))
+            .executePostProcessor(new ReversePostorderPostProcessor())
+            .executePostProcessor(new LoopStructurePostProcessor())
+            .toSupergraph()
+            .executePostProcessor(new VariableClassificationPostProcessor(pConfiguration));
 
-    return cfaTransformer.transform(graph, pCfa.getMetadata(), pLogger, pShutdownNotifier);
+    return cfaFactory.createCfa(graph, pCfa.getMetadata(), pLogger, pShutdownNotifier);
   }
 
   /**
@@ -471,15 +472,15 @@ final class CfaSimplifications {
         (edge, originalAstNode) ->
             IdExpressionSubstitutingCAstNodeVisitor.substitute(substitution, edge, originalAstNode);
 
-    CfaTransformer cfaTransformer =
-        CCfaTransformer.builder()
-            .addEdgeAstSubstitution(edgeAstSubstitution::apply)
-            .addFunctionPostProcessor(new ReversePostorderPostProcessor())
-            .addFunctionPostProcessor(new LoopStructurePostProcessor())
-            .addSupergraphPostProcessor(new VariableClassificationPostProcessor(pConfiguration))
-            .build();
+    CfaFactory cfaFactory =
+        CCfaFactory.toUnconnectedFunctions()
+            .transformEdges(CCfaEdgeTransformer.withSubstitutions(edgeAstSubstitution::apply))
+            .executePostProcessor(new ReversePostorderPostProcessor())
+            .executePostProcessor(new LoopStructurePostProcessor())
+            .toSupergraph()
+            .executePostProcessor(new VariableClassificationPostProcessor(pConfiguration));
 
-    return cfaTransformer.transform(graph, pCfa.getMetadata(), pLogger, pShutdownNotifier);
+    return cfaFactory.createCfa(graph, pCfa.getMetadata(), pLogger, pShutdownNotifier);
   }
 
   private static final class IdExpressionSubstitutingCAstNodeVisitor
