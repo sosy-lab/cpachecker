@@ -73,7 +73,6 @@ public class SliceExporter {
   private PathTemplate exportCriteriaFile =
       PathTemplate.ofFormatString("programSlice.%d.criteria.txt");
 
-  private final Configuration config;
   private final LogManager logger;
   private final ShutdownNotifier shutdownNotifier;
   private int exportCount = 0;
@@ -85,7 +84,6 @@ public class SliceExporter {
     pConfig.inject(this);
 
     translator = new CFAToCTranslator(pConfig);
-    config = pConfig;
     logger = pLogger;
     shutdownNotifier = pShutdownNotifier;
   }
