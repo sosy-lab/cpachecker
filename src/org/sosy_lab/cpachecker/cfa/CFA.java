@@ -70,5 +70,13 @@ public interface CFA {
     return getMetadata().getFileNames();
   }
 
+  /**
+   * Returns the metadata associated with this CFA.
+   *
+   * <p>CFA metadata stores additional data about a CFA and may contain all data that isn't
+   * necessary for the actual graph representation of a program.
+   *
+   * @return the metadata associated with this CFA
+   */
   CfaMetadata getMetadata();
 }

@@ -135,6 +135,12 @@ public class MutableCFA implements CFA {
     return metadata;
   }
 
+  /**
+   * Sets the metadata associated with this CFA.
+   *
+   * @param pCfaMetadata the metadata for this CFA
+   * @throws NullPointerException if {@code pCfaMetadata == null}
+   */
   public void setMetadata(CfaMetadata pCfaMetadata) {
     metadata = checkNotNull(pCfaMetadata);
   }

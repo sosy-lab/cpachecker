@@ -27,11 +27,8 @@ import org.sosy_lab.cpachecker.util.LoopStructure;
 import org.sosy_lab.cpachecker.util.variableclassification.VariableClassification;
 
 /**
- * Class for storing additional data about a {@link CFA}, including its {@link Language} and main
- * function entry node.
- *
- * <p>Instances of this class are immutable. Instead of using {@code setXYZ}, use {@code withXYZ} to
- * create a new instance that has the specified value for {@code XYZ}.
+ * CFA metadata stores additional data about a CFA and may contain all data that isn't necessary for
+ * the actual graph representation of a program.
  */
 public final class CfaMetadata implements Serializable {
 
@@ -44,7 +41,6 @@ public final class CfaMetadata implements Serializable {
   private final FunctionEntryNode mainFunctionEntry;
   private final CfaConnectedness connectedness;
 
-  // TODO: make it easier to add additional metadata attributes
   private final @Nullable LoopStructure loopStructure;
   private final @Nullable VariableClassification variableClassification;
   private final @Nullable LiveVariables liveVariables;
@@ -71,15 +67,15 @@ public final class CfaMetadata implements Serializable {
   }
 
   /**
-   * Returns a new {@code CfaMetadata} instance for the specified parameters.
+   * Returns a new CFA metadata instance for the specified parameters.
    *
-   * @param pMachineModel the machine model to use (defines sizes for all basic types)
-   * @param pLanguage the language of the CFA (e.g., C, Java, etc.)
+   * @param pMachineModel the machine model to use for CFA analysis (defines sizes for all basic
+   *     types)
+   * @param pLanguage the programming language of the CFA (e.g., C, Java, etc.)
    * @param pFileNames the source code files from which the CFA was created
    * @param pMainFunctionEntry the entry point of the program represented by the CFA
-   * @param pConnectedness specifies whether functions are connected by super-edges (i.e., function
-   *     call and return edges)
-   * @return a new {@code CfaMetadata} instance for the specified parameters
+   * @param pConnectedness specifies whether the CFA is a supergraph
+   * @return a new CFA metadata instance for the specified parameters
    * @throws NullPointerException if any parameter is {@code null} or if {@code pFileNames} contains
    *     {@code null}
    */
@@ -101,10 +97,23 @@ public final class CfaMetadata implements Serializable {
         null);
   }
 
+  /**
+   * Returns the machine model to use for CFA analysis.
+   *
+   * @return the machine model to use for CFA analysis (defines sizes for all basic types)
+   */
   public MachineModel getMachineModel() {
     return machineModel;
   }
 
+  /**
+   * Returns a copy of this metadata instance, but with the specified machine model.
+   *
+   * @param pMachineModel the machine model to use for CFA analysis (defines sizes for all basic
+   *     types)
+   * @return a copy of this metadata instance, but with the specified machine model
+   * @throws NullPointerException if {@code pMachineModel == null}
+   */
   public CfaMetadata withMachineModel(MachineModel pMachineModel) {
     return new CfaMetadata(
         checkNotNull(pMachineModel),
@@ -117,18 +126,42 @@ public final class CfaMetadata implements Serializable {
         liveVariables);
   }
 
+  /**
+   * Returns the programming language of the CFA.
+   *
+   * @return the programming language of the CFA (e.g., C, Java, etc.)
+   */
   public Language getLanguage() {
     return language;
   }
 
+  /**
+   * Returns the source code files from which the CFA was created.
+   *
+   * @return the source code files from which the CFA was created
+   */
   public ImmutableList<Path> getFileNames() {
     return fileNames;
   }
 
+  /**
+   * Returns the entry point of the program represented by the CFA.
+   *
+   * @return the entry point of the program represented by the CFA (i.e., function entry node of the
+   *     main function)
+   */
   public FunctionEntryNode getMainFunctionEntry() {
     return mainFunctionEntry;
   }
 
+  /**
+   * Returns a copy of this metadata instance, but with the specified program entry point.
+   *
+   * @param pMainFunctionEntry the program entry point (i.e., function entry node of the main
+   *     function)
+   * @return a copy of this metadata instance, but with the specified program entry point
+   * @throws NullPointerException if {@code pMainFunctionEntry == null}
+   */
   public CfaMetadata withMainFunctionEntry(FunctionEntryNode pMainFunctionEntry) {
     return new CfaMetadata(
         machineModel,
@@ -141,10 +174,22 @@ public final class CfaMetadata implements Serializable {
         liveVariables);
   }
 
+  /**
+   * Returns the connectedness of the CFA which indicates whether the CFA is a supergraph.
+   *
+   * @return the connectedness of the CFA which indicates whether the CFA is a supergraph
+   */
   public CfaConnectedness getConnectedness() {
     return connectedness;
   }
 
+  /**
+   * Returns a copy of this metadata instance, but with the specified CFA connectedness.
+   *
+   * @param pConnectedness the CFA connectedness that indicates whether the CFA is a supergraph
+   * @return a copy of this metadata instance, but with the specified CFA connectedness
+   * @throws NullPointerException if {@code pConnectedness == null}
+   */
   public CfaMetadata withConnectedness(CfaConnectedness pConnectedness) {
     return new CfaMetadata(
         machineModel,
@@ -157,10 +202,24 @@ public final class CfaMetadata implements Serializable {
         liveVariables);
   }
 
+  /**
+   * Returns the loop structure for the CFA, if it's stored in this metadata instance.
+   *
+   * @return If this metadata instance contains the loop structure for the CFA, an optional
+   *     containing the loop structure is returned. Otherwise, if this metadata instance doesn't
+   *     contain the loop structure for the CFA, an empty optional is returned.
+   */
   public Optional<LoopStructure> getLoopStructure() {
     return Optional.ofNullable(loopStructure);
   }
 
+  /**
+   * Returns a copy of this metadata instance, but with the specified loop structure.
+   *
+   * @param pLoopStructure the loop structure to store in the returned metadata instance (use {@code
+   *     null} to create an instance without loop structure)
+   * @return a copy of this metadata instance, but with the specified loop structure
+   */
   public CfaMetadata withLoopStructure(@Nullable LoopStructure pLoopStructure) {
     return new CfaMetadata(
         machineModel,
@@ -173,10 +232,24 @@ public final class CfaMetadata implements Serializable {
         liveVariables);
   }
 
+  /**
+   * Returns the variable classification for the CFA, if it's stored in this metadata instance.
+   *
+   * @return If this metadata instance contains the variable classification for the CFA, an optional
+   *     containing the variable classification is returned. Otherwise, if this metadata instance
+   *     doesn't contain the variable classification for the CFA, an empty optional is returned.
+   */
   public Optional<VariableClassification> getVariableClassification() {
     return Optional.ofNullable(variableClassification);
   }
 
+  /**
+   * Returns a copy of this metadata instance, but with the specified variable classification.
+   *
+   * @param pVariableClassification the variable classification to store in the returned metadata
+   *     instance (use {@code null} to create an instance without variable classification)
+   * @return a copy of this metadata instance, but with the specified variable classification
+   */
   public CfaMetadata withVariableClassification(
       @Nullable VariableClassification pVariableClassification) {
     return new CfaMetadata(
@@ -190,10 +263,24 @@ public final class CfaMetadata implements Serializable {
         liveVariables);
   }
 
+  /**
+   * Returns the live variables for the CFA, if the information is stored in this metadata instance.
+   *
+   * @return If this metadata instance contains the live variables for the CFA, an optional
+   *     containing the live variables is returned. Otherwise, if this metadata instance doesn't
+   *     contain the live variables for the CFA, an empty optional is returned.
+   */
   public Optional<LiveVariables> getLiveVariables() {
     return Optional.ofNullable(liveVariables);
   }
 
+  /**
+   * Returns a copy of this metadata instance, but with the specified live variables.
+   *
+   * @param pLiveVariables the live variables to store in the returned metadata instance (use {@code
+   *     null} to create an instance without live variables)
+   * @return a copy of this metadata instance, but with the specified {@link LiveVariables}
+   */
   public CfaMetadata withLiveVariables(@Nullable LiveVariables pLiveVariables) {
     return new CfaMetadata(
         machineModel,
@@ -206,6 +293,7 @@ public final class CfaMetadata implements Serializable {
         pLiveVariables);
   }
 
+  /** Serializes CFA metadata. */
   private void writeObject(java.io.ObjectOutputStream pObjectOutputStream) throws IOException {
 
     pObjectOutputStream.defaultWriteObject();
@@ -215,6 +303,7 @@ public final class CfaMetadata implements Serializable {
     pObjectOutputStream.writeObject(stringFileNames);
   }
 
+  /** Deserializes CFA metadata. */
   private void readObject(java.io.ObjectInputStream pObjectInputStream)
       throws IOException, ClassNotFoundException {
 
@@ -240,12 +329,15 @@ public final class CfaMetadata implements Serializable {
 
   @Override
   public boolean equals(Object pObject) {
+
     if (this == pObject) {
       return true;
     }
+
     if (!(pObject instanceof CfaMetadata)) {
       return false;
     }
+
     CfaMetadata other = (CfaMetadata) pObject;
     return machineModel == other.machineModel
         && language == other.language
