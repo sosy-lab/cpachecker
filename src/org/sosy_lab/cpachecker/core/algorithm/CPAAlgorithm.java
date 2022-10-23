@@ -21,6 +21,7 @@ import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import org.checkerframework.checker.nullness.qual.Nullable;
+import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.ClassOption;
 import org.sosy_lab.common.configuration.Configuration;
@@ -49,6 +50,7 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGMergeJoinCPAEnabledAnalysis;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.Pair;
+import org.sosy_lab.cpachecker.util.resources.IterationCountLimit;
 import org.sosy_lab.cpachecker.util.statistics.AbstractStatValue;
 import org.sosy_lab.cpachecker.util.statistics.StatCounter;
 import org.sosy_lab.cpachecker.util.statistics.StatHist;
@@ -184,6 +186,7 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
     private final ConfigurableProgramAnalysis cpa;
     private final LogManager logger;
     private final ShutdownNotifier shutdownNotifier;
+    private final @Nullable ShutdownManager shutdownManager;
 
     public CPAAlgorithmFactory(
         ConfigurableProgramAnalysis cpa,
@@ -196,6 +199,28 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
       this.cpa = cpa;
       this.logger = logger;
       shutdownNotifier = pShutdownNotifier;
+      shutdownManager = null;
+
+      if (forcedCoveringClass != null) {
+        forcedCovering = forcedCoveringClass.create(config, logger, cpa);
+      } else {
+        forcedCovering = null;
+      }
+    }
+    
+    public CPAAlgorithmFactory(
+        ConfigurableProgramAnalysis cpa,
+        LogManager logger,
+        Configuration config,
+        ShutdownNotifier pShutdownNotifier,
+        ShutdownManager pShutdownManager)
+        throws InvalidConfigurationException {
+
+      config.inject(this);
+      this.cpa = cpa;
+      this.logger = logger;
+      shutdownNotifier = pShutdownNotifier;
+      shutdownManager = pShutdownManager;
 
       if (forcedCoveringClass != null) {
         forcedCovering = forcedCoveringClass.create(config, logger, cpa);
@@ -206,8 +231,13 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
 
     @Override
     public CPAAlgorithm newInstance() {
-      return new CPAAlgorithm(cpa, logger, shutdownNotifier, forcedCovering, reportFalseAsUnknown);
-    }
+      if(shutdownManager != null) {
+        return new CPAAlgorithm(cpa, logger, shutdownNotifier, forcedCovering, reportFalseAsUnknown, shutdownManager);
+      }
+      else {
+        return new CPAAlgorithm(cpa, logger, shutdownNotifier, forcedCovering, reportFalseAsUnknown);
+      }
+      }
   }
 
   public static CPAAlgorithm create(
@@ -218,6 +248,17 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
       throws InvalidConfigurationException {
 
     return new CPAAlgorithmFactory(cpa, logger, config, pShutdownNotifier).newInstance();
+  }
+  
+  public static CPAAlgorithm createWithShutdownAbility(
+      ConfigurableProgramAnalysis cpa,
+      LogManager logger,
+      Configuration config,
+      ShutdownNotifier pShutdownNotifier,
+      ShutdownManager pShutdownManager)
+      throws InvalidConfigurationException {
+
+    return new CPAAlgorithmFactory(cpa, logger, config, pShutdownNotifier, pShutdownManager).newInstance();
   }
 
   private final ForcedCovering forcedCovering;
@@ -232,6 +273,7 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
   private final LogManager logger;
 
   private final ShutdownNotifier shutdownNotifier;
+  private final @Nullable ShutdownManager shutdownManager;
 
   private final AlgorithmStatus status;
 
@@ -241,6 +283,16 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
       ShutdownNotifier pShutdownNotifier,
       ForcedCovering pForcedCovering,
       boolean pIsImprecise) {
+    this(cpa, logger, pShutdownNotifier, pForcedCovering, pIsImprecise, null);
+  }
+  
+  private CPAAlgorithm(
+      ConfigurableProgramAnalysis cpa,
+      LogManager logger,
+      ShutdownNotifier pShutdownNotifier,
+      ForcedCovering pForcedCovering,
+      boolean pIsImprecise,
+      ShutdownManager pShutdownManager) {
 
     transferRelation = cpa.getTransferRelation();
     mergeOperator = cpa.getMergeOperator();
@@ -248,6 +300,7 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
     precisionAdjustment = cpa.getPrecisionAdjustment();
     this.logger = logger;
     shutdownNotifier = pShutdownNotifier;
+    shutdownManager = pShutdownManager;
     forcedCovering = pForcedCovering;
     status = AlgorithmStatus.SOUND_AND_PRECISE.withPrecise(!pIsImprecise);
   }
@@ -267,8 +320,19 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
   private AlgorithmStatus run0(final ReachedSet reachedSet)
       throws CPAException, InterruptedException {
     while (reachedSet.hasWaitingState()) {
+      
+      //Hack to try IterationCountLimit
+      if(shutdownManager != null) {
+        IterationCountLimit limit = new IterationCountLimit(5);
+        final long currentValue = stats.countIterations;
+        if (limit.isExceeded(currentValue)) {
+          //updateCurrentValuesOfAllLimits();
+          String reason = String.format("The %s has elapsed.", limit.getName());
+          shutdownManager.requestShutdown(reason);
+        }
+      }
       shutdownNotifier.shutdownIfNecessary();
-
+      
       stats.countIterations++;
 
       // Pick next state using strategy
