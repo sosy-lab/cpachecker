@@ -59,10 +59,10 @@ import org.sosy_lab.cpachecker.cfa.transformer.CfaFactory;
 public final class CCfaFactory {
 
   /**
-   * The default {@link CfaFactory} that creates CFAs that resemble the CFA represented by the given
-   * {@link CfaNetwork} instances as closely as possible. No CFA post-processors are executed.
+   * A {@link CfaFactory} that creates CFAs that resemble the CFA represented by the given {@link
+   * CfaNetwork} instances as closely as possible. No CFA post-processors are executed.
    */
-  public static final CfaFactory DEFAULT =
+  public static final CfaFactory CLONER =
       CfaFactories.InitialCfaFactory.create(initialState(), ImmutableList.of());
 
   private CCfaFactory() {}

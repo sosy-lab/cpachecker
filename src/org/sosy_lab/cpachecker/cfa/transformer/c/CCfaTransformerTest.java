@@ -168,7 +168,7 @@ public final class CCfaTransformerTest {
         LogManager pLogger,
         ShutdownNotifier pShutdownNotifier) {
 
-      return CCfaFactory.DEFAULT.createCfa(pCfaNetwork, pCfaMetadata, pLogger, pShutdownNotifier);
+      return CCfaFactory.CLONER.createCfa(pCfaNetwork, pCfaMetadata, pLogger, pShutdownNotifier);
     }
   }
 
