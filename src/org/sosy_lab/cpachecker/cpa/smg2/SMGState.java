@@ -1826,18 +1826,6 @@ public class SMGState
     }
   }
 
-  @SuppressWarnings("unused")
-  public SMGState addElementToCurrentChain(SMGObject pVariableObject) {
-    // TODO Auto-generated method stub
-    return this;
-  }
-
-  @SuppressWarnings("unused")
-  public SMGState addElementToCurrentChain(ValueAndSMGState pResult) {
-    // TODO Auto-generated method stub
-    return null;
-  }
-
   public List<SMGErrorInfo> getErrorInfo() {
     return errorInfo;
   }
