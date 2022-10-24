@@ -9,9 +9,16 @@
 package org.sosy_lab.cpachecker.cfa.transformer.c;
 
 import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
+import org.sosy_lab.cpachecker.cfa.ast.c.SubstitutingCAstNodeVisitor;
+import org.sosy_lab.cpachecker.cfa.ast.c.TransformingCAstNodeVisitor;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 
-/** A substitution for AST nodes that appear in CFA edges. */
+/**
+ * A substitution for AST nodes that appear in CFA edges.
+ *
+ * <p>{@link TransformingCAstNodeVisitor} and {@link SubstitutingCAstNodeVisitor} can be useful for
+ * implementing such a substitution.
+ */
 @FunctionalInterface
 public interface CCfaEdgeAstSubstitution {
 

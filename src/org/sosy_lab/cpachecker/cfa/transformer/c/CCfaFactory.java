@@ -20,7 +20,7 @@ import org.sosy_lab.cpachecker.cfa.transformer.CfaFactories;
 import org.sosy_lab.cpachecker.cfa.transformer.CfaFactory;
 
 /**
- * A utility class for creating {@link CfaFactory} instances that create CFAs for C programs
+ * A utility class for creating {@link CfaFactory} instances that create C program CFAs for CFAs
  * represented by ({@link CfaNetwork}, {@link CfaMetadata}) pairs.
  *
  * <p>The recommended way of creating {@link CfaFactory} instances is by chaining method calls.

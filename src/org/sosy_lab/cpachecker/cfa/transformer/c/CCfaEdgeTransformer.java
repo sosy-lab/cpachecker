@@ -40,11 +40,19 @@ import org.sosy_lab.cpachecker.cfa.transformer.CfaEdgeTransformer;
 import org.sosy_lab.cpachecker.cfa.transformer.CfaNodeSubstitution;
 import org.sosy_lab.cpachecker.exceptions.NoException;
 
-/** {@link CfaEdgeTransformer} for CFA edges that are contained in CFAs of C programs. */
+/** {@link CfaEdgeTransformer} for CFA edges that are contained in C program CFAs. */
 public final class CCfaEdgeTransformer implements CfaEdgeTransformer {
 
+  /**
+   * A {@link CfaEdgeTransformer} that creates new CFA edges that resemble the given edges as
+   * closely as possible.
+   */
   public static final CCfaEdgeTransformer CLONER = new CCfaEdgeTransformer(ImmutableList.of());
 
+  /**
+   * A {@link CfaEdgeTransformer} that transforms summary edges to statement edges containing the
+   * function calls of the summary edges.
+   */
   public static final CfaEdgeTransformer SUMMARY_TO_STATEMENT_EDGE_TRANSFORMER =
       new CfaEdgeTransformer() {
 
@@ -80,6 +88,18 @@ public final class CCfaEdgeTransformer implements CfaEdgeTransformer {
     edgeAstSubstitutions = pEdgeAstSubstitutions;
   }
 
+  /**
+   * Creates a new {@link CCfaEdgeTransformer} that performs the specified AST node substitutions on
+   * all edges.
+   *
+   * @param pEdgeAstSubstitution the first AST node substitution to apply
+   * @param pEdgeAstSubstitutions all other AST node substitutions to apply in the order they are
+   *     specified
+   * @return a new {@link CCfaEdgeTransformer} that performs the specified AST node substitutions on
+   *     all edges
+   * @throws NullPointerException if any parameter is {@code null} or if {@code
+   *     pEdgeAstSubstitutions} has an element that is {@code null}
+   */
   public static CCfaEdgeTransformer withSubstitutions(
       CCfaEdgeAstSubstitution pEdgeAstSubstitution,
       CCfaEdgeAstSubstitution... pEdgeAstSubstitutions) {
@@ -121,6 +141,7 @@ public final class CCfaEdgeTransformer implements CfaEdgeTransformer {
     return ((CCfaEdge) pEdge).accept(transformingEdgeVisitor);
   }
 
+  /** A visitor for creating new transformed edges for given edges. */
   private final class TransformingCCfaEdgeVisitor implements CCfaEdgeVisitor<CFAEdge, NoException> {
 
     private final CfaNetwork cfaNetwork;

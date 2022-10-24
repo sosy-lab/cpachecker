@@ -11,10 +11,17 @@ package org.sosy_lab.cpachecker.cfa.transformer.c;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.SubstitutingCAstNodeVisitor;
+import org.sosy_lab.cpachecker.cfa.ast.c.TransformingCAstNodeVisitor;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionEntryNode;
 
-/** A substitution for AST nodes that appear in CFA nodes. */
+/**
+ * A substitution for AST nodes that appear in CFA nodes.
+ *
+ * <p>{@link TransformingCAstNodeVisitor} and {@link SubstitutingCAstNodeVisitor} can be useful for
+ * implementing such a substitution.
+ */
 public interface CCfaNodeAstSubstitution {
 
   /**

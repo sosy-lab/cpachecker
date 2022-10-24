@@ -22,9 +22,13 @@ import org.sosy_lab.cpachecker.cfa.model.c.CFunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.transformer.CfaNodeSubstitution;
 import org.sosy_lab.cpachecker.cfa.transformer.CfaNodeTransformer;
 
-/** {@link CfaNodeTransformer} for CFA nodes that are contained in CFAs of C programs. */
+/** {@link CfaNodeTransformer} for CFA nodes that are contained in C program CFAs. */
 public final class CCfaNodeTransformer implements CfaNodeTransformer {
 
+  /**
+   * A {@link CfaNodeTransformer} that creates new CFA nodes that resemble the given nodes as
+   * closely as possible.
+   */
   public static final CCfaNodeTransformer CLONER = new CCfaNodeTransformer(ImmutableList.of());
 
   private final ImmutableList<CCfaNodeAstSubstitution> nodeAstSubstitutions;
@@ -33,6 +37,18 @@ public final class CCfaNodeTransformer implements CfaNodeTransformer {
     nodeAstSubstitutions = pNodeAstSubstitutions;
   }
 
+  /**
+   * Creates a new {@link CCfaNodeTransformer} that performs the specified AST node substitutions on
+   * all nodes.
+   *
+   * @param pNodeAstSubstitution the first AST node substitution to apply
+   * @param pNodeAstSubstitutions all other AST node substitutions to apply in the order they are
+   *     specified
+   * @return a new {@link CCfaNodeTransformer} that performs the specified AST node substitutions on
+   *     all nodes
+   * @throws NullPointerException if any parameter is {@code null} or if {@code
+   *     pNodeAstSubstitutions} has an element that is {@code null}
+   */
   public static CCfaNodeTransformer withSubstitutions(
       CCfaNodeAstSubstitution pNodeAstSubstitution,
       CCfaNodeAstSubstitution... pNodeAstSubstitutions) {
