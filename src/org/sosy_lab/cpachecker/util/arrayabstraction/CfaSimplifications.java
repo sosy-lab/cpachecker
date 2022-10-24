@@ -218,7 +218,7 @@ final class CfaSimplifications {
 
     CfaFactory cfaFactory =
         CCfaFactory.toUnconnectedFunctions()
-            .transformEdges(CCfaEdgeTransformer.withSubstitutions(substitutionFunction::apply))
+            .transformEdges(CCfaEdgeTransformer.forSubstitutions(substitutionFunction::apply))
             .executePostProcessor(new ReversePostorderPostProcessor())
             .executePostProcessor(new LoopStructurePostProcessor())
             .toSupergraph()
@@ -474,7 +474,7 @@ final class CfaSimplifications {
 
     CfaFactory cfaFactory =
         CCfaFactory.toUnconnectedFunctions()
-            .transformEdges(CCfaEdgeTransformer.withSubstitutions(edgeAstSubstitution::apply))
+            .transformEdges(CCfaEdgeTransformer.forSubstitutions(edgeAstSubstitution::apply))
             .executePostProcessor(new ReversePostorderPostProcessor())
             .executePostProcessor(new LoopStructurePostProcessor())
             .toSupergraph()

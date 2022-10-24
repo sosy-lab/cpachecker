@@ -10,7 +10,6 @@ package org.sosy_lab.cpachecker.cfa.transformer.c;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.graph.EndpointPair;
-import java.util.Arrays;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
@@ -40,21 +39,21 @@ import org.sosy_lab.cpachecker.cfa.transformer.CfaEdgeTransformer;
 import org.sosy_lab.cpachecker.cfa.transformer.CfaNodeSubstitution;
 import org.sosy_lab.cpachecker.exceptions.NoException;
 
-/** {@link CfaEdgeTransformer} for CFA edges that are contained in C program CFAs. */
-public final class CCfaEdgeTransformer implements CfaEdgeTransformer {
+/** {@link CfaEdgeTransformer} for CFA edges of C program CFAs. */
+public interface CCfaEdgeTransformer extends CfaEdgeTransformer {
 
   /**
-   * A {@link CfaEdgeTransformer} that creates new CFA edges that resemble the given edges as
+   * A {@link CCfaEdgeTransformer} that creates new CFA edges that resemble the given edges as
    * closely as possible.
    */
-  public static final CCfaEdgeTransformer CLONER = new CCfaEdgeTransformer(ImmutableList.of());
+  public static final CCfaEdgeTransformer CLONER = CCfaEdgeTransformer.forSubstitutions();
 
   /**
-   * A {@link CfaEdgeTransformer} that transforms summary edges to statement edges containing the
-   * function calls of the summary edges.
+   * A {@link CCfaEdgeTransformer} that transforms summary edges to statement edges containing the
+   * function calls of the given summary edges.
    */
-  public static final CfaEdgeTransformer SUMMARY_TO_STATEMENT_EDGE_TRANSFORMER =
-      new CfaEdgeTransformer() {
+  public static final CCfaEdgeTransformer SUMMARY_TO_STATEMENT_EDGE_TRANSFORMER =
+      new CCfaEdgeTransformer() {
 
         @Override
         public CFAEdge transform(
@@ -82,239 +81,210 @@ public final class CCfaEdgeTransformer implements CfaEdgeTransformer {
         }
       };
 
-  private final ImmutableList<CCfaEdgeAstSubstitution> edgeAstSubstitutions;
-
-  private CCfaEdgeTransformer(ImmutableList<CCfaEdgeAstSubstitution> pEdgeAstSubstitutions) {
-    edgeAstSubstitutions = pEdgeAstSubstitutions;
-  }
-
   /**
    * Creates a new {@link CCfaEdgeTransformer} that performs the specified AST node substitutions on
    * all edges.
    *
-   * @param pEdgeAstSubstitution the first AST node substitution to apply
-   * @param pEdgeAstSubstitutions all other AST node substitutions to apply in the order they are
+   * @param pEdgeAstSubstitutions the AST node substitutions to apply in the order they are
    *     specified
    * @return a new {@link CCfaEdgeTransformer} that performs the specified AST node substitutions on
    *     all edges
-   * @throws NullPointerException if any parameter is {@code null} or if {@code
-   *     pEdgeAstSubstitutions} has an element that is {@code null}
+   * @throws NullPointerException if {@code pEdgeAstSubstitutions == null} or it contains an element
+   *     that is {@code null}
    */
-  public static CCfaEdgeTransformer withSubstitutions(
-      CCfaEdgeAstSubstitution pEdgeAstSubstitution,
+  public static CCfaEdgeTransformer forSubstitutions(
       CCfaEdgeAstSubstitution... pEdgeAstSubstitutions) {
+    return new CCfaEdgeTransformer() {
 
-    ImmutableList.Builder<CCfaEdgeAstSubstitution> substitutionsBuilder =
-        ImmutableList.builderWithExpectedSize(pEdgeAstSubstitutions.length + 1);
-    substitutionsBuilder.add(pEdgeAstSubstitution);
-    substitutionsBuilder.addAll(Arrays.asList(pEdgeAstSubstitutions));
+      private final ImmutableList<CCfaEdgeAstSubstitution> edgeAstSubstitutions =
+          ImmutableList.copyOf(pEdgeAstSubstitutions);
 
-    return new CCfaEdgeTransformer(substitutionsBuilder.build());
-  }
+      private CAstNode applyEdgeAstSubstitutions(CFAEdge pEdge, CAstNode pAstNode) {
 
-  private CAstNode applyEdgeAstSubstitutions(CFAEdge pEdge, CAstNode pAstNode) {
+        CAstNode astNode = pAstNode;
+        for (CCfaEdgeAstSubstitution edgeAstSubstitution : edgeAstSubstitutions) {
+          astNode = edgeAstSubstitution.apply(pEdge, astNode);
+        }
 
-    CAstNode astNode = pAstNode;
-    for (CCfaEdgeAstSubstitution edgeAstSubstitution : edgeAstSubstitutions) {
-      astNode = edgeAstSubstitution.apply(pEdge, astNode);
-    }
+        return astNode;
+      }
 
-    return astNode;
-  }
+      @Override
+      public CFAEdge transform(
+          CFAEdge pEdge,
+          CfaNetwork pCfaNetwork,
+          CfaNodeSubstitution pNodeSubstitution,
+          CfaEdgeSubstitution pEdgeSubstitution) {
 
-  @Override
-  public CFAEdge transform(
-      CFAEdge pEdge,
-      CfaNetwork pCfaNetwork,
-      CfaNodeSubstitution pNodeSubstitution,
-      CfaEdgeSubstitution pEdgeSubstitution) {
+        EndpointPair<CFANode> oldEndpoints = pCfaNetwork.incidentNodes(pEdge);
 
-    EndpointPair<CFANode> oldEndpoints = pCfaNetwork.incidentNodes(pEdge);
+        CFANode newPredecessor = pNodeSubstitution.get(oldEndpoints.source());
+        CFANode newSuccessor = pNodeSubstitution.get(oldEndpoints.target());
 
-    CFANode newPredecessor = pNodeSubstitution.get(oldEndpoints.source());
-    CFANode newSuccessor = pNodeSubstitution.get(oldEndpoints.target());
+        var transformingEdgeVisitor =
+            new CCfaEdgeVisitor<CFAEdge, NoException>() {
 
-    var transformingEdgeVisitor =
-        new TransformingCCfaEdgeVisitor(
-            pCfaNetwork, pNodeSubstitution, pEdgeSubstitution, newPredecessor, newSuccessor);
+              @Override
+              public CFAEdge visit(BlankEdge pBlankEdge) {
+                return new BlankEdge(
+                    pBlankEdge.getRawStatement(),
+                    pBlankEdge.getFileLocation(),
+                    newPredecessor,
+                    newSuccessor,
+                    pBlankEdge.getDescription());
+              }
 
-    return ((CCfaEdge) pEdge).accept(transformingEdgeVisitor);
-  }
+              @Override
+              public CFAEdge visit(CAssumeEdge pCAssumeEdge) {
 
-  /** A visitor for creating new transformed edges for given edges. */
-  private final class TransformingCCfaEdgeVisitor implements CCfaEdgeVisitor<CFAEdge, NoException> {
+                CExpression newExpression =
+                    (CExpression)
+                        applyEdgeAstSubstitutions(pCAssumeEdge, pCAssumeEdge.getExpression());
 
-    private final CfaNetwork cfaNetwork;
-    private final CfaNodeSubstitution nodeSubstitution;
-    private final CfaEdgeSubstitution edgeSubstitution;
+                return new CAssumeEdge(
+                    pCAssumeEdge.getRawStatement(),
+                    pCAssumeEdge.getFileLocation(),
+                    newPredecessor,
+                    newSuccessor,
+                    newExpression,
+                    pCAssumeEdge.getTruthAssumption(),
+                    pCAssumeEdge.isSwapped(),
+                    pCAssumeEdge.isArtificialIntermediate());
+              }
 
-    private final CFANode newPredecessor;
-    private final CFANode newSuccessor;
+              @Override
+              public CFAEdge visit(CDeclarationEdge pCDeclarationEdge) {
 
-    private TransformingCCfaEdgeVisitor(
-        CfaNetwork pCfaNetwork,
-        CfaNodeSubstitution pNodeSubstitution,
-        CfaEdgeSubstitution pEdgeSubstitution,
-        CFANode pNewPredecessor,
-        CFANode pNewSuccessor) {
+                CDeclaration newDeclaration =
+                    (CDeclaration)
+                        applyEdgeAstSubstitutions(
+                            pCDeclarationEdge, pCDeclarationEdge.getDeclaration());
 
-      cfaNetwork = pCfaNetwork;
-      nodeSubstitution = pNodeSubstitution;
-      edgeSubstitution = pEdgeSubstitution;
+                return new CDeclarationEdge(
+                    pCDeclarationEdge.getRawStatement(),
+                    pCDeclarationEdge.getFileLocation(),
+                    newPredecessor,
+                    newSuccessor,
+                    newDeclaration);
+              }
 
-      newPredecessor = pNewPredecessor;
-      newSuccessor = pNewSuccessor;
-    }
+              @Override
+              public CFAEdge visit(CStatementEdge pCStatementEdge) {
 
-    @Override
-    public CFAEdge visit(BlankEdge pBlankEdge) {
-      return new BlankEdge(
-          pBlankEdge.getRawStatement(),
-          pBlankEdge.getFileLocation(),
-          newPredecessor,
-          newSuccessor,
-          pBlankEdge.getDescription());
-    }
+                CStatement newStatement =
+                    (CStatement)
+                        applyEdgeAstSubstitutions(pCStatementEdge, pCStatementEdge.getStatement());
 
-    @Override
-    public CFAEdge visit(CAssumeEdge pCAssumeEdge) {
+                return new CStatementEdge(
+                    pCStatementEdge.getRawStatement(),
+                    newStatement,
+                    pCStatementEdge.getFileLocation(),
+                    newPredecessor,
+                    newSuccessor);
+              }
 
-      CExpression newExpression =
-          (CExpression) applyEdgeAstSubstitutions(pCAssumeEdge, pCAssumeEdge.getExpression());
+              @Override
+              public CFAEdge visit(CFunctionCallEdge pCFunctionCallEdge) {
 
-      return new CAssumeEdge(
-          pCAssumeEdge.getRawStatement(),
-          pCAssumeEdge.getFileLocation(),
-          newPredecessor,
-          newSuccessor,
-          newExpression,
-          pCAssumeEdge.getTruthAssumption(),
-          pCAssumeEdge.isSwapped(),
-          pCAssumeEdge.isArtificialIntermediate());
-    }
+                FunctionSummaryEdge oldFunctionSummaryEdge =
+                    pCfaNetwork.functionSummaryEdge(pCFunctionCallEdge);
+                CFunctionSummaryEdge newFunctionSummaryEdge =
+                    (CFunctionSummaryEdge) pEdgeSubstitution.get(oldFunctionSummaryEdge);
 
-    @Override
-    public CFAEdge visit(CDeclarationEdge pCDeclarationEdge) {
+                CFunctionCall newFunctionCall =
+                    (CFunctionCall)
+                        applyEdgeAstSubstitutions(
+                            pCFunctionCallEdge, pCFunctionCallEdge.getFunctionCall());
 
-      CDeclaration newDeclaration =
-          (CDeclaration)
-              applyEdgeAstSubstitutions(pCDeclarationEdge, pCDeclarationEdge.getDeclaration());
+                return new CFunctionCallEdge(
+                    pCFunctionCallEdge.getRawStatement(),
+                    pCFunctionCallEdge.getFileLocation(),
+                    newPredecessor,
+                    (CFunctionEntryNode) newSuccessor,
+                    newFunctionCall,
+                    newFunctionSummaryEdge);
+              }
 
-      return new CDeclarationEdge(
-          pCDeclarationEdge.getRawStatement(),
-          pCDeclarationEdge.getFileLocation(),
-          newPredecessor,
-          newSuccessor,
-          newDeclaration);
-    }
+              @Override
+              public CFAEdge visit(CFunctionReturnEdge pCFunctionReturnEdge) {
 
-    @Override
-    public CFAEdge visit(CStatementEdge pCStatementEdge) {
+                FunctionSummaryEdge oldFunctionSummaryEdge =
+                    pCfaNetwork.functionSummaryEdge(pCFunctionReturnEdge);
+                CFunctionSummaryEdge newFunctionSummaryEdge =
+                    (CFunctionSummaryEdge) pEdgeSubstitution.get(oldFunctionSummaryEdge);
 
-      CStatement newStatement =
-          (CStatement) applyEdgeAstSubstitutions(pCStatementEdge, pCStatementEdge.getStatement());
+                return new CFunctionReturnEdge(
+                    pCFunctionReturnEdge.getFileLocation(),
+                    (FunctionExitNode) newPredecessor,
+                    newSuccessor,
+                    newFunctionSummaryEdge);
+              }
 
-      return new CStatementEdge(
-          pCStatementEdge.getRawStatement(),
-          newStatement,
-          pCStatementEdge.getFileLocation(),
-          newPredecessor,
-          newSuccessor);
-    }
+              @Override
+              public CFAEdge visit(CFunctionSummaryEdge pCFunctionSummaryEdge) {
 
-    @Override
-    public CFAEdge visit(CFunctionCallEdge pCFunctionCallEdge) {
+                CFunctionCall newFunctionCall =
+                    (CFunctionCall)
+                        applyEdgeAstSubstitutions(
+                            pCFunctionSummaryEdge, pCFunctionSummaryEdge.getExpression());
 
-      FunctionSummaryEdge oldFunctionSummaryEdge =
-          cfaNetwork.functionSummaryEdge(pCFunctionCallEdge);
-      CFunctionSummaryEdge newFunctionSummaryEdge =
-          (CFunctionSummaryEdge) edgeSubstitution.get(oldFunctionSummaryEdge);
+                FunctionEntryNode oldFunctionEntryNode =
+                    pCfaNetwork.functionEntryNode(pCFunctionSummaryEdge);
+                CFunctionEntryNode newFunctionEntryNode =
+                    (CFunctionEntryNode) pNodeSubstitution.get(oldFunctionEntryNode);
 
-      CFunctionCall newFunctionCall =
-          (CFunctionCall)
-              applyEdgeAstSubstitutions(pCFunctionCallEdge, pCFunctionCallEdge.getFunctionCall());
+                return new CFunctionSummaryEdge(
+                    pCFunctionSummaryEdge.getRawStatement(),
+                    pCFunctionSummaryEdge.getFileLocation(),
+                    newPredecessor,
+                    newSuccessor,
+                    newFunctionCall,
+                    newFunctionEntryNode);
+              }
 
-      return new CFunctionCallEdge(
-          pCFunctionCallEdge.getRawStatement(),
-          pCFunctionCallEdge.getFileLocation(),
-          newPredecessor,
-          (CFunctionEntryNode) newSuccessor,
-          newFunctionCall,
-          newFunctionSummaryEdge);
-    }
+              @Override
+              public CFAEdge visit(CReturnStatementEdge pCReturnStatementEdge) {
 
-    @Override
-    public CFAEdge visit(CFunctionReturnEdge pCFunctionReturnEdge) {
+                CReturnStatement newReturnStatement =
+                    (CReturnStatement)
+                        applyEdgeAstSubstitutions(
+                            pCReturnStatementEdge, pCReturnStatementEdge.getReturnStatement());
 
-      FunctionSummaryEdge oldFunctionSummaryEdge =
-          cfaNetwork.functionSummaryEdge(pCFunctionReturnEdge);
-      CFunctionSummaryEdge newFunctionSummaryEdge =
-          (CFunctionSummaryEdge) edgeSubstitution.get(oldFunctionSummaryEdge);
+                return new CReturnStatementEdge(
+                    pCReturnStatementEdge.getRawStatement(),
+                    newReturnStatement,
+                    pCReturnStatementEdge.getFileLocation(),
+                    newPredecessor,
+                    (FunctionExitNode) newSuccessor);
+              }
 
-      return new CFunctionReturnEdge(
-          pCFunctionReturnEdge.getFileLocation(),
-          (FunctionExitNode) newPredecessor,
-          newSuccessor,
-          newFunctionSummaryEdge);
-    }
+              @Override
+              public CFAEdge visit(CFunctionSummaryStatementEdge pCFunctionSummaryStatementEdge) {
 
-    @Override
-    public CFAEdge visit(CFunctionSummaryEdge pCFunctionSummaryEdge) {
+                CStatement newStatement =
+                    (CStatement)
+                        applyEdgeAstSubstitutions(
+                            pCFunctionSummaryStatementEdge,
+                            pCFunctionSummaryStatementEdge.getStatement());
+                CFunctionCall newFunctionCall =
+                    (CFunctionCall)
+                        applyEdgeAstSubstitutions(
+                            pCFunctionSummaryStatementEdge,
+                            pCFunctionSummaryStatementEdge.getFunctionCall());
 
-      CFunctionCall newFunctionCall =
-          (CFunctionCall)
-              applyEdgeAstSubstitutions(
-                  pCFunctionSummaryEdge, pCFunctionSummaryEdge.getExpression());
+                return new CFunctionSummaryStatementEdge(
+                    pCFunctionSummaryStatementEdge.getRawStatement(),
+                    newStatement,
+                    pCFunctionSummaryStatementEdge.getFileLocation(),
+                    newPredecessor,
+                    newSuccessor,
+                    newFunctionCall,
+                    pCFunctionSummaryStatementEdge.getFunctionName());
+              }
+            };
 
-      FunctionEntryNode oldFunctionEntryNode = cfaNetwork.functionEntryNode(pCFunctionSummaryEdge);
-      CFunctionEntryNode newFunctionEntryNode =
-          (CFunctionEntryNode) nodeSubstitution.get(oldFunctionEntryNode);
-
-      return new CFunctionSummaryEdge(
-          pCFunctionSummaryEdge.getRawStatement(),
-          pCFunctionSummaryEdge.getFileLocation(),
-          newPredecessor,
-          newSuccessor,
-          newFunctionCall,
-          newFunctionEntryNode);
-    }
-
-    @Override
-    public CFAEdge visit(CReturnStatementEdge pCReturnStatementEdge) {
-
-      CReturnStatement newReturnStatement =
-          (CReturnStatement)
-              applyEdgeAstSubstitutions(
-                  pCReturnStatementEdge, pCReturnStatementEdge.getReturnStatement());
-
-      return new CReturnStatementEdge(
-          pCReturnStatementEdge.getRawStatement(),
-          newReturnStatement,
-          pCReturnStatementEdge.getFileLocation(),
-          newPredecessor,
-          (FunctionExitNode) newSuccessor);
-    }
-
-    @Override
-    public CFAEdge visit(CFunctionSummaryStatementEdge pCFunctionSummaryStatementEdge) {
-
-      CStatement newStatement =
-          (CStatement)
-              applyEdgeAstSubstitutions(
-                  pCFunctionSummaryStatementEdge, pCFunctionSummaryStatementEdge.getStatement());
-      CFunctionCall newFunctionCall =
-          (CFunctionCall)
-              applyEdgeAstSubstitutions(
-                  pCFunctionSummaryStatementEdge, pCFunctionSummaryStatementEdge.getFunctionCall());
-
-      return new CFunctionSummaryStatementEdge(
-          pCFunctionSummaryStatementEdge.getRawStatement(),
-          newStatement,
-          pCFunctionSummaryStatementEdge.getFileLocation(),
-          newPredecessor,
-          newSuccessor,
-          newFunctionCall,
-          pCFunctionSummaryStatementEdge.getFunctionName());
-    }
+        return ((CCfaEdge) pEdge).accept(transformingEdgeVisitor);
+      }
+    };
   }
 }

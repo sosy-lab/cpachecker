@@ -203,10 +203,10 @@ final class SliceToCfaConversion {
     CfaFactory cfaFactory =
         CCfaFactory.toUnconnectedFunctions()
             .transformNodes(
-                CCfaNodeTransformer.withSubstitutions(
+                CCfaNodeTransformer.forSubstitutions(
                     new RelevantNodeAstSubstitution(pSlice, functionToEntryNodeMap::get)))
             .transformEdges(
-                CCfaEdgeTransformer.withSubstitutions(
+                CCfaEdgeTransformer.forSubstitutions(
                     createAstNodeSubstitutionForCfaEdges(pSlice, functionToEntryNodeMap::get)
                         ::apply))
             .executePostProcessor(new CFASimplifier())

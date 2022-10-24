@@ -847,7 +847,7 @@ public class ArrayAbstraction {
 
     CfaFactory cfaFactory =
         CCfaFactory.toUnconnectedFunctions()
-            .transformEdges(CCfaEdgeTransformer.withSubstitutions(edgeAstSubstitution::apply))
+            .transformEdges(CCfaEdgeTransformer.forSubstitutions(edgeAstSubstitution::apply))
             .executePostProcessor(new ReversePostorderPostProcessor())
             .executePostProcessor(new LoopStructurePostProcessor())
             .toSupergraph()
