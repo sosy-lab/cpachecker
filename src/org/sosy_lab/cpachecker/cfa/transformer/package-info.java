@@ -88,20 +88,20 @@
  *   <li>{@link org.sosy_lab.cpachecker.cfa.transformer.CfaEdgeTransformer CfaEdgeTransformer}:
  *       Interface all CFA edge transformers should implement. CFA edge transformers are for
  *       creating new transformed edges for given edges.
- *   <li>{@link org.sosy_lab.cpachecker.cfa.transformer.CfaNodeSubstitution CfaNodeSubstitution}:
- *       The creation of some CFA nodes/edges depends on some other nodes (e.g., to create a new CFA
+ *   <li>{@link org.sosy_lab.cpachecker.cfa.transformer.CfaNodeProvider CfaNodeProvider}: The
+ *       creation of some CFA nodes/edges depends on some other nodes (e.g., to create a new CFA
  *       edge, we needs its endpoints). {@link
- *       org.sosy_lab.cpachecker.cfa.transformer.CfaNodeSubstitution CfaNodeSubstitution}
- *       implementations resolve those dependencies. CFA node/edge transformers use these
- *       substitutions the following way: given the nodes the node/edge to transform depends on,
- *       return the corresponding transformed nodes.
- *   <li>{@link org.sosy_lab.cpachecker.cfa.transformer.CfaEdgeSubstitution CfaEdgeSubstitution}:
- *       The creation of some CFA edges depends on some other edges (e.g., to create a new function
- *       call edge, we needs its corresponding summary edge). {@link
- *       org.sosy_lab.cpachecker.cfa.transformer.CfaEdgeSubstitution CfaEdgeSubstitution}
- *       implementations resolve those dependencies. CFA edge transformers use these substitutions
- *       the following way: given the edges the edge to transform depends on, return the
- *       corresponding transformed edges.
+ *       org.sosy_lab.cpachecker.cfa.transformer.CfaNodeProvider CfaNodeProvider} implementations
+ *       resolve those dependencies. CFA node/edge transformers use these providers the following
+ *       way: given the nodes the node/edge to transform depends on, return the corresponding
+ *       transformed nodes.
+ *   <li>{@link org.sosy_lab.cpachecker.cfa.transformer.CfaEdgeProvider CfaEdgeProvider}: The
+ *       creation of some CFA edges depends on some other edges (e.g., to create a new function call
+ *       edge, we needs its corresponding summary edge). {@link
+ *       org.sosy_lab.cpachecker.cfa.transformer.CfaEdgeProvider CfaEdgeProvider} implementations
+ *       resolve those dependencies. CFA edge transformers use these providers the following way:
+ *       given the edges the edge to transform depends on, return the corresponding transformed
+ *       edges.
  * </ul>
  */
 package org.sosy_lab.cpachecker.cfa.transformer;

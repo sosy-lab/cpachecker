@@ -34,9 +34,9 @@ import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
-import org.sosy_lab.cpachecker.cfa.transformer.CfaEdgeSubstitution;
+import org.sosy_lab.cpachecker.cfa.transformer.CfaEdgeProvider;
 import org.sosy_lab.cpachecker.cfa.transformer.CfaEdgeTransformer;
-import org.sosy_lab.cpachecker.cfa.transformer.CfaNodeSubstitution;
+import org.sosy_lab.cpachecker.cfa.transformer.CfaNodeProvider;
 import org.sosy_lab.cpachecker.exceptions.NoException;
 
 /** {@link CfaEdgeTransformer} for CFA edges of C program CFAs. */
@@ -59,11 +59,10 @@ public interface CCfaEdgeTransformer extends CfaEdgeTransformer {
         public CFAEdge transform(
             CFAEdge pEdge,
             CfaNetwork pCfa,
-            CfaNodeSubstitution pNodeSubstitution,
-            CfaEdgeSubstitution pEdgeSubstitution) {
+            CfaNodeProvider pNodeProvider,
+            CfaEdgeProvider pEdgeProvider) {
 
-          CFAEdge transformedEdge =
-              CLONER.transform(pEdge, pCfa, pNodeSubstitution, pEdgeSubstitution);
+          CFAEdge transformedEdge = CLONER.transform(pEdge, pCfa, pNodeProvider, pEdgeProvider);
 
           if (transformedEdge instanceof CFunctionSummaryEdge) {
 
@@ -113,13 +112,13 @@ public interface CCfaEdgeTransformer extends CfaEdgeTransformer {
       public CFAEdge transform(
           CFAEdge pEdge,
           CfaNetwork pCfaNetwork,
-          CfaNodeSubstitution pNodeSubstitution,
-          CfaEdgeSubstitution pEdgeSubstitution) {
+          CfaNodeProvider pNodeProvider,
+          CfaEdgeProvider pEdgeProvider) {
 
         EndpointPair<CFANode> oldEndpoints = pCfaNetwork.incidentNodes(pEdge);
 
-        CFANode newPredecessor = pNodeSubstitution.get(oldEndpoints.source());
-        CFANode newSuccessor = pNodeSubstitution.get(oldEndpoints.target());
+        CFANode newPredecessor = pNodeProvider.get(oldEndpoints.source());
+        CFANode newSuccessor = pNodeProvider.get(oldEndpoints.target());
 
         var transformingEdgeVisitor =
             new CCfaEdgeVisitor<CFAEdge, NoException>() {
@@ -189,7 +188,7 @@ public interface CCfaEdgeTransformer extends CfaEdgeTransformer {
                 FunctionSummaryEdge oldFunctionSummaryEdge =
                     pCfaNetwork.functionSummaryEdge(pCFunctionCallEdge);
                 CFunctionSummaryEdge newFunctionSummaryEdge =
-                    (CFunctionSummaryEdge) pEdgeSubstitution.get(oldFunctionSummaryEdge);
+                    (CFunctionSummaryEdge) pEdgeProvider.get(oldFunctionSummaryEdge);
 
                 CFunctionCall newFunctionCall =
                     (CFunctionCall)
@@ -211,7 +210,7 @@ public interface CCfaEdgeTransformer extends CfaEdgeTransformer {
                 FunctionSummaryEdge oldFunctionSummaryEdge =
                     pCfaNetwork.functionSummaryEdge(pCFunctionReturnEdge);
                 CFunctionSummaryEdge newFunctionSummaryEdge =
-                    (CFunctionSummaryEdge) pEdgeSubstitution.get(oldFunctionSummaryEdge);
+                    (CFunctionSummaryEdge) pEdgeProvider.get(oldFunctionSummaryEdge);
 
                 return new CFunctionReturnEdge(
                     pCFunctionReturnEdge.getFileLocation(),
@@ -231,7 +230,7 @@ public interface CCfaEdgeTransformer extends CfaEdgeTransformer {
                 FunctionEntryNode oldFunctionEntryNode =
                     pCfaNetwork.functionEntryNode(pCFunctionSummaryEdge);
                 CFunctionEntryNode newFunctionEntryNode =
-                    (CFunctionEntryNode) pNodeSubstitution.get(oldFunctionEntryNode);
+                    (CFunctionEntryNode) pNodeProvider.get(oldFunctionEntryNode);
 
                 return new CFunctionSummaryEdge(
                     pCFunctionSummaryEdge.getRawStatement(),

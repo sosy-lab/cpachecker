@@ -17,7 +17,7 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
  * A {@code CfaNodeTransformer} instance returns a transformed CFA node for a specified CFA node.
  *
  * <p>To implement a {@code CfaNodeTransformer}, an implementation for {@link
- * CfaNodeTransformer#transform(CFANode, CfaNetwork, CfaNodeSubstitution)} must be provided. The
+ * CfaNodeTransformer#transform(CFANode, CfaNetwork, CfaNodeProvider)} must be provided. The
  * implementation must guarantee that every time the method is called, a new transformed node
  * instance is created.
  */
@@ -35,16 +35,15 @@ public interface CfaNodeTransformer {
    *     {@link FunctionEntryNode} is required, it's determined using the specified CFA). If the
    *     construction of a transformed node does not require other nodes, it's guaranteed that the
    *     specified CFA is not used, so a dummy CFA can be used.
-   * @param pNodeSubstitution If the construction of a transformed node requires other transformed
-   *     nodes, the specified node substitution is used (e.g., the construction of a transformed
-   *     {@code FunctionEntryNode} requires a transformed {@code FunctionExitNode}, so the {@code
+   * @param pNodeProvider If the construction of a transformed node requires other transformed
+   *     nodes, the specified node provider is used (e.g., the construction of a transformed {@code
+   *     FunctionEntryNode} requires a transformed {@code FunctionExitNode}, so the {@code
    *     FunctionExitNode} of the {@code FunctionEntryNode} is determined using the specified CFA
-   *     and the transformed {@code FunctionExitNode} is retrieved using the specified
-   *     substitution). If the construction of a transformed node does not require other nodes, it's
-   *     guaranteed that the specified substitution is not used, so a dummy substitution can be
-   *     used.
+   *     and the transformed {@code FunctionExitNode} is retrieved using the specified provider). If
+   *     the construction of a transformed node does not require other nodes, it's guaranteed that
+   *     the specified provider is not used, so a dummy provider can be used.
    * @return a transformed CFA node for the specified CFA node
    * @throws NullPointerException if any parameter is {@code null}
    */
-  CFANode transform(CFANode pNode, CfaNetwork pCfa, CfaNodeSubstitution pNodeSubstitution);
+  CFANode transform(CFANode pNode, CfaNetwork pCfa, CfaNodeProvider pNodeProvider);
 }

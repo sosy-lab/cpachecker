@@ -18,7 +18,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.CFATerminationNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionEntryNode;
-import org.sosy_lab.cpachecker.cfa.transformer.CfaNodeSubstitution;
+import org.sosy_lab.cpachecker.cfa.transformer.CfaNodeProvider;
 import org.sosy_lab.cpachecker.cfa.transformer.CfaNodeTransformer;
 
 /** {@link CfaNodeTransformer} for CFA nodes of C program CFAs. */
@@ -80,13 +80,11 @@ public interface CCfaNodeTransformer extends CfaNodeTransformer {
       }
 
       private CFunctionEntryNode newCFunctionEntryNode(
-          CFunctionEntryNode pOldNode,
-          CfaNetwork pCfaNetwork,
-          CfaNodeSubstitution pNodeSubstitution) {
+          CFunctionEntryNode pOldNode, CfaNetwork pCfaNetwork, CfaNodeProvider pNodeProvider) {
 
         FunctionExitNode oldExitNode =
             pCfaNetwork.functionExitNode(pOldNode).orElse(pOldNode.getExitNode());
-        FunctionExitNode newExitNode = (FunctionExitNode) pNodeSubstitution.get(oldExitNode);
+        FunctionExitNode newExitNode = (FunctionExitNode) pNodeProvider.get(oldExitNode);
 
         Optional<CVariableDeclaration> newReturnVariable =
             applyNodeAstSubstitutions(pOldNode, pOldNode.getReturnVariable());
@@ -116,13 +114,12 @@ public interface CCfaNodeTransformer extends CfaNodeTransformer {
 
       @Override
       public CFANode transform(
-          CFANode pOldNode, CfaNetwork pCfaNetwork, CfaNodeSubstitution pNodeSubstitution) {
+          CFANode pOldNode, CfaNetwork pCfaNetwork, CfaNodeProvider pNodeProvider) {
 
         if (pOldNode instanceof CFALabelNode) {
           return newCfaLabelNode((CFALabelNode) pOldNode);
         } else if (pOldNode instanceof CFunctionEntryNode) {
-          return newCFunctionEntryNode(
-              (CFunctionEntryNode) pOldNode, pCfaNetwork, pNodeSubstitution);
+          return newCFunctionEntryNode((CFunctionEntryNode) pOldNode, pCfaNetwork, pNodeProvider);
         } else if (pOldNode instanceof FunctionExitNode) {
           return newFunctionExitNode((FunctionExitNode) pOldNode);
         } else if (pOldNode instanceof CFATerminationNode) {

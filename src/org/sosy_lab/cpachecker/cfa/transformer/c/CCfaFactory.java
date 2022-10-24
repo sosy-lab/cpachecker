@@ -15,7 +15,7 @@ import org.sosy_lab.cpachecker.cfa.CfaPostProcessor;
 import org.sosy_lab.cpachecker.cfa.graph.CfaNetwork;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
-import org.sosy_lab.cpachecker.cfa.transformer.CfaEdgeSubstitution;
+import org.sosy_lab.cpachecker.cfa.transformer.CfaEdgeProvider;
 import org.sosy_lab.cpachecker.cfa.transformer.CfaFactories;
 import org.sosy_lab.cpachecker.cfa.transformer.CfaFactory;
 
@@ -74,7 +74,7 @@ public final class CCfaFactory {
   private static CFAEdge summaryEdgeToStatementEdge(CFAEdge pEdge, CfaNetwork pCfaNetwork) {
     if (pEdge instanceof FunctionSummaryEdge) {
       return CCfaEdgeTransformer.SUMMARY_TO_STATEMENT_EDGE_TRANSFORMER.transform(
-          pEdge, pCfaNetwork, node -> node, CfaEdgeSubstitution.UNSUPPORTED);
+          pEdge, pCfaNetwork, node -> node, CfaEdgeProvider.UNSUPPORTED);
     } else {
       return pEdge;
     }
