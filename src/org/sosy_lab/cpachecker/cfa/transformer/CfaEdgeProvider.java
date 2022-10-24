@@ -13,30 +13,24 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
 
 /**
- * A {@code CfaEdgeProvider} instance returns the substitute for a given CFA edge.
+ * The creation of some CFA edges depends on other edges (e.g, we need to know the {@link
+ * FunctionSummaryEdge} to create a {@link FunctionCallEdge}). {@link CfaEdgeProvider}
+ * implementations resolve those dependencies.
  *
- * <p>During CFA edge transformation, new transformed edges are created that require other
- * transformed edges for their construction (e.g., to construct a new {@link FunctionCallEdge}, a
- * {@link FunctionSummaryEdge} is required). Instances of {@code CfaEdgeProvider} are used to
- * provide these transformed edges (e.g., they provide the transformed {@code FunctionSummaryEdge}
- * for a given {@code FunctionSummaryEdge}).
+ * <p>CFA edge transformers use {@link CfaEdgeProvider} the following way: given the edges the
+ * original edge depends on, return the corresponding transformed edges.
  *
- * <p>To implement a {@code CfaEdgeProvider}, an implementation for {@link
- * CfaEdgeProvider#get(CFAEdge)} must be provided. The implementation must guarantee that a {@code
- * CfaEdgeProvider} instance always returns the same substitute for the same given edge.
+ * <p>A {@link CfaEdgeProvider} must always return the same edge for a specific given edge.
  */
 @FunctionalInterface
 public interface CfaEdgeProvider {
 
   /**
-   * A {@code CfaEdgeProvider} instance that throws an {@link UnsupportedOperationException} when
-   * {@link CfaEdgeProvider#get(CFAEdge)} is called.
+   * A {@link CfaEdgeProvider} that throws an {@link UnsupportedOperationException} when it's used.
    *
-   * <p>This can be used where a {@code CfaEdgeProvider} is required, but it's guaranteed that
-   * {@link CfaEdgeProvider#get(CFAEdge)} is not going to get called. This makes it explicit that a
-   * {@code CfaEdgeProvider} instance is not necessary and never going to be used (e.g., if during
-   * edge transformation only edges are transformed that don't require other transformed edges for
-   * their construction).
+   * <p>This dummy implementation can be used where a {@link CfaEdgeProvider} is required, but it's
+   * guaranteed that it's never used (e.g., if during edge transformation only edges are transformed
+   * that don't require other transformed edges for their construction).
    */
   public static final CfaEdgeProvider UNSUPPORTED =
       edge -> {
@@ -46,8 +40,7 @@ public interface CfaEdgeProvider {
   /**
    * Returns the substitute for the specified CFA edge.
    *
-   * <p>It's guaranteed that a {@code CfaEdgeProvider} instance always returns the same substitute
-   * for the same given edge.
+   * <p>This method always returns the same edge for a specific given edge.
    *
    * @param pEdge the CFA edge to get the substitute for
    * @return the substitute for the specified CFA edge

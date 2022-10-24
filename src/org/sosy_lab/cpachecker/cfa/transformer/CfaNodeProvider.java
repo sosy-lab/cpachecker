@@ -9,34 +9,25 @@
 package org.sosy_lab.cpachecker.cfa.transformer;
 
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
-import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 
 /**
- * A {@code CfaNodeProvider} instance returns the substitute for a given CFA node.
+ * The creation of some CFA nodes/edges depends on other nodes (e.g., to create a new CFA edge, we
+ * need its endpoints). {@link CfaNodeProvider} implementations resolve those dependencies.
  *
- * <p>During CFA node and edge transformation, new transformed nodes and edges are created that
- * require other transformed nodes and edges for their construction (e.g., to construct a new {@link
- * FunctionEntryNode}, a {@link FunctionExitNode} is required). Instances of {@code CfaNodeProvider}
- * are used to provide these transformed nodes (e.g., they provide the transformed {@code
- * FunctionExitNode} for a given {@code FunctionExitNode}).
+ * <p>CFA node/edge transformers use {@link CfaNodeProvider} the following way: given the nodes the
+ * original node/edge depends on, return the corresponding transformed nodes.
  *
- * <p>To implement a {@code CfaNodeProvider}, an implementation for {@link
- * CfaNodeProvider#get(CFANode)} must be provided. The implementation must guarantee that a {@code
- * CfaNodeProvider} instance always returns the same substitute for the same given node.
+ * <p>A {@link CfaNodeProvider} must always return the same node for a specific given node.
  */
 @FunctionalInterface
 public interface CfaNodeProvider {
 
   /**
-   * A {@code CfaNodeProvider} instance that throws an {@link UnsupportedOperationException} when
-   * {@link CfaNodeProvider#get(CFANode)} is called.
+   * A {@link CfaNodeProvider} that throws an {@link UnsupportedOperationException} when it's used.
    *
-   * <p>This can be used where a {@code CfaNodeProvider} is required, but it's guaranteed that
-   * {@link CfaNodeProvider#get(CFANode)} is not going to get called. This makes it explicit that a
-   * {@code CfaNodeProvider} instance is not necessary and never going to be used (e.g., if during
-   * node transformation only nodes are transformed that don't require other transformed nodes for
-   * their construction).
+   * <p>This dummy implementation can be used where a {@link CfaNodeProvider} is required, but it's
+   * guaranteed that it's never used (e.g., if during node transformation only nodes are transformed
+   * that don't require other transformed nodes for their construction).
    */
   public static final CfaNodeProvider UNSUPPORTED =
       node -> {
@@ -46,8 +37,7 @@ public interface CfaNodeProvider {
   /**
    * Returns the substitute for the specified CFA node.
    *
-   * <p>It's guaranteed that a {@code CfaNodeProvider} instance always returns the same substitute
-   * for the same given node.
+   * <p>This method always returns the same node for a specific given node.
    *
    * @param pNode the CFA node to get the substitute for
    * @return the substitute for the specified CFA node

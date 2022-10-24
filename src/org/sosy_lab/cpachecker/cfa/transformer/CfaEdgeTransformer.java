@@ -14,42 +14,40 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
 
 /**
- * A {@code CfaEdgeTransformer} instance returns a transformed CFA edge for a specified CFA edge.
+ * A {@link CfaEdgeTransformer} returns for a given CFA edge (the original edge) a new edge that may
+ * differ from the original node.
  *
- * <p>To implement a {@code CfaEdgeTransformer}, an implementation for {@link
- * CfaEdgeTransformer#transform(CFAEdge, CfaNetwork, CfaNodeProvider, CfaEdgeProvider)} must be
- * provided. The implementation must guarantee that every time the method is called, a new
- * transformed edge instance is created.
+ * <p>A {@link CfaEdgeTransformer} must always create a new edge every time its {@link
+ * CfaEdgeTransformer#transform(CFAEdge, CfaNetwork, CfaNodeProvider, CfaEdgeProvider) transform
+ * method} is called.
  */
 @FunctionalInterface
 public interface CfaEdgeTransformer {
 
   /**
-   * Returns a transformed CFA edge for the specified CFA edge.
+   * Returns a new transformed CFA edge for the specified CFA edge.
    *
-   * <p>Every time this method is called, a new transformed edge instance is created.
+   * <p>Every time this method is called, a new transformed edge is created.
    *
-   * @param pEdge the CFA edge to get a transformed edge for
-   * @param pCfa The CFA the specified edge is a part of. The CFA is used to determine other nodes
-   *     and edges that are required for successful edge transformation (e.g., if the {@link
-   *     FunctionSummaryEdge} of a {@link FunctionCallEdge} is required, it's determined using the
-   *     specified CFA, but also an edge's predecessor and successor are determined using the
-   *     specified CFA).
-   * @param pNodeProvider The construction of a transformed edge requires transformed nodes, for
-   *     which the specified node provider is used (e.g., the construction of a transformed edge
-   *     requires transformed predecessor and successor nodes, so the predecessor and successor of
-   *     the edge are determined using the specified CFA and the transformed predecessor and
-   *     successor nodes are retrieved using the specified node provider).
-   * @param pEdgeProvider If the construction of a transformed edge requires other transformed
-   *     edges, the specified edge provider is used (e.g., the construction of a transformed {@code
-   *     FunctionCallEdge} requires a transformed {@code FunctionSummaryEdge}, so the {@code
-   *     FunctionSummaryEdge} of the {@code FunctionCallEdge} is determined using the specified CFA
-   *     and the transformed {@code FunctionSummaryEdge} is retrieved using the specified edge
-   *     provider). If the construction of a transformed edge does not require other edges, it's
-   *     guaranteed that the specified edge provider is not used, so a dummy provider can be used.
-   * @return a transformed CFA edge for the specified CFA edge
+   * @param pEdge the CFA edge to get a new transformed edge for
+   * @param pCfaNetwork The {@link CfaNetwork} the specified edge is a part of. The {@link
+   *     CfaNetwork} is used to determine connections between nodes and edges (e.g., the endpoints
+   *     of an edge).
+   * @param pNodeProvider The creation of CFA edges always depends on some nodes (e.g., the
+   *     endpoints of an edge). The specified {@link CfaNodeProvider} resolves those dependencies.
+   *     Given the nodes the specified edge depends on, return the corresponding transformed nodes.
+   * @param pEdgeProvider The creation of some edges depends on other edges (e.g, we need to know
+   *     the {@link FunctionSummaryEdge} to create a {@link FunctionCallEdge}). The specified {@link
+   *     CfaEdgeProvider} resolves those dependencies. Given the edges the specified edge depends
+   *     on, return the corresponding transformed edges. If the construction of a transformed edge
+   *     doesn't depend on any other edges, it's guaranteed that the specified provider is not used,
+   *     so a dummy provider can be specified.
+   * @return a new transformed CFA edge for the specified CFA edge
    * @throws NullPointerException if any parameter is {@code null}
    */
   CFAEdge transform(
-      CFAEdge pEdge, CfaNetwork pCfa, CfaNodeProvider pNodeProvider, CfaEdgeProvider pEdgeProvider);
+      CFAEdge pEdge,
+      CfaNetwork pCfaNetwork,
+      CfaNodeProvider pNodeProvider,
+      CfaEdgeProvider pEdgeProvider);
 }

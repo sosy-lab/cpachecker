@@ -18,19 +18,18 @@ import org.sosy_lab.cpachecker.cfa.CfaMetadata;
 import org.sosy_lab.cpachecker.cfa.graph.CfaNetwork;
 
 /**
- * A CFA transformer takes a CFA, creates a copy of the CFA, applies some modifications to the copy,
- * and returns the modified copy as the transformed CFA.
+ * A CFA transformer returns for a given CFA (the original CFA) a new CFA that may differ from the
+ * original CFA.
  *
- * <p>To implement a CFA transformer, an implementation for {@link
- * CfaTransformer#transform(CfaNetwork, CfaMetadata, LogManager, ShutdownNotifier)} must be
- * provided. The implementation must guarantee that every time the method is called, a new
- * transformed CFA instance is created.
+ * <p>A {@link CfaTransformer} must always create a new CFA every time its {@link
+ * CfaTransformer#transform(CfaNetwork, CfaMetadata, LogManager, ShutdownNotifier) transform method}
+ * is called.
  */
 @FunctionalInterface
 public interface CfaTransformer {
 
   /**
-   * Returns a new CFA transformer that represents the combination of the specified transformers.
+   * Returns a new CFA transformer that is the combination of the specified transformers.
    *
    * <p>The transformers are executed in the order they are specified. The output of a transformer
    * is the input of the next transformer. The input of the combined transformer is the input of the
@@ -39,10 +38,12 @@ public interface CfaTransformer {
    *
    * @param pTransformer the first CFA transformer
    * @param pTransformers additional CFA transformers executed after the first CFA transformer
-   * @return a new CFA transformer that represents the combination of the specified transformers
-   * @throws NullPointerException if any parameter is {@code null}
+   * @return a new CFA transformer that is the combination of the specified transformers
+   * @throws NullPointerException if any parameter is {@code null} or {@code pTransformers} has an
+   *     element that is {@code null}
    */
-  public static CfaTransformer of(CfaTransformer pTransformer, CfaTransformer... pTransformers) {
+  public static CfaTransformer combine(
+      CfaTransformer pTransformer, CfaTransformer... pTransformers) {
 
     checkNotNull(pTransformer);
 
@@ -69,18 +70,19 @@ public interface CfaTransformer {
   }
 
   /**
-   * Returns a new transformed CFA for the specified CFA.
+   * Returns a new transformed CFA for the specified {@link CfaNetwork} and {@link CfaMetadata}.
    *
-   * <p>Every time this method is called, a new transformed CFA instance is created.
+   * <p>Every time this method is called, a new transformed CFA is created.
    *
-   * @param pCfa the CFA (represented as a {@link CfaNetwork}) to create a transformed CFA for
-   * @param pCfaMetadata the metadata of the specified CFA
+   * @param pCfaNetwork the {@link CfaNetwork} to create a new transformed CFA for
+   * @param pCfaMetadata the metadata of the specified {@link CfaNetwork}
    * @param pLogger the logger to use during CFA transformation
+   * @param pShutdownNotifier the shutdown notifier to use during CFA transformation
    * @return a new transformed CFA for the specified CFA
    * @throws NullPointerException if any parameter is {@code null}
    */
   CFA transform(
-      CfaNetwork pCfa,
+      CfaNetwork pCfaNetwork,
       CfaMetadata pCfaMetadata,
       LogManager pLogger,
       ShutdownNotifier pShutdownNotifier);
@@ -88,10 +90,11 @@ public interface CfaTransformer {
   /**
    * Returns a new transformed CFA for the specified CFA.
    *
-   * <p>Every time this method is called, a new transformed CFA instance is created.
+   * <p>Every time this method is called, a new transformed CFA is created.
    *
    * @param pCfa the CFA to create a transformed CFA for
    * @param pLogger the logger to use during CFA transformation
+   * @param pShutdownNotifier the shutdown notifier to use during CFA transformation
    * @return a new transformed CFA for the specified CFA
    * @throws NullPointerException if any parameter is {@code null}
    */
