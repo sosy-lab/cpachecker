@@ -10,7 +10,6 @@ package org.sosy_lab.cpachecker.cpa.smg2.abstraction;
 
 import static com.google.common.truth.Truth.assertThat;
 
-import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import java.math.BigInteger;
@@ -40,6 +39,7 @@ import org.sosy_lab.cpachecker.util.smg.graph.SMGDoublyLinkedListSegment;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGObject;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGPointsToEdge;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGSinglyLinkedListSegment;
+import org.sosy_lab.cpachecker.util.smg.graph.SMGTargetSpecifier;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGValue;
 
 /*
@@ -102,8 +102,34 @@ public class SMGCPAAbstractionTest {
     // logger);
   }
 
+  /**
+   * Tests that pointers are correctly nested in SLL segments and dereferencing them correctly
+   * materializes the list up to that memory, and all pointers are still valid, correctly nested and
+   * point to the correct segments.
+   */
   @Test
-  public void zeroPlusRemovalTest() throws SMG2Exception, InvalidConfigurationException {
+  public void correctPointerNestingSLLTest() throws InvalidConfigurationException, SMG2Exception {
+    int sizeOfList = 10;
+    resetSMGStateAndVisitor();
+    Value[] pointers = buildConcreteList(false, sllSize, sizeOfList);
+    SMGCPAAbstractionManager absFinder = new SMGCPAAbstractionManager(currentState, sizeOfList);
+    currentState = absFinder.findAndAbstractLists();
+    // Now we have a 10+SLS
+    // Deref a pointer not in the beginning or end, check that the list is consistent with the
+    // pointers and the nesting level and materialization is correct afterwards
+    // TODO:
+  }
+
+  /**
+   * Tests behaviour for the read of a pointer pointing to a 0+ list segment for SLLs. Should split
+   * into 2 states, one where the 0+ is deleted and the end of the list nfo value is read, one for
+   * the extension of the list.
+   *
+   * @throws SMG2Exception not thrown
+   * @throws InvalidConfigurationException not thrown
+   */
+  @Test
+  public void zeroPlusRemovalSLLTest() throws SMG2Exception, InvalidConfigurationException {
     // We use a small length, does not matter at all
     int sizeOfList = 3;
     resetSMGStateAndVisitor();
@@ -114,27 +140,154 @@ public class SMGCPAAbstractionTest {
     // Materialize the complete list; We should have 3 concrete objects again and a fourth 0+
     List<SMGStateAndOptionalSMGObjectAndOffset> statesAndResultingObjects =
         currentState.dereferencePointer(pointers[sizeOfList - 1]);
-    Preconditions.checkArgument(statesAndResultingObjects.size() == 1);
+    assertThat(statesAndResultingObjects.size() == 1).isTrue();
     SMGStateAndOptionalSMGObjectAndOffset stateAndResultingObject =
         statesAndResultingObjects.get(0);
     currentState = stateAndResultingObject.getSMGState();
     SMGObject lastConcreteListObject = stateAndResultingObject.getSMGObject();
     assertThat(stateAndResultingObject.getOffsetForObject())
         .isEquivalentAccordingToCompareTo(BigInteger.ZERO);
+    // Note: this read is a non-materializing read! Using any of the values (pointers) for a 0+ is
+    // therefore invalid.
+    checkNextPointsToZeroPlus(lastConcreteListObject, false);
+
+    // Now read the next pointer to the 0+ object; this results in 2 states, one where the 0+
+    // vanishes and one where we generate a new concrete list element and keep our 0+
+    checkZeroPlusBehaviour(false, lastConcreteListObject, BigInteger.ZERO);
+  }
+
+  /**
+   * Tests behaviour for the read of a pointer pointing to a 0+ list segment for DLLs. Should split
+   * into 2 states, one where the 0+ is deleted and the end of the list nfo value is read, one for
+   * the extension of the list.
+   *
+   * @throws SMG2Exception not thrown
+   * @throws InvalidConfigurationException not thrown
+   */
+  @Test
+  public void zeroPlusRemovalDLLTest() throws SMG2Exception, InvalidConfigurationException {
+    // We use a small length, does not matter at all
+    int sizeOfList = 3;
+    resetSMGStateAndVisitor();
+    Value[] pointers = buildConcreteList(true, dllSize, sizeOfList);
+    SMGCPAAbstractionManager absFinder = new SMGCPAAbstractionManager(currentState, sizeOfList);
+    // Now we have a 3+DLS
+    currentState = absFinder.findAndAbstractLists();
+    // Materialize the complete list; We should have 3 concrete objects again and a fourth 0+
+    List<SMGStateAndOptionalSMGObjectAndOffset> statesAndResultingObjects =
+        currentState.dereferencePointer(pointers[sizeOfList - 1]);
+    assertThat(statesAndResultingObjects.size() == 1).isTrue();
+    SMGStateAndOptionalSMGObjectAndOffset stateAndResultingObject =
+        statesAndResultingObjects.get(0);
+    currentState = stateAndResultingObject.getSMGState();
+    SMGObject lastConcreteListObject = stateAndResultingObject.getSMGObject();
+    assertThat(stateAndResultingObject.getOffsetForObject())
+        .isEquivalentAccordingToCompareTo(BigInteger.ZERO);
+    // Note: this read is a non-materializing read! Using any of the values (pointers) for a 0+ is
+    // therefore invalid.
+    checkNextPointsToZeroPlus(lastConcreteListObject, true);
+
+    // Now read the next pointer to the 0+ object; this results in 2 states, one where the 0+
+    // vanishes and one where we generate a new concrete list element and keep our 0+
+    checkZeroPlusBehaviour(true, lastConcreteListObject, BigInteger.ZERO);
+  }
+
+  /**
+   * Checks with a non dereferencing and not materializing read that nfo points to a 0+ segment. For
+   * DLLs it confirms that the 0+ has a pfo that points to the concrete segment.
+   *
+   * @param lastConcreteListObject the last concrete segment who's nfo points to 0+.
+   */
+  private void checkNextPointsToZeroPlus(SMGObject lastConcreteListObject, boolean dll) {
     SMGValueAndSMGState readValueAndState =
         currentState.readSMGValue(lastConcreteListObject, nfo, pointerSizeInBits);
     currentState = readValueAndState.getSMGState();
-    SMGValue readValue = readValueAndState.getSMGValue();
+    SMGValue nextPointerValue = readValueAndState.getSMGValue();
     // Confirm that this is a pointer to a 0+ SLS
-    assertThat(currentState.getMemoryModel().getSmg().isPointer(readValue)).isTrue();
+    assertThat(currentState.getMemoryModel().getSmg().isPointer(nextPointerValue)).isTrue();
     SMGPointsToEdge pointsToEdge =
-        currentState.getMemoryModel().getSmg().getPTEdge(readValue).orElseThrow();
+        currentState.getMemoryModel().getSmg().getPTEdge(nextPointerValue).orElseThrow();
     assertThat(pointsToEdge.pointsTo() instanceof SMGSinglyLinkedListSegment).isTrue();
     assertThat(((SMGSinglyLinkedListSegment) pointsToEdge.pointsTo()).getMinLength()).isEqualTo(0);
+    if (dll) {
+      SMGValueAndSMGState readPfoValueAndState =
+          currentState.readSMGValue(pointsToEdge.pointsTo(), pfo, pointerSizeInBits);
+      currentState = readPfoValueAndState.getSMGState();
+      SMGValue prevPointerValue = readPfoValueAndState.getSMGValue();
+      // Confirm that this is a pointer to a 0+ SLS
+      assertThat(currentState.getMemoryModel().getSmg().isPointer(prevPointerValue)).isTrue();
+      SMGPointsToEdge pointsToPrevConcreteEdge =
+          currentState.getMemoryModel().getSmg().getPTEdge(prevPointerValue).orElseThrow();
+      assertThat(pointsToPrevConcreteEdge.pointsTo()).isEqualTo(lastConcreteListObject);
+    }
+  }
 
-    // Now deref the next pointer to the 0+ object; this results in 2 states, one where the 0+
-    // vanishes and one where we generate a new concrete list element and keep our 0+
-    // TODO: this
+  /**
+   * Checks that a proper read of the NFO pointing to 0+ generates 2 states. One with a value
+   * expectedNfoValue, one with the extented list by 1.
+   *
+   * @param dll true for DLLs. False else.
+   * @param lastConcreteListObject the last concrete segment who's nfo points to 0+.
+   * @param expectedNfoValue the value for the non extented read state.
+   * @throws SMG2Exception not thrown
+   */
+  private void checkZeroPlusBehaviour(
+      boolean dll, SMGObject lastConcreteListObject, BigInteger expectedNfoValue)
+      throws SMG2Exception {
+    List<ValueAndSMGState> statesAndReadValueZeroPlus =
+        currentState.readValue(lastConcreteListObject, nfo, pointerSizeInBits, null);
+    assertThat(statesAndReadValueZeroPlus).hasSize(2);
+    // The states are ordered, with the ending list being the first
+    ValueAndSMGState firstReadValueAndState = statesAndReadValueZeroPlus.get(0);
+    currentState = firstReadValueAndState.getState();
+    assertThat(firstReadValueAndState.getValue().isNumericValue()).isTrue();
+    assertThat(firstReadValueAndState.getValue().asNumericValue().bigInteger())
+        .isEquivalentAccordingToCompareTo(expectedNfoValue);
+
+    // The second is the one with a new concrete segment and another 0+
+    // Check that its a concrete region with a valid pointer to it
+    ValueAndSMGState secondReadValueAndState = statesAndReadValueZeroPlus.get(1);
+    currentState = secondReadValueAndState.getState();
+    assertThat(secondReadValueAndState.getValue().isNumericValue()).isFalse();
+    SMGValue pointerValueFromZeroPlus =
+        currentState
+            .getMemoryModel()
+            .getSMGValueFromValue(secondReadValueAndState.getValue())
+            .orElseThrow();
+    assertThat(currentState.getMemoryModel().getSmg().isPointer(pointerValueFromZeroPlus)).isTrue();
+    SMGPointsToEdge pointsToAdditionalSegmentEdge =
+        currentState.getMemoryModel().getSmg().getPTEdge(pointerValueFromZeroPlus).orElseThrow();
+    assertThat(pointsToAdditionalSegmentEdge.pointsTo() instanceof SMGSinglyLinkedListSegment)
+        .isFalse();
+    assertThat(pointsToAdditionalSegmentEdge.targetSpecifier())
+        .isEqualTo(SMGTargetSpecifier.IS_REGION);
+    // Read the next pointer, check that it is a pointer to a 0+
+    // Note: this read is a non-materializing read! Using any of the values (pointers) for a 0+ is
+    // therefore invalid.
+    SMGValueAndSMGState readNfoValueAndState =
+        currentState.readSMGValue(pointsToAdditionalSegmentEdge.pointsTo(), nfo, pointerSizeInBits);
+    currentState = readNfoValueAndState.getSMGState();
+    SMGValue nextPointerValue = readNfoValueAndState.getSMGValue();
+    // Confirm that this is a pointer to a 0+ SLS
+    assertThat(currentState.getMemoryModel().getSmg().isPointer(nextPointerValue)).isTrue();
+    SMGPointsToEdge pointsToNextConcreteEdge =
+        currentState.getMemoryModel().getSmg().getPTEdge(nextPointerValue).orElseThrow();
+    assertThat(pointsToNextConcreteEdge.pointsTo() instanceof SMGSinglyLinkedListSegment).isTrue();
+    // assertThat(pointsToNextConcreteEdge.targetSpecifier()).isEqualTo(SMGTargetSpecifier.IS_FIRST_POINTER);
+    assertThat(((SMGSinglyLinkedListSegment) pointsToNextConcreteEdge.pointsTo()).getMinLength())
+        .isEqualTo(0);
+    if (dll) {
+      SMGValueAndSMGState readPfoValueAndState =
+          currentState.readSMGValue(
+              pointsToAdditionalSegmentEdge.pointsTo(), pfo, pointerSizeInBits);
+      currentState = readPfoValueAndState.getSMGState();
+      SMGValue prevPointerValue = readPfoValueAndState.getSMGValue();
+      // Confirm that this is a pointer to a 0+ SLS
+      assertThat(currentState.getMemoryModel().getSmg().isPointer(prevPointerValue)).isTrue();
+      SMGPointsToEdge pointsToPrevConcreteEdge =
+          currentState.getMemoryModel().getSmg().getPTEdge(prevPointerValue).orElseThrow();
+      assertThat(pointsToPrevConcreteEdge.pointsTo()).isEqualTo(lastConcreteListObject);
+    }
   }
 
   /*
@@ -657,7 +810,7 @@ public class SMGCPAAbstractionTest {
       currentState = resultValueAndState.getSMGState();
       // i + 3 because we always have i + 1 objects as a concrete list + zero object + abstract list
       // (0+ in the end)
-      Preconditions.checkArgument(currentState.getMemoryModel().getHeapObjects().size() == i + 3);
+      assertThat(currentState.getMemoryModel().getHeapObjects().size() == i + 3).isTrue();
       Value currentPointer =
           currentState
               .getMemoryModel()
@@ -674,45 +827,49 @@ public class SMGCPAAbstractionTest {
             currentState
                 .readValue(object.orElseThrow().getSMGObject(), nfo, pointerSizeInBits, null)
                 .get(0);
-        Preconditions.checkArgument(nextPointer.getValue().isNumericValue());
-        Preconditions.checkArgument(
-            nextPointer.getValue().asNumericValue().bigInteger().compareTo(BigInteger.ZERO) == 0);
+        assertThat(nextPointer.getValue().isNumericValue()).isTrue();
+        assertThat(
+                nextPointer.getValue().asNumericValue().bigInteger().compareTo(BigInteger.ZERO)
+                    == 0)
+            .isTrue();
         break;
       } else if (i == 0) {
-        Preconditions.checkArgument(currentPointer.equals(pointer));
+        assertThat(currentPointer.equals(pointer)).isTrue();
       }
       SMGStateAndOptionalSMGObjectAndOffset targetAndOffset =
           resultValueAndState
               .getSMGState()
               .dereferencePointerWithoutMaterilization(currentPointer)
               .orElseThrow();
-      Preconditions.checkArgument(
-          targetAndOffset.getOffsetForObject().compareTo(BigInteger.ZERO) == 0);
+      assertThat(targetAndOffset.getOffsetForObject().compareTo(BigInteger.ZERO) == 0).isTrue();
 
       SMGObject newObj = targetAndOffset.getSMGObject();
       SMGValueAndSMGState headAndState =
           currentState.readSMGValue(newObj, BigInteger.ZERO, pointerSizeInBits);
       currentState = headAndState.getSMGState();
-      Preconditions.checkArgument(
-          currentState
-              .getMemoryModel()
-              .getValueFromSMGValue(headAndState.getSMGValue())
-              .isPresent());
-      Preconditions.checkArgument(
-          currentState
-              .getMemoryModel()
-              .getValueFromSMGValue(headAndState.getSMGValue())
-              .orElseThrow()
-              .isNumericValue());
-      Preconditions.checkArgument(
-          currentState
+      assertThat(
+              currentState
+                  .getMemoryModel()
+                  .getValueFromSMGValue(headAndState.getSMGValue())
+                  .isPresent())
+          .isTrue();
+      assertThat(
+              currentState
                   .getMemoryModel()
                   .getValueFromSMGValue(headAndState.getSMGValue())
                   .orElseThrow()
-                  .asNumericValue()
-                  .bigInteger()
-                  .compareTo(BigInteger.ONE)
-              == 0);
+                  .isNumericValue())
+          .isTrue();
+      assertThat(
+              currentState
+                      .getMemoryModel()
+                      .getValueFromSMGValue(headAndState.getSMGValue())
+                      .orElseThrow()
+                      .asNumericValue()
+                      .bigInteger()
+                      .compareTo(BigInteger.ONE)
+                  == 0)
+          .isTrue();
       SMGStateAndOptionalSMGObjectAndOffset prevObjAndOffset =
           resultValueAndState
               .getSMGState()
@@ -735,12 +892,11 @@ public class SMGCPAAbstractionTest {
                   currentState.getMemoryModel().getValueFromSMGValue(prevPointer).orElseThrow())
               .orElseThrow();
       if (i == 0) {
-        Preconditions.checkArgument(prevObjFromPrevPointerAndOffset.getSMGObject().isZero());
+        assertThat(prevObjFromPrevPointerAndOffset.getSMGObject().isZero()).isTrue();
         previous[i] = prevObjAndOffset.getSMGObject();
       } else {
         previous[i] = prevObjAndOffset.getSMGObject();
-        Preconditions.checkArgument(
-            previous[i - 1].equals(prevObjFromPrevPointerAndOffset.getSMGObject()));
+        assertThat(previous[i - 1].equals(prevObjFromPrevPointerAndOffset.getSMGObject())).isTrue();
       }
 
       SMGStateAndOptionalSMGObjectAndOffset targetToNextAndOffset =
@@ -749,8 +905,8 @@ public class SMGCPAAbstractionTest {
               .dereferencePointerWithoutMaterilization(
                   currentState.getMemoryModel().getValueFromSMGValue(pointerToFirst).orElseThrow())
               .orElseThrow();
-      Preconditions.checkArgument(
-          targetToNextAndOffset.getSMGObject() instanceof SMGSinglyLinkedListSegment);
+      assertThat(targetToNextAndOffset.getSMGObject() instanceof SMGSinglyLinkedListSegment)
+          .isTrue();
       currentAbstraction = (SMGDoublyLinkedListSegment) targetToNextAndOffset.getSMGObject();
     }
   }
@@ -794,7 +950,7 @@ public class SMGCPAAbstractionTest {
       currentState = resultValueAndState.getSMGState();
       // i + 3 because we always have i + 1 objects as a concrete list + zero object + abstract list
       // (0+ in the end)
-      Preconditions.checkArgument(currentState.getMemoryModel().getHeapObjects().size() == i + 3);
+      assertThat(currentState.getMemoryModel().getHeapObjects().size() == i + 3).isTrue();
       // currentPointer == pointer to just materilized list segment
       Value currentPointer =
           currentState
@@ -812,45 +968,49 @@ public class SMGCPAAbstractionTest {
             currentState
                 .readValue(object.orElseThrow().getSMGObject(), nfo, pointerSizeInBits, null)
                 .get(0);
-        Preconditions.checkArgument(nextPointer.getValue().isNumericValue());
-        Preconditions.checkArgument(
-            nextPointer.getValue().asNumericValue().bigInteger().compareTo(BigInteger.ZERO) == 0);
+        assertThat(nextPointer.getValue().isNumericValue()).isTrue();
+        assertThat(
+                nextPointer.getValue().asNumericValue().bigInteger().compareTo(BigInteger.ZERO)
+                    == 0)
+            .isTrue();
         break;
       } else if (i == 0) {
-        Preconditions.checkArgument(currentPointer.equals(pointer));
+        assertThat(currentPointer.equals(pointer)).isTrue();
       }
       SMGStateAndOptionalSMGObjectAndOffset targetAndOffset =
           resultValueAndState
               .getSMGState()
               .dereferencePointerWithoutMaterilization(currentPointer)
               .orElseThrow();
-      Preconditions.checkArgument(
-          targetAndOffset.getOffsetForObject().compareTo(BigInteger.ZERO) == 0);
+      assertThat(targetAndOffset.getOffsetForObject().compareTo(BigInteger.ZERO) == 0).isTrue();
 
       SMGObject newObj = targetAndOffset.getSMGObject();
       SMGValueAndSMGState headAndState =
           currentState.readSMGValue(newObj, BigInteger.ZERO, pointerSizeInBits);
       currentState = headAndState.getSMGState();
-      Preconditions.checkArgument(
-          currentState
-              .getMemoryModel()
-              .getValueFromSMGValue(headAndState.getSMGValue())
-              .isPresent());
-      Preconditions.checkArgument(
-          currentState
-              .getMemoryModel()
-              .getValueFromSMGValue(headAndState.getSMGValue())
-              .orElseThrow()
-              .isNumericValue());
-      Preconditions.checkArgument(
-          currentState
+      assertThat(
+              currentState
+                  .getMemoryModel()
+                  .getValueFromSMGValue(headAndState.getSMGValue())
+                  .isPresent())
+          .isTrue();
+      assertThat(
+              currentState
                   .getMemoryModel()
                   .getValueFromSMGValue(headAndState.getSMGValue())
                   .orElseThrow()
-                  .asNumericValue()
-                  .bigInteger()
-                  .compareTo(BigInteger.ONE)
-              == 0);
+                  .isNumericValue())
+          .isTrue();
+      assertThat(
+              currentState
+                      .getMemoryModel()
+                      .getValueFromSMGValue(headAndState.getSMGValue())
+                      .orElseThrow()
+                      .asNumericValue()
+                      .bigInteger()
+                      .compareTo(BigInteger.ONE)
+                  == 0)
+          .isTrue();
       SMGValueAndSMGState nextPointerAndState =
           currentState.readSMGValue(newObj, pointerSizeInBits, pointerSizeInBits);
       currentState = nextPointerAndState.getSMGState();
@@ -862,8 +1022,8 @@ public class SMGCPAAbstractionTest {
               .dereferencePointerWithoutMaterilization(
                   currentState.getMemoryModel().getValueFromSMGValue(pointerToFirst).orElseThrow())
               .orElseThrow();
-      Preconditions.checkArgument(
-          targetToNextAndOffset.getSMGObject() instanceof SMGSinglyLinkedListSegment);
+      assertThat(targetToNextAndOffset.getSMGObject() instanceof SMGSinglyLinkedListSegment)
+          .isTrue();
       currentAbstraction = (SMGSinglyLinkedListSegment) targetToNextAndOffset.getSMGObject();
     }
   }
@@ -941,7 +1101,7 @@ public class SMGCPAAbstractionTest {
       for (SMGObject object : objects) {
         if (object instanceof SMGSinglyLinkedListSegment
             && state.getMemoryModel().isObjectValid(object)) {
-          Preconditions.checkArgument(sll == null);
+          assertThat(sll == null).isTrue();
           sll = (SMGSinglyLinkedListSegment) object;
         } else {
           assertThat(!state.getMemoryModel().isObjectValid(object)).isTrue();
@@ -977,7 +1137,7 @@ public class SMGCPAAbstractionTest {
       for (SMGObject object : objects) {
         if (object instanceof SMGDoublyLinkedListSegment
             && state.getMemoryModel().isObjectValid(object)) {
-          Preconditions.checkArgument(dll == null);
+          assertThat(dll == null).isTrue();
           dll = (SMGDoublyLinkedListSegment) object;
         } else {
           assertThat(!state.getMemoryModel().isObjectValid(object)).isTrue();
@@ -1021,7 +1181,7 @@ public class SMGCPAAbstractionTest {
         for (SMGObject object : objects) {
           if (object instanceof SMGDoublyLinkedListSegment
               && state.getMemoryModel().isObjectValid(object)) {
-            Preconditions.checkArgument(dll == null);
+            assertThat(dll == null).isTrue();
             dll = (SMGDoublyLinkedListSegment) object;
           } else {
             assertThat(!state.getMemoryModel().isObjectValid(object)).isTrue();
@@ -1098,8 +1258,7 @@ public class SMGCPAAbstractionTest {
               .getSMGState()
               .dereferencePointerWithoutMaterilization(currentPointer)
               .orElseThrow();
-      Preconditions.checkArgument(
-          targetAndOffset.getOffsetForObject().compareTo(BigInteger.ZERO) == 0);
+      assertThat(targetAndOffset.getOffsetForObject().compareTo(BigInteger.ZERO) == 0).isTrue();
 
       SMGObject newObj = targetAndOffset.getSMGObject();
       SMGValueAndSMGState nextPointerAndState =
@@ -1113,8 +1272,8 @@ public class SMGCPAAbstractionTest {
               .dereferencePointerWithoutMaterilization(
                   currentState.getMemoryModel().getValueFromSMGValue(pointerToFirst).orElseThrow())
               .orElseThrow();
-      Preconditions.checkArgument(
-          targetToNextAndOffset.getSMGObject() instanceof SMGDoublyLinkedListSegment);
+      assertThat(targetToNextAndOffset.getSMGObject() instanceof SMGDoublyLinkedListSegment)
+          .isTrue();
       currentAbstraction = (SMGDoublyLinkedListSegment) targetToNextAndOffset.getSMGObject();
     }
     return currentState;
@@ -1177,8 +1336,7 @@ public class SMGCPAAbstractionTest {
               .getSMGState()
               .dereferencePointerWithoutMaterilization(currentPointer)
               .orElseThrow();
-      Preconditions.checkArgument(
-          targetAndOffset.getOffsetForObject().compareTo(BigInteger.ZERO) == 0);
+      assertThat(targetAndOffset.getOffsetForObject().compareTo(BigInteger.ZERO) == 0).isTrue();
 
       SMGObject newObj = targetAndOffset.getSMGObject();
       SMGValueAndSMGState nextPointerAndState =
@@ -1192,8 +1350,8 @@ public class SMGCPAAbstractionTest {
               .dereferencePointerWithoutMaterilization(
                   currentState.getMemoryModel().getValueFromSMGValue(pointerToFirst).orElseThrow())
               .orElseThrow();
-      Preconditions.checkArgument(
-          targetToNextAndOffset.getSMGObject() instanceof SMGSinglyLinkedListSegment);
+      assertThat(targetToNextAndOffset.getSMGObject() instanceof SMGSinglyLinkedListSegment)
+          .isTrue();
       currentAbstraction = (SMGSinglyLinkedListSegment) targetToNextAndOffset.getSMGObject();
     }
     return currentState;
@@ -1202,7 +1360,7 @@ public class SMGCPAAbstractionTest {
   /*
    * Will fill the list with data such that the nfo (and pfo) are last. The data is int and the same every list segment.
    * The data is numeric starting from 0, +1 each new value such that the space until nfo is filled.
-   * Valid sizes are divisible by 32.
+   * Valid sizes are divisible by 32. The nfo for the last and pfo for the first segment are 0.
    */
   private Value[] buildConcreteList(boolean dll, BigInteger sizeOfSegment, int listLength)
       throws SMG2Exception {
