@@ -1435,7 +1435,7 @@ public class SMG {
     for (Entry<SMGObject, Boolean> entry : smgObjects.entrySet()) {
       if (entry.getValue()) {
         PersistentSet<SMGHasValueEdge> hvEdgesPerObj = hasValueEdges.get(entry.getKey());
-        if (hvEdgesPerObj != null){
+        if (hvEdgesPerObj != null) {
           for (SMGHasValueEdge value : hvEdgesPerObj) {
             if (value.hasValue().equals(ptObject)) {
               return entry.getKey();

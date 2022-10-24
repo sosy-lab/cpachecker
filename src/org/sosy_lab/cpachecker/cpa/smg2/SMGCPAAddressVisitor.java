@@ -136,7 +136,9 @@ public class SMGCPAAddressVisitor
               Level.FINE,
               "A subscript value was found to be non concrete when trying to find a memory location"
                   + " of an array. No memory region could be returned.");
-          resultBuilder.add(SMGStateAndOptionalSMGObjectAndOffset.of(currentState.withUnknownOffsetMemoryAccess()));
+          resultBuilder.add(
+              SMGStateAndOptionalSMGObjectAndOffset.of(
+                  currentState.withUnknownOffsetMemoryAccess()));
           continue;
         }
         // Calculate the offset out of the subscript value and the type
@@ -170,7 +172,8 @@ public class SMGCPAAddressVisitor
             Level.FINE,
             "A offset value was found to be non concrete when trying to find a memory"
                 + " location in an array. No memory region could be returned.");
-        return SMGStateAndOptionalSMGObjectAndOffset.of(currentState.withUnknownOffsetMemoryAccess());
+        return SMGStateAndOptionalSMGObjectAndOffset.of(
+            currentState.withUnknownOffsetMemoryAccess());
       }
       BigInteger baseOffset = addrOffset.asNumericValue().bigInteger();
       BigInteger finalOffset = baseOffset.add(subscriptOffset);

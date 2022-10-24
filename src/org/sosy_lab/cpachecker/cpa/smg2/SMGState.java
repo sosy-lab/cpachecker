@@ -2803,7 +2803,7 @@ public class SMGState
     // We search for the SMGValues in the Has-Value-Edges and translate them to Values. We don´t
     // want to remove pointers or unknown values, just concrete values not in the set. This triggers
     // a read re-interpretation in the future that generates new unknowns.
-    // We remember the mapping however. It suffices to remember Object -> old Has-Value-Edge
+    // However, we remember the mapping. It suffices to remember Object -> old Has-Value-Edge
 
     SMG currentSMG = memoryModel.getSmg();
     SMGState currentState = this;
