@@ -13,6 +13,7 @@ import static com.google.common.truth.Truth.assertWithMessage;
 import com.google.common.base.Equivalence;
 import com.google.common.collect.ImmutableList;
 import java.io.IOException;
+import java.io.Serializable;
 import java.util.ArrayDeque;
 import java.util.Arrays;
 import java.util.Comparator;
@@ -217,7 +218,10 @@ public final class CCfaTransformerTest {
   }
 
   /** Defines an order of CFA edges for the case that a node has multiple leaving edges. */
-  private static final class MultipleLeavingEdgesOrder implements Comparator<CFAEdge> {
+  private static final class MultipleLeavingEdgesOrder
+      implements Comparator<CFAEdge>, Serializable {
+
+    private static final long serialVersionUID = -913102022358001600L;
 
     @Override
     // Regular assert statements are used for things that shouldn't be tested by
