@@ -1725,14 +1725,13 @@ public class SMGState
 
   public SMGState withUnknownOffsetMemoryAccess() {
     String errorMSG =
-        String.format(
-            "Memory access with an invalid or unknown offset detected. This might be the result of"
-                + " an overapproximation and might be a false positive.");
+        "Memory access with an invalid or unknown offset detected. This might be the result of"
+            + " an overapproximation and might be a false positive.";
     SMGErrorInfo newErrorInfo =
         SMGErrorInfo.of()
             .withProperty(Property.INVALID_READ)
             .withErrorMessage(errorMSG)
-            .withInvalidObjects(Collections.EMPTY_SET);
+            .withInvalidObjects(ImmutableSet.of());
     // Log the error in the logger
     logMemoryError(errorMSG, true);
     return copyWithNewErrorInfo(newErrorInfo);
