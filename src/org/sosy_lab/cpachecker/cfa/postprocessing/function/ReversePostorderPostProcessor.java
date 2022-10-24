@@ -14,6 +14,7 @@ import org.sosy_lab.cpachecker.cfa.CFAReversePostorder;
 import org.sosy_lab.cpachecker.cfa.CfaPostProcessor;
 import org.sosy_lab.cpachecker.cfa.MutableCFA;
 
+/** {@link CfaPostProcessor} implementation for {@link CFAReversePostorder}. */
 public final class ReversePostorderPostProcessor implements CfaPostProcessor {
 
   @Override

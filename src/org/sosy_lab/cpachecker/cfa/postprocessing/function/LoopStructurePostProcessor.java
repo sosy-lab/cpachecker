@@ -16,6 +16,7 @@ import org.sosy_lab.cpachecker.cfa.MutableCFA;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
 import org.sosy_lab.cpachecker.util.LoopStructure;
 
+/** {@link CfaPostProcessor} implementation for {@link LoopStructure}. */
 public final class LoopStructurePostProcessor implements CfaPostProcessor {
 
   @Override

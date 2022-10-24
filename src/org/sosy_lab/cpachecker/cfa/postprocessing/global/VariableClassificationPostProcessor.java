@@ -19,6 +19,7 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.variableclassification.VariableClassification;
 import org.sosy_lab.cpachecker.util.variableclassification.VariableClassificationBuilder;
 
+/** {@link CfaPostProcessor} implementation for {@link VariableClassificationBuilder}. */
 public final class VariableClassificationPostProcessor implements CfaPostProcessor {
 
   private final Configuration configuration;
