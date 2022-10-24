@@ -14,19 +14,12 @@ import com.google.common.base.Equivalence;
 import com.google.common.base.Objects;
 import com.google.common.collect.ImmutableList;
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Paths;
 import java.util.ArrayDeque;
-import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.Comparator;
 import java.util.Deque;
 import java.util.HashSet;
-import java.util.List;
-import java.util.Random;
 import java.util.Set;
-import java.util.stream.Collectors;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -57,21 +50,13 @@ public final class CCfaTransformerTest {
   @Parameter public String sourceFilePath;
 
   @Parameters
-  public static Iterable<? extends Object> data() throws IOException {
-
-    List<String> sourceFilePaths =
-        Files.walk(Paths.get("test", "programs", "benchmarks", "ldv-linux-3.0"))
-            .map(path -> path.toString())
-            .filter(path -> path.endsWith(".i"))
-            .collect(Collectors.toCollection(ArrayList::new));
-
-    // we always want to draw the same sample
-    Collections.sort(sourceFilePaths);
-    Collections.shuffle(sourceFilePaths, new Random(0));
-
-    return sourceFilePaths.stream()
-        .limit(3) // the max number of source files to use as test input
-        .collect(Collectors.toList());
+  public static Iterable<? extends Object> data() {
+    // A couple of programs that a somewhat big and (hopefully) contain a wide variety of CFA
+    // nodes/edges and connections between them.
+    return ImmutableList.of(
+        "test/programs/benchmarks/ldv-linux-3.0/module_get_put-drivers-net-ppp_generic.ko.cil.out.i",
+        "test/programs/benchmarks/ldv-linux-3.0/module_get_put-drivers-staging-et131x-et131x.ko.cil.out.i",
+        "test/programs/benchmarks/ldv-linux-3.0/module_get_put-drivers-net-atl1c-atl1c.ko.cil.out.i");
   }
 
   private static void assertCfaNodeEquivalence(
