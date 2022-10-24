@@ -251,7 +251,7 @@ public final class CfaFactories {
       super(pInitialState, pSteps);
     }
 
-    private Step<N, E> executeCfaPostProcessorStep(CfaPostProcessor pCfaPostProcessor) {
+    private Step<N, E> createCfaPostProcessorStep(CfaPostProcessor pCfaPostProcessor) {
       return (state, logger, shutdownNotifier) -> {
         CfaBuilder cfaBuilder = state.getCfaBuilderOrCreate(logger, shutdownNotifier);
         cfaBuilder.runPostProcessor(pCfaPostProcessor);
@@ -275,7 +275,7 @@ public final class CfaFactories {
      */
     public SupergraphCfaFactory<N, E> executePostProcessor(CfaPostProcessor pCfaPostProcessor) {
 
-      Step<N, E> step = executeCfaPostProcessorStep(pCfaPostProcessor);
+      Step<N, E> step = createCfaPostProcessorStep(pCfaPostProcessor);
 
       return new SupergraphCfaFactory<>(
           getInitialState(), combine(getSteps(), ImmutableList.of(step)));
@@ -303,7 +303,7 @@ public final class CfaFactories {
 
       ImmutableList.Builder<Step<N, E>> steps = ImmutableList.builder();
       for (CfaPostProcessor cfaPostProcessor : pCfaPostProcessors) {
-        steps.add(executeCfaPostProcessorStep(checkNotNull(cfaPostProcessor)));
+        steps.add(createCfaPostProcessorStep(checkNotNull(cfaPostProcessor)));
       }
 
       return new SupergraphCfaFactory<>(getInitialState(), combine(getSteps(), steps.build()));
