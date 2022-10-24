@@ -253,6 +253,7 @@ public final class CCfaTransformerTest {
       if (pSomeEdge instanceof FunctionReturnEdge && pOtherEdge instanceof FunctionReturnEdge) {
         int comparisonResult = pSomeEdge.getFileLocation().compareTo(pOtherEdge.getFileLocation());
         assert comparisonResult != 0;
+        return comparisonResult;
       }
 
       throw new AssertionError("Unable to order edges: " + pSomeEdge + " and " + pOtherEdge);
