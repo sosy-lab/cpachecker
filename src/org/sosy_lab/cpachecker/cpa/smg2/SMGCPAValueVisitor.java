@@ -12,7 +12,6 @@ import static com.google.common.base.Preconditions.checkArgument;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableList.Builder;
 import com.google.common.primitives.UnsignedLongs;
 import java.math.BigDecimal;
 import java.math.BigInteger;
@@ -319,7 +318,7 @@ public class SMGCPAValueVisitor
         // This of course does not need to be a pointer value! If this is a unknown we just
         // return unknown.
         // All else gets wrapped and the final read/deref will throw an error
-        Builder<ValueAndSMGState> returnBuilder = ImmutableList.builder();
+        ImmutableList.Builder<ValueAndSMGState> returnBuilder = ImmutableList.builder();
         for (ValueAndSMGState readPointerAndState :
             evaluator.readStackOrGlobalVariable(
                 newState, qualifiedVarName, finalOffset, typeSizeInBits, returnType)) {
