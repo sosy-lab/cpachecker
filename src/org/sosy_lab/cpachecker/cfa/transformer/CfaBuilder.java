@@ -13,6 +13,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
 
 import com.google.common.collect.TreeMultimap;
+import com.google.errorprone.annotations.CanIgnoreReturnValue;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.NavigableMap;
@@ -194,6 +195,7 @@ public final class CfaBuilder {
    * @return this {@link CfaBuilder} instance for further CFA manipulation and final CFA creation
    * @throws IllegalStateException if {@link CfaBuilder#mutableCfa} has already been initialized
    */
+  @CanIgnoreReturnValue
   private CfaBuilder initializeMutableCfa(CfaMetadata pCfaMetadata) {
 
     checkState(mutableCfa == null, "Internal MutableCFA already initialized");
@@ -238,6 +240,7 @@ public final class CfaBuilder {
    * @param pCfaPostProcessor the CFA post-processor to execute
    * @return this {@link CfaBuilder} instance for further CFA manipulation and final CFA creation
    */
+  @CanIgnoreReturnValue
   public CfaBuilder runPostProcessor(CfaPostProcessor pCfaPostProcessor) {
 
     mutableCfa = pCfaPostProcessor.execute(mutableCfa, logger, shutdownNotifier);
@@ -252,6 +255,7 @@ public final class CfaBuilder {
    * @throws IllegalStateException if the CFA of this builder is already a supergraph
    * @throws IllegalStateException if CFA supergraph creation failed for some other reason
    */
+  @CanIgnoreReturnValue
   public CfaBuilder toSupergraph() {
 
     CfaMetadata cfaMetadata = mutableCfa.getMetadata();
@@ -283,6 +287,7 @@ public final class CfaBuilder {
    * @return a new {@link CFA} instance created by this {@link CfaBuilder}
    * @throws IllegalStateException if this method was already invoked
    */
+  @CanIgnoreReturnValue
   public CFA createCfa() {
 
     checkState(mutableCfa != null, "Builder has already created a CFA and is not reusable");
