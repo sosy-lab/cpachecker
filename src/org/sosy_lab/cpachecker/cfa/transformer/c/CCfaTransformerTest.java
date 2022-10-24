@@ -43,7 +43,7 @@ import org.sosy_lab.cpachecker.exceptions.ParserException;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.test.TestDataTools;
 
-/** Tests CFA transformations of C programs. */
+/** Tests for CFA transformations of C program CFAs. */
 @RunWith(Parameterized.class)
 public final class CCfaTransformerTest {
 
@@ -51,7 +51,7 @@ public final class CCfaTransformerTest {
 
   @Parameters
   public static Iterable<? extends Object> data() {
-    // A couple of programs that a somewhat big and (hopefully) contain a wide variety of CFA
+    // A couple of programs that are somewhat big and (hopefully) contain a wide variety of CFA
     // nodes/edges and connections between them.
     return ImmutableList.of(
         "test/programs/benchmarks/ldv-linux-3.0/module_get_put-drivers-net-ppp_generic.ko.cil.out.i",
@@ -73,6 +73,17 @@ public final class CCfaTransformerTest {
         .isTrue();
   }
 
+  /**
+   * Asserts that the specified CFAs are equivalent with respect to their structure and the
+   * specified CFA node/edge equivalences (i.e., an isomorphism exists between the two CFAs and each
+   * node/edge of one CFA is equal to the corresponding node/edge of the other CFA using the
+   * specified node/edge equivalences).
+   *
+   * <p>Only CFA nodes and edges reachable from the main function entry node are considered.
+   *
+   * <p>If a CFA node has multiple leaving edges, we use {@link MultipleLeavingEdgesOrder} which
+   * makes comparing CFAs a lot easier and faster (i.e., O(V + E)).
+   */
   private static void assertCfaEquivalence(
       CFA pSomeCfa,
       CFA pOtherCfa,
@@ -157,7 +168,10 @@ public final class CCfaTransformerTest {
     }
   }
 
-  /** Defines the equivalence for comparing CFA nodes with their clones. */
+  /**
+   * Defines the equivalence for comparing CFA nodes with their clones such that a CFA node is equal
+   * to its clones.
+   */
   private static final class CfaNodeCloneEquivalence extends Equivalence<CFANode> {
 
     @Override
@@ -184,7 +198,10 @@ public final class CCfaTransformerTest {
     }
   }
 
-  /** Defines the equivalence for comparing CFA edges with their clones. */
+  /**
+   * Defines the equivalence for comparing CFA edges with their clones such that a CFA edge is equal
+   * to its clones.
+   */
   private static final class CfaEdgeCloneEquivalence extends Equivalence<CFAEdge> {
 
     @Override
@@ -199,16 +216,16 @@ public final class CCfaTransformerTest {
     }
   }
 
-  /** Defines a order of CFA edges for the case that a node has multiple leaving edges. */
+  /** Defines an order of CFA edges for the case that a node has multiple leaving edges. */
   private static final class MultipleLeavingEdgesOrder implements Comparator<CFAEdge> {
 
     @Override
     // Regular assert statements are used for things that shouldn't be tested by
-    // `CCfaTransformerTest`. Fix the test if any of those assertion fails.
+    // `CCfaTransformerTest`. Fix the actual test if any of those assertion fails.
     @SuppressWarnings("UseCorrectAssertInTests")
     public int compare(CFAEdge pSomeEdge, CFAEdge pOtherEdge) {
 
-      // summary edge first
+      // function summary edge first
       if (pSomeEdge instanceof FunctionSummaryEdge) {
         assert !(pOtherEdge instanceof FunctionSummaryEdge);
         return -1;
@@ -218,7 +235,7 @@ public final class CCfaTransformerTest {
         return 1;
       }
 
-      // true assume edge first
+      // assume edge with `true` truth assumption first
       if (pSomeEdge instanceof AssumeEdge && pOtherEdge instanceof AssumeEdge) {
         AssumeEdge someAssumeEdge = (AssumeEdge) pSomeEdge;
         AssumeEdge otherAssumeEdge = (AssumeEdge) pOtherEdge;
