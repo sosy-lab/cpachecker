@@ -52,12 +52,15 @@ public final class CCfaTransformerTest {
 
   @Parameters
   public static Iterable<? extends Object> data() {
-    // A couple of programs that are somewhat big and (hopefully) contain a wide variety of CFA
-    // nodes/edges and connections between them.
+    // A couple of programs that contain a wide variety of CFA nodes/edges and connections between
+    // them.
     return ImmutableList.of(
-        "test/programs/benchmarks/ldv-linux-3.0/module_get_put-drivers-net-ppp_generic.ko.cil.out.i",
-        "test/programs/benchmarks/ldv-linux-3.0/module_get_put-drivers-staging-et131x-et131x.ko.cil.out.i",
-        "test/programs/benchmarks/ldv-linux-3.0/module_get_put-drivers-net-atl1c-atl1c.ko.cil.out.i");
+        "test/programs/program_slicing/branch_both_relevant.c",
+        "test/programs/program_slicing/branch_none_relevant2.c",
+        "test/programs/program_slicing/functions.c",
+        "test/programs/program_slicing/recursive_flowdep.c",
+        "test/programs/simple/pointer_aliasing/aliasing.c",
+        "test/programs/simple/pointer_aliasing/malloc_compare-2.i");
   }
 
   private static void assertCfaNodeEquivalence(
