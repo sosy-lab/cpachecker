@@ -11,7 +11,6 @@ package org.sosy_lab.cpachecker.cfa.transformer.c;
 import static com.google.common.truth.Truth.assertWithMessage;
 
 import com.google.common.base.Equivalence;
-import com.google.common.base.Objects;
 import com.google.common.collect.ImmutableList;
 import java.io.IOException;
 import java.util.ArrayDeque;
@@ -19,6 +18,7 @@ import java.util.Arrays;
 import java.util.Comparator;
 import java.util.Deque;
 import java.util.HashSet;
+import java.util.Objects;
 import java.util.Set;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -174,7 +174,7 @@ public final class CCfaTransformerTest {
 
     @Override
     protected int doHash(CFANode pNode) {
-      return Objects.hashCode(
+      return Objects.hash(
           pNode.getClass(),
           pNode.getFunction(),
           pNode.getNumEnteringEdges(),
@@ -195,7 +195,7 @@ public final class CCfaTransformerTest {
 
     @Override
     protected int doHash(CFAEdge pEdge) {
-      return Objects.hashCode(pEdge.getClass(), pEdge.getRawAST());
+      return Objects.hash(pEdge.getClass(), pEdge.getRawAST());
     }
   }
 
