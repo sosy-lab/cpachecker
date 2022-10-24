@@ -16,15 +16,16 @@ import org.sosy_lab.cpachecker.cfa.CfaPostProcessor;
 import org.sosy_lab.cpachecker.cfa.graph.CfaNetwork;
 
 /**
- * A factory that creates new {@link CFA} instances for CFAs represented by ({@link CfaNetwork},
- * {@link CfaMetadata}) pairs.
+ * Interface for factories that creates new {@link CFA} instances for CFAs represented by ({@link
+ * CfaNetwork}, {@link CfaMetadata}) pairs.
  *
  * <p>A factory can create multiple CFAs. Every time the {@link CfaFactory#createCfa(CfaNetwork,
  * CfaMetadata, LogManager, ShutdownNotifier) createCfa} method is invoked, a new {@link CFA}
  * instance is created.
  *
- * <p>{@link CfaFactory} implementations may run {@link CfaPostProcessor CFA post-processors} during
- * CFA creation.
+ * <p>{@link CfaFactory} implementations may use {@link CfaNodeTransformer node} / {@link
+ * CfaEdgeTransformer edge transformers} and execute {@link CfaPostProcessor CFA post-processors}
+ * during CFA creation.
  */
 public interface CfaFactory {
 
@@ -33,10 +34,11 @@ public interface CfaFactory {
    *
    * <p>Every time this method is invoked, a new {@link CFA} instance is created.
    *
-   * <p>The returned CFA resembles the CFA represented by the {@link CfaNetwork} as closely as
-   * possible. {@link CfaFactory} implementations may run {@link CfaPostProcessor CFA
-   * post-processors} during CFA creation, which may lead to differences between the specified
-   * {@link CfaNetwork} and returned {@link CFA}.
+   * <p>{@link CfaFactory} implementations may use {@link CfaNodeTransformer node} / {@link
+   * CfaEdgeTransformer edge transformers} and execute {@link CfaPostProcessor CFA post-processors}
+   * during CFA creation, which may lead to differences between the specified {@link CfaNetwork} and
+   * returned {@link CFA}. Additionally, some other essential modifications may be performed (e.g.,
+   * creating the supergraph CFA).
    *
    * @param pCfaNetwork the {@link CfaNetwork} to create a CFA for
    * @param pCfaMetadata the {@link CfaMetadata} of the specified {@link CfaNetwork}
