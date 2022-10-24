@@ -21,6 +21,7 @@ import org.sosy_lab.cpachecker.cpa.smg2.SMGState;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMG2Exception;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGObjectAndSMGState;
 import org.sosy_lab.cpachecker.cpa.smg2.util.SMGValueAndSMGState;
+import org.sosy_lab.cpachecker.cpa.smg2.util.value.ValueAndSMGState;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValueFactory;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.util.smg.graph.SMGDoublyLinkedListSegment;
@@ -183,8 +184,7 @@ public class SMGCPAMaterializer {
     if (!state.getMemoryModel().isObjectValid(pListSeg)) {
       throw new SMG2Exception("Error when materializing a SLL.");
     }
-    SMGValue valueOfPointerToAbstractObject =
-        pValueOfPointerToAbstractObject.withNestingLevelAndCopy(0);
+    SMGValue initialPointer = pValueOfPointerToAbstractObject;
 
     logger.log(Level.ALL, "Materialise SLL ", pListSeg);
 
@@ -251,7 +251,7 @@ public class SMGCPAMaterializer {
     Preconditions.checkArgument(newAbsListSeg.getMinLength() >= MINIMUM_LIST_LENGTH);
     assert checkPointersOfMaterializedSLL(newConcreteRegion, nfo, currentState);
     // Note: valueOfPointerToAbstractObject is now pointing to the materialized object!
-    return SMGValueAndSMGState.of(currentState, valueOfPointerToAbstractObject);
+    return SMGValueAndSMGState.of(currentState, initialPointer);
   }
 
   /*
@@ -260,6 +260,7 @@ public class SMGCPAMaterializer {
    * DLL is copied and the nesting level of the new sub-SMG (values and pointers) is
    * decremented by 1. (according to the paper, see comment in the code for how we do it currently)
    * We return the pointer to the segment just materialized.
+   * Note: pValueOfPointerToAbstractObject does not guarantee that it points to the new concrete region!!!
    */
   private SMGValueAndSMGState materialiseDLLS(
       SMGDoublyLinkedListSegment pListSeg, SMGValue pValueOfPointerToAbstractObject, SMGState state)
@@ -268,8 +269,8 @@ public class SMGCPAMaterializer {
     if (!state.getMemoryModel().isObjectValid(pListSeg)) {
       throw new SMG2Exception("Error when materializing a DLL.");
     }
-    SMGValue valueOfPointerToConcreteObject =
-        pValueOfPointerToAbstractObject.withNestingLevelAndCopy(0);
+
+    SMGValue initialPointer = pValueOfPointerToAbstractObject;
 
     logger.log(Level.ALL, "Materialise DLL ", pListSeg);
 
@@ -299,6 +300,22 @@ public class SMGCPAMaterializer {
                     Integer.max(pListSeg.getMinLength() - 1, MINIMUM_LIST_LENGTH)));
 
     Preconditions.checkArgument(pListSeg.getMinLength() >= MINIMUM_LIST_LENGTH);
+    ValueAndSMGState correctPointerToNewConcreteAndState =
+        currentState.searchOrCreateAddress(newConcreteRegion, BigInteger.ZERO);
+    currentState = correctPointerToNewConcreteAndState.getState();
+    Optional<SMGValue> maybeValueOfPointerToConcreteObject =
+        currentState
+            .getMemoryModel()
+            .getSMGValueFromValue(correctPointerToNewConcreteAndState.getValue());
+    Preconditions.checkArgument(maybeValueOfPointerToConcreteObject.isPresent());
+    SMGValue valueOfPointerToConcreteObject = maybeValueOfPointerToConcreteObject.orElseThrow();
+    {
+      Optional<SMGPointsToEdge> maybePointsToEdgeToConcreteRegion =
+          currentState.getMemoryModel().getSmg().getPTEdge(valueOfPointerToConcreteObject);
+      Preconditions.checkArgument(maybePointsToEdgeToConcreteRegion.isPresent());
+      Preconditions.checkArgument(
+          maybePointsToEdgeToConcreteRegion.orElseThrow().pointsTo().equals(newConcreteRegion));
+    }
     // Make the new value a pointer to the correct location and object
     Value newPointerValue = SymbolicValueFactory.getInstance().newIdentifier(null);
     SMGDoublyLinkedListSegment newAbsListSeg =
@@ -335,16 +352,9 @@ public class SMGCPAMaterializer {
         currentState.writeValue(
             newConcreteRegion, nfo, pointerSize, newValuePointingToWardsAbstractList);
 
-    // Write the value pointing to the new concrete region to the abstracted list
+    // Set the prev pointer of the new abstract segment to the new concrete segment
     currentState =
         currentState.writeValue(newAbsListSeg, pfo, pointerSize, valueOfPointerToConcreteObject);
-
-    // Set the prev pointer of the new abstract segment to the new concrete segment
-    Optional<SMGPointsToEdge> maybeCorrectPointerToNewConcrete =
-        currentState.getMemoryModel().getSmg().getPTEdge(valueOfPointerToConcreteObject);
-    Preconditions.checkArgument(maybeCorrectPointerToNewConcrete.isPresent());
-    Preconditions.checkArgument(
-        maybeCorrectPointerToNewConcrete.orElseThrow().pointsTo().equals(newConcreteRegion));
 
     SMGValueAndSMGState nextPointerAndState = currentState.readSMGValue(pListSeg, nfo, pointerSize);
     currentState = nextPointerAndState.getSMGState();
@@ -369,8 +379,12 @@ public class SMGCPAMaterializer {
 
     Preconditions.checkArgument(newAbsListSeg.getMinLength() >= MINIMUM_LIST_LENGTH);
     assert checkPointersOfMaterializedDLL(newConcreteRegion, nfo, pfo, currentState);
-    // Note: pValueOfPointerToAbstractObject is now pointing to the materialized object!
-    return SMGValueAndSMGState.of(currentState, valueOfPointerToConcreteObject);
+    // pValueOfPointerToAbstractObject might now point to the materialized object!
+    if (initialPointer.equals(valueOfPointerToConcreteObject)) {
+      // Reset nesting level
+      initialPointer = initialPointer.withNestingLevelAndCopy(0);
+    }
+    return SMGValueAndSMGState.of(currentState, initialPointer);
   }
 
   // Check that the pointers of a list are correct
