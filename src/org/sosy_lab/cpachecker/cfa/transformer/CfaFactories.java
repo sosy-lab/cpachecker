@@ -194,29 +194,68 @@ public final class CfaFactories {
   }
 
   /**
-   * Superclass for all other chainable {@link CfaFactory} implementations. Implements how {@link
-   * Step steps} are executes to create the final CFA.
+   * Interface that all chainable {@link CfaFactory factories} implement.
+   *
+   * @param <N> the type of {@code CfaNodeTransformer} used during CFA construction
+   * @param <E> the type of {@code CfaEdgeTransformer} used during CFA construction
+   */
+  private static interface StepCfaFactory<
+          N extends CfaNodeTransformer, E extends CfaEdgeTransformer>
+      extends CfaFactory {
+
+    /**
+     * Returns the initial {@link State state} that is used for executing the {@link Step steps} of
+     * this factory.
+     *
+     * @return the initial {@link State state} that is used for executing the {@link Step steps} of
+     *     this factory
+     */
+    State<N, E> getInitialState();
+
+    /**
+     * Returns the {@link Step steps} executed by this factory.
+     *
+     * @return the {@link Step steps} executed by this factory
+     */
+    ImmutableList<Step<N, E>> getSteps();
+  }
+
+  /**
+   * Abstract class that makes it easier to implement chainable {@link CfaFactory factories}.
+   *
+   * <p>Implements how {@link Step steps} are executes to create the final CFA.
    *
    * @param <N> the type of {@code CfaNodeTransformer} used during CFA construction
    * @param <E> the type of {@code CfaEdgeTransformer} used during CFA construction
    */
   private abstract static class AbstractCfaFactory<
           N extends CfaNodeTransformer, E extends CfaEdgeTransformer>
-      implements CfaFactory {
+      implements StepCfaFactory<N, E> {
 
     private final State<N, E> initialState;
     private final ImmutableList<Step<N, E>> steps;
 
+    /** Creates a new {@link AbstractCfaFactory} with the specified initial state and steps. */
     protected AbstractCfaFactory(State<N, E> pInitialState, List<Step<N, E>> pSteps) {
       initialState = pInitialState;
       steps = ImmutableList.copyOf(pSteps);
     }
 
-    protected final State<N, E> getInitialState() {
+    /**
+     * Creates a new {@link AbstractCfaFactory} that has the initial state and steps of the
+     * specified {@link StepCfaFactory}.
+     */
+    protected AbstractCfaFactory(StepCfaFactory<N, E> pStepCfaFactory) {
+      this(pStepCfaFactory.getInitialState(), pStepCfaFactory.getSteps());
+    }
+
+    @Override
+    public final State<N, E> getInitialState() {
       return initialState;
     }
 
-    protected final ImmutableList<Step<N, E>> getSteps() {
+    @Override
+    public final ImmutableList<Step<N, E>> getSteps() {
       return steps;
     }
 
@@ -236,22 +275,83 @@ public final class CfaFactories {
     }
   }
 
+  // interfaces that define methods that create new factories
+
   /**
-   * Class to use after the supergraph CFA has been built. We are only allowed to execute CFA
-   * post-processors (on the supergraph).
-   *
-   * @param <N> the type of {@code CfaNodeTransformer} used during CFA construction
-   * @param <E> the type of {@code CfaEdgeTransformer} used during CFA construction
+   * Interface for factories that have a {@link
+   * TransformNodesCfaFactory#transformNodes(CfaNodeTransformer)} method.
    */
-  public static class SupergraphCfaFactory<
+  private static interface TransformNodesCfaFactory<
           N extends CfaNodeTransformer, E extends CfaEdgeTransformer>
-      extends AbstractCfaFactory<N, E> {
+      extends StepCfaFactory<N, E> {
 
-    private SupergraphCfaFactory(State<N, E> pInitialState, List<Step<N, E>> pSteps) {
-      super(pInitialState, pSteps);
+    /**
+     * Returns a {@link CfaFactory} that does what this {@link CfaFactory} does, but uses the
+     * specified {@link CfaNodeTransformer}.
+     *
+     * <p>The specified transformer is used to create all nodes in CFAs created by the returned
+     * {@link CfaFactory}.
+     *
+     * @param pCfaNodeTransformer the {@link CfaNodeTransformer} to use during CFA construction
+     * @return a {@link CfaFactory} that does what this {@link CfaFactory} does, but uses the
+     *     specified {@link CfaNodeTransformer}
+     * @throws NullPointerException if {@code pCfaNodeTransformer == null}
+     */
+    default StepCfaFactory<N, E> transformNodes(N pCfaNodeTransformer) {
+
+      checkNotNull(pCfaNodeTransformer);
+
+      Step<N, E> step =
+          (state, logger, shutdownNotifier) -> state.withCfaNodeTransformer(pCfaNodeTransformer);
+
+      return new AbstractCfaFactory<>(
+          getInitialState(), combine(getSteps(), ImmutableList.of(step))) {};
     }
+  }
 
-    private Step<N, E> createCfaPostProcessorStep(CfaPostProcessor pCfaPostProcessor) {
+  /**
+   * Interface for factories that have a {@link
+   * TransformEdgesCfaFactory#transformEdges(CfaEdgeTransformer)} method.
+   */
+  private static interface TransformEdgesCfaFactory<
+          N extends CfaNodeTransformer, E extends CfaEdgeTransformer>
+      extends StepCfaFactory<N, E> {
+
+    /**
+     * Returns a {@link CfaFactory} that does what this {@link CfaFactory} does, but uses the
+     * specified {@link CfaEdgeTransformer}.
+     *
+     * <p>The specified transformer is used to create all edges in CFAs created by the returned
+     * {@link CfaFactory}.
+     *
+     * @param pCfaEdgeTransformer the {@link CfaEdgeTransformer} to use during CFA construction
+     * @return a {@link CfaFactory} that does what this {@link CfaFactory} does, but uses the
+     *     specified {@link CfaEdgeTransformer}
+     * @throws NullPointerException if {@code pCfaEdgeTransformer == null}
+     */
+    default StepCfaFactory<N, E> transformEdges(E pCfaEdgeTransformer) {
+
+      checkNotNull(pCfaEdgeTransformer);
+
+      Step<N, E> step =
+          (state, logger, shutdownNotifier) -> state.withCfaEdgeTransformer(pCfaEdgeTransformer);
+
+      return new AbstractCfaFactory<>(
+          getInitialState(), combine(getSteps(), ImmutableList.of(step))) {};
+    }
+  }
+
+  /**
+   * Interface for factories that have {@link
+   * ExecutePostProcessorsCfaFactory#executePostProcessor(CfaPostProcessor)} and {@link
+   * ExecutePostProcessorsCfaFactory#executePostProcessors(Iterable)} methods.
+   */
+  private static interface ExecutePostProcessorsCfaFactory<
+          N extends CfaNodeTransformer, E extends CfaEdgeTransformer>
+      extends StepCfaFactory<N, E> {
+
+    private static <N extends CfaNodeTransformer, E extends CfaEdgeTransformer>
+        Step<N, E> createCfaPostProcessorStep(CfaPostProcessor pCfaPostProcessor) {
       return (state, logger, shutdownNotifier) -> {
         CfaBuilder cfaBuilder = state.getCfaBuilderOrCreate(logger, shutdownNotifier);
         cfaBuilder.runPostProcessor(pCfaPostProcessor);
@@ -273,12 +373,12 @@ public final class CfaFactories {
      *     executes the specified CFA post-processor
      * @throws NullPointerException if {@code pCfaPostProcessor == null}
      */
-    public SupergraphCfaFactory<N, E> executePostProcessor(CfaPostProcessor pCfaPostProcessor) {
+    default StepCfaFactory<N, E> executePostProcessor(CfaPostProcessor pCfaPostProcessor) {
 
       Step<N, E> step = createCfaPostProcessorStep(pCfaPostProcessor);
 
-      return new SupergraphCfaFactory<>(
-          getInitialState(), combine(getSteps(), ImmutableList.of(step)));
+      return new AbstractCfaFactory<>(
+          getInitialState(), combine(getSteps(), ImmutableList.of(step))) {};
     }
 
     /**
@@ -296,7 +396,7 @@ public final class CfaFactories {
      * @throws NullPointerException if {@code pCfaPostProcessors == null} or any of its elements is
      *     {@code null}
      */
-    public SupergraphCfaFactory<N, E> executePostProcessors(
+    default StepCfaFactory<N, E> executePostProcessors(
         Iterable<CfaPostProcessor> pCfaPostProcessors) {
 
       checkNotNull(pCfaPostProcessors);
@@ -306,38 +406,14 @@ public final class CfaFactories {
         steps.add(createCfaPostProcessorStep(checkNotNull(cfaPostProcessor)));
       }
 
-      return new SupergraphCfaFactory<>(getInitialState(), combine(getSteps(), steps.build()));
+      return new AbstractCfaFactory<>(getInitialState(), combine(getSteps(), steps.build())) {};
     }
   }
 
-  /**
-   * Class to use after CFA node/edge transformers have been chosen. We are only allowed to execute
-   * CFA post-processors and build the supergraph (we don't assume any connectedness).
-   *
-   * @param <N> the type of {@code CfaNodeTransformer} used during CFA construction
-   * @param <E> the type of {@code CfaEdgeTransformer} used during CFA construction
-   */
-  public static class AnyConnectednessCfaFactory<
+  /** Interface for factories that have a {@link ToSupergraphCfaFactory#toSupergraph()} method. */
+  private static interface ToSupergraphCfaFactory<
           N extends CfaNodeTransformer, E extends CfaEdgeTransformer>
-      extends SupergraphCfaFactory<N, E> {
-
-    private AnyConnectednessCfaFactory(State<N, E> pInitialState, List<Step<N, E>> pSteps) {
-      super(pInitialState, pSteps);
-    }
-
-    @Override
-    public AnyConnectednessCfaFactory<N, E> executePostProcessor(
-        CfaPostProcessor pCfaPostProcessor) {
-      return new AnyConnectednessCfaFactory<>(
-          getInitialState(), super.executePostProcessor(pCfaPostProcessor).getSteps());
-    }
-
-    @Override
-    public AnyConnectednessCfaFactory<N, E> executePostProcessors(
-        Iterable<CfaPostProcessor> pCfaPostProcessors) {
-      return new AnyConnectednessCfaFactory<>(
-          getInitialState(), super.executePostProcessors(pCfaPostProcessors).getSteps());
-    }
+      extends StepCfaFactory<N, E> {
 
     /**
      * Returns a {@link CfaFactory} that does what this {@link CfaFactory} does and additionally
@@ -346,7 +422,7 @@ public final class CfaFactories {
      * @return a {@link CfaFactory} that does what this {@link CfaFactory} does and additionally
      *     builds the supergraph CFA
      */
-    public SupergraphCfaFactory<N, E> toSupergraph() {
+    default StepCfaFactory<N, E> toSupergraph() {
 
       Step<N, E> step =
           (state, logger, shutdownNotifier) -> {
@@ -356,48 +432,12 @@ public final class CfaFactories {
             return state.withCfaBuilder(cfaBuilder);
           };
 
-      return new SupergraphCfaFactory<>(
-          getInitialState(), combine(getSteps(), ImmutableList.of(step)));
+      return new AbstractCfaFactory<>(
+          getInitialState(), combine(getSteps(), ImmutableList.of(step))) {};
     }
   }
 
-  /**
-   * Class to use after a {@link CfaNodeTransformer} has been chosen.
-   *
-   * @param <N> the type of {@code CfaNodeTransformer} used during CFA construction
-   * @param <E> the type of {@code CfaEdgeTransformer} used during CFA construction
-   */
-  public static class NodeTransformingCfaFactory<
-          N extends CfaNodeTransformer, E extends CfaEdgeTransformer>
-      extends AnyConnectednessCfaFactory<N, E> {
-
-    private NodeTransformingCfaFactory(State<N, E> pInitialState, List<Step<N, E>> pSteps) {
-      super(pInitialState, pSteps);
-    }
-
-    /**
-     * Returns a {@link CfaFactory} that does what this {@link CfaFactory} does, but uses the
-     * specified {@link CfaEdgeTransformer}.
-     *
-     * <p>The specified transformer is used to create all edges in CFAs created by the returned
-     * {@link CfaFactory}.
-     *
-     * @param pCfaEdgeTransformer the {@link CfaEdgeTransformer} to use during CFA construction
-     * @return a {@link CfaFactory} that does what this {@link CfaFactory} does, but uses the
-     *     specified {@link CfaEdgeTransformer}
-     * @throws NullPointerException if {@code pCfaEdgeTransformer == null}
-     */
-    public AnyConnectednessCfaFactory<N, E> transformEdges(E pCfaEdgeTransformer) {
-
-      checkNotNull(pCfaEdgeTransformer);
-
-      Step<N, E> step =
-          (state, logger, shutdownNotifier) -> state.withCfaEdgeTransformer(pCfaEdgeTransformer);
-
-      return new AnyConnectednessCfaFactory<>(
-          getInitialState(), combine(getSteps(), ImmutableList.of(step)));
-    }
-  }
+  // factory implementations
 
   /**
    * {@link InitialCfaFactory} has the most methods for creating new {@link CfaFactory} instances,
@@ -408,7 +448,11 @@ public final class CfaFactories {
    */
   public static final class InitialCfaFactory<
           N extends CfaNodeTransformer, E extends CfaEdgeTransformer>
-      extends NodeTransformingCfaFactory<N, E> {
+      extends AbstractCfaFactory<N, E>
+      implements TransformNodesCfaFactory<N, E>,
+          TransformEdgesCfaFactory<N, E>,
+          ExecutePostProcessorsCfaFactory<N, E>,
+          ToSupergraphCfaFactory<N, E> {
 
     private InitialCfaFactory(State<N, E> pInitialState, List<Step<N, E>> pSteps) {
       super(pInitialState, pSteps);
@@ -430,27 +474,143 @@ public final class CfaFactories {
       return new InitialCfaFactory<>(checkNotNull(pInitialState), checkNotNull(pPriorSteps));
     }
 
-    /**
-     * Returns a {@link CfaFactory} that does what this {@link CfaFactory} does, but uses the
-     * specified {@link CfaNodeTransformer}.
-     *
-     * <p>The specified transformer is used to create all nodes in CFAs created by the returned
-     * {@link CfaFactory}.
-     *
-     * @param pCfaNodeTransformer the {@link CfaNodeTransformer} to use during CFA construction
-     * @return a {@link CfaFactory} that does what this {@link CfaFactory} does, but uses the
-     *     specified {@link CfaNodeTransformer}
-     * @throws NullPointerException if {@code pCfaNodeTransformer == null}
-     */
+    @Override
     public NodeTransformingCfaFactory<N, E> transformNodes(N pCfaNodeTransformer) {
-
-      checkNotNull(pCfaNodeTransformer);
-
-      Step<N, E> step =
-          (state, logger, shutdownNotifier) -> state.withCfaNodeTransformer(pCfaNodeTransformer);
-
       return new NodeTransformingCfaFactory<>(
-          getInitialState(), combine(getSteps(), ImmutableList.of(step)));
+          TransformNodesCfaFactory.super.transformNodes(pCfaNodeTransformer));
+    }
+
+    @Override
+    public AnyConnectednessCfaFactory<N, E> transformEdges(E pCfaEdgeTransformer) {
+      return new AnyConnectednessCfaFactory<>(
+          TransformEdgesCfaFactory.super.transformEdges(pCfaEdgeTransformer));
+    }
+
+    @Override
+    public AnyConnectednessCfaFactory<N, E> executePostProcessor(
+        CfaPostProcessor pCfaPostProcessor) {
+      return new AnyConnectednessCfaFactory<>(
+          ExecutePostProcessorsCfaFactory.super.executePostProcessor(pCfaPostProcessor));
+    }
+
+    @Override
+    public AnyConnectednessCfaFactory<N, E> executePostProcessors(
+        Iterable<CfaPostProcessor> pCfaPostProcessors) {
+      return new AnyConnectednessCfaFactory<>(
+          ExecutePostProcessorsCfaFactory.super.executePostProcessors(pCfaPostProcessors));
+    }
+
+    @Override
+    public SupergraphCfaFactory<N, E> toSupergraph() {
+      return new SupergraphCfaFactory<>(ToSupergraphCfaFactory.super.toSupergraph());
+    }
+  }
+
+  /**
+   * Class to use after a {@link CfaNodeTransformer} has been chosen.
+   *
+   * @param <N> the type of {@code CfaNodeTransformer} used during CFA construction
+   * @param <E> the type of {@code CfaEdgeTransformer} used during CFA construction
+   */
+  public static class NodeTransformingCfaFactory<
+          N extends CfaNodeTransformer, E extends CfaEdgeTransformer>
+      extends AbstractCfaFactory<N, E>
+      implements TransformEdgesCfaFactory<N, E>,
+          ExecutePostProcessorsCfaFactory<N, E>,
+          ToSupergraphCfaFactory<N, E> {
+
+    private NodeTransformingCfaFactory(StepCfaFactory<N, E> pStepCfaFactory) {
+      super(pStepCfaFactory);
+    }
+
+    @Override
+    public AnyConnectednessCfaFactory<N, E> transformEdges(E pCfaEdgeTransformer) {
+      return new AnyConnectednessCfaFactory<>(
+          TransformEdgesCfaFactory.super.transformEdges(pCfaEdgeTransformer));
+    }
+
+    @Override
+    public AnyConnectednessCfaFactory<N, E> executePostProcessor(
+        CfaPostProcessor pCfaPostProcessor) {
+      return new AnyConnectednessCfaFactory<>(
+          ExecutePostProcessorsCfaFactory.super.executePostProcessor(pCfaPostProcessor));
+    }
+
+    @Override
+    public AnyConnectednessCfaFactory<N, E> executePostProcessors(
+        Iterable<CfaPostProcessor> pCfaPostProcessors) {
+      return new AnyConnectednessCfaFactory<>(
+          ExecutePostProcessorsCfaFactory.super.executePostProcessors(pCfaPostProcessors));
+    }
+
+    @Override
+    public SupergraphCfaFactory<N, E> toSupergraph() {
+      return new SupergraphCfaFactory<>(ToSupergraphCfaFactory.super.toSupergraph());
+    }
+  }
+
+  /**
+   * Class to use after CFA node/edge transformers have been chosen. We are only allowed to execute
+   * CFA post-processors and build the supergraph (we don't assume any connectedness).
+   *
+   * @param <N> the type of {@code CfaNodeTransformer} used during CFA construction
+   * @param <E> the type of {@code CfaEdgeTransformer} used during CFA construction
+   */
+  public static class AnyConnectednessCfaFactory<
+          N extends CfaNodeTransformer, E extends CfaEdgeTransformer>
+      extends AbstractCfaFactory<N, E>
+      implements ExecutePostProcessorsCfaFactory<N, E>, ToSupergraphCfaFactory<N, E> {
+
+    private AnyConnectednessCfaFactory(StepCfaFactory<N, E> pStepCfaFactory) {
+      super(pStepCfaFactory);
+    }
+
+    @Override
+    public AnyConnectednessCfaFactory<N, E> executePostProcessor(
+        CfaPostProcessor pCfaPostProcessor) {
+      return new AnyConnectednessCfaFactory<>(
+          ExecutePostProcessorsCfaFactory.super.executePostProcessor(pCfaPostProcessor));
+    }
+
+    @Override
+    public AnyConnectednessCfaFactory<N, E> executePostProcessors(
+        Iterable<CfaPostProcessor> pCfaPostProcessors) {
+      return new AnyConnectednessCfaFactory<>(
+          ExecutePostProcessorsCfaFactory.super.executePostProcessors(pCfaPostProcessors));
+    }
+
+    @Override
+    public SupergraphCfaFactory<N, E> toSupergraph() {
+      return new SupergraphCfaFactory<>(ToSupergraphCfaFactory.super.toSupergraph());
+    }
+  }
+
+  /**
+   * Class to use after the supergraph CFA has been built. We are only allowed to execute CFA
+   * post-processors (on the supergraph).
+   *
+   * @param <N> the type of {@code CfaNodeTransformer} used during CFA construction
+   * @param <E> the type of {@code CfaEdgeTransformer} used during CFA construction
+   */
+  public static class SupergraphCfaFactory<
+          N extends CfaNodeTransformer, E extends CfaEdgeTransformer>
+      extends AbstractCfaFactory<N, E> implements ExecutePostProcessorsCfaFactory<N, E> {
+
+    private SupergraphCfaFactory(StepCfaFactory<N, E> pStepCfaFactory) {
+      super(pStepCfaFactory);
+    }
+
+    @Override
+    public SupergraphCfaFactory<N, E> executePostProcessor(CfaPostProcessor pCfaPostProcessor) {
+      return new SupergraphCfaFactory<>(
+          ExecutePostProcessorsCfaFactory.super.executePostProcessor(pCfaPostProcessor));
+    }
+
+    @Override
+    public SupergraphCfaFactory<N, E> executePostProcessors(
+        Iterable<CfaPostProcessor> pCfaPostProcessors) {
+      return new SupergraphCfaFactory<>(
+          ExecutePostProcessorsCfaFactory.super.executePostProcessors(pCfaPostProcessors));
     }
   }
 }
