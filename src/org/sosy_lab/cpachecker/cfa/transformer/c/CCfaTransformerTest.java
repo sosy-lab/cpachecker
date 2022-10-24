@@ -203,6 +203,9 @@ public final class CCfaTransformerTest {
   private static final class MultipleLeavingEdgesOrder implements Comparator<CFAEdge> {
 
     @Override
+    // Regular assert statements are used for things that shouldn't be tested by
+    // `CCfaTransformerTest`. Fix the test if any of those assertion fails.
+    @SuppressWarnings("UseCorrectAssertInTests")
     public int compare(CFAEdge pSomeEdge, CFAEdge pOtherEdge) {
 
       // summary edge first
@@ -231,7 +234,8 @@ public final class CCfaTransformerTest {
 
       // compare function return edges by their file location
       if (pSomeEdge instanceof FunctionReturnEdge && pOtherEdge instanceof FunctionReturnEdge) {
-        return pSomeEdge.getFileLocation().compareTo(pOtherEdge.getFileLocation());
+        int comparisonResult = pSomeEdge.getFileLocation().compareTo(pOtherEdge.getFileLocation());
+        assert comparisonResult != 0;
       }
 
       throw new AssertionError("Unable to order edges: " + pSomeEdge + " and " + pOtherEdge);
