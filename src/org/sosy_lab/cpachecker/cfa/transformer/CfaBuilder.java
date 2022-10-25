@@ -288,7 +288,6 @@ public final class CfaBuilder {
    * @return a new {@link CFA} instance created by this {@link CfaBuilder}
    * @throws IllegalStateException if this method has already been invoked
    */
-  @CanIgnoreReturnValue
   public CFA createCfa() {
 
     checkState(mutableCfa != null, "Builder has already created a CFA and is not reusable");
