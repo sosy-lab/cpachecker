@@ -17,7 +17,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.NavigableMap;
 import java.util.Optional;
-import java.util.Set;
 import java.util.TreeMap;
 import org.junit.Test;
 import org.sosy_lab.common.ShutdownNotifier;
@@ -87,10 +86,9 @@ public final class CCfaFactoryTest {
     CfaNetwork nodeChainNetwork = CfaNetwork.wrap(nodeChainCfa);
     List<CFAEdge> edges = new ArrayList<>();
     CFANode currentNode = nodeChainCfa.getMainFunction();
-    Set<CFANode> successors;
-    while ((successors = nodeChainNetwork.successors(currentNode)).size() == 1) {
+    while (nodeChainNetwork.successors(currentNode).size() == 1) {
       edges.add(Iterables.getOnlyElement(nodeChainNetwork.outEdges(currentNode)));
-      currentNode = Iterables.getOnlyElement(successors);
+      currentNode = Iterables.getOnlyElement(nodeChainNetwork.successors(currentNode));
     }
 
     assertThat(edges.get(0).getDescription()).isEqualTo("step 1");
@@ -117,9 +115,8 @@ public final class CCfaFactoryTest {
       CFANode currentNode = pCfa.getMetadata().getMainFunctionEntry();
       MutableCfaNetwork nodeChainNetwork = MutableCfaNetwork.wrap(pCfa);
 
-      Set<CFANode> successors;
-      while ((successors = nodeChainNetwork.successors(currentNode)).size() == 1) {
-        currentNode = Iterables.getOnlyElement(successors);
+      while (nodeChainNetwork.successors(currentNode).size() == 1) {
+        currentNode = Iterables.getOnlyElement(nodeChainNetwork.successors(currentNode));
       }
 
       String functionName = currentNode.getFunction().getQualifiedName();
