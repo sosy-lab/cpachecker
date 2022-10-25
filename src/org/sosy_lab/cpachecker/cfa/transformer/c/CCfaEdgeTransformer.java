@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.cfa.transformer.c;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import com.google.common.collect.ImmutableList;
 import com.google.common.graph.EndpointPair;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
@@ -102,7 +104,7 @@ public interface CCfaEdgeTransformer extends CfaEdgeTransformer {
 
         CAstNode astNode = pAstNode;
         for (CCfaEdgeAstSubstitution edgeAstSubstitution : edgeAstSubstitutions) {
-          astNode = edgeAstSubstitution.apply(pEdge, astNode);
+          astNode = checkNotNull(edgeAstSubstitution.apply(pEdge, astNode));
         }
 
         return astNode;

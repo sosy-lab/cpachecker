@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.cfa.transformer.c;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import com.google.common.collect.ImmutableList;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
@@ -54,7 +56,7 @@ public interface CCfaNodeTransformer extends CfaNodeTransformer {
 
         CFunctionDeclaration function = pFunction;
         for (CCfaNodeAstSubstitution nodeAstSubstitution : nodeAstSubstitutions) {
-          function = nodeAstSubstitution.apply(pNode, function);
+          function = checkNotNull(nodeAstSubstitution.apply(pNode, function));
         }
 
         return function;
@@ -65,7 +67,8 @@ public interface CCfaNodeTransformer extends CfaNodeTransformer {
 
         Optional<CVariableDeclaration> returnVariable = pReturnVariable;
         for (CCfaNodeAstSubstitution nodeAstSubstitution : nodeAstSubstitutions) {
-          returnVariable = nodeAstSubstitution.apply(pFunctionEntryNode, returnVariable);
+          returnVariable =
+              checkNotNull(nodeAstSubstitution.apply(pFunctionEntryNode, returnVariable));
         }
 
         return returnVariable;
