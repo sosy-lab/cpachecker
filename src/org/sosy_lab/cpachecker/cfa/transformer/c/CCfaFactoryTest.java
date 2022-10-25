@@ -93,9 +93,9 @@ public final class CCfaFactoryTest {
       currentNode = Iterables.getOnlyElement(successors);
     }
 
-    assertEquals(edges.get(0).getDescription(), "step 1");
-    assertEquals(edges.get(1).getDescription(), "step 2");
-    assertEquals(edges.get(2).getDescription(), "step 3");
+    assertEquals("step 1", edges.get(0).getDescription());
+    assertEquals("step 2", edges.get(1).getDescription());
+    assertEquals("step 3", edges.get(2).getDescription());
   }
 
   /**
