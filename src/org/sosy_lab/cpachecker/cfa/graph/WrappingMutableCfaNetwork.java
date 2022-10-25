@@ -12,7 +12,7 @@ import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import com.google.common.graph.EndpointPair;
-import java.util.Collection;
+import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.MutableCFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -50,10 +50,7 @@ final class WrappingMutableCfaNetwork implements MutableCfaNetwork, ForwardingCf
 
   @Override
   public boolean addNode(CFANode pNode) {
-
-    checkNotNull(pNode);
-
-    return mutableCfa.addNode(pNode);
+    return mutableCfa.addNode(checkNotNull(pNode));
   }
 
   @Override
@@ -70,9 +67,9 @@ final class WrappingMutableCfaNetwork implements MutableCfaNetwork, ForwardingCf
         pSuccessor,
         pEdge.getSuccessor());
 
-    for (CFAEdge predecessorOutEdge : CFAUtils.allLeavingEdges(pPredecessor)) {
+    for (CFAEdge predecessorOutEdge : outEdges(pPredecessor)) {
       checkArgument(
-          !predecessorOutEdge.getSuccessor().equals(pSuccessor),
+          !successor(predecessorOutEdge).equals(pSuccessor),
           "Parallel edges are not allowed: %s is parallel to %s",
           predecessorOutEdge,
           pEdge);
@@ -128,15 +125,16 @@ final class WrappingMutableCfaNetwork implements MutableCfaNetwork, ForwardingCf
   @Override
   public boolean removeEdge(CFAEdge pEdge) {
 
-    CFANode predecessor = pEdge.getPredecessor();
-    CFANode successor = pEdge.getSuccessor();
-    Collection<CFANode> allNodes = mutableCfa.getAllNodes();
+    CFANode predecessor = predecessor(pEdge);
+    CFANode successor = successor(pEdge);
+    Set<CFANode> nodes = nodes();
 
-    if (allNodes.contains(predecessor) && allNodes.contains(successor)) {
+    if (nodes.contains(predecessor) && nodes.contains(successor)) {
       if (pEdge instanceof FunctionSummaryEdge) {
         // remove summary edge, if it exists
         if (pEdge.equals(predecessor.getLeavingSummaryEdge())
             && pEdge.equals(successor.getEnteringSummaryEdge())) {
+
           predecessor.removeLeavingSummaryEdge((FunctionSummaryEdge) pEdge);
           successor.removeEnteringSummaryEdge((FunctionSummaryEdge) pEdge);
 
@@ -146,6 +144,7 @@ final class WrappingMutableCfaNetwork implements MutableCfaNetwork, ForwardingCf
         // remove non-summary edge, if it exists
         if (CFAUtils.leavingEdges(predecessor).contains(pEdge)
             && CFAUtils.enteringEdges(successor).contains(pEdge)) {
+
           predecessor.removeLeavingEdge(pEdge);
           successor.removeEnteringEdge(pEdge);
 
