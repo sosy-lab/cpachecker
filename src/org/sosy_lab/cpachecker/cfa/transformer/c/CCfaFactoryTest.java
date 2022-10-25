@@ -8,7 +8,7 @@
 
 package org.sosy_lab.cpachecker.cfa.transformer.c;
 
-import static org.junit.Assert.assertEquals;
+import static com.google.common.truth.Truth.assertThat;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
@@ -93,9 +93,9 @@ public final class CCfaFactoryTest {
       currentNode = Iterables.getOnlyElement(successors);
     }
 
-    assertEquals("step 1", edges.get(0).getDescription());
-    assertEquals("step 2", edges.get(1).getDescription());
-    assertEquals("step 3", edges.get(2).getDescription());
+    assertThat(edges.get(0).getDescription()).isEqualTo("step 1");
+    assertThat(edges.get(1).getDescription()).isEqualTo("step 2");
+    assertThat(edges.get(2).getDescription()).isEqualTo("step 3");
   }
 
   /**
