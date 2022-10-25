@@ -95,17 +95,17 @@ final class WrappingFlexCfaNetwork
     List<CFANode> nodePredecessors = new ArrayList<>(nodeInEdges.size());
 
     for (CFAEdge nodeInEdge : nodeInEdges) {
-      nodePredecessors.add(incidentNodes(nodeInEdge).source());
+      nodePredecessors.add(predecessor(nodeInEdge));
       removeEdge(nodeInEdge);
     }
 
     addNode(pNewPredecessor);
 
-    for (int index = 0; index < nodeInEdges.size(); index++) {
-      addEdge(nodePredecessors.get(index), pNewPredecessor, nodeInEdges.get(index));
+    for (int i = 0; i < nodeInEdges.size(); i++) {
+      addEdge(nodePredecessors.get(i), nodeInEdges.get(i), pNewPredecessor);
     }
 
-    addEdge(pNewPredecessor, pNode, pNewInEdge);
+    addEdge(pNewPredecessor, pNewInEdge, pNode);
   }
 
   @Override
@@ -115,17 +115,17 @@ final class WrappingFlexCfaNetwork
     List<CFANode> nodeSuccessors = new ArrayList<>(nodeOutEdges.size());
 
     for (CFAEdge nodeOutEdge : nodeOutEdges) {
-      nodeSuccessors.add(incidentNodes(nodeOutEdge).target());
+      nodeSuccessors.add(successor(nodeOutEdge));
       removeEdge(nodeOutEdge);
     }
 
     addNode(pNewSuccessor);
 
-    for (int index = 0; index < nodeOutEdges.size(); index++) {
-      addEdge(pNewSuccessor, nodeSuccessors.get(index), nodeOutEdges.get(index));
+    for (int i = 0; i < nodeOutEdges.size(); i++) {
+      addEdge(pNewSuccessor, nodeOutEdges.get(i), nodeSuccessors.get(i));
     }
 
-    addEdge(pNode, pNewSuccessor, pNewOutEdge);
+    addEdge(pNode, pNewOutEdge, pNewSuccessor);
   }
 
   @Override
@@ -134,15 +134,15 @@ final class WrappingFlexCfaNetwork
     addNode(pNewNode);
 
     for (CFAEdge inEdge : ImmutableList.copyOf(inEdges(pNode))) {
-      CFANode nodePredecessor = incidentNodes(inEdge).source();
+      CFANode nodePredecessor = predecessor(inEdge);
       removeEdge(inEdge);
-      addEdge(nodePredecessor, pNewNode, inEdge);
+      addEdge(nodePredecessor, inEdge, pNewNode);
     }
 
     for (CFAEdge outEdge : ImmutableList.copyOf(outEdges(pNode))) {
-      CFANode nodeSuccessor = incidentNodes(outEdge).target();
+      CFANode nodeSuccessor = successor(outEdge);
       removeEdge(outEdge);
-      addEdge(pNewNode, nodeSuccessor, outEdge);
+      addEdge(pNewNode, outEdge, nodeSuccessor);
     }
 
     removeNode(pNode);
@@ -150,8 +150,9 @@ final class WrappingFlexCfaNetwork
 
   @Override
   public void replaceEdge(CFAEdge pEdge, CFAEdge pNewEdge) {
+
     EndpointPair<CFANode> endpoints = incidentNodes(pEdge);
     removeEdge(pEdge);
-    addEdge(endpoints.source(), endpoints.target(), pNewEdge);
+    addEdge(endpoints, pNewEdge);
   }
 }
