@@ -25,7 +25,7 @@ import org.sosy_lab.cpachecker.cfa.transformer.CfaFactory;
  *
  * <p>The recommended way of creating {@link CfaFactory} instances is by chaining method calls.
  * After every method call, the {@link CfaFactory} can be used directly, or a {@link CfaFactory} can
- * be created that differs from the previous {@link CfaFactory} (e.g., it executes one more CFA
+ * be created that differs from the previous {@link CfaFactory} (e.g., it executes an additional CFA
  * post-processor). During CFA construction, the order of method chain calls is taken into account
  * (e.g, the first {@code executePostProcessor(...)} call defines the first CFA post-processor to
  * execute during CFA construction).
@@ -59,8 +59,9 @@ import org.sosy_lab.cpachecker.cfa.transformer.CfaFactory;
 public final class CCfaFactory {
 
   /**
-   * A {@link CfaFactory} that creates CFAs that resemble the CFA represented by the given {@link
-   * CfaNetwork} instances as closely as possible. No CFA post-processors are executed.
+   * A {@link CfaFactory} that creates CFAs that resemble the CFA represented by the given ({@link
+   * CfaNetwork}, {@link CfaMetadata}) pair instances as closely as possible. No CFA post-processors
+   * are executed.
    */
   public static final CfaFactory CLONER =
       CfaFactories.InitialCfaFactory.create(initialState(), ImmutableList.of());
@@ -83,7 +84,8 @@ public final class CCfaFactory {
   /**
    * Returns a {@link CfaFactory} that transforms a {@link CfaNetwork} of any connectedness to a CFA
    * consisting of unconnected functions (similar to {@link CfaConnectedness#UNCONNECTED_FUNCTIONS
-   * unconnected function CFAs}, just as a single CFA).
+   * unconnected function CFAs}, just as a single CFA that contains multiple unconnected function
+   * CFAs).
    *
    * @return a {@link CfaFactory} that transforms a {@link CfaNetwork} of any connectedness to a CFA
    *     consisting of unconnected functions
@@ -144,9 +146,9 @@ public final class CCfaFactory {
   /**
    * Returns a {@link CfaFactory} that executes the specified CFA post-processor.
    *
-   * <p>The execution order CFA post-processors is the order in which they are specified. If
-   * multiple {@code executePostProcessor} are chained, the CFA post-processors are executed during
-   * CFA construction in the order they appear in the chain.
+   * <p>The execution order of CFA post-processors is the order in which they are specified. If
+   * multiple {@code executePostProcessor} calls are chained, the CFA post-processors are executed
+   * in the order they appear in the chain.
    *
    * @param pCfaPostProcessor the CFA post-processor to execute during CFA construction
    * @return a {@link CfaFactory} that executes the specified CFA post-processor
@@ -161,10 +163,10 @@ public final class CCfaFactory {
   /**
    * Returns a {@link CfaFactory} that executes the specified CFA post-processors.
    *
-   * <p>The execution order CFA post-processors is the order in which they are specified. If
-   * multiple {@code executePostProcessor} are chained, the CFA post-processors are executed during
-   * CFA construction in the order they appear in the chain. Additionally, the order of {@code
-   * pCfaPostProcessors} is taken into account.
+   * <p>The execution order of CFA post-processors is the order in which they are specified. If
+   * multiple {@code executePostProcessor} calls are chained, the CFA post-processors are executed
+   * in the order they appear in the chain. Additionally, the order of {@code pCfaPostProcessors} is
+   * taken into account.
    *
    * @param pCfaPostProcessors the CFA post-processors to execute during CFA construction
    * @return a {@link CfaFactory} that executes the specified CFA post-processors
@@ -181,6 +183,8 @@ public final class CCfaFactory {
    * Returns a {@link CfaFactory} that builds the supergraph.
    *
    * @return a {@link CfaFactory} that builds the supergraph
+   * @throws IllegalStateException if the CFA during the current construction step is already a
+   *     supergraph
    */
   public static CfaFactories.SupergraphCfaFactory<CCfaNodeTransformer, CCfaEdgeTransformer>
       toSupergraph() {

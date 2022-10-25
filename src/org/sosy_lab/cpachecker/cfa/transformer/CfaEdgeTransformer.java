@@ -15,7 +15,7 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
 
 /**
  * A {@link CfaEdgeTransformer} returns for a given CFA edge (the original edge) a new edge that may
- * differ from the original node.
+ * differ from the original edge.
  *
  * <p>A {@link CfaEdgeTransformer} must always create a new edge every time its {@link
  * CfaEdgeTransformer#transform(CFAEdge, CfaNetwork, CfaNodeProvider, CfaEdgeProvider) transform
@@ -42,7 +42,7 @@ public interface CfaEdgeTransformer {
    *     on, return the corresponding transformed edges. If the construction of a transformed edge
    *     doesn't depend on any other edges, it's guaranteed that the specified provider is not used,
    *     so a dummy provider can be specified.
-   * @return a new transformed CFA edge for the specified CFA edge
+   * @return a new transformed CFA edge for the specified CFA edge (must not return {@code null})
    * @throws NullPointerException if any parameter is {@code null}
    */
   CFAEdge transform(

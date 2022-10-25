@@ -17,7 +17,7 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
  * FunctionSummaryEdge} to create a {@link FunctionCallEdge}). {@link CfaEdgeProvider}
  * implementations resolve those dependencies.
  *
- * <p>CFA edge transformers use {@link CfaEdgeProvider} the following way: given the edges the
+ * <p>CFA edge transformers use {@link CfaEdgeProvider} the following way: Given the edges the
  * original edge depends on, return the corresponding transformed edges.
  *
  * <p>A {@link CfaEdgeProvider} must always return the same edge for a specific given edge.
@@ -43,7 +43,7 @@ public interface CfaEdgeProvider {
    * <p>This method always returns the same edge for a specific given edge.
    *
    * @param pEdge the CFA edge to get the substitute for
-   * @return the substitute for the specified CFA edge
+   * @return the substitute for the specified CFA edge (must not return {@code null})
    * @throws NullPointerException if {@code pEdge == null}
    */
   CFAEdge get(CFAEdge pEdge);

@@ -40,7 +40,7 @@ public interface CfaNodeTransformer {
    *     on, return the corresponding transformed nodes. If the construction of a transformed node
    *     does not depend on any other nodes, it's guaranteed that the specified provider is not
    *     used, so a dummy provider can be specified.
-   * @return a new transformed CFA node for the specified CFA node
+   * @return a new transformed CFA node for the specified CFA node (must not return {@code null})
    * @throws NullPointerException if any parameter is {@code null}
    */
   CFANode transform(CFANode pNode, CfaNetwork pCfaNetwork, CfaNodeProvider pNodeProvider);

@@ -41,8 +41,8 @@ import org.sosy_lab.cpachecker.exceptions.ParserException;
 /**
  * Builder for creating {@link CFA} instances for ({@link CfaNetwork}, {@link CfaMetadata}) pairs.
  *
- * <p>This class should only be used by CFA factory implementations. Other code should use CFA
- * factory implementations instead.
+ * <p>This class should only be used by CFA factory implementations. Other code should use those CFA
+ * factories instead.
  */
 public final class CfaBuilder {
 
@@ -82,10 +82,10 @@ public final class CfaBuilder {
   /**
    * Returns a new {@link CfaBuilder} for further CFA manipulation and final CFA creation.
    *
-   * @param pLogger the logger to use during CFA creation
-   * @param pShutdownNotifier the shutdown notifier to use during CFA creation
-   * @param pCfaNodeTransformer the {@link CfaNodeTransformer} to use during CFA creation
-   * @param pCfaEdgeTransformer the {@link CfaEdgeTransformer} to use during CFA creation
+   * @param pLogger the logger to use during CFA construction
+   * @param pShutdownNotifier the shutdown notifier to use during CFA construction
+   * @param pCfaNodeTransformer the {@link CfaNodeTransformer} to use during CFA construction
+   * @param pCfaEdgeTransformer the {@link CfaEdgeTransformer} to use during CFA construction
    * @param pCfaNetwork the {@link CfaNetwork} to create a CFA for
    * @param pCfaMetadata the {@link CfaMetadata} of the specified {@link CfaNetwork}
    * @return a new {@link CfaBuilder} for further CFA manipulation and final CFA creation
@@ -239,6 +239,7 @@ public final class CfaBuilder {
    *
    * @param pCfaPostProcessor the CFA post-processor to execute
    * @return this {@link CfaBuilder} instance for further CFA manipulation and final CFA creation
+   * @throws NullPointerException if {@code pCfaPostProcessor == null}
    */
   @CanIgnoreReturnValue
   public CfaBuilder runPostProcessor(CfaPostProcessor pCfaPostProcessor) {
@@ -285,7 +286,7 @@ public final class CfaBuilder {
    * <p>This method can only be invoked once for every {@link CfaBuilder} instance.
    *
    * @return a new {@link CFA} instance created by this {@link CfaBuilder}
-   * @throws IllegalStateException if this method was already invoked
+   * @throws IllegalStateException if this method has already been invoked
    */
   @CanIgnoreReturnValue
   public CFA createCfa() {

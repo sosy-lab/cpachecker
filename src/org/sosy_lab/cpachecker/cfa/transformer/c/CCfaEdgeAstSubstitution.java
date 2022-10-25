@@ -29,7 +29,7 @@ public interface CCfaEdgeAstSubstitution {
    * @param pEdge the CFA edge that contains the specified AST node
    * @param pAstNode the AST node to get the substitute for
    * @return the substitute AST node for the specified AST node that is contained in the specified
-   *     CFA edge
+   *     CFA edge (must not return {@code null})
    * @throws NullPointerException if any parameter is {@code null}
    */
   CAstNode apply(CFAEdge pEdge, CAstNode pAstNode);

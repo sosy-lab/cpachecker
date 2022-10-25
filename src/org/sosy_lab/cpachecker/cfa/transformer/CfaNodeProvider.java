@@ -14,7 +14,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
  * The creation of some CFA nodes/edges depends on other nodes (e.g., to create a new CFA edge, we
  * need its endpoints). {@link CfaNodeProvider} implementations resolve those dependencies.
  *
- * <p>CFA node/edge transformers use {@link CfaNodeProvider} the following way: given the nodes the
+ * <p>CFA node/edge transformers use {@link CfaNodeProvider} the following way: Given the nodes the
  * original node/edge depends on, return the corresponding transformed nodes.
  *
  * <p>A {@link CfaNodeProvider} must always return the same node for a specific given node.
@@ -40,7 +40,7 @@ public interface CfaNodeProvider {
    * <p>This method always returns the same node for a specific given node.
    *
    * @param pNode the CFA node to get the substitute for
-   * @return the substitute for the specified CFA node
+   * @return the substitute for the specified CFA node (must not return {@code null})
    * @throws NullPointerException if {@code pNode == null}
    */
   CFANode get(CFANode pNode);

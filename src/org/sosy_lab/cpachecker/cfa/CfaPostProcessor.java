@@ -38,7 +38,7 @@ public interface CfaPostProcessor {
    * @param pLogger the logger to use during CFA post-processing
    * @param pShutdownNotifier the shutdown notifier to use during CFA post-processing
    * @return the post-processed CFA (can be the specified {@link MutableCFA} or a completely new
-   *     {@link MutableCFA})
+   *     {@link MutableCFA}, but must not return {@code null})
    * @throws NullPointerException if any parameter is {@code null}
    */
   MutableCFA execute(MutableCFA pCfa, LogManager pLogger, ShutdownNotifier pShutdownNotifier);

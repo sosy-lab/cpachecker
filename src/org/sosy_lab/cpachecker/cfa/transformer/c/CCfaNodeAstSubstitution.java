@@ -31,7 +31,7 @@ public interface CCfaNodeAstSubstitution {
    * @param pNode the CFA node that contains the specified function declaration
    * @param pFunction the function declaration to get the substitute for
    * @return the substitute function declaration for the specified function declaration that is
-   *     contained in the specified CFA node
+   *     contained in the specified CFA node (must not return {@code null})
    * @throws NullPointerException if any parameter is {@code null}
    */
   CFunctionDeclaration apply(CFANode pNode, CFunctionDeclaration pFunction);
@@ -46,7 +46,7 @@ public interface CCfaNodeAstSubstitution {
    * @param pFunctionEntryNode the function entry node that contains the specified return variable
    * @param pReturnVariable the return variable to get the substitute for
    * @return the substitute return variable for the specified return variable that is contained in
-   *     the specified function entry node
+   *     the specified function entry node (must not return {@code null})
    * @throws NullPointerException if any parameter is {@code null}
    */
   Optional<CVariableDeclaration> apply(

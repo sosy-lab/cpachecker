@@ -25,7 +25,7 @@ import org.sosy_lab.cpachecker.cfa.graph.CfaNetwork;
  *
  * <p>{@link CfaFactory} implementations may use {@link CfaNodeTransformer node} / {@link
  * CfaEdgeTransformer edge transformers} and execute {@link CfaPostProcessor CFA post-processors}
- * during CFA creation.
+ * during CFA construction.
  */
 public interface CfaFactory {
 
@@ -36,15 +36,16 @@ public interface CfaFactory {
    *
    * <p>{@link CfaFactory} implementations may use {@link CfaNodeTransformer node} / {@link
    * CfaEdgeTransformer edge transformers} and execute {@link CfaPostProcessor CFA post-processors}
-   * during CFA creation, which may lead to differences between the specified {@link CfaNetwork} and
-   * returned {@link CFA}. Additionally, some other essential modifications may be performed (e.g.,
-   * creating the supergraph CFA).
+   * during CFA construction, which may lead to differences between the specified ({@link
+   * CfaNetwork}, {@link CfaMetadata}) pair and returned {@link CFA}. Additionally, some other
+   * essential modifications may be performed (e.g., creating the supergraph CFA).
    *
    * @param pCfaNetwork the {@link CfaNetwork} to create a CFA for
    * @param pCfaMetadata the {@link CfaMetadata} of the specified {@link CfaNetwork}
    * @param pLogger the logger to use during CFA creation
    * @param pShutdownNotifier the shutdown notifier to use during CFA creation
-   * @return a new CFA for the specified {@link CfaNetwork} and {@link CfaMetadata}
+   * @return a new CFA for the specified {@link CfaNetwork} and {@link CfaMetadata} (must not return
+   *     {@code null})
    * @throws NullPointerException if any parameter is {@code null}
    * @throws IllegalArgumentException if the specified {@link CfaNetwork} doesn't represent a valid
    *     CFA

@@ -78,7 +78,7 @@ public interface CfaTransformer {
    * @param pCfaMetadata the metadata of the specified {@link CfaNetwork}
    * @param pLogger the logger to use during CFA transformation
    * @param pShutdownNotifier the shutdown notifier to use during CFA transformation
-   * @return a new transformed CFA for the specified CFA
+   * @return a new transformed CFA for the specified CFA (must not return {@code null})
    * @throws NullPointerException if any parameter is {@code null}
    */
   CFA transform(
@@ -95,7 +95,7 @@ public interface CfaTransformer {
    * @param pCfa the CFA to create a transformed CFA for
    * @param pLogger the logger to use during CFA transformation
    * @param pShutdownNotifier the shutdown notifier to use during CFA transformation
-   * @return a new transformed CFA for the specified CFA
+   * @return a new transformed CFA for the specified CFA (must not return {@code null})
    * @throws NullPointerException if any parameter is {@code null}
    */
   default CFA transform(CFA pCfa, LogManager pLogger, ShutdownNotifier pShutdownNotifier) {

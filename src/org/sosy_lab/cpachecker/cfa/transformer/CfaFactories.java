@@ -25,7 +25,7 @@ import org.sosy_lab.cpachecker.cfa.graph.CfaNetwork;
  *
  * <p>The recommended way of creating {@link CfaFactory} instances is by chaining method calls.
  * After every method call, the {@link CfaFactory} can be used directly, or a {@link CfaFactory} can
- * be created that differs from the previous {@link CfaFactory} (e.g., it executes one more CFA
+ * be created that differs from the previous {@link CfaFactory} (e.g., it executes an additional CFA
  * post-processor). During CFA construction, the order of method chain calls is taken into account
  * (e.g, the first {@code executePostProcessor(...)} call defines the first CFA post-processor to
  * execute during CFA construction).
@@ -72,9 +72,9 @@ public final class CfaFactories {
    * Creates the initial {@link State}.
    *
    * @param pDefaultCfaNodeTransformer the default {@link CfaNodeTransformer} that is used if no
-   *     other {@link CfaNodeTransformer} is later specified
+   *     other {@link CfaNodeTransformer} is specified in a later step
    * @param pDefaultCfaEdgeTransformer the default {@link CfaEdgeTransformer} that is used if no
-   *     other {@link CfaEdgeTransformer} is later specified
+   *     other {@link CfaEdgeTransformer} is specified in a later step
    * @throws NullPointerException if any parameter is {@code null}
    */
   public static <N extends CfaNodeTransformer, E extends CfaEdgeTransformer>
@@ -90,8 +90,8 @@ public final class CfaFactories {
   /**
    * Defines a single step executed during CFA construction (e.g., executing a CFA post-processor).
    *
-   * @param <N> the type of {@code CfaNodeTransformer} used during CFA construction
-   * @param <E> the type of {@code CfaEdgeTransformer} used during CFA construction
+   * @param <N> the type of {@link CfaNodeTransformer} used during CFA construction
+   * @param <E> the type of {@link CfaEdgeTransformer} used during CFA construction
    */
   public static interface Step<N extends CfaNodeTransformer, E extends CfaEdgeTransformer> {
 
@@ -101,7 +101,8 @@ public final class CfaFactories {
      * @param pState the state before this step is executed
      * @param pLogger the logger to use during step execution
      * @param pShutdownNotifier the shutdown notifier to use during step execution
-     * @return the state after executing this step
+     * @return the state after executing this step (must not return {@code null})
+     * @throws NullPointerException if any parameter is {@code null}
      */
     State<N, E> execute(State<N, E> pState, LogManager pLogger, ShutdownNotifier pShutdownNotifier);
   }
@@ -109,14 +110,12 @@ public final class CfaFactories {
   /**
    * The state that is passed from {@link Step step} to {@link Step step}.
    *
-   * @param <N> the type of {@code CfaNodeTransformer} used during CFA construction
-   * @param <E> the type of {@code CfaEdgeTransformer} used during CFA construction
+   * @param <N> the type of {@link CfaNodeTransformer} used during CFA construction
+   * @param <E> the type of {@link CfaEdgeTransformer} used during CFA construction
    */
   public static final class State<N extends CfaNodeTransformer, E extends CfaEdgeTransformer> {
 
     // `null` before we know what `CfaNetwork` and `CfaMetadata` to use for CFA construction.
-    // Sometimes we want to use a modified `CfaNetwork` view, so we have to create that in a prior
-    // step and than set these fields.
     private final @Nullable CfaNetwork cfaNetwork;
     private final @Nullable CfaMetadata cfaMetadata;
 
@@ -196,19 +195,19 @@ public final class CfaFactories {
   /**
    * Interface that all chainable {@link CfaFactory factories} implement.
    *
-   * @param <N> the type of {@code CfaNodeTransformer} used during CFA construction
-   * @param <E> the type of {@code CfaEdgeTransformer} used during CFA construction
+   * @param <N> the type of {@link CfaNodeTransformer} used during CFA construction
+   * @param <E> the type of {@link CfaEdgeTransformer} used during CFA construction
    */
   private static interface StepCfaFactory<
           N extends CfaNodeTransformer, E extends CfaEdgeTransformer>
       extends CfaFactory {
 
     /**
-     * Returns the initial {@link State state} that is used for executing the {@link Step steps} of
-     * this factory.
+     * Returns the initial {@link State state} that is used for executing the first {@link Step
+     * step} of this factory.
      *
-     * @return the initial {@link State state} that is used for executing the {@link Step steps} of
-     *     this factory
+     * @return the initial {@link State state} that is used for executing the first {@link Step
+     *     step} of this factory (must not return {@code null})
      */
     State<N, E> getInitialState();
 
@@ -225,8 +224,8 @@ public final class CfaFactories {
    *
    * <p>Implements how {@link Step steps} are executes to create the final CFA.
    *
-   * @param <N> the type of {@code CfaNodeTransformer} used during CFA construction
-   * @param <E> the type of {@code CfaEdgeTransformer} used during CFA construction
+   * @param <N> the type of {@link CfaNodeTransformer} used during CFA construction
+   * @param <E> the type of {@link CfaEdgeTransformer} used during CFA construction
    */
   private abstract static class AbstractCfaFactory<
           N extends CfaNodeTransformer, E extends CfaEdgeTransformer>
@@ -383,7 +382,7 @@ public final class CfaFactories {
 
     /**
      * Returns a {@link CfaFactory} that does what this {@link CfaFactory} does and additionally
-     * executes the specified CFA post-processor.
+     * executes the specified CFA post-processors.
      *
      * <p>The execution order of CFA post-processors is the order in which they are specified. If
      * multiple {@code executePostProcessors} calls are chained, the CFA post-processors are
@@ -421,6 +420,8 @@ public final class CfaFactories {
      *
      * @return a {@link CfaFactory} that does what this {@link CfaFactory} does and additionally
      *     builds the supergraph CFA
+     * @throws IllegalStateException if the CFA during the current construction step is already a
+     *     supergraph
      */
     default StepCfaFactory<N, E> toSupergraph() {
 
@@ -443,8 +444,8 @@ public final class CfaFactories {
    * {@link InitialCfaFactory} has the most methods for creating new {@link CfaFactory} instances,
    * because we haven't done anything that limits our choices.
    *
-   * @param <N> the type of {@code CfaNodeTransformer} used during CFA construction
-   * @param <E> the type of {@code CfaEdgeTransformer} used during CFA construction
+   * @param <N> the type of {@link CfaNodeTransformer} used during CFA construction
+   * @param <E> the type of {@link CfaEdgeTransformer} used during CFA construction
    */
   public static final class InitialCfaFactory<
           N extends CfaNodeTransformer, E extends CfaEdgeTransformer>
@@ -461,8 +462,8 @@ public final class CfaFactories {
     /**
      * Creates a {@link InitialCfaFactory} for the specified initial state and prior steps.
      *
-     * @param <N> the type of {@code CfaNodeTransformer} used during CFA construction
-     * @param <E> the type of {@code CfaEdgeTransformer} used during CFA construction
+     * @param <N> the type of {@link CfaNodeTransformer} used during CFA construction
+     * @param <E> the type of {@link CfaEdgeTransformer} used during CFA construction
      * @param pInitialState the {@link CfaFactories#createInitialState(CfaNodeTransformer,
      *     CfaEdgeTransformer) initial state} to use for CFA construction
      * @param pPriorSteps any prior steps (e.g, the creation of a modified `CfaNetwork` view)
@@ -509,8 +510,8 @@ public final class CfaFactories {
   /**
    * Class to use after a {@link CfaNodeTransformer} has been chosen.
    *
-   * @param <N> the type of {@code CfaNodeTransformer} used during CFA construction
-   * @param <E> the type of {@code CfaEdgeTransformer} used during CFA construction
+   * @param <N> the type of {@link CfaNodeTransformer} used during CFA construction
+   * @param <E> the type of {@link CfaEdgeTransformer} used during CFA construction
    */
   public static class NodeTransformingCfaFactory<
           N extends CfaNodeTransformer, E extends CfaEdgeTransformer>
@@ -553,8 +554,8 @@ public final class CfaFactories {
    * Class to use after CFA node/edge transformers have been chosen. We are only allowed to execute
    * CFA post-processors and build the supergraph (we don't assume any connectedness).
    *
-   * @param <N> the type of {@code CfaNodeTransformer} used during CFA construction
-   * @param <E> the type of {@code CfaEdgeTransformer} used during CFA construction
+   * @param <N> the type of {@link CfaNodeTransformer} used during CFA construction
+   * @param <E> the type of {@link CfaEdgeTransformer} used during CFA construction
    */
   public static class AnyConnectednessCfaFactory<
           N extends CfaNodeTransformer, E extends CfaEdgeTransformer>
@@ -589,8 +590,8 @@ public final class CfaFactories {
    * Class to use after the supergraph CFA has been built. We are only allowed to execute CFA
    * post-processors (on the supergraph).
    *
-   * @param <N> the type of {@code CfaNodeTransformer} used during CFA construction
-   * @param <E> the type of {@code CfaEdgeTransformer} used during CFA construction
+   * @param <N> the type of {@link CfaNodeTransformer} used during CFA construction
+   * @param <E> the type of {@link CfaEdgeTransformer} used during CFA construction
    */
   public static class SupergraphCfaFactory<
           N extends CfaNodeTransformer, E extends CfaEdgeTransformer>
