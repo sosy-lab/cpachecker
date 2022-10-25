@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.cfa.graph;
 
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Multimap;
 import java.util.AbstractCollection;
@@ -53,9 +54,11 @@ abstract class UnmodifiableSetView<E> extends AbstractCollection<E> implements S
    */
   static <E> ImmutableSet<List<E>> duplicates(Iterable<E> pIterable) {
 
-    Set<E> set = new HashSet<>();
-    pIterable.forEach(set::add);
-    if (set.size() < Iterators.size(pIterable.iterator())) {
+    int iterableSize = Iterators.size(pIterable.iterator());
+    Set<E> set = new HashSet<>(iterableSize);
+    Iterables.addAll(set, pIterable);
+
+    if (set.size() < iterableSize) {
 
       // element -> all elements the element is equal to, including itself
       Multimap<E, E> occurrencesMap = ArrayListMultimap.create();
