@@ -18,23 +18,23 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 /**
  * Represents a {@link CFA} as a {@link MutableNetwork}.
  *
- * <p>A {@link MutableCfaNetwork} is a {@link CfaNetwork} that also provides some basic operations
- * for modifying CFAs like adding/removing nodes and edges.
+ * <p>A {@link MutableCfaNetwork} is a {@link CfaNetwork} that also provides basic operations for
+ * modifying CFAs, like adding and removing nodes/edges.
  *
  * <p>All connections between elements of a CFA (i.e., nodes and edges) are defined by a {@link
  * MutableCfaNetwork}. Depending on the implementation, the CFA represented by a {@link
  * MutableCfaNetwork} may differ from the CFA represented by its elements (e.g., {@link
  * CFAEdge#getSuccessor()} and {@link MutableCfaNetwork#successor(CFAEdge)} may not return the same
- * value). It's important to only use methods provided by a {@link MutableCfaNetwork} if more than a
+ * value). It's important to only use methods provided by {@link MutableCfaNetwork} if more than a
  * single CFA node and/or edge is involved.
  *
  * <p>For performance reasons, some expensive checks are only performed if Java assertions are
  * enabled. Even though this is bad practice in general, this is also the case for some
  * preconditions. E.g., for some implementations, checking whether a CFA node or edge actually
  * belongs to a {@link MutableCfaNetwork} can be quite expensive, so this isn't necessarily checked
- * for method arguments if Java assertions are disabled.
+ * for all method arguments if Java assertions are disabled.
  *
- * <p>All returned sets are unmodifiable views, so modifications attempts throw an exception.
+ * <p>All returned sets are unmodifiable views, so modification attempts throw an exception.
  * However, modifications to a {@link MutableCfaNetwork} will be reflected in its returned set
  * views. A {@link MutableCfaNetwork} must not be modified while any of its set view are iterated,
  * as this might lead to incorrect iterations.
@@ -47,16 +47,16 @@ public interface MutableCfaNetwork extends CfaNetwork, MutableNetwork<CFANode, C
    * <p>All modifying operations on the returned {@link MutableCfaNetwork} change the specified
    * {@link MutableCFA}.
    *
-   * <p>The CFA represented by the returned {@link MutableCfaNetwork} always matches the CFA
+   * <p>All changes to the specified CFA are reflected in the returned {@link MutableCfaNetwork}.
+   * The CFA represented by the returned {@link MutableCfaNetwork} always matches the CFA
    * represented by its elements (e.g., {@link CFAEdge#getSuccessor()} and {@link
    * MutableCfaNetwork#successor(CFAEdge)} always return the same value). Endpoints of a CFA edge
    * and endpoints given as arguments to an {@code addEdge} method must match.
    *
    * <p>IMPORTANT: The specified CFA must not contain any parallel edges (i.e., edges that connect
-   * the same nodes in the same order) and never add them in the future (if the CFA is mutable).
-   * Additionally, the set returned by {@link CFA#getAllNodes()} must not contain any duplicates and
-   * never add them in the future. Be aware that these requirements are not enforced if Java
-   * assertions are disabled.
+   * the same nodes in the same order) and never add them in the future. Additionally, the set
+   * returned by {@link CFA#getAllNodes()} must not contain any duplicates and never add them in the
+   * future. Be aware that these requirements are not enforced if Java assertions are disabled.
    *
    * @param pMutableCfa the {@link MutableCFA} to create a {@link MutableCfaNetwork} for
    * @return a new {@link MutableCfaNetwork} that represents the specified {@link MutableCFA}

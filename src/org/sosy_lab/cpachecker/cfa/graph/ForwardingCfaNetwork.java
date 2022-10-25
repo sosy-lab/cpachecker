@@ -26,6 +26,7 @@ import org.sosy_lab.cpachecker.util.graph.ForwardingNetwork;
  * <p>All {@link CfaNetwork} specific calls (i.e., methods not in {@link Network}) are forwarded to
  * the delegate specified using {@link ForwardingCfaNetwork#delegateCfaNetwork()}. All other calls
  * are forwarded to the delegate specified using {@link ForwardingCfaNetwork#delegateNetwork()}.
+ * These delegates can be the same {@link CfaNetwork} instance (default implementation).
  */
 interface ForwardingCfaNetwork extends CfaNetwork, ForwardingNetwork<CFANode, CFAEdge> {
 

@@ -199,6 +199,7 @@ abstract class AbstractCfaNetwork extends AbstractNetwork<CFANode, CFAEdge> impl
       }
 
       for (CFAEdge outEdge : outEdges(node)) {
+        // we don't want to leave the current function
         if (!(outEdge instanceof FunctionCallEdge)) {
           CFANode successor = successor(outEdge);
           if (waitlisted.add(successor)) {

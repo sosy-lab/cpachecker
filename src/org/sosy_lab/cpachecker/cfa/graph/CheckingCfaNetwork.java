@@ -33,9 +33,9 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
  * <p>The following checks are performed:
  *
  * <ul>
- *   <li>Checks whether a CFA node given as a method argument actually belongs to the CFA
+ *   <li>Checks whether all CFA nodes given as a method arguments actually belong to the CFA
  *       represented by a {@code CfaNetwork}.
- *   <li>Checks whether a CFA edge given as a method argument actually belongs to the CFA
+ *   <li>Checks whether all CFA edges given as a method arguments actually belong to the CFA
  *       represented by a {@code CfaNetwork}.
  *   <li>Checks whether a returned set does indeed contain no duplicates. Using {@link
  *       UnmodifiableSetView} incorrectly may lead to duplicates in sets.

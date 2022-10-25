@@ -27,7 +27,7 @@ import java.util.Set;
  *
  * <p>All modifying operations (e.g., {@link UnmodifiableSetView#add(Object)}, {@link
  * UnmodifiableSetView#remove(Object)}, etc.) throw an {@link UnsupportedOperationException}.
- * However, a set represented by a {@link UnmodifiableSetView} is not immutable, because
+ * However, a set represented by a {@link UnmodifiableSetView} is not necessarily immutable, because
  * modifications to its underlying data structure are reflected in the set.
  *
  * <p>To implement an unmodifiable set view, this class needs to be extended and {@link
@@ -67,7 +67,7 @@ abstract class UnmodifiableSetView<E> extends AbstractCollection<E> implements S
       ImmutableSet.Builder<List<E>> duplicatesBuilder = ImmutableSet.builder();
       for (Collection<E> occurrences : occurrencesMap.asMap().values()) {
         if (occurrences.size() > 1) {
-          // we cannot use `ImmutableList` because it doesn't allow `null` elements
+          // we cannot use `ImmutableList`, because it doesn't allow `null` elements
           duplicatesBuilder.add(Collections.unmodifiableList(new ArrayList<>(occurrences)));
         }
       }
@@ -80,6 +80,8 @@ abstract class UnmodifiableSetView<E> extends AbstractCollection<E> implements S
 
   @Override
   public int size() {
+    // Using `Iterables.size(this)` leads to infinite recursion as it internally calls
+    // `Collection#size()` for `Collection` instances.
     return Iterators.size(iterator());
   }
 

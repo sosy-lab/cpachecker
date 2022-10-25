@@ -15,21 +15,21 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 
 /**
- * A flexible {@link MutableCfaNetwork} that provides more advanced operations for modifying a CFA
+ * A flexible {@link MutableCfaNetwork} that provides more advanced operations for modifying CFAs
  * that wouldn't be possible for all {@link MutableCfaNetwork} implementations.
  *
  * <p>In order to provide more advanced operations, a {@link FlexCfaNetwork} always operated on its
  * own copy of a CFA or {@link CfaNetwork}. The original CFA or {@link CfaNetwork} is never modified
- * by any operations on the {@link FlexCfaNetwork}.
+ * by any operations on a {@link FlexCfaNetwork}.
  *
  * <p>All connections between elements of a CFA (i.e., nodes and edges) are defined by a {@link
  * FlexCfaNetwork}. Depending on the implementation, the CFA represented by a {@link FlexCfaNetwork}
  * may differ from the CFA represented by its elements (e.g., {@link CFAEdge#getSuccessor()} and
  * {@link FlexCfaNetwork#successor(CFAEdge)} may not return the same value). It's important to only
- * use methods provided by a {@link FlexCfaNetwork} if more than a single CFA node and/or edge is
+ * use methods provided by {@link FlexCfaNetwork} if more than a single CFA node and/or edge is
  * involved.
  *
- * <p>All returned sets are unmodifiable views, so modifications attempts throw an exception.
+ * <p>All returned sets are unmodifiable views, so modification attempts throw an exception.
  * However, modifications to a {@link FlexCfaNetwork} will be reflected in its returned set views. A
  * {@link FlexCfaNetwork} must not be modified while any of its set view are iterated, as this might
  * lead to incorrect iterations.
@@ -37,13 +37,18 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 public interface FlexCfaNetwork extends MutableCfaNetwork {
 
   /**
-   * Returns a new {@link FlexCfaNetwork} that is a copy of the specified {@link CfaNetwork}.
+   * Returns a new {@link FlexCfaNetwork} that represents a copy of the specified {@link
+   * CfaNetwork}.
    *
    * <p>The specified {@link CfaNetwork} is never modified by any operations on the {@link
    * FlexCfaNetwork}.
    *
+   * <p>The copy created for the returned {@link FlexCfaNetwork} reflects the current state of the
+   * specified {@link CfaNetwork} when this method is called. Future modifications of the specified
+   * {@link CfaNetwork} don't affect the returned {@link FlexCfaNetwork}.
+   *
    * @param pCfaNetwork the {@link CfaNetwork} to create a {@link FlexCfaNetwork} for
-   * @return a new {@link FlexCfaNetwork} that is a copy of the specified {@link CfaNetwork}
+   * @return a new {@link FlexCfaNetwork} that represents a copy of the specified {@link CfaNetwork}
    * @throws NullPointerException if {@code pCfaNetwork == null}
    */
   public static FlexCfaNetwork copy(CfaNetwork pCfaNetwork) {
@@ -66,6 +71,10 @@ public interface FlexCfaNetwork extends MutableCfaNetwork {
    * Returns a new {@link FlexCfaNetwork} that represents a copy of the specified CFA.
    *
    * <p>The specified CFA is never modified by any operations on the {@link FlexCfaNetwork}.
+   *
+   * <p>The copy created for the returned {@link FlexCfaNetwork} reflects the current state of the
+   * specified CFA when this method is called. Future modifications of the specified CFA don't
+   * affect the returned {@link FlexCfaNetwork}.
    *
    * @param pCfa the CFA to create a {@link FlexCfaNetwork} for
    * @return a new {@link FlexCfaNetwork} that represents a copy of the specified CFA
@@ -91,10 +100,10 @@ public interface FlexCfaNetwork extends MutableCfaNetwork {
    * }</pre>
    *
    * @throws NullPointerException if any parameter is {@code null}
-   * @throws IllegalArgumentException if {@code pNode} isn't part the the CFA represented by this
-   *     {@link FlexCfaNetwork}
-   * @throws IllegalArgumentException if {@code pNewPredecessor} or {@code pNewInEdge} already exist
-   *     in this {@link FlexCfaNetwork}
+   * @throws IllegalArgumentException if {@code pNode} is not an element of this {@link
+   *     FlexCfaNetwork}
+   * @throws IllegalArgumentException if {@code pNewPredecessor} and/or {@code pNewInEdge} already
+   *     exist in this {@link FlexCfaNetwork} (determined by {@link Object#equals(Object) equals})
    */
   void insertPredecessor(CFANode pNewPredecessor, CFAEdge pNewInEdge, CFANode pNode);
 
@@ -114,10 +123,10 @@ public interface FlexCfaNetwork extends MutableCfaNetwork {
    * }</pre>
    *
    * @throws NullPointerException if any parameter is {@code null}
-   * @throws IllegalArgumentException if {@code pEdge} isn't part the the CFA represented by this
-   *     {@link FlexCfaNetwork}
-   * @throws IllegalArgumentException if {@code pNewSuccessor} or {@code pNewOutEdge} already exist
-   *     in this {@link FlexCfaNetwork}
+   * @throws IllegalArgumentException if {@code pNode} is not an element of this {@link
+   *     FlexCfaNetwork}
+   * @throws IllegalArgumentException if {@code pNewSuccessor} and/or {@code pNewOutEdge} already
+   *     exist in this {@link FlexCfaNetwork} (determined by {@link Object#equals(Object) equals})
    */
   void insertSuccessor(CFANode pNode, CFAEdge pNewOutEdge, CFANode pNewSuccessor);
 
@@ -136,10 +145,10 @@ public interface FlexCfaNetwork extends MutableCfaNetwork {
    * }</pre>
    *
    * @throws NullPointerException if any parameter is {@code null}
-   * @throws IllegalArgumentException if {@code pEdge} isn't part the the CFA represented by this
-   *     {@link FlexCfaNetwork}
-   * @throws IllegalArgumentException if {@code pNewNode} already exists in this {@link
+   * @throws IllegalArgumentException if {@code pNode} is not an element of this {@link
    *     FlexCfaNetwork}
+   * @throws IllegalArgumentException if {@code pNewNode} already exists in this {@link
+   *     FlexCfaNetwork} (determined by {@link Object#equals(Object) equals})
    */
   void replaceNode(CFANode pNode, CFANode pNewNode);
 
@@ -158,10 +167,10 @@ public interface FlexCfaNetwork extends MutableCfaNetwork {
    * }</pre>
    *
    * @throws NullPointerException if any parameter is {@code null}
-   * @throws IllegalArgumentException if {@code pEdge} isn't part the the CFA represented by this
-   *     {@link FlexCfaNetwork}
-   * @throws IllegalArgumentException if {@code pNewEdge} already exists in this {@link
+   * @throws IllegalArgumentException if {@code pEdge} is not an element of this {@link
    *     FlexCfaNetwork}
+   * @throws IllegalArgumentException if {@code pNewEdge} already exists in this {@link
+   *     FlexCfaNetwork} (determined by {@link Object#equals(Object) equals})
    */
   void replaceEdge(CFAEdge pEdge, CFAEdge pNewEdge);
 }

@@ -25,7 +25,8 @@ import org.sosy_lab.cpachecker.util.graph.ForwardingMutableNetwork;
  * A {@link FlexCfaNetwork} that uses its wrapped {@link MutableNetwork} as underlying data
  * structure for representing a CFA.
  *
- * <p>All modifying calls change the wrapped {@link MutableNetwork}.
+ * <p>The wrapped {@link MutableNetwork} must be a copy of a CFA. All modifying calls only change
+ * the wrapped {@link MutableNetwork}.
  */
 final class WrappingFlexCfaNetwork
     implements FlexCfaNetwork, ForwardingCfaNetwork, ForwardingMutableNetwork<CFANode, CFAEdge> {
@@ -42,16 +43,22 @@ final class WrappingFlexCfaNetwork
 
   @Override
   public Network<CFANode, CFAEdge> delegateNetwork() {
+    // We can delegate all calls directly to the wrapped `MutableNetwork`. No need to use the less
+    // efficient implementations of an `AbstractCfaNetwork`.
     return mutableNetwork;
   }
 
   @Override
   public MutableNetwork<CFANode, CFAEdge> delegateMutableNetwork() {
+    // We can delegate all calls directly to the wrapped `MutableNetwork`. No need to use the less
+    // efficient implementations of an `AbstractCfaNetwork`.
     return mutableNetwork;
   }
 
   @Override
   public CfaNetwork delegateCfaNetwork() {
+    // We must return a `CfaNetwork`, so we use an `AbstractCfaNetwork` as it provides reasonable
+    // implementations for the additional methods of `CfaNetwork`.
     return new AbstractCfaNetwork() {
 
       @Override
@@ -76,12 +83,12 @@ final class WrappingFlexCfaNetwork
     };
   }
 
-  @Override
+  @Override // we need to override this method to prevent ambiguity
   public boolean addEdge(CFANode pPredecessor, CFANode pSuccessor, CFAEdge pNewEdge) {
     return ForwardingMutableNetwork.super.addEdge(pPredecessor, pSuccessor, pNewEdge);
   }
 
-  @Override
+  @Override // we need to override this method to prevent ambiguity
   public boolean addEdge(EndpointPair<CFANode> pEndpoints, CFAEdge pNewEdge) {
     return ForwardingMutableNetwork.super.addEdge(pEndpoints, pNewEdge);
   }
@@ -91,6 +98,7 @@ final class WrappingFlexCfaNetwork
   @Override
   public void insertPredecessor(CFANode pNewPredecessor, CFAEdge pNewInEdge, CFANode pNode) {
 
+    // diagram: [nodePredecessors.get(i)] --- nodeInEdges.get(i) --->
     ImmutableList<CFAEdge> nodeInEdges = ImmutableList.copyOf(inEdges(pNode));
     List<CFANode> nodePredecessors = new ArrayList<>(nodeInEdges.size());
 
@@ -111,6 +119,7 @@ final class WrappingFlexCfaNetwork
   @Override
   public void insertSuccessor(CFANode pNode, CFAEdge pNewOutEdge, CFANode pNewSuccessor) {
 
+    // diagram: --- nodeOutEdges.get(i) ---> [nodeSuccessors.get(i)]
     ImmutableList<CFAEdge> nodeOutEdges = ImmutableList.copyOf(outEdges(pNode));
     List<CFANode> nodeSuccessors = new ArrayList<>(nodeOutEdges.size());
 
@@ -133,12 +142,14 @@ final class WrappingFlexCfaNetwork
 
     addNode(pNewNode);
 
+    // copy of in-edges due to modification during iteration
     for (CFAEdge inEdge : ImmutableList.copyOf(inEdges(pNode))) {
       CFANode nodePredecessor = predecessor(inEdge);
       removeEdge(inEdge);
       addEdge(nodePredecessor, inEdge, pNewNode);
     }
 
+    // copy of out-edges due to modification during iteration
     for (CFAEdge outEdge : ImmutableList.copyOf(outEdges(pNode))) {
       CFANode nodeSuccessor = successor(outEdge);
       removeEdge(outEdge);

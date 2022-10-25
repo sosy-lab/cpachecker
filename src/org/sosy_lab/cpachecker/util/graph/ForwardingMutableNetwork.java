@@ -19,7 +19,8 @@ import com.google.common.graph.Network;
  * <p>All {@link MutableNetwork} specific calls (i.e., add/remove method calls) are forwarded to the
  * delegate specified using {@link ForwardingMutableNetwork#delegateMutableNetwork()}. All other
  * calls are forwarded to the delegate specified using {@link
- * ForwardingMutableNetwork#delegateNetwork()}.
+ * ForwardingMutableNetwork#delegateNetwork()}. These delegates can be the same {@link
+ * MutableNetwork} instance (default implementation).
  */
 public interface ForwardingMutableNetwork<N, E>
     extends MutableNetwork<N, E>, ForwardingNetwork<N, E> {

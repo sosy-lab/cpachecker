@@ -23,9 +23,9 @@ import java.util.Set;
 public interface ForwardingNetwork<N, E> extends Network<N, E> {
 
   /**
-   * Returns the delegate {@link Network} to forwards calls to.
+   * Returns the delegate {@link Network} to forward all {@link Network} calls to.
    *
-   * @return the delegate {@link Network} to forwards calls to
+   * @return the delegate {@link Network} to forward all {@link Network} calls to
    */
   Network<N, E> delegateNetwork();
 
