@@ -150,7 +150,7 @@ public final class CfaBuilder {
     }
 
     newNode = cfaNodeTransformer.transform(pOldNode, cfaNetwork, this::toNew);
-    oldNodeToNewNode.put(pOldNode, newNode);
+    oldNodeToNewNode.put(pOldNode, checkNotNull(newNode));
 
     return newNode;
   }
@@ -173,7 +173,7 @@ public final class CfaBuilder {
     }
 
     newEdge = cfaEdgeTransformer.transform(pOldEdge, cfaNetwork, this::toNew, this::toNew);
-    oldEdgeToNewEdge.put(pOldEdge, newEdge);
+    oldEdgeToNewEdge.put(pOldEdge, checkNotNull(newEdge));
 
     if (newEdge instanceof FunctionSummaryEdge) {
       FunctionSummaryEdge newSummaryEdge = (FunctionSummaryEdge) newEdge;
@@ -243,7 +243,7 @@ public final class CfaBuilder {
   @CanIgnoreReturnValue
   public CfaBuilder runPostProcessor(CfaPostProcessor pCfaPostProcessor) {
 
-    mutableCfa = pCfaPostProcessor.execute(mutableCfa, logger, shutdownNotifier);
+    mutableCfa = checkNotNull(pCfaPostProcessor.execute(mutableCfa, logger, shutdownNotifier));
 
     return this;
   }
