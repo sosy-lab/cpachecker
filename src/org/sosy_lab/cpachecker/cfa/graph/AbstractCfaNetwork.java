@@ -77,17 +77,17 @@ abstract class AbstractCfaNetwork extends AbstractNetwork<CFANode, CFAEdge> impl
   // network properties
 
   @Override
-  public boolean isDirected() {
+  public final boolean isDirected() {
     return true;
   }
 
   @Override
-  public boolean allowsParallelEdges() {
+  public final boolean allowsParallelEdges() {
     return false;
   }
 
   @Override
-  public boolean allowsSelfLoops() {
+  public final boolean allowsSelfLoops() {
     return true;
   }
 
