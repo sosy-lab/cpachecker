@@ -3665,10 +3665,10 @@ imc.loopBoundIncrementStrategyForISMC = CONST
   enum:     [CONST, BY_IMC_INNER]
 
 # toggle the value to increment the loop bound by at each step for IMC
-imc.loopBoundIncrementValueOfIMC = DEFAULT_LOOP_BOUND_INCREMENT_VALUE
+imc.loopBoundIncrementValueForIMC = DEFAULT_LOOP_BOUND_INCREMENT_VALUE
 
 # toggle the value to increment the loop bound by at each step for ISMC
-imc.loopBoundIncrementValueOfISMC = DEFAULT_LOOP_BOUND_INCREMENT_VALUE
+imc.loopBoundIncrementValueForISMC = DEFAULT_LOOP_BOUND_INCREMENT_VALUE
 
 # toggle removing unreachable stop states in ARG
 imc.removeUnreachableStopStates = false

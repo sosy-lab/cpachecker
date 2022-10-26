@@ -181,6 +181,24 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
 
   @Options(prefix = "imc")
   private class LoopBoundManager {
+    private class IndividualCheckInfoWrapper {
+      private final String name;
+      private final LoopBoundIncrementStrategy strategy;
+      private int incrementValue;
+      private int nextLoopIter;
+
+      private IndividualCheckInfoWrapper(
+          String pName,
+          LoopBoundIncrementStrategy pStrategy,
+          int pIncrementValue,
+          int pNextLoopIter) {
+        name = pName;
+        strategy = pStrategy;
+        incrementValue = pIncrementValue;
+        nextLoopIter = pNextLoopIter;
+      }
+    }
+
     private static final int DEFAULT_LOOP_BOUND_INCREMENT_VALUE = 1;
 
     @Option(
@@ -208,23 +226,27 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
         LoopBoundIncrementStrategy.CONST;
 
     /** Not configurable by the user to guarantee that the shortest counterexample can be found */
-    private int loopBoundIncrementValueOfBMC = DEFAULT_LOOP_BOUND_INCREMENT_VALUE;
+    private int loopBoundIncrementValueForBMC = DEFAULT_LOOP_BOUND_INCREMENT_VALUE;
 
     @Option(
         secure = true,
         description = "toggle the value to increment the loop bound by at each step for IMC")
     @IntegerOption(min = 1)
-    private int loopBoundIncrementValueOfIMC = DEFAULT_LOOP_BOUND_INCREMENT_VALUE;
+    private int loopBoundIncrementValueForIMC = DEFAULT_LOOP_BOUND_INCREMENT_VALUE;
 
     @Option(
         secure = true,
         description = "toggle the value to increment the loop bound by at each step for ISMC")
     @IntegerOption(min = 1)
-    private int loopBoundIncrementValueOfISMC = DEFAULT_LOOP_BOUND_INCREMENT_VALUE;
+    private int loopBoundIncrementValueForISMC = DEFAULT_LOOP_BOUND_INCREMENT_VALUE;
 
     private int nextLoopBoundForBMC = 1;
     private int nextLoopBoundForIMC = 2;
     private int nextLoopBoundForISMC = 2;
+
+    private final IndividualCheckInfoWrapper bmcInfo;
+    private final IndividualCheckInfoWrapper imcInfo;
+    private final IndividualCheckInfoWrapper ismcInfo;
 
     private LoopBoundManager(Configuration pConfig) throws InvalidConfigurationException {
       pConfig.inject(this);
@@ -235,7 +257,7 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
           logger.log(
               Level.WARNING,
               "IMC is disabled, the loop bound is incremented by",
-              loopBoundIncrementValueOfBMC,
+              loopBoundIncrementValueForBMC,
               "each time for BMC.");
           loopBoundIncrementStrategyForBMC = LoopBoundIncrementStrategy.CONST;
         }
@@ -244,20 +266,38 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
           logger.log(
               Level.WARNING,
               "IMC is disabled, the loop bound is incremented by",
-              loopBoundIncrementValueOfISMC,
+              loopBoundIncrementValueForISMC,
               "each time for ISMC.");
           loopBoundIncrementStrategyForISMC = LoopBoundIncrementStrategy.CONST;
         }
       }
       if (loopBoundIncrementStrategyForIMC == LoopBoundIncrementStrategy.BY_IMC_INNER
-          && loopBoundIncrementValueOfIMC != DEFAULT_LOOP_BOUND_INCREMENT_VALUE) {
+          && loopBoundIncrementValueForIMC != DEFAULT_LOOP_BOUND_INCREMENT_VALUE) {
         logger.log(
             Level.WARNING,
             "The specified [ loopBoundIncrementValueOfIMC =",
-            loopBoundIncrementValueOfIMC,
-            "] will be overwritten by the configuration [ loopBoundIncrementStrategyOfIMC ="
+            loopBoundIncrementValueForIMC,
+            "] will be overwritten by the configuration [ loopBoundIncrementStrategyForIMC ="
                 + " BY_IMC_INNER]");
       }
+      bmcInfo =
+          new IndividualCheckInfoWrapper(
+              "BMC",
+              loopBoundIncrementStrategyForBMC,
+              loopBoundIncrementValueForBMC,
+              nextLoopBoundForBMC);
+      imcInfo =
+          new IndividualCheckInfoWrapper(
+              "IMC",
+              loopBoundIncrementStrategyForIMC,
+              loopBoundIncrementValueForIMC,
+              nextLoopBoundForIMC);
+      ismcInfo =
+          new IndividualCheckInfoWrapper(
+              "ISMC",
+              loopBoundIncrementStrategyForISMC,
+              loopBoundIncrementValueForISMC,
+              nextLoopBoundForISMC);
       resetLoopBoundIncrementValues();
     }
 
@@ -265,87 +305,72 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
       return CPAs.retrieveCPA(cpa, LoopBoundCPA.class).getMaxLoopIterations();
     }
 
+    private void incrementLoopBoundToCheck(
+        int currentLoopBound, IndividualCheckInfoWrapper checkInfo) {
+      checkInfo.nextLoopIter =
+          checkInfo.strategy.computeNextLoopBoundToCheck(
+              currentLoopBound, checkInfo.incrementValue, checkInfo.nextLoopIter);
+      logger.log(
+          Level.FINEST, "Next loop iteration for", checkInfo.name, "is", checkInfo.nextLoopIter);
+    }
+
     private void incrementLoopBoundsToCheck() {
       final int currentLoopBound = getCurrentMaxLoopIterations();
-      nextLoopBoundForBMC =
-          loopBoundIncrementStrategyForBMC.computeNextLoopBoundToCheck(
-              currentLoopBound, loopBoundIncrementValueOfBMC, nextLoopBoundForBMC);
-      nextLoopBoundForIMC =
-          loopBoundIncrementStrategyForIMC.computeNextLoopBoundToCheck(
-              currentLoopBound, loopBoundIncrementValueOfIMC, nextLoopBoundForIMC);
-      nextLoopBoundForISMC =
-          loopBoundIncrementStrategyForISMC.computeNextLoopBoundToCheck(
-              currentLoopBound, loopBoundIncrementValueOfISMC, nextLoopBoundForISMC);
+      for (var i : new IndividualCheckInfoWrapper[] {bmcInfo, imcInfo, ismcInfo}) {
+        incrementLoopBoundToCheck(currentLoopBound, i);
+      }
       resetLoopBoundIncrementValues();
-      logger.log(Level.FINEST, "Next loop iteration for BMC is", nextLoopBoundForBMC);
-      logger.log(Level.FINEST, "Next loop iteration for IMC is", nextLoopBoundForIMC);
-      logger.log(Level.FINEST, "Next loop iteration for ISMC is", nextLoopBoundForISMC);
+    }
+
+    private void adjustLoopBoundIncrementValue(
+        int imcInnerLoopIter, IndividualCheckInfoWrapper checkInfo) {
+      checkInfo.incrementValue =
+          checkInfo.strategy.adjustLoopBoundIncrementValue(
+              checkInfo.incrementValue, imcInnerLoopIter);
+      assert checkInfo.incrementValue > 0;
     }
 
     private void adjustLoopBoundIncrementValues(int imcInnerLoopIter) {
-      loopBoundIncrementValueOfBMC =
-          loopBoundIncrementStrategyForBMC.adjustLoopBoundIncrementValue(
-              loopBoundIncrementValueOfBMC, imcInnerLoopIter);
-      loopBoundIncrementValueOfIMC =
-          loopBoundIncrementStrategyForIMC.adjustLoopBoundIncrementValue(
-              loopBoundIncrementValueOfIMC, imcInnerLoopIter);
-      loopBoundIncrementValueOfISMC =
-          loopBoundIncrementStrategyForISMC.adjustLoopBoundIncrementValue(
-              loopBoundIncrementValueOfISMC, imcInnerLoopIter);
-      assert loopBoundIncrementValueOfBMC > 0;
-      assert loopBoundIncrementValueOfIMC > 0;
-      assert loopBoundIncrementValueOfISMC > 0;
+      for (var i : new IndividualCheckInfoWrapper[] {bmcInfo, imcInfo, ismcInfo}) {
+        adjustLoopBoundIncrementValue(imcInnerLoopIter, i);
+      }
+    }
+
+    private void resetLoopBoundIncrementValue(IndividualCheckInfoWrapper checkInfo) {
+      checkInfo.incrementValue =
+          checkInfo.strategy.resetLoopBoundIncrementValue(checkInfo.incrementValue);
+      assert checkInfo.incrementValue > 0;
     }
 
     private void resetLoopBoundIncrementValues() {
-      loopBoundIncrementValueOfBMC =
-          loopBoundIncrementStrategyForBMC.resetLoopBoundIncrementValue(
-              loopBoundIncrementValueOfBMC);
-      loopBoundIncrementValueOfIMC =
-          loopBoundIncrementStrategyForIMC.resetLoopBoundIncrementValue(
-              loopBoundIncrementValueOfIMC);
-      loopBoundIncrementValueOfISMC =
-          loopBoundIncrementStrategyForISMC.resetLoopBoundIncrementValue(
-              loopBoundIncrementValueOfISMC);
-      assert loopBoundIncrementValueOfBMC == DEFAULT_LOOP_BOUND_INCREMENT_VALUE;
-      assert loopBoundIncrementValueOfIMC > 0;
-      assert loopBoundIncrementValueOfISMC > 0;
+      for (var i : new IndividualCheckInfoWrapper[] {bmcInfo, imcInfo, ismcInfo}) {
+        resetLoopBoundIncrementValue(i);
+      }
+      assert bmcInfo.incrementValue == DEFAULT_LOOP_BOUND_INCREMENT_VALUE;
     }
 
-    private boolean performBMC() {
+    private boolean performCheckAtCurrentIteration(IndividualCheckInfoWrapper checkInfo) {
       final int currentLoopIter = getCurrentMaxLoopIterations();
-      assert currentLoopIter <= nextLoopBoundForBMC;
-      if (currentLoopIter == nextLoopBoundForBMC) {
-        logger.log(Level.FINE, "Performing BMC at loop iteration", currentLoopIter);
+      assert currentLoopIter <= checkInfo.nextLoopIter;
+      if (currentLoopIter == checkInfo.nextLoopIter) {
+        logger.log(Level.FINE, "Performing", checkInfo.name, "at loop iteration", currentLoopIter);
         return true;
       } else {
-        logger.log(Level.FINE, "Skipping BMC at loop iteration", currentLoopIter);
+        logger.log(Level.FINE, "Skipping", checkInfo.name, "at loop iteration", currentLoopIter);
         return false;
       }
     }
 
-    private boolean performIMC() {
-      final int currentLoopIter = getCurrentMaxLoopIterations();
-      assert currentLoopIter <= nextLoopBoundForIMC;
-      if (currentLoopIter == nextLoopBoundForIMC) {
-        logger.log(Level.FINE, "Performing IMC at loop iteration", currentLoopIter);
-        return true;
-      } else {
-        logger.log(Level.FINE, "Skipping IMC at loop iteration", currentLoopIter);
-        return false;
-      }
+    private boolean performBMCAtCurrentIteration() {
+      return performCheckAtCurrentIteration(bmcInfo);
     }
 
-    private boolean performISMC() {
-      final int currentLoopIter = getCurrentMaxLoopIterations();
-      assert currentLoopIter <= nextLoopBoundForISMC;
-      if (currentLoopIter == nextLoopBoundForISMC) {
-        logger.log(Level.FINE, "Performing ISMC at loop iteration", currentLoopIter);
-        return true;
-      } else {
-        logger.log(Level.FINE, "Skipping ISMC at loop iteration", currentLoopIter);
-        return false;
-      }
+    private boolean performIMCAtCurrentIteration() {
+      return performCheckAtCurrentIteration(imcInfo);
+    }
+
+    private boolean performISMCAtCurrentIteration() {
+      return performCheckAtCurrentIteration(ismcInfo);
     }
   }
 
@@ -503,7 +528,7 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
       }
       shutdownNotifier.shutdownIfNecessary();
       // BMC
-      if (loopBoundMgr.performBMC()) {
+      if (loopBoundMgr.performBMCAtCurrentIteration()) {
         try (ProverEnvironment bmcProver =
             solver.newProverEnvironment(ProverOptions.GENERATE_MODELS)) {
           BooleanFormula targetFormula =
@@ -635,7 +660,7 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
    */
   private boolean reachFixedPointByInterpolation(final PartitionedFormulas formulas)
       throws InterruptedException, CPAException, SolverException {
-    if (!loopBoundMgr.performIMC()) {
+    if (!loopBoundMgr.performIMCAtCurrentIteration()) {
       return false;
     }
     logger.log(Level.FINE, "Computing fixed points by interpolation (IMC)");
@@ -694,7 +719,7 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
   private boolean reachFixedPointByInterpolationSequence(
       PartitionedFormulas pFormulas, List<BooleanFormula> reachVector)
       throws CPAException, InterruptedException, SolverException {
-    if (!loopBoundMgr.performISMC()) {
+    if (!loopBoundMgr.performISMCAtCurrentIteration()) {
       return false;
     }
     logger.log(Level.FINE, "Computing fixed points by interpolation-sequence (ISMC)");
