@@ -191,12 +191,12 @@ class TestCoverageAAIsPrefixFromExistingPath(TestCoverage):
             )
             lines_covered, lines_to_cover = c.collect_coverage()
             expected_calls = [
-                call("Coverage after collecting 1 executions:"),
-                call("Lines covered: 3"),
-                call("Total lines to cover: 10"),
+                call("Coverage after collecting %s executions:", 1),
+                call("Lines covered: %s", 3),
+                call("Total lines to cover: %s", 10),
                 call(""),
-                call("Total lines covered: 3"),
-                call("Total lines to cover: 10"),
+                call("Total lines covered: %s", 3),
+                call("Total lines to cover: %s", 10),
             ]
             self.assertEqual(mock_info.mock_calls, expected_calls)
 
@@ -226,13 +226,13 @@ class TestCoveragePathAAFixPoint(TestCoverage):
             lines_covered, lines_to_cover = c.collect_coverage()
             expected_calls = [
                 call("Generated 1 executions."),
-                call("Coverage after collecting 1 executions:"),
-                call("Lines covered: 3"),
-                call("Total lines to cover: 10"),
+                call("Coverage after collecting %s executions:", 1),
+                call("Lines covered: %s", 3),
+                call("Total lines to cover: %s", 10),
                 call(""),
                 call("Generated 0 executions."),
-                call("Total lines covered: 3"),
-                call("Total lines to cover: 10"),
+                call("Total lines covered: %s", 3),
+                call("Total lines to cover: %s", 10),
             ]
             self.assertEqual(mock_info.mock_calls, expected_calls)
 
@@ -258,16 +258,16 @@ class TestCoverageTreeAAAndExisting2Paths(TestCoverage):
             )
             lines_covered, lines_to_cover = c.collect_coverage()
             expected_calls = [
-                call("Coverage after collecting 1 executions:"),
-                call("Lines covered: 4"),
-                call("Total lines to cover: 10"),
+                call("Coverage after collecting %s executions:", 1),
+                call("Lines covered: %s", 4),
+                call("Total lines to cover: %s", 10),
                 call(""),
-                call("Coverage after collecting 2 executions:"),
-                call("Lines covered: 5"),
-                call("Total lines to cover: 10"),
+                call("Coverage after collecting %s executions:", 2),
+                call("Lines covered: %s", 5),
+                call("Total lines to cover: %s", 10),
                 call(""),
-                call("Total lines covered: 5"),
-                call("Total lines to cover: 10"),
+                call("Total lines covered: %s", 5),
+                call("Total lines to cover: %s", 10),
             ]
             self.assertEqual(mock_info.mock_calls, expected_calls)
 
@@ -426,16 +426,16 @@ class TestCoverageIntegrationOnlyCollectCoverage(TestCoverage):
         with patch.object(self.logger, "info") as mock_info:
             generate_coverage.main(argv, self.logger)
             expected_calls = [
-                call("Coverage after collecting 1 executions:"),
-                call("Lines covered: 4"),
-                call("Total lines to cover: 10"),
+                call("Coverage after collecting %s executions:", 1),
+                call("Lines covered: %s", 4),
+                call("Total lines to cover: %s", 10),
                 call(""),
-                call("Coverage after collecting 2 executions:"),
-                call("Lines covered: 5"),
-                call("Total lines to cover: 10"),
+                call("Coverage after collecting %s executions:", 2),
+                call("Lines covered: %s", 5),
+                call("Total lines to cover: %s", 10),
                 call(""),
-                call("Total lines covered: 5"),
-                call("Total lines to cover: 10"),
+                call("Total lines covered: %s", 5),
+                call("Total lines to cover: %s", 10),
             ]
             self.assertEqual(mock_info.mock_calls, expected_calls)
 
@@ -465,20 +465,20 @@ class TestCoverageIntegrationTimelimitOptional(TestCoverage):
             generate_coverage.main(argv, self.logger)
             expected_calls = [
                 call("Generated 3 executions."),
-                call("Coverage after collecting 1 executions:"),
-                call("Lines covered: 1"),
-                call("Total lines to cover: 10"),
+                call("Coverage after collecting %s executions:", 1),
+                call("Lines covered: %s", 1),
+                call("Total lines to cover: %s", 10),
                 call(""),
-                call("Coverage after collecting 2 executions:"),
-                call("Lines covered: 4"),
-                call("Total lines to cover: 10"),
+                call("Coverage after collecting %s executions:", 2),
+                call("Lines covered: %s", 4),
+                call("Total lines to cover: %s", 10),
                 call(""),
-                call("Coverage after collecting 3 executions:"),
-                call("Lines covered: 5"),
-                call("Total lines to cover: 10"),
+                call("Coverage after collecting %s executions:", 3),
+                call("Lines covered: %s", 5),
+                call("Total lines to cover: %s", 10),
                 call(""),
-                call("Total lines covered: 5"),
-                call("Total lines to cover: 10"),
+                call("Total lines covered: %s", 5),
+                call("Total lines to cover: %s", 10),
             ]
             self.assertEqual(mock_info.mock_calls, expected_calls)
 
@@ -508,23 +508,23 @@ class TestCoverageIntegrationFixPoint(TestCoverage):
             generate_coverage.main(argv, self.logger)
             expected_calls = [
                 call("Generated 1 executions."),
-                call("Coverage after collecting 1 executions:"),
-                call("Lines covered: 1"),
-                call("Total lines to cover: 10"),
+                call("Coverage after collecting %s executions:", 1),
+                call("Lines covered: %s", 1),
+                call("Total lines to cover: %s", 10),
                 call(""),
                 call("Generated 1 executions."),
-                call("Coverage after collecting 2 executions:"),
-                call("Lines covered: 4"),
-                call("Total lines to cover: 10"),
+                call("Coverage after collecting %s executions:", 2),
+                call("Lines covered: %s", 4),
+                call("Total lines to cover: %s", 10),
                 call(""),
                 call("Generated 1 executions."),
-                call("Coverage after collecting 3 executions:"),
-                call("Lines covered: 5"),
-                call("Total lines to cover: 10"),
+                call("Coverage after collecting %s executions:", 3),
+                call("Lines covered: %s", 5),
+                call("Total lines to cover: %s", 10),
                 call(""),
                 call("Generated 0 executions."),
-                call("Total lines covered: 5"),
-                call("Total lines to cover: 10"),
+                call("Total lines covered: %s", 5),
+                call("Total lines to cover: %s", 10),
             ]
             self.assertEqual(mock_info.mock_calls, expected_calls)
 
@@ -615,23 +615,23 @@ class TestCoverageIntegrationCexCountOptional(TestCoverage):
             generate_coverage.main(argv, self.logger)
             expected_calls = [
                 call("Generated 1 executions."),
-                call("Coverage after collecting 1 executions:"),
-                call("Lines covered: 1"),
-                call("Total lines to cover: 10"),
+                call("Coverage after collecting %s executions:", 1),
+                call("Lines covered: %s", 1),
+                call("Total lines to cover: %s", 10),
                 call(""),
                 call("Generated 1 executions."),
-                call("Coverage after collecting 2 executions:"),
-                call("Lines covered: 4"),
-                call("Total lines to cover: 10"),
+                call("Coverage after collecting %s executions:", 2),
+                call("Lines covered: %s", 4),
+                call("Total lines to cover: %s", 10),
                 call(""),
                 call("Generated 1 executions."),
-                call("Coverage after collecting 3 executions:"),
-                call("Lines covered: 5"),
-                call("Total lines to cover: 10"),
+                call("Coverage after collecting %s executions:", 3),
+                call("Lines covered: %s", 5),
+                call("Total lines to cover: %s", 10),
                 call(""),
                 call("Generated 0 executions."),
-                call("Total lines covered: 5"),
-                call("Total lines to cover: 10"),
+                call("Total lines covered: %s", 5),
+                call("Total lines to cover: %s", 10),
             ]
             self.assertEqual(mock_info.mock_calls, expected_calls)
 
@@ -668,17 +668,16 @@ class TestCoverageIntegrationTimeout(TestCoverage):
             ]
         ]
         start_time = time.time()
-        lines_covered = 0
+        lines_covered = None
         log = []
 
-        def side_effect(info_msg):
-            log.append(info_msg)
-            import re
+        def side_effect(info_msg, *args):
+            log.append(info_msg % tuple(args))
 
             nonlocal lines_covered
-            m = re.search(pattern="Total lines covered: (.*)", string=info_msg)
-            if m:
-                lines_covered = int(m.group(1))
+            if info_msg == "Total lines covered: %s":
+                assert isinstance(args[0], int)
+                lines_covered = args[0]
 
         # Will allow only one terminating execution to be generated,
         # since the timer adds 10 second for each call to method 'time'.

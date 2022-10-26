@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.cpa.bam;
 
 import com.google.common.base.Preconditions;
+import com.google.errorprone.annotations.CanIgnoreReturnValue;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
@@ -25,6 +26,7 @@ public class BAMMergeOperator implements MergeOperator {
     wrappedMergeOp = pWrappedMerge;
   }
 
+  @CanIgnoreReturnValue
   BAMMergeOperator withBAMPCCManager(BAMPCCManager pBAMPCCManager) {
     Preconditions.checkState(bamPccManager == null);
     bamPccManager = Preconditions.checkNotNull(pBAMPCCManager);

@@ -82,7 +82,7 @@ public class FunctionFormulaManagerView extends BaseManagerView implements UFMan
     }
 
     @Override
-    public List<FormulaType<?>> getArgumentTypes() {
+    public ImmutableList<FormulaType<?>> getArgumentTypes() {
       return argumentTypes;
     }
 

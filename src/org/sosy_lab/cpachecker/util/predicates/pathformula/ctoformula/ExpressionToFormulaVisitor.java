@@ -1183,10 +1183,11 @@ public class ExpressionToFormulaVisitor
               pIsLongLong
                   ? conv.getFormulaTypeFromCType(CNumericTypes.LONG_LONG_INT)
                   : conv.getFormulaTypeFromCType(CNumericTypes.LONG_INT);
+          final boolean signed = true; // LongLongInt and LongInt are signed
 
-          castIntegral = fpfmgr.castTo(integral, type);
-          castNegative = fpfmgr.castTo(rounded_negative_Infinity, type);
-          castPositive = fpfmgr.castTo(rounded_positive_Infinity, type);
+          castIntegral = fpfmgr.castTo(integral, signed, type);
+          castNegative = fpfmgr.castTo(rounded_negative_Infinity, signed, type);
+          castPositive = fpfmgr.castTo(rounded_positive_Infinity, signed, type);
         }
 
         // XXX: Currently MathSAT does not support the rounding mode NEAREST_TIE_AWAY,
@@ -1318,7 +1319,7 @@ public class ExpressionToFormulaVisitor
         int offset = 0;
         BitvectorFormula result = bvMgrv.makeBitvector(bvReturnType, 0);
         while (offset < bvParamType.getSize()) {
-          BitvectorFormula bitAtOffset = bvMgrv.extract(bvParameter, offset, offset++, false);
+          BitvectorFormula bitAtOffset = bvMgrv.extract(bvParameter, offset, offset++);
           BitvectorFormula bitAtOffsetAsBV =
               bvMgrv.extend(bitAtOffset, bvReturnType.getSize() - 1, false);
           result = bvMgrv.add(result, bitAtOffsetAsBV);

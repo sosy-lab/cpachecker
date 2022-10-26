@@ -646,10 +646,9 @@ abstract class AbstractBMCAlgorithm
       logger.log(
           Level.INFO,
           "Terminating because none of the following CPAs' precision can be adjusted any further ",
-          Joiner.on(", ")
-              .join(
-                  conditionCPAs.transform(
-                      conditionCpa -> conditionCpa.getClass().getSimpleName())));
+          conditionCPAs
+              .transform(conditionCpa -> conditionCpa.getClass().getSimpleName())
+              .join(Joiner.on(", ")));
     }
     return adjusted;
   }
