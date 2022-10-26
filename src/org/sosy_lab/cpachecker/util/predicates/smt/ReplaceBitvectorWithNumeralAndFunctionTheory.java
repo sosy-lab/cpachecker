@@ -348,7 +348,7 @@ class ReplaceBitvectorWithNumeralAndFunctionTheory<T extends NumeralFormula> ext
   }
 
   @Override
-  public BitvectorFormula extract(BitvectorFormula pFirst, int pMsb, int pLsb, boolean signed) {
+  public BitvectorFormula extract(BitvectorFormula pFirst, int pMsb, int pLsb) {
     FormulaType<BitvectorFormula> returnType = getBitvectorTypeWithSize(pMsb + 1 - pLsb);
     if (ignoreExtractConcat) {
       return wrap(returnType, unwrap(pFirst));

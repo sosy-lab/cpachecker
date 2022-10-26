@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.cpa.chc;
 
+import com.google.errorprone.annotations.CanIgnoreReturnValue;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -115,6 +116,7 @@ public class Constraint {
     cns = new ArrayList<>();
   }
 
+  @CanIgnoreReturnValue
   public Constraint setFalse() {
     cns = null;
     return this;
@@ -124,6 +126,7 @@ public class Constraint {
     cns.addAll(cn.getConstraint());
   }
 
+  @CanIgnoreReturnValue
   public Constraint setConstraint(List<Term> cns) {
     this.cns = cns;
     return this;

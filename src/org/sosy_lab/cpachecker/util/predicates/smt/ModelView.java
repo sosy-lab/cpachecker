@@ -23,6 +23,7 @@ import org.sosy_lab.java_smt.api.Formula;
 import org.sosy_lab.java_smt.api.Model;
 import org.sosy_lab.java_smt.api.NumeralFormula.IntegerFormula;
 import org.sosy_lab.java_smt.api.NumeralFormula.RationalFormula;
+import org.sosy_lab.java_smt.api.StringFormula;
 
 /** Wrapping for models. */
 class ModelView implements Model {
@@ -74,6 +75,12 @@ class ModelView implements Model {
   @Override
   public BigInteger evaluate(BitvectorFormula f) {
     return (BigInteger) evaluateImpl(f);
+  }
+
+  @Nullable
+  @Override
+  public String evaluate(StringFormula f) {
+    return (String) evaluateImpl(f);
   }
 
   @Override

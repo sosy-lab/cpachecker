@@ -1014,11 +1014,9 @@ class AssignmentHandler {
       }
       assert rhsFormula == null || rhsFormula instanceof BitvectorFormula;
 
-      boolean rhsSigned = !(rhsType instanceof CPointerType) && ((CSimpleType) rhsType).isSigned();
-
       // "AndExtractInnerMemberValue"
       if (rhsFormula != null) {
-        rhsFormula = fmgr.makeExtract(rhsFormula, endIndex, startIndex, rhsSigned);
+        rhsFormula = fmgr.makeExtract(rhsFormula, endIndex, startIndex);
       }
       Expression newRhsExpression = Value.ofValueOrNondet(rhsFormula);
 

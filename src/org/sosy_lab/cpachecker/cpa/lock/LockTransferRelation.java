@@ -418,7 +418,7 @@ public class LockTransferRelation extends SingleEdgeTransferRelation {
    * @return the verdict
    */
   public String doesChangeTheState(CFAEdge pEdge) {
-    return Joiner.on(",").join(getLockEffects(pEdge));
+    return getLockEffects(pEdge).join(Joiner.on(","));
   }
 
   public Statistics getStatistics() {
