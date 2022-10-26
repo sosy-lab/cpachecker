@@ -65,7 +65,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
 import org.sosy_lab.cpachecker.exceptions.NoException;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
-/** A {@link CfaTransformer} to create a CFA for a {@link Slice program slice}. */
+/** A {@link CfaTransformer} that creates a CFA for a {@link Slice program slice}. */
 final class SliceToCfaConverter implements CfaTransformer {
 
   private static final String IRRELEVANT_EDGE_DESCRIPTION = "edge irrelevant to program slice";
@@ -242,6 +242,10 @@ final class SliceToCfaConverter implements CfaTransformer {
     }
   }
 
+  /**
+   * A substitution that maps CFA edges and their contained AST nodes to AST nodes that only contain
+   * parts relevant to the specified program slice.
+   */
   private static final class RelevantEdgeAstSubstitution implements CCfaEdgeAstSubstitution {
 
     private final Slice slice;
