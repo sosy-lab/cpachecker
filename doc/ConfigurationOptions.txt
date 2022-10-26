@@ -3659,16 +3659,8 @@ imc.loopBoundIncrementStrategyForBMC = CONST
 imc.loopBoundIncrementStrategyForIMC = CONST
   enum:     [CONST, BY_IMC_INNER]
 
-# toggle the strategy to determine the next loop iteration to execute
-# interpolation phase of ISMC
-imc.loopBoundIncrementStrategyForISMC = CONST
-  enum:     [CONST, BY_IMC_INNER]
-
 # toggle the value to increment the loop bound by at each step for IMC
 imc.loopBoundIncrementValueForIMC = DEFAULT_LOOP_BOUND_INCREMENT_VALUE
-
-# toggle the value to increment the loop bound by at each step for ISMC
-imc.loopBoundIncrementValueForISMC = DEFAULT_LOOP_BOUND_INCREMENT_VALUE
 
 # toggle removing unreachable stop states in ARG
 imc.removeUnreachableStopStates = false
