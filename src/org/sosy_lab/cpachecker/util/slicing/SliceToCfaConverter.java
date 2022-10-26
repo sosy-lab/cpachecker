@@ -8,18 +8,14 @@
 
 package org.sosy_lab.cpachecker.util.slicing;
 
-import static com.google.common.base.Preconditions.checkNotNull;
-
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import java.util.List;
 import java.util.Optional;
-import java.util.function.Function;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.ShutdownNotifier;
-import org.sosy_lab.common.collect.Collections3;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CfaMetadata;
@@ -71,13 +67,28 @@ final class SliceToCfaConverter implements CfaTransformer {
   private static final String IRRELEVANT_EDGE_DESCRIPTION = "edge irrelevant to program slice";
 
   private final Slice slice;
+  // relevant functions are functions that contain at least one relevant edge
+  private final ImmutableMap<AFunctionDeclaration, FunctionEntryNode> relevantFunctions;
 
-  private SliceToCfaConverter(Slice pSlice) {
+  private SliceToCfaConverter(
+      Slice pSlice, ImmutableMap<AFunctionDeclaration, FunctionEntryNode> pRelevantFunctions) {
     slice = pSlice;
+    relevantFunctions = pRelevantFunctions;
   }
 
   static CfaTransformer forProgramSlice(Slice pSlice) {
-    return new SliceToCfaConverter(checkNotNull(pSlice));
+
+    // determine functions that are part of the specified slice
+    ImmutableMap<AFunctionDeclaration, FunctionEntryNode> relevantFunctions =
+        pSlice.getRelevantEdges().stream()
+            .flatMap(edge -> ImmutableSet.of(edge.getPredecessor(), edge.getSuccessor()).stream())
+            .filter(node -> node instanceof FunctionEntryNode)
+            .map(node -> (FunctionEntryNode) node)
+            .collect(
+                ImmutableMap.toImmutableMap(
+                    entryNode -> entryNode.getFunction(), entryNode -> entryNode));
+
+    return new SliceToCfaConverter(pSlice, relevantFunctions);
   }
 
   /**
@@ -94,31 +105,6 @@ final class SliceToCfaConverter implements CfaTransformer {
   }
 
   /**
-   * Returns whether the specified edge has at least one endpoint in an irrelevant function (i.e., a
-   * function that contains no edges that are part of the slice).
-   */
-  private static boolean isIrrelevantFunctionEdge(
-      ImmutableSet<AFunctionDeclaration> pRelevantFunctions, CFAEdge pEdge) {
-
-    return !pRelevantFunctions.contains(pEdge.getPredecessor().getFunction())
-        || !pRelevantFunctions.contains(pEdge.getSuccessor().getFunction());
-  }
-
-  /**
-   * Returns whether the specified CFA node should be removed because it doesn't serve any
-   * meaningful purpose in the specified {@link CfaNetwork}.
-   */
-  private static boolean isIrrelevantNode(
-      ImmutableSet<AFunctionDeclaration> pRelevantFunctions, CfaNetwork pGraph, CFANode pNode) {
-
-    if (pNode instanceof FunctionExitNode) {
-      return !pRelevantFunctions.contains(pNode.getFunction());
-    }
-
-    return pGraph.adjacentNodes(pNode).isEmpty();
-  }
-
-  /**
    * Returns whether the specified edge should be replaced with a no-op blank edge if the edge is
    * not part of the slice.
    */
@@ -132,6 +118,28 @@ final class SliceToCfaConverter implements CfaTransformer {
         && !(pEdge instanceof AssumeEdge);
   }
 
+  /**
+   * Returns whether the specified edge has at least one endpoint in an irrelevant function (i.e., a
+   * function that contains no edges that are part of the slice).
+   */
+  private boolean isIrrelevantFunctionEdge(CFAEdge pEdge) {
+    return !relevantFunctions.containsKey(pEdge.getPredecessor().getFunction())
+        || !relevantFunctions.containsKey(pEdge.getSuccessor().getFunction());
+  }
+
+  /**
+   * Returns whether the specified CFA node should be removed because it doesn't serve any
+   * meaningful purpose in the specified {@link CfaNetwork}.
+   */
+  private boolean isIrrelevantNode(CfaNetwork pGraph, CFANode pNode) {
+
+    if (pNode instanceof FunctionExitNode) {
+      return !relevantFunctions.containsKey(pNode.getFunction());
+    }
+
+    return pGraph.adjacentNodes(pNode).isEmpty();
+  }
+
   @Override
   public CFA transform(
       CfaNetwork pCfaNetwork,
@@ -141,16 +149,11 @@ final class SliceToCfaConverter implements CfaTransformer {
 
     ImmutableSet<CFAEdge> relevantEdges = slice.getRelevantEdges();
 
-    // relevant functions are functions that contain at least one relevant edge
-    ImmutableSet<AFunctionDeclaration> relevantFunctions =
-        Collections3.transformedImmutableSetCopy(
-            relevantEdges, edge -> edge.getSuccessor().getFunction());
-
     FlexCfaNetwork graph = FlexCfaNetwork.copy(pCfaNetwork);
 
     ImmutableList<CFAEdge> irrelevantFunctionEdges =
         graph.edges().stream()
-            .filter(edge -> isIrrelevantFunctionEdge(relevantFunctions, edge))
+            .filter(edge -> isIrrelevantFunctionEdge(edge))
             .collect(ImmutableList.toImmutableList());
     irrelevantFunctionEdges.forEach(graph::removeEdge);
 
@@ -162,17 +165,9 @@ final class SliceToCfaConverter implements CfaTransformer {
 
     ImmutableList<CFANode> irrelevantNodes =
         graph.nodes().stream()
-            .filter(node -> isIrrelevantNode(relevantFunctions, graph, node))
+            .filter(node -> isIrrelevantNode(graph, node))
             .collect(ImmutableList.toImmutableList());
     irrelevantNodes.forEach(graph::removeNode);
-
-    ImmutableMap<AFunctionDeclaration, FunctionEntryNode> functionToEntryNodeMap =
-        pCfaNetwork.nodes().stream()
-            .filter(node -> node instanceof FunctionEntryNode)
-            .map(node -> (FunctionEntryNode) node)
-            .collect(
-                ImmutableMap.toImmutableMap(
-                    entryNode -> entryNode.getFunction(), entryNode -> entryNode));
 
     // if the program slice is empty, return a CFA containing an empty main function
     if (relevantEdges.isEmpty()) {
@@ -185,11 +180,9 @@ final class SliceToCfaConverter implements CfaTransformer {
     }
 
     CCfaNodeTransformer nodeTransformer =
-        CCfaNodeTransformer.forSubstitutions(
-            new RelevantNodeAstSubstitution(slice, functionToEntryNodeMap::get));
+        CCfaNodeTransformer.forSubstitutions(new RelevantNodeAstSubstitution());
     CCfaEdgeTransformer edgeTransformer =
-        CCfaEdgeTransformer.forSubstitutions(
-            new RelevantEdgeAstSubstitution(slice, functionToEntryNodeMap::get));
+        CCfaEdgeTransformer.forSubstitutions(new RelevantEdgeAstSubstitution());
 
     CfaFactory cfaFactory =
         CCfaFactory.toUnconnectedFunctions()
@@ -207,16 +200,12 @@ final class SliceToCfaConverter implements CfaTransformer {
    * A substitution that maps CFA nodes and their contained AST nodes to AST nodes that only contain
    * parts relevant to the specified program slice.
    */
-  private static final class RelevantNodeAstSubstitution implements CCfaNodeAstSubstitution {
+  private final class RelevantNodeAstSubstitution implements CCfaNodeAstSubstitution {
 
     private final RelevantFunctionDeclarationTransformingVisitor functionTransformingVisitor;
 
-    private RelevantNodeAstSubstitution(
-        Slice pSlice,
-        Function<AFunctionDeclaration, @Nullable FunctionEntryNode> pFunctionToEntryNode) {
-
-      functionTransformingVisitor =
-          new RelevantFunctionDeclarationTransformingVisitor(pSlice, pFunctionToEntryNode);
+    private RelevantNodeAstSubstitution() {
+      functionTransformingVisitor = new RelevantFunctionDeclarationTransformingVisitor();
     }
 
     @Override
@@ -246,18 +235,7 @@ final class SliceToCfaConverter implements CfaTransformer {
    * A substitution that maps CFA edges and their contained AST nodes to AST nodes that only contain
    * parts relevant to the specified program slice.
    */
-  private static final class RelevantEdgeAstSubstitution implements CCfaEdgeAstSubstitution {
-
-    private final Slice slice;
-    private final Function<AFunctionDeclaration, @Nullable FunctionEntryNode> functionToEntryNode;
-
-    private RelevantEdgeAstSubstitution(
-        Slice pSlice,
-        Function<AFunctionDeclaration, @Nullable FunctionEntryNode> pFunctionToEntryNode) {
-
-      slice = pSlice;
-      functionToEntryNode = pFunctionToEntryNode;
-    }
+  private final class RelevantEdgeAstSubstitution implements CCfaEdgeAstSubstitution {
 
     @Override
     public CAstNode apply(CFAEdge pEdge, CAstNode pAstNode) {
@@ -265,11 +243,7 @@ final class SliceToCfaConverter implements CfaTransformer {
       // Irrelevant edges are going to be removed in CFA post-processing (irrelevant assume edges
       // are kept for CFA simplification), so we just keep their original AST nodes.
       if (slice.getRelevantEdges().contains(pEdge)) {
-
-        var transformingVisitor =
-            new RelevantCAstNodeTransformingVisitor(slice, functionToEntryNode, pEdge);
-
-        return pAstNode.accept(transformingVisitor);
+        return pAstNode.accept(new RelevantCAstNodeTransformingVisitor(pEdge));
       }
 
       return pAstNode;
@@ -280,24 +254,13 @@ final class SliceToCfaConverter implements CfaTransformer {
    * {@link TransformingCAstNodeVisitor} for creating function declarations that only contain
    * parameters and return values relevant to the specified slice.
    */
-  private static class RelevantFunctionDeclarationTransformingVisitor
+  private class RelevantFunctionDeclarationTransformingVisitor
       extends AbstractTransformingCAstNodeVisitor<NoException> {
-
-    private final Slice slice;
-    private final Function<AFunctionDeclaration, @Nullable FunctionEntryNode> functionToEntryNode;
-
-    private RelevantFunctionDeclarationTransformingVisitor(
-        Slice pSlice,
-        Function<AFunctionDeclaration, @Nullable FunctionEntryNode> pFunctionToEntryNode) {
-
-      slice = pSlice;
-      functionToEntryNode = pFunctionToEntryNode;
-    }
 
     @Override
     public CAstNode visit(CFunctionDeclaration pFunctionDeclaration) {
 
-      @Nullable FunctionEntryNode entryNode = functionToEntryNode.apply(pFunctionDeclaration);
+      @Nullable FunctionEntryNode entryNode = relevantFunctions.get(pFunctionDeclaration);
       // If a function lacks a corresponding function entry node, the function is defined somewhere
       // else and we cannot change the declaration.
       if (entryNode == null) {
@@ -345,21 +308,14 @@ final class SliceToCfaConverter implements CfaTransformer {
    * {@link TransformingCAstNodeVisitor} for creating AST nodes that only contain parts that are
    * relevant to the specified slice at the specified CFA edge.
    */
-  private static final class RelevantCAstNodeTransformingVisitor
+  private final class RelevantCAstNodeTransformingVisitor
       extends RelevantFunctionDeclarationTransformingVisitor {
 
     private static final String IRRELEVANT_VALUE_PREFIX = "__IRRELEVANT_VALUE_";
 
-    private final Slice slice;
     private final CFAEdge edge;
 
-    private RelevantCAstNodeTransformingVisitor(
-        Slice pSlice,
-        Function<AFunctionDeclaration, @Nullable FunctionEntryNode> pFunctionToEntryNode,
-        CFAEdge pEdge) {
-      super(pSlice, pFunctionToEntryNode);
-
-      slice = pSlice;
+    private RelevantCAstNodeTransformingVisitor(CFAEdge pEdge) {
       edge = pEdge;
     }
 
