@@ -3649,16 +3649,19 @@ imc.fixedPointComputeStrategy = ITP
 # toggle Impact-like covering for the ISMC fixed-point check
 imc.impactLikeCovering = false
 
-# toggle the strategy to increment loop bound for BMC
-imc.loopBoundIncrementStrategyOfBMC = CONST
+# toggle the strategy to determine the next loop iteration to execute BMC
+# phase of IMC/ISMC
+imc.loopBoundIncrementStrategyForBMC = CONST
   enum:     [CONST, BY_IMC_INNER]
 
-# toggle the strategy to increment loop bound for IMC
-imc.loopBoundIncrementStrategyOfIMC = CONST
+# toggle the strategy to determine the next loop iteration to execute
+# interpolation phase of IMC
+imc.loopBoundIncrementStrategyForIMC = CONST
   enum:     [CONST, BY_IMC_INNER]
 
-# toggle the strategy to increment loop bound for ISMC
-imc.loopBoundIncrementStrategyOfISMC = CONST
+# toggle the strategy to determine the next loop iteration to execute
+# interpolation phase of ISMC
+imc.loopBoundIncrementStrategyForISMC = CONST
   enum:     [CONST, BY_IMC_INNER]
 
 # toggle the value to increment the loop bound by at each step for IMC
