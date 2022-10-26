@@ -264,8 +264,6 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
             "] will be overwritten by the configuration [ loopBoundIncrementStrategyForIMC ="
                 + " BY_IMC_INNER]");
       }
-      assert loopBoundIncrementStrategyForISMC == LoopBoundIncrementStrategy.CONST;
-      assert loopBoundIncrementValueForISMC == DEFAULT_LOOP_BOUND_INCREMENT_VALUE;
 
       bmcInfo =
           new IndividualCheckInfoWrapper(
