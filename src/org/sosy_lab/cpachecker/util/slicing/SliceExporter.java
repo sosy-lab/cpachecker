@@ -90,7 +90,9 @@ public class SliceExporter {
 
   private void exportToC(Slice pSlice, Path pPath) {
 
-    CFA sliceCfa = SliceToCfaConversion.convert(logger, shutdownNotifier, pSlice);
+    CFA sliceCfa =
+        SliceToCfaConverter.forProgramSlice(pSlice)
+            .transform(pSlice.getOriginalCfa(), logger, shutdownNotifier);
 
     try (Writer writer = IO.openOutputFile(pPath, Charset.defaultCharset())) {
 
@@ -105,7 +107,9 @@ public class SliceExporter {
 
   private void exportAsDotFile(Slice pSlice, Path pPath) {
 
-    CFA sliceCfa = SliceToCfaConversion.convert(logger, shutdownNotifier, pSlice);
+    CFA sliceCfa =
+        SliceToCfaConverter.forProgramSlice(pSlice)
+            .transform(pSlice.getOriginalCfa(), logger, shutdownNotifier);
 
     try (Writer writer = IO.openOutputFile(pPath, Charset.defaultCharset())) {
       DOTBuilder.generateDOT(writer, sliceCfa);

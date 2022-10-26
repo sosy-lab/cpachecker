@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.util.slicing;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
@@ -21,6 +23,7 @@ import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.collect.Collections3;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.CfaMetadata;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.ASimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.AbstractTransformingCAstNodeVisitor;
@@ -49,6 +52,7 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.postprocessing.function.CFASimplifier;
 import org.sosy_lab.cpachecker.cfa.transformer.CfaFactory;
+import org.sosy_lab.cpachecker.cfa.transformer.CfaTransformer;
 import org.sosy_lab.cpachecker.cfa.transformer.c.CCfaEdgeTransformer;
 import org.sosy_lab.cpachecker.cfa.transformer.c.CCfaFactory;
 import org.sosy_lab.cpachecker.cfa.transformer.c.CCfaNodeAstSubstitution;
@@ -61,12 +65,20 @@ import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
 import org.sosy_lab.cpachecker.exceptions.NoException;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
-/** Utility class for turning {@link Slice} instances into {@link CFA} instances. */
-final class SliceToCfaConversion {
+/** A {@link CfaTransformer} to create a CFA for a {@link Slice program slice}. */
+final class SliceToCfaConverter implements CfaTransformer {
 
   private static final String IRRELEVANT_EDGE_DESCRIPTION = "edge irrelevant to program slice";
 
-  private SliceToCfaConversion() {}
+  private final Slice slice;
+
+  private SliceToCfaConverter(Slice pSlice) {
+    slice = pSlice;
+  }
+
+  static CfaTransformer forProgramSlice(Slice pSlice) {
+    return new SliceToCfaConverter(checkNotNull(pSlice));
+  }
 
   /**
    * Returns a no-operation blank edge with the same file location and endpoints as the specified
@@ -145,25 +157,21 @@ final class SliceToCfaConversion {
     };
   }
 
-  /**
-   * Creates a {@link CFA} that matches the specified {@link Slice} as closely as possible.
-   *
-   * @param pLogger the logger to use during conversion
-   * @param pShutdownNotifier the shutdown notifier to use
-   * @param pSlice the slice to create a CFA for
-   * @return the CFA created for the specified slice
-   * @throws NullPointerException if any parameter is {@code null}
-   */
-  public static CFA convert(LogManager pLogger, ShutdownNotifier pShutdownNotifier, Slice pSlice) {
+  @Override
+  public CFA transform(
+      CfaNetwork pCfaNetwork,
+      CfaMetadata pCfaMetadata,
+      LogManager pLogger,
+      ShutdownNotifier pShutdownNotifier) {
 
-    ImmutableSet<CFAEdge> relevantEdges = pSlice.getRelevantEdges();
+    ImmutableSet<CFAEdge> relevantEdges = slice.getRelevantEdges();
 
     // relevant functions are functions that contain at least one relevant edge
     ImmutableSet<AFunctionDeclaration> relevantFunctions =
         Collections3.transformedImmutableSetCopy(
             relevantEdges, edge -> edge.getSuccessor().getFunction());
 
-    FlexCfaNetwork graph = FlexCfaNetwork.copy(pSlice.getOriginalCfa());
+    FlexCfaNetwork graph = FlexCfaNetwork.copy(pCfaNetwork);
 
     ImmutableList<CFAEdge> irrelevantFunctionEdges =
         graph.edges().stream()
@@ -184,7 +192,9 @@ final class SliceToCfaConversion {
     irrelevantNodes.forEach(graph::removeNode);
 
     ImmutableMap<AFunctionDeclaration, FunctionEntryNode> functionToEntryNodeMap =
-        pSlice.getOriginalCfa().getAllFunctionHeads().stream()
+        pCfaNetwork.nodes().stream()
+            .filter(node -> node instanceof FunctionEntryNode)
+            .map(node -> (FunctionEntryNode) node)
             .collect(
                 ImmutableMap.toImmutableMap(
                     entryNode -> entryNode.getFunction(), entryNode -> entryNode));
@@ -192,29 +202,26 @@ final class SliceToCfaConversion {
     // if the program slice is empty, return a CFA containing an empty main function
     if (relevantEdges.isEmpty()) {
 
-      FunctionEntryNode mainEntryNode = pSlice.getOriginalCfa().getMainFunction();
+      FunctionEntryNode mainEntryNode = pCfaMetadata.getMainFunctionEntry();
       graph.addNode(mainEntryNode);
       graph.addNode(mainEntryNode.getExitNode());
 
-      return CCfaFactory.CLONER.createCfa(
-          graph, pSlice.getOriginalCfa().getMetadata(), pLogger, pShutdownNotifier);
+      return CCfaFactory.CLONER.createCfa(graph, pCfaMetadata, pLogger, pShutdownNotifier);
     }
 
     CfaFactory cfaFactory =
         CCfaFactory.toUnconnectedFunctions()
             .transformNodes(
                 CCfaNodeTransformer.forSubstitutions(
-                    new RelevantNodeAstSubstitution(pSlice, functionToEntryNodeMap::get)))
+                    new RelevantNodeAstSubstitution(slice, functionToEntryNodeMap::get)))
             .transformEdges(
                 CCfaEdgeTransformer.forSubstitutions(
-                    createAstNodeSubstitutionForCfaEdges(pSlice, functionToEntryNodeMap::get)
+                    createAstNodeSubstitutionForCfaEdges(slice, functionToEntryNodeMap::get)
                         ::apply))
             .executePostProcessor(new CFASimplifier())
             .toSupergraph();
 
-    CFA sliceCfa =
-        cfaFactory.createCfa(
-            graph, pSlice.getOriginalCfa().getMetadata(), pLogger, pShutdownNotifier);
+    CFA sliceCfa = cfaFactory.createCfa(graph, pCfaMetadata, pLogger, pShutdownNotifier);
 
     return sliceCfa;
   }
