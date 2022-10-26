@@ -16,7 +16,6 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import java.util.List;
 import java.util.Optional;
-import java.util.function.BiFunction;
 import java.util.function.Function;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.ShutdownNotifier;
@@ -53,6 +52,7 @@ import org.sosy_lab.cpachecker.cfa.model.c.CFunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.postprocessing.function.CFASimplifier;
 import org.sosy_lab.cpachecker.cfa.transformer.CfaFactory;
 import org.sosy_lab.cpachecker.cfa.transformer.CfaTransformer;
+import org.sosy_lab.cpachecker.cfa.transformer.c.CCfaEdgeAstSubstitution;
 import org.sosy_lab.cpachecker.cfa.transformer.c.CCfaEdgeTransformer;
 import org.sosy_lab.cpachecker.cfa.transformer.c.CCfaFactory;
 import org.sosy_lab.cpachecker.cfa.transformer.c.CCfaNodeAstSubstitution;
@@ -132,31 +132,6 @@ final class SliceToCfaConverter implements CfaTransformer {
         && !(pEdge instanceof AssumeEdge);
   }
 
-  /**
-   * Returns a substitution that maps CFA edges and their contained AST nodes to AST nodes that only
-   * contain parts relevant to the specified slice.
-   */
-  private static BiFunction<CFAEdge, CAstNode, CAstNode> createAstNodeSubstitutionForCfaEdges(
-      Slice pSlice,
-      Function<AFunctionDeclaration, @Nullable FunctionEntryNode> pFunctionToEntryNode) {
-
-    return (edge, astNode) -> {
-
-      // The transforming visitor only works for relevant edges.
-      // Irrelevant edges are going to be removed in CFA post-processing (irrelevant assume edges
-      // are kept for CFA simplification), so we just keep their original AST nodes.
-      if (pSlice.getRelevantEdges().contains(edge)) {
-
-        var transformingVisitor =
-            new RelevantCAstNodeTransformingVisitor(pSlice, pFunctionToEntryNode, edge);
-
-        return astNode.accept(transformingVisitor);
-      }
-
-      return astNode;
-    };
-  }
-
   @Override
   public CFA transform(
       CfaNetwork pCfaNetwork,
@@ -214,7 +189,7 @@ final class SliceToCfaConverter implements CfaTransformer {
             new RelevantNodeAstSubstitution(slice, functionToEntryNodeMap::get));
     CCfaEdgeTransformer edgeTransformer =
         CCfaEdgeTransformer.forSubstitutions(
-            createAstNodeSubstitutionForCfaEdges(slice, functionToEntryNodeMap::get)::apply);
+            new RelevantEdgeAstSubstitution(slice, functionToEntryNodeMap::get));
 
     CfaFactory cfaFactory =
         CCfaFactory.toUnconnectedFunctions()
@@ -264,6 +239,36 @@ final class SliceToCfaConverter implements CfaTransformer {
 
       // return type of function is `void`, so no return variable exists
       return Optional.empty();
+    }
+  }
+
+  private static final class RelevantEdgeAstSubstitution implements CCfaEdgeAstSubstitution {
+
+    private final Slice slice;
+    private final Function<AFunctionDeclaration, @Nullable FunctionEntryNode> functionToEntryNode;
+
+    private RelevantEdgeAstSubstitution(
+        Slice pSlice,
+        Function<AFunctionDeclaration, @Nullable FunctionEntryNode> pFunctionToEntryNode) {
+
+      slice = pSlice;
+      functionToEntryNode = pFunctionToEntryNode;
+    }
+
+    @Override
+    public CAstNode apply(CFAEdge pEdge, CAstNode pAstNode) {
+      // The transforming visitor only works for relevant edges.
+      // Irrelevant edges are going to be removed in CFA post-processing (irrelevant assume edges
+      // are kept for CFA simplification), so we just keep their original AST nodes.
+      if (slice.getRelevantEdges().contains(pEdge)) {
+
+        var transformingVisitor =
+            new RelevantCAstNodeTransformingVisitor(slice, functionToEntryNode, pEdge);
+
+        return pAstNode.accept(transformingVisitor);
+      }
+
+      return pAstNode;
     }
   }
 
