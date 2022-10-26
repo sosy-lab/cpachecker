@@ -209,15 +209,17 @@ final class SliceToCfaConverter implements CfaTransformer {
       return CCfaFactory.CLONER.createCfa(graph, pCfaMetadata, pLogger, pShutdownNotifier);
     }
 
+    CCfaNodeTransformer nodeTransformer =
+        CCfaNodeTransformer.forSubstitutions(
+            new RelevantNodeAstSubstitution(slice, functionToEntryNodeMap::get));
+    CCfaEdgeTransformer edgeTransformer =
+        CCfaEdgeTransformer.forSubstitutions(
+            createAstNodeSubstitutionForCfaEdges(slice, functionToEntryNodeMap::get)::apply);
+
     CfaFactory cfaFactory =
         CCfaFactory.toUnconnectedFunctions()
-            .transformNodes(
-                CCfaNodeTransformer.forSubstitutions(
-                    new RelevantNodeAstSubstitution(slice, functionToEntryNodeMap::get)))
-            .transformEdges(
-                CCfaEdgeTransformer.forSubstitutions(
-                    createAstNodeSubstitutionForCfaEdges(slice, functionToEntryNodeMap::get)
-                        ::apply))
+            .transformNodes(nodeTransformer)
+            .transformEdges(edgeTransformer)
             .executePostProcessor(new CFASimplifier())
             .toSupergraph();
 
