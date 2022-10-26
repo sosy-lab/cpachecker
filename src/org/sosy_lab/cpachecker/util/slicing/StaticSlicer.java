@@ -147,7 +147,6 @@ public class StaticSlicer extends AbstractSlicer implements StatisticsProvider {
         Sets.union(phase1Visitor.getVisitedSdgNodes(), phase2Visitor.getVisitedSdgNodes());
     final Slice slice =
         new SdgProgramSlice(
-            pCfa,
             sdg,
             cfaEdgeToSdgNodes,
             ImmutableSet.copyOf(relevantSdgNodes),
@@ -217,14 +216,12 @@ public class StaticSlicer extends AbstractSlicer implements StatisticsProvider {
     private final ImmutableSet<ActualNode> relevantActualNodes;
 
     private SdgProgramSlice(
-        CFA pOriginalCfa,
         CSystemDependenceGraph pSdg,
         Function<CFAEdge, Iterable<CSystemDependenceGraph.Node>> pCfaEdgeToSdgNodes,
         ImmutableSet<CSystemDependenceGraph.Node> pRelevantSdgNodes,
         ImmutableCollection<CFAEdge> pCriteriaEdges,
         ImmutableSet<CFAEdge> pRelevantEdges) {
       super(
-          pOriginalCfa,
           pCriteriaEdges,
           pRelevantEdges,
           AbstractSlice.computeRelevantDeclarations(

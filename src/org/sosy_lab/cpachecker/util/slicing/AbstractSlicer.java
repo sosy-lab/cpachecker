@@ -63,7 +63,7 @@ public abstract class AbstractSlicer implements Slicer {
   public Slice getSlice(CFA pCfa, Collection<CFAEdge> pSlicingCriteria)
       throws InterruptedException {
     final Slice slice = getSlice0(pCfa, pSlicingCriteria);
-    sliceExporter.execute(slice);
+    sliceExporter.execute(pCfa, slice);
     return slice;
   }
 

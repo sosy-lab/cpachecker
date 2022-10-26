@@ -10,20 +10,12 @@ package org.sosy_lab.cpachecker.util.slicing;
 
 import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.ImmutableSet;
-import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.ASimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 /** Represents a program slice. */
 public interface Slice {
-
-  /**
-   * Returns the {@link CFA} from which this program slice was created.
-   *
-   * @return the {@link CFA} from which this program slice was created
-   */
-  CFA getOriginalCfa();
 
   /**
    * Returns the slicing criteria that were used to create this program slice.

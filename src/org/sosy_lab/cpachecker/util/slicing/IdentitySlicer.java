@@ -52,7 +52,7 @@ public class IdentitySlicer extends AbstractSlicer {
     ImmutableSet<ASimpleDeclaration> relevantDeclarations =
         AbstractSlice.computeRelevantDeclarations(relevantEdges, declaration -> true);
 
-    return new AbstractSlice(pCfa, pSlicingCriteria, relevantEdges, relevantDeclarations) {
+    return new AbstractSlice(pSlicingCriteria, relevantEdges, relevantDeclarations) {
 
       @Override
       public boolean isRelevantDef(CFAEdge pEdge, MemoryLocation pMemoryLocation) {

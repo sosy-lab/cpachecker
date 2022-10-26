@@ -17,7 +17,6 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
-import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.ASimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.AbstractTransformingCAstNodeVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
@@ -34,18 +33,15 @@ import org.sosy_lab.cpachecker.exceptions.NoException;
 
 abstract class AbstractSlice implements Slice {
 
-  private final CFA originalCfa;
   private final ImmutableCollection<CFAEdge> slicingCriteria;
   private final ImmutableSet<CFAEdge> relevantEdges;
   private final ImmutableSet<ASimpleDeclaration> relevantDeclarations;
 
   AbstractSlice(
-      CFA pOriginalCfa,
       Collection<CFAEdge> pSlicingCriteria,
       Collection<CFAEdge> pRelevantEdges,
       Set<ASimpleDeclaration> pRelevantDeclarations) {
 
-    originalCfa = pOriginalCfa;
     slicingCriteria = ImmutableList.copyOf(pSlicingCriteria);
     relevantEdges = ImmutableSet.copyOf(pRelevantEdges);
     relevantDeclarations = ImmutableSet.copyOf(pRelevantDeclarations);
@@ -84,11 +80,6 @@ abstract class AbstractSlice implements Slice {
     }
 
     return ImmutableSet.copyOf(relevantDeclarationCollectingVisitor.getRelevantDeclarations());
-  }
-
-  @Override
-  public CFA getOriginalCfa() {
-    return originalCfa;
   }
 
   @Override

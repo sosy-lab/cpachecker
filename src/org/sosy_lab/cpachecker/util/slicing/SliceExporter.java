@@ -88,11 +88,10 @@ public class SliceExporter {
     shutdownNotifier = pShutdownNotifier;
   }
 
-  private void exportToC(Slice pSlice, Path pPath) {
+  private void exportToC(CFA pCfa, Slice pSlice, Path pPath) {
 
     CFA sliceCfa =
-        SliceToCfaConverter.forProgramSlice(pSlice)
-            .transform(pSlice.getOriginalCfa(), logger, shutdownNotifier);
+        SliceToCfaConverter.forProgramSlice(pSlice).transform(pCfa, logger, shutdownNotifier);
 
     try (Writer writer = IO.openOutputFile(pPath, Charset.defaultCharset())) {
 
@@ -105,11 +104,10 @@ public class SliceExporter {
     }
   }
 
-  private void exportAsDotFile(Slice pSlice, Path pPath) {
+  private void exportAsDotFile(CFA pCfa, Slice pSlice, Path pPath) {
 
     CFA sliceCfa =
-        SliceToCfaConverter.forProgramSlice(pSlice)
-            .transform(pSlice.getOriginalCfa(), logger, shutdownNotifier);
+        SliceToCfaConverter.forProgramSlice(pSlice).transform(pCfa, logger, shutdownNotifier);
 
     try (Writer writer = IO.openOutputFile(pPath, Charset.defaultCharset())) {
       DOTBuilder.generateDOT(writer, sliceCfa);
@@ -140,14 +138,14 @@ public class SliceExporter {
     }
   }
 
-  private void export(Slice pSlice, int pCurrentExportCount) {
+  private void export(CFA pCfa, Slice pSlice, int pCurrentExportCount) {
 
     if (exportToC && exportToCFile != null) {
-      exportToC(pSlice, exportToCFile.getPath(pCurrentExportCount));
+      exportToC(pCfa, pSlice, exportToCFile.getPath(pCurrentExportCount));
     }
 
     if (exportToDot && exportToDotFile != null) {
-      exportAsDotFile(pSlice, exportToDotFile.getPath(pCurrentExportCount));
+      exportAsDotFile(pCfa, pSlice, exportToDotFile.getPath(pCurrentExportCount));
     }
 
     if (exportCriteria && exportCriteriaFile != null) {
@@ -159,10 +157,11 @@ public class SliceExporter {
    * Executes the slice-exporter, which exports, depending on the configuration, various parts of a
    * program {@link Slice} in different output formats.
    *
+   * @param pCfa the CFA from which {@code pSlice} was created
    * @param pSlice program slice to export
    */
-  public void execute(Slice pSlice) {
+  public void execute(CFA pCfa, Slice pSlice) {
     int currentExportCount = exportCount++;
-    Concurrency.newThread("Slice-Exporter", () -> export(pSlice, currentExportCount)).start();
+    Concurrency.newThread("Slice-Exporter", () -> export(pCfa, pSlice, currentExportCount)).start();
   }
 }
