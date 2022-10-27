@@ -131,7 +131,13 @@ public class FunctionCallUnwinder {
       }
     }
 
-    return new MutableCFA(functions, nodes, cfa.getMetadata());
+    return new MutableCFA(
+        cfa.getMachineModel(),
+        functions,
+        nodes,
+        cfa.getMainFunction(),
+        cfa.getFileNames(),
+        cfa.getLanguage());
   }
 
   static void replaceFunctionCall(

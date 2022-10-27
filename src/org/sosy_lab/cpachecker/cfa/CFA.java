@@ -24,9 +24,7 @@ import org.sosy_lab.cpachecker.util.variableclassification.VariableClassificatio
 
 public interface CFA {
 
-  default MachineModel getMachineModel() {
-    return getMetadata().getMachineModel();
-  }
+  MachineModel getMachineModel();
 
   boolean isEmpty();
 
@@ -42,41 +40,17 @@ public interface CFA {
 
   Collection<CFANode> getAllNodes();
 
-  default FunctionEntryNode getMainFunction() {
-    return getMetadata().getMainFunctionEntry();
-  }
+  FunctionEntryNode getMainFunction();
 
-  default Optional<LoopStructure> getLoopStructure() {
-    return getMetadata().getLoopStructure();
-  }
+  Optional<LoopStructure> getLoopStructure();
 
-  default Optional<ImmutableSet<CFANode>> getAllLoopHeads() {
-    return getLoopStructure().map(loopStructure -> loopStructure.getAllLoopHeads());
-  }
+  Optional<ImmutableSet<CFANode>> getAllLoopHeads();
 
-  default Optional<VariableClassification> getVarClassification() {
-    return getMetadata().getVariableClassification();
-  }
+  Optional<VariableClassification> getVarClassification();
 
-  default Optional<LiveVariables> getLiveVariables() {
-    return getMetadata().getLiveVariables();
-  }
+  Optional<LiveVariables> getLiveVariables();
 
-  default Language getLanguage() {
-    return getMetadata().getLanguage();
-  }
+  Language getLanguage();
 
-  default List<Path> getFileNames() {
-    return getMetadata().getFileNames();
-  }
-
-  /**
-   * Returns the metadata associated with this CFA.
-   *
-   * <p>CFA metadata stores additional data about a CFA and may contain all data that isn't
-   * necessary for the actual graph representation of a program.
-   *
-   * @return the metadata associated with this CFA
-   */
-  CfaMetadata getMetadata();
+  List<Path> getFileNames();
 }

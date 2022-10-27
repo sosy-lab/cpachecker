@@ -573,15 +573,14 @@ public class CFACreator {
 
     assert mainFunction != null;
 
-    CfaMetadata cfaMetadata =
-        CfaMetadata.of(
-            machineModel,
-            language,
-            pParseResult.getFileNames(),
-            mainFunction,
-            CfaConnectedness.UNCONNECTED_FUNCTIONS);
     MutableCFA cfa =
-        new MutableCFA(pParseResult.getFunctions(), pParseResult.getCFANodes(), cfaMetadata);
+        new MutableCFA(
+            machineModel,
+            pParseResult.getFunctions(),
+            pParseResult.getCFANodes(),
+            mainFunction,
+            pParseResult.getFileNames(),
+            language);
 
     stats.checkTime.start();
 
@@ -621,7 +620,6 @@ public class CFACreator {
       logger.log(Level.FINE, "Analysis is interprocedural, adding super edges.");
       CFASecondPassBuilder spbuilder = new CFASecondPassBuilder(cfa, language, logger, config);
       spbuilder.insertCallEdgesRecursively();
-      cfa.setMetadata(cfa.getMetadata().withConnectedness(CfaConnectedness.SUPERGRAPH));
     }
 
     // FIFTH, do post-processings on the supergraph

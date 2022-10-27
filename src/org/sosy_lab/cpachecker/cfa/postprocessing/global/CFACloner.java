@@ -92,7 +92,13 @@ public class CFACloner {
       }
     }
 
-    return new MutableCFA(functions, nodes, cfa.getMetadata());
+    return new MutableCFA(
+        cfa.getMachineModel(),
+        functions,
+        nodes,
+        cfa.getMainFunction(),
+        cfa.getFileNames(),
+        cfa.getLanguage());
   }
 
   /** build a new name consisting of a function-name and an index. */

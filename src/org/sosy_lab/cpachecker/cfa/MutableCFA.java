@@ -8,51 +8,57 @@
 
 package org.sosy_lab.cpachecker.cfa;
 
-import static com.google.common.base.Preconditions.checkNotNull;
-
+import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.TreeMultimap;
-import com.google.errorprone.annotations.CanIgnoreReturnValue;
+import java.nio.file.Path;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.List;
 import java.util.NavigableMap;
 import java.util.NavigableSet;
 import java.util.Optional;
-import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
+import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.util.LiveVariables;
 import org.sosy_lab.cpachecker.util.LoopStructure;
 import org.sosy_lab.cpachecker.util.variableclassification.VariableClassification;
 
 public class MutableCFA implements CFA {
 
+  private final MachineModel machineModel;
   private final NavigableMap<String, FunctionEntryNode> functions;
   private final TreeMultimap<String, CFANode> allNodes;
-
-  private CfaMetadata metadata;
+  private final FunctionEntryNode mainFunction;
+  private final List<Path> fileNames;
+  private final Language language;
+  private Optional<LoopStructure> loopStructure = Optional.empty();
+  private Optional<LiveVariables> liveVariables = Optional.empty();
 
   public MutableCFA(
+      MachineModel pMachineModel,
       NavigableMap<String, FunctionEntryNode> pFunctions,
       TreeMultimap<String, CFANode> pAllNodes,
-      CfaMetadata pCfaMetadata) {
+      FunctionEntryNode pMainFunction,
+      List<Path> pFileNames,
+      Language pLanguage) {
 
+    machineModel = pMachineModel;
     functions = pFunctions;
     allNodes = pAllNodes;
-
-    metadata = pCfaMetadata;
+    mainFunction = Preconditions.checkNotNull(pMainFunction);
+    fileNames = ImmutableList.copyOf(pFileNames);
+    language = pLanguage;
 
     assert functions.keySet().equals(allNodes.keySet());
-    FunctionEntryNode mainFunctionEntry = pCfaMetadata.getMainFunctionEntry();
-    assert mainFunctionEntry.equals(functions.get(mainFunctionEntry.getFunctionName()));
+    assert mainFunction.equals(functions.get(mainFunction.getFunctionName()));
   }
 
-  @CanIgnoreReturnValue
-  public boolean addNode(CFANode pNode) {
-
+  public void addNode(CFANode pNode) {
     assert functions.containsKey(pNode.getFunctionName());
-    boolean nodeAdded = allNodes.put(pNode.getFunctionName(), pNode);
-
-    return nodeAdded;
+    allNodes.put(pNode.getFunctionName(), pNode);
   }
 
   public void clear() {
@@ -60,18 +66,19 @@ public class MutableCFA implements CFA {
     allNodes.clear();
   }
 
-  @CanIgnoreReturnValue
-  public boolean removeNode(CFANode pNode) {
+  public void removeNode(CFANode pNode) {
     NavigableSet<CFANode> functionNodes = allNodes.get(pNode.getFunctionName());
     assert functionNodes.contains(pNode);
-    boolean nodeRemoved = functionNodes.remove(pNode);
-    assert nodeRemoved;
+    functionNodes.remove(pNode);
 
     if (functionNodes.isEmpty()) {
       functions.remove(pNode.getFunctionName());
     }
+  }
 
-    return nodeRemoved;
+  @Override
+  public MachineModel getMachineModel() {
+    return machineModel;
   }
 
   @Override
@@ -113,35 +120,62 @@ public class MutableCFA implements CFA {
     return Collections.unmodifiableCollection(allNodes.values());
   }
 
+  @Override
+  public FunctionEntryNode getMainFunction() {
+    return mainFunction;
+  }
+
+  @Override
+  public Optional<LoopStructure> getLoopStructure() {
+    return loopStructure;
+  }
+
   public void setLoopStructure(LoopStructure pLoopStructure) {
-    metadata = metadata.withLoopStructure(pLoopStructure);
+    loopStructure = Optional.of(pLoopStructure);
+  }
+
+  @Override
+  public Optional<ImmutableSet<CFANode>> getAllLoopHeads() {
+    if (loopStructure.isPresent()) {
+      return Optional.of(loopStructure.orElseThrow().getAllLoopHeads());
+    }
+    return Optional.empty();
   }
 
   public ImmutableCFA makeImmutableCFA(Optional<VariableClassification> pVarClassification) {
     return new ImmutableCFA(
-        functions, allNodes, metadata.withVariableClassification(pVarClassification.orElse(null)));
-  }
-
-  public void setVariableClassification(@Nullable VariableClassification pVariableClassification) {
-    metadata = metadata.withVariableClassification(pVariableClassification);
-  }
-
-  public void setLiveVariables(LiveVariables pLiveVariables) {
-    metadata = metadata.withLiveVariables(pLiveVariables);
+        machineModel,
+        functions,
+        allNodes,
+        mainFunction,
+        loopStructure,
+        pVarClassification,
+        liveVariables,
+        fileNames,
+        language);
   }
 
   @Override
-  public CfaMetadata getMetadata() {
-    return metadata;
+  public Optional<VariableClassification> getVarClassification() {
+    return Optional.empty();
   }
 
-  /**
-   * Sets the metadata associated with this CFA.
-   *
-   * @param pCfaMetadata the metadata for this CFA
-   * @throws NullPointerException if {@code pCfaMetadata == null}
-   */
-  public void setMetadata(CfaMetadata pCfaMetadata) {
-    metadata = checkNotNull(pCfaMetadata);
+  @Override
+  public Optional<LiveVariables> getLiveVariables() {
+    return liveVariables;
+  }
+
+  public void setLiveVariables(LiveVariables pLiveVariables) {
+    liveVariables = Optional.of(pLiveVariables);
+  }
+
+  @Override
+  public Language getLanguage() {
+    return language;
+  }
+
+  @Override
+  public List<Path> getFileNames() {
+    return fileNames;
   }
 }
