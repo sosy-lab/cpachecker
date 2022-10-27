@@ -82,7 +82,7 @@ public final class CCfaFactoryTest {
             CfaNetwork.wrap(singleNodeCfa), singleNodeCfa.getMetadata(), logger, shutdownNotifier);
 
     // We expect the following chain of nodes:
-    // [ ] --- "1" ---> [ ] --- "2" ---> [ ] --- "3" ---> [ ]
+    // [ ] --- "step 1" ---> [ ] --- "step 2" ---> [ ] --- "step 3" ---> [ ]
     CfaNetwork nodeChainNetwork = CfaNetwork.wrap(nodeChainCfa);
     List<CFAEdge> edges = new ArrayList<>();
     CFANode currentNode = nodeChainCfa.getMainFunction();
