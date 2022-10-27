@@ -153,7 +153,7 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
       }
     },
     /** The interval between checks are determined by the number of IMC inner loop iterations. */
-    BY_IMC_INNER {
+    EAGER {
       @Override
       int computeNextLoopBoundToCheck(
           int currentLoopBound, int loopBoundIncrementValue, int nextLoopBoundToCheck) {
@@ -162,7 +162,7 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
 
       @Override
       int resetLoopBoundIncrementValue(int loopBoundIncrementValue) {
-        return LoopBoundManager.DEFAULT_LOOP_BOUND_INCREMENT_VALUE;
+        return 1;
       }
 
       @Override
@@ -199,21 +199,23 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
       }
     }
 
-    private static final int DEFAULT_LOOP_BOUND_INCREMENT_VALUE = 1;
-
     @Option(
         secure = true,
         description =
-            "toggle the strategy to determine the next loop iteration to execute BMC phase of"
-                + " IMC/ISMC")
+            "toggle the strategy to determine the next loop iteration\n"
+                + "to execute BMC phase of IMC or ISMC\n"
+                + "CONST: increased by one (to guarantee a shortest counterexample)\n"
+                + "EAGER: skip all iterations where a bug cannot be found")
     private LoopBoundIncrementStrategy loopBoundIncrementStrategyForBMC =
         LoopBoundIncrementStrategy.CONST;
 
     @Option(
         secure = true,
         description =
-            "toggle the strategy to determine the next loop iteration to execute interpolation"
-                + " phase of IMC")
+            "toggle the strategy to determine the next loop iteration\n"
+                + "to execute interpolation phase of IMC\n"
+                + "CONST: increased by a constant (specified via loopBoundIncrementValueForIMC)\n"
+                + "EAGER: skip all iterations where a bug cannot be found")
     private LoopBoundIncrementStrategy loopBoundIncrementStrategyForIMC =
         LoopBoundIncrementStrategy.CONST;
 
@@ -222,16 +224,16 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
         LoopBoundIncrementStrategy.CONST;
 
     /** Not configurable by user to ensure that the shortest counterexample can be found */
-    private static final int loopBoundIncrementValueForBMC = DEFAULT_LOOP_BOUND_INCREMENT_VALUE;
+    private static final int loopBoundIncrementValueForBMC = 1;
 
     @Option(
         secure = true,
         description = "toggle the value to increment the loop bound by at each step for IMC")
     @IntegerOption(min = 1)
-    private int loopBoundIncrementValueForIMC = DEFAULT_LOOP_BOUND_INCREMENT_VALUE;
+    private int loopBoundIncrementValueForIMC = 1;
 
     /** Not configurable by the user to guarantee soundness of ISMC */
-    private static final int loopBoundIncrementValueForISMC = DEFAULT_LOOP_BOUND_INCREMENT_VALUE;
+    private static final int loopBoundIncrementValueForISMC = 1;
 
     private int nextLoopBoundForBMC = 1;
     private int nextLoopBoundForIMC = 2;
@@ -246,7 +248,7 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
 
       // configuration checks
       if (!fixedPointComputeStrategy.isIMCEnabled()
-          && loopBoundIncrementStrategyForBMC == LoopBoundIncrementStrategy.BY_IMC_INNER) {
+          && loopBoundIncrementStrategyForBMC == LoopBoundIncrementStrategy.EAGER) {
         logger.log(
             Level.WARNING,
             "IMC is disabled, the loop bound is incremented by",
@@ -255,14 +257,14 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
         loopBoundIncrementStrategyForBMC = LoopBoundIncrementStrategy.CONST;
       }
       if (fixedPointComputeStrategy.isIMCEnabled()
-          && loopBoundIncrementStrategyForIMC == LoopBoundIncrementStrategy.BY_IMC_INNER
-          && loopBoundIncrementValueForIMC != DEFAULT_LOOP_BOUND_INCREMENT_VALUE) {
+          && loopBoundIncrementStrategyForIMC == LoopBoundIncrementStrategy.EAGER
+          && loopBoundIncrementValueForIMC != 1) {
         logger.log(
             Level.WARNING,
             "The specified [ loopBoundIncrementValueOfIMC =",
             loopBoundIncrementValueForIMC,
             "] will be overwritten by the configuration [ loopBoundIncrementStrategyForIMC ="
-                + " BY_IMC_INNER]");
+                + " EAGER]");
       }
 
       bmcInfo =
@@ -319,7 +321,7 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
       for (var i : new IndividualCheckInfoWrapper[] {bmcInfo, imcInfo, ismcInfo}) {
         adjustLoopBoundIncrementValue(imcInnerLoopIter, i);
       }
-      assert ismcInfo.incrementValue == DEFAULT_LOOP_BOUND_INCREMENT_VALUE;
+      assert ismcInfo.incrementValue == 1;
     }
 
     private void resetLoopBoundIncrementValue(IndividualCheckInfoWrapper checkInfo) {
@@ -332,8 +334,8 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
       for (var i : new IndividualCheckInfoWrapper[] {bmcInfo, imcInfo, ismcInfo}) {
         resetLoopBoundIncrementValue(i);
       }
-      assert bmcInfo.incrementValue == DEFAULT_LOOP_BOUND_INCREMENT_VALUE;
-      assert ismcInfo.incrementValue == DEFAULT_LOOP_BOUND_INCREMENT_VALUE;
+      assert bmcInfo.incrementValue == 1;
+      assert ismcInfo.incrementValue == 1;
     }
 
     private boolean performCheckAtCurrentIteration(IndividualCheckInfoWrapper checkInfo) {
