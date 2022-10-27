@@ -231,7 +231,7 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
     private int loopBoundIncrementValueForIMC = DEFAULT_LOOP_BOUND_INCREMENT_VALUE;
 
     /** Not configurable by the user to guarantee soundness of ISMC */
-    private final int loopBoundIncrementValueForISMC = DEFAULT_LOOP_BOUND_INCREMENT_VALUE;
+    private static final int loopBoundIncrementValueForISMC = DEFAULT_LOOP_BOUND_INCREMENT_VALUE;
 
     private int nextLoopBoundForBMC = 1;
     private int nextLoopBoundForIMC = 2;
