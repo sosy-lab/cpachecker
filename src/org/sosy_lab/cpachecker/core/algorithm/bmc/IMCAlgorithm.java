@@ -222,7 +222,7 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
         LoopBoundIncrementStrategy.CONST;
 
     /** Not configurable by user to ensure that the shortest counterexample can be found */
-    private final int loopBoundIncrementValueForBMC = DEFAULT_LOOP_BOUND_INCREMENT_VALUE;
+    private static final int loopBoundIncrementValueForBMC = DEFAULT_LOOP_BOUND_INCREMENT_VALUE;
 
     @Option(
         secure = true,
