@@ -76,9 +76,7 @@ public interface CfaNetwork extends Network<CFANode, CFAEdge> {
    *
    * <p>IMPORTANT: The specified function must not contain any parallel edges (i.e., edges that
    * connect the same nodes in the same order) and never add them in the future (if the CFA is
-   * mutable). Additionally, the set returned by {@link CFA#getAllNodes()} must not contain any
-   * duplicates and never add them in the future. Be aware that these requirements are not enforced
-   * if Java assertions are disabled.
+   * mutable). Be aware that this requirement is not enforced if Java assertions are disabled.
    *
    * @param pFunctionEntryNode the function's entry node
    * @return a new {@link CfaNetwork} that represents the function specified by its function entry
