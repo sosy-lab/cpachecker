@@ -348,6 +348,11 @@ final class CheckingCfaNetwork implements CfaNetwork {
   // `CfaNetwork` specific
 
   @Override
+  public Set<FunctionEntryNode> entryNodes() {
+    return checkNoDuplicates(delegate.entryNodes());
+  }
+
+  @Override
   public CFANode predecessor(CFAEdge pEdge) {
     return delegate.predecessor(checkContainsEdge(pEdge));
   }

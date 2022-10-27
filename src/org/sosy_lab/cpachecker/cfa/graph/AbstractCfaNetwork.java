@@ -154,6 +154,20 @@ abstract class AbstractCfaNetwork extends AbstractNetwork<CFANode, CFAEdge> impl
   // `CfaNetwork` specific
 
   @Override
+  public Set<FunctionEntryNode> entryNodes() {
+    return new UnmodifiableSetView<>() {
+
+      @Override
+      public Iterator<FunctionEntryNode> iterator() {
+
+        Set<CFANode> entryNodeSet = Sets.filter(nodes(), node -> node instanceof FunctionEntryNode);
+
+        return Iterators.transform(entryNodeSet.iterator(), node -> (FunctionEntryNode) node);
+      }
+    };
+  }
+
+  @Override
   public CFANode predecessor(CFAEdge pEdge) {
     return incidentNodes(pEdge).source();
   }

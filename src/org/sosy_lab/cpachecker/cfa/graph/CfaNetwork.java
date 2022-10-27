@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.cfa.graph;
 
 import com.google.common.graph.Network;
 import java.util.Optional;
+import java.util.Set;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import org.sosy_lab.cpachecker.cfa.CFA;
@@ -88,6 +89,16 @@ public interface CfaNetwork extends Network<CFANode, CFAEdge> {
     return CheckingCfaNetwork.wrapIfAssertionsEnabled(
         SingleFunctionCfaNetwork.forFunction(pFunctionEntryNode));
   }
+
+  /**
+   * Returns a set containing all function entry nodes of this {@link CfaNetwork}.
+   *
+   * <p>The returned set is unmodifiable, but modifications of this {@link CfaNetwork} are reflected
+   * in the returned set.
+   *
+   * @return a set containing all function entry nodes of this {@link CfaNetwork}
+   */
+  Set<FunctionEntryNode> entryNodes();
 
   /**
    * Returns the predecessor of the specified CFA edge in this {@link CfaNetwork}.
