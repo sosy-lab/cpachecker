@@ -137,7 +137,7 @@ public final class MarkingCfaSimplifier implements CfaPostProcessor {
     }
 
     CFAEdge singleInEdge = Iterables.getOnlyElement(inEdges);
-    if (!(pRemovableEdges.contains(singleInEdge))) {
+    if (!pRemovableEdges.contains(singleInEdge)) {
       return false;
     }
 
@@ -147,7 +147,7 @@ public final class MarkingCfaSimplifier implements CfaPostProcessor {
     }
 
     CFAEdge singleOutEdge = Iterables.getOnlyElement(outEdges);
-    if (!(pRemovableEdges.contains(singleOutEdge))) {
+    if (!pRemovableEdges.contains(singleOutEdge)) {
       return false;
     }
 
