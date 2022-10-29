@@ -824,8 +824,8 @@ public final class LoopStructure implements Serializable {
   }
 
   // find index of single predecessor of node i
-  // if there is no successor, -1 is returned
-  // if there are several successor, -2 is returned
+  // if there is no predecessor, -1 is returned
+  // if there are several predecessors, -2 is returned
   private static int findSingleIncomingEdgeOfNode(int i, Edge[][] edges) {
     final int size = edges.length;
 
