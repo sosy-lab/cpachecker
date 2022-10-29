@@ -1132,12 +1132,6 @@ public final class LoopStructure implements Serializable {
       CFANode fstBranch = pBranchNode.getLeavingEdge(0).getSuccessor();
       CFANode sndBranch = pBranchNode.getLeavingEdge(1).getSuccessor();
 
-      checkArgument(
-          !fstBranch.equals(sndBranch),
-          "There must be no parallel edges: % is parallel to %s",
-          pBranchNode.getLeavingEdge(0),
-          pBranchNode.getLeavingEdge(1));
-
       @Nullable CFANode fstMergeNodeCandidate = loopFreeBranchingMergeNodeCandidate(fstBranch);
       @Nullable CFANode sndMergeNodeCandidate = loopFreeBranchingMergeNodeCandidate(sndBranch);
 
@@ -1199,12 +1193,6 @@ public final class LoopStructure implements Serializable {
 
       CFANode fstBranch = pMergeNode.getEnteringEdge(0).getPredecessor();
       CFANode sndBranch = pMergeNode.getEnteringEdge(1).getPredecessor();
-
-      checkArgument(
-          !fstBranch.equals(sndBranch),
-          "There must be no parallel edges: % is parallel to %s",
-          pMergeNode.getEnteringEdge(0),
-          pMergeNode.getEnteringEdge(1));
 
       @Nullable CFANode fstBranchNodeCandidate = loopFreeBranchingBranchNodeCandidate(fstBranch);
       @Nullable CFANode sndBranchNodeCandidate = loopFreeBranchingBranchNodeCandidate(sndBranch);
