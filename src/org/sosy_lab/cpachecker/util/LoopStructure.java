@@ -28,6 +28,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Comparator;
 import java.util.Deque;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
@@ -995,8 +996,13 @@ public final class LoopStructure implements Serializable {
     // ignore predecessors of this node
     private final @Nullable CFANode startNode;
 
+    private final Map<CFANode, Optional<CFANode>> branchNodeToMergeNode;
+    private final Map<CFANode, Optional<CFANode>> mergeNodeToBranchNode;
+
     private LoopFreeSectionFinder(@Nullable CFANode pStartNode) {
       startNode = pStartNode;
+      branchNodeToMergeNode = new HashMap<>();
+      mergeNodeToBranchNode = new HashMap<>();
     }
 
     /**
@@ -1110,31 +1116,36 @@ public final class LoopStructure implements Serializable {
      * Returns the corresponding merge node for the specified branch node, if both branches are
      * loop-free.
      *
-     * @param pBranchingNode the branch node to get the merge node for
+     * @param pBranchNode the branch node to get the merge node for
      * @return If both branches are loop-free, an optional containing the merge node for the
      *     specified branch node is returned. Otherwise, if both branches are not loop-free or we
      *     are unable to determine whether they are loop-free, an empty optional is returned.
      */
-    private Optional<CFANode> loopFreeBranchingMergeNode(CFANode pBranchingNode) {
+    private Optional<CFANode> loopFreeBranchingMergeNode(CFANode pBranchNode) {
 
       checkArgument(
-          pBranchingNode.getNumLeavingEdges() == 2,
-          "Node is not a branch node: %s",
-          pBranchingNode);
+          pBranchNode.getNumLeavingEdges() == 2, "Node is not a branch node: %s", pBranchNode);
 
-      CFANode fstBranch = pBranchingNode.getLeavingEdge(0).getSuccessor();
-      CFANode sndBranch = pBranchingNode.getLeavingEdge(1).getSuccessor();
+      if (branchNodeToMergeNode.containsKey(pBranchNode)) {
+        return branchNodeToMergeNode.get(pBranchNode);
+      }
+
+      branchNodeToMergeNode.put(pBranchNode, Optional.empty());
+
+      CFANode fstBranch = pBranchNode.getLeavingEdge(0).getSuccessor();
+      CFANode sndBranch = pBranchNode.getLeavingEdge(1).getSuccessor();
 
       checkArgument(
           !fstBranch.equals(sndBranch),
           "There must be no parallel edges: % is parallel to %s",
-          pBranchingNode.getLeavingEdge(0),
-          pBranchingNode.getLeavingEdge(1));
+          pBranchNode.getLeavingEdge(0),
+          pBranchNode.getLeavingEdge(1));
 
       Optional<CFANode> fstBranchMergeNode = loopFreeBranchingMergeNodeForBranch(fstBranch);
       Optional<CFANode> sndBranchMergeNode = loopFreeBranchingMergeNodeForBranch(sndBranch);
 
       if (fstBranchMergeNode.equals(sndBranchMergeNode)) {
+        branchNodeToMergeNode.put(pBranchNode, fstBranchMergeNode);
         return fstBranchMergeNode;
       }
 
@@ -1187,6 +1198,12 @@ public final class LoopStructure implements Serializable {
         return Optional.empty();
       }
 
+      if (mergeNodeToBranchNode.containsKey(pMergeNode)) {
+        return mergeNodeToBranchNode.get(pMergeNode);
+      }
+
+      mergeNodeToBranchNode.put(pMergeNode, Optional.empty());
+
       CFANode fstBranch = pMergeNode.getEnteringEdge(0).getPredecessor();
       CFANode sndBranch = pMergeNode.getEnteringEdge(1).getPredecessor();
 
@@ -1200,6 +1217,7 @@ public final class LoopStructure implements Serializable {
       Optional<CFANode> sndBranchBranchNode = loopFreeBranchingBranchNodeForBranch(sndBranch);
 
       if (fstBranchBranchNode.equals(sndBranchBranchNode)) {
+        mergeNodeToBranchNode.put(pMergeNode, fstBranchBranchNode);
         return fstBranchBranchNode;
       }
 
