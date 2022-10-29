@@ -1095,9 +1095,7 @@ public final class LoopStructure implements Serializable {
       // handle inner branching
       if (loopFreeBranchEnd != null && loopFreeBranchEnd.getNumLeavingEdges() == 2) {
         loopFreeBranchEnd =
-            loopFreeBranchingMergeNode(loopFreeBranchEnd)
-                .map(this::chainEnd)
-                .orElse(loopFreeBranchEnd);
+            loopFreeBranchingMergeNode(loopFreeBranchEnd).map(this::chainEnd).orElse(null);
       }
 
       if (loopFreeBranchEnd == null) {
@@ -1152,9 +1150,7 @@ public final class LoopStructure implements Serializable {
       // handle inner branching
       if (loopFreeBranchStart != null && loopFreeBranchStart.getNumEnteringEdges() == 2) {
         loopFreeBranchStart =
-            loopFreeBranchingBranchNode(loopFreeBranchStart)
-                .map(this::chainStart)
-                .orElse(loopFreeBranchStart);
+            loopFreeBranchingBranchNode(loopFreeBranchStart).map(this::chainStart).orElse(null);
       }
 
       if (loopFreeBranchStart == null) {
