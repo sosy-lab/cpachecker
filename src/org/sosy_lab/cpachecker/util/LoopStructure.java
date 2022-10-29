@@ -1146,6 +1146,8 @@ public final class LoopStructure implements Serializable {
         mergeNode = Optional.of(fstMergeNodeCandidate);
       }
 
+      branchNodeToMergeNode.put(pBranchNode, mergeNode);
+
       return mergeNode;
     }
 
@@ -1211,6 +1213,8 @@ public final class LoopStructure implements Serializable {
       if (fstBranchNodeCandidate != null && fstBranchNodeCandidate.equals(sndBranchNodeCandidate)) {
         branchNode = Optional.of(fstBranchNodeCandidate);
       }
+
+      mergeNodeToBranchNode.put(pMergeNode, branchNode);
 
       return branchNode;
     }
