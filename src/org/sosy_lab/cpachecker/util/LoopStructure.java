@@ -545,7 +545,8 @@ public final class LoopStructure implements Serializable {
       CFANode sectionEnd = loopFreeSectionFinder.loopFreeSectionEnd(n);
       int sectionStartIndex = arrayIndexForNode.apply(sectionStart);
       int sectionEndIndex = arrayIndexForNode.apply(sectionEnd);
-      if (edges[sectionStartIndex][sectionEndIndex] == null) {
+      if (sectionStartIndex != sectionEndIndex
+          && edges[sectionStartIndex][sectionEndIndex] == null) {
         // insert an edge for the loop-free section, if it doesn't already exist
         edges[sectionStartIndex][sectionEndIndex] = new Edge();
       }
