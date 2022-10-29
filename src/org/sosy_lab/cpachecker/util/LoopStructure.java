@@ -471,10 +471,11 @@ public final class LoopStructure implements Serializable {
     // The latter can be a huge improvement for the main function, which may have thousands of nodes
     // in such an initial chain (global declarations).
     List<CFANode> initialChain = new ArrayList<>();
+    @Nullable CFANode startNode = null;
     {
       CFANode functionExitNode = nodes.first(); // The function exit node is always the first
       if (functionExitNode instanceof FunctionExitNode) {
-        CFANode startNode = ((FunctionExitNode) functionExitNode).getEntryNode();
+        startNode = ((FunctionExitNode) functionExitNode).getEntryNode();
         while (startNode.getNumLeavingEdges() == 1 && startNode.getNumEnteringEdges() <= 1) {
           initialChain.add(startNode);
           startNode = startNode.getLeavingEdge(0).getSuccessor();
@@ -537,7 +538,7 @@ public final class LoopStructure implements Serializable {
 
       // For performance reasons, we use loop-free sections instead of individual nodes for loop
       // detection.
-      LoopFreeSectionFinder loopFreeSectionFinder = new LoopFreeSectionFinder();
+      LoopFreeSectionFinder loopFreeSectionFinder = new LoopFreeSectionFinder(startNode);
       CFANode sectionStart = loopFreeSectionFinder.loopFreeSectionStart(n);
       CFANode sectionEnd = loopFreeSectionFinder.loopFreeSectionEnd(n);
       int sectionStartIndex = arrayIndexForNode.apply(sectionStart);
@@ -987,7 +988,15 @@ public final class LoopStructure implements Serializable {
     return result;
   }
 
+  // TODO: performance can be improved by caching
   private static final class LoopFreeSectionFinder {
+
+    // ignore predecessors of this node
+    private final @Nullable CFANode startNode;
+
+    private LoopFreeSectionFinder(@Nullable CFANode pStartNode) {
+      startNode = pStartNode;
+    }
 
     /**
      * Returns the start node of the chain that contains the specified node.
@@ -1016,10 +1025,17 @@ public final class LoopStructure implements Serializable {
         return currentNode;
       }
 
+      if (currentNode.equals(startNode)) {
+        return currentNode;
+      }
+
       // nodes between chain start and end must have a single in-edge and a single out-edge
       CFANode nextNode = currentNode.getEnteringEdge(0).getPredecessor();
       while (nextNode.getNumEnteringEdges() == 1 && nextNode.getNumLeavingEdges() == 1) {
         currentNode = nextNode;
+        if (nextNode.equals(startNode)) {
+          break;
+        }
         nextNode = nextNode.getEnteringEdge(0).getPredecessor();
       }
 
@@ -1140,7 +1156,11 @@ public final class LoopStructure implements Serializable {
       if (loopFreeBranchStart == null) {
         loopFreeBranchBranchNode = pBranch;
       } else if (loopFreeBranchStart.getNumEnteringEdges() == 1) {
-        loopFreeBranchBranchNode = loopFreeBranchStart.getEnteringEdge(0).getPredecessor();
+        if (!loopFreeBranchStart.equals(startNode)) {
+          loopFreeBranchBranchNode = loopFreeBranchStart.getEnteringEdge(0).getPredecessor();
+        } else {
+          loopFreeBranchBranchNode = null;
+        }
       } else {
         loopFreeBranchBranchNode = null;
       }
@@ -1161,6 +1181,10 @@ public final class LoopStructure implements Serializable {
 
       checkArgument(
           pMergeNode.getNumEnteringEdges() == 2, "Node is not a merge node: %s", pMergeNode);
+
+      if (pMergeNode.equals(startNode)) {
+        return Optional.empty();
+      }
 
       CFANode fstBranch = pMergeNode.getEnteringEdge(0).getPredecessor();
       CFANode sndBranch = pMergeNode.getEnteringEdge(1).getPredecessor();
@@ -1195,6 +1219,9 @@ public final class LoopStructure implements Serializable {
       do {
         changed = false;
         if (sectionStart.getNumEnteringEdges() == 1) {
+          if (sectionStart.equals(startNode)) {
+            return sectionStart;
+          }
           CFAEdge enteringEdge = sectionStart.getEnteringEdge(0);
           CFANode predecessor = enteringEdge.getPredecessor();
           if (predecessor.getNumLeavingEdges() == 2
