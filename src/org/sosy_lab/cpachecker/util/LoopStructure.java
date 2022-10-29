@@ -454,270 +454,6 @@ public final class LoopStructure implements Serializable {
   }
 
   /**
-   * Returns the start node of the chain that contains the specified node.
-   *
-   * <p>A chain can be represented by the following diagram:
-   *
-   * <pre>{@code
-   * (multiple in-edges) [start] ---> [ ] --- ... ---> [ ] ---> [end] (multiple out-edges)
-   * }</pre>
-   *
-   * <p>A chain that consists of a single node can be represented by the following diagram:
-   *
-   * <pre>{@code
-   * (multiple in-edges) [start == end] (multiple out-edges)
-   * }</pre>
-   *
-   * @param pNode the node to get the chain start for
-   * @return the start node of the chain that contains the specified node
-   */
-  private static CFANode chainStart(CFANode pNode) {
-
-    CFANode currentNode = pNode;
-
-    // the end can have multiple out-edges, but only a single in-edge if it's a multi-node chain
-    if (currentNode.getNumEnteringEdges() != 1) {
-      return currentNode;
-    }
-
-    // nodes between chain start and end must have a single in-edge and a single out-edge
-    CFANode nextNode = currentNode.getEnteringEdge(0).getPredecessor();
-    while (nextNode.getNumEnteringEdges() == 1 && nextNode.getNumLeavingEdges() == 1) {
-      currentNode = nextNode;
-      nextNode = nextNode.getEnteringEdge(0).getPredecessor();
-    }
-
-    // the start can have multiple in-edges, but only a single out-edge if it's a multi-node chain
-    return nextNode.getNumLeavingEdges() == 1 ? nextNode : currentNode;
-  }
-
-  /**
-   * Returns the end node of the chain that contains the specified node.
-   *
-   * <p>A chain can be represented by the following diagram:
-   *
-   * <pre>{@code
-   * (multiple in-edges) [start] ---> [ ] --- ... ---> [ ] ---> [end] (multiple out-edges)
-   * }</pre>
-   *
-   * <p>A chain that consists of a single node can be represented by the following diagram:
-   *
-   * <pre>{@code
-   * (multiple in-edges) [start == end] (multiple out-edges)
-   * }</pre>
-   *
-   * @param pNode the node to get the chain end for
-   * @return the end node of the chain that contains the specified node
-   */
-  private static CFANode chainEnd(CFANode pNode) {
-
-    CFANode currentNode = pNode;
-
-    // the start can have multiple in-edges, but only a single out-edge if it's a multi-node chain
-    if (currentNode.getNumLeavingEdges() != 1) {
-      return currentNode;
-    }
-
-    // nodes between chain start and end must have a single in-edge and a single out-edge
-    CFANode nextNode = currentNode.getLeavingEdge(0).getSuccessor();
-    while (nextNode.getNumEnteringEdges() == 1 && nextNode.getNumLeavingEdges() == 1) {
-      currentNode = nextNode;
-      nextNode = nextNode.getLeavingEdge(0).getSuccessor();
-    }
-
-    // the end can have multiple out-edges, but only a single in-edge if it's a multi-node chain
-    return nextNode.getNumEnteringEdges() == 1 ? nextNode : currentNode;
-  }
-
-  private static Optional<CFANode> loopFreeBranchingMergeNodeForBranch(CFANode pBranch) {
-
-    @Nullable CFANode loopFreeBranchEnd =
-        pBranch.getNumEnteringEdges() == 1 ? chainEnd(pBranch) : null;
-    // handle inner branching
-    if (loopFreeBranchEnd != null && loopFreeBranchEnd.getNumLeavingEdges() == 2) {
-      loopFreeBranchEnd =
-          loopFreeBranchingMergeNode(loopFreeBranchEnd)
-              .map(LoopStructure::chainEnd)
-              .orElse(loopFreeBranchEnd);
-    }
-
-    @Nullable CFANode loopFreeBranchMergeNode;
-    if (loopFreeBranchEnd == null) {
-      loopFreeBranchMergeNode = pBranch;
-    } else if (loopFreeBranchEnd.getNumLeavingEdges() == 1) {
-      loopFreeBranchMergeNode = loopFreeBranchEnd.getLeavingEdge(0).getSuccessor();
-    } else {
-      loopFreeBranchMergeNode = null;
-    }
-
-    return Optional.ofNullable(loopFreeBranchMergeNode);
-  }
-
-  /**
-   * Returns the corresponding merge node for the specified branch node, if both branches are
-   * loop-free.
-   *
-   * @param pBranchingNode the branch node to get the merge node for
-   * @return If both branches are loop-free, an optional containing the merge node for the specified
-   *     branch node is returned. Otherwise, if both branches are not loop-free or we are unable to
-   *     determine whether they are loop-free, an empty optional is returned.
-   */
-  private static Optional<CFANode> loopFreeBranchingMergeNode(CFANode pBranchingNode) {
-
-    checkArgument(
-        pBranchingNode.getNumLeavingEdges() == 2, "Node is not a branch node: %s", pBranchingNode);
-
-    CFANode fstBranch = pBranchingNode.getLeavingEdge(0).getSuccessor();
-    CFANode sndBranch = pBranchingNode.getLeavingEdge(1).getSuccessor();
-
-    checkArgument(
-        !fstBranch.equals(sndBranch),
-        "There must be no parallel edges: % is parallel to %s",
-        pBranchingNode.getLeavingEdge(0),
-        pBranchingNode.getLeavingEdge(1));
-
-    Optional<CFANode> fstBranchMergeNode = loopFreeBranchingMergeNodeForBranch(fstBranch);
-    Optional<CFANode> sndBranchMergeNode = loopFreeBranchingMergeNodeForBranch(sndBranch);
-
-    if (fstBranchMergeNode.equals(sndBranchMergeNode)) {
-      return fstBranchMergeNode;
-    }
-
-    return Optional.empty();
-  }
-
-  private static Optional<CFANode> loopFreeBranchingBranchNodeForBranch(CFANode pBranch) {
-
-    @Nullable CFANode loopFreeBranchStart =
-        pBranch.getNumLeavingEdges() == 1 ? chainStart(pBranch) : null;
-    // handle inner branching
-    if (loopFreeBranchStart != null && loopFreeBranchStart.getNumEnteringEdges() == 2) {
-      loopFreeBranchStart =
-          loopFreeBranchingBranchNode(loopFreeBranchStart)
-              .map(LoopStructure::chainStart)
-              .orElse(loopFreeBranchStart);
-    }
-
-    @Nullable CFANode loopFreeBranchBranchNode;
-    if (loopFreeBranchStart == null) {
-      loopFreeBranchBranchNode = pBranch;
-    } else if (loopFreeBranchStart.getNumEnteringEdges() == 1) {
-      loopFreeBranchBranchNode = loopFreeBranchStart.getEnteringEdge(0).getPredecessor();
-    } else {
-      loopFreeBranchBranchNode = null;
-    }
-
-    return Optional.ofNullable(loopFreeBranchBranchNode);
-  }
-
-  /**
-   * Returns the corresponding branch node for the specified merge node, if both branches are
-   * loop-free.
-   *
-   * @param pMergeNode the merge node to get the branch node for
-   * @return If both branches are loop-free, an optional containing the branch node for the
-   *     specified merge node is returned. Otherwise, if both branches are not loop-free or we are
-   *     unable to determine whether they are loop-free, an empty optional is returned.
-   */
-  private static Optional<CFANode> loopFreeBranchingBranchNode(CFANode pMergeNode) {
-
-    checkArgument(
-        pMergeNode.getNumEnteringEdges() == 2, "Node is not a merge node: %s", pMergeNode);
-
-    CFANode fstBranch = pMergeNode.getEnteringEdge(0).getPredecessor();
-    CFANode sndBranch = pMergeNode.getEnteringEdge(1).getPredecessor();
-
-    checkArgument(
-        !fstBranch.equals(sndBranch),
-        "There must be no parallel edges: % is parallel to %s",
-        pMergeNode.getEnteringEdge(0),
-        pMergeNode.getEnteringEdge(1));
-
-    Optional<CFANode> fstBranchBranchNode = loopFreeBranchingBranchNodeForBranch(fstBranch);
-    Optional<CFANode> sndBranchBranchNode = loopFreeBranchingBranchNodeForBranch(sndBranch);
-
-    if (fstBranchBranchNode.equals(sndBranchBranchNode)) {
-      return fstBranchBranchNode;
-    }
-
-    return Optional.empty();
-  }
-
-  /**
-   * Returns the start node of the loop-free section that contains the specified node.
-   *
-   * @param pNode the start node the get the loop-free section start for
-   * @return the start node of the loop-free section that contains the specified node
-   */
-  private static CFANode loopFreeSectionStart(CFANode pNode) {
-
-    CFANode sectionStart = chainStart(pNode);
-
-    boolean changed;
-    do {
-      changed = false;
-      if (sectionStart.getNumEnteringEdges() == 1) {
-        CFAEdge enteringEdge = sectionStart.getEnteringEdge(0);
-        CFANode predecessor = enteringEdge.getPredecessor();
-        if (predecessor.getNumLeavingEdges() == 2
-            && loopFreeBranchingMergeNode(predecessor).isPresent()) {
-          // leave branching
-          sectionStart = chainStart(predecessor);
-          changed = true;
-        } else {
-          break;
-        }
-      } else if (sectionStart.getNumEnteringEdges() == 2) {
-        Optional<CFANode> branchNode = loopFreeBranchingBranchNode(sectionStart);
-        if (branchNode.isPresent()) {
-          // skip branching
-          sectionStart = branchNode.map(LoopStructure::chainStart).orElseThrow();
-          changed = true;
-        }
-      }
-    } while (changed);
-
-    return sectionStart;
-  }
-
-  /**
-   * Returns the end node of the loop-free section that contains the specified node.
-   *
-   * @param pNode the start node the get the loop-free section start for
-   * @return the end node of the loop-free section that contains the specified node
-   */
-  private static CFANode loopFreeSectionEnd(CFANode pNode) {
-
-    CFANode sectionEnd = chainEnd(pNode);
-
-    boolean changed;
-    do {
-      changed = false;
-      if (sectionEnd.getNumLeavingEdges() == 1) {
-        CFAEdge leavingEdge = sectionEnd.getLeavingEdge(0);
-        CFANode successor = leavingEdge.getSuccessor();
-        if (successor.getNumEnteringEdges() == 2
-            && loopFreeBranchingBranchNode(successor).isPresent()) {
-          // leave branching
-          sectionEnd = chainEnd(successor);
-          changed = true;
-        } else {
-          break;
-        }
-      } else if (sectionEnd.getNumLeavingEdges() == 2) {
-        Optional<CFANode> mergeNode = loopFreeBranchingMergeNode(sectionEnd);
-        if (mergeNode.isPresent()) {
-          // skip branching
-          sectionEnd = mergeNode.map(LoopStructure::chainEnd).orElseThrow();
-          changed = true;
-        }
-      }
-    } while (changed);
-
-    return sectionEnd;
-  }
-
-  /**
    * Find all loops inside a given set of CFA nodes. The nodes in the given set may not be connected
    * with any nodes outside of this set. This method tries to differentiate nested loops.
    *
@@ -801,8 +537,9 @@ public final class LoopStructure implements Serializable {
 
       // For performance reasons, we use loop-free sections instead of individual nodes for loop
       // detection.
-      CFANode sectionStart = loopFreeSectionStart(n);
-      CFANode sectionEnd = loopFreeSectionEnd(n);
+      LoopFreeSectionFinder loopFreeSectionFinder = new LoopFreeSectionFinder();
+      CFANode sectionStart = loopFreeSectionFinder.loopFreeSectionStart(n);
+      CFANode sectionEnd = loopFreeSectionFinder.loopFreeSectionEnd(n);
       int sectionStartIndex = arrayIndexForNode.apply(sectionStart);
       int sectionEndIndex = arrayIndexForNode.apply(sectionEnd);
       if (edges[sectionStartIndex][sectionEndIndex] == null) {
@@ -1248,5 +985,274 @@ public final class LoopStructure implements Serializable {
     }
 
     return result;
+  }
+
+  private static final class LoopFreeSectionFinder {
+
+    /**
+     * Returns the start node of the chain that contains the specified node.
+     *
+     * <p>A chain can be represented by the following diagram:
+     *
+     * <pre>{@code
+     * (multiple in-edges) [start] ---> [ ] --- ... ---> [ ] ---> [end] (multiple out-edges)
+     * }</pre>
+     *
+     * <p>A chain that consists of a single node can be represented by the following diagram:
+     *
+     * <pre>{@code
+     * (multiple in-edges) [start == end] (multiple out-edges)
+     * }</pre>
+     *
+     * @param pNode the node to get the chain start for
+     * @return the start node of the chain that contains the specified node
+     */
+    private CFANode chainStart(CFANode pNode) {
+
+      CFANode currentNode = pNode;
+
+      // the end can have multiple out-edges, but only a single in-edge if it's a multi-node chain
+      if (currentNode.getNumEnteringEdges() != 1) {
+        return currentNode;
+      }
+
+      // nodes between chain start and end must have a single in-edge and a single out-edge
+      CFANode nextNode = currentNode.getEnteringEdge(0).getPredecessor();
+      while (nextNode.getNumEnteringEdges() == 1 && nextNode.getNumLeavingEdges() == 1) {
+        currentNode = nextNode;
+        nextNode = nextNode.getEnteringEdge(0).getPredecessor();
+      }
+
+      // the start can have multiple in-edges, but only a single out-edge if it's a multi-node chain
+      return nextNode.getNumLeavingEdges() == 1 ? nextNode : currentNode;
+    }
+
+    /**
+     * Returns the end node of the chain that contains the specified node.
+     *
+     * <p>A chain can be represented by the following diagram:
+     *
+     * <pre>{@code
+     * (multiple in-edges) [start] ---> [ ] --- ... ---> [ ] ---> [end] (multiple out-edges)
+     * }</pre>
+     *
+     * <p>A chain that consists of a single node can be represented by the following diagram:
+     *
+     * <pre>{@code
+     * (multiple in-edges) [start == end] (multiple out-edges)
+     * }</pre>
+     *
+     * @param pNode the node to get the chain end for
+     * @return the end node of the chain that contains the specified node
+     */
+    private CFANode chainEnd(CFANode pNode) {
+
+      CFANode currentNode = pNode;
+
+      // the start can have multiple in-edges, but only a single out-edge if it's a multi-node chain
+      if (currentNode.getNumLeavingEdges() != 1) {
+        return currentNode;
+      }
+
+      // nodes between chain start and end must have a single in-edge and a single out-edge
+      CFANode nextNode = currentNode.getLeavingEdge(0).getSuccessor();
+      while (nextNode.getNumEnteringEdges() == 1 && nextNode.getNumLeavingEdges() == 1) {
+        currentNode = nextNode;
+        nextNode = nextNode.getLeavingEdge(0).getSuccessor();
+      }
+
+      // the end can have multiple out-edges, but only a single in-edge if it's a multi-node chain
+      return nextNode.getNumEnteringEdges() == 1 ? nextNode : currentNode;
+    }
+
+    private Optional<CFANode> loopFreeBranchingMergeNodeForBranch(CFANode pBranch) {
+
+      @Nullable CFANode loopFreeBranchEnd =
+          pBranch.getNumEnteringEdges() == 1 ? chainEnd(pBranch) : null;
+      // handle inner branching
+      if (loopFreeBranchEnd != null && loopFreeBranchEnd.getNumLeavingEdges() == 2) {
+        loopFreeBranchEnd =
+            loopFreeBranchingMergeNode(loopFreeBranchEnd)
+                .map(this::chainEnd)
+                .orElse(loopFreeBranchEnd);
+      }
+
+      @Nullable CFANode loopFreeBranchMergeNode;
+      if (loopFreeBranchEnd == null) {
+        loopFreeBranchMergeNode = pBranch;
+      } else if (loopFreeBranchEnd.getNumLeavingEdges() == 1) {
+        loopFreeBranchMergeNode = loopFreeBranchEnd.getLeavingEdge(0).getSuccessor();
+      } else {
+        loopFreeBranchMergeNode = null;
+      }
+
+      return Optional.ofNullable(loopFreeBranchMergeNode);
+    }
+
+    /**
+     * Returns the corresponding merge node for the specified branch node, if both branches are
+     * loop-free.
+     *
+     * @param pBranchingNode the branch node to get the merge node for
+     * @return If both branches are loop-free, an optional containing the merge node for the
+     *     specified branch node is returned. Otherwise, if both branches are not loop-free or we
+     *     are unable to determine whether they are loop-free, an empty optional is returned.
+     */
+    private Optional<CFANode> loopFreeBranchingMergeNode(CFANode pBranchingNode) {
+
+      checkArgument(
+          pBranchingNode.getNumLeavingEdges() == 2,
+          "Node is not a branch node: %s",
+          pBranchingNode);
+
+      CFANode fstBranch = pBranchingNode.getLeavingEdge(0).getSuccessor();
+      CFANode sndBranch = pBranchingNode.getLeavingEdge(1).getSuccessor();
+
+      checkArgument(
+          !fstBranch.equals(sndBranch),
+          "There must be no parallel edges: % is parallel to %s",
+          pBranchingNode.getLeavingEdge(0),
+          pBranchingNode.getLeavingEdge(1));
+
+      Optional<CFANode> fstBranchMergeNode = loopFreeBranchingMergeNodeForBranch(fstBranch);
+      Optional<CFANode> sndBranchMergeNode = loopFreeBranchingMergeNodeForBranch(sndBranch);
+
+      if (fstBranchMergeNode.equals(sndBranchMergeNode)) {
+        return fstBranchMergeNode;
+      }
+
+      return Optional.empty();
+    }
+
+    private Optional<CFANode> loopFreeBranchingBranchNodeForBranch(CFANode pBranch) {
+
+      @Nullable CFANode loopFreeBranchStart =
+          pBranch.getNumLeavingEdges() == 1 ? chainStart(pBranch) : null;
+      // handle inner branching
+      if (loopFreeBranchStart != null && loopFreeBranchStart.getNumEnteringEdges() == 2) {
+        loopFreeBranchStart =
+            loopFreeBranchingBranchNode(loopFreeBranchStart)
+                .map(this::chainStart)
+                .orElse(loopFreeBranchStart);
+      }
+
+      @Nullable CFANode loopFreeBranchBranchNode;
+      if (loopFreeBranchStart == null) {
+        loopFreeBranchBranchNode = pBranch;
+      } else if (loopFreeBranchStart.getNumEnteringEdges() == 1) {
+        loopFreeBranchBranchNode = loopFreeBranchStart.getEnteringEdge(0).getPredecessor();
+      } else {
+        loopFreeBranchBranchNode = null;
+      }
+
+      return Optional.ofNullable(loopFreeBranchBranchNode);
+    }
+
+    /**
+     * Returns the corresponding branch node for the specified merge node, if both branches are
+     * loop-free.
+     *
+     * @param pMergeNode the merge node to get the branch node for
+     * @return If both branches are loop-free, an optional containing the branch node for the
+     *     specified merge node is returned. Otherwise, if both branches are not loop-free or we are
+     *     unable to determine whether they are loop-free, an empty optional is returned.
+     */
+    private Optional<CFANode> loopFreeBranchingBranchNode(CFANode pMergeNode) {
+
+      checkArgument(
+          pMergeNode.getNumEnteringEdges() == 2, "Node is not a merge node: %s", pMergeNode);
+
+      CFANode fstBranch = pMergeNode.getEnteringEdge(0).getPredecessor();
+      CFANode sndBranch = pMergeNode.getEnteringEdge(1).getPredecessor();
+
+      checkArgument(
+          !fstBranch.equals(sndBranch),
+          "There must be no parallel edges: % is parallel to %s",
+          pMergeNode.getEnteringEdge(0),
+          pMergeNode.getEnteringEdge(1));
+
+      Optional<CFANode> fstBranchBranchNode = loopFreeBranchingBranchNodeForBranch(fstBranch);
+      Optional<CFANode> sndBranchBranchNode = loopFreeBranchingBranchNodeForBranch(sndBranch);
+
+      if (fstBranchBranchNode.equals(sndBranchBranchNode)) {
+        return fstBranchBranchNode;
+      }
+
+      return Optional.empty();
+    }
+
+    /**
+     * Returns the start node of the loop-free section that contains the specified node.
+     *
+     * @param pNode the start node the get the loop-free section start for
+     * @return the start node of the loop-free section that contains the specified node
+     */
+    private CFANode loopFreeSectionStart(CFANode pNode) {
+
+      CFANode sectionStart = chainStart(pNode);
+
+      boolean changed;
+      do {
+        changed = false;
+        if (sectionStart.getNumEnteringEdges() == 1) {
+          CFAEdge enteringEdge = sectionStart.getEnteringEdge(0);
+          CFANode predecessor = enteringEdge.getPredecessor();
+          if (predecessor.getNumLeavingEdges() == 2
+              && loopFreeBranchingMergeNode(predecessor).isPresent()) {
+            // leave branching
+            sectionStart = chainStart(predecessor);
+            changed = true;
+          } else {
+            break;
+          }
+        } else if (sectionStart.getNumEnteringEdges() == 2) {
+          Optional<CFANode> branchNode = loopFreeBranchingBranchNode(sectionStart);
+          if (branchNode.isPresent()) {
+            // skip branching
+            sectionStart = branchNode.map(this::chainStart).orElseThrow();
+            changed = true;
+          }
+        }
+      } while (changed);
+
+      return sectionStart;
+    }
+
+    /**
+     * Returns the end node of the loop-free section that contains the specified node.
+     *
+     * @param pNode the start node the get the loop-free section start for
+     * @return the end node of the loop-free section that contains the specified node
+     */
+    private CFANode loopFreeSectionEnd(CFANode pNode) {
+
+      CFANode sectionEnd = chainEnd(pNode);
+
+      boolean changed;
+      do {
+        changed = false;
+        if (sectionEnd.getNumLeavingEdges() == 1) {
+          CFAEdge leavingEdge = sectionEnd.getLeavingEdge(0);
+          CFANode successor = leavingEdge.getSuccessor();
+          if (successor.getNumEnteringEdges() == 2
+              && loopFreeBranchingBranchNode(successor).isPresent()) {
+            // leave branching
+            sectionEnd = chainEnd(successor);
+            changed = true;
+          } else {
+            break;
+          }
+        } else if (sectionEnd.getNumLeavingEdges() == 2) {
+          Optional<CFANode> mergeNode = loopFreeBranchingMergeNode(sectionEnd);
+          if (mergeNode.isPresent()) {
+            // skip branching
+            sectionEnd = mergeNode.map(this::chainEnd).orElseThrow();
+            changed = true;
+          }
+        }
+      } while (changed);
+
+      return sectionEnd;
+    }
   }
 }
