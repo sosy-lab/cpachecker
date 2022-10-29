@@ -1088,7 +1088,7 @@ public final class LoopStructure implements Serializable {
       return nextNode.getNumEnteringEdges() == 1 ? nextNode : currentNode;
     }
 
-    private Optional<CFANode> loopFreeBranchingMergeNodeForBranch(CFANode pBranch) {
+    private @Nullable CFANode loopFreeBranchingMergeNodeCandidate(CFANode pBranch) {
 
       @Nullable CFANode loopFreeBranchEnd =
           pBranch.getNumEnteringEdges() == 1 ? chainEnd(pBranch) : null;
@@ -1100,16 +1100,13 @@ public final class LoopStructure implements Serializable {
                 .orElse(loopFreeBranchEnd);
       }
 
-      @Nullable CFANode loopFreeBranchMergeNode;
       if (loopFreeBranchEnd == null) {
-        loopFreeBranchMergeNode = pBranch;
+        return pBranch;
       } else if (loopFreeBranchEnd.getNumLeavingEdges() == 1) {
-        loopFreeBranchMergeNode = loopFreeBranchEnd.getLeavingEdge(0).getSuccessor();
+        return loopFreeBranchEnd.getLeavingEdge(0).getSuccessor();
       } else {
-        loopFreeBranchMergeNode = null;
+        return null;
       }
-
-      return Optional.ofNullable(loopFreeBranchMergeNode);
     }
 
     /**
@@ -1141,18 +1138,18 @@ public final class LoopStructure implements Serializable {
           pBranchNode.getLeavingEdge(0),
           pBranchNode.getLeavingEdge(1));
 
-      Optional<CFANode> fstBranchMergeNode = loopFreeBranchingMergeNodeForBranch(fstBranch);
-      Optional<CFANode> sndBranchMergeNode = loopFreeBranchingMergeNodeForBranch(sndBranch);
+      @Nullable CFANode fstMergeNodeCandidate = loopFreeBranchingMergeNodeCandidate(fstBranch);
+      @Nullable CFANode sndMergeNodeCandidate = loopFreeBranchingMergeNodeCandidate(sndBranch);
 
-      if (fstBranchMergeNode.equals(sndBranchMergeNode)) {
-        branchNodeToMergeNode.put(pBranchNode, fstBranchMergeNode);
-        return fstBranchMergeNode;
+      Optional<CFANode> mergeNode = Optional.empty();
+      if (fstMergeNodeCandidate != null && fstMergeNodeCandidate.equals(sndMergeNodeCandidate)) {
+        mergeNode = Optional.of(fstMergeNodeCandidate);
       }
 
-      return Optional.empty();
+      return mergeNode;
     }
 
-    private Optional<CFANode> loopFreeBranchingBranchNodeForBranch(CFANode pBranch) {
+    private @Nullable CFANode loopFreeBranchingBranchNodeCandidate(CFANode pBranch) {
 
       @Nullable CFANode loopFreeBranchStart =
           pBranch.getNumLeavingEdges() == 1 ? chainStart(pBranch) : null;
@@ -1164,20 +1161,14 @@ public final class LoopStructure implements Serializable {
                 .orElse(loopFreeBranchStart);
       }
 
-      @Nullable CFANode loopFreeBranchBranchNode;
       if (loopFreeBranchStart == null) {
-        loopFreeBranchBranchNode = pBranch;
-      } else if (loopFreeBranchStart.getNumEnteringEdges() == 1) {
-        if (!loopFreeBranchStart.equals(startNode)) {
-          loopFreeBranchBranchNode = loopFreeBranchStart.getEnteringEdge(0).getPredecessor();
-        } else {
-          loopFreeBranchBranchNode = null;
-        }
-      } else {
-        loopFreeBranchBranchNode = null;
+        return pBranch;
+      } else if (loopFreeBranchStart.getNumEnteringEdges() == 1
+          && !loopFreeBranchStart.equals(startNode)) {
+        return loopFreeBranchStart.getEnteringEdge(0).getPredecessor();
       }
 
-      return Optional.ofNullable(loopFreeBranchBranchNode);
+      return null;
     }
 
     /**
@@ -1213,15 +1204,15 @@ public final class LoopStructure implements Serializable {
           pMergeNode.getEnteringEdge(0),
           pMergeNode.getEnteringEdge(1));
 
-      Optional<CFANode> fstBranchBranchNode = loopFreeBranchingBranchNodeForBranch(fstBranch);
-      Optional<CFANode> sndBranchBranchNode = loopFreeBranchingBranchNodeForBranch(sndBranch);
+      @Nullable CFANode fstBranchNodeCandidate = loopFreeBranchingBranchNodeCandidate(fstBranch);
+      @Nullable CFANode sndBranchNodeCandidate = loopFreeBranchingBranchNodeCandidate(sndBranch);
 
-      if (fstBranchBranchNode.equals(sndBranchBranchNode)) {
-        mergeNodeToBranchNode.put(pMergeNode, fstBranchBranchNode);
-        return fstBranchBranchNode;
+      Optional<CFANode> branchNode = Optional.empty();
+      if (fstBranchNodeCandidate != null && fstBranchNodeCandidate.equals(sndBranchNodeCandidate)) {
+        branchNode = Optional.of(fstBranchNodeCandidate);
       }
 
-      return Optional.empty();
+      return branchNode;
     }
 
     /**
