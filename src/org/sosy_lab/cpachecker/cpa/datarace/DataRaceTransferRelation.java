@@ -51,8 +51,8 @@ public class DataRaceTransferRelation extends SingleEdgeTransferRelation {
       return ImmutableSet.of(pState);
     }
     DataRaceState state = (DataRaceState) pState;
-    ImmutableSet.Builder<DataRaceState> strengthenedStates = ImmutableSet.builder();
     Map<String, ThreadInfo> threadInfo = state.getThreadInfo();
+    ImmutableSet.Builder<DataRaceState> strengthenedStates = ImmutableSet.builder();
     ImmutableSet.Builder<ThreadSynchronization> synchronizationBuilder = ImmutableSet.builder();
     synchronizationBuilder.addAll(state.getThreadSynchronizations());
 
@@ -70,9 +70,12 @@ public class DataRaceTransferRelation extends SingleEdgeTransferRelation {
         continue;
       }
 
-      Set<String> locks = threadingState.getLocksForThread(activeThread);
       ImmutableSetMultimap.Builder<String, String> newHeldLocks = ImmutableSetMultimap.builder();
       ImmutableSet.Builder<LockRelease> newReleases = ImmutableSet.builder();
+      ImmutableSet.Builder<MemoryAccess> memoryAccessBuilder = ImmutableSet.builder();
+      ImmutableSet.Builder<MemoryAccess> subsequentWritesBuilder =
+          prepareSubsequentWritesBuilder(state, threadIds);
+      Set<String> locks = threadingState.getLocksForThread(activeThread);
       updateLocks(
           state,
           locks,
@@ -80,10 +83,6 @@ public class DataRaceTransferRelation extends SingleEdgeTransferRelation {
           newHeldLocks,
           newReleases,
           synchronizationBuilder);
-
-      ImmutableSet.Builder<MemoryAccess> memoryAccessBuilder = ImmutableSet.builder();
-      ImmutableSet.Builder<MemoryAccess> subsequentWritesBuilder =
-          prepareSubsequentWritesBuilder(state, threadIds);
       Set<MemoryAccess> newMemoryAccesses =
           memoryAccessExtractor.getNewAccesses(threadInfo.get(activeThread), cfaEdge, locks);
 
@@ -94,37 +93,62 @@ public class DataRaceTransferRelation extends SingleEdgeTransferRelation {
       }
 
       for (MemoryAccess access : state.getMemoryAccesses()) {
-        if (threadIds.contains(access.getThreadId())) {
-          memoryAccessBuilder.add(access);
-          if (access.isWrite() && !state.getAccessesWithSubsequentWrites().contains(access)) {
-            for (MemoryAccess newAccess : newMemoryAccesses) {
-              if (access.mightAccessSameLocationAs(newAccess)) {
-                if (newAccess.isWrite()) {
-                  subsequentWritesBuilder.add(access);
-                } else if (!access.getThreadId().equals(newAccess.getThreadId())) {
-                  // Unnecessary if both accesses were made by the same thread, because then
-                  // happens-before is established even without synchronizes-with
-                  synchronizationBuilder.add(
-                      new ThreadSynchronization(
-                          access.getThreadId(),
-                          newAccess.getThreadId(),
-                          access.getAccessEpoch(),
-                          newAccess.getAccessEpoch()));
-                }
-              }
+        // Update tracked memory accesses
+        if (!threadIds.contains(access.getThreadId())) {
+          // If the thread that made the access is no longer running,
+          // then this access can not conflict with any newer accesses.
+          // Therefore, we do not need to track it any longer.
+          continue;
+        }
+        memoryAccessBuilder.add(access);
+
+        // Add new synchronizes-with edges, if possible.
+        // We do this here to avoid looping over all memory accesses a second time.
+        if (!access.isWrite() || state.getAccessesWithSubsequentWrites().contains(access)) {
+          continue;
+        }
+        for (MemoryAccess newAccess : newMemoryAccesses) {
+          if (!access.mightAccessSameLocationAs(newAccess)) {
+            continue;
+          }
+          if (newAccess.isWrite()) {
+            // There is now a more recent write to the same memory location,
+            // so mark the old access accordingly.
+            // Other accesses currently in newMemoryAccesses that read this memory location still
+            // synchronize-with the old access, so no need to break/rollback here.
+            subsequentWritesBuilder.add(access);
+          } else {
+            if (access.getThreadId().equals(newAccess.getThreadId())) {
+              // Adding synchronizes-with edge between accesses made by the same thread is
+              // unnecessary, because happens-before is established anyway.
+              continue;
+            }
+            if (!Sets.intersection(access.getLocks(), newAccess.getLocks()).isEmpty()) {
+              // Add synchronizes-with edge:
+              // An atomic write operation synchronizes-with an atomic read operation of the same
+              // variable that reads the value written by the former.
+              synchronizationBuilder.add(
+                  new ThreadSynchronization(
+                      access.getThreadId(),
+                      newAccess.getThreadId(),
+                      access.getAccessEpoch(),
+                      newAccess.getAccessEpoch()));
             }
           }
         }
       }
 
+      // Determine whether any of the new accesses constitutes a data race
       boolean hasDataRace = state.hasDataRace();
       Set<ThreadSynchronization> threadSynchronizations = synchronizationBuilder.build();
       for (MemoryAccess access : memoryAccessBuilder.build()) {
         if (hasDataRace) {
+          // Already found a data race, no need to continue
           break;
         }
-        // In particular, this skips all new memory accesses
         if (access.getThreadId().equals(activeThread)) {
+          // All new accesses were made by the currently active thread and accesses made by the same
+          // thread are never conflicting.
           continue;
         }
         for (MemoryAccess newAccess : newMemoryAccesses) {
@@ -132,6 +156,13 @@ public class DataRaceTransferRelation extends SingleEdgeTransferRelation {
               && (access.isWrite() || newAccess.isWrite())
               && Sets.intersection(access.getLocks(), newAccess.getLocks()).isEmpty()
               && !access.happensBefore(newAccess, threadSynchronizations)) {
+            // Two accesses are conflicting if:
+            //   - They access the same memory location
+            //   - They were made by two different threads
+            //   - At least one of them is a write access
+            // Two conflicting accesses constitute a data race unless:
+            //   - Both accesses are performed through atomic operations, or
+            //   - One access happens-before the other
             hasDataRace = true;
             break;
           }
