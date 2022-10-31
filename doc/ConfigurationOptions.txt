@@ -3684,6 +3684,9 @@ imc.assertTargetsAtEveryIteration = false
 # toggle checking forward conditions
 imc.checkForwardConditions = true
 
+# toggle checking whether the safety property is inductive
+imc.checkPropertyInductiveness = false
+
 # toggle falling back if interpolation or forward-condition is disabled
 imc.fallBack = true
 

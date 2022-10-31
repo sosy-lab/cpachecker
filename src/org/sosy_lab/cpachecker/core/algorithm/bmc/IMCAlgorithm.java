@@ -366,6 +366,9 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
   @Option(secure = true, description = "toggle checking forward conditions")
   private boolean checkForwardConditions = true;
 
+  @Option(secure = true, description = "toggle checking whether the safety property is inductive")
+  private boolean checkPropertyInductiveness = false;
+
   @Option(
       secure = true,
       description =
@@ -578,6 +581,11 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
         stats.interpolationPreparation.start();
         partitionedFormulas.collectFormulasFromARG(pReachedSet);
         stats.interpolationPreparation.stop();
+        if (checkPropertyInductiveness && isPropertyInductive(partitionedFormulas)) {
+          InterpolationHelper.removeUnreachableTargetStates(pReachedSet);
+          logger.log(Level.FINE, "The safety property is inductive");
+          return AlgorithmStatus.SOUND_AND_PRECISE;
+        }
         if (reachFixedPoint(partitionedFormulas, reachVector)) {
           InterpolationHelper.removeUnreachableTargetStates(pReachedSet);
           InterpolationHelper.storeFixedPointAsAbstractionAtLoopHeads(
@@ -603,6 +611,23 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
         "Forward-condition disabled because of " + pReason + ", falling back to plain BMC");
     fixedPointComputeStrategy = FixedPointComputeStrategy.NONE;
     checkForwardConditions = false;
+  }
+
+  private boolean isPropertyInductive(final PartitionedFormulas formulas)
+      throws InterruptedException, SolverException {
+    boolean isInductive;
+    try (ProverEnvironment inductionProver = solver.newProverEnvironment()) {
+      stats.satCheck.start();
+      BooleanFormula query =
+          bfmgr.and(bfmgr.and(formulas.getLoopFormulas()), formulas.getAssertionFormula());
+      try {
+        inductionProver.push(query);
+        isInductive = inductionProver.isUnsat();
+      } finally {
+        stats.satCheck.stop();
+      }
+    }
+    return isInductive;
   }
 
   private boolean reachFixedPoint(
