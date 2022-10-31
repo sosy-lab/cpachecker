@@ -24,6 +24,7 @@ import org.sosy_lab.cpachecker.core.defaults.SingleEdgeTransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.cpa.threading.ThreadingState;
+import org.sosy_lab.cpachecker.cpa.threading.ThreadingTransferRelation;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 
@@ -186,7 +187,11 @@ public class DataRaceTransferRelation extends SingleEdgeTransferRelation {
         updated.add(lock);
       } else if (Sets.difference(state.getLocksForThread(activeThread), locks).contains(lock)) {
         // Lock was released
-        newReleases.add(new LockRelease(lock, activeThread, activeThreadInfo.getEpoch()));
+        if (!lock.equals(ThreadingTransferRelation.LOCAL_ACCESS_LOCK)) {
+          // Do not track releases of local access lock,
+          // as these may not be used for synchronization
+          newReleases.add(new LockRelease(lock, activeThread, activeThreadInfo.getEpoch()));
+        }
         updated.add(lock);
         continue;
       }
