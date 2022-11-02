@@ -67,37 +67,30 @@ public class MemoryAccessExtractor {
 
   public Map<MemoryLocation, CType> getInvolvedVariableTypes(
       AAssignment pAssignment, CFAEdge pCfaEdge) throws CPATransferException {
+    ImmutableMap.Builder<MemoryLocation, CType> result = ImmutableMap.builder();
     if (pAssignment instanceof AExpressionAssignmentStatement) {
       AExpressionAssignmentStatement expressionAssignmentStatement =
           (AExpressionAssignmentStatement) pAssignment;
-      Map<MemoryLocation, CType> result =
-          new HashMap<>(
-              getInvolvedVariableTypes(expressionAssignmentStatement.getLeftHandSide(), pCfaEdge));
-
+      result.putAll(
+          getInvolvedVariableTypes(expressionAssignmentStatement.getLeftHandSide(), pCfaEdge));
       result.putAll(
           getInvolvedVariableTypes(
               ExpressionToFormulaVisitor.makeCastFromArrayToPointerIfNecessary(
                   expressionAssignmentStatement.getRightHandSide(),
                   expressionAssignmentStatement.getLeftHandSide().getExpressionType()),
               pCfaEdge));
-      return result;
-    }
-    if (pAssignment instanceof AFunctionCallAssignmentStatement) {
+    } else if (pAssignment instanceof AFunctionCallAssignmentStatement) {
       AFunctionCallAssignmentStatement functionCallAssignmentStatement =
           (AFunctionCallAssignmentStatement) pAssignment;
-      Map<MemoryLocation, CType> result =
-          new HashMap<>(
-              getInvolvedVariableTypes(
-                  functionCallAssignmentStatement.getLeftHandSide(), pCfaEdge));
-
+      result.putAll(
+          getInvolvedVariableTypes(functionCallAssignmentStatement.getLeftHandSide(), pCfaEdge));
       AFunctionCallExpression functionCallExpression =
           functionCallAssignmentStatement.getFunctionCallExpression();
       for (AExpression expression : functionCallExpression.getParameterExpressions()) {
         result.putAll(getInvolvedVariableTypes(expression, pCfaEdge));
       }
-      return result;
     }
-    return ImmutableMap.of();
+    return result.build();
   }
 
   /**
@@ -273,8 +266,8 @@ public class MemoryAccessExtractor {
         throw new AssertionError("Unknown edge type: " + edge.getEdgeType());
     }
 
-    Map<MemoryLocation, CType> accessedLocations = accessedLocationBuilder.build();
-    Map<MemoryLocation, CType> modifiedLocations = modifiedLocationBuilder.build();
+    Map<MemoryLocation, CType> accessedLocations = accessedLocationBuilder.buildOrThrow();
+    Map<MemoryLocation, CType> modifiedLocations = modifiedLocationBuilder.buildOrThrow();
     assert accessedLocations.keySet().containsAll(modifiedLocations.keySet());
 
     for (Entry<MemoryLocation, CType> entry : accessedLocations.entrySet()) {

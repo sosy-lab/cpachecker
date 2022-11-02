@@ -55,7 +55,7 @@ public class MemoryLocationExtractingVisitor
     return ImmutableMap.<MemoryLocation, CType>builder()
         .putAll(leftLocations)
         .putAll(rightLocations)
-        .build();
+        .buildOrThrow();
   }
 
   @Override
