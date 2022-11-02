@@ -129,17 +129,16 @@ class MemoryAccess {
       return false;
     }
     MemoryAccess access = (MemoryAccess) pO;
-    return isWrite() == access.isWrite()
-        && getAccessEpoch() == access.getAccessEpoch()
-        && getThreadId().equals(access.getThreadId())
+    return isWrite == access.isWrite
+        && accessEpoch == access.accessEpoch
+        && threadId.equals(access.threadId)
         && memoryLocation.equals(access.memoryLocation)
-        && getLocks().equals(access.getLocks())
+        && locks.equals(access.locks)
         && edge.equals(access.edge);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(
-        getThreadId(), memoryLocation, isWrite(), getLocks(), edge, getAccessEpoch());
+    return Objects.hash(threadId, memoryLocation, isWrite, locks, edge, accessEpoch);
   }
 }

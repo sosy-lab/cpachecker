@@ -123,23 +123,23 @@ public class DataRaceState implements AbstractQueryableState {
     }
     DataRaceState that = (DataRaceState) pO;
     return hasDataRace == that.hasDataRace
-        && getMemoryAccesses().equals(that.getMemoryAccesses())
-        && getAccessesWithSubsequentWrites().equals(that.getAccessesWithSubsequentWrites())
-        && getThreadInfo().equals(that.getThreadInfo())
-        && getThreadSynchronizations().equals(that.getThreadSynchronizations())
-        && getHeldLocks().equals(that.getHeldLocks())
-        && getLastReleases().equals(that.getLastReleases());
+        && memoryAccesses.equals(that.memoryAccesses)
+        && accessesWithSubsequentWrites.equals(that.accessesWithSubsequentWrites)
+        && threadInfo.equals(that.threadInfo)
+        && threadSynchronizations.equals(that.threadSynchronizations)
+        && heldLocks.equals(that.heldLocks)
+        && lastReleases.equals(that.lastReleases);
   }
 
   @Override
   public int hashCode() {
     return Objects.hash(
-        getMemoryAccesses(),
-        getAccessesWithSubsequentWrites(),
-        getThreadInfo(),
-        getThreadSynchronizations(),
-        getHeldLocks(),
-        getLastReleases(),
+        memoryAccesses,
+        accessesWithSubsequentWrites,
+        threadInfo,
+        threadSynchronizations,
+        heldLocks,
+        lastReleases,
         hasDataRace);
   }
 }
