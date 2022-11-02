@@ -61,7 +61,7 @@ import org.sosy_lab.cpachecker.exceptions.NoException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
-public class EdgeAnalyzer {
+class EdgeAnalyzer {
 
   private static final CollectVarsVisitor<CompoundInterval> COLLECT_VARS_VISITOR =
       new CollectVarsVisitor<>();
@@ -241,7 +241,7 @@ public class EdgeAnalyzer {
 
   @SuppressWarnings(
       "MixedMutabilityReturnType") // would need lots of copying, result for short-term use only
-  public Map<MemoryLocation, CType> getInvolvedVariableTypes(
+  private Map<MemoryLocation, CType> getInvolvedVariableTypes(
       AAssignment pAssignment, CFAEdge pCfaEdge) {
     if (pAssignment instanceof AExpressionAssignmentStatement) {
       AExpressionAssignmentStatement expressionAssignmentStatement =
@@ -293,7 +293,7 @@ public class EdgeAnalyzer {
    * @param pCInitializer the CInitializer to be analyzed.
    * @return the variables involved in the given CInitializer.
    */
-  public ImmutableMap<MemoryLocation, CType> getInvolvedVariableTypes(
+  private ImmutableMap<MemoryLocation, CType> getInvolvedVariableTypes(
       CInitializer pCInitializer, CFAEdge pCfaEdge) {
     if (pCInitializer instanceof CDesignatedInitializer) {
       return getInvolvedVariableTypes(
