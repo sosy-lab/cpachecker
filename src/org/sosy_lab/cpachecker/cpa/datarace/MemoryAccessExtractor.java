@@ -34,7 +34,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerList;
-import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.ADeclarationEdge;
@@ -188,15 +187,9 @@ public class MemoryAccessExtractor {
                   activeThreadInfo.getEpoch()));
           if (initializer != null) {
             if (initializer instanceof CInitializerExpression
-                && ((CInitializerExpression) initializer).getExpression()
-                    instanceof CUnaryExpression) {
-              CUnaryExpression initializerExpression =
-                  (CUnaryExpression) ((CInitializerExpression) initializer).getExpression();
-              if (initializerExpression.getOperator().equals(UnaryOperator.AMPER)) {
-                // Address-of is not considered accessing its operand
-                // TODO: Anything to do here when a new pointer is declared?
-                break;
-              }
+                && isAddressAccess(((CInitializerExpression) initializer).getExpression())) {
+              // TODO: Anything to do here when a new pointer is declared?
+              break;
             }
             accessedLocationBuilder.putAll(getInvolvedVariableTypes(initializer, declarationEdge));
           }
@@ -233,11 +226,7 @@ public class MemoryAccessExtractor {
         if (statement instanceof AExpressionAssignmentStatement) {
           AExpressionAssignmentStatement expressionAssignmentStatement =
               (AExpressionAssignmentStatement) statement;
-          if (expressionAssignmentStatement.getRightHandSide() instanceof CUnaryExpression
-              && ((CUnaryExpression) expressionAssignmentStatement.getRightHandSide())
-                  .getOperator()
-                  .equals(UnaryOperator.AMPER)) {
-            // Address-of is not considered accessing its operand
+          if (isAddressAccess(expressionAssignmentStatement.getRightHandSide())) {
             accessedLocationBuilder.putAll(
                 getInvolvedVariableTypes(
                     expressionAssignmentStatement.getLeftHandSide(), statementEdge));
@@ -318,6 +307,22 @@ public class MemoryAccessExtractor {
     }
     potentialLocations.add(origin);
     return new OverapproximatingMemoryLocation(potentialLocations.build(), type);
+  }
+
+  /**
+   * Check whether a given expression only accesses a memory address. This is necessary because
+   * accessing only the address of a memory location is not considered a read access.
+   */
+  private boolean isAddressAccess(AExpression pExpression) {
+    if (pExpression instanceof AUnaryExpression
+        && ((AUnaryExpression) pExpression).getOperator().equals(UnaryOperator.AMPER)) {
+      return true;
+    }
+    if (pExpression instanceof AIdExpression
+        && pExpression.getExpressionType() instanceof CPointerType) {
+      return true;
+    }
+    return false;
   }
 
   /**
