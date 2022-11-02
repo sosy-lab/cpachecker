@@ -14,7 +14,6 @@ import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
 import java.util.Collection;
-import java.util.HashSet;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
@@ -202,7 +201,6 @@ public class DataRaceTransferRelation extends SingleEdgeTransferRelation {
       ImmutableSet.Builder<LockRelease> newReleases,
       ImmutableSet.Builder<ThreadSynchronization> synchronizationBuilder) {
     String activeThread = activeThreadInfo.getThreadId();
-    Set<String> updated = new HashSet<>();
     for (String lock : Sets.union(state.getLocksForThread(activeThread), locks)) {
       if (Sets.difference(locks, state.getLocksForThread(activeThread)).contains(lock)) {
         //  Lock was acquired
@@ -215,7 +213,6 @@ public class DataRaceTransferRelation extends SingleEdgeTransferRelation {
                   lastRelease.getAccessEpoch(),
                   activeThreadInfo.getEpoch()));
         }
-        updated.add(lock);
       } else if (Sets.difference(state.getLocksForThread(activeThread), locks).contains(lock)) {
         // Lock was released
         if (!lock.equals(ThreadingTransferRelation.LOCAL_ACCESS_LOCK)) {
@@ -223,14 +220,14 @@ public class DataRaceTransferRelation extends SingleEdgeTransferRelation {
           // as these may not be used for synchronization
           newReleases.add(new LockRelease(lock, activeThread, activeThreadInfo.getEpoch()));
         }
-        updated.add(lock);
         continue;
       }
       newHeldLocks.put(activeThread, lock);
     }
 
     for (LockRelease release : state.getLastReleases()) {
-      if (!updated.contains(release.getLockId())) {
+      if (!Sets.symmetricDifference(locks, state.getLocksForThread(activeThread))
+          .contains(release.getLockId())) {
         newReleases.add(release);
       }
     }
