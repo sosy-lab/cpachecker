@@ -16,6 +16,7 @@ import com.google.common.collect.Sets;
 import java.util.Collection;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Objects;
 import java.util.Set;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -60,6 +61,7 @@ public class DataRaceTransferRelation extends SingleEdgeTransferRelation {
 
       Set<String> threadIds = threadingState.getThreadIds();
       String activeThread = getActiveThread(cfaEdge, threadingState);
+      assert Objects.equals(activeThread, threadInfo.get(activeThread).getThreadId());
       ImmutableMap<String, ThreadInfo> newThreadInfo =
           updateThreadInfo(threadInfo, threadIds, activeThread, synchronizationBuilder);
 
@@ -69,30 +71,45 @@ public class DataRaceTransferRelation extends SingleEdgeTransferRelation {
         continue;
       }
 
-      ImmutableSetMultimap.Builder<String, String> newHeldLocks = ImmutableSetMultimap.builder();
-      ImmutableSet.Builder<LockRelease> newReleases = ImmutableSet.builder();
-      ImmutableSet.Builder<MemoryAccess> memoryAccessBuilder = ImmutableSet.builder();
-      ImmutableSet.Builder<MemoryAccess> subsequentWritesBuilder =
-          prepareSubsequentWritesBuilder(state, threadIds);
-      Set<String> locks = threadingState.getLocksForThread(activeThread);
-      updateLocks(
-          state,
-          locks,
-          threadInfo.get(activeThread),
-          newHeldLocks,
-          newReleases,
-          synchronizationBuilder);
-      Set<MemoryAccess> newMemoryAccesses =
-          memoryAccessExtractor.getNewAccesses(threadInfo.get(activeThread), cfaEdge, locks);
+      // Update locking related info with info from ThreadingCPA
+      Set<String> activeThreadLocks = threadingState.getLocksForThread(activeThread);
+      ImmutableSetMultimap<String, String> heldLocks =
+          updateHeldLocks(state, activeThread, activeThreadLocks);
+      ImmutableSet<LockRelease> lastReleases =
+          updateLastReleases(state, activeThread, activeThreadLocks, threadInfo);
 
+      for (String lock : activeThreadLocks) {
+        if (!state.getLocksForThread(activeThread).contains(lock)) {
+          //  Lock was newly acquired
+          LockRelease lastRelease = state.getLastReleaseForLock(lock);
+          if (lastRelease != null && !lastRelease.getThreadId().equals(activeThread)) {
+            // A lock release synchronizes-with the next acquisition of that lock (but
+            // synchronizes-with is unnecessary if acquire and release are done by the same thread)
+            synchronizationBuilder.add(
+                new ThreadSynchronization(
+                    lastRelease.getThreadId(),
+                    activeThread,
+                    lastRelease.getAccessEpoch(),
+                    threadInfo.get(activeThread).getEpoch()));
+          }
+        }
+      }
+
+      // Collect new accesses
+      Set<MemoryAccess> newMemoryAccesses =
+          memoryAccessExtractor.getNewAccesses(
+              threadInfo.get(activeThread), cfaEdge, activeThreadLocks);
       for (MemoryAccess newAccess : newMemoryAccesses) {
         if (newAccess.isAmbiguous()) {
           throw new CPATransferException("DataRaceCPA does not support pointer analysis");
         }
       }
 
+      // Update tracked memory accesses
+      ImmutableSet.Builder<MemoryAccess> memoryAccessBuilder = ImmutableSet.builder();
+      ImmutableSet.Builder<MemoryAccess> subsequentWritesBuilder =
+          prepareSubsequentWritesBuilder(state, threadIds);
       for (MemoryAccess access : state.getMemoryAccesses()) {
-        // Update tracked memory accesses
         if (!threadIds.contains(access.getThreadId())) {
           // If the thread that made the access is no longer running,
           // then this access can not conflict with any newer accesses.
@@ -174,8 +191,8 @@ public class DataRaceTransferRelation extends SingleEdgeTransferRelation {
               subsequentWritesBuilder.build(),
               newThreadInfo,
               threadSynchronizations,
-              newHeldLocks.build(),
-              newReleases.build(),
+              heldLocks,
+              lastReleases,
               hasDataRace));
     }
 
@@ -193,49 +210,50 @@ public class DataRaceTransferRelation extends SingleEdgeTransferRelation {
     return subsequentWritesBuilder;
   }
 
-  private void updateLocks(
-      DataRaceState state,
-      Set<String> locks,
-      ThreadInfo activeThreadInfo,
-      ImmutableSetMultimap.Builder<String, String> newHeldLocks,
-      ImmutableSet.Builder<LockRelease> newReleases,
-      ImmutableSet.Builder<ThreadSynchronization> synchronizationBuilder) {
-    String activeThread = activeThreadInfo.getThreadId();
-    for (String lock : Sets.union(state.getLocksForThread(activeThread), locks)) {
-      if (Sets.difference(locks, state.getLocksForThread(activeThread)).contains(lock)) {
-        //  Lock was acquired
-        LockRelease lastRelease = state.getLastReleaseForLock(lock);
-        if (lastRelease != null && !lastRelease.getThreadId().equals(activeThread)) {
-          synchronizationBuilder.add(
-              new ThreadSynchronization(
-                  lastRelease.getThreadId(),
-                  activeThread,
-                  lastRelease.getAccessEpoch(),
-                  activeThreadInfo.getEpoch()));
-        }
-      } else if (Sets.difference(state.getLocksForThread(activeThread), locks).contains(lock)) {
-        // Lock was released
-        if (!lock.equals(ThreadingTransferRelation.LOCAL_ACCESS_LOCK)) {
-          // Do not track releases of local access lock,
-          // as these may not be used for synchronization
-          newReleases.add(new LockRelease(lock, activeThread, activeThreadInfo.getEpoch()));
-        }
-        continue;
-      }
+  private ImmutableSetMultimap<String, String> updateHeldLocks(
+      DataRaceState state, String activeThread, Set<String> activeThreadLocks) {
+    ImmutableSetMultimap.Builder<String, String> newHeldLocks = ImmutableSetMultimap.builder();
+    // For locks held by the active thread use info from ThreadingCPA
+    for (String lock : activeThreadLocks) {
       newHeldLocks.put(activeThread, lock);
     }
 
-    for (LockRelease release : state.getLastReleases()) {
-      if (!Sets.symmetricDifference(locks, state.getLocksForThread(activeThread))
-          .contains(release.getLockId())) {
-        newReleases.add(release);
-      }
-    }
+    // For locks held by any other thread nothing changes
     for (Entry<String, String> entry : state.getHeldLocks().entries()) {
       if (!entry.getKey().equals(activeThread)) {
         newHeldLocks.put(entry);
       }
     }
+    return newHeldLocks.build();
+  }
+
+  private ImmutableSet<LockRelease> updateLastReleases(
+      DataRaceState state,
+      String activeThread,
+      Set<String> activeThreadLocks,
+      Map<String, ThreadInfo> threadInfo) {
+    ImmutableSet.Builder<LockRelease> newReleases = ImmutableSet.builder();
+    // First, add any new lock releases
+    for (String lock : state.getLocksForThread(activeThread)) {
+      if (!activeThreadLocks.contains(lock)) {
+        // Lock was newly released
+        if (!lock.equals(ThreadingTransferRelation.LOCAL_ACCESS_LOCK)) {
+          // Do not track releases of local access lock,
+          // as these may not be used for synchronization
+          newReleases.add(
+              new LockRelease(lock, activeThread, threadInfo.get(activeThread).getEpoch()));
+        }
+      }
+    }
+
+    // Then add already tracked lock releases that were not invalidated
+    for (LockRelease release : state.getLastReleases()) {
+      if (!Sets.symmetricDifference(activeThreadLocks, state.getLocksForThread(activeThread))
+          .contains(release.getLockId())) {
+        newReleases.add(release);
+      }
+    }
+    return newReleases.build();
   }
 
   /**
