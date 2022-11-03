@@ -393,8 +393,7 @@ public class SMGState
     if (isGlobalVariablePresent(qualifiedName) || isLocalVariablePresentAnywhere(qualifiedName)) {
       Optional<SMGObject> memRegion = memoryModel.getObjectForVisibleVariable(qualifiedName);
       if (memRegion.isPresent()) {
-        return memoryModel.isObjectValid(
-            memRegion.orElseThrow());
+        return memoryModel.isObjectValid(memRegion.orElseThrow());
       }
     }
     return false;

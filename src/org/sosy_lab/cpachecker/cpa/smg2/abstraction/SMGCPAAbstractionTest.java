@@ -108,7 +108,7 @@ public class SMGCPAAbstractionTest {
    * point to the correct segments.
    */
   @Test
-  public void correctPointerNestingSLLTest() throws InvalidConfigurationException, SMG2Exception {
+  public void correctPointerNestingSLLTest() throws InvalidConfigurationException {
     // int sizeOfList = 10;
     resetSMGStateAndVisitor();
     // Value[] pointers = buildConcreteList(false, sllSize, sizeOfList);
