@@ -2921,7 +2921,7 @@ cpa.smg2.abstraction.abstractHeapValues = false
 cpa.smg2.abstraction.abstractLinkedLists = true
 
 # Abstraction of program variables via CEGAR.
-cpa.smg2.abstraction.abstractProgramVariables = true
+cpa.smg2.abstraction.abstractProgramVariables = false
 
 # restrict abstraction computations to branching points
 cpa.smg2.abstraction.alwaysAtBranch = false
