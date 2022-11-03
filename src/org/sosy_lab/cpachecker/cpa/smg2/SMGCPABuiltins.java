@@ -16,6 +16,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
+import java.util.logging.Level;
 import java.util.regex.Pattern;
 import org.sosy_lab.common.UniqueIdGenerator;
 import org.sosy_lab.common.collect.Collections3;
@@ -258,6 +259,13 @@ public class SMGCPABuiltins {
       CFunctionCallExpression cFCExpression, CFAEdge pCfaEdge, SMGState pState) {
     Preconditions.checkArgument(cFCExpression.getParameterExpressions().size() == 1);
     // The first argument is the variable to be deleted
+    CIdExpression firstIdArg = (CIdExpression) evaluateCFunctionCallToFirstParameterForVA(cFCExpression);
+    SMGState currentState =
+        pState.copyAndPruneFunctionStackVariable(firstIdArg.getDeclaration().getQualifiedName());
+    return ImmutableList.of(ValueAndSMGState.ofUnknownValue(currentState));
+  }
+
+  private CExpression evaluateCFunctionCallToFirstParameterForVA(CFunctionCallExpression cFCExpression) {
     CExpression firstArg = cFCExpression.getParameterExpressions().get(0);
     while (firstArg instanceof CCastExpression) {
       firstArg = ((CCastExpression) firstArg).getOperand();
@@ -266,10 +274,7 @@ public class SMGCPABuiltins {
       firstArg = ((CUnaryExpression) firstArg).getOperand();
     }
     Preconditions.checkArgument(firstArg instanceof CIdExpression);
-    CIdExpression firstIdArg = (CIdExpression) firstArg;
-    SMGState currentState =
-        pState.copyAndPruneFunctionStackVariable(firstIdArg.getDeclaration().getQualifiedName());
-    return ImmutableList.of(ValueAndSMGState.ofUnknownValue(currentState));
+    return firstArg;
   }
 
   /*
@@ -353,17 +358,7 @@ public class SMGCPABuiltins {
     SMGState currentState = pState;
     Preconditions.checkArgument(cFCExpression.getParameterExpressions().size() == 2);
     // The first argument is the target for the pointer to the array of values
-    CExpression firstArg = cFCExpression.getParameterExpressions().get(0);
-    // The first arg is usually either a & onto the args or the args itself, it might be casted
-    // though
-    while (firstArg instanceof CCastExpression) {
-      firstArg = ((CCastExpression) firstArg).getOperand();
-    }
-    if (firstArg instanceof CUnaryExpression) {
-      firstArg = ((CUnaryExpression) firstArg).getOperand();
-    }
-
-    Preconditions.checkArgument(firstArg instanceof CIdExpression);
+    CExpression firstArg = evaluateCFunctionCallToFirstParameterForVA(cFCExpression);
 
     // The second argument is the type of the argument before the variable args start
     CExpression secondArg = cFCExpression.getParameterExpressions().get(1);
@@ -375,7 +370,10 @@ public class SMGCPABuiltins {
             .get(currentStack.getFunctionDefinition().getParameters().size() - 1);
     if (!paramDecl.getType().equals(secondArg.getExpressionType())) {
       // Log warning (gcc only throws a warning and it works anyway)
-      // TODO:
+      logger.logf(
+          Level.INFO, "The types of variable arguments (%s) do not match the last not "
+              + "variable argument of the function (%s)", paramDecl.getType(),
+          secondArg.getExpressionType());
     }
     BigInteger sizeInBitsPointer = evaluator.getBitSizeof(pState, firstArg);
 
@@ -545,7 +543,6 @@ public class SMGCPABuiltins {
           Value value2 = value2AndState.getValue();
           SMGState state2 = value2AndState.getState();
           if (!value2.isNumericValue()) {
-            // TODO: improve symbolic handling
             resultBuilder.add(ValueAndSMGState.ofUnknownValue(state2));
             continue;
           } else {
@@ -742,7 +739,7 @@ public class SMGCPABuiltins {
   @SuppressWarnings("unused")
   private void evaluateVBPlot(CFunctionCallExpression functionCall, SMGState currentState) {
     // String name = functionCall.getParameterExpressions().get(0).toASTString();
-    if (exportSMGOptions.hasExportPath() && currentState != null) {
+    if (exportSMGOptions.hasExportPath()) {
       // TODO:
       /*
       SMGUtils.dumpSMGPlot(
@@ -853,7 +850,6 @@ public class SMGCPABuiltins {
       // TODO: we need to change the value behind bufferAddress to unknown as well!
       return ValueAndSMGState.ofUnknownValue(currentState);
     }
-    // TODO: improve symbolic count handling
     if (!countValue.isNumericValue()) {
       currentState =
           currentState.withInvalidWrite(
@@ -999,12 +995,11 @@ public class SMGCPABuiltins {
       SMGState pState, Value pSizeValue, CType type, @SuppressWarnings("unused") CFAEdge cfaEdge)
       throws CPATransferException {
     // Since the size comes from getAllocateFunctionParameter we know that unknown values may be
-    // replaces by guesses if enabled
+    // replaced by guesses if enabled
 
     ImmutableList.Builder<ValueAndSMGState> resultBuilder = ImmutableList.builder();
     SMGState currentState = pState;
     if (!pSizeValue.isNumericValue()) {
-      // TODO: improve symbolic and unknown handling
       resultBuilder.add(ValueAndSMGState.ofUnknownValue(currentState));
     } else {
       String allocationLabel = "_ALLOCA_ID_" + U_ID_GENERATOR.getFreshId();
@@ -1016,17 +1011,6 @@ public class SMGCPABuiltins {
 
       resultBuilder.add(ValueAndSMGState.of(addressValueAndState.getValue(), currentState));
     }
-
-    // If malloc can fail, handle fail with alternative state
-    // TODO: malloc fail == alloc fail?
-    /*
-    if (options.isEnableMallocFailure()) {
-      // TODO: how to let this fail correctly? GNU simply sigsevs for to large allocations, but does
-      // not seem to link to 0
-      resultBuilder.add(ValueAndSMGState.of(new NumericValue(0), currentState));
-    }
-    */
-
     return resultBuilder.build();
   }
 
@@ -1188,7 +1172,7 @@ public class SMGCPABuiltins {
     long numOfBytes = numOfBytesValue.asNumericValue().bigInteger().longValue();
     if (numOfBytes < 0) {
       // the argument is unsigned, so we have to transform it into a postive. On most 64bit systems
-      // its a unsigned long (C99 standard)
+      // it's an unsigned long (C99 standard)
       numOfBytes =
           Integer.toUnsignedLong(numOfBytesValue.asNumericValue().bigInteger().intValueExact());
     }
@@ -1265,12 +1249,7 @@ public class SMGCPABuiltins {
       // If the Value is no AddressExpression we can't work with it
       // The buffer is type * and has to be a AddressExpression with a not unknown value and a
       // concrete offset to be used correctly
-      if (SMGCPAExpressionEvaluator.valueIsAddressExprOrVariableOffset(firstAddress)) {
-        // Unknown addresses happen only of we don't have a memory associated
-        // TODO: decide what to do here and when this happens
-        resultBuilder.add(ValueAndSMGState.ofUnknownValue(firstValueAndSMGState.getState()));
-        continue;
-      } else if (!(firstAddress instanceof AddressExpression)) {
+      if (!(firstAddress instanceof AddressExpression)) {
         // The value can be unknown
         resultBuilder.add(ValueAndSMGState.ofUnknownValue(firstValueAndSMGState.getState()));
         continue;
