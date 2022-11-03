@@ -281,6 +281,7 @@ public class SMGCPAExpressionEvaluator {
       return getFieldOffsetInBits(type, pFieldName);
     }
 
+    // Should never happen
     throw new AssertionError();
   }
 
@@ -1280,7 +1281,7 @@ public class SMGCPAExpressionEvaluator {
       } catch (CPATransferException e) {
         // Just stop the analysis for critical errors
       }
-      throw new AssertionError(
+      throw new UnsupportedOperationException(
           "Could not determine variable array length for length "
               + arrayLength.toASTString()
               + " and array type "
@@ -1540,7 +1541,8 @@ public class SMGCPAExpressionEvaluator {
     BigInteger typeSizeInBits;
     try {
       typeSizeInBits = getBitSizeof(newState, cType);
-    } catch (AssertionError e) {
+    } catch (UnsupportedOperationException e) {
+      // The visitor forced my hand here!
       if (options.isIgnoreUnknownMemoryAllocation()
           && e.getMessage().contains("Could not determine variable array length for length")) {
         return newState;

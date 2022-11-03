@@ -244,7 +244,7 @@ public class SMGCPABuiltins {
           // TODO:
           return Collections.singletonList(ValueAndSMGState.ofUnknownValue(pState));
         } else {
-          throw new AssertionError(
+          throw new UnsupportedOperationException(
               "Unexpected function handled as a builtin: " + calledFunctionName);
         }
     }
@@ -491,7 +491,7 @@ public class SMGCPABuiltins {
       case ASSUME_EXTERNAL_ALLOCATED:
         return Collections.singletonList(ValueAndSMGState.ofUnknownValue(pState));
       default:
-        throw new AssertionError(
+        throw new UnsupportedOperationException(
             "Unhandled function in cpa.smg2.SMGCPABuiltins.handleUnknownFunction(): "
                 + options.getHandleUnknownFunctions());
     }
@@ -672,7 +672,7 @@ public class SMGCPABuiltins {
           continue;
         } else {
 
-          throw new AssertionError(
+          throw new UnsupportedOperationException(
               "An allocation function was called with a symbolic size. This is not supported"
                   + " currently by the SMG2 analysis. Try GuessSizeOfUnknownMemorySize.");
         }
