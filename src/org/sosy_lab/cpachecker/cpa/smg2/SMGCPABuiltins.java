@@ -259,13 +259,15 @@ public class SMGCPABuiltins {
       CFunctionCallExpression cFCExpression, CFAEdge pCfaEdge, SMGState pState) {
     Preconditions.checkArgument(cFCExpression.getParameterExpressions().size() == 1);
     // The first argument is the variable to be deleted
-    CIdExpression firstIdArg = (CIdExpression) evaluateCFunctionCallToFirstParameterForVA(cFCExpression);
+    CIdExpression firstIdArg =
+        (CIdExpression) evaluateCFunctionCallToFirstParameterForVA(cFCExpression);
     SMGState currentState =
         pState.copyAndPruneFunctionStackVariable(firstIdArg.getDeclaration().getQualifiedName());
     return ImmutableList.of(ValueAndSMGState.ofUnknownValue(currentState));
   }
 
-  private CExpression evaluateCFunctionCallToFirstParameterForVA(CFunctionCallExpression cFCExpression) {
+  private CExpression evaluateCFunctionCallToFirstParameterForVA(
+      CFunctionCallExpression cFCExpression) {
     CExpression firstArg = cFCExpression.getParameterExpressions().get(0);
     while (firstArg instanceof CCastExpression) {
       firstArg = ((CCastExpression) firstArg).getOperand();
@@ -371,8 +373,10 @@ public class SMGCPABuiltins {
     if (!paramDecl.getType().equals(secondArg.getExpressionType())) {
       // Log warning (gcc only throws a warning and it works anyway)
       logger.logf(
-          Level.INFO, "The types of variable arguments (%s) do not match the last not "
-              + "variable argument of the function (%s)", paramDecl.getType(),
+          Level.INFO,
+          "The types of variable arguments (%s) do not match the last not "
+              + "variable argument of the function (%s)",
+          paramDecl.getType(),
           secondArg.getExpressionType());
     }
     BigInteger sizeInBitsPointer = evaluator.getBitSizeof(pState, firstArg);

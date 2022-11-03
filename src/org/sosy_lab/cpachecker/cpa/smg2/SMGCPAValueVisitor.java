@@ -442,7 +442,7 @@ public class SMGCPAValueVisitor
             resultBuilder.add(
                 ValueAndSMGState.of(
                     evaluator.checkEqualityForAddresses(
-                        nonConstLeftValue, nonConstRightValue, currentState, cfaEdge),
+                        nonConstLeftValue, nonConstRightValue, currentState),
                     currentState));
             continue;
           } else if (binaryOperator == BinaryOperator.NOT_EQUALS) {
@@ -451,7 +451,7 @@ public class SMGCPAValueVisitor
             resultBuilder.add(
                 ValueAndSMGState.of(
                     evaluator.checkNonEqualityForAddresses(
-                        nonConstLeftValue, nonConstRightValue, currentState, cfaEdge),
+                        nonConstLeftValue, nonConstRightValue, currentState),
                     currentState));
             continue;
           } else if (binaryOperator == BinaryOperator.PLUS

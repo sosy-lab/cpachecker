@@ -239,7 +239,7 @@ public class SMGTransferRelation
         BigInteger sizeInBits = evaluator.getBitSizeof(state, retType);
         ValueAndSMGState valueAndStateToWrite =
             evaluator.unpackAddressExpression(
-                returnValueAndState.getValue(), returnValueAndState.getState(), returnEdge);
+                returnValueAndState.getValue(), returnValueAndState.getState());
 
         successorsBuilder.add(
             valueAndStateToWrite
