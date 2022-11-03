@@ -564,8 +564,7 @@ public class SMG {
 
     ImmutableSet<SMGValue> valuesToRemove = valuesToRemoveBuilder.build();
     if (!valuesToRemove.isEmpty()) {
-      for (PersistentSet<SMGHasValueEdge> hasValueEntryValue :
-          hasValueEdges.values()) {
+      for (PersistentSet<SMGHasValueEdge> hasValueEntryValue : hasValueEdges.values()) {
         for (SMGHasValueEdge valueEdge : hasValueEntryValue) {
           if (valuesToRemove.contains(valueEdge.hasValue())) {
             objectsToRemoveBuilder.add(object);
