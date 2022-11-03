@@ -125,7 +125,7 @@ solver.smtinterpol.furtherOptions = []
 
 # Which SMT solver to use.
 solver.solver = SMTINTERPOL
-  enum:     [MATHSAT5, SMTINTERPOL, Z3, PRINCESS, BOOLECTOR, CVC4, YICES2]
+  enum:     [MATHSAT5, SMTINTERPOL, Z3, PRINCESS, BOOLECTOR, CVC4, CVC5, YICES2]
 
 # Sequentialize all solver actions to allow concurrent access!
 solver.synchronize = false
@@ -190,10 +190,6 @@ analysis.algorithm.CEGAR = false
 # use McMillan's interpolation-based model checking algorithm, works only
 # with PredicateCPA and large-block encoding
 analysis.algorithm.IMC = false
-
-# use interpolation-sequence based model checking algorithm, works only with
-# PredicateCPA and large-block encoding
-analysis.algorithm.ISMC = false
 
 # Use MPI for running analyses in new subprocesses. The resulting reachedset
 # is the one of the first analysis returning in time. All other mpi-processes
@@ -3813,7 +3809,7 @@ heuristicSelection.recursionConfig = no default value
 # Configuration for programs with a single loop.
 heuristicSelection.singleLoopConfig = no default value
 
-# toggle asserting targets at every iteration
+# toggle asserting targets at every iteration for IMC
 imc.assertTargetsAtEveryIteration = false
 
 # toggle checking forward conditions
@@ -3822,8 +3818,33 @@ imc.checkForwardConditions = true
 # toggle falling back if interpolation or forward-condition is disabled
 imc.fallBack = true
 
-# toggle using interpolation to verify programs with loops
-imc.interpolation = true
+# toggle which strategy is used for computing fixed points in order to verify
+# programs with loops. ITP enables IMC algorithm, and ITPSEQ enables ISMC
+# algorithm. ITPSEQ_AND_ITP runs ISMC first, and if a fixed point is not
+# reached by ISMC, IMC is invoked.
+imc.fixedPointComputeStrategy = ITP
+  enum:     [NONE, ITP, ITPSEQ, ITPSEQ_AND_ITP]
+
+# toggle Impact-like covering for the ISMC fixed-point check
+imc.impactLikeCovering = false
+
+# toggle the strategy to determine the next loop iteration
+# to execute BMC phase of IMC or ISMC
+# CONST: increased by one (to guarantee a shortest counterexample)
+# EAGER: skip all iterations where a bug cannot be found
+imc.loopBoundIncrementStrategyForBMC = CONST
+  enum:     [CONST, EAGER]
+
+# toggle the strategy to determine the next loop iteration
+# to execute interpolation phase of IMC
+# CONST: increased by a constant (specified via
+# loopBoundIncrementValueForIMC)
+# EAGER: skip all iterations where a bug cannot be found
+imc.loopBoundIncrementStrategyForIMC = CONST
+  enum:     [CONST, EAGER]
+
+# toggle the value to increment the loop bound by at each step for IMC
+imc.loopBoundIncrementValueForIMC = 1
 
 # toggle removing unreachable stop states in ARG
 imc.removeUnreachableStopStates = false
@@ -3863,21 +3884,6 @@ invariantStore.invariantGenerationStrategy = REACHED_SET
 
 # The witness from which invariants should be generated.
 invariantStore.witness = "invariantwitness.yaml"
-
-# toggle checking forward conditions
-ismc.checkForwardConditions = true
-
-# toggle falling back if interpolation or forward-condition is disabled
-ismc.fallBack = true
-
-# toggle Impact-like covering for the fixed-point check
-ismc.impactLikeCovering = false
-
-# toggle using interpolation to verify programs with loops
-ismc.interpolation = true
-
-# toggle removing unreachable stop states in ARG
-ismc.removeUnreachableStopStates = false
 
 # Specify the class code path to search for java class or interface
 # definitions
@@ -4514,11 +4520,11 @@ solver.enableLoggingInSolver = false
 # Which solver to use specifically for interpolation (default is to use the
 # main one).
 solver.interpolationSolver = no default value
-  enum:     [MATHSAT5, SMTINTERPOL, Z3, PRINCESS, BOOLECTOR, CVC4, YICES2]
+  enum:     [MATHSAT5, SMTINTERPOL, Z3, PRINCESS, BOOLECTOR, CVC4, CVC5, YICES2]
 
 # Which SMT solver to use.
 solver.solver = MATHSAT5
-  enum:     [MATHSAT5, SMTINTERPOL, Z3, PRINCESS, BOOLECTOR, CVC4, YICES2]
+  enum:     [MATHSAT5, SMTINTERPOL, Z3, PRINCESS, BOOLECTOR, CVC4, CVC5, YICES2]
 
 # Comma-separated list of files with specifications that should be checked
 # (cf. config/specification/ for examples). Property files as used in SV-COMP
